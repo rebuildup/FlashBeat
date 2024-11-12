@@ -1,0 +1,17 @@
+
+=== Mon Aug 12 20:49:56 2024
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.collab-proxy from version 2.0.7 to 2.4.4
+  com.unity.visualscripting from version 1.9.2 to 1.9.4
+
+=== Sun Nov 10 19:10:33 2024
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.collab-proxy from version 2.4.4 to 2.5.2
