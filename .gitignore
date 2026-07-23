@@ -1,14 +1,55 @@
-Library/PlayerDataCache/
-Assets/YuGothB SDF.asset
-Assets/TextAssetsYuigo.asset
-Assets/NotoSansJP-Medium SDF.asset
-Assets/Resources/Videos/背景アニメーションタイトル.mp4
-Assets/Resources/Videos/UnityYoutube/灰Φ倶楽部.mp4
-Assets/Resources/Videos/UnityYoutube/一龠.mp4
-Assets/Resources/Videos/UnityYoutube/ビビビビ.mp4
-Assets/Resources/Videos/UnityYoutube/セルフィ.mp4
-Assets/Resources/Videos/UnityYoutube/エウタナシア.mp4
-Assets/Resources/Videos/UnityYoutube/Who_.mp4
-Assets/Resources/Videos/UnityYoutube/Major.mp4
-Assets/Resources/Videos/UnityYoutube/GURU.mp4
-Assets/Resources/Videos/UnityYoutube/GURU.mp4
+# ─────── Unity 自動生成 ───────
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Asset と meta は原則ペアで追跡する
+!/[Aa]ssets/**/*.meta
+
+# ─────── IDE・ビルドツール ───────
+.vs/
+.idea/
+.vscode/
+.gradle/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.csproj.user
+ExportedObj/
+.consulo/
+
+# ─────── クラッシュレポート ───────
+sysinfo.txt
+
+# ─────── ビルド成果物 ───────
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# ─────── Addressables ───────
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# ─────── NuGet for Unity (自動復元される .dll/.xml) ───────
+/[Aa]ssets/Packages/
+
+# ─────── 一時ファイル ───────
+crashlytics-build.properties
+*.bak
+*~
