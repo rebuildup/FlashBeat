@@ -60,6 +60,7 @@ public class MakeFileSceneManager : MonoBehaviour
       SongLong
       totalSong
     ④GameScene>>YoutubePlayer>>複製>>名前をSongIDの数値に変更>>MusicManagerにアタッチ
+    ⑤YoutubePlayerのUrlに楽曲のUrlをアタッチ
  */
 /*
  * テンプレ     曲名変えるの忘れるな

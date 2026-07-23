@@ -338,6 +338,7 @@ public class Judge : MonoBehaviour
                 Judgement(GetABS(Time.time - (notesManager.NotesTime[0] + GManager.StartTime)), 0);
 
             }
+            
         }
 
     }
