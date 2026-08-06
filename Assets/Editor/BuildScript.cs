@@ -19,12 +19,12 @@ public static class BuildScript
 
         string[] scenes = new string[]
         {
-            "Assets/Scenes/Opening.unity",
-            "Assets/Scenes/TitleScene.unity",
-            "Assets/Scenes/SelectScene.unity",
-            "Assets/Scenes/GameScene.unity",
-            "Assets/Scenes/ResultScene.unity",
-            "Assets/Scenes/OptionScene.unity"
+            "Assets/Game/Scenes/Opening.unity",
+            "Assets/Game/Scenes/TitleScene.unity",
+            "Assets/Game/Scenes/SelectScene.unity",
+            "Assets/Game/Scenes/GameScene.unity",
+            "Assets/Game/Scenes/ResultScene.unity",
+            "Assets/Game/Scenes/OptionScene.unity"
         };
 
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions

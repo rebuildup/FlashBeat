@@ -19,7 +19,6 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
   ```
   Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneWindows64
   ```
-- Known issue: `BuildScript.cs` lists `Assets/Scenes/OpeningScene.unity`, but the actual filename is `Opening.unity` (no `Scene`). Fix the path before relying on a fresh build.
 
 **Run Tests**
 - Editor: `Window → General → Test Runner → EditMode`.
