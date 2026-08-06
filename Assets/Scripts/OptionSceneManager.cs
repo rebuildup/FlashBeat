@@ -5,13 +5,12 @@ using UnityEngine;
 using System.IO;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine.Audio;
 using UnityEngine.UI;
 
 
 [Serializable]
-public class SettingItemData //ÉmÅ[ÉcÉtÉ@ÉCÉãäTóvÇÃÉfÅ[É^
+public class SettingItemData //„Éé„Éº„ÉÑ„Éï„Ç°„Ç§„É´Ê¶ÇË¶Å„ÅÆ„Éá„Éº„Çø
 {
     public string name;
     public int maxBlock;
@@ -56,52 +55,59 @@ public class OptionSceneManager : MonoBehaviour
 
     void Start()
     {
-        audioMixer = audioMixer.GetComponent<AudioSource>();
-        audioMixerMain = audioMixerMain.GetComponent<AudioSource>();
-        audioBGM = audioBGM.GetComponent<AudioSource>();
+        if (volumeSlider != null)
+        {
+            volumeSlider.value = GManager.effectVolume;
+            volumeSlider.onValueChanged.AddListener(value =>
+            {
+                if (audioMixer != null) audioMixer.volume = value;
+                GManager.effectVolume = value;
+            });
+        }
+
+        if (MainSlider != null)
+        {
+            MainSlider.value = GManager.mainVolume;
+            MainSlider.onValueChanged.AddListener(value =>
+            {
+                if (audioMixerMain != null) audioMixerMain.volume = value;
+                GManager.mainVolume = value;
+                AudioListener.volume = value;
+            });
+        }
+
+        if (BGMSlider != null)
+        {
+            BGMSlider.value = GManager.BGMVolume;
+            BGMSlider.onValueChanged.AddListener(value =>
+            {
+                if (audioBGM != null) audioBGM.volume = value;
+                GManager.BGMVolume = value;
+            });
+        }
+
         if (GManager.Flash)
         {
-            FlashON.SetActive(true);
-            FlashOFF.SetActive(false);
+            if (FlashON != null) FlashON.SetActive(true);
+            if (FlashOFF != null) FlashOFF.SetActive(false);
         }
         else
         {
-            FlashON.SetActive(false);
-            FlashOFF.SetActive(true);
+            if (FlashON != null) FlashON.SetActive(false);
+            if (FlashOFF != null) FlashOFF.SetActive(true);
         }
-        flashSText.text = (GManager.FlashBG).ToString();
-        flashTText.text = (GManager.FlashT).ToString();
-        volumeSlider.value = GManager.effectVolume;
-        MainSlider.value = GManager.mainVolume;
-        BGMSlider.value = GManager.BGMVolume;
-        
+
+        if (flashSText != null) flashSText.text = GManager.FlashBG.ToString();
+        if (flashTText != null) flashTText.text = GManager.FlashT.ToString();
     }
-    /*
-     [SerializeField] private AudioSource audioMixer;
-    [SerializeField] public Slider volumeSlider;
 
-    audioMixer = gameObject.GetComponent<AudioSource>();
-
-    volumeSlider.onValueChanged.AddListener(value => this.audioMixer.volume = value);
-     */
     void Update()
     {
-        volumeSlider.onValueChanged.AddListener(value => this.audioMixer.volume = value);
-        MainSlider.onValueChanged.AddListener(value=>this.audioMixerMain.volume = value);
-        BGMSlider.onValueChanged.AddListener(value => this.audioBGM.volume = value);
         if (SceneManager.GetActiveScene().name == "OptionScene")
         {
-            speedNum.text = GManager.noteSpeed.ToString("F1");
-            TimingText.text = GManager.noteTiming.ToString();
+            if (speedNum != null) speedNum.text = GManager.noteSpeed.ToString("F1");
+            if (TimingText != null) TimingText.text = GManager.noteTiming.ToString();
         }
-        GManager.mainVolume = MainSlider.value;
-
-        GManager.effectVolume = volumeSlider.value;
-        GManager.BGMVolume = BGMSlider.value;
-        AudioListener.volume = GManager.mainVolume;
-        audioBGM.volume = GManager.BGMVolume;
-        // âπó Çì«Ç›çûÇﬁ
-
     }
     private static OptionSceneManager instance;
 
@@ -110,7 +116,7 @@ public class OptionSceneManager : MonoBehaviour
         get{
             if (instance == null)
             {
-                instance = FindObjectOfType<OptionSceneManager>();
+                instance = FindAnyObjectByType<OptionSceneManager>();
             }
             return instance;
         }
@@ -118,8 +124,8 @@ public class OptionSceneManager : MonoBehaviour
 
     public static void saveSettings(int I,SettingItemData newData)
     {
-        jsonPath = "Assets/Resources/" + GManager.SongName[I] + ".json";
-        jsonfileName = GManager.SongName[I].ToString();
+        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
+        jsonfileName = GManager.Songs[I].title.ToString();
 
         string jsonstr = JsonUtility.ToJson(newData);
 
@@ -133,8 +139,8 @@ public class OptionSceneManager : MonoBehaviour
 
     public static SettingItemData LoadSettings(int I)
     {
-        jsonPath = "Assets/Resources/" + GManager.SongName[I] + ".json";
-        jsonfileName = GManager.SongName[I].ToString(); ;
+        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
+        jsonfileName = GManager.Songs[I].title.ToString(); ;
         SettingItemData settingData = null;
 
         try
@@ -162,11 +168,11 @@ public class OptionSceneManager : MonoBehaviour
         GManager.noteTiming++;
         for (int i = 1; i <= GManager.totalSong; i++)
         {
-            SettingItemData settingData = new SettingItemData(); // settingDataÇêÈåæÇµÇƒèâä˙âª
-            settingData = LoadSettings(i); // ä˘ë∂ÇÃJSONÉfÅ[É^Çì«Ç›çûÇﬁ
+            SettingItemData settingData = new SettingItemData(); // settingData„ÇíÂÆ£Ë®Ä„Åó„Å¶ÂàùÊúüÂåñ
+            settingData = LoadSettings(i); // Êó¢Â≠ò„ÅÆJSON„Éá„Éº„Çø„ÇíË™≠„ÅøËæº„ÇÄ
             settingData.offset = GManager.noteTiming;
             saveSettings(i, settingData);
-            Debug.Log("ê›íËäÆóπ offset=" + settingData.offset);
+            Debug.Log("Ë®≠ÂÆöÂÆå‰∫Ü offset=" + settingData.offset);
         }
     }
     public void TimingDown()
@@ -174,11 +180,11 @@ public class OptionSceneManager : MonoBehaviour
         GManager.noteTiming--;
         for (int i = 1; i <= GManager.totalSong; i++)
         {
-            SettingItemData settingData = new SettingItemData(); // settingDataÇêÈåæÇµÇƒèâä˙âª
-            settingData = LoadSettings(i); // ä˘ë∂ÇÃJSONÉfÅ[É^Çì«Ç›çûÇﬁ
+            SettingItemData settingData = new SettingItemData(); // settingData„ÇíÂÆ£Ë®Ä„Åó„Å¶ÂàùÊúüÂåñ
+            settingData = LoadSettings(i); // Êó¢Â≠ò„ÅÆJSON„Éá„Éº„Çø„ÇíË™≠„ÅøËæº„ÇÄ
             settingData.offset = GManager.noteTiming;
             saveSettings(i, settingData);
-            Debug.Log("ê›íËäÆóπ offset=" + settingData.offset);
+            Debug.Log("Ë®≠ÂÆöÂÆå‰∫Ü offset=" + settingData.offset);
         }
     }
     public void FlashTUp()
@@ -195,12 +201,12 @@ public class OptionSceneManager : MonoBehaviour
     public void SpeedUp()
     {
         GManager.noteSpeed += 0.1f;
-        Debug.Log("ê›íËäÆóπ noteSpeed=" + GManager.noteSpeed);
+        Debug.Log("Ë®≠ÂÆöÂÆå‰∫Ü noteSpeed=" + GManager.noteSpeed);
     }
     public void SpeedDown()
     {
         GManager.noteSpeed -= 0.1f;
-        Debug.Log("ê›íËäÆóπ noteSpeed=" + GManager.noteSpeed);
+        Debug.Log("Ë®≠ÂÆöÂÆå‰∫Ü noteSpeed=" + GManager.noteSpeed);
     }
     public void playSound()
     {
