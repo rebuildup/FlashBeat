@@ -58,3 +58,7 @@ Thumbs.db
 desktop.ini
 .vsconfig
 
+# Build/test logs (regenerated, not tracked)
+/build*.log
+/test-run.log
+
