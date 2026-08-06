@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4897931565356129689}
   - component: {fileID: 8585911662241353016}
   m_Layer: 0
-  m_Name: Directional Light
+  m_Name: DirectionalLight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
