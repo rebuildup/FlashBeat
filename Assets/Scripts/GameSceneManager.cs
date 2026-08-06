@@ -154,8 +154,7 @@ public class GameSceneManager : MonoBehaviour
         
 
         // アニメーション待機し、終わったらパネル自体を非アクティブにする
-        
-        //StartCoroutine(WaitAnimation("Hidden", () => gameObject.SetActive(false)));
+
         StartCoroutine(WaitAnimation("Hidden", () =>MenuPanel.SetActive(false)));
     }
     public void playSound()
@@ -221,10 +220,6 @@ public class GameSceneManager : MonoBehaviour
                     TextEnd();
                 }
             }
-            else if (Input.anyKeyDown)
-            {
-                UnCorrect();
-            }
         }
         
         if (MenuPanel.activeSelf)
@@ -264,9 +259,6 @@ public class GameSceneManager : MonoBehaviour
     private void Correct()
     {
         charNum++;
-    }
-    private void UnCorrect()
-    {
     }
     public void TextEnd()
     {
