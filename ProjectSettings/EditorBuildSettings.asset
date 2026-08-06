@@ -6,25 +6,25 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Opening.unity
+    path: Assets/Game/Scenes/Opening.unity
     guid: 1d344c69af18e2e4fa73471a43b9873a
   - enabled: 1
-    path: Assets/Scenes/TitleScene.unity
+    path: Assets/Game/Scenes/TitleScene.unity
     guid: ffdef3abde997794e824e6228a5b2f9f
   - enabled: 1
-    path: Assets/Scenes/SelectScene.unity
+    path: Assets/Game/Scenes/SelectScene.unity
     guid: eac5184f377082c489b809d7e52a33bd
   - enabled: 1
-    path: Assets/Scenes/GameScene.unity
+    path: Assets/Game/Scenes/GameScene.unity
     guid: e8cbfddade54184468d1b8e89a03ce7b
   - enabled: 1
-    path: Assets/Scenes/ResultScene.unity
+    path: Assets/Game/Scenes/ResultScene.unity
     guid: 66bd1ee2d9ee5b745918ad64df982396
   - enabled: 1
-    path: Assets/Scenes/OptionScene.unity
+    path: Assets/Game/Scenes/OptionScene.unity
     guid: d3c0f7e4b0c57f045b77476ad4e7a6a8
   - enabled: 1
-    path: Assets/Scenes/MakeFileScene.unity
+    path: Assets/Game/Scenes/MakeFileScene.unity
     guid: 3e143bfbe615aea40847efdf415b7dd5
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
