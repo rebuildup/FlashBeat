@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -23,7 +23,7 @@ public class TipingSceneManager : MonoBehaviour
     private int nowText;
     private float MusicCount;
 
-    private TextData inputJson; // ƒƒ“ƒo•Ï”‚Æ‚µ‚Ä TextData ƒIƒuƒWƒFƒNƒg‚ğéŒ¾
+    private TextData inputJson; // ãƒ¡ãƒ³ãƒå¤‰æ•°ã¨ã—ã¦ TextData ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’å®£è¨€
 
     public TextData InputJson
     {
@@ -36,13 +36,13 @@ public class TipingSceneManager : MonoBehaviour
         TPlayed = false;
         MusicPlayed = false;
         nowText = 0;
-        Load(GManager.SongName[GManager.songID]);
-        furiganaText.text = GManager.SongName[GManager.songID];
+        Load(GManager.Songs[GManager.songID].title);
+        furiganaText.text = GManager.Songs[GManager.songID].title;
         mondaiText.text = "Space to Start";
         romajiText.text = "";
         display = false;
         audioS = GetComponent<AudioSource>();
-        Music = (AudioClip)Resources.Load("Musics/" + GManager.SongName[GManager.songID]);
+        Music = (AudioClip)Resources.Load("Musics/" + GManager.Songs[GManager.songID].title);
         audioS.volume = GManager.mainVolume;
     }
 
@@ -53,17 +53,17 @@ public class TipingSceneManager : MonoBehaviour
         {
             TPlayed = true;
         }
-        //‰¹Šy‚ªI‚í‚Á‚½‚çŒJ‚è•Ô‚µ
+        //éŸ³æ¥½ãŒçµ‚ã‚ã£ãŸã‚‰ç¹°ã‚Šè¿”ã—
       
         else
         {
             MusicCount += Time.deltaTime;
-            if (MusicCount >= GManager.SongLong[GManager.songID])
+            if (MusicCount >= GManager.Songs[GManager.songID].duration)
             {
                 MusicPlayed = false;
             }
         }
-        
+
         if (TPlayed)
         {
             if (!MusicPlayed)
@@ -74,7 +74,7 @@ public class TipingSceneManager : MonoBehaviour
             else
             {
                 MusicCount += Time.deltaTime;
-                if (MusicCount >= GManager.SongLong[GManager.songID])
+                if (MusicCount >= GManager.Songs[GManager.songID].duration)
                 {
                     MusicPlayed = false;
                 }
