@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class TipingSceneManager : MonoBehaviour
+public class TypingSceneManager : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI furiganaText;
     [SerializeField] private TextMeshProUGUI mondaiText;

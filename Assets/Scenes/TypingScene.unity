@@ -389,7 +389,7 @@ GameObject:
   - component: {fileID: 1687864906}
   - component: {fileID: 1687864907}
   m_Layer: 0
-  m_Name: TipingSceneManager
+  m_Name: TypingSceneManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
