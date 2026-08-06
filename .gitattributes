@@ -46,10 +46,11 @@
 *.controller text eol=lf
 *.mixer    text eol=lf
 *.renderTexture text eol=lf
-*.asmdef   text eol=lf
-*.asmref   text eol=lf
-*.uxml     text eol=lf
-*.uss      text eol=lf
+.asmdef   text eol=lf
+.asmref   text eol=lf
+.editorconfig text eol=lf
+.uxml     text eol=lf
+.uss      text eol=lf
 
 # 大型SDFアセットのみ、テキスト規則よりLFSを優先する
 "Assets/NotoSansJP-Medium SDF.asset" filter=lfs diff=lfs merge=lfs -text

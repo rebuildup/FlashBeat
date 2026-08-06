@@ -133,11 +133,11 @@ VideoPlayer:
   - {fileID: 0}
   m_DirectAudioVolumes:
   - 1
-  m_Url: https://rr4---sn-3pm76nel.googlevideo.com/videoplayback?expire=1706946549&ei=lZu9ZcmaMdeT7OsP8dy_kAQ&ip=114.160.123.22&id=o-AFLIvGw2QF3K-plU_uBhQK4NAN_8IxRlBy252P8gMRc5&itag=22&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&mh=wD&mm=31%2C29&mn=sn-3pm76nel%2Csn-3pm7dnel&ms=au%2Crdu&mv=m&mvi=4&pl=21&gcr=jp&initcwndbps=1773750&vprv=1&svpuc=1&mime=video%2Fmp4&cnr=14&ratebypass=yes&dur=209.490&lmt=1705888968036073&mt=1706924687&fvip=1&fexp=24007246&c=ANDROID&txp=4532434&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cvprv%2Csvpuc%2Cmime%2Ccnr%2Cratebypass%2Cdur%2Clmt&sig=AJfQdSswRQIhAMz6dwKL0KDyyCZ4_5KVvA8kvoraAFghx1r-BHeiyQGdAiBsQsvX9HOEWeps7wovYxdRaTS9fQpZ6Up8hfTggUaQ2w%3D%3D&lsparams=mh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AAO5W4owRQIhAJFHGzJJiru1LvmlcYMXs8n7kaIq4JmjUHb2h49zZhpeAiBq8z0VUHn3rqDSBL5xQyxhmIeXkK5RjNnXDPbac3_2_Q%3D%3D
+  m_Url:
   m_EnabledAudioTracks: 01
   m_DirectAudioMutes: 00
   m_ControlledAudioTrackCount: 1
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_SkipOnDrop: 1
   m_Looping: 0
   m_WaitForFirstFrame: 1
@@ -152,9 +152,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7343958346512046938}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3768fe280903842fdaa2a016022624f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  youtubeUrl: https://www.youtube.com/watch?v=jp0_IuC-9Lo
-  is360Video: 0
-  cli: 1
+  m_Script: {fileID: 11500000, guid: 6f51438de7493496c87c7a2918e755e0, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  VideoId:
+  InvidiousInstance: {fileID: 0}
+  Itag:
+  ProxyVideo: 1
+  CheckForBlockedStreams: 1

@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Experimental.Video;
 using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 
@@ -51,9 +50,9 @@ public class TitleSceneManager : MonoBehaviour
     {
         
 #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;//ゲームプレイ終了
+        UnityEditor.EditorApplication.isPlaying = false;//繧ｲ繝ｼ繝繝励Ξ繧､邨ゆｺ�
 #else
-    Application.Quit();//ゲームプレイ終了
+    Application.Quit();//繧ｲ繝ｼ繝繝励Ξ繧､邨ゆｺ�
 #endif
     }
 
@@ -76,7 +75,14 @@ public class TitleSceneManager : MonoBehaviour
     public void playSound()
     {
         sounds = GetComponent<AudioSource>();
-        sounds.PlayOneShot(sound);
+        if (sound != null)
+        {
+            sounds.PlayOneShot(sound);
+        }
+        else
+        {
+            Debug.LogWarning("[TitleSceneManager] sound AudioClip is not assigned in Inspector.");
+        }
     }
     public void StartB()
     {

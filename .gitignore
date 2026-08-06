@@ -49,7 +49,12 @@ sysinfo.txt
 # ─────── NuGet for Unity (自動復元される .dll/.xml) ───────
 /[Aa]ssets/Packages/
 
-# ─────── 一時ファイル ───────
+# ─────── 一時ファイル・OS ───────
 crashlytics-build.properties
 *.bak
 *~
+.DS_Store
+Thumbs.db
+desktop.ini
+.vsconfig
+
