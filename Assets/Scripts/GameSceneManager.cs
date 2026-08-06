@@ -6,8 +6,6 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-//using static TreeEditor.TreeEditorHelper;
-
 
 [Serializable]
 public class TextData
@@ -36,16 +34,16 @@ public class GameSceneManager : MonoBehaviour
 
     [SerializeField] private Animator _animator;
 
-    // ƒAƒjƒ[ƒ^[ƒRƒ“ƒgƒ[ƒ‰[‚ÌƒŒƒCƒ„[(’Êí‚Í0)
+    // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼(é€šå¸¸ã¯0)
     [SerializeField] private int _layer;
 
-    // IsOpenƒtƒ‰ƒO(ƒAƒjƒ[ƒ^[ƒRƒ“ƒgƒ[ƒ‰[“à‚Å’è‹`‚µ‚½ƒtƒ‰ƒO)
+    // IsOpenãƒ•ãƒ©ã‚°(ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼å†…ã§å®šç¾©ã—ãŸãƒ•ãƒ©ã‚°)
     private static readonly int ParamIsOpen = Animator.StringToHash("IsOpen");
 
-    // ƒ_ƒCƒAƒƒO‚ÍŠJ‚¢‚Ä‚¢‚é‚©‚Ç‚¤‚©
+    // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã¯é–‹ã„ã¦ã„ã‚‹ã‹ã©ã†ã‹
     public bool IsOpen => gameObject.activeSelf;
 
-    // ƒAƒjƒ[ƒVƒ‡ƒ“’†‚©‚Ç‚¤‚©
+    // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä¸­ã‹ã©ã†ã‹
     public bool IsTransition { get; private set; }
 
     public bool display;
@@ -58,7 +56,7 @@ public class GameSceneManager : MonoBehaviour
 
     private string songName;
 
-    private TextData inputJson; // ƒƒ“ƒo•Ï”‚Æ‚µ‚Ä TextData ƒIƒuƒWƒFƒNƒg‚ğéŒ¾
+    private TextData inputJson; // ãƒ¡ãƒ³ãƒå¤‰æ•°ã¨ã—ã¦ TextData ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’å®£è¨€
 
     private int charNum;
 
@@ -74,7 +72,7 @@ public class GameSceneManager : MonoBehaviour
 
     [SerializeField] public GameObject Flash;
 
-    // ‘¼‚ÌŠÖ”‚Åg—p‚·‚é‚½‚ß‚ÌƒvƒƒpƒeƒB
+    // ä»–ã®é–¢æ•°ã§ä½¿ç”¨ã™ã‚‹ãŸã‚ã®ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£
     public TextData InputJson
     {
         get { return inputJson; }
@@ -104,15 +102,12 @@ public class GameSceneManager : MonoBehaviour
         romajiText.text = "";
         timeElapsed = 0.0f;
         Flash.SetActive(false);
-        songName = GManager.SongName[GManager.songID];
+        songName = GManager.Songs[GManager.songID].title;
         Load(songName);
-        //BPMCount = (60 / inputJson.BPM);
 
     }
     private void Load(string SongName)
-    {/*
-        string inputString = Resources.Load<TextAsset>(SongName+"_text").ToString();
-        TextData inputJson = JsonUtility.FromJson<TextData>(inputString);*/
+    {
         string inputString = Resources.Load<TextAsset>(SongName + "_text").ToString();
         this.inputJson = JsonUtility.FromJson<TextData>(inputString);
     }
@@ -135,7 +130,7 @@ public class GameSceneManager : MonoBehaviour
         }
         _animator.SetBool(ParamIsOpen, true);
 
-        // ƒAƒjƒ[ƒVƒ‡ƒ“‘Ò‹@
+        // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¾…æ©Ÿ
         StartCoroutine(WaitAnimation("Shown"));
 
     }
@@ -154,11 +149,11 @@ public class GameSceneManager : MonoBehaviour
         }
         if (!IsOpen || IsTransition) return;
 
-        // IsOpenƒtƒ‰ƒO‚ğƒNƒŠƒA
+        // IsOpenãƒ•ãƒ©ã‚°ã‚’ã‚¯ãƒªã‚¢
         _animator.SetBool(ParamIsOpen, false);
         
 
-        // ƒAƒjƒ[ƒVƒ‡ƒ“‘Ò‹@‚µAI‚í‚Á‚½‚çƒpƒlƒ‹©‘Ì‚ğ”ñƒAƒNƒeƒBƒu‚É‚·‚é
+        // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¾…æ©Ÿã—ã€çµ‚ã‚ã£ãŸã‚‰ãƒ‘ãƒãƒ«è‡ªä½“ã‚’éã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
         
         //StartCoroutine(WaitAnimation("Hidden", () => gameObject.SetActive(false)));
         StartCoroutine(WaitAnimation("Hidden", () =>MenuPanel.SetActive(false)));
@@ -174,15 +169,7 @@ public class GameSceneManager : MonoBehaviour
     }
     public void RetryGame()
     {
-        GManager.perfect = 0;
-        GManager.great = 0;
-        GManager.bad = 0;
-        GManager.miss = 0;
-        GManager.score = 0;
-        GManager.combo = 0;
-        GManager.maxScore = 0;
-        GManager.ratioScore = 0;
-
+        GManager.ResetSession();
         Initiate.Fade("GameScene", Color.black, 1.0f);
     }
     public void GameEnd()
@@ -216,11 +203,8 @@ public class GameSceneManager : MonoBehaviour
             {
                 if (Mathf.Abs(timeElapsed - (inputJson.StartTime[i] + (GManager.FlashT * 0.01f))) < 0.05f)
                 {
-                    //furiganaText.text = inputJson.Furigana[i];
                     mondaiText.text = inputJson.Mondai[i];
-                    // romajiT = inputJson.romaji[i];
-                    //romajiText.text = romajiT;
-                    display = true; // •\¦ƒtƒ‰ƒO‚ğ—§‚Ä‚é
+                    display = true; // è¡¨ç¤ºãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
                     charNum = 0;
                 }
 
@@ -280,37 +264,13 @@ public class GameSceneManager : MonoBehaviour
     private void Correct()
     {
         charNum++;
-        //romajiText.text = "<coolor=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + romajiT.Substring(charNum);
-       // romajiText.text = "<color=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + romajiT.Substring(charNum);
-        /*
-        if (charNum >= romajiT.Length)
-        {
-            TextEnd();
-        }
-        else
-        {
-            charNum++;
-            //romajiText.text = "<coolor=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + romajiT.Substring(charNum);
-            romajiText.text = "<color=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + romajiT.Substring(charNum);
-        }
-        */
     }
     private void UnCorrect()
     {
-        /*
-        if (charNum >= romajiT.Length)
-        {
-            TextEnd();
-        }
-        else
-        {
-            romajiText.text = "<color=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + "<color=#FF0000>" + romajiT[charNum] + "</color>" + "<color=#6A6A6A>" + romajiT.Substring(charNum + 1) + "</color>";
-        }*/
-       // romajiText.text = "<color=#6A6A6A>" + romajiT.Substring(0, charNum) + "</color>" + "<color=#FF0000>" + romajiT[charNum] + "</color>" + "<color=#6A6A6A>" + romajiT.Substring(charNum + 1) + "</color>";
     }
     public void TextEnd()
     {
-        // ƒeƒLƒXƒg‚ğ—ÎF‚É•ÏX
+        // ãƒ†ã‚­ã‚¹ãƒˆã‚’ç·‘è‰²ã«å¤‰æ›´
         romajiText.text = "<color=#41FF00>" + romajiT + "</color>";
     }
 
@@ -353,7 +313,7 @@ public class GameSceneManager : MonoBehaviour
 
         yield return new WaitUntil(() =>
         {
-            // ƒXƒe[ƒg‚ª•Ï‰»‚µAƒAƒjƒ[ƒVƒ‡ƒ“‚ªI—¹‚·‚é‚Ü‚Åƒ‹[ƒv
+            // ã‚¹ãƒ†ãƒ¼ãƒˆãŒå¤‰åŒ–ã—ã€ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒçµ‚äº†ã™ã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
             var state = _animator.GetCurrentAnimatorStateInfo(_layer);
             return state.IsName(stateName) && state.normalizedTime >= 1;
         });
