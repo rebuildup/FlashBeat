@@ -11,6 +11,7 @@ namespace NoteEditor.DTO
             public int maxBlock;
             public int BPM;
             public int offset;
+            public string videoId;
             public List<Note> notes;
         }
 
