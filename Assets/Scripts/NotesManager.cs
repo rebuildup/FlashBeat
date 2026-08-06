@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,7 +23,7 @@ public class Note
 
 public class NotesManager : MonoBehaviour
 {
-    public int noteNum;//ëçÉmÅ[Écêî
+    public int noteNum;//Á∑è„Éé„Éº„ÉÑÊï∞
     private string songName;
 
     public List<int> LaneNum = new List<int>();
@@ -39,7 +39,7 @@ public class NotesManager : MonoBehaviour
     {
         //NotesSpeed = GManager.noteSpeed;
         noteNum = 0;
-        songName = GManager.SongName[GManager.songID];
+        songName = GManager.Songs[GManager.songID].title;
         Load(songName);
     }
 
