@@ -1,0 +1,34 @@
+# Top-most EditorConfig file
+root = true
+
+# All files
+[*]
+charset = utf-8-bom
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# source code
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# C# Code Style & Naming Rules
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_operators = false:suggestion
+
+# Naming Conventions
+dotnet_naming_rule.camel_case_for_private_fields.severity = suggestion
+dotnet_naming_rule.camel_case_for_private_fields.symbols  = private_fields
+dotnet_naming_rule.camel_case_for_private_fields.style    = camel_case_style
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# Unity & Roslyn Analyzers
+dotnet_diagnostic.IDE0051.severity = warning # Unused private members
+dotnet_diagnostic.IDE0052.severity = warning # Unread private members
+dotnet_diagnostic.IDE0059.severity = warning # Unnecessary assignment
