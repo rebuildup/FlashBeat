@@ -78,18 +78,31 @@ Lane 3: 4 5 R T F G V B Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 
 ### NoteEditor 統合
 
-`Assets/NoteEditor/` に [setchi/NoteEditor](https://github.com/setchi/NoteEditor) を統合。譜面作成ツールとして独立して動作 (FlashBeat 本体とは別コンパイル単位)。
+`Assets/NoteEditor/` に [setchi/NoteEditor](https://github.com/setchi/NoteEditor) を統合。譜面作成ツールとして独立して動作 (FlashBeat 本体とは別コンパイル単位、Editor のみでビルドされる)。
+
+**取り込み情報** (詳細は `Assets/NoteEditor/IMPORT.md` を参照):
+- upstream commit SHA: `189256ef612105f3ccba1440b9fbd88c38a03db6`
+- ライセンス: MIT (`Assets/NoteEditor/LICENSE`)
+- 取り込み日: 2026-08-07
+
+**使い方**:
+- Editor で `Assets/NoteEditor/Scenes/NoteEditor.unity` を開いて起動 (GameScene からは呼ばれない独立シーン)
+- 譜面データ保存形式と FlashBeat の `Resources/<曲名>.json` 形式は互換性なし (エクスポート機能が必要なら別タスク)
+
+**ディレクトリ構成**:
 
 | ディレクトリ | 内容 |
 |---|---|
-| `Scripts/` | NoteEditor 本体 (62 .cs ファイル) |
+| `Scripts/` | NoteEditor 本体 (`Common`, `DTO`, `GLDrawing`, `Model`, `Notes`, `Presenter`, `SoundEffect`, `Utility` の 8 サブディレクトリ) |
 | `Art/Materials/`, `Art/Textures/` | UI 用マテリアル・テクスチャ |
-| `Prefabs/` | UI プレハブ |
+| `Prefabs/` | UI プレハブ (5 個) |
 | `Scenes/NoteEditor.unity` | NoteEditor エディタシーン |
 | `Audio/`, `Shaders/` | 音源・シェーダ |
-| `Plugins/UniRx/` | vendored UniRx (Unity 6 サポート済み) |
+| `Plugins/UniRx/` | Unity 6 サポート済みの vendored UniRx |
 
-asmdef: `UniRx` (vendored lib) + `NoteEditor` (本体、UniRx と TextMeshPro 参照)。FlashBeat 本体 (`FlashBeat.asmdef`) は UniRx を参照しない。
+**asmdef 構成** (Editor 限定):
+- `UniRx` (vendored lib) + `NoteEditor` (本体、UniRx と TextMeshPro 参照)。両者とも `includePlatforms: ["Editor"]` で `FlashBeat.exe` には含まれない
+- FlashBeat 本体 (`Assets/Game/Scripts/FlashBeat.asmdef`) は UniRx を参照しない
 
 ## Adding a new song
 
