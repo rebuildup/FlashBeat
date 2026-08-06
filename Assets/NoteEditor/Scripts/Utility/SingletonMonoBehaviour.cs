@@ -11,7 +11,7 @@ namespace NoteEditor.Utility
             {
                 if (instance_ == null)
                 {
-                    instance_ = FindObjectOfType<T>();
+                    instance_ = FindAnyObjectByType<T>();
                 }
 
                 return instance_ ?? new GameObject(typeof(T).FullName).AddComponent<T>();
