@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -69,13 +68,13 @@ public class GManager : MonoBehaviour
     }
 
     public static float noteSpeed = 10f;
-    public static int[] Hiscore = new int[42];
+    public static readonly int[] Hiscore = new int[42];
 
     public static bool Start;
     public static float StartTime;
     public static bool played;
     public static int noteTiming = 5;
-    public static int totalSong = 26;
+    public static int totalSong => Songs.Length - 1;
 
     public static int combo;
     public static int score;

@@ -1,13 +1,13 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Linq;
 
 public class SaveLoadManager : MonoBehaviour
 {
-    // Hiscore”z—ñ
+    // Hiscoreé…åˆ—
 
     void Start()
     {
-        // ƒV[ƒ“–¼‚É‚æ‚Á‚Äƒ[ƒh‚ÆƒZ[ƒu‚ðØ‚è‘Ö‚¦‚é
+        // ã‚·ãƒ¼ãƒ³åã«ã‚ˆã£ã¦ãƒ­ãƒ¼ãƒ‰ã¨ã‚»ãƒ¼ãƒ–ã‚’åˆ‡ã‚Šæ›¿ãˆã‚‹
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SelectScene")
         {
             LoadHiscore();
@@ -22,39 +22,46 @@ public class SaveLoadManager : MonoBehaviour
 
     void SaveHiscore()
     {
-        // ”z—ñ‚ðƒJƒ“ƒ}‹æØ‚è‚Ì•¶Žš—ñ‚É•ÏŠ·
+        // é…åˆ—ã‚’ã‚«ãƒ³ãƒžåŒºåˆ‡ã‚Šã®æ–‡å­—åˆ—ã«å¤‰æ›
         string hiscoreString = string.Join(",", GManager.Hiscore.Select(p => p.ToString()).ToArray());
 
-        // PlayerPrefs‚É•Û‘¶
+        // PlayerPrefsã«ä¿å­˜
         PlayerPrefs.SetString("Hiscore", hiscoreString);
         PlayerPrefs.Save();
     }
 
     void LoadHiscore()
     {
-        // PlayerPrefs‚©‚ç“Ç‚Ýž‚Ý
+        // PlayerPrefsã‹ã‚‰èª­ã¿è¾¼ã¿
         string hiscoreString = PlayerPrefs.GetString("Hiscore", "");
 
-        // •¶Žš—ñ‚ª‹ó‚Å‚È‚¢ê‡‚Ì‚Ý”z—ñ‚É–ß‚·
+        // æ–‡å­—åˆ—ãŒç©ºã§ãªã„å ´åˆã®ã¿é…åˆ—ã«æˆ»ã™
         if (!string.IsNullOrEmpty(hiscoreString))
         {
-            GManager.Hiscore = hiscoreString.Split(',').Select(p => int.Parse(p)).ToArray();
+            int[] loaded = hiscoreString.Split(',').Select(p => int.Parse(p)).ToArray();
+            for (int i = 0; i < GManager.Hiscore.Length && i < loaded.Length; i++)
+            {
+                GManager.Hiscore[i] = loaded[i];
+            }
         }
         else
         {
-            // •¶Žš—ñ‚ª‹ó‚Ìê‡‚ÍAHiscore‚ð‘S‚Ä0‚Ì”z—ñ‚ÉÝ’è
-            GManager.Hiscore = new int[40]; // ‚±‚±‚Å‚Í”z—ñ‚Ì’·‚³‚ð10‚Æ‚µ‚Ä‚¢‚Ü‚·‚ªA“KØ‚È’·‚³‚É•ÏX‚µ‚Ä‚­‚¾‚³‚¢
+            // æ–‡å­—åˆ—ãŒç©ºã®å ´åˆã¯ã€Hiscoreã‚’å…¨ã¦0ã®é…åˆ—ã«è¨­å®š
+            for (int i = 0; i < GManager.Hiscore.Length; i++)
+            {
+                GManager.Hiscore[i] = 0;
+            }
         }
     }
     public void ResetHiscore()
     {
-        // Hiscore”z—ñ‚Ì‘S‚Ä‚Ì—v‘f‚ð0‚ÉÝ’è
+        // Hiscoreé…åˆ—ã®å…¨ã¦ã®è¦ç´ ã‚’0ã«è¨­å®š
         for (int i = 0; i < GManager.Hiscore.Length; i++)
         {
             GManager.Hiscore[i] = 0;
         }
 
-        // XV‚µ‚½Hiscore”z—ñ‚ð•Û‘¶
+        // æ›´æ–°ã—ãŸHiscoreé…åˆ—ã‚’ä¿å­˜
         SaveHiscore();
         Debug.Log("kuriakanryou");
     }
