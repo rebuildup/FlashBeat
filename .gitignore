@@ -48,6 +48,11 @@ sysinfo.txt
 
 # ─────── NuGet for Unity (自動復元される .dll/.xml) ───────
 /[Aa]ssets/Packages/
+/[Aa]ssets/NuGet.config
+/[Aa]ssets/NuGet.config.meta
+/[Aa]ssets/packages.config
+/[Aa]ssets/packages.config.meta
+/[Aa]ssets/StreamingAssets/
 
 # ─────── 一時ファイル・OS ───────
 crashlytics-build.properties
