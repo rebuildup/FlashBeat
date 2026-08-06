@@ -16,6 +16,7 @@ namespace NoteEditor.Model
             dto.maxBlock = EditData.MaxBlock.Value;
             dto.offset = EditData.OffsetSamples.Value;
             dto.name = Path.GetFileNameWithoutExtension(EditData.Name.Value);
+            dto.videoId = EditData.VideoId.Value;
 
             var sortedNoteObjects = EditData.Notes.Values
                 .Where(note => !(note.note.type == NoteTypes.Long && EditData.Notes.ContainsKey(note.note.prev)))
@@ -56,6 +57,7 @@ namespace NoteEditor.Model
             EditData.BPM.Value = editData.BPM;
             EditData.MaxBlock.Value = editData.maxBlock;
             EditData.OffsetSamples.Value = editData.offset;
+            EditData.VideoId.Value = string.IsNullOrEmpty(editData.videoId) ? "" : editData.videoId;
 
             foreach (var note in editData.notes)
             {

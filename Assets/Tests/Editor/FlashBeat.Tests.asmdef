@@ -3,6 +3,8 @@
     "rootNamespace": "",
     "references": [
         "FlashBeat",
+        "NoteEditor",
+        "UniRx",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
