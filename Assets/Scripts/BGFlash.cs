@@ -1,4 +1,4 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,7 +19,7 @@ public class BGFlash : MonoBehaviour
     {
 
         rend = GetComponent<Renderer>();
-        Beat = (60/(float)GManager.SBPM[GManager.songID]);
+        Beat = (60/(float)GManager.Songs[GManager.songID].bpm);
         switch (GManager.FlashBG)
         {
             case 1:
@@ -32,10 +32,10 @@ public class BGFlash : MonoBehaviour
                 Beat = Beat * 2;
                 break;
             case 8:
-                //âΩÇ‡ÇµÇ»Ç¢
+                //‰Ωï„ÇÇ„Åó„Å™„ÅÑ
                 break;
             default:
-                //âΩÇ‡ÇµÇ»Ç¢
+                //‰Ωï„ÇÇ„Åó„Å™„ÅÑ
                 break;
         }
         BPMCount = (float)(GManager.FlashT/100);
