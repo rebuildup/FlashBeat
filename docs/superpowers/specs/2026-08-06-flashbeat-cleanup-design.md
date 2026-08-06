@@ -12,10 +12,11 @@ FlashBeat の `Assets/` 直下の散らかったディレクトリ構成をド�
 
 ### 含める
 
-- `Assets/` 配下を `Game/`, `NoteEditor/`, `Editor/`, `Tests/`, `ThirdParty/` の 5 ドメインに再編
-- `Assets/Game/Scripts/` をフィーチャーグループ (`Songs/`, `Gameplay/`, `UI/`, `Video/`, `Persistence/`) に分割
+- `Assets/` 配下を `Game/`, `NoteEditor/`, `Editor/`, `Tests/`, `ThirdParty/`, `AudioMixer/` に再編
+- `Assets/Game/Scripts/` をフィーチャーグループ (`Songs/`, `Gameplay/`, `UI/`, `Persistence/`, `Common/`) に分割
 - NoteEditor を `Assets/NoteEditor/` に持ち込み、Unity 6000.5.6f1 でコンパイルが通る状態にする (UniRx の更新、deprecated API の修正を含む)
-- 不要なディレクトリの削除 (`Material/`, `NuGet/`, `Simple Scene Fade Load System/`, `Screenshots/`, `StreamingAssets/` のうち不要分)
+- 不要なディレクトリの削除 (`Material/`, `Screenshots/`、および中身を移動した後に空になったフォルダ)
+- 削除可否が不明なもの (`Packages/` の NuGet DLL 群、`StreamingAssets/`) は検証したうえで判断する
 - プロジェクトルートのログファイル (`build.log`, `build_out.log`, `build_run.log`, `test-run.log`) を `Logs/` へ移動
 - `.gitignore` で上記ログを再生成されないよう調整
 
@@ -30,14 +31,19 @@ FlashBeat の `Assets/` 直下の散らかったディレクトリ構成をド�
 ```text
 Assets/
 ├── Game/                    FlashBeat ゲーム本体
-│   ├── Scenes/              ゲームシーン (Opening, Title, Select, Game, Result, Option, MakeFile, Typing)
+│   ├── Scenes/              ゲームシーン (Opening, Title, Select, Game, Result, Option, MakeFile, Typing) + Legacy/
 │   ├── Scripts/             ゲームスクリプト (フィーチャー別)
+│   │   ├── FlashBeat.asmdef 既存 asmdef (配下すべてを 1 アセンブリとして含む)
 │   │   ├── Songs/           GManager, SongData
-│   │   ├── Gameplay/        Notes, NotesManager, Judge, LaneFlash, BGFlash, MusicManager
+│   │   ├── Gameplay/        Notes, NotesManager, Judge, LaneFlash, BGFlash, MusicManager, VideoTime
 │   │   ├── UI/              各 SceneManager (UI 制御)
-│   │   └── Persistence/     SaveLoadManager
-│   ├── Prefabs/             ゲーム用プレハブ (Screen, Note, Background 等)
-│   ├── Art/                 マテリアル・テクスチャ・スプライト
+│   │   ├── Persistence/     SaveLoadManager
+│   │   └── Common/          SelfDestroy, SimpleTransition
+│   ├── Prefabs/             ゲーム用プレハブ (Note, Background, YoutubePlayer 等)
+│   ├── Art/                 マテリアル・画像
+│   │   ├── Materials/
+│   │   └── Images/          曲ジャケット画像・アイコン
+│   ├── Animations/          アニメーションクリップ・コントローラ (Combo, Judge, Fade, PanelOpen)
 │   ├── Resources/           ランタイムロード (Musics/, Videos/, <曲名>.json, <曲名>_text.json)
 │   └── Fonts/               日本語フォント
 ├── NoteEditor/              統合する譜面エディタ (setchi/NoteEditor から移植)
@@ -52,7 +58,8 @@ Assets/
 ├── Tests/                   テスト (EditMode / PlayMode)
 ├── AudioMixer/              既存 (維持)
 └── ThirdParty/              サードパーティ
-    └── TextMesh Pro/        既存 (維持)
+    ├── TextMesh Pro/        既存 (移動のみ)
+    └── Simple Scene Fade Load System/  Initiate.Fade を提供 (移動のみ)
 ```
 
 ## 移動・整理ルール
@@ -61,33 +68,52 @@ Assets/
 
 | 現在 | 移動先 |
 |---|---|
-| `Assets/Scripts/GManager.cs`, `SongData` 関連 | `Assets/Game/Scripts/Songs/` |
-| `Assets/Scripts/Notes.cs`, `NotesManager.cs`, `Judge.cs`, `LaneFlash.cs`, `BGFlash.cs`, `MusicManager.cs` | `Assets/Game/Scripts/Gameplay/` |
+| `Assets/Scripts/FlashBeat.asmdef` | `Assets/Game/Scripts/FlashBeat.asmdef` |
+| `Assets/Scripts/GManager.cs` | `Assets/Game/Scripts/Songs/` |
+| `Assets/Scripts/Notes.cs`, `NotesManager.cs`, `Judge.cs`, `LaneFlash.cs`, `BGFlash.cs`, `MusicManager.cs`, `VideoTime.cs` | `Assets/Game/Scripts/Gameplay/` |
 | `Assets/Scripts/OpeningSceneManager.cs`, `TitleSceneManager.cs`, `SelectSceneManager.cs`, `GameSceneManager.cs`, `ResultSceneManager.cs`, `OptionSceneManager.cs`, `MakeFileSceneManager.cs`, `TypingSceneManager.cs` | `Assets/Game/Scripts/UI/` |
 | `Assets/Scripts/SaveLoadManager.cs` | `Assets/Game/Scripts/Persistence/` |
+| `Assets/Scripts/SelfDestroy.cs`, `SimpleTransition.cs` | `Assets/Game/Scripts/Common/` |
+| `Assets/Scenes/*` (`Legacy/` 含む) | `Assets/Game/Scenes/` |
 | `Assets/Art/Prefabs/*` | `Assets/Game/Prefabs/` |
 | `Assets/Prefab/YoutubePlayer.prefab`, `YoutubePlayer 1.prefab` | `Assets/Game/Prefabs/` |
 | `Assets/Art/Materials/*` | `Assets/Game/Art/Materials/` |
+| `Assets/Images/*` | `Assets/Game/Art/Images/` |
+| `Assets/Animations/*` | `Assets/Game/Animations/` |
+| `Assets/Resources/*` | `Assets/Game/Resources/` |
 | `Assets/Fonts/Japanese/*` | `Assets/Game/Fonts/Japanese/` |
 
-### 削除 (または中身が空ならフォルダごと削除)
+`SongData` クラスは `GManager.cs` 内に定義されているため、ファイル分割はせずそのまま `Songs/` へ移動する。
 
-- `Assets/Material/` (前回のリファクタで中身が空)
-- `Assets/NuGet/`, `Assets/NuGet.config`, `Assets/packages.config` (Unity プロジェクトで NuGet は不要、誤配置)
-- `Assets/Simple Scene Fade Load System/` (既に `SimpleFadeSystem` 等として組み込み済み)
+### 削除
+
+- `Assets/Material/` (中身が空。確認済み)
 - `Assets/Screenshots/` (デバッグ用一時ファイル、リポジトリに含めない)
 - `Assets/Prefab/` (中身の prefab を `Assets/Game/Prefabs/` へ移動した後、空になったフォルダを削除)
-- `Assets/Animations/` (中身が空であれば削除)
-- `Assets/Images/` (中身が空であれば削除)
-- `Assets/StreamingAssets/` (中身が空であれば削除)
+- `Assets/Art/`, `Assets/Fonts/`, `Assets/Scripts/`, `Assets/Scenes/`, `Assets/Images/`, `Assets/Animations/`, `Assets/Resources/` (中身をすべて移動した後、空になったフォルダを削除)
+
+### 要調査 (削除可否を検証してから判断)
+
+以下は「不要そうに見えるが、消すとビルドが壊れる可能性がある」ため、**削除前に検証ステップを挟む**。
+
+- `Assets/Packages/` (112 ファイル)、`Assets/NuGet/`、`Assets/NuGet.config`、`Assets/packages.config`
+  - 実体は NuGet で復元された DLL 群 (`YoutubeExplode 6.4.0` と依存の `AngleSharp`, `System.Text.Json` 等)。
+  - `Assets/` 配下と `Packages/` 配下の `.cs` / `.asmdef` を検索した限り、`YoutubeExplode` / `AngleSharp` を参照するコードは**見つかっていない** (YouTube 再生は UPM の `com.ibicha.youtube-player` 3.3.1 が担当)。
+  - 検証手順: 一時的に退避 → コンパイル + Windows ビルド + GameScene 再生確認 → 問題なければ削除を確定。壊れた場合は戻して維持する。
+- `Assets/StreamingAssets/mp4.mp4` (133 バイト = Git LFS ポインタ)
+  - 参照元を検索し、未参照なら `StreamingAssets/` ごと削除。参照があれば維持する。
 
 ### 維持 (位置変更なし)
 
 - `Assets/Editor/` → そのまま (BuildScript.cs, JapaneseFontFixer.cs)
 - `Assets/Tests/` → そのまま
 - `Assets/AudioMixer/` → そのまま
-- `Assets/Resources/` → `Assets/Game/Resources/` (Unity は名前が `Resources` のフォルダをすべてランタイムロード対象にするため、パス指定は変わらない)
-- `Assets/TextMesh Pro/` → `Assets/ThirdParty/TextMesh Pro/` (移動するが中身は変更しない)
+
+### 移動のみ (中身は変更しない)
+
+- `Assets/Resources/` → `Assets/Game/Resources/` (Unity は名前が `Resources` のフォルダをすべてランタイムロード対象にするため、`Resources.Load` のパス指定は変わらない)
+- `Assets/TextMesh Pro/` → `Assets/ThirdParty/TextMesh Pro/`
+- `Assets/Simple Scene Fade Load System/` → `Assets/ThirdParty/Simple Scene Fade Load System/` (`SimpleFadeSystem.asmdef` も一緒に移動する)
 
 ## NoteEditor 統合
 
@@ -153,7 +179,13 @@ NoteEditor 内に取り込み後に editor 専用スクリプトがあれば `As
 ### 高リスク
 
 - **GUID 維持**: シーンやプレハブが参照するアセットの GUID を維持するため、Unity の `AssetDatabase.MoveAsset` を使う。失敗すると手動での `.meta` 編集が必要になる。
-- **asmdef 影響**: 既存 asmdef (現状 `FlashBeat.Editor.asmdef` と `FlashBeat.Tests.asmdef`) は維持しつつ、NoteEditor 用に新規 asmdef (`Assets/NoteEditor/NoteEditor.asmdef`) を追加する。NoteEditor スクリプトが既存 asmdef に含まれていないか確認し、必要なら分離する。
+- **asmdef 影響**: 現状 4 つの asmdef がある。
+  - `Assets/Scripts/FlashBeat.asmdef` (参照: `Unity.TextMeshPro`, `SimpleFadeSystem`, `YoutubePlayer`) → `Assets/Game/Scripts/FlashBeat.asmdef` へ一緒に移動する。asmdef は配下のサブフォルダをすべて含むため、`Songs/`, `Gameplay/`, `UI/`, `Persistence/` に分割しても追加の asmdef は不要。
+  - `Assets/Editor/FlashBeat.Editor.asmdef` → 位置変更なし
+  - `Assets/Tests/Editor/FlashBeat.Tests.asmdef` → 位置変更なし
+  - `Assets/Simple Scene Fade Load System/SimpleFadeSystem.asmdef` → このフォルダを削除すると `FlashBeat.asmdef` の参照が壊れるため、削除対象から外す (下記「削除」の項を参照)
+
+  これに加えて NoteEditor 用に `Assets/NoteEditor/NoteEditor.asmdef` を新規作成する。
 - **UniRx 依存**: UniRx は NoteEditor のみが使い、FlashBeat 本体では使わないため、asmdef の参照スコープを `Assets/NoteEditor/` に限定する。UPM 経由で `com.neuecc.unirx` または modern fork (`com.github.denis5354.unirx`) を導入する。選定は取り込み時の最新安定版に従う。バージョンによって NoteEditor のコードに差分が出る可能性があるため、取得直後にコンパイルチェックを行う。
 
 ### 中リスク
@@ -167,25 +199,28 @@ NoteEditor 内に取り込み後に editor 専用スクリプトがあれば `As
 
 ## 実装順序
 
-1. ベースラインを記録 (現在の構造、テスト結果、コンソール状態)
-2. NoteEditor の取得 (プロジェクト外の作業用ディレクトリに `git clone https://github.com/setchi/NoteEditor`)
-3. NoteEditor を取り込み (Unity の `AssetDatabase.ImportAsset` で `.meta` を生成)
-4. Unity 6 互換性修正 (UniRx 追加、deprecated API 修正)
-5. NoteEditor 用 asmdef 作成、FlashBeat asmdef との分離確認
-6. コンパイル成功 + NoteEditor の各シーンがエラーなく開けることを確認
-7. `Assets/Game/` 構造を段階的に構築:
-   a. 先にディレクトリを作って移動 (`AssetDatabase.MoveAsset`)
-   b. スクリプトをフィーチャーグループに分類して移動
-   c. アセット (Prefabs, Art, Fonts) を移動
-8. 不要ディレクトリの削除 (`Material/`, `NuGet/`, `Screenshots/`, 空ディレクトリ)
-9. プロジェクトルートのログファイルを `Logs/` へ移動、`.gitignore` 更新
-10. すべての EditMode テスト実行 (10/10 維持)
-11. 全シーンロード検証
-12. Windows ビルド
+1. **作業ツリーを綺麗にする**: 現在 40 以上の未コミット変更 (`.editorconfig`, 各 asmdef, TextMesh Pro のアップグレード差分, ログファイル等) が残っている。大量の `MoveAsset` を行うと差分の切り分けが不可能になるため、先にコミットするか意図的に破棄して `git status` を空にする。
+2. ベースラインを記録 (現在の構造、テスト結果 10/10、コンソール状態)
+3. NoteEditor の取得 (プロジェクト外の作業用ディレクトリに `git clone https://github.com/setchi/NoteEditor`)
+4. NoteEditor を取り込み (Unity の `AssetDatabase.ImportAsset` で `.meta` を生成)
+5. Unity 6 互換性修正 (UniRx 追加、deprecated API 修正)
+6. NoteEditor 用 asmdef 作成、FlashBeat asmdef との分離確認
+7. コンパイル成功 + NoteEditor の各シーンがエラーなく開けることを確認
+8. `Assets/Game/` 構造を段階的に構築 (各ステップごとにコンパイル確認 + コミット):
+   a. 先にディレクトリを作って `AssetDatabase.MoveAsset` で移動
+   b. スクリプトをフィーチャーグループに分類して移動 (`FlashBeat.asmdef` も一緒に)
+   c. アセット (Scenes, Prefabs, Art, Images, Animations, Resources, Fonts) を移動
+   d. サードパーティ (TextMesh Pro, Simple Scene Fade Load System) を `ThirdParty/` へ移動
+9. 不要ディレクトリの削除 (`Material/`, `Screenshots/`, 空になったフォルダ)
+10. 要調査項目の検証 (`Assets/Packages/` の NuGet DLL 群、`StreamingAssets/mp4.mp4`) — 退避してビルドが通るか確認し、通れば削除、通らなければ戻して維持
+11. プロジェクトルートのログファイルを `Logs/` へ移動、`.gitignore` 更新
+12. すべての EditMode テスト実行 (10/10 維持)
+13. 全シーンロード検証
+14. Windows ビルド
 
 ## 完了条件
 
-- `Assets/` のトップレベルが `Game/`, `NoteEditor/`, `Editor/`, `Tests/`, `ThirdParty/`, `AudioMixer/` のみになっている
+- `Assets/` のトップレベルが `Game/`, `NoteEditor/`, `Editor/`, `Tests/`, `ThirdParty/`, `AudioMixer/` になっている (検証の結果 `Packages/` が必要と判明した場合はこれも残る)
 - NoteEditor の全シーンが Unity 6000.5.6f1 で開ける
 - NoteEditor のコードが Unity 6 でコンパイルエラーなく通る
 - 既存の 10 個の EditMode テストがすべてパスする
@@ -200,3 +235,4 @@ NoteEditor 内に取り込み後に editor 専用スクリプトがあれば `As
 - NoteEditor の UniRx 依存を将来外す近代化リファクタ
 - NoteEditor の macOS / WebGL 対応 (NoteEditor 自体は Unity Editor ツールとして動く)
 - NoteEditor の最新化 (本仕様では取得時点 HEAD を固定)
+- `GManager` の曲データが 7 本の並列配列 (`SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`) を `BuildSongs()` で `SongData[]` に組み立てる構造のままである点。前回のリファクタで `Songs[]` を唯一の定義にする予定だったが、並列配列が実質的な source of truth として残っている。今回は移動のみで構造は変えない。
