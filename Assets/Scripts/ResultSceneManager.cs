@@ -39,13 +39,13 @@ public class ResultSceneManager : MonoBehaviour
     void Start()
     {
         GManager.BGMtime = 0f;   
-        SongName.text = GManager.SongName[GManager.songID];
-        Musician.text = GManager.Musician[GManager.songID];
-        BPM.text = GManager.SBPM[GManager.songID].ToString();
+        SongName.text = GManager.Songs[GManager.songID].title;
+        Musician.text = GManager.Songs[GManager.songID].musician;
+        BPM.text = GManager.Songs[GManager.songID].bpm.ToString();
         
        
-        TotalHit.text = GManager.Shit[GManager.songID].ToString();
-        Songlevel.text = GManager.Slevel[GManager.songID].ToString();
+        TotalHit.text = GManager.Songs[GManager.songID].totalHits.ToString();
+        Songlevel.text = GManager.Songs[GManager.songID].level.ToString();
         SongN.text=GManager.songID.ToString();
         
         
@@ -78,7 +78,7 @@ public class ResultSceneManager : MonoBehaviour
             GManager.Hiscore[GManager.songID] = GManager.score;
         }
         Hiscore.text = GManager.Hiscore[GManager.songID].ToString();
-        StartCoroutine(FetchThumbnail(GManager.SongURL[GManager.songID], 0));
+        StartCoroutine(FetchThumbnail(GManager.Songs[GManager.songID].videoId, 0));
         
     }
     void Update()
