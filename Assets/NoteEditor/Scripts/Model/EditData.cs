@@ -12,6 +12,7 @@ namespace NoteEditor.Model
         ReactiveProperty<int> LPB_ = new ReactiveProperty<int>(4);
         ReactiveProperty<int> BPM_ = new ReactiveProperty<int>(120);
         ReactiveProperty<int> offsetSamples_ = new ReactiveProperty<int>(0);
+        ReactiveProperty<string> videoId_ = new ReactiveProperty<string>("");
         Dictionary<NotePosition, NoteObject> notes_ = new Dictionary<NotePosition, NoteObject>();
 
         public static ReactiveProperty<string> Name { get { return Instance.name_; } }
@@ -19,6 +20,7 @@ namespace NoteEditor.Model
         public static ReactiveProperty<int> LPB { get { return Instance.LPB_; } }
         public static ReactiveProperty<int> BPM { get { return Instance.BPM_; } }
         public static ReactiveProperty<int> OffsetSamples { get { return Instance.offsetSamples_; } }
+        public static ReactiveProperty<string> VideoId { get { return Instance.videoId_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }
     }
 }
