@@ -50,14 +50,14 @@ namespace NoteEditor.Editor
                     }
 
                     var text = JsonUtility.FromJson<TextData>(File.ReadAllText(textPath));
-                    var lyricsJson = JsonUtility.ToJson(new MusicDTO.LyricsDTO
+                    var lyricsJson = "{\"lyrics\":" + JsonUtility.ToJson(new MusicDTO.LyricsDTO
                     {
                         startTime = text.StartTime ?? new float[0],
                         furigana  = text.Furigana ?? new string[0],
                         mondai    = text.Mondai ?? new string[0],
                         romaji    = text.romaji ?? new string[0],
                         endTime   = text.EndTime ?? new float[0],
-                    }); // "lyrics":{...} 形式で出力される
+                    }) + "}"; // "lyrics":{...} 形式で出力される
 
                     // 既存 JSON の最後の } の直前に lyrics を挿入
                     var lastBrace = chartText.LastIndexOf('}');
