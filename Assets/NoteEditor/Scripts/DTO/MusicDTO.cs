@@ -13,6 +13,7 @@ namespace NoteEditor.DTO
             public int offset;
             public string videoId;
             public List<Note> notes;
+            public LyricsDTO lyrics;
         }
 
         [System.Serializable]
@@ -23,6 +24,16 @@ namespace NoteEditor.DTO
             public int block;
             public int type;
             public List<Note> notes;
+        }
+
+        [System.Serializable]
+        public class LyricsDTO
+        {
+            public float[] startTime;
+            public string[] furigana;
+            public string[] mondai;
+            public string[] romaji;
+            public float[] endTime;
         }
     }
 }
