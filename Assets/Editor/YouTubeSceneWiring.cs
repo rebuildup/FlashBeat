@@ -1,7 +1,6 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using YoutubePlayer.Components;
 
 public static class YouTubeSceneWiring
@@ -9,6 +8,17 @@ public static class YouTubeSceneWiring
     private const string GameScenePath = "Assets/Game/Scenes/GameScene.unity";
 
     public static bool WireYouTubeToGameScene(string songName, string videoId)
+    {
+        if (Application.isPlaying)
+        {
+            DeferredEditorActions.Enqueue(() => DoWire(songName, videoId));
+            Debug.Log($"[YouTubeSceneWiring] Play Mode detected. Wiring for '{songName}' (videoId='{videoId}') is queued and will run when Play Mode exits.");
+            return true;
+        }
+        return DoWire(songName, videoId);
+    }
+
+    private static bool DoWire(string songName, string videoId)
     {
         var loadedScene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
 
@@ -44,6 +54,10 @@ public static class YouTubeSceneWiring
         try
         {
             clone = (GameObject)PrefabUtility.InstantiatePrefab(template);
+            if (clone == null)
+            {
+                clone = Object.Instantiate(template);
+            }
             clone.name = targetName;
 
             var ivp = clone.GetComponent<InvidiousVideoPlayer>();

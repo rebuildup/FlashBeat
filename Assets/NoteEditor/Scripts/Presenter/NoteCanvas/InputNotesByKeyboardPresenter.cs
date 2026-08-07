@@ -14,7 +14,11 @@ namespace NoteEditor.Presenter
         void Awake()
         {
             editPresenter = EditNotesPresenter.Instance;
-            Audio.OnLoad.First().Subscribe(_ => Init());
+        }
+
+        void Start()
+        {
+            Init();
         }
 
         void Init()
@@ -32,8 +36,10 @@ namespace NoteEditor.Presenter
         void EnterNote(int block)
         {
             var offset = -5000;
-            var unitBeatSamples = Audio.Source.clip.frequency * 60f / EditData.BPM.Value / EditData.LPB.Value;
-            var timeSamples = Audio.Source.timeSamples - EditData.OffsetSamples.Value + (Audio.IsPlaying.Value ? offset : 0);
+            var frequency = Audio.Source.clip != null ? Audio.Source.clip.frequency : 44100;
+            var unitBeatSamples = frequency * 60f / EditData.BPM.Value / EditData.LPB.Value;
+            var sourceTimeSamples = Audio.Source.clip != null ? Audio.Source.timeSamples : 0;
+            var timeSamples = sourceTimeSamples - EditData.OffsetSamples.Value + (Audio.IsPlaying.Value ? offset : 0);
             var beats = Mathf.RoundToInt(timeSamples / unitBeatSamples);
 
             editPresenter.RequestForEditNote.OnNext(new Note(new NotePosition(EditData.LPB.Value, beats, block), EditState.NoteType.Value));

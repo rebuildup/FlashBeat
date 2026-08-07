@@ -20,6 +20,18 @@ public static class GManagerParallelArrayUpdater
 
     public static bool AppendSongEntry(SongMeta meta)
     {
+        if (Application.isPlaying)
+        {
+            var captured = meta;
+            DeferredEditorActions.Enqueue(() => DoAppend(captured));
+            Debug.Log($"[GManagerUpdater] Play Mode detected. GManager append for '{captured.Title}' is queued and will run when Play Mode exits.");
+            return true;
+        }
+        return DoAppend(meta);
+    }
+
+    private static bool DoAppend(SongMeta meta)
+    {
         if (!File.Exists(GManagerPath))
         {
             Debug.LogError($"[GManagerUpdater] GManager.cs not found at {GManagerPath}");

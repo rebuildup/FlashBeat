@@ -21,7 +21,7 @@ namespace NoteEditor.Presenter
 
         void Awake()
         {
-            Audio.OnLoad.First().Subscribe(_ => Init());
+            Init();
         }
 
         void Init()
@@ -79,14 +79,14 @@ namespace NoteEditor.Presenter
 
 
             RequestForRemoveNote.Buffer(RequestForRemoveNote.ThrottleFrame(1))
-                .Select(b => b.OrderBy(note => note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value)).ToList())
+                .Select(b => b.OrderBy(note => note.position.ToSamples(AudioFrequency(), EditData.BPM.Value)).ToList())
                 .Subscribe(notes => EditCommandManager.Do(
                     new Command(
                         () => notes.ForEach(RemoveNote),
                         () => notes.ForEach(AddNote))));
 
             RequestForAddNote.Buffer(RequestForAddNote.ThrottleFrame(1))
-                .Select(b => b.OrderBy(note => note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value)).ToList())
+                .Select(b => b.OrderBy(note => note.position.ToSamples(AudioFrequency(), EditData.BPM.Value)).ToList())
                 .Subscribe(notes => EditCommandManager.Do(
                     new Command(
                         () => notes.ForEach(AddNote),
@@ -94,7 +94,7 @@ namespace NoteEditor.Presenter
 
             RequestForChangeNoteStatus.Select(note => new { current = note, prev = EditData.Notes[note.position].note })
                 .Buffer(RequestForChangeNoteStatus.ThrottleFrame(1))
-                .Select(b => b.OrderBy(note => note.current.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value)).ToList())
+                .Select(b => b.OrderBy(note => note.current.position.ToSamples(AudioFrequency(), EditData.BPM.Value)).ToList())
                 .Subscribe(notes => EditCommandManager.Do(
                     new Command(
                         () => notes.ForEach(x => ChangeNoteStates(x.current)),
@@ -159,6 +159,11 @@ namespace NoteEditor.Presenter
             var noteObject = EditData.Notes[note.position];
             noteObject.Dispose();
             EditData.Notes.Remove(noteObject.note.position);
+        }
+
+        static int AudioFrequency()
+        {
+            return Audio.Source.clip != null ? Audio.Source.clip.frequency : 44100;
         }
     }
 }

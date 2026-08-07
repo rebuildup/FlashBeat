@@ -1,0 +1,22 @@
+{
+    "name": "NoteEditor.Editor",
+    "rootNamespace": "NoteEditor.Editor",
+    "references": [
+        "NoteEditor",
+        "FlashBeat",
+        "FlashBeat.Editor",
+        "UniRx",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

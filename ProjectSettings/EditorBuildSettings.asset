@@ -23,8 +23,5 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Game/Scenes/OptionScene.unity
     guid: d3c0f7e4b0c57f045b77476ad4e7a6a8
-  - enabled: 1
-    path: Assets/Game/Scenes/MakeFileScene.unity
-    guid: 3e143bfbe615aea40847efdf415b7dd5
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
