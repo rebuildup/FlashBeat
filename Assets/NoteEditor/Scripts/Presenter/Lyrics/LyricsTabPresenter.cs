@@ -49,7 +49,7 @@ namespace NoteEditor.Presenter.Lyrics
         static T[] RemoveAt<T>(T[] arr, int index)
         {
             var copy = new T[arr.Length - 1];
-            System.Array.Copy(arr, copy, index, index);
+            System.Array.Copy(arr, 0, copy, 0, index);
             System.Array.Copy(arr, index + 1, copy, index, arr.Length - 1 - index);
             return copy;
         }
