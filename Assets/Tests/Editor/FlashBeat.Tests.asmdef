@@ -5,6 +5,7 @@
         "FlashBeat",
         "FlashBeat.Editor",
         "NoteEditor",
+        "NoteEditor.Editor",
         "UniRx",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
