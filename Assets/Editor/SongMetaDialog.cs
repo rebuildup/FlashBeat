@@ -23,7 +23,9 @@ public class SongMetaDialog : EditorWindow
         window._accepted = false;
         window.position = new Rect(Screen.width / 2, Screen.height / 2, 380, 260);
         window.ShowModalUtility();
-        return window._accepted ? window._meta : null;
+        var meta = window._accepted ? window._meta : null;
+        DestroyImmediate(window);
+        return meta;
     }
 
     void OnGUI()
