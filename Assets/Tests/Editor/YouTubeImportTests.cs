@@ -1,3 +1,4 @@
+using FlashBeat.Tests.Editor;
 using NUnit.Framework;
 using NoteEditor.DTO;
 using NoteEditor.Model;
@@ -5,6 +6,18 @@ using UnityEngine;
 
 public class YouTubeImportTests
 {
+    [SetUp]
+    public void SetUp()
+    {
+        SingletonTestHelper.EnsureSingletons();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        SingletonTestHelper.TeardownSingletons();
+    }
+
     [Test]
     public void EditDataSerializer_RoundtripsVideoId()
     {
