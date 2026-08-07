@@ -94,6 +94,7 @@ namespace FlashBeat.Tests.Editor
             Assert.AreEqual(new[] { "hoge", "fuga" }, EditData.Lyrics.Romaji.Value);
             Assert.AreEqual(new[] { 1.5f, 3.0f }, EditData.Lyrics.StartTime.Value);
             Assert.AreEqual(new[] { 2.5f, 4.0f }, EditData.Lyrics.EndTime.Value);
+            Assert.AreEqual(new[] { "f", "b" }, EditData.Lyrics.Furigana.Value);
         }
     }
 }
