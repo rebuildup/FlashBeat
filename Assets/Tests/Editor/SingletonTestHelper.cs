@@ -59,6 +59,8 @@ namespace FlashBeat.Tests.Editor
                 .SetValue(instance, new ReactiveProperty<int>(0));
             typeof(EditData).GetField("videoId_", InstanceNonPublic)
                 .SetValue(instance, new ReactiveProperty<string>(""));
+            typeof(EditData).GetField("isDirty_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<bool>(false));
             typeof(EditData).GetField("notes_", InstanceNonPublic)
                 .SetValue(instance, new System.Collections.Generic.Dictionary<NoteEditor.Notes.NotePosition, NoteEditor.Notes.NoteObject>());
             SetInstance<EditData>(instance);
