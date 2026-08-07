@@ -21,25 +21,8 @@ namespace NoteEditor.Presenter
 
         IEnumerator LoadMusic(string fileName)
         {
-            using (var www = new WWW("file:///" + Path.Combine(MusicSelector.DirectoryPath.Value, fileName)))
-            {
-                yield return www;
-
-                EditCommandManager.Clear();
-                ResetEditor();
-                Audio.Source.clip = www.GetAudioClip();
-
-                if (Audio.Source.clip == null)
-                {
-                    // TODO: 読み込み失敗時の処理
-                }
-                else
-                {
-                    EditData.Name.Value = fileName;
-                    LoadEditData();
-                    Audio.OnLoad.OnNext(Unit.Default);
-                }
-            }
+            Debug.LogWarning($"[MusicLoader.LoadMusic] is deprecated. Use FlashBeatSongLoader.OnFileSelected instead. (fileName={fileName})");
+            yield break;
         }
 
         void LoadEditData()
