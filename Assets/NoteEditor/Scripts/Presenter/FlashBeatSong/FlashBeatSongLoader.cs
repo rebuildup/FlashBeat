@@ -32,7 +32,11 @@ namespace NoteEditor.Presenter.FlashBeatSong
                 var item = Instantiate(fileItemPrefab, fileItemContainer);
                 item.GetComponent<FileListItem>().SetInfo(new FileItemInfo(false, path));
                 var btn = item.GetComponent<UnityEngine.UI.Button>();
-                if (btn != null) btn.onClick.AddListener(() => OnFileSelected(path));
+                if (btn != null)
+                {
+                    var capturedPath = path;
+                    btn.onClick.AddListener(() => OnFileSelected(capturedPath));
+                }
             }
 
             if (emptyMessageText != null) emptyMessageText.gameObject.SetActive(jsonPaths.Count == 0);
