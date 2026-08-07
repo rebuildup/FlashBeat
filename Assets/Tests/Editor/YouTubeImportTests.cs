@@ -2,6 +2,7 @@ using FlashBeat.Tests.Editor;
 using NUnit.Framework;
 using NoteEditor.DTO;
 using NoteEditor.Model;
+using NoteEditor.Presenter.YouTube;
 using UnityEngine;
 
 public class YouTubeImportTests

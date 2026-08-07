@@ -4,7 +4,8 @@
     "references": [
         "FlashBeat",
         "Unity.TextMeshPro",
-        "YoutubePlayer"
+        "YoutubePlayer",
+        "NoteEditor"
     ],
     "includePlatforms": [
         "Editor"

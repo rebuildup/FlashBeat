@@ -19,8 +19,13 @@ public static class YouTubeSceneWiring
             return false;
         }
         var mm = musicManager[0];
+        var mmSO = new SerializedObject(mm);
+        var yPlayerProp = mmSO.FindProperty("YPlayer");
+        var vPlayerProp = mmSO.FindProperty("VPlayer");
 
-        var template = mm.YPlayer != null && mm.YPlayer.Length > 0 ? mm.YPlayer[0] : null;
+        var template = (yPlayerProp != null && yPlayerProp.isArray && yPlayerProp.arraySize > 0)
+            ? yPlayerProp.GetArrayElementAtIndex(0).objectReferenceValue as GameObject
+            : null;
         if (template == null)
         {
             Debug.LogError("[YouTubeSceneWiring] MusicManager.YPlayer[0] is null. Set a template YoutubePlayer in GameScene.");
@@ -57,8 +62,6 @@ public static class YouTubeSceneWiring
                 }
             }
 
-            var mmSO = new SerializedObject(mm);
-            var yPlayerProp = mmSO.FindProperty("YPlayer");
             if (yPlayerProp != null && yPlayerProp.isArray)
             {
                 yPlayerProp.arraySize++;
@@ -66,7 +69,6 @@ public static class YouTubeSceneWiring
                 mmSO.ApplyModifiedProperties();
             }
 
-            var vPlayerProp = mmSO.FindProperty("VPlayer");
             if (vPlayerProp != null && vPlayerProp.isArray)
             {
                 vPlayerProp.arraySize++;
