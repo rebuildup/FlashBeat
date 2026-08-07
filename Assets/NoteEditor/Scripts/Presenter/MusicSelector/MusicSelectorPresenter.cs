@@ -1,8 +1,5 @@
 ﻿using NoteEditor.Common;
 using NoteEditor.Model;
-using System;
-using System.IO;
-using System.Linq;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
