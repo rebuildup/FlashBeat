@@ -2,9 +2,7 @@
     "name": "UniRx",
     "rootNamespace": "UniRx",
     "references": [],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
