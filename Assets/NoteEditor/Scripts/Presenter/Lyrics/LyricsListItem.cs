@@ -38,6 +38,8 @@ namespace NoteEditor.Presenter.Lyrics
         void OnFieldChanged()
         {
             // endTime は固定 (2 秒後) とする。startTime は timeText から再パース。
+            // Index が範囲外なら何もしない (RemoveLyricAt 後の stale callback)
+            if (Index < 0 || Index >= EditData.Lyrics.StartTime.Value.Length) return;
             float startTime = EditData.Lyrics.StartTime.Value[Index];
             float endTime = EditData.Lyrics.EndTime.Value[Index];
             LyricsTabPresenter.UpdateLyricAt(Index, startTime, endTime,
