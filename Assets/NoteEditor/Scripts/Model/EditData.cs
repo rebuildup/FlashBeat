@@ -24,5 +24,14 @@ namespace NoteEditor.Model
         public static ReactiveProperty<string> VideoId { get { return Instance.videoId_; } }
         public static ReactiveProperty<bool> IsDirty { get { return Instance.isDirty_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }
+
+        public static class Lyrics
+        {
+            public static ReactiveProperty<float[]> StartTime = new ReactiveProperty<float[]>(new float[0]);
+            public static ReactiveProperty<string[]> Furigana = new ReactiveProperty<string[]>(new string[0]);
+            public static ReactiveProperty<string[]> Mondai = new ReactiveProperty<string[]>(new string[0]);
+            public static ReactiveProperty<string[]> Romaji = new ReactiveProperty<string[]>(new string[0]);
+            public static ReactiveProperty<float[]> EndTime = new ReactiveProperty<float[]>(new float[0]);
+        }
     }
 }
