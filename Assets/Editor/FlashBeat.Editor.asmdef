@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "FlashBeat",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "YoutubePlayer"
     ],
     "includePlatforms": [
         "Editor"
