@@ -35,41 +35,59 @@ public static class YouTubeSceneWiring
             return true;
         }
 
-        var clone = (GameObject)PrefabUtility.InstantiatePrefab(template);
-        clone.name = targetName;
-
-        var ivp = clone.GetComponent<InvidiousVideoPlayer>();
-        if (ivp != null)
+        GameObject clone = null;
+        try
         {
-            var so = new SerializedObject(ivp);
-            var prop = so.FindProperty("VideoId");
-            if (prop != null)
+            clone = (GameObject)PrefabUtility.InstantiatePrefab(template);
+            clone.name = targetName;
+
+            var ivp = clone.GetComponent<InvidiousVideoPlayer>();
+            if (ivp != null)
             {
-                prop.stringValue = videoId;
-                so.ApplyModifiedProperties();
+                var so = new SerializedObject(ivp);
+                var prop = so.FindProperty("VideoId");
+                if (prop != null)
+                {
+                    prop.stringValue = videoId;
+                    so.ApplyModifiedProperties();
+                }
+                else
+                {
+                    Debug.LogWarning($"[YouTubeSceneWiring] VideoId property not found on '{targetName}'. Clone will have empty VideoId.");
+                }
             }
-        }
 
-        var mmSO = new SerializedObject(mm);
-        var yPlayerProp = mmSO.FindProperty("YPlayer");
-        if (yPlayerProp != null && yPlayerProp.isArray)
+            var mmSO = new SerializedObject(mm);
+            var yPlayerProp = mmSO.FindProperty("YPlayer");
+            if (yPlayerProp != null && yPlayerProp.isArray)
+            {
+                yPlayerProp.arraySize++;
+                yPlayerProp.GetArrayElementAtIndex(yPlayerProp.arraySize - 1).objectReferenceValue = clone;
+                mmSO.ApplyModifiedProperties();
+            }
+
+            var vPlayerProp = mmSO.FindProperty("VPlayer");
+            if (vPlayerProp != null && vPlayerProp.isArray)
+            {
+                vPlayerProp.arraySize++;
+                vPlayerProp.GetArrayElementAtIndex(vPlayerProp.arraySize - 1).objectReferenceValue = null;
+                vPlayerProp.serializedObject.ApplyModifiedProperties();
+            }
+
+            EditorSceneManager.MarkSceneDirty(loadedScene);
+            EditorSceneManager.SaveScene(loadedScene);
+            Debug.Log($"[YouTubeSceneWiring] Wired '{targetName}' with VideoId '{videoId}'.");
+            return true;
+        }
+        catch (System.Exception ex)
         {
-            yPlayerProp.arraySize++;
-            yPlayerProp.GetArrayElementAtIndex(yPlayerProp.arraySize - 1).objectReferenceValue = clone;
-            mmSO.ApplyModifiedProperties();
+            Debug.LogError($"[YouTubeSceneWiring] Wiring failed: {ex.Message}");
+            if (clone != null)
+            {
+                Object.DestroyImmediate(clone);
+            }
+            EditorSceneManager.CloseScene(loadedScene, false);
+            return false;
         }
-
-        var vPlayerProp = mmSO.FindProperty("VPlayer");
-        if (vPlayerProp != null && vPlayerProp.isArray)
-        {
-            vPlayerProp.arraySize++;
-            vPlayerProp.GetArrayElementAtIndex(vPlayerProp.arraySize - 1).objectReferenceValue = null;
-            vPlayerProp.serializedObject.ApplyModifiedProperties();
-        }
-
-        EditorSceneManager.MarkSceneDirty(loadedScene);
-        EditorSceneManager.SaveScene(loadedScene);
-        Debug.Log($"[YouTubeSceneWiring] Wired '{targetName}' with VideoId '{videoId}'.");
-        return true;
     }
 }
