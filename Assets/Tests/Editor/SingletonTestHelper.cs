@@ -34,6 +34,12 @@ namespace FlashBeat.Tests.Editor
 
         public static void TeardownSingletons()
         {
+            EditData.Lyrics.StartTime.Value = new float[0];
+            EditData.Lyrics.Furigana.Value = new string[0];
+            EditData.Lyrics.Mondai.Value = new string[0];
+            EditData.Lyrics.Romaji.Value = new string[0];
+            EditData.Lyrics.EndTime.Value = new float[0];
+
             SetInstance<Audio>(null);
             SetInstance<EditNotesPresenter>(null);
             SetInstance<EditData>(null);
