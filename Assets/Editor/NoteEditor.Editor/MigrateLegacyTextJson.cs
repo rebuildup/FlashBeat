@@ -29,39 +29,62 @@ namespace NoteEditor.Editor
             int count = 0;
             foreach (var textPath in Directory.GetFiles(dir, "*_text.json"))
             {
-                var stem = Path.GetFileNameWithoutExtension(textPath).Replace("_text", "");
-                var chartPath = Path.Combine(dir, stem + ".json");
-                if (!File.Exists(chartPath))
+                try
                 {
-                    Debug.LogWarning($"[Migrate] Skipped (no chart): {textPath}");
-                    continue;
+                    var stem = Path.GetFileNameWithoutExtension(textPath).Replace("_text", "");
+                    var chartPath = Path.Combine(dir, stem + ".json");
+                    if (!File.Exists(chartPath))
+                    {
+                        Debug.LogWarning($"[Migrate] Skipped (no chart): {textPath}");
+                        continue;
+                    }
+
+                    var chartText = File.ReadAllText(chartPath);
+
+                    // lyrics 既存チェック (roundtrip せずに peek だけ)
+                    var peek = JsonUtility.FromJson<ChartPeek>(chartText);
+                    if (peek.lyrics != null && peek.lyrics.mondai != null && peek.lyrics.mondai.Length > 0)
+                    {
+                        Debug.Log($"[Migrate] Already has lyrics, skip: {stem}");
+                        continue;
+                    }
+
+                    var text = JsonUtility.FromJson<TextData>(File.ReadAllText(textPath));
+                    var lyricsJson = JsonUtility.ToJson(new MusicDTO.LyricsDTO
+                    {
+                        startTime = text.StartTime ?? new float[0],
+                        furigana  = text.Furigana ?? new string[0],
+                        mondai    = text.Mondai ?? new string[0],
+                        romaji    = text.romaji ?? new string[0],
+                        endTime   = text.EndTime ?? new float[0],
+                    }); // "lyrics":{...} 形式で出力される
+
+                    // 既存 JSON の最後の } の直前に lyrics を挿入
+                    var lastBrace = chartText.LastIndexOf('}');
+                    if (lastBrace < 0) throw new System.InvalidOperationException("chart JSON has no closing brace");
+                    var patched = chartText.Substring(0, lastBrace)
+                        + "," + lyricsJson
+                        + chartText.Substring(lastBrace);
+
+                    File.WriteAllText(chartPath, patched);
+                    File.Delete(textPath);
+                    var metaPath = textPath + ".meta";
+                    if (File.Exists(metaPath)) File.Delete(metaPath);
+                    count++;
+                    Debug.Log($"[Migrate] Merged + deleted: {stem}");
                 }
-
-                var chart = JsonUtility.FromJson<MusicDTO.EditData>(File.ReadAllText(chartPath));
-                if (chart.lyrics != null && chart.lyrics.mondai != null && chart.lyrics.mondai.Length > 0)
+                catch (System.Exception ex)
                 {
-                    Debug.Log($"[Migrate] Already has lyrics, skip: {stem}");
-                    continue;
+                    Debug.LogError($"[Migrate] Failed to process {textPath}: {ex.GetType().Name}: {ex.Message}");
                 }
-
-                var text = JsonUtility.FromJson<TextData>(File.ReadAllText(textPath));
-                chart.lyrics = new MusicDTO.LyricsDTO
-                {
-                    startTime = text.StartTime ?? new float[0],
-                    furigana  = text.Furigana ?? new string[0],
-                    mondai    = text.Mondai ?? new string[0],
-                    romaji    = text.romaji ?? new string[0],
-                    endTime   = text.EndTime ?? new float[0],
-                };
-
-                File.WriteAllText(chartPath, JsonUtility.ToJson(chart, prettyPrint: true));
-                File.Delete(textPath);
-                var metaPath = textPath + ".meta";
-                if (File.Exists(metaPath)) File.Delete(metaPath);
-                count++;
-                Debug.Log($"[Migrate] Merged + deleted: {stem}");
             }
             return count;
+        }
+
+        [System.Serializable]
+        class ChartPeek
+        {
+            public MusicDTO.LyricsDTO lyrics;
         }
     }
 }
