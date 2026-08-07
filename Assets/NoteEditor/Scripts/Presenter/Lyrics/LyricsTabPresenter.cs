@@ -1,5 +1,6 @@
 using NoteEditor.Model;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace NoteEditor.Presenter.Lyrics
 {
@@ -59,6 +60,67 @@ namespace NoteEditor.Presenter.Lyrics
             var copy = (T[])arr.Clone();
             copy[index] = value;
             return copy;
+        }
+
+        // シーン UI 制御 (要 SerializeField 注入)
+        [SerializeField] GameObject noteCanvasPanel = default;
+        [SerializeField] GameObject lyricsPanel = default;
+        [SerializeField] RectTransform lyricsListContent = default;
+        [SerializeField] GameObject lyricsItemPrefab = default;
+        [SerializeField] Text emptyMessage = default;
+        [SerializeField] Button timelineButton = default;
+
+        LyricsListItem[] itemCache;
+
+        void Start()
+        {
+            // EditData.Lyrics の変更を購読してリスト再構築
+            EditData.Lyrics.Mondai.Subscribe(_ => RebuildList());
+            if (timelineButton != null) timelineButton.onClick.AddListener(OnTimelineClicked);
+        }
+
+        void OnTimelineClicked()
+        {
+            // クリック位置から秒数を計算
+            var rect = timelineButton.GetComponent<RectTransform>();
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rect, Input.mousePosition, null, out localPoint);
+            float t = Mathf.Lerp(0, 60, (localPoint.x - rect.rect.xMin) / rect.rect.width);
+            LyricsTabPresenter.AddLyricAtTime(t, t + 2f, "", "", "");
+        }
+
+        void RebuildList()
+        {
+            if (lyricsListContent == null) return;
+            foreach (Transform child in lyricsListContent) Destroy(child.gameObject);
+
+            var mondai = EditData.Lyrics.Mondai.Value;
+            for (int i = 0; i < mondai.Length; i++)
+            {
+                var item = Instantiate(lyricsItemPrefab, lyricsListContent);
+                item.GetComponent<LyricsListItem>().SetData(
+                    i,
+                    EditData.Lyrics.StartTime.Value[i],
+                    EditData.Lyrics.EndTime.Value[i],
+                    mondai[i],
+                    EditData.Lyrics.Furigana.Value[i],
+                    EditData.Lyrics.Romaji.Value[i]);
+            }
+            if (emptyMessage != null) emptyMessage.gameObject.SetActive(mondai.Length == 0);
+        }
+
+        public void ShowLyricsTab()
+        {
+            if (noteCanvasPanel != null) noteCanvasPanel.SetActive(false);
+            if (lyricsPanel != null) lyricsPanel.SetActive(true);
+            RebuildList();
+        }
+
+        public void ShowNoteCanvasTab()
+        {
+            if (noteCanvasPanel != null) noteCanvasPanel.SetActive(true);
+            if (lyricsPanel != null) lyricsPanel.SetActive(false);
         }
     }
 }
