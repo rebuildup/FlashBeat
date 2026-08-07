@@ -1,9 +1,9 @@
+#if UNITY_EDITOR
 using System.IO;
 using UnityEngine;
 
 public class MakeFileSceneManager : MonoBehaviour
 {
-#if UNITY_EDITOR
     private const string ResourcesDir = "Assets/Game/Resources";
 
     void Start()
@@ -53,7 +53,5 @@ public class MakeFileSceneManager : MonoBehaviour
         File.WriteAllText(path, json);
         Debug.Log($"[MakeFile] Wrote stub: {path}");
     }
-#else
-    void Start() { }
-#endif
 }
+#endif
