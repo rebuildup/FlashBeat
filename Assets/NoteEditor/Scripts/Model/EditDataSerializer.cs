@@ -67,6 +67,23 @@ namespace NoteEditor.Model
             EditData.OffsetSamples.Value = editData.offset;
             EditData.VideoId.Value = string.IsNullOrEmpty(editData.videoId) ? "" : editData.videoId;
 
+            if (editData.lyrics != null)
+            {
+                EditData.Lyrics.StartTime.Value = editData.lyrics.startTime ?? new float[0];
+                EditData.Lyrics.Furigana.Value  = editData.lyrics.furigana  ?? new string[0];
+                EditData.Lyrics.Mondai.Value    = editData.lyrics.mondai    ?? new string[0];
+                EditData.Lyrics.Romaji.Value    = editData.lyrics.romaji    ?? new string[0];
+                EditData.Lyrics.EndTime.Value   = editData.lyrics.endTime   ?? new float[0];
+            }
+            else
+            {
+                EditData.Lyrics.StartTime.Value = new float[0];
+                EditData.Lyrics.Furigana.Value  = new string[0];
+                EditData.Lyrics.Mondai.Value    = new string[0];
+                EditData.Lyrics.Romaji.Value    = new string[0];
+                EditData.Lyrics.EndTime.Value   = new float[0];
+            }
+
             foreach (var note in editData.notes)
             {
                 if (note.type == 1)

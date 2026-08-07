@@ -59,5 +59,41 @@ namespace FlashBeat.Tests.Editor
                 Directory.Delete(tempDir, recursive: true);
             }
         }
+
+        [Test]
+        public void Deserialize_PopulatesLyricsFromMergedJson()
+        {
+            var json = "{\"name\":\"x\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"notes\":[],\"lyrics\":{" +
+                       "\"startTime\":[1.0,2.0],\"furigana\":[\"a\",\"b\"],\"mondai\":[\"c\",\"d\"]," +
+                       "\"romaji\":[\"e\",\"f\"],\"endTime\":[1.5,2.5]}}";
+            EditDataSerializer.Deserialize(json);
+            Assert.AreEqual(2, EditData.Lyrics.Mondai.Value.Length);
+            Assert.AreEqual("c", EditData.Lyrics.Mondai.Value[0]);
+            Assert.AreEqual(1.0f, EditData.Lyrics.StartTime.Value[0]);
+        }
+
+        [Test]
+        public void Deserialize_HandlesMissingLyricsField()
+        {
+            var json = "{\"name\":\"legacy\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"notes\":[]}";
+            Assert.DoesNotThrow(() => EditDataSerializer.Deserialize(json));
+            Assert.AreEqual(0, EditData.Lyrics.Mondai.Value.Length);
+        }
+
+        [Test]
+        public void Serialize_RoundtripsLyrics()
+        {
+            EditData.Lyrics.Mondai.Value = new[] { "foo", "bar" };
+            EditData.Lyrics.Furigana.Value = new[] { "f", "b" };
+            EditData.Lyrics.Romaji.Value = new[] { "hoge", "fuga" };
+            EditData.Lyrics.StartTime.Value = new[] { 1.5f, 3.0f };
+            EditData.Lyrics.EndTime.Value = new[] { 2.5f, 4.0f };
+            var json = EditDataSerializer.Serialize();
+            EditDataSerializer.Deserialize(json);
+            Assert.AreEqual(new[] { "foo", "bar" }, EditData.Lyrics.Mondai.Value);
+            Assert.AreEqual(new[] { "hoge", "fuga" }, EditData.Lyrics.Romaji.Value);
+            Assert.AreEqual(new[] { 1.5f, 3.0f }, EditData.Lyrics.StartTime.Value);
+            Assert.AreEqual(new[] { 2.5f, 4.0f }, EditData.Lyrics.EndTime.Value);
+        }
     }
 }
