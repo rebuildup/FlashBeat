@@ -25,6 +25,11 @@ namespace NoteEditor.Model
         public static ReactiveProperty<bool> IsDirty { get { return Instance.isDirty_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }
 
+        public static int AudioFrequency()
+        {
+            return Audio.Source.clip != null ? Audio.Source.clip.frequency : 44100;
+        }
+
         public static class Lyrics
         {
             public static ReactiveProperty<float[]> StartTime = new ReactiveProperty<float[]>(new float[0]);

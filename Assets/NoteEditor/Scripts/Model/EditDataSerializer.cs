@@ -17,10 +17,18 @@ namespace NoteEditor.Model
             dto.offset = EditData.OffsetSamples.Value;
             dto.name = Path.GetFileNameWithoutExtension(EditData.Name.Value);
             dto.videoId = EditData.VideoId.Value;
+            dto.lyrics = new MusicDTO.LyricsDTO
+            {
+                startTime = EditData.Lyrics.StartTime.Value ?? new float[0],
+                furigana  = EditData.Lyrics.Furigana.Value ?? new string[0],
+                mondai    = EditData.Lyrics.Mondai.Value ?? new string[0],
+                romaji    = EditData.Lyrics.Romaji.Value ?? new string[0],
+                endTime   = EditData.Lyrics.EndTime.Value ?? new float[0],
+            };
 
             var sortedNoteObjects = EditData.Notes.Values
                 .Where(note => !(note.note.type == NoteTypes.Long && EditData.Notes.ContainsKey(note.note.prev)))
-                .OrderBy(note => note.note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value));
+                .OrderBy(note => note.note.position.ToSamples(EditData.AudioFrequency(), EditData.BPM.Value));
 
             dto.notes = new List<MusicDTO.Note>();
 
