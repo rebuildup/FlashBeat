@@ -1,12 +1,11 @@
 ﻿using NoteEditor.Model;
-using NoteEditor.Utility;
-using System.IO;
-using System.Linq;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.IO;
+using System.Text;
 
 namespace NoteEditor.Presenter
 {
@@ -54,9 +53,9 @@ namespace NoteEditor.Presenter
                     editPresenter.RequestForAddNote.Select(_ => true),
                     editPresenter.RequestForRemoveNote.Select(_ => true),
                     editPresenter.RequestForChangeNoteStatus.Select(_ => true),
-                    Audio.OnLoad.Select(_ => false),
-                    saveActionObservable.Select(_ => false))
-                .SkipUntil(Audio.OnLoad.DelayFrame(1))
+                    EditData.Lyrics.Mondai.Select(_ => true),
+                    saveActionObservable.Select(_ => false),
+                    EditData.IsDirty.Select(_ => EditData.IsDirty.Value))
                 .Do(unsaved => saveButton.GetComponent<Image>().color = unsaved ? unsavedStateButtonColor : savedStateButtonColor)
                 .ToReactiveProperty();
 
@@ -107,20 +106,32 @@ namespace NoteEditor.Presenter
             return true;
         }
 
+        const string ResourcesDir = "Assets/Game/Resources";
+
         public void Save()
         {
-            var fileName = Path.ChangeExtension(EditData.Name.Value, "json");
-            var directoryPath = Path.Combine(Path.GetDirectoryName(MusicSelector.DirectoryPath.Value), "Notes");
-            var filePath = Path.Combine(directoryPath, fileName);
-
-            if (!Directory.Exists(directoryPath))
+            try
             {
-                Directory.CreateDirectory(directoryPath);
+                var songName = Path.GetFileNameWithoutExtension(EditData.Name.Value);
+                if (string.IsNullOrEmpty(songName))
+                {
+                    Debug.LogError("[SavePresenter] EditData.Name is empty");
+                    if (messageText != null) messageText.text = "曲名が空のため保存できません";
+                    return;
+                }
+                var path = Path.Combine(ResourcesDir, songName + ".json");
+                if (!Directory.Exists(ResourcesDir)) Directory.CreateDirectory(ResourcesDir);
+                var json = EditDataSerializer.Serialize();
+                File.WriteAllText(path, json, Encoding.UTF8);
+                EditData.IsDirty.Value = false;
+                Debug.Log($"[NoteEditor] Saved: {path}");
+                if (messageText != null) messageText.text = path + " に保存しました";
             }
-
-            var json = EditDataSerializer.Serialize();
-            File.WriteAllText(filePath, json, System.Text.Encoding.UTF8);
-            messageText.text = filePath + " に保存しました";
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[NoteEditor] Save failed: {ex.Message}");
+                if (messageText != null) messageText.text = "保存に失敗しました: " + ex.Message;
+            }
         }
     }
 }
