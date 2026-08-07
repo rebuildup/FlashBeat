@@ -25,6 +25,10 @@ namespace FlashBeat.Tests.Editor
             var json = EditDataSerializer.Serialize();
             StringAssert.Contains("\"lyrics\"", json);
             StringAssert.Contains("\"startTime\":[]", json);
+            StringAssert.Contains("\"furigana\":[]", json);
+            StringAssert.Contains("\"mondai\":[]", json);
+            StringAssert.Contains("\"romaji\":[]", json);
+            StringAssert.Contains("\"endTime\":[]", json);
         }
     }
 }
