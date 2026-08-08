@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="36" result="Passed" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.2556829">
+  <test-suite type="TestSuite" id="1000" name="FlashBeat" fullname="FlashBeat" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.255683" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1044" name="FlashBeat.Tests.dll" fullname="C:/Users/rebui/Desktop/FlashBeat/Library/ScriptAssemblies/FlashBeat.Tests.dll" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.236899" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="54632" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1045" name="FlashBeat" fullname="FlashBeat" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.213921" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1046" name="Tests" fullname="FlashBeat.Tests" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.213015" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1047" name="Editor" fullname="FlashBeat.Tests.Editor" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.212273" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1025" name="EditDataSerializerLyricsTests" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.156113" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1029" name="Deserialize_HandlesMissingLyricsField" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests.Deserialize_HandlesMissingLyricsField" methodname="Deserialize_HandlesMissingLyricsField" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" seed="1811897998" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.046567" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+
+]]></output>
+              </test-case>
+              <test-case id="1028" name="Deserialize_PopulatesLyricsFromMergedJson" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests.Deserialize_PopulatesLyricsFromMergedJson" methodname="Deserialize_PopulatesLyricsFromMergedJson" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" seed="1679547792" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002742" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="SavePresenter_WritesToResourcesDirectory" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests.SavePresenter_WritesToResourcesDirectory" methodname="SavePresenter_WritesToResourcesDirectory" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" seed="1224191828" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.024431" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="Serialize_IncludesEmptyLyricsWhenNotSet" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests.Serialize_IncludesEmptyLyricsWhenNotSet" methodname="Serialize_IncludesEmptyLyricsWhenNotSet" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" seed="1280733403" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002673" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1030" name="Serialize_RoundtripsLyrics" fullname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests.Serialize_RoundtripsLyrics" methodname="Serialize_RoundtripsLyrics" classname="FlashBeat.Tests.Editor.EditDataSerializerLyricsTests" runstate="Runnable" seed="316061519" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.005041" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1031" name="FlashBeatSongLoaderTests" fullname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" classname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.021891" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1033" name="EnumerateJsonFiles_ExcludesE2EProbeSong" fullname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests.EnumerateJsonFiles_ExcludesE2EProbeSong" methodname="EnumerateJsonFiles_ExcludesE2EProbeSong" classname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" runstate="Runnable" seed="1538407374" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.006986" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1032" name="EnumerateJsonFiles_ExcludesTextJson" fullname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests.EnumerateJsonFiles_ExcludesTextJson" methodname="EnumerateJsonFiles_ExcludesTextJson" classname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" runstate="Runnable" seed="1201049971" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.003452" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="EnumerateJsonFiles_ReturnsEmptyForEmptyDir" fullname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests.EnumerateJsonFiles_ReturnsEmptyForEmptyDir" methodname="EnumerateJsonFiles_ReturnsEmptyForEmptyDir" classname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" runstate="Runnable" seed="840445579" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.001971" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1035" name="EnumerateJsonFiles_ReturnsEmptyForMissingDir" fullname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests.EnumerateJsonFiles_ReturnsEmptyForMissingDir" methodname="EnumerateJsonFiles_ReturnsEmptyForMissingDir" classname="FlashBeat.Tests.Editor.FlashBeatSongLoaderTests" runstate="Runnable" seed="1642941020" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.001015" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1036" name="LyricsTabPresenterTests" fullname="FlashBeat.Tests.Editor.LyricsTabPresenterTests" classname="FlashBeat.Tests.Editor.LyricsTabPresenterTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.003665" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1037" name="AddLyricAtTime_AppendsToAllArrays" fullname="FlashBeat.Tests.Editor.LyricsTabPresenterTests.AddLyricAtTime_AppendsToAllArrays" methodname="AddLyricAtTime_AppendsToAllArrays" classname="FlashBeat.Tests.Editor.LyricsTabPresenterTests" runstate="Runnable" seed="14571567" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.001287" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1038" name="RemoveLyricAt_RemovesFromAllArrays" fullname="FlashBeat.Tests.Editor.LyricsTabPresenterTests.RemoveLyricAt_RemovesFromAllArrays" methodname="RemoveLyricAt_RemovesFromAllArrays" classname="FlashBeat.Tests.Editor.LyricsTabPresenterTests" runstate="Runnable" seed="1050329901" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000560" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="UpdateLyricAt_ReplacesFields" fullname="FlashBeat.Tests.Editor.LyricsTabPresenterTests.UpdateLyricAt_ReplacesFields" methodname="UpdateLyricAt_ReplacesFields" classname="FlashBeat.Tests.Editor.LyricsTabPresenterTests" runstate="Runnable" seed="1713913052" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000726" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1040" name="MigrateLegacyTextJsonTests" fullname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests" classname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.015275" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1043" name="Migrate_IsIdempotent" fullname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests.Migrate_IsIdempotent" methodname="Migrate_IsIdempotent" classname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests" runstate="Runnable" seed="2118578669" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.004777" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Migrate] Already has lyrics, skip: X
+]]></output>
+              </test-case>
+              <test-case id="1041" name="Migrate_MergesTextIntoChartAndDeletesTextFile" fullname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests.Migrate_MergesTextIntoChartAndDeletesTextFile" methodname="Migrate_MergesTextIntoChartAndDeletesTextFile" classname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests" runstate="Runnable" seed="1819153497" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.006727" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Migrate] Merged + deleted: AAA
+]]></output>
+              </test-case>
+              <test-case id="1042" name="Migrate_SkipsOrphanTextFile" fullname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests.Migrate_SkipsOrphanTextFile" methodname="Migrate_SkipsOrphanTextFile" classname="FlashBeat.Tests.Editor.MigrateLegacyTextJsonTests" runstate="Runnable" seed="1599619880" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002521" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Migrate] Skipped (no chart): C:\Users\rebui\AppData\Local\Temp\flashbeat_migrate_be704858c40e444f88bc2f91723e8ec7\Orphan_text.json
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1001" name="JudgeLogicTests" fullname="JudgeLogicTests" classname="JudgeLogicTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002360" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1002" name="TestCircularSongIndexOffset" fullname="JudgeLogicTests.TestCircularSongIndexOffset" methodname="TestCircularSongIndexOffset" classname="JudgeLogicTests" runstate="Runnable" seed="1574516187" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000296" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1003" name="TestTimeLagCalculation" fullname="JudgeLogicTests.TestTimeLagCalculation" methodname="TestTimeLagCalculation" classname="JudgeLogicTests" runstate="Runnable" seed="795815868" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.001125" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1004" name="SongDataTests" fullname="SongDataTests" classname="SongDataTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.006698" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1009" name="TestGetSongValidAndInvalidId" fullname="SongDataTests.TestGetSongValidAndInvalidId" methodname="TestGetSongValidAndInvalidId" classname="SongDataTests" runstate="Runnable" seed="1492293439" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.001241" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1012" name="TestResetSession" fullname="SongDataTests.TestResetSession" methodname="TestResetSession" classname="SongDataTests" runstate="Runnable" seed="1847723641" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000241" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1008" name="TestSongIdOneTitleUnchanged" fullname="SongDataTests.TestSongIdOneTitleUnchanged" methodname="TestSongIdOneTitleUnchanged" classname="SongDataTests" runstate="Runnable" seed="2007913058" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000133" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1005" name="TestSongsArrayNotEmpty" fullname="SongDataTests.TestSongsArrayNotEmpty" methodname="TestSongsArrayNotEmpty" classname="SongDataTests" runstate="Runnable" seed="1221956599" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002764" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1006" name="TestSongsIndexMatchesId" fullname="SongDataTests.TestSongsIndexMatchesId" methodname="TestSongsIndexMatchesId" classname="SongDataTests" runstate="Runnable" seed="1576624748" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000338" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1007" name="TestSongsIndexZeroIsPlaceholder" fullname="SongDataTests.TestSongsIndexZeroIsPlaceholder" methodname="TestSongsIndexZeroIsPlaceholder" classname="SongDataTests" runstate="Runnable" seed="1297343871" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000137" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1010" name="TestTotalSongDerivedFromSongsLength" fullname="SongDataTests.TestTotalSongDerivedFromSongsLength" methodname="TestTotalSongDerivedFromSongsLength" classname="SongDataTests" runstate="Runnable" seed="1991496344" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000136" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1011" name="TestVideoIdMigrationMatchesPriorSongUrl" fullname="SongDataTests.TestVideoIdMigrationMatchesPriorSongUrl" methodname="TestVideoIdMigrationMatchesPriorSongUrl" classname="SongDataTests" runstate="Runnable" seed="1493434276" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000163" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1013" name="YouTubeImportTests" fullname="YouTubeImportTests" classname="YouTubeImportTests" runstate="Runnable" testcasecount="11" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.009983" total="11" passed="11" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1016" name="EditDataSerializer_HandlesEmptyVideoId" fullname="YouTubeImportTests.EditDataSerializer_HandlesEmptyVideoId" methodname="EditDataSerializer_HandlesEmptyVideoId" classname="YouTubeImportTests" runstate="Runnable" seed="1994682964" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000426" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1015" name="EditDataSerializer_HandlesMissingVideoId" fullname="YouTubeImportTests.EditDataSerializer_HandlesMissingVideoId" methodname="EditDataSerializer_HandlesMissingVideoId" classname="YouTubeImportTests" runstate="Runnable" seed="214381187" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000574" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1014" name="EditDataSerializer_RoundtripsVideoId" fullname="YouTubeImportTests.EditDataSerializer_RoundtripsVideoId" methodname="EditDataSerializer_RoundtripsVideoId" classname="YouTubeImportTests" runstate="Runnable" seed="460226326" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000276" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1023" name="GManagerUpdater_AppendsEntryToSongName" fullname="YouTubeImportTests.GManagerUpdater_AppendsEntryToSongName" methodname="GManagerUpdater_AppendsEntryToSongName" classname="YouTubeImportTests" runstate="Runnable" seed="772860200" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.002986" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1024" name="GManagerUpdater_HandlesMultiLineArrays" fullname="YouTubeImportTests.GManagerUpdater_HandlesMultiLineArrays" methodname="GManagerUpdater_HandlesMultiLineArrays" classname="YouTubeImportTests" runstate="Runnable" seed="843535069" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000602" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1019" name="VideoIdParser_AcceptsRawId" fullname="YouTubeImportTests.VideoIdParser_AcceptsRawId" methodname="VideoIdParser_AcceptsRawId" classname="YouTubeImportTests" runstate="Runnable" seed="2026141119" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000697" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1022" name="VideoIdParser_AcceptsUnderscoreAndHyphen" fullname="YouTubeImportTests.VideoIdParser_AcceptsUnderscoreAndHyphen" methodname="VideoIdParser_AcceptsUnderscoreAndHyphen" classname="YouTubeImportTests" runstate="Runnable" seed="62370094" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000363" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1017" name="VideoIdParser_ExtractsFromFullUrl" fullname="YouTubeImportTests.VideoIdParser_ExtractsFromFullUrl" methodname="VideoIdParser_ExtractsFromFullUrl" classname="YouTubeImportTests" runstate="Runnable" seed="1512359492" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000363" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1018" name="VideoIdParser_ExtractsFromShortUrl" fullname="YouTubeImportTests.VideoIdParser_ExtractsFromShortUrl" methodname="VideoIdParser_ExtractsFromShortUrl" classname="YouTubeImportTests" runstate="Runnable" seed="898113261" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000495" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1020" name="VideoIdParser_RejectsEmpty" fullname="YouTubeImportTests.VideoIdParser_RejectsEmpty" methodname="VideoIdParser_RejectsEmpty" classname="YouTubeImportTests" runstate="Runnable" seed="1545242683" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000521" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1021" name="VideoIdParser_RejectsInvalid" fullname="YouTubeImportTests.VideoIdParser_RejectsInvalid" methodname="VideoIdParser_RejectsInvalid" classname="YouTubeImportTests" runstate="Runnable" seed="1332264002" result="Passed" start-time="2026-08-07 13:00:52Z" end-time="2026-08-07 13:00:52Z" duration="0.000414" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

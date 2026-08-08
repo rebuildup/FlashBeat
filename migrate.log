@@ -1,0 +1,981 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.5/staging' branch; Version is '6000.5.6f1 (0e0577a1a2ac) revision 918903'; Using compiler version '194234433'; Build Type 'Release'
+OS: 'Windows 11  (10.0.28120) Core' Language: 'ja' Physical Memory: 32499 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-08-07T12:55:25Z
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-basic" at "2026-08-07T12:55:25.1928438Z"
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Unity.exe
+-batchmode
+-quit
+-nographics
+-projectPath
+C:/Users/rebui/Desktop/FlashBeat
+-executeMethod
+NoteEditor.Editor.MigrateLegacyTextJson.Run
+-logFile
+C:/Users/rebui/Desktop/FlashBeat/migrate.log
+Successfully changed project path to: C:/Users/rebui/Desktop/FlashBeat
+C:/Users/rebui/Desktop/FlashBeat
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-main-allocator-mimalloc-enabled=0"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+Logging is directed to a specific file, skipping project log.Player connection [7924]  Target information:
+
+Player connection [7924]  * "[IP] 192.168.2.111 [Port] 55504 [Flags] 2 [Guid] 572923659 [EditorId] 572923659 [Version] 1048832 [Id] WindowsEditor(7,UUU) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [7924]  * "[IP] 172.22.144.1 [Port] 55504 [Flags] 2 [Guid] 572923659 [EditorId] 572923659 [Version] 1048832 [Id] WindowsEditor(7,UUU) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [7924] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [7924] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-50924" after 0.3 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::Client] Error: HandshakeResponse reported an error:
+	ResponseCode: 505
+	ResponseStatus: Unsupported protocol version '1.18.1'.
+[Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-basic"
+[Licensing::IpcConnector] LicenseClient-basic channel disconnected successfully.
+[Licensing::IpcConnector] Channel LicenseClient-basic-6000.5.6 doesn't exist
+[Licensing::Module] Successfully launched the LicensingClient (PId: 18768)
+Starting IPC server.
+Waiting for clients to connect on \\.\pipe\Unity-LicenseClient-basic-6000.5.6, press Ctrl-C to exit.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-basic-6000.5.6" at "2026-08-07T12:55:28.1028361Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 18768, path: "C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.1+9fbee8e
+  Session Id:              079bd8e06515442ebe9f28707fbfceb8
+  Correlation Id:          77c03dfac2b68886659ab76022a284d0
+  External correlation Id: 5554792518181083061
+  Machine Id:              XFajW4aaZLPEg6HL62bhI+47SLw=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-basic-6000.5.6" (connect: 0.57s, validation: 0.13s, handshake: 0.01s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-basic-6000.5.6-notifications" at "2026-08-07T12:55:28.2478836Z"
+[Licensing::Module] Connected to LicensingClient (PId: 18768, launch time: 0.00, total connection time: 0.71s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 15669630870099-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 3.10s
+[Licensing::Module] Licensing is initialized (took 2.62s).
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/rebui/Desktop/FlashBeat/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/BCLExtensions/runtime/netstandard2.1'
+Mono path[2] = 'C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56924
+CodeReloadManager initialized
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.5.6f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.003580 seconds.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.513 seconds
+Domain Reload Profiling: 1187ms
+	BeginReloadAssembly (176ms)
+	RebuildCommonClasses (6ms)
+	RebuildNativeTypeToScriptingClass (20ms)
+	initialDomainReloadingComplete (86ms)
+	LoadAllAssembliesAndSetupDomain (382ms)
+		LoadAssemblies (170ms)
+		AnalyzeDomain (281ms)
+			TypeCache.Refresh (279ms)
+				TypeCache.ScanAssembly (261ms)
+	FinalizeReload (517ms)
+		SetupLoadedEditorAssemblies (0ms)
+			InitializePlatformSupportModulesInManaged (3ms)
+			BeforeProcessingInitializeOnLoad (122ms)
+			ProcessInitializeOnLoadAttributes (137ms)
+			ProcessInitializeOnLoadMethodAttributes (169ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 62 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.assistant@2.17.0-pre.1 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ai.assistant@284c75a8d208)
+    com.unity.ai.inference@2.6.1 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ai.inference@9a123aee5df7)
+    com.unity.collab-proxy@2.13.3 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.collab-proxy@4f3be89e8675)
+    com.unity.timeline@1.8.12 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.timeline@8cd8509afae5)
+    com.unity.visualscripting@1.9.11 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.visualscripting@8bed5ad90189)
+    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.ide.rider@3.0.38 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ide.rider@1f60b3138684)
+    com.unity.editorcoroutines@1.1.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.editorcoroutines@87a15ed012c2)
+    com.unity.performance.profile-analyzer@1.4.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.performance.profile-analyzer@2bb26871883c)
+    com.unity.testtools.codecoverage@1.3.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.testtools.codecoverage@19a841221620)
+    com.unity.burst@1.8.29 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.burst@6bb9aca3ef38)
+    com.unity.dt.app-ui@2.1.7 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.dt.app-ui@b097002a00c2)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.settings-manager@2.1.1 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.settings-manager@0b8638c5ce86)
+    com.unity.test-framework.performance@3.5.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Packages from [https://registry.npmjs.com]:
+    com.ibicha.youtube-player@3.3.1 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.ibicha.youtube-player@f9135cf2d2c0)
+  Built-in packages:
+    com.unity.feature.development@1.0.2 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.feature.development@767aadbc6eb7)
+    com.unity.multiplayer.center@1.0.1 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.multiplayer.center@b860850997d0)
+    com.unity.test-framework@1.7.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.test-framework@1405238725ab)
+    com.unity.ugui@2.5.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ugui@67707a67a4ab)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.physicscore2d@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.physicscore2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.wind@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.1.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.ext.nunit@44f7d31723bd)
+    com.unity.collections@6.5.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.collections@a43cabe808ca)
+    com.unity.2d.sprite@1.0.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.2d.sprite@053a968eab56)
+    com.unity.mathematics@1.4.0 (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.unity.mathematics@981956d94fb6)
+  Git packages:
+    com.coplaydev.unity-mcp@https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main (location: C:\Users\rebui\Desktop\FlashBeat\Library\PackageCache\com.coplaydev.unity-mcp@8bd91ce7bd3a)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.03 seconds
+[ScriptCompilation] Requested script compilation because: AssetDatabase observed changes in script compilation related files
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:80
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\rebui\Desktop\FlashBeat
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping - 200 - application/grpc 58.7067ms
+Refreshing native plugins compatible for Editor in 4.65 ms, found 5 plugins.
+Starting: C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: C:/Users/rebui/Desktop/FlashBeat
+DisplayProgressbar: Compiling Scripts
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\Facades\System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Data\NetStandard\Extensions\2.0.0\System.Runtime.InteropServices.WindowsRuntime.dll"
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\System.ComponentModel.Composition.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.5.6f1\Editor\Data\NetStandard\compat\2.1.0\shims\netfx\System.ComponentModel.Composition.dll"
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil, Version=0.11.6.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@6bb9aca3ef38\Unity.Burst.CodeGen\Unity.Burst.Cecil.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Mono.Cecil, Version=0.11.5.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff\Mono.Cecil.dll
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors - 200 - application/grpc 89.9234ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/NoteEditor.dll, with 143 defines and 303 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - 200 - application/grpc 28.2035ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.dll, with 143 defines and 305 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - 200 - application/grpc 7.3924ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Editor.dll, with 141 defines and 314 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - 200 - application/grpc 3.3754ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/NoteEditor.Editor.dll, with 141 defines and 315 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - 200 - application/grpc 5.9025ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Tests.dll, with 141 defines and 296 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly - 200 - application/grpc 2.2046ms
+ExitCode: 0 Duration: 2s347ms
+[1005/1323  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[1303/1323  0s] Csc Library/Bee/artifacts/1900b0aE.dag/NoteEditor.dll (+2 others)
+Assets\NoteEditor\Plugins\UniRx\Examples\Sample05_ConvertFromCoroutine.cs(20,27): warning CS0618: 'WWW' is obsolete: 'Use UnityWebRequest, a fully featured replacement which is more efficient and has additional features'
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(12,20): warning CS0414: The field 'MusicSelectorPresenter.directoryPathInputField' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(20,16): warning CS0414: The field 'MusicSelectorPresenter.redoButton' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(18,19): warning CS0414: The field 'MusicSelectorPresenter.fileItemContainerTransform' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(24,16): warning CS0414: The field 'MusicSelectorPresenter.loadButton' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(22,16): warning CS0414: The field 'MusicSelectorPresenter.undoButton' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(26,21): warning CS0414: The field 'MusicSelectorPresenter.musicLoader' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(16,20): warning CS0414: The field 'MusicSelectorPresenter.fileItemContainer' is assigned but its value is never used
+
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(14,20): warning CS0414: The field 'MusicSelectorPresenter.fileItemPrefab' is assigned but its value is never used
+[1304/1323  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/NoteEditor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/NoteEditor.dll, with 143 defines and 303 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1305/1323  0s] CopyFiles Library/ScriptAssemblies/NoteEditor.pdb
+[1306/1323  0s] CopyFiles Library/ScriptAssemblies/NoteEditor.dll
+[1307/1323  0s] Csc Library/Bee/artifacts/1900b0aE.dag/FlashBeat.dll (+2 others)
+[1308/1323  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/FlashBeat.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.dll, with 143 defines and 305 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1309/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.pdb
+[1310/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.dll
+[1311/1323  0s] Csc Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Editor.dll (+2 others)
+Assets\Editor\YouTubeSceneWiring.cs(25,28): warning CS0618: 'Object.FindObjectsOfType<T>()' is obsolete: 'Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.'
+
+Assets\Editor\JapaneseFontFixer.cs(70,57): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+
+Assets\Editor\JapaneseFontFixer.cs(70,22): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+
+Assets\Editor\JapaneseFontFixer.cs(107,61): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+
+Assets\Editor\JapaneseFontFixer.cs(107,26): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+[1312/1323  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/FlashBeat.Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Editor.dll, with 141 defines and 314 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1313/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.Editor.dll
+[1314/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.Editor.pdb
+[1315/1323  0s] Csc Library/Bee/artifacts/1900b0aE.dag/NoteEditor.Editor.dll (+2 others)
+[1316/1323  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/NoteEditor.Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/NoteEditor.Editor.dll, with 141 defines and 315 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1317/1323  0s] CopyFiles Library/ScriptAssemblies/NoteEditor.Editor.dll
+[1318/1323  0s] CopyFiles Library/ScriptAssemblies/NoteEditor.Editor.pdb
+[1319/1323  0s] Csc Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Tests.dll (+2 others)
+[1320/1323  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/FlashBeat.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/FlashBeat.Tests.dll, with 141 defines and 296 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1321/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.Tests.pdb
+[1322/1323  0s] CopyFiles Library/ScriptAssemblies/FlashBeat.Tests.dll
+*** Tundra build success (2.28 seconds), 21 items updated, 1323 evaluated
+Assets\NoteEditor\Plugins\UniRx\Examples\Sample05_ConvertFromCoroutine.cs(20,27): warning CS0618: 'WWW' is obsolete: 'Use UnityWebRequest, a fully featured replacement which is more efficient and has additional features'
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(12,20): warning CS0414: The field 'MusicSelectorPresenter.directoryPathInputField' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(20,16): warning CS0414: The field 'MusicSelectorPresenter.redoButton' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(18,19): warning CS0414: The field 'MusicSelectorPresenter.fileItemContainerTransform' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(24,16): warning CS0414: The field 'MusicSelectorPresenter.loadButton' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(22,16): warning CS0414: The field 'MusicSelectorPresenter.undoButton' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(26,21): warning CS0414: The field 'MusicSelectorPresenter.musicLoader' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(16,20): warning CS0414: The field 'MusicSelectorPresenter.fileItemContainer' is assigned but its value is never used
+Assets\NoteEditor\Scripts\Presenter\MusicSelector\MusicSelectorPresenter.cs(14,20): warning CS0414: The field 'MusicSelectorPresenter.fileItemPrefab' is assigned but its value is never used
+Assets\Editor\YouTubeSceneWiring.cs(25,28): warning CS0618: 'Object.FindObjectsOfType<T>()' is obsolete: 'Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.'
+Assets\Editor\JapaneseFontFixer.cs(70,57): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+Assets\Editor\JapaneseFontFixer.cs(70,22): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+Assets\Editor\JapaneseFontFixer.cs(107,61): warning CS0618: 'FindObjectsSortMode' is obsolete: 'FindObjectsSortMode has been deprecated. Use the FindObjectsByType overloads that do not take a FindObjectsSortMode parameter.'
+Assets\Editor\JapaneseFontFixer.cs(107,26): warning CS0618: 'Object.FindObjectsByType<T>(FindObjectsSortMode)' is obsolete: 'FindObjectsByType with FindObjectsSortMode parameter has been deprecated. Use FindObjectsByType<T>() or FindObjectsByType<T>(FindObjectsInactive) instead. InstanceID will be replaced in the future with EntityId and previous sort order cannot be maintained.'
+AssetDatabase: script compilation time: 3.059801s
+Begin MonoManager ReloadAssembly
+Symbol file LoadedFromMemory is not a mono symbol file
+Symbol file LoadedFromMemory is not a mono symbol file
+Refreshing native plugins compatible for Editor in 5.58 ms, found 5 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Refreshing native plugins compatible for Editor in 4.22 ms, found 5 plugins.
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  6.705 seconds
+Domain Reload Profiling: 8617ms
+	BeginReloadAssembly (421ms)
+		DisableScriptedObjects (60ms)
+		CreateAndSetChildDomain (151ms)
+	RebuildCommonClasses (10ms)
+	RebuildNativeTypeToScriptingClass (20ms)
+	initialDomainReloadingComplete (126ms)
+	LoadAllAssembliesAndSetupDomain (1333ms)
+		LoadAssemblies (698ms)
+		AnalyzeDomain (604ms)
+			TypeCache.Refresh (497ms)
+				TypeCache.ScanAssembly (455ms)
+			BuildScriptInfoCaches (99ms)
+			ResolveRequiredComponents (5ms)
+	FinalizeReload (6707ms)
+		SetupLoadedEditorAssemblies (0ms)
+			InitializePlatformSupportModulesInManaged (3ms)
+			BeforeProcessingInitializeOnLoad (158ms)
+			ProcessInitializeOnLoadAttributes (5826ms)
+			ProcessInitializeOnLoadMethodAttributes (408ms)
+			AfterProcessingInitializeOnLoad (10ms)
+		AwakeInstancesAfterBackupRestoration (51ms)
+Starting new worker id: 0 with log in C:/Users/rebui/Desktop/FlashBeat/Logs/AssetImportWorkerHW0.log
+Refreshing native plugins compatible for Editor in 4.51 ms, found 5 plugins.
+
+Asset Pipeline Refresh (id=b2aec2fabea1d6b438475927827269d9): Total: 13.509 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	(Values over 0.05ms)
+	Summary:
+		Imports: total=10 (actual=0, local cache=10, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=7652 ms
+		Asset DB Callback time: managed=625 ms, native=41 ms
+		Scripting: domain reloads=1, domain reload time=2031 ms, compile time=3062 ms, other=95 ms
+		Project Asset Count: scripts=1765, non-scripts=4196
+		Asset File Changes: new=0, changed=2, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokePackagesCallback: 31.844ms
+	ApplyChangesToAssetFolders: 0.899ms
+	Scan: 207.974ms
+	Collect global state as custom dependencies: 10.781ms
+	OnSourceAssetsModified: 0.807ms
+	CategorizeScriptCompilationAssets: 89.462ms
+	ProcessAssetsWithTransientArtifactChanges: 125.790ms
+	CategorizeAssets: 119.425ms
+	CompileScripts: 3062.169ms
+	ImportOutOfDateAssets: 6889.588ms (6756.743ms without children)
+		UnloadImportedAssets: 0.245ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 2.473ms
+		ImportSchedulerStart: 130.092ms
+	PostProcessAllAssets: 703.751ms
+		VCAutoAddAssetPostprocess 2.308ms
+		XRBuildSystem.XRAssetImported 1.390ms
+		MonoPostProcessAllAssets: 699.215ms
+			AssetPostprocessor.OnPostprocessAllAssets 192.339ms
+			NugetAssetPostprocessor.OnPostprocessAllAssets 79.814ms
+			AssetReferenceReimportMonitor.OnPostprocessAllAssets 45.988ms
+			StyleCatalogPostProcessor.OnPostprocessAllAssets 28.158ms
+			BuilderAssetPostprocessor.OnPostprocessAllAssets 8.769ms
+			WindowAssetPostprocessingWatcher.OnPostprocessAllAssets 4.093ms
+			SpriteSlicePostprocessor.OnPostprocessAllAssets 3.609ms
+			GraphRefreshPostprocessor.OnPostprocessAllAssets 2.441ms
+			AssetChangedListener.OnPostprocessAllAssets 2.066ms
+			EditModeScopePostprocessor.OnPostprocessAllAssets 2.000ms
+			RetainedModeAssetPostprocessor.OnPostprocessAllAssets 1.748ms
+			AssetChangeDetector.OnPostprocessAllAssets 1.378ms
+			SpeedTree9Postprocessor.OnPostprocessAllAssets 1.210ms
+			SpriteEditorTexturePostprocessor.OnPostprocessAllAssets 1.069ms
+			ArtifactBrowserPostProcessor.OnPostprocessAllAssets 0.810ms
+			TextAssetPostProcessor.OnPostprocessAllAssets 0.792ms
+			SkillsProjectAssetPostprocessor.OnPostprocessAllAssets 0.786ms
+			TMPro_TexturePostProcessor.OnPostprocessAllAssets 0.710ms
+			UVCSAssetPostprocessor.OnPostprocessAllAssets 0.637ms
+			ModelAssetProcessor.OnPostprocessAllAssets 0.502ms
+			ReferencedClipsPostProcessor.OnPostprocessAllAssets 0.440ms
+			SamplePostprocessor.OnPostprocessAllAssets 0.438ms
+			AssetEvents.OnPostprocessAllAssets 0.398ms
+			AudioMixerPostprocessor.OnPostprocessAllAssets 0.385ms
+			AssetDatabaseCallbacks.OnPostprocessAllAssets 0.244ms
+			TerrainToolbarOverlayPostProcessor.OnPostprocessAllAssets 0.219ms
+			SpeedTreePostProcessor.OnPostprocessAllAssets 0.202ms
+			SyncVS.PostprocessSyncProject 0.201ms
+			ScenarioDriftAssetsTracker.OnPostprocessAllAssets 0.175ms
+			ConfigAssetsTracker.OnPostprocessAllAssets 0.169ms
+			AssetReloadNotifier.OnPostprocessAllAssets 0.162ms
+			RenderPipelineGlobalSettingsPostprocessor.OnPostprocessAllAssets 0.137ms
+			AudioContainerPostProcessor.OnPostprocessAllAssets 0.126ms
+			TrackSelectedAssetsProcessor.OnPostprocessAllAssets 0.104ms
+	PostAssetChangesProfiler: 8.089ms
+	GatherAllCurrentPrimaryImportResultRevisions: 0.610ms
+	UnloadStreamsBegin: 3.326ms
+	PersistCurrentRevisions: 0.745ms
+	GenerateScriptTypeHashes: 40.911ms
+	GenerateScriptTypeSerializationHashes: 75.786ms
+	Untracked: 2315.615ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 9.637ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-FlashBeat
+Unloading 46 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8548 unused Assets / (4.4 MB). Loaded Objects now: 9224.
+Memory consumption went from 0.50 GB to 0.50 GB.
+Total: 27.473600 ms (FindLiveObjects: 0.762900 ms CreateObjectMapping: 3.395100 ms MarkObjects: 19.662000 ms  DeleteObjects: 3.646900 ms)
+
+[Migrate] Merged + deleted: 4th smile
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Calamity
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Chartreuse
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Dogbite
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: GURU
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Poison
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Psyched
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: Who
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: まにまに
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: イガク
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: エウタナシア
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: オーバーライド
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: セルフィー
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: チュートリアル
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: ツイッターランド
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: テレキャスタービーボーイ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: ニセモノ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: パノプティコン
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: ビビビビ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: ロストアンブレラ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 一龠
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 春嵐
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 混沌ブギ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 灰Φ倶楽部
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 狂喜蘭舞
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 終焉逃避行
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+[Migrate] Merged + deleted: 阿吽のビーツ
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:MigrateForTest (string) (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:74)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:19)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 74)
+
+Importing 'GUID: 801010f1a4cb7af47a23b8583abde98b - Path: Assets/Game/Resources/セルフィー.json' with importer (TextScriptImporter)
+Imported 'GUID: 801010f1a4cb7af47a23b8583abde98b' -> (Import Result ID: '6b97aa257debc72e41a0a661f7206901') in 0.007 seconds [static dependencies only]. Details - ImportResultOutputID=cb4a0156dffb8359efac48f98f45ee74 DependenciesID=6bee03f9ac2c5edc8986fd82dcd18616 StaticDependenciesID=28f553ccaec0cf1f9c23f6fe2a29d7fa 
+Importing 'GUID: 80a41aea3927ef94fae620bc65148401 - Path: Assets/Game/Resources/オーバーライド.json' with importer (TextScriptImporter)
+Imported 'GUID: 80a41aea3927ef94fae620bc65148401' -> (Import Result ID: '15d9c5c7159b743001cc3332d9fc8555') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=a4f2d4251dad9ea88e627a241d1c775f DependenciesID=04bc21e5847f00fbf0a4207e78ed453d StaticDependenciesID=bd08d5e30fa636ba869654be937c50ba 
+Importing 'GUID: 90134e18d104af74dac212ef322d223b - Path: Assets/Game/Resources/チュートリアル.json' with importer (TextScriptImporter)
+Imported 'GUID: 90134e18d104af74dac212ef322d223b' -> (Import Result ID: '09ddb3c2de762c015e572fde7f7943fb') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=45596796c6fe044eaae9b6c430b7200d DependenciesID=54efd2e5dd332def46e7f294f5bae117 StaticDependenciesID=829179676b88915ab128cf40b0cb5e5a 
+Importing 'GUID: 01992f89064b82a43bd914c5e67cc7a0 - Path: Assets/Game/Resources/テレキャスタービーボーイ.json' with importer (TextScriptImporter)
+Imported 'GUID: 01992f89064b82a43bd914c5e67cc7a0' -> (Import Result ID: '9eac3a438b7ce509741135ef39d83b27') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=8b633b4b0455ca6027809d4f85465018 DependenciesID=8d802a66a6c6e5cd3f0d5323f7867513 StaticDependenciesID=9ebbf8f2ebc3f06fdc5c136a0ca307df 
+Importing 'GUID: f1451ee9d248ba147a6d147b8bee69cb - Path: Assets/Game/Resources/狂喜蘭舞.json' with importer (TextScriptImporter)
+Imported 'GUID: f1451ee9d248ba147a6d147b8bee69cb' -> (Import Result ID: 'b093df2d89051cd45df6e2715bc62b14') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=ced88505f58cd93d6c6cfd8053c70fee DependenciesID=6cab0350afc56bbbc6d35d4d7c60386c StaticDependenciesID=e13c21c02fe8e5df835e7f2493e5ee49 
+Importing 'GUID: 1472abfe6f6edda4cbcdf43c98777808 - Path: Assets/Game/Resources/Dogbite.json' with importer (TextScriptImporter)
+Imported 'GUID: 1472abfe6f6edda4cbcdf43c98777808' -> (Import Result ID: '0db5409d829b6049cfdab24152886db3') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=04d1b1a33b66423c874d5163a93c667e DependenciesID=d52a087cff406f0a05b3cbab7b7cb671 StaticDependenciesID=4185994dc189fe2678245669164dbc9f 
+Importing 'GUID: 2414341bb4e17bf49bb202ae0c244563 - Path: Assets/Game/Resources/ロストアンブレラ.json' with importer (TextScriptImporter)
+Imported 'GUID: 2414341bb4e17bf49bb202ae0c244563' -> (Import Result ID: '7b2fd2aa96fa61d10c4c46d9253b3efc') in 0.004 seconds [static dependencies only]. Details - ImportResultOutputID=70451d558d3e7fd56f018cb987b83e6a DependenciesID=54a491a427ad60db2509ba060d1102ec StaticDependenciesID=d66a68160ce3dab517780b78978ad2e7 
+Importing 'GUID: f4c76f2609b779246a45b8c47e62329a - Path: Assets/Game/Resources/ツイッターランド.json' with importer (TextScriptImporter)
+Imported 'GUID: f4c76f2609b779246a45b8c47e62329a' -> (Import Result ID: 'f0eafe77cd9e07d6a89f91ef4af5c3a7') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=2078731ae0770ca046685b52edeb269b DependenciesID=8612fca3fa8066f6c6adb5d37e914473 StaticDependenciesID=5a415f6483eec644a302eeef9bd925f4 
+Importing 'GUID: 55d8e3006568ab141abc72e568320190 - Path: Assets/Game/Resources/ビビビビ.json' with importer (TextScriptImporter)
+Imported 'GUID: 55d8e3006568ab141abc72e568320190' -> (Import Result ID: '9757bd8c40f1f3972a88246edf7b5eb1') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=d77b13f4b4a4f18d8049e26f030b6e45 DependenciesID=8a29681d149b1977dbaf7a3f82214c59 StaticDependenciesID=38f55e5946f8b8f6ca084dc3709c4f71 
+Importing 'GUID: 95c8f36fe8f5731409eb0cf01b785979 - Path: Assets/Game/Resources/4th smile.json' with importer (TextScriptImporter)
+Imported 'GUID: 95c8f36fe8f5731409eb0cf01b785979' -> (Import Result ID: '6a2c89748187f9efc5466c0a2a07ed7e') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=644f5741e8b24d563dea222466cc5373 DependenciesID=c484dcf1929c96656bc7a162fe4938ea StaticDependenciesID=f552d247bb039ca084969d14a87bbeae 
+Importing 'GUID: 76af4920b6d286c489dafd608c2a1b63 - Path: Assets/Game/Resources/Psyched.json' with importer (TextScriptImporter)
+Imported 'GUID: 76af4920b6d286c489dafd608c2a1b63' -> (Import Result ID: '5f88b7ee9f1014422277cbac466ea80f') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=3fd3861d7bfbe1afa75e2226b1493fb2 DependenciesID=a29915ac0609ff9a2a7ef288bb39cac0 StaticDependenciesID=79928d6077774c023fba5324bb12e770 
+Importing 'GUID: 273e8a91187526349822488689f6b359 - Path: Assets/Game/Resources/ニセモノ.json' with importer (TextScriptImporter)
+Imported 'GUID: 273e8a91187526349822488689f6b359' -> (Import Result ID: 'b9ca265b72ab05f69b3f8d873e1535a4') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=a3057a20f9dc4e2cfca14ed58dc61b20 DependenciesID=ea203450fc9b17d7c5eb916d5a348ec7 StaticDependenciesID=53c3414002e095b79200224fd68c57c7 
+Importing 'GUID: 683bd003857c9584a9264efb47a3d633 - Path: Assets/Game/Resources/GURU.json' with importer (TextScriptImporter)
+Imported 'GUID: 683bd003857c9584a9264efb47a3d633' -> (Import Result ID: '529045d363bb71012c536084a8c6c8b5') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=0af8424d66b5aab8e4c3a5d83b0c802a DependenciesID=c56ce78d30d58cb992bfacb18f50ddc1 StaticDependenciesID=749006714041b7d0112ce6e3d5338bb0 
+Importing 'GUID: c8580159c711ceb4888b0713959d10b9 - Path: Assets/Game/Resources/混沌ブギ.json' with importer (TextScriptImporter)
+Imported 'GUID: c8580159c711ceb4888b0713959d10b9' -> (Import Result ID: '07ba4468db12ccdc3f27c742360169ff') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=1382602d46ad7b471d2b71fc77068ed2 DependenciesID=0fc56cb62ee7f8f7908169b712482d60 StaticDependenciesID=e7fae7b6c139002849ff1b2742228d0c 
+Importing 'GUID: 093c0eb46a0417742961c9d4e7141ed1 - Path: Assets/Game/Resources/パノプティコン.json' with importer (TextScriptImporter)
+Imported 'GUID: 093c0eb46a0417742961c9d4e7141ed1' -> (Import Result ID: '95dab2b77d7bbf05aaaa0650534869fd') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=f4a2282cd687c6b240fa690da23d9729 DependenciesID=eefe39cea22e258b8acecbbcc80dd478 StaticDependenciesID=046329f83d20c93ae003aedfdfc23500 
+Importing 'GUID: 2936b59d8650e5a4cb06389cd70cfc2b - Path: Assets/Game/Resources/Calamity.json' with importer (TextScriptImporter)
+Imported 'GUID: 2936b59d8650e5a4cb06389cd70cfc2b' -> (Import Result ID: 'e6ef88e5b7ececaac56762bb77b5f9a2') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=c2bb431cebaf6ed3f3f58167f2e2e3e0 DependenciesID=e1fe805334ca491685084d933b05785b StaticDependenciesID=759b05d58a0f221f3d51c884ec4b34e0 
+Importing 'GUID: 29cf2f6f04152bd459371eaea1cd7dce - Path: Assets/Game/Resources/Who.json' with importer (TextScriptImporter)
+Imported 'GUID: 29cf2f6f04152bd459371eaea1cd7dce' -> (Import Result ID: '5c0a76fcd7cc4ec658d600bfc9578433') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=39daabb3246084dc3e3135a2cfd54ea8 DependenciesID=3e253bc891ba7390df2bccc6392f2244 StaticDependenciesID=b6f6f4744b790a8746ea4effb168ba8c 
+Importing 'GUID: ab181a990362829489a7e7870b242845 - Path: Assets/Game/Resources/終焉逃避行.json' with importer (TextScriptImporter)
+Imported 'GUID: ab181a990362829489a7e7870b242845' -> (Import Result ID: '7a46f093627e9ae6591d7a5471c2c121') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=a22ef44efc1fd6d3d8b1187ab6381c60 DependenciesID=004bfc8ab5881c87d075f499c4de418a StaticDependenciesID=b23e2cb45c94d4d7665f9eeeb6b0dc35 
+Importing 'GUID: bbfcc453ffeeb144291a86ceae4995fe - Path: Assets/Game/Resources/Chartreuse.json' with importer (TextScriptImporter)
+Imported 'GUID: bbfcc453ffeeb144291a86ceae4995fe' -> (Import Result ID: '939ab2992bde405fe865d204529c20c3') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=11664ed0fee8d9ed5a7c0d77f7121e25 DependenciesID=94558accc5d749a8a8eecd63259e0fe7 StaticDependenciesID=e8143ea0f5b54a26af4c92d590b090c1 
+Importing 'GUID: db2341a0748157f4389a6b787bf2dcb2 - Path: Assets/Game/Resources/春嵐.json' with importer (TextScriptImporter)
+Imported 'GUID: db2341a0748157f4389a6b787bf2dcb2' -> (Import Result ID: 'd8fc9fc273d52b50a9b4ea0007e64086') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=4e282db8b697ab0a6623a497a1195a86 DependenciesID=b0efa5581e98cc13bbe0e352aac13029 StaticDependenciesID=052a333425205bbd9ef98ecfc29b1ad6 
+Importing 'GUID: db98bc6bfa2249444b65a844aea059ee - Path: Assets/Game/Resources/まにまに.json' with importer (TextScriptImporter)
+Imported 'GUID: db98bc6bfa2249444b65a844aea059ee' -> (Import Result ID: 'b20d0042273fdd993eab6330ece4ce8c') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=38a65f1f9efeb23445fbd90b91955c18 DependenciesID=63a943a3a17208f2433dab97cb76b613 StaticDependenciesID=9c407b483cab7c6706cddc6c160ff4a2 
+Importing 'GUID: 3cd207ea6f92294428bd0f30fcaa1e6d - Path: Assets/Game/Resources/Poison.json' with importer (TextScriptImporter)
+Imported 'GUID: 3cd207ea6f92294428bd0f30fcaa1e6d' -> (Import Result ID: 'cdd2a03e4ffc015e5c1c54567f98a418') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=7d645dc2cfac45e4864af8987d77e924 DependenciesID=e67d57fc2f66bce8a2dd971379b0a369 StaticDependenciesID=1b94098bd0fff3beceb4e5bfaca7196f 
+Importing 'GUID: 7c4e9ada936f3314c9c06fce1cc13c37 - Path: Assets/Game/Resources/阿吽のビーツ.json' with importer (TextScriptImporter)
+Imported 'GUID: 7c4e9ada936f3314c9c06fce1cc13c37' -> (Import Result ID: '0e4d5be4c180e73a903bfc56693e8f1f') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=f5e04aba23c8efcd0f00b5343251eccc DependenciesID=50ca85a8fd97cdcecdeaa0e6d9f9684c StaticDependenciesID=12c8f032f6cd08ac5f7002fe02d06ed1 
+Importing 'GUID: 9d83be9d3e397b24e99b0841d8c0aaa8 - Path: Assets/Game/Resources/一龠.json' with importer (TextScriptImporter)
+Imported 'GUID: 9d83be9d3e397b24e99b0841d8c0aaa8' -> (Import Result ID: 'aa6b885dcfa2db3233ae80d77606ef16') in 0.004 seconds [static dependencies only]. Details - ImportResultOutputID=6b4c28df154a6ada597d930195e72976 DependenciesID=09785f4660fd8d7ba513820124b00653 StaticDependenciesID=d800da0850f4a65e4996103e7ff50a2e 
+Importing 'GUID: fe2f5c57817fe0e4ba0d53ddf5a3d94e - Path: Assets/Game/Resources/イガク.json' with importer (TextScriptImporter)
+Imported 'GUID: fe2f5c57817fe0e4ba0d53ddf5a3d94e' -> (Import Result ID: 'bd54a66cc2d5983ba204ecceecbe80ff') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=9390b3f0ee99e1d01f1e96e107ce3eb1 DependenciesID=1293294d47b8bca4b5c87503b7d27bda StaticDependenciesID=67050d13b9d53c988402df0433201c22 
+Importing 'GUID: dffe09f4eed788542a60a941d55dbcf2 - Path: Assets/Game/Resources/エウタナシア.json' with importer (TextScriptImporter)
+Imported 'GUID: dffe09f4eed788542a60a941d55dbcf2' -> (Import Result ID: 'e21beed841baa47359f1bd3284e5ea5e') in 0.002 seconds [static dependencies only]. Details - ImportResultOutputID=3e4ade84aaeabb8312bf6d92d7abf8d6 DependenciesID=0268a3a16294cf73541c34619f35d856 StaticDependenciesID=bfca0830e5c42825b21198b73ec901a0 
+Importing 'GUID: ef8f3b72d421a7b42b76acf7ea71a6ce - Path: Assets/Game/Resources/灰Φ倶楽部.json' with importer (TextScriptImporter)
+Imported 'GUID: ef8f3b72d421a7b42b76acf7ea71a6ce' -> (Import Result ID: '656d78d3d139d0abcd3c6cb3b4fdde05') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=38b3ebb3e8000cf3ada7c01a3829fa2e DependenciesID=dd18d48b1ec6593df30f9b5b2cfa77a4 StaticDependenciesID=c31cf57136416be7a481439a3624525a 
+Refreshing native plugins compatible for Editor in 3.96 ms, found 5 plugins.
+Asset Pipeline Refresh (id=967d7af4fedd80146a3807e7964a922d): Total: 0.291 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+[Migrate] Done: migrated=27
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+NoteEditor.Editor.MigrateLegacyTextJson:Run () (at Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs:21)
+
+(Filename: Assets/Editor/NoteEditor.Editor/MigrateLegacyTextJson.cs Line: 21)
+
+Batchmode quit successfully invoked - shutting down!
+Importing 'GUID: 0000000000000000b000000000000000 - Path: ProjectSettings/EditorBuildSettings.asset' with importer (LibraryAssetImporter)
+Imported 'GUID: 0000000000000000b000000000000000' -> (Import Result ID: '993c37cca8fdc435933db15285d499a1') in 0.002 seconds [static dependencies only]. Details - ImportResultOutputID=4647dd083cfc32cebcd7526e8846440c DependenciesID=6fa7890f1cbd5c900eb48c3af2eb0917 StaticDependenciesID=e4b7aeecfccb6091ecf2315e3dd5eb2d 
+Refreshing native plugins compatible for Editor in 4.42 ms, found 5 plugins.
+Asset Pipeline Refresh (id=96bdd29dbcb9e3b40a3ecfd12d597452): Total: 0.083 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-basic-6000.5.6-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-basic-6000.5.6 channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Shut down.
+Cleanup mono
+CodeReloadManager destroyed
+abort_threads: Failed aborting id: 0000000000009B94, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 000000000000500C, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 0000000000009B94, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 000000000000500C, mono_thread_manage will ignore it
+
+debugger-agent: Unable to listen on 3472
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0
