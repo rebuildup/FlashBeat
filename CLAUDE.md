@@ -32,22 +32,24 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
 
 ## Architecture
 
-Three C# assemblies (one asmdef per directory):
+Five C# assemblies (one asmdef per directory):
 
 | Assembly | Location | Platform | Purpose |
 |---|---|---|---|
-| `FlashBeat` | `Assets/Scripts/` | All | Runtime gameplay code |
-| `FlashBeat.Editor` | `Assets/Editor/` | Editor only | `BuildScript`, `JapaneseFontFixer` |
-| `FlashBeat.Tests` | `Assets/Tests/Editor/` | Editor only | NUnit tests |
+| `FlashBeat` | `Assets/Game/Scripts/FlashBeat.asmdef` | All | Runtime gameplay code (subdirs: `Common`, `Gameplay`, `Persistence`, `Songs`, `UI`) |
+| `FlashBeat.Editor` | `Assets/Editor/FlashBeat.Editor.asmdef` | Editor only | Build scripts, JapaneseFontFixer, scene wiring, GManager auto-updater |
+| `NoteEditor` | `Assets/NoteEditor/NoteEditor.asmdef` | All (excluded by scene list) | Vendored setchi/NoteEditor (MIT); runtime-present but never built into `FlashBeat.exe` because `NoteEditor.unity` is not in `EditorBuildSettings.scenes` |
+| `NoteEditor.Editor` | `Assets/Editor/NoteEditor.Editor/NoteEditor.Editor.asmdef` | Editor only | Editor-only NoteEditor extensions: `MigrateLegacyTextJson`, `YouTubeImportDialog`, `YouTubeImportRegistrar` |
+| `FlashBeat.Tests` | `Assets/Tests/Editor/FlashBeat.Tests.asmdef` | Editor only | NUnit tests (defines `UNITY_INCLUDE_TESTS`, references `nunit.framework.dll`) |
 
 ### Runtime structure (FlashBeat)
 
 **One manager per scene** — each scene has a `*SceneManager.cs` MonoBehaviour that owns the scene's UI and per-frame `Update` logic:
 
-- `OpeningSceneManager`, `TitleSceneManager`, `SelectSceneManager`, `GameSceneManager`, `ResultSceneManager`, `OptionSceneManager`, `TipingSceneManager`, `MakeFileSceneManager`
+- `OpeningSceneManager`, `TitleSceneManager`, `SelectSceneManager`, `GameSceneManager`, `ResultSceneManager`, `OptionSceneManager`, `TypingSceneManager`, `MakeFileSceneManager`
 
-**Global state** — `GManager` (`Assets/Scripts/GManager.cs`) is a `DontDestroyOnLoad` singleton whose **static** fields are the shared state across scenes:
-- Song catalog: hardcoded parallel arrays (`SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`) built into a `List<SongData>` at static init.
+**Global state** — `GManager` (`Assets/Game/Scripts/Songs/GManager.cs`) is a `DontDestroyOnLoad` singleton whose **static** fields are the shared state across scenes:
+- Song catalog: hardcoded parallel arrays (`SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`) built into a `SongData[] Songs` at static init via `BuildSongs()`.
 - Live play state: `score`, `combo`, `perfect/great/bad/miss`, `noteSpeed`, `noteTiming`, `Start`, `StartTime`, `played`.
 - Settings: `mainVolume`, `effectVolume`, `BGMVolume`, `FlashBG`, `Flash`, `FlashT`.
 - High scores: `int[] Hiscore` (length 42, persisted via `SaveLoadManager` to `PlayerPrefs` key `"Hiscore"` as CSV).
@@ -55,13 +57,15 @@ Three C# assemblies (one asmdef per directory):
 Because state is static, `GManager.ResetSession()` must be called between play sessions to clear combo/score counters (called in `GameSceneManager.RetryGame`).
 
 **Gameplay loop** (`GameScene`):
-1. `MusicManager` waits for `Space`, then starts a `VideoPlayer` (YouTube playback via `com.ibicha.youtube-player`) and an `AudioSource` (loaded from `Resources/Musics/<songName>`).
-2. `NotesManager.OnEnable` reads `Resources/<songName>.json` (`Data` → `Note[]` with `type/num/block/LPB`), computes per-note hit times from BPM/LPB, and instantiates note prefabs on 8 lanes.
+1. `MusicManager` waits for `Space`, then starts a `VideoPlayer` (URL resolved by `YouTubeStreamResolver`) and an `AudioSource` (loaded from `Resources/Musics/<songName>`).
+2. `NotesManager.OnEnable` reads `Resources/<songName>.json` (`name`, `maxBlock`, `BPM`, `offset`, `notes[]` with `type/num/block/LPB`, plus the merged `lyrics` block), computes per-note hit times from BPM/LPB, and instantiates note prefabs on 8 lanes.
 3. `Notes.cs` moves notes toward the player each frame using `GManager.noteSpeed`.
 4. `Judge.Update` polls `Input.GetKeyDown` against the lane→keys mapping (`LaneKeys` in `Judge.cs`), measures time-lag against `GManager.StartTime`, and scores `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss`.
 5. On end: `MusicManager` fades and `Initiate.Fade("ResultScene", ...)` (from `SimpleFadeSystem`, referenced by the FlashBeat asmdef).
 
-**Lyrics overlay** — each song has a parallel `*_text.json` (loaded by `GameSceneManager.Load` into `TextData`) carrying timed `Mondai` strings used for the kanji display during play.
+**YouTube streaming** — `YouTubeStreamResolver` (`Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs`) spawns `yt-dlp.exe` (itag=18, ~360p mp4) to resolve a videoId to a direct `googlevideo.com` URL just-in-time (URLs expire in ~6h). Auto-detects `yt-dlp.exe` from `PATH`, common Python install dirs, or a project-bundled `Assets/StreamingAssets/yt-dlp/yt-dlp.exe`; override via `Edit > Project Settings > FlashBeat > YouTube`. The bundled `com.ibicha.youtube-player` package's Invidious path is no longer used at runtime — its public instance list has decayed and 0/13 candidate hosts return valid JSON. `InvidiousInstanceProber` (Editor menu `Tools → FlashBeat → Probe Invidious Instances`) exists only as a diagnostic tool.
+
+**Lyrics overlay** — lyrics are stored inline in each chart JSON under a `lyrics` field (loaded by `GameSceneManager.LoadTextData`, which prefers the merged chart over any legacy `*_text.json`). Legacy `_text.json` files were migrated into the chart JSON in commit `14e3422` via `NoteEditor.Editor.MigrateLegacyTextJson`.
 
 **8-lane keymap** (from `Judge.LaneKeys`):
 ```
@@ -73,11 +77,11 @@ Lane 3: 4 5 R T F G V B Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 
 ### Test assemblies
 
-`Assets/Tests/Editor/JudgeLogicTests.cs` and `SongDataTests.cs` cover GManager song lookup, `ResetSession`, lane-index wrap-around, and time-lag math. They are the only tests; there is no play-mode/integration suite.
+36 EditMode tests under `Assets/Tests/Editor/`. Coverage spans GManager song lookup, `ResetSession`, lane-index wrap-around, time-lag math, NoteEditor `EditDataSerializer` (Furigana roundtrip + merged lyrics), `LyricsTabPresenter` (add/remove/update + Index bounds-check), `FlashBeatSongLoader` (Resources scan), `MigrateLegacyTextJson` (legacy → merged chart), and YouTube import wiring. There is no play-mode/integration suite. `SingletonTestHelper` provides a `TeardownSingletons` pattern for static-state cleanup between tests (notably required by `EditData.Lyrics` arrays).
 
 ### NoteEditor 統合
 
-`Assets/NoteEditor/` に [setchi/NoteEditor](https://github.com/setchi/NoteEditor) を統合。譜面作成ツールとして独立して動作 (FlashBeat 本体とは別コンパイル単位、Editor のみでビルドされる)。
+`Assets/NoteEditor/` に [setchi/NoteEditor](https://github.com/setchi/NoteEditor) を統合。譜面作成ツールとして独立して動作。`NoteEditor.asmdef` は all-platform だが `Assets/NoteEditor/Scenes/NoteEditor.unity` が build scenes list に含まれないため `FlashBeat.exe` には bundle されない (asmdef による editor 制限ではなく scene list による除外)。
 
 **取り込み情報** (詳細は `Assets/NoteEditor/IMPORT.md` を参照):
 - upstream commit SHA: `189256ef612105f3ccba1440b9fbd88c38a03db6`
@@ -99,32 +103,36 @@ Lane 3: 4 5 R T F G V B Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 | `Audio/`, `Shaders/` | 音源・シェーダ |
 | `Plugins/UniRx/` | Unity 6 サポート済みの vendored UniRx |
 
-**asmdef 構成** (Editor 限定):
-- `UniRx` (vendored lib) + `NoteEditor` (本体、UniRx と TextMeshPro 参照)。両者とも `includePlatforms: ["Editor"]` で `FlashBeat.exe` には含まれない
-- FlashBeat 本体 (`Assets/Game/Scripts/FlashBeat.asmdef`) は UniRx を参照しない
+**asmdef 構成**:
+- `UniRx` (vendored lib) — `includePlatforms: []` (all platforms); NoteEditor だけが compile 時に参照する
+- `NoteEditor` 本体 — `includePlatforms: []` だが `Assets/NoteEditor/Scenes/NoteEditor.unity` が build scenes list に含まれていないため `FlashBeat.exe` には bundle されない
+- `NoteEditor.Editor` (Editor 限定、`includePlatforms: ["Editor"]`) — editor-only extension (`MigrateLegacyTextJson`, YouTube 取り込み dialog/registrar)
+- FlashBeat 本体 (`Assets/Game/Scripts/FlashBeat.asmdef`) は UniRx を参照しない、NoteEditor は参照する
 
 ## Adding a new song
 
-The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` documents the canonical 5-step recipe (and is worth reading before changing GManager arrays):
+The 5 manual steps below are still valid, but the canonical path is now the Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` (`Assets/Editor/MakeFileSceneManager.cs`), which orchestrates `SongMetaDialog`, `YouTubeSceneWiring`, and `GManagerParallelArrayUpdater` automatically and writes a stub `*_text.json` if lyrics are missing. The orchestrator queues writes via `DeferredEditorActions` if Play Mode is active.
 
-1. Drop a notes JSON in `Assets/Resources/<SongName>.json` matching the `Data` schema (`name`, `maxBlock`, `BPM`, `offset`, `notes[]` with `type/num/block/LPB`).
-2. Run `MakeFileScene` once after editing the hardcoded `StartTime`/`Mondai` arrays at the top of `MakeFileSceneManager.cs` — it writes `Assets/Resources/<SongName>_text.json`.
-3. Update the parallel arrays in `GManager`: `SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`, `Hiscore` (length), `totalSong`.
-4. In `GameScene.unity`, duplicate a `YoutubePlayer` GameObject, rename it to the song's numeric ID, and set the URL.
-5. Wire the new `YoutubePlayer` into `MusicManager.YPlayer`/`VPlayer` arrays.
+Manual recipe (still valid for scripted/headless use):
+
+1. Drop a notes JSON in `Assets/Game/Resources/<SongName>.json` matching the `Data` schema (`name`, `maxBlock`, `BPM`, `offset`, `notes[]` with `type/num/block/LPB`, plus optional `lyrics` block).
+2. Update the parallel arrays in `GManager`: `SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`, `Hiscore` (length), `totalSong`. The `GManagerParallelArrayUpdater` regex edits handle this without manual array editing.
+3. In `GameScene.unity`, the `YoutubePlayer` GameObject + `MusicManager.YPlayer`/`VPlayer` array are wired automatically by `YouTubeSceneWiring` — no manual scene editing required.
+4. Lyrics are stored inline in the chart JSON `lyrics` field (preferred) or written as a stub `<SongName>_text.json` by `MakeFileSceneManager.WriteTextJsonStub`. Legacy `_text.json` files were migrated in commit `14e3422`.
 
 ## Conventions
 
 - **Indentation / encoding**: 4-space indent, LF endings, UTF-8 BOM (`.editorconfig` + `.gitattributes`). No CRLF, no tabs.
 - **C# style**: `csharp_style_expression_bodied_methods = false` — use block bodies for methods.
 - **Static fields over DI**: `GManager` uses public static fields for cross-scene state, not a dependency-injected container.
-- **Caution on deletions**: a comment in `MakeFileSceneManager.cs` warns "削除時はコメントアウト 変数は削除しないようにするのが望ましいです" — when removing functionality, prefer commenting out over deleting variables, because the gameplay scripts rely on a delicate balance of shared static state and parallel arrays.
+- **Caution on deletions**: `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays must stay in lockstep — when removing a song, prefer commenting out the row across all 7 parallel arrays (and the matching `Resources/<song>.json`) over deleting variables, because the gameplay scripts index these arrays positionally.
 
 ## Known gotchas
 
-- `BuildScript.cs` references `OpeningScene.unity` (wrong); file is `Opening.unity`.
-- `TipingScene].unity` has a stray `]` in the filename.
-- `GManager.songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
-- `Assets/Resources/<song>.json` and `<song>_text.json` must exist together — `MusicManager` loads one, `GameSceneManager` loads the other, and either will throw `NullReferenceException` if missing.
-- `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/` are gitignored — never edit them by hand, they are Unity-generated.
+- `GManager.Songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
+- `Assets/Resources/<song>.json` must exist with the merged `lyrics` field — `MusicManager` loads the chart, `GameSceneManager.LoadTextData` reads the inline `lyrics` block. Legacy `<song>_text.json` is no longer required; if present, the merged chart takes precedence.
+- `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/`, `TestResults.xml` are gitignored — never edit them by hand, they are Unity-generated.
 - Several large font assets (`Assets/NotoSansJP-Medium SDF.asset`, `Assets/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
+- `Assets/Editor/TempRuntimeProbe.cs.tmp` is a stray in-progress file (`.tmp` suffix) — not part of the build, leave alone unless cleaning up.
+- `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays and the `Resources/<song>.json` chart must stay in lockstep. Editor tools `GManagerParallelArrayUpdater` + `SongMetaDialog` (Editor menu) append entries programmatically and queue via `DeferredEditorActions` to defer past Play Mode. `YouTubeSceneWiring` auto-wires the new `YoutubePlayer` GameObject into `GameScene.unity` + `MusicManager`.
+- `NoteEditor.Editor` callbacks (YouTube import registration, deferred editor actions) use a `[InitializeOnLoad]` static registrar pattern — see `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` and the `feedback_noteeditor_asmdef` memory note for the cross-asmdef callback pattern.
