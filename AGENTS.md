@@ -128,3 +128,10 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - `Assets/Resources/<song>.json` and `<song>_text.json` must exist together — `MusicManager` loads one, `GameSceneManager` loads the other, and either will throw `NullReferenceException` if missing.
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/` are gitignored — never edit them by hand, they are Unity-generated.
 - Several large font assets (`Assets/NotoSansJP-Medium SDF.asset`, `Assets/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
+
+## Constitution / operating profile
+
+- Top-level contract: [`constitution/CONSTITUTION.md`](constitution/CONSTITUTION.md)
+- Current Operating Model: [`organization/profiles/release-driven-solo.md`](organization/profiles/release-driven-solo.md)
+- Unity/LFS/build/test specifics in this file remain project-specific authority while preserving the Constitution.
+- project-init Skills are managed project-locally through `bunx skills` and `skills-lock.json`.
