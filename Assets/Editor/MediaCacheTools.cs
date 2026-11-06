@@ -67,8 +67,22 @@ public static class MediaCacheTools
                     continue;
                 }
 
-                var plan = YouTubeMediaCache.SelectPlan(formats);
-                var video = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.VideoSelector, YouTubeMediaCache.VideoFilePrefix).GetAwaiter().GetResult();
+                // The plan and the cache prefix must be the ones the game uses at
+                // runtime (MusicManager): a merged file (picture + YouTube sound
+                // in one mp4) is stored under its own prefix, so a picture-only
+                // file is never reused as if it carried the sound.
+                var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+                var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
+                var video = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.VideoSelector, YouTubeMediaCache.PrefixForPlan(plan)).GetAwaiter().GetResult();
+                if (!video.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
+                {
+                    // The merge failed (no ffmpeg, download error): the
+                    // picture-only stream is the fallback, exactly like the game
+                    // does at runtime.
+                    Debug.LogWarning($"[FlashBeat] pre-cache '{song.title}': merged download failed ({video.Detail}) - using the video-only stream");
+                    YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(song.videoId), YouTubeMediaCache.MergedFilePrefix);
+                    video = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix).GetAwaiter().GetResult();
+                }
                 if (!video.Ok)
                 {
                     Debug.LogWarning($"[FlashBeat] pre-cache '{song.title}' failed: {video.Detail}");

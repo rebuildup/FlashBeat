@@ -175,7 +175,7 @@ public class MusicManager : MonoBehaviour
 
         // 3. Download the media into the local cache. The merged file has its own
         //    prefix, so a picture-only file of an earlier revision is not reused.
-        var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
         var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
