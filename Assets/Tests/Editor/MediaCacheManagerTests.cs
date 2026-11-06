@@ -109,4 +109,36 @@ public class MediaCacheManagerTests
         Assert.AreEqual("1.0 KB", MediaCacheManager.FormatSize(1024));
         Assert.AreEqual("5.0 MB", MediaCacheManager.FormatSize(5 * 1024 * 1024));
     }
+
+    [Test]
+    public void ProducedFileWithoutExtensionIsIgnored()
+    {
+        // Unity's VideoPlayer derives the container from the file name, so a file
+        // without extension cannot be played and must not be handed back.
+        WriteFile(Path.Combine("songA", "video"), 3000);
+        WriteFile(Path.Combine("songA", "audio"), 1000);
+
+        Assert.IsNull(YouTubeMediaCache.FindProducedFile(Path.Combine(root, "songA"), "video"));
+        Assert.IsNull(YouTubeMediaCache.FindProducedFile(Path.Combine(root, "songA"), "audio"));
+    }
+
+    [Test]
+    public void ProducedFileWithMediaExtensionIsPicked()
+    {
+        WriteFile(Path.Combine("songA", "video.mp4"), 3000);
+
+        string found = YouTubeMediaCache.FindProducedFile(Path.Combine(root, "songA"), "video");
+
+        Assert.IsNotNull(found);
+        Assert.AreEqual("video.mp4", Path.GetFileName(found));
+    }
+
+    [Test]
+    public void PartialDownloadFilesAreIgnored()
+    {
+        WriteFile(Path.Combine("songA", "video.mp4.part"), 500);
+        WriteFile(Path.Combine("songA", "video.mp4.ytdl"), 10);
+
+        Assert.IsNull(YouTubeMediaCache.FindProducedFile(Path.Combine(root, "songA"), "video"));
+    }
 }

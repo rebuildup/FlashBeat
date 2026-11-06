@@ -96,20 +96,41 @@ namespace FlashBeat.Gameplay
         // yt-dlp / deno discovery
         // ---------------------------------------------------------------
 
+        static string cachedYtDlpPath;
+        static bool ytDlpPathResolved;
+        static string cachedDenoPath;
+        static bool denoPathResolved;
+
         public static string ResolveYtDlpPath()
         {
+            if (ytDlpPathResolved) return cachedYtDlpPath;
+            ytDlpPathResolved = true;
+
             // 1. Explicit override
             var pref = Environment.GetEnvironmentVariable("FLASHBEAT_YTDLP_PATH");
-            if (!string.IsNullOrEmpty(pref) && File.Exists(pref)) return pref;
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedYtDlpPath = pref;
+                return cachedYtDlpPath;
+            }
 
-            // 2. PATH
-            var pathHit = WhereOnPath("yt-dlp.exe");
-            if (pathHit != null) return pathHit;
+            // 2. PATH (a launcher that exists but does not work - the mise shims -
+            //    is skipped, the candidate has to answer to --version)
+            var pathHit = FirstUsable(WhereOnPathAll("yt-dlp.exe"), "--version");
+            if (pathHit != null)
+            {
+                cachedYtDlpPath = pathHit;
+                return cachedYtDlpPath;
+            }
 
             // 3. mise install tree (the mise *shim* is unusable when no version
             //    is pinned, so look at the real install directories).
             var miseHit = FindInVersionedDir("mise", "installs", "yt-dlp", "yt-dlp.exe");
-            if (miseHit != null) return miseHit;
+            if (miseHit != null)
+            {
+                cachedYtDlpPath = miseHit;
+                return cachedYtDlpPath;
+            }
 
             // 4. Common Windows Python install locations
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -123,36 +144,106 @@ namespace FlashBeat.Gameplay
             }
             candidates.Add(Path.Combine(Application.streamingAssetsPath, "yt-dlp", "yt-dlp.exe"));
             candidates.Add(Path.Combine(Application.dataPath, "StreamingAssets", "yt-dlp", "yt-dlp.exe"));
-            foreach (var c in candidates)
-            {
-                try { if (File.Exists(c)) return c; } catch { }
-            }
 
             // 5. Linux/macOS fallbacks
             string[] unixCandidates = { "/usr/local/bin/yt-dlp", "/usr/bin/yt-dlp", "/opt/homebrew/bin/yt-dlp" };
             foreach (var c in unixCandidates)
             {
-                try { if (File.Exists(c)) return c; } catch { }
+                candidates.Add(c);
             }
 
-            return null;
+            cachedYtDlpPath = FirstUsable(candidates, "--version");
+            return cachedYtDlpPath;
         }
 
         public static string ResolveDenoPath()
         {
-            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_DENO_PATH");
-            if (!string.IsNullOrEmpty(pref) && File.Exists(pref)) return pref;
+            if (denoPathResolved) return cachedDenoPath;
+            denoPathResolved = true;
 
-            var pathHit = WhereOnPath("deno.exe");
-            if (pathHit != null) return pathHit;
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_DENO_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedDenoPath = pref;
+                return cachedDenoPath;
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll("deno.exe"), "--version");
+            if (pathHit != null)
+            {
+                cachedDenoPath = pathHit;
+                return cachedDenoPath;
+            }
 
             var miseHit = FindInVersionedDir("mise", "installs", "deno", "deno.exe");
-            if (miseHit != null) return miseHit;
+            if (miseHit != null)
+            {
+                cachedDenoPath = miseHit;
+                return cachedDenoPath;
+            }
 
             var miseBinHit = FindInVersionedDir("mise", "installs", "deno", "bin", "deno.exe");
-            if (miseBinHit != null) return miseBinHit;
+            if (miseBinHit != null)
+            {
+                cachedDenoPath = miseBinHit;
+            }
 
+            return cachedDenoPath;
+        }
+
+        /// <summary>
+        /// Returns the first candidate that exists and answers to <paramref name="versionArgs"/>.
+        /// A launcher that exists but does not work (the mise shims) is skipped.
+        /// </summary>
+        static string FirstUsable(IEnumerable<string> candidates, string versionArgs)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrEmpty(candidate)) continue;
+                try { if (!File.Exists(candidate)) continue; } catch { continue; }
+                if (IsShim(candidate)) continue;
+                if (RunsSuccessfully(candidate, versionArgs)) return candidate;
+            }
             return null;
+        }
+
+        /// <summary>
+        /// The mise shims are launchers that abort with "No version is set for shim"
+        /// when the tool has no pinned version - they must not be used.
+        /// </summary>
+        static bool IsShim(string path)
+        {
+            var normalized = path.Replace('/', '\\').ToLowerInvariant();
+            return normalized.Contains("\\mise\\shims\\") || normalized.Contains("\\.mise\\shims\\");
+        }
+
+        static bool RunsSuccessfully(string executable, string arguments)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = executable,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null) return false;
+                    proc.StandardOutput.ReadToEnd();
+                    proc.StandardError.ReadToEnd();
+                    if (!proc.WaitForExit(20000)) return false;
+                    return proc.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         static string FindInVersionedDir(string toolDir, string installs, string tool, params string[] tail)
@@ -187,21 +278,23 @@ namespace FlashBeat.Gameplay
             return best;
         }
 
-        static string WhereOnPath(string exeName)
+        /// <summary>All candidates of the executable on the PATH, in PATH order.</summary>
+        static List<string> WhereOnPathAll(string exeName)
         {
+            var hits = new List<string>();
             var path = Environment.GetEnvironmentVariable("PATH");
-            if (string.IsNullOrEmpty(path)) return null;
+            if (string.IsNullOrEmpty(path)) return hits;
             foreach (var dir in path.Split(Path.PathSeparator))
             {
                 if (string.IsNullOrEmpty(dir)) continue;
                 try
                 {
                     var candidate = Path.Combine(dir, exeName);
-                    if (File.Exists(candidate)) return candidate;
+                    if (File.Exists(candidate)) hits.Add(candidate);
                 }
                 catch { }
             }
-            return null;
+            return hits;
         }
 
         // ---------------------------------------------------------------
