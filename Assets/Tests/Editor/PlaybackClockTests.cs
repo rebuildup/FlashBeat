@@ -20,13 +20,14 @@ public class PlaybackClockTests
         const float duration = 89f;
         const float playbackStart = 1000f;
 
-        // 88 seconds after the start the song is not over yet ...
-        float beforeEnd = MediaTimeline.FallbackMediaTime(playbackStart + 88f, playbackStart);
+        // 87 seconds after the start the song is not over yet ...
+        float beforeEnd = MediaTimeline.FallbackMediaTime(playbackStart + 87f, playbackStart);
         Assert.IsFalse(MediaTimeline.HasSongEnded(beforeEnd, duration));
 
-        // ... one second later it is, so the game leaves the game scene and the
-        // player can retry or go back to the song list.
-        float atEnd = MediaTimeline.FallbackMediaTime(playbackStart + duration, playbackStart);
+        // ... one second before the duration it is (the lead out of one second),
+        // so the game leaves the game scene and the player can retry or go back
+        // to the song list.
+        float atEnd = MediaTimeline.FallbackMediaTime(playbackStart + duration - 1f, playbackStart);
         Assert.IsTrue(MediaTimeline.HasSongEnded(atEnd, duration));
     }
 
