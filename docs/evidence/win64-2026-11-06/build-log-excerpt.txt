@@ -1,0 +1,27 @@
+# Unity 6000.5.6f1 batch build log excerpt (full log: C:/tmp/unity_build.log)
+
+## Command
+Unity.exe -batchmode -quit -projectPath C:/Users/rebui/Desktop/FlashBeat.11 -executeMethod BuildScript.BuildStandaloneWindows64 -logFile C:/tmp/unity_build.log
+
+## Licensing (first attempt failed: offline validity expired)
+19:[Licensing::Module] Error: Access token is unavailable; failed to update
+20:[Licensing::Client] Successfully resolved entitlement details
+21:[Licensing::Module] License group:
+76:[Licensing::Client] Successfully resolved entitlement details
+92:[Licensing::Client] Successfully resolved entitlement details
+146:[Licensing::Client] Successfully resolved entitlement details
+149:[Licensing::Client] Successfully resolved entitlement details
+234:[Licensing::Client] Successfully resolved entitlement details
+
+## Compile diagnostics
+error CS count: 0
+warning CS0618 (obsolete API): 282
+warning CS0414 (unused field): 48
+missing-script/asset diagnostics: 1
+
+## Build result
+16583:[BuildScript] Starting StandaloneWindows64 Build...
+24500:[BuildScript] Build succeeded: 1554867382 bytes, output to C:\Users\rebui\Desktop\FlashBeat.11\Builds\Windows\FlashBeat.exe
+
+## Editor version
+101:Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
