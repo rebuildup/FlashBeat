@@ -176,4 +176,18 @@ sb3 mhtml 48x27        0    |                 mhtml | images                    
         Assert.AreEqual("bv[ext=mp4][height<=720]", plan.VideoSelector);
         Assert.AreEqual("ba[ext=m4a]", plan.AudioSelector);
     }
+
+    [Test]
+    public void AMergedPlanIsCachedUnderTheMergedPrefixAndAPictureOnlyPlanUnderTheVideoPrefix()
+    {
+        // The game (MusicManager) and the pre-cache tool (MediaCacheTools) have
+        // to store the picture file under the same prefix: a merged file under
+        // the video prefix would be found again as if it were picture-only.
+        var merged = YouTubeMediaCache.SelectPlan(YouTubeStreamResolver.ParseFormats(AdaptiveOnlyFormatList), canMerge: true);
+        var split = YouTubeMediaCache.SelectPlan(YouTubeStreamResolver.ParseFormats(AdaptiveOnlyFormatList), canMerge: false);
+
+        Assert.AreEqual(YouTubeMediaCache.MergedFilePrefix, YouTubeMediaCache.PrefixForPlan(merged));
+        Assert.AreEqual(YouTubeMediaCache.VideoFilePrefix, YouTubeMediaCache.PrefixForPlan(split));
+        Assert.AreNotEqual(YouTubeMediaCache.PrefixForPlan(merged), YouTubeMediaCache.PrefixForPlan(split));
+    }
 }

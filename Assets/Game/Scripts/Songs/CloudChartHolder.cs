@@ -20,9 +20,17 @@ public static class CloudChartHolder
         chartJson = json;
     }
 
+    /// <summary>
+    /// The snapshot of the song that is being played. <paramref name="version"/>
+    /// is the version the caller expects; 0 means "the catalog entry did not
+    /// carry a version" - then the pinned snapshot of that song is used.
+    /// A different, known version never matches (the snapshot of a song is
+    /// never silently replaced).
+    /// </summary>
     public static bool TryGet(string id, int version, out string json)
     {
-        if (!string.IsNullOrEmpty(id) && id == songId && version == chartVersion && !string.IsNullOrEmpty(chartJson))
+        if (!string.IsNullOrEmpty(id) && id == songId && !string.IsNullOrEmpty(chartJson)
+            && (version <= 0 || version == chartVersion))
         {
             json = chartJson;
             return true;

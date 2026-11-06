@@ -205,6 +205,18 @@ namespace FlashBeat.Tests.Editor
             Assert.IsFalse(CloudChartHolder.TryGet(null, 7, out _));
         }
 
+        [Test]
+        public void ChartHolder_UnknownVersionFindsThePinnedSnapshot()
+        {
+            CloudChartHolder.Hold("test-song", 7, "{\"chart\":{}}");
+
+            // A catalog entry without chartVersion carries 0; the snapshot that
+            // was pinned when the song was started must still be found.
+            Assert.IsTrue(CloudChartHolder.TryGet("test-song", 0, out string json));
+            Assert.AreEqual("{\"chart\":{}}", json);
+            Assert.IsFalse(CloudChartHolder.TryGet("other-song", 0, out _), "different song must not match");
+        }
+
         // --- config --------------------------------------------------------------
 
         [Test]
