@@ -15,6 +15,8 @@ namespace FlashBeat.UI
     /// GameScene の状態(HUD 表示用)を判定する純ロジック。
     /// 入力は MusicManager (Gameplay) を変更せずに観測できる値だけ:
     /// VideoPlayer のエラー、GManager.played、ロード用インジケータの Active 状態。
+    /// 4 引数の Evaluate は、パイプラインが「この曲は再生できない」と判定した
+    /// こと (MusicManager.SelectReturnPending) も観測して 5 引数版に渡す。
     /// </summary>
     public static class HudPlayState
     {
@@ -27,6 +29,18 @@ namespace FlashBeat.UI
 
         public static HudPlayPhase Evaluate(bool videoError, bool playbackStarted, bool mediaLoading, float loadingSeconds)
         {
+            return Evaluate(videoError, playbackStarted, mediaLoading, loadingSeconds, MusicManager.SelectReturnPending);
+        }
+
+        /// <summary>
+        /// 純粋な判定 (テスト可能な入力だけを取る)。
+        /// pipelineFailed は「パイプラインが曲を再生不能と判定した」こと:
+        /// MusicManager が選曲画面への自動復帰を予定している状態なので、
+        /// ロード中でもすぐに失敗として表示する (タイムアウトを待たない)。
+        /// ただし Space で開始済みなら曲は壁時計で完走するので非表示のまま。
+        /// </summary>
+        public static HudPlayPhase Evaluate(bool videoError, bool playbackStarted, bool mediaLoading, float loadingSeconds, bool pipelineFailed)
+        {
             if (videoError)
             {
                 return HudPlayPhase.Failed;
@@ -34,6 +48,10 @@ namespace FlashBeat.UI
             if (playbackStarted)
             {
                 return HudPlayPhase.Hidden;
+            }
+            if (pipelineFailed)
+            {
+                return HudPlayPhase.Failed;
             }
             if (mediaLoading)
             {
