@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Debug = UnityEngine.Debug;
+using Stopwatch = System.Diagnostics.Stopwatch;
 using UnityEngine;
 
 [Serializable]
