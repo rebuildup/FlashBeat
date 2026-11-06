@@ -215,9 +215,12 @@ publishes both in one request.
   a broken answer and a request that never arrived are told apart.
 - `src/lib/publish/mock.ts` is the fixture transport. It answers like the contract
   does, including the rejection of a chart that breaks the frozen chart schema.
-- `src/lib/publish/transport.ts` picks the transport: without
-  `VITE_FLASHBEAT_API_ORIGIN` the fixture answers, with it the real endpoint does.
-  The value is a public URL, the staff token is never part of it.
+  It writes nothing and is only a review aid.
+- `src/lib/publish/transport.ts` picks the transport: the default is the API of the
+  current origin (the studio and the API are the same worker), so a published song
+  lands in the D1 of the deployment. `VITE_FLASHBEAT_API_ORIGIN` moves it to another
+  origin — a public URL, the staff token is never part of it — and the explicit
+  value `fixture` selects the fixture transport.
 - The staff token is typed by the operator in the publish dialog. It stays in the
   memory of the browser tab and is never written to disk or to the bundle.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
@@ -226,10 +229,10 @@ publishes both in one request.
 ### Scope
 
 The Web Studio has a database (issue #14), a read API (issue #15) and the publish
-endpoint (#16) writes it. The publish screen (issue #19) publishes against the
-fixture of `src/lib/publish/mock.ts` until the deployed endpoint is wired up;
-`VITE_FLASHBEAT_API_ORIGIN` switches it to the real endpoint.
+endpoint (issue #16) writes it. Both are deployed and live at
+`https://flashbeat.rebuildup.dev`: the publish screen (issue #19) publishes into the
+D1 of the deployment and the catalog of the shell reads the published songs from
+`/api/v1/catalog`.
 
-The catalog of the shell is still a local fixture in `src/app/catalog.ts`;
-`?state=loading|empty|error` on `/` forces a list state so every branch can be
-reviewed before the shell talks to the API.
+`?state=loading|empty|error` on `/` forces a list state so every branch of the
+catalog panel can be reviewed without a backend.

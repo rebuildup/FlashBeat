@@ -96,7 +96,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       failure: {
         code: "not-found",
         status: response.status,
-        message: "The publish endpoint answered 404. The API of issue #16 is not deployed yet.",
+        message: "The publish endpoint answered 404. Check the API origin of the studio.",
         details,
       },
     };
