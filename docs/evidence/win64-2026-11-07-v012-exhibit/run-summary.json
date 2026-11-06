@@ -1,0 +1,17 @@
+﻿{
+    "startedAt":  "2026-11-07T06:36:13+09:00",
+    "skippedKeys":  0,
+    "exe":  "C:\\Users\\rebui\\Desktop\\FlashBeat\\FlashBeat.exe",
+    "outDir":  "C:\\Users\\rebui\\work\\evidence-exhibit",
+    "resolution":  "default (no display arguments)",
+    "startupSeconds":  13.9,
+    "titleReached":  true,
+    "resultReached":  true,
+    "retryReloaded":  true,
+    "displayCoverage":  0.4564,
+    "clientRect":  "1920x1080 at 178,74",
+    "displayBounds":  "2560x1440 at 0,0",
+    "scenes":  10,
+    "judgedNotes":  262,
+    "logFile":  "C:\\Users\\rebui\\work\\evidence-exhibit\\Player.log"
+}
