@@ -13,6 +13,7 @@ vp install     # installs deps, runs `void prepare` + `panda codegen`
 vp dev         # http://localhost:5173
 vp check       # oxfmt + oxlint
 npx tsc --noEmit
+npx vitest run # unit tests
 vp build
 ```
 
@@ -41,6 +42,15 @@ Captured from the dev server at `1440×900` and `1280×720` (dark, the shipped t
 | Editor placeholder                         | Publish dialog                                         |
 | ------------------------------------------ | ------------------------------------------------------ |
 | ![editor](docs/screenshots/editor-tab.png) | ![publish dialog](docs/screenshots/publish-dialog.png) |
+
+## Chart editor
+
+`/chart` is the eight lane chart editor (issue #18). It reads and writes the legacy
+FlashBeat chart JSON, draws the grid with `react-konva` and previews the song with the
+YouTube IFrame API. It needs no backend: it opens with a real chart of the Unity
+project and can be used before the publish API exists.
+
+![chart editor 1280x720](docs/screenshots/chart-editor-1280x720.png)
 
 ## State
 
