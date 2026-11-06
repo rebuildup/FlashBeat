@@ -25,11 +25,11 @@ cd design
 
 | Unit | 内容 |
 |---|---|
-| Wireframes FHD 1920x1080 | Title / Select (+typing, Ready) / History / Ranking / Game (+over 1M, Ready, Loading, YouTube error) / Pause (+Settings, Display, Ranking, Keys) / Result (+Register) / Option (+Play, Display, Data) |
+| Screens v5 · layers & shapes (FHD) | Title / Select (+typing, Ready) / History / Ranking / Game (+over 1M, Ready, Loading, YouTube error) / Pause (+Settings, Display, Ranking, Keys) / Result (+Register) / Option (+Play, Display, Data)。各画面の PNG は `design/exports/screens/` |
 | Components v5 | Controls (raised): KeyCap, LegendItem, Tag, Button Primary/Secondary/Icon, MenuButton, TabItem, FilterButton, SearchField / Lists (recessed): SettingRow, RankRow, PlayerRow, HistoryRow, SongRow / Data: StatRow, BigStat, ScoreRail |
 | Design System v5 | layers / controls vs lists / shapes / ranking |
 
-UI 変更はこのファイルの該当 Unit/Screen を正とし、コンポーネントは `Prefab/*` 命名に対応させる。
+UI 変更はこのファイルの **v5 の Screens / Components / Design System** を正とし、コンポーネントは `Prefab/*` 命名に対応させる。
 
 ## 設計の正本 (Issue #100)
 
@@ -37,3 +37,18 @@ UI 変更はこのファイルの該当 Unit/Screen を正とし、コンポー�
 - 旧 `Wireframes FHD 1920x1080` (ワイヤーフレーム) は削除済み。ワイヤーフレームを実装・トークン抽出の基準にしない。
 - `.pen` が参照する画像は `design/assets/` (相対パス `assets/...`) に置く。`.pen` は暗号化されているため必ず pencil MCP ツール経由で読む。
 - `ui-size-profiles.json`: Unity UI のサイズ仕様 (UISizeProfile: Constant Pixel Size x1、`fhd` / `2k` / `mac` を画面比で切替、値は実ピクセル)。現行 Unity シーンの `ScaleWithScreenSize 1920x1080` はこの仕様と一致していない (#88/#96)。
+
+## Worker が .pen を読む/編集する方法
+
+pencil MCP が使えない環境 (omp 等) では pen CLI の interactive モードを使う。認証は Infisical の `PEN_CLI_KEY`:
+
+```bash
+cd design
+../script/with-secrets bash -c "./node_modules/.bin/pen interactive --out /tmp/flashbeat-ui-scratch.pen --in flashbeat-ui.pen"
+# pen > get_app_state()
+# pen > execute({ input: 'Get((n,c)=>{c.skipChildren();Print(n.id,n.name)})' })   # トップレベル一覧
+```
+
+- 読むだけなら `--out` は一時ファイルにする (正本を直接上書きしない)。
+- まず `design/exports/**/*.png` (正本から書き出した 1920x1080 PNG) を見て、構造の詳細が要るときだけ interactive を使う。
+- Unity の UI サイズは `design/ui-size-profiles.json` (fhd/2k/mac、Constant Pixel Size x1) に従う。
