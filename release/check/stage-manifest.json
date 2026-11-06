@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "owner": "#22 release gate (Win64 exhibition build verification)",
-  "updatedAt": "2026-11-06T22:40:00+09:00",
+  "updatedAt": "2026-11-06T23:05:00+09:00",
   "machine": "Windows 11 x64 (10.0.29698), Unity 6000.5.6f1, NVIDIA GeForce RTX 4050 Laptop GPU",
   "fingerprint": {
     "algorithm": "sha256",
@@ -11,7 +11,27 @@
   },
   "artifactRoots": {
     "externalArchive": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild",
-    "externalEvidence": "D:\\4_apps\\Unity\\Build\\FlashBeatEvidence"
+    "externalEvidence": "D:\\4_apps\\Unity\\Build\\FlashBeatEvidence",
+    "exhibitFolder": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit"
+  },
+  "exhibitDeployment": {
+    "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit",
+    "generation": "743c88d",
+    "content": "S0 + Japanese font fix (#27 build, PR #34), packaged and released by #35 as FlashBeat-0.1.0-win64-743c88d.zip",
+    "sourceZip": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-35\\FlashBeat-0.1.0-win64-743c88d.zip",
+    "sourceZipSha256": "3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45",
+    "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+    "folderSha256": "da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b",
+    "fileCount": 198,
+    "totalBytes": 1588334450,
+    "deployedAt": "2026-11-06T22:53:00+09:00",
+    "operation": "read-only during the exhibition; the operator launches FlashBeat.exe directly; logs are collected in <exhibit>/logs/",
+    "manifestFile": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit\\EXHIBIT-MANIFEST.txt",
+    "proof": "see docs/evidence/win64-2026-11-06-release-gate/README.md",
+    "knownGaps": [
+      "song audio / YouTube stream is NOT proven in this generation (the #27 build still uses the old resolver: yt-dlp 'Requested format is not available' + Invidious fallback failure)",
+      "the chart -> result -> retry loop of this exact binary is proven by #27's own run (docs/evidence/win64-2026-11-06-font/) and by #11's run of the S0 binary"
+    ]
   },
   "stages": [
     {

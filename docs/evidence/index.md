@@ -29,6 +29,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 
 > SHA-256 over the UTF-8 bytes of `"<fileSha256>  <relative/path>"` lines, one per file, sorted by path.
 
+## 1.5 展示フォルダ（運営者が起動する場所）
+
+```
+D:\4_apps\Unity\Build\FlashBeatExhibit\      ← 運営者は FlashBeat.exe を直接起動する
+```
+
+| 項目 | 値 |
+|---|---|
+| 世代 | `743c88d`（#27 のフォント修正ビルド = PR #34 の Win64 出力） |
+| 入手元 | #35 の Release ZIP `FlashBeat-0.1.0-win64-743c88d.zip`（GitHub タグ `v0.1.0-win64-743c88d`） |
+| ZIP の SHA-256 | `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`（展開前に照合済み） |
+| `FlashBeat.exe` SHA-256 | `3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60` |
+| フォルダ SHA-256 | `da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b` |
+| ファイル数 / 総バイト | 198 / 1 588 334 450 |
+| 配置日時 | 2026-11-06 22:53 |
+| 運用 | 展示中は **読み取り専用**。更新は運営者の明示操作のみ。診断ログは `FlashBeatExhibit\logs\` に集める |
+| 世代違い | 統合ビルド（#13 + #27）は別フォルダに置く。既存世代は上書き・削除しない |
+
+この世代の既知の限界: **音 / YouTube ストリームは未証明**（#27 のビルドは旧 resolver のままで、
+yt-dlp が `Requested format is not available`、Invidious fallback も失敗）。譜面 → リザルト → リトライの
+loop は #27 自身の run と #11 の S0 run の証拠（`docs/evidence/win64-2026-11-06-font/`）が担保する。
+
 ## 2. Artifact index (SHA)
 
 | Stage | Artifact (external, Git-free) | Build tree | `FlashBeat.exe` SHA-256 | Folder fingerprint | Files / bytes | Built (exe mtime) |
@@ -85,7 +107,31 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 |---|---|---|---|
 | *(see `docs/evidence/win64-2026-11-06-release-gate/`)* | S0 archive `Build0.1.0-win64-1c5137e` | 2026-11-06 | see `smoke-summary.md` in that folder |
 
-## 4. Secret / redaction policy
+## 4. ソース検査と実プレイ証拠の区別
+
+「コードを読んだ結果」と「実際に動いて確認した結果」を混ぜないため分けて記録する。
+
+### 4.1 ソース検査のみ（実プレイでは未確認）
+
+| 項目 | 確認した場所 | 内容 |
+|---|---|---|
+| レーンキーマッピング | `Assets/Game/Scripts/Gameplay/Judge.cs`（`LaneKeys`） | 8 レーンのキー表（runbook §3 に転記） |
+| 画面遷移のキー | `TitleSceneManager` / `SelectSceneManager` / `ResultSceneManager` | Title: `Space`/`O`/`E`、Select: `Space`/曲送り/曲戻し/`Esc`、Result: `Space`/`R` |
+| ウィンドウ設定 | `ProjectSettings/ProjectSettings.asset` | `defaultScreenWidth/Height` 960×540、`fullscreenMode: 1`（FullScreenWindow）、`resizableWindow: 0`、`runInBackground: 1` → **既定は表示 Resolution の全画面**。1280×720 で観測するには `-screen-width/-screen-height/-screen-fullscreen 0` を付ける必要がある |
+| 既定ログ位置 | `ProjectSettings` の `companyName: KimuraYusuke` / `productName: FlashBeat` | `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` |
+| 無音の構造的理由 | `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `Resources/Musics/<song>` を `Music` にロードするが `audioS.Play()` を呼ばない → 音の乗りは映像トラック。映像が死ねば無音（#11 の所見） |
+
+### 4.2 実プレイで観測済み
+
+| 項目 | ステージ | 観測 |
+|---|---|---|
+| 選曲 → 譜面 → リザルト → リトライ | S0 / S0-FONT | スクリーンショット + ログ（判定数 = 譜面ノーツ数） |
+| 日本語グリフ | S0-FONT | select / game / result が `□` なく表示（ログのフォントエラー 110 → 0） |
+| 1280×720 windowed 描画 | S0（#22 の runbook 実行） | §3 の release-gate run を参照 |
+| 起動時間（タイトル到達まで） | S0（#22 の runbook 実行） | 同上 |
+| 音 / 音画同期 / ネットワーク断時の挙動 | **未証明** | S1 承認後まで「未検証」 |
+
+## 5. Secret / redaction policy
 
 * Player logs contain signed, time-limited googlevideo URLs. They are replaced with
   `<REDACTED-YOUTUBE-STREAM-URL>` before anything is committed or published.

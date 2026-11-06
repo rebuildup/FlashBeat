@@ -70,8 +70,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1
 
 | 日付 | ステージ | 成果物 fingerprint (SHA-256) | PR | 実プレイ証拠 | 1280×720 UX | 承認者 | 判定 |
 |---|---|---|---|---|---|---|---|
+| 2026-11-06 | **EXHIBIT 展示フォルダ** | `da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b`（`D:\4_apps\Unity\Build\FlashBeatExhibit\`、世代 `743c88d`） | #34 / #35 | 起動・タイトル・選曲 = **実機で確認** / 譜面→リザルト→リトライは #27・#11 の証拠を参照 / **音は未証明** | windowed 1280×720 で実機確認（実機 fullscreen は未検証） | #22（Draft PR） | **部分承認**（展示用。音は未承認） |
 | 2026-11-06 | S0 | `7ef323adcf1855ea1f192d0f542c099ec6fdfe52540bdf7737b55014f2ba4d53` | #26 | 譜面→リザルト→リトライ **proven** / ストリーム・音 **未証明** | 2026-11-06 実施（windowed 1280×720、実機 fullscreen は未証明） | #22（Draft PR） | **部分承認**（表示系・譜面のみ。音は未承認） |
-| — | S0-FONT | `e07ccba2cc406306254a50e0bfb5f43a197013aa3820fe907d28da60ffe1b242` | #34 | グリフ + 譜面 **proven** / ストリーム **未証明** | 未実施 | — | **未承認**（未アーカイブ） |
+| — | S0-FONT | `e07ccba2cc406306254a50e0bfb5f43a197013aa3820fe907d28da60ffe1b242` | #34 | グリフ + 譜面 **proven** / ストリーム **未証明** | 未実施 | — | **未承認**（#35 が Release 化済み = EXHIBIT 世代） |
 | — | S1 | `b8c0acde7a318bc3f8d7929025743638042a3b0e2dec7836e418a2d80c60830f` | #31 | **未証明** | 未実施 | — | **未承認** |
 | — | S2 | — | — | **未証明** | — | — | **未承認** |
 | — | S3 | — | — | **未証明** | — | — | **未承認** |
