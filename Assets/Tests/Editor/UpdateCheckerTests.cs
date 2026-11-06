@@ -65,11 +65,36 @@ public class UpdateVersionTests
     }
 
     [Test]
-    public void IsNewerThan_SameVersionDifferentSha_True()
+    public void IsNewerThan_SameVersionDifferentSha_False()
     {
-        // 同バージョンでも別ビルド (SHA 違い) なら更新ありとみなす
-        Assert.IsTrue(UpdateVersion.IsNewerThan(
+        // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
+        // 自動更新すると古いビルドへ戻すので、自動更新の対象にしない。
+        Assert.IsFalse(UpdateVersion.IsNewerThan(
             UpdateVersion.ParseTag("v0.1.0-win64-abc1234"),
+            UpdateVersion.ParseBuildId("0.1.0+743c88d")));
+    }
+
+    [Test]
+    public void IsSameVersionDifferentBuild_SameVersionOtherSha_True()
+    {
+        Assert.IsTrue(UpdateVersion.IsSameVersionDifferentBuild(
+            UpdateVersion.ParseTag("v0.1.0-win64-abc1234"),
+            UpdateVersion.ParseBuildId("0.1.0+743c88d")));
+    }
+
+    [Test]
+    public void IsSameVersionDifferentBuild_SameBuild_False()
+    {
+        Assert.IsFalse(UpdateVersion.IsSameVersionDifferentBuild(
+            UpdateVersion.ParseTag("v0.1.0-win64-743c88d"),
+            UpdateVersion.ParseBuildId("0.1.0+743c88d")));
+    }
+
+    [Test]
+    public void IsSameVersionDifferentBuild_OtherVersion_False()
+    {
+        Assert.IsFalse(UpdateVersion.IsSameVersionDifferentBuild(
+            UpdateVersion.ParseTag("v0.1.1-win64-abc1234"),
             UpdateVersion.ParseBuildId("0.1.0+743c88d")));
     }
 

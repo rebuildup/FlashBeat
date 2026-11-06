@@ -17,10 +17,15 @@
 
 ## ビルド版識別子と Release タグ
 
-- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは既定 `0.1.0`。バージョンアップの Release を作るときは環境変数 `FLASHBEAT_VERSION_BASE` で上書きします (例: `v0.1.1` Release → `FLASHBEAT_VERSION_BASE=0.1.1` でビルド)。
+- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは既定 `0.1.0`。
+  **Release を出すたびに基準バージョンを上げます** (環境変数 `FLASHBEAT_VERSION_BASE`, 例: `0.1.1` → `FLASHBEAT_VERSION_BASE=0.1.1` でビルド → タグ `v0.1.1-win64-<sha>`)。
+  自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると自動更新の経路が壊れます。
 - Release タグは **`v<バージョン>-win64-<git短SHA>`** 形式 (例: `v0.1.1-win64-abc1234`)。アセットは `FlashBeat-<バージョン>-win64-<sha>.zip` と隣接する `.sha256`。
 - **適用候補の選び方**: GitHub API の返却順は新しい Release が先とは限らない (実測) ため、UpdateChecker は候補から **version を主キー・published_at を副キーに最大のもの**を選びます。draft は対象外、prerelease は stable チャンネルの候補から外れます (preview チャンネルでは対象)。
-- UpdateChecker は 候補の (バージョン, SHA) と現行ビルドを比較し、バージョンが新しいか・同バージョンで SHA が違うとき新版とみなします。古いバージョンへのダウングレードは行いません。
+- UpdateChecker は 候補のバージョンと現行ビルドのバージョンを比較し、**バージョンが厳密に大きいときだけ**更新します。
+  同じバージョンで別のビルド (SHA 違い) は「新旧」を判定できないため自動更新しません (古いビルドへ戻すのを防ぐため)。
+  その場合は Player.log に「同じバージョン ○○ の別ビルドがあります」と出るので、運営者が `Update.ps1 -Tag` で適用します。
+  古いバージョンへのダウングレードも行いません。
 
 ## 更新チャンネル (stable / preview)
 

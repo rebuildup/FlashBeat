@@ -93,6 +93,7 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
 ## パッチ版の発行手順
 
 1. Unity 6000.5.6f1 で Win64 ビルド (`Build → Build Windows 64` または `BuildScript.BuildStandaloneWindows64`)。
+   バージョンepen 环境変数 `FLASHBEAT_VERSION_BASE` で指定する (既定 `0.1.0`)。**前回の Release より大きくする**。
    展示用のビルドは**既定のまま (stable チャンネル)** で(Bundle: `FlashBeat_Data\StreamingAssets\update-channel.txt` = `stable`)。
    検証用の prerelease を取り込みたいときだけ環境変数 `FLASHBEAT_UPDATE_CHANNEL=preview` を付けてビルドする。
    展示用ビルドがテスト用 prerelease を自動適用しないことはチャンネルの責務であり、公開前に Player.log の
@@ -124,8 +125,11 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
    gh release edit v<version> --draft=false
    ```
 
-6. 不具合が出た場合は既存 Release を差し替えず、**修正版を新しいドラフト Release として発行**する
-   (version の build SHA 部分が変わるのでタグ衝突しない)。旧版は archive に残して proven artifact を保持する。
+6. 不具合が出た場合は既存 Release を差し替えず、**修正版を新しいドラフト Release として発行**する。
+   ただし **基準バージョンは必ず上げる** (`FLASHBEAT_VERSION_BASE=0.1.2` → タグ `v0.1.2-win64-<sha>`)。
+   自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると
+   「同じバージョンの別ビルド」として扱われ、自動更新が効かなくなる (運営者が手動適用する運用になる)。
+   旧版は archive に残して proven artifact を保持する。
 
 ## 更新の種別 (Stage 区別)
 

@@ -110,7 +110,24 @@ namespace FlashBeat.Update
             }
 
             var latestId = UpdateVersion.ParseTag(latest.tag_name);
-            if (!latestId.Valid || !UpdateVersion.IsNewerThan(latestId, current))
+            if (!latestId.Valid)
+            {
+                Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
+                          (latest.tag_name ?? "(無効なタグ)") + ")。");
+                yield break;
+            }
+
+            if (UpdateVersion.IsSameVersionDifferentBuild(latestId, current))
+            {
+                // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
+                // 自動適用すると古いビルドへ戻す可能性があるので、自動更新はしない。
+                Debug.Log("[UpdateChecker] 同じバージョン " + latestId.Version + " の別ビルドがあります " +
+                          "(" + latest.tag_name + " / 現行 " + current.ShortSha + ")。" +
+                          "自動更新はしません (適用は運営者が Update.ps1 -Tag で行えます)。");
+                yield break;
+            }
+
+            if (!UpdateVersion.IsNewerThan(latestId, current))
             {
                 Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
                           (latest.tag_name ?? "(無効なタグ)") + ")。");

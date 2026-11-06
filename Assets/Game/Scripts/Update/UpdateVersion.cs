@@ -58,13 +58,23 @@ namespace FlashBeat.Update
             return true;
         }
 
-        /// <summary>candidate が current より新しいか。同一バージョンで SHA が違えば新ビルド扱い。
-        /// candidate が古いバージョン (ダウングレード) の場合は false。</summary>
+        /// <summary>candidate が current より新しいか。
+        /// バージョンが**厳密に大きい**ときだけ true。同一バージョンの別ビルドは
+        /// 「新しい」と判定できない (SHA には大小関係がない) ので自動更新の対象にしない。
+        /// 運用: リリースを出すたびに基準バージョン (FLASHBEAT_VERSION_BASE) を上げる。
+        /// 古いバージョンへのダウングレードは行わない。</summary>
         public static bool IsNewerThan(ReleaseId candidate, ReleaseId current)
         {
             if (!candidate.Valid || !current.Valid) { return false; }
-            var cmp = CompareVersions(candidate.Version, current.Version);
-            if (cmp != 0) { return cmp > 0; }
+            return CompareVersions(candidate.Version, current.Version) > 0;
+        }
+
+        /// <summary>candidate と current が同じバージョンで別のビルドか (SHA が違う)。
+        /// 自動更新はしないが、運営者に伝えるために使う。</summary>
+        public static bool IsSameVersionDifferentBuild(ReleaseId candidate, ReleaseId current)
+        {
+            if (!candidate.Valid || !current.Valid) { return false; }
+            if (CompareVersions(candidate.Version, current.Version) != 0) { return false; }
             return !string.Equals(candidate.ShortSha, current.ShortSha, StringComparison.OrdinalIgnoreCase);
         }
 
