@@ -64,6 +64,11 @@ const gridHint = css({
   px: "3",
 });
 
+const playheadReadout = css({
+  fontVariantNumeric: "tabular-nums",
+  marginRight: "2",
+});
+
 const side = css({
   display: "flex",
   flexDirection: "column",
@@ -195,6 +200,16 @@ export function ChartEditor({
           return current;
         }
         const line = Math.round(snapBeat(beat, resolution) * resolution);
+        // A cell that already holds a note selects it instead of stacking a
+        // duplicate on the same line.
+        const existing = current.notes.findIndex(
+          (note) => note.block === block && note.num === line,
+        );
+        if (existing >= 0) {
+          setSelectedIndex(existing);
+          return current;
+        }
+        setSelectedIndex(null);
         return addNote(current, createNote(block, line, resolution));
       });
     },
@@ -321,9 +336,8 @@ export function ChartEditor({
       <div className={body}>
         <section className={gridPanel}>
           <p className={gridHint}>
-            <span data-testid="playhead-readout">
-              {playheadSec.toFixed(2)}s · beat{" "}
-              {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}{" "}
+            <span className={playheadReadout} data-testid="playhead-readout">
+              {playheadSec.toFixed(2)}s · beat {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}
             </span>
             Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
             deselects

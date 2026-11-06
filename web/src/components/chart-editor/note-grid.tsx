@@ -61,10 +61,10 @@ export interface NoteGridProps {
   onMoveNote(index: number, block: number, beat: number): void;
 }
 
-/** Measures the panel the stage lives in, so the lanes can fill it. */
-function usePanelWidth(): [RefObject<HTMLDivElement | null>, number] {
+/** Measures the panel the stage lives in, so the lanes fill the work area. */
+function usePanelSize(): [RefObject<HTMLDivElement | null>, number, number] {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
     const element = ref.current;
@@ -74,15 +74,15 @@ function usePanelWidth(): [RefObject<HTMLDivElement | null>, number] {
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setWidth(entry.contentRect.width);
+        setSize([entry.contentRect.width, entry.contentRect.height]);
       }
     });
     observer.observe(element);
-    setWidth(element.clientWidth);
+    setSize([element.clientWidth, element.clientHeight]);
     return () => observer.disconnect();
   }, []);
 
-  return [ref, width];
+  return [ref, size[0], size[1]];
 }
 
 export function NoteGrid({
@@ -95,7 +95,7 @@ export function NoteGrid({
   onAddNote,
   onMoveNote,
 }: NoteGridProps) {
-  const [panelRef, panelWidth] = usePanelWidth();
+  const [panelRef, panelWidth, panelHeight] = usePanelSize();
   const beatHeight = BEAT_HEIGHT * zoom;
 
   const lastBeat = useMemo(() => {
@@ -109,8 +109,12 @@ export function NoteGrid({
   // Lanes stretch to the panel; the stage scrolls once the floor would make
   // a lane narrower than the playable minimum.
   const laneWidth = Math.max(MIN_LANE_WIDTH, Math.floor(panelWidth / 8));
-  const noteWidth = laneWidth - 12;
-  const stageHeight = (lastBeat + 2) * beatHeight;
+  // Tap notes stay compact rectangles centered in the lane, never bars that
+  // read across the lane boundary.
+  const noteWidth = Math.min(laneWidth - 12, 72);
+  // Lanes fill the panel down to the last visible beat, so the work area is
+  // never empty panel below the chart.
+  const stageHeight = Math.max(lastBeat + 2, Math.ceil(panelHeight / beatHeight)) * beatHeight;
   const stageWidth = laneWidth * 8;
 
   const playheadBeat = (playheadSec * chart.BPM) / 60;
@@ -147,7 +151,8 @@ export function NoteGrid({
   };
 
   const beatLines = [];
-  for (let beat = 0; beat <= lastBeat + 2; beat += 1) {
+  const lastLineBeat = stageHeight / beatHeight;
+  for (let beat = 0; beat <= lastLineBeat; beat += 1) {
     const y = beat * beatHeight;
     const isBar = beat % 4 === 0;
     beatLines.push(
@@ -193,8 +198,8 @@ export function NoteGrid({
   }
 
   return (
-    <div className={scrollArea} data-testid="note-grid">
-      <div ref={panelRef} style={{ minWidth: stageWidth, flex: 1 }}>
+    <div className={scrollArea} ref={panelRef} data-testid="note-grid">
+      <div style={{ minWidth: stageWidth, flex: 1 }}>
         <Stage
           width={stageWidth}
           height={stageHeight}
@@ -244,8 +249,8 @@ export function NoteGrid({
                   stroke={selected ? PLAYHEAD : NOTE_STROKE}
                   strokeWidth={selected ? 2 : 1}
                   shadowColor={selected ? PLAYHEAD : undefined}
-                  shadowBlur={selected ? 8 : 0}
-                  shadowOpacity={selected ? 0.55 : 0}
+                  shadowBlur={selected ? 14 : 0}
+                  shadowOpacity={selected ? 0.9 : 0}
                   draggable
                   onMouseDown={(event) => handleNoteMouseDown(event, index)}
                   onMouseEnter={(event) => {
