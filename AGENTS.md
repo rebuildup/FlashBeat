@@ -37,7 +37,7 @@ Three C# assemblies (one asmdef per directory):
 | Assembly | Location | Platform | Purpose |
 |---|---|---|---|
 | `FlashBeat` | `Assets/Scripts/` | All | Runtime gameplay code |
-| `FlashBeat.Editor` | `Assets/Editor/` | Editor only | `BuildScript`, `JapaneseFontFixer` |
+| `FlashBeat.Editor` | `Assets/Editor/` | Editor only | `BuildScript`, `JapaneseFontFixer`, `JapaneseFontAssetBuilder` |
 | `FlashBeat.Tests` | `Assets/Tests/Editor/` | Editor only | NUnit tests |
 
 ### Runtime structure (FlashBeat)
@@ -127,7 +127,7 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - `GManager.songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
 - `Assets/Resources/<song>.json` and `<song>_text.json` must exist together — `MusicManager` loads one, `GameSceneManager` loads the other, and either will throw `NullReferenceException` if missing.
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/` are gitignored — never edit them by hand, they are Unity-generated.
-- Several large font assets (`Assets/NotoSansJP-Medium SDF.asset`, `Assets/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
+- Several large font assets (`Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset`, `Assets/Game/Fonts/Japanese/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
 
 ## Cloud deployment credentials
 
@@ -136,6 +136,7 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - Inject secrets for one command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
 - Cloud CLI: the official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`. Always run them under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
 - Current state, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).
+- Festival D1 schema, migrations and the remote apply record: [`docs/operations/d1-migrations.md`](docs/operations/d1-migrations.md).
 
 ## Constitution / operating profile
 

@@ -3,6 +3,7 @@
 
 [tools]
 bun = "1.4.2"
+uv = "0.13.7"
 # Cloud / festival API toolchain (Issue #9 preflight).
 # Project-local only: never install these globally. Run them via
 # `mise exec -- cf ...` / `mise exec -- void ...` so every host (macOS,
@@ -18,3 +19,16 @@ run = "bunx skills add rebuildup/project-init --skill '*' --agent claude-code --
 
 [tasks.skills-update]
 run = "bunx skills update -p -y"
+
+# Spec Kit CLI (github/spec-kit). Pinned version, installed into the
+# project-local .tools/ directory so Mac and Windows workers materialize the
+# same CLI. See docs/agent/spec-kit-workflow.md.
+[tasks.specify-install]
+run = "uv tool install --force specify-cli==1.3.1"
+
+[tasks.specify-init]
+run = """
+uvx --from specify-cli==1.3.1 specify init --here --force --non-interactive --integration claude --script sh
+uvx --from specify-cli==1.3.1 specify integration install codex --script sh
+uvx --from specify-cli==1.3.1 specify integration install omp --script sh
+"""

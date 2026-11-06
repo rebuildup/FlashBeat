@@ -22,9 +22,9 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
 
 **Run Tests**
 - Editor: `Window → General → Test Runner → EditMode`.
-- Or batch mode:
+- Or batch mode (do **not** pass `-quit`: it terminates the editor before the test runner starts, and the command then exits 0 without running any test or writing `TestResults.xml`):
   ```
-  Unity -batchmode -quit -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
+  Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
   ```
 - Tests live under `Assets/Tests/Editor/` (asmdef `FlashBeat.Tests`, scoped to `UNITY_INCLUDE_TESTS` + `nunit.framework.dll`). Single-test selection is via the Test Runner UI; no test-name CLI flag is wired up.
 
@@ -37,7 +37,7 @@ Five C# assemblies (one asmdef per directory):
 | Assembly | Location | Platform | Purpose |
 |---|---|---|---|
 | `FlashBeat` | `Assets/Game/Scripts/FlashBeat.asmdef` | All | Runtime gameplay code (subdirs: `Common`, `Gameplay`, `Persistence`, `Songs`, `UI`) |
-| `FlashBeat.Editor` | `Assets/Editor/FlashBeat.Editor.asmdef` | Editor only | Build scripts, JapaneseFontFixer, scene wiring, GManager auto-updater |
+| `FlashBeat.Editor` | `Assets/Editor/FlashBeat.Editor.asmdef` | Editor only | Build scripts, JapaneseFontFixer, JapaneseFontAssetBuilder, scene wiring, GManager auto-updater |
 | `NoteEditor` | `Assets/NoteEditor/NoteEditor.asmdef` | All (excluded by scene list) | Vendored setchi/NoteEditor (MIT); runtime-present but never built into `FlashBeat.exe` because `NoteEditor.unity` is not in `EditorBuildSettings.scenes` |
 | `NoteEditor.Editor` | `Assets/Editor/NoteEditor.Editor/NoteEditor.Editor.asmdef` | Editor only | Editor-only NoteEditor extensions: `MigrateLegacyTextJson`, `YouTubeImportDialog`, `YouTubeImportRegistrar` |
 | `FlashBeat.Tests` | `Assets/Tests/Editor/FlashBeat.Tests.asmdef` | Editor only | NUnit tests (defines `UNITY_INCLUDE_TESTS`, references `nunit.framework.dll`) |
@@ -132,10 +132,14 @@ Manual recipe (still valid for scripted/headless use):
 - `GManager.Songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
 - `Assets/Resources/<song>.json` must exist with the merged `lyrics` field — `MusicManager` loads the chart, `GameSceneManager.LoadTextData` reads the inline `lyrics` block. Legacy `<song>_text.json` is no longer required; if present, the merged chart takes precedence.
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/`, `TestResults.xml` are gitignored — never edit them by hand, they are Unity-generated.
-- Several large font assets (`Assets/NotoSansJP-Medium SDF.asset`, `Assets/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
+- Several large font assets (`Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset`, `Assets/Game/Fonts/Japanese/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
 - `Assets/Editor/TempRuntimeProbe.cs.tmp` is a stray in-progress file (`.tmp` suffix) — not part of the build, leave alone unless cleaning up.
 - `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays and the `Resources/<song>.json` chart must stay in lockstep. Editor tools `GManagerParallelArrayUpdater` + `SongMetaDialog` (Editor menu) append entries programmatically and queue via `DeferredEditorActions` to defer past Play Mode. `YouTubeSceneWiring` auto-wires the new `YoutubePlayer` GameObject into `GameScene.unity` + `MusicManager`.
 - `NoteEditor.Editor` callbacks (YouTube import registration, deferred editor actions) use a `[InitializeOnLoad]` static registrar pattern — see `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` and the `feedback_noteeditor_asmdef` memory note for the cross-asmdef callback pattern.
+- Windows/Unity 6000.5.6f1 baseline (issue #11): the batch build works, and one full song loop (select → play → result → retry) is proven on the built player — see `docs/superpowers/plans/baseline-win64.md`. Two open points there: the Windows Media Foundation URL reader fails on the resolved `googlevideo.com` stream (`WindowsVideoMedia error 0x80070005` / `MFCreateSourceReaderFromURL`, `[MusicManager] VideoPlayer failed to prepare within 30s`), and since `MusicManager` never calls `audioS.Play()`, the song audio currently rides on the video track — the build is silent while the video is down (issue #13).
+- Japanese text (song/artist names, lyrics) is rendered with `Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset`; the HUD components are assigned that font by `JapaneseFontFixer.ApplyJapaneseFontToProject` (Editor menu `Tools → FlashBeat → Apply Japanese Font To Scenes And Prefabs`, batch `-executeMethod JapaneseFontFixer.ApplyJapaneseFontToProject`). The SDF asset itself is regenerated from `NotoSansJP-Medium.ttf` by `JapaneseFontAssetBuilder.RebuildNotoSansJpSdf` (Editor menu `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset`) — run it after adding a song/lyrics with new kanji, because the atlas is static. The old asset only held 620 glyphs (the atlas filled up at point size 71 / padding 0), which is why Japanese used to render as `□`.
+- `GManager.SongLong`/`SBPM`/`Slevel`/`Shit` currently hold 30 entries while `SongName`/`Musician`/`SongURL` hold 29, so the parallel arrays are already out of lockstep (`BuildSongs()` iterates `SongName.Length`, so it is harmless today).
+- `GManager.SongName[27]` and `[28]` are both `ニセモノ` and there is no `Assets/Game/Resources/Musics/ニセモノ.wav`; `MusicManager` does not null-check `Resources.Load("Musics/" + songName)`, so those two select slots are not safe to choose.
 
 ## Cloud deployment credentials
 
@@ -143,3 +147,4 @@ Manual recipe (still valid for scripted/headless use):
 - Binding: `.infisical.json` (tracked) + `config/infisical.sh` (instance metadata). Inject secrets per command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
 - The official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`, always under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
 - State, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).
+- Festival D1 schema, migrations and the remote apply record: [`docs/operations/d1-migrations.md`](docs/operations/d1-migrations.md).

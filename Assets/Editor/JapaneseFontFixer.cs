@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
 using System.Collections.Generic;
+using System.IO;
 
 /// <summary>
 /// 全シーン内の TextMeshProUGUI のフォントを一括でNotoSansJP-Mediumに差し替えるEditor utility。
@@ -10,6 +11,11 @@ using System.Collections.Generic;
 /// </summary>
 public class JapaneseFontFixer : EditorWindow
 {
+    private const string JapaneseFontAssetPath = "Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset";
+    private const string TmpSettingsPath = "Assets/ThirdParty/TextMesh Pro/Resources/TMP Settings.asset";
+    private const string GameSceneFolder = "Assets/Game/Scenes";
+    private const string GamePrefabFolder = "Assets/Game/Prefabs";
+
     private TMP_FontAsset targetFont;
     private string statusMessage = "";
     private int replacedCount = 0;
@@ -123,15 +129,198 @@ public class JapaneseFontFixer : EditorWindow
 
     private bool ReplaceFont(TextMeshProUGUI tmp)
     {
-        // LiberationSans SDF または null の場合に置換
-        if (tmp.font == null || tmp.font.name.Contains("LiberationSans"))
+        bool changed = ApplyJapaneseFont(tmp, targetFont);
+        if (changed)
+        {
+            replacedCount++;
+        }
+        return changed;
+    }
+
+    /// <summary>
+    /// テキストコンポーネントのフォント (とマテリアル) を日本語フォントへ差し替える。
+    /// LiberationSans SDF ・ 未解決参照 (font == null) ・ 既に同じフォントの場合のみ変更する。
+    /// </summary>
+    private static bool ApplyJapaneseFont(TMP_Text tmp, TMP_FontAsset font)
+    {
+        if (tmp == null || font == null)
+        {
+            return false;
+        }
+
+        TMP_FontAsset current = tmp.font;
+        if (current != null && current != font && !current.name.Contains("LiberationSans"))
+        {
+            return false;
+        }
+
+        bool changed = false;
+
+        if (current != font)
         {
             Undo.RecordObject(tmp, "Fix Japanese Font");
-            tmp.font = targetFont;
-            EditorUtility.SetDirty(tmp);
-            replacedCount++;
-            return true;
+            tmp.font = font;
+            changed = true;
         }
-        return false;
+
+        if (tmp.fontSharedMaterial != font.material)
+        {
+            Undo.RecordObject(tmp, "Fix Japanese Font");
+            tmp.fontSharedMaterial = font.material;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            EditorUtility.SetDirty(tmp);
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// ゲームシーン・プレハブ・TMP の既定フォントを日本語フォントへ一括で差し替える。
+    /// バッチモードから -executeMethod JapaneseFontFixer.ApplyJapaneseFontToProject で実行できる。
+    /// </summary>
+    [MenuItem("Tools/FlashBeat/Apply Japanese Font To Scenes And Prefabs")]
+    public static void ApplyJapaneseFontToProject()
+    {
+        TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(JapaneseFontAssetPath);
+        if (font == null)
+        {
+            Debug.LogError($"[JapaneseFontFixer] Font asset not found: {JapaneseFontAssetPath}");
+            return;
+        }
+
+        int total = 0;
+
+        foreach (string scenePath in CollectScenePaths())
+        {
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            int sceneCount = 0;
+
+            TMP_Text[] texts = Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (TMP_Text tmp in texts)
+            {
+                if (ApplyJapaneseFont(tmp, font))
+                {
+                    sceneCount++;
+                }
+            }
+
+            if (sceneCount > 0)
+            {
+                EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            }
+
+            total += sceneCount;
+            Debug.Log($"[JapaneseFontFixer] {scenePath}: {sceneCount} components updated.");
+        }
+
+        foreach (string prefabPath in CollectPrefabPaths())
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+            int prefabCount = 0;
+
+            TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
+            foreach (TMP_Text tmp in texts)
+            {
+                if (ApplyJapaneseFont(tmp, font))
+                {
+                    prefabCount++;
+                }
+            }
+
+            if (prefabCount > 0)
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+
+            PrefabUtility.UnloadPrefabContents(root);
+
+            if (prefabCount > 0)
+            {
+                Debug.Log($"[JapaneseFontFixer] {prefabPath}: {prefabCount} components updated.");
+            }
+
+            total += prefabCount;
+        }
+
+        total += ApplyDefaultFont(font);
+        AssetDatabase.SaveAssets();
+
+        Debug.Log($"[JapaneseFontFixer] Total {total} components updated.");
+    }
+
+    private static List<string> CollectScenePaths()
+    {
+        var paths = new List<string>();
+        var seen = new HashSet<string>();
+
+        for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
+        {
+            if (EditorBuildSettings.scenes[i].enabled && seen.Add(EditorBuildSettings.scenes[i].path))
+            {
+                paths.Add(EditorBuildSettings.scenes[i].path);
+            }
+        }
+
+        if (Directory.Exists(GameSceneFolder))
+        {
+            foreach (string path in Directory.GetFiles(GameSceneFolder, "*.unity", SearchOption.AllDirectories))
+            {
+                string assetPath = path.Replace('\\', '/');
+                if (seen.Add(assetPath))
+                {
+                    paths.Add(assetPath);
+                }
+            }
+        }
+
+        return paths;
+    }
+
+    private static List<string> CollectPrefabPaths()
+    {
+        var paths = new List<string>();
+
+        if (!Directory.Exists(GamePrefabFolder))
+        {
+            return paths;
+        }
+
+        foreach (string path in Directory.GetFiles(GamePrefabFolder, "*.prefab", SearchOption.AllDirectories))
+        {
+            paths.Add(path.Replace('\\', '/'));
+        }
+
+        return paths;
+    }
+
+    /// <summary>
+    /// TMP の既定フォントを日本語フォントへ変更する (未解決参照のコンポーネントは既定フォントで描画される)。
+    /// </summary>
+    private static int ApplyDefaultFont(TMP_FontAsset font)
+    {
+        TMP_Settings settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>(TmpSettingsPath);
+        if (settings == null)
+        {
+            Debug.LogWarning($"[JapaneseFontFixer] TMP settings not found: {TmpSettingsPath}");
+            return 0;
+        }
+
+        SerializedObject serialized = new SerializedObject(settings);
+        SerializedProperty property = serialized.FindProperty("m_defaultFontAsset");
+        if (property == null || property.objectReferenceValue == font)
+        {
+            return 0;
+        }
+
+        property.objectReferenceValue = font;
+        serialized.ApplyModifiedProperties();
+        EditorUtility.SetDirty(settings);
+
+        Debug.Log("[JapaneseFontFixer] TMP default font asset updated.");
+        return 1;
     }
 }

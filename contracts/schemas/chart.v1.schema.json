@@ -19,7 +19,9 @@
     },
     "maxBlock": {
       "type": "integer",
-      "const": 8
+      "description": "Number of lanes the chart uses. The editor always writes 8; the legacy charts carry 5 as well, so the contract accepts 1 to 8.",
+      "minimum": 1,
+      "maximum": 8
     },
     "BPM": {
       "type": "integer",
@@ -32,7 +34,7 @@
     },
     "notes": {
       "type": "array",
-      "minItems": 1,
+      "description": "The legacy charts carry empty note lists (the probe chart and ニセモノ), so an empty chart is a valid chart.",
       "maxItems": 10000,
       "items": {
         "type": "object",
