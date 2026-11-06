@@ -174,8 +174,11 @@ namespace FlashBeat.Gameplay
                 return result;
             }
 
-            var template = Path.Combine(dir, filePrefix);
-            var run = await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken);
+            // The extension matters: Unity's VideoPlayer refuses a file whose
+            // container it cannot derive from the name ("Failed to recognize video
+            // file format"), so yt-dlp has to write video.mp4 and not just "video".
+            var template = Path.Combine(dir, filePrefix + ".%(ext)s");
+            var run = await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken).ConfigureAwait(false);
             if (!run.Ok)
             {
                 result.Detail = $"yt-dlp download failed ({run.ErrorSummary})";
@@ -195,7 +198,11 @@ namespace FlashBeat.Gameplay
             return result;
         }
 
-        /// <summary>Finds the file yt-dlp produced for the given prefix (ignores .part/.ytdl leftovers).</summary>
+        /// <summary>
+        /// Finds the file yt-dlp produced for the given prefix. Only files with a
+        /// media extension are accepted - Unity's VideoPlayer derives the
+        /// container from the file name, so a file without extension is useless.
+        /// </summary>
         public static string FindProducedFile(string directory, string filePrefix)
         {
             try
@@ -208,7 +215,7 @@ namespace FlashBeat.Gameplay
                     var name = Path.GetFileName(path);
                     if (!name.StartsWith(filePrefix, StringComparison.OrdinalIgnoreCase)) continue;
                     var ext = Path.GetExtension(name).ToLowerInvariant();
-                    if (ext == ".part" || ext == ".ytdl" || ext == ".temp") continue;
+                    if (!MediaExtensions.Contains(ext)) continue;
                     var written = File.GetLastWriteTimeUtc(path);
                     if (written > bestTime)
                     {
@@ -223,5 +230,10 @@ namespace FlashBeat.Gameplay
                 return null;
             }
         }
+
+        static readonly HashSet<string> MediaExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mp4", ".m4v", ".webm", ".mkv", ".mov", ".m4a", ".mp3", ".ogg", ".opus", ".aac", ".wav"
+        };
     }
 }

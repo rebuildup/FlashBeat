@@ -67,3 +67,12 @@ desktop.ini
 /build*.log
 /test-run.log
 
+# ─────── メディアキャッシュ (yt-dlp が取得的 YouTube 動画/音声) ───────
+# キャッシュは persistentDataPath/FlashBeatMedia のみに置く。
+# リポジトリ・Resources・StreamingAssets・ビルド出力には含めない(配布物に載せない)。
+/Assets/StreamingAssets/FlashBeatMedia/
+/Assets/Game/Resources/FlashBeatMedia/
+/Assets/Resources/FlashBeatMedia/
+/Builds/StreamingAssets/FlashBeatMedia/
+*.flashbeat-media
+
