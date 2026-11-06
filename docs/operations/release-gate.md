@@ -92,16 +92,15 @@ v<version>-win64-<sha>
 - 判断が下りるまでは、その Release を「展示で配るもの」として案内しません。
 - 新しい Release を公開しても **古い Release を差し替えません**（proven artifact を保持）。
 
-### 1.7 CI (GitHub Actions) の skip は成功扱いしない
+### 1.7 CI (GitHub Actions) — ライセンス未設定は失敗、緑は成果物の証拠
 
 - `.github/workflows/build-win64.yml` は Unity ライセンスの secret が無いとき
-  ビルド手順を skip し、**ジョブの結論は success（緑）** になります。
-  実測: run `42276987921` (main push) は job conclusion `success`、
-  ビルド 6 ステップすべて `skipped`、アーティファクト 0 件。
-- したがって **「Actions が緑」は成果物が生成された証拠ではありません**。
-  緑を見る前に必ず **アーティファクトの有無** を確認します。
-- 改善の要求: [#76](https://github.com/rebuildup/FlashBeat/issues/76)
-  (`::warning::` + ジョブサマリー明示、または neutral/failure 化)。
+  ビルドを **行わず `exit 1` で失敗** します (#76 対応済み:
+  `::error title=Unity license required::...` と `GITHUB_STEP_SUMMARY` への
+  「Win64 build blocked」明記、ジョブは red)。
+- したがって **「Actions が緑」は ZIP + SHA-256 が生成された証拠** です。
+  それでも最終確認として **アーティファクトの有無** を確認します
+  (パッケージ step が ZIP 1 件 + `.sha256` を検証し、欠けていれば throw)。
 - ライセンス secret (`UNITY_LICENSE` の base64 .ulf か `UNITY_EMAIL` + `UNITY_PASSWORD`)
   が無い限り、**CI での Win64 ビルドは成立しません**。公開済み Release は
   Windows 実機ビルド (Unity 所有者的) で作成しています。
@@ -142,7 +141,7 @@ v<version>-win64-<sha>
 | A3 | ZIP + SHA-256 の両方が添付 | Release の assets に 2 件 |
 | A4 | タグが `v<version>-win64-<sha>` 形式 | `UpdateVersion.ParseTag` が invalid にならない |
 | A5 | バージョンが前回より真に大きい | `CompareVersions` が > 0。**同一バージョン・別 SHA は自動更新されない** (1.2) |
-| A6 | stable / prerelease の 구분 | 展示用は `prerelease=false`、テスト用は `prerelease=true` |
+| A6 | stable / prerelease の区別 | 展示用は `prerelease=false`、テスト用は `prerelease=true` |
 | A7 | 更新チャンネル | 配布物の `update-channel.txt` = `stable` (展示用) |
 | A8 | 秘密情報混入なし | ZIP 内にトークン / 署名付き URL / video id が無い (`release/check/redact-log.ps1 -Check`) |
 
