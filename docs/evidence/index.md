@@ -169,3 +169,14 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 | 本番 API の契約一致 | **証明済み** — `web/tests/production-api.test.ts` 10 pass / 0 fail |
 | Unity カタログの受け渡し | **コード + 応答の形で証明済み** — 取得経路 / キャッシュ / バージョン固定の実装と本番応答の検査 |
 | Unity 実機の選曲 → 再生 → Result | **未証明** — Issue #48 / #31 の Worker の範囲 |
+
+### 全 27 曲の譜面データの publish (P2 / Issue #41)
+
+[`catalog-publish-2026-11-07/README.md`](catalog-publish-2026-11-07/README.md) — 本番カタログへ
+`Assets/Game/Resources/*.json` の元データを publish した記録。
+
+| 項目 | 状態 |
+|---|---|
+| publish した曲数 | **26 曲** (publish 前 2 曲 → publish 後 26 曲、`catalogVersion` 10 → 36) |
+| 元ファイルとの照合 | **証明済み** — 26 曲すべて notes / BPM / offset / maxBlock / lyrics が `identical` |
+| 公開しなかった曲 | `E2EProbeSong.json` (テストプローブ)、`ニセモノ.json` (notes 0 → API が 422、重複登録もあり) |
