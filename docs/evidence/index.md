@@ -31,25 +31,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 
 ## 1.5 展示フォルダ（運営者が起動する場所）
 
-```
-D:\4_apps\Unity\Build\FlashBeatExhibit\      ← 運営者は FlashBeat.exe を直接起動する
-```
+| 世代 | フォルダ | 中身 | `FlashBeat.exe` SHA-256 | フォルダ SHA-256 | ファイル数 / 総バイト | 配置 |
+|---|---|---|---|---|---|---|
+| **第 2 世代（展示用）** | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\` | **#13**（yt-dlp ストリーミング再生）+ **#27**（日本語フォント）の統合ビルド（`--no-ff` merge, code state `f53575c`） | `3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60` | `cbae8f677eb60dfeaa6ca6676121d4266fa99583f2b76bfeacacebcbd0924758` | 199 / 1 588 787 091 | 2026-11-06 22:58 |
+| 第 1 世代（予備・旧） | `D:\4_apps\Unity\Build\FlashBeatExhibit\` | #27 のフォント修正ビルド（#13 なし = **音が出ない**）。入手元は #35 の Release ZIP `FlashBeat-0.1.0-win64-743c88d.zip`（SHA-256 `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`、展開前に照合） | `3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60` | `da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b` | 198 / 1 588 334 450 | 2026-11-06 22:53 |
 
-| 項目 | 値 |
-|---|---|
-| 世代 | `743c88d`（#27 のフォント修正ビルド = PR #34 の Win64 出力） |
-| 入手元 | #35 の Release ZIP `FlashBeat-0.1.0-win64-743c88d.zip`（GitHub タグ `v0.1.0-win64-743c88d`） |
-| ZIP の SHA-256 | `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`（展開前に照合済み） |
-| `FlashBeat.exe` SHA-256 | `3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60` |
-| フォルダ SHA-256 | `da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b` |
-| ファイル数 / 総バイト | 198 / 1 588 334 450 |
-| 配置日時 | 2026-11-06 22:53 |
-| 運用 | 展示中は **読み取り専用**。更新は運営者の明示操作のみ。診断ログは `FlashBeatExhibit\logs\` に集める |
-| 世代違い | 統合ビルド（#13 + #27）は別フォルダに置く。既存世代は上書き・削除しない |
+* 運営者は **第 2 世代の `FlashBeat.exe` を直接起動** します。両世代とも **消しません**（上書きもしません）。
+* 展示中は **読み取り専用**。更新は運営者の明示操作のみ。`Update.ps1`（#36）は別のインストール先を対象にし、
+  展示フォルダは自動更新対象にしません。診断ログは各世代の `logs\` に集めます。
+* 各フォルダの `EXHIBIT-MANIFEST.txt` に世代・ビルド SHA・exe SHA-256・フォルダ SHA-256 を記載しています。
 
-この世代の既知の限界: **音 / YouTube ストリームは未証明**（#27 のビルドは旧 resolver のままで、
-yt-dlp が `Requested format is not available`、Invidious fallback も失敗）。譜面 → リザルト → リトライの
-loop は #27 自身の run と #11 の S0 run の証拠（`docs/evidence/win64-2026-11-06-font/`）が担保する。
+**第 2 世代の実機証明（2026-11-06 23:03）**: Title → Select → まにまに → 判定 76（譜面全部）→ Result →
+`R` リトライまで到達、起動 14.0 秒、**音は鳴っている**（ログ `STATUS … rms=0.30 peak=0.52`、
+音源は同梱 wav = `audioMode=Bundled`）。
+**未証明**: YouTube ストリームの**映像**（Unity の `VideoPlayer` が拡張子なしファイルを認識できず
+`prepared=False` → 同梱 wav にフォールバック）、実機 1280×720 fullscreen、S2/S3。
+詳細は [`win64-2026-11-06-release-gate/README.md`](win64-2026-11-06-release-gate/README.md) Run C。
 
 ## 2. Artifact index (SHA)
 

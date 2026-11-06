@@ -11,34 +11,42 @@
 
 ## 1. 展示フォルダ（正確なパス）
 
+**展示用の exe は「最新世代」のフォルダにあります。** 世代は 2 つ残しています（古い世代は消しません）。
+
+| 世代 | フォルダ | 中身 | 状態 |
+|---|---|---|---|
+| **第 2 世代（現在の展示用）** | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\` | #13（yt-dlp ストリーミング再生）+ #27（日本語フォント）の統合ビルド | **運営者はここを直接起動** |
+| 第 1 世代（予備・旧） | `D:\4_apps\Unity\Build\FlashBeatExhibit\` | #27 のフォント修正ビルド（#13 なし = **音が出ない**） | 参照のみ。消さない |
+
 ```
-D:\4_apps\Unity\Build\FlashBeatExhibit\
+D:\4_apps\Unity\Build\FlashBeatExhibit_s1\
 ├─ FlashBeat.exe            ← 運営者はこれを直接起動する
 ├─ FlashBeat_Data\          （Managed DLL / resources を含む）
 ├─ MonoBleedingEdge\
 ├─ UnityPlayer.dll / UnityCrashHandler64.exe / DirectML.dll / dstorage.dll / D3D12\
-├─ EXHIBIT-MANIFEST.txt    ← exe SHA-256 とフォルダ SHA-256
+├─ EXHIBIT-MANIFEST.txt    ← 世代・ビルド SHA・exe SHA-256・フォルダ SHA-256
 └─ logs\                   ← 展示中の診断ログ（運営者が明示的に書き出す場所）
 ```
 
 * 展示中は **読み取り専用で参照** します。フォルダ内のファイルを書き換えてはいけません。
-* 検証済みの成果物 1 式だけを入れます。古いビルドをこのフォルダに別名でのこさないでください
-  （古い成果物は `D:\4_apps\Unity\Build\FlashBeatBuild\` に別の名前で保管されています）。
-* 指纹（SHA-256）は `EXHIBIT-MANIFEST.txt` と [`../evidence/index.md`](../evidence/index.md) に記載。
+* 検証済みの成果物 1 式だけを各世代フォルダに入れます。古いビルドを同じフォルダに別名でのこさないでください
+  （旧世代の成果物は `D:\4_apps\Unity\Build\FlashBeatBuild\` にも保管されています）。
+* 指紋（SHA-256）は `EXHIBIT-MANIFEST.txt` と [`../evidence/index.md`](../evidence/index.md) に記載。
 
 ## 2. 起動方法（`FlashBeat.exe` 直接実行）
 
-1. ファイルエクスプローラーで `D:\4_apps\Unity\Build\FlashBeatExhibit\` を開く。
+1. ファイルエクスプローラーで **`D:\4_apps\Unity\Build\FlashBeatExhibit_s1\`**（第 2 世代）を開く。
 2. **`FlashBeat.exe` をダブルクリック**（ショートカットも `FlashBeat.exe` 直リンク）。
-3. 起動からタイトル画面（`FlashBeat` ロゴ）まで **実測 60〜90 秒** かかることがあります（初回は
-   杀毒ソフト / ディスクキャッシュでさらに遅い）。固まったように見える時間は、**そのまま待ってください**。
+3. 起動からタイトル画面（`FlashBeat` ロゴ）まで **実測 14〜18 秒**（#22 の実機 run 2 回: 17.8 s / 14.0 s）。
+   初回は杀毒ソフト / ディスクキャッシュでさらにかかることがあります。固まったように見える時間は、
+   **そのまま待ってください**。
 4. 起動しない / 黒画面のまま → §6 の復旧、§7 のエスカレーション。
 
 運営者がログを取りたい場合（**起動経路は変えない**。`FlashBeat.exe` を直接起動するのと同じ）:
 
 ```powershell
 # ログを展示フォルダの logs/ に出しながら起動する（読み取り専用の展示フォルダに書かない）
-& 'D:\4_apps\Unity\Build\FlashBeatExhibit\FlashBeat.exe' -logFile 'D:\4_apps\Unity\Build\FlashBeatExhibit\logs\Player-<日付>-<時刻>.log'
+& 'D:\4_apps\Unity\Build\FlashBeatExhibit_s1\FlashBeat.exe' -logFile 'D:\4_apps\Unity\Build\FlashBeatExhibit_s1\logs\Player-<日付>-<時刻>.log'
 ```
 
 ## 3. 操作フロー（keyboard only）
@@ -48,9 +56,15 @@ D:\4_apps\Unity\Build\FlashBeatExhibit\
 | Opening | 自動でタイトルへ | — |
 | Title | 選曲へ / オプション / 終了 | `Space` / `O` / `E` |
 | Select | 決定 / 次の曲 / 前の曲 / タイトルへ | `Space` / `J` `K` `L` `;` `→` / `F` `D` `S` `A` `←` / `Esc` |
-| Game | 開始（8 秒のプリロール後） | `Space` |
+| Game | **メディア準備完了後に開始**（下記） | `Space` |
 | Game | ノーツ叩き | 下表 |
 | Result | 選曲へ / リトライ | `Space` / `R` |
+
+> **第 2 世代の注意**: 選曲後の `Space`（開始）は **メディアの準備が終わった後** に押します。
+> 準備中は画面が「press Space to start」を出すところまで来ません（ログに
+> `[MusicManager] media ready: … - press Space to start` と出たら押す）。
+> 準備前に押しても **何も起きない**（譜面が始まらない）ので、慌てずに待ってから押してください。
+> 準備完了の目安は 10〜60 秒（初回は yt-dlp が曲を取得するため長め）。
 
 レーンキー（`Judge.LaneKeys`、8 レーン）:
 
@@ -76,8 +90,8 @@ D:\4_apps\Unity\Build\FlashBeatExhibit\
 | 2 | 選曲/リザルトの曲名・アーティスト名・歌詞が `□` にならない | ☐ | `□` ならフォント修正が効いていない |
 | 3 | 譜面が途中で落ちず、レーンとノーツ timing が崩れない | ☐ | 判定が `Miss` だけなら運用の問題ではなく検証の記録 |
 | 4 | レーンキーが反応する（`Q` `W` `E` … を押してノーツ/判定が変わる） | ☐ | |
-| 5 | 音が鳴る / 音量が適切 | ☐ | **Showcase ビルドで要確認**（§6 に現状の判定あり） |
-| 6 | 音画同期（ノーツ落下と曲が合う） | ☐ | |
+| 5 | 音が鳴る / 音量が適切 | ☐ | **第 2 世代では確認済み**（ログの `STATUS … rms=0.30 peak=0.52` = 実際に音が出ている）。第 1 世代は **無音** |
+| 6 | 音画同期（ノーツ落下と曲が合う） | ☐ | 第 2 世代では `mediaTime` とノーツ判定が同じ時計で進む（ログの `STATUS … mediaTime=…`） |
 | 7 | ネットワークを切った時、固まらずエラー表示が出る | ☐ | 現状の仕様は「graceful に失敗してログに残る」まで |
 | 8 | 起動直後 / 選曲中 / 曲中にフリーズしない | ☐ | 30 秒以上固まったら §6 |
 | 9 | 1280×720 で文字が切れていない | ☐ | 曲名・歌詞・判定 |
@@ -85,7 +99,7 @@ D:\4_apps\Unity\Build\FlashBeatExhibit\
 
 ## 5. パッチ（更新）を適用する手順
 
-* 展示フォルダ `D:\4_apps\Unity\Build\FlashBeatExhibit\` は **自動更新の対象外** です。
+* 展示フォルダ（第 2 世代 `FlashBeatExhibit_s1\` と第 1 世代 `FlashBeatExhibit\`）は **自動更新の対象外** です。
   `Update.ps1` は **別の既存配置（インストール先）** に対して実行します。
 * 運営者が明示的に 1 回だけ適用します（**訪問者セッション中の強制更新はしません**）。
 
@@ -117,8 +131,8 @@ D:\4_apps\Unity\Build\FlashBeatExhibit\
 
 | 確認したいこと | どこを見る（読むだけ） |
 |---|---|
-| 起動したか / どのビルドか | `D:\4_apps\Unity\Build\FlashBeatExhibit\EXHIBIT-MANIFEST.txt` |
-| 直近のプレイヤーログ | `D:\4_apps\Unity\Build\FlashBeatExhibit\logs\`（運営者が `-logFile` を指定して書き出したもの）。無ければ `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` |
+| 起動したか / どのビルドか | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\EXHIBIT-MANIFEST.txt` |
+| 直近のプレイヤーログ | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\logs\`（運営者が `-logFile` を指定して書き出したもの）。無ければ `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` |
 | YouTube ストリームの成否 | ログの `[MusicManager] yt-dlp resolved videoId=…` / `[MusicManager] VideoPlayer failed to prepare within 30s` |
 | 音声の成否 | ログの `AudioLevelProbe` / `VideoPlayer` 系行 + 実際に聞こえたか |
 | 日本語グリフの崩れ | ログの `not found in the [...] font asset`（0 件なら正常） |
@@ -130,7 +144,7 @@ D:\4_apps\Unity\Build\FlashBeatExhibit\
 ```powershell
 # マスク済みログを作る（署名 URL・video id を置換）
 powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1 `
-    -InPath 'D:\4_apps\Unity\Build\FlashBeatExhibit\logs\Player-2026-11-06-2300.log' `
+    -InPath 'D:\4_apps\Unity\Build\FlashBeatExhibit_s1\logs\Player-2026-11-06-2300.log' `
     -OutPath 'C:\Users\rebui\Desktop\Player.redacted.log'
 # マスク漏れチェック
 powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1 `
@@ -154,8 +168,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1
 
 | もの | 場所 |
 |---|---|
-| 展示フォルダ（読み取り専用） | `D:\4_apps\Unity\Build\FlashBeatExhibit\` |
-| 展示フォルダの診断ログ | `D:\4_apps\Unity\Build\FlashBeatExhibit\logs\` |
+| 展示フォルダ 第 2 世代（読み取り専用・展示用） | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\` |
+| 展示フォルダ 第 1 世代（予備・旧、消さない） | `D:\4_apps\Unity\Build\FlashBeatExhibit\` |
+| 展示フォルダの診断ログ | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\logs\`（第 1 世代は `FlashBeatExhibit\logs\`） |
 | 旧・実験ビルド（Git の外） | `D:\4_apps\Unity\Build\FlashBeatBuild\<バージョン>-win64-<sha>\` |
 | スモークのログ / スクリーンショット（Git の外） | `D:\4_apps\Unity\Build\FlashBeatEvidence\<日付>-<ステージ>\` |
 | 証跡索引（SHA 付き） | [`../evidence/index.md`](../evidence/index.md) |
@@ -169,10 +184,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1
 
 | # | 未成立の作業 | 展示中の代替（読み取り専用で確認できるもの） |
 |---|---|---|
-| 1 | **統合ビルド（#13 + #27）の Win64 ビルド** — fresh Library のインポートで作業中。00:10 JST 時点で未完了なら **未検証**。完了しても展示フォルダの切替は運営者の明示操作 | `D:\4_apps\Unity\Build\FlashBeatExhibit\` の `EXHIBIT-MANIFEST.txt` で「いま展示している世代」を確認 |
-| 2 | **統合ビルドでの 選曲 → YouTube ストリーム → 音 → リザルト** の実プレイ | 現状の展示世代は **音が出ない**（旧 resolver）。ログの `[MusicManager] yt-dlp resolver failed` / `YouTube prepare failed` 行で「ストリーム未再生」を確認できる |
-| 3 | **実機 1280×720 ディスプレイでの fullscreen 描画** — この PC に 1280×720 パネルが無い | ウィンドウモードで `FlashBeat.exe -screen-width 1280 -screen-height 720 -screen-fullscreen 0` を起動し、表示が崩れないことを確認（§4 の 9/10） |
-| 4 | **統合ビルドでの 1280×720 UX スモーク** | 上記と同じ（windowed 1280×720） |
-| 5 | **展示 PC 実機でのパッチ適用（#36 の `Update.ps1`）** | #22 の検証範囲外。#36 の担当。展示フォルダは更新対象外（§5） |
-| 6 | **S2 / S3（API 連携・公開譜面の再生）** | API 未デプロイ・成果物なし。展示はローカル譜面のみ |
-| 7 | **#27 のログに残った生の YouTube video id のマスク** | `release/check/redact-log.ps1 -InPath <log> -Check` で機械的に確認できる。#27 側の対応待ち |
+| 1 | **YouTube ストリームの映像そのものの再生** — 第 2 世代は yt-dlp で取得したファイル（video itag=232 / audio itag=140）を `persistentDataPath` にキャッシュするが、Unity の `VideoPlayer` が **拡張子なしファイル**を認識できず `Failed to recognize video file format` → `prepared=False`。**音声は同梱 wav にフォールバックして実測で鳴っている**（`STATUS … rms=0.30 peak=0.52`）、映像は出ない | ログの `[MusicManager] media ready: … audioMode=Bundled video=missing` 行で「音は同梱 wav / 映像は無し」を確認できる。映像が必要な用途では未対応 |
+| 2 | **実機 1280×720 ディスプレイでの fullscreen 描画** — この PC に 1280×720 パネルが無い | ウィンドウモードで `FlashBeat.exe -screen-width 1280 -screen-height 720 -screen-fullscreen 0` を起動し、表示が崩れないことを確認（§4 の 9/10） |
+| 3 | **展示 PC 実機でのパッチ適用（#36 の `Update.ps1`）** | #22 の検証範囲外。#36 の担当。展示フォルダは更新対象外（§5） |
+| 4 | **S2 / S3（API 連携・公開譜面の再生）** | API 未デプロイ・成果物なし。展示はローカル譜面のみ |
+| 5 | **#27 のログに残った生の YouTube video id のマスク** | `release/check/redact-log.ps1 -InPath <log> -Check` で機械的に確認できる。#27 側の対応待ち |
+| 6 | **統合ビルドを GitHub Release として配布する** | #35 の担当。第 2 世代の成果物（folder SHA `cbae8f67…`）は `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\` に置かれている |

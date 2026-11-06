@@ -68,7 +68,54 @@ Driver: [`release/check/drive-gameplay.ps1`](../../../release/check/drive-gamepl
 ## 統合ビルド（#13 + #27）
 
 `origin/13` と `origin/27` を `--no-ff` でブランチ 22 に merge し（squash / rebase / force push なし）、
-その HEAD から Win64 ビルドを生成した。結果は
-[`../../operations/festival-runbook.md`](../../operations/festival-runbook.md) §9 と
-[`../../evidence/index.md`](../index.md) §1.5 を参照（未完了なら **未検証** と明記）。
-生成物は別世代のフォルダに置き、既存世代（上書き・削除しない）と比較して **実証できた方** を採用する。
+その HEAD（code state `f53575c`）から Win64 ビルドを生成した:
+
+```
+[BuildScript] Build succeeded: 1588350354 bytes, output to C:\Users\rebui\Desktop\FlashBeat.22\Builds\Windows\FlashBeat.exe
+error CS count : 0
+warning CS count : 352
+```
+
+（ログ抜粋: [`build-log-excerpt-integration.txt`](build-log-excerpt-integration.txt)）
+
+## Run C — 展示第 2 世代 `FlashBeatExhibit_s1`（実機 / 完全完走 / **音あり**）
+
+| 項目 | 値 |
+|---|---|
+| 実行した exe | `D:\4_apps\Unity\Build\FlashBeatExhibit_s1\FlashBeat.exe`（第 2 世代 = #13 + #27 統合ビルド） |
+| フォルダ SHA-256 | `cbae8f677eb60dfeaa6ca6676121d4266fa99583f2b76bfeacacebcbd0924758` |
+| `FlashBeat.exe` SHA-256 | `3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60` |
+| ビルド | `Build succeeded: 1588350354 bytes` / 0 error CS / Unity 6000.5.6f1 |
+| 実行時刻 | 2026-11-06 23:03:17 JST |
+| 起動 → タイトル | **14.0 秒**（実測） |
+| 実到達 | Title → Select（曲 No.2 まにまに）→ GameScene → **判定 76**（= まにまにの譜面ノーツ数全部）→ **Result** → `R` で **Retry**（シーンロード計 10 回） |
+| ウィンドウ | windowed 1280×720（クライアント領域 1280×720） |
+| **音** | **鳴っている（実証）**。ログの `[MusicManager] STATUS mediaTime=… audioMode=Bundled rms=0.30 peak=0.47` … `rms=0.37 peak=0.52`（RMS > 0 = 音出し中）。音源は `audioMode=Bundled`（=`Resources/Musics/<曲>.wav`） |
+| **映像（YouTube ストリーム）** | **未証明**。yt-dlp は 37 format を取得し `video-only mp4 itag=232 1280x720 + audio-only m4a itag=140` を選び `persistentDataPath` にキャッシュしたが、Unity の `VideoPlayer` が **拡張子なしファイル**を認識できず `Failed to recognize video file format` → `VideoPlayer prepared=False` / `stream audio prepared=False`。結果として **音は同梱 wav フォールバック**、映像は出ない |
+| 再生の開始条件 | #13 ビルドはメディア準備後に `press Space to start` を要求する。**準備前に Space を押しても始まらない**（本次 run は準備完了後に Space を 1 回押して開始） |
+| ノーツ判定 | `PLAYBACK_START song='まにまに' videoId='<REDACTED-VIDEO-ID>' audioMode=Bundled mediaTime=0.000` → `STATUS … miss=76`（譜面全部） |
+
+証跡（**Git 外**）:
+
+| ファイル | SHA-256 | 内容 |
+|---|---|---|
+| `D:\4_apps\Unity\Build\FlashBeatEvidence\2026-11-06-exhibit-s1\01_title.png` | `116383228607eb9037a00f86da172377b053d74207c95a02b3dfc11ae06e8143` | タイトル |
+| `…\02_select.png` | `3b15f075ad01a6304797fe752f6c967b57a0f8b8c75df60e0689563285179bf2` | 選曲画面 |
+| `…\03_select.png` | `15a1216a2c63e7dd661acba108878ce01d2dd865353ddd41abb11a128108f5b8` | 選曲画面（安定後） |
+| `…\04_select_song2.png` | `be6b1d3b07b90baad8fdd971646deecbfe84eac2e27d93aa0e85b2996beb8dfb` | No.2 へ移動（日本語タイトル表示） |
+| `…\05_game.png` | `268f62f0585cc4d10a1cb7ee341fc22149df930be1871b047259a436a9697256` | GameScene（メディア準備中） |
+| `…\06_game_playing.png` | `0366be35a5da4f50d25f076d095d25b048e7e1d1f1eeef72b5042ab3ad8e78dc` | 譜面進行中 |
+| `…\07_result.png` | `78d2dedcf21145c49834c019772c80ff1ea9faf604fbc467246f225fb02db0fc` | リザルト画面 |
+| `…\08_retry.png` | `7c27d9b0bb662a2fc479978ceccbd4af70bdd7d9b17acc774a0fa2c8a5ae197f` | `R` によるリトライ後の GameScene |
+| `…\Player.log` | `d4bc5c261686eb3297fa245a0379bc47d1051de60f4a08a04f6c8d0507fde035` | 生のプレイヤーログ（**未コミット**。video id を含む） |
+| `…\Player.redacted.log` | `1e3d09c76706ecec0917cbd036bda0febf6bab8ca071e733bb52f368aab18350` | マスク済みログ（本ブランチに `docs/evidence/win64-2026-11-06-release-gate/Player-exhibit-s1.redacted.log` として commit） |
+| `…\run-summary.json` | `18b66ffb12ec3d60a4bad0e2027b84027529cedac5579058cc2975e09ea795f8` | ドライバサマリ（startup 14.0 s / result 到達 / retry 到達 / 判定 76） |
+
+マスク結果: video id 2 箇所を置換。`redact-log.ps1 -Check` は
+`signed media urls 0 / unexpected urls 0 / video ids 0 / yt-dlp stderr ids 0 → OK`。
+
+### 共有マシンの注記
+
+この run の間、同じ PC で #13 のワーカーが 3 個の player を同時に起動していました（自動操作）。
+そのため driver は `-AllowConcurrentPlayers` で起動し、**開始の Space は準備完了後に手動で 1 回** 送りました。
+他の自動化に干渉しないよう、driver はフォーカスが自分のウィンドウでない場合に **中断** します。

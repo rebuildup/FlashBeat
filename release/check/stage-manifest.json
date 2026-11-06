@@ -15,22 +15,48 @@
     "exhibitFolder": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit"
   },
   "exhibitDeployment": {
-    "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit",
-    "generation": "743c88d",
-    "content": "S0 + Japanese font fix (#27 build, PR #34), packaged and released by #35 as FlashBeat-0.1.0-win64-743c88d.zip",
-    "sourceZip": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-35\\FlashBeat-0.1.0-win64-743c88d.zip",
-    "sourceZipSha256": "3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45",
-    "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
-    "folderSha256": "da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b",
-    "fileCount": 198,
-    "totalBytes": 1588334450,
-    "deployedAt": "2026-11-06T22:53:00+09:00",
-    "operation": "read-only during the exhibition; the operator launches FlashBeat.exe directly; logs are collected in <exhibit>/logs/",
-    "manifestFile": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit\\EXHIBIT-MANIFEST.txt",
-    "proof": "see docs/evidence/win64-2026-11-06-release-gate/README.md",
+    "activeGeneration": 2,
+    "generations": [
+      {
+        "generation": 2,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s1",
+        "content": "#13 (yt-dlp + Deno -> Unity VideoPlayer streamed playback) + #27 (rebuilt Japanese NotoSansJP SDF font), merged --no-ff into branch 22 (code state f53575c)",
+        "sourceBuild": "C:\\Users\\rebui\\Desktop\\FlashBeat.22\\Builds\\Windows",
+        "buildResult": "[BuildScript] Build succeeded: 1588350354 bytes (0 error CS)",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "cbae8f677eb60dfeaa6ca6676121d4266fa99583f2b76bfeacacebcbd0924758",
+        "fileCount": 199,
+        "totalBytes": 1588787091,
+        "deployedAt": "2026-11-06T22:58:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README.md (Run C): Title -> Select -> 76/76 judged notes -> Result -> R retry on the real machine, startup 14.0 s, AUDIO PROVEN (STATUS rms=0.30 peak=0.52, audioMode=Bundled)",
+        "knownGaps": [
+          "the YouTube stream VIDEO is not played: Unity VideoPlayer cannot recognise the extension-less cached files ('Failed to recognize video file format', prepared=False) -> the audio falls back to the bundled wav; the picture is missing",
+          "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
+        ],
+        "operatorTarget": true
+      },
+      {
+        "generation": 1,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit",
+        "content": "#27 font fix on top of S0 (no #13 streaming)",
+        "sourceZip": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-35\\FlashBeat-0.1.0-win64-743c88d.zip",
+        "sourceZipSha256": "3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b",
+        "fileCount": 198,
+        "totalBytes": 1588334450,
+        "deployedAt": "2026-11-06T22:53:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README.md (Run A)",
+        "operatorTarget": false,
+        "knownGaps": [
+          "song audio / YouTube stream is NOT proven in this generation (old resolver: yt-dlp 'Requested format is not available' + Invidious fallback failure) - the run proved the chart -> result -> retry loop (76/76 notes)"
+        ]
+      }
+    ],
+    "operation": "read-only during the exhibition; the operator launches FlashBeat.exe directly; logs are collected in <exhibit>/logs/; Update.ps1 (#36) never targets these folders",
+    "manifestFile": "<exhibit>/EXHIBIT-MANIFEST.txt",
     "knownGaps": [
-      "song audio / YouTube stream is NOT proven in this generation (the #27 build still uses the old resolver: yt-dlp 'Requested format is not available' + Invidious fallback failure)",
-      "the chart -> result -> retry loop of this exact binary is proven by #27's own run (docs/evidence/win64-2026-11-06-font/) and by #11's run of the S0 binary"
+      "S2 / S3 have no Win64 artifact at all (no deployed API, no published chart version)"
     ]
   },
   "stages": [

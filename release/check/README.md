@@ -28,6 +28,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1
     -OutPath 'D:\4_apps\Unity\Build\FlashBeatEvidence\2026-11-06-S0-archive\Player.redacted.log'
 ```
 
+## Shared machine
+
+The driver refuses to start while another `FlashBeat.exe` is running (two drivers on one desktop fight
+over the keyboard and the focus). `-AllowConcurrentPlayers` overrides that **only** when the other
+instances are known to be idle; the run is then flagged as unreliable if the other automation
+disturbs it. The foreground-window guard stays active in every case: the driver aborts instead of
+sending keystrokes into somebody else's window.
+
 ## Rules
 
 * The fingerprint is the **folder** hash, not `FlashBeat.exe`: every Unity build ships the same

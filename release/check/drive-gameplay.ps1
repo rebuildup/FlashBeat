@@ -33,7 +33,9 @@ param(
     [int]$NextSongKey = 0x4B,      # K: move the selection from No.1 to No.2
     [int]$TitleTimeoutSec = 90,
     [int]$ResultTimeoutSec = 240,
-    [switch]$SkipRetry
+    [switch]$SkipRetry,
+    # Shared machine: start even though other player instances are open (they fight over focus).
+    [switch]$AllowConcurrentPlayers
 )
 
 $ErrorActionPreference = 'Stop'
@@ -144,11 +146,17 @@ if (-not (Test-Path -LiteralPath $Exe)) { throw "artifact not found: $Exe" }
 
 # Preflight: another player instance (e.g. a parallel worker automation) would fight over the
 # keyboard and the focus. Refuse to start instead of corrupting the other run.
+# -AllowConcurrentPlayers: only when the other instances are known to be idle (shared machine).
 $others = @(Get-Process -Name 'FlashBeat' -ErrorAction SilentlyContinue)
 if ($others.Count -gt 0) {
-    Write-Host ("[drive] ABORT: {0} other FlashBeat.exe process(es) are running (ids: {1})." -f $others.Count, (($others | ForEach-Object { $_.Id }) -join ', '))
-    Write-Host '[drive]         Close them (or wait for the other automation) and run this again.'
-    exit 4
+    if ($AllowConcurrentPlayers) {
+        Write-Host ("[drive] WARNING: {0} other FlashBeat.exe process(es) are running (ids: {1}) and -AllowConcurrentPlayers was given." -f $others.Count, (($others | ForEach-Object { $_.Id }) -join ', '))
+        Write-Host '[drive]          The run can be disturbed by the other automation; treat it as unreliable if that happens.'
+    } else {
+        Write-Host ("[drive] ABORT: {0} other FlashBeat.exe process(es) are running (ids: {1})." -f $others.Count, (($others | ForEach-Object { $_.Id }) -join ', '))
+        Write-Host '[drive]         Close them (or wait for the other automation) and run this again.'
+        exit 4
+    }
 }
 
 $launchArgs = @('-logFile', "`"$log`"", '-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
@@ -198,6 +206,23 @@ Start-Sleep -Seconds 4
 Save-Shot $hwnd '06_game_playing.png' | Out-Null
 $judgeAfterStart = Judge-Count
 Write-Host "[drive] judge lines after start = $judgeAfterStart"
+
+# 5b) the #13 build prepares the media first and only then asks for a Space
+#     ("[MusicManager] media ready: ... - press Space to start"). If that happened, the first
+#     Space was consumed too early -> press it again (max 5 times).
+$extraStarts = 0
+while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
+    if ((Log-Text) -match 'press Space to start') {
+        Start-Sleep -Seconds 2
+        Send-Key $hwnd 0x20 'Space(start)'
+        $extraStarts++
+        Start-Sleep -Seconds 3
+        Write-Host "[drive] extra start key #$extraStarts, judge lines = $(Judge-Count)"
+    } else {
+        Start-Sleep -Seconds 2
+    }
+}
+if ($extraStarts -gt 0) { Save-Shot $hwnd '06b_game_playing.png' | Out-Null }
 
 # 6) ResultScene
 $resultOk = Wait-For { (Scene-Count) -ge 8 } $ResultTimeoutSec 'ResultScene'
