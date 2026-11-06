@@ -60,5 +60,5 @@ from the templates in .specify/templates/overrides/.
 
 ## Stack / base
 
-- Base branch: `release-0-1-0` (or the parent issue branch for stacked children)
+- Base branch: the active release integration branch (the head of the current Draft release PR; verify with `gh pr list`), or the parent issue branch for a stacked child
 - Branch name: issue number only (`NN`)

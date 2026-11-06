@@ -1,0 +1,32 @@
+{
+  "roles": {
+    "implementation": {
+      "supervisor": "herdr",
+      "harness": "omp",
+      "provider": "minimax",
+      "fallback": "none",
+      "nativeSubagents": "deny",
+      "function": "implement"
+    },
+    "review": {
+      "supervisor": "herdr",
+      "harness": "omp",
+      "provider": "openrouter-free",
+      "fallback": "none",
+      "nativeSubagents": "deny",
+      "function": "review"
+    }
+  },
+  "layout": {
+    "workspaceLabel": "FlashBeat",
+    "preferredPanesPerTab": 4,
+    "maxTabsPerLane": 2,
+    "overflow": "queue",
+    "functionTabs": {
+      "review": "Work",
+      "verify": "Work",
+      "recover": "Ctrl",
+      "cleanup": "Ctrl"
+    }
+  }
+}

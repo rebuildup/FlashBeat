@@ -80,3 +80,9 @@ desktop.ini
 TestResults.xml
 TestRun.log
 BuildLog-*.log
+
+# ─────── agent / worktree の一時状態 ───────
+/.tmp/
+/.worktree.env
+.claude/settings.local.json
+

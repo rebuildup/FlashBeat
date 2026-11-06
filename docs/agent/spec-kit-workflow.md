@@ -83,12 +83,12 @@ Supported integrations used here: `claude` (Claude Code), `codex` (Codex CLI),
 
 ```sh
 # 1. worktree for the issue (branch name = issue number only)
-wt switch --create 14 --base origin/12        # stacked child
-wt switch --create 10 --base origin/release-0-1-0   # independent issue
+wt switch --create 14 --base origin/12            # stacked child
+wt switch --create 10 --base origin/<release>     # independent issue
 
 # 2. publish after the first meaningful commit
 git push -u origin 10
-gh pr create --draft --base release-0-1-0 --head 10 \
+gh pr create --draft --base <release> --head 10 \
   --title "[Issue #10] <title>" --body "closes #10"
 
 # 3. report
@@ -100,8 +100,10 @@ Rules that belong to this workflow:
 
 - **Branch name = issue number only** (`10`, `14`, `22`). No slug suffix, no
   `feature/` prefix. The spec directory may carry a slug, the Git branch does not.
-- **Draft PR base**: `release-0-1-0` for independent issues; the parent issue
-  branch for stacked children (`14` → `12`, `12` → `3`). Never `main`.
+- **Draft PR base**: the active release integration branch for independent
+  issues (the head of the current Draft release PR; verify with `gh pr list`,
+  do not assume `release-0-1-0`); the parent issue branch for stacked children
+  (`14` → `12`, `12` → `3`). Never `main`.
 - **One worker / one issue / one worktree.** A worker never edits another
   issue's branch and never takes a second issue.
 - **Serialized Unity ownership.** `Assets/**`, scenes and prefabs are mutated by

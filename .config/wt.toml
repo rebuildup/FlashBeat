@@ -1,0 +1,7 @@
+# Worktrunk calls the same frontend-neutral worktree lifecycle as plain git.
+# See the worktree-workflow Skill.
+[pre-start]
+setup = "mise run worktree:setup"
+
+[pre-remove]
+teardown = "mise run worktree:teardown"
