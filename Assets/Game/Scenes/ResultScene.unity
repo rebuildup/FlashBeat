@@ -268,7 +268,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Retry
+  m_text: "\u3082\u3046\u4E00\u5EA6 (R)"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
   m_sharedMaterial: {fileID: 1525376641027150585, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
@@ -1107,7 +1107,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: OK>>
+  m_text: "\u9078\u66F2\u3078 (Space)"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
   m_sharedMaterial: {fileID: 1525376641027150585, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
