@@ -124,8 +124,8 @@ public class OptionSceneManager : MonoBehaviour
 
     public static void saveSettings(int I,SettingItemData newData)
     {
-        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
-        jsonfileName = GManager.Songs[I].title.ToString();
+        jsonPath = "Assets/Resources/" + GManager.ActiveSongs[I].title + ".json";
+        jsonfileName = GManager.ActiveSongs[I].title.ToString();
 
         string jsonstr = JsonUtility.ToJson(newData);
 
@@ -139,8 +139,8 @@ public class OptionSceneManager : MonoBehaviour
 
     public static SettingItemData LoadSettings(int I)
     {
-        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
-        jsonfileName = GManager.Songs[I].title.ToString(); ;
+        jsonPath = "Assets/Resources/" + GManager.ActiveSongs[I].title + ".json";
+        jsonfileName = GManager.ActiveSongs[I].title.ToString(); ;
         SettingItemData settingData = null;
 
         try

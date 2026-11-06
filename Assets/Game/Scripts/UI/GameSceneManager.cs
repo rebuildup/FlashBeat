@@ -102,7 +102,7 @@ public class GameSceneManager : MonoBehaviour
         romajiText.text = "";
         timeElapsed = 0.0f;
         Flash.SetActive(false);
-        songName = GManager.Songs[GManager.songID].title;
+        songName = GManager.ActiveSongs[GManager.songID].title;
         Load(songName);
 
     }
@@ -136,7 +136,17 @@ public class GameSceneManager : MonoBehaviour
             return JsonUtility.FromJson<TextData>(legacyAsset.text);
         }
 
-        Debug.LogError($"[GameSceneManager] No text data for {songName}");
+        // Cloud Catalog songs (#17) have no local lyrics resource; that is
+        // expected, so only a warning. Fixed-catalog songs keep the error.
+        SongData currentSong = GManager.ActiveSongs[GManager.songID];
+        if (currentSong != null && currentSong.isRemote)
+        {
+            Debug.LogWarning($"[GameSceneManager] no text data for remote song '{currentSong.remoteId}' - lyrics are empty");
+        }
+        else
+        {
+            Debug.LogError($"[GameSceneManager] No text data for {songName}");
+        }
         return new TextData
         {
             StartTime = new float[0],

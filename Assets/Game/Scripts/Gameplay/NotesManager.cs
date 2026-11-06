@@ -39,14 +39,29 @@ public class NotesManager : MonoBehaviour
     {
         //NotesSpeed = GManager.noteSpeed;
         noteNum = 0;
-        songName = GManager.Songs[GManager.songID].title;
-        Load(songName);
+        SongData song = GManager.ActiveSongs[GManager.songID];
+        songName = song.title;
+        Load(song);
     }
 
-    private void Load(string SongName)
+    private void Load(SongData song)
     {
-        string inputString = Resources.Load<TextAsset>(SongName).ToString();
-        Data inputJson = JsonUtility.FromJson<Data>(inputString);
+        Data inputJson = null;
+        if (song.isRemote && CloudChartHolder.TryGet(song.remoteId, song.chartVersion, out string held))
+        {
+            // Cloud Catalog (#17): the chart snapshot pinned at playlist start.
+            inputJson = CloudCatalog.ParseChartResponse(held);
+        }
+        if (inputJson == null)
+        {
+            TextAsset asset = Resources.Load<TextAsset>(song.title);
+            if (asset == null)
+            {
+                Debug.LogWarning($"[NotesManager] no chart for '{song.title}' - playing without notes");
+                return;
+            }
+            inputJson = JsonUtility.FromJson<Data>(asset.text);
+        }
 
         noteNum = inputJson.notes.Length;
         GManager.maxScore = noteNum * 5;

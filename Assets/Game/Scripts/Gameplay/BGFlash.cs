@@ -19,7 +19,7 @@ public class BGFlash : MonoBehaviour
     {
 
         rend = GetComponent<Renderer>();
-        Beat = (60/(float)GManager.Songs[GManager.songID].bpm);
+        Beat = (60/(float)GManager.ActiveSongs[GManager.songID].bpm);
         switch (GManager.FlashBG)
         {
             case 1:
