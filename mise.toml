@@ -25,10 +25,10 @@ run = "bunx skills experimental_install"
 run = "bunx skills update -p -y"
 
 # Fails when a vendored Skill differs from skills-lock.json, is missing, or a
-# Skill is both vendored and published from skills/. The two agent copies must
-# stay identical.
+# Skill is both vendored and published from skills/. Both agent copies are
+# checked (speckit Skills are generated separately and are not in the lock).
 [tasks.skills-check]
-run = "bun evals/policy-evaluation/vendored-skills-contract.mts && diff -r .agents/skills .claude/skills"
+run = "bun evals/policy-evaluation/vendored-skills-contract.mts"
 
 # One lifecycle for Worktrunk, plain git and IDE-created worktrees.
 [tasks."worktree:setup"]

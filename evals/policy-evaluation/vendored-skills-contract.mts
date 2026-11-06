@@ -42,11 +42,14 @@ function validate(): void {
     if (!isRecord(value) || typeof value.computedHash !== 'string') {
       throw new Error(name + ': invalid skills-lock.json hash');
     }
-    const dirs = ['.claude/skills', '.agents/skills'].map(p => join(root, p, name));
-    const directory = dirs.find(p => existsSync(join(p, 'SKILL.md')) && statSync(join(p, 'SKILL.md')).isFile());
-    if (!directory) throw new Error(name + ' is in skills-lock.json but its files are not committed');
-    if (folderHash(directory) !== value.computedHash) {
-      throw new Error(name + " differs from skills-lock.json; update it with 'bunx skills update' instead of editing the copy");
+    const dirs = ['.claude/skills', '.agents/skills']
+      .map(p => join(root, p, name))
+      .filter(p => existsSync(join(p, 'SKILL.md')) && statSync(join(p, 'SKILL.md')).isFile());
+    if (dirs.length === 0) throw new Error(name + ' is in skills-lock.json but its files are not committed');
+    for (const directory of dirs) {
+      if (folderHash(directory) !== value.computedHash) {
+        throw new Error(directory.slice(root.length + 1) + " differs from skills-lock.json; update it with 'bunx skills update' instead of editing the copy");
+      }
     }
     if (existsSync(join(root, 'skills', name))) {
       throw new Error(name + ' is both vendored and published from skills/');
