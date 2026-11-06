@@ -46,6 +46,10 @@ public class NotesManager : MonoBehaviour
 
     private void Load(SongData song)
     {
+        // Every run starts with an empty list: a retry must not keep the note
+        // times of the previous attempt.
+        GameSceneManager.SaveNotesTime.Clear();
+
         Data inputJson = null;
         if (song.isRemote && CloudChartHolder.TryGet(song.remoteId, song.chartVersion, out string held))
         {
