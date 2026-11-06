@@ -13,28 +13,29 @@ import type { Chart } from "@/lib/chart/types";
  */
 
 const bar = css({
-  alignItems: "flex-end",
+  alignItems: "center",
   borderBottomColor: "gray.surface.border",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
-  gap: "3",
+  gap: "2",
   justifyContent: "space-between",
-  paddingBottom: "3",
-  paddingTop: "3",
-  px: "4",
+  minHeight: "3rem",
+  paddingBottom: "2",
+  paddingTop: "2",
+  px: "3",
 });
 
 const group = css({
-  alignItems: "flex-end",
+  alignItems: "center",
   display: "flex",
   flexWrap: "wrap",
   gap: "2",
 });
 
-const field = css({ width: "9rem" });
-const wideField = css({ width: "12rem" });
-const selectRoot = css({ width: "8rem" });
+const field = css({ width: "8rem" });
+const wideField = css({ width: "10rem" });
+const selectRoot = css({ width: "6.5rem" });
 
 const selectControl = css({
   alignItems: "center",
@@ -45,9 +46,9 @@ const selectControl = css({
   cursor: "pointer",
   display: "flex",
   gap: "2",
-  height: "sizes.10",
+  height: "sizes.8",
   justifyContent: "space-between",
-  paddingInline: "3",
+  paddingInline: "2",
   textAlign: "left",
   width: "full",
   _focusVisible: {
@@ -63,7 +64,22 @@ const counter = css({
   color: "fg.muted",
   fontSize: "2xs",
   fontVariantNumeric: "tabular-nums",
-  paddingBottom: "2",
+  paddingInline: "1",
+});
+
+const keycap = css({
+  bg: "gray.subtle.bg",
+  borderColor: "gray.surface.border",
+  borderRadius: "xs",
+  borderStyle: "solid",
+  borderWidth: "1px",
+  color: "fg.muted",
+  display: "inline-block",
+  fontFamily: "mono",
+  fontSize: "2xs",
+  lineHeight: "1.2",
+  marginLeft: "1",
+  padding: "0 0.25rem",
 });
 
 const accent = css({ colorPalette: "teal" });
@@ -135,16 +151,16 @@ export function EditorToolbar({
           }}
         />
         <Button
-          size="md"
+          size="sm"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
           data-testid="import-button"
         >
-          Import chart
+          Import
         </Button>
         <Button
           className={accent}
-          size="md"
+          size="sm"
           onClick={onExport}
           disabled={!chart}
           data-testid="export-button"
@@ -152,13 +168,16 @@ export function EditorToolbar({
           Export
         </Button>
         <Button
-          size="md"
+          size="sm"
           variant="outline"
           onClick={onDeleteSelected}
           disabled={!canDelete}
           data-testid="delete-button"
         >
-          Delete note
+          Delete
+          <kbd className={keycap} aria-hidden="true">
+            Del
+          </kbd>
         </Button>
         <span className={counter} data-testid="note-count">
           {noteCount} notes

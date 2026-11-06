@@ -1,6 +1,6 @@
 import { Layer, Line, Rect, Stage, Text } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { css } from "styled-system/css";
 import { noteBeat } from "@/lib/chart/timing";
 import type { Chart } from "@/lib/chart/types";
@@ -8,16 +8,14 @@ import type { Chart } from "@/lib/chart/types";
 /**
  * The eight lane grid.
  *
- * Konva does the hit testing and the dragging, the editor only reacts to the
- * events. The grid is drawn in beats: one beat is `BEAT_HEIGHT` pixels high,
- * a lane is `LANE_WIDTH` pixels wide.
+ * The lanes are the protagonist of the editor: the stage stretches to the
+ * width of its panel (measured with a ResizeObserver) so the work area is
+ * lanes, not empty panel. Bars are numbered and the selected note is marked
+ * with the teal accent, everything else stays quiet.
  */
 
-/** Width of one lane in pixels. */
-export const LANE_WIDTH = 56;
-
-/** Width of a note in pixels. */
-export const NOTE_WIDTH = 44;
+/** Narrowest lane that stays playable. Below this the stage scrolls. */
+export const MIN_LANE_WIDTH = 56;
 
 /** Height of a note in pixels. */
 export const NOTE_HEIGHT = 16;
@@ -30,15 +28,18 @@ const LANE_BACKGROUND_ALT = "#1d1e21";
 const GRID_LINE = "#272a2d";
 const GRID_LINE_STRONG = "#363a3f";
 const NOTE_FILL = "#12a594";
-const NOTE_FILL_SELECTED = "#0eb39e";
+const NOTE_FILL_SELECTED = "#0fd2b8";
 const NOTE_STROKE = "#0d3d38";
 const PLAYHEAD = "#0bd8b6";
 const LANE_LABEL = "#777b84";
+const BAR_LABEL = "#5a6169";
 
 const scrollArea = css({
   flex: "1",
   minHeight: "0",
   overflow: "auto",
+  display: "flex",
+  justifyContent: "flex-start",
   width: "full",
 });
 
@@ -60,6 +61,30 @@ export interface NoteGridProps {
   onMoveNote(index: number, block: number, beat: number): void;
 }
 
+/** Measures the panel the stage lives in, so the lanes can fill it. */
+function usePanelWidth(): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(element);
+    setWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, width];
+}
+
 export function NoteGrid({
   chart,
   resolution,
@@ -70,6 +95,7 @@ export function NoteGrid({
   onAddNote,
   onMoveNote,
 }: NoteGridProps) {
+  const [panelRef, panelWidth] = usePanelWidth();
   const beatHeight = BEAT_HEIGHT * zoom;
 
   const lastBeat = useMemo(() => {
@@ -80,8 +106,12 @@ export function NoteGrid({
     return last;
   }, [chart.notes]);
 
+  // Lanes stretch to the panel; the stage scrolls once the floor would make
+  // a lane narrower than the playable minimum.
+  const laneWidth = Math.max(MIN_LANE_WIDTH, Math.floor(panelWidth / 8));
+  const noteWidth = laneWidth - 12;
   const stageHeight = (lastBeat + 2) * beatHeight;
-  const stageWidth = LANE_WIDTH * 8;
+  const stageWidth = laneWidth * 8;
 
   const playheadBeat = (playheadSec * chart.BPM) / 60;
 
@@ -96,7 +126,7 @@ export function NoteGrid({
       return;
     }
 
-    const block = Math.min(7, Math.max(0, Math.floor(pointer.x / LANE_WIDTH)));
+    const block = Math.min(7, Math.max(0, Math.floor(pointer.x / laneWidth)));
     const beat = Math.max(0, pointer.y / beatHeight);
 
     onSelect(null);
@@ -110,7 +140,7 @@ export function NoteGrid({
 
   const handleDragEnd = (event: KonvaEventObject<DragEvent>, index: number) => {
     const node = event.target;
-    const block = Math.min(7, Math.max(0, Math.floor((node.x() + NOTE_WIDTH / 2) / LANE_WIDTH)));
+    const block = Math.min(7, Math.max(0, Math.floor((node.x() + noteWidth / 2) / laneWidth)));
     const beat = Math.max(0, (node.y() + NOTE_HEIGHT / 2) / beatHeight);
 
     onMoveNote(index, block, beat);
@@ -130,6 +160,20 @@ export function NoteGrid({
       />,
     );
 
+    if (isBar && beat > 0) {
+      beatLines.push(
+        <Text
+          key={`bar-${beat}`}
+          x={4}
+          y={y + 3}
+          text={String(beat / 4 + 1)}
+          fontSize={10}
+          fill={BAR_LABEL}
+          listening={false}
+        />,
+      );
+    }
+
     for (let sub = 1; sub < resolution; sub += 1) {
       beatLines.push(
         <Line
@@ -137,7 +181,7 @@ export function NoteGrid({
           points={[
             0,
             y + (beatHeight / resolution) * sub,
-            LANE_WIDTH * 8,
+            stageWidth,
             y + (beatHeight / resolution) * sub,
           ]}
           stroke={GRID_LINE}
@@ -150,70 +194,85 @@ export function NoteGrid({
 
   return (
     <div className={scrollArea} data-testid="note-grid">
-      <Stage
-        width={stageWidth}
-        height={stageHeight}
-        onMouseDown={handleStageMouseDown}
-        style={{ cursor: "crosshair" }}
-      >
-        <Layer>
-          {Array.from({ length: 8 }, (_, lane) => (
-            <Rect
-              key={`lane-${lane}`}
-              x={lane * LANE_WIDTH}
-              y={0}
-              width={LANE_WIDTH}
-              height={stageHeight}
-              fill={lane % 2 === 0 ? LANE_BACKGROUND : LANE_BACKGROUND_ALT}
-              listening={false}
-            />
-          ))}
-
-          {beatLines}
-
-          {Array.from({ length: 8 }, (_, lane) => (
-            <Text
-              key={`lane-label-${lane}`}
-              x={lane * LANE_WIDTH + 6}
-              y={6}
-              text={String(lane + 1)}
-              fontSize={11}
-              fill={LANE_LABEL}
-              listening={false}
-            />
-          ))}
-
-          {chart.notes.map((note, index) => {
-            const beat = noteBeat(note);
-            return (
+      <div ref={panelRef} style={{ minWidth: stageWidth, flex: 1 }}>
+        <Stage
+          width={stageWidth}
+          height={stageHeight}
+          onMouseDown={handleStageMouseDown}
+          style={{ cursor: "crosshair" }}
+        >
+          <Layer>
+            {Array.from({ length: 8 }, (_, lane) => (
               <Rect
-                key={index}
-                x={note.block * LANE_WIDTH + (LANE_WIDTH - NOTE_WIDTH) / 2}
-                y={beat * beatHeight - NOTE_HEIGHT / 2}
-                width={NOTE_WIDTH}
-                height={NOTE_HEIGHT}
-                cornerRadius={3}
-                fill={index === selectedIndex ? NOTE_FILL_SELECTED : NOTE_FILL}
-                stroke={NOTE_STROKE}
-                strokeWidth={1}
-                draggable
-                onMouseDown={(event) => handleNoteMouseDown(event, index)}
-                onTouchStart={(event) =>
-                  handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
-                }
-                onDragEnd={(event) => handleDragEnd(event, index)}
+                key={`lane-${lane}`}
+                x={lane * laneWidth}
+                y={0}
+                width={laneWidth}
+                height={stageHeight}
+                fill={lane % 2 === 0 ? LANE_BACKGROUND : LANE_BACKGROUND_ALT}
+                listening={false}
               />
-            );
-          })}
+            ))}
 
-          <Line
-            points={[0, playheadBeat * beatHeight, stageWidth, playheadBeat * beatHeight]}
-            stroke={PLAYHEAD}
-            strokeWidth={2}
-            listening={false}
-          />
-        </Layer>
-      </Stage>
+            {beatLines}
+
+            {Array.from({ length: 8 }, (_, lane) => (
+              <Text
+                key={`lane-label-${lane}`}
+                x={lane * laneWidth + 6}
+                y={6}
+                text={String(lane + 1)}
+                fontSize={11}
+                fontStyle="bold"
+                fill={LANE_LABEL}
+                listening={false}
+              />
+            ))}
+
+            {chart.notes.map((note, index) => {
+              const beat = noteBeat(note);
+              const selected = index === selectedIndex;
+              return (
+                <Rect
+                  key={index}
+                  x={note.block * laneWidth + (laneWidth - noteWidth) / 2}
+                  y={beat * beatHeight - NOTE_HEIGHT / 2}
+                  width={noteWidth}
+                  height={NOTE_HEIGHT}
+                  cornerRadius={3}
+                  fill={selected ? NOTE_FILL_SELECTED : NOTE_FILL}
+                  stroke={selected ? PLAYHEAD : NOTE_STROKE}
+                  strokeWidth={selected ? 2 : 1}
+                  shadowColor={selected ? PLAYHEAD : undefined}
+                  shadowBlur={selected ? 8 : 0}
+                  shadowOpacity={selected ? 0.55 : 0}
+                  draggable
+                  onMouseDown={(event) => handleNoteMouseDown(event, index)}
+                  onMouseEnter={(event) => {
+                    const stage = event.target.getStage();
+                    if (stage) stage.container().style.cursor = "grab";
+                  }}
+                  onMouseLeave={(event) => {
+                    const stage = event.target.getStage();
+                    if (stage) stage.container().style.cursor = "crosshair";
+                  }}
+                  onTouchStart={(event) =>
+                    handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
+                  }
+                  onDragEnd={(event) => handleDragEnd(event, index)}
+                />
+              );
+            })}
+
+            <Line
+              points={[0, playheadBeat * beatHeight, stageWidth, playheadBeat * beatHeight]}
+              stroke={PLAYHEAD}
+              strokeWidth={2}
+              listening={false}
+            />
+          </Layer>
+        </Stage>
+      </div>
     </div>
   );
 }

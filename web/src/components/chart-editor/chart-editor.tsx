@@ -12,7 +12,7 @@ import {
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
-import { snapBeat } from "@/lib/chart/timing";
+import { noteBeat, snapBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { EditorToolbar } from "./editor-toolbar";
@@ -36,7 +36,7 @@ const layout = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: "minmax(0, 1fr) 20rem",
+  gridTemplateColumns: "minmax(0, 1fr) 17rem",
   minHeight: "0",
   overflow: "hidden",
   p: "3",
@@ -215,6 +215,26 @@ export function ChartEditor({
     setSelectedIndex(null);
   }, [selectedIndex]);
 
+  // Arrow keys move the selected note by one grid line (beat) or one lane
+  // (block), so fine placement never needs the mouse.
+  const handleNudgeSelected = useCallback(
+    (deltaBeat: number, deltaBlock: number) => {
+      if (selectedIndex === null) {
+        return;
+      }
+      setChart((current) => {
+        const note = current?.notes[selectedIndex];
+        if (!current || !note) {
+          return current;
+        }
+        const beat = Math.max(0, noteBeat(note) + deltaBeat);
+        const block = Math.min(7, Math.max(0, note.block + deltaBlock));
+        return moveNote(current, selectedIndex, block, beat);
+      });
+    },
+    [selectedIndex],
+  );
+
   // The selected note disappears with the chart, so the index is kept in range.
   useEffect(() => {
     setSelectedIndex((current) => {
@@ -227,21 +247,43 @@ export function ChartEditor({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Delete" && event.key !== "Backspace") {
-        return;
-      }
-
       const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) {
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
         return;
       }
 
-      handleDeleteSelected();
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        handleDeleteSelected();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setSelectedIndex(null);
+        return;
+      }
+
+      if (selectedIndex !== null) {
+        const gridBeat = 1 / resolution;
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          handleNudgeSelected(-gridBeat, 0);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          handleNudgeSelected(gridBeat, 0);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          handleNudgeSelected(0, -1);
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          handleNudgeSelected(0, 1);
+        }
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDeleteSelected]);
+  }, [handleDeleteSelected, handleNudgeSelected, selectedIndex, resolution]);
 
   const noteCount = chart?.notes.length ?? 0;
 
@@ -279,8 +321,12 @@ export function ChartEditor({
       <div className={body}>
         <section className={gridPanel}>
           <p className={gridHint}>
-            Click an empty cell to add a tap note, drag a note to move it, press Delete to remove
-            the selected note. The grid is drawn in beats, one column per lane.
+            <span data-testid="playhead-readout">
+              {playheadSec.toFixed(2)}s · beat{" "}
+              {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}{" "}
+            </span>
+            Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
+            deselects
           </p>
 
           {chart ? (
