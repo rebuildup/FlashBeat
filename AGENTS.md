@@ -152,7 +152,7 @@ mise run skills-check          # vendored と skills-lock.json の hash 検査
 
 ## 既知のずれ（解消するまで事実として扱う）
 
-- profile は `release-x-y-z` を統合線とするが、現在の release 0.1.1 は `integration/exhibit-v2` → `main` の PR #55 で進んでいる。新しい ticket の base は、作業時点の active な release / integration branch を Issue と PR で確認して決める。
+- 現在の統合線は `release-0-1-3`（Draft release PR #86、開始SHA `0f899b5`）。旧 PR #55 の `integration/exhibit-v2` は現行trunkとして使用しない。新しい ticket の base と依存順は作業時点の remote refs / Issue / PR で再確認する。
 - `web/` は npm lockfile を使う。house rule の Bun との差は上に書いた理由による。
 - `Assets/Resources/` と `Assets/Game/Resources/` の両方に chart JSON がある。新しい曲は `Assets/Game/Resources/` を正とし、legacy 側を更新しない。
 - Unity の実 version は Hub に `6000.6.8f1` も入っているが、project の基準は `ProjectSettings/ProjectVersion.txt` の `6000.5.6f1`。
