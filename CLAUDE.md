@@ -147,3 +147,4 @@ Manual recipe (still valid for scripted/headless use):
 - Binding: `.infisical.json` (tracked) + `config/infisical.sh` (instance metadata). Inject secrets per command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
 - The official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`, always under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
 - State, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).
+- Festival D1 schema, migrations and the remote apply record: [`docs/operations/d1-migrations.md`](docs/operations/d1-migrations.md).

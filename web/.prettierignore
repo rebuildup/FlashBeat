@@ -1,0 +1,8 @@
+# The chart fixture must stay byte-identical to Assets/Resources/Who.json:
+# the seed stores that file text verbatim, so reformatting it would break the
+# published chart identity.
+db/fixtures/who.chart.json
+
+# Drizzle owns the migration metadata (db/migrations/meta/*.json) and the
+# generated SQL. Formatting them would only create churn.
+db/migrations/

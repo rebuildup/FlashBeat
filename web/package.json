@@ -7,6 +7,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "codegen": "panda codegen",
+    "test": "node --test tests/",
     "postinstall": "void prepare && panda codegen"
   },
   "dependencies": {
@@ -24,9 +25,13 @@
     "@pandacss/types": "2.5.0",
     "@pandacss/vite": "2.5.0",
     "@park-ui/cli": "1.0.1",
+    "@types/node": "26.6.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@void/react": "1.6.2",
+    "ajv": "8.20.0",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.4",
     "oxc-transform-react": "^0.152.0",
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@^1.4.0",

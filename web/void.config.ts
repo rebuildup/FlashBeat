@@ -5,6 +5,20 @@ export default defineConfig({
   routing: {
     typedRoutes: true,
   },
+  cloudflare: {
+    // The single FlashBeat D1 database (created in issue #9). The binding id
+    // and the migrations directory are shared with `cf d1 migrations apply`,
+    // so both the local migration history and the remote one live in
+    // `d1_migrations` and the same SQL files are applied exactly once.
+    d1_databases: [
+      {
+        binding: "DB",
+        database_name: "flashbeat",
+        database_id: "7de6fd23-dd7b-4e21-bddd-b28b33ee0462",
+        migrations_dir: "./db/migrations",
+      },
+    ],
+  },
   worker: {
     compatibility_date: "2026-02-24",
   },
