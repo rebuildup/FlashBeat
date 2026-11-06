@@ -77,6 +77,8 @@ public class GManager : MonoBehaviour
     {
         RemoteSongs = remoteSongs;
         mergedSongs = Merge(Songs, remoteSongs);
+        int remoteCount = remoteSongs == null ? 0 : System.Math.Max(0, remoteSongs.Length - 1);
+        Debug.Log($"[GManager] cloud catalog applied: local={Songs.Length} merged={mergedSongs.Length} remote={remoteCount}");
     }
 
     public static void ClearRemoteCatalog()
