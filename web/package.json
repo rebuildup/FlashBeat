@@ -7,6 +7,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "codegen": "panda codegen",
+    "test": "node --test tests/",
     "postinstall": "void prepare && panda codegen"
   },
   "dependencies": {
@@ -33,7 +34,8 @@
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@^1.4.0",
     "vite-plus": "^1.4.0",
-    "void": "1.6.2"
+    "void": "1.6.2",
+    "yaml": "^2.8.1"
   },
   "overrides": {
     "@park-ui/cli": {

@@ -59,7 +59,7 @@ void db generate     # regenerate db/migrations/ after a schema change
 void db migrate      # apply pending migrations to the local D1
 void db seed         # reset local D1, re-apply migrations, run db/seed.ts
 void db status       # applied/pending migrations (local + deployment target)
-node --test tests/  # migration, fixture and constraint tests
+node --test tests/  # read API integration tests (see "Read API")
 ```
 
 The Cloudflare binding points at the single FlashBeat database
@@ -91,11 +91,44 @@ Panda only emits the CSS of a recipe it can see being used. Because the Park UI
 components are namespaced (`<Tabs.Root>`), `panda.config.ts` adds explicit `jsx`
 hints for those recipes.
 
+### Read API (issue #15)
+
+The public read endpoints of `contracts/openapi.v1.yaml` are live. They use the
+native Void route handlers and `void/db`; there is no second router.
+
+| Route                                     | File                                    | Behaviour                                                                                              |
+| ----------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET /api/v1/catalog`                     | `routes/api/v1/catalog.ts`              | Published songs, ordered by id, with `chartVersion` and `noteCount`.                                    |
+| `GET /api/v1/charts/{songId}?version=N`   | `routes/api/v1/charts/[songId].ts`      | Exactly that chart version, or 404.                                                                     |
+
+`routes/api/v1/_read-model.ts` holds the shared response shapes (it is prefixed
+with `_`, so Void does not turn it into a route).
+
+Rules that the endpoints follow:
+
+- **Published only.** A song is listed when `chart_versions` holds a row for
+  `(songId, songs.currentVersion)`. A song row without a chart is not listed.
+- **Stable order.** The catalog is ordered by song id.
+- **`catalogVersion`** is the number of published chart snapshots
+  (`COUNT(chart_versions)`). Every publish adds a chart version, so the number
+  changes whenever the published charts change. The publish endpoint (#16)
+  must return the same value.
+- **Exact versions.** `GET /api/v1/charts/{songId}` never falls back to the
+  current version; an unknown version or song is 404.
+- **`version` is required.** A missing, non-numeric or `< 1` version is 400.
+- **`Cache-Control: no-store`** on both endpoints, because Unity polls the
+  catalog every 5-10s and must never see a stale demo.
+
+`node --test tests/` runs the integration test: it seeds the local D1, starts
+the Void dev server, and validates the responses against the frozen contract
+(`contracts/openapi.v1.yaml` and `contracts/schemas/chart.v1.schema.json`).
+
 ### Scope
 
-This app currently has **no API routes yet**. The database schema and migrations
-exist (issue #14) but nothing reads or writes them until #15/#16 add the routes.
-The catalog is a local fixture in `src/app/catalog.ts`; `?state=loading|empty|error`
-on `/` forces a list state so every branch can be reviewed before the API exists.
+The database schema and migrations exist (issue #14) and the read API reads
+them (issue #15). Nothing writes to them yet: the publish endpoint (#16) is
+still missing. The catalog of the Web Studio UI is a local fixture in
+`src/app/catalog.ts`; `?state=loading|empty|error` on `/` forces a list state
+so every branch can be reviewed before the UI talks to the API.
 The publish form is intentionally disabled until the publish endpoint (#16) is
 deployed.
