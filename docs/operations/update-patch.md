@@ -17,9 +17,10 @@
 
 ## ビルド版識別子と Release タグ
 
-- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`0.1.0+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。
+- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは既定 `0.1.0`。バージョンアップの Release を作るときは環境変数 `FLASHBEAT_VERSION_BASE` で上書きします (例: `v0.1.1` Release → `FLASHBEAT_VERSION_BASE=0.1.1` でビルド)。
 - Release タグは **`v<バージョン>-win64-<git短SHA>`** 形式 (例: `v0.1.1-win64-abc1234`)。アセットは `FlashBeat-<バージョン>-win64-<sha>.zip` と隣接する `.sha256`。
-- UpdateChecker は タグの (バージョン, SHA) と現行ビルドを比較し、バージョンが新しいか・同バージョンで SHA が違うとき新版とみなします。古いバージョンへのダウングレードは行いません。
+- **適用候補の選び方**: GitHub API の返却順は新しい Release が先とは限らない (実測) ため、UpdateChecker は全候補から **version を主キー・published_at を副キーに最大のもの**を選びます。draft は対象外、prerelease は対象です。
+- UpdateChecker は 候補の (バージョン, SHA) と現行ビルドを比較し、バージョンが新しいか・同バージョンで SHA が違うとき新版とみなします。古いバージョンへのダウングレードは行いません。
 
 ## 運営者が見える動き
 

@@ -9,9 +9,11 @@ using Debug = UnityEngine.Debug;
 public static class BuildScript
 {
     // 配布版の基準バージョン。ビルド時 git SHA と組み合わせて
-    // "0.1.0+<sha>" を PlayerSettings.bundleVersion に埋め込み、
-    // GitHub Release タグ "v0.1.0-win64-<sha>" と UpdateChecker が比較する。
-    private const string VersionBase = "0.1.0";
+    // "<version>+<sha>" を PlayerSettings.bundleVersion に埋め込み、
+    // GitHub Release タグ "v<version>-win64-<sha>" と UpdateChecker が比較する。
+    // Release をバージョンアップするときは環境変数 FLASHBEAT_VERSION_BASE で上書きする
+    // (例: v0.1.1 Release → FLASHBEAT_VERSION_BASE=0.1.1)。未設定時は 0.1.0。
+    private const string DefaultVersionBase = "0.1.0";
 
     // 配布 ZIP に含めない第三者楽曲の音声・動画。Resources 配下はビルドに
     // 無条件で取り込まれるため、ビルド中だけプロジェクト外 (Builds/.media-excluded) へ退避し、
@@ -47,7 +49,9 @@ public static class BuildScript
         };
 
         string shortSha = GetGitShortSha();
-        PlayerSettings.bundleVersion = VersionBase + "+" + shortSha;
+        string versionBase = Environment.GetEnvironmentVariable("FLASHBEAT_VERSION_BASE");
+        if (string.IsNullOrEmpty(versionBase)) { versionBase = DefaultVersionBase; }
+        PlayerSettings.bundleVersion = versionBase + "+" + shortSha;
         Debug.Log($"[BuildScript] bundleVersion = {PlayerSettings.bundleVersion}");
 
         ExcludeMediaFromBuild();

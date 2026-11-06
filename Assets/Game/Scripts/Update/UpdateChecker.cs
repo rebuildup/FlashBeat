@@ -25,17 +25,19 @@ namespace FlashBeat.Update
         private const string UpdaterScriptRelPath = "tools/update/Update.ps1";
 
         [Serializable]
-        private class ReleaseAsset
+        public class ReleaseAsset
         {
             public string name;
             public string browser_download_url;
         }
 
         [Serializable]
-        private class ReleaseInfo
+        public class ReleaseInfo
         {
             public string tag_name;
             public bool draft;
+            public string created_at;
+            public string published_at;
             public ReleaseAsset[] assets;
         }
 
@@ -242,8 +244,10 @@ namespace FlashBeat.Update
             }
         }
 
-        /// <summary>Releases 一覧 JSON から先頭 (最新) の非 draft リリースを取り出す。</summary>
-        private static ReleaseInfo ParseLatestRelease(string json)
+        /// <summary>Releases 一覧 JSON から適用候補 (非 draft・タグ形式が有効) を選ぶ。
+        /// API の返却順は作成順と限らない (実測でも非順序) ため、version を主キー、
+        /// published_at を副キーに最大のものを選ぶ。public は EditMode テストのため。</summary>
+        public static ReleaseInfo ParseLatestRelease(string json)
         {
             try
             {
@@ -251,17 +255,47 @@ namespace FlashBeat.Update
                 var wrapped = new StringBuilder("{\"items\":").Append(json).Append("}").ToString();
                 var parsed = JsonUtility.FromJson<ReleaseArray>(wrapped);
                 if (parsed == null || parsed.items == null) { return null; }
+
+                ReleaseInfo best = null;
+                UpdateVersion.ReleaseId bestId = default;
+                var bestPublished = DateTime.MinValue;
                 foreach (var release in parsed.items)
                 {
-                    if (release != null && !release.draft && !string.IsNullOrEmpty(release.tag_name))
+                    if (release == null || release.draft || string.IsNullOrEmpty(release.tag_name)) { continue; }
+                    var id = UpdateVersion.ParseTag(release.tag_name);
+                    if (!id.Valid) { continue; }
+                    var published = ParseTimestamp(release.published_at) ?? ParseTimestamp(release.created_at) ?? DateTime.MinValue;
+                    if (best == null || CompareCandidate(id, published, bestId, bestPublished) > 0)
                     {
-                        return release;
+                        best = release;
+                        bestId = id;
+                        bestPublished = published;
                     }
                 }
+                return best;
             }
             catch (Exception e)
             {
                 Debug.LogWarning("[UpdateChecker] Releases JSON の解析に失敗しました: " + e.Message);
+                return null;
+            }
+        }
+
+        private static int CompareCandidate(UpdateVersion.ReleaseId a, DateTime aPublished, UpdateVersion.ReleaseId b, DateTime bPublished)
+        {
+            var byVersion = UpdateVersion.CompareVersions(a.Version, b.Version);
+            if (byVersion != 0) { return byVersion; }
+            return aPublished.CompareTo(bPublished);
+        }
+
+        private static DateTime? ParseTimestamp(string text)
+        {
+            if (string.IsNullOrEmpty(text)) { return null; }
+            DateTime value;
+            if (DateTime.TryParse(text, System.Globalization.CultureInfo.InvariantCulture,
+                                  System.Globalization.DateTimeStyles.RoundtripKind, out value))
+            {
+                return value;
             }
             return null;
         }

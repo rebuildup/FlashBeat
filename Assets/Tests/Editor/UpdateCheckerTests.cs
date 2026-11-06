@@ -246,3 +246,58 @@ public class UpdateStagingTests
         }, tempDir, out problem));
     }
 }
+
+public class UpdateReleaseSelectionTests
+{
+    private const string TwoReleasesOutOfOrder = @"
+[{""tag_name"":""v0.1.0-win64-743c88d"",""draft"":false,
+  ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"",
+  ""assets"":[{""name"":""FlashBeat-0.1.0-win64-743c88d.zip"",""browser_download_url"":""https://example.com/a.zip""}]},
+ {""tag_name"":""v0.1.1-win64-abc1234"",""draft"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",""created_at"":""2026-11-06T23:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.1.1-win64-abc1234.zip"",""browser_download_url"":""https://example.com/b.zip""}]}]";
+
+    [Test]
+    public void ParseLatestRelease_ListOrderUnreliable_PicksHighestVersion()
+    {
+        // 実測: GitHub API の返却順は新しい Release が先とは限らない。
+        // リストの先頭 (v0.1.0) ではなく version 最大 (v0.1.1) を選ぶこと。
+        var latest = UpdateChecker.ParseLatestRelease(TwoReleasesOutOfOrder);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.1-win64-abc1234", latest.tag_name);
+    }
+
+    [Test]
+    public void ParseLatestRelease_SameVersion_PicksNewerPublished()
+    {
+        var json = @"
+[{""tag_name"":""v0.1.0-win64-aaaaaaa"",""draft"":false,
+  ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"", ""assets"":[]},
+ {""tag_name"":""v0.1.0-win64-bbbbbbb"",""draft"":false,
+  ""published_at"":""2026-11-06T16:25:27Z"",""created_at"":""2026-11-06T15:15:04Z"", ""assets"":[]}]";
+        var latest = UpdateChecker.ParseLatestRelease(json);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.0-win64-bbbbbbb", latest.tag_name);
+    }
+
+    [Test]
+    public void ParseLatestRelease_DraftAndInvalidTags_Skipped()
+    {
+        var json = @"
+[{""tag_name"":""v0.2.0-win64-ccccccc"",""draft"":true, ""assets"":[]},
+ {""tag_name"":""not-a-tag"",""draft"":false, ""assets"":[]},
+ {""tag_name"":""v0.1.0-win64-ddddddd"",""draft"":false,
+  ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"", ""assets"":[]}]";
+        var latest = UpdateChecker.ParseLatestRelease(json);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.0-win64-ddddddd", latest.tag_name);
+    }
+
+    [Test]
+    public void ParseLatestRelease_NoValidRelease_ReturnsNull()
+    {
+        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[{""tag_name"":""x"",""draft"":false,""assets"":[]}]"));
+        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[]"));
+        Assert.IsNull(UpdateChecker.ParseLatestRelease("not json"));
+    }
+}

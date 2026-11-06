@@ -76,7 +76,7 @@ namespace FlashBeat.Update
         }
 
         /// <summary>"0.1.0" を major/minor/patch の整数で比較する。不正な形式は null。</summary>
-        private static int[] ParseVersion3(string version)
+        public static int[] ParseVersion3(string version)
         {
             if (string.IsNullOrEmpty(version)) { return null; }
             var parts = version.Split('.');
@@ -92,7 +92,8 @@ namespace FlashBeat.Update
             return nums;
         }
 
-        private static int CompareVersions(string a, string b)
+        /// <summary>セマンティック比較 (major.minor.patch)。不正な形式は文字列比較にフォールバック。</summary>
+        public static int CompareVersions(string a, string b)
         {
             var va = ParseVersion3(a);
             var vb = ParseVersion3(b);
