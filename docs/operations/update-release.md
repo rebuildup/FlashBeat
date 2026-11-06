@@ -6,6 +6,10 @@
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
+- 現行版: [`v0.1.0-win64-743c88d`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.0-win64-743c88d)
+  - `FlashBeat-0.1.0-win64-743c88d.zip`
+  - SHA-256: `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`
+  - ビルド元 commit: `743c88d14a1931d4637c34b1ec5d1bec5e502d44` (#27 フォント修正済み)
 - アセット命名: `FlashBeat-<version>.zip` + `FlashBeat-<version>.zip.sha256`
   - 例: `FlashBeat-0.1.0-win64-743c88d.zip` (version は `<semver>-win64-<build commit SHA 短縮形>`)
 - 展示運営者はブラウザでダウンロードするだけ。GH/CLI/PowerShell・管理者権限はプレイヤーに要求しない。
@@ -40,19 +44,21 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
    ```
 
    スクリプトが ZIP + `.sha256` sidecar を作り、内容検査 (exe/Data/Managed DLL の存在・数, arch integrity) を自動実行する。
-4. ドラフト Release 作成 (タグは実在しない新タグ。draft の間はタグは push されない):
+4. Release 作成 (オーナー承認済みなら `--draft` を外して即公開。未承認なら `--draft` で作り 5 へ。
+   タグは実在しない新タグを使い、draft の間はタグが push されない):
 
    ```powershell
-   gh release create v<version> --draft --target <build commit SHA> `
-       --title "FlashBeat <version>" `
+   gh release create v<version> --target <build commit SHA (フル SHA)> `
+       --title "FlashBeat <version>" --latest `
        --notes "SHA-256: <hash>`nSource commit: <full SHA>`n実機検証: <証跡リンク or 未証明>"
    gh release upload v<version> FlashBeat-<version>.zip FlashBeat-<version>.zip.sha256
    ```
 
-5. **公開 (publish) はオーナー手動承認**。権限境界を勝手に越えない:
+5. **公開 (publish) の権限境界**: 原則オーナー手動承認。オーナーが明示的に承認した場合のみ
+   ワーカーが直接公開してよい (2026-11-06 の v0.1.0-win64-743c88d はオーナー指示により即時公開):
 
    ```powershell
-   # オーナーが #22 の実機 smoke 合格後に実行
+   # オーナー承認後に実行
    gh release edit v<version> --draft=false
    ```
 
