@@ -9,7 +9,7 @@
 
 project-init の初期化 prompt をこの repository に適用した時点で、次のずれがあった。
 
-- `skills-lock.json` は 19 個の Skill を記録していたが、`.agents/skills/` と `.claude/skills/` には speckit の 9 個しか無く、fresh clone では記録された Skill を起動できなかった。lock の hash も現行 upstream と 7 個で一致していなかった。
+- `skills-lock.json` は 19 個の Skill を記録していたが、`.agents/skills/` と `.claude/skills/` には speckit の 9 個しか無く、fresh clone では記録された Skill を起動できなかった。lock の 19 個のうち現行 upstream と一致したのは 6 個だけで、12 個は hash が不一致、`writing-discipline` は source が `rebuildup/project-init` ではなく `rebuildup/writing-skills` だった。
 - `AGENTS.md` は 2026-08 時点の構造（3 assembly、`Assets/Scripts/`、2 個の test）を指しており、現行の 5 assembly・`Assets/Game/Scripts/`・10 test file と矛盾していた。`CLAUDE.md` にはより新しい内容があったが、両者が別々に保守されていた。
 - worktree は日常的に使われている（`wt v0.81.0`、20 個以上の worktree）が、project-local の setup / teardown 入口と Worktrunk hook が無かった。
 - top-level の Herdr / omp 委譲は運用されていたが、route 契約と起動 CLI が repository に無かった。
