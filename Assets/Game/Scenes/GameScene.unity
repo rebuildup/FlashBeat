@@ -10701,7 +10701,6 @@ MonoBehaviour:
   furiganaText: {fileID: 1405573706}
   mondaiText: {fileID: 1049248633}
   romajiText: {fileID: 2125025296}
-  timeElapsed: 0
   OnText: {fileID: 1604669385}
   OffText: {fileID: 1699979121}
   Flash: {fileID: 916832076}

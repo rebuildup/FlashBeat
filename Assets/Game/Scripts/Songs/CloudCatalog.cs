@@ -138,6 +138,7 @@ public static class CloudCatalog
                 isRemote = true,
                 remoteId = remote.id,
                 chartVersion = remote.chartVersion > 0 ? remote.chartVersion : 0,
+                noteCount = remote.noteCount,
             };
             count++;
         }

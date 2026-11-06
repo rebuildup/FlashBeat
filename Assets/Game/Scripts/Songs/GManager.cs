@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -18,6 +19,12 @@ public class SongData
     public bool isRemote;
     public string remoteId;
     public int chartVersion;
+
+    // Catalog integrity (#95): note count of the cloud chart (0 when unknown;
+    // the local Shit values drift from the real chart, so they are not
+    // copied in) and the placeholder rows that must not be playable.
+    public int noteCount;
+    public bool unplayable;
 
     public SongData(int id, string title, string musician, string videoId, int bpm, int level, int totalHits, float duration)
     {
@@ -54,6 +61,13 @@ public class GManager : MonoBehaviour
     public static readonly int[] Slevel = { 10, 8, 13, 5, 15, 14, 18, 19, 19, 19, 0, 17, 10, 16, 5, 7, 10, 17, 25, 15, 30, 15, 20, 21, 10, 10, 24, 1, 1 /*, 1*/ };
     public static readonly int[] Shit = { 1000, 268, 383, 139, 130, 296, 243, 349, 257, 603, 53, 360, 82, 254, 105, 111, 316, 295, 262, 292, 315, 184, 275, 250, 196, 163, 193, 0, 0 /*, 0*/ };
     public static readonly float[] SongLong = { 10000.0f, 89.0f, 48f, 68f, 44f, 103.0f, 90.0f, 80.0f, 87f, 121f, 69f, 79f, 55f, 80f, 69f, 52f, 123f, 85f, 67f, 86f, 60f, 74f, 75f, 68f, 81f, 69f, 77f, 120.0f, 120.0f /*, 120.0f*/ };
+
+    // Catalog integrity (#95): SongName[27]/[28] are both ニセモノ - leftovers
+    // of the cloud catalog placeholders with no chart and no wav. The rows
+    // stay in the parallel arrays (deleting them would shift every later
+    // index), but they are marked unplayable so they are not selectable.
+    // noSong (index 0) is the placeholder and has no chart either.
+    static readonly HashSet<string> UnplayableTitles = new HashSet<string> { "noSong", "ニセモノ" };
 
     public static readonly SongData[] Songs = BuildSongs();
 
@@ -164,6 +178,7 @@ public class GManager : MonoBehaviour
             isRemote = true,
             remoteId = remote.remoteId,
             chartVersion = remote.chartVersion,
+            noteCount = remote.noteCount > 0 ? remote.noteCount : local.noteCount,
         };
     }
 
@@ -186,8 +201,46 @@ public class GManager : MonoBehaviour
             isRemote = true,
             remoteId = remote.remoteId,
             chartVersion = remote.chartVersion,
+            noteCount = remote.noteCount,
         };
         return grown;
+    }
+
+    // Catalog integrity (#95): the parallel arrays have to stay in lockstep
+    // with SongName (ChartDataIntegrityTests pins that), but an editing
+    // mistake must not take the game down with an IndexOutOfRangeException.
+    // These reads return the value when it exists, a zero/empty fallback
+    // otherwise, and report the mismatch once per session.
+    static bool parallelArrayMismatchLogged;
+
+    public static int ParallelValue(int[] values, int i, string name)
+    {
+        if (values != null && i >= 0 && i < values.Length) return values[i];
+        WarnParallelArrayOnce(values, i, name);
+        return 0;
+    }
+
+    public static float ParallelValue(float[] values, int i, string name)
+    {
+        if (values != null && i >= 0 && i < values.Length) return values[i];
+        WarnParallelArrayOnce(values, i, name);
+        return 0f;
+    }
+
+    public static string ParallelValue(string[] values, int i, string name)
+    {
+        if (values != null && i >= 0 && i < values.Length) return values[i];
+        WarnParallelArrayOnce(values, i, name);
+        return "";
+    }
+
+    static void WarnParallelArrayOnce(Array values, int i, string name)
+    {
+        if (parallelArrayMismatchLogged) return;
+        parallelArrayMismatchLogged = true;
+        Debug.LogWarning(
+            $"[GManager] parallel array '{name}' is out of step with SongName " +
+            $"(length={values?.Length ?? 0}, song index={i}) - the song gets fallback values");
     }
 
     private static SongData[] BuildSongs()
@@ -198,13 +251,15 @@ public class GManager : MonoBehaviour
             built[i] = new SongData(
                 i,
                 SongName[i],
-                Musician[i],
-                SongURL[i],
-                SBPM[i],
-                Slevel[i],
-                Shit[i],
-                SongLong[i]
-            );
+                ParallelValue(Musician, i, "Musician"),
+                ParallelValue(SongURL, i, "SongURL"),
+                ParallelValue(SBPM, i, "SBPM"),
+                ParallelValue(Slevel, i, "Slevel"),
+                ParallelValue(Shit, i, "Shit"),
+                ParallelValue(SongLong, i, "SongLong"))
+            {
+                unplayable = UnplayableTitles.Contains(SongName[i]),
+            };
         }
         return built;
     }
