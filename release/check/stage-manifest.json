@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "owner": "#22 release gate (Win64 exhibition build verification)",
-  "updatedAt": "2026-11-06T23:05:00+09:00",
+  "updatedAt": "2026-11-07T03:35:00+09:00",
   "machine": "Windows 11 x64 (10.0.29698), Unity 6000.5.6f1, NVIDIA GeForce RTX 4050 Laptop GPU",
   "fingerprint": {
     "algorithm": "sha256",
@@ -15,8 +15,32 @@
     "exhibitFolder": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit"
   },
   "exhibitDeployment": {
-    "activeGeneration": 3,
+    "activeGeneration": 4,
     "generations": [
+      {
+        "generation": 4,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-52",
+        "content": "issue #52 fullscreen fix (fullscreen by default, UI adapted to the screen size) on top of the 0.1.1 exhibit line (cloud catalog, YouTube picture+sound via a merged mp4, update channel separation, song-free packaging)",
+        "releaseTag": "v0.1.2-win64-4b0685d",
+        "releaseUrl": "https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.2-win64-4b0685d",
+        "sourceZip": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-52\\FlashBeat-0.1.2-win64-4b0685d.zip",
+        "sourceZipSha256": "d14bb53a8d4a96a177f398ed3a76ad4953fa350fd08ed0d54c527ca3afde4d7f",
+        "sourceBuild": "C:\\Users\\rebui\\Desktop\\FlashBeat.36\\Builds\\Windows",
+        "buildResult": "[BuildScript] Build succeeded: 385741316 bytes (bundleVersion 0.1.2+4b0685d, 0 error CS)",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "2e8956cc567c77b8031a0772b883b0db268d931d47868397ce777fc5195aadbd",
+        "fileCount": 202,
+        "totalBytes": 385775636,
+        "updateChannel": "stable",
+        "mediaPolicy": "song-free",
+        "publishedAt": "2026-11-07T03:26:01+09:00",
+        "proof": "docs/operations/release-0-1-2-record.md (release record: packaging, SHA-256, CI verification). The real-machine play loop of the same code line (0.1.1+2e8c7bc) is recorded in stage S5.",
+        "knownGaps": [
+          "the 0.1.2 release binary itself was not launched on the real machine by the release worker (Windows real-machine operation belongs to the #52 worker); the 0.1.1 build of the same line was launched and completed the loop (stage S5)",
+          "the exhibit folder (D:\\4_apps\\Unity\\Build\\FlashBeatExhibit*) still holds an older generation until this release is applied"
+        ],
+        "operatorTarget": false
+      },
       {
         "generation": 3,
         "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s2",
@@ -33,7 +57,7 @@
           "the stream's audio track (m4a) is still not played: 'Failed to recognize video file format for: ...audio.m4a' -> stream audio prepared=False -> the audio falls back to the bundled wav (audioMode=Bundled); 'the sound comes from the YouTube stream' is NOT proven",
           "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
         ],
-        "operatorTarget": true
+        "operatorTarget": false
       },
       {
         "generation": 2,
@@ -366,12 +390,60 @@
       "playEvidence": {
         "state": "none",
         "proven": [],
-        "unproven": ["not started - keep the current playable build instead"],
+        "unproven": [
+          "not started - keep the current playable build instead"
+        ],
         "evidenceFiles": []
       },
       "cfUrl": null,
       "chartVersion": null,
       "chartIdentity": null
+    },
+    {
+      "id": "S5",
+      "title": "統合展示版 0.1.1/0.1.2: cloud catalog + YouTube picture/sound + update channel separation + fullscreen fix",
+      "status": "proven-partial",
+      "source": {
+        "branch": "52 (integration line: main + release-0-1-0 + #13/#17/#22/#35/#36 + channel separation + media merge)",
+        "commit": "2e8c7bc",
+        "pullRequest": 55,
+        "issue": 41,
+        "releaseCommit": "4b0685d"
+      },
+      "artifact": {
+        "archivePath": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-52",
+        "worktreeBuildPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.36\\Builds\\Windows",
+        "releaseTag": "v0.1.2-win64-4b0685d",
+        "zipSha256": "d14bb53a8d4a96a177f398ed3a76ad4953fa350fd08ed0d54c527ca3afde4d7f",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "fingerprintSha256": "2e8956cc567c77b8031a0772b883b0db268d931d47868397ce777fc5195aadbd",
+        "fileCount": 202,
+        "totalBytes": 385775636,
+        "exeBuiltAt": "2026-11-07T03:22:00+09:00",
+        "archivedAt": "2026-11-07T03:26:01+09:00",
+        "measuredAt": "2026-11-07T03:30:00+09:00"
+      },
+      "playEvidence": {
+        "state": "partial",
+        "proven": [
+          "real machine (Windows 11 / RTX 4050 / Unity 6000.5.6f1), build 0.1.1+2e8c7bc: Title -> Select -> Game -> Result -> R retry completed, 268/268 notes judged",
+          "YouTube picture and sound at the same time: [MusicManager] STATUS ... audioMode=StreamCombined rms=0.13-0.53 peak=0.67 video[playing=True prepared=True] (the build ships no bundled song audio, so the sound is the YouTube stream)",
+          "cloud catalog in use: the selected song was the catalog entry No.2 (ロストアンブレラ) while the built-in list has No.2 = まにまに",
+          "update channel: [UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no); the older v0.1.0-win64-743c88d is not applied (only a strictly higher version is)",
+          "EditMode tests 131/131 passed; web tests 86/86 (vitest) and 19/19 (node --test)"
+        ],
+        "unproven": [
+          "the 0.1.2 release binary itself was not launched on the real machine (the release worker does not own the Windows real-machine operation)",
+          "the merged-mp4 path (yt-dlp + ffmpeg mux) is proven at tool level on the exhibit PC (one mp4 with h264+aac) but not inside the game: the songs used in the run offered YouTube's progressive mp4 (itag 18), so the game played that file",
+          "the automatic update of the exhibit PC (0.1.1 -> 0.1.2 on exit) has not been exercised yet",
+          "CI has never produced a build: the Unity license secret is missing, so the job skips (a skip is not a build)"
+        ],
+        "evidenceFiles": []
+      },
+      "cfUrl": "https://flashbeat.rebuildup.dev",
+      "chartVersion": null,
+      "chartIdentity": "published catalog: lost-umbrella v1 (268 notes), who v9 (139 notes)",
+      "note": "Release record: docs/operations/release-0-1-2-record.md"
     }
   ]
 }
