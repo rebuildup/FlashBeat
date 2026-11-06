@@ -8,7 +8,7 @@ name: build-win64
 #   - Unity のライセンスは secret 経由で渡す。以下のどちらか:
 #       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
 #       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
-#   - ライセンスが無いとビルドは失敗する (secret 未設定ならジョブは skip される)。
+#   - ライセンス未設定は blocker として失敗する。緑は成果物生成成功だけを表す。
 
 on:
   workflow_dispatch:
@@ -51,20 +51,21 @@ jobs:
           lfs: true
 
       - name: Unity ライセンスの secret を確認
-        id: license
         shell: pwsh
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          $hasUlf = [bool]"${{ secrets.UNITY_LICENSE }}"
-          $hasAccount = [bool]"${{ secrets.UNITY_EMAIL }}" -and [bool]"${{ secrets.UNITY_PASSWORD }}"
+          $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
+          $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
           if (-not ($hasUlf -or $hasAccount)) {
-            Write-Output "::notice::Unity ライセンスの secret が未設定のためビルドを skip します (UNITY_LICENSE または UNITY_EMAIL/UNITY_PASSWORD を設定してください)。"
-            Write-Output "skip=true" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Output "skip=false" >> $env:GITHUB_OUTPUT
+            "## Win64 build blocked`nUnity ライセンス未設定のため Win64 ビルドは未生成です。UNITY_LICENSE または UNITY_EMAIL / UNITY_PASSWORD を設定してください。" >> $env:GITHUB_STEP_SUMMARY
+            Write-Output "::error title=Unity license required::Win64 artifact was not generated. Configure UNITY_LICENSE or UNITY_EMAIL / UNITY_PASSWORD."
+            exit 1
           }
 
       - name: Unity Hub CLI を準備
-        if: steps.license.outputs.skip != 'true'
         shell: pwsh
         run: |
           $installer = "$env:RUNNER_TEMP\UnityHubSetup.exe"
@@ -75,7 +76,6 @@ jobs:
           "UNITY_HUB=$hub" >> $env:GITHUB_ENV
 
       - name: Unity Editor をインストール
-        if: steps.license.outputs.skip != 'true'
         shell: pwsh
         run: |
           & $env:UNITY_HUB -- --headless install --version "$env:UNITY_VERSION"
@@ -87,8 +87,7 @@ jobs:
           Write-Output "installed: $($editor.FullName)"
 
       - name: Unity ライセンスを適用
-        if: steps.license.outputs.skip != 'true'
-        uses: game-ci/unity-activate@v4
+        uses: game-ci/unity-activate@v2
         with:
           unityLicense: ${{ secrets.UNITY_LICENSE }}
           unityEmail: ${{ secrets.UNITY_EMAIL }}
@@ -96,7 +95,6 @@ jobs:
           unitySerial: ${{ secrets.UNITY_SERIAL }}
 
       - name: Win64 ビルド
-        if: steps.license.outputs.skip != 'true'
         shell: pwsh
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
@@ -107,13 +105,14 @@ jobs:
               -projectPath "$env:GITHUB_WORKSPACE" `
               -executeMethod BuildScript.BuildStandaloneWindows64 `
               -logFile $log
-          Get-Content $log -Tail 200
+          $buildExit = $LASTEXITCODE
+          if (Test-Path $log) { Get-Content $log -Tail 200 }
+          if ($buildExit -ne 0) { throw "Unity build failed (exit $buildExit)" }
           if (-not (Test-Path "$env:GITHUB_WORKSPACE\Builds\Windows\FlashBeat.exe")) {
             throw "ビルド成果物がありません (Builds\Windows\FlashBeat.exe)"
           }
 
       - name: パッケージ (ZIP + SHA-256)
-        if: steps.license.outputs.skip != 'true'
         shell: pwsh
         run: |
           $sha = (git rev-parse --short HEAD).Trim()
@@ -128,10 +127,17 @@ jobs:
               -Version "$base-win64-$sha" `
               -CommitSha $full `
               -MediaPolicy song-free
+          if ($LASTEXITCODE -ne 0) { throw "Packaging failed (exit $LASTEXITCODE)" }
+          $zips = @(Get-ChildItem $out -Filter *.zip -File)
+          if ($zips.Count -ne 1 -or $zips[0].Length -eq 0) { throw "Expected one nonempty Win64 ZIP" }
+          $checksum = "$($zips[0].FullName).sha256"
+          if (-not (Test-Path $checksum)) { throw "ZIP SHA-256 file is missing" }
+          $expected = ((Get-Content $checksum -Raw).Trim() -split '\s+')[0]
+          $actual = (Get-FileHash $zips[0].FullName -Algorithm SHA256).Hash
+          if ($expected -ne $actual) { throw "ZIP SHA-256 mismatch" }
           Get-ChildItem $out | Select-Object Name, Length
 
       - name: 成果物をアップロード
-        if: steps.license.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: flashbeat-win64-${{ github.sha }}

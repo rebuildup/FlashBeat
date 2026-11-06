@@ -1,10 +1,9 @@
-import { Tabs } from "@/components/ui";
 import { css } from "styled-system/css";
 
 export const NAV_ITEMS = [
-  { value: "catalog", label: "Catalog" },
-  { value: "editor", label: "Chart editor" },
-  { value: "publish", label: "Publish" },
+  { value: "catalog", label: "Catalog", href: "/" },
+  { value: "editor", label: "New chart", href: "/chart" },
+  { value: "publish", label: "Publish", href: "/publish" },
 ] as const;
 
 const sidebar = css({
@@ -62,21 +61,19 @@ const navList = css({
 });
 
 const navTrigger = css({
+  display: "flex",
+  minHeight: "10",
+  alignItems: "center",
+  px: "3",
+  borderRadius: "l2",
+  color: "fg.muted",
+  textDecoration: "none",
+  _hover: { bg: "#262626", color: "fg.default" },
+  _focusVisible: { outline: "2px solid #3FA9F5", outlineOffset: "2px" },
+  "&[aria-current=page]": { bg: "#2B4457", color: "#9AD3FA" },
   justifyContent: "flex-start",
   textAlign: "left",
   width: "100%",
-});
-
-const sidebarFooter = css({
-  borderTopColor: "gray.surface.border",
-  borderTopWidth: "1px",
-  color: "fg.subtle",
-  display: "flex",
-  flexDirection: "column",
-  fontSize: "2xs",
-  gap: "1",
-  paddingInline: "2",
-  paddingTop: "3",
 });
 
 export function Sidebar() {
@@ -91,18 +88,18 @@ export function Sidebar() {
         </span>
       </div>
 
-      <Tabs.List className={navList}>
+      <nav aria-label="Studio" className={navList}>
         {NAV_ITEMS.map((item) => (
-          <Tabs.Trigger key={item.value} value={item.value} className={navTrigger}>
+          <a
+            key={item.value}
+            href={item.href}
+            aria-current={item.value === "catalog" ? "page" : undefined}
+            className={navTrigger}
+          >
             {item.label}
-          </Tabs.Trigger>
+          </a>
         ))}
-      </Tabs.List>
-
-      <div className={sidebarFooter}>
-        <span>Stage S3 · Web Studio</span>
-        <span>Contract openapi v1</span>
-      </div>
+      </nav>
     </aside>
   );
 }

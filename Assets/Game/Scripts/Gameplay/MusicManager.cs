@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
 using YoutubePlayer.Components;
@@ -36,14 +37,6 @@ public class MusicManager : MonoBehaviour
 
     // --- media state ------------------------------------------------------------
 
-    enum AudioMode
-    {
-        None,           // no audio source at all
-        StreamCombined, // one progressive file: the VideoPlayer renders sound and picture
-        StreamSeparate, // picture from the video file, sound from a second (audio only) file
-        Bundled,        // sound from the wav that ships with the chart
-    }
-
     const float DirectUrlProbeTimeout = 10f;
     const float PrepareTimeout = 20f;
     const float FallbackStartTimeout = 30f;
@@ -57,16 +50,31 @@ public class MusicManager : MonoBehaviour
 
     bool mediaReady;
     bool playbackStarted;
+    bool pictureStarted;
     bool resultTriggered;
     bool fallbackChecked;
     bool videoPrepared;
     bool streamAudioPrepared;
-    AudioMode audioMode = AudioMode.None;
+    PlaybackSource audioMode = PlaybackSource.None;
     float mediaTime;
     float sceneStartTime;
     float lastStatusLogTime;
     float lastMediaTime;
     float stallSeconds;
+
+    /// <summary>
+    /// Wall clock of the moment the song was started. It is the reference for
+    /// the fallback clock, so the song ends even when no media could be played.
+    /// </summary>
+    float playbackStartWallTime;
+
+    /// <summary>
+    /// Where the sound of the last started song came from. The evidence of a
+    /// real playthrough has to show a YouTube source: the release build ships
+    /// no third party media, so a bundled wave or no sound at all means the
+    /// song was never really played.
+    /// </summary>
+    public static PlaybackSource LastPlaybackSource { get; private set; } = PlaybackSource.None;
 
     void Start()
     {
@@ -224,27 +232,54 @@ public class MusicManager : MonoBehaviour
         // 6. Decide where the sound comes from.
         if (combined && videoReady)
         {
-            audioMode = AudioMode.StreamCombined;
+            audioMode = PlaybackSource.StreamCombined;
         }
         else if (audioReady)
         {
-            audioMode = AudioMode.StreamSeparate;
+            audioMode = PlaybackSource.StreamSeparate;
         }
         else if (Music != null)
         {
-            audioMode = AudioMode.Bundled;
+            audioMode = PlaybackSource.BundledWave;
         }
         else
         {
-            audioMode = AudioMode.None;
+            audioMode = PlaybackSource.None;
         }
 
         mediaReady = true;
         load.SetActive(false);
         waitback.SetActive(false);
 
+        bool mediaFailed = !videoReady && audioMode == PlaybackSource.None;
+        if (mediaFailed)
+        {
+            // The player must not be left in front of a dead screen: the song
+            // still starts (silently, on the wall clock) and the menu offers the
+            // way back to the song list.
+            SetStartMessage("メディアを取得できませんでした (Esc で選曲画面へ戻れます)");
+            Debug.LogWarning($"[MusicManager] no media for '{songName}': picture and sound are missing - the song will run silently on the wall clock");
+        }
+
         Debug.Log($"[MusicManager] media ready: song='{songName}' audioMode={audioMode} video={(videoReady ? "ok" : "missing")} " +
                   $"(bundled wav {(Music != null ? "present" : "missing")}) - press Space to start");
+    }
+
+    /// <summary>
+    /// Writes a message into the label of the "press Space" hint. The scene is
+    /// not modified: the label is looked up at runtime.
+    /// </summary>
+    void SetStartMessage(string message)
+    {
+        if (StartText == null) return;
+
+        var label = StartText.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (label != null)
+        {
+            label.text = message;
+            return;
+        }
+        Debug.LogWarning($"[MusicManager] no label under StartText - the message stays in the log: {message}");
     }
 
     void DisableInvidiousPlayer()
@@ -492,10 +527,26 @@ public class MusicManager : MonoBehaviour
         }
         lastMediaTime = mediaTime;
 
+        // The split stream runs picture and sound in two players, so they can
+        // drift apart. The picture is the reference (the chart was authored
+        // against the video), the sound is pulled back to it.
+        if (audioMode == PlaybackSource.StreamSeparate &&
+            pictureStarted && songVideo != null && songVideo.isPrepared &&
+            streamAudioPlayer != null && streamAudioPlayer.isPrepared)
+        {
+            float pictureTime = (float)songVideo.time;
+            float soundTime = (float)streamAudioPlayer.time;
+            if (MediaTimeline.ShouldResync(pictureTime, soundTime))
+            {
+                streamAudioPlayer.time = pictureTime;
+                Debug.LogWarning($"[MusicManager] A/V drift {Mathf.Abs(pictureTime - soundTime):F3}s - the sound was re-seeked to the picture");
+            }
+        }
+
         // The split stream can end up silent (Unity's Windows decoder does not
         // accept every audio only container). Measure the mix and fall back to the
         // wav that ships with the chart when it stays quiet.
-        if (audioMode == AudioMode.StreamSeparate && !fallbackChecked && mediaTime > 3f)
+        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f)
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
@@ -533,20 +584,26 @@ public class MusicManager : MonoBehaviour
         playbackStarted = true;
         GManager.Start = true;
         GManager.played = true;
+        playbackStartWallTime = Time.time;
+        LastPlaybackSource = audioMode;
 
-        if (songVideo != null && songVideo.isPrepared) songVideo.Play();
+        if (songVideo != null && songVideo.isPrepared)
+        {
+            songVideo.Play();
+            pictureStarted = true;
+        }
 
         switch (audioMode)
         {
-            case AudioMode.StreamCombined:
+            case PlaybackSource.StreamCombined:
                 // The VideoPlayer renders the sound of the progressive file into audioS.
                 break;
 
-            case AudioMode.StreamSeparate:
+            case PlaybackSource.StreamSeparate:
                 if (streamAudioPlayer != null && streamAudioPlayer.isPrepared) streamAudioPlayer.Play();
                 break;
 
-            case AudioMode.Bundled:
+            case PlaybackSource.BundledWave:
                 audioS.clip = Music;
                 audioS.time = 0f;
                 audioS.Play();
@@ -562,7 +619,7 @@ public class MusicManager : MonoBehaviour
         kakusi.SetActive(false);
 
         Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.ActiveSongs[GManager.songID].videoId}' " +
-                  $"audioMode={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
+                  $"source={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
     }
 
     void SwitchToBundledAudio(float atMediaTime)
@@ -576,7 +633,7 @@ public class MusicManager : MonoBehaviour
             streamAudioSource = null;
         }
 
-        audioMode = AudioMode.Bundled;
+        audioMode = PlaybackSource.BundledWave;
         audioS.clip = Music;
         audioS.time = Mathf.Max(0f, atMediaTime);
         audioS.volume = GManager.mainVolume;
@@ -587,23 +644,28 @@ public class MusicManager : MonoBehaviour
 
     float CurrentMediaTime()
     {
+        // The picture is the timing master: the chart was authored against the
+        // YouTube recording, and in the merged file the sound comes out of the
+        // very same file, so picture and sound cannot drift apart.
+        // Only after the picture was started: a file that is prepared while the
+        // song is already running must not throw the clock back to zero.
+        if (pictureStarted && songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
+
         switch (audioMode)
         {
-            case AudioMode.StreamCombined:
-                if (songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
-                break;
-
-            case AudioMode.StreamSeparate:
+            case PlaybackSource.StreamSeparate:
                 if (streamAudioPlayer != null && streamAudioPlayer.isPrepared) return (float)streamAudioPlayer.time;
                 break;
 
-            case AudioMode.Bundled:
+            case PlaybackSource.BundledWave:
                 if (audioS != null && audioS.clip != null) return audioS.time;
                 break;
         }
 
-        if (songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
-        return GManager.step_time;
+        // No media at all (the download failed, the file could not be opened):
+        // the wall clock keeps the song running, so the game still reaches the
+        // result screen and the player can retry or go back to the song list.
+        return MediaTimeline.FallbackMediaTime(Time.time, playbackStartWallTime);
     }
 
     static string FirstUrl(string stdout)

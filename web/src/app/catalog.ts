@@ -4,70 +4,19 @@ import type { SongSummary } from "./types";
  * Catalog view states rendered by the catalog panel.
  *
  * `loading` / `ready` / `empty` / `error` are the four states the Web Studio
- * has to cover before the real endpoint exists.
+ * has to cover.
  */
 export type CatalogMode = "loading" | "ready" | "empty" | "error";
 
 /**
- * Local stand-in for `GET /api/v1/catalog`.
+ * Load the published catalog.
  *
- * The real read endpoint is owned by #15. Until it is deployed the Web Studio
- * renders this fixture so the shell, the toolbar and every list state stay
- * demonstrable. Replace the body of {@link loadCatalog} with a `fetch` to
- * `/api/v1/catalog` once that endpoint is live.
+ * The read endpoint is served by the same worker as the studio, so the list
+ * comes from `/api/v1/catalog` of the current origin — the songs the festival
+ * build actually offers. `?state=loading|empty|error` keeps the review states
+ * of the panel reachable without a backend.
  */
-const FIXTURE: SongSummary[] = [
-  {
-    id: "who",
-    title: "Who",
-    artist: "Azari",
-    youtubeId: "dQw4w9WgXcQ",
-    level: 5,
-    bpm: 128,
-    durationSec: 68,
-    chartVersion: 1,
-    noteCount: 412,
-  },
-  {
-    id: "roast-ambrella",
-    title: "ロストアンブレラ",
-    artist: "稲葉曇",
-    youtubeId: "x7cQ3mJSvFg",
-    level: 8,
-    bpm: 274,
-    durationSec: 89,
-    chartVersion: 1,
-    noteCount: 688,
-  },
-  {
-    id: "manimani",
-    title: "まにまに",
-    artist: "r-906",
-    youtubeId: "ZbZSe6N_BXs",
-    level: 13,
-    bpm: 174,
-    durationSec: 48,
-    chartVersion: 2,
-    noteCount: 731,
-  },
-  {
-    id: "euthanasia",
-    title: "エウタナシア",
-    artist: "ど～ぱみん",
-    youtubeId: "hTWKbfoikeg",
-    level: 18,
-    bpm: 127,
-    durationSec: 90,
-    chartVersion: 1,
-    noteCount: 904,
-  },
-];
-
 export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
-  const { promise, resolve } = Promise.withResolvers<void>();
-  setTimeout(resolve, 220);
-  await promise;
-
   if (mode === "error") {
     throw new Error("GET /api/v1/catalog failed");
   }
@@ -76,5 +25,70 @@ export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
     return [];
   }
 
-  return FIXTURE;
+  const response = await fetch("/api/v1/catalog", {
+    headers: { accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(`GET /api/v1/catalog answered ${response.status}`);
+  }
+
+  const body: unknown = await response.json();
+  return parseSongs(body);
+}
+
+/** A JSON object with unknown members, or null for everything else. */
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  return Object.fromEntries(Object.entries(value));
+}
+
+/**
+ * Read the songs of a catalog answer.
+ *
+ * The API validates its answer against the frozen contract; the fields the
+ * panel renders are narrowed here, so a broken answer is an error and not a
+ * half filled table.
+ */
+function parseSongs(body: unknown): SongSummary[] {
+  const catalog = asObject(body);
+  if (catalog === null || !Array.isArray(catalog.songs)) {
+    throw new Error("GET /api/v1/catalog answered no song list");
+  }
+
+  return catalog.songs.map((song) => {
+    const entry = asObject(song);
+    if (entry === null) {
+      throw new Error("GET /api/v1/catalog answered a broken song");
+    }
+
+    const { id, title, artist, youtubeId, level, bpm, durationSec, chartVersion, noteCount } =
+      entry;
+    if (
+      typeof id !== "string" ||
+      typeof title !== "string" ||
+      typeof artist !== "string" ||
+      typeof youtubeId !== "string" ||
+      typeof level !== "number" ||
+      typeof bpm !== "number" ||
+      typeof durationSec !== "number" ||
+      typeof chartVersion !== "number" ||
+      typeof noteCount !== "number"
+    ) {
+      throw new Error("GET /api/v1/catalog answered a broken song");
+    }
+
+    return {
+      id,
+      title,
+      artist,
+      youtubeId,
+      level,
+      bpm,
+      durationSec,
+      chartVersion,
+      noteCount,
+    };
+  });
 }

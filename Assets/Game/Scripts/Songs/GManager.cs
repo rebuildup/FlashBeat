@@ -45,31 +45,149 @@ public class GManager : MonoBehaviour
     public static readonly string[] Musician = { "no", "稲葉曇", "r-906", "Azari", "STEAKA", "柊マグネタイト", "ど～ぱみん", "t+pazolite", "t+pazolite", "t+pazolite", "LeaF", "LeaF", "LeaF", "たぴぼ!!", "LeaF", "LeaF", "r-906", "ジン", "羽生まゐご", "jon-YAKITORY", "john", "フロクロ", "煮ル果実", "吉田夜世", "原口沙輔", "すりぃ", "ァネイロ", "", ""};
     public static readonly string[] SongURL = {
         "VIjqWffacio", "DeKLpgzh-qQ", "9O2VyUM5MlQ", "8JXiXt0D6tw", "e_qQEU_uGjw", "yVi3mhLr0uU", "xqYOI7OD9aE", "5BlSQpejMTw", "3mufQ1Tt844", "3s4y8B6Je-4", "NAeuRhLaqaQ", "s-0HVBCEMZk", "3C5zNU2JCdc", "bUM5erw1vRs", "zKbc-kVdtcI", "n-2GnXKvIOU", "_-Vd0ZGB-lo", "smYLMgfCD5o", "SiqjnFhLq2U", "1Swg-aBO9eY", "pUH9vCsvq08", "sWOvhZBS9IA", "_qj9ftYCNyw", "LLjfal8jCYI", "F38EuG2dAyM", "i-DZukWFR64", "iWzUxFQQAKY", "MD2iO79MPp8", "MD2iO79MPp8"};
-    public static readonly int[] SBPM = { 100, 274, 174, 128, 142, 147, 127, 180, 150, 195, 95, 176, 120, 195, 140, 200, 174, 138, 206, 95, 140, 175, 143, 102, 170, 182, 176, 128, 120, 120};
-    public static readonly int[] Slevel = { 10, 8, 13, 5, 15, 14, 18, 19, 19, 19, 0, 17, 10, 16, 5, 7, 10, 17, 25, 15, 30, 15, 20, 21, 10, 10, 24, 1, 1, 1};
-    public static readonly int[] Shit = { 1000, 268, 383, 139, 130, 296, 243, 349, 257, 603, 53, 360, 82, 254, 105, 111, 316, 295, 262, 292, 315, 184, 275, 250, 196, 163, 193, 0, 0, 0};
-    public static readonly float[] SongLong = { 10000.0f, 89.0f, 48f, 68.0f, 44.0f, 103.0f, 90.0f, 80.0f, 87.0f, 121f, 69f, 79f, 55f, 80f, 69f, 52f, 123f, 85f, 67f, 86f, 60f, 74f, 75f, 68f, 81f, 69f, 77f, 120.0f, 120.0f, 120.0f};
+    // The numeric arrays have to stay in lockstep with SongName / Musician /
+    // SongURL: one entry per song, in the same order. The last entry of the
+    // numeric arrays was a leftover of a third cloud catalog placeholder and is
+    // commented out (the catalog is built from SongName, so index 29 was never
+    // reachable). ChartDataIntegrityTests keeps the four arrays in step.
+    public static readonly int[] SBPM = { 100, 274, 174, 128, 142, 147, 127, 180, 150, 195, 95, 176, 120, 195, 140, 200, 174, 138, 206, 95, 140, 175, 143, 102, 170, 182, 176, 128, 120 /*, 120*/ };
+    public static readonly int[] Slevel = { 10, 8, 13, 5, 15, 14, 18, 19, 19, 19, 0, 17, 10, 16, 5, 7, 10, 17, 25, 15, 30, 15, 20, 21, 10, 10, 24, 1, 1 /*, 1*/ };
+    public static readonly int[] Shit = { 1000, 268, 383, 139, 130, 296, 243, 349, 257, 603, 53, 360, 82, 254, 105, 111, 316, 295, 262, 292, 315, 184, 275, 250, 196, 163, 193, 0, 0 /*, 0*/ };
+    public static readonly float[] SongLong = { 10000.0f, 89.0f, 48f, 68f, 44f, 103.0f, 90.0f, 80.0f, 87f, 121f, 69f, 79f, 55f, 80f, 69f, 52f, 123f, 85f, 67f, 86f, 60f, 74f, 75f, 68f, 81f, 69f, 77f, 120.0f, 120.0f /*, 120.0f*/ };
 
     public static readonly SongData[] Songs = BuildSongs();
 
-    // Cloud Catalog (#17): the fixed arrays above are the offline fallback.
+    // Cloud Catalog (#17): the fixed arrays above are the original song list of
+    // the game and stay the authoritative list - every song has to be playable
+    // whether the cloud API can be reached or not.
     // RemoteSongs is a snapshot built from GET /api/v1/catalog (index 0 = the
     // noSong placeholder, remote songs from index 1); it is null until a
     // catalog fetch succeeds. Everything that shows or plays a song indexes
-    // ActiveSongs, so a successful catalog switches the game over and any
-    // failure keeps the fixed catalog running.
+    // ActiveSongs: the cloud snapshot only *updates* the songs it knows
+    // (chart version, chart id and song info), the songs that are not
+    // published in the cloud yet keep their local data.
     public static SongData[] RemoteSongs;
     public static bool HasRemoteCatalog => RemoteSongs != null && RemoteSongs.Length > 1;
-    public static SongData[] ActiveSongs => HasRemoteCatalog ? RemoteSongs : Songs;
+
+    static SongData[] mergedSongs = Songs;
+
+    public static SongData[] ActiveSongs => mergedSongs;
 
     public static void ApplyRemoteCatalog(SongData[] remoteSongs)
     {
         RemoteSongs = remoteSongs;
+        mergedSongs = Merge(Songs, remoteSongs);
+        int remoteCount = remoteSongs == null ? 0 : System.Math.Max(0, remoteSongs.Length - 1);
+        Debug.Log($"[GManager] cloud catalog applied: local={Songs.Length} merged={mergedSongs.Length} remote={remoteCount}");
     }
 
     public static void ClearRemoteCatalog()
     {
         RemoteSongs = null;
+        mergedSongs = Songs;
+    }
+
+    /// <summary>
+    /// Merges the cloud catalog into the fixed catalog: every song of the
+    /// original data stays, and the songs the cloud knows are replaced by the
+    /// cloud version. A cloud song the original data does not know is added at
+    /// the end of the list.
+    /// </summary>
+    public static SongData[] Merge(SongData[] localSongs, SongData[] remoteSongs)
+    {
+        if (localSongs == null || localSongs.Length == 0) return remoteSongs;
+        if (remoteSongs == null || remoteSongs.Length <= 1) return localSongs;
+
+        var merged = new SongData[localSongs.Length];
+        Array.Copy(localSongs, merged, localSongs.Length);
+
+        for (int i = 1; i < remoteSongs.Length; i++)
+        {
+            var remote = remoteSongs[i];
+            if (remote == null) continue;
+
+            int index = FindSong(merged, remote);
+            if (index < 0)
+            {
+                merged = Append(merged, remote);
+                continue;
+            }
+
+            merged[index] = Overlay(merged[index], remote);
+        }
+        return merged;
+    }
+
+    /// <summary>
+    /// Index of the song the cloud entry belongs to: the YouTube id is exact and
+    /// decides first, then the title (the cloud id is the title of the song in
+    /// lower case, e.g. "who" for "Who").
+    /// </summary>
+    static int FindSong(SongData[] songs, SongData remote)
+    {
+        if (!string.IsNullOrEmpty(remote.videoId))
+        {
+            for (int i = 1; i < songs.Length; i++)
+            {
+                if (songs[i] != null && songs[i].videoId == remote.videoId) return i;
+            }
+        }
+
+        for (int i = 1; i < songs.Length; i++)
+        {
+            if (songs[i] == null) continue;
+            if (SameSong(songs[i].title, remote.title)) return i;
+            if (!string.IsNullOrEmpty(remote.remoteId) && SameSong(songs[i].title, remote.remoteId)) return i;
+        }
+        return -1;
+    }
+
+    static bool SameSong(string a, string b)
+    {
+        if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+        return string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Cloud version of a song, with the local data as the fallback.</summary>
+    static SongData Overlay(SongData local, SongData remote)
+    {
+        return new SongData(
+            local.id,
+            string.IsNullOrEmpty(remote.title) ? local.title : remote.title,
+            string.IsNullOrEmpty(remote.musician) ? local.musician : remote.musician,
+            string.IsNullOrEmpty(remote.videoId) ? local.videoId : remote.videoId,
+            remote.bpm > 0 ? remote.bpm : local.bpm,
+            remote.level > 0 ? remote.level : local.level,
+            remote.totalHits > 0 ? remote.totalHits : local.totalHits,
+            remote.duration > 0f ? remote.duration : local.duration)
+        {
+            isRemote = true,
+            remoteId = remote.remoteId,
+            chartVersion = remote.chartVersion,
+        };
+    }
+
+    /// <summary>Adds a cloud song the original data does not know.</summary>
+    static SongData[] Append(SongData[] songs, SongData remote)
+    {
+        var grown = new SongData[songs.Length + 1];
+        Array.Copy(songs, grown, songs.Length);
+        int id = grown.Length - 1;
+        grown[id] = new SongData(
+            id,
+            remote.title,
+            remote.musician,
+            remote.videoId,
+            remote.bpm,
+            remote.level,
+            remote.totalHits,
+            remote.duration)
+        {
+            isRemote = true,
+            remoteId = remote.remoteId,
+            chartVersion = remote.chartVersion,
+        };
+        return grown;
     }
 
     private static SongData[] BuildSongs()
