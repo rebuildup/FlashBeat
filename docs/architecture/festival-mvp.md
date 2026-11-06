@@ -19,12 +19,12 @@ This file is subordinate to `constitution/CONSTITUTION.md` and the project-init 
 - API handlers: Void's **file routes + defineHandler** (Hono already internal), NOT a new Hono app or custom express router.
 - DB: Void `void/db` + **Drizzle built in** and D1 migration generation (`void db generate`, `void db migrate`). Do not add Prisma or a second ORM.
 - Deploy: `void connect --platform cloudflare`, `void cloudflare status`, `void deploy --platform cloudflare`. This is the primary CF CLI bridge; Wrangler diagnostics are optional, do not build custom deployment scripts.
-- Tooling: `vp check`, `vp test`, `vp build`; do not add a duplicate ESLint/Prettier/Vitest toolchain.
-- UI: **shadcn/ui** (official CLI components, a single consistent **Nova preset**, **Base UI primitives**), **Tailwind CSS 4**, **lucide-react**, **Sonner** for toasts. Use official dashboard/sidebar example for shell; no homemade buttons, dialogs, form widgets or novel design system.
-- Editor grid: **Konva + react-konva** for eight lanes, beat grid, click/drag to add/move/remove standard tap notes. No new canvas engine, no custom pointer hit-testing, no timeline editing framework.
+- Tooling: `vp check`, `vp test`, `vp build`; Panda uses `@pandacss/vite` and `panda codegen` for generated styled-system types. No duplicate lint/test framework.
+- UI: **Panda CSS** using the official **@pandacss/vite** plugin + **Park UI** components (built on **Ark UI**), **lucide-react**, **Sonner** for toasts. Initialize Park UI with its CLI, use its presets/tokens and components for app shell/forms. One slate/neutral dark palette with a single restrained accent. No Tailwind, Park UI/ui, custom buttons, dialog/field primitives or novel design system.
+- Editor grid: **Konva + react-konva** for eight lanes, beat grid, click/drag to add/move/remove standard tap notes. Use Panda tokens for its surrounding shell/toolbar; Konva draws inside canvas. No new canvas engine, custom pointer hit-testing, or timeline framework.
 - Web video preview: YouTube IFrame Player API. Never embed yt-dlp in the browser, and do not store or proxy media.
 - Static verification: original JSON Schema `contracts/schemas/chart.v1.schema.json`, simple semantic checks in shared TS service. No chart format migration tonight.
-- UX acceptance: dark, compact, editorial, consistent tokens; 1280×720 and 1440×900 screenshots; loading/empty/failure/publish-success states; keyboard controls discernible; UI feedback allowed without changing API.
+- UX acceptance: dark, compact, editorial, **Park UI/Panda semantic tokens only**, 1280×720 and 1440×900 screenshots; loading/empty/failure/publish-success states; keyboard controls discernible; no ad-hoc utility classes. User UI feedback is a short isolated follow-up, not a rewrite.
 
 **Unity:**
 - Preserve current Unity 6, **uGUI + TextMeshPro**, `UnityWebRequest`, `JsonUtility`, `VideoPlayer`, Unity Test Framework. No new bespoke UI architecture or full UI Toolkit migration.
