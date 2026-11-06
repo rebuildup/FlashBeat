@@ -88,7 +88,7 @@ jobs:
 
       - name: Unity ライセンスを適用
         if: steps.license.outputs.skip != 'true'
-        uses: game-ci/unity-activate@v4
+        uses: game-ci/unity-activate@v2
         with:
           unityLicense: ${{ secrets.UNITY_LICENSE }}
           unityEmail: ${{ secrets.UNITY_EMAIL }}
