@@ -10,10 +10,8 @@ import type { ValidationIssue } from "@/lib/chart/types";
  */
 
 const frame = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#2d2d2d",
+  borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
   gap: "2",
@@ -21,20 +19,22 @@ const frame = css({
 });
 
 const title = css({
-  color: "fg.default",
+  color: "#ffffff",
   fontSize: "xs",
-  fontWeight: "semibold",
+  fontWeight: "medium",
   margin: "0",
 });
 
 const list = css({
+  bg: "#131313",
+  borderRadius: "8px",
   display: "grid",
   gap: "1",
   listStyle: "none",
   margin: "0",
   maxHeight: "9rem",
   overflowY: "auto",
-  padding: "0",
+  padding: "2",
 });
 
 const item = css({
@@ -44,19 +44,19 @@ const item = css({
 });
 
 const path = css({
-  color: "fg.subtle",
+  color: "#8c8c8c",
   fontFamily: "mono",
   fontSize: "2xs",
   wordBreak: "break-all",
 });
 
 const message = css({
-  color: "fg.error",
+  color: "#ff6b6b",
   fontSize: "2xs",
 });
 
 const clean = css({
-  color: "fg.muted",
+  color: "#b0b0b0",
   fontSize: "2xs",
   margin: "0",
 });

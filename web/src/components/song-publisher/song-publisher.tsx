@@ -164,7 +164,7 @@ const badge = css({
   whiteSpace: "nowrap",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,

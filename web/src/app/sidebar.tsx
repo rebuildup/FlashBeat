@@ -1,4 +1,5 @@
 import { css } from "styled-system/css";
+import { BrandHeader } from "@/components/brand";
 
 export const NAV_ITEMS = [
   { value: "catalog", label: "Catalog", href: "/" },
@@ -9,53 +10,29 @@ export const NAV_ITEMS = [
 const sidebar = css({
   bg: "gray.surface.bg",
   borderColor: "gray.surface.border",
-  borderRightWidth: "1px",
+  /** Narrow viewports: the rail becomes a compact top bar (issue #70 390px target). */
+  alignItems: { base: "center", md: "stretch" },
+  borderBottomWidth: { base: "1px", md: "0px" },
+  borderRightWidth: { base: "0px", md: "1px" },
   display: "flex",
-  flexDirection: "column",
+  flexDirection: { base: "row", md: "column" },
+  flexWrap: "wrap",
   gap: "4",
   minHeight: "0",
-  paddingBottom: "4",
-  paddingTop: "4",
+  paddingBottom: { base: "2", md: "4" },
+  paddingTop: { base: "2", md: "4" },
   px: "3",
 });
 
 const brand = css({
   alignItems: "center",
   display: "flex",
-  gap: "2",
   paddingInline: "2",
-});
-
-const brandMark = css({
-  alignItems: "center",
-  bg: "colorPalette.solid.bg",
-  borderRadius: "l1",
-  color: "colorPalette.solid.fg",
-  display: "flex",
-  fontSize: "2xs",
-  fontWeight: "bold",
-  height: "6",
-  justifyContent: "center",
-  width: "6",
-});
-
-const brandName = css({
-  color: "fg.default",
-  fontSize: "xs",
-  fontWeight: "semibold",
-  letterSpacing: "0.01em",
-  lineHeight: "1.2",
-});
-
-const brandSubtitle = css({
-  color: "fg.subtle",
-  fontSize: "2xs",
-  lineHeight: "1.2",
 });
 
 const navList = css({
   display: "flex",
-  flexDirection: "column",
+  flexDirection: { base: "row", md: "column" },
   flex: "1",
   gap: "1",
 });
@@ -68,24 +45,20 @@ const navTrigger = css({
   borderRadius: "l2",
   color: "fg.muted",
   textDecoration: "none",
+  whiteSpace: "nowrap",
   _hover: { bg: "#262626", color: "fg.default" },
   _focusVisible: { outline: "2px solid #3FA9F5", outlineOffset: "2px" },
   "&[aria-current=page]": { bg: "#2B4457", color: "#9AD3FA" },
   justifyContent: "flex-start",
   textAlign: "left",
-  width: "100%",
+  width: { base: "auto", md: "100%" },
 });
 
 export function Sidebar() {
   return (
     <aside className={sidebar}>
       <div className={brand}>
-        <span className={brandMark}>FB</span>
-        <span>
-          <span className={brandName}>FlashBeat</span>
-          <br />
-          <span className={brandSubtitle}>Web Studio</span>
-        </span>
+        <BrandHeader />
       </div>
 
       <nav aria-label="Studio" className={navList}>

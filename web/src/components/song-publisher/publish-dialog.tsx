@@ -33,7 +33,7 @@ const summaryValue = css({
   overflowWrap: "anywhere",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 /** What the publish request will contain. */
 export interface PublishSummary {
