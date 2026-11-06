@@ -333,7 +333,11 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
         </div>
 
         <span className={badge}>
-          {transport.mode === "fixture" ? "Fixture API" : `Live API ${transport.baseUrl}`}
+          {transport.mode === "fixture"
+            ? "Fixture API"
+            : transport.baseUrl
+              ? `Live API ${transport.baseUrl}`
+              : "Live API (this origin)"}
         </span>
       </header>
 

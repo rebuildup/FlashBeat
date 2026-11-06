@@ -88,27 +88,32 @@ shown next to the publish button.
 
 ### Where the request goes
 
-The publish endpoint of issue #16 does not exist yet, so the screen publishes
-against the fixture in `src/lib/publish/mock.ts`. The fixture answers like the
-contract does: same path, same bearer token, same `401` / `422` / `200` answers,
-and it rejects a chart that breaks the frozen chart schema.
+The studio and the API are served by the same worker, so the screen publishes to the
+API of the current origin: the request goes to `/api/v1/admin/songs/{songId}` of the
+host the studio was loaded from and lands in the D1 of that deployment. The header
+shows `Live API (this origin)`.
 
-`VITE_FLASHBEAT_API_ORIGIN` switches the screen to the real endpoint. The value is
-the origin of the API, or `/` when the API is served by the same worker:
+`VITE_FLASHBEAT_API_ORIGIN` moves the request to another origin. The value is a
+public URL, the staff token is never part of it:
 
 ```sh
-VITE_FLASHBEAT_API_ORIGIN=/ vp dev
+VITE_FLASHBEAT_API_ORIGIN=https://api.example.com vp dev
 ```
 
-Without the variable the screen shows `Fixture API` in the header.
+The API of the festival build sends no CORS headers, so another origin only works
+when that origin allows the request.
+
+`VITE_FLASHBEAT_API_ORIGIN=fixture` switches the screen back to the fixture in
+`src/lib/publish/mock.ts`. The fixture answers like the contract does: same path,
+same bearer token, same `401` / `422` / `200` answers, and it rejects a chart that
+breaks the frozen chart schema — but it writes nothing, so it is only a review aid.
 
 ## State
 
-There are no API routes yet. The D1 schema and its migration exist (issue #14) but
-nothing reads or writes them until #15/#16 add the routes. `src/app/catalog.ts` holds
-a local fixture that mirrors the `SongSummary` shape of `contracts/openapi.v1.yaml`.
-`/?state=loading|empty|error` forces a list state so every branch can be reviewed
-before the read endpoint (#15) exists.
+The read API (#15) and the publish endpoint (#16) are deployed and live at
+`https://flashbeat.rebuildup.dev`; the studio reads the published catalog from
+`/api/v1/catalog` and publishes into the same D1. `/?state=loading|empty|error`
+forces a list state so every branch of the panel can be reviewed without a backend.
 
 See `AGENTS.md` for the layout, the commands and the three manual fixes
 `@park-ui/cli@1.0.1` needs for the Panda v2 API.
