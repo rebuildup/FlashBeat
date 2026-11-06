@@ -6,6 +6,7 @@ import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { publishAndVerify } from "@/lib/publish/client";
+import { savePublishDraft } from "@/lib/publish/draft";
 import { resolvePublishTransport } from "@/lib/publish/transport";
 import type { PublishResult } from "@/lib/publish/types";
 import {
@@ -330,6 +331,18 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
     });
   }, [chart, effectiveDraft, token, transport]);
 
+  const handleBackToEditor = useCallback(() => {
+    const url = savePublishDraft(
+      {
+        songId: initialSong?.id ?? null,
+        version: initialVersion !== undefined ? String(initialVersion) : null,
+        chart: chart ?? initialChart,
+      },
+      "editor",
+    );
+    window.location.assign(url);
+  }, [chart, initialChart, initialSong, initialVersion]);
+
   return (
     <div className={root}>
       <header className={header}>
@@ -397,7 +410,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
             </Button>
           </section>
 
-          <PublishResultPanel result={result} />
+          <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
         </aside>
       </div>
 
