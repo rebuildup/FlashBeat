@@ -35,6 +35,19 @@ public class NotesManager : MonoBehaviour
     //[SerializeField] private float NotesSpeed = 1.0f;
     [SerializeField] GameObject noteObj;
 
+    /// <summary>
+    /// Time of a note on the chart timeline (seconds). The chart counts in
+    /// beats: num / LPB beats at the given BPM. The formula is the contract
+    /// between the chart and the judge, so it lives in one place and is pinned
+    /// by ChartDataIntegrityTests.
+    /// </summary>
+    public static float NoteTimeSeconds(int bpm, Note note)
+    {
+        float kankaku = 60 / (bpm * (float)note.LPB);
+        float beatSec = kankaku * (float)note.LPB;
+        return beatSec * note.num / (float)note.LPB;
+    }
+
     void OnEnable()
     {
         //NotesSpeed = GManager.noteSpeed;
@@ -72,10 +85,7 @@ public class NotesManager : MonoBehaviour
         
         for (int i = 0; i < inputJson.notes.Length; i++)
         {
-
-            float kankaku = 60 / (inputJson.BPM * (float)inputJson.notes[i].LPB);
-            float beatSec = kankaku * (float)inputJson.notes[i].LPB;
-            float time = (beatSec * inputJson.notes[i].num / (float)inputJson.notes[i].LPB) + GManager.noteTiming * 0.01f;
+            float time = NoteTimeSeconds(inputJson.BPM, inputJson.notes[i]) + GManager.noteTiming * 0.01f;
             NotesTime.Add(time);
             LaneNum.Add(inputJson.notes[i].block);
             NoteType.Add(inputJson.notes[i].type);
