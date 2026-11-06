@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.40.0",
+    "@cfworker/json-schema": "^4.1.6",
     "hono": "^4.11.9",
     "lucide-react": "1.70.0",
     "react": "^19.2.4",
