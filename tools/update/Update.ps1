@@ -128,6 +128,17 @@ function Write-OpLog {
     }
 }
 
+function Test-PathInside {
+    # True only when $Path is the same as, or below, $Root. A plain StartsWith() is wrong: 'C:\x\FlashBeat-update-work'
+    # starts with 'C:\x\FlashBeat' although it is a sibling folder, which aborted every update of an install
+    # folder named FlashBeat (found on the exhibit machine, v0.1.2 -> v0.1.3).
+    param([string]$Path, [string]$Root)
+    if (-not $Path -or -not $Root) { return $false }
+    $p = ([System.IO.Path]::GetFullPath($Path)).TrimEnd('\', '/') + '\'
+    $r = ([System.IO.Path]::GetFullPath($Root)).TrimEnd('\', '/') + '\'
+    return $p.StartsWith($r, [StringComparison]::OrdinalIgnoreCase)
+}
+
 function Stop-WithError {
     param(
         [Parameter(Mandatory = $true)][int]$Code,
@@ -322,7 +333,7 @@ try {
     if ($freshInstall) {
         Write-OpLog -Level 'STEP' -Message ('インストール先に FlashBeat.exe がないため新規インストールとして実行します: {0}' -f $installFull)
     }
-    if (-not $Apply -and $scriptPath -and $scriptPath.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not $Apply -and $scriptPath -and (Test-PathInside $scriptPath $installFull)) {
         Stop-WithError $ExitUsage ('更新スクリプトがインストール先フォルダ内にあります: {0}' -f $scriptPath) 'スクリプトはインストール先外に置くか、-Apply (自動適用モード) を使ってください。'
     }
 
@@ -367,7 +378,7 @@ try {
     } else {
         $workRoot = Join-Path $parentDir ('FlashBeat-update-work-' + $stamp)
     }
-    if ($workRoot.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (Test-PathInside $workRoot $installFull) {
         Stop-WithError $ExitUsage ('作業フォルダがインストール先フォルダ内にあります: {0}' -f $workRoot) '-WorkDir にはインストール先外のフォルダを指定してください。'
     }
     $downloadDir = Join-Path $workRoot 'download'

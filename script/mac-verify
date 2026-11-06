@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mac verification runner (Issue #111): EditMode tests / macOS build in a persistent, isolated worktree.
-# Usage: script/mac-verify test [<ref>]   |   script/mac-verify build [<ref>]   |   script/mac-verify status
+# Usage: script/mac-verify test [<ref>] | build [<ref>] | run [<ref>] [<seconds>] | status
 # - Never touches the checkout you run it from. Works in $FB_MAC_WORKTREE (default ../FlashBeat.macverify).
 # - UNITY_BIN overrides the editor. Default: 6000.5.6f1 (canonical) if installed, else 6000.6.8f1 (fallback, NOT the
 #   project's canonical version: it rewrites Packages/ and ProjectSettings/, never commit those).
@@ -45,5 +45,22 @@ PY
     "$unity" -batchmode -quit -projectPath "$wt" -executeMethod BuildScript.BuildStandaloneMacOS -logFile "$wt/mac-build.log"
     ls -d "$wt/Builds/macOS/FlashBeat.app" && echo "[mac-verify] build ok (launch: open $wt/Builds/macOS/FlashBeat.app)"
     ;;
-  *) echo "usage: $0 test|build|status [ref]" >&2; exit 64 ;;
+  run)
+    # build the native app, launch it, wait, capture the screen, inspect the player log, quit it.
+    secs="${3:-45}"
+    "$0" build "$ref"
+    app="$wt/Builds/macOS/FlashBeat.app"
+    outdir="$wt/Builds/run-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$outdir"
+    open -n "$app" --args -logFile "$outdir/Player.log" -autoshot "$outdir" -autoshot-interval 8 -autoshot-count 6
+    echo "[mac-verify] launched, waiting ${secs}s"; sleep "$secs"
+    screencapture -x "$outdir/os-screen.png" 2>/dev/null || echo "[mac-verify] (OS screencapture unavailable - using in-app AutoShot images)"
+    pgrep -f "Builds/macOS/FlashBeat.app" >/dev/null && echo "[mac-verify] process alive: yes" || echo "[mac-verify] process alive: NO (crashed or exited)"
+    osascript -e 'tell application "FlashBeat" to quit' >/dev/null 2>&1 || true
+    if [ -f "$outdir/Player.log" ]; then
+      echo "[mac-verify] log: $(grep -c -i -E 'exception|error' "$outdir/Player.log") exception/error lines"
+      grep -i -E "Your scene has been loaded|\[Perf\]|Crash|exception" "$outdir/Player.log" | head -12
+    fi
+    echo "[mac-verify] screenshots: $outdir"
+    ;;
+  *) echo "usage: $0 test|build|run|status [ref]" >&2; exit 64 ;;
 esac
