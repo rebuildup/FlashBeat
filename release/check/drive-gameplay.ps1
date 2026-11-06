@@ -1,4 +1,4 @@
-<#
+﻿<#
     .SYNOPSIS
         Win64 gameplay smoke driver for the FlashBeat release gate (#22).
 
@@ -25,8 +25,11 @@ param(
     [Parameter(Mandatory = $true)][string]$OutDir,
     [int]$Width = 1280,
     [int]$Height = 720,
-    # 0 = windowed (the 1280x720 UX smoke), 1 = fullscreen window, 2 = exclusive fullscreen, 3 = borderless
-    [int]$Fullscreen = 0,
+    # -1 = 起動引数なし (ProjectSettings の既定表示 = 展示運用と同じ起動)。0 = windowed (the 1280x720 UX smoke),
+    #      1 = fullscreen window, 2 = exclusive fullscreen, 3 = borderless
+    [int]$Fullscreen = -1,
+    # クライアント領域がディスプレイを覆っていることを必須にする (issue #52: 全画面にならない不具合の回帰防止)
+    [switch]$RequireFullscreenCoverage,
     [string]$YtDlpPath = '',
     [string]$LogName = 'Player.log',
     [string]$SummaryName = 'run-summary.json',
@@ -212,6 +215,38 @@ function Save-Shot($proc, [string]$file) {
 
 if (-not (Test-Path -LiteralPath $Exe)) { throw "artifact not found: $Exe" }
 
+Add-Type -AssemblyName System.Windows.Forms
+
+# 表示カバレッジ: プレイヤーのクライアント領域がディスプレイをどれだけ覆っているか。
+# issue #52 の回帰防止用。ウィンドウが 1280x720 の小窓了半天、"全画面" の証跡に
+# ならない状態を検出する。
+function Measure-DisplayCoverage([int]$processId) {
+    $hwnd = Find-PlayerWindow $processId
+    if ($hwnd -eq [IntPtr]::Zero) { return $null }
+    $client = New-Object Win32+RECT
+    [void][Win32]::GetClientRect($hwnd, [ref]$client)
+    $origin = New-Object Win32+POINT
+    [void][Win32]::ClientToScreen($hwnd, [ref]$origin)
+    $clientW = $client.Right - $client.Left
+    $clientH = $client.Bottom - $client.Top
+    $display = [System.Windows.Forms.Screen]::FromHandle($hwnd)
+    $bounds = $display.Bounds
+    $overlapW = [math]::Min($origin.X + $clientW, $bounds.Right) - [math]::Max($origin.X, $bounds.Left)
+    $overlapH = [math]::Min($origin.Y + $clientH, $bounds.Bottom) - [math]::Max($origin.Y, $bounds.Top)
+    $overlapW = [math]::Max(0, $overlapW)
+    $overlapH = [math]::Max(0, $overlapH)
+    $displayArea = $bounds.Width * $bounds.Height
+    $coverage = if ($displayArea -gt 0) { ($overlapW * $overlapH) / $displayArea } else { 0 }
+    return [ordered]@{
+        clientWidth   = $clientW
+        clientHeight  = $clientH
+        clientOrigin  = "$($origin.X),$($origin.Y)"
+        displayBounds = "$($bounds.Width)x$($bounds.Height) at $($bounds.X),$($bounds.Y)"
+        primary       = [bool]$display.Primary
+        coverage      = [math]::Round($coverage, 4)
+    }
+}
+
 # Preflight: another player instance (e.g. a parallel worker automation) would fight over the
 # keyboard and the focus. Refuse to start instead of corrupting the other run.
 # -AllowConcurrentPlayers: only when the other instances are known to be idle (shared machine).
@@ -227,7 +262,12 @@ if ($others.Count -gt 0) {
     }
 }
 
-$launchArgs = @('-logFile', "`"$log`"", '-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
+$launchArgs = @('-logFile', "`"$log`"")
+if ($Fullscreen -ge 0) {
+    # 表示相关的引数は「明示して起動する場合」だけ渡す。Default (-1) は
+    # 展示運用と同じ「引数なし起動」を検証する (issue #52)。
+    $launchArgs += @('-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
+}
 
 Write-Host "[drive] launching $Exe"
 Write-Host "[drive] args: $($launchArgs -join ' ')"
@@ -243,6 +283,12 @@ for ($i = 0; $i -lt 120; $i++) {
 }
 if ($hwnd -eq [IntPtr]::Zero) { Write-Host '[drive] no window'; exit 2 }
 Write-Host "[drive] window=$hwnd"
+
+$geometry = Measure-DisplayCoverage $p.Id
+if ($geometry) {
+    Write-Host ("[drive] geometry: client {0}x{1} at {2} / display {3} (primary={4}) coverage={5:P1}" -f `
+        $geometry.clientWidth, $geometry.clientHeight, $geometry.clientOrigin, $geometry.displayBounds, $geometry.primary, $geometry.coverage)
+}
 
 # 1) TitleScene
 $titleOk = Wait-For { (Scene-Count) -ge 2 } $TitleTimeoutSec 'TitleScene'
@@ -322,20 +368,51 @@ if (-not $SkipRetry) {
     $retried = ((Scene-Count) -ge 9)
 }
 
+$finalGeometry = Measure-DisplayCoverage $p.Id
+if ($finalGeometry -and $geometry) {
+    # 表示は途中で変わることがあるので、最終値も記録する (小さいほうを採用)。
+    $geometry = [ordered]@{
+        clientWidth   = $finalGeometry.clientWidth
+        clientHeight  = $finalGeometry.clientHeight
+        clientOrigin  = $finalGeometry.clientOrigin
+        displayBounds = $finalGeometry.displayBounds
+        primary       = $finalGeometry.primary
+        coverage      = [math]::Min($geometry.coverage, $finalGeometry.coverage)
+    }
+}
+
 try { $p.CloseMainWindow() | Out-Null } catch {}
 Start-Sleep -Seconds 3
 if (-not $p.HasExited) { $p.Kill() }
+
+if ($Fullscreen -lt 0) {
+    $resolutionText = 'default (no display arguments)'
+} else {
+    $resolutionText = "$Width x $Height (fullscreen=$Fullscreen)"
+}
+if ($geometry) {
+    $coverageValue = $geometry.coverage
+    $clientRectText = "$($geometry.clientWidth)x$($geometry.clientHeight) at $($geometry.clientOrigin)"
+    $displayBoundsText = $geometry.displayBounds
+} else {
+    $coverageValue = 0
+    $clientRectText = 'unknown'
+    $displayBoundsText = 'unknown'
+}
 
 $summary = [ordered]@{
     startedAt        = $started.ToString('yyyy-MM-ddTHH:mm:ssK')
     skippedKeys      = $script:SkippedKeys
     exe              = $Exe
     outDir           = $OutDir
-    resolution       = "$Width x $Height (fullscreen=$Fullscreen)"
+    resolution       = $resolutionText
     startupSeconds   = $startupSec
     titleReached     = [bool]$titleOk
     resultReached    = [bool]$resultOk
     retryReloaded    = [bool]$retried
+    displayCoverage  = $coverageValue
+    clientRect       = $clientRectText
+    displayBounds    = $displayBoundsText
     scenes           = (Scene-Count)
     judgedNotes      = $judgeAtResult
     logFile          = $log
@@ -344,3 +421,12 @@ $summaryPath = Join-Path $OutDir $SummaryName
 $summary | ConvertTo-Json | Set-Content -LiteralPath $summaryPath -Encoding UTF8
 Write-Host "[drive] summary -> $summaryPath"
 Write-Host '[drive] done'
+
+if ($RequireFullscreenCoverage) {
+    $coverage = if ($geometry) { [double]$geometry.coverage } else { 0.0 }
+    if ($coverage -lt 0.98) {
+        Write-Host ("[drive] FAIL: the player window covers only {0:P1} of the display - the game is not fullscreen (issue #52)" -f $coverage)
+        exit 5
+    }
+    Write-Host ("[drive] OK: the player window covers {0:P1} of the display" -f $coverage)
+}
