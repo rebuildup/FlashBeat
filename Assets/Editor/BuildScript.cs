@@ -92,6 +92,7 @@ public static class BuildScript
             RestoreMediaAfterBuild();
             CopyUpdaterScriptIntoBuild(buildDir);
             WriteUpdateChannelFile(buildDir);
+            WriteMediaPolicyManifest(buildDir);
         }
 
         if (failed && Application.isBatchMode)
@@ -218,6 +219,33 @@ public static class BuildScript
         Directory.CreateDirectory(Path.GetDirectoryName(dst));
         File.Copy(src, dst, true);
         Debug.Log($"[BuildScript] 更新スクリプトをビルド出力へ複製しました: {dst}");
+    }
+
+    /// <summary>ビルド対象から外したメディアを記録する (配布物には同梱し、検品で参照する)。
+    /// resources.resource はファイル名を持たないため、第三者楽曲の音声・動画が
+    /// 焼き込まれていないことはこの manifest で証明する。</summary>
+    private static void WriteMediaPolicyManifest(string buildDir)
+    {
+        try
+        {
+            var excluded = new System.Collections.Generic.List<string>();
+            foreach (var rel in MediaExcludePaths) { excluded.Add(rel); }
+            var json = "{\n" +
+                       "  \"policy\": \"song-media-excluded\",\n" +
+                       "  \"excludedPaths\": [\n" +
+                       string.Join(",\n", System.Array.ConvertAll(excluded.ToArray(),
+                           p => "    \"" + p.Replace("\\", "/") + "\"")) + "\n" +
+                       "  ],\n" +
+                       "  \"builtAt\": \"" + DateTime.UtcNow.ToString("o") + "\"\n" +
+                       "}\n";
+            string path = Path.Combine(buildDir, "flashbeat-media-policy.json");
+            File.WriteAllText(path, json);
+            Debug.Log($"[BuildScript] メディア除外マニフェストを出力しました: {path}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[BuildScript] メディア除外マニフェストの書き出しに失敗しました: {e.Message}");
+        }
     }
 
     /// <summary>更新チャンネルを配布物へ書き出す (issue #41)。

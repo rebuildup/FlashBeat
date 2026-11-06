@@ -45,9 +45,13 @@
 - **配布 ZIP に第三者楽曲の音声・動画を含めない** (オーナー要件 2026-11-07)。
 - ルーズなメディア (`*.wav/*.mp3/*.mp4/...`) がビルド出力にあればスクリプトが検知して失敗する。
 - `Assets/Game/Resources/**` のメディアは Unity が `resources.resource` に焼き込むため ZIP レベルでは除去不能。
-  `-MediaPolicy free` は焼き込みサイズ上限 (既定 100MB) でこれを検知して失敗する。
-- media-free リリースの前提: Unity 側でメディアを Resources 外 (ストリーミング / キャッシュ, #13 系) に分離すること。
-- 現行ビルド (743c88d) は焼き込みあり = `mediaPolicy: "bundled"`。公開済み `v0.1.0-win64-743c88d` の扱いはオーナーが決定する。
+  そこでビルド (`BuildScript.ExcludeMediaFromBuild`) が `Resources/Musics` と `Resources/Videos/UnityYoutube`
+  (第三者楽曲の音声・動画) をビルド中だけ退避し、焼き込まないようにしている。
+- **不含の証明**: ビルドは `flashbeat-media-policy.json` (除外したパス) を配布物に出力する。
+  `-MediaPolicy song-free` はこの manifest を確認し、第三者楽曲メディアが外されていないと失敗する。
+  さらに `resources.resource` のサイズ上限 (既定 300MB) でも検出する (漏れていれば 1.4GB になる)。
+- ゲーム自身の背景アニメーション (`Resources/Videos/*.mp4`、約 196MB) は自作素材なので同梱する
+  (media-rights-audit 3: 権利ではなくサイズの問題)。
 
 ### 更新フローの契約 (実装は #36)
 

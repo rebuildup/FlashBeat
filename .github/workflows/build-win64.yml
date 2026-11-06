@@ -127,7 +127,7 @@ jobs:
               -OutDir $out `
               -Version "$base-win64-$sha" `
               -CommitSha $full `
-              -MediaPolicy free
+              -MediaPolicy song-free
           Get-ChildItem $out | Select-Object Name, Length
 
       - name: 成果物をアップロード
