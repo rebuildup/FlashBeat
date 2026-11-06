@@ -1,7 +1,59 @@
 # Win64 リリース運用手順 (Issue #35)
 
 展示会場の Windows 機に Unity 本体 (`FlashBeat.exe`) のパッチを配布する手順。
-通常起動は `FlashBeat.exe` 直接。専用ランチャー・自動更新・ロールバック UI は作らない (`tools/launcher/**` は Issue #36)。
+アプリ自体の起動・更新フロー (起動時非同期確認 → 終了時適用) は Issue #36 (`tools/update/**`) が実装する。
+本ドキュメントは **配布物の仕様 = #36 の UpdateChecker / Update.ps1 が消費する契約** を固定する。
+常設ランチャー・独自更新サーバーは作らない。更新元は GitHub Releases のみ。
+
+## 配布仕様 (#36 との契約・固定)
+
+### タグ / アセット命名
+
+- タグ: `v<semver>-win64-<shortsha>` (例: `v0.1.1-win64-743c88d`)
+  - `<semver>` = `X.Y.Z`、`<shortsha>` = ビルド元 commit の短縮 SHA (7〜40 hex)
+- アセット: `FlashBeat-<semver>-win64-<shortsha>.zip` と `FlashBeat-<semver>-win64-<shortsha>.zip.sha256` の 2 点
+- ZIP ルートに `version.json` を同梱 (パッケージスクリプトが自動生成):
+
+  ```json
+  {
+    "version": "0.1.1",
+    "buildSha": "<40 桁フル commit SHA>",
+    "tag": "v0.1.1-win64-743c88d",
+    "mediaPolicy": "bundled | free",
+    "createdAt": "2026-11-06T15:39:27Z"
+  }
+  ```
+
+- UpdateChecker はインストール先の `version.json` を読み、GitHub latest のタグと比較して新版を判定する。
+
+### .sha256 sidecar 形式
+
+- `<64 桁小文字 hex>  <ファイル名>` + LF、UTF-8 (BOM 無し)。`sha256sum -c` / `Get-FileHash` 両対応。
+
+### latest 判定
+
+- `GET https://api.github.com/repos/rebuildup/FlashBeat/releases/latest` (認証不要) を使用。
+- 採用条件: `draft = false` かつ `prerelease = false` かつ `tag_name` が
+  `^v\d+\.\d+\.\d+-win64-[0-9a-f]{7,40}$` に一致し、対応 ZIP + `.sha256` の 2 アセットが存在する。
+- 不一致・取得失敗・SHA 検証失敗時は更新を中止し現行版を残す (ゲーム動作は止めない)。
+
+### メディア排除 (第三者楽曲)
+
+- **配布 ZIP に第三者楽曲の音声・動画を含めない** (オーナー要件 2026-11-07)。
+- ルーズなメディア (`*.wav/*.mp3/*.mp4/...`) がビルド出力にあればスクリプトが検知して失敗する。
+- `Assets/Game/Resources/**` のメディアは Unity が `resources.resource` に焼き込むため ZIP レベルでは除去不能。
+  `-MediaPolicy free` は焼き込みサイズ上限 (既定 100MB) でこれを検知して失敗する。
+- media-free リリースの前提: Unity 側でメディアを Resources 外 (ストリーミング / キャッシュ, #13 系) に分離すること。
+- 現行ビルド (743c88d) は焼き込みあり = `mediaPolicy: "bundled"`。公開済み `v0.1.0-win64-743c88d` の扱いはオーナーが決定する。
+
+### 更新フローの契約 (実装は #36)
+
+1. 起動時に latest を非同期確認 (`version.json` の `tag` と比較)
+2. 新版があれば ZIP + `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` へ取得し SHA-256 検証
+3. アプリ終了時に `tools\update\Update.ps1` を分離プロセスで起動:
+   アプリ PID の終了待機 → 別ディレクトリへ展開 → 検証 → 一括切替 → 新 exe 再起動
+4. 旧版は 1 世代残す (切戻し用。ユーザー向け UI は不要)
+5. 失敗時 (SHA 不一致 / ネットワーク断 / 二重起動) は更新を中止し現行版を維持
 
 ## 取得先
 
@@ -10,18 +62,21 @@
   - `FlashBeat-0.1.0-win64-743c88d.zip`
   - SHA-256: `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`
   - ビルド元 commit: `743c88d14a1931d4637c34b1ec5d1bec5e502d44` (#27 フォント修正済み)
+  - **注記**: このリリースは第三者楽曲を `resources.resource` に焼き込みで含む (`version.json` 無し・旧仕様)。
+    扱い (公開維持/差し替え/非公開化) はオーナー決定事項 — ワーカーは触らない。
 - アセット命名: `FlashBeat-<version>.zip` + `FlashBeat-<version>.zip.sha256`
   - 例: `FlashBeat-0.1.0-win64-743c88d.zip` (version は `<semver>-win64-<build commit SHA 短縮形>`)
 - 展示運営者はブラウザでダウンロードするだけ。GH/CLI/PowerShell・管理者権限はプレイヤーに要求しない。
 
 ## ZIP の中身
 
-Unity Win64 ビルド出力フォルダ**一式** (exe 単体ではない):
+Unity Win64 ビルド出力フォルダ**一式** (exe 単体ではない) + `version.json`:
 
 - `FlashBeat.exe` / `UnityPlayer.dll` / `UnityCrashHandler64.exe`
 - `FlashBeat_Data/` (Managed DLL 群・リソース一式)
 - `MonoBleedingEdge/`, `D3D12/`, `DirectML.dll`, `dstorage*.dll`
-- 除外: `FlashBeat_BurstDebugInformation_DoNotShip/` (Unity の指示により ship 対象外)
+- `version.json` (配布仕様参照)
+- 除外: `FlashBeat_BurstDebugInformation_DoNotShip/` (Unity の指示により ship 対象外)、ルーズなメディアファイル (第三者楽曲)
 
 ## SHA-256 検証手順
 
