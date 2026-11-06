@@ -135,13 +135,21 @@ function Save-Shot([IntPtr]$hwnd, [string]$file) {
     }
     $origin = New-Object Win32+POINT
     [void][Win32]::ClientToScreen($hwnd, [ref]$origin)
-    $bmp = New-Object System.Drawing.Bitmap($w, $h)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($origin.X, $origin.Y, 0, 0, (New-Object System.Drawing.Size($w, $h)))
     $path = Join-Path $OutDir $file
-    $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
-    $g.Dispose(); $bmp.Dispose()
-    Write-Host "[drive] shot $file (client $($w)x$h at $($origin.X),$($origin.Y))"
+    try {
+        $bmp = New-Object System.Drawing.Bitmap($w, $h)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.CopyFromScreen($origin.X, $origin.Y, 0, 0, (New-Object System.Drawing.Size($w, $h)))
+        $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+        $g.Dispose(); $bmp.Dispose()
+        Write-Host "[drive] shot $file (client $($w)x$h at $($origin.X),$($origin.Y))"
+    } catch {
+        # 画面がロックされている / 空港モードなどで CopyFromScreen が失敗する。
+        # スクリーンショットは証跡の補助なので、失敗してもゲーム検証は続行する
+        # (判定・シーン遷移・譜面同期は Player.log が証明する)。
+        Write-Host "[drive] shot $file failed: $($_.Exception.Message)"
+        return $null
+    }
     return $path
 }
 
