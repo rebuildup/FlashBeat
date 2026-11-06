@@ -3,6 +3,10 @@
 
 [tools]
 bun = "1.4.2"
+# Cloud / festival API toolchain (Issue #9 preflight).
+# Pinned so the Mac and Windows agents resolve identical CLIs.
+"npm:wrangler" = "4.158.0"
+"npm:void" = "1.6.2"
 
 [tasks.skills-list]
 run = "bunx skills add rebuildup/project-init --list"
