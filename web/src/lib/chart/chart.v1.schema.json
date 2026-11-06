@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlashBeat Legacy-Compatible Chart v1",
+  "description": "Same JSON shape as Assets/Game/Resources/<song>.json; no new chart DSL before festival.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "name",
+    "maxBlock",
+    "BPM",
+    "offset",
+    "notes"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "maxBlock": {
+      "type": "integer",
+      "description": "Number of lanes the chart uses. The editor always writes 8; the legacy charts carry 5 as well, so the contract accepts 1 to 8.",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "BPM": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 600
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Legacy field: preserve value. Do not silently reinterpret as milliseconds."
+    },
+    "notes": {
+      "type": "array",
+      "description": "The legacy charts carry empty note lists (the probe chart and ニセモノ), so an empty chart is a valid chart.",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "num",
+          "block",
+          "LPB"
+        ],
+        "properties": {
+          "type": {
+            "type": "integer",
+            "const": 1
+          },
+          "num": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "block": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "LPB": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 192
+          }
+        }
+      }
+    },
+    "lyrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "startTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "endTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "furigana": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mondai": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "romaji": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
