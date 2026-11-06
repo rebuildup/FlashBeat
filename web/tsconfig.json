@@ -1,0 +1,24 @@
+{
+  "extends": "./.void/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["void/env"],
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@styled-system": ["./styled-system"],
+      "styled-system": ["./styled-system"],
+      "styled-system/*": ["./styled-system/*"],
+      "void/db": ["./.void/db.d.ts"],
+      "@schema": ["./db/schema.ts"],
+      "@schema/*": ["./db/schema/*"],
+      "void/routes": ["./.void/routes.d.ts"]
+    }
+  },
+  "include": ["src", "pages", "routes", "middleware", "crons", "queues", "db", "styled-system"]
+}
