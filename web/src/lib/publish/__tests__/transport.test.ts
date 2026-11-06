@@ -23,7 +23,7 @@ describe("resolvePublishTransport", () => {
   });
 
   it("answers locally only when the fixture is asked for explicitly", async () => {
-    const transport = resolvePublishTransport("fixture");
+    const transport = resolvePublishTransport("fixture", true);
 
     expect(transport.mode).toBe("fixture");
 
@@ -47,4 +47,8 @@ describe("resolvePublishTransport", () => {
 
     expect(response.status).toBe(200);
   });
+});
+
+it("rejects fixture mode unless explicitly enabled for a test", () => {
+  expect(() => resolvePublishTransport("fixture")).toThrow("disabled");
 });

@@ -1,0 +1,17 @@
+LIVE GET /api/v1/catalog 200
+captured 1440 [ 'Catalog', 'New chart', 'Publish' ]
+LIVE GET /api/v1/catalog 200
+captured 1280 [ 'Catalog', 'New chart', 'Publish' ]
+LIVE GET /api/v1/catalog 200
+captured 390 [ 'Catalog', 'New chart', 'Publish' ]
+LIVE GET /api/v1/catalog 200
+LIVE GET /api/v1/catalog 200
+LIVE GET /api/v1/charts/4th-smile?version=1 200
+exact selected chart http://127.0.0.1:17669/chart?songId=4th-smile&version=1 Catalog
+4th smile · v1 · 105 notes
+LIVE GET /api/v1/catalog 200
+LIVE GET /api/v1/charts/4th-smile?version=1 200
+refresh preserved chart
+new draft explicit
+publish route real
+PASS

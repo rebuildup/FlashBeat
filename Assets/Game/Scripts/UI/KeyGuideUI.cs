@@ -18,17 +18,28 @@ public class KeyGuideUI : MonoBehaviour
     private RectTransform panel;
     private TMP_FontAsset font;
     private bool visible;
+    private bool built;
 
     /// <summary>シーンにガイドを生成する。GameSceneManager から呼ばれる。</summary>
     public static KeyGuideUI Create(Transform parent)
     {
         var go = new GameObject("KeyGuideUI");
         if (parent != null) go.transform.SetParent(parent, false);
-        return go.AddComponent<KeyGuideUI>();
+        var guide = go.AddComponent<KeyGuideUI>();
+        // EditMode では AddComponent で Awake が走らないため、生成直後に明示的に構築する。
+        guide.EnsureBuilt();
+        return guide;
     }
 
     private void Awake()
     {
+        EnsureBuilt();
+    }
+
+    private void EnsureBuilt()
+    {
+        if (built) return;
+        built = true;
         BuildUI();
         SetVisible(false); // 既定では非表示 (ゲームプレーを邪魔しない)
     }
@@ -79,7 +90,7 @@ public class KeyGuideUI : MonoBehaviour
 
         for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
         {
-            AddLabel(panel, "Lane" + lane, BuildLaneLabel(lane), RowFontSize);
+            rows.Add(AddLabel(panel, "Lane" + lane, BuildLaneLabel(lane), RowFontSize));
         }
 
         CreateToggleButton(canvasGO.transform);
@@ -151,6 +162,16 @@ public class KeyGuideUI : MonoBehaviour
     {
         switch (key)
         {
+            case KeyCode.Alpha0: return "0";
+            case KeyCode.Alpha1: return "1";
+            case KeyCode.Alpha2: return "2";
+            case KeyCode.Alpha3: return "3";
+            case KeyCode.Alpha4: return "4";
+            case KeyCode.Alpha5: return "5";
+            case KeyCode.Alpha6: return "6";
+            case KeyCode.Alpha7: return "7";
+            case KeyCode.Alpha8: return "8";
+            case KeyCode.Alpha9: return "9";
             case KeyCode.Minus: return "-";
             case KeyCode.Equals: return "=";
             case KeyCode.Caret: return "^";
