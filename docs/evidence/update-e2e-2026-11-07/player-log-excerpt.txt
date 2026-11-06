@@ -1,0 +1,2 @@
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[UpdateChecker] 最新です (build=0.1.1+6fb6810, latest=v0.1.1-win64-6fb6810)。

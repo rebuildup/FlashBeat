@@ -131,10 +131,24 @@ sb3 mhtml 48x27        0    |                 mhtml | images                    
     }
 
     [Test]
-    public void AdaptiveOnlyVideoIsDownloadedAsVideoPlusAudio()
+    public void AdaptiveOnlyVideoIsMergedWithItsAudioTrack()
     {
         var formats = YouTubeStreamResolver.ParseFormats(AdaptiveOnlyFormatList);
-        var plan = YouTubeMediaCache.SelectPlan(formats);
+        var plan = YouTubeMediaCache.SelectPlan(formats, canMerge: true);
+
+        // Unity's VideoPlayer cannot open an audio-only m4a, so both streams are
+        // muxed into one mp4 - that is the only way the YouTube sound is heard.
+        Assert.IsTrue(plan.Combined);
+        Assert.IsFalse(plan.HasAudioFile);
+        Assert.AreEqual("136+140", plan.VideoSelector, "the largest H.264 mp4 up to 720p plus the best AAC track");
+        Assert.AreEqual("136", plan.FallbackVideoSelector, "the picture-only fallback if the merge fails");
+    }
+
+    [Test]
+    public void WithoutFfmpegTheStreamsStaySplit()
+    {
+        var formats = YouTubeStreamResolver.ParseFormats(AdaptiveOnlyFormatList);
+        var plan = YouTubeMediaCache.SelectPlan(formats, canMerge: false);
 
         Assert.IsFalse(plan.Combined);
         Assert.IsTrue(plan.HasAudioFile);

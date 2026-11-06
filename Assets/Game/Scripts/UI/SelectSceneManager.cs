@@ -65,11 +65,68 @@ public class SelectSceneManager : MonoBehaviour
     public Image[] imageObjects;
     private string dottT;
 
+    // Cloud Catalog (#17)
+    Coroutine catalogRefresh;
+    bool catalogWarned;
+
     void Start()
     {
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
         UpdateThumbnails();
+        StartCatalogRefresh();
+    }
+
+    // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it
+    // while the player is idle on the select screen. A usable response
+    // switches the shown songs over (GManager.ActiveSongs); any failure -
+    // offline, HTTP error, empty or malformed body - only logs a warning and
+    // keeps the built-in fixed catalog, so the game never stops here.
+    void StartCatalogRefresh()
+    {
+        CloudCatalog.Config config = CloudCatalog.LoadConfig();
+        if (config == null) return; // no API configured: stay on the fixed catalog
+        if (catalogRefresh != null) StopCoroutine(catalogRefresh);
+        catalogRefresh = StartCoroutine(RefreshCatalogLoop(config));
+    }
+
+    IEnumerator RefreshCatalogLoop(CloudCatalog.Config config)
+    {
+        while (true)
+        {
+            yield return RefreshCatalogOnce(config);
+            float wait = config.refreshSeconds > 1f ? config.refreshSeconds : 8f;
+            yield return new WaitForSeconds(wait);
+        }
+    }
+
+    IEnumerator RefreshCatalogOnce(CloudCatalog.Config config)
+    {
+        string body = null;
+        int status = 0;
+        yield return CloudCatalog.GetText(CloudCatalog.CatalogUrl(config.baseUrl), (code, text) => { status = code; body = text; });
+
+        SongData[] songs = status == 200 ? CloudCatalog.ParseCatalog(body) : null;
+        if (songs != null)
+        {
+            catalogWarned = false;
+            GManager.ApplyRemoteCatalog(songs);
+            if (GManager.songID > GManager.totalSong) GManager.songID = 1;
+            UpdateUI();
+            UpdateThumbnails();
+        }
+        else
+        {
+            if (!catalogWarned || GManager.HasRemoteCatalog)
+            {
+                catalogWarned = true;
+                GManager.ClearRemoteCatalog();
+                if (GManager.songID > GManager.totalSong) GManager.songID = 1;
+                UpdateUI();
+                UpdateThumbnails();
+                Debug.LogWarning($"[SelectScene] catalog unavailable (status={status}) - using the built-in song list");
+            }
+        }
     }
 
     void Update()
@@ -127,14 +184,14 @@ public class SelectSceneManager : MonoBehaviour
         for (int i = 0; i < 5; i++)
         {
             int sID = GetSongIndexAtOffset(GManager.songID, offsets[i]);
-            var song = GManager.Songs[sID];
+            var song = GManager.ActiveSongs[sID];
             if (songNames[i] != null) songNames[i].text = song.title;
             if (musicians[i] != null) musicians[i].text = song.musician;
             if (bpms[i] != null) bpms[i].text = song.bpm.ToString();
             if (hits[i] != null) hits[i].text = song.totalHits.ToString();
             if (levels[i] != null) levels[i].text = song.level.ToString();
             if (nos[i] != null) nos[i].text = sID.ToString();
-            if (hiscores[i] != null) hiscores[i].text = GManager.Hiscore[sID].ToString();
+            if (hiscores[i] != null) hiscores[i].text = sID < GManager.Hiscore.Length ? GManager.Hiscore[sID].ToString() : "0";
         }
     }
 
@@ -144,7 +201,7 @@ public class SelectSceneManager : MonoBehaviour
         for (int i = 0; i < 5; i++)
         {
             int sID = GetSongIndexAtOffset(GManager.songID, offsets[i]);
-            StartCoroutine(FetchThumbnail(GManager.Songs[sID].videoId, i));
+            StartCoroutine(FetchThumbnail(GManager.ActiveSongs[sID].videoId, i));
         }
     }
 
@@ -162,6 +219,43 @@ public class SelectSceneManager : MonoBehaviour
 
     public void GameScene()
     {
+        SongData song = GManager.ActiveSongs[GManager.songID];
+        if (song != null && song.isRemote)
+        {
+            // Cloud Catalog (#17): pin the chart version now and fetch the
+            // chart snapshot once; it is kept for the whole play (retries
+            // included). A failure only logs a warning and stays here.
+            StartCoroutine(StartRemoteSong(song));
+            return;
+        }
+        GManager.ResetSession();
+        Initiate.Fade("GameScene", Color.black, 1.0f);
+    }
+
+    IEnumerator StartRemoteSong(SongData song)
+    {
+        CloudCatalog.Config config = CloudCatalog.LoadConfig();
+        if (config == null)
+        {
+            Debug.LogWarning("[SelectScene] remote song selected but no API is configured - staying on the select screen");
+            yield break;
+        }
+
+        int version = song.chartVersion > 0 ? song.chartVersion : config.chartVersion;
+        string body = null;
+        int status = 0;
+        yield return CloudCatalog.GetText(CloudCatalog.ChartUrl(config.baseUrl, song.remoteId, version), (code, text) => { status = code; body = text; });
+
+        Data chart = status == 200 ? CloudCatalog.ParseChartResponse(body) : null;
+        if (chart == null)
+        {
+            // 404 / network error / malformed body: warn and stay; the fixed
+            // catalog and the rest of the game keep working.
+            Debug.LogWarning($"[SelectScene] chart for '{song.remoteId}' v{version} unavailable (status={status}) - start cancelled");
+            yield break;
+        }
+
+        CloudChartHolder.Hold(song.remoteId, version, body);
         GManager.ResetSession();
         Initiate.Fade("GameScene", Color.black, 1.0f);
     }

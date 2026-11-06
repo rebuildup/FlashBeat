@@ -1,0 +1,95 @@
+﻿2026-11-07T01:26:18+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:26:18+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:26:18+09:00 [ERROR] FlashBeat が実行中のため更新を中止しました: UnityCrashHandler64(PID=35104), UnityCrashHandler64(PID=64196)
+2026-11-07T01:26:18+09:00 [INFO] ゲームを終了してから Update.ps1 を再実行してください。強制終了は行いません。既存配置は変更していません。
+2026-11-07T01:26:18+09:00 [INFO] 処理を中止しました (終了コード 6)。
+2026-11-07T01:26:34+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:26:34+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:26:34+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-012634
+2026-11-07T01:26:34+09:00 [INFO] ローカル ZIP を使用します: C:\Users\rebui\Desktop\fb-release\FlashBeat-0.1.0-win64-306ab28.zip
+2026-11-07T01:26:35+09:00 [INFO] 計算した SHA-256: 1bdf5c6035d8d2984ca89ce2e82fed04fd5400778a68efdf24146d6951281945
+2026-11-07T01:26:35+09:00 [INFO] 期待する SHA-256: 1bdf5c6035d8d2984ca89ce2e82fed04fd5400778a68efdf24146d6951281945
+2026-11-07T01:26:35+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:26:39+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-012634\staging
+2026-11-07T01:26:39+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 219 個)
+2026-11-07T01:26:39+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:26:39+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-Exhibit\FlashBeat.exe
+2026-11-07T01:26:39+09:00 [INFO] FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。
+2026-11-07T01:39:42+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:39:42+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:39:42+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-013942
+2026-11-07T01:39:42+09:00 [INFO] ローカル ZIP を使用します: C:\Users\rebui\Desktop\fb-release\FlashBeat-0.1.0-win64-6fb6810.zip
+2026-11-07T01:39:43+09:00 [INFO] 計算した SHA-256: 7f2a22bf9aa9bc5be53a62269d89da42bac5bfa95b4019287e9bb1f41134084a
+2026-11-07T01:39:43+09:00 [INFO] 期待する SHA-256: 7f2a22bf9aa9bc5be53a62269d89da42bac5bfa95b4019287e9bb1f41134084a
+2026-11-07T01:39:43+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:39:46+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-013942\staging
+2026-11-07T01:39:46+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 219 個)
+2026-11-07T01:39:46+09:00 [STEP] 既存配置を退避します (10 項目): C:\Users\rebui\Desktop\FlashBeat-backup-20261107-013942
+2026-11-07T01:39:46+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:39:46+09:00 [INFO] 旧版を 1 世代残します: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-013942
+2026-11-07T01:39:46+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-Exhibit\FlashBeat.exe
+2026-11-07T01:39:46+09:00 [INFO] FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。
+2026-11-07T01:40:05+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:40:05+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:40:05+09:00 [ERROR] FlashBeat が実行中のため更新を中止しました: UnityCrashHandler64(PID=20976)
+2026-11-07T01:40:05+09:00 [INFO] ゲームを終了してから Update.ps1 を再実行してください。強制終了は行いません。既存配置は変更していません。
+2026-11-07T01:40:05+09:00 [INFO] 処理を中止しました (終了コード 6)。
+2026-11-07T01:40:51+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:40:51+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:40:51+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-014051
+2026-11-07T01:40:51+09:00 [INFO] ローカル ZIP を使用します: D:\4_apps\Unity\Build\FlashBeatBuild\dist-22\FlashBeat-0.1.0-win64-1e01cbe.zip
+2026-11-07T01:40:52+09:00 [INFO] 計算した SHA-256: 960e3f3bd51e0d318bbfe9b54e928de6b56ab29251c46e727e265f2098d0822f
+2026-11-07T01:40:52+09:00 [INFO] 期待する SHA-256: 960e3f3bd51e0d318bbfe9b54e928de6b56ab29251c46e727e265f2098d0822f
+2026-11-07T01:40:52+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:40:55+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-014051\staging
+2026-11-07T01:40:55+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 221 個)
+2026-11-07T01:40:55+09:00 [STEP] 既存配置を退避します (10 項目): C:\Users\rebui\Desktop\FlashBeat-backup-20261107-014051
+2026-11-07T01:40:55+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:40:55+09:00 [INFO] 旧版を 1 世代残します: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-014051
+2026-11-07T01:40:55+09:00 [INFO] 旧世代の退避を削除しました: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-013942
+2026-11-07T01:40:55+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-Exhibit\FlashBeat.exe
+2026-11-07T01:40:55+09:00 [INFO] FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。
+2026-11-07T01:50:26+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:50:26+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-E2E
+2026-11-07T01:50:26+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015026
+2026-11-07T01:50:26+09:00 [INFO] ローカル ZIP を使用します: C:\Users\rebui\Desktop\fb-release\FlashBeat-0.1.0-win64-6fb6810.zip
+2026-11-07T01:50:26+09:00 [INFO] 計算した SHA-256: 7f2a22bf9aa9bc5be53a62269d89da42bac5bfa95b4019287e9bb1f41134084a
+2026-11-07T01:50:26+09:00 [INFO] 期待する SHA-256: 7f2a22bf9aa9bc5be53a62269d89da42bac5bfa95b4019287e9bb1f41134084a
+2026-11-07T01:50:26+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:50:29+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015026\staging
+2026-11-07T01:50:29+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 219 個)
+2026-11-07T01:50:29+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:50:29+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-E2E\FlashBeat.exe
+2026-11-07T01:50:29+09:00 [INFO] FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。
+2026-11-07T01:52:12+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:52:12+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-E2E
+2026-11-07T01:52:13+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015213
+2026-11-07T01:52:13+09:00 [INFO] ローカル ZIP を使用します: C:\Users\rebui\AppData\Local\FlashBeat\update\staging\FlashBeat-0.1.1-win64-6fb6810.zip
+2026-11-07T01:52:13+09:00 [INFO] 計算した SHA-256: 4b756fe4e6e82b0474c231dfe216d98b5e038550dec60f49965e7ddfeab0fe96
+2026-11-07T01:52:13+09:00 [INFO] 期待する SHA-256: 4b756fe4e6e82b0474c231dfe216d98b5e038550dec60f49965e7ddfeab0fe96
+2026-11-07T01:52:13+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:52:16+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015213\staging
+2026-11-07T01:52:16+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 219 個)
+2026-11-07T01:52:16+09:00 [STEP] 既存配置を退避します (10 項目): C:\Users\rebui\Desktop\FlashBeat-backup-20261107-015213
+2026-11-07T01:52:16+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:52:16+09:00 [INFO] 旧版を 1 世代残します: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-015213
+2026-11-07T01:52:16+09:00 [INFO] 旧世代の退避を削除しました: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-014051
+2026-11-07T01:52:16+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-E2E\FlashBeat.exe
+2026-11-07T01:52:16+09:00 [INFO] FlashBeat.exe を再起動しました (PID=58164)。
+2026-11-07T01:54:39+09:00 [INFO] ログ出力先: C:\Users\rebui\Desktop\FlashBeat-update.log
+2026-11-07T01:54:39+09:00 [INFO] 更新対象: C:\Users\rebui\Desktop\FlashBeat-Exhibit
+2026-11-07T01:54:39+09:00 [INFO] 作業フォルダ: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015439
+2026-11-07T01:54:40+09:00 [STEP] gh release download を使います: rebuildup/FlashBeat / v0.1.1-win64-6fb6810
+2026-11-07T01:54:46+09:00 [INFO] ダウンロード完了: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015439\download\FlashBeat-0.1.1-win64-6fb6810.zip
+2026-11-07T01:54:48+09:00 [INFO] SHA-256 期待値は C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015439\download\FlashBeat-0.1.1-win64-6fb6810.zip.sha256 から取得しました。
+2026-11-07T01:54:48+09:00 [INFO] 計算した SHA-256: 4b756fe4e6e82b0474c231dfe216d98b5e038550dec60f49965e7ddfeab0fe96
+2026-11-07T01:54:48+09:00 [INFO] 期待する SHA-256: 4b756fe4e6e82b0474c231dfe216d98b5e038550dec60f49965e7ddfeab0fe96
+2026-11-07T01:54:48+09:00 [INFO] SHA-256 検証に成功しました。
+2026-11-07T01:54:51+09:00 [INFO] 展開先: C:\Users\rebui\Desktop\FlashBeat-update-work-20261107-015439\staging
+2026-11-07T01:54:51+09:00 [INFO] 内容検査に合格しました (FlashBeat.exe / FlashBeat_Data / *.dll / 展開物 219 個)
+2026-11-07T01:54:51+09:00 [STEP] 既存配置を退避します (12 項目): C:\Users\rebui\Desktop\FlashBeat-backup-20261107-015439
+2026-11-07T01:54:51+09:00 [STEP] 検証済みの展開物をインストール先へ配置します。
+2026-11-07T01:54:51+09:00 [INFO] 旧版を 1 世代残します: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-015439
+2026-11-07T01:54:51+09:00 [INFO] 旧世代の退避を削除しました: C:\Users\rebui\Desktop\FlashBeat-backup-20261107-015213
+2026-11-07T01:54:51+09:00 [INFO] 更新が完了しました: C:\Users\rebui\Desktop\FlashBeat-Exhibit\FlashBeat.exe
+2026-11-07T01:54:51+09:00 [INFO] FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。

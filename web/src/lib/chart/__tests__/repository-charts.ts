@@ -21,9 +21,26 @@ export function readRepositoryChart(name: string): string {
   return readFileSync(path.join(CHART_DIR, name), "utf8");
 }
 
-/** Names of every chart in `Assets/Game/Resources`. */
+/**
+ * Names of every chart in `Assets/Game/Resources`.
+ *
+ * The folder also holds runtime configuration (for example
+ * `CloudCatalogConfig.json`), so a file only counts as a chart when it carries
+ * the `notes` array of the legacy chart format.
+ */
 export function listRepositoryCharts(): string[] {
   return readdirSync(CHART_DIR)
     .filter((entry) => entry.endsWith(".json"))
+    .filter((entry) => isChartFile(path.join(CHART_DIR, entry)))
     .sort();
+}
+
+/** True when the file is a legacy chart (it has the `notes` array). */
+function isChartFile(filePath: string): boolean {
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, "utf8")) as { notes?: unknown };
+    return Array.isArray(parsed.notes);
+  } catch {
+    return false;
+  }
 }

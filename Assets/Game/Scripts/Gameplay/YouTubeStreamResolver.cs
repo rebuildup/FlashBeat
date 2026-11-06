@@ -96,20 +96,43 @@ namespace FlashBeat.Gameplay
         // yt-dlp / deno discovery
         // ---------------------------------------------------------------
 
+        static string cachedYtDlpPath;
+        static bool ytDlpPathResolved;
+        static string cachedDenoPath;
+        static bool denoPathResolved;
+        static string cachedFfmpegPath;
+        static bool ffmpegPathResolved;
+
         public static string ResolveYtDlpPath()
         {
+            if (ytDlpPathResolved) return cachedYtDlpPath;
+            ytDlpPathResolved = true;
+
             // 1. Explicit override
             var pref = Environment.GetEnvironmentVariable("FLASHBEAT_YTDLP_PATH");
-            if (!string.IsNullOrEmpty(pref) && File.Exists(pref)) return pref;
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedYtDlpPath = pref;
+                return cachedYtDlpPath;
+            }
 
-            // 2. PATH
-            var pathHit = WhereOnPath("yt-dlp.exe");
-            if (pathHit != null) return pathHit;
+            // 2. PATH (a launcher that exists but does not work - the mise shims -
+            //    is skipped, the candidate has to answer to --version)
+            var pathHit = FirstUsable(WhereOnPathAll("yt-dlp.exe"), "--version");
+            if (pathHit != null)
+            {
+                cachedYtDlpPath = pathHit;
+                return cachedYtDlpPath;
+            }
 
             // 3. mise install tree (the mise *shim* is unusable when no version
             //    is pinned, so look at the real install directories).
             var miseHit = FindInVersionedDir("mise", "installs", "yt-dlp", "yt-dlp.exe");
-            if (miseHit != null) return miseHit;
+            if (miseHit != null)
+            {
+                cachedYtDlpPath = miseHit;
+                return cachedYtDlpPath;
+            }
 
             // 4. Common Windows Python install locations
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -123,36 +146,162 @@ namespace FlashBeat.Gameplay
             }
             candidates.Add(Path.Combine(Application.streamingAssetsPath, "yt-dlp", "yt-dlp.exe"));
             candidates.Add(Path.Combine(Application.dataPath, "StreamingAssets", "yt-dlp", "yt-dlp.exe"));
-            foreach (var c in candidates)
-            {
-                try { if (File.Exists(c)) return c; } catch { }
-            }
 
             // 5. Linux/macOS fallbacks
             string[] unixCandidates = { "/usr/local/bin/yt-dlp", "/usr/bin/yt-dlp", "/opt/homebrew/bin/yt-dlp" };
             foreach (var c in unixCandidates)
             {
-                try { if (File.Exists(c)) return c; } catch { }
+                candidates.Add(c);
+            }
+
+            cachedYtDlpPath = FirstUsable(candidates, "--version");
+            return cachedYtDlpPath;
+        }
+
+        public static string ResolveDenoPath()
+        {
+            if (denoPathResolved) return cachedDenoPath;
+            denoPathResolved = true;
+
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_DENO_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedDenoPath = pref;
+                return cachedDenoPath;
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll("deno.exe"), "--version");
+            if (pathHit != null)
+            {
+                cachedDenoPath = pathHit;
+                return cachedDenoPath;
+            }
+
+            var miseHit = FindInVersionedDir("mise", "installs", "deno", "deno.exe");
+            if (miseHit != null)
+            {
+                cachedDenoPath = miseHit;
+                return cachedDenoPath;
+            }
+
+            var miseBinHit = FindInVersionedDir("mise", "installs", "deno", "bin", "deno.exe");
+            if (miseBinHit != null)
+            {
+                cachedDenoPath = miseBinHit;
+            }
+
+            return cachedDenoPath;
+        }
+
+        /// <summary>
+        /// Locates ffmpeg. yt-dlp needs it to merge the video-only and the
+        /// audio-only stream of YouTube into one mp4 - that merged file is the
+        /// only way the YouTube sound reaches Unity's VideoPlayer (a separate
+        /// audio-only m4a is refused: "Failed to recognize video file format").
+        /// Override with FLASHBEAT_FFMPEG_PATH.
+        /// </summary>
+        public static string ResolveFfmpegPath()
+        {
+            if (ffmpegPathResolved) return cachedFfmpegPath;
+            ffmpegPathResolved = true;
+
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_FFMPEG_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedFfmpegPath = pref;
+                return cachedFfmpegPath;
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll("ffmpeg.exe"), "-version");
+            if (pathHit != null)
+            {
+                cachedFfmpegPath = pathHit;
+                return cachedFfmpegPath;
+            }
+
+            var miseHit = FindInVersionedDir("mise", "installs", "ffmpeg", "bin", "ffmpeg.exe");
+            if (miseHit != null)
+            {
+                cachedFfmpegPath = miseHit;
+                return cachedFfmpegPath;
+            }
+
+            var miseFlat = FindInVersionedDir("mise", "installs", "ffmpeg", "ffmpeg.exe");
+            if (miseFlat != null)
+            {
+                cachedFfmpegPath = miseFlat;
+                return cachedFfmpegPath;
+            }
+
+            string[] candidates =
+            {
+                @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\Aeviewer\bin\Win\ffmpeg.exe",
+                @"C:\ffmpeg\bin\ffmpeg.exe",
+                "/usr/local/bin/ffmpeg",
+                "/opt/homebrew/bin/ffmpeg",
+            };
+            foreach (var candidate in candidates)
+            {
+                try { if (File.Exists(candidate)) { cachedFfmpegPath = candidate; return cachedFfmpegPath; } }
+                catch { }
             }
 
             return null;
         }
 
-        public static string ResolveDenoPath()
+        /// <summary>
+        /// Returns the first candidate that exists and answers to <paramref name="versionArgs"/>.
+        /// A launcher that exists but does not work (the mise shims) is skipped.
+        /// </summary>
+        static string FirstUsable(IEnumerable<string> candidates, string versionArgs)
         {
-            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_DENO_PATH");
-            if (!string.IsNullOrEmpty(pref) && File.Exists(pref)) return pref;
-
-            var pathHit = WhereOnPath("deno.exe");
-            if (pathHit != null) return pathHit;
-
-            var miseHit = FindInVersionedDir("mise", "installs", "deno", "deno.exe");
-            if (miseHit != null) return miseHit;
-
-            var miseBinHit = FindInVersionedDir("mise", "installs", "deno", "bin", "deno.exe");
-            if (miseBinHit != null) return miseBinHit;
-
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrEmpty(candidate)) continue;
+                try { if (!File.Exists(candidate)) continue; } catch { continue; }
+                if (IsShim(candidate)) continue;
+                if (RunsSuccessfully(candidate, versionArgs)) return candidate;
+            }
             return null;
+        }
+
+        /// <summary>
+        /// The mise shims are launchers that abort with "No version is set for shim"
+        /// when the tool has no pinned version - they must not be used.
+        /// </summary>
+        static bool IsShim(string path)
+        {
+            var normalized = path.Replace('/', '\\').ToLowerInvariant();
+            return normalized.Contains("\\mise\\shims\\") || normalized.Contains("\\.mise\\shims\\");
+        }
+
+        static bool RunsSuccessfully(string executable, string arguments)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = executable,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null) return false;
+                    proc.StandardOutput.ReadToEnd();
+                    proc.StandardError.ReadToEnd();
+                    if (!proc.WaitForExit(20000)) return false;
+                    return proc.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         static string FindInVersionedDir(string toolDir, string installs, string tool, params string[] tail)
@@ -187,21 +336,23 @@ namespace FlashBeat.Gameplay
             return best;
         }
 
-        static string WhereOnPath(string exeName)
+        /// <summary>All candidates of the executable on the PATH, in PATH order.</summary>
+        static List<string> WhereOnPathAll(string exeName)
         {
+            var hits = new List<string>();
             var path = Environment.GetEnvironmentVariable("PATH");
-            if (string.IsNullOrEmpty(path)) return null;
+            if (string.IsNullOrEmpty(path)) return hits;
             foreach (var dir in path.Split(Path.PathSeparator))
             {
                 if (string.IsNullOrEmpty(dir)) continue;
                 try
                 {
                     var candidate = Path.Combine(dir, exeName);
-                    if (File.Exists(candidate)) return candidate;
+                    if (File.Exists(candidate)) hits.Add(candidate);
                 }
                 catch { }
             }
-            return null;
+            return hits;
         }
 
         // ---------------------------------------------------------------
@@ -281,8 +432,8 @@ namespace FlashBeat.Gameplay
                 }
 
                 result.ExitCode = proc.ExitCode;
-                result.Stdout = await DrainAsync(stdoutTask);
-                result.Stderr = await DrainAsync(stderrTask);
+                result.Stdout = await DrainAsync(stdoutTask).ConfigureAwait(false);
+                result.Stderr = await DrainAsync(stderrTask).ConfigureAwait(false);
             }
 
             return result;
@@ -290,7 +441,7 @@ namespace FlashBeat.Gameplay
 
         static async Task<string> DrainAsync(Task<string> reader)
         {
-            var finished = await Task.WhenAny(reader, Task.Delay(3000));
+            var finished = await Task.WhenAny(reader, Task.Delay(3000)).ConfigureAwait(false);
             if (finished == reader)
             {
                 try { return reader.Result; } catch { return ""; }
@@ -333,11 +484,23 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// Downloads one format to <paramref name="outputTemplate"/>. yt-dlp appends the
         /// container extension, so the caller looks the produced file up afterwards.
+        ///
+        /// A selector with "+" (video itag + audio itag) makes yt-dlp mux both
+        /// streams into one mp4; that needs ffmpeg, so it is passed explicitly.
         /// </summary>
         public static Task<YtDlpOutput> DownloadAsync(string videoId, string formatSelector, string outputTemplate, CancellationToken cancellationToken = default)
         {
-            var args = CommonArguments() + "--no-part -f " + Quote(formatSelector) +
-                       " -o " + Quote(outputTemplate) + " " + Quote(string.Format(WatchUrlFormat, videoId));
+            var args = CommonArguments() + "--no-part -f " + Quote(formatSelector);
+            if (formatSelector != null && formatSelector.Contains("+"))
+            {
+                args += " --merge-output-format mp4";
+                var ffmpeg = ResolveFfmpegPath();
+                if (!string.IsNullOrEmpty(ffmpeg))
+                {
+                    args += " --ffmpeg-location " + Quote(ffmpeg);
+                }
+            }
+            args += " -o " + Quote(outputTemplate) + " " + Quote(string.Format(WatchUrlFormat, videoId));
             return RunAsync(args, 180000, cancellationToken);
         }
 

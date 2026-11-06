@@ -1,0 +1,479 @@
+Mono path[0] = '<USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/Managed'
+Mono config path = '<USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=0x28a1)
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.1742
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.052 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 0.718300 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:\Users\rebui\Desktop\FlashBeat.13\Builds\Windows\FlashBeat_Data\sharedassets0.resource
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.318000 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 1945.
+Total: 1.045500 ms (FindLiveObjects: 0.058200 ms CreateObjectMapping: 0.119600 ms MarkObjects: 0.858400 ms  DeleteObjects: 0.009100 ms)
+
+DirectoryNotFoundException: Could not find a part of the path "C:\tmp\fb13\Assets\Resources\ロストアンブレラ.json".
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x00164] in <816f70bc2a9c4332b0bd119906a8d40e>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <816f70bc2a9c4332b0bd119906a8d40e>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <816f70bc2a9c4332b0bd119906a8d40e>:0 
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append) [0x00008] in <816f70bc2a9c4332b0bd119906a8d40e>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string,bool)
+  at OptionSceneManager.saveSettings (System.Int32 I, SettingItemData newData) [0x0003d] in <f07b0fa09b924f8fbdaea3e76c17eb4e>:0 
+  at OptionSceneManager.TimingUp () [0x00028] in <f07b0fa09b924f8fbdaea3e76c17eb4e>:0 
+  at TitleSceneManager.Start () [0x00022] in <f07b0fa09b924f8fbdaea3e76c17eb4e>:0 
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.839200 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 2862.
+Total: 1.521800 ms (FindLiveObjects: 0.089000 ms CreateObjectMapping: 0.107100 ms MarkObjects: 1.302100 ms  DeleteObjects: 0.023400 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/resources.resource
+ro-dokanryou
+The character with Unicode value \u30CB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CE was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CE was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30B9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C8 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30D6 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30EC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u7A32 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u8449 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u66C7 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30B9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C8 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30D6 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30EC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u7A32 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u8449 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u66C7 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C4 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A4 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30FC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.539600 ms
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 2813.
+Total: 1.017300 ms (FindLiveObjects: 0.074000 ms CreateObjectMapping: 0.125700 ms MarkObjects: 0.741200 ms  DeleteObjects: 0.076200 ms)
+
+[MusicManager] InvidiousVideoPlayer removed for 'まにまに' (yt-dlp takes over)
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/resources.resource
+[MusicManager] yt-dlp -F videoId=9O2VyUM5MlQ formats=38 ok
+[MusicManager]   format sb3 mhtml 48x27 v=images a=
+[MusicManager]   format sb2 mhtml 80x45 v=images a=
+[MusicManager]   format sb1 mhtml 160x90 v=images a=
+[MusicManager]   format sb0 mhtml 320x180 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'まにまに': combined mp4/H.264 itag=18 640x360
+[MusicManager] video file: <USERPROFILE>/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4 (cache)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+First video frame not zero: 1 (0.033333s). Result may be out of sync. Please make sure tracks all start at 0 in C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4
+[MusicManager] picture wired to the renderer of '2' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=video.mp4 after 0.4s
+[MusicManager] media ready: song='まにまに' audioMode=StreamCombined video=ok (bundled wav present) - press Space to start
+[MusicManager] PLAYBACK_START song='まにまに' videoId='9O2VyUM5MlQ' audioMode=StreamCombined mediaTime=0.000 wallClock=2026-11-06T22:53:06.542 gameTime=13.730
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=0
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+The character with Unicode value \u304D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3063 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3068 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u30AD was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u30DF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3063 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3066 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3093 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3060 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.2932 peak=0.4931 video[playing=True frame=8069 prepared=True] perfect=2 great=0 bad=0 miss=0
+Perfect
+Great
+The character with Unicode value \u8AB0 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u305D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u601D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3057 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3087 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+[MusicManager] STATUS mediaTime=4.00 audioMode=StreamCombined rms=0.2507 peak=0.4931 video[playing=True frame=8069 prepared=True] perfect=3 great=1 bad=0 miss=0
+Perfect
+Perfect
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3053 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u50D5 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u63CF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u7406 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u60F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u6B4C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+[MusicManager] STATUS mediaTime=6.00 audioMode=StreamCombined rms=0.2835 peak=0.4931 video[playing=True frame=8069 prepared=True] perfect=5 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=8.00 audioMode=StreamCombined rms=0.4885 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=10 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+The character with Unicode value \u305D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u4F55 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u8A00 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306A was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3044 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=10.00 audioMode=StreamCombined rms=0.3322 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=17 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=12.00 audioMode=StreamCombined rms=0.4242 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=30 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=14.00 audioMode=StreamCombined rms=0.2507 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=37 great=1 bad=0 miss=0
+The character with Unicode value \u3000 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+[MusicManager] STATUS mediaTime=16.00 audioMode=StreamCombined rms=0.1662 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=37 great=1 bad=0 miss=0
+[MusicManager] STATUS mediaTime=18.00 audioMode=StreamCombined rms=0.2868 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=37 great=1 bad=0 miss=0
+[MusicManager] STATUS mediaTime=20.00 audioMode=StreamCombined rms=0.1442 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=37 great=1 bad=0 miss=0
+[MusicManager] STATUS mediaTime=22.03 audioMode=StreamCombined rms=0.1544 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=37 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=24.03 audioMode=StreamCombined rms=0.2780 peak=0.5027 video[playing=True frame=8069 prepared=True] perfect=41 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=26.03 audioMode=StreamCombined rms=0.3678 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=47 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=28.03 audioMode=StreamCombined rms=0.5118 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=53 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=30.03 audioMode=StreamCombined rms=0.2985 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=58 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=32.03 audioMode=StreamCombined rms=0.4385 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=65 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+Perfect
+[MusicManager] STATUS mediaTime=34.03 audioMode=StreamCombined rms=0.3179 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=71 great=1 bad=0 miss=0
+Perfect
+Perfect
+Perfect
+Great
+[MusicManager] STATUS mediaTime=36.03 audioMode=StreamCombined rms=0.1505 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+[MusicManager] STATUS mediaTime=38.03 audioMode=StreamCombined rms=0.1899 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+[MusicManager] STATUS mediaTime=40.03 audioMode=StreamCombined rms=0.1983 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+[MusicManager] STATUS mediaTime=42.03 audioMode=StreamCombined rms=0.1912 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+[MusicManager] STATUS mediaTime=44.03 audioMode=StreamCombined rms=0.3402 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+[MusicManager] STATUS mediaTime=46.03 audioMode=StreamCombined rms=0.2283 peak=0.5471 video[playing=True frame=8069 prepared=True] perfect=74 great=2 bad=0 miss=0
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.921400 ms
+Unloading 90 unused Assets to reduce memory usage. Loaded Objects now: 2161.
+Total: 2.360900 ms (FindLiveObjects: 0.222800 ms CreateObjectMapping: 0.156100 ms MarkObjects: 1.769400 ms  DeleteObjects: 0.212100 ms)
+
+se-bukanryou
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.825800 ms
+Unloading 40 unused Assets to reduce memory usage. Loaded Objects now: 2816.
+Total: 1.497400 ms (FindLiveObjects: 0.155200 ms CreateObjectMapping: 0.180600 ms MarkObjects: 1.056600 ms  DeleteObjects: 0.104800 ms)
+
+[MusicManager] InvidiousVideoPlayer removed for 'まにまに' (yt-dlp takes over)
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. <USERPROFILE>/Desktop/FlashBeat.13/Builds/Windows/FlashBeat_Data/resources.resource
+[MusicManager] yt-dlp -F videoId=9O2VyUM5MlQ formats=38 ok
+[MusicManager]   format sb3 mhtml 48x27 v=images a=
+[MusicManager]   format sb2 mhtml 80x45 v=images a=
+[MusicManager]   format sb1 mhtml 160x90 v=images a=
+[MusicManager]   format sb0 mhtml 320x180 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'まにまに': combined mp4/H.264 itag=18 640x360
+[MusicManager] video file: <USERPROFILE>/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4 (cache)
+First video frame not zero: 1 (0.033333s). Result may be out of sync. Please make sure tracks all start at 0 in C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4
+[MusicManager] picture wired to the renderer of '2' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=video.mp4 after 0.4s
+[MusicManager] media ready: song='まにまに' audioMode=StreamCombined video=ok (bundled wav present) - press Space to start
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

@@ -1,0 +1,140 @@
+name: build-win64
+
+# 展示中も Unity 本体のビルドを展示 PC 以外で行い，展示ビルドの ZIP と
+# SHA-256 を GitHub Releases の材料として出すための経路 (issue #41 / P3)。
+#
+# 前提:
+#   - リポジトリは public なので標準ランナー (windows-latest) の-actions は無料。
+#   - Unity のライセンスは secret 経由で渡す。以下のどちらか:
+#       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
+#       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
+#   - ライセンスが無いとビルドは失敗する (secret 未設定ならジョブは skip される)。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_base:
+        description: "PlayerSettings.bundleVersion の基準バージョン (例: 0.1.1)"
+        required: false
+        default: ""
+      update_channel:
+        description: "更新チャンネル (stable | preview)"
+        required: false
+        default: "stable"
+  push:
+    branches:
+      - main
+    paths:
+      - "Assets/**"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - ".github/workflows/build-win64.yml"
+
+concurrency:
+  group: build-win64-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Win64 ビルド
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      UNITY_VERSION: 6000.5.6f1
+    steps:
+      - name: ソースを取得 (LFS 込み)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Unity ライセンスの secret を確認
+        id: license
+        shell: pwsh
+        run: |
+          $hasUlf = [bool]"${{ secrets.UNITY_LICENSE }}"
+          $hasAccount = [bool]"${{ secrets.UNITY_EMAIL }}" -and [bool]"${{ secrets.UNITY_PASSWORD }}"
+          if (-not ($hasUlf -or $hasAccount)) {
+            Write-Output "::notice::Unity ライセンスの secret が未設定のためビルドを skip します (UNITY_LICENSE または UNITY_EMAIL/UNITY_PASSWORD を設定してください)。"
+            Write-Output "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "skip=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Unity Hub CLI を準備
+        if: steps.license.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $installer = "$env:RUNNER_TEMP\UnityHubSetup.exe"
+          Invoke-WebRequest -Uri "https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe" -OutFile $installer
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
+          $hub = "$env:ProgramFiles\Unity Hub\Unity Hub.exe"
+          if (-not (Test-Path $hub)) { throw "Unity Hub をインストールできませんでした" }
+          "UNITY_HUB=$hub" >> $env:GITHUB_ENV
+
+      - name: Unity Editor をインストール
+        if: steps.license.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          & $env:UNITY_HUB -- --headless install --version "$env:UNITY_VERSION"
+          $editor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor" -Directory |
+                    Where-Object { $_.Name -like "$env:UNITY_VERSION*" } |
+                    Select-Object -First 1
+          if (-not $editor) { throw "Unity $env:UNITY_VERSION をインストールできませんでした" }
+          "UNITY_EDITOR=$($editor.FullName)\Editor\Unity.exe" >> $env:GITHUB_ENV
+          Write-Output "installed: $($editor.FullName)"
+
+      - name: Unity ライセンスを適用
+        if: steps.license.outputs.skip != 'true'
+        uses: game-ci/unity-activate@v4
+        with:
+          unityLicense: ${{ secrets.UNITY_LICENSE }}
+          unityEmail: ${{ secrets.UNITY_EMAIL }}
+          unityPassword: ${{ secrets.UNITY_PASSWORD }}
+          unitySerial: ${{ secrets.UNITY_SERIAL }}
+
+      - name: Win64 ビルド
+        if: steps.license.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'stable' }}
+        run: |
+          $log = "$env:RUNNER_TEMP\build.log"
+          & $env:UNITY_EDITOR -batchmode -nographics -quit `
+              -projectPath "$env:GITHUB_WORKSPACE" `
+              -executeMethod BuildScript.BuildStandaloneWindows64 `
+              -logFile $log
+          Get-Content $log -Tail 200
+          if (-not (Test-Path "$env:GITHUB_WORKSPACE\Builds\Windows\FlashBeat.exe")) {
+            throw "ビルド成果物がありません (Builds\Windows\FlashBeat.exe)"
+          }
+
+      - name: パッケージ (ZIP + SHA-256)
+        if: steps.license.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse --short HEAD).Trim()
+          $full = (git rev-parse HEAD).Trim()
+          $base = "${{ inputs.version_base }}"
+          if (-not $base) { $base = "0.1.0" }
+          $out = "$env:RUNNER_TEMP\dist"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\package-win64.ps1 `
+              -SourceDir "$env:GITHUB_WORKSPACE\Builds\Windows" `
+              -OutDir $out `
+              -Version "$base-win64-$sha" `
+              -CommitSha $full `
+              -MediaPolicy song-free
+          Get-ChildItem $out | Select-Object Name, Length
+
+      - name: 成果物をアップロード
+        if: steps.license.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashbeat-win64-${{ github.sha }}
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+          retention-days: 30

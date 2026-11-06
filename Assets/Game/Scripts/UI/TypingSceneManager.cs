@@ -36,13 +36,13 @@ public class TypingSceneManager : MonoBehaviour
         TPlayed = false;
         MusicPlayed = false;
         nowText = 0;
-        Load(GManager.Songs[GManager.songID].title);
-        furiganaText.text = GManager.Songs[GManager.songID].title;
+        Load(GManager.ActiveSongs[GManager.songID].title);
+        furiganaText.text = GManager.ActiveSongs[GManager.songID].title;
         mondaiText.text = "Space to Start";
         romajiText.text = "";
         display = false;
         audioS = GetComponent<AudioSource>();
-        Music = (AudioClip)Resources.Load("Musics/" + GManager.Songs[GManager.songID].title);
+        Music = (AudioClip)Resources.Load("Musics/" + GManager.ActiveSongs[GManager.songID].title);
         audioS.volume = GManager.mainVolume;
     }
 
@@ -58,7 +58,7 @@ public class TypingSceneManager : MonoBehaviour
         else
         {
             MusicCount += Time.deltaTime;
-            if (MusicCount >= GManager.Songs[GManager.songID].duration)
+            if (MusicCount >= GManager.ActiveSongs[GManager.songID].duration)
             {
                 MusicPlayed = false;
             }
@@ -74,7 +74,7 @@ public class TypingSceneManager : MonoBehaviour
             else
             {
                 MusicCount += Time.deltaTime;
-                if (MusicCount >= GManager.Songs[GManager.songID].duration)
+                if (MusicCount >= GManager.ActiveSongs[GManager.songID].duration)
                 {
                     MusicPlayed = false;
                 }
@@ -104,7 +104,23 @@ public class TypingSceneManager : MonoBehaviour
     {/*
         string inputString = Resources.Load<TextAsset>(SongName+"_text").ToString();
         TextData inputJson = JsonUtility.FromJson<TextData>(inputString);*/
-        string inputString = Resources.Load<TextAsset>(SongName + "_text").ToString();
+        TextAsset textAsset = Resources.Load<TextAsset>(SongName + "_text");
+        if (textAsset == null)
+        {
+            // Cloud Catalog songs (#17) have no local _text resource; keep the
+            // typing scene running with empty lyrics instead of crashing.
+            Debug.LogWarning($"[TypingScene] no text data for '{SongName}' - typing lyrics are empty");
+            this.inputJson = new TextData
+            {
+                StartTime = new float[0],
+                Furigana = new string[0],
+                Mondai = new string[0],
+                romaji = new string[0],
+                EndTime = new float[0],
+            };
+            return;
+        }
+        string inputString = textAsset.ToString();
         this.inputJson = JsonUtility.FromJson<TextData>(inputString);
     }
     private void Correct()

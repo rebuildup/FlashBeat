@@ -9,11 +9,17 @@ export default defineConfig({
     // Worker name of the festival API on workers.dev.
     name: "flashbeat-web",
     // Visibility of the deployed Worker, matching the values the dashboard
-    // shows (workers.dev subdomain enabled, preview URLs enabled, no custom
-    // routes). `void deploy` refuses to republish dashboard-managed settings
-    // it cannot see in the config.
+    // shows (workers.dev subdomain enabled, preview URLs enabled). `void
+    // deploy` refuses to republish dashboard-managed settings it cannot see
+    // in the config, so they must be declared here.
     workers_dev: true,
     preview_urls: true,
+    // Canonical production hostname (issue #9 domain decision). A
+    // `custom_domain: true` route makes Cloudflare create the DNS record and
+    // the TLS certificate automatically; no manual DNS and no plain Worker
+    // Route. The zone `rebuildup.dev` is active on the pinned account and the
+    // hostname has no existing DNS record.
+    routes: [{ pattern: "flashbeat.rebuildup.dev", custom_domain: true }],
     // The single FlashBeat D1 database (created in issue #9). The binding id
     // and the migrations directory are shared with `cf d1 migrations apply`,
     // so both the local migration history and the remote one live in

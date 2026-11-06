@@ -122,38 +122,98 @@ public class OptionSceneManager : MonoBehaviour
         }
     }
 
+    /// <summary>設定を書き込む先。
+    /// 編集環境 (プロジェクト直下で起動) は従来どおり Assets/Resources へ書き出す。
+    /// ビルド版の実行ディレクトリには Assets が無く、書き出しが例外となって
+    /// タイトル画面の処理が中断していたため、ユーザー領域 (persistentDataPath) を使う。</summary>
+    public static string SettingsDirectory()
+    {
+        const string editorDirectory = "Assets/Resources";
+        try
+        {
+            if (Directory.Exists(editorDirectory)) { return editorDirectory; }
+        }
+        catch (Exception) { }
+        return Path.Combine(Application.persistentDataPath, "settings");
+    }
+
+    /// <summary>設定ファイル名 (曲名から作出的安全な名前)。</summary>
+    public static string SettingsFileName(string title)
+    {
+        var name = string.IsNullOrEmpty(title) ? "song" : title;
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+        {
+            name = name.Replace(invalid, '_');
+        }
+        return name + ".json";
+    }
+
     public static void saveSettings(int I,SettingItemData newData)
     {
-        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
-        jsonfileName = GManager.Songs[I].title.ToString();
+        if (newData == null) { return; }
+        if (I < 0 || I >= GManager.ActiveSongs.Length) { return; }
 
-        string jsonstr = JsonUtility.ToJson(newData);
+        jsonfileName = GManager.ActiveSongs[I].title.ToString();
+        try
+        {
+            var directory = SettingsDirectory();
+            if (!Directory.Exists(directory)) { Directory.CreateDirectory(directory); }
+            jsonPath = Path.Combine(directory, SettingsFileName(jsonfileName));
 
-        StreamWriter writer = new StreamWriter(jsonPath, false);
+            string jsonstr = JsonUtility.ToJson(newData);
 
-        writer.Write(jsonstr);
-
-        writer.Flush();
-        writer.Close();
+            using (var writer = new StreamWriter(jsonPath, false))
+            {
+                writer.Write(jsonstr);
+                writer.Flush();
+            }
+        }
+        catch (Exception e)
+        {
+            // 設定の保存に失敗してもゲームは止めない (音量や速度の設定だけ失われる)。
+            Debug.LogWarning("Error saving settings: " + e.Message);
+        }
     }
 
     public static SettingItemData LoadSettings(int I)
     {
-        jsonPath = "Assets/Resources/" + GManager.Songs[I].title + ".json";
-        jsonfileName = GManager.Songs[I].title.ToString(); ;
+        if (I < 0 || I >= GManager.ActiveSongs.Length) { return new SettingItemData(); }
+
+        jsonfileName = GManager.ActiveSongs[I].title.ToString(); ;
         SettingItemData settingData = null;
 
         try
         {
-            string json = Resources.Load<TextAsset>(jsonfileName).ToString();
-            settingData = JsonUtility.FromJson<SettingItemData>(json);
-
+            // 1. ビルド版が保存した設定 (ユーザー領域) を優先する。
+            var savedPath = Path.Combine(SettingsDirectory(), SettingsFileName(jsonfileName));
+            if (File.Exists(savedPath))
+            {
+                settingData = JsonUtility.FromJson<SettingItemData>(File.ReadAllText(savedPath));
+            }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            Debug.LogError("Error loading settings" + e.Message);
+            Debug.LogWarning("Error loading saved settings: " + e.Message);
         }
-        return settingData;
+
+        if (settingData != null) { return settingData; }
+
+        try
+        {
+            // 2. 編集環境の譜面ファイル (Resources) から読む。
+            var asset = Resources.Load<TextAsset>(jsonfileName);
+            if (asset != null)
+            {
+                settingData = JsonUtility.FromJson<SettingItemData>(asset.ToString());
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("Error loading settings: " + e.Message);
+        }
+
+        // 3. どちらにも無ければ既定値を返す (null を返すと呼び出し側で NullReference になる)。
+        return settingData ?? new SettingItemData { name = jsonfileName };
     }
     public void TitleScene()
     {

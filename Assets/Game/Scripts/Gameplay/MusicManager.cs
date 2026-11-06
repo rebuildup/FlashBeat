@@ -74,7 +74,7 @@ public class MusicManager : MonoBehaviour
         GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
-        songName = GManager.Songs[GManager.songID].title;
+        songName = GManager.ActiveSongs[GManager.songID].title;
         audioS = GetComponent<AudioSource>();
         Music = (AudioClip)Resources.Load("Musics/" + songName);
         GManager.played = false;
@@ -87,12 +87,22 @@ public class MusicManager : MonoBehaviour
         {
             YPlayer[i].SetActive(false);
         }
-        YPlayer[GManager.songID].SetActive(true);
-
-        songVideo = VPlayer[GManager.songID];
-        if (songVideo == null && GManager.songID < YPlayer.Length)
+        if (GManager.songID < YPlayer.Length)
         {
-            songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+            YPlayer[GManager.songID].SetActive(true);
+
+            songVideo = VPlayer[GManager.songID];
+            if (songVideo == null)
+            {
+                songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+            }
+        }
+        else
+        {
+            // Cloud Catalog song (#17): no per-song object exists in the scene,
+            // so one dynamic VideoPlayer is created for the remote stream
+            // instead of one object per song.
+            songVideo = CreateRemoteVideoPlayer();
         }
 
         sceneStartTime = Time.time;
@@ -100,6 +110,18 @@ public class MusicManager : MonoBehaviour
 
         load.SetActive(true);
         StartCoroutine(PrepareMediaCoroutine());
+    }
+
+    VideoPlayer CreateRemoteVideoPlayer()
+    {
+        // Cloud Catalog (#17): one reusable player for songs that have no
+        // per-song object in the scene. Rendering follows the default
+        // camera-plane mode; audio goes through the existing AudioSource.
+        GameObject playerObject = new GameObject("FlashBeatRemoteVideo");
+        VideoPlayer player = playerObject.AddComponent<VideoPlayer>();
+        player.playOnAwake = false;
+        player.renderMode = VideoRenderMode.CameraNearPlane;
+        return player;
     }
 
     void AttachLevelProbe()
@@ -120,7 +142,7 @@ public class MusicManager : MonoBehaviour
 
     IEnumerator PrepareMediaCoroutine()
     {
-        var song = GManager.Songs[GManager.songID];
+        var song = GManager.ActiveSongs[GManager.songID];
         string videoId = song.videoId;
 
         // The Invidious player of the package cannot resolve anything today
@@ -140,8 +162,9 @@ public class MusicManager : MonoBehaviour
             Debug.Log($"[MusicManager]   format {formats[i]}");
         }
 
-        var plan = YouTubeMediaCache.SelectPlan(formats);
-        Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary}");
+        var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+        var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
+        Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary} (merge available: {canMerge})");
 
         // 2. Direct URL probe (once per video): documents why the URL cannot be
         //    handed to Media Foundation.
@@ -150,14 +173,31 @@ public class MusicManager : MonoBehaviour
             yield return ProbeDirectUrl(videoId, plan.VideoSelector);
         }
 
-        // 3. Download the media into the local cache.
-        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, YouTubeMediaCache.VideoFilePrefix);
+        // 3. Download the media into the local cache. The merged file has its own
+        //    prefix, so a picture-only file of an earlier revision is not reused.
+        var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
 
+        // The merged file (video + YouTube sound in one mp4) is the wanted state.
+        // If the merge failed (no ffmpeg, download error) the picture still has to
+        // play, so the video-only stream is fetched as the fallback.
+        bool combined = plan.Combined;
+        if (!videoFile.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
+        {
+            Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
+            YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
+            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix);
+            while (!fallbackTask.IsCompleted) yield return null;
+            videoFile = fallbackTask.Result;
+            combined = false;
+            Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
+        }
+
         MediaFileResult audioFile = null;
-        if (plan.HasAudioFile)
+        if (plan.HasAudioFile && !combined)
         {
             var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix);
             while (!audioTask.IsCompleted) yield return null;
@@ -169,20 +209,20 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
-            yield return PrepareLocalVideo(videoFile.Path, plan.Combined);
+            yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
         }
 
         // 5. Prepare the sound player for the split (video only + audio only) case.
         bool audioReady = false;
-        if (!plan.Combined && audioFile != null && audioFile.Ok)
+        if (!combined && audioFile != null && audioFile.Ok)
         {
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
         }
 
         // 6. Decide where the sound comes from.
-        if (plan.Combined && videoReady)
+        if (combined && videoReady)
         {
             audioMode = AudioMode.StreamCombined;
         }
@@ -307,8 +347,72 @@ public class MusicManager : MonoBehaviour
             try { songVideo.EnableAudioTrack(0, true); } catch { }
         }
 
+        if (songVideo.isPrepared)
+        {
+            WireVideoPicture();
+        }
+
         Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
         videoPrepared = songVideo.isPrepared;
+    }
+
+    /// <summary>
+    /// The song object of the scene carries the picture on a quad, but its
+    /// VideoPlayer has no target renderer (the Invidious path never worked, so
+    /// nobody noticed). The renderer is wired at runtime - the scene itself is
+    /// not modified.
+    /// </summary>
+    void WireVideoPicture()
+    {
+        if (songVideo == null) return;
+        if (songVideo.targetMaterialRenderer != null) return;
+
+        var renderer = songVideo.GetComponent<Renderer>();
+        if (renderer == null)
+        {
+            Debug.LogWarning("[MusicManager] the song object has no renderer - the picture stays invisible");
+            return;
+        }
+
+        // renderer.material creates an instance, the shared built-in material is
+        // not touched.
+        var material = renderer.material;
+        const string textureProperty = "_MainTex";
+        if (!material.HasProperty(textureProperty))
+        {
+            Debug.LogWarning($"[MusicManager] material '{material.name}' has no {textureProperty} - the picture stays invisible");
+            return;
+        }
+
+        songVideo.targetMaterialRenderer = renderer;
+        songVideo.targetMaterialProperty = textureProperty;
+
+        // The render mode that draws the picture into a material is resolved by
+        // name, so the code does not depend on the enum member of the Unity
+        // version in use.
+        if (TryGetMaterialRenderMode(out var materialMode))
+        {
+            songVideo.renderMode = materialMode;
+        }
+        else
+        {
+            Debug.LogWarning($"[MusicManager] no material render mode found (modes: {string.Join(", ", Enum.GetNames(typeof(VideoRenderMode)))})");
+        }
+
+        Debug.Log($"[MusicManager] picture wired to the renderer of '{songVideo.gameObject.name}' " +
+                  $"({textureProperty}, renderMode={songVideo.renderMode})");
+    }
+
+    static bool TryGetMaterialRenderMode(out VideoRenderMode mode)
+    {
+        mode = default(VideoRenderMode);
+        foreach (var name in Enum.GetNames(typeof(VideoRenderMode)))
+        {
+            if (name.IndexOf("Material", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            mode = (VideoRenderMode)Enum.Parse(typeof(VideoRenderMode), name);
+            return true;
+        }
+        return false;
     }
 
     IEnumerator PrepareStreamAudio(string path)
@@ -407,11 +511,16 @@ public class MusicManager : MonoBehaviour
             lastStatusLogTime = Time.time;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
             float peak = levelProbe != null ? levelProbe.PeakRms : 0f;
+            string videoState = "-";
+            if (songVideo != null)
+            {
+                videoState = $"playing={songVideo.isPlaying} frame={songVideo.frameCount} prepared={songVideo.isPrepared}";
+            }
             Debug.Log($"[MusicManager] STATUS mediaTime={mediaTime:F2} audioMode={audioMode} rms={rms:F4} peak={peak:F4} " +
-                      $"perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
+                      $"video[{videoState}] perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
         }
 
-        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.Songs[GManager.songID].duration))
+        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.ActiveSongs[GManager.songID].duration))
         {
             resultTriggered = true;
             audioS.volume -= 0.001f;
@@ -452,7 +561,7 @@ public class MusicManager : MonoBehaviour
         StartText.SetActive(false);
         kakusi.SetActive(false);
 
-        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.Songs[GManager.songID].videoId}' " +
+        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.ActiveSongs[GManager.songID].videoId}' " +
                   $"audioMode={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
     }
 
