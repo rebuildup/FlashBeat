@@ -10,7 +10,7 @@
 import { defineHandler } from "void";
 import { and, db, eq } from "void/db";
 import { chartVersions } from "@schema";
-import { SONG_ID_PATTERN, buildChartResponse, parseChartVersion } from "../_read-model";
+import { SONG_ID_PATTERN, buildChartResponse, parseChartVersion, type ChartResponse } from "../_read-model";
 
 export const GET = defineHandler(async (c) => {
   // A missing path parameter cannot match a song id, so it is answered with
@@ -34,13 +34,13 @@ export const GET = defineHandler(async (c) => {
     return c.json({ error: "chart version not found" }, 404);
   }
 
-  let chart: unknown;
+  let response: ChartResponse;
   try {
-    chart = buildChartResponse(songId, version, row.json).chart;
+    response = buildChartResponse(songId, version, row.json);
   } catch {
     return c.json({ error: "stored chart is not valid JSON" }, 500);
   }
 
   c.header("Cache-Control", "no-store");
-  return c.json({ songId, chartVersion: version, chart });
+  return c.json(response);
 });
