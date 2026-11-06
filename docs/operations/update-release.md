@@ -62,6 +62,10 @@
 4. 旧版は 1 世代残す (切戻し用。ユーザー向け UI は不要)
 5. 失敗時 (SHA 不一致 / ネットワーク断 / 二重起動) は更新を中止し現行版を維持
 
+公開前・公開後の判定ルール (タグ命名・バージョン更新・チャンネルの分離・旧 Release の扱い・
+CI の skip の扱い・展示 PC への適用手順・監査チェックリスト) は
+[`release-gate.md`](release-gate.md) にまとめています。
+
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
