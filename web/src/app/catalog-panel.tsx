@@ -74,7 +74,7 @@ const levelBadge = css({
   width: "fit-content",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 export function CatalogPanel({
   status,

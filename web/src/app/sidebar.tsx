@@ -1,4 +1,5 @@
 import { css } from "styled-system/css";
+import { BrandHeader } from "@/components/brand";
 
 export const NAV_ITEMS = [
   { value: "catalog", label: "Catalog", href: "/" },
@@ -22,35 +23,7 @@ const sidebar = css({
 const brand = css({
   alignItems: "center",
   display: "flex",
-  gap: "2",
   paddingInline: "2",
-});
-
-const brandMark = css({
-  alignItems: "center",
-  bg: "colorPalette.solid.bg",
-  borderRadius: "l1",
-  color: "colorPalette.solid.fg",
-  display: "flex",
-  fontSize: "2xs",
-  fontWeight: "bold",
-  height: "6",
-  justifyContent: "center",
-  width: "6",
-});
-
-const brandName = css({
-  color: "fg.default",
-  fontSize: "xs",
-  fontWeight: "semibold",
-  letterSpacing: "0.01em",
-  lineHeight: "1.2",
-});
-
-const brandSubtitle = css({
-  color: "fg.subtle",
-  fontSize: "2xs",
-  lineHeight: "1.2",
 });
 
 const navList = css({
@@ -80,12 +53,7 @@ export function Sidebar() {
   return (
     <aside className={sidebar}>
       <div className={brand}>
-        <span className={brandMark}>FB</span>
-        <span>
-          <span className={brandName}>FlashBeat</span>
-          <br />
-          <span className={brandSubtitle}>Web Studio</span>
-        </span>
+        <BrandHeader />
       </div>
 
       <nav aria-label="Studio" className={navList}>
