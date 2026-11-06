@@ -94,6 +94,10 @@ namespace FlashBeat.Update
         /// </summary>
         private IEnumerator CheckForUpdate()
         {
+            // The flow model only accepts CheckFoundNewVersion while Checking. Without this call the
+            // phase stayed Idle, the 'update available' notice never appeared and F3 did nothing
+            // (silent failure seen on the real device, v0.1.4 -> v0.1.5).
+            Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
 
             // ── -1. 前回の更新結果を反映 (issue #125) ──────────────────
