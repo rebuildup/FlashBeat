@@ -32,7 +32,7 @@ project-init の初期化 prompt をこの repository に適用した時点で�
 
 ### 4. 委譲は route 設定へ分離する
 
-`templates/agent-routing` の CLI と route 契約を `scripts/agent-routing/` に materialize する。provider / model / 認証は dotfiles の `config/agents.toml` を正本とし、repository の `agent-routing.json` には role → route の選択だけを置く。route 不在・quota / 認証失敗は `blocked` とし、暗黙の provider / native subagent fallback をしない。Claude の native `Agent` / `Task` を禁止する hook は、`code-review` の worker 内 subagent と衝突するため導入しない。境界は root contract の policy で示す。
+既存 dotfiles の `agent` CLI と `~/.dotfiles/config/agents.toml` を使用する。FlashBeat 独自の route 設定、dispatch runtime、attempt registry は持たない。2026-11-07 の所有者指示に従い、PR #65 の project-local router を撤去する。既存 Herdr の作業は保存し、Issue #41 に唯一の監督と Worker / quota / SHA を記録する。設定と実測した利用可能性を区別し、明示的に選択したルートだけを使う。
 
 ### 5. delivery 設定を profile に合わせる
 
@@ -76,6 +76,6 @@ repository の `allow_merge_commit=true` / `allow_squash_merge=false` / `allow_r
 ## Re-evaluate
 
 - `skills` CLI が lock の `computedHash` を検証して install できるようになったら、`skills-bootstrap` を簡素化する。
-- Herdr / omp を別 runtime に置き換えたら、`agent-routing` と `herdr-runtime` の採否を見直す。
+- Herdr / omp を別 runtime に置き換えたら、既存 dotfiles router と `herdr-runtime` の採否を見直す。
 - `integration/*` 運用が続くなら、profile 側の release branch 表現を更新するか、`release-x-y-z` へ戻す。
 - code-review / tdd が実際の作業で過剰または無視されるなら、`policy-evaluation` で比較評価して採否を変える。

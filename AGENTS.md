@@ -72,11 +72,11 @@ worktree を作ったら `mise run worktree:setup`、削除前に `mise run work
 - port など共有 mutable state は `.worktree.env` の `PORT` を基準に分ける。
 - worktree は runtime isolation の証明ではない。worker ごとの DB / port / build output は別に分ける。
 
-top-level の委譲は `scripts/agent-routing/agent-routing.json` の role を `scripts/agent-routing/dispatch.mts` で解決する。provider / model / 認証の定義は dotfiles の `config/agents.toml` が正本で、repository には置かない。
+委譲は既存の dotfiles `agent` CLI を使用する。`~/.dotfiles/config/agents.toml` を provider / model / quota scope の唯一の正本とし、`agent routes --json` で設定を確認する。明示的な `agent <harness> <provider>` で応答とツール実行を検証してから割り当てる。設定済みであることを利用可能の証拠にしない。
 
-- route がない、quota / 認証に失敗した、attempt が曖昧な場合は `blocked`。別 provider や native subagent へ無断で fallback しない。
-- worker 内の短い read-only 調査に native subagent を使ってよい。routed worker の置き換えには使わない。
-- Herdr の pane / workspace は表示上の identity で、authority ではない。
+- プロジェクト独自の router / supervisor 基盤を追加しない。唯一の統括監督と active Worker の担当・候補SHA・検証・quota状態は Issue #41 へ記録する。
+- 402/429 は同じ quota scope のルートをまとめて停止し、無限再試行や暗黙の有料 fallback をしない。再割当は明示的なルート選択で行う。
+- Herdr は既存の terminal 管理に使う。pane の running / done / idle だけで進捗や所有権を判断しない。
 
 詳細: `parallel-orchestration`, `herdr-runtime`, `sandbox-runtime`, `worktree-workflow`。
 
@@ -157,10 +157,3 @@ mise run skills-check          # vendored と skills-lock.json の hash 検査
 - `Assets/Resources/` と `Assets/Game/Resources/` の両方に chart JSON がある。新しい曲は `Assets/Game/Resources/` を正とし、legacy 側を更新しない。
 - Unity の実 version は Hub に `6000.6.8f1` も入っているが、project の基準は `ProjectSettings/ProjectVersion.txt` の `6000.5.6f1`。
 - Herdr / omp / Worktrunk / Infisical は host の global mise 設定で管理している。`mise install --locked` は bun / uv / cf / void だけを用意する。agent runtime が無い host では、dotfiles の `agent` と Herdr を先に用意する（[ADR-0001](docs/adr/ADR-0001-agent-environment.md)）。
-
-<!-- project-init:agent-routing:start -->
-## Agent delegation route (project-init)
-Top-level delegated tasks must resolve their role from scripts/agent-routing/agent-routing.json and use scripts/agent-routing/dispatch.mts with Herdr and the specified provider.
-Do not silently substitute native subagents or another provider. A missing route, quota/authentication error, or ambiguous attempt blocks delegation.
-Review/verification independence and resource leases are separate from Herdr display layout.
-<!-- project-init:agent-routing:end -->

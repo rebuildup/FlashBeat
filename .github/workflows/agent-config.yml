@@ -1,8 +1,7 @@
 name: agent-config
 
 # Validates the agent environment itself: vendored Skills match
-# skills-lock.json, the worktree entrypoints parse, and the delegation route
-# resolves. It does not build the game (see build-win64.yml).
+# skills-lock.json and the worktree entrypoints parse. It does not build the game (see build-win64.yml).
 
 on:
   pull_request:
@@ -13,7 +12,6 @@ on:
       - ".agents/skills/**"
       - ".claude/skills/**"
       - "evals/**"
-      - "scripts/agent-routing/**"
       - "scripts/worktree/**"
       - "mise.toml"
       - "mise.lock"
@@ -41,6 +39,3 @@ jobs:
 
       - name: Worktree entrypoints parse
         run: bash -n scripts/worktree/setup.sh scripts/worktree/teardown.sh
-
-      - name: Delegation route resolves
-        run: bun scripts/agent-routing/dispatch.mts plan --config scripts/agent-routing/agent-routing.json --role review
