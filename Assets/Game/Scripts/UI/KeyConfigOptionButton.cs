@@ -145,7 +145,7 @@ public class KeyConfigOptionButton : MonoBehaviour
 
         var buttonLabel = CreateLabel("KeyConfigButtonLabel", buttonGo.transform, 24);
         buttonLabel.text = "キー設定";
-        buttonLabel.alignment = TextAnchor.MiddleCenter;
+        buttonLabel.alignment = TMPro.TextAlignmentOptions.Center;
         var buttonLabelRect = buttonLabel.GetComponent<RectTransform>();
         buttonLabelRect.anchorMin = Vector2.zero;
         buttonLabelRect.anchorMax = Vector2.one;
