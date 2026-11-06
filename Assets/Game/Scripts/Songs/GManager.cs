@@ -14,6 +14,11 @@ public class SongData
     public int totalHits;
     public float duration;
 
+    // Cloud Catalog (#17): set for songs that came from the web API.
+    public bool isRemote;
+    public string remoteId;
+    public int chartVersion;
+
     public SongData(int id, string title, string musician, string videoId, int bpm, int level, int totalHits, float duration)
     {
         this.id = id;
@@ -47,6 +52,26 @@ public class GManager : MonoBehaviour
 
     public static readonly SongData[] Songs = BuildSongs();
 
+    // Cloud Catalog (#17): the fixed arrays above are the offline fallback.
+    // RemoteSongs is a snapshot built from GET /api/v1/catalog (index 0 = the
+    // noSong placeholder, remote songs from index 1); it is null until a
+    // catalog fetch succeeds. Everything that shows or plays a song indexes
+    // ActiveSongs, so a successful catalog switches the game over and any
+    // failure keeps the fixed catalog running.
+    public static SongData[] RemoteSongs;
+    public static bool HasRemoteCatalog => RemoteSongs != null && RemoteSongs.Length > 1;
+    public static SongData[] ActiveSongs => HasRemoteCatalog ? RemoteSongs : Songs;
+
+    public static void ApplyRemoteCatalog(SongData[] remoteSongs)
+    {
+        RemoteSongs = remoteSongs;
+    }
+
+    public static void ClearRemoteCatalog()
+    {
+        RemoteSongs = null;
+    }
+
     private static SongData[] BuildSongs()
     {
         var built = new SongData[SongName.Length];
@@ -73,7 +98,7 @@ public class GManager : MonoBehaviour
     public static float StartTime;
     public static bool played;
     public static int noteTiming = 5;
-    public static int totalSong => Songs.Length - 1;
+    public static int totalSong => ActiveSongs.Length - 1;
 
     public static int combo;
     public static int score;
@@ -99,9 +124,9 @@ public class GManager : MonoBehaviour
 
     public static SongData GetSong(int id)
     {
-        if (id >= 0 && id < Songs.Length)
+        if (id >= 0 && id < ActiveSongs.Length)
         {
-            return Songs[id];
+            return ActiveSongs[id];
         }
         return null;
     }

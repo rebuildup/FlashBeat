@@ -74,7 +74,7 @@ public class MusicManager : MonoBehaviour
         GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
-        songName = GManager.Songs[GManager.songID].title;
+        songName = GManager.ActiveSongs[GManager.songID].title;
         audioS = GetComponent<AudioSource>();
         Music = (AudioClip)Resources.Load("Musics/" + songName);
         GManager.played = false;
@@ -87,12 +87,22 @@ public class MusicManager : MonoBehaviour
         {
             YPlayer[i].SetActive(false);
         }
-        YPlayer[GManager.songID].SetActive(true);
-
-        songVideo = VPlayer[GManager.songID];
-        if (songVideo == null && GManager.songID < YPlayer.Length)
+        if (GManager.songID < YPlayer.Length)
         {
-            songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+            YPlayer[GManager.songID].SetActive(true);
+
+            songVideo = VPlayer[GManager.songID];
+            if (songVideo == null)
+            {
+                songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+            }
+        }
+        else
+        {
+            // Cloud Catalog song (#17): no per-song object exists in the scene,
+            // so one dynamic VideoPlayer is created for the remote stream
+            // instead of one object per song.
+            songVideo = CreateRemoteVideoPlayer();
         }
 
         sceneStartTime = Time.time;
@@ -100,6 +110,18 @@ public class MusicManager : MonoBehaviour
 
         load.SetActive(true);
         StartCoroutine(PrepareMediaCoroutine());
+    }
+
+    VideoPlayer CreateRemoteVideoPlayer()
+    {
+        // Cloud Catalog (#17): one reusable player for songs that have no
+        // per-song object in the scene. Rendering follows the default
+        // camera-plane mode; audio goes through the existing AudioSource.
+        GameObject playerObject = new GameObject("FlashBeatRemoteVideo");
+        VideoPlayer player = playerObject.AddComponent<VideoPlayer>();
+        player.playOnAwake = false;
+        player.renderMode = VideoRenderMode.CameraNearPlane;
+        return player;
     }
 
     void AttachLevelProbe()
@@ -120,7 +142,7 @@ public class MusicManager : MonoBehaviour
 
     IEnumerator PrepareMediaCoroutine()
     {
-        var song = GManager.Songs[GManager.songID];
+        var song = GManager.ActiveSongs[GManager.songID];
         string videoId = song.videoId;
 
         // The Invidious player of the package cannot resolve anything today
@@ -480,7 +502,7 @@ public class MusicManager : MonoBehaviour
                       $"video[{videoState}] perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
         }
 
-        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.Songs[GManager.songID].duration))
+        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.ActiveSongs[GManager.songID].duration))
         {
             resultTriggered = true;
             audioS.volume -= 0.001f;
@@ -521,7 +543,7 @@ public class MusicManager : MonoBehaviour
         StartText.SetActive(false);
         kakusi.SetActive(false);
 
-        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.Songs[GManager.songID].videoId}' " +
+        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.ActiveSongs[GManager.songID].videoId}' " +
                   $"audioMode={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
     }
 

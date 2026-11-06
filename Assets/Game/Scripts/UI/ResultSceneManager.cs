@@ -39,13 +39,13 @@ public class ResultSceneManager : MonoBehaviour
     void Start()
     {
         GManager.BGMtime = 0f;   
-        SongName.text = GManager.Songs[GManager.songID].title;
-        Musician.text = GManager.Songs[GManager.songID].musician;
-        BPM.text = GManager.Songs[GManager.songID].bpm.ToString();
+        SongName.text = GManager.ActiveSongs[GManager.songID].title;
+        Musician.text = GManager.ActiveSongs[GManager.songID].musician;
+        BPM.text = GManager.ActiveSongs[GManager.songID].bpm.ToString();
         
        
-        TotalHit.text = GManager.Songs[GManager.songID].totalHits.ToString();
-        Songlevel.text = GManager.Songs[GManager.songID].level.ToString();
+        TotalHit.text = GManager.ActiveSongs[GManager.songID].totalHits.ToString();
+        Songlevel.text = GManager.ActiveSongs[GManager.songID].level.ToString();
         SongN.text=GManager.songID.ToString();
         
         
@@ -73,12 +73,14 @@ public class ResultSceneManager : MonoBehaviour
         {
             Assessment.text = "C";
         }
-        if (GManager.score >= GManager.Hiscore[GManager.songID])
+        int hiIndex = GManager.songID;
+        if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
+        if (GManager.score >= GManager.Hiscore[hiIndex])
         {
-            GManager.Hiscore[GManager.songID] = GManager.score;
+            GManager.Hiscore[hiIndex] = GManager.score;
         }
-        Hiscore.text = GManager.Hiscore[GManager.songID].ToString();
-        StartCoroutine(FetchThumbnail(GManager.Songs[GManager.songID].videoId, 0));
+        Hiscore.text = GManager.Hiscore[hiIndex].ToString();
+        StartCoroutine(FetchThumbnail(GManager.ActiveSongs[GManager.songID].videoId, 0));
         
     }
     void Update()
