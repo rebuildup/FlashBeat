@@ -39,9 +39,9 @@ Captured from the dev server at `1440×900` and `1280×720` (dark, the shipped t
 | -------------------------------------------- | -------------------------------------------- |
 | ![empty](docs/screenshots/catalog-empty.png) | ![error](docs/screenshots/catalog-error.png) |
 
-| Editor placeholder                         | Publish dialog                                         |
-| ------------------------------------------ | ------------------------------------------------------ |
-| ![editor](docs/screenshots/editor-tab.png) | ![publish dialog](docs/screenshots/publish-dialog.png) |
+| Editor placeholder                         | Publish screen                                    |
+| ------------------------------------------ | ------------------------------------------------- |
+| ![editor](docs/screenshots/editor-tab.png) | ![publish](docs/screenshots/publish-1440x900.png) |
 
 ## Chart editor
 
@@ -51,6 +51,41 @@ YouTube IFrame API. It needs no backend: it opens with a real chart of the Unity
 project and can be used before the publish API exists.
 
 ![chart editor 1280x720](docs/screenshots/chart-editor-1280x720.png)
+
+## Publish screen
+
+`/publish` is the publish screen (issue #19). It shows the metadata of one song next
+to the chart editor and publishes both in one `PUT /api/v1/admin/songs/{songId}`.
+
+![publish 1280x720](docs/screenshots/publish-1280x720.png)
+
+The staff token is typed by the operator in the confirmation dialog. It stays in the
+memory of the browser tab, is never written to disk and is never part of the bundle.
+
+![publish dialog](docs/screenshots/publish-dialog-1440x900.png)
+
+Broken fields are marked while the operator types, and the answer of the API is
+shown next to the publish button.
+
+![publish validation](docs/screenshots/publish-validation-1440x900.png)
+
+![publish success](docs/screenshots/publish-success-1440x900.png)
+
+### Where the request goes
+
+The publish endpoint of issue #16 does not exist yet, so the screen publishes
+against the fixture in `src/lib/publish/mock.ts`. The fixture answers like the
+contract does: same path, same bearer token, same `401` / `422` / `200` answers,
+and it rejects a chart that breaks the frozen chart schema.
+
+`VITE_FLASHBEAT_API_ORIGIN` switches the screen to the real endpoint. The value is
+the origin of the API, or `/` when the API is served by the same worker:
+
+```sh
+VITE_FLASHBEAT_API_ORIGIN=/ vp dev
+```
+
+Without the variable the screen shows `Fixture API` in the header.
 
 ## State
 

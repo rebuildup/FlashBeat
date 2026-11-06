@@ -28,7 +28,8 @@ const NoteGrid = lazy(() => import("./note-grid").then((module) => ({ default: m
 const layout = css({
   display: "grid",
   gridTemplateRows: "auto minmax(0, 1fr)",
-  height: "100dvh",
+  height: "100%",
+  minHeight: 0,
   overflow: "hidden",
 });
 
@@ -105,9 +106,23 @@ export interface ChartEditorProps {
   initialChart: Chart;
   /** YouTube video used by the preview. */
   initialYouTubeId: string;
+  /**
+   * Called with the chart whenever it changes.
+   *
+   * The publish screen needs the chart that is on screen, not the one it
+   * opened with.
+   */
+  onChartChange?: (chart: Chart | null) => void;
+  /** Called with the contract problems of the current chart. */
+  onValidationChange?: (issues: ValidationIssue[]) => void;
 }
 
-export function ChartEditor({ initialChart, initialYouTubeId }: ChartEditorProps) {
+export function ChartEditor({
+  initialChart,
+  initialYouTubeId,
+  onChartChange,
+  onValidationChange,
+}: ChartEditorProps) {
   const [chart, setChart] = useState<Chart | null>(initialChart);
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -119,6 +134,13 @@ export function ChartEditor({ initialChart, initialYouTubeId }: ChartEditorProps
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
 
+  // The callbacks are read through a ref, so a parent that builds a new
+  // function on every render does not restart the effects below.
+  const chartChangeRef = useRef(onChartChange);
+  chartChangeRef.current = onChartChange;
+  const validationChangeRef = useRef(onValidationChange);
+  validationChangeRef.current = onValidationChange;
+
   // Every edit re-checks the contract, so the operator sees a broken chart
   // before it reaches the API. A file that could not be read keeps its own
   // problems on screen.
@@ -126,6 +148,14 @@ export function ChartEditor({ initialChart, initialYouTubeId }: ChartEditorProps
     () => (chart ? validateChart(chart) : importIssues),
     [chart, importIssues],
   );
+
+  useEffect(() => {
+    chartChangeRef.current?.(chart);
+  }, [chart]);
+
+  useEffect(() => {
+    validationChangeRef.current?.(issues);
+  }, [issues]);
 
   const handleImportFile = useCallback(async (file: File) => {
     const text = await file.text();
