@@ -65,6 +65,17 @@ before using the workflow. Re-running `init --force` refreshes the shared
 script/template paths; it does **not** touch `.specify/templates/overrides/`,
 `constitution/`, `organization/`, or `skills-lock.json`.
 
+Verified re-init behavior (scratch worktree, `specify init --here --force` then
+`specify integration install codex|omp`):
+
+- `.specify/templates/overrides/` and `.specify/memory/constitution.md` are unchanged.
+- `init --force` **resets `.specify/integration.json` to the single
+  `--integration` key**, so the `integration install` steps must follow it —
+  `mise run specify-init` does exactly that and reproduces the committed
+  `integration.json` byte-for-byte.
+- Only `.specify/integrations/*.manifest.json` differ afterwards, by their
+  `installed_at` timestamp.
+
 Supported integrations used here: `claude` (Claude Code), `codex` (Codex CLI),
 `omp` (Oh My Pi). All three are declared multi-install safe by upstream.
 
