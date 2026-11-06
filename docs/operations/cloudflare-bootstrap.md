@@ -6,7 +6,7 @@ This file is the preflight record for the Cloudflare side of the festival stack:
 
 ## 1. Authorized scope
 
-Authorized by Issue #9 (owner decision): use the existing Cloudflare account, create **one** FlashBeat Worker and **one** D1 database on the free tier, apply migrations, deploy to `workers.dev`, configure one runtime publishing secret, inspect/rollback deployments. Forbidden: paid plans, new custom domains, mutation of other projects' resources, reuse of another project's Infisical secrets or Cloudflare tokens.
+Authorized by Issue #9 (owner decision): use the existing Cloudflare account, create **one** FlashBeat Worker and **one** D1 database on the free tier, apply migrations, deploy to `workers.dev`, configure one runtime publishing secret, inspect/rollback deployments. Forbidden: paid plans, mutation of other projects' resources, reuse of another project's Infisical secrets or Cloudflare tokens. (Custom domains were originally forbidden; the 2026-11-06 domain decision of issue #9 authorizes exactly one — `flashbeat.rebuildup.dev`, see §8.)
 
 ## 2. Cloudflare account (non-secret facts)
 
@@ -119,7 +119,15 @@ Expected: `tokenValid: true`, account `c6ab6651a5d4d6d0d07686bbd3c3d56f`, deploy
 - **Deploy retry:** `cf deploy` is idempotent per Worker name; a failed upload leaves the previous version serving traffic.
 - **Rollback:** `cf workers deployments list --worker <worker>` → `cf workers deployments create --worker <worker> --versions '[{"version_id":"…","percentage":100}]'` to re-point traffic at an earlier version; Void equivalent: `void project rollback <deployId>`.
 - **D1 rollback:** `cf d1 time-travel` restores a database to a point in time; migrations are applied with `cf d1 migrations apply <database> --dir <dir>` and are recorded in `d1_migrations`, so a failing migration must be reverted by a follow-up migration rather than by editing that table.
-- **Boundaries (do not cross without new authorization):** no paid plan, no custom domain, no change to other projects' Workers/D1/R2/KV, exactly one FlashBeat D1 database, no `.env` committed as source of truth, no secret value printed or written into any log, ticket or commit.
+- **Boundaries (do not cross without new authorization):** no paid plan, no change to other projects' Workers/DNS/R2/KV, exactly one FlashBeat D1 database, no `.env` committed as source of truth, no secret value printed or written into any log, ticket or commit.
+- **Custom domain (authorized 2026-11-06, issue #9 domain decision):** the
+  canonical production hostname is `flashbeat.rebuildup.dev`, attached to the
+  `flashbeat-web` Worker as a **Custom Domain** (`custom_domain: true` route in
+  `web/void.config.ts`), not as a manual-DNS Worker Route. Cloudflare creates
+  the DNS record and the Universal SSL certificate automatically; no paid
+  change. The `rebuildup.dev` zone is active on the pinned account and the
+  hostname had no existing DNS record when attached. `secrets.rebuildup.dev`
+  and every other record/service of the zone are untouched.
 - **Noninteractive rule:** every Cloudflare command runs through `script/with-secrets` (or an explicit `--projectId` / `--env`) so the self-hosted project and environment are always explicit.
 
 ## 9. Handoff
@@ -128,4 +136,4 @@ Expected: `tokenValid: true`, account `c6ab6651a5d4d6d0d07686bbd3c3d56f`, deploy
 |---|---|
 | Void app scaffold + `void connect --platform cloudflare` | #12 |
 | D1 schema + `cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462 --dir <migrations>` | #14 |
-| Catalog/chart/publish API on `workers.dev`, `void secret put FLASHBEAT_ADMIN_TOKEN` (or `cf workers secrets update`) | #15 / #16 |
+| Catalog/chart/publish API on `flashbeat.rebuildup.dev` (Custom Domain) and `workers.dev` fallback, `void secret put FLASHBEAT_ADMIN_TOKEN` (or `cf workers secrets update`) | #15 / #16 |
