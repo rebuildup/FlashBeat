@@ -12,14 +12,25 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class KeyConfigUI : MonoBehaviour
 {
-    private const float PanelWidth = 960f;
+    private const float PanelWidth = 1100f;
+    private const float PanelHeight = 860f;
+    private const float RowHeight = 66f;
     private const float RowFontSize = 26f;
     private const float HeaderFontSize = 32f;
     private const float MessageFontSize = 24f;
+    private const float FooterFontSize = 20f;
+
+    /// <summary>アクセント色 #3FA9F5 (枠・選択バー)。</summary>
+    private static readonly Color AccentColor = new Color(0.247f, 0.663f, 0.961f);
+    /// <summary>パネル本体 #1B1B1B (不透明)。</summary>
+    private static readonly Color PanelColor = new Color(0.106f, 0.106f, 0.106f, 1f);
+    private static readonly Color SelectedRowColor = new Color(0.247f, 0.663f, 0.961f, 0.25f);
 
     private static KeyCode[] bindableKeys;
 
     private readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
+    private readonly List<UnityEngine.UI.Image> rowBackgrounds = new List<UnityEngine.UI.Image>();
+    private readonly List<UnityEngine.UI.Image> accentBars = new List<UnityEngine.UI.Image>();
     private RectTransform panel;
     private TextMeshProUGUI messageLabel;
     private TextMeshProUGUI testLabel;
@@ -66,6 +77,7 @@ public class KeyConfigUI : MonoBehaviour
     private void Update()
     {
         UpdateHint();
+        UpdateBlink();
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
@@ -266,8 +278,39 @@ public class KeyConfigUI : MonoBehaviour
         {
             var label = rows[lane];
             if (label == null) continue;
-            label.text = BuildLaneLabel(lane);
-            label.color = (lane == selectedLane && open) ? new Color(1f, 0.85f, 0.3f) : Color.white;
+            bool selected = lane == selectedLane && open;
+            string text = BuildLaneLabel(lane);
+            if (lane == selectedLane && listening) text += "  キーを押してください…";
+            label.text = text;
+            label.color = selected ? new Color(1f, 0.85f, 0.3f) : Color.white;
+            if (rowBackgrounds.Count > lane && rowBackgrounds[lane] != null)
+            {
+                rowBackgrounds[lane].color = selected ? SelectedRowColor : Color.clear;
+            }
+            if (accentBars.Count > lane && accentBars[lane] != null)
+            {
+                accentBars[lane].gameObject.SetActive(selected);
+            }
+        }
+    }
+
+    /// <summary>listen モード中はアクセント バーを点滅させる。</summary>
+    private void UpdateBlink()
+    {
+        if (accentBars.Count == 0) return;
+        for (int lane = 0; lane < accentBars.Count; lane++)
+        {
+            var bar = accentBars[lane];
+            if (bar == null) continue;
+            if (lane == selectedLane && listening && open)
+            {
+                float a = 0.45f + 0.55f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
+                bar.color = new Color(AccentColor.r, AccentColor.g, AccentColor.b, a);
+            }
+            else
+            {
+                bar.color = AccentColor;
+            }
         }
     }
 
@@ -276,11 +319,13 @@ public class KeyConfigUI : MonoBehaviour
         if (messageLabel == null) return;
         if (listening)
         {
-            messageLabel.text = "レーン " + (selectedLane + 1) + " に割り当てるキーを押してください (Esc で終了 / 同じキーで解除)";
+            messageLabel.text = "レーン " + (selectedLane + 1) + ": 割り当てるキーを押してください… (Esc で終了 / 同じキーで解除)";
+            messageLabel.color = AccentColor;
         }
         else
         {
-            messageLabel.text = "↑↓: レーン選択  Enter: キー入力  Esc: 閉じる (保存)  R: 初期化";
+            messageLabel.text = string.Empty;
+            messageLabel.color = Color.white;
         }
     }
 
@@ -336,11 +381,11 @@ public class KeyConfigUI : MonoBehaviour
 
     private void BuildCanvas()
     {
-        var canvasGO = new GameObject("KeyConfigCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
+        var canvasGO = new GameObject("KeyConfigCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
         canvasGO.transform.SetParent(transform, false);
         var canvas = canvasGO.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 1000;
+        canvas.sortingOrder = 5000;
 
         var scaler = canvasGO.GetComponent<UnityEngine.UI.CanvasScaler>();
         scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -353,35 +398,155 @@ public class KeyConfigUI : MonoBehaviour
     {
         var canvas = GetComponentInChildren<Canvas>().transform;
 
-        panel = new GameObject("Panel", typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
+        // 全画面の暗転バックドロップ (レイキャストを遮ってモーダルにする)
+        panel = new GameObject("KeyConfigModal", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
         panel.SetParent(canvas, false);
-        panel.anchorMin = new Vector2(0.5f, 0.5f);
-        panel.anchorMax = new Vector2(0.5f, 0.5f);
+        panel.anchorMin = Vector2.zero;
+        panel.anchorMax = Vector2.one;
         panel.pivot = new Vector2(0.5f, 0.5f);
-        panel.anchoredPosition = Vector2.zero;
-        panel.sizeDelta = new Vector2(PanelWidth, 0f);
-        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.85f);
+        panel.offsetMin = Vector2.zero;
+        panel.offsetMax = Vector2.zero;
+        var backdrop = panel.GetComponent<UnityEngine.UI.Image>();
+        backdrop.color = new Color(0f, 0f, 0f, 0.85f);
+        backdrop.raycastTarget = true;
 
-        var layout = panel.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
-        layout.padding = new RectOffset(24, 24, 16, 16);
-        layout.spacing = 6f;
+        // 中央のパネル本体 (不透明 #1B1B1B)
+        var body = new GameObject("Panel", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        body.SetParent(panel, false);
+        body.anchorMin = new Vector2(0.5f, 0.5f);
+        body.anchorMax = new Vector2(0.5f, 0.5f);
+        body.pivot = new Vector2(0.5f, 0.5f);
+        body.anchoredPosition = Vector2.zero;
+        body.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        var bodyImage = body.GetComponent<UnityEngine.UI.Image>();
+        bodyImage.color = PanelColor;
+        bodyImage.raycastTarget = true;
+        BuildBorder(body);
+
+        // 内容 (縦並びレイアウト)
+        var content = new GameObject("Content", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
+        content.SetParent(body, false);
+        content.anchorMin = Vector2.zero;
+        content.anchorMax = Vector2.one;
+        content.pivot = new Vector2(0.5f, 0.5f);
+        content.offsetMin = new Vector2(28f, 24f);
+        content.offsetMax = new Vector2(-28f, -24f);
+        var layout = content.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        layout.spacing = 10f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        AddLabel(panel, "KeyConfigHeader", "キー設定 (F2 で開閉)", HeaderFontSize);
+        var header = AddLabel(content, "KeyConfigHeader", "キー設定 (F2 で閉じる)", HeaderFontSize, TextAlignmentOptions.Center);
+        header.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 56f;
+
+        // 8 レーン行 (固定行高 + 選択ハイライト)
+        var rowsRoot = new GameObject("Rows", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
+        rowsRoot.SetParent(content, false);
+        rowsRoot.anchorMin = new Vector2(0f, 1f);
+        rowsRoot.anchorMax = new Vector2(1f, 1f);
+        rowsRoot.pivot = new Vector2(0.5f, 1f);
+        var rowsLayout = rowsRoot.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        rowsLayout.spacing = 4f;
+        rowsLayout.childAlignment = TextAnchor.UpperLeft;
+        rowsLayout.childControlWidth = true;
+        rowsLayout.childControlHeight = true;
+        rowsLayout.childForceExpandWidth = true;
+        rowsLayout.childForceExpandHeight = false;
+        var rowsSize = rowsRoot.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        rowsSize.preferredHeight = KeyBindings.LaneCount * RowHeight + (KeyBindings.LaneCount - 1) * rowsLayout.spacing;
 
         for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
         {
-            var label = AddLabel(panel, "Lane" + lane, BuildLaneLabel(lane), RowFontSize);
-            rows.Add(label);
+            AddRow(rowsRoot, lane);
         }
 
-        messageLabel = AddLabel(panel, "KeyConfigMessage", string.Empty, MessageFontSize);
-        testLabel = AddLabel(panel, "KeyConfigTest", string.Empty, MessageFontSize);
+        messageLabel = AddLabel(content, "KeyConfigMessage", string.Empty, MessageFontSize, TextAlignmentOptions.Left);
+        messageLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 40f;
+
+        testLabel = AddLabel(content, "KeyConfigTest", string.Empty, MessageFontSize, TextAlignmentOptions.Left);
         testLabel.color = new Color(0.6f, 0.9f, 1f);
+        testLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
+
+        var footer = AddLabel(content, "KeyConfigFooter",
+            "↑/↓: レーン選択　Enter: 割り当て開始　Esc: 終了　Backspace: クリア　R: 初期化　F2: 閉じる",
+            FooterFontSize, TextAlignmentOptions.Left);
+        footer.color = new Color(1f, 1f, 1f, 0.75f);
+        footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
+
+        RefreshRows();
+        UpdateMessage();
+    }
+
+    /// <summary>パネルの 2px 枠 (#3FA9F5)。伸縮スプライトを使わず 4 本の Image で描く。</summary>
+    private void BuildBorder(RectTransform body)
+    {
+        AddBorderBar(body, "BorderTop", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 2f));
+        AddBorderBar(body, "BorderBottom", new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 2f));
+        AddBorderBar(body, "BorderLeft", new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(2f, 0f));
+        AddBorderBar(body, "BorderRight", new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(2f, 0f));
+    }
+
+    private void AddBorderBar(RectTransform body, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 sizeDelta)
+    {
+        var bar = new GameObject(name, typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        bar.SetParent(body, false);
+        bar.anchorMin = anchorMin;
+        bar.anchorMax = anchorMax;
+        bar.pivot = pivot;
+        bar.anchoredPosition = Vector2.zero;
+        bar.sizeDelta = sizeDelta;
+        var image = bar.GetComponent<UnityEngine.UI.Image>();
+        image.color = AccentColor;
+        image.raycastTarget = false;
+    }
+
+    /// <summary>レーン行 (固定高・ハイライト背景 + 左端アクセント バー + テキスト)。</summary>
+    private void AddRow(RectTransform parent, int lane)
+    {
+        var row = new GameObject("Lane" + lane, typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        row.SetParent(parent, false);
+        var rowSize = row.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        rowSize.preferredHeight = RowHeight;
+        rowSize.minHeight = RowHeight;
+        var background = row.GetComponent<UnityEngine.UI.Image>();
+        background.color = Color.clear;
+        background.raycastTarget = false;
+
+        var bar = new GameObject("Accent", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        bar.SetParent(row, false);
+        bar.anchorMin = new Vector2(0f, 0f);
+        bar.anchorMax = new Vector2(0f, 1f);
+        bar.pivot = new Vector2(0f, 0.5f);
+        bar.anchoredPosition = Vector2.zero;
+        bar.sizeDelta = new Vector2(8f, 0f);
+        var barImage = bar.GetComponent<UnityEngine.UI.Image>();
+        barImage.color = AccentColor;
+        barImage.raycastTarget = false;
+        bar.gameObject.SetActive(false);
+
+        var labelGO = new GameObject("Text", typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(row, false);
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = BuildLaneLabel(lane);
+        tmp.fontSize = RowFontSize;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.margin = new Vector4(24f, 0f, 12f, 0f);
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
+        var labelRect = tmp.rectTransform;
+        labelRect.anchorMin = new Vector2(0f, 0f);
+        labelRect.anchorMax = new Vector2(1f, 1f);
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        rows.Add(tmp);
+        rowBackgrounds.Add(background);
+        accentBars.Add(barImage);
     }
 
     private void BuildHint()
@@ -405,7 +570,7 @@ public class KeyConfigUI : MonoBehaviour
         rect.sizeDelta = new Vector2(300f, 36f);
     }
 
-    private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize)
+    private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize, TextAlignmentOptions alignment)
     {
         var labelGO = new GameObject(name, typeof(TextMeshProUGUI));
         labelGO.transform.SetParent(parent, false);
@@ -413,7 +578,8 @@ public class KeyConfigUI : MonoBehaviour
         tmp.text = text;
         tmp.fontSize = fontSize;
         tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.alignment = alignment;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
         tmp.raycastTarget = false;
         if (font != null) tmp.font = font;
         var size = labelGO.AddComponent<UnityEngine.UI.LayoutElement>();
@@ -445,7 +611,7 @@ public class KeyConfigUI : MonoBehaviour
     {
         if (hintLabel == null) return;
         string sceneName = SceneManager.GetActiveScene().name;
-        bool show = sceneName == "TitleScene" || sceneName == "SelectScene";
+        bool show = !open && (sceneName == "TitleScene" || sceneName == "SelectScene");
         if (hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);
