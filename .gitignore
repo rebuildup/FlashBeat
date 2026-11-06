@@ -67,3 +67,8 @@ desktop.ini
 /build*.log
 /test-run.log
 
+
+# Unity batch 実行の一時成果物
+TestResults.xml
+TestRun.log
+BuildLog-*.log
