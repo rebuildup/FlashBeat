@@ -20,4 +20,10 @@ export default defineConfig({
       "styled-system": fileURLToPath(new URL("./styled-system", import.meta.url)),
     },
   },
+  fmt: {
+    // The chart fixture is a byte identical copy of
+    // `Assets/Resources/Who.json`; formatting it would break that guarantee.
+    // The drizzle metadata is written by `void db generate`.
+    ignorePatterns: ["db/fixtures/*.json", "db/migrations/meta/*.json"],
+  },
 });

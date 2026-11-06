@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "source": {
+    "name": "flashbeat-web",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "flashbeat",
+        "database_id": "7de6fd23-dd7b-4e21-bddd-b28b33ee0462",
+        "migrations_dir": "./db/migrations"
+      }
+    ]
+  },
+  "resolved": {
+    "name": "flashbeat-web",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "flashbeat",
+        "database_id": "7de6fd23-dd7b-4e21-bddd-b28b33ee0462",
+        "migrations_dir": "./db/migrations"
+      }
+    ],
+    "account_id": "c6ab6651a5d4d6d0d07686bbd3c3d56f"
+  },
+  "text": "{\n  \"name\": \"flashbeat-web\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"flashbeat\",\n      \"database_id\": \"7de6fd23-dd7b-4e21-bddd-b28b33ee0462\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"account_id\": \"c6ab6651a5d4d6d0d07686bbd3c3d56f\"\n}\n"
+}
