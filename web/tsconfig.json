@@ -7,7 +7,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["void/env"],
+    "types": ["void/env", "node"],
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"],
