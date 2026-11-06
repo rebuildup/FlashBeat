@@ -33,6 +33,13 @@ design/ui-size-profiles.json を Unity C# に写し、Title/Select/Game/Result/O
    実行時生成の角丸 9-slice スプライト背景 (border 付きで伸縮しても角が潰れない)、
    KeyCap / Tag / ButtonPrimary / ButtonSecondary / SongRow / RankRow、
    マージン付きエッジ相対アンカーヘルパ。公開 API 一覧をファイル先頭コメントに記載。
+
+### 派生プロファイルの丸め規約 / 9-slice スプライト
+
+- `FhdScaled(scale)`: int フィールドは `Mathf.RoundToInt`、float / Vector2 フィールドは
+  無丸め。全フィールドが同一の scale で一様に縮小される。
+- 角丸 9-slice スプライト: `border = radius + pad(2)`、テクスサイズは
+  `2*(radius+pad) + 1` (中央ストレッチ領域を最低 1px 確保)。
 4. `Assets/Tests/Editor/V5UiTests.cs` — EditMode NUnit:
    プロファイル選択 (1920x1080 / 2560x1440 / 1440x900 / 1024x768 / 1280x720)、
    アンカーヘルパの期待値。

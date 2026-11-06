@@ -132,7 +132,9 @@ namespace FlashBeat.UI.V5
 
             const int pad = 2; // アンチエイリアス用の余白
             int radius = Mathf.Max(1, radiusPx);
-            int size = radius * 2 + pad * 2;
+            // +1: 9-slice の中央ストレッチ領域を最低 1px 確保する
+            // (border の合計 2*(radius+pad) がテクスチャ幅と一致すると中央が 0px になり伸縮しない)。
+            int size = radius * 2 + pad * 2 + 1;
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
             {
                 wrapMode = TextureWrapMode.Clamp,

@@ -55,7 +55,8 @@ namespace FlashBeat.Tests.Editor
             float scale = 768f / 1080f;
             Assert.AreEqual(Mathf.RoundToInt(48 * scale), p.Margin);
             Assert.AreEqual(52f * scale, p.FsXl, 0.001f);
-            Assert.AreEqual(78 * scale, p.RowH, 0.001f);
+            // int フィールドは RoundToInt (Margin と同じ丸め規約)、float フィールドは無丸め。
+            Assert.AreEqual(Mathf.RoundToInt(78 * scale), p.RowH);
         }
 
         [Test]
@@ -75,7 +76,8 @@ namespace FlashBeat.Tests.Editor
         {
             var p = UISizeProfile.FhdScaled(0.5f);
             Assert.AreEqual(24, p.Margin);
-            Assert.AreEqual(26f, p.FsM);
+            // fhd fs_m=30 → 30*0.5。全フィールドが同じ scale で一様に縮小される。
+            Assert.AreEqual(15f, p.FsM);
             Assert.AreEqual(90f, p.FsCombo);
             Assert.AreEqual(new Vector2(230, 400), p.CardCenter);
             Assert.AreEqual(new Vector2(180, 60), p.Btn);

@@ -117,6 +117,7 @@ namespace FlashBeat.UI.V5
         /// <summary>
         /// fhd プロファイルを scale 倍に縮めた派生プロファイル。
         /// fhd より小さい画面 (1024x768 / 1280x720 など) 用。UI がクリップしないよう全体を縮小する。
+        /// 丸め規約: int フィールドは Mathf.RoundToInt、float / Vector2 フィールドは無丸め (全フィールド同一の scale)。
         /// </summary>
         public static UISizeProfile FhdScaled(float scale)
         {
