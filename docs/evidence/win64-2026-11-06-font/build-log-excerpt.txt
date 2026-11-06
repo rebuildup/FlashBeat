@@ -1,0 +1,3 @@
+7183:[BuildScript] Starting StandaloneWindows64 Build...
+15995:[BuildScript] Build succeeded: 1588334450 bytes, output to C:\Users\rebui\Desktop\FlashBeat.27\Builds\Windows\FlashBeat.exe
+error CS count: 0
