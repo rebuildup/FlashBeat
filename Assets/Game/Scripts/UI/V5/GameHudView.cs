@@ -108,7 +108,7 @@ namespace FlashBeat.UI.V5
             rankLe.minWidth = p.FsL * 2.5f;
             rankText = rank;
 
-            var scoreCol = V5GameUi.Column(row.gameObject, "Score", 6f * s, TextAnchor.UpperRight);
+            var scoreCol = V5GameUi.Column(row.gameObject, "ScoreCol", 6f * s, TextAnchor.UpperRight);
             scoreCol.childControlWidth = true;
             var scoreLe = scoreCol.gameObject.AddComponent<LayoutElement>();
             scoreLe.flexibleWidth = 1f;

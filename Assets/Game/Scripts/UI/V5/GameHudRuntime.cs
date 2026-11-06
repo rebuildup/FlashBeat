@@ -63,6 +63,7 @@ namespace FlashBeat.UI.V5
         private bool videoError;
         private float loadingSeconds;
         private GameObject legacyMenuPanel;
+        private GameObject legacyLoadingIndicator;
 
         private void Start()
         {
@@ -130,30 +131,9 @@ namespace FlashBeat.UI.V5
             // レガシーのポーズメニュー (Animator 付き) が開かないようにする。
             // GameSceneManager の Esc ハンドラが毎回 OpenMenu するため、
             // 開いた直後に閉じて、歌詞パネルの非表示フラグを元に戻す。
-            KeepLegacyMenuClosed();
-        }
-
-        private bool IsLegacyLoadingIndicatorActive()
-        {
-            // MusicManager が準備中に active にする既存 UI (HudPlayStatus と同じ観測)。
-            // GameObject は active のまま (シグナル保持)、見た目だけ Start で無効化済み。
-            var scene = gameObject.scene;
-            var roots = scene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                if (roots[i].name == "loadingmovie" || roots[i].name == "loadingmovie (1)")
-                {
-                    if (roots[i].activeInHierarchy) return true;
-                }
-            }
-            return false;
-        }
-
-        private void KeepLegacyMenuClosed()
-        {
             if (legacyMenuPanel == null)
             {
-                legacyMenuPanel = FindInactiveByName("MenuPanel");
+                legacyMenuPanel = FindFirstDeep("MenuPanel");
                 if (legacyMenuPanel == null) return;
             }
             if (legacyMenuPanel.activeSelf)
@@ -163,17 +143,11 @@ namespace FlashBeat.UI.V5
             }
         }
 
-        /// <summary>非アクティブも含めて名前でシーン内のオブジェクトを探す (起動時の 1 回用)。</summary>
-        private GameObject FindInactiveByName(string name)
+        private bool IsLegacyLoadingIndicatorActive()
         {
-            var roots = gameObject.scene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                if (roots[i].name == name) return roots[i];
-                var t = roots[i].transform.Find(name);
-                if (t != null) return t.gameObject;
-            }
-            return null;
+            // MusicManager が準備中に active にする既存 UI (HudPlayStatus と同じ観測)。
+            // GameObject は active のまま (シグナル保持)、見た目だけ Start で無効化済み。
+            return legacyLoadingIndicator != null && legacyLoadingIndicator.activeInHierarchy;
         }
 
         /// <summary>
@@ -195,35 +169,62 @@ namespace FlashBeat.UI.V5
 
         /// <summary>
         /// v5 側が担うレガシー HUD を隠す。歌詞 (TextPanel) は残す。
-        /// loadingmovie は GameObject を残す (ロード中シグナル) ので見た目だけ無効化。
+        /// 対象は Canvas 配下など階層のどこにあっても良い (起動時の 1 回の全探索)。
         /// </summary>
         private void HideLegacyHud()
         {
-            var scene = gameObject.scene;
-            var roots = scene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length; i++)
+            var roots = gameObject.scene.GetRootGameObjects();
+            foreach (var name in LegacyHideNames)
             {
-                var root = roots[i];
-                string n = root.name;
-                switch (n)
+                foreach (var go in FindAllDeep(roots, name))
                 {
-                    case "SpacetoStart":
-                    case "ScoreText":
-                    case "comboText":
-                    case "Score":
-                    case "Gauge":
-                    case "HudStatus":
-                    case "HudBackToSelectButton":
-                    case "MenuPanel":
-                    case "MenuButton":
-                        root.SetActive(false);
-                        break;
-                    case "loadingmovie":
-                    case "loadingmovie (1)":
-                        DisableVisuals(root);
-                        break;
+                    go.SetActive(false);
                 }
             }
+
+            // loadingmovie は GameObject を active のまま (ロード中シグナル)、見た目だけ無効化
+            foreach (var name in LegacyLoadingNames)
+            {
+                foreach (var go in FindAllDeep(roots, name))
+                {
+                    DisableVisuals(go);
+                    if (legacyLoadingIndicator == null) legacyLoadingIndicator = go;
+                }
+            }
+        }
+
+        private static readonly string[] LegacyHideNames =
+        {
+            "SpacetoStart", "ScoreText", "comboText", "Score", "Gauge",
+            "HudStatus", "HudBackToSelectButton", "MenuPanel", "MenuButton",
+        };
+
+        private static readonly string[] LegacyLoadingNames = { "loadingmovie", "loadingmovie (1)" };
+
+        /// <summary>非アクティブも含めて名前が一致する全オブジェクトを返す (起動時の 1 回用)。</summary>
+        private static List<GameObject> FindAllDeep(GameObject[] roots, string name)
+        {
+            var found = new List<GameObject>();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                var children = roots[i].GetComponentsInChildren<Transform>(true);
+                for (int j = 0; j < children.Length; j++)
+                {
+                    if (children[j].name == name && !found.Contains(children[j].gameObject))
+                    {
+                        found.Add(children[j].gameObject);
+                    }
+                }
+            }
+            return found;
+        }
+
+        /// <summary>非アクティブも含めて名前で最初の 1 つを返す (LateUpdate の初回用)。</summary>
+        private GameObject FindFirstDeep(string name)
+        {
+            var roots = gameObject.scene.GetRootGameObjects();
+            var found = FindAllDeep(roots, name);
+            return found.Count > 0 ? found[0] : null;
         }
 
         private static void DisableVisuals(GameObject go)
