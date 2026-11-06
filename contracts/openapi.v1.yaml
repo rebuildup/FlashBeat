@@ -1,0 +1,394 @@
+openapi: 3.1.0
+info:
+  title: FlashBeat Cloud API
+  version: 1.0.0
+  description: Contract-first v1 for Web Studio, Cloudflare Worker, and Unity Player. Public charts are immutable.
+paths:
+  /api/v1/health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Service available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, apiVersion]
+                properties:
+                  ok: { type: boolean }
+                  apiVersion: { type: string, const: '1' }
+  /api/v1/catalog:
+    get:
+      operationId: getCatalog
+      description: Poll in the select scene; ETag/If-None-Match; no CDN cache. Never mutate in-progress play.
+      parameters:
+        - in: header
+          name: If-None-Match
+          schema: { type: string }
+      responses:
+        '200':
+          description: Published catalog; Cache-Control no-store, ETag of catalogRevision.
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogResponse' }
+        '304': { description: Unchanged catalog }
+  /api/v1/charts/{chartId}/revisions/{revisionId}:
+    get:
+      operationId: getChartRevision
+      description: Immutable published snapshot, usable for in-progress play after a newer revision is published.
+      parameters:
+        - { $ref: '#/components/parameters/ChartId' }
+        - { $ref: '#/components/parameters/RevisionId' }
+      responses:
+        '200':
+          description: Immutable chart snapshot
+          content:
+            application/json:
+              schema: { $ref: './schemas/chart-revision.v1.schema.json' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/guests:
+    post:
+      operationId: createGuest
+      description: Event-scoped pseudonymous guest. Rate limited; never trust nickname as identity.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nickname]
+              properties:
+                nickname: { type: string, minLength: 1, maxLength: 16 }
+      responses:
+        '201':
+          description: One opaque guest credential for optional persistence in client preferences.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playerId, guestToken, expiresAt]
+                properties:
+                  playerId: { type: string }
+                  guestToken: { type: string, description: Secret bearer token, never log or embed in app binary }
+                  expiresAt: { type: string, format: date-time }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/v1/plays:
+    post:
+      operationId: startPlay
+      security: [{ guestBearer: [] }]
+      description: Bind one play to immutable chartId + revisionId; server sets creation timestamp.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [chartId, revisionId]
+              properties:
+                chartId: { type: string }
+                revisionId: { type: string }
+      responses:
+        '201':
+          description: Session started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlaySession' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/plays/{sessionId}/result:
+    put:
+      operationId: finishPlay
+      security: [{ guestBearer: [] }]
+      description: Idempotent for identical result; conflicting retry returns 409. Server recalculates score.
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlayResultInput' }
+      responses:
+        '200':
+          description: Accepted result and provisional leaderboard placement
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayResultResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/InvalidData' }
+  /api/v1/leaderboards:
+    get:
+      operationId: getLeaderboard
+      description: Festival casual/unverified ranking, partitioned by chart revision and scoring version.
+      parameters:
+        - { in: query, name: chartId, required: true, schema: { type: string } }
+        - { in: query, name: revisionId, required: true, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Best score per event guest, descending score and ascending achievedAt for ties.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaderboardResponse' }
+  /api/v1/admin/songs:
+    post:
+      operationId: createSong
+      security: [{ staffAccess: [] }]
+      description: Staff-only. User-supplied song info, no media uploaded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, artist]
+              additionalProperties: false
+              properties:
+                title: { type: string, minLength: 1, maxLength: 160 }
+                artist: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        '201':
+          description: New stable songId
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songId]
+                properties:
+                  songId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/admin/charts:
+    post:
+      operationId: createChartDraft
+      security: [{ staffAccess: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './schemas/chart-candidate.v1.schema.json' }
+      responses:
+        '201':
+          description: Draft created. Chart ID allocated by server; candidate chartId must match or be newly allocated through a separate creation transaction.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DraftResponse' }
+        '422': { $ref: '#/components/responses/InvalidData' }
+  /api/v1/admin/charts/{chartId}/draft:
+    get:
+      operationId: getDraft
+      security: [{ staffAccess: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ChartId' }
+      responses:
+        '200':
+          description: Current editable draft
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DraftResponse' }
+    put:
+      operationId: saveDraft
+      security: [{ staffAccess: [] }]
+      description: Optimistic concurrency with If-Match draft version, preventing Mac/Win staff overwrites.
+      parameters:
+        - { $ref: '#/components/parameters/ChartId' }
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './schemas/chart-candidate.v1.schema.json' }
+      responses:
+        '200':
+          description: Updated draft
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DraftResponse' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/InvalidData' }
+  /api/v1/admin/charts/{chartId}/publish:
+    post:
+      operationId: publishChart
+      security: [{ staffAccess: [] }]
+      description: Validate immutable snapshot, atomically insert revision + update published pointer and catalogRevision.
+      parameters:
+        - { $ref: '#/components/parameters/ChartId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expectedDraftVersion]
+              properties:
+                expectedDraftVersion: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Newly published snapshot pointer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [chartId, revisionId, catalogRevision]
+                properties:
+                  chartId: { type: string }
+                  revisionId: { type: string }
+                  catalogRevision: { type: integer }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/InvalidData' }
+components:
+  securitySchemes:
+    guestBearer:
+      type: http
+      scheme: bearer
+      description: Opaque event guest token stored hashed server-side.
+    staffAccess:
+      type: http
+      scheme: bearer
+      description: Cloudflare Access authenticated staff identity; verify signed Access assertion at the Worker route.
+  parameters:
+    ChartId:
+      in: path
+      name: chartId
+      required: true
+      schema: { type: string }
+    RevisionId:
+      in: path
+      name: revisionId
+      required: true
+      schema: { type: string }
+  schemas:
+    CatalogResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, catalogRevision, eventId, songs]
+      properties:
+        apiVersion: { type: integer, const: 1 }
+        catalogRevision: { type: integer, minimum: 0 }
+        eventId: { type: string }
+        songs:
+          type: array
+          items: { $ref: '#/components/schemas/SongSummary' }
+    SongSummary:
+      type: object
+      additionalProperties: false
+      required: [songId, title, artist, charts]
+      properties:
+        songId: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        charts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [chartId, revisionId, difficulty, level, noteCount, scoringVersion]
+            properties:
+              chartId: { type: string }
+              revisionId: { type: string }
+              difficulty: { type: string, enum: [easy, normal, hard, expert] }
+              level: { type: integer }
+              noteCount: { type: integer }
+              scoringVersion: { type: string, const: fb-tap-v1 }
+    DraftResponse:
+      type: object
+      required: [chartId, draftVersion, candidate]
+      properties:
+        chartId: { type: string }
+        draftVersion: { type: integer }
+        candidate: { $ref: './schemas/chart-candidate.v1.schema.json' }
+    PlaySession:
+      type: object
+      additionalProperties: false
+      required: [sessionId, chartId, revisionId, expiresAt]
+      properties:
+        sessionId: { type: string }
+        chartId: { type: string }
+        revisionId: { type: string }
+        expiresAt: { type: string, format: date-time }
+    PlayResultInput:
+      type: object
+      additionalProperties: false
+      required: [perfect, great, bad, miss, maxCombo, playedDurationMs]
+      properties:
+        perfect: { type: integer, minimum: 0 }
+        great: { type: integer, minimum: 0 }
+        bad: { type: integer, minimum: 0 }
+        miss: { type: integer, minimum: 0 }
+        maxCombo: { type: integer, minimum: 0 }
+        playedDurationMs: { type: integer, minimum: 0 }
+    PlayResultResponse:
+      type: object
+      additionalProperties: false
+      required: [sessionId, score, accepted, rankingTrust]
+      properties:
+        sessionId: { type: string }
+        score: { type: integer, minimum: 0, maximum: 1000000 }
+        accepted: { type: boolean }
+        rankingTrust: { type: string, const: client-unverified }
+    LeaderboardResponse:
+      type: object
+      required: [chartId, revisionId, rankingTrust, entries]
+      properties:
+        chartId: { type: string }
+        revisionId: { type: string }
+        rankingTrust: { type: string, const: client-unverified }
+        entries:
+          type: array
+          items:
+            type: object
+            required: [rank, playerId, nickname, score, achievedAt]
+            properties:
+              rank: { type: integer }
+              playerId: { type: string }
+              nickname: { type: string }
+              score: { type: integer }
+              achievedAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, requestId]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        requestId: { type: string }
+        detail: { type: string }
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Not authorized
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Revision conflict or duplicate contradictory play submission
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InvalidData:
+      description: Contract/business-rule validation failure
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Too many requests
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
