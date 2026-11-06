@@ -26,8 +26,6 @@ namespace FlashBeat.UI.V5
         //   1024x768 (x0.71) / 1280x720 (x0.667) でも比率を保ち、決してクリップしない。
         //   mac は 900px 高で設計済みのため縮小不要。
 
-        public readonly int ScreenWidth;
-        public readonly int ScreenHeight;
         public readonly string Name;
         public readonly float Scale;
 
@@ -146,9 +144,11 @@ namespace FlashBeat.UI.V5
         }
 
         private static UISizeProfile cached;
+        private static int cachedWidth;
+        private static int cachedHeight;
 
         /// <summary>
-        /// 現在の Screen.width/height に対応するプロファイル (フレーム内キャッシュ)。
+        /// 現在の Screen.width/height に対応するプロファイル (キャッシュ)。
         /// 解像度変更は <see cref="CanvasConfigurator"/> が検知して再適用する。
         /// </summary>
         public static UISizeProfile Current
@@ -157,9 +157,11 @@ namespace FlashBeat.UI.V5
             {
                 var w = Screen.width;
                 var h = Screen.height;
-                if (cached == null || cached.ScreenWidth != w || cached.ScreenHeight != h)
+                if (cached == null || cachedWidth != w || cachedHeight != h)
                 {
                     cached = Select(w, h);
+                    cachedWidth = w;
+                    cachedHeight = h;
                 }
 
                 return cached;

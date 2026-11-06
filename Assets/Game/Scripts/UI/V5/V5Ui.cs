@@ -220,7 +220,7 @@ namespace FlashBeat.UI.V5
         public static GameObject KeyCap(GameObject parent, string label, Vector2 size)
         {
             var go = Panel(parent, "KeyCap " + label, size, V5Tokens.ControlBg, V5Tokens.RadiusSmall);
-            StretchText(go, "Key", label, UISizeProfile.Fhd().FsS, V5Tokens.TextMuted);
+            StretchText(go, "Key", label, UISizeProfile.Current.FsS, V5Tokens.TextMuted);
             return go;
         }
 
@@ -228,7 +228,7 @@ namespace FlashBeat.UI.V5
         public static GameObject Tag(GameObject parent, string label, Vector2 size)
         {
             var go = Panel(parent, "Tag " + label, size, V5Tokens.ControlBg, V5Tokens.RadiusSmall);
-            StretchText(go, "Text", label, UISizeProfile.Fhd().FsS, V5Tokens.Text);
+            StretchText(go, "Text", label, UISizeProfile.Current.FsS, V5Tokens.Text);
             return go;
         }
 
@@ -321,7 +321,7 @@ namespace FlashBeat.UI.V5
         private static GameObject MakeButton(GameObject parent, string label, Vector2 size, Color bg, Color labelColor)
         {
             var go = Panel(parent, "Button " + label, size, bg, V5Tokens.RadiusMedium);
-            StretchText(go, "Label", label, UISizeProfile.Fhd().FsM, labelColor, FontStyles.Bold);
+            StretchText(go, "Label", label, UISizeProfile.Current.FsM, labelColor, FontStyles.Bold);
             go.AddComponent<Button>();
             return go;
         }

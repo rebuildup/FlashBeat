@@ -200,10 +200,10 @@ namespace FlashBeat.Tests.Editor
             root.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 1080);
 
             var song = V5Ui.SongRow(root, "Poison", "LeaF", "10");
-            Assert.AreEqual(UISizeProfile.Fhd().RowH, song.GetComponent<RectTransform>().sizeDelta.y, 0.01f);
+            Assert.AreEqual(UISizeProfile.Current.RowH, song.GetComponent<RectTransform>().sizeDelta.y, 0.01f);
 
             var rank = V5Ui.RankRow(root, "1", "AAA", "1,000,000");
-            Assert.AreEqual(UISizeProfile.Fhd().RowH * (56f / 72f), rank.GetComponent<RectTransform>().sizeDelta.y, 0.01f);
+            Assert.AreEqual(UISizeProfile.Current.RowH * (56f / 72f), rank.GetComponent<RectTransform>().sizeDelta.y, 0.01f);
             Object.DestroyImmediate(root);
         }
     }
