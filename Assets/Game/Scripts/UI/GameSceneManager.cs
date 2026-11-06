@@ -81,8 +81,7 @@ public class GameSceneManager : MonoBehaviour
 
     private void Start()
     {
-
-
+        KeyGuideUI.Create(transform);
         Flash.SetActive(true);
         gauge.fillAmount = 0;
         sounds = GetComponent<AudioSource>();

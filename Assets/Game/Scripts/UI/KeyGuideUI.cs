@@ -1,0 +1,181 @@
+using System.Collections.Generic;
+using System.Text;
+using TMPro;
+using UnityEngine;
+
+/// <summary>
+/// ゲーム中に開閉できる 8 レーン分のキーガイド HUD。
+/// 表示内容は Judge.LaneKeys (正本) から常に生成されるため、判定と表示がずれない。
+/// GameSceneManager がシーン開始時に生成し、Tab キーまたは HUD ボタンで開閉する。
+/// </summary>
+public class KeyGuideUI : MonoBehaviour
+{
+    private const float PanelWidth = 780f;
+    private const float RowFontSize = 24f;
+    private const float HeaderFontSize = 28f;
+
+    private readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
+    private RectTransform panel;
+    private TMP_FontAsset font;
+    private bool visible;
+
+    /// <summary>シーンにガイドを生成する。GameSceneManager から呼ばれる。</summary>
+    public static KeyGuideUI Create(Transform parent)
+    {
+        var go = new GameObject("KeyGuideUI");
+        if (parent != null) go.transform.SetParent(parent, false);
+        return go.AddComponent<KeyGuideUI>();
+    }
+
+    private void Awake()
+    {
+        BuildUI();
+        SetVisible(false); // 既定では非表示 (ゲームプレーを邪魔しない)
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Tab)) Toggle();
+    }
+
+    public void Toggle()
+    {
+        SetVisible(!visible);
+    }
+
+    public void SetVisible(bool value)
+    {
+        visible = value;
+        if (panel != null) panel.gameObject.SetActive(value);
+    }
+
+    private void BuildUI()
+    {
+        font = FindObjectOfType<TextMeshProUGUI>()?.font;
+        var canvasGO = new GameObject("KeyGuideCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
+        canvasGO.transform.SetParent(transform, false);
+        var canvas = canvasGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 500;
+
+        panel = new GameObject("Panel", typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
+        panel.SetParent(canvasGO.transform, false);
+        panel.anchorMin = new Vector2(1f, 0f);
+        panel.anchorMax = new Vector2(1f, 0f);
+        panel.pivot = new Vector2(1f, 0f);
+        panel.anchoredPosition = new Vector2(-16f, 96f);
+        panel.sizeDelta = new Vector2(PanelWidth, 0f);
+
+        var layout = panel.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        layout.padding = new RectOffset(12, 12, 8, 8);
+        layout.spacing = 4f;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        AddLabel(panel, "KeyGuideHeader", "キーガイド (Tab で開閉)", HeaderFontSize);
+
+        for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+        {
+            AddLabel(panel, "Lane" + lane, BuildLaneLabel(lane), RowFontSize);
+        }
+
+        CreateToggleButton(canvasGO.transform);
+    }
+
+    private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize)
+    {
+        var labelGO = new GameObject(name, typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(parent, false);
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.fontSize = fontSize;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
+        var size = labelGO.AddComponent<UnityEngine.UI.LayoutElement>();
+        size.minHeight = fontSize + 6f;
+        return tmp;
+    }
+
+    private void CreateToggleButton(Transform parent)
+    {
+        var buttonGO = new GameObject("KeyGuideToggle", typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+        buttonGO.transform.SetParent(parent, false);
+        var rect = buttonGO.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 0f);
+        rect.anchorMax = new Vector2(1f, 0f);
+        rect.pivot = new Vector2(1f, 0f);
+        rect.anchoredPosition = new Vector2(-16f, 16f);
+        rect.sizeDelta = new Vector2(120f, 40f);
+        buttonGO.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.4f);
+        buttonGO.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(Toggle);
+
+        var labelGO = new GameObject("Label", typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(buttonGO.transform, false);
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = "Keys";
+        tmp.fontSize = 22f;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.rectTransform.anchorMin = Vector2.zero;
+        tmp.rectTransform.anchorMax = Vector2.one;
+        tmp.rectTransform.sizeDelta = Vector2.zero;
+        tmp.raycastTarget = false;
+    }
+
+    /// <summary>レーンの見出し行 ("Lane N:") を返す。テストからも参照される。</summary>
+    public static string BuildLaneHeader(int lane)
+    {
+        return "Lane " + lane + ":";
+    }
+
+    /// <summary>Judge.LaneKeys[lane] の全キーを表示用に整形して返す (表示名は GetKeyDisplayName)。</summary>
+    public static string BuildLaneLabel(int lane)
+    {
+        KeyCode[] keys = Judge.LaneKeys[lane];
+        var sb = new StringBuilder();
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (i > 0) sb.Append(' ');
+            sb.Append(GetKeyDisplayName(keys[i]));
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>キーの表示名。記号キーは JIS 配列上の刻印、文字キーは Enum 名をそのまま使う。</summary>
+    public static string GetKeyDisplayName(KeyCode key)
+    {
+        switch (key)
+        {
+            case KeyCode.Minus: return "-";
+            case KeyCode.Equals: return "=";
+            case KeyCode.Caret: return "^";
+            case KeyCode.At: return "@";
+            case KeyCode.LeftBracket: return "[";
+            case KeyCode.RightBracket: return "]";
+            case KeyCode.Semicolon: return ";";
+            case KeyCode.Colon: return ":";
+            case KeyCode.Backslash: return "\\";
+            case KeyCode.BackQuote: return "`";
+            case KeyCode.Slash: return "/";
+            case KeyCode.Underscore: return "_";
+            case KeyCode.Asterisk: return "*";
+            case KeyCode.Comma: return ",";
+            case KeyCode.Period: return ".";
+            case KeyCode.Less: return "<";
+            case KeyCode.Greater: return ">";
+            default: return key.ToString();
+        }
+    }
+
+    /// <summary>生成済みガイドの指定レーン行のテキストを返す (未生成や範囲外は null)。</summary>
+    public string GetRowLabel(int lane)
+    {
+        if (lane < 0 || lane >= rows.Count) return null;
+        return rows[lane] != null ? rows[lane].text : null;
+    }
+}
