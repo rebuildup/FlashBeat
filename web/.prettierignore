@@ -6,3 +6,9 @@ db/fixtures/who.chart.json
 # Drizzle owns the migration metadata (db/migrations/meta/*.json) and the
 # generated SQL. Formatting them would only create churn.
 db/migrations/
+
+# The chart schema and the sample chart are byte copies of files that live in
+# the repository outside the web app. They must stay byte identical, so the
+# formatter is not allowed to touch them.
+src/lib/chart/chart.v1.schema.json
+src/lib/chart/fixtures/sample-chart.json
