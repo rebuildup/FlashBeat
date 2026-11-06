@@ -1,0 +1,377 @@
+{
+  "manifestVersion": 1,
+  "owner": "#22 release gate (Win64 exhibition build verification)",
+  "updatedAt": "2026-11-06T23:05:00+09:00",
+  "machine": "Windows 11 x64 (10.0.29698), Unity 6000.5.6f1, NVIDIA GeForce RTX 4050 Laptop GPU",
+  "fingerprint": {
+    "algorithm": "sha256",
+    "definition": "SHA-256 over the UTF-8 bytes of the concatenation of '<fileSha256>  <relative/path>' lines, one per file, sorted by relative path (LF separated).",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.ps1 -Stage <id>",
+    "note": "FlashBeat.exe itself has the same SHA-256 in every build (Unity launcher stub), so the folder fingerprint is the artifact identity."
+  },
+  "artifactRoots": {
+    "externalArchive": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild",
+    "externalEvidence": "D:\\4_apps\\Unity\\Build\\FlashBeatEvidence",
+    "exhibitFolder": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit"
+  },
+  "exhibitDeployment": {
+    "activeGeneration": 3,
+    "generations": [
+      {
+        "generation": 3,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s2",
+        "content": "#13 (yt-dlp streaming + the cached media keeps its container extension so VideoPlayer can prepare it) + #27 (Japanese font), merged --no-ff into branch 22 (code state b77b63c)",
+        "sourceBuild": "C:\\Users\\rebui\\Desktop\\FlashBeat.22\\Builds\\Windows",
+        "buildResult": "[BuildScript] Build succeeded: 1588358518 bytes (0 error CS)",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "2907102fcab0142e8d93b7bfb025d74a98cc274fe6ebbac55843cdca14cbedd9",
+        "fileCount": 199,
+        "totalBytes": 1588795255,
+        "deployedAt": "2026-11-07T00:01:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README-gen3.md (Run D): Title -> Select -> 76/76 judged notes (Perfect 1 / Bad 2 with real lane input) -> Result -> R retry on the real machine, startup 14.1 s, VIDEO PLAYING (VideoPlayer prepared=True, STATUS video[playing=True]) and audio audible (rms 0.44-0.56)",
+        "knownGaps": [
+          "the stream's audio track (m4a) is still not played: 'Failed to recognize video file format for: ...audio.m4a' -> stream audio prepared=False -> the audio falls back to the bundled wav (audioMode=Bundled); 'the sound comes from the YouTube stream' is NOT proven",
+          "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
+        ],
+        "operatorTarget": true
+      },
+      {
+        "generation": 2,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s1",
+        "content": "#13 (yt-dlp + Deno -> Unity VideoPlayer streamed playback) + #27 (rebuilt Japanese NotoSansJP SDF font), merged --no-ff into branch 22 (code state f53575c)",
+        "sourceBuild": "C:\\Users\\rebui\\Desktop\\FlashBeat.22\\Builds\\Windows",
+        "buildResult": "[BuildScript] Build succeeded: 1588350354 bytes (0 error CS)",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "cbae8f677eb60dfeaa6ca6676121d4266fa99583f2b76bfeacacebcbd0924758",
+        "fileCount": 199,
+        "totalBytes": 1588787091,
+        "deployedAt": "2026-11-06T22:58:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README.md (Run C): Title -> Select -> 76/76 judged notes -> Result -> R retry on the real machine, startup 14.0 s, AUDIO PROVEN (STATUS rms=0.30 peak=0.52, audioMode=Bundled)",
+        "knownGaps": [
+          "the YouTube stream VIDEO is not played: Unity VideoPlayer cannot recognise the extension-less cached files ('Failed to recognize video file format', prepared=False) -> the audio falls back to the bundled wav; the picture is missing",
+          "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
+        ],
+        "operatorTarget": false
+      },
+      {
+        "generation": 1,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit",
+        "content": "#27 font fix on top of S0 (no #13 streaming)",
+        "sourceZip": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\dist-35\\FlashBeat-0.1.0-win64-743c88d.zip",
+        "sourceZipSha256": "3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b",
+        "fileCount": 198,
+        "totalBytes": 1588334450,
+        "deployedAt": "2026-11-06T22:53:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README.md (Run A)",
+        "operatorTarget": false,
+        "knownGaps": [
+          "song audio / YouTube stream is NOT proven in this generation (old resolver: yt-dlp 'Requested format is not available' + Invidious fallback failure) - the run proved the chart -> result -> retry loop (76/76 notes)"
+        ]
+      }
+    ],
+    "operation": "read-only during the exhibition; the operator launches FlashBeat.exe directly; logs are collected in <exhibit>/logs/; Update.ps1 (#36) never targets these folders",
+    "manifestFile": "<exhibit>/EXHIBIT-MANIFEST.txt",
+    "knownGaps": [
+      "S2 / S3 have no Win64 artifact at all (no deployed API, no published chart version)"
+    ]
+  },
+  "stages": [
+    {
+      "id": "S0",
+      "title": "Win64 baseline: build + one full song loop (select -> chart -> result -> retry)",
+      "status": "proven-partial",
+      "source": {
+        "branch": "11",
+        "commit": "1c5137e",
+        "pullRequest": 26,
+        "issue": 11,
+        "codeDiff": "docs only (git diff 25fd896..1c5137e -- Assets/ is empty)"
+      },
+      "artifact": {
+        "archivePath": "D:\\4_apps\\Unity\\Build\\FlashBeatBuild\\Build0.1.0-win64-1c5137e",
+        "worktreeBuildPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\Builds\\Windows",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "fingerprintSha256": "7ef323adcf1855ea1f192d0f542c099ec6fdfe52540bdf7737b55014f2ba4d53",
+        "fileCount": 199,
+        "totalBytes": 1555304119,
+        "exeBuiltAt": "2026-11-06T21:13:03",
+        "archivedAt": "2026-11-06T21:35:10",
+        "measuredAt": "2026-11-06T22:26:00+09:00"
+      },
+      "playEvidence": {
+        "state": "partial",
+        "proven": [
+          "select -> chart -> result -> retry on the built player (chart No.2 まにまに, 76/76 notes judged, assessment C)",
+          "same loop on chart No.1 ロストアンブレラ (268/268 notes judged)",
+          "R on the result screen reloads the GameScene with the counters reset"
+        ],
+        "unproven": [
+          "YouTube stream playback (WindowsVideoMedia error 0x80070005 -> [MusicManager] VideoPlayer failed to prepare within 30s)",
+          "audible song playback (the chart rides on the video track)",
+          "fullscreen rendering on a 1280x720 panel (this machine has no 1280x720 display)"
+        ],
+        "evidenceFiles": [
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/03-select-no2-manimani.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\03-select-no2-manimani.png",
+            "sha256": "54569f64488d52129114776bde25fa24cd6c386df038006069ed434f64fa6929",
+            "shows": "select screen, No.2 まにまに highlighted"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/04-game-playing.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\04-game-playing.png",
+            "sha256": "ce02b3c02d4c24d1752a5afac85115cb3d4b139c5b160ee754bbe4e4f1b11435",
+            "shows": "GameScene with the chart running"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/05-result.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\05-result.png",
+            "sha256": "4b7ab9f18d1b33f95c97ee1f4e54ec6bad3460935a798f2c1654c3c64304369f",
+            "shows": "result screen, Judge Perfect 0 / Great 0 / Bad 0 / Miss 76"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/06-retry-game-reloaded.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\06-retry-game-reloaded.png",
+            "sha256": "3b8ed428d19bb581fc100ccc554fff9f0fb5e317b1e12547a59b7eb1d0c52704",
+            "shows": "R reloaded the GameScene (Loading youtube video...)"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/07-result-run2-rostoreamblera.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\07-result-run2-rostoreamblera.png",
+            "sha256": "fb3954342e1776e218eed803119cdad9aa010c48d73dc95b744ac7a9acb42c51",
+            "shows": "result screen of the 268-note chart"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/Player-run3-manimani.log",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\Player-run3-manimani.log",
+            "sha256": "df6d9a6b05a34a1d3125949dc62a02541a4aad2d43f2879c8f47a5d0bb32a644",
+            "shows": "player log of the まにまに run (redacted: video ids and stream URLs replaced)"
+          },
+          {
+            "gitRef": "origin/11:docs/evidence/win64-2026-11-06/build-log-excerpt.txt",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.11\\docs\\evidence\\win64-2026-11-06\\build-log-excerpt.txt",
+            "sha256": "893d1ac9b7f1609de25e509647291b6f343e324f5770ec170b8682261659328c",
+            "shows": "[BuildScript] Build succeeded: 1554867382 bytes"
+          }
+        ]
+      },
+      "cfUrl": null,
+      "chartVersion": null,
+      "chartIdentity": "local chart resources only (Assets/Game/Resources/<song>.json); no catalog/chart version exists before the S2 API is deployed"
+    },
+    {
+      "id": "S0-FONT",
+      "title": "S0 + Japanese HUD font fix (candidate for the exhibition build)",
+      "status": "proven-partial",
+      "source": {
+        "branch": "27",
+        "commit": "743c88d",
+        "pullRequest": 34,
+        "issue": 27,
+        "stack": "11 -> 27"
+      },
+      "artifact": {
+        "archivePath": null,
+        "worktreeBuildPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\Builds\\Windows",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "fingerprintSha256": "e07ccba2cc406306254a50e0bfb5f43a197013aa3820fe907d28da60ffe1b242",
+        "fileCount": 199,
+        "totalBytes": 1588771187,
+        "exeBuiltAt": "2026-11-06T22:08:49",
+        "archivedAt": null,
+        "measuredAt": "2026-11-06T22:27:00+09:00"
+      },
+      "playEvidence": {
+        "state": "partial",
+        "proven": [
+          "select / game / result screens render the Japanese song titles, artist and lyrics (no tofu boxes)",
+          "player log: 0 occurrences of 'not found in the [...] font asset' (was 110)",
+          "chart まにまに played to the result screen, Judge Perfect 0 / Great 0 / Bad 0 / Miss 76"
+        ],
+        "unproven": [
+          "YouTube stream playback: in that run yt-dlp exited 1 ('Requested format is not available') and the Invidious fallback failed as well",
+          "audible song playback",
+          "not archived to the external artifact root yet"
+        ],
+        "evidenceFiles": [
+          {
+            "gitRef": "origin/27:docs/evidence/win64-2026-11-06-font/01-select-song-titles.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\docs\\evidence\\win64-2026-11-06-font\\01-select-song-titles.png",
+            "sha256": "58aeb255d738f09113e9517aeb4f1de9fb56549fd1c1bf67b8c9564347003a9e",
+            "shows": "select screen with ロストアンブレラ / ニセモノ / まにまに / 稲葉曇 rendered"
+          },
+          {
+            "gitRef": "origin/27:docs/evidence/win64-2026-11-06-font/03-game-lyrics.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\docs\\evidence\\win64-2026-11-06-font\\03-game-lyrics.png",
+            "sha256": "aaaa866fc028673b3eb45777881851321f857923772c00e7b6e3fcf8925d89d4",
+            "shows": "lyrics 誰もがそう思うでしょう rendered in the GameScene"
+          },
+          {
+            "gitRef": "origin/27:docs/evidence/win64-2026-11-06-font/04-result-song-title-artist.png",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\docs\\evidence\\win64-2026-11-06-font\\04-result-song-title-artist.png",
+            "sha256": "49a6b3c1c15cb156ad0580adac785c5007156f97e97d4157a66a649a0de6441b",
+            "shows": "result screen with まにまに / r-906 rendered"
+          },
+          {
+            "gitRef": "origin/27:docs/evidence/win64-2026-11-06-font/Player-font-run.log",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\docs\\evidence\\win64-2026-11-06-font\\Player-font-run.log",
+            "sha256": "4f7a0cff5fb8406198b58fdf322c92b3fc866cd6c18952ce28b707e5de64c521",
+            "shows": "player log of the font-fix run",
+            "caveat": "the yt-dlp stderr of that run still contains a raw YouTube video id ('[youtube] <id>: Requested format is not available'). It is a public id, not a credential, but it is not redacted like the rest of the log - recommend #27 redacts it before the evidence is published."
+          },
+          {
+            "gitRef": "origin/27:docs/evidence/win64-2026-11-06-font/build-log-excerpt.txt",
+            "localPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.27\\docs\\evidence\\win64-2026-11-06-font\\build-log-excerpt.txt",
+            "sha256": "a80a55055a6e77025feda0c968437607108c0cc15505ad1a75c542c7ca4431af",
+            "shows": "[BuildScript] Build succeeded: 1588334450 bytes, error CS count: 0"
+          }
+        ]
+      },
+      "cfUrl": null,
+      "chartVersion": null,
+      "chartIdentity": "local chart resources only"
+    },
+    {
+      "id": "S1",
+      "title": "yt-dlp + Deno -> Unity VideoPlayer: streamed playback, media-locked note timing",
+      "status": "unproven",
+      "source": {
+        "branch": "13",
+        "commit": "7f70deb",
+        "pullRequest": 31,
+        "issue": 13,
+        "stack": "11 -> 13"
+      },
+      "artifact": {
+        "archivePath": null,
+        "worktreeBuildPath": "C:\\Users\\rebui\\Desktop\\FlashBeat.13\\Builds\\Windows",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "fingerprintSha256": "b8c0acde7a318bc3f8d7929025743638042a3b0e2dec7836e418a2d80c60830f",
+        "fileCount": 199,
+        "totalBytes": 1555326587,
+        "exeBuiltAt": "2026-11-06T22:03:48",
+        "archivedAt": null,
+        "measuredAt": "2026-11-06T22:28:00+09:00"
+      },
+      "playEvidence": {
+        "state": "none",
+        "proven": [],
+        "unproven": [
+          "select -> YouTube stream -> notes -> result -> retry on the built player",
+          "audible playback and note/video sync",
+          "measured startup delay and judge sync error"
+        ],
+        "evidenceFiles": []
+      },
+      "cfUrl": null,
+      "chartVersion": null,
+      "chartIdentity": null,
+      "note": "The build exists in the #13 worktree, but #13 has not published its Win64 play evidence yet (PR #31: 'the Win64 run evidence is added in a follow-up commit'). The fingerprint is a snapshot of the worktree build at measuredAt and may change when the worker rebuilds."
+    },
+    {
+      "id": "S2",
+      "title": "Remote catalog / chart snapshots (Cloudflare API + Unity client)",
+      "status": "unproven",
+      "source": {
+        "branch": null,
+        "commit": null,
+        "pullRequest": null,
+        "issue": 15,
+        "stack": "12 -> 14 -> 15 -> 16"
+      },
+      "artifact": {
+        "archivePath": null,
+        "worktreeBuildPath": null,
+        "exeSha256": null,
+        "fingerprintSha256": null,
+        "fileCount": null,
+        "totalBytes": null,
+        "exeBuiltAt": null,
+        "archivedAt": null,
+        "measuredAt": null
+      },
+      "playEvidence": {
+        "state": "none",
+        "proven": [],
+        "unproven": [
+          "no Win64 build that reads the catalog/chart API exists yet",
+          "no deployed API endpoint to talk to",
+          "no catalogVersion / chartVersion observed in a player run"
+        ],
+        "evidenceFiles": []
+      },
+      "cfUrl": "https://YOUR-WORKER-DOMAIN (placeholder in contracts/openapi.v1.yaml on branch 3 - nothing deployed yet)",
+      "chartVersion": null,
+      "chartIdentity": null
+    },
+    {
+      "id": "S3",
+      "title": "Chart editor (Konva) + publisher UI -> Win64 plays the published chart",
+      "status": "unproven",
+      "source": {
+        "branch": null,
+        "commit": null,
+        "pullRequest": null,
+        "issue": 18,
+        "stack": "12 -> 18 -> 19"
+      },
+      "artifact": {
+        "archivePath": null,
+        "worktreeBuildPath": null,
+        "exeSha256": null,
+        "fingerprintSha256": null,
+        "fileCount": null,
+        "totalBytes": null,
+        "exeBuiltAt": null,
+        "archivedAt": null,
+        "measuredAt": null
+      },
+      "playEvidence": {
+        "state": "none",
+        "proven": [],
+        "unproven": [
+          "no Win64 build that plays a published chart version",
+          "no published chart (chartVersion) to play"
+        ],
+        "evidenceFiles": []
+      },
+      "cfUrl": "https://YOUR-WORKER-DOMAIN (placeholder - nothing deployed yet)",
+      "chartVersion": null,
+      "chartIdentity": null
+    },
+    {
+      "id": "S4",
+      "title": "Leaderboard (optional stage, #20/#21)",
+      "status": "unproven",
+      "source": {
+        "branch": null,
+        "commit": null,
+        "pullRequest": null,
+        "issue": 21,
+        "stack": "optional, only after S3 is stable"
+      },
+      "artifact": {
+        "archivePath": null,
+        "worktreeBuildPath": null,
+        "exeSha256": null,
+        "fingerprintSha256": null,
+        "fileCount": null,
+        "totalBytes": null,
+        "exeBuiltAt": null,
+        "archivedAt": null,
+        "measuredAt": null
+      },
+      "playEvidence": {
+        "state": "none",
+        "proven": [],
+        "unproven": ["not started - keep the current playable build instead"],
+        "evidenceFiles": []
+      },
+      "cfUrl": null,
+      "chartVersion": null,
+      "chartIdentity": null
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+﻿{
+    "startedAt":  "2026-11-07T00:01:16+09:00",
+    "exe":  "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s2\\FlashBeat.exe",
+    "outDir":  "D:\\4_apps\\Unity\\Build\\FlashBeatEvidence\\2026-11-07-exhibit-s2",
+    "resolution":  "1280 x 720 (fullscreen=0)",
+    "startupSeconds":  14.1,
+    "titleReached":  true,
+    "resultReached":  true,
+    "retryReloaded":  true,
+    "scenes":  10,
+    "judgedNotes":  76,
+    "logFile":  "D:\\4_apps\\Unity\\Build\\FlashBeatEvidence\\2026-11-07-exhibit-s2\\Player.log"
+}

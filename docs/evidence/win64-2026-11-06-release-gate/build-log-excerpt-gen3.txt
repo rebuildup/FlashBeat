@@ -1,0 +1,18 @@
+# FlashBeat Win64 exhibit generation 3 - build log excerpt
+generated-at : 2026-11-07T00:01:10+09:00
+source       : C:\Users\rebui\Desktop\FlashBeat.22 (branch 22)
+commit       : b77b63cc49ba1b8a10bf260eb1bb74e27abeb926
+content      : merge of origin/13 (yt-dlp streaming + container-extension cache fix) and origin/27 (Japanese font)
+unity        : 6000.5.6f1
+
+error CS count    : 0
+warning CS count  : 30
+
+--- BuildScript markers ---
+[BuildScript] Starting StandaloneWindows64 Build...
+[BuildScript] Build succeeded: 1588358518 bytes, output to C:\Users\rebui\Desktop\FlashBeat.22\Builds\Windows\FlashBeat.exe
+
+--- tail ---
+CodeReloadManager destroyed
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0
