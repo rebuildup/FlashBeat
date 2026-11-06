@@ -22,8 +22,12 @@ export interface PublishTransport {
   fetch: PublishFetch;
 }
 
-export function resolvePublishTransport(apiOrigin?: string): PublishTransport {
+export function resolvePublishTransport(apiOrigin?: string, allowFixture = false): PublishTransport {
   const origin = (apiOrigin ?? "").trim();
+
+  if (origin === "fixture" && !allowFixture) {
+    throw new Error("Fixture publishing is disabled. Use the live API.");
+  }
 
   if (origin === "fixture") {
     return {
