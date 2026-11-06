@@ -1,0 +1,21 @@
+# FlashBeat Win64 exhibit build - log excerpt
+source      : C:\Users\rebui\Desktop\FlashBeat.22 (branch 22 = merge of origin/13 + origin/27)
+code-state  : f53575c (merge of origin/13 + origin/27, --no-ff)
+worktree-HEAD: 9af7f6e (docs-only commit on top of the merge; the build uses the
+              working tree, whose code state equals f53575c)
+build-cmd   : Unity.exe -batchmode -quit -projectPath <worktree> \
+                -executeMethod BuildScript.BuildStandaloneWindows64
+unity       : 6000.5.6f1
+log         : C:\Users\rebui\AppData\Local\Temp\fbgate\unity_build_22.log
+
+error CS count : 0
+warning CS count : 352
+
+--- BuildScript markers ---
+[BuildScript] Starting StandaloneWindows64 Build...
+[BuildScript] Build succeeded: 1588350354 bytes, output to C:\Users\rebui\Desktop\FlashBeat.22\Builds\Windows\FlashBeat.exe
+
+--- tail ---
+CodeReloadManager destroyed
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0
