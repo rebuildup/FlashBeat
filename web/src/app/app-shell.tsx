@@ -1,9 +1,6 @@
-import { Tabs, Toaster, toaster } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "styled-system/css";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
-import { EditorPanel } from "./editor-panel";
-import { PublishPanel } from "./publish-panel";
 import { Sidebar } from "./sidebar";
 import { LEVEL_FILTERS, Topbar, type LevelFilter } from "./topbar";
 import { loadCatalog, type CatalogMode } from "./catalog";
@@ -33,30 +30,6 @@ const content = css({
   p: "4",
 });
 
-const tabContent = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  minHeight: "0",
-});
-
-const TAB_TITLES = {
-  catalog: {
-    title: "Catalog",
-    subtitle: "Songs published for the festival build",
-  },
-  editor: {
-    title: "Chart editor",
-    subtitle: "Eight lanes, tap notes, one chart version at a time",
-  },
-  publish: {
-    title: "Publish",
-    subtitle: "Metadata and chart snapshot in a single request",
-  },
-} as const;
-
-type TabValue = keyof typeof TAB_TITLES;
-
 function matchesLevel(level: number, filter: LevelFilter) {
   if (filter === "all") return true;
   if (filter === "low") return level < 10;
@@ -65,7 +38,6 @@ function matchesLevel(level: number, filter: LevelFilter) {
 }
 
 export function AppShell({ mode }: { mode: CatalogMode }) {
-  const [tab, setTab] = useState<TabValue>("catalog");
   const [status, setStatus] = useState<CatalogStatus>("loading");
   const [songs, setSongs] = useState<SongSummary[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -104,59 +76,30 @@ export function AppShell({ mode }: { mode: CatalogMode }) {
     [songs, query, level],
   );
 
-  const heading = TAB_TITLES[tab];
-
   return (
-    <Tabs.Root
-      className={shell}
-      orientation="vertical"
-      value={tab}
-      onValueChange={(details) => setTab(details.value as TabValue)}
-    >
+    <div className={shell}>
       <Sidebar />
 
-      <div className={main}>
+      <main id="studio-content" className={main}>
         <Topbar
-          title={heading.title}
-          subtitle={heading.subtitle}
+          title="Catalog"
+          subtitle="Find a published song to work on its chart."
           query={query}
           onQueryChange={setQuery}
           level={level}
           onLevelChange={setLevel}
-          refreshing={status === "loading"}
-          onRefresh={() => {
-            refresh();
-            toaster.create({
-              title: "Catalog refreshed",
-              description: "Reloaded the published song list.",
-              type: "success",
-            });
-          }}
-          onPublish={() => setTab("publish")}
         />
 
         <div className={content}>
-          <Tabs.Content value="catalog" className={tabContent}>
-            <CatalogPanel
-              status={status}
-              songs={visibleSongs}
-              errorMessage={errorMessage}
-              onRetry={refresh}
-            />
-          </Tabs.Content>
-
-          <Tabs.Content value="editor" className={tabContent}>
-            <EditorPanel />
-          </Tabs.Content>
-
-          <Tabs.Content value="publish" className={tabContent}>
-            <PublishPanel />
-          </Tabs.Content>
+          <CatalogPanel
+            status={status}
+            songs={visibleSongs}
+            errorMessage={errorMessage}
+            onRetry={refresh}
+          />
         </div>
-      </div>
-
-      <Toaster />
-    </Tabs.Root>
+      </main>
+    </div>
   );
 }
 

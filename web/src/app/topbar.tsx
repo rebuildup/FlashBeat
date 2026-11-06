@@ -1,6 +1,6 @@
 import { Portal } from "@ark-ui/react/portal";
 import { createListCollection } from "@ark-ui/react/collection";
-import { Button, Field, Input, Select } from "@/components/ui";
+import { Field, Input, Select } from "@/components/ui";
 import { css } from "styled-system/css";
 
 const bar = css({
@@ -70,8 +70,6 @@ const selectControl = css({
   },
 });
 
-const accent = css({ colorPalette: "teal" });
-
 export type LevelFilter = "all" | "low" | "mid" | "high";
 
 export interface LevelFilterItem {
@@ -95,9 +93,6 @@ export function Topbar({
   onQueryChange,
   level,
   onLevelChange,
-  onRefresh,
-  refreshing,
-  onPublish,
 }: {
   title: string;
   subtitle: string;
@@ -105,9 +100,6 @@ export function Topbar({
   onQueryChange: (value: string) => void;
   level: LevelFilter;
   onLevelChange: (value: LevelFilter) => void;
-  onRefresh: () => void;
-  refreshing: boolean;
-  onPublish: () => void;
 }) {
   return (
     <header className={bar}>
@@ -156,13 +148,6 @@ export function Topbar({
           </Portal>
         </Select.Root>
 
-        <Button variant="outline" size="md" onClick={onRefresh} loading={refreshing}>
-          Refresh
-        </Button>
-
-        <Button className={accent} size="md" onClick={onPublish}>
-          Publish
-        </Button>
       </div>
     </header>
   );
