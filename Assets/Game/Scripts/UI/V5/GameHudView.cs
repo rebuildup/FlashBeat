@@ -278,6 +278,65 @@ namespace FlashBeat.UI.V5
             bar2Rt.anchorMin = new Vector2(0.5f, 0.5f);
             bar2Rt.anchorMax = new Vector2(0.5f, 0.5f);
             bar2Rt.anchoredPosition = new Vector2(5f * s, 0f);
+
+            BuildKeyGuide(p);
+        }
+
+        /// <summary>
+        /// 下部のコンパクトキーガイド (design 03: 8 レーンの代表キー)。
+        /// レーンのジオメトリは触らず、判定線より下の帯に置く。
+        /// 全キー一覧は Tab の KeyGuideUI (既存) が担う。
+        /// </summary>
+        private void BuildKeyGuide(UISizeProfile p)
+        {
+            float s = S;
+            var row = V5GameUi.Row(Canvas.gameObject, "Key Guide", 41.4f * s, TextAnchor.MiddleCenter);
+            var rowRt = row.GetComponent<RectTransform>();
+            rowRt.anchorMin = new Vector2(0f, 0f);
+            rowRt.anchorMax = new Vector2(1f, 0f);
+            rowRt.pivot = new Vector2(0.5f, 0f);
+            rowRt.anchoredPosition = new Vector2(0f, 13.4f * s);
+            rowRt.sizeDelta = new Vector2(0f, 56f * s);
+            rowRt.offsetMin = new Vector2(142.9f * s, 13.4f * s);
+            rowRt.offsetMax = new Vector2(-142.9f * s, -13.4f * s);
+            row.childControlWidth = true;
+            row.childForceExpandWidth = true;
+
+            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            {
+                var cap = V5Ui.KeyCap(row.gameObject, RepresentativeKey(lane), new Vector2(168f * s, 56f * s));
+                var capLe = cap.AddComponent<LayoutElement>();
+                capLe.minWidth = 168f * s;
+                capLe.preferredHeight = 56f * s;
+                var img = cap.GetComponent<Image>();
+                if (img != null) img.color = LaneColor(lane);
+                var label = cap.GetComponentInChildren<TextMeshProUGUI>();
+                if (label != null)
+                {
+                    label.color = V5Tokens.Text;
+                    label.fontSize = p.FsM;
+                }
+            }
+        }
+
+        /// <summary>レーンの代表キー (A S D F J K L ;)。文字キーを優先し、無ければセミコロン、それも無ければ先頭。</summary>
+        private static string RepresentativeKey(int lane)
+        {
+            KeyCode[] keys = Judge.LaneKeys[lane];
+            KeyCode fallback = keys.Length > 0 ? keys[0] : KeyCode.None;
+            foreach (var key in keys)
+            {
+                if (key >= KeyCode.A && key <= KeyCode.Z) return key.ToString();
+            }
+            if (System.Array.IndexOf(keys, KeyCode.Semicolon) >= 0) return ";";
+            return KeyGuideUI.GetKeyDisplayName(fallback);
+        }
+
+        /// <summary>レーン 8 本の青みがかったグラデーション (design 03c/04d 実測)。</summary>
+        internal static Color LaneColor(int lane)
+        {
+            float t = lane / 7f;
+            return new Color(0.302f, 0.302f + 0.2f * t, 0.302f + 0.42f * t);
         }
 
         // --- 毎フレームの状態反映 ---

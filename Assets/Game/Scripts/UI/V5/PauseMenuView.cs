@@ -549,9 +549,7 @@ namespace FlashBeat.UI.V5
 
         private static Color LaneColor(int lane)
         {
-            // レーン 8 本の青みがかったグラデーション (design 04d 実測)
-            float t = lane / 7f;
-            return new Color(0.302f - 0.0f, 0.302f + 0.2f * t, 0.302f + 0.42f * t);
+            return GameHudView.LaneColor(lane);
         }
 
         private void AddKeyRow(GameObject parent, char[] keys, UISizeProfile p, float s, float indent = 0f)

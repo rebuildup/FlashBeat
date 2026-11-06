@@ -31,8 +31,8 @@ namespace FlashBeat.UI.V5
             bg.color = V5Tokens.Bg;
 
             // Edge Deco (design: 380px 幅の左右装飾, 縦は全面)
-            AddEdgeDeco(root, "Edge Left", "V5/Game/edge-left", new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0f, 0.5f));
-            AddEdgeDeco(root, "Edge Right", "V5/Game/edge-right", new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f));
+            AddEdgeDeco(root, "Edge Left", "V5/Game/edge-left", new Vector2(0f, 0f), new Vector2(0f, 1f));
+            AddEdgeDeco(root, "Edge Right", "V5/Game/edge-right", new Vector2(1f, 0f), new Vector2(1f, 1f));
 
             var col = V5GameUi.Column(root, "Loading", 24f * s, TextAnchor.MiddleCenter);
             var colRt = col.GetComponent<RectTransform>();
@@ -61,15 +61,15 @@ namespace FlashBeat.UI.V5
         }
 
         private void AddEdgeDeco(GameObject parent, string name, string resource, Vector2 anchorMin,
-            Vector2 anchorMax, Vector2 pivot)
+            Vector2 anchorMax)
         {
             var go = V5Ui.Panel(parent, name, Vector2.zero, V5Tokens.Bg, 1f);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = anchorMin;
             rt.anchorMax = anchorMax;
-            rt.pivot = pivot;
-            rt.offsetMin = new Vector2(0f, 0f);
-            rt.offsetMax = new Vector2(-380f * GameHudView.S, 0f);
+            bool left = anchorMax.x < 1f;
+            rt.offsetMin = left ? new Vector2(0f, 0f) : new Vector2(-380f * GameHudView.S, 0f);
+            rt.offsetMax = left ? new Vector2(380f * GameHudView.S, 0f) : Vector2.zero;
             var sprite = V5GameUi.LoadSprite(resource);
             V5GameUi.SetOrFallback(go, sprite, V5Tokens.Bg, 1f);
         }
