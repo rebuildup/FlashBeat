@@ -49,7 +49,11 @@ export function assertChartMatchesContract(chartText: string): Record<string, un
 }
 
 /** Read the fixtures from disk. Exported so tests can assert the same data. */
-export function readFixtures(): { song: SongFixture; chartText: string; chart: Record<string, unknown> } {
+export function readFixtures(): {
+  song: SongFixture;
+  chartText: string;
+  chart: Record<string, unknown>;
+} {
   const chartText = readFileSync(chartFixtureUrl, "utf-8");
   const song = JSON.parse(readFileSync(songFixtureUrl, "utf-8")) as SongFixture;
   const chart = assertChartMatchesContract(chartText);
@@ -66,7 +70,9 @@ export default defineSeed<typeof schemaModule>(async ({ db, schema, dialect }) =
   // The chart and the song row describe the same song; a mismatch means one
   // of the two fixtures drifted away from `Assets/Resources/Who.json`.
   if (chart.name !== song.title) {
-    throw new Error(`seed: chart name "${String(chart.name)}" does not match song title "${song.title}"`);
+    throw new Error(
+      `seed: chart name "${String(chart.name)}" does not match song title "${song.title}"`,
+    );
   }
   if (chart.BPM !== song.bpm) {
     throw new Error(`seed: chart BPM "${String(chart.BPM)}" does not match song bpm "${song.bpm}"`);

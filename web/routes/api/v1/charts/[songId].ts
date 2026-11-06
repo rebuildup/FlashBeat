@@ -10,7 +10,12 @@
 import { defineHandler } from "void";
 import { and, db, eq } from "void/db";
 import { chartVersions } from "@schema";
-import { SONG_ID_PATTERN, buildChartResponse, parseChartVersion, type ChartResponse } from "../_read-model";
+import {
+  SONG_ID_PATTERN,
+  buildChartResponse,
+  parseChartVersion,
+  type ChartResponse,
+} from "../_read-model";
 
 export const GET = defineHandler(async (c) => {
   // A missing path parameter cannot match a song id, so it is answered with
