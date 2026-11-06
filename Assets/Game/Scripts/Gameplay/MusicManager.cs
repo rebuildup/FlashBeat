@@ -66,6 +66,8 @@ public class MusicManager : MonoBehaviour
     float lastStatusLogTime;
     float lastMediaTime;
     float stallSeconds;
+    NotesManager notesManager;
+    ResourceRequest musicRequest;
 
     /// <summary>
     /// Wall clock of the moment the song was started. It is the reference for
@@ -104,16 +106,10 @@ public class MusicManager : MonoBehaviour
         GManager.step_time = 0;
         songName = GManager.ActiveSongs[GManager.songID].title;
         audioS = GetComponent<AudioSource>();
-        Music = (AudioClip)Resources.Load("Musics/" + songName);
-        if (Music == null)
-        {
-            // The release build ships no third party media: the build moves
-            // Assets/Game/Resources/Musics out of the build, so the wav that
-            // belongs to the chart is not there. The YouTube media is then the
-            // only sound source - that is the wanted state, it is only logged so
-            // that the player log shows where the sound comes from.
-            Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
-        }
+        // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
+        // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
+        musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
         audioS.volume = GManager.mainVolume;
@@ -195,6 +191,7 @@ public class MusicManager : MonoBehaviour
 
         // 1. What does YouTube offer for this video?
         stage = MediaStage.ResolvingStream;
+        LoadingOverlay.Show("動画を取得中…", LoadingOverlay.MediaOwnerKey);
         var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId);
         while (!formatsTask.IsCompleted) yield return null;
 
@@ -258,6 +255,7 @@ public class MusicManager : MonoBehaviour
         if (videoFile.Ok && songVideo != null)
         {
             stage = MediaStage.PreparingVideo;
+            LoadingOverlay.Show("準備中…", LoadingOverlay.MediaOwnerKey);
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
         }
@@ -267,17 +265,36 @@ public class MusicManager : MonoBehaviour
         if (!combined && audioFile != null && audioFile.Ok)
         {
             stage = MediaStage.PreparingAudio;
+            LoadingOverlay.Show("準備中…", LoadingOverlay.MediaOwnerKey);
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
         }
 
         // 6. Decide where the sound comes from (a missing wav yields None
         //    instead of throwing - the recovery then takes over).
+        // The bundled wav is loaded asynchronously (Start); the decision needs
+        // to know whether it exists, so wait for the request here.
+        if (musicRequest != null)
+        {
+            while (!musicRequest.isDone) yield return null;
+            Music = musicRequest.asset as AudioClip;
+            if (Music == null)
+            {
+                // The release build ships no third party media: the build moves
+                // Assets/Game/Resources/Musics out of the build, so the wav that
+                // belongs to the chart is not there. The YouTube media is then the
+                // only sound source - that is the wanted state, it is only logged so
+                // that the player log shows where the sound comes from.
+                Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
+            }
+        }
         audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
+        LoadingOverlay.Hide(LoadingOverlay.MediaOwnerKey);
         load.SetActive(false);
         waitback.SetActive(false);
+        Debug.Log($"[Perf] media ready {(Time.time - sceneStartTime) * 1000f:F0}ms");
 
         // 7. Which stage broke? The most specific reason wins.
         if (!streamResolved)
@@ -337,6 +354,7 @@ public class MusicManager : MonoBehaviour
     /// </summary>
     void HandlePlaybackFailure(MediaFailure reason, bool hasPicture)
     {
+        LoadingOverlay.Hide(LoadingOverlay.MediaOwnerKey);
         // The log names the stage the pipeline was in when it broke - the stage
         // itself only becomes "failed" afterwards.
         Debug.Log(PlaybackRecovery.FailureLog(stage, reason, hasPicture));
@@ -615,7 +633,11 @@ public class MusicManager : MonoBehaviour
             // Nothing may play before the player starts the song.
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
 
-            bool canStart = mediaReady || Time.time - sceneStartTime > FallbackStartTimeout;
+            // Space may only start the song when the media is ready AND the
+            // chart (notes) finished loading - otherwise the judge would miss
+            // the first notes.
+            bool notesReady = notesManager == null || notesManager.IsReady;
+            bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout) && notesReady;
             if (canStart && Input.GetKeyDown(KeyCode.Space))
             {
                 StartPlayback();
@@ -709,6 +731,7 @@ public class MusicManager : MonoBehaviour
     void StartPlayback()
     {
         playbackStarted = true;
+        LoadingOverlay.Hide(LoadingOverlay.MediaOwnerKey);
         // The player started the song anyway: the pending return is cancelled
         // (its coroutine yields break on playbackStarted) and the HUD goes
         // back to the play view.
