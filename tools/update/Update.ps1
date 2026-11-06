@@ -1,24 +1,28 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    FlashBeat 展示運営者向けの単発パッチ適用スクリプト (常駐なし・自動起動なし)。
+    FlashBeat 展示運営者向けのパッチ適用スクリプト (常駐なし・独自サーバーなし)。
 
 .DESCRIPTION
-    運営者が明示的に実行する 1 回限りの更新ツールです。通常のゲーム起動経路 (FlashBeat.exe を直接実行)、
-    ショートカット、ゲーム UI は一切変更しません。Update.cmd / Play.cmd / Rollback.cmd は作りません。
+    GitHub Releases の配布 ZIP を取得して適用する 1 回限りの更新ツールです。
+    2 つの使い方があります:
 
-    処理の流れ:
-      1. インストール先 (FlashBeat.exe があるフォルダ) の前提を確認
-      2. FlashBeat.exe / UnityPlayer が実行中なら中止 (強制終了はしない)
-      3. リリース ZIP を取得 (ローカル ZIP / Releases の URL / gh release download)
-      4. SHA-256 を計算し期待値と照合 (不一致なら中止)
-      5. 別ディレクトリ (作業フォルダ) に完全展開し内容を検査 (FlashBeat.exe / FlashBeat_Data / *.dll)
-      6. 検証済みの展開物と既存配置を一括切替 (旧配置は退避 → 切替完了後に破棄)
+    (1) 運営者が明示的に実行 (従来どおり): タグ / ZIP / URL を指定して適用。
+        適用後の起動確認は運営者が FlashBeat.exe を直接実行します。
 
-    通信失敗 / ZIP 破損 / ダイジェスト不一致 / 内容不足のいずれかでは既存配置を一切変更しません。
-    ロールバック機能・更新履歴管理・永続的なバージョン倉庫は実装していません。
+    (2) アプリからの自動適用 (-Apply): アプリが起動時に Releases latest を確認し、
+        新版があれば %LOCALAPPDATA%\FlashBeat\update\staging に ZIP + .sha256 を取得済み。
+        アプリ終了時に本スクリプトが -Apply -WaitPid <PID> -Relaunch で分離プロセス起動され、
+        「アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動」を行います。
+        運営者は exe を直接起動するだけで、再起動後には新版になっています。
 
-    運用手順 (最短の手動手順を含む): docs/operations/update-patch.md
+    共通の保証:
+      - 通信失敗 / ZIP 破損 / ダイジェスト不一致 / 内容不足 / 二重起動のいずれかでは
+        既存配置を一切変更せず現行版を残します (ゲームは止めません)。
+      - 適用成功後、旧版は 1 世代だけ残し (FlashBeat-backup-*)、それより古い世代は削除します。
+    ロールバック UI・常設ランチャー・独自更新サーバーは実装していません。
+
+    運用手順: docs/operations/update-patch.md
 
 .PARAMETER InstallDir
     更新対象のインストールフォルダ (FlashBeat.exe を含む)。既定はカレントディレクトリ。
@@ -47,6 +51,17 @@
 .PARAMETER LogPath
     運営者向けログの出力先。既定はインストール先の親フォルダにある FlashBeat-update.log。
 
+.PARAMETER Apply
+    アプリからの自動適用モード。スクリプトが配布物内 (インストール先 tools\update) から
+    起動されることを許可します。
+
+.PARAMETER WaitPid
+    終了を待つ FlashBeat のプロセス ID。指定すると、そのプロセスの終了を待ってから更新します
+    (最大 300 秒)。待機後に他の FlashBeat が実行中 (二重起動) なら終了コード 6 で中止します。
+
+.PARAMETER Relaunch
+    更新成功後に FlashBeat.exe を再起動します (-Apply と併用)。
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
         -InstallDir C:\FlashBeat `
@@ -56,6 +71,12 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
         -InstallDir C:\FlashBeat -Tag v0.1.1
+
+.EXAMPLE
+    # アプリからの自動適用 (UpdateChecker が終了時に起動する形)
+    powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\Update.ps1" `
+        -InstallDir "C:\FlashBeat" -Apply -Relaunch -WaitPid 12345 `
+        -ZipPath "$env:LOCALAPPDATA\FlashBeat\update\staging\FlashBeat-0.1.1-win64-abc1234.zip"
 #>
 [CmdletBinding()]
 param(
@@ -67,7 +88,14 @@ param(
     [string]$ExpectedSha256,
     [string]$Repo,
     [string]$WorkDir,
-    [string]$LogPath
+    [string]$LogPath,
+    # アプリ起動フロー (UpdateChecker) から使う自動適用モード:
+    #   -WaitPid  : 指定 PID の FlashBeat プロセス終了を待ってから更新する
+    #   -Apply    : スクリプトが配布物内 (インストール先) から起動されることを許可する
+    #   -Relaunch : 更新成功後に FlashBeat.exe を再起動する
+    [switch]$Apply,
+    [int]$WaitPid = 0,
+    [switch]$Relaunch
 )
 
 $ErrorActionPreference = 'Stop'
@@ -166,6 +194,28 @@ function Format-ProcessList {
     return ($parts -join ', ')
 }
 
+function Wait-FlashBeatExit {
+    # -WaitPid で指定されたプロセスの終了を待つ (アプリ終了後に更新を適用するフロー用)。
+    # PID が既に無い / 別プロセスに付替え済みの場合は即座に続行する。
+    param([Parameter(Mandatory = $true)][int]$ProcessId)
+    $deadline = (Get-Date).AddSeconds(300)
+    while ((Get-Date) -lt $deadline) {
+        $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+        if (-not $proc) {
+            Write-OpLog -Level 'INFO' -Message ('待機対象のプロセスが終了しました (PID={0})。' -f $ProcessId)
+            return $true
+        }
+        if ($proc.ProcessName -ne 'FlashBeat') {
+            # PID が別プロセスに再利用された → 元プロセスは終了済みとみなす
+            Write-OpLog -Level 'WARN' -Message ('PID={0} は別プロセス ({1}) に再利用されました。待機を打ち切ります。' -f $ProcessId, $proc.ProcessName)
+            return $true
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    Write-OpLog -Level 'ERROR' -Message ('PID={0} の終了を 300 秒待っても終了しませんでした。' -f $ProcessId)
+    return $false
+}
+
 function Get-RepositorySlug {
     param([string]$ScriptPath)
     if ($Repo) { return $Repo }
@@ -245,20 +295,35 @@ try {
 
     Write-OpLog -Level 'STEP' -Message 'FlashBeat 単発パッチ適用を開始します。'
 
+    # ── 0. アプリ終了待ち (-WaitPid、自動適用フロー用) ─────────────
+    if ($WaitPid -gt 0) {
+        Write-OpLog -Level 'STEP' -Message ('アプリの終了を待機します (PID={0})。' -f $WaitPid)
+        if (-not (Wait-FlashBeatExit -ProcessId $WaitPid)) {
+            Stop-WithError $ExitRunning ('アプリ (PID={0}) が終了しないため更新を中止しました。既存配置は変更していません。' -f $WaitPid)
+        }
+    }
+
     # ── 1. インストール先の前提確認 ───────────────────────────────
+    $freshInstall = $false
     try {
         $installFull = (Resolve-Path -LiteralPath $InstallDir -ErrorAction Stop).Path
     } catch {
-        Stop-WithError $ExitUsage ('インストール先フォルダが見つかりません: {0}' -f $InstallDir) '-InstallDir に FlashBeat.exe を含むフォルダを指定してください。'
+        # フォルダ自体が無い → 新規インストール (Release から取得して配置)
+        $freshInstall = $true
+        $installFull = [System.IO.Path]::GetFullPath($InstallDir)
     }
-    if (-not (Test-Path -LiteralPath $installFull -PathType Container)) {
+    if (-not $freshInstall -and -not (Test-Path -LiteralPath $installFull -PathType Container)) {
         Stop-WithError $ExitUsage ('インストール先フォルダがディレクトリではありません: {0}' -f $installFull)
     }
-    if (-not (Test-Path -LiteralPath (Join-Path $installFull 'FlashBeat.exe') -PathType Leaf)) {
-        Stop-WithError $ExitUsage ('インストール先に FlashBeat.exe が見つかりません: {0}' -f $installFull) 'このツールは既存インストールへの更新専用です。-InstallDir を FlashBeat.exe のあるフォルダにしてください。'
+    if (-not $freshInstall -and -not (Test-Path -LiteralPath (Join-Path $installFull 'FlashBeat.exe') -PathType Leaf)) {
+        # FlashBeat.exe が無い → 新規インストールとして扱う
+        $freshInstall = $true
     }
-    if ($scriptPath -and $scriptPath.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
-        Stop-WithError $ExitUsage ('更新スクリプトがインストール先フォルダ内にあります: {0}' -f $scriptPath) 'スクリプトはインストール先外に置いてください。'
+    if ($freshInstall) {
+        Write-OpLog -Level 'STEP' -Message ('インストール先に FlashBeat.exe がないため新規インストールとして実行します: {0}' -f $installFull)
+    }
+    if (-not $Apply -and $scriptPath -and $scriptPath.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+        Stop-WithError $ExitUsage ('更新スクリプトがインストール先フォルダ内にあります: {0}' -f $scriptPath) 'スクリプトはインストール先外に置くか、-Apply (自動適用モード) を使ってください。'
     }
 
     $parentDir = Split-Path -Parent $installFull
@@ -275,8 +340,12 @@ try {
     Write-OpLog -Level 'INFO' -Message ('更新対象: {0}' -f $installFull)
 
     # ── 2. 実行中チェック (先に落とし、ダウンロードを無駄にしない) ──
+    # -WaitPid 指定時は既に待機済み。二重起動 (待機対象以外の FlashBeat) があれば中止する。
     $running = Get-FlashBeatProcesses
     if ($running.Count -gt 0) {
+        if ($WaitPid -gt 0) {
+            Stop-WithError $ExitRunning ('待機対象以外の FlashBeat が実行中のため (二重起動) 更新を中止しました: {0}' -f (Format-ProcessList $running)) 'すべての FlashBeat を終了してから再実行してください。強制終了は行いません。既存配置は変更していません。'
+        }
         Stop-WithError $ExitRunning ('FlashBeat が実行中のため更新を中止しました: {0}' -f (Format-ProcessList $running)) 'ゲームを終了してから Update.ps1 を再実行してください。強制終了は行いません。既存配置は変更していません。'
     }
 
@@ -446,28 +515,39 @@ try {
     # ── 8. 切替直前の実行中チェック ─────────────────────────────
     $running = Get-FlashBeatProcesses
     if ($running.Count -gt 0) {
+        if ($WaitPid -gt 0) {
+            Stop-WithError $ExitRunning ('待機対象以外の FlashBeat が実行中のため (二重起動) 更新を中止しました: {0}' -f (Format-ProcessList $running)) 'すべての FlashBeat を終了してから再実行してください。強制終了は行いません。既存配置は変更していません。'
+        }
         Stop-WithError $ExitRunning ('FlashBeat が実行中のため更新を中止しました: {0}' -f (Format-ProcessList $running)) 'ゲームを終了してから Update.ps1 を再実行してください。強制終了は行いません。既存配置は変更していません。'
     }
 
-    # ── 9. 一括切替 ─────────────────────────────────────────────
-    try {
-        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-    } catch {
-        Stop-WithError $ExitSwap ('退避フォルダを作成できません: {0} ({1})' -f $backupDir, $_.Exception.Message) 'インストール先の親フォルダの書き込み権限を確認してください。既存配置は変更していません。'
-    }
+    # ── 9. 一括切替 (新規インストール時は退避なしで配置) ──────────
+    if (-not $freshInstall) {
+        try {
+            New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+        } catch {
+            Stop-WithError $ExitSwap ('退避フォルダを作成できません: {0} ({1})' -f $backupDir, $_.Exception.Message) 'インストール先の親フォルダの書き込み権限を確認してください。既存配置は変更していません。'
+        }
 
-    $oldItems = @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction Stop)
-    Write-OpLog -Level 'STEP' -Message ('既存配置を退避します ({0} 項目): {1}' -f $oldItems.Count, $backupDir)
-    try {
-        foreach ($item in $oldItems) {
-            Move-Item -LiteralPath $item.FullName -Destination $backupDir -Force -ErrorAction Stop
+        $oldItems = @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction Stop)
+        Write-OpLog -Level 'STEP' -Message ('既存配置を退避します ({0} 項目): {1}' -f $oldItems.Count, $backupDir)
+        try {
+            foreach ($item in $oldItems) {
+                Move-Item -LiteralPath $item.FullName -Destination $backupDir -Force -ErrorAction Stop
+            }
+        } catch {
+            # 退避途中なら、退避済み、元に戻す
+            foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
+                try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            Stop-WithError $ExitSwap ('既存配置の退避に失敗しました: {0}' -f $_.Exception.Message) ('退避データは {0} に残しています。既存配置は元に戻されています。' -f $backupDir)
         }
-    } catch {
-        # 退避途中なら、退避済み、元に戻す
-        foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
-            try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
+    } else {
+        try {
+            New-Item -ItemType Directory -Path $installFull -Force -ErrorAction Stop | Out-Null
+        } catch {
+            Stop-WithError $ExitSwap ('インストール先フォルダを作成できません: {0} ({1})' -f $installFull, $_.Exception.Message)
         }
-        Stop-WithError $ExitSwap ('既存配置の退避に失敗しました: {0}' -f $_.Exception.Message) ('退避データは {0} に残しています。既存配置は元に戻されています。' -f $backupDir)
     }
 
     Write-OpLog -Level 'STEP' -Message '検証済みの展開物をインストール先へ配置します。'
@@ -477,34 +557,48 @@ try {
         }
     } catch {
         $failed = $_.Exception.Message
-        foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
-            try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
+        if (-not $freshInstall) {
+            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
+                try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
+                try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            Stop-WithError $ExitSwap ('切替に失敗しました: {0}' -f $failed) ('既存配置は退避データから復元しました。退避データは {0} に残しています。' -f $backupDir)
         }
-        foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
-            try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
-        }
-        Stop-WithError $ExitSwap ('切替に失敗しました: {0}' -f $failed) ('既存配置は退避データから復元しました。退避データは {0} に残しています。' -f $backupDir)
+        Stop-WithError $ExitSwap ('配置に失敗しました: {0}' -f $failed)
     }
 
     $postMissing = @()
     if (-not (Test-Path -LiteralPath (Join-Path $installFull 'FlashBeat.exe') -PathType Leaf)) { $postMissing += 'FlashBeat.exe' }
     if (-not (Test-Path -LiteralPath (Join-Path $installFull 'FlashBeat_Data') -PathType Container)) { $postMissing += 'FlashBeat_Data' }
     if ($postMissing.Count -gt 0) {
-        foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
-            try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
+        if (-not $freshInstall) {
+            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
+                try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
+                try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            Stop-WithError $ExitSwap ('切替後の検査に失敗しました (不足: {0})' -f ($postMissing -join ', ')) ('既存配置は退避データから復元しました。退避データは {0} に残しています。' -f $backupDir)
         }
-        foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
-            try { Move-Item -LiteralPath $item.FullName -Destination $installFull -Force -ErrorAction SilentlyContinue } catch { }
-        }
-        Stop-WithError $ExitSwap ('切替後の検査に失敗しました (不足: {0})' -f ($postMissing -join ', ')) ('既存配置は退避データから復元しました。退避データは {0} に残しています。' -f $backupDir)
+        Stop-WithError $ExitSwap ('配置後の検査に失敗しました (不足: {0})' -f ($postMissing -join ', '))
     }
 
-    # ── 10. 退避データを破棄 (ロールバック用の永続保存はしない) ──
-    try {
-        Remove-Item -LiteralPath $backupDir -Recurse -Force -ErrorAction Stop
-        Write-OpLog -Level 'INFO' -Message ('旧配置の退避データを破棄しました: {0}' -f $backupDir)
-    } catch {
-        Write-OpLog -Level 'WARN' -Message ('退避データの削除に失敗しました (手動で削除してください): {0} ({1})' -f $backupDir, $_.Exception.Message)
+    # ── 10. 旧版を 1 世代だけ残し、それより古い退避を削除する ─────
+    if (-not $freshInstall) {
+        Write-OpLog -Level 'INFO' -Message ('旧版を 1 世代残します: {0}' -f $backupDir)
+        $staleBackups = @(Get-ChildItem -LiteralPath $parentDir -Directory -Filter 'FlashBeat-backup-*' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -ne $backupDir } |
+            Sort-Object -Property Name -Descending)
+        foreach ($stale in $staleBackups) {
+            try {
+                Remove-Item -LiteralPath $stale.FullName -Recurse -Force -ErrorAction Stop
+                Write-OpLog -Level 'INFO' -Message ('旧世代の退避を削除しました: {0}' -f $stale.FullName)
+            } catch {
+                Write-OpLog -Level 'WARN' -Message ('旧世代の退避の削除に失敗しました (手動で削除してください): {0} ({1})' -f $stale.FullName, $_.Exception.Message)
+            }
+        }
     }
     try {
         Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction Stop
@@ -513,7 +607,18 @@ try {
     }
 
     Write-OpLog -Level 'INFO' -Message ('更新が完了しました: {0}' -f (Join-Path $installFull 'FlashBeat.exe'))
-    Write-OpLog -Level 'INFO' -Message 'FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。'
+
+    # ── 11. 再起動 (-Relaunch、自動適用フロー用) ──────────────────
+    if ($Relaunch) {
+        try {
+            $relaunched = Start-Process -FilePath (Join-Path $installFull 'FlashBeat.exe') -WorkingDirectory $installFull -PassThru -ErrorAction Stop
+            Write-OpLog -Level 'INFO' -Message ('FlashBeat.exe を再起動しました (PID={0})。' -f $relaunched.Id)
+        } catch {
+            Write-OpLog -Level 'WARN' -Message ('FlashBeat.exe の再起動に失敗しました (更新自体は完了しています): {0}' -f $_.Exception.Message)
+        }
+    } else {
+        Write-OpLog -Level 'INFO' -Message 'FlashBeat.exe を直接起動して動作を確認してください (起動確認は運営者が手動で行います)。'
+    }
     exit 0
 }
 catch {

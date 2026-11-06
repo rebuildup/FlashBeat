@@ -1,79 +1,77 @@
-﻿# FlashBeat パッチ適用手順 (運営者向け)
+﻿# FlashBeat 展示アプリの更新 (運営者向け)
 
-展示運営者が **必要なときだけ** Windows 版 FlashBeat のパッチを手動で適用する手順と、そのための小さなスクリプト `tools/update/Update.ps1` の説明です。
+展示用 Windows 版 FlashBeat の配布・更新の仕組みと、`tools/update/Update.ps1` の説明です。
+オーナー要件 (2026-11-07 版・#41 の「起動時自動更新の禁止」を置き換え) に基づきます。
 
 ## 方針
 
-- **通常のゲーム起動はいつも `FlashBeat.exe` の直接実行**です。ショートカット・ゲーム UI・起動経路は変更しません。
-- **更新は運営者が明示的に実行する操作**です。起動時の自動チェック・常駐・更新要求 UI は存在しません。
-- `Play.cmd` / `Update.cmd` / `Rollback.cmd` / 常設ランチャー / ロールバック UI・コマンド / 永続的なバージョン倉庫は **作りません**。
-- **ロールバックは実装しません**。不具合があった場合は「新しいパッチを 1 つ作る」運用で解決します (#35 が Release として配布)。
-- ネットワーク・ZIP・ダイジェスト・内容検査のいずれかが失敗した場合、**既存配置は一切変更しません**。
+- **展示アプリは GitHub Release の配布成果物**を `C:\Users\rebui\Desktop\FlashBeat-Exhibit\` に配置したものです。`D:\` や worktree の `Builds/` は展示に使いません。
+- **運営者は `FlashBeat.exe` を直接起動するだけ**です。常設ランチャー・`Play.cmd` / `Update.cmd` / `Rollback.cmd`・独自更新サーバーはありません。**更新元は GitHub Releases のみ**です。
+- **起動時**: アプリが GitHub Releases の最新 (draft を除く・prerelease を含む) を非同期で確認し、新版があれば ZIP と `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` に取得して SHA-256 検証します。ゲームは止めません。
+- **終了時**: staging 済みの新版があるとき、アプリは `tools\update\Update.ps1` を `-Apply -WaitPid <自分のPID> -Relaunch` で分離プロセス起動します。スクリプトは「アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動」を行います。
+- **アプリを終了して再起動すると更新済み**になっています。staging が無い (最新・通信失敗・検証失敗) ときは何も起きず、普段どおり終了します。
+- **失敗時は現行版を残します**。SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を一切変更せず、ゲームは止めません。
+- **旧版は 1 世代だけ残します** (`FlashBeat-backup-*`、最新のもの)。それより古い世代は次回適用時に削除します。
+- **配布 ZIP に第三者楽曲の音声・動画を含めません** (`Assets/Game/Resources/Musics`、`Assets/Game/Resources/Videos/UnityYoutube`、`loading.mp4` はビルド時に退避して除外。ゲーム内の音声は yt-dlp で解決した YouTube ストリームから再生します)。
 - 管理者権限は不要です (インストール先の親フォルダに書き込み権限があることのみ必要)。
 
-## 最短の手動手順 (自動更新が不調でもこれだけで更新できます)
+## ビルド版識別子と Release タグ
 
-1. **ZIP を取得**
-   - Releases ページから取得する、または
-   - `gh release download <tag> -R rebuildup/FlashBeat` で取得する
-2. **SHA-256 を確認**
-   - `Get-FileHash .\FlashBeat-<tag>.zip -Algorithm SHA256` (または `certutil -hashfile .\FlashBeat-<tag>.zip SHA256`) を計算し、
-   - リリースの隣接アセット `FlashBeat-<tag>.zip.sha256`、またはリリース本文に記載された値と **一致すること**を確認します。
-3. **フォルダを丸ごと置換**
-   - ゲームを **通常終了** します (実行中は置換できません)。
-   - 既存フォルダを退避 (例: `FlashBeat-旧`)、ZIP を新しいフォルダへ展開、展開物の **中身で丸ごと置換**、退避フォルダを削除します。
-   - 置換後は `FlashBeat_Data/` `*.dll` `FlashBeat.exe` が揃っていることを確認します。
-4. **`FlashBeat.exe` を直接起動**して題名画面まで進むことを確認します。
+- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`0.1.0+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。
+- Release タグは **`v<バージョン>-win64-<git短SHA>`** 形式 (例: `v0.1.1-win64-abc1234`)。アセットは `FlashBeat-<バージョン>-win64-<sha>.zip` と隣接する `.sha256`。
+- UpdateChecker は タグの (バージョン, SHA) と現行ビルドを比較し、バージョンが新しいか・同バージョンで SHA が違うとき新版とみなします。古いバージョンへのダウングレードは行いません。
 
-手順 3 の退避フォルダは **置換途中の破損回避のためだけ** に使い、置換が正常終了したら破棄します (履歴として残しません)。
+## 運営者が見える動き
 
-## Update.ps1 の使い方
+|タイミング|動き|
+|---|---|
+|起動|(裏で) Releases latest を確認。新版があればダウンロード+SHA 検証。ゲームは通常どおり遊べる|
+|Option|staging 済みの新版があるとき「更新を適用して再起動 (<タグ>)」ボタンが出る (押すと即適用+再起動)|
+|終了|staging 済みの新版があるとき、終了後に更新が走り、**新 exe が自動で再起動**される|
+|再起動|新版になっている。旧版は `FlashBeat-backup-*` として 1 世代残る|
 
-`tools/update/Update.ps1` は上記 1〜3 を機械的に 수행する運営者用スクリプトです。**ゲームの起動は行いません** (起動確認は運営者が手動で `FlashBeat.exe` を直接実行)。
+更新の進行と結果は `%LOCALAPPDATA%\FlashBeat\update\staging\` と、インストール先の親フォルダの `FlashBeat-update.log` に記録されます。
+
+## Update.ps1
+
+`tools/update/Update.ps1` は GitHub Releases から ZIP を取得・検証・適用するスクリプトです。配布 ZIP にも同梱され (`tools\update\Update.ps1`)、アプリの自動適用フローは**配布物内のスクリプト**を起動します。
 
 ```powershell
-# ローカルの ZIP を使う場合
+# 運営者が明示的に実行 (タグ指定・ZIP と .sha256 を Releases から自動取得)
 powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
-    -InstallDir C:\FlashBeat `
-    -ZipPath C:\dl\FlashBeat-v0.1.0-win64-743c88d.zip `
-    -ExpectedSha256 3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45
+    -InstallDir C:\FlashBeat -Tag v0.1.1-win64-abc1234
 
-# GitHub Releases のタグから取得する場合 (ZIP と *.sha256 を自動取得)
-powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
-    -InstallDir C:\FlashBeat -Tag v0.1.0-win64-743c88d
-
-# Releases のアセット URL を直接指定する場合
-powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
-    -InstallDir C:\FlashBeat -ReleaseUrl https://github.com/rebuildup/FlashBeat/releases/download/v0.1.0-win64-743c88d/FlashBeat-0.1.0-win64-743c88d.zip
+# アプリからの自動適用 (UpdateChecker が終了時に起動する形)
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\Update.ps1" `
+    -InstallDir "C:\FlashBeat" -Apply -Relaunch -WaitPid 12345 `
+    -ZipPath "$env:LOCALAPPDATA\FlashBeat\update\staging\FlashBeat-0.1.1-win64-abc1234.zip" `
+    -ExpectedSha256 1a2b3c...
 ```
 
 ### パラメータ
 
 |パラメータ|説明|
 |---|---|
-|`-InstallDir`|更新対象のインストールフォルダ (`FlashBeat.exe` を含む)。既定はカレントディレクトリ。|
-|`-ZipPath`|ローカルにあるリリース ZIP。|
-|`-ReleaseUrl`|Releases のアセット URL。直接ダウンロードします。|
-|`-Tag`|Releases のタグ名。`gh release download` で ZIP を取得します (ZIP アセットが 1 個なら自動選択)。|
-|`-AssetName`|`-Tag` / `-ReleaseUrl` で使うアセット名。|
-|`-ExpectedSha256`|期待する SHA-256 (64 桁 hex)。未指定なら ZIP と同名の `.sha256` を参照します。|
-|`-Repo`|GitHub リポジトリ (`owner/repo`)。未指定なら本スクリプトのあるリポジトリの git remote から自動判定します。|
-|`-WorkDir`|ダウンロード・展開に使う作業フォルダ。|
-|`-LogPath`|運営者ログの出力先。既定はインストール先の親フォルダの `FlashBeat-update.log`。|
+|`-InstallDir`|インストール先フォルダ。`FlashBeat.exe` があれば更新、なければ**新規インストール** (Release から取得して配置)。|
+|`-ZipPath` / `-ReleaseUrl` / `-Tag`|取得元 (ローカル ZIP / アセット URL / タグ)。`-Tag` は ZIP と `.sha256` を `gh release download` で取得。|
+|`-AssetName`|`-Tag` / `-ReleaseUrl` で取得するアセット名。|
+|`-ExpectedSha256`|期待する SHA-256 (64 桁 hex)。未指定なら ZIP と同名の `.sha256` を参照。|
+|`-Repo`|GitHub リポジトリ (`owner/repo`)。未指定なら git remote から自動判定。|
+|`-WorkDir` / `-LogPath`|作業フォルダ / ログ出力先。|
+|`-Apply`|アプリからの自動適用モード。スクリプトが配布物内 (インストール先) から起動されることを許可する。|
+|`-WaitPid <PID>`|指定 PID の FlashBeat 終了を待ってから更新 (最大 300 秒)。待機後に他の FlashBeat が実行中 (二重起動) なら中止。|
+|`-Relaunch`|更新成功後に `FlashBeat.exe` を再起動する。|
 
 ### 動作
 
-1. インストール先に `FlashBeat.exe` があることを確認します (既存インストールへの更新専用)。
-2. `FlashBeat.exe` / `UnityPlayer` / `UnityCrashHandler64` が実行中なら **終了コード 6 で中止**します。強制終了はしません。
-3. ZIP を取得します (ローカル / URL / `gh release download`)。
-4. SHA-256 を計算し期待値と照合します。不一致なら **終了コード 3 で中止**します。
-5. 別ディレクトリ (作業フォルダ) に **完全展開** し、`FlashBeat.exe` / `FlashBeat_Data` / `*.dll` の存在を検査します。不足なら **終了コード 5 で中止**します。
-6. 検証済みの展開物と既存配置を **一括切替** します (旧配置は退避 → 切替完了後に破棄)。
-7. 終了コード 0 で終了します。`FlashBeat.exe` を直接起動して確認してください。
+1. `-WaitPid` 指定時はそのプロセスの終了を待ちます (二重起動なら終了コード 6 で中止)。
+2. インストール先に `FlashBeat.exe` があれば更新モード、なければ新規インストール モード。
+3. ZIP を取得し、SHA-256 を検証します (不一致なら終了コード 3 で中止)。
+4. 別ディレクトリに完全展開し、`FlashBeat.exe` / `FlashBeat_Data` / `*.dll` を検査します。
+5. 一括切替します。旧配置は退避し、**切替成功後も 1 世代残します** (それより古い退避は削除)。
+6. `-Relaunch` 指定時は新しい `FlashBeat.exe` を起動します。
 
-どの検査にも失敗した場合は既存配置を変更しません。作業フォルダは中止時に削除されます (失敗時の退避データのみ、復元が必要な場合に備えて残します)。
-
-### 終了コード (運用表)
+### 終了コード
 
 |コード|意味|既存配置|
 |---|---|---|
@@ -83,19 +81,25 @@ powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
 |3|SHA-256 不一致|変更なし|
 |4|ZIP 破損 / 展開失敗|変更なし|
 |5|展開物の内容検査失敗 (exe / Data / dll 不足)|変更なし|
-|6|FlashBeat 実行中|変更なし|
+|6|FlashBeat 実行中 (二重起動 / 待機タイムアウト)|変更なし|
 |7|切替 / ファイル操作の失敗|退避データから復元を試みる|
+
+## 自動更新が不調なときの手動手順
+
+1. Releases から ZIP と `.sha256` を取得 (`gh release download <tag> -R rebuildup/FlashBeat`)。
+2. SHA-256 を確認 (`Get-FileHash .\FlashBeat-<タグ>.zip -Algorithm SHA256` が `.sha256` と一致)。
+3. ゲームを通常終了 → 既存フォルダを退避 → ZIP を展開して中身を丸ごと置換 → 退避を削除。
+4. `FlashBeat.exe` を直接起動して題名画面まで進むことを確認。
 
 ## 運用上の注意
 
-- **ゲームを通常終了してください。** タスクマネージャーでの強制終了では Unity のクラッシュハンドラー (`UnityCrashHandler64.exe`) がゲームを **再起動** します。再起動されると更新は中止 (終了代码 6) されます。ウィンドウを閉じて終了を確認してから実行してください。
-- ゲームフォルダ内に運営者が別途置いたファイルは、更新後に残りません (フォルダ全体を置換するため)。設定の保存先は `%USERPROFILE%\AppData\LocalLow\...` 側なので、スコア・設定は更新によって失われません。
-- 既存 Release には `FlashBeat_BurstDebugInformation_DoNotShip/` が含まれません (Unity の指示による ship 対象外)。
-- 展開フォルダ直下で起動すると `DirectoryNotFoundException: ...Assets\Resources\ロストアンブレラ.json` が 1 件記録されます (`OptionSceneManager.saveSettings` が相対パスで設定を書き込む既知の不具合)。起動・題名描画・シーンフェードインは正常で、このバージョンでは設定が永続化されません (#22 / #27 の対象)。
-- 実機プレイ完走 (select → play → result) の証拠は Issue #22 がゲートしています。本手順の適用 (＝ZIP 取得・検証・置換・起動) とは別の証拠です。
+- ゲームフォルダ内に運営者が別途置いたファイルは、更新後に残りません (フォルダ全体を置換するため)。設定・スコアの保存先は `%USERPROFILE%\AppData\LocalLow\...` 側なので失われません。
+- タスクマネージャーでの強制終了では更新は走りません (OnApplicationQuit が呼ばれないため)。通常終了 (ウィンドウを閉じる) で終了してください。
+- 配布 ZIP に `FlashBeat_BurstDebugInformation_DoNotShip/` は含めません (Unity の指示による ship 対象外)。
+- テスト用 Release (prerelease) でも自動更新は動きます (draft は認証なしでは見えないため対象外)。検証後のテスト Release は削除して構いません。
 
 ## 関連
 
-- Release ZIP と SHA-256 の配布仕様: Issue #35 (`tools/release/**`, `docs/operations/update-release.md`)
+- Release ZIP と SHA-256 の配布仕様: Issue #35
 - 実機プレイ / 再起動 / API 疎通の証拠ゲート: Issue #22
-- 実機適用のためのスクリプト: `tools/update/Update.ps1`
+- 自動更新の実装: `Assets/Game/Scripts/Update/UpdateChecker.cs` (起動時確認+staging+終了時起動)、`Assets/Editor/BuildScript.cs` (版識別子の埋め込み・メディア除外・スクリプト同梱)
