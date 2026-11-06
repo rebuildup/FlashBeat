@@ -9,6 +9,7 @@ const table = css({
   display: "grid",
   gap: "0",
   gridTemplateColumns: "minmax(0, 2.4fr) 4rem 5rem 5rem 5rem",
+  maxWidth: "52rem",
 });
 
 const tableHead = css({
