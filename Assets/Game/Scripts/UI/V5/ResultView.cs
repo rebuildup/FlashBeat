@@ -344,7 +344,7 @@ namespace FlashBeat.UI.V5
             lineRt.pivot = new Vector2(0.5f, 1f);
             lineRt.anchoredPosition = new Vector2(0f, -S(140f));
             lineRt.sizeDelta = new Vector2(0f, S(40f));
-            hiscoreLine.richTextEnabled = true;
+            hiscoreLine.richText = true;
             hiscoreLine.textWrappingMode = TextWrappingModes.NoWrap;
 
             string[] labels = { "BPM", "LEVEL", "NOTES" };
