@@ -15,6 +15,13 @@ public static class BuildScript
     // (例: v0.1.1 Release → FLASHBEAT_VERSION_BASE=0.1.1)。未設定時は 0.1.0。
     private const string DefaultVersionBase = "0.1.0";
 
+    // 更新チャンネル (issue #41)。既定は stable = 正式 Release のみを自動更新の対象にする。
+    // 検証用の prerelease を取り込みたいときだけ環境変数 FLASHBEAT_UPDATE_CHANNEL=preview で
+    // ビルドする。チャンネルは配布物の StreamingAssets/update-channel.txt に書き出され、
+    // UpdateChecker が起動時に読む (ファイルが無い場合は safe 側の stable)。
+    private const string DefaultUpdateChannel = "stable";
+    private const string PreviewUpdateChannel = "preview";
+
     // 配布 ZIP に含めない第三者楽曲の音声・動画。Resources 配下はビルドに
     // 無条件で取り込まれるため、ビルド中だけプロジェクト外 (Builds/.media-excluded) へ退避し、
     // ビルド後に元へ戻す。GameScene の VideoPlayer は yt-dlp で解決したストリーム URL を
@@ -84,6 +91,7 @@ public static class BuildScript
         {
             RestoreMediaAfterBuild();
             CopyUpdaterScriptIntoBuild(buildDir);
+            WriteUpdateChannelFile(buildDir);
         }
 
         if (failed && Application.isBatchMode)
@@ -210,5 +218,44 @@ public static class BuildScript
         Directory.CreateDirectory(Path.GetDirectoryName(dst));
         File.Copy(src, dst, true);
         Debug.Log($"[BuildScript] 更新スクリプトをビルド出力へ複製しました: {dst}");
+    }
+
+    /// <summary>更新チャンネルを配布物へ書き出す (issue #41)。
+    /// 環境変数 FLASHBEAT_UPDATE_CHANNEL (stable / preview) で決まる。既定は stable。
+    /// 出力先は &lt;build&gt;/FlashBeat_Data/StreamingAssets/update-channel.txt で、
+    /// UpdateChecker が起動時に読む。stable ビルドはテスト用 prerelease を自動適用しない。</summary>
+    private static void WriteUpdateChannelFile(string buildDir)
+    {
+        string channel = ResolveUpdateChannel();
+        string streamingAssets = Path.Combine(buildDir, "FlashBeat_Data", "StreamingAssets");
+        try
+        {
+            Directory.CreateDirectory(streamingAssets);
+            string path = Path.Combine(streamingAssets, "update-channel.txt");
+            File.WriteAllText(path, channel);
+            Debug.Log($"[BuildScript] 更新チャンネル '{channel}' を書き出しました: {path}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[BuildScript] 更新チャンネルの書き出しに失敗しました: {e.Message} " +
+                           "(UpdateChecker は safe 側 (stable) に倒します)。");
+        }
+    }
+
+    /// <summary>環境変数 FLASHBEAT_UPDATE_CHANNEL を正規化する。未知の値は stable。</summary>
+    private static string ResolveUpdateChannel()
+    {
+        string raw = Environment.GetEnvironmentVariable("FLASHBEAT_UPDATE_CHANNEL");
+        if (!string.IsNullOrEmpty(raw) &&
+            raw.Trim().Equals(PreviewUpdateChannel, StringComparison.OrdinalIgnoreCase))
+        {
+            return PreviewUpdateChannel;
+        }
+        if (!string.IsNullOrEmpty(raw) &&
+            !raw.Trim().Equals(DefaultUpdateChannel, StringComparison.OrdinalIgnoreCase))
+        {
+            Debug.LogWarning($"[BuildScript] FLASHBEAT_UPDATE_CHANNEL='{raw}' は未知です。{DefaultUpdateChannel} として扱います。");
+        }
+        return DefaultUpdateChannel;
     }
 }

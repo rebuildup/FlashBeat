@@ -262,7 +262,7 @@ public class UpdateReleaseSelectionTests
     {
         // 実測: GitHub API の返却順は新しい Release が先とは限らない。
         // リストの先頭 (v0.1.0) ではなく version 最大 (v0.1.1) を選ぶこと。
-        var latest = UpdateChecker.ParseLatestRelease(TwoReleasesOutOfOrder);
+        var latest = UpdateChecker.ParseLatestRelease(TwoReleasesOutOfOrder, includePrerelease: false);
         Assert.IsNotNull(latest);
         Assert.AreEqual("v0.1.1-win64-abc1234", latest.tag_name);
     }
@@ -275,7 +275,7 @@ public class UpdateReleaseSelectionTests
   ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"", ""assets"":[]},
  {""tag_name"":""v0.1.0-win64-bbbbbbb"",""draft"":false,
   ""published_at"":""2026-11-06T16:25:27Z"",""created_at"":""2026-11-06T15:15:04Z"", ""assets"":[]}]";
-        var latest = UpdateChecker.ParseLatestRelease(json);
+        var latest = UpdateChecker.ParseLatestRelease(json, includePrerelease: false);
         Assert.IsNotNull(latest);
         Assert.AreEqual("v0.1.0-win64-bbbbbbb", latest.tag_name);
     }
@@ -288,7 +288,7 @@ public class UpdateReleaseSelectionTests
  {""tag_name"":""not-a-tag"",""draft"":false, ""assets"":[]},
  {""tag_name"":""v0.1.0-win64-ddddddd"",""draft"":false,
   ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"", ""assets"":[]}]";
-        var latest = UpdateChecker.ParseLatestRelease(json);
+        var latest = UpdateChecker.ParseLatestRelease(json, includePrerelease: false);
         Assert.IsNotNull(latest);
         Assert.AreEqual("v0.1.0-win64-ddddddd", latest.tag_name);
     }
@@ -296,8 +296,74 @@ public class UpdateReleaseSelectionTests
     [Test]
     public void ParseLatestRelease_NoValidRelease_ReturnsNull()
     {
-        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[{""tag_name"":""x"",""draft"":false,""assets"":[]}]"));
-        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[]"));
-        Assert.IsNull(UpdateChecker.ParseLatestRelease("not json"));
+        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[{""tag_name"":""x"",""draft"":false,""assets"":[]}]", includePrerelease: false));
+        Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[]", includePrerelease: false));
+        Assert.IsNull(UpdateChecker.ParseLatestRelease("not json", includePrerelease: false));
+    }
+}
+
+/// <summary>更新チャンネルの分離 (issue #41): 展示用 (stable) ビルドが
+/// テスト用 prerelease を自動適用しないことを保証する。</summary>
+public class UpdateChannelTests
+{
+    // 安定版 v0.1.0 と、より新しいテスト用 prerelease v0.1.1 (prerelease=true)。
+    private const string StableAndPrerelease = @"
+[{""tag_name"":""v0.1.0-win64-743c88d"",""draft"":false,""prerelease"":false,
+  ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"",""assets"":[]},
+ {""tag_name"":""v0.1.1-win64-abc1234"",""draft"":false,""prerelease"":true,
+  ""published_at"":""2026-11-07T00:00:00Z"",""created_at"":""2026-11-06T23:00:00Z"",""assets"":[]}]";
+
+    [Test]
+    public void StableChannel_PrereleaseIsNotAnUpdateCandidate()
+    {
+        // 展示用ビルド: テスト用 prerelease があっても更新候補にならない。
+        var latest = UpdateChecker.ParseLatestRelease(StableAndPrerelease, includePrerelease: false);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.0-win64-743c88d", latest.tag_name);
+        Assert.IsFalse(latest.prerelease);
+    }
+
+    [Test]
+    public void PreviewChannel_PrereleaseIsAnUpdateCandidate()
+    {
+        // 検証用ビルド: prerelease も更新候補になる。
+        var latest = UpdateChecker.ParseLatestRelease(StableAndPrerelease, includePrerelease: true);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.1-win64-abc1234", latest.tag_name);
+        Assert.IsTrue(latest.prerelease);
+    }
+
+    [Test]
+    public void StableChannel_OnlyPrereleaseExists_ReturnsNull()
+    {
+        // 安定版が 1 つも無いとき、stable ビルドは「更新なし」と判断する。
+        var latest = UpdateChecker.ParseLatestRelease(StableAndPrerelease, includePrerelease: false);
+        Assert.IsNotNull(latest);
+        Assert.IsFalse(latest.prerelease);
+
+        var onlyPrerelease = UpdateChecker.ParseLatestRelease(
+            @"[{""tag_name"":""v0.1.1-win64-abc1234"",""draft"":false,""prerelease"":true,""assets"":[]}]",
+            includePrerelease: false);
+        Assert.IsNull(onlyPrerelease);
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    [TestCase("garbage")]
+    [TestCase("stable")]
+    public void Normalize_UnknownOrStable_IsStable(string raw)
+    {
+        Assert.AreEqual(UpdateChannel.Stable, UpdateChannel.Normalize(raw));
+        Assert.IsFalse(UpdateChannel.IncludesPrerelease(raw));
+    }
+
+    [TestCase("preview")]
+    [TestCase("PREVIEW")]
+    [TestCase(" Preview ")]
+    public void Normalize_Preview_IsPreview(string raw)
+    {
+        Assert.AreEqual(UpdateChannel.Preview, UpdateChannel.Normalize(raw));
+        Assert.IsTrue(UpdateChannel.IncludesPrerelease(raw));
     }
 }

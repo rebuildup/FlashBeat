@@ -21,7 +21,8 @@ namespace FlashBeat.Update
     public class UpdateChecker : MonoBehaviour
     {
         public const string Repo = "rebuildup/FlashBeat";
-        private const string ReleasesApiUrl = "https://api.github.com/repos/" + Repo + "/releases?per_page=10";
+        // prerelease が混ざっても安定版を取りこぼさないよう、取得件数を広めに取る。
+        private const string ReleasesApiUrl = "https://api.github.com/repos/" + Repo + "/releases?per_page=30";
         private const string UpdaterScriptRelPath = "tools/update/Update.ps1";
 
         [Serializable]
@@ -36,6 +37,7 @@ namespace FlashBeat.Update
         {
             public string tag_name;
             public bool draft;
+            public bool prerelease;
             public string created_at;
             public string published_at;
             public ReleaseAsset[] assets;
@@ -81,7 +83,14 @@ namespace FlashBeat.Update
                 yield break;
             }
 
-            // ── 1. Releases 一覧を取得 (draft は認証なしでは返らない。prerelease も更新対象) ──
+            // ── 0. チャンネル (stable / preview) を確定する ──
+            // 展示用ビルド (stable) は prerelease を更新候補にしない。
+            var channel = UpdateChannel.ReadInstalledChannel();
+            var includePrerelease = UpdateChannel.IncludesPrerelease(channel);
+            Debug.Log("[UpdateChecker] 更新チャンネル: " + channel +
+                      " (prerelease を更新候補に含める: " + (includePrerelease ? "yes" : "no") + ")");
+
+            // ── 1. Releases 一覧を取得 (draft は認証なしでは返らない) ──
             var listReq = UnityWebRequest.Get(ReleasesApiUrl);
             listReq.SetRequestHeader("Accept", "application/vnd.github+json");
             listReq.timeout = 15;
@@ -93,7 +102,7 @@ namespace FlashBeat.Update
                 yield break;
             }
 
-            var latest = ParseLatestRelease(listReq.downloadHandler.text);
+            var latest = ParseLatestRelease(listReq.downloadHandler.text, includePrerelease);
             if (latest == null)
             {
                 Debug.LogWarning("[UpdateChecker] Releases の応答を解釈できませんでした — 現行版のまま続行します。");
@@ -245,9 +254,10 @@ namespace FlashBeat.Update
         }
 
         /// <summary>Releases 一覧 JSON から適用候補 (非 draft・タグ形式が有効) を選ぶ。
+        /// includePrerelease が false のとき prerelease は候補から外れる (stable チャンネル)。
         /// API の返却順は作成順と限らない (実測でも非順序) ため、version を主キー、
         /// published_at を副キーに最大のものを選ぶ。public は EditMode テストのため。</summary>
-        public static ReleaseInfo ParseLatestRelease(string json)
+        public static ReleaseInfo ParseLatestRelease(string json, bool includePrerelease)
         {
             try
             {
@@ -262,6 +272,7 @@ namespace FlashBeat.Update
                 foreach (var release in parsed.items)
                 {
                     if (release == null || release.draft || string.IsNullOrEmpty(release.tag_name)) { continue; }
+                    if (!includePrerelease && release.prerelease) { continue; }
                     var id = UpdateVersion.ParseTag(release.tag_name);
                     if (!id.Valid) { continue; }
                     var published = ParseTimestamp(release.published_at) ?? ParseTimestamp(release.created_at) ?? DateTime.MinValue;

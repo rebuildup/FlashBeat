@@ -7,7 +7,7 @@
 
 - **展示アプリは GitHub Release の配布成果物**を `C:\Users\rebui\Desktop\FlashBeat-Exhibit\` に配置したものです。`D:\` や worktree の `Builds/` は展示に使いません。
 - **運営者は `FlashBeat.exe` を直接起動するだけ**です。常設ランチャー・`Play.cmd` / `Update.cmd` / `Rollback.cmd`・独自更新サーバーはありません。**更新元は GitHub Releases のみ**です。
-- **起動時**: アプリが GitHub Releases の最新 (draft を除く・prerelease を含む) を非同期で確認し、新版があれば ZIP と `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` に取得して SHA-256 検証します。ゲームは止めません。
+- **起動時**: アプリが GitHub Releases の候補を非同期で確認し、新版があれば ZIP と `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` に取得して SHA-256 検証します。ゲームは止めません。候補は**更新チャンネル**で決まります (下述)。展示用ビルド (stable) は **prerelease (テスト用 Release) を自動適用しません**。
 - **終了時**: staging 済みの新版があるとき、アプリは `tools\update\Update.ps1` を `-Apply -WaitPid <自分のPID> -Relaunch` で分離プロセス起動します。スクリプトは「アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動」を行います。
 - **アプリを終了して再起動すると更新済み**になっています。staging が無い (最新・通信失敗・検証失敗) ときは何も起きず、普段どおり終了します。
 - **失敗時は現行版を残します**。SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を一切変更せず、ゲームは止めません。
@@ -19,8 +19,23 @@
 
 - ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは既定 `0.1.0`。バージョンアップの Release を作るときは環境変数 `FLASHBEAT_VERSION_BASE` で上書きします (例: `v0.1.1` Release → `FLASHBEAT_VERSION_BASE=0.1.1` でビルド)。
 - Release タグは **`v<バージョン>-win64-<git短SHA>`** 形式 (例: `v0.1.1-win64-abc1234`)。アセットは `FlashBeat-<バージョン>-win64-<sha>.zip` と隣接する `.sha256`。
-- **適用候補の選び方**: GitHub API の返却順は新しい Release が先とは限らない (実測) ため、UpdateChecker は全候補から **version を主キー・published_at を副キーに最大のもの**を選びます。draft は対象外、prerelease は対象です。
+- **適用候補の選び方**: GitHub API の返却順は新しい Release が先とは限らない (実測) ため、UpdateChecker は候補から **version を主キー・published_at を副キーに最大のもの**を選びます。draft は対象外、prerelease は stable チャンネルの候補から外れます (preview チャンネルでは対象)。
 - UpdateChecker は 候補の (バージョン, SHA) と現行ビルドを比較し、バージョンが新しいか・同バージョンで SHA が違うとき新版とみなします。古いバージョンへのダウングレードは行いません。
+
+## 更新チャンネル (stable / preview)
+
+更新候補の Release は**ビルド時に決まるチャンネル**で絞り込みます。
+
+|チャンネル|対象|prerelease|
+|---|---|---|
+|`stable`|展示用ビルド (既定)|対象外 (テスト用 Release は自動適用されない)|
+|`preview`|開発・検証用ビルド|対象|
+
+- チャンネルは `BuildScript.cs` がビルド出力の `FlashBeat_Data\StreamingAssets\update-channel.txt` に書き出します (`stable` / `preview`)。`UpdateChecker` は起動時にこのファイルを読んで候補を絞ります。
+- ファイルが無い・読めない・未知の値のときは **safe 側 (`stable`)** に倒します。展示用ビルドがテスト用 prerelease を自動適用しないのはこの境界で保証します。
+- `preview` ビルドは環境変数 `FLASHBEAT_UPDATE_CHANNEL=preview` を付けてビルドします (例: `FLASHBEAT_UPDATE_CHANNEL=preview Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneWindows64`)。通常のビルド (環境変数なし) は `stable` です。
+- 起動時の Player.log に `[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no)` と出ます。展示PC でチャンネルを確認したいときは `Player.log` を見てください。
+- 運営者が `Update.ps1 -Tag <タグ>` を手動実行する経路はチャンネルに関係なく任意の Release (prerelease 含む) を適用できます。展示中の緊急差し替え用です。
 
 ## 運営者が見える動き
 
@@ -97,7 +112,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 - ゲームフォルダ内に運営者が別途置いたファイルは、更新後に残りません (フォルダ全体を置換するため)。設定・スコアの保存先は `%USERPROFILE%\AppData\LocalLow\...` 側なので失われません。
 - タスクマネージャーでの強制終了では更新は走りません (OnApplicationQuit が呼ばれないため)。通常終了 (ウィンドウを閉じる) で終了してください。
 - 配布 ZIP に `FlashBeat_BurstDebugInformation_DoNotShip/` は含めません (Unity の指示による ship 対象外)。
-- テスト用 Release (prerelease) でも自動更新は動きます (draft は認証なしでは見えないため対象外)。検証後のテスト Release は削除して構いません。
+- テスト用 Release (prerelease) は、**stable チャンネル (展示用) の自動更新では使われません**。検証したいときだけ preview チャンネルでビルドするか、運営者が `Update.ps1 -Tag` を手動実行します。
 
 ## 関連
 

@@ -24,17 +24,20 @@
   }
   ```
 
-- UpdateChecker はインストール先の `version.json` を読み、GitHub latest のタグと比較して新版を判定する。
+- UpdateChecker は実行中ビルドの版識別子 (`Application.version` = `bundleVersion` = `<version>+<shortsha>`) を読み、
+  GitHub Releases の候補タグと比較して新版を判定する (`version.json` は人が読むための同梱メタデータで、判定には使わない)。
 
 ### .sha256 sidecar 形式
 
 - `<64 桁小文字 hex>  <ファイル名>` + LF、UTF-8 (BOM 無し)。`sha256sum -c` / `Get-FileHash` 両対応。
 
-### latest 判定
+### 候補の判定 (実装に合わせる)
 
-- `GET https://api.github.com/repos/rebuildup/FlashBeat/releases/latest` (認証不要) を使用。
-- 採用条件: `draft = false` かつ `prerelease = false` かつ `tag_name` が
-  `^v\d+\.\d+\.\d+-win64-[0-9a-f]{7,40}$` に一致し、対応 ZIP + `.sha256` の 2 アセットが存在する。
+- `GET https://api.github.com/repos/rebuildup/FlashBeat/releases?per_page=30` (認証不要) を使う。
+  GitHub の返却順は新しい順とは限らない (実測) ため、`/releases/latest` の 1 件には依存しない。
+- 候補の採用条件: `draft = false` かつ `tag_name` が `^v\d+\.\d+\.\d+-win64-[0-9a-f]{7,40}$` に一致し、
+  対応 ZIP + `.sha256` の 2 アセットが存在すること。**prerelease はチャンネルで決まります** (stable は対象外、preview は対象)。
+- 候補の順序付けは **version を主キー・published_at を副キーに最大**。現行ビルドより新しいものだけを更新扱いにする (ダウングレードしない)。
 - 不一致・取得失敗・SHA 検証失敗時は更新を中止し現行版を残す (ゲーム動作は止めない)。
 
 ### メディア排除 (第三者楽曲)
@@ -90,6 +93,10 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
 ## パッチ版の発行手順
 
 1. Unity 6000.5.6f1 で Win64 ビルド (`Build → Build Windows 64` または `BuildScript.BuildStandaloneWindows64`)。
+   展示用のビルドは**既定のまま (stable チャンネル)** で(Bundle: `FlashBeat_Data\StreamingAssets\update-channel.txt` = `stable`)。
+   検証用の prerelease を取り込みたいときだけ環境変数 `FLASHBEAT_UPDATE_CHANNEL=preview` を付けてビルドする。
+   展示用ビルドがテスト用 prerelease を自動適用しないことはチャンネルの責務であり、公開前に Player.log の
+   `[UpdateChecker] 更新チャンネル: stable` を確認して証跡に残す。
 2. 実機 smoke (起動→曲選択→プレイ→リザルト) を確認。**実機証拠がなければリリース完了としない** (Issue #22 がゲート)。
 3. パッケージ化:
 

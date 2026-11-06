@@ -12,9 +12,11 @@
         - Assets/Game/Resources/** が Unity により resources.resource に焼き込まれる場合、ZIP レベルでは
           除去できない。-MediaPolicy free のときは resources.resource のサイズ上限で検知して失敗する。
           media-free リリースは Unity 側でメディアを Resources 外 (ストリーミング/キャッシュ) に分離してから。
-    - ZIP ルートに version.json を埋め込む (#36 UpdateChecker / Update.ps1 が読む契約、下記 docs 参照):
+    - ZIP ルートに version.json を埋め込む (人が読む同梱メタデータ。更新判定は UpdateChecker が
+      Application.version と Release タグで行い、version.json は読まない。下記 docs 参照):
         docs/operations/update-release.md の「配布仕様」。
     - ZIP 作成後、内容の最低限の検査 (exe / Data / Managed DLL / version.json の存在、arch integrity) を行う。
+      ビルド出力の StreamingAssets/update-channel.txt (更新チャンネル) もそのまま同梱されます。
     - ZIP の隣に `<zip名>.sha256` (SHA-256 sidecar, sha256sum -c 互換) を書き出す。
     - 秘密情報 (トークン・署名付き URL・credential) は ZIP に一切含めない。入力はビルドフォルダのみ。
 
