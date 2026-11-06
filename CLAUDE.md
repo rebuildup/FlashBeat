@@ -22,9 +22,9 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
 
 **Run Tests**
 - Editor: `Window → General → Test Runner → EditMode`.
-- Or batch mode:
+- Or batch mode (do **not** pass `-quit`: it terminates the editor before the test runner starts, and the command then exits 0 without running any test or writing `TestResults.xml`):
   ```
-  Unity -batchmode -quit -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
+  Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
   ```
 - Tests live under `Assets/Tests/Editor/` (asmdef `FlashBeat.Tests`, scoped to `UNITY_INCLUDE_TESTS` + `nunit.framework.dll`). Single-test selection is via the Test Runner UI; no test-name CLI flag is wired up.
 
@@ -136,6 +136,10 @@ Manual recipe (still valid for scripted/headless use):
 - `Assets/Editor/TempRuntimeProbe.cs.tmp` is a stray in-progress file (`.tmp` suffix) — not part of the build, leave alone unless cleaning up.
 - `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays and the `Resources/<song>.json` chart must stay in lockstep. Editor tools `GManagerParallelArrayUpdater` + `SongMetaDialog` (Editor menu) append entries programmatically and queue via `DeferredEditorActions` to defer past Play Mode. `YouTubeSceneWiring` auto-wires the new `YoutubePlayer` GameObject into `GameScene.unity` + `MusicManager`.
 - `NoteEditor.Editor` callbacks (YouTube import registration, deferred editor actions) use a `[InitializeOnLoad]` static registrar pattern — see `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` and the `feedback_noteeditor_asmdef` memory note for the cross-asmdef callback pattern.
+- Windows/Unity 6000.5.6f1 baseline (issue #11): the batch build works, and one full song loop (select → play → result → retry) is proven on the built player — see `docs/superpowers/plans/baseline-win64.md`. Two open points there: the Windows Media Foundation URL reader fails on the resolved `googlevideo.com` stream (`WindowsVideoMedia error 0x80070005` / `MFCreateSourceReaderFromURL`, `[MusicManager] VideoPlayer failed to prepare within 30s`), and since `MusicManager` never calls `audioS.Play()`, the song audio currently rides on the video track — the build is silent while the video is down (issue #13).
+- The song/artist names render as `□` in the select and result panels: the HUD font asset is `LiberationSans SDF`, which has no Japanese glyphs (`The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset`).
+- `GManager.SongLong`/`SBPM`/`Slevel`/`Shit` currently hold 30 entries while `SongName`/`Musician`/`SongURL` hold 29, so the parallel arrays are already out of lockstep (`BuildSongs()` iterates `SongName.Length`, so it is harmless today).
+- `GManager.SongName[27]` and `[28]` are both `ニセモノ` and there is no `Assets/Game/Resources/Musics/ニセモノ.wav`; `MusicManager` does not null-check `Resources.Load("Musics/" + songName)`, so those two select slots are not safe to choose.
 
 ## Cloud deployment credentials
 
