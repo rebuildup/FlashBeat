@@ -10,17 +10,6 @@ const form = css({
   maxWidth: "28rem",
 });
 
-const dialogBody = css({
-  display: "grid",
-  gap: "4",
-});
-
-const dialogActions = css({
-  display: "flex",
-  gap: "2",
-  justifyContent: "flex-end",
-});
-
 const accent = css({ colorPalette: "teal" });
 
 /**
@@ -72,12 +61,14 @@ export function PublishPanel() {
               <Dialog.Backdrop />
               <Dialog.Positioner>
                 <Dialog.Content>
-                  <Dialog.Title>Publish “{songId}”</Dialog.Title>
-                  <Dialog.Description>
-                    The chart snapshot, metadata and catalog version are written in one request.
-                  </Dialog.Description>
+                  <Dialog.Header>
+                    <Dialog.Title>Publish “{songId}”</Dialog.Title>
+                    <Dialog.Description>
+                      The chart snapshot, metadata and catalog version are written in one request.
+                    </Dialog.Description>
+                  </Dialog.Header>
 
-                  <div className={dialogBody}>
+                  <Dialog.Body>
                     <Field.Root>
                       <Field.Label>Staff token</Field.Label>
                       <Input
@@ -91,18 +82,18 @@ export function PublishPanel() {
                         the bundle.
                       </Field.HelperText>
                     </Field.Root>
+                  </Dialog.Body>
 
-                    <div className={dialogActions}>
-                      <Dialog.CloseTrigger asChild>
-                        <Button variant="outline" size="md">
-                          Cancel
-                        </Button>
-                      </Dialog.CloseTrigger>
-                      <Button size="md" disabled>
-                        Publish (waiting for #16)
+                  <Dialog.Footer>
+                    <Dialog.ActionTrigger asChild>
+                      <Button variant="outline" size="md">
+                        Cancel
                       </Button>
-                    </div>
-                  </div>
+                    </Dialog.ActionTrigger>
+                    <Button className={accent} size="md" disabled>
+                      Publish (waiting for #16)
+                    </Button>
+                  </Dialog.Footer>
                 </Dialog.Content>
               </Dialog.Positioner>
             </Portal>
