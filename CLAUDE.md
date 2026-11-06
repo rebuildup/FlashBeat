@@ -136,3 +136,10 @@ Manual recipe (still valid for scripted/headless use):
 - `Assets/Editor/TempRuntimeProbe.cs.tmp` is a stray in-progress file (`.tmp` suffix) — not part of the build, leave alone unless cleaning up.
 - `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays and the `Resources/<song>.json` chart must stay in lockstep. Editor tools `GManagerParallelArrayUpdater` + `SongMetaDialog` (Editor menu) append entries programmatically and queue via `DeferredEditorActions` to defer past Play Mode. `YouTubeSceneWiring` auto-wires the new `YoutubePlayer` GameObject into `GameScene.unity` + `MusicManager`.
 - `NoteEditor.Editor` callbacks (YouTube import registration, deferred editor actions) use a `[InitializeOnLoad]` static registrar pattern — see `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` and the `feedback_noteeditor_asmdef` memory note for the cross-asmdef callback pattern.
+
+## Cloud deployment credentials
+
+- Infisical (self-hosted `https://secrets.rebuildup.dev`) is the only secrets source of truth. FlashBeat has its own project (`0645e78f-ae7a-48b3-8597-4986be983496`, env `dev`); never read, copy or reuse another project's Infisical secrets or Cloudflare tokens.
+- Binding: `.infisical.json` (tracked) + `config/infisical.sh` (instance metadata). Inject secrets per command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
+- The official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`, always under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
+- State, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).
