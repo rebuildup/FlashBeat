@@ -56,6 +56,13 @@ export const panelBody = css({
   p: "4",
 });
 
+/** Body variant for lists that run edge to edge inside the well (catalog rows). */
+export const panelBodyFlush = css({
+  flex: "1",
+  minHeight: "0",
+  overflowY: "auto",
+});
+
 export const stateBlock = css({
   alignItems: "center",
   display: "flex",
