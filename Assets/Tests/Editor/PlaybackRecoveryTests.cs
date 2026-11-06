@@ -1,5 +1,6 @@
 using System.IO;
 using FlashBeat.Gameplay;
+using FlashBeat.UI;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -88,6 +89,39 @@ public class PlaybackRecoveryTests
     }
 
     [Test]
+    public void TheMergedStreamIsTheAudioSourceWhenItIsReady()
+    {
+        Assert.AreEqual(PlaybackSource.StreamCombined,
+            PlaybackRecovery.DecideAudioSource(combined: true, videoReady: true, audioReady: false, hasBundledWave: true));
+    }
+
+    [Test]
+    public void TheSeparateTrackIsTheAudioSourceWhenThePictureIsMissing()
+    {
+        Assert.AreEqual(PlaybackSource.StreamSeparate,
+            PlaybackRecovery.DecideAudioSource(combined: false, videoReady: false, audioReady: true, hasBundledWave: true));
+    }
+
+    [Test]
+    public void TheBundledWaveIsOnlyAFallback()
+    {
+        Assert.AreEqual(PlaybackSource.BundledWave,
+            PlaybackRecovery.DecideAudioSource(combined: false, videoReady: false, audioReady: false, hasBundledWave: true));
+    }
+
+    [Test]
+    public void AMissingWavLeavesNoUndefinedAudioSource()
+    {
+        // ニセモノ (GManager.SongName[27]/[28]) has no
+        // Assets/Game/Resources/Musics/ニセモノ.wav: the decision must end at
+        // None instead of throwing, so the recovery can take the player back.
+        Assert.DoesNotThrow(() =>
+            PlaybackRecovery.DecideAudioSource(combined: false, videoReady: false, audioReady: false, hasBundledWave: false));
+        Assert.AreEqual(PlaybackSource.None,
+            PlaybackRecovery.DecideAudioSource(combined: false, videoReady: false, audioReady: false, hasBundledWave: false));
+    }
+
+    [Test]
     public void TheMediaCacheLivesInThePlayerEnvironment()
     {
         string root = YouTubeMediaCache.CacheRoot;
@@ -106,5 +140,43 @@ public class PlaybackRecoveryTests
         Assert.AreNotEqual(first, second);
         StringAssert.StartsWith(YouTubeMediaCache.CacheRoot, first);
         StringAssert.Contains("DeKLpgzh-qQ", first);
+    }
+}
+
+/// <summary>
+/// The HUD hook of the recovery (issue #91): when the pipeline decides that the
+/// song cannot be played (MusicManager.SelectReturnPending), the HUD has to show
+/// the failure at once - not when its own 45s timeout runs out, because the
+/// automatic return to the song list starts earlier than that.
+/// </summary>
+public class HudPlaybackFailureHookTests
+{
+    [Test]
+    public void TheHudShowsTheFailureAsSoonAsThePipelineDecidesTheSongIsUnplayable()
+    {
+        // The load indicator is still active and the timeout is far away, but
+        // the pipeline has already failed: the failure is shown immediately.
+        Assert.AreEqual(HudPlayPhase.Failed,
+            HudPlayState.Evaluate(videoError: false, playbackStarted: false, mediaLoading: true, loadingSeconds: 0f, pipelineFailed: true));
+        Assert.AreEqual(HudPlayPhase.Failed,
+            HudPlayState.Evaluate(videoError: false, playbackStarted: false, mediaLoading: false, loadingSeconds: 0f, pipelineFailed: true));
+    }
+
+    [Test]
+    public void TheHudStaysQuietWhenThePlayerStartedTheSongAnyway()
+    {
+        // Space during the grace period: the song runs to the result screen on
+        // the wall clock, the HUD does not nag about the failed preparation.
+        Assert.AreEqual(HudPlayPhase.Hidden,
+            HudPlayState.Evaluate(videoError: false, playbackStarted: true, mediaLoading: false, loadingSeconds: 0f, pipelineFailed: true));
+    }
+
+    [Test]
+    public void ThePureOverloadWithoutPipelineFailureKeepsTheOldBehaviour()
+    {
+        Assert.AreEqual(HudPlayPhase.Preparing,
+            HudPlayState.Evaluate(videoError: false, playbackStarted: false, mediaLoading: true, loadingSeconds: 0f, pipelineFailed: false));
+        Assert.AreEqual(HudPlayPhase.Hidden,
+            HudPlayState.Evaluate(videoError: false, playbackStarted: false, mediaLoading: false, loadingSeconds: 0f, pipelineFailed: false));
     }
 }

@@ -51,6 +51,22 @@ namespace FlashBeat.Gameplay
     /// </summary>
     public static class PlaybackRecovery
     {
+        /// <summary>
+        /// Decides where the sound of the song comes from. The wanted source is
+        /// the YouTube media (the merged file, else the separate audio track);
+        /// the bundled wav is only a fallback for development builds. When the
+        /// wav is missing and no media could be prepared the decision is
+        /// <see cref="PlaybackSource.None"/> - it never throws, the caller
+        /// starts the recovery instead.
+        /// </summary>
+        public static PlaybackSource DecideAudioSource(bool combined, bool videoReady, bool audioReady, bool hasBundledWave)
+        {
+            if (combined && videoReady) return PlaybackSource.StreamCombined;
+            if (audioReady) return PlaybackSource.StreamSeparate;
+            if (hasBundledWave) return PlaybackSource.BundledWave;
+            return PlaybackSource.None;
+        }
+
         /// <summary>Seconds the message stays on the screen before the return.</summary>
         public const float SelectReturnDelaySeconds = 6f;
 

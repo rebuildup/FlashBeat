@@ -88,6 +88,14 @@ public class MusicManager : MonoBehaviour
     /// </summary>
     public static MediaFailure LastFailure { get; private set; } = MediaFailure.None;
 
+    /// <summary>
+    /// True while the pipeline has decided that the song cannot be played and
+    /// the automatic return to the song list is pending. The HUD (HudPlayState)
+    /// reads it so the failure is shown at once instead of when its own timeout
+    /// runs out.
+    /// </summary>
+    public static bool SelectReturnPending { get; private set; }
+
     void Start()
     {
         waitback.SetActive(true);
@@ -177,6 +185,7 @@ public class MusicManager : MonoBehaviour
         // A new run starts without a failure: the HUD shows the state of the
         // current pipeline.
         LastFailure = MediaFailure.None;
+        SelectReturnPending = false;
         failure = MediaFailure.None;
 
         // The Invidious player of the package cannot resolve anything today
@@ -262,23 +271,9 @@ public class MusicManager : MonoBehaviour
             audioReady = streamAudioPrepared;
         }
 
-        // 6. Decide where the sound comes from.
-        if (combined && videoReady)
-        {
-            audioMode = PlaybackSource.StreamCombined;
-        }
-        else if (audioReady)
-        {
-            audioMode = PlaybackSource.StreamSeparate;
-        }
-        else if (Music != null)
-        {
-            audioMode = PlaybackSource.BundledWave;
-        }
-        else
-        {
-            audioMode = PlaybackSource.None;
-        }
+        // 6. Decide where the sound comes from (a missing wav yields None
+        //    instead of throwing - the recovery then takes over).
+        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
         load.SetActive(false);
@@ -347,6 +342,7 @@ public class MusicManager : MonoBehaviour
         Debug.Log(PlaybackRecovery.FailureLog(stage, reason, hasPicture));
         stage = MediaStage.Failed;
         failure = reason;
+        SelectReturnPending = true;
 
         SetStartMessage(PlaybackRecovery.StartHint(reason));
 
@@ -713,6 +709,10 @@ public class MusicManager : MonoBehaviour
     void StartPlayback()
     {
         playbackStarted = true;
+        // The player started the song anyway: the pending return is cancelled
+        // (its coroutine yields break on playbackStarted) and the HUD goes
+        // back to the play view.
+        SelectReturnPending = false;
         GManager.Start = true;
         GManager.played = true;
         playbackStartWallTime = Time.time;
