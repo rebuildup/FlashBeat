@@ -1,0 +1,338 @@
+Mono path[0] = 'C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/Managed'
+Mono config path = 'C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=<REDACTED>
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.1742
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.295 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 3.766200 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:\Users\rebui\Desktop\FlashBeat.27\Builds\Windows\FlashBeat_Data\sharedassets0.resource
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.991800 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 1929.
+Total: 0.860300 ms (FindLiveObjects: 0.060200 ms CreateObjectMapping: 0.107300 ms MarkObjects: 0.684800 ms  DeleteObjects: 0.007700 ms)
+
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.827800 ms
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 2854.
+Total: 1.294400 ms (FindLiveObjects: 0.152100 ms CreateObjectMapping: 0.153200 ms MarkObjects: 0.957700 ms  DeleteObjects: 0.031200 ms)
+
+ro-dokanryou
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.032200 ms
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 2804.
+Total: 1.280500 ms (FindLiveObjects: 0.148000 ms CreateObjectMapping: 0.166600 ms MarkObjects: 0.847200 ms  DeleteObjects: 0.118200 ms)
+
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] yt-dlp resolver failed for 'まにまに': yt-dlp exited 1 for videoId=<REDACTED> stderr: ERROR: [youtube] 9O2VyUM5MlQ: Requested format is not available. Use --list-formats for a list of available formats. Falling back to InvidiousVideoPlayer.
+Instance type is set to "Public". Fetching public instances every time is slow, and are only used for the sample to work. Please set a custom instance in the InvidiousInstance component.
+Fetching Invidious public instances...
+Using Invidious public instance: https://yt.chocolatemoo53.com
+[MusicManager] YouTube prepare failed for 'まにまに' (videoId=<REDACTED> Instance='https://yt.chocolatemoo53.com'. InvalidOperationException: Sequence contains no elements
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.613400 ms
+Unloading 89 unused Assets to reduce memory usage. Loaded Objects now: 2152.
+Total: 1.074100 ms (FindLiveObjects: 0.077100 ms CreateObjectMapping: 0.099100 ms MarkObjects: 0.809200 ms  DeleteObjects: 0.088500 ms)
+
+se-bukanryou
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.550400 ms
+Unloading 40 unused Assets to reduce memory usage. Loaded Objects now: 2807.
+Total: 1.473500 ms (FindLiveObjects: 0.101500 ms CreateObjectMapping: 0.114500 ms MarkObjects: 1.177000 ms  DeleteObjects: 0.080300 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.27/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] yt-dlp resolver failed for 'まにまに': yt-dlp exited 1 for videoId=<REDACTED> stderr: ERROR: [youtube] 9O2VyUM5MlQ: Requested format is not available. Use --list-formats for a list of available formats. Falling back to InvidiousVideoPlayer.
+Instance type is set to "Public". Fetching public instances every time is slow, and are only used for the sample to work. Please set a custom instance in the InvidiousInstance component.
+Fetching Invidious public instances...
+Using Invidious public instance: https://yt.chocolatemoo53.com
+[MusicManager] YouTube prepare failed for 'まにまに' (videoId=<REDACTED> Instance='https://yt.chocolatemoo53.com'. InvalidOperationException: Sequence contains no elements
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

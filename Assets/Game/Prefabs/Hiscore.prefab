@@ -68,8 +68,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Hiscore
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: ca2f53e234e514e45b9247abc9728e6d, type: 2}
-  m_sharedMaterial: {fileID: 5432773783467127118, guid: ca2f53e234e514e45b9247abc9728e6d, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
+  m_sharedMaterial: {fileID: 1525376641027150585, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -104,20 +104,23 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
+  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
+  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 1
   m_isCullingEnabled: 0
@@ -202,8 +205,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 1000000
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: ca2f53e234e514e45b9247abc9728e6d, type: 2}
-  m_sharedMaterial: {fileID: 5432773783467127118, guid: ca2f53e234e514e45b9247abc9728e6d, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
+  m_sharedMaterial: {fileID: 1525376641027150585, guid: f68ae43ea153a8046aa786f1b25be7a2, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -238,20 +241,23 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
+  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
+  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 1
   m_isCullingEnabled: 0
