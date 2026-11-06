@@ -30,3 +30,10 @@ cd design
 | Design System v5 | layers / controls vs lists / shapes / ranking |
 
 UI 変更はこのファイルの該当 Unit/Screen を正とし、コンポーネントは `Prefab/*` 命名に対応させる。
+
+## 設計の正本 (Issue #100)
+
+- 正本は `flashbeat-ui.pen` の **v5 の 3 フレーム**のみ: `Components v5` / `Screens v5 · layers & shapes (FHD)` / `Design System v5`。
+- 旧 `Wireframes FHD 1920x1080` (ワイヤーフレーム) は削除済み。ワイヤーフレームを実装・トークン抽出の基準にしない。
+- `.pen` が参照する画像は `design/assets/` (相対パス `assets/...`) に置く。`.pen` は暗号化されているため必ず pencil MCP ツール経由で読む。
+- `ui-size-profiles.json`: Unity UI のサイズ仕様 (UISizeProfile: Constant Pixel Size x1、`fhd` / `2k` / `mac` を画面比で切替、値は実ピクセル)。現行 Unity シーンの `ScaleWithScreenSize 1920x1080` はこの仕様と一致していない (#88/#96)。
