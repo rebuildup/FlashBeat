@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using FlashBeat.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -58,13 +59,14 @@ public class GameSceneManager : MonoBehaviour
 
     private TextData inputJson; // メンバ変数として TextData オブジェクトを宣言
 
-    private int charNum;
+    /// <summary>歌詞の表示区間 (メディアタイムライン上)。</summary>
+    private List<LyricLine> lyricLines = new List<LyricLine>();
 
-    private string romajiT;
+    /// <summary>いま表示している歌詞の行 (LyricsTimeline.IndexAt の結果)。</summary>
+    private int currentLyricIndex = -1;
 
-    public float timeElapsed = 0.0f;
-
-   
+    /// <summary>ポーズメニューを開いている間、歌詞パネルを出さない。</summary>
+    private bool menuVisible;
 
     public static bool Menu;
     [SerializeField] private GameObject OnText;
@@ -88,18 +90,8 @@ public class GameSceneManager : MonoBehaviour
         sounds.volume = GManager.effectVolume;
         MenuPanel.SetActive(false);
         MenuButton.SetActive(true);
-        if (Menu)
-        {
-            TextPanel.SetActive(true);
-        }
-        else
-        {
-            TextPanel.SetActive(false);
-        }
-        furiganaText.text = "";
-        mondaiText.text = "";
-        romajiText.text = "";
-        timeElapsed = 0.0f;
+        ClearLyricText();
+        ApplyTextPanelVisibility();
         Flash.SetActive(false);
         songName = GManager.ActiveSongs[GManager.songID].title;
         Load(songName);
@@ -108,6 +100,12 @@ public class GameSceneManager : MonoBehaviour
     private void Load(string SongName)
     {
         this.inputJson = LoadTextData(SongName);
+        // 譜面の歌詞を「動画と同じタイムライン上の表示区間」へ変換する
+        lyricLines = LyricsTimeline.Build(
+            inputJson.StartTime,
+            inputJson.EndTime,
+            inputJson.Mondai,
+            inputJson.Furigana);
     }
 
     TextData LoadTextData(string songName)
@@ -158,10 +156,12 @@ public class GameSceneManager : MonoBehaviour
     public void OpenMenu()
     {
         MenuPanel.SetActive(true);
-        
-        
+
+
         MenuButton.SetActive(false);
-        TextPanel.SetActive(false);
+        // メニューを出している間は歌詞パネルを出さない (閉じたら元へ戻す)
+        menuVisible = true;
+        ApplyTextPanelVisibility();
         if (Menu)
         {
             OnText.SetActive(true);
@@ -182,24 +182,21 @@ public class GameSceneManager : MonoBehaviour
     {
         if (!IsOpen || IsTransition) return;
         MenuButton.SetActive(true);
-        
-        if (Menu)
-        {
-            TextPanel.SetActive(true);
-        }
-        else
-        {
-            TextPanel.SetActive(false);
-        }
+
         if (!IsOpen || IsTransition) return;
 
         // IsOpenフラグをクリア
         _animator.SetBool(ParamIsOpen, false);
-        
 
-        // アニメーション待機し、終わったらパネル自体を非アクティブにする
 
-        StartCoroutine(WaitAnimation("Hidden", () =>MenuPanel.SetActive(false)));
+        // アニメーション待機し、終わったらパネル自体を非アクティブにして歌詞を戻す
+
+        StartCoroutine(WaitAnimation("Hidden", () =>
+        {
+            MenuPanel.SetActive(false);
+            menuVisible = false;
+            ApplyTextPanelVisibility();
+        }));
     }
     public void playSound()
     {
@@ -238,34 +235,17 @@ public class GameSceneManager : MonoBehaviour
 
 
             gauge.fillAmount = (GManager.score / 1000000f);
-            
-            timeElapsed += Time.deltaTime;
-            
-            
-            for (int i = 0; i < inputJson.StartTime.Length; i++)
-            {
-                if (Mathf.Abs(timeElapsed - (inputJson.StartTime[i] + (GManager.FlashT * 0.01f))) < 0.05f)
-                {
-                    mondaiText.text = inputJson.Mondai[i];
-                    display = true; // 表示フラグを立てる
-                    charNum = 0;
-                }
 
-            }
-
+            // 歌詞は動画と同じタイムライン (メディアクロック) で出し入れする。
+            // GManager.step_time はノーツ位置と同じクロックなので、
+            // フレーム落ちやバッファリングでも歌詞とノーツがずれない。
+            UpdateLyrics(GManager.step_time);
         }
-        if (romajiT != null && charNum < romajiT.Length)
+        else
         {
-            if (Input.GetKeyDown(romajiT[charNum].ToString()))
-            {
-                Correct();
-                if(charNum >= romajiT.Length)
-                {
-                    TextEnd();
-                }
-            }
+            HideLyrics();
         }
-        
+
         if (MenuPanel.activeSelf)
         {
             if (Input.GetKeyDown(KeyCode.R))
@@ -300,14 +280,71 @@ public class GameSceneManager : MonoBehaviour
         
 
     }
-    private void Correct()
+
+    /// <summary>
+    /// いまの時刻に表示されている歌詞を反映する。
+    /// 歌詞が無い (データが無い・空行の) ときはパネルごと消す。
+    /// </summary>
+    void UpdateLyrics(float mediaTime)
     {
-        charNum++;
+        int index = LyricsTimeline.IndexAt(lyricLines, mediaTime);
+        if (index != currentLyricIndex)
+        {
+            currentLyricIndex = index;
+            ApplyLyricLine(index);
+        }
+        ApplyTextPanelVisibility();
     }
-    public void TextEnd()
+
+    /// <summary>再生前など、歌詞を出さない状態に戻す。</summary>
+    void HideLyrics()
     {
-        // テキストを緑色に変更
-        romajiText.text = "<color=#41FF00>" + romajiT + "</color>";
+        if (currentLyricIndex != -1)
+        {
+            currentLyricIndex = -1;
+            ApplyLyricLine(-1);
+        }
+        ApplyTextPanelVisibility();
+    }
+
+    void ApplyLyricLine(int index)
+    {
+        if (index < 0)
+        {
+            ClearLyricText();
+            return;
+        }
+
+        LyricLine line = lyricLines[index];
+        if (!line.HasText)
+        {
+            // 空行 (全角スペース等) は「ここで歌詞を消す」合図として扱う
+            ClearLyricText();
+            return;
+        }
+
+        mondaiText.text = line.Text;
+        furiganaText.text = line.Furigana ?? "";
+        romajiText.text = "";
+        display = true; // 表示フラグを立てる
+    }
+
+    void ClearLyricText()
+    {
+        mondaiText.text = "";
+        furiganaText.text = "";
+        romajiText.text = "";
+        display = false;
+    }
+
+    /// <summary>
+    /// 歌詞パネルは「歌詞表示がON」かつ「いま歌詞の行がある」ときだけ出す。
+    /// 曲に歌詞が無い場合や間奏中は、空のパネルを残さない。
+    /// </summary>
+    void ApplyTextPanelVisibility()
+    {
+        bool show = Menu && display && !menuVisible;
+        if (TextPanel.activeSelf != show) TextPanel.SetActive(show);
     }
 
     public void TextPanelOn()
@@ -315,6 +352,7 @@ public class GameSceneManager : MonoBehaviour
         OnText.SetActive(true);
         OffText.SetActive(false);
         Menu = true;
+        ApplyTextPanelVisibility();
     }
 
     public void TextPanelOff()
@@ -322,6 +360,7 @@ public class GameSceneManager : MonoBehaviour
         OnText.SetActive(false);
         OffText.SetActive(true);
         Menu = false;
+        ApplyTextPanelVisibility();
     }
     public void SwitchPanel()
     {
