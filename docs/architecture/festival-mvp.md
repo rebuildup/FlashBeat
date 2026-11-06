@@ -1,78 +1,76 @@
-# FlashBeat Festival MVP — smallest staged delivery
+# FlashBeat Festival v0.1 — executable architecture & worker contract
 
-Status: PROPOSED, not yet built or deployed. Target: 2026-11-07. Parent: #3.
-Respect constitution/CONSTITUTION.md and organization/profiles/release-driven-solo.md.
+Target: 2026-11-07 高専祭. Parent: #3, contract PR #8.
+Status: architectural decision, **not evidence of successful deployment or Win64 gameplay**.
+This file is subordinate to `constitution/CONSTITUTION.md` and the project-init operating profile.
 
-## Frozen product boundaries
+## Non-negotiable requirements
+- **One agent / one GitHub issue / one worktrunk worktree / one Draft PR**. One owner for mutable Unity scenes and build/editor runtime.
+- Every integrated **stage** must preserve a usable Windows festival artifact; no stage is declared done with source-only evidence.
+- No attempt at offline YouTube audio library. Streaming is yt-dlp + Deno + Unity VideoPlayer (audio and video from one compatible stream).
+- Unity remains a **player**: fetch catalog/chart, stream, judge, results, rankings. Song management, edits and scores belong to Cloudflare.
+- Prioritize library integration instead of home-grown routing, ORM, UI primitives, canvas hit-testing, auth system, and build tooling.
 
-- Unity: only read catalog/chart, resolve yt-dlp stream, render audiovisual gameplay and input/judgment, display result and leaderboard. Do not keep online high scores locally.
-- Cloudflare: ONE Worker app (Hono API + Vite/React SPA assets) and ONE D1 database. No media proxy, KV, R2 or additional service.
-- Web Studio: edit the EXISTING JSON format with a simple 8-lane grid and YouTube iframe preview. One Publish action.
-- Library first: Hono, React, Vite, Ajv, D1 prepared statements, existing Unity VideoPlayer, yt-dlp + Deno. No bespoke framework, ORM or note format redesign.
-- Minimal access boundary: public reads and casual score writes; a single server-side secret ADMIN_TOKEN for song publishing, entered by operator at runtime, never bundled in frontend/Unity. Validate JSON and parameterize SQL.
-- No accounts, guest sessions, anti-cheat, multiplayer, CRDT, WebSocket, cloud drafts, separate song revisions UI, per-user identity or offline music.
+## Locked libraries and design decisions
 
-## Interface contract
+**Cloud app (web/):**
+- `void` **native Void app** + **Vite+**, **React + TypeScript**. Not TanStack Start/React Router; avoid a second meta-framework and duplicate server routes.
+- Initialize with `npm create void@latest web -- --toolchain vite-plus --framework react --starter sqlite --deploy none`; review generated files, then `vp install`.
+- API handlers: Void's **file routes + defineHandler** (Hono already internal), NOT a new Hono app or custom express router.
+- DB: Void `void/db` + **Drizzle built in** and D1 migration generation (`void db generate`, `void db migrate`). Do not add Prisma or a second ORM.
+- Deploy: `void connect --platform cloudflare`, `void cloudflare status`, `void deploy --platform cloudflare`. This is the primary CF CLI bridge; Wrangler diagnostics are optional, do not build custom deployment scripts.
+- Tooling: `vp check`, `vp test`, `vp build`; do not add a duplicate ESLint/Prettier/Vitest toolchain.
+- UI: **shadcn/ui** (official CLI components, a single consistent **Nova preset**, **Base UI primitives**), **Tailwind CSS 4**, **lucide-react**, **Sonner** for toasts. Use official dashboard/sidebar example for shell; no homemade buttons, dialogs, form widgets or novel design system.
+- Editor grid: **Konva + react-konva** for eight lanes, beat grid, click/drag to add/move/remove standard tap notes. No new canvas engine, no custom pointer hit-testing, no timeline editing framework.
+- Web video preview: YouTube IFrame Player API. Never embed yt-dlp in the browser, and do not store or proxy media.
+- Static verification: original JSON Schema `contracts/schemas/chart.v1.schema.json`, simple semantic checks in shared TS service. No chart format migration tonight.
+- UX acceptance: dark, compact, editorial, consistent tokens; 1280×720 and 1440×900 screenshots; loading/empty/failure/publish-success states; keyboard controls discernible; UI feedback allowed without changing API.
 
-Machine-readable:
-- contracts/openapi.v1.yaml — exactly five routes
-- contracts/schemas/chart.v1.schema.json — existing chart shape: name, maxBlock, BPM, offset, notes[{type,num,block,LPB}], lyrics?
+**Unity:**
+- Preserve current Unity 6, **uGUI + TextMeshPro**, `UnityWebRequest`, `JsonUtility`, `VideoPlayer`, Unity Test Framework. No new bespoke UI architecture or full UI Toolkit migration.
+- Reuse current scene/prefab UI wherever feasible. Do not design an entirely new game UI before stream loop is proven.
+- Score/judgment is calculated locally during a run; send final result once to server. Server owns scores/rankings. Avoid per-frame network writes.
 
-Public routes:
-1. GET /api/v1/catalog — lightweight song summaries + chartVersion.
-2. GET /api/v1/charts/{songId}?version=N — immutable snapshot, Unity pins version during play.
-3. PUT /api/v1/admin/songs/{songId} — validated atomic upsert, single Publish action.
-4. POST /api/v1/scores — counts and nickname; server recalculates score.
-5. GET /api/v1/leaderboards/{songId}?version=N — top ten for exact chart version.
+**Tokens and authorization:**
+- **Infisical is the only secrets source-of-truth.** Mac and Win use their existing Infisical CLI identity and environment/path. Machine identities are preferred for noninteractive workers.
+- Expected keys: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (non-secret), `FLASHBEAT_ADMIN_TOKEN`. Missing keys cause a **single immediate operator bootstrap gate**, not repeated "owner permission" deferrals.
+- Cloudflare Worker runtime receives `FLASHBEAT_ADMIN_TOKEN` via `void secret put` as a deployment copy. Do not commit `.env` or use `VITE_*` for secrets. Do not log tokens.
+- Authorized: create Cloudflare Worker + D1, generate/apply required migrations, set runtime secret, deploy to workers.dev, inspect logs, rollback failed deployments. **Do not buy paid plans, set production custom domains, alter other projects or leak sensitive values.**
+- On a Mac worker with CLI credentials, run `void cloudflare status` noninteractively and check scoped account. In CI Void accepts `CLOUDFLARE_API_TOKEN` and account id. A missing/expired credential is real operator involvement; escalate once early.
+- Avoid custom auth UI: one Bearer admin token on song publish, public read/score endpoints. Apply built-in input validation, prepared SQL, small rate bounds; do not design full identity/anti-cheat.
 
-One chart per song for festival; no chartId/difficulty hierarchy. Stable songId slug, chartVersion increments on each publish. Keep legacy note representation; translating old chart to timeMs would add unnecessary work and risk tonight.
-Suggested D1 tables: songs(id, metadata, current_version), chart_versions(song_id, version, chart_json, note_count), scores(id, song_id, chart_version, nickname, p,g,b,m,score,created_at). Minimal catalogVersion can be a singleton counter if useful.
-Unity polls catalog on select-scene entry and every 5–10 seconds while idle, NEVER applies chart changes during play.
+## Contracts and minimal data
+Authoritative files: `contracts/openapi.v1.yaml` and `contracts/schemas/chart.v1.schema.json`.
+Five endpoints, not more:
+- GET catalog; GET immutable songId + chartVersion
+- PUT admin song metadata + chart in one publish action
+- POST score (nickname + judge counts); GET leaderboard top ten
+One active chart per song, versioned snapshots; exact version pinned during gameplay. Existing `name,maxBlock,BPM,offset,notes[{type,num,block,LPB}],lyrics?` unchanged.
+D1 stores `songs`, `chart_versions`, `scores`; no separate session, auth, draft, score-owner, or push infrastructure.
+Server recalculates score = floor(1_000_000*(5P+3G+B)/(5*N)), requires P+G+B+M == N, labels ranking casual/client-unverified.
+Unity only refreshes catalog on selection screen; no WebSocket.
 
-Score formula (server side): floor(1,000,000*(5*perfect + 3*great + bad)/(5*totalNotes)).
-Require perfect+great+bad+miss == chart note count; verify numeric ranges. Allow repeated nickname entries; no identity/login. Ranking is casual/client-unverified.
+## Release stages and stop conditions
 
-## Strict delivery gates — each leaves a runnable exhibition build
+1. **S0 working baseline**: Unity builds Win64 and existing playable song reaches ResultScene. Archive executable and SHA.
+2. **S1 streamed**: yt-dlp + Deno stream works (A/V); notes/judgment aligned to video timeline, buffering handled. Archive executable.
+3. **S2 remotely seeded**: Void API + D1 publish via curl; Unity pulls NEW song without rebuild; song plays to ResultScene. Archive executable.
+4. **S3 Web Studio**: editor imports/modifies/validates/publishes JSON via official UI components and Konva grid; Mac browser publish -> Win Unity play. Archive executable. This is the primary feature target.
+5. **S4 casual ranking**: POST score, leaderboard GET, Unity result submit + display. Optional if S3 is ready and time remains.
 
-S0 BASELINE
-- Windows restores repository + needed LFS assets, Unity 6000.5.6f1, compiles, builds Win64.
-- Gate: an existing song selectable and playable to result (fix any blocking issue before advancing).
-- Freeze build artifact with commit SHA; if S0 fails, do NOT start speculative feature refactors.
+Do not proceed to destructive integration if the prior stage's proven build does not exist. The macOS backend can be developed in a separate worktree while Windows completes S0/S1. **Source changes are not evidence of a working build.**
 
-S1 YOUTUBE STREAM
-- yt-dlp/Deno resolves a single compatible audio+video HTTP stream. Unity VideoPlayer outputs sound and drives judgment on playback time, including stalls.
-- Gate: one streamed song completes; retry works on actual Win64 build. Keep S0 artifact.
+## Work units, dependency and UI review
 
-S2 REMOTE SONG CATALOG
-- Mac: implement only GET catalog, GET chart version, PUT song + D1 schema, seed existing chart; publish using curl/script.
-- Win: replace fixed catalog access and per-song player binding only as required for dynamic addition.
-- Gate: API publish a NEW playable chart; Unity displays and plays it WITHOUT recompiling. Keep S1 artifact.
+Each issue is a single slice with owned directories, acceptance criteria and tests, <= ~5 task checklist items. Use the Spec Kit `specify → plan → tasks → implement → converge` flow on substantive changes, preserving existing project-init constitution. Initialize Spec Kit once on a dedicated issue branch; do not overwrite governance files.
 
-S3 WEB CHART EDITOR
-- Mac: Vite React SPA import existing JSON, minimal note grid, iframe preview, schema validation and Publish.
-- Gate: edit/publish on Mac; appears in Windows Unity; play to result. Direct API publish remains fallback.
+Use remote refs for macOS/Windows worker handoff, no shared mutable Unity Library. All work targets `release-0-1-0` through issue-number branches, Draft PR on first durable commit. Integrator lands by dependency order with merge commits. No automatic launch of unreviewed production changes. New UI feedback can be handled by an unallocated UI iteration issue without blocking playable S2/S3.
 
-S4 CASUAL LEADERBOARD (optional if time)
-- Mac: implement POST scores + GET leaderboard.
-- Win: send final counts and render top ten; do not persist score/highscore locally.
-- Gate: score appears from a second client after a completed run. If fails, exhibit S3 artifact.
+## Scope explicitly excluded
+Cloud draft history, guest login/session IDs, anticheat/replays, websocket/CRDT, auto chart generation, waveform DSP, R2/KV, rebuilding Unity game interface, custom domain and marketing site, extra libraries without specific need.
 
-A stage is not green from unit tests or source inspection alone. Real Windows build + play is required. Each next stage begins only after a runnable version is archived.
-
-## Mac/Win Herdr allocation
-
-- First: contract owner freezes OpenAPI, JSON Schema and an example based on an existing valid chart.
-- Mac worker owns web/ and api/ + Worker/D1 migrations, validates endpoints with fixtures.
-- Win worker solely owns Unity Assets/Game/Scripts, *.unity, *.prefab and Unity Editor. Never run concurrent editors on a shared project.
-- Separate reviewer handles contract and build-evidence checks without simultaneously modifying Unity scene assets.
-- Use agent-router / Herdr / worktrunk with separate remote branches; never assume Mac and Windows share a filesystem or Unity Library cache.
-- GitHub Issue -> issue-number branch -> Draft PR to release-0-1-0 -> review -> merge commit -> authorized release PR to main. Record SHA and artifact/scene test evidence.
-- Features after a gate must not break the last runnable build.
-
-## Explicitly deferred
-
-Staff login UI, anti-cheat and playback proofs, durable cloud drafts, multiple difficulty charts, score identities, telemetry, realtime socket sync, advanced waveform editing, media storage, app migration, full design-system overhaul.
-
-First action: Windows prove an actual yt-dlp streamed song. Mac can scaffold API in parallel from frozen contract. Do NOT claim launch readiness until tested on exhibition hardware.
-
-Technical playback does not establish permission to exhibit copyrighted YouTube content; ensure event use is authorized.
+## Verification and failure response
+- Mac: `vp check`, `vp test`, API fixture and `void deploy` health + direct GET/PUT smoke.
+- Win: Unity tests, actual Win64 build, one full song, retry, remote publish test, no exception spam.
+- Keep each last-known-good build under external artifact storage; PR links commit SHA/build log/which chartVersion passed.
+- When blocked by external credentials, record exact missing name/scope/owner once immediately, continue only independent work; don't fabricate a successful deployment.
