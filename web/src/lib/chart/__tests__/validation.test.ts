@@ -47,11 +47,11 @@ describe("chart validation", () => {
     expect(issues[0].path).toBe("/notes/0/block");
   });
 
-  it("reports the frozen maxBlock value", () => {
-    const issues = validateChart({ ...VALID_CHART, maxBlock: 7 });
+  it("reports a lane count the game does not have", () => {
+    const issues = validateChart({ ...VALID_CHART, maxBlock: 9 });
 
     expect(issues).toHaveLength(1);
-    expect(issues[0].keyword).toBe("const");
+    expect(issues[0].keyword).toBe("maximum");
     expect(issues[0].path).toBe("/maxBlock");
   });
 
@@ -70,11 +70,23 @@ describe("chart validation", () => {
     expect(issues.map((issue) => issue.path)).toContain("/notes/1/type");
   });
 
-  it("rejects a chart without notes", () => {
-    const issues = validateChart({ ...VALID_CHART, notes: [] });
+  it("accepts a chart without notes", () => {
+    // The legacy charts of the Unity project carry empty note lists, so the
+    // contract has to accept them.
+    expect(validateChart({ ...VALID_CHART, notes: [] })).toEqual([]);
+  });
+
+  it("accepts a chart with fewer than eight lanes", () => {
+    // `ニセモノ.json` carries five lanes.
+    expect(validateChart({ ...VALID_CHART, maxBlock: 5 })).toEqual([]);
+  });
+
+  it("refuses a chart with more lanes than the game has", () => {
+    const issues = validateChart({ ...VALID_CHART, maxBlock: 9 });
 
     expect(issues).toHaveLength(1);
-    expect(issues[0].keyword).toBe("minItems");
+    expect(issues[0].keyword).toBe("maximum");
+    expect(issues[0].path).toBe("/maxBlock");
   });
 });
 

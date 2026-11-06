@@ -13,10 +13,6 @@ import { listRepositoryCharts, readRepositoryChart } from "./repository-charts";
 describe("chart round trip", () => {
   const charts = listRepositoryCharts();
 
-  // Probe charts without a single note. The frozen contract asks for at least
-  // one note, so the editor refuses them and shows the validation error.
-  const chartsWithoutNotes = ["E2EProbeSong.json", "ニセモノ.json"];
-
   it("covers every chart of the Unity project", () => {
     expect(charts.length).toBeGreaterThan(20);
   });
@@ -26,9 +22,8 @@ describe("chart round trip", () => {
       const original = readRepositoryChart(fileName);
 
       const first = importChartJson(original);
+      expect(first.ok).toBe(true);
       if (!first.ok) {
-        expect(chartsWithoutNotes).toContain(fileName);
-        expect(first.issues.some((issue) => issue.keyword === "minItems")).toBe(true);
         return;
       }
 
@@ -92,16 +87,19 @@ describe("chart round trip", () => {
     expect(reparsed.chart.lyrics).toEqual(result.chart.lyrics);
   });
 
-  it("refuses the probe charts without notes", () => {
-    for (const fileName of chartsWithoutNotes) {
+  it("accepts the charts without notes and with fewer lanes", () => {
+    // `E2EProbeSong.json` has an empty note list, `ニセモノ.json` has an empty
+    // note list and five lanes. Both are real charts of the Unity project, so
+    // the contract has to accept them.
+    for (const fileName of ["E2EProbeSong.json", "ニセモノ.json"]) {
       const result = importChartJson(readRepositoryChart(fileName));
 
-      expect(result.ok).toBe(false);
-      if (result.ok) {
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
         continue;
       }
 
-      expect(result.issues.map((issue) => issue.keyword)).toContain("minItems");
+      expect(result.chart.notes).toEqual([]);
     }
   });
 });
