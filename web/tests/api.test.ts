@@ -34,6 +34,14 @@ const baseUrl = `http://127.0.0.1:${port}`;
 
 const validateCatalog = responseValidator("catalog");
 const validateChart = responseValidator("charts");
+const validatePublish = responseValidator("publish", "put");
+
+/**
+ * The staff token the dev server runs with. It is injected through the
+ * environment of the spawned server (the same path a real deployment uses:
+ * Worker secret), never into any bundle.
+ */
+const TEST_ADMIN_TOKEN = "test-staff-token-0123456789abcdef";
 
 /** A minimal chart that satisfies `contracts/schemas/chart.v1.schema.json`. */
 const SECOND_CHART = JSON.stringify({
@@ -164,6 +172,7 @@ before(
     server = spawn(process.execPath, [vpCli, "dev", "--port", String(port), "--strictPort"], {
       cwd: webRoot,
       detached: true,
+      env: { ...process.env, FLASHBEAT_ADMIN_TOKEN: TEST_ADMIN_TOKEN },
       // The server output goes to a file instead of a pipe: the vite and
       // workerd processes inherit the pipe and would keep the test runner
       // waiting for the end of the stream.
@@ -271,5 +280,220 @@ describe("GET /api/v1/charts/{songId}", () => {
       const response = await fetch(`${baseUrl}/api/v1/charts/who${query}`);
       assert.equal(response.status, 400, `expected 400 for "${query}"`);
     }
+  });
+});
+
+describe("PUT /api/v1/admin/songs/{songId}", () => {
+  /** A valid publish body for `songId`, built from the given notes. */
+  function publishBody(songId: string, notes: unknown[]): string {
+    return JSON.stringify({
+      title: `Publish Test ${songId}`,
+      artist: "Tester",
+      youtubeId: "8JXiXt0D6tw",
+      level: 5,
+      durationSec: 90,
+      chart: {
+        name: `Publish Test ${songId}`,
+        maxBlock: 8,
+        BPM: 120,
+        offset: 0,
+        notes,
+      },
+    });
+  }
+
+  function publish(songId: string, body: string, token?: string): Promise<Response> {
+    return fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+      },
+      body,
+    });
+  }
+
+  async function catalogVersion(): Promise<number> {
+    const response = await fetch(`${baseUrl}/api/v1/catalog`);
+    const body = (await response.json()) as { catalogVersion: number };
+    return body.catalogVersion;
+  }
+
+  it("publishes a new song and returns the new versions", async () => {
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-new-song",
+      publishBody("publish-new-song", [{ type: 1, num: 4, block: 3, LPB: 4 }]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 200);
+
+    const body = (await response.json()) as {
+      songId: string;
+      chartVersion: number;
+      catalogVersion: number;
+    };
+    validatePublish(body);
+    assert.equal(body.songId, "publish-new-song");
+    assert.equal(body.chartVersion, 1);
+    assert.equal(body.catalogVersion, before + 1);
+
+    // The published song is listed by the read API and its snapshot loads.
+    const catalog = await (await fetch(`${baseUrl}/api/v1/catalog`)).json();
+    const listed = (catalog as { songs: { id: string; chartVersion: number }[] }).songs.find(
+      (song) => song.id === "publish-new-song",
+    );
+    assert.equal(listed?.chartVersion, 1);
+
+    const chart = await fetch(`${baseUrl}/api/v1/charts/publish-new-song?version=1`);
+    assert.equal(chart.status, 200);
+  });
+
+  it("increments the chart version when the same song is published again", async () => {
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-new-song",
+      publishBody("publish-new-song", [
+        { type: 1, num: 4, block: 3, LPB: 4 },
+        { type: 1, num: 8, block: 4, LPB: 4 },
+      ]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 200);
+
+    const body = (await response.json()) as {
+      songId: string;
+      chartVersion: number;
+      catalogVersion: number;
+    };
+    validatePublish(body);
+    assert.equal(body.songId, "publish-new-song");
+    assert.equal(body.chartVersion, 2);
+    assert.equal(body.catalogVersion, before + 1);
+
+    // Snapshots are immutable: the previous version still loads exactly.
+    const first = await fetch(`${baseUrl}/api/v1/charts/publish-new-song?version=1`);
+    assert.equal(first.status, 200);
+    const firstBody = (await first.json()) as { chart: { notes: unknown[] } };
+    assert.equal(firstBody.chart.notes.length, 1);
+  });
+
+  it("answers 401 for a wrong token and publishes nothing", async () => {
+    const before = await catalogVersion();
+    for (const token of [undefined, "Bearer wrong-token", TEST_ADMIN_TOKEN.slice(0, -1)]) {
+      const response = await publish(
+        "publish-unauthorized-song",
+        publishBody("publish-unauthorized-song", [{ type: 1, num: 1, block: 0, LPB: 4 }]),
+        token,
+      );
+      assert.equal(response.status, 401, `expected 401 for token ${String(token)}`);
+    }
+    assert.equal(await catalogVersion(), before);
+  });
+
+  it("answers 422 with actionable diagnostics for invalid data and publishes nothing", async () => {
+    const before = await catalogVersion();
+    const whoChart = await (await fetch(`${baseUrl}/api/v1/charts/who?version=1`)).json();
+
+    const invalidCharts: [string, Record<string, unknown>][] = [
+      // Schema-level violations.
+      [
+        "a note outside the 8 lanes",
+        {
+          name: "X",
+          maxBlock: 8,
+          BPM: 120,
+          offset: 0,
+          notes: [{ type: 1, num: 1, block: 8, LPB: 4 }],
+        },
+      ],
+      [
+        "a non-Tap note",
+        {
+          name: "X",
+          maxBlock: 8,
+          BPM: 120,
+          offset: 0,
+          notes: [{ type: 2, num: 1, block: 0, LPB: 4 }],
+        },
+      ],
+      [
+        "a non-positive beat position",
+        {
+          name: "X",
+          maxBlock: 8,
+          BPM: 120,
+          offset: 0,
+          notes: [{ type: 1, num: -1, block: 0, LPB: 4 }],
+        },
+      ],
+      [
+        "a BPM outside the supported range",
+        {
+          name: "X",
+          maxBlock: 8,
+          BPM: 601,
+          offset: 0,
+          notes: [{ type: 1, num: 1, block: 0, LPB: 4 }],
+        },
+      ],
+      ["an empty note list", { name: "X", maxBlock: 8, BPM: 120, offset: 0, notes: [] }],
+      // Request-level violations.
+      [
+        "a level outside the supported range",
+        {
+          name: "X",
+          maxBlock: 8,
+          BPM: 120,
+          offset: 0,
+          notes: [{ type: 1, num: 1, block: 0, LPB: 4 }],
+        },
+      ],
+    ];
+    for (const [label, chart] of invalidCharts) {
+      const level = label.includes("level") ? 100 : 5;
+      const body = JSON.stringify({
+        title: "Publish Invalid",
+        artist: "Tester",
+        youtubeId: "8JXiXt0D6tw",
+        level,
+        durationSec: 90,
+        chart,
+      });
+      const response = await publish("publish-invalid-song", body, TEST_ADMIN_TOKEN);
+      assert.equal(response.status, 422, `expected 422 for ${label}`);
+      const rejected = (await response.json()) as {
+        error: string;
+        diagnostics: { path: string; message: string }[];
+      };
+      assert.ok(rejected.diagnostics.length >= 1, `expected diagnostics for ${label}`);
+      assert.ok(
+        rejected.diagnostics.every(
+          (diagnostic) =>
+            typeof diagnostic.path === "string" && typeof diagnostic.message === "string",
+        ),
+        `expected actionable diagnostics for ${label}`,
+      );
+    }
+
+    // Nothing was written: the catalog version is unchanged and the already
+    // published chart is byte-identical.
+    assert.equal(await catalogVersion(), before);
+    assert.deepEqual(
+      await (await fetch(`${baseUrl}/api/v1/charts/who?version=1`)).json(),
+      whoChart,
+    );
+  });
+
+  it("rejects a note that lands beyond the chart length", async () => {
+    // BPM 120, LPB 4: num 7200 lands at 900s, beyond the 90s durationSec.
+    const response = await publish(
+      "publish-too-long-song",
+      publishBody("publish-too-long-song", [{ type: 1, num: 7200, block: 0, LPB: 4 }]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { message: string }[] };
+    assert.match(body.diagnostics[0]?.message ?? "", /durationSec/);
   });
 });
