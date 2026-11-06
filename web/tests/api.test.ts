@@ -169,15 +169,22 @@ before(
     serverLogPath = join(tempDir, "dev-server.log");
     const logFd = openSync(serverLogPath, "w");
 
-    server = spawn(process.execPath, [vpCli, "dev", "--port", String(port), "--strictPort"], {
-      cwd: webRoot,
-      detached: true,
-      env: { ...process.env, FLASHBEAT_ADMIN_TOKEN: TEST_ADMIN_TOKEN },
-      // The server output goes to a file instead of a pipe: the vite and
-      // workerd processes inherit the pipe and would keep the test runner
-      // waiting for the end of the stream.
-      stdio: ["ignore", logFd, logFd],
-    });
+    // `--host 127.0.0.1` pins the listening socket: `vp dev` otherwise binds
+    // whatever `localhost` resolves to (observed: IPv6-only `::1`), while the
+    // test URLs and the readiness poll below use 127.0.0.1.
+    server = spawn(
+      process.execPath,
+      [vpCli, "dev", "--port", String(port), "--strictPort", "--host", "127.0.0.1"],
+      {
+        cwd: webRoot,
+        detached: true,
+        env: { ...process.env, FLASHBEAT_ADMIN_TOKEN: TEST_ADMIN_TOKEN },
+        // The server output goes to a file instead of a pipe: the vite and
+        // workerd processes inherit the pipe and would keep the test runner
+        // waiting for the end of the stream.
+        stdio: ["ignore", logFd, logFd],
+      },
+    );
 
     await waitForServer(180_000);
   },
