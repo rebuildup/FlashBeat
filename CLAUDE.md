@@ -140,3 +140,10 @@ Manual recipe (still valid for scripted/headless use):
 - The song/artist names render as `□` in the select and result panels: the HUD font asset is `LiberationSans SDF`, which has no Japanese glyphs (`The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset`).
 - `GManager.SongLong`/`SBPM`/`Slevel`/`Shit` currently hold 30 entries while `SongName`/`Musician`/`SongURL` hold 29, so the parallel arrays are already out of lockstep (`BuildSongs()` iterates `SongName.Length`, so it is harmless today).
 - `GManager.SongName[27]` and `[28]` are both `ニセモノ` and there is no `Assets/Game/Resources/Musics/ニセモノ.wav`; `MusicManager` does not null-check `Resources.Load("Musics/" + songName)`, so those two select slots are not safe to choose.
+
+## Cloud deployment credentials
+
+- Infisical (self-hosted `https://secrets.rebuildup.dev`) is the only secrets source of truth. FlashBeat has its own project (`0645e78f-ae7a-48b3-8597-4986be983496`, env `dev`); never read, copy or reuse another project's Infisical secrets or Cloudflare tokens.
+- Binding: `.infisical.json` (tracked) + `config/infisical.sh` (instance metadata). Inject secrets per command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
+- The official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`, always under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
+- State, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).

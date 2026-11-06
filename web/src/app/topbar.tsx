@@ -1,0 +1,169 @@
+import { Portal } from "@ark-ui/react/portal";
+import { createListCollection } from "@ark-ui/react/collection";
+import { Button, Field, Input, Select } from "@/components/ui";
+import { css } from "styled-system/css";
+
+const bar = css({
+  alignItems: "flex-end",
+  borderBottomColor: "gray.surface.border",
+  borderBottomWidth: "1px",
+  display: "flex",
+  gap: "3",
+  justifyContent: "space-between",
+  paddingBottom: "3",
+  paddingTop: "3",
+  px: "4",
+});
+
+const heading = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "0",
+});
+
+const titleText = css({
+  color: "fg.default",
+  fontSize: "sm",
+  fontWeight: "semibold",
+  margin: "0",
+});
+
+const subtitleText = css({
+  color: "fg.muted",
+  fontSize: "xs",
+  margin: "0",
+});
+
+const tools = css({
+  alignItems: "flex-end",
+  display: "flex",
+  gap: "2",
+});
+
+const toolField = css({
+  width: "15rem",
+});
+
+const selectRoot = css({
+  width: "11rem",
+});
+
+const selectControl = css({
+  alignItems: "center",
+  bg: "transparent",
+  borderColor: "gray.outline.border",
+  borderRadius: "l2",
+  borderWidth: "1px",
+  cursor: "pointer",
+  display: "flex",
+  gap: "2",
+  height: "sizes.10",
+  justifyContent: "space-between",
+  paddingInline: "3",
+  textAlign: "left",
+  width: "full",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "1px",
+  },
+});
+
+const accent = css({ colorPalette: "teal" });
+
+export type LevelFilter = "all" | "low" | "mid" | "high";
+
+export interface LevelFilterItem {
+  label: string;
+  value: LevelFilter;
+}
+
+export const LEVEL_FILTERS: LevelFilterItem[] = [
+  { label: "All levels", value: "all" },
+  { label: "Level 1 – 9", value: "low" },
+  { label: "Level 10 – 19", value: "mid" },
+  { label: "Level 20+", value: "high" },
+];
+
+const levelCollection = createListCollection<LevelFilterItem>({ items: LEVEL_FILTERS });
+
+export function Topbar({
+  title,
+  subtitle,
+  query,
+  onQueryChange,
+  level,
+  onLevelChange,
+  onRefresh,
+  refreshing,
+  onPublish,
+}: {
+  title: string;
+  subtitle: string;
+  query: string;
+  onQueryChange: (value: string) => void;
+  level: LevelFilter;
+  onLevelChange: (value: LevelFilter) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  onPublish: () => void;
+}) {
+  return (
+    <header className={bar}>
+      <div className={heading}>
+        <h1 className={titleText}>{title}</h1>
+        <p className={subtitleText}>{subtitle}</p>
+      </div>
+
+      <div className={tools}>
+        <Field.Root className={toolField}>
+          <Field.Label>Search</Field.Label>
+          <Input
+            placeholder="Song title or artist"
+            value={query}
+            onChange={(event) => onQueryChange(event.currentTarget.value)}
+          />
+        </Field.Root>
+
+        <Select.Root
+          className={selectRoot}
+          collection={levelCollection}
+          value={[level]}
+          onValueChange={(details) => {
+            const [next] = details.value;
+            if (next) onLevelChange(next as LevelFilter);
+          }}
+        >
+          <Select.Label>Level</Select.Label>
+          <Select.Control className={selectControl}>
+            <Select.ValueText placeholder="All levels" />
+            <Select.Indicator />
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                <Select.List>
+                  {LEVEL_FILTERS.map((filter) => (
+                    <Select.Item key={filter.value} item={filter}>
+                      <Select.ItemText>{filter.label}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.List>
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
+
+        <Button variant="outline" size="md" onClick={onRefresh} loading={refreshing}>
+          Refresh
+        </Button>
+
+        <Button className={accent} size="md" onClick={onPublish}>
+          Publish
+        </Button>
+      </div>
+    </header>
+  );
+}

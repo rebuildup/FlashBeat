@@ -1,0 +1,179 @@
+openapi: 3.1.0
+info:
+  title: FlashBeat Festival API
+  version: 1.0.0
+  description: >-
+    Minimal API for one-chart-per-song festival showcase.
+    Unity owns realtime playback/judging; server owns published songs and scores.
+servers:
+  - url: https://YOUR-WORKER-DOMAIN
+paths:
+  /api/v1/catalog:
+    get:
+      operationId: getCatalog
+      description: Public song list. Unity refreshes on SelectScene entry and every 5–10s while selecting.
+      responses:
+        '200':
+          description: Current catalog. Cache-Control no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [catalogVersion, songs]
+                properties:
+                  catalogVersion: { type: integer, minimum: 0 }
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/SongSummary' }
+  /api/v1/charts/{songId}:
+    get:
+      operationId: getChart
+      description: Load published chart snapshot by song and exact version. Keep in Unity until play ends.
+      parameters:
+        - { $ref: '#/components/parameters/SongId' }
+        - in: query
+          name: version
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Chart snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songId, chartVersion, chart]
+                properties:
+                  songId: { type: string }
+                  chartVersion: { type: integer }
+                  chart: { $ref: './schemas/chart.v1.schema.json' }
+        '404': { description: Chart version not found }
+  /api/v1/admin/songs/{songId}:
+    put:
+      operationId: publishSong
+      description: >-
+        Staff only. Atomic upsert: update song metadata, create chart version
+        and bump catalogVersion. No draft endpoint; editor edits locally then publishes.
+      security: [{ staffToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/SongId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SongPublishRequest' }
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songId, chartVersion, catalogVersion]
+                properties:
+                  songId: { type: string }
+                  chartVersion: { type: integer }
+                  catalogVersion: { type: integer }
+        '401': { description: Incorrect staff token }
+        '422': { description: Invalid song/chart }
+  /api/v1/scores:
+    post:
+      operationId: submitScore
+      description: >-
+        Public festival score submission. No login. Server validates judgment
+        sum against published version and recalculates score; not anti-cheat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScoreSubmission' }
+      responses:
+        '201':
+          description: Saved score
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [score]
+                properties:
+                  score: { type: integer, minimum: 0, maximum: 1000000 }
+        '422': { description: Invalid counts or chart version }
+  /api/v1/leaderboards/{songId}:
+    get:
+      operationId: getLeaderboard
+      description: Public casual leaderboard; top results within one chart version.
+      parameters:
+        - { $ref: '#/components/parameters/SongId' }
+        - in: query
+          name: version
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Top 10 results, descending score then earliest submitted time.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songId, chartVersion, entries]
+                properties:
+                  songId: { type: string }
+                  chartVersion: { type: integer }
+                  entries:
+                    type: array
+                    maxItems: 10
+                    items:
+                      type: object
+                      required: [nickname, score]
+                      properties:
+                        nickname: { type: string }
+                        score: { type: integer, minimum: 0, maximum: 1000000 }
+components:
+  securitySchemes:
+    staffToken:
+      type: http
+      scheme: bearer
+      description: One secret in Cloudflare Worker environment; entered into Web Studio by event operator, never compiled into Unity.
+  parameters:
+    SongId:
+      in: path
+      name: songId
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9-]{3,64}$' }
+  schemas:
+    SongSummary:
+      type: object
+      required: [id, title, artist, youtubeId, level, bpm, durationSec, chartVersion, noteCount]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        youtubeId: { type: string }
+        level: { type: integer }
+        bpm: { type: integer }
+        durationSec: { type: number }
+        chartVersion: { type: integer }
+        noteCount: { type: integer }
+    SongPublishRequest:
+      type: object
+      additionalProperties: false
+      required: [title, artist, youtubeId, level, durationSec, chart]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        artist: { type: string, maxLength: 160 }
+        youtubeId: { type: string, pattern: '^[A-Za-z0-9_-]{11}$' }
+        level: { type: integer, minimum: 1, maximum: 99 }
+        durationSec: { type: number, exclusiveMinimum: 0, maximum: 1800 }
+        chart: { $ref: './schemas/chart.v1.schema.json' }
+    ScoreSubmission:
+      type: object
+      additionalProperties: false
+      required: [songId, chartVersion, nickname, perfect, great, bad, miss]
+      properties:
+        songId: { type: string }
+        chartVersion: { type: integer, minimum: 1 }
+        nickname: { type: string, minLength: 1, maxLength: 16 }
+        perfect: { type: integer, minimum: 0 }
+        great: { type: integer, minimum: 0 }
+        bad: { type: integer, minimum: 0 }
+        miss: { type: integer, minimum: 0 }

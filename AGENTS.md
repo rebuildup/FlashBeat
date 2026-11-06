@@ -129,6 +129,14 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/` are gitignored — never edit them by hand, they are Unity-generated.
 - Several large font assets (`Assets/NotoSansJP-Medium SDF.asset`, `Assets/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
 
+## Cloud deployment credentials
+
+- Infisical (self-hosted `https://secrets.rebuildup.dev`) is the only secrets source of truth. FlashBeat has its own project; never read, copy or reuse another project's Infisical secrets or Cloudflare tokens.
+- Binding: `.infisical.json` (project `0645e78f-ae7a-48b3-8597-4986be983496`, environment `dev`), instance metadata in `config/infisical.sh`.
+- Inject secrets for one command with `./script/with-secrets <command>` (Windows: `pwsh script/with-secrets.ps1 <command>`). Never commit `.env` files or secret values.
+- Cloud CLI: the official `cf` CLI and `void` are pinned in `mise.toml` (project-local, never install globally); run `mise install` first and invoke them as `mise exec -- cf ...` / `mise exec -- void ...`. Always run them under `script/with-secrets` so `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are injected noninteractively. `wrangler` is not used.
+- Current state, required token scopes, rollback and safe boundaries: [`docs/operations/cloudflare-bootstrap.md`](docs/operations/cloudflare-bootstrap.md).
+
 ## Constitution / operating profile
 
 - Top-level contract: [`constitution/CONSTITUTION.md`](constitution/CONSTITUTION.md)
