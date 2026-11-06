@@ -1,0 +1,403 @@
+Mono path[0] = 'D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/Managed'
+Mono config path = 'D:/4_apps/Unity/Build/FlashBeatExhibit_s2/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=0x28a1)
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.1742
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.048 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 0.703200 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:\4_apps\Unity\Build\FlashBeatExhibit_s2\FlashBeat_Data\sharedassets0.resource
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.271600 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 1934.
+Total: 0.843600 ms (FindLiveObjects: 0.055000 ms CreateObjectMapping: 0.112700 ms MarkObjects: 0.665200 ms  DeleteObjects: 0.010600 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/resources.resource
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.704900 ms
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 2859.
+Total: 1.057400 ms (FindLiveObjects: 0.079800 ms CreateObjectMapping: 0.119300 ms MarkObjects: 0.828100 ms  DeleteObjects: 0.029700 ms)
+
+ro-dokanryou
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.832700 ms
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 2809.
+Total: 0.994700 ms (FindLiveObjects: 0.097200 ms CreateObjectMapping: 0.154200 ms MarkObjects: 0.676200 ms  DeleteObjects: 0.067000 ms)
+
+[MusicManager] InvidiousVideoPlayer removed for 'まにまに' (yt-dlp takes over)
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/resources.resource
+[MusicManager] yt-dlp -F videoId=<REDACTED-VIDEO-ID> formats=37 ok
+[MusicManager]   format sb3 mhtml 48x27 v=images a=
+[MusicManager]   format sb2 mhtml 80x45 v=images a=
+[MusicManager]   format sb1 mhtml 160x90 v=images a=
+[MusicManager]   format sb0 mhtml 320x180 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'まにまに': video-only mp4/H.264 itag=232 1280x720 + audio-only m4a/AAC itag=140
+[MusicManager] video file: C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4 (cache)
+[MusicManager] audio file: C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a (downloaded)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+First video frame not zero: 1 (0.033333s). Result may be out of sync. Please make sure tracks all start at 0 in C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4
+[MusicManager] picture wired to the renderer of '2' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=video.mp4 after 0.4s
+Failed to recognize video file format for: 'C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a'
+Failed to recognize video file format for: 'C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a'
+[MusicManager] VideoPlayer error: VideoPlayer cannot play url : C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a
+
+Cannot read file.
+[MusicManager] VideoPlayer error: VideoPlayer cannot play url : C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a
+
+Cannot read file.
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] stream audio prepared=False file=audio.m4a after 20.0s
+[MusicManager] media ready: song='まにまに' audioMode=Bundled video=ok (bundled wav present) - press Space to start
+[MusicManager] PLAYBACK_START song='まにまに' videoId='9O2VyUM5MlQ' audioMode=Bundled mediaTime=0.000 wallClock=2026-11-07T00:02:10.015 gameTime=40.791
+[MusicManager] STATUS mediaTime=0.00 audioMode=Bundled rms=0.0000 peak=0.0000 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=0
+Miss
+Miss
+[MusicManager] STATUS mediaTime=1.73 audioMode=Bundled rms=0.4352 peak=0.5265 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=2
+Miss
+Miss
+[MusicManager] STATUS mediaTime=3.71 audioMode=Bundled rms=0.4807 peak=0.6326 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=4
+Miss
+Miss
+[MusicManager] STATUS mediaTime=5.74 audioMode=Bundled rms=0.3712 peak=0.6326 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=6
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=7.74 audioMode=Bundled rms=0.4348 peak=0.6326 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=9
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=9.79 audioMode=Bundled rms=0.5576 peak=0.6326 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=16
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=11.73 audioMode=Bundled rms=0.6370 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=27
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=13.74 audioMode=Bundled rms=0.3607 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=38
+[MusicManager] STATUS mediaTime=15.74 audioMode=Bundled rms=0.4695 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=38
+[MusicManager] STATUS mediaTime=17.73 audioMode=Bundled rms=0.1123 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=38
+[MusicManager] STATUS mediaTime=19.71 audioMode=Bundled rms=0.4097 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=38
+[MusicManager] STATUS mediaTime=21.74 audioMode=Bundled rms=0.2746 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=38
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=23.74 audioMode=Bundled rms=0.4991 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=0 great=0 bad=0 miss=41
+Miss
+Miss
+Miss
+Perfect
+Miss
+[MusicManager] STATUS mediaTime=25.75 audioMode=Bundled rms=0.2874 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=0 miss=45
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=27.75 audioMode=Bundled rms=0.3655 peak=0.6795 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=0 miss=51
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=29.76 audioMode=Bundled rms=0.5695 peak=0.7159 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=0 miss=57
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=31.77 audioMode=Bundled rms=0.5274 peak=0.7584 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=0 miss=63
+Miss
+Miss
+Bad
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=33.81 audioMode=Bundled rms=0.4731 peak=0.7584 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=1 miss=70
+Bad
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=35.73 audioMode=Bundled rms=0.4291 peak=0.7584 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=37.76 audioMode=Bundled rms=0.2560 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=39.77 audioMode=Bundled rms=0.4381 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=41.75 audioMode=Bundled rms=0.3452 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=43.75 audioMode=Bundled rms=0.4073 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=45.78 audioMode=Bundled rms=0.5579 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+[MusicManager] STATUS mediaTime=47.74 audioMode=Bundled rms=0.5094 peak=0.8249 video[playing=True frame=8069 prepared=True] perfect=1 great=0 bad=2 miss=73
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.923800 ms
+Unloading 90 unused Assets to reduce memory usage. Loaded Objects now: 2158.
+Total: 22.334500 ms (FindLiveObjects: 0.164100 ms CreateObjectMapping: 0.140900 ms MarkObjects: 1.076300 ms  DeleteObjects: 20.952900 ms)
+
+se-bukanryou
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.441400 ms
+Unloading 40 unused Assets to reduce memory usage. Loaded Objects now: 2812.
+Total: 1.089900 ms (FindLiveObjects: 0.089700 ms CreateObjectMapping: 0.138000 ms MarkObjects: 0.787600 ms  DeleteObjects: 0.074300 ms)
+
+[MusicManager] InvidiousVideoPlayer removed for 'まにまに' (yt-dlp takes over)
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/4_apps/Unity/Build/FlashBeatExhibit_s2/FlashBeat_Data/resources.resource
+[MusicManager] yt-dlp -F videoId=<REDACTED-VIDEO-ID> formats=37 ok
+[MusicManager]   format sb3 mhtml 48x27 v=images a=
+[MusicManager]   format sb2 mhtml 80x45 v=images a=
+[MusicManager]   format sb1 mhtml 160x90 v=images a=
+[MusicManager]   format sb0 mhtml 320x180 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'まにまに': video-only mp4/H.264 itag=232 1280x720 + audio-only m4a/AAC itag=140
+[MusicManager] video file: C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4 (cache)
+[MusicManager] audio file: C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a (cache)
+First video frame not zero: 1 (0.033333s). Result may be out of sync. Please make sure tracks all start at 0 in C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4
+[MusicManager] picture wired to the renderer of '2' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=video.mp4 after 0.4s
+Failed to recognize video file format for: 'C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a'
+Failed to recognize video file format for: 'C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a'
+[MusicManager] VideoPlayer error: VideoPlayer cannot play url : C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a
+
+Cannot read file.
+[MusicManager] VideoPlayer error: VideoPlayer cannot play url : C:/Users/rebui/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\audio.m4a
+
+Cannot read file.
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

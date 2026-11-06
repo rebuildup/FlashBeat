@@ -34,6 +34,9 @@ param(
     [int]$TitleTimeoutSec = 90,
     [int]$ResultTimeoutSec = 240,
     [switch]$SkipRetry,
+    # press lane keys while the song plays, so the judgement is exercised on real input
+    # (otherwise every note is judged Miss because nobody plays)
+    [switch]$PlayLanes,
     # Shared machine: start even though other player instances are open (they fight over focus).
     [switch]$AllowConcurrentPlayers
 )
@@ -224,8 +227,21 @@ while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
 }
 if ($extraStarts -gt 0) { Save-Shot $hwnd '06b_game_playing.png' | Out-Null }
 
-# 6) ResultScene
-$resultOk = Wait-For { (Scene-Count) -ge 8 } $ResultTimeoutSec 'ResultScene'
+# 6) ResultScene (optionally press lane keys, so the judgement is exercised on real input)
+$laneKeys = @(0x51, 0x57, 0x44, 0x46, 0x4A)   # Q W D F J  (lanes 0 1 2 3 4)
+$laneIdx = 0
+$resultOk = $false
+$deadline = (Get-Date).AddSeconds($ResultTimeoutSec)
+while ((Get-Date) -lt $deadline) {
+    if ((Scene-Count) -ge 8) { $resultOk = $true; Write-Host '[drive] OK: ResultScene'; break }
+    if ($PlayLanes) {
+        Send-Key $hwnd $laneKeys[$laneIdx % $laneKeys.Count] ('lane' + ($laneIdx % $laneKeys.Count))
+        $laneIdx++
+    } else {
+        Start-Sleep -Milliseconds 400
+    }
+}
+if (-not $resultOk) { Write-Host '[drive] TIMEOUT: ResultScene' }
 Start-Sleep -Seconds 2
 Save-Shot $hwnd '07_result.png' | Out-Null
 $judgeAtResult = Judge-Count

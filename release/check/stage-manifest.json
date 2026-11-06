@@ -15,8 +15,26 @@
     "exhibitFolder": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit"
   },
   "exhibitDeployment": {
-    "activeGeneration": 2,
+    "activeGeneration": 3,
     "generations": [
+      {
+        "generation": 3,
+        "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s2",
+        "content": "#13 (yt-dlp streaming + the cached media keeps its container extension so VideoPlayer can prepare it) + #27 (Japanese font), merged --no-ff into branch 22 (code state b77b63c)",
+        "sourceBuild": "C:\\Users\\rebui\\Desktop\\FlashBeat.22\\Builds\\Windows",
+        "buildResult": "[BuildScript] Build succeeded: 1588358518 bytes (0 error CS)",
+        "exeSha256": "3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60",
+        "folderSha256": "2907102fcab0142e8d93b7bfb025d74a98cc274fe6ebbac55843cdca14cbedd9",
+        "fileCount": 199,
+        "totalBytes": 1588795255,
+        "deployedAt": "2026-11-07T00:01:00+09:00",
+        "proof": "docs/evidence/win64-2026-11-06-release-gate/README-gen3.md (Run D): Title -> Select -> 76/76 judged notes (Perfect 1 / Bad 2 with real lane input) -> Result -> R retry on the real machine, startup 14.1 s, VIDEO PLAYING (VideoPlayer prepared=True, STATUS video[playing=True]) and audio audible (rms 0.44-0.56)",
+        "knownGaps": [
+          "the stream's audio track (m4a) is still not played: 'Failed to recognize video file format for: ...audio.m4a' -> stream audio prepared=False -> the audio falls back to the bundled wav (audioMode=Bundled); 'the sound comes from the YouTube stream' is NOT proven",
+          "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
+        ],
+        "operatorTarget": true
+      },
       {
         "generation": 2,
         "path": "D:\\4_apps\\Unity\\Build\\FlashBeatExhibit_s1",
@@ -33,7 +51,7 @@
           "the YouTube stream VIDEO is not played: Unity VideoPlayer cannot recognise the extension-less cached files ('Failed to recognize video file format', prepared=False) -> the audio falls back to the bundled wav; the picture is missing",
           "fullscreen on a real 1280x720 panel is unverified (this machine has no such display)"
         ],
-        "operatorTarget": true
+        "operatorTarget": false
       },
       {
         "generation": 1,
