@@ -4,8 +4,10 @@
 [tools]
 bun = "1.4.2"
 # Cloud / festival API toolchain (Issue #9 preflight).
-# Pinned so the Mac and Windows agents resolve identical CLIs.
-"npm:wrangler" = "4.158.0"
+# Project-local only: never install these globally. Run them via
+# `mise exec -- cf ...` / `mise exec -- void ...` so every host (macOS,
+# Windows) resolves the same pinned versions.
+"npm:cf" = "1.0.0-beta.28"
 "npm:void" = "1.6.2"
 
 [tasks.skills-list]
