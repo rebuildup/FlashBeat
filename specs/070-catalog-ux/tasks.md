@@ -5,19 +5,20 @@
 
 ## Tasks
 
-- [ ] **T1** Define columns/rows/click area/keyboard/selection feedback and rebuild
+- [x] **T1** Define columns/rows/click area/keyboard/selection feedback and rebuild
       `web/src/app/catalog-panel.tsx` (full-width row links, tabular numerals,
       sentence-case headers, JP-safe ellipsis) — done when rows are anchors with
       hover/focus feedback and no 52rem cap.
-- [ ] **T2** Recessed panel surface + state blocks in `web/src/app/panel.tsx`
+- [x] **T2** Recessed panel surface + state blocks in `web/src/app/panel.tsx`
       (`panelFrame` bg = Pen `well`), keep `StateBlock` API — done when the list sits
       recessed on the canvas.
-- [ ] **T3** Five states: loading / empty / error+retry / filter-no-match (with reset
+- [x] **T3** Five states: loading / empty / error+retry / filter-no-match (with reset
       action) / 12+ songs density (local publish API seed) — done when each state is
-      captured and distinct.
-- [ ] **T4** Verify `npx tsc --noEmit` + `npm test` + `vp build`; screenshots
+      captured and distinct. Plus offline state (live `online`/`offline` events) and
+      sort (`catalog-view.ts`, topbar) per supervisor task.
+- [x] **T4** Verify `npx tsc --noEmit` + `npm test` + `vp build`; screenshots
       1440×900/1280×720/390 before+after → `specs/070-catalog-ux/evidence/`.
-- [ ] **T5** Draft PR (base `67`) with evidence and residuals.
+- [x] **T5** Draft PR (base `67`) with evidence and residuals.
 
 ## Verification Evidence
 

@@ -21,8 +21,8 @@ export type CatalogStatus = "loading" | "ready" | "empty" | "error" | "offline";
 
 const COLUMNS = {
   base: "minmax(0, 1fr) auto",
-  md: "minmax(14rem, 1fr) 3rem 4.5rem 4.5rem 3.5rem auto",
-  lg: "minmax(14rem, 1fr) 3rem 4.5rem 4rem 4.5rem 3.5rem auto",
+  md: "minmax(14rem, 1fr) 3rem 4.5rem 4.5rem 3.5rem 12.5rem",
+  lg: "minmax(14rem, 1fr) 3rem 4.5rem 4rem 4.5rem 3.5rem 12.5rem",
 };
 
 const header = css({
@@ -107,7 +107,7 @@ const openHint = css({
 });
 
 const rowBody = css({
-  alignItems: "center",
+  alignItems: "flex-start",
   display: "flex",
   flexDirection: "column",
   gap: "1",
@@ -116,11 +116,7 @@ const rowBody = css({
   pointerEvents: "none",
   py: "2",
   width: "100%",
-  md: {
-    flexDirection: "row",
-    paddingInline: "0",
-    py: "0",
-  },
+  justifyContent: "center",
 });
 
 const titleText = css({
@@ -182,6 +178,7 @@ const actions = css({
   justifyContent: "flex-end",
   paddingRight: "4",
   zIndex: "1",
+  minWidth: "0",
 });
 
 const actionLink = css({
@@ -237,7 +234,7 @@ const legend = css({
   borderTopColor: "border",
   borderTopWidth: "1px",
   color: "fg.subtle",
-  display: "flex",
+  display: { base: "none", md: "flex" },
   flexWrap: "wrap",
   fontSize: "xs",
   gap: "3",
@@ -330,6 +327,7 @@ export function CatalogPanel({
       </header>
 
       <div className={panelBodyFlush}>
+        {status !== "ready" || songs.length === 0 ? (
         <div className={stateWrap}>
         {status === "loading" ? (
           <StateBlock
@@ -381,6 +379,7 @@ export function CatalogPanel({
           />
         ) : null}
         </div>
+        ) : null}
 
         {status === "ready" && songs.length > 0 ? (
           <div className={list} data-testid="catalog-list" onKeyDown={onListKeyDown}>
