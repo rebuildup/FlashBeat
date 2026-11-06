@@ -1,0 +1,6 @@
+{
+    "enabled": true,
+    "baseUrl": "https://flashbeat.rebuildup.dev",
+    "chartVersion": 1,
+    "refreshSeconds": 8
+}
