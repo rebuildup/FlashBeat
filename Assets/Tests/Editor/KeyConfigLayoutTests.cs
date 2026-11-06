@@ -76,7 +76,7 @@ public class KeyConfigLayoutTests
     {
         Assert.IsFalse(KeyConfigUI.IsDefaultLayout(null, Defaults));
         Assert.IsFalse(KeyConfigUI.IsDefaultLayout(Defaults, null));
-        Assert.IsFalse(KeyConfigUI.IsDefaultLayout(new KeyCode[0], Defaults));
+        Assert.IsFalse(KeyConfigUI.IsDefaultLayout(new KeyCode[0][], Defaults));
     }
 
     [Test]
