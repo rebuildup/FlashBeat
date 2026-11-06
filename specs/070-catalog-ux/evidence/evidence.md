@@ -22,7 +22,7 @@ is the real production data. No production writes.
 | column alignment header↔rows | PASS — x positions equal (Lv 831/831, BPM 895/895, Time 983/983, Notes 1063/1063, Ver 1151/1151) |
 | states | PASS — empty / error / no-match / offline all render their distinct block |
 | offline → online recovery | PASS — "You are offline" block appears, auto-recovers to "26 songs published" |
-| sort via `?sort=level\|bpm\|title\|notes\|length` | see commands below |
+| sort via `?sort=` seed | PASS — level→`shunran` (Lv 30), bpm→`lost-umbrella` (274, desc), title→`4th-smile`, notes→`dogbite` (603), length→`panopticon` (2:03); order semantics: numerics descending, title A–Z, catalog order default (unit-pinned in `catalog-view.test.ts`) |
 
 ## Commands
 
@@ -44,5 +44,9 @@ npm run build                        # OK (vite-plus)
 
 - Chart bodies in the local replica are synthetic (real counts, synthetic positions);
   the production chart text itself is not replicated locally.
-- Sort dropdown interaction was exercised through the Ark `data-part` triggers;
-  native `<select>` automation does not apply.
+- The Sort dropdown was verified through the full state path (`?sort=` seed → loader →
+  shell state → sorted rows) and shares the shipped Ark Select component with the
+  Level filter (#69). Clicking an option inside the headless-shell session did not
+  land (Ark popper gives the portal item no bounding box in this environment) — the
+  dropdown widget interaction itself is therefore **unverified in headless**, not
+  marked broken; the identical Level control is shipped and reviewed.
