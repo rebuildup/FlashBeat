@@ -6,6 +6,8 @@ export default defineConfig({
     typedRoutes: true,
   },
   cloudflare: {
+    // Worker name of the festival API on workers.dev.
+    name: "flashbeat-web",
     // The single FlashBeat D1 database (created in issue #9). The binding id
     // and the migrations directory are shared with `cf d1 migrations apply`,
     // so both the local migration history and the remote one live in
