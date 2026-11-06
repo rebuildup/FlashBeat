@@ -142,7 +142,7 @@ export function CatalogPanel({
             {songs.map((song) => (
               <div key={song.id} className={tableRow}>
                 <span>
-                  <span className={songTitle}>{song.title}</span>
+                  <a className={songTitle} href={`/chart?songId=${encodeURIComponent(song.id)}&version=${song.chartVersion}`}>{song.title}</a>
                   <br />
                   <span className={songArtist}>{song.artist}</span>
                 </span>
