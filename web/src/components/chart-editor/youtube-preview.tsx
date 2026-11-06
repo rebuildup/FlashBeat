@@ -109,9 +109,7 @@ export interface YouTubePreviewProps {
 
 const frame = css({
   bg: "black",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  borderRadius: "8px",
   overflow: "hidden",
   position: "relative",
   width: "full",
@@ -123,7 +121,7 @@ const playerBox = css({
 });
 
 const errorText = css({
-  color: "fg.error",
+  color: "#ff6b6b",
   fontSize: "2xs",
   lineHeight: "1.4",
   padding: "2",
@@ -138,9 +136,19 @@ const controls = css({
 });
 
 const time = css({
-  color: "fg.muted",
+  color: "#b0b0b0",
   fontSize: "2xs",
   fontVariantNumeric: "tabular-nums",
+});
+
+/** v5 Button Secondary: raised #3A3A3A with white label. */
+const raisedButton = css({
+  bg: "#3a3a3a",
+  color: "#ffffff",
+  borderRadius: "8px",
+  borderColor: "transparent",
+  _hover: { bg: "#454545" },
+  _disabled: { opacity: 0.4 },
 });
 
 export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewProps>(
@@ -237,8 +245,8 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
 
         <div className={controls}>
           <Button
+            className={raisedButton}
             size="sm"
-            variant="outline"
             onClick={() => {
               playerRef.current?.playVideo();
             }}
@@ -246,8 +254,8 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
             Play
           </Button>
           <Button
+            className={raisedButton}
             size="sm"
-            variant="outline"
             onClick={() => {
               playerRef.current?.pauseVideo();
             }}

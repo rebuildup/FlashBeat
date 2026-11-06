@@ -11,17 +11,17 @@ import "@/styles/app.css";
 const emptyChart: Chart = { name: "Untitled draft", maxBlock: 8, BPM: 120, offset: 0, notes: [] };
 
 const shell = css({
-  bg: "canvas",
+  bg: "#1b1b1b",
   display: "flex",
   flexDirection: "column",
+  fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif',
   height: "100dvh",
   overflow: "hidden",
 });
 
 const topbar = css({
   alignItems: "center",
-  bg: "gray.surface.bg",
-  borderBottomColor: "gray.surface.border",
+  borderBottomColor: "#2d2d2d",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
@@ -33,7 +33,7 @@ const topbar = css({
 });
 
 const identity = css({
-  color: "fg.muted",
+  color: "#b0b0b0",
   fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
   minWidth: "0",
@@ -43,18 +43,25 @@ const identity = css({
 });
 
 const catalogLink = css({
-  color: "fg.subtle",
+  color: "#8c8c8c",
   fontSize: "xs",
   textDecoration: "none",
-  _hover: { color: "fg.default" },
+  _hover: { color: "#ffffff" },
 });
 
-const primaryAction = css({ colorPalette: "teal" });
+/** v5 Button Primary: light raised button with dark text. */
+const primaryAction = css({
+  bg: "#ededed",
+  color: "#1b1b1b",
+  borderRadius: "8px",
+  _hover: { bg: "#dedede" },
+  _disabled: { opacity: 0.4 },
+});
 
 const banner = css({
   alignItems: "center",
-  bg: "red.subtle.bg",
-  color: "fg.error",
+  bg: "#4d3232",
+  color: "#ff6b6b",
   display: "flex",
   fontSize: "xs",
   gap: "3",
@@ -64,7 +71,7 @@ const banner = css({
 
 const statusLine = css({
   alignItems: "center",
-  color: "fg.muted",
+  color: "#b0b0b0",
   display: "flex",
   flex: "1",
   fontSize: "xs",

@@ -11,7 +11,13 @@ import type { Chart } from "@/lib/chart/types";
  * The lanes are the protagonist of the editor: the stage stretches to the
  * width of its panel (measured with a ResizeObserver) so the work area is
  * lanes, not empty panel. Bars are numbered and the selected note is marked
- * with the teal accent, everything else stays quiet.
+ * with the accent blue, everything else stays quiet.
+ *
+ * Colors follow design/flashbeat-ui.pen v5: the work area is a recessed well
+ * (#131313, k0), grid lines climb the k scale, tap notes are the light
+ * "primary" surface (#EDEDED) exactly like the white tap bars in GameScene,
+ * and the accent blue (#3FA9F5) marks the current playhead and the selected
+ * note. No gradients, no teal.
  */
 
 /** Narrowest lane that stays playable. Below this the stage scrolls. */
@@ -23,16 +29,16 @@ export const NOTE_HEIGHT = 16;
 /** Height of one beat in pixels at zoom level 1. */
 export const BEAT_HEIGHT = 44;
 
-const LANE_BACKGROUND = "#18191b";
-const LANE_BACKGROUND_ALT = "#1d1e21";
-const GRID_LINE = "#272a2d";
-const GRID_LINE_STRONG = "#363a3f";
-const NOTE_FILL = "#12a594";
-const NOTE_FILL_SELECTED = "#0fd2b8";
-const NOTE_STROKE = "#0d3d38";
-const PLAYHEAD = "#0bd8b6";
-const LANE_LABEL = "#777b84";
-const BAR_LABEL = "#5a6169";
+const LANE_BACKGROUND = "#131313";
+const LANE_BACKGROUND_ALT = "#161616";
+const GRID_LINE = "#222222";
+const GRID_LINE_STRONG = "#2d2d2d";
+const NOTE_FILL = "#ededed";
+const NOTE_FILL_SELECTED = "#3fa9f5";
+const NOTE_STROKE_SELECTED = "#9ad3fa";
+const PLAYHEAD = "#3fa9f5";
+const LANE_LABEL = "#8c8c8c";
+const BAR_LABEL = "#8c8c8c";
 
 const scrollArea = css({
   flex: "1",
@@ -244,11 +250,11 @@ export function NoteGrid({
                   y={beat * beatHeight - NOTE_HEIGHT / 2}
                   width={noteWidth}
                   height={NOTE_HEIGHT}
-                  cornerRadius={3}
+                  cornerRadius={4}
                   fill={selected ? NOTE_FILL_SELECTED : NOTE_FILL}
-                  stroke={selected ? PLAYHEAD : NOTE_STROKE}
+                  stroke={selected ? NOTE_STROKE_SELECTED : "rgba(0,0,0,0.25)"}
                   strokeWidth={selected ? 2 : 1}
-                  shadowColor={selected ? PLAYHEAD : undefined}
+                  shadowColor={selected ? NOTE_FILL_SELECTED : undefined}
                   shadowBlur={selected ? 14 : 0}
                   shadowOpacity={selected ? 0.9 : 0}
                   draggable

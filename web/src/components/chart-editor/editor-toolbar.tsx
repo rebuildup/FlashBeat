@@ -8,13 +8,15 @@ import type { Chart } from "@/lib/chart/types";
 /**
  * Toolbar of the chart editor.
  *
- * Everything is a Park UI control styled with the Panda tokens of the Web
- * Studio, so the editor looks like the rest of the app.
+ * Styled after design/flashbeat-ui.pen v5: the bar sits on the page
+ * background (#1B1B1B) and only the controls are raised (#3A3A3A, k4); the
+ * primary action is the light button (#EDEDED with #1B1B1B text), inputs are
+ * recessed wells (#222222, k2), keycaps and tags keep the small 4px radius.
  */
 
 const bar = css({
   alignItems: "center",
-  borderBottomColor: "gray.surface.border",
+  borderBottomColor: "#2d2d2d",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
@@ -37,23 +39,43 @@ const field = css({ width: "8rem" });
 const wideField = css({ width: "10rem" });
 const selectRoot = css({ width: "6.5rem" });
 
+export const fieldLabel = css({
+  color: "#b0b0b0",
+  fontWeight: "normal",
+});
+
+export const inputBox = css({
+  bg: "#222222",
+  borderColor: "transparent",
+  borderRadius: "8px",
+  color: "#ffffff",
+  _placeholder: { color: "#8c8c8c" },
+  _focusVisible: {
+    borderColor: "#3fa9f5",
+    outline: "2px solid",
+    outlineColor: "#3fa9f5",
+    outlineOffset: "1px",
+  },
+});
+
 const selectControl = css({
   alignItems: "center",
-  bg: "transparent",
-  borderColor: "gray.outline.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#3a3a3a",
+  borderColor: "transparent",
+  borderRadius: "8px",
+  color: "#ffffff",
   cursor: "pointer",
   display: "flex",
   gap: "2",
   height: "sizes.8",
   justifyContent: "space-between",
-  paddingInline: "2",
+  paddingInline: "3",
   textAlign: "left",
   width: "full",
+  _hover: { bg: "#454545" },
   _focusVisible: {
     outline: "2px solid",
-    outlineColor: "colorPalette.solid.bg",
+    outlineColor: "#3fa9f5",
     outlineOffset: "1px",
   },
 });
@@ -61,28 +83,42 @@ const selectControl = css({
 const fileInput = css({ display: "none" });
 
 const counter = css({
-  color: "fg.muted",
+  color: "#8c8c8c",
   fontSize: "2xs",
   fontVariantNumeric: "tabular-nums",
   paddingInline: "1",
 });
 
 const keycap = css({
-  bg: "gray.subtle.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "xs",
-  borderStyle: "solid",
-  borderWidth: "1px",
-  color: "fg.muted",
+  bg: "#3a3a3a",
+  borderRadius: "4px",
+  color: "#b0b0b0",
   display: "inline-block",
   fontFamily: "mono",
   fontSize: "2xs",
   lineHeight: "1.2",
   marginLeft: "1",
-  padding: "0 0.25rem",
+  padding: "0 0.5rem",
 });
 
-const accent = css({ colorPalette: "teal" });
+/** v5 Button Primary: the light raised button. */
+const buttonPrimary = css({
+  bg: "#ededed",
+  color: "#1b1b1b",
+  borderRadius: "8px",
+  _hover: { bg: "#dedede" },
+  _disabled: { opacity: 0.4 },
+});
+
+/** v5 Button Secondary: raised #3A3A3A with white label. */
+export const buttonSecondary = css({
+  bg: "#3a3a3a",
+  color: "#ffffff",
+  borderRadius: "8px",
+  borderColor: "transparent",
+  _hover: { bg: "#454545" },
+  _disabled: { opacity: 0.4 },
+});
 
 const RESOLUTIONS = [
   { label: "1/4", value: "4" },
@@ -151,6 +187,7 @@ export function EditorToolbar({
           }}
         />
         <Button
+          className={buttonSecondary}
           size="sm"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
@@ -159,7 +196,7 @@ export function EditorToolbar({
           Import
         </Button>
         <Button
-          className={accent}
+          className={buttonPrimary}
           size="sm"
           onClick={onExport}
           disabled={!chart}
@@ -168,6 +205,7 @@ export function EditorToolbar({
           Export
         </Button>
         <Button
+          className={buttonSecondary}
           size="sm"
           variant="outline"
           onClick={onDeleteSelected}
@@ -186,8 +224,9 @@ export function EditorToolbar({
 
       <div className={group}>
         <Field.Root className={wideField}>
-          <Field.Label>Song name</Field.Label>
+          <Field.Label className={fieldLabel}>Song name</Field.Label>
           <Input
+            className={inputBox}
             value={chart?.name ?? ""}
             disabled={!chart}
             onChange={(event) => onNameChange(event.currentTarget.value)}
@@ -195,8 +234,9 @@ export function EditorToolbar({
         </Field.Root>
 
         <Field.Root className={field}>
-          <Field.Label>BPM</Field.Label>
+          <Field.Label className={fieldLabel}>BPM</Field.Label>
           <Input
+            className={inputBox}
             value={chart ? String(chart.BPM) : ""}
             disabled={!chart}
             inputMode="numeric"
@@ -220,7 +260,7 @@ export function EditorToolbar({
             }
           }}
         >
-          <Select.Label>Grid</Select.Label>
+          <Select.Label className={fieldLabel}>Grid</Select.Label>
           <Select.Control className={selectControl}>
             <Select.ValueText placeholder="1/4" />
             <Select.Indicator />
@@ -252,7 +292,7 @@ export function EditorToolbar({
             }
           }}
         >
-          <Select.Label>View</Select.Label>
+          <Select.Label className={fieldLabel}>View</Select.Label>
           <Select.Control className={selectControl}>
             <Select.ValueText placeholder="Zoom 1" />
             <Select.Indicator />

@@ -15,7 +15,7 @@ import { validateChart } from "@/lib/chart/schema";
 import { noteBeat, snapBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
-import { EditorToolbar } from "./editor-toolbar";
+import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -24,6 +24,16 @@ import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
  * is loaded on demand. The editor itself stays server renderable.
  */
 const NoteGrid = lazy(() => import("./note-grid").then((module) => ({ default: module.NoteGrid })));
+
+/**
+ * The chart editor: toolbar on top, the recessed lane well on the left and
+ * the inspector panels on the right.
+ *
+ * Panels follow design/flashbeat-ui.pen v5: page background #1B1B1B (k1),
+ * panels #2D2D2D (k3) with the 16px panel radius, recessed strips and lists
+ * #131313 (k0), raised controls #3A3A3A (k4). Controls are #3A3A3A, the work
+ * area is the darkest surface on screen.
+ */
 
 const layout = css({
   display: "grid",
@@ -43,10 +53,8 @@ const body = css({
 });
 
 const gridPanel = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#131313",
+  borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
   minHeight: "0",
@@ -55,9 +63,9 @@ const gridPanel = css({
 });
 
 const gridHint = css({
-  borderBottomColor: "gray.surface.border",
+  borderBottomColor: "#222222",
   borderBottomWidth: "1px",
-  color: "fg.subtle",
+  color: "#8c8c8c",
   fontSize: "2xs",
   paddingBottom: "2",
   paddingTop: "2",
@@ -65,6 +73,7 @@ const gridHint = css({
 });
 
 const playheadReadout = css({
+  color: "#ffffff",
   fontVariantNumeric: "tabular-nums",
   marginRight: "2",
 });
@@ -78,10 +87,8 @@ const side = css({
 });
 
 const sideFrame = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#2d2d2d",
+  borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
   gap: "2",
@@ -89,15 +96,15 @@ const sideFrame = css({
 });
 
 const sideTitle = css({
-  color: "fg.default",
+  color: "#ffffff",
   fontSize: "xs",
-  fontWeight: "semibold",
+  fontWeight: "medium",
   margin: "0",
 });
 
 const placeholder = css({
   alignItems: "center",
-  color: "fg.muted",
+  color: "#8c8c8c",
   display: "flex",
   fontSize: "xs",
   height: "100%",
@@ -367,8 +374,9 @@ export function ChartEditor({
           <section className={sideFrame}>
             <h3 className={sideTitle}>Preview</h3>
             <Field.Root>
-              <Field.Label>YouTube video</Field.Label>
+              <Field.Label className={fieldLabel}>YouTube video</Field.Label>
               <Input
+                className={inputBox}
                 value={youtubeInput}
                 placeholder="https://www.youtube.com/watch?v=..."
                 onChange={(event) => setYoutubeInput(event.currentTarget.value)}
@@ -390,8 +398,8 @@ export function ChartEditor({
             />
 
             <Button
+              className={buttonSecondary}
               size="sm"
-              variant="outline"
               onClick={() => previewRef.current?.seekTo(0)}
               data-testid="rewind-button"
             >
