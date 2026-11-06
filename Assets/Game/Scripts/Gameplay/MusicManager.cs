@@ -50,6 +50,7 @@ public class MusicManager : MonoBehaviour
 
     bool mediaReady;
     bool playbackStarted;
+    bool pictureStarted;
     bool resultTriggered;
     bool fallbackChecked;
     bool videoPrepared;
@@ -530,7 +531,7 @@ public class MusicManager : MonoBehaviour
         // drift apart. The picture is the reference (the chart was authored
         // against the video), the sound is pulled back to it.
         if (audioMode == PlaybackSource.StreamSeparate &&
-            songVideo != null && songVideo.isPrepared &&
+            pictureStarted && songVideo != null && songVideo.isPrepared &&
             streamAudioPlayer != null && streamAudioPlayer.isPrepared)
         {
             float pictureTime = (float)songVideo.time;
@@ -586,7 +587,11 @@ public class MusicManager : MonoBehaviour
         playbackStartWallTime = Time.time;
         LastPlaybackSource = audioMode;
 
-        if (songVideo != null && songVideo.isPrepared) songVideo.Play();
+        if (songVideo != null && songVideo.isPrepared)
+        {
+            songVideo.Play();
+            pictureStarted = true;
+        }
 
         switch (audioMode)
         {
@@ -642,7 +647,9 @@ public class MusicManager : MonoBehaviour
         // The picture is the timing master: the chart was authored against the
         // YouTube recording, and in the merged file the sound comes out of the
         // very same file, so picture and sound cannot drift apart.
-        if (songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
+        // Only after the picture was started: a file that is prepared while the
+        // song is already running must not throw the clock back to zero.
+        if (pictureStarted && songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
 
         switch (audioMode)
         {
