@@ -20,8 +20,8 @@ using Debug = UnityEngine.Debug;
 public class UpdateNoticeUI : MonoBehaviour
 {
     private const float SafeMargin = 24f;
-    private const float PillWidth = 860f;
-    private const float PillHeight = 88f;
+    private const float PillWidth = 1180f;
+    private const float PillHeight = 150f; // 2〜3 行 (前回の更新結果 + アップデートあり + 補足) が枠内に収まる高さ
     private const int SortingOrder = 400;
     private const string TitleSceneName = "TitleScene";
 
@@ -187,7 +187,10 @@ public class UpdateNoticeUI : MonoBehaviour
         var labelGO = new GameObject("Label", typeof(TMPro.TextMeshProUGUI));
         labelGO.transform.SetParent(body.transform, false);
         label = labelGO.GetComponent<TMPro.TextMeshProUGUI>();
-        label.fontSize = 26;
+        label.fontSize = 28;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 18f;
+        label.fontSizeMax = 28f;
         label.alignment = TMPro.TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;
