@@ -162,7 +162,6 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
 > 保持 30 日) として出ます。**CI は Release を作りません** — 上記 3〜5 のパッケージングと Release 化の工程は
 > 別途、監督者の承認の下で実行します。Unity ライセンスの secret が未設定だと CI ジョブは skip されます
 > (skip は成功ではありません)。
->>>>>>> origin/ops/exhibit-docs
 
 ## 更新の種別 (Stage 区別)
 
