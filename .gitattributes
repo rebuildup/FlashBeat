@@ -54,6 +54,6 @@
 .uss      text eol=lf
 
 # 大型SDFアセットのみ、テキスト規則よりLFSを優先する
-"Assets/NotoSansJP-Medium SDF.asset" filter=lfs diff=lfs merge=lfs -text
-"Assets/YuGothB SDF.asset" filter=lfs diff=lfs merge=lfs -text
+"Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset" filter=lfs diff=lfs merge=lfs -text
+"Assets/Game/Fonts/Japanese/YuGothB SDF.asset" filter=lfs diff=lfs merge=lfs -text
 "Assets/TextAssetsYuigo.asset" filter=lfs diff=lfs merge=lfs -text
