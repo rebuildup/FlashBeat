@@ -99,6 +99,13 @@ public class OptionSceneManager : MonoBehaviour
 
         if (flashSText != null) flashSText.text = GManager.FlashBG.ToString();
         if (flashTText != null) flashTText.text = GManager.FlashT.ToString();
+
+        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
+        // 入力は OptionView が処理し、このクラスの既存メソッドをコールバックで呼ぶ。
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null) legacy.SetActive(false);
+        FlashBeat.UI.V5.OptionView.Build(
+            TitleScene, SpeedUp, SpeedDown, OptionSceneManager.TimingUp, TimingDown);
     }
 
     void Update()
