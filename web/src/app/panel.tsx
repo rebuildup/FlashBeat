@@ -8,8 +8,12 @@ import type { ReactNode } from "react";
  * uses the same frame so the layout does not jump between states.
  */
 export const panelFrame = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
+  /**
+   * Recessed surface: Pen v5 lists sit in wells darker than the canvas
+   * (`well #131313` under `bg #1B1B1B`), so the panel steps down, not up.
+   */
+  bg: "gray.1",
+  borderColor: "border",
   borderRadius: "l2",
   borderWidth: "1px",
   display: "flex",

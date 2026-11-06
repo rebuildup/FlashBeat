@@ -37,12 +37,17 @@ function matchesLevel(level: number, filter: LevelFilter) {
   return level >= 20;
 }
 
-export function AppShell({ mode }: { mode: CatalogMode }) {
+export function AppShell({ mode, query: initialQuery = "", level: initialLevel = "all" }: {
+  mode: CatalogMode;
+  /** Initial filter values from the page loader (`/?query=…&level=…`). */
+  query?: string;
+  level?: LevelFilter;
+}) {
   const [status, setStatus] = useState<CatalogStatus>("loading");
   const [songs, setSongs] = useState<SongSummary[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const [query, setQuery] = useState("");
-  const [level, setLevel] = useState<LevelFilter>("all");
+  const [query, setQuery] = useState(initialQuery);
+  const [level, setLevel] = useState<LevelFilter>(initialLevel);
 
   const refresh = useCallback(() => {
     setStatus("loading");
@@ -96,6 +101,11 @@ export function AppShell({ mode }: { mode: CatalogMode }) {
             songs={visibleSongs}
             errorMessage={errorMessage}
             onRetry={refresh}
+            hasFilters={query.trim().length > 0 || level !== "all"}
+            onClearFilters={() => {
+              setQuery("");
+              setLevel("all");
+            }}
           />
         </div>
       </main>
