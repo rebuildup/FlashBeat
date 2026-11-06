@@ -147,7 +147,6 @@ export function Topbar({
             </Select.Positioner>
           </Portal>
         </Select.Root>
-
       </div>
     </header>
   );

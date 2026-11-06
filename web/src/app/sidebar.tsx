@@ -90,12 +90,16 @@ export function Sidebar() {
 
       <nav aria-label="Studio" className={navList}>
         {NAV_ITEMS.map((item) => (
-          <a key={item.value} href={item.href} aria-current={item.value === "catalog" ? "page" : undefined} className={navTrigger}>
+          <a
+            key={item.value}
+            href={item.href}
+            aria-current={item.value === "catalog" ? "page" : undefined}
+            className={navTrigger}
+          >
             {item.label}
           </a>
         ))}
       </nav>
-
     </aside>
   );
 }
