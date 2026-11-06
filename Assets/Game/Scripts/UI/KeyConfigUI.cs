@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -39,6 +40,24 @@ public class KeyConfigUI : MonoBehaviour
     private bool listening;
     private bool confirmReset;
     private bool open;
+    private readonly List<MonoBehaviour> suspended = new List<MonoBehaviour>();
+    private bool savedSendNavigation = true;
+    private bool navigationSuspended;
+
+    /// <summary>キー設定を開いている間は true。背後のシーンはキー入力を受け取らない。</summary>
+    public static bool IsOpen { get; private set; }
+
+    private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
+
+    private static bool IsAllowedScene()
+    {
+        string name = SceneManager.GetActiveScene().name;
+        for (int i = 0; i < AllowedScenes.Length; i++)
+        {
+            if (AllowedScenes[i] == name) return true;
+        }
+        return false;
+    }
     private bool built;
     private TMP_FontAsset font;
 
@@ -79,9 +98,15 @@ public class KeyConfigUI : MonoBehaviour
         UpdateHint();
         UpdateBlink();
 
+        if (open && !IsAllowedScene())
+        {
+            SetOpen(false); // 遷移などで想定外のシーンになったら閉じる
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            Toggle();
+            if (open || IsAllowedScene()) { Toggle(); }
             return;
         }
 
@@ -91,6 +116,69 @@ public class KeyConfigUI : MonoBehaviour
     public void Toggle()
     {
         SetOpen(!open);
+    }
+
+    /// <summary>Option 画面などから開く。ゲーム中 (Game/Result) では開かない。</summary>
+    public static void Open()
+    {
+        var ui = FindObjectOfType<KeyConfigUI>();
+        if (ui != null && !ui.open && IsAllowedScene()) { ui.SetOpen(true); }
+    }
+
+    public static void Close()
+    {
+        var ui = FindObjectOfType<KeyConfigUI>();
+        if (ui != null && ui.open) { ui.SetOpen(false); }
+    }
+
+    /// <summary>
+    /// 背後のシーンのキー処理を止める。タイトルは E=終了 / O=Option / Space=開始、選曲は F/D/S/A/J/K/L=移動 を
+    /// Input.GetKeyDown で直接読むため、割り当てのためにキーを押すとアプリが終了したり遷移してしまう。
+    /// 開いている間だけ XxxSceneManager を無効化し、閉じたら元に戻す。
+    /// </summary>
+    private void SuspendScene()
+    {
+        ResumeScene();
+        // Enter / 矢印は EventSystem 経由でも選択中のボタンを押してしまう (Submit)。開いている間は止める。
+        if (EventSystem.current != null)
+        {
+            savedSendNavigation = EventSystem.current.sendNavigationEvents;
+            EventSystem.current.sendNavigationEvents = false;
+            EventSystem.current.SetSelectedGameObject(null);
+            navigationSuspended = true;
+        }
+        MonoBehaviour[] all = FindObjectsOfType<MonoBehaviour>();
+        for (int i = 0; i < all.Length; i++)
+        {
+            MonoBehaviour behaviour = all[i];
+            if (behaviour == null || behaviour == this || !behaviour.enabled) continue;
+            string typeName = behaviour.GetType().Name;
+            if (typeName.EndsWith("SceneManager"))
+            {
+                behaviour.enabled = false;
+                suspended.Add(behaviour);
+            }
+        }
+    }
+
+    private void ResumeScene()
+    {
+        if (navigationSuspended && EventSystem.current != null)
+        {
+            EventSystem.current.sendNavigationEvents = savedSendNavigation;
+        }
+        navigationSuspended = false;
+        for (int i = 0; i < suspended.Count; i++)
+        {
+            if (suspended[i] != null) { suspended[i].enabled = true; }
+        }
+        suspended.Clear();
+    }
+
+    private void OnDisable()
+    {
+        ResumeScene();
+        IsOpen = false;
     }
 
     private void SetOpen(bool value)
@@ -105,6 +193,8 @@ public class KeyConfigUI : MonoBehaviour
         }
 
         open = value;
+        IsOpen = value;
+        if (value) { SuspendScene(); } else { ResumeScene(); }
         if (panel != null) panel.gameObject.SetActive(value);
         if (value)
         {
