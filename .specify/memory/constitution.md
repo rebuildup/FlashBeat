@@ -18,9 +18,11 @@
 Every implementation unit is a GitHub Issue with a numeric branch name equal to
 the issue number, developed in its own worktree, published as a Draft PR.
 Branch naming is the issue number only (`10`, not `10-feature-name`).
-Draft PR base is the parent branch named by the delivery plan
-(`release-0-1-0` for independent issues, the parent issue branch for stacked
-children).
+Draft PR base is the parent branch named by the delivery plan: the active
+release integration branch for independent issues, the parent issue branch
+for stacked children. The active branch is the head of the current Draft
+release PR; verify it in `AGENTS.md` or with `gh pr list` instead of assuming
+a fixed `release-*` name.
 
 ### II. Lean Artifacts
 

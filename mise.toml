@@ -14,11 +14,28 @@ uv = "0.13.7"
 [tasks.skills-list]
 run = "bunx skills add rebuildup/project-init --list"
 
+# Fresh clones already contain the vendored Skill files. This restores them
+# from skills-lock.json only when a local copy was lost or a new host needs it.
+# Follow with `bunx skills add ... --copy` for any Skill the CLI restores to
+# .agents/ only; the .claude copy must stay identical.
 [tasks.skills-bootstrap]
-run = "bunx skills add rebuildup/project-init --skill '*' --agent claude-code --agent codex -y"
+run = "bunx skills experimental_install"
 
 [tasks.skills-update]
 run = "bunx skills update -p -y"
+
+# Fails when a vendored Skill differs from skills-lock.json, is missing, or a
+# Skill is both vendored and published from skills/. Both agent copies are
+# checked (speckit Skills are generated separately and are not in the lock).
+[tasks.skills-check]
+run = "bun evals/policy-evaluation/vendored-skills-contract.mts"
+
+# One lifecycle for Worktrunk, plain git and IDE-created worktrees.
+[tasks."worktree:setup"]
+run = "bash scripts/worktree/setup.sh"
+
+[tasks."worktree:teardown"]
+run = "bash scripts/worktree/teardown.sh"
 
 # Spec Kit CLI (github/spec-kit). Pinned version, installed into the
 # project-local .tools/ directory so Mac and Windows workers materialize the

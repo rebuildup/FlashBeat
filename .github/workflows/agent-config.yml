@@ -1,0 +1,41 @@
+name: agent-config
+
+# Validates the agent environment itself: vendored Skills match
+# skills-lock.json and the worktree entrypoints parse. It does not build the game (see build-win64.yml).
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "skills-lock.json"
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - "evals/**"
+      - "scripts/worktree/**"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/workflows/agent-config.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Agent config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v5
+        with:
+          install: true
+          cache: true
+
+      - name: Vendored Skills match the lock
+        run: mise run skills-check
+
+      - name: Worktree entrypoints parse
+        run: bash -n scripts/worktree/setup.sh scripts/worktree/teardown.sh
