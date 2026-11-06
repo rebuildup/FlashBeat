@@ -137,6 +137,12 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
   if (bpm < 1 || bpm > 600) {
     diagnostics.push({ path: "/chart/BPM", message: `must be between 1 and 600, got ${bpm}` });
   }
+  if (notes.length === 0) {
+    diagnostics.push({
+      path: "/chart/notes",
+      message: "must contain at least one note; an empty chart cannot be played",
+    });
+  }
   if (request.level < 1 || request.level > 99) {
     diagnostics.push({ path: "/level", message: `must be between 1 and 99, got ${request.level}` });
   }
