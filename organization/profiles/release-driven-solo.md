@@ -2,7 +2,7 @@
 
 - Status: Current default
 - Constitutional authority: none; this profile must refine the Constitution
-- Related: ADR-0004, ADR-0008, ADR-0012, ADR-0013, ADR-0016, ADR-0018, ADR-0022, ADR-0023
+- Related: ADR-0004, ADR-0008, ADR-0012, ADR-0013, ADR-0016, ADR-0018, ADR-0022, ADR-0023, ADR-0024, ADR-0025, ADR-0026, ADR-0031, ADR-0032
 
 ## Purpose
 
@@ -27,22 +27,29 @@ FlashBeat の current release-driven development で使用する Operating Model
 
 ### Delivery defaults
 
-- normal sprint cadence: 1 week
-- production/stable release intent: major bump default
-- normal sprint release intent: minor bump default
-- within-sprint / post-introduction adjustment: patch bump default
+- normal planning / review cadence: 1 week (publication cadenceは可変)
+- 1 release train = 1 version = 1 integration branch。複数planning windowへの継続・同じ週の早期releaseを許容する
+- versionは公開する変更のcontract / release intentで決める（major / minor / patch）。週次経過だけでbumpを強制しない
+- release candidate review: change scope/risk、value/urgency、unpublished wait、release-only CI/deploy実測で hold / candidate / blocked を記録し、project-local thresholdは根拠を示す
+- release candidate freeze: scope/current SHAを固定し、候補外ticketのlandingを短期間保留。ticket実装/レビューは継続し、候補外は次releaseへretargetする
+- freeze中のSHA変更はaffected validationを失効させて再実行する。candidate readyだけではmainへのrelease mergeを承認しない
 - top-level durable work: GitHub Issue
 - ticket branch: Issue number only
 - independent ticket PR: target release branch
 - hard dependency stack: immediate predecessor branchをbaseにできる
-- first meaningful durable commit後はcanonical remote publication + Draft PRを行う
-- release branchにmeaningful differenceが入ったらDraft release PRを維持する
-- `main`へのnormal integrationはcurrent release branchからのrelease PRだけ
+- first meaningful durable commit後はcanonical remote publication + PR作成を行う。active/incomplete implementationではDraft、readiness条件を満たしていればReady for reviewとする
+- Draftは未完了作業の一時状態に限定し、ticket/release PRがreadiness条件を満たしたら速やかにReady for reviewへ遷移する。PR作成時点ですでに条件を満たす場合は最初からReadyで作成する
+- release branchにmeaningful differenceが入ったらDraft release PRを維持し、release readiness条件を満たした時点でReady for reviewへ遷移する
+- readiness/quality gateを満たしたticket PRは追加のuser merge authorizationを待たず、dependency順にtarget release trunkへ自律landingする
+- ticketがtarget release trunkへlandしたらlinked Issueを明示closeし、安全ならticket branchを削除する
+- recovery/completion時にPRなしticket branch、Ready未landing PR、land済みopen Issue、merged後残存branchをreconcileする
+- `main`へのnormal integrationはcurrent release branchからのrelease PRだけ。release PRはbulk/autonomous ticket landingから常に除外する
+- `release-* -> main` のmergeだけはcurrent interactionのexplicit user authorizationを必須とし、generic merge/cleanup指示からrelease authorizationを推定しない
 - PR landing method: merge commit only
 - repository merge settings: `allow_merge_commit=true` / `allow_squash_merge=false` / `allow_rebase_merge=false`
 - squash merge / rebase mergeは使用しない。branch-local `git rebase` はstack maintenance等のbranch mechanicsとして別扱い
 - stacked/native landingはmerge commit semanticsを保持できる場合だけ使用する
-- merge/landingはADR-0012のexplicit authorization boundaryを維持する
+- ticket landingはADR-0027に従い自律実行する（candidate freeze中の一時停止を除く）。release-class `release-* -> main` landingだけADR-0012/ADR-0027のexplicit authorization boundaryを維持する
 
 ### Workspace/runtime defaults
 
@@ -56,9 +63,35 @@ FlashBeat の current release-driven development で使用する Operating Model
 - mise unavailable/incompatible時は同等のversion/reproducibility guaranteeを持つ明示的fallbackを使用する
 - WSL/Linux worktree frontend: Worktrunk
 - Worktrunk unavailable/incompatible時: native Git worktree fallback
+- worktreeのsetup / teardown / port決定はrepository-controlledな入口に置き、Worktrunk・Orca・plain gitのどのfrontendからも同じ入口を呼ぶ
+- Orcaは任意のUI / agent terminal frontendとして併用できる。Orcaのworkspace・orchestration stateはSoTにせず、Orcaなしでも同じ状態を作れることを保つ（`orca-frontend`）
 - worktree自体をruntime isolation proofとして扱わない
+- cross-boundary / judgment-heavy workで独立したtop-level workが複数ある場合、Herdrをoptional adaptive Supervisor runtimeとして使用できる
+- fan-outはsmallest useful fan-outから開始し、Ready work / uncertainty / WIP / resource / human-review / CI bottleneckを見て増減する。agent数自体をoptimization targetにしない
+- 単独で済む軽量taskに不要な委譲を増やさない。external delegationが必要なroleについてはproject-localでresolved routeを先に固定し、Herdrと統一`agent` launcherが利用可能な場合はその経路を使う。provider/budgetの分離が必要な委譲をnative subagentで代替しない
+- native subagentはroute制約のない短命な観測・探索作業に限り選択可能。既存のproject-local delegation policyがexternal Workerを指定するroleではnative subagentをdefaultにしない
+- FlashBeat は既存 dotfiles の統一 `agent` launcher と `config/agents.toml` をそのまま使用する。独自 router / supervisor / attempt registry を追加しない。唯一の統括監督と route / quota / Worker / SHA の復旧記録は Issue #41 に維持する
 - implementation workerのmutable runtimeは適切に分離する
 - parent/child handoffはimmutable identityへpinする
+
+### Cloudflare CLI defaults
+
+Cloudflareを利用するprojectでは、Cloudflare control plane / resource API / supported Worker lifecycleのprimary CLIを `cf` とする。
+
+- Cloudflare documentationやexampleがWranglerで記述されていても、それだけをWrangler採用の根拠にしない。まず `cf cli search` 等でcurrent `cf` surfaceに同等操作があるか確認する
+- `cf` で同等のworkflowを実行できる場合は `cf` を使用し、新規automationやagent instructionをWrangler前提で増やさない
+- `cf` が未対応、互換性不足、または対象workflowでWranglerへ委譲する場合は、Wranglerをexplicit compatibility fallbackとして残してよい
+- Wrangler fallbackは必要なworkflowへboundedにし、silent fallbackにしない。tool upgrade / project reconciliation時に `cf` capabilityを再確認し、不要になったfallbackを縮小・削除する
+- `cf` がWranglerへ内部委譲するprojectでは、表面commandを `cf` に統一できてもWrangler dependencyを誤って削除しない
+- Cloudflareを利用しないprojectへ `cf` / Wranglerをpolicy complianceだけのために導入しない
+- `cf` / WranglerはPracticeでありConstitutionではない。provider/tool capabilityの変化に応じて同等以上のguaranteeを持つmechanismへ置換できる
+
+### Interactive AI harness/provider configuration
+
+- Project runtime contractは、必要なagent能力・recovery evidence・budget/authorizationを定義する。個人のAPI契約、モデル名、token残量、ログイン状態をproject-levelの正しさとして固定しない。
+- current user environmentでは、machine-global CLIの導入は`pc-setup` / mise、任意のAPI接続先への切替は`dotfiles`の**統一`agent` launcher（宣言TOML `config/agents.toml` + process-scoped Infisical ENV injection）**で行う。別の専用ルーターや長寿命proxyを要求しない。
+- CLIの通常コマンドはnative loginのまま保持し、特別なprovider/accountは明示的な`agent <ハーネス> <provider>` routeで選択する。model・endpoint・credential名はTOMLの宣言のみで変更し、未知の組み合わせは起動前に失敗させる。quota枯渇による無断の従量課金failoverはしない。
+- 個別ハーネスのplugins/hooks/sessions/config、秘密情報のSoT、project-localな役割を混同しない。task再開は既存task（Issue）・PR・commitのdurable handoffを優先し、validationで状態を補完する。
 
 ### Secret / environment defaults
 
@@ -92,8 +125,10 @@ FlashBeat の current release-driven development で使用する Operating Model
 
 ### Authority Integrity
 
-- PR readinessとmerge authorizationを分離
-- merge method固定やrepository settingの整合からauthorizationを導出しない
+- ticket-class integrationとrelease-class landingを分離する
+- ticket PRはreadiness/quality gate通過後のautonomous landingを標準権限とする
+- `release-* -> main` だけexplicit user authorizationを要求し、ticket権限をreleaseへ伝播させない
+- merge method固定やrepository settingの整合からrelease authorizationを導出しない
 - release/product/irreversible decisionは定義済みauthority boundaryへ従う
 
 ### Evidence Integrity
@@ -121,7 +156,7 @@ FlashBeat の current release-driven development で使用する Operating Model
 ### Progress
 
 - 自明なimplementation decisionを不要にoperatorへ返さない
-- review/validation完了後はauthorization等の実blockerがなければ次stateへ進める
+- review/validation完了後のticket workは不要なpermission待ちで停止せず、landing -> Issue close -> safe branch cleanupまで進める。release mergeだけはexplicit authorizationを実blockerとして扱う
 - safety mechanismがdelivery deadlockを作る場合はOperating Modelをre-evaluateする
 
 ## Deviation
@@ -156,3 +191,8 @@ explicit user/project decisionとして固定されたrelease scope/version/publ
 - `skills-lock.json` は durable source/content metadata。
 - Bun は Skills CLI 用の auxiliary tooling であり、Unity/C# toolchain ownershipを変更しない。
 - `--global` は freshness evidence にしない。
+
+## Reconciliation provenance
+
+- 2026-11-07: `rebuildup/project-init@fae2dd6b4eb2a8c4744ff719f591e6e697efe4a4` と照合。adaptive release cadence / candidate freeze / autonomous ticket landing / release authorization を反映。
+- FlashBeat 固有の GitHub planning、Unity/LFS evidence、既存 dotfiles router の単一正本、展示中のゲーム停止禁止、単一 Cloudflare deploy owner を維持する。stable 公開と実機合格は別の境界であり、ticket landing から導出しない。

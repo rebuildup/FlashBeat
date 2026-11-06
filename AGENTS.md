@@ -48,7 +48,7 @@ Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandalone
 1. 作業前に Issue を確認する。durable な作業は GitHub Issue を先に作る。
 2. branch は Issue 番号だけ（例: Issue #56 → branch `56`）。base は active な release 統合 branch。hard dependency がある stacked ticket だけ immediate predecessor branch を base にできる。
 3. 最初の meaningful commit の直後に remote へ push し、Draft PR を作る。`base` / `head` / Issue link / 検証 evidence を PR に書く。
-4. review と validation が current SHA で揃ったら、ticket-class PR は追加承認を待たずに landing まで進める。release-class PR (`head` が release branch、`base` が `main`) だけは、その interaction での明示的な user authorization を必要とする。
+4. review と validation が current SHA で揃ったら、ticket-class PR は追加承認を待たずに dependency 順で release trunk へ landing し、linked Issue を close する。candidate freeze 中は候補外の landing を保留する。release-class PR (`head` が current release branch、`base` が `main`) だけは、その interaction での明示的な user authorization を必要とする。通常の ticket → main は landing 対象外。分類・承認は [ADR-0027](docs/adr/ADR-0027.md) と [ADR-0012](docs/adr/ADR-0012.md) に従う。
 5. landing は **merge commit のみ**。squash / rebase merge は使わない。branch 整理の `git rebase` は別扱い。
 6. CI が緑でも、current SHA 以外の evidence を green として再利用しない。
 
