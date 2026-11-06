@@ -51,11 +51,9 @@ PY
     "$0" build "$ref"
     app="$wt/Builds/macOS/FlashBeat.app"
     outdir="$wt/Builds/run-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$outdir"
-    plog="$HOME/Library/Logs/Unity/Player.log"; [ -f "$plog" ] && mv -f "$plog" "$plog.prev" || true
-    open -n "$app"; echo "[mac-verify] launched, waiting ${secs}s"; sleep "$secs"
-    screencapture -x "$outdir/screen-1.png" || true
-    sleep 5; screencapture -x "$outdir/screen-2.png" || true
-    cp "$plog" "$outdir/Player.log" 2>/dev/null || echo "[mac-verify] no Player.log"
+    open -n "$app" --args -logFile "$outdir/Player.log" -autoshot "$outdir" -autoshot-interval 8 -autoshot-count 6
+    echo "[mac-verify] launched, waiting ${secs}s"; sleep "$secs"
+    screencapture -x "$outdir/os-screen.png" 2>/dev/null || echo "[mac-verify] (OS screencapture unavailable - using in-app AutoShot images)"
     pgrep -f "Builds/macOS/FlashBeat.app" >/dev/null && echo "[mac-verify] process alive: yes" || echo "[mac-verify] process alive: NO (crashed or exited)"
     osascript -e 'tell application "FlashBeat" to quit' >/dev/null 2>&1 || true
     if [ -f "$outdir/Player.log" ]; then
