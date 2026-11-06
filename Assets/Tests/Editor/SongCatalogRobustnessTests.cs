@@ -158,7 +158,10 @@ namespace FlashBeat.Tests.Editor
             var local = new[]
             {
                 new SongData(0, "noSong", "no", "", 0, 0, 0, 0f),
-                new SongData(1, "ロストアンブレラ", "稲葉曇", "DeKLpgzh-qQ", 274, 8, 268, 89f),
+                new SongData(1, "ロストアンブレラ", "稲葉曇", "DeKLpgzh-qQ", 274, 8, 268, 89f)
+                {
+                    noteCount = 268,
+                },
             };
             var remote = new[]
             {
