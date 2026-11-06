@@ -137,8 +137,9 @@ describe("deployed publish API", { skip: !publishEnabled }, () => {
   it("rejects an invalid payload with 422 and a diagnostic", async () => {
     const invalid = {
       ...publishRequestFixture(),
-      // `maxBlock` must be 8 (contracts/schemas/chart.v1.schema.json).
-      chart: { ...chartFixture(), maxBlock: 7 },
+      // `maxBlock` must stay within 1..8 (contracts/schemas/chart.v1.schema.json);
+      // legacy Unity charts carry 5 lanes, so 8 is not the only valid value.
+      chart: { ...chartFixture(), maxBlock: 9 },
     };
     const response = await publish(invalid, adminToken);
     assert.equal(response.status, 422);
