@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace FlashBeat.Tests.Editor
 {
@@ -209,7 +210,8 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void ParseConfig_MissingFieldsUseDefaults()
         {
-            CloudCatalog.Config config = CloudCatalog.ParseConfig("{}");
+            // A config without other fields keeps the defaults (enabled, chartVersion 1).
+            CloudCatalog.Config config = CloudCatalog.ParseConfig("{\"baseUrl\":\"https://x.example\"}");
 
             Assert.IsNotNull(config);
             Assert.IsTrue(config.enabled);
@@ -307,12 +309,10 @@ namespace FlashBeat.Tests.Editor
             public void Start()
             {
                 int port;
-                using (var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0))
-                {
-                    probe.Start();
-                    port = ((IPEndPoint)probe.LocalEndpoint).Port;
-                    probe.Stop();
-                }
+                var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+                probe.Start();
+                port = ((IPEndPoint)probe.LocalEndpoint).Port;
+                probe.Stop();
 
                 listener = new HttpListener();
                 listener.Prefixes.Add($"http://127.0.0.1:{port}/");
