@@ -102,7 +102,7 @@ public class KeyBindingsTests
     public void TestMoveRefusedWhenSourceLaneWouldEmpty()
     {
         // レーン 2 (index 1) を Z だけにしてから、Z をレーン 1 へ戻す移動は拒否される。
-        Assert.IsTrue(KeyBindings.ToggleKey(1, KeyCode.Z)); // Z がレーン 2 へ移動 (レーン 1 は 3 キー)
+        Assert.IsTrue(KeyBindings.SetLane(1, new[] { KeyCode.Z })); // レーン 2 = Z のみ (Z はレーン 1 から移動、レーン 1 は 3 キー)
         Assert.IsTrue(Contains(KeyBindings.GetKeys(1), KeyCode.Z));
         Assert.IsFalse(KeyBindings.ToggleKey(0, KeyCode.Z)); // レーン 2 が空になるため拒否
         Assert.IsTrue(Contains(KeyBindings.GetKeys(1), KeyCode.Z));

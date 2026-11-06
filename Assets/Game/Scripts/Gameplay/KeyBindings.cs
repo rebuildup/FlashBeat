@@ -111,6 +111,7 @@ public static class KeyBindings
         }
 
         KeyCode[][] copy = Clone(table);
+        copy[lane] = EmptyKeys; // wholesale replace of this lane (empty input empties the lane)
         for (int i = 0; i < cleaned.Count; i++)
         {
             KeyCode key = cleaned[i];
