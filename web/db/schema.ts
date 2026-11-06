@@ -87,7 +87,10 @@ export const scores = sqliteTable(
   (table) => [
     check("scores_version_positive", sql`${table.version} >= 1`),
     check("scores_nickname_length", sql`length(${table.nickname}) BETWEEN 1 AND 16`),
-    check("scores_judgments_non_negative", sql`${table.p} >= 0 AND ${table.g} >= 0 AND ${table.b} >= 0 AND ${table.m} >= 0`),
+    check(
+      "scores_judgments_non_negative",
+      sql`${table.p} >= 0 AND ${table.g} >= 0 AND ${table.b} >= 0 AND ${table.m} >= 0`,
+    ),
     check("scores_score_range", sql`${table.score} BETWEEN 0 AND 1000000`),
     // Leaderboard reads one (song, version) window ordered by score desc.
     index("scores_leaderboard_idx").on(table.songId, table.version, table.score),
