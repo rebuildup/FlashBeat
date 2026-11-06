@@ -8,6 +8,14 @@ export default defineConfig({
   cloudflare: {
     // Worker name of the festival API on workers.dev.
     name: "flashbeat-web",
+    // The visibility of the existing Worker, mirrored from the dashboard: it
+    // serves `workers.dev` and has version preview URLs, and it owns no custom
+    // route. Without these values `void deploy` refuses to republish the
+    // Worker ("dashboard-managed routes or visibility"), because it cannot
+    // prove that it would keep the current traffic.
+    workers_dev: true,
+    preview_urls: true,
+    routes: [],
     // The single FlashBeat D1 database (created in issue #9). The binding id
     // and the migrations directory are shared with `cf d1 migrations apply`,
     // so both the local migration history and the remote one live in
