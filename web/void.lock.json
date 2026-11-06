@@ -4,6 +4,12 @@
     "name": "flashbeat-web",
     "workers_dev": true,
     "preview_urls": true,
+    "routes": [
+      {
+        "pattern": "flashbeat.rebuildup.dev",
+        "custom_domain": true
+      }
+    ],
     "d1_databases": [
       {
         "binding": "DB",
@@ -25,7 +31,13 @@
     ],
     "account_id": "c6ab6651a5d4d6d0d07686bbd3c3d56f",
     "workers_dev": true,
-    "preview_urls": true
+    "preview_urls": true,
+    "routes": [
+      {
+        "pattern": "flashbeat.rebuildup.dev",
+        "custom_domain": true
+      }
+    ]
   },
-  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6dHJ1ZSwicHJldmlld191cmxzIjp0cnVlLCJyb3V0ZXMiOltdfQ\n{\n  \"name\": \"flashbeat-web\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"flashbeat\",\n      \"database_id\": \"7de6fd23-dd7b-4e21-bddd-b28b33ee0462\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"account_id\": \"c6ab6651a5d4d6d0d07686bbd3c3d56f\",\n  \"workers_dev\": true,\n  \"preview_urls\": true\n}\n"
+  "text": "{\n  \"name\": \"flashbeat-web\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"flashbeat\",\n      \"database_id\": \"7de6fd23-dd7b-4e21-bddd-b28b33ee0462\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"account_id\": \"c6ab6651a5d4d6d0d07686bbd3c3d56f\",\n  \"workers_dev\": true,\n  \"preview_urls\": true,\n  \"routes\": [\n    {\n      \"pattern\": \"flashbeat.rebuildup.dev\",\n      \"custom_domain\": true\n    }\n  ]\n}\n"
 }
