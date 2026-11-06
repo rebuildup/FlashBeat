@@ -13,6 +13,9 @@ public class OpeningSceneManager : MonoBehaviour
 
     void Start()
     {
+        // v5 UI (Issue #120): 背景 + エッジ装飾 + ロゴをコードで構築。
+        FlashBeat.UI.V5.OpeningView.Build();
+
         // オープニング動画 (opening1.mp4, PlayOnAwake) の初回準備が最初のフレームを
         // 止めていた。動画を一度停止し、最初の描画の後に再再生することで、
         // 重い準備を 1 フレーム目から外す。挙動 (動画が最初から流れる) は変わらない。
