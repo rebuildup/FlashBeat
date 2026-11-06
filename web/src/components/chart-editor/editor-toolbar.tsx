@@ -66,7 +66,7 @@ const counter = css({
   paddingBottom: "2",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 const RESOLUTIONS = [
   { label: "1/4", value: "4" },
