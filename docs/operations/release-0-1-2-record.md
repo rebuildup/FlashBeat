@@ -67,6 +67,28 @@ gh release create v0.1.2-win64-4b0685d --target <full sha> --title "..." --notes
 `.github/workflows/**` の所有権は監督へ移っているため、workflow の修正は
 PR / コミットで提案します (今回は `4b0685d` が既に対応済み。main への着地が必要)。
 
+## 3.1 成果物指紋の検証 (`release/check/verify-stage.ps1 -Stage S5`)
+
+Windows 実機で本 manifest を使って実行した結果:
+
+```
+=== S5 [proven-partial] 統合展示版 0.1.1/0.1.2 ...
+    artifact:  D:\4_apps\Unity\Build\FlashBeatBuild\dist-52
+    [OK] folder fingerprint matches: 2e8956cc567c77b8031a0772b883b0db268d931d47868397ce777fc5195aadbd
+    [OK] file count: 202
+    [OK] FlashBeat.exe sha256: 3031bb5e15e85eb0eaa4de271b81e2c8f5e8eeb1254c3dcc0a70c4b950c39a60
+    [FAIL] docs/evidence/index.md does not mention fingerprint 2e8956cc567c77b8031a0772b883b0db268d931d47868397ce777fc5195aadbd
+    [UNPROVEN] remaining gaps of this stage: (4 items - 下記 5 参照)
+
+result: 1 failure(s), 1 stage(s) still unproven
+```
+
+指紋・ファイル数・exe の SHA-256 は一致 (成果物は manifest の記録どおり)。
+残る 1 failure は **`docs/evidence/index.md` に新しい fingerprint の行が無い**という
+索引の未更新で、`docs/evidence/**` は検証ドライバの所有者の領域のため
+release worker からは編集していません (索引への追記依頼)。
+未証明 4 項目は 5 節のとおり。
+
 ## 4. 展示 PC への適用
 
 1. ブラウザまたは `gh` で `v0.1.2-win64-4b0685d` の ZIP と `.sha256` を取得する。
