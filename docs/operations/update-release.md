@@ -70,6 +70,41 @@
 7. 失敗時 (SHA 不一致 / ネットワーク断 / 二重起動) は一行メッセージを表示して更新を中止し現行版を維持
    (ゲーム動作は止めない)
 
+### 更新結果ファイル (last-result.json、issue #125)
+
+`tools\update\Update.ps1` は**すべての終了経路**で
+`%LOCALAPPDATA%\FlashBeat\update\last-result.json` に機械可読な結果を書く
+(アプリからの自動適用でも手実行でも。書けない場合も更新処理自体は失敗させない):
+
+```json
+{
+  "result": "success | failed | aborted",
+  "exitCode": 0,
+  "fromVersion": "0.1.2",
+  "toVersion": "0.1.3",
+  "tag": "v0.1.3-win64-abc1234",
+  "message": "SHA-256 が一致しません。ZIP が破損、または想定と違うファイルです。",
+  "timeUtc": "2026-11-07T00:00:00Z"
+}
+```
+
+- `result` の対応: `aborted` = 前提不備で何もしていない (終了コード 1 パラメータ/前提不備、
+  6 FlashBeat 実行中)。`failed` = 適用を試みて失敗 (2 通信 / 3 ダイジェスト / 4 ZIP / 5 内容 /
+  7 切替、想定外エラー)。`success` は切替と配置後検査が**完了したあとにだけ**書く
+  (再起動の成否には依存しない)。
+- `message` は `FlashBeat-update.log` と同じ日本語の理由。
+- アプリは次回起動時にこのファイルを読み、**Title シーンで 1 回だけ**通知する:
+  - `failed` / `aborted`: 『前回の更新に失敗しました: \<message\> - 現在の版 vX を使用中 / F3 で再試行』
+  - `success`: 『更新しました vX』
+- 表示した時点でファイルを `last-result-shown.json` へリネームし、次回起動以降は出さない
+  (ゲームをブロックしない。F3 での再試行は新版がまだ見つかっているときだけ効く)。
+- したがってスクリプト起動時のアプリのログは
+  `update script started (result unknown until next start)` であり、**成否はこの時点では確定しない**。
+  確認は結果ファイル (または `FlashBeat-update.log`) で行う。
+- staging / 適用の直前に、対象 ZIP の版が現行ビルドより新しいことを再確認する
+  (`UpdateChecker.IsStagedTagNewerThanCurrent`)。旧版・同一バージョンの別ビルドは
+  staging も適用もしない (ダウングレード防止)。
+
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`

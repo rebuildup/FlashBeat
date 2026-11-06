@@ -36,6 +36,19 @@ namespace FlashBeat.Update
         /// <summary>F4 / × でこのセッション中は通知を隠す (staging・状態は保持)。</summary>
         public bool DismissedForSession { get; private set; }
 
+        /// <summary>前回の更新結果 (Update.ps1 の last-result.json、issue #125) に基づく通知文言。
+        /// 空 (null) なら通知なし。Title で一度表示したあと UpdateNoticeUI が結果ファイルを
+        /// mark-as-shown する (文言はこのセッションの間だけ残る)。</summary>
+        public string LastResultNotice { get; private set; }
+
+        /// <summary>前回の更新結果の通知文言を設定する (起動時の結果ファイル読み取りから一度だけ)。
+        /// 既に設定済みのときは上書きしない (起動時 1 回の読み取り結果を確定させる)。</summary>
+        public void SetLastResultNotice(string text)
+        {
+            if (LastResultNotice != null) { return; }
+            LastResultNotice = text;
+        }
+
         /// <summary>確認済みか (BeginApply を呼べるのはこれが true のときの実行環境側のみを想定)。</summary>
         public bool UserConfirmed { get; private set; }
 

@@ -11,6 +11,9 @@ using Debug = UnityEngine.Debug;
 ///   Available ならダウンロード開始、Ready なら適用 (アプリを終了して再起動)。
 /// - F4 キー または × ボタンでこのセッションは非表示 (押さなければ更新しない選択)。
 /// - 何もしなければダウンロードも適用も行われない。
+/// - 前回の更新結果 (Update.ps1 の last-result.json、issue #125): 失敗 / 中止なら
+///   『前回の更新に失敗しました: &lt;理由&gt; ...』、成功なら『更新しました vX』を Title で一度だけ
+///   表示し、表示した時点で結果ファイルを last-result-shown.json へリネームする (次回は出ない)。
 /// Canvas: ScaleWithScreenSize 1920x1080 / match 0.5。sortingOrder は Title UI より上、
 /// キーガイド (KeyGuideUI, 500) より下の 400。
 /// </summary>
@@ -29,6 +32,7 @@ public class UpdateNoticeUI : MonoBehaviour
     private TMPro.TMP_FontAsset noticeFont;
     private string renderedText;
     private bool built;
+    private bool resultNoticeMarked;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -51,10 +55,22 @@ public class UpdateNoticeUI : MonoBehaviour
         if (!built) { BuildUI(); }
 
         bool onTitle = SceneManager.GetActiveScene().name == TitleSceneName;
+        bool hasResultNotice = model != null && !string.IsNullOrEmpty(model.LastResultNotice);
         bool visible = onTitle && model != null && !model.DismissedForSession &&
-                       (model.HasAvailableUpdate || model.Phase == UpdateFlowPhase.Applying);
+                       (model.HasAvailableUpdate || model.Phase == UpdateFlowPhase.Applying || hasResultNotice);
         if (pill != null && pill.activeSelf != visible) { pill.SetActive(visible); }
-        if (visible) { EnsureFont(); RefreshText(); }
+        if (visible)
+        {
+            EnsureFont();
+            RefreshText();
+            // Title で一度表示できたら結果ファイルを mark-as-shown (issue #125)。
+            // リネーム後も文言はこのセッションの間だけ表示を続ける (次回起動では出ない)。
+            if (hasResultNotice && !resultNoticeMarked)
+            {
+                resultNoticeMarked = true;
+                UpdateResultFile.MarkShown();
+            }
+        }
 
         if (Input.GetKeyDown(KeyCode.F3)) { Trigger(); }
         else if (Input.GetKeyDown(KeyCode.F4)) { Dismiss(); }
@@ -77,30 +93,45 @@ public class UpdateNoticeUI : MonoBehaviour
     /// <summary>F4 / × 押下。このセッションの通知を隠す (更新はしない、staging は保持)。</summary>
     public void Dismiss()
     {
-        if (model != null && model.HasAvailableUpdate) { model.Dismiss(); }
+        if (model != null && (model.HasAvailableUpdate || !string.IsNullOrEmpty(model.LastResultNotice)))
+        {
+            model.Dismiss();
+        }
     }
 
     private void RefreshText()
     {
-        string text;
+        string phaseText;
         switch (model.Phase)
         {
             case UpdateFlowPhase.Available:
-                text = "アップデートあり v" + (model.LatestVersion ?? "?") +
-                       "  [F3: 今すぐ更新]  (押さなければ更新しません)";
+                phaseText = "アップデートあり v" + (model.LatestVersion ?? "?") +
+                            "  [F3: 今すぐ更新]  (押さなければ更新しません)";
                 break;
             case UpdateFlowPhase.Downloading:
-                text = "アップデート v" + (model.LatestVersion ?? "?") + " を準備中... " +
-                       Mathf.RoundToInt(model.DownloadProgress * 100f) + "%";
+                phaseText = "アップデート v" + (model.LatestVersion ?? "?") + " を準備中... " +
+                            Mathf.RoundToInt(model.DownloadProgress * 100f) + "%";
                 break;
             case UpdateFlowPhase.Ready:
-                text = "更新の準備ができました。終了して適用 [F3] (アプリを終了して再起動します)";
+                phaseText = "更新の準備ができました。終了して適用 [F3] (アプリを終了して再起動します)";
                 break;
             case UpdateFlowPhase.Applying:
-                text = "適用中... 終了すると更新されます";
+                phaseText = "適用中... 終了すると更新されます";
                 break;
             default:
-                return;
+                phaseText = null;
+                break;
+        }
+        var resultNotice = model.LastResultNotice;
+        if (string.IsNullOrEmpty(resultNotice) && string.IsNullOrEmpty(phaseText)) { return; }
+        string text;
+        if (!string.IsNullOrEmpty(resultNotice) && !string.IsNullOrEmpty(phaseText))
+        {
+            text = resultNotice + "\n" + phaseText;
+        }
+        else
+        {
+            text = string.IsNullOrEmpty(resultNotice) ? phaseText : resultNotice;
         }
         if (!string.IsNullOrEmpty(model.Message))
         {
