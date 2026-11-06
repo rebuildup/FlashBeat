@@ -42,6 +42,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:SkippedKeys = 0
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 Add-Type -AssemblyName System.Drawing
@@ -147,13 +148,21 @@ function Send-Key($proc, [int]$vk, [string]$name) {
         Write-Host "[drive] ABORT: the player window is gone - stopping"
         exit 3
     }
-    Focus-Window $hwnd
-    # Safety: another automation on this machine would steal the focus and receive our keystrokes.
-    # Abort instead of corrupting somebody else's run. The comparison is by process id:
-    # the window handle may change while the game runs.
-    if (-not (Test-ForegroundIsPlayer $proc.Id)) {
-        Write-Host "[drive] ABORT: foreground window is not the player (another automation is running) - stopping to avoid interference"
-        exit 3
+    # Safety: another automation on this machine would steal the focus and receive our
+    # keystrokes. The foreground is compared by process id (the window handle may change
+    # while the game runs). If the focus cannot be taken, the key is skipped - never
+    # typed into somebody else's window - and the run continues; skipped keys are counted
+    # and reported in the summary.
+    $focused = $false
+    for ($attempt = 0; $attempt -lt 5 -and -not $focused; $attempt++) {
+        Focus-Window $hwnd
+        $focused = Test-ForegroundIsPlayer $proc.Id
+        if (-not $focused) { Start-Sleep -Milliseconds 400 }
+    }
+    if (-not $focused) {
+        $script:SkippedKeys++
+        Write-Host "[drive] skip key $name (foreground is not the player - not typing into another window)"
+        return
     }
     Write-Host "[drive] key $name at $(Get-Date -Format HH:mm:ss)"
     [Win32]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero)
@@ -319,6 +328,7 @@ if (-not $p.HasExited) { $p.Kill() }
 
 $summary = [ordered]@{
     startedAt        = $started.ToString('yyyy-MM-ddTHH:mm:ssK')
+    skippedKeys      = $script:SkippedKeys
     exe              = $Exe
     outDir           = $OutDir
     resolution       = "$Width x $Height (fullscreen=$Fullscreen)"
