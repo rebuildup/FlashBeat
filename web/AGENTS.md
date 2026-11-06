@@ -123,6 +123,12 @@ Rules that the endpoints follow:
 the Void dev server, and validates the responses against the frozen contract
 (`contracts/openapi.v1.yaml` and `contracts/schemas/chart.v1.schema.json`).
 
+The worker is deployed as `flashbeat-web`
+(`https://flashbeat-web.rebuild-up-up.workers.dev`) with the D1 binding of
+the `flashbeat` database; `web/void.lock.json` pins both. The remote database
+carries the schema but no published song yet — the first song arrives with the
+publish endpoint (#16).
+
 ### Scope
 
 The database schema and migrations exist (issue #14) and the read API reads
