@@ -1,0 +1,13 @@
+{
+  "name": "flashbeat-design",
+  "private": true,
+  "description": "UI design source of truth (pen.dev). flashbeat-ui.pen is the base for all UI work (Issue #30).",
+  "type": "module",
+  "scripts": {
+    "pen": "pen",
+    "export": "pen --in flashbeat-ui.pen"
+  },
+  "devDependencies": {
+    "@pen.dev/cli": "^0.3.14"
+  }
+}
