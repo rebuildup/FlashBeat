@@ -123,18 +123,52 @@ Rules that the endpoints follow:
 the Void dev server, and validates the responses against the frozen contract
 (`contracts/openapi.v1.yaml` and `contracts/schemas/chart.v1.schema.json`).
 
+### Publish API (issue #16)
+
+| Route | File | Behaviour |
+| ----- | ---- | --------- |
+| `PUT /api/v1/admin/songs/{songId}` | `routes/api/v1/admin/songs/[songId].ts` | Staff-only atomic publication of a song + chart snapshot. |
+
+- **Auth.** Bearer token compared against the `FLASHBEAT_ADMIN_TOKEN` runtime
+  secret (`env.ts`) with a constant-time SHA-256 compare. The secret is
+  provisioned from the FlashBeat Infisical project (`script/with-secrets`)
+  into the Worker (`cf workers secrets update …`); it never appears in HTML,
+  JS bundles, logs or commits. Wrong/missing token → `401`, checked before
+  the body is read. There is no login UI.
+- **Validation** (`routes/api/v1/_publish-model.ts`), two layers:
+  1. Structure — the frozen contract schema (`SongPublishRequest` +
+     `chart.v1`). The schema is bundled at build time (a Worker has no
+     filesystem) and a unit test (`tests/publish-schema.test.ts`) fails when
+     the bundled copy drifts from `contracts/openapi.v1.yaml`. The runtime
+     validator is `@cfworker/json-schema` because Ajv compiles validators
+     with `new Function`, which the Workers runtime forbids.
+  2. Semantics — 8 lanes (`block` 0-7), positive beat positions (`num >= 0`,
+     `LPB >= 1`), BPM 1-600, level 1-99, Tap-only (`type` 1), and every note
+     inside `durationSec` using the Unity timing `num * 60 / (BPM * LPB)`.
+  Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
+  naming each offending item; nothing is written.
+- **Publication.** One `db.batch` (a D1 implicit transaction) writes the song
+  metadata upsert with `currentVersion + 1` (first publish = 1) and appends
+  the immutable `chart_versions` row. The response is
+  `{ songId, chartVersion, catalogVersion }` where `catalogVersion` is
+  `COUNT(chart_versions)` — the same definition the read API serves.
+- **Local development.** Put a dev token in `.env` (gitignored) or export
+  `FLASHBEAT_ADMIN_TOKEN` before `vp dev`; without it the Worker fails env
+  validation at boot and every route returns 500.
+
 The worker is deployed as `flashbeat-web`
 (`https://flashbeat-web.rebuild-up-up.workers.dev`) with the D1 binding of
-the `flashbeat` database; `web/void.lock.json` pins both. The remote database
-carries the schema but no published song yet — the first song arrives with the
-publish endpoint (#16).
+the `flashbeat` database; `web/void.lock.json` pins both (including the
+worker visibility — `workers_dev`/`preview_urls` — and the published-traffic
+snapshot marker that a redeploy needs; do not strip them). The publish
+endpoint (#16) is implemented and tested; its production deploy is the
+integration step of the stacked plan.
 
 ### Scope
 
-The database schema and migrations exist (issue #14) and the read API reads
-them (issue #15). Nothing writes to them yet: the publish endpoint (#16) is
-still missing. The catalog of the Web Studio UI is a local fixture in
-`src/app/catalog.ts`; `?state=loading|empty|error` on `/` forces a list state
-so every branch can be reviewed before the UI talks to the API.
-The publish form is intentionally disabled until the publish endpoint (#16) is
-deployed.
+The database schema and migrations exist (issue #14), the read API reads them
+(issue #15) and the publish endpoint (#16) writes them. The catalog of the Web
+Studio UI is a local fixture in `src/app/catalog.ts`;
+`?state=loading|empty|error` on `/` forces a list state so every branch can be
+reviewed before the UI talks to the API. The publish form is intentionally
+disabled until the publish endpoint (#16) is deployed.
