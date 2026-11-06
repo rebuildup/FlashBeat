@@ -1,0 +1,454 @@
+Mono path[0] = 'C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/Managed'
+Mono config path = 'C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=<REDACTED>
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.1742
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.041 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 0.735100 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:\Users\rebui\Desktop\FlashBeat.11\Builds\Windows\FlashBeat_Data\sharedassets0.resource
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.934300 ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 1940.
+Total: 0.788800 ms (FindLiveObjects: 0.055800 ms CreateObjectMapping: 0.102500 ms MarkObjects: 0.623700 ms  DeleteObjects: 0.006600 ms)
+
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.670400 ms
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 2857.
+Total: 1.201300 ms (FindLiveObjects: 0.150400 ms CreateObjectMapping: 0.132900 ms MarkObjects: 0.896900 ms  DeleteObjects: 0.020700 ms)
+
+ro-dokanryou
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/resources.resource
+The character with Unicode value \u30CB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CE was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BB was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30CE was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30B9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C8 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30D6 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30EC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u7A32 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u8449 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u66C7 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+The character with Unicode value \u30ED was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30B9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C8 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A2 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30D6 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30EC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u7A32 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u8449 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u66C7 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [Musician].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C4 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30A4 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30BF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30FC was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30E9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u30C9 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.766700 ms
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 2808.
+Total: 1.148800 ms (FindLiveObjects: 0.076600 ms CreateObjectMapping: 0.139700 ms MarkObjects: 0.853600 ms  DeleteObjects: 0.078700 ms)
+
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] yt-dlp resolved videoId=<REDACTED> for 'まにまに' → <REDACTED-YOUTUBE-STREAM-URL>
+The video URL '<REDACTED-YOUTUBE-STREAM-URL>' does not have a recognized extension; we're making an assumption on the format
+WindowsVideoMedia error 0x80070005 while reading <REDACTED-YOUTUBE-STREAM-URL>
+
+Context: MFCreateSourceReaderFromURL
+Error details: <Empty>
+Track types:
+The character with Unicode value \u304D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3063 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3068 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u30AD was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u30DF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3063 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3066 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3093 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3060 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Miss
+Miss
+Miss
+Miss
+The character with Unicode value \u8AB0 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u305D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u601D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3057 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3087 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3046 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Miss
+Miss
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3053 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u50D5 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u63CF was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u304F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u7406 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u60F3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u6B4C was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+The character with Unicode value \u305D was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u4F55 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3082 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u8A00 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u308F was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u306A was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3044 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+The character with Unicode value \u3067 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+The character with Unicode value \u3000 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [QuestionText].
+[MusicManager] VideoPlayer failed to prepare within 30s for videoId=<REDACTED>
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.527600 ms
+Unloading 89 unused Assets to reduce memory usage. Loaded Objects now: 2155.
+Total: 0.977700 ms (FindLiveObjects: 0.067500 ms CreateObjectMapping: 0.099100 ms MarkObjects: 0.739700 ms  DeleteObjects: 0.071100 ms)
+
+se-bukanryou
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (1)].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u307E was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u306B was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [SongName].
+The character with Unicode value \u25B3 was not found in the [LiberationSans SDF] font asset or any potential fallbacks. It was replaced by Unicode character \u25A1 in text object [saisei (2)].
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.557200 ms
+Unloading 40 unused Assets to reduce memory usage. Loaded Objects now: 2811.
+Total: 1.397500 ms (FindLiveObjects: 0.122200 ms CreateObjectMapping: 0.179600 ms MarkObjects: 0.993900 ms  DeleteObjects: 0.101700 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. C:/Users/rebui/Desktop/FlashBeat.11/Builds/Windows/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] yt-dlp resolved videoId=<REDACTED> for 'まにまに' → <REDACTED-YOUTUBE-STREAM-URL>
+The video URL '<REDACTED-YOUTUBE-STREAM-URL>' does not have a recognized extension; we're making an assumption on the format
+WindowsVideoMedia error 0x80070005 while reading <REDACTED-YOUTUBE-STREAM-URL>
+
+Context: MFCreateSourceReaderFromURL
+Error details: <Empty>
+Track types:
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed
