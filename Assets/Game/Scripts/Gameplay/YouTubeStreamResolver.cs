@@ -100,6 +100,8 @@ namespace FlashBeat.Gameplay
         static bool ytDlpPathResolved;
         static string cachedDenoPath;
         static bool denoPathResolved;
+        static string cachedFfmpegPath;
+        static bool ffmpegPathResolved;
 
         public static string ResolveYtDlpPath()
         {
@@ -189,6 +191,62 @@ namespace FlashBeat.Gameplay
             }
 
             return cachedDenoPath;
+        }
+
+        /// <summary>
+        /// Locates ffmpeg. yt-dlp needs it to merge the video-only and the
+        /// audio-only stream of YouTube into one mp4 - that merged file is the
+        /// only way the YouTube sound reaches Unity's VideoPlayer (a separate
+        /// audio-only m4a is refused: "Failed to recognize video file format").
+        /// Override with FLASHBEAT_FFMPEG_PATH.
+        /// </summary>
+        public static string ResolveFfmpegPath()
+        {
+            if (ffmpegPathResolved) return cachedFfmpegPath;
+            ffmpegPathResolved = true;
+
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_FFMPEG_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedFfmpegPath = pref;
+                return cachedFfmpegPath;
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll("ffmpeg.exe"), "-version");
+            if (pathHit != null)
+            {
+                cachedFfmpegPath = pathHit;
+                return cachedFfmpegPath;
+            }
+
+            var miseHit = FindInVersionedDir("mise", "installs", "ffmpeg", "bin", "ffmpeg.exe");
+            if (miseHit != null)
+            {
+                cachedFfmpegPath = miseHit;
+                return cachedFfmpegPath;
+            }
+
+            var miseFlat = FindInVersionedDir("mise", "installs", "ffmpeg", "ffmpeg.exe");
+            if (miseFlat != null)
+            {
+                cachedFfmpegPath = miseFlat;
+                return cachedFfmpegPath;
+            }
+
+            string[] candidates =
+            {
+                @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\Aeviewer\bin\Win\ffmpeg.exe",
+                @"C:\ffmpeg\bin\ffmpeg.exe",
+                "/usr/local/bin/ffmpeg",
+                "/opt/homebrew/bin/ffmpeg",
+            };
+            foreach (var candidate in candidates)
+            {
+                try { if (File.Exists(candidate)) { cachedFfmpegPath = candidate; return cachedFfmpegPath; } }
+                catch { }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -426,11 +484,23 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// Downloads one format to <paramref name="outputTemplate"/>. yt-dlp appends the
         /// container extension, so the caller looks the produced file up afterwards.
+        ///
+        /// A selector with "+" (video itag + audio itag) makes yt-dlp mux both
+        /// streams into one mp4; that needs ffmpeg, so it is passed explicitly.
         /// </summary>
         public static Task<YtDlpOutput> DownloadAsync(string videoId, string formatSelector, string outputTemplate, CancellationToken cancellationToken = default)
         {
-            var args = CommonArguments() + "--no-part -f " + Quote(formatSelector) +
-                       " -o " + Quote(outputTemplate) + " " + Quote(string.Format(WatchUrlFormat, videoId));
+            var args = CommonArguments() + "--no-part -f " + Quote(formatSelector);
+            if (formatSelector != null && formatSelector.Contains("+"))
+            {
+                args += " --merge-output-format mp4";
+                var ffmpeg = ResolveFfmpegPath();
+                if (!string.IsNullOrEmpty(ffmpeg))
+                {
+                    args += " --ffmpeg-location " + Quote(ffmpeg);
+                }
+            }
+            args += " -o " + Quote(outputTemplate) + " " + Quote(string.Format(WatchUrlFormat, videoId));
             return RunAsync(args, 180000, cancellationToken);
         }
 

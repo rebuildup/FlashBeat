@@ -162,8 +162,9 @@ public class MusicManager : MonoBehaviour
             Debug.Log($"[MusicManager]   format {formats[i]}");
         }
 
-        var plan = YouTubeMediaCache.SelectPlan(formats);
-        Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary}");
+        var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+        var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
+        Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary} (merge available: {canMerge})");
 
         // 2. Direct URL probe (once per video): documents why the URL cannot be
         //    handed to Media Foundation.
@@ -172,14 +173,31 @@ public class MusicManager : MonoBehaviour
             yield return ProbeDirectUrl(videoId, plan.VideoSelector);
         }
 
-        // 3. Download the media into the local cache.
-        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, YouTubeMediaCache.VideoFilePrefix);
+        // 3. Download the media into the local cache. The merged file has its own
+        //    prefix, so a picture-only file of an earlier revision is not reused.
+        var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
 
+        // The merged file (video + YouTube sound in one mp4) is the wanted state.
+        // If the merge failed (no ffmpeg, download error) the picture still has to
+        // play, so the video-only stream is fetched as the fallback.
+        bool combined = plan.Combined;
+        if (!videoFile.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
+        {
+            Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
+            YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
+            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix);
+            while (!fallbackTask.IsCompleted) yield return null;
+            videoFile = fallbackTask.Result;
+            combined = false;
+            Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
+        }
+
         MediaFileResult audioFile = null;
-        if (plan.HasAudioFile)
+        if (plan.HasAudioFile && !combined)
         {
             var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix);
             while (!audioTask.IsCompleted) yield return null;
@@ -191,20 +209,20 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
-            yield return PrepareLocalVideo(videoFile.Path, plan.Combined);
+            yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
         }
 
         // 5. Prepare the sound player for the split (video only + audio only) case.
         bool audioReady = false;
-        if (!plan.Combined && audioFile != null && audioFile.Ok)
+        if (!combined && audioFile != null && audioFile.Ok)
         {
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
         }
 
         // 6. Decide where the sound comes from.
-        if (plan.Combined && videoReady)
+        if (combined && videoReady)
         {
             audioMode = AudioMode.StreamCombined;
         }
