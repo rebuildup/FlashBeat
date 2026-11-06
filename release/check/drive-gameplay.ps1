@@ -57,6 +57,10 @@ public class Win32 {
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
@@ -92,6 +96,38 @@ function Wait-For([scriptblock]$cond, [int]$timeoutSec, [string]$what) {
     return $false
 }
 
+# The player window can be recreated (resolution switch, scene change), so the handle is
+# resolved again for every interaction instead of being cached once.
+function Find-PlayerWindow([int]$processId) {
+    $best = [IntPtr]::Zero
+    $bestArea = 0
+    $callback = [Win32+EnumWindowsProc]{
+        param($h, $l)
+        $winPid = 0
+        [void][Win32]::GetWindowThreadProcessId($h, [ref]$winPid)
+        if ($winPid -eq $processId -and [Win32]::IsWindowVisible($h)) {
+            $r = New-Object Win32+RECT
+            [void][Win32]::GetClientRect($h, [ref]$r)
+            $area = ($r.Right - $r.Left) * ($r.Bottom - $r.Top)
+            if ($area -gt $bestArea) { $script:foundArea = $area; $script:foundWindow = $h }
+        }
+        return $true
+    }
+    $script:foundWindow = [IntPtr]::Zero
+    [void][Win32]::EnumWindows($callback, [IntPtr]::Zero)
+    $best = $script:foundWindow
+    return $best
+}
+
+# True when the foreground window belongs to the player process.
+function Test-ForegroundIsPlayer([int]$processId) {
+    $fg = [Win32]::GetForegroundWindow()
+    if ($fg -eq [IntPtr]::Zero) { return $false }
+    $fgPid = 0
+    [void][Win32]::GetWindowThreadProcessId($fg, [ref]$fgPid)
+    return ($fgPid -eq $processId)
+}
+
 function Focus-Window([IntPtr]$hwnd) {
     $r = New-Object Win32+RECT
     [void][Win32]::GetWindowRect($hwnd, [ref]$r)
@@ -104,12 +140,18 @@ function Focus-Window([IntPtr]$hwnd) {
     Start-Sleep -Milliseconds 250
 }
 
-function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
+function Send-Key($proc, [int]$vk, [string]$name) {
+    try { $proc.Refresh() } catch {}
+    $hwnd = Find-PlayerWindow $proc.Id
+    if ($hwnd -eq [IntPtr]::Zero) {
+        Write-Host "[drive] ABORT: the player window is gone - stopping"
+        exit 3
+    }
     Focus-Window $hwnd
     # Safety: another automation on this machine would steal the focus and receive our keystrokes.
-    # Abort instead of corrupting somebody else's run.
-    $fg = [Win32]::GetForegroundWindow()
-    if ($fg -ne $hwnd) {
+    # Abort instead of corrupting somebody else's run. The comparison is by process id:
+    # the window handle may change while the game runs.
+    if (-not (Test-ForegroundIsPlayer $proc.Id)) {
         Write-Host "[drive] ABORT: foreground window is not the player (another automation is running) - stopping to avoid interference"
         exit 3
     }
@@ -120,7 +162,13 @@ function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
     Start-Sleep -Milliseconds 300
 }
 
-function Save-Shot([IntPtr]$hwnd, [string]$file) {
+function Save-Shot($proc, [string]$file) {
+    try { $proc.Refresh() } catch {}
+    $hwnd = Find-PlayerWindow $proc.Id
+    if ($hwnd -eq [IntPtr]::Zero) {
+        Write-Host "[drive] shot $file skipped (player window not found)"
+        return $null
+    }
     # restore + focus first: a minimised or background window has an empty rect and no visible pixels
     [void][Win32]::ShowWindow($hwnd, 9)   # SW_RESTORE
     [void][Win32]::SetForegroundWindow($hwnd)
@@ -191,30 +239,30 @@ Write-Host "[drive] window=$hwnd"
 $titleOk = Wait-For { (Scene-Count) -ge 2 } $TitleTimeoutSec 'TitleScene'
 $startupSec = [math]::Round(((Get-Date) - $started).TotalSeconds, 1)
 Write-Host "[drive] startup to TitleScene = $startupSec s"
-Save-Shot $hwnd '01_title.png' | Out-Null
+Save-Shot $p '01_title.png' | Out-Null
 
 # 2) Space -> SelectScene
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Milliseconds 900
-Save-Shot $hwnd '02_select.png' | Out-Null
+Save-Shot $p '02_select.png' | Out-Null
 Start-Sleep -Seconds 2
-Save-Shot $hwnd '03_select.png' | Out-Null
+Save-Shot $p '03_select.png' | Out-Null
 
 # 3) move the selection (No.1 -> No.2)
-Send-Key $hwnd $NextSongKey 'NextSong'
+Send-Key $p $NextSongKey 'NextSong'
 Start-Sleep -Seconds 1
-Save-Shot $hwnd '04_select_song2.png' | Out-Null
+Save-Shot $p '04_select_song2.png' | Out-Null
 
 # 4) Space -> GameScene
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Seconds 4
-Save-Shot $hwnd '05_game.png' | Out-Null
+Save-Shot $p '05_game.png' | Out-Null
 
 # 5) Space -> start the song (8s pre-roll)
 Start-Sleep -Seconds 10
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Seconds 4
-Save-Shot $hwnd '06_game_playing.png' | Out-Null
+Save-Shot $p '06_game_playing.png' | Out-Null
 $judgeAfterStart = Judge-Count
 Write-Host "[drive] judge lines after start = $judgeAfterStart"
 
@@ -225,7 +273,7 @@ $extraStarts = 0
 while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
     if ((Log-Text) -match 'press Space to start') {
         Start-Sleep -Seconds 2
-        Send-Key $hwnd 0x20 'Space(start)'
+        Send-Key $p 0x20 'Space(start)'
         $extraStarts++
         Start-Sleep -Seconds 3
         Write-Host "[drive] extra start key #$extraStarts, judge lines = $(Judge-Count)"
@@ -233,7 +281,7 @@ while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
         Start-Sleep -Seconds 2
     }
 }
-if ($extraStarts -gt 0) { Save-Shot $hwnd '06b_game_playing.png' | Out-Null }
+if ($extraStarts -gt 0) { Save-Shot $p '06b_game_playing.png' | Out-Null }
 
 # 6) ResultScene (optionally press lane keys, so the judgement is exercised on real input)
 $laneKeys = @(0x51, 0x57, 0x44, 0x46, 0x4A)   # Q W D F J  (lanes 0 1 2 3 4)
@@ -243,7 +291,7 @@ $deadline = (Get-Date).AddSeconds($ResultTimeoutSec)
 while ((Get-Date) -lt $deadline) {
     if ((Scene-Count) -ge 8) { $resultOk = $true; Write-Host '[drive] OK: ResultScene'; break }
     if ($PlayLanes) {
-        Send-Key $hwnd $laneKeys[$laneIdx % $laneKeys.Count] ('lane' + ($laneIdx % $laneKeys.Count))
+        Send-Key $p $laneKeys[$laneIdx % $laneKeys.Count] ('lane' + ($laneIdx % $laneKeys.Count))
         $laneIdx++
     } else {
         Start-Sleep -Milliseconds 400
@@ -251,16 +299,16 @@ while ((Get-Date) -lt $deadline) {
 }
 if (-not $resultOk) { Write-Host '[drive] TIMEOUT: ResultScene' }
 Start-Sleep -Seconds 2
-Save-Shot $hwnd '07_result.png' | Out-Null
+Save-Shot $p '07_result.png' | Out-Null
 $judgeAtResult = Judge-Count
 Write-Host "[drive] judge lines at result = $judgeAtResult, scenes = $(Scene-Count)"
 
 # 7) Retry (R)
 $retried = $false
 if (-not $SkipRetry) {
-    Send-Key $hwnd 0x52 'R'
+    Send-Key $p 0x52 'R'
     Start-Sleep -Seconds 8
-    Save-Shot $hwnd '08_retry.png' | Out-Null
+    Save-Shot $p '08_retry.png' | Out-Null
     Write-Host "[drive] final scenes = $(Scene-Count)"
     $retried = ((Scene-Count) -ge 9)
 }
