@@ -160,5 +160,68 @@ would fight with our own player). No scene or prefab was modified.
 
 ## 5. Win64 run
 
-See [`evidence/win64-2026-11-06-issue13/`](../../evidence/win64-2026-11-06-issue13/)
-for the player log, the screenshots and the measured judgement counters.
+Built player: `Builds/Windows/FlashBeat.exe` (branch `13`, see the commit below),
+Unity 6000.5.6f1, Windows 11 x64, RTX 4050 Laptop / Direct3D 11.
+Evidence: [`evidence/win64-2026-11-06-issue13/`](../../evidence/win64-2026-11-06-issue13/)
+
+| Artifact | Content |
+|---|---|
+| `Player-keys-manimani.log` | player log of the run in which the chart was played with the lane keys |
+| `Player-unattended-manimani.log` | player log of the run without key presses (all notes missed) |
+| `01-title.png` … `11-retry.png` | screenshots of both runs (title, select, loading, ready, 5 s / 15 s / 25 s of the song, result, retry) |
+
+### 5.1 What the log shows
+
+```
+[MusicManager] yt-dlp -F videoId=9O2VyUM5MlQ formats=38 ok
+[MusicManager] media plan 'まにまに': combined mp4/H.264 itag=18 640x360
+[MusicManager] video file: <USERPROFILE>/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\9O2VyUM5MlQ\video.mp4 (cache)
+[MusicManager] picture wired to the renderer of '2' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=video.mp4 after 0.4s
+[MusicManager] media ready: song='まにまに' audioMode=StreamCombined video=ok (bundled wav present) - press Space to start
+[MusicManager] PLAYBACK_START song='まにまに' videoId='9O2VyUM5MlQ' audioMode=StreamCombined mediaTime=0.000 wallClock=2026-11-06T22:53:06.542 gameTime=13.730
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.2932 peak=0.4931 video[playing=True frame=8069 prepared=True] perfect=2 great=0 bad=0 miss=0
+[MusicManager] STATUS mediaTime=4.00 audioMode=StreamCombined rms=0.2507 peak=0.4931 video[playing=True frame=8069 prepared=True] perfect=3 great=1 bad=0 miss=0
+```
+
+* **The stream is resolved and played**: `yt-dlp -F` lists 38 formats, the plan
+  picks the progressive H.264+AAC mp4 (itag 18), `yt-dlp` downloads it into the
+  cache and Unity's `VideoPlayer` prepares it (`prepared=True`).
+* **There is sound**: the `AudioLevelProbe` on the `AudioListener` measures the
+  final mix at `rms = 0.25 … 0.49` (`peak 0.53`) while the song plays - that is
+  the music, not silence. The sound comes from the video file itself
+  (`audioMode=StreamCombined`), not from the bundled wav.
+* **The picture is visible**: the song object of the scene has no target
+  renderer, so the `VideoPlayer` would have decoded frames into nothing. The
+  renderer is wired at runtime (`picture wired to the renderer of '2'`), and the
+  screenshots show the YouTube video as the game background
+  (`07-game-05s.png`, `08-game-15s.png`, `09-game-25s.png`).
+* **The judgement follows the media**: the chart was played with the lane keys
+  pressed at the chart times, anchored on the `wallClock` timestamp of
+  `PLAYBACK_START`:
+  **Perfect 74 / Great 2 / Bad 0 / Miss 0 of 76 notes** - every note was judged
+  inside the ±0.10 s window of the media clock.
+* **One song completes**: the result screen is reached (grade C with 0 hits in the
+  unattended run, `scenes=8`), and `R` reloads the GameScene, where the media is
+  prepared again from the cache in 0.4 s (`mediaReady=True`).
+* **The direct URL path fails** (measured, one probe per video):
+  `VideoPlayer error: VideoPlayer cannot play url : https://…googlevideo.com/…`
+  and `prepared=False after 10.0s`. This is the Windows Media Foundation
+  limitation described in §1.2; the probe result is cached in
+  `PlayerPrefs` (`FlashBeat.DirectUrlProbed.<videoId>`), so it costs 10 s only
+  once per song.
+* **The retry path works with the cache**: the second start of the song uses the
+  cached file (`(cache)` in the log), no download.
+
+### 5.2 Known limits of the current state
+
+* The media cache panel on the Option screen overlaps the "FlashTiming" row of
+  the option layout (cosmetic; the panel is created at runtime in
+  `MediaCacheOptionPanel`, moving it is a one line change plus a rebuild).
+* The mouse click of an automated driver does not reach the uGUI buttons of this
+  build (the Option screen was opened with the `O` key instead), so the
+  "Clear media cache" button was **not** exercised on the real machine; the
+  deletion path is covered by the EditMode tests and by the Editor menu.
+* The labels of the panel are ASCII because the HUD font (LiberationSans SDF) has
+  no Japanese glyphs - that is issue #27.
+
