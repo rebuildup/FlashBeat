@@ -1,6 +1,12 @@
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
+import { css } from "styled-system/css";
 import type { Props } from "./chart.server";
 import "@/styles/app.css";
+
+const page = css({
+  height: "100dvh",
+  overflow: "hidden",
+});
 
 /**
  * Chart editor route (`/chart`).
@@ -10,5 +16,9 @@ import "@/styles/app.css";
  * imports and exports the legacy JSON format.
  */
 export default function ChartPage({ chart, youtubeId }: Props) {
-  return <ChartEditor initialChart={chart} initialYouTubeId={youtubeId} />;
+  return (
+    <div className={page}>
+      <ChartEditor initialChart={chart} initialYouTubeId={youtubeId} />
+    </div>
+  );
 }

@@ -1,28 +1,26 @@
-import { Portal } from "@ark-ui/react/portal";
-import { Button, Dialog, Field, Input } from "@/components/ui";
-import { useState } from "react";
+import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
 
-const form = css({
-  display: "grid",
-  gap: "4",
-  maxWidth: "28rem",
+/**
+ * Pointer to the publish screen.
+ *
+ * The screen itself lives on its own route (`/publish`), because it holds the
+ * chart editor next to the metadata form and needs the whole window.
+ */
+const callToAction = css({
+  alignItems: "center",
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  justifyContent: "center",
+  minHeight: "12rem",
+  textAlign: "center",
 });
 
 const accent = css({ colorPalette: "teal" });
 
-/**
- * Publish form shell.
- *
- * The staff token is typed by the event operator at publish time and is never
- * stored. The submit action stays disabled until the publish endpoint (#16)
- * is deployed, so nobody can accidentally publish against a dead API.
- */
 export function PublishPanel() {
-  const [songId, setSongId] = useState("");
-  const [token, setToken] = useState("");
-
   return (
     <section className={panelFrame}>
       <header className={panelHeader}>
@@ -33,71 +31,16 @@ export function PublishPanel() {
       </header>
 
       <div className={panelBody}>
-        <StateBlock
-          title="Publishing is not connected yet"
-          description="The publish endpoint lands with issue #16. The form below shows the shape of the request the editor will send."
-        />
-
-        <div className={form}>
-          <Field.Root>
-            <Field.Label>Song id</Field.Label>
-            <Input
-              placeholder="who"
-              value={songId}
-              onChange={(event) => setSongId(event.currentTarget.value)}
-            />
-            <Field.HelperText>
-              Lowercase letters, digits and dashes. 3 to 64 characters.
-            </Field.HelperText>
-          </Field.Root>
-
-          <Dialog.Root>
-            <Dialog.Trigger asChild>
-              <Button className={accent} size="md" disabled={songId.trim().length === 0}>
-                Review publish
-              </Button>
-            </Dialog.Trigger>
-            <Portal>
-              <Dialog.Backdrop />
-              <Dialog.Positioner>
-                <Dialog.Content>
-                  <Dialog.Header>
-                    <Dialog.Title>Publish “{songId}”</Dialog.Title>
-                    <Dialog.Description>
-                      The chart snapshot, metadata and catalog version are written in one request.
-                    </Dialog.Description>
-                  </Dialog.Header>
-
-                  <Dialog.Body>
-                    <Field.Root>
-                      <Field.Label>Staff token</Field.Label>
-                      <Input
-                        type="password"
-                        placeholder="FLASHBEAT_ADMIN_TOKEN"
-                        value={token}
-                        onChange={(event) => setToken(event.currentTarget.value)}
-                      />
-                      <Field.HelperText>
-                        Held in the browser only for this request. It is never written to disk or to
-                        the bundle.
-                      </Field.HelperText>
-                    </Field.Root>
-                  </Dialog.Body>
-
-                  <Dialog.Footer>
-                    <Dialog.ActionTrigger asChild>
-                      <Button variant="outline" size="md">
-                        Cancel
-                      </Button>
-                    </Dialog.ActionTrigger>
-                    <Button className={accent} size="md" disabled>
-                      Publish (waiting for #16)
-                    </Button>
-                  </Dialog.Footer>
-                </Dialog.Content>
-              </Dialog.Positioner>
-            </Portal>
-          </Dialog.Root>
+        <div className={callToAction}>
+          <StateBlock
+            title="The publish screen has its own route"
+            description="Metadata, chart and the staff token of the operator live on one screen. Open it to edit a song and publish it."
+          />
+          <a href="/publish">
+            <Button className={accent} size="md">
+              Open the publish screen
+            </Button>
+          </a>
         </div>
       </div>
     </section>
