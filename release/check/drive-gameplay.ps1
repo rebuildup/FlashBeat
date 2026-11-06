@@ -47,10 +47,14 @@ public class Win32 {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
 }
 '@
 
@@ -59,8 +63,16 @@ if (Test-Path $log) { Remove-Item $log }
 if ($YtDlpPath) { $env:FLASHBEAT_YTDLP_PATH = $YtDlpPath }
 
 function Log-Text {
-    if (Test-Path $log) { try { return [IO.File]::ReadAllText($log) } catch { return '' } }
-    return ''
+    # The player keeps the log file open for writing: read it with FileShare.ReadWrite so the
+    # scene / judge counters follow the live log instead of lagging behind it.
+    if (-not (Test-Path -LiteralPath $log)) { return '' }
+    try {
+        $fs = [IO.File]::Open($log, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        try {
+            $sr = New-Object IO.StreamReader($fs)
+            return $sr.ReadToEnd()
+        } finally { $fs.Dispose() }
+    } catch { return '' }
 }
 function Scene-Count { return ([regex]::Matches((Log-Text), 'Your scene has been loaded')).Count }
 function Judge-Count { return ([regex]::Matches((Log-Text), '(?m)^(Miss|Perfect|Great|Bad)\r?$')).Count }
@@ -89,6 +101,13 @@ function Focus-Window([IntPtr]$hwnd) {
 
 function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
     Focus-Window $hwnd
+    # Safety: another automation on this machine would steal the focus and receive our keystrokes.
+    # Abort instead of corrupting somebody else's run.
+    $fg = [Win32]::GetForegroundWindow()
+    if ($fg -ne $hwnd) {
+        Write-Host "[drive] ABORT: foreground window is not the player (another automation is running) - stopping to avoid interference"
+        exit 3
+    }
     Write-Host "[drive] key $name at $(Get-Date -Format HH:mm:ss)"
     [Win32]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero)
     Start-Sleep -Milliseconds 120
@@ -97,21 +116,40 @@ function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
 }
 
 function Save-Shot([IntPtr]$hwnd, [string]$file) {
+    # restore + focus first: a minimised or background window has an empty rect and no visible pixels
+    [void][Win32]::ShowWindow($hwnd, 9)   # SW_RESTORE
+    [void][Win32]::SetForegroundWindow($hwnd)
+    Start-Sleep -Milliseconds 300
+
     $r = New-Object Win32+RECT
-    [void][Win32]::GetWindowRect($hwnd, [ref]$r)
+    [void][Win32]::GetClientRect($hwnd, [ref]$r)
     $w = $r.Right - $r.Left; $h = $r.Bottom - $r.Top
-    if ($w -le 0 -or $h -le 0) { Write-Host '[drive] bad rect'; return $null }
+    if ($w -le 0 -or $h -le 0) {
+        Write-Host "[drive] bad client rect ($w x $h)"
+        return $null
+    }
+    $origin = New-Object Win32+POINT
+    [void][Win32]::ClientToScreen($hwnd, [ref]$origin)
     $bmp = New-Object System.Drawing.Bitmap($w, $h)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size($w, $h)))
+    $g.CopyFromScreen($origin.X, $origin.Y, 0, 0, (New-Object System.Drawing.Size($w, $h)))
     $path = Join-Path $OutDir $file
     $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
     $g.Dispose(); $bmp.Dispose()
-    Write-Host "[drive] shot $file ($($w)x$h)"
+    Write-Host "[drive] shot $file (client $($w)x$h at $($origin.X),$($origin.Y))"
     return $path
 }
 
 if (-not (Test-Path -LiteralPath $Exe)) { throw "artifact not found: $Exe" }
+
+# Preflight: another player instance (e.g. a parallel worker automation) would fight over the
+# keyboard and the focus. Refuse to start instead of corrupting the other run.
+$others = @(Get-Process -Name 'FlashBeat' -ErrorAction SilentlyContinue)
+if ($others.Count -gt 0) {
+    Write-Host ("[drive] ABORT: {0} other FlashBeat.exe process(es) are running (ids: {1})." -f $others.Count, (($others | ForEach-Object { $_.Id }) -join ', '))
+    Write-Host '[drive]         Close them (or wait for the other automation) and run this again.'
+    exit 4
+}
 
 $launchArgs = @('-logFile', "`"$log`"", '-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
 
