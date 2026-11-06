@@ -66,7 +66,13 @@ README / ADR / Issue / PR / commit / code comment など残る文章は、書く
 
 ## Worktree と委譲
 
-worktree を作ったら `mise run worktree:setup`、削除前に `mise run worktree:teardown`。Worktrunk (`wt`) が使える環境では `wt switch --create <issue> --base=<base>`。frontend が違っても同じ entrypoint を通す。
+worktree は native `git worktree` で作る。agent host では LFS object を取得しないため、必ず smudge を skip する:
+
+```sh
+GIT_LFS_SKIP_SMUDGE=1 git worktree add ../FlashBeat.<issue> -b <issue>
+```
+
+作成直後に `mise run worktree:setup`、削除前に `mise run worktree:teardown` を呼ぶ。frontend が違っても同じ entrypoint を通す。agent の作業 worktree には Worktrunk (`wt`) を使わない。
 
 - Unity の `Library/` は worktree ごとに独立させる。symlink で共有しない（同時に開くと破損する）。
 - port など共有 mutable state は `.worktree.env` の `PORT` を基準に分ける。

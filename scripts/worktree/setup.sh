@@ -35,7 +35,7 @@ fi
 # In `git lfs ls-files`, `-` marks a pointer whose object is not downloaded.
 if command -v git-lfs >/dev/null 2>&1; then
   if git lfs ls-files | awk '$2 == "-" { found = 1 } END { exit !found }'; then
-    echo "worktree:setup: some LFS objects are missing; run 'git lfs pull' before Unity validation"
+    echo "worktree:setup: some LFS objects are missing; Unity validation needs them. Agent worktrees skip smudge (GIT_LFS_SKIP_SMUDGE=1) and must not fetch LFS on their own"
   else
     echo "worktree:setup: LFS objects are present"
   fi

@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "managed": {
-    "scripts/agent-routing/dispatch.mts": "00abc65c1eebc883cf2644380f34f23d4f41b30f41bde48a57aad022f89df2dc",
-    "scripts/agent-routing/layout.mts": "ee79be57032bf7dc3b97f61f4e65f10130f54cd09e38a916ebbaf62a64fd8290",
-    "scripts/agent-routing/claude-guard.mts": "be39da71ad8bca2ad97d6910c8d7382ec39d51b8e760e79f3013cdc42ef253cf"
-  }
-}
