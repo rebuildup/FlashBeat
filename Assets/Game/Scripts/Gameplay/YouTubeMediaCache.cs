@@ -218,7 +218,7 @@ namespace FlashBeat.Gameplay
             // container it cannot derive from the name ("Failed to recognize video
             // file format"), so yt-dlp has to write video.mp4 and not just "video".
             var template = Path.Combine(dir, filePrefix + ".%(ext)s");
-            var run = await YouTubeStreamResolver.DownloadAsync(videoId, selector, outputTemplate, cancellationToken).ConfigureAwait(false);
+            var run = await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken).ConfigureAwait(false);
             if (!run.Ok)
             {
                 // A half downloaded file must not be reused as a cache hit later.
