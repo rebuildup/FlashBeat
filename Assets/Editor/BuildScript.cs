@@ -4,6 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public static class BuildScript
 {

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
