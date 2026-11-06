@@ -58,6 +58,19 @@ public static class BuildScript
     private static void RunStandaloneBuild(BuildTarget target, string buildPath, bool windowsDistributionExtras)
     {
         string buildDir = Path.GetDirectoryName(buildPath);
+
+        // 既存出力が残ったまま上書きビルドすると level1 等が破損するため、ビルド前に
+        // 出力ディレクトリを削除する。削除対象は Builds/ 直下の期待出力ディレクトリのみで、
+        // メディア退避先 (Builds/.media-excluded) は決して削除しない。
+        string fullBuildDir = Path.GetFullPath(buildDir);
+        bool isExpectedBuildDir =
+            Path.GetFileName(Path.GetDirectoryName(fullBuildDir)) == "Builds" &&
+            fullBuildDir != Path.GetFullPath(MediaExcludeRoot);
+        if (Directory.Exists(buildDir) && isExpectedBuildDir)
+        {
+            Directory.Delete(buildDir, true);
+        }
+
         if (!Directory.Exists(buildDir))
         {
             Directory.CreateDirectory(buildDir);
