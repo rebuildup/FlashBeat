@@ -2,6 +2,8 @@
   "version": 1,
   "source": {
     "name": "flashbeat-web",
+    "workers_dev": true,
+    "preview_urls": true,
     "d1_databases": [
       {
         "binding": "DB",
@@ -21,7 +23,9 @@
         "migrations_dir": "./db/migrations"
       }
     ],
-    "account_id": "c6ab6651a5d4d6d0d07686bbd3c3d56f"
+    "account_id": "c6ab6651a5d4d6d0d07686bbd3c3d56f",
+    "workers_dev": true,
+    "preview_urls": true
   },
-  "text": "{\n  \"name\": \"flashbeat-web\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"flashbeat\",\n      \"database_id\": \"7de6fd23-dd7b-4e21-bddd-b28b33ee0462\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"account_id\": \"c6ab6651a5d4d6d0d07686bbd3c3d56f\"\n}\n"
+  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6dHJ1ZSwicHJldmlld191cmxzIjp0cnVlLCJyb3V0ZXMiOltdfQ\n{\n  \"name\": \"flashbeat-web\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"flashbeat\",\n      \"database_id\": \"7de6fd23-dd7b-4e21-bddd-b28b33ee0462\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"account_id\": \"c6ab6651a5d4d6d0d07686bbd3c3d56f\",\n  \"workers_dev\": true,\n  \"preview_urls\": true\n}\n"
 }
