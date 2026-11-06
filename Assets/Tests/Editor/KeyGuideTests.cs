@@ -76,7 +76,7 @@ public class KeyGuideTests
         var host = new GameObject("KeyGuideHost");
         try
         {
-            KeyGuideUI guide = KeyGuideUI.Create(host);
+            KeyGuideUI guide = KeyGuideUI.Create(host.transform);
             Assert.IsNotNull(guide);
 
             for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
