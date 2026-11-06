@@ -281,8 +281,8 @@ namespace FlashBeat.Gameplay
                 }
 
                 result.ExitCode = proc.ExitCode;
-                result.Stdout = await DrainAsync(stdoutTask);
-                result.Stderr = await DrainAsync(stderrTask);
+                result.Stdout = await DrainAsync(stdoutTask).ConfigureAwait(false);
+                result.Stderr = await DrainAsync(stderrTask).ConfigureAwait(false);
             }
 
             return result;
@@ -290,7 +290,7 @@ namespace FlashBeat.Gameplay
 
         static async Task<string> DrainAsync(Task<string> reader)
         {
-            var finished = await Task.WhenAny(reader, Task.Delay(3000));
+            var finished = await Task.WhenAny(reader, Task.Delay(3000)).ConfigureAwait(false);
             if (finished == reader)
             {
                 try { return reader.Result; } catch { return ""; }

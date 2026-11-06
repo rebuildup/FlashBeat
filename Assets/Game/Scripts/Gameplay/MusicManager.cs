@@ -307,8 +307,72 @@ public class MusicManager : MonoBehaviour
             try { songVideo.EnableAudioTrack(0, true); } catch { }
         }
 
+        if (songVideo.isPrepared)
+        {
+            WireVideoPicture();
+        }
+
         Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
         videoPrepared = songVideo.isPrepared;
+    }
+
+    /// <summary>
+    /// The song object of the scene carries the picture on a quad, but its
+    /// VideoPlayer has no target renderer (the Invidious path never worked, so
+    /// nobody noticed). The renderer is wired at runtime - the scene itself is
+    /// not modified.
+    /// </summary>
+    void WireVideoPicture()
+    {
+        if (songVideo == null) return;
+        if (songVideo.targetMaterialRenderer != null) return;
+
+        var renderer = songVideo.GetComponent<Renderer>();
+        if (renderer == null)
+        {
+            Debug.LogWarning("[MusicManager] the song object has no renderer - the picture stays invisible");
+            return;
+        }
+
+        // renderer.material creates an instance, the shared built-in material is
+        // not touched.
+        var material = renderer.material;
+        const string textureProperty = "_MainTex";
+        if (!material.HasProperty(textureProperty))
+        {
+            Debug.LogWarning($"[MusicManager] material '{material.name}' has no {textureProperty} - the picture stays invisible");
+            return;
+        }
+
+        songVideo.targetMaterialRenderer = renderer;
+        songVideo.targetMaterialProperty = textureProperty;
+
+        // The render mode that draws the picture into a material is resolved by
+        // name, so the code does not depend on the enum member of the Unity
+        // version in use.
+        if (TryGetMaterialRenderMode(out var materialMode))
+        {
+            songVideo.renderMode = materialMode;
+        }
+        else
+        {
+            Debug.LogWarning($"[MusicManager] no material render mode found (modes: {string.Join(", ", Enum.GetNames(typeof(VideoRenderMode)))})");
+        }
+
+        Debug.Log($"[MusicManager] picture wired to the renderer of '{songVideo.gameObject.name}' " +
+                  $"({textureProperty}, renderMode={songVideo.renderMode})");
+    }
+
+    static bool TryGetMaterialRenderMode(out VideoRenderMode mode)
+    {
+        mode = default(VideoRenderMode);
+        foreach (var name in Enum.GetNames(typeof(VideoRenderMode)))
+        {
+            if (name.IndexOf("Material", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            mode = (VideoRenderMode)Enum.Parse(typeof(VideoRenderMode), name);
+            return true;
+        }
+        return false;
     }
 
     IEnumerator PrepareStreamAudio(string path)
@@ -407,8 +471,13 @@ public class MusicManager : MonoBehaviour
             lastStatusLogTime = Time.time;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
             float peak = levelProbe != null ? levelProbe.PeakRms : 0f;
+            string videoState = "-";
+            if (songVideo != null)
+            {
+                videoState = $"playing={songVideo.isPlaying} frame={songVideo.frameCount} prepared={songVideo.isPrepared}";
+            }
             Debug.Log($"[MusicManager] STATUS mediaTime={mediaTime:F2} audioMode={audioMode} rms={rms:F4} peak={peak:F4} " +
-                      $"perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
+                      $"video[{videoState}] perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
         }
 
         if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.Songs[GManager.songID].duration))
