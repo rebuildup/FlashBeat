@@ -274,6 +274,7 @@ public class GManager : MonoBehaviour
     public static int totalSong => ActiveSongs.Length - 1;
 
     public static int combo;
+    public static int maxCombo; // festival ranking (#134): longest combo of the current play session
     public static int score;
     public static int perfect;
     public static int great;
@@ -312,6 +313,7 @@ public class GManager : MonoBehaviour
         miss = 0;
         score = 0;
         combo = 0;
+        maxCombo = 0;
         maxScore = 0;
         ratioScore = 0;
     }
