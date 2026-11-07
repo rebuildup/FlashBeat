@@ -12,6 +12,8 @@ export const globalCss = {
     body: {
       background: "canvas",
       color: "fg.default",
+      fontFamily:
+        '"Noto Sans JP Variable", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif',
     },
   },
 };

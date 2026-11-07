@@ -51,6 +51,8 @@ server against the local D1.
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                    |
 | `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                  |
 | `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                      |
+| `src/components/new-song/**`       | Guided new-song flow `/new-song`: stepper, song info, chart, publish steps (issue #135).        |
+| `src/lib/new-song/**`              | Slug suggestion, oEmbed, sessionStorage draft, bilingual validation, fixture studio API (#135). |
 | `routes/api/v1/**`                 | Read API for the catalog and chart snapshots (issue #15).                                       |
 | `pages/`                           | Void pages routing (`index.tsx`, `chart.tsx`, `publish.tsx` and their `.server.ts` companions). |
 | `db/`                              | D1 schema, migrations, fixtures and the seed (issue #14).                                       |
@@ -81,7 +83,8 @@ so `void db migrate --remote` and `cf d1 migrations apply` read the same SQL fil
 and share the `d1_migrations` bookkeeping table. Never reset the remote database:
 ship a follow-up migration instead.
 
-`db/fixtures/who.chart.json` is a byte-identical copy of `Assets/Resources/Who.json`
+`db/fixtures/who.chart.json` is a byte-identical copy of the notes of
+`Assets/Game/Resources/Who.json` (the `lyrics` block is not seeded)
 and `db/fixtures/who.song.json` carries the matching metadata from
 `Assets/Game/Scripts/Songs/GManager.cs`. The seed stores the chart file text
 verbatim, so the published chart is identical to the one the Unity player ships.
@@ -156,8 +159,8 @@ the Void dev server, and validates the responses against the frozen contract
 
 ### Publish API (issue #16)
 
-| Route | File | Behaviour |
-| ----- | ---- | --------- |
+| Route                              | File                                    | Behaviour                                                 |
+| ---------------------------------- | --------------------------------------- | --------------------------------------------------------- |
 | `PUT /api/v1/admin/songs/{songId}` | `routes/api/v1/admin/songs/[songId].ts` | Staff-only atomic publication of a song + chart snapshot. |
 
 - **Auth.** Bearer token compared against the `FLASHBEAT_ADMIN_TOKEN` runtime
@@ -174,10 +177,12 @@ the Void dev server, and validates the responses against the frozen contract
      validator is `@cfworker/json-schema` because Ajv compiles validators
      with `new Function`, which the Workers runtime forbids.
   2. Semantics — 8 lanes (`block` 0-7), positive beat positions (`num >= 0`,
-     `LPB >= 1`), BPM 1-600, level 1-99, Tap-only (`type` 1), and every note
-     inside `durationSec` using the Unity timing `num * 60 / (BPM * LPB)`.
-  Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
-  naming each offending item; nothing is written.
+     `LPB >= 1`), BPM 1-600, level 1-99, the note kinds (`type` 1 = Tap,
+     `type` 2 = Hold with an `endNum` after its `num`), and every note inside
+     `durationSec` using the Unity timing `num * 60 / (BPM * LPB)` (a Hold is
+     measured at its `endNum`).
+     Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
+     naming each offending item; nothing is written.
 - **Publication.** One `db.batch` (a D1 implicit transaction) writes the song
   metadata upsert with `currentVersion + 1` (first publish = 1) and appends
   the immutable `chart_versions` row. The response is
@@ -215,9 +220,12 @@ publishes both in one request.
   a broken answer and a request that never arrived are told apart.
 - `src/lib/publish/mock.ts` is the fixture transport. It answers like the contract
   does, including the rejection of a chart that breaks the frozen chart schema.
-- `src/lib/publish/transport.ts` picks the transport: without
-  `VITE_FLASHBEAT_API_ORIGIN` the fixture answers, with it the real endpoint does.
-  The value is a public URL, the staff token is never part of it.
+  It writes nothing and is only a review aid.
+- `src/lib/publish/transport.ts` picks the transport: the default is the API of the
+  current origin (the studio and the API are the same worker), so a published song
+  lands in the D1 of the deployment. `VITE_FLASHBEAT_API_ORIGIN` moves it to another
+  origin — a public URL, the staff token is never part of it — and the explicit
+  value `fixture` selects the fixture transport.
 - The staff token is typed by the operator in the publish dialog. It stays in the
   memory of the browser tab and is never written to disk or to the bundle.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
@@ -226,10 +234,10 @@ publishes both in one request.
 ### Scope
 
 The Web Studio has a database (issue #14), a read API (issue #15) and the publish
-endpoint (#16) writes it. The publish screen (issue #19) publishes against the
-fixture of `src/lib/publish/mock.ts` until the deployed endpoint is wired up;
-`VITE_FLASHBEAT_API_ORIGIN` switches it to the real endpoint.
+endpoint (issue #16) writes it. Both are deployed and live at
+`https://flashbeat.rebuildup.dev`: the publish screen (issue #19) publishes into the
+D1 of the deployment and the catalog of the shell reads the published songs from
+`/api/v1/catalog`.
 
-The catalog of the shell is still a local fixture in `src/app/catalog.ts`;
-`?state=loading|empty|error` on `/` forces a list state so every branch can be
-reviewed before the shell talks to the API.
+`?state=loading|empty|error` on `/` forces a list state so every branch of the
+catalog panel can be reviewed without a backend.

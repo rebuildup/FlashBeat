@@ -1,0 +1,614 @@
+[
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "search: no-match state",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "button: Clear filters restores list",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "level filter: no-match for Lv 10–19 (seeded song is Lv 5)",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "sort: Level applied without error",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "button: Refresh reloads catalog",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "keyboard: / focuses search",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "row link: visible and navigable",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "row: one cell per header column",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "row: level badge under the Lv header",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "button: Try again re-enters the error cycle (forced state)",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "catalog",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "editor: identity shows the selected song",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "button: Review & Publish visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "chart",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "form: Title editable",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "button: Review publish opens dialog",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "button: Cancel closes dialog without publishing",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "button: publish sidebar opens",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "button: publish sidebar closes",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "publish",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "new-song",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "new-song",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "new-song",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "new-song",
+        "operation": "stepper: step 1 visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "1920x1080",
+        "route": "new-song",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "search: no-match state",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "button: Clear filters restores list",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "level filter: no-match for Lv 10–19 (seeded song is Lv 5)",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "sort: Level applied without error",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "button: Refresh reloads catalog",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "keyboard: / focuses search",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "row link: visible and navigable",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "row: one cell per header column",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "row: level badge under the Lv header",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "button: Try again re-enters the error cycle (forced state)",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "catalog",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "editor: identity shows the selected song",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "button: Review & Publish visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "chart",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "form: Title editable",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "button: Review publish opens dialog",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "button: Cancel closes dialog without publishing",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "button: publish sidebar opens",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "button: publish sidebar closes",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "publish",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "new-song",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "new-song",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "new-song",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "new-song",
+        "operation": "stepper: step 1 visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1440",
+        "route": "new-song",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "search: no-match state",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "button: Clear filters restores list",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "level filter: no-match for Lv 10–19 (seeded song is Lv 5)",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "sort: Level applied without error",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "button: Refresh reloads catalog",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "keyboard: / focuses search",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "row link: visible and navigable",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "row: one cell per header column",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "row: level badge under the Lv header",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "button: Try again re-enters the error cycle (forced state)",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "catalog",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "editor: identity shows the selected song",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "button: Review & Publish visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "chart",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "form: Title editable",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "button: Review publish opens dialog",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "button: Cancel closes dialog without publishing",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "button: publish sidebar opens",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "button: publish sidebar closes",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "publish",
+        "operation": "no runtime errors",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "new-song",
+        "operation": "layout: no horizontal scroll",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "new-song",
+        "operation": "layout: elements inside viewport",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "new-song",
+        "operation": "shell: 4 nav links visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "new-song",
+        "operation": "stepper: step 1 visible",
+        "result": "ok"
+    },
+    {
+        "viewport": "2560x1664",
+        "route": "new-song",
+        "operation": "no runtime errors",
+        "result": "ok"
+    }
+]

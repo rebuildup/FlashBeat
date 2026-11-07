@@ -1,11 +1,20 @@
 @layer reset, base, tokens, recipes, utilities;
 
+/* Pen v5 `font-ui`: Noto Sans JP, self-hosted (variable, weights 100-900). */
+@import "@fontsource-variable/noto-sans-jp";
+
 @layer base {
   html {
     color-scheme: dark;
   }
 
   body {
-    overflow: hidden;
+    /* The document scrolls; every screen keeps one inner scroll area. */
+    overflow: auto;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--global-color-focus-ring);
+    outline-offset: 2px;
   }
 }

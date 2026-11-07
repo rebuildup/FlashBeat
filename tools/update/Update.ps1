@@ -19,6 +19,9 @@
     共通の保証:
       - 通信失敗 / ZIP 破損 / ダイジェスト不一致 / 内容不足 / 二重起動のいずれかでは
         既存配置を一切変更せず現行版を残します (ゲームは止めません)。
+      - すべての終了経路で %LOCALAPPDATA%\FlashBeat\update\last-result.json に結果を書きます
+        (result: success / failed / aborted + 終了コード + 日本語の理由。アプリが次回起動時に
+        読んで Title 画面で利用者へ通知します。issue #125)。
       - 適用成功後、旧版は 1 世代だけ残し (FlashBeat-backup-*)、それより古い世代は削除します。
     ロールバック UI・常設ランチャー・独自更新サーバーは実装していません。
 
@@ -100,6 +103,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# このスクリプト自身のパス (本体を関数に閉じ込めた後も参照できるようスクリプトスコープに保持する)。
+$script:UpdateScriptPath = $null
+try { $script:UpdateScriptPath = $MyInvocation.MyCommand.Path } catch { $script:UpdateScriptPath = $null }
+
 # 終了コード (運営者が結果を見分けるための固定値)
 $ExitUsage    = 1   # パラメータ / 前提不備
 $ExitDownload = 2   # ネットワーク / ダウンロード失敗
@@ -111,6 +118,10 @@ $ExitSwap     = 7   # 切替 / ファイル操作の失敗
 
 $script:LogFile = $null
 $script:WorkRoot = $null
+# 結果ファイル (last-result.json) 用の記録 (issue #125)。把握できた時点で埋める。
+$script:ResultFromVersion = ''
+$script:ResultToVersion = ''
+$script:ResultTag = ''
 
 function Write-OpLog {
     param(
@@ -126,6 +137,291 @@ function Write-OpLog {
             Write-Host ('{0} [WARN] ログに追記できません: {1}' -f (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssK'), $_.Exception.Message)
         }
     }
+}
+
+function Get-UpdateVersionFromText {
+    # 'v0.1.4-win64-4d6b407' / 'FlashBeat-0.1.4-win64-4d6b407.zip' から '0.1.4' を取り出す (無ければ $null)。
+    param([string]$Text)
+    if (-not $Text) { return $null }
+    $m = [regex]::Match($Text, '(?<!\d)(\d+\.\d+\.\d+)(?!\d)')
+    if (-not $m.Success) { return $null }
+    return $m.Groups[1].Value
+}
+
+function Write-UpdateResult {
+    # アプリが次回起動時に読む結果ファイル (issue #125):
+    # %LOCALAPPDATA%\FlashBeat\update\last-result.json
+    # すべての終了経路から一度だけ呼ぶ。書けない場合も更新処理自体は失敗させない (best-effort)。
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('success', 'failed', 'aborted')][string]$Result,
+        [Parameter(Mandatory = $true)][int]$Code,
+        [string]$Message
+    )
+    try {
+        $base = $env:LOCALAPPDATA
+        if ([string]::IsNullOrWhiteSpace($base)) { return }
+        $dir = Join-Path (Join-Path $base 'FlashBeat') 'update'
+        $path = Join-Path $dir 'last-result.json'
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $payload = [ordered]@{
+            result      = $Result
+            exitCode    = $Code
+            fromVersion = ('' + $script:ResultFromVersion)
+            toVersion   = ('' + $script:ResultToVersion)
+            tag         = ('' + $script:ResultTag)
+            message     = ('' + $Message)
+            timeUtc     = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        }
+        $json = $payload | ConvertTo-Json -Compress
+        # 一旦 tmp に書いてから差し替える (アプリが読みかけの不完全ファイルを掴まないように)。
+        $tmp = $path + '.tmp'
+        [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item -LiteralPath $tmp -Destination $path -Force
+        Write-OpLog -Level 'INFO' -Message ('結果ファイルを書きました: {0} (result={1}, exitCode={2})' -f $path, $Result, $Code)
+    } catch {
+        Write-OpLog -Level 'WARN' -Message ('結果ファイルを書けませんでした (更新処理には影響しません): {0}' -f $_.Exception.Message)
+    }
+}
+
+function Test-PathInside {
+    # True only when $Path is the same as, or below, $Root. A plain StartsWith() is wrong: 'C:\x\FlashBeat-update-work'
+    # starts with 'C:\x\FlashBeat' although it is a sibling folder, which aborted every update of an install
+    # folder named FlashBeat (found on the exhibit machine, v0.1.2 -> v0.1.3).
+    param([string]$Path, [string]$Root)
+    if (-not $Path -or -not $Root) { return $false }
+    $p = ([System.IO.Path]::GetFullPath($Path)).TrimEnd('\', '/') + '\'
+    $r = ([System.IO.Path]::GetFullPath($Root)).TrimEnd('\', '/') + '\'
+    return $p.StartsWith($r, [StringComparison]::OrdinalIgnoreCase)
+}
+
+# ============================================================
+# インストール単位のスコープ (Issue #185)
+# ------------------------------------------------------------
+# 更新 (退避の生成・削除) の対象は「更新対象とするインストール自身」に限定する。
+# 同じ親フォルダに別のインストール (例: FlashBeat と FlashBeat-0.1.14) が
+# あるとき、互いの退避 (復旧データ) を消してはいけない。
+#
+#   identity  = 正規化インストールパス + 安定 ID (フォルダ名由来) + 正規名かどうか
+#   名前空間  = 退避フォルダ名に安定 ID を含める (FlashBeat-backup-<key>-<runId>)
+#   所有証明  = 退避フォルダ内の flashbeat-backup-owner.json に identity を記録する
+#
+# 削除は「名前が自分の名前空間内」かつ「所有 manifest が自分の identity と一致」の
+# ときだけ。旧形式 (所有不明) と他インストールの退避は残す。
+# ============================================================
+
+function Get-FlashBeatNormalizedPath {
+    # 比較用の正規化パス (末尾区切りなし・小文字。Windows は大文字小文字を区別しない)。
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $full = [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    return $full.ToLowerInvariant()
+}
+
+function ConvertTo-FlashBeatInstallKey {
+    # フォルダ名から安定 ID を作る (小文字・英数字と . _ - のみ・連続区切りは畳む)。
+    param([Parameter(Mandatory = $true)][string]$Name)
+    $key = $Name.ToLowerInvariant()
+    $key = [regex]::Replace($key, '[^a-z0-9._-]+', '-')
+    $key = [regex]::Replace($key, '-{2,}', '-')
+    $key = $key.Trim('-', '.', '_')
+    if (-not $key) { $key = 'flashbeat' }
+    return $key
+}
+
+function Get-FlashBeatInstallIdentity {
+    # 正規化したインストール identity。
+    #   InstallPath : 絶対パス (比較用に小文字)
+    #   InstallName : フォルダ名
+    #   InstallKey  : 安定 ID (フォルダ名由来)
+    #   IsCanonical : 正規名 (既定 FlashBeat) と一致するか = 自チームの正規インストール先か
+    #   ParentPath  : 親フォルダ (退避・作業フォルダの置き場所)
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallDir,
+        [string]$CanonicalInstallName = 'FlashBeat'
+    )
+    $full = [System.IO.Path]::GetFullPath($InstallDir).TrimEnd('\', '/')
+    $name = [System.IO.Path]::GetFileName($full)
+    if (-not $name) { $name = $InstallDir }
+    $parent = [System.IO.Path]::GetDirectoryName($full)
+    return [pscustomobject]@{
+        InstallPath = $full.ToLowerInvariant()
+        InstallName = $name
+        InstallKey  = (ConvertTo-FlashBeatInstallKey -Name $name)
+        IsCanonical = ($name -eq $CanonicalInstallName)
+        ParentPath  = $parent
+    }
+}
+
+function New-FlashBeatRunId {
+    # 実行ごとに一意な ID。同時刻の複数更新が同じ退避/作業フォルダを共有しないよう
+    # PID と乱数を含める (issue #185 と同時刻更新の識別)。
+    param(
+        [int]$ProcessId = 0,
+        [string]$RandomSuffix = '',
+        [datetime]$Timestamp = [datetime]::Now
+    )
+    if ($ProcessId -le 0) { $ProcessId = $PID }
+    if (-not $RandomSuffix) {
+        $RandomSuffix = ([guid]::NewGuid().ToString('N')).Substring(0, 6)
+    }
+    return ('{0}-{1}-{2}' -f $Timestamp.ToString('yyyyMMdd-HHmmss'), $ProcessId, $RandomSuffix.ToLowerInvariant())
+}
+
+function New-FlashBeatBackupName {
+    # 自インストール専用の退避フォルダ名 (名前空間 = インストール単位)。
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallKey,
+        [Parameter(Mandatory = $true)][string]$RunId
+    )
+    return ('FlashBeat-backup-{0}-{1}' -f $InstallKey, $RunId)
+}
+
+function New-FlashBeatWorkDirName {
+    # 自インストール専用の作業フォルダ名。
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallKey,
+        [Parameter(Mandatory = $true)][string]$RunId
+    )
+    return ('FlashBeat-update-work-{0}-{1}' -f $InstallKey, $RunId)
+}
+
+function Test-FlashBeatScopedName {
+    # 自分 (InstallKey) の名前空間内の退避フォルダ名かどうか。
+    # 旧形式 'FlashBeat-backup-<yyyyMMdd-HHmmss>' は所有不明なので false (自動削除しない)。
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$InstallKey
+    )
+    $prefix = 'FlashBeat-backup-' + $InstallKey + '-'
+    if (-not $Name.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+    $rest = $Name.Substring($prefix.Length)
+    return [regex]::IsMatch($rest, '^\d{8}-\d{6}-\d+-[0-9a-f]{4,8}$')
+}
+
+function Test-FlashBeatOwnerManifest {
+    # 退避フォルダの所有 manifest が「今回のインストール」と一致するか (純粋関数)。
+    #   Owned  : 削除してよい退避か
+    #   Reason : 判定理由 (no-manifest / invalid-manifest / owner-key-mismatch / owner-path-mismatch / owned)
+    param(
+        $Manifest,
+        [Parameter(Mandatory = $true)]$Identity
+    )
+    if ($null -eq $Manifest) {
+        return [pscustomobject]@{ Owned = $false; Reason = 'no-manifest' }
+    }
+    $key = ''
+    $path = ''
+    try {
+        $key = [string]$Manifest.installKey
+        $path = [string]$Manifest.installPath
+    } catch {
+        return [pscustomobject]@{ Owned = $false; Reason = 'invalid-manifest' }
+    }
+    if (-not $key -or -not $path) {
+        return [pscustomobject]@{ Owned = $false; Reason = 'invalid-manifest' }
+    }
+    if ($key -ne $Identity.InstallKey) {
+        return [pscustomobject]@{ Owned = $false; Reason = 'owner-key-mismatch' }
+    }
+    if ((Get-FlashBeatNormalizedPath -Path $path) -ne $Identity.InstallPath) {
+        return [pscustomobject]@{ Owned = $false; Reason = 'owner-path-mismatch' }
+    }
+    return [pscustomobject]@{ Owned = $true; Reason = 'owned' }
+}
+
+function Get-FlashBeatBackupCandidates {
+    # 親フォルダ内の退避フォルダ候補と、その所有 manifest を集める (FS アクセス)。
+    param(
+        [Parameter(Mandatory = $true)][string]$ParentDir,
+        [string]$ManifestName = 'flashbeat-backup-owner.json'
+    )
+    $result = @()
+    $dirs = @(Get-ChildItem -LiteralPath $ParentDir -Directory -Filter 'FlashBeat-backup-*' -ErrorAction SilentlyContinue)
+    foreach ($dir in $dirs) {
+        $manifest = $null
+        $state = 'missing'
+        $manifestPath = Join-Path $dir.FullName $ManifestName
+        if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+            try {
+                $manifest = Get-Content -LiteralPath $manifestPath -Raw -ErrorAction Stop | ConvertFrom-Json
+                $state = 'ok'
+            } catch {
+                $manifest = $null
+                $state = 'invalid'
+            }
+        }
+        $result += [pscustomobject]@{
+            Name         = $dir.Name
+            FullName     = $dir.FullName
+            Manifest     = $manifest
+            ManifestState = $state
+        }
+    }
+    return $result
+}
+
+function Select-FlashBeatStaleBackups {
+    # 削除してよい退避 (自インストールの旧世代) と、残す退避 (理由つき) を判定する (純粋関数)。
+    #   Deletable : 削除してよい (自インストールの旧世代)
+    #   Kept      : 残す退避 (理由: current-generation / other-namespace / no-manifest / ...)
+    param(
+        [object[]]$Candidates,
+        [Parameter(Mandatory = $true)]$Identity,
+        [string]$CurrentBackupPath = ''
+    )
+    $deletable = @()
+    $kept = @()
+    $currentFull = ''
+    if ($CurrentBackupPath) {
+        $currentFull = Get-FlashBeatNormalizedPath -Path $CurrentBackupPath
+    }
+    foreach ($candidate in $Candidates) {
+        $full = [string]$candidate.FullName
+        $name = [string]$candidate.Name
+        if ($currentFull -and ((Get-FlashBeatNormalizedPath -Path $full) -eq $currentFull)) {
+            $kept += [pscustomobject]@{ Path = $full; Name = $name; Reason = 'current-generation' }
+            continue
+        }
+        if (-not (Test-FlashBeatScopedName -Name $name -InstallKey $Identity.InstallKey)) {
+            # 他インストールの退避 / 旧形式 (所有不明) → 触らない。
+            $kept += [pscustomobject]@{ Path = $full; Name = $name; Reason = 'other-namespace' }
+            continue
+        }
+        $owner = Test-FlashBeatOwnerManifest -Manifest $candidate.Manifest -Identity $Identity
+        if (-not $owner.Owned) {
+            $reason = $owner.Reason
+            if ($candidate.ManifestState -eq 'invalid') { $reason = 'invalid-manifest' }
+            $kept += [pscustomobject]@{ Path = $full; Name = $name; Reason = $reason }
+            continue
+        }
+        $deletable += [pscustomobject]@{ Path = $full; Name = $name; Reason = 'owned-old-generation' }
+    }
+    return [pscustomobject]@{ Deletable = $deletable; Kept = $kept }
+}
+
+function Write-FlashBeatOwnerManifest {
+    # 退避フォルダに所有 manifest を書く (これが無い退避は自動削除しない)。
+    param(
+        [Parameter(Mandatory = $true)][string]$BackupDir,
+        [Parameter(Mandatory = $true)]$Identity,
+        [Parameter(Mandatory = $true)][string]$RunId,
+        [string]$Version = '',
+        [string]$ManifestName = 'flashbeat-backup-owner.json'
+    )
+    $payload = [ordered]@{
+        schema       = 'flashbeat-backup-owner/1'
+        installPath  = $Identity.InstallPath
+        installName  = $Identity.InstallName
+        installKey   = $Identity.InstallKey
+        isCanonical  = [bool]$Identity.IsCanonical
+        parentPath   = (Get-FlashBeatNormalizedPath -Path $Identity.ParentPath)
+        runId        = $RunId
+        version      = $Version
+        createdAtUtc = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    }
+    $json = $payload | ConvertTo-Json -Depth 4
+    $path = Join-Path $BackupDir $ManifestName
+    [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+    return $path
 }
 
 function Stop-WithError {
@@ -147,6 +443,10 @@ function Stop-WithError {
         }
     }
     Write-OpLog -Level 'INFO' -Message ('処理を中止しました (終了コード {0})。' -f $Code)
+    # 結果ファイル (issue #125): 前提不備 (1) と実行中 (6) は「中止」、それ以外は「失敗」として記録する。
+    $resultKind = 'failed'
+    if ($Code -eq $ExitUsage -or $Code -eq $ExitRunning) { $resultKind = 'aborted' }
+    Write-UpdateResult -Result $resultKind -Code $Code -Message $Message
     exit $Code
 }
 
@@ -289,9 +589,9 @@ function Invoke-DownloadUrl {
     }
 }
 
+function Invoke-FlashBeatUpdateMain {
 try {
-    $scriptPath = $null
-    try { $scriptPath = $MyInvocation.MyCommand.Path } catch { $scriptPath = $null }
+    $scriptPath = $script:UpdateScriptPath
 
     Write-OpLog -Level 'STEP' -Message 'FlashBeat 単発パッチ適用を開始します。'
 
@@ -322,7 +622,7 @@ try {
     if ($freshInstall) {
         Write-OpLog -Level 'STEP' -Message ('インストール先に FlashBeat.exe がないため新規インストールとして実行します: {0}' -f $installFull)
     }
-    if (-not $Apply -and $scriptPath -and $scriptPath.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not $Apply -and $scriptPath -and (Test-PathInside $scriptPath $installFull)) {
         Stop-WithError $ExitUsage ('更新スクリプトがインストール先フォルダ内にあります: {0}' -f $scriptPath) 'スクリプトはインストール先外に置くか、-Apply (自動適用モード) を使ってください。'
     }
 
@@ -338,6 +638,18 @@ try {
     }
 
     Write-OpLog -Level 'INFO' -Message ('更新対象: {0}' -f $installFull)
+
+    # 結果ファイル用 (issue #125): 更新元 (現行) のバージョンを exe から取得できれば記録する。
+    try {
+        if (-not $freshInstall) {
+            $oldExe = Join-Path $installFull 'FlashBeat.exe'
+            if (Test-Path -LiteralPath $oldExe -PathType Leaf) {
+                $script:ResultFromVersion = (Get-Item -LiteralPath $oldExe).VersionInfo.ProductVersion
+            }
+        }
+    } catch {
+        $script:ResultFromVersion = ''
+    }
 
     # ── 2. 実行中チェック (先に落とし、ダウンロードを無駄にしない) ──
     # -WaitPid 指定時は既に待機済み。二重起動 (待機対象以外の FlashBeat) があれば中止する。
@@ -361,18 +673,27 @@ try {
         Stop-WithError $ExitUsage '更新元の指定がありません。' '-ZipPath / -ReleaseUrl / -Tag のいずれかを指定してください。'
     }
 
-    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    # インストール identity と実行 ID (issue #185)。
+    #   - 退避 / 作業フォルダは「インストール単位の名前空間」に入れて、隣のインストールのものに触らない。
+    #   - 実行 ID に PID と乱数を含めるので、同時刻の複数実行が同じフォルダを共有しない。
+    $identity = Get-FlashBeatInstallIdentity -InstallDir $installFull
+    $runId = New-FlashBeatRunId
+    $canonicalLabel = 'no'
+    if ($identity.IsCanonical) { $canonicalLabel = 'yes' }
+    Write-OpLog -Level 'INFO' -Message ('インストール identity: key={0} name={1} 正規インストール先={2} path={3}' -f `
+            $identity.InstallKey, $identity.InstallName, $canonicalLabel, $identity.InstallPath)
+
     if ($WorkDir) {
         $workRoot = [System.IO.Path]::GetFullPath($WorkDir)
     } else {
-        $workRoot = Join-Path $parentDir ('FlashBeat-update-work-' + $stamp)
+        $workRoot = Join-Path $parentDir (New-FlashBeatWorkDirName -InstallKey $identity.InstallKey -RunId $runId)
     }
-    if ($workRoot.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (Test-PathInside $workRoot $installFull) {
         Stop-WithError $ExitUsage ('作業フォルダがインストール先フォルダ内にあります: {0}' -f $workRoot) '-WorkDir にはインストール先外のフォルダを指定してください。'
     }
     $downloadDir = Join-Path $workRoot 'download'
     $stagingDir = Join-Path $workRoot 'staging'
-    $backupDir = Join-Path $parentDir ('FlashBeat-backup-' + $stamp)
+    $backupDir = Join-Path $parentDir (New-FlashBeatBackupName -InstallKey $identity.InstallKey -RunId $runId)
 
     try {
         New-Item -ItemType Directory -Path $workRoot -Force | Out-Null
@@ -430,6 +751,14 @@ try {
     }
 
     # ── 5. 期待する SHA-256 の特定 ──────────────────────────────
+    # 結果ファイル用 (issue #125): タグ / 新版バージョンを把握できたら記録する。
+    if ($Tag) {
+        $script:ResultTag = $Tag
+    } elseif ($assetFileName) {
+        $script:ResultTag = $assetFileName
+    }
+    $script:ResultToVersion = Get-UpdateVersionFromText -Text $script:ResultTag
+
     $expected = $null
     if ($ExpectedSha256) {
         $expected = ConvertTo-Sha256Hex -Text $ExpectedSha256
@@ -529,6 +858,15 @@ try {
             Stop-WithError $ExitSwap ('退避フォルダを作成できません: {0} ({1})' -f $backupDir, $_.Exception.Message) 'インストール先の親フォルダの書き込み権限を確認してください。既存配置は変更していません。'
         }
 
+        # 所有 manifest を先に書いてから退避する (issue #185)。
+        # manifest が無い退避は「所有不明」として自動削除しないため、書けなければ中止する。
+        try {
+            $manifestPath = Write-FlashBeatOwnerManifest -BackupDir $backupDir -Identity $identity -RunId $runId -Version $script:ResultFromVersion
+            Write-OpLog -Level 'INFO' -Message ('退避の所有 manifest を書きました: {0}' -f $manifestPath)
+        } catch {
+            Stop-WithError $ExitSwap ('退避の所有 manifest を書けません: {0} ({1})' -f $backupDir, $_.Exception.Message) '既存配置は変更していません。'
+        }
+
         $oldItems = @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction Stop)
         Write-OpLog -Level 'STEP' -Message ('既存配置を退避します ({0} 項目): {1}' -f $oldItems.Count, $backupDir)
         try {
@@ -588,15 +926,21 @@ try {
     # ── 10. 旧版を 1 世代だけ残し、それより古い退避を削除する ─────
     if (-not $freshInstall) {
         Write-OpLog -Level 'INFO' -Message ('旧版を 1 世代残します: {0}' -f $backupDir)
-        $staleBackups = @(Get-ChildItem -LiteralPath $parentDir -Directory -Filter 'FlashBeat-backup-*' -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -ne $backupDir } |
-            Sort-Object -Property Name -Descending)
-        foreach ($stale in $staleBackups) {
+
+        # 削除対象は「自インストールの退避」のみ (issue #185)。
+        #   判定は「名前が自分の名前空間内」+「所有 manifest が自分の identity と一致」の二重チェック。
+        #   隣のインストールの退避と旧形式 (所有不明) は残す。
+        $candidates = Get-FlashBeatBackupCandidates -ParentDir $parentDir
+        $selection = Select-FlashBeatStaleBackups -Candidates $candidates -Identity $identity -CurrentBackupPath $backupDir
+        foreach ($keep in $selection.Kept) {
+            Write-OpLog -Level 'INFO' -Message ('退避を削除せず残します: {0} (理由: {1})' -f $keep.Path, $keep.Reason)
+        }
+        foreach ($stale in $selection.Deletable) {
             try {
-                Remove-Item -LiteralPath $stale.FullName -Recurse -Force -ErrorAction Stop
-                Write-OpLog -Level 'INFO' -Message ('旧世代の退避を削除しました: {0}' -f $stale.FullName)
+                Remove-Item -LiteralPath $stale.Path -Recurse -Force -ErrorAction Stop
+                Write-OpLog -Level 'INFO' -Message ('自インストールの旧世代の退避を削除しました: {0}' -f $stale.Path)
             } catch {
-                Write-OpLog -Level 'WARN' -Message ('旧世代の退避の削除に失敗しました (手動で削除してください): {0} ({1})' -f $stale.FullName, $_.Exception.Message)
+                Write-OpLog -Level 'WARN' -Message ('旧世代の退避の削除に失敗しました (手動で削除してください): {0} ({1})' -f $stale.Path, $_.Exception.Message)
             }
         }
     }
@@ -607,6 +951,9 @@ try {
     }
 
     Write-OpLog -Level 'INFO' -Message ('更新が完了しました: {0}' -f (Join-Path $installFull 'FlashBeat.exe'))
+
+    # 結果ファイル (issue #125): 切替と検査が完了したここでのみ success を書く (再起動の成否には依存しない)。
+    Write-UpdateResult -Result 'success' -Code 0 -Message '更新が完了しました。'
 
     # ── 11. 再起動 (-Relaunch、自動適用フロー用) ──────────────────
     if ($Relaunch) {
@@ -623,6 +970,7 @@ try {
 }
 catch {
     Write-OpLog -Level 'ERROR' -Message ('想定外のエラーが発生しました: {0}' -f $_.Exception.Message)
+    Write-UpdateResult -Result 'failed' -Code $ExitSwap -Message ('想定外のエラーが発生しました: {0}' -f $_.Exception.Message)
     if ($script:WorkRoot -and (Test-Path -LiteralPath $script:WorkRoot)) {
         try {
             Remove-Item -LiteralPath $script:WorkRoot -Recurse -Force -ErrorAction Stop
@@ -632,4 +980,11 @@ catch {
     }
     Write-OpLog -Level 'INFO' -Message ('処理を中止しました (終了コード {0})。' -f $ExitSwap)
     exit $ExitSwap
+}
+}
+
+# 直接実行されたとき (powershell -File / & で 호출) だけ本体を走らせる。
+# テストから dot-source されたときは関数定義だけを取り込む (純粋関数を検証するため)。
+if ($MyInvocation.InvocationName -ne '.') {
+    Invoke-FlashBeatUpdateMain
 }

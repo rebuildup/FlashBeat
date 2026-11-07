@@ -44,13 +44,16 @@ param(
     [ValidatePattern('^[0-9a-f]{40}$')]
     [string]$CommitSha,
 
-    # bundled = resources.resource にメディアが焼き込まれている現状のビルド。
-    # free    = メディア分離済みビルド。焼き込みサイズ上限 (MaxResourcesBytes) を超えたら失敗。
-    [ValidateSet('bundled', 'free')]
+    # bundled    = resources.resource にメディアが焼き込まれているビルド (検査なし)。
+    # free       = メディア完全分離ビルド。焼き込みサイズ上限 (MaxResourcesBytes) を超えたら失敗。
+    # song-free  = 第三者楽曲の音声・動画だけが外されたビルド (自作の背景アニメーションは同梱可)。
+    #              ビルドが出力する flashbeat-media-policy.json で除外を証明する。
+    [ValidateSet('bundled', 'free', 'song-free')]
     [string]$MediaPolicy = 'bundled',
 
-    # MediaPolicy=free のときの resources.resource サイズ上限 (既定 100MB)。
-    [long]$MaxResourcesBytes = 100MB
+    # MediaPolicy=free / song-free のときの resources.resource サイズ上限 (既定 300MB)。
+    # 自作の背景アニメーション (Resources/Videos/*.mp4) だけで約 196MB になる。
+    [long]$MaxResourcesBytes = 300MB
 )
 
 Set-StrictMode -Version Latest
@@ -96,19 +99,41 @@ function Assert-NoLooseMedia {
 function Assert-MediaPolicy {
     param([string]$Dir)
 
+    # song-free: 第三者楽曲の音声・動画 (Resources/Musics, Resources/Videos/UnityYoutube) が
+    # ビルド対象から外されたことを、ビルドが出力した manifest で確認する。
+    # ゲーム自身の背景アニメーション (Resources/Videos/*.mp4) は自作素材なので同梱してよい
+    # (media-rights-audit: これは権利ではなくサイズの問題)。
+    if ($MediaPolicy -eq 'song-free') {
+        $manifestPath = Join-Path $Dir 'flashbeat-media-policy.json'
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw ("MediaPolicy=song-free ですがビルド出力に flashbeat-media-policy.json がありません。" +
+                   "BuildScript が書き出す manifest が必要です (ビルドし直してください)。")
+        }
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+        $excluded = @($manifest.excludedPaths)
+        $required = @('Assets/Game/Resources/Musics', 'Assets/Game/Resources/Videos/UnityYoutube')
+        foreach ($need in $required) {
+            if ($excluded -notcontains $need) {
+                throw ("MediaPolicy=song-free ですが manifest に '{0}' が含まれていません。" +
+                       "第三者楽曲の音声・動画が配布物に焼き込まれます。") -f $need
+            }
+        }
+        Write-Host ("[media] 第三者楽曲メディアはビルド対象から除外済み (manifest: {0})" -f ($excluded -join ', '))
+    }
+
     $packed = Join-Path $Dir 'FlashBeat_Data\resources.resource'
     if (-not (Test-Path -LiteralPath $packed -PathType Leaf)) {
-        if ($MediaPolicy -eq 'free') {
+        if ($MediaPolicy -eq 'free' -or $MediaPolicy -eq 'song-free') {
             Write-Warning 'resources.resource が存在しません (メディア完全分離済みと解釈します)'
         }
         return
     }
     $size = (Get-Item -LiteralPath $packed).Length
-    if ($MediaPolicy -eq 'free' -and $size -gt $MaxResourcesBytes) {
+    if (($MediaPolicy -eq 'free' -or $MediaPolicy -eq 'song-free') -and $size -gt $MaxResourcesBytes) {
         $nl = [Environment]::NewLine
-        throw ("MediaPolicy=free ですが resources.resource が {0:N0} bytes と上限 {1:N0} を超えています。{2}" +
-               "Assets/Game/Resources/** のメディア (第三者楽曲) が焼き込まれている可能性。{2}" +
-               'Unity 側でメディアを Resources 外に分離してから再パッケージしてください。') -f $size, $MaxResourcesBytes, $nl
+        throw ("MediaPolicy={0} ですが resources.resource が {1:N0} bytes と上限 {2:N0} を超えています。{3}" +
+               "Assets/Game/Resources/** のメディア (第三者楽曲) が焼き込まれている可能性。{3}" +
+               'Unity 側でメディアを Resources 外に分離してから再パッケージしてください。') -f $MediaPolicy, $size, $MaxResourcesBytes, $nl
     }
 }
 
@@ -240,6 +265,7 @@ $versionJson = [ordered]@{
     version     = ($Version -split '-win64-')[0]
     buildSha    = $CommitSha
     tag         = "v$Version"
+    platform    = 'win64'
     mediaPolicy = $MediaPolicy
     createdAt   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }

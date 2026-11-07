@@ -10,7 +10,8 @@ public static class BuildScript
 {
     // 配布版の基準バージョン。ビルド時 git SHA と組み合わせて
     // "<version>+<sha>" を PlayerSettings.bundleVersion に埋め込み、
-    // GitHub Release タグ "v<version>-win64-<sha>" と UpdateChecker が比較する。
+    // GitHub Release タグ "v<version>-<platform>-<sha>" (platform = win64 / macos) と
+    // UpdateChecker が比較する。
     // Release をバージョンアップするときは環境変数 FLASHBEAT_VERSION_BASE で上書きする
     // (例: v0.1.1 Release → FLASHBEAT_VERSION_BASE=0.1.1)。未設定時は 0.1.0。
     private const string DefaultVersionBase = "0.1.0";
@@ -38,8 +39,39 @@ public static class BuildScript
     public static void BuildStandaloneWindows64()
     {
         string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "Windows", "FlashBeat.exe");
+        RunStandaloneBuild(BuildTarget.StandaloneWindows64, buildPath, distributionExtras: true);
+    }
 
+    // macOS 配布ビルド (batchmode: -executeMethod BuildScript.BuildStandaloneMacOS)。
+    // 出力は Builds/macOS/FlashBeat.app。Windows と同じく更新経路に載せるため、
+    // 配布物内へ更新スクリプト (Contents/Resources/tools/update/update-macos.sh)、
+    // 更新チャンネル、メディア除外マニフェストを書き出す。
+    [MenuItem("Build/Build macOS")]
+    public static void BuildStandaloneMacOS()
+    {
+        string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "macOS", "FlashBeat.app");
+        RunStandaloneBuild(BuildTarget.StandaloneOSX, buildPath, distributionExtras: true);
+    }
+
+    /// <summary>Standalone ビルドの共通フロー。第三者楽曲の音声・動画を退避してビルドし、
+    /// 終了後に元へ戻す。配布物向けの後処理 (updater 複製・更新チャンネル・
+    /// メディア除外マニフェスト) は distributionExtras が true のときだけ行う。</summary>
+    private static void RunStandaloneBuild(BuildTarget target, string buildPath, bool distributionExtras)
+    {
         string buildDir = Path.GetDirectoryName(buildPath);
+
+        // 既存出力が残ったまま上書きビルドすると level1 等が破損するため、ビルド前に
+        // 出力ディレクトリを削除する。削除対象は Builds/ 直下の期待出力ディレクトリのみで、
+        // メディア退避先 (Builds/.media-excluded) は決して削除しない。
+        string fullBuildDir = Path.GetFullPath(buildDir);
+        bool isExpectedBuildDir =
+            Path.GetFileName(Path.GetDirectoryName(fullBuildDir)) == "Builds" &&
+            fullBuildDir != Path.GetFullPath(MediaExcludeRoot);
+        if (Directory.Exists(buildDir) && isExpectedBuildDir)
+        {
+            Directory.Delete(buildDir, true);
+        }
+
         if (!Directory.Exists(buildDir))
         {
             Directory.CreateDirectory(buildDir);
@@ -69,11 +101,11 @@ public static class BuildScript
             {
                 scenes = scenes,
                 locationPathName = buildPath,
-                target = BuildTarget.StandaloneWindows64,
+                target = target,
                 options = BuildOptions.None
             };
 
-            Debug.Log("[BuildScript] Starting StandaloneWindows64 Build...");
+            Debug.Log($"[BuildScript] Starting {target} Build...");
             BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
             BuildSummary summary = report.summary;
 
@@ -90,8 +122,12 @@ public static class BuildScript
         finally
         {
             RestoreMediaAfterBuild();
-            CopyUpdaterScriptIntoBuild(buildDir);
-            WriteUpdateChannelFile(buildDir);
+            if (distributionExtras)
+            {
+                CopyUpdaterScriptIntoBuild(buildDir, target);
+                WriteUpdateChannelFile(buildDir, target);
+                WriteMediaPolicyManifest(buildDir, target);
+            }
         }
 
         if (failed && Application.isBatchMode)
@@ -204,30 +240,77 @@ public static class BuildScript
         return Path.Combine(Directory.GetCurrentDirectory(), relative.Replace('/', Path.DirectorySeparatorChar));
     }
 
-    /// <summary>配布物内でアプリが起動できるよう tools/update/Update.ps1 をビルド出力へ複製する
-    /// (UpdateChecker が -Apply で起動するスクリプト)。無い場合は警告のみ (更新は手動手順へフォールバック)。</summary>
-    private static void CopyUpdaterScriptIntoBuild(string buildDir)
+    /// <summary>配布物内でアプリが起動できるよう更新スクリプトをビルド出力へ複製する
+    /// (UpdateChecker が -Apply で起動するスクリプト)。Windows は tools/update/Update.ps1、
+    /// macOS は .app 内の Contents/Resources/tools/update/update-macos.sh。
+    /// 無い場合は警告のみ (更新は手動手順へフォールバック)。</summary>
+    private static void CopyUpdaterScriptIntoBuild(string buildDir, BuildTarget target)
     {
-        string src = Path.Combine(Directory.GetCurrentDirectory(), "tools", "update", "Update.ps1");
+        bool isMac = target == BuildTarget.StandaloneOSX;
+        string srcRel = isMac ? "tools/update/update-macos.sh" : "tools/update/Update.ps1";
+        string src = Path.Combine(Directory.GetCurrentDirectory(), srcRel.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(src))
         {
-            Debug.LogWarning("[BuildScript] tools/update/Update.ps1 が見つかりません (ビルド出力へ複製できませんでした)。");
+            Debug.LogWarning("[BuildScript] " + srcRel + " が見つかりません (ビルド出力へ複製できませんでした)。");
             return;
         }
-        string dst = Path.Combine(buildDir, "tools", "update", "Update.ps1");
+
+        string dst = isMac
+            ? Path.Combine(MacBundleResourcesDir(buildDir), "tools", "update", "update-macos.sh")
+            : Path.Combine(buildDir, "tools", "update", "Update.ps1");
         Directory.CreateDirectory(Path.GetDirectoryName(dst));
         File.Copy(src, dst, true);
         Debug.Log($"[BuildScript] 更新スクリプトをビルド出力へ複製しました: {dst}");
     }
 
+    /// <summary>macOS .app の Contents/Resources。</summary>
+    private static string MacBundleResourcesDir(string buildDir)
+    {
+        return Path.Combine(buildDir, "FlashBeat.app", "Contents", "Resources");
+    }
+
+    /// <summary>ビルド対象から外したメディアを記録する (配布物には同梱し、検品で参照する)。
+    /// resources.resource はファイル名を持たないため、第三者楽曲の音声・動画が
+    /// 焼き込まれていないことはこの manifest で証明する。</summary>
+    private static void WriteMediaPolicyManifest(string buildDir, BuildTarget target)
+    {
+        try
+        {
+            var excluded = new System.Collections.Generic.List<string>();
+            foreach (var rel in MediaExcludePaths) { excluded.Add(rel); }
+            var json = "{\n" +
+                       "  \"policy\": \"song-media-excluded\",\n" +
+                       "  \"excludedPaths\": [\n" +
+                       string.Join(",\n", System.Array.ConvertAll(excluded.ToArray(),
+                           p => "    \"" + p.Replace("\\", "/") + "\"")) + "\n" +
+                       "  ],\n" +
+                       "  \"builtAt\": \"" + DateTime.UtcNow.ToString("o") + "\"\n" +
+                       "}\n";
+            string path = target == BuildTarget.StandaloneOSX
+                ? Path.Combine(MacBundleResourcesDir(buildDir), "flashbeat-media-policy.json")
+                : Path.Combine(buildDir, "flashbeat-media-policy.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, json);
+            Debug.Log($"[BuildScript] メディア除外マニフェストを出力しました: {path}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[BuildScript] メディア除外マニフェストの書き出しに失敗しました: {e.Message}");
+        }
+    }
+
     /// <summary>更新チャンネルを配布物へ書き出す (issue #41)。
     /// 環境変数 FLASHBEAT_UPDATE_CHANNEL (stable / preview) で決まる。既定は stable。
-    /// 出力先は &lt;build&gt;/FlashBeat_Data/StreamingAssets/update-channel.txt で、
-    /// UpdateChecker が起動時に読む。stable ビルドはテスト用 prerelease を自動適用しない。</summary>
-    private static void WriteUpdateChannelFile(string buildDir)
+    /// 出力先は Windows: &lt;build&gt;/FlashBeat_Data/StreamingAssets、
+    /// macOS: &lt;build&gt;/FlashBeat.app/Contents/Resources/Data/StreamingAssets の
+    /// update-channel.txt で、UpdateChecker が起動時に読む。
+    /// stable ビルドはテスト用 prerelease を自動適用しない。</summary>
+    private static void WriteUpdateChannelFile(string buildDir, BuildTarget target)
     {
         string channel = ResolveUpdateChannel();
-        string streamingAssets = Path.Combine(buildDir, "FlashBeat_Data", "StreamingAssets");
+        string streamingAssets = target == BuildTarget.StandaloneOSX
+            ? Path.Combine(MacBundleResourcesDir(buildDir), "Data", "StreamingAssets")
+            : Path.Combine(buildDir, "FlashBeat_Data", "StreamingAssets");
         try
         {
             Directory.CreateDirectory(streamingAssets);

@@ -1,0 +1,166 @@
+name: build-macos
+
+# macOS 版の配布物 (FlashBeat.app の ZIP + SHA-256) を GitHub Actions で作る。
+# Windows 版 (build-win64.yml) と同じく、成果物は Release の材料として artifact に残す。
+# Release の公開/tag 作成はオーナー承認後に行う (docs/operations/update-release.md)。
+#
+# 前提:
+#   - リポジトリは public なので標準ランナーの Actions は無料。
+#   - Unity ライセンスは secret 経由で渡す。以下のどちらか:
+#       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
+#       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
+#   - ライセンス未設定は blocker として失敗する。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_base:
+        description: "PlayerSettings.bundleVersion の基準バージョン (例: 0.1.14)"
+        required: false
+        default: ""
+      update_channel:
+        description: "更新チャンネル (stable | preview)"
+        required: false
+        default: "stable"
+  push:
+    branches:
+      - main
+    paths:
+      - "Assets/**"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - "tools/release/package-macos.sh"
+      - "tools/update/update-macos.sh"
+      - ".github/workflows/build-macos.yml"
+
+concurrency:
+  group: build-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS ビルド
+    runs-on: macos-14
+    timeout-minutes: 120
+    env:
+      UNITY_VERSION: 6000.5.6f1
+    steps:
+      - name: ソースを取得 (LFS 込み)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Unity ライセンスの secret を確認
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          has_ulf=0
+          [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
+          has_account=0
+          [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ] && has_account=1
+          if [ "$has_ulf" -ne 1 ] && [ "$has_account" -ne 1 ]; then
+            echo "## macOS build blocked" >> "$GITHUB_STEP_SUMMARY"
+            echo "Unity ライセンス未設定のため macOS ビルドは未生成です。UNITY_LICENSE または UNITY_EMAIL / UNITY_PASSWORD を設定してください。" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Unity license required::macOS artifact was not generated. Configure UNITY_LICENSE or UNITY_EMAIL / UNITY_PASSWORD."
+            exit 1
+          fi
+
+      - name: Unity Hub CLI を準備
+        shell: bash
+        run: |
+          brew install --cask unity-hub
+          hub="/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"
+          if [ ! -x "$hub" ]; then
+            echo "::error::Unity Hub をインストールできませんでした"
+            exit 1
+          fi
+          echo "UNITY_HUB=$hub" >> "$GITHUB_ENV"
+
+      - name: Unity Editor をインストール
+        shell: bash
+        run: |
+          "$UNITY_HUB" -- --headless install --version "$UNITY_VERSION"
+          editor="/Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity"
+          if [ ! -x "$editor" ]; then
+            echo "::error::Unity $UNITY_VERSION をインストールできませんでした"
+            exit 1
+          fi
+          echo "UNITY_EDITOR=$editor" >> "$GITHUB_ENV"
+          echo "installed: $editor"
+
+      - name: Unity ライセンスを適用
+        uses: game-ci/unity-activate@v2
+        with:
+          unityLicense: ${{ secrets.UNITY_LICENSE }}
+          unityEmail: ${{ secrets.UNITY_EMAIL }}
+          unityPassword: ${{ secrets.UNITY_PASSWORD }}
+          unitySerial: ${{ secrets.UNITY_SERIAL }}
+
+      - name: macOS ビルド
+        shell: bash
+        env:
+          FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'stable' }}
+        run: |
+          log="$RUNNER_TEMP/build.log"
+          "$UNITY_EDITOR" -batchmode -quit \
+              -projectPath "$GITHUB_WORKSPACE" \
+              -executeMethod BuildScript.BuildStandaloneMacOS \
+              -logFile "$log"
+          build_exit=$?
+          [ -f "$log" ] && tail -200 "$log"
+          if [ "$build_exit" -ne 0 ]; then
+            echo "::error::Unity build failed (exit $build_exit)"
+            exit "$build_exit"
+          fi
+          if [ ! -d "$GITHUB_WORKSPACE/Builds/macOS/FlashBeat.app" ]; then
+            echo "::error::ビルド成果物がありません (Builds/macOS/FlashBeat.app)"
+            exit 1
+          fi
+
+      - name: パッケージ (ZIP + SHA-256)
+        shell: bash
+        run: |
+          short="$(git rev-parse --short HEAD)"
+          full="$(git rev-parse HEAD)"
+          base="${{ inputs.version_base }}"
+          [ -n "$base" ] || base="0.1.0"
+          out="$RUNNER_TEMP/dist"
+          mkdir -p "$out"
+          bash tools/release/package-macos.sh \
+              --source "$GITHUB_WORKSPACE/Builds/macOS/FlashBeat.app" \
+              --out "$out" \
+              --version "$base-macos-$short" \
+              --commit-sha "$full" \
+              --media-policy song-free
+          zips=("$out"/*.zip)
+          if [ "${#zips[@]}" -ne 1 ] || [ ! -s "${zips[0]}" ]; then
+            echo "::error::Expected one nonempty macOS ZIP"
+            exit 1
+          fi
+          checksum="${zips[0]}.sha256"
+          if [ ! -f "$checksum" ]; then
+            echo "::error::ZIP SHA-256 file is missing"
+            exit 1
+          fi
+          expected="$(awk 'NR==1 {print $1}' "$checksum")"
+          actual="$(shasum -a 256 "${zips[0]}" | awk '{print $1}')"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::ZIP SHA-256 mismatch"
+            exit 1
+          fi
+          ls -l "$out"
+
+      - name: 成果物をアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashbeat-macos-${{ github.sha }}
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+          retention-days: 30

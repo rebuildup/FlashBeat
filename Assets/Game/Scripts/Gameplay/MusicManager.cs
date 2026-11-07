@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading;
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using YoutubePlayer.Components;
 using FlashBeat.Gameplay;
@@ -36,18 +39,12 @@ public class MusicManager : MonoBehaviour
 
     // --- media state ------------------------------------------------------------
 
-    enum AudioMode
-    {
-        None,           // no audio source at all
-        StreamCombined, // one progressive file: the VideoPlayer renders sound and picture
-        StreamSeparate, // picture from the video file, sound from a second (audio only) file
-        Bundled,        // sound from the wav that ships with the chart
-    }
-
     const float DirectUrlProbeTimeout = 10f;
     const float PrepareTimeout = 20f;
     const float FallbackStartTimeout = 30f;
     const string DirectUrlProbeKeyPrefix = "FlashBeat.DirectUrlProbed.";
+    const string GameSceneName = "GameScene";
+    const string SelectSceneName = "SelectScene";
 
     VideoPlayer songVideo;
     GameObject streamAudioObject;
@@ -55,18 +52,78 @@ public class MusicManager : MonoBehaviour
     AudioSource streamAudioSource;
     AudioLevelProbe levelProbe;
 
+    /// <summary>
+    /// Cancels an in-flight download when the scene goes away (Retry reloads the
+    /// GameScene): the yt-dlp process is killed and the half written file is
+    /// removed, so a broken leftover cannot survive into the next attempt
+    /// (issue #184 review B1).
+    /// </summary>
+    CancellationTokenSource mediaCancellation;
+
     bool mediaReady;
     bool playbackStarted;
+    bool pictureStarted;
     bool resultTriggered;
     bool fallbackChecked;
     bool videoPrepared;
     bool streamAudioPrepared;
-    AudioMode audioMode = AudioMode.None;
+    PlaybackSource audioMode = PlaybackSource.None;
+    MediaStage stage = MediaStage.Idle;
+    MediaFailure failure = MediaFailure.None;
     float mediaTime;
     float sceneStartTime;
     float lastStatusLogTime;
     float lastMediaTime;
     float stallSeconds;
+
+    /// <summary>
+    /// Wall clock of the moment the song was started. It is the reference for
+    /// the fallback clock, so the song ends even when no media could be played.
+    /// </summary>
+    float playbackStartWallTime;
+
+    /// <summary>
+    /// Where the sound of the last started song came from. The evidence of a
+    /// real playthrough has to show a YouTube source: the release build ships
+    /// no third party media, so a bundled wave or no sound at all means the
+    /// song was never really played.
+    /// </summary>
+    public static PlaybackSource LastPlaybackSource { get; private set; } = PlaybackSource.None;
+
+    /// <summary>
+    /// The failure of the last media pipeline run (None while it works). The HUD
+    /// (see HudPlayState) shows it and offers the way back to the song list, so
+    /// a failed song does not leave the player in front of a dead screen.
+    /// </summary>
+    public static MediaFailure LastFailure { get; private set; } = MediaFailure.None;
+
+    // --- public state (verification / UI) ---------------------------------------
+
+    /// <summary>メディアの準備が完了しているか (ダウンロード完了・VideoPlayer 準備済み)。</summary>
+    public bool MediaReady { get { return mediaReady; } }
+
+    /// <summary>再生が始まったか。</summary>
+    public bool PlaybackStarted { get { return playbackStarted; } }
+
+    /// <summary>映像播放器が再生中か。</summary>
+    public bool VideoPlaying { get { return songVideo != null && songVideo.isPlaying; } }
+
+    /// <summary>映像播放器の準備完了状態。</summary>
+    public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
+
+    /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
+    public float MediaTimeNow { get { return CurrentMediaTime(); } }
+
+    /// <summary>音声の供給元の説明 (デバッグ表示・検証用)。</summary>
+    public string AudioModeName { get { return audioMode.ToString(); } }
+
+    /// <summary>
+    /// True while the pipeline has decided that the song cannot be played and
+    /// the automatic return to the song list is pending. The HUD (HudPlayState)
+    /// reads it so the failure is shown at once instead of when its own timeout
+    /// runs out.
+    /// </summary>
+    public static bool SelectReturnPending { get; private set; }
 
     void Start()
     {
@@ -74,9 +131,23 @@ public class MusicManager : MonoBehaviour
         GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
-        songName = GManager.ActiveSongs[GManager.songID].title;
+        // Issue #183: 遷移の待ち時間に動いたかもしれない選択を、固定した
+        // プレイセッションへ戻してから曲情報を読む。
+        PlaySessionSnapshot session = PlaySessionSnapshot.Current;
+        if (session != null) session.RestoreSongId();
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        songName = sessionSong != null ? sessionSong.title : "";
         audioS = GetComponent<AudioSource>();
         Music = (AudioClip)Resources.Load("Musics/" + songName);
+        if (Music == null)
+        {
+            // The release build ships no third party media: the build moves
+            // Assets/Game/Resources/Musics out of the build, so the wav that
+            // belongs to the chart is not there. The YouTube media is then the
+            // only sound source - that is the wanted state, it is only logged so
+            // that the player log shows where the sound comes from.
+            Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
+        }
         GManager.played = false;
         GManager.nextNotes = 1;
         audioS.volume = GManager.mainVolume;
@@ -109,7 +180,21 @@ public class MusicManager : MonoBehaviour
         AttachLevelProbe();
 
         load.SetActive(true);
-        StartCoroutine(PrepareMediaCoroutine());
+        mediaCancellation = new CancellationTokenSource();
+        var mediaToken = mediaCancellation.Token;
+        StartCoroutine(PrepareMediaCoroutine(mediaToken));
+    }
+
+    void OnDestroy()
+    {
+        // A Retry (scene reload) or teardown cancels an in-flight download: the
+        // yt-dlp process is killed (YouTubeStreamResolver registers the kill on
+        // the token) and the half written file is removed (issue #184 review B1).
+        // No Dispose: a continuation that resumes later may still register on
+        // the token, and Register on a disposed source throws.
+        if (mediaCancellation == null) return;
+        mediaCancellation.Cancel();
+        mediaCancellation = null;
     }
 
     VideoPlayer CreateRemoteVideoPlayer()
@@ -140,22 +225,36 @@ public class MusicManager : MonoBehaviour
         }
     }
 
-    IEnumerator PrepareMediaCoroutine()
+    IEnumerator PrepareMediaCoroutine(CancellationToken mediaToken)
     {
-        var song = GManager.ActiveSongs[GManager.songID];
-        string videoId = song.videoId;
+        // Issue #183: 動画の id もプレイセッションで固定した曲から読む。
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        string videoId = sessionSong != null ? sessionSong.videoId : "";
+
+        // A new run starts without a failure: the HUD shows the state of the
+        // current pipeline.
+        LastFailure = MediaFailure.None;
+        SelectReturnPending = false;
+        failure = MediaFailure.None;
 
         // The Invidious player of the package cannot resolve anything today
         // (0/13 public instances answer) and its error handler would fight with
         // our own player, so it is removed from the song object.
         DisableInvidiousPlayer();
 
+        // 読み込み中表示 (動画のダウンロード・準備中)。失敗時は理由を表示してから自動で隠す。
+        MediaLoadingOverlay loading = null;
+        try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
+        if (loading != null) { loading.Show("曲情報を取得中…"); }
+
         // 1. What does YouTube offer for this video?
-        var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId);
+        stage = MediaStage.ResolvingStream;
+        var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId, mediaToken);
         while (!formatsTask.IsCompleted) yield return null;
 
         var formatsOut = formatsTask.Result;
         var formats = YouTubeStreamResolver.ParseFormats(formatsOut.Ok ? formatsOut.Stdout : "");
+        bool streamResolved = formatsOut.Ok || formats.Count > 0;
         Debug.Log($"[MusicManager] yt-dlp -F videoId={videoId} formats={formats.Count} {(formatsOut.Ok ? "ok" : formatsOut.ErrorSummary)}");
         for (int i = 0; i < formats.Count; i++)
         {
@@ -175,11 +274,16 @@ public class MusicManager : MonoBehaviour
 
         // 3. Download the media into the local cache. The merged file has its own
         //    prefix, so a picture-only file of an earlier revision is not reused.
+        //    The cache lives in the player environment (persistentDataPath), the
+        //    release build ships no third party media at all.
+        stage = MediaStage.DownloadingMedia;
         var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
-        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
+        if (loading != null) { loading.Show("動画をダウンロード中…"); }
+        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
+        if (!videoFile.Ok && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
         // The merged file (video + YouTube sound in one mp4) is the wanted state.
         // If the merge failed (no ffmpeg, download error) the picture still has to
@@ -189,7 +293,7 @@ public class MusicManager : MonoBehaviour
         {
             Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
             YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
-            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix);
+            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
             while (!fallbackTask.IsCompleted) yield return null;
             videoFile = fallbackTask.Result;
             combined = false;
@@ -199,7 +303,7 @@ public class MusicManager : MonoBehaviour
         MediaFileResult audioFile = null;
         if (plan.HasAudioFile && !combined)
         {
-            var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix);
+            var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
             while (!audioTask.IsCompleted) yield return null;
             audioFile = audioTask.Result;
             Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
@@ -209,42 +313,184 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
+            stage = MediaStage.PreparingVideo;
+            if (loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
+
+            if (!videoReady)
+            {
+                // Issue #184 (review B2): ファイルは「完了」マーク付きでも開けないなら
+                // 壊れている。マーカーを剥がさないと EnsureFileAsync は二度と
+                // ダウンロードせず、Option でキャッシュを消すまで回復しない。
+                // そのためマーカー剥離とカウントは上限に関係なく行う。上限に
+                // 達した後の再取得は EnsureFileAsync 側が拒否し、Option 画面の
+                // キャッシュ削除 (カウンタをリセットする) が明示的な回復手段。
+                YouTubeMediaCache.InvalidateProducedFile(videoFile.Path);
+                MediaRefetchPolicy.CountRefetch(videoId);
+                Debug.Log($"[MusicManager] the player cannot open the cached file ({Path.GetFileName(videoFile.Path)}) - " +
+                          $"cache entry dropped, refetch budget used {MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo}" +
+                          (MediaRefetchPolicy.MayRefetch(videoId) ? "" : " - limit reached, delete the media cache in the Option screen"));
+            }
         }
 
         // 5. Prepare the sound player for the split (video only + audio only) case.
         bool audioReady = false;
         if (!combined && audioFile != null && audioFile.Ok)
         {
+            stage = MediaStage.PreparingAudio;
+            if (loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
+
+            if (!audioReady)
+            {
+                // 映像と同じ扱い (issue #184 review B2): 開けないキャッシュ音声は
+                // 上限に関係なくマーカーを剥がして捨てる。再取得そのものは
+                // EnsureFileAsync 側の予算で制限される。
+                YouTubeMediaCache.InvalidateProducedFile(audioFile.Path);
+                MediaRefetchPolicy.CountRefetch(videoId);
+                Debug.Log($"[MusicManager] the player cannot open the cached audio ({Path.GetFileName(audioFile.Path)}) - " +
+                          $"cache entry dropped, refetch budget used {MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo}");
+            }
         }
 
-        // 6. Decide where the sound comes from.
-        if (combined && videoReady)
-        {
-            audioMode = AudioMode.StreamCombined;
-        }
-        else if (audioReady)
-        {
-            audioMode = AudioMode.StreamSeparate;
-        }
-        else if (Music != null)
-        {
-            audioMode = AudioMode.Bundled;
-        }
-        else
-        {
-            audioMode = AudioMode.None;
-        }
+        // 6. Decide where the sound comes from (a missing wav yields None
+        //    instead of throwing - the recovery then takes over).
+        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
+        if (loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
 
+        // 7. Which stage broke? The most specific reason wins.
+        if (!streamResolved)
+        {
+            failure = MediaFailure.StreamUnresolved;
+        }
+        else if (!videoFile.Ok)
+        {
+            failure = MediaFailure.MediaUnavailable;
+        }
+        else if (!videoReady)
+        {
+            failure = MediaFailure.VideoPrepareFailed;
+        }
+        else if (!combined && audioFile != null && !audioFile.Ok)
+        {
+            failure = MediaFailure.MediaUnavailable;
+        }
+        else if (!combined && audioFile != null && audioFile.Ok && !audioReady)
+        {
+            failure = MediaFailure.AudioUnavailable;
+        }
+
+        bool hasSound = audioMode != PlaybackSource.None;
+
+        if (failure != MediaFailure.None)
+        {
+            if (PlaybackRecovery.NeedsSelectReturn(failure, hasSound))
+            {
+                // Without a sound track the song cannot be played. The player is
+                // taken back to the song list instead of sitting in front of a
+                // song he cannot play.
+                HandlePlaybackFailure(failure, videoReady);
+            }
+            else
+            {
+                // The sound is there, so the song is playable: the failure is
+                // only reported (with the stage it happened in).
+                Debug.Log(PlaybackRecovery.FailureLog(stage, failure, videoReady));
+                stage = MediaStage.Ready;
+            }
+        }
+        else
+        {
+            stage = MediaStage.Ready;
+        }
+
+        if (failure == MediaFailure.None && hasSound)
+        {
+            // The song is playable: an old refetch count from earlier broken
+            // files is stale, so the next real incident gets its full budget of
+            // attempts again (issue #184).
+            MediaRefetchPolicy.Reset(videoId);
+        }
+
         Debug.Log($"[MusicManager] media ready: song='{songName}' audioMode={audioMode} video={(videoReady ? "ok" : "missing")} " +
                   $"(bundled wav {(Music != null ? "present" : "missing")}) - press Space to start");
+    }
+
+    /// <summary>
+    /// The media pipeline failed and the song cannot be played. The failure is
+    /// logged with its stage, the player gets a message and - after a short
+    /// grace period - the game goes back to the song list, where another song
+    /// can be picked directly.
+    /// </summary>
+    void HandlePlaybackFailure(MediaFailure reason, bool hasPicture)
+    {
+        // The log names the stage the pipeline was in when it broke - the stage
+        // itself only becomes "failed" afterwards.
+        Debug.Log(PlaybackRecovery.FailureLog(stage, reason, hasPicture));
+        stage = MediaStage.Failed;
+        failure = reason;
+        SelectReturnPending = true;
+
+        SetStartMessage(PlaybackRecovery.StartHint(reason));
+
+        StartCoroutine(ReturnToSelectScene());
+    }
+
+    /// <summary>
+    /// Takes the player back to the song list. A fade that is still running is
+    /// skipped by the fade system, so the attempt is repeated a few times.
+    /// </summary>
+    IEnumerator ReturnToSelectScene()
+    {
+        yield return new WaitForSeconds(PlaybackRecovery.SelectReturnDelaySeconds);
+
+        for (int attempt = 1; PlaybackRecovery.ShouldRetrySelectReturn(attempt); attempt++)
+        {
+            if (playbackStarted)
+            {
+                // The player started the song anyway. The song then ends on the
+                // wall clock (Issue #48/#31) and the result screen offers the
+                // way back to the song list - the song is not interrupted.
+                Debug.Log("[MusicManager] the song is already running - it ends on the wall clock, Esc opens the menu to go back to the song list");
+                yield break;
+            }
+
+            Debug.Log(PlaybackRecovery.SelectReturnLog(attempt));
+            Initiate.Fade(SelectSceneName, Color.black, 1.0f);
+
+            float waited = 0f;
+            while (waited < PlaybackRecovery.SelectReturnRetrySeconds && SceneManager.GetActiveScene().name == GameSceneName)
+            {
+                waited += Time.deltaTime;
+                yield return null;
+            }
+            if (SceneManager.GetActiveScene().name != GameSceneName) yield break;
+        }
+
+        Debug.Log("[MusicManager] the automatic return to the select screen failed - Esc opens the menu, Backspace goes back to the song list");
+    }
+
+    /// <summary>
+    /// Writes a message into the label of the "press Space" hint. The scene is
+    /// not modified: the label is looked up at runtime.
+    /// </summary>
+    void SetStartMessage(string message)
+    {
+        if (StartText == null) return;
+
+        var label = StartText.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (label != null)
+        {
+            label.text = message;
+            return;
+        }
+        Debug.LogWarning($"[MusicManager] no label under StartText - the message stays in the log: {message}");
     }
 
     void DisableInvidiousPlayer()
@@ -463,7 +709,7 @@ public class MusicManager : MonoBehaviour
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
 
             bool canStart = mediaReady || Time.time - sceneStartTime > FallbackStartTimeout;
-            if (canStart && Input.GetKeyDown(KeyCode.Space))
+            if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
             {
                 StartPlayback();
             }
@@ -492,10 +738,26 @@ public class MusicManager : MonoBehaviour
         }
         lastMediaTime = mediaTime;
 
+        // The split stream runs picture and sound in two players, so they can
+        // drift apart. The picture is the reference (the chart was authored
+        // against the video), the sound is pulled back to it.
+        if (audioMode == PlaybackSource.StreamSeparate &&
+            pictureStarted && songVideo != null && songVideo.isPrepared &&
+            streamAudioPlayer != null && streamAudioPlayer.isPrepared)
+        {
+            float pictureTime = (float)songVideo.time;
+            float soundTime = (float)streamAudioPlayer.time;
+            if (MediaTimeline.ShouldResync(pictureTime, soundTime))
+            {
+                streamAudioPlayer.time = pictureTime;
+                Debug.LogWarning($"[MusicManager] A/V drift {Mathf.Abs(pictureTime - soundTime):F3}s - the sound was re-seeked to the picture");
+            }
+        }
+
         // The split stream can end up silent (Unity's Windows decoder does not
         // accept every audio only container). Measure the mix and fall back to the
         // wav that ships with the chart when it stays quiet.
-        if (audioMode == AudioMode.StreamSeparate && !fallbackChecked && mediaTime > 3f)
+        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f)
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
@@ -503,6 +765,14 @@ public class MusicManager : MonoBehaviour
             {
                 Debug.LogWarning($"[MusicManager] stream audio is silent (rms={rms:F5}) - falling back to the bundled wav");
                 SwitchToBundledAudio(mediaTime);
+            }
+            else if (rms < 0.001f)
+            {
+                // There is no wav to fall back to: the song would run silent,
+                // which is not playable. The song ends on the wall clock and
+                // the result screen offers the way back to the song list.
+                Debug.Log(PlaybackRecovery.FailureLog(stage, MediaFailure.AudioSilent, songVideo != null && songVideo.isPrepared));
+                failure = MediaFailure.AudioSilent;
             }
         }
 
@@ -517,10 +787,14 @@ public class MusicManager : MonoBehaviour
                 videoState = $"playing={songVideo.isPlaying} frame={songVideo.frameCount} prepared={songVideo.isPrepared}";
             }
             Debug.Log($"[MusicManager] STATUS mediaTime={mediaTime:F2} audioMode={audioMode} rms={rms:F4} peak={peak:F4} " +
-                      $"video[{videoState}] perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss}");
+                      $"video[{videoState}] perfect={GManager.perfect} great={GManager.great} bad={GManager.bad} miss={GManager.miss} " +
+                      $"failure={failure}");
         }
 
-        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.ActiveSongs[GManager.songID].duration))
+        // Issue #183: 曲の長さもプレイセッションで固定した曲から読む。
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        float songDuration = sessionSong != null ? sessionSong.duration : 0f;
+        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, songDuration))
         {
             resultTriggered = true;
             audioS.volume -= 0.001f;
@@ -531,22 +805,33 @@ public class MusicManager : MonoBehaviour
     void StartPlayback()
     {
         playbackStarted = true;
+        // The player started the song anyway: the pending return is cancelled
+        // (its coroutine yields break on playbackStarted) and the HUD goes
+        // back to the play view.
+        SelectReturnPending = false;
         GManager.Start = true;
         GManager.played = true;
+        playbackStartWallTime = Time.time;
+        LastPlaybackSource = audioMode;
+        stage = MediaStage.Playing;
 
-        if (songVideo != null && songVideo.isPrepared) songVideo.Play();
+        if (songVideo != null && songVideo.isPrepared)
+        {
+            songVideo.Play();
+            pictureStarted = true;
+        }
 
         switch (audioMode)
         {
-            case AudioMode.StreamCombined:
+            case PlaybackSource.StreamCombined:
                 // The VideoPlayer renders the sound of the progressive file into audioS.
                 break;
 
-            case AudioMode.StreamSeparate:
+            case PlaybackSource.StreamSeparate:
                 if (streamAudioPlayer != null && streamAudioPlayer.isPrepared) streamAudioPlayer.Play();
                 break;
 
-            case AudioMode.Bundled:
+            case PlaybackSource.BundledWave:
                 audioS.clip = Music;
                 audioS.time = 0f;
                 audioS.Play();
@@ -561,8 +846,9 @@ public class MusicManager : MonoBehaviour
         StartText.SetActive(false);
         kakusi.SetActive(false);
 
-        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.ActiveSongs[GManager.songID].videoId}' " +
-                  $"audioMode={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
+        SongData playbackSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{(playbackSong != null ? playbackSong.videoId : "")}' " +
+                  $"source={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
     }
 
     void SwitchToBundledAudio(float atMediaTime)
@@ -576,7 +862,7 @@ public class MusicManager : MonoBehaviour
             streamAudioSource = null;
         }
 
-        audioMode = AudioMode.Bundled;
+        audioMode = PlaybackSource.BundledWave;
         audioS.clip = Music;
         audioS.time = Mathf.Max(0f, atMediaTime);
         audioS.volume = GManager.mainVolume;
@@ -587,23 +873,28 @@ public class MusicManager : MonoBehaviour
 
     float CurrentMediaTime()
     {
+        // The picture is the timing master: the chart was authored against the
+        // YouTube recording, and in the merged file the sound comes out of the
+        // very same file, so picture and sound cannot drift apart.
+        // Only after the picture was started: a file that is prepared while the
+        // song is already running must not throw the clock back to zero.
+        if (pictureStarted && songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
+
         switch (audioMode)
         {
-            case AudioMode.StreamCombined:
-                if (songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
-                break;
-
-            case AudioMode.StreamSeparate:
+            case PlaybackSource.StreamSeparate:
                 if (streamAudioPlayer != null && streamAudioPlayer.isPrepared) return (float)streamAudioPlayer.time;
                 break;
 
-            case AudioMode.Bundled:
+            case PlaybackSource.BundledWave:
                 if (audioS != null && audioS.clip != null) return audioS.time;
                 break;
         }
 
-        if (songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
-        return GManager.step_time;
+        // No media at all (the download failed, the file could not be opened):
+        // the wall clock keeps the song running, so the game still reaches the
+        // result screen and the player can retry or go back to the song list.
+        return MediaTimeline.FallbackMediaTime(Time.time, playbackStartWallTime);
     }
 
     static string FirstUrl(string stdout)

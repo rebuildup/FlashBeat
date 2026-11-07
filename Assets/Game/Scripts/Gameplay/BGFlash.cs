@@ -19,7 +19,9 @@ public class BGFlash : MonoBehaviour
     {
 
         rend = GetComponent<Renderer>();
-        Beat = (60/(float)GManager.ActiveSongs[GManager.songID].bpm);
+        // Issue #183: 選択中の行ではなく、プレイセッションで固定した曲の BPM を使う。
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        Beat = sessionSong != null ? (60f / sessionSong.bpm) : float.MaxValue;
         switch (GManager.FlashBG)
         {
             case 1:

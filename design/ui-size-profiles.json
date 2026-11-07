@@ -1,0 +1,237 @@
+{
+  "_doc": "FlashBeat UI size profiles. 1 prefab set, sizes switched per profile at runtime (UISizeProfile ScriptableObject). All values are real pixels of that screen.",
+  "select": "2560x1664 (aspect~1.538) -> mac ; screen.height>=1440 -> 2k ; else fhd (screen.height<1080 -> fhd scaled by height/1080)",
+  "canvas": "Constant Pixel Size x1 (profile values are real px). Fonts: NotoSansJP.",
+  "profiles": {
+    "fhd": {
+      "screen": [
+        1920,
+        1080
+      ],
+      "margin": 48,
+      "fs_xl": 52,
+      "fs_l": 38,
+      "fs_m": 30,
+      "fs_s": 22,
+      "fs_rank": 420,
+      "fs_combo": 180,
+      "icon_s": 24,
+      "icon_m": 36,
+      "icon_l": 56,
+      "gap_s": 10,
+      "gap_m": 20,
+      "gap_l": 40,
+      "card_center": [
+        460,
+        800
+      ],
+      "card_mid": [
+        340,
+        660
+      ],
+      "card_side": [
+        280,
+        540
+      ],
+      "drawer_w": 560,
+      "stepper_w": 300,
+      "row_h": 78,
+      "btn": [
+        360,
+        120
+      ]
+    },
+    "2k": {
+      "screen": [
+        2560,
+        1440
+      ],
+      "margin": 64,
+      "fs_xl": 68,
+      "fs_l": 50,
+      "fs_m": 40,
+      "fs_s": 30,
+      "fs_rank": 560,
+      "fs_combo": 240,
+      "icon_s": 32,
+      "icon_m": 48,
+      "icon_l": 74,
+      "gap_s": 14,
+      "gap_m": 28,
+      "gap_l": 54,
+      "card_center": [
+        610,
+        1060
+      ],
+      "card_mid": [
+        450,
+        880
+      ],
+      "card_side": [
+        370,
+        720
+      ],
+      "drawer_w": 740,
+      "stepper_w": 400,
+      "row_h": 104,
+      "btn": [
+        480,
+        160
+      ]
+    },
+    "mac": {
+      "screen": [
+        2560,
+        1664
+      ],
+      "margin": 64,
+      "fs_xl": 75,
+      "fs_l": 57,
+      "fs_m": 46,
+      "fs_s": 36,
+      "fs_rank": 587,
+      "fs_combo": 249,
+      "icon_s": 39,
+      "icon_m": 53,
+      "icon_l": 82,
+      "gap_s": 14,
+      "gap_m": 28,
+      "gap_l": 53,
+      "card_center": [
+        676,
+        1173
+      ],
+      "card_mid": [
+        444,
+        978
+      ],
+      "card_side": [
+        356,
+        800
+      ],
+      "drawer_w": 853,
+      "stepper_w": 462,
+      "row_h": 114,
+      "btn": [
+        533,
+        178
+      ]
+    }
+  },
+  "_note_grid": "design-time module grid only (not implemented in Unity). cols x rows = 12 x 6. X(c)=marginX+(col+gutter)*(c-1), Y(r)=marginY+(row+gutter)*(r-1)",
+  "grid": {
+    "fhd": {
+      "screen": [
+        1920,
+        1080
+      ],
+      "margin": [
+        48,
+        48
+      ],
+      "gutter": 24,
+      "col": 130,
+      "row": 144
+    },
+    "2k": {
+      "screen": [
+        2560,
+        1440
+      ],
+      "margin": [
+        64,
+        68
+      ],
+      "gutter": 28,
+      "col": 177,
+      "row": 194
+    },
+    "mac": {
+      "screen": [
+        2560,
+        1664
+      ],
+      "margin": [
+        71,
+        71
+      ],
+      "gutter": 36,
+      "col": 169,
+      "row": 213
+    }
+  },
+  "controls_v3": {
+    "fhd": {
+      "margin": 48,
+      "gap": 24,
+      "header": 72,
+      "footer": 56,
+      "button": 56,
+      "row": 64,
+      "menuItem": 72,
+      "keycap": 40,
+      "icon": [
+        32,
+        24
+      ],
+      "font": [
+        22,
+        30,
+        38,
+        52
+      ],
+      "rankDisplay": 420,
+      "combo": 180,
+      "border": 2,
+      "radius": 0
+    },
+    "2k": {
+      "margin": 64,
+      "gap": 32,
+      "header": 96,
+      "footer": 76,
+      "button": 76,
+      "row": 84,
+      "menuItem": 96,
+      "keycap": 52,
+      "icon": [
+        44,
+        32
+      ],
+      "font": [
+        30,
+        40,
+        50,
+        68
+      ],
+      "rankDisplay": 560,
+      "combo": 240,
+      "border": 3,
+      "radius": 0
+    },
+    "mac": {
+      "margin": 71,
+      "gap": 36,
+      "header": 114,
+      "footer": 85,
+      "button": 85,
+      "row": 100,
+      "menuItem": 114,
+      "keycap": 64,
+      "icon": [
+        50,
+        39
+      ],
+      "font": [
+        36,
+        46,
+        57,
+        75
+      ],
+      "rankDisplay": 587,
+      "combo": 249,
+      "border": 4,
+      "radius": 0
+    }
+  }
+}

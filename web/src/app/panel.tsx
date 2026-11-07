@@ -8,15 +8,88 @@ import type { ReactNode } from "react";
  * uses the same frame so the layout does not jump between states.
  */
 export const panelFrame = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
+  /**
+   * Recessed surface: Pen v5 lists sit in wells darker than the canvas
+   * (`well #131313` under `bg #1B1B1B`), so the panel steps down, not up.
+   */
+  bg: "gray.1",
+  borderColor: "border",
   borderRadius: "l2",
   borderWidth: "1px",
   display: "flex",
   flex: "1",
   flexDirection: "column",
   minHeight: "0",
+  overflow: "auto",
+});
+
+/**
+ * Shared page header band (issue #166): the row every screen puts at the top
+ * of the work area — back link, title block, primary action. The catalog
+ * topbar (search + filters) keeps its own component; this band is for the
+ * screens that carry one job and one primary action (chart, publish, drafts).
+ */
+export const pageHeader = css({
+  alignItems: "center",
+  borderBottomColor: "gray.surface.border",
+  borderBottomWidth: "1px",
+  display: "flex",
+  flexShrink: "0",
+  flexWrap: "wrap",
+  gap: "3",
+  justifyContent: "space-between",
+  minHeight: "3rem",
+  px: "4",
+  py: "2",
+});
+
+export const pageHeaderIdentity = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "1",
+  gap: "0",
+  minWidth: "0",
+});
+
+export const pageTitle = css({
+  color: "fg.default",
+  fontSize: "sm",
+  fontWeight: "semibold",
+  lineHeight: "1.3",
+  margin: "0",
   overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const pageSubtitle = css({
+  color: "fg.muted",
+  fontSize: "xs",
+  lineHeight: "1.4",
+  margin: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const pageBackLink = css({
+  alignItems: "center",
+  color: "fg.muted",
+  display: "inline-flex",
+  flexShrink: "0",
+  fontSize: "xs",
+  minHeight: "8",
+  textDecoration: "none",
+  _hover: { color: "fg.default" },
+  _focusVisible: { outline: "2px solid", outlineOffset: "2px" },
+});
+
+export const pageActions = css({
+  alignItems: "center",
+  display: "flex",
+  flexShrink: "0",
+  flexWrap: "wrap",
+  gap: "3",
 });
 
 export const panelHeader = css({
@@ -52,6 +125,13 @@ export const panelBody = css({
   p: "4",
 });
 
+/** Body variant for lists that run edge to edge inside the well (catalog rows). */
+export const panelBodyFlush = css({
+  flex: "1",
+  minHeight: "0",
+  overflowY: "auto",
+});
+
 export const stateBlock = css({
   alignItems: "center",
   display: "flex",
@@ -74,6 +154,8 @@ export const stateDescription = css({
   fontSize: "xs",
   margin: "0",
   maxWidth: "28rem",
+  wordBreak: "break-word",
+  overflowWrap: "break-word",
 });
 
 export function StateBlock({

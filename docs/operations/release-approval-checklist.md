@@ -23,6 +23,10 @@
 - [ ] フォルダ fingerprint（`release/check/stage-manifest.json` 記載のアルゴリズム）が manifest と一致。
 - [ ] `FlashBeat.exe` の SHA-256 が manifest と一致。
 - [ ] 既存成果物を **上書き・削除していない**（新しい成果物は別名フォルダ）。
+- [ ] **配布 ZIP に第三者楽曲メディアが含まれない**ことを `tools/release/audit-release-media.py` で確認した
+      （`FlashBeat_Data/resources.resource` の非圧縮サイズとルーズなメディア 0 件、
+      `flashbeat-media-policy.json` の有無）。結果の記録は
+      [`release-media-audit.md`](release-media-audit.md)。
 - [ ] 検証コマンドの結果が記録に残っている。
 
 ```powershell
@@ -70,6 +74,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/redact-log.ps1
 
 | 日付 | ステージ | 成果物 fingerprint (SHA-256) | PR | 実プレイ証拠 | 1280×720 UX | 承認者 | 判定 |
 |---|---|---|---|---|---|---|---|
+| 2026-11-08 | Release 0.1.14 (`v0.1.14-win64-617c2b6`) | `3ecf9d8ea65a435b4e99b70a0ed8691859968bc2c06da6e56b4366750e124171`（ビルド元 commit `617c2b6`，song-free） | #170 / #168 | **未証明**（Windows 展示機での実プレイ未実施。バッチ検証のみ: EditMode 407/407 成功、`FlatRenderCheck` `audit: lights=0 casters=0 receivers=0` / `failures 0`、パッケージング検査 pass） | 未実施 | — | **部分承認**（#22 チェックリスト §C/§D の実機項目が未確認のため「未証明」。映像・音声の実機確認はオーナー側の実施項目） |
 | 2026-11-07 | **展示 第 3 世代（現在の展示用）** `FlashBeatExhibit_s2\` | `2907102fcab0142e8d93b7bfb025d74a98cc274fe6ebbac55843cdca14cbedd9`（#13 修正込み統合、code state `b77b63c`） | #13 / #27 / #22 | **実機で完走**: Title → Select → まにまに → 判定 76（譜面全部、実入力で Perfect 1 / Bad 2）→ Result → `R` リトライ / **映像あり**（`VideoPlayer prepared=True`、`video[playing=True]`）/ **音あり**（`rms=0.44–0.56`、ただし音源は同梱 wav = `audioMode=Bundled`。**ストリーム音声は未証明**） | windowed 1280×720 で実機確認（実機 fullscreen は未検証） | #22（Draft PR） | **承認**（展示用。ストリーム音声のみ未証明） |
 | 2026-11-06 | 展示 第 2 世代 `FlashBeatExhibit_s1\` | `cbae8f677eb60dfeaa6ca6676121d4266fa99583f2b76bfeacacebcbd0924758`（#13 + #27 統合、code state `f53575c`） | #13 / #27 / #22 | **実機で完走**: Title → Select → まにまに → 判定 76（譜面全部）→ Result → `R` リトライ / **音あり**（`rms=0.30 peak=0.52`）/ **映像は未証明**（VideoPlayer が拡張子なしファイルを認識できず → 同梱 wav フォールバック） | windowed 1280×720 で実機確認（実機 fullscreen は未検証） | #22（Draft PR） | **部分承認**（予備。映像・ストリーム音声は未承認） |
 | 2026-11-06 | 展示 第 1 世代 `FlashBeatExhibit\` | `da338a6a8a73b23dbf6e0a7d26e498003e2f773bdb574323c416d9d17f6c563b`（`743c88d`、#27 + #35 ZIP） | #34 / #35 | 実機で Title → Select → 判定 76 → Result → `R` リトライ / **音は出ない** | windowed 1280×720 で実機確認 | #22（Draft PR） | **部分承認**（予備。音は未承認） |

@@ -11,19 +11,28 @@ using Debug = UnityEngine.Debug;
 namespace FlashBeat.Update
 {
     /// <summary>
-    /// 起動時に GitHub Releases を非同期で確認し、新版があれば ZIP と .sha256 を
-    /// %LOCALAPPDATA%\FlashBeat\update\staging に取得して SHA-256 検証する。
-    /// 終了時 (OnApplicationQuit) に配布物内 tools\update\Update.ps1 を
-    /// -Apply -WaitPid -Relaunch で分離プロセス起動する (アプリ終了 → 展開 → 検証 →
-    /// 一括切替 → 新 exe 再起動)。通信失敗・SHA 不一致では何も変更せず現行版を維持し、
-    /// ゲームは止めない。常設ランチャー・独自更新サーバーは使わない (更新元は GitHub Releases のみ)。
+    /// 起動時に GitHub Releases を非同期で「確認だけ」行う (issue #118: 更新は明示式・任意)。
+    /// 新版があれば <see cref="UpdateFlowModel"/> を Available にし、TitleScene の通知 UI
+    /// (<see cref="UpdateNoticeUI"/>) が『アップデートあり』を出す。ダウンロードも適用も
+    /// ユーザーが明示的にトリガーしたときだけ行う (<see cref="RequestDownload"/> /
+    /// <see cref="RequestApply"/>)。押さなければダウンロードも適用も行わない。
+    /// 適用は配布物内のアップデータスクリプト (Windows: tools\update\Update.ps1 /
+    /// macOS: Contents/Resources/tools/update/update-macos.sh) を -Apply -WaitPid -Relaunch で
+    /// 分離プロセス起動する (アプリ終了 → 展開 → 検証 → 一括切替 → 新プロセス再起動)。
+    /// OnApplicationQuit からの自動適用は存在しない。通信失敗・SHA 不一致では何も変更せず
+    /// 現行版を維持し、ゲームは止めない。常設ランチャー・独自更新サーバーは使わない
+    /// (更新元は GitHub Releases のみ)。Release タグはプラットフォーム別
+    /// (v0.1.3-win64-abc1234 / v0.1.3-macos-abc1234) で、実行中のプラットフォームのタグだけを
+    /// 候補にする。起動時には前回の更新結果 (アップデータが書く last-result.json、issue #125) を読み、
+    /// Title 通知の文言に反映する (成功 / 失敗とも 1 回だけ表示し mark-as-shown)。
     /// </summary>
     public class UpdateChecker : MonoBehaviour
     {
         public const string Repo = "rebuildup/FlashBeat";
         // prerelease が混ざっても安定版を取りこぼさないよう、取得件数を広めに取る。
         private const string ReleasesApiUrl = "https://api.github.com/repos/" + Repo + "/releases?per_page=30";
-        private const string UpdaterScriptRelPath = "tools/update/Update.ps1";
+        private const string WindowsUpdaterScriptRelPath = "tools/update/Update.ps1";
+        private const string MacUpdaterScriptRelPath = "tools/update/update-macos.sh";
 
         [Serializable]
         public class ReleaseAsset
@@ -49,11 +58,33 @@ namespace FlashBeat.Update
             public ReleaseInfo[] items;
         }
 
+        /// <summary>更新フローの共有状態機械 (UpdateNoticeUI が参照して表示する)。</summary>
+        public UpdateFlowModel Model { get; } = new UpdateFlowModel();
+
         private UpdateStaging.StagedUpdate staged;
+        private ReleaseAsset pendingZip;
         private UnityEngine.UI.Button optionApplyButton;
+
+        /// <summary>実行中のビルドの配布プラットフォーム。Release タグの絞り込みに使う。</summary>
+        private static UpdatePlatform CurrentPlatform
+        {
+            get
+            {
+                return Application.platform == RuntimePlatform.OSXPlayer
+                    || Application.platform == RuntimePlatform.OSXEditor
+                    ? UpdatePlatform.MacOS
+                    : UpdatePlatform.Windows64;
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
+        {
+            EnsureExists();
+        }
+
+        /// <summary>UpdateChecker がいなければ生成する (UpdateNoticeUI からも呼べるよう public)。</summary>
+        public static void EnsureExists()
         {
             if (FindAnyObjectByType<UpdateChecker>() != null) { return; }
             var go = new GameObject("FlashBeatUpdateChecker");
@@ -65,7 +96,7 @@ namespace FlashBeat.Update
         {
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
-            StartCoroutine(CheckAndStage());
+            StartCoroutine(CheckForUpdate());
         }
 
         private void OnDestroy()
@@ -73,9 +104,35 @@ namespace FlashBeat.Update
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 
-        private IEnumerator CheckAndStage()
+        /// <summary>
+        /// 起動時の確認。通信は非同期でブロックせず、失敗はログのみで静かに終わる。
+        /// ここではダウンロードしない (ユーザーが F3 / クリックしたときだけ <see cref="RequestDownload"/>)。
+        /// </summary>
+        private IEnumerator CheckForUpdate()
         {
+            // The flow model only accepts CheckFoundNewVersion while Checking. Without this call the
+            // phase stayed Idle, the 'update available' notice never appeared and F3 did nothing
+            // (silent failure seen on the real device, v0.1.4 -> v0.1.5).
+            Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
+
+            // ── -1. 前回の更新結果を反映 (issue #125) ──────────────────
+            // Update.ps1 がすべての終了経路で書く last-result.json を読み、Title 通知の文言を
+            // Model に渡す。表示と mark-as-shown (リネーム) は UpdateNoticeUI が Title で行う。
+            // ここではブロックしない (ファイル読み取りのみ・失敗しても静かに続行)。
+            var lastResult = UpdateResultFile.Read();
+            if (lastResult != null)
+            {
+                var currentVersionText = current.Valid ? current.Version : Application.version;
+                var lastNotice = UpdateResultFile.BuildNoticeText(lastResult, currentVersionText);
+                if (lastNotice != null)
+                {
+                    Model.SetLastResultNotice(lastNotice);
+                    Debug.Log("[UpdateChecker] 前回の更新結果を検出: result=" + lastResult.result +
+                              " exitCode=" + lastResult.exitCode + "。Title で通知します。");
+                }
+            }
+
             if (!current.Valid)
             {
                 Debug.LogWarning("[UpdateChecker] ビルド版識別子を解釈できません: '" + Application.version +
@@ -87,8 +144,10 @@ namespace FlashBeat.Update
             // 展示用ビルド (stable) は prerelease を更新候補にしない。
             var channel = UpdateChannel.ReadInstalledChannel();
             var includePrerelease = UpdateChannel.IncludesPrerelease(channel);
+            var platform = CurrentPlatform;
             Debug.Log("[UpdateChecker] 更新チャンネル: " + channel +
-                      " (prerelease を更新候補に含める: " + (includePrerelease ? "yes" : "no") + ")");
+                      " (prerelease を更新候補に含める: " + (includePrerelease ? "yes" : "no") + ")" +
+                      " / プラットフォーム: " + UpdateVersion.GetTagToken(platform));
 
             // ── 1. Releases 一覧を取得 (draft は認証なしでは返らない) ──
             var listReq = UnityWebRequest.Get(ReleasesApiUrl);
@@ -102,15 +161,40 @@ namespace FlashBeat.Update
                 yield break;
             }
 
-            var latest = ParseLatestRelease(listReq.downloadHandler.text, includePrerelease);
+            var latest = ParseLatestRelease(listReq.downloadHandler.text, includePrerelease, platform, out var releasesParsed);
             if (latest == null)
             {
-                Debug.LogWarning("[UpdateChecker] Releases の応答を解釈できませんでした — 現行版のまま続行します。");
+                if (!releasesParsed)
+                {
+                    Debug.LogWarning("[UpdateChecker] Releases の応答を解釈できませんでした — 現行版のまま続行します。");
+                }
+                else
+                {
+                    Debug.Log("[UpdateChecker] " + UpdateVersion.GetTagToken(platform) +
+                              " の更新候補はありません — 現行版のまま続行します。");
+                }
                 yield break;
             }
 
-            var latestId = UpdateVersion.ParseTag(latest.tag_name);
-            if (!latestId.Valid || !UpdateVersion.IsNewerThan(latestId, current))
+            var latestId = UpdateVersion.ParseTag(latest.tag_name, platform);
+            if (!latestId.Valid)
+            {
+                Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
+                          (latest.tag_name ?? "(無効なタグ)") + ")。");
+                yield break;
+            }
+
+            if (UpdateVersion.IsSameVersionDifferentBuild(latestId, current))
+            {
+                // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
+                // 自動適用すると古いビルドへ戻す可能性があるので、更新候補にしない。
+                Debug.Log("[UpdateChecker] 同じバージョン " + latestId.Version + " の別ビルドがあります " +
+                          "(" + latest.tag_name + " / 現行 " + current.ShortSha + ")。" +
+                          "更新はしません (適用は運営者が Update.ps1 -Tag で行えます)。");
+                yield break;
+            }
+
+            if (!UpdateVersion.IsNewerThan(latestId, current))
             {
                 Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
                           (latest.tag_name ?? "(無効なタグ)") + ")。");
@@ -118,27 +202,23 @@ namespace FlashBeat.Update
             }
 
             // ── 2. ZIP アセットを特定 ──
-            ReleaseAsset zip = null;
-            if (latest.assets != null)
-            {
-                foreach (var asset in latest.assets)
-                {
-                    if (asset != null && !string.IsNullOrEmpty(asset.name) && asset.name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                    {
-                        zip = asset;
-                        break;
-                    }
-                }
-            }
+            // プラットフォーム別 Release のため、他プラットフォームの ZIP を誤って
+            // ダウンロードしないようアセット名の token まで確認する。
+            var zip = FindPlatformZip(latest, platform);
             if (zip == null)
             {
-                Debug.LogWarning("[UpdateChecker] Release " + latest.tag_name + " に ZIP アセットがありません — 現行版のまま続行します。");
+                Debug.LogWarning("[UpdateChecker] Release " + latest.tag_name +
+                                 " に " + UpdateVersion.GetTagToken(platform) +
+                                 " の ZIP アセットがありません — 現行版のまま続行します。");
                 yield break;
             }
 
-            Debug.Log("[UpdateChecker] 新版を確認: " + latest.tag_name + " (現行 " + Application.version + ")");
+            Debug.Log("[UpdateChecker] 新版を確認: " + latest.tag_name + " (現行 " + Application.version + ")。" +
+                      "ダウンロードはユーザーが Title 画面で指示したときだけ行います。");
+            Model.CheckFoundNewVersion(latest.tag_name, latestId.Version);
+            pendingZip = zip;
 
-            // ── 3. 同一タグの staging 済みがあれば再利用 ──
+            // ── 3. 同一タグの staging 済みがあれば再利用 (前回 staging したが適用しなかった場合) ──
             var existing = UpdateStaging.ReadManifest();
             if (existing != null && existing.tag == latest.tag_name)
             {
@@ -146,34 +226,64 @@ namespace FlashBeat.Update
                 if (UpdateStaging.VerifyStaged(existing, out reuseProblem))
                 {
                     staged = existing;
-                    Debug.Log("[UpdateChecker] staging 済みの新版を再利用します: " + existing.zipName);
+                    Model.MarkStagedReady();
+                    Debug.Log("[UpdateChecker] staging 済みの新版を再利用します: " + existing.zipName +
+                              " (適用はユーザー確認時のみ)。");
                     yield break;
                 }
-                Debug.LogWarning("[UpdateChecker] staging 済み ZIP を再検証できませんでした (" + reuseProblem + ") — 取り直します。");
+                Debug.LogWarning("[UpdateChecker] staging 済み ZIP を再検証できませんでした (" + reuseProblem + ") — 再ダウンロードします。");
             }
 
-            // ── 4. ZIP と .sha256 を staging へダウンロード ──
+            // ここで終わる。ダウンロードは RequestDownload() で開始する。
+        }
+
+        /// <summary>ユーザー操作 (Title 通知の F3 / クリック) によるダウンロード開始。
+        /// Available のときだけ受け付ける。自動では呼ばれない。</summary>
+        public void RequestDownload()
+        {
+            if (Model.Phase != UpdateFlowPhase.Available || pendingZip == null) { return; }
+            Model.BeginDownload();
+            StartCoroutine(DownloadAndStage(pendingZip));
+        }
+
+        /// <summary>ZIP + .sha256 を staging へ取得して SHA-256 検証し、manifest を書く。
+        /// 進捗は Model 経由で通知 UI に見せる。失敗時は Available に戻り現行版を維持する。</summary>
+        private IEnumerator DownloadAndStage(ReleaseAsset zip)
+        {
+            // 現行より新しくない ZIP は staging しない (issue #125: 新旧判定できないものは適用しない)。
+            if (!IsStagedTagNewerThanCurrent(Model.LatestTag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] 候補の版が現行より新しくありません (" + Model.LatestTag +
+                                 " / 現行 " + Application.version + ") — ダウンロードを中止し、現行版を維持します。");
+                Model.DownloadFailed("候補の版が現行より新しくありません。現行のまま使えます");
+                yield break;
+            }
+
             UpdateStaging.ClearStaging();
             var zipPath = Path.Combine(UpdateStaging.StagingDir, zip.name);
 
-            yield return DownloadToFile(zip.browser_download_url, zipPath);
+            yield return DownloadToFile(zip.browser_download_url, zipPath,
+                                        progress => Model.SetDownloadProgress(progress * 0.9f));
             if (!File.Exists(zipPath))
             {
                 Debug.LogWarning("[UpdateChecker] ZIP のダウンロードに失敗しました — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed("ダウンロードに失敗しました。現行のまま使えます");
                 yield break;
             }
 
             yield return FetchExpectedSha256(zip.browser_download_url + ".sha256");
+            Model.SetDownloadProgress(0.95f);
             var expectedSha = lastFetchedSha256;
             if (string.IsNullOrEmpty(expectedSha))
             {
                 Debug.LogWarning("[UpdateChecker] .sha256 を取得できませんでした — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed(".sha256 を取得できませんでした。現行のまま使えます");
                 yield break;
             }
 
-            // ── 5. SHA-256 検証 (大きい ZIP のためバックグラウンドで計算) ──
+            // ── SHA-256 検証 (大きい ZIP のためバックグラウンドで計算) ──
             string actualSha = null;
             string computeError = null;
             var task = System.Threading.Tasks.Task.Run(() =>
@@ -182,32 +292,72 @@ namespace FlashBeat.Update
                 catch (Exception e) { computeError = e.Message; }
             });
             while (!task.IsCompleted) { yield return null; }
+            Model.SetDownloadProgress(1f);
 
             if (computeError != null || !string.Equals(actualSha, expectedSha, System.StringComparison.OrdinalIgnoreCase))
             {
                 Debug.LogWarning("[UpdateChecker] SHA-256 検証に失敗しました (actual=" + (actualSha ?? computeError) +
                                  ", expected=" + expectedSha + ") — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed("SHA-256 検証に失敗しました。現行のまま使えます");
                 yield break;
             }
 
-            // ── 6. manifest を書いて終了時の適用を待つ ──
+            // RequestDownload は Available (LatestTag 設定済み) からしか来ないため tag は必ず非空。
             staged = new UpdateStaging.StagedUpdate
             {
-                tag = latest.tag_name,
+                tag = Model.LatestTag,
                 zipName = zip.name,
                 sha256 = expectedSha,
                 stagedAtUtc = DateTime.UtcNow.ToString("o"),
             };
+            if (string.IsNullOrEmpty(staged.tag))
+            {
+                // LatestTag が無い状態でこのメソッドには到達しない (RequestDownload が Available 限定のため)。
+                UpdateStaging.ClearStaging();
+                staged = null;
+                Model.DownloadFailed("内部エラー: タグが不明です");
+                yield break;
+            }
             if (!UpdateStaging.WriteManifest(staged))
             {
                 Debug.LogWarning("[UpdateChecker] staging manifest を書けませんでした — 更新を中止し、現行版を維持します。");
                 staged = null;
+                UpdateStaging.ClearStaging();
+                Model.DownloadFailed("staging に書き込めませんでした。現行のまま使えます");
                 yield break;
             }
 
-            Debug.Log("[UpdateChecker] 新版の staging が完了しました: " + latest.tag_name +
-                      " (sha256=" + expectedSha + ")。終了時に適用されます。");
+            Model.DownloadSucceeded();
+            Debug.Log("[UpdateChecker] 新版の staging が完了しました: " + staged.tag +
+                      " (sha256=" + expectedSha + ")。適用はユーザーが確認したときだけ行われます。");
+        }
+
+        /// <summary>ユーザー操作 (Title 通知の F3 / クリック、Option の適用ボタン) による適用開始。
+        /// staging 済み更新が無い・準備ができていないときは何もしない。自動では呼ばれない。</summary>
+        public void RequestApply()
+        {
+            if (staged == null)
+            {
+                Debug.LogWarning("[UpdateChecker] 適用できる staging 済み更新がありません。");
+                return;
+            }
+            if (Model.Phase == UpdateFlowPhase.Ready)
+            {
+                Model.BeginApply();
+            }
+            else if (Model.Phase != UpdateFlowPhase.Applying)
+            {
+                return;
+            }
+
+            if (!TryLaunchUpdater(waitForThisProcess: true))
+            {
+                Model.ApplyFailed("更新スクリプトを起動できませんでした。現行のまま使えます");
+                return;
+            }
+            // 更新スクリプトは分離プロセスで自分の PID の終了を待つので、即座に終了してよい。
+            Application.Quit();
         }
 
         private string lastFetchedSha256;
@@ -232,7 +382,7 @@ namespace FlashBeat.Update
             }
         }
 
-        private static IEnumerator DownloadToFile(string url, string destPath)
+        private static IEnumerator DownloadToFile(string url, string destPath, Action<float> onProgress)
         {
             try
             {
@@ -245,7 +395,13 @@ namespace FlashBeat.Update
             var req = new UnityWebRequest(url);
             req.downloadHandler = new DownloadHandlerFile(destPath);
             req.timeout = 0; // 大きい ZIP のためタイムアウトなし (失敗は result で判定)
-            yield return req.SendWebRequest();
+            var op = req.SendWebRequest();
+            while (!op.isDone)
+            {
+                if (onProgress != null) { onProgress(op.progress); }
+                yield return null;
+            }
+            if (onProgress != null) { onProgress(1f); }
             if (req.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogWarning("[UpdateChecker] ダウンロード失敗: " + url + " (" + req.error + ")");
@@ -255,16 +411,31 @@ namespace FlashBeat.Update
 
         /// <summary>Releases 一覧 JSON から適用候補 (非 draft・タグ形式が有効) を選ぶ。
         /// includePrerelease が false のとき prerelease は候補から外れる (stable チャンネル)。
+        /// platform を指定したときはそのプラットフォームのタグだけを候補にする
+        /// (Windows 版が macOS の更新候補になることを防ぐ)。
         /// API の返却順は作成順と限らない (実測でも非順序) ため、version を主キー、
         /// published_at を副キーに最大のものを選ぶ。public は EditMode テストのため。</summary>
         public static ReleaseInfo ParseLatestRelease(string json, bool includePrerelease)
         {
+            return ParseLatestRelease(json, includePrerelease, null);
+        }
+
+        public static ReleaseInfo ParseLatestRelease(string json, bool includePrerelease, UpdatePlatform? platform)
+        {
+            return ParseLatestRelease(json, includePrerelease, platform, out _);
+        }
+
+        public static ReleaseInfo ParseLatestRelease(string json, bool includePrerelease, UpdatePlatform? platform,
+                                                    out bool parsedJson)
+        {
+            parsedJson = false;
             try
             {
                 // JsonUtility はトップレベル配列を解釈できないためラップする
                 var wrapped = new StringBuilder("{\"items\":").Append(json).Append("}").ToString();
                 var parsed = JsonUtility.FromJson<ReleaseArray>(wrapped);
                 if (parsed == null || parsed.items == null) { return null; }
+                parsedJson = true;
 
                 ReleaseInfo best = null;
                 UpdateVersion.ReleaseId bestId = default;
@@ -273,7 +444,9 @@ namespace FlashBeat.Update
                 {
                     if (release == null || release.draft || string.IsNullOrEmpty(release.tag_name)) { continue; }
                     if (!includePrerelease && release.prerelease) { continue; }
-                    var id = UpdateVersion.ParseTag(release.tag_name);
+                    var id = platform.HasValue
+                        ? UpdateVersion.ParseTag(release.tag_name, platform.Value)
+                        : UpdateVersion.ParseTag(release.tag_name);
                     if (!id.Valid) { continue; }
                     var published = ParseTimestamp(release.published_at) ?? ParseTimestamp(release.created_at) ?? DateTime.MinValue;
                     if (best == null || CompareCandidate(id, published, bestId, bestPublished) > 0)
@@ -290,6 +463,23 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] Releases JSON の解析に失敗しました: " + e.Message);
                 return null;
             }
+        }
+
+        /// <summary>Release のアセットから指定プラットフォームの ZIP を選ぶ。
+        /// アセット名に "-win64-" / "-macos-" を含む .zip だけを対象にする
+        /// (混在 Release でも他プラットフォームの ZIP を落とさない)。public は EditMode テストのため。</summary>
+        public static ReleaseAsset FindPlatformZip(ReleaseInfo release, UpdatePlatform platform)
+        {
+            if (release == null || release.assets == null) { return null; }
+            var token = "-" + UpdateVersion.GetTagToken(platform) + "-";
+            foreach (var asset in release.assets)
+            {
+                if (asset == null || string.IsNullOrEmpty(asset.name)) { continue; }
+                if (!asset.name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) { continue; }
+                if (asset.name.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0) { continue; }
+                return asset;
+            }
+            return null;
         }
 
         private static int CompareCandidate(UpdateVersion.ReleaseId a, DateTime aPublished, UpdateVersion.ReleaseId b, DateTime bPublished)
@@ -311,6 +501,16 @@ namespace FlashBeat.Update
             return null;
         }
 
+        /// <summary>staging 対象 / 適用対象のタグが現行ビルドより新しい版か (issue #125)。
+        /// 純粋関数 (EditMode テスト対象)。タグまたは現行ビルド識別子が解釈できない、
+        /// 同一バージョンの別ビルド、旧版のいずれでも false (適用しない)。</summary>
+        public static bool IsStagedTagNewerThanCurrent(string tag, string currentBuildId)
+        {
+            var tagId = UpdateVersion.ParseTag(tag);
+            var current = UpdateVersion.ParseBuildId(currentBuildId);
+            return UpdateVersion.IsNewerThan(tagId, current);
+        }
+
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name != "OptionScene") { return; }
@@ -324,7 +524,7 @@ namespace FlashBeat.Update
         }
 
         /// <summary>Option に「更新を適用して再起動」ボタンを出す (既存 uGUI の TMP フォントを流用)。
-        /// staging 済み更新が無いときは出さない。</summary>
+        /// staging 済み更新が無いときは出さない。押すことは明示的なユーザー同意である。</summary>
         private void CreateOptionApplyButton()
         {
             if (staged == null || optionApplyButton != null) { return; }
@@ -374,13 +574,8 @@ namespace FlashBeat.Update
             Debug.Log("[UpdateChecker] Option に「更新を適用して再起動」ボタンを追加しました (" + staged.tag + ")。");
         }
 
-        private void OnApplicationQuit()
-        {
-            // staged が無い (最新 / 取得失敗) なら何もしない → ゲームは普段どおり終了する
-            TryLaunchUpdater(waitForThisProcess: true);
-        }
-
-        /// <summary>Option の「更新を適用して再起動」から呼ぶ。更新スクリプト起動後、アプリ自身を終了する。</summary>
+        /// <summary>Option の「更新を適用して再起動」から呼ぶ。ユーザーの明示的な同意であり、
+        /// ここからだけが適用への入口 (OnApplicationQuit からの自動適用は存在しない)。</summary>
         public static void ApplyStagedUpdateNow()
         {
             var checker = FindAnyObjectByType<UpdateChecker>();
@@ -389,12 +584,11 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] 適用できる staging 済み更新がありません。");
                 return;
             }
-            if (!checker.TryLaunchUpdater(waitForThisProcess: true)) { return; }
-            Application.Quit();
+            checker.RequestApply();
         }
 
-        /// <summary>配布物内 tools\update\Update.ps1 を分離プロセスで起動する。
-        /// staging 済み ZIP を終了時にもう一度検証し、失敗したら起動しない (現行版を維持)。</summary>
+        /// <summary>配布物内の更新スクリプトを分離プロセスで起動する。
+        /// staging 済み ZIP を起動前にもう一度検証し、失敗したら起動しない (現行版を維持)。</summary>
         private bool TryLaunchUpdater(bool waitForThisProcess)
         {
             if (staged == null) { return false; }
@@ -407,8 +601,24 @@ namespace FlashBeat.Update
                 return false;
             }
 
+            // staging 済み ZIP が現行より新しい版か (issue #125)。古い / 同一バージョンの別ビルドは適用しない。
+            if (!IsStagedTagNewerThanCurrent(staged.tag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] staging 済みの版が現行より新しくありません (" + staged.tag +
+                                 " / 現行 " + Application.version + ") — 適用を中止し、現行版を維持します。");
+                return false;
+            }
+
+            return CurrentPlatform == UpdatePlatform.MacOS
+                ? TryLaunchMacUpdater(waitForThisProcess)
+                : TryLaunchWindowsUpdater(waitForThisProcess);
+        }
+
+        /// <summary>Windows: 配布物内 tools\update\Update.ps1 を PowerShell で起動する。</summary>
+        private bool TryLaunchWindowsUpdater(bool waitForThisProcess)
+        {
             var installDir = Path.GetDirectoryName(Application.dataPath);
-            var scriptPath = Path.Combine(installDir, UpdaterScriptRelPath);
+            var scriptPath = Path.Combine(installDir, WindowsUpdaterScriptRelPath);
             if (!File.Exists(scriptPath))
             {
                 Debug.LogError("[UpdateChecker] 更新スクリプトがありません: " + scriptPath);
@@ -432,11 +642,74 @@ namespace FlashBeat.Update
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            return StartUpdaterProcess(psi);
+        }
+
+        /// <summary>macOS: 配布物内 Contents/Resources/tools/update/update-macos.sh を起動する。
+        /// スクリプトは更新対象の .app の中にあるため、バンドル置換で実行中スクリプトが消えないよう
+        /// 一時ディレクトリへコピーしてから起動する。</summary>
+        private bool TryLaunchMacUpdater(bool waitForThisProcess)
+        {
+            string appBundle;
+            string contentsDir;
+            string resolveError;
+            if (!TryResolveMacBundle(out appBundle, out contentsDir, out resolveError))
+            {
+                Debug.LogError("[UpdateChecker] " + resolveError);
+                return false;
+            }
+
+            var scriptInBundle = Path.Combine(contentsDir, "Resources", MacUpdaterScriptRelPath);
+            if (!File.Exists(scriptInBundle))
+            {
+                Debug.LogError("[UpdateChecker] 更新スクリプトがありません: " + scriptInBundle);
+                return false;
+            }
+
+            string tempScript;
+            try
+            {
+                var tempDir = Path.Combine(Path.GetTempPath(),
+                    "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(tempDir);
+                tempScript = Path.Combine(tempDir, "update-macos.sh");
+                File.Copy(scriptInBundle, tempScript, true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("[UpdateChecker] 更新スクリプトの一時コピーに失敗しました: " + e.Message);
+                return false;
+            }
+
+            var args = "\"" + tempScript + "\"" +
+                       " -InstallDir \"" + appBundle + "\"" +
+                       " -Apply -Relaunch" +
+                       " -ZipPath \"" + Path.Combine(UpdateStaging.StagingDir, staged.zipName) + "\"" +
+                       " -ExpectedSha256 " + staged.sha256 +
+                       " -ResultDir \"" + UpdatePaths.BaseDir + "\"";
+            if (waitForThisProcess)
+            {
+                args += " -WaitPid " + Process.GetCurrentProcess().Id;
+            }
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                Arguments = args,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            return StartUpdaterProcess(psi);
+        }
+
+        private bool StartUpdaterProcess(ProcessStartInfo psi)
+        {
             try
             {
                 Process.Start(psi);
-                Debug.Log("[UpdateChecker] 更新スクリプトを起動しました: " + staged.tag +
-                          " (アプリ終了後に適用されます)。");
+                // issue #125: 起動の成否はこのログでは確定しない (実結果は updater が書く
+                // last-result.json を次回起動時に検証する)。
+                Debug.Log("[UpdateChecker] update script started (result unknown until next start): " + staged.tag + ".");
                 return true;
             }
             catch (Exception e)
@@ -444,6 +717,56 @@ namespace FlashBeat.Update
                 Debug.LogError("[UpdateChecker] 更新スクリプトの起動に失敗しました: " + e.Message);
                 return false;
             }
+        }
+
+        /// <summary>macOS の .app バンドル (更新単位) と Contents を Application.dataPath から特定する。
+        /// Unity の macOS dataPath は &lt;app&gt;.app/Contents (または Contents/Resources/Data)。</summary>
+        private static bool TryResolveMacBundle(out string appBundle, out string contentsDir, out string error)
+        {
+            appBundle = null;
+            contentsDir = null;
+            error = null;
+
+            var dataPath = Application.dataPath;
+            if (string.IsNullOrEmpty(dataPath))
+            {
+                error = "Application.dataPath が空です";
+                return false;
+            }
+
+            DirectoryInfo contents = null;
+            var dir = new DirectoryInfo(dataPath);
+            if (dir.Name == "Contents")
+            {
+                contents = dir;
+            }
+            else if (dir.Parent != null && dir.Parent.Name == "Contents")
+            {
+                contents = dir.Parent;
+            }
+            else
+            {
+                for (var current = dir; current != null; current = current.Parent)
+                {
+                    if (current.Name == "Contents" && current.Parent != null &&
+                        current.Parent.Name.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+                    {
+                        contents = current;
+                        break;
+                    }
+                }
+            }
+
+            if (contents == null || contents.Parent == null ||
+                !contents.Parent.Name.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "macOS の .app バンドルを特定できません: " + dataPath;
+                return false;
+            }
+
+            contentsDir = contents.FullName;
+            appBundle = contents.Parent.FullName;
+            return true;
         }
     }
 

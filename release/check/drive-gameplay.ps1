@@ -1,4 +1,4 @@
-<#
+﻿<#
     .SYNOPSIS
         Win64 gameplay smoke driver for the FlashBeat release gate (#22).
 
@@ -25,8 +25,11 @@ param(
     [Parameter(Mandatory = $true)][string]$OutDir,
     [int]$Width = 1280,
     [int]$Height = 720,
-    # 0 = windowed (the 1280x720 UX smoke), 1 = fullscreen window, 2 = exclusive fullscreen, 3 = borderless
-    [int]$Fullscreen = 0,
+    # -1 = 起動引数なし (ProjectSettings の既定表示 = 展示運用と同じ起動)。0 = windowed (the 1280x720 UX smoke),
+    #      1 = fullscreen window, 2 = exclusive fullscreen, 3 = borderless
+    [int]$Fullscreen = -1,
+    # クライアント領域がディスプレイを覆っていることを必須にする (issue #52: 全画面にならない不具合の回帰防止)
+    [switch]$RequireFullscreenCoverage,
     [string]$YtDlpPath = '',
     [string]$LogName = 'Player.log',
     [string]$SummaryName = 'run-summary.json',
@@ -42,6 +45,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:SkippedKeys = 0
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 Add-Type -AssemblyName System.Drawing
@@ -57,6 +61,10 @@ public class Win32 {
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
@@ -92,6 +100,38 @@ function Wait-For([scriptblock]$cond, [int]$timeoutSec, [string]$what) {
     return $false
 }
 
+# The player window can be recreated (resolution switch, scene change), so the handle is
+# resolved again for every interaction instead of being cached once.
+function Find-PlayerWindow([int]$processId) {
+    $best = [IntPtr]::Zero
+    $bestArea = 0
+    $callback = [Win32+EnumWindowsProc]{
+        param($h, $l)
+        $winPid = 0
+        [void][Win32]::GetWindowThreadProcessId($h, [ref]$winPid)
+        if ($winPid -eq $processId -and [Win32]::IsWindowVisible($h)) {
+            $r = New-Object Win32+RECT
+            [void][Win32]::GetClientRect($h, [ref]$r)
+            $area = ($r.Right - $r.Left) * ($r.Bottom - $r.Top)
+            if ($area -gt $bestArea) { $script:foundArea = $area; $script:foundWindow = $h }
+        }
+        return $true
+    }
+    $script:foundWindow = [IntPtr]::Zero
+    [void][Win32]::EnumWindows($callback, [IntPtr]::Zero)
+    $best = $script:foundWindow
+    return $best
+}
+
+# True when the foreground window belongs to the player process.
+function Test-ForegroundIsPlayer([int]$processId) {
+    $fg = [Win32]::GetForegroundWindow()
+    if ($fg -eq [IntPtr]::Zero) { return $false }
+    $fgPid = 0
+    [void][Win32]::GetWindowThreadProcessId($fg, [ref]$fgPid)
+    return ($fgPid -eq $processId)
+}
+
 function Focus-Window([IntPtr]$hwnd) {
     $r = New-Object Win32+RECT
     [void][Win32]::GetWindowRect($hwnd, [ref]$r)
@@ -104,14 +144,28 @@ function Focus-Window([IntPtr]$hwnd) {
     Start-Sleep -Milliseconds 250
 }
 
-function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
-    Focus-Window $hwnd
-    # Safety: another automation on this machine would steal the focus and receive our keystrokes.
-    # Abort instead of corrupting somebody else's run.
-    $fg = [Win32]::GetForegroundWindow()
-    if ($fg -ne $hwnd) {
-        Write-Host "[drive] ABORT: foreground window is not the player (another automation is running) - stopping to avoid interference"
+function Send-Key($proc, [int]$vk, [string]$name) {
+    try { $proc.Refresh() } catch {}
+    $hwnd = Find-PlayerWindow $proc.Id
+    if ($hwnd -eq [IntPtr]::Zero) {
+        Write-Host "[drive] ABORT: the player window is gone - stopping"
         exit 3
+    }
+    # Safety: another automation on this machine would steal the focus and receive our
+    # keystrokes. The foreground is compared by process id (the window handle may change
+    # while the game runs). If the focus cannot be taken, the key is skipped - never
+    # typed into somebody else's window - and the run continues; skipped keys are counted
+    # and reported in the summary.
+    $focused = $false
+    for ($attempt = 0; $attempt -lt 5 -and -not $focused; $attempt++) {
+        Focus-Window $hwnd
+        $focused = Test-ForegroundIsPlayer $proc.Id
+        if (-not $focused) { Start-Sleep -Milliseconds 400 }
+    }
+    if (-not $focused) {
+        $script:SkippedKeys++
+        Write-Host "[drive] skip key $name (foreground is not the player - not typing into another window)"
+        return
     }
     Write-Host "[drive] key $name at $(Get-Date -Format HH:mm:ss)"
     [Win32]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero)
@@ -120,7 +174,13 @@ function Send-Key([IntPtr]$hwnd, [int]$vk, [string]$name) {
     Start-Sleep -Milliseconds 300
 }
 
-function Save-Shot([IntPtr]$hwnd, [string]$file) {
+function Save-Shot($proc, [string]$file) {
+    try { $proc.Refresh() } catch {}
+    $hwnd = Find-PlayerWindow $proc.Id
+    if ($hwnd -eq [IntPtr]::Zero) {
+        Write-Host "[drive] shot $file skipped (player window not found)"
+        return $null
+    }
     # restore + focus first: a minimised or background window has an empty rect and no visible pixels
     [void][Win32]::ShowWindow($hwnd, 9)   # SW_RESTORE
     [void][Win32]::SetForegroundWindow($hwnd)
@@ -135,17 +195,57 @@ function Save-Shot([IntPtr]$hwnd, [string]$file) {
     }
     $origin = New-Object Win32+POINT
     [void][Win32]::ClientToScreen($hwnd, [ref]$origin)
-    $bmp = New-Object System.Drawing.Bitmap($w, $h)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($origin.X, $origin.Y, 0, 0, (New-Object System.Drawing.Size($w, $h)))
     $path = Join-Path $OutDir $file
-    $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
-    $g.Dispose(); $bmp.Dispose()
-    Write-Host "[drive] shot $file (client $($w)x$h at $($origin.X),$($origin.Y))"
+    try {
+        $bmp = New-Object System.Drawing.Bitmap($w, $h)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.CopyFromScreen($origin.X, $origin.Y, 0, 0, (New-Object System.Drawing.Size($w, $h)))
+        $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+        $g.Dispose(); $bmp.Dispose()
+        Write-Host "[drive] shot $file (client $($w)x$h at $($origin.X),$($origin.Y))"
+    } catch {
+        # 画面がロックされている / 空港モードなどで CopyFromScreen が失敗する。
+        # スクリーンショットは証跡の補助なので、失敗してもゲーム検証は続行する
+        # (判定・シーン遷移・譜面同期は Player.log が証明する)。
+        Write-Host "[drive] shot $file failed: $($_.Exception.Message)"
+        return $null
+    }
     return $path
 }
 
 if (-not (Test-Path -LiteralPath $Exe)) { throw "artifact not found: $Exe" }
+
+Add-Type -AssemblyName System.Windows.Forms
+
+# 表示カバレッジ: プレイヤーのクライアント領域がディスプレイをどれだけ覆っているか。
+# issue #52 の回帰防止用。ウィンドウが 1280x720 の小窓了半天、"全画面" の証跡に
+# ならない状態を検出する。
+function Measure-DisplayCoverage([int]$processId) {
+    $hwnd = Find-PlayerWindow $processId
+    if ($hwnd -eq [IntPtr]::Zero) { return $null }
+    $client = New-Object Win32+RECT
+    [void][Win32]::GetClientRect($hwnd, [ref]$client)
+    $origin = New-Object Win32+POINT
+    [void][Win32]::ClientToScreen($hwnd, [ref]$origin)
+    $clientW = $client.Right - $client.Left
+    $clientH = $client.Bottom - $client.Top
+    $display = [System.Windows.Forms.Screen]::FromHandle($hwnd)
+    $bounds = $display.Bounds
+    $overlapW = [math]::Min($origin.X + $clientW, $bounds.Right) - [math]::Max($origin.X, $bounds.Left)
+    $overlapH = [math]::Min($origin.Y + $clientH, $bounds.Bottom) - [math]::Max($origin.Y, $bounds.Top)
+    $overlapW = [math]::Max(0, $overlapW)
+    $overlapH = [math]::Max(0, $overlapH)
+    $displayArea = $bounds.Width * $bounds.Height
+    $coverage = if ($displayArea -gt 0) { ($overlapW * $overlapH) / $displayArea } else { 0 }
+    return [ordered]@{
+        clientWidth   = $clientW
+        clientHeight  = $clientH
+        clientOrigin  = "$($origin.X),$($origin.Y)"
+        displayBounds = "$($bounds.Width)x$($bounds.Height) at $($bounds.X),$($bounds.Y)"
+        primary       = [bool]$display.Primary
+        coverage      = [math]::Round($coverage, 4)
+    }
+}
 
 # Preflight: another player instance (e.g. a parallel worker automation) would fight over the
 # keyboard and the focus. Refuse to start instead of corrupting the other run.
@@ -162,7 +262,12 @@ if ($others.Count -gt 0) {
     }
 }
 
-$launchArgs = @('-logFile', "`"$log`"", '-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
+$launchArgs = @('-logFile', "`"$log`"")
+if ($Fullscreen -ge 0) {
+    # 表示相关的引数は「明示して起動する場合」だけ渡す。Default (-1) は
+    # 展示運用と同じ「引数なし起動」を検証する (issue #52)。
+    $launchArgs += @('-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
+}
 
 Write-Host "[drive] launching $Exe"
 Write-Host "[drive] args: $($launchArgs -join ' ')"
@@ -179,34 +284,40 @@ for ($i = 0; $i -lt 120; $i++) {
 if ($hwnd -eq [IntPtr]::Zero) { Write-Host '[drive] no window'; exit 2 }
 Write-Host "[drive] window=$hwnd"
 
+$geometry = Measure-DisplayCoverage $p.Id
+if ($geometry) {
+    Write-Host ("[drive] geometry: client {0}x{1} at {2} / display {3} (primary={4}) coverage={5:P1}" -f `
+        $geometry.clientWidth, $geometry.clientHeight, $geometry.clientOrigin, $geometry.displayBounds, $geometry.primary, $geometry.coverage)
+}
+
 # 1) TitleScene
 $titleOk = Wait-For { (Scene-Count) -ge 2 } $TitleTimeoutSec 'TitleScene'
 $startupSec = [math]::Round(((Get-Date) - $started).TotalSeconds, 1)
 Write-Host "[drive] startup to TitleScene = $startupSec s"
-Save-Shot $hwnd '01_title.png' | Out-Null
+Save-Shot $p '01_title.png' | Out-Null
 
 # 2) Space -> SelectScene
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Milliseconds 900
-Save-Shot $hwnd '02_select.png' | Out-Null
+Save-Shot $p '02_select.png' | Out-Null
 Start-Sleep -Seconds 2
-Save-Shot $hwnd '03_select.png' | Out-Null
+Save-Shot $p '03_select.png' | Out-Null
 
 # 3) move the selection (No.1 -> No.2)
-Send-Key $hwnd $NextSongKey 'NextSong'
+Send-Key $p $NextSongKey 'NextSong'
 Start-Sleep -Seconds 1
-Save-Shot $hwnd '04_select_song2.png' | Out-Null
+Save-Shot $p '04_select_song2.png' | Out-Null
 
 # 4) Space -> GameScene
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Seconds 4
-Save-Shot $hwnd '05_game.png' | Out-Null
+Save-Shot $p '05_game.png' | Out-Null
 
 # 5) Space -> start the song (8s pre-roll)
 Start-Sleep -Seconds 10
-Send-Key $hwnd 0x20 'Space'
+Send-Key $p 0x20 'Space'
 Start-Sleep -Seconds 4
-Save-Shot $hwnd '06_game_playing.png' | Out-Null
+Save-Shot $p '06_game_playing.png' | Out-Null
 $judgeAfterStart = Judge-Count
 Write-Host "[drive] judge lines after start = $judgeAfterStart"
 
@@ -217,7 +328,7 @@ $extraStarts = 0
 while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
     if ((Log-Text) -match 'press Space to start') {
         Start-Sleep -Seconds 2
-        Send-Key $hwnd 0x20 'Space(start)'
+        Send-Key $p 0x20 'Space(start)'
         $extraStarts++
         Start-Sleep -Seconds 3
         Write-Host "[drive] extra start key #$extraStarts, judge lines = $(Judge-Count)"
@@ -225,7 +336,7 @@ while ($extraStarts -lt 5 -and (Judge-Count) -eq 0) {
         Start-Sleep -Seconds 2
     }
 }
-if ($extraStarts -gt 0) { Save-Shot $hwnd '06b_game_playing.png' | Out-Null }
+if ($extraStarts -gt 0) { Save-Shot $p '06b_game_playing.png' | Out-Null }
 
 # 6) ResultScene (optionally press lane keys, so the judgement is exercised on real input)
 $laneKeys = @(0x51, 0x57, 0x44, 0x46, 0x4A)   # Q W D F J  (lanes 0 1 2 3 4)
@@ -235,7 +346,7 @@ $deadline = (Get-Date).AddSeconds($ResultTimeoutSec)
 while ((Get-Date) -lt $deadline) {
     if ((Scene-Count) -ge 8) { $resultOk = $true; Write-Host '[drive] OK: ResultScene'; break }
     if ($PlayLanes) {
-        Send-Key $hwnd $laneKeys[$laneIdx % $laneKeys.Count] ('lane' + ($laneIdx % $laneKeys.Count))
+        Send-Key $p $laneKeys[$laneIdx % $laneKeys.Count] ('lane' + ($laneIdx % $laneKeys.Count))
         $laneIdx++
     } else {
         Start-Sleep -Milliseconds 400
@@ -243,33 +354,65 @@ while ((Get-Date) -lt $deadline) {
 }
 if (-not $resultOk) { Write-Host '[drive] TIMEOUT: ResultScene' }
 Start-Sleep -Seconds 2
-Save-Shot $hwnd '07_result.png' | Out-Null
+Save-Shot $p '07_result.png' | Out-Null
 $judgeAtResult = Judge-Count
 Write-Host "[drive] judge lines at result = $judgeAtResult, scenes = $(Scene-Count)"
 
 # 7) Retry (R)
 $retried = $false
 if (-not $SkipRetry) {
-    Send-Key $hwnd 0x52 'R'
+    Send-Key $p 0x52 'R'
     Start-Sleep -Seconds 8
-    Save-Shot $hwnd '08_retry.png' | Out-Null
+    Save-Shot $p '08_retry.png' | Out-Null
     Write-Host "[drive] final scenes = $(Scene-Count)"
     $retried = ((Scene-Count) -ge 9)
+}
+
+$finalGeometry = Measure-DisplayCoverage $p.Id
+if ($finalGeometry -and $geometry) {
+    # 表示は途中で変わることがあるので、最終値も記録する (小さいほうを採用)。
+    $geometry = [ordered]@{
+        clientWidth   = $finalGeometry.clientWidth
+        clientHeight  = $finalGeometry.clientHeight
+        clientOrigin  = $finalGeometry.clientOrigin
+        displayBounds = $finalGeometry.displayBounds
+        primary       = $finalGeometry.primary
+        coverage      = [math]::Min($geometry.coverage, $finalGeometry.coverage)
+    }
 }
 
 try { $p.CloseMainWindow() | Out-Null } catch {}
 Start-Sleep -Seconds 3
 if (-not $p.HasExited) { $p.Kill() }
 
+if ($Fullscreen -lt 0) {
+    $resolutionText = 'default (no display arguments)'
+} else {
+    $resolutionText = "$Width x $Height (fullscreen=$Fullscreen)"
+}
+if ($geometry) {
+    $coverageValue = $geometry.coverage
+    $clientRectText = "$($geometry.clientWidth)x$($geometry.clientHeight) at $($geometry.clientOrigin)"
+    $displayBoundsText = $geometry.displayBounds
+} else {
+    $coverageValue = 0
+    $clientRectText = 'unknown'
+    $displayBoundsText = 'unknown'
+}
+
 $summary = [ordered]@{
     startedAt        = $started.ToString('yyyy-MM-ddTHH:mm:ssK')
+    skippedKeys      = $script:SkippedKeys
     exe              = $Exe
     outDir           = $OutDir
-    resolution       = "$Width x $Height (fullscreen=$Fullscreen)"
+    resolution       = $resolutionText
     startupSeconds   = $startupSec
     titleReached     = [bool]$titleOk
     resultReached    = [bool]$resultOk
     retryReloaded    = [bool]$retried
+    displayCoverage  = $coverageValue
+    clientRect       = $clientRectText
+    displayBounds    = $displayBoundsText
     scenes           = (Scene-Count)
     judgedNotes      = $judgeAtResult
     logFile          = $log
@@ -278,3 +421,12 @@ $summaryPath = Join-Path $OutDir $SummaryName
 $summary | ConvertTo-Json | Set-Content -LiteralPath $summaryPath -Encoding UTF8
 Write-Host "[drive] summary -> $summaryPath"
 Write-Host '[drive] done'
+
+if ($RequireFullscreenCoverage) {
+    $coverage = if ($geometry) { [double]$geometry.coverage } else { 0.0 }
+    if ($coverage -lt 0.98) {
+        Write-Host ("[drive] FAIL: the player window covers only {0:P1} of the display - the game is not fullscreen (issue #52)" -f $coverage)
+        exit 5
+    }
+    Write-Host ("[drive] OK: the player window covers {0:P1} of the display" -f $coverage)
+}

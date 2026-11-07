@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Mac verification runner (Issue #111): EditMode tests / macOS build in a persistent, isolated worktree.
+# Usage: script/mac-verify test [<ref>] | build [<ref>] | run [<ref>] [<seconds>] | status
+# - Never touches the checkout you run it from. Works in $FB_MAC_WORKTREE (default ../FlashBeat.macverify).
+# - UNITY_BIN overrides the editor. Default: 6000.5.6f1 (canonical) if installed, else 6000.6.8f1 (fallback, NOT the
+#   project's canonical version: it rewrites Packages/ and ProjectSettings/, never commit those).
+# - Canonical results for release decisions come from the Windows machine (Unity 6000.5.6f1).
+set -euo pipefail
+cmd="${1:-status}"; ref="${2:-origin/release-0-1-3}"
+root="$(git rev-parse --show-toplevel)"
+wt="${FB_MAC_WORKTREE:-$(dirname "$root")/FlashBeat.macverify}"
+hub=/Applications/Unity/Hub/Editor
+unity="${UNITY_BIN:-}"
+if [ -z "$unity" ]; then
+  for v in 6000.5.6f1 6000.6.8f1; do [ -x "$hub/$v/Unity.app/Contents/MacOS/Unity" ] && { unity="$hub/$v/Unity.app/Contents/MacOS/Unity"; break; }; done
+fi
+[ -n "$unity" ] || { echo "no Unity editor found under $hub" >&2; exit 2; }
+echo "[mac-verify] unity=$unity"; echo "[mac-verify] worktree=$wt ref=$ref"
+git -C "$root" fetch -q origin
+if [ ! -d "$wt" ]; then GIT_LFS_SKIP_SMUDGE=1 git -C "$root" worktree add -q --detach "$wt" "$ref"; fi
+if [ "$cmd" = status ]; then git -C "$wt" log --oneline -1; git -C "$wt" status --short | head -5; exit 0; fi
+# Park Unity-generated edits from a previous run (non-destructive) and move to the requested ref.
+if [ -n "$(git -C "$wt" status --porcelain)" ]; then git -C "$wt" stash push -u -q -m "mac-verify generated $(date +%s)" || true; fi
+git -C "$wt" checkout -q --detach "$ref"
+# Only the LFS files the tests/build need (fonts + UI sprites); a full lfs pull is slow and not required.
+( cd "$wt" && git lfs pull --include="Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset,Assets/Game/Art/UI/**" >/dev/null )
+case "$cmd" in
+  test)
+    out="$wt/TestResults.xml"; mv -f "$out" "$out.prev" 2>/dev/null || true
+    # no -quit: it would end the editor before the test runner starts
+    "$unity" -batchmode -projectPath "$wt" -runTests -testPlatform editmode -testResults "$out" -logFile "$wt/mac-test.log" || true
+    [ -f "$out" ] || { echo "[mac-verify] no TestResults.xml (see $wt/mac-test.log)" >&2; exit 3; }
+    python3 -I - "$out" <<'PY'
+import sys, xml.etree.ElementTree as ET
+r = ET.parse(sys.argv[1]).getroot()
+print("[mac-verify] total=%s passed=%s failed=%s" % (r.get("total"), r.get("passed"), r.get("failed")))
+bad = [tc.get("fullname") for tc in r.iter("test-case") if tc.get("result") != "Passed"]
+for b in bad: print("[mac-verify] FAIL", b)
+sys.exit(1 if bad else 0)
+PY
+    ;;
+  build)
+    # never build over an existing output (an in-place rebuild produced a corrupt level1 file): move it aside
+    [ -d "$wt/Builds/macOS" ] && mv "$wt/Builds/macOS" "$wt/Builds/macOS.old.$(date +%s)"
+    "$unity" -batchmode -quit -projectPath "$wt" -executeMethod BuildScript.BuildStandaloneMacOS -logFile "$wt/mac-build.log"
+    ls -d "$wt/Builds/macOS/FlashBeat.app" && echo "[mac-verify] build ok (launch: open $wt/Builds/macOS/FlashBeat.app)"
+    ;;
+  run)
+    # build the native app, launch it, wait, capture the screen, inspect the player log, quit it.
+    secs="${3:-45}"
+    "$0" build "$ref"
+    app="$wt/Builds/macOS/FlashBeat.app"
+    outdir="$wt/Builds/run-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$outdir"
+    open -n "$app" --args -logFile "$outdir/Player.log" -autoshot "$outdir" -autoshot-interval "${AUTOSHOT_INTERVAL:-8}" -autoshot-count 6 ${AUTOSHOT_SCENES:+-autoshot-scenes "$AUTOSHOT_SCENES"}
+    echo "[mac-verify] launched, waiting ${secs}s"; sleep "$secs"
+    screencapture -x "$outdir/os-screen.png" 2>/dev/null || echo "[mac-verify] (OS screencapture unavailable - using in-app AutoShot images)"
+    pgrep -f "Builds/macOS/FlashBeat.app" >/dev/null && echo "[mac-verify] process alive: yes" || echo "[mac-verify] process alive: NO (crashed or exited)"
+    osascript -e 'tell application "FlashBeat" to quit' >/dev/null 2>&1 || true
+    if [ -f "$outdir/Player.log" ]; then
+      echo "[mac-verify] log: $(grep -c -i -E 'exception|error' "$outdir/Player.log") exception/error lines"
+      grep -i -E "Your scene has been loaded|\[Perf\]|Crash|exception" "$outdir/Player.log" | head -12
+    fi
+    echo "[mac-verify] screenshots: $outdir"
+    ;;
+  *) echo "usage: $0 test|build|run|status [ref]" >&2; exit 64 ;;
+esac

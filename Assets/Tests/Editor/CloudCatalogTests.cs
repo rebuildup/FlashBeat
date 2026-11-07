@@ -20,6 +20,7 @@ namespace FlashBeat.Tests.Editor
         {
             GManager.ClearRemoteCatalog();
             CloudChartHolder.Clear();
+            PlaySessionSnapshot.Clear(); // Issue #183: ResetSession がセッションを固定するようになったので掃除する
         }
 
         // --- catalog parsing ------------------------------------------------
@@ -105,7 +106,7 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void ApplyRemoteCatalog_SwitchesActiveSongsAndTotalSong()
+        public void ApplyRemoteCatalog_KeepsEverySongAndAddsTheCloudOnes()
         {
             SongData[] remote = CloudCatalog.ParseCatalog(
                 "{\"songs\":[{\"id\":\"remote-one\",\"title\":\"リモート曲\",\"youtubeId\":\"dQw4w9WgXcQ\",\"chartVersion\":7}]}");
@@ -114,9 +115,15 @@ namespace FlashBeat.Tests.Editor
             GManager.ApplyRemoteCatalog(remote);
 
             Assert.IsTrue(GManager.HasRemoteCatalog);
-            Assert.AreSame(remote, GManager.ActiveSongs);
-            Assert.AreEqual(remote.Length - 1, GManager.totalSong);
-            Assert.AreEqual("リモート曲", GManager.GetSong(1).title);
+            // Every song of the original data stays selectable; the cloud song
+            // is added at the end of the list.
+            Assert.AreEqual(GManager.Songs.Length + 1, GManager.ActiveSongs.Length);
+            Assert.AreEqual(GManager.ActiveSongs.Length - 1, GManager.totalSong);
+            Assert.AreEqual("ロストアンブレラ", GManager.GetSong(1).title);
+
+            int added = GManager.ActiveSongs.Length - 1;
+            Assert.AreEqual("リモート曲", GManager.GetSong(added).title);
+            Assert.IsTrue(GManager.GetSong(added).isRemote);
         }
 
         [Test]

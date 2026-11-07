@@ -47,10 +47,15 @@
         "properties": {
           "type": {
             "type": "integer",
-            "const": 1
+            "description": "Note kind. 1 = Tap (the only kind the charts shipped before issue #164 carry), 2 = Hold (a long note that is held down).",
+            "enum": [
+              1,
+              2
+            ]
           },
           "num": {
             "type": "integer",
+            "description": "Line index of the note. For a Tap it is the hit position, for a Hold it is the start of the hold.",
             "minimum": 0
           },
           "block": {
@@ -62,8 +67,32 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 192
+          },
+          "endNum": {
+            "type": "integer",
+            "description": "Line index where a Hold ends. Required for type 2 and ignored for type 1. The hold covers the lines (num, endNum] at the resolution of LPB.",
+            "minimum": 0
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": 2
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "required": [
+                "endNum"
+              ]
+            }
+          }
+        ]
       }
     },
     "lyrics": {
