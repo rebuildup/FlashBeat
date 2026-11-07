@@ -6,6 +6,7 @@ import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { publishAndVerify } from "@/lib/publish/client";
+import { savePublishDraft } from "@/lib/publish/draft";
 import { resolvePublishTransport } from "@/lib/publish/transport";
 import type { PublishResult } from "@/lib/publish/types";
 import {
@@ -163,7 +164,7 @@ const badge = css({
   whiteSpace: "nowrap",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,
@@ -312,9 +313,11 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
     inFlight.current = false;
     setPublishing(false);
     setResult(outcome);
+    // The failure panel in the aside carries the actions; the modal must not
+    // cover it.
+    setDialogOpen(false);
 
     if (outcome.ok) {
-      setDialogOpen(false);
       toaster.create({
         title: "Published",
         description: `${outcome.response.songId} is chart version ${outcome.response.chartVersion}, the catalog is at version ${outcome.response.catalogVersion}.`,
@@ -329,6 +332,18 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
       type: "error",
     });
   }, [chart, effectiveDraft, token, transport]);
+
+  const handleBackToEditor = useCallback(() => {
+    const url = savePublishDraft(
+      {
+        songId: initialSong?.id ?? null,
+        version: initialVersion !== undefined ? String(initialVersion) : null,
+        chart: chart ?? initialChart,
+      },
+      "editor",
+    );
+    window.location.assign(url);
+  }, [chart, initialChart, initialSong, initialVersion]);
 
   return (
     <div className={root}>
@@ -371,33 +386,33 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
                 issues={visibleIssues}
               />
             </section>
+
+            <section className={card}>
+              <h2 className={cardTitle}>Publish</h2>
+
+              <dl className={facts}>
+                <dt className={factKey}>Chart</dt>
+                <dd className={factValue}>
+                  {summary.noteCount} notes at {summary.bpm} BPM
+                </dd>
+
+                <dt className={factKey}>Song id</dt>
+                <dd className={factValue}>{summary.songId || "—"}</dd>
+              </dl>
+
+              {chartIssues.length > 0 ? (
+                <p className={warning}>
+                  The chart has {chartIssues.length} contract problems. Fix them before publishing.
+                </p>
+              ) : null}
+
+              <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+                Review publish
+              </Button>
+            </section>
+
+            <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
           </div>
-
-          <section className={card}>
-            <h2 className={cardTitle}>Publish</h2>
-
-            <dl className={facts}>
-              <dt className={factKey}>Chart</dt>
-              <dd className={factValue}>
-                {summary.noteCount} notes at {summary.bpm} BPM
-              </dd>
-
-              <dt className={factKey}>Song id</dt>
-              <dd className={factValue}>{summary.songId || "—"}</dd>
-            </dl>
-
-            {chartIssues.length > 0 ? (
-              <p className={warning}>
-                The chart has {chartIssues.length} contract problems. Fix them before publishing.
-              </p>
-            ) : null}
-
-            <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
-              Review publish
-            </Button>
-          </section>
-
-          <PublishResultPanel result={result} />
         </aside>
       </div>
 
@@ -408,7 +423,6 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
         token={token}
         onTokenChange={setToken}
         publishing={publishing}
-        error={result !== null && !result.ok ? result.failure.message : undefined}
         onPublish={handlePublish}
       />
 

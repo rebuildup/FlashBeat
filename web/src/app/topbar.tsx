@@ -2,12 +2,14 @@ import { Portal } from "@ark-ui/react/portal";
 import { createListCollection } from "@ark-ui/react/collection";
 import { Field, Input, Select } from "@/components/ui";
 import { css } from "styled-system/css";
+import { SORT_OPTIONS, type SortKey } from "./catalog-view";
 
 const bar = css({
   alignItems: "flex-end",
   borderBottomColor: "gray.surface.border",
   borderBottomWidth: "1px",
   display: "flex",
+  flexWrap: "wrap",
   gap: "3",
   justifyContent: "space-between",
   paddingBottom: "3",
@@ -38,6 +40,7 @@ const subtitleText = css({
 const tools = css({
   alignItems: "flex-end",
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
 });
 
@@ -70,6 +73,13 @@ const selectControl = css({
   },
 });
 
+/** "Search" is the `/` shortcut target (catalog keyboard model, issue #70). */
+export const SEARCH_INPUT_ID = "catalog-search";
+
+const sortCollection = createListCollection({
+  items: SORT_OPTIONS.map((option) => ({ ...option })),
+});
+
 export type LevelFilter = "all" | "low" | "mid" | "high";
 
 export interface LevelFilterItem {
@@ -93,6 +103,8 @@ export function Topbar({
   onQueryChange,
   level,
   onLevelChange,
+  sort,
+  onSortChange,
 }: {
   title: string;
   subtitle: string;
@@ -100,6 +112,8 @@ export function Topbar({
   onQueryChange: (value: string) => void;
   level: LevelFilter;
   onLevelChange: (value: LevelFilter) => void;
+  sort: SortKey;
+  onSortChange: (value: SortKey) => void;
 }) {
   return (
     <header className={bar}>
@@ -112,11 +126,42 @@ export function Topbar({
         <Field.Root className={toolField}>
           <Field.Label>Search</Field.Label>
           <Input
+            id={SEARCH_INPUT_ID}
             placeholder="Song title or artist"
             value={query}
             onChange={(event) => onQueryChange(event.currentTarget.value)}
           />
         </Field.Root>
+
+        <Select.Root
+          className={selectRoot}
+          collection={sortCollection}
+          value={[sort]}
+          onValueChange={(details) => {
+            const [next] = details.value;
+            if (next) onSortChange(next as SortKey);
+          }}
+        >
+          <Select.Label>Sort</Select.Label>
+          <Select.Control className={selectControl}>
+            <Select.ValueText placeholder="Catalog" />
+            <Select.Indicator />
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                <Select.List>
+                  {SORT_OPTIONS.map((option) => (
+                    <Select.Item key={option.value} item={option}>
+                      <Select.ItemText>{option.label}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.List>
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
 
         <Select.Root
           className={selectRoot}
