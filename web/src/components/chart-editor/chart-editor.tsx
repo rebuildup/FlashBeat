@@ -3,7 +3,8 @@ import { Button, Field, Input } from "@/components/ui";
 import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
-import { importChartJson } from "@/lib/chart/import";
+import { importChartLenient } from "@/lib/chart/import";
+import { mergeLoadWarnings } from "@/lib/chart/issues";
 import { createHold, isHold } from "@/lib/chart/long-note";
 import {
   addNote,
@@ -252,6 +253,18 @@ export interface ChartEditorProps {
   onChartChange?: (chart: Chart | null) => void;
   /** Called with the contract problems of the current chart. */
   onValidationChange?: (issues: ValidationIssue[]) => void;
+  /**
+   * Problems of the chart it opens with, as warnings.
+   *
+   * A chart that was published before the semantic rules were unified is read
+   * leniently, so it can be repaired instead of being dropped (issue #208).
+   * The problems stay visible in the validation panel until the operator
+   * fixes them; the publish path itself stays strict.
+   *
+   * The value is read once, when the editor opens: a different chart is a
+   * different editor (the page gives it a new key).
+   */
+  initialIssues?: ValidationIssue[];
 }
 
 export function ChartEditor({
@@ -259,9 +272,16 @@ export function ChartEditor({
   initialYouTubeId,
   onChartChange,
   onValidationChange,
+  initialIssues,
 }: ChartEditorProps) {
   const [chart, setChart] = useState<Chart | null>(initialChart);
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
+  /**
+   * Warnings of the chart the editor was opened with (or with the file the
+   * operator picked). They are the problems the chart already had when it was
+   * read; the live validation of the editor stays strict.
+   */
+  const [loadWarnings, setLoadWarnings] = useState<ValidationIssue[]>(initialIssues ?? []);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState(() => dominantResolution(initialChart));
   /**
@@ -307,9 +327,13 @@ export function ChartEditor({
   // Every edit re-checks the contract, so the operator sees a broken chart
   // before it reaches the API. A file that could not be read keeps its own
   // problems on screen.
+  //
+  // The problems the chart was read with stay warnings (issue #208): they
+  // were published under the old rules and can be repaired. Everything the
+  // operator breaks while editing is an error again.
   const issues = useMemo(
-    () => (chart ? validateChart(chart) : importIssues),
-    [chart, importIssues],
+    () => (chart ? mergeLoadWarnings(validateChart(chart), loadWarnings) : importIssues),
+    [chart, importIssues, loadWarnings],
   );
 
   useEffect(() => {
@@ -322,16 +346,22 @@ export function ChartEditor({
 
   const handleImportFile = useCallback(async (file: File) => {
     const text = await file.text();
-    const result = importChartJson(text);
+    // The file is read leniently: a chart whose relations are broken is
+    // loaded and the violations are shown as warnings, so a chart that was
+    // published before the rules were unified can be repaired here instead of
+    // being dropped (issue #208).
+    const result = importChartLenient(text);
 
     if (!result.ok) {
       setImportIssues(result.issues);
+      setLoadWarnings([]);
       setChart(null);
       setSelectedIndex(null);
       return;
     }
 
     setImportIssues([]);
+    setLoadWarnings(result.issues ?? []);
     setChart(result.chart);
     setSelectedIndex(null);
     setResolution(dominantResolution(result.chart));

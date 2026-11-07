@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SAMPLE_CHART } from "@/lib/chart/fixtures";
+import { SAMPLE_CHART, MIXED_LPB_OVERLAP_CHART } from "@/lib/chart/fixtures";
+import { importChartLenient } from "@/lib/chart/import";
 import { ChartEditor } from "./chart-editor";
 
 /**
@@ -66,5 +67,33 @@ describe("ChartEditor note kinds", () => {
 
   it("tells the operator how to change the length of a hold", () => {
     expect(html).toContain("drag the handle of a hold to change its length");
+  });
+});
+
+/**
+ * The warnings of a chart that was read leniently (issue #208).
+ *
+ * The chart of the fixture overlaps two holds of a mixed `LPB`. It is loaded
+ * with a warning, so the operator can repair it instead of being locked out
+ * by "Published chart failed validation".
+ */
+describe("ChartEditor with a chart that was read leniently", () => {
+  const loaded = importChartLenient(JSON.stringify(MIXED_LPB_OVERLAP_CHART));
+  const html = renderToStaticMarkup(
+    createElement(ChartEditor, {
+      initialChart: loaded.ok ? loaded.chart : SAMPLE_CHART,
+      initialYouTubeId: "dQw4w9WgXcQ",
+      initialIssues: loaded.ok ? loaded.issues : undefined,
+    }),
+  );
+
+  it("shows the problem of the loaded chart as a warning", () => {
+    expect(html).toContain('data-testid="validation-warning-summary"');
+    expect(html).toContain("1 warning");
+    expect(html).toContain("overlaps another hold on lane 0");
+  });
+
+  it("does not report the problem as an error", () => {
+    expect(html).not.toContain('data-testid="validation-error-summary"');
   });
 });

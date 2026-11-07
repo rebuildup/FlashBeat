@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { loadSongSession } from "./load";
+import { MIXED_LPB_OVERLAP_CHART } from "../chart/fixtures";
 const chart = {
   name: "B",
   maxBlock: 8,
@@ -41,5 +42,22 @@ describe("published song session", () => {
           : { songId: "a", chartVersion: 2, chart },
       )) as typeof fetch;
     await expect(loadSongSession("b", "2", request)).rejects.toThrow("identity mismatch");
+  });
+  it("reads a published chart whose relations are broken, with a warning", async () => {
+    // Issue #208: the chart was published before the semantic rules were
+    // unified, so it must be readable. Before the fix the session failed with
+    // "Published chart failed validation" and the operator could not repair
+    // the chart.
+    const request = (async (url: string) =>
+      Response.json(
+        url.endsWith("catalog")
+          ? { songs: [{ id: "b", title: "B", youtubeId: "video-b" }] }
+          : { songId: "b", chartVersion: 2, chart: MIXED_LPB_OVERLAP_CHART },
+      )) as typeof fetch;
+
+    const result = await loadSongSession("b", "2", request);
+
+    expect(result.chart.notes).toHaveLength(2);
+    expect(result.issues.map((issue) => issue.keyword)).toContain("warning.overlap");
   });
 });

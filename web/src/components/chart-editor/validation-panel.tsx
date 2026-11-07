@@ -1,4 +1,5 @@
 import { css } from "styled-system/css";
+import { countErrors, countWarnings, isWarning } from "@/lib/chart/issues";
 import type { ValidationIssue } from "@/lib/chart/types";
 
 /**
@@ -61,6 +62,30 @@ const message = css({
   maxWidth: "100%",
 });
 
+/**
+ * A warning is a problem the chart was read with (issue #208): the chart was
+ * published before the semantic rules were unified, so it can be repaired
+ * instead of being dropped.
+ */
+const warning = css({
+  color: "#e2b93b",
+  fontSize: "2xs",
+  wordBreak: "break-word",
+  maxWidth: "100%",
+});
+
+const warningTag = css({
+  color: "#e2b93b",
+  fontSize: "2xs",
+  fontWeight: "medium",
+});
+
+const summary = css({
+  color: "#b0b0b0",
+  fontSize: "2xs",
+  margin: "0",
+});
+
 const clean = css({
   color: "#b0b0b0",
   fontSize: "2xs",
@@ -68,6 +93,9 @@ const clean = css({
 });
 
 export function ValidationPanel({ issues }: { issues: ValidationIssue[] }) {
+  const warnings = countWarnings(issues);
+  const errors = countErrors(issues);
+
   return (
     <section className={frame} data-testid="validation-panel">
       <h3 className={title}>Contract check</h3>
@@ -75,14 +103,28 @@ export function ValidationPanel({ issues }: { issues: ValidationIssue[] }) {
       {issues.length === 0 ? (
         <p className={clean}>The chart satisfies the chart contract.</p>
       ) : (
-        <ul className={list}>
-          {issues.map((issue, index) => (
-            <li key={`${issue.path}-${issue.keyword}-${index}`} className={item}>
-              <span className={path}>{issue.path || "chart"}</span>
-              <span className={message}>{issue.message}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {warnings > 0 ? (
+            <p className={summary} data-testid="validation-warning-summary">
+              {warnings} warning{warnings === 1 ? "" : "s"} — the chart was read leniently and still
+              has to be repaired before it can be published.
+            </p>
+          ) : null}
+          {errors > 0 ? (
+            <p className={summary} data-testid="validation-error-summary">
+              {errors} error{errors === 1 ? "" : "s"} — the publish API refuses this chart.
+            </p>
+          ) : null}
+          <ul className={list}>
+            {issues.map((issue, index) => (
+              <li key={`${issue.path}-${issue.keyword}-${index}`} className={item}>
+                <span className={path}>{issue.path || "chart"}</span>
+                {isWarning(issue) ? <span className={warningTag}>warning</span> : null}
+                <span className={isWarning(issue) ? warning : message}>{issue.message}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
