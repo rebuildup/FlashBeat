@@ -1,12 +1,21 @@
 import type { SongSummary } from "../../app/types";
-import { importChartJson } from "../chart/import";
-import type { Chart } from "../chart/types";
+import { importChartLenient } from "../chart/import";
+import type { Chart, ValidationIssue } from "../chart/types";
 
 /** One published song with the exact chart version the Catalog selected. */
 export interface SongSession {
   song: SongSummary;
   chart: Chart;
   chartVersion: number;
+  /**
+   * Problems of the published chart that were tolerated while reading it.
+   *
+   * A chart that was published before the semantic rules were unified is read
+   * leniently, so it can be repaired instead of being dropped (issue #208).
+   * The problems are warnings: the publish API stays strict, so they still
+   * have to be fixed before the chart can be published again.
+   */
+  issues: ValidationIssue[];
 }
 
 export async function loadSongSession(
@@ -43,7 +52,12 @@ export async function loadSongSession(
   };
   if (snapshot.songId !== songId || snapshot.chartVersion !== Number(version))
     throw new Error("Chart identity mismatch.");
-  const imported = importChartJson(JSON.stringify(snapshot.chart));
+  const imported = importChartLenient(JSON.stringify(snapshot.chart));
   if (!imported.ok) throw new Error("Published chart failed validation.");
-  return { song, chart: imported.chart, chartVersion: Number(version) };
+  return {
+    song,
+    chart: imported.chart,
+    chartVersion: Number(version),
+    issues: imported.issues ?? [],
+  };
 }

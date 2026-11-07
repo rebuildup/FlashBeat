@@ -139,6 +139,7 @@ export default function ChartPage({ songId, version }: Props) {
             key={`${songId}:${version}:${attempt}`}
             initialChart={session?.chart ?? emptyChart}
             initialYouTubeId={session?.song.youtubeId ?? ""}
+            initialIssues={session?.issues}
             onChartChange={setEditedChart}
           />
         </div>

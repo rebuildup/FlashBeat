@@ -97,7 +97,16 @@ writes it back unchanged.
 
 - `src/lib/chart/` is pure logic: `import.ts` (read + validate), `export.ts` (write),
   `notes.ts` (edit operations), `timing.ts` (`60 / BPM * num / LPB`), `schema.ts`
-  (Ajv against the frozen contract), `youtube.ts` (video id parsing).
+  (Ajv against the frozen contract), `issues.ts` (warning severity of an issue),
+  `youtube.ts` (video id parsing).
+- **Lenient read (issue #208).** `import.ts` reads a chart in the lenient mode
+  (`importChartLenient`): a chart whose *relations* are broken is loaded and its
+  violations come back as warnings, so a chart that was published before the
+  semantic rules were unified can be repaired instead of being dropped with
+  "Published chart failed validation". The song session
+  (`src/lib/song-session/load.ts`) and the file import of the editor use it, and
+  the warnings reach the operator through the validation panel. The publish API
+  (`routes/api/v1/_publish-model.ts`) stays strict, and so do the validator tests.
 - `src/lib/chart/chart.v1.schema.json` and `src/lib/chart/fixtures/sample-chart.json`
   are byte copies of `contracts/schemas/chart.v1.schema.json` and
   `Assets/Game/Resources/チュートリアル.json`. `.prettierignore` keeps the formatter

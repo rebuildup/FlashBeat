@@ -56,3 +56,21 @@ export function importChartJson(
 
   return { ok: true, chart: parsed as Chart };
 }
+
+/**
+ * Read a chart that the editor opens: a file the operator picked or a
+ * published chart of a song session.
+ *
+ * The read is **lenient**: a chart whose *relations* are broken is loaded and
+ * the violations are returned as warnings, so a chart that was published
+ * before the semantic rules were unified can be read back and repaired
+ * instead of being dropped (issue #208). The structural problems are still
+ * errors — a chart that does not match the contract cannot be repaired by
+ * editing a hold.
+ *
+ * The publish path stays strict: `routes/api/v1/_publish-model.ts` refuses
+ * every violation, and the validator tests pin that.
+ */
+export function importChartLenient(text: string): ImportResult {
+  return importChartJson(text, "lenient");
+}
