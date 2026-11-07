@@ -498,7 +498,7 @@ public class KeyConfigUI : MonoBehaviour
         if (messageLabel == null) return;
         if (listening)
         {
-            messageLabel.text = "レーン " + (selectedLane + 1) + ": 割り当てるキーを押してください… (同じキーで解除 / ↑↓ Tab・クリックで他のレーンへ / Esc で終了)";
+            messageLabel.text = "レーン " + (selectedLane + 1) + ": キーを押して割り当て (同じキーで解除 / ↑↓・クリックで他のレーン / Esc 終了)";
             messageLabel.color = AccentColor;
         }
         else
@@ -650,7 +650,7 @@ public class KeyConfigUI : MonoBehaviour
         testLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
         var footer = AddLabel(content, "KeyConfigFooter",
-            "↑↓ Tab ホイール クリック: レーンをえらぶ　Enter: 割り当て開始　Esc: 終了　Backspace: クリア　R: 初期化　F2: 閉じる",
+            "↑↓・クリック: レーン　Enter: 割り当て　Esc: 終了　BS: クリア　R: 初期化　F2: 閉じる",
             FooterFontSize, TextAlignmentOptions.Left);
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
