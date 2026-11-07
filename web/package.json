@@ -10,6 +10,7 @@
     "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
     "e2e": "node tests/e2e/run.ts",
     "codegen": "panda codegen",
+    "visual": "node --experimental-strip-types tests/visual/capture.ts",
     "postinstall": "void prepare && panda codegen"
   },
   "dependencies": {
@@ -45,7 +46,8 @@
     "vite-plus": "^1.4.0",
     "vitest": "^5.1.0",
     "void": "1.6.2",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "puppeteer-core": "^24.7.1"
   },
   "overrides": {
     "@park-ui/cli": {

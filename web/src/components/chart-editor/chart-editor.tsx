@@ -45,10 +45,11 @@ const layout = css({
 });
 
 const body = css({
-  display: "grid",
+  display: { base: "flex", lg: "grid" },
+  flexDirection: { base: "column", lg: "row" },
   gap: "3",
-  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  gridTemplateColumns: { lg: "minmax(0, 1fr) 17rem" },
+  gridTemplateRows: { lg: "minmax(0, 1fr)" },
   minHeight: "0",
   p: "3",
 });
@@ -61,13 +62,15 @@ const gridPanel = css({
   minHeight: "0",
   minWidth: "0",
   overflow: "visible",
+  flex: { base: "1", lg: "1" },
+  width: { base: "100%", lg: "auto" },
 });
 
 const gridHint = css({
   borderBottomColor: "#222222",
   borderBottomWidth: "1px",
   color: "#8c8c8c",
-  fontSize: "2xs",
+  fontSize: "xs",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",

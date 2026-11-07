@@ -46,6 +46,8 @@ const catalogLink = css({
   color: "#8c8c8c",
   fontSize: "xs",
   textDecoration: "none",
+  py: "2",
+  px: "3",
   _hover: { color: "#ffffff" },
 });
 

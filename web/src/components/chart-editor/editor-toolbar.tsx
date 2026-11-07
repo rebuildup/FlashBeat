@@ -84,7 +84,7 @@ const fileInput = css({ display: "none" });
 
 const counter = css({
   color: "#8c8c8c",
-  fontSize: "2xs",
+  fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
   paddingInline: "1",
 });
@@ -101,7 +101,7 @@ const keycap = css({
   color: "#b0b0b0",
   display: "inline-block",
   fontFamily: "mono",
-  fontSize: "2xs",
+  fontSize: "xs",
   lineHeight: "1.2",
   marginLeft: "1",
   padding: "0 0.5rem",

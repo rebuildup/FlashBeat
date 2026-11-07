@@ -13,14 +13,13 @@ export type LevelFilter = "all" | "low" | "mid" | "high";
 export type SortKey = "catalog" | "title" | "level" | "bpm" | "notes" | "length";
 
 export const SORT_OPTIONS: ReadonlyArray<{ label: string; value: SortKey }> = [
-  { label: "Catalog", value: "catalog" },
+  { label: "Published order", value: "catalog" },
   { label: "Title A–Z", value: "title" },
   { label: "Level", value: "level" },
   { label: "BPM", value: "bpm" },
   { label: "Notes", value: "notes" },
   { label: "Length", value: "length" },
 ];
-
 export function isSortKey(value: string | null): value is SortKey {
   return SORT_OPTIONS.some((option) => option.value === value);
 }

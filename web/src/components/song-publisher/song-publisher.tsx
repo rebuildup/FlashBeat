@@ -76,19 +76,22 @@ const backLink = css({
 });
 
 const body = css({
-  display: "grid",
+  display: { base: "flex", lg: "grid" },
+  flexDirection: { base: "column", lg: "row" },
   gap: "3",
-  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 21rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  gridTemplateColumns: { lg: "minmax(0, 1fr) 21rem" },
+  gridTemplateRows: { lg: "minmax(0, 1fr)" },
   minHeight: 0,
   p: "3",
 });
 
 const editorArea = css({
-  display: "grid",
-  gridTemplateRows: "minmax(0, 1fr)",
+  display: "flex",
+  flexDirection: "column",
+  flex: { base: "1", lg: "1" },
   minHeight: 0,
   minWidth: 0,
+  width: { base: "100%", lg: "auto" },
 });
 
 const side = css({
@@ -182,20 +185,20 @@ const facts = css({
 
 const factKey = css({
   color: "fg.muted",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
 const factValue = css({
   color: "fg.default",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
   overflowWrap: "anywhere",
 });
 
 const warning = css({
   color: "fg.error",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
@@ -203,7 +206,7 @@ const badge = css({
   bg: "gray.surface.bg.hover",
   borderRadius: "full",
   color: "fg.muted",
-  fontSize: "2xs",
+  fontSize: "xs",
   paddingBottom: "0.5",
   paddingTop: "0.5",
   px: "2",
@@ -510,16 +513,6 @@ export function SongPublisher({
 
           <div className={sideScroll}>
             <section className={card}>
-              <h2 className={cardTitle}>Song metadata</h2>
-              <SongMetadataForm
-                draft={effectiveDraft}
-                onChange={handleChange}
-                onFieldBlur={handleFieldBlur}
-                issues={visibleIssues}
-              />
-            </section>
-
-            <section className={card}>
               <h2 className={cardTitle}>Publish</h2>
 
               <dl className={facts}>
@@ -541,6 +534,16 @@ export function SongPublisher({
               <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
                 Review publish
               </Button>
+            </section>
+
+            <section className={card}>
+              <h2 className={cardTitle}>Song metadata</h2>
+              <SongMetadataForm
+                draft={effectiveDraft}
+                onChange={handleChange}
+                onFieldBlur={handleFieldBlur}
+                issues={visibleIssues}
+              />
             </section>
 
             <PublishResultPanel
