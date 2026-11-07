@@ -108,7 +108,18 @@
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
-- 現行版: [`v0.1.0-win64-743c88d`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.0-win64-743c88d)
+- 現行版: [`v0.1.13-win64-5ee86a9`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.13-win64-5ee86a9)
+  - `FlashBeat-0.1.13-win64-5ee86a9.zip`
+  - SHA-256: `8bcfafcf7cbde66cad977d164cdefdece709f989266948d4a5eb52c309f21548`
+  - ビルド元 commit: `5ee86a95efc5d2b3dd022506aa4c180e9ee50e6a`
+    (v5 UI / キーガイド / 読み込み画面 / Issue #148 キーキャップ / 初期解像度修正 / Update.ps1 の BOM 修正)
+  - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
+  - チャンネル: `stable`
+  - 実機検証: Windows 展示機相当で ZIP 展開 → 起動 → Title まで到達 / overlay 5/5 / keyconfig 30/30 を確認。
+- 前版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
+  - Web Studio 併入版。`v0.1.11-win64-98137a5` は同じ 0.1.11 の別ビルド (prerelease)。
+    展示機には **0.1.13 が適用済み** (2026-11-07)。
+- 旧版 (参考): [`v0.1.0-win64-743c88d`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.0-win64-743c88d)
   - `FlashBeat-0.1.0-win64-743c88d.zip`
   - SHA-256: `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`
   - ビルド元 commit: `743c88d14a1931d4637c34b1ec5d1bec5e502d44` (#27 フォント修正済み)
@@ -154,6 +165,10 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
    ```
 
    スクリプトが ZIP + `.sha256` sidecar を作り、内容検査 (exe/Data/Managed DLL の存在・数, arch integrity) を自動実行する。
+   - **配布する `.ps1` は UTF-8 BOM 付き** (`.editorconfig` の `charset = utf-8-bom` 準拠)。
+     Windows PowerShell 5.1 は BOM なし UTF-8 を ANSI (cp932) として解釈するため、
+     日本語コメントのバイト列が文字列を壊しスクリプト全体がパースエラーで起動しなくなる
+     (2026-11-07 実機発生 → `tools/update/Update.ps1` に BOM を付与して修正)。
 4. Release 作成 (オーナー承認済みなら `--draft` を外して即公開。未承認なら `--draft` で作り 5 へ。
    タグは実在しない新タグを使い、draft の間はタグが push されない):
 
