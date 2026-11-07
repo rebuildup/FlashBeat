@@ -400,7 +400,7 @@ namespace FlashBeat.UI.V5
 
             for (int i = canvas.transform.childCount - 1; i >= 0; i--)
             {
-                Destroy(canvas.transform.GetChild(i).gameObject);
+                V5GameUi.DestroyNow(canvas.transform.GetChild(i).gameObject);
             }
 
             var bg = V5Ui.Node(canvas.gameObject, "BG");

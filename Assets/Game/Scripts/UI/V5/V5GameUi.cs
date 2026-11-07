@@ -37,6 +37,29 @@ namespace FlashBeat.UI.V5
         }
 
         /// <summary>
+        /// オブジェクトを破棄する (Issue #167)。
+        ///
+        /// Edit モード (テスト) では Destroy が使えない ("Destroy may not be called
+        /// from edit mode") ので DestroyImmediate に落とす。Play モードでは通常の
+        /// Destroy (フレーム末に破棄) を使う。
+        /// </summary>
+        public static void DestroyNow(GameObject target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Object.Destroy(target);
+                return;
+            }
+
+            Object.DestroyImmediate(target);
+        }
+
+        /// <summary>
         /// 入力の二重処理を防ぐ (Issue #167)。
         /// v5 の各 View は矢印キー等を自前で処理しているため、Unity の Selectable 自動
         /// ナビゲーションも入ると選択が二重に動く。ナビゲーションを切って自前処理に一本化する。

@@ -349,7 +349,7 @@ namespace FlashBeat.UI.V5
             {
                 var child = existing.GetChild(i).gameObject;
                 child.SetActive(false);
-                Destroy(child);
+                V5GameUi.DestroyNow(child);
             }
 
             if (PlaySession.KeyGuide == KeyGuideMode.Off)
@@ -382,17 +382,36 @@ namespace FlashBeat.UI.V5
             return RepresentativeKey(lane);
         }
 
-        /// <summary>レーンの代表キー (A S D F J K L ;)。文字キーを優先し、無ければセミコロン、それも無ければ先頭。</summary>
+        /// <summary>
+        /// レーンの代表キー (A S D F J K L ;)。
+        /// 既定割り当てのホーム行キーを代表として使う (割り当てし直された場合は実キーに従う)。
+        /// </summary>
+        private static readonly KeyCode[] CanonicalLaneKeys =
+        {
+            KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.J, KeyCode.K, KeyCode.L, KeyCode.Semicolon,
+        };
+
+        /// <summary>
+        /// レーンの代表キー。ホーム行の正規キーを優先し、無ければ任意の文字キー、
+        /// それでも無ければセミコロン、それも無ければ先頭のキー。
+        /// </summary>
         private static string RepresentativeKey(int lane)
         {
             KeyCode[] keys = KeyBindings.GetKeys(lane);
-            KeyCode fallback = keys.Length > 0 ? keys[0] : KeyCode.None;
+            if (keys == null || keys.Length == 0) { return string.Empty; }
+
+            if (lane >= 0 && lane < CanonicalLaneKeys.Length &&
+                System.Array.IndexOf(keys, CanonicalLaneKeys[lane]) >= 0)
+            {
+                return KeyGuideUI.GetKeyDisplayName(CanonicalLaneKeys[lane]);
+            }
+
             foreach (var key in keys)
             {
                 if (key >= KeyCode.A && key <= KeyCode.Z) return key.ToString();
             }
             if (System.Array.IndexOf(keys, KeyCode.Semicolon) >= 0) return ";";
-            return KeyGuideUI.GetKeyDisplayName(fallback);
+            return KeyGuideUI.GetKeyDisplayName(keys[0]);
         }
 
         /// <summary>レーン 8 本の青みがかったグラデーション (design 03c/04d 実測)。</summary>
