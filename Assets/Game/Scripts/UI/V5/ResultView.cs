@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Text;
 using UnityEngine;
@@ -55,8 +55,37 @@ namespace FlashBeat.UI.V5
         private readonly GameObject[] actionButtons = new GameObject[3];
         private readonly Image[] actionBgs = new Image[3];
         private readonly GameObject[] actionFocus = new GameObject[3];
+        private readonly TextMeshProUGUI[] actionCapTexts = new TextMeshProUGUI[3];
+        private TextMeshProUGUI retryLegendCap;
+        private TextMeshProUGUI decideLegendCap;
         private int selectedAction;
         private bool modalOpen;
+
+        /// <summary>凡例「Retry」のキャプ。入力はメニュー操作設定 (KeyActions.Retry) の設定値に従う。</summary>
+        public static string RetryLegendCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Retry);
+        }
+
+        /// <summary>凡例「決定」のキャプ。入力はメニュー操作設定 (KeyActions.Confirm) の設定値に従う。</summary>
+        public static string DecideLegendCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Confirm);
+        }
+
+        /// <summary>
+        /// Result のアクションボタン (0 = Retry / 1 = Register / 2 = OK) のキャップ。
+        /// BuildActionButton の index と同じ順。Register は固定の Enter。
+        /// </summary>
+        public static string[] ActionButtonCaps()
+        {
+            return new[]
+            {
+                RetryLegendCap(),
+                "Enter",
+                DecideLegendCap()
+            };
+        }
 
         /// <summary>既存の Assessment 判定と同一の閾値 (1:1 維持)。</summary>
         public static string RankFor(int score)
@@ -186,6 +215,41 @@ namespace FlashBeat.UI.V5
                 {
                     float v = texAspect / bandAspect;
                     backdrop.uvRect = new Rect(0f, (1f - v) / 2f, 1f, v);
+                }
+            }
+        }
+
+        private void OnEnable()
+        {
+            KeyActions.Changed += RefreshCaps;
+        }
+
+        private void OnDisable()
+        {
+            KeyActions.Changed -= RefreshCaps;
+        }
+
+        /// <summary>キー設定が変わったら凡例と Retry/OK ボタンのキャップを描き直す。</summary>
+        private void RefreshCaps()
+        {
+            if (retryLegendCap != null)
+            {
+                retryLegendCap.text = RetryLegendCap();
+            }
+
+            if (decideLegendCap != null)
+            {
+                decideLegendCap.text = DecideLegendCap();
+            }
+
+            // actionCapTexts の index は BuildActionButton の index と同じ:
+            // 0 = Retry / 1 = Register / 2 = OK。
+            string[] caps = ActionButtonCaps();
+            for (int i = 0; i < actionCapTexts.Length; i++)
+            {
+                if (actionCapTexts[i] != null)
+                {
+                    actionCapTexts[i].text = caps[i];
                 }
             }
         }
@@ -613,12 +677,18 @@ namespace FlashBeat.UI.V5
             row.childForceExpandWidth = false;
             row.childForceExpandHeight = false;
 
-            BuildLegendItem(legend, "R", S(56f), "Retry");
+            BuildLegendItem(legend, RetryLegendCap(), S(56f), "Retry", ref retryLegendCap);
             BuildLegendItem(legend, "Enter", S(96f), "登録");
-            BuildLegendItem(legend, "Space", S(96f), "決定");
+            BuildLegendItem(legend, DecideLegendCap(), S(96f), "決定", ref decideLegendCap);
         }
 
         private void BuildLegendItem(GameObject parent, string cap, float capW, string label)
+        {
+            TextMeshProUGUI unused = null;
+            BuildLegendItem(parent, cap, capW, label, ref unused);
+        }
+
+        private void BuildLegendItem(GameObject parent, string cap, float capW, string label, ref TextMeshProUGUI capRef)
         {
             var item = V5Ui.Node(parent, "Legend Item " + label);
             var itemRow = item.AddComponent<HorizontalLayoutGroup>();
@@ -634,6 +704,7 @@ namespace FlashBeat.UI.V5
             capElement.minWidth = capW;
             capElement.preferredWidth = capW;
             capElement.preferredHeight = S(36f);
+            capRef = keyCap.GetComponentInChildren<TextMeshProUGUI>();
 
             // TMP が preferred 幅を報告するのでラベルはテキスト幅通りに並ぶ (上書きされない)。
             V5Ui.Text(item, "Legend " + label, label, UISizeProfile.Current.FsS, V5Tokens.TextMuted);
@@ -692,6 +763,7 @@ namespace FlashBeat.UI.V5
             capTextRt.anchorMax = Vector2.one;
             capTextRt.offsetMin = Vector2.zero;
             capTextRt.offsetMax = Vector2.zero;
+            actionCapTexts[index] = capTmp;
 
             var btn = go.AddComponent<Button>();
             btn.image = go.GetComponent<Image>();

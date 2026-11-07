@@ -61,6 +61,13 @@ namespace FlashBeat.UI.V5
         private RectTransform menu;
         private RectTransform catalog;
         private RectTransform legend;
+        private TextMeshProUGUI decideCap;
+
+        /// <summary>凡例「決定」のキャプ。入力はメニュー操作設定 (KeyActions.Start) の設定値に従う。</summary>
+        public static string DecideCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Start);
+        }
 
         /// <summary>
         /// Canvas (ScreenSpaceOverlay, Constant Pixel Size x1) ごと新規に構築する。
@@ -348,16 +355,41 @@ namespace FlashBeat.UI.V5
             catalog = tmp.rectTransform;
         }
 
-        /// <summary>凡例行: [↑][↓] 選択  [Enter] 決定 (日本語はフォント修正を待つ)。</summary>
+        /// <summary>凡例行: [↑][↓] 選択  [決定キー] 決定 (決定キーは KeyActions.Start の設定値)。</summary>
         private void BuildLegend()
         {
+            string decide = DecideCap();
             var legendGo = V5Decor.BuildLegend(gameObject, Vector2.zero, new[]
             {
                 ("↑", V5Decor.S(46f), (string)"選択"),
                 ("↓", V5Decor.S(46f), (string)null),
-                ("Enter", V5Decor.S(96f), (string)"決定"),
+                (decide, V5Decor.S(96f), (string)"決定"),
             });
             legend = legendGo.GetComponent<RectTransform>();
+            var capTransform = legendGo.transform.Find("KeyCap " + decide);
+            if (capTransform != null)
+            {
+                decideCap = capTransform.GetComponentInChildren<TextMeshProUGUI>();
+            }
+        }
+
+        private void OnEnable()
+        {
+            KeyActions.Changed += RefreshDecideCap;
+        }
+
+        private void OnDisable()
+        {
+            KeyActions.Changed -= RefreshDecideCap;
+        }
+
+        /// <summary>キー設定が変わったら凡例の決定キャップを描き直す。</summary>
+        private void RefreshDecideCap()
+        {
+            if (decideCap != null)
+            {
+                decideCap.text = DecideCap();
+            }
         }
 
         // --- レイアウト適用 (解像度に依存する部分はここだけ) ---
