@@ -38,7 +38,7 @@ public class TypingSceneManager : MonoBehaviour
         nowText = 0;
         Load(GManager.ActiveSongs[GManager.songID].title);
         furiganaText.text = GManager.ActiveSongs[GManager.songID].title;
-        mondaiText.text = "Space to Start";
+        mondaiText.text = KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.Play)) + " to Start";
         romajiText.text = "";
         display = false;
         audioS = GetComponent<AudioSource>();
@@ -49,7 +49,7 @@ public class TypingSceneManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Play))
         {
             TPlayed = true;
         }
