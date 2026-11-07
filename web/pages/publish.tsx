@@ -75,6 +75,7 @@ const actions = css({
 });
 
 const retryButton = css({
+  colorPalette: "blue",
   bg: "colorPalette.solid.bg",
   color: "colorPalette.solid.fg",
   minHeight: "10",
@@ -95,7 +96,7 @@ const catalogLink = css({
   paddingInline: "4",
   textDecoration: "none",
   _focusVisible: { outline: "2px solid", outlineOffset: "2px" },
-  _hover: { bg: "gray.surface.bg.hover" },
+  _hover: { bg: "gray.outline.bg.hover" },
 });
 
 /** A loading or failed page retains the actual Studio identity and recovery path. */
