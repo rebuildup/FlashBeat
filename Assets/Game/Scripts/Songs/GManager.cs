@@ -106,6 +106,18 @@ public class GManager : MonoBehaviour
     /// original data stays, and the songs the cloud knows are replaced by the
     /// cloud version. A cloud song the original data does not know is added at
     /// the end of the list.
+    ///
+    /// Identity of a song (#95):
+    ///  - two cloud entries are the same song only when their **remoteId**
+    ///    (the stable id of the web API) is the same. The title and the YouTube
+    ///    id are *not* identity: the API publishes easy / hard of the same video
+    ///    and different songs with the same title as different songIds, and
+    ///    those have to stay separate songs.
+    ///  - a cloud entry takes over a built-in song when the title matches (the
+    ///    published id is the title in lower case, e.g. "who" for "Who") or,
+    ///    failing that, when the YouTube id matches. A built-in song is taken
+    ///    over by at most one cloud entry, so two published charts of the same
+    ///    song do not collapse into one row.
     /// </summary>
     public static SongData[] Merge(SongData[] localSongs, SongData[] remoteSongs)
     {
@@ -115,45 +127,93 @@ public class GManager : MonoBehaviour
         var merged = new SongData[localSongs.Length];
         Array.Copy(localSongs, merged, localSongs.Length);
 
+        // Which rows of the merged catalog are already taken by a cloud entry.
+        bool[] claimed = new bool[merged.Length];
+
         for (int i = 1; i < remoteSongs.Length; i++)
         {
             var remote = remoteSongs[i];
             if (remote == null) continue;
 
-            int index = FindSong(merged, remote);
-            if (index < 0)
+            // The same cloud song (same remoteId) -> the row is updated.
+            int known = FindRemoteSong(merged, remote);
+            if (known >= 0)
             {
-                merged = Append(merged, remote);
+                merged[known] = Overlay(merged[known], remote);
                 continue;
             }
 
-            merged[index] = Overlay(merged[index], remote);
+            // A built-in song -> the built-in row is updated.
+            int local = FindLocalSong(merged, claimed, remote);
+            if (local >= 0)
+            {
+                claimed[local] = true;
+                merged[local] = Overlay(merged[local], remote);
+                continue;
+            }
+
+            // An unknown cloud song -> added at the end of the list.
+            merged = Append(merged, remote);
+            claimed = Grow(claimed, merged.Length);
+            claimed[merged.Length - 1] = true;
         }
         return merged;
     }
 
     /// <summary>
-    /// Index of the song the cloud entry belongs to: the YouTube id is exact and
-    /// decides first, then the title (the cloud id is the title of the song in
-    /// lower case, e.g. "who" for "Who").
+    /// Index of the cloud row that carries the same cloud song (same remoteId).
+    /// Only the remote id is identity - the title and the YouTube id may be
+    /// shared by different published songs.
     /// </summary>
-    static int FindSong(SongData[] songs, SongData remote)
+    static int FindRemoteSong(SongData[] songs, SongData remote)
     {
+        if (string.IsNullOrEmpty(remote.remoteId)) return -1;
+
+        for (int i = 1; i < songs.Length; i++)
+        {
+            var song = songs[i];
+            if (song == null || !song.isRemote) continue;
+            if (string.IsNullOrEmpty(song.remoteId)) continue;
+            if (string.Equals(song.remoteId, remote.remoteId, StringComparison.OrdinalIgnoreCase)) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Index of the built-in song a cloud entry takes over: the title decides
+    /// first (the published id is the title in lower case, e.g. "who" for
+    /// "Who"), the YouTube id decides when no title matches. A built-in song
+    /// that is already taken by another cloud entry is not taken over again.
+    /// </summary>
+    static int FindLocalSong(SongData[] songs, bool[] claimed, SongData remote)
+    {
+        for (int i = 1; i < songs.Length; i++)
+        {
+            var song = songs[i];
+            if (song == null || song.isRemote || claimed[i]) continue;
+            if (SameSong(song.title, remote.title)) return i;
+            if (!string.IsNullOrEmpty(remote.remoteId) && SameSong(song.title, remote.remoteId)) return i;
+        }
+
         if (!string.IsNullOrEmpty(remote.videoId))
         {
             for (int i = 1; i < songs.Length; i++)
             {
-                if (songs[i] != null && songs[i].videoId == remote.videoId) return i;
+                var song = songs[i];
+                if (song == null || song.isRemote || claimed[i]) continue;
+                if (song.videoId == remote.videoId) return i;
             }
         }
-
-        for (int i = 1; i < songs.Length; i++)
-        {
-            if (songs[i] == null) continue;
-            if (SameSong(songs[i].title, remote.title)) return i;
-            if (!string.IsNullOrEmpty(remote.remoteId) && SameSong(songs[i].title, remote.remoteId)) return i;
-        }
         return -1;
+    }
+
+    /// <summary>Grows the "already taken" flags to the length of the catalog.</summary>
+    static bool[] Grow(bool[] claimed, int length)
+    {
+        if (claimed.Length >= length) return claimed;
+        var grown = new bool[length];
+        Array.Copy(claimed, grown, claimed.Length);
+        return grown;
     }
 
     static bool SameSong(string a, string b)
