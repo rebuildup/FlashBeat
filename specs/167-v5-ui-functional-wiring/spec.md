@@ -264,7 +264,7 @@ online ランキングを持たない / local のみの画面は **「ローカ�
 | F5 | **修正** | Pause の Display タブから `Live Rank` / `Hit Timing` / `Judge Text` / `Progress Bar` を削除 (Key Guide / Lyrics の 2 行だけ残す) |
 | F6 | **修正** | Pause Ranking の見出しを「この端末の合計 (ローカル)」「この曲のベスト (ローカル)」へ変更 |
 | F7 | **修正** | Select の Online セグメントは cloud 曲 (isRemote && chartVersion>0 && 有効 songId) のときだけ出し、`RankingClient.GetLeaderboard` の実データを表示。非 cloud 曲ではセグメントを出さない |
-| F8 | **修正** | Select の登録名パネルを「この端末の記録 (ローカル)」「オンライン未接続」と明記 |
+| F8 | **修正** | Select の登録名パネルを「この端末の記録 (ローカル)」と明記し、**この端末のベストスコア順の実データ** (記録のある曲をスコア降順で最大 9 件) を表示。空パネルにしない |
 | F9 | **据置き** | `TitleLinks.RankingRequested` の排他契約を維持 (既定では描かない) |
 | F10 | **修正** | Result の action を `Register` → `Name`、モーダル見出しを「Rankingに登録」→「この端末の名前」、補助ラベルを「名前あり / 名前未設定」に変更 |
 | F11 | **修正** | `OptionView.KeyLayoutLabel` を実際の割り当てと既定値の比較 (`Judge.LaneKeys`) で判定するよう変更 (旧 PlayerPrefs キー有無の判定は削除) |

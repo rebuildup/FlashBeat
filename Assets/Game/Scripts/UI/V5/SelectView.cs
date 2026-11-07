@@ -1575,7 +1575,7 @@ namespace FlashBeat.UI.V5
             playersHeadRt.anchoredPosition = new Vector2(U(24), -U(24));
             playersHeadRt.sizeDelta = new Vector2(U(500), U(36));
 
-            var playersSub = Text(playersPanel, "Sub", "オンライン未接続 / 累計 = 各曲のベストスコアの合計", U(18), V5Tokens.TextMuted);
+            var playersSub = Text(playersPanel, "Sub", "この端末のベストスコア順 / オンライン未接続", U(18), V5Tokens.TextMuted);
             var playersSubRt = playersSub.rectTransform;
             playersSubRt.anchorMin = new Vector2(0f, 1f);
             playersSubRt.anchorMax = new Vector2(0f, 1f);
@@ -1584,7 +1584,7 @@ namespace FlashBeat.UI.V5
             playersSubRt.sizeDelta = new Vector2(U(500), U(26));
 
             var playersWell = PanelAt(playersPanel, "List Well", 24f, 107f, 640f, 629f, V5Tokens.Key2, V5Tokens.RadiusMedium);
-            EmptyText(playersWell, "この端末の記録のみを\n表示しています (オンライン未接続)", 640f, 629f);
+            BuildLocalRankRows(playersWell);
 
             // 下: プレイヤーサマリ (Hiscore から計算できる値のみ)。左右に伸縮。
             var profileRt = Stretch(canvas.gameObject, "Player Profile", 520f, 48f, 832f, 184f);
@@ -1620,6 +1620,31 @@ namespace FlashBeat.UI.V5
             BuildProfileStat(profile, "累計", SelectViewLogic.ScoreText(sum), 0);
             BuildProfileStat(profile, "プレイ曲", played + " / " + total, 1);
             BuildProfileStat(profile, "S 以上", sPlus.ToString(), 2);
+        }
+
+        /// <summary>
+        /// この端末の記録によるローカル順位 (Issue #167)。
+        /// 実データ (各曲のベストスコア) のみを並べて、空のパネルにしない。
+        /// </summary>
+        private void BuildLocalRankRows(GameObject well)
+        {
+            var ids = HistoryIds(); // 記録のある曲をスコア降順で
+            if (ids.Count == 0)
+            {
+                EmptyText(well, "まだ記録がありません\n(プレイするとここに並びます)", 640f, 629f);
+                return;
+            }
+
+            float y = 8f;
+            int count = Mathf.Min(ids.Count, 9);
+            for (int i = 0; i < count; i++)
+            {
+                int songId = ids[i];
+                var song = GManager.GetSong(songId);
+                RankRow(well, 8f, y, 624f, (i + 1).ToString(),
+                    song != null ? song.title : ("No." + songId), HiscoreAt(songId), songId == GManager.songID);
+                y += 64f;
+            }
         }
 
         /// <summary>オンラインランキングを取得できる曲か (cloud 曲のみ)。</summary>
