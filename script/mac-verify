@@ -51,7 +51,7 @@ PY
     "$0" build "$ref"
     app="$wt/Builds/macOS/FlashBeat.app"
     outdir="$wt/Builds/run-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$outdir"
-    open -n "$app" --args -logFile "$outdir/Player.log" -autoshot "$outdir" -autoshot-interval 8 -autoshot-count 6
+    open -n "$app" --args -logFile "$outdir/Player.log" -autoshot "$outdir" -autoshot-interval "${AUTOSHOT_INTERVAL:-8}" -autoshot-count 6 ${AUTOSHOT_SCENES:+-autoshot-scenes "$AUTOSHOT_SCENES"}
     echo "[mac-verify] launched, waiting ${secs}s"; sleep "$secs"
     screencapture -x "$outdir/os-screen.png" 2>/dev/null || echo "[mac-verify] (OS screencapture unavailable - using in-app AutoShot images)"
     pgrep -f "Builds/macOS/FlashBeat.app" >/dev/null && echo "[mac-verify] process alive: yes" || echo "[mac-verify] process alive: NO (crashed or exited)"
