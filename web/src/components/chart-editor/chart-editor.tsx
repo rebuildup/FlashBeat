@@ -16,10 +16,13 @@ import {
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
-import { noteBeat, snapBeat } from "@/lib/chart/timing";
+import { snapLine } from "@/lib/chart/snap";
+import { noteBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
+import { useSnapDivision } from "./snap-store";
+import { LyricsEditor } from "./lyrics-editor";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -51,7 +54,16 @@ const body = css({
   display: "grid",
   gap: "3",
   gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  /**
+   * The left column holds the lane well (row 1) and the lyrics panel (row 2).
+   * The lyrics panel keeps 20rem at FHD and 45% of the column below `lg`, so
+   * the note grid stays usable on a laptop while the lyrics list scrolls on
+   * its own. The inspector on the right spans both rows.
+   */
+  gridTemplateRows: {
+    base: "minmax(0, 1fr) minmax(0, 45%)",
+    lg: "minmax(0, 1fr) minmax(0, 20rem)",
+  },
   minHeight: "0",
   p: "3",
 });
@@ -61,9 +73,19 @@ const gridPanel = css({
   borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
+  gridColumn: "1",
+  gridRow: "1",
   minHeight: "0",
   minWidth: "0",
   overflow: "visible",
+});
+
+/** Placement of the lyrics panel in the left column. */
+const lyricsPanel = css({
+  gridColumn: "1",
+  gridRow: "2",
+  minHeight: "0",
+  minWidth: "0",
 });
 
 const gridHint = css({
@@ -133,6 +155,8 @@ const side = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
+  gridColumn: { base: "1", lg: "2" },
+  gridRow: { base: "1", lg: "1 / span 2" },
   minHeight: 0,
   overflowY: "auto",
   /**
@@ -240,6 +264,14 @@ export function ChartEditor({
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState(() => dominantResolution(initialChart));
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * The toolbar picks the division and the grid places the notes on it.
+   * `off` keeps the behaviour the editor had before: the notes sit on the
+   * lines-per-beat of the chart.
+   */
+  const snapDivision = useSnapDivision();
   const [zoom, setZoom] = useState(1);
   const [playheadSec, setPlayheadSec] = useState(0);
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
@@ -320,6 +352,17 @@ export function ChartEditor({
   }, [chart]);
 
   /**
+   * Seek the preview from the lyrics panel.
+   *
+   * The lyrics panel works in seconds; the YouTube player stays the only
+   * owner of playback. The request is forwarded to it and the new position
+   * comes back through `onTimeUpdate`, so both panels read one playhead.
+   */
+  const handleLyricsSeek = useCallback((seconds: number) => {
+    previewRef.current?.seekTo(seconds);
+  }, []);
+
+  /**
    * Place a hold.
    *
    * A hold is placed with the same gesture as a tap and then resized with
@@ -333,7 +376,9 @@ export function ChartEditor({
         if (!current) {
           return current;
         }
-        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        // The grid of the toolbar decides where the note lands: the snap
+        // division when it is set, the lines per beat of the chart otherwise.
+        const line = snapLine(beat * resolution, resolution, snapDivision);
         const existing = current.notes.findIndex(
           (note) => note.block === block && note.num === line,
         );
@@ -344,11 +389,17 @@ export function ChartEditor({
         setSelectedIndex(null);
         return addNote(
           current,
-          createHold(block, line / resolution, (line + resolution) / resolution, resolution),
+          createHold(
+            block,
+            line / resolution,
+            (line + resolution) / resolution,
+            resolution,
+            snapDivision,
+          ),
         );
       });
     },
-    [resolution],
+    [resolution, snapDivision],
   );
 
   const handleAddNote = useCallback(
@@ -362,7 +413,7 @@ export function ChartEditor({
         if (!current) {
           return current;
         }
-        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        const line = snapLine(beat * resolution, resolution, snapDivision);
         // A cell that already holds a note selects it instead of stacking a
         // duplicate on the same line.
         const existing = current.notes.findIndex(
@@ -376,12 +427,17 @@ export function ChartEditor({
         return addNote(current, createNote(block, line, resolution));
       });
     },
-    [handleAddHold, noteKind, resolution],
+    [handleAddHold, noteKind, resolution, snapDivision],
   );
 
-  const handleMoveNote = useCallback((index: number, block: number, beat: number) => {
-    setChart((current) => (current ? moveNote(current, index, block, beat) : current));
-  }, []);
+  const handleMoveNote = useCallback(
+    (index: number, block: number, beat: number) => {
+      setChart((current) =>
+        current ? moveNote(current, index, block, beat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
 
   /**
    * The end of a hold was dragged to another beat.
@@ -389,9 +445,14 @@ export function ChartEditor({
    * The end is snapped onto the grid of the note's own resolution, so a hold
    * always covers whole lines and never ends before it starts.
    */
-  const handleResizeHold = useCallback((index: number, endBeat: number) => {
-    setChart((current) => (current ? setHoldEnd(current, index, endBeat) : current));
-  }, []);
+  const handleResizeHold = useCallback(
+    (index: number, endBeat: number) => {
+      setChart((current) =>
+        current ? setHoldEnd(current, index, endBeat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
 
   const handleDeleteSelected = useCallback(() => {
     setChart((current) => {
@@ -417,10 +478,10 @@ export function ChartEditor({
         }
         const beat = Math.max(0, noteBeat(note) + deltaBeat);
         const block = Math.min(7, Math.max(0, note.block + deltaBlock));
-        return moveNote(current, selectedIndex, block, beat);
+        return moveNote(current, selectedIndex, block, beat, snapDivision);
       });
     },
-    [selectedIndex],
+    [selectedIndex, snapDivision],
   );
 
   /**
@@ -440,10 +501,10 @@ export function ChartEditor({
           return current;
         }
         const endBeat = noteBeat(note) + deltaBeat + (note.endNum ?? note.num + 1) / note.LPB;
-        return setHoldEnd(current, selectedIndex, endBeat);
+        return setHoldEnd(current, selectedIndex, endBeat, snapDivision);
       });
     },
-    [selectedIndex],
+    [selectedIndex, snapDivision],
   );
 
   // The selected note disappears with the chart, so the index is kept in range.
@@ -604,6 +665,14 @@ export function ChartEditor({
             </p>
           )}
         </section>
+
+        <LyricsEditor
+          className={lyricsPanel}
+          chart={chart}
+          playheadSec={playheadSec}
+          onChartChange={setChart}
+          onSeek={handleLyricsSeek}
+        />
 
         <aside
           className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
