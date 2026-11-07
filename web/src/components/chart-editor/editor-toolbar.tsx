@@ -4,7 +4,12 @@ import { Button, Field, Input, Select } from "@/components/ui";
 import { DraftInput, parseIntegerOrNull } from "@/components/ui/input";
 import { useCallback, useRef } from "react";
 import { css } from "styled-system/css";
-import { SNAP_SETTINGS, snapDivisionLabel, isSnapEnabled, type SnapSetting } from "@/lib/chart/snap";
+import {
+  SNAP_SETTINGS,
+  snapDivisionLabel,
+  isSnapEnabled,
+  type SnapSetting,
+} from "@/lib/chart/snap";
 import type { Chart } from "@/lib/chart/types";
 import { setSnapDivision, useSnapDivision } from "./snap-store";
 
@@ -38,9 +43,15 @@ const group = css({
   gap: "2",
 });
 
-const field = css({ minWidth: "8rem", maxWidth: "20rem", width: "100%" });
-const wideField = css({ minWidth: "10rem", maxWidth: "24rem", width: "100%" });
-const selectRoot = css({ minWidth: "6.5rem", flexShrink: 0 });
+const field = css({ flex: "1 1 8rem", minWidth: "8rem", maxWidth: "20rem" });
+const wideField = css({ flex: "1 1 10rem", minWidth: "10rem", maxWidth: "24rem" });
+/**
+ * Definite flex basis for the Grid/Snap/View selects: the Park UI select
+ * recipe gives the root `width: full`, which as an auto basis made every
+ * select claim a whole row and stacked the compact toolbar into four rows
+ * (issue #166). A definite basis overrides that width on the flex line.
+ */
+const selectRoot = css({ flex: "0 0 6.5rem", minWidth: "6.5rem", flexShrink: 0 });
 
 export const fieldLabel = css({
   color: "#b0b0b0",
