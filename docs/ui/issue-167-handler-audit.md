@@ -87,6 +87,106 @@ v5 UI (PR #179 で実動作化済み) の主要ハンドラはすべて実連結
 
 ---
 
+## 1b. 機能UI契約表 (visible control → handler → state effect → 実装根拠)
+
+実機ゲート (#167 T1 の監査表) のコード側根拠。行は「画面で押せるように見える要素」全件。
+根拠は `ファイル:メソッド` (行番号はずれるためメソッド単位)。
+
+### Title
+
+| visible control | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| GameStart 行 (クリック) | `Button.onClick` | SelectScene へ `Initiate.Fade` | `TitleView.BuildMenu` → `TitleSceneManager.SelectScene` |
+| GameStart 行 (Space/Enter) | `KeyActions.IsDown(Start)` | 同上 | `TitleView.Update` → `Activate` |
+| Option 行 (クリック / O) | `Button.onClick` / `KeyActions.Option` | OptionScene へ | `TitleView.BuildMenu` / `Update` → `TitleSceneManager.OptionScene` |
+| Exit 行 (クリック / E) | `Button.onClick` / `KeyActions.Exit` | Editor=再生停止 / ビルド=終了 | `TitleView.BuildMenu` / `Update` → `TitleSceneManager.EndGame` |
+| ↑↓ / W S | `Input.GetKeyDown` | 強調行を移動 + 決定音 | `TitleView.Update` → `SetSelected` |
+| Ranking 行 | `TitleLinks.RankingRequested` (未設定) | **行ごと非表示** (押せないものを描かない契約, 受入 T7) | `TitleView.UpdateRankingVisibility` |
+| Tab | `KeyGuideUI.Update` | キーガイド (全レーンの割り当て) を開閉 | `TitleSceneManager.CreateKeyGuide` → `KeyGuideUI.Toggle` |
+
+### Select
+
+| visible control | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| ← (Back) | `Button.onClick` / `KeyActions.Back` (Esc) | TitleScene へ | `SelectView.BuildSelect` → `ToTitle` → `SelectSceneManager.TitleScene` |
+| 曲行 (クリック) | `Button.onClick` | 選択更新 / 再クリックで Ready へ | `SelectView.SongRow` (onClick) |
+| ↑↓ / ホイール / レーンキー | `Input` / `KeyBindings.IsAnyLaneKeyDown` | `GManager.songID` を移動 | `SelectView.HandleListInput` → `MoveSelection` |
+| 検索 (Tab / A-Z) | `Input.inputString` | `SelectViewLogic.FilterIds` で実絞り込み | `SelectView.HandleTypingInput` / `RefreshFilter` |
+| 検索クリア × | `Button.onClick` | filterText を空にして再絞り込み | `SelectView.BuildSelect` (Clear) |
+| Sort / Level / Status チップ | `Button.onClick` | モード循環 → 実フィルタ | `SelectView.BuildSelect` (FilterChip) → `SelectViewLogic` |
+| Ready ボタン / Enter | `Button.onClick` / Enter | Ready パネルを開く (再生不能曲は `interactable=false`) | `SelectView.BuildSelect` (PrimaryButton) → `EnterReady` |
+| Start ボタン / Space | `Button.onClick` / `KeyActions.Confirm` | `GManager.ResetSession` → GameScene (リモート曲は譜面確定後) | `SelectView.StartSelected` → `SelectSceneManager.GameScene` |
+| Ready: Key Guide ←→ | `Button.onClick` / 矢印 | `PlaySession.SetKeyGuide` → **Game の HUD が実値を読む** | `SelectView.ChangeReadyValue` → `GameHudView.BuildKeyGuide` |
+| Ready: Lyrics ←→ | 同上 | `PlaySession.SetLyricsEnabled` → **歌詞パネルが実値を読む** | 同上 → `GameSceneManager.ApplyTextPanelVisibility` |
+| Ready: NoteSpeed ←→ | 同上 | `GManager.noteSpeed` (1..50) + `OptionSettings.Save` | `SelectView.ChangeReadyValue` |
+| F2 | `Input.GetKeyDown` | 履歴 (記録のある曲を実データで) | `SelectView.HandleListInput` → `EnterHistory` → `BuildHistory` |
+| F3 | `Input.GetKeyDown` | ランキング: Local = この端末の Hiscore / Online = cloud 曲のみ取得 | `SelectView.HandleListInput` → `EnterRanking` → `BuildRanking` / `FetchOnlineRanking` |
+| Local / Online セグメント | `Button.onClick` | セグメント切替 (Online は取得可能曲のみ表示) | `SelectView.BuildRanking` |
+
+### Game (HUD / Ready / Loading / Error)
+
+| visible control | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| Space (Ready) | `KeyActions.Play` | `MusicManager.StartPlayback` (再生開始) | `MusicManager.Update` (Gameplay, 参照のみ) |
+| HUD ポーズボタン (クリック) | `Button.onClick` | ポーズメニューを開く (**エラー中は開かない**) | `GameHudView.BuildPauseButton` → `GameHudRuntime.Start` → `PauseMenuView.Open` |
+| Esc | `PauseMenuView.Update` | ポーズ開閉 (エラー中は `InputEnabled=false` で無効) | `PauseMenuView.Update` / `GameHudController.Update` |
+| Pause: Settings 6 行 ←→ | 行 / ステッパー `Button.onClick` + 矢印 | `GManager.noteSpeed/noteTiming/mainVolume/BGMVolume/effectVolume/Flash` + `OptionSettings.Save` + 音量は即時反映 | `PauseMenuView.AddRow` / `Adjust` / `ApplyVolumes` |
+| Pause: Display: Key Guide | 行 `Button.onClick` | `PlaySession` 変更 → **HUD のキーガイドを即時作り直し** | `PauseMenuView.BuildDisplayPage` → `ApplyKeyGuideMode` → `GameHudView.RebuildKeyGuide` |
+| Pause: Display: Lyrics | 行 `Button.onClick` | `PlaySession` 変更 → **歌詞パネル表示を即時反映** | 同上 → `ApplyLyricsMode` → `GameSceneManager.ApplyLyricsVisibility` |
+| Pause: Ranking タブ | タブ `Button.onClick` / S D L K | この曲のベスト + 端末合計 (ローカル実データ) | `PauseMenuView.BuildRankingPage` |
+| Pause: Keys タブ | 同上 | `Judge.LaneKeys` 正本のレーン色付きキー配列 | `PauseMenuView.BuildKeysPage` / `BuildLaneKeyMap` |
+| Pause: Retire / Retry / Resume | `Button.onClick` / `KeyActions.MenuRetire/MenuRetry` | SelectScene へ / `GManager.ResetSession` → GameScene 再読み込み / 閉じる | `PauseMenuView.BuildActions` → `GameSceneManager.RetireGame` / `RetryGame` |
+| Error: ← 選曲へ / Retry | `Button.onClick` / Esc / R | SelectScene / GameScene へ (leaving フラグで二重抑止) | `GameErrorView.Build` / `BackToSelect` / `Retry` |
+
+### Result
+
+| visible control | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| Retry ボタン / R | `Button.onClick` / `KeyActions.Retry` | 判定・スコア 9 項目を 0 化 → GameScene | `ResultView.BuildActions` → `ActivateAction` → `ResultSceneManager.Retry` |
+| OK ボタン / Space / Esc | `Button.onClick` / `KeyActions.Confirm` | SelectScene へ | 同上 → `ResultSceneManager.SelectScene` |
+| Name ボタン / Enter | `Button.onClick` / Enter | 「この端末の名前」モーダルを開く | `ResultView.BuildActions` → `OpenModal` |
+| モーダル Save / Skip | `Button.onClick` / Enter / Esc | `PlayerPrefs` に保存 + 行ラベル即時更新 / 閉じる | `ResultView.ConfirmRegister` / `CloseModal` |
+| ←→ | `Input.GetKeyDown` | ボタンフォーカス移動 | `ResultView.Update` → `SetActionSelected` |
+| ランキング登録 (cloud 曲) | `ResultRankingOverlay` (1.2 秒後自動) | `RankingClient.PostScore` → Top10 ボード。**モーダル中は裏の ResultView を suspend** | `ResultRankingOverlay.OpenSubmitModal` / `SuspendScene` |
+
+### Option
+
+| visible control | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| Back ボタン / Esc | `Button.onClick` | TitleScene へ | `OptionView.BuildHeader` → `OptionSceneManager.TitleScene` |
+| タブ 4 個 / Tab | `Button.onClick` / Tab | 行リストを作り直す (Play / Display / Sound / Data) | `OptionView.BuildTabStrip` / `SelectTab` / `BuildRows` |
+| NoteSpeed ←→ | ステッパー / 矢印 | `GManager.noteSpeed` (1..50) + 保存 | `OptionView.BuildPlayRows` → `OptionSceneManager.SpeedUp/SpeedDown` |
+| NoteTiming ←→ | 同上 | `GManager.noteTiming` (±10) + 保存 + 各曲 offset へ書き込み | 同上 → `TimingUp/TimingDown` |
+| Key Layout ←→ | 同上 | 既定へ戻す (`KeyBindings.ResetToDefaults`) / キー設定を開く | `OptionView.BuildPlayRows` / `OpenKeyConfig` |
+| Flash / FlashTiming / FlashSpeed ←→ | 同上 | `GManager.Flash/FlashT/FlashBG` + 保存 (BGFlash が読む) | `OptionView.BuildDisplayRows` |
+| Main / Effect / BGM Volume ←→ | 同上 | `GManager` + `AudioListener.volume` + シーン内 AudioSource へ即時反映 + 保存 | `OptionView.BuildSoundRows` → `OptionSceneManager.ApplyVolumes` |
+| Clear save data / Enter | 行 `Button.onClick` | 2 ステップ確認 → Hiscore + キー設定を消去 | `OptionView.ClearSaveData` |
+| キー設定ボタン (KeyConfigOptionButton) | `Button.onClick` / Tab+Enter | `KeyConfigUI.Open` | `KeyConfigOptionButton.BuildUi` / `OpenKeyConfig` |
+| Clear media cache | `Button.onClick` | `MediaCacheManager.ClearAll` + 結果表示 | `MediaCacheOptionPanel.BuildUi` / `ClearCache` |
+| 更新を適用して再起動 (staging あり時のみ) | `Button.onClick` | `UpdateChecker.RequestApply` | `UpdateChecker.CreateOptionApplyButton` |
+
+### Retry (状態リセットの契約)
+
+| 経路 | handler | state effect | 実装根拠 |
+|---|---|---|---|
+| Result → Retry | `ResultSceneManager.Retry` | perfect/great/bad/miss/score/combo/maxCombo/maxScore/ratioScore を 0 化 → GameScene | `ResultSceneManager.Retry` |
+| Pause → Retry | `GameSceneManager.RetryGame` | `GManager.ResetSession` (同じ 9 項目) → GameScene | `GameSceneManager.RetryGame` / `GManager.ResetSession` |
+| Select → Start | `SelectSceneManager.GameScene` | `GManager.ResetSession` → GameScene (ローカル / リモート両パス) | `SelectSceneManager.GameScene` / `StartRemoteSong` |
+
+### ウィンドウ基準 (実Win64: FHD 1920x1080 / 2K 2560x1440)
+
+| 仕組み | 契約 | 実装根拠 | テスト |
+|---|---|---|---|
+| プロファイル選択 | 16:9 FHD → `fhd` / 2K → `2k` (#169 の規則) | `UISizeProfile.Select` | `V5UiTests.Select_1920x1080_ReturnsFhd` / `Select_2560x1440_Returns2k` |
+| Select の design スケール | `u = min(W/1920, H/1080)`。16:9 の 2 条件でプロファイル倍率と一致 | `SelectView.DesignScale` | `WindowBaselineTests` |
+| Title のレイアウト | design 実測比率で 2 条件ともウィンドウ内に収まる | `TitleLayout.Compute` | `TitleOptionV5Tests` / `WindowBaselineTests` |
+| リサイズ追従 | ウィンドウサイズ変更で Canvas 再適用 / Title は再レイアウト / Select は再構築 | `CanvasConfigurator.Update` / `TitleView.Update` / `SelectView.HandleInput` | — (実機ゲート) |
+| スケーリング系統の一致 | HUD/Pause 系 `S = Margin/48`、Result/Option 系 `S = FsM/30` が FHD=1.0 / 2K=1.333 | `GameHudView.S` / `ResultView.S` / `OptionView.S` | `WindowBaselineTests` |
+| スケーラー併用 UI | KeyConfigUI / RankingPanel / UpdateNoticeUI / MediaCacheOptionPanel / KeyConfigOptionButton / MediaLoadingOverlay は `ScaleWithScreenSize 1920x1080 match 0.5` で自動追従 | 各 `BuildCanvas` / `BuildUI` | — |
+| Mac 2560x1664 | プロファイル選択のみコード対応 (実機はオーナーゲート) | `UISizeProfile.Select` (mac 規則) | `V5UiTests` |
+
+---
+
 ## 2. 追加した共有ロジックとテスト
 
 | ロジック | テスト |
@@ -94,18 +194,23 @@ v5 UI (PR #179 で実動作化済み) の主要ハンドラはすべて実連結
 | `FlashBeat.UI.SceneInputGate` (新規): オーバーレイ開閉フレームの背面入力を 1 フレームだけブロックする静的ゲート。フレーム番号は `FrameSource` で注入可能 | `Assets/Tests/Editor/SceneInputGateTests.cs` |
 | `KeyConfigUI.IsAllowedSceneName(string)` (新規抽出): シーン名でキー設定を開けられるか。SelectScene を不許可に変更 | `Assets/Tests/Editor/KeyConfigSceneAllowTests.cs` |
 | `PauseMenuView.NextNoteSpeed(float, int)` (新規抽出): NoteSpeed の増減を OptionSettings (1..50) にクランプ | `Assets/Tests/Editor/PauseMenuViewTests.cs` |
+| `SelectView.DesignScale(int, int)` (新規抽出): Select の design スケール `u = min(W/1920, H/1080)`。リサイズで `HandleInput` から `Rebuild` を再実行して追従する | `Assets/Tests/Editor/WindowBaselineTests.cs` |
 | `V5UiWiringTests` 3 件の修正 (既存壊れテスト → 実装の契約に整合) | 同ファイル (Title Exit 行 / Compact 代表キー / Select の Canvas 探索方向) |
 
 ---
 
 ## 3. 検証手順 (コード / テストで完結)
 
+Unity batchmode は他タスク (p7/p8) と排他。実行前に `pgrep -fl "Unity -batchmode"` で確認し、
+走っているなら待ってから実行する。
+
 ```bash
-# 1) EditMode テスト (全件 pass を確認。新規 3 ファイルを含む)
-Unity -batchmode -quit -projectPath . -runTests -testPlatform editmode \
+# 1) EditMode テスト (全件 pass を確認。WindowBaselineTests を含む)
+#    (-quit を付けるとテスト実行前に終了するため付けない)
+Unity -batchmode -projectPath . -runTests -testPlatform editmode \
   -testResults TestResults.xml -logFile unity-test.log
 
-# 2) Win64 ビルドが通ること (実機検証は別担当)
+# 2) Win64 ビルド
 Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneWindows64
 ```
 
