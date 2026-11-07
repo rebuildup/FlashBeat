@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     FlashBeat 展示運営者向けのパッチ適用スクリプト (常駐なし・独自サーバーなし)。
@@ -135,50 +135,7 @@ function Write-OpLog {
     }
 }
 
-function Get-UpdateVersionFromText {
-    # 'v0.1.4-win64-4d6b407' / 'FlashBeat-0.1.4-win64-4d6b407.zip' から '0.1.4' を取り出す (無ければ $null)。
-    param([string]$Text)
-    if (-not $Text) { return $null }
-    $m = [regex]::Match($Text, '(?<!\d)(\d+\.\d+\.\d+)(?!\d)')
-    if (-not $m.Success) { return $null }
-    return $m.Groups[1].Value
-}
-
-function Write-UpdateResult {
-    # アプリが次回起動時に読む結果ファイル (issue #125):
-    # %LOCALAPPDATA%\FlashBeat\update\last-result.json
-    # すべての終了経路から一度だけ呼ぶ。書けない場合も更新処理自体は失敗させない (best-effort)。
-    param(
-        [Parameter(Mandatory = $true)][ValidateSet('success', 'failed', 'aborted')][string]$Result,
-        [Parameter(Mandatory = $true)][int]$Code,
-        [string]$Message
-    )
-    try {
-        $base = $env:LOCALAPPDATA
-        if ([string]::IsNullOrWhiteSpace($base)) { return }
-        $dir = Join-Path (Join-Path $base 'FlashBeat') 'update'
-        $path = Join-Path $dir 'last-result.json'
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        $payload = [ordered]@{
-            result      = $Result
-            exitCode    = $Code
-            fromVersion = ('' + $script:ResultFromVersion)
-            toVersion   = ('' + $script:ResultToVersion)
-            tag         = ('' + $script:ResultTag)
-            message     = ('' + $Message)
-            timeUtc     = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        }
-        $json = $payload | ConvertTo-Json -Compress
-        # 一旦 tmp に書いてから差し替える (アプリが読みかけの不完全ファイルを掴まないように)。
-        $tmp = $path + '.tmp'
-        [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
-        Move-Item -LiteralPath $tmp -Destination $path -Force
-        Write-OpLog -Level 'INFO' -Message ('結果ファイルを書きました: {0} (result={1}, exitCode={2})' -f $path, $Result, $Code)
-    } catch {
-        Write-OpLog -Level 'WARN' -Message ('結果ファイルを書けませんでした (更新処理には影響しません): {0}' -f $_.Exception.Message)
-    }
-}
-
+Update.ps1 #3: keep 109-patch update-result functions (issue #125); 123 side is empty (functions added only on 109-patch)
 function Test-PathInside {
     # True only when $Path is the same as, or below, $Root. A plain StartsWith() is wrong: 'C:\x\FlashBeat-update-work'
     # starts with 'C:\x\FlashBeat' although it is a sibling folder, which aborted every update of an install
