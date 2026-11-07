@@ -191,7 +191,13 @@ export interface SongPublisherProps {
   initialVersion?: number;
 }
 
-export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initialSong, initialVersion }: SongPublisherProps) {
+export function SongPublisher({
+  initialChart,
+  initialYouTubeId,
+  apiOrigin,
+  initialSong,
+  initialVersion,
+}: SongPublisherProps) {
   const [draft, setDraft] = useState<SongMetadataDraft>(() => ({
     songId: initialSong?.id ?? "",
     title: initialSong?.title ?? initialChart.name,
@@ -353,7 +359,11 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
             ← Web Studio
           </a>
           <h1 className={title}>Publish a song</h1>
-          <p className={subtitle}>{initialVersion ? `Editing published v${initialVersion} · draft preserved on failure` : "New unpublished draft"}</p>
+          <p className={subtitle}>
+            {initialVersion
+              ? `Editing published v${initialVersion} · draft preserved on failure`
+              : "New unpublished draft"}
+          </p>
         </div>
 
         <span className={badge}>
@@ -411,7 +421,11 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
               </Button>
             </section>
 
-            <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
+            <PublishResultPanel
+              result={result}
+              onRetry={handleReview}
+              onBackToEditor={handleBackToEditor}
+            />
           </div>
         </aside>
       </div>

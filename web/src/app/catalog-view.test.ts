@@ -23,10 +23,42 @@ function song(overrides: Partial<SongSummary> & { id: string }): SongSummary {
 }
 
 const catalog: SongSummary[] = [
-  song({ id: "4th-smile", title: "4th smile", artist: "LeaF", level: 5, bpm: 140, durationSec: 69, noteCount: 105 }),
-  song({ id: "agon-beats", title: "阿吽のビーツ", artist: "羽生まゐご", level: 25, bpm: 206, durationSec: 67, noteCount: 262 }),
-  song({ id: "bibibibi", title: "ビビビビ", artist: "フロクロ", level: 15, bpm: 175, durationSec: 74, noteCount: 184 }),
-  song({ id: "calamity", title: "Calamity", artist: "LeaF", level: 7, bpm: 200, durationSec: 52, noteCount: 111 }),
+  song({
+    id: "4th-smile",
+    title: "4th smile",
+    artist: "LeaF",
+    level: 5,
+    bpm: 140,
+    durationSec: 69,
+    noteCount: 105,
+  }),
+  song({
+    id: "agon-beats",
+    title: "阿吽のビーツ",
+    artist: "羽生まゐご",
+    level: 25,
+    bpm: 206,
+    durationSec: 67,
+    noteCount: 262,
+  }),
+  song({
+    id: "bibibibi",
+    title: "ビビビビ",
+    artist: "フロクロ",
+    level: 15,
+    bpm: 175,
+    durationSec: 74,
+    noteCount: 184,
+  }),
+  song({
+    id: "calamity",
+    title: "Calamity",
+    artist: "LeaF",
+    level: 7,
+    bpm: 200,
+    durationSec: 52,
+    noteCount: 111,
+  }),
 ];
 
 describe("matchesLevel", () => {

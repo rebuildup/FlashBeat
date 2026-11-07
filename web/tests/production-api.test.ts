@@ -37,9 +37,10 @@ import {
 
 const readEnabled = process.env.FLASHBEAT_E2E === "1";
 const publishEnabled = readEnabled && process.env.FLASHBEAT_E2E_PUBLISH === "1";
-const baseUrl = (
-  process.env.FLASHBEAT_API_BASE_URL ?? "https://flashbeat.rebuildup.dev"
-).replace(/\/+$/, "");
+const baseUrl = (process.env.FLASHBEAT_API_BASE_URL ?? "https://flashbeat.rebuildup.dev").replace(
+  /\/+$/,
+  "",
+);
 const adminToken = process.env.FLASHBEAT_ADMIN_TOKEN ?? "";
 const databaseId = process.env.FLASHBEAT_D1_DATABASE_ID ?? FLASHBEAT_D1_DATABASE_ID;
 
