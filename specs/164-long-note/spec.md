@@ -191,7 +191,12 @@ Web エディタで既存譜面を読み込み/書き出しし、公開 API を�
 
 ## Known Issues (この Issue が解かないもの)
 
-### K1 — publish API の意味論検証が HOLD を弾く (ブロッカー)
+### K1 — publish API の意味論検証が HOLD を弾く (解決済み)
+
+> **状態: 解決 (継続作業セッションで修正)。** `semanticDiagnostics()` は
+> `type` を `1 | 2` を受け付けるように拡張され、`type === 2` のときだけ
+> `endNum` の存在と `endNum > num` を検査する。HOLD 譜面の publish → GET
+> 往復は統合テスト (`web/tests/api.test.ts`) で確認済み。
 
 `web/routes/api/v1/_publish-model.ts` の `semanticDiagnostics()` が
 
@@ -218,6 +223,28 @@ if (note.type !== 1) {
 
 **影響範囲:** 公開 (publish) のみ。Web エディタでの作成・長さ編集・
 書き出し・検証・GET 往復は影響を受けない。
+
+**実装 (継続作業セッション):**
+
+- `web/routes/api/v1/_publish-model.ts`
+  - `NOTE_TYPE_TAP = 1` / `NOTE_TYPE_HOLD = 2` を公開し、`LegacyNote` に
+    `endNum?: number` を追加した。
+  - `type` の許可値を `1 | 2` に広げ、`type === 2` のときだけ
+    `endNum` が存在することと `endNum > num` であることを検査する。
+    どちらを満たさない場合は該当ノートの JSON パス
+    (`/chart/notes/{i}/endNum`) を名指しする診断を返す。
+  - 曲長チェック (`durationSec`) は HOLD では **終端 `endNum`** を使う。
+    保持中はノーツが画面に残るため、開始位置ではなく終端が曲長を決める。
+- テスト
+  - `web/tests/publish-semantics.test.ts` (新規) — 意味論層の単体テスト。
+    Tap のみ譜面が通ること、HOLD 譜面が通ること、`endNum` 欠落・`endNum <= num`・
+    未知の `type`・曲長超過の HOLD が名指しで拒否されること。
+  - `web/tests/api.test.ts` — 統合テストに HOLD の publish → GET 往復
+    (publish → `GET /api/v1/charts/{songId}?version=N` が同一の `notes` を返す、
+    カタログの `noteCount` が一致) と HOLD 3 種類の拒否 (422, 書き込みなし) を追加。
+
+**影響範囲:** 公開 (publish) のみ。Tap 譜面の公開挙動は変わらない
+(`type === 1` の判定は従来通り通り、`endNum` は Tap では無視される)。
 
 ### K2 — HOLD の見た目 (Prefab / Scene) は未反映
 
