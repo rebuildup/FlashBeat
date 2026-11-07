@@ -48,8 +48,8 @@
 |---|---|---|
 | ベース | `bg` `text` `text-muted` `text-dim` `overlay` `deep` `well` `base` | `#1B1B1B` `#FFFFFF` `#B0B0B0` `#8C8C8C` `#222222` `#1A1A1A` `#131313` `#2D2D2D` |
 | アクセント | `accent` `accent-tint` `accent-light` | `#3FA9F5` `#2B4457` `#9AD3FA` |
-| 危険 | `danger` `danger-tint` `danger-light` | `#6B6BFF` `#32324D` `#A8A8FF` |
-| 警告 | `warn` `warn-tint` `warn-light` | `#E9B949` `#29402 9` `#D88AF4` |
+| 危険 | `danger` `danger-tint` `danger-light` | `#FF6B6B` `#4D3232` `#FFA8A8` |
+| 警告 | `warn` `warn-tint` `warn-light` | `#E9B949` `#4A4029` `#F4D88A` |
 | 成功 | `ok` `ok-tint` `ok-light` | `#4CC38A` `#2B4A3C` `#8FE0B8` |
 | 突出グレー | `g1`…`g19` | `#1A1A1A` `#202020` `#262626` `#2A2A2A` `#2D2D2D` `#313131` `#353535` `#393939` `#3E3E3E` `#444444` `#4A4A4A` `#515151` `#5A5A5A` `#666666` `#7A7A7A` `#949494` `#B0B0B0` `#CFCFCF` `#FFFFFF` |
 | 沈みグレー | `d1`…`d4` | `#222222` `#1B1B1B` `#151515` `#0F0F0F` |
