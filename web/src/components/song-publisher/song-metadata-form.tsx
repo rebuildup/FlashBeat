@@ -1,6 +1,7 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Field, Input, Select } from "@/components/ui";
+import { DraftInput, parseNumberOrNull } from "@/components/ui/input";
 import { css } from "styled-system/css";
 import type {
   SongMetadataDraft,
@@ -92,8 +93,6 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
   for (const issue of issues) {
     errorByField[issue.field] = issue.message;
   }
-
-  const durationValue = Number.isFinite(draft.durationSec) ? String(draft.durationSec) : "";
 
   return (
     <div className={form}>
@@ -206,13 +205,25 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
 
       <Field.Root invalid={errorByField.durationSec !== undefined}>
         <Field.Label>Duration</Field.Label>
-        <Input
-          type="number"
-          min={1}
-          max={1800}
-          value={durationValue}
+        {/*
+          Duration は draft 入力 (issue #163): 空文字は `Number("")` で 0 に
+          なる代わりに、未入力 (NaN) として確定値になる。validation が
+          「未入力」と「範囲外」を区別して案内する。blur / Enter で正規化。
+        */}
+        <DraftInput<number>
+          data-testid="duration-input"
+          inputMode="numeric"
           placeholder="128"
-          onChange={(event) => onChange({ durationSec: Number(event.currentTarget.value) })}
+          value={draft.durationSec}
+          format={(seconds) => (Number.isFinite(seconds) ? String(seconds) : "")}
+          parse={(text) => {
+            const trimmed = text.trim();
+            if (trimmed.length === 0) {
+              return Number.NaN;
+            }
+            return parseNumberOrNull(trimmed);
+          }}
+          onCommit={(seconds) => onChange({ durationSec: seconds })}
           onBlur={() => onFieldBlur("durationSec")}
         />
         {errorByField.durationSec ? (
