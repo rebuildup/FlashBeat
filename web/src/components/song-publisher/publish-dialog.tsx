@@ -33,7 +33,7 @@ const summaryValue = css({
   overflowWrap: "anywhere",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 /** What the publish request will contain. */
 export interface PublishSummary {
@@ -57,8 +57,6 @@ export interface PublishDialogProps {
   onTokenChange: (token: string) => void;
   /** `true` while the request is running. */
   publishing: boolean;
-  /** Message of the last failed attempt. */
-  error?: string;
   /** Send the request. */
   onPublish: () => void;
 }
@@ -70,7 +68,6 @@ export function PublishDialog({
   token,
   onTokenChange,
   publishing,
-  error,
   onPublish,
 }: PublishDialogProps) {
   return (
@@ -109,7 +106,7 @@ export function PublishDialog({
                 </dd>
               </dl>
 
-              <Field.Root invalid={error !== undefined}>
+              <Field.Root>
                 <Field.Label>Staff token</Field.Label>
                 <Input
                   type="password"
@@ -118,14 +115,10 @@ export function PublishDialog({
                   value={token}
                   onChange={(event) => onTokenChange(event.currentTarget.value)}
                 />
-                {error ? (
-                  <Field.ErrorText>{error}</Field.ErrorText>
-                ) : (
-                  <Field.HelperText>
-                    Entered by the operator at publish time. It is held in this browser tab only and
-                    is never written to disk or to the bundle.
-                  </Field.HelperText>
-                )}
+                <Field.HelperText>
+                  Entered by the operator at publish time. It is held in this browser tab only and
+                  is never written to disk or to the bundle.
+                </Field.HelperText>
               </Field.Root>
             </Dialog.Body>
 

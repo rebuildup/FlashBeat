@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import type { SongSummary } from "@/app/types";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
 import { Button, Toaster, toaster } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
-import { publishSong } from "@/lib/publish/client";
+import { publishAndVerify } from "@/lib/publish/client";
+import { savePublishDraft } from "@/lib/publish/draft";
 import { resolvePublishTransport } from "@/lib/publish/transport";
 import type { PublishResult } from "@/lib/publish/types";
 import {
@@ -162,7 +164,7 @@ const badge = css({
   whiteSpace: "nowrap",
 });
 
-const accent = css({ colorPalette: "teal" });
+const accent = css({ colorPalette: "blue" });
 
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,
@@ -181,22 +183,24 @@ export interface SongPublisherProps {
   /**
    * Origin of the publish API.
    *
-   * Empty means the bundled fixture. A value switches the screen to the real
+   * Empty means the same-origin live API. A value switches the screen to another
    * endpoint of the contract.
    */
   apiOrigin?: string;
+  initialSong?: SongSummary;
+  initialVersion?: number;
 }
 
-export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: SongPublisherProps) {
+export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initialSong, initialVersion }: SongPublisherProps) {
   const [draft, setDraft] = useState<SongMetadataDraft>(() => ({
-    songId: "",
-    title: initialChart.name,
-    artist: "",
+    songId: initialSong?.id ?? "",
+    title: initialSong?.title ?? initialChart.name,
+    artist: initialSong?.artist ?? "",
     youtube: initialYouTubeId,
-    level: 10,
-    durationSec: Number.NaN,
+    level: initialSong?.level ?? 10,
+    durationSec: initialSong?.durationSec ?? Number.NaN,
   }));
-  const [titleEdited, setTitleEdited] = useState(false);
+  const [titleEdited, setTitleEdited] = useState(Boolean(initialSong));
   const [chart, setChart] = useState<Chart | null>(initialChart);
   const [chartIssues, setChartIssues] = useState<ValidationIssue[]>([]);
   const [touched, setTouched] = useState<Record<SongMetadataField, boolean>>(NO_TOUCHED);
@@ -206,6 +210,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
   const [dialogOpen, setDialogOpen] = useState(false);
   const [result, setResult] = useState<PublishResult | null>(null);
 
+  const inFlight = useRef(false);
   const transport = useMemo(() => resolvePublishTransport(apiOrigin), [apiOrigin]);
 
   // The title follows the name of the chart until the operator writes one.
@@ -244,6 +249,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
     if (patch.title !== undefined) {
       setTitleEdited(true);
     }
+    setResult(null);
     setDraft((current) => ({ ...current, ...patch }));
   }, []);
 
@@ -252,6 +258,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
   }, []);
 
   const handleChartChange = useCallback((next: Chart | null) => {
+    setResult(null);
     setChart(next);
   }, []);
 
@@ -269,6 +276,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
   }, [chartReady, issues.length]);
 
   const handlePublish = useCallback(async () => {
+    if (inFlight.current) return;
     if (chart === null) {
       setResult({
         ok: false,
@@ -291,9 +299,10 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
       return;
     }
 
+    inFlight.current = true;
     setPublishing(true);
 
-    const outcome = await publishSong({
+    const outcome = await publishAndVerify({
       baseUrl: transport.baseUrl,
       songId: effectiveDraft.songId.trim(),
       token,
@@ -301,11 +310,14 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
       fetchImpl: transport.fetch,
     });
 
+    inFlight.current = false;
     setPublishing(false);
     setResult(outcome);
+    // The failure panel in the aside carries the actions; the modal must not
+    // cover it.
+    setDialogOpen(false);
 
     if (outcome.ok) {
-      setDialogOpen(false);
       toaster.create({
         title: "Published",
         description: `${outcome.response.songId} is chart version ${outcome.response.chartVersion}, the catalog is at version ${outcome.response.catalogVersion}.`,
@@ -321,6 +333,18 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
     });
   }, [chart, effectiveDraft, token, transport]);
 
+  const handleBackToEditor = useCallback(() => {
+    const url = savePublishDraft(
+      {
+        songId: initialSong?.id ?? null,
+        version: initialVersion !== undefined ? String(initialVersion) : null,
+        chart: chart ?? initialChart,
+      },
+      "editor",
+    );
+    window.location.assign(url);
+  }, [chart, initialChart, initialSong, initialVersion]);
+
   return (
     <div className={root}>
       <header className={header}>
@@ -329,7 +353,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
             ← Web Studio
           </a>
           <h1 className={title}>Publish a song</h1>
-          <p className={subtitle}>Metadata and chart snapshot in one request</p>
+          <p className={subtitle}>{initialVersion ? `Editing published v${initialVersion} · draft preserved on failure` : "New unpublished draft"}</p>
         </div>
 
         <span className={badge}>
@@ -362,33 +386,33 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
                 issues={visibleIssues}
               />
             </section>
+
+            <section className={card}>
+              <h2 className={cardTitle}>Publish</h2>
+
+              <dl className={facts}>
+                <dt className={factKey}>Chart</dt>
+                <dd className={factValue}>
+                  {summary.noteCount} notes at {summary.bpm} BPM
+                </dd>
+
+                <dt className={factKey}>Song id</dt>
+                <dd className={factValue}>{summary.songId || "—"}</dd>
+              </dl>
+
+              {chartIssues.length > 0 ? (
+                <p className={warning}>
+                  The chart has {chartIssues.length} contract problems. Fix them before publishing.
+                </p>
+              ) : null}
+
+              <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+                Review publish
+              </Button>
+            </section>
+
+            <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
           </div>
-
-          <section className={card}>
-            <h2 className={cardTitle}>Publish</h2>
-
-            <dl className={facts}>
-              <dt className={factKey}>Chart</dt>
-              <dd className={factValue}>
-                {summary.noteCount} notes at {summary.bpm} BPM
-              </dd>
-
-              <dt className={factKey}>Song id</dt>
-              <dd className={factValue}>{summary.songId || "—"}</dd>
-            </dl>
-
-            {chartIssues.length > 0 ? (
-              <p className={warning}>
-                The chart has {chartIssues.length} contract problems. Fix them before publishing.
-              </p>
-            ) : null}
-
-            <Button className={accent} size="md" onClick={handleReview}>
-              Review publish
-            </Button>
-          </section>
-
-          <PublishResultPanel result={result} />
         </aside>
       </div>
 
@@ -399,7 +423,6 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
         token={token}
         onTokenChange={setToken}
         publishing={publishing}
-        error={result !== null && !result.ok ? result.failure.message : undefined}
         onPublish={handlePublish}
       />
 

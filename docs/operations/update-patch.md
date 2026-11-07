@@ -1,15 +1,15 @@
 ﻿# FlashBeat 展示アプリの更新 (運営者向け)
 
 展示用 Windows 版 FlashBeat の配布・更新の仕組みと、`tools/update/Update.ps1` の説明です。
-オーナー要件 (2026-11-07 版・#41 の「起動時自動更新の禁止」を置き換え) に基づきます。
+オーナー要件 (2026-11-07 版・#41 の「起動時自動更新の禁止」を置き換え、#118 で**適用も明示式**に変更) に基づきます。
 
 ## 方針
 
 - **展示アプリは GitHub Release の配布成果物**を `C:\Users\rebui\Desktop\FlashBeat-Exhibit\` に配置したものです。`D:\` や worktree の `Builds/` は展示に使いません。
 - **運営者は `FlashBeat.exe` を直接起動するだけ**です。常設ランチャー・`Play.cmd` / `Update.cmd` / `Rollback.cmd`・独自更新サーバーはありません。**更新元は GitHub Releases のみ**です。
-- **起動時**: アプリが GitHub Releases の候補を非同期で確認し、新版があれば ZIP と `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` に取得して SHA-256 検証します。ゲームは止めません。候補は**更新チャンネル**で決まります (下述)。展示用ビルド (stable) は **prerelease (テスト用 Release) を自動適用しません**。
-- **終了時**: staging 済みの新版があるとき、アプリは `tools\update\Update.ps1` を `-Apply -WaitPid <自分のPID> -Relaunch` で分離プロセス起動します。スクリプトは「アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動」を行います。
-- **アプリを終了して再起動すると更新済み**になっています。staging が無い (最新・通信失敗・検証失敗) ときは何も起きず、普段どおり終了します。
+- **起動時**: アプリが GitHub Releases の候補を非同期で**確認**します。新版があれば **Title シーン (ホーム) に『アップデートあり vX.Y.Z』の通知を出します** (issue #118: 更新は明示式)。**通知を押さない限りダウンロードも適用も行われません**。ゲームは止めません。候補は**更新チャンネル**で決まります (下述)。展示用ビルド (stable) は **prerelease (テスト用 Release) を更新候補にしません**。
+- **ダウンロード / 適用 (ユーザー操作)**: 通知上で **F3 キーまたは通知クリック** → ZIP と `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` に取得して SHA-256 検証 (進捗 % を表示)。検証が通ると通知は『更新の準備ができました。終了して適用 [F3]』に変わり、**もう一度 F3 / クリックで確認**すると `tools\update\Update.ps1` が `-Apply -WaitPid <自分のPID> -Relaunch` で分離プロセス起動されます (アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動)。**適用するとアプリは再起動します**。
+- **押さなければ更新しない**: F4 / × でこのセッションは通知を隠せます。確認せずに普通終了した場合は何も適用されず、staging 済み ZIP は残ります (次回起動時にまた通知が出ます)。**`OnApplicationQuit` からの自動適用は存在しません** (issue #118 で廃止)。
 - **失敗時は現行版を残します**。SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を一切変更せず、ゲームは止めません。
 - **旧版は 1 世代だけ残します** (`FlashBeat-backup-*`、最新のもの)。それより古い世代は次回適用時に削除します。
 - **配布 ZIP に第三者楽曲の音声・動画を含めません** (`Assets/Game/Resources/Musics`、`Assets/Game/Resources/Videos/UnityYoutube`、`loading.mp4` はビルド時に退避して除外。ゲーム内の音声は yt-dlp で解決した YouTube ストリームから再生します)。
@@ -46,9 +46,11 @@
 
 |タイミング|動き|
 |---|---|
-|起動|(裏で) Releases latest を確認。新版があればダウンロード+SHA 検証。ゲームは通常どおり遊べる|
-|Option|staging 済みの新版があるとき「更新を適用して再起動 (<タグ>)」ボタンが出る (押すと即適用+再起動)|
-|終了|staging 済みの新版があるとき、終了後に更新が走り、**新 exe が自動で再起動**される|
+|起動|(裏で) Releases latest を**確認だけ**。新版があれば Title シーンに『アップデートあり vX.Y.Z』通知。ゲームは通常どおり遊べる|
+|Title 通知|**F3 / 通知クリック**でダウンロード+SHA 検証 (進捗 % 表示)。**F4 / × でこのセッションは非表示** (押さなければ更新しない)|
+|staging 完了後|通知が『更新の準備ができました。終了して適用 [F3]』に変わり、**F3 / クリックで確認したときだけ**適用+再起動|
+|Option|staging 済みの新版があるとき「更新を適用して再起動 (<タグ>)」ボタンが出る (押すと適用+再起動)|
+|終了|**確認していない場合は何も適用されない** (staging は残り、次回また通知)。確認済み (F3 押下) のときは終了後に更新が走り、**新 exe が自動で再起動**される|
 |再起動|新版になっている。旧版は `FlashBeat-backup-*` として 1 世代残る|
 
 更新の進行と結果は `%LOCALAPPDATA%\FlashBeat\update\staging\` と、インストール先の親フォルダの `FlashBeat-update.log` に記録されます。
@@ -62,7 +64,7 @@
 powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
     -InstallDir C:\FlashBeat -Tag v0.1.1-win64-abc1234
 
-# アプリからの自動適用 (UpdateChecker が終了時に起動する形)
+# アプリからの適用 (ユーザーが通知/Option で確認した後に UpdateChecker が起動する形)
 powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\Update.ps1" `
     -InstallDir "C:\FlashBeat" -Apply -Relaunch -WaitPid 12345 `
     -ZipPath "$env:LOCALAPPDATA\FlashBeat\update\staging\FlashBeat-0.1.1-win64-abc1234.zip" `
@@ -115,12 +117,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 ## 運用上の注意
 
 - ゲームフォルダ内に運営者が別途置いたファイルは、更新後に残りません (フォルダ全体を置換するため)。設定・スコアの保存先は `%USERPROFILE%\AppData\LocalLow\...` 側なので失われません。
-- タスクマネージャーでの強制終了では更新は走りません (OnApplicationQuit が呼ばれないため)。通常終了 (ウィンドウを閉じる) で終了してください。
+- 更新の適用はユーザーが通知 (F3 / クリック) や Option ボタンで確認したときだけ行われる。終了の仕方 (通常終了 / タスクマネージャー) は適用の可否に影響しない。
 - 配布 ZIP に `FlashBeat_BurstDebugInformation_DoNotShip/` は含めません (Unity の指示による ship 対象外)。
-- テスト用 Release (prerelease) は、**stable チャンネル (展示用) の自動更新では使われません**。検証したいときだけ preview チャンネルでビルドするか、運営者が `Update.ps1 -Tag` を手動実行します。
+- テスト用 Release (prerelease) は、**stable チャンネル (展示用) の更新候補にはなりません**。検証したいときだけ preview チャンネルでビルドするか、運営者が `Update.ps1 -Tag` を手動実行します。
 
 ## 関連
 
 - Release ZIP と SHA-256 の配布仕様: Issue #35
 - 実機プレイ / 再起動 / API 疎通の証拠ゲート: Issue #22
-- 自動更新の実装: `Assets/Game/Scripts/Update/UpdateChecker.cs` (起動時確認+staging+終了時起動)、`Assets/Editor/BuildScript.cs` (版識別子の埋め込み・メディア除外・スクリプト同梱)
+- 実装: `Assets/Game/Scripts/Update/UpdateChecker.cs` (起動時確認・ユーザー起点のダウンロード/適用) と `Assets/Game/Scripts/UI/UpdateNoticeUI.cs` (Title の通知)、`Assets/Editor/BuildScript.cs` (版識別子の埋め込み・メディア除外・スクリプト同梱)

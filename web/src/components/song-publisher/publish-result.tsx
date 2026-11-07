@@ -1,4 +1,5 @@
 import { CircleCheckIcon, CircleXIcon } from "lucide-react";
+import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { PublishResult } from "@/lib/publish/types";
 
@@ -54,7 +55,21 @@ const list = css({
   padding: "0",
 });
 
-export function PublishResultPanel({ result }: { result: PublishResult | null }) {
+const actions = css({
+  display: "flex",
+  gap: "2",
+  marginTop: "1",
+});
+
+export interface PublishResultPanelProps {
+  result: PublishResult | null;
+  /** Re-open the publish dialog with every input and the token retained. */
+  onRetry?: () => void;
+  /** Save the chart draft and return to the chart editor. */
+  onBackToEditor?: () => void;
+}
+
+export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishResultPanelProps) {
   if (result === null) {
     return null;
   }
@@ -88,6 +103,19 @@ export function PublishResultPanel({ result }: { result: PublishResult | null })
           ))}
         </ul>
       ) : null}
+      <p className={detail}>Nothing was published. Your inputs and the chart draft are kept.</p>
+      <div className={actions}>
+        {onRetry ? (
+          <Button size="xs" onClick={onRetry}>
+            Retry
+          </Button>
+        ) : null}
+        {onBackToEditor ? (
+          <Button size="xs" variant="outline" onClick={onBackToEditor}>
+            Back to editor
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 }
