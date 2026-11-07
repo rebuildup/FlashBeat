@@ -30,11 +30,13 @@ import {
   buildPublishRequest,
   catalogStage,
   chartStage,
+  leaderboardStage,
   makeFetchJson,
   pickSong,
   schemaStage,
   writeStage,
   type Catalog,
+  type CatalogSong,
   type StageEntry,
 } from "./lib/harness.ts";
 
@@ -92,9 +94,11 @@ catalog = catalogResult.catalog;
 
 // Stage 2 + 3: chart of one song, then the frozen chart schema.
 let snapshot = null;
+let pickedSong: CatalogSong | null = null;
 if (catalog !== null) {
   const picked = pickSong(catalog, args.songId);
   stages.push(picked.entry);
+  pickedSong = picked.song;
   if (picked.song !== null) {
     const chartResult = await chartStage(fetchJson, args.baseUrl, picked.song);
     stages.push(...chartResult.entries);
@@ -103,6 +107,11 @@ if (catalog !== null) {
 }
 if (snapshot !== null) {
   stages.push(...schemaStage(snapshot));
+}
+
+// Stage 3.5: leaderboard of the same song (read-only).
+if (pickedSong !== null) {
+  stages.push(...(await leaderboardStage(fetchJson, args.baseUrl, pickedSong)));
 }
 
 // Stage 4: optional write. Refuses to run without the explicit flags.

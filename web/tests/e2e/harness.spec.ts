@@ -5,6 +5,7 @@ import {
   catalogStage,
   chartStage,
   chartSchemaIssues,
+  leaderboardStage,
   makeFetchJson,
   pickSong,
   sameJson,
@@ -171,6 +172,107 @@ describe("chartStage", () => {
     );
     const { entries } = await chartStage(fetchJson, BASE, { ...SONG, youtubeId: "short" });
     expect(entries.find((item) => item.stage === "catalog.youtubeId")?.pass).toBe(false);
+  });
+});
+
+describe("leaderboardStage", () => {
+  const LEADERBOARD = {
+    songId: SONG.id,
+    chartVersion: SONG.chartVersion,
+    entries: [
+      { nickname: "First", score: 1000000 },
+      { nickname: "Second", score: 960000 },
+    ],
+  };
+
+  it("passes shape, size cap and ordering of a populated leaderboard", async () => {
+    const fetchJson = makeFetchJson(
+      mockFetch([
+        { path: "/api/v1/leaderboards/e2e-song?version=3", status: 200, body: LEADERBOARD },
+      ]),
+    );
+    const entries = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(entries.every((item) => item.pass)).toBe(true);
+    expect(entries.map((item) => item.stage)).toEqual([
+      "leaderboard.status",
+      "leaderboard.shape",
+      "leaderboard.order",
+    ]);
+  });
+
+  it("passes an empty leaderboard", async () => {
+    const fetchJson = makeFetchJson(
+      mockFetch([
+        {
+          path: "/api/v1/leaderboards/e2e-song?version=3",
+          status: 200,
+          body: { songId: SONG.id, chartVersion: SONG.chartVersion, entries: [] },
+        },
+      ]),
+    );
+    const entries = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(entries.every((item) => item.pass)).toBe(true);
+  });
+
+  it("fails when the identity differs from the catalog entry", async () => {
+    const fetchJson = makeFetchJson(
+      mockFetch([
+        {
+          path: "/api/v1/leaderboards/e2e-song?version=3",
+          status: 200,
+          body: { ...LEADERBOARD, chartVersion: 2 },
+        },
+      ]),
+    );
+    const entries = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(entries.find((item) => item.stage === "leaderboard.shape")?.pass).toBe(false);
+  });
+
+  it("fails when more than 10 entries are returned", async () => {
+    const entries = Array.from({ length: 11 }, (_, index) => ({
+      nickname: `P${index}`,
+      score: 1000 - index,
+    }));
+    const fetchJson = makeFetchJson(
+      mockFetch([
+        {
+          path: "/api/v1/leaderboards/e2e-song?version=3",
+          status: 200,
+          body: { songId: SONG.id, chartVersion: SONG.chartVersion, entries },
+        },
+      ]),
+    );
+    const results = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(results.find((item) => item.stage === "leaderboard.shape")?.pass).toBe(false);
+  });
+
+  it("fails when the scores are not descending", async () => {
+    const fetchJson = makeFetchJson(
+      mockFetch([
+        {
+          path: "/api/v1/leaderboards/e2e-song?version=3",
+          status: 200,
+          body: {
+            songId: SONG.id,
+            chartVersion: SONG.chartVersion,
+            entries: [
+              { nickname: "Low", score: 10 },
+              { nickname: "High", score: 999999 },
+            ],
+          },
+        },
+      ]),
+    );
+    const results = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(results.find((item) => item.stage === "leaderboard.order")?.pass).toBe(false);
+  });
+
+  it("fails on a non-200 answer", async () => {
+    const fetchJson = makeFetchJson(
+      mockFetch([{ path: "/api/v1/leaderboards/e2e-song?version=3", status: 404, body: null }]),
+    );
+    const results = await leaderboardStage(fetchJson, BASE, SONG);
+    expect(results.find((item) => item.stage === "leaderboard.status")?.pass).toBe(false);
   });
 });
 

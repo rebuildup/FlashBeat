@@ -89,14 +89,24 @@ paths:
             schema: { $ref: '#/components/schemas/ScoreSubmission' }
       responses:
         '201':
-          description: Saved score
+          description: >-
+            Saved score. The server recomputes the score with the Unity
+            formula and returns it together with the leaderboard rank of the
+            stored row (1 + number of strictly better scores of the same
+            chart version; ties share the rank).
           content:
             application/json:
               schema:
                 type: object
-                required: [score]
+                required: [score, rank]
                 properties:
                   score: { type: integer, minimum: 0, maximum: 1000000 }
+                  rank: { type: integer, minimum: 1 }
+        '429':
+          description: >-
+            Duplicate submission: the same songId + nickname + score was
+            already accepted within the last 10 seconds. Retry-After carries
+            the remaining seconds.
         '422': { description: Invalid counts or chart version }
   /api/v1/leaderboards/{songId}:
     get:
@@ -177,3 +187,18 @@ components:
         great: { type: integer, minimum: 0 }
         bad: { type: integer, minimum: 0 }
         miss: { type: integer, minimum: 0 }
+        maxCombo:
+          type: integer
+          minimum: 0
+          description: >-
+            Optional. Largest combo reached; the server rejects values above
+            the note count of the submitted chart version.
+        score:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+          description: >-
+            Optional. Score the client computed with the Unity formula; the
+            server recomputes it from the judgment counts and rejects a
+            mismatch (422), so a broken or manipulated client score is never
+            stored.
