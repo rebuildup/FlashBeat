@@ -96,8 +96,12 @@ public class RankingPanel : MonoBehaviour
         scaler.matchWidthOrHeight = 0.5f;
     }
 
-    /// <summary>全画面のバックドロップ + 中央の不透明パネル。</summary>
-    private UnityEngine.UI.Image BuildBackdrop(string name, float width, float height)
+    /// <summary>
+    /// 全画面のバックドロップ + 中央の不透明パネル。
+    /// 戻り値は「バックドロップを含むルート」— 表示/非表示はこのルートで切り替える。
+    /// (パネル本体だけを隠すと全画面の暗転バックドロップが残り、画面が暗くなったままになる)
+    /// </summary>
+    private RectTransform BuildBackdrop(string name, float width, float height, out RectTransform body)
     {
         var backdrop = new GameObject(name, typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
         backdrop.SetParent(GetComponentInChildren<Canvas>().transform, false);
@@ -107,10 +111,12 @@ public class RankingPanel : MonoBehaviour
         backdrop.offsetMin = Vector2.zero;
         backdrop.offsetMax = Vector2.zero;
         var backdropImage = backdrop.GetComponent<UnityEngine.UI.Image>();
-        backdropImage.color = new Color(0f, 0f, 0f, 0.85f);
+        // 閉じているときはこのルートごと非表示になるので、暗転は残らない。
+        // 表示中は背後の画面が薄く見える程度にし、操作はレイキャストでブロックする。
+        backdropImage.color = new Color(0f, 0f, 0f, 0.65f);
         backdropImage.raycastTarget = true;
 
-        var body = new GameObject("Panel", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        body = new GameObject("Panel", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
         body.SetParent(backdrop, false);
         body.anchorMin = new Vector2(0.5f, 0.5f);
         body.anchorMax = new Vector2(0.5f, 0.5f);
@@ -121,7 +127,7 @@ public class RankingPanel : MonoBehaviour
         bodyImage.color = PanelColor;
         bodyImage.raycastTarget = true;
         BuildBorder(body);
-        return bodyImage;
+        return backdrop;
     }
 
     /// <summary>パネルの 2px 枠 (#3FA9F5)。伸縮スプライトを使わず 4 本の Image で描く。</summary>
@@ -166,8 +172,8 @@ public class RankingPanel : MonoBehaviour
 
     private void BuildBoard()
     {
-        var bodyImage = BuildBackdrop("RankingBoard", BoardWidth, BoardHeight);
-        var body = bodyImage.rectTransform;
+        RectTransform body;
+        boardRoot = BuildBackdrop("RankingBoard", BoardWidth, BoardHeight, out body);
 
         var content = new GameObject("Content", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         content.SetParent(body, false);
@@ -242,13 +248,13 @@ public class RankingPanel : MonoBehaviour
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 
-        boardRoot = body;
+        // boardRoot は BuildBackdrop の戻り値 (バックドロップを含むルート) のまま。
     }
 
     private void BuildModal()
     {
-        var bodyImage = BuildBackdrop("RankingSubmitModal", ModalWidth, ModalHeight);
-        var body = bodyImage.rectTransform;
+        RectTransform body;
+        modalRoot = BuildBackdrop("RankingSubmitModal", ModalWidth, ModalHeight, out body);
 
         var content = new GameObject("Content", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         content.SetParent(body, false);
@@ -278,7 +284,7 @@ public class RankingPanel : MonoBehaviour
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 
-        modalRoot = body;
+        // modalRoot は BuildBackdrop の戻り値 (バックドロップを含むルート) のまま。
     }
 
     private void BuildHint()
