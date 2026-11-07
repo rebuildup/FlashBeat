@@ -288,6 +288,26 @@ public class MusicManager : MonoBehaviour
             if (loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
+
+            if (!videoReady)
+            {
+                // Issue #184: ファイルはキャッシュにあるのに開けない - 強制終了や
+                // 電源断で途中まで書かれたファイルが最終名のまま残っていた場合など。
+                // キャッシュ項目を捨てて (試行回数上限つきで) 次の試行 = Retry で
+                // 再取得させる。壊れたファイルを永久に使い回さないため。
+                if (MediaRefetchPolicy.MayRefetch(videoId))
+                {
+                    MediaRefetchPolicy.CountRefetch(videoId);
+                    YouTubeMediaCache.InvalidateProducedFile(videoFile.Path);
+                    Debug.Log($"[MusicManager] the player cannot open the cached file ({Path.GetFileName(videoFile.Path)}) - " +
+                              $"cache entry dropped, the next attempt fetches it again ({MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo})");
+                }
+                else
+                {
+                    Debug.Log($"[MusicManager] the cached file was already refetched {MediaRefetchPolicy.MaxAttemptsPerVideo} times - " +
+                              "delete the media cache in the Option screen to force a new download");
+                }
+            }
         }
 
         // 5. Prepare the sound player for the split (video only + audio only) case.
@@ -298,6 +318,15 @@ public class MusicManager : MonoBehaviour
             if (loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
+
+            if (!audioReady && MediaRefetchPolicy.MayRefetch(videoId))
+            {
+                // 映像と同じ扱い: 開けないキャッシュ音声は捨てて、次の試行で再取得させる。
+                MediaRefetchPolicy.CountRefetch(videoId);
+                YouTubeMediaCache.InvalidateProducedFile(audioFile.Path);
+                Debug.Log($"[MusicManager] the player cannot open the cached audio ({Path.GetFileName(audioFile.Path)}) - " +
+                          $"cache entry dropped, the next attempt fetches it again ({MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo})");
+            }
         }
 
         // 6. Decide where the sound comes from (a missing wav yields None
@@ -353,6 +382,14 @@ public class MusicManager : MonoBehaviour
         else
         {
             stage = MediaStage.Ready;
+        }
+
+        if (failure == MediaFailure.None && hasSound)
+        {
+            // The song is playable: an old refetch count from earlier broken
+            // files is stale, so the next real incident gets its full budget of
+            // attempts again (issue #184).
+            MediaRefetchPolicy.Reset(videoId);
         }
 
         Debug.Log($"[MusicManager] media ready: song='{songName}' audioMode={audioMode} video={(videoReady ? "ok" : "missing")} " +
