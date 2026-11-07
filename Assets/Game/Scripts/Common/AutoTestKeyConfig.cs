@@ -146,14 +146,14 @@ public class AutoTestKeyConfig : MonoBehaviour
         yield return Shot("07-start-rebound");
 
         // lane-conflict rule: R is a lane key, so Confirm must refuse it
-        GameObject confirmRow = KeyConfigUI.TestActionRowObject(confirmRow);
-        if (confirmRow != null && EventSystem.current != null)
+        GameObject confirmRowObject = KeyConfigUI.TestActionRowObject(confirmRow);
+        if (confirmRowObject != null && EventSystem.current != null)
         {
             KeyConfigUI.InjectKeyDown(KeyCode.Escape); // stop listening on Start
             yield return Frames();
-            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, confirmRow.transform.position);
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, confirmRowObject.transform.position);
             var pointer = new PointerEventData(EventSystem.current) { position = screen };
-            ExecuteEvents.Execute(confirmRow, pointer, ExecuteEvents.pointerClickHandler);
+            ExecuteEvents.Execute(confirmRowObject, pointer, ExecuteEvents.pointerClickHandler);
             yield return Frames();
             Check("click selects the Confirm action and starts listening", KeyConfigUI.TestSelectedAction == confirmRow && KeyConfigUI.TestListening);
             KeyConfigUI.InjectKeyDown(KeyCode.R);
@@ -184,15 +184,22 @@ public class AutoTestKeyConfig : MonoBehaviour
         LaneFlash[] flashes = FindObjectsOfType<LaneFlash>();
         Check("GameScene has the 8 lane flashes", flashes.Length >= 8);
         KeyBindings.InjectKeyDown(KeyCode.E);
-        yield return Frames();
+        // The flash decays (alpha -= lightSpeed * Time.deltaTime), so a single sample can miss it
+        // when the machine is busy (one frame can take longer than the 0.1 s flash).
+        // Sample every frame for a moment and keep the peak of each lane.
         float alpha3 = 0f;
         float alpha6 = 0f;
-        for (int i = 0; i < flashes.Length; i++)
+        for (int frame = 0; frame < 10; frame++)
         {
-            Renderer r = flashes[i].GetComponent<Renderer>();
-            if (r == null) { continue; }
-            if (flashes[i].LaneNumber == 3) { alpha3 = r.material.color.a; }
-            if (flashes[i].LaneNumber == 6) { alpha6 = r.material.color.a; }
+            yield return null;
+            for (int i = 0; i < flashes.Length; i++)
+            {
+                Renderer r = flashes[i].GetComponent<Renderer>();
+                if (r == null) { continue; }
+                float a = r.material.color.a;
+                if (flashes[i].LaneNumber == 3) { alpha3 = Mathf.Max(alpha3, a); }
+                if (flashes[i].LaneNumber == 6) { alpha6 = Mathf.Max(alpha6, a); }
+            }
         }
         Check("E (bound to lane 6) lights lane 6", alpha6 > 0.1f);
         Check("E no longer lights lane 3", alpha3 < 0.05f);
