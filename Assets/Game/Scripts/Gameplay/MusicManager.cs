@@ -277,7 +277,7 @@ public class MusicManager : MonoBehaviour
         //    The cache lives in the player environment (persistentDataPath), the
         //    release build ships no third party media at all.
         stage = MediaStage.DownloadingMedia;
-        var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
         if (loading != null) { loading.Show("動画をダウンロード中…"); }
         var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
         while (!videoTask.IsCompleted) yield return null;

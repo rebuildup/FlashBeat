@@ -148,6 +148,11 @@ public class SelectSceneManager : MonoBehaviour
             yield break;
         }
 
+        // The song entry carries the version the snapshot was taken with, so
+        // that the game scene finds exactly this snapshot (NotesManager looks
+        // it up by song.chartVersion) even when the catalog entry itself did
+        // not carry a version.
+        song.chartVersion = version;
         CloudChartHolder.Hold(song.remoteId, version, body);
         GManager.ResetSession();
         Initiate.Fade("GameScene", Color.black, 1.0f);

@@ -62,6 +62,19 @@ namespace FlashBeat.Gameplay
         public const string MergedFilePrefix = "merged";
 
         /// <summary>
+        /// The cache prefix the picture file of a plan has to be stored under.
+        /// A merged file (picture + YouTube sound in one mp4) uses its own
+        /// prefix, a picture-only file the video prefix. The game and the
+        /// pre-cache tool must agree on it, otherwise the pre-cached file is
+        /// not found at runtime (or a merged file is reused as if it were a
+        /// picture-only one).
+        /// </summary>
+        public static string PrefixForPlan(MediaFormatPlan plan)
+        {
+            return plan != null && plan.Combined ? MergedFilePrefix : VideoFilePrefix;
+        }
+
+        /// <summary>
         /// Suffix of the completion marker. A media file only counts as a cache
         /// hit when its marker exists and records the very size of the file on
         /// disk - a download that was interrupted (process killed, power loss)
