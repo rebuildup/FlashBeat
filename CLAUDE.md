@@ -130,8 +130,11 @@ Manual recipe (still valid for scripted/headless use):
 ## Known gotchas
 
 - `GManager.Songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
-- `Assets/Resources/<song>.json` must exist with the merged `lyrics` field — `MusicManager` loads the chart, `GameSceneManager.LoadTextData` reads the inline `lyrics` block. Legacy `<song>_text.json` is no longer required; if present, the merged chart takes precedence.
+- `Assets/Game/Resources/<song>.json` must exist with the merged `lyrics` field — `MusicManager` loads the chart, `GameSceneManager.LoadTextData` reads the inline `lyrics` block. Legacy `<song>_text.json` is no longer required; if present, the merged chart takes precedence.
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/`, `TestResults.xml` are gitignored — never edit them by hand, they are Unity-generated.
+- Chart JSON must live in **exactly one** Resources folder. Two `Resources` folders holding the same
+  song name make `Resources.Load` return one arbitrary copy — `Assets/Resources/` (the old, lyrics-less
+  folder) was removed for that reason; `Assets/Tests/Editor/ResourceChartUniquenessTests.cs` guards it.
 - Several large font assets (`Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset`, `Assets/Game/Fonts/Japanese/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
 - `Assets/Editor/TempRuntimeProbe.cs.tmp` is a stray in-progress file (`.tmp` suffix) — not part of the build, leave alone unless cleaning up.
 - `GManager.SongName`/`Musician`/`SongURL`/`SBPM`/`Slevel`/`Shit`/`SongLong` arrays and the `Resources/<song>.json` chart must stay in lockstep. Editor tools `GManagerParallelArrayUpdater` + `SongMetaDialog` (Editor menu) append entries programmatically and queue via `DeferredEditorActions` to defer past Play Mode. `YouTubeSceneWiring` auto-wires the new `YoutubePlayer` GameObject into `GameScene.unity` + `MusicManager`.
