@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -20,21 +20,19 @@ public class Judge : MonoBehaviour
     private int Fsize;
 
     /// <summary>
-    /// 保持中のロングノーツ (Issue #164)。
-    ///
-    /// キーが押されている (または押されていた) ロングノーツのインデックスと
-    /// レーンを保持する。離した瞬間にこの表から取り除き、終端で離したか /
-    /// 途中で離したかを判定する。
+    /// 判定キュー (Issue #182)。レーンごと・時刻順にノーツを持ち、
+    /// 入力 1 回は最も近い未判定ノーツ 1 つにだけ効く。
     /// </summary>
-    private readonly Dictionary<int, int> heldHolds = new Dictionary<int, int>();
+    private JudgeQueue queue;
+
+    /// <summary>スコアの集計 (1 ノーツ = 1 判定を保証する, Issue #164)。</summary>
+    private readonly JudgeScoreboard board = new JudgeScoreboard();
 
     /// <summary>
-    /// 押下判定済みのロングノーツのインデックス集合。
-    ///
-    /// 保持されなかった場合にも「開始は押された」ことを残す。押し直しで
-    /// 救済しないため、押し直しは新しいロングノーツとして扱わない。
+    /// 保持中のロングノーツの先頭判定 (Issue #164)。途中で離した (中断)
+    /// ときにこの判定を BAD へ差し替えるために覚えておく。
     /// </summary>
-    private readonly HashSet<int> startedHolds = new HashSet<int>();
+    private readonly LongNote.Judgement[] holdHead = new LongNote.Judgement[LaneKeys.Length];
 
     // 正本 (single source of truth): 判定とキーガイド UI の両方がこの配列を参照する
     public static readonly KeyCode[][] LaneKeys = new KeyCode[][]
@@ -63,51 +61,58 @@ public class Judge : MonoBehaviour
     {
         if (!GManager.Start) return;
 
-        // 判定対象の窓 (Issue #164)。
-        //
-        // 保持中のロングノーツはキューに残っている (終端まで消えない)。そのまま
-        // だと、保持中のホールドの後ろにあるタップが判定されなくなるので、
-        // 保持中のホールドを飛ばして次のノーツから窓を開く。
-        int windowStart = FirstCheckableIndex();
+        EnsureQueue();
+        if (queue == null) return;
 
-        if (windowStart >= 0 && notesManager.NotesTime.Count > windowStart)
+        // 時刻の基準は既存方式を維持する: Time.time と GManager.StartTime から
+        // メディア時刻 (譜面上の秒) を出す。譜面の時刻はメディア時刻なので、
+        // 判定はすべてこの mediaTime で行う。
+        float mediaTime = Time.time - GManager.StartTime;
+
+        // 1) 押下判定: レーンごとに独立に処理する (Issue #182)。2 レーンを
+        //    同時に叩いても、それぞれのレーンのキューが別々に判定する。
+        for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            int sameTimeCount = 1;
-            float firstTime = notesManager.NotesTime[windowStart];
-            int maxCheck = Mathf.Min(8, notesManager.NotesTime.Count - windowStart);
-
-            for (int i = 1; i < maxCheck; i++)
+            if (IsLaneKeyPressed(lane))
             {
-                if (Mathf.Approximately(notesManager.NotesTime[windowStart + i], firstTime))
-                {
-                    sameTimeCount++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            for (int i = sameTimeCount - 1; i >= 0; i--)
-            {
-                CheckAll(windowStart + i);
+                PressLane(lane, mediaTime);
             }
         }
 
-        // ロングノーツの保持状態 (Issue #164)。
-        UpdateHolds();
-
-        // 保持中のロングノーツは Miss の判定から外す。保持中に MISS に
-        // ならないため (Issue #164)。
-        int missTarget = FirstMissableIndex();
-
-        if (missTarget >= 0 && Time.time > notesManager.NotesTime[missTarget] + 0.2f + GManager.StartTime)
+        // 2) ロングノーツの保持状態 (Issue #164)。離した / 押し続けた を
+        //    毎フレーム見る。加点は先頭の押下で済んでいるので、ここでは
+        //    中断の差し替えだけを行う。
+        for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-message(3, missTarget);
-            deleteData(missTarget);
-            Debug.Log("Miss");
-            GManager.miss++;
-            GManager.combo = 0;
+            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, IsLaneKeyDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
+            if (result == JudgeQueue.HoldResult.Broken)
+            {
+                // 途中で離した: 先頭判定を BAD に差し替える (追加加点しない)。
+                Debug.Log("Hold broken");
+                board.DowngradeHoldToBad(holdHead[lane]);
+                message(2, holdEnd.SourceIndex);
+                FlushScore();
+            }
+            else if (result == JudgeQueue.HoldResult.Released || result == JudgeQueue.HoldResult.Expired)
+            {
+                // 終端で離した / 押し続けたまま終端をすぎた: 成功。
+                // スコアは先頭の押下で加算済みなので、ここでは何も加算しない。
+                Debug.Log("Hold clear");
+            }
+        }
+
+        // 3) 時刻切れ (Miss): レーンごとに見る。他レーンの未処理ノーツは
+        //    邪魔にならない (Issue #182)。
+        for (int lane = 0; lane < LaneKeys.Length; lane++)
+        {
+            if (queue.TryPeekMiss(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry missed))
+            {
+                queue.Remove(missed);
+                Debug.Log("Miss");
+                board.ApplyMiss();
+                message(3, missed.SourceIndex);
+                FlushScore();
+            }
         }
 
         if (fSize > 197) fSize -= 1;
@@ -118,149 +123,91 @@ message(3, missTarget);
     }
 
     /// <summary>
-    /// 判定 (押下) の対象になる最初のノーツのインデックス。
-    ///
-    /// 保持中のロングノーツ (または押下判定済みのロングノーツ) は、保持が
-    /// 終わるまで判定の対象から外す。-1 なら判定すべきノーツはない。
+    /// 1 レーンの押下を判定する。入力 1 回は、そのレーンの押した時刻に
+    /// 最も近い未判定ノーツ 1 つにだけ効く (Issue #182)。
     /// </summary>
-    private int FirstCheckableIndex()
+    private void PressLane(int lane, float mediaTime)
     {
-        for (int i = 0; i < notesManager.NotesTime.Count; i++)
+        if (!queue.TryPress(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry hit, out float lag)) return;
+
+        LongNote.Judgement judgement = LongNote.JudgeHead(lag);
+        if (judgement == LongNote.Judgement.None) return;
+
+        if (audioHit != null && hitSound != null)
         {
-            if (heldHolds.ContainsKey(i) || startedHolds.Contains(i))
-            {
-                continue;
-            }
-            return i;
+            audioHit.PlayOneShot(hitSound);
         }
-        return -1;
+
+        // 先頭の押下で 1 回だけ加点する (Issue #164)。
+        board.ApplyHead(judgement);
+        message((int)judgement, hit.SourceIndex);
+
+        if (hit.Type == LongNote.TYPE_HOLD)
+        {
+            // ロングノーツはここでは消さない: 保持が始まり、終端で離したか
+            // 途中で離したかが UpdateHold で決まる。
+            holdHead[lane] = judgement;
+            queue.BeginHold(hit);
+        }
+        else
+        {
+            queue.ConsumeTap(hit);
+        }
+
+        FlushScore();
     }
 
     /// <summary>
-    /// Miss 判定の対象になる最初のノーツのインデックス。
+    /// NotesManager の譜面データから判定キューを 1 度だけ組み立てる。
     ///
-    /// 保持中のロングノーツ (または押下判定済みのロングノーツ) は、保持が
-    /// 終わるまでこの判定から外す。-1 なら Miss 判定すべきノーツはない。
-    ///
-    /// まだ押されていないロングノーツは、開始時刻をすぎた時点でこの判定に
-    /// 入る (押されなかったロングノーツは Miss として数える)。
+    /// ノーツは譜面ファイルの編集順に並んでいることがあるので、キューの側で
+    /// レーン別・時刻順に並べ替える (Issue #182)。NotesManager のリストは
+    /// この後も書き換えない (エフェクト表示位置の参照に使う)。
     /// </summary>
-    private int FirstMissableIndex()
+    private void EnsureQueue()
     {
-        for (int i = 0; i < notesManager.NotesTime.Count; i++)
+        if (queue != null) return;
+        if (notesManager == null) return;
+        if (notesManager.NoteType.Count == 0) return;
+
+        queue = new JudgeQueue(LaneKeys.Length);
+        for (int i = 0; i < notesManager.NoteType.Count; i++)
         {
-            if (heldHolds.ContainsKey(i) || startedHolds.Contains(i))
+            // 末尾の番兵 (時刻 10000) は判定の対象にしない。
+            if (i >= notesManager.noteNum) break;
+
+            int lane = notesManager.LaneNum[i];
+            if (lane < 0 || lane >= LaneKeys.Length)
             {
-                continue;
-            }
-            if (i < notesManager.NoteType.Count && notesManager.NoteType[i] == LongNote.TYPE_HOLD)
-            {
-                // まだ押されていないロングノーツは、開始時刻をすぎた瞬間に
-                // Miss 判定の対象になる。時刻の比較は下の Miss 判定と同じ
-                // 式 (Time.time と StartTime) を使う。
-                if (Time.time <= notesManager.NotesTime[i] + LongNote.BAD_WINDOW + GManager.StartTime)
-                {
-                    continue;
-                }
-            }
-            return i;
-        }
-        return -1;
-    }
-
-    /// <summary>
-    /// ロングノーツの保持状態を毎フレーム見る (Issue #164)。
-    ///
-    /// 押下は <see cref="CheckAll"/> が行うので、ここでは
-    ///   - 保持中のロングノーツのキーを離した (中断) とき -> 即 BAD
-    ///   - 終端まで保持して離した (成功) とき -> 確定 (スコアは開始で加算済み)
-    /// の 2 つだけを見る。保持中の連続評価はしない。
-    /// </summary>
-    private void UpdateHolds()
-    {
-        if (heldHolds.Count == 0) return;
-
-        float now = Time.time - GManager.StartTime;
-
-        // 押され続けるキー (GetKey) をレーンごとに調べる。
-        // 削除でインデックスがずれるので、大きいインデックスから処理する。
-        List<int> released = new List<int>();
-        List<int> expired = new List<int>();
-        foreach (KeyValuePair<int, int> entry in heldHolds)
-        {
-            int index = entry.Key;
-            int lane = entry.Value;
-            if (index >= notesManager.NotesTime.Count) continue;
-
-            if (!IsLaneKeyDown(lane))
-            {
-                released.Add(index);
+                Debug.LogWarning($"[Judge] note {i} has invalid lane {lane} - skipped");
                 continue;
             }
 
-            // 終端をすぎても離さないまま保持されている場合。放置すると
-            // ノーツがキューに残ったままになるので、終端で確定させる
-            // (押し続けていたので成功として扱う)。
-            if (now > EndTimeOf(index) + LongNote.GREAT_WINDOW)
+            queue.Add(new JudgeQueue.NoteEntry
             {
-                expired.Add(index);
-            }
-        }
-
-        // 大きいインデックスから消すと、処理済みのノーツに影響しない。
-        released.Sort((a, b) => b.CompareTo(a));
-        expired.Sort((a, b) => b.CompareTo(a));
-
-        // 終端をすぎた保持: 押し続けていたので成功。終端での離しと同じ扱い。
-        for (int i = 0; i < expired.Count; i++)
-        {
-            int index = expired[i];
-            if (!heldHolds.ContainsKey(index)) continue;
-            heldHolds.Remove(index);
-            Debug.Log("Hold clear");
-            deleteData(index);
-        }
-
-        for (int i = 0; i < released.Count; i++)
-        {
-            int index = released[i];
-            if (!heldHolds.ContainsKey(index)) continue;
-            heldHolds.Remove(index);
-
-            float endTime = EndTimeOf(index);
-            float releaseTime = Time.time - GManager.StartTime;
-
-            if (LongNote.JudgeRelease(releaseTime, endTime))
-            {
-                // 終端で離した: 成功。スコアは開始時に加算済みなので加点しない。
-                // ノーツはここで消える: 保持が終わったので、Miss 判定の
-                // 対象に残してはいけない。
-                Debug.Log("Hold clear");
-                deleteData(index);
-            }
-            else
-            {
-                // 途中で離した: 中断。BAD として確定する。押し直しは救済しない。
-                Debug.Log("Hold broken");
-                message(2, index);
-                GManager.ratioScore += LongNote.SCORE_BAD;
-                GManager.bad++;
-                GManager.combo++;
-                if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo;
-                UpdateScore();
-                deleteData(index);
-            }
+                Time = notesManager.NotesTime[i],
+                EndTime = i < notesManager.NotesEndTime.Count ? notesManager.NotesEndTime[i] : 0f,
+                Type = notesManager.NoteType[i],
+                Lane = lane,
+                SourceIndex = i,
+            });
         }
     }
 
-    /// <summary>ロングノーツの終端時刻 (秒)。</summary>
-    private float EndTimeOf(int index)
+    /// <summary>そのレーンのキーがこのフレームで押されたか。</summary>
+    private static bool IsLaneKeyPressed(int lane)
     {
-        if (index < 0 || index >= notesManager.NotesEndTime.Count) return 0f;
-        return notesManager.NotesEndTime[index];
+        if (lane < 0 || lane >= LaneKeys.Length) return false;
+
+        KeyCode[] keys = KeyBindings.GetKeys(lane);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (Input.GetKeyDown(keys[i])) return true;
+        }
+        return false;
     }
 
-    /// <summary>そのレーンのキーが押されているか。</summary>
+    /// <summary>そのレーンのキーが押されているか (保持判定用)。</summary>
     private static bool IsLaneKeyDown(int lane)
     {
         if (lane < 0 || lane >= LaneKeys.Length) return false;
@@ -273,110 +220,20 @@ message(3, missTarget);
         return false;
     }
 
-    private void Judgement(float timeLag, int numOffset)
-    {
-        if (audioHit != null && hitSound != null)
-        {
-            audioHit.PlayOneShot(hitSound);
-        }
-
-        // 判定幅と配点は LongNote が正本 (Issue #164)。タップとロングノーツで
-        // 同じ幅を使うので、どちらでも同じ結果になる。
-        LongNote.Judgement judgement = LongNote.JudgeHead(timeLag);
-
-        if (judgement == LongNote.Judgement.None) return;
-
-        if (judgement == LongNote.Judgement.Perfect)
-        {
-            Debug.Log("Perfect");
-message(0, numOffset);
-            GManager.ratioScore += LongNote.SCORE_PERFECT;
-            GManager.perfect++;
-            GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
-            deleteData(numOffset);
-        }
-        else if (judgement == LongNote.Judgement.Great)
-        {
-            Debug.Log("Great");
-message(1, numOffset);
-            GManager.ratioScore += LongNote.SCORE_GREAT;
-            GManager.great++;
-            GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
-            deleteData(numOffset);
-        }
-        else if (judgement == LongNote.Judgement.Bad)
-        {
-            Debug.Log("Bad");
-message(2, numOffset);
-            GManager.ratioScore += LongNote.SCORE_BAD;
-            GManager.bad++;
-            GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
-            deleteData(numOffset);
-        }
-    }
-
-    private void deleteData(int numOffset)
-    {
-        if (numOffset < 0 || numOffset >= notesManager.NotesTime.Count) return;
-
-        notesManager.NotesTime.RemoveAt(numOffset);
-        notesManager.LaneNum.RemoveAt(numOffset);
-        notesManager.NoteType.RemoveAt(numOffset);
-        if (numOffset < notesManager.NotesEndTime.Count)
-        {
-            notesManager.NotesEndTime.RemoveAt(numOffset);
-        }
-        // 消えたノーツは保持中ではない (Issue #164)。
-        heldHolds.Remove(numOffset);
-        startedHolds.Remove(numOffset);
-        // インデックスがずれたので、保持中の表を補正する。
-        ShiftHeldHolds(numOffset);
-        UpdateScore();
-    }
-
     /// <summary>
-    /// ノーツが削除されたことで、保持中のロングノーツのインデックスがずれる
-    /// (Issue #164)。削除位置より後ろのインデックスを 1 ずつ下げる。
+    /// 集計を GManager の static フィールドへ写す。他シーン
+    /// (ResultScene など) は従来どおり GManager を読む。
     /// </summary>
-    private void ShiftHeldHolds(int removedIndex)
+    private void FlushScore()
     {
-        if (heldHolds.Count > 0)
-        {
-            List<int> moved = new List<int>();
-            foreach (KeyValuePair<int, int> entry in heldHolds)
-            {
-                if (entry.Key > removedIndex)
-                {
-                    moved.Add(entry.Key);
-                }
-            }
-            for (int i = 0; i < moved.Count; i++)
-            {
-                int lane = heldHolds[moved[i]];
-                heldHolds.Remove(moved[i]);
-                heldHolds[moved[i] - 1] = lane;
-            }
-        }
-
-        if (startedHolds.Count > 0)
-        {
-            List<int> moved = new List<int>();
-            foreach (int index in startedHolds)
-            {
-                if (index > removedIndex)
-                {
-                    moved.Add(index);
-                }
-            }
-            for (int i = 0; i < moved.Count; i++)
-            {
-                startedHolds.Remove(moved[i]);
-                startedHolds.Add(moved[i] - 1);
-            }
-        }
+        GManager.ratioScore = board.RatioScore;
+        GManager.perfect = board.Perfect;
+        GManager.great = board.Great;
+        GManager.bad = board.Bad;
+        GManager.miss = board.Miss;
+        GManager.combo = board.Combo;
+        GManager.maxCombo = board.MaxCombo;
+        UpdateScore();
     }
 
     /// <summary>スコア表示と内部スコアの更新。</summary>
@@ -417,84 +274,5 @@ message(2, numOffset);
 
         // the notes use the same mapping (block - 3.5), see NotesManager.Load
         return new Vector3(lane - 3.5f, 0.76f, 0.15f);
-    }
-
-    private void CheckAll(int LaneN)
-    {
-        if (LaneN < 0 || LaneN >= notesManager.LaneNum.Count) return;
-
-        int targetLane = notesManager.LaneNum[LaneN];
-        if (targetLane < 0 || targetLane >= LaneKeys.Length) return;
-
-        KeyCode[] keys = KeyBindings.GetKeys(targetLane);
-        for (int i = 0; i < keys.Length; i++)
-        {
-            if (Input.GetKeyDown(keys[i]))
-            {
-                float timeLag = Mathf.Abs(Time.time - (notesManager.NotesTime[LaneN] + GManager.StartTime));
-
-                // ロングノーツ (Issue #164): 開始の押下はタップと同じ幅で判定
-                // するが、ノーツは消さない。保持を鳴らし、終端まで待ちます。
-                if (LaneN < notesManager.NoteType.Count && notesManager.NoteType[LaneN] == LongNote.TYPE_HOLD)
-                {
-                    JudgementHold(timeLag, LaneN, targetLane);
-                    break;
-                }
-
-                Judgement(timeLag, LaneN);
-                break;
-            }
-        }
-    }
-
-    /// <summary>
-    /// ロングノーツの開始時の押下を判定する (Issue #164)。
-    ///
-    /// タップと同じ幅で判定し、配点もタップと同じ (spec.md R3/R5)。ただし
-    /// ノーツはここでは消さない: 保持されてから、終端で離したか途中で離したか
-    /// が <see cref="UpdateHolds"/> で決まる。
-    ///
-    /// 押し直しは救済しない。押下判定は 1 note = 1 回だけ。
-    /// </summary>
-    private void JudgementHold(float timeLag, int numOffset, int lane)
-    {
-        if (audioHit != null && hitSound != null)
-        {
-            audioHit.PlayOneShot(hitSound);
-        }
-
-        LongNote.Judgement judgement = LongNote.JudgeHead(timeLag);
-        if (judgement == LongNote.Judgement.None) return;
-
-        if (judgement == LongNote.Judgement.Perfect)
-        {
-            Debug.Log("Perfect");
-            message(0, numOffset);
-            GManager.ratioScore += LongNote.SCORE_PERFECT;
-            GManager.perfect++;
-        }
-        else if (judgement == LongNote.Judgement.Great)
-        {
-            Debug.Log("Great");
-            message(1, numOffset);
-            GManager.ratioScore += LongNote.SCORE_GREAT;
-            GManager.great++;
-        }
-        else
-        {
-            Debug.Log("Bad");
-            message(2, numOffset);
-            GManager.ratioScore += LongNote.SCORE_BAD;
-            GManager.bad++;
-        }
-
-        GManager.combo++;
-        if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
-
-        // 保持中として記録する。押下判定は 1 回だけ (押し直しで救済しない)。
-        heldHolds[numOffset] = lane;
-        startedHolds.Add(numOffset);
-
-        UpdateScore();
     }
 }
