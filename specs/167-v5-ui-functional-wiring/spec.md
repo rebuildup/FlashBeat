@@ -4,7 +4,14 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 
 # Spec: [Game/P0] Unity 全画面の描画だけのUIを排除し全ボタンを実動作へ接続
 
-**Issue**: #167 | **Branch**: `167` | **PR base**: `release-0-1-11` | **Date**: 2026-11-07 | **Status**: Draft
+**Issue**: #167 | **Branch**: `167` | **PR base**: `release-0-1-14` (see note) | **Date**: 2026-11-07 | **Status**: Draft
+
+> **PR base の変更について**: 当初 `release-0-1-11` (2f2b6ba) を base に Draft PR #177 を作成したが、
+> 作業中に remote の `release-0-1-11` ブランチが削除され、GitHub が base 欠落により PR を自動 closed した
+> (reopen は "state cannot be changed. The release-0-1-11 branch has been deleted." で不可)。
+> 2f2b6ba を含む現行リリースブランチ `release-0-1-14` を base として Draft PR #179 を作成した
+> (merge-base は 2f2b6ba のまま = 本 Issue の差分だけが PR に乗る)。
+> 作業ブランチ `167` には `release-0-1-11` への push / merge は一切行っていない。
 
 **Input**: `Issue #167 (親 #162)。v5 UI は「見えるが押せない / 押しても反応しない」状態にある。
 全画面 (Title / Select / Game / Pause / Option / Result / Opening) の visible control を
