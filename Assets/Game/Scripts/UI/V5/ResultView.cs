@@ -651,11 +651,11 @@ namespace FlashBeat.UI.V5
             float okW = S(280f);
             float gap = UISizeProfile.Current.GapM;
             float x = 0f; // 右詰め: OK を右端に置き左へ積む
-            BuildActionButton(row, 2, "OK", "Space", okW, x, true);
+            BuildActionButton(row, 2, "OK", ActionKeyHint.Primary(KeyActions.KeyAction.Confirm), okW, x, true);
             x += okW + gap;
             BuildActionButton(row, 1, "Register", "Enter", registerW, x, false);
             x += registerW + gap;
-            BuildActionButton(row, 0, "Retry", "R", retryW, x, false);
+            BuildActionButton(row, 0, "Retry", ActionKeyHint.Primary(KeyActions.KeyAction.Retry), retryW, x, false);
         }
 
         private void BuildActionButton(GameObject parent, int index, string label, string cap, float w, float xFromRight, bool primary)
