@@ -126,3 +126,22 @@ describe("scoreSemanticsDiagnostics", () => {
     assert.equal(diagnostics[0]?.path, "/maxCombo");
   });
 });
+
+describe("computeUnityScore single precision (GManager.ratioScore/maxScore are C# float)", () => {
+  // Expected values computed with float32 arithmetic (numpy.float32) exactly like Unity:
+  // floor(float32(float32(ratioScore / maxScore) * 1000000)). Plain doubles give 520000, 512499, 831578.
+  it("5 notes, 2 perfect + 1 great (ratioScore 13) is 519999", () => {
+    assert.equal(computeUnityScore(2, 1, 0, 5), 519999);
+  });
+  it("16 notes, 8 perfect + 1 bad (ratioScore 41) is 512500", () => {
+    assert.equal(computeUnityScore(8, 0, 1, 16), 512500);
+  });
+  it("19 notes, 15 perfect + 1 great + 1 bad (ratioScore 79) is 831579", () => {
+    assert.equal(computeUnityScore(15, 1, 1, 19), 831579);
+  });
+  it("a perfect run is always exactly 1,000,000 for any note count", () => {
+    for (const notes of [1, 7, 53, 139, 262, 603, 999]) {
+      assert.equal(computeUnityScore(notes, 0, 0, notes), 1000000);
+    }
+  });
+});

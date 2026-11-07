@@ -202,14 +202,19 @@ export function computeUnityScore(
   bad: number,
   noteCount: number,
 ): number | null {
-  const maxScore = noteCount * 5;
-  if (maxScore <= 0) {
+  if (noteCount * 5 <= 0) {
     return null;
   }
-  const ratioScore = perfect * 5 + great * 3 + bad;
-  // Same operation order as the C# expression: divide, scale, floor, scale,
-  // round. Both runtimes use IEEE-754 doubles, so the results are identical.
-  const floored = Math.floor((ratioScore / maxScore) * 1000000);
+  // GManager.maxScore / GManager.ratioScore are C# `float` (single precision), and
+  // `ratioScore / maxScore * 1000000` is evaluated in single precision as well. Emulating that with
+  // Math.fround is required: with plain doubles ~19,500 of the (noteCount <= 700, ratioScore) pairs
+  // differ by one point (e.g. 5 notes, ratioScore 13: Unity 519999, double 520000) and every such
+  // legitimate score would be rejected with 422.
+  const maxScore = Math.fround(noteCount * 5);
+  const ratioScore = Math.fround(perfect * 5 + great * 3 + bad);
+  const ratio = Math.fround(ratioScore / maxScore);
+  const scaled = Math.fround(ratio * 1000000);
+  const floored = Math.floor(scaled);
   return Math.round((1000000 * floored) / 1000000);
 }
 
