@@ -7,6 +7,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "test": "node --test tests/ && vitest run",
+    "visual": "node tests/visual/capture.mjs",
     "codegen": "panda codegen",
     "postinstall": "void prepare && panda codegen"
   },
@@ -36,6 +37,7 @@
     "better-sqlite3": "13.0.3",
     "drizzle-orm": "0.45.4",
     "oxc-transform-react": "^0.152.0",
+    "puppeteer-core": "^25.16.0",
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@^1.4.0",
     "vite-plus": "^1.4.0",
