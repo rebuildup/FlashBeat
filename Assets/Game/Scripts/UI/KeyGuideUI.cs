@@ -38,7 +38,13 @@ public class KeyGuideUI : MonoBehaviour
         EnsureBuilt();
     }
 
-    private void EnsureBuilt()
+    /// <summary>ガイドを表示中かどうか (自動テスト・状態表示用)。</summary>
+    public bool IsVisible
+    {
+        get { return visible; }
+    }
+
+    public void EnsureBuilt()
     {
         if (built) return;
         built = true;
