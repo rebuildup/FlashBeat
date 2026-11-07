@@ -62,7 +62,7 @@ namespace FlashBeat.UI
             if (backButton != null) backButton.SetActive(HudPlayState.ShowBackEscape(phase));
             if (startHint != null) startHint.SetActive(phase == HudPlayPhase.Hidden && !GManager.played);
 
-            if (HudPlayState.ShowBackEscape(phase) && Input.GetKeyDown(KeyCode.Escape))
+            if (HudPlayState.ShowBackEscape(phase) && KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 BackToSelect();
             }
