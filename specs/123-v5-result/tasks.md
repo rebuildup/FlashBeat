@@ -5,3 +5,4 @@
 3. [x] `ResultSceneManager.cs` 最小改修 (View 生成, レガシー非表示, 入力委譲, サムネ受渡)
 4. [x] `ResultV5ViewTests.cs` (RankFor / FormatScore / DeltaLabel / NormalizeName)
 5. [x] spec/plan/tasks 整備、コミット push、Draft PR
+6. [x] レビュー指摘修正: レジェンドを HorizontalLayoutGroup 化、HISCORE パネル縦伸縮、ランク文字中央寄せ、アクションボタン フォーカス下線

@@ -54,6 +54,7 @@ namespace FlashBeat.UI.V5
 
         private readonly GameObject[] actionButtons = new GameObject[3];
         private readonly Image[] actionBgs = new Image[3];
+        private readonly GameObject[] actionFocus = new GameObject[3];
         private int selectedAction;
         private bool modalOpen;
 
@@ -305,9 +306,15 @@ namespace FlashBeat.UI.V5
         private void BuildRankLetter()
         {
             var letter = V5Ui.Text(gameObject, "Rank", RankFor(snap.Score), S(420f), V5Tokens.Text,
-                TextAlignmentOptions.TopLeft);
-            V5Ui.Place(letter.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(S(72f), -S(296f)), new Vector2(S(600f), S(620f)));
+                TextAlignmentOptions.MidlineLeft);
+            // 縦方向はジャケット帯の下端 (300) から判定ブロックの上端 (244) まで伸縮して中央寄せ。
+            // 高さのある画面でも左側の抜けが偏らない (fhd ではデザインの位置とほぼ一致)。
+            var letterRt = letter.rectTransform;
+            letterRt.anchorMin = new Vector2(0f, 0f);
+            letterRt.anchorMax = new Vector2(0f, 1f);
+            letterRt.pivot = new Vector2(0f, 0.5f);
+            letterRt.offsetMin = new Vector2(S(72f), S(244f));
+            letterRt.offsetMax = new Vector2(S(72f) + S(600f), -S(300f));
             letter.textWrappingMode = TextWrappingModes.NoWrap;
         }
 
@@ -497,8 +504,14 @@ namespace FlashBeat.UI.V5
         {
             var panel = V5Ui.Panel(gameObject, "Ranking Panel",
                 new Vector2(S(592f), S(560f)), V5Tokens.Overlay, 16f);
-            V5Ui.Place(panel.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f),
-                new Vector2(-UISizeProfile.Current.Margin, -S(332f)), new Vector2(S(592f), S(560f)));
+            // 縦方向は伸縮 (fhd では上 332 / 下 188 = デザインどおり 560)。
+            // 高さのある画面 (3420x2148 等) ではパネルが下まで伸びてベージュの抜けを埋める。
+            var panelRt = panel.GetComponent<RectTransform>();
+            panelRt.anchorMin = new Vector2(1f, 0f);
+            panelRt.anchorMax = new Vector2(1f, 1f);
+            panelRt.pivot = new Vector2(1f, 1f);
+            panelRt.offsetMax = new Vector2(-UISizeProfile.Current.Margin, -S(332f));
+            panelRt.offsetMin = new Vector2(-UISizeProfile.Current.Margin - S(592f), S(188f));
 
             var head = V5Ui.Text(panel, "Head", "HISCORE", UISizeProfile.Current.FsL, V5Tokens.Warn,
                 TextAlignmentOptions.Left, FontStyles.Bold);
@@ -519,11 +532,12 @@ namespace FlashBeat.UI.V5
             regRt.sizeDelta = new Vector2(S(200f), S(32f));
 
             var well = V5Ui.Panel(panel, "Well", new Vector2(S(544f), S(448f)), V5Tokens.Recessed2, 16f);
+            // パネルに合わせて縦方向に伸縮 (fhd では 448 = デザインどおり)。
             var wellRt = well.GetComponent<RectTransform>();
-            wellRt.anchorMin = new Vector2(0f, 1f);
-            wellRt.anchorMax = new Vector2(0f, 1f);
-            wellRt.pivot = new Vector2(0f, 1f);
-            wellRt.anchoredPosition = new Vector2(S(24f), -S(88f));
+            wellRt.anchorMin = new Vector2(0f, 0f);
+            wellRt.anchorMax = new Vector2(1f, 1f);
+            wellRt.offsetMin = new Vector2(S(24f), S(24f));
+            wellRt.offsetMax = new Vector2(-S(24f), -S(88f));
 
             var wellHead = V5Ui.Text(well, "Well Head", "ハイスコア", UISizeProfile.Current.FsS,
                 V5Tokens.TextMuted);
@@ -583,33 +597,45 @@ namespace FlashBeat.UI.V5
 
         private void BuildLegend()
         {
+            // レビュー指摘 (#123): 固定オフセットだとラベル幅がキーキャップに被る。
+            // HorizontalLayoutGroup + preferred 幅で実間隔で並べる。
             var legend = V5Ui.Node(gameObject, "Legend");
             V5Ui.Place(legend.GetComponent<RectTransform>(), new Vector2(0f, 0f), new Vector2(0f, 0f),
                 new Vector2(UISizeProfile.Current.Margin, UISizeProfile.Current.Margin),
                 new Vector2(S(700f), S(40f)));
 
-            BuildLegendItem(legend, 0f, "R", S(56f), "Retry");
-            BuildLegendItem(legend, S(120f), "Enter", S(96f), "登録");
-            BuildLegendItem(legend, S(290f), "Space", S(96f), "決定");
+            var row = legend.AddComponent<HorizontalLayoutGroup>();
+            row.spacing = S(28f);
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childControlWidth = true;
+            row.childControlHeight = true;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+
+            BuildLegendItem(legend, "R", S(56f), "Retry");
+            BuildLegendItem(legend, "Enter", S(96f), "登録");
+            BuildLegendItem(legend, "Space", S(96f), "決定");
         }
 
-        private void BuildLegendItem(GameObject parent, float x, string cap, float capW, string label)
+        private void BuildLegendItem(GameObject parent, string cap, float capW, string label)
         {
-            var keyCap = V5Ui.KeyCap(parent, cap, new Vector2(capW, S(36f)));
-            var capRt = keyCap.GetComponent<RectTransform>();
-            capRt.anchorMin = new Vector2(0f, 0.5f);
-            capRt.anchorMax = new Vector2(0f, 0.5f);
-            capRt.pivot = new Vector2(0f, 0.5f);
-            capRt.anchoredPosition = new Vector2(x, 0f);
+            var item = V5Ui.Node(parent, "Legend Item " + label);
+            var itemRow = item.AddComponent<HorizontalLayoutGroup>();
+            itemRow.spacing = UISizeProfile.Current.GapS;
+            itemRow.childAlignment = TextAnchor.MiddleLeft;
+            itemRow.childControlWidth = true;
+            itemRow.childControlHeight = true;
+            itemRow.childForceExpandWidth = false;
+            itemRow.childForceExpandHeight = false;
 
-            var labelTmp = V5Ui.Text(parent, "Legend " + label, label, UISizeProfile.Current.FsS,
-                V5Tokens.TextMuted);
-            var labelRt = labelTmp.rectTransform;
-            labelRt.anchorMin = new Vector2(0f, 0.5f);
-            labelRt.anchorMax = new Vector2(0f, 0.5f);
-            labelRt.pivot = new Vector2(0f, 0.5f);
-            labelRt.anchoredPosition = new Vector2(x + capW + UISizeProfile.Current.GapS, 0f);
-            labelRt.sizeDelta = new Vector2(S(120f), S(36f));
+            var keyCap = V5Ui.KeyCap(item, cap, new Vector2(capW, S(36f)));
+            var capElement = keyCap.AddComponent<LayoutElement>();
+            capElement.minWidth = capW;
+            capElement.preferredWidth = capW;
+            capElement.preferredHeight = S(36f);
+
+            // TMP が preferred 幅を報告するのでラベルはテキスト幅通りに並ぶ (上書きされない)。
+            V5Ui.Text(item, "Legend " + label, label, UISizeProfile.Current.FsS, V5Tokens.TextMuted);
         }
 
         private void BuildActions()
@@ -672,6 +698,17 @@ namespace FlashBeat.UI.V5
             btn.onClick.AddListener(() => ActivateAction(target));
             actionButtons[index] = go;
             actionBgs[index] = btn.image;
+
+            // フォーカス表示: アクセントの下線 (選択中のみ表示)。
+            var focus = V5Ui.Panel(go, "Focus", new Vector2(w - S(24f), S(4f)), V5Tokens.Accent, 2f);
+            var focusRt = focus.GetComponent<RectTransform>();
+            focusRt.anchorMin = new Vector2(0.5f, 0f);
+            focusRt.anchorMax = new Vector2(0.5f, 0f);
+            focusRt.pivot = new Vector2(0.5f, 0f);
+            focusRt.anchoredPosition = new Vector2(0f, S(6f));
+            focus.GetComponent<Image>().raycastTarget = false;
+            focus.SetActive(false);
+            actionFocus[index] = focus;
         }
 
         private void SetActionSelected(int index)
@@ -692,7 +729,12 @@ namespace FlashBeat.UI.V5
                 }
                 else
                 {
-                    actionBgs[i].color = selected ? V5Tokens.Key5 : V5Tokens.ControlBg;
+                    actionBgs[i].color = selected ? V5Tokens.Key6 : V5Tokens.ControlBg;
+                }
+
+                if (actionFocus[i] != null)
+                {
+                    actionFocus[i].SetActive(selected);
                 }
             }
         }
