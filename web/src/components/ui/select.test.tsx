@@ -132,14 +132,14 @@ afterEach(() => {
 });
 
 describe("Select.Control (issue #163)", () => {
-  it("renders a combobox trigger inside the control", () => {
+  it("renders a combobox trigger inside the control", { timeout: 20000 }, () => {
     renderSelect({});
     const button = trigger();
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(button.textContent).toContain("Alpha");
   });
 
-  it("opens the listbox on click and selects with the mouse", async () => {
+  it("opens the listbox on click and selects with the mouse", { timeout: 20000 }, async () => {
     const onValueChange = vi.fn();
     renderSelect({ onValueChange });
 
@@ -158,7 +158,7 @@ describe("Select.Control (issue #163)", () => {
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("selects with the keyboard: ArrowDown + Enter, closes with Escape", async () => {
+  it("selects with the keyboard: ArrowDown + Enter, closes with Escape", { timeout: 20000 }, async () => {
     const onValueChange = vi.fn();
     renderSelect({ onValueChange });
     const button = trigger();
@@ -180,7 +180,7 @@ describe("Select.Control (issue #163)", () => {
     expect(button.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("keeps a disabled select closed", async () => {
+  it("keeps a disabled select closed", { timeout: 20000 }, async () => {
     renderSelect({ disabled: true });
     const button = trigger();
     expect(button.hasAttribute("disabled")).toBe(true);

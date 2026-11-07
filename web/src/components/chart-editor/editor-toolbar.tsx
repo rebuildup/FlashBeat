@@ -1,6 +1,7 @@
 import { Portal } from "@ark-ui/react/portal";
 import { createListCollection } from "@ark-ui/react/collection";
 import { Button, Field, Input, Select } from "@/components/ui";
+import { DraftInput, parseIntegerOrNull } from "@/components/ui/input";
 import { useRef } from "react";
 import { css } from "styled-system/css";
 import type { Chart } from "@/lib/chart/types";
@@ -262,6 +263,7 @@ export function EditorToolbar({
           <Field.Label className={fieldLabel}>Song name</Field.Label>
           <Input
             className={inputBox}
+            data-testid="song-name-input"
             value={chart?.name ?? ""}
             disabled={!chart}
             onChange={(event) => onNameChange(event.currentTarget.value)}
@@ -270,17 +272,20 @@ export function EditorToolbar({
 
         <Field.Root className={field}>
           <Field.Label className={fieldLabel}>BPM</Field.Label>
-          <Input
+          {/*
+            BPM は draft 入力 (issue #163): 空文字や「-」の途中状態でも
+            表示が確定値に戻されず、blur / Enter で整数として確定する。
+            parse できないテキストは確定値の表示へ戻る。
+          */}
+          <DraftInput<number>
             className={inputBox}
-            value={chart ? String(chart.BPM) : ""}
+            data-testid="bpm-input"
+            value={chart?.BPM ?? Number.NaN}
+            format={(bpm) => (Number.isFinite(bpm) ? String(bpm) : "")}
             disabled={!chart}
             inputMode="numeric"
-            onChange={(event) => {
-              const bpm = Number.parseInt(event.currentTarget.value, 10);
-              if (Number.isFinite(bpm)) {
-                onBpmChange(bpm);
-              }
-            }}
+            parse={parseIntegerOrNull}
+            onCommit={(bpm) => onBpmChange(bpm)}
           />
         </Field.Root>
 
