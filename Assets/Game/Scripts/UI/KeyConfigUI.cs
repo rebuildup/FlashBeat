@@ -47,7 +47,7 @@ public class KeyConfigUI : MonoBehaviour
     /// <summary>キー設定を開いている間は true。背後のシーンはキー入力を受け取らない。</summary>
     public static bool IsOpen { get; private set; }
 
-    private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
+    private static readonly string[] AllowedScenes = { "TitleScene", "OptionScene" }; // Select は F2 を「履歴」に使う (v5)
 
     private static bool IsAllowedScene()
     {
@@ -701,7 +701,7 @@ public class KeyConfigUI : MonoBehaviour
     {
         if (hintLabel == null) return;
         string sceneName = SceneManager.GetActiveScene().name;
-        bool show = !open && (sceneName == "TitleScene" || sceneName == "SelectScene");
+        bool show = !open && sceneName == "TitleScene"; // Select の凡例と重なるため Title のみ
         if (hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);
