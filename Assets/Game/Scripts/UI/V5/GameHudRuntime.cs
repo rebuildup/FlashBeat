@@ -82,7 +82,7 @@ namespace FlashBeat.UI.V5
             error = overlayCanvas.gameObject.AddComponent<GameErrorView>();
             error.Build(overlayCanvas);
 
-            var pauseCanvas = V5GameUi.NewCanvas("V5PauseCanvas", 500);
+            var pauseCanvas = V5GameUi.NewCanvas("V5PauseCanvas", 600);
             pause = pauseCanvas.gameObject.AddComponent<PauseMenuView>();
             pause.Build(pauseCanvas);
             if (hud.PauseButton != null)
@@ -90,7 +90,13 @@ namespace FlashBeat.UI.V5
                 hud.PauseButton.onClick.AddListener(pause.Open);
             }
 
+            // Issue #167: v5 のボタンは自身の矢印キー処理で選択するため、
+            // Unity の Selectable 自動ナビゲーションは切っておく (二重動作防止)。
+            V5GameUi.ApplySingleInputModel(hud.Canvas);
+            V5GameUi.ApplySingleInputModel(pauseCanvas);
+
             HideLegacyHud();
+            DisableLegacyRaycaster();
         }
 
         private void Update()
@@ -148,6 +154,24 @@ namespace FlashBeat.UI.V5
             // MusicManager が準備中に active にする既存 UI (HudPlayStatus と同じ観測)。
             // GameObject は active のまま (シグナル保持)、見た目だけ Start で無効化済み。
             return legacyLoadingIndicator != null && legacyLoadingIndicator.activeInHierarchy;
+        }
+
+        /// <summary>
+        /// レガシー Canvas の GraphicRaycaster を無効化する (Issue #167)。
+        /// レガシー Canvas は sortingOrder 0 で v5 HUD (-1) より手前にあり、
+        /// 歌詞パネルなどの Raycast 対象が v5 のボタン (ポーズ等) を横取りしていた。
+        /// v5 UI が画面上の操作を受け持つため、レガシー側はクリックを受けない。
+        /// </summary>
+        private void DisableLegacyRaycaster()
+        {
+            var roots = gameObject.scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                var legacyCanvas = roots[i].GetComponent<Canvas>();
+                if (legacyCanvas == null) { continue; }
+                var raycaster = legacyCanvas.GetComponent<GraphicRaycaster>();
+                if (raycaster != null) { raycaster.enabled = false; }
+            }
         }
 
         /// <summary>

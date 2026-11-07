@@ -18,10 +18,12 @@ public class TitleSceneManager : MonoBehaviour
 
     void Start()
     {
+        // 保存済みの設定 (音量 / ノーツ速度 / 判定幅) を復元する (Issue #167)。
+        // 以前は GManager.noteTiming-- と OptionSceneManager.TimingUp() で
+        // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
+        OptionSettings.Load();
         AudioListener.volume = GManager.mainVolume;
         sounds = GetComponent<AudioSource>();
-        GManager.noteTiming--;
-        OptionSceneManager.TimingUp();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
         // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。

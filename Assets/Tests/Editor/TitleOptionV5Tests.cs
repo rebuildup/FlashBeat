@@ -62,14 +62,47 @@ namespace FlashBeat.UI.V5
             Assert.AreEqual(0, OptionView.WrapIndex(0, 0, 1));
         }
 
+        /// <summary>
+        /// Issue #167: Key Layout の表示は「保存済み PlayerPrefs のキー有無」ではなく
+        /// **実際のキー割り当て**に従う (実状態と表示が食い違っていたため)。
+        /// </summary>
         [Test]
-        public static void KeyLayoutLabel_ReflectsSavedBindings()
+        public static void KeyLayoutLabel_ReflectsActualBindings()
         {
-            PlayerPrefs.DeleteKey(OptionView.KeyBindingsPrefsKey);
-            Assert.AreEqual("標準", OptionView.KeyLayoutLabel());
-            PlayerPrefs.SetInt(OptionView.KeyBindingsPrefsKey, 1); // ダミー値 (存在判定のみ)
-            Assert.AreEqual("カスタム", OptionView.KeyLayoutLabel());
-            PlayerPrefs.DeleteKey(OptionView.KeyBindingsPrefsKey);
+            var storage = new FakeKeyStorage();
+            KeyBindings.SetStorage(storage);
+            try
+            {
+                KeyBindings.ResetToDefaults();
+                Assert.AreEqual("標準", OptionView.KeyLayoutLabel(),
+                    "既定の割り当てなのに「標準」と表示されない。");
+
+                // 既定と違う割り当て (P をレーン 1 へ移動) を作ると「カスタム」になる。
+                KeyBindings.ToggleKey(0, KeyCode.P);
+                Assert.AreEqual("カスタム", OptionView.KeyLayoutLabel(),
+                    "実際の割り当てが既定と違うのに「標準」と表示されている。");
+            }
+            finally
+            {
+                KeyBindings.ResetToDefaults();
+                KeyBindings.SetStorage(null);
+            }
+        }
+
+        /// <summary>テスト用のインメモリ保存先 (実ファイル / PlayerPrefs を触らない)。</summary>
+        private class FakeKeyStorage : KeyBindings.IStorage
+        {
+            public string Raw;
+
+            public string LoadRaw()
+            {
+                return Raw;
+            }
+
+            public void SaveRaw(string json)
+            {
+                Raw = json;
+            }
         }
 
         // --- TitleLayout (Issue #120 feedback) ---
