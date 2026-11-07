@@ -35,9 +35,9 @@ const group = css({
   gap: "2",
 });
 
-const field = css({ width: "8rem" });
-const wideField = css({ width: "10rem" });
-const selectRoot = css({ width: "6.5rem" });
+const field = css({ minWidth: "8rem", maxWidth: "20rem", width: "100%" });
+const wideField = css({ minWidth: "10rem", maxWidth: "24rem", width: "100%" });
+const selectRoot = css({ minWidth: "6.5rem", flexShrink: 0 });
 
 export const fieldLabel = css({
   color: "#b0b0b0",
@@ -87,6 +87,12 @@ const counter = css({
   fontSize: "2xs",
   fontVariantNumeric: "tabular-nums",
   paddingInline: "1",
+});
+
+const sideToggle = css({
+  display: { base: "flex", lg: "none" },
+  alignItems: "center",
+  justifyContent: "center",
 });
 
 const keycap = css({
@@ -151,6 +157,9 @@ export interface EditorToolbarProps {
   onImportFile(file: File): void;
   onExport(): void;
   onDeleteSelected(): void;
+  onToggleSide?: () => void;
+  /** The inspector drawer is open; the toggle button follows the state. */
+  sideOpen?: boolean;
 }
 
 export function EditorToolbar({
@@ -166,6 +175,8 @@ export function EditorToolbar({
   onImportFile,
   onExport,
   onDeleteSelected,
+  onToggleSide,
+  sideOpen = false,
 }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -217,6 +228,30 @@ export function EditorToolbar({
             Del
           </kbd>
         </Button>
+        {onToggleSide && (
+          <button
+            type="button"
+            className={sideToggle}
+            onClick={onToggleSide}
+            aria-label={sideOpen ? "Close the editor sidebar" : "Open the editor sidebar"}
+            aria-expanded={sideOpen}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </button>
+        )}
         <span className={counter} data-testid="note-count">
           {noteCount} notes
         </span>

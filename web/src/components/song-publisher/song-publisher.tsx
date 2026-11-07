@@ -1,4 +1,5 @@
 import type { SongSummary } from "@/app/types";
+import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
 import { Button, Toaster, toaster } from "@/components/ui";
@@ -33,7 +34,6 @@ const root = css({
   gridTemplateRows: "auto minmax(0, 1fr)",
   height: "100%",
   minHeight: 0,
-  overflow: "hidden",
 });
 
 const header = css({
@@ -78,9 +78,9 @@ const backLink = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: "minmax(0, 1fr) 21rem",
+  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 21rem" },
+  gridTemplateRows: "minmax(0, 1fr)",
   minHeight: 0,
-  overflow: "hidden",
   p: "3",
 });
 
@@ -89,7 +89,6 @@ const editorArea = css({
   gridTemplateRows: "minmax(0, 1fr)",
   minHeight: 0,
   minWidth: 0,
-  overflow: "hidden",
 });
 
 const side = css({
@@ -97,7 +96,54 @@ const side = css({
   flexDirection: "column",
   gap: "3",
   minHeight: 0,
-  overflow: "hidden",
+  overflowY: "auto",
+  /**
+   * Narrow viewports: the metadata and publish panels are an off-canvas
+   * drawer over the work area (issue #74). Wide viewports: the persistent
+   * right column.
+   */
+  bg: { base: "#1b1b1b", lg: "transparent" },
+  borderLeftColor: { base: "#2d2d2d", lg: "transparent" },
+  borderLeftWidth: { base: "1px", lg: "0px" },
+  bottom: { base: "0", lg: "auto" },
+  height: { base: "100dvh", lg: "auto" },
+  maxWidth: "100%",
+  position: { base: "fixed", lg: "static" },
+  right: { base: "0", lg: "auto" },
+  top: { base: "0", lg: "auto" },
+  width: { base: "21rem", lg: "21rem" },
+  zIndex: { base: "popover", lg: "auto" },
+});
+
+/** Closed drawers leave the tab order and sit behind the right edge. */
+const sideClosed = css({
+  transform: { base: "translateX(100%)", lg: "none" },
+  visibility: { base: "hidden", lg: "visible" },
+});
+
+const sideOpen = css({
+  transform: { base: "none", lg: "none" },
+  visibility: { base: "visible", lg: "visible" },
+});
+
+const sideHeader = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "2",
+  justifyContent: "space-between",
+});
+
+const sideClose = css({
+  alignItems: "center",
+  bg: "#3a3a3a",
+  borderRadius: "8px",
+  color: "#ffffff",
+  display: { base: "flex", lg: "none" },
+  height: "sizes.7",
+  justifyContent: "center",
+  width: "sizes.7",
+  _hover: { bg: "#454545" },
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "2px" },
 });
 
 const sideScroll = css({
@@ -166,6 +212,28 @@ const badge = css({
 
 const accent = css({ colorPalette: "blue" });
 
+const buttonSecondary = css({
+  bg: "#3a3a3a",
+  color: "#ffffff",
+  borderRadius: "8px",
+  borderColor: "transparent",
+  _hover: { bg: "#454545" },
+  _disabled: { opacity: 0.4 },
+});
+
+const sidebarToggle = css({
+  display: { base: "flex", lg: "none" },
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+const sideTitle = css({
+  color: "#ffffff",
+  fontSize: "xs",
+  fontWeight: "medium",
+  margin: "0",
+});
+
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,
   title: false,
@@ -191,7 +259,13 @@ export interface SongPublisherProps {
   initialVersion?: number;
 }
 
-export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initialSong, initialVersion }: SongPublisherProps) {
+export function SongPublisher({
+  initialChart,
+  initialYouTubeId,
+  apiOrigin,
+  initialSong,
+  initialVersion,
+}: SongPublisherProps) {
   const [draft, setDraft] = useState<SongMetadataDraft>(() => ({
     songId: initialSong?.id ?? "",
     title: initialSong?.title ?? initialChart.name,
@@ -201,6 +275,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
     durationSec: initialSong?.durationSec ?? Number.NaN,
   }));
   const [titleEdited, setTitleEdited] = useState(Boolean(initialSong));
+  const [isSideOpen, setIsSideOpen] = useState(false);
   const [chart, setChart] = useState<Chart | null>(initialChart);
   const [chartIssues, setChartIssues] = useState<ValidationIssue[]>([]);
   const [touched, setTouched] = useState<Record<SongMetadataField, boolean>>(NO_TOUCHED);
@@ -212,6 +287,16 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
 
   const inFlight = useRef(false);
   const transport = useMemo(() => resolvePublishTransport(apiOrigin), [apiOrigin]);
+
+  const sideRef = useRef<HTMLElement | null>(null);
+  // The metadata and publish panels are a drawer below the `lg` breakpoint:
+  // the focus enters the drawer on open, stays inside it and returns to the
+  // trigger when it closes.
+  useDrawerFocus({
+    open: isSideOpen,
+    panelRef: sideRef,
+    onClose: useCallback(() => setIsSideOpen(false), []),
+  });
 
   // The title follows the name of the chart until the operator writes one.
   const effectiveDraft = useMemo<SongMetadataDraft>(
@@ -353,16 +438,45 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
             ← Web Studio
           </a>
           <h1 className={title}>Publish a song</h1>
-          <p className={subtitle}>{initialVersion ? `Editing published v${initialVersion} · draft preserved on failure` : "New unpublished draft"}</p>
+          <p className={subtitle}>
+            {initialVersion
+              ? `Editing published v${initialVersion} · draft preserved on failure`
+              : "New unpublished draft"}
+          </p>
         </div>
 
-        <span className={badge}>
-          {transport.mode === "fixture"
-            ? "Fixture API"
-            : transport.baseUrl
-              ? `Live API ${transport.baseUrl}`
-              : "Live API (this origin)"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "2" }}>
+          <span className={badge}>
+            {transport.mode === "fixture"
+              ? "Fixture API"
+              : transport.baseUrl
+                ? `Live API ${transport.baseUrl}`
+                : "Live API (this origin)"}
+          </span>
+          <Button
+            className={`${buttonSecondary} ${sidebarToggle}`}
+            size="sm"
+            variant="outline"
+            onClick={() => setIsSideOpen((current) => !current)}
+            aria-label={isSideOpen ? "Close the publish sidebar" : "Open the publish sidebar"}
+            aria-expanded={isSideOpen}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </Button>
+        </div>
       </header>
 
       <div className={body}>
@@ -375,7 +489,25 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
           />
         </section>
 
-        <aside className={side}>
+        <aside
+          className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
+          ref={sideRef}
+          role={isSideOpen ? "dialog" : undefined}
+          aria-modal={isSideOpen ? true : undefined}
+          aria-label="Publish sidebar"
+        >
+          <div className={sideHeader}>
+            <h2 className={sideTitle}>Publish tools</h2>
+            <button
+              type="button"
+              className={sideClose}
+              onClick={() => setIsSideOpen(false)}
+              aria-label="Close the publish sidebar"
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+
           <div className={sideScroll}>
             <section className={card}>
               <h2 className={cardTitle}>Song metadata</h2>
@@ -411,9 +543,15 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
               </Button>
             </section>
 
-            <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
+            <PublishResultPanel
+              result={result}
+              onRetry={handleReview}
+              onBackToEditor={handleBackToEditor}
+            />
           </div>
         </aside>
+
+        {isSideOpen ? <DrawerBackdrop onClose={() => setIsSideOpen(false)} /> : null}
       </div>
 
       <PublishDialog

@@ -20,7 +20,7 @@ export const panelFrame = css({
   flex: "1",
   flexDirection: "column",
   minHeight: "0",
-  overflow: "hidden",
+  overflow: "auto",
 });
 
 export const panelHeader = css({
@@ -85,6 +85,8 @@ export const stateDescription = css({
   fontSize: "xs",
   margin: "0",
   maxWidth: "28rem",
+  wordBreak: "break-word",
+  overflowWrap: "break-word",
 });
 
 export function StateBlock({

@@ -99,7 +99,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 5;
             GManager.perfect++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
         else if (timeLag <= 0.15f)
@@ -109,7 +108,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 3;
             GManager.great++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
         else if (timeLag <= 0.20f)
@@ -119,7 +117,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 1;
             GManager.bad++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
     }

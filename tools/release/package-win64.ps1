@@ -78,7 +78,7 @@ function Assert-Win64BuildLayout {
 function Get-ManagedDllCount {
     param([string]$Dir)
 
-    $managed = Join-Path $Dir 'FlashBeat_Data\Managed'
+    $managed = Join-Path (Join-Path $Dir 'FlashBeat_Data') 'Managed'
     if (-not (Test-Path -LiteralPath $managed -PathType Container)) {
         throw "FlashBeat_Data\Managed が見つかりません: $managed"
     }
@@ -121,7 +121,7 @@ function Assert-MediaPolicy {
         Write-Host ("[media] 第三者楽曲メディアはビルド対象から除外済み (manifest: {0})" -f ($excluded -join ', '))
     }
 
-    $packed = Join-Path $Dir 'FlashBeat_Data\resources.resource'
+    $packed = Join-Path (Join-Path $Dir 'FlashBeat_Data') 'resources.resource'
     if (-not (Test-Path -LiteralPath $packed -PathType Leaf)) {
         if ($MediaPolicy -eq 'free' -or $MediaPolicy -eq 'song-free') {
             Write-Warning 'resources.resource が存在しません (メディア完全分離済みと解釈します)'
@@ -156,9 +156,10 @@ function New-BuildZip {
     }
 
     $staging = [System.IO.Path]::GetDirectoryName($VersionJsonPath)
-    & tar.exe -a -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
+    $tarCmd = if (Get-Command tar.exe -ErrorAction SilentlyContinue) { 'tar.exe' } else { 'tar' }
+    & $tarCmd -a -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
     if ($LASTEXITCODE -ne 0) {
-        throw "tar.exe が失敗しました (exit=$LASTEXITCODE): $ZipPath"
+        throw "tar が失敗しました (exit=$LASTEXITCODE): $ZipPath"
     }
 }
 
