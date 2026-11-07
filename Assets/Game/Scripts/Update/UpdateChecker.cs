@@ -20,6 +20,8 @@ namespace FlashBeat.Update
     /// (アプリ終了 → 展開 → 検証 → 一括切替 → 新 exe 再起動)。OnApplicationQuit からの
     /// 自動適用は存在しない。通信失敗・SHA 不一致では何も変更せず現行版を維持し、
     /// ゲームは止めない。常設ランチャー・独自更新サーバーは使わない (更新元は GitHub Releases のみ)。
+    /// 起動時には前回の更新結果 (Update.ps1 が書く last-result.json、issue #125) を読み、
+    /// Title 通知の文言に反映する (成功 / 失敗とも 1 回だけ表示し mark-as-shown)。
     /// </summary>
     public class UpdateChecker : MonoBehaviour
     {
@@ -92,7 +94,29 @@ namespace FlashBeat.Update
         /// </summary>
         private IEnumerator CheckForUpdate()
         {
+            // The flow model only accepts CheckFoundNewVersion while Checking. Without this call the
+            // phase stayed Idle, the 'update available' notice never appeared and F3 did nothing
+            // (silent failure seen on the real device, v0.1.4 -> v0.1.5).
+            Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
+
+            // ── -1. 前回の更新結果を反映 (issue #125) ──────────────────
+            // Update.ps1 がすべての終了経路で書く last-result.json を読み、Title 通知の文言を
+            // Model に渡す。表示と mark-as-shown (リネーム) は UpdateNoticeUI が Title で行う。
+            // ここではブロックしない (ファイル読み取りのみ・失敗しても静かに続行)。
+            var lastResult = UpdateResultFile.Read();
+            if (lastResult != null)
+            {
+                var currentVersionText = current.Valid ? current.Version : Application.version;
+                var lastNotice = UpdateResultFile.BuildNoticeText(lastResult, currentVersionText);
+                if (lastNotice != null)
+                {
+                    Model.SetLastResultNotice(lastNotice);
+                    Debug.Log("[UpdateChecker] 前回の更新結果を検出: result=" + lastResult.result +
+                              " exitCode=" + lastResult.exitCode + "。Title で通知します。");
+                }
+            }
+
             if (!current.Valid)
             {
                 Debug.LogWarning("[UpdateChecker] ビルド版識別子を解釈できません: '" + Application.version +
@@ -207,6 +231,15 @@ namespace FlashBeat.Update
         /// 進捗は Model 経由で通知 UI に見せる。失敗時は Available に戻り現行版を維持する。</summary>
         private IEnumerator DownloadAndStage(ReleaseAsset zip)
         {
+            // 現行より新しくない ZIP は staging しない (issue #125: 新旧判定できないものは適用しない)。
+            if (!IsStagedTagNewerThanCurrent(Model.LatestTag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] 候補の版が現行より新しくありません (" + Model.LatestTag +
+                                 " / 現行 " + Application.version + ") — ダウンロードを中止し、現行版を維持します。");
+                Model.DownloadFailed("候補の版が現行より新しくありません。現行のまま使えます");
+                yield break;
+            }
+
             UpdateStaging.ClearStaging();
             var zipPath = Path.Combine(UpdateStaging.StagingDir, zip.name);
 
@@ -415,6 +448,16 @@ namespace FlashBeat.Update
             return null;
         }
 
+        /// <summary>staging 対象 / 適用対象のタグが現行ビルドより新しい版か (issue #125)。
+        /// 純粋関数 (EditMode テスト対象)。タグまたは現行ビルド識別子が解釈できない、
+        /// 同一バージョンの別ビルド、旧版のいずれでも false (適用しない)。</summary>
+        public static bool IsStagedTagNewerThanCurrent(string tag, string currentBuildId)
+        {
+            var tagId = UpdateVersion.ParseTag(tag);
+            var current = UpdateVersion.ParseBuildId(currentBuildId);
+            return UpdateVersion.IsNewerThan(tagId, current);
+        }
+
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name != "OptionScene") { return; }
@@ -505,6 +548,14 @@ namespace FlashBeat.Update
                 return false;
             }
 
+            // staging 済み ZIP が現行より新しい版か (issue #125)。古い / 同一バージョンの別ビルドは適用しない。
+            if (!IsStagedTagNewerThanCurrent(staged.tag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] staging 済みの版が現行より新しくありません (" + staged.tag +
+                                 " / 現行 " + Application.version + ") — 適用を中止し、現行版を維持します。");
+                return false;
+            }
+
             var installDir = Path.GetDirectoryName(Application.dataPath);
             var scriptPath = Path.Combine(installDir, UpdaterScriptRelPath);
             if (!File.Exists(scriptPath))
@@ -533,8 +584,9 @@ namespace FlashBeat.Update
             try
             {
                 Process.Start(psi);
-                Debug.Log("[UpdateChecker] 更新スクリプトを起動しました: " + staged.tag +
-                          " (アプリ終了後に適用されます)。");
+                // issue #125: 起動の成否はこのログでは確定しない (実結果は Update.ps1 が書く
+                // last-result.json を次回起動時に検証する)。
+                Debug.Log("[UpdateChecker] update script started (result unknown until next start): " + staged.tag + ".");
                 return true;
             }
             catch (Exception e)
