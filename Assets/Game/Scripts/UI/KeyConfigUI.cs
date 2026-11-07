@@ -50,16 +50,19 @@ public class KeyConfigUI : MonoBehaviour
     public static bool IsOpen { get; private set; }
 
     // ---- Test hooks: the -autotest runner injects keys here (inert without the flag) ----
-    private static readonly HashSet<KeyCode> injectedDown = new HashSet<KeyCode>();
+    // key -> frame in which it was injected; the key is visible to Update in the NEXT frame only
+    // (a coroutine resumes after this frame's Update, so same-frame visibility would be lost).
+    private static readonly Dictionary<KeyCode, int> injectedDown = new Dictionary<KeyCode, int>();
 
     public static void InjectKeyDown(KeyCode key)
     {
-        injectedDown.Add(key);
+        injectedDown[key] = Time.frameCount;
     }
 
     private static bool KeyDown(KeyCode key)
     {
-        return Input.GetKeyDown(key) || injectedDown.Contains(key);
+        int frame;
+        return Input.GetKeyDown(key) || (injectedDown.TryGetValue(key, out frame) && Time.frameCount == frame + 1);
     }
 
     public static int TestSelectedLane
@@ -87,10 +90,6 @@ public class KeyConfigUI : MonoBehaviour
         return ui.rows[lane].transform.parent.gameObject;
     }
 
-    private void LateUpdate()
-    {
-        injectedDown.Clear();
-    }
 
     private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
 
