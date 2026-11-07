@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -43,6 +43,7 @@ namespace FlashBeat.UI.V5
         private int selectedTab;
         private bool open;
         private bool keyGuideOn;
+        private TextMeshProUGUI resumeCap;
 
         private enum Row
         {
@@ -81,6 +82,24 @@ namespace FlashBeat.UI.V5
         public static float S
         {
             get { return UISizeProfile.Current.Margin / 48f; }
+        }
+
+        /// <summary>再開キャプ。入力はメニュー操作設定 (KeyActions.Back) の設定値に従う。</summary>
+        public static string ResumeCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Back);
+        }
+
+        /// <summary>リトライキャプ。入力は KeyActions.MenuRetry の設定値に従う。</summary>
+        public static string RetryCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.MenuRetry);
+        }
+
+        /// <summary>リタイアキャプ。入力は KeyActions.MenuRetire の設定値に従う。</summary>
+        public static string RetireCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.MenuRetire);
         }
 
         public void Build(Canvas canvas)
@@ -598,7 +617,12 @@ namespace FlashBeat.UI.V5
             V5GameUi.LegendItem(legend.gameObject, "↑ ↓", "項目");
             V5GameUi.LegendItem(legend.gameObject, "← →", "値");
             V5GameUi.LegendItem(legend.gameObject, "S D L K", "タブ");
-            V5GameUi.LegendItem(legend.gameObject, "Esc", "再開");
+            string resume = ResumeCap();
+            var resumeItem = V5GameUi.LegendItem(legend.gameObject, resume, "再開");
+            var resumeCapTransform = resumeItem.transform.Find("KeyCap " + resume);
+            resumeCap = (resumeCapTransform != null)
+                ? resumeCapTransform.GetComponentInChildren<TextMeshProUGUI>()
+                : resumeItem.transform.GetChild(0).GetComponentInChildren<TextMeshProUGUI>();
         }
 
         private void BuildActions(UISizeProfile p, float s)
@@ -613,18 +637,18 @@ namespace FlashBeat.UI.V5
             actions.childControlWidth = false;
             actions.childControlHeight = false;
             // リトライ/リタイアはメニュー操作設定 (KeyActions) に従う (0.1.9)。
-            // キーキャップ表示も設定値から生成する (既定: R / Backspace)。
-            AddAction(actions.gameObject, "Retire", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetire)), p, s, () =>
+            // キャップは幅固定 (48px) なので全キー列挙でなく代表 1 キー (ActionKeyHint.Primary)。
+            AddAction(actions.gameObject, "Retire", RetireCap(), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetireGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Retry", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetry)), p, s, () =>
+            AddAction(actions.gameObject, "Retry", RetryCap(), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetryGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Resume", "Esc", p, s, Close, primary: true);
+            AddAction(actions.gameObject, "Resume", ResumeCap(), p, s, Close, primary: true);
         }
 
         private void AddAction(GameObject parent, string label, string key, UISizeProfile p, float s,
@@ -643,6 +667,37 @@ namespace FlashBeat.UI.V5
             var capLe = cap.AddComponent<LayoutElement>();
             capLe.minWidth = 48f * s;
             capLe.preferredHeight = 36f * s;
+            actionCaps.Add(cap.GetComponentInChildren<TextMeshProUGUI>());
+        }
+
+        private readonly List<TextMeshProUGUI> actionCaps = new List<TextMeshProUGUI>();
+
+        private void OnEnable()
+        {
+            KeyActions.Changed += RefreshCaps;
+        }
+
+        private void OnDisable()
+        {
+            KeyActions.Changed -= RefreshCaps;
+        }
+
+        /// <summary>キー設定が変わったら再開/リトライ/リタイアのキャップを描き直す。</summary>
+        private void RefreshCaps()
+        {
+            if (resumeCap != null)
+            {
+                resumeCap.text = ResumeCap();
+            }
+
+            string[] caps = { RetireCap(), RetryCap(), ResumeCap() };
+            for (int i = 0; i < actionCaps.Count && i < caps.Length; i++)
+            {
+                if (actionCaps[i] != null)
+                {
+                    actionCaps[i].text = caps[i];
+                }
+            }
         }
 
         // --- 開閉と入力 ---
@@ -774,7 +829,7 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
-            if (InputEnabled && Input.GetKeyDown(KeyCode.Escape))
+            if (InputEnabled && KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 Toggle();
                 return;
