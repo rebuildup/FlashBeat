@@ -72,8 +72,13 @@ public class UpdateNoticeUI : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.F3)) { Trigger(); }
-        else if (Input.GetKeyDown(KeyCode.F4)) { Dismiss(); }
+        // F3/F4 are update keys ONLY on the Title screen: other screens use them for their own functions
+        // (e.g. Select: ranking), and pressing F3 there must never start a download.
+        if (onTitle)
+        {
+            if (Input.GetKeyDown(KeyCode.F3)) { Trigger(); }
+            else if (Input.GetKeyDown(KeyCode.F4)) { Dismiss(); }
+        }
     }
 
     /// <summary>F3 / ピルクリックの共通トリガー。Available → ダウンロード、Ready → 適用。</summary>
