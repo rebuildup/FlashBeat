@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Studio flow E2E (issue #166): the four screens share one shell and the
- * Catalog → Editor → Publish → Catalog 戻り導線 works with real clicks.
+ * Studio flow E2E (issue #166, labels updated by #215): the screens share one
+ * shell and the 曲を選ぶ → 譜面 → 公開 → 戻り導線 works with real clicks.
  *
  * Prerequisites (local): `void db migrate && void db seed`, then `vp dev`
  * (see playwright.config.ts next to this file). The catalog must hold the
@@ -11,9 +11,14 @@ import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
-const NAV_LINKS = ["Catalog", "New song", "New chart", "Publish"];
+const NAV_LINKS = [
+  "曲を選ぶ Pick a song",
+  "新曲を登録 New song",
+  "譜面を編集 Edit chart",
+  "公開する Publish 要トークン",
+];
 
-test("all four screens share the studio shell", async ({ page }) => {
+test("all screens share the studio shell", async ({ page }) => {
   for (const path of ["/", "/chart", "/publish", "/new-song"]) {
     await page.goto(path);
     const nav = page.getByRole("navigation", { name: "Studio" });
@@ -23,6 +28,18 @@ test("all four screens share the studio shell", async ({ page }) => {
     }
     await expect(page.locator("#studio-content")).toBeVisible();
   }
+});
+
+test("publish shows the admin-token boundary before pressing it", async ({ page }) => {
+  await page.goto("/");
+  // The sidebar marks Publish as admin-only before any click.
+  await expect(page.getByTestId("nav-publish-admin-badge")).toHaveText("要トークン");
+  // The catalog row marks it too.
+  const row = page.getByTestId("catalog-list").locator("a[data-row-link]", { hasText: "Who" }).first();
+  await expect(row).toBeVisible();
+  await expect(
+    page.getByTestId("catalog-list").getByRole("link", { name: /Publish（要トークン）/ }),
+  ).toBeVisible();
 });
 
 test("catalog → editor → publish → back to catalog", async ({ page }) => {
@@ -37,14 +54,17 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await expect(page.getByTestId("chart-identity")).toContainText("Who");
   await expect(page.getByTestId("chart-identity")).toContainText("v1");
 
-  // The editor is ready and hands the draft to the publish screen.
-  const review = page.getByRole("button", { name: "Review & Publish" });
+  // The editor is ready and hands the draft to the publish screen; the
+  // admin-token requirement is visible next to the CTA (issue #215).
+  await expect(page.getByTestId("publish-token-hint")).toContainText("adminトークン");
+  const review = page.getByRole("button", { name: "公開に進む / Review & Publish" });
   await expect(review).toBeVisible();
   await review.click();
   await expect(page).toHaveURL(/\/publish\?/);
   await expect(page.getByRole("heading", { name: "Publish a song" })).toBeVisible();
 
-  // The way back reloads the catalog (AppShell refetches on mount).
+  // The way back (the publish screen's own link, song-publisher) reloads the
+  // catalog (AppShell refetches on mount).
   await page.getByRole("link", { name: "← Web Studio" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("chart-identity")).toHaveCount(0);
