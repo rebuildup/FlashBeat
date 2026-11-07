@@ -94,7 +94,12 @@ export interface PublishSuccessViewProps {
   onRegisterAnother: () => void;
 }
 
-export function PublishSuccessView({ response, noteCount, apiBaseUrl, onRegisterAnother }: PublishSuccessViewProps) {
+export function PublishSuccessView({
+  response,
+  noteCount,
+  apiBaseUrl,
+  onRegisterAnother,
+}: PublishSuccessViewProps) {
   const catalogHref = `${apiBaseUrl}/api/v1/catalog`;
 
   return (

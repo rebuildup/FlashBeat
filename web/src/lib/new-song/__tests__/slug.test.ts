@@ -54,6 +54,14 @@ it("keeps the suffix inside the 64 character limit", () => {
   expect(taken.has(first)).toBe(false);
 });
 
+it("suggests nothing while there is neither ascii title nor video id", () => {
+  expect(suggestSongSlug("ニセモノ", "", new Set())).toEqual({
+    suggestion: "",
+    taken: false,
+    alternatives: [],
+  });
+});
+
 it("uses the video id fallback for a Japanese title even when taken", () => {
   const taken = new Set(["song-dqw4w9wgxcq"]);
   const suggestion = suggestSongSlug("夜に駆ける", "dQw4w9WgXcQ", taken);

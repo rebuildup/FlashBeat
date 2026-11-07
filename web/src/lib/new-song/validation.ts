@@ -108,7 +108,10 @@ export function validateDurationField(value: number): Bilingual | undefined {
     };
   }
   if (value <= 0) {
-    return { ja: "再生時間は0より長くしてください。", en: "The duration must be longer than zero." };
+    return {
+      ja: "再生時間は0より長くしてください。",
+      en: "The duration must be longer than zero.",
+    };
   }
   if (value > MAX_DURATION_SEC) {
     return {

@@ -47,7 +47,13 @@ export function createFixtureStudioFetch(options: FixtureStudioOptions = {}): Fi
 
     const publishMatch = PUBLISH_PATH.exec(url.pathname);
     if (publishMatch) {
-      return handlePublish(decodeURIComponent(publishMatch[1] ?? ""), method, init, expectedToken, songs);
+      return handlePublish(
+        decodeURIComponent(publishMatch[1] ?? ""),
+        method,
+        init,
+        expectedToken,
+        songs,
+      );
     }
 
     if (url.pathname === "/api/v1/catalog" && method === "GET") {

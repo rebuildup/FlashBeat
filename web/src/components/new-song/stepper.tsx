@@ -106,11 +106,13 @@ export function Stepper({ current, maxReached, onSelect }: StepperProps) {
   return (
     <nav aria-label="新曲登録の手順 / New song steps" className={rail}>
       {NEW_SONG_STEPPER_ITEMS.map((item, index) => {
-        const state =
-          item.step === current ? "current" : item.step < current ? "done" : "upcoming";
+        const state = item.step === current ? "current" : item.step < current ? "done" : "upcoming";
         const reachable = item.step <= maxReached && item.step !== current;
         return (
-          <span key={item.step} className={css({ display: "flex", alignItems: "center", gap: "2" })}>
+          <span
+            key={item.step}
+            className={css({ display: "flex", alignItems: "center", gap: "2" })}
+          >
             {index > 0 ? <span aria-hidden className={separator} /> : null}
             <button
               type="button"

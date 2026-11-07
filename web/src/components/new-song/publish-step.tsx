@@ -222,7 +222,9 @@ export function PublishStep({
 
         {result !== null && !result.ok ? (
           <section className={failure} data-testid="publish-error">
-            <p style={{ fontWeight: "semibold", margin: "0" }}>公開できませんでした / Not published</p>
+            <p style={{ fontWeight: "semibold", margin: "0" }}>
+              公開できませんでした / Not published
+            </p>
             <p style={{ fontSize: "2xs", margin: "0" }}>{result.failure.message}</p>
             {result.failure.details && result.failure.details.length > 0 ? (
               <ul className={failureList}>

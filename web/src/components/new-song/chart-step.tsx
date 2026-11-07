@@ -106,7 +106,9 @@ export function ChartStep({
         <Suspense fallback={<div className={editorArea} />}>
           <ChartEditor
             key={videoId || "no-video"}
-            initialChart={chart ?? { name: fallbackChartName, maxBlock: 8, BPM: 120, offset: 0, notes: [] }}
+            initialChart={
+              chart ?? { name: fallbackChartName, maxBlock: 8, BPM: 120, offset: 0, notes: [] }
+            }
             initialYouTubeId={videoId}
             onChartChange={onChange}
             onValidationChange={onIssuesChange}
@@ -117,7 +119,11 @@ export function ChartStep({
       <div className={footer}>
         <p
           className={`${verdict} ${
-            verdict?.level === "error" ? verdictError : verdict?.level === "warn" ? verdictWarn : verdictOk
+            verdict?.level === "error"
+              ? verdictError
+              : verdict?.level === "warn"
+                ? verdictWarn
+                : verdictOk
           }`}
           data-testid="note-count-verdict"
         >

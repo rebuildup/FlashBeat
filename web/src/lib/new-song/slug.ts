@@ -53,12 +53,27 @@ export function suggestSongSlug(
   takenIds: ReadonlySet<string>,
 ): SlugSuggestion {
   const fromTitle = slugifyTitle(title);
-  const base = fromTitle.length >= SONG_ID_MIN_LENGTH ? fromTitle : fallbackSlug(videoId);
+  if (fromTitle.length >= SONG_ID_MIN_LENGTH) {
+    if (!takenIds.has(fromTitle)) {
+      return { suggestion: fromTitle, taken: false, alternatives: [] };
+    }
+    return {
+      suggestion: fromTitle,
+      taken: true,
+      alternatives: freeAlternatives(fromTitle, takenIds, 3),
+    };
+  }
 
+  // Without a video id there is nothing to fall back to; the field stays
+  // empty until the operator or the oEmbed lookup fills the title.
+  if (videoId.length === 0) {
+    return { suggestion: "", taken: false, alternatives: [] };
+  }
+
+  const base = fallbackSlug(videoId);
   if (!takenIds.has(base)) {
     return { suggestion: base, taken: false, alternatives: [] };
   }
-
   return { suggestion: base, taken: true, alternatives: freeAlternatives(base, takenIds, 3) };
 }
 

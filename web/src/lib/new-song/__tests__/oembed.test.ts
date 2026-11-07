@@ -18,7 +18,10 @@ it("maps the oEmbed body to title and author", async () => {
 });
 
 it("treats a private or deleted video as not-found", async () => {
-  const result = await fetchOembedMetadata("dQw4w9WgXcQ", async () => new Response("", { status: 404 }));
+  const result = await fetchOembedMetadata(
+    "dQw4w9WgXcQ",
+    async () => new Response("", { status: 404 }),
+  );
   expect(result).toEqual({ ok: false, reason: "not-found" });
 });
 
@@ -30,7 +33,9 @@ it("reports an unreachable network as offline instead of throwing", async () => 
 });
 
 it("rejects a broken oEmbed body as malformed", async () => {
-  const result = await fetchOembedMetadata("dQw4w9WgXcQ", async () => Response.json({ author_name: "Azari" }));
+  const result = await fetchOembedMetadata("dQw4w9WgXcQ", async () =>
+    Response.json({ author_name: "Azari" }),
+  );
   expect(result).toEqual({ ok: false, reason: "malformed" });
 });
 

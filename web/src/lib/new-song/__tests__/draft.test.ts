@@ -25,7 +25,14 @@ it("round-trips the whole flow through sessionStorage", () => {
   const draft = draftWith({
     step: 2,
     maxStep: 3,
-    info: { youtube: "https://youtu.be/dQw4w9WgXcQ?si=x", title: "Who", artist: "Azari", songId: "who", level: 7, durationSec: 68 },
+    info: {
+      youtube: "https://youtu.be/dQw4w9WgXcQ?si=x",
+      title: "Who",
+      artist: "Azari",
+      songId: "who",
+      level: 7,
+      durationSec: 68,
+    },
     chart: { ...SAMPLE_CHART, BPM: 157 },
   });
   saveNewSongDraft(draft);
@@ -50,7 +57,18 @@ it("survives a page reload in the middle of the chart step", () => {
 });
 
 it("turns the JSON null of an empty number field back into NaN", () => {
-  saveNewSongDraft(draftWith({ info: { youtube: "", title: "", artist: "", songId: "", level: Number.NaN, durationSec: Number.NaN } }));
+  saveNewSongDraft(
+    draftWith({
+      info: {
+        youtube: "",
+        title: "",
+        artist: "",
+        songId: "",
+        level: Number.NaN,
+        durationSec: Number.NaN,
+      },
+    }),
+  );
   const loaded = loadNewSongDraft();
   expect(loaded?.info.level).toBeNaN();
   expect(loaded?.info.durationSec).toBeNaN();
@@ -67,7 +85,16 @@ it("returns null when the stored shape is not a draft", () => {
 });
 
 it("keeps the info and drops only a broken chart", () => {
-  values.set(NEW_SONG_DRAFT_KEY, JSON.stringify({ step: 2, maxStep: 2, info: { title: "Who" }, chart: { broken: true }, savedAt: "" }));
+  values.set(
+    NEW_SONG_DRAFT_KEY,
+    JSON.stringify({
+      step: 2,
+      maxStep: 2,
+      info: { title: "Who" },
+      chart: { broken: true },
+      savedAt: "",
+    }),
+  );
   const loaded = loadNewSongDraft();
   expect(loaded?.info.title).toBe("Who");
   expect(loaded?.chart).toBeNull();

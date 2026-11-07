@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "styled-system/css";
 import type { ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
+import { createFixtureStudioFetch } from "@/lib/new-song/fixture-api";
 import {
   clearNewSongDraft,
   emptyNewSongDraft,
@@ -119,12 +120,19 @@ export function NewSongFlow({ apiOrigin }: NewSongFlowProps) {
   const [takenIds, setTakenIds] = useState<ReadonlySet<string> | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [token, setToken] = useState("");
-  const [published, setPublished] = useState<{ response: SongPublishResponse; noteCount: number } | null>(null);
+  const [published, setPublished] = useState<{
+    response: SongPublishResponse;
+    noteCount: number;
+  } | null>(null);
 
-  // The fixture transport is a review aid: it only exists in development.
+  // The fixture transport is a review aid: it only exists in development and
+  // serves the read side too, so publishAndVerify can read its own write.
   const transport = useMemo<PublishTransport>(() => {
+    if (import.meta.env.DEV && (apiOrigin ?? "").trim() === "fixture") {
+      return { mode: "fixture", baseUrl: "", fetch: createFixtureStudioFetch() };
+    }
     try {
-      return resolvePublishTransport(apiOrigin, import.meta.env.DEV);
+      return resolvePublishTransport(apiOrigin);
     } catch {
       return resolvePublishTransport("");
     }
@@ -136,7 +144,7 @@ export function NewSongFlow({ apiOrigin }: NewSongFlowProps) {
 
   const refreshCatalog = useCallback(async () => {
     try {
-      const response = await fetch(`${transport.baseUrl}/api/v1/catalog`, {
+      const response = await transport.fetch(`${transport.baseUrl}/api/v1/catalog`, {
         cache: "no-store",
         headers: { accept: "application/json" },
       });
@@ -156,7 +164,7 @@ export function NewSongFlow({ apiOrigin }: NewSongFlowProps) {
       setTakenIds(null);
       setCatalogError(error instanceof Error ? error.message : String(error));
     }
-  }, [transport.baseUrl]);
+  }, [transport]);
 
   useEffect(() => {
     void refreshCatalog();
@@ -283,4 +291,3 @@ function Header({ transport }: { transport: PublishTransport }) {
     </header>
   );
 }
-

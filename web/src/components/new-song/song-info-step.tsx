@@ -132,11 +132,21 @@ export interface SongInfoStepProps {
   onAdvance: () => void;
 }
 
-export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance }: SongInfoStepProps) {
+export function SongInfoStep({
+  info,
+  takenIds,
+  catalogError,
+  onChange,
+  onAdvance,
+}: SongInfoStepProps) {
   const [touched, setTouched] = useState(NO_TOUCHED);
   const [attempted, setAttempted] = useState(false);
   const [songIdTouched, setSongIdTouched] = useState(false);
-  const [oembed, setOembed] = useState<{ videoId: string; state: "loading" | "done" | "failed"; reason?: OembedFailureReason } | null>(null);
+  const [oembed, setOembed] = useState<{
+    videoId: string;
+    state: "loading" | "done" | "failed";
+    reason?: OembedFailureReason;
+  } | null>(null);
   const [probeDuration, setProbeDuration] = useState<number | null>(null);
 
   const videoId = useMemo(() => parseYouTubeId(info.youtube) ?? "", [info.youtube]);
@@ -227,20 +237,17 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
       return;
     }
     const suggestion = suggestSongSlug(infoRef.current.title, videoId, takenIds ?? new Set());
-    if (suggestion.suggestion !== infoRef.current.songId) {
+    if (suggestion.suggestion !== "" && suggestion.suggestion !== infoRef.current.songId) {
       onChangeRef.current({ songId: suggestion.suggestion });
     }
   }, [info.title, songIdTouched, takenIds, videoId]);
 
-  const handleProbeDuration = useCallback(
-    (seconds: number) => {
-      setProbeDuration(seconds);
-      if (!Number.isFinite(infoRef.current.durationSec)) {
-        onChangeRef.current({ durationSec: Math.round(seconds) });
-      }
-    },
-    [],
-  );
+  const handleProbeDuration = useCallback((seconds: number) => {
+    setProbeDuration(seconds);
+    if (!Number.isFinite(infoRef.current.durationSec)) {
+      onChangeRef.current({ durationSec: Math.round(seconds) });
+    }
+  }, []);
 
   const handleAdvance = useCallback(() => {
     setAttempted(true);
@@ -250,7 +257,8 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
   }, [issues.length, onAdvance, songIdTaken]);
 
   const alternatives = useMemo(
-    () => (songIdTaken && takenIds ? suggestSongSlug(info.title, videoId, takenIds).alternatives : []),
+    () =>
+      songIdTaken && takenIds ? suggestSongSlug(info.title, videoId, takenIds).alternatives : [],
     [info.title, songIdTaken, takenIds, videoId],
   );
 
@@ -304,7 +312,9 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
         {visibleError("title") ? (
           <Field.ErrorText>{visibleError("title")}</Field.ErrorText>
         ) : (
-          <Field.HelperText>YouTubeから自動取得できます。 / Filled from YouTube when possible.</Field.HelperText>
+          <Field.HelperText>
+            YouTubeから自動取得できます。 / Filled from YouTube when possible.
+          </Field.HelperText>
         )}
       </Field.Root>
 
@@ -316,7 +326,9 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
           onChange={(event) => handleChange({ artist: event.currentTarget.value })}
           onBlur={() => handleBlur("artist")}
         />
-        {visibleError("artist") ? <Field.ErrorText>{visibleError("artist")}</Field.ErrorText> : null}
+        {visibleError("artist") ? (
+          <Field.ErrorText>{visibleError("artist")}</Field.ErrorText>
+        ) : null}
       </Field.Root>
 
       <Field.Root invalid={visibleError("songId") !== undefined}>
@@ -362,11 +374,15 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
             placeholder="10"
             onChange={(event) => {
               const parsed = Number(event.currentTarget.value);
-              handleChange({ level: event.currentTarget.value.trim() === "" ? Number.NaN : parsed });
+              handleChange({
+                level: event.currentTarget.value.trim() === "" ? Number.NaN : parsed,
+              });
             }}
             onBlur={() => handleBlur("level")}
           />
-          {visibleError("level") ? <Field.ErrorText>{visibleError("level")}</Field.ErrorText> : null}
+          {visibleError("level") ? (
+            <Field.ErrorText>{visibleError("level")}</Field.ErrorText>
+          ) : null}
         </Field.Root>
 
         <Field.Root invalid={visibleError("durationSec") !== undefined}>
@@ -379,7 +395,9 @@ export function SongInfoStep({ info, takenIds, catalogError, onChange, onAdvance
             placeholder="214"
             onChange={(event) => {
               const parsed = Number(event.currentTarget.value);
-              handleChange({ durationSec: event.currentTarget.value.trim() === "" ? Number.NaN : parsed });
+              handleChange({
+                durationSec: event.currentTarget.value.trim() === "" ? Number.NaN : parsed,
+              });
             }}
             onBlur={() => handleBlur("durationSec")}
           />

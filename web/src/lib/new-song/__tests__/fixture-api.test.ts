@@ -49,7 +49,13 @@ it("publishes and serves the exact snapshot back to publishAndVerify", async () 
 
 it("bumps the chart version on a republish and moves the catalog", async () => {
   const fetchImpl = createFixtureStudioFetch();
-  const first = await publishAndVerify({ baseUrl: "", songId: "who", token: "fixture-token", request, fetchImpl });
+  const first = await publishAndVerify({
+    baseUrl: "",
+    songId: "who",
+    token: "fixture-token",
+    request,
+    fetchImpl,
+  });
   const second = await publishAndVerify({
     baseUrl: "",
     songId: "who",
@@ -67,7 +73,13 @@ it("bumps the chart version on a republish and moves the catalog", async () => {
 
 it("rejects a wrong token before reading the body", async () => {
   const fetchImpl = createFixtureStudioFetch();
-  const result = await publishAndVerify({ baseUrl: "", songId: "who", token: "nope", request, fetchImpl });
+  const result = await publishAndVerify({
+    baseUrl: "",
+    songId: "who",
+    token: "nope",
+    request,
+    fetchImpl,
+  });
   expect(result.ok).toBe(false);
   if (!result.ok) {
     expect(result.failure.status).toBe(401);
@@ -93,7 +105,13 @@ it("rejects a body that breaks the contract with 422 diagnostics", async () => {
 
 it("answers 404 for an unknown chart version like the read API", async () => {
   const fetchImpl = createFixtureStudioFetch();
-  await publishAndVerify({ baseUrl: "", songId: "who", token: "fixture-token", request, fetchImpl });
+  await publishAndVerify({
+    baseUrl: "",
+    songId: "who",
+    token: "fixture-token",
+    request,
+    fetchImpl,
+  });
   const response = await fetchImpl("/api/v1/charts/who?version=2");
   expect(response.status).toBe(404);
 });
