@@ -30,8 +30,8 @@
 - [x] 14. before/after のカメラ画像を比較 (`origin/main` = くすんだ beige → 本線 = 白)
 - [x] 15. `AGENTS.md` にフラット描画の規約を追記
 - [x] 16. specs/168 の spec / plan / tasks を追加
-- [ ] 17. push + Draft PR + main へ統合
-- [ ] 18. Win64 ビルド (`FLASHBEAT_VERSION_BASE=0.1.14`)
-- [ ] 19. パッケージ (ZIP + SHA-256、`-MediaPolicy song-free`) と GitHub Release 公開
-- [ ] 20. `docs/operations/update-release.md` の現行版更新 + `bundleVersion` stamp
-- [ ] 21. Issue #168 を検証証跡付きでクローズ
+- [x] 17. push + Draft PR + main へ統合
+- [x] 18. Win64 ビルド (`FLASHBEAT_VERSION_BASE=0.1.14`)
+- [x] 19. パッケージ (ZIP + SHA-256、`-MediaPolicy song-free`) と GitHub Release 公開
+- [x] 20. `docs/operations/update-release.md` の現行版更新 + `bundleVersion` stamp
+- [x] 21. Issue #168 を検証証跡付きでクローズ

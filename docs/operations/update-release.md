@@ -108,15 +108,23 @@
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
-- 現行版: [`v0.1.13-win64-5ee86a9`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.13-win64-5ee86a9)
+- 現行版: [`v0.1.14-win64-617c2b6`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.14-win64-617c2b6)
+  - `FlashBeat-0.1.14-win64-617c2b6.zip`
+  - SHA-256: `3ecf9d8ea65a435b4e99b70a0ed8691859968bc2c06da6e56b4366750e124171`
+  - ビルド元 commit: `617c2b6ad2da6b6735f511f50f85ba7597036329`
+    (Issue #168: プレイフィールドのフラット描画化 (unlit + シャドウ無効) + 判定エフェクトを踏んだレーンへ表示)
+  - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
+  - チャンネル: `stable`
+  - 実機検証: **未証明** (Windows 展示機での実プレイは未実施。
+    EditMode 407/407 成功 + `FlatRenderCheck` `audit: lights=0 casters=0 receivers=0` / `failures 0` のみ)。
+    Issue #22 の承認チェックリスト上は「部分承認」相当で記録。
+- 前版 (参考): [`v0.1.13-win64-5ee86a9`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.13-win64-5ee86a9)
   - `FlashBeat-0.1.13-win64-5ee86a9.zip`
   - SHA-256: `8bcfafcf7cbde66cad977d164cdefdece709f989266948d4a5eb52c309f21548`
   - ビルド元 commit: `5ee86a95efc5d2b3dd022506aa4c180e9ee50e6a`
     (v5 UI / キーガイド / 読み込み画面 / Issue #148 キーキャップ / 初期解像度修正 / Update.ps1 の BOM 修正)
-  - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
-  - チャンネル: `stable`
   - 実機検証: Windows 展示機相当で ZIP 展開 → 起動 → Title まで到達 / overlay 5/5 / keyconfig 30/30 を確認。
-- 前版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
+- 前々版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
   - Web Studio 併入版。`v0.1.11-win64-98137a5` は同じ 0.1.11 の別ビルド (prerelease)。
     展示機には **0.1.13 が適用済み** (2026-11-07)。
 - 旧版 (参考): [`v0.1.0-win64-743c88d`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.0-win64-743c88d)
