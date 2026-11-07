@@ -4,12 +4,15 @@ import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartJson } from "@/lib/chart/import";
+import { createHold, isHold } from "@/lib/chart/long-note";
 import {
   addNote,
   createNote,
   dominantResolution,
+  holdCount,
   moveNote,
   removeNote,
+  setHoldEnd,
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
@@ -64,10 +67,14 @@ const gridPanel = css({
 });
 
 const gridHint = css({
+  alignItems: "center",
   borderBottomColor: "#222222",
   borderBottomWidth: "1px",
   color: "#8c8c8c",
+  display: "flex",
+  flexWrap: "wrap",
   fontSize: "2xs",
+  gap: "3",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
@@ -77,6 +84,49 @@ const playheadReadout = css({
   color: "#ffffff",
   fontVariantNumeric: "tabular-nums",
   marginRight: "2",
+});
+
+const holdReadout = css({
+  color: "#8c8c8c",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const hintText = css({
+  color: "#8c8c8c",
+  flex: "1 1 18rem",
+});
+
+/** Switch between placing taps and placing holds. */
+const kindSwitch = css({
+  background: "#222222",
+  borderRadius: "8px",
+  display: "flex",
+  gap: "1",
+  padding: "1",
+});
+
+const kindButton = css({
+  background: "transparent",
+  borderRadius: "6px",
+  color: "#8c8c8c",
+  cursor: "pointer",
+  fontSize: "2xs",
+  paddingBottom: "1",
+  paddingTop: "1",
+  px: "3",
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
+});
+
+const kindButtonActive = css({
+  background: "#3a3a3a",
+  borderRadius: "6px",
+  color: "#ffffff",
+  cursor: "pointer",
+  fontSize: "2xs",
+  paddingBottom: "1",
+  paddingTop: "1",
+  px: "3",
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
 });
 
 const side = css({
@@ -195,6 +245,14 @@ export function ChartEditor({
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
   const [youtubeId, setYoutubeId] = useState(initialYouTubeId);
   const [isSideOpen, setIsSideOpen] = useState(false);
+  /**
+   * Kind of the note the next click on the grid places.
+   *
+   * A hold is placed with the same gesture as a tap and then resized with
+   * the handle at its end, so the operator never has to guess the length
+   * of a hold before placing it.
+   */
+  const [noteKind, setNoteKind] = useState<"tap" | "hold">("tap");
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
   const sideRef = useRef<HTMLElement | null>(null);
@@ -261,8 +319,45 @@ export function ChartEditor({
     URL.revokeObjectURL(url);
   }, [chart]);
 
+  /**
+   * Place a hold.
+   *
+   * A hold is placed with the same gesture as a tap and then resized with
+   * the handle at its end, so the operator does not have to know the length
+   * of the hold before placing it. It starts with the length of one beat,
+   * which is the shortest hold the grid can show.
+   */
+  const handleAddHold = useCallback(
+    (block: number, beat: number) => {
+      setChart((current) => {
+        if (!current) {
+          return current;
+        }
+        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        const existing = current.notes.findIndex(
+          (note) => note.block === block && note.num === line,
+        );
+        if (existing >= 0) {
+          setSelectedIndex(existing);
+          return current;
+        }
+        setSelectedIndex(null);
+        return addNote(
+          current,
+          createHold(block, line / resolution, (line + resolution) / resolution, resolution),
+        );
+      });
+    },
+    [resolution],
+  );
+
   const handleAddNote = useCallback(
     (block: number, beat: number) => {
+      if (noteKind === "hold") {
+        handleAddHold(block, beat);
+        return;
+      }
+
       setChart((current) => {
         if (!current) {
           return current;
@@ -281,11 +376,21 @@ export function ChartEditor({
         return addNote(current, createNote(block, line, resolution));
       });
     },
-    [resolution],
+    [handleAddHold, noteKind, resolution],
   );
 
   const handleMoveNote = useCallback((index: number, block: number, beat: number) => {
     setChart((current) => (current ? moveNote(current, index, block, beat) : current));
+  }, []);
+
+  /**
+   * The end of a hold was dragged to another beat.
+   *
+   * The end is snapped onto the grid of the note's own resolution, so a hold
+   * always covers whole lines and never ends before it starts.
+   */
+  const handleResizeHold = useCallback((index: number, endBeat: number) => {
+    setChart((current) => (current ? setHoldEnd(current, index, endBeat) : current));
   }, []);
 
   const handleDeleteSelected = useCallback(() => {
@@ -313,6 +418,29 @@ export function ChartEditor({
         const beat = Math.max(0, noteBeat(note) + deltaBeat);
         const block = Math.min(7, Math.max(0, note.block + deltaBlock));
         return moveNote(current, selectedIndex, block, beat);
+      });
+    },
+    [selectedIndex],
+  );
+
+  /**
+   * Change the length of the selected hold by one grid line.
+   *
+   * The keyboard is the precise way to set the length of a hold: the handle
+   * is dragged for the rough length, the arrow keys for the exact one.
+   */
+  const handleResizeSelectedHold = useCallback(
+    (deltaBeat: number) => {
+      if (selectedIndex === null) {
+        return;
+      }
+      setChart((current) => {
+        const note = current?.notes[selectedIndex];
+        if (!current || !note || !isHold(note)) {
+          return current;
+        }
+        const endBeat = noteBeat(note) + deltaBeat + (note.endNum ?? note.num + 1) / note.LPB;
+        return setHoldEnd(current, selectedIndex, endBeat);
       });
     },
     [selectedIndex],
@@ -350,6 +478,15 @@ export function ChartEditor({
 
       if (selectedIndex !== null) {
         const gridBeat = 1 / resolution;
+
+        // Shift + the horizontal arrows change the length of a hold instead
+        // of moving it, so the exact length can be set without the mouse.
+        if (event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+          event.preventDefault();
+          handleResizeSelectedHold(event.key === "ArrowLeft" ? -gridBeat : gridBeat);
+          return;
+        }
+
         if (event.key === "ArrowLeft") {
           event.preventDefault();
           handleNudgeSelected(-gridBeat, 0);
@@ -368,7 +505,13 @@ export function ChartEditor({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDeleteSelected, handleNudgeSelected, selectedIndex, resolution]);
+  }, [
+    handleDeleteSelected,
+    handleNudgeSelected,
+    handleResizeSelectedHold,
+    selectedIndex,
+    resolution,
+  ]);
 
   const noteCount = chart?.notes.length ?? 0;
 
@@ -407,13 +550,39 @@ export function ChartEditor({
 
       <div className={body}>
         <section className={gridPanel}>
-          <p className={gridHint}>
+          <div className={gridHint}>
             <span className={playheadReadout} data-testid="playhead-readout">
               {playheadSec.toFixed(2)}s · beat {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}
             </span>
-            Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
-            deselects
-          </p>
+            <span className={holdReadout} data-testid="hold-count">
+              {chart ? holdCount(chart) : 0} holds
+            </span>
+            <div className={kindSwitch} role="group" aria-label="Note kind">
+              <button
+                type="button"
+                className={noteKind === "tap" ? kindButtonActive : kindButton}
+                aria-pressed={noteKind === "tap"}
+                onClick={() => setNoteKind("tap")}
+                data-testid="kind-tap"
+              >
+                Tap
+              </button>
+              <button
+                type="button"
+                className={noteKind === "hold" ? kindButtonActive : kindButton}
+                aria-pressed={noteKind === "hold"}
+                onClick={() => setNoteKind("hold")}
+                data-testid="kind-hold"
+              >
+                Hold
+              </button>
+            </div>
+            <span className={hintText}>
+              Click an empty cell to add a {noteKind === "hold" ? "hold" : "tap note"} · drag to
+              move · drag the handle of a hold to change its length · Shift+←/→ resizes a hold ·
+              arrows nudge · Del removes · Esc deselects
+            </span>
+          </div>
 
           {chart ? (
             <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
@@ -426,6 +595,7 @@ export function ChartEditor({
                 onSelect={setSelectedIndex}
                 onAddNote={handleAddNote}
                 onMoveNote={handleMoveNote}
+                onResizeHold={handleResizeHold}
               />
             </Suspense>
           ) : (

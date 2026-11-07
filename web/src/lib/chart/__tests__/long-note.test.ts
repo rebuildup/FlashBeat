@@ -4,7 +4,6 @@ import { importChartJson } from "../import";
 import {
   createHold,
   holdEndBeat,
-  holdEndLine,
   holdEndSec,
   holdLengthBeats,
   holdLengthLines,
@@ -13,7 +12,7 @@ import {
   holdsOverlap,
   MIN_HOLD_LINES,
 } from "../long-note";
-import { addNote, createNote, holdCount, setHoldEnd, setNoteKind } from "../notes";
+import { addNote, holdCount, setNoteKind } from "../notes";
 import { validateChart } from "../schema";
 import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP } from "../types";
 import { readRepositoryChart } from "./repository-charts";
@@ -274,10 +273,7 @@ describe("the JSON round trip of a hold", () => {
   });
 
   it("writes the end of a hold into the JSON", () => {
-    const chart = addNote(
-      VALID_CHART,
-      createHold(1, 1, 3, 4),
-    );
+    const chart = addNote(VALID_CHART, createHold(1, 1, 3, 4));
 
     const written = exportChartJson(chart);
 
@@ -369,6 +365,9 @@ describe("the JSON round trip of a hold", () => {
  * Change the end of a hold to a beat position. The chart level helper lives
  * in `notes.ts`; this one works on a single note.
  */
-function setHoldEndEnd(note: ReturnType<typeof createHold>, endBeat: number): ReturnType<typeof createHold> {
+function setHoldEndEnd(
+  note: ReturnType<typeof createHold>,
+  endBeat: number,
+): ReturnType<typeof createHold> {
   return { ...note, endNum: Math.max(note.num + MIN_HOLD_LINES, Math.round(endBeat * note.LPB)) };
 }
