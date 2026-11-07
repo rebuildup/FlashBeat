@@ -1,3 +1,4 @@
+import { snapLine, type SnapSetting } from "./snap";
 import { noteBeat } from "./timing";
 import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type ChartNote } from "./types";
 
@@ -101,9 +102,13 @@ export function createHold(
   startBeat: number,
   endBeat: number,
   resolution: number,
+  division: SnapSetting = "off",
 ): ChartNote {
-  const startLine = Math.max(0, Math.round(startBeat * resolution));
-  const endLine = Math.max(startLine + MIN_HOLD_LINES, Math.round(endBeat * resolution));
+  const startLine = Math.max(0, snapLine(startBeat * resolution, resolution, division));
+  const endLine = Math.max(
+    startLine + MIN_HOLD_LINES,
+    snapLine(endBeat * resolution, resolution, division),
+  );
 
   return {
     type: NOTE_TYPE_HOLD,
@@ -120,8 +125,15 @@ export function createHold(
  * The start stays where it is and the end is snapped onto the grid, so a
  * hold is never shorter than one line and never ends before it starts.
  */
-export function setHoldEndBeat(note: ChartNote, endBeat: number): ChartNote {
-  const endLine = Math.max(note.num + MIN_HOLD_LINES, Math.round(endBeat * note.LPB));
+export function setHoldEndBeat(
+  note: ChartNote,
+  endBeat: number,
+  division: SnapSetting = "off",
+): ChartNote {
+  const endLine = Math.max(
+    note.num + MIN_HOLD_LINES,
+    snapLine(endBeat * note.LPB, note.LPB, division),
+  );
   return { ...note, endNum: endLine };
 }
 
@@ -129,8 +141,15 @@ export function setHoldEndBeat(note: ChartNote, endBeat: number): ChartNote {
  * Length of a hold in lines, snapped so that a hold always covers whole
  * lines of its own resolution.
  */
-export function snapHoldEndLine(note: ChartNote, endBeat: number): number {
-  return Math.max(note.num + MIN_HOLD_LINES, Math.round(endBeat * note.LPB));
+export function snapHoldEndLine(
+  note: ChartNote,
+  endBeat: number,
+  division: SnapSetting = "off",
+): number {
+  return Math.max(
+    note.num + MIN_HOLD_LINES,
+    snapLine(endBeat * note.LPB, note.LPB, division),
+  );
 }
 
 /**
