@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Linq;
+using FlashBeat.Persistence;
 
 public class SaveLoadManager : MonoBehaviour
 {
@@ -20,49 +20,45 @@ public class SaveLoadManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Write the best scores to the save file (issue #189).
+    ///
+    /// The scores are keyed by a stable song id and a chart version, so
+    /// adding or reordering a song never moves the record of another one.
+    ///
+    /// The result screen writes into the legacy array (<c>GManager.Hiscore</c>,
+    /// owned by another issue), so the legacy view is submitted into the
+    /// stable store **before** it is written. The legacy `"Hiscore"` key is
+    /// not written any more: it is only read, once, by the migration.
+    /// </summary>
     void SaveHiscore()
     {
-        // 配列をカンマ区切りの文字列に変換
-        string hiscoreString = string.Join(",", GManager.Hiscore.Select(p => p.ToString()).ToArray());
-
-        // PlayerPrefsに保存
-        PlayerPrefs.SetString("Hiscore", hiscoreString);
-        PlayerPrefs.Save();
+        ScorePersistence.SubmitLegacyView();
+        ScorePersistence.Save();
     }
 
+    /// <summary>
+    /// Read the best scores from the save file (issue #189).
+    ///
+    /// The legacy index based data is migrated the first time, and only for
+    /// the songs whose built-in slot is known. Afterwards the legacy array is
+    /// filled from the stable store, so the screens show the record of the
+    /// song they display.
+    /// </summary>
     void LoadHiscore()
     {
-        // PlayerPrefsから読み込み
-        string hiscoreString = PlayerPrefs.GetString("Hiscore", "");
-
-        // 文字列が空でない場合のみ配列に戻す
-        if (!string.IsNullOrEmpty(hiscoreString))
-        {
-            int[] loaded = hiscoreString.Split(',').Select(p => int.Parse(p)).ToArray();
-            for (int i = 0; i < GManager.Hiscore.Length && i < loaded.Length; i++)
-            {
-                GManager.Hiscore[i] = loaded[i];
-            }
-        }
-        else
-        {
-            // 文字列が空の場合は、Hiscoreを全て0の配列に設定
-            for (int i = 0; i < GManager.Hiscore.Length; i++)
-            {
-                GManager.Hiscore[i] = 0;
-            }
-        }
+        ScorePersistence.Load();
+        ScorePersistence.SyncLegacyView();
     }
+
     public void ResetHiscore()
     {
-        // Hiscore配列の全ての要素を0に設定
+        // ベストスコアの全記録を消す (新形式と旧形式の両方)
+        ScorePersistence.ResetAll();
         for (int i = 0; i < GManager.Hiscore.Length; i++)
         {
             GManager.Hiscore[i] = 0;
         }
-
-        // 更新したHiscore配列を保存
-        SaveHiscore();
         Debug.Log("kuriakanryou");
     }
 }
