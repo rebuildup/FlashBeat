@@ -79,7 +79,14 @@ namespace FlashBeat.Gameplay
 
             var directory = root ?? RootDirectory;
             var songFolder = Path.Combine(directory, videoId.Replace('/', '_'));
-            return DeleteFolder(songFolder);
+            var removed = DeleteFolder(songFolder);
+
+            // Deleting the cache is the explicit refetch way out (issue #184
+            // review B2): without the reset a spent refetch budget would keep
+            // blocking the download for this song even after the deletion.
+            if (removed) MediaRefetchPolicy.Reset(videoId);
+
+            return removed;
         }
 
         /// <summary>Deletes the whole cache. Returns the number of removed song folders.</summary>
@@ -92,7 +99,15 @@ namespace FlashBeat.Gameplay
                 if (!Directory.Exists(directory)) return 0;
                 foreach (var dir in Directory.GetDirectories(directory))
                 {
-                    if (DeleteFolder(dir)) removed++;
+                    if (DeleteFolder(dir))
+                    {
+                        removed++;
+                        // The folder name is the video id (CacheDirectoryFor
+                        // replaces the path separators): its refetch budget is
+                        // spent, the deletion has to restore it (issue #184
+                        // review B2).
+                        MediaRefetchPolicy.Reset(Path.GetFileName(dir));
+                    }
                 }
             }
             catch { }

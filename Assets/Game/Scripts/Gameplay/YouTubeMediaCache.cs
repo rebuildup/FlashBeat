@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -75,6 +76,15 @@ namespace FlashBeat.Gameplay
         /// game never sets it - a test restores null in its TearDown.
         /// </summary>
         public static Func<string, string, string, CancellationToken, Task<YtDlpOutput>> DownloadOverride;
+
+        /// <summary>
+        /// One pipeline run at a time per video (issue #184 review B1). Keyed by
+        /// the cache directory, so two requests for the same video are serialized
+        /// and the cleanup of the second can never delete the file the first one
+        /// is still downloading.
+        /// </summary>
+        static readonly ConcurrentDictionary<string, SemaphoreSlim> DownloadGates =
+            new ConcurrentDictionary<string, SemaphoreSlim>(StringComparer.Ordinal);
 
         public static string CacheRoot
         {
@@ -215,72 +225,114 @@ namespace FlashBeat.Gameplay
                 return result;
             }
 
-            // Only a completed download is a cache hit: the file has a marker and
-            // the marker matches the size on disk. A file that a killed process
-            // left halfway (with or without the final name) is ignored here.
-            var cached = FindCompletedFile(dir, filePrefix);
-            if (cached != null)
+            // One pipeline run at a time per video (issue #184 review B1): a
+            // second request for the same video waits here and then finds the
+            // file the first run finalized - its own RemoveProducedFiles can
+            // never delete an in-flight download of another request.
+            var gate = DownloadGates.GetOrAdd(dir, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
+                // Only a completed download is a cache hit: the file has a marker
+                // and the marker matches the size on disk. A file that a killed
+                // process left halfway (with or without the final name) is ignored
+                // here. The check runs inside the gate, so it cannot race a
+                // download that is still running.
+                var cached = FindCompletedFile(dir, filePrefix);
+                if (cached != null)
+                {
+                    result.Ok = true;
+                    result.Path = cached;
+                    result.FromCache = true;
+                    result.Detail = Path.GetFileName(cached);
+                    return result;
+                }
+
+                if (string.IsNullOrEmpty(selector))
+                {
+                    result.Detail = "no format selector";
+                    return result;
+                }
+
+                // A download would follow, but only while the refetch budget
+                // lasts (issue #184 review B2). Past the budget the Option
+                // screen's cache deletion is the explicit way out - it resets
+                // the budget. A completed cache entry above still plays.
+                if (!MediaRefetchPolicy.MayRefetch(videoId))
+                {
+                    result.Detail = "media refetch limit reached - delete the media cache in the Option screen to fetch it again";
+                    return result;
+                }
+
+                // Nothing usable is in the cache: drop whatever an interrupted
+                // run left behind, so the file this run produces is the only one
+                // that can be found afterwards.
+                RemoveProducedFiles(dir, filePrefix);
+
+                // The extension matters: Unity's VideoPlayer refuses a file whose
+                // container it cannot derive from the name ("Failed to recognize video
+                // file format"), so yt-dlp has to write video.mp4 and not just "video".
+                var template = Path.Combine(dir, filePrefix + ".%(ext)s");
+                YtDlpOutput run;
+                try
+                {
+                    run = DownloadOverride != null
+                        ? await DownloadOverride(videoId, selector, template, cancellationToken).ConfigureAwait(false)
+                        : await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    // A cancelled or crashed download (the cancellation token of
+                    // a scene teardown kills yt-dlp) must not leave a half
+                    // written file with the final name behind. The failure is
+                    // reported as a result, not thrown: the callers poll
+                    // IsCompleted in Unity coroutines and would never see a
+                    // faulted task's exception.
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = "download did not finish: " + e.Message;
+                    return result;
+                }
+
+                if (!run.Ok)
+                {
+                    // A half downloaded file must not be reused as a cache hit later.
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = $"yt-dlp download failed ({run.ErrorSummary})";
+                    return result;
+                }
+
+                var produced = FindProducedFile(dir, filePrefix);
+                if (produced == null)
+                {
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = "yt-dlp reported success but produced no file";
+                    return result;
+                }
+
+                // An empty file cannot be opened by the VideoPlayer and would poison
+                // the cache: reject it here so the next attempt downloads again.
+                long producedBytes = 0;
+                try { producedBytes = new FileInfo(produced).Length; } catch { }
+                if (producedBytes <= 0)
+                {
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = "the downloaded file is empty";
+                    return result;
+                }
+
+                // The download (and the ffmpeg merge, when one ran) is complete: the
+                // marker makes the file a cache hit for every later call.
+                MarkCompleted(produced);
+
                 result.Ok = true;
-                result.Path = cached;
-                result.FromCache = true;
-                result.Detail = Path.GetFileName(cached);
+                result.Path = produced;
+                result.Detail = Path.GetFileName(produced);
                 return result;
             }
-
-            if (string.IsNullOrEmpty(selector))
+            finally
             {
-                result.Detail = "no format selector";
-                return result;
+                gate.Release();
             }
-
-            // Nothing usable is in the cache: drop whatever an interrupted run
-            // left behind, so the file this run produces is the only one that can
-            // be found afterwards.
-            RemoveProducedFiles(dir, filePrefix);
-
-            // The extension matters: Unity's VideoPlayer refuses a file whose
-            // container it cannot derive from the name ("Failed to recognize video
-            // file format"), so yt-dlp has to write video.mp4 and not just "video".
-            var template = Path.Combine(dir, filePrefix + ".%(ext)s");
-            var run = DownloadOverride != null
-                ? await DownloadOverride(videoId, selector, template, cancellationToken).ConfigureAwait(false)
-                : await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken).ConfigureAwait(false);
-            if (!run.Ok)
-            {
-                // A half downloaded file must not be reused as a cache hit later.
-                RemoveProducedFiles(dir, filePrefix);
-                result.Detail = $"yt-dlp download failed ({run.ErrorSummary})";
-                return result;
-            }
-
-            var produced = FindProducedFile(dir, filePrefix);
-            if (produced == null)
-            {
-                RemoveProducedFiles(dir, filePrefix);
-                result.Detail = "yt-dlp reported success but produced no file";
-                return result;
-            }
-
-            // An empty file cannot be opened by the VideoPlayer and would poison
-            // the cache: reject it here so the next attempt downloads again.
-            long producedBytes = 0;
-            try { producedBytes = new FileInfo(produced).Length; } catch { }
-            if (producedBytes <= 0)
-            {
-                RemoveProducedFiles(dir, filePrefix);
-                result.Detail = "the downloaded file is empty";
-                return result;
-            }
-
-            // The download (and the ffmpeg merge, when one ran) is complete: the
-            // marker makes the file a cache hit for every later call.
-            MarkCompleted(produced);
-
-            result.Ok = true;
-            result.Path = produced;
-            result.Detail = Path.GetFileName(produced);
-            return result;
         }
 
         /// <summary>

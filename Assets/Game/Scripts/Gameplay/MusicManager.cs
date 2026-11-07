@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -50,6 +51,14 @@ public class MusicManager : MonoBehaviour
     VideoPlayer streamAudioPlayer;
     AudioSource streamAudioSource;
     AudioLevelProbe levelProbe;
+
+    /// <summary>
+    /// Cancels an in-flight download when the scene goes away (Retry reloads the
+    /// GameScene): the yt-dlp process is killed and the half written file is
+    /// removed, so a broken leftover cannot survive into the next attempt
+    /// (issue #184 review B1).
+    /// </summary>
+    CancellationTokenSource mediaCancellation;
 
     bool mediaReady;
     bool playbackStarted;
@@ -166,7 +175,21 @@ public class MusicManager : MonoBehaviour
         AttachLevelProbe();
 
         load.SetActive(true);
-        StartCoroutine(PrepareMediaCoroutine());
+        mediaCancellation = new CancellationTokenSource();
+        var mediaToken = mediaCancellation.Token;
+        StartCoroutine(PrepareMediaCoroutine(mediaToken));
+    }
+
+    void OnDestroy()
+    {
+        // A Retry (scene reload) or teardown cancels an in-flight download: the
+        // yt-dlp process is killed (YouTubeStreamResolver registers the kill on
+        // the token) and the half written file is removed (issue #184 review B1).
+        // No Dispose: a continuation that resumes later may still register on
+        // the token, and Register on a disposed source throws.
+        if (mediaCancellation == null) return;
+        mediaCancellation.Cancel();
+        mediaCancellation = null;
     }
 
     VideoPlayer CreateRemoteVideoPlayer()
@@ -197,7 +220,7 @@ public class MusicManager : MonoBehaviour
         }
     }
 
-    IEnumerator PrepareMediaCoroutine()
+    IEnumerator PrepareMediaCoroutine(CancellationToken mediaToken)
     {
         var song = GManager.ActiveSongs[GManager.songID];
         string videoId = song.videoId;
@@ -220,7 +243,7 @@ public class MusicManager : MonoBehaviour
 
         // 1. What does YouTube offer for this video?
         stage = MediaStage.ResolvingStream;
-        var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId);
+        var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId, mediaToken);
         while (!formatsTask.IsCompleted) yield return null;
 
         var formatsOut = formatsTask.Result;
@@ -250,7 +273,7 @@ public class MusicManager : MonoBehaviour
         stage = MediaStage.DownloadingMedia;
         var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
         if (loading != null) { loading.Show("動画をダウンロード中…"); }
-        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
+        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
@@ -264,7 +287,7 @@ public class MusicManager : MonoBehaviour
         {
             Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
             YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
-            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix);
+            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
             while (!fallbackTask.IsCompleted) yield return null;
             videoFile = fallbackTask.Result;
             combined = false;
@@ -274,7 +297,7 @@ public class MusicManager : MonoBehaviour
         MediaFileResult audioFile = null;
         if (plan.HasAudioFile && !combined)
         {
-            var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix);
+            var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
             while (!audioTask.IsCompleted) yield return null;
             audioFile = audioTask.Result;
             Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
@@ -291,22 +314,17 @@ public class MusicManager : MonoBehaviour
 
             if (!videoReady)
             {
-                // Issue #184: ファイルはキャッシュにあるのに開けない - 強制終了や
-                // 電源断で途中まで書かれたファイルが最終名のまま残っていた場合など。
-                // キャッシュ項目を捨てて (試行回数上限つきで) 次の試行 = Retry で
-                // 再取得させる。壊れたファイルを永久に使い回さないため。
-                if (MediaRefetchPolicy.MayRefetch(videoId))
-                {
-                    MediaRefetchPolicy.CountRefetch(videoId);
-                    YouTubeMediaCache.InvalidateProducedFile(videoFile.Path);
-                    Debug.Log($"[MusicManager] the player cannot open the cached file ({Path.GetFileName(videoFile.Path)}) - " +
-                              $"cache entry dropped, the next attempt fetches it again ({MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo})");
-                }
-                else
-                {
-                    Debug.Log($"[MusicManager] the cached file was already refetched {MediaRefetchPolicy.MaxAttemptsPerVideo} times - " +
-                              "delete the media cache in the Option screen to force a new download");
-                }
+                // Issue #184 (review B2): ファイルは「完了」マーク付きでも開けないなら
+                // 壊れている。マーカーを剥がさないと EnsureFileAsync は二度と
+                // ダウンロードせず、Option でキャッシュを消すまで回復しない。
+                // そのためマーカー剥離とカウントは上限に関係なく行う。上限に
+                // 達した後の再取得は EnsureFileAsync 側が拒否し、Option 画面の
+                // キャッシュ削除 (カウンタをリセットする) が明示的な回復手段。
+                YouTubeMediaCache.InvalidateProducedFile(videoFile.Path);
+                MediaRefetchPolicy.CountRefetch(videoId);
+                Debug.Log($"[MusicManager] the player cannot open the cached file ({Path.GetFileName(videoFile.Path)}) - " +
+                          $"cache entry dropped, refetch budget used {MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo}" +
+                          (MediaRefetchPolicy.MayRefetch(videoId) ? "" : " - limit reached, delete the media cache in the Option screen"));
             }
         }
 
@@ -319,13 +337,15 @@ public class MusicManager : MonoBehaviour
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
 
-            if (!audioReady && MediaRefetchPolicy.MayRefetch(videoId))
+            if (!audioReady)
             {
-                // 映像と同じ扱い: 開けないキャッシュ音声は捨てて、次の試行で再取得させる。
-                MediaRefetchPolicy.CountRefetch(videoId);
+                // 映像と同じ扱い (issue #184 review B2): 開けないキャッシュ音声は
+                // 上限に関係なくマーカーを剥がして捨てる。再取得そのものは
+                // EnsureFileAsync 側の予算で制限される。
                 YouTubeMediaCache.InvalidateProducedFile(audioFile.Path);
+                MediaRefetchPolicy.CountRefetch(videoId);
                 Debug.Log($"[MusicManager] the player cannot open the cached audio ({Path.GetFileName(audioFile.Path)}) - " +
-                          $"cache entry dropped, the next attempt fetches it again ({MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo})");
+                          $"cache entry dropped, refetch budget used {MediaRefetchPolicy.CountFor(videoId)}/{MediaRefetchPolicy.MaxAttemptsPerVideo}");
             }
         }
 

@@ -6,11 +6,16 @@ namespace FlashBeat.Gameplay
     /// Counts how often the cached media of a video was dropped because the
     /// player could not open it (issue #184).
     ///
-    /// The count bounds the automatic re-download attempts per video, so a file
-    /// this machine cannot decode does not burn a fresh download on every Retry.
-    /// Past the limit the Option screen's cache deletion is the explicit way out.
-    /// The count lives in PlayerPrefs (it has to survive the scene reload of a
-    /// Retry) and is cleared as soon as the song is playable again.
+    /// The budget bounds the automatic downloads per video:
+    /// <see cref="YouTubeMediaCache.EnsureFileAsync"/> fetches only while
+    /// <see cref="MayRefetch"/> holds. When the player cannot open a cached
+    /// file, MusicManager strips its completion marker and counts the attempt
+    /// no matter the budget - a marked but unplayable file must never block the
+    /// next download. Past the budget the Option screen's cache deletion
+    /// (<see cref="MediaCacheManager.Clear"/>, <c>ClearAll</c>) is the explicit
+    /// way out: it deletes the files and resets the budget. The count lives in
+    /// PlayerPrefs (it has to survive the scene reload of a Retry) and is
+    /// cleared as soon as the song is playable again.
     /// </summary>
     public static class MediaRefetchPolicy
     {
