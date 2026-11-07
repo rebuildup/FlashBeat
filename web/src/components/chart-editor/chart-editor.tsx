@@ -82,6 +82,20 @@ const playheadReadout = css({
   marginRight: "2",
 });
 
+/**
+ * The eight lanes keep their playable width, so on a narrow viewport the grid
+ * is wider than the screen and scrolls sideways. The hint says so, because a
+ * grid that is cut off without a word looks broken.
+ */
+const laneHint = css({
+  color: "#8c8c8c",
+  display: { base: "block", lg: "none" },
+  fontSize: "xs",
+  margin: "0",
+  paddingBottom: "2",
+  px: "3",
+});
+
 const side = css({
   display: "flex",
   flexDirection: "column",
@@ -417,6 +431,8 @@ export function ChartEditor({
             Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
             deselects
           </p>
+
+          <p className={laneHint}>Swipe the grid sideways to reach the lanes on the right.</p>
 
           {chart ? (
             <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>

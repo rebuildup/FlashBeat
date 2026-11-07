@@ -176,6 +176,17 @@ const cardTitle = css({
   margin: "0",
 });
 
+/**
+ * The publish card carries the primary action of the screen, so it stays
+ * pinned to the top of the side column: the operator reaches "Review publish"
+ * without scrolling the metadata form (issue #158, finding #9).
+ */
+const publishCard = css({
+  position: "sticky",
+  top: "0",
+  zIndex: "1",
+});
+
 const facts = css({
   display: "grid",
   gap: "1",
@@ -512,7 +523,7 @@ export function SongPublisher({
           </div>
 
           <div className={sideScroll}>
-            <section className={card}>
+            <section className={`${card} ${publishCard}`} data-testid="publish-card">
               <h2 className={cardTitle}>Publish</h2>
 
               <dl className={facts}>
@@ -536,6 +547,12 @@ export function SongPublisher({
               </Button>
             </section>
 
+            <PublishResultPanel
+              result={result}
+              onRetry={handleReview}
+              onBackToEditor={handleBackToEditor}
+            />
+
             <section className={card}>
               <h2 className={cardTitle}>Song metadata</h2>
               <SongMetadataForm
@@ -545,12 +562,6 @@ export function SongPublisher({
                 issues={visibleIssues}
               />
             </section>
-
-            <PublishResultPanel
-              result={result}
-              onRetry={handleReview}
-              onBackToEditor={handleBackToEditor}
-            />
           </div>
         </aside>
 

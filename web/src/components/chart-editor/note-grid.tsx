@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { css } from "styled-system/css";
 import { noteBeat } from "@/lib/chart/timing";
 import type { Chart } from "@/lib/chart/types";
+import { gridMetrics, LANE_COUNT } from "./grid-metrics";
 
 /**
  * The eight lane grid.
@@ -19,9 +20,6 @@ import type { Chart } from "@/lib/chart/types";
  * and the accent blue (#3FA9F5) marks the current playhead and the selected
  * note. No gradients, no teal.
  */
-
-/** Narrowest lane that stays playable. Below this the stage scrolls. */
-export const MIN_LANE_WIDTH = 56;
 
 /** Height of a note in pixels. */
 export const NOTE_HEIGHT = 16;
@@ -72,6 +70,15 @@ export interface NoteGridProps {
   onMoveNote(index: number, block: number, beat: number): void;
 }
 
+/**
+ * Geometry of the stage.
+ *
+ * The eight lanes stretch to the panel. Below the playable lane width the
+ * stage keeps that width and the grid scrolls sideways, so a narrow viewport
+ * never squeezes the lanes into an unusable strip (issue #158, finding #1).
+ * The rules themselves live in `grid-metrics.ts`.
+ */
+
 /** Measures the panel the stage lives in, so the lanes fill the work area. */
 function usePanelSize(): [RefObject<HTMLDivElement | null>, number, number] {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -119,14 +126,12 @@ export function NoteGrid({
 
   // Lanes stretch to the panel; the stage scrolls once the floor would make
   // a lane narrower than the playable minimum.
-  const laneWidth = Math.max(MIN_LANE_WIDTH, Math.floor(panelWidth / 8));
-  // Tap notes stay compact rectangles centered in the lane, never bars that
-  // read across the lane boundary.
-  const noteWidth = Math.min(laneWidth - 12, 72);
-  // Lanes fill the panel down to the last visible beat, so the work area is
-  // never empty panel below the chart.
-  const stageHeight = Math.max(lastBeat + 2, Math.ceil(panelHeight / beatHeight)) * beatHeight;
-  const stageWidth = laneWidth * 8;
+  const { laneWidth, noteWidth, stageWidth, stageHeight } = gridMetrics({
+    panelWidth,
+    panelHeight,
+    beatHeight,
+    lastBeat,
+  });
 
   const playheadBeat = (playheadSec * chart.BPM) / 60;
 
@@ -141,7 +146,7 @@ export function NoteGrid({
       return;
     }
 
-    const block = Math.min(7, Math.max(0, Math.floor(pointer.x / laneWidth)));
+    const block = Math.min(LANE_COUNT - 1, Math.max(0, Math.floor(pointer.x / laneWidth)));
     const beat = Math.max(0, pointer.y / beatHeight);
 
     onSelect(null);
@@ -155,7 +160,10 @@ export function NoteGrid({
 
   const handleDragEnd = (event: KonvaEventObject<DragEvent>, index: number) => {
     const node = event.target;
-    const block = Math.min(7, Math.max(0, Math.floor((node.x() + noteWidth / 2) / laneWidth)));
+    const block = Math.min(
+      LANE_COUNT - 1,
+      Math.max(0, Math.floor((node.x() + noteWidth / 2) / laneWidth)),
+    );
     const beat = Math.max(0, (node.y() + NOTE_HEIGHT / 2) / beatHeight);
 
     onMoveNote(index, block, beat);
@@ -225,7 +233,7 @@ export function NoteGrid({
           style={{ cursor: "crosshair" }}
         >
           <Layer>
-            {Array.from({ length: 8 }, (_, lane) => (
+            {Array.from({ length: LANE_COUNT }, (_, lane) => (
               <Rect
                 key={`lane-${lane}`}
                 x={lane * laneWidth}
@@ -239,7 +247,7 @@ export function NoteGrid({
 
             {beatLines}
 
-            {Array.from({ length: 8 }, (_, lane) => (
+            {Array.from({ length: LANE_COUNT }, (_, lane) => (
               <Text
                 key={`lane-label-${lane}`}
                 x={lane * laneWidth + 6}

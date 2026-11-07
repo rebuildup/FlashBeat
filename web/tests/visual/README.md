@@ -28,16 +28,16 @@ Output:
 
 ## Routes / states
 
-| Route | State | URL | Note |
-| --- | --- | --- | --- |
-| home | ready | `/` | seeded catalog (one published song) |
-| home | error | `/?state=error` | the catalog request fails |
-| home | empty | `/?state=empty` | the catalog answers no song |
-| home | loading | `/` | the catalog request is held, so the loading state is on screen |
-| chart | editor | `/chart?songId=who&version=1` | seeded fixture chart; waits for the Konva `canvas` |
-| chart | empty | `/chart` | no song selected |
-| publish | song | `/publish?songId=who&version=1` | publish form for the seeded song |
-| publish | empty | `/publish` | no song selected |
+| Route   | State   | URL                             | Note                                                           |
+| ------- | ------- | ------------------------------- | -------------------------------------------------------------- |
+| home    | ready   | `/`                             | seeded catalog (one published song)                            |
+| home    | error   | `/?state=error`                 | the catalog request fails                                      |
+| home    | empty   | `/?state=empty`                 | the catalog answers no song                                    |
+| home    | loading | `/`                             | the catalog request is held, so the loading state is on screen |
+| chart   | editor  | `/chart?songId=who&version=1`   | seeded fixture chart; waits for the Konva `canvas`             |
+| chart   | empty   | `/chart`                        | no song selected                                               |
+| publish | song    | `/publish?songId=who&version=1` | publish form for the seeded song                               |
+| publish | empty   | `/publish`                      | no song selected                                               |
 
 Every route has a **state marker** (`a[data-row-link]`, `Catalog unavailable`,
 `No songs published yet`, `Loading catalog`, `Review & Publish`,
@@ -48,13 +48,13 @@ every capture.
 
 ## Viewports
 
-| Label | CSS viewport | Device pixels | Note |
-| --- | --- | --- | --- |
-| `1440x900` | 1440×900 | 1440×900 | desktop |
-| `1280x720` | 1280×720 | 1280×720 | laptop |
-| `1024x768` | 1024×768 | 1024×768 | small desktop / tablet landscape |
-| `390x844` | 390×844 | 780×1688 | mobile emulation, DPR 2, touch |
-| `1440x900@200%` | 720×450 | 1440×900 | a 1440×900 window with the browser zoom at 200%: the layout is the zoomed one, the screenshot keeps the window size |
+| Label           | CSS viewport | Device pixels | Note                                                                                                                |
+| --------------- | ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `1440x900`      | 1440×900     | 1440×900      | desktop                                                                                                             |
+| `1280x720`      | 1280×720     | 1280×720      | laptop                                                                                                              |
+| `1024x768`      | 1024×768     | 1024×768      | small desktop / tablet landscape                                                                                    |
+| `390x844`       | 390×844      | 780×1688      | mobile emulation, DPR 2, touch                                                                                      |
+| `1440x900@200%` | 720×450      | 1440×900      | a 1440×900 window with the browser zoom at 200%: the layout is the zoomed one, the screenshot keeps the window size |
 
 ## What index.json records
 
@@ -78,11 +78,11 @@ that pass; the result of that pass is
 
 ## Exit codes
 
-| Code | Meaning |
-| --- | --- |
-| 0 | no horizontal overflow, no console errors |
-| 1 | **gate failure**: horizontal overflow at ≥1 viewport and/or console errors |
-| 2 | setup failure (no Chrome found, server never became ready) |
+| Code | Meaning                                                                    |
+| ---- | -------------------------------------------------------------------------- |
+| 0    | no horizontal overflow, no console errors                                  |
+| 1    | **gate failure**: horizontal overflow at ≥1 viewport and/or console errors |
+| 2    | setup failure (no Chrome found, server never became ready)                 |
 
 Horizontal overflow or console errors at any viewport fail the run.
 
