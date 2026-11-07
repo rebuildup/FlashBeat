@@ -3,6 +3,8 @@ import { BrandHeader } from "@/components/brand";
 
 export const NAV_ITEMS = [
   { value: "catalog", label: "Catalog", href: "/" },
+  { value: "dashboard", label: "Dashboard", href: "/dashboard" },
+  { value: "songs", label: "Songs", href: "/songs" },
   { value: "editor", label: "New chart", href: "/chart" },
   { value: "publish", label: "Publish", href: "/publish" },
 ] as const;
@@ -54,7 +56,7 @@ const navTrigger = css({
   width: { base: "auto", md: "100%" },
 });
 
-export function Sidebar() {
+export function Sidebar({ active = "catalog" }: { active?: string }) {
   return (
     <aside className={sidebar}>
       <div className={brand}>
@@ -66,7 +68,7 @@ export function Sidebar() {
           <a
             key={item.value}
             href={item.href}
-            aria-current={item.value === "catalog" ? "page" : undefined}
+            aria-current={item.value === active ? "page" : undefined}
             className={navTrigger}
           >
             {item.label}

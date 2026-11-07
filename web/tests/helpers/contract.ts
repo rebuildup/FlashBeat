@@ -45,7 +45,16 @@ function pointer(...segments: string[]): string {
  * OpenAPI document.
  */
 export function responseValidator(
-  operation: "catalog" | "charts" | "publish" | "scores" | "leaderboards",
+  operation:
+    | "catalog"
+    | "charts"
+    | "publish"
+    | "scores"
+    | "leaderboards"
+    | "rankings"
+    | "stats"
+    | "archive"
+    | "admin-songs",
   method: "get" | "put" | "post" = "get",
   status: "200" | "201" = "200",
 ): (data: unknown) => boolean {
@@ -62,7 +71,13 @@ export function responseValidator(
           ? "/api/v1/scores"
           : operation === "leaderboards"
             ? "/api/v1/leaderboards/{songId}"
-            : "/api/v1/admin/songs/{songId}";
+            : operation === "rankings"
+              ? "/api/v1/rankings"
+              : operation === "stats"
+                ? "/api/v1/stats"
+                : operation === "admin-songs"
+                  ? "/api/v1/admin/songs"
+                  : "/api/v1/admin/songs/{songId}";
   if (!paths[path]?.[method]?.responses?.[status]) {
     throw new Error(`contracts/openapi.v1.yaml has no ${status} response for ${method} ${path}`);
   }

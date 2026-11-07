@@ -779,3 +779,206 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     }
   });
 });
+
+describe("GET /api/v1/rankings and GET /api/v1/stats", () => {
+  const validateRankings = responseValidator("rankings");
+  const validateStats = responseValidator("stats");
+
+  it("serves the ranking board of the live songs", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/rankings`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+
+    const body = (await response.json()) as {
+      catalogVersion: number;
+      songs: { songId: string; entries: unknown[] }[];
+    };
+    validateRankings(body);
+    assert.ok(body.songs.length >= 1);
+    assert.ok(body.songs.every((song) => Array.isArray(song.entries)));
+  });
+
+  it("serves the statistics of the festival", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/stats`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+
+    const body = (await response.json()) as {
+      totals: { songs: number; liveSongs: number; archivedSongs: number; scores: number };
+      perSong: { songId: string; plays: number }[];
+      levelDistribution: { level: number; songs: number }[];
+      topPlayers: { nickname: string }[];
+    };
+    validateStats(body);
+    assert.equal(body.totals.songs, body.perSong.length);
+    assert.equal(
+      body.totals.liveSongs + body.totals.archivedSongs,
+      body.totals.songs,
+      "every song is either live or archived",
+    );
+    assert.ok(body.levelDistribution.length >= 1);
+  });
+
+  it("counts the archived songs separately and leaves them out of the live numbers", async () => {
+    const before = (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as {
+      totals: { liveSongs: number; archivedSongs: number };
+    };
+
+    const archive = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({ archived: true }),
+    });
+    assert.equal(archive.status, 200);
+
+    const after = (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as {
+      totals: { liveSongs: number; archivedSongs: number };
+    };
+    assert.equal(after.totals.archivedSongs, before.totals.archivedSongs + 1);
+    assert.equal(after.totals.liveSongs, before.totals.liveSongs - 1);
+
+    // Restore, so the rest of the suite sees the seeded song again.
+    const restore = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({ archived: false }),
+    });
+    assert.equal(restore.status, 200);
+  });
+});
+
+describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
+  const validateArchive = responseValidator("archive", "post");
+
+  it("archives a song and brings it back", async () => {
+    const archive = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({ archived: true }),
+    });
+    assert.equal(archive.status, 200);
+
+    const body = (await archive.json()) as {
+      songId: string;
+      archived: boolean;
+      archivedAt: string | null;
+      catalogVersion: number;
+    };
+    validateArchive(body);
+    assert.equal(body.songId, "who");
+    assert.equal(body.archived, true);
+    assert.ok(typeof body.archivedAt === "string");
+
+    // The archived song leaves the public catalog...
+    const catalog = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+      songs: { id: string }[];
+    };
+    assert.equal(
+      catalog.songs.find((song) => song.id === "who"),
+      undefined,
+    );
+
+    // ...but the staff list still has it, with its history.
+    const staff = await fetch(`${baseUrl}/api/v1/admin/songs`, {
+      headers: { authorization: `Bearer ${TEST_ADMIN_TOKEN}` },
+    });
+    assert.equal(staff.status, 200);
+    const staffBody = (await staff.json()) as {
+      songs: { id: string; archived: boolean; archivedAt: string | null }[];
+    };
+    const who = staffBody.songs.find((song) => song.id === "who");
+    assert.equal(who?.archived, true);
+    assert.ok(typeof who?.archivedAt === "string");
+
+    // Restore.
+    const restore = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({ archived: false }),
+    });
+    assert.equal(restore.status, 200);
+    const restored = (await restore.json()) as { archived: boolean; archivedAt: string | null };
+    assert.equal(restored.archived, false);
+    assert.equal(restored.archivedAt, null);
+
+    const catalogAfter = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+      songs: { id: string }[];
+    };
+    assert.ok(catalogAfter.songs.some((song) => song.id === "who"));
+  });
+
+  it("answers 401 for a wrong token and writes nothing", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ archived: true }),
+    });
+    assert.equal(response.status, 401);
+
+    const catalog = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+      songs: { id: string }[];
+    };
+    assert.ok(catalog.songs.some((song) => song.id === "who"));
+  });
+
+  it("answers 422 for a body that is not a boolean flag", async () => {
+    for (const body of [{}, { archived: "yes" }, { archived: true, extra: 1 }]) {
+      const response = await fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify(body),
+      });
+      assert.equal(response.status, 422, `expected 422 for ${JSON.stringify(body)}`);
+      const answer = (await response.json()) as { diagnostics: { path: string }[] };
+      assert.ok(answer.diagnostics.length >= 1);
+    }
+  });
+
+  it("answers 404 for an unknown song", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/admin/songs/no-such-song`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({ archived: true }),
+    });
+    assert.equal(response.status, 404);
+  });
+});
+
+describe("GET /api/v1/admin/songs", () => {
+  it("answers 401 without the staff token", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/admin/songs`);
+    assert.equal(response.status, 401);
+  });
+
+  it("lists every song, archived ones included", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/admin/songs`, {
+      headers: { authorization: `Bearer ${TEST_ADMIN_TOKEN}` },
+    });
+    assert.equal(response.status, 200);
+
+    const body = (await response.json()) as {
+      catalogVersion: number;
+      songs: { id: string; archived: boolean; plays: number }[];
+    };
+    assert.ok(body.catalogVersion >= 1);
+    assert.ok(body.songs.some((song) => song.id === "who"));
+  });
+});

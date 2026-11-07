@@ -80,6 +80,8 @@ test("the committed migrations create exactly the three contract tables", () => 
     "level",
     "durationSec",
     "currentVersion",
+    "archived",
+    "archivedAt",
   ]);
   assert.deepEqual(columnNames(sqlite, "chart_versions"), [
     "songId",

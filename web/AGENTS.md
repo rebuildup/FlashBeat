@@ -51,8 +51,9 @@ server against the local D1.
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                    |
 | `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                  |
 | `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                      |
-| `routes/api/v1/**`                 | Read API for the catalog and chart snapshots (issue #15).                                       |
-| `pages/`                           | Void pages routing (`index.tsx`, `chart.tsx`, `publish.tsx` and their `.server.ts` companions). |
+| `src/lib/dashboard/**`             | Types and strict parsers of the ranking, statistics and archive answers (issue #151).            |
+| `routes/api/v1/**`                 | Read API for the catalog and chart snapshots (issue #15), scores (issue #133), statistics and the archive (issue #151). |
+| `pages/`                           | Void pages routing (`index.tsx`, `chart.tsx`, `publish.tsx`, `dashboard.tsx`, `songs.tsx` and their `.server.ts` companions). |
 | `db/`                              | D1 schema, migrations, fixtures and the seed (issue #14).                                       |
 | `tests/`                           | Read API integration test, run with `node --test tests/` (issue #15).                           |
 
@@ -63,7 +64,7 @@ The three festival tables live in `db/schema.ts` and are generated into
 
 | Table            | Purpose                                                             |
 | ---------------- | ------------------------------------------------------------------- |
-| `songs`          | Published song metadata plus the currently published chart version. |
+| `songs`          | Published song metadata plus the currently published chart version. `archived`/`archivedAt` hold the soft delete (issue #151). |
 | `chart_versions` | Immutable chart snapshot per `(songId, version)`.                   |
 | `scores`         | Public score submissions.                                           |
 
@@ -225,6 +226,52 @@ publishes both in one request.
   memory of the browser tab and is never written to disk or to the bundle.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
   because the chart editor draws into a canvas.
+
+### Score API (issue #133)
+
+| Route | File | Behaviour |
+| ----- | ---- | --------- |
+| `POST /api/v1/scores` | `routes/api/v1/scores.ts` | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client. |
+| `GET /api/v1/leaderboards/{songId}?version=N` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version, score descending, the earliest submission wins a tie. |
+
+- The score is computed in **single precision** (`Math.fround`), like the Unity
+  player does, so the client and the server cannot drift apart.
+- `ratioScore = 5 * perfect + 3 * great + 1 * bad`, `maxScore = noteCount * 5`,
+  `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
+
+### Dashboard, statistics and the song archive (issue #151)
+
+| Route | File | Behaviour |
+| ----- | ---- | --------- |
+| `GET /api/v1/rankings?limit=N` | `routes/api/v1/rankings.ts` | The ranking board of every **live** song with its best scores (1-10 entries per song, default 10). |
+| `GET /api/v1/stats` | `routes/api/v1/stats.ts` | Totals, per song statistics, the level distribution and the best players. |
+| `GET /api/v1/admin/songs` | `routes/api/v1/admin/songs.ts` | Staff-only list of every song, archived ones included, with plays and best score. |
+| `POST /api/v1/admin/songs/{songId}` | `routes/api/v1/admin/songs/[songId].ts` | Staff-only archive / restore of one song. |
+
+**Songs are never deleted.** The archive is a soft delete:
+
+- `songs.archived` (`0`/`1`) and `songs.archivedAt` (ISO timestamp) are the only
+  state. There is **no `DELETE` route** anywhere in the app.
+- `GET /api/v1/catalog` filters on `archived = 0`, so an archived song leaves the
+  Unity select screen. Its chart snapshots, its scores and its ranking survive.
+- The archive route is idempotent and reversible: `{"archived": true}` archives,
+  `{"archived": false}` restores. The body is validated by
+  `routes/api/v1/_archive-model.ts` — a missing, non-boolean or unknown member is
+  `422`, an unknown song is `404`, a wrong token is `401`.
+- The staff list shows the archived songs with their archive timestamp and the
+  play history, so an accidental archive can be undone.
+
+The migration for the two columns is additive (`ALTER TABLE … ADD COLUMN`).
+SQLite cannot add a `CHECK` constraint to an existing table, so the 0/1 invariant
+lives in the API, not in the schema — see `db/schema.ts`.
+
+`src/lib/dashboard/client.ts` holds the typed client and the **strict parsers**
+of these answers: a broken field is an error, never a half filled table. The
+parsers are pinned by `src/lib/dashboard/__tests__/client.test.ts`.
+
+The two pages are `ssr = false` (`pages/dashboard.server.ts`, `pages/songs.server.ts`):
+the studio fills itself in the browser. The staff token is typed by the operator
+for every session; it stays in the memory of the tab and is never stored.
 
 ### Scope
 
