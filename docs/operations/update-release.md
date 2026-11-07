@@ -37,8 +37,27 @@
   GitHub の返却順は新しい順とは限らない (実測) ため、`/releases/latest` の 1 件には依存しない。
 - 候補の採用条件: `draft = false` かつ `tag_name` が `^v\d+\.\d+\.\d+-win64-[0-9a-f]{7,40}$` に一致し、
   対応 ZIP + `.sha256` の 2 アセットが存在すること。**prerelease はチャンネルで決まります** (stable は対象外、preview は対象)。
-- 候補の順序付けは **version を主キー・published_at を副キーに最大**。現行ビルドより新しいものだけを更新扱いにする (ダウングレードしない)。
+- 候補の順序付けは **version を主キー・published_at を副キーに最大**。
+- **自動更新の対象は「バージョンが厳密に大きい」Release のみ** (ダウングレードもしない)。
+  実装側はこの方針に揃える前提で、次の「版数ルール」を運用するときの基準にしてください。
 - 不一致・取得失敗・SHA 検証失敗時は更新を中止し現行版を残す (ゲーム動作は止めない)。
+
+### 版数ルール (バージョンを上げてリリースする)
+
+**同じバージョンで別の SHA の Release を作らない。** 必ず semver を上げてから Release します。
+
+- 理由: 自動更新の候補判定はバージョンを主キーにします。**同じバージョンで複数の SHA の Release が
+  公開されると、「どの SHA が新しい版か」があいまい**になり、展示 PC が更新対象を確定できなくなります
+  (公開順ではなくバージョンを比較する以上、同一バージョンの 2 候補は区別できません)。
+- 運用ルール:
+  - 修正版を出すたびに **patch を上げて** Release します (`0.1.0` → `0.1.1` → `0.1.2`、機能追加は `0.2.0`)。
+  - ビルド時は `FLASHBEAT_VERSION_BASE` で基準バージョンを指定します
+    (`Assets/Editor/BuildScript.cs` が `bundleVersion` = `<version>+<shortsha>` に埋め込みます)。
+    CI からは `.github/workflows/build-win64.yml` の `version_base` 入力で渡します
+    (空欄だと既定の `0.1.0` が使われます)。
+  - 已在の Release は**差し替えず**、archive に残します（検証済みの成果物を保持するため）。
+- 結果: 展示 PC の更新対象は「バージョンが大きい Release」に一意に決まります。
+  同一バージョンの候補が 2 つ公開される運用を禁じているのは、この判定を壊さないためです。
 
 ### メディア排除 (第三者楽曲)
 
@@ -151,8 +170,9 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
 ## パッチ版の発行手順
 
 1. Unity 6000.5.6f1 で Win64 ビルド (`Build → Build Windows 64` または `BuildScript.BuildStandaloneWindows64`)。
-   基準バージョンは環境変数 `FLASHBEAT_VERSION_BASE` で指定する (既定 `0.1.0`)。**前回の Release より大きくする**。
-   展示用のビルドは**既定のまま (stable チャンネル)** で(Bundle: `FlashBeat_Data\StreamingAssets\update-channel.txt` = `stable`)。
+   **このとき必ず `FLASHBEAT_VERSION_BASE` で「上の版数ルールに従った、より大きい基準バージョン」を
+   指定します** (未指定なら `0.1.0` が使われます)。指定した値が `bundleVersion` = `<version>+<shortsha>` になります。
+   展示用のビルドは**既定のまま (stable チャンネル)** で(Build: `FlashBeat_Data\StreamingAssets\update-channel.txt` = `stable`)。
    検証用の prerelease を取り込みたいときだけ環境変数 `FLASHBEAT_UPDATE_CHANNEL=preview` を付けてビルドする。
    展示用ビルドがテスト用 prerelease を自動適用しないことはチャンネルの責務であり、公開前に Player.log の
    `[UpdateChecker] 更新チャンネル: stable` を確認して証跡に残す。
@@ -161,7 +181,9 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
 
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File tools/release/package-win64.ps1 `
-       -SourceDir <Unity出力フォルダ> -OutDir <distフォルダ> -Version <semver>-win64-<buildSHA>
+       -SourceDir <Unity出力フォルダ> -OutDir <distフォルダ> `
+       -Version <semver>-win64-<buildSHA> -CommitSha <build commit SHA (フル 40 桁)> `
+       -MediaPolicy free
    ```
 
    スクリプトが ZIP + `.sha256` sidecar を作り、内容検査 (exe/Data/Managed DLL の存在・数, arch integrity) を自動実行する。
@@ -191,7 +213,13 @@ Get-FileHash .\FlashBeat-<version>.zip -Algorithm SHA256
    ただし **基準バージョンは必ず上げる** (`FLASHBEAT_VERSION_BASE=0.1.2` → タグ `v0.1.2-win64-<sha>`)。
    自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると
    「同じバージョンの別ビルド」として扱われ、自動更新が効かなくなる (運営者が手動適用する運用になる)。
-   旧版は archive に残して proven artifact を保持する。
+   旧版は archive に残して検証済み成果物を保持する。
+
+> ビルドを CI で作る場合: `.github/workflows/build-win64.yml` を手動起動 (または `main` への push) すると
+> `windows-latest` ランナーで Win64 ビルドが走り、ZIP + `.sha256` が artifact (`flashbeat-win64-<sha>`、
+> 保持 30 日) として出ます。**CI は Release を作りません** — 上記 3〜5 のパッケージングと Release 化の工程は
+> 別途、監督者の承認の下で実行します。Unity ライセンスの secret が未設定だと CI ジョブは skip されます
+> (skip は成功ではありません)。
 
 ## 更新の種別 (Stage 区別)
 
