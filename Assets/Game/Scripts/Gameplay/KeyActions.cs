@@ -5,7 +5,8 @@ using UnityEngine;
 /// <summary>
 /// メニュー操作 (決定/戻る/リトライ/前後移動…) のキー割り当てを管理する静的クラス。
 /// 各 SceneManager が Input.GetKeyDown(KeyCode.X) を直接読まないよう、この表に集約する。
-/// 保存は PlayerPrefs キー "FlashBeat.KeyActions" (JSON)。
+/// 保存は設定ファイル FlashBeat-keyconfig.json (KeyConfigFile、レーンと共通の 1 ファイル)。
+/// レガシー PlayerPrefs に値があれば初回読み込み時にファイルへ移行する。
 /// レーン (KeyBindings) と同じく IStorage を注入できるため、ロジック部分は単体テスト可能。
 /// </summary>
 public static class KeyActions
@@ -33,22 +34,6 @@ public static class KeyActions
     {
         string LoadRaw();
         void SaveRaw(string json);
-    }
-
-    private class PlayerPrefsStorage : IStorage
-    {
-        public const string PrefsKey = "FlashBeat.KeyActions";
-
-        public string LoadRaw()
-        {
-            return PlayerPrefs.HasKey(PrefsKey) ? PlayerPrefs.GetString(PrefsKey) : null;
-        }
-
-        public void SaveRaw(string json)
-        {
-            PlayerPrefs.SetString(PrefsKey, json);
-            PlayerPrefs.Save();
-        }
     }
 
     /// <summary>既定表: 各操作の既定キー。今日の挙動を exactly 再現する
@@ -124,7 +109,9 @@ public static class KeyActions
         KeyAction.NavNext
     };
 
-    private static IStorage storage = new PlayerPrefsStorage();
+    // 既定の保存先: 設定ファイル (正本) + レガシー PlayerPrefs (移行元・ミラー先)。
+    private static readonly IStorage DefaultStorage = new KeyConfigFileStorage();
+    private static IStorage storage = DefaultStorage;
     private static Dictionary<KeyAction, KeyCode[]> current;
     private static bool loaded;
 
@@ -134,10 +121,10 @@ public static class KeyActions
     /// <summary>最後に拒否された理由 (UI のメッセージ表示用)。成功時は空。</summary>
     public static string LastError { get; private set; }
 
-    /// <summary>保存先を差し替える (テスト用)。null で既定の PlayerPrefs に戻す。呼ぶと未ロード状態に戻る。</summary>
+    /// <summary>保存先を差し替える (テスト用)。null で既定の設定ファイル保存先に戻す。呼ぶと未ロード状態に戻る。</summary>
     public static void SetStorage(IStorage value)
     {
-        storage = (value != null) ? value : new PlayerPrefsStorage();
+        storage = (value != null) ? value : DefaultStorage;
         loaded = false;
     }
 
@@ -221,12 +208,13 @@ public static class KeyActions
         return true;
     }
 
-    /// <summary>既定のキー割り当てに戻す。</summary>
+    /// <summary>既定のキー割り当てに戻す。設定ファイルとミラーにも既定値を反映する。</summary>
     public static void ResetToDefaults()
     {
         current = CloneDefaults();
         LastError = string.Empty;
         RaiseChanged();
+        Save();
     }
 
     /// <summary>現在の割り当てを保存先に書き込む。キーが空の操作がある場合は保存しない (false)。</summary>

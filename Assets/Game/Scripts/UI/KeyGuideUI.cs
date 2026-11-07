@@ -12,6 +12,7 @@ using UnityEngine;
 public class KeyGuideUI : MonoBehaviour
 {
     private const float PanelWidth = 780f;
+    private const float PanelHeight = 400f;
     private const float RowFontSize = 24f;
     private const float HeaderFontSize = 28f;
 
@@ -78,7 +79,7 @@ public class KeyGuideUI : MonoBehaviour
 
     private void BuildUI()
     {
-        font = FindObjectOfType<TextMeshProUGUI>()?.font;
+        font = JapaneseFontFinder.FindJapaneseFont();
         var canvasGO = new GameObject("KeyGuideCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
         canvasGO.transform.SetParent(transform, false);
         var canvas = canvasGO.GetComponent<Canvas>();
@@ -87,22 +88,26 @@ public class KeyGuideUI : MonoBehaviour
 
         panel = new GameObject("Panel", typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         panel.SetParent(canvasGO.transform, false);
-        panel.anchorMin = new Vector2(1f, 0f);
-        panel.anchorMax = new Vector2(1f, 0f);
-        panel.pivot = new Vector2(1f, 0f);
-        panel.anchoredPosition = new Vector2(-16f, 96f);
-        panel.sizeDelta = new Vector2(PanelWidth, 0f);
+        panel.anchorMin = new Vector2(1f, 0.5f);
+        panel.anchorMax = new Vector2(1f, 0.5f);
+        panel.pivot = new Vector2(1f, 0.5f);
+        panel.anchoredPosition = new Vector2(-16f, 0f);
+        panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.72f);
 
         var layout = panel.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
         layout.padding = new RectOffset(12, 12, 8, 8);
         layout.spacing = 4f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        // 高さは LayoutElement の minHeight に従わせる (既定 100px のままだと
+        // 8 行がパネルの下にはみ出してしまう)。
+        layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
         AddLabel(panel, "KeyGuideHeader", "キーガイド (Tab で開閉)", HeaderFontSize);
+        AddLabel(panel, "KeyGuideNote", "上から順にレーン 1 〜 8 (左端がレーン 1)。", 18f);
 
         for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
         {
@@ -125,6 +130,7 @@ public class KeyGuideUI : MonoBehaviour
         if (font != null) tmp.font = font;
         var size = labelGO.AddComponent<UnityEngine.UI.LayoutElement>();
         size.minHeight = fontSize + 6f;
+        size.preferredHeight = fontSize + 6f;
         return tmp;
     }
 
@@ -137,14 +143,14 @@ public class KeyGuideUI : MonoBehaviour
         rect.anchorMax = new Vector2(1f, 0f);
         rect.pivot = new Vector2(1f, 0f);
         rect.anchoredPosition = new Vector2(-16f, 16f);
-        rect.sizeDelta = new Vector2(120f, 40f);
+        rect.sizeDelta = new Vector2(140f, 40f);
         buttonGO.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.4f);
         buttonGO.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(Toggle);
 
         var labelGO = new GameObject("Label", typeof(TextMeshProUGUI));
         labelGO.transform.SetParent(buttonGO.transform, false);
         var tmp = labelGO.GetComponent<TextMeshProUGUI>();
-        tmp.text = "Keys";
+        tmp.text = "キーガイド";
         tmp.fontSize = 22f;
         tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Center;
@@ -154,10 +160,10 @@ public class KeyGuideUI : MonoBehaviour
         tmp.raycastTarget = false;
     }
 
-    /// <summary>レーンの見出し行 ("Lane N:") を返す。テストからも参照される。</summary>
+    /// <summary>レーンの見出し行 ("レーン N:") を返す。テストからも参照される。</summary>
     public static string BuildLaneHeader(int lane)
     {
-        return "Lane " + lane + ":";
+        return "レーン " + (lane + 1) + ":";
     }
 
     /// <summary>KeyBindings のレーン割り当てを表示用に整形して返す (表示名は GetKeyDisplayName)。</summary>
@@ -165,6 +171,8 @@ public class KeyGuideUI : MonoBehaviour
     {
         KeyCode[] keys = KeyBindings.GetKeys(lane);
         var sb = new StringBuilder();
+        sb.Append(BuildLaneHeader(lane));
+        sb.Append(' ');
         for (int i = 0; i < keys.Length; i++)
         {
             if (i > 0) sb.Append(' ');

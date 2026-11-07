@@ -82,3 +82,4 @@ TestRun.log
 BuildLog-*.log
 PerformanceTestRunInfo.json
 PerformanceTestRunSettings.json
+mono_crash.*.json

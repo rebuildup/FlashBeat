@@ -94,10 +94,12 @@ public class KeyActionsTests
         Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.Retry, new KeyCode[] { KeyCode.Keypad8, KeyCode.Keypad9 }));
         Assert.IsTrue(KeyActions.Save());
         Assert.IsFalse(string.IsNullOrEmpty(storage.Raw));
+        string saved = storage.Raw;
 
-        KeyActions.ResetToDefaults();
+        KeyActions.ResetToDefaults(); // 既定へ戻すと保存先にも既定値が反映される
         Assert.AreEqual(new KeyCode[] { KeyCode.Space }, KeyActions.Get(KeyActions.KeyAction.Confirm));
 
+        storage.Raw = saved; // 保存済みデータを戻して読み直す
         KeyActions.Load();
         Assert.AreEqual(new KeyCode[] { KeyCode.Keypad7 }, KeyActions.Get(KeyActions.KeyAction.Confirm));
         Assert.AreEqual(new KeyCode[] { KeyCode.Keypad8, KeyCode.Keypad9 }, KeyActions.Get(KeyActions.KeyAction.Retry));
@@ -164,8 +166,9 @@ public class KeyActionsTests
     {
         Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.Confirm, new KeyCode[0]));
         Assert.AreEqual(0, KeyActions.Get(KeyActions.KeyAction.Confirm).Length);
+        string before = storage.Raw; // SetUp の ResetToDefaults で既定値が入っている
         Assert.IsFalse(KeyActions.Save());
-        Assert.IsTrue(string.IsNullOrEmpty(storage.Raw));
+        Assert.AreEqual(before, storage.Raw); // 拒否されたら保存先は変わらない
     }
 
     [Test]

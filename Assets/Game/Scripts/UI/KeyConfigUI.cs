@@ -995,6 +995,11 @@ public class KeyConfigUI : MonoBehaviour
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
 
+        // 保存先の設定ファイルパス (オペレーターがバックアップ/確認できるように表示する)
+        var filePathLabel = AddLabel(content, "KeyConfigFilePath", "設定ファイル: " + KeyConfigFile.FilePath, 14f, TextAlignmentOptions.Left);
+        filePathLabel.color = new Color(1f, 1f, 1f, 0.5f);
+        filePathLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 20f;
+
         RefreshRows();
         UpdateMessage();
     }

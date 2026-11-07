@@ -28,6 +28,7 @@ public class SelectSceneManager : MonoBehaviour
         if (sounds != null) sounds.volume = GManager.effectVolume;
         view = FlashBeat.UI.V5.SelectView.Create(this);
         StartCatalogRefresh();
+        KeyGuideUI.Create(null);
     }
 
     void Update()

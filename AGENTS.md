@@ -107,8 +107,8 @@ Lane 3: 4 5 R T F G V B Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 
 The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` documents the canonical 5-step recipe (and is worth reading before changing GManager arrays):
 
-1. Drop a notes JSON in `Assets/Resources/<SongName>.json` matching the `Data` schema (`name`, `maxBlock`, `BPM`, `offset`, `notes[]` with `type/num/block/LPB`).
-2. Run `MakeFileScene` once after editing the hardcoded `StartTime`/`Mondai` arrays at the top of `MakeFileSceneManager.cs` — it writes `Assets/Resources/<SongName>_text.json`.
+1. Drop a notes JSON in `Assets/Game/Resources/<SongName>.json` matching the `Data` schema (`name`, `maxBlock`, `BPM`, `offset`, `notes[]` with `type/num/block/LPB`).
+2. Run `MakeFileScene` once after editing the hardcoded `StartTime`/`Mondai` arrays at the top of `MakeFileSceneManager.cs` — it writes `Assets/Game/Resources/<SongName>_text.json`.
 3. Update the parallel arrays in `GManager`: `SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong`, `Hiscore` (length), `totalSong`.
 4. In `GameScene.unity`, duplicate a `YoutubePlayer` GameObject, rename it to the song's numeric ID, and set the URL.
 5. Wire the new `YoutubePlayer` into `MusicManager.YPlayer`/`VPlayer` arrays.
@@ -125,7 +125,7 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - `BuildScript.cs` references `OpeningScene.unity` (wrong); file is `Opening.unity`.
 - `TipingScene].unity` has a stray `]` in the filename.
 - `GManager.songs[0]` is a placeholder entry (`id=0`, `title="noSong"`); real songs start at `id=1`. `GManager.songID` is initialized to 1.
-- `Assets/Resources/<song>.json` and `<song>_text.json` must exist together — `MusicManager` loads one, `GameSceneManager` loads the other, and either will throw `NullReferenceException` if missing.
+- `Assets/Game/Resources/<song>.json` and `<song>_text.json` must exist together — `MusicManager` loads one, `GameSceneManager` loads the other, and either will throw `NullReferenceException` if missing.
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/` are gitignored — never edit them by hand, they are Unity-generated.
 - Several large font assets (`Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset`, `Assets/Game/Fonts/Japanese/YuGothB SDF.asset`) are LFS-tracked individually in `.gitattributes` (text → LFS override).
 
