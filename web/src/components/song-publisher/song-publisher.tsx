@@ -76,19 +76,22 @@ const backLink = css({
 });
 
 const body = css({
-  display: "grid",
+  display: { base: "flex", lg: "grid" },
+  flexDirection: { base: "column", lg: "row" },
   gap: "3",
-  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 21rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  gridTemplateColumns: { lg: "minmax(0, 1fr) 21rem" },
+  gridTemplateRows: { lg: "minmax(0, 1fr)" },
   minHeight: 0,
   p: "3",
 });
 
 const editorArea = css({
-  display: "grid",
-  gridTemplateRows: "minmax(0, 1fr)",
+  display: "flex",
+  flexDirection: "column",
+  flex: { base: "1", lg: "1" },
   minHeight: 0,
   minWidth: 0,
+  width: { base: "100%", lg: "auto" },
 });
 
 const side = css({
@@ -173,6 +176,16 @@ const cardTitle = css({
   margin: "0",
 });
 
+/**
+ * The publish card carries the primary action of the screen. It sits above
+ * the scrolling part of the side column and never shrinks, so the operator
+ * reaches "Review publish" without scrolling the metadata form (issue #158,
+ * finding #9).
+ */
+const publishCard = css({
+  flexShrink: "0",
+});
+
 const facts = css({
   display: "grid",
   gap: "1",
@@ -182,20 +195,20 @@ const facts = css({
 
 const factKey = css({
   color: "fg.muted",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
 const factValue = css({
   color: "fg.default",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
   overflowWrap: "anywhere",
 });
 
 const warning = css({
   color: "fg.error",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
@@ -203,7 +216,7 @@ const badge = css({
   bg: "gray.surface.bg.hover",
   borderRadius: "full",
   color: "fg.muted",
-  fontSize: "2xs",
+  fontSize: "xs",
   paddingBottom: "0.5",
   paddingTop: "0.5",
   px: "2",
@@ -508,7 +521,37 @@ export function SongPublisher({
             </button>
           </div>
 
+          <section className={`${card} ${publishCard}`} data-testid="publish-card">
+            <h2 className={cardTitle}>Publish</h2>
+
+            <dl className={facts}>
+              <dt className={factKey}>Chart</dt>
+              <dd className={factValue}>
+                {summary.noteCount} notes at {summary.bpm} BPM
+              </dd>
+
+              <dt className={factKey}>Song id</dt>
+              <dd className={factValue}>{summary.songId || "—"}</dd>
+            </dl>
+
+            {chartIssues.length > 0 ? (
+              <p className={warning}>
+                The chart has {chartIssues.length} contract problems. Fix them before publishing.
+              </p>
+            ) : null}
+
+            <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+              Review publish
+            </Button>
+          </section>
+
           <div className={sideScroll}>
+            <PublishResultPanel
+              result={result}
+              onRetry={handleReview}
+              onBackToEditor={handleBackToEditor}
+            />
+
             <section className={card}>
               <h2 className={cardTitle}>Song metadata</h2>
               <SongMetadataForm
@@ -518,36 +561,6 @@ export function SongPublisher({
                 issues={visibleIssues}
               />
             </section>
-
-            <section className={card}>
-              <h2 className={cardTitle}>Publish</h2>
-
-              <dl className={facts}>
-                <dt className={factKey}>Chart</dt>
-                <dd className={factValue}>
-                  {summary.noteCount} notes at {summary.bpm} BPM
-                </dd>
-
-                <dt className={factKey}>Song id</dt>
-                <dd className={factValue}>{summary.songId || "—"}</dd>
-              </dl>
-
-              {chartIssues.length > 0 ? (
-                <p className={warning}>
-                  The chart has {chartIssues.length} contract problems. Fix them before publishing.
-                </p>
-              ) : null}
-
-              <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
-                Review publish
-              </Button>
-            </section>
-
-            <PublishResultPanel
-              result={result}
-              onRetry={handleReview}
-              onBackToEditor={handleBackToEditor}
-            />
           </div>
         </aside>
 

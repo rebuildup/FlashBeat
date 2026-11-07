@@ -124,7 +124,7 @@ const playerBox = css({
 
 const errorText = css({
   color: "#ff6b6b",
-  fontSize: "2xs",
+  fontSize: "xs",
   lineHeight: "1.4",
   padding: "2",
 });
@@ -139,7 +139,7 @@ const controls = css({
 
 const time = css({
   color: "#b0b0b0",
-  fontSize: "2xs",
+  fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
 });
 

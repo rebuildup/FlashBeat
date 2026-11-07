@@ -143,7 +143,7 @@ export function AppShell({
 
       <main id="studio-content" className={main}>
         <Topbar
-          title="Catalog"
+          title="FlashBeat Studio"
           subtitle="Find a published song to work on its chart."
           query={query}
           onQueryChange={setQuery}
@@ -152,7 +152,6 @@ export function AppShell({
           sort={sort}
           onSortChange={setSort}
         />
-
         <div className={content}>
           <CatalogPanel
             status={effectiveStatus}

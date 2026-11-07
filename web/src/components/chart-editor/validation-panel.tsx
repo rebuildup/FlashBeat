@@ -48,7 +48,7 @@ const item = css({
 const path = css({
   color: "#8c8c8c",
   fontFamily: "mono",
-  fontSize: "2xs",
+  fontSize: "xs",
   wordBreak: "break-all",
   maxWidth: "100%",
   overflowWrap: "break-word",
@@ -56,14 +56,14 @@ const path = css({
 
 const message = css({
   color: "#ff6b6b",
-  fontSize: "2xs",
+  fontSize: "xs",
   wordBreak: "break-word",
   maxWidth: "100%",
 });
 
 const clean = css({
   color: "#b0b0b0",
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
