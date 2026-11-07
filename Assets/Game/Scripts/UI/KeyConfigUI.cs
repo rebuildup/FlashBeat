@@ -49,6 +49,49 @@ public class KeyConfigUI : MonoBehaviour
     /// <summary>キー設定を開いている間は true。背後のシーンはキー入力を受け取らない。</summary>
     public static bool IsOpen { get; private set; }
 
+    // ---- Test hooks: the -autotest runner injects keys here (inert without the flag) ----
+    private static readonly HashSet<KeyCode> injectedDown = new HashSet<KeyCode>();
+
+    public static void InjectKeyDown(KeyCode key)
+    {
+        injectedDown.Add(key);
+    }
+
+    private static bool KeyDown(KeyCode key)
+    {
+        return Input.GetKeyDown(key) || injectedDown.Contains(key);
+    }
+
+    public static int TestSelectedLane
+    {
+        get
+        {
+            var ui = FindObjectOfType<KeyConfigUI>();
+            return ui != null ? ui.selectedLane : -1;
+        }
+    }
+
+    public static bool TestListening
+    {
+        get
+        {
+            var ui = FindObjectOfType<KeyConfigUI>();
+            return ui != null && ui.listening;
+        }
+    }
+
+    public static GameObject TestRowObject(int lane)
+    {
+        var ui = FindObjectOfType<KeyConfigUI>();
+        if (ui == null || lane < 0 || lane >= ui.rows.Count || ui.rows[lane] == null) { return null; }
+        return ui.rows[lane].transform.parent.gameObject;
+    }
+
+    private void LateUpdate()
+    {
+        injectedDown.Clear();
+    }
+
     private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
 
     private static bool IsAllowedScene()
@@ -106,7 +149,7 @@ public class KeyConfigUI : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.F2))
+        if (KeyDown(KeyCode.F2))
         {
             if (open || IsAllowedScene()) { Toggle(); }
             return;
@@ -222,15 +265,15 @@ public class KeyConfigUI : MonoBehaviour
     private void HandleInput()
     {
         // レーン移動 (割り当て中でも有効。矢印・Tab は予約キーなので割り当て対象にならない)。
-        if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveLane(-1); return; }
-        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.Tab)) { MoveLane(1); return; }
+        if (KeyDown(KeyCode.UpArrow)) { MoveLane(-1); return; }
+        if (KeyDown(KeyCode.DownArrow) || KeyDown(KeyCode.Tab)) { MoveLane(1); return; }
         float wheel = Input.mouseScrollDelta.y;
         if (wheel > 0.5f) { MoveLane(-1); return; }
         if (wheel < -0.5f) { MoveLane(1); return; }
 
         if (listening)
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (KeyDown(KeyCode.Escape))
             {
                 listening = false;
                 UpdateMessage();
@@ -240,36 +283,36 @@ public class KeyConfigUI : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (KeyDown(KeyCode.UpArrow))
         {
             confirmReset = false;
             selectedLane = (selectedLane + KeyBindings.LaneCount - 1) % KeyBindings.LaneCount;
             RefreshRows();
             UpdateMessage();
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (KeyDown(KeyCode.DownArrow))
         {
             confirmReset = false;
             selectedLane = (selectedLane + 1) % KeyBindings.LaneCount;
             RefreshRows();
             UpdateMessage();
         }
-        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        else if (KeyDown(KeyCode.Return) || KeyDown(KeyCode.KeypadEnter))
         {
             confirmReset = false;
             listening = true;
             UpdateMessage();
         }
-        else if (Input.GetKeyDown(KeyCode.Backspace))
+        else if (KeyDown(KeyCode.Backspace))
         {
             confirmReset = false;
             ClearLane();
         }
-        else if (Input.GetKeyDown(KeyCode.R))
+        else if (KeyDown(KeyCode.R))
         {
             HandleReset();
         }
-        else if (Input.GetKeyDown(KeyCode.Escape))
+        else if (KeyDown(KeyCode.Escape))
         {
             SetOpen(false);
         }
@@ -338,7 +381,7 @@ public class KeyConfigUI : MonoBehaviour
         for (int i = 0; i < candidates.Length; i++)
         {
             KeyCode key = candidates[i];
-            if (!Input.GetKeyDown(key)) continue;
+            if (!KeyDown(key)) continue;
 
             ShowTestKey(key);
             if (KeyBindings.ToggleKey(selectedLane, key))
@@ -360,7 +403,7 @@ public class KeyConfigUI : MonoBehaviour
         for (int i = 0; i < candidates.Length; i++)
         {
             KeyCode key = candidates[i];
-            if (Input.GetKeyDown(key))
+            if (KeyDown(key))
             {
                 ShowTestKey(key);
             }
