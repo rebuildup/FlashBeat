@@ -1,7 +1,8 @@
 import Ajv2020 from "ajv/dist/2020.js";
 import type { ErrorObject } from "ajv";
 import schema from "./chart.v1.schema.json";
-import type { ValidationIssue } from "./types";
+import type { Chart, ValidationIssue } from "./types";
+import { validateChartSemantics, type SemanticValidationOptions } from "./validate";
 
 /**
  * Chart validation against the frozen contract.
@@ -52,11 +53,19 @@ function toIssue(error: ErrorObject): ValidationIssue {
  *
  * Returns every problem instead of the first one, so the editor can show the
  * complete list at once.
+ *
+ * The schema covers the shape of a chart. The relations between the notes
+ * (a hold that ends before it starts, two holds on the same lane) are
+ * checked by `validateChartSemantics` on top of it, so the editor refuses
+ * a chart the game could not play.
  */
-export function validateChart(value: unknown): ValidationIssue[] {
-  if (validate(value)) {
-    return [];
+export function validateChart(
+  value: unknown,
+  options: SemanticValidationOptions = {},
+): ValidationIssue[] {
+  if (!validate(value)) {
+    return (validate.errors ?? []).map(toIssue);
   }
 
-  return (validate.errors ?? []).map(toIssue);
+  return validateChartSemantics(value as Chart, options);
 }
