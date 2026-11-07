@@ -288,8 +288,10 @@ output)
 |---------|--------|
 | `npx tsc --noEmit` | clean, no diagnostics |
 | `npm test` | `node --test tests/` and `vitest run`, counts in the PR body |
-| `npx vp check` | format + lint, counts in the PR body |
+| `npx vp check` | the files of this PR are clean; the 11 files it reports are outside the owned paths and are **already** unformatted in the base commit `94a4103` (verified: the working tree copies are byte identical to the base) |
 | `web/src/app/drawer.test.ts` | unit test of the focus trap |
+| `web/src/components/chart-editor/chart-editor.test.ts`, `web/src/components/song-publisher/song-publisher.test.ts` | render tests: the inspector is mounted once |
+| `FLASHBEAT_ADMIN_TOKEN=devtoken vp dev --port 5199` | boots, `/`, `/chart` and `/publish` answer `200`; the pages are client rendered (`data-void-ssr="false"`), so the HTML carries no application markup — **no rendering could be inspected** |
 
 ### 5.2 Manual / visual — **still pending**
 

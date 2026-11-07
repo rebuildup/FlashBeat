@@ -158,6 +158,8 @@ export interface EditorToolbarProps {
   onExport(): void;
   onDeleteSelected(): void;
   onToggleSide?: () => void;
+  /** The inspector drawer is open; the toggle button follows the state. */
+  sideOpen?: boolean;
 }
 
 export function EditorToolbar({
@@ -174,6 +176,7 @@ export function EditorToolbar({
   onExport,
   onDeleteSelected,
   onToggleSide,
+  sideOpen = false,
 }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -230,8 +233,8 @@ export function EditorToolbar({
             type="button"
             className={sideToggle}
             onClick={onToggleSide}
-            aria-label="Open sidebar"
-            aria-expanded="false"
+            aria-label={sideOpen ? "Close the editor sidebar" : "Open the editor sidebar"}
+            aria-expanded={sideOpen}
           >
             <svg
               width="20"

@@ -95,7 +95,10 @@ const side = css({
   bottom: { base: "0", lg: "auto" },
   height: { base: "100dvh", lg: "auto" },
   maxWidth: "100%",
+  pb: { base: "3", lg: "0" },
   position: { base: "fixed", lg: "static" },
+  pt: { base: "3", lg: "0" },
+  px: { base: "3", lg: "0" },
   right: { base: "0", lg: "auto" },
   top: { base: "0", lg: "auto" },
   width: { base: "17rem", lg: "17rem" },
@@ -399,6 +402,7 @@ export function ChartEditor({
         onExport={handleExport}
         onDeleteSelected={handleDeleteSelected}
         onToggleSide={() => setIsSideOpen((current) => !current)}
+        sideOpen={isSideOpen}
       />
 
       <div className={body}>

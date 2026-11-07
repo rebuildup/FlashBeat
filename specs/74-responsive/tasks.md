@@ -6,7 +6,7 @@
 |----|-------------|-------|------|
 | **T1** | **Identify stress points** — done: `spec.md` §2 with `file:line` of the baseline `94a4103`. | `specs/74-responsive/spec.md` | — |
 | **T2** | **Reflow / disclosure** — scroll ownership, sticky sidebar, fluid toolbars, catalog card list, inspector drawers, focusable note grid. | `web/src/styles/app.css`, `web/src/app/app-shell.tsx`, `web/src/app/sidebar.tsx`, `web/src/app/topbar.tsx`, `web/src/app/catalog-panel.tsx`, `web/src/app/panel.tsx`, `web/src/app/drawer.tsx`, `web/src/components/chart-editor/chart-editor.tsx`, `web/src/components/chart-editor/editor-toolbar.tsx`, `web/src/components/chart-editor/note-grid.tsx`, `web/src/components/chart-editor/validation-panel.tsx`, `web/src/components/chart-editor/youtube-preview.tsx`, `web/src/components/song-publisher/song-publisher.tsx` | static review + `npx tsc --noEmit`; **visual check open (#75)** |
-| **T3** | **Keyboard: Tab / Enter / Escape / focus restore** — global focus ring, drawer trap + restore, focusable note grid, `aria-expanded` on the publisher toggle. | `web/src/styles/app.css`, `web/src/app/drawer.tsx`, `web/src/app/drawer.test.ts`, `web/src/components/chart-editor/chart-editor.tsx`, `web/src/components/chart-editor/note-grid.tsx`, `web/src/components/song-publisher/song-publisher.tsx` | `web/src/app/drawer.test.ts` (vitest) |
+| **T3** | **Keyboard: Tab / Enter / Escape / focus restore** — global focus ring, drawer trap + restore, focusable note grid, `aria-expanded` on the publisher toggle. | `web/src/styles/app.css`, `web/src/app/drawer.tsx`, `web/src/app/drawer.test.ts`, `web/src/components/chart-editor/chart-editor.tsx`, `web/src/components/chart-editor/chart-editor.test.ts`, `web/src/components/chart-editor/note-grid.tsx`, `web/src/components/song-publisher/song-publisher.tsx`, `web/src/components/song-publisher/song-publisher.test.ts` | `web/src/app/drawer.test.ts`, `web/src/components/chart-editor/chart-editor.test.ts`, `web/src/components/song-publisher/song-publisher.test.ts` (vitest) |
 | **T4** | **Long JP titles / loading / error states** — 2 line clamp in table and card, breakable error text, validation list and preview bounded. | `web/src/app/catalog-panel.tsx`, `web/src/app/panel.tsx`, `web/src/components/chart-editor/validation-panel.tsx`, `web/src/components/chart-editor/youtube-preview.tsx` | static review; **visual check open (#75)** |
 | **T5** | **Verification evidence** — type check, tests, lint, dev server start; screenshots. | — | `npx tsc --noEmit`, `npm test`, `npx vp check`; screenshots **open (#75)** |
 
@@ -49,6 +49,9 @@
 - [x] `useDrawerFocus`: focus in, focus trapped, `Escape` closes, focus
       restored to the trigger.
 - [x] Focus trap logic unit tested (`nextFocusTarget`).
+- [x] The inspector is mounted once — render tests assert a single
+      metadata form / preview in the markup
+      (`chart-editor.test.ts`, `song-publisher.test.ts`).
 - [x] Note grid focusable (`tabIndex`, `role`, `aria-label`).
 - [x] Publisher toggle: `aria-expanded`, state dependent `aria-label`,
       the broken `sidebar-toggle` class name removed.
@@ -82,10 +85,12 @@
 | `web/src/app/sidebar.tsx` | sticky horizontal bar below `md` |
 | `web/src/app/topbar.tsx` | fluid tool fields |
 | `web/src/components/chart-editor/chart-editor.tsx` | inspector drawer, single instance |
+| `web/src/components/chart-editor/chart-editor.test.ts` | **new**: the inspector is mounted once |
 | `web/src/components/chart-editor/editor-toolbar.tsx` | fluid fields, drawer toggle |
 | `web/src/components/chart-editor/note-grid.tsx` | focusable grid |
 | `web/src/components/chart-editor/validation-panel.tsx` | bounded list |
 | `web/src/components/chart-editor/youtube-preview.tsx` | bounded preview |
 | `web/src/components/song-publisher/song-publisher.tsx` | inspector drawer, single instance |
+| `web/src/components/song-publisher/song-publisher.test.ts` | **new**: the metadata form is mounted once |
 | `web/src/styles/app.css` | document scroll, focus ring |
 | `specs/74-responsive/**` | spec, plan, tasks |
