@@ -21,8 +21,16 @@ const ALLOWED_FIELDS: Record<string, true> = {
   youtubeId: true,
 };
 
+/**
+ * Token the fixture accepts.
+ *
+ * The fixture has no secret, so the token is public. It is only ever shown
+ * while the screen runs against the fixture, never against the real API.
+ */
+export const FIXTURE_TOKEN = "fixture-token";
+
 export interface MockPublishOptions {
-  /** Token the fixture accepts. Defaults to `fixture-token`. */
+  /** Token the fixture accepts. Defaults to {@link FIXTURE_TOKEN}. */
   token?: string;
   /** Chart version of the first successful publish. Defaults to `1`. */
   firstChartVersion?: number;
@@ -42,7 +50,7 @@ export interface MockPublishFetch extends PublishFetch {
  * the catalog move the way the real API moves it.
  */
 export function createMockPublishFetch(options: MockPublishOptions = {}): MockPublishFetch {
-  const expectedToken = options.token ?? "fixture-token";
+  const expectedToken = options.token ?? FIXTURE_TOKEN;
   let chartVersion = (options.firstChartVersion ?? 1) - 1;
   let catalogVersion = (options.firstCatalogVersion ?? 1) - 1;
 

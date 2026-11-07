@@ -1,5 +1,6 @@
 import { CircleCheckIcon, CircleXIcon } from "lucide-react";
 import { css } from "styled-system/css";
+import type { PublishTarget } from "@/lib/publish/transport";
 import type { PublishResult } from "@/lib/publish/types";
 
 /**
@@ -54,7 +55,14 @@ const list = css({
   padding: "0",
 });
 
-export function PublishResultPanel({ result }: { result: PublishResult | null }) {
+export function PublishResultPanel({
+  result,
+  target,
+}: {
+  result: PublishResult | null;
+  /** Where the request went. The wording has to say it. */
+  target: PublishTarget;
+}) {
   if (result === null) {
     return null;
   }
@@ -64,11 +72,20 @@ export function PublishResultPanel({ result }: { result: PublishResult | null })
       <section className={`${frame} ${success}`} data-testid="publish-success">
         <p className={headline}>
           <CircleCheckIcon width={14} height={14} />
-          Published
+          {target === "fixture" ? "Published to the fixture" : "Published"}
         </p>
         <p className={detail}>
-          {result.response.songId} is now chart version {result.response.chartVersion}. The catalog
-          is at version {result.response.catalogVersion}.
+          {target === "fixture" ? (
+            <>
+              {result.response.songId} is chart version {result.response.chartVersion} of the
+              fixture. Nothing was sent to the server.
+            </>
+          ) : (
+            <>
+              {result.response.songId} is now chart version {result.response.chartVersion}. The
+              catalog is at version {result.response.catalogVersion}.
+            </>
+          )}
         </p>
       </section>
     );

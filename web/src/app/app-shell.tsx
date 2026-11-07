@@ -72,11 +72,15 @@ export function AppShell({ mode }: { mode: CatalogMode }) {
   const [query, setQuery] = useState("");
   const [level, setLevel] = useState<LevelFilter>("all");
 
+  // The published songs come from the API of the contract. An empty origin
+  // means the same origin as the studio, which is how the worker is deployed.
+  const apiOrigin = import.meta.env.VITE_FLASHBEAT_API_ORIGIN ?? "";
+
   const refresh = useCallback(() => {
     setStatus("loading");
     setErrorMessage(undefined);
 
-    loadCatalog(mode)
+    loadCatalog(mode, apiOrigin)
       .then((loaded) => {
         setSongs(loaded);
         setStatus(loaded.length === 0 ? "empty" : "ready");
@@ -85,7 +89,7 @@ export function AppShell({ mode }: { mode: CatalogMode }) {
         setErrorMessage(error instanceof Error ? error.message : "Unknown error");
         setStatus("error");
       });
-  }, [mode]);
+  }, [apiOrigin, mode]);
 
   useEffect(() => {
     refresh();

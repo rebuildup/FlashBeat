@@ -73,25 +73,51 @@ shown next to the publish button.
 
 ### Where the request goes
 
-The publish endpoint of issue #16 does not exist yet, so the screen publishes
-against the fixture in `src/lib/publish/mock.ts`. The fixture answers like the
-contract does: same path, same bearer token, same `401` / `422` / `200` answers,
-and it rejects a chart that breaks the frozen chart schema.
+When the screen opens it asks `GET /api/v1/catalog` once.
 
-`VITE_FLASHBEAT_API_ORIGIN` switches the screen to the real endpoint. The value is
-the origin of the API, or `/` when the API is served by the same worker:
+- The API answers with a catalog → the target is the **live API** and the publish
+  request goes to the server. The header shows `Live API`.
+- The API does not answer → the publish card shows **API 未接続: 手順を確認** with a
+  `Check again` button, and the target falls back to the **fixture**.
+
+The fixture in `src/lib/publish/mock.ts` answers like the contract does: same path,
+same bearer token, same `401` / `422` / `200` answers, and it rejects a chart that
+breaks the frozen chart schema. The fixture has no secret, so the token field shows
+`Fixture API: the token is fixture-token` while the fixture is the target. Against the
+real API no token is ever shown.
+
+`VITE_FLASHBEAT_API_ORIGIN` points the screen at another origin. The value is the
+origin of the API, or `/` when the API is served by the same worker:
 
 ```sh
 VITE_FLASHBEAT_API_ORIGIN=/ vp dev
 ```
 
-Without the variable the screen shows `Fixture API` in the header.
+Without the variable the screen uses the origin it was opened from, which is the
+deployed worker.
+
+### What the operator does
+
+1. Open `https://flashbeat-web.rebuild-up-up.workers.dev/publish`.
+2. The header shows `Live API` when the API answers. If it shows **API 未接続**, the
+   publish falls back to the fixture; fix the connection and press `Check again`.
+3. Fill in song id, title, artist, YouTube video, level and duration, then press
+   `Review publish`.
+4. Type the staff token of the operator into the dialog and press `Publish`. The
+   result and the new chart version appear next to the publish button.
+
+## Catalog
+
+`/` shows the songs that are really published: the shell reads `GET /api/v1/catalog`
+and falls back to the local fixture in `src/app/catalog.ts` when the API cannot be
+reached. An empty catalog shows `No songs published yet`.
+`/?state=loading|empty|error` forces a list state so every branch can be reviewed.
 
 ## State
 
-There is no backend yet. `src/app/catalog.ts` holds a local fixture that mirrors the
-`SongSummary` shape of `contracts/openapi.v1.yaml`. `/?state=loading|empty|error` forces
-a list state so every branch can be reviewed before the read endpoint (#15) exists.
+The web app owns no backend. The read endpoint lives in the Worker (#15), the publish
+endpoint in the Worker (#16), and the studio talks to both through the routes of
+`contracts/openapi.v1.yaml`.
 
 See `AGENTS.md` for the layout, the commands and the three manual fixes
 `@park-ui/cli@1.0.1` needs for the Panda v2 API.

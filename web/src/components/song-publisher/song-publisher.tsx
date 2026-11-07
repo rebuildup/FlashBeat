@@ -1,11 +1,15 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createListCollection } from "@ark-ui/react/collection";
+import { Portal } from "@ark-ui/react/portal";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
-import { Button, Toaster, toaster } from "@/components/ui";
+import { Button, Select, Toaster, toaster } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { publishSong } from "@/lib/publish/client";
-import { resolvePublishTransport } from "@/lib/publish/transport";
+import { probeCatalog, type ApiReachability } from "@/lib/publish/connectivity";
+import { describeFailure } from "@/lib/publish/failure";
+import { resolvePublishTransport, type PublishTarget } from "@/lib/publish/transport";
 import type { PublishResult } from "@/lib/publish/types";
 import {
   buildPublishRequest,
@@ -164,6 +168,61 @@ const badge = css({
 
 const accent = css({ colorPalette: "teal" });
 
+const selectRoot = css({
+  width: "full",
+});
+
+const selectControl = css({
+  alignItems: "center",
+  borderColor: "gray.surface.border",
+  borderRadius: "l1",
+  borderWidth: "1px",
+  display: "flex",
+  gap: "2",
+  height: "sizes.10",
+  justifyContent: "space-between",
+  paddingInline: "3",
+  textAlign: "left",
+  width: "full",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "1px",
+  },
+});
+
+const apiWarning = css({
+  bg: "red.surface.bg",
+  borderColor: "red.surface.border",
+  borderRadius: "l1",
+  borderWidth: "1px",
+  display: "grid",
+  gap: "2",
+  padding: "2",
+});
+
+const apiWarningText = css({
+  color: "fg.error",
+  fontSize: "2xs",
+  margin: "0",
+});
+
+const apiOnline = css({
+  color: "fg.muted",
+  fontSize: "2xs",
+  margin: "0",
+});
+
+/** The two targets the publish request can go to. */
+const TARGET_ITEMS: { label: string; value: PublishTarget }[] = [
+  { label: "Live API (the server)", value: "live" },
+  { label: "Fixture (local rehearsal)", value: "fixture" },
+];
+
+const targetCollection = createListCollection<{ label: string; value: PublishTarget }>({
+  items: TARGET_ITEMS,
+});
+
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,
   title: false,
@@ -205,8 +264,32 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
   const [publishing, setPublishing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [result, setResult] = useState<PublishResult | null>(null);
+  const [reachability, setReachability] = useState<ApiReachability>("checking");
+  const [targetOverride, setTargetOverride] = useState<PublishTarget | null>(null);
 
-  const transport = useMemo(() => resolvePublishTransport(apiOrigin), [apiOrigin]);
+  // The API is asked once when the screen opens. While the answer is missing
+  // the publish button stays closed.
+  const probe = useCallback(async () => {
+    setReachability("checking");
+
+    const result = await probeCatalog({ baseUrl: (apiOrigin ?? "").trim() });
+    setReachability(result.reachability);
+  }, [apiOrigin]);
+
+  useEffect(() => {
+    void probe();
+  }, [probe]);
+
+  // The live API is the target as soon as it answers. The operator can pick
+  // the fixture for a rehearsal, and the studio falls back to it when the API
+  // cannot be reached.
+  const target: PublishTarget =
+    targetOverride ?? (reachability === "online" ? "live" : "fixture");
+
+  const transport = useMemo(
+    () => resolvePublishTransport(apiOrigin, target),
+    [apiOrigin, target],
+  );
 
   // The title follows the name of the chart until the operator writes one.
   const effectiveDraft = useMemo<SongMetadataDraft>(
@@ -225,6 +308,16 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
   );
 
   const chartReady = chart !== null && chartIssues.length === 0;
+
+  // A rejected token belongs to the token field, everything else belongs to
+  // the request. The dialog shows them apart.
+  const failureView = useMemo(
+    () =>
+      result !== null && !result.ok
+        ? describeFailure(result.failure)
+        : { tokenError: undefined, requestError: undefined, details: [] },
+    [result],
+  );
 
   const summary = useMemo<PublishSummary>(
     () => ({
@@ -333,7 +426,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
         </div>
 
         <span className={badge}>
-          {transport.mode === "fixture" ? "Fixture API" : `Live API ${transport.baseUrl}`}
+          {target === "fixture" ? "Fixture API" : `Live API ${transport.baseUrl || "(same origin)"}`}
         </span>
       </header>
 
@@ -363,6 +456,56 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
           <section className={card}>
             <h2 className={cardTitle}>Publish</h2>
 
+            {reachability === "checking" ? (
+              <p className={factValue}>API を確認中…</p>
+            ) : reachability === "offline" ? (
+              <div className={apiWarning} role="status">
+                <p className={apiWarningText}>
+                  API 未接続: 手順を確認 — the catalog endpoint did not answer. Publishing falls
+                  back to the fixture until the API answers.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => void probe()}>
+                  Check again
+                </Button>
+              </div>
+            ) : (
+              <p className={apiOnline}>API 接続済み — the publish request goes to the server.</p>
+            )}
+
+            <Select.Root
+              className={selectRoot}
+              collection={targetCollection}
+              value={[target]}
+              onValueChange={(details) => {
+                const [next] = details.value;
+                if (next === "live" || next === "fixture") {
+                  setTargetOverride(next);
+                }
+              }}
+            >
+              <Select.Label>Target</Select.Label>
+              <Select.Control className={selectControl}>
+                <Select.ValueText placeholder="Target" />
+                <Select.Indicator />
+              </Select.Control>
+              <Portal>
+                <Select.Positioner>
+                  <Select.Content>
+                    <Select.List>
+                      <Select.Item item={TARGET_ITEMS[0]}>
+                        <Select.ItemText>{TARGET_ITEMS[0].label}</Select.ItemText>
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                      <Select.Item item={TARGET_ITEMS[1]}>
+                        <Select.ItemText>{TARGET_ITEMS[1].label}</Select.ItemText>
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Content>
+                </Select.Positioner>
+              </Portal>
+            </Select.Root>
+
             <dl className={facts}>
               <dt className={factKey}>Chart</dt>
               <dd className={factValue}>
@@ -379,12 +522,17 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
               </p>
             ) : null}
 
-            <Button className={accent} size="md" onClick={handleReview}>
+            <Button
+              className={accent}
+              size="md"
+              disabled={reachability === "checking"}
+              onClick={handleReview}
+            >
               Review publish
             </Button>
           </section>
 
-          <PublishResultPanel result={result} />
+          <PublishResultPanel result={result} target={target} />
         </aside>
       </div>
 
@@ -395,7 +543,10 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin }: Son
         token={token}
         onTokenChange={setToken}
         publishing={publishing}
-        error={result !== null && !result.ok ? result.failure.message : undefined}
+        tokenError={failureView.tokenError}
+        requestError={failureView.requestError}
+        details={failureView.details}
+        tokenHint={transport.tokenHint}
         onPublish={handlePublish}
       />
 

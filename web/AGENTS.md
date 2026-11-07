@@ -46,8 +46,9 @@ starts a workerd inspector that cannot run inside the Vitest worker.
 | `src/app/**`                       | The Web Studio shell written by this repository.                                                                            |
 | `src/components/chart-editor/**`   | The eight lane Konva chart editor (issue #18).                                                                              |
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                                                |
-| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                                              |
-| `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                                                  |
+| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                      |
+| `src/lib/publish/**`             | Publish contract types, validation, client, connectivity probe, fixture transport (issue #19). |
+| `src/lib/catalog/**`             | Reading the published catalog of the contract (issue #19).                            |
 | `pages/`                           | Void pages routing (`index.tsx` + `index.server.ts`, `chart.tsx` + `chart.server.ts`, `publish.tsx` + `publish.server.ts`). |
 | `db/`                              | D1 schema. The festival tables are owned by issue #14, this file is a placeholder.                                          |
 
@@ -100,11 +101,21 @@ publishes both in one request.
   `PUT /api/v1/admin/songs/{songId}`. The staff token travels as a bearer token in
   the request header. A failure is a value, not an exception: `401`, `404`, `422`,
   a broken answer and a request that never arrived are told apart.
+- `src/lib/publish/failure.ts` sorts a failure into the token field and the request,
+  so a broken chart is not read as a wrong token.
+- `src/lib/publish/connectivity.ts` asks `GET /api/v1/catalog` once when the screen
+  opens. The API counts as reachable only when the answer is a catalog of the
+  contract.
 - `src/lib/publish/mock.ts` is the fixture transport. It answers like the contract
-  does, including the rejection of a chart that breaks the frozen chart schema.
-- `src/lib/publish/transport.ts` picks the transport: without
-  `VITE_FLASHBEAT_API_ORIGIN` the fixture answers, with it the real endpoint does.
-  The value is a public URL, the staff token is never part of it.
+  does, including the rejection of a chart that breaks the frozen chart schema. It
+  has no secret, so its token (`fixture-token`) is only shown while the fixture is
+  the target.
+- `src/lib/publish/transport.ts` picks the transport: `live` sends the request to
+  the API, `fixture` answers locally. `VITE_FLASHBEAT_API_ORIGIN` points the screen
+  at another origin; it is a public URL, the staff token is never part of it.
+- `src/lib/catalog/read.ts` reads the published catalog for the shell. The shell
+  shows the songs of the real API and falls back to the fixture of
+  `src/app/catalog.ts` when the API cannot be reached.
 - The staff token is typed by the operator in the publish dialog. It stays in the
   memory of the browser tab and is never written to disk or to the bundle.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
@@ -112,8 +123,7 @@ publishes both in one request.
 
 ### Scope
 
-This app currently has **no backend**. The catalog is a local fixture in
-`src/app/catalog.ts`; `?state=loading|empty|error` on `/` forces a list state so
-every branch can be reviewed before the API exists. The publish screen publishes
-against the fixture of `src/lib/publish/mock.ts` until the publish endpoint (#16)
-is deployed; `VITE_FLASHBEAT_API_ORIGIN` switches it to the real endpoint.
+This app owns no backend. The catalog and the publish endpoint live in the Worker
+(#15 and #16). The studio reads the catalog of the contract and falls back to a
+local fixture when the API cannot be reached; `?state=loading|empty|error` on `/`
+forces a list state so every branch can be reviewed.

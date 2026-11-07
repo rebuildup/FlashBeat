@@ -1,3 +1,4 @@
+import { fetchCatalogSongs } from "@/lib/catalog/read";
 import type { SongSummary } from "./types";
 
 /**
@@ -11,10 +12,10 @@ export type CatalogMode = "loading" | "ready" | "empty" | "error";
 /**
  * Local stand-in for `GET /api/v1/catalog`.
  *
- * The real read endpoint is owned by #15. Until it is deployed the Web Studio
- * renders this fixture so the shell, the toolbar and every list state stay
- * demonstrable. Replace the body of {@link loadCatalog} with a `fetch` to
- * `/api/v1/catalog` once that endpoint is live.
+ * The Web Studio reads the published songs of the real API first, so the
+ * operator sees the same list as the game. This fixture is the fallback for
+ * a studio that cannot reach the API, and it keeps the shell, the toolbar and
+ * every list state demonstrable.
  */
 const FIXTURE: SongSummary[] = [
   {
@@ -63,7 +64,7 @@ const FIXTURE: SongSummary[] = [
   },
 ];
 
-export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
+export async function loadCatalog(mode: CatalogMode, apiOrigin = ""): Promise<SongSummary[]> {
   const { promise, resolve } = Promise.withResolvers<void>();
   setTimeout(resolve, 220);
   await promise;
@@ -74,6 +75,14 @@ export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
 
   if (mode === "empty") {
     return [];
+  }
+
+  // The published songs of the real API come first, so the operator sees the
+  // same list as the game. The fixture is the fallback for an offline studio.
+  const published = await fetchCatalogSongs({ baseUrl: apiOrigin });
+
+  if (published !== null) {
+    return published;
   }
 
   return FIXTURE;

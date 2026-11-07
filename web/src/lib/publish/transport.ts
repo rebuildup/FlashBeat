@@ -1,38 +1,53 @@
-import { createMockPublishFetch } from "./mock";
+import { createMockPublishFetch, FIXTURE_TOKEN } from "./mock";
 import type { PublishFetch } from "./types";
 
 /**
  * Where the publish request goes.
  *
- * The studio runs against the fixture until the API of issue #16 answers.
- * `VITE_FLASHBEAT_API_ORIGIN` switches to the real endpoint: it holds the
- * origin of the API, or `/` when the API is served by the same worker. The
- * value is a public URL, the staff token is never part of it.
+ * `live` sends the request to the API of the contract. `fixture` answers
+ * locally, which is the rehearsal mode and the mode the studio falls back to
+ * when the API cannot be reached.
  */
-export type PublishTransportMode = "fixture" | "live";
+export type PublishTarget = "live" | "fixture";
 
 export interface PublishTransport {
-  mode: PublishTransportMode;
+  /** The target the request goes to. */
+  target: PublishTarget;
   /** Prefix of the request URL. */
   baseUrl: string;
   /** Transport used for the request. */
   fetch: PublishFetch;
+  /**
+   * Help text for the staff token field.
+   *
+   * Only the fixture has a known token. The real API has a secret, so no hint
+   * is shown against it.
+   */
+  tokenHint?: string;
 }
 
-export function resolvePublishTransport(apiOrigin?: string): PublishTransport {
-  const origin = (apiOrigin ?? "").trim();
-
-  if (origin.length === 0) {
+/**
+ * Build the transport of a publish request.
+ *
+ * `apiOrigin` is the origin of the API. Empty means the same origin as the
+ * studio, which is the case when the worker serves the pages and the API.
+ */
+export function resolvePublishTransport(
+  apiOrigin: string | undefined,
+  target: PublishTarget,
+): PublishTransport {
+  if (target === "fixture") {
     return {
-      mode: "fixture",
+      target: "fixture",
       baseUrl: "",
       fetch: createMockPublishFetch(),
+      tokenHint: `Fixture API: the token is ${FIXTURE_TOKEN}`,
     };
   }
 
   return {
-    mode: "live",
-    baseUrl: origin,
+    target: "live",
+    baseUrl: (apiOrigin ?? "").trim(),
     fetch: (input, init) => fetch(input, init),
   };
 }

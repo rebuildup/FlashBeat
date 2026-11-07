@@ -33,6 +33,37 @@ const summaryValue = css({
   overflowWrap: "anywhere",
 });
 
+const errorBox = css({
+  bg: "red.surface.bg",
+  borderColor: "red.surface.border",
+  borderRadius: "l1",
+  borderWidth: "1px",
+  color: "fg.error",
+  display: "grid",
+  fontSize: "xs",
+  gap: "1",
+  padding: "2",
+});
+
+const errorText = css({
+  margin: "0",
+});
+
+const errorList = css({
+  display: "grid",
+  fontSize: "2xs",
+  gap: "1",
+  listStyle: "none",
+  margin: "0",
+  padding: "0",
+});
+
+const hint = css({
+  color: "fg.muted",
+  fontSize: "2xs",
+  margin: "0",
+});
+
 const accent = css({ colorPalette: "teal" });
 
 /** What the publish request will contain. */
@@ -57,8 +88,14 @@ export interface PublishDialogProps {
   onTokenChange: (token: string) => void;
   /** `true` while the request is running. */
   publishing: boolean;
-  /** Message of the last failed attempt. */
-  error?: string;
+  /** Message of a rejected token. It belongs to the token field. */
+  tokenError?: string;
+  /** Message of a rejected request. It belongs to the request, not to the token. */
+  requestError?: string;
+  /** Field level problems the API reported. */
+  details?: string[];
+  /** Help text for the token field. Only the fixture has a known token. */
+  tokenHint?: string;
   /** Send the request. */
   onPublish: () => void;
 }
@@ -70,7 +107,10 @@ export function PublishDialog({
   token,
   onTokenChange,
   publishing,
-  error,
+  tokenError,
+  requestError,
+  details,
+  tokenHint,
   onPublish,
 }: PublishDialogProps) {
   return (
@@ -109,7 +149,22 @@ export function PublishDialog({
                 </dd>
               </dl>
 
-              <Field.Root invalid={error !== undefined}>
+              {requestError ? (
+                <div className={errorBox} role="alert">
+                  <p className={errorText}>{requestError}</p>
+                  {details && details.length > 0 ? (
+                    <ul className={errorList}>
+                      {details.map((detail, index) => (
+                        <li key={`${detail}-${index}`}>{detail}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {tokenHint ? <p className={hint}>{tokenHint}</p> : null}
+
+              <Field.Root invalid={tokenError !== undefined}>
                 <Field.Label>Staff token</Field.Label>
                 <Input
                   type="password"
@@ -118,8 +173,8 @@ export function PublishDialog({
                   value={token}
                   onChange={(event) => onTokenChange(event.currentTarget.value)}
                 />
-                {error ? (
-                  <Field.ErrorText>{error}</Field.ErrorText>
+                {tokenError ? (
+                  <Field.ErrorText>{tokenError}</Field.ErrorText>
                 ) : (
                   <Field.HelperText>
                     Entered by the operator at publish time. It is held in this browser tab only and

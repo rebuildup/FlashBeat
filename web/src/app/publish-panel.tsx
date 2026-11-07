@@ -1,5 +1,6 @@
-import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
+import { styled } from "styled-system/jsx";
+import { button } from "styled-system/recipes";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
 
 /**
@@ -20,6 +21,14 @@ const callToAction = css({
 
 const accent = css({ colorPalette: "teal" });
 
+/**
+ * The link itself looks like a button.
+ *
+ * A link around a button would nest two interactive elements, which is
+ * invalid HTML and confuses the keyboard order.
+ */
+const PublishLink = styled("a", button);
+
 export function PublishPanel() {
   return (
     <section className={panelFrame}>
@@ -36,11 +45,9 @@ export function PublishPanel() {
             title="The publish screen has its own route"
             description="Metadata, chart and the staff token of the operator live on one screen. Open it to edit a song and publish it."
           />
-          <a href="/publish">
-            <Button className={accent} size="md">
-              Open the publish screen
-            </Button>
-          </a>
+          <PublishLink className={accent} href="/publish">
+            Open the publish screen
+          </PublishLink>
         </div>
       </div>
     </section>
