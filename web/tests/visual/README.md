@@ -20,10 +20,15 @@ Output:
 - `web/tests/visual/out/<timestamp>/` (gitignored) — the raw run:
   - `<route>-<state>_<viewport>.png` — viewport screenshot (what the user actually sees)
   - `<route>-<state>_<viewport>.full.png` — full-page screenshot (for below-fold review)
+  - `<route>-<state>_<viewport>.lanes-right.png` — the chart editor with the
+    note grid scrolled to the right (proof that the lanes on the right are
+    reachable on a narrow viewport)
   - `<route>-<state>_1440x900_focus{1,3}.png` — keyboard focus after 1 / 3 Tab presses
   - `index.json` — the report
-- `specs/075-visual-gate/evidence/` — the PR-facing set:
+- `specs/158-visual-fixes/evidence/` — the PR-facing set
+  (`VISUAL_EVIDENCE_DIR` overrides the directory):
   - `<viewport>/<route>-<state>.png` — the same viewport screenshots
+  - `<viewport>/<route>-<state>.lanes-right.png` — the scrolled note grid
   - `index.json` — the report plus the measured facts of every evidence image
 
 ## Routes / states
@@ -62,6 +67,12 @@ every capture.
 
 - `horizontalScroll` — document `scrollWidth > clientWidth`
 - `clippedElements` — visible elements extending beyond the viewport **horizontally**
+  and **not** inside a scrollable ancestor: a real defect
+- `scrollableOverflowElements` — elements that extend beyond the viewport but
+  live inside a horizontally scrollable ancestor, so the content stays
+  reachable (the note grid is wider than a phone on purpose)
+- `scrollContainers` — every scrollable container with its `clientWidth`,
+  `scrollWidth` and overflow directions
 - `belowFoldElements` — informational count only; vertical scroll is expected
 - `smallFontElements` — visible text with computed `font-size < 12px`
 - `smallTapTargets` — interactive elements with `min(width, height) < 32px`
@@ -74,7 +85,7 @@ copy and brand match (design-skills layout-system / visual-hierarchy /
 information-density / interaction-state, unslop signs) must be judged by looking
 at the actual PNGs. `index.json.needsHumanVisualReview` lists every screenshot for
 that pass; the result of that pass is
-`specs/075-visual-gate/evidence/visual-review.md`.
+`specs/158-visual-fixes/evidence/visual-review.md`.
 
 ## Exit codes
 

@@ -177,14 +177,13 @@ const cardTitle = css({
 });
 
 /**
- * The publish card carries the primary action of the screen, so it stays
- * pinned to the top of the side column: the operator reaches "Review publish"
- * without scrolling the metadata form (issue #158, finding #9).
+ * The publish card carries the primary action of the screen. It sits above
+ * the scrolling part of the side column and never shrinks, so the operator
+ * reaches "Review publish" without scrolling the metadata form (issue #158,
+ * finding #9).
  */
 const publishCard = css({
-  position: "sticky",
-  top: "0",
-  zIndex: "1",
+  flexShrink: "0",
 });
 
 const facts = css({
@@ -522,31 +521,31 @@ export function SongPublisher({
             </button>
           </div>
 
+          <section className={`${card} ${publishCard}`} data-testid="publish-card">
+            <h2 className={cardTitle}>Publish</h2>
+
+            <dl className={facts}>
+              <dt className={factKey}>Chart</dt>
+              <dd className={factValue}>
+                {summary.noteCount} notes at {summary.bpm} BPM
+              </dd>
+
+              <dt className={factKey}>Song id</dt>
+              <dd className={factValue}>{summary.songId || "—"}</dd>
+            </dl>
+
+            {chartIssues.length > 0 ? (
+              <p className={warning}>
+                The chart has {chartIssues.length} contract problems. Fix them before publishing.
+              </p>
+            ) : null}
+
+            <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+              Review publish
+            </Button>
+          </section>
+
           <div className={sideScroll}>
-            <section className={`${card} ${publishCard}`} data-testid="publish-card">
-              <h2 className={cardTitle}>Publish</h2>
-
-              <dl className={facts}>
-                <dt className={factKey}>Chart</dt>
-                <dd className={factValue}>
-                  {summary.noteCount} notes at {summary.bpm} BPM
-                </dd>
-
-                <dt className={factKey}>Song id</dt>
-                <dd className={factValue}>{summary.songId || "—"}</dd>
-              </dl>
-
-              {chartIssues.length > 0 ? (
-                <p className={warning}>
-                  The chart has {chartIssues.length} contract problems. Fix them before publishing.
-                </p>
-              ) : null}
-
-              <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
-                Review publish
-              </Button>
-            </section>
-
             <PublishResultPanel
               result={result}
               onRetry={handleReview}
