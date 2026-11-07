@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     FlashBeat 展示運営者向けのパッチ適用スクリプト (常駐なし・独自サーバーなし)。
