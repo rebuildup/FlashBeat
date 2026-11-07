@@ -33,6 +33,26 @@ public class AutoShot : MonoBehaviour
     {
         try { Directory.CreateDirectory(directory); }
         catch (Exception e) { Debug.LogWarning("[AutoShot] cannot create " + directory + ": " + e.Message); yield break; }
+
+        // "-autoshot-scenes TitleScene,SelectScene,..." loads each scene in turn (waiting -autoshot-interval
+        // seconds in each) and captures it: lets the Supervisor review every screen without driving the keyboard.
+        string sceneList = GetArg("-autoshot-scenes");
+        if (!string.IsNullOrEmpty(sceneList))
+        {
+            string[] names = sceneList.Split(',');
+            for (int i = 0; i < names.Length; i++)
+            {
+                string target = names[i].Trim();
+                if (target.Length == 0) { continue; }
+                if (SceneManager.GetActiveScene().name != target) { SceneManager.LoadScene(target); }
+                yield return new WaitForSecondsRealtime(interval);
+                yield return new WaitForEndOfFrame();
+                string scenePath = Path.Combine(directory, "scene-" + i.ToString("00") + "-" + target + ".png");
+                ScreenCapture.CaptureScreenshot(scenePath);
+                Debug.Log("[AutoShot] " + scenePath + " (" + Screen.width + "x" + Screen.height + ")");
+            }
+            yield break;
+        }
         for (int i = 0; i < count; i++)
         {
             yield return new WaitForSecondsRealtime(interval);
