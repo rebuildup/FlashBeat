@@ -78,11 +78,13 @@ namespace FlashBeat.UI.V5
         }
 
         /// <summary>FlashBeat ロゴ (13.png, 5007x990) を contain で置く。
-        /// 01 Title 実測: (280, 108.5) に 1280x253。</summary>
+        /// anchoredPos は「矩形の左上」の位置 (親上端基準, design 01 Title 実測: (280, 108.5) に 1280x253)。
+        /// pivot は (0,1): 旧実装の (0,0) だと anchoredPos が矩形の下端を指し、
+        /// ロゴ上端が画面外に出てクリップされる (フィードバック (1) の原因)。</summary>
         public static Image BuildLogo(GameObject parent, Vector2 anchoredPos, Vector2 size)
         {
             var go = V5Ui.Node(parent, "Logo");
-            V5Ui.Place(go.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 0f),
+            V5Ui.Place(go.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 1f),
                 anchoredPos, size);
             var img = go.AddComponent<Image>();
             img.raycastTarget = false;
@@ -103,11 +105,11 @@ namespace FlashBeat.UI.V5
         /// KeyCap 凡例行 (01 Title / 06 Option の Legend)。anchoredPos はスケール済みのこと。
         /// items は (KeyCap ラベル, KeyCap 幅 [スケール済み], 後ろに置くラベル or null)。
         /// </summary>
-        public static void BuildLegend(GameObject parent, Vector2 anchoredPos,
+        public static GameObject BuildLegend(GameObject parent, Vector2 anchoredPos,
             (string key, float width, string label)[] items)
         {
             var legend = V5Ui.Node(parent, "Legend");
-            V5Ui.Place(legend.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 0f),
+            V5Ui.Place(legend.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 1f),
                 anchoredPos, new Vector2(1920f, 36f));
 
             float cursor = 0f;
@@ -136,6 +138,8 @@ namespace FlashBeat.UI.V5
                 labelRt.anchoredPosition = new Vector2(cursor, 0f);
                 cursor += labelRt.sizeDelta.x + p.GapM;
             }
+
+            return legend;
         }
 
         /// <summary>fhd 実測 px をプロファイル倍率に合わせる (各 View の S() と同じ式)。</summary>

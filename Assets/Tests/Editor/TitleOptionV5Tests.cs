@@ -71,5 +71,75 @@ namespace FlashBeat.UI.V5
             Assert.AreEqual("カスタム", OptionView.KeyLayoutLabel());
             PlayerPrefs.DeleteKey(OptionView.KeyBindingsPrefsKey);
         }
+
+        // --- TitleLayout (Issue #120 feedback) ---
+        // Rect y is measured from the screen top: yMin = top edge, yMax = bottom edge.
+
+        private static readonly (int w, int h)[] Resolutions =
+        {
+            (1024, 768), (1280, 720), (1440, 900), (1920, 1080), (2560, 1440), (3420, 2148),
+        };
+
+        [Test]
+        public static void TitleLayout_LogoIsFullyVisibleAtEveryTargetResolution()
+        {
+            foreach (var (w, h) in Resolutions)
+            {
+                var r = TitleLayout.Compute(w, h, visibleRows: 4);
+                Assert.GreaterOrEqual(r.Logo.yMin, 0f, "logo top clipped at " + w + "x" + h);
+                Assert.LessOrEqual(r.Logo.yMax, r.BarH.yMin, "logo overlaps frame bar at " + w + "x" + h);
+                Assert.GreaterOrEqual(r.Logo.xMin, 0f, "logo left clipped at " + w + "x" + h);
+                Assert.LessOrEqual(r.Logo.xMax, w, "logo right clipped at " + w + "x" + h);
+                Assert.Greater(r.Logo.height, 0f);
+            }
+        }
+
+        [Test]
+        public static void TitleLayout_LogoKeepsDesignAspectWhenNotWidthCapped()
+        {
+            foreach (var (w, h) in Resolutions)
+            {
+                var r = TitleLayout.Compute(w, h, 4);
+                if (r.Logo.width < w * 0.95f)
+                {
+                    Assert.AreEqual(h * (225f / 1080f) * V5Decor.LogoAspect, r.Logo.width, 0.5f,
+                        "logo aspect broken at " + w + "x" + h);
+                }
+            }
+        }
+
+        [Test]
+        public static void TitleLayout_FrameVerticalBarReachesBottomAndCornerAligns()
+        {
+            foreach (var (w, h) in Resolutions)
+            {
+                var r = TitleLayout.Compute(w, h, 4);
+                Assert.AreEqual(h, r.BarV.yMax, 0.01f, "bar V must reach screen bottom at " + w + "x" + h);
+                Assert.AreEqual(r.BarH.xMax, r.BarV.xMax, 0.01f, "frame corner misaligned at " + w + "x" + h);
+                Assert.AreEqual(h * (440f / 1080f), r.BarV.yMin, 0.01f);
+            }
+        }
+
+        [Test]
+        public static void TitleLayout_MenuFitsInsideScreenAndBelowFrameBar()
+        {
+            foreach (var rows in new[] { 3, 4, 5 })
+            {
+                foreach (var (w, h) in Resolutions)
+                {
+                    var r = TitleLayout.Compute(w, h, rows);
+                    Assert.GreaterOrEqual(r.Menu.yMin, r.BarH.yMax, "menu overlaps frame bar at " + w + "x" + h);
+                    Assert.LessOrEqual(r.Menu.yMax, h, "menu exceeds screen bottom at " + w + "x" + h);
+                    Assert.AreEqual(rows * r.RowH + (rows - 1) * r.RowGap, r.Menu.height, 0.01f);
+                }
+            }
+        }
+
+        [Test]
+        public static void TitleLayout_MenuColumnStaysLeftOfCatalogColumn()
+        {
+            // design: catalog/legend live in the column right of the menu
+            Assert.Less(TitleLayout.MenuLeftFrac + TitleLayout.MenuWFrac, TitleLayout.CatalogLeftFrac);
+        }
     }
 }
