@@ -6,13 +6,17 @@
 - [x] **T4** Redline review of the **real** PNGs against the Pen v5 reference renders and the design-skills / unslop criteria: `specs/075-visual-gate/evidence/visual-review.md` (severity, route + viewport, defect, responsible file).
 - [x] **T5** Finish `spec.md` / `plan.md` / `tasks.md` and state an explicit release-readiness verdict for the Web Studio.
 - [x] **T6** Verify the exit-code semantics and keep the measured facts separate from
-  the human review. Demonstrated: the clean path (**exit 0** — the captured run,
-  `horizontalOverflow: []`, `consoleErrors: []`) and the setup-failure path
-  (**exit 2** — `VISUAL_BASE_URL=http://127.0.0.1:5299 npm run visual` →
-  `EXIT=2`). The gate-failure path (**exit 1**) is implemented
-  (`horizontalScroll` or a console error at any capture) but did not trigger in
-  this run, because no capture of the current build overflows horizontally and
-  none logs a console error.
+  the human review. All three paths were demonstrated:
+  - **exit 0** — the captured run of the current build (`horizontalOverflow: []`,
+    `consoleErrors: []`).
+  - **exit 2** (setup failure) — `VISUAL_BASE_URL=http://127.0.0.1:5299 npm run
+    visual` → `EXIT=2` (no server answers).
+  - **exit 1** (gate failure) — a throwaway fixture page that answers the
+    catalog API but loads a missing image, so every capture logs a console
+    error: `VISUAL_BASE_URL=http://127.0.0.1:5312 VISUAL_EVIDENCE_DIR=/tmp/… npm
+    run visual` → `EXIT=1`, `console errors: home-ready@1440x900, …` (all 40
+    captures). The fixture is not part of the repository; it only proves that
+    the failure path of the harness works.
 
 ## Notes on what the run needs to be reproducible
 
