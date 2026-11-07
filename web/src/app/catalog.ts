@@ -18,7 +18,7 @@ export type CatalogMode = "loading" | "ready" | "empty" | "error";
  */
 export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
   if (mode === "error") {
-    throw new Error("GET /api/v1/catalog failed");
+    throw new Error("The catalog could not be loaded. Please check your connection and try again.");
   }
 
   if (mode === "empty") {
@@ -29,7 +29,7 @@ export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]> {
     headers: { accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(`GET /api/v1/catalog answered ${response.status}`);
+    throw new Error("The catalog request failed. Please try again later.");
   }
 
   const body: unknown = await response.json();

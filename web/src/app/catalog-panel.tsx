@@ -399,10 +399,11 @@ export function CatalogPanel({
       ? "Loading songs…"
       : status === "offline"
         ? "Offline — the catalog needs a connection"
-        : hasFilters
-          ? `${total} song${total === 1 ? "" : "s"} published · ${songs.length} shown`
-          : `${total} song${total === 1 ? "" : "s"} published`;
-
+        : status === "error"
+          ? "Unable to load catalog"
+          : hasFilters
+            ? `${total} song${total === 1 ? "" : "s"} published · ${songs.length} shown`
+            : `${total} song${total === 1 ? "" : "s"} published`;
   return (
     <section className={panelFrame}>
       <header className={panelHeader}>

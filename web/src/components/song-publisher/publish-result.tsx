@@ -42,13 +42,13 @@ const headline = css({
 });
 
 const detail = css({
-  fontSize: "2xs",
+  fontSize: "xs",
   margin: "0",
 });
 
 const list = css({
   display: "grid",
-  fontSize: "2xs",
+  fontSize: "xs",
   gap: "1",
   listStyle: "none",
   margin: "0",

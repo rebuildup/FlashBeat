@@ -45,10 +45,11 @@ const layout = css({
 });
 
 const body = css({
-  display: "grid",
+  display: { base: "flex", lg: "grid" },
+  flexDirection: { base: "column", lg: "row" },
   gap: "3",
-  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  gridTemplateColumns: { lg: "minmax(0, 1fr) 17rem" },
+  gridTemplateRows: { lg: "minmax(0, 1fr)" },
   minHeight: "0",
   p: "3",
 });
@@ -61,13 +62,15 @@ const gridPanel = css({
   minHeight: "0",
   minWidth: "0",
   overflow: "visible",
+  flex: { base: "1", lg: "1" },
+  width: { base: "100%", lg: "auto" },
 });
 
 const gridHint = css({
   borderBottomColor: "#222222",
   borderBottomWidth: "1px",
   color: "#8c8c8c",
-  fontSize: "2xs",
+  fontSize: "xs",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
@@ -77,6 +80,20 @@ const playheadReadout = css({
   color: "#ffffff",
   fontVariantNumeric: "tabular-nums",
   marginRight: "2",
+});
+
+/**
+ * The eight lanes keep their playable width, so on a narrow viewport the grid
+ * is wider than the screen and scrolls sideways. The hint says so, because a
+ * grid that is cut off without a word looks broken.
+ */
+const laneHint = css({
+  color: "#8c8c8c",
+  display: { base: "block", lg: "none" },
+  fontSize: "xs",
+  margin: "0",
+  paddingBottom: "2",
+  px: "3",
 });
 
 const side = css({
@@ -414,6 +431,8 @@ export function ChartEditor({
             Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
             deselects
           </p>
+
+          <p className={laneHint}>Swipe the grid sideways to reach the lanes on the right.</p>
 
           {chart ? (
             <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
