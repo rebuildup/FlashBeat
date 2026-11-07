@@ -6,7 +6,8 @@ using UnityEngine;
 /// <summary>
 /// 8 レーン分のキー割り当てを管理する静的クラス (正本)。
 /// 判定 (Judge) とキーガイド (KeyGuideUI) はこの値を参照する。
-/// 保存は PlayerPrefs キー "FlashBeat.KeyBindings" (JSON)。
+/// 保存は設定ファイル FlashBeat-keyconfig.json (KeyConfigFile)。
+/// レガシー PlayerPrefs に値があれば初回読み込み時にファイルへ移行する。
 /// 保存先は IStorage として注入できるため、ロジック部分は単体テスト可能。
 /// </summary>
 public static class KeyBindings
@@ -16,22 +17,6 @@ public static class KeyBindings
     {
         string LoadRaw();
         void SaveRaw(string json);
-    }
-
-    private class PlayerPrefsStorage : IStorage
-    {
-        public const string PrefsKey = "FlashBeat.KeyBindings";
-
-        public string LoadRaw()
-        {
-            return PlayerPrefs.HasKey(PrefsKey) ? PlayerPrefs.GetString(PrefsKey) : null;
-        }
-
-        public void SaveRaw(string json)
-        {
-            PlayerPrefs.SetString(PrefsKey, json);
-            PlayerPrefs.Save();
-        }
     }
 
     // 正本: 8 レーンの既定キー (Judge.LaneKeys と同じ構成)。
@@ -48,7 +33,9 @@ public static class KeyBindings
         new KeyCode[] { KeyCode.Alpha0, KeyCode.Equals, KeyCode.Caret, KeyCode.Backslash, KeyCode.P, KeyCode.At, KeyCode.LeftBracket, KeyCode.Semicolon, KeyCode.Colon, KeyCode.RightBracket, KeyCode.Slash, KeyCode.Underscore, KeyCode.Minus, KeyCode.Asterisk, KeyCode.BackQuote }
     };
 
-    private static IStorage storage = new PlayerPrefsStorage();
+    // 既定の保存先: 設定ファイル (正本) + レガシー PlayerPrefs (移行元・ミラー先)。
+    private static readonly IStorage DefaultStorage = new KeyConfigFileStorage();
+    private static IStorage storage = DefaultStorage;
     private static bool usingDefaultStorage = true;
     private static KeyCode[][] current;
     private static bool loaded;
@@ -92,11 +79,11 @@ public static class KeyBindings
         return false;
     }
 
-    /// <summary>保存先を差し替える (テスト用)。null で既定の PlayerPrefs に戻す。呼ぶと未ロード状態に戻る。</summary>
+    /// <summary>保存先を差し替える (テスト用)。null で既定の設定ファイル保存先に戻す。呼ぶと未ロード状態に戻る。</summary>
     public static void SetStorage(IStorage value)
     {
-        storage = (value != null) ? value : new PlayerPrefsStorage();
-        usingDefaultStorage = storage is PlayerPrefsStorage;
+        storage = (value != null) ? value : DefaultStorage;
+        usingDefaultStorage = ReferenceEquals(storage, DefaultStorage);
         loaded = false;
     }
 
@@ -201,11 +188,12 @@ public static class KeyBindings
         return true;
     }
 
-    /// <summary>既定のキー割り当てに戻す。</summary>
+    /// <summary>既定のキー割り当てに戻す。設定ファイルとミラーにも既定値を反映する。</summary>
     public static void ResetToDefaults()
     {
         current = CloneDefaults();
         RaiseChanged();
+        Save();
     }
 
     /// <summary>現在の割り当てを保存先に書き込む。空のレーンがある場合は保存しない (false)。</summary>

@@ -49,7 +49,7 @@ server against the local D1.
 | `src/app/**`                       | The Web Studio shell written by this repository.                                                |
 | `src/components/chart-editor/**`   | The eight lane Konva chart editor (issue #18).                                                  |
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                    |
-| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                              |
+| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                  |
 | `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                      |
 | `src/components/new-song/**`       | Guided new-song flow `/new-song`: stepper, song info, chart, publish steps (issue #135).        |
 | `src/lib/new-song/**`              | Slug suggestion, oEmbed, sessionStorage draft, bilingual validation, fixture studio API (#135). |
@@ -83,7 +83,8 @@ so `void db migrate --remote` and `cf d1 migrations apply` read the same SQL fil
 and share the `d1_migrations` bookkeeping table. Never reset the remote database:
 ship a follow-up migration instead.
 
-`db/fixtures/who.chart.json` is a byte-identical copy of `Assets/Resources/Who.json`
+`db/fixtures/who.chart.json` is a byte-identical copy of the notes of
+`Assets/Game/Resources/Who.json` (the `lyrics` block is not seeded)
 and `db/fixtures/who.song.json` carries the matching metadata from
 `Assets/Game/Scripts/Songs/GManager.cs`. The seed stores the chart file text
 verbatim, so the published chart is identical to the one the Unity player ships.

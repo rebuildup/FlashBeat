@@ -3,5 +3,9 @@ export type Props = InferProps<typeof loader>;
 export const ssr = false;
 export const loader = defineHandler(async (c) => {
   const params = new URL(c.req.url).searchParams;
-  return { songId: params.get("songId"), version: params.get("version"), draftId: params.get("draft") };
+  return {
+    songId: params.get("songId"),
+    version: params.get("version"),
+    draftId: params.get("draft"),
+  };
 });

@@ -96,6 +96,26 @@ public class MusicManager : MonoBehaviour
     /// </summary>
     public static bool SelectReturnPending { get; private set; }
 
+    // --- public state (verification / UI) ---------------------------------------
+
+    /// <summary>メディアの準備が完了しているか (Dl 完了・VideoPlayer 準備済み)。</summary>
+    public bool MediaReady { get { return mediaReady; } }
+
+    /// <summary>再生が始まったか。</summary>
+    public bool PlaybackStarted { get { return playbackStarted; } }
+
+    /// <summary>映像播放器が再生中か。</summary>
+    public bool VideoPlaying { get { return songVideo != null && songVideo.isPlaying; } }
+
+    /// <summary>映像播放器の準備完了状態。</summary>
+    public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
+
+    /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
+    public float MediaTimeNow { get { return CurrentMediaTime(); } }
+
+    /// <summary>音声の供給元の説明 (デバッグ表示・検証用)。</summary>
+    public string AudioModeName { get { return audioMode.ToString(); } }
+
     void Start()
     {
         waitback.SetActive(true);
@@ -193,6 +213,11 @@ public class MusicManager : MonoBehaviour
         // our own player, so it is removed from the song object.
         DisableInvidiousPlayer();
 
+        // 読み込み中表示 (動画のダウンロード・準備中)。失敗時は理由を表示してから自動で隠す。
+        MediaLoadingOverlay loading = null;
+        try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
+        if (loading != null) { loading.Show("曲情報を取得中…"); }
+
         // 1. What does YouTube offer for this video?
         stage = MediaStage.ResolvingStream;
         var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId);
@@ -224,10 +249,12 @@ public class MusicManager : MonoBehaviour
         //    release build ships no third party media at all.
         stage = MediaStage.DownloadingMedia;
         var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        if (loading != null) { loading.Show("動画をダウンロード中…"); }
         var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
+        if (!videoFile.Ok && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
         // The merged file (video + YouTube sound in one mp4) is the wanted state.
         // If the merge failed (no ffmpeg, download error) the picture still has to
@@ -258,6 +285,7 @@ public class MusicManager : MonoBehaviour
         if (videoFile.Ok && songVideo != null)
         {
             stage = MediaStage.PreparingVideo;
+            if (loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
         }
@@ -267,6 +295,7 @@ public class MusicManager : MonoBehaviour
         if (!combined && audioFile != null && audioFile.Ok)
         {
             stage = MediaStage.PreparingAudio;
+            if (loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
         }
@@ -276,6 +305,7 @@ public class MusicManager : MonoBehaviour
         audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
+        if (loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
 
@@ -616,7 +646,7 @@ public class MusicManager : MonoBehaviour
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
 
             bool canStart = mediaReady || Time.time - sceneStartTime > FallbackStartTimeout;
-            if (canStart && Input.GetKeyDown(KeyCode.Space))
+            if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
             {
                 StartPlayback();
             }

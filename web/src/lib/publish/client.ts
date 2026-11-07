@@ -249,31 +249,72 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
   const request = options.fetchImpl ?? fetch;
   const base = options.baseUrl.replace(/\/+$/, "");
   try {
-    if (result.response.songId !== options.songId) throw new Error("Published song identity differs from this draft.");
+    if (result.response.songId !== options.songId)
+      throw new Error("Published song identity differs from this draft.");
     const [catalogResponse, chartResponse] = await Promise.all([
       request(`${base}/api/v1/catalog`, { cache: "no-store", signal: options.signal }),
-      request(`${base}/api/v1/charts/${encodeURIComponent(options.songId)}?version=${result.response.chartVersion}`, { cache: "no-store", signal: options.signal }),
+      request(
+        `${base}/api/v1/charts/${encodeURIComponent(options.songId)}?version=${result.response.chartVersion}`,
+        { cache: "no-store", signal: options.signal },
+      ),
     ]);
-    if (!catalogResponse.ok || !chartResponse.ok) throw new Error("Published data could not be read back.");
-    const catalog = await catalogResponse.json() as { catalogVersion: number; songs?: Array<{ id: string; chartVersion: number; title: string; artist: string; youtubeId: string; noteCount: number }> };
-    const snapshot = await chartResponse.json() as { songId: string; chartVersion: number; chart: unknown };
+    if (!catalogResponse.ok || !chartResponse.ok)
+      throw new Error("Published data could not be read back.");
+    const catalog = (await catalogResponse.json()) as {
+      catalogVersion: number;
+      songs?: Array<{
+        id: string;
+        chartVersion: number;
+        title: string;
+        artist: string;
+        youtubeId: string;
+        noteCount: number;
+      }>;
+    };
+    const snapshot = (await chartResponse.json()) as {
+      songId: string;
+      chartVersion: number;
+      chart: unknown;
+    };
     const song = catalog.songs?.find((entry: { id: string }) => entry.id === options.songId);
-    if (catalog.catalogVersion !== result.response.catalogVersion || song?.chartVersion !== result.response.chartVersion ||
-        snapshot.songId !== options.songId || snapshot.chartVersion !== result.response.chartVersion ||
-        !sameJson(snapshot.chart, options.request.chart) ||
-        song.title !== options.request.title || song.artist !== options.request.artist || song.youtubeId !== options.request.youtubeId ||
-        song.noteCount !== options.request.chart.notes.length) throw new Error("Published data does not match this draft.");
+    if (
+      catalog.catalogVersion !== result.response.catalogVersion ||
+      song?.chartVersion !== result.response.chartVersion ||
+      snapshot.songId !== options.songId ||
+      snapshot.chartVersion !== result.response.chartVersion ||
+      !sameJson(snapshot.chart, options.request.chart) ||
+      song.title !== options.request.title ||
+      song.artist !== options.request.artist ||
+      song.youtubeId !== options.request.youtubeId ||
+      song.noteCount !== options.request.chart.notes.length
+    )
+      throw new Error("Published data does not match this draft.");
     return result;
   } catch {
-    return { ok: false, failure: { code: "server", message: "The write may have succeeded, but persisted verification failed. Your draft is preserved. Check Catalog before publishing again." } };
+    return {
+      ok: false,
+      failure: {
+        code: "server",
+        message:
+          "The write may have succeeded, but persisted verification failed. Your draft is preserved. Check Catalog before publishing again.",
+      },
+    };
   }
 }
 
 function sameJson(left: unknown, right: unknown): boolean {
   if (left === right) return true;
-  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object")
+    return false;
   if (Array.isArray(left) !== Array.isArray(right)) return false;
   const a = Object.keys(left).sort();
   const b = Object.keys(right).sort();
-  return a.length === b.length && a.every((key, index) => key === b[index] && sameJson((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]));
+  return (
+    a.length === b.length &&
+    a.every(
+      (key, index) =>
+        key === b[index] &&
+        sameJson((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]),
+    )
+  );
 }
