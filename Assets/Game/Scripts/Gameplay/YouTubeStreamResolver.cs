@@ -188,9 +188,76 @@ namespace FlashBeat.Gameplay
             if (miseBinHit != null)
             {
                 cachedDenoPath = miseBinHit;
+                return cachedDenoPath;
+            }
+
+            // macOS / Linux: the binary has no ".exe" suffix and the mise tree
+            // lives in ~/.local/share, not in the Windows LocalApplicationData.
+            var unixPathHit = FirstUsable(WhereOnPathAll("deno"), "--version");
+            if (unixPathHit != null)
+            {
+                cachedDenoPath = unixPathHit;
+                return cachedDenoPath;
+            }
+
+            string[] unixCandidates =
+            {
+                "/opt/homebrew/bin/deno",
+                "/usr/local/bin/deno",
+                "/usr/bin/deno",
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile) + "/.deno/bin/deno",
+            };
+            var unixHit = FirstUsable(unixCandidates, "--version");
+            if (unixHit != null)
+            {
+                cachedDenoPath = unixHit;
+                return cachedDenoPath;
+            }
+
+            var miseUnixHit = FindInUnixMiseDir("deno", "deno");
+            if (miseUnixHit != null)
+            {
+                cachedDenoPath = miseUnixHit;
             }
 
             return cachedDenoPath;
+        }
+
+        /// <summary>
+        /// Finds a tool in the unix mise install tree (~/.local/share/mise/installs/&lt;tool&gt;/&lt;version&gt;/&lt;exe&gt;).
+        /// The newest version wins.
+        /// </summary>
+        static string FindInUnixMiseDir(string tool, string exeName)
+        {
+            string home;
+            try
+            {
+                home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+            }
+            catch { return null; }
+            if (string.IsNullOrEmpty(home)) { return null; }
+
+            string root = Path.Combine(home, ".local", "share", "mise", "installs", tool);
+            if (!Directory.Exists(root)) { return null; }
+
+            string best = null;
+            DateTime bestTime = DateTime.MinValue;
+            try
+            {
+                foreach (var dir in Directory.GetDirectories(root))
+                {
+                    var candidate = Path.Combine(dir, exeName);
+                    if (!File.Exists(candidate)) { continue; }
+                    var written = File.GetLastWriteTimeUtc(candidate);
+                    if (written > bestTime)
+                    {
+                        bestTime = written;
+                        best = candidate;
+                    }
+                }
+            }
+            catch { }
+            return best;
         }
 
         /// <summary>
