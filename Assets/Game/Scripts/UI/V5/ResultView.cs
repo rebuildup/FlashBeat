@@ -138,10 +138,9 @@ namespace FlashBeat.UI.V5
         /// </summary>
         public static ResultView Build(Snapshot snapshot, Action retry, Action select)
         {
-            var canvasGo = new GameObject("V5 Result Canvas", typeof(Canvas));
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            CanvasConfigurator.Configure(canvas);
+            // Issue #167: GraphicRaycaster 付きの Canvas にする (マウスクリックを効かせる)。
+            var canvas = V5GameUi.NewScreenCanvas("V5 Result Canvas");
+            var canvasGo = canvas.gameObject;
 
             var root = V5Ui.Node(canvasGo, "Root");
             V5Ui.Fill(root.GetComponent<RectTransform>(), 0f);
@@ -158,7 +157,9 @@ namespace FlashBeat.UI.V5
             view.BuildLegend();
             view.BuildActions();
             view.BuildModal();
-            view.SetActionSelected(1); // 既定選択 = Register (Enter のレジェンドと一致)
+            view.SetActionSelected(1); // 既定選択 = Name (Enter のレジェンドと一致)
+            // Issue #167: 矢印キー操作は ResultView 自身が担うので Unity の自動ナビゲーションは切る。
+            V5GameUi.ApplySingleInputModel(canvas);
             return view;
         }
 
@@ -523,7 +524,7 @@ namespace FlashBeat.UI.V5
             headRt.anchoredPosition = new Vector2(S(24f), -S(24f));
             headRt.sizeDelta = new Vector2(S(300f), S(48f));
 
-            registeredLabel = V5Ui.Text(panel, "Registered", IsRegistered() ? "登録あり" : "未登録",
+            registeredLabel = V5Ui.Text(panel, "Registered", IsRegistered() ? "名前あり" : "名前未設定",
                 UISizeProfile.Current.FsS, V5Tokens.TextMuted, TextAlignmentOptions.Right);
             var regRt = registeredLabel.rectTransform;
             regRt.anchorMin = new Vector2(1f, 1f);
@@ -614,7 +615,7 @@ namespace FlashBeat.UI.V5
             row.childForceExpandHeight = false;
 
             BuildLegendItem(legend, "R", S(56f), "Retry");
-            BuildLegendItem(legend, "Enter", S(96f), "登録");
+            BuildLegendItem(legend, "Enter", S(96f), "名前");
             BuildLegendItem(legend, "Space", S(96f), "決定");
         }
 
@@ -653,7 +654,9 @@ namespace FlashBeat.UI.V5
             float x = 0f; // 右詰め: OK を右端に置き左へ積む
             BuildActionButton(row, 2, "OK", ActionKeyHint.Primary(KeyActions.KeyAction.Confirm), okW, x, true);
             x += okW + gap;
-            BuildActionButton(row, 1, "Register", "Enter", registerW, x, false);
+            // Issue #167: このボタンは「オンライン登録」ではなく、この端末に名前を保存する操作。
+            // オンライン登録はランキングパネル (F5) 側が行う。
+            BuildActionButton(row, 1, "Name", "Enter", registerW, x, false);
             x += registerW + gap;
             BuildActionButton(row, 0, "Retry", ActionKeyHint.Primary(KeyActions.KeyAction.Retry), retryW, x, false);
         }
@@ -774,7 +777,7 @@ namespace FlashBeat.UI.V5
             dialogRt.pivot = new Vector2(0.5f, 0.5f);
             dialogRt.anchoredPosition = new Vector2(0f, S(55f));
 
-            var head = V5Ui.Text(dialog, "Head", "ランキングに登録", UISizeProfile.Current.FsL, V5Tokens.Text,
+            var head = V5Ui.Text(dialog, "Head", "この端末の名前", UISizeProfile.Current.FsL, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             var headRt = head.rectTransform;
             headRt.anchorMin = new Vector2(0f, 1f);
@@ -867,7 +870,7 @@ namespace FlashBeat.UI.V5
             hintCapRt.pivot = new Vector2(0f, 1f);
             hintCapRt.anchoredPosition = new Vector2(S(32f), -S(276f));
 
-            var hint = V5Ui.Text(dialog, "Hint", "最大8文字・ローカルのハイスコアに保存されます",
+            var hint = V5Ui.Text(dialog, "Hint", "最大8文字・この端末のハイスコアに名前として保存されます",
                 UISizeProfile.Current.FsS, V5Tokens.TextMuted);
             var hintRt = hint.rectTransform;
             hintRt.anchorMin = new Vector2(0f, 1f);
@@ -877,7 +880,7 @@ namespace FlashBeat.UI.V5
             hintRt.sizeDelta = new Vector2(S(560f), S(32f));
 
             BuildModalButton(dialog, "Skip", "Esc", S(220f), S(32f), false, CloseModal);
-            BuildModalButton(dialog, "Register", "Enter", S(280f), S(32f + 220f + UISizeProfile.Current.GapM), true,
+            BuildModalButton(dialog, "Save", "Enter", S(280f), S(32f + 220f + UISizeProfile.Current.GapM), true,
                 ConfirmRegister);
 
             modal.SetActive(false);
@@ -955,7 +958,7 @@ namespace FlashBeat.UI.V5
 
             if (registeredLabel != null)
             {
-                registeredLabel.text = "登録あり";
+                registeredLabel.text = "名前あり";
             }
 
             CloseModal();

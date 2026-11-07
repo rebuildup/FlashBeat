@@ -251,6 +251,56 @@ online ランキングを持たない / local のみの画面は **「ローカ�
 | V3 | 実操作手順 | `docs/ui/issue-167-ui-acceptance.md` の手順を Supervisor が実機で実行 | 各手順で期待どおりの遷移 / 変化が起きる |
 | V4 | 既存テスト非劣化 | V1 と同じコマンド (回帰) | 既存 `JudgeLogicTests` / `SongDataTests` が pass |
 
+## 実装結果 (Worker B, 2026-11-08)
+
+### Findings の決着
+
+| # | 決着 | 実装 |
+|---|---|---|
+| F1 | **修正** | `V5GameUi.NewScreenCanvas` を追加し、Title / Select / Option / Result の Canvas に `GraphicRaycaster` を付与 (`V5GameUi.cs`, 各 View の Build) |
+| F2 | **修正** | `GameHudRuntime.DisableLegacyRaycaster` でレガシー Canvas の `GraphicRaycaster` を無効化 (v5 HUD のみがクリックを受ける) |
+| F3 | **修正** | 新規 `PlaySession.cs` に `KeyGuide` / `LyricsEnabled` を持ち、Select (Ready) → `GameHudView` / `GameSceneManager` が実値で参照 |
+| F4 | **修正** | Ready の NoteSpeed は `OptionSettings.Save()` で `PlayerPrefs` に保存、`TitleSceneManager.Start` で復元 |
+| F5 | **修正** | Pause の Display タブから `Live Rank` / `Hit Timing` / `Judge Text` / `Progress Bar` を削除 (Key Guide / Lyrics の 2 行だけ残す) |
+| F6 | **修正** | Pause Ranking の見出しを「この端末の合計 (ローカル)」「この曲のベスト (ローカル)」へ変更 |
+| F7 | **修正** | Select の Online セグメントは cloud 曲 (isRemote && chartVersion>0 && 有効 songId) のときだけ出し、`RankingClient.GetLeaderboard` の実データを表示。非 cloud 曲ではセグメントを出さない |
+| F8 | **修正** | Select の登録名パネルを「この端末の記録 (ローカル)」「オンライン未接続」と明記 |
+| F9 | **据置き** | `TitleLinks.RankingRequested` の排他契約を維持 (既定では描かない) |
+| F10 | **修正** | Result の action を `Register` → `Name`、モーダル見出しを「Rankingに登録」→「この端末の名前」、補助ラベルを「名前あり / 名前未設定」に変更 |
+| F11 | **修正** | `OptionView.KeyLayoutLabel` を実際の割り当てと既定値の比較 (`Judge.LaneKeys`) で判定するよう変更 (旧 PlayerPrefs キー有無の判定は削除) |
+| F12 | **修正** | `OptionSceneManager.ApplyVolumes` を追加し、音量変更を `AudioListener` / シーン内 `AudioSource` へ即時反映 + `PlayerPrefs` 保存 + Title / Option 起動時に復元 |
+| F13 | **修正** | `OptionSceneManager.SpeedUp/SpeedDown` を 1..50 にクランプ、`TimingUp/Down` を -10..10 にクランプ |
+| F14 | **修正** | `TitleSceneManager.Start` の `GManager.noteTiming--` + `TimingUp()` を削除し、`OptionSettings.Load()` で保存値を復元 |
+| F15 | **修正** | `GameSceneManager.HasV5PauseMenu()` を追加し、v5 ポーズがある間はレガシー `MenuPanel` を開かない (Esc の二重処理を解消) |
+| F16 | **修正** | `ResultSceneManager` のベストスコア更新を `Awake` へ移動 (全 `Start` より先に更新 → `SaveLoadManager` の保存に必ず載る) |
+| F17 | **修正** | Ready パネル内の `Start` ボタンを削除し、右下の `Start` 1 個に統一 |
+| F18 | **Known Issue** | `RankingPanel` の F5 案内は cloud 曲以外では開けない (`ResultRankingOverlay` は他 Worker 所有のため本 Issue では触らない) |
+
+### T4: Scene / EventSystem / CanvasRenderer 監査 (2026-11-08 実測)
+
+| Scene | EventSystem | InputModule | TMP テキスト | CanvasRenderer | TMP で CanvasRenderer 欠損 |
+|---|---|---|---|---|---|
+| TitleScene | 1 | 1 | 10 | 26 | **0** |
+| SelectScene | 1 | 1 | 36 | 83 | **0** |
+| GameScene | 1 | 1 | 19 | 32 | **0** |
+| ResultScene | 1 | 1 | 30 | 58 | **0** |
+| OptionScene | 1 | 1 | 26 | 65 | **0** |
+| Opening | 1 | 1 | 0 | 0 | **0** |
+| TypingScene | 1 | 1 | 0 | 0 | **0** |
+| MakeFileScene | 0 | 0 | 0 | 0 | (譜面作成ツール。対象外) |
+
+**結論**: 1 画面 1 EventSystem、TMP の CanvasRenderer 欠損ゼロ (Issue #153 の修正済み)。
+二重 EventSystem も無いため、**シーン YAML の変更は不要**と判断し、最小差分原則に従って
+`Assets/**/*.unity` は一切書き換えていない。Canvas 側の wiring (Raycaster / 順序 / レガシー
+Raycaster 無効化) は実行時コードで解決した。
+
+### オフラインコンパイル検証 (Unity 起動なし)
+
+`Assets/Game/Scripts/**` と `Assets/Tests/Editor/{V5UiWiringTests,TitleOptionV5Tests}.cs` を
+Unity 6.0.5.6f1 の `UnityEngine.*` DLL と `Library/ScriptAssemblies/{UnityEngine.UI, Unity.TextMeshPro,
+SimpleFadeSystem, NoteEditor, YoutubePlayer}.dll` を参照にして `dotnet build` で型検査 →
+**0 エラー** (テストコードを含む)。
+
 ## Rollback
 
 本 Issue の変更は Owned Paths 内に閉じており、他ブランチの成果物と競合しない。

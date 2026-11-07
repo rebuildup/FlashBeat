@@ -51,12 +51,11 @@ namespace FlashBeat.UI.V5
             { "4th smile", "4th smile" },
         };
 
-        // Ready の「このプレイの設定」。Key Guide / Lyrics は GameScene 側 (別 Issue) が
-        // 参照するためのセッション状態。NoteSpeed は GManager.noteSpeed に直接反映する。
-        private static readonly string[] KeyGuideModes = { "Compact", "Full", "Off" };
+        // Ready の「このプレイの設定」。Key Guide / Lyrics は PlaySession 経由で
+        // GameScene 側へ実値を渡す (Issue #167: 以前は private static に書くだけで
+        // GameScene が読まないため、UI の値だけが変わる偽値になっていた)。
+        // NoteSpeed は GManager.noteSpeed に直接反映し、保存もする。
         private static readonly string[] LyricsModes = { "Auto", "Off" };
-        private static string keyGuideMode = "Compact";
-        private static string lyricsMode = "Auto";
 
         private SelectSceneManager owner;
         private Canvas canvas;
@@ -74,6 +73,11 @@ namespace FlashBeat.UI.V5
         private readonly Dictionary<string, Sprite> jacketCache = new Dictionary<string, Sprite>();
         private readonly Dictionary<string, Sprite> webJacketCache = new Dictionary<string, Sprite>();
 
+        // ランキング Online セグメントの状態 (Issue #167: 実データを取得する)。
+        private RankingClient.LeaderboardEntry[] onlineEntries;
+        private bool onlineLoading;
+        private bool onlineFetchFailed;
+
         private float u;
 
         /// <summary>View を生成し、レガシー Canvas を非表示にする。SelectSceneManager.Start から呼ぶ。</summary>
@@ -83,12 +87,11 @@ namespace FlashBeat.UI.V5
             var view = root.AddComponent<SelectView>();
             view.owner = owner;
 
-            var canvasGo = new GameObject("V5 Select Canvas", typeof(Canvas));
+            // Issue #167: GraphicRaycaster 付きの Canvas にする (マウスクリックを効かせる)。
+            var canvas = V5GameUi.NewScreenCanvas("V5 Select Canvas");
+            var canvasGo = canvas.gameObject;
             canvasGo.transform.SetParent(root.transform, false);
-            view.canvas = canvasGo.GetComponent<Canvas>();
-            view.canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            view.canvas.sortingOrder = 500;
-            CanvasConfigurator.Configure(view.canvas);
+            view.canvas = canvas;
 
             // レガシー (Issue #57 までのシーン配置 UI) を隠して新しい UI に置き換える。
             var legacy = GameObject.Find("Canvas");
@@ -96,6 +99,8 @@ namespace FlashBeat.UI.V5
 
             view.RefreshFilter();
             view.Rebuild();
+            // Issue #167: 矢印キー操作は SelectView 自身が担うので Unity の自動ナビゲーションは切る。
+            V5GameUi.ApplySingleInputModel(canvas);
             return view;
         }
 
@@ -247,8 +252,13 @@ namespace FlashBeat.UI.V5
 
         private void StartSelected()
         {
+            // Issue #167: 再生できない曲 (placeholder / 未選択) では始めない。
+            if (!HasPlayableSong()) { return; }
+
             // フェードが新 UI の上に来るよう、出ていくときは自分を下げる。
             if (canvas != null) canvas.sortingOrder = -100;
+            // ポインタで選んだ Button の選択を解除する (Enter の二重発火を防ぐ)。
+            V5GameUi.ClearPointerSelection();
             if (owner != null) owner.GameScene();
         }
 
@@ -281,6 +291,9 @@ namespace FlashBeat.UI.V5
 
         private void EnterReady()
         {
+            // Issue #167: 再生できない曲では Ready 画面へ進まない。
+            if (!HasPlayableSong()) { return; }
+
             readyRow = 0;
             state = ScreenState.Ready;
             Rebuild();
@@ -315,27 +328,25 @@ namespace FlashBeat.UI.V5
         {
             if (readyRow == 0)
             {
-                keyGuideMode = StepMode(KeyGuideModes, keyGuideMode, delta);
+                // キーガイドの表示モード (Compact / Full / Off)。ゲーム中の HUD が読む。
+                PlaySession.SetKeyGuide(PlaySession.NextKeyGuide(PlaySession.KeyGuide, delta));
             }
             else if (readyRow == 1)
             {
-                lyricsMode = StepMode(LyricsModes, lyricsMode, delta);
+                // 歌詞の表示可否 (Auto / Off)。ゲーム中の歌詞パネルが読む。
+                int index = Array.IndexOf(LyricsModes, PlaySession.LyricsLabel(PlaySession.LyricsEnabled));
+                if (index < 0) index = 0;
+                index = (index + delta % LyricsModes.Length + LyricsModes.Length) % LyricsModes.Length;
+                PlaySession.SetLyricsEnabled(LyricsModes[index] == "Auto");
             }
             else
             {
                 int value = Mathf.RoundToInt(GManager.noteSpeed) + delta;
-                GManager.noteSpeed = Mathf.Clamp(value, 1, 50);
+                GManager.noteSpeed = Mathf.Clamp(value, (int)OptionSettings.NoteSpeedMin, (int)OptionSettings.NoteSpeedMax);
+                OptionSettings.Save();
             }
 
             Rebuild();
-        }
-
-        private static string StepMode(string[] modes, string current, int delta)
-        {
-            int idx = Array.IndexOf(modes, current);
-            if (idx < 0) idx = 0;
-            idx = (idx + delta + modes.Length) % modes.Length;
-            return modes[idx];
         }
 
         /// <summary>Hiscore が付いた曲 (履歴として存在するデータ) をスコア順で。</summary>
@@ -523,6 +534,7 @@ namespace FlashBeat.UI.V5
             var tmp = Text(go, "Label", label, U(24), V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
             FillRect(tmp.rectTransform);
             var button = go.AddComponent<Button>();
+            button.targetGraphic = go.GetComponent<Image>();
             button.onClick.AddListener(() => onClick());
             return go;
         }
@@ -534,8 +546,24 @@ namespace FlashBeat.UI.V5
             var tmp = Text(go, "Label", label, U(24), V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Bold);
             FillRect(tmp.rectTransform);
             var button = go.AddComponent<Button>();
+            button.targetGraphic = go.GetComponent<Image>();
             button.onClick.AddListener(() => onClick());
             return go;
+        }
+
+        /// <summary>ボタンを使えない状態にする (対象曲が無いときなど)。</summary>
+        private static void SetInteractable(GameObject buttonGo, bool interactable)
+        {
+            if (buttonGo == null) { return; }
+            var button = buttonGo.GetComponent<Button>();
+            if (button != null) { button.interactable = interactable; }
+        }
+
+        /// <summary>いま選んでいる曲が再生できる状態か (placeholder / 未選択は不可)。</summary>
+        private static bool HasPlayableSong()
+        {
+            var song = GManager.GetSong(GManager.songID);
+            return song != null && !song.unplayable;
         }
 
         /// <summary>KeyCap + 説明ラベル (design LegendItem)。x/bottom/capW は design px, 下端 anchored。</summary>
@@ -898,7 +926,8 @@ namespace FlashBeat.UI.V5
                     ("← →", "値", 72f),
                     ("Esc", "選曲へ", 56f),
                 }, 44f);
-                PrimaryButton(canvas.gameObject, "Start", 48f, 28f, 204f, 56f, "Start", StartSelected);
+                var startButton = PrimaryButton(canvas.gameObject, "Start", 48f, 28f, 204f, 56f, "Start", StartSelected);
+                SetInteractable(startButton, HasPlayableSong());
             }
             else
             {
@@ -909,7 +938,8 @@ namespace FlashBeat.UI.V5
                     ("F3", "ランキング", 48f),
                     ("Esc", "タイトルへ", 56f),
                 }, 44f);
-                PrimaryButton(canvas.gameObject, "Ready", 48f, 28f, 180f, 56f, "Ready", EnterReady);
+                var readyButton = PrimaryButton(canvas.gameObject, "Ready", 48f, 28f, 180f, 56f, "Ready", EnterReady);
+                SetInteractable(readyButton, HasPlayableSong());
             }
         }
 
@@ -1121,8 +1151,8 @@ namespace FlashBeat.UI.V5
             string[] labels = { "Key Guide", "Lyrics", "NoteSpeed" };
             string[] values =
             {
-                keyGuideMode,
-                lyricsMode,
+                PlaySession.KeyGuideLabel(PlaySession.KeyGuide),
+                PlaySession.LyricsLabel(PlaySession.LyricsEnabled),
                 Mathf.RoundToInt(GManager.noteSpeed).ToString(),
             };
             for (int i = 0; i < 3; i++)
@@ -1190,7 +1220,7 @@ namespace FlashBeat.UI.V5
             noteRt.anchoredPosition = new Vector2(-U(24), -U(88));
             noteRt.sizeDelta = new Vector2(U(400), U(66));
 
-            PrimaryButton(panel, "Start", 192f, 392f - 316f - 56f, 204f, 56f, "Start", StartSelected);
+            // Issue #167: Start ボタンは画面右下の 1 個だけにする (パネル内にもあると二重)。
         }
 
         // --- 02d History ---
@@ -1468,7 +1498,10 @@ namespace FlashBeat.UI.V5
             songHeadRt.sizeDelta = new Vector2(U(300), U(36));
 
             var song = GManager.GetSong(GManager.songID);
-            var songSub = Text(songPanel, "Sub", song != null ? song.title : "", U(18), V5Tokens.TextMuted);
+            // Issue #167: どちらのランキング在看かを明示する (Local / Online)。
+            string songSubText = (song != null ? song.title : "")
+                + (rankingSegment == 1 ? " / オンライン" : " / この端末の記録");
+            var songSub = Text(songPanel, "Sub", songSubText, U(18), V5Tokens.TextMuted);
             var songSubRt = songSub.rectTransform;
             songSubRt.anchorMin = new Vector2(0f, 1f);
             songSubRt.anchorMax = new Vector2(0f, 1f);
@@ -1492,24 +1525,36 @@ namespace FlashBeat.UI.V5
                 localBtnTmp.color = rankingSegment == 0 ? V5Tokens.Text : V5Tokens.TextMuted;
             }
 
-            var onlineBtn = SmallButton(segment, "Online", 108f, 4f, 103f, 48f, "Online", () =>
+            // Issue #167: Online セグメントは「オンラインランキングがない曲」では出さない
+            // (未接続 表示だけの列を作らない)。
+            bool onlineAvailable = CanFetchOnlineRanking(song);
+            if (!onlineAvailable && rankingSegment == 1)
             {
-                Sound();
-                rankingSegment = 1;
-                Rebuild();
-            });
-            var onlineBtnTmp = onlineBtn.GetComponentInChildren<TextMeshProUGUI>();
-            if (onlineBtnTmp != null)
+                rankingSegment = 0;
+            }
+
+            if (onlineAvailable)
             {
-                onlineBtnTmp.fontStyle = rankingSegment == 1 ? FontStyles.Bold : FontStyles.Normal;
-                onlineBtnTmp.color = rankingSegment == 1 ? V5Tokens.Text : V5Tokens.TextMuted;
+                var onlineBtn = SmallButton(segment, "Online", 108f, 4f, 103f, 48f, "Online", () =>
+                {
+                    Sound();
+                    rankingSegment = 1;
+                    FetchOnlineRanking(song);
+                    Rebuild();
+                });
+                var onlineBtnTmp = onlineBtn.GetComponentInChildren<TextMeshProUGUI>();
+                if (onlineBtnTmp != null)
+                {
+                    onlineBtnTmp.fontStyle = rankingSegment == 1 ? FontStyles.Bold : FontStyles.Normal;
+                    onlineBtnTmp.color = rankingSegment == 1 ? V5Tokens.Text : V5Tokens.TextMuted;
+                }
             }
 
             var songWell = PanelAt(songPanel, "List Well", 24f, 107f, 592f, 629f, V5Tokens.Key2, V5Tokens.RadiusMedium);
             int hiscore = HiscoreAt(GManager.songID);
             if (rankingSegment == 1)
             {
-                EmptyText(songWell, "オンラインランキングは\n未接続です", 592f, 629f);
+                BuildOnlineRankRows(songWell);
             }
             else if (hiscore > 0)
             {
@@ -1520,9 +1565,9 @@ namespace FlashBeat.UI.V5
                 EmptyText(songWell, "スコアがまだありません", 592f, 629f);
             }
 
-            // 右: プレイヤーランキング (ローカルにデータ無し)
+            // 右: プレイヤーランキング (Issue #167: 実体はこの端末の記録だけだと明記する)
             var playersPanel = PanelAtRight(canvas.gameObject, "Players", 48f, 48f, 688f, 760f, V5Tokens.Base, V5Tokens.RadiusMedium);
-            var playersHead = Text(playersPanel, "Head", "登録名ごとのランキング", U(26), V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
+            var playersHead = Text(playersPanel, "Head", "この端末の記録 (ローカル)", U(26), V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
             var playersHeadRt = playersHead.rectTransform;
             playersHeadRt.anchorMin = new Vector2(0f, 1f);
             playersHeadRt.anchorMax = new Vector2(0f, 1f);
@@ -1530,7 +1575,7 @@ namespace FlashBeat.UI.V5
             playersHeadRt.anchoredPosition = new Vector2(U(24), -U(24));
             playersHeadRt.sizeDelta = new Vector2(U(500), U(36));
 
-            var playersSub = Text(playersPanel, "Sub", "累計 = 各曲のベストスコアの合計", U(18), V5Tokens.TextMuted);
+            var playersSub = Text(playersPanel, "Sub", "オンライン未接続 / 累計 = 各曲のベストスコアの合計", U(18), V5Tokens.TextMuted);
             var playersSubRt = playersSub.rectTransform;
             playersSubRt.anchorMin = new Vector2(0f, 1f);
             playersSubRt.anchorMax = new Vector2(0f, 1f);
@@ -1539,7 +1584,7 @@ namespace FlashBeat.UI.V5
             playersSubRt.sizeDelta = new Vector2(U(500), U(26));
 
             var playersWell = PanelAt(playersPanel, "List Well", 24f, 107f, 640f, 629f, V5Tokens.Key2, V5Tokens.RadiusMedium);
-            EmptyText(playersWell, "ローカルモードでは\nプレイヤーごとの記録はありません", 640f, 629f);
+            EmptyText(playersWell, "この端末の記録のみを\n表示しています (オンライン未接続)", 640f, 629f);
 
             // 下: プレイヤーサマリ (Hiscore から計算できる値のみ)。左右に伸縮。
             var profileRt = Stretch(canvas.gameObject, "Player Profile", 520f, 48f, 832f, 184f);
@@ -1575,6 +1620,71 @@ namespace FlashBeat.UI.V5
             BuildProfileStat(profile, "累計", SelectViewLogic.ScoreText(sum), 0);
             BuildProfileStat(profile, "プレイ曲", played + " / " + total, 1);
             BuildProfileStat(profile, "S 以上", sPlus.ToString(), 2);
+        }
+
+        /// <summary>オンラインランキングを取得できる曲か (cloud 曲のみ)。</summary>
+        private static bool CanFetchOnlineRanking(SongData song)
+        {
+            if (song == null || !song.isRemote) { return false; }
+            if (string.IsNullOrEmpty(song.remoteId)) { return false; }
+            if (song.chartVersion <= 0) { return false; }
+            return RankingClient.IsValidSongId(song.remoteId);
+        }
+
+        /// <summary>オンラインランキングを取得する (RankingClient の公共 API を呼ぶだけ)。</summary>
+        private void FetchOnlineRanking(SongData song)
+        {
+            onlineEntries = null;
+            onlineFetchFailed = false;
+            onlineLoading = true;
+            StartCoroutine(RankingClient.GetLeaderboard(song.remoteId, song.chartVersion, result =>
+            {
+                onlineLoading = false;
+                if (result != null && result.ok && result.leaderboard != null && result.leaderboard.entries != null)
+                {
+                    onlineEntries = result.leaderboard.entries;
+                }
+                else
+                {
+                    onlineEntries = null;
+                    onlineFetchFailed = true;
+                }
+
+                Rebuild();
+            }));
+        }
+
+        /// <summary>オンライン順位の行を描く (取得前 / 失敗 / 取得済みの 3 状態)。</summary>
+        private void BuildOnlineRankRows(GameObject songWell)
+        {
+            if (onlineLoading)
+            {
+                EmptyText(songWell, "取得しています…", 592f, 629f);
+                return;
+            }
+
+            if (onlineFetchFailed)
+            {
+                EmptyText(songWell, "ランキングを\nとりにいけませんでした", 592f, 629f);
+                return;
+            }
+
+            if (onlineEntries == null || onlineEntries.Length == 0)
+            {
+                EmptyText(songWell, "この曲はまだ\n順位がありません", 592f, 629f);
+                return;
+            }
+
+            float y = 8f;
+            int count = Mathf.Min(onlineEntries.Length, 9);
+            for (int i = 0; i < count; i++)
+            {
+                var entry = onlineEntries[i];
+                if (entry == null) { continue; }
+                RankRow(songWell, 8f, y, 576f, entry.rank.ToString(),
+                    string.IsNullOrEmpty(entry.nickname) ? "YOU" : entry.nickname, entry.score, false);
+                y += 64f;
+            }
         }
 
         private void BuildProfileStat(GameObject parent, string label, string value, int index)

@@ -102,9 +102,36 @@ namespace FlashBeat.UI.V5
         /// キー名は KeyBindings の PlayerPrefsStorage と同じ (private なのでここでも literal)。</summary>
         public const string KeyBindingsPrefsKey = "FlashBeat.KeyBindings";
 
+        /// <summary>
+        /// Key Layout 行の表示値 (Issue #167)。
+        /// 以前は PlayerPrefs のキー有無だけで判定していたため、
+        /// 実際の割り当て (配置文件) と食い違って「標準」と出过。
+        /// 現在の割り当てと既定値を比較して判定する。
+        /// </summary>
         public static string KeyLayoutLabel()
         {
-            return PlayerPrefs.HasKey(KeyBindingsPrefsKey) ? "カスタム" : "標準";
+            return IsDefaultKeyLayout() ? "標準" : "カスタム";
+        }
+
+        /// <summary>現在のキー割り当てが既定と一致するか。</summary>
+        public static bool IsDefaultKeyLayout()
+        {
+            var current = KeyBindings.Current;
+            if (current == null) { return true; }
+
+            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            {
+                var defaults = Judge.LaneKeys[lane];
+                var keys = lane < current.Length ? current[lane] : null;
+                if (keys == null || defaults == null) { continue; }
+                if (keys.Length != defaults.Length) { return false; }
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (keys[i] != defaults[i]) { return false; }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>行選択の折り返し。</summary>
@@ -127,10 +154,9 @@ namespace FlashBeat.UI.V5
         public static OptionView Build(Action back, Action speedUp, Action speedDown,
             Action timingUp, Action timingDown)
         {
-            var canvasGo = new GameObject("V5 Option Canvas", typeof(Canvas));
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            CanvasConfigurator.Configure(canvas);
+            // Issue #167: GraphicRaycaster 付きの Canvas にする (マウスクリックを効かせる)。
+            var canvas = V5GameUi.NewScreenCanvas("V5 Option Canvas");
+            var canvasGo = canvas.gameObject;
 
             var root = V5Ui.Node(canvasGo, "Root");
             V5Ui.Fill(root.GetComponent<RectTransform>(), 0f);
@@ -147,6 +173,8 @@ namespace FlashBeat.UI.V5
             view.BuildRightColumn();
             view.BuildLegend();
             view.SelectTab(0);
+            // Issue #167: 矢印キー操作は OptionView 自身が担うので Unity の自動ナビゲーションは切る。
+            V5GameUi.ApplySingleInputModel(canvas);
             return view;
         }
 
@@ -312,19 +340,19 @@ namespace FlashBeat.UI.V5
             {
                 new Row("Flash",
                     () => GManager.Flash ? "On" : "Off",
-                    d => { if (d != 0) GManager.Flash = !GManager.Flash; },
-                    () => { GManager.Flash = !GManager.Flash; RefreshRowValues(); },
+                    d => { if (d != 0) { GManager.Flash = !GManager.Flash; OptionSettings.Save(); } },
+                    () => { GManager.Flash = !GManager.Flash; OptionSettings.Save(); RefreshRowValues(); },
                     "Flash",
                     "ノーツ判定時の背景フラッシュの On/Off。"),
                 new Row("FlashTiming",
                     () => GManager.FlashT.ToString(),
-                    d => GManager.FlashT += d,
+                    d => { GManager.FlashT += d; OptionSettings.Save(); },
                     null,
                     "FlashTiming",
                     "フラッシュのタイミングを調整します。"),
                 new Row("FlashSpeed",
                     () => GManager.FlashBG.ToString(),
-                    d => GManager.FlashBG = CycleFlashSpeed(GManager.FlashBG, d),
+                    d => { GManager.FlashBG = CycleFlashSpeed(GManager.FlashBG, d); OptionSettings.Save(); },
                     null,
                     "FlashSpeed",
                     "フラッシュの速さ。1 が最も速く、8 が最も遅い。"),
@@ -341,19 +369,31 @@ namespace FlashBeat.UI.V5
                     {
                         GManager.mainVolume = AdjustVolume(GManager.mainVolume, d);
                         AudioListener.volume = GManager.mainVolume;
+                        OptionSceneManager.ApplyVolumes();
+                        OptionSettings.Save();
                     },
                     null,
                     "Main Volume",
                     "全体の音量。"),
                 new Row("Effect Volume",
                     () => FormatVolume(GManager.effectVolume),
-                    d => GManager.effectVolume = AdjustVolume(GManager.effectVolume, d),
+                    d =>
+                    {
+                        GManager.effectVolume = AdjustVolume(GManager.effectVolume, d);
+                        OptionSceneManager.ApplyVolumes();
+                        OptionSettings.Save();
+                    },
                     null,
                     "Effect Volume",
                     "効果音の音量。"),
                 new Row("BGM Volume",
                     () => FormatVolume(GManager.BGMVolume),
-                    d => GManager.BGMVolume = AdjustVolume(GManager.BGMVolume, d),
+                    d =>
+                    {
+                        GManager.BGMVolume = AdjustVolume(GManager.BGMVolume, d);
+                        OptionSceneManager.ApplyVolumes();
+                        OptionSettings.Save();
+                    },
                     null,
                     "BGM Volume",
                     "BGM の音量。"),

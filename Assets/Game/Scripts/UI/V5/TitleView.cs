@@ -68,10 +68,9 @@ namespace FlashBeat.UI.V5
         /// </summary>
         public static TitleView Build(Action gameStart, Action option, Action exit, Action sound)
         {
-            var canvasGo = new GameObject("V5 Title Canvas", typeof(Canvas));
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            CanvasConfigurator.Configure(canvas);
+            // Issue #167: GraphicRaycaster 付きの Canvas にする (マウスクリックを効かせる)。
+            var canvas = V5GameUi.NewScreenCanvas("V5 Title Canvas");
+            var canvasGo = canvas.gameObject;
 
             var root = V5Ui.Node(canvasGo, "Root");
             V5Ui.Fill(root.GetComponent<RectTransform>(), 0f);
@@ -91,6 +90,8 @@ namespace FlashBeat.UI.V5
             view.BuildLegend();
             view.ApplyLayout();
             view.SetSelected(0, silent: true);
+            // Issue #167: 矢印キー操作は TitleView 自身が担うので Unity の自動ナビゲーションは切る。
+            V5GameUi.ApplySingleInputModel(canvas);
             return view;
         }
 
@@ -254,6 +255,9 @@ namespace FlashBeat.UI.V5
             {
                 onSound();
             }
+
+            // Issue #167: ポインタで選んだ Button の選択を解除する (Enter の二重発火を防ぐ)。
+            V5GameUi.ClearPointerSelection();
 
             var item = VisibleItem(index);
             if (item != null && item.Run != null)
