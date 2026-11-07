@@ -1,69 +1,22 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Text;
-using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
-using UnityEngine.UI;
 
+/// <summary>
+/// Select scene (design Unit 02 "Select", v5 rebuild #121).
+///
+/// データと遷移の所有者。見た目と入力は <see cref="FlashBeat.UI.V5.SelectView"/>
+/// (コード生成 uGUI, design/flashbeat-ui.pen v5) が担い、このクラスは
+/// - クラウドカタログの定期更新 (#17)
+/// - プレイ開始パス (GManager.songID → GameScene / リモート譜面の確定)
+/// - タイトルへの遷移と決定音
+/// を持つ。旧シーン配置 UI の Canvas は SelectView.Create が非表示化する。
+/// </summary>
 public class SelectSceneManager : MonoBehaviour
 {
-    [SerializeField] private TextMeshProUGUI BackT;
-    [SerializeField] private TextMeshProUGUI StartT;
-    [SerializeField] private TextMeshProUGUI SongUpT;
-    [SerializeField] private TextMeshProUGUI SongDownT;
-
     [SerializeField] private AudioClip sound;
+
     private AudioSource sounds;
-
-    [SerializeField] private TextMeshProUGUI SongNameOne;
-    [SerializeField] private TextMeshProUGUI SongNameTwo;
-    [SerializeField] private TextMeshProUGUI SongNameThree;
-    [SerializeField] private TextMeshProUGUI SongNameFour;
-    [SerializeField] private TextMeshProUGUI SongNameFive;
-
-    [SerializeField] private TextMeshProUGUI MusicianOne;
-    [SerializeField] private TextMeshProUGUI MusicianTwo;
-    [SerializeField] private TextMeshProUGUI MusicianThree;
-    [SerializeField] private TextMeshProUGUI MusicianFour;
-    [SerializeField] private TextMeshProUGUI MusicianFive;
-
-    [SerializeField] private TextMeshProUGUI BPMOne;
-    [SerializeField] private TextMeshProUGUI BPMTwo;
-    [SerializeField] private TextMeshProUGUI BPMThree;
-    [SerializeField] private TextMeshProUGUI BPMFour;
-    [SerializeField] private TextMeshProUGUI BPMFive;
-
-    [SerializeField] private TextMeshProUGUI HitOne;
-    [SerializeField] private TextMeshProUGUI HitTwo;
-    [SerializeField] private TextMeshProUGUI HitThree;
-    [SerializeField] private TextMeshProUGUI HitFour;
-    [SerializeField] private TextMeshProUGUI HitFive;
-
-    [SerializeField] private TextMeshProUGUI LevelOne;
-    [SerializeField] private TextMeshProUGUI LevelTwo;
-    [SerializeField] private TextMeshProUGUI LevelThree;
-    [SerializeField] private TextMeshProUGUI LevelFour;
-    [SerializeField] private TextMeshProUGUI LevelFive;
-
-    [SerializeField] private TextMeshProUGUI noOne;
-    [SerializeField] private TextMeshProUGUI noTwo;
-    [SerializeField] private TextMeshProUGUI noThree;
-    [SerializeField] private TextMeshProUGUI noFour;
-    [SerializeField] private TextMeshProUGUI noFive;
-
-    [SerializeField] private TextMeshProUGUI HiOne;
-    [SerializeField] private TextMeshProUGUI HiTwo;
-    [SerializeField] private TextMeshProUGUI HiThree;
-    [SerializeField] private TextMeshProUGUI HiFour;
-    [SerializeField] private TextMeshProUGUI HiFive;
-
-    [SerializeField] private TextMeshProUGUI dottt;
-    [SerializeField] private Image[] samune;
-
-    public Image[] imageObjects;
-    private string dottT;
+    private FlashBeat.UI.V5.SelectView view;
 
     // Cloud Catalog (#17)
     Coroutine catalogRefresh;
@@ -73,8 +26,13 @@ public class SelectSceneManager : MonoBehaviour
     {
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
-        UpdateThumbnails();
+        view = FlashBeat.UI.V5.SelectView.Create(this);
         StartCatalogRefresh();
+    }
+
+    void Update()
+    {
+        if (view != null) view.HandleInput();
     }
 
     // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it
@@ -112,8 +70,7 @@ public class SelectSceneManager : MonoBehaviour
             catalogWarned = false;
             GManager.ApplyRemoteCatalog(songs);
             if (GManager.songID > GManager.totalSong) GManager.songID = 1;
-            UpdateUI();
-            UpdateThumbnails();
+            OnCatalogChanged();
         }
         else
         {
@@ -122,104 +79,21 @@ public class SelectSceneManager : MonoBehaviour
                 catalogWarned = true;
                 GManager.ClearRemoteCatalog();
                 if (GManager.songID > GManager.totalSong) GManager.songID = 1;
-                UpdateUI();
-                UpdateThumbnails();
+                OnCatalogChanged();
                 Debug.LogWarning($"[SelectScene] catalog unavailable (status={status}) - using the built-in song list");
             }
         }
     }
 
-    void Update()
+    private void OnCatalogChanged()
     {
-        UpdateUI();
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            playSound();
-            GameScene();
-        }
-
-        if (KeyBindings.IsAnyLaneKeyDown(0, 4) || Input.GetKeyDown(KeyCode.LeftArrow)) // lanes 1-4 (custom bindings) = previous song
-        {
-            playSound();
-            SongDown();
-        }
-
-        if (KeyBindings.IsAnyLaneKeyDown(4, 8) || Input.GetKeyDown(KeyCode.RightArrow)) // lanes 5-8 (custom bindings) = next song
-        {
-            playSound();
-            SongUp();
-        }
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            playSound();
-            TitleScene();
-        }
+SelectSceneManager #2: take v5 delegation to SelectView (legacy UI methods removed by 121)
     }
 
-    private int GetSongIndexAtOffset(int currentSongID, int offset)
-    {
-        int total = GManager.totalSong;
-        if (total <= 0) return 1;
-        int zeroBased = (currentSongID - 1 + offset) % total;
-        if (zeroBased < 0) zeroBased += total;
-        return zeroBased + 1;
-    }
-
-    private void UpdateUI()
-    {
-        dottDis(GManager.songID);
-
-        int[] offsets = new int[] { -2, -1, 0, 1, 2 };
-
-        TextMeshProUGUI[] songNames = { SongNameOne, SongNameTwo, SongNameThree, SongNameFour, SongNameFive };
-        TextMeshProUGUI[] musicians = { MusicianOne, MusicianTwo, MusicianThree, MusicianFour, MusicianFive };
-        TextMeshProUGUI[] bpms = { BPMOne, BPMTwo, BPMThree, BPMFour, BPMFive };
-        TextMeshProUGUI[] hits = { HitOne, HitTwo, HitThree, HitFour, HitFive };
-        TextMeshProUGUI[] levels = { LevelOne, LevelTwo, LevelThree, LevelFour, LevelFive };
-        TextMeshProUGUI[] nos = { noOne, noTwo, noThree, noFour, noFive };
-        TextMeshProUGUI[] hiscores = { HiOne, HiTwo, HiThree, HiFour, HiFive };
-
-        for (int i = 0; i < 5; i++)
-        {
-            int sID = GetSongIndexAtOffset(GManager.songID, offsets[i]);
-            var song = GManager.ActiveSongs[sID];
-            if (songNames[i] != null) songNames[i].text = song.title;
-            if (musicians[i] != null) musicians[i].text = song.musician;
-            if (bpms[i] != null) bpms[i].text = song.bpm.ToString();
-            if (hits[i] != null) hits[i].text = song.totalHits.ToString();
-            if (levels[i] != null) levels[i].text = song.level.ToString();
-            if (nos[i] != null) nos[i].text = sID.ToString();
-            if (hiscores[i] != null) hiscores[i].text = sID < GManager.Hiscore.Length ? GManager.Hiscore[sID].ToString() : "0";
-        }
-    }
-
-    private void UpdateThumbnails()
-    {
-        int[] offsets = new int[] { -2, -1, 0, 1, 2 };
-        for (int i = 0; i < 5; i++)
-        {
-            int sID = GetSongIndexAtOffset(GManager.songID, offsets[i]);
-            StartCoroutine(FetchThumbnail(GManager.ActiveSongs[sID].videoId, i));
-        }
-    }
-
-    public void dottDis(int N)
-    {
-        if (dottt == null) return;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= GManager.totalSong; i++)
-        {
-            if (i > 1) sb.Append(" ");
-            sb.Append(i == N ? "●" : "○");
-        }
-        dottt.text = sb.ToString();
-    }
-
+    /// <summary>選択中の曲でプレイを開始する (リモート曲は譜面を確定してから)。</summary>
     public void GameScene()
     {
-        SongData song = GManager.ActiveSongs[GManager.songID];
+        SongData song = GManager.GetSong(GManager.songID);
         if (song != null && song.isRemote)
         {
             // Cloud Catalog (#17): pin the chart version now and fetch the
@@ -262,115 +136,13 @@ public class SelectSceneManager : MonoBehaviour
 
     public void playSound()
     {
-        if (sounds != null && sound != null)
-        {
-            sounds.PlayOneShot(sound);
-        }
+        if (sounds == null) sounds = GetComponent<AudioSource>();
+        if (sounds == null || sound == null) return;
+        sounds.PlayOneShot(sound);
     }
 
     public void TitleScene()
     {
         Initiate.Fade("TitleScene", Color.black, 1.0f);
     }
-
-    public void SongUp()
-    {
-        GManager.songID++;
-        if (GManager.songID > GManager.totalSong)
-        {
-            GManager.songID = 1;
-        }
-        UpdateThumbnails();
-    }
-
-    public void SongDown()
-    {
-        GManager.songID--;
-        if (GManager.songID <= 0)
-        {
-            GManager.songID = GManager.totalSong;
-        }
-        UpdateThumbnails();
-    }
-
-    public void BackTUp()
-    {
-        if (BackT != null) BackT.fontSize = 19;
-    }
-    public void BackTDown()
-    {
-        if (BackT != null) BackT.fontSize = 17;
-    }
-    public void StartTUp()
-    {
-        if (StartT != null) StartT.fontSize = 16.5f;
-    }
-    public void StartTDown()
-    {
-        if (StartT != null) StartT.fontSize = 15;
-    }
-    public void SongUpTUp()
-    {
-        if (SongUpT != null) SongUpT.fontSize = 33;
-    }
-    public void SongUpTDown()
-    {
-        if (SongUpT != null) SongUpT.fontSize = 30;
-    }
-    public void SongDownTUp()
-    {
-        if (SongDownT != null) SongDownT.fontSize = 33;
-    }
-    public void SongDownTDown()
-    {
-        if (SongDownT != null) SongDownT.fontSize = 30;
-    }
-
-    public void PanelOne()
-    {
-        GManager.songID -= 2;
-        if (GManager.songID <= 0)
-        {
-            GManager.songID += GManager.totalSong;
-        }
-        UpdateThumbnails();
-    }
-    public void PanelTwo()
-    {
-        SongDown();
-    }
-    public void PanelFour()
-    {
-        SongUp();
-    }
-    public void PanelFive()
-    {
-        GManager.songID += 2;
-        if (GManager.songID > GManager.totalSong)
-        {
-            GManager.songID -= GManager.totalSong;
-        }
-        UpdateThumbnails();
-    }
-
-    private IEnumerator FetchThumbnail(string songURL, int index)
-    {
-        if (imageObjects == null || index < 0 || index >= imageObjects.Length || imageObjects[index] == null)
-            yield break;
-
-        string url = "https://img.youtube.com/vi/" + songURL + "/0.jpg";
-        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
-        yield return request.SendWebRequest();
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-            imageObjects[index].sprite = sprite;
-        }
-        else
-        {
-            Debug.Log(request.error);
-        }
-    }
 }
-

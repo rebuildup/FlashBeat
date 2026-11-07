@@ -47,6 +47,11 @@ export default defineConfig({
       { charset: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
     ],
-    link: [{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
+    link: [
+      // Real FlashBeat app icon (Assets/Game/Art/Images/flashIcon.png), issue #67.
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/flashbeat-icon-32.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/flashbeat-icon-192.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/flashbeat-icon-180.png" },
+    ],
   },
 });

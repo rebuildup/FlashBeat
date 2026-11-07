@@ -157,3 +157,15 @@ Recorded as a finding, not fixed here (the file belongs to #27).
    target panel stays **未証明** until the exhibition display is available.
 4. The S0-FONT build is **not archived** to `D:\4_apps\Unity\Build\FlashBeatBuild` yet — packaging and
    the SHA-256 verified GitHub Release are **#35**'s scope, not #22's.
+
+## 6. Web ↔ API ↔ Unity カタログ (P2 / Issue #41)
+
+[`web-p2-2026-11-07/README.md`](web-p2-2026-11-07/README.md) — 本番
+`https://flashbeat.rebuildup.dev` に対する実経路検証 (Issue #41 の P2)。
+
+| 項目 | 状態 |
+|---|---|
+| Web Studio の publish → D1 | **証明済み** — スタジオの publish パスで本番 D1 に書き込むこと (編集ノーツの round-trip を含む) |
+| 本番 API の契約一致 | **証明済み** — `web/tests/production-api.test.ts` 10 pass / 0 fail |
+| Unity カタログの受け渡し | **コード + 応答の形で証明済み** — 取得経路 / キャッシュ / バージョン固定の実装と本番応答の検査 |
+| Unity 実機の選曲 → 再生 → Result | **未証明** — Issue #48 / #31 の Worker の範囲 |
