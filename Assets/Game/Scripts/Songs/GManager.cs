@@ -360,6 +360,11 @@ public class GManager : MonoBehaviour
     {
         if (id >= 0 && id < ActiveSongs.Length)
         {
+            // Issue #183: プレイセッションで固定した曲は、プレイ中 (GameScene) と
+            // 結果 (ResultScene) では開始時の内容 (版を含む) を優先して返す。
+            // 選曲画面などでは最新カタログの行を返す。
+            SongData pinned = PlaySessionSnapshot.PinnedSongFor(id);
+            if (pinned != null) return pinned;
             return ActiveSongs[id];
         }
         return null;
@@ -376,6 +381,45 @@ public class GManager : MonoBehaviour
         maxCombo = 0;
         maxScore = 0;
         ratioScore = 0;
+        BeginPlaySession();
+    }
+
+    /// <summary>
+    /// 遷移開始時に 1 プレイの identity を固定する (Issue #183)。
+    ///
+    /// SelectSceneManager は
+    ///   - ローカル曲: GameScene() → ResetSession → Fade
+    ///   - リモート曲: 譜面 GET → CloudChartHolder.Hold → ResetSession → Fade
+    /// の順で遷移を開始する。ここでは現在の選択行と CloudChartHolder の保持内容
+    /// から、このプレイで使う曲と譜面を確定させる。この呼び出し以降にカタログが
+    /// 更新されても (ApplyRemoteCatalog / ClearRemoteCatalog) や選択が動いても
+    /// (songID)、プレイする譜面・版・曲情報は変わらない。
+    /// </summary>
+    static void BeginPlaySession()
+    {
+        SongData row = songID >= 0 && songID < ActiveSongs.Length ? ActiveSongs[songID] : null;
+
+        if (row != null && row.isRemote && !string.IsNullOrEmpty(row.remoteId)
+            && CloudChartHolder.TryGetForSong(row.remoteId, out int heldVersion, out string heldJson))
+        {
+            // リモート曲: 実際に取得した版 (holder の保持版) で固定する。
+            // 遷移中のカタログ入れ替えで行の chartVersion が新しくなっても、
+            // 取得済みの譜面と版がずれない。
+            PlaySessionSnapshot.Begin(row, heldVersion, heldJson);
+            return;
+        }
+        if (row != null)
+        {
+            // ローカル譜面 (Resources) の曲: 行の内容をそのまま固定する。
+            PlaySessionSnapshot.Begin(row, row.chartVersion, null);
+            return;
+        }
+
+        // 遷移中にカタログが縮小/初期化されて行が消えた: 固定できる identity が
+        // ない。遷移自体の中止は UI 側 (SelectSceneManager) の開始処理で防ぐ。
+        PlaySessionSnapshot.Clear();
+        Debug.LogWarning($"[GManager] play session cannot be pinned: song row {songID} " +
+                         "vanished (the catalog changed) - falling back to the live catalog");
     }
 
     void Awake()

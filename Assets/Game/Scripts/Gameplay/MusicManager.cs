@@ -122,7 +122,12 @@ public class MusicManager : MonoBehaviour
         GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
-        songName = GManager.ActiveSongs[GManager.songID].title;
+        // Issue #183: 遷移の待ち時間に動いたかもしれない選択を、固定した
+        // プレイセッションへ戻してから曲情報を読む。
+        PlaySessionSnapshot session = PlaySessionSnapshot.Current;
+        if (session != null) session.RestoreSongId();
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        songName = sessionSong != null ? sessionSong.title : "";
         audioS = GetComponent<AudioSource>();
         Music = (AudioClip)Resources.Load("Musics/" + songName);
         if (Music == null)
@@ -199,8 +204,9 @@ public class MusicManager : MonoBehaviour
 
     IEnumerator PrepareMediaCoroutine()
     {
-        var song = GManager.ActiveSongs[GManager.songID];
-        string videoId = song.videoId;
+        // Issue #183: 動画の id もプレイセッションで固定した曲から読む。
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        string videoId = sessionSong != null ? sessionSong.videoId : "";
 
         // A new run starts without a failure: the HUD shows the state of the
         // current pipeline.
@@ -728,7 +734,10 @@ public class MusicManager : MonoBehaviour
                       $"failure={failure}");
         }
 
-        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, GManager.ActiveSongs[GManager.songID].duration))
+        // Issue #183: 曲の長さもプレイセッションで固定した曲から読む。
+        SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        float songDuration = sessionSong != null ? sessionSong.duration : 0f;
+        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, songDuration))
         {
             resultTriggered = true;
             audioS.volume -= 0.001f;
@@ -780,7 +789,8 @@ public class MusicManager : MonoBehaviour
         StartText.SetActive(false);
         kakusi.SetActive(false);
 
-        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{GManager.ActiveSongs[GManager.songID].videoId}' " +
+        SongData playbackSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{(playbackSong != null ? playbackSong.videoId : "")}' " +
                   $"source={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
     }
 

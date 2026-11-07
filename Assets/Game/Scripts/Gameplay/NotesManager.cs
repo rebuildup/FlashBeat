@@ -67,7 +67,16 @@ public class NotesManager : MonoBehaviour
     {
         //NotesSpeed = GManager.noteSpeed;
         noteNum = 0;
-        SongData song = GManager.ActiveSongs[GManager.songID];
+        // Issue #183: 遷移開始時に固定したプレイセッションの曲を使う。遷移中の
+        // カタログ更新・選択変更が入っても、譜面と曲情報・版がずれない。
+        PlaySessionSnapshot session = PlaySessionSnapshot.Current;
+        if (session != null) session.RestoreSongId();
+        SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        if (song == null)
+        {
+            Debug.LogWarning($"[NotesManager] no song for id {GManager.songID} - playing without notes");
+            return;
+        }
         songName = song.title;
         Load(song);
     }
@@ -79,7 +88,12 @@ public class NotesManager : MonoBehaviour
         GameSceneManager.SaveNotesTime.Clear();
 
         Data inputJson = null;
-        if (song.isRemote && CloudChartHolder.TryGet(song.remoteId, song.chartVersion, out string held))
+        if (PlaySessionSnapshot.TryGetChartJson(song, out string pinned))
+        {
+            // Issue #183: 遷移開始時に固定した譜面スナップショットを最優先で使う。
+            inputJson = CloudCatalog.ParseChartResponse(pinned);
+        }
+        if (inputJson == null && song.isRemote && CloudChartHolder.TryGet(song.remoteId, song.chartVersion, out string held))
         {
             // Cloud Catalog (#17): the chart snapshot pinned at playlist start.
             inputJson = CloudCatalog.ParseChartResponse(held);
