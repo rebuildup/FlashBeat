@@ -111,7 +111,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 ? GManager.Hiscore[GManager.songID]
                 : 0;
             gaugeBest.anchoredPosition = new Vector2(
-                V6HudLogic.GaugeBestX(hi, m.GaugeFillMax) - m.GaugeBestW * 0.5f, 0f);
+                V6HudLogic.GaugeBestX(hi, m.GaugeFillMax), 0f);
 
             // コンボ
             comboText.text = GManager.combo.ToString();
@@ -286,7 +286,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             var bestRt = GetRect(best);
             bestRt.anchorMin = new Vector2(0f, 0.5f);
             bestRt.anchorMax = new Vector2(0f, 0.5f);
-            bestRt.pivot = new Vector2(0.5f, 0.5f);
+            bestRt.pivot = new Vector2(0f, 0.5f);
             bestRt.anchoredPosition = Vector2.zero;
             gaugeBest = bestRt;
 
