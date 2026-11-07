@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { css } from "styled-system/css";
 import { BrandHeader } from "@/components/brand";
 
 export const NAV_ITEMS = [
   { value: "catalog", label: "Catalog", href: "/" },
+  { value: "new-song", label: "New song", href: "/new-song" },
   { value: "editor", label: "New chart", href: "/chart" },
   { value: "publish", label: "Publish", href: "/publish" },
 ] as const;
@@ -55,6 +57,13 @@ const navTrigger = css({
 });
 
 export function Sidebar() {
+  // The active entry follows the URL; the default covers the server-rendered
+  // first paint of `/` (the catalog).
+  const [path, setPath] = useState("/");
+  useEffect(() => {
+    setPath(window.location.pathname);
+  }, []);
+
   return (
     <aside className={sidebar}>
       <div className={brand}>
@@ -66,7 +75,7 @@ export function Sidebar() {
           <a
             key={item.value}
             href={item.href}
-            aria-current={item.value === "catalog" ? "page" : undefined}
+            aria-current={item.href === path ? "page" : undefined}
             className={navTrigger}
           >
             {item.label}
