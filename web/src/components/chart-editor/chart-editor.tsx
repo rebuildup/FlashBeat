@@ -386,7 +386,9 @@ export function ChartEditor({
           setSelectedIndex(existing);
           return current;
         }
-        setSelectedIndex(null);
+        // Same as taps: the new hold is the selection, so Del and the resize
+        // handle work immediately after the placement gesture.
+        setSelectedIndex(current.notes.length);
         return addNote(
           current,
           createHold(
@@ -423,7 +425,9 @@ export function ChartEditor({
           setSelectedIndex(existing);
           return current;
         }
-        setSelectedIndex(null);
+        // The just-placed note becomes the selection, so Del removes it
+        // right away and the drag handle is immediately available.
+        setSelectedIndex(current.notes.length);
         return addNote(current, createNote(block, line, resolution));
       });
     },

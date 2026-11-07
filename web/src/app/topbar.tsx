@@ -51,6 +51,8 @@ const toolField = css({
 });
 
 const selectRoot = css({
+  /** Definite basis so Sort/Level pack into one row (issue #166). */
+  flex: "0 0 8rem",
   minWidth: "8rem",
   flexShrink: 0,
 });
