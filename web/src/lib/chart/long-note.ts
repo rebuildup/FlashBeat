@@ -1,6 +1,6 @@
-import { snapLine, type SnapSetting } from "./snap";
-import { noteBeat } from "./timing";
-import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type ChartNote } from "./types";
+import { snapLine, type SnapSetting } from "./snap.ts";
+import { noteBeat } from "./timing.ts";
+import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type ChartNote } from "./types.ts";
 
 /**
  * Long note (HOLD) logic.

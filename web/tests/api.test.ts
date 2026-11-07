@@ -24,6 +24,11 @@ import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
 
 import { chartFixture, chartFixtureNoteCount, responseValidator } from "./helpers/contract.ts";
+// The shared semantic validator of the studio (issue #191). The API and the
+// studio use the same function, so the round-trip of a published chart can be
+// checked with the very code the studio runs.
+import { validateChartSemantics } from "../src/lib/chart/validate.ts";
+import type { Chart } from "../src/lib/chart/types.ts";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 const voidCli = fileURLToPath(new URL("../node_modules/void/dist/cli/cli.mjs", import.meta.url));
@@ -591,6 +596,75 @@ describe("PUT /api/v1/admin/songs/{songId}", () => {
     assert.equal(response.status, 422);
     const body = (await response.json()) as { diagnostics: { message: string }[] };
     assert.match(body.diagnostics[0]?.message ?? "", /durationSec/);
+  });
+
+  it("rejects two Holds that fight over the same lane (issue #191)", async () => {
+    // The chart of the issue report: the API used to accept it, the editor
+    // used to refuse it, so a published chart could not be edited any more.
+    // Now both sides refuse it.
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-overlapping-hold-song",
+      publishBody("publish-overlapping-hold-song", [
+        { type: 2, num: 0, endNum: 8, block: 0, LPB: 4 },
+        { type: 2, num: 4, endNum: 12, block: 0, LPB: 4 },
+      ]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { path: string; message: string }[] };
+    assert.ok(
+      body.diagnostics.some((diagnostic) => diagnostic.path === "/chart/notes/1/num"),
+      `expected an overlap diagnostic, got ${JSON.stringify(body.diagnostics)}`,
+    );
+    assert.equal(await catalogVersion(), before);
+  });
+
+  it("rejects two Holds that fight over the same lane with a mixed LPB (issue #191)", async () => {
+    // The second case of the issue report: the raw line numbers do not
+    // overlap, but the beats do (both holds cover beat 1 to 2 of lane 0).
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-mixed-lpb-hold-song",
+      publishBody("publish-mixed-lpb-hold-song", [
+        { type: 2, num: 4, endNum: 8, block: 0, LPB: 4 },
+        { type: 2, num: 8, endNum: 16, block: 0, LPB: 8 },
+      ]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { path: string; message: string }[] };
+    assert.ok(
+      body.diagnostics.some((diagnostic) => diagnostic.path === "/chart/notes/1/num"),
+      `expected an overlap diagnostic, got ${JSON.stringify(body.diagnostics)}`,
+    );
+    assert.equal(await catalogVersion(), before);
+  });
+
+  it("serves a published chart back in a shape the Web studio can read (issue #191)", async () => {
+    // The round-trip invariant of issue #191: a chart the API accepted can be
+    // read back by the studio. Before the fix the studio refused charts the
+    // API had published ("Published chart failed validation").
+    const notes = [
+      { type: 1, num: 4, block: 0, LPB: 4 },
+      { type: 2, num: 8, block: 3, LPB: 4, endNum: 16 },
+      { type: 2, num: 24, block: 5, LPB: 4, endNum: 25 },
+      { type: 1, num: 40, block: 7, LPB: 8 },
+    ];
+    const response = await publish(
+      "publish-round-trip-song",
+      publishBody("publish-round-trip-song", notes),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 200);
+
+    const chart = await fetch(`${baseUrl}/api/v1/charts/publish-round-trip-song?version=1`);
+    assert.equal(chart.status, 200);
+    const served = (await chart.json()) as { chart: unknown };
+
+    // The very same validator the studio uses accepts the served chart.
+    const issues = validateChartSemantics(served.chart as Chart, { durationSec: 90 });
+    assert.deepEqual(issues, []);
   });
 });
 
