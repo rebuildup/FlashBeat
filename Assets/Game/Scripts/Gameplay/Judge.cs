@@ -141,6 +141,9 @@ public class Judge : MonoBehaviour
     ///
     /// 保持中のロングノーツ (または押下判定済みのロングノーツ) は、保持が
     /// 終わるまでこの判定から外す。-1 なら Miss 判定すべきノーツはない。
+    ///
+    /// まだ押されていないロングノーツは、開始時刻をすぎた時点でこの判定に
+    /// 入る (押されなかったロングノーツは Miss として数える)。
     /// </summary>
     private int FirstMissableIndex()
     {
@@ -152,8 +155,13 @@ public class Judge : MonoBehaviour
             }
             if (i < notesManager.NoteType.Count && notesManager.NoteType[i] == LongNote.TYPE_HOLD)
             {
-                // まだ押されていないロングノーツは、開始の Miss 判定に任せる。
-                continue;
+                // まだ押されていないロングノーツは、開始時刻をすぎた瞬間に
+                // Miss 判定の対象になる。時刻の比較は下の Miss 判定と同じ
+                // 式 (Time.time と StartTime) を使う。
+                if (Time.time <= notesManager.NotesTime[i] + LongNote.BAD_WINDOW + GManager.StartTime)
+                {
+                    continue;
+                }
             }
             return i;
         }
@@ -172,9 +180,12 @@ public class Judge : MonoBehaviour
     {
         if (heldHolds.Count == 0) return;
 
+        float now = Time.time - GManager.StartTime;
+
         // 押され続けるキー (GetKey) をレーンごとに調べる。
         // 削除でインデックスがずれるので、大きいインデックスから処理する。
         List<int> released = new List<int>();
+        List<int> expired = new List<int>();
         foreach (KeyValuePair<int, int> entry in heldHolds)
         {
             int index = entry.Key;
@@ -184,11 +195,31 @@ public class Judge : MonoBehaviour
             if (!IsLaneKeyDown(lane))
             {
                 released.Add(index);
+                continue;
+            }
+
+            // 終端をすぎても離さないまま保持されている場合。放置すると
+            // ノーツがキューに残ったままになるので、終端で確定させる
+            // (押し続けていたので成功として扱う)。
+            if (now > EndTimeOf(index) + LongNote.GREAT_WINDOW)
+            {
+                expired.Add(index);
             }
         }
 
         // 大きいインデックスから消すと、処理済みのノーツに影響しない。
         released.Sort((a, b) => b.CompareTo(a));
+        expired.Sort((a, b) => b.CompareTo(a));
+
+        // 終端をすぎた保持: 押し続けていたので成功。終端での離しと同じ扱い。
+        for (int i = 0; i < expired.Count; i++)
+        {
+            int index = expired[i];
+            if (!heldHolds.ContainsKey(index)) continue;
+            heldHolds.Remove(index);
+            Debug.Log("Hold clear");
+            deleteData(index);
+        }
 
         for (int i = 0; i < released.Count; i++)
         {
