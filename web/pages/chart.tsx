@@ -59,6 +59,13 @@ const primaryAction = css({
   _disabled: { opacity: "0.4" },
 });
 
+/** Permission boundary of the publish path, visible before pressing it. */
+const tokenHint = css({
+  color: "fg.subtle",
+  fontSize: "2xs",
+  whiteSpace: "nowrap",
+});
+
 export default function ChartPage({ songId, version }: Props) {
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
@@ -87,16 +94,21 @@ export default function ChartPage({ songId, version }: Props) {
     <StudioShell scroll={false}>
       <header className={pageHeader}>
         <a className={pageBackLink} href="/">
-          ← Catalog
+          ← 曲を選ぶ / Back to songs
         </a>
         <div className={pageHeaderIdentity}>
-          <h1 className={pageTitle}>{selected ? "Chart" : "New chart"}</h1>
+          <h1 className={pageTitle}>{selected ? "譜面を見る・試す" : "新しい譜面"}</h1>
           <p className={pageSubtitle} data-testid="chart-identity">
             {session
               ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length} notes`
               : selected
                 ? "Published chart"
                 : "New local draft · not published"}
+          </p>
+          <p className={pageSubtitle} data-testid="chart-guidance">
+            {selected
+              ? "再生して試してみてください。左のリンクで曲選びに戻れます / Play it; the link on the left goes back to the songs."
+              : "編集して「公開に進む」へ。戻っても入力は消えません / Edit, then continue; going back keeps your input."}
           </p>
         </div>
         <div className={pageActions}>
@@ -118,8 +130,11 @@ export default function ChartPage({ songId, version }: Props) {
               }
             }}
           >
-            Review &amp; Publish
+            公開に進む / Review &amp; Publish
           </Button>
+          <span className={tokenHint} data-testid="publish-token-hint">
+            公開にはスタッフのadminトークンが必要です / Staff admin token required
+          </span>
         </div>
       </header>
       {error ? (
