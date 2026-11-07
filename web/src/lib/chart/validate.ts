@@ -207,9 +207,7 @@ export function validateChartSemantics(
   // occupy the same beats overlap even when their line numbers differ.
   // Issue #191 fixed exactly this: the raw comparison missed holds that
   // overlapped across resolutions.
-  const holds = notes
-    .map((note, index) => ({ note, index }))
-    .filter((entry) => isHold(entry.note));
+  const holds = notes.map((note, index) => ({ note, index })).filter((entry) => isHold(entry.note));
   for (const [position, hold] of holds.entries()) {
     const holdStart = holdStartBeats(hold.note);
     const holdEnd = holdEndBeats(hold.note);
