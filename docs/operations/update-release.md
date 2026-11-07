@@ -68,6 +68,24 @@ Windows 版と macOS 版が互いの更新候補になることはない。
 - ゲーム自身の背景アニメーション (`Resources/Videos/*.mp4`、約 196MB) は自作素材なので同梱する
   (media-rights-audit 3: 権利ではなくサイズの問題)。
 
+### 配布対象の Release ルール (Issue #77 / 監査結果)
+
+- **media policy 導入前 (2026-11-06 頃) のビルドは配布リストに載せない**。
+  第三者楽曲メディアを `resources.resource` に焼き込んだ公開 Release は
+  `v0.1.0-win64-743c88d` の **1 件だけ** (実測: `resources.resource` = 1,399,081,540 bytes。
+  他 16 件はすべて 196,446,346 bytes)。
+- 展示用 ZIP のダウンロードページには **stable チャンネルの最新安定版だけ** を載せる。
+  prerelease / 旧世代 ZIP は掲載しない。
+- **新しい Release を出したら発行前に `tools/release/audit-release-media.py` を実行**し、
+  同梱メディア 0 件と `flashbeat-media-policy.json` の存在を確認する。
+  判定手順・全 Release の実測結果・推奨は
+  [`docs/operations/release-media-audit.md`](release-media-audit.md) に置き、
+  新しい Release を出したらその表に追記する。
+
+```bash
+GITHUB_TOKEN=$(gh auth token) python3 tools/release/audit-release-media.py
+```
+
 ### 更新フローの契約 (実装は #36 / 明示式化は #118)
 
 1. 起動時に latest を非同期**確認**するだけ (ブロックしない。失敗はログのみ)
@@ -156,7 +174,10 @@ macOS: `~/Library/Application Support/FlashBeat/update`。
   - SHA-256: `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`
   - ビルド元 commit: `743c88d14a1931d4637c34b1ec5d1bec5e502d44` (#27 フォント修正済み)
   - **注記**: このリリースは第三者楽曲を `resources.resource` に焼き込みで含む (`version.json` 無し・旧仕様)。
-    扱い (公開維持/差し替え/非公開化) はオーナー決定事項 — ワーカーは触らない。
+    実測 (`resources.resource` = 1,399,081,540 bytes / ZIP = 1,459,717,135 bytes) と
+    17 件の判定結果・推奨は [`docs/operations/release-media-audit.md`](release-media-audit.md) に記録済み。
+    扱い (公開維持 / 差し替え / 非公開化) はオーナー決定事項 — ワーカーは触らない。
+    2026-11-08 時点でこの Release は `prerelease = true` (stable チャンネルの更新候補にはならない)。
 - アセット命名: `FlashBeat-<semver>-<platform>-<shortsha>.zip` + `.zip.sha256`
   - 例: `FlashBeat-0.1.0-win64-743c88d.zip` / `FlashBeat-0.1.14-macos-abc1234.zip`
 - 展示運営者はブラウザでダウンロードするだけ。GH/CLI/PowerShell・管理者権限はプレイヤーに要求しない。

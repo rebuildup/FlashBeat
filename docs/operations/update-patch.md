@@ -17,7 +17,9 @@
   - macOS: `FlashBeat.app/Contents/Resources/tools/update/update-macos.sh`
 - **押さなければ更新しない**: F4 / × でこのセッションは通知を隠せます。確認せずに普通終了した場合は何も適用されず、staging 済み ZIP は残ります (次回起動時にまた通知が出ます)。**`OnApplicationQuit` からの自動適用は存在しません** (issue #118 で廃止)。
 - **失敗時は現行版を残します**。SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を一切変更せず、ゲームは止めません。
-- **旧版は 1 世代だけ残します** (`FlashBeat-backup-*`、最新のもの)。それより古い世代は次回適用時に削除します。
+- **旧版は 1 世代だけ残します** (`FlashBeat-backup-<installKey>-<runId>`、最新のもの)。それより古い世代は次回適用時に削除します。
+  削除対象は **更新対象のインストール自身が所有すると確認できた退避だけ** です
+  (同じ親フォルダに別のインストールがあっても互相に消しません。Issue #185 参照)。
 - **配布 ZIP に第三者楽曲の音声・動画を含めません** (`Assets/Game/Resources/Musics`、`Assets/Game/Resources/Videos/UnityYoutube`、`loading.mp4` はビルド時に退避して除外。ゲーム内の音声は yt-dlp で解決した YouTube ストリームから再生します)。
 - 管理者権限は不要です (インストール先の親フォルダに書き込み権限があることのみ必要)。
 
@@ -98,8 +100,67 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 2. インストール先に `FlashBeat.exe` があれば更新モード、なければ新規インストール モード。
 3. ZIP を取得し、SHA-256 を検証します (不一致なら終了コード 3 で中止)。
 4. 別ディレクトリに完全展開し、`FlashBeat.exe` / `FlashBeat_Data` / `*.dll` を検査します。
-5. 一括切替します。旧配置は退避し、**切替成功後も 1 世代残します** (それより古い退避は削除)。
+5. 一括切替します。旧配置は退避し、**切替成功後も 1 世代残します**
+   (それより古い退避は、**更新対象のインストール自身が所有すると確認できたものだけ**を削除します。
+   詳細は下の「退避の所有権」)。
 6. `-Relaunch` 指定時は新しい `FlashBeat.exe` を起動します。
+
+### 退避 (バックアップ) の所有権 (Issue #185)
+
+同じ親フォルダ (例: `C:\Users\rebui\Desktop`) に複数の FlashBeat インストールを
+置いておくと、1 つの更新で **別のインストールの退避 (復旧データ) まで消してしまう**
+問題がありました (Issue #185)。現在の `Update.ps1` は、退避を **インストール単位** で管理します。
+
+|要素|内容|
+|---|---|
+|identity|正規化インストールパス + フォルダ名から作る安定 ID (`installKey`) + 正規名 (`FlashBeat`) と一致するか (`isCanonical`)|
+|退避フォルダ名|`FlashBeat-backup-<installKey>-<runId>` (`runId` = `yyyyMMdd-HHmmss-<pid>-<乱数>`)|
+|作業フォルダ名|`FlashBeat-update-work-<installKey>-<runId>`|
+|所有 manifest|退避フォルダ内の `flashbeat-backup-owner.json` (インストールのパス・安定 ID・退避した版・作成日時)|
+
+削除対象は **次の両方を満たす退避だけ** です。
+
+1. 名前が **自インストールの名前空間内** (`FlashBeat-backup-<自 installKey>-<runId>`)
+2. 所有 manifest が **自インストールの identity と一致** (安定 ID と正規化パスが両方一致)
+
+したがって、
+
+- **他インストールの退避**は残ります (保持理由 `other-namespace`)。
+- **旧形式** (`FlashBeat-backup-<yyyyMMdd-HHmmss>`、manifest 無し = 所有不明) は
+  **自動削除しません** (保持理由 `other-namespace` / `no-manifest`)。手動で消してください。
+- manifest が壊れている / 所有が一致しない退避も残します
+  (`invalid-manifest` / `owner-key-mismatch` / `owner-path-mismatch`)。
+- 同じインストールについては **1 世代だけ残す** 契約は変わりません
+  (今回の退避 1 世代 + 自インストールの旧世代は削除)。
+
+保持・削除の判定はログ (`FlashBeat-update.log`) に理由付きで出ます。
+
+```text
+[INFO] 退避を削除せず残します: C:\Users\rebui\Desktop\FlashBeat-backup-flashbeat-0.1.14-20261108-010101-1111-aaaaaa (理由: other-namespace)
+[INFO] 自インストールの旧世代の退避を削除しました: C:\Users\rebui\Desktop\FlashBeat-backup-flashbeat-20261108-010101-1111-aaaaaa
+```
+
+> **注意 (初回更新だけ旧スクリプトで動く)**: アプリが起動する更新スクリプトは
+> **インストール先にある配布物内の `tools\update\Update.ps1`** です。したがって
+> **この修正が入る前のビルドから新ビルドへ更新する 1 回だけ** は旧仕様で動き、
+> その 1 回だけ旧形式の退避 (`FlashBeat-backup-<stamp>`) が作られます。
+> 2 回目以降の更新は新仕様 (インストール単位のスコープ) です。
+> 展示機では初回更新の前に、隣のインストールの退避があれば手動で退避させて
+> ください (旧形式の退避は新仕様でも自動削除されません)。
+
+### 検証 (自動テスト)
+
+`tools/update/tests/` に、PowerShell 5.1 / pwsh のどちらでも動く
+Pester 非依存の検証スクリプトがあります。Windows 実機には依存せず、
+macOS / Linux の pwsh でも同じテストが走ります。
+
+```powershell
+# スコープ (純粋関数 + 同じ親フォルダの 2 インストールの回帰)
+pwsh -NoProfile -File tools/update/tests/Run-UpdateScopeTests.ps1
+
+# 更新フロー結合 (実際に Update.ps1 を実行して切替・保持・失敗時挙動を確認)
+pwsh -NoProfile -File tools/update/tests/Run-UpdateFlowTests.ps1
+```
 
 ### 終了コード
 
