@@ -150,6 +150,14 @@ namespace FlashBeat.UI.V5
         /// </summary>
         public static UISizeProfile Select(int width, int height)
         {
+            // 0 サイズ (batchmode -nographics の EditMode で Screen.width/height が 0 に
+            // なりうる) では aspect が NaN になり FhdScaled(0) に流れて全寸法が 0 に
+            // なる。退化入力は fhd に落として UI が消えないようにする (Issue #169)。
+            if (width <= 0 || height <= 0)
+            {
+                return Fhd();
+            }
+
             float aspect = (float)width / height;
             if (Mathf.Abs(aspect - 1.538f) < 0.03f) return Mac();
             if (Mathf.Abs(aspect - 1.778f) < 0.03f && height >= 1440) return TwoK();

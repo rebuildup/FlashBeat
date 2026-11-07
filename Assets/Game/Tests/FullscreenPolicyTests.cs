@@ -88,10 +88,16 @@ namespace FlashBeat.V5CanvasTests
 
         private static string JsonProfiles()
         {
+            return JsonProfileBlock("mac");
+        }
+
+        /// <summary>design/ui-size-profiles.json の profiles.&lt;key&gt; オブジェクトを取り出す。</summary>
+        private static string JsonProfileBlock(string key)
+        {
             var path = Path.Combine(ProjectRoot(), "design", "ui-size-profiles.json");
             Assert.IsTrue(File.Exists(path), "ui-size-profiles.json が読めない: " + path);
             var json = File.ReadAllText(path);
-            return ExtractObject(ExtractObject(json, "profiles"), "mac");
+            return ExtractObject(ExtractObject(json, "profiles"), key);
         }
 
         private static string ExtractObject(string json, string key)
@@ -139,10 +145,82 @@ namespace FlashBeat.V5CanvasTests
         [Test]
         public void JsonMacScreen_Is2560x1664()
         {
-            var mac = JsonProfiles();
+            var mac = JsonProfileBlock("mac");
             var screen = JsonVector2(mac, "screen");
             Assert.AreEqual(2560, (int)screen.x, "mac.screen は 2560 (旧 1440x900 設計は無効)");
             Assert.AreEqual(1664, (int)screen.y, "mac.screen は 1664 (旧 1440x900 設計は無効)");
+        }
+
+        [Test]
+        public void JsonFhdScreen_Is1920x1080()
+        {
+            var screen = JsonVector2(JsonProfileBlock("fhd"), "screen");
+            Assert.AreEqual(1920, (int)screen.x, "fhd.screen は 1920");
+            Assert.AreEqual(1080, (int)screen.y, "fhd.screen は 1080");
+        }
+
+        [Test]
+        public void JsonTwoKScreen_Is2560x1440()
+        {
+            var screen = JsonVector2(JsonProfileBlock("2k"), "screen");
+            Assert.AreEqual(2560, (int)screen.x, "2k.screen は 2560");
+            Assert.AreEqual(1440, (int)screen.y, "2k.screen は 1440");
+        }
+
+        [Test]
+        public void FhdProfile_MatchesJson()
+        {
+            var json = JsonProfileBlock("fhd");
+            var p = UISizeProfile.Fhd();
+
+            Assert.AreEqual(JsonInt(json, "margin"), p.Margin, "margin");
+            Assert.AreEqual((float)JsonInt(json, "fs_xl"), p.FsXl, "fs_xl");
+            Assert.AreEqual((float)JsonInt(json, "fs_l"), p.FsL, "fs_l");
+            Assert.AreEqual((float)JsonInt(json, "fs_m"), p.FsM, "fs_m");
+            Assert.AreEqual((float)JsonInt(json, "fs_s"), p.FsS, "fs_s");
+            Assert.AreEqual((float)JsonInt(json, "fs_rank"), p.FsRank, "fs_rank");
+            Assert.AreEqual((float)JsonInt(json, "fs_combo"), p.FsCombo, "fs_combo");
+            Assert.AreEqual(JsonInt(json, "icon_s"), p.IconS, "icon_s");
+            Assert.AreEqual(JsonInt(json, "icon_m"), p.IconM, "icon_m");
+            Assert.AreEqual(JsonInt(json, "icon_l"), p.IconL, "icon_l");
+            Assert.AreEqual(JsonInt(json, "gap_s"), p.GapS, "gap_s");
+            Assert.AreEqual(JsonInt(json, "gap_m"), p.GapM, "gap_m");
+            Assert.AreEqual(JsonInt(json, "gap_l"), p.GapL, "gap_l");
+            Assert.AreEqual(JsonVector2(json, "card_center"), p.CardCenter, "card_center");
+            Assert.AreEqual(JsonVector2(json, "card_mid"), p.CardMid, "card_mid");
+            Assert.AreEqual(JsonVector2(json, "card_side"), p.CardSide, "card_side");
+            Assert.AreEqual(JsonInt(json, "drawer_w"), p.DrawerW, "drawer_w");
+            Assert.AreEqual(JsonInt(json, "stepper_w"), p.StepperW, "stepper_w");
+            Assert.AreEqual(JsonInt(json, "row_h"), p.RowH, "row_h");
+            Assert.AreEqual(JsonVector2(json, "btn"), p.Btn, "btn");
+        }
+
+        [Test]
+        public void TwoKProfile_MatchesJson()
+        {
+            var json = JsonProfileBlock("2k");
+            var p = UISizeProfile.TwoK();
+
+            Assert.AreEqual(JsonInt(json, "margin"), p.Margin, "margin");
+            Assert.AreEqual((float)JsonInt(json, "fs_xl"), p.FsXl, "fs_xl");
+            Assert.AreEqual((float)JsonInt(json, "fs_l"), p.FsL, "fs_l");
+            Assert.AreEqual((float)JsonInt(json, "fs_m"), p.FsM, "fs_m");
+            Assert.AreEqual((float)JsonInt(json, "fs_s"), p.FsS, "fs_s");
+            Assert.AreEqual((float)JsonInt(json, "fs_rank"), p.FsRank, "fs_rank");
+            Assert.AreEqual((float)JsonInt(json, "fs_combo"), p.FsCombo, "fs_combo");
+            Assert.AreEqual(JsonInt(json, "icon_s"), p.IconS, "icon_s");
+            Assert.AreEqual(JsonInt(json, "icon_m"), p.IconM, "icon_m");
+            Assert.AreEqual(JsonInt(json, "icon_l"), p.IconL, "icon_l");
+            Assert.AreEqual(JsonInt(json, "gap_s"), p.GapS, "gap_s");
+            Assert.AreEqual(JsonInt(json, "gap_m"), p.GapM, "gap_m");
+            Assert.AreEqual(JsonInt(json, "gap_l"), p.GapL, "gap_l");
+            Assert.AreEqual(JsonVector2(json, "card_center"), p.CardCenter, "card_center");
+            Assert.AreEqual(JsonVector2(json, "card_mid"), p.CardMid, "card_mid");
+            Assert.AreEqual(JsonVector2(json, "card_side"), p.CardSide, "card_side");
+            Assert.AreEqual(JsonInt(json, "drawer_w"), p.DrawerW, "drawer_w");
+            Assert.AreEqual(JsonInt(json, "stepper_w"), p.StepperW, "stepper_w");
+            Assert.AreEqual(JsonInt(json, "row_h"), p.RowH, "row_h");
+            Assert.AreEqual(JsonVector2(json, "btn"), p.Btn, "btn");
         }
 
         [Test]

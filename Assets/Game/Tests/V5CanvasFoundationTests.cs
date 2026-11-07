@@ -135,6 +135,17 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual("fhd*0.667", UISizeProfile.Select(1280, 720).Name);
         }
 
+        [Test]
+        public void ProfileSelect_DegenerateScreen_ReturnsFhd()
+        {
+            // 0 サイズ (batchmode -nographics の EditMode / 異常なウィンドウ状態) では
+            // aspect が NaN になり FhdScaled(0) に流れて全寸法が 0 になる。
+            // 退化入力は fhd に落として UI が消えないようにする (Issue #169 監査)。
+            Assert.AreEqual("fhd", UISizeProfile.Select(0, 0).Name);
+            Assert.AreEqual("fhd", UISizeProfile.Select(0, 1080).Name);
+            Assert.AreEqual("fhd", UISizeProfile.Select(1920, 0).Name);
+        }
+
         [TestCase(1920, 1080)]
         [TestCase(2560, 1440)]
         [TestCase(2560, 1664)]
