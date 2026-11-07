@@ -1,6 +1,6 @@
 # Spec: Branded Publish loading and error recovery
 
-**Issue**: #149 | **Branch**: `149` | **PR base**: `expo-web` | **Status**: Draft
+**Issue**: #149 | **Branch**: `docs/149-publish-state-evidence` | **PR base**: `main` | **Status**: Verified (evidence in `evidence.md`)
 
 ## Objective
 Replace unstyled Publish loading/error route output with a task-oriented FlashBeat panel that keeps branding, readable status, accessible retry and Catalog escape.
@@ -33,7 +33,7 @@ Transient failure after route navigation, old draft storage error, narrow browse
 Depends on PR #144 (Web exhibition branch `expo-web`). Blocks visual gate #75 only for this subpath. Final gate: Web TS/build, Playwright screenshots, actual keyboard navigation and release deploy approval.
 
 ## Verification Evidence
-`cd web && npx tsc --noEmit && npx vp build && npm test`, screenshots at 1440x900/1280x720/390x844 (current candidate SHA). Evidence not yet run.
+`cd web && npx tsc --noEmit && npx vp build && npm test`, screenshots at 1440x900/1280x720/390x844 (current candidate SHA). Evidence recorded in [`evidence.md`](evidence.md): `npx tsc --noEmit` exit 0, `npx vp build` exit 0, `npx vitest run` 28 files / 220 tests passed; browser screenshots at 1440x900 / 1280x720 / 390x844 (loading + error) with SHA-256 evidence, captured against the local dev server on candidate `fbe5810`.
 
 ## Rollback
 Revert this one PR, no persisted data affected.
