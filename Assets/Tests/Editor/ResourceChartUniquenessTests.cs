@@ -12,23 +12,49 @@ using UnityEngine;
 /// </summary>
 public class ResourceChartUniquenessTests
 {
-    static readonly string[] ResourceRoots =
+    /// <summary>譜面 JSON が置いてある唯一の Resources フォルダ。</summary>
+    const string CanonicalRoot = "Assets/Game/Resources";
+
+    /// <summary>
+    /// Assets 配下の Resources フォルダをすべて見つける。
+    /// フォルダをハードコードすると、3 つ目・4 つ目の.Resources を見落とすので、
+    /// 実際に存在するものだけを列挙する。
+    /// </summary>
+    static List<string> ResourceRoots()
     {
-        "Assets/Resources",
-        "Assets/Game/Resources",
-    };
+        var roots = new List<string>();
+        if (!Directory.Exists("Assets")) { return roots; }
+
+        string[] found = Directory.GetDirectories("Assets", "Resources", SearchOption.AllDirectories);
+        Array.Sort(found, StringComparer.Ordinal);
+        roots.AddRange(found);
+        return roots;
+    }
+
+    /// <summary>
+    /// 譜面ファイルかどうか。
+    /// Unity Performance Testing パッケージがテスト実行中に Assets/Resources/ へ
+    /// 書き込む一時ファイル (PerformanceTestRunInfo / PerformanceTestRunSettings)
+    /// は譜面ではないので対象外にする。
+    /// </summary>
+    static bool IsChartFile(string path)
+    {
+        string name = Path.GetFileNameWithoutExtension(path);
+        return !name.StartsWith("PerformanceTestRun", StringComparison.Ordinal);
+    }
 
     [Test]
     public void NoChartExistsInTwoResourcesFolders()
     {
         var seen = new Dictionary<string, List<string>>();
-        for (int r = 0; r < ResourceRoots.Length; r++)
+        var roots = ResourceRoots();
+        for (int r = 0; r < roots.Count; r++)
         {
-            string root = ResourceRoots[r];
-            if (!Directory.Exists(root)) { continue; }
+            string root = roots[r];
             var files = Directory.GetFiles(root, "*.json", SearchOption.TopDirectoryOnly);
             for (int i = 0; i < files.Length; i++)
             {
+                if (!IsChartFile(files[i])) { continue; }
                 string name = Path.GetFileNameWithoutExtension(files[i]);
                 if (!seen.ContainsKey(name)) { seen[name] = new List<string>(); }
                 seen[name].Add(files[i]);
@@ -44,15 +70,38 @@ public class ResourceChartUniquenessTests
     }
 
     [Test]
+    public void ChartFilesExistOnlyInTheCanonicalResourcesFolder()
+    {
+        // 譜面 JSON は 1 つの Resources フォルダ (Assets/Game/Resources) にだけ置く。
+        // 別の Resources フォルダに譜面が入ると Resources.Load が不定になるため。
+        var strays = new List<string>();
+        var roots = ResourceRoots();
+        for (int r = 0; r < roots.Count; r++)
+        {
+            string root = roots[r].Replace('\\', '/');
+            if (root == CanonicalRoot) { continue; }
+
+            var files = Directory.GetFiles(roots[r], "*.json", SearchOption.TopDirectoryOnly);
+            for (int i = 0; i < files.Length; i++)
+            {
+                if (!IsChartFile(files[i])) { continue; }
+                strays.Add(files[i]);
+            }
+        }
+
+        Assert.IsEmpty(strays, "chart files outside " + CanonicalRoot + ": " + string.Join(", ", strays.ToArray()));
+    }
+
+    [Test]
     public void TheLoadedChartHasTheMergedLyrics()
     {
         // 実際に Resources.Load が返すのはどちらか 1 つ。歌詞つき (マージ済み) であるべき。
         var missing = new List<string>();
         var seen = new HashSet<string>();
-        for (int r = 0; r < ResourceRoots.Length; r++)
+        var roots = ResourceRoots();
+        for (int r = 0; r < roots.Count; r++)
         {
-            string root = ResourceRoots[r];
-            if (!Directory.Exists(root)) { continue; }
+            string root = roots[r];
             var files = Directory.GetFiles(root, "*.json", SearchOption.TopDirectoryOnly);
             for (int i = 0; i < files.Length; i++)
             {
@@ -61,7 +110,7 @@ public class ResourceChartUniquenessTests
                 // Unity Performance Testing パッケージがテスト実行中に
                 // Assets/Resources/ へ書き込む一時ファイル (PerformanceTestRunInfo /
                 // PerformanceTestRunSettings)。譜面ではないので対象外にする。
-                if (name.StartsWith("PerformanceTestRun", StringComparison.Ordinal)) { continue; }
+                if (!IsChartFile(files[i])) { continue; }
                 seen.Add(name);
             }
         }
