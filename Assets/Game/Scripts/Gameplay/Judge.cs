@@ -71,7 +71,7 @@ public class Judge : MonoBehaviour
 
         if (notesManager.NotesTime.Count > 0 && Time.time > notesManager.NotesTime[0] + 0.2f + GManager.StartTime)
         {
-            message(3);
+            message(3, 0);
             deleteData(0);
             Debug.Log("Miss");
             GManager.miss++;
@@ -95,7 +95,7 @@ public class Judge : MonoBehaviour
         if (timeLag <= 0.10f)
         {
             Debug.Log("Perfect");
-            message(0);
+            message(0, numOffset);
             GManager.ratioScore += 5;
             GManager.perfect++;
             GManager.combo++;
@@ -105,7 +105,7 @@ public class Judge : MonoBehaviour
         else if (timeLag <= 0.15f)
         {
             Debug.Log("Great");
-            message(1);
+            message(1, numOffset);
             GManager.ratioScore += 3;
             GManager.great++;
             GManager.combo++;
@@ -115,7 +115,7 @@ public class Judge : MonoBehaviour
         else if (timeLag <= 0.20f)
         {
             Debug.Log("Bad");
-            message(2);
+            message(2, numOffset);
             GManager.ratioScore += 1;
             GManager.bad++;
             GManager.combo++;
@@ -140,14 +140,33 @@ public class Judge : MonoBehaviour
         if (scoreText != null) scoreText.text = GManager.score.ToString();
     }
 
-    private void message(int judge)
+    private void message(int judge, int noteIndex)
     {
         GManager.nextNotes++;
         if (judge >= 0 && judge < MessageObj.Length && MessageObj[judge] != null)
         {
-            float laneX = (notesManager.LaneNum.Count > 0) ? notesManager.LaneNum[0] - 3.5f : 0f;
-            Instantiate(MessageObj[judge], new Vector3(laneX, 0.76f, 0.15f), Quaternion.Euler(45, 0, 0));
+            Instantiate(MessageObj[judge], EffectPosition(notesManager.LaneNum, noteIndex), Quaternion.Euler(45, 0, 0));
         }
+    }
+
+    /// <summary>
+    /// World position of the judgement effect for the note that was judged.
+    ///
+    /// The effect has to appear on the lane that was actually hit. The lane of
+    /// the first pending note is a different one as soon as two notes share a
+    /// timestamp (a simultaneous press), so the lane of the judged note is used.
+    /// A miss has no judged note and uses the first pending note (index 0).
+    /// </summary>
+    public static Vector3 EffectPosition(IList<int> laneNum, int noteIndex)
+    {
+        int lane = 0;
+        if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
+        {
+            lane = laneNum[noteIndex];
+        }
+
+        // the notes use the same mapping (block - 3.5), see NotesManager.Load
+        return new Vector3(lane - 3.5f, 0.76f, 0.15f);
     }
 
     private void CheckAll(int LaneN)
