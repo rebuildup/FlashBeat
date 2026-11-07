@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -57,6 +58,10 @@ public class ResourceChartUniquenessTests
             {
                 string name = Path.GetFileNameWithoutExtension(files[i]);
                 if (name == "CloudCatalogConfig" || name == "E2EProbeSong") { continue; }
+                // Unity Performance Testing パッケージがテスト実行中に
+                // Assets/Resources/ へ書き込む一時ファイル (PerformanceTestRunInfo /
+                // PerformanceTestRunSettings)。譜面ではないので対象外にする。
+                if (name.StartsWith("PerformanceTestRun", StringComparison.Ordinal)) { continue; }
                 seen.Add(name);
             }
         }
