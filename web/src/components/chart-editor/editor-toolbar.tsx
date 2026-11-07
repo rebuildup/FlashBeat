@@ -3,6 +3,7 @@ import { createListCollection } from "@ark-ui/react/collection";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { useRef } from "react";
 import { css } from "styled-system/css";
+import { FileDown, FileUp, Trash2 } from "lucide-react";
 import type { Chart } from "@/lib/chart/types";
 
 /**
@@ -101,6 +102,12 @@ const keycap = css({
   padding: "0 0.5rem",
 });
 
+/** The icon of a toolbar button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
 /** v5 Button Primary: the light raised button. */
 const buttonPrimary = css({
   bg: "#ededed",
@@ -193,6 +200,7 @@ export function EditorToolbar({
           onClick={() => fileInputRef.current?.click()}
           data-testid="import-button"
         >
+          <FileUp className={buttonIcon} size={14} aria-hidden="true" />
           Import
         </Button>
         <Button
@@ -202,6 +210,7 @@ export function EditorToolbar({
           disabled={!chart}
           data-testid="export-button"
         >
+          <FileDown className={buttonIcon} size={14} aria-hidden="true" />
           Export
         </Button>
         <Button
@@ -212,6 +221,7 @@ export function EditorToolbar({
           disabled={!canDelete}
           data-testid="delete-button"
         >
+          <Trash2 className={buttonIcon} size={14} aria-hidden="true" />
           Delete
           <kbd className={keycap} aria-hidden="true">
             Del

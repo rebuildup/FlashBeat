@@ -1,4 +1,5 @@
 import { Portal } from "@ark-ui/react/portal";
+import { CloudUpload, X } from "lucide-react";
 import { Button, Dialog, Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
 
@@ -34,6 +35,12 @@ const summaryValue = css({
 });
 
 const accent = css({ colorPalette: "blue" });
+
+/** The icon of a dialog footer button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
 
 /** What the publish request will contain. */
 export interface PublishSummary {
@@ -125,6 +132,7 @@ export function PublishDialog({
             <Dialog.Footer>
               <Dialog.ActionTrigger asChild>
                 <Button variant="outline" size="md" disabled={publishing}>
+                  <X className={buttonIcon} size={14} aria-hidden="true" />
                   Cancel
                 </Button>
               </Dialog.ActionTrigger>
@@ -136,6 +144,7 @@ export function PublishDialog({
                 disabled={token.trim().length === 0}
                 onClick={onPublish}
               >
+                <CloudUpload className={buttonIcon} size={14} aria-hidden="true" />
                 Publish
               </Button>
             </Dialog.Footer>

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
+import { Rewind } from "lucide-react";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartJson } from "@/lib/chart/import";
 import {
@@ -111,6 +112,12 @@ const placeholder = css({
   justifyContent: "center",
   padding: "4",
   textAlign: "center",
+});
+
+/** The icon of a side panel button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
 });
 
 export interface ChartEditorProps {
@@ -403,6 +410,7 @@ export function ChartEditor({
               onClick={() => previewRef.current?.seekTo(0)}
               data-testid="rewind-button"
             >
+              <Rewind className={buttonIcon} size={14} aria-hidden="true" />
               Back to start
             </Button>
           </section>

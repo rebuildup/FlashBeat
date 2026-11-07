@@ -1,5 +1,6 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
+import { CirclePlay, Gauge, Hash, Music, Timer, User } from "lucide-react";
 import { Field, Input, Select } from "@/components/ui";
 import { css } from "styled-system/css";
 import type {
@@ -19,6 +20,14 @@ import type {
 const form = css({
   display: "grid",
   gap: "3",
+});
+
+/** The icon of a field label. */
+const labelIcon = css({
+  color: "fg.muted",
+  flexShrink: 0,
+  marginRight: "1",
+  verticalAlign: "-2px",
 });
 
 const selectRoot = css({
@@ -98,7 +107,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
   return (
     <div className={form}>
       <Field.Root invalid={errorByField.songId !== undefined}>
-        <Field.Label>Song id</Field.Label>
+        <Field.Label>
+          <Hash className={labelIcon} size={14} aria-hidden="true" />
+          Song id
+        </Field.Label>
         <Input
           value={draft.songId}
           placeholder="who"
@@ -115,7 +127,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       </Field.Root>
 
       <Field.Root invalid={errorByField.title !== undefined}>
-        <Field.Label>Title</Field.Label>
+        <Field.Label>
+          <Music className={labelIcon} size={14} aria-hidden="true" />
+          Title
+        </Field.Label>
         <Input
           value={draft.title}
           placeholder="Who"
@@ -130,7 +145,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       </Field.Root>
 
       <Field.Root invalid={errorByField.artist !== undefined}>
-        <Field.Label>Artist</Field.Label>
+        <Field.Label>
+          <User className={labelIcon} size={14} aria-hidden="true" />
+          Artist
+        </Field.Label>
         <Input
           value={draft.artist}
           placeholder="Azari"
@@ -145,7 +163,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       </Field.Root>
 
       <Field.Root invalid={errorByField.youtube !== undefined}>
-        <Field.Label>YouTube video</Field.Label>
+        <Field.Label>
+          <CirclePlay className={labelIcon} size={14} aria-hidden="true" />
+          YouTube video
+        </Field.Label>
         <Input
           value={draft.youtube}
           placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -160,7 +181,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       </Field.Root>
 
       <Field.Root invalid={errorByField.level !== undefined}>
-        <Field.Label>Level</Field.Label>
+        <Field.Label>
+          <Gauge className={labelIcon} size={14} aria-hidden="true" />
+          Level
+        </Field.Label>
         <Select.Root
           className={selectRoot}
           collection={levelCollection}
@@ -205,7 +229,10 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       </Field.Root>
 
       <Field.Root invalid={errorByField.durationSec !== undefined}>
-        <Field.Label>Duration</Field.Label>
+        <Field.Label>
+          <Timer className={labelIcon} size={14} aria-hidden="true" />
+          Duration
+        </Field.Label>
         <Input
           type="number"
           min={1}

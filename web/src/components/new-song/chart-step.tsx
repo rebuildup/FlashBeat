@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
@@ -74,6 +75,12 @@ const raisedButton = css({
 
 const accent = css({ colorPalette: "blue" });
 
+/** The icon inside a button. */
+const buttonIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+});
+
 export interface ChartStepProps {
   chart: Chart | null;
   chartIssues: ValidationIssue[];
@@ -139,6 +146,7 @@ export function ChartStep({
         ) : null}
         <div className={buttons}>
           <Button className={raisedButton} size="md" onClick={onBack}>
+            <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
             戻る / Back
           </Button>
           <Button
@@ -151,6 +159,7 @@ export function ChartStep({
               }
             }}
           >
+            <ArrowRight className={buttonIcon} size={14} aria-hidden="true" />
             次へ：公開 / Next: Publish
           </Button>
         </div>

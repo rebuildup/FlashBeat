@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, SquarePlay } from "lucide-react";
 import { Button, Field, Input } from "@/components/ui";
 import { DurationProbe } from "./duration-probe";
 import { css } from "styled-system/css";
@@ -84,6 +85,12 @@ const catalogNote = css({
 });
 
 const accent = css({ colorPalette: "blue" });
+
+/** The icon inside a button. */
+const buttonIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+});
 
 /** v5 Button Secondary: raised #3A3A3A with white label. */
 const raisedButton = css({
@@ -425,6 +432,7 @@ export function SongInfoStep({
               }
             }}
           >
+            <SquarePlay className={buttonIcon} size={14} aria-hidden="true" />
             プレイヤーから自動取得 / Auto from player
           </Button>
         </div>
@@ -440,6 +448,7 @@ export function SongInfoStep({
       <div className={footer}>
         <span />
         <Button className={accent} size="md" onClick={handleAdvance}>
+          <ArrowRight className={buttonIcon} size={14} aria-hidden="true" />
           次へ：譜面 / Next: Chart
         </Button>
       </div>

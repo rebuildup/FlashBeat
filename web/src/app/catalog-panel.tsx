@@ -1,4 +1,4 @@
-import { CirclePlay } from "lucide-react";
+import { CirclePlay, CloudUpload, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
@@ -268,6 +268,12 @@ const visuallyHidden = css({
 
 const accent = css({ colorPalette: "blue" });
 
+/** The icon of an action button or link. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
 const stateWrap = css({
   px: { base: "4", md: "6" },
   py: "6",
@@ -322,6 +328,7 @@ export function CatalogPanel({
           <p className={panelSubtitle}>{subtitle}</p>
         </div>
         <Button variant="outline" size="sm" onClick={onRetry} disabled={status === "loading"}>
+          <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
           Refresh
         </Button>
       </header>
@@ -342,6 +349,7 @@ export function CatalogPanel({
             description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
             action={
               <Button variant="outline" size="sm" onClick={onRetry}>
+                <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
                 Retry
               </Button>
             }
@@ -354,6 +362,7 @@ export function CatalogPanel({
             description={errorMessage ?? "The catalog request failed."}
             action={
               <Button className={accent} size="sm" onClick={onRetry}>
+                <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
                 Try again
               </Button>
             }
@@ -373,6 +382,7 @@ export function CatalogPanel({
             description="Clear the search query or level filter to see the published songs."
             action={
               <Button variant="outline" size="sm" onClick={onClearFilters}>
+                <X className={buttonIcon} size={14} aria-hidden="true" />
                 Clear filters
               </Button>
             }
@@ -429,6 +439,7 @@ export function CatalogPanel({
                     Open chart
                   </span>
                   <a className={actionLink} href={publishHref(song)}>
+                    <CloudUpload className={buttonIcon} size={14} aria-hidden="true" />
                     Publish
                   </a>
                   <a
