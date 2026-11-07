@@ -87,6 +87,7 @@ const cardMeta = css({
 const cardActions = css({
   alignItems: "center",
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
   justifyContent: "flex-end",
   marginTop: "1",
@@ -148,11 +149,9 @@ const row = css({
   },
   _hover: {
     bg: "gray.a3",
-    "& [data-open-hint]": { color: "blue.11" },
   },
   _focusWithin: {
     bg: "gray.a3",
-    "& [data-open-hint]": { color: "blue.11" },
   },
 });
 
@@ -174,21 +173,6 @@ const rowLink = css({
     outlineColor: "blue.9",
     outlineOffset: "-2px",
   },
-});
-
-const openHint = css({
-  color: "fg.subtle",
-  display: { base: "none", md: "block" },
-  fontSize: "xs",
-  marginLeft: "auto",
-  /**
-   * The hint is a decorative label for the stretched row link beneath it
-   * (aria-hidden): it must never intercept the click, otherwise pressing
-   * "Open chart" does nothing while it looks like the row action.
-   */
-  paddingRight: "4",
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
 });
 
 const rowBody = css({
@@ -518,10 +502,14 @@ export function CatalogPanel({
                   </div>
                   <div className={cardActions}>
                     <a className={actionLink} href={chartHref(song)}>
-                      Open chart
+                      譜面を開く / Open chart
                     </a>
-                    <a className={actionLink} href={publishHref(song)}>
-                      Publish
+                    <a
+                      className={actionLink}
+                      href={publishHref(song)}
+                      title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
+                    >
+                      Publish（要トークン）
                     </a>
                     <a
                       aria-label={`${song.title} on YouTube`}
@@ -551,7 +539,7 @@ export function CatalogPanel({
                   <div key={song.id} className={`row ${row}`}>
                     <a className={rowLink} href={chartHref(song)} data-row-link>
                       <span className={visuallyHidden}>
-                        {`Open chart: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
+                        {`譜面を開く: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
                       </span>
                     </a>
 
@@ -583,11 +571,12 @@ export function CatalogPanel({
                     <span className={version}>v{song.chartVersion}</span>
 
                     <span className={actions}>
-                      <span className={openHint} aria-hidden="true" data-open-hint>
-                        Open chart
-                      </span>
-                      <a className={actionLink} href={publishHref(song)}>
-                        Publish
+                      <a
+                        className={actionLink}
+                        href={publishHref(song)}
+                        title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
+                      >
+                        Publish（要トークン）
                       </a>
                       <a
                         aria-label={`${song.title} on YouTube`}
@@ -617,7 +606,7 @@ export function CatalogPanel({
             <kbd className={keyCap}>↓</kbd> Move
           </span>
           <span>
-            <kbd className={keyCap}>Enter</kbd> Open chart
+            <kbd className={keyCap}>Enter</kbd> 譜面を開く
           </span>
         </footer>
       ) : null}
