@@ -21,6 +21,7 @@ public class Fader : MonoBehaviour
     Image bg;
     float lastTime = 0;
     bool startedLoading = false;
+    bool loadRoutineRunning = false;
     //Set callback
     void OnEnable()
     {
@@ -78,7 +79,7 @@ public class Fader : MonoBehaviour
                 if (alpha == 1 && !startedLoading)
                 {
                     startedLoading = true;
-                    SceneManager.LoadScene(fadeScene);
+                    StartCoroutine(LoadSceneRoutine());
                 }
 
             }
@@ -107,6 +108,44 @@ public class Fader : MonoBehaviour
         yield return null;
     }
 
+
+    /// <summary>
+    /// シーンを非同期で読み込む (旧来の同期 SceneManager.LoadScene はフレームを
+    /// 完全に止めて画面が固まって見えた)。allowSceneActivation=false で 90% まで
+    /// 読み、暗転が完了している間にアクティベートする。進捗は LoadingOverlay
+    /// (Initiate.LoadingFeedback 経由) に出す。二重起動は startedLoading で防ぐ。
+    /// </summary>
+    IEnumerator LoadSceneRoutine()
+    {
+        // 二重起動の防御: すでに読み込みが走っているなら何もしない
+        if (loadRoutineRunning) yield break;
+        loadRoutineRunning = true;
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        Debug.Log($"[Perf] scene load start {fadeScene}");
+        Initiate.LoadingFeedback.Begin?.Invoke(fadeScene);
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(fadeScene);
+        if (operation == null)
+        {
+            Debug.LogError($"[Fader] LoadSceneAsync failed: {fadeScene}");
+            loadRoutineRunning = false;
+            yield break;
+        }
+        operation.allowSceneActivation = false;
+        while (operation.progress < 0.9f)
+        {
+            Initiate.LoadingFeedback.Progress?.Invoke(operation.progress);
+            yield return null;
+        }
+        Initiate.LoadingFeedback.Progress?.Invoke(1f);
+        operation.allowSceneActivation = true;
+        yield return operation;
+
+        Debug.Log($"[Perf] scene load end {fadeScene} {stopwatch.ElapsedMilliseconds}ms");
+        Initiate.LoadingFeedback.End?.Invoke();
+        loadRoutineRunning = false;
+    }
 
     float newAlpha(float delta, int to, float currAlpha)
     {
