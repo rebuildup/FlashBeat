@@ -11,6 +11,7 @@ import {
   panelSubtitle,
   panelTitle,
 } from "./panel";
+import { SongThumbnail } from "./song-thumbnail";
 
 export type CatalogStatus = "loading" | "ready" | "empty" | "error" | "offline";
 
@@ -114,15 +115,22 @@ const openHint = css({
 });
 
 const rowBody = css({
-  alignItems: "flex-start",
+  alignItems: "center",
   display: "flex",
-  flexDirection: "column",
-  gap: "1",
+  gap: "3",
   minWidth: "0",
   paddingInline: "4",
   pointerEvents: "none",
   py: "2",
   width: "100%",
+});
+
+const rowText = css({
+  alignItems: "flex-start",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "0",
   justifyContent: "center",
 });
 
@@ -408,18 +416,21 @@ export function CatalogPanel({
                 </a>
 
                 <span className={rowBody}>
-                  <span className={titleText}>{song.title}</span>
-                  <span className={artistText}>{song.artist}</span>
-                  <span className={metaLine}>
-                    <span>Lv {song.level}</span>
-                    <span>·</span>
-                    <span>{song.bpm} BPM</span>
-                    <span>·</span>
-                    <span>{formatDuration(song.durationSec)}</span>
-                    <span>·</span>
-                    <span>{song.noteCount} notes</span>
-                    <span>·</span>
-                    <span>v{song.chartVersion}</span>
+                  <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
+                  <span className={rowText}>
+                    <span className={titleText}>{song.title}</span>
+                    <span className={artistText}>{song.artist}</span>
+                    <span className={metaLine}>
+                      <span>Lv {song.level}</span>
+                      <span>·</span>
+                      <span>{song.bpm} BPM</span>
+                      <span>·</span>
+                      <span>{formatDuration(song.durationSec)}</span>
+                      <span>·</span>
+                      <span>{song.noteCount} notes</span>
+                      <span>·</span>
+                      <span>v{song.chartVersion}</span>
+                    </span>
                   </span>
                 </span>
 
