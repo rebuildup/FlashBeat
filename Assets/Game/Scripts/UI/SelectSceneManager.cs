@@ -139,13 +139,13 @@ public class SelectSceneManager : MonoBehaviour
             GameScene();
         }
 
-        if (Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+        if (KeyBindings.IsAnyLaneKeyDown(0, 4) || Input.GetKeyDown(KeyCode.LeftArrow)) // lanes 1-4 (custom bindings) = previous song
         {
             playSound();
             SongDown();
         }
 
-        if (Input.GetKeyDown(KeyCode.J) || Input.GetKeyDown(KeyCode.K) || Input.GetKeyDown(KeyCode.L) || Input.GetKeyDown(KeyCode.Semicolon) || Input.GetKeyDown(KeyCode.RightArrow))
+        if (KeyBindings.IsAnyLaneKeyDown(4, 8) || Input.GetKeyDown(KeyCode.RightArrow)) // lanes 5-8 (custom bindings) = next song
         {
             playSound();
             SongUp();

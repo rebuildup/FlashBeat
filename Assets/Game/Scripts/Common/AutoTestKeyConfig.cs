@@ -101,6 +101,29 @@ public class AutoTestKeyConfig : MonoBehaviour
         Check("scene manager resumed after closing", AnySceneManagerEnabled());
         yield return Shot("04-closed");
 
+        // The lane flash must follow the CUSTOM bindings (owner: "the lit lane is wrong").
+        KeyBindings.ResetToDefaults();
+        KeyBindings.ToggleKey(5, KeyCode.E); // E moves from lane 3 to lane 6
+        SceneManager.LoadScene("GameScene");
+        yield return new WaitForSecondsRealtime(4f);
+        LaneFlash[] flashes = FindObjectsOfType<LaneFlash>();
+        Check("GameScene has the 8 lane flashes", flashes.Length >= 8);
+        KeyBindings.InjectKeyDown(KeyCode.E);
+        yield return Frames();
+        float alpha3 = 0f;
+        float alpha6 = 0f;
+        for (int i = 0; i < flashes.Length; i++)
+        {
+            Renderer r = flashes[i].GetComponent<Renderer>();
+            if (r == null) { continue; }
+            if (flashes[i].LaneNumber == 3) { alpha3 = r.material.color.a; }
+            if (flashes[i].LaneNumber == 6) { alpha6 = r.material.color.a; }
+        }
+        Check("E (bound to lane 6) lights lane 6", alpha6 > 0.1f);
+        Check("E no longer lights lane 3", alpha3 < 0.05f);
+        yield return Shot("05-game-flash");
+        KeyBindings.ResetToDefaults();
+
         string line = "[AutoTest] RESULT keyconfig pass=" + pass + " fail=" + fail;
         Debug.Log(line);
         try { File.WriteAllText(Path.Combine(outDir, "autotest-result.txt"), line + "\n"); } catch (Exception) { }
