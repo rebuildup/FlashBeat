@@ -40,9 +40,7 @@ afterEach(() => {
 
 describe("youtubeThumbUrl", () => {
   it("builds the hqdefault URL from the youtube id", () => {
-    expect(youtubeThumbUrl("dQw4w9WgXcQ")).toBe(
-      "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-    );
+    expect(youtubeThumbUrl("dQw4w9WgXcQ")).toBe("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
   });
 
   it("escapes the id into the URL path", () => {
