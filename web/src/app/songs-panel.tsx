@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { css } from "styled-system/css";
 import { Button, Field, Input } from "@/components/ui";
+import { Archive, ArchiveRestore, RefreshCw } from "lucide-react";
 import { loadAdminSongs, setSongArchived } from "@/lib/dashboard/client";
 import type { AdminSong } from "@/lib/dashboard/types";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
@@ -113,6 +114,12 @@ const actions = css({
   py: "2",
 });
 
+/** The icon inside a button. */
+const buttonIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+});
+
 const archivedTag = css({
   bg: "gray.8",
   borderRadius: "l1",
@@ -203,6 +210,7 @@ export function SongsPanel() {
               loading={status === "loading"}
               disabled={token.trim().length === 0}
             >
+              <RefreshCw className={buttonIcon} size={14} aria-hidden="true" />
               Load the songs
             </Button>
           </div>
@@ -244,6 +252,7 @@ export function SongsPanel() {
                             void archive(song, false);
                           }}
                         >
+                          <ArchiveRestore className={buttonIcon} size={14} aria-hidden="true" />
                           Restore
                         </Button>
                       </>
@@ -256,6 +265,7 @@ export function SongsPanel() {
                           void archive(song, true);
                         }}
                       >
+                        <Archive className={buttonIcon} size={14} aria-hidden="true" />
                         Archive
                       </Button>
                     )}

@@ -1,13 +1,35 @@
+import { useEffect, useState } from "react";
 import { css } from "styled-system/css";
+import {
+  Archive,
+  ChartColumnBig,
+  CloudUpload,
+  ListMusic,
+  PencilRuler,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { BrandHeader } from "@/components/brand";
 
-export const NAV_ITEMS = [
-  { value: "catalog", label: "Catalog", href: "/" },
-  { value: "dashboard", label: "Dashboard", href: "/dashboard" },
-  { value: "songs", label: "Songs", href: "/songs" },
-  { value: "editor", label: "New chart", href: "/chart" },
-  { value: "publish", label: "Publish", href: "/publish" },
-] as const;
+/**
+ * The navigation of the studio.
+ *
+ * Every entry carries an icon: a text-only rail is hard to scan, and the
+ * icons are the same in every page of the studio.
+ */
+export const NAV_ITEMS: readonly {
+  value: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}[] = [
+  { value: "catalog", label: "Catalog", href: "/", icon: ListMusic },
+  { value: "dashboard", label: "Dashboard", href: "/dashboard", icon: ChartColumnBig },
+  { value: "songs", label: "Songs", href: "/songs", icon: Archive },
+  { value: "new-song", label: "New song", href: "/new-song", icon: Sparkles },
+  { value: "editor", label: "New chart", href: "/chart", icon: PencilRuler },
+  { value: "publish", label: "Publish", href: "/publish", icon: CloudUpload },
+];
 
 const sidebar = css({
   bg: "gray.surface.bg",
@@ -43,6 +65,7 @@ const navTrigger = css({
   display: "flex",
   minHeight: "10",
   alignItems: "center",
+  columnGap: "2",
   px: "3",
   borderRadius: "l2",
   color: "fg.muted",
@@ -56,7 +79,26 @@ const navTrigger = css({
   width: { base: "auto", md: "100%" },
 });
 
-export function Sidebar({ active = "catalog" }: { active?: string }) {
+/** The icon of a navigation entry. */
+const navIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
+export function Sidebar({ active }: { active?: string }) {
+  // The active entry follows the URL; the default covers the server-rendered
+  // first paint of `/` (the catalog). A page can pin it with `active`.
+  const [path, setPath] = useState("/");
+  useEffect(() => {
+    setPath(window.location.pathname);
+  }, []);
+
+  const isActive = (item: (typeof NAV_ITEMS)[number]): boolean => {
+    if (active !== undefined) return item.value === active;
+    if (item.href === "/") return path === "/";
+    return path.startsWith(item.href);
+  };
+
   return (
     <aside className={sidebar}>
       <div className={brand}>
@@ -68,9 +110,10 @@ export function Sidebar({ active = "catalog" }: { active?: string }) {
           <a
             key={item.value}
             href={item.href}
-            aria-current={item.value === active ? "page" : undefined}
+            aria-current={isActive(item) ? "page" : undefined}
             className={navTrigger}
           >
+            <item.icon className={navIcon} size={16} aria-hidden="true" />
             {item.label}
           </a>
         ))}

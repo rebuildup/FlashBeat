@@ -135,6 +135,69 @@ public static class BuildScript
         }
     }
 
+    // macOS 確認用ビルド (batchmode: -executeMethod BuildScript.BuildStandaloneMacOS)。出力は Builds/macOS/FlashBeat.app。
+    // Windows 配布物専用の後処理 (Update.ps1 / update-channel.txt / メディア除外マニフェスト) は行わない。
+    [MenuItem("Build/Build macOS")]
+    public static void BuildStandaloneMacOS()
+    {
+        string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "macOS", "FlashBeat.app");
+        string buildDir = Path.GetDirectoryName(buildPath);
+        if (!Directory.Exists(buildDir))
+        {
+            Directory.CreateDirectory(buildDir);
+        }
+
+        string[] scenes = new string[]
+        {
+            "Assets/Game/Scenes/Opening.unity",
+            "Assets/Game/Scenes/TitleScene.unity",
+            "Assets/Game/Scenes/SelectScene.unity",
+            "Assets/Game/Scenes/GameScene.unity",
+            "Assets/Game/Scenes/ResultScene.unity",
+            "Assets/Game/Scenes/OptionScene.unity"
+        };
+
+        string versionBase = Environment.GetEnvironmentVariable("FLASHBEAT_VERSION_BASE");
+        if (string.IsNullOrEmpty(versionBase)) { versionBase = DefaultVersionBase; }
+        PlayerSettings.bundleVersion = versionBase + "+" + GetGitShortSha();
+        Debug.Log($"[BuildScript] bundleVersion = {PlayerSettings.bundleVersion}");
+
+        ExcludeMediaFromBuild();
+        bool failed = false;
+        try
+        {
+            BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = buildPath,
+                target = BuildTarget.StandaloneOSX,
+                options = BuildOptions.None
+            };
+
+            Debug.Log("[BuildScript] Starting StandaloneOSX Build...");
+            BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            BuildSummary summary = report.summary;
+            if (summary.result == BuildResult.Succeeded)
+            {
+                Debug.Log($"[BuildScript] Build succeeded: {summary.totalSize} bytes, output to {buildPath}");
+            }
+            else
+            {
+                failed = true;
+                Debug.LogError($"[BuildScript] Build failed with {summary.totalErrors} errors.");
+            }
+        }
+        finally
+        {
+            RestoreMediaAfterBuild();
+        }
+
+        if (failed && Application.isBatchMode)
+        {
+            EditorApplication.Exit(1);
+        }
+    }
+
     /// <summary>git rev-parse --short HEAD。失敗時は "unknown" (bundleVersion は 0.1.0+unknown)。</summary>
     private static string GetGitShortSha()
     {

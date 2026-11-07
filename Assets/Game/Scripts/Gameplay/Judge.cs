@@ -154,7 +154,7 @@ public class Judge : MonoBehaviour
         int targetLane = notesManager.LaneNum[LaneN];
         if (targetLane < 0 || targetLane >= LaneKeys.Length) return;
 
-        KeyCode[] keys = LaneKeys[targetLane];
+        KeyCode[] keys = KeyBindings.GetKeys(targetLane);
         for (int i = 0; i < keys.Length; i++)
         {
             if (Input.GetKeyDown(keys[i]))

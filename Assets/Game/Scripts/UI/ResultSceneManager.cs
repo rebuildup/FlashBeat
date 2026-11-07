@@ -102,6 +102,7 @@ public class ResultSceneManager : MonoBehaviour
         GManager.miss = 0;
         GManager.score = 0;
         GManager.combo = 0;
+        GManager.maxCombo = 0;
         GManager.maxScore = 0;
         GManager.ratioScore = 0;
         

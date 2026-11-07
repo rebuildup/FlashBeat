@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "styled-system/css";
 import { Button } from "@/components/ui";
+import {
+  Archive,
+  ChartColumnBig,
+  Clock,
+  FileClock,
+  ListMusic,
+  Music,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { loadRankings, loadStats } from "@/lib/dashboard/client";
 import type { RankingSong, StatsResponse } from "@/lib/dashboard/types";
 import { StateBlock, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
@@ -47,6 +58,11 @@ const tile = css({
   flexDirection: "column",
   gap: "1",
   p: "3",
+});
+
+/** The icon of a stat tile. */
+const tileIcon = css({
+  color: "fg.muted",
 });
 
 const tileValue = css({
@@ -185,6 +201,17 @@ const notice = css({
   fontSize: "xs",
 });
 
+/** The heading of a panel: an icon and the title on one line. */
+const titleRow = css({
+  alignItems: "center",
+  columnGap: "2",
+  display: "flex",
+});
+
+const titleIcon = css({
+  color: "fg.muted",
+});
+
 /** `1 play` / `3 plays`. */
 function plural(count: number, word: string): string {
   return `${count} ${count === 1 ? word : `${word}s`}`;
@@ -268,24 +295,19 @@ export function DashboardPanel() {
   return (
     <div className={page}>
       <section className={tiles}>
-        <Tile label="Live songs" value={stats.totals.liveSongs} />
-        <Tile label="Archived songs" value={stats.totals.archivedSongs} />
-        <Tile label="Chart versions" value={stats.totals.charts} />
-        <Tile label="Plays" value={stats.totals.scores} />
-        <Tile label="Players" value={stats.totals.players} />
-        <Tile label="Plays (24h)" value={stats.totals.playsLast24h} />
+        <Tile icon={Music} label="Live songs" value={stats.totals.liveSongs} />
+        <Tile icon={Archive} label="Archived songs" value={stats.totals.archivedSongs} />
+        <Tile icon={FileClock} label="Chart versions" value={stats.totals.charts} />
+        <Tile icon={Trophy} label="Plays" value={stats.totals.scores} />
+        <Tile icon={Users} label="Players" value={stats.totals.players} />
+        <Tile icon={Clock} label="Plays (24h)" value={stats.totals.playsLast24h} />
       </section>
 
       <div className={columns}>
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <div>
-                <h2 className={panelTitle}>Ranking</h2>
-                <p className={panelSubtitle}>
-                  The best scores of the published chart version of every live song.
-                </p>
-              </div>
+              <Heading icon={Trophy} title="Ranking" subtitle="The best scores of the published chart version of every live song." />
             </div>
             <div className={panelBodyAuto}>
               {orderedSongs.length === 0 ? (
@@ -302,10 +324,7 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <div>
-                <h2 className={panelTitle}>Songs in detail</h2>
-                <p className={panelSubtitle}>Plays, players and the average accuracy.</p>
-              </div>
+              <Heading icon={ListMusic} title="Songs in detail" subtitle="Plays, players and the average accuracy." />
             </div>
             <div className={panelBodyAuto}>
               <div className={rowHeader}>
@@ -342,10 +361,7 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <div>
-                <h2 className={panelTitle}>Best players</h2>
-                <p className={panelSubtitle}>By the sum of their scores.</p>
-              </div>
+              <Heading icon={Users} title="Best players" subtitle="By the sum of their scores." />
             </div>
             <div className={panelBodyAuto}>
               {stats.topPlayers.length === 0 ? (
@@ -380,10 +396,7 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <div>
-                <h2 className={panelTitle}>Difficulty</h2>
-                <p className={panelSubtitle}>How the live songs are spread over the levels.</p>
-              </div>
+              <Heading icon={ChartColumnBig} title="Difficulty" subtitle="How the live songs are spread over the levels." />
             </div>
             <div className={panelBodyAuto}>
               {levelBars.distribution.length === 0 ? (
@@ -416,9 +429,44 @@ export function DashboardPanel() {
   );
 }
 
-function Tile({ label, value }: { label: string; value: number }) {
+/**
+ * The heading of a panel.
+ *
+ * The icon tells the panels apart at a glance; the subtitle explains what
+ * the panel shows.
+ */
+function Heading({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div>
+      <div className={titleRow}>
+        <Icon className={titleIcon} size={16} aria-hidden="true" />
+        <h2 className={panelTitle}>{title}</h2>
+      </div>
+      <p className={panelSubtitle}>{subtitle}</p>
+    </div>
+  );
+}
+
+function Tile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: number;
+}) {
   return (
     <div className={tile}>
+      <Icon className={tileIcon} size={16} aria-hidden="true" />
       <span className={tileValue}>{formatScore(value)}</span>
       <span className={tileLabel}>{label}</span>
     </div>
