@@ -150,6 +150,11 @@ public class MusicManager : MonoBehaviour
         // our own player, so it is removed from the song object.
         DisableInvidiousPlayer();
 
+        // 読み込み中表示 (動画のダウンロード・準備中)。失敗時は理由を表示してから自動で隠す。
+        MediaLoadingOverlay loading = null;
+        try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
+        if (loading != null) { loading.Show("曲情報を取得中…"); }
+
         // 1. What does YouTube offer for this video?
         var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId);
         while (!formatsTask.IsCompleted) yield return null;
@@ -176,10 +181,12 @@ public class MusicManager : MonoBehaviour
         // 3. Download the media into the local cache. The merged file has its own
         //    prefix, so a picture-only file of an earlier revision is not reused.
         var videoPrefix = plan.Combined ? YouTubeMediaCache.MergedFilePrefix : YouTubeMediaCache.VideoFilePrefix;
+        if (loading != null) { loading.Show("動画をダウンロード中…"); }
         var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
+        if (!videoFile.Ok && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
         // The merged file (video + YouTube sound in one mp4) is the wanted state.
         // If the merge failed (no ffmpeg, download error) the picture still has to
@@ -209,6 +216,7 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
+            if (loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
         }
@@ -217,6 +225,7 @@ public class MusicManager : MonoBehaviour
         bool audioReady = false;
         if (!combined && audioFile != null && audioFile.Ok)
         {
+            if (loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
         }
@@ -240,6 +249,7 @@ public class MusicManager : MonoBehaviour
         }
 
         mediaReady = true;
+        if (loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
 
