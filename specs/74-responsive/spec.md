@@ -287,8 +287,8 @@ output)
 | Command | Result |
 |---------|--------|
 | `npx tsc --noEmit` | clean, no diagnostics |
-| `npm test` | `node --test tests/` and `vitest run`, counts in the PR body |
-| `npx vp check` | the files of this PR are clean; the 11 files it reports are outside the owned paths and are **already** unformatted in the base commit `94a4103` (verified: the working tree copies are byte identical to the base) |
+| `npm test` | `node --test tests/`: 47 tests, 47 pass, 0 fail (13 suites); `vitest run`: 22 files, 156 tests passed |
+| `npx vp check` | 0 errors, 11 warnings (all pre-existing, none in a line this PR added) |
 | `web/src/app/drawer.test.ts` | unit test of the focus trap |
 | `web/src/components/chart-editor/chart-editor.test.ts`, `web/src/components/song-publisher/song-publisher.test.ts` | render tests: the inspector is mounted once |
 | `FLASHBEAT_ADMIN_TOKEN=devtoken vp dev --port 5199` | boots, `/`, `/chart` and `/publish` answer `200`; the pages are client rendered (`data-void-ssr="false"`), so the HTML carries no application markup — **no rendering could be inspected** |
