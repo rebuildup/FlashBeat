@@ -7,7 +7,7 @@ public class Notes : MonoBehaviour
     
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
             //start = true;
         }
