@@ -23,6 +23,10 @@
 - [ ] フォルダ fingerprint（`release/check/stage-manifest.json` 記載のアルゴリズム）が manifest と一致。
 - [ ] `FlashBeat.exe` の SHA-256 が manifest と一致。
 - [ ] 既存成果物を **上書き・削除していない**（新しい成果物は別名フォルダ）。
+- [ ] **配布 ZIP に第三者楽曲メディアが含まれない**ことを `tools/release/audit-release-media.py` で確認した
+      （`FlashBeat_Data/resources.resource` の非圧縮サイズとルーズなメディア 0 件、
+      `flashbeat-media-policy.json` の有無）。結果の記録は
+      [`release-media-audit.md`](release-media-audit.md)。
 - [ ] 検証コマンドの結果が記録に残っている。
 
 ```powershell
