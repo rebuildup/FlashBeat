@@ -33,7 +33,6 @@ const root = css({
   gridTemplateRows: "auto minmax(0, 1fr)",
   height: "100%",
   minHeight: 0,
-  overflow: "hidden",
 });
 
 const header = css({
@@ -78,9 +77,8 @@ const backLink = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: "minmax(0, 1fr) 21rem",
+  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 21rem" },
   minHeight: 0,
-  overflow: "hidden",
   p: "3",
 });
 
@@ -89,15 +87,14 @@ const editorArea = css({
   gridTemplateRows: "minmax(0, 1fr)",
   minHeight: 0,
   minWidth: 0,
-  overflow: "hidden",
 });
 
 const side = css({
-  display: "flex",
+  display: { base: "none", lg: "flex" },
   flexDirection: "column",
   gap: "3",
   minHeight: 0,
-  overflow: "hidden",
+  overflowY: "auto",
 });
 
 const sideScroll = css({
@@ -107,6 +104,38 @@ const sideScroll = css({
   gap: "3",
   minHeight: 0,
   overflowY: "auto",
+});
+
+const drawerBackdrop = css({
+  bg: "black/50",
+  display: "flex",
+  justifyContent: "flex-end",
+  inset: "0",
+  position: "fixed",
+  zIndex: "modal",
+});
+
+const drawerPanel = css({
+  bg: "#1b1b1b",
+  borderLeftColor: "#2d2d2d",
+  borderLeftWidth: "1px",
+  display: "flex",
+  flexDirection: "column",
+  height: "100dvh",
+  maxWidth: "100%",
+  minWidth: "0",
+  overflowY: "auto",
+  width: "21rem",
+});
+
+const drawerHeader = css({
+  alignItems: "center",
+  borderBottomColor: "#2d2d2d",
+  borderBottomWidth: "1px",
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "3",
+  px: "3",
 });
 
 const card = css({
@@ -166,6 +195,28 @@ const badge = css({
 
 const accent = css({ colorPalette: "blue" });
 
+const buttonSecondary = css({
+  bg: "#3a3a3a",
+  color: "#ffffff",
+  borderRadius: "8px",
+  borderColor: "transparent",
+  _hover: { bg: "#454545" },
+  _disabled: { opacity: 0.4 },
+});
+
+const sidebarToggle = css({
+  display: { base: "flex", lg: "none" },
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+const sideTitle = css({
+  color: "#ffffff",
+  fontSize: "xs",
+  fontWeight: "medium",
+  margin: "0",
+});
+
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
   songId: false,
   title: false,
@@ -191,7 +242,13 @@ export interface SongPublisherProps {
   initialVersion?: number;
 }
 
-export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initialSong, initialVersion }: SongPublisherProps) {
+export function SongPublisher({
+  initialChart,
+  initialYouTubeId,
+  apiOrigin,
+  initialSong,
+  initialVersion,
+}: SongPublisherProps) {
   const [draft, setDraft] = useState<SongMetadataDraft>(() => ({
     songId: initialSong?.id ?? "",
     title: initialSong?.title ?? initialChart.name,
@@ -201,6 +258,7 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
     durationSec: initialSong?.durationSec ?? Number.NaN,
   }));
   const [titleEdited, setTitleEdited] = useState(Boolean(initialSong));
+  const [isSideOpen, setIsSideOpen] = useState(false);
   const [chart, setChart] = useState<Chart | null>(initialChart);
   const [chartIssues, setChartIssues] = useState<ValidationIssue[]>([]);
   const [touched, setTouched] = useState<Record<SongMetadataField, boolean>>(NO_TOUCHED);
@@ -353,16 +411,44 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
             ← Web Studio
           </a>
           <h1 className={title}>Publish a song</h1>
-          <p className={subtitle}>{initialVersion ? `Editing published v${initialVersion} · draft preserved on failure` : "New unpublished draft"}</p>
+          <p className={subtitle}>
+            {initialVersion
+              ? `Editing published v${initialVersion} · draft preserved on failure`
+              : "New unpublished draft"}
+          </p>
         </div>
 
-        <span className={badge}>
-          {transport.mode === "fixture"
-            ? "Fixture API"
-            : transport.baseUrl
-              ? `Live API ${transport.baseUrl}`
-              : "Live API (this origin)"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "2" }}>
+          <span className={badge}>
+            {transport.mode === "fixture"
+              ? "Fixture API"
+              : transport.baseUrl
+                ? `Live API ${transport.baseUrl}`
+                : "Live API (this origin)"}
+          </span>
+          <Button
+            className={`${buttonSecondary} sidebar-toggle`}
+            size="sm"
+            variant="outline"
+            onClick={() => setIsSideOpen(true)}
+            aria-label="Open sidebar"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </Button>
+        </div>
       </header>
 
       <div className={body}>
@@ -411,9 +497,80 @@ export function SongPublisher({ initialChart, initialYouTubeId, apiOrigin, initi
               </Button>
             </section>
 
-            <PublishResultPanel result={result} onRetry={handleReview} onBackToEditor={handleBackToEditor} />
+            <PublishResultPanel
+              result={result}
+              onRetry={handleReview}
+              onBackToEditor={handleBackToEditor}
+            />
           </div>
         </aside>
+
+        {isSideOpen && (
+          <div
+            className={drawerBackdrop}
+            onClick={() => setIsSideOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Publish sidebar"
+          >
+            <div className={drawerPanel} onClick={(e) => e.stopPropagation()}>
+              <div className={drawerHeader}>
+                <h3 className={sideTitle}>Publish tools</h3>
+                <Button
+                  className={buttonSecondary}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsSideOpen(false)}
+                  aria-label="Close sidebar"
+                >
+                  <span aria-hidden="true">✕</span>
+                </Button>
+              </div>
+              <div className={sideScroll}>
+                <section className={card}>
+                  <h2 className={cardTitle}>Song metadata</h2>
+                  <SongMetadataForm
+                    draft={effectiveDraft}
+                    onChange={handleChange}
+                    onFieldBlur={handleFieldBlur}
+                    issues={visibleIssues}
+                  />
+                </section>
+
+                <section className={card}>
+                  <h2 className={cardTitle}>Publish</h2>
+
+                  <dl className={facts}>
+                    <dt className={factKey}>Chart</dt>
+                    <dd className={factValue}>
+                      {summary.noteCount} notes at {summary.bpm} BPM
+                    </dd>
+
+                    <dt className={factKey}>Song id</dt>
+                    <dd className={factValue}>{summary.songId || "—"}</dd>
+                  </dl>
+
+                  {chartIssues.length > 0 ? (
+                    <p className={warning}>
+                      The chart has {chartIssues.length} contract problems. Fix them before
+                      publishing.
+                    </p>
+                  ) : null}
+
+                  <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+                    Review publish
+                  </Button>
+                </section>
+
+                <PublishResultPanel
+                  result={result}
+                  onRetry={handleReview}
+                  onBackToEditor={handleBackToEditor}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <PublishDialog

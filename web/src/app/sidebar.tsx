@@ -24,6 +24,9 @@ const sidebar = css({
   paddingBottom: { base: "2", md: "4" },
   paddingTop: { base: "2", md: "4" },
   px: "3",
+  position: { base: "sticky", md: "static" },
+  top: { base: "0", md: "auto" },
+  zIndex: { base: "sticky", md: "auto" },
 });
 
 const brand = css({

@@ -49,20 +49,10 @@ const brandSubtitle = css({
   lineHeight: "1.2",
 });
 
-export function BrandHeader({
-  subtitle = "Web Studio",
-}: {
-  subtitle?: string;
-}) {
+export function BrandHeader({ subtitle = "Web Studio" }: { subtitle?: string }) {
   return (
     <span className={brandHeader}>
-      <img
-        alt="FlashBeat"
-        className={brandImage}
-        height={32}
-        src={brandIconSrc(64)}
-        width={32}
-      />
+      <img alt="FlashBeat" className={brandImage} height={32} src={brandIconSrc(64)} width={32} />
       <span className={css({ minWidth: "0" })}>
         <span className={brandName}>FlashBeat</span>
         <br />

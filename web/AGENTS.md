@@ -49,7 +49,7 @@ server against the local D1.
 | `src/app/**`                       | The Web Studio shell written by this repository.                                                |
 | `src/components/chart-editor/**`   | The eight lane Konva chart editor (issue #18).                                                  |
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                    |
-| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                              |
+| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                  |
 | `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                      |
 | `src/components/new-song/**`       | Guided new-song flow `/new-song`: stepper, song info, chart, publish steps (issue #135).        |
 | `src/lib/new-song/**`              | Slug suggestion, oEmbed, sessionStorage draft, bilingual validation, fixture studio API (#135). |

@@ -9,6 +9,11 @@
   }
 
   body {
-    overflow: hidden;
+    /* Allow page-level scroll; content areas own their scrolling */
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--global-color-focus-ring);
+    outline-offset: 2px;
   }
 }

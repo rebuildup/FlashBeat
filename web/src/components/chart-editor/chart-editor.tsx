@@ -46,9 +46,8 @@ const layout = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: "minmax(0, 1fr) 17rem",
+  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
   minHeight: "0",
-  overflow: "hidden",
   p: "3",
 });
 
@@ -59,7 +58,7 @@ const gridPanel = css({
   flexDirection: "column",
   minHeight: "0",
   minWidth: "0",
-  overflow: "hidden",
+  overflow: "visible",
 });
 
 const gridHint = css({
@@ -79,7 +78,7 @@ const playheadReadout = css({
 });
 
 const side = css({
-  display: "flex",
+  display: { base: "none", lg: "flex" },
   flexDirection: "column",
   gap: "3",
   minHeight: "0",
@@ -93,6 +92,39 @@ const sideFrame = css({
   flexDirection: "column",
   gap: "2",
   padding: "3",
+  width: { base: "100%", lg: "17rem" },
+});
+
+const drawerBackdrop = css({
+  bg: "black/50",
+  display: "flex",
+  justifyContent: "flex-end",
+  inset: "0",
+  position: "fixed",
+  zIndex: "modal",
+});
+
+const drawerPanel = css({
+  bg: "#1b1b1b",
+  borderLeftColor: "#2d2d2d",
+  borderLeftWidth: "1px",
+  display: "flex",
+  flexDirection: "column",
+  height: "100dvh",
+  maxWidth: "100%",
+  minWidth: "0",
+  overflowY: "auto",
+  width: "17rem",
+});
+
+const drawerHeader = css({
+  alignItems: "center",
+  borderBottomColor: "#2d2d2d",
+  borderBottomWidth: "1px",
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "3",
+  px: "3",
 });
 
 const sideTitle = css({
@@ -143,6 +175,7 @@ export function ChartEditor({
   const [playheadSec, setPlayheadSec] = useState(0);
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
   const [youtubeId, setYoutubeId] = useState(initialYouTubeId);
+  const [isSideOpen, setIsSideOpen] = useState(false);
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
 
@@ -281,6 +314,10 @@ export function ChartEditor({
       }
 
       if (event.key === "Escape") {
+        if (isSideOpen) {
+          setIsSideOpen(false);
+          return;
+        }
         setSelectedIndex(null);
         return;
       }
@@ -338,6 +375,7 @@ export function ChartEditor({
         onImportFile={handleImportFile}
         onExport={handleExport}
         onDeleteSelected={handleDeleteSelected}
+        onToggleSide={() => setIsSideOpen(true)}
       />
 
       <div className={body}>
@@ -409,6 +447,68 @@ export function ChartEditor({
 
           <ValidationPanel issues={issues} />
         </aside>
+
+        {isSideOpen && (
+          <div
+            className={drawerBackdrop}
+            onClick={() => setIsSideOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Editor sidebar"
+          >
+            <div className={drawerPanel} onClick={(e) => e.stopPropagation()}>
+              <div className={drawerHeader}>
+                <h3 className={sideTitle}>Editor tools</h3>
+                <Button
+                  className={buttonSecondary}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsSideOpen(false)}
+                  aria-label="Close sidebar"
+                >
+                  <span aria-hidden="true">✕</span>
+                </Button>
+              </div>
+              <section className={sideFrame}>
+                <h3 className={sideTitle}>Preview</h3>
+                <Field.Root>
+                  <Field.Label className={fieldLabel}>YouTube video</Field.Label>
+                  <Input
+                    className={inputBox}
+                    value={youtubeInput}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    onChange={(event) => setYoutubeInput(event.currentTarget.value)}
+                    onBlur={() => {
+                      const parsed = parseYouTubeId(youtubeInput);
+                      if (parsed) {
+                        setYoutubeId(parsed);
+                      }
+                    }}
+                  />
+                  {youtubeSummary ? <Field.HelperText>{youtubeSummary}</Field.HelperText> : null}
+                </Field.Root>
+
+                <YouTubePreview
+                  ref={previewRef}
+                  videoId={youtubeId}
+                  onTimeUpdate={setPlayheadSec}
+                  onPlayingChange={() => {}}
+                />
+
+                <Button
+                  className={buttonSecondary}
+                  size="sm"
+                  onClick={() => previewRef.current?.seekTo(0)}
+                  data-testid="rewind-button"
+                >
+                  Back to start
+                </Button>
+              </section>
+
+              <ValidationPanel issues={issues} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

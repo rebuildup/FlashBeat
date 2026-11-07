@@ -35,6 +35,8 @@ const list = css({
   maxHeight: "9rem",
   overflowY: "auto",
   padding: "2",
+  width: "100%",
+  maxWidth: "100%",
 });
 
 const item = css({
@@ -48,11 +50,15 @@ const path = css({
   fontFamily: "mono",
   fontSize: "2xs",
   wordBreak: "break-all",
+  maxWidth: "100%",
+  overflowWrap: "break-word",
 });
 
 const message = css({
   color: "#ff6b6b",
   fontSize: "2xs",
+  wordBreak: "break-word",
+  maxWidth: "100%",
 });
 
 const clean = css({
