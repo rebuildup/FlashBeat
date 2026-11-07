@@ -14,7 +14,7 @@
  *   2. Semantics — the checks the JSON schema cannot express: every note must
  *      land inside `durationSec`, and the legacy note fields must stay in the
  *      range the Unity gameplay code supports (8 lanes, positive beat
- *      positions, Tap notes only).
+ *      positions, Tap and Hold notes).
  *
  * Both layers return the same actionable diagnostic shape, so a rejected
  * publish always answers *which* item failed and *why*.
@@ -54,7 +54,18 @@ export interface LegacyNote {
   num: number;
   block: number;
   LPB: number;
+  /**
+   * Line index where a Hold ends (issue #164). Only read for `type` 2; a Tap
+   * ignores it.
+   */
+  endNum?: number;
 }
+
+/** Note kind of the legacy chart format: a Tap. */
+export const NOTE_TYPE_TAP = 1;
+
+/** Note kind of the legacy chart format: a Hold (long note, issue #164). */
+export const NOTE_TYPE_HOLD = 2;
 
 /**
  * Ajv validator for `SongPublishRequest`.
@@ -122,11 +133,16 @@ export function validatePublishRequest(body: unknown): PublishValidation {
  *   - 8 lanes: `block` must be 0-7 (`maxBlock` is fixed at 8).
  *   - Beat positions are positive: `num >= 0` and `LPB >= 1`.
  *   - BPM (1-600) and `level` (1-99) inside the supported ranges.
- *   - Tap notes only: `type` must be 1, the only type the Unity judge loads.
+ *   - Note kinds: `type` must be 1 (Tap) or 2 (Hold). A Hold additionally
+ *     needs `endNum`, and its end must be *after* its start (`endNum > num`).
+ *     The Hold covers the lines `(num, endNum]` at the resolution of `LPB`,
+ *     so an end at or before the start is a zero-length (or inverted) hold
+ *     that the player cannot hold.
  *   - Note count vs chart length: the last note must land at or before
  *     `durationSec`. The Unity loader computes the note time as
  *     `num * 60 / (BPM * LPB)` seconds (`NotesManager.Load`), so that is the
- *     time checked here.
+ *     time checked here. A Hold is checked at its *end*, because the note is
+ *     still on screen while it is held.
  */
 export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnostic[] {
   const diagnostics: PublishDiagnostic[] = [];
@@ -151,10 +167,10 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
   let lastNotePath = "";
   for (const [index, note] of notes.entries()) {
     const path = `/chart/notes/${index}`;
-    if (note.type !== 1) {
+    if (note.type !== NOTE_TYPE_TAP && note.type !== NOTE_TYPE_HOLD) {
       diagnostics.push({
         path: `${path}/type`,
-        message: `only Tap notes (type 1) are supported, got type ${note.type}`,
+        message: `must be a Tap (type ${NOTE_TYPE_TAP}) or a Hold (type ${NOTE_TYPE_HOLD}), got type ${note.type}`,
       });
     }
     if (note.block < 0 || note.block > 7) {
@@ -176,7 +192,28 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
       });
     }
 
-    const noteSec = (note.num * 60) / (bpm * note.LPB);
+    // A Hold needs its end line. The end must be after the start, otherwise
+    // the player would have to press and release the key inside the same
+    // frame.
+    const isHold = note.type === NOTE_TYPE_HOLD;
+    if (isHold) {
+      if (note.endNum === undefined) {
+        diagnostics.push({
+          path: `${path}/endNum`,
+          message: `endNum is required for a Hold (type ${NOTE_TYPE_HOLD}); the end line of the hold is missing`,
+        });
+      } else if (note.endNum <= note.num) {
+        diagnostics.push({
+          path: `${path}/endNum`,
+          message: `must be after the start line of the hold (num ${note.num}), got ${note.endNum}`,
+        });
+      }
+    }
+
+    // The last note of the chart decides how long the chart has to be. A Tap
+    // ends at its own position, a Hold at the end of its hold.
+    const endLine = isHold && note.endNum !== undefined ? note.endNum : note.num;
+    const noteSec = (endLine * 60) / (bpm * note.LPB);
     if (noteSec > lastNoteSec) {
       lastNoteSec = noteSec;
       lastNotePath = path;

@@ -177,8 +177,10 @@ the Void dev server, and validates the responses against the frozen contract
      validator is `@cfworker/json-schema` because Ajv compiles validators
      with `new Function`, which the Workers runtime forbids.
   2. Semantics — 8 lanes (`block` 0-7), positive beat positions (`num >= 0`,
-     `LPB >= 1`), BPM 1-600, level 1-99, Tap-only (`type` 1), and every note
-     inside `durationSec` using the Unity timing `num * 60 / (BPM * LPB)`.
+     `LPB >= 1`), BPM 1-600, level 1-99, the note kinds (`type` 1 = Tap,
+     `type` 2 = Hold with an `endNum` after its `num`), and every note inside
+     `durationSec` using the Unity timing `num * 60 / (BPM * LPB)` (a Hold is
+     measured at its `endNum`).
      Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
      naming each offending item; nothing is written.
 - **Publication.** One `db.batch` (a D1 implicit transaction) writes the song

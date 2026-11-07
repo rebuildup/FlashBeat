@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace FlashBeat.UI.V5
@@ -11,20 +12,21 @@ namespace FlashBeat.UI.V5
     public sealed class UISizeProfile
     {
         // --- design/ui-size-profiles.json "select" の選択規則 ---
-        // screen.height >= 1440 -> 2k
-        // abs(screen.width / screen.height - 1.6) < 0.05 -> mac
-        // else -> fhd
+        // 縦横比 ~1.538 (±0.03, Mac ネイティブ 2560x1664) -> mac
+        // 縦横比 ~1.778 (±0.03) かつ screen.height >= 1440 -> 2k
+        // screen.height >= 1080 -> fhd
+        // else -> fhd を min(1, height/1080) 倍に縮小
         //
         // 端末解像度の扱い (実装方針):
-        // - 2560x1440 は 2k (height>=1440)。
-        // - 1440x900 は mac (16:10 = 1.6)。
-        // - 1920x1080 / 1024x768 / 1280x720 は fhd (16:10 でも 4:3 でもない)。
+        // - 2560x1664 は mac (Mac ネイティブ実ピクセル。旧 1440x900 設計は無効, Issue #162)。
+        // - 2560x1440 は 2k (縦横比 1.778 かつ height>=1440)。
+        // - 1920x1080 は fhd。
+        // - 1440x900 (16:10 = 1.6) は mac にも 2k にも当てはまらない → fhd を h/1080 倍に縮小。
         // - fhd は「1920x1080 基準の実ピクセル」だが、Constant Pixel Size x1 では
         //   それより小さい画面で UI が画面からはみ出る。そこで小さい画面では
         //   CanvasScaler.referenceResolution を使わず、プロファイル値自体を
         //   min(1, height/1080) 倍に縮めて返す (ClampToFhd)。これにより
         //   1024x768 (x0.71) / 1280x720 (x0.667) でも比率を保ち、決してクリップしない。
-        //   mac は 900px 高で設計済みのため縮小不要。
 
         public readonly string Name;
         public readonly float Scale;
@@ -103,15 +105,18 @@ namespace FlashBeat.UI.V5
                 740, 400, 104, new Vector2(480, 160));
         }
 
-        /// <summary>design/ui-size-profiles.json の profiles.mac (1440x900)。</summary>
+        /// <summary>
+        /// design/ui-size-profiles.json の profiles.mac (2560x1664, Mac ネイティブ実ピクセル)。
+        /// 旧 1440x900 設計は無効 (Issue #162 指示)。1440x900 は mac ではなく fhd 縮小側に流れる。
+        /// </summary>
         public static UISizeProfile Mac()
         {
             return new UISizeProfile(
                 "mac", 1f,
-                36, 42, 32, 26, 20, 330, 140,
-                22, 30, 46, 8, 16, 30,
-                new Vector2(380, 660), new Vector2(250, 550), new Vector2(200, 450),
-                480, 260, 64, new Vector2(300, 100));
+                64, 75, 57, 46, 36, 587, 249,
+                39, 53, 82, 14, 28, 53,
+                new Vector2(676, 1173), new Vector2(444, 978), new Vector2(356, 800),
+                853, 462, 114, new Vector2(533, 178));
         }
 
         /// <summary>
@@ -134,11 +139,20 @@ namespace FlashBeat.UI.V5
                 Mathf.RoundToInt(f.RowH * scale), f.Btn * scale);
         }
 
-        /// <summary>現在の画面解像度からプロファイルを選択する。</summary>
+        /// <summary>
+        /// 現在の画面解像度からプロファイルを選択する。
+        /// 選択規則 (Issue #162/#169 指示, 順序厳守):
+        /// 1. 縦横比 ~1.538 (±0.03, Mac ネイティブ 2560x1664) -> mac
+        /// 2. 縦横比 ~1.778 (±0.03) かつ height >= 1440 -> 2k
+        /// 3. height >= 1080 -> fhd
+        /// 4. 上記以外 (height &lt; 1080) -> fhd を height/1080 倍に縮小
+        /// 旧 1440x900 (縦横比 1.6) 用の規則は廃止。
+        /// </summary>
         public static UISizeProfile Select(int width, int height)
         {
-            if (height >= 1440) return TwoK();
-            if (Mathf.Abs((float)width / height - 1.6f) < 0.05f) return Mac();
+            float aspect = (float)width / height;
+            if (Mathf.Abs(aspect - 1.538f) < 0.03f) return Mac();
+            if (Mathf.Abs(aspect - 1.778f) < 0.03f && height >= 1440) return TwoK();
             if (height >= 1080) return Fhd();
             // fhd (1080p) より小さい画面: 全体を縮小してクリップを防ぐ。
             return FhdScaled(Mathf.Min(1f, (float)height / 1080f));
@@ -187,7 +201,11 @@ namespace FlashBeat.UI.V5
         private int lastWidth;
         private int lastHeight;
 
-        /// <summary>Canvas/CanvasScaler をプロファイル設定にする。生成直後に呼ぶ。</summary>
+        /// <summary>
+        /// Canvas/CanvasScaler をプロファイル設定にする。生成直後に呼ぶ。
+        /// 冪等: 同じ Canvas に何度呼んでも CanvasScaler / GraphicRaycaster /
+        /// CanvasConfigurator / EventSystem は重複生成されない (Issue #169 T3)。
+        /// </summary>
         public static CanvasConfigurator Configure(Canvas canvas)
         {
             if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
@@ -198,11 +216,49 @@ namespace FlashBeat.UI.V5
             var scaler = canvas.GetComponent<CanvasScaler>() ?? canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
             scaler.scaleFactor = 1f;
-            var cfg = canvas.gameObject.AddComponent<CanvasConfigurator>();
+
+            // T3: Canvas ごとの GraphicRaycaster を一元管理。無い Canvas は raycast 対象に
+            // ならない (死に raycast) ので、無ければ付与する。既にあればそのまま使う。
+            if (canvas.GetComponent<GraphicRaycaster>() == null)
+            {
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+            }
+
+            // T3: EventSystem の単一系統化。画面ごとに重複生成しない。
+            EnsureEventSystem();
+
+            // [DisallowMultipleComponent] のため 2 回目の AddComponent はエラーになる。
+            // 冪等にするため既存インスタンスを再利用する。
+            var cfg = canvas.GetComponent<CanvasConfigurator>();
+            if (cfg == null)
+            {
+                cfg = canvas.gameObject.AddComponent<CanvasConfigurator>();
+            }
+
             cfg.scaler = scaler;
             cfg.lastWidth = Screen.width;
             cfg.lastHeight = Screen.height;
             return cfg;
+        }
+
+        /// <summary>
+        /// EventSystem がシーンに 1 つも無ければ生成する (EventSystem + StandaloneInputModule)。
+        /// 既にあれば何もしない。旧 Canvas を SetActive(false) にする方式と v5 動的 Canvas の
+        /// 併用でも EventSystem が重複しないようにするための唯一の生成経路 (Issue #169 T3)。
+        /// </summary>
+        public static void EnsureEventSystem()
+        {
+            if (Object.FindFirstObjectByType<EventSystem>() != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            // EditMode テストでは DontDestroyOnLoad は無意味 (警告が出る) ので再生中のみ。
+            if (Application.isPlaying)
+            {
+                Object.DontDestroyOnLoad(go);
+            }
         }
 
         private void Update()

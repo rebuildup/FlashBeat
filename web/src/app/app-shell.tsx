@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { css } from "styled-system/css";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { cx, css } from "styled-system/css";
 import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
@@ -7,16 +7,27 @@ import { Sidebar } from "./sidebar";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import type { SongSummary } from "./types";
 
+/**
+ * The shell every Studio screen shares (issue #166): the navigation rail on
+ * the start side and the work area next to it. Narrow viewports: the shell is
+ * a plain block so the navigation can stick to the top of the document while
+ * the page scrolls. Wide viewports: the grid of the rail and the work area.
+ *
+ * `scroll` selects how the work area behaves:
+ * - `true` (default): the shell scrolls the page content (catalog, forms).
+ * - `false`: the shell is locked to the viewport and the page manages its own
+ *   scrolling (the chart editor draws into a canvas and must not scroll).
+ */
 const shell = css({
-  /**
-   * Narrow viewports: the shell is a plain block so the navigation can stick
-   * to the top of the document while the page scrolls. Wide viewports: the
-   * grid of the persistent rail and the work area.
-   */
   display: { base: "block", md: "grid" },
   gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { base: "auto 1fr", md: "1fr" },
   minHeight: "100dvh",
+});
+
+const shellFixed = css({
+  height: "100dvh",
+  overflow: "hidden",
 });
 
 const main = css({
@@ -26,6 +37,11 @@ const main = css({
   minWidth: "0",
 });
 
+const mainFixed = css({
+  height: "full",
+});
+
+/** Work area of scrolling pages: padded, one inner scroll area. */
 const content = css({
   display: "flex",
   flex: "1",
@@ -35,6 +51,24 @@ const content = css({
   overflowY: "auto",
   p: "4",
 });
+
+export function StudioShell({
+  children,
+  scroll = true,
+}: {
+  children: ReactNode;
+  /** `false` locks the shell to the viewport (chart editor, canvas pages). */
+  scroll?: boolean;
+}) {
+  return (
+    <div className={cx(shell, !scroll && shellFixed)}>
+      <Sidebar />
+      <main id="studio-content" className={cx(main, !scroll && mainFixed)}>
+        {children}
+      </main>
+    </div>
+  );
+}
 
 export function AppShell({
   mode,
@@ -138,37 +172,33 @@ export function AppShell({
   }, []);
 
   return (
-    <div className={shell}>
-      <Sidebar />
+    <StudioShell>
+      <Topbar
+        title="Catalog"
+        subtitle="Find a published song to work on its chart."
+        query={query}
+        onQueryChange={setQuery}
+        level={level}
+        onLevelChange={setLevel}
+        sort={sort}
+        onSortChange={setSort}
+      />
 
-      <main id="studio-content" className={main}>
-        <Topbar
-          title="Catalog"
-          subtitle="Find a published song to work on its chart."
-          query={query}
-          onQueryChange={setQuery}
-          level={level}
-          onLevelChange={setLevel}
-          sort={sort}
-          onSortChange={setSort}
+      <div className={content}>
+        <CatalogPanel
+          status={effectiveStatus}
+          songs={visibleSongs}
+          total={songs.length}
+          errorMessage={errorMessage}
+          onRetry={refresh}
+          hasFilters={query.trim().length > 0 || level !== "all"}
+          onClearFilters={() => {
+            setQuery("");
+            setLevel("all");
+          }}
+          onListKeyDown={onListKeyDown}
         />
-
-        <div className={content}>
-          <CatalogPanel
-            status={effectiveStatus}
-            songs={visibleSongs}
-            total={songs.length}
-            errorMessage={errorMessage}
-            onRetry={refresh}
-            hasFilters={query.trim().length > 0 || level !== "all"}
-            onClearFilters={() => {
-              setQuery("");
-              setLevel("all");
-            }}
-            onListKeyDown={onListKeyDown}
-          />
-        </div>
-      </main>
-    </div>
+      </div>
+    </StudioShell>
   );
 }

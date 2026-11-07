@@ -39,6 +39,21 @@ public class ResultSceneManager : MonoBehaviour
     public string[] songURLs;
     public Image[] imageObjects;
 
+    void Awake()
+    {
+        // Issue #167: ベストスコアの更新は Awake で行う。
+        // Start の実行順はコンポーネントの並びで決まるため、Start で更新すると
+        // SaveLoadManager (Result シーンで Start 時に保存) より後になり、
+        // 新記録が保存されないことがあった。Awake は全ての Start より先に走る。
+        int hiIndex = GManager.songID;
+        if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
+        prevHiscore = GManager.Hiscore[hiIndex];
+        if (GManager.score >= GManager.Hiscore[hiIndex])
+        {
+            GManager.Hiscore[hiIndex] = GManager.score;
+        }
+    }
+
     void Start()
     {
         GManager.BGMtime = 0f;   
@@ -63,11 +78,6 @@ public class ResultSceneManager : MonoBehaviour
         Assessment.text = FlashBeat.UI.V5.ResultView.RankFor(GManager.score);
         int hiIndex = GManager.songID;
         if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
-        prevHiscore = GManager.Hiscore[hiIndex];
-        if (GManager.score >= GManager.Hiscore[hiIndex])
-        {
-            GManager.Hiscore[hiIndex] = GManager.score;
-        }
         Hiscore.text = GManager.Hiscore[hiIndex].ToString();
         StartCoroutine(FetchThumbnail(GManager.ActiveSongs[GManager.songID].videoId, 0));
         BuildV5View();

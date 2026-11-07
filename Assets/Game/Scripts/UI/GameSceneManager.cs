@@ -217,6 +217,23 @@ public class GameSceneManager : MonoBehaviour
         Initiate.Fade("ResultScene", Color.black, 1.0f);
     }
 
+    /// <summary>
+    /// v5 のポーズメニューが有効かどうか (Issue #167)。
+    /// true のときは Esc を PauseMenuView だけが担う。
+    /// 見つかるまでは毎フレーム探すが、見つかった後は参照を保持する (毎フレームの全探索を避ける)。
+    /// </summary>
+    private static FlashBeat.UI.V5.PauseMenuView cachedPauseMenu;
+
+    private static bool HasV5PauseMenu()
+    {
+        if (cachedPauseMenu == null)
+        {
+            cachedPauseMenu = FindFirstObjectByType<FlashBeat.UI.V5.PauseMenuView>();
+        }
+
+        return cachedPauseMenu != null;
+    }
+
 
     void Update()
     {
@@ -269,8 +286,10 @@ public class GameSceneManager : MonoBehaviour
                 SwitchPanel();
             }
         }
-        else
+        else if (!HasV5PauseMenu())
         {
+            // Issue #167: v5 のポーズメニューがあるときは PauseMenuView が Esc を担う。
+            // ここでレガシーの MenuPanel を開くと両方が反応して二重になる。
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 OpenMenu();
@@ -340,11 +359,19 @@ public class GameSceneManager : MonoBehaviour
     /// <summary>
     /// 歌詞パネルは「歌詞表示がON」かつ「いま歌詞の行がある」ときだけ出す。
     /// 曲に歌詞が無い場合や間奏中は、空のパネルを残さない。
+    /// Issue #167: Select の Ready 画面で Lyrics = Off にした場合は
+    /// 演奏中も歌詞を出さない (PlaySession が実値を持つ)。
     /// </summary>
     void ApplyTextPanelVisibility()
     {
-        bool show = Menu && display && !menuVisible;
+        bool show = Menu && display && !menuVisible && FlashBeat.UI.V5.PlaySession.LyricsEnabled;
         if (TextPanel.activeSelf != show) TextPanel.SetActive(show);
+    }
+
+    /// <summary>歌詞の表示可否を反映する (Pause の Display タブから呼ばれる)。</summary>
+    public void ApplyLyricsVisibility()
+    {
+        ApplyTextPanelVisibility();
     }
 
     public void TextPanelOn()

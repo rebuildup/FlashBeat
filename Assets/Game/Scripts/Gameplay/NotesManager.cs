@@ -19,6 +19,14 @@ public class Note
     public int num;
     public int block;
     public int LPB;
+
+    /// <summary>
+    /// ロングノーツ (type 2) の終端の行番号 (Issue #164)。
+    ///
+    /// タップ (type 1) では読まれない。存在しない場合 (壊れた譜面) は
+    /// ロングノーツの最低長 (1 行) として扱う。
+    /// </summary>
+    public int endNum;
 }
 
 public class NotesManager : MonoBehaviour
@@ -30,6 +38,13 @@ public class NotesManager : MonoBehaviour
     public List<int> NoteType = new List<int>();
     public List<float> NotesTime = new List<float>();
     public List<GameObject> NotesObj = new List<GameObject>();
+
+    /// <summary>
+    /// ロングノーツの終端時刻 (秒) (Issue #164)。
+    ///
+    /// タップでは 0 を持つ。judge が保持状態を判断する時に使う。
+    /// </summary>
+    public List<float> NotesEndTime = new List<float>();
 
     //[SerializeField] public static float NotesSpeed = 1.0f;
     //[SerializeField] private float NotesSpeed = 1.0f;
@@ -81,18 +96,51 @@ public class NotesManager : MonoBehaviour
         }
 
         noteNum = inputJson.notes.Length;
+        // ロングノーツも 1 ノーツとして数える。配点がタップと同一なので
+        // (Issue #164) 100万点の算出は notes x 5 のままで正しい。
         GManager.maxScore = noteNum * 5;
-        
+
         for (int i = 0; i < inputJson.notes.Length; i++)
         {
-            float time = NoteTimeSeconds(inputJson.BPM, inputJson.notes[i]) + GManager.noteTiming * 0.01f;
+            Note note = inputJson.notes[i];
+            float time = NoteTimeSeconds(inputJson.BPM, note) + GManager.noteTiming * 0.01f;
             NotesTime.Add(time);
-            LaneNum.Add(inputJson.notes[i].block);
-            NoteType.Add(inputJson.notes[i].type);
+            LaneNum.Add(note.block);
+            NoteType.Add(note.type);
             GameSceneManager.SaveNotesTime.Add(time);
 
+            // ロングノーツの終端 (Issue #164)。タップは 0 (終端なし)。
+            if (note.type == FlashBeat.Gameplay.LongNote.TYPE_HOLD)
+            {
+                float endTime = FlashBeat.Gameplay.LongNote.EndSeconds(inputJson.BPM, note) + GManager.noteTiming * 0.01f;
+                // 終端は開始より後になければならない。壊れた譜面でも
+                // 判定が破綻しないように、最低 1 拍ぶんは最低長を保つ。
+                if (endTime <= time)
+                {
+                    endTime = time + (60f / inputJson.BPM);
+                }
+                NotesEndTime.Add(endTime);
+            }
+            else
+            {
+                NotesEndTime.Add(0f);
+            }
+
             float z = NotesTime[i] * GManager.noteSpeed;
-            NotesObj.Add(Instantiate(noteObj, new Vector3(inputJson.notes[i].block - 3.5f, 0.55f, z), Quaternion.identity));
+            GameObject instance = Instantiate(noteObj, new Vector3(note.block - 3.5f, 0.55f, z), Quaternion.identity);
+
+            // ロングノーツは体を引き伸ばす (Issue #164)。タップは長さを
+            // 持たない (0) ので、Notes は何も変えない。
+            if (note.type == FlashBeat.Gameplay.LongNote.TYPE_HOLD)
+            {
+                Notes notes = instance.GetComponent<Notes>();
+                if (notes != null)
+                {
+                    notes.holdSeconds = NotesEndTime[i] - NotesTime[i];
+                }
+            }
+
+            NotesObj.Add(instance);
 
         }
         for (int i = 0; i < 10; i++)
@@ -100,9 +148,10 @@ public class NotesManager : MonoBehaviour
             NotesTime.Add(10000.0f);
             LaneNum.Add(1);
             NoteType.Add(1);
+            NotesEndTime.Add(0f);
             GameSceneManager.SaveNotesTime.Add(1000000f);
         }
-        
+
     }
 
 }

@@ -1,9 +1,17 @@
 import { readPublishDraft } from "@/lib/publish/draft";
 import { useEffect, useState } from "react";
-import { BrandHeader } from "@/components/brand";
 import { Button } from "@/components/ui";
 import { SongPublisher } from "@/components/song-publisher/song-publisher";
-import { loadSongSession } from "@/lib/song-session/load";
+import { loadSongSession, type SongSession } from "@/lib/song-session/load";
+import { StudioShell } from "@/app/app-shell";
+import {
+  pageBackLink,
+  panelHeader,
+  panelTitle,
+  stateBlock,
+  stateDescription,
+  stateTitle,
+} from "@/app/panel";
 import { css } from "styled-system/css";
 import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./publish.server";
@@ -11,13 +19,22 @@ import "@/styles/app.css";
 
 const emptyChart: Chart = { name: "Untitled draft", maxBlock: 8, BPM: 120, offset: 0, notes: [] };
 
-const page = css({
-  alignItems: "center",
-  bg: "canvas",
-  color: "fg.default",
+/** The publisher fills the work area; it owns its header and inner scroll. */
+const publisherPane = css({
   display: "flex",
+  flex: "1",
+  flexDirection: "column",
+  minHeight: "0",
+});
+
+const content = css({
+  alignItems: "center",
+  display: "flex",
+  flex: "1",
+  flexDirection: "column",
   justifyContent: "center",
-  minHeight: "100dvh",
+  minHeight: "0",
+  overflowY: "auto",
   px: { base: "4", md: "8" },
   py: "8",
 });
@@ -35,36 +52,11 @@ const card = css({
   width: "full",
 });
 
-const header = css({
-  alignItems: "center",
-  borderBottomColor: "gray.surface.border",
-  borderBottomWidth: "1px",
-  display: "flex",
-  justifyContent: "space-between",
-  paddingBottom: "4",
-});
-
 const overline = css({
   color: "fg.subtle",
   fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
   letterSpacing: "0.04em",
-});
-
-const title = css({
-  color: "fg.default",
-  fontSize: { base: "xl", md: "2xl" },
-  fontWeight: "semibold",
-  lineHeight: "1.3",
-  margin: "0",
-});
-
-const description = css({
-  color: "fg.muted",
-  fontSize: "sm",
-  lineHeight: "1.6",
-  margin: "0",
-  overflowWrap: "anywhere",
 });
 
 const actions = css({
@@ -74,32 +66,17 @@ const actions = css({
   gap: "3",
 });
 
+/** v5 primary CTA: the same solid palette action the chart editor uses. */
 const retryButton = css({
   colorPalette: "blue",
   bg: "colorPalette.solid.bg",
   color: "colorPalette.solid.fg",
   minHeight: "10",
-  _hover: { opacity: 0.9 },
+  _hover: { opacity: "0.9" },
   _focusVisible: { outline: "2px solid", outlineOffset: "2px" },
 });
 
-const catalogLink = css({
-  alignItems: "center",
-  borderColor: "gray.outline.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
-  color: "fg.default",
-  display: "inline-flex",
-  fontSize: "sm",
-  fontWeight: "medium",
-  minHeight: "10",
-  paddingInline: "4",
-  textDecoration: "none",
-  _focusVisible: { outline: "2px solid", outlineOffset: "2px" },
-  _hover: { bg: "gray.outline.bg.hover" },
-});
-
-/** A loading or failed page retains the actual Studio identity and recovery path. */
+/** A loading or failed page keeps the Studio identity and the recovery path. */
 function PublishState({
   kind,
   message,
@@ -109,39 +86,45 @@ function PublishState({
   message?: string;
   onRetry: () => void;
 }) {
-  const error = kind === "error";
+  const failed = kind === "error";
   return (
-    <main className={page} aria-busy={!error}>
-      <section className={card} role={error ? "alert" : "status"}>
-        <header className={header}>
-          <BrandHeader />
-          <span className={overline}>Publish</span>
-        </header>
-        <div className={css({ display: "flex", flexDirection: "column", gap: "2" })}>
-          <h1 className={title}>{error ? "譜面を読み込めませんでした" : "譜面を読み込み中"}</h1>
-          <p className={description}>
-            {error
-              ? (message ?? "読み込みに失敗しました。接続を確認して再試行してください。")
-              : "公開対象の楽曲と譜面バージョンを確認しています。"}
-          </p>
-        </div>
-        <div className={actions}>
-          {error ? (
-            <Button className={retryButton} size="sm" onClick={onRetry}>
-              再試行
-            </Button>
-          ) : null}
-          <a className={catalogLink} href="/">
-            Catalog に戻る
-          </a>
-        </div>
-      </section>
-    </main>
+    <StudioShell>
+      <div className={content}>
+        <section className={card} role={failed ? "alert" : "status"} aria-busy={!failed}>
+          <header className={panelHeader}>
+            <h1 className={panelTitle}>
+              {failed ? "譜面を読み込めませんでした" : "譜面を読み込み中"}
+            </h1>
+            <span className={overline}>Publish</span>
+          </header>
+          <div className={stateBlock}>
+            <p className={stateTitle}>
+              {failed ? "読み込みに失敗しました" : "公開対象を確認しています"}
+            </p>
+            <p className={stateDescription}>
+              {failed
+                ? (message ?? "接続を確認して再試行してください。")
+                : "公開対象の楽曲と譜面バージョンを確認しています。"}
+            </p>
+          </div>
+          <div className={actions}>
+            {failed ? (
+              <Button className={retryButton} size="sm" onClick={onRetry}>
+                再試行
+              </Button>
+            ) : null}
+            <a className={pageBackLink} href="/">
+              ← Catalog に戻る
+            </a>
+          </div>
+        </section>
+      </div>
+    </StudioShell>
   );
 }
 
 export default function PublishPage({ songId, version, draftId }: Props) {
-  const [session, setSession] = useState<Awaited<ReturnType<typeof loadSongSession>> | null>(null);
+  const [session, setSession] = useState<SongSession | null>(null);
   const [localChart, setLocalChart] = useState<Chart | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -187,14 +170,16 @@ export default function PublishPage({ songId, version, draftId }: Props) {
   }
 
   return (
-    <div style={{ height: "100dvh", overflow: "hidden" }}>
-      <SongPublisher
-        key={`${songId}:${version}:${attempt}`}
-        initialChart={localChart ?? session?.chart ?? emptyChart}
-        initialYouTubeId={session?.song.youtubeId ?? ""}
-        initialSong={session?.song}
-        initialVersion={session?.chartVersion}
-      />
-    </div>
+    <StudioShell scroll={false}>
+      <div className={publisherPane}>
+        <SongPublisher
+          key={`${songId}:${version}:${attempt}`}
+          initialChart={localChart ?? session?.chart ?? emptyChart}
+          initialYouTubeId={session?.song.youtubeId ?? ""}
+          initialSong={session?.song}
+          initialVersion={session?.chartVersion}
+        />
+      </div>
+    </StudioShell>
   );
 }

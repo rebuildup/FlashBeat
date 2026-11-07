@@ -417,7 +417,8 @@ describe("PUT /api/v1/admin/songs/{songId}", () => {
         },
       ],
       [
-        "a non-Tap note",
+        // The contract requires `endNum` for a Hold (type 2).
+        "a Hold without an end line",
         {
           name: "X",
           maxBlock: 8,
@@ -499,6 +500,92 @@ describe("PUT /api/v1/admin/songs/{songId}", () => {
     const response = await publish(
       "publish-too-long-song",
       publishBody("publish-too-long-song", [{ type: 1, num: 7200, block: 0, LPB: 4 }]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { message: string }[] };
+    assert.match(body.diagnostics[0]?.message ?? "", /durationSec/);
+  });
+
+  it("publishes a chart with a Hold and serves it back unchanged (issue #164)", async () => {
+    const before = await catalogVersion();
+    const holdNotes = [
+      { type: 1, num: 4, block: 0, LPB: 4 },
+      { type: 2, num: 8, block: 3, LPB: 4, endNum: 16 },
+      { type: 2, num: 24, block: 5, LPB: 4, endNum: 25 },
+    ];
+    const response = await publish(
+      "publish-hold-song",
+      publishBody("publish-hold-song", holdNotes),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 200);
+
+    const body = (await response.json()) as {
+      songId: string;
+      chartVersion: number;
+      catalogVersion: number;
+    };
+    validatePublish(body);
+    assert.equal(body.songId, "publish-hold-song");
+    assert.equal(body.chartVersion, 1);
+    assert.equal(body.catalogVersion, before + 1);
+
+    // The chart is served back exactly as it was published: the Hold keeps
+    // its kind, its end line and its lane.
+    const chart = await fetch(`${baseUrl}/api/v1/charts/publish-hold-song?version=1`);
+    assert.equal(chart.status, 200);
+    const served = (await chart.json()) as { chart: { notes: unknown[] } };
+    assert.deepEqual(served.chart.notes, holdNotes);
+
+    // The song is listed by the catalog with its note count.
+    const catalog = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+      songs: { id: string; noteCount: number }[];
+    };
+    const listed = catalog.songs.find((song) => song.id === "publish-hold-song");
+    assert.equal(listed?.noteCount, holdNotes.length);
+  });
+
+  it("rejects a Hold without an end line and publishes nothing (issue #164)", async () => {
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-broken-hold-song",
+      publishBody("publish-broken-hold-song", [{ type: 2, num: 8, block: 3, LPB: 4 }]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { path: string; message: string }[] };
+    assert.ok(body.diagnostics.length >= 1, "expected a diagnostic for the missing end line");
+    assert.ok(
+      body.diagnostics.some((diagnostic) => diagnostic.message.includes("endNum")),
+      `expected an endNum diagnostic, got ${JSON.stringify(body.diagnostics)}`,
+    );
+    assert.equal(await catalogVersion(), before);
+  });
+
+  it("rejects a Hold that does not end after it starts and publishes nothing (issue #164)", async () => {
+    const before = await catalogVersion();
+    const response = await publish(
+      "publish-backwards-hold-song",
+      publishBody("publish-backwards-hold-song", [
+        { type: 2, num: 8, block: 3, LPB: 4, endNum: 8 },
+      ]),
+      TEST_ADMIN_TOKEN,
+    );
+    assert.equal(response.status, 422);
+    const body = (await response.json()) as { diagnostics: { path: string; message: string }[] };
+    assert.ok(
+      body.diagnostics.some((diagnostic) => diagnostic.path.endsWith("/endNum")),
+      `expected an endNum diagnostic, got ${JSON.stringify(body.diagnostics)}`,
+    );
+    assert.equal(await catalogVersion(), before);
+  });
+
+  it("rejects a Hold that ends beyond the chart length (issue #164)", async () => {
+    // BPM 120, LPB 4: endNum 7200 lands at 900s, beyond the 90s durationSec.
+    const response = await publish(
+      "publish-long-hold-song",
+      publishBody("publish-long-hold-song", [{ type: 2, num: 4, block: 0, LPB: 4, endNum: 7200 }]),
       TEST_ADMIN_TOKEN,
     );
     assert.equal(response.status, 422);

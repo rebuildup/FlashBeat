@@ -42,7 +42,6 @@ namespace FlashBeat.UI.V5
         private int selectedRow;
         private int selectedTab;
         private bool open;
-        private bool keyGuideOn;
 
         private enum Row
         {
@@ -341,26 +340,23 @@ namespace FlashBeat.UI.V5
             list.childForceExpandWidth = true;
             list.childForceExpandHeight = false;
 
-            // 表示オプション (Key Guide / Lyrics は実動作に接続、他は表示のみ)
-            AddDisplayRow(list.gameObject, "Key Guide", "Off", p, s, () =>
-            {
-                var guide = FindFirstObjectByType<KeyGuideUI>();
-                if (guide != null)
+            // 表示オプション (Issue #167: 実動作する行だけを残す。
+            // 実装の無い Live Rank / Hit Timing / Judge Text / Progress Bar は
+            // 「押しても変化しない行」だったので画面から除外した)。
+            AddDisplayRow(list.gameObject, "Key Guide", PlaySession.KeyGuideLabel(PlaySession.KeyGuide), p, s,
+                () =>
                 {
-                    guide.Toggle();
-                    keyGuideOn = !keyGuideOn;
-                }
-                return keyGuideOn ? "Compact" : "Off";
-            });
-            AddDisplayRow(list.gameObject, "Lyrics", GameSceneManager.Menu ? "On" : "Off", p, s, () =>
-            {
-                if (sceneManager != null) sceneManager.SwitchPanel();
-                return GameSceneManager.Menu ? "On" : "Off";
-            });
-            AddDisplayRow(list.gameObject, "Live Rank", "Off", p, s, null);
-            AddDisplayRow(list.gameObject, "Hit Timing", "Off", p, s, null);
-            AddDisplayRow(list.gameObject, "Judge Text", "Simple", p, s, null);
-            AddDisplayRow(list.gameObject, "Progress Bar", "On", p, s, null);
+                    PlaySession.SetKeyGuide(PlaySession.NextKeyGuide(PlaySession.KeyGuide, 1));
+                    ApplyKeyGuideMode();
+                    return PlaySession.KeyGuideLabel(PlaySession.KeyGuide);
+                });
+            AddDisplayRow(list.gameObject, "Lyrics", PlaySession.LyricsLabel(PlaySession.LyricsEnabled), p, s,
+                () =>
+                {
+                    PlaySession.SetLyricsEnabled(!PlaySession.LyricsEnabled);
+                    ApplyLyricsMode();
+                    return PlaySession.LyricsLabel(PlaySession.LyricsEnabled);
+                });
 
             // 凡例 (右)
             var legend = V5GameUi.Column(displayPage, "Legend Note", 6f * s, TextAnchor.UpperLeft);
@@ -375,7 +371,7 @@ namespace FlashBeat.UI.V5
             AddLegendNote(legend.gameObject, new Color(0.16f, 0.16f, 0.16f), "オフの項目は表示されません", p, s);
         }
 
-        /// <summary>表示タブの 1 行。toggle が null のときは値固定 (実装未接続の項目)。</summary>
+        /// <summary>表示タブの 1 行。toggle が null のときは値固定 (実装済みの表示のみ)。</summary>
         private void AddDisplayRow(GameObject parent, string label, string value, UISizeProfile p, float s,
             System.Func<string> toggle)
         {
@@ -413,6 +409,19 @@ namespace FlashBeat.UI.V5
             V5GameUi.Text(row.gameObject, "Label", label, p.FsS, V5Tokens.TextMuted, TextAlignmentOptions.Left);
         }
 
+        /// <summary>キーガイドの表示モードを HUD へ反映する (Issue #167)。</summary>
+        private void ApplyKeyGuideMode()
+        {
+            var hud = FindFirstObjectByType<GameHudView>();
+            if (hud != null) { hud.RebuildKeyGuide(); }
+        }
+
+        /// <summary>歌詞の表示可否を GameSceneManager へ反映する (Issue #167)。</summary>
+        private void ApplyLyricsMode()
+        {
+            if (sceneManager != null) { sceneManager.ApplyLyricsVisibility(); }
+        }
+
         // --- Ranking タブ ---
 
         private void BuildRankingPage(UISizeProfile p, float s)
@@ -430,7 +439,8 @@ namespace FlashBeat.UI.V5
             leftRt.sizeDelta = new Vector2(640f * s, 520f * s);
 
             var song = GManager.GetSong(GManager.songID);
-            V5GameUi.Text(left.gameObject, "Header", "曲別・" + (song != null ? song.title : ""), p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
+            V5GameUi.Text(left.gameObject, "Header", "この曲のベスト (ローカル)・" + (song != null ? song.title : ""),
+                p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
             int hiIndex = GManager.songID < GManager.Hiscore.Length ? GManager.songID : 0;
             V5Ui.RankRow(left.gameObject, "1", "YOU", GameHudLogic.FormatScore(GManager.Hiscore[hiIndex]));
 
@@ -453,7 +463,7 @@ namespace FlashBeat.UI.V5
                     played++;
                 }
             }
-            V5GameUi.Text(right.gameObject, "Header", "登録名ごと (累計)", p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
+            V5GameUi.Text(right.gameObject, "Header", "この端末の合計 (ローカル)", p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
             V5Ui.RankRow(right.gameObject, "1", "YOU", GameHudLogic.FormatScore((int)total));
             V5GameUi.Text(right.gameObject, "Songs", played + "曲", p.FsS, V5Tokens.TextMuted, TextAlignmentOptions.Left);
         }
@@ -753,11 +763,17 @@ namespace FlashBeat.UI.V5
                     valueTexts[row].text = GManager.Flash ? "On" : "Off";
                     break;
             }
+
+            // Issue #167: 変更した設定は保存する (次回起動でも反映される)。
+            OptionSettings.Save();
         }
 
         /// <summary>音量は各所有者が起動時にしか読まないので、シーン内の AudioSource にも即時反映する。</summary>
         private static void ApplyVolumes()
         {
+            // 全体の音量は AudioListener にも反映する (Option 画面と同じ挙動に揃える)。
+            AudioListener.volume = GManager.mainVolume;
+
             var music = FindFirstObjectByType<MusicManager>();
             if (music != null)
             {

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 
@@ -23,6 +24,53 @@ namespace FlashBeat.UI.V5
             CanvasConfigurator.Configure(canvas);
             canvas.sortingOrder = sortingOrder; // Configure は 500 を上書きするので戻す
             return canvas;
+        }
+
+        /// <summary>
+        /// v5 の画面 (Title / Select / Option / Result) 用の Canvas を作る (Issue #167)。
+        /// これらの画面はコードで Canvas を組み立てており、GraphicRaycaster が無かったため
+        /// **マウスクリックが Button に届かず**「押せない」状態になっていた。
+        /// </summary>
+        public static Canvas NewScreenCanvas(string name)
+        {
+            return NewCanvas(name, 500);
+        }
+
+        /// <summary>
+        /// 入力の二重処理を防ぐ (Issue #167)。
+        /// v5 の各 View は矢印キー等を自前で処理しているため、Unity の Selectable 自動
+        /// ナビゲーションも入ると選択が二重に動く。ナビゲーションを切って自前処理に一本化する。
+        /// また targetGraphic が無い Button には自分の Image を設定する (ホバー/押下表示)。
+        /// </summary>
+        public static void ApplySingleInputModel(Canvas canvas)
+        {
+            if (canvas == null) { return; }
+            var selectables = canvas.GetComponentsInChildren<Selectable>(true);
+            for (int i = 0; i < selectables.Length; i++)
+            {
+                var selectable = selectables[i];
+                var navigation = selectable.navigation;
+                navigation.mode = Navigation.Mode.None;
+                selectable.navigation = navigation;
+                if (selectable.targetGraphic == null)
+                {
+                    var image = selectable.GetComponent<Image>();
+                    if (image != null) { selectable.targetGraphic = image; }
+                }
+            }
+        }
+
+        /// <summary>
+        /// ポインタで選んだ Button の選択を解除する (Issue #167)。
+        /// 解除しないと Enter キーで「押した Button」と「いま強調している行」の
+        /// 両方が発火して二重実行になる。
+        /// </summary>
+        public static void ClearPointerSelection()
+        {
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
         }
 
         /// <summary>TMP テキスト。フォントは TMP 既定 → Resources の NotoSansJP SDF。</summary>

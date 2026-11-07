@@ -1,6 +1,6 @@
 {
   "_doc": "FlashBeat UI size profiles. 1 prefab set, sizes switched per profile at runtime (UISizeProfile ScriptableObject). All values are real pixels of that screen.",
-  "select": "screen.height>=1440 -> 2k ; abs(screen.width/screen.height-1.6)<0.05 -> mac ; else fhd",
+  "select": "2560x1664 (aspect~1.538) -> mac ; screen.height>=1440 -> 2k ; else fhd (screen.height<1080 -> fhd scaled by height/1080)",
   "canvas": "Constant Pixel Size x1 (profile values are real px). Fonts: NotoSansJP.",
   "profiles": {
     "fhd": {
@@ -81,40 +81,40 @@
     },
     "mac": {
       "screen": [
-        1440,
-        900
+        2560,
+        1664
       ],
-      "margin": 36,
-      "fs_xl": 42,
-      "fs_l": 32,
-      "fs_m": 26,
-      "fs_s": 20,
-      "fs_rank": 330,
-      "fs_combo": 140,
-      "icon_s": 22,
-      "icon_m": 30,
-      "icon_l": 46,
-      "gap_s": 8,
-      "gap_m": 16,
-      "gap_l": 30,
+      "margin": 64,
+      "fs_xl": 75,
+      "fs_l": 57,
+      "fs_m": 46,
+      "fs_s": 36,
+      "fs_rank": 587,
+      "fs_combo": 249,
+      "icon_s": 39,
+      "icon_m": 53,
+      "icon_l": 82,
+      "gap_s": 14,
+      "gap_m": 28,
+      "gap_l": 53,
       "card_center": [
-        380,
-        660
+        676,
+        1173
       ],
       "card_mid": [
-        250,
-        550
+        444,
+        978
       ],
       "card_side": [
-        200,
-        450
+        356,
+        800
       ],
-      "drawer_w": 480,
-      "stepper_w": 260,
-      "row_h": 64,
+      "drawer_w": 853,
+      "stepper_w": 462,
+      "row_h": 114,
       "btn": [
-        300,
-        100
+        533,
+        178
       ]
     }
   },
@@ -148,16 +148,16 @@
     },
     "mac": {
       "screen": [
-        1440,
-        900
+        2560,
+        1664
       ],
       "margin": [
-        40,
-        40
+        71,
+        71
       ],
-      "gutter": 20,
-      "col": 95,
-      "row": 120
+      "gutter": 36,
+      "col": 169,
+      "row": 213
     }
   },
   "controls_v3": {
@@ -210,27 +210,27 @@
       "radius": 0
     },
     "mac": {
-      "margin": 40,
-      "gap": 20,
-      "header": 64,
-      "footer": 48,
-      "button": 48,
-      "row": 56,
-      "menuItem": 64,
-      "keycap": 36,
+      "margin": 71,
+      "gap": 36,
+      "header": 114,
+      "footer": 85,
+      "button": 85,
+      "row": 100,
+      "menuItem": 114,
+      "keycap": 64,
       "icon": [
-        28,
-        22
+        50,
+        39
       ],
       "font": [
-        20,
-        26,
-        32,
-        42
+        36,
+        46,
+        57,
+        75
       ],
-      "rankDisplay": 330,
-      "combo": 140,
-      "border": 2,
+      "rankDisplay": 587,
+      "combo": 249,
+      "border": 4,
       "radius": 0
     }
   }

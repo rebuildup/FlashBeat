@@ -285,10 +285,14 @@ namespace FlashBeat.UI.V5
         /// <summary>
         /// 下部のコンパクトキーガイド (design 03: 8 レーンの代表キー)。
         /// レーンのジオメトリは触らず、判定線より下の帯に置く。
+        /// 表示モードは Select の Ready 画面が選んだ <see cref="PlaySession.KeyGuide"/> に従う
+        /// (Issue #167: Off なら出さない / Full ならレーンの全キーを出す)。
         /// 全キー一覧は Tab の KeyGuideUI (既存) が担う。
         /// </summary>
         private void BuildKeyGuide(UISizeProfile p)
         {
+            if (PlaySession.KeyGuide == KeyGuideMode.Off) { return; }
+
             float s = S;
             var row = V5GameUi.Row(Canvas.gameObject, "Key Guide", 41.4f * s, TextAnchor.MiddleCenter);
             var rowRt = row.GetComponent<RectTransform>();
@@ -302,9 +306,16 @@ namespace FlashBeat.UI.V5
             row.childControlWidth = true;
             row.childForceExpandWidth = true;
 
+            BuildKeyGuideCaps(row.gameObject, p);
+        }
+
+        /// <summary>レーンごとのキーキャップを並べる。</summary>
+        private void BuildKeyGuideCaps(GameObject row, UISizeProfile p)
+        {
+            float s = S;
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
-                var cap = V5Ui.KeyCap(row.gameObject, RepresentativeKey(lane), new Vector2(168f * s, 56f * s));
+                var cap = V5Ui.KeyCap(row, GuideKeyText(lane), new Vector2(168f * s, 56f * s));
                 var capLe = cap.AddComponent<LayoutElement>();
                 capLe.minWidth = 168f * s;
                 capLe.preferredHeight = 56f * s;
@@ -317,6 +328,58 @@ namespace FlashBeat.UI.V5
                     label.fontSize = p.FsM;
                 }
             }
+        }
+
+        /// <summary>
+        /// キーガイドを作り直す (Issue #167: Pause の Display タブでモードを変えた時に呼ぶ)。
+        /// </summary>
+        public void RebuildKeyGuide()
+        {
+            if (Canvas == null) { return; }
+
+            var existing = Canvas.transform.Find("Key Guide");
+            if (existing == null)
+            {
+                BuildKeyGuide(UISizeProfile.Current);
+                return;
+            }
+
+            // 帯は残して中身だけ差し替える (帯を作り直すと 1 フレーム二重に出る)。
+            for (int i = existing.childCount - 1; i >= 0; i--)
+            {
+                var child = existing.GetChild(i).gameObject;
+                child.SetActive(false);
+                Destroy(child);
+            }
+
+            if (PlaySession.KeyGuide == KeyGuideMode.Off)
+            {
+                existing.gameObject.SetActive(false);
+                return;
+            }
+
+            existing.gameObject.SetActive(true);
+            BuildKeyGuideCaps(existing.gameObject, UISizeProfile.Current);
+        }
+
+        /// <summary>表示モードに応じたレーンのキー文字列 (Compact = 代表キー / Full = 全キー)。</summary>
+        private static string GuideKeyText(int lane)
+        {
+            if (PlaySession.KeyGuide == KeyGuideMode.Full)
+            {
+                var keys = KeyBindings.GetKeys(lane);
+                if (keys == null || keys.Length == 0) { return string.Empty; }
+                var sb = new System.Text.StringBuilder();
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (i > 0) { sb.Append(' '); }
+                    sb.Append(KeyGuideUI.GetKeyDisplayName(keys[i]));
+                }
+
+                return sb.ToString();
+            }
+
+            return RepresentativeKey(lane);
         }
 
         /// <summary>レーンの代表キー (A S D F J K L ;)。文字キーを優先し、無ければセミコロン、それも無ければ先頭。</summary>

@@ -37,13 +37,15 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void Select_1440x900_ReturnsMac()
+        public void Select_1440x900_ReturnsFhdScaled()
         {
+            // 旧 1440x900 mac 設計は無効 (Issue #162)。16:10 は fhd 縮小 (900/1080) に流れる。
             var p = UISizeProfile.Select(1440, 900);
-            Assert.AreEqual("mac", p.Name);
-            Assert.AreEqual(36, p.Margin);
-            Assert.AreEqual(330f, p.FsRank);
-            Assert.AreEqual(64, p.RowH);
+            Assert.AreEqual("fhd*0.833", p.Name);
+            float scale = 900f / 1080f;
+            Assert.AreEqual(Mathf.RoundToInt(48 * scale), p.Margin);
+            Assert.AreEqual(420f * scale, p.FsRank, 0.001f);
+            Assert.AreEqual(Mathf.RoundToInt(78 * scale), p.RowH);
         }
 
         [Test]

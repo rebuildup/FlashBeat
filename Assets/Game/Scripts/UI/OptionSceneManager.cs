@@ -19,6 +19,68 @@ public class SettingItemData //ノーツファイル概要のデータ
     public Note[] notes;
 
 }
+/// <summary>
+/// ゲーム設定 (音量 / ノーツ速度 / 判定幅 / フラッシュ) の保存と復元 (Issue #167)。
+///
+/// 従来は設定値が GManager の静的変数にだけ存在し、プロセス終了で消えていた。
+/// ここでは PlayerPrefs に保存し、起動時に Title 画面から復元する。
+/// キーの保存キー名は他 Issue と衝突しないよう "FlashBeat." 接頭辞を付ける。
+/// </summary>
+public static class OptionSettings
+{
+    public const string MainVolumeKey = "FlashBeat.MainVolume";
+    public const string EffectVolumeKey = "FlashBeat.EffectVolume";
+    public const string BgmVolumeKey = "FlashBeat.BgmVolume";
+    public const string NoteSpeedKey = "FlashBeat.NoteSpeed";
+    public const string NoteTimingKey = "FlashBeat.NoteTiming";
+    public const string FlashKey = "FlashBeat.Flash";
+    public const string FlashTimingKey = "FlashBeat.FlashTiming";
+    public const string FlashSpeedKey = "FlashBeat.FlashSpeed";
+
+    /// <summary>ノーツ速度の範囲 (0 以下だとノーツが逆走する)。</summary>
+    public const float NoteSpeedMin = 1f;
+
+    /// <summary>ノーツ速度の上限。</summary>
+    public const float NoteSpeedMax = 50f;
+
+    /// <summary>判定幅 (ms) の下限。</summary>
+    public const int NoteTimingMin = -10;
+
+    /// <summary>判定幅 (ms) の上限。</summary>
+    public const int NoteTimingMax = 10;
+
+    /// <summary>現在の GManager の値を全部保存する。</summary>
+    public static void Save()
+    {
+        PlayerPrefs.SetFloat(MainVolumeKey, GManager.mainVolume);
+        PlayerPrefs.SetFloat(EffectVolumeKey, GManager.effectVolume);
+        PlayerPrefs.SetFloat(BgmVolumeKey, GManager.BGMVolume);
+        PlayerPrefs.SetFloat(NoteSpeedKey, GManager.noteSpeed);
+        PlayerPrefs.SetInt(NoteTimingKey, GManager.noteTiming);
+        PlayerPrefs.SetInt(FlashKey, GManager.Flash ? 1 : 0);
+        PlayerPrefs.SetInt(FlashTimingKey, GManager.FlashT);
+        PlayerPrefs.SetInt(FlashSpeedKey, GManager.FlashBG);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>保存済みの値を GManager へ復元する (未保存なら何もしない)。</summary>
+    public static void Load()
+    {
+        if (!PlayerPrefs.HasKey(MainVolumeKey)) { return; }
+
+        GManager.mainVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MainVolumeKey, GManager.mainVolume));
+        GManager.effectVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(EffectVolumeKey, GManager.effectVolume));
+        GManager.BGMVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(BgmVolumeKey, GManager.BGMVolume));
+        GManager.noteSpeed = Mathf.Clamp(PlayerPrefs.GetFloat(NoteSpeedKey, GManager.noteSpeed),
+            NoteSpeedMin, NoteSpeedMax);
+        GManager.noteTiming = Mathf.Clamp(PlayerPrefs.GetInt(NoteTimingKey, GManager.noteTiming),
+            NoteTimingMin, NoteTimingMax);
+        GManager.Flash = PlayerPrefs.GetInt(FlashKey, GManager.Flash ? 1 : 0) != 0;
+        GManager.FlashT = PlayerPrefs.GetInt(FlashTimingKey, GManager.FlashT);
+        GManager.FlashBG = PlayerPrefs.GetInt(FlashSpeedKey, GManager.FlashBG);
+    }
+}
+
 public class OptionSceneManager : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI timingUp;
@@ -55,6 +117,11 @@ public class OptionSceneManager : MonoBehaviour
 
     void Start()
     {
+        // 保存済みの設定を復元してから UI へ反映する (Issue #167)。
+        // 復元しないと Option 画面の値が毎回既定値になり、変更が反映されない。
+        OptionSettings.Load();
+        ApplyVolumes();
+
         if (volumeSlider != null)
         {
             volumeSlider.value = GManager.effectVolume;
@@ -62,6 +129,7 @@ public class OptionSceneManager : MonoBehaviour
             {
                 if (audioMixer != null) audioMixer.volume = value;
                 GManager.effectVolume = value;
+                OptionSettings.Save();
             });
         }
 
@@ -73,6 +141,7 @@ public class OptionSceneManager : MonoBehaviour
                 if (audioMixerMain != null) audioMixerMain.volume = value;
                 GManager.mainVolume = value;
                 AudioListener.volume = value;
+                OptionSettings.Save();
             });
         }
 
@@ -83,6 +152,7 @@ public class OptionSceneManager : MonoBehaviour
             {
                 if (audioBGM != null) audioBGM.volume = value;
                 GManager.BGMVolume = value;
+                OptionSettings.Save();
             });
         }
 
@@ -115,6 +185,21 @@ public class OptionSceneManager : MonoBehaviour
             if (speedNum != null) speedNum.text = GManager.noteSpeed.ToString("F1");
             if (TimingText != null) TimingText.text = GManager.noteTiming.ToString();
         }
+    }
+
+    /// <summary>
+    /// 音量を実際の出力へ即時反映する (Issue #167)。
+    /// 各所有者は起動時にしか音量を読まないため、値を変えた瞬間に反映する。
+    /// </summary>
+    public static void ApplyVolumes()
+    {
+        AudioListener.volume = GManager.mainVolume;
+        var option = FindAnyObjectByType<OptionSceneManager>();
+        if (option == null) { return; }
+
+        if (option.audioMixer != null) { option.audioMixer.volume = GManager.effectVolume; }
+        if (option.audioMixerMain != null) { option.audioMixerMain.volume = GManager.mainVolume; }
+        if (option.audioBGM != null) { option.audioBGM.volume = GManager.BGMVolume; }
     }
     private static OptionSceneManager instance;
 
@@ -232,7 +317,8 @@ public class OptionSceneManager : MonoBehaviour
 
     public static void TimingUp()
     {
-        GManager.noteTiming++;
+        GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + 1, OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
+        OptionSettings.Save();
         for (int i = 1; i <= GManager.totalSong; i++)
         {
             SettingItemData settingData = new SettingItemData(); // settingDataを宣言して初期化
@@ -244,7 +330,8 @@ public class OptionSceneManager : MonoBehaviour
     }
     public void TimingDown()
     {
-        GManager.noteTiming--;
+        GManager.noteTiming = Mathf.Clamp(GManager.noteTiming - 1, OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
+        OptionSettings.Save();
         for (int i = 1; i <= GManager.totalSong; i++)
         {
             SettingItemData settingData = new SettingItemData(); // settingDataを宣言して初期化
@@ -267,12 +354,17 @@ public class OptionSceneManager : MonoBehaviour
 
     public void SpeedUp()
     {
-        GManager.noteSpeed += 0.1f;
+        // 0 以下だとノーツが逆に流れるため範囲を制限する (Issue #167)。
+        GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed + 0.1f,
+            OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
+        OptionSettings.Save();
         Debug.Log("設定完了 noteSpeed=" + GManager.noteSpeed);
     }
     public void SpeedDown()
     {
-        GManager.noteSpeed -= 0.1f;
+        GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed - 0.1f,
+            OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
+        OptionSettings.Save();
         Debug.Log("設定完了 noteSpeed=" + GManager.noteSpeed);
     }
     public void playSound()

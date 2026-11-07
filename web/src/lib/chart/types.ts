@@ -11,15 +11,29 @@
 export const LANE_COUNT = 8;
 
 /**
+ * Note kind of a `ChartNote`.
+ *
+ * `TAP` is the only kind the charts shipped before issue #164 carry.
+ * `HOLD` is the long note of issue #164: the key is pressed at the start of
+ * the note and released at its end.
+ */
+export const NOTE_TYPE_TAP = 1;
+export const NOTE_TYPE_HOLD = 2;
+
+/**
  * A single note.
  *
  * `num` is a line index inside the note's own resolution and `LPB` is the
  * number of lines per beat, so the beat position of a note is `num / LPB`.
  * `Assets/Game/Scripts/Gameplay/NotesManager.cs` converts that to seconds with
  * `60 / BPM * num / LPB`.
+ *
+ * A hold (`type` = `NOTE_TYPE_HOLD`) carries `endNum`: the line index where
+ * the hold ends. The hold covers the lines `(num, endNum]` at the resolution
+ * of `LPB`, so it is `endNum - num` lines long. A tap ignores `endNum`.
  */
 export interface ChartNote {
-  /** Legacy note type. Only `1` (tap) exists today. */
+  /** Note kind: `NOTE_TYPE_TAP` (1) or `NOTE_TYPE_HOLD` (2). */
   type: number;
   /** Line index inside the note's own resolution. */
   num: number;
@@ -27,6 +41,8 @@ export interface ChartNote {
   block: number;
   /** Lines per beat used by this note (`4` = 16ths, `8` = 32nds). */
   LPB: number;
+  /** Line index where a hold ends. Only read for `NOTE_TYPE_HOLD`. */
+  endNum?: number;
 }
 
 /** Lyrics block of a chart. Legacy `*_text.json` data was merged into it. */
