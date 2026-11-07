@@ -104,7 +104,16 @@ namespace FlashBeat.UI.V5
             for (int i = 0; i < canvases.Length; i++)
             {
                 var c = canvases[i];
-                var rt = c.rectTransform;
+                // Canvas に rectTransform プロパティは無いため GetComponent で取得する
+                // (CS1061 対策。Canvas の GameObject には必ず RectTransform が付くが、
+                //  念のため null ガードを入れる)。
+                var rt = c.GetComponent<RectTransform>();
+                if (rt == null)
+                {
+                    Debug.Log(Prefix + " canvas" + i + "=\"" + c.name + "\" no RectTransform - skip");
+                    continue;
+                }
+
                 var corners = new Vector3[4];
                 rt.GetWorldCorners(corners);
                 sb.Append(", canvas").Append(i).Append("=\"").Append(c.name)
