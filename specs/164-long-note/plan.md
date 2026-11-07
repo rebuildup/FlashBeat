@@ -202,8 +202,19 @@ cd web && npm ci
 
 ### §3. 書き出しと公開 (Web 実ブラウザ + ローカル D1)
 
+> **既知のブロッカー (Issue #164 のスコープ外):**
+> `web/routes/api/v1/_publish-model.ts` の意味論検証
+> (`semanticDiagnostics`) が `note.type !== 1` を弾くため、**HOLD を含む譜面は
+> 現状 `PUT /api/v1/admin/songs/{songId}` に送れない** (422)。
+> このファイルは Issue #164 の所有パスに含まれないため、Worker D は変更して
+> いない。必要な修正は 1 行 (下記「Known Issues」参照)。
+>
+> **回避策 (検証 purposes):** 契約層 (`validatePublishRequest`) は HOLD を
+> **正しく受け付けている** ので、§4 の GET 往復までは意味論検証を HOLD 対応に
+> した状態で確認する。
+
 1. 谱面を書き出す (JSON download)
-2. **期待**: 書き出した JSON に `"type":2` と `"endNum":32` が含まれる
+2. **期待**: 書き出した JSON に `"type":2` と `"endNum":12` が含まれる
 3. ローカル D1 を準備する
 
 ```sh
@@ -217,6 +228,8 @@ npx void db seed
 4. `/publish` 画面から該当の曲 (例: 新しい曲 `holdtest` / `youtubeId` =
    実在する動画 ID) を入力し、HOLD 入り譜面と metadata を送信する
 5. **期待**: 成功表示。`chartVersion` が 1 (初回 publish) になる
+   (ブロッカー未修正なら 422 + `only Tap notes (type 1) are supported` が出る。
+   これが Known Issues の証拠になる)
 
 ### §4. 公開結果の取得 (GET) — 無損失往復の証明
 

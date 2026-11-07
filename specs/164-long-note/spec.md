@@ -181,6 +181,59 @@ Web エディタで既存譜面を読み込み/書き出しし、公開 API を�
 - **R11**: 未知の JSON 形式を新規に作らない。HOLD は既存 note オブジェクトへの
   フィールド追加 (`endNum`) と `type` の値追加 (2) だけで表現する
 
+## Known Issues (この Issue が解かないもの)
+
+### K1 — publish API の意味論検証が HOLD を弾く (ブロッカー)
+
+`web/routes/api/v1/_publish-model.ts` の `semanticDiagnostics()` が
+
+```ts
+if (note.type !== 1) {
+  diagnostics.push({
+    path: `${path}/type`,
+    message: `only Tap notes (type 1) are supported, got type ${note.type}`,
+  });
+}
+```
+
+として Tap 以外を拒否するため、**HOLD を含む譜面は公開できない** (422)。
+
+このファイルは Issue #164 の所有パス (`web/src/lib/chart/**`,
+`web/src/components/chart-editor/{note-grid,chart-editor}.tsx`,
+`contracts/schemas/chart.v1.schema.json`, `Assets/Game/Scripts/Gameplay/*`)
+に含まれないため、Worker D は変更していない。
+
+**必要な修正 (1 ファイル、1 箇所):** `type` の許可値を `1` から
+`1 | 2` に広げ、`type === 2` のときだけ `endNum` があることと
+`endNum > num` であることを検査する。**契約層 (`validatePublishRequest`) は
+すでに HOLD を正しく受け付けている** ので、スキーマの変更は不要。
+
+**影響範囲:** 公開 (publish) のみ。Web エディタでの作成・長さ編集・
+書き出し・検証・GET 往復は影響を受けない。
+
+### K2 — HOLD の見た目 (Prefab / Scene) は未反映
+
+HOLD の体は `Notes.cs` が `localScale.z` を伸ばして表現する (コードのみ)。
+Prefab (`Assets/Game/Prefabs/Note.prefab`) と Scene
+(`Assets/**/*.unity`) は他 Worker / Supervisor の排他所有のため触っていない。
+実機での見た目 (GameScene の white tap bar と同じ見た目になるか) は
+Supervisor の実機検証で確認する。見た目が不十分なら、別 Issue で
+HOLD 専用の Prefab を追加する。
+
+### K3 — `GManager` への検証用曲の登録が未実施
+
+実機検証用の HOLD 入り譜面 (`holdtest.json` + `holdtest_text.json`) と
+`GManager.cs` への 1 曲分の追加は `GManager.cs` の排他所有のため
+この PR に含めていない。手順は `plan.md` の「E2E 手順書 §6」に記載した
+(Supervisor 実施)。
+
+### K4 — ランキングの記録分離
+
+HOLD の配点がタップと同一であるため、既存のランキング記録の解釈は
+変わらない。`scoringVersion` による分離は不要と判断した (spec.md の
+「スコアリング互換」参照)。もし将来的に HOLD の配点を変えるなら、
+そのときに別の Issue で分離する。
+
 ## Dependencies & Gate
 
 - **Depends on**: なし (Issue #164 は自立している)。
