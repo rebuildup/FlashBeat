@@ -30,8 +30,12 @@ import { listRepositoryCharts, readRepositoryChart } from "./repository-charts";
  *
  * The gate of issue #165 is a working round trip: read the lyrics of a chart,
  * edit one line, write the chart back, read it again. Untouched lines must
- * keep their exact values — `Who` has `endTime < startTime` on all 28 lines and
- * is the regression that must not be corrupted.
+ * keep their exact values.
+ *
+ * `Who` used to ship `endTime < startTime` on all 28 lines; issue #154
+ * repaired the shipped data, so the real chart now shows the repaired
+ * intervals. The legacy shape is still exercised with a synthetic document,
+ * because charts in the wild may still carry it.
  */
 function readChart(name: string): Chart {
   const imported = importChartJson(readRepositoryChart(name));
@@ -80,7 +84,7 @@ describe("time input", () => {
 });
 
 describe("reading the repository lyrics", () => {
-  it("keeps Who's 28 reversed intervals readable", () => {
+  it("keeps Who's repaired intervals readable", () => {
     const chart = readChart("Who.json");
     const document = readLyrics(chart.lyrics);
 
@@ -88,20 +92,41 @@ describe("reading the repository lyrics", () => {
     expect(document.rows[0]?.mondai).toBe("交わした約束の言葉の始末");
 
     const summary = summarizeLyrics(document);
-    expect(summary.legacyIntervals).toBe(28);
+    // Issue #154 repaired the shipped data: no line ends before it starts.
+    expect(summary.legacyIntervals).toBe(0);
     expect(summary.arrayLengthMismatch).toBe(false);
     expect(summary.missingStart).toBe(0);
 
-    // The runtime derives the end from the next line, so the line is visible
-    // even though its own endTime is before its start.
+    // The first line runs from its own start to the start of the next line.
     const first = rowInterval(document, 0);
     expect(first.start).toBeCloseTo(3.427, 3);
     expect(first.end).toBeCloseTo(7.196, 3);
-    expect(first.derived).toBe(true);
+    expect(first.derived).toBe(false);
 
     expect(activeLyricIndex(document, 5)).toBe(0);
     expect(activeLyricIndex(document, 7.2)).toBe(1);
     expect(activeLyricIndex(document, 1)).toBeNull();
+  });
+
+  it("still reads a legacy chart whose end is before its start", () => {
+    // The shipped charts are repaired, but the runtime has to survive charts
+    // that were never repaired: the end is derived from the next line.
+    const legacy: ChartLyrics = {
+      startTime: [1, 5],
+      endTime: [0.5, 7],
+      mondai: ["一行目", "二行目"],
+      furigana: ["いち", "に"],
+      romaji: ["ichi", "ni"],
+    };
+
+    const document = readLyrics(legacy);
+    const summary = summarizeLyrics(document);
+    expect(summary.legacyIntervals).toBe(1);
+
+    const first = rowInterval(document, 0);
+    expect(first.start).toBeCloseTo(1, 3);
+    expect(first.end).toBeCloseTo(5, 3);
+    expect(first.derived).toBe(true);
   });
 
   it("shows GURU's four text-only rows instead of dropping them", () => {
@@ -151,9 +176,9 @@ describe("editing a real chart", () => {
     expect(lyrics.endTime).toEqual(original.endTime);
     expect(lyrics.mondai!.slice(1)).toEqual(original.mondai.slice(1));
 
-    // The raw interval survives even though it is still `end < start`.
+    // The raw interval survives untouched: the edit was a text edit.
     expect(lyrics.endTime![0]).toBe(original.endTime[0]);
-    expect(summarizeLyrics(readLyrics(lyrics)).legacyIntervals).toBe(28);
+    expect(summarizeLyrics(readLyrics(lyrics)).legacyIntervals).toBe(0);
   });
 
   it("writes only the edited time of a well formed chart", () => {
