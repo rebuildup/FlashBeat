@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { updateChartMeta } from "@/lib/chart/notes";
 import { SAMPLE_CHART } from "@/lib/chart/fixtures";
 import type { Chart } from "@/lib/chart/types";
+import type { SnapSetting } from "@/lib/chart/snap";
 import { EditorToolbar } from "./editor-toolbar";
+import { getSnapDivision, setSnapDivision } from "./snap-store";
 
 /**
  * Issue #163 — toolbar の実操作。
@@ -40,10 +42,17 @@ interface Handlers {
   onNameChange?: (name: string) => void;
   onBpmChange?: (bpm: number) => void;
   onResolutionChange?: (resolution: number) => void;
+  onSnapDivisionChange?: (division: SnapSetting) => void;
   onZoomChange?: (zoom: number) => void;
 }
 
-/** chart-editor の state 更新を模すハーネス: 確定値が表示へ往復する。 */
+/**
+ * chart-editor の state 更新を模すハーネス: 確定値が表示へ往復する。
+ *
+ * The snap division is not a prop here: the toolbar and the grid share the
+ * snap store (issue #180), because `chart-editor.tsx` belongs to another
+ * issue and must not carry the state.
+ */
 function ToolbarHarness({ handlers }: { handlers: Handlers }) {
   const [chart, setChart] = useState<Chart | null>(SAMPLE_CHART);
   const [resolution, setResolution] = useState(8);
@@ -66,6 +75,9 @@ function ToolbarHarness({ handlers }: { handlers: Handlers }) {
       onResolutionChange={(next) => {
         handlers.onResolutionChange?.(next);
         setResolution(next);
+      }}
+      onSnapDivisionChange={(next) => {
+        handlers.onSnapDivisionChange?.(next);
       }}
       onZoomChange={(next) => {
         handlers.onZoomChange?.(next);
@@ -133,7 +145,9 @@ async function selectOption(labelText: string, optionLabel: string): Promise<voi
     await Promise.resolve();
     await new Promise((resolve) => requestAnimationFrame(resolve));
   });
-  const options = document.body.querySelectorAll<HTMLElement>('[role="option"]');
+  // 開いたリストボックスだけを見る: 閉じたリストは DOM に残り、同じ
+  // ラベル (1/8 など) を別の Select が持つので、そのままだと誤って選ぶ。
+  const options = openListboxOptions();
   const option = Array.from(options).find((element) => element.textContent === optionLabel);
   if (option === undefined) {
     throw new Error(`option ${optionLabel} not found`);
@@ -143,6 +157,14 @@ async function selectOption(labelText: string, optionLabel: string): Promise<voi
     await Promise.resolve();
     await new Promise((resolve) => requestAnimationFrame(resolve));
   });
+}
+
+/** The options of the listbox that is currently open. */
+function openListboxOptions(): NodeListOf<HTMLElement> {
+  const listboxes = Array.from(document.body.querySelectorAll<HTMLElement>('[role="listbox"]'));
+  const open = listboxes.find((listbox) => listbox.getAttribute("data-state") !== "closed");
+  const scope = open ?? document.body;
+  return scope.querySelectorAll<HTMLElement>('[role="option"]');
 }
 
 afterEach(() => {
@@ -294,5 +316,65 @@ describe("EditorToolbar rest", () => {
     renderToolbar({ onZoomChange });
     await selectOption("View", "2×");
     expect(onZoomChange).toHaveBeenLastCalledWith(2);
+  });
+});
+
+/**
+ * The grid the notes are placed on (issue #180).
+ *
+ * The toolbar picks the division and the grid reads it. Both talk through
+ * the snap store, because `chart-editor.tsx` belongs to another issue and
+ * must not carry the state.
+ */
+describe("EditorToolbar snap division (issue #180)", () => {
+  afterEach(() => {
+    setSnapDivision("off");
+  });
+
+  it("starts with the grid off, so the editor behaves as it did before", { timeout: 20000 }, () => {
+    renderToolbar();
+    expect(getSnapDivision()).toBe("off");
+    const triggers = document.body.querySelectorAll('button[role="combobox"]');
+    expect(Array.from(triggers).some((element) => element.textContent === "off")).toBe(true);
+  });
+
+  it("commits the division the operator picks", { timeout: 20000 }, async () => {
+    const onSnapDivisionChange = vi.fn();
+    renderToolbar({ onSnapDivisionChange });
+    await selectOption("Snap", "1/8");
+    expect(onSnapDivisionChange).toHaveBeenLastCalledWith(8);
+    // The grid reads the same store, so the division is shared.
+    expect(getSnapDivision()).toBe(8);
+    const triggers = document.body.querySelectorAll('button[role="combobox"]');
+    expect(Array.from(triggers).some((element) => element.textContent === "1/8")).toBe(true);
+  });
+
+  it("can turn the grid off", { timeout: 20000 }, async () => {
+    const onSnapDivisionChange = vi.fn();
+    // The grid is on when the operator turns it off.
+    setSnapDivision(8);
+    renderToolbar({ onSnapDivisionChange });
+    await selectOption("Snap", "off");
+    expect(onSnapDivisionChange).toHaveBeenLastCalledWith("off");
+    expect(getSnapDivision()).toBe("off");
+  });
+
+  it("offers every division of the grid", { timeout: 20000 }, async () => {
+    renderToolbar();
+    await selectOption("Snap", "1/16");
+    const triggers = document.body.querySelectorAll('button[role="combobox"]');
+    const snap = Array.from(triggers).find((element): element is HTMLElement => {
+      const labelId = element.getAttribute("aria-labelledby");
+      const labelElement = labelId !== null ? document.getElementById(labelId) : null;
+      return labelElement?.textContent === "Snap";
+    });
+    expect(snap).not.toBeUndefined();
+    await act(async () => {
+      snap!.click();
+      await Promise.resolve();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    const labels = Array.from(openListboxOptions()).map((option) => option.textContent);
+    expect(labels).toEqual(["off", "1/1", "1/2", "1/4", "1/8", "1/16"]);
   });
 });

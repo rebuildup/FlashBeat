@@ -1,3 +1,4 @@
+import { snapLine, type SnapSetting } from "./snap";
 import { noteBeat } from "./timing";
 import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type Chart, type ChartNote } from "./types";
 
@@ -37,14 +38,24 @@ export function updateNote(chart: Chart, index: number, note: ChartNote): Chart 
  *
  * The note keeps its own resolution (`LPB`), the line index is recomputed in
  * that resolution so the note stays on the grid it was written for.
+ *
+ * The grid of the editor (issue #180) decides where the note lands: with a
+ * division the line index is snapped onto that grid, without one the note
+ * keeps the line it would have had before.
  */
-export function moveNote(chart: Chart, index: number, block: number, beat: number): Chart {
+export function moveNote(
+  chart: Chart,
+  index: number,
+  block: number,
+  beat: number,
+  division: SnapSetting = "off",
+): Chart {
   const note = chart.notes[index];
   if (!note) {
     return chart;
   }
 
-  const line = Math.round(beat * note.LPB);
+  const line = snapLine(beat * note.LPB, note.LPB, division);
   return updateNote(chart, index, { ...note, block, num: line });
 }
 
@@ -78,13 +89,18 @@ export function holdCount(chart: Chart): number {
  * grid of the note's own resolution, so a hold is never shorter than one
  * line and never ends before it starts.
  */
-export function setHoldEnd(chart: Chart, index: number, endBeat: number): Chart {
+export function setHoldEnd(
+  chart: Chart,
+  index: number,
+  endBeat: number,
+  division: SnapSetting = "off",
+): Chart {
   const note = chart.notes[index];
   if (!note || note.type !== NOTE_TYPE_HOLD) {
     return chart;
   }
 
-  const endLine = Math.max(note.num + 1, Math.round(endBeat * note.LPB));
+  const endLine = Math.max(note.num + 1, snapLine(endBeat * note.LPB, note.LPB, division));
   return updateNote(chart, index, { ...note, endNum: endLine });
 }
 

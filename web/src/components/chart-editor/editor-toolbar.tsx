@@ -2,9 +2,11 @@ import { Portal } from "@ark-ui/react/portal";
 import { createListCollection } from "@ark-ui/react/collection";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { DraftInput, parseIntegerOrNull } from "@/components/ui/input";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { css } from "styled-system/css";
+import { SNAP_SETTINGS, snapDivisionLabel, isSnapEnabled, type SnapSetting } from "@/lib/chart/snap";
 import type { Chart } from "@/lib/chart/types";
+import { setSnapDivision, useSnapDivision } from "./snap-store";
 
 /**
  * Toolbar of the chart editor.
@@ -133,6 +135,17 @@ const RESOLUTIONS = [
   { label: "1/16", value: "16" },
 ];
 
+/**
+ * The grid the notes are placed on (issue #180).
+ *
+ * `off` places the notes freely, the divisions snap them onto that step of
+ * the beat. The grid follows the tempo of the chart.
+ */
+const SNAP_DIVISIONS = SNAP_SETTINGS.map((division) => ({
+  label: snapDivisionLabel(division),
+  value: String(division),
+}));
+
 const ZOOMS = [
   { label: "0.5×", value: "0.5" },
   { label: "1×", value: "1" },
@@ -143,17 +156,66 @@ const resolutionCollection = createListCollection<{ label: string; value: string
   items: RESOLUTIONS,
 });
 
+const snapCollection = createListCollection<{ label: string; value: string }>({
+  items: SNAP_DIVISIONS,
+});
+
 const zoomCollection = createListCollection<{ label: string; value: string }>({ items: ZOOMS });
+
+/**
+ * Read a division back from the value of the select.
+ *
+ * The select works with strings, so the value is parsed back into the
+ * setting it stands for. A value the toolbar does not know falls back to
+ * the quarter beat, so the grid is never left in an unknown state.
+ */
+export function parseSnapDivision(value: string): SnapSetting {
+  if (value === "off") {
+    return "off";
+  }
+  const parsed = Number.parseInt(value, 10);
+  const known = SNAP_SETTINGS.find((setting) => setting === parsed);
+  return known === undefined ? 4 : known;
+}
+
+/**
+ * The resolution the notes need for a division.
+ *
+ * A note carries its own resolution (`LPB`): the line index of the note is
+ * counted in those lines. A 1/16 grid therefore needs a note of at least
+ * 16 lines per beat, otherwise the line the note lands on rounds the grid
+ * away again.
+ *
+ * The resolution of the chart is therefore never finer than the division,
+ * and never coarser either: a division of 1/4 with a resolution of 1/16
+ * would place the note on a line of its own, so the two go together.
+ */
+export function resolutionForDivision(division: SnapSetting, resolution: number): number {
+  if (!isSnapEnabled(division)) {
+    return resolution;
+  }
+  return division;
+}
 
 export interface EditorToolbarProps {
   chart: Chart | null;
   noteCount: number;
   resolution: number;
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * When the prop is left out the toolbar writes into the shared snap store,
+   * which the grid reads, so the editor itself does not have to carry the
+   * state.
+   */
+  snapDivision?: SnapSetting;
   zoom: number;
   canDelete: boolean;
   onNameChange(name: string): void;
   onBpmChange(bpm: number): void;
   onResolutionChange(resolution: number): void;
+  /** Called when the operator picks another division. */
+  onSnapDivisionChange?(division: SnapSetting): void;
   onZoomChange(zoom: number): void;
   onImportFile(file: File): void;
   onExport(): void;
@@ -167,11 +229,13 @@ export function EditorToolbar({
   chart,
   noteCount,
   resolution,
+  snapDivision: snapDivisionProp,
   zoom,
   canDelete,
   onNameChange,
   onBpmChange,
   onResolutionChange,
+  onSnapDivisionChange,
   onZoomChange,
   onImportFile,
   onExport,
@@ -180,6 +244,32 @@ export function EditorToolbar({
   sideOpen = false,
 }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  /**
+   * The division the grid uses.
+   *
+   * The prop wins when it is given; otherwise the toolbar reads and writes
+   * the shared snap store, which the grid reads as well.
+   */
+  const storeDivision = useSnapDivision();
+  const snapDivision = snapDivisionProp ?? storeDivision;
+
+  const handleSnapDivisionChange = useCallback(
+    (division: SnapSetting) => {
+      setSnapDivision(division);
+      onSnapDivisionChange?.(division);
+      /*
+       * A note carries its own resolution, so the resolution of the chart
+       * follows the division: a 1/16 grid needs notes of 16 lines per beat,
+       * otherwise the line the note lands on rounds the grid away again.
+       */
+      const wanted = resolutionForDivision(division, resolution);
+      if (wanted !== resolution) {
+        onResolutionChange(wanted);
+      }
+    },
+    [onResolutionChange, onSnapDivisionChange, resolution],
+  );
 
   return (
     <header className={bar}>
@@ -310,6 +400,39 @@ export function EditorToolbar({
               <Select.Content>
                 <Select.List>
                   {RESOLUTIONS.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Select.ItemText>{item.label}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.List>
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
+
+        <Select.Root
+          className={selectRoot}
+          collection={snapCollection}
+          value={[String(snapDivision)]}
+          onValueChange={(details) => {
+            const [next] = details.value;
+            if (next !== undefined) {
+              handleSnapDivisionChange(parseSnapDivision(next));
+            }
+          }}
+          data-testid="snap-select"
+        >
+          <Select.Label className={fieldLabel}>Snap</Select.Label>
+          <Select.Control className={selectControl}>
+            <Select.ValueText placeholder="1/4" />
+            <Select.Indicator />
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                <Select.List>
+                  {SNAP_DIVISIONS.map((item) => (
                     <Select.Item key={item.value} item={item}>
                       <Select.ItemText>{item.label}</Select.ItemText>
                       <Select.ItemIndicator />
