@@ -64,6 +64,9 @@ public class KeyGuideUI : MonoBehaviour
 
     private void Update()
     {
+        // キー設定オーバーレイの開いた・閉じたフレームは Tab を捨てる (Issue #167)。
+        // 開いている間の停止自体は KeyConfigUI.SuspendScene が担う。
+        if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
         if (Input.GetKeyDown(KeyCode.Tab)) Toggle();
     }
 

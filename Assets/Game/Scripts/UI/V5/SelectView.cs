@@ -108,6 +108,9 @@ namespace FlashBeat.UI.V5
 
         public void HandleInput()
         {
+            // オーバーレイ (キー設定 / ランキング) の開いた・閉じたフレームは入力を捨てる (Issue #167)。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
+
             switch (state)
             {
                 case ScreenState.List: HandleListInput(); break;
@@ -400,7 +403,16 @@ namespace FlashBeat.UI.V5
 
             for (int i = canvas.transform.childCount - 1; i >= 0; i--)
             {
-                Destroy(canvas.transform.GetChild(i).gameObject);
+                // EditMode (テスト) では Destroy がエラーログになるため DestroyImmediate を使う
+                // (ShortcutKeyCap.RemoveExisting と同じパターン, Issue #167)。
+                if (Application.isPlaying)
+                {
+                    Destroy(canvas.transform.GetChild(i).gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(canvas.transform.GetChild(i).gameObject);
+                }
             }
 
             var bg = V5Ui.Node(canvas.gameObject, "BG");

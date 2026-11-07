@@ -146,6 +146,9 @@ public class ResultRankingOverlay : MonoBehaviour
         panel.HideModal();
         panel.HideBoard();
         state = State.Idle;
+        // Issue #167: 閉じたフレームに背面の View が同じキー (Esc など) を
+        // 処理して遷移するのを防ぐ。
+        FlashBeat.UI.SceneInputGate.BlockThisFrame();
         ResumeScene();
     }
 
@@ -166,7 +169,11 @@ public class ResultRankingOverlay : MonoBehaviour
         panel.EnsureBuilt();
         panel.SetBoardLoading();
         panel.ShowBoard(null, 0, null);
-        if (IsResultScene()) SuspendScene(); // 結果画面では Space/R を止める
+        // Issue #167: ボードを開けている間は背面の入力を止める (Title / Select でも)。
+        // 止めないと Select では Enter/Space が裏の画面に届き、ボードの裏で
+        // 曲が始まってしまう。
+        SuspendScene();
+        FlashBeat.UI.SceneInputGate.BlockThisFrame();
         StartCoroutine(RankingClient.GetLeaderboard(songId, chartVersion, OnLeaderboard));
     }
 
@@ -201,6 +208,7 @@ public class ResultRankingOverlay : MonoBehaviour
         panel.ShowModal(nameBuffer.ToString());
         panel.SetModalMessage(string.Empty, Color.white);
         SuspendScene();
+        FlashBeat.UI.SceneInputGate.BlockThisFrame();
     }
 
     private void HandleOpenInput()
@@ -316,8 +324,9 @@ public class ResultRankingOverlay : MonoBehaviour
     // --- scene suspension (KeyConfigUI pattern) ------------------------------
 
     /// <summary>
-    /// モーダル表示中は結果画面のキー処理 (Space=セレクトへ / R=リトライ) と
-    /// EventSystem 経由の Submit を止める。閉じたら元に戻す。
+    /// モーダル / ボード表示中は背後のシーンのキー処理と EventSystem 経由の Submit を止める。
+    /// v5 の View (ResultView / SelectView / TitleView) とレガシー *SceneManager の両方。
+    /// 閉じたら元に戻す。開いた / 閉じたフレームの二重処理は SceneInputGate が担う。
     /// </summary>
     private void SuspendScene()
     {
@@ -336,7 +345,15 @@ public class ResultRankingOverlay : MonoBehaviour
             if (behaviour == null || behaviour == this || !behaviour.enabled) continue;
             if (behaviour is RankingPanel) continue;
             string typeName = behaviour.GetType().Name;
-            if (typeName.EndsWith("SceneManager"))
+            if (typeName.EndsWith("SceneManager")
+                // Issue #167: v5 View の Update も止める。止めないとランキングの
+                // 名前入力中に ResultView が R / Space / Esc を処理して
+                // リトライや遷移が起きる (ResultSceneManager は v5 では入力を持たない)。
+                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView"
+                // Tab のキーガイド / F3・F4 の更新通知もモーダル中は止める。
+                || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI"
+                // ボード / モーダル中の F2 でキー設定が重ねて開かないようにする。
+                || typeName == "KeyConfigUI")
             {
                 behaviour.enabled = false;
                 suspended.Add(behaviour);

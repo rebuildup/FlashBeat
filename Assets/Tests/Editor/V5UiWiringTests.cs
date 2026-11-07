@@ -54,10 +54,10 @@ namespace FlashBeat.UI.V5
                 startButton.onClick.Invoke();
                 Assert.IsTrue(started, "GameStart ボタンを押しても実ハンドラが呼ばれていない。");
 
-                var exitButton = FindButton(canvas.gameObject, "Menu End");
-                Assert.IsNotNull(exitButton, "Title の End ボタンが見つからない。");
+                var exitButton = FindButton(canvas.gameObject, "Menu Exit");
+                Assert.IsNotNull(exitButton, "Title の Exit ボタンが見つからない。");
                 exitButton.onClick.Invoke();
-                Assert.IsTrue(exited, "End ボタンを押しても実ハンドラが呼ばれていない。");
+                Assert.IsTrue(exited, "Exit ボタンを押しても実ハンドラが呼ばれていない。");
             }
             finally
             {
@@ -151,7 +151,8 @@ namespace FlashBeat.UI.V5
                 Object.DestroyImmediate(hudOff.gameObject);
             }
 
-            // Compact: 代表キー 1 個の帯 (レーン 1 の既定キーは 1 / Q / A / Z)。
+            // Compact: 代表キー 1 個の帯。代表キーは GameHudView の規則
+            // (レーンのキーから最初の文字キー。レーン 1 の既定 1 / Q / A / Z なら Q)。
             PlaySession.SetKeyGuide(KeyGuideMode.Compact);
             var hudCompact = new GameObject("V5 HUD Test").AddComponent<GameHudView>();
             try
@@ -161,8 +162,11 @@ namespace FlashBeat.UI.V5
                 Assert.IsNotNull(row, "Key Guide = Compact なのにガイド strip が作られていない。");
                 var cap = row.GetChild(0).GetComponentInChildren<TMPro.TextMeshProUGUI>();
                 Assert.IsNotNull(cap, "ガイドのキーキャップに文字が無い。");
-                Assert.IsFalse(cap.text.Contains("Q"),
-                    "Compact モードで代表キー以外のキー (Q) まで表示されている: " + cap.text);
+                Assert.IsFalse(string.IsNullOrEmpty(cap.text), "Compact モードの代表キーが空。");
+                Assert.IsFalse(cap.text.Contains(" "),
+                    "Compact モードで代表キー以外 (レーンの全キー) を出している: " + cap.text);
+                Assert.IsTrue(cap.text == "1" || cap.text == "Q" || cap.text == "A" || cap.text == "Z",
+                    "Compact モードの代表キーがレーン 1 のキーでない: " + cap.text);
             }
             finally
             {
@@ -202,7 +206,10 @@ namespace FlashBeat.UI.V5
             try
             {
                 view = SelectView.Create(ownerGo.GetComponent<SelectSceneManager>());
-                var canvas = view.GetComponentInParent<Canvas>();
+                // SelectView は自分のルートの「子」として Canvas を持つ
+                // (TitleView とは逆の階層) ので、子方向から探す。
+                var canvas = view.GetComponentInChildren<Canvas>(true);
+                Assert.IsNotNull(canvas, "Select の Canvas が生成されていない。");
                 Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
                     "Select の Canvas に GraphicRaycaster が無い (クリックが効かない原因)。");
 
@@ -223,8 +230,8 @@ namespace FlashBeat.UI.V5
             {
                 if (view != null)
                 {
-                    var canvas = view.GetComponentInParent<Canvas>();
-                    if (canvas != null) { Object.DestroyImmediate(canvas.gameObject); }
+                    // ルート (Canvas の親) ごと壊すと Canvas も消える。
+                    Object.DestroyImmediate(view.gameObject);
                 }
 
                 Object.DestroyImmediate(ownerGo);
