@@ -26,21 +26,46 @@ public class TitleSceneManager : MonoBehaviour
         OptionSceneManager.TimingUp();
         if (sounds != null) sounds.volume = GManager.effectVolume;
         RefreshCatalogStatus();
+        RefreshKeyHints();
+        KeyActions.Changed += RefreshKeyHints;
+    }
+
+    void OnDestroy()
+    {
+        KeyActions.Changed -= RefreshKeyHints;
+    }
+
+    /// <summary>シーン内の『push space』などのキー名ヘルプを現在の割り当てに合わせて更新する。</summary>
+    private void RefreshKeyHints()
+    {
+        var hints = FindObjectsOfType<TextMeshProUGUI>();
+        for (int i = 0; i < hints.Length; i++)
+        {
+            string text = hints[i].text;
+            if (string.IsNullOrEmpty(text)) continue;
+            string lower = text.ToLower();
+            KeyActions.KeyAction action;
+            if (lower.Contains("space")) { action = KeyActions.KeyAction.Start; }
+            else if (lower == "push o") { action = KeyActions.KeyAction.Option; }
+            else if (lower == "push e") { action = KeyActions.KeyAction.Exit; }
+            else continue;
+            hints[i].text = "push " + KeyConfigUI.GetKeysText(KeyActions.Get(action));
+        }
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Start))
         {
             playSound();
             SelectScene();
         }
-        if (Input.GetKeyDown(KeyCode.O))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Option))
         {
             playSound();
             OptionScene();
         }
-        if (Input.GetKeyDown(KeyCode.E))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Exit))
         {
             playSound();
             EndGame();
