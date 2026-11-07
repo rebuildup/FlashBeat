@@ -67,8 +67,16 @@ namespace FlashBeat.UI.V5
 
         private void Start()
         {
-            hud = gameObject.AddComponent<GameHudView>();
-            hud.Build();
+            // v6 のゲーム HUD が有効なときは、旧 HUD (GameHudView) を作らない
+            // (同じ箇所に 2 枚の HUD が重なると崩れて見える)。
+            // 準備中 / 失敗 / ポーズは未移植 (P1) なので旧実装のまま使う。
+            bool v6Hud = FlashBeat.UI.V6.V6UiMode.GameHud;
+
+            if (!v6Hud)
+            {
+                hud = gameObject.AddComponent<GameHudView>();
+                hud.Build();
+            }
 
             var readyCanvas = V5GameUi.NewCanvas("V5ReadyCanvas", 1);
             ready = readyCanvas.gameObject.AddComponent<GameReadyView>();
@@ -85,14 +93,17 @@ namespace FlashBeat.UI.V5
             var pauseCanvas = V5GameUi.NewCanvas("V5PauseCanvas", 600);
             pause = pauseCanvas.gameObject.AddComponent<PauseMenuView>();
             pause.Build(pauseCanvas);
-            if (hud.PauseButton != null)
+            if (hud != null && hud.PauseButton != null)
             {
                 hud.PauseButton.onClick.AddListener(pause.Open);
             }
 
             // Issue #167: v5 のボタンは自身の矢印キー処理で選択するため、
             // Unity の Selectable 自動ナビゲーションは切っておく (二重動作防止)。
-            V5GameUi.ApplySingleInputModel(hud.Canvas);
+            if (hud != null)
+            {
+                V5GameUi.ApplySingleInputModel(hud.Canvas);
+            }
             V5GameUi.ApplySingleInputModel(pauseCanvas);
 
             HideLegacyHud();
