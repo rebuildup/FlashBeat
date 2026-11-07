@@ -1,5 +1,4 @@
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Video;
 
 /// <summary>
@@ -14,8 +13,6 @@ public class TitleSceneManager : MonoBehaviour
     [SerializeField] private AudioClip sound;
     [SerializeField] private VideoPlayer Screen;
 
-    [SerializeField] private TextMeshProUGUI catalogStatus;
-
     private AudioSource sounds;
 
     void Start()
@@ -25,26 +22,12 @@ public class TitleSceneManager : MonoBehaviour
         GManager.noteTiming--;
         OptionSceneManager.TimingUp();
         if (sounds != null) sounds.volume = GManager.effectVolume;
-        RefreshCatalogStatus();
-    }
 
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            playSound();
-            SelectScene();
-        }
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            playSound();
-            OptionScene();
-        }
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            playSound();
-            EndGame();
-        }
+        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
+        // 入力は TitleView が処理し、このクラスの public メソッドをコールバックで呼ぶ。
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null) legacy.SetActive(false);
+        FlashBeat.UI.V5.TitleView.Build(SelectScene, OptionScene, EndGame, playSound);
     }
 
     public void EndGame()
@@ -78,19 +61,5 @@ public class TitleSceneManager : MonoBehaviour
         {
             Debug.LogWarning("[TitleSceneManager] sound AudioClip is not assigned in Inspector.");
         }
-    }
-
-    /// <summary>
-    /// Catalog status chip (design "カタログ状態を cloud アイコン付きで表示").
-    /// The cloud catalog is fetched on the select screen, so on the title
-    /// screen the chip reports the built-in list until a remote catalog has
-    /// been applied.
-    /// </summary>
-    private void RefreshCatalogStatus()
-    {
-        if (catalogStatus == null) return;
-        catalogStatus.text = GManager.HasRemoteCatalog
-            ? $"同期済み · {GManager.totalSong}曲"
-            : $"ローカル · {GManager.totalSong}曲";
     }
 }
