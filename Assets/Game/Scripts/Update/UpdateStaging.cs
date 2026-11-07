@@ -8,7 +8,7 @@ using UnityEngine;
 namespace FlashBeat.Update
 {
     /// <summary>
-    /// 更新 ZIP の staging (%LOCALAPPDATA%\FlashBeat\update\staging) と manifest の読み書き、
+    /// 更新 ZIP の staging (<see cref="UpdatePaths.StagingDir"/>) と manifest の読み書き、
     /// SHA-256 検証。ディレクトリを引数に取る overload は EditMode テストで一時ディレクトリに向けて使う。
     /// </summary>
     public static class UpdateStaging
@@ -16,7 +16,7 @@ namespace FlashBeat.Update
         [Serializable]
         public class StagedUpdate
         {
-            public string tag;         // "v0.1.1-win64-abc1234"
+            public string tag;         // "v0.1.1-win64-abc1234" / "v0.1.1-macos-abc1234"
             public string zipName;     // staging 内の ZIP ファイル名
             public string sha256;      // ZIP の期待 SHA-256 (64 桁 hex)
             public string stagedAtUtc; // ISO 8601
@@ -26,12 +26,7 @@ namespace FlashBeat.Update
 
         public static string StagingDir
         {
-            get
-            {
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "FlashBeat", "update", "staging");
-            }
+            get { return UpdatePaths.StagingDir; }
         }
 
         public static string ManifestPath

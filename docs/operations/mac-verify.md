@@ -27,8 +27,9 @@ Windows 実機は展示用のため操作しない。Mac 側でビルド・起�
 
 - 出力: `Builds/macOS/FlashBeat.app`
 - 失敗時はプロセス終了コード 1。`Builds/macOS-build.log` の `[BuildScript]` 行を確認する。
-- Windows 配布物専用の後処理 (Update.ps1 複製 / update-channel.txt / メディア除外マニフェスト) は
-  macOS ビルドでは行わない (UpdateChecker は stable にフォールバック)。
+- 配布物向けの後処理 (update-macos.sh 複製 / update-channel.txt / メディア除外マニフェスト) は
+  Windows ビルドと同じく macOS ビルドでも行われる (`Contents/Resources/` 配下)。
+  これにより `Builds/macOS/FlashBeat.app` も Release 配布・アプリ内更新の経路にそのまま載せられる。
 
 ## 起動と画面確認
 
