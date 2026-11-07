@@ -9,6 +9,7 @@
     "test": "node --test tests/ && vitest run",
     "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
     "e2e": "node tests/e2e/run.ts",
+    "test:studio": "playwright test --config tests/e2e/playwright.config.ts",
     "codegen": "panda codegen",
     "postinstall": "void prepare && panda codegen"
   },
@@ -32,6 +33,7 @@
     "@pandacss/types": "2.5.0",
     "@pandacss/vite": "2.5.0",
     "@park-ui/cli": "1.0.1",
+    "@playwright/test": "^1.65.0",
     "@types/node": "26.6.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
