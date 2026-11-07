@@ -80,7 +80,17 @@ Catalog 戻り) をローカル dev server に対して実行。
 
 ## Known Issues
 
-(監査の結果に応じて追記する)
+- 監査で見つかり本 PR で修正: Catalog テーブル行の旧 `rowBody` 残留
+  (#156 マージ由来、タイトル/アーティストの二重描画 + 列ズレ)。
+  `web/src/app/catalog-panel.tsx` を修正し、回帰テスト
+  (`web/src/app/catalog-panel.test.tsx`, 5 件) を追加。
+- 監査で見つかり本 PR で修正: `tests/e2e/studio-flow.spec.ts` の行リンク locator が
+  md+ で非表示のカードビューを掴み spec が壊れていた (可視側テーブルに限定)。
+- Owned Paths 外のため修正せず記録のみ: なし
+  (chart-editor / lib/chart 側の UI はシェルレベルの死活監査のみ実施し、
+  不具合は検出されなかった)。
+- 環境メモ: `vp dev` 起動直後に `/publish`・`/new-song` が一時的に空になる状態を
+  1 回観測 (再読込で解消、本番ビルドでは非再現)。アプリコードの不具合とは判断しない。
 
 ## Dependencies & Gate
 
