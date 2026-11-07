@@ -1,7 +1,7 @@
 # Win64 リリース運用手順 (Issue #35)
 
 展示会場の Windows 機に Unity 本体 (`FlashBeat.exe`) のパッチを配布する手順。
-アプリ自体の起動・更新フロー (起動時非同期確認 → 終了時適用) は Issue #36 (`tools/update/**`) が実装する。
+アプリ自体の起動・更新フロー (起動時非同期確認 → **Title 通知 → ユーザー明示でダウンロード/適用**、issue #118) は Issue #36 (`tools/update/**`) が実装する。
 本ドキュメントは **配布物の仕様 = #36 の UpdateChecker / Update.ps1 が消費する契約** を固定する。
 常設ランチャー・独自更新サーバーは作らない。更新元は GitHub Releases のみ。
 
@@ -53,14 +53,57 @@
 - ゲーム自身の背景アニメーション (`Resources/Videos/*.mp4`、約 196MB) は自作素材なので同梱する
   (media-rights-audit 3: 権利ではなくサイズの問題)。
 
-### 更新フローの契約 (実装は #36)
+### 更新フローの契約 (実装は #36 / 明示式化は #118)
 
-1. 起動時に latest を非同期確認 (`version.json` の `tag` と比較)
-2. 新版があれば ZIP + `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` へ取得し SHA-256 検証
-3. アプリ終了時に `tools\update\Update.ps1` を分離プロセスで起動:
+1. 起動時に latest を非同期**確認**するだけ (ブロックしない。失敗はログのみ)
+2. 新版があるとき、**Title シーン (ホーム) にだけ**『アップデートあり vX.Y.Z』の通知を出す
+   (コード構築 overlay。F3 キー / 通知クリックでダウンロード開始、F4 / × でこのセッションは非表示)
+3. **ユーザーがトリガーしたときだけ** ZIP + `.sha256` を `%LOCALAPPDATA%\FlashBeat\update\staging` へ
+   取得し SHA-256 検証 (進捗 % を通知内に表示)
+4. staging 完了後、通知は『更新の準備ができました。終了して適用 [F3]』に変わる。
+   ユーザーが F3 / クリック (または Option の適用ボタン) で**確認したときだけ**
+   `tools\update\Update.ps1` を分離プロセスで起動:
    アプリ PID の終了待機 → 別ディレクトリへ展開 → 検証 → 一括切替 → 新 exe 再起動
-4. 旧版は 1 世代残す (切戻し用。ユーザー向け UI は不要)
-5. 失敗時 (SHA 不一致 / ネットワーク断 / 二重起動) は更新を中止し現行版を維持
+5. **押さなければ更新しない**: 確認なしで普通に終了した場合は何も適用されない
+   (staging 済み ZIP は残り、次回起動時にまた通知が出る)。`OnApplicationQuit` からの自動適用は存在しない
+6. 旧版は 1 世代残す (切戻し用)
+7. 失敗時 (SHA 不一致 / ネットワーク断 / 二重起動) は一行メッセージを表示して更新を中止し現行版を維持
+   (ゲーム動作は止めない)
+
+### 更新結果ファイル (last-result.json、issue #125)
+
+`tools\update\Update.ps1` は**すべての終了経路**で
+`%LOCALAPPDATA%\FlashBeat\update\last-result.json` に機械可読な結果を書く
+(アプリからの自動適用でも手実行でも。書けない場合も更新処理自体は失敗させない):
+
+```json
+{
+  "result": "success | failed | aborted",
+  "exitCode": 0,
+  "fromVersion": "0.1.2",
+  "toVersion": "0.1.3",
+  "tag": "v0.1.3-win64-abc1234",
+  "message": "SHA-256 が一致しません。ZIP が破損、または想定と違うファイルです。",
+  "timeUtc": "2026-11-07T00:00:00Z"
+}
+```
+
+- `result` の対応: `aborted` = 前提不備で何もしていない (終了コード 1 パラメータ/前提不備、
+  6 FlashBeat 実行中)。`failed` = 適用を試みて失敗 (2 通信 / 3 ダイジェスト / 4 ZIP / 5 内容 /
+  7 切替、想定外エラー)。`success` は切替と配置後検査が**完了したあとにだけ**書く
+  (再起動の成否には依存しない)。
+- `message` は `FlashBeat-update.log` と同じ日本語の理由。
+- アプリは次回起動時にこのファイルを読み、**Title シーンで 1 回だけ**通知する:
+  - `failed` / `aborted`: 『前回の更新に失敗しました: \<message\> - 現在の版 vX を使用中 / F3 で再試行』
+  - `success`: 『更新しました vX』
+- 表示した時点でファイルを `last-result-shown.json` へリネームし、次回起動以降は出さない
+  (ゲームをブロックしない。F3 での再試行は新版がまだ見つかっているときだけ効く)。
+- したがってスクリプト起動時のアプリのログは
+  `update script started (result unknown until next start)` であり、**成否はこの時点では確定しない**。
+  確認は結果ファイル (または `FlashBeat-update.log`) で行う。
+- staging / 適用の直前に、対象 ZIP の版が現行ビルドより新しいことを再確認する
+  (`UpdateChecker.IsStagedTagNewerThanCurrent`)。旧版・同一バージョンの別ビルドは
+  staging も適用もしない (ダウングレード防止)。
 
 ## 取得先
 

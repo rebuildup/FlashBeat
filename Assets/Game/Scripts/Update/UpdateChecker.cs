@@ -11,12 +11,17 @@ using Debug = UnityEngine.Debug;
 namespace FlashBeat.Update
 {
     /// <summary>
-    /// 起動時に GitHub Releases を非同期で確認し、新版があれば ZIP と .sha256 を
-    /// %LOCALAPPDATA%\FlashBeat\update\staging に取得して SHA-256 検証する。
-    /// 終了時 (OnApplicationQuit) に配布物内 tools\update\Update.ps1 を
-    /// -Apply -WaitPid -Relaunch で分離プロセス起動する (アプリ終了 → 展開 → 検証 →
-    /// 一括切替 → 新 exe 再起動)。通信失敗・SHA 不一致では何も変更せず現行版を維持し、
+    /// 起動時に GitHub Releases を非同期で「確認だけ」行う (issue #118: 更新は明示式・任意)。
+    /// 新版があれば <see cref="UpdateFlowModel"/> を Available にし、TitleScene の通知 UI
+    /// (<see cref="UpdateNoticeUI"/>) が『アップデートあり』を出す。ダウンロードも適用も
+    /// ユーザーが明示的にトリガーしたときだけ行う (<see cref="RequestDownload"/> /
+    /// <see cref="RequestApply"/>)。押さなければダウンロードも適用も行わない。
+    /// 適用は配布物内 tools\update\Update.ps1 を -Apply -WaitPid -Relaunch で分離プロセス起動
+    /// (アプリ終了 → 展開 → 検証 → 一括切替 → 新 exe 再起動)。OnApplicationQuit からの
+    /// 自動適用は存在しない。通信失敗・SHA 不一致では何も変更せず現行版を維持し、
     /// ゲームは止めない。常設ランチャー・独自更新サーバーは使わない (更新元は GitHub Releases のみ)。
+    /// 起動時には前回の更新結果 (Update.ps1 が書く last-result.json、issue #125) を読み、
+    /// Title 通知の文言に反映する (成功 / 失敗とも 1 回だけ表示し mark-as-shown)。
     /// </summary>
     public class UpdateChecker : MonoBehaviour
     {
@@ -49,11 +54,21 @@ namespace FlashBeat.Update
             public ReleaseInfo[] items;
         }
 
+        /// <summary>更新フローの共有状態機械 (UpdateNoticeUI が参照して表示する)。</summary>
+        public UpdateFlowModel Model { get; } = new UpdateFlowModel();
+
         private UpdateStaging.StagedUpdate staged;
+        private ReleaseAsset pendingZip;
         private UnityEngine.UI.Button optionApplyButton;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
+        {
+            EnsureExists();
+        }
+
+        /// <summary>UpdateChecker がいなければ生成する (UpdateNoticeUI からも呼べるよう public)。</summary>
+        public static void EnsureExists()
         {
             if (FindAnyObjectByType<UpdateChecker>() != null) { return; }
             var go = new GameObject("FlashBeatUpdateChecker");
@@ -65,7 +80,7 @@ namespace FlashBeat.Update
         {
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
-            StartCoroutine(CheckAndStage());
+            StartCoroutine(CheckForUpdate());
         }
 
         private void OnDestroy()
@@ -73,9 +88,35 @@ namespace FlashBeat.Update
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 
-        private IEnumerator CheckAndStage()
+        /// <summary>
+        /// 起動時の確認。通信は非同期でブロックせず、失敗はログのみで静かに終わる。
+        /// ここではダウンロードしない (ユーザーが F3 / クリックしたときだけ <see cref="RequestDownload"/>)。
+        /// </summary>
+        private IEnumerator CheckForUpdate()
         {
+            // The flow model only accepts CheckFoundNewVersion while Checking. Without this call the
+            // phase stayed Idle, the 'update available' notice never appeared and F3 did nothing
+            // (silent failure seen on the real device, v0.1.4 -> v0.1.5).
+            Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
+
+            // ── -1. 前回の更新結果を反映 (issue #125) ──────────────────
+            // Update.ps1 がすべての終了経路で書く last-result.json を読み、Title 通知の文言を
+            // Model に渡す。表示と mark-as-shown (リネーム) は UpdateNoticeUI が Title で行う。
+            // ここではブロックしない (ファイル読み取りのみ・失敗しても静かに続行)。
+            var lastResult = UpdateResultFile.Read();
+            if (lastResult != null)
+            {
+                var currentVersionText = current.Valid ? current.Version : Application.version;
+                var lastNotice = UpdateResultFile.BuildNoticeText(lastResult, currentVersionText);
+                if (lastNotice != null)
+                {
+                    Model.SetLastResultNotice(lastNotice);
+                    Debug.Log("[UpdateChecker] 前回の更新結果を検出: result=" + lastResult.result +
+                              " exitCode=" + lastResult.exitCode + "。Title で通知します。");
+                }
+            }
+
             if (!current.Valid)
             {
                 Debug.LogWarning("[UpdateChecker] ビルド版識別子を解釈できません: '" + Application.version +
@@ -120,10 +161,10 @@ namespace FlashBeat.Update
             if (UpdateVersion.IsSameVersionDifferentBuild(latestId, current))
             {
                 // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
-                // 自動適用すると古いビルドへ戻す可能性があるので、自動更新はしない。
+                // 自動適用すると古いビルドへ戻す可能性があるので、更新候補にしない。
                 Debug.Log("[UpdateChecker] 同じバージョン " + latestId.Version + " の別ビルドがあります " +
                           "(" + latest.tag_name + " / 現行 " + current.ShortSha + ")。" +
-                          "自動更新はしません (適用は運営者が Update.ps1 -Tag で行えます)。");
+                          "更新はしません (適用は運営者が Update.ps1 -Tag で行えます)。");
                 yield break;
             }
 
@@ -153,9 +194,12 @@ namespace FlashBeat.Update
                 yield break;
             }
 
-            Debug.Log("[UpdateChecker] 新版を確認: " + latest.tag_name + " (現行 " + Application.version + ")");
+            Debug.Log("[UpdateChecker] 新版を確認: " + latest.tag_name + " (現行 " + Application.version + ")。" +
+                      "ダウンロードはユーザーが Title 画面で指示したときだけ行います。");
+            Model.CheckFoundNewVersion(latest.tag_name, latestId.Version);
+            pendingZip = zip;
 
-            // ── 3. 同一タグの staging 済みがあれば再利用 ──
+            // ── 3. 同一タグの staging 済みがあれば再利用 (前回 staging したが適用しなかった場合) ──
             var existing = UpdateStaging.ReadManifest();
             if (existing != null && existing.tag == latest.tag_name)
             {
@@ -163,34 +207,64 @@ namespace FlashBeat.Update
                 if (UpdateStaging.VerifyStaged(existing, out reuseProblem))
                 {
                     staged = existing;
-                    Debug.Log("[UpdateChecker] staging 済みの新版を再利用します: " + existing.zipName);
+                    Model.MarkStagedReady();
+                    Debug.Log("[UpdateChecker] staging 済みの新版を再利用します: " + existing.zipName +
+                              " (適用はユーザー確認時のみ)。");
                     yield break;
                 }
-                Debug.LogWarning("[UpdateChecker] staging 済み ZIP を再検証できませんでした (" + reuseProblem + ") — 取り直します。");
+                Debug.LogWarning("[UpdateChecker] staging 済み ZIP を再検証できませんでした (" + reuseProblem + ") — 再ダウンロードします。");
             }
 
-            // ── 4. ZIP と .sha256 を staging へダウンロード ──
+            // ここで終わる。ダウンロードは RequestDownload() で開始する。
+        }
+
+        /// <summary>ユーザー操作 (Title 通知の F3 / クリック) によるダウンロード開始。
+        /// Available のときだけ受け付ける。自動では呼ばれない。</summary>
+        public void RequestDownload()
+        {
+            if (Model.Phase != UpdateFlowPhase.Available || pendingZip == null) { return; }
+            Model.BeginDownload();
+            StartCoroutine(DownloadAndStage(pendingZip));
+        }
+
+        /// <summary>ZIP + .sha256 を staging へ取得して SHA-256 検証し、manifest を書く。
+        /// 進捗は Model 経由で通知 UI に見せる。失敗時は Available に戻り現行版を維持する。</summary>
+        private IEnumerator DownloadAndStage(ReleaseAsset zip)
+        {
+            // 現行より新しくない ZIP は staging しない (issue #125: 新旧判定できないものは適用しない)。
+            if (!IsStagedTagNewerThanCurrent(Model.LatestTag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] 候補の版が現行より新しくありません (" + Model.LatestTag +
+                                 " / 現行 " + Application.version + ") — ダウンロードを中止し、現行版を維持します。");
+                Model.DownloadFailed("候補の版が現行より新しくありません。現行のまま使えます");
+                yield break;
+            }
+
             UpdateStaging.ClearStaging();
             var zipPath = Path.Combine(UpdateStaging.StagingDir, zip.name);
 
-            yield return DownloadToFile(zip.browser_download_url, zipPath);
+            yield return DownloadToFile(zip.browser_download_url, zipPath,
+                                        progress => Model.SetDownloadProgress(progress * 0.9f));
             if (!File.Exists(zipPath))
             {
                 Debug.LogWarning("[UpdateChecker] ZIP のダウンロードに失敗しました — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed("ダウンロードに失敗しました。現行のまま使えます");
                 yield break;
             }
 
             yield return FetchExpectedSha256(zip.browser_download_url + ".sha256");
+            Model.SetDownloadProgress(0.95f);
             var expectedSha = lastFetchedSha256;
             if (string.IsNullOrEmpty(expectedSha))
             {
                 Debug.LogWarning("[UpdateChecker] .sha256 を取得できませんでした — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed(".sha256 を取得できませんでした。現行のまま使えます");
                 yield break;
             }
 
-            // ── 5. SHA-256 検証 (大きい ZIP のためバックグラウンドで計算) ──
+            // ── SHA-256 検証 (大きい ZIP のためバックグラウンドで計算) ──
             string actualSha = null;
             string computeError = null;
             var task = System.Threading.Tasks.Task.Run(() =>
@@ -199,32 +273,72 @@ namespace FlashBeat.Update
                 catch (Exception e) { computeError = e.Message; }
             });
             while (!task.IsCompleted) { yield return null; }
+            Model.SetDownloadProgress(1f);
 
             if (computeError != null || !string.Equals(actualSha, expectedSha, System.StringComparison.OrdinalIgnoreCase))
             {
                 Debug.LogWarning("[UpdateChecker] SHA-256 検証に失敗しました (actual=" + (actualSha ?? computeError) +
                                  ", expected=" + expectedSha + ") — 更新を中止し、現行版を維持します。");
                 UpdateStaging.ClearStaging();
+                Model.DownloadFailed("SHA-256 検証に失敗しました。現行のまま使えます");
                 yield break;
             }
 
-            // ── 6. manifest を書いて終了時の適用を待つ ──
+            // RequestDownload は Available (LatestTag 設定済み) からしか来ないため tag は必ず非空。
             staged = new UpdateStaging.StagedUpdate
             {
-                tag = latest.tag_name,
+                tag = Model.LatestTag,
                 zipName = zip.name,
                 sha256 = expectedSha,
                 stagedAtUtc = DateTime.UtcNow.ToString("o"),
             };
+            if (string.IsNullOrEmpty(staged.tag))
+            {
+                // LatestTag が無い状態でこのメソッドには到達しない (RequestDownload が Available 限定のため)。
+                UpdateStaging.ClearStaging();
+                staged = null;
+                Model.DownloadFailed("内部エラー: タグが不明です");
+                yield break;
+            }
             if (!UpdateStaging.WriteManifest(staged))
             {
                 Debug.LogWarning("[UpdateChecker] staging manifest を書けませんでした — 更新を中止し、現行版を維持します。");
                 staged = null;
+                UpdateStaging.ClearStaging();
+                Model.DownloadFailed("staging に書き込めませんでした。現行のまま使えます");
                 yield break;
             }
 
-            Debug.Log("[UpdateChecker] 新版の staging が完了しました: " + latest.tag_name +
-                      " (sha256=" + expectedSha + ")。終了時に適用されます。");
+            Model.DownloadSucceeded();
+            Debug.Log("[UpdateChecker] 新版の staging が完了しました: " + staged.tag +
+                      " (sha256=" + expectedSha + ")。適用はユーザーが確認したときだけ行われます。");
+        }
+
+        /// <summary>ユーザー操作 (Title 通知の F3 / クリック、Option の適用ボタン) による適用開始。
+        /// staging 済み更新が無い・準備ができていないときは何もしない。自動では呼ばれない。</summary>
+        public void RequestApply()
+        {
+            if (staged == null)
+            {
+                Debug.LogWarning("[UpdateChecker] 適用できる staging 済み更新がありません。");
+                return;
+            }
+            if (Model.Phase == UpdateFlowPhase.Ready)
+            {
+                Model.BeginApply();
+            }
+            else if (Model.Phase != UpdateFlowPhase.Applying)
+            {
+                return;
+            }
+
+            if (!TryLaunchUpdater(waitForThisProcess: true))
+            {
+                Model.ApplyFailed("更新スクリプトを起動できませんでした。現行のまま使えます");
+                return;
+            }
+            // 更新スクリプトは分離プロセスで自分の PID の終了を待つので、即座に終了してよい。
+            Application.Quit();
         }
 
         private string lastFetchedSha256;
@@ -249,7 +363,7 @@ namespace FlashBeat.Update
             }
         }
 
-        private static IEnumerator DownloadToFile(string url, string destPath)
+        private static IEnumerator DownloadToFile(string url, string destPath, Action<float> onProgress)
         {
             try
             {
@@ -262,7 +376,13 @@ namespace FlashBeat.Update
             var req = new UnityWebRequest(url);
             req.downloadHandler = new DownloadHandlerFile(destPath);
             req.timeout = 0; // 大きい ZIP のためタイムアウトなし (失敗は result で判定)
-            yield return req.SendWebRequest();
+            var op = req.SendWebRequest();
+            while (!op.isDone)
+            {
+                if (onProgress != null) { onProgress(op.progress); }
+                yield return null;
+            }
+            if (onProgress != null) { onProgress(1f); }
             if (req.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogWarning("[UpdateChecker] ダウンロード失敗: " + url + " (" + req.error + ")");
@@ -328,6 +448,16 @@ namespace FlashBeat.Update
             return null;
         }
 
+        /// <summary>staging 対象 / 適用対象のタグが現行ビルドより新しい版か (issue #125)。
+        /// 純粋関数 (EditMode テスト対象)。タグまたは現行ビルド識別子が解釈できない、
+        /// 同一バージョンの別ビルド、旧版のいずれでも false (適用しない)。</summary>
+        public static bool IsStagedTagNewerThanCurrent(string tag, string currentBuildId)
+        {
+            var tagId = UpdateVersion.ParseTag(tag);
+            var current = UpdateVersion.ParseBuildId(currentBuildId);
+            return UpdateVersion.IsNewerThan(tagId, current);
+        }
+
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name != "OptionScene") { return; }
@@ -341,7 +471,7 @@ namespace FlashBeat.Update
         }
 
         /// <summary>Option に「更新を適用して再起動」ボタンを出す (既存 uGUI の TMP フォントを流用)。
-        /// staging 済み更新が無いときは出さない。</summary>
+        /// staging 済み更新が無いときは出さない。押すことは明示的なユーザー同意である。</summary>
         private void CreateOptionApplyButton()
         {
             if (staged == null || optionApplyButton != null) { return; }
@@ -391,13 +521,8 @@ namespace FlashBeat.Update
             Debug.Log("[UpdateChecker] Option に「更新を適用して再起動」ボタンを追加しました (" + staged.tag + ")。");
         }
 
-        private void OnApplicationQuit()
-        {
-            // staged が無い (最新 / 取得失敗) なら何もしない → ゲームは普段どおり終了する
-            TryLaunchUpdater(waitForThisProcess: true);
-        }
-
-        /// <summary>Option の「更新を適用して再起動」から呼ぶ。更新スクリプト起動後、アプリ自身を終了する。</summary>
+        /// <summary>Option の「更新を適用して再起動」から呼ぶ。ユーザーの明示的な同意であり、
+        /// ここからだけが適用への入口 (OnApplicationQuit からの自動適用は存在しない)。</summary>
         public static void ApplyStagedUpdateNow()
         {
             var checker = FindAnyObjectByType<UpdateChecker>();
@@ -406,12 +531,11 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] 適用できる staging 済み更新がありません。");
                 return;
             }
-            if (!checker.TryLaunchUpdater(waitForThisProcess: true)) { return; }
-            Application.Quit();
+            checker.RequestApply();
         }
 
         /// <summary>配布物内 tools\update\Update.ps1 を分離プロセスで起動する。
-        /// staging 済み ZIP を終了時にもう一度検証し、失敗したら起動しない (現行版を維持)。</summary>
+        /// staging 済み ZIP を起動前にもう一度検証し、失敗したら起動しない (現行版を維持)。</summary>
         private bool TryLaunchUpdater(bool waitForThisProcess)
         {
             if (staged == null) { return false; }
@@ -421,6 +545,14 @@ namespace FlashBeat.Update
             {
                 Debug.LogWarning("[UpdateChecker] staging 済み ZIP の検証に失敗しました (" + problem +
                                  ") — 更新を中止し、現行版を維持します。");
+                return false;
+            }
+
+            // staging 済み ZIP が現行より新しい版か (issue #125)。古い / 同一バージョンの別ビルドは適用しない。
+            if (!IsStagedTagNewerThanCurrent(staged.tag, Application.version))
+            {
+                Debug.LogWarning("[UpdateChecker] staging 済みの版が現行より新しくありません (" + staged.tag +
+                                 " / 現行 " + Application.version + ") — 適用を中止し、現行版を維持します。");
                 return false;
             }
 
@@ -452,8 +584,9 @@ namespace FlashBeat.Update
             try
             {
                 Process.Start(psi);
-                Debug.Log("[UpdateChecker] 更新スクリプトを起動しました: " + staged.tag +
-                          " (アプリ終了後に適用されます)。");
+                // issue #125: 起動の成否はこのログでは確定しない (実結果は Update.ps1 が書く
+                // last-result.json を次回起動時に検証する)。
+                Debug.Log("[UpdateChecker] update script started (result unknown until next start): " + staged.tag + ".");
                 return true;
             }
             catch (Exception e)
