@@ -79,6 +79,8 @@ namespace FlashBeat.UI.V5
         private bool onlineFetchFailed;
 
         private float u;
+        private int lastWidth;
+        private int lastHeight;
 
         /// <summary>View を生成し、レガシー Canvas を非表示にする。SelectSceneManager.Start から呼ぶ。</summary>
         public static SelectView Create(SelectSceneManager owner)
@@ -106,8 +108,31 @@ namespace FlashBeat.UI.V5
 
         // --- 入力 (SelectSceneManager.Update から毎フレーム呼ばれる) ---
 
+        /// <summary>
+        /// design px → 実ピクセルの倍率 (純粋関数, EditMode テスト対象)。
+        /// design 1920x1080 実測値を min(W/1920, H/1080) 倍する。
+        /// 16:9 (FHD 1920x1080 / 2K 2560x1440) では UISizeProfile と同じ倍率になる
+        /// (ウィンドウ基準の契約。16:10 ではこちらが高さより幅を優先する)。
+        /// </summary>
+        public static float DesignScale(int width, int height)
+        {
+            if (width <= 0 || height <= 0) { return 1f; }
+            return Mathf.Min((float)width / DesignW, (float)height / DesignH);
+        }
+
         public void HandleInput()
         {
+            // ウィンドウリサイズに追従する (Issue #167 ウィンドウ基準化)。
+            // TitleView と同じ規則: サイズが変わったらレイアウトを張り直す。
+            // u は Rebuild でしか更新されないため、リサイズ中はここで張り直す。
+            if (Screen.width != lastWidth || Screen.height != lastHeight)
+            {
+                Rebuild();
+            }
+
+            // オーバーレイ (キー設定 / ランキング) の開いた・閉じたフレームは入力を捨てる (Issue #167)。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
+
             switch (state)
             {
                 case ScreenState.List: HandleListInput(); break;
@@ -395,11 +420,15 @@ namespace FlashBeat.UI.V5
 
         private void Rebuild()
         {
-            u = Mathf.Min(Screen.width / DesignW, Screen.height / DesignH);
+            u = DesignScale(Screen.width, Screen.height);
             if (u <= 0f) u = 1f;
+            lastWidth = Screen.width;
+            lastHeight = Screen.height;
 
             for (int i = canvas.transform.childCount - 1; i >= 0; i--)
             {
+                // EditMode (テスト) では Destroy がエラーログになるため DestroyImmediate を使う
+                // (V5GameUi.DestroyNow, Issue #167)。
                 V5GameUi.DestroyNow(canvas.transform.GetChild(i).gameObject);
             }
 

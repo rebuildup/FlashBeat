@@ -12,7 +12,7 @@ namespace FlashBeat.UI.V5
     /// Esc で開閉。開いている間はレガシー UI (MenuPanel/MenuButton) を隠し、
     /// このビューが入力と表示を担う:
     /// - ↑↓ で行を選択 (6 行: NoteSpeed / NoteTiming / MainVolume / BGMVolume / SEVolume / Flash)
-    /// - ←→ で値を変更 (NoteSpeed 1..30, NoteTiming -10..10, 音量 0..100 step 5, Flash On/Off)
+    /// - ←→ で値を変更 (NoteSpeed 1..50, NoteTiming -10..10, 音量 0..100 step 5, Flash On/Off)
     /// - S / D / L / K でタブ切替 (Settings / Display / Ranking / Keys)
     /// - リタイア (SelectScene へ) はメニュー操作設定の MenuRetire、リトライ (GameScene を
     ///   読み直し) は MenuRetry に従う (0.1.9)。Esc で再開。
@@ -659,7 +659,10 @@ namespace FlashBeat.UI.V5
 
         public void Open()
         {
-            if (open) return;
+            // Issue #167: エラー表示中は開かない (GameHudController が InputEnabled を
+            // !error.IsShown に保つ。HUD のポーズボタンはエラーの背後でも押せるため、
+            // ここでも見る)。Esc は PauseMenuView.Update 側で同じフラグを見る。
+            if (open || !InputEnabled) return;
             open = true;
             RefreshValues();
             root.SetActive(true);
@@ -736,7 +739,10 @@ namespace FlashBeat.UI.V5
             switch ((Row)row)
             {
                 case Row.NoteSpeed:
-                    GManager.noteSpeed = Mathf.Clamp(Mathf.RoundToInt(GManager.noteSpeed) + dir, 1, 30);
+                    // 範囲は Option 画面 / Select の Ready と同じ 1..50 (OptionSettings)。
+                    // 固定の 1..30 でクランプすると、40 で開いたポーズで 1 回 ←→ を押した
+                    // だけで値が 30 まで飛ぶ (Issue #167 監査で修正)。
+                    GManager.noteSpeed = NextNoteSpeed(GManager.noteSpeed, dir);
                     valueTexts[row].text = Mathf.RoundToInt(GManager.noteSpeed).ToString();
                     break;
                 case Row.NoteTiming:
@@ -766,6 +772,16 @@ namespace FlashBeat.UI.V5
 
             // Issue #167: 変更した設定は保存する (次回起動でも反映される)。
             OptionSettings.Save();
+        }
+
+        /// <summary>
+        /// ポーズの NoteSpeed 行の次の値 (純粋関数, EditMode テスト対象)。
+        /// 範囲は Option 画面 / Select の Ready と同じ OptionSettings の 1..50。
+        /// </summary>
+        public static float NextNoteSpeed(float current, int dir)
+        {
+            return Mathf.Clamp(Mathf.RoundToInt(current) + dir,
+                (int)OptionSettings.NoteSpeedMin, (int)OptionSettings.NoteSpeedMax);
         }
 
         /// <summary>音量は各所有者が起動時にしか読まないので、シーン内の AudioSource にも即時反映する。</summary>

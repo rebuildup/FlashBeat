@@ -185,6 +185,9 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
+            // オーバーレイ (キー設定 / ランキング) の開いた・閉じたフレームは入力を捨てる (Issue #167)。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
+
             var rows = currentRows;
             if (rows.Count == 0)
             {

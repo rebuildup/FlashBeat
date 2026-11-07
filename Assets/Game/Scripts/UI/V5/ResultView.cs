@@ -193,6 +193,11 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
+            // オーバーレイ (ランキング登録モーダル等) の開いた・閉じたフレームは
+            // 入力を捨てる (Issue #167)。モーダル中の入力遮断自体は
+            // ResultRankingOverlay.SuspendScene が担う。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
+
             if (modalOpen)
             {
                 if (Input.GetKeyDown(KeyCode.Escape))

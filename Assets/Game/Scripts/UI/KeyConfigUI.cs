@@ -10,6 +10,10 @@ using UnityEngine.SceneManagement;
 /// F2 で開閉できるキー設定オーバーレイ (シーン非依存、コードのみで生成)。
 /// RuntimeInitializeOnLoadMethod で起動し、DontDestroyOnLoad で全シーンで有効。
 /// 閉じているときは入力を一切奪わない (F2 の監視のみ)。
+///
+/// Issue #167: F2 の競合を避けるため SelectScene では開かない。
+/// Select 画面の v5 凡例は「F2 履歴」(SelectView) で、キー設定は
+/// Title / Option (キー設定ボタン) から開く。
 /// </summary>
 public class KeyConfigUI : MonoBehaviour
 {
@@ -128,7 +132,21 @@ public class KeyConfigUI : MonoBehaviour
     }
 
 
-    private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
+    /// <summary>
+    /// キー設定を開けるシーン。SelectScene は入れない (Issue #167):
+    /// Select 画面の F2 は v5 凡例どおり「履歴」(SelectView) が担う。
+    /// </summary>
+    private static readonly string[] AllowedScenes = { "TitleScene", "OptionScene" };
+
+    /// <summary>純粋関数: そのシーン名でキー設定を開けるか (EditMode テストから検証する)。</summary>
+    public static bool IsAllowedSceneName(string sceneName)
+    {
+        for (int i = 0; i < AllowedScenes.Length; i++)
+        {
+            if (AllowedScenes[i] == sceneName) return true;
+        }
+        return false;
+    }
 
     /// <summary>
     /// 既定のキー割り当て。KeyBindings.DefaultKeys が private のため同じ構成をここに持つ
@@ -178,12 +196,7 @@ public class KeyConfigUI : MonoBehaviour
     }
     private static bool IsAllowedScene()
     {
-        string name = SceneManager.GetActiveScene().name;
-        for (int i = 0; i < AllowedScenes.Length; i++)
-        {
-            if (AllowedScenes[i] == name) return true;
-        }
-        return false;
+        return IsAllowedSceneName(SceneManager.GetActiveScene().name);
     }
     private bool built;
     private TMP_FontAsset font;
@@ -289,7 +302,15 @@ public class KeyConfigUI : MonoBehaviour
             if (behaviour == null || behaviour == this || !behaviour.enabled) continue;
             string typeName = behaviour.GetType().Name;
             if (typeName.EndsWith("SceneManager")
-                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView")
+                // v5 の View (Issue #167): コード生成 UI 側の Update も止める。
+                // 止めないとキー設定中に裏の画面が同じキー (矢印 / Enter / Esc / Tab) を
+                // 二重に処理し、Esc で閉じた瞬間に遷移するなどの事故になる。
+                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView"
+                || typeName == "OptionView"
+                // Tab で開くキーガイド / F3・F4 の更新通知もオーバーレイ中は止める。
+                || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI"
+                // キー設定中の F5 でランキングボードが重ねて開かないようにする。
+                || typeName == "ResultRankingOverlay")
             {
                 behaviour.enabled = false;
                 suspended.Add(behaviour);
@@ -339,6 +360,9 @@ public class KeyConfigUI : MonoBehaviour
 
         open = value;
         IsOpen = value;
+        // Issue #167: 開いたフレーム / 閉じたフレームは背面シーンに同じキーを
+        // 処理させない (Esc で閉じた瞬間に Option → Title へ遷移する等の防止)。
+        FlashBeat.UI.SceneInputGate.BlockThisFrame();
         if (value) { SuspendScene(); } else { ResumeScene(); }
         if (panel != null) panel.gameObject.SetActive(value);
         if (value)
@@ -1244,12 +1268,12 @@ public class KeyConfigUI : MonoBehaviour
         return fallback;
     }
 
-    /// <summary>Title/選曲シーンでのみヒントを表示する。</summary>
+    /// <summary>Title 画面でのみヒントを表示する (Select の F2 は履歴 / Option はキー設定ボタン)。</summary>
     private void UpdateHint()
     {
         if (hintLabel == null) return;
         string sceneName = SceneManager.GetActiveScene().name;
-        bool show = !open && (sceneName == "TitleScene" || sceneName == "SelectScene");
+        bool show = !open && sceneName == "TitleScene";
         if (hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);

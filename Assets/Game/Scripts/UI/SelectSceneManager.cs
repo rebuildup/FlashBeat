@@ -20,6 +20,7 @@ public class SelectSceneManager : MonoBehaviour
 
     // Cloud Catalog (#17)
     Coroutine catalogRefresh;
+    CloudCatalog.Config catalogConfig;
     bool catalogWarned;
 
     void Start()
@@ -36,6 +37,22 @@ public class SelectSceneManager : MonoBehaviour
         if (view != null) view.HandleInput();
     }
 
+    void OnEnable()
+    {
+        // Issue #167: オーバーレイ (ランキングボード等) の SuspendScene で
+        // 無効化されるとコルーチンも止まる。有効に戻ったら更新ループを再開する。
+        if (catalogConfig != null && catalogRefresh == null)
+        {
+            StartCatalogRefresh();
+        }
+    }
+
+    void OnDisable()
+    {
+        // 無効化でコルーチンが止まるので、OnEnable の再開判定用にハンドルを手放す。
+        catalogRefresh = null;
+    }
+
     // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it
     // while the player is idle on the select screen. A usable response
     // switches the shown songs over (GManager.ActiveSongs); any failure -
@@ -46,6 +63,7 @@ public class SelectSceneManager : MonoBehaviour
         CloudCatalog.Config config = CloudCatalog.LoadConfig();
         if (config == null) return; // no API configured: stay on the fixed catalog
         if (catalogRefresh != null) StopCoroutine(catalogRefresh);
+        catalogConfig = config;
         catalogRefresh = StartCoroutine(RefreshCatalogLoop(config));
     }
 

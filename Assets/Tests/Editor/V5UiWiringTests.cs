@@ -57,7 +57,7 @@ namespace FlashBeat.UI.V5
                 var exitButton = FindButton(canvas.gameObject, "Menu Exit");
                 Assert.IsNotNull(exitButton, "Title の Exit ボタンが見つからない。");
                 exitButton.onClick.Invoke();
-                Assert.IsTrue(exited, "End ボタンを押しても実ハンドラが呼ばれていない。");
+                Assert.IsTrue(exited, "Exit ボタンを押しても実ハンドラが呼ばれていない。");
             }
             finally
             {
@@ -151,7 +151,8 @@ namespace FlashBeat.UI.V5
                 Object.DestroyImmediate(hudOff.gameObject);
             }
 
-            // Compact: 代表キー 1 個の帯 (レーン 1 の既定キーは 1 / Q / A / Z)。
+            // Compact: 代表キー 1 個の帯。代表キーは GameHudView の規則
+            // (レーンのキーから最初の文字キー。レーン 1 の既定 1 / Q / A / Z なら Q)。
             PlaySession.SetKeyGuide(KeyGuideMode.Compact);
             var hudCompact = new GameObject("V5 HUD Test").AddComponent<GameHudView>();
             try
@@ -161,8 +162,11 @@ namespace FlashBeat.UI.V5
                 Assert.IsNotNull(row, "Key Guide = Compact なのにガイド strip が作られていない。");
                 var cap = row.GetChild(0).GetComponentInChildren<TMPro.TextMeshProUGUI>();
                 Assert.IsNotNull(cap, "ガイドのキーキャップに文字が無い。");
-                Assert.IsFalse(cap.text.Contains("Q"),
-                    "Compact モードで代表キー以外のキー (Q) まで表示されている: " + cap.text);
+                Assert.IsFalse(string.IsNullOrEmpty(cap.text), "Compact モードの代表キーが空。");
+                Assert.IsFalse(cap.text.Contains(" "),
+                    "Compact モードで代表キー以外 (レーンの全キー) を出している: " + cap.text);
+                Assert.IsTrue(cap.text == "1" || cap.text == "Q" || cap.text == "A" || cap.text == "Z",
+                    "Compact モードの代表キーがレーン 1 のキーでない: " + cap.text);
             }
             finally
             {
