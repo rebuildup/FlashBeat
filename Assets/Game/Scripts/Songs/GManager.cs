@@ -93,12 +93,22 @@ public class GManager : MonoBehaviour
         mergedSongs = Merge(Songs, remoteSongs);
         int remoteCount = remoteSongs == null ? 0 : System.Math.Max(0, remoteSongs.Length - 1);
         Debug.Log($"[GManager] cloud catalog applied: local={Songs.Length} merged={mergedSongs.Length} remote={remoteCount}");
+
+        // Issue #189: the positions of the catalog changed, so the legacy
+        // view of the best scores has to be rebuilt from the stable store.
+        // Without this the record of a song would still be shown on the slot
+        // of another one.
+        FlashBeat.Persistence.ScorePersistence.SyncLegacyView();
     }
 
     public static void ClearRemoteCatalog()
     {
         RemoteSongs = null;
         mergedSongs = Songs;
+
+        // Issue #189: the catalog went back to the built-in table, so the
+        // legacy view has to follow.
+        FlashBeat.Persistence.ScorePersistence.SyncLegacyView();
     }
 
     /// <summary>
@@ -321,11 +331,74 @@ public class GManager : MonoBehaviour
                 unplayable = UnplayableTitles.Contains(SongName[i]),
             };
         }
+
+        // Issue #189: the built-in table is the fixed part of the catalog, so
+        // its order is a stable identity. The score store uses it to map a
+        // song to its stable key, independently of the position the song
+        // happens to have in the merged catalog.
+        FlashBeat.Persistence.ScorePersistence.BindCatalog(built);
+
         return built;
     }
 
     public static float noteSpeed = 10f;
     public static readonly int[] Hiscore = new int[45];
+
+    /// <summary>
+    /// The stable key of a song of the catalog (issue #189).
+    ///
+    /// The best score used to be stored in <see cref="Hiscore"/>, indexed by
+    /// the position of the song in the catalog. The catalog is dynamic (the
+    /// cloud catalog appends unknown songs, and the API orders the songs by
+    /// id, so a song published later can land *before* an existing one), so
+    /// the position is not an identity: adding a song moved the record of one
+    /// song onto another one.
+    ///
+    /// The stable key of a song is its **cloud song id** (`remoteId`) or, for
+    /// the songs that ship with the game, its slot in the fixed built-in
+    /// table (a constant of the game). The key never depends on the order of
+    /// the catalog.
+    ///
+    /// The key also carries the **chart version**: a new chart version is a
+    /// new chart, so its best score starts at 0 instead of inheriting the
+    /// record of the old one. The old version stays in the store as history.
+    /// </summary>
+    public static FlashBeat.Persistence.ScoreKey ScoreKeyOf(int catalogIndex)
+    {
+        SongData song = GetSong(catalogIndex);
+        return FlashBeat.Persistence.ScorePersistence.KeyOf(song, catalogIndex);
+    }
+
+    /// <summary>
+    /// The stable key of a song of the catalog.
+    /// </summary>
+    public static FlashBeat.Persistence.ScoreKey ScoreKeyOf(SongData song, int catalogIndex)
+    {
+        return FlashBeat.Persistence.ScorePersistence.KeyOf(song, catalogIndex);
+    }
+
+    /// <summary>
+    /// The best score of the song at the given position of the catalog, read
+    /// from the stable store (issue #189).
+    ///
+    /// This is the replacement for reading <see cref="Hiscore"/> by index.
+    /// The UI still reads the legacy array (it belongs to another owner);
+    /// this method is the way forward.
+    /// </summary>
+    public static int BestScoreOf(int catalogIndex)
+    {
+        return FlashBeat.Persistence.ScorePersistence.BestOf(catalogIndex);
+    }
+
+    /// <summary>
+    /// Submit a score for the song at the given position of the catalog.
+    ///
+    /// Returns true when the record was beaten.
+    /// </summary>
+    public static bool SubmitScore(int catalogIndex, int score)
+    {
+        return FlashBeat.Persistence.ScorePersistence.SubmitForCatalogIndex(catalogIndex, score);
+    }
 
     public static bool Start;
     public static float StartTime;
