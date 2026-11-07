@@ -1,21 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 
+/// <summary>
+/// Title scene (design Unit 01 "Title").
+///
+/// The screen itself is built as uGUI objects inside TitleScene.unity
+/// (see design/flashbeat-ui.pen); this script only owns the input handling,
+/// the scene transitions and the catalog status chip.
+/// </summary>
 public class TitleSceneManager : MonoBehaviour
 {
     [SerializeField] private AudioClip sound;
-    AudioSource sounds;
-
-    [SerializeField] private TextMeshProUGUI StartT;
-    [SerializeField] private TextMeshProUGUI OptionT;
-    [SerializeField] private TextMeshProUGUI ExitT;
-
     [SerializeField] private VideoPlayer Screen;
-    
+
+    [SerializeField] private TextMeshProUGUI catalogStatus;
+
+    private AudioSource sounds;
 
     void Start()
     {
@@ -23,9 +24,8 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         GManager.noteTiming--;
         OptionSceneManager.TimingUp();
-        sounds.volume = GManager.effectVolume;
-        //this.Screen.SetDirectAudioVolume = true;
-
+        if (sounds != null) sounds.volume = GManager.effectVolume;
+        RefreshCatalogStatus();
     }
 
     void Update()
@@ -46,35 +46,30 @@ public class TitleSceneManager : MonoBehaviour
             EndGame();
         }
     }
+
     public void EndGame()
     {
-        
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;//ゲームプレイ終了
 #else
-    Application.Quit();//ゲームプレイ終了
+        Application.Quit();//ゲームプレイ終了
 #endif
     }
 
     public void SelectScene()
     {
-        
-        //SceneManager.LoadScene("SelectScene");
         Initiate.Fade("SelectScene", Color.black, 1.0f);
-
     }
 
     public void OptionScene()
     {
-
-        
-        //SceneManager.LoadScene("OptionScene");
         Initiate.Fade("OptionScene", Color.black, 1.0f);
-
     }
+
     public void playSound()
     {
-        sounds = GetComponent<AudioSource>();
+        if (sounds == null) sounds = GetComponent<AudioSource>();
+        if (sounds == null) return;
         if (sound != null)
         {
             sounds.PlayOneShot(sound);
@@ -84,29 +79,18 @@ public class TitleSceneManager : MonoBehaviour
             Debug.LogWarning("[TitleSceneManager] sound AudioClip is not assigned in Inspector.");
         }
     }
-    public void StartB()
+
+    /// <summary>
+    /// Catalog status chip (design "カタログ状態を cloud アイコン付きで表示").
+    /// The cloud catalog is fetched on the select screen, so on the title
+    /// screen the chip reports the built-in list until a remote catalog has
+    /// been applied.
+    /// </summary>
+    private void RefreshCatalogStatus()
     {
-        StartT.fontSize = 13;
+        if (catalogStatus == null) return;
+        catalogStatus.text = GManager.HasRemoteCatalog
+            ? $"同期済み · {GManager.totalSong}曲"
+            : $"ローカル · {GManager.totalSong}曲";
     }
-    public void StartS()
-    {
-        StartT.fontSize = 12;
-    }
-    public void OptionB()
-    {
-        OptionT.fontSize = 13;
-    }
-    public void OptionS()
-    {
-        OptionT.fontSize = 12;
-    }
-    public void ExitB()
-    {
-        ExitT.fontSize = 13;
-    }
-    public void ExitS()
-    {
-        ExitT.fontSize = 12;
-    }
-   
 }

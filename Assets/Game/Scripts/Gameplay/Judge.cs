@@ -18,7 +18,8 @@ public class Judge : MonoBehaviour
     private int fSize;
     private int Fsize;
 
-    private static readonly KeyCode[][] LaneKeys = new KeyCode[][]
+    // 正本 (single source of truth): 判定とキーガイド UI の両方がこの配列を参照する
+    public static readonly KeyCode[][] LaneKeys = new KeyCode[][]
     {
         new KeyCode[] { KeyCode.Alpha1, KeyCode.Q, KeyCode.A, KeyCode.Z },
         new KeyCode[] { KeyCode.Alpha2, KeyCode.W, KeyCode.S, KeyCode.X },
@@ -98,7 +99,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 5;
             GManager.perfect++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
         else if (timeLag <= 0.15f)
@@ -108,7 +108,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 3;
             GManager.great++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
         else if (timeLag <= 0.20f)
@@ -118,7 +117,6 @@ public class Judge : MonoBehaviour
             GManager.ratioScore += 1;
             GManager.bad++;
             GManager.combo++;
-            if (GManager.combo > GManager.maxCombo) GManager.maxCombo = GManager.combo; // #134
             deleteData(numOffset);
         }
     }

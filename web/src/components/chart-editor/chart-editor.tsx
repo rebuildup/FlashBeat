@@ -12,10 +12,10 @@ import {
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
-import { snapBeat } from "@/lib/chart/timing";
+import { noteBeat, snapBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
-import { EditorToolbar } from "./editor-toolbar";
+import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -24,6 +24,16 @@ import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
  * is loaded on demand. The editor itself stays server renderable.
  */
 const NoteGrid = lazy(() => import("./note-grid").then((module) => ({ default: module.NoteGrid })));
+
+/**
+ * The chart editor: toolbar on top, the recessed lane well on the left and
+ * the inspector panels on the right.
+ *
+ * Panels follow design/flashbeat-ui.pen v5: page background #1B1B1B (k1),
+ * panels #2D2D2D (k3) with the 16px panel radius, recessed strips and lists
+ * #131313 (k0), raised controls #3A3A3A (k4). Controls are #3A3A3A, the work
+ * area is the darkest surface on screen.
+ */
 
 const layout = css({
   display: "grid",
@@ -36,17 +46,15 @@ const layout = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: "minmax(0, 1fr) 20rem",
+  gridTemplateColumns: "minmax(0, 1fr) 17rem",
   minHeight: "0",
   overflow: "hidden",
   p: "3",
 });
 
 const gridPanel = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#131313",
+  borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
   minHeight: "0",
@@ -55,13 +63,19 @@ const gridPanel = css({
 });
 
 const gridHint = css({
-  borderBottomColor: "gray.surface.border",
+  borderBottomColor: "#222222",
   borderBottomWidth: "1px",
-  color: "fg.subtle",
+  color: "#8c8c8c",
   fontSize: "2xs",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
+});
+
+const playheadReadout = css({
+  color: "#ffffff",
+  fontVariantNumeric: "tabular-nums",
+  marginRight: "2",
 });
 
 const side = css({
@@ -73,10 +87,8 @@ const side = css({
 });
 
 const sideFrame = css({
-  bg: "gray.surface.bg",
-  borderColor: "gray.surface.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#2d2d2d",
+  borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
   gap: "2",
@@ -84,15 +96,15 @@ const sideFrame = css({
 });
 
 const sideTitle = css({
-  color: "fg.default",
+  color: "#ffffff",
   fontSize: "xs",
-  fontWeight: "semibold",
+  fontWeight: "medium",
   margin: "0",
 });
 
 const placeholder = css({
   alignItems: "center",
-  color: "fg.muted",
+  color: "#8c8c8c",
   display: "flex",
   fontSize: "xs",
   height: "100%",
@@ -195,6 +207,16 @@ export function ChartEditor({
           return current;
         }
         const line = Math.round(snapBeat(beat, resolution) * resolution);
+        // A cell that already holds a note selects it instead of stacking a
+        // duplicate on the same line.
+        const existing = current.notes.findIndex(
+          (note) => note.block === block && note.num === line,
+        );
+        if (existing >= 0) {
+          setSelectedIndex(existing);
+          return current;
+        }
+        setSelectedIndex(null);
         return addNote(current, createNote(block, line, resolution));
       });
     },
@@ -215,6 +237,26 @@ export function ChartEditor({
     setSelectedIndex(null);
   }, [selectedIndex]);
 
+  // Arrow keys move the selected note by one grid line (beat) or one lane
+  // (block), so fine placement never needs the mouse.
+  const handleNudgeSelected = useCallback(
+    (deltaBeat: number, deltaBlock: number) => {
+      if (selectedIndex === null) {
+        return;
+      }
+      setChart((current) => {
+        const note = current?.notes[selectedIndex];
+        if (!current || !note) {
+          return current;
+        }
+        const beat = Math.max(0, noteBeat(note) + deltaBeat);
+        const block = Math.min(7, Math.max(0, note.block + deltaBlock));
+        return moveNote(current, selectedIndex, block, beat);
+      });
+    },
+    [selectedIndex],
+  );
+
   // The selected note disappears with the chart, so the index is kept in range.
   useEffect(() => {
     setSelectedIndex((current) => {
@@ -227,21 +269,43 @@ export function ChartEditor({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Delete" && event.key !== "Backspace") {
-        return;
-      }
-
       const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) {
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
         return;
       }
 
-      handleDeleteSelected();
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        handleDeleteSelected();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setSelectedIndex(null);
+        return;
+      }
+
+      if (selectedIndex !== null) {
+        const gridBeat = 1 / resolution;
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          handleNudgeSelected(-gridBeat, 0);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          handleNudgeSelected(gridBeat, 0);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          handleNudgeSelected(0, -1);
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          handleNudgeSelected(0, 1);
+        }
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDeleteSelected]);
+  }, [handleDeleteSelected, handleNudgeSelected, selectedIndex, resolution]);
 
   const noteCount = chart?.notes.length ?? 0;
 
@@ -279,8 +343,11 @@ export function ChartEditor({
       <div className={body}>
         <section className={gridPanel}>
           <p className={gridHint}>
-            Click an empty cell to add a tap note, drag a note to move it, press Delete to remove
-            the selected note. The grid is drawn in beats, one column per lane.
+            <span className={playheadReadout} data-testid="playhead-readout">
+              {playheadSec.toFixed(2)}s · beat {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}
+            </span>
+            Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
+            deselects
           </p>
 
           {chart ? (
@@ -307,8 +374,9 @@ export function ChartEditor({
           <section className={sideFrame}>
             <h3 className={sideTitle}>Preview</h3>
             <Field.Root>
-              <Field.Label>YouTube video</Field.Label>
+              <Field.Label className={fieldLabel}>YouTube video</Field.Label>
               <Input
+                className={inputBox}
                 value={youtubeInput}
                 placeholder="https://www.youtube.com/watch?v=..."
                 onChange={(event) => setYoutubeInput(event.currentTarget.value)}
@@ -330,8 +398,8 @@ export function ChartEditor({
             />
 
             <Button
+              className={buttonSecondary}
               size="sm"
-              variant="outline"
               onClick={() => previewRef.current?.seekTo(0)}
               data-testid="rewind-button"
             >

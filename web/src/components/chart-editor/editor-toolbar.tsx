@@ -8,51 +8,74 @@ import type { Chart } from "@/lib/chart/types";
 /**
  * Toolbar of the chart editor.
  *
- * Everything is a Park UI control styled with the Panda tokens of the Web
- * Studio, so the editor looks like the rest of the app.
+ * Styled after design/flashbeat-ui.pen v5: the bar sits on the page
+ * background (#1B1B1B) and only the controls are raised (#3A3A3A, k4); the
+ * primary action is the light button (#EDEDED with #1B1B1B text), inputs are
+ * recessed wells (#222222, k2), keycaps and tags keep the small 4px radius.
  */
 
 const bar = css({
-  alignItems: "flex-end",
-  borderBottomColor: "gray.surface.border",
+  alignItems: "center",
+  borderBottomColor: "#2d2d2d",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
-  gap: "3",
+  gap: "2",
   justifyContent: "space-between",
-  paddingBottom: "3",
-  paddingTop: "3",
-  px: "4",
+  minHeight: "3rem",
+  paddingBottom: "2",
+  paddingTop: "2",
+  px: "3",
 });
 
 const group = css({
-  alignItems: "flex-end",
+  alignItems: "center",
   display: "flex",
   flexWrap: "wrap",
   gap: "2",
 });
 
-const field = css({ width: "9rem" });
-const wideField = css({ width: "12rem" });
-const selectRoot = css({ width: "8rem" });
+const field = css({ width: "8rem" });
+const wideField = css({ width: "10rem" });
+const selectRoot = css({ width: "6.5rem" });
+
+export const fieldLabel = css({
+  color: "#b0b0b0",
+  fontWeight: "normal",
+});
+
+export const inputBox = css({
+  bg: "#222222",
+  borderColor: "transparent",
+  borderRadius: "8px",
+  color: "#ffffff",
+  _placeholder: { color: "#8c8c8c" },
+  _focusVisible: {
+    borderColor: "#3fa9f5",
+    outline: "2px solid",
+    outlineColor: "#3fa9f5",
+    outlineOffset: "1px",
+  },
+});
 
 const selectControl = css({
   alignItems: "center",
-  bg: "transparent",
-  borderColor: "gray.outline.border",
-  borderRadius: "l2",
-  borderWidth: "1px",
+  bg: "#3a3a3a",
+  borderColor: "transparent",
+  borderRadius: "8px",
+  color: "#ffffff",
   cursor: "pointer",
   display: "flex",
   gap: "2",
-  height: "sizes.10",
+  height: "sizes.8",
   justifyContent: "space-between",
   paddingInline: "3",
   textAlign: "left",
   width: "full",
+  _hover: { bg: "#454545" },
   _focusVisible: {
     outline: "2px solid",
-    outlineColor: "colorPalette.solid.bg",
+    outlineColor: "#3fa9f5",
     outlineOffset: "1px",
   },
 });
@@ -60,13 +83,42 @@ const selectControl = css({
 const fileInput = css({ display: "none" });
 
 const counter = css({
-  color: "fg.muted",
+  color: "#8c8c8c",
   fontSize: "2xs",
   fontVariantNumeric: "tabular-nums",
-  paddingBottom: "2",
+  paddingInline: "1",
 });
 
-const accent = css({ colorPalette: "teal" });
+const keycap = css({
+  bg: "#3a3a3a",
+  borderRadius: "4px",
+  color: "#b0b0b0",
+  display: "inline-block",
+  fontFamily: "mono",
+  fontSize: "2xs",
+  lineHeight: "1.2",
+  marginLeft: "1",
+  padding: "0 0.5rem",
+});
+
+/** v5 Button Primary: the light raised button. */
+const buttonPrimary = css({
+  bg: "#ededed",
+  color: "#1b1b1b",
+  borderRadius: "8px",
+  _hover: { bg: "#dedede" },
+  _disabled: { opacity: 0.4 },
+});
+
+/** v5 Button Secondary: raised #3A3A3A with white label. */
+export const buttonSecondary = css({
+  bg: "#3a3a3a",
+  color: "#ffffff",
+  borderRadius: "8px",
+  borderColor: "transparent",
+  _hover: { bg: "#454545" },
+  _disabled: { opacity: 0.4 },
+});
 
 const RESOLUTIONS = [
   { label: "1/4", value: "4" },
@@ -135,16 +187,17 @@ export function EditorToolbar({
           }}
         />
         <Button
-          size="md"
+          className={buttonSecondary}
+          size="sm"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
           data-testid="import-button"
         >
-          Import chart
+          Import
         </Button>
         <Button
-          className={accent}
-          size="md"
+          className={buttonPrimary}
+          size="sm"
           onClick={onExport}
           disabled={!chart}
           data-testid="export-button"
@@ -152,13 +205,17 @@ export function EditorToolbar({
           Export
         </Button>
         <Button
-          size="md"
+          className={buttonSecondary}
+          size="sm"
           variant="outline"
           onClick={onDeleteSelected}
           disabled={!canDelete}
           data-testid="delete-button"
         >
-          Delete note
+          Delete
+          <kbd className={keycap} aria-hidden="true">
+            Del
+          </kbd>
         </Button>
         <span className={counter} data-testid="note-count">
           {noteCount} notes
@@ -167,8 +224,9 @@ export function EditorToolbar({
 
       <div className={group}>
         <Field.Root className={wideField}>
-          <Field.Label>Song name</Field.Label>
+          <Field.Label className={fieldLabel}>Song name</Field.Label>
           <Input
+            className={inputBox}
             value={chart?.name ?? ""}
             disabled={!chart}
             onChange={(event) => onNameChange(event.currentTarget.value)}
@@ -176,8 +234,9 @@ export function EditorToolbar({
         </Field.Root>
 
         <Field.Root className={field}>
-          <Field.Label>BPM</Field.Label>
+          <Field.Label className={fieldLabel}>BPM</Field.Label>
           <Input
+            className={inputBox}
             value={chart ? String(chart.BPM) : ""}
             disabled={!chart}
             inputMode="numeric"
@@ -201,7 +260,7 @@ export function EditorToolbar({
             }
           }}
         >
-          <Select.Label>Grid</Select.Label>
+          <Select.Label className={fieldLabel}>Grid</Select.Label>
           <Select.Control className={selectControl}>
             <Select.ValueText placeholder="1/4" />
             <Select.Indicator />
@@ -233,7 +292,7 @@ export function EditorToolbar({
             }
           }}
         >
-          <Select.Label>View</Select.Label>
+          <Select.Label className={fieldLabel}>View</Select.Label>
           <Select.Control className={selectControl}>
             <Select.ValueText placeholder="Zoom 1" />
             <Select.Indicator />

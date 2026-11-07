@@ -38,8 +38,39 @@ public static class BuildScript
     public static void BuildStandaloneWindows64()
     {
         string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "Windows", "FlashBeat.exe");
+        RunStandaloneBuild(BuildTarget.StandaloneWindows64, buildPath, windowsDistributionExtras: true);
+    }
 
+    // macOS 検証ビルド (batchmode: -executeMethod BuildScript.BuildStandaloneMacOS)。
+    // 出力は Builds/macOS/FlashBeat.app。Update.ps1 / update-channel.txt は Windows 配布物
+    // 専用 (PowerShell 前提・Windows の FlashBeat_Data レイアウト前提) なので macOS では
+    // 書き出さない。UpdateChecker はファイル欠如時 stable にフォールバックするため安全。
+    [MenuItem("Build/Build macOS")]
+    public static void BuildStandaloneMacOS()
+    {
+        string buildPath = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "macOS", "FlashBeat.app");
+        RunStandaloneBuild(BuildTarget.StandaloneOSX, buildPath, windowsDistributionExtras: false);
+    }
+
+    /// <summary>Standalone ビルドの共通フロー。第三者楽曲の音声・動画を退避してビルドし、
+    /// 終了後に元へ戻す。Windows 配布物向けの後処理 (updater 複製・更新チャンネル・
+    /// メディア除外マニフェスト) は windowsDistributionExtras が true のときだけ行う。</summary>
+    private static void RunStandaloneBuild(BuildTarget target, string buildPath, bool windowsDistributionExtras)
+    {
         string buildDir = Path.GetDirectoryName(buildPath);
+
+        // 既存出力が残ったまま上書きビルドすると level1 等が破損するため、ビルド前に
+        // 出力ディレクトリを削除する。削除対象は Builds/ 直下の期待出力ディレクトリのみで、
+        // メディア退避先 (Builds/.media-excluded) は決して削除しない。
+        string fullBuildDir = Path.GetFullPath(buildDir);
+        bool isExpectedBuildDir =
+            Path.GetFileName(Path.GetDirectoryName(fullBuildDir)) == "Builds" &&
+            fullBuildDir != Path.GetFullPath(MediaExcludeRoot);
+        if (Directory.Exists(buildDir) && isExpectedBuildDir)
+        {
+            Directory.Delete(buildDir, true);
+        }
+
         if (!Directory.Exists(buildDir))
         {
             Directory.CreateDirectory(buildDir);
@@ -69,11 +100,11 @@ public static class BuildScript
             {
                 scenes = scenes,
                 locationPathName = buildPath,
-                target = BuildTarget.StandaloneWindows64,
+                target = target,
                 options = BuildOptions.None
             };
 
-            Debug.Log("[BuildScript] Starting StandaloneWindows64 Build...");
+            Debug.Log($"[BuildScript] Starting {target} Build...");
             BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
             BuildSummary summary = report.summary;
 
@@ -90,9 +121,12 @@ public static class BuildScript
         finally
         {
             RestoreMediaAfterBuild();
-            CopyUpdaterScriptIntoBuild(buildDir);
-            WriteUpdateChannelFile(buildDir);
-            WriteMediaPolicyManifest(buildDir);
+            if (windowsDistributionExtras)
+            {
+                CopyUpdaterScriptIntoBuild(buildDir);
+                WriteUpdateChannelFile(buildDir);
+                WriteMediaPolicyManifest(buildDir);
+            }
         }
 
         if (failed && Application.isBatchMode)

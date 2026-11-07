@@ -1,5 +1,8 @@
 @layer reset, base, tokens, recipes, utilities;
 
+/* Pen v5 `font-ui`: Noto Sans JP, self-hosted (variable, weights 100-900). */
+@import "@fontsource-variable/noto-sans-jp";
+
 @layer base {
   html {
     color-scheme: dark;
