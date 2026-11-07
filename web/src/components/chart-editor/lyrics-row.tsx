@@ -237,6 +237,15 @@ export function LyricsRow({
     }
 
     setParseErrors((current) => ({ ...current, [field]: undefined }));
+
+    // Focusing a field and leaving it again changes nothing, so the chart
+    // must not change either: a legacy song keeps its raw times (and stays
+    // byte identical) when the operator only tabs through the list.
+    const current = field === "start" ? row.startTime : row.endTime;
+    if (parsed === current) {
+      return;
+    }
+
     onPatch(row.id, field === "start" ? { startTime: parsed } : { endTime: parsed });
   };
 

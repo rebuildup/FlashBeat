@@ -140,6 +140,20 @@ describe("LyricsEditor", () => {
     expect(emitted?.lyrics?.romaji).toEqual(["ichigyoume", "nigyoume"]);
   });
 
+  it("does not rewrite the chart when a time field is only focused", () => {
+    const ui = render();
+    const start = byTestId(ui, "lyrics-start-0") as HTMLInputElement;
+
+    act(() => {
+      start.dispatchEvent(new FocusEvent("focus", { bubbles: false }));
+      start.dispatchEvent(new FocusEvent("blur", { bubbles: false }));
+    });
+
+    // No edit happened, so nothing was written back: the legacy end of the
+    // second line stays exactly as the chart had it.
+    expect(emitted).toBeNull();
+  });
+
   it("parses seconds and full-width IME digits when a time is committed", () => {
     const ui = render();
     const end = byTestId(ui, "lyrics-end-0") as HTMLInputElement;

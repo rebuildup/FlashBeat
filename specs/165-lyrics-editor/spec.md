@@ -126,6 +126,28 @@ description: "FlashBeat lean per-issue specification — 歌詞エディタ (Iss
 | V4 | プロダクションビルド | `cd web && npm run build` | `✓ built` |
 | V5 | 実機操作 (Owner) | エディタで `Who` を開き 1 行編集 → 保存 → Unity 表示 | **未実施** (Supervisor 直列) |
 
+## Known Limitations (2026-11-08 Supervisor レビューで確定)
+
+1. **クラウド公開曲の歌詞は Unity 側に表示されない。** 公開経路は chart 全体
+   (`lyrics` を含む) を API へ送るが、Unity 側は `GameSceneManager.LoadTextData` が
+   `Resources.Load<TextAsset>(songName)` という **ローカル** アセットを読むため、
+   リモート取得された chart の歌詞はそのままでは反映されない。譜面を
+   `Assets/Game/Resources/<曲名>.json` として手動配置すれば表示される。
+   (Issue #165 のスコープは Web 側であり、Unity のクラウド経路は別 Issue の領域。)
+2. **開始時刻の欠落は保存を止めない。** `canSaveLyrics` は判定のみを公開しており
+   UI 側では保存をブロックしない。開始時刻の無い行は保存時に「前行の終了時刻」で
+   補完され、补完値は前行の開始時刻より前にはならない (順序は保つ)。
+3. **歌詞パネルはノートグリッドの高さを 20rem 使う。** デスクトップ幅では
+   ノートグリッドが従来より狭くなるが、グリッド自身はスクロールできる。
+
+## レビュー指摘の反映 (Supervisor, 2026-11-08)
+
+- 時刻欄の focus→blur で chart が書き換わらないよう、値が一致する場合は
+  パッチしない (`lyrics-row.tsx`)。
+- 開始時刻の補完値が前行の開始時刻より前にならないよう補正した (`lyrics.ts`)。
+- 配列長の不一致警告は編集後は解除されるようにした (`lyrics.ts`)。
+- 存在しない id を指定した行追加は、末尾の行の後ろに挿入するようにした (`lyrics.ts`)。
+
 ## Rollback
 
 `165` ブランチの merge commit を revert するか、ブランチを削除する。歌詞面板は

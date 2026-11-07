@@ -351,3 +351,52 @@ describe("summary", () => {
     });
   });
 });
+
+describe("repairs that keep the timeline in order", () => {
+  it("never lets a repaired start land before the previous line", () => {
+    const doc = readLyrics({
+      startTime: [3.427, undefined as unknown as number],
+      endTime: [3.4, 7.1],
+      furigana: ["a", "b"],
+      mondai: ["いち", "に"],
+      romaji: ["i", "ni"],
+    });
+
+    // The repair is written when the chart is saved, so the document is
+    // dirty first (the operator edited the text of the first line).
+    const edited = updateLyricRow(doc, 0, { mondai: "直した行" });
+    const arrays = buildLyricsArrays(edited);
+    // The second line has no start, so it is repaired with the end of the
+    // first line -- but never before the first line starts.
+    expect(arrays.startTime?.[1]).toBeGreaterThanOrEqual(arrays.startTime?.[0] ?? 0);
+  });
+
+  it("appends a new line after the last one when the id is unknown", () => {
+    const doc = readLyrics({
+      startTime: [1, 5],
+      endTime: [3, 9],
+      furigana: ["いち", "に"],
+      mondai: ["一行目", "二行目"],
+      romaji: ["ichigyoume", "nigyoume"],
+    });
+
+    const next = addLyricRow(doc, 999);
+    const last = next.rows[next.rows.length - 1];
+    expect(last.startTime).toBe(9);
+  });
+
+  it("drops the array length warning once the lyrics were edited", () => {
+    const doc = readLyrics({
+      startTime: [1, 5, 9],
+      endTime: [3, 9],
+      furigana: ["いち", "に", "さん"],
+      mondai: ["一行目", "二行目", "三行目"],
+      romaji: ["a", "b", "c"],
+    });
+
+    expect(summarizeLyrics(doc).arrayLengthMismatch).toBe(true);
+
+    const edited = updateLyricRow(doc, 0, { mondai: "直した行" });
+    expect(summarizeLyrics(edited).arrayLengthMismatch).toBe(false);
+  });
+});

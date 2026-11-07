@@ -289,12 +289,18 @@ export function buildLyricsArrays(document: LyricsDocument): ChartLyrics {
   const romaji: string[] = [];
 
   let previousEnd: number | null = null;
+  let previousStart: number | null = null;
 
   for (let index = 0; index < document.rows.length; index += 1) {
     const row = document.rows[index];
     const nextStart = document.rows[index + 1]?.startTime ?? null;
 
-    const start = row.startTime ?? previousEnd ?? 0;
+    // A row without a start is repaired with the end of the previous row.
+    // The repair never lands *before* the previous row starts, so the
+    // timeline stays in order even when the raw data was unusual.
+    const start =
+      row.startTime ??
+      Math.max(previousEnd ?? 0, previousStart ?? 0);
     let end: number;
 
     if (row.endTime !== null && row.endTime > start + TIME_EPSILON) {
@@ -317,6 +323,7 @@ export function buildLyricsArrays(document: LyricsDocument): ChartLyrics {
     mondai.push(row.mondai);
     romaji.push(row.romaji);
     previousEnd = end;
+    previousStart = startTimes[startTimes.length - 1];
   }
 
   return orderedLyrics(document.source, {
@@ -416,7 +423,14 @@ export function addLyricRow(document: LyricsDocument, afterId?: number): LyricsD
     : document.rows.findIndex((row) => row.id === afterId);
 
   const insertAt = afterIndex < 0 ? document.rows.length : afterIndex + 1;
-  const previous = afterIndex >= 0 ? rowInterval(document, afterIndex) : null;
+  // An unknown id still appends at the end, so the new line starts after the
+  // last line instead of at the very beginning of the song.
+  const previous =
+    afterIndex >= 0
+      ? rowInterval(document, afterIndex)
+      : document.rows.length > 0
+        ? rowInterval(document, document.rows.length - 1)
+        : null;
   const start = previous?.end ?? 0;
   const nextStart = document.rows[insertAt]?.startTime ?? null;
 
@@ -570,7 +584,18 @@ export function summarizeLyrics(document: LyricsDocument): LyricsSummary {
     }
   }
 
-  const distinctLengths = new Set(Object.values(document.lengths));
+  // Once the lyrics were edited every array is written with the same number
+  // of entries, so the mismatch of the source data is gone.
+  const currentLengths = document.dirty
+    ? {
+        startTime: document.rows.length,
+        endTime: document.rows.length,
+        furigana: document.rows.length,
+        mondai: document.rows.length,
+        romaji: document.rows.length,
+      }
+    : document.lengths;
+  const distinctLengths = new Set(Object.values(currentLengths));
   const arrayLengthMismatch = distinctLengths.size > 1;
 
   return {
@@ -580,7 +605,7 @@ export function summarizeLyrics(document: LyricsDocument): LyricsSummary {
     missingStart,
     overlaps,
     arrayLengthMismatch,
-    lengths: document.lengths,
+    lengths: currentLengths,
   };
 }
 
