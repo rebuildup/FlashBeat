@@ -355,8 +355,20 @@ async function main() {
       void request.continue();
     });
 
-    for (const route of ROUTES) {
-      for (const vp of VIEWPORTS) {
+    // The viewport is the outer loop: `page.setViewport` makes puppeteer
+    // reload the page, so switching the viewport for every capture would load
+    // every route twice. One viewport switch, then one navigation per route.
+    for (const vp of VIEWPORTS) {
+      await page.setDefaultNavigationTimeout(120_000);
+      await page.setDefaultTimeout(60_000);
+      try {
+        await page.setViewport(vp);
+      } catch (error) {
+        // The reload puppeteer does for the viewport change can time out on a
+        // heavy page; the metrics themselves are already applied.
+        console.log(`[visual] viewport ${vp.label}: reload timeout ignored (${String(error).slice(0, 80)})`);
+      }
+      for (const route of ROUTES) {
         const consoleErrors = [];
         const onConsole = (msg) => {
           if (msg.type() === "error") consoleErrors.push(msg.text().slice(0, 300));
@@ -365,7 +377,6 @@ async function main() {
         page.on("console", onConsole);
         page.on("pageerror", onPageError);
 
-        await page.setViewport(vp);
         holdCatalog = route.holdCatalog === true;
         if (holdCatalog) {
           catalogRequestSeen = new Promise((resolve) => {
