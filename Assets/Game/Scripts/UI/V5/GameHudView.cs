@@ -302,7 +302,7 @@ namespace FlashBeat.UI.V5
             row.childControlWidth = true;
             row.childForceExpandWidth = true;
 
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
                 var cap = V5Ui.KeyCap(row.gameObject, RepresentativeKey(lane), new Vector2(168f * s, 56f * s));
                 var capLe = cap.AddComponent<LayoutElement>();
@@ -322,7 +322,7 @@ namespace FlashBeat.UI.V5
         /// <summary>レーンの代表キー (A S D F J K L ;)。文字キーを優先し、無ければセミコロン、それも無ければ先頭。</summary>
         private static string RepresentativeKey(int lane)
         {
-            KeyCode[] keys = Judge.LaneKeys[lane];
+            KeyCode[] keys = KeyBindings.GetKeys(lane);
             KeyCode fallback = keys.Length > 0 ? keys[0] : KeyCode.None;
             foreach (var key in keys)
             {
