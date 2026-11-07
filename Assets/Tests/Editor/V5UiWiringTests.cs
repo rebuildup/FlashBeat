@@ -54,8 +54,8 @@ namespace FlashBeat.UI.V5
                 startButton.onClick.Invoke();
                 Assert.IsTrue(started, "GameStart ボタンを押しても実ハンドラが呼ばれていない。");
 
-                var exitButton = FindButton(canvas.gameObject, "Menu End");
-                Assert.IsNotNull(exitButton, "Title の End ボタンが見つからない。");
+                var exitButton = FindButton(canvas.gameObject, "Menu Exit");
+                Assert.IsNotNull(exitButton, "Title の Exit ボタンが見つからない。");
                 exitButton.onClick.Invoke();
                 Assert.IsTrue(exited, "End ボタンを押しても実ハンドラが呼ばれていない。");
             }
@@ -202,7 +202,10 @@ namespace FlashBeat.UI.V5
             try
             {
                 view = SelectView.Create(ownerGo.GetComponent<SelectSceneManager>());
-                var canvas = view.GetComponentInParent<Canvas>();
+                // SelectView は Canvas を View の **子** に作る (Title 等は親方向)。
+                // どちらの構成でも拾えるように両方向を探索する。
+                var canvas = view.GetComponentInParent<Canvas>() ?? view.GetComponentInChildren<Canvas>();
+                Assert.IsNotNull(canvas, "Select の Canvas が生成されていない。");
                 Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
                     "Select の Canvas に GraphicRaycaster が無い (クリックが効かない原因)。");
 
@@ -223,7 +226,7 @@ namespace FlashBeat.UI.V5
             {
                 if (view != null)
                 {
-                    var canvas = view.GetComponentInParent<Canvas>();
+                    var canvas = view.GetComponentInParent<Canvas>() ?? view.GetComponentInChildren<Canvas>();
                     if (canvas != null) { Object.DestroyImmediate(canvas.gameObject); }
                 }
 
