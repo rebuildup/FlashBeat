@@ -12,15 +12,28 @@ Issue: #169 (親 #162) — branch `169`, base `release-0-1-11` @ `2f2b6ba`。担
 
 ### 画面契約 (T2)
 
-- プロファイル選択は `UISizeProfile.Select(w,h)` に一元化し、既存規則を維持する:
-  `height>=1440 → 2k` / `|w/h-1.6|<0.05 → mac` / `height>=1080 → fhd` / else `FhdScaled(min(1,h/1080))`。
+- プロファイル選択は `UISizeProfile.Select(w,h)` に一元化し、Issue #162 指示の規則を採用:
+  1. 縦横比 ~1.538 (±0.03, Mac ネイティブ 2560x1664) → mac
+  2. 縦横比 ~1.778 (±0.03) かつ height>=1440 → 2k
+  3. height>=1080 → fhd
+  4. else → FhdScaled(min(1, height/1080))
+  旧 1440x900 (縦横比 1.6) 用の規則は廃止。
+- **mac プロファイルは 2560x1664 実ピクセル用に再構築** (旧 1440x900 設計は無効)。
+  `design/ui-size-profiles.json` (profiles.mac / grid.mac / controls_v3.mac) を
+  1440→2560 倍率 (16/9) で再スケールし、`UISizeProfile.Mac()` に同じ値を写す。
+  json↔C# の値一致は検証スクリプトで確認。
 - 3解像度 (1920x1080 / 2560x1440 / 2560x1664) で代表寸法が画面内に収まることを
-  EditMode テストで担保する。2560x1664 (16:10) は画素数近似の 2K 画面だが、
-  既存規則では 2k が選ばれ、2k プロファイルは 2560x1440 を基準に設計されているため
-  高さ 1664 でも収まる (縦方向に余る)。画素数だけで除外しない (テストで明示)。
+  EditMode テストで担保する。旧 1440x900 は fhd 縮小 (x0.833) に流れる。
 - `CanvasConfigurator` (Constant Pixel Size x1) を唯一の CanvasScaler 設定経路とする。
   Select 画面独自の u 倍計算は SelectView.cs (Worker B 所有) にあるため本タスクでは
   変更せず Known Issues に記録する。
+
+### フルスクリーン方針 (Issue #162 オーナー指示)
+
+- 実フルスクリーンのみ: `fullscreenMode: 1` (FullScreenWindow) +
+  `defaultIsNativeResolution: 1` (ネイティブ解像度で起動)。
+- `Screen.SetResolution` によるウィンドウリサイズでの擬似全画面は禁止。
+  実装 0 件を確認済み (`grep -rn "SetResolution" Assets/Game/Scripts`)。
 
 ### Canvas / EventSystem / Raycaster (T3)
 
@@ -51,8 +64,10 @@ Issue: #169 (親 #162) — branch `169`, base `release-0-1-11` @ `2f2b6ba`。担
 ### テスト (T5)
 
 - 新規 `Assets/Game/Tests/` (asmdef `FlashBeat.V5CanvasTests`, EditMode のみ)。
-  既存 `Assets/Tests/Editor/FlashBeat.Tests.asmdef` は他 Worker と共有ののため触らず、
+  既存 `Assets/Tests/Editor/FlashBeat.Tests.asmdef` は他 Worker と共有のため触らず、
   新しい asmdef を作る。参照: FlashBeat, UnityEngine.UI, nunit, TestRunner。
+  例外: 旧 mac 規則を前提とした `Assets/Tests/Editor/V5UiTests.cs` の
+  `Select_1440x900_ReturnsMac` のみ規則改訂に伴い期待値を更新。
 
 ## リスク
 

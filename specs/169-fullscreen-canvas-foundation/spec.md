@@ -38,10 +38,18 @@ fullscreenMode: 1                 # L119 (FullScreenWindow)
 
 ## T2: 画面・解像度の単一契約 (UISizeProfile)
 
-- プロファイル選択規則は `UISpec.Profile.Select(w,h)` に一元化 (既存実装を維持):
-  height>=1440 → 2k / |w/h-1.6|<0.05 → mac / height>=1080 → fhd / else FhdScaled(min(1,h/1080))。
+- プロファイル選択規則は `UISizeProfile.Select(w,h)` に一元化 (Issue #162 指示で改訂):
+  1. 縦横比 ~1.538 (±0.03, Mac ネイティブ 2560x1664) → mac
+  2. 縦横比 ~1.778 (±0.03) かつ height>=1440 → 2k
+  3. height>=1080 → fhd
+  4. else → FhdScaled(min(1, height/1080))
+- **mac プロファイルは 2560x1664 実ピクセル用に再構築** (旧 1440x900 設計は無効)。
+  `design/ui-size-profiles.json` の profiles.mac / grid.mac / controls_v3.mac を
+  1440→2560 倍率 (16/9) で再スケールし、`UISizeProfile.Mac()` が同じ値を写す
+  (json と C# の値の一致をスクリプトで検証済み)。
 - 3解像度での破綻がないことを EditMode テストで明示:
-  FHD 1920x1080 / 2K 2560x1440 / Mac 2560x1664 (16:10 は画素数で除外しない)。
+  FHD 1920x1080 / 2K 2560x1440 / Mac 2560x1664。旧 1440x900 (16:10) は mac に
+  選ばれず fhd 縮小 (x0.833) に流れる。
 - `CanvasConfigurator` を唯一の CanvasScaler 設定経路とする
   (Constant Pixel Size ×1、解像度変化で再適用)。既存の `UISizeProfile.Current` キャッシュは温存。
 
@@ -75,15 +83,23 @@ fullscreenMode: 1                 # L119 (FullScreenWindow)
 2. `CanvasConfigurator_Configure_AddsGraphicRaycaster` — Raycaster 無し Canvas に付与される。
 3. `CanvasConfigurator_EnsureEventSystem_CreatesExactlyOne` — Canvas を 2 回 Configureしても
    EventSystem は 1 つ。
-4. `ProfileSelect_ThreeResolutions_NoClip` — Select(1920,1080)=fhd /
-   Select(2560,1440)=2k / Select(1440,900)=mac、かつ各プロファイルの寸法が
-   自画面内に収まる (Btn/Card の代表値で screen 以下)。
-5. `ProfileSelect_MacByAspect_NotByPixels` — 1440x900 (16:1) が mac に選ばれる
-   (画素数 alone では 2k にならない)。
+4. `ProfileSelect_ThreeResolutions` — Select(1920,1080)=fhd /
+   Select(2560,1440)=2k / Select(2560,1664)=mac、かつ各プロファイルの代表寸法が
+   自画面内に収まる (Btn/Card/Drawer の代表値で screen 以下)。
+5. `ProfileSelect_MacByAspect_Before2kPixelRule` — 2560x1664 (縦横比 1.538) が
+   height>=1440 の 2k 規則より先に mac に選ばれる。
+6. `ProfileSelect_1440x900_NoLongerMac` / `ProfileSelect_1280x720_FhdScaled` —
+   旧 mac 規則廃止後は fhd 縮小 (x0.833 / x0.667) に流れる。
 
 ## Known Issues / 非所有ファイル
 
+- **フルスクリーン方針 (Issue #162 オーナー指示)**: `fullscreenMode: 1`
+  (FullScreenWindow) + `defaultIsNativeResolution: 1` の実フルスクリーンのみ。
+  `Screen.SetResolution` によるウィンドウリサイズでの擬似全画面は禁止
+  (実装 0 件を確認済み、今後も追加しない)。
 - 実機での全画面確認 (Windows) は Supervisor が FullscreenDiagnostics のログで実施。
 - `defaultIsNativeResolution: 0 → 1` の最小変更のみ ProjectSettings に施す
   (fullscreenMode / resizableWindow / defaultScreenWidth / defaultScreenHeight は現状維持)。
 - Worker B 所有の View / SceneManager / .unity には触れない。
+  (例外: 旧 mac 規則を前提とした既存テスト `Assets/Tests/Editor/V5UiTests.cs` の
+  `Select_1440x900_ReturnsMac` 1 件のみ、規則改訂に伴い期待値を更新。)

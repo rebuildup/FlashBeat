@@ -14,12 +14,16 @@ Issue: #169 — branch `169`。担当 Worker A。実行順に依存あり (1 →
 
 ## 2. T2: 画面・解像度の単一契約 (UISizeProfile)
 
-- 対象: `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`。
-- 内容: `UISizeProfile.Select(w,h)` を唯一の選択経路とし、既存規則
-  (height>=1440 → 2k / |w/h-1.6|<0.05 → mac / height>=1080 → fhd / else FhdScaled) を維持。
+- 対象: `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `design/ui-size-profiles.json`。
+- 内容: `UISizeProfile.Select(w,h)` を唯一の選択経路とし、Issue #162 指示の規則を採用:
+  縦横比 ~1.538 (±0.03) → mac / 縦横比 ~1.778 (±0.03) かつ height>=1440 → 2k /
+  height>=1080 → fhd / else FhdScaled。旧 1440x900 規則は廃止。
+  mac プロファイル (profiles.mac / grid.mac / controls_v3.mac と `Mac()`) を
+  2560x1664 実ピクセル用に再構築し、json と C# の値を一致させる。
   `CanvasConfigurator` を唯一の CanvasScaler 設定経路 (Constant Pixel Size x1) とする。
-- 完了条件: Select 画面独自の計算 (SelectView.cs) には触れず Known Issues に記録。
-  タスク 5 の 3 解像度テストが概念上通る形になっている。
+- 完了条件: Select(1920,1080)=fhd / Select(2560,1440)=2k / Select(2560,1664)=mac /
+  Select(1280,720)=fhd 縮小。Select 画面独自の計算 (SelectView.cs) には触れず
+  Known Issues に記録。タスク 5 のテストが概念上通る形になっている。
 
 ## 3. T3: EventSystem / GraphicRaycaster の単一系統化
 
@@ -47,8 +51,10 @@ Issue: #169 — branch `169`。担当 Worker A。実行順に依存あり (1 →
   1. `Configure` 後 `CanvasScaler.uiScaleMode == ConstantPixelSize && scaleFactor == 1`。
   2. Raycaster 無し Canvas に `GraphicRaycaster` が付与される。
   3. 2 回 `Configure` しても `EventSystem` が 1 個 (重複生成されない)。
-  4. `Select(1920,1080)=fhd` / `Select(2560,1440)=2k` / `Select(2560,1664)=2k` で
-     代表寸法 (Btn / CardMid.x / RowH) が各画面寸法内に収まる。
-  5. `Select(1440,900)=mac` — 16:10 がアスペクト比で選ばれる (画素数ではない)。
+  4. `Select(1920,1080)=fhd` / `Select(2560,1440)=2k` / `Select(2560,1664)=mac` /
+     `Select(1280,720)=fhd*0.667` で代表寸法 (Btn / CardMid.x / RowH / DrawerW) が
+     各画面寸法内に収まる。
+  5. 2560x1664 が縦横比判定 (1.538±0.03) で height>=1440 の 2k 規則より先に mac に選ばれる。
+     旧 1440x900 は fhd 縮小 (x0.833) に流れる (旧 mac 規則廃止)。
 - 完了条件: テストコードと期待値がコード上で明示されている。
   実行は Supervisor が EditMode で行う (Worker A は Unity Editor を起動しない)。

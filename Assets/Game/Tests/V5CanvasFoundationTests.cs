@@ -100,24 +100,39 @@ namespace FlashBeat.V5CanvasTests
                 "Canvas 複数でも EventSystem は 1 系統");
         }
 
-        // --- T2: プロファイル契約 (3 解像度 + 16:10) ---
+        // --- T2: プロファイル契約 (3 解像度) ---
 
         [Test]
         public void ProfileSelect_ThreeResolutions()
         {
             Assert.AreEqual("fhd", UISizeProfile.Select(1920, 1080).Name);
             Assert.AreEqual("2k", UISizeProfile.Select(2560, 1440).Name);
-            // 2560x1664 は 16:10 (Mac) だが画素数では 2K 相当。既存規則では height>=1440 の
-            // 2k が選ばれる。画素数比較だけで 16:10 を除外せず、2k プロファイルが
-            // この画面にも収まることを下の NoClip テストで担保する。
-            Assert.AreEqual("2k", UISizeProfile.Select(2560, 1664).Name);
+            // Mac ネイティブ 2560x1664 (縦横比 1.538) は height>=1440 の 2k 規則より先に
+            // 縦横比判定で mac に選ばれる (Issue #162/#169 指示)。
+            Assert.AreEqual("mac", UISizeProfile.Select(2560, 1664).Name);
         }
 
         [Test]
-        public void ProfileSelect_MacByAspect_NotByPixels()
+        public void ProfileSelect_MacByAspect_Before2kPixelRule()
         {
-            // 1440x900 は画素数では小さいが 16:10 なので mac プロファイルが選ばれる。
-            Assert.AreEqual("mac", UISizeProfile.Select(1440, 900).Name);
+            // 2560x1664 は画素数では 2K 相当だが、縦横比 1.538 の判定を先に行うので mac。
+            Assert.AreEqual("mac", UISizeProfile.Select(2560, 1664).Name);
+        }
+
+        [Test]
+        public void ProfileSelect_1440x900_NoLongerMac()
+        {
+            // 旧 1440x900 mac 設計は無効 (Issue #162)。16:10 は新規則のどれにも当てはまらず
+            // fhd 縮小 (900/1080 = 0.833) に流れる。
+            var p = UISizeProfile.Select(1440, 900);
+            Assert.AreEqual("fhd*0.833", p.Name);
+            Assert.LessOrEqual(p.CardCenter.y, 900f, "縮小 fhd が 1440x900 に収まる");
+        }
+
+        [Test]
+        public void ProfileSelect_1280x720_FhdScaled()
+        {
+            Assert.AreEqual("fhd*0.667", UISizeProfile.Select(1280, 720).Name);
         }
 
         [TestCase(1920, 1080)]
