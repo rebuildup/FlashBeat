@@ -43,6 +43,8 @@ public class KeyConfigUI : MonoBehaviour
     private readonly List<MonoBehaviour> suspended = new List<MonoBehaviour>();
     private bool savedSendNavigation = true;
     private bool navigationSuspended;
+    private GameObject createdEventSystem;
+    private static readonly Color IdleRowColor = new Color(0f, 0f, 0f, 0.01f); // alpha>0: still hit by the raycaster
 
     /// <summary>キー設定を開いている間は true。背後のシーンはキー入力を受け取らない。</summary>
     public static bool IsOpen { get; private set; }
@@ -139,6 +141,12 @@ public class KeyConfigUI : MonoBehaviour
     private void SuspendScene()
     {
         ResumeScene();
+        // シーンに EventSystem が無いとクリックが届かない。無ければ開いている間だけ作る。
+        if (EventSystem.current == null)
+        {
+            createdEventSystem = new GameObject("KeyConfigEventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            createdEventSystem.transform.SetParent(transform, false);
+        }
         // Enter / 矢印は EventSystem 経由でも選択中のボタンを押してしまう (Submit)。開いている間は止める。
         if (EventSystem.current != null)
         {
@@ -168,6 +176,11 @@ public class KeyConfigUI : MonoBehaviour
             EventSystem.current.sendNavigationEvents = savedSendNavigation;
         }
         navigationSuspended = false;
+        if (createdEventSystem != null)
+        {
+            Destroy(createdEventSystem);
+            createdEventSystem = null;
+        }
         for (int i = 0; i < suspended.Count; i++)
         {
             if (suspended[i] != null) { suspended[i].enabled = true; }
@@ -208,6 +221,13 @@ public class KeyConfigUI : MonoBehaviour
 
     private void HandleInput()
     {
+        // レーン移動 (割り当て中でも有効。矢印・Tab は予約キーなので割り当て対象にならない)。
+        if (Input.GetKeyDown(KeyCode.UpArrow)) { MoveLane(-1); return; }
+        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.Tab)) { MoveLane(1); return; }
+        float wheel = Input.mouseScrollDelta.y;
+        if (wheel > 0.5f) { MoveLane(-1); return; }
+        if (wheel < -0.5f) { MoveLane(1); return; }
+
         if (listening)
         {
             if (Input.GetKeyDown(KeyCode.Escape))
@@ -255,6 +275,33 @@ public class KeyConfigUI : MonoBehaviour
         }
 
         CaptureTestKey();
+    }
+
+    /// <summary>レーンを移動する。割り当て中なら終了して選択だけ動かす (Enter / クリックで再開)。</summary>
+    private void MoveLane(int delta)
+    {
+        confirmReset = false;
+        listening = false;
+        selectedLane = (selectedLane + delta + KeyBindings.LaneCount) % KeyBindings.LaneCount;
+        RefreshRows();
+        UpdateMessage();
+    }
+
+    /// <summary>行クリック: そのレーンを選んで割り当て開始。選択中の行を再度クリックすると割り当て終了。</summary>
+    private void OnRowClicked(int lane)
+    {
+        confirmReset = false;
+        if (selectedLane == lane && listening)
+        {
+            listening = false;
+        }
+        else
+        {
+            selectedLane = lane;
+            listening = true;
+        }
+        RefreshRows();
+        UpdateMessage();
     }
 
     private void HandleReset()
@@ -375,7 +422,7 @@ public class KeyConfigUI : MonoBehaviour
             label.color = selected ? new Color(1f, 0.85f, 0.3f) : Color.white;
             if (rowBackgrounds.Count > lane && rowBackgrounds[lane] != null)
             {
-                rowBackgrounds[lane].color = selected ? SelectedRowColor : Color.clear;
+                rowBackgrounds[lane].color = selected ? SelectedRowColor : IdleRowColor;
             }
             if (accentBars.Count > lane && accentBars[lane] != null)
             {
@@ -409,7 +456,7 @@ public class KeyConfigUI : MonoBehaviour
         if (messageLabel == null) return;
         if (listening)
         {
-            messageLabel.text = "レーン " + (selectedLane + 1) + ": 割り当てるキーを押してください… (Esc で終了 / 同じキーで解除)";
+            messageLabel.text = "レーン " + (selectedLane + 1) + ": 割り当てるキーを押してください… (同じキーで解除 / ↑↓ Tab・クリックで他のレーンへ / Esc で終了)";
             messageLabel.color = AccentColor;
         }
         else
@@ -561,7 +608,7 @@ public class KeyConfigUI : MonoBehaviour
         testLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
         var footer = AddLabel(content, "KeyConfigFooter",
-            "↑/↓: レーン選択　Enter: 割り当て開始　Esc: 終了　Backspace: クリア　R: 初期化　F2: 閉じる",
+            "↑↓ Tab ホイール クリック: レーンをえらぶ　Enter: 割り当て開始　Esc: 終了　Backspace: クリア　R: 初期化　F2: 閉じる",
             FooterFontSize, TextAlignmentOptions.Left);
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
@@ -602,8 +649,12 @@ public class KeyConfigUI : MonoBehaviour
         rowSize.preferredHeight = RowHeight;
         rowSize.minHeight = RowHeight;
         var background = row.GetComponent<UnityEngine.UI.Image>();
-        background.color = Color.clear;
-        background.raycastTarget = false;
+        background.color = IdleRowColor;
+        background.raycastTarget = true;
+        var rowButton = row.gameObject.AddComponent<UnityEngine.UI.Button>();
+        rowButton.transition = UnityEngine.UI.Selectable.Transition.None;
+        int laneIndex = lane;
+        rowButton.onClick.AddListener(() => OnRowClicked(laneIndex));
 
         var bar = new GameObject("Accent", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
         bar.SetParent(row, false);
