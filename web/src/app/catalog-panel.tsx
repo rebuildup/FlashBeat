@@ -3,7 +3,14 @@ import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
 import type { SongSummary } from "./types";
-import { StateBlock, panelBodyFlush, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
+import {
+  StateBlock,
+  panelBodyFlush,
+  panelFrame,
+  panelHeader,
+  panelSubtitle,
+  panelTitle,
+} from "./panel";
 
 export type CatalogStatus = "loading" | "ready" | "empty" | "error" | "offline";
 
@@ -328,57 +335,57 @@ export function CatalogPanel({
 
       <div className={panelBodyFlush}>
         {status !== "ready" || songs.length === 0 ? (
-        <div className={stateWrap}>
-        {status === "loading" ? (
-          <StateBlock
-            title="Loading catalog"
-            description="Reading the published catalog from the FlashBeat API."
-          />
-        ) : null}
+          <div className={stateWrap}>
+            {status === "loading" ? (
+              <StateBlock
+                title="Loading catalog"
+                description="Reading the published catalog from the FlashBeat API."
+              />
+            ) : null}
 
-        {status === "offline" ? (
-          <StateBlock
-            title="You are offline"
-            description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
-            action={
-              <Button variant="outline" size="sm" onClick={onRetry}>
-                Retry
-              </Button>
-            }
-          />
-        ) : null}
+            {status === "offline" ? (
+              <StateBlock
+                title="You are offline"
+                description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
+                action={
+                  <Button variant="outline" size="sm" onClick={onRetry}>
+                    Retry
+                  </Button>
+                }
+              />
+            ) : null}
 
-        {status === "error" ? (
-          <StateBlock
-            title="Catalog unavailable"
-            description={errorMessage ?? "The catalog request failed."}
-            action={
-              <Button className={accent} size="sm" onClick={onRetry}>
-                Try again
-              </Button>
-            }
-          />
-        ) : null}
+            {status === "error" ? (
+              <StateBlock
+                title="Catalog unavailable"
+                description={errorMessage ?? "The catalog request failed."}
+                action={
+                  <Button className={accent} size="sm" onClick={onRetry}>
+                    Try again
+                  </Button>
+                }
+              />
+            ) : null}
 
-        {status === "empty" ? (
-          <StateBlock
-            title="No songs published yet"
-            description="Publish a chart to the FlashBeat API and it shows up here immediately."
-          />
-        ) : null}
+            {status === "empty" ? (
+              <StateBlock
+                title="No songs published yet"
+                description="Publish a chart to the FlashBeat API and it shows up here immediately."
+              />
+            ) : null}
 
-        {noFilterMatch ? (
-          <StateBlock
-            title="No song matches the filters"
-            description="Clear the search query or level filter to see the published songs."
-            action={
-              <Button variant="outline" size="sm" onClick={onClearFilters}>
-                Clear filters
-              </Button>
-            }
-          />
-        ) : null}
-        </div>
+            {noFilterMatch ? (
+              <StateBlock
+                title="No song matches the filters"
+                description="Clear the search query or level filter to see the published songs."
+                action={
+                  <Button variant="outline" size="sm" onClick={onClearFilters}>
+                    Clear filters
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
         ) : null}
 
         {status === "ready" && songs.length > 0 ? (

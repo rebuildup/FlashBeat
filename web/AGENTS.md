@@ -49,8 +49,10 @@ server against the local D1.
 | `src/app/**`                       | The Web Studio shell written by this repository.                                                |
 | `src/components/chart-editor/**`   | The eight lane Konva chart editor (issue #18).                                                  |
 | `src/lib/chart/**`                 | Chart model, import/export, contract validation (issue #18).                                    |
-| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                                  |
+| `src/components/song-publisher/**` | The publish screen: metadata form, dialog, result (issue #19).                              |
 | `src/lib/publish/**`               | Publish contract types, validation, client, fixture transport (issue #19).                      |
+| `src/components/new-song/**`       | Guided new-song flow `/new-song`: stepper, song info, chart, publish steps (issue #135).        |
+| `src/lib/new-song/**`              | Slug suggestion, oEmbed, sessionStorage draft, bilingual validation, fixture studio API (#135). |
 | `routes/api/v1/**`                 | Read API for the catalog and chart snapshots (issue #15).                                       |
 | `pages/`                           | Void pages routing (`index.tsx`, `chart.tsx`, `publish.tsx` and their `.server.ts` companions). |
 | `db/`                              | D1 schema, migrations, fixtures and the seed (issue #14).                                       |
@@ -156,8 +158,8 @@ the Void dev server, and validates the responses against the frozen contract
 
 ### Publish API (issue #16)
 
-| Route | File | Behaviour |
-| ----- | ---- | --------- |
+| Route                              | File                                    | Behaviour                                                 |
+| ---------------------------------- | --------------------------------------- | --------------------------------------------------------- |
 | `PUT /api/v1/admin/songs/{songId}` | `routes/api/v1/admin/songs/[songId].ts` | Staff-only atomic publication of a song + chart snapshot. |
 
 - **Auth.** Bearer token compared against the `FLASHBEAT_ADMIN_TOKEN` runtime
@@ -176,8 +178,8 @@ the Void dev server, and validates the responses against the frozen contract
   2. Semantics — 8 lanes (`block` 0-7), positive beat positions (`num >= 0`,
      `LPB >= 1`), BPM 1-600, level 1-99, Tap-only (`type` 1), and every note
      inside `durationSec` using the Unity timing `num * 60 / (BPM * LPB)`.
-  Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
-  naming each offending item; nothing is written.
+     Invalid input → `422` with `{ error, diagnostics: [{ path, message }] }`
+     naming each offending item; nothing is written.
 - **Publication.** One `db.batch` (a D1 implicit transaction) writes the song
   metadata upsert with `currentVersion + 1` (first publish = 1) and appends
   the immutable `chart_versions` row. The response is
