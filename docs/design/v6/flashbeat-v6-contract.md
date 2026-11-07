@@ -207,7 +207,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 | `OENRv-select-v6.png` | Select v6 |
 | `AqFtx-select-v6-empty.png` | Select (空状態) |
 | `wSjAm-select-v6-settings.png` | Select (設定) |
-| `nrfw8-game-playfield.png` | Game プレイフィールド |
+| `nrfw8-game-playfield.png` | Game プレイフィールド (背景 `#1B1B1B` 合成。レーン線 `#FFFFFF2E` は実ゲームでは楽曲映像の上に重なるため、透過のままだと可読性が無い) |
 | `Uc9v6-hud-fhd.png` | HUD FHD |
 | `E51yo-hud-2k.png` | HUD 2K |
 | `QrSwA-hud-mac.png` | HUD Mac |
