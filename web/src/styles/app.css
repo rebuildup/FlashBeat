@@ -9,7 +9,8 @@
   }
 
   body {
-    /* Allow page-level scroll; content areas own their scrolling */
+    /* The document scrolls; every screen keeps one inner scroll area. */
+    overflow: auto;
   }
 
   *:focus-visible {

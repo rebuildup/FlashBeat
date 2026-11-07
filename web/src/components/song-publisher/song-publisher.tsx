@@ -1,4 +1,5 @@
 import type { SongSummary } from "@/app/types";
+import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
 import { Button, Toaster, toaster } from "@/components/ui";
@@ -78,6 +79,7 @@ const body = css({
   display: "grid",
   gap: "3",
   gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 21rem" },
+  gridTemplateRows: "minmax(0, 1fr)",
   minHeight: 0,
   p: "3",
 });
@@ -90,11 +92,58 @@ const editorArea = css({
 });
 
 const side = css({
-  display: { base: "none", lg: "flex" },
+  display: "flex",
   flexDirection: "column",
   gap: "3",
   minHeight: 0,
   overflowY: "auto",
+  /**
+   * Narrow viewports: the metadata and publish panels are an off-canvas
+   * drawer over the work area (issue #74). Wide viewports: the persistent
+   * right column.
+   */
+  bg: { base: "#1b1b1b", lg: "transparent" },
+  borderLeftColor: { base: "#2d2d2d", lg: "transparent" },
+  borderLeftWidth: { base: "1px", lg: "0px" },
+  bottom: { base: "0", lg: "auto" },
+  height: { base: "100dvh", lg: "auto" },
+  maxWidth: "100%",
+  position: { base: "fixed", lg: "static" },
+  right: { base: "0", lg: "auto" },
+  top: { base: "0", lg: "auto" },
+  width: { base: "21rem", lg: "21rem" },
+  zIndex: { base: "popover", lg: "auto" },
+});
+
+/** Closed drawers leave the tab order and sit behind the right edge. */
+const sideClosed = css({
+  transform: { base: "translateX(100%)", lg: "none" },
+  visibility: { base: "hidden", lg: "visible" },
+});
+
+const sideOpen = css({
+  transform: { base: "none", lg: "none" },
+  visibility: { base: "visible", lg: "visible" },
+});
+
+const sideHeader = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "2",
+  justifyContent: "space-between",
+});
+
+const sideClose = css({
+  alignItems: "center",
+  bg: "#3a3a3a",
+  borderRadius: "8px",
+  color: "#ffffff",
+  display: { base: "flex", lg: "none" },
+  height: "sizes.7",
+  justifyContent: "center",
+  width: "sizes.7",
+  _hover: { bg: "#454545" },
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "2px" },
 });
 
 const sideScroll = css({
@@ -104,38 +153,6 @@ const sideScroll = css({
   gap: "3",
   minHeight: 0,
   overflowY: "auto",
-});
-
-const drawerBackdrop = css({
-  bg: "black/50",
-  display: "flex",
-  justifyContent: "flex-end",
-  inset: "0",
-  position: "fixed",
-  zIndex: "modal",
-});
-
-const drawerPanel = css({
-  bg: "#1b1b1b",
-  borderLeftColor: "#2d2d2d",
-  borderLeftWidth: "1px",
-  display: "flex",
-  flexDirection: "column",
-  height: "100dvh",
-  maxWidth: "100%",
-  minWidth: "0",
-  overflowY: "auto",
-  width: "21rem",
-});
-
-const drawerHeader = css({
-  alignItems: "center",
-  borderBottomColor: "#2d2d2d",
-  borderBottomWidth: "1px",
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "3",
-  px: "3",
 });
 
 const card = css({
@@ -270,6 +287,16 @@ export function SongPublisher({
 
   const inFlight = useRef(false);
   const transport = useMemo(() => resolvePublishTransport(apiOrigin), [apiOrigin]);
+
+  const sideRef = useRef<HTMLElement | null>(null);
+  // The metadata and publish panels are a drawer below the `lg` breakpoint:
+  // the focus enters the drawer on open, stays inside it and returns to the
+  // trigger when it closes.
+  useDrawerFocus({
+    open: isSideOpen,
+    panelRef: sideRef,
+    onClose: useCallback(() => setIsSideOpen(false), []),
+  });
 
   // The title follows the name of the chart until the operator writes one.
   const effectiveDraft = useMemo<SongMetadataDraft>(
@@ -427,11 +454,12 @@ export function SongPublisher({
                 : "Live API (this origin)"}
           </span>
           <Button
-            className={`${buttonSecondary} sidebar-toggle`}
+            className={`${buttonSecondary} ${sidebarToggle}`}
             size="sm"
             variant="outline"
-            onClick={() => setIsSideOpen(true)}
-            aria-label="Open sidebar"
+            onClick={() => setIsSideOpen((current) => !current)}
+            aria-label={isSideOpen ? "Close the publish sidebar" : "Open the publish sidebar"}
+            aria-expanded={isSideOpen}
           >
             <svg
               width="20"
@@ -461,7 +489,25 @@ export function SongPublisher({
           />
         </section>
 
-        <aside className={side}>
+        <aside
+          className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
+          ref={sideRef}
+          role={isSideOpen ? "dialog" : undefined}
+          aria-modal={isSideOpen ? true : undefined}
+          aria-label="Publish sidebar"
+        >
+          <div className={sideHeader}>
+            <h2 className={sideTitle}>Publish tools</h2>
+            <button
+              type="button"
+              className={sideClose}
+              onClick={() => setIsSideOpen(false)}
+              aria-label="Close the publish sidebar"
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+
           <div className={sideScroll}>
             <section className={card}>
               <h2 className={cardTitle}>Song metadata</h2>
@@ -505,72 +551,7 @@ export function SongPublisher({
           </div>
         </aside>
 
-        {isSideOpen && (
-          <div
-            className={drawerBackdrop}
-            onClick={() => setIsSideOpen(false)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Publish sidebar"
-          >
-            <div className={drawerPanel} onClick={(e) => e.stopPropagation()}>
-              <div className={drawerHeader}>
-                <h3 className={sideTitle}>Publish tools</h3>
-                <Button
-                  className={buttonSecondary}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsSideOpen(false)}
-                  aria-label="Close sidebar"
-                >
-                  <span aria-hidden="true">✕</span>
-                </Button>
-              </div>
-              <div className={sideScroll}>
-                <section className={card}>
-                  <h2 className={cardTitle}>Song metadata</h2>
-                  <SongMetadataForm
-                    draft={effectiveDraft}
-                    onChange={handleChange}
-                    onFieldBlur={handleFieldBlur}
-                    issues={visibleIssues}
-                  />
-                </section>
-
-                <section className={card}>
-                  <h2 className={cardTitle}>Publish</h2>
-
-                  <dl className={facts}>
-                    <dt className={factKey}>Chart</dt>
-                    <dd className={factValue}>
-                      {summary.noteCount} notes at {summary.bpm} BPM
-                    </dd>
-
-                    <dt className={factKey}>Song id</dt>
-                    <dd className={factValue}>{summary.songId || "—"}</dd>
-                  </dl>
-
-                  {chartIssues.length > 0 ? (
-                    <p className={warning}>
-                      The chart has {chartIssues.length} contract problems. Fix them before
-                      publishing.
-                    </p>
-                  ) : null}
-
-                  <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
-                    Review publish
-                  </Button>
-                </section>
-
-                <PublishResultPanel
-                  result={result}
-                  onRetry={handleReview}
-                  onBackToEditor={handleBackToEditor}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {isSideOpen ? <DrawerBackdrop onClose={() => setIsSideOpen(false)} /> : null}
       </div>
 
       <PublishDialog

@@ -1,107 +1,108 @@
 # Plan: Responsive Layout & Keyboard Navigation (#74)
 
-## Architecture Decisions
+> The plan follows the implementation that is on the branch. Where the first
+> draft of the plan and the implementation differ, the implementation is
+> described here and the reason is given.
 
-### 1. Scroll Ownership
-- **Root**: `html, body` — `overflow: auto` (page scrolls)
-- **AppShell content**: `overflow: auto` (content scrolls if taller than viewport)
-- **ChartEditor gridPanel**: `overflow: hidden` → `NoteGrid` owns horizontal scroll via `scrollArea`
-- **Sidebars/Inspectors**: `overflow: auto` internally when open as drawers
-- **No more** `height: 100dvh; overflow: hidden` on page shells
+## 1. Architecture decisions
 
-### 2. Sidebar Strategy
-- **≥md (768px)**: Persistent left rail (13rem) — current behavior
-- **<md**: Top bar (horizontal nav) — current `base` behavior, but **fixed position** so it doesn't consume content height
-- **Drawer** for mobile navigation if needed (future enhancement)
+### 1.1 Scroll ownership
 
-### 3. ChartEditor / Publisher Side Panels
-- **≥lg (1024px)**: Persistent right panel (17rem / 21rem)
-- **<lg**: Collapsible **drawer** (slide-in from right)
-  - Trigger: toolbar button (ChartEditor) / header button (Publisher)
-  - Backdrop click / Escape closes
-  - Focus trap inside drawer
-  - Focus restore to trigger on close
+| Screen | Owner | Implementation |
+|--------|-------|----------------|
+| Catalog (`/`) | document | `app.css`: `body { overflow: auto }`; `app-shell.tsx`: `minHeight: 100dvh` instead of `height: 100dvh` |
+| Editor / publisher | the note grid | the page shells (`web/pages/**`) stay `100dvh`, the owned components fill them |
+| Inspector drawer | the drawer panel | `overflowY: auto` on the panel |
 
-### 4. Toolbar Fields
-- Replace fixed `width: "Xrem"` with **fluid widths**: `minWidth: "8rem", maxWidth: "20rem", width: "100%"` in flex container
-- Use `flex: 1` for search, `flex-shrink: 0` for selects
+The original plan also removed the `100dvh` page shells of
+`web/pages/chart.tsx` and `web/pages/publish.tsx`. Those pages belong to
+other issues, so the shells stay and the components own their scrolling
+instead. The result is the same for the user: no screen has two competing
+scroll areas.
 
-### 5. Catalog Columns
-- **≥md**: Table with all columns
-- **<md**: Hide `level`, `version`; truncate `artist` with ellipsis + tooltip
-- **<sm**: Card layout (vertical stack per song) — replaces table entirely
+### 1.2 Sidebar
 
-### 6. Note Grid Horizontal Scroll
-- `scrollArea` already has `overflow: auto` — **remove `overflow: hidden` from `gridPanel`**
-- Stage width = `max(containerWidth, 8 * MIN_LANE_WIDTH * zoom)`
-- Horizontal scroll appears automatically when stage > container
+* `md` and up: the persistent 13rem rail (unchanged).
+* below `md`: a horizontal bar that sticks to the top of the document.
+  The shell is a **block** below `md` (`display: { base: "block", md: "grid" }`)
+  because a sticky element inside a grid area is limited to that area and
+  could never travel.
 
-### 7. Focus Management
-- Use `useFocusEffect` / `useRef` for focus restore on drawer/dialog close
-- Add global `:focus-visible` ring in `app.css` (Panda tokens: `colors.colorPalette.solid.bg`)
-- Ensure Konva canvas is focusable (`tabIndex=0`) and shows focus ring
+### 1.3 Inspector panels (chart editor, publisher)
 
----
+One element, two layouts:
 
-## Implementation Phases
+* `lg` and up: the persistent right column (17rem / 21rem),
+* below `lg`: an off-canvas drawer (fixed, right, 100dvh) with a
+  backdrop, closed with `translateX(100%)` + `visibility: hidden`.
 
-### Phase 1: Global Shell & Scroll Foundation
-1. `web/src/styles/app.css` — remove `body { overflow: hidden }`, add `:focus-visible` ring
-2. `web/src/app/app-shell.tsx` — remove `height: 100dvh; overflow: hidden` from shell; make content the scroll owner
-3. `web/pages/chart.tsx` — remove page-level shell, use AppShell or new ChartShell
-4. `web/pages/publish.tsx` — remove page-level shell, use AppShell or new PublisherShell
-5. `web/src/components/new-song/new-song-flow.tsx` — remove `height: 100dvh; overflow: hidden`
+The first implementation rendered the inspector **twice** (once as the
+column, once inside the drawer). That duplicated the YouTube iframe and
+the whole metadata form — two sets of form fields with the same ids in one
+document. The single element removes the duplication.
 
-### Phase 2: Sidebar & Topbar Responsive
-6. `web/src/app/sidebar.tsx` — at `<md` make top bar `position: sticky; top: 0; z-index: 100`; hide rail
-7. `web/src/app/topbar.tsx` — fluid tool fields, wrap/stack at narrow widths
+The shared parts live in `web/src/app/drawer.tsx`: the backdrop, the focus
+management and the pure focus trap (`nextFocusTarget`), which is unit
+tested in `web/src/app/drawer.test.ts`.
 
-### Phase 3: Catalog Panel
-8. `web/src/app/catalog-panel.tsx` — responsive columns: hide at `<md`, card layout at `<sm`
-9. `web/src/app/panel.tsx` — ensure `panelFrame` allows scroll
+### 1.4 Toolbar fields
 
-### Phase 4: Chart Editor
-10. `web/src/components/chart-editor/chart-editor.tsx` — side panel → drawer at `<lg`; toolbar wrap; remove `overflow: hidden` from gridPanel
-11. `web/src/components/chart-editor/editor-toolbar.tsx` — fluid fields
-12. `web/src/components/chart-editor/note-grid.tsx` — ensure horizontal scroll works (remove parent overflow clipping)
-13. `web/src/components/chart-editor/validation-panel.tsx` — verify responsive
+Fixed widths became fluid: `minWidth` + `maxWidth` + `width: 100%` for
+the inputs, `minWidth` + `flexShrink: 0` for the selects. The rows already
+had `flexWrap: "wrap"`, so the controls now wrap instead of overflowing.
 
-### Phase 5: Song Publisher
-14. `web/src/components/song-publisher/song-publisher.tsx` — side panel → drawer at `<lg`
-15. `web/src/components/song-publisher/song-metadata-form.tsx` — fluid fields
-16. `web/src/components/song-publisher/publish-dialog.tsx` — verify responsive
+### 1.5 Catalog columns
 
-### Phase 6: New Song Flow
-17. `web/src/components/new-song/chart-step.tsx` — inherits ChartEditor responsiveness
-18. `web/src/components/new-song/stepper.tsx` — verify wrap
-19. `web/src/components/new-song/song-info-step.tsx` — verify grid wrap
-20. `web/src/components/new-song/publish-step.tsx` — verify grid wrap
+A table cannot become a card list with CSS alone, so the panel renders the
+songs twice and shows one of the two: the table from `md` up, the card
+list below `md`. The invisible copy is `display: none` and therefore
+invisible to the screen reader and to the tab order.
 
-### Phase 7: Keyboard & Focus
-21. Add focus management to drawer components (ChartEditor side, Publisher side)
-22. Ensure Konva canvas focusable with visible ring
-23. Verify Tab order on all screens
-24. Add focus restore on drawer/dialog close
+### 1.6 Note grid
 
-### Phase 8: Verification
-25. Run type check, tests, lint
-26. Manual viewport testing at all 5 target sizes
-27. Capture before/after screenshots
+The horizontal scroll of the stage already existed (`scrollArea` has
+`overflow: auto` and the stage keeps the 8 × 56px floor). The parents
+that clipped it were relaxed, and the grid became focusable so the
+shortcuts have a visible anchor.
 
----
+### 1.7 Focus management
 
-## Risk Mitigation
+`useDrawerFocus` in `web/src/app/drawer.tsx`:
+
+* opening → the focus moves to the first control of the panel,
+* `Tab` / `Shift+Tab` → the focus cycles inside the panel,
+* `Escape` → the drawer closes and the event is stopped, so the editor
+  does not clear the note selection at the same time,
+* closing → the focus returns to the trigger.
+
+## 2. Implementation phases (as done)
+
+1. **Global scroll foundation** — `app.css` (`body { overflow: auto }`,
+   `:focus-visible` ring), `app-shell.tsx` (`minHeight`, block layout below
+   `md`).
+2. **Sidebar and topbar** — sticky horizontal bar below `md`, fluid tool
+   fields.
+3. **Catalog panel** — card list below `md`, wrapping titles, breakable
+   error text in `panel.tsx`.
+4. **Chart editor** — inspector drawer, fluid toolbar, focusable note grid.
+5. **Song publisher** — inspector drawer, focus management, `aria-expanded`
+   on the toggle.
+6. **Keyboard and focus** — shared drawer module, global focus ring.
+7. **Verification** — `tsc`, `npm test`, `vp check`; the visual gate stays
+   open for #75.
+
+## 3. Risks
 
 | Risk | Mitigation |
 |------|------------|
-| Breaking existing desktop layout | Test at 1440px first; changes are additive (drawer only at `<lg`) |
-| Konva canvas focus ring | Use CSS `:focus-visible` on canvas wrapper, not Konva internal |
-| Drawer focus trap conflicts with Ark UI Dialog | Use same pattern as Ark UI (`Dialog` already handles this) |
-| Scroll jumping when drawer opens | `body` overflow stays `auto`; drawer is `fixed` overlay |
-| 200% zoom text wrapping | Use `rem` units throughout; test at 200% |
+| A drawer without a visible close button traps the user | the panel has its own close button, the backdrop closes it, `Escape` closes it |
+| The focus leaves the drawer through the page behind it | the trap is enforced on `Tab` and the panel is `aria-modal` |
+| The inspector is mounted twice (forms, iframes) | one element, two layouts (§1.3) |
+| A sticky sidebar inside a grid never travels | the shell becomes a block below `md` (§1.2) |
+| The catalog card list duplicates content for the screen reader | the invisible copy is `display: none` |
+| A closed drawer keeps its controls in the tab order | `visibility: hidden` removes them |
 
----
+## 4. Dependencies
 
-## Dependencies
-- No new dependencies. Uses existing: Panda CSS responsive syntax, Ark UI Dialog patterns, React refs for focus.
-- Design tokens only — no hardcoded colors/spacing.
+No new dependency. Panda CSS conditions, Ark UI (dialog), React refs and
+`ResizeObserver` (already used by the note grid) are enough.

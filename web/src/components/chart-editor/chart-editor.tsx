@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Field, Input } from "@/components/ui";
+import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartJson } from "@/lib/chart/import";
@@ -47,6 +48,7 @@ const body = css({
   display: "grid",
   gap: "3",
   gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
+  gridTemplateRows: "minmax(0, 1fr)",
   minHeight: "0",
   p: "3",
 });
@@ -78,11 +80,57 @@ const playheadReadout = css({
 });
 
 const side = css({
-  display: { base: "none", lg: "flex" },
+  display: "flex",
   flexDirection: "column",
   gap: "3",
-  minHeight: "0",
+  minHeight: 0,
   overflowY: "auto",
+  /**
+   * Narrow viewports: the inspector is an off-canvas drawer over the work
+   * area (issue #74). Wide viewports: the persistent right column.
+   */
+  bg: { base: "#1b1b1b", lg: "transparent" },
+  borderLeftColor: { base: "#2d2d2d", lg: "transparent" },
+  borderLeftWidth: { base: "1px", lg: "0px" },
+  bottom: { base: "0", lg: "auto" },
+  height: { base: "100dvh", lg: "auto" },
+  maxWidth: "100%",
+  position: { base: "fixed", lg: "static" },
+  right: { base: "0", lg: "auto" },
+  top: { base: "0", lg: "auto" },
+  width: { base: "17rem", lg: "17rem" },
+  zIndex: { base: "popover", lg: "auto" },
+});
+
+/** Closed drawers leave the tab order and sit behind the right edge. */
+const sideClosed = css({
+  transform: { base: "translateX(100%)", lg: "none" },
+  visibility: { base: "hidden", lg: "visible" },
+});
+
+const sideOpen = css({
+  transform: { base: "none", lg: "none" },
+  visibility: { base: "visible", lg: "visible" },
+});
+
+const sideHeader = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "2",
+  justifyContent: "space-between",
+});
+
+const sideClose = css({
+  alignItems: "center",
+  bg: "#3a3a3a",
+  borderRadius: "8px",
+  color: "#ffffff",
+  display: { base: "flex", lg: "none" },
+  height: "sizes.7",
+  justifyContent: "center",
+  width: "sizes.7",
+  _hover: { bg: "#454545" },
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "2px" },
 });
 
 const sideFrame = css({
@@ -93,38 +141,6 @@ const sideFrame = css({
   gap: "2",
   padding: "3",
   width: { base: "100%", lg: "17rem" },
-});
-
-const drawerBackdrop = css({
-  bg: "black/50",
-  display: "flex",
-  justifyContent: "flex-end",
-  inset: "0",
-  position: "fixed",
-  zIndex: "modal",
-});
-
-const drawerPanel = css({
-  bg: "#1b1b1b",
-  borderLeftColor: "#2d2d2d",
-  borderLeftWidth: "1px",
-  display: "flex",
-  flexDirection: "column",
-  height: "100dvh",
-  maxWidth: "100%",
-  minWidth: "0",
-  overflowY: "auto",
-  width: "17rem",
-});
-
-const drawerHeader = css({
-  alignItems: "center",
-  borderBottomColor: "#2d2d2d",
-  borderBottomWidth: "1px",
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "3",
-  px: "3",
 });
 
 const sideTitle = css({
@@ -178,6 +194,15 @@ export function ChartEditor({
   const [isSideOpen, setIsSideOpen] = useState(false);
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
+  const sideRef = useRef<HTMLElement | null>(null);
+
+  // The inspector is a drawer below the `lg` breakpoint: the focus enters it
+  // on open, stays inside it and returns to the trigger when it closes.
+  useDrawerFocus({
+    open: isSideOpen,
+    panelRef: sideRef,
+    onClose: useCallback(() => setIsSideOpen(false), []),
+  });
 
   // The callbacks are read through a ref, so a parent that builds a new
   // function on every render does not restart the effects below.
@@ -314,10 +339,8 @@ export function ChartEditor({
       }
 
       if (event.key === "Escape") {
-        if (isSideOpen) {
-          setIsSideOpen(false);
-          return;
-        }
+        // The drawer closes itself and stops the event before it reaches
+        // this handler; here Escape only clears the note selection.
         setSelectedIndex(null);
         return;
       }
@@ -375,7 +398,7 @@ export function ChartEditor({
         onImportFile={handleImportFile}
         onExport={handleExport}
         onDeleteSelected={handleDeleteSelected}
-        onToggleSide={() => setIsSideOpen(true)}
+        onToggleSide={() => setIsSideOpen((current) => !current)}
       />
 
       <div className={body}>
@@ -408,7 +431,25 @@ export function ChartEditor({
           )}
         </section>
 
-        <aside className={side}>
+        <aside
+          className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
+          ref={sideRef}
+          role={isSideOpen ? "dialog" : undefined}
+          aria-modal={isSideOpen ? true : undefined}
+          aria-label="Editor sidebar"
+        >
+          <div className={sideHeader}>
+            <h3 className={sideTitle}>Editor tools</h3>
+            <button
+              type="button"
+              className={sideClose}
+              onClick={() => setIsSideOpen(false)}
+              aria-label="Close the editor sidebar"
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+
           <section className={sideFrame}>
             <h3 className={sideTitle}>Preview</h3>
             <Field.Root>
@@ -448,67 +489,7 @@ export function ChartEditor({
           <ValidationPanel issues={issues} />
         </aside>
 
-        {isSideOpen && (
-          <div
-            className={drawerBackdrop}
-            onClick={() => setIsSideOpen(false)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Editor sidebar"
-          >
-            <div className={drawerPanel} onClick={(e) => e.stopPropagation()}>
-              <div className={drawerHeader}>
-                <h3 className={sideTitle}>Editor tools</h3>
-                <Button
-                  className={buttonSecondary}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsSideOpen(false)}
-                  aria-label="Close sidebar"
-                >
-                  <span aria-hidden="true">✕</span>
-                </Button>
-              </div>
-              <section className={sideFrame}>
-                <h3 className={sideTitle}>Preview</h3>
-                <Field.Root>
-                  <Field.Label className={fieldLabel}>YouTube video</Field.Label>
-                  <Input
-                    className={inputBox}
-                    value={youtubeInput}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    onChange={(event) => setYoutubeInput(event.currentTarget.value)}
-                    onBlur={() => {
-                      const parsed = parseYouTubeId(youtubeInput);
-                      if (parsed) {
-                        setYoutubeId(parsed);
-                      }
-                    }}
-                  />
-                  {youtubeSummary ? <Field.HelperText>{youtubeSummary}</Field.HelperText> : null}
-                </Field.Root>
-
-                <YouTubePreview
-                  ref={previewRef}
-                  videoId={youtubeId}
-                  onTimeUpdate={setPlayheadSec}
-                  onPlayingChange={() => {}}
-                />
-
-                <Button
-                  className={buttonSecondary}
-                  size="sm"
-                  onClick={() => previewRef.current?.seekTo(0)}
-                  data-testid="rewind-button"
-                >
-                  Back to start
-                </Button>
-              </section>
-
-              <ValidationPanel issues={issues} />
-            </div>
-          </div>
-        )}
+        {isSideOpen ? <DrawerBackdrop onClose={() => setIsSideOpen(false)} /> : null}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ const sidebar = css({
   px: "3",
   position: { base: "sticky", md: "static" },
   top: { base: "0", md: "auto" },
-  zIndex: { base: "sticky", md: "auto" },
+  zIndex: { base: "sticky", md: "base" },
 });
 
 const brand = css({

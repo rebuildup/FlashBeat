@@ -8,7 +8,12 @@ import { loadCatalog, type CatalogMode } from "./catalog";
 import type { SongSummary } from "./types";
 
 const shell = css({
-  display: "grid",
+  /**
+   * Narrow viewports: the shell is a plain block so the navigation can stick
+   * to the top of the document while the page scrolls. Wide viewports: the
+   * grid of the persistent rail and the work area.
+   */
+  display: { base: "block", md: "grid" },
   gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { base: "auto 1fr", md: "1fr" },
   minHeight: "100dvh",
@@ -29,7 +34,6 @@ const content = css({
   minHeight: "0",
   overflowY: "auto",
   p: "4",
-  pt: { base: "16", md: "4" },
 });
 
 export function AppShell({

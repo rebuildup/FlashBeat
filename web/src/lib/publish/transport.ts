@@ -22,10 +22,7 @@ export interface PublishTransport {
   fetch: PublishFetch;
 }
 
-export function resolvePublishTransport(
-  apiOrigin?: string,
-  allowFixture = false,
-): PublishTransport {
+export function resolvePublishTransport(apiOrigin?: string, allowFixture = false): PublishTransport {
   const origin = (apiOrigin ?? "").trim();
 
   if (origin === "fixture" && !allowFixture) {
