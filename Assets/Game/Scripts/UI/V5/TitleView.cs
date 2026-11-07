@@ -126,21 +126,21 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
-                Input.GetKeyDown(KeyCode.Space))
+            // 決定 (Space/Enter) はメニュー操作設定 (KeyActions.Start) に従う (0.1.9)。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Start))
             {
                 Activate(selected);
                 return;
             }
 
-            // 旧レター短縮キー (O/E) も維持 (Space は GameStart 扱いなので除外)。
-            if (Input.GetKeyDown(KeyCode.O))
+            // 旧レター短縮キー (O/E) もメニュー操作設定に従う (Space は GameStart 扱いなので除外)。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Option))
             {
                 ActivateLabel("Option");
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.E))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Exit))
             {
                 ActivateLabel("Exit");
             }

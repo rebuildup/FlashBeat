@@ -209,7 +209,8 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.R))
+            // リトライ (R) と決定 (Space) はメニュー操作設定 (KeyActions) に従う (0.1.9)。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Retry))
             {
                 onRetry();
                 return;
@@ -221,7 +222,7 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
             {
                 onSelect();
                 return;

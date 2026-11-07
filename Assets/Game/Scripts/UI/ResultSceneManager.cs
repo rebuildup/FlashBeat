@@ -108,11 +108,11 @@ public class ResultSceneManager : MonoBehaviour
         {
             return; // 入力は v5 ResultView が処理する (二重処理防止)
         }
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
             SelectScene();
         }
-        if (Input.GetKeyDown(KeyCode.R))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Retry))
         {
             Retry();
         }

@@ -616,7 +616,7 @@ public class MusicManager : MonoBehaviour
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
 
             bool canStart = mediaReady || Time.time - sceneStartTime > FallbackStartTimeout;
-            if (canStart && Input.GetKeyDown(KeyCode.Space))
+            if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
             {
                 StartPlayback();
             }

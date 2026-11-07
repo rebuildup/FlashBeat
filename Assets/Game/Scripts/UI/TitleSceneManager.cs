@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Video;
 
 /// <summary>
@@ -25,6 +25,7 @@ public class TitleSceneManager : MonoBehaviour
 
         // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
         // 入力は TitleView が処理し、このクラスの public メソッドをコールバックで呼ぶ。
+        // キー割り当て (0.1.9) は TitleView が KeyActions 経由で参照する。
         var legacy = GameObject.Find("Canvas");
         if (legacy != null) legacy.SetActive(false);
         FlashBeat.UI.V5.TitleView.Build(SelectScene, OptionScene, EndGame, playSound);

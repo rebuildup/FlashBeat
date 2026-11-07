@@ -117,11 +117,21 @@ namespace FlashBeat.UI.V5
         {
             if (HandleWheel(filteredIds)) return;
 
-            if (Input.GetKeyDown(KeyCode.UpArrow)) { Sound(); MoveSelection(-1, filteredIds); }
-            else if (Input.GetKeyDown(KeyCode.DownArrow)) { Sound(); MoveSelection(1, filteredIds); }
+            // メニュー操作設定 (KeyActions) に従う (0.1.9)。←→ (NavPrev/NavNext) と
+            // レーンキーの左右半分 (0.1.9 のカスタム割り当て) でも選択を移動できる。
+            if (Input.GetKeyDown(KeyCode.UpArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavPrev) ||
+                KeyBindings.IsAnyLaneKeyDown(0, 4))
+            {
+                Sound(); MoveSelection(-1, filteredIds);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavNext) ||
+                KeyBindings.IsAnyLaneKeyDown(4, 8))
+            {
+                Sound(); MoveSelection(1, filteredIds);
+            }
             else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) { Sound(); EnterReady(); }
-            else if (Input.GetKeyDown(KeyCode.Space)) { Sound(); StartSelected(); }
-            else if (Input.GetKeyDown(KeyCode.Escape)) { Sound(); ToTitle(); }
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)) { Sound(); StartSelected(); }
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Back)) { Sound(); ToTitle(); }
             else if (Input.GetKeyDown(KeyCode.Tab)) { Sound(); state = ScreenState.Typing; Rebuild(); }
             else if (Input.GetKeyDown(KeyCode.F2)) { Sound(); EnterHistory(); }
             else if (Input.GetKeyDown(KeyCode.F3)) { Sound(); EnterRanking(); }

@@ -16,6 +16,8 @@ public class KeyConfigUI : MonoBehaviour
     private const float PanelWidth = 1100f;
     private const float PanelHeight = 900f;
     private const float RowHeight = 66f;
+    private const float ActionRowHeight = 44f;
+    private const float ActionRowFontSize = 22f;
     private const float RowFontSize = 26f;
     private const float HeaderFontSize = 32f;
     private const float MessageFontSize = 24f;
@@ -37,7 +39,15 @@ public class KeyConfigUI : MonoBehaviour
     private TextMeshProUGUI testLabel;
     private TextMeshProUGUI hintLabel;
     private TextMeshProUGUI layoutLabel;
+    private RectTransform laneRowsRoot;
+    private RectTransform actionRowsRoot;
+    private readonly List<UnityEngine.UI.Image> tabBackgrounds = new List<UnityEngine.UI.Image>();
+    private readonly List<TextMeshProUGUI> actionRows = new List<TextMeshProUGUI>();
+    private readonly List<UnityEngine.UI.Image> actionRowBackgrounds = new List<UnityEngine.UI.Image>();
+    private readonly List<UnityEngine.UI.Image> actionAccentBars = new List<UnityEngine.UI.Image>();
+    private int page; // 0 = レーン, 1 = メニュー操作
     private int selectedLane;
+    private int selectedAction;
     private bool listening;
     private bool confirmReset;
     private bool open;
@@ -75,6 +85,25 @@ public class KeyConfigUI : MonoBehaviour
         }
     }
 
+    public static int TestSelectedAction
+    {
+        get
+        {
+            var ui = FindObjectOfType<KeyConfigUI>();
+            return ui != null ? ui.selectedAction : -1;
+        }
+    }
+
+    /// <summary>現在のページ (0 = レーン, 1 = メニュー操作)。</summary>
+    public static int TestPage
+    {
+        get
+        {
+            var ui = FindObjectOfType<KeyConfigUI>();
+            return ui != null ? ui.page : -1;
+        }
+    }
+
     public static bool TestListening
     {
         get
@@ -89,6 +118,13 @@ public class KeyConfigUI : MonoBehaviour
         var ui = FindObjectOfType<KeyConfigUI>();
         if (ui == null || lane < 0 || lane >= ui.rows.Count || ui.rows[lane] == null) { return null; }
         return ui.rows[lane].transform.parent.gameObject;
+    }
+
+    public static GameObject TestActionRowObject(int index)
+    {
+        var ui = FindObjectOfType<KeyConfigUI>();
+        if (ui == null || index < 0 || index >= ui.actionRows.Count || ui.actionRows[index] == null) { return null; }
+        return ui.actionRows[index].transform.parent.gameObject;
     }
 
 
@@ -177,11 +213,13 @@ public class KeyConfigUI : MonoBehaviour
         BuildHint();
         SetOpen(false);
         KeyBindings.Changed += RefreshRows;
+        KeyActions.Changed += RefreshRows;
     }
 
     private void OnDestroy()
     {
         KeyBindings.Changed -= RefreshRows;
+        KeyActions.Changed -= RefreshRows;
     }
 
     private void Update()
@@ -250,7 +288,8 @@ public class KeyConfigUI : MonoBehaviour
             MonoBehaviour behaviour = all[i];
             if (behaviour == null || behaviour == this || !behaviour.enabled) continue;
             string typeName = behaviour.GetType().Name;
-            if (typeName.EndsWith("SceneManager"))
+            if (typeName.EndsWith("SceneManager")
+                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView")
             {
                 behaviour.enabled = false;
                 suspended.Add(behaviour);
@@ -287,9 +326,13 @@ public class KeyConfigUI : MonoBehaviour
     {
         if (!value && open)
         {
-            if (!KeyBindings.Save())
+            bool lanesSaved = KeyBindings.Save();
+            bool actionsSaved = KeyActions.Save();
+            if (!lanesSaved || !actionsSaved)
             {
-                messageLabel.text = "空のレーンがあるため閉じられません (全レーンに 1 つ以上キーを割り当ててください)";
+                messageLabel.text = !lanesSaved
+                    ? "空のレーンがあるため保存できません (全レーンに 1 個以上キーを割り当ててください)"
+                    : "キーが空の操作があるため保存できません (全ての操作に 1 個以上キーを割り当ててください)";
                 return; // 閉じないで保存を促す
             }
         }
@@ -303,6 +346,7 @@ public class KeyConfigUI : MonoBehaviour
             listening = false;
             confirmReset = false;
             selectedLane = Mathf.Clamp(selectedLane, 0, KeyBindings.LaneCount - 1);
+            selectedAction = Mathf.Clamp(selectedAction, 0, KeyActions.All.Length - 1);
             RefreshRows();
             UpdateMessage();
         }
@@ -310,12 +354,16 @@ public class KeyConfigUI : MonoBehaviour
 
     private void HandleInput()
     {
-        // レーン移動 (割り当て中でも有効。矢印・Tab は予約キーなので割り当て対象にならない)。
-        if (KeyDown(KeyCode.UpArrow)) { MoveLane(-1); return; }
-        if (KeyDown(KeyCode.DownArrow) || KeyDown(KeyCode.Tab)) { MoveLane(1); return; }
+        // ページ切替 (←→ / PageUp / PageDown。矢印・PageUp/Down は予約キーなので割り当て対象にならない)。
+        if (KeyDown(KeyCode.LeftArrow) || KeyDown(KeyCode.PageUp)) { SwitchPage(page - 1); return; }
+        if (KeyDown(KeyCode.RightArrow) || KeyDown(KeyCode.PageDown)) { SwitchPage(page + 1); return; }
+
+        // 行移動 (割り当て中でも有効。矢印・Tab は予約キーなので割り当て対象にならない)。
+        if (KeyDown(KeyCode.UpArrow)) { MoveSelection(-1); return; }
+        if (KeyDown(KeyCode.DownArrow) || KeyDown(KeyCode.Tab)) { MoveSelection(1); return; }
         float wheel = Input.mouseScrollDelta.y;
-        if (wheel > 0.5f) { MoveLane(-1); return; }
-        if (wheel < -0.5f) { MoveLane(1); return; }
+        if (wheel > 0.5f) { MoveSelection(-1); return; }
+        if (wheel < -0.5f) { MoveSelection(1); return; }
 
         if (listening)
         {
@@ -329,30 +377,17 @@ public class KeyConfigUI : MonoBehaviour
             return;
         }
 
-        if (KeyDown(KeyCode.UpArrow))
-        {
-            confirmReset = false;
-            selectedLane = (selectedLane + KeyBindings.LaneCount - 1) % KeyBindings.LaneCount;
-            RefreshRows();
-            UpdateMessage();
-        }
-        else if (KeyDown(KeyCode.DownArrow))
-        {
-            confirmReset = false;
-            selectedLane = (selectedLane + 1) % KeyBindings.LaneCount;
-            RefreshRows();
-            UpdateMessage();
-        }
-        else if (KeyDown(KeyCode.Return) || KeyDown(KeyCode.KeypadEnter))
+        if (KeyDown(KeyCode.Return) || KeyDown(KeyCode.KeypadEnter))
         {
             confirmReset = false;
             listening = true;
+            RefreshRows();
             UpdateMessage();
         }
         else if (KeyDown(KeyCode.Backspace))
         {
             confirmReset = false;
-            ClearLane();
+            ClearSelection();
         }
         else if (KeyDown(KeyCode.R))
         {
@@ -366,27 +401,72 @@ public class KeyConfigUI : MonoBehaviour
         CaptureTestKey();
     }
 
-    /// <summary>レーンを移動する。割り当て中なら終了して選択だけ動かす (Enter / クリックで再開)。</summary>
-    private void MoveLane(int delta)
+    private int RowCount()
     {
+        return page == 0 ? KeyBindings.LaneCount : KeyActions.All.Length;
+    }
+
+    /// <summary>ページを切り替える (割り当て中なら終了する)。</summary>
+    private void SwitchPage(int target)
+    {
+        int next = target % 2;
+        if (next < 0) { next += 2; }
+        if (next == page) { return; }
         confirmReset = false;
         listening = false;
-        selectedLane = (selectedLane + delta + KeyBindings.LaneCount) % KeyBindings.LaneCount;
+        page = next;
         RefreshRows();
         UpdateMessage();
     }
 
-    /// <summary>行クリック: そのレーンを選んで割り当て開始。選択中の行を再度クリックすると割り当て終了。</summary>
+    /// <summary>選択行を移動する。割り当て中なら終了して選択だけ動かす (Enter / クリックで再開)。</summary>
+    private void MoveSelection(int delta)
+    {
+        int count = RowCount();
+        confirmReset = false;
+        listening = false;
+        if (page == 0)
+        {
+            selectedLane = (selectedLane + delta + count) % count;
+        }
+        else
+        {
+            selectedAction = (selectedAction + delta + count) % count;
+        }
+        RefreshRows();
+        UpdateMessage();
+    }
+
+    /// <summary>行クリック: その行を選んで割り当て開始。選択中の行を再度クリックすると割り当て終了。</summary>
     private void OnRowClicked(int lane)
     {
         confirmReset = false;
-        if (selectedLane == lane && listening)
+        if (page == 0 && selectedLane == lane && listening)
         {
             listening = false;
         }
         else
         {
+            page = 0;
             selectedLane = lane;
+            listening = true;
+        }
+        RefreshRows();
+        UpdateMessage();
+    }
+
+    /// <summary>メニュー操作行クリック: その操作を選んで割り当て開始。選択中の行を再度クリックすると終了。</summary>
+    private void OnActionRowClicked(int index)
+    {
+        confirmReset = false;
+        if (page == 1 && selectedAction == index && listening)
+        {
+            listening = false;
+        }
+        else
+        {
+            page = 1;
+            selectedAction = index;
             listening = true;
         }
         RefreshRows();
@@ -402,25 +482,46 @@ public class KeyConfigUI : MonoBehaviour
             return;
         }
         confirmReset = false;
-        KeyBindings.ResetToDefaults();
-        messageLabel.text = "キー割り当てを初期化しました";
-    }
-
-    private void ClearLane()
-    {
-        // 編集中はレーンを空にできるが、保存 (閉じる) には全レーンにキーが必要。
-        if (KeyBindings.SetLane(selectedLane, new KeyCode[0]))
+        if (page == 0)
         {
-            RefreshRows();
-            messageLabel.text = "レーン " + (selectedLane + 1) + " のキーを消しました (閉じる前にキーを割り当ててください)";
+            KeyBindings.ResetToDefaults();
+            messageLabel.text = "キー割り当てを初期化しました";
         }
         else
         {
-            messageLabel.text = "レーンを空にできません";
+            KeyActions.ResetToDefaults();
+            messageLabel.text = "メニュー操作の割り当てを初期化しました";
         }
     }
 
-    /// <summary>listen モード中に押されたキーをレーンに割り当てる (トグル)。</summary>
+    /// <summary>選択中の行 (レーンまたは操作) のキーを消す。
+    /// 編集中は空にできるが、保存 (閉じる) には全レーン・全操作にキーが必要。</summary>
+    private void ClearSelection()
+    {
+        if (page == 0)
+        {
+            if (KeyBindings.SetLane(selectedLane, new KeyCode[0]))
+            {
+                RefreshRows();
+                messageLabel.text = "レーン " + (selectedLane + 1) + " のキーを消しました (閉じる前にキーを割り当ててください)";
+            }
+            else
+            {
+                messageLabel.text = "レーンを空にできません";
+            }
+        }
+        else
+        {
+            KeyActions.KeyAction action = KeyActions.All[selectedAction];
+            KeyActions.Set(action, new KeyCode[0]);
+            RefreshRows();
+            messageLabel.text = "『" + KeyActions.GetDisplayName(action) + "』のキーを消しました (閉じる前にキーを割り当ててください)";
+        }
+    }
+
+    /// <summary>listen モード中に押されたキーを選択中の行に割り当てる (トグル)。
+    /// メニュー操作ページでは予約キー (Esc/矢印/Tab 以外) も候補にする —
+    /// 演奏中に使う操作 (再生開始など) は予約キーしか割り当てできないため。</summary>
     private void CapturePressedKeys()
     {
         KeyCode[] candidates = GetBindableKeys();
@@ -430,16 +531,85 @@ public class KeyConfigUI : MonoBehaviour
             if (!KeyDown(key)) continue;
 
             ShowTestKey(key);
-            if (KeyBindings.ToggleKey(selectedLane, key))
+            if (page == 0)
             {
-                RefreshRows();
-                UpdateMessage();
+                if (KeyBindings.ToggleKey(selectedLane, key))
+                {
+                    RefreshRows();
+                    UpdateMessage();
+                }
+                else
+                {
+                    messageLabel.text = "そのキーは割り当てできません (レーンには最低 1 キー必要です)";
+                }
             }
             else
             {
-                messageLabel.text = "そのキーは割り当てできません (レーンからキーがなくなります)";
+                KeyActions.KeyAction action = KeyActions.All[selectedAction];
+                if (ToggleActionKey(action, key))
+                {
+                    RefreshRows();
+                    UpdateMessage();
+                }
+                else
+                {
+                    messageLabel.text = KeyActions.LastError;
+                }
             }
         }
+
+        if (page == 1)
+        {
+            for (int i = 0; i < ReservedCandidates.Length; i++)
+            {
+                KeyCode key = ReservedCandidates[i];
+                if (!KeyDown(key)) continue;
+
+                ShowTestKey(key);
+                KeyActions.KeyAction action = KeyActions.All[selectedAction];
+                if (ToggleActionKey(action, key))
+                {
+                    RefreshRows();
+                    UpdateMessage();
+                }
+                else
+                {
+                    messageLabel.text = KeyActions.LastError;
+                }
+            }
+        }
+    }
+
+    /// <summary>メニュー操作ページで listen 中に割り当て可能な予約キー
+    /// (Esc は listen 中止、矢印/Tab/PageUp/PageDown はページ内移動に使うため対象外)。</summary>
+    private static readonly KeyCode[] ReservedCandidates = new KeyCode[]
+    {
+        KeyCode.Space, KeyCode.Return, KeyCode.KeypadEnter, KeyCode.Backspace,
+        KeyCode.F1, KeyCode.F3, KeyCode.F4, KeyCode.F5, KeyCode.F6, KeyCode.F7,
+        KeyCode.F8, KeyCode.F9, KeyCode.F10, KeyCode.F11, KeyCode.F12,
+        KeyCode.F13, KeyCode.F14, KeyCode.F15
+    };
+
+    /// <summary>操作へのキー トグル: 割り当て済みなら外し、未割り当てなら足す。
+    /// 最後の 1 個を外すのは許可する (閉じる時の保存が空操作を拒否する)。</summary>
+    private bool ToggleActionKey(KeyActions.KeyAction action, KeyCode key)
+    {
+        KeyCode[] currentKeys = KeyActions.Get(action);
+        bool had = false;
+        int index = -1;
+        for (int i = 0; i < currentKeys.Length; i++)
+        {
+            if (currentKeys[i] == key) { had = true; index = i; break; }
+        }
+
+        var next = new KeyCode[had ? currentKeys.Length - 1 : currentKeys.Length + 1];
+        int w = 0;
+        for (int i = 0; i < currentKeys.Length; i++)
+        {
+            if (i != index) { next[w++] = currentKeys[i]; }
+        }
+        if (!had) { next[next.Length - 1] = key; }
+        return KeyActions.Set(action, next);
     }
 
     /// <summary>listen モード外でも押されたキーがどのレーンか表示する (動作確認用)。</summary>
@@ -500,13 +670,27 @@ public class KeyConfigUI : MonoBehaviour
 
     private void RefreshRows()
     {
+        if (laneRowsRoot != null && laneRowsRoot.gameObject.activeSelf != (page == 0))
+        {
+            laneRowsRoot.gameObject.SetActive(page == 0);
+        }
+        if (actionRowsRoot != null && actionRowsRoot.gameObject.activeSelf != (page == 1))
+        {
+            actionRowsRoot.gameObject.SetActive(page == 1);
+        }
+        if (tabBackgrounds.Count == 2)
+        {
+            tabBackgrounds[0].color = (page == 0) ? SelectedRowColor : IdleRowColor;
+            tabBackgrounds[1].color = (page == 1) ? SelectedRowColor : IdleRowColor;
+        }
+
         for (int lane = 0; lane < rows.Count; lane++)
         {
             var label = rows[lane];
             if (label == null) continue;
-            bool selected = lane == selectedLane && open;
+            bool selected = page == 0 && lane == selectedLane && open;
             string text = BuildLaneLabel(lane);
-            if (lane == selectedLane && listening) text += "  キーを押してください…";
+            if (page == 0 && lane == selectedLane && listening) text += "  キーを押してください…";
             label.text = text;
             label.color = selected ? new Color(1f, 0.85f, 0.3f) : Color.white;
             if (rowBackgrounds.Count > lane && rowBackgrounds[lane] != null)
@@ -518,6 +702,26 @@ public class KeyConfigUI : MonoBehaviour
                 accentBars[lane].gameObject.SetActive(selected);
             }
         }
+
+        for (int i = 0; i < actionRows.Count; i++)
+        {
+            var label = actionRows[i];
+            if (label == null) continue;
+            bool selected = page == 1 && i == selectedAction && open;
+            string text = BuildActionLabel(i);
+            if (page == 1 && i == selectedAction && listening) text += "  キーを押してください…";
+            label.text = text;
+            label.color = selected ? new Color(1f, 0.85f, 0.3f) : Color.white;
+            if (actionRowBackgrounds.Count > i && actionRowBackgrounds[i] != null)
+            {
+                actionRowBackgrounds[i].color = selected ? SelectedRowColor : IdleRowColor;
+            }
+            if (actionAccentBars.Count > i && actionAccentBars[i] != null)
+            {
+                actionAccentBars[i].gameObject.SetActive(selected);
+            }
+        }
+
         UpdateLayoutStatus();
     }
 
@@ -540,12 +744,18 @@ public class KeyConfigUI : MonoBehaviour
     /// <summary>listen モード中はアクセント バーを点滅させる。</summary>
     private void UpdateBlink()
     {
-        if (accentBars.Count == 0) return;
-        for (int lane = 0; lane < accentBars.Count; lane++)
+        UpdateBlinkBars(accentBars, selectedLane, page == 0);
+        UpdateBlinkBars(actionAccentBars, selectedAction, page == 1);
+    }
+
+    private void UpdateBlinkBars(List<UnityEngine.UI.Image> bars, int selectedIndex, bool activePage)
+    {
+        if (bars.Count == 0) return;
+        for (int i = 0; i < bars.Count; i++)
         {
-            var bar = accentBars[lane];
+            var bar = bars[i];
             if (bar == null) continue;
-            if (lane == selectedLane && listening && open)
+            if (i == selectedIndex && listening && open && activePage)
             {
                 float a = 0.45f + 0.55f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
                 bar.color = new Color(AccentColor.r, AccentColor.g, AccentColor.b, a);
@@ -562,7 +772,9 @@ public class KeyConfigUI : MonoBehaviour
         if (messageLabel == null) return;
         if (listening)
         {
-            messageLabel.text = "レーン " + (selectedLane + 1) + ": キーを押して割り当て (同じキーで解除 / ↑↓・クリックで他のレーン / Esc 終了)";
+            messageLabel.text = (page == 0)
+                ? "レーン " + (selectedLane + 1) + ": キーを押して割り当て (同じキーで解除 / ↑↓・クリックで他のレーン / Esc 終了)"
+                : "『" + KeyActions.GetDisplayName(KeyActions.All[selectedAction]) + "』: キーを押して割り当て (同じキーで解除 / ↑↓・クリックで他の操作 / Esc 終了)";
             messageLabel.color = AccentColor;
         }
         else
@@ -581,6 +793,26 @@ public class KeyConfigUI : MonoBehaviour
         for (int i = 0; i < keys.Length; i++)
         {
             if (i > 0) sb.Append(' ');
+            sb.Append(GetKeyDisplayName(keys[i]));
+        }
+        return sb.ToString();
+    }
+
+    private string BuildActionLabel(int index)
+    {
+        if (index < 0 || index >= KeyActions.All.Length) return string.Empty;
+        KeyActions.KeyAction action = KeyActions.All[index];
+        return KeyActions.GetDisplayName(action) + ":  " + GetKeysText(KeyActions.Get(action));
+    }
+
+    /// <summary>キー配列の表示名 (スラッシュ区切り)。ヘルプ表示 (push space など) と共有する。</summary>
+    public static string GetKeysText(KeyCode[] keys)
+    {
+        if (keys == null || keys.Length == 0) { return "(キーなし)"; }
+        var sb = new StringBuilder();
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (i > 0) sb.Append(" / ");
             sb.Append(GetKeyDisplayName(keys[i]));
         }
         return sb.ToString();
@@ -690,6 +922,21 @@ public class KeyConfigUI : MonoBehaviour
         layoutLabel.color = new Color(1f, 1f, 1f, 0.85f);
         layoutLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
+        // ページ切替タブ (クリックでも ←→ / PageUp / PageDown でも切替)
+        var tabs = new GameObject("PageTabs", typeof(UnityEngine.UI.HorizontalLayoutGroup)).GetComponent<RectTransform>();
+        tabs.SetParent(content, false);
+        var tabsLayout = tabs.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+        tabsLayout.spacing = 8f;
+        tabsLayout.childAlignment = TextAnchor.UpperLeft;
+        tabsLayout.childControlWidth = false;
+        tabsLayout.childControlHeight = false;
+        tabsLayout.childForceExpandWidth = false;
+        tabsLayout.childForceExpandHeight = false;
+        var tabsSize = tabs.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        tabsSize.preferredHeight = 40f;
+        AddPageTab(tabs, "LaneTab", "レーンキー", 0);
+        AddPageTab(tabs, "ActionTab", "メニュー操作", 1);
+
         // 8 レーン行 (固定行高 + 選択ハイライト)
         var rowsRoot = new GameObject("Rows", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         rowsRoot.SetParent(content, false);
@@ -705,10 +952,34 @@ public class KeyConfigUI : MonoBehaviour
         rowsLayout.childForceExpandHeight = false;
         var rowsSize = rowsRoot.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
         rowsSize.preferredHeight = KeyBindings.LaneCount * RowHeight + (KeyBindings.LaneCount - 1) * rowsLayout.spacing;
+        laneRowsRoot = rowsRoot;
 
         for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
         {
             AddRow(rowsRoot, lane);
+        }
+
+        // メニュー操作行 (ページ 2。最初は非表示)
+        var actionsRoot = new GameObject("ActionRows", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
+        actionsRoot.SetParent(content, false);
+        actionsRoot.anchorMin = new Vector2(0f, 1f);
+        actionsRoot.anchorMax = new Vector2(1f, 1f);
+        actionsRoot.pivot = new Vector2(0.5f, 1f);
+        var actionsLayout = actionsRoot.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        actionsLayout.spacing = 4f;
+        actionsLayout.childAlignment = TextAnchor.UpperLeft;
+        actionsLayout.childControlWidth = true;
+        actionsLayout.childControlHeight = true;
+        actionsLayout.childForceExpandWidth = true;
+        actionsLayout.childForceExpandHeight = false;
+        var actionsSize = actionsRoot.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        actionsSize.preferredHeight = KeyActions.All.Length * ActionRowHeight + (KeyActions.All.Length - 1) * actionsLayout.spacing;
+        actionsRoot.gameObject.SetActive(false);
+        actionRowsRoot = actionsRoot;
+
+        for (int i = 0; i < KeyActions.All.Length; i++)
+        {
+            AddActionRow(actionsRoot, i);
         }
 
         messageLabel = AddLabel(content, "KeyConfigMessage", string.Empty, MessageFontSize, TextAlignmentOptions.Left);
@@ -719,7 +990,7 @@ public class KeyConfigUI : MonoBehaviour
         testLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
         var footer = AddLabel(content, "KeyConfigFooter",
-            "↑↓・クリック: レーン　Enter: 割り当て　Esc: 終了　BS: クリア　R: 初期化　F2: 閉じる",
+            "←→ / PageUp / PageDown / タブ: ページ切替　↑↓・クリック: 選択　Enter: 割り当て　Esc: 終了　BS: クリア　R: 初期化　F2: 閉じる",
             FooterFontSize, TextAlignmentOptions.Left);
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
@@ -799,6 +1070,89 @@ public class KeyConfigUI : MonoBehaviour
         rows.Add(tmp);
         rowBackgrounds.Add(background);
         accentBars.Add(barImage);
+    }
+
+    /// <summary>ページ切替タブ (背景色でアクティブページを示す)。</summary>
+    private void AddPageTab(RectTransform parent, string name, string text, int pageIndex)
+    {
+        var tab = new GameObject(name, typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        tab.SetParent(parent, false);
+        var layout = tab.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        layout.preferredHeight = 36f;
+        layout.minWidth = 200f;
+        var background = tab.GetComponent<UnityEngine.UI.Image>();
+        background.color = IdleRowColor;
+        background.raycastTarget = true;
+        var tabButton = tab.gameObject.AddComponent<UnityEngine.UI.Button>();
+        tabButton.transition = UnityEngine.UI.Selectable.Transition.None;
+        tabButton.onClick.AddListener(() => SwitchPage(pageIndex));
+
+        var labelGO = new GameObject("Text", typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(tab, false);
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.fontSize = 22f;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
+        var labelRect = tmp.rectTransform;
+        labelRect.anchorMin = new Vector2(0f, 0f);
+        labelRect.anchorMax = new Vector2(1f, 1f);
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        tabBackgrounds.Add(background);
+    }
+
+    /// <summary>メニュー操作行 (レーン行と同じ構成: 背景 + アクセント バー + テキスト + クリック)。</summary>
+    private void AddActionRow(RectTransform parent, int index)
+    {
+        var row = new GameObject("Action" + index, typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        row.SetParent(parent, false);
+        var rowSize = row.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        rowSize.preferredHeight = ActionRowHeight;
+        rowSize.minHeight = ActionRowHeight;
+        var background = row.GetComponent<UnityEngine.UI.Image>();
+        background.color = IdleRowColor;
+        background.raycastTarget = true;
+        var rowButton = row.gameObject.AddComponent<UnityEngine.UI.Button>();
+        rowButton.transition = UnityEngine.UI.Selectable.Transition.None;
+        int actionIndex = index;
+        rowButton.onClick.AddListener(() => OnActionRowClicked(actionIndex));
+
+        var bar = new GameObject("Accent", typeof(UnityEngine.UI.Image)).GetComponent<RectTransform>();
+        bar.SetParent(row, false);
+        bar.anchorMin = new Vector2(0f, 0f);
+        bar.anchorMax = new Vector2(0f, 1f);
+        bar.pivot = new Vector2(0f, 0.5f);
+        bar.anchoredPosition = Vector2.zero;
+        bar.sizeDelta = new Vector2(8f, 0f);
+        var barImage = bar.GetComponent<UnityEngine.UI.Image>();
+        barImage.color = AccentColor;
+        barImage.raycastTarget = false;
+        bar.gameObject.SetActive(false);
+
+        var labelGO = new GameObject("Text", typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(row, false);
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = BuildActionLabel(index);
+        tmp.fontSize = ActionRowFontSize;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.margin = new Vector4(24f, 0f, 12f, 0f);
+        tmp.raycastTarget = false;
+        if (font != null) tmp.font = font;
+        var labelRect = tmp.rectTransform;
+        labelRect.anchorMin = new Vector2(0f, 0f);
+        labelRect.anchorMax = new Vector2(1f, 1f);
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        actionRows.Add(tmp);
+        actionRowBackgrounds.Add(background);
+        actionAccentBars.Add(barImage);
     }
 
     private void BuildHint()
