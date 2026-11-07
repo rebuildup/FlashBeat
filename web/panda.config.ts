@@ -2,8 +2,9 @@ import { defineConfig } from "@pandacss/dev";
 
 import { green } from "./src/theme/colors/green";
 import { red } from "./src/theme/colors/red";
-import { slate } from "./src/theme/colors/slate";
-import { teal } from "./src/theme/colors/teal";
+import { gray } from "./src/theme/colors/gray";
+import { blue } from "./src/theme/colors/blue";
+import { amber } from "./src/theme/colors/amber";
 import { animationStyles } from "./src/theme/animation-styles";
 import { zIndex } from "./src/theme/tokens/z-index";
 import { shadows } from "./src/theme/tokens/shadows";
@@ -54,8 +55,9 @@ export default defineConfig({
 
   /**
    * Park UI ships its own color system (slate neutrals + one accent palette).
-   * Drop Panda's default 50-950 shades so the app only exposes the Park UI
-   * palette, as required by the festival UI decision.
+   * Drop Panda's default 50-950 shades so the app only exposes the palettes
+   * defined in `src/theme/colors/**` — the Pen v5 mapping recorded in
+   * `docs/design/web-token-mapping.md`.
    */
   plugins: [
     {
@@ -71,7 +73,7 @@ export default defineConfig({
 
   theme: {
     colorPalette: {
-      include: ["gray", "teal", "red", "green"],
+      include: ["gray", "blue", "red", "green", "amber"],
     },
     extend: {
       animationStyles: animationStyles,
@@ -132,7 +134,7 @@ export default defineConfig({
           border: {
             value: {
               _light: "{colors.gray.4}",
-              _dark: "{colors.gray.4}",
+              _dark: "{colors.gray.6}",
             },
           },
 
@@ -144,18 +146,19 @@ export default defineConfig({
           },
 
           /**
-           * Application canvas. The Web Studio is a dark-first tool, so the
-           * canvas follows the neutral Park UI surface scale.
+           * Application canvas. Pen v5 `bg #1B1B1B`; the recessed surfaces
+           * (panels, lists) sit on `gray.1` (Pen `well #131313`).
            */
           canvas: {
             value: {
-              _light: "{colors.gray.1}",
-              _dark: "{colors.gray.1}",
+              _light: "{colors.gray.2}",
+              _dark: "{colors.gray.2}",
             },
           },
 
-          teal: teal,
-          gray: slate,
+          blue: blue,
+          amber: amber,
+          gray: gray,
           red: red,
           green: green,
         },

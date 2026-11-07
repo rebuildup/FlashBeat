@@ -1,17 +1,16 @@
-import { Tabs, Toaster, toaster } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "styled-system/css";
+import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
-import { EditorPanel } from "./editor-panel";
-import { PublishPanel } from "./publish-panel";
+import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
 import { Sidebar } from "./sidebar";
-import { LEVEL_FILTERS, Topbar, type LevelFilter } from "./topbar";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import type { SongSummary } from "./types";
 
 const shell = css({
   display: "grid",
-  gridTemplateColumns: "13rem minmax(0, 1fr)",
+  gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
+  gridTemplateRows: { base: "auto 1fr", md: "1fr" },
   height: "100dvh",
   overflow: "hidden",
 });
@@ -33,44 +32,20 @@ const content = css({
   p: "4",
 });
 
-const tabContent = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  minHeight: "0",
-});
-
-const TAB_TITLES = {
-  catalog: {
-    title: "Catalog",
-    subtitle: "Songs published for the festival build",
-  },
-  editor: {
-    title: "Chart editor",
-    subtitle: "Eight lanes, tap notes, one chart version at a time",
-  },
-  publish: {
-    title: "Publish",
-    subtitle: "Metadata and chart snapshot in a single request",
-  },
-} as const;
-
-type TabValue = keyof typeof TAB_TITLES;
-
-function matchesLevel(level: number, filter: LevelFilter) {
-  if (filter === "all") return true;
-  if (filter === "low") return level < 10;
-  if (filter === "mid") return level >= 10 && level < 20;
-  return level >= 20;
-}
-
-export function AppShell({ mode }: { mode: CatalogMode }) {
-  const [tab, setTab] = useState<TabValue>("catalog");
+export function AppShell({ mode, query: initialQuery = "", level: initialLevel = "all", sort: initialSort = "catalog" }: {
+  mode: CatalogMode;
+  /** Initial filter values from the page loader (`/?query=…&level=…&sort=…`). */
+  query?: string;
+  level?: LevelFilter;
+  sort?: SortKey;
+}) {
   const [status, setStatus] = useState<CatalogStatus>("loading");
   const [songs, setSongs] = useState<SongSummary[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const [query, setQuery] = useState("");
-  const [level, setLevel] = useState<LevelFilter>("all");
+  const [query, setQuery] = useState(initialQuery);
+  const [level, setLevel] = useState<LevelFilter>(initialLevel);
+  const [sort, setSort] = useState<SortKey>(initialSort);
+  const [online, setOnline] = useState(() => navigator.onLine);
 
   const refresh = useCallback(() => {
     setStatus("loading");
@@ -91,73 +66,96 @@ export function AppShell({ mode }: { mode: CatalogMode }) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const goOnline = () => {
+      setOnline(true);
+      refresh();
+    };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, [refresh]);
+
+  /** `/` focuses the search field from anywhere outside a text input. */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+        return;
+      }
+      const input = document.getElementById(SEARCH_INPUT_ID);
+      if (input === null) return;
+      event.preventDefault();
+      input.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const visibleSongs = useMemo(
-    () =>
-      songs.filter((song) => {
-        const needle = query.trim().toLowerCase();
-        const matchesQuery =
-          needle.length === 0 ||
-          song.title.toLowerCase().includes(needle) ||
-          song.artist.toLowerCase().includes(needle);
-        return matchesQuery && matchesLevel(song.level, level);
-      }),
-    [songs, query, level],
+    () => filterAndSort(songs, query, level, sort),
+    [songs, query, level, sort],
   );
 
-  const heading = TAB_TITLES[tab];
+  const effectiveStatus: CatalogStatus =
+    !online && status !== "loading" ? "offline" : status;
+
+  /** Arrow keys move row focus inside the catalog list (rows are native links). */
+  const onListKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    const rows = Array.from(
+      event.currentTarget.querySelectorAll<HTMLAnchorElement>("a[data-row-link]"),
+    );
+    if (rows.length === 0) return;
+    const current = rows.indexOf(document.activeElement as HTMLAnchorElement);
+    const next =
+      event.key === "ArrowDown"
+        ? rows[Math.min(current + 1, rows.length - 1)]
+        : rows[Math.max(current - 1, 0)];
+    if (next === undefined || next === document.activeElement) return;
+    event.preventDefault();
+    next.focus();
+    next.scrollIntoView({ block: "nearest" });
+  }, []);
 
   return (
-    <Tabs.Root
-      className={shell}
-      orientation="vertical"
-      value={tab}
-      onValueChange={(details) => setTab(details.value as TabValue)}
-    >
+    <div className={shell}>
       <Sidebar />
 
-      <div className={main}>
+      <main id="studio-content" className={main}>
         <Topbar
-          title={heading.title}
-          subtitle={heading.subtitle}
+          title="Catalog"
+          subtitle="Find a published song to work on its chart."
           query={query}
           onQueryChange={setQuery}
           level={level}
           onLevelChange={setLevel}
-          refreshing={status === "loading"}
-          onRefresh={() => {
-            refresh();
-            toaster.create({
-              title: "Catalog refreshed",
-              description: "Reloaded the published song list.",
-              type: "success",
-            });
-          }}
-          onPublish={() => setTab("publish")}
+          sort={sort}
+          onSortChange={setSort}
         />
 
         <div className={content}>
-          <Tabs.Content value="catalog" className={tabContent}>
-            <CatalogPanel
-              status={status}
-              songs={visibleSongs}
-              errorMessage={errorMessage}
-              onRetry={refresh}
-            />
-          </Tabs.Content>
-
-          <Tabs.Content value="editor" className={tabContent}>
-            <EditorPanel />
-          </Tabs.Content>
-
-          <Tabs.Content value="publish" className={tabContent}>
-            <PublishPanel />
-          </Tabs.Content>
+          <CatalogPanel
+            status={effectiveStatus}
+            songs={visibleSongs}
+            total={songs.length}
+            errorMessage={errorMessage}
+            onRetry={refresh}
+            hasFilters={query.trim().length > 0 || level !== "all"}
+            onClearFilters={() => {
+              setQuery("");
+              setLevel("all");
+            }}
+            onListKeyDown={onListKeyDown}
+          />
         </div>
-      </div>
-
-      <Toaster />
-    </Tabs.Root>
+      </main>
+    </div>
   );
 }
 
-export { LEVEL_FILTERS };

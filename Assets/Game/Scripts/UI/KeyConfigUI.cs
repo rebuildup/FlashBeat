@@ -38,6 +38,7 @@ public class KeyConfigUI : MonoBehaviour
     private TextMeshProUGUI messageLabel;
     private TextMeshProUGUI testLabel;
     private TextMeshProUGUI hintLabel;
+    private TextMeshProUGUI layoutLabel;
     private RectTransform laneRowsRoot;
     private RectTransform actionRowsRoot;
     private readonly List<UnityEngine.UI.Image> tabBackgrounds = new List<UnityEngine.UI.Image>();
@@ -129,6 +130,52 @@ public class KeyConfigUI : MonoBehaviour
 
     private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
 
+    /// <summary>
+    /// 既定のキー割り当て。KeyBindings.DefaultKeys が private のため同じ構成をここに持つ
+    /// (v0.1.2 で Judge.LaneKeys を KeyBindings が複製したのと同じ先例)。
+    /// 変更したら KeyBindings 側も直すこと。KeyConfigLayoutTests がずれを検出する。
+    /// </summary>
+    public static readonly KeyCode[][] DefaultLayout = new KeyCode[][]
+    {
+        new KeyCode[] { KeyCode.Alpha1, KeyCode.Q, KeyCode.A, KeyCode.Z },
+        new KeyCode[] { KeyCode.Alpha2, KeyCode.W, KeyCode.S, KeyCode.X },
+        new KeyCode[] { KeyCode.Alpha3, KeyCode.E, KeyCode.D, KeyCode.C },
+        new KeyCode[] { KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.R, KeyCode.T, KeyCode.F, KeyCode.G, KeyCode.V, KeyCode.B },
+        new KeyCode[] { KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Y, KeyCode.U, KeyCode.H, KeyCode.J, KeyCode.N, KeyCode.M },
+        new KeyCode[] { KeyCode.Alpha8, KeyCode.I, KeyCode.K, KeyCode.Less, KeyCode.Comma },
+        new KeyCode[] { KeyCode.Alpha9, KeyCode.O, KeyCode.L, KeyCode.Greater, KeyCode.Period },
+        new KeyCode[] { KeyCode.Alpha0, KeyCode.Equals, KeyCode.Caret, KeyCode.Backslash, KeyCode.P, KeyCode.At, KeyCode.LeftBracket, KeyCode.Semicolon, KeyCode.Colon, KeyCode.RightBracket, KeyCode.Slash, KeyCode.Underscore, KeyCode.Minus, KeyCode.Asterisk, KeyCode.BackQuote }
+    };
+
+    /// <summary>
+    /// 現在の割り当てが既定と同じか (レーン位置は固定、レーン内のキー順は問わない)。
+    /// 純粋関数: NUnit テスト (KeyConfigLayoutTests) から直接検証する。
+    /// </summary>
+    public static bool IsDefaultLayout(KeyCode[][] current, KeyCode[][] defaults)
+    {
+        if (current == null || defaults == null || current.Length != defaults.Length) return false;
+
+        for (int lane = 0; lane < current.Length; lane++)
+        {
+            KeyCode[] a = current[lane];
+            KeyCode[] b = defaults[lane];
+            if (a == null || b == null || a.Length != b.Length) return false;
+
+            var seen = new HashSet<KeyCode>(a);
+            if (seen.Count != a.Length) return false; // 重複は既定にない (保険)
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (!seen.Contains(b[i])) return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>表示用: 現在の割り当てが既定かどうか。</summary>
+    public static bool IsCustomLayout()
+    {
+        return !IsDefaultLayout(KeyBindings.Current, DefaultLayout);
+    }
     private static bool IsAllowedScene()
     {
         string name = SceneManager.GetActiveScene().name;
@@ -241,7 +288,8 @@ public class KeyConfigUI : MonoBehaviour
             MonoBehaviour behaviour = all[i];
             if (behaviour == null || behaviour == this || !behaviour.enabled) continue;
             string typeName = behaviour.GetType().Name;
-            if (typeName.EndsWith("SceneManager"))
+            if (typeName.EndsWith("SceneManager")
+                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView")
             {
                 behaviour.enabled = false;
                 suspended.Add(behaviour);
@@ -430,7 +478,7 @@ public class KeyConfigUI : MonoBehaviour
         if (!confirmReset)
         {
             confirmReset = true;
-            messageLabel.text = "初期化しますか? もう一度 R を押すと既定のキー配置に戻ります";
+            messageLabel.text = "初期化しますか? もう一度 R を押すと初期化します";
             return;
         }
         confirmReset = false;
@@ -673,6 +721,24 @@ public class KeyConfigUI : MonoBehaviour
                 actionAccentBars[i].gameObject.SetActive(selected);
             }
         }
+
+        UpdateLayoutStatus();
+    }
+
+    /// <summary>ヘッダー下の表示: 既定のキー配置かカスタムか (Issue #128)。</summary>
+    private void UpdateLayoutStatus()
+    {
+        if (layoutLabel == null) return;
+        if (IsCustomLayout())
+        {
+            layoutLabel.text = "現在: カスタム";
+            layoutLabel.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+        }
+        else
+        {
+            layoutLabel.text = "現在: 初期設定";
+            layoutLabel.color = new Color(1f, 1f, 1f, 0.85f);
+        }
     }
 
     /// <summary>listen モード中はアクセント バーを点滅させる。</summary>
@@ -848,8 +914,15 @@ public class KeyConfigUI : MonoBehaviour
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        var header = AddLabel(content, "KeyConfigHeader", "キー設定 (F2 で閉じる)", HeaderFontSize, TextAlignmentOptions.Center);
+        var header = AddLabel(content, "KeyConfigHeader", "キー設定", HeaderFontSize, TextAlignmentOptions.Center);
         header.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 56f;
+        // 閉じるキーは文章ではなく [F2] キャップで示す。
+        FlashBeat.UI.V5.ShortcutKeyCap.AttachCapsToLabel(header, new[] { "F2" }, HeaderFontSize * 0.62f);
+
+        // 既定のキー配置かカスタムかを常時表示する (Issue #128)
+        layoutLabel = AddLabel(content, "KeyConfigLayoutStatus", string.Empty, MessageFontSize, TextAlignmentOptions.Center);
+        layoutLabel.color = new Color(1f, 1f, 1f, 0.85f);
+        layoutLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
         // ページ切替タブ (クリックでも ←→ / PageUp / PageDown でも切替)
         var tabs = new GameObject("PageTabs", typeof(UnityEngine.UI.HorizontalLayoutGroup)).GetComponent<RectTransform>();
@@ -918,11 +991,26 @@ public class KeyConfigUI : MonoBehaviour
         testLabel.color = new Color(0.6f, 0.9f, 1f);
         testLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
 
-        var footer = AddLabel(content, "KeyConfigFooter",
-            "←→ / PageUp / PageDown / タブ: ページ切替　↑↓・クリック: 選択　Enter: 割り当て　Esc: 終了　BS: クリア　R: 初期化　F2: 閉じる",
-            FooterFontSize, TextAlignmentOptions.Left);
-        footer.color = new Color(1f, 1f, 1f, 0.75f);
-        footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 44f;
+        // 説明文の羅列ではなく、キーキャップで「どのキーが何をするか」を見せる。
+        var footerA = FlashBeat.UI.V5.ShortcutKeyCap.BuildCapRow(content, new[]
+        {
+            ("←→", "変更"),
+            ("PgUp", "切替"),
+            ("PgDn", "切替"),
+            ("Tab", "切替"),
+            ("↑↓", "選択"),
+        }, FooterFontSize, FooterFontSize);
+        footerA.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
+
+        var footerB = FlashBeat.UI.V5.ShortcutKeyCap.BuildCapRow(content, new[]
+        {
+            ("Enter", "割り当て"),
+            ("Esc", "終了"),
+            ("BS", "クリア"),
+            ("R", "初期化"),
+            ("F2", "閉じる"),
+        }, FooterFontSize, FooterFontSize);
+        footerB.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 
         // 保存先の設定ファイルパス (オペレーターがバックアップ/確認できるように表示する)
         var filePathLabel = AddLabel(content, "KeyConfigFilePath", "設定ファイル: " + KeyConfigFile.FilePath, 14f, TextAlignmentOptions.Left);
@@ -1095,7 +1183,7 @@ public class KeyConfigUI : MonoBehaviour
         var labelGO = new GameObject("KeyConfigHint", typeof(TextMeshProUGUI));
         labelGO.transform.SetParent(canvas, false);
         hintLabel = labelGO.GetComponent<TextMeshProUGUI>();
-        hintLabel.text = "F2: キー設定";
+        hintLabel.text = "キー設定";
         hintLabel.fontSize = 24f;
         hintLabel.color = new Color(1f, 1f, 1f, 0.7f);
         hintLabel.alignment = TextAlignmentOptions.Left;
@@ -1108,6 +1196,15 @@ public class KeyConfigUI : MonoBehaviour
         rect.pivot = new Vector2(0f, 0f);
         rect.anchoredPosition = new Vector2(16f, 16f);
         rect.sizeDelta = new Vector2(300f, 36f);
+
+        // [F2] キャップを左に置いて、キーボードで呼べる操作だと分かるようにする。
+        var cap = FlashBeat.UI.V5.ShortcutKeyCap.Create(rect.parent as RectTransform, "F2", 18f);
+        var capRect = cap.GetComponent<RectTransform>();
+        capRect.anchorMin = new Vector2(0f, 0f);
+        capRect.anchorMax = new Vector2(0f, 0f);
+        capRect.pivot = new Vector2(0f, 0f);
+        capRect.anchoredPosition = new Vector2(16f, 16f);
+        rect.anchoredPosition = new Vector2(16f + capRect.sizeDelta.x + 8f, 16f);
     }
 
     private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize, TextAlignmentOptions alignment)
@@ -1127,8 +1224,9 @@ public class KeyConfigUI : MonoBehaviour
         return tmp;
     }
 
-    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。</summary>
-    private static TMP_FontAsset FindJapaneseFont()
+    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。
+    /// KeyConfigOptionButton からも使うため public。</summary>
+    public static TMP_FontAsset FindJapaneseFont()
     {
         TMP_FontAsset fallback = null;
         var all = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();

@@ -56,5 +56,46 @@ namespace FlashBeat.Gameplay
         {
             return mediaTime >= songDuration - leadOutSeconds;
         }
+
+        /// <summary>
+        /// Media position used when no media player runs at all - the download
+        /// failed, the file could not be opened or the stream is not available.
+        /// The song still has to end: without a clock the game would never reach
+        /// the result screen and the player would stay trapped in the game scene.
+        /// </summary>
+        public static float FallbackMediaTime(float wallClockTime, float playbackStartTime)
+        {
+            return Mathf.Max(0f, wallClockTime - playbackStartTime);
+        }
+
+        /// <summary>
+        /// True when the picture and the separate sound track drift apart far
+        /// enough to be corrected. The picture is the reference (the chart was
+        /// authored against the video), the sound is re-seeked to it.
+        /// </summary>
+        public static bool ShouldResync(float pictureTime, float soundTime, float threshold = 0.15f)
+        {
+            return Mathf.Abs(pictureTime - soundTime) > threshold;
+        }
+
+        /// <summary>
+        /// Position of a note on the lane, derived from the media clock: the note
+        /// reaches the hit line exactly when the media reaches its time. A
+        /// buffering stall therefore holds the notes instead of letting them run
+        /// ahead of the music.
+        /// </summary>
+        public static float NotePositionZ(float noteTime, float mediaTime, float noteSpeed)
+        {
+            return (noteTime - mediaTime) * noteSpeed;
+        }
+
+        /// <summary>
+        /// Time of a note, recovered from the position the NotesManager created
+        /// it at (z = noteTime * noteSpeed).
+        /// </summary>
+        public static float NoteTimeFromPositionZ(float z, float noteSpeed)
+        {
+            return noteSpeed > 0f ? z / noteSpeed : 0f;
+        }
     }
 }

@@ -244,9 +244,12 @@ public class RankingPanel : MonoBehaviour
             rowBackgrounds.Add(background);
         }
 
-        var footer = AddLabel(content, "RankingFooter", "閉じる: F5 / Esc", FooterFontSize, TextAlignmentOptions.Center);
-        footer.color = new Color(1f, 1f, 1f, 0.75f);
-        footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
+        // 閉じるキーは [F5] [Esc] のキャップで示す。
+        var footer = FlashBeat.UI.V5.ShortcutKeyCap.BuildCapRow(content, new[]
+        {
+            ("F5 / Esc", "閉じる"),
+        }, FooterFontSize, FooterFontSize);
+        footer.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 
         // boardRoot は BuildBackdrop の戻り値 (バックドロップを含むルート) のまま。
     }
@@ -280,9 +283,14 @@ public class RankingPanel : MonoBehaviour
         modalMessage = AddLabel(content, "ModalMessage", string.Empty, MessageFontSize, TextAlignmentOptions.Left);
         modalMessage.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 40f;
 
-        var footer = AddLabel(content, "ModalFooter", "Enter: 送信　Backspace: けす　Esc: スキップ", FooterFontSize, TextAlignmentOptions.Center);
-        footer.color = new Color(1f, 1f, 1f, 0.75f);
-        footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
+        // 各操作のキーをキャップで示す。
+        var footer = FlashBeat.UI.V5.ShortcutKeyCap.BuildCapRow(content, new[]
+        {
+            ("Enter", "送信"),
+            ("BS", "けす"),
+            ("Esc", "スキップ"),
+        }, FooterFontSize, FooterFontSize);
+        footer.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 
         // modalRoot は BuildBackdrop の戻り値 (バックドロップを含むルート) のまま。
     }
@@ -292,7 +300,7 @@ public class RankingPanel : MonoBehaviour
         var labelGO = new GameObject("RankingHint", typeof(TextMeshProUGUI));
         labelGO.transform.SetParent(GetComponentInChildren<Canvas>().transform, false);
         hintLabel = labelGO.GetComponent<TextMeshProUGUI>();
-        hintLabel.text = "F5: ランキング";
+        hintLabel.text = "ランキング";
         hintLabel.fontSize = 24f;
         hintLabel.color = new Color(1f, 1f, 1f, 0.7f);
         hintLabel.alignment = TextAlignmentOptions.Left;
@@ -305,6 +313,15 @@ public class RankingPanel : MonoBehaviour
         rect.pivot = new Vector2(0f, 0f);
         rect.anchoredPosition = new Vector2(16f, 56f);
         rect.sizeDelta = new Vector2(300f, 36f);
+
+        // [F5] キャップを左に置いて、キーボードで呼べる操作だと分かるようにする。
+        var cap = FlashBeat.UI.V5.ShortcutKeyCap.Create(rect.parent as RectTransform, "F5", 18f);
+        var capRect = cap.GetComponent<RectTransform>();
+        capRect.anchorMin = new Vector2(0f, 0f);
+        capRect.anchorMax = new Vector2(0f, 0f);
+        capRect.pivot = new Vector2(0f, 0f);
+        capRect.anchoredPosition = new Vector2(16f, 56f);
+        rect.anchoredPosition = new Vector2(16f + capRect.sizeDelta.x + 8f, 56f);
     }
 
     // --- updates -------------------------------------------------------------

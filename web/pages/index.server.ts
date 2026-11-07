@@ -1,21 +1,31 @@
 import { defineHandler, type InferProps } from "void";
 import type { CatalogMode } from "@/app/catalog";
+import { isSortKey, type SortKey } from "@/app/catalog-view";
+import { LEVEL_FILTERS, type LevelFilter } from "@/app/topbar";
 
 export type Props = InferProps<typeof loader>;
 
 const CATALOG_MODES: CatalogMode[] = ["loading", "ready", "empty", "error"];
 
 /**
- * The shell itself has no backend yet, so the loader only resolves which
- * catalog state the page should render.
- *
- * `?state=loading|empty|error` forces a state so every branch of the list can
- * be reviewed without a deployed API. Without the parameter the catalog is
- * rendered in its normal, ready state.
+ * Resolve explicit preview states; normal navigation always loads the catalog.
+ * `query`/`level`/`sort` seed the topbar filters so the filtered states of the
+ * catalog panel are reviewable without typing (`/?query=…&level=…&sort=…`).
  */
 export const loader = defineHandler(async (c) => {
-  const requested = new URL(c.req.url).searchParams.get("state");
+  const params = new URL(c.req.url).searchParams;
+  const requested = params.get("state");
   const mode = CATALOG_MODES.find((candidate) => candidate === requested) ?? "ready";
 
-  return { mode };
+  const query = params.get("query") ?? "";
+  const levelParam = params.get("level");
+  const level: LevelFilter =
+    levelParam !== null && LEVEL_FILTERS.some((filter) => filter.value === levelParam)
+      ? (levelParam as LevelFilter)
+      : "all";
+
+  const sortParam = params.get("sort");
+  const sort: SortKey = isSortKey(sortParam) ? sortParam : "catalog";
+
+  return { mode, query, level, sort };
 });

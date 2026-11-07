@@ -5,7 +5,8 @@ using UnityEngine;
 
 /// <summary>
 /// ゲーム中に開閉できる 8 レーン分のキーガイド HUD。
-/// 表示内容は Judge.LaneKeys (正本) から常に生成されるため、判定と表示がずれない。
+/// 表示内容は KeyBindings (正本) から常に生成されるため、判定と表示がずれない。
+/// キー割り当てが変わると KeyBindings.Changed で自動更新される。
 /// GameSceneManager がシーン開始時に生成し、Tab キーまたは HUD ボタンで開閉する。
 /// </summary>
 public class KeyGuideUI : MonoBehaviour
@@ -43,7 +44,22 @@ public class KeyGuideUI : MonoBehaviour
         if (built) { return; }
         built = true;
         BuildUI();
-        SetVisible(false); // 既定では非表示 (ゲームプレーを邪魔しない)
+        SetVisible(false); // 既定では非表示 (ゲームプレイを邪魔しない)
+        KeyBindings.Changed += RefreshRows;
+    }
+
+    private void OnDestroy()
+    {
+        KeyBindings.Changed -= RefreshRows;
+    }
+
+    /// <summary>キー割り当てが変わったら表示を更新する (KeyBindings.Changed)。</summary>
+    private void RefreshRows()
+    {
+        for (int lane = 0; lane < rows.Count; lane++)
+        {
+            if (rows[lane] != null) rows[lane].text = BuildLaneLabel(lane);
+        }
     }
 
     private void Update()
@@ -75,7 +91,7 @@ public class KeyGuideUI : MonoBehaviour
         canvasGO.transform.SetParent(transform, false);
         var canvas = canvasGO.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 500;
+        canvas.sortingOrder = 2000;
 
         panel = new GameObject("Panel", typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.72f);
@@ -98,10 +114,12 @@ public class KeyGuideUI : MonoBehaviour
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        AddLabel(panel, "KeyGuideHeader", "キーガイド (Tab で開閉)", HeaderFontSize);
+        var header = AddLabel(panel, "KeyGuideHeader", "キーガイド", HeaderFontSize);
+        // 開閉キーは文章ではなくキーキャップで示す ([Tab])。
+        FlashBeat.UI.V5.ShortcutKeyCap.AttachToLabel(header, "Tab", HeaderFontSize * 0.8f);
         AddLabel(panel, "KeyGuideNote", "上から順にレーン 1 〜 8 (左端がレーン 1)。", 18f);
 
-        for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+        for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
         {
             rows.Add(AddLabel(panel, "Lane" + lane, BuildLaneLabel(lane), RowFontSize));
         }
@@ -135,7 +153,7 @@ public class KeyGuideUI : MonoBehaviour
         rect.anchorMax = new Vector2(1f, 0f);
         rect.pivot = new Vector2(1f, 0f);
         rect.anchoredPosition = new Vector2(-16f, 16f);
-        rect.sizeDelta = new Vector2(140f, 40f);
+        rect.sizeDelta = new Vector2(190f, 40f);
         buttonGO.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.4f);
         buttonGO.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(Toggle);
 
@@ -145,11 +163,16 @@ public class KeyGuideUI : MonoBehaviour
         tmp.text = "キーガイド";
         tmp.fontSize = 22f;
         tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.alignment = TextAlignmentOptions.Left;
         tmp.rectTransform.anchorMin = Vector2.zero;
         tmp.rectTransform.anchorMax = Vector2.one;
+        tmp.rectTransform.offsetMin = new Vector2(14f, 0f);
+        tmp.rectTransform.offsetMax = new Vector2(-64f, 0f);
         tmp.rectTransform.sizeDelta = Vector2.zero;
         tmp.raycastTarget = false;
+
+        // 開閉キー [Tab] をボタン内に示す。
+        FlashBeat.UI.V5.ShortcutKeyCap.AttachToControl(rect, "Tab", 18f, 10f);
     }
 
     /// <summary>レーンの見出し行 ("レーン N:") を返す。テストからも参照される。</summary>
@@ -158,10 +181,10 @@ public class KeyGuideUI : MonoBehaviour
         return "レーン " + (lane + 1) + ":";
     }
 
-    /// <summary>Judge.LaneKeys[lane] の全キーを表示用に整形して返す (表示名は GetKeyDisplayName)。</summary>
+    /// <summary>KeyBindings のレーン割り当てを表示用に整形して返す (表示名は GetKeyDisplayName)。</summary>
     public static string BuildLaneLabel(int lane)
     {
-        KeyCode[] keys = Judge.LaneKeys[lane];
+        KeyCode[] keys = KeyBindings.GetKeys(lane);
         var sb = new StringBuilder();
         sb.Append(BuildLaneHeader(lane));
         sb.Append(' ');
@@ -178,6 +201,16 @@ public class KeyGuideUI : MonoBehaviour
     {
         switch (key)
         {
+            case KeyCode.Alpha0: return "0";
+            case KeyCode.Alpha1: return "1";
+            case KeyCode.Alpha2: return "2";
+            case KeyCode.Alpha3: return "3";
+            case KeyCode.Alpha4: return "4";
+            case KeyCode.Alpha5: return "5";
+            case KeyCode.Alpha6: return "6";
+            case KeyCode.Alpha7: return "7";
+            case KeyCode.Alpha8: return "8";
+            case KeyCode.Alpha9: return "9";
             case KeyCode.Minus: return "-";
             case KeyCode.Equals: return "=";
             case KeyCode.Caret: return "^";
@@ -195,16 +228,6 @@ public class KeyGuideUI : MonoBehaviour
             case KeyCode.Period: return ".";
             case KeyCode.Less: return "<";
             case KeyCode.Greater: return ">";
-            case KeyCode.Alpha0: return "0";
-            case KeyCode.Alpha1: return "1";
-            case KeyCode.Alpha2: return "2";
-            case KeyCode.Alpha3: return "3";
-            case KeyCode.Alpha4: return "4";
-            case KeyCode.Alpha5: return "5";
-            case KeyCode.Alpha6: return "6";
-            case KeyCode.Alpha7: return "7";
-            case KeyCode.Alpha8: return "8";
-            case KeyCode.Alpha9: return "9";
             default: return key.ToString();
         }
     }
