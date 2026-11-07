@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Project Path="UniRx.csproj" />
+  <Project Path="FlashBeat.csproj" />
+  <Project Path="NoteEditor.csproj" />
+  <Project Path="FlashBeat.Tests.csproj" />
+  <Project Path="FlashBeat.Editor.csproj" />
+  <Project Path="SimpleFadeSystem.csproj" />
+  <Project Path="NoteEditor.Editor.csproj" />
+</Solution>
