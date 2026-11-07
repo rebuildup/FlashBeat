@@ -168,4 +168,4 @@ public class Judge : MonoBehaviour
             }
         }
     }
-Judge.cs trivial brace conflict: both sides identical `}`
+}

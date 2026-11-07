@@ -87,7 +87,7 @@ public class SelectSceneManager : MonoBehaviour
 
     private void OnCatalogChanged()
     {
-SelectSceneManager #2: take v5 delegation to SelectView (legacy UI methods removed by 121)
+        if (view != null) view.OnCatalogChanged();
     }
 
     /// <summary>選択中の曲でプレイを開始する (リモート曲は譜面を確定してから)。</summary>
