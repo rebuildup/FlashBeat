@@ -115,14 +115,25 @@ public class KeyBindingsTests
         Assert.IsTrue(KeyBindings.ToggleKey(2, KeyCode.Minus));
         KeyBindings.Save();
         Assert.IsFalse(string.IsNullOrEmpty(storage.Raw));
+        string saved = storage.Raw;
 
-        KeyBindings.ResetToDefaults();
+        KeyBindings.ResetToDefaults(); // 既定へ戻すと保存先にも既定値が反映される
         Assert.AreEqual(CanonicalKeys[0], KeyBindings.GetKeys(0));
 
+        storage.Raw = saved; // 保存済みデータを戻して読み直す
         KeyBindings.Load();
         Assert.IsTrue(Contains(KeyBindings.GetKeys(0), KeyCode.P));
         Assert.IsFalse(Contains(KeyBindings.GetKeys(7), KeyCode.P));
         Assert.IsTrue(Contains(KeyBindings.GetKeys(2), KeyCode.Minus));
+    }
+
+    [Test]
+    public void TestResetPersistsDefaultsToStorage()
+    {
+        Assert.IsTrue(KeyBindings.ToggleKey(0, KeyCode.P));
+        KeyBindings.ResetToDefaults();
+        Assert.IsFalse(string.IsNullOrEmpty(storage.Raw)); // 既定値が保存先に反映されている
+        StringAssert.Contains("\"lanes\"", storage.Raw);
     }
 
     [Test]
@@ -170,8 +181,9 @@ public class KeyBindingsTests
     {
         Assert.IsTrue(KeyBindings.SetLane(0, new KeyCode[0])); // 編集中は空にできる
         Assert.AreEqual(0, KeyBindings.GetKeys(0).Length);
+        string before = storage.Raw; // SetUp の ResetToDefaults で既定値が入っている
         Assert.IsFalse(KeyBindings.Save());
-        Assert.IsTrue(string.IsNullOrEmpty(storage.Raw));
+        Assert.AreEqual(before, storage.Raw); // 拒否されたら保存先は変わらない
     }
 
     [Test]

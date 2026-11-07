@@ -14,6 +14,16 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class AutoTestKeyConfig : MonoBehaviour
 {
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void InstallIsolatedStorage()
+    {
+        // セルフテストは実ファイル (FlashBeat-keyconfig.json) も PlayerPrefs も触らない。
+        // オペレーターの保存済みキー設定を初期化で上書きしないための分離。
+        if (GetArg("-autotest") != "keyconfig") { return; }
+        KeyBindings.SetStorage(new MemoryStorage());
+        KeyActions.SetStorage(new MemoryStorage());
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
@@ -21,6 +31,22 @@ public class AutoTestKeyConfig : MonoBehaviour
         var go = new GameObject("AutoTestKeyConfig");
         DontDestroyOnLoad(go);
         go.AddComponent<AutoTestKeyConfig>();
+    }
+
+    /// <summary>セルフテスト用のインメモリ保存先 (実ファイルも PlayerPrefs も触らない)。</summary>
+    private class MemoryStorage : KeyBindings.IStorage, KeyActions.IStorage
+    {
+        public string Raw;
+
+        public string LoadRaw()
+        {
+            return Raw;
+        }
+
+        public void SaveRaw(string json)
+        {
+            Raw = json;
+        }
     }
 
     private int pass;
