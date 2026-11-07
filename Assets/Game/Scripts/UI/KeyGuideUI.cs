@@ -92,7 +92,9 @@ public class KeyGuideUI : MonoBehaviour
         layout.spacing = 4f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        // 高さは LayoutElement の minHeight に従わせる (既定 100px のままだと
+        // 8 行がパネルの下にはみ出してしまう)。
+        layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
@@ -120,6 +122,7 @@ public class KeyGuideUI : MonoBehaviour
         if (font != null) tmp.font = font;
         var size = labelGO.AddComponent<UnityEngine.UI.LayoutElement>();
         size.minHeight = fontSize + 6f;
+        size.preferredHeight = fontSize + 6f;
         return tmp;
     }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -106,6 +106,11 @@ public class MediaLoadingOverlay : MonoBehaviour
             statusLabel.text = status ?? string.Empty;
             statusLabel.color = new Color(1f, 1f, 1f, 0.85f);
         }
+        if (hintLabel != null)
+        {
+            hintLabel.text = "しばらくお待ちください…";
+            hintLabel.color = new Color(1f, 1f, 1f, 0.6f);
+        }
     }
 
     /// <summary>読み込み中表示を隠す。</summary>
@@ -200,15 +205,18 @@ public class MediaLoadingOverlay : MonoBehaviour
             panelImage.color = new Color(0.05f, 0.07f, 0.12f, 0.85f);
             panelImage.raycastTarget = false;
 
-            titleLabel = AddLabel(panelRect, "LoadingTitle", "読み込み中", 44f, TextAlignmentOptions.Center, font);
+            titleLabel = AddLabel(panelRect, "LoadingTitle", string.Empty, 44f, TextAlignmentOptions.Center, font);
+            // はみ出しても消えないよう Overflow にする (Ellipsis だと枠が足りないと空になる)。
+            titleLabel.overflowMode = TextOverflowModes.Overflow;
             var titleRect = titleLabel.rectTransform;
             titleRect.anchorMin = new Vector2(0f, 0.5f);
             titleRect.anchorMax = new Vector2(1f, 0.5f);
             titleRect.pivot = new Vector2(0.5f, 0.5f);
-            titleRect.anchoredPosition = new Vector2(0f, 70f);
-            titleRect.sizeDelta = new Vector2(-80f, 60f);
+            titleRect.anchoredPosition = new Vector2(0f, 74f);
+            titleRect.sizeDelta = new Vector2(-80f, 72f);
 
             statusLabel = AddLabel(panelRect, "LoadingStatus", string.Empty, 26f, TextAlignmentOptions.Center, font);
+            statusLabel.overflowMode = TextOverflowModes.Overflow;
             var statusRect = statusLabel.rectTransform;
             statusRect.anchorMin = new Vector2(0f, 0.5f);
             statusRect.anchorMax = new Vector2(1f, 0.5f);
@@ -231,13 +239,14 @@ public class MediaLoadingOverlay : MonoBehaviour
             spinner = spinnerRect;
 
             // 補助文 (「しばらくお待ちください」)。
-            hintLabel = AddLabel(panelRect, "LoadingHint", "しばらくお待ちください…", 22f, TextAlignmentOptions.Center, font);
+            hintLabel = AddLabel(panelRect, "LoadingHint", string.Empty, 22f, TextAlignmentOptions.Center, font);
+            hintLabel.overflowMode = TextOverflowModes.Overflow;
             var hintRect = hintLabel.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 0.5f);
             hintRect.anchorMax = new Vector2(1f, 0.5f);
             hintRect.pivot = new Vector2(0.5f, 0.5f);
             hintRect.anchoredPosition = new Vector2(0f, -125f);
-            hintRect.sizeDelta = new Vector2(-80f, 32f);
+            hintRect.sizeDelta = new Vector2(-80f, 36f);
             hintLabel.color = new Color(1f, 1f, 1f, 0.6f);
 
             root.SetActive(false);
