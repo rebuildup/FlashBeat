@@ -1,9 +1,10 @@
-import { Layer, Line, Rect, Stage, Text } from "react-konva";
+import { Group, Layer, Line, Rect, Stage, Text } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { css } from "styled-system/css";
+import { holdEndBeat, isHold } from "@/lib/chart/long-note";
 import { noteBeat } from "@/lib/chart/timing";
-import type { Chart } from "@/lib/chart/types";
+import type { Chart, ChartNote } from "@/lib/chart/types";
 
 /**
  * The eight lane grid.
@@ -40,6 +41,31 @@ const PLAYHEAD = "#3fa9f5";
 const LANE_LABEL = "#8c8c8c";
 const BAR_LABEL = "#8c8c8c";
 
+/**
+ * Body of a hold.
+ *
+ * A hold is drawn as a bar that runs from its start to its end. It uses the
+ * same surface as a tap, but a darker one, so the two kinds stay apart at a
+ * glance: the tap is the short bright block, the hold is the long body.
+ */
+const HOLD_FILL = "#8a8a8a";
+const HOLD_FILL_SELECTED = "#3fa9f5";
+const HOLD_STROKE = "rgba(0,0,0,0.25)";
+const HOLD_STROKE_SELECTED = "#9ad3fa";
+
+/**
+ * Handle of the end of a hold.
+ *
+ * The handle is what the operator drags to change the length of the hold. It
+ * sits at the end of the body and is drawn in the accent blue, so it is the
+ * only part of the hold that reacts to the mouse.
+ */
+const HOLD_HANDLE_FILL = "#3fa9f5";
+const HOLD_HANDLE_STROKE = "#9ad3fa";
+
+/** Size of the resize handle in pixels. */
+export const HOLD_HANDLE_SIZE = 12;
+
 const scrollArea = css({
   flex: "1",
   minHeight: "0",
@@ -70,6 +96,13 @@ export interface NoteGridProps {
   onAddNote(block: number, beat: number): void;
   /** Called with the index and the new position of a dragged note. */
   onMoveNote(index: number, block: number, beat: number): void;
+  /**
+   * Called with the index of a hold and the beat its end was dragged to.
+   *
+   * `null` when the hold is not resized. The end of a hold is the only part
+   * of it that moves on its own; the body follows.
+   */
+  onResizeHold?(index: number, endBeat: number): void;
 }
 
 /** Measures the panel the stage lives in, so the lanes fill the work area. */
@@ -105,6 +138,7 @@ export function NoteGrid({
   onSelect,
   onAddNote,
   onMoveNote,
+  onResizeHold,
 }: NoteGridProps) {
   const [panelRef, panelWidth, panelHeight] = usePanelSize();
   const beatHeight = BEAT_HEIGHT * zoom;
@@ -113,6 +147,10 @@ export function NoteGrid({
     let last = 8;
     for (const note of chart.notes) {
       last = Math.max(last, Math.ceil(noteBeat(note)) + 2);
+      // A hold reaches past its start, so the grid has to show its end too.
+      if (isHold(note)) {
+        last = Math.max(last, Math.ceil(holdEndBeat(note)) + 2);
+      }
     }
     return last;
   }, [chart.notes]);
@@ -159,6 +197,26 @@ export function NoteGrid({
     const beat = Math.max(0, (node.y() + NOTE_HEIGHT / 2) / beatHeight);
 
     onMoveNote(index, block, beat);
+  };
+
+  /**
+   * The end of a hold was dragged.
+   *
+   * The handle sits at the end of the body, so its center tells where the
+   * hold ends. The beat is measured from the pointer and clamped to the
+   * start of the hold, so a hold never ends before it starts.
+   */
+  const handleHoldResizeEnd = (event: KonvaEventObject<DragEvent>, note: ChartNote) => {
+    event.cancelBubble = true;
+
+    const node = event.target;
+    const pointer = node.getStage()?.getPointerPosition();
+    // The handle is dragged freely, so the pointer is the source of truth.
+    // When it is missing the node itself carries the position.
+    const y = pointer ? pointer.y : node.y();
+    const endBeat = Math.max(noteBeat(note), y / beatHeight);
+
+    onResizeHold?.(chart.notes.indexOf(note), endBeat);
   };
 
   const beatLines = [];
@@ -255,11 +313,100 @@ export function NoteGrid({
             {chart.notes.map((note, index) => {
               const beat = noteBeat(note);
               const selected = index === selectedIndex;
+              const noteX = note.block * laneWidth + (laneWidth - noteWidth) / 2;
+              const noteY = beat * beatHeight - NOTE_HEIGHT / 2;
+
+              // A hold is a body that runs from its start to its end, with a
+              // handle at the end the operator drags to change the length.
+              if (isHold(note)) {
+                const endBeat = holdEndBeat(note);
+                const endY = endBeat * beatHeight - NOTE_HEIGHT / 2;
+                const bodyHeight = Math.max(NOTE_HEIGHT, endY - noteY + NOTE_HEIGHT);
+
+                return (
+                  <Group key={index}>
+                    <Rect
+                      x={noteX}
+                      y={noteY}
+                      width={noteWidth}
+                      height={bodyHeight}
+                      cornerRadius={4}
+                      fill={selected ? HOLD_FILL_SELECTED : HOLD_FILL}
+                      stroke={selected ? HOLD_STROKE_SELECTED : HOLD_STROKE}
+                      strokeWidth={selected ? 2 : 1}
+                      shadowColor={selected ? HOLD_FILL_SELECTED : undefined}
+                      shadowBlur={selected ? 14 : 0}
+                      shadowOpacity={selected ? 0.9 : 0}
+                      onMouseDown={(event) => handleNoteMouseDown(event, index)}
+                      onTouchStart={(event) =>
+                        handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
+                      }
+                    />
+
+                    {/* The head of the hold: the place the key goes down. */}
+                    <Rect
+                      x={noteX}
+                      y={noteY}
+                      width={noteWidth}
+                      height={NOTE_HEIGHT}
+                      cornerRadius={4}
+                      fill={selected ? NOTE_FILL_SELECTED : NOTE_FILL}
+                      stroke={selected ? NOTE_STROKE_SELECTED : "rgba(0,0,0,0.25)"}
+                      strokeWidth={selected ? 2 : 1}
+                      draggable
+                      onMouseDown={(event) => handleNoteMouseDown(event, index)}
+                      onMouseEnter={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "grab";
+                      }}
+                      onMouseLeave={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "crosshair";
+                      }}
+                      onTouchStart={(event) =>
+                        handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
+                      }
+                      onDragEnd={(event) => handleDragEnd(event, index)}
+                    />
+
+                    {/* The handle of the end: it changes the length. */}
+                    <Rect
+                      x={noteX + noteWidth - HOLD_HANDLE_SIZE / 2}
+                      y={endY + NOTE_HEIGHT / 2 - HOLD_HANDLE_SIZE / 2}
+                      width={HOLD_HANDLE_SIZE}
+                      height={HOLD_HANDLE_SIZE}
+                      cornerRadius={3}
+                      fill={HOLD_HANDLE_FILL}
+                      stroke={HOLD_HANDLE_STROKE}
+                      strokeWidth={1.5}
+                      draggable
+                      onMouseDown={(event) => {
+                        event.cancelBubble = true;
+                        onSelect(index);
+                      }}
+                      onMouseEnter={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "ew-resize";
+                      }}
+                      onMouseLeave={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "crosshair";
+                      }}
+                      onTouchStart={(event) => {
+                        event.cancelBubble = true;
+                        onSelect(index);
+                      }}
+                      onDragEnd={(event) => handleHoldResizeEnd(event, note)}
+                    />
+                  </Group>
+                );
+              }
+
               return (
                 <Rect
                   key={index}
-                  x={note.block * laneWidth + (laneWidth - noteWidth) / 2}
-                  y={beat * beatHeight - NOTE_HEIGHT / 2}
+                  x={noteX}
+                  y={noteY}
                   width={noteWidth}
                   height={NOTE_HEIGHT}
                   cornerRadius={4}
