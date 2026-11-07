@@ -143,9 +143,11 @@ macOS: `~/Library/Application Support/FlashBeat/update`。
   - ビルド元 commit: `5ee86a95efc5d2b3dd022506aa4c180e9ee50e6a`
     (v5 UI / キーガイド / 読み込み画面 / Issue #148 キーキャップ / 初期解像度修正 / Update.ps1 の BOM 修正)
   - 実機検証: Windows 展示機相当で ZIP 展開 → 起動 → Title まで到達 / overlay 5/5 / keyconfig 30/30 を確認。
-- macOS 現行版: GitHub Release は未発行。`~/Desktop/FlashBeat-Mac` の手動コピー (v0.1.5+8e712b3) が最後で、
-  以降の macOS 版は `v<semver>-macos-<sha>` Release とアプリ内更新で配布する
-  (手動ビルドした `.app` を Desktop へ置く運用は廃止)。
+- macOS 現行版: GitHub Release は未発行。`~/Desktop/FlashBeat-Mac` の
+  ブートストラップ `0.1.14+716a25f` (commit `716a25f`) が起点で、以降の macOS 版は
+  `v<semver>-macos-<sha>` Release とアプリ内更新で配布する
+  (手動ビルドした `.app` を Desktop へ置く運用は廃止。旧 `v0.1.5+8e712b3` は同フォルダに
+  `FlashBeat-backup-*.app` として退避)。
 - 前々版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
   - Web Studio 併入版。`v0.1.11-win64-98137a5` は同じ 0.1.11 の別ビルド (prerelease)。
     展示機には **0.1.13 が適用済み** (2026-11-07)。
@@ -268,6 +270,20 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
    自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると
    「同じバージョンの別ビルド」として扱われ、自動更新が効かなくなる (運営者が手動適用する運用になる)。
    旧版は archive に残して proven artifact を保持する。
+
+## ブートストラップ (macOS 版の初回導入)
+
+macOS 版は「手動ビルドを配って終わり」ではなく、Win64 と同じ Release 更新経路に載せる。
+配布の起点となる 1 個体だけは Release を経由できないため、リポジトリのビルドを
+ブートストラップとして手動配置する (`~/Desktop/FlashBeat-Mac/FlashBeat.app`)。
+
+- ブートストラップの版: `0.1.14+716a25f` (commit `716a25f` を `FLASHBEAT_VERSION_BASE=0.1.14` でビルド)。
+- 以後の更新はアプリ内 (Title 通知 → ZIP → SHA-256 検証 → `.app` 差し替え → 再起動) で完結する。
+- **最初の macOS Release は `0.1.14` 以降の semver で発行する。** 自動更新はバージョンの大小で
+  判定するため、同じ `0.1.14` で別 SHA の Release を作ってもブートストラップは更新されない
+  (手動適用になる)。ブートストラップを差し替えた場合も同じ制約が付く。
+- 差し替え時のバックアップは `.app` と同じ階層に `FlashBeat-backup-YYYYmmddHHMMSS.app`
+  として 1 世代だけ残る (更新スクリプトと同じ命名規則)。
 
 ## 更新の種別 (Stage 区別)
 
