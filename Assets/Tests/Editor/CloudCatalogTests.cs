@@ -20,6 +20,7 @@ namespace FlashBeat.Tests.Editor
         {
             GManager.ClearRemoteCatalog();
             CloudChartHolder.Clear();
+            PlaySessionSnapshot.Clear(); // Issue #183: ResetSession がセッションを固定するようになったので掃除する
         }
 
         // --- catalog parsing ------------------------------------------------
