@@ -2,6 +2,7 @@ import { CirclePlay } from "lucide-react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
+import { SongThumbnail } from "./song-thumbnail";
 import type { SongSummary } from "./types";
 import {
   StateBlock,
@@ -50,6 +51,13 @@ const cardHeader = css({
   display: "flex",
   gap: "2",
   justifyContent: "space-between",
+  minWidth: "0",
+});
+
+const cardTitleRow = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "3",
   minWidth: "0",
 });
 
@@ -178,15 +186,22 @@ const openHint = css({
 });
 
 const rowBody = css({
-  alignItems: "flex-start",
+  alignItems: "center",
   display: "flex",
-  flexDirection: "column",
-  gap: "1",
+  gap: "3",
   minWidth: "0",
   paddingInline: "4",
   pointerEvents: "none",
   py: "2",
   width: "100%",
+});
+
+const rowText = css({
+  alignItems: "flex-start",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "0",
   justifyContent: "center",
 });
 
@@ -461,9 +476,12 @@ export function CatalogPanel({
               {songs.map((song) => (
                 <div key={song.id} className={card}>
                   <div className={cardHeader}>
-                    <a className={rowLink} href={chartHref(song)} data-row-link>
-                      <span className={cardTitle}>{song.title}</span>
-                    </a>
+                    <span className={cardTitleRow}>
+                      <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
+                      <a className={rowLink} href={chartHref(song)} data-row-link>
+                        <span className={cardTitle}>{song.title}</span>
+                      </a>
+                    </span>
                     <span className={levelBadge}>{song.level}</span>
                   </div>
                   <div className={cardMeta}>
@@ -511,6 +529,25 @@ export function CatalogPanel({
                         {`Open chart: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
                       </span>
                     </a>
+
+                    <span className={rowBody}>
+                      <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
+                      <span className={rowText}>
+                        <span className={titleText}>{song.title}</span>
+                        <span className={artistText}>{song.artist}</span>
+                        <span className={metaLine}>
+                          <span>Lv {song.level}</span>
+                          <span>·</span>
+                          <span>{song.bpm} BPM</span>
+                          <span>·</span>
+                          <span>{formatDuration(song.durationSec)}</span>
+                          <span>·</span>
+                          <span>{song.noteCount} notes</span>
+                          <span>·</span>
+                          <span>v{song.chartVersion}</span>
+                        </span>
+                      </span>
+                    </span>
 
                     <span className={rowBody}>
                       <span className={titleText}>{song.title}</span>
