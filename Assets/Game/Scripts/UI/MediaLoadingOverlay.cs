@@ -104,12 +104,12 @@ public class MediaLoadingOverlay : MonoBehaviour
         if (statusLabel != null)
         {
             statusLabel.text = status ?? string.Empty;
-            statusLabel.color = new Color(1f, 1f, 1f, 0.85f);
+            statusLabel.color = new Color(1f, 1f, 1f, 0.75f);
         }
         if (hintLabel != null)
         {
             hintLabel.text = "しばらくお待ちください…";
-            hintLabel.color = new Color(1f, 1f, 1f, 0.6f);
+            hintLabel.color = new Color(1f, 1f, 1f, 0.4f);
         }
     }
 
@@ -182,6 +182,7 @@ public class MediaLoadingOverlay : MonoBehaviour
             rootRect.offsetMax = Vector2.zero;
 
             // 全画面の暗転。クリックは奥へ通す (raycastTarget = false)。
+            // 色はゲームのトーン (純黒) に合わせる。紺のカードパネルは置かない。
             var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(Image));
             backdrop.transform.SetParent(rootRect, false);
             var backdropRect = backdrop.GetComponent<RectTransform>();
@@ -190,64 +191,77 @@ public class MediaLoadingOverlay : MonoBehaviour
             backdropRect.offsetMin = Vector2.zero;
             backdropRect.offsetMax = Vector2.zero;
             var backdropImage = backdrop.GetComponent<Image>();
-            backdropImage.color = new Color(0.02f, 0.03f, 0.06f, 0.94f);
+            backdropImage.color = new Color(0f, 0f, 0f, 0.96f);
             backdropImage.raycastTarget = false;
 
-            var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(rootRect, false);
-            var panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = new Vector2(900f, 340f);
-            var panelImage = panel.GetComponent<Image>();
-            panelImage.color = new Color(0.05f, 0.07f, 0.12f, 0.85f);
-            panelImage.raycastTarget = false;
+            // 内容の置き場 (塗りパネルは置かない。v5 の UI は「線と文字」だけ)。
+            var contentGO = new GameObject("Content", typeof(RectTransform));
+            contentGO.transform.SetParent(rootRect, false);
+            var contentRect = contentGO.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0.5f, 0.5f);
+            contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+            contentRect.pivot = new Vector2(0.5f, 0.5f);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = new Vector2(1000f, 420f);
 
-            titleLabel = AddLabel(panelRect, "LoadingTitle", string.Empty, 44f, TextAlignmentOptions.Center, font);
+            // 見出し (白・字間広め)。
+            titleLabel = AddLabel(contentRect, "LoadingTitle", string.Empty, 46f, TextAlignmentOptions.Center, font);
             // はみ出しても消えないよう Overflow にする (Ellipsis だと枠が足りないと空になる)。
             titleLabel.overflowMode = TextOverflowModes.Overflow;
+            titleLabel.characterSpacing = 8f;
             var titleRect = titleLabel.rectTransform;
             titleRect.anchorMin = new Vector2(0f, 0.5f);
             titleRect.anchorMax = new Vector2(1f, 0.5f);
             titleRect.pivot = new Vector2(0.5f, 0.5f);
-            titleRect.anchoredPosition = new Vector2(0f, 74f);
+            titleRect.anchoredPosition = new Vector2(0f, 96f);
             titleRect.sizeDelta = new Vector2(-80f, 72f);
 
-            statusLabel = AddLabel(panelRect, "LoadingStatus", string.Empty, 26f, TextAlignmentOptions.Center, font);
+            // 見出し下の細いアクセント線 (他 UI と同じ #3FA9F5)。
+            var ruleGO = new GameObject("AccentRule", typeof(RectTransform), typeof(Image));
+            ruleGO.transform.SetParent(contentRect, false);
+            var ruleRect = ruleGO.GetComponent<RectTransform>();
+            ruleRect.anchorMin = new Vector2(0.5f, 0.5f);
+            ruleRect.anchorMax = new Vector2(0.5f, 0.5f);
+            ruleRect.pivot = new Vector2(0.5f, 0.5f);
+            ruleRect.anchoredPosition = new Vector2(0f, 48f);
+            ruleRect.sizeDelta = new Vector2(180f, 2f);
+            var ruleImage = ruleGO.GetComponent<Image>();
+            ruleImage.color = new Color(0.247f, 0.663f, 0.961f, 0.85f);
+            ruleImage.raycastTarget = false;
+
+            // スピナー: 細い 2 本の棒が回る (塗り Evel の四角ではない)。
+            var spinnerGO = new GameObject("Spinner", typeof(RectTransform));
+            spinnerGO.transform.SetParent(contentRect, false);
+            var spinnerRect = spinnerGO.GetComponent<RectTransform>();
+            spinnerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            spinnerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            spinnerRect.pivot = new Vector2(0.5f, 0.5f);
+            spinnerRect.anchoredPosition = new Vector2(0f, -14f);
+            spinnerRect.sizeDelta = new Vector2(44f, 44f);
+            spinner = spinnerRect;
+            AddSpinnerBar(spinnerRect, "SpinnerBarA", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 2f));
+            AddSpinnerBar(spinnerRect, "SpinnerBarB", new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(2f, 0f));
+
+            // 状態文 (白・やや薄)。
+            statusLabel = AddLabel(contentRect, "LoadingStatus", string.Empty, 24f, TextAlignmentOptions.Center, font);
             statusLabel.overflowMode = TextOverflowModes.Overflow;
             var statusRect = statusLabel.rectTransform;
             statusRect.anchorMin = new Vector2(0f, 0.5f);
             statusRect.anchorMax = new Vector2(1f, 0.5f);
             statusRect.pivot = new Vector2(0.5f, 0.5f);
-            statusRect.anchoredPosition = new Vector2(0f, -10f);
+            statusRect.anchoredPosition = new Vector2(0f, -72f);
             statusRect.sizeDelta = new Vector2(-80f, 40f);
 
-            // スピナー: 回す白の四角 (スプライト不要)。
-            var spinnerGO = new GameObject("Spinner", typeof(RectTransform), typeof(Image));
-            spinnerGO.transform.SetParent(panelRect, false);
-            var spinnerRect = spinnerGO.GetComponent<RectTransform>();
-            spinnerRect.anchorMin = new Vector2(0.5f, 0.5f);
-            spinnerRect.anchorMax = new Vector2(0.5f, 0.5f);
-            spinnerRect.pivot = new Vector2(0.5f, 0.5f);
-            spinnerRect.anchoredPosition = new Vector2(0f, -70f);
-            spinnerRect.sizeDelta = new Vector2(40f, 40f);
-            var spinnerImage = spinnerGO.GetComponent<Image>();
-            spinnerImage.color = new Color(0.25f, 0.66f, 0.96f, 1f);
-            spinnerImage.raycastTarget = false;
-            spinner = spinnerRect;
-
-            // 補助文 (「しばらくお待ちください」)。
-            hintLabel = AddLabel(panelRect, "LoadingHint", string.Empty, 22f, TextAlignmentOptions.Center, font);
+            // 補助文 (「しばらくお待ちください」)。ゲーム内の補助文と同じ薄さ。
+            hintLabel = AddLabel(contentRect, "LoadingHint", string.Empty, 18f, TextAlignmentOptions.Center, font);
             hintLabel.overflowMode = TextOverflowModes.Overflow;
             var hintRect = hintLabel.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 0.5f);
             hintRect.anchorMax = new Vector2(1f, 0.5f);
             hintRect.pivot = new Vector2(0.5f, 0.5f);
-            hintRect.anchoredPosition = new Vector2(0f, -125f);
+            hintRect.anchoredPosition = new Vector2(0f, -116f);
             hintRect.sizeDelta = new Vector2(-80f, 36f);
-            hintLabel.color = new Color(1f, 1f, 1f, 0.6f);
+            hintLabel.color = new Color(1f, 1f, 1f, 0.4f);
 
             root.SetActive(false);
         }
@@ -256,6 +270,23 @@ public class MediaLoadingOverlay : MonoBehaviour
             // 表示の失敗でゲームが動かなくならないように。
             Debug.LogWarning("[MediaLoadingOverlay] build failed: " + e.Message);
         }
+    }
+
+    /// <summary>スピナーの細い棒 1 本 (アクセント色)。</summary>
+    private void AddSpinnerBar(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+        Vector2 pivot, Vector2 sizeDelta)
+    {
+        var bar = new GameObject(name, typeof(RectTransform), typeof(Image));
+        bar.transform.SetParent(parent, false);
+        var rect = bar.GetComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = pivot;
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = sizeDelta;
+        var image = bar.GetComponent<Image>();
+        image.color = new Color(0.247f, 0.663f, 0.961f, 1f);
+        image.raycastTarget = false;
     }
 
     static TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize,
