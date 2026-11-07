@@ -11,10 +11,13 @@
  *      compiles schemas with `new Function`, which the Workers runtime
  *      forbids (`EvalError: Code generation from strings disallowed`), so the
  *      same Ajv instance the seed and the test suite use cannot run here.
- *   2. Semantics — the checks the JSON schema cannot express: every note must
- *      land inside `durationSec`, and the legacy note fields must stay in the
- *      range the Unity gameplay code supports (8 lanes, positive beat
- *      positions, Tap and Hold notes).
+ *   2. Semantics — the checks the JSON schema cannot express. **These live in
+ *      `web/src/lib/chart/validate.ts` and are shared with the Web studio**
+ *      (issue #191). Before that, the API and the editor had their own rules,
+ *      so a chart the API accepted could be rejected by the editor
+ *      ("Published chart failed validation"), and the editor's overlap check
+ *      compared raw line numbers instead of beats and missed overlapping
+ *      holds whose `LPB` differed.
  *
  * Both layers return the same actionable diagnostic shape, so a rejected
  * publish always answers *which* item failed and *why*.
@@ -24,6 +27,14 @@ import { Validator, type Schema } from "@cfworker/json-schema";
 // filesystem, so copying it through the module graph is the only way to
 // validate against the real contract in the runtime.
 import chartSchema from "../../../../contracts/schemas/chart.v1.schema.json" with { type: "json" };
+// The shared semantic validator (issue #191). It is a pure module without any
+// runtime dependency, so it runs unchanged in the Worker, in the browser and
+// in Node.
+import {
+  validateChartSemantics,
+  type SemanticValidationOptions,
+} from "../../../src/lib/chart/validate.ts";
+import type { Chart } from "../../../src/lib/chart/types.ts";
 
 /** One actionable problem of a rejected publish request. */
 export interface PublishDiagnostic {
@@ -125,19 +136,26 @@ export function validatePublishRequest(body: unknown): PublishValidation {
 }
 
 /**
- * Semantic checks on a schema-valid request. The JSON schema already bounds
- * the individual fields; this layer enforces what only the *combination* of
- * fields can violate, and repeats the gameplay-critical ranges with
- * per-note messages so a rejected chart says exactly which note is at fault:
+ * Semantic checks on a schema-valid request.
+ *
+ * The JSON schema already bounds the individual fields; this layer enforces
+ * what only the *combination* of fields can violate. It is a **thin adapter**
+ * on top of the shared validator (`web/src/lib/chart/validate.ts`, issue
+ * #191): the rules live in exactly one place, so the publish API and the Web
+ * studio always judge a chart the same way.
+ *
+ * The shared validator speaks in **chart-relative JSON pointers**
+ * (`/notes/3/endNum`); the publish API answers in **request-relative** ones
+ * (`/chart/notes/3/endNum`), so the paths are rewritten here. The messages
+ * are passed through unchanged.
+ *
+ * On top of the shared rules, the request-level values are checked:
  *
  *   - 8 lanes: `block` must be 0-7 (`maxBlock` is fixed at 8).
  *   - Beat positions are positive: `num >= 0` and `LPB >= 1`.
  *   - BPM (1-600) and `level` (1-99) inside the supported ranges.
  *   - Note kinds: `type` must be 1 (Tap) or 2 (Hold). A Hold additionally
  *     needs `endNum`, and its end must be *after* its start (`endNum > num`).
- *     The Hold covers the lines `(num, endNum]` at the resolution of `LPB`,
- *     so an end at or before the start is a zero-length (or inverted) hold
- *     that the player cannot hold.
  *   - Note count vs chart length: the last note must land at or before
  *     `durationSec`. The Unity loader computes the note time as
  *     `num * 60 / (BPM * LPB)` seconds (`NotesManager.Load`), so that is the
@@ -192,26 +210,14 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
       });
     }
 
-    // A Hold needs its end line. The end must be after the start, otherwise
-    // the player would have to press and release the key inside the same
-    // frame.
-    const isHold = note.type === NOTE_TYPE_HOLD;
-    if (isHold) {
-      if (note.endNum === undefined) {
-        diagnostics.push({
-          path: `${path}/endNum`,
-          message: `endNum is required for a Hold (type ${NOTE_TYPE_HOLD}); the end line of the hold is missing`,
-        });
-      } else if (note.endNum <= note.num) {
-        diagnostics.push({
-          path: `${path}/endNum`,
-          message: `must be after the start line of the hold (num ${note.num}), got ${note.endNum}`,
-        });
-      }
-    }
+    // The Hold itself is checked by the shared validator below (missing
+    // `endNum`, an end that is not after its start, the length bounds and
+    // the overlap with another Hold of the same lane). Keeping the rule in
+    // one place is what makes the API and the editor agree (issue #191).
 
     // The last note of the chart decides how long the chart has to be. A Tap
     // ends at its own position, a Hold at the end of its hold.
+    const isHold = note.type === NOTE_TYPE_HOLD;
     const endLine = isHold && note.endNum !== undefined ? note.endNum : note.num;
     const noteSec = (endLine * 60) / (bpm * note.LPB);
     if (noteSec > lastNoteSec) {
@@ -227,7 +233,41 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
     });
   }
 
+  // The shared semantic rules (issue #191). The chart-relative pointers of
+  // the shared validator are rewritten to request-relative ones, so the
+  // operator sees the path inside the body they sent.
+  diagnostics.push(...sharedSemanticDiagnostics(request));
+
   return diagnostics;
+}
+
+/**
+ * The part of the publish validation that the Web studio shares.
+ *
+ * It is the **semantic** layer of the chart validation, and nothing else:
+ * the request-level rules (the level range, the empty chart, the note kinds,
+ * the lane range) belong to the publish request and have no counterpart in
+ * the editor, which edits a chart and not a request.
+ *
+ * `web/src/lib/chart/__tests__/chart-validation-parity.test.ts` compares this
+ * function with `validateChartSemantics` on the same fixtures, so the two
+ * sides cannot drift apart (issue #191).
+ */
+export function sharedSemanticDiagnostics(request: SongPublishRequest): PublishDiagnostic[] {
+  const options: SemanticValidationOptions = { durationSec: request.durationSec };
+  return validateChartSemantics(request.chart as Chart, options).map((issue) => ({
+    path: toRequestPath(issue.path),
+    message: issue.message,
+  }));
+}
+
+/**
+ * Rewrite a chart-relative JSON pointer (`/notes/3/endNum`) into a
+ * request-relative one (`/chart/notes/3/endNum`).
+ */
+function toRequestPath(chartPath: string): string {
+  if (!chartPath) return "/chart";
+  return `/chart${chartPath}`;
 }
 
 /**
