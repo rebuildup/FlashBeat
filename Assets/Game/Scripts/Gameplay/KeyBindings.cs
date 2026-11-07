@@ -56,6 +56,42 @@ public static class KeyBindings
     /// <summary>割り当てが変わったときに発火する。KeyGuideUI などが表示を更新するために使う。</summary>
     public static event Action Changed;
 
+    // ---- Lane key helpers shared by every consumer of the lane keys (flash, menu navigation) ----
+    // key -> frame in which it was injected by the -autotest runner; visible to Update in the NEXT frame only.
+    private static readonly Dictionary<KeyCode, int> injectedDown = new Dictionary<KeyCode, int>();
+
+    public static void InjectKeyDown(KeyCode key)
+    {
+        injectedDown[key] = Time.frameCount;
+    }
+
+    public static bool GetKeyDownOrInjected(KeyCode key)
+    {
+        int frame;
+        return Input.GetKeyDown(key) || (injectedDown.TryGetValue(key, out frame) && Time.frameCount == frame + 1);
+    }
+
+    /// <summary>True when any key bound to the lane (0-based) went down this frame.</summary>
+    public static bool IsLaneKeyDown(int lane)
+    {
+        KeyCode[] keys = GetKeys(lane);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (GetKeyDownOrInjected(keys[i])) { return true; }
+        }
+        return false;
+    }
+
+    /// <summary>True when any key bound to lanes [fromLane, toLaneExclusive) went down this frame.</summary>
+    public static bool IsAnyLaneKeyDown(int fromLane, int toLaneExclusive)
+    {
+        for (int lane = fromLane; lane < toLaneExclusive; lane++)
+        {
+            if (IsLaneKeyDown(lane)) { return true; }
+        }
+        return false;
+    }
+
     /// <summary>保存先を差し替える (テスト用)。null で既定の PlayerPrefs に戻す。呼ぶと未ロード状態に戻る。</summary>
     public static void SetStorage(IStorage value)
     {
