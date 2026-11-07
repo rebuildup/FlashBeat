@@ -29,6 +29,8 @@ public static class JapaneseFontAssetBuilder
     private const string ChartFolder = "Assets/Game/Resources";
     private const string SceneFolder = "Assets/Game/Scenes";
     private const string PrefabFolder = "Assets/Game/Prefabs";
+    private const string CodeFolder = "Assets/Game/Scripts";
+    private const string DynamicFallbackPath = "Assets/Game/Fonts/Japanese/NotoSansJP-Dynamic SDF.asset";
 
     private const int PointSize = 48;
     private const int Padding = 5;
@@ -98,6 +100,8 @@ public static class JapaneseFontAssetBuilder
             throw new Exception(
                 $"[JapaneseFontAssetBuilder] Rebuilt asset is missing {reloadedMissing.Count} required glyph(s): {new string(reloadedMissing.ToArray())}");
         }
+
+        EnsureDynamicFallback();
 
         Debug.Log(
             $"[JapaneseFontAssetBuilder] Rebuilt {FontAssetPath}: all {required.Count} required glyphs present, " +
@@ -177,6 +181,18 @@ public static class JapaneseFontAssetBuilder
             }
         }
 
+        // C# コード内の日本語 (コードで構築した UI の文言)。コメント内の文字も含む上位集合で構わない。
+        foreach (string text in CollectCodeTexts())
+        {
+            foreach (char c in text)
+            {
+                if (c > 0x7F && !char.IsControl(c) && !char.IsSurrogate(c))
+                {
+                    chars.Add(c);
+                }
+            }
+        }
+
         return chars;
     }
 
@@ -211,6 +227,54 @@ public static class JapaneseFontAssetBuilder
         }
 
         return texts;
+    }
+
+    /// <summary>Assets/Game/Scripts 以下の .cs の全文 (日本語文言を拾うための上位集合)。</summary>
+    private static List<string> CollectCodeTexts()
+    {
+        var texts = new List<string>();
+        if (!Directory.Exists(CodeFolder)) { return texts; }
+        foreach (string path in Directory.GetFiles(CodeFolder, "*.cs", SearchOption.AllDirectories))
+        {
+            texts.Add(File.ReadAllText(path, Encoding.UTF8));
+        }
+        return texts;
+    }
+
+    /// <summary>
+    /// 動的 NotoSansJP をフォールバックとして主アセットに追加する。静的アトラスに無い文字
+    /// (来場者が登録した曲名の新しい漢字など) は実行時に生成される。主アセットは再生成のたびに
+    /// 書き換わるため、再生成のたびに呼ぶ。
+    /// </summary>
+    private static void EnsureDynamicFallback()
+    {
+        TMP_FontAsset main = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetPath);
+        if (main == null) { throw new Exception("[JapaneseFontAssetBuilder] main font asset missing: " + FontAssetPath); }
+
+        TMP_FontAsset dynamicAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(DynamicFallbackPath);
+        if (dynamicAsset == null)
+        {
+            Font source = AssetDatabase.LoadAssetAtPath<Font>(SourceFontPath);
+            dynamicAsset = TMP_FontAsset.CreateFontAsset(source, PointSize, Padding, GlyphRenderMode.SDFAA, 2048, 2048, AtlasPopulationMode.Dynamic, true);
+            dynamicAsset.name = "NotoSansJP-Dynamic SDF";
+            AssetDatabase.CreateAsset(dynamicAsset, DynamicFallbackPath);
+            Texture2D[] textures = dynamicAsset.atlasTextures;
+            for (int i = 0; i < textures.Length; i++)
+            {
+                if (textures[i] != null) { AssetDatabase.AddObjectToAsset(textures[i], dynamicAsset); }
+            }
+            if (dynamicAsset.material != null) { AssetDatabase.AddObjectToAsset(dynamicAsset.material, dynamicAsset); }
+            AssetDatabase.SaveAssets();
+        }
+
+        if (main.fallbackFontAssetTable == null) { main.fallbackFontAssetTable = new List<TMP_FontAsset>(); }
+        if (!main.fallbackFontAssetTable.Contains(dynamicAsset))
+        {
+            main.fallbackFontAssetTable.Add(dynamicAsset);
+            EditorUtility.SetDirty(main);
+            AssetDatabase.SaveAssets();
+        }
+        Debug.Log("[JapaneseFontAssetBuilder] dynamic fallback attached: " + DynamicFallbackPath);
     }
 
     /// <summary>
