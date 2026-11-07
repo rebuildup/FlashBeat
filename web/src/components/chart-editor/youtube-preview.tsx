@@ -113,11 +113,13 @@ const frame = css({
   overflow: "hidden",
   position: "relative",
   width: "full",
+  maxWidth: "100%",
 });
 
 const playerBox = css({
   aspectRatio: "16 / 9",
   width: "full",
+  maxWidth: "100%",
 });
 
 const errorText = css({

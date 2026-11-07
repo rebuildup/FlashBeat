@@ -45,11 +45,14 @@ const tools = css({
 });
 
 const toolField = css({
-  width: "15rem",
+  minWidth: "12rem",
+  maxWidth: "24rem",
+  flex: "1 1 auto",
 });
 
 const selectRoot = css({
-  width: "11rem",
+  minWidth: "8rem",
+  flexShrink: 0,
 });
 
 const selectControl = css({

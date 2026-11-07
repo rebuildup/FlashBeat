@@ -9,6 +9,12 @@
   }
 
   body {
-    overflow: hidden;
+    /* The document scrolls; every screen keeps one inner scroll area. */
+    overflow: auto;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--global-color-focus-ring);
+    outline-offset: 2px;
   }
 }

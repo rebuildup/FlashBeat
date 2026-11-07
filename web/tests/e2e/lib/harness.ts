@@ -46,6 +46,19 @@ export interface ChartSnapshot {
   chart: unknown;
 }
 
+/** One entry of `GET /api/v1/leaderboards/{songId}`. */
+export interface LeaderboardEntry {
+  nickname: string;
+  score: number;
+}
+
+/** Body of `GET /api/v1/leaderboards/{songId}?version=N`. */
+export interface Leaderboard {
+  songId: string;
+  chartVersion: number;
+  entries: LeaderboardEntry[];
+}
+
 export type FetchJson = (
   url: string,
   init?: RequestInit,
@@ -224,6 +237,63 @@ export async function chartStage(
   );
 
   return { entries, snapshot: status === 200 ? snapshot : null };
+}
+
+/**
+ * Stage 3.5: `GET /api/v1/leaderboards/{songId}?version=N` for the catalog
+ * entry (issue #133). Read-only like every default stage: the leaderboard of
+ * a published song is fetched and its shape, size cap and ordering are
+ * verified. An empty leaderboard (`entries: []`) passes.
+ */
+export async function leaderboardStage(
+  fetchJson: FetchJson,
+  baseUrl: string,
+  song: CatalogSong,
+): Promise<StageEntry[]> {
+  const entries: StageEntry[] = [];
+  const url = `${baseUrl}/api/v1/leaderboards/${encodeURIComponent(song.id)}?version=${song.chartVersion}`;
+  const { status, body } = await fetchJson(url, { cache: "no-store" });
+  entries.push(entry("leaderboard.status", 200, status, status === 200));
+  if (status !== 200) {
+    entries.push(entry("leaderboard.shape", "leaderboard body", describeBody(body), false));
+    return entries;
+  }
+
+  const leaderboard = body as Leaderboard | null;
+  const shaped =
+    leaderboard !== null &&
+    typeof leaderboard === "object" &&
+    leaderboard.songId === song.id &&
+    leaderboard.chartVersion === song.chartVersion &&
+    Array.isArray(leaderboard.entries) &&
+    leaderboard.entries.length <= 10 &&
+    leaderboard.entries.every(
+      (item) =>
+        typeof item?.nickname === "string" &&
+        item.nickname.length > 0 &&
+        Number.isInteger(item?.score) &&
+        item.score >= 0 &&
+        item.score <= 1000000,
+    );
+  entries.push(
+    entry(
+      "leaderboard.shape",
+      "songId + chartVersion of the catalog entry, entries[] of nickname/score, at most 10",
+      describeBody(body),
+      shaped,
+    ),
+  );
+  if (!shaped || leaderboard === null) {
+    return entries;
+  }
+
+  const scores = leaderboard.entries.map((item) => item.score);
+  const descending = scores.every((score, index) => index === 0 || scores[index - 1] >= score);
+  entries.push(
+    entry("leaderboard.order", "score descending, ties earliest first", scores, descending),
+  );
+
+  return entries;
 }
 
 /** Ajv issues of one value against the frozen chart contract. */

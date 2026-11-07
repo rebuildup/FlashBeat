@@ -8,11 +8,15 @@ import { loadCatalog, type CatalogMode } from "./catalog";
 import type { SongSummary } from "./types";
 
 const shell = css({
-  display: "grid",
+  /**
+   * Narrow viewports: the shell is a plain block so the navigation can stick
+   * to the top of the document while the page scrolls. Wide viewports: the
+   * grid of the persistent rail and the work area.
+   */
+  display: { base: "block", md: "grid" },
   gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { base: "auto 1fr", md: "1fr" },
-  height: "100dvh",
-  overflow: "hidden",
+  minHeight: "100dvh",
 });
 
 const main = css({
@@ -32,7 +36,12 @@ const content = css({
   p: "4",
 });
 
-export function AppShell({ mode, query: initialQuery = "", level: initialLevel = "all", sort: initialSort = "catalog" }: {
+export function AppShell({
+  mode,
+  query: initialQuery = "",
+  level: initialLevel = "all",
+  sort: initialSort = "catalog",
+}: {
   mode: CatalogMode;
   /** Initial filter values from the page loader (`/?query=…&level=…&sort=…`). */
   query?: string;
@@ -85,7 +94,13 @@ export function AppShell({ mode, query: initialQuery = "", level: initialLevel =
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "/" || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
         return;
       }
       const input = document.getElementById(SEARCH_INPUT_ID);
@@ -102,8 +117,7 @@ export function AppShell({ mode, query: initialQuery = "", level: initialLevel =
     [songs, query, level, sort],
   );
 
-  const effectiveStatus: CatalogStatus =
-    !online && status !== "loading" ? "offline" : status;
+  const effectiveStatus: CatalogStatus = !online && status !== "loading" ? "offline" : status;
 
   /** Arrow keys move row focus inside the catalog list (rows are native links). */
   const onListKeyDown = useCallback((event: React.KeyboardEvent) => {
@@ -158,4 +172,3 @@ export function AppShell({ mode, query: initialQuery = "", level: initialLevel =
     </div>
   );
 }
-

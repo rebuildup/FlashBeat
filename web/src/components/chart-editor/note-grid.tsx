@@ -47,6 +47,11 @@ const scrollArea = css({
   display: "flex",
   justifyContent: "flex-start",
   width: "full",
+  // The grid takes the focus so the note shortcuts have a visible anchor.
+  "&:focus-visible": {
+    outline: "2px solid #3fa9f5",
+    outlineOffset: "-2px",
+  },
 });
 
 export interface NoteGridProps {
@@ -204,7 +209,14 @@ export function NoteGrid({
   }
 
   return (
-    <div className={scrollArea} ref={panelRef} data-testid="note-grid">
+    <div
+      aria-label="Note grid"
+      className={scrollArea}
+      ref={panelRef}
+      role="group"
+      tabIndex={0}
+      data-testid="note-grid"
+    >
       <div style={{ minWidth: stageWidth, flex: 1 }}>
         <Stage
           width={stageWidth}

@@ -2,8 +2,16 @@ import { CirclePlay } from "lucide-react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
+import { SongThumbnail } from "./song-thumbnail";
 import type { SongSummary } from "./types";
-import { StateBlock, panelBodyFlush, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
+import {
+  StateBlock,
+  panelBodyFlush,
+  panelFrame,
+  panelHeader,
+  panelSubtitle,
+  panelTitle,
+} from "./panel";
 
 export type CatalogStatus = "loading" | "ready" | "empty" | "error" | "offline";
 
@@ -24,6 +32,77 @@ const COLUMNS = {
   md: "minmax(14rem, 1fr) 3rem 4.5rem 4.5rem 3.5rem 12.5rem",
   lg: "minmax(14rem, 1fr) 3rem 4.5rem 4rem 4.5rem 3.5rem 12.5rem",
 };
+
+const card = css({
+  borderBottomColor: "border",
+  borderBottomWidth: "1px",
+  display: { base: "flex", md: "none" },
+  flexDirection: "column",
+  gap: "2",
+  minHeight: "0",
+  paddingBottom: "3",
+  paddingTop: "3",
+  px: "4",
+  _last: { borderBottomWidth: "0" },
+});
+
+const cardHeader = css({
+  alignItems: "flex-start",
+  display: "flex",
+  gap: "2",
+  justifyContent: "space-between",
+  minWidth: "0",
+});
+
+const cardTitleRow = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "3",
+  minWidth: "0",
+});
+
+const cardTitle = css({
+  color: "fg.default",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "1.3",
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "normal",
+  display: "-webkit-box",
+  WebkitLineClamp: "2",
+  boxOrient: "vertical",
+});
+
+const cardMeta = css({
+  color: "fg.muted",
+  display: "flex",
+  flexWrap: "wrap",
+  fontSize: "xs",
+  gap: "2",
+  lineHeight: "1.5",
+});
+
+const cardActions = css({
+  alignItems: "center",
+  display: "flex",
+  gap: "2",
+  justifyContent: "flex-end",
+  marginTop: "1",
+  pt: "2",
+  borderTopColor: "border",
+  borderTopWidth: "1px",
+});
+
+const cardContainer = css({
+  display: { base: "flex", md: "none" },
+  flexDirection: "column",
+});
+
+const tableContainer = css({
+  display: { base: "none", md: "block" },
+});
 
 const header = css({
   borderBottomColor: "border",
@@ -107,15 +186,22 @@ const openHint = css({
 });
 
 const rowBody = css({
-  alignItems: "flex-start",
+  alignItems: "center",
   display: "flex",
-  flexDirection: "column",
-  gap: "1",
+  gap: "3",
   minWidth: "0",
   paddingInline: "4",
   pointerEvents: "none",
   py: "2",
   width: "100%",
+});
+
+const rowText = css({
+  alignItems: "flex-start",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "0",
   justifyContent: "center",
 });
 
@@ -126,7 +212,10 @@ const titleText = css({
   lineHeight: "1.3",
   overflow: "hidden",
   textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  whiteSpace: "normal",
+  display: "-webkit-box",
+  WebkitLineClamp: "2",
+  boxOrient: "vertical",
   width: "100%",
 });
 
@@ -328,122 +417,184 @@ export function CatalogPanel({
 
       <div className={panelBodyFlush}>
         {status !== "ready" || songs.length === 0 ? (
-        <div className={stateWrap}>
-        {status === "loading" ? (
-          <StateBlock
-            title="Loading catalog"
-            description="Reading the published catalog from the FlashBeat API."
-          />
-        ) : null}
+          <div className={stateWrap}>
+            {status === "loading" ? (
+              <StateBlock
+                title="Loading catalog"
+                description="Reading the published catalog from the FlashBeat API."
+              />
+            ) : null}
 
-        {status === "offline" ? (
-          <StateBlock
-            title="You are offline"
-            description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
-            action={
-              <Button variant="outline" size="sm" onClick={onRetry}>
-                Retry
-              </Button>
-            }
-          />
-        ) : null}
+            {status === "offline" ? (
+              <StateBlock
+                title="You are offline"
+                description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
+                action={
+                  <Button variant="outline" size="sm" onClick={onRetry}>
+                    Retry
+                  </Button>
+                }
+              />
+            ) : null}
 
-        {status === "error" ? (
-          <StateBlock
-            title="Catalog unavailable"
-            description={errorMessage ?? "The catalog request failed."}
-            action={
-              <Button className={accent} size="sm" onClick={onRetry}>
-                Try again
-              </Button>
-            }
-          />
-        ) : null}
+            {status === "error" ? (
+              <StateBlock
+                title="Catalog unavailable"
+                description={errorMessage ?? "The catalog request failed."}
+                action={
+                  <Button className={accent} size="sm" onClick={onRetry}>
+                    Try again
+                  </Button>
+                }
+              />
+            ) : null}
 
-        {status === "empty" ? (
-          <StateBlock
-            title="No songs published yet"
-            description="Publish a chart to the FlashBeat API and it shows up here immediately."
-          />
-        ) : null}
+            {status === "empty" ? (
+              <StateBlock
+                title="No songs published yet"
+                description="Publish a chart to the FlashBeat API and it shows up here immediately."
+              />
+            ) : null}
 
-        {noFilterMatch ? (
-          <StateBlock
-            title="No song matches the filters"
-            description="Clear the search query or level filter to see the published songs."
-            action={
-              <Button variant="outline" size="sm" onClick={onClearFilters}>
-                Clear filters
-              </Button>
-            }
-          />
-        ) : null}
-        </div>
+            {noFilterMatch ? (
+              <StateBlock
+                title="No song matches the filters"
+                description="Clear the search query or level filter to see the published songs."
+                action={
+                  <Button variant="outline" size="sm" onClick={onClearFilters}>
+                    Clear filters
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
         ) : null}
 
         {status === "ready" && songs.length > 0 ? (
-          <div className={list} data-testid="catalog-list" onKeyDown={onListKeyDown}>
-            <div className={header} aria-hidden="true">
-              <span>Song</span>
-              <span>Lv</span>
-              <span className={headerNum}>BPM</span>
-              <span className={`${headerNum} ${headerTime}`}>Time</span>
-              <span className={headerNum}>Notes</span>
-              <span>Ver</span>
-              <span />
-            </div>
-            {songs.map((song) => (
-              <div key={song.id} className={`row ${row}`}>
-                <a className={rowLink} href={chartHref(song)} data-row-link>
-                  <span className={visuallyHidden}>
-                    {`Open chart: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
-                  </span>
-                </a>
-
-                <span className={rowBody}>
-                  <span className={titleText}>{song.title}</span>
-                  <span className={artistText}>{song.artist}</span>
-                  <span className={metaLine}>
-                    <span>Lv {song.level}</span>
-                    <span>·</span>
+          <>
+            <div className={cardContainer}>
+              {songs.map((song) => (
+                <div key={song.id} className={card}>
+                  <div className={cardHeader}>
+                    <span className={cardTitleRow}>
+                      <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
+                      <a className={rowLink} href={chartHref(song)} data-row-link>
+                        <span className={cardTitle}>{song.title}</span>
+                      </a>
+                    </span>
+                    <span className={levelBadge}>{song.level}</span>
+                  </div>
+                  <div className={cardMeta}>
+                    <span>{song.artist}</span>
                     <span>{song.bpm} BPM</span>
-                    <span>·</span>
                     <span>{formatDuration(song.durationSec)}</span>
-                    <span>·</span>
                     <span>{song.noteCount} notes</span>
-                    <span>·</span>
                     <span>v{song.chartVersion}</span>
-                  </span>
-                </span>
+                  </div>
+                  <div className={cardActions}>
+                    <a className={actionLink} href={chartHref(song)}>
+                      Open chart
+                    </a>
+                    <a className={actionLink} href={publishHref(song)}>
+                      Publish
+                    </a>
+                    <a
+                      aria-label={`${song.title} on YouTube`}
+                      className={`${actionLink} ${youtubeAction}`}
+                      href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <CirclePlay size={14} aria-hidden="true" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className={tableContainer}>
+              <div className={list} data-testid="catalog-list" onKeyDown={onListKeyDown}>
+                <div className={header} aria-hidden="true">
+                  <span>Song</span>
+                  <span>Lv</span>
+                  <span className={headerNum}>BPM</span>
+                  <span className={`${headerNum} ${headerTime}`}>Time</span>
+                  <span className={headerNum}>Notes</span>
+                  <span>Ver</span>
+                  <span />
+                </div>
+                {songs.map((song) => (
+                  <div key={song.id} className={`row ${row}`}>
+                    <a className={rowLink} href={chartHref(song)} data-row-link>
+                      <span className={visuallyHidden}>
+                        {`Open chart: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
+                      </span>
+                    </a>
 
-                <span className={levelCell}>
-                  <span className={levelBadge}>{song.level}</span>
-                </span>
-                <span className={num}>{song.bpm}</span>
-                <span className={num}>{formatDuration(song.durationSec)}</span>
-                <span className={num}>{song.noteCount}</span>
-                <span className={version}>v{song.chartVersion}</span>
+                    <span className={rowBody}>
+                      <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
+                      <span className={rowText}>
+                        <span className={titleText}>{song.title}</span>
+                        <span className={artistText}>{song.artist}</span>
+                        <span className={metaLine}>
+                          <span>Lv {song.level}</span>
+                          <span>·</span>
+                          <span>{song.bpm} BPM</span>
+                          <span>·</span>
+                          <span>{formatDuration(song.durationSec)}</span>
+                          <span>·</span>
+                          <span>{song.noteCount} notes</span>
+                          <span>·</span>
+                          <span>v{song.chartVersion}</span>
+                        </span>
+                      </span>
+                    </span>
 
-                <span className={actions}>
-                  <span className={openHint} aria-hidden="true" data-open-hint>
-                    Open chart
-                  </span>
-                  <a className={actionLink} href={publishHref(song)}>
-                    Publish
-                  </a>
-                  <a
-                    aria-label={`${song.title} on YouTube`}
-                    className={`${actionLink} ${youtubeAction}`}
-                    href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <CirclePlay size={14} aria-hidden="true" />
-                  </a>
-                </span>
+                    <span className={rowBody}>
+                      <span className={titleText}>{song.title}</span>
+                      <span className={artistText}>{song.artist}</span>
+                      <span className={metaLine}>
+                        <span>Lv {song.level}</span>
+                        <span>·</span>
+                        <span>{song.bpm} BPM</span>
+                        <span>·</span>
+                        <span>{formatDuration(song.durationSec)}</span>
+                        <span>·</span>
+                        <span>{song.noteCount} notes</span>
+                        <span>·</span>
+                        <span>v{song.chartVersion}</span>
+                      </span>
+                    </span>
+
+                    <span className={levelCell}>
+                      <span className={levelBadge}>{song.level}</span>
+                    </span>
+                    <span className={num}>{song.bpm}</span>
+                    <span className={num}>{formatDuration(song.durationSec)}</span>
+                    <span className={num}>{song.noteCount}</span>
+                    <span className={version}>v{song.chartVersion}</span>
+
+                    <span className={actions}>
+                      <span className={openHint} aria-hidden="true" data-open-hint>
+                        Open chart
+                      </span>
+                      <a className={actionLink} href={publishHref(song)}>
+                        Publish
+                      </a>
+                      <a
+                        aria-label={`${song.title} on YouTube`}
+                        className={`${actionLink} ${youtubeAction}`}
+                        href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <CirclePlay size={14} aria-hidden="true" />
+                      </a>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          </>
         ) : null}
       </div>
 
