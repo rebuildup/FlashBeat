@@ -75,6 +75,7 @@ public class SelectSceneManager : MonoBehaviour
         if (sounds != null) sounds.volume = GManager.effectVolume;
         UpdateThumbnails();
         StartCatalogRefresh();
+        KeyGuideUI.Create(null);
     }
 
     // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it

@@ -60,8 +60,7 @@ public class MediaLoadingOverlayTests
     }
 
     [Test]
-    public void TheOverlayDoesNotBlockClicks()
-    {
+    public void TheOverlayDoesNotBlockClicks()    {
         MediaLoadingOverlay overlay = MediaLoadingOverlay.Ensure();
         overlay.Show("準備中…");
         var graphics = Resources.FindObjectsOfTypeAll<UnityEngine.UI.Graphic>();
@@ -77,5 +76,30 @@ public class MediaLoadingOverlayTests
             Assert.IsFalse(graphic.raycastTarget, "the loading overlay must not swallow clicks: " + graphic.name);
         }
         Assert.Greater(checkedCount, 0, "the overlay must have graphics to check");
+    }
+
+    [Test]
+    public void TheOverlayIsAFullScreenLoadingScreen()
+    {
+        MediaLoadingOverlay overlay = MediaLoadingOverlay.Ensure();
+        overlay.Show("動画をダウンロード中…");
+
+        var backdrop = GameObject.Find("Backdrop");
+        Assert.IsNotNull(backdrop, "the loading screen must have a full screen backdrop");
+        var image = backdrop.GetComponent<UnityEngine.UI.Image>();
+        Assert.IsNotNull(image, "the backdrop must be an Image");
+        Assert.GreaterOrEqual(image.color.a, 0.9f, "the loading screen must hide the game behind it");
+
+        var backdropRect = backdrop.GetComponent<RectTransform>();
+        Assert.AreEqual(Vector2.zero, backdropRect.anchorMin, "the backdrop must cover the whole screen");
+        Assert.AreEqual(Vector2.one, backdropRect.anchorMax, "the backdrop must cover the whole screen");
+    }
+
+    [Test]
+    public void TheLoadingScreenShowsTheWaitHint()
+    {
+        MediaLoadingOverlay overlay = MediaLoadingOverlay.Ensure();
+        overlay.Show("動画を準備中…");
+        Assert.IsTrue(overlay.HintText.Contains("お待ち"), "the loading screen must show a wait hint, but was: " + overlay.HintText);
     }
 }
