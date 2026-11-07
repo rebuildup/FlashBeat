@@ -27,6 +27,33 @@ public class TitleSceneManager : MonoBehaviour
         //this.Screen.SetDirectAudioVolume = true;
         RefreshKeyHints();
         KeyActions.Changed += RefreshKeyHints;
+        CreateKeyGuide();
+    }
+
+    /// <summary>タイトル画面でもキーガイド (Tab) を開けるようにする。</summary>
+    private void CreateKeyGuide()
+    {
+        KeyGuideUI.Create(null);
+        var canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) { return; }
+
+        var labelGO = new GameObject("KeyGuideHint", typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(canvas.transform, false);
+        var rect = labelGO.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(0f, 16f);
+        rect.sizeDelta = new Vector2(700f, 36f);
+
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = "Tab : キーガイド (キーの一覧)";
+        tmp.fontSize = 22f;
+        tmp.color = new Color(1f, 1f, 1f, 0.85f);
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
+        var font = JapaneseFontFinder.FindJapaneseFont();
+        if (font != null) { tmp.font = font; }
     }
 
     void OnDestroy()

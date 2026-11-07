@@ -23,6 +23,7 @@ public class MediaLoadingOverlay : MonoBehaviour
     private GameObject canvasObject;
     private TextMeshProUGUI titleLabel;
     private TextMeshProUGUI statusLabel;
+    private TextMeshProUGUI hintLabel;
     private RectTransform spinner;
     private float spinnerAngle;
     private float errorHideAt = -1f;
@@ -43,6 +44,12 @@ public class MediaLoadingOverlay : MonoBehaviour
     public string StatusText
     {
         get { return statusLabel != null ? statusLabel.text : string.Empty; }
+    }
+
+    /// <summary>補助文の文字列 (テスト・状態表示用)。</summary>
+    public string HintText
+    {
+        get { return hintLabel != null ? hintLabel.text : string.Empty; }
     }
 
     /// <summary>スパインの回転角 (テストで「動いている」ことを確認するため)。</summary>
@@ -144,7 +151,7 @@ public class MediaLoadingOverlay : MonoBehaviour
     {
         try
         {
-            TMP_FontAsset font = FindJapaneseFont();
+            TMP_FontAsset font = JapaneseFontFinder.FindJapaneseFont();
 
             var canvasGO = new GameObject("MediaLoadingCanvas", typeof(Canvas),
                 typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -169,7 +176,7 @@ public class MediaLoadingOverlay : MonoBehaviour
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
-            // 全画面の薄暗転。クリックは奥へ通す (raycastTarget = false)。
+            // 全画面の暗転。クリックは奥へ通す (raycastTarget = false)。
             var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(Image));
             backdrop.transform.SetParent(rootRect, false);
             var backdropRect = backdrop.GetComponent<RectTransform>();
@@ -178,7 +185,7 @@ public class MediaLoadingOverlay : MonoBehaviour
             backdropRect.offsetMin = Vector2.zero;
             backdropRect.offsetMax = Vector2.zero;
             var backdropImage = backdrop.GetComponent<Image>();
-            backdropImage.color = new Color(0f, 0f, 0f, 0.35f);
+            backdropImage.color = new Color(0.02f, 0.03f, 0.06f, 0.94f);
             backdropImage.raycastTarget = false;
 
             var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
@@ -216,12 +223,22 @@ public class MediaLoadingOverlay : MonoBehaviour
             spinnerRect.anchorMin = new Vector2(0.5f, 0.5f);
             spinnerRect.anchorMax = new Vector2(0.5f, 0.5f);
             spinnerRect.pivot = new Vector2(0.5f, 0.5f);
-            spinnerRect.anchoredPosition = new Vector2(0f, -80f);
+            spinnerRect.anchoredPosition = new Vector2(0f, -70f);
             spinnerRect.sizeDelta = new Vector2(40f, 40f);
             var spinnerImage = spinnerGO.GetComponent<Image>();
             spinnerImage.color = new Color(0.25f, 0.66f, 0.96f, 1f);
             spinnerImage.raycastTarget = false;
             spinner = spinnerRect;
+
+            // 補助文 (「しばらくお待ちください」)。
+            hintLabel = AddLabel(panelRect, "LoadingHint", "しばらくお待ちください…", 22f, TextAlignmentOptions.Center, font);
+            var hintRect = hintLabel.rectTransform;
+            hintRect.anchorMin = new Vector2(0f, 0.5f);
+            hintRect.anchorMax = new Vector2(1f, 0.5f);
+            hintRect.pivot = new Vector2(0.5f, 0.5f);
+            hintRect.anchoredPosition = new Vector2(0f, -125f);
+            hintRect.sizeDelta = new Vector2(-80f, 32f);
+            hintLabel.color = new Color(1f, 1f, 1f, 0.6f);
 
             root.SetActive(false);
         }
@@ -248,22 +265,4 @@ public class MediaLoadingOverlay : MonoBehaviour
         return tmp;
     }
 
-    /// <summary>シーンにある既存の TMP から日本語フォント (Noto / YuGoth) を拾う。</summary>
-    static TMP_FontAsset FindJapaneseFont()
-    {
-        TMP_FontAsset fallback = null;
-        var all = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
-        for (int i = 0; i < all.Length; i++)
-        {
-            var tmp = all[i];
-            if (tmp == null || tmp.font == null) { continue; }
-            string fontName = tmp.font.name;
-            if (fontName != null && (fontName.Contains("Noto") || fontName.Contains("YuGoth")))
-            {
-                return tmp.font;
-            }
-            if (fallback == null) { fallback = tmp.font; }
-        }
-        return fallback;
-    }
 }
