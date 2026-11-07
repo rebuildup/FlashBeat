@@ -83,7 +83,8 @@ so `void db migrate --remote` and `cf d1 migrations apply` read the same SQL fil
 and share the `d1_migrations` bookkeeping table. Never reset the remote database:
 ship a follow-up migration instead.
 
-`db/fixtures/who.chart.json` is a byte-identical copy of `Assets/Resources/Who.json`
+`db/fixtures/who.chart.json` is a byte-identical copy of the notes of
+`Assets/Game/Resources/Who.json` (the `lyrics` block is not seeded)
 and `db/fixtures/who.song.json` carries the matching metadata from
 `Assets/Game/Scripts/Songs/GManager.cs`. The seed stores the chart file text
 verbatim, so the published chart is identical to the one the Unity player ships.

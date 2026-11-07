@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -87,6 +87,55 @@ public class KeyGuideTests
                 Assert.AreEqual(expected, row, $"Lane {lane} row must be generated from Judge.LaneKeys.");
             }
             Assert.IsNull(guide.GetRowLabel(Judge.LaneKeys.Length), "Guide must not have more rows than lanes.");
+        }
+        finally
+        {
+            Object.DestroyImmediate(host);
+        }
+    }
+
+    [Test]
+    public void TestLaneHeadersAreJapaneseAndOneBased()
+    {
+        for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+        {
+            string header = KeyGuideUI.BuildLaneHeader(lane);
+            Assert.IsTrue(header.StartsWith("レーン"), "the lane header must be Japanese, but was: " + header);
+            Assert.IsTrue(header.Contains((lane + 1).ToString()), "the lane header must show the 1-based lane number, but was: " + header);
+        }
+    }
+
+    [Test]
+    public void TestLaneLabelsContainTheLaneNumberAndTheKeys()
+    {
+        for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+        {
+            string label = KeyGuideUI.BuildLaneLabel(lane);
+            Assert.IsTrue(label.Contains("レーン " + (lane + 1)), "the lane label must name the lane, but was: " + label);
+            foreach (KeyCode key in Judge.LaneKeys[lane])
+            {
+                Assert.IsTrue(label.Contains(KeyGuideUI.GetKeyDisplayName(key)),
+                    $"Lane {lane} label '{label}' is missing key '{KeyGuideUI.GetKeyDisplayName(key)}'.");
+            }
+        }
+    }
+
+    [Test]
+    public void TestTheGuideUsesTheJapaneseFontWhenAvailable()
+    {
+        var host = new GameObject("KeyGuideFontHost");
+        try
+        {
+            KeyGuideUI guide = KeyGuideUI.Create(host.transform);
+            Assert.IsNotNull(guide);
+            var labels = host.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true);
+            Assert.Greater(labels.Length, 0, "the guide must have labels");
+            bool hasJapanese = false;
+            foreach (var label in labels)
+            {
+                if (label.text.Contains("キーガイド")) { hasJapanese = true; break; }
+            }
+            Assert.IsTrue(hasJapanese, "the guide must show a Japanese header");
         }
         finally
         {

@@ -248,30 +248,30 @@ public class GameSceneManager : MonoBehaviour
 
         if (MenuPanel.activeSelf)
         {
-            if (Input.GetKeyDown(KeyCode.R))
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry))
             {
                 RetryGame();
             }
-            if(Input.GetKeyDown(KeyCode.E))
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd))
             {
                 GameEnd();
             }
-            if (Input.GetKeyDown(KeyCode.Backspace))
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetire))
             {
                 RetireGame();
             }
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 CloseMenu();
             }
-            if (Input.GetKeyDown(KeyCode.T))
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch))
             {
                 SwitchPanel();
             }
         }
         else
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 OpenMenu();
             }
