@@ -4,19 +4,25 @@ import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartJson } from "@/lib/chart/import";
+import { createHold, isHold } from "@/lib/chart/long-note";
 import {
   addNote,
   createNote,
   dominantResolution,
+  holdCount,
   moveNote,
   removeNote,
+  setHoldEnd,
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
-import { noteBeat, snapBeat } from "@/lib/chart/timing";
+import { snapLine } from "@/lib/chart/snap";
+import { noteBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
+import { useSnapDivision } from "./snap-store";
+import { LyricsEditor } from "./lyrics-editor";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -48,7 +54,16 @@ const body = css({
   display: "grid",
   gap: "3",
   gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  /**
+   * The left column holds the lane well (row 1) and the lyrics panel (row 2).
+   * The lyrics panel keeps 20rem at FHD and 45% of the column below `lg`, so
+   * the note grid stays usable on a laptop while the lyrics list scrolls on
+   * its own. The inspector on the right spans both rows.
+   */
+  gridTemplateRows: {
+    base: "minmax(0, 1fr) minmax(0, 45%)",
+    lg: "minmax(0, 1fr) minmax(0, 20rem)",
+  },
   minHeight: "0",
   p: "3",
 });
@@ -58,16 +73,30 @@ const gridPanel = css({
   borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
+  gridColumn: "1",
+  gridRow: "1",
   minHeight: "0",
   minWidth: "0",
   overflow: "visible",
 });
 
+/** Placement of the lyrics panel in the left column. */
+const lyricsPanel = css({
+  gridColumn: "1",
+  gridRow: "2",
+  minHeight: "0",
+  minWidth: "0",
+});
+
 const gridHint = css({
+  alignItems: "center",
   borderBottomColor: "#222222",
   borderBottomWidth: "1px",
   color: "#8c8c8c",
+  display: "flex",
+  flexWrap: "wrap",
   fontSize: "2xs",
+  gap: "3",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
@@ -79,10 +108,55 @@ const playheadReadout = css({
   marginRight: "2",
 });
 
+const holdReadout = css({
+  color: "#8c8c8c",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const hintText = css({
+  color: "#8c8c8c",
+  flex: "1 1 18rem",
+});
+
+/** Switch between placing taps and placing holds. */
+const kindSwitch = css({
+  background: "#222222",
+  borderRadius: "8px",
+  display: "flex",
+  gap: "1",
+  padding: "1",
+});
+
+const kindButton = css({
+  background: "transparent",
+  borderRadius: "6px",
+  color: "#8c8c8c",
+  cursor: "pointer",
+  fontSize: "2xs",
+  paddingBottom: "1",
+  paddingTop: "1",
+  px: "3",
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
+});
+
+const kindButtonActive = css({
+  background: "#3a3a3a",
+  borderRadius: "6px",
+  color: "#ffffff",
+  cursor: "pointer",
+  fontSize: "2xs",
+  paddingBottom: "1",
+  paddingTop: "1",
+  px: "3",
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
+});
+
 const side = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
+  gridColumn: { base: "1", lg: "2" },
+  gridRow: { base: "1", lg: "1 / span 2" },
   minHeight: 0,
   overflowY: "auto",
   /**
@@ -190,11 +264,27 @@ export function ChartEditor({
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState(() => dominantResolution(initialChart));
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * The toolbar picks the division and the grid places the notes on it.
+   * `off` keeps the behaviour the editor had before: the notes sit on the
+   * lines-per-beat of the chart.
+   */
+  const snapDivision = useSnapDivision();
   const [zoom, setZoom] = useState(1);
   const [playheadSec, setPlayheadSec] = useState(0);
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
   const [youtubeId, setYoutubeId] = useState(initialYouTubeId);
   const [isSideOpen, setIsSideOpen] = useState(false);
+  /**
+   * Kind of the note the next click on the grid places.
+   *
+   * A hold is placed with the same gesture as a tap and then resized with
+   * the handle at its end, so the operator never has to guess the length
+   * of a hold before placing it.
+   */
+  const [noteKind, setNoteKind] = useState<"tap" | "hold">("tap");
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
   const sideRef = useRef<HTMLElement | null>(null);
@@ -261,13 +351,71 @@ export function ChartEditor({
     URL.revokeObjectURL(url);
   }, [chart]);
 
-  const handleAddNote = useCallback(
+  /**
+   * Seek the preview from the lyrics panel.
+   *
+   * The lyrics panel works in seconds; the YouTube player stays the only
+   * owner of playback. The request is forwarded to it and the new position
+   * comes back through `onTimeUpdate`, so both panels read one playhead.
+   */
+  const handleLyricsSeek = useCallback((seconds: number) => {
+    previewRef.current?.seekTo(seconds);
+  }, []);
+
+  /**
+   * Place a hold.
+   *
+   * A hold is placed with the same gesture as a tap and then resized with
+   * the handle at its end, so the operator does not have to know the length
+   * of the hold before placing it. It starts with the length of one beat,
+   * which is the shortest hold the grid can show.
+   */
+  const handleAddHold = useCallback(
     (block: number, beat: number) => {
       setChart((current) => {
         if (!current) {
           return current;
         }
-        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        // The grid of the toolbar decides where the note lands: the snap
+        // division when it is set, the lines per beat of the chart otherwise.
+        const line = snapLine(beat * resolution, resolution, snapDivision);
+        const existing = current.notes.findIndex(
+          (note) => note.block === block && note.num === line,
+        );
+        if (existing >= 0) {
+          setSelectedIndex(existing);
+          return current;
+        }
+        // Same as taps: the new hold is the selection, so Del and the resize
+        // handle work immediately after the placement gesture.
+        setSelectedIndex(current.notes.length);
+        return addNote(
+          current,
+          createHold(
+            block,
+            line / resolution,
+            (line + resolution) / resolution,
+            resolution,
+            snapDivision,
+          ),
+        );
+      });
+    },
+    [resolution, snapDivision],
+  );
+
+  const handleAddNote = useCallback(
+    (block: number, beat: number) => {
+      if (noteKind === "hold") {
+        handleAddHold(block, beat);
+        return;
+      }
+
+      setChart((current) => {
+        if (!current) {
+          return current;
+        }
+        const line = snapLine(beat * resolution, resolution, snapDivision);
         // A cell that already holds a note selects it instead of stacking a
         // duplicate on the same line.
         const existing = current.notes.findIndex(
@@ -277,16 +425,38 @@ export function ChartEditor({
           setSelectedIndex(existing);
           return current;
         }
-        setSelectedIndex(null);
+        // The just-placed note becomes the selection, so Del removes it
+        // right away and the drag handle is immediately available.
+        setSelectedIndex(current.notes.length);
         return addNote(current, createNote(block, line, resolution));
       });
     },
-    [resolution],
+    [handleAddHold, noteKind, resolution, snapDivision],
   );
 
-  const handleMoveNote = useCallback((index: number, block: number, beat: number) => {
-    setChart((current) => (current ? moveNote(current, index, block, beat) : current));
-  }, []);
+  const handleMoveNote = useCallback(
+    (index: number, block: number, beat: number) => {
+      setChart((current) =>
+        current ? moveNote(current, index, block, beat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
+
+  /**
+   * The end of a hold was dragged to another beat.
+   *
+   * The end is snapped onto the grid of the note's own resolution, so a hold
+   * always covers whole lines and never ends before it starts.
+   */
+  const handleResizeHold = useCallback(
+    (index: number, endBeat: number) => {
+      setChart((current) =>
+        current ? setHoldEnd(current, index, endBeat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
 
   const handleDeleteSelected = useCallback(() => {
     setChart((current) => {
@@ -312,10 +482,33 @@ export function ChartEditor({
         }
         const beat = Math.max(0, noteBeat(note) + deltaBeat);
         const block = Math.min(7, Math.max(0, note.block + deltaBlock));
-        return moveNote(current, selectedIndex, block, beat);
+        return moveNote(current, selectedIndex, block, beat, snapDivision);
       });
     },
-    [selectedIndex],
+    [selectedIndex, snapDivision],
+  );
+
+  /**
+   * Change the length of the selected hold by one grid line.
+   *
+   * The keyboard is the precise way to set the length of a hold: the handle
+   * is dragged for the rough length, the arrow keys for the exact one.
+   */
+  const handleResizeSelectedHold = useCallback(
+    (deltaBeat: number) => {
+      if (selectedIndex === null) {
+        return;
+      }
+      setChart((current) => {
+        const note = current?.notes[selectedIndex];
+        if (!current || !note || !isHold(note)) {
+          return current;
+        }
+        const endBeat = noteBeat(note) + deltaBeat + (note.endNum ?? note.num + 1) / note.LPB;
+        return setHoldEnd(current, selectedIndex, endBeat, snapDivision);
+      });
+    },
+    [selectedIndex, snapDivision],
   );
 
   // The selected note disappears with the chart, so the index is kept in range.
@@ -350,6 +543,15 @@ export function ChartEditor({
 
       if (selectedIndex !== null) {
         const gridBeat = 1 / resolution;
+
+        // Shift + the horizontal arrows change the length of a hold instead
+        // of moving it, so the exact length can be set without the mouse.
+        if (event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+          event.preventDefault();
+          handleResizeSelectedHold(event.key === "ArrowLeft" ? -gridBeat : gridBeat);
+          return;
+        }
+
         if (event.key === "ArrowLeft") {
           event.preventDefault();
           handleNudgeSelected(-gridBeat, 0);
@@ -368,7 +570,13 @@ export function ChartEditor({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDeleteSelected, handleNudgeSelected, selectedIndex, resolution]);
+  }, [
+    handleDeleteSelected,
+    handleNudgeSelected,
+    handleResizeSelectedHold,
+    selectedIndex,
+    resolution,
+  ]);
 
   const noteCount = chart?.notes.length ?? 0;
 
@@ -407,13 +615,39 @@ export function ChartEditor({
 
       <div className={body}>
         <section className={gridPanel}>
-          <p className={gridHint}>
+          <div className={gridHint}>
             <span className={playheadReadout} data-testid="playhead-readout">
               {playheadSec.toFixed(2)}s · beat {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}
             </span>
-            Click an empty cell to add a tap note · drag to move · arrows nudge · Del removes · Esc
-            deselects
-          </p>
+            <span className={holdReadout} data-testid="hold-count">
+              {chart ? holdCount(chart) : 0} holds
+            </span>
+            <div className={kindSwitch} role="group" aria-label="Note kind">
+              <button
+                type="button"
+                className={noteKind === "tap" ? kindButtonActive : kindButton}
+                aria-pressed={noteKind === "tap"}
+                onClick={() => setNoteKind("tap")}
+                data-testid="kind-tap"
+              >
+                Tap
+              </button>
+              <button
+                type="button"
+                className={noteKind === "hold" ? kindButtonActive : kindButton}
+                aria-pressed={noteKind === "hold"}
+                onClick={() => setNoteKind("hold")}
+                data-testid="kind-hold"
+              >
+                Hold
+              </button>
+            </div>
+            <span className={hintText}>
+              Click an empty cell to add a {noteKind === "hold" ? "hold" : "tap note"} · drag to
+              move · drag the handle of a hold to change its length · Shift+←/→ resizes a hold ·
+              arrows nudge · Del removes · Esc deselects
+            </span>
+          </div>
 
           {chart ? (
             <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
@@ -426,6 +660,7 @@ export function ChartEditor({
                 onSelect={setSelectedIndex}
                 onAddNote={handleAddNote}
                 onMoveNote={handleMoveNote}
+                onResizeHold={handleResizeHold}
               />
             </Suspense>
           ) : (
@@ -434,6 +669,14 @@ export function ChartEditor({
             </p>
           )}
         </section>
+
+        <LyricsEditor
+          className={lyricsPanel}
+          chart={chart}
+          playheadSec={playheadSec}
+          onChartChange={setChart}
+          onSeek={handleLyricsSeek}
+        />
 
         <aside
           className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}

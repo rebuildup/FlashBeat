@@ -576,7 +576,7 @@ namespace FlashBeat.UI.V5
 
             if (listPanel != null)
             {
-                Destroy(listPanel);
+                V5GameUi.DestroyNow(listPanel);
             }
 
             rowBackgrounds.Clear();
@@ -680,7 +680,7 @@ namespace FlashBeat.UI.V5
             // 再構築のたびに子が積まるのを防ぐ
             for (int i = previewWell.transform.childCount - 1; i >= 0; i--)
             {
-                Destroy(previewWell.transform.GetChild(i).gameObject);
+                V5GameUi.DestroyNow(previewWell.transform.GetChild(i).gameObject);
             }
 
             // 判定線 (白, 下部)

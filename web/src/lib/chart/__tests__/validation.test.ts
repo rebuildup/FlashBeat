@@ -61,13 +61,25 @@ describe("chart validation", () => {
       BPM: 0,
       notes: [
         { type: 1, num: 4, block: 9, LPB: 4 },
+        // A hold without an end is broken: the contract asks for `endNum`
+        // whenever the type is 2 (issue #164).
         { type: 2, num: 4, block: 1, LPB: 4 },
       ],
     });
 
     expect(issues.length).toBeGreaterThanOrEqual(3);
     expect(issues.map((issue) => issue.path)).toContain("/notes/0/block");
-    expect(issues.map((issue) => issue.path)).toContain("/notes/1/type");
+    expect(issues.map((issue) => issue.path)).toContain("/notes/1");
+  });
+
+  it("refuses a note kind the game does not know", () => {
+    const issues = validateChart({
+      ...VALID_CHART,
+      notes: [{ type: 3, num: 4, block: 1, LPB: 4 }],
+    });
+
+    expect(issues.length).toBeGreaterThanOrEqual(1);
+    expect(issues.map((issue) => issue.path)).toContain("/notes/0/type");
   });
 
   it("accepts a chart without notes", () => {

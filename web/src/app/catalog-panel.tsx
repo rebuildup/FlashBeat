@@ -181,7 +181,13 @@ const openHint = css({
   display: { base: "none", md: "block" },
   fontSize: "xs",
   marginLeft: "auto",
+  /**
+   * The hint is a decorative label for the stretched row link beneath it
+   * (aria-hidden): it must never intercept the click, otherwise pressing
+   * "Open chart" does nothing while it looks like the row action.
+   */
   paddingRight: "4",
+  pointerEvents: "none",
   whiteSpace: "nowrap",
 });
 
@@ -252,6 +258,17 @@ const num = css({
   whiteSpace: "nowrap",
 });
 
+/** Time column: like `num`, but hidden below `lg` — the header hides it there
+ * too, so the row keeps one cell per column of the md grid. */
+const numTime = css({
+  color: "fg.muted",
+  display: { base: "none", lg: "block" },
+  fontVariantNumeric: "tabular-nums",
+  fontSize: "sm",
+  textAlign: "right",
+  whiteSpace: "nowrap",
+});
+
 const version = css({
   color: "fg.muted",
   display: { base: "none", md: "block" },
@@ -268,6 +285,12 @@ const actions = css({
   paddingRight: "4",
   zIndex: "1",
   minWidth: "0",
+  /**
+   * The container sits above the stretched row link: it must not swallow
+   * clicks that land between its children (the "Open chart" hint, the
+   * paddings) — only the real links take the pointer (issue #166).
+   */
+  pointerEvents: "none",
 });
 
 const actionLink = css({
@@ -280,6 +303,8 @@ const actionLink = css({
   gap: "1",
   minHeight: "8",
   paddingInline: "2",
+  /** Re-enable the pointer the non-interactive `actions` wrapper turned off. */
+  pointerEvents: "auto",
   textDecoration: "none",
   whiteSpace: "nowrap",
   _hover: {
@@ -530,7 +555,7 @@ export function CatalogPanel({
                       </span>
                     </a>
 
-                    <span className={rowBody}>
+                    <span className={rowBody} data-testid="catalog-row-body">
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
                       <span className={rowText}>
                         <span className={titleText}>{song.title}</span>
@@ -549,27 +574,11 @@ export function CatalogPanel({
                       </span>
                     </span>
 
-                    <span className={rowBody}>
-                      <span className={titleText}>{song.title}</span>
-                      <span className={artistText}>{song.artist}</span>
-                      <span className={metaLine}>
-                        <span>Lv {song.level}</span>
-                        <span>·</span>
-                        <span>{song.bpm} BPM</span>
-                        <span>·</span>
-                        <span>{formatDuration(song.durationSec)}</span>
-                        <span>·</span>
-                        <span>{song.noteCount} notes</span>
-                        <span>·</span>
-                        <span>v{song.chartVersion}</span>
-                      </span>
-                    </span>
-
                     <span className={levelCell}>
                       <span className={levelBadge}>{song.level}</span>
                     </span>
                     <span className={num}>{song.bpm}</span>
-                    <span className={num}>{formatDuration(song.durationSec)}</span>
+                    <span className={numTime}>{formatDuration(song.durationSec)}</span>
                     <span className={num}>{song.noteCount}</span>
                     <span className={version}>v{song.chartVersion}</span>
 

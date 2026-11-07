@@ -1,9 +1,12 @@
-import { Layer, Line, Rect, Stage, Text } from "react-konva";
+import { Group, Layer, Line, Rect, Stage, Text } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { css } from "styled-system/css";
+import { holdEndBeat, isHold } from "@/lib/chart/long-note";
+import { snapBeat, snapBeatExclusive, type SnapSetting } from "@/lib/chart/snap";
 import { noteBeat } from "@/lib/chart/timing";
-import type { Chart } from "@/lib/chart/types";
+import type { Chart, ChartNote } from "@/lib/chart/types";
+import { useSnapDivision } from "./snap-store";
 
 /**
  * The eight lane grid.
@@ -40,6 +43,31 @@ const PLAYHEAD = "#3fa9f5";
 const LANE_LABEL = "#8c8c8c";
 const BAR_LABEL = "#8c8c8c";
 
+/**
+ * Body of a hold.
+ *
+ * A hold is drawn as a bar that runs from its start to its end. It uses the
+ * same surface as a tap, but a darker one, so the two kinds stay apart at a
+ * glance: the tap is the short bright block, the hold is the long body.
+ */
+const HOLD_FILL = "#8a8a8a";
+const HOLD_FILL_SELECTED = "#3fa9f5";
+const HOLD_STROKE = "rgba(0,0,0,0.25)";
+const HOLD_STROKE_SELECTED = "#9ad3fa";
+
+/**
+ * Handle of the end of a hold.
+ *
+ * The handle is what the operator drags to change the length of the hold. It
+ * sits at the end of the body and is drawn in the accent blue, so it is the
+ * only part of the hold that reacts to the mouse.
+ */
+const HOLD_HANDLE_FILL = "#3fa9f5";
+const HOLD_HANDLE_STROKE = "#9ad3fa";
+
+/** Size of the resize handle in pixels. */
+export const HOLD_HANDLE_SIZE = 12;
+
 const scrollArea = css({
   flex: "1",
   minHeight: "0",
@@ -58,6 +86,15 @@ export interface NoteGridProps {
   chart: Chart;
   /** Lines per beat used for new notes and for the snap grid. */
   resolution: number;
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * `off` places the notes freely, a division snaps them onto that step of
+   * the beat. When the prop is left out the grid follows the division the
+   * toolbar picked (the shared snap store), so the editor itself does not
+   * have to carry the state.
+   */
+  snapDivision?: SnapSetting;
   /** Zoom factor, 1 is the default height of a beat. */
   zoom: number;
   /** Index of the selected note, `null` when nothing is selected. */
@@ -70,6 +107,13 @@ export interface NoteGridProps {
   onAddNote(block: number, beat: number): void;
   /** Called with the index and the new position of a dragged note. */
   onMoveNote(index: number, block: number, beat: number): void;
+  /**
+   * Called with the index of a hold and the beat its end was dragged to.
+   *
+   * `null` when the hold is not resized. The end of a hold is the only part
+   * of it that moves on its own; the body follows.
+   */
+  onResizeHold?(index: number, endBeat: number): void;
 }
 
 /** Measures the panel the stage lives in, so the lanes fill the work area. */
@@ -96,23 +140,93 @@ function usePanelSize(): [RefObject<HTMLDivElement | null>, number, number] {
   return [ref, size[0], size[1]];
 }
 
+/**
+ * Where a note lands on the grid.
+ *
+ * The grid is measured in beats: one beat is `BEAT_HEIGHT` pixels tall and
+ * the grid of the chart decides how many steps fit into a beat. A note
+ * lands on the nearest step of the grid, so the pointer only says where
+ * the note was dropped and the grid says where it belongs.
+ *
+ * The beat is rounded onto the steps of the resolution as well, because a
+ * note carries its own resolution (`LPB`): a beat the resolution cannot
+ * express would round the grid away again when the note is written.
+ *
+ * The function is exported so the placement can be reasoned about (and
+ * tested) without a canvas.
+ */
+export function snappedBeat(
+  pixels: number,
+  beatHeight: number,
+  division: SnapSetting,
+  resolution = 0,
+): number {
+  if (beatHeight <= 0 || !Number.isFinite(pixels)) {
+    return 0;
+  }
+  const beat = Math.max(0, snapBeat(pixels / beatHeight, division));
+  if (resolution <= 0) {
+    return beat;
+  }
+  return Math.max(0, Math.round(beat * resolution) / resolution);
+}
+
+/**
+ * Where the end of a hold lands on the grid.
+ *
+ * The end never ends before the hold starts, so the beat of the start is
+ * the lower bound of the grid.
+ */
+export function snappedHoldEndBeat(
+  pixels: number,
+  beatHeight: number,
+  division: SnapSetting,
+  startBeat: number,
+  resolution = 0,
+): number {
+  if (beatHeight <= 0 || !Number.isFinite(pixels)) {
+    return startBeat;
+  }
+  const endBeat = snapBeatExclusive(pixels / beatHeight, division);
+  const onGrid =
+    resolution <= 0 ? endBeat : Math.max(0, Math.round(endBeat * resolution) / resolution);
+  return Math.max(startBeat, onGrid);
+}
+
 export function NoteGrid({
   chart,
   resolution,
+  snapDivision: snapDivisionProp,
   zoom,
   selectedIndex,
   playheadSec,
   onSelect,
   onAddNote,
   onMoveNote,
+  onResizeHold,
 }: NoteGridProps) {
   const [panelRef, panelWidth, panelHeight] = usePanelSize();
   const beatHeight = BEAT_HEIGHT * zoom;
+
+  /**
+   * The grid the notes are placed on.
+   *
+   * The prop wins when it is given; otherwise the grid follows the division
+   * the toolbar picked. The tempo of the chart is not part of the rounding:
+   * the grid is measured in beats, so a change of the BPM moves the times
+   * the grid stands for without moving the notes themselves.
+   */
+  const storeDivision = useSnapDivision();
+  const snapDivision = snapDivisionProp ?? storeDivision;
 
   const lastBeat = useMemo(() => {
     let last = 8;
     for (const note of chart.notes) {
       last = Math.max(last, Math.ceil(noteBeat(note)) + 2);
+      // A hold reaches past its start, so the grid has to show its end too.
+      if (isHold(note)) {
+        last = Math.max(last, Math.ceil(holdEndBeat(note)) + 2);
+      }
     }
     return last;
   }, [chart.notes]);
@@ -142,7 +256,7 @@ export function NoteGrid({
     }
 
     const block = Math.min(7, Math.max(0, Math.floor(pointer.x / laneWidth)));
-    const beat = Math.max(0, pointer.y / beatHeight);
+    const beat = snappedBeat(pointer.y, beatHeight, snapDivision, resolution);
 
     onSelect(null);
     onAddNote(block, beat);
@@ -156,9 +270,30 @@ export function NoteGrid({
   const handleDragEnd = (event: KonvaEventObject<DragEvent>, index: number) => {
     const node = event.target;
     const block = Math.min(7, Math.max(0, Math.floor((node.x() + noteWidth / 2) / laneWidth)));
-    const beat = Math.max(0, (node.y() + NOTE_HEIGHT / 2) / beatHeight);
+    const beat = snappedBeat(node.y() + NOTE_HEIGHT / 2, beatHeight, snapDivision, resolution);
 
     onMoveNote(index, block, beat);
+  };
+
+  /**
+   * The end of a hold was dragged.
+   *
+   * The handle sits at the end of the body, so its center tells where the
+   * hold ends. The beat is measured from the pointer and clamped to the
+   * start of the hold, so a hold never ends before it starts. The end lands
+   * on the grid, just like the start of the note.
+   */
+  const handleHoldResizeEnd = (event: KonvaEventObject<DragEvent>, note: ChartNote) => {
+    event.cancelBubble = true;
+
+    const node = event.target;
+    const pointer = node.getStage()?.getPointerPosition();
+    // The handle is dragged freely, so the pointer is the source of truth.
+    // When it is missing the node itself carries the position.
+    const y = pointer ? pointer.y : node.y();
+    const endBeat = snappedHoldEndBeat(y, beatHeight, snapDivision, noteBeat(note), resolution);
+
+    onResizeHold?.(chart.notes.indexOf(note), endBeat);
   };
 
   const beatLines = [];
@@ -255,11 +390,100 @@ export function NoteGrid({
             {chart.notes.map((note, index) => {
               const beat = noteBeat(note);
               const selected = index === selectedIndex;
+              const noteX = note.block * laneWidth + (laneWidth - noteWidth) / 2;
+              const noteY = beat * beatHeight - NOTE_HEIGHT / 2;
+
+              // A hold is a body that runs from its start to its end, with a
+              // handle at the end the operator drags to change the length.
+              if (isHold(note)) {
+                const endBeat = holdEndBeat(note);
+                const endY = endBeat * beatHeight - NOTE_HEIGHT / 2;
+                const bodyHeight = Math.max(NOTE_HEIGHT, endY - noteY + NOTE_HEIGHT);
+
+                return (
+                  <Group key={index}>
+                    <Rect
+                      x={noteX}
+                      y={noteY}
+                      width={noteWidth}
+                      height={bodyHeight}
+                      cornerRadius={4}
+                      fill={selected ? HOLD_FILL_SELECTED : HOLD_FILL}
+                      stroke={selected ? HOLD_STROKE_SELECTED : HOLD_STROKE}
+                      strokeWidth={selected ? 2 : 1}
+                      shadowColor={selected ? HOLD_FILL_SELECTED : undefined}
+                      shadowBlur={selected ? 14 : 0}
+                      shadowOpacity={selected ? 0.9 : 0}
+                      onMouseDown={(event) => handleNoteMouseDown(event, index)}
+                      onTouchStart={(event) =>
+                        handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
+                      }
+                    />
+
+                    {/* The head of the hold: the place the key goes down. */}
+                    <Rect
+                      x={noteX}
+                      y={noteY}
+                      width={noteWidth}
+                      height={NOTE_HEIGHT}
+                      cornerRadius={4}
+                      fill={selected ? NOTE_FILL_SELECTED : NOTE_FILL}
+                      stroke={selected ? NOTE_STROKE_SELECTED : "rgba(0,0,0,0.25)"}
+                      strokeWidth={selected ? 2 : 1}
+                      draggable
+                      onMouseDown={(event) => handleNoteMouseDown(event, index)}
+                      onMouseEnter={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "grab";
+                      }}
+                      onMouseLeave={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "crosshair";
+                      }}
+                      onTouchStart={(event) =>
+                        handleNoteMouseDown(event as unknown as KonvaEventObject<MouseEvent>, index)
+                      }
+                      onDragEnd={(event) => handleDragEnd(event, index)}
+                    />
+
+                    {/* The handle of the end: it changes the length. */}
+                    <Rect
+                      x={noteX + noteWidth - HOLD_HANDLE_SIZE / 2}
+                      y={endY + NOTE_HEIGHT / 2 - HOLD_HANDLE_SIZE / 2}
+                      width={HOLD_HANDLE_SIZE}
+                      height={HOLD_HANDLE_SIZE}
+                      cornerRadius={3}
+                      fill={HOLD_HANDLE_FILL}
+                      stroke={HOLD_HANDLE_STROKE}
+                      strokeWidth={1.5}
+                      draggable
+                      onMouseDown={(event) => {
+                        event.cancelBubble = true;
+                        onSelect(index);
+                      }}
+                      onMouseEnter={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "ew-resize";
+                      }}
+                      onMouseLeave={(event) => {
+                        const stage = event.target.getStage();
+                        if (stage) stage.container().style.cursor = "crosshair";
+                      }}
+                      onTouchStart={(event) => {
+                        event.cancelBubble = true;
+                        onSelect(index);
+                      }}
+                      onDragEnd={(event) => handleHoldResizeEnd(event, note)}
+                    />
+                  </Group>
+                );
+              }
+
               return (
                 <Rect
                   key={index}
-                  x={note.block * laneWidth + (laneWidth - noteWidth) / 2}
-                  y={beat * beatHeight - NOTE_HEIGHT / 2}
+                  x={noteX}
+                  y={noteY}
                   width={noteWidth}
                   height={NOTE_HEIGHT}
                   cornerRadius={4}

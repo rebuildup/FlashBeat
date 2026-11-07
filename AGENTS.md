@@ -1,4 +1,4 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
@@ -19,6 +19,15 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
   ```
   Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneWindows64
   ```
+
+**Build (macOS)**
+- Editor menu: `Build → Build macOS`. Output: `Builds/macOS/FlashBeat.app`.
+- Or batch mode:
+  ```
+  Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneMacOS
+  ```
+- Both builds write the updater script, `update-channel.txt`, and the media-policy manifest into the artifact.
+  Release/update contract and packaging (Win64 + macOS) live in `docs/operations/update-release.md`.
 
 **Run Tests**
 - Editor: `Window → General → Test Runner → EditMode`.
@@ -118,6 +127,7 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - **Indentation / encoding**: 4-space indent, LF endings, UTF-8 BOM (`.editorconfig` + `.gitattributes`). No CRLF, no tabs.
 - **C# style**: `csharp_style_expression_bodied_methods = false` — use block bodies for methods.
 - **Static fields over DI**: `GManager` uses public static fields for cross-scene state, not a dependency-injected container.
+- **Playfield rendering is flat**: the playfield materials use `FlashBeat/FlatUnlit` (unlit) and no light casts or receives shadows (`Light.shadows = None`, `shadowCastingMode = Off`, `receiveShadows = false`) — see `docs/architecture/flat-rendering.md`. Do not switch them back to a lit shader: the picture quad faces away from the directional light, so a lit shader renders the video almost black. `Assets/Editor/FlatRenderCheck.cs` audits this in batchmode.
 - **Caution on deletions**: a comment in `MakeFileSceneManager.cs` warns "削除時はコメントアウト 変数は削除しないようにするのが望ましいです" — when removing functionality, prefer commenting out over deleting variables, because the gameplay scripts rely on a delicate balance of shared static state and parallel arrays.
 
 ## Known gotchas

@@ -206,9 +206,9 @@ namespace FlashBeat.UI.V5
             try
             {
                 view = SelectView.Create(ownerGo.GetComponent<SelectSceneManager>());
-                // SelectView は自分のルートの「子」として Canvas を持つ
-                // (TitleView とは逆の階層) ので、子方向から探す。
-                var canvas = view.GetComponentInChildren<Canvas>(true);
+                // SelectView は Canvas を View の **子** に作る (Title 等は親方向)。
+                // どちらの構成でも拾えるように両方向を探索する。
+                var canvas = view.GetComponentInParent<Canvas>() ?? view.GetComponentInChildren<Canvas>();
                 Assert.IsNotNull(canvas, "Select の Canvas が生成されていない。");
                 Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
                     "Select の Canvas に GraphicRaycaster が無い (クリックが効かない原因)。");
@@ -230,8 +230,8 @@ namespace FlashBeat.UI.V5
             {
                 if (view != null)
                 {
-                    // ルート (Canvas の親) ごと壊すと Canvas も消える。
-                    Object.DestroyImmediate(view.gameObject);
+                    var canvas = view.GetComponentInParent<Canvas>() ?? view.GetComponentInChildren<Canvas>();
+                    if (canvas != null) { Object.DestroyImmediate(canvas.gameObject); }
                 }
 
                 Object.DestroyImmediate(ownerGo);

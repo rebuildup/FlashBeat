@@ -24,6 +24,25 @@ public class UpdateVersionTests
         Assert.AreEqual("abcdef1", id.ShortSha);
     }
 
+    [Test]
+    public void ParseTag_MacTag_Parses()
+    {
+        var id = UpdateVersion.ParseTag("v0.1.14-macos-abc1234");
+        Assert.IsTrue(id.Valid);
+        Assert.AreEqual("0.1.14", id.Version);
+        Assert.AreEqual("abc1234", id.ShortSha);
+        Assert.AreEqual(UpdatePlatform.MacOS, id.Platform);
+    }
+
+    [Test]
+    public void ParseTag_PlatformFilter_RejectsOtherPlatform()
+    {
+        Assert.IsFalse(UpdateVersion.ParseTag("v0.1.14-win64-abc1234", UpdatePlatform.MacOS).Valid);
+        Assert.IsFalse(UpdateVersion.ParseTag("v0.1.14-macos-abc1234", UpdatePlatform.Windows64).Valid);
+        Assert.IsTrue(UpdateVersion.ParseTag("v0.1.14-win64-abc1234", UpdatePlatform.Windows64).Valid);
+        Assert.IsTrue(UpdateVersion.ParseTag("v0.1.14-macos-abc1234", UpdatePlatform.MacOS).Valid);
+    }
+
     [TestCase(null)]
     [TestCase("")]
     [TestCase("v0.1.0")]
@@ -32,6 +51,7 @@ public class UpdateVersionTests
     [TestCase("v0.1.0-win64-nothex!")]
     [TestCase("v0.1.0-win64-abc")]    // SHA が短すぎる (7 桁未満)
     [TestCase("vX.Y.0-win64-743c88d")] // バージョン不正
+    [TestCase("v0.1.0-linux-743c88d")] // 未知のプラットフォーム
     public void ParseTag_Invalid_ReturnsInvalid(string tag)
     {
         Assert.IsFalse(UpdateVersion.ParseTag(tag).Valid);
@@ -324,6 +344,64 @@ public class UpdateReleaseSelectionTests
         Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[{""tag_name"":""x"",""draft"":false,""assets"":[]}]", includePrerelease: false));
         Assert.IsNull(UpdateChecker.ParseLatestRelease(@"[]", includePrerelease: false));
         Assert.IsNull(UpdateChecker.ParseLatestRelease("not json", includePrerelease: false));
+    }
+
+    private const string MixedPlatformReleases = @"
+[{""tag_name"":""v0.1.14-win64-aaaaaaa"",""draft"":false,
+  ""published_at"":""2026-11-08T00:00:00Z"",""created_at"":""2026-11-08T00:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.1.14-win64-aaaaaaa.zip"",""browser_download_url"":""https://example.com/win.zip""}]},
+ {""tag_name"":""v0.1.13-macos-bbbbbbb"",""draft"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",""created_at"":""2026-11-07T00:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.1.13-macos-bbbbbbb.zip"",""browser_download_url"":""https://example.com/mac.zip""}]}]";
+
+    [Test]
+    public void ParseLatestRelease_MacOSPlatform_IgnoresWindowsTags()
+    {
+        // Windows の v0.1.14 が新しくても、macOS の更新候補は macOS タグだけ。
+        var latest = UpdateChecker.ParseLatestRelease(
+            MixedPlatformReleases, includePrerelease: false, UpdatePlatform.MacOS);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.13-macos-bbbbbbb", latest.tag_name);
+    }
+
+    [Test]
+    public void ParseLatestRelease_WindowsPlatform_IgnoresMacTags()
+    {
+        var latest = UpdateChecker.ParseLatestRelease(
+            MixedPlatformReleases, includePrerelease: false, UpdatePlatform.Windows64);
+        Assert.IsNotNull(latest);
+        Assert.AreEqual("v0.1.14-win64-aaaaaaa", latest.tag_name);
+    }
+
+    [Test]
+    public void FindPlatformZip_MixedAssets_PicksMatchingPlatform()
+    {
+        var release = new UpdateChecker.ReleaseInfo
+        {
+            assets = new[]
+            {
+                new UpdateChecker.ReleaseAsset
+                {
+                    name = "FlashBeat-0.1.14-win64-aaaaaaa.zip",
+                    browser_download_url = "https://example.com/win.zip",
+                },
+                new UpdateChecker.ReleaseAsset
+                {
+                    name = "FlashBeat-0.1.14-macos-aaaaaaa.zip",
+                    browser_download_url = "https://example.com/mac.zip",
+                },
+                new UpdateChecker.ReleaseAsset
+                {
+                    name = "FlashBeat-0.1.14-macos-aaaaaaa.zip.sha256",
+                    browser_download_url = "https://example.com/mac.zip.sha256",
+                },
+            },
+        };
+
+        Assert.AreEqual("https://example.com/mac.zip",
+            UpdateChecker.FindPlatformZip(release, UpdatePlatform.MacOS).browser_download_url);
+        Assert.AreEqual("https://example.com/win.zip",
+            UpdateChecker.FindPlatformZip(release, UpdatePlatform.Windows64).browser_download_url);
     }
 }
 
