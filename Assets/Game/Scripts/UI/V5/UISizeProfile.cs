@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace FlashBeat.UI.V5
@@ -187,7 +188,11 @@ namespace FlashBeat.UI.V5
         private int lastWidth;
         private int lastHeight;
 
-        /// <summary>Canvas/CanvasScaler をプロファイル設定にする。生成直後に呼ぶ。</summary>
+        /// <summary>
+        /// Canvas/CanvasScaler をプロファイル設定にする。生成直後に呼ぶ。
+        /// 冪等: 同じ Canvas に何度呼んでも CanvasScaler / GraphicRaycaster /
+        /// CanvasConfigurator / EventSystem は重複生成されない (Issue #169 T3)。
+        /// </summary>
         public static CanvasConfigurator Configure(Canvas canvas)
         {
             if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
@@ -198,11 +203,49 @@ namespace FlashBeat.UI.V5
             var scaler = canvas.GetComponent<CanvasScaler>() ?? canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
             scaler.scaleFactor = 1f;
-            var cfg = canvas.gameObject.AddComponent<CanvasConfigurator>();
+
+            // T3: Canvas ごとの GraphicRaycaster を一元管理。無い Canvas は raycast 対象に
+            // ならない (死に raycast) ので、無ければ付与する。既にあればそのまま使う。
+            if (canvas.GetComponent<GraphicRaycaster>() == null)
+            {
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+            }
+
+            // T3: EventSystem の単一系統化。画面ごとに重複生成しない。
+            EnsureEventSystem();
+
+            // [DisallowMultipleComponent] のため 2 回目の AddComponent はエラーになる。
+            // 冪等にするため既存インスタンスを再利用する。
+            var cfg = canvas.GetComponent<CanvasConfigurator>();
+            if (cfg == null)
+            {
+                cfg = canvas.gameObject.AddComponent<CanvasConfigurator>();
+            }
+
             cfg.scaler = scaler;
             cfg.lastWidth = Screen.width;
             cfg.lastHeight = Screen.height;
             return cfg;
+        }
+
+        /// <summary>
+        /// EventSystem がシーンに 1 つも無ければ生成する (EventSystem + StandaloneInputModule)。
+        /// 既にあれば何もしない。旧 Canvas を SetActive(false) にする方式と v5 動的 Canvas の
+        /// 併用でも EventSystem が重複しないようにするための唯一の生成経路 (Issue #169 T3)。
+        /// </summary>
+        public static void EnsureEventSystem()
+        {
+            if (Object.FindFirstObjectByType<EventSystem>() != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            // EditMode テストでは DontDestroyOnLoad は無意味 (警告が出る) ので再生中のみ。
+            if (Application.isPlaying)
+            {
+                Object.DontDestroyOnLoad(go);
+            }
         }
 
         private void Update()
