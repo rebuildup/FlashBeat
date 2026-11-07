@@ -28,8 +28,9 @@ test("all four screens share the studio shell", async ({ page }) => {
 test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await page.goto("/");
 
-  // The seeded song is listed; its row links into the editor.
-  const row = page.locator('a[data-row-link]', { hasText: "Who" }).first();
+  // The seeded song is listed; its row links into the editor. The panel has
+  // desktop/mobile row variants — only one is visible at a given viewport.
+  const row = page.locator('a[data-row-link]', { hasText: "Who" }).filter({ visible: true }).first();
   await expect(row).toBeVisible();
   await row.click();
   await expect(page).toHaveURL(/\/chart\?songId=who&version=1/);
@@ -47,7 +48,7 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await page.getByRole("link", { name: "← Web Studio" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("chart-identity")).toHaveCount(0);
-  await expect(page.locator('a[data-row-link]', { hasText: "Who" })).toBeVisible();
+  await expect(page.locator('a[data-row-link]', { hasText: "Who" }).filter({ visible: true }).first()).toBeVisible();
 });
 
 test("forced catalog states render inside the shared shell", async ({ page }) => {

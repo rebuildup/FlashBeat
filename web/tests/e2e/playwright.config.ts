@@ -17,7 +17,14 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: "studio-flow.spec.ts",
-  timeout: 30_000,
+  // The spec runs against `vp dev`, where each route's first transform can
+  // take seconds; on a machine with several dev servers running, loads hang
+  // past the defaults.
+  timeout: 60_000,
+  // Under load, void may serve a route without SSR (`data-void-ssr="false"`,
+  // empty #app): the page stays empty until the full client bundle (konva,
+  // note-grid) is transformed and hydrated, which can take tens of seconds.
+  expect: { timeout: 30_000 },
   retries: 0,
   reporter: [["list"]],
   use: {
