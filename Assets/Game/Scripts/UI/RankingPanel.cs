@@ -274,7 +274,7 @@ public class RankingPanel : MonoBehaviour
         modalMessage = AddLabel(content, "ModalMessage", string.Empty, MessageFontSize, TextAlignmentOptions.Left);
         modalMessage.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 40f;
 
-        var footer = AddLabel(content, "ModalFooter", "Enter: 送信　Backspace: 消す　Esc: スキップ", FooterFontSize, TextAlignmentOptions.Center);
+        var footer = AddLabel(content, "ModalFooter", "Enter: 送信　Backspace: けす　Esc: スキップ", FooterFontSize, TextAlignmentOptions.Center);
         footer.color = new Color(1f, 1f, 1f, 0.75f);
         footer.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;
 

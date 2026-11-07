@@ -256,7 +256,7 @@ public class ResultRankingOverlay : MonoBehaviour
             }
             if (nickname.Length > NicknameMaxLength)
             {
-                panel.SetModalMessage("なまえは " + NicknameMaxLength + "文字までです", new Color(1f, 0.85f, 0.3f));
+                panel.SetModalMessage("なまえが ながすぎます", new Color(1f, 0.85f, 0.3f));
                 return;
             }
             Submit();
@@ -309,7 +309,7 @@ public class ResultRankingOverlay : MonoBehaviour
             string reason = result.error == RankingClient.UnavailableError
                 ? "オフラインのようです"
                 : "送信できませんでした";
-            panel.SetModalMessage(reason + "  もう一度送る [Enter] / スキップ [Esc]", new Color(1f, 0.6f, 0.6f));
+            panel.SetModalMessage(reason + "  再送 [Enter] / スキップ [Esc]", new Color(1f, 0.6f, 0.6f));
         }
     }
 
