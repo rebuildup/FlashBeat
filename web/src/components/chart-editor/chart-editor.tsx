@@ -16,10 +16,12 @@ import {
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
-import { noteBeat, snapBeat } from "@/lib/chart/timing";
+import { snapLine } from "@/lib/chart/snap";
+import { noteBeat } from "@/lib/chart/timing";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
+import { useSnapDivision } from "./snap-store";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -240,6 +242,14 @@ export function ChartEditor({
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState(() => dominantResolution(initialChart));
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * The toolbar picks the division and the grid places the notes on it.
+   * `off` keeps the behaviour the editor had before: the notes sit on the
+   * lines-per-beat of the chart.
+   */
+  const snapDivision = useSnapDivision();
   const [zoom, setZoom] = useState(1);
   const [playheadSec, setPlayheadSec] = useState(0);
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
@@ -333,7 +343,9 @@ export function ChartEditor({
         if (!current) {
           return current;
         }
-        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        // The grid of the toolbar decides where the note lands: the snap
+        // division when it is set, the lines per beat of the chart otherwise.
+        const line = snapLine(beat * resolution, resolution, snapDivision);
         const existing = current.notes.findIndex(
           (note) => note.block === block && note.num === line,
         );
@@ -344,11 +356,17 @@ export function ChartEditor({
         setSelectedIndex(null);
         return addNote(
           current,
-          createHold(block, line / resolution, (line + resolution) / resolution, resolution),
+          createHold(
+            block,
+            line / resolution,
+            (line + resolution) / resolution,
+            resolution,
+            snapDivision,
+          ),
         );
       });
     },
-    [resolution],
+    [resolution, snapDivision],
   );
 
   const handleAddNote = useCallback(
@@ -362,7 +380,7 @@ export function ChartEditor({
         if (!current) {
           return current;
         }
-        const line = Math.round(snapBeat(beat, resolution) * resolution);
+        const line = snapLine(beat * resolution, resolution, snapDivision);
         // A cell that already holds a note selects it instead of stacking a
         // duplicate on the same line.
         const existing = current.notes.findIndex(
@@ -376,12 +394,17 @@ export function ChartEditor({
         return addNote(current, createNote(block, line, resolution));
       });
     },
-    [handleAddHold, noteKind, resolution],
+    [handleAddHold, noteKind, resolution, snapDivision],
   );
 
-  const handleMoveNote = useCallback((index: number, block: number, beat: number) => {
-    setChart((current) => (current ? moveNote(current, index, block, beat) : current));
-  }, []);
+  const handleMoveNote = useCallback(
+    (index: number, block: number, beat: number) => {
+      setChart((current) =>
+        current ? moveNote(current, index, block, beat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
 
   /**
    * The end of a hold was dragged to another beat.
@@ -389,9 +412,14 @@ export function ChartEditor({
    * The end is snapped onto the grid of the note's own resolution, so a hold
    * always covers whole lines and never ends before it starts.
    */
-  const handleResizeHold = useCallback((index: number, endBeat: number) => {
-    setChart((current) => (current ? setHoldEnd(current, index, endBeat) : current));
-  }, []);
+  const handleResizeHold = useCallback(
+    (index: number, endBeat: number) => {
+      setChart((current) =>
+        current ? setHoldEnd(current, index, endBeat, snapDivision) : current,
+      );
+    },
+    [snapDivision],
+  );
 
   const handleDeleteSelected = useCallback(() => {
     setChart((current) => {
@@ -417,10 +445,10 @@ export function ChartEditor({
         }
         const beat = Math.max(0, noteBeat(note) + deltaBeat);
         const block = Math.min(7, Math.max(0, note.block + deltaBlock));
-        return moveNote(current, selectedIndex, block, beat);
+        return moveNote(current, selectedIndex, block, beat, snapDivision);
       });
     },
-    [selectedIndex],
+    [selectedIndex, snapDivision],
   );
 
   /**
@@ -440,10 +468,10 @@ export function ChartEditor({
           return current;
         }
         const endBeat = noteBeat(note) + deltaBeat + (note.endNum ?? note.num + 1) / note.LPB;
-        return setHoldEnd(current, selectedIndex, endBeat);
+        return setHoldEnd(current, selectedIndex, endBeat, snapDivision);
       });
     },
-    [selectedIndex],
+    [selectedIndex, snapDivision],
   );
 
   // The selected note disappears with the chart, so the index is kept in range.

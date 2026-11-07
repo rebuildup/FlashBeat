@@ -3,8 +3,10 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { css } from "styled-system/css";
 import { holdEndBeat, isHold } from "@/lib/chart/long-note";
+import { snapBeat, snapBeatExclusive, type SnapSetting } from "@/lib/chart/snap";
 import { noteBeat } from "@/lib/chart/timing";
 import type { Chart, ChartNote } from "@/lib/chart/types";
+import { useSnapDivision } from "./snap-store";
 
 /**
  * The eight lane grid.
@@ -84,6 +86,15 @@ export interface NoteGridProps {
   chart: Chart;
   /** Lines per beat used for new notes and for the snap grid. */
   resolution: number;
+  /**
+   * Grid the notes are placed on (issue #180).
+   *
+   * `off` places the notes freely, a division snaps them onto that step of
+   * the beat. When the prop is left out the grid follows the division the
+   * toolbar picked (the shared snap store), so the editor itself does not
+   * have to carry the state.
+   */
+  snapDivision?: SnapSetting;
   /** Zoom factor, 1 is the default height of a beat. */
   zoom: number;
   /** Index of the selected note, `null` when nothing is selected. */
@@ -129,9 +140,63 @@ function usePanelSize(): [RefObject<HTMLDivElement | null>, number, number] {
   return [ref, size[0], size[1]];
 }
 
+/**
+ * Where a note lands on the grid.
+ *
+ * The grid is measured in beats: one beat is `BEAT_HEIGHT` pixels tall and
+ * the grid of the chart decides how many steps fit into a beat. A note
+ * lands on the nearest step of the grid, so the pointer only says where
+ * the note was dropped and the grid says where it belongs.
+ *
+ * The beat is rounded onto the steps of the resolution as well, because a
+ * note carries its own resolution (`LPB`): a beat the resolution cannot
+ * express would round the grid away again when the note is written.
+ *
+ * The function is exported so the placement can be reasoned about (and
+ * tested) without a canvas.
+ */
+export function snappedBeat(
+  pixels: number,
+  beatHeight: number,
+  division: SnapSetting,
+  resolution = 0,
+): number {
+  if (beatHeight <= 0 || !Number.isFinite(pixels)) {
+    return 0;
+  }
+  const beat = Math.max(0, snapBeat(pixels / beatHeight, division));
+  if (resolution <= 0) {
+    return beat;
+  }
+  return Math.max(0, Math.round(beat * resolution) / resolution);
+}
+
+/**
+ * Where the end of a hold lands on the grid.
+ *
+ * The end never ends before the hold starts, so the beat of the start is
+ * the lower bound of the grid.
+ */
+export function snappedHoldEndBeat(
+  pixels: number,
+  beatHeight: number,
+  division: SnapSetting,
+  startBeat: number,
+  resolution = 0,
+): number {
+  if (beatHeight <= 0 || !Number.isFinite(pixels)) {
+    return startBeat;
+  }
+  const endBeat = snapBeatExclusive(pixels / beatHeight, division);
+  const onGrid =
+    resolution <= 0 ? endBeat : Math.max(0, Math.round(endBeat * resolution) / resolution);
+  return Math.max(startBeat, onGrid);
+}
+
 export function NoteGrid({
   chart,
   resolution,
+  snapDivision: snapDivisionProp,
   zoom,
   selectedIndex,
   playheadSec,
@@ -142,6 +207,17 @@ export function NoteGrid({
 }: NoteGridProps) {
   const [panelRef, panelWidth, panelHeight] = usePanelSize();
   const beatHeight = BEAT_HEIGHT * zoom;
+
+  /**
+   * The grid the notes are placed on.
+   *
+   * The prop wins when it is given; otherwise the grid follows the division
+   * the toolbar picked. The tempo of the chart is not part of the rounding:
+   * the grid is measured in beats, so a change of the BPM moves the times
+   * the grid stands for without moving the notes themselves.
+   */
+  const storeDivision = useSnapDivision();
+  const snapDivision = snapDivisionProp ?? storeDivision;
 
   const lastBeat = useMemo(() => {
     let last = 8;
@@ -180,7 +256,7 @@ export function NoteGrid({
     }
 
     const block = Math.min(7, Math.max(0, Math.floor(pointer.x / laneWidth)));
-    const beat = Math.max(0, pointer.y / beatHeight);
+    const beat = snappedBeat(pointer.y, beatHeight, snapDivision, resolution);
 
     onSelect(null);
     onAddNote(block, beat);
@@ -194,7 +270,7 @@ export function NoteGrid({
   const handleDragEnd = (event: KonvaEventObject<DragEvent>, index: number) => {
     const node = event.target;
     const block = Math.min(7, Math.max(0, Math.floor((node.x() + noteWidth / 2) / laneWidth)));
-    const beat = Math.max(0, (node.y() + NOTE_HEIGHT / 2) / beatHeight);
+    const beat = snappedBeat(node.y() + NOTE_HEIGHT / 2, beatHeight, snapDivision, resolution);
 
     onMoveNote(index, block, beat);
   };
@@ -204,7 +280,8 @@ export function NoteGrid({
    *
    * The handle sits at the end of the body, so its center tells where the
    * hold ends. The beat is measured from the pointer and clamped to the
-   * start of the hold, so a hold never ends before it starts.
+   * start of the hold, so a hold never ends before it starts. The end lands
+   * on the grid, just like the start of the note.
    */
   const handleHoldResizeEnd = (event: KonvaEventObject<DragEvent>, note: ChartNote) => {
     event.cancelBubble = true;
@@ -214,7 +291,7 @@ export function NoteGrid({
     // The handle is dragged freely, so the pointer is the source of truth.
     // When it is missing the node itself carries the position.
     const y = pointer ? pointer.y : node.y();
-    const endBeat = Math.max(noteBeat(note), y / beatHeight);
+    const endBeat = snappedHoldEndBeat(y, beatHeight, snapDivision, noteBeat(note), resolution);
 
     onResizeHold?.(chart.notes.indexOf(note), endBeat);
   };
