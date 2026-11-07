@@ -530,7 +530,7 @@ export function CatalogPanel({
                       </span>
                     </a>
 
-                    <span className={rowBody}>
+                    <span className={rowBody} data-testid="catalog-row-body">
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
                       <span className={rowText}>
                         <span className={titleText}>{song.title}</span>
@@ -546,22 +546,6 @@ export function CatalogPanel({
                           <span>·</span>
                           <span>v{song.chartVersion}</span>
                         </span>
-                      </span>
-                    </span>
-
-                    <span className={rowBody}>
-                      <span className={titleText}>{song.title}</span>
-                      <span className={artistText}>{song.artist}</span>
-                      <span className={metaLine}>
-                        <span>Lv {song.level}</span>
-                        <span>·</span>
-                        <span>{song.bpm} BPM</span>
-                        <span>·</span>
-                        <span>{formatDuration(song.durationSec)}</span>
-                        <span>·</span>
-                        <span>{song.noteCount} notes</span>
-                        <span>·</span>
-                        <span>v{song.chartVersion}</span>
                       </span>
                     </span>
 

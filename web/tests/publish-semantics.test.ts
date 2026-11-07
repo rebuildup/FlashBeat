@@ -90,7 +90,7 @@ describe("semanticDiagnostics", () => {
     );
 
     assert.deepEqual(paths(diagnostics), ["/chart/notes/0/endNum"]);
-    assert.match(diagnostics[0]?.message ?? "", /after the start line/);
+    assert.match(diagnostics[0]?.message ?? "", /after the start of the hold/);
   });
 
   it("rejects a Hold whose end is before its start", () => {
@@ -112,12 +112,16 @@ describe("semanticDiagnostics", () => {
 
   it("counts the end of a Hold against the chart length", () => {
     // BPM 120, LPB 4: endNum 7200 lands at 900s, beyond the 90s durationSec.
+    // The request-level rule names the note, the shared semantic rule names
+    // the field of the hold that reaches past the end (issue #191: both
+    // layers answer, the operator sees both).
     const diagnostics = semanticDiagnostics(
       request([{ type: NOTE_TYPE_HOLD, num: 4, block: 0, LPB: 4, endNum: 7200 }]),
     );
 
-    assert.deepEqual(paths(diagnostics), ["/chart/notes/0"]);
+    assert.deepEqual(paths(diagnostics), ["/chart/notes/0", "/chart/notes/0/endNum"]);
     assert.match(diagnostics[0]?.message ?? "", /durationSec/);
+    assert.match(diagnostics[1]?.message ?? "", /chart length/);
   });
 
   it("ignores an end line on a Tap", () => {

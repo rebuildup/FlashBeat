@@ -43,8 +43,9 @@ namespace FlashBeat.Update
     }
 
     /// <summary>
-    /// Update.ps1 がすべての終了経路で書く %LOCALAPPDATA%\FlashBeat\update\last-result.json の
-    /// 読み取り、Title 通知文言の選択、一度だけ表示するための mark-as-shown (リネーム)。
+    /// Update.ps1 / update-macos.sh がすべての終了経路で書く last-result.json
+    /// (<see cref="UpdatePaths.BaseDir"/>) の読み取り、Title 通知文言の選択、
+    /// 一度だけ表示するための mark-as-shown (リネーム)。
     /// issue #125: 更新スクリプトの失敗 (旧版では無言だった) を次回起動時に利用者へ見せる。
     /// パスを明示する overload は EditMode テスト (一時ディレクトリ) 用。
     /// </summary>
@@ -53,15 +54,10 @@ namespace FlashBeat.Update
         public const string FileName = "last-result.json";
         public const string ShownFileName = "last-result-shown.json";
 
-        /// <summary>結果ディレクトリ (%LOCALAPPDATA%\FlashBeat\update)。不明なら null。</summary>
+        /// <summary>結果ディレクトリ (<see cref="UpdatePaths.BaseDir"/>)。不明なら null。</summary>
         public static string ResultDir
         {
-            get
-            {
-                var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                if (string.IsNullOrEmpty(localAppData)) { return null; }
-                return Path.Combine(Path.Combine(localAppData, "FlashBeat"), "update");
-            }
+            get { return UpdatePaths.BaseDir; }
         }
 
         public static string ResultPath

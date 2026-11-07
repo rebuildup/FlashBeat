@@ -1,4 +1,4 @@
-import type { ChartNote } from "./types";
+import type { ChartNote } from "./types.ts";
 
 /**
  * Timing math of the legacy chart format.

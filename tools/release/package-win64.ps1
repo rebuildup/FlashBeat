@@ -265,6 +265,7 @@ $versionJson = [ordered]@{
     version     = ($Version -split '-win64-')[0]
     buildSha    = $CommitSha
     tag         = "v$Version"
+    platform    = 'win64'
     mediaPolicy = $MediaPolicy
     createdAt   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
