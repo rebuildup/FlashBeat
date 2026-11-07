@@ -21,7 +21,7 @@ namespace FlashBeat.Update
     {
         public UpdateFlowPhase Phase { get; private set; } = UpdateFlowPhase.Idle;
 
-        /// <summary>新版のタグ (例: "v0.1.3-win64-abc1234")。Available 以降で有効。</summary>
+        /// <summary>新版のタグ (例: "v0.1.3-win64-abc1234" / "v0.1.3-macos-abc1234")。Available 以降で有効。</summary>
         public string LatestTag { get; private set; }
 
         /// <summary>新版のバージョン表示用文字列 (例: "0.1.3")。</summary>

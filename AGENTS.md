@@ -20,6 +20,15 @@ This is a Unity project — there is no CLI build/lint toolchain. Use the Unity 
   Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneWindows64
   ```
 
+**Build (macOS)**
+- Editor menu: `Build → Build macOS`. Output: `Builds/macOS/FlashBeat.app`.
+- Or batch mode:
+  ```
+  Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneMacOS
+  ```
+- Both builds write the updater script, `update-channel.txt`, and the media-policy manifest into the artifact.
+  Release/update contract and packaging (Win64 + macOS) live in `docs/operations/update-release.md`.
+
 **Run Tests**
 - Editor: `Window → General → Test Runner → EditMode`.
 - Or batch mode:

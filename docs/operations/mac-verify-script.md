@@ -1,6 +1,10 @@
 # Mac 検証スクリプト (`script/mac-verify`, Issue #111)
 
-展示開始後は Windows 実機を占有しない。Mac では独立 worktree でテスト・ビルドを回す。**リリース可否の正本は Windows 実機 (Unity 6000.5.6f1)**。
+展示開始後は Windows 実機を占有しない。Mac では独立 worktree でテスト・ビルドを回す。
+**リリース可否の正本は Windows 実機 (Unity 6000.5.6f1)**。
+macOS 版は同じビルド入口 (`BuildScript.BuildStandaloneMacOS`) の成果物を
+`v<semver>-macos-<sha>` Release として配布し、アプリ内更新の経路に載せる
+(`docs/operations/update-release.md`)。
 
 ```sh
 script/mac-verify test  [<ref>]   # EditMode テスト (既定 ref: origin/release-0-1-3)
