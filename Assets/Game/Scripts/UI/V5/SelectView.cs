@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -41,6 +41,13 @@ namespace FlashBeat.UI.V5
 
         // 実曲と一致するジャケットのみ Resources に同梱する (デザインの jk-* を全曲に流用しない)。
         private const string JacketResourceDir = "V5/select/jacket/";
+
+        /// <summary>「戻る」凡例のキャプ。入力はメニュー操作設定 (KeyActions.Back) の設定値に従う。</summary>
+        public static string BackCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Back);
+        }
+
         private static readonly Dictionary<string, string> JacketResourceNames = new Dictionary<string, string>
         {
             { "Poison", "Poison" },
@@ -97,6 +104,28 @@ namespace FlashBeat.UI.V5
             view.RefreshFilter();
             view.Rebuild();
             return view;
+        }
+
+        private void OnEnable()
+        {
+            KeyActions.Changed += RebuildIfCanvas;
+        }
+
+        private void OnDisable()
+        {
+            KeyActions.Changed -= RebuildIfCanvas;
+        }
+
+        /// <summary>
+        /// キー設定が変わったら凡例キャプを描き直す (凡例は Rebuild の都度組み直される)。
+        /// canvas 未構築の OnEnable 直後は何もしない。
+        /// </summary>
+        private void RebuildIfCanvas()
+        {
+            if (canvas != null)
+            {
+                Rebuild();
+            }
         }
 
         // --- 入力 (SelectSceneManager.Update から毎フレーム呼ばれる) ---
@@ -169,7 +198,7 @@ namespace FlashBeat.UI.V5
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) { Sound(); MoveSelection(-1, filteredIds); }
             else if (Input.GetKeyDown(KeyCode.DownArrow)) { Sound(); MoveSelection(1, filteredIds); }
-            else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Tab)) { Sound(); state = ScreenState.List; Rebuild(); }
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Back) || Input.GetKeyDown(KeyCode.Tab)) { Sound(); state = ScreenState.List; Rebuild(); }
             else if (Input.GetKeyDown(KeyCode.F2)) { Sound(); EnterHistory(); }
             else if (Input.GetKeyDown(KeyCode.F3)) { Sound(); EnterRanking(); }
         }
@@ -186,7 +215,7 @@ namespace FlashBeat.UI.V5
                 Sound();
                 StartSelected();
             }
-            else if (Input.GetKeyDown(KeyCode.Escape)) { Sound(); state = ScreenState.List; Rebuild(); }
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Back)) { Sound(); state = ScreenState.List; Rebuild(); }
         }
 
         private void HandleHistoryInput()
@@ -211,7 +240,7 @@ namespace FlashBeat.UI.V5
                 Sound();
                 SelectHistorySong(ids);
             }
-            else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F2))
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Back) || Input.GetKeyDown(KeyCode.F2))
             {
                 Sound();
                 state = ScreenState.List;
@@ -227,7 +256,7 @@ namespace FlashBeat.UI.V5
             else if (Input.GetKeyDown(KeyCode.DownArrow)) { Sound(); MoveSelection(1, AllIds()); }
             else if (Input.GetKeyDown(KeyCode.Tab)) { Sound(); rankingSegment = 1 - rankingSegment; Rebuild(); }
             else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space)) { Sound(); EnterReady(); }
-            else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.F3)) { Sound(); state = ScreenState.List; Rebuild(); }
+            else if (KeyActions.IsDown(KeyActions.KeyAction.Back) || Input.GetKeyDown(KeyCode.F3)) { Sound(); state = ScreenState.List; Rebuild(); }
         }
 
         private bool HandleWheel(List<int> ids)
@@ -896,7 +925,7 @@ namespace FlashBeat.UI.V5
                 {
                     ("Enter", "スタート", 88f),
                     ("← →", "値", 72f),
-                    ("Esc", "選曲へ", 56f),
+                    (BackCap(), "選曲へ", 56f),
                 }, 44f);
                 PrimaryButton(canvas.gameObject, "Start", 48f, 28f, 204f, 56f, "Start", StartSelected);
             }
@@ -907,7 +936,7 @@ namespace FlashBeat.UI.V5
                     ("Enter", "決定", 88f),
                     ("F2", "履歴", 48f),
                     ("F3", "ランキング", 48f),
-                    ("Esc", "タイトルへ", 56f),
+                    (BackCap(), "タイトルへ", 56f),
                 }, 44f);
                 PrimaryButton(canvas.gameObject, "Ready", 48f, 28f, 180f, 56f, "Ready", EnterReady);
             }
@@ -1274,7 +1303,7 @@ namespace FlashBeat.UI.V5
             }
 
             LegendItem(well, "L0", 24f, 44f, 64f, "↑ ↓", "選択");
-            LegendItem(well, "L1", 24f + 64f + 12f + 2f * 18f + 24f, 44f, 56f, "Esc", "戻る");
+            LegendItem(well, "L1", 24f + 64f + 12f + 2f * 18f + 24f, 44f, 56f, BackCap(), "戻る");
 
             // 右: 記録の詳細 (選択中の曲)
             if (ids.Count > 0 && historyIndex < ids.Count)
@@ -1454,7 +1483,7 @@ namespace FlashBeat.UI.V5
 
             LegendItem(well, "L0", 24f, 44f, 64f, "↑ ↓", "曲");
             LegendItem(well, "L1", 24f + 64f + 12f + 18f + 24f, 44f, 56f, "Tab", "列の切替");
-            LegendItem(well, "L2", 24f + (64f + 12f + 18f + 24f) + (56f + 12f + 4f * 18f + 24f) + 24f, 44f, 56f, "Esc", "戻る");
+            LegendItem(well, "L2", 24f + (64f + 12f + 18f + 24f) + (56f + 12f + 4f * 18f + 24f) + 24f, 44f, 56f, BackCap(), "戻る");
 
             // 中央: 曲別ランキング (ローカルは自分の記録のみ)。左ウェルと右パネルの間に伸縮。
             var songPanelRt = Stretch(canvas.gameObject, "Song Ranking", 520f, 760f, 48f, 760f);

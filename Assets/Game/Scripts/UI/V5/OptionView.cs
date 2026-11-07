@@ -45,6 +45,12 @@ namespace FlashBeat.UI.V5
 
         private static readonly string[] TabLabels = { "Play", "Display", "Sound", "Data" };
 
+        /// <summary>凡例「戻る」のキャプ。入力はメニュー操作設定 (KeyActions.Back) の設定値に従う。</summary>
+        public static string BackCap()
+        {
+            return ActionKeyHint.Primary(KeyActions.KeyAction.Back);
+        }
+
         private Action onBack;
         private Action speedUp;
         private Action speedDown;
@@ -62,6 +68,7 @@ namespace FlashBeat.UI.V5
         private int selectedTab;
         private int selectedRow;
         private bool clearConfirmArmed;
+        private TextMeshProUGUI backCap;
 
         private List<Row> currentRows = new List<Row>();
 
@@ -193,7 +200,7 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 if (onBack != null) onBack();
                 return;
@@ -678,18 +685,51 @@ namespace FlashBeat.UI.V5
             }
         }
 
-        /// <summary>Legend (48,1000): ↑↓ 項目 / ←→ 値 / Tab カテゴリ / Esc 戻る。</summary>
+        /// <summary>Legend (48,1000): ↑↓ 項目 / ←→ 値 / Tab カテゴリ / 戻るキー (KeyActions.Back)。</summary>
         private void BuildLegend()
         {
-            V5Decor.BuildLegend(gameObject, new Vector2(S(48f), -S(1000f)), new[]
+            string back = BackCap();
+            var legendGo = V5Decor.BuildLegend(gameObject, new Vector2(S(48f), -S(1000f)), new[]
             {
                 ("↑", S(46f), (string)"項目"),
                 ("↓", S(46f), (string)null),
                 ("←", S(46f), (string)"値"),
                 ("→", S(46f), (string)null),
                 ("Tab", S(76f), (string)"カテゴリ"),
-                ("Esc", S(76f), (string)"戻る"),
+                (back, S(76f), (string)"戻る"),
             });
+            var capTransform = legendGo.transform.Find("KeyCap " + back);
+            if (capTransform != null)
+            {
+                backCap = capTransform.GetComponentInChildren<TextMeshProUGUI>();
+            }
+        }
+
+        private void OnEnable()
+        {
+            // キー設定オーバーレイ (F2) はこの画面を生かしたまま割り当てを変えられる。
+            KeyActions.Changed += RefreshKeyCaps;
+            KeyBindings.Changed += RefreshKeyCaps;
+        }
+
+        private void OnDisable()
+        {
+            KeyActions.Changed -= RefreshKeyCaps;
+            KeyBindings.Changed -= RefreshKeyCaps;
+        }
+
+        /// <summary>キー設定が変わったら凡例キャップと行の値 (Key Layout など) を描き直す。</summary>
+        private void RefreshKeyCaps()
+        {
+            if (backCap != null)
+            {
+                backCap.text = BackCap();
+            }
+
+            if (currentRows.Count > 0)
+            {
+                RefreshRowValues();
+            }
         }
     }
 }
