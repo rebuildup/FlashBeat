@@ -16,9 +16,9 @@ const bar = css({
   flexWrap: "wrap",
   gap: "3",
   justifyContent: "space-between",
-  paddingBottom: "3",
-  paddingTop: "3",
-  px: "4",
+  paddingBottom: "4",
+  paddingTop: "4",
+  px: "5",
 });
 
 const heading = css({
@@ -30,14 +30,16 @@ const heading = css({
 
 const titleText = css({
   color: "fg.default",
-  fontSize: "sm",
+  fontSize: "xl",
   fontWeight: "semibold",
+  letterSpacing: "-0.01em",
+  lineHeight: "1.2",
   margin: "0",
 });
 
 const subtitleText = css({
   color: "fg.muted",
-  fontSize: "xs",
+  fontSize: "sm",
   margin: "0",
 });
 

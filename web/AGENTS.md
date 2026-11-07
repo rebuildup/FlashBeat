@@ -275,6 +275,20 @@ The two pages are `ssr = false` (`pages/dashboard.server.ts`, `pages/songs.serve
 the studio fills itself in the browser. The staff token is typed by the operator
 for every session; it stays in the memory of the tab and is never stored.
 
+### Copy and UI text
+
+Every user-facing string of the studio (headings, button labels, loading, error and
+empty states) follows the **unslop** copy contract, vendored at
+`.claude/skills/unslop/` (see its `IMPORT.md`):
+
+1. Audit the strings before writing; rewrite only the confirmed findings.
+2. Smallest repair — the facts, the quantities and the register of the original stay.
+3. No formulaic framing, no empty abstraction, no unsupported certainty, no repetition.
+4. An error or a warning names the cause **and** the next action.
+
+The preset is `presets/crisp-human.md` (direct, economical, concrete). The skill covers
+text only: layout, class names, `data-testid` and the API surface are untouched by it.
+
 ### Scope
 
 The Web Studio has a database (issue #14), a read API (issue #15) and the publish

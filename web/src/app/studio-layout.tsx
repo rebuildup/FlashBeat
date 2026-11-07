@@ -29,10 +29,10 @@ const content = css({
   display: "flex",
   flex: "1",
   flexDirection: "column",
-  gap: "4",
+  gap: "5",
   minHeight: "0",
   overflowY: "auto",
-  p: "4",
+  p: "5",
 });
 
 export function StudioLayout({

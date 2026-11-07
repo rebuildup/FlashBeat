@@ -25,6 +25,7 @@ export const panelFrame = css({
 
 export const panelHeader = css({
   alignItems: "center",
+  bg: "gray.2",
   borderBottomColor: "gray.surface.border",
   borderBottomWidth: "1px",
   display: "flex",

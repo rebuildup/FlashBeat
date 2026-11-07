@@ -315,7 +315,7 @@ export function CatalogPanel({
     status === "loading"
       ? "Loading songs…"
       : status === "offline"
-        ? "Offline — the catalog needs a connection"
+        ? "Offline"
         : hasFilters
           ? `${total} song${total === 1 ? "" : "s"} published · ${songs.length} shown`
           : `${total} song${total === 1 ? "" : "s"} published`;
@@ -339,7 +339,7 @@ export function CatalogPanel({
         {status === "loading" ? (
           <StateBlock
             title="Loading catalog"
-            description="Reading the published catalog from the FlashBeat API."
+            description="Reading from the FlashBeat API."
           />
         ) : null}
 
@@ -363,7 +363,7 @@ export function CatalogPanel({
             action={
               <Button className={accent} size="sm" onClick={onRetry}>
                 <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
-                Try again
+                Retry
               </Button>
             }
           />
@@ -372,7 +372,7 @@ export function CatalogPanel({
         {status === "empty" ? (
           <StateBlock
             title="No songs published yet"
-            description="Publish a chart to the FlashBeat API and it shows up here immediately."
+            description="Publish a chart to the FlashBeat API and it shows up here."
           />
         ) : null}
 

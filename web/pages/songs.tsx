@@ -10,7 +10,7 @@ export default function SongsPage() {
   return (
     <StudioLayout
       title="Songs"
-      subtitle="Archive a song to take it out of the catalog — its history stays."
+      subtitle="Archive a song. Its chart, scores and ranking stay."
       active="songs"
     >
       <SongsPanel />

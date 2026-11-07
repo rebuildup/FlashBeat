@@ -10,7 +10,7 @@ export default function DashboardPage() {
   return (
     <StudioLayout
       title="Dashboard"
-      subtitle="The ranking of the live songs and the numbers of the festival."
+      subtitle="Best scores, play counts and song counts."
       active="dashboard"
     >
       <DashboardPanel />

@@ -39,14 +39,14 @@ const ENTRIES_PER_SONG = 5;
 const page = css({
   display: "flex",
   flexDirection: "column",
-  gap: "4",
+  gap: "5",
   minHeight: "0",
 });
 
 const tiles = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: { base: "repeat(2, minmax(0, 1fr))", md: "repeat(6, minmax(0, 1fr))" },
+  gridTemplateColumns: { base: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))", xl: "repeat(6, minmax(0, 1fr))" },
 });
 
 const tile = css({
@@ -56,26 +56,50 @@ const tile = css({
   borderWidth: "1px",
   display: "flex",
   flexDirection: "column",
-  gap: "1",
-  p: "3",
+  gap: "2",
+  p: "4",
+  transition: "background 120ms ease-out",
+  _hover: { bg: "gray.2" },
 });
 
-/** The icon of a stat tile. */
-const tileIcon = css({
-  color: "fg.muted",
+/** The icon of a stat tile, on a tinted chip so it reads at a glance. */
+const tileChip = css({
+  alignItems: "center",
+  bg: "blue.a4",
+  borderRadius: "l2",
+  color: "blue.11",
+  display: "inline-flex",
+  height: "8",
+  justifyContent: "center",
+  width: "8",
 });
 
 const tileValue = css({
   color: "fg.default",
   fontVariantNumeric: "tabular-nums",
-  fontSize: "lg",
+  fontSize: "2xl",
   fontWeight: "semibold",
-  lineHeight: "1.1",
+  letterSpacing: "-0.01em",
+  lineHeight: "1",
 });
 
 const tileLabel = css({
   color: "fg.muted",
   fontSize: "xs",
+  fontWeight: "medium",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+});
+
+/** The heading of a panel: an icon and the title on one line. */
+const titleRow = css({
+  alignItems: "center",
+  columnGap: "2",
+  display: "flex",
+});
+
+const titleIcon = css({
+  color: "blue.11",
 });
 
 const columns = css({
@@ -99,7 +123,7 @@ const panelBodyAuto = css({
 const section = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "4",
   minWidth: "0",
 });
 
@@ -115,8 +139,11 @@ const row = css({
   columnGap: "4",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) 4rem 6rem 7rem",
-  minHeight: "2.5rem",
+  minHeight: "2.75rem",
+  px: "1",
+  transition: "background 100ms ease-out",
   _last: { borderBottomWidth: "0" },
+  _hover: { bg: "gray.2" },
 });
 
 const rowHeader = css({
@@ -126,9 +153,12 @@ const rowHeader = css({
   columnGap: "4",
   display: "grid",
   fontSize: "xs",
+  fontWeight: "medium",
   gridTemplateColumns: "minmax(0, 1fr) 4rem 6rem 7rem",
+  letterSpacing: "0.04em",
   paddingBottom: "2",
   paddingTop: "1",
+  textTransform: "uppercase",
 });
 
 const songCell = css({
@@ -162,31 +192,67 @@ const num = css({
   whiteSpace: "nowrap",
 });
 
+/** The rank badge of a ranking entry. */
 const rankBadge = css({
-  bg: "gray.8",
+  alignItems: "center",
+  bg: "gray.4",
   borderRadius: "l1",
-  color: "fg.default",
+  color: "fg.muted",
   display: "inline-flex",
+  flexShrink: 0,
   fontVariantNumeric: "tabular-nums",
   fontSize: "xs",
-  fontWeight: "medium",
+  fontWeight: "semibold",
+  height: "5",
   justifyContent: "center",
-  minWidth: "1.5rem",
-  paddingX: "1",
-  paddingY: "0.5",
+  width: "5",
+});
+
+/** The badge of the first place. */
+const rankBadgeFirst = css({
+  bg: "blue.a4",
+  color: "blue.11",
+});
+
+/** One entry of a song in the ranking board. */
+const entryRow = css({
+  alignItems: "center",
+  columnGap: "2",
+  display: "flex",
+  minWidth: "0",
+});
+
+/** The name of the player in a ranking entry. */
+const entryName = css({
+  color: "fg.default",
+  fontSize: "xs",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+/** The score of a ranking entry. */
+const entryScore = css({
+  color: "fg.muted",
+  fontVariantNumeric: "tabular-nums",
+  fontSize: "xs",
+  marginLeft: "auto",
+  whiteSpace: "nowrap",
 });
 
 const barTrack = css({
   bg: "gray.3",
-  borderRadius: "l1",
-  height: "0.5rem",
+  borderRadius: "full",
+  height: "2",
   overflow: "hidden",
   width: "full",
 });
 
 const barFill = css({
   bg: "blue.9",
+  borderRadius: "full",
   height: "full",
+  minWidth: "2",
 });
 
 const levelRow = css({
@@ -194,22 +260,18 @@ const levelRow = css({
   columnGap: "3",
   display: "grid",
   gridTemplateColumns: "3rem minmax(0, 1fr) 2rem",
+  minHeight: "1.75rem",
+});
+
+const levelLabel = css({
+  color: "fg.muted",
+  fontSize: "xs",
+  fontVariantNumeric: "tabular-nums",
 });
 
 const notice = css({
   color: "fg.muted",
-  fontSize: "xs",
-});
-
-/** The heading of a panel: an icon and the title on one line. */
-const titleRow = css({
-  alignItems: "center",
-  columnGap: "2",
-  display: "flex",
-});
-
-const titleIcon = css({
-  color: "fg.muted",
+  fontSize: "sm",
 });
 
 /** `1 play` / `3 plays`. */
@@ -273,13 +335,14 @@ export function DashboardPanel() {
       <div className={panelFrame}>
         <StateBlock
           title="The dashboard could not be loaded"
-          description={errorMessage ?? "Unknown error"}
+          description="The API answered something the dashboard could not read."
           action={
             <Button onClick={refresh} variant="outline">
-              Try again
+              Retry
             </Button>
           }
         />
+        {errorMessage === undefined ? null : <p className={notice}>{errorMessage}</p>}
       </div>
     );
   }
@@ -287,7 +350,7 @@ export function DashboardPanel() {
   if (status === "loading" || stats === null) {
     return (
       <div className={panelFrame}>
-        <StateBlock title="Loading the festival numbers…" description="One moment." />
+        <StateBlock title="Loading the dashboard" description="Reading the scores and the songs." />
       </div>
     );
   }
@@ -296,7 +359,7 @@ export function DashboardPanel() {
     <div className={page}>
       <section className={tiles}>
         <Tile icon={Music} label="Live songs" value={stats.totals.liveSongs} />
-        <Tile icon={Archive} label="Archived songs" value={stats.totals.archivedSongs} />
+        <Tile icon={Archive} label="Archived" value={stats.totals.archivedSongs} />
         <Tile icon={FileClock} label="Chart versions" value={stats.totals.charts} />
         <Tile icon={Trophy} label="Plays" value={stats.totals.scores} />
         <Tile icon={Users} label="Players" value={stats.totals.players} />
@@ -307,7 +370,7 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={Trophy} title="Ranking" subtitle="The best scores of the published chart version of every live song." />
+              <Heading icon={Trophy} title="Ranking" subtitle="Best score of the published chart." />
             </div>
             <div className={panelBodyAuto}>
               {orderedSongs.length === 0 ? (
@@ -324,7 +387,11 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={ListMusic} title="Songs in detail" subtitle="Plays, players and the average accuracy." />
+              <Heading
+                icon={ListMusic}
+                title="Songs in detail"
+                subtitle="Plays, players and the average accuracy."
+              />
             </div>
             <div className={panelBodyAuto}>
               <div className={rowHeader}>
@@ -361,34 +428,39 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={Users} title="Best players" subtitle="By the sum of their scores." />
+              <Heading
+                icon={Users}
+                title="Best players"
+                subtitle="Total score of every player."
+              />
             </div>
             <div className={panelBodyAuto}>
               {stats.topPlayers.length === 0 ? (
                 <p className={notice}>Nobody has played yet.</p>
               ) : (
                 <>
-                <div className={rowHeader}>
-                  <span>Player</span>
-                  <span className={num}>Plays</span>
-                  <span className={num}>Total</span>
-                  <span className={num}>Best</span>
-                </div>
-                <div className={rows}>
-                  {stats.topPlayers.map((player, index) => (
-                    <div key={player.nickname} className={row}>
-                      <div className={songCell}>
-                        <span className={songTitle}>
-                          <span className={rankBadge}>{index + 1}</span> {player.nickname}
-                        </span>
-                        <span className={songMeta}>{plural(player.plays, "play")}</span>
+                  <div className={rowHeader}>
+                    <span>Player</span>
+                    <span className={num}>Plays</span>
+                    <span className={num}>Total</span>
+                    <span className={num}>Best</span>
+                  </div>
+                  <div className={rows}>
+                    {stats.topPlayers.map((player, index) => (
+                      <div key={player.nickname} className={row}>
+                        <div className={songCell}>
+                          <span className={songTitle}>
+                            <span className={index === 0 ? rankBadgeFirst : rankBadge}>{index + 1}</span>{" "}
+                            {player.nickname}
+                          </span>
+                          <span className={songMeta}>{plural(player.plays, "play")}</span>
+                        </div>
+                        <span className={num}>{player.plays}</span>
+                        <span className={num}>{formatScore(player.totalScore)}</span>
+                        <span className={num}>{formatScore(player.bestScore)}</span>
                       </div>
-                      <span className={num}>{player.plays}</span>
-                      <span className={num}>{formatScore(player.totalScore)}</span>
-                      <span className={num}>{formatScore(player.bestScore)}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </>
               )}
             </div>
@@ -396,7 +468,11 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={ChartColumnBig} title="Difficulty" subtitle="How the live songs are spread over the levels." />
+              <Heading
+                icon={ChartColumnBig}
+                title="Difficulty"
+                subtitle="Songs per level."
+              />
             </div>
             <div className={panelBodyAuto}>
               {levelBars.distribution.length === 0 ? (
@@ -405,7 +481,7 @@ export function DashboardPanel() {
                 <div className={rows}>
                   {levelBars.distribution.map((entry) => (
                     <div key={entry.level} className={levelRow}>
-                      <span className={num}>Lv.{entry.level}</span>
+                      <span className={levelLabel}>Lv.{entry.level}</span>
                       <span className={barTrack}>
                         <span
                           className={barFill}
@@ -466,7 +542,9 @@ function Tile({
 }) {
   return (
     <div className={tile}>
-      <Icon className={tileIcon} size={16} aria-hidden="true" />
+      <span className={tileChip}>
+        <Icon size={16} aria-hidden="true" />
+      </span>
       <span className={tileValue}>{formatScore(value)}</span>
       <span className={tileLabel}>{label}</span>
     </div>
@@ -475,7 +553,7 @@ function Tile({
 
 function SongRanking({ song }: { song: RankingSong }) {
   return (
-    <div className={row} style={{ gridTemplateColumns: "minmax(0, 1fr) 8rem" }}>
+    <div className={row} style={{ gridTemplateColumns: "minmax(0, 1fr) 12rem" }}>
       <div className={songCell}>
         <span className={songTitle}>{song.title}</span>
         <span className={songMeta}>
@@ -484,12 +562,13 @@ function SongRanking({ song }: { song: RankingSong }) {
       </div>
       <div className={songCell}>
         {song.entries.length === 0 ? (
-          <span className={songMeta}>nobody played it yet</span>
+          <span className={songMeta}>Nobody played it yet.</span>
         ) : (
           song.entries.slice(0, ENTRIES_PER_SONG).map((entry, index) => (
-            <span key={`${entry.nickname}:${index}`} className={songMeta}>
-              <span className={rankBadge}>{index + 1}</span> {entry.nickname} ·{" "}
-              {formatScore(entry.score)}
+            <span key={`${entry.nickname}:${index}`} className={entryRow}>
+              <span className={index === 0 ? rankBadgeFirst : rankBadge}>{index + 1}</span>
+              <span className={entryName}>{entry.nickname}</span>
+              <span className={entryScore}>{formatScore(entry.score)}</span>
             </span>
           ))
         )}

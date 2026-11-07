@@ -159,7 +159,7 @@ export function PublishStep({
         ok: false,
         failure: {
           code: "invalid",
-          message: "曲情報に不備があります。 / The song info has problems.",
+          message: "曲情報に不備があります。以下の項目を修正してください。 / The song info has problems. Fix the fields below.",
           details: built.issues.map((issue) => `${issue.field}: ${issue.message}`),
         },
       });
@@ -197,8 +197,8 @@ export function PublishStep({
         </dl>
         {chartIssues.length > 0 ? (
           <p className={`${failureList}`} style={{ color: "#ff6b6b" }}>
-            譜面に契約違反が{chartIssues.length}件あります。 / The chart has {chartIssues.length}{" "}
-            contract problems.
+            譜面に問題が{chartIssues.length}件あります。戻って修正してください。 / The chart has{" "}
+            {chartIssues.length} problems. Go back and fix them.
           </p>
         ) : null}
       </section>

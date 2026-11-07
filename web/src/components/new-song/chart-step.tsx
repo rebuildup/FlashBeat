@@ -140,8 +140,8 @@ export function ChartStep({
         </p>
         {chartIssues.length > 0 ? (
           <p className={`${verdict} ${verdictError}`}>
-            譜面に契約違反が{chartIssues.length}件あります。 / The chart has {chartIssues.length}{" "}
-            contract problems.
+            譜面に問題が{chartIssues.length}件あります。修正するまで次へ進めません。 / The chart
+            has {chartIssues.length} problems. Fix them to continue.
           </p>
         ) : null}
         <div className={buttons}>

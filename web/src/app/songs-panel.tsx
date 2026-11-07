@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { css } from "styled-system/css";
 import { Button, Field, Input } from "@/components/ui";
-import { Archive, ArchiveRestore, RefreshCw } from "lucide-react";
+import { Archive, ArchiveRestore, Info, RefreshCw } from "lucide-react";
 import { loadAdminSongs, setSongArchived } from "@/lib/dashboard/client";
 import type { AdminSong } from "@/lib/dashboard/types";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
@@ -26,14 +26,24 @@ const page = css({
   minHeight: "0",
 });
 
+/** The info callout above the song list. */
 const notice = css({
-  bg: "gray.1",
-  borderColor: "border",
+  alignItems: "flex-start",
+  bg: "blue.a2",
+  borderColor: "blue.a6",
   borderRadius: "l2",
   borderWidth: "1px",
   color: "fg.muted",
-  fontSize: "xs",
+  columnGap: "2",
+  display: "flex",
+  fontSize: "sm",
   p: "3",
+});
+
+const noticeIcon = css({
+  color: "blue.11",
+  flexShrink: 0,
+  marginTop: "1",
 });
 
 const tokenRow = css({
@@ -162,8 +172,8 @@ export function SongsPanel() {
         await setSongArchived(token, song.id, archived);
         setNoticeText(
           archived
-            ? `"${song.title}" is archived. It left the catalog, its scores are kept.`
-            : `"${song.title}" is back in the catalog.`,
+            ? `${song.title} archived. Its scores are kept.`
+            : `${song.title} restored.`,
         );
         await load(token);
       } catch (error: unknown) {
@@ -178,16 +188,18 @@ export function SongsPanel() {
   return (
     <div className={page}>
       <p className={notice}>
-        Songs are never deleted. Archiving takes a song out of the public catalog (the game does not
-        show it any more) and keeps its chart, its scores and its ranking. Restoring brings it
-        back exactly as it was.
+        <Info className={noticeIcon} size={16} aria-hidden="true" />
+        <span>
+          Archiving hides a song from the catalog and from the game. Its chart, scores and
+          ranking stay. Restore puts it back.
+        </span>
       </p>
 
       <div className={panelFrame}>
         <div className={panelHeader}>
           <div>
-            <h2 className={panelTitle}>Songs</h2>
-            <p className={panelSubtitle}>Live and archived songs of the festival database.</p>
+            <h2 className={panelTitle}>Song list</h2>
+            <p className={panelSubtitle}>Published and archived songs.</p>
           </div>
         </div>
         <div className={panelBody}>
@@ -211,7 +223,7 @@ export function SongsPanel() {
               disabled={token.trim().length === 0}
             >
               <RefreshCw className={buttonIcon} size={14} aria-hidden="true" />
-              Load the songs
+              List the songs
             </Button>
           </div>
 
@@ -274,11 +286,11 @@ export function SongsPanel() {
               ))}
             </div>
           ) : status === "error" ? null : status === "loading" ? (
-            <StateBlock title="Loading the songs…" description="One moment." />
+            <StateBlock title="Loading the songs" description="Reading the database." />
           ) : (
             <StateBlock
-              title="The song list is empty"
-              description="Enter the staff token and load the songs to manage the archive."
+              title="No songs loaded"
+              description="Enter the staff token to list the songs."
             />
           )}
         </div>
