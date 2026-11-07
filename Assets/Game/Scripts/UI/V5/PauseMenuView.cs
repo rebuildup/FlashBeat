@@ -14,7 +14,8 @@ namespace FlashBeat.UI.V5
     /// - ↑↓ で行を選択 (6 行: NoteSpeed / NoteTiming / MainVolume / BGMVolume / SEVolume / Flash)
     /// - ←→ で値を変更 (NoteSpeed 1..30, NoteTiming -10..10, 音量 0..100 step 5, Flash On/Off)
     /// - S / D / L / K でタブ切替 (Settings / Display / Ranking / Keys)
-    /// - Q でリタイア (SelectScene へ)、R でリトライ (GameScene を読み直し)、Esc で再開
+    /// - リタイア (SelectScene へ) はメニュー操作設定の MenuRetire、リトライ (GameScene を
+    ///   読み直し) は MenuRetry に従う (0.1.9)。Esc で再開。
     ///
     /// 値は GManager の静的フィールドへ直接書く (noteSpeed / noteTiming /
     /// mainVolume / BGMVolume / effectVolume / Flash)。音量はシーン内の
@@ -611,12 +612,14 @@ namespace FlashBeat.UI.V5
             actionsRt.sizeDelta = new Vector2(0f, 48f * s);
             actions.childControlWidth = false;
             actions.childControlHeight = false;
-            AddAction(actions.gameObject, "Retire", "Q", p, s, () =>
+            // リトライ/リタイアはメニュー操作設定 (KeyActions) に従う (0.1.9)。
+            // キーキャップ表示も設定値から生成する (既定: R / Backspace)。
+            AddAction(actions.gameObject, "Retire", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetire)), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetireGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Retry", "R", p, s, () =>
+            AddAction(actions.gameObject, "Retry", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetry)), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetryGame();
                 Close();
@@ -781,12 +784,14 @@ namespace FlashBeat.UI.V5
             if (Input.GetKeyDown(KeyCode.DownArrow)) SelectRow(Mathf.Min(RowCount - 1, selectedRow + 1));
             if (Input.GetKeyDown(KeyCode.LeftArrow)) Adjust(selectedRow, -1);
             if (Input.GetKeyDown(KeyCode.RightArrow)) Adjust(selectedRow, +1);
+            // タブ切替 (S/D/L/K) はこのビュー固有のショートカット (矢印と同類) なので
+            // 設定対象外の固定キーのまま。リトライ/リタイアはメニュー操作設定に従う (0.1.9)。
             if (Input.GetKeyDown(KeyCode.S)) SelectTab(0);
             if (Input.GetKeyDown(KeyCode.D)) SelectTab(1);
             if (Input.GetKeyDown(KeyCode.L)) SelectTab(2);
             if (Input.GetKeyDown(KeyCode.K)) SelectTab(3);
-            if (Input.GetKeyDown(KeyCode.R) && sceneManager != null) sceneManager.RetryGame();
-            if (Input.GetKeyDown(KeyCode.Q) && sceneManager != null) sceneManager.RetireGame();
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry) && sceneManager != null) sceneManager.RetryGame();
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetire) && sceneManager != null) sceneManager.RetireGame();
         }
     }
 }

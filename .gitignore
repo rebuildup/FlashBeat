@@ -80,3 +80,5 @@ desktop.ini
 TestResults.xml
 TestRun.log
 BuildLog-*.log
+PerformanceTestRunInfo.json
+PerformanceTestRunSettings.json
