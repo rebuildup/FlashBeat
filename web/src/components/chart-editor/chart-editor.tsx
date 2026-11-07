@@ -22,6 +22,7 @@ import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
 import { useSnapDivision } from "./snap-store";
+import { LyricsEditor } from "./lyrics-editor";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 
@@ -53,7 +54,16 @@ const body = css({
   display: "grid",
   gap: "3",
   gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  gridTemplateRows: "minmax(0, 1fr)",
+  /**
+   * The left column holds the lane well (row 1) and the lyrics panel (row 2).
+   * The lyrics panel keeps 20rem at FHD and 45% of the column below `lg`, so
+   * the note grid stays usable on a laptop while the lyrics list scrolls on
+   * its own. The inspector on the right spans both rows.
+   */
+  gridTemplateRows: {
+    base: "minmax(0, 1fr) minmax(0, 45%)",
+    lg: "minmax(0, 1fr) minmax(0, 20rem)",
+  },
   minHeight: "0",
   p: "3",
 });
@@ -63,9 +73,19 @@ const gridPanel = css({
   borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
+  gridColumn: "1",
+  gridRow: "1",
   minHeight: "0",
   minWidth: "0",
   overflow: "visible",
+});
+
+/** Placement of the lyrics panel in the left column. */
+const lyricsPanel = css({
+  gridColumn: "1",
+  gridRow: "2",
+  minHeight: "0",
+  minWidth: "0",
 });
 
 const gridHint = css({
@@ -135,6 +155,8 @@ const side = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
+  gridColumn: { base: "1", lg: "2" },
+  gridRow: { base: "1", lg: "1 / span 2" },
   minHeight: 0,
   overflowY: "auto",
   /**
@@ -328,6 +350,17 @@ export function ChartEditor({
     link.click();
     URL.revokeObjectURL(url);
   }, [chart]);
+
+  /**
+   * Seek the preview from the lyrics panel.
+   *
+   * The lyrics panel works in seconds; the YouTube player stays the only
+   * owner of playback. The request is forwarded to it and the new position
+   * comes back through `onTimeUpdate`, so both panels read one playhead.
+   */
+  const handleLyricsSeek = useCallback((seconds: number) => {
+    previewRef.current?.seekTo(seconds);
+  }, []);
 
   /**
    * Place a hold.
@@ -632,6 +665,14 @@ export function ChartEditor({
             </p>
           )}
         </section>
+
+        <LyricsEditor
+          className={lyricsPanel}
+          chart={chart}
+          playheadSec={playheadSec}
+          onChartChange={setChart}
+          onSeek={handleLyricsSeek}
+        />
 
         <aside
           className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
