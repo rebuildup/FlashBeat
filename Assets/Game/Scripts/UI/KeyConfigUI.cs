@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 public class KeyConfigUI : MonoBehaviour
 {
     private const float PanelWidth = 1100f;
-    private const float PanelHeight = 860f;
+    private const float PanelHeight = 900f;
     private const float RowHeight = 66f;
     private const float RowFontSize = 26f;
     private const float HeaderFontSize = 32f;
@@ -36,6 +36,7 @@ public class KeyConfigUI : MonoBehaviour
     private TextMeshProUGUI messageLabel;
     private TextMeshProUGUI testLabel;
     private TextMeshProUGUI hintLabel;
+    private TextMeshProUGUI layoutLabel;
     private int selectedLane;
     private bool listening;
     private bool confirmReset;
@@ -93,6 +94,52 @@ public class KeyConfigUI : MonoBehaviour
 
     private static readonly string[] AllowedScenes = { "TitleScene", "SelectScene", "OptionScene" };
 
+    /// <summary>
+    /// 既定のキー割り当て。KeyBindings.DefaultKeys が private のため同じ構成をここに持つ
+    /// (v0.1.2 で Judge.LaneKeys を KeyBindings が複製したのと同じ先例)。
+    /// 変更したら KeyBindings 側も直すこと。KeyConfigLayoutTests がずれを検出する。
+    /// </summary>
+    public static readonly KeyCode[][] DefaultLayout = new KeyCode[][]
+    {
+        new KeyCode[] { KeyCode.Alpha1, KeyCode.Q, KeyCode.A, KeyCode.Z },
+        new KeyCode[] { KeyCode.Alpha2, KeyCode.W, KeyCode.S, KeyCode.X },
+        new KeyCode[] { KeyCode.Alpha3, KeyCode.E, KeyCode.D, KeyCode.C },
+        new KeyCode[] { KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.R, KeyCode.T, KeyCode.F, KeyCode.G, KeyCode.V, KeyCode.B },
+        new KeyCode[] { KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Y, KeyCode.U, KeyCode.H, KeyCode.J, KeyCode.N, KeyCode.M },
+        new KeyCode[] { KeyCode.Alpha8, KeyCode.I, KeyCode.K, KeyCode.Less, KeyCode.Comma },
+        new KeyCode[] { KeyCode.Alpha9, KeyCode.O, KeyCode.L, KeyCode.Greater, KeyCode.Period },
+        new KeyCode[] { KeyCode.Alpha0, KeyCode.Equals, KeyCode.Caret, KeyCode.Backslash, KeyCode.P, KeyCode.At, KeyCode.LeftBracket, KeyCode.Semicolon, KeyCode.Colon, KeyCode.RightBracket, KeyCode.Slash, KeyCode.Underscore, KeyCode.Minus, KeyCode.Asterisk, KeyCode.BackQuote }
+    };
+
+    /// <summary>
+    /// 現在の割り当てが既定と同じか (レーン位置は固定、レーン内のキー順は問わない)。
+    /// 純粋関数: NUnit テスト (KeyConfigLayoutTests) から直接検証する。
+    /// </summary>
+    public static bool IsDefaultLayout(KeyCode[][] current, KeyCode[][] defaults)
+    {
+        if (current == null || defaults == null || current.Length != defaults.Length) return false;
+
+        for (int lane = 0; lane < current.Length; lane++)
+        {
+            KeyCode[] a = current[lane];
+            KeyCode[] b = defaults[lane];
+            if (a == null || b == null || a.Length != b.Length) return false;
+
+            var seen = new HashSet<KeyCode>(a);
+            if (seen.Count != a.Length) return false; // 重複は既定にない (保険)
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (!seen.Contains(b[i])) return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>表示用: 現在の割り当てが既定かどうか。</summary>
+    public static bool IsCustomLayout()
+    {
+        return !IsDefaultLayout(KeyBindings.Current, DefaultLayout);
+    }
     private static bool IsAllowedScene()
     {
         string name = SceneManager.GetActiveScene().name;
@@ -242,7 +289,7 @@ public class KeyConfigUI : MonoBehaviour
         {
             if (!KeyBindings.Save())
             {
-                messageLabel.text = "空のレーンがあるため保存できません (全レーンに 1 個以上キーを割り当ててください)";
+                messageLabel.text = "空のレーンがあるため閉じられません (全レーンに 1 つ以上キーを割り当ててください)";
                 return; // 閉じないで保存を促す
             }
         }
@@ -351,7 +398,7 @@ public class KeyConfigUI : MonoBehaviour
         if (!confirmReset)
         {
             confirmReset = true;
-            messageLabel.text = "初期化しますか? もう一度 R を押すと既定のキー配置に戻ります";
+            messageLabel.text = "初期化しますか? もう一度 R を押すと初期化します";
             return;
         }
         confirmReset = false;
@@ -390,7 +437,7 @@ public class KeyConfigUI : MonoBehaviour
             }
             else
             {
-                messageLabel.text = "そのキーは割り当てできません (レーンには最低 1 キー必要です)";
+                messageLabel.text = "そのキーは割り当てできません (レーンからキーがなくなります)";
             }
         }
     }
@@ -470,6 +517,23 @@ public class KeyConfigUI : MonoBehaviour
             {
                 accentBars[lane].gameObject.SetActive(selected);
             }
+        }
+        UpdateLayoutStatus();
+    }
+
+    /// <summary>ヘッダー下の表示: 既定のキー配置かカスタムか (Issue #128)。</summary>
+    private void UpdateLayoutStatus()
+    {
+        if (layoutLabel == null) return;
+        if (IsCustomLayout())
+        {
+            layoutLabel.text = "現在: カスタム";
+            layoutLabel.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+        }
+        else
+        {
+            layoutLabel.text = "現在: 初期設定";
+            layoutLabel.color = new Color(1f, 1f, 1f, 0.85f);
         }
     }
 
@@ -621,6 +685,11 @@ public class KeyConfigUI : MonoBehaviour
         var header = AddLabel(content, "KeyConfigHeader", "キー設定 (F2 で閉じる)", HeaderFontSize, TextAlignmentOptions.Center);
         header.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 56f;
 
+        // 既定のキー配置かカスタムかを常時表示する (Issue #128)
+        layoutLabel = AddLabel(content, "KeyConfigLayoutStatus", string.Empty, MessageFontSize, TextAlignmentOptions.Center);
+        layoutLabel.color = new Color(1f, 1f, 1f, 0.85f);
+        layoutLabel.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34f;
+
         // 8 レーン行 (固定行高 + 選択ハイライト)
         var rowsRoot = new GameObject("Rows", typeof(UnityEngine.UI.VerticalLayoutGroup)).GetComponent<RectTransform>();
         rowsRoot.SetParent(content, false);
@@ -770,8 +839,9 @@ public class KeyConfigUI : MonoBehaviour
         return tmp;
     }
 
-    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。</summary>
-    private static TMP_FontAsset FindJapaneseFont()
+    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。
+    /// KeyConfigOptionButton からも使うため public。</summary>
+    public static TMP_FontAsset FindJapaneseFont()
     {
         TMP_FontAsset fallback = null;
         var all = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
