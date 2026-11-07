@@ -68,6 +68,26 @@ public class MusicManager : MonoBehaviour
     float lastMediaTime;
     float stallSeconds;
 
+    // --- public state (verification / UI) ---------------------------------------
+
+    /// <summary>メディアの準備が完了しているか (Dl 完了・VideoPlayer 準備済み)。</summary>
+    public bool MediaReady { get { return mediaReady; } }
+
+    /// <summary>再生が始まったか。</summary>
+    public bool PlaybackStarted { get { return playbackStarted; } }
+
+    /// <summary>映像播放器が再生中か。</summary>
+    public bool VideoPlaying { get { return songVideo != null && songVideo.isPlaying; } }
+
+    /// <summary>映像播放器の準備完了状態。</summary>
+    public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
+
+    /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
+    public float MediaTimeNow { get { return CurrentMediaTime(); } }
+
+    /// <summary>音声の供給元の説明 (デバッグ表示・検証用)。</summary>
+    public string AudioModeName { get { return audioMode.ToString(); } }
+
     void Start()
     {
         waitback.SetActive(true);
