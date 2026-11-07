@@ -180,11 +180,11 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void TheMergedCatalogHasNoDuplicatePlayableVideoIds()
+        public void TwoCloudSongsOfTheSameVideoStayTwoSongs()
         {
-            // A cloud entry that lists a song again under the same videoId must
-            // not produce a second row. (The local catalog has one duplicated
-            // videoId pair: the unplayable ニセモノ rows.)
+            // The API publishes easy / hard of the same video as two different
+            // songIds. They are two songs and both have to stay playable
+            // (#95 P1) - the video id is not the identity of a song.
             var remote = new[]
             {
                 new SongData(0, "noSong", "no", "", 0, 0, 0, 0f),
@@ -195,10 +195,10 @@ namespace FlashBeat.Tests.Editor
                     chartVersion = 4,
                     noteCount = 268,
                 },
-                new SongData(2, "ロストアンブレラ再掲", "稲葉曇", "DeKLpgzh-qQ", 274, 8, 268, 89f)
+                new SongData(2, "ロストアンブレラ easy", "稲葉曇", "DeKLpgzh-qQ", 274, 8, 268, 89f)
                 {
                     isRemote = true,
-                    remoteId = "lost-umbrella-again",
+                    remoteId = "lost-umbrella-easy",
                     chartVersion = 4,
                     noteCount = 268,
                 },
@@ -206,15 +206,90 @@ namespace FlashBeat.Tests.Editor
 
             SongData[] merged = GManager.Merge(GManager.Songs, remote);
 
-            Assert.AreEqual(GManager.Songs.Length, merged.Length,
-                "a cloud song the local data knows must overlay it, not be appended again");
+            Assert.AreEqual(GManager.Songs.Length + 1, merged.Length,
+                "two published songIds are two songs - the second one must not be swallowed");
 
-            var seen = new HashSet<string>();
+            var ids = new HashSet<string>();
             foreach (var song in merged)
             {
-                if (song == null || song.unplayable || string.IsNullOrEmpty(song.videoId)) continue;
-                Assert.IsTrue(seen.Add(song.videoId), $"duplicate videoId {song.videoId} in the merged catalog");
+                if (song == null || !song.isRemote || string.IsNullOrEmpty(song.remoteId)) continue;
+                Assert.IsTrue(ids.Add(song.remoteId), $"duplicate cloud song id {song.remoteId} in the merged catalog");
             }
+            Assert.IsTrue(ids.Contains("lost-umbrella"), "the first published song is missing");
+            Assert.IsTrue(ids.Contains("lost-umbrella-easy"), "the second published song is missing");
+        }
+
+        [Test]
+        public void TwoCloudSongsWithTheSameTitleStayTwoSongs()
+        {
+            // Different videos, same title, different songIds: also two songs.
+            var remote = new[]
+            {
+                new SongData(0, "noSong", "no", "", 0, 0, 0, 0f),
+                new SongData(1, "同名曲", "作曲者", "abcdefghijk", 120, 3, 42, 60f)
+                {
+                    isRemote = true,
+                    remoteId = "same-title-a",
+                    chartVersion = 1,
+                },
+                new SongData(2, "同名曲", "作曲者", "lmnopqrstu", 120, 3, 42, 60f)
+                {
+                    isRemote = true,
+                    remoteId = "same-title-b",
+                    chartVersion = 1,
+                },
+            };
+
+            SongData[] merged = GManager.Merge(GManager.Songs, remote);
+
+            var ids = new HashSet<string>();
+            foreach (var song in merged)
+            {
+                if (song == null || !song.isRemote || string.IsNullOrEmpty(song.remoteId)) continue;
+                Assert.IsTrue(ids.Add(song.remoteId), $"duplicate cloud song id {song.remoteId} in the merged catalog");
+            }
+            Assert.IsTrue(ids.Contains("same-title-a"), "the first published song is missing");
+            Assert.IsTrue(ids.Contains("same-title-b"), "the second published song is missing");
+        }
+
+        [Test]
+        public void TheSameCloudSongIsUpdatedInPlace()
+        {
+            // The same songId listed twice (or a song whose title and video
+            // changed afterwards) updates one row - the stable id is the
+            // identity of a published song.
+            var remote = new[]
+            {
+                new SongData(0, "noSong", "no", "", 0, 0, 0, 0f),
+                new SongData(1, "Who", "Azari", "8JXiXt0D6tw", 128, 5, 139, 68f)
+                {
+                    isRemote = true,
+                    remoteId = "who",
+                    chartVersion = 9,
+                },
+                new SongData(2, "Who (renamed)", "Azari", "8JXiXt0D6tw", 128, 5, 139, 68f)
+                {
+                    isRemote = true,
+                    remoteId = "who",
+                    chartVersion = 10,
+                },
+            };
+
+            SongData[] merged = GManager.Merge(GManager.Songs, remote);
+
+            int rows = 0;
+            int who = -1;
+            for (int i = 0; i < merged.Length; i++)
+            {
+                if (merged[i] == null || !merged[i].isRemote) continue;
+                if (!string.Equals(merged[i].remoteId, "who", System.StringComparison.OrdinalIgnoreCase)) continue;
+                rows++;
+                who = i;
+            }
+
+            Assert.AreEqual(1, rows, "the same published song must be one row");
+            Assert.AreEqual(10, merged[who].chartVersion, "the newer version of the published song wins");
+            Assert.AreEqual("Who (renamed)", merged[who].title);
         }
 
         [Test]
