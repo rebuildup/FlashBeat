@@ -90,8 +90,12 @@ public class KeyHintConsistencyTests
         Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.MenuRetire, new[] { KeyCode.Quote }));
         Assert.AreEqual("'", PauseMenuView.RetireCap());
 
+        // リザルトのリトライは KeyAction.Retry、ポーズメニューのリトライは
+        // KeyAction.MenuRetry (別操作)。それぞれが自分の設定値を反映する。
         Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.Retry, new[] { KeyCode.F12 }));
         Assert.AreEqual("F12", ResultView.RetryLegendCap());
+
+        Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.MenuRetry, new[] { KeyCode.F12 }));
         Assert.AreEqual("F12", PauseMenuView.RetryCap());
 
         // Title の決定を Backspace に変えると短縮名 BS (幅固定 cap 内に収まる)。
