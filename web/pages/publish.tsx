@@ -121,7 +121,7 @@ function PublishState({
           <h1 className={title}>{error ? "譜面を読み込めませんでした" : "譜面を読み込み中"}</h1>
           <p className={description}>
             {error
-              ? message ?? "読み込みに失敗しました。接続を確認して再試行してください。"
+              ? (message ?? "読み込みに失敗しました。接続を確認して再試行してください。")
               : "公開対象の楽曲と譜面バージョンを確認しています。"}
           </p>
         </div>
@@ -162,16 +162,24 @@ export default function PublishPage({ songId, version, draftId }: Props) {
 
     if (selected) {
       loadSongSession(songId ?? "", version ?? "").then(
-        (value) => { if (active) setSession(value); },
-        (reason) => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); },
+        (value) => {
+          if (active) setSession(value);
+        },
+        (reason) => {
+          if (active) setError(reason instanceof Error ? reason.message : String(reason));
+        },
       );
     }
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [songId, version, draftId, selected, attempt]);
 
   if (error) {
-    return <PublishState kind="error" message={error} onRetry={() => setAttempt((value) => value + 1)} />;
+    return (
+      <PublishState kind="error" message={error} onRetry={() => setAttempt((value) => value + 1)} />
+    );
   }
 
   if (selected && !session) {
