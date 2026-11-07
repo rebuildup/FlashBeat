@@ -118,25 +118,25 @@ public class SelectSceneManager : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
             playSound();
             GameScene();
         }
 
-        if (KeyBindings.IsAnyLaneKeyDown(0, 4) || Input.GetKeyDown(KeyCode.LeftArrow)) // lanes 1-4 (custom bindings) = previous song
+        if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev) || KeyBindings.IsAnyLaneKeyDown(0, 4)) // lanes 1-4 (custom bindings) = previous song
         {
             playSound();
             SongDown();
         }
 
-        if (KeyBindings.IsAnyLaneKeyDown(4, 8) || Input.GetKeyDown(KeyCode.RightArrow)) // lanes 5-8 (custom bindings) = next song
+        if (KeyActions.IsDown(KeyActions.KeyAction.NavNext) || KeyBindings.IsAnyLaneKeyDown(4, 8)) // lanes 5-8 (custom bindings) = next song
         {
             playSound();
             SongUp();
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Back))
         {
             playSound();
             TitleScene();

@@ -85,11 +85,11 @@ public class ResultSceneManager : MonoBehaviour
     }
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
             SelectScene();
         }
-        if (Input.GetKeyDown(KeyCode.R))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Retry))
         {
             Retry();
         }
