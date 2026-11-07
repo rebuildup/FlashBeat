@@ -41,28 +41,33 @@ function pointer(...segments: string[]): string {
 }
 
 /**
- * Validator for the `200` response of an operation, taken straight from the
+ * Validator for a JSON response of an operation, taken straight from the
  * OpenAPI document.
  */
 export function responseValidator(
-  operation: "catalog" | "charts" | "publish",
-  method: "get" | "put" = "get",
+  operation: "catalog" | "charts" | "publish" | "scores" | "leaderboards",
+  method: "get" | "put" | "post" = "get",
+  status: "200" | "201" = "200",
 ): (data: unknown) => boolean {
   const paths = openapi.paths as Record<
     string,
-    Partial<Record<"get" | "put", { responses?: Record<string, unknown> }>>
+    Partial<Record<"get" | "put" | "post", { responses?: Record<string, unknown> }>>
   >;
   const path =
     operation === "catalog"
       ? "/api/v1/catalog"
       : operation === "charts"
         ? "/api/v1/charts/{songId}"
-        : "/api/v1/admin/songs/{songId}";
-  if (!paths[path]?.[method]?.responses?.["200"]) {
-    throw new Error(`contracts/openapi.v1.yaml has no 200 response for ${method} ${path}`);
+        : operation === "scores"
+          ? "/api/v1/scores"
+          : operation === "leaderboards"
+            ? "/api/v1/leaderboards/{songId}"
+            : "/api/v1/admin/songs/{songId}";
+  if (!paths[path]?.[method]?.responses?.[status]) {
+    throw new Error(`contracts/openapi.v1.yaml has no ${status} response for ${method} ${path}`);
   }
   const validate = ajv.compile({
-    $ref: `${openapiId}#/${pointer("paths", path, method, "responses", "200", "content", "application/json", "schema")}`,
+    $ref: `${openapiId}#/${pointer("paths", path, method, "responses", status, "content", "application/json", "schema")}`,
   });
   return (data: unknown) => {
     const valid = validate(data);

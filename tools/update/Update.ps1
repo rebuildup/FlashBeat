@@ -19,6 +19,9 @@
     共通の保証:
       - 通信失敗 / ZIP 破損 / ダイジェスト不一致 / 内容不足 / 二重起動のいずれかでは
         既存配置を一切変更せず現行版を残します (ゲームは止めません)。
+      - すべての終了経路で %LOCALAPPDATA%\FlashBeat\update\last-result.json に結果を書きます
+        (result: success / failed / aborted + 終了コード + 日本語の理由。アプリが次回起動時に
+        読んで Title 画面で利用者へ通知します。issue #125)。
       - 適用成功後、旧版は 1 世代だけ残し (FlashBeat-backup-*)、それより古い世代は削除します。
     ロールバック UI・常設ランチャー・独自更新サーバーは実装していません。
 
@@ -111,6 +114,10 @@ $ExitSwap     = 7   # 切替 / ファイル操作の失敗
 
 $script:LogFile = $null
 $script:WorkRoot = $null
+# 結果ファイル (last-result.json) 用の記録 (issue #125)。把握できた時点で埋める。
+$script:ResultFromVersion = ''
+$script:ResultToVersion = ''
+$script:ResultTag = ''
 
 function Write-OpLog {
     param(
@@ -126,6 +133,61 @@ function Write-OpLog {
             Write-Host ('{0} [WARN] ログに追記できません: {1}' -f (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssK'), $_.Exception.Message)
         }
     }
+}
+
+function Get-UpdateVersionFromText {
+    # 'v0.1.4-win64-4d6b407' / 'FlashBeat-0.1.4-win64-4d6b407.zip' から '0.1.4' を取り出す (無ければ $null)。
+    param([string]$Text)
+    if (-not $Text) { return $null }
+    $m = [regex]::Match($Text, '(?<!\d)(\d+\.\d+\.\d+)(?!\d)')
+    if (-not $m.Success) { return $null }
+    return $m.Groups[1].Value
+}
+
+function Write-UpdateResult {
+    # アプリが次回起動時に読む結果ファイル (issue #125):
+    # %LOCALAPPDATA%\FlashBeat\update\last-result.json
+    # すべての終了経路から一度だけ呼ぶ。書けない場合も更新処理自体は失敗させない (best-effort)。
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('success', 'failed', 'aborted')][string]$Result,
+        [Parameter(Mandatory = $true)][int]$Code,
+        [string]$Message
+    )
+    try {
+        $base = $env:LOCALAPPDATA
+        if ([string]::IsNullOrWhiteSpace($base)) { return }
+        $dir = Join-Path (Join-Path $base 'FlashBeat') 'update'
+        $path = Join-Path $dir 'last-result.json'
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $payload = [ordered]@{
+            result      = $Result
+            exitCode    = $Code
+            fromVersion = ('' + $script:ResultFromVersion)
+            toVersion   = ('' + $script:ResultToVersion)
+            tag         = ('' + $script:ResultTag)
+            message     = ('' + $Message)
+            timeUtc     = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        }
+        $json = $payload | ConvertTo-Json -Compress
+        # 一旦 tmp に書いてから差し替える (アプリが読みかけの不完全ファイルを掴まないように)。
+        $tmp = $path + '.tmp'
+        [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item -LiteralPath $tmp -Destination $path -Force
+        Write-OpLog -Level 'INFO' -Message ('結果ファイルを書きました: {0} (result={1}, exitCode={2})' -f $path, $Result, $Code)
+    } catch {
+        Write-OpLog -Level 'WARN' -Message ('結果ファイルを書けませんでした (更新処理には影響しません): {0}' -f $_.Exception.Message)
+    }
+}
+
+function Test-PathInside {
+    # True only when $Path is the same as, or below, $Root. A plain StartsWith() is wrong: 'C:\x\FlashBeat-update-work'
+    # starts with 'C:\x\FlashBeat' although it is a sibling folder, which aborted every update of an install
+    # folder named FlashBeat (found on the exhibit machine, v0.1.2 -> v0.1.3).
+    param([string]$Path, [string]$Root)
+    if (-not $Path -or -not $Root) { return $false }
+    $p = ([System.IO.Path]::GetFullPath($Path)).TrimEnd('\', '/') + '\'
+    $r = ([System.IO.Path]::GetFullPath($Root)).TrimEnd('\', '/') + '\'
+    return $p.StartsWith($r, [StringComparison]::OrdinalIgnoreCase)
 }
 
 function Stop-WithError {
@@ -147,6 +209,10 @@ function Stop-WithError {
         }
     }
     Write-OpLog -Level 'INFO' -Message ('処理を中止しました (終了コード {0})。' -f $Code)
+    # 結果ファイル (issue #125): 前提不備 (1) と実行中 (6) は「中止」、それ以外は「失敗」として記録する。
+    $resultKind = 'failed'
+    if ($Code -eq $ExitUsage -or $Code -eq $ExitRunning) { $resultKind = 'aborted' }
+    Write-UpdateResult -Result $resultKind -Code $Code -Message $Message
     exit $Code
 }
 
@@ -322,7 +388,7 @@ try {
     if ($freshInstall) {
         Write-OpLog -Level 'STEP' -Message ('インストール先に FlashBeat.exe がないため新規インストールとして実行します: {0}' -f $installFull)
     }
-    if (-not $Apply -and $scriptPath -and $scriptPath.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not $Apply -and $scriptPath -and (Test-PathInside $scriptPath $installFull)) {
         Stop-WithError $ExitUsage ('更新スクリプトがインストール先フォルダ内にあります: {0}' -f $scriptPath) 'スクリプトはインストール先外に置くか、-Apply (自動適用モード) を使ってください。'
     }
 
@@ -338,6 +404,18 @@ try {
     }
 
     Write-OpLog -Level 'INFO' -Message ('更新対象: {0}' -f $installFull)
+
+    # 結果ファイル用 (issue #125): 更新元 (現行) のバージョンを exe から取得できれば記録する。
+    try {
+        if (-not $freshInstall) {
+            $oldExe = Join-Path $installFull 'FlashBeat.exe'
+            if (Test-Path -LiteralPath $oldExe -PathType Leaf) {
+                $script:ResultFromVersion = (Get-Item -LiteralPath $oldExe).VersionInfo.ProductVersion
+            }
+        }
+    } catch {
+        $script:ResultFromVersion = ''
+    }
 
     # ── 2. 実行中チェック (先に落とし、ダウンロードを無駄にしない) ──
     # -WaitPid 指定時は既に待機済み。二重起動 (待機対象以外の FlashBeat) があれば中止する。
@@ -367,7 +445,7 @@ try {
     } else {
         $workRoot = Join-Path $parentDir ('FlashBeat-update-work-' + $stamp)
     }
-    if ($workRoot.StartsWith($installFull, [StringComparison]::OrdinalIgnoreCase)) {
+    if (Test-PathInside $workRoot $installFull) {
         Stop-WithError $ExitUsage ('作業フォルダがインストール先フォルダ内にあります: {0}' -f $workRoot) '-WorkDir にはインストール先外のフォルダを指定してください。'
     }
     $downloadDir = Join-Path $workRoot 'download'
@@ -430,6 +508,14 @@ try {
     }
 
     # ── 5. 期待する SHA-256 の特定 ──────────────────────────────
+    # 結果ファイル用 (issue #125): タグ / 新版バージョンを把握できたら記録する。
+    if ($Tag) {
+        $script:ResultTag = $Tag
+    } elseif ($assetFileName) {
+        $script:ResultTag = $assetFileName
+    }
+    $script:ResultToVersion = Get-UpdateVersionFromText -Text $script:ResultTag
+
     $expected = $null
     if ($ExpectedSha256) {
         $expected = ConvertTo-Sha256Hex -Text $ExpectedSha256
@@ -608,6 +694,9 @@ try {
 
     Write-OpLog -Level 'INFO' -Message ('更新が完了しました: {0}' -f (Join-Path $installFull 'FlashBeat.exe'))
 
+    # 結果ファイル (issue #125): 切替と検査が完了したここでのみ success を書く (再起動の成否には依存しない)。
+    Write-UpdateResult -Result 'success' -Code 0 -Message '更新が完了しました。'
+
     # ── 11. 再起動 (-Relaunch、自動適用フロー用) ──────────────────
     if ($Relaunch) {
         try {
@@ -623,6 +712,7 @@ try {
 }
 catch {
     Write-OpLog -Level 'ERROR' -Message ('想定外のエラーが発生しました: {0}' -f $_.Exception.Message)
+    Write-UpdateResult -Result 'failed' -Code $ExitSwap -Message ('想定外のエラーが発生しました: {0}' -f $_.Exception.Message)
     if ($script:WorkRoot -and (Test-Path -LiteralPath $script:WorkRoot)) {
         try {
             Remove-Item -LiteralPath $script:WorkRoot -Recurse -Force -ErrorAction Stop

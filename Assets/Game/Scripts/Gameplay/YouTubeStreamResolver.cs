@@ -79,18 +79,23 @@ namespace FlashBeat.Gameplay
     //   yt-dlp and playing the local file sidesteps that limitation entirely.
     //   The cached file is reused on the next run of the same song.
     //
-    // Install yt-dlp: https://github.com/yt-dlp/yt-dlp/releases (Windows: "yt-dlp.exe")
-    //   The resolver auto-detects yt-dlp.exe from PATH, the mise install tree,
+    // Install yt-dlp: https://github.com/yt-dlp/yt-dlp/releases (Windows: "yt-dlp.exe" / macOS: "yt-dlp")
+    //   The resolver auto-detects yt-dlp from PATH, the mise install tree,
     //   common Python install locations and a project-bundled
-    //   Assets/StreamingAssets/yt-dlp/yt-dlp.exe.
+    //   Assets/StreamingAssets/yt-dlp/yt-dlp.exe. On macOS/Linux the
+    //   extension-less binary name is probed as well.
     //   Override the path via the FLASHBEAT_YTDLP_PATH environment variable.
     //
     // Deno is used as the JavaScript runtime for yt-dlp (YouTube's challenge
-    // solver needs a JS engine). When a deno.exe is found it is passed
+    // solver needs a JS engine). When a deno binary is found it is passed
     // explicitly as `--js-runtimes deno:<path>`; override with FLASHBEAT_DENO_PATH.
     public static class YouTubeStreamResolver
     {
         public const string WatchUrlFormat = "https://www.youtube.com/watch?v={0}";
+
+        static bool IsWindows =>
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows);
 
         // ---------------------------------------------------------------
         // yt-dlp / deno discovery
@@ -188,9 +193,76 @@ namespace FlashBeat.Gameplay
             if (miseBinHit != null)
             {
                 cachedDenoPath = miseBinHit;
+                return cachedDenoPath;
+            }
+
+            // macOS / Linux: the binary has no ".exe" suffix and the mise tree
+            // lives in ~/.local/share, not in the Windows LocalApplicationData.
+            var unixPathHit = FirstUsable(WhereOnPathAll("deno"), "--version");
+            if (unixPathHit != null)
+            {
+                cachedDenoPath = unixPathHit;
+                return cachedDenoPath;
+            }
+
+            string[] unixCandidates =
+            {
+                "/opt/homebrew/bin/deno",
+                "/usr/local/bin/deno",
+                "/usr/bin/deno",
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile) + "/.deno/bin/deno",
+            };
+            var unixHit = FirstUsable(unixCandidates, "--version");
+            if (unixHit != null)
+            {
+                cachedDenoPath = unixHit;
+                return cachedDenoPath;
+            }
+
+            var miseUnixHit = FindInUnixMiseDir("deno", "deno");
+            if (miseUnixHit != null)
+            {
+                cachedDenoPath = miseUnixHit;
             }
 
             return cachedDenoPath;
+        }
+
+        /// <summary>
+        /// Finds a tool in the unix mise install tree (~/.local/share/mise/installs/&lt;tool&gt;/&lt;version&gt;/&lt;exe&gt;).
+        /// The newest version wins.
+        /// </summary>
+        static string FindInUnixMiseDir(string tool, string exeName)
+        {
+            string home;
+            try
+            {
+                home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+            }
+            catch { return null; }
+            if (string.IsNullOrEmpty(home)) { return null; }
+
+            string root = Path.Combine(home, ".local", "share", "mise", "installs", tool);
+            if (!Directory.Exists(root)) { return null; }
+
+            string best = null;
+            DateTime bestTime = DateTime.MinValue;
+            try
+            {
+                foreach (var dir in Directory.GetDirectories(root))
+                {
+                    var candidate = Path.Combine(dir, exeName);
+                    if (!File.Exists(candidate)) { continue; }
+                    var written = File.GetLastWriteTimeUtc(candidate);
+                    if (written > bestTime)
+                    {
+                        bestTime = written;
+                        best = candidate;
+                    }
+                }
+            }
+            catch { }
+            return best;
         }
 
         /// <summary>
@@ -271,8 +343,8 @@ namespace FlashBeat.Gameplay
         /// </summary>
         static bool IsShim(string path)
         {
-            var normalized = path.Replace('/', '\\').ToLowerInvariant();
-            return normalized.Contains("\\mise\\shims\\") || normalized.Contains("\\.mise\\shims\\");
+            var normalized = path.Replace('\\', '/').ToLowerInvariant();
+            return normalized.Contains("/mise/shims/") || normalized.Contains("/.mise/shims/");
         }
 
         static bool RunsSuccessfully(string executable, string arguments)
@@ -306,6 +378,14 @@ namespace FlashBeat.Gameplay
 
         static string FindInVersionedDir(string toolDir, string installs, string tool, params string[] tail)
         {
+            // tail の最終要素は ".exe" 付きで渡される。Windows 以外では
+            // 拡張子なしのバイナリ名に読み替える (mise は拡張子なしで配置する)。
+            if (!IsWindows && tail.Length > 0)
+            {
+                tail = (string[])tail.Clone();
+                tail[tail.Length - 1] = Path.GetFileNameWithoutExtension(tail[tail.Length - 1]);
+            }
+
             string root;
             try
             {
@@ -336,7 +416,9 @@ namespace FlashBeat.Gameplay
             return best;
         }
 
-        /// <summary>All candidates of the executable on the PATH, in PATH order.</summary>
+        /// <summary>All candidates of the executable on the PATH, in PATH order.
+        /// exeName は ".exe" 付きで渡される。Windows 以外では同名の拡張子なしバイナリ
+        /// (homebrew / mise / pipx が置くもの) も候補にする。</summary>
         static List<string> WhereOnPathAll(string exeName)
         {
             var hits = new List<string>();
@@ -348,7 +430,16 @@ namespace FlashBeat.Gameplay
                 try
                 {
                     var candidate = Path.Combine(dir, exeName);
-                    if (File.Exists(candidate)) hits.Add(candidate);
+                    if (File.Exists(candidate))
+                    {
+                        hits.Add(candidate);
+                        continue;
+                    }
+                    if (!IsWindows)
+                    {
+                        var unix = Path.Combine(dir, Path.GetFileNameWithoutExtension(exeName));
+                        if (File.Exists(unix)) hits.Add(unix);
+                    }
                 }
                 catch { }
             }
@@ -398,7 +489,7 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(deno))
             {
                 // yt-dlp needs a JS runtime for YouTube's challenge solver.
-                psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(deno) + ";" + psi.EnvironmentVariables["PATH"];
+                psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(deno) + Path.PathSeparator + psi.EnvironmentVariables["PATH"];
             }
 
             var result = new YtDlpOutput { ExitCode = -1 };

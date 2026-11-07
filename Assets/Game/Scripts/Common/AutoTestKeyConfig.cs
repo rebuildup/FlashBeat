@@ -1,0 +1,288 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+
+/// <summary>
+/// Verification aid (Mac, no OS input permission needed): with "-autotest keyconfig" the player drives the key config
+/// overlay itself - injected keys + a real GraphicRaycaster hit test + a click event - and logs [AutoTest] PASS/FAIL
+/// lines, then quits. Inert without the flag. Reproduces the owner's report: "cannot move to another lane while
+/// assigning; arrows and clicks do nothing".
+/// </summary>
+public class AutoTestKeyConfig : MonoBehaviour
+{
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void InstallIsolatedStorage()
+    {
+        // セルフテストは実ファイル (FlashBeat-keyconfig.json) も PlayerPrefs も触らない。
+        // オペレーターの保存済みキー設定を初期化で上書きしないための分離。
+        if (GetArg("-autotest") != "keyconfig") { return; }
+        KeyBindings.SetStorage(new MemoryStorage());
+        KeyActions.SetStorage(new MemoryStorage());
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        if (GetArg("-autotest") != "keyconfig") { return; }
+        var go = new GameObject("AutoTestKeyConfig");
+        DontDestroyOnLoad(go);
+        go.AddComponent<AutoTestKeyConfig>();
+    }
+
+    /// <summary>セルフテスト用のインメモリ保存先 (実ファイルも PlayerPrefs も触らない)。</summary>
+    private class MemoryStorage : KeyBindings.IStorage, KeyActions.IStorage
+    {
+        public string Raw;
+
+        public string LoadRaw()
+        {
+            return Raw;
+        }
+
+        public void SaveRaw(string json)
+        {
+            Raw = json;
+        }
+    }
+
+    private int pass;
+    private int fail;
+    private string outDir;
+
+    private IEnumerator Start()
+    {
+        outDir = GetArg("-autotest-out");
+        if (string.IsNullOrEmpty(outDir)) { outDir = Application.persistentDataPath; }
+        try { Directory.CreateDirectory(outDir); } catch (Exception) { }
+
+        SceneManager.LoadScene("TitleScene");
+        yield return new WaitForSecondsRealtime(4f);
+        Check("on TitleScene", SceneManager.GetActiveScene().name == "TitleScene");
+
+        KeyBindings.ResetToDefaults();
+        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        yield return Frames();
+        Check("F2 opens the key config", KeyConfigUI.IsOpen);
+        Check("scene manager is suspended while open (E/O/Space must not act)", !AnySceneManagerEnabled());
+        yield return Shot("01-open");
+
+        KeyConfigUI.InjectKeyDown(KeyCode.DownArrow);
+        yield return Frames();
+        Check("Down selects lane 2 (not listening)", KeyConfigUI.TestSelectedLane == 1 && !KeyConfigUI.TestListening);
+
+        KeyConfigUI.InjectKeyDown(KeyCode.Return);
+        yield return Frames();
+        Check("Enter starts listening", KeyConfigUI.TestListening);
+        yield return Shot("02-listening");
+
+        // the owner's bug: while listening, arrows did nothing
+        KeyConfigUI.InjectKeyDown(KeyCode.DownArrow);
+        yield return Frames();
+        Check("Down WHILE LISTENING moves to lane 3 and stops listening", KeyConfigUI.TestSelectedLane == 2 && !KeyConfigUI.TestListening);
+
+        KeyConfigUI.InjectKeyDown(KeyCode.UpArrow);
+        yield return Frames();
+        Check("Up moves back to lane 2", KeyConfigUI.TestSelectedLane == 1);
+
+        // click on lane 6: real raycast at the row centre, then the click event
+        GameObject row = KeyConfigUI.TestRowObject(5);
+        Check("lane 6 row exists", row != null);
+        if (row != null && EventSystem.current != null)
+        {
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, row.transform.position);
+            var pointer = new PointerEventData(EventSystem.current) { position = screen };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            bool hitRow = false;
+            for (int i = 0; i < hits.Count; i++)
+            {
+                if (hits[i].gameObject != null && (hits[i].gameObject == row || hits[i].gameObject.transform.IsChildOf(row.transform))) { hitRow = true; break; }
+            }
+            Check("a pointer at the centre of lane 6 hits the row (raycaster + EventSystem present)", hitRow);
+            ExecuteEvents.Execute(row, pointer, ExecuteEvents.pointerClickHandler);
+            yield return Frames();
+            Check("click selects lane 6 and starts listening", KeyConfigUI.TestSelectedLane == 5 && KeyConfigUI.TestListening);
+        }
+        else
+        {
+            Check("EventSystem exists for clicks", EventSystem.current != null);
+        }
+        yield return Shot("03-clicked-lane6");
+
+        KeyConfigUI.InjectKeyDown(KeyCode.E);
+        yield return Frames();
+        Check("E assigned to lane 6 while the app keeps running", Contains(KeyBindings.GetKeys(5), KeyCode.E));
+
+        KeyConfigUI.InjectKeyDown(KeyCode.Escape);
+        yield return Frames();
+        Check("Esc stops listening", !KeyConfigUI.TestListening);
+        KeyBindings.ResetToDefaults();
+        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        yield return Frames();
+        Check("F2 closes", !KeyConfigUI.IsOpen);
+        Check("scene manager resumed after closing", AnySceneManagerEnabled());
+        yield return Shot("04-closed");
+
+        // ---- メニュー操作ページ (KeyActions): ページ切替・割り当て・レーン衝突の拒否・タイトルへの反映 ----
+        KeyActions.ResetToDefaults();
+        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        yield return Frames();
+        Check("F2 opens the key config again", KeyConfigUI.IsOpen);
+        KeyConfigUI.InjectKeyDown(KeyCode.RightArrow);
+        yield return Frames();
+        Check("Right switches to the menu-actions page", KeyConfigUI.TestPage == 1 && !KeyConfigUI.TestListening);
+        yield return Shot("05-actions-page");
+
+        int startRow = Array.IndexOf(KeyActions.All, KeyActions.KeyAction.Start);
+        int confirmRow = Array.IndexOf(KeyActions.All, KeyActions.KeyAction.Confirm);
+        Check("Start/Confirm rows are listed", startRow >= 0 && confirmRow >= 0);
+
+        // click the Start row: real raycast at the row centre, then the click event
+        GameObject startActionRow = KeyConfigUI.TestActionRowObject(startRow);
+        Check("Start action row exists", startActionRow != null);
+        if (startActionRow != null && EventSystem.current != null)
+        {
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, startActionRow.transform.position);
+            var pointer = new PointerEventData(EventSystem.current) { position = screen };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            bool hitRow = false;
+            for (int i = 0; i < hits.Count; i++)
+            {
+                if (hits[i].gameObject != null && (hits[i].gameObject == startActionRow || hits[i].gameObject.transform.IsChildOf(startActionRow.transform))) { hitRow = true; break; }
+            }
+            Check("a pointer at the Start row hits it (raycaster + EventSystem present)", hitRow);
+            ExecuteEvents.Execute(startActionRow, pointer, ExecuteEvents.pointerClickHandler);
+            yield return Frames();
+            Check("click selects the Start action and starts listening", KeyConfigUI.TestPage == 1 && KeyConfigUI.TestSelectedAction == startRow && KeyConfigUI.TestListening);
+        }
+        else
+        {
+            Check("EventSystem exists for action clicks", EventSystem.current != null);
+        }
+        yield return Shot("06-start-listening");
+
+        KeyConfigUI.InjectKeyDown(KeyCode.Keypad7);
+        yield return Frames();
+        Check("Keypad7 added to Start", Contains(KeyActions.Get(KeyActions.KeyAction.Start), KeyCode.Keypad7));
+        yield return Shot("07-start-rebound");
+
+        // lane-conflict rule: R is a lane key, so Confirm must refuse it
+        GameObject confirmRowObject = KeyConfigUI.TestActionRowObject(confirmRow);
+        if (confirmRowObject != null && EventSystem.current != null)
+        {
+            KeyConfigUI.InjectKeyDown(KeyCode.Escape); // stop listening on Start
+            yield return Frames();
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, confirmRowObject.transform.position);
+            var pointer = new PointerEventData(EventSystem.current) { position = screen };
+            ExecuteEvents.Execute(confirmRowObject, pointer, ExecuteEvents.pointerClickHandler);
+            yield return Frames();
+            Check("click selects the Confirm action and starts listening", KeyConfigUI.TestSelectedAction == confirmRow && KeyConfigUI.TestListening);
+            KeyConfigUI.InjectKeyDown(KeyCode.R);
+            yield return Frames();
+            Check("R (lane key) is rejected for Confirm", !Contains(KeyActions.Get(KeyActions.KeyAction.Confirm), KeyCode.R));
+            KeyConfigUI.InjectKeyDown(KeyCode.Escape);
+            yield return Frames();
+            Check("Esc stops listening on the actions page", !KeyConfigUI.TestListening);
+        }
+
+        // close and prove Title reacts to the rebound Start key
+        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        yield return Frames();
+        Check("F2 closes again", !KeyConfigUI.IsOpen);
+        Check("scene manager resumed after closing again", AnySceneManagerEnabled());
+        KeyBindings.InjectKeyDown(KeyCode.Keypad7);
+        yield return new WaitForSecondsRealtime(4f);
+        Check("Title reacts to the rebound Start key (faded to SelectScene)", SceneManager.GetActiveScene().name == "SelectScene");
+        yield return Shot("08-title-start");
+        KeyActions.ResetToDefaults();
+        KeyBindings.ResetToDefaults();
+
+        // The lane flash must follow the CUSTOM bindings (owner: "the lit lane is wrong").
+        KeyBindings.ResetToDefaults();
+        KeyBindings.ToggleKey(5, KeyCode.E); // E moves from lane 3 to lane 6
+        SceneManager.LoadScene("GameScene");
+        yield return new WaitForSecondsRealtime(4f);
+        LaneFlash[] flashes = FindObjectsOfType<LaneFlash>();
+        Check("GameScene has the 8 lane flashes", flashes.Length >= 8);
+        KeyBindings.InjectKeyDown(KeyCode.E);
+        // The flash decays (alpha -= lightSpeed * Time.deltaTime), so a single sample can miss it
+        // when the machine is busy (one frame can take longer than the 0.1 s flash).
+        // Sample every frame for a moment and keep the peak of each lane.
+        float alpha3 = 0f;
+        float alpha6 = 0f;
+        for (int frame = 0; frame < 10; frame++)
+        {
+            yield return null;
+            for (int i = 0; i < flashes.Length; i++)
+            {
+                Renderer r = flashes[i].GetComponent<Renderer>();
+                if (r == null) { continue; }
+                float a = r.material.color.a;
+                if (flashes[i].LaneNumber == 3) { alpha3 = Mathf.Max(alpha3, a); }
+                if (flashes[i].LaneNumber == 6) { alpha6 = Mathf.Max(alpha6, a); }
+            }
+        }
+        Check("E (bound to lane 6) lights lane 6", alpha6 > 0.1f);
+        Check("E no longer lights lane 3", alpha3 < 0.05f);
+        yield return Shot("09-game-flash");
+        KeyBindings.ResetToDefaults();
+
+        string line = "[AutoTest] RESULT keyconfig pass=" + pass + " fail=" + fail;
+        Debug.Log(line);
+        try { File.WriteAllText(Path.Combine(outDir, "autotest-result.txt"), line + "\n"); } catch (Exception) { }
+        Application.Quit();
+    }
+
+    private static IEnumerator Frames()
+    {
+        yield return null;
+        yield return null;
+        yield return null;
+    }
+
+    private IEnumerator Shot(string name)
+    {
+        yield return new WaitForEndOfFrame();
+        ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-" + name + ".png"));
+    }
+
+    private void Check(string name, bool ok)
+    {
+        if (ok) { pass++; } else { fail++; }
+        Debug.Log("[AutoTest] " + (ok ? "PASS " : "FAIL ") + name);
+    }
+
+    private static bool AnySceneManagerEnabled()
+    {
+        MonoBehaviour[] all = FindObjectsOfType<MonoBehaviour>();
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i] != null && all[i].enabled && all[i].GetType().Name.EndsWith("SceneManager")) { return true; }
+        }
+        return false;
+    }
+
+    private static bool Contains(KeyCode[] keys, KeyCode key)
+    {
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (keys[i] == key) { return true; }
+        }
+        return false;
+    }
+
+    private static string GetArg(string name)
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] == name) { return args[i + 1]; }
+        }
+        return null;
+    }
+}

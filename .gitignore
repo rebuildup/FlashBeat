@@ -80,3 +80,6 @@ desktop.ini
 TestResults.xml
 TestRun.log
 BuildLog-*.log
+mono_crash.*.json
+PerformanceTestRunInfo.json
+PerformanceTestRunSettings.json

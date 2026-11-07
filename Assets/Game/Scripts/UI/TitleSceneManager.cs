@@ -14,8 +14,6 @@ public class TitleSceneManager : MonoBehaviour
     [SerializeField] private AudioClip sound;
     [SerializeField] private VideoPlayer Screen;
 
-    [SerializeField] private TextMeshProUGUI catalogStatus;
-
     private AudioSource sounds;
 
     void Start()
@@ -25,26 +23,42 @@ public class TitleSceneManager : MonoBehaviour
         GManager.noteTiming--;
         OptionSceneManager.TimingUp();
         if (sounds != null) sounds.volume = GManager.effectVolume;
-        RefreshCatalogStatus();
+
+        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
+        // 入力は TitleView が処理し、このクラスの public メソッドをコールバックで呼ぶ。
+        // キー割り当て (0.1.9) は TitleView が KeyActions 経由で参照する。
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null) legacy.SetActive(false);
+        FlashBeat.UI.V5.TitleView.Build(SelectScene, OptionScene, EndGame, playSound);
+
+        // タイトル画面でもキーガイド (Tab) を開けるようにする。
+        CreateKeyGuide();
     }
 
-    void Update()
+    /// <summary>タイトル画面でもキーガイド (Tab) を開けるようにする。</summary>
+    private void CreateKeyGuide()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            playSound();
-            SelectScene();
-        }
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            playSound();
-            OptionScene();
-        }
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            playSound();
-            EndGame();
-        }
+        KeyGuideUI.Create(null);
+        var canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) { return; }
+
+        var labelGO = new GameObject("KeyGuideHint", typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelGO.transform.SetParent(canvas.transform, false);
+        var rect = labelGO.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(0f, 16f);
+        rect.sizeDelta = new Vector2(700f, 36f);
+
+        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = "Tab : キーガイド (キーの一覧)";
+        tmp.fontSize = 22f;
+        tmp.color = new Color(1f, 1f, 1f, 0.85f);
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
+        var font = JapaneseFontFinder.FindJapaneseFont();
+        if (font != null) { tmp.font = font; }
     }
 
     public void EndGame()
@@ -78,19 +92,5 @@ public class TitleSceneManager : MonoBehaviour
         {
             Debug.LogWarning("[TitleSceneManager] sound AudioClip is not assigned in Inspector.");
         }
-    }
-
-    /// <summary>
-    /// Catalog status chip (design "カタログ状態を cloud アイコン付きで表示").
-    /// The cloud catalog is fetched on the select screen, so on the title
-    /// screen the chip reports the built-in list until a remote catalog has
-    /// been applied.
-    /// </summary>
-    private void RefreshCatalogStatus()
-    {
-        if (catalogStatus == null) return;
-        catalogStatus.text = GManager.HasRemoteCatalog
-            ? $"同期済み · {GManager.totalSong}曲"
-            : $"ローカル · {GManager.totalSong}曲";
     }
 }

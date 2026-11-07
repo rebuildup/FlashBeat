@@ -12,6 +12,9 @@ public class ResultSceneManager : MonoBehaviour
     [SerializeField] private AudioClip sound;
     AudioSource sounds;
 
+    private FlashBeat.UI.V5.ResultView view;
+    private int prevHiscore;
+
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI perfectText;
     [SerializeField] private TextMeshProUGUI greatText;
@@ -57,39 +60,59 @@ public class ResultSceneManager : MonoBehaviour
         greatText.text = GManager.great.ToString();
         badText.text = GManager.bad.ToString();
         missText.text = GManager.miss.ToString();
-        if(GManager.score == 1000000)
-        {
-            Assessment.text = "SS";
-        }else if(GManager.score <1000000&&GManager.score >= 950000)
-        {
-            Assessment.text = "S";
-        }else if(GManager.score <950000&&GManager.score >= 900000)
-        {
-            Assessment.text = "A";
-        }else if(GManager.score <900000&&GManager.score >= 700000)
-        {
-            Assessment.text = "B";
-        }else if(GManager.score < 700000)
-        {
-            Assessment.text = "C";
-        }
+        Assessment.text = FlashBeat.UI.V5.ResultView.RankFor(GManager.score);
         int hiIndex = GManager.songID;
         if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
+        prevHiscore = GManager.Hiscore[hiIndex];
         if (GManager.score >= GManager.Hiscore[hiIndex])
         {
             GManager.Hiscore[hiIndex] = GManager.score;
         }
         Hiscore.text = GManager.Hiscore[hiIndex].ToString();
         StartCoroutine(FetchThumbnail(GManager.ActiveSongs[GManager.songID].videoId, 0));
-        
+        BuildV5View();
+
     }
+
+    private void BuildV5View()
+    {
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null)
+        {
+            legacy.SetActive(false);
+        }
+
+        var song = GManager.ActiveSongs[GManager.songID];
+        var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot
+        {
+            Score = GManager.score,
+            Perfect = GManager.perfect,
+            Great = GManager.great,
+            Bad = GManager.bad,
+            Miss = GManager.miss,
+            Combo = GManager.combo,
+            PrevHiscore = prevHiscore,
+            Hiscore = GManager.Hiscore[GManager.songID < GManager.Hiscore.Length ? GManager.songID : 0],
+            SongTitle = song.title,
+            Musician = song.musician,
+            Bpm = song.bpm,
+            Level = song.level,
+            TotalHits = song.totalHits
+        };
+        view = FlashBeat.UI.V5.ResultView.Build(snapshot, Retry, SelectScene);
+    }
+
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (view != null)
+        {
+            return; // 入力は v5 ResultView が処理する (二重処理防止)
+        }
+        if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
             SelectScene();
         }
-        if (Input.GetKeyDown(KeyCode.R))
+        if (KeyActions.IsDown(KeyActions.KeyAction.Retry))
         {
             Retry();
         }
@@ -102,6 +125,7 @@ public class ResultSceneManager : MonoBehaviour
         GManager.miss = 0;
         GManager.score = 0;
         GManager.combo = 0;
+        GManager.maxCombo = 0;
         GManager.maxScore = 0;
         GManager.ratioScore = 0;
         
@@ -147,6 +171,10 @@ public class ResultSceneManager : MonoBehaviour
             Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
             Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             imageObjects[index].sprite = sprite;
+            if (view != null)
+            {
+                view.SetBackdrop(texture);
+            }
         }
         else
         {
