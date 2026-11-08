@@ -16,9 +16,15 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: ".",
-  testMatch: ["studio-flow.spec.ts", "editor-note-flow.spec.ts"],
-  timeout: 30_000,
+  testMatch: ["studio-flow.spec.ts", "visitor-flow.spec.ts", "editor-note-flow.spec.ts"],
+  // The dev server compiles pages on demand; a cold first hit of the editor
+  // and publish chunks can exceed 30s within one test (kept from #232: the
+  // editor-note-flow spec hits both cold chunks in one run).
+  timeout: 120_000,
   retries: 0,
+  // The dev server compiles pages on demand; a cold first hit can exceed the
+  // 5s default expect timeout when workers run in parallel.
+  expect: { timeout: 15_000 },
   reporter: [["list"]],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",

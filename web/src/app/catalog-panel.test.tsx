@@ -108,7 +108,10 @@ describe("CatalogPanel table row (issue #61)", () => {
         child instanceof HTMLElement && !child.matches("a[data-row-link]"),
     );
     const last = cells[cells.length - 1];
-    expect(last?.querySelector("a[href^='/publish']")).not.toBeNull();
+    // Issue #215 review: the row states the publish requirement as a
+    // non-interactive badge; only the chart link and YouTube stay clickable.
+    expect(last?.querySelector("a[href^='/publish']")).toBeNull();
+    expect(last?.querySelector('[data-testid="publish-requirement"]')).not.toBeNull();
     expect(last?.querySelector("a[href^='https://youtu.be/']")).not.toBeNull();
   });
 });

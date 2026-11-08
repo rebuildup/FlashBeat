@@ -118,6 +118,35 @@ export const panelSubtitle = css({
   margin: "0",
 });
 
+/**
+ * v5 primary CTA (Prefab/Button Primary): the one solid palette action of a
+ * screen at the 56px class. Shared so every primary CTA is the same class
+ * (issue #215 review) — accent as a filled button only here, per the Pen.
+ */
+export const primaryCta = css({
+  bg: "#EDEDED",
+  color: "#1B1B1B",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "14",
+  paddingInline: "6",
+  borderRadius: "l2",
+  fontSize: "sm",
+  fontWeight: "medium",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+  border: "none",
+  cursor: "pointer",
+  _hover: { opacity: "0.9" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "#3FA9F5",
+    outlineOffset: "2px",
+  },
+  _disabled: { opacity: "0.4" },
+});
+
 export const panelBody = css({
   flex: "1",
   minHeight: "0",
