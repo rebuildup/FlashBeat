@@ -584,15 +584,10 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
-                // contract json: bg #3A3A3A r4 + ラベル $text-muted (V5Ui.KeyCap 相当)
-                var cap = V5Ui.KeyCap(keyGuideRow, V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
-                    new Vector2(m.KeyCapW, m.KeyCapH));
+                // contract json: bg #3A3A3A r4 + ラベル $text-muted (Key fs24, design 空間)
+                var cap = V6Ui.KeyCap(keyGuideRow, V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
+                    new Vector2(m.KeyCapW, m.KeyCapH), m.KeyCapLabelFs);
                 var label = cap.GetComponentInChildren<TextMeshProUGUI>();
-                if (label != null)
-                {
-                    label.fontSize = m.KeyCapLabelFs;
-                }
-
                 var rt = GetRect(cap);
                 rt.anchorMin = new Vector2(0f, 0.5f);
                 rt.anchorMax = new Vector2(0f, 0.5f);

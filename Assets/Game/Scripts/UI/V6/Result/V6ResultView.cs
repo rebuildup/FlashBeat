@@ -528,7 +528,7 @@ namespace FlashBeat.UI.V6.Result
         private void BuildLegendItem(GameObject parent, string key, string label)
         {
             var item = V5GameUi.Row(parent, "Legend " + label, 8f, TextAnchor.MiddleLeft);
-            V5Ui.KeyCap(item.gameObject, key, new Vector2(Mathf.Max(56f, key.Length * 14f + 16f), 36f));
+            V6Ui.KeyCap(item.gameObject, key, new Vector2(Mathf.Max(56f, key.Length * 14f + 16f), 36f));
             V5GameUi.Text(item.gameObject, "Label", label, 22f, V5Tokens.TextMuted);
         }
 
@@ -651,7 +651,7 @@ namespace FlashBeat.UI.V6.Result
         private void BuildHintLegend(GameObject parent, string key, string label)
         {
             var item = V5GameUi.Row(parent, "Legend " + label, 8f, TextAnchor.MiddleLeft);
-            V5Ui.KeyCap(item.gameObject, key, new Vector2(Mathf.Max(56f, key.Length * 12f + 16f), 32f));
+            V6Ui.KeyCap(item.gameObject, key, new Vector2(Mathf.Max(56f, key.Length * 12f + 16f), 32f));
             V5GameUi.Text(item.gameObject, "Label", label, 18f, V5Tokens.TextMuted);
         }
 

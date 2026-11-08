@@ -332,11 +332,11 @@ namespace FlashBeat.UI.V6.History
 
             var legend = V5GameUi.Row(footer.gameObject, "Legend", 24f, TextAnchor.MiddleLeft);
             At(legend.GetComponent<RectTransform>(), 0f, 30f, 620f, 36f);
-            V5Ui.KeyCap(legend.gameObject, "↑↓", new Vector2(56f, 32f));
+            V6Ui.KeyCap(legend.gameObject, "↑↓", new Vector2(56f, 32f));
             V5GameUi.Text(legend.gameObject, "L1", "選択", 20f, V5Tokens.TextMuted);
-            V5Ui.KeyCap(legend.gameObject, "Space", new Vector2(76f, 32f));
+            V6Ui.KeyCap(legend.gameObject, "Space", new Vector2(76f, 32f));
             V5GameUi.Text(legend.gameObject, "L2", "決定", 20f, V5Tokens.TextMuted);
-            V5Ui.KeyCap(legend.gameObject, "Esc", new Vector2(56f, 32f));
+            V6Ui.KeyCap(legend.gameObject, "Esc", new Vector2(56f, 32f));
             V5GameUi.Text(legend.gameObject, "L3", "戻る", 20f, V5Tokens.TextMuted);
 
             // 右下: 設定 (secondary) + この曲へ (primary)。design 座標のまま右詰め。
