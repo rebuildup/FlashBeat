@@ -1,0 +1,12 @@
+{
+  "name": "flashbeat-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FlashBeat リポジトリの補助スクリプト (UI アイコンのラスタライズなど)",
+  "scripts": {
+    "icons": "node script/render-icons.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}
