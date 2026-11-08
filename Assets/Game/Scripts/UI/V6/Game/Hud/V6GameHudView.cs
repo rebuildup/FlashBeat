@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Game.Playfield;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -68,8 +69,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         private int lastJudged = -1;
         private float verdictScanUntil;
         private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
-        private readonly string[] laneVerdicts = new string[8];
-        private readonly float[] laneVerdictUntil = new float[8];
+        private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
+        private readonly float[] laneVerdictUntil = new float[V6LaneGeometry.LaneCount];
 
         // --- 歌詞 ---
         private GameSceneManager lyricSource;
@@ -206,7 +207,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var img = dim.AddComponent<Image>();
-            img.color = new Color(0f, 0f, 0f, 0x80 / 255f);
+            img.color = V6LaneGeometry.VideoDimColor;
             img.raycastTarget = false;
         }
 
@@ -555,7 +556,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             var row = V5Ui.Node(gameObject, "Verdict Row");
             V5Ui.PinBottom(GetRect(row), m.VerdictH, m.VerdictBottom);
 
-            for (int lane = 0; lane < 8; lane++)
+            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
                 var text = V5Ui.Text(row, "Verdict " + lane, "", m.VerdictFs, V5Tokens.Text,
                     TextAlignmentOptions.Center);
@@ -639,10 +640,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// design px の固定値はカメラ投影とズレる)。レーン判定位置 (y=0.76, z=0.15) を
         /// Camera.Main で投影し、HUD フレーム (中央原点・等比拡大) のローカル x へ写す。
         /// 投影できない (カメラ無し等) ときは design px のまま。
+        ///
+        /// v6 プレイフィールド有効時は **design のキーガイド格子** に固定する。
+        /// 旧 3D レーンは隠れる (v6 プレイフィールドが代わりに描く) ので 3D の投影を
+        /// 基準にでき 없고、design §8 の Key Guide x (310, 487, 665, …) = この格子が
+        /// 契約の正解。判定行も同じ格子に載せるため、両者がズレない。
         /// </summary>
         private void UpdateKeyCapPositions()
         {
             if (keyGuideRow == null) return;
+            if (FlashBeat.UI.V6.V6UiMode.Playfield) return;
             var cam = Camera.main;
             if (cam == null) return;
             var frame = GetRect(gameObject);
@@ -810,6 +817,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void ScanJudgeClones()
         {
+            // 判定行が無い (VerdictRow=false) ときは表示先が無いので走査しない。
+            if (verdictTexts.Count != V6LaneGeometry.LaneCount) return;
+
             var roots = gameObject.scene.GetRootGameObjects();
             for (int i = 0; i < roots.Length; i++)
             {

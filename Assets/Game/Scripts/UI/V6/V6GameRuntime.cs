@@ -165,7 +165,10 @@ namespace FlashBeat.UI.V6
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
         private void BuildDimLayer()
         {
-            // 既定では映像を減光しない (元の明るさを保つ。減光すると 3D レーンも暗くなる)。
+            // design §8 の Video Dim (#00000080 全画面)。
+            // 積層は「動画 → 減光 → プレイフィールド → HUD」。
+            // この Canvas は sortingOrder -3 で、プレイフィールド (-2) より後ろ、
+            // 動画 (ワールド描画) より手前。
             if (!V6UiMode.VideoDim) return;
 
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", DimSortingOrder);
@@ -175,7 +178,7 @@ namespace FlashBeat.UI.V6
             var go = new GameObject("Video Dim", typeof(RectTransform));
             go.transform.SetParent(dimCanvas.transform, false);
             var dim = go.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 128f / 255f); // #00000080
+            dim.color = FlashBeat.UI.V6.Game.Playfield.V6LaneGeometry.VideoDimColor;
             dim.raycastTarget = false;
             var rt = dim.rectTransform;
             rt.anchorMin = Vector2.zero;
@@ -269,6 +272,9 @@ namespace FlashBeat.UI.V6
         /// 旧 3D のプレイフィールド (板 / 判定線 / レーン光) を隠す。
         /// 既定 (v6 プレイフィールド無効) では **隠さない** — 元のレーン描画と
         /// キー入力時のレーン光をそのまま使うため。
+        ///
+        /// design にはレーンフラッシュ (キー入力時のレーン光) が無いので、
+        /// v6 有効時は "LaneLights" (LaneLight1..8 の親) ごと隠す。
         /// </summary>
         private void HideLegacyPlayfield()
         {
@@ -276,16 +282,36 @@ namespace FlashBeat.UI.V6
 
             HideByName("Lane");
             HideByName("JudgeLine");
+            // 親を先に隠す (子も同時に非表示になる)。
+            HideByName("LaneLights");
             for (int i = 1; i <= 8; i++)
             {
                 HideByName("LaneLight" + i);
             }
         }
 
+        /// <summary>
+        /// 名前でオブジェクトを非表示にする。
+        /// GameObject.Find は非アクティブオブジェクトを見つけられないので、
+        /// 見つからなかったときは非アクティブも含めて探し直す。
+        /// </summary>
         private static void HideByName(string name)
         {
             var obj = GameObject.Find(name);
-            if (obj != null) obj.SetActive(false);
+            if (obj != null)
+            {
+                obj.SetActive(false);
+                return;
+            }
+
+            var all = Resources.FindObjectsOfTypeAll<GameObject>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null || all[i].name != name) continue;
+                // Prefab アセット (scene が無い) は触らない。
+                if (!all[i].scene.IsValid()) continue;
+                all[i].SetActive(false);
+            }
         }
 
         /// <summary>
