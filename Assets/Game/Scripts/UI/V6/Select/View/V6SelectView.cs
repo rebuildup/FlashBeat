@@ -25,6 +25,12 @@ namespace FlashBeat.UI.V6.Select.View
     /// </summary>
     public sealed class V6SelectView
     {
+        /// <summary>
+        /// 現在生成されている v6 選曲画面 (選曲シーンに 1 個だけ)。
+        /// 検証 (AutoTest) や統合コードから参照するための参照点。
+        /// </summary>
+        public static V6SelectView Current { get; private set; }
+
         // --- design px 定数 (PEN-EXTRACT.md §5) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -77,6 +83,7 @@ namespace FlashBeat.UI.V6.Select.View
             var view = new V6SelectView(data, onReady, onBack, onOpenSettings);
             view.BuildRoot(parent);
             view.Rebuild(false);
+            Current = view;
             return view;
         }
 
@@ -101,6 +108,27 @@ namespace FlashBeat.UI.V6.Select.View
         {
             searchFocused = true;
             Rebuild(false);
+        }
+
+        /// <summary>
+        /// Ready _button を押したのと同じ動作 (遷移は統合担当が onReady で決める)。
+        /// 検証スクリプト (AutoTestV6) から実データ経路で遷移を確認するための口。
+        /// </summary>
+        public void TriggerReady()
+        {
+            if (onReady != null) onReady();
+        }
+
+        /// <summary>検証用: 現在の曲リスト (絞り込み後) の曲数。</summary>
+        public int VisibleSongCount
+        {
+            get { return data == null || data.FilteredSongs == null ? 0 : data.FilteredSongs.Count; }
+        }
+
+        /// <summary>検証用: 画面が参照しているデータ供給。</summary>
+        public IV6SelectDataSource Data
+        {
+            get { return data; }
         }
 
         // --- 毎フレーム (V6SelectViewDriver から呼ばれる) ---
@@ -135,8 +163,12 @@ namespace FlashBeat.UI.V6.Select.View
                     data.MoveSelection(1);
                     return;
                 case V6SelectAction.Confirm:
-                    // Enter/Space = Ready (契約どおり data.CommitReady へ直行)。
-                    data.CommitReady();
+                    // Enter/Space = Ready。遷移は統合担当が onReady で決める
+                    // (data.CommitReady の後にゲーム画面へ移す)。
+                    if (onReady != null)
+                    {
+                        onReady();
+                    }
                     return;
                 case V6SelectAction.Cancel:
                     if (settingsOpen)

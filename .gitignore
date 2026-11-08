@@ -83,3 +83,7 @@ BuildLog-*.log
 mono_crash.*.json
 PerformanceTestRunInfo.json
 PerformanceTestRunSettings.json
+
+# Unity batchmode / worktree ローカル生成物
+TestResults*.xml
+FlashBeat.*.slnx

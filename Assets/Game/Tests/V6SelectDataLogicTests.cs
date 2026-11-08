@@ -116,9 +116,11 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual(147.0, entry.Bpm);
             Assert.AreEqual(296, entry.NoteCount);
 
-            // 実在するジャケットだけパスを持ち、無い曲は空文字 (固定画像を流用しない)。
-            Assert.AreEqual("V5/select/jacket/syuen", entry.JacketResourcePath);
-            V6SongEntry noJacket = source.AllSongs.Single(s => s.Title == "ロストアンブレラ");
+            // ジャケットは v6 で全曲分を Resources/V6/select/jacket/ に置いている
+            // (Pencil 設計の正式データ。ファイル名はカタログ index 順)。
+            // 画像が無い曲 (灰Φ倶楽部) だけ空文字 (固定画像を流用しない)。
+            Assert.AreEqual("V6/select/jacket/05-shuumatsu.jpg", entry.JacketResourcePath);
+            V6SongEntry noJacket = source.AllSongs.Single(s => s.Title == "灰Φ倶楽部");
             Assert.AreEqual("", noJacket.JacketResourcePath);
         }
 

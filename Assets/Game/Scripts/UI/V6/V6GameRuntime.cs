@@ -41,7 +41,7 @@ namespace FlashBeat.UI.V6
             if (SceneManager.GetActiveScene().name == GameSceneName) Ensure();
         }
 
-        private static void OnSceneLoaded(Scene scene, LoadMode mode)
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name == GameSceneName) Ensure();
         }
