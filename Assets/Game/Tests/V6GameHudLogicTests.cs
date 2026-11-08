@@ -247,7 +247,7 @@ namespace FlashBeat.V6HudTests
         [Test]
         public void LyricsTimeline_Build_WithoutRomaji_RomajiIsNull()
         {
-            var lines = LyricsTimeline.Build(
+            var lines = FlashBeat.UI.LyricsTimeline.Build(
                 new[] { 0f },
                 new[] { 4f },
                 new[] { "終夜ノ摩天楼は" },
