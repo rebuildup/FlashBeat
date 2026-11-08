@@ -211,6 +211,14 @@ namespace FlashBeat.UI.V5
             if (font != null)
             {
                 tmp.font = font;
+                // V6Controls.Text と同一の行送り詰め: NotoSansJP の行送りは fs の約 1.45 倍で、
+                // 矩形の縦高が行送り未満だと Ellipsis で 1 行も描画されない。
+                // 行送りを ≈ fs にして「矩形高 ≥ fs なら必ず 1 行描画」にする。
+                // 折り返し段落で行間を広げたい呼び出し側は後から lineSpacing を上書きする。
+                if (font.faceInfo.pointSize > 0)
+                {
+                    tmp.lineSpacing = (1f - font.faceInfo.lineHeight / font.faceInfo.pointSize) * 100f;
+                }
             }
 
             return tmp;
