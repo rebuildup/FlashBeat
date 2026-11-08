@@ -44,7 +44,6 @@ namespace FlashBeat.UI.V6
         private RectTransform hudFrame;
         private V6PauseView pause;
         private V6LoadingView loading;
-        private Vector2 appliedCanvasSize;
 
         /// <summary>隠し対象の旧 v5 ポーズ (キャッシュ。シーン再ロードで作り直す)。</summary>
         private FlashBeat.UI.V5.PauseMenuView legacyPause;
@@ -140,7 +139,6 @@ namespace FlashBeat.UI.V6
         {
             UpdatePause();
             UpdateLoading();
-            ApplyHudScale();
             if (hud != null)
             {
                 // 表示所有: HUD は常時出す (Ready 中は歌詞位置に Space 案内、
@@ -266,46 +264,25 @@ namespace FlashBeat.UI.V6
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", HudSortingOrder);
             canvas.gameObject.transform.SetParent(transform, false);
 
-            // HUD 部品は 1920x1080 の共通テンプレート座標で組み立て、親フレームを
-            // min(width / 1920, height / 1080) で等比拡大する。余分な軸はフレームを広げる。
-            hudFrame = FlashBeat.UI.V5.V5Ui.Node(canvas.gameObject, "V6 HUD Logical Viewport · 1920x1080 base")
+            // 契約 §8: HUD は解像度ごとの固有フレーム (FHD 1920×1080 / 2K 2560×1440 /
+            // Mac 2560×1664)。フレームは等倍 (scale 1) でスクリーン全体を覆い、
+            // 引き伸ばし (等比拡大) は一切しない (Owner 指示 2026-11-08)。
+            // 既知 3 解像度ではフレーム寸法 = そのプロファイルのフレーム寸法そのもの。
+            // 部品は左上原点の design px 絶対座標 (= 実ピクセル) で置くので、
+            // フレームを Canvas (= 実スクリーン解像度) に stretch で合わせる。
+            hudFrame = FlashBeat.UI.V5.V5Ui.Node(canvas.gameObject, "V6 HUD Frame")
                 .GetComponent<RectTransform>();
-            hudFrame.anchorMin = new Vector2(0.5f, 0.5f);
-            hudFrame.anchorMax = new Vector2(0.5f, 0.5f);
-            hudFrame.pivot = new Vector2(0.5f, 0.5f);
-            hudFrame.sizeDelta = new Vector2(1920f, 1080f);
+            hudFrame.anchorMin = Vector2.zero;
+            hudFrame.anchorMax = Vector2.one;
+            hudFrame.offsetMin = Vector2.zero;
+            hudFrame.offsetMax = Vector2.zero;
+            hudFrame.localScale = Vector3.one;
 
             hud = V6GameHudView.Create(hudFrame);
 
             // HUD 側の減光は自分のレイヤー (Video Dim canvas) が出す。
             // HUD 内の同名 Image は使わない (順序が崩れるため)。
             DisableInternalDim();
-        }
-
-        /// <summary>
-        /// <summary>
-        /// HUD フレーム全体に一度だけ等比倍率を適用する。
-        ///
-        /// 部品寸法は 1920x1080 の論理テンプレートを使い、フレームの論理サイズを
-        /// 画面寸法 / 倍率へ広げる。Mac 2560x1664 は 1920x1248 の論理領域となり、
-        /// 上端・中央・下端に配置した既存要素がそれぞれのアンカーに追従する。
-        /// </summary>
-        private void ApplyHudScale()
-        {
-            if (hudFrame == null) return;
-            var parent = hudFrame.parent as RectTransform;
-            if (parent == null) return;
-            Vector2 size = parent.rect.size;
-            if (size.x <= 0f || size.y <= 0f) return;
-
-            // 1920x1080 の論理テンプレートを画面寸法へ等比拡大し、余分な軸は
-            // 論理ビューポートとして広げる (Issue #220: 単一解像度テンプレート)。
-            float s = V6HudMetrics.ScaleForResolution(size.x, size.y);
-            Vector2 logicalSize = V6HudMetrics.LogicalViewportSize(size.x, size.y);
-            if (size == appliedCanvasSize && hudFrame.sizeDelta == logicalSize) return;
-            appliedCanvasSize = size;
-            hudFrame.sizeDelta = logicalSize;
-            hudFrame.localScale = new Vector3(s, s, 1f);
         }
 
         private void DisableInternalDim()

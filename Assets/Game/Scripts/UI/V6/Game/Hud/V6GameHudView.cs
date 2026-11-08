@@ -20,7 +20,7 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// - 「準備中 / 失敗」の表示は既存 HudPlayStatus (v5) の責務。二重に出さない。
     /// - 寸法は <see cref="V6HudMetrics"/> の解像度プロファイル (契約 §8)。
     ///   design px を実ピクセルのまま使い、等比拡大 (引き伸ばし) はしない
-    ///   (Owner 指示 2026-11-08)。ルートは親フレームの倍率を打ち消して 1:1 に置く。
+    ///   (Owner 指示 2026-11-08)。ルートは 1:1 でスクリーン左上に置く。
     ///
     /// MusicManager / Judge / NotesManager は所有外。変更しない。
     /// </summary>
@@ -207,16 +207,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         private Canvas cachedCanvas;
 
         /// <summary>
-        /// HUD ルートを実スクリーン解像度の <b>1:1</b> (等倍) に置く。
+        /// HUD ルートを実スクリーン解像度の <b>1:1</b> (等倍) で置く。
         ///
-        /// 親フレーム (V6GameRuntime.hudFrame) は 1920×1080 論理テンプレートを
-        /// min(w/1920, h/1080) 倍に伸縮する (レガシー)。Owner 指示は
-        /// 「フレームは固定解像度、引き伸ばしなし」なので、HUD 側で逆倍率
-        /// 1/parentScale を掛けて打ち消し、design px = 実ピクセルにする。
-        /// 親が将来 1:1 (scale 1) になった場合も 1/1 = 1 で正しく動く (自己安定)。
-        ///
-        /// ルートの rect サイズは親の描画サイズ (= Canvas px) に合わせるので、
+        /// 親フレーム (V6GameRuntime.hudFrame) は Canvas (= 実スクリーン解像度) 全体を
+        /// 覆い、scale は常に 1 (引き伸ばしなし / Owner 指示 2026-11-08)。
+        /// かつて親の等比拡大を 1/parentScale で打ち消す逆倍率を毎フレーム掛けていたが、
+        /// 親が等倍になったので廃止。ルートは左上アンカーで親フレームいっぱいに置き、
         /// 子は design px の絶対座標 (左上原点) と端アンカーの両方で置ける。
+        /// 解像度変更で親が変わるので毎フレーム同期する (変化があればのみ dirty)。
         /// </summary>
         private void ApplyRootTransform()
         {
@@ -226,19 +224,26 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
-            float ps = parent.lossyScale.x;
-            if (ps <= 0f)
+            var size = parent.rect.size;
+            if (size.x <= 0f || size.y <= 0f)
             {
                 return;
             }
 
             var rt = GetRect(gameObject);
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
+            if (rt.anchorMin == new Vector2(0f, 1f) && rt.anchorMax == new Vector2(0f, 1f)
+                && rt.pivot == new Vector2(0f, 1f) && rt.anchoredPosition == Vector2.zero
+                && rt.sizeDelta == size && rt.localScale == Vector3.one)
+            {
+                return;
+            }
+
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(parent.rect.width, parent.rect.height) * ps;
-            rt.localScale = new Vector3(1f / ps, 1f / ps, 1f);
+            rt.sizeDelta = size;
+            rt.localScale = Vector3.one;
         }
 
         /// <summary>

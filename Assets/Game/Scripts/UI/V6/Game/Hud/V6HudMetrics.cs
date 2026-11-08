@@ -19,8 +19,8 @@ namespace FlashBeat.UI.V6.Game.Hud
     ///
     /// かつては 1920×1080 論理テンプレートを min(w/1920, h/1080) で等比拡大していた
     /// (<see cref="ScaleForResolution"/> / <see cref="LogicalViewportSize"/>)。
-    /// この方式は Owner 指示 (固定解像度・引き伸ばしなし) に反するため廃止だが、
-    /// 統合側 <c>V6GameRuntime.ApplyHudScale</c> とEditMode テストがまだ参照するため
+    /// この方式は Owner 指示 (固定解像度・引き伸ばしなし) に反するため廃止。
+    /// 描画経路からは使わず、EditMode テスト (<c>V6GameHudLogicTests</c>) が参照するため
     /// API だけ残してある (レガシー。新規コードは使わないこと)。
     /// </summary>
     public sealed class V6HudMetrics
@@ -363,8 +363,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>
         /// レガシー: 1920×1080 論理テンプレートを画面内に収める等比倍率。
-        /// Owner 指示 (固定解像度・引き伸ばしなし) により廃止済みだが、
-        /// 統合側 <c>V6GameRuntime.ApplyHudScale</c> とEditMode テストが参照するため残す。
+        /// Owner 指示 (固定解像度・引き伸ばしなし) により廃止済み。
+        /// 描画経路からは使わず、EditMode テストが参照するため残す。
         /// 新規コードは <see cref="ForResolution"/> を使うこと。
         /// </summary>
         public static float ScaleForResolution(float width, float height)
@@ -379,7 +379,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>
         /// レガシー (等比拡大方式): 等比スケール後に画面全体を覆う論理ビューポート寸法。
-        /// <see cref="ScaleForResolution"/> とセットで、統合側とEditMode テストが参照する。
+        /// <see cref="ScaleForResolution"/> とセットで、EditMode テストが参照する。
+        /// 描画経路からは使わない。
         /// </summary>
         public static Vector2 LogicalViewportSize(float width, float height)
         {
