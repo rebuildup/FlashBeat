@@ -2,10 +2,40 @@
 
 対象: `.github/workflows/build-win64.yml` (GitHub-hosted `windows-latest` ランナー)
 
-## 現状
+## 現状 (2026-11-08 監査結果)
 
-- リポジトリに Unity 用の Actions Secret は **1件も設定されていない** (`gh secret list` が空)。
-- そのため `build-win64` は毎回ライセンス確認で失敗する (Secret 未設定は blocker)。
+- 登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ** (`gh secret list` で確認)。
+  `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**。
+- ただし `UNITY_LICENSE` は **中身が空** であり、実質的に「未設定」と同義。
+  → `license-precheck` ジョブは **期待どおりに blocker として fail する** (Unity を導入する前に落ちる)。
+- GitHub-hosted ランナーに `.ulf` (Unity 人工ライセンス XML) だけを渡す方式は
+  **機械に紐づく** ため、毎回 次のようなエラーで失敗する:
+
+  ```
+  [Licensing::Client] Error: Code 400 : ... (status: Machine bindings don't match)
+  ```
+
+  → **Actions の secret には「ライセンスのあり/なし」しか持てない**。CI 側での回避は不可能。
+- したがって **CI が緑になるのは、オーナーが `UNITY_EMAIL` / `UNITY_PASSWORD` を Secret 登録した後のみ**
+  (この 2 つが揃えば `UNITY_LICENSE` は不要。ワークフローはアカウント認証を優先する)。
+
+### ライセンス失敗 と ソースビルド失敗 の区別 (重要)
+
+CI が落ちたとき、**原因がライセンスなのかソースなのかを必ず切り分ける**。
+`build-win64.yml` はこの切り分けを自動化した:
+
+1. `license-precheck` が失敗 → **ライセンス未設定**。Unity は 1 度も起動していない。
+   コードの問題ではない。
+2. `license-precheck` が通り、`build` がライセンス認証で失敗 → **ライセンス問題**。
+   ログに `Machine bindings don't match` があれば機械紐付け不一致、
+   `ライセンスはファイルとして存在するが Unity が認識しません` を出していれば
+   `.ulf` の形式か Secrets の中身が不正。
+3. 認証後の **短時間のバッチ起動** が失敗 → ここまでがライセンス。以降の失敗は **ソースビルド** の問題。
+
+各ケースの job summary 本文は `.github/workflows/summaries/` に置き、
+ワークフローからは `cat` / `Get-Content` で出力する ( heredoc を `run: |` の中に置くと
+YAML として壊れるため **使わない** )。
+
 - ワークフローは Secret 設定後に **再実行不会再に失敗しない** よう、2段構えにしている。
   - `license-precheck` ジョブ (ubuntu-latest, 数秒): Secret の有無だけを検査し、
     不足していれば **手順を書いた job summary** を出して即座に fail する (Unity を導入しないので速い)。
