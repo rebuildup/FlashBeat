@@ -22,8 +22,9 @@ if [ "$cmd" = status ]; then git -C "$wt" log --oneline -1; git -C "$wt" status 
 # Park Unity-generated edits from a previous run (non-destructive) and move to the requested ref.
 if [ -n "$(git -C "$wt" status --porcelain)" ]; then git -C "$wt" stash push -u -q -m "mac-verify generated $(date +%s)" || true; fi
 git -C "$wt" checkout -q --detach "$ref"
-# Only the LFS files the tests/build need (fonts + UI sprites); a full lfs pull is slow and not required.
-( cd "$wt" && git lfs pull --include="Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset,Assets/Game/Art/UI/**" >/dev/null )
+# All LFS assets are needed: videos (Opening / background animations / loading), fonts, and art.
+# Pulling only fonts made the built app ship LFS pointer files, so videos never played.
+( cd "$wt" && git lfs pull >/dev/null )
 case "$cmd" in
   test)
     out="$wt/TestResults.xml"; mv -f "$out" "$out.prev" 2>/dev/null || true

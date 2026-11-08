@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Result
 {
