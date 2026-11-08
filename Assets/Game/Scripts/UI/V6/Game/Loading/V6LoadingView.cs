@@ -37,6 +37,8 @@ namespace FlashBeat.UI.V6.Game.Loading
         private const float FillW = 160f;
 
         private GameObject rootGo;
+        private VideoPlayer videoPlayer;
+        private bool videoErrorLogged;
         private RectTransform frame;
         private V6LoadingViewDriver driver;
         private TextMeshProUGUI headline;
@@ -98,7 +100,21 @@ namespace FlashBeat.UI.V6.Game.Loading
             if (visible)
             {
                 UpdateScale();
+                // ローディング映像: 表示のたびに最初から再生 (design: 動画を再生するだけ)。
+                if (videoPlayer != null && videoPlayer.clip != null)
+                {
+                    videoErrorLogged = false;
+                    videoPlayer.Play();
+                }
             }
+        }
+
+        /// <summary>ローディング映像の再生エラー。無音で推移しない (Issue #233)。</summary>
+        private void OnVideoError(VideoPlayer source, string message)
+        {
+            if (videoErrorLogged) return;
+            videoErrorLogged = true;
+            Debug.LogWarning($"[V6Loading] loading video unavailable: {message}");
         }
 
         /// <summary>ロード中の表示 (実データ: 曲情報は統合担当が渡す)。</summary>
@@ -193,6 +209,20 @@ namespace FlashBeat.UI.V6.Game.Loading
             var bgImg = bg.AddComponent<Image>();
             bgImg.color = V5Tokens.Bg;
             bgImg.raycastTarget = true;
+
+            // ローディング映像 (design: ローディング画面は動画を再生するだけ。
+            // Assets/Game/Resources/Videos/loading.mp4 = 自作素材、同梱する)。
+            var videoBg = V5Ui.Node(rootGo, "Loading Video");
+            V5Ui.Fill(videoBg.GetComponent<RectTransform>(), 0f);
+            var videoRaw = videoBg.AddComponent<RawImage>();
+            videoRaw.raycastTarget = false;
+            videoPlayer = videoBg.AddComponent<VideoPlayer>();
+            videoPlayer.playOnAwake = false;
+            videoPlayer.isLooping = true;
+            videoPlayer.renderMode = VideoRenderMode.APIOnly;
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+            videoPlayer.clip = Resources.Load<VideoClip>("Videos/loading");
+            videoPlayer.errorReceived += OnVideoError;
 
             frame = V5Ui.Node(rootGo, "V6 Loading Frame 1728x972").GetComponent<RectTransform>();
             frame.anchorMin = new Vector2(0.5f, 0.5f);

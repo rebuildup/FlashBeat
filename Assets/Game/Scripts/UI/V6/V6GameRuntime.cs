@@ -88,12 +88,11 @@ namespace FlashBeat.UI.V6
             ApplyHudScale();
             if (hud != null)
             {
-                // 表示所有: Ready (再生前) は v5 の GameReadyView が単独所有し、
-                // 演奏中は v6 HUD だけを出す。同時に出ると重なって崩れる。
-                bool show = GManager.played;
-                if (hud.Root != null && hud.Root.gameObject.activeSelf != show)
+                // 表示所有: HUD は常時出す (Ready 中は歌詞位置に Space 案内、
+                // 演奏中は歌詞)。別シーンの Ready 画面は廃止 (Issue #233)。
+                if (!hud.Root.gameObject.activeSelf)
                 {
-                    hud.SetVisible(show);
+                    hud.SetVisible(true);
                 }
                 hud.Refresh();
             }

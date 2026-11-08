@@ -158,6 +158,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             UpdateLyrics();
             UpdateLaneVerdicts();
+            UpdateKeyCapPositions();
         }
 
         private void Update()
@@ -380,7 +381,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             var label = V5Ui.Text(btn, "Label", "メニュー", m.MenuFs, V5Tokens.Text,
                 TextAlignmentOptions.Right);
             var labelLe = label.gameObject.AddComponent<LayoutElement>();
-            labelLe.flexibleWidth = 1f;
+            // flexibleWidth 1 だとテキストが右端へ飛んで見た目が崩れる (Issue #233 実機)。
+            // 自然幅でラベル → KeyCap の順に詰める。
+            labelLe.minWidth = 0f;
 
             // design: KeyCap bg #00000040 r4, "Esc" fs muted
             var cap = V5Ui.Panel(btn, "KeyCap", new Vector2(52f * Scale, m.MenuH - 16f * Scale),
@@ -631,6 +634,32 @@ namespace FlashBeat.UI.V6.Game.Hud
             BuildKeyGuide();
         }
 
+        /// <summary>
+        /// キーキャップを **実際のレーンの画面位置** に合わせる (Issue #233 実機指摘:
+        /// design px の固定値はカメラ投影とズレる)。レーン判定位置 (y=0.76, z=0.15) を
+        /// Camera.Main で投影し、HUD フレーム (中央原点・等比拡大) のローカル x へ写す。
+        /// 投影できない (カメラ無し等) ときは design px のまま。
+        /// </summary>
+        private void UpdateKeyCapPositions()
+        {
+            if (keyGuideRow == null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            var frame = GetRect(gameObject);
+            float frameScale = frame.localScale.x;
+            if (frameScale <= 0f) return;
+
+            for (int lane = 0; lane < keyCaps.Count; lane++)
+            {
+                Vector3 world = new Vector3(lane - 3.5f, 0.76f, 0.15f);
+                Vector3 screen = cam.WorldToScreenPoint(world);
+                if (screen.z <= 0f) continue;
+                var rt = keyCaps[lane].rectTransform;
+                float localX = (screen.x - Screen.width * 0.5f) / frameScale;
+                rt.anchoredPosition = new Vector2(localX, rt.anchoredPosition.y);
+            }
+        }
+
         private void RefreshKeyCaps()
         {
             for (int lane = 0; lane < keyCaps.Count; lane++)
@@ -659,6 +688,21 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>歌詞: 再生時刻と一致した行だけを出す (固定文字列は常時出さない)。</summary>
         private void UpdateLyrics()
         {
+            // Space 待ちの間は歌詞位置に「Space to Start」を出す (design の Ready 案内)。
+            // 別シーン (v5 ReadyView) はいらない — Issue #233。
+            if (!GManager.played)
+            {
+                if (lyricIndex != -1 || lyricText.text.Length == 0)
+                {
+                    lyricIndex = -1;
+                    lyricText.text = "Space to Start";
+                    lyricText.fontSize = m.LyricFs * 1.79f; // design: Ready prompt
+                    lyricFuriganaText.text = "";
+                    lyricRomajiText.text = "";
+                }
+                return;
+            }
+
             EnsureLyricLines();
             if (lyricLines == null || lyricLines.Count == 0 || !PlaySession.LyricsEnabled)
             {
