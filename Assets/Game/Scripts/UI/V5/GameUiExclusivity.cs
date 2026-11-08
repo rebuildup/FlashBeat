@@ -33,6 +33,12 @@ namespace FlashBeat.UI.V5
         public bool Hud;
         public bool Loading;
         public bool Error;
+
+        /// <summary>
+        /// ポーズメニューが **開いてよいか** (許可フラグ)。
+        /// 開いた状態そのものは PauseMenuView が所有するため、
+        /// 排他制御は「許可しないフェーズでは閉じる」ことだけを行う。
+        /// </summary>
         public bool Pause;
     }
 
@@ -85,8 +91,9 @@ namespace FlashBeat.UI.V5
             if (v6.GameHud)
             {
                 // v6 モード: Ready / HUD / Loading / Error は v6 側 (V6GameRuntime) が持つ。
-                // v5 ポーズは v6 ポーズが無効なときだけ開く (エラー / ロード中は開かない)。
-                vis.Pause = !v6.PauseEnabled && pauseOpen
+                // v5 ポーズは v6 ポーズが無効なときだけ役割を持つ (開いた状態は
+                // PauseMenuView 自身が保持する。排他側は閉じることだけ担う)。
+                vis.Pause = !v6.PauseEnabled
                     && phase != GameUiPhase.Failed && phase != GameUiPhase.Loading;
                 return vis;
             }
@@ -101,7 +108,7 @@ namespace FlashBeat.UI.V5
                     break;
                 case GameUiPhase.Ready:
                     vis.Ready = true;
-                    vis.Pause = pauseOpen; // Ready 中も Esc でメニュー (設定・表示・ランキング) を開ける
+                    vis.Pause = true; // Ready 中も Esc でメニュー (設定・表示・ランキング) を開ける
                     break;
                 case GameUiPhase.Paused:
                     vis.Hud = true;
@@ -109,7 +116,7 @@ namespace FlashBeat.UI.V5
                     break;
                 default: // Playing
                     vis.Hud = true;
-                    vis.Pause = pauseOpen;
+                    vis.Pause = true;
                     break;
             }
             return vis;
@@ -132,8 +139,11 @@ namespace FlashBeat.UI.V5
             }
             if (pause != null)
             {
-                if (vis.Pause) pause.Open();
-                else pause.Close();
+                // ポーズメニューの **開閉は PauseMenuView 自身** が所有する
+                // (Esc トグル / HUD のポーズボタン)。ここで Open() を呼ぶと、
+                // 同一フレームでボタン押下→再適用 の順序で即座に閉じてしまう。
+                // 排他制御が担うのは「開いてはいけないフェーズでは閉じる」ことだけ。
+                if (!vis.Pause) pause.Close();
             }
         }
     }

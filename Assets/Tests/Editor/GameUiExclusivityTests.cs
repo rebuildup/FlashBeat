@@ -58,7 +58,8 @@ namespace FlashBeat.Tests.Editor
             Assert.IsFalse(vis.Hud, "Ready 中に HUD を出してはならない (Issue #233 の二重表示)。");
             Assert.IsFalse(vis.Loading);
             Assert.IsFalse(vis.Error);
-            Assert.IsFalse(vis.Pause);
+            // Pause は「開いてよいか」の許可フラグ。Ready 中も Esc でメニューを開ける。
+            Assert.IsTrue(vis.Pause);
         }
 
         [Test]
@@ -146,8 +147,10 @@ namespace FlashBeat.Tests.Editor
             var vis = GameUiExclusivity.Resolve(GameUiPhase.Playing, v6, true);
             Assert.IsTrue(vis.Pause, "v6 ポーズ無効時は v5 ポーズが役割を持つ。");
 
+            // 開いているかどうかは PauseMenuView 自身が保持する。排他側は
+            // 「閉じてよいか」だけを扱うので、pauseOpen には依存しない。
             var closed = GameUiExclusivity.Resolve(GameUiPhase.Playing, v6, false);
-            Assert.IsFalse(closed.Pause);
+            Assert.IsTrue(closed.Pause);
 
             var failed = GameUiExclusivity.Resolve(GameUiPhase.Failed, v6, true);
             Assert.IsFalse(failed.Pause, "エラー中は v5 ポーズも開かない。");
@@ -201,18 +204,30 @@ namespace FlashBeat.Tests.Editor
                 Assert.IsFalse(pause.IsOpen);
 
                 // ポーズ: HUD を出したままポーズを重ねる。
+                // ポーズの開閉は PauseMenuView 自身 (Esc / HUD ボタン) が所有する。
+                // 排他制御は「閉じてよいフェーズか」だけを決める。
+                pause.Open();
                 GameUiExclusivity.Apply(
                     GameUiExclusivity.Resolve(GameUiPhase.Paused, DefaultV5(), true),
                     ready, hud, loading, error, pause);
                 Assert.IsTrue(hud.Canvas.gameObject.activeSelf, "ポーズ中に HUD が隠れた。");
-                Assert.IsTrue(pause.IsOpen, "ポーズ中なのにポーズメニューが出ていない。");
+                Assert.IsTrue(pause.IsOpen, "ポーズ中にポーズメニューが強制的に閉じられた。");
 
                 // ポーズを閉じると HUD だけに戻る (状態からの再適用)。
+                pause.Close();
                 GameUiExclusivity.Apply(
                     GameUiExclusivity.Resolve(GameUiPhase.Playing, DefaultV5(), false),
                     ready, hud, loading, error, pause);
                 Assert.IsTrue(hud.Canvas.gameObject.activeSelf);
                 Assert.IsFalse(pause.IsOpen);
+
+                // エラー中はポーズを強制的に閉じる (Esc は選曲への導線)。
+                pause.Open();
+                GameUiExclusivity.Apply(
+                    GameUiExclusivity.Resolve(GameUiPhase.Failed, DefaultV5(), true),
+                    ready, hud, loading, error, pause);
+                Assert.IsFalse(pause.IsOpen, "エラー中にポーズが開いたまま残っている。");
+                Assert.IsTrue(error.IsShown);
             }
             finally
             {
