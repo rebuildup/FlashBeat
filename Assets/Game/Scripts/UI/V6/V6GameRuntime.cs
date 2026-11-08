@@ -51,6 +51,9 @@ namespace FlashBeat.UI.V6
         /// <summary>隠し対象の旧 v5 ローディング / エラー Canvas (キャッシュ)。</summary>
         private Canvas legacyOverlayCanvas;
 
+        /// <summary>隠し対象の旧 v5 Ready プロンプト Canvas (キャッシュ)。</summary>
+        private Canvas legacyReadyCanvas;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
@@ -107,6 +110,24 @@ namespace FlashBeat.UI.V6
             if (legacyPause != null && V6PauseView.Enabled && legacyPause.gameObject.activeSelf)
             {
                 legacyPause.gameObject.SetActive(false);
+            }
+
+            if (legacyReadyCanvas == null)
+            {
+                // GameHudController (実行順 100) が Start で V5ReadyCanvas を作るので
+                // v6 より遅い。ここで見つけてから隠す (シーン再ロードで作り直し)。
+                var ready = FindObjectOfType<FlashBeat.UI.V5.GameReadyView>();
+                if (ready != null) legacyReadyCanvas = ready.GetComponent<Canvas>();
+            }
+
+            // v6 HUD が Ready 中の「Space to Start」を出す (V6GameHudView の歌詞位置)。
+            // v5 の Ready プロンプト ("Start (設定・表示・ランク)" + Space/Esc KeyCap) は
+            // 二重表示になるので、V6UiMode.GameHud が有効な間만隠す (v5 モードでは出る)。
+            // GameObject を止めると GameReadyView.Update も止まり再表示されない。
+            // 破棄はしない (GameHudController が ready 参照を持つ)。
+            if (legacyReadyCanvas != null && legacyReadyCanvas.gameObject.activeSelf)
+            {
+                legacyReadyCanvas.gameObject.SetActive(false);
             }
 
             if (legacyOverlayCanvas == null)
@@ -355,9 +376,9 @@ namespace FlashBeat.UI.V6
         /// 旧シーン配置 UI (スコア、Space 案内など) を隠す。
         /// v6 の HUD が同じ場所を描くので、二枚重ねると読めなくなる。
         ///
-        /// 対象は **シーン配置の "Canvas" だけ**。旧 v5 のランタイム Canvas
-        /// (V5ReadyCanvas / V5OverlayCanvas / V5PauseCanvas) は未移植 (P1) の
-        /// 準備中・失敗・ポーズ表示として残す。
+        /// 対象は **シーン配置の "Canvas" だけ**。旧 v5 のランタイム Canvas のうち
+        /// V5OverlayCanvas / V5PauseCanvas は未移植 (P1) の準備中・失敗・ポーズ表示
+        /// として残す。V5ReadyCanvas は LateUpdate で隠す (v6 HUD が Ready 案内を持つ)。
         /// "loadingmovie" はロード中シグナルとして v5 が使うので触らない。
         /// </summary>
         private void HideLegacyUi()
@@ -381,19 +402,6 @@ namespace FlashBeat.UI.V6
 
                 var raycaster = canvas.GetComponent<GraphicRaycaster>();
                 if (raycaster != null) raycaster.enabled = false;
-            }
-        }
-
-        /// <summary>
-        /// 旧 v5 の ReadyView (右上の曲情報 + 中央の "Space / Start") を隠す。
-        /// v6 は自分の Start Hint を出す (同じ位置・同じ書体)。
-        /// </summary>
-        private static void HideLegacyReadyView()
-        {
-            var ready = FindObjectsOfType<FlashBeat.UI.V5.GameReadyView>();
-            for (int i = 0; i < ready.Length; i++)
-            {
-                if (ready[i] != null) ready[i].gameObject.SetActive(false);
             }
         }
 
