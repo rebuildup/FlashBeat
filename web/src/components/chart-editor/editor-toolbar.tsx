@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { createListCollection } from "@ark-ui/react/collection";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { DraftInput, parseIntegerOrNull } from "@/components/ui/input";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { css } from "styled-system/css";
 import {
   SNAP_SETTINGS,
@@ -14,7 +14,17 @@ import type { Chart } from "@/lib/chart/types";
 import { setSnapDivision, useSnapDivision } from "./snap-store";
 
 /**
- * Toolbar of the chart editor.
+ * Toolbar of the chart editor (issue #216).
+ *
+ * The bar is the transport first: Play/Pause, the playhead slider and the
+ * time readout are always visible, because listening to the song is the
+ * main way a first-time operator understands the chart. Undo/Redo and the
+ * selected-note Delete sit next to them.
+ *
+ * Everything that configures the chart rather than performs an edit (song
+ * name, BPM, note resolution, snap, zoom, import/export) is grouped into the
+ * `Chart setup` disclosure. Nothing was removed: every control is still
+ * wired to the same handler as before.
  *
  * Styled after design/flashbeat-ui.pen v5: the bar sits on the page
  * background (#1B1B1B) and only the controls are raised (#3A3A3A, k4); the
@@ -29,8 +39,7 @@ const bar = css({
   display: "flex",
   flexWrap: "wrap",
   gap: "2",
-  justifyContent: "space-between",
-  minHeight: "3rem",
+  minHeight: "3.5rem",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
@@ -43,15 +52,143 @@ const group = css({
   gap: "2",
 });
 
-const field = css({ flex: "1 1 8rem", minWidth: "8rem", maxWidth: "20rem" });
-const wideField = css({ flex: "1 1 10rem", minWidth: "10rem", maxWidth: "24rem" });
+const transport = css({
+  alignItems: "center",
+  bg: "#222222",
+  borderRadius: "10px",
+  display: "flex",
+  gap: "2",
+  padding: "1",
+  paddingRight: "3",
+});
+
+const transportButton = css({
+  bg: "#ededed",
+  color: "#1b1b1b",
+  borderRadius: "8px",
+  minWidth: "5.5rem",
+  _hover: { bg: "#dedede" },
+  _disabled: { opacity: 0.4 },
+});
+
+const seek = css({
+  accentColor: "#3fa9f5",
+  cursor: "pointer",
+  width: "clamp(7rem, 13vw, 13rem)",
+  _disabled: { cursor: "default", opacity: 0.4 },
+});
+
+const readout = css({
+  alignItems: "baseline",
+  color: "#ffffff",
+  display: "flex",
+  fontVariantNumeric: "tabular-nums",
+  gap: "1",
+  minWidth: "9.5rem",
+  whiteSpace: "nowrap",
+});
+
+const readoutTime = css({ fontSize: "sm", fontWeight: "medium" });
+
+const readoutBeat = css({ color: "#8c8c8c", fontSize: "2xs" });
+
+const divider = css({
+  alignSelf: "stretch",
+  bg: "#2d2d2d",
+  marginY: "1",
+  width: "1px",
+});
+
+const spacer = css({ flex: "1" });
+
+const counter = css({
+  color: "#8c8c8c",
+  fontSize: "2xs",
+  fontVariantNumeric: "tabular-nums",
+  paddingInline: "1",
+});
+
+const details = css({
+  position: "relative",
+});
+
 /**
- * Definite flex basis for the Grid/Snap/View selects: the Park UI select
- * recipe gives the root `width: full`, which as an auto basis made every
- * select claim a whole row and stacked the compact toolbar into four rows
- * (issue #166). A definite basis overrides that width on the flex line.
+ * Native disclosure: no portal, no extra state, and the controls are in the
+ * DOM (and therefore reachable) even while the panel is closed.
  */
-const selectRoot = css({ flex: "0 0 6.5rem", minWidth: "6.5rem", flexShrink: 0 });
+const summary = css({
+  alignItems: "center",
+  bg: "#3a3a3a",
+  borderRadius: "8px",
+  color: "#ffffff",
+  cursor: "pointer",
+  display: "flex",
+  fontSize: "2xs",
+  fontWeight: "medium",
+  gap: "2",
+  height: "sizes.8",
+  listStyle: "none",
+  paddingInline: "3",
+  userSelect: "none",
+  _hover: { bg: "#454545" },
+  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
+  "&::-webkit-details-marker": { display: "none" },
+});
+
+const summaryMeta = css({
+  color: "#b0b0b0",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: "normal",
+});
+
+const popover = css({
+  bg: "#2d2d2d",
+  borderColor: "#131313",
+  borderRadius: "12px",
+  borderWidth: "1px",
+  display: "grid",
+  gap: "3",
+  maxWidth: "calc(100vw - 2rem)",
+  padding: "3",
+  position: "absolute",
+  right: "0",
+  top: "calc(100% + 8px)",
+  width: "23rem",
+  zIndex: "popover",
+});
+
+const popoverTitle = css({
+  color: "#ffffff",
+  fontSize: "xs",
+  fontWeight: "medium",
+  margin: "0",
+});
+
+const settingsGrid = css({
+  display: "grid",
+  gap: "3",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+});
+
+const wideCell = css({ gridColumn: "1 / -1" });
+
+const field = css({ minWidth: "0" });
+
+const selectRoot = css({ width: "full", minWidth: "0" });
+
+const settingsActions = css({
+  alignItems: "center",
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "2",
+});
+
+const settingsHint = css({
+  color: "#8c8c8c",
+  fontSize: "2xs",
+  lineHeight: "1.4",
+  margin: "0",
+});
 
 export const fieldLabel = css({
   color: "#b0b0b0",
@@ -95,19 +232,6 @@ const selectControl = css({
 });
 
 const fileInput = css({ display: "none" });
-
-const counter = css({
-  color: "#8c8c8c",
-  fontSize: "2xs",
-  fontVariantNumeric: "tabular-nums",
-  paddingInline: "1",
-});
-
-const sideToggle = css({
-  display: { base: "flex", lg: "none" },
-  alignItems: "center",
-  justifyContent: "center",
-});
 
 const keycap = css({
   bg: "#3a3a3a",
@@ -196,10 +320,6 @@ export function parseSnapDivision(value: string): SnapSetting {
  * counted in those lines. A 1/16 grid therefore needs a note of at least
  * 16 lines per beat, otherwise the line the note lands on rounds the grid
  * away again.
- *
- * The resolution of the chart is therefore never finer than the division,
- * and never coarser either: a division of 1/4 with a resolution of 1/16
- * would place the note on a line of its own, so the two go together.
  */
 export function resolutionForDivision(division: SnapSetting, resolution: number): number {
   if (!isSnapEnabled(division)) {
@@ -222,6 +342,26 @@ export interface EditorToolbarProps {
   snapDivision?: SnapSetting;
   zoom: number;
   canDelete: boolean;
+
+  /** True while the preview is playing. */
+  playing?: boolean;
+  /** Play / pause the preview. */
+  onTogglePlay?(): void;
+  /** Jump back to the start of the song. */
+  onRestart?(): void;
+  /** Current preview position in seconds. */
+  playheadSec?: number;
+  /** End of the seekable timeline in seconds. */
+  timelineSec?: number;
+  /** Seek the preview to `seconds`. */
+  onSeek?(seconds: number): void;
+
+  /** True when there is a chart step to take back. */
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?(): void;
+  onRedo?(): void;
+
   onNameChange(name: string): void;
   onBpmChange(bpm: number): void;
   onResolutionChange(resolution: number): void;
@@ -231,9 +371,6 @@ export interface EditorToolbarProps {
   onImportFile(file: File): void;
   onExport(): void;
   onDeleteSelected(): void;
-  onToggleSide?: () => void;
-  /** The inspector drawer is open; the toggle button follows the state. */
-  sideOpen?: boolean;
 }
 
 export function EditorToolbar({
@@ -243,6 +380,16 @@ export function EditorToolbar({
   snapDivision: snapDivisionProp,
   zoom,
   canDelete,
+  playing = false,
+  onTogglePlay,
+  onRestart,
+  playheadSec = 0,
+  timelineSec = 60,
+  onSeek,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
   onNameChange,
   onBpmChange,
   onResolutionChange,
@@ -251,10 +398,39 @@ export function EditorToolbar({
   onImportFile,
   onExport,
   onDeleteSelected,
-  onToggleSide,
-  sideOpen = false,
 }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const detailsRef = useRef<HTMLDetailsElement | null>(null);
+
+  /**
+   * Close the chart setup when the operator clicks elsewhere or presses
+   * Escape. A native `<details>` only closes through its summary, but the
+   * panel floats over the work area, so it must not stay open by accident.
+   */
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const element = detailsRef.current;
+      if (!element?.open) {
+        return;
+      }
+      if (event.target instanceof Node && element.contains(event.target)) {
+        return;
+      }
+      element.open = false;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        detailsRef.current?.removeAttribute("open");
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   /**
    * The division the grid uses.
@@ -282,47 +458,79 @@ export function EditorToolbar({
     [onResolutionChange, onSnapDivisionChange, resolution],
   );
 
+  const bpm = chart?.BPM ?? 0;
+  const beat = bpm > 0 ? (playheadSec * bpm) / 60 : 0;
+  const maxSec = Math.max(1, timelineSec);
+
   return (
     <header className={bar}>
-      <div className={group}>
+      <div className={transport} role="group" aria-label="Playback">
+        <Button
+          className={transportButton}
+          size="sm"
+          onClick={onTogglePlay}
+          disabled={!onTogglePlay || !chart}
+          aria-pressed={playing}
+          data-testid="transport-toggle"
+        >
+          {playing ? "Pause" : "Play"}
+        </Button>
+        <Button
+          className={buttonSecondary}
+          size="sm"
+          onClick={onRestart}
+          disabled={!onRestart}
+          data-testid="transport-restart"
+        >
+          Restart
+        </Button>
         <input
-          ref={fileInputRef}
-          className={fileInput}
-          type="file"
-          accept="application/json,.json"
-          data-testid="import-input"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) {
-              onImportFile(file);
-            }
-            event.currentTarget.value = "";
-          }}
+          className={seek}
+          type="range"
+          min={0}
+          max={maxSec}
+          step={0.01}
+          value={Math.min(playheadSec, maxSec)}
+          onChange={(event) => onSeek?.(Number.parseFloat(event.currentTarget.value))}
+          disabled={!onSeek}
+          aria-label="Playhead"
+          data-testid="playhead-slider"
         />
+        <span className={readout} data-testid="transport-time">
+          <span className={readoutTime}>{playheadSec.toFixed(2)}s</span>
+          <span className={readoutBeat}>· beat {beat.toFixed(2)}</span>
+        </span>
+      </div>
+
+      <div className={divider} aria-hidden="true" />
+
+      <div className={group} role="group" aria-label="Edit history">
         <Button
           className={buttonSecondary}
           size="sm"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          data-testid="import-button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl/Cmd+Z)"
+          data-testid="undo-button"
         >
-          Import
-        </Button>
-        <Button
-          className={buttonPrimary}
-          size="sm"
-          onClick={onExport}
-          disabled={!chart}
-          data-testid="export-button"
-        >
-          Export
+          Undo
         </Button>
         <Button
           className={buttonSecondary}
           size="sm"
-          variant="outline"
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl/Cmd+Shift+Z)"
+          data-testid="redo-button"
+        >
+          Redo
+        </Button>
+        <Button
+          className={buttonSecondary}
+          size="sm"
           onClick={onDeleteSelected}
           disabled={!canDelete}
+          title="Delete the selected note (Del)"
           data-testid="delete-button"
         >
           Delete
@@ -330,163 +538,208 @@ export function EditorToolbar({
             Del
           </kbd>
         </Button>
-        {onToggleSide && (
-          <button
-            type="button"
-            className={sideToggle}
-            onClick={onToggleSide}
-            aria-label={sideOpen ? "Close the editor sidebar" : "Open the editor sidebar"}
-            aria-expanded={sideOpen}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
+      </div>
+
+      <span className={spacer} />
+
+      <span className={counter} data-testid="note-count">
+        {noteCount} {noteCount === 1 ? "note" : "notes"}
+      </span>
+
+      <details ref={detailsRef} className={details} data-testid="chart-settings">
+        <summary className={summary} data-testid="chart-settings-summary">
+          Chart setup
+          <span className={summaryMeta}>
+            {chart ? `${chart.BPM} BPM · 1/${resolution}` : "no chart"}
+          </span>
+        </summary>
+
+        <div className={popover}>
+          <h3 className={popoverTitle}>Chart setup</h3>
+          <p className={settingsHint}>
+            Song, grid and file tools. Placing and editing notes never needs this panel.
+          </p>
+
+          <div className={settingsGrid}>
+            <Field.Root className={wideCell}>
+              <Field.Label className={fieldLabel}>Song name</Field.Label>
+              <Input
+                className={inputBox}
+                data-testid="song-name-input"
+                value={chart?.name ?? ""}
+                disabled={!chart}
+                onChange={(event) => onNameChange(event.currentTarget.value)}
+              />
+            </Field.Root>
+
+            <Field.Root className={field}>
+              <Field.Label className={fieldLabel}>BPM</Field.Label>
+              {/*
+                BPM は draft 入力 (issue #163): 空文字や「-」の途中状態でも
+                表示が確定値に戻されず、blur / Enter で整数として確定する。
+                parse できないテキストは確定値の表示へ戻る。
+              */}
+              <DraftInput<number>
+                className={inputBox}
+                data-testid="bpm-input"
+                value={chart?.BPM ?? Number.NaN}
+                format={(value) => (Number.isFinite(value) ? String(value) : "")}
+                disabled={!chart}
+                inputMode="numeric"
+                parse={parseIntegerOrNull}
+                onCommit={(value) => onBpmChange(value)}
+              />
+            </Field.Root>
+
+            <div className={field}>
+              <Select.Root
+                className={selectRoot}
+                collection={resolutionCollection}
+                value={[String(resolution)]}
+                onValueChange={(details) => {
+                  const [next] = details.value;
+                  if (next) {
+                    onResolutionChange(Number.parseInt(next, 10));
+                  }
+                }}
+              >
+                <Select.Label className={fieldLabel}>Resolution</Select.Label>
+                <Select.Control className={selectControl}>
+                  <Select.ValueText placeholder="1/4" />
+                  <Select.Indicator />
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.List>
+                        {RESOLUTIONS.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            <Select.ItemText>{item.label}</Select.ItemText>
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.List>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+              <p className={settingsHint}>How finely notes are written.</p>
+            </div>
+
+            <div className={field}>
+              <Select.Root
+                className={selectRoot}
+                collection={snapCollection}
+                value={[String(snapDivision)]}
+                onValueChange={(details) => {
+                  const [next] = details.value;
+                  if (next !== undefined) {
+                    handleSnapDivisionChange(parseSnapDivision(next));
+                  }
+                }}
+                data-testid="snap-select"
+              >
+                <Select.Label className={fieldLabel}>Snap</Select.Label>
+                <Select.Control className={selectControl}>
+                  <Select.ValueText placeholder="off" />
+                  <Select.Indicator />
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.List>
+                        {SNAP_DIVISIONS.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            <Select.ItemText>{item.label}</Select.ItemText>
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.List>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+              <p className={settingsHint}>Where a click lands on the beat.</p>
+            </div>
+
+            <div className={field}>
+              <Select.Root
+                className={selectRoot}
+                collection={zoomCollection}
+                value={[String(zoom)]}
+                onValueChange={(details) => {
+                  const [next] = details.value;
+                  if (next) {
+                    onZoomChange(Number.parseFloat(next));
+                  }
+                }}
+              >
+                <Select.Label className={fieldLabel}>Zoom</Select.Label>
+                <Select.Control className={selectControl}>
+                  <Select.ValueText placeholder="1×" />
+                  <Select.Indicator />
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      <Select.List>
+                        {ZOOMS.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            <Select.ItemText>{item.label}</Select.ItemText>
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.List>
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+              <p className={settingsHint}>Height of the timeline.</p>
+            </div>
+          </div>
+
+          <div className={settingsActions}>
+            <input
+              ref={fileInputRef}
+              className={fileInput}
+              type="file"
+              accept="application/json,.json"
+              data-testid="import-input"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) {
+                  onImportFile(file);
+                }
+                event.currentTarget.value = "";
+              }}
+            />
+            <Button
+              className={buttonSecondary}
+              size="sm"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="import-button"
             >
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-          </button>
-        )}
-        <span className={counter} data-testid="note-count">
-          {noteCount} notes
-        </span>
-      </div>
+              Import
+            </Button>
+            <Button
+              className={buttonPrimary}
+              size="sm"
+              onClick={onExport}
+              disabled={!chart}
+              data-testid="export-button"
+            >
+              Export
+            </Button>
+            <span className={settingsHint}>JSON stays byte-compatible with the Unity charts.</span>
+          </div>
 
-      <div className={group}>
-        <Field.Root className={wideField}>
-          <Field.Label className={fieldLabel}>Song name</Field.Label>
-          <Input
-            className={inputBox}
-            data-testid="song-name-input"
-            value={chart?.name ?? ""}
-            disabled={!chart}
-            onChange={(event) => onNameChange(event.currentTarget.value)}
-          />
-        </Field.Root>
-
-        <Field.Root className={field}>
-          <Field.Label className={fieldLabel}>BPM</Field.Label>
-          {/*
-            BPM は draft 入力 (issue #163): 空文字や「-」の途中状態でも
-            表示が確定値に戻されず、blur / Enter で整数として確定する。
-            parse できないテキストは確定値の表示へ戻る。
-          */}
-          <DraftInput<number>
-            className={inputBox}
-            data-testid="bpm-input"
-            value={chart?.BPM ?? Number.NaN}
-            format={(bpm) => (Number.isFinite(bpm) ? String(bpm) : "")}
-            disabled={!chart}
-            inputMode="numeric"
-            parse={parseIntegerOrNull}
-            onCommit={(bpm) => onBpmChange(bpm)}
-          />
-        </Field.Root>
-
-        <Select.Root
-          className={selectRoot}
-          collection={resolutionCollection}
-          value={[String(resolution)]}
-          onValueChange={(details) => {
-            const [next] = details.value;
-            if (next) {
-              onResolutionChange(Number.parseInt(next, 10));
-            }
-          }}
-        >
-          <Select.Label className={fieldLabel}>Grid</Select.Label>
-          <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="1/4" />
-            <Select.Indicator />
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                <Select.List>
-                  {RESOLUTIONS.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <Select.ItemText>{item.label}</Select.ItemText>
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.List>
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-
-        <Select.Root
-          className={selectRoot}
-          collection={snapCollection}
-          value={[String(snapDivision)]}
-          onValueChange={(details) => {
-            const [next] = details.value;
-            if (next !== undefined) {
-              handleSnapDivisionChange(parseSnapDivision(next));
-            }
-          }}
-          data-testid="snap-select"
-        >
-          <Select.Label className={fieldLabel}>Snap</Select.Label>
-          <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="1/4" />
-            <Select.Indicator />
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                <Select.List>
-                  {SNAP_DIVISIONS.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <Select.ItemText>{item.label}</Select.ItemText>
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.List>
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-
-        <Select.Root
-          className={selectRoot}
-          collection={zoomCollection}
-          value={[String(zoom)]}
-          onValueChange={(details) => {
-            const [next] = details.value;
-            if (next) {
-              onZoomChange(Number.parseFloat(next));
-            }
-          }}
-        >
-          <Select.Label className={fieldLabel}>View</Select.Label>
-          <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="Zoom 1" />
-            <Select.Indicator />
-          </Select.Control>
-          <Portal>
-            <Select.Positioner>
-              <Select.Content>
-                <Select.List>
-                  {ZOOMS.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <Select.ItemText>{item.label}</Select.ItemText>
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.List>
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
-      </div>
+          <p className={settingsHint} style={{ margin: 0 }}>
+            Keyboard: arrows nudge · Shift+←/→ resizes a hold · Del deletes · Esc deselects ·
+            Ctrl/Cmd+Z undoes.
+          </p>
+        </div>
+      </details>
     </header>
   );
 }

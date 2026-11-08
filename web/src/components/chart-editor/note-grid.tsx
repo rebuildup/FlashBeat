@@ -243,8 +243,34 @@ export function NoteGrid({
   const stageWidth = laneWidth * 8;
 
   const playheadBeat = (playheadSec * chart.BPM) / 60;
+  const selectedNote = selectedIndex !== null ? chart.notes[selectedIndex] : undefined;
 
   const handleStageMouseDown = (event: KonvaEventObject<MouseEvent>) => {
+    const stage = event.target.getStage();
+    if (event.target !== stage) {
+      return;
+    }
+
+    const pointer = stage?.getPointerPosition();
+    if (!pointer) {
+      return;
+    }
+
+    const block = Math.min(7, Math.max(0, Math.floor(pointer.x / laneWidth)));
+    const beat = snappedBeat(pointer.y, beatHeight, snapDivision, resolution);
+
+    onSelect(null);
+    onAddNote(block, beat);
+  };
+
+  /**
+   * Touch placement (issue #216).
+   *
+   * The same gesture as the mouse: a tap on an empty lane places the note
+   * the toolbar selected. Notes are dragged and resized by their own touch
+   * handlers, so this only reacts when the touch misses every note.
+   */
+  const handleStageTouchStart = (event: KonvaEventObject<TouchEvent>) => {
     const stage = event.target.getStage();
     if (event.target !== stage) {
       return;
@@ -357,6 +383,7 @@ export function NoteGrid({
           width={stageWidth}
           height={stageHeight}
           onMouseDown={handleStageMouseDown}
+          onTouchStart={handleStageTouchStart}
           style={{ cursor: "crosshair" }}
         >
           <Layer>
@@ -374,6 +401,36 @@ export function NoteGrid({
 
             {beatLines}
 
+            {/*
+              The selected note is the anchor of every edit: the whole lane
+              and the beat line are tinted, so "what is selected" is visible
+              from anywhere on the work area (issue #216).
+            */}
+            {selectedNote ? (
+              <>
+                <Rect
+                  x={selectedNote.block * laneWidth}
+                  y={0}
+                  width={laneWidth}
+                  height={stageHeight}
+                  fill="rgba(63,169,245,0.10)"
+                  listening={false}
+                />
+                <Line
+                  points={[
+                    0,
+                    noteBeat(selectedNote) * beatHeight,
+                    stageWidth,
+                    noteBeat(selectedNote) * beatHeight,
+                  ]}
+                  stroke="rgba(63,169,245,0.45)"
+                  strokeWidth={1}
+                  dash={[6, 4]}
+                  listening={false}
+                />
+              </>
+            ) : null}
+
             {Array.from({ length: 8 }, (_, lane) => (
               <Text
                 key={`lane-label-${lane}`}
@@ -382,7 +439,7 @@ export function NoteGrid({
                 text={String(lane + 1)}
                 fontSize={11}
                 fontStyle="bold"
-                fill={LANE_LABEL}
+                fill={selectedNote?.block === lane ? NOTE_FILL_SELECTED : LANE_LABEL}
                 listening={false}
               />
             ))}
