@@ -114,6 +114,7 @@ public class OptionSceneManager : MonoBehaviour
 
     [SerializeField] private AudioClip sound;
     AudioSource sounds;
+    private FlashBeat.UI.V6.Option.V6OptionView optionView;
 
     void Start()
     {
@@ -170,16 +171,21 @@ public class OptionSceneManager : MonoBehaviour
         if (flashSText != null) flashSText.text = GManager.FlashBG.ToString();
         if (flashTText != null) flashTText.text = GManager.FlashT.ToString();
 
-        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
-        // 入力は OptionView が処理し、このクラスの既存メソッドをコールバックで呼ぶ。
+        // v6 UI: 4 タブ (Play / Display / Sound / Data) のコード生成画面。
+        // 設定の実体 (GManager / OptionSettings) と保存経路は既存のものをそのまま使う。
         var legacy = GameObject.Find("Canvas");
         if (legacy != null) legacy.SetActive(false);
-        FlashBeat.UI.V5.OptionView.Build(
-            TitleScene, SpeedUp, SpeedDown, OptionSceneManager.TimingUp, TimingDown);
+
+        var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Option Canvas");
+        optionView = FlashBeat.UI.V6.Option.V6OptionView.Create(
+            canvas.GetComponent<RectTransform>(), TitleScene);
+        FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
     }
 
     void Update()
     {
+        if (optionView != null) optionView.Refresh();
+
         if (SceneManager.GetActiveScene().name == "OptionScene")
         {
             if (speedNum != null) speedNum.text = GManager.noteSpeed.ToString("F1");

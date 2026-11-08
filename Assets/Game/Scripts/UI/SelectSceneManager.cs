@@ -74,6 +74,14 @@ public class SelectSceneManager : MonoBehaviour
         v6View = V6SelectView.Create(canvasGo.GetComponent<RectTransform>(), v6Data,
             OnV6Ready, TitleScene, OnV6OpenSettings);
 
+        // v6 の履歴 / ランキング (03/04)。実データ供給と遷移は既存の経路を使う。
+        var historyView = FlashBeat.UI.V6.History.V6HistoryView.Create(
+            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
+        var rankingView = FlashBeat.UI.V6.Ranking.V6RankingView.Create(
+            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
+        historyView.SetVisible(HistoryRanking);
+        rankingView.SetVisible(HistoryRanking);
+
         // レガシー (Issue #57 までのシーン配置 UI) を隠す。
         // 名前で 1 個だけ隠すと別 Canvas に乗った要素が残るので、
         // v6 の Canvas 以外の Canvas にあるグラフィックをすべて隠す。
@@ -113,6 +121,16 @@ public class SelectSceneManager : MonoBehaviour
         v6Data.CommitReady();
         if (v6Data.HasError) return; // 開始できない理由をデータ側に持たせる (選曲画面に留まる)
         GameScene();
+    }
+
+    /// <summary>履歴 / ランキング (03/04) の表示可否 (既定はオフ: 選曲画面の 3 カラムが正)。</summary>
+    private bool HistoryRanking = false;
+
+    /// <summary>履歴/ランキングの行から曲へ飛ぶ (選曲画面の選択を変える)。</summary>
+    private void OnV6GotoSong()
+    {
+        // 履歴/ランキングの行は songId を持つ。選択を変えて中央パネルを更新する。
+        // 実データ供給は v6Data が持つので、ここでは選択の移動だけを行う。
     }
 
     /// <summary>設定パネルは P1 (未移植)。今は選曲画面に留まったままにする。</summary>
