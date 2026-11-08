@@ -710,14 +710,9 @@ namespace FlashBeat.UI.V6.Option
                         new Vector2(V6OptionLogic.GridKeyW, V6OptionLogic.GridKeyH),
                         V6Tokens.Key4, V6Tokens.RadiusSmall);
                     int lane = V6OptionLogic.DisplayLaneOf(keys[k], table);
-                    var laneText = V6Controls.Text(cap, "Lane", lane > 0 ? lane.ToString() : "",
+                    V6Controls.Text(cap, "Lane", lane > 0 ? lane.ToString() : "",
                         new Vector2(0f, 9f), new Vector2(V6OptionLogic.GridKeyW, 20f), 20f, V6Tokens.Text,
                         TextAlignmentOptions.Center);
-                    var laneRt = laneText.rectTransform;
-                    laneRt.anchorMin = new Vector2(0f, 1f);
-                    laneRt.anchorMax = new Vector2(0f, 1f);
-                    laneRt.pivot = new Vector2(0f, 1f);
-                    laneRt.anchoredPosition = new Vector2(0f, -9f);
                 }
             }
         }
