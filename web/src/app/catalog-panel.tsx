@@ -309,6 +309,26 @@ const youtubeAction = css({
   },
 });
 
+/**
+ * The publish requirement as a non-interactive badge (issue #215 review): a
+ * guest sees the staff/admin-token boundary in the row without a link to
+ * press; the per-song publish path starts at the chart page.
+ */
+const publishBadge = css({
+  alignItems: "center",
+  borderColor: "border",
+  borderRadius: "full",
+  borderStyle: "solid",
+  borderWidth: "1px",
+  color: "fg.subtle",
+  display: "inline-flex",
+  fontSize: "xs",
+  gap: "1",
+  paddingBlock: "0.5",
+  paddingInline: "2",
+  whiteSpace: "nowrap",
+});
+
 const levelCell = css({
   display: { base: "none", md: "block" },
 });
@@ -373,10 +393,6 @@ const stateWrap = css({
 
 function chartHref(song: SongSummary): string {
   return `/chart?songId=${encodeURIComponent(song.id)}&version=${song.chartVersion}`;
-}
-
-function publishHref(song: SongSummary): string {
-  return `/publish?songId=${encodeURIComponent(song.id)}&version=${song.chartVersion}`;
 }
 
 export function CatalogPanel({
@@ -504,13 +520,19 @@ export function CatalogPanel({
                     <a className={actionLink} href={chartHref(song)}>
                       譜面を開く / Open chart
                     </a>
-                    <a
-                      className={actionLink}
-                      href={publishHref(song)}
+                    {/*
+                      Issue #215 review: the per-song publish path starts at
+                      the chart page (公開に進む) or the staff sidebar — the
+                      row only states the requirement so a guest never starts
+                      a publish operation from a catalog row.
+                    */}
+                    <span
+                      className={publishBadge}
+                      data-testid="publish-requirement"
                       title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
                     >
-                      Publish（要トークン）
-                    </a>
+                      公開はスタッフ（要トークン）
+                    </span>
                     <a
                       aria-label={`${song.title} on YouTube`}
                       className={`${actionLink} ${youtubeAction}`}
@@ -571,13 +593,18 @@ export function CatalogPanel({
                     <span className={version}>v{song.chartVersion}</span>
 
                     <span className={actions}>
-                      <a
-                        className={actionLink}
-                        href={publishHref(song)}
+                      {/*
+                        Issue #215 review: the row states the publish
+                        requirement instead of linking it — the per-song path
+                        starts at the chart page or the staff sidebar.
+                      */}
+                      <span
+                        className={publishBadge}
+                        data-testid="publish-requirement"
                         title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
                       >
-                        Publish（要トークン）
-                      </a>
+                        公開はスタッフ（要トークン）
+                      </span>
                       <a
                         aria-label={`${song.title} on YouTube`}
                         className={`${actionLink} ${youtubeAction}`}
