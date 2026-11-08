@@ -34,12 +34,16 @@ test("publish shows the admin-token boundary before pressing it", async ({ page 
   await page.goto("/");
   // The sidebar marks Publish as admin-only before any click.
   await expect(page.getByTestId("nav-publish-admin-badge")).toHaveText("要トークン");
-  // The catalog row marks it too.
+  // The catalog row states the requirement as a non-interactive badge; the
+  // row never starts a publish operation (issue #215 review).
   const row = page.getByTestId("catalog-list").locator("a[data-row-link]", { hasText: "Who" }).first();
   await expect(row).toBeVisible();
+  await expect(page.getByTestId("catalog-list").getByTestId("publish-requirement")).toHaveText(
+    "公開はスタッフ（要トークン）",
+  );
   await expect(
-    page.getByTestId("catalog-list").getByRole("link", { name: /Publish（要トークン）/ }),
-  ).toBeVisible();
+    page.getByTestId("catalog-list").locator("a[href^='/publish']"),
+  ).toHaveCount(0);
 });
 
 test("catalog → editor → publish → back to catalog", async ({ page }) => {
@@ -54,9 +58,10 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await expect(page.getByTestId("chart-identity")).toContainText("Who");
   await expect(page.getByTestId("chart-identity")).toContainText("v1");
 
-  // The editor is ready and hands the draft to the publish screen; the
-  // admin-token requirement is visible next to the CTA (issue #215).
+  // The editor is ready; the visitor's primary CTA plays the song and the
+  // staff publish path is demoted to the outline variant (issue #215 review).
   await expect(page.getByTestId("publish-token-hint")).toContainText("adminトークン");
+  await expect(page.getByTestId("try-song-link")).toBeVisible();
   const review = page.getByRole("button", { name: "公開に進む / Review & Publish" });
   await expect(review).toBeVisible();
   await review.click();

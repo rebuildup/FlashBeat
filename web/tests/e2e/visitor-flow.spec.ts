@@ -1,4 +1,5 @@
-import { mkdirSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
@@ -28,6 +29,61 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeAll(() => {
   mkdirSync(ARTIFACTS_DIR, { recursive: true });
+});
+
+/**
+ * WCAG contrast of the v5 token pairs this flow relies on, dark mode (the
+ * studio is dark-first). Recorded into artifacts/metadata.json so the
+ * screenshot evidence carries the check (issue #215 review).
+ */
+function contrast(fgHex: string, bgHex: string): number {
+  const lum = (hex: string): number => {
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(1 + i, 3 + i), 16) / 255);
+    const lin = [r, g, b].map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  };
+  const [l1, l2] = [lum(fgHex), lum(bgHex)].sort((a, b) => b - a);
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+const CANVAS = "#1B1B1B";
+const CONTRAST_PAIRS = [
+  { name: "fg.default on canvas (body text)", fg: "#FFFFFF", bg: CANVAS, threshold: 4.5 },
+  { name: "fg.muted on canvas (secondary text)", fg: "#B0B0B0", bg: CANVAS, threshold: 4.5 },
+  { name: "fg.subtle on canvas (hints)", fg: "#8C8C8C", bg: CANVAS, threshold: 4.5 },
+  { name: "primary CTA fg on solid.bg (再生して試す)", fg: "#131313", bg: "#3FA9F5", threshold: 4.5 },
+  { name: "visitor nav fg on solid.bg (曲を選ぶ)", fg: "#131313", bg: "#3FA9F5", threshold: 4.5 },
+  { name: "selected fg on accent tint (aria-current)", fg: "#9AD3FA", bg: "#2B4457", threshold: 4.5 },
+];
+
+function writeMetadata(): void {
+  const sha = execSync("git rev-parse HEAD", { encoding: "utf8", cwd: process.cwd() }).trim();
+  const pairs = CONTRAST_PAIRS.map((pair) => ({
+    ...pair,
+    ratio: Number(contrast(pair.fg, pair.bg).toFixed(2)),
+    pass: contrast(pair.fg, pair.bg) >= pair.threshold,
+  }));
+  writeFileSync(
+    join(ARTIFACTS_DIR, "metadata.json"),
+    JSON.stringify(
+      {
+        commit: sha,
+        date: new Date().toISOString(),
+        runCommand:
+          "cd web && npx void db migrate && npx void db seed && npx vp dev; " +
+          "cd web && E2E_BASE_URL=http://localhost:<port> npx playwright test -c tests/e2e/playwright.config.ts --workers=1",
+        viewports: VIEWPORTS.map((viewport) => `${viewport.name} (CSS viewport)`),
+        contrastChecks: pairs,
+        allContrastPass: pairs.every((pair) => pair.pass),
+      },
+      null,
+      4,
+    ),
+  );
+}
+
+test.afterAll(() => {
+  writeMetadata();
 });
 
 /** Collect console errors and page errors; the flow must stay clean. */
@@ -74,11 +130,15 @@ for (const viewport of VIEWPORTS) {
     await page.getByTestId("welcome-start").click();
     await expect(page.locator("a[data-row-link]:visible").first()).toBeFocused();
 
-    // 3. 結果確認: the row opens the chart of that song.
+    // 3. 結果確認: the row opens the chart of that song; the primary CTA
+    // plays the song on YouTube (preview playback stays in the editor panel).
     await firstRow.click();
     await expect(page).toHaveURL(/\/chart\?songId=.+/);
     await expect(page.getByTestId("chart-identity")).toBeVisible();
     await expect(page.getByTestId("publish-token-hint")).toBeVisible();
+    const trySong = page.getByTestId("try-song-link");
+    await expect(trySong).toBeVisible();
+    await expect(trySong).toHaveAttribute("href", /youtu\.be/);
     await shot(page, viewport.name, "2-chart");
 
     // 4. 戻る: back to the song list, then やり直し: pick again.
