@@ -14,6 +14,10 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void Update()
         {
+            // 旧 (v5) 側の Canvas / ルート ("V5 Select Canvas" など) も毎フレーム隠し直す
+            // (v5 は Start/OnEnable で自前の Canvas を後から生成するため 1 回では足りない)。
+            V6UiMode.HideLegacyV5Canvases();
+
             if (View != null)
             {
                 View.Tick();
