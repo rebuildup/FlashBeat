@@ -57,6 +57,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private RectTransform comboFill;
         private GameObject bonusRow;
         private TextMeshProUGUI bonusValueText;
+        private GameObject comboStatusBlock;
         private GameObject comboStatusRow;
         private GameObject fullComboChip;
         private TextMeshProUGUI nextBonusText;
@@ -130,7 +131,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
-            comboStatusRow.SetActive(showStatus);
+            // 契約 §12: Combo Bonus と Combo Status は同座標・排他。ステータスが出ている間は
+            // ボーナスを隠す (縦積みだと契約位置からずれ、両方同時に出てしまう)。
+            comboStatusBlock.SetActive(showStatus);
 
             // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
             // 演奏中ずっと出しっぱなしにすると内容を反映しない表示になる (Issue #233)。
@@ -146,7 +149,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboFill.sizeDelta = new Vector2(
                 V6HudLogic.ComboFillFraction(GManager.combo, milestone) * m.StatusTrackW, m.StatusTrackH);
 
-            bonusRow.SetActive(GManager.combo > 0);
+            bonusRow.SetActive(V6HudLogic.ShowComboBonus(GManager.combo, showStatus));
             bonusValueText.text = "+" + GameHudLogic.FormatScore((int)GameHudLogic.BonusTotal(GManager.combo));
             nextBonusText.text = "次のボーナス " + milestone;
             nextBonusReward.text = "+" + GameHudLogic.FormatScore(GameHudLogic.NextBonusReward(milestone));
@@ -159,7 +162,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             UpdateLyrics();
             UpdateLaneVerdicts();
-            UpdateKeyCapPositions();
+            UpdateLaneGrids();
         }
 
         private void Update()
@@ -301,11 +304,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             trackRt.pivot = new Vector2(0f, 1f);
             trackRt.anchoredPosition = Vector2.zero;
 
-            // セグメント C/B/A/S/SS/+ (design は track と同色。位置だけ再現)
+            // セグメント C/B/A/S/SS/+ (design は track と同色。+ だけ契約 §8 の #3A3220)。
             for (int i = 0; i < m.GaugeSegX.Length; i++)
             {
                 var seg = V5Ui.Panel(track, "Seg " + i,
-                    new Vector2(m.GaugeSegW[i], m.GaugeSegH), V5Tokens.Key0, 2f);
+                    new Vector2(m.GaugeSegW[i], m.GaugeSegH),
+                    i == m.GaugeSegX.Length - 1 ? V6HudLogic.AccentBase : V5Tokens.Key0, 2f);
                 var segRt = GetRect(seg);
                 segRt.anchorMin = new Vector2(0f, 0f);
                 segRt.anchorMax = new Vector2(0f, 0f);
@@ -399,8 +403,18 @@ namespace FlashBeat.UI.V6.Game.Hud
             MenuButton.onClick.AddListener(OpenPauseMenu);
         }
 
+        /// <summary>
+        /// HUD のメニューボタンの既定リスナー。v6 ポーズが有効なときは何もしない —
+        /// V6PauseRuntime が同じボタンを v6 ポーズへ接線する。ここで v5 PauseMenuView を
+        /// 開くと (非表示のまま活性化して) v6 ポーズと二重表示・二重入力になる。
+        /// </summary>
         private void OpenPauseMenu()
         {
+            if (FlashBeat.UI.V6.V6UiMode.GameHud && FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
+            {
+                return;
+            }
+
             var pause = FindFirstObjectByType<PauseMenuView>();
             if (pause != null)
             {
@@ -430,7 +444,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildRightColumn()
         {
-            float columnH = m.BonusBlockH + 8f * Scale + m.StatusBlockH;
+            // 両 block は同座標 (排他) なので、コラムの高さは高い方 = ステータス block。
+            float columnH = m.StatusBlockH;
             var column = V5Ui.Node(gameObject, "Right Column");
             var rt = GetRect(column);
             rt.anchorMin = new Vector2(1f, 0.5f);
@@ -451,14 +466,17 @@ namespace FlashBeat.UI.V6.Game.Hud
             bonusValueText = BuildBonusRow(bonusRow, 0f, "+ COMBO BONUS", "+0");
             nextBonusText = BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス 300", "+0");
 
-            // --- コンボステータス (下) ---
+            // --- コンボステータス (同座標・排他) ---
+            // 契約 §12: Combo Bonus と Combo Status は同じ座標 (FHD 1512,460) にあり排他。
+            // 縦積みにすると契約位置からずれ、両方同時に出てしまう。
             var status = V5Ui.Node(column, "Combo Status");
             var statusRt = GetRect(status);
             statusRt.anchorMin = new Vector2(1f, 1f);
             statusRt.anchorMax = new Vector2(1f, 1f);
             statusRt.pivot = new Vector2(1f, 1f);
-            statusRt.anchoredPosition = new Vector2(0f, -m.StatusTop);
+            statusRt.anchoredPosition = Vector2.zero;
             statusRt.sizeDelta = new Vector2(m.RightColW, m.StatusBlockH);
+            comboStatusBlock = status;
 
             var track = V5Ui.Panel(status, "Track",
                 new Vector2(m.StatusTrackW, m.StatusTrackH), V5Tokens.Key0, 4f);
@@ -499,8 +517,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             noMissLe.minWidth = m.FcChipW * 0.6f;
             noMissLe.preferredHeight = m.StatusRowH;
 
+            // 契約 §8: FC チップ 150×40 #3A3220 r4 (fs22 $warn-light)。
             var chip = V5Ui.Panel(comboStatusRow, "Full Combo",
-                new Vector2(m.FcChipW, m.FcChipH), V5Tokens.WarnTint, 4f);
+                new Vector2(m.FcChipW, m.FcChipH), V6HudLogic.AccentBase, 4f);
             fullComboChip = chip;
             var chipLe = chip.AddComponent<LayoutElement>();
             chipLe.minWidth = m.FcChipW;
@@ -636,34 +655,68 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// キーキャップを **実際のレーンの画面位置** に合わせる (Issue #233 実機指摘:
-        /// design px の固定値はカメラ投影とズレる)。レーン判定位置 (y=0.76, z=0.15) を
-        /// Camera.Main で投影し、HUD フレーム (中央原点・等比拡大) のローカル x へ写す。
-        /// 投影できない (カメラ無し等) ときは design px のまま。
+        /// キーガイド / 判定行の 8 列の x を実際の画面へ合わせる (Issue #233 実機指摘 +
+        /// 契約 §8 整合)。
         ///
-        /// v6 プレイフィールド有効時は **design のキーガイド格子** に固定する。
-        /// 旧 3D レーンは隠れる (v6 プレイフィールドが代わりに描く) ので 3D の投影を
-        /// 基準にでき 없고、design §8 の Key Guide x (310, 487, 665, …) = この格子が
-        /// 契約の正解。判定行も同じ格子に載せるため、両者がズレない。
+        /// - v6 プレイフィールド有効時: 契約 §8 の design 実測格子
+        ///   (KeyGuide x = FHD 310.. / 2K 529.. / Mac 464..) をテンプレート座標へ写す
+        ///   (<see cref="V6HudMetrics.KeyGuideTemplateX"/>)。build 時の固定値は
+        ///   FHD 格子を等比拡大しただけなので 2K / Mac で契約位置からずれる。
+        /// - レガシー 3D プレイフィールド時: レーン判定位置 (y=0.76, z=0.15) を
+        ///   Camera.Main で投影してテンプレート x へ写す (契約 §8 ⚠ の
+        ///   「レーン中心への追従」推奨案。design px の固定値はカメラ投影とズレる)。
+        ///   投影できない (カメラ無し等) ときは build 時の design px のまま。
+        ///
+        /// 判定行も同じ格子に載せる (契約 §8: 判定行サンプルは KeyGuide 格子と同位置)。
+        ///
+        /// 注意: 自分 (hud root) の localScale は常に 1 で、等比倍率は親フレーム
+        /// (V6GameRuntime.hudFrame) に掛る。かつて自分の localScale (=1) で割っていたため
+        /// 2K / Mac で 1.333 倍ズレていた → lossyScale (親フレーム倍率を含む) を使う。
+        /// またローカル x の原点はフレーム左端 (アンカー x=0) なので中央原点には寄せない。
+        /// 変換式は純ロジック (<see cref="V6HudLogic.ScreenXToTemplateX"/> /
+        /// <see cref="V6HudMetrics.KeyGuideTemplateX"/>) として EditMode テスト可能。
         /// </summary>
-        private void UpdateKeyCapPositions()
+        private void UpdateLaneGrids()
         {
-            if (keyGuideRow == null) return;
-            if (FlashBeat.UI.V6.V6UiMode.Playfield) return;
+            var frameRt = transform.parent as RectTransform;
+            if (frameRt == null) return;
+            float frameScale = frameRt.lossyScale.x;
+            if (frameScale <= 0f) return;
+            Vector2 canvasSize = frameRt.rect.size * frameScale;
+
+            if (FlashBeat.UI.V6.V6UiMode.Playfield)
+            {
+                for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
+                {
+                    float x = V6HudMetrics.KeyGuideTemplateX(canvasSize.x, canvasSize.y, lane);
+                    SetLaneGridX(lane, x);
+                }
+                return;
+            }
+
             var cam = Camera.main;
             if (cam == null) return;
-            var frame = GetRect(gameObject);
-            float frameScale = frame.localScale.x;
-            if (frameScale <= 0f) return;
-
-            for (int lane = 0; lane < keyCaps.Count; lane++)
+            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
                 Vector3 world = new Vector3(lane - 3.5f, 0.76f, 0.15f);
                 Vector3 screen = cam.WorldToScreenPoint(world);
                 if (screen.z <= 0f) continue;
+                SetLaneGridX(lane, V6HudLogic.ScreenXToTemplateX(screen.x, frameScale));
+            }
+        }
+
+        /// <summary>レーン格子の第 lane 列へキーキャップと判定テキストを載せる。</summary>
+        private void SetLaneGridX(int lane, float x)
+        {
+            if (lane < verdictTexts.Count)
+            {
+                var rt = verdictTexts[lane].rectTransform;
+                rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
+            }
+            if (lane < keyCaps.Count)
+            {
                 var rt = keyCaps[lane].rectTransform;
-                float localX = (screen.x - Screen.width * 0.5f) / frameScale;
-                rt.anchoredPosition = new Vector2(localX, rt.anchoredPosition.y);
+                rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
             }
         }
 

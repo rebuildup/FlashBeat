@@ -7,17 +7,17 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// <summary>
     /// v6 ポーズ (Issue #224) の統合配線。
     ///
-    /// Esc での開閉と矢印 / タブ操作は <see cref="V6GameRuntime"/>.UpdatePause が担う。
-    /// ここはその外側の 2 点:
+    /// Esc での開閉と矢印 / タブ操作は <see cref="V6GameRuntime"/>.UpdatePause が担い、
+    /// 開閉状態の正本は <see cref="V6PauseView.IsOpen"/> (自分の状態)。
+    /// GameSceneManager.Menu はレガシー歌詞パネルのフラグなので読まない・書かない
+    /// (かつてここで毎フレーム Menu を書き戻しており、歌詞パネルの状態と混線していた)。
+    /// ここはその外側の 1 点:
     /// - v6 HUD のメニューボタン (右下の Esc キャップ) を v6 ポーズへ接続する。
-    ///   ボタンの既存リスナーは v5 PauseMenuView を探すが、v6 有効時は非表示なので
-    ///   何も起きない (死んでいる)。ここに v6 用のリスナーを追加する。
-    /// - ポーズがフッターボタン (再開 / リトライ / 選曲へ) で閉じたとき、
-    ///   V6GameRuntime の開閉状態フラグ (GameSceneManager.Menu) を閉じた側へ同期する。
-    ///   同期しないとフラグが true のまま残り、Esc が二度と効かなくなる。
+    ///   ボタンの既存リスナー (V6GameHudView.OpenPauseMenu) は v6 ポーズ有効時は
+    ///   何もしないので、ここに v6 用のリスナーを追加する。
     ///
     /// V6UiMode.GameHud が無効のときは何もしない (v5 が従来どおり全部を担う)。
-    /// v5 の PauseMenuView は V6GameRuntime.HideLegacyPauseAndLoading が非表示化する
+    /// v5 の PauseMenuView は V6GameRuntime.LateUpdate が毎フレーム非表示化する
     /// (Update が走らないので二重入力にならない)。破棄はしない: GameHudController が
     /// 毎フレーム参照していて (pause.InputEnabled / pause.Close)、破棄するとその経路で
     /// MissingReferenceException になる。
@@ -62,18 +62,6 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 TryWireHudButton();
             }
-
-            V6PauseView pause = V6PauseView.Current;
-            if (pause == null) return;
-
-            // フッターボタン (再開 / リトライ / 選曲へ) で閉じた後の同期。
-            // V6GameRuntime.UpdatePause は GameSceneManager.Menu を「ポーズが開いている」
-            // 意味で読む。v6 HUD 有効時はレガシーの歌詞トグル (TextPanelOn/Off) に
-            // 届かないので、Menu を書くのはポーズの開閉だけ。
-            if (GameSceneManager.Menu && !pause.IsOpen)
-            {
-                GameSceneManager.Menu = false;
-            }
         }
 
         /// <summary>v6 HUD のメニューボタン (Pause ボタン) を v6 ポーズへ接続する。</summary>
@@ -93,7 +81,6 @@ namespace FlashBeat.UI.V6.Game.Pause
             if (pause == null || pause.IsOpen) return;
 
             pause.Open();
-            GameSceneManager.Menu = true;
         }
     }
 }
