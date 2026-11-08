@@ -308,8 +308,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         ///
         /// 契約 §8: HUD は 3 解像度の固有フレーム (1920×1080 / 2560×1440 / 2560×1664)。
         /// 既知解像度は design 値を <b>実ピクセルのまま</b>返す (等比拡大・縮小はしない)。
-        /// 未知解像度は最も近い既知プロファイル (中心間距離最小) を <b>そのまま</b>使う
-        /// (Owner 指示 2026-11-08: 縮尺を変えない)。
+        /// 未知解像度の選択規則 (Owner 指示 2026-11-08):
+        /// 1. 幅 (w) が最も近いプロファイル。
+        /// 2. 幅が同点 (2560 の 2K/Mac) ならアスペクト比が最も近い方
+        ///    (16:9 = 1.7778 → 2K、16:10 = 1.5385 → Mac)。
+        /// 3. 幅もアスペクトも同点なら高い方の解像度 (2K を Mac より優先)。
         /// </summary>
         public static V6HudMetrics ForResolution(float width, float height)
         {
@@ -318,17 +321,21 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return Fhd(1f);
             }
 
-            // 毎フレーム呼ばれる (解像度変更の検知) ので、プロファイルはキャッシュする。
+            // 毎フレーム呼ばれる (解像度変更の検知) ので、静的配列のループのみ (new / LINQ なし)。
             int best = 0;
-            float bestD = float.MaxValue;
+            float bestDw = float.MaxValue;
+            float bestDa = float.MaxValue;
             for (int i = 0; i < ProfileResolutions.Length; i++)
             {
-                float dx = width - ProfileResolutions[i].x;
-                float dy = height - ProfileResolutions[i].y;
-                float d = dx * dx + dy * dy;
-                if (d < bestD)
+                var r = ProfileResolutions[i];
+                float dw = width - r.x;
+                if (dw < 0f) dw = -dw;
+                float da = height / width - r.y / r.x;
+                if (da < 0f) da = -da;
+                if (dw < bestDw || (dw == bestDw && da < bestDa))
                 {
-                    bestD = d;
+                    bestDw = dw;
+                    bestDa = da;
                     best = i;
                 }
             }

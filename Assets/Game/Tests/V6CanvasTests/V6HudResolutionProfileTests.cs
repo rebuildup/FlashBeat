@@ -39,10 +39,31 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(m2k.GaugeFillMax, mMac.GaugeFillMax);
         }
 
+        // --- 契約 §8: 未知解像度の選択規則 (幅が最も近い → 同点はアスペクト比 → 高解像度) ---
+
+        [Test]
+        public void ForResolution_ResolutionTable_MatchesContract()
+        {
+            var table = new (float w, float h, string name)[]
+            {
+                (1920f, 1080f, "fhd"),
+                (2560f, 1440f, "2k"),
+                (2560f, 1664f, "mac"),
+                (1920f, 1200f, "fhd"),
+                (1280f, 720f, "fhd"),
+                (3840f, 2160f, "2k"),
+            };
+            for (int i = 0; i < table.Length; i++)
+            {
+                Assert.AreEqual(table[i].name, V6HudMetrics.ForResolution(table[i].w, table[i].h).Name,
+                    $"{table[i].w}×{table[i].h}");
+            }
+        }
+
         [Test]
         public void ForResolution_UnknownResolution_UsesNearestProfileAsIs()
         {
-            // 1920×1200: FHD (距離 120²) が最近。FHD 値を そのまま (縮尺を変えない)。
+            // 1920×1200: 幅が FHD (1920) に最も近い。FHD 値を そのまま (縮尺を変えない)。
             var m = V6HudMetrics.ForResolution(1920f, 1200f);
             Assert.AreEqual("fhd", m.Name);
             Assert.AreEqual(95, m.GradeFs);
@@ -50,7 +71,7 @@ namespace FlashBeat.V6CanvasTests
             // 1280×720: FHD が最近 (2K より近い)
             m = V6HudMetrics.ForResolution(1280f, 720f);
             Assert.AreEqual("fhd", m.Name);
-            // 3840×2160: 2K が最近
+            // 3840×2160: 幅同点 (2K/Mac) → アスペクト比 16:9 で 2K
             m = V6HudMetrics.ForResolution(3840f, 2160f);
             Assert.AreEqual("2k", m.Name);
             Assert.AreEqual(240, m.ComboValueFs);
