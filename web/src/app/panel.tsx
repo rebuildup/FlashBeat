@@ -124,9 +124,8 @@ export const panelSubtitle = css({
  * (issue #215 review) — accent as a filled button only here, per the Pen.
  */
 export const primaryCta = css({
-  colorPalette: "blue",
-  bg: "colorPalette.solid.bg",
-  color: "colorPalette.solid.fg",
+  bg: "#EDEDED",
+  color: "#1B1B1B",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -142,7 +141,7 @@ export const primaryCta = css({
   _hover: { opacity: "0.9" },
   _focusVisible: {
     outline: "2px solid",
-    outlineColor: "colorPalette.solid.bg",
+    outlineColor: "#3FA9F5",
     outlineOffset: "2px",
   },
   _disabled: { opacity: "0.4" },
