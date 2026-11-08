@@ -22,6 +22,16 @@ namespace FlashBeat.UI.V6.Game.Playfield
     /// (scale = 画面高さ / 972、設計フレーム中心を画面中心へ):
     /// 1920×1080 と 2560×1440 は 16:9 なので設計通りそのまま、
     /// 2560×1664 でもプレイフィールド (下端幅 1200 設計px) は画面内に収まる。
+    ///
+    /// 契約照合 (2026-11-08 / docs/design/v6/flashbeat-v6-contract.md §6):
+    /// 下列の定数はすべて **契約値 = 実装値** であることを項目ごとに確認済み。
+    ///   判定線 y=792 → JudgeLineY / 判定線 h=4 → JudgeLineHeightDesignPx
+    ///   判定グロウ y=796 h=2 → JudgeGlowY / JudgeGlowHeightDesignPx
+    ///   判定線色 #EDEDED → JudgeLineColor / グロウ色 #FFFFFF4D → JudgeGlowColor
+    ///   レーン線色 #FFFFFF2E sw2 → SeparatorColor / SeparatorStrokeDesignPx
+    ///   ノーツ色 #EDEDED → NoteColor
+    ///   レーン中心線 下端 x=339 step=150 → LaneCentreBottomX / LaneCentreBottomStep
+    ///   レーン中心線 上端 x=801 step=18 → LaneCentreTopX / LaneCentreTopStep
     /// </summary>
     public static class V6LaneGeometry
     {
@@ -49,6 +59,18 @@ namespace FlashBeat.UI.V6.Game.Playfield
         /// <summary>レーン中心線の上端間隔 (= 奥のレーン幅)。</summary>
         public const float LaneCentreTopStep = 18f;
 
+        /// <summary>レーン線の線幅 (design: stroke #FFFFFF2E sw2)。</summary>
+        public const float SeparatorStrokeDesignPx = 2f;
+
+        /// <summary>判定ラインの高さ (design: (0,792) 1728×4)。</summary>
+        public const float JudgeLineHeightDesignPx = 4f;
+
+        /// <summary>判定グロウの高さ (design: (0,796) 1728×2)。</summary>
+        public const float JudgeGlowHeightDesignPx = 2f;
+
+        /// <summary>判定グロウの上端 y (design: 判定ラインの下端 792+4 = 796)。</summary>
+        public const float JudgeGlowY = JudgeLineY + JudgeLineHeightDesignPx;
+
         /// <summary>ノーツ幅 = レーン幅への比率 (デザイン実測: y=640 のノーツ 97px / レーン幅 124.7px)。</summary>
         public const float NoteWidthRatio = 0.78f;
 
@@ -72,6 +94,13 @@ namespace FlashBeat.UI.V6.Game.Playfield
 
         /// <summary>ノーツの色 (design: #EDEDED)。</summary>
         public static readonly Color NoteColor = FromHex("#EDEDED");
+
+        /// <summary>
+        /// 動画減光の色 (design §8: Video Dim #00000080 全画面)。
+        /// 動画より手前・プレイフィールドより後ろのレイヤで敷く。
+        /// #00000080 = 黒 + アルファ 0x80/255 (明示的な数値で持つ)。
+        /// </summary>
+        public static readonly Color VideoDimColor = new Color(0f, 0f, 0f, 0x80 / 255f);
 
         /// <summary>
         /// レーン <paramref name="lane"/> 上の t01 位置の点を返す。
@@ -102,6 +131,18 @@ namespace FlashBeat.UI.V6.Game.Playfield
         public static float LaneWidthAt(float t01)
         {
             return Mathf.LerpUnclamped(LaneCentreBottomStep, LaneCentreTopStep, t01);
+        }
+
+        /// <summary>t01 におけるノーツ幅 (設計px)。レーン幅 × <see cref="NoteWidthRatio"/>。</summary>
+        public static float NoteWidthAt(float t01)
+        {
+            return LaneWidthAt(t01) * NoteWidthRatio;
+        }
+
+        /// <summary>t01 におけるノーツ厚み (設計px)。ノーツ幅 × <see cref="NoteThicknessRatio"/>。</summary>
+        public static float NoteThicknessAt(float t01)
+        {
+            return NoteWidthAt(t01) * NoteThicknessRatio;
         }
 
         /// <summary>実画面 (px) における 設計px → px の倍率 (高さ合わせ)。</summary>

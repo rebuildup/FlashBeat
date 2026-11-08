@@ -21,9 +21,9 @@ namespace FlashBeat.UI.V6.Game.Playfield
         /// <summary>現在のビュー (GameScene で 1 つ)。無い場合は <see cref="Notes"/> が 3D 描画にフォールバックする。</summary>
         public static V6PlayfieldView Current { get; private set; }
 
-        private const float SeparatorStrokeDesignPx = 2f;
-        private const float JudgeLineHeightDesignPx = 4f;
-        private const float JudgeGlowHeightDesignPx = 2f;
+        private const float SeparatorStrokeDesignPx = V6LaneGeometry.SeparatorStrokeDesignPx;
+        private const float JudgeLineHeightDesignPx = V6LaneGeometry.JudgeLineHeightDesignPx;
+        private const float JudgeGlowHeightDesignPx = V6LaneGeometry.JudgeGlowHeightDesignPx;
 
         private readonly List<Image> separatorLines = new List<Image>();
         private Image judgeLine;
@@ -155,12 +155,14 @@ namespace FlashBeat.UI.V6.Game.Playfield
             }
 
             // 判定ライン y=792..796、グロウ y=796..798 (設計座標、y 下向き)
+            // 幅は画面全幅 (design では x=0 w=1728 = フレーム全幅。16:9 / 16:10 の
+            // 対応解像度では設計フレーム幅が画面幅と一致する)。
             var lineRt = judgeLine.rectTransform;
             lineRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx) * px);
             lineRt.offsetMax = new Vector2(0f, size.y * 0.5f - V6LaneGeometry.JudgeLineY * px);
             var glowRt = judgeGlow.rectTransform;
-            glowRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx + JudgeGlowHeightDesignPx) * px);
-            glowRt.offsetMax = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx) * px);
+            glowRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeGlowY + JudgeGlowHeightDesignPx) * px);
+            glowRt.offsetMax = new Vector2(0f, size.y * 0.5f - V6LaneGeometry.JudgeGlowY * px);
         }
 
         private void OnDestroy()
