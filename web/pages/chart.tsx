@@ -12,6 +12,7 @@ import {
   pageHeaderIdentity,
   pageTitle,
   pageSubtitle,
+  primaryCta,
 } from "@/app/panel";
 import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./chart.server";
@@ -48,15 +49,6 @@ const editorPane = css({
   flex: "1",
   flexDirection: "column",
   minHeight: "0",
-});
-
-/** v5 primary CTA: the same solid palette action the publish screen uses. */
-const primaryAction = css({
-  colorPalette: "blue",
-  bg: "colorPalette.solid.bg",
-  color: "colorPalette.solid.fg",
-  _hover: { opacity: "0.9" },
-  _disabled: { opacity: "0.4" },
 });
 
 /** Permission boundary of the publish path, visible before pressing it. */
@@ -112,8 +104,23 @@ export default function ChartPage({ songId, version }: Props) {
           </p>
         </div>
         <div className={pageActions}>
+          {/* Issue #215 review: the visitor's primary CTA plays the song
+              (preview playback stays inside the editor panel); the publish
+              path is staff and demoted to the outline variant. */}
+          {session?.song.youtubeId ? (
+            <a
+              className={primaryCta}
+              href={`https://youtu.be/${encodeURIComponent(session.song.youtubeId)}`}
+              rel="noreferrer"
+              target="_blank"
+              data-testid="try-song-link"
+            >
+              再生して試す / Try the song
+            </a>
+          ) : null}
           <Button
-            className={primaryAction}
+            variant="outline"
+            colorPalette="blue"
             size="sm"
             disabled={(selected && !session) || editedChart === null}
             onClick={() => {
