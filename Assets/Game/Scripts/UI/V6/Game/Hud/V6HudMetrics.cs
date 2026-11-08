@@ -318,16 +318,13 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return Fhd(1f);
             }
 
-            V6HudMetrics[] profiles = { Fhd(1f), TwoK(), Mac() };
-            float[] ws = { 1920f, 2560f, 2560f };
-            float[] hs = { 1080f, 1440f, 1664f };
-
+            // 毎フレーム呼ばれる (解像度変更の検知) ので、プロファイルはキャッシュする。
             int best = 0;
             float bestD = float.MaxValue;
-            for (int i = 0; i < profiles.Length; i++)
+            for (int i = 0; i < ProfileResolutions.Length; i++)
             {
-                float dx = width - ws[i];
-                float dy = height - hs[i];
+                float dx = width - ProfileResolutions[i].x;
+                float dy = height - ProfileResolutions[i].y;
                 float d = dx * dx + dy * dy;
                 if (d < bestD)
                 {
@@ -336,7 +333,20 @@ namespace FlashBeat.UI.V6.Game.Hud
                 }
             }
 
-            return profiles[best];
+            return ProfileCache()[best];
+        }
+
+        /// <summary>契約 §8 の 3 プロファイル解像度 (FHD / 2K / Mac)。</summary>
+        private static readonly Vector2[] ProfileResolutions =
+        {
+            new Vector2(1920f, 1080f), new Vector2(2560f, 1440f), new Vector2(2560f, 1664f),
+        };
+
+        private static V6HudMetrics[] profileCache;
+
+        private static V6HudMetrics[] ProfileCache()
+        {
+            return profileCache ?? (profileCache = new[] { Fhd(1f), TwoK(), Mac() });
         }
 
         /// <summary><see cref="ForResolution"/> が選ぶプロファイル名 (解像度変更の検知用)。</summary>
