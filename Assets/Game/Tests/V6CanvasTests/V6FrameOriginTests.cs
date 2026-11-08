@@ -57,7 +57,9 @@ namespace FlashBeat.UI.V6.Common.Tests
         [Test]
         public void BackdropColor_MatchesContractSection3BgToken()
         {
-            // 契約 §3 の bg トークン (#1B1B1B)。ApplyBackdrop の呼び出し側が渡す値。
+            // 契約 §3 の bg トークン (#1B1B1B)。背景はゲーム自身のアニメーション
+            // 背景 (bg-anim3, cover) のまま (v6 は画面全体を不透明パネルで覆わない)。
+            // 本トークンは全面背景用途には使わない。
             Assert.AreEqual(new Color32(0x1B, 0x1B, 0x1B, 0xFF), V6Tokens.Bg);
         }
     }

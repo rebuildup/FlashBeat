@@ -13,6 +13,11 @@ namespace FlashBeat.UI.V6.Common
     public static class V6Tokens
     {
         // --- text / surface (契約 §3) ---
+        /// <summary>
+        /// 契約 §3 の bg トークン (#1B1B1B)。背景を全面に敷く用途で使わないこと:
+        /// フレームの外側はゲーム自身のアニメーション背景 (bg-anim3, cover) が敷く
+        /// (V6Frame の doc コメント参照)。
+        /// </summary>
         public static readonly Color Bg = FromHex("#1B1B1B");
         public static readonly Color Text = FromHex("#FFFFFF");
         public static readonly Color TextMuted = FromHex("#B0B0B0");

@@ -18,6 +18,11 @@ namespace FlashBeat.UI.V6.Common
     /// - Modal  (0,0)    1728×972 (既定非表示)
     ///
     /// 座標変換は <see cref="V6Layout.ToLocal"/> に集約 (全 v6 画面共通の規約)。
+    ///
+    /// 背景の扱い: フレームの外側はゲーム自身のアニメーション背景
+    /// (bg-anim3, mode=cover) が敷かれているのが正 (design の「Resolution ·
+    /// MacBook Air M5 2560×1664」フレーム基準)。v6 側は画面全体を
+    /// 不透明パネルで覆わない (覆うとゲーム背景を潰して退行になる)。
     /// </summary>
     public static class V6Frame
     {
@@ -56,34 +61,6 @@ namespace FlashBeat.UI.V6.Common
             return new Vector2(
                 Mathf.FloorToInt((screenW - DesignW) / 2f),
                 Mathf.FloorToInt((screenH - DesignH) / 2f));
-        }
-
-        /// <summary>
-        /// フレームの外側を含む画面全体を不透明な暗色 (契約 §3 の <c>bg</c> =
-        /// <see cref="V6Tokens.Bg"/>) で覆う。v5 等の Legacy クリーム色背景が
-        /// フレーム外に透けないようにするためのヘルパ。
-        /// 生成される "Backdrop" は parent 直下の全画面 stretch、
-        /// 描画順を最背面 (sibling index 0) にしてフレームの下に敷く。
-        /// </summary>
-        public static void ApplyBackdrop(Transform parent, int screenW, int screenH, Color color)
-        {
-            if (parent == null)
-            {
-                return;
-            }
-
-            var go = new GameObject("Backdrop", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = Vector2.zero;
-            var image = go.GetComponent<Image>();
-            image.color = color;
-            image.raycastTarget = false;
-            go.transform.SetSiblingIndex(0);
         }
 
         /// <summary>
