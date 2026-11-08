@@ -198,6 +198,14 @@ namespace FlashBeat.UI.V6.Select.Data
                 }
             }
             ApplyFilter();
+
+            // 既定選択: 未選択のまま Space (Ready) を押すと「曲が選択されていません」で
+            // 何も起きず詰む (Issue #233 実機)。最初の曲を選択しておく。
+            if (selectedSongId < 0 && filteredSongs.Count > 0)
+            {
+                selectedSongId = filteredSongs[0].SongId;
+                StartRankingFetch(Selected, false);
+            }
         }
 
         static V6SongEntry BuildEntry(SongData song)
