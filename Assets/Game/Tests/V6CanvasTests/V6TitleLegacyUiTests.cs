@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 
 namespace FlashBeat.UI.V6.Title.Tests
 {
@@ -64,6 +65,34 @@ namespace FlashBeat.UI.V6.Title.Tests
             Assert.IsFalse(V6TitleLogic.IsLegacyTitleObjectName(null));
             Assert.IsFalse(V6TitleLogic.IsLegacyTitleObjectName(""));
             Assert.IsFalse(V6TitleLogic.IsLegacyTitleObjectName(" "));
+        }
+
+        // --- 実行時の非表示 API (V6UiMode.HideLegacyTitleUi) ---
+
+        [Test]
+        public void HideLegacyTitleUi_HidesLateCreatedLegacyObjects_OnEveryCall()
+        {
+            var first = new GameObject("Menu GameStart");
+            V6UiMode.HideLegacyTitleUi();
+            Assert.IsFalse(first.activeSelf, "1 回目の呼び出しで隠れる");
+
+            // 旧 v5 TitleView が Start/OnEnable で後から生成するケースの再現:
+            // 前回の呼び出しの後に生成されたオブジェクトも、呼び直せば隠れる
+            // (呼び出し側は毎フレーム呼ぶ契約)。
+            var late = new GameObject("Menu Option");
+            V6UiMode.HideLegacyTitleUi();
+            Assert.IsFalse(late.activeSelf, "生成後に呼び直せば隠れる");
+
+            // v6 自身 (V6 Canvas 配下の "Logo") は隠さない。
+            var v6Canvas = new GameObject("V6 Title Canvas").AddComponent<Canvas>();
+            var v6Logo = new GameObject("Logo");
+            v6Logo.transform.SetParent(v6Canvas.transform, false);
+            V6UiMode.HideLegacyTitleUi();
+            Assert.IsTrue(v6Logo.activeSelf, "v6 自身の Logo は隠さない");
+
+            Object.DestroyImmediate(first);
+            Object.DestroyImmediate(late);
+            Object.DestroyImmediate(v6Canvas.gameObject);
         }
     }
 }
