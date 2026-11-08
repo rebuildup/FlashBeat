@@ -338,5 +338,52 @@ namespace FlashBeat.V6PlayfieldTests
             Assert.AreEqual(V6LaneGeometry.JudgeLineY * V6LaneGeometry.ScreenScale(screen),
                 judgeLine.y, 0.5f);
         }
+        [Test]
+        public void DesignToScreen_PreservesLaneSeparationAtFarPlane()
+        {
+            // 契約: 設計座標の最奥 (y=0, t01=1) でレーン中心線は
+            // x = 801 + 18*i (i=0..7) と異なる値を持つ。
+            // 実画面への写像後も各レーンの x は 0 に潰れず、単調増加を保つ。
+            var screen = new Vector2(1920f, 1080f);
+            float previous = float.NegativeInfinity;
+
+            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
+            {
+                Assert.IsTrue(V6LaneGeometry.TryLanePoint(lane, 1f, out Vector2 design, out _));
+                Vector2 screenPos = V6LaneGeometry.DesignToScreen(design, screen);
+
+                // 設計座標の時点で x が異なることを確認
+                Assert.AreEqual(V6LaneGeometry.LaneCentreTopX + V6LaneGeometry.LaneCentreTopStep * lane,
+                    design.x, Epsilon);
+                Assert.Greater(design.x, 0f, $"Lane {lane} design x must be positive at far plane");
+
+                // 実画面座標でも x が異なり、単調増加する
+                Assert.Greater(screenPos.x, previous, $"Lane {lane} screen x must be ordered");
+                previous = screenPos.x;
+            }
+
+            // 全レーンの x が正であること (0 に潰れない)
+            Assert.Greater(previous, 0f);
+        }
+
+        [Test]
+        public void ScreenScale_TakesScreenSizeNotDesignCoordinate()
+        {
+            // ScreenScale は画面解像度を受け取り、高さ合わせの均一倍率を返す。
+            // 設計座標 (y=0 など) を渡すと誤った倍率 (0) になるため、
+            // 呼び出し側の誤用を検出しやすくするためのドキュメント的テスト。
+            var screen1080p = new Vector2(1920f, 1080f);
+            var designFarPlane = new Vector2(864f, 0f); // 設計フレーム中心・最奥
+
+            float correctScale = V6LaneGeometry.ScreenScale(screen1080p);
+            float misuseScale = V6LaneGeometry.ScreenScale(designFarPlane); // バグ: 設計座標を渡す
+
+            Assert.Greater(correctScale, 0f, "正しい呼び出しでは倍率 > 0");
+            Assert.AreEqual(0f, misuseScale, "設計座標 y=0 を渡すと倍率 0 になる (誤用の検出用)");
+
+            // 正しい倍率を使えば DesignToScreen で x が潰れない
+            Vector2 correct = V6LaneGeometry.DesignToScreen(designFarPlane, screen1080p);
+            Assert.Greater(correct.x, 0f, "正しい倍率なら実画面 x > 0");
+        }
     }
 }

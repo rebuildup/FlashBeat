@@ -105,7 +105,7 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void ParseLeaderboard_RejectsGarbageAndEmpty()
+        public void ParseLeaderboard_RejectsGarbageAcceptsEmpty()
         {
             Assert.IsNull(RankingClient.ParseLeaderboard(null));
             Assert.IsNull(RankingClient.ParseLeaderboard("not json"));

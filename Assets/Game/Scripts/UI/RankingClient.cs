@@ -20,7 +20,7 @@ public static class RankingClient
     public const string ConfigResourceName = "CloudCatalogConfig";
     public const int RequestTimeoutSeconds = 5;
     public const int NicknameMinLength = 1;
-    public const int NicknameMaxLength = 12;
+    public const int NicknameMaxLength = 16;
     public const string NicknamePrefsKey = "RankingNickname";
     /// <summary>error set on transport failure (offline, DNS, timeout).</summary>
     public const string UnavailableError = "unavailable";

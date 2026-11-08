@@ -127,5 +127,39 @@ namespace FlashBeat.UI.V6.Option
                 Assert.IsTrue(seen.Contains(lane), $"レーン {lane} に届くキーが JIS グリッドに無い");
             }
         }
+
+        [Test]
+        public static void WrapIndex_WrapsForwardAndBackward()
+        {
+            // 剰余ベースの折り返し: 正負どちらの delta でも 0..count-1 に収まる
+            const int count = 5;
+
+            // 前方向の折り返し
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(0, count, 1));
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, 2));
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, count, 5));
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(0, count, 6));
+            Assert.AreEqual(3, V6OptionLogic.WrapIndex(4, count, 4)); // 4+4=8→3
+
+            // 後方向の折り返し
+            Assert.AreEqual(4, V6OptionLogic.WrapIndex(0, count, -1));
+            Assert.AreEqual(3, V6OptionLogic.WrapIndex(0, count, -2));
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, count, -5));
+            Assert.AreEqual(4, V6OptionLogic.WrapIndex(0, count, -6));
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(1, count, -5)); // 1-5=-4→1
+
+            // 大きな delta
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, 102));
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, -98));
+        }
+
+        [Test]
+        public static void WrapIndex_HandlesEdgeCases()
+        {
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, 0, 5));   // count=0
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, -1, 5));  // count<0
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(5, 1, 10));  // count=1
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(-3, 1, -7)); // count=1, 負 index
+        }
     }
 }
