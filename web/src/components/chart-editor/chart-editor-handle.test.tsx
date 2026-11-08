@@ -71,31 +71,48 @@ function mount(): ChartEditorHandle {
 }
 
 describe("ChartEditor imperative handle", () => {
-  it("exposes play, pause and seekTo", () => {
-    const handle = mount();
-    expect(typeof handle.play).toBe("function");
-    expect(typeof handle.pause).toBe("function");
-    expect(typeof handle.seekTo).toBe("function");
-  });
+  // Mounting the editor is the expensive part (a jsdom render of the whole
+  // work area); the assertions are instant. The timeout covers a cold mount
+  // while the rest of the suite runs in parallel.
+  const mountTimeout = 30_000;
 
-  it("forwards play and pause to the preview", () => {
-    const handle = mount();
-    act(() => {
-      handle.play();
-    });
-    expect(preview.play).toHaveBeenCalledTimes(1);
-    act(() => {
-      handle.pause();
-    });
-    expect(preview.pause).toHaveBeenCalledTimes(1);
-  });
+  it(
+    "exposes play, pause and seekTo",
+    () => {
+      const handle = mount();
+      expect(typeof handle.play).toBe("function");
+      expect(typeof handle.pause).toBe("function");
+      expect(typeof handle.seekTo).toBe("function");
+    },
+    mountTimeout,
+  );
 
-  it("forwards seekTo to the preview and moves the readout", () => {
-    const handle = mount();
-    act(() => {
-      handle.seekTo(5);
-    });
-    expect(preview.seekTo).toHaveBeenCalledWith(5);
-    expect(container.textContent).toContain("5.00s");
-  });
+  it(
+    "forwards play and pause to the preview",
+    () => {
+      const handle = mount();
+      act(() => {
+        handle.play();
+      });
+      expect(preview.play).toHaveBeenCalledTimes(1);
+      act(() => {
+        handle.pause();
+      });
+      expect(preview.pause).toHaveBeenCalledTimes(1);
+    },
+    mountTimeout,
+  );
+
+  it(
+    "forwards seekTo to the preview and moves the readout",
+    () => {
+      const handle = mount();
+      act(() => {
+        handle.seekTo(5);
+      });
+      expect(preview.seekTo).toHaveBeenCalledWith(5);
+      expect(container.textContent).toContain("5.00s");
+    },
+    mountTimeout,
+  );
 });
