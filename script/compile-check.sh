@@ -41,11 +41,22 @@ fi
 # Library/ScriptAssemblies. A fresh worktree has no Library, so borrow the
 # canonical one read-only; nothing here writes into it.
 mkdir -p "$PROJECT_DIR/Library"
-for sub in PackageCache ScriptAssemblies; do
-  if [ ! -e "$PROJECT_DIR/Library/$sub" ]; then
-    ln -s "$CANON_LIB/$sub" "$PROJECT_DIR/Library/$sub"
+# PackageCache は読み取り専用で参照できる (Unity が書き込まない)。
+if [ ! -e "$PROJECT_DIR/Library/PackageCache" ]; then
+  ln -s "$CANON_LIB/PackageCache" "$PROJECT_DIR/Library/PackageCache"
+fi
+# ScriptAssemblies は Unity が書き込む場所なので、symlink にして共有すると
+# 別プロジェクトの Unity が中身を消してしまう (実際に起きた)。自分のプロジェクトが
+# 既に持っているならそれを使う。まだ無いときだけ、canonical 側に中身がある
+# 場合に限って symlink する (Unity を起動しない作業用)。
+if [ ! -e "$PROJECT_DIR/Library/ScriptAssemblies" ]; then
+  if [ -n "$(ls -A "$CANON_LIB/ScriptAssemblies" 2>/dev/null | head -1)" ]; then
+    ln -s "$CANON_LIB/ScriptAssemblies" "$PROJECT_DIR/Library/ScriptAssemblies"
+  else
+    echo "warning: Library/ScriptAssemblies が無く、Unity を一度も開いていません" >&2
+    echo "         (Unity を起動するか、canonical 側でビルドしてください)" >&2
   fi
-done
+fi
 
 case "$ASSEMBLY" in
   flashbeat) SRC_ROOT="Assets/Game/Scripts" ;;
@@ -69,6 +80,22 @@ text = open(template, encoding="utf-8-sig").read()
 # so newly added files are picked up without opening the Editor.
 text = re.sub(r'[ \t]*<Compile Include="[^"]+"[^>]*/>\r?\n', "", text)
 
+# ProjectReference を外す (関連プロジェクトを触らないため)。代わりに Unity が
+# ビルド済みの DLL を直接参照する。
+text = re.sub(r'[ \t]*<ProjectReference Include="[^"]+"[^>]*/>\r?\n', "", text)
+
+dll_refs = []
+sa = os.path.join(project_dir, "Library", "ScriptAssemblies")
+for name in ("SimpleFadeSystem", "UniRx", "NoteEditor"):
+    path = os.path.join(sa, name + ".dll")
+    if os.path.exists(path):
+        dll_refs.append(
+            f'    <Reference Include="{name}">\n'
+            f'      <HintPath>Library/ScriptAssemblies/{name}.dll</HintPath>\n'
+            f'      <Private>false</Private>\n'
+            f'    </Reference>'
+        )
+
 sources = []
 for dirpath, dirnames, filenames in os.walk(os.path.join(project_dir, src_root)):
     dirnames[:] = [d for d in dirnames if d not in ("obj", "bin")]
@@ -80,10 +107,16 @@ for dirpath, dirnames, filenames in os.walk(os.path.join(project_dir, src_root))
 sources.sort()
 
 items = "\n".join(f'    <Compile Include="{s}" />' for s in sources)
-text = text.replace("</Project>", "  <ItemGroup>\n%s\n  </ItemGroup>\n</Project>" % items)
+extra = ""
+if dll_refs:
+    extra = "  <ItemGroup>\n%s\n  </ItemGroup>\n" % "\n".join(dll_refs)
+text = text.replace("</Project>", "  <ItemGroup>\n%s\n  </ItemGroup>\n%s</Project>" % (items, extra))
 open(out, "w", encoding="utf-8").write(text)
 print(f"compile-check: {len(sources)} sources -> {out}")
 PY
 
 cd "$PROJECT_DIR"
-dotnet build "$OUT" -v q --nologo 2>&1 | grep -E "error|Build succeeded|エラー|警告" | head -60 || true
+# BuildProjectReferences=false: Unity が生成した関連 csproj (NoteEditor / UniRx) を
+# 再ビルドしない。参照 DLL は既に Library/ScriptAssemblies にある。
+# ここでは対象アセンブリの型エラーだけを見たい。
+dotnet build "$OUT" -v q --nologo -p:BuildProjectReferences=false 2>&1 | grep -E "error|Build succeeded|エラー|警告" | head -60 || true
