@@ -146,8 +146,9 @@ public class Notes : MonoBehaviour
         float approach = ApproachSecondsAtSpeed10 * 10f / Mathf.Max(0.1f, GManager.noteSpeed);
         float tHead = remaining / approach;
 
-        // 奥 (t01 > 1) はまだ見えない。画面下端を出きったら非表示。
-        bool visible = tHead <= 1f && tHead >= V6LaneGeometry.ExitT01 - 0.05f;
+        // 奥 (t01 > 1) はまだ見えない。判定ラインを通ったあとは描かない
+        // (design: ノーツは判定ラインより上だけ。下の判定行と重なると読めない)。
+        bool visible = tHead <= 1f && tHead >= 0f;
         if (!visible)
         {
             SetImagesEnabled(false);

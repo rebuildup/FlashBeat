@@ -620,19 +620,32 @@ namespace FlashBeat.UI.V6.Select.View
             BuildControlButton(controls, "skip-forward", 56f, 56f, 28f, V5Tokens.Key1, "▶", 24f, 326f);
         }
 
+        /// <summary>
+        /// 統計セル (BPM / NOTES / LEVEL / BEST)。design は「ラベル左 / 値右」の
+        /// 2 要素だけなので、LayoutGroup ではなく絶対位置で置く
+        /// (LayoutGroup だと値の幅が計算されず、BPM の値だけ描画されない)。
+        /// </summary>
         private void BuildStat(GameObject stats, float x, float y, string label, string value)
         {
-            var cell = V5GameUi.Row(stats, "Stat " + label, 8f, TextAnchor.MiddleLeft);
+            var cell = V5Ui.Node(stats, "Stat " + label);
             At(cell.GetComponent<RectTransform>(), x, y, 256f, 98f);
-            cell.padding = new RectOffset(16, 16, 0, 0);
-            V5GameUi.Text(cell.gameObject, "Label", label, 22f, V5Tokens.TextDim);
-            var spacer = V5Ui.Node(cell.gameObject, "Spacer");
-            var spacerRt = spacer.GetComponent<RectTransform>();
-            spacerRt.sizeDelta = new Vector2(0f, 1f);
-            var layoutElement = spacer.AddComponent<LayoutElement>();
-            layoutElement.flexibleWidth = 1f;
-            V5GameUi.Text(cell.gameObject, "Value", value, 32f, V5Tokens.Text, TextAlignmentOptions.Right,
-                FontStyles.Normal);
+
+            var labelText = V5GameUi.Text(cell.gameObject, "Label", label, 22f, V5Tokens.TextDim);
+            var labelRt = labelText.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0f, 0.5f);
+            labelRt.anchorMax = new Vector2(0f, 0.5f);
+            labelRt.pivot = new Vector2(0f, 0.5f);
+            labelRt.anchoredPosition = new Vector2(16f, 0f);
+            labelRt.sizeDelta = new Vector2(160f, 30f);
+
+            var valueText = V5GameUi.Text(cell.gameObject, "Value", value, 32f, V5Tokens.Text,
+                TextAlignmentOptions.Right, FontStyles.Normal);
+            var valueRt = valueText.GetComponent<RectTransform>();
+            valueRt.anchorMin = new Vector2(1f, 0.5f);
+            valueRt.anchorMax = new Vector2(1f, 0.5f);
+            valueRt.pivot = new Vector2(1f, 0.5f);
+            valueRt.anchoredPosition = new Vector2(-16f, 0f);
+            valueRt.sizeDelta = new Vector2(200f, 44f);
         }
 
         private void BuildControlButton(GameObject controls, string name, float w, float h, float radius,
