@@ -1,21 +1,38 @@
 ﻿using UnityEngine;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Game.Playfield;
 
 namespace FlashBeat.UI.V6.Game.Hud
 {
     /// <summary>
-    /// v6 Game HUD の 1920×1080 論理テンプレート寸法。
-    /// すべての解像度で同じ論理値を使い、V6GameRuntime がテンプレート全体を
-    /// min(width / 1920, height / 1080) で等比拡大する。表示フレームは画面全体を覆う
-    /// 論理サイズに広げ、余分な軸を HUD 内の top/center/bottom anchor へ反映する。
+    /// v6 Game HUD の寸法テーブル。契約 §8
+    /// (docs/design/v6/flashbeat-v6-contract.md「ゲーム HUD — 3 解像度」) の design 実測値を
+    /// <b>design px = 実ピクセル</b> で保持する (2026-11-08 Owner 指示: HUD は解像度ごとに
+    /// 固有フレームを持ち、等比拡大 / 引き伸ばしは一切しない。1:1 で中央配置)。
+    ///
+    /// - FHD  <c>Uc9v6</c> 1920×1080
+    /// - 2K   <c>E51yo</c> 2560×1440
+    /// - Mac  <c>QrSwA</c> 2560×1664 (2K と同寸法、縦位置だけずれる)
+    ///
+    /// 実行時は <see cref="ForResolution"/> で実スクリーン解像度に最も近い既知プロファイルを
+    /// <b>そのまま</b>選ぶ (縮尺は変えない)。未知解像度で縮小すると design の数値が無効になる。
+    ///
+    /// かつては 1920×1080 論理テンプレートを min(w/1920, h/1080) で等比拡大していた
+    /// (<see cref="ScaleForResolution"/> / <see cref="LogicalViewportSize"/>)。
+    /// この方式は Owner 指示 (固定解像度・引き伸ばしなし) に反するため廃止だが、
+    /// 統合側 <c>V6GameRuntime.ApplyHudScale</c> とEditMode テストがまだ参照するため
+    /// API だけ残してある (レガシー。新規コードは使わないこと)。
     /// </summary>
     public sealed class V6HudMetrics
     {
         public const int TemplateWidth = 1920;
         public const int TemplateHeight = 1080;
 
-        /// <summary>この寸法セットに適用済みの倍率 (ランタイムでは常に 1)。</summary>
+        /// <summary>この寸法セットに適用済みの倍率 (1:1 固定配置なので常に 1)。</summary>
         public readonly float Scale;
+
+        /// <summary>プロファイル名 ("fhd" / "2k" / "mac")。解像度変更の検知に使う。</summary>
+        public readonly string Name;
 
         // --- 画面帯 ---
         /// <summary>上部の暗がり (Top Shade) の高さ。</summary>
@@ -58,7 +75,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int MenuFs;
         public readonly int MenuKeyFs;
 
-        // --- コンボ (左中央) ---
+        // --- コンボ (左) ---
+        /// <summary>コンボ block の左上 x (design px、画面左上原点)。</summary>
+        public readonly int ComboX;
+        /// <summary>コンボ block の左上 y (design px、画面左上原点)。</summary>
+        public readonly int ComboY;
         public readonly int ComboW;
         public readonly int ComboH;
         public readonly int ComboLabelFs;
@@ -66,6 +87,10 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int ComboValueY;
 
         // --- 右中央コラム (コンボステータス / コンボボーナス) ---
+        /// <summary>右コラムの左上 x (design px)。右端アンカー時は Margin と等価。</summary>
+        public readonly int RightColX;
+        /// <summary>右コラムの左上 y (design px)。契約 §8: FHD 460 / 2K 613 / Mac 725。</summary>
+        public readonly int RightColY;
         public readonly int RightColW;
         public readonly int BonusFs;
         public readonly int StatusFs;
@@ -74,7 +99,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int BonusBlockH;
         /// <summary>コンボステータス block の高さ。</summary>
         public readonly int StatusBlockH;
-        /// <summary>右コラム上端の y オフセット (画面中央基準, 負で上)。</summary>
+        /// <summary>右コラム上端の y オフセット (画面中央基準, 負で上)。レガシー (中央アンカー方式)。</summary>
         public readonly int RightColTopOffset;
         public readonly int StatusTrackW;
         public readonly int StatusTrackH;
@@ -91,37 +116,39 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int VerdictBottom;
         public readonly int KeyCapW;
         public readonly int KeyCapH;
-        /// <summary>キーガイド キャップのラベル fs (契約 json: FHD 24 / 2K 32)。</summary>
+        /// <summary>キーガイド キャップのラベル fs (契約 §8: FHD 24 / 2K・Mac 32)。</summary>
         public readonly int KeyCapLabelFs;
         public readonly int KeyGuideH;
         public readonly int KeyGuideBottom;
-        /// <summary>キーガイド 8 列のうち第 0 列の中心 x。</summary>
+        /// <summary>キーガイド 8 列のうち第 0 列の中心 x (design px、契約 §8 の KeyCap 左端 + 幅/2)。</summary>
         public readonly float KeyFirstCenter;
-        /// <summary>キーガイド 8 列の列間隔。</summary>
+        /// <summary>キーガイド 8 列の列間隔 (design px)。</summary>
         public readonly float KeySpacing;
 
-        // --- 歌詞 (v6 拡張: デザインの HUD フレームには歌詞ノードが無い。
-        // Top Shade 内央に配置し、Issue #220 の要件「再生時刻と一致した行だけを出す」を満たす) ---
+        // --- 歌詞 (v6 拡張: design の HUD フレームには歌詞ノードが無い。契約 §10 の枠
+        // 1120×220 を Top Shade 内央に置く。キーガイド行 (y963/1283/1507) とは重ならない) ---
         public readonly int LyricY;
         public readonly int LyricFs;
 
         private V6HudMetrics(
-            float scale,
+            string name,
             int topShadeH, int progressH, int margin,
             int gradeFs, int gaugeX, int gaugeY, int gaugeW, int gaugeH,
             int scoreLabelY, int scoreValueY, int scoreLabelFs, int scoreFs,
             int menuW, int menuH, int menuFs,
-            int comboW, int comboH, int comboLabelFs, int comboValueFs, int comboValueY,
-            int rightColW, int bonusFs, int statusFs, int bonusRowH, int bonusBlockH, int statusBlockH,
+            int comboX, int comboY, int comboW, int comboH, int comboLabelFs, int comboValueFs, int comboValueY,
+            int rightColX, int rightColY, int rightColW, int bonusFs, int statusFs, int bonusRowH, int bonusBlockH, int statusBlockH,
             int rightColTopOffset,
             int statusTrackW, int statusTrackH, int statusTrackY, int statusRowH, int statusRowY,
             int fcChipW, int fcChipH,
             int verdictFs, int verdictW, int verdictH, int verdictBottom,
             int keyCapW, int keyCapH, int keyCapLabelFs, int keyGuideH, int keyGuideBottom,
             float keyFirstCenter, float keySpacing,
-            int lyricY, int lyricFs)
+            int lyricY, int lyricFs,
+            int gaugeSegHOverride = -1, int gaugeFillHOverride = -1)
         {
-            Scale = scale;
+            Name = name;
+            Scale = 1f;
             TopShadeH = topShadeH;
             ProgressH = progressH;
             Margin = margin;
@@ -137,11 +164,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             MenuW = menuW;
             MenuH = menuH;
             MenuFs = menuFs;
+            ComboX = comboX;
+            ComboY = comboY;
             ComboW = comboW;
             ComboH = comboH;
             ComboLabelFs = comboLabelFs;
             ComboValueFs = comboValueFs;
             ComboValueY = comboValueY;
+            RightColX = rightColX;
+            RightColY = rightColY;
             RightColW = rightColW;
             BonusFs = bonusFs;
             StatusFs = statusFs;
@@ -170,13 +201,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             LyricY = lyricY;
             LyricFs = lyricFs;
 
-            // ゲージ内部もテンプレート寸法を GaugeW/GaugeH 比で伸縮する。
+            // ゲージ内部。FHD は design 値そのもの (比率 = 1)。2K / Mac は契約 §8 の
+            // 実測値 (Seg h14 / Fill h14、track 800×24) をそのまま使い、FHD 比の拡大値
+            // (14 × 4/3 = 18.7 → 19) に合わせない (design ファイル側が正)。
             float g = (float)GaugeW / 600f;
             float gh = (float)GaugeH / 36f;
             GaugeTrackH = Mathf.RoundToInt(18f * gh);
             GaugeSegY = Mathf.RoundToInt(2f * gh);
-            GaugeSegH = R(14, gh);
-            GaugeFillH = R(14, gh);
+            GaugeSegH = gaugeSegHOverride >= 0 ? gaugeSegHOverride : R(14, gh);
+            GaugeFillH = gaugeFillHOverride >= 0 ? gaugeFillHOverride : R(14, gh);
             GaugeLabelY = Mathf.RoundToInt(18f * gh);
             GaugeLabelFs = Mathf.RoundToInt(16f * g);
             GaugeSegX = new float[6];
@@ -189,7 +222,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 GaugeSegW[i] = Mathf.RoundToInt(fhdSegW[i] * g);
             }
 
-            // design template: Fill は 524px (FHD 600 のトラックに対して "+" セグメントの
+            // design template: Fill は 524px (FHD 600 のトラックに対して "+ セグメントの
             // 開始 530 までで 6px 止める)。"+ セグメント幅" から引くと 530 になり
             // 6px ずれるので、design の実測値 524 を基準にする。
             GaugeFillMax = Mathf.RoundToInt(524f * g);
@@ -197,18 +230,19 @@ namespace FlashBeat.UI.V6.Game.Hud
             GaugeBestH = GaugeTrackH;
         }
 
-        /// <summary>唯一の HUD 座標テンプレート: FHD 1920×1080。</summary>
+        /// <summary>契約 §8 の FHD (<c>Uc9v6</c> 1920×1080) design 実測テーブル。</summary>
         public static V6HudMetrics Fhd(float scale)
         {
+            // scale 引数はレガシー (等比拡大方式) 名残。1:1 固定配置では使わない。
             float s = scale;
             return new V6HudMetrics(
-                s,
+                "fhd",
                 R(260, s), R(8, s), R(48, s),
                 R(95, s), R(188, s), R(48, s), R(600, s), R(36, s),
                 R(78, s), R(100, s), R(22, s), R(38, s),
                 R(180, s), R(48, s), R(22, s),
-                R(600, s), R(220, s), R(22, s), R(180, s), R(24, s),
-                R(360, s), R(22, s), R(22, s), R(44, s), R(90, s), R(160, s),
+                R(48, s), R(430, s), R(600, s), R(220, s), R(22, s), R(180, s), R(24, s),
+                R(1512, s), R(460, s), R(360, s), R(22, s), R(22, s), R(44, s), R(90, s), R(160, s),
                 R(80, s),
                 R(280, s), R(8, s), R(52, s), R(44, s), R(96, s),
                 R(150, s), R(40, s),
@@ -219,41 +253,109 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 契約 §8 の 2K (<c>E51yo</c> 2560×1440) design 実測テーブル (design px)。
-        /// ランタイムは FHD テンプレートの等比拡大で描くので直接は使わないが、
-        /// 契約値の正本として EditMode テスト (<c>Metrics_TwoK_MatchesDesign</c>) と
-        /// <see cref="LaneGridDesign"/> の KeyGuide 格子が参照する。
+        /// 契約 §8 の 2K (<c>E51yo</c> 2560×1440) design 実測テーブル (design px = 実ピクセル)。
         /// 注意: デザイナーの丸めで FHD×4/3 と一致しない項目がある
-        /// (Grade fs 95×4/3=126.7 に対し design 実測は 125)。
+        /// (Grade fs 95×4/3=126.7 に対し design 実測は 125、ゲージ Seg/Fill h は 14 のまま)。
         /// </summary>
         public static V6HudMetrics TwoK()
         {
             return new V6HudMetrics(
-                4f / 3f,
+                "2k",
                 347, 11, 64,
                 125, 251, 64, 800, 48,
                 104, 133, 30, 50,
                 240, 64, 30,
-                800, 293, 30, 240, 32,
-                480, 30, 30, 59, 120, 213,
-                107,
+                64, 573, 800, 293, 30, 240, 32,
+                2016, 613, 480, 30, 30, 59, 120, 213,
+                80,
                 373, 11, 69, 59, 128,
                 200, 53,
                 40, 187, 59, 98,
                 75, 48, 32, 48, 45,
                 566.5f, 203.57143f,
-                227, 48);
-        }
-
-        /// <summary>現在の画面用 HUD テンプレート寸法 (解像度非依存)。</summary>
-        public static V6HudMetrics Current
-        {
-            get { return Fhd(1f); }
+                227, 48,
+                14, 14);
         }
 
         /// <summary>
-        /// 1920×1080 論理テンプレートを画面内に収める等比倍率。
-        /// 0 以下のサイズは未初期化画面として 1 倍を返す。
+        /// 契約 §8 の Mac (<c>QrSwA</c> 2560×1664) design 実測テーブル。
+        /// 2K と同寸法で、縦位置だけ design 値がずれる
+        /// (Combo y685 / Combo Status・Bonus y725 / 判定行 y1507 / KeyGuide y1571 x464..)。
+        /// </summary>
+        public static V6HudMetrics Mac()
+        {
+            return new V6HudMetrics(
+                "mac",
+                347, 11, 64,
+                125, 251, 64, 800, 48,
+                104, 133, 30, 50,
+                240, 64, 30,
+                64, 685, 800, 293, 30, 240, 32,
+                2016, 725, 480, 30, 30, 59, 120, 213,
+                80,
+                373, 11, 69, 59, 128,
+                200, 53,
+                40, 187, 59, 98,
+                75, 48, 32, 48, 45,
+                501.5f, 222.14285f,
+                227, 48,
+                14, 14);
+        }
+
+        /// <summary>
+        /// 実スクリーン解像度 (Canvas px。Constant Pixel Size x1 の ScreenSpaceOverlay では
+        /// Screen.width/height と等しい) に対応する HUD 寸法テーブル。
+        ///
+        /// 契約 §8: HUD は 3 解像度の固有フレーム (1920×1080 / 2560×1440 / 2560×1664)。
+        /// 既知解像度は design 値を <b>実ピクセルのまま</b>返す (等比拡大・縮小はしない)。
+        /// 未知解像度は最も近い既知プロファイル (中心間距離最小) を <b>そのまま</b>使う
+        /// (Owner 指示 2026-11-08: 縮尺を変えない)。
+        /// </summary>
+        public static V6HudMetrics ForResolution(float width, float height)
+        {
+            if (width <= 0f || height <= 0f)
+            {
+                return Fhd(1f);
+            }
+
+            V6HudMetrics[] profiles = { Fhd(1f), TwoK(), Mac() };
+            float[] ws = { 1920f, 2560f, 2560f };
+            float[] hs = { 1080f, 1440f, 1664f };
+
+            int best = 0;
+            float bestD = float.MaxValue;
+            for (int i = 0; i < profiles.Length; i++)
+            {
+                float dx = width - ws[i];
+                float dy = height - hs[i];
+                float d = dx * dx + dy * dy;
+                if (d < bestD)
+                {
+                    bestD = d;
+                    best = i;
+                }
+            }
+
+            return profiles[best];
+        }
+
+        /// <summary><see cref="ForResolution"/> が選ぶプロファイル名 (解像度変更の検知用)。</summary>
+        public static string ProfileNameFor(float width, float height)
+        {
+            return ForResolution(width, height).Name;
+        }
+
+        /// <summary>このテーブルが (width, height) と同じプロファイルか。</summary>
+        public bool MatchesResolution(float width, float height)
+        {
+            return Name == ProfileNameFor(width, height);
+        }
+
+        /// <summary>
+        /// レガシー: 1920×1080 論理テンプレートを画面内に収める等比倍率。
+        /// Owner 指示 (固定解像度・引き伸ばしなし) により廃止済みだが、
+        /// 統合側 <c>V6GameRuntime.ApplyHudScale</c> とEditMode テストが参照するため残す。
+        /// 新規コードは <see cref="ForResolution"/> を使うこと。
         /// </summary>
         public static float ScaleForResolution(float width, float height)
         {
@@ -266,8 +368,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 等比スケール後に画面全体を覆う論理ビューポート寸法。
-        /// 短辺側はテンプレート寸法、余分な軸はアンカーが使える領域になる。
+        /// レガシー (等比拡大方式): 等比スケール後に画面全体を覆う論理ビューポート寸法。
+        /// <see cref="ScaleForResolution"/> とセットで、統合側とEditMode テストが参照する。
         /// </summary>
         public static Vector2 LogicalViewportSize(float width, float height)
         {
@@ -275,18 +377,32 @@ namespace FlashBeat.UI.V6.Game.Hud
             return new Vector2(width / scale, height / scale);
         }
 
-        /// <summary>キーガイド / 判定行の第 lane 列の中心 x。</summary>
+        /// <summary>キーガイド / 判定行の第 lane 列の中心 x (design px、契約 §8 の KeyGuide 格子)。</summary>
         public float KeyColumnCenter(int lane)
         {
             return KeyFirstCenter + lane * KeySpacing;
         }
 
         /// <summary>
+        /// 契約 §6 のレーン中心線 (判定線 y=792 上の下端 x = 339 + 150·lane) を
+        /// 実画面 x (左原点 px) へ写した値。<see cref="V6LaneGeometry.DesignToScreen"/>
+        /// (高さ合わせ + 水平中央寄せ) と同じ写像なので、キーガイド / 判定行は
+        /// v6 プレイフィールドのレーン中心と <b>必ず一致</b>する (Owner 指示 2026-11-08:
+        /// キーガイドをレーン中心に一致させる。契約 §8 の KeyGuide 格子は design サンプル値)。
+        /// </summary>
+        public static float LaneCenterScreenX(int lane, float screenW, float screenH)
+        {
+            V6LaneGeometry.TryLanePoint(lane, 0f, out Vector2 design, out _);
+            return V6LaneGeometry.DesignToScreen(design, new Vector2(screenW, screenH)).x;
+        }
+
+        /// <summary>
         /// 契約 §8 の 8 列格子 (KeyGuide と判定行は同じ格子) を design px で返す。
-        /// 第 0 列の中心 x と列間隔: FHD (338, 177.43) / 2K (566.5, 203.57) /
-        /// Mac (501.5, 222.14)。design 実測値であり等比スケールとは一致しない
-        /// (契約 §8 ⚠: FHD 177.4 / 2K 203.6 / Mac 222 ≒ レーン 166.7×スケール)。
-        /// 契約に無い解像度は FHD 格子の等比拡大 (design px = FHD 値 × scale)。
+        /// 第 0 列の中心 x と列間隔: FHD (338, 177.43) / 2K (566.5, 203.57) / Mac (501.5, 222.14)。
+        /// 契約 §8 ⚠: この格子は KeyGuide の design 実測値であり、レーン中心線
+        /// (150 px 間隔 × スケール) とは一致しない。実装はレーン中心
+        /// (<see cref="LaneCenterScreenX"/>) に載せる (Owner 指示 2026-11-08)。
+        /// 契約に無い解像度は FHD 格子をそのまま使う (縮尺を変えない)。
         /// </summary>
         public static void LaneGridDesign(float width, float height, out float firstCenter, out float spacing)
         {
@@ -307,14 +423,13 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
-            float s = ScaleForResolution(width, height);
-            firstCenter = 338f * s;
-            spacing = 177.42857f * s;
+            firstCenter = 338f;
+            spacing = 177.42857f;
         }
 
         /// <summary>
-        /// 契約 §8 の第 lane 列中心を HUD テンプレート座標 (画面左原点) へ写した値。
-        /// design px を等比倍率で割る (描画時に frameScale を掛けて design px に戻る)。
+        /// レガシー (等比拡大方式): 契約 §8 の第 lane 列中心を HUD テンプレート座標へ写した値。
+        /// 等比拡大廃止により新規コードは使わない (EditMode テストが参照するため残す)。
         /// </summary>
         public static float KeyGuideTemplateX(float width, float height, int lane)
         {
@@ -323,10 +438,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 中央アンカー + 上オフセット (テンプレート px) で置いた要素の上端の design px y
-        /// (画面上端原点)。V6GameRuntime は HUD フレームを論理ビューポート
-        /// (= canvas / scale) に広げるので、中央アンカー要素は論理高さの中央へ追従する。
-        /// 契約 §8: Combo 上端 FHD 430 / 2K 573 / Mac 685、Combo Status 上端 460 / 613 / 725。
+        /// レガシー (中央アンカー方式): 中央アンカー + 上オフセット (テンプレート px) で置いた
+        /// 要素の上端の design px y。EditMode テストが参照するため残す。
+        /// 新規コードは各プロファイルの ComboY / RightColY / KeyGuideBottom を直接使うこと。
         /// </summary>
         public static float MiddleAnchoredTopDesignY(float width, float height, float templateTopOffset)
         {
@@ -335,8 +449,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 下端アンカー + マージンで置いた帯 (テンプレート高さ h) の上端の design px y。
-        /// 契約 §8: KeyGuide 上端 FHD 1011 / 2K 1347 / Mac 1571。
+        /// レガシー (下端アンカー方式): 下端アンカー + マージンで置いた帯 (テンプレート高さ h) の
+        /// 上端の design px y。EditMode テストが参照するため残す。
         /// </summary>
         public static float BottomAnchoredTopDesignY(
             float width, float height, float templateBottomMargin, float templateH)
