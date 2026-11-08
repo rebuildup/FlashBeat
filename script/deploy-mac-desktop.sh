@@ -15,8 +15,12 @@ desktop="${FLASHBEAT_DESKTOP_DIR:-$HOME/Desktop/FlashBeat-Mac}"
 worktree="${FB_MAC_WORKTREE:-$(dirname "$root")/FlashBeat.macverify}"
 
 cd "$root"
-echo "[deploy] building $ref (worktree=$worktree)"
-script/mac-verify build "$ref"
+if [ "${FB_SKIP_BUILD:-0}" = "1" ]; then
+  echo "[deploy] reusing existing build (FB_SKIP_BUILD=1)"
+else
+  echo "[deploy] building $ref (worktree=$worktree)"
+  script/mac-verify build "$ref"
+fi
 
 app="$worktree/Builds/macOS/FlashBeat.app"
 [ -d "$app" ] || { echo "[deploy] build output missing: $app" >&2; exit 1; }
