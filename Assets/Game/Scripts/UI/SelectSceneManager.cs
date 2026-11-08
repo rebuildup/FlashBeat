@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 using FlashBeat.UI.V6.Select.View;
 
@@ -118,9 +119,35 @@ public class SelectSceneManager : MonoBehaviour
     private void OnV6Ready()
     {
         if (v6Data == null) return;
+
+        // 未選択で Ready を押したとき、数据層の既定選択はしない (#222 の契約)。
+        // ただし「曲が選択されていません」で詰ませないよう、**この操作のときだけ**
+        // 先頭の曲 (クラウド曲よりローカル曲を優先) を選んでから確定する。
+        if (v6Data.Selected == null)
+        {
+            V6SongEntry first = FirstPlayableSong(v6Data);
+            if (first != null) v6Data.Select(first.SongId);
+        }
+
         v6Data.CommitReady();
         if (v6Data.HasError) return; // 開始できない理由をデータ側に持たせる (選曲画面に留まる)
         GameScene();
+    }
+
+    /// <summary>絞り込み結果の先頭の曲 (演奏できるローカル Prefer 優先)。</summary>
+    private static V6SongEntry FirstPlayableSong(IV6SelectDataSource data)
+    {
+        var songs = data.FilteredSongs;
+        if (songs == null) return null;
+        V6SongEntry firstLocal = null;
+        for (int i = 0; i < songs.Count; i++)
+        {
+            V6SongEntry entry = songs[i];
+            if (entry == null) continue;
+            if (!entry.IsCloud) return entry; // ローカル曲を最優先 (オフライン展示でも playable)
+            if (firstLocal == null) firstLocal = entry;
+        }
+        return firstLocal;
     }
 
     /// <summary>履歴 / ランキング (03/04) の表示可否 (既定はオフ: 選曲画面の 3 カラムが正)。</summary>

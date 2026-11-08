@@ -109,7 +109,13 @@ namespace FlashBeat.Tests.Editor
         {
             Assert.IsNull(RankingClient.ParseLeaderboard(null));
             Assert.IsNull(RankingClient.ParseLeaderboard("not json"));
-            Assert.IsNull(RankingClient.ParseLeaderboard("{\"entries\":[]}"));
+
+            // スコアの無い曲 (entries が空配列) は「取得成功・0 件」であり失敗ではない。
+            // v6 選曲画面が「取得失敗 (HTTP 200)」と表示しないために ParseLeaderboard が
+            // 空配列を返す仕様 (commit f2e0fbb) に合わせている。ここでは **空配列** を期待する。
+            var empty = RankingClient.ParseLeaderboard("{\"entries\":[]}");
+            Assert.IsNotNull(empty, "entries が空配列のときは『取得成功・0 件』として空リストを返す");
+            Assert.AreEqual(0, empty.Length);
         }
 
         // --- URL building ---
