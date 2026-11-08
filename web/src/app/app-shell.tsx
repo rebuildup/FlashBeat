@@ -4,6 +4,7 @@ import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
 import { Sidebar } from "./sidebar";
+import { WelcomeHero } from "@/components/welcome/welcome-hero";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import type { SongSummary } from "./types";
 
@@ -173,9 +174,12 @@ export function AppShell({
 
   return (
     <StudioShell>
+      {/* Issue #215: the visitor entry sits above everything — one default
+          path (曲を選ぶ → 譜面を試す) with a single primary CTA. */}
+      <WelcomeHero />
       <Topbar
-        title="Catalog"
-        subtitle="Find a published song to work on its chart."
+        title="曲を選ぶ / Pick a song"
+        subtitle="リストから曲を選ぶと、その譜面が開きます。再生して試せます。"
         query={query}
         onQueryChange={setQuery}
         level={level}

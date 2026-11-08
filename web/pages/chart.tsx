@@ -12,6 +12,7 @@ import {
   pageHeaderIdentity,
   pageTitle,
   pageSubtitle,
+  primaryCta,
 } from "@/app/panel";
 import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./chart.server";
@@ -50,14 +51,49 @@ const editorPane = css({
   minHeight: "0",
 });
 
-/** v5 primary CTA: the same solid palette action the publish screen uses. */
-const primaryAction = css({
-  colorPalette: "blue",
-  bg: "colorPalette.solid.bg",
-  color: "colorPalette.solid.fg",
-  _hover: { opacity: "0.9" },
-  _disabled: { opacity: "0.4" },
+/** Permission boundary of the publish path, visible before pressing it. */
+const tokenHint = css({
+  color: "fg.subtle",
+  fontSize: "2xs",
+  whiteSpace: "nowrap",
 });
+
+/** Demoted secondary link to the source video (issue #215 review). */
+const youtubeLink = css({
+  color: "fg.muted",
+  fontSize: "xs",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+  _hover: { color: "fg.default" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "2px",
+  },
+});
+
+/**
+ * Bring the editor's YouTube preview — the only owner of playback (#216) —
+ * into view and focus its Play control, so Enter/Space starts the song
+ * without leaving the Studio. Falls back to the player container itself when
+ * the Play control is not found (the preview markup is #216's area).
+ */
+function tryPreview(): void {
+  const player = document.querySelector<HTMLElement>('[data-testid="youtube-player"]');
+  if (!player) return;
+  player.scrollIntoView({ block: "center" });
+  const play = Array.from(document.querySelectorAll("button")).find(
+    (button) =>
+      (button.textContent ?? "").trim() === "Play" &&
+      (button.offsetParent !== null || button === document.activeElement),
+  );
+  if (play) {
+    play.focus();
+    return;
+  }
+  player.tabIndex = -1;
+  player.focus();
+}
 
 export default function ChartPage({ songId, version }: Props) {
   const [session, setSession] = useState<SongSession | null>(null);
@@ -87,10 +123,10 @@ export default function ChartPage({ songId, version }: Props) {
     <StudioShell scroll={false}>
       <header className={pageHeader}>
         <a className={pageBackLink} href="/">
-          ← Catalog
+          ← 曲を選ぶ / Back to songs
         </a>
         <div className={pageHeaderIdentity}>
-          <h1 className={pageTitle}>{selected ? "Chart" : "New chart"}</h1>
+          <h1 className={pageTitle}>{selected ? "譜面を見る・試す" : "新しい譜面"}</h1>
           <p className={pageSubtitle} data-testid="chart-identity">
             {session
               ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length} notes`
@@ -98,10 +134,41 @@ export default function ChartPage({ songId, version }: Props) {
                 ? "Published chart"
                 : "New local draft · not published"}
           </p>
+          <p className={pageSubtitle} data-testid="chart-guidance">
+            {selected
+              ? "再生して試してみてください。左のリンクで曲選びに戻れます / Play it; the link on the left goes back to the songs."
+              : "編集して「公開に進む」へ。戻っても入力は消えません / Edit, then continue; going back keeps your input."}
+          </p>
         </div>
         <div className={pageActions}>
+          {/* Issue #215 review: the visitor's primary CTA stays inside the
+              Studio — it brings the editor's YouTube preview (the only owner
+              of playback, #216) into view and focuses its Play control. The
+              staff publish path is demoted to the outline variant. */}
+          {session?.song.youtubeId ? (
+            <>
+              <Button
+                className={primaryCta}
+                size="sm"
+                data-testid="try-song-button"
+                onClick={tryPreview}
+              >
+                再生して試す / Try it
+              </Button>
+              <a
+                className={youtubeLink}
+                href={`https://youtu.be/${encodeURIComponent(session.song.youtubeId)}`}
+                rel="noreferrer"
+                target="_blank"
+                data-testid="open-youtube-link"
+              >
+                YouTube で開く
+              </a>
+            </>
+          ) : null}
           <Button
-            className={primaryAction}
+            variant="outline"
+            colorPalette="blue"
             size="sm"
             disabled={(selected && !session) || editedChart === null}
             onClick={() => {
@@ -118,8 +185,11 @@ export default function ChartPage({ songId, version }: Props) {
               }
             }}
           >
-            Review &amp; Publish
+            公開に進む / Review &amp; Publish
           </Button>
+          <span className={tokenHint} data-testid="publish-token-hint">
+            公開にはスタッフのadminトークンが必要です / Staff admin token required
+          </span>
         </div>
       </header>
       {error ? (

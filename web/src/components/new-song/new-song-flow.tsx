@@ -82,6 +82,12 @@ const badge = css({
   whiteSpace: "nowrap",
 });
 
+const goal = css({
+  color: "fg.subtle",
+  fontSize: "xs",
+  margin: "0",
+});
+
 const stepperBar = css({
   borderBottomColor: "#2d2d2d",
   borderBottomWidth: "1px",
@@ -277,9 +283,14 @@ function Header({ transport }: { transport: PublishTransport }) {
     <header className={header}>
       <div className={headerTitles}>
         <a className={backLink} href="/">
-          ← Web Studio
+          ← 曲を選ぶ / Back to songs
         </a>
         <h1 className={title}>新曲を登録 / New song</h1>
+        {/* Issue #215: the goal and the permission boundary are stated up
+            front, before the operator reaches the publish step. */}
+        <p className={goal} data-testid="new-song-goal">
+          新しい曲を登録して公開します。公開にはスタッフのadminトークンが必要です。入力は保存され、戻っても消えません。
+        </p>
       </div>
       <span className={badge} data-testid="new-song-transport">
         {transport.mode === "fixture"

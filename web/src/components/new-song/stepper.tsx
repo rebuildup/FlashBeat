@@ -90,9 +90,9 @@ export interface StepperStep {
 }
 
 export const NEW_SONG_STEPPER_ITEMS: StepperStep[] = [
-  { step: 1, ja: "曲情報", en: "Song info" },
-  { step: 2, ja: "譜面", en: "Chart" },
-  { step: 3, ja: "公開", en: "Publish" },
+  { step: 1, ja: "曲の情報を入力", en: "Song info" },
+  { step: 2, ja: "譜面を作る", en: "Chart" },
+  { step: 3, ja: "確認して公開", en: "Publish" },
 ];
 
 export interface StepperProps {

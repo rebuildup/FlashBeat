@@ -141,7 +141,11 @@ export function SongInfoStep({
 }: SongInfoStepProps) {
   const [touched, setTouched] = useState(NO_TOUCHED);
   const [attempted, setAttempted] = useState(false);
-  const [songIdTouched, setSongIdTouched] = useState(false);
+  // Issue #215: coming back from the chart step remounts this step. A song id
+  // already in the draft (typed by the user or auto-suggested earlier) must
+  // not be overwritten by the title suggestion again, so a non-empty id
+  // starts as "touched".
+  const [songIdTouched, setSongIdTouched] = useState(() => info.songId.trim().length > 0);
   const [oembed, setOembed] = useState<{
     videoId: string;
     state: "loading" | "done" | "failed";
@@ -438,7 +442,9 @@ export function SongInfoStep({
       ) : null}
 
       <div className={footer}>
-        <span />
+        <span className={noteMuted} data-testid="song-info-progress-note">
+          入力が揃ったら「次へ」で譜面に進みます。入力は保存され、戻っても消えません。
+        </span>
         <Button className={accent} size="md" onClick={handleAdvance}>
           次へ：譜面 / Next: Chart
         </Button>
