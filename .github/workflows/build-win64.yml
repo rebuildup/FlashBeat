@@ -62,9 +62,29 @@ jobs:
           has_ulf=0; has_account=0
           [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
           { [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ]; } && has_account=1
-          if [ "$has_ulf" = 1 ] || [ "$has_account" = 1 ]; then
-            echo "Unity ライセンス認証情報が設定されています。"
+          if [ "$has_account" = 1 ]; then
+            echo "Unity アカウント認証情報が設定されています。"
             exit 0
+          fi
+          if [ "$has_ulf" = 1 ]; then
+            # .ulf は発行元マシンに紐づく。GitHub-hosted runner では必ず
+            # machine binding mismatch で失敗する (実測 2026-11-08)。
+            cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+            ## Win64 ビルド blocked: `UNITY_LICENSE` だけでは hosted runner で認証できない
+
+            `UNITY_LICENSE` (`.ulf`) は **発行元マシンに紐づく** ため、GitHub Actions の
+            hosted runner (毎回別マシン) では必ず次のエラーで失敗します。
+
+            ```
+            [Licensing::Client] Error: Code 400 while processing request (status: Machine bindings don't match)
+            No valid Unity Editor license found. Please activate your license.
+            ```
+
+            **対応**: `UNITY_EMAIL` と `UNITY_PASSWORD` の secret を追加登録してください
+            (Unity アカウント認証はマシン非依存)。`UNITY_LICENSE` は削除して構いません。
+            SUMMARY
+            echo "::error title=Unity license machine-binding mismatch::UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。"
+            exit 1
           fi
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
           ## Win64 ビルド blocked: Unity ライセンス未設定
@@ -74,17 +94,15 @@ jobs:
 
           | secret | 必須 | 内容 |
           |---|---|---|
-          | `UNITY_LICENSE` | いずれか1つ | Unity Hub で発行した `.ulf` ライセンスファイルの**内容**(XML)。base64 でも可。 |
-          | `UNITY_EMAIL` | いずれか1つ | Unity アカウントのメールアドレス。 |
-          | `UNITY_PASSWORD` | いずれか1つ | Unity アカウントのパスワード。 |
+          | `UNITY_EMAIL` | 必須 | Unity アカウントのメールアドレス。 |
+          | `UNITY_PASSWORD` | 必須 | Unity アカウントのパスワード。 |
           | `UNITY_SERIAL` | 有償ライセンスのみ | `XX-XXXX-XXXX-XXXX-XXXX-XXXX` 形式。 |
 
-          - Personal ライセンス: `UNITY_LICENSE` (.ulf) を推奨。Unity Hub の
-            「Get a free personal license」で `Unity_lic.ulf` を発行し、その内容を登録する。
-          - Plus / Pro ライセンス: `UNITY_SERIAL` + `UNITY_EMAIL` + `UNITY_PASSWORD` を登録する。
-          - いずれの.secret も値をログ・Issue・PR に出さないこと。
+          - `UNITY_LICENSE` (`.ulf`) だけでは **hosted runner では使えません**
+            (machine binding mismatch)。上のアカウント認証を使うこと。
+          - いずれの secret も値をログ・Issue・PR に出さないこと。
           SUMMARY
-          echo "::error title=Unity license required::UNITY_LICENSE または UNITY_EMAIL/UNITY_PASSWORD を Actions Secrets に登録してください。"
+          echo "::error title=Unity license required::UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。"
           exit 1
 
   build:
@@ -153,7 +171,10 @@ jobs:
           try {
             $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
             $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
-            if ($hasUlf) {
+            # アカウント認証を優先する。.ulf は発行元マシンに紐づくため
+            # GitHub-hosted runner では machine binding mismatch で必ず失敗する
+            # (実測 2026-11-08, run 42470147986)。
+            if (-not $hasAccount -and $hasUlf) {
               # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
               $raw = $env:UNITY_LICENSE
               $content = $null
@@ -180,19 +201,74 @@ jobs:
             Pop-Location
           }
           if (Test-Path $log) { Get-Content $log -Tail 60 }
-          # $LASTEXITCODE が空のままのことがある (Unity が早期クラッシュした場合など)。
-          # その場合は exit コードではなくライセンス実ファイルの有無で判定する。
-          $activated = ($code -eq 0) -or (Test-Path $lic)
-          if (-not $activated) {
-            # フォールバック: 認証済み .ulf を ProgramData へ直接置いて再確認する。
-            # (内容はログに出さない)
-            if ($hasUlf -and (Test-Path $ulf)) {
-              Write-Output "manual activation failed (exit $code); falling back to copying .ulf to ProgramData"
-              Copy-Item -Force -Path $ulf -Destination $lic
-            }
+
+          # --- 認証結果の判定 -------------------------------------------------
+          # 実測 (2026-11-08, run 42470147986) の教训:
+          #   認証そのものは exit 0 で終わるのに、後続の Editor 起動が
+          #     [Licensing::Client] Error: Code 400 ... (status: Machine bindings don't match)
+          #     No valid Unity Editor license found. Please activate your license. (exit 198)
+          # で失敗することがある。UNITY_LICENSE の .ulf は **発行元マシンに紐づく** ため、
+          # GitHub-hosted runner (毎回別マシン) では機械結合が一致しない。
+          # つまり「.ulf を ProgramData に置けば通る」わけではない — 置いただけでは
+          # 次の Editor 起動は 198 で落ちる。ライセンスファイルの有無で成功判定すると
+          # Lie になるため、**Unity が実際にライセンスを認識したか** で判定する。
+          $bindingMismatch = $false
+          if (Test-Path $log) {
+            $bindingMismatch = (Select-String -Path $log -Pattern "Machine bindings don't match" -Quiet)
+          }
+          if ($bindingMismatch) {
+            cat >> $env:GITHUB_STEP_SUMMARY <<'SUMMARY'
+            ## Win64 ビルド blocked: Unity ライセンスの機械結合が一致しない
+
+            ソースのビルド問題では **ありません**。Unity のライセンス認証段階の失敗です。
+
+            `UNITY_LICENSE` (secret) に登録されている `.ulf` は、**その .ulf を発行した
+            マシンに紐づいています**。GitHub Actions の hosted runner は毎回別のマシンで
+            実行されるため、機械結合 (machine binding) が一致せず使えません。
+
+            ```
+            [Licensing::Client] Error: Code 400 while processing request (status: Machine bindings don't match)
+            No valid Unity Editor license found. Please activate your license.
+            ```
+
+            ### 解決方法 (オーナー操作)
+
+            Settings → **Secrets and variables → Actions** に、**.ulf ではなく
+            Unity アカウント認証情報** を登録してください。
+
+            | secret | 内容 |
+            |---|---|
+            | `UNITY_EMAIL` | Unity アカウントのメール |
+            | `UNITY_PASSWORD` | Unity アカウントのパスワード |
+            | `UNITY_SERIAL` | 有償ライセンスのみ (`XX-XXXX-XXXX-XXXX-XXXX-XXXX`) |
+
+            既存 `UNITY_LICENSE` は **削除してよい** (残っていても:U  accounted モードが
+            優先されるため、放置すると必ずこの失敗になる)。
+
+            > 参考: ビルド成果物が GitHub Actions を経由せず必要なら、
+            > 手元の Mac (Windows Build Support あり) でも同じ `BuildScript.BuildStandaloneWindows64`
+            > を実行できる: `script/win64-build-mac.sh`。
+            > ただし **Windows 実機での実行検証 (1 曲完走) は Mac では代替できない**。
+            SUMMARY
+            throw "Unity ライセンスの機械結合が一致しません (machine binding mismatch)。UNITY_EMAIL / UNITY_PASSWORD の secret 登録が必要です。"
+          }
+
+          if ($code -ne 0) {
+            throw "Unity ライセンス認証に失敗しました (exit $code)。認証ログ: $log"
           }
           if (-not (Test-Path $lic)) {
-            throw "Unity ライセンス認証に失敗しました (exit $code)。ライセンスファイルが作成されませんでした ($lic)"
+            throw "ライセンスファイルが作成されませんでした ($lic)。認証ログ: $log"
+          }
+          # ライセンスファイルがあるだけでは不十分。Editor が実際にライセンスを
+          # 認識できるかを確認するため、短いバッチ起動で検証する
+          # (機械結合不一致はここで exit 198 になる)。
+          & $env:UNITY_EDITOR -batchmode -quit -nographics -logFile "$env:RUNNER_TEMP\license-check.log"
+          $checkCode = $LASTEXITCODE
+          if (Test-Path "$env:RUNNER_TEMP\license-check.log") {
+            Get-Content "$env:RUNNER_TEMP\license-check.log" -Tail 30
+          }
+          if ($checkCode -ne 0) {
+            throw "ライセンスはファイルとして存在するが Unity が認識しません (exit $checkCode)。機械結合不一致の可能性が高いです。認証ログ: $log"
           }
           Write-Output "license file present: True"
 
