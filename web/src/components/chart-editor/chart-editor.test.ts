@@ -6,9 +6,11 @@ import { importChartLenient } from "@/lib/chart/import";
 import { ChartEditor } from "./chart-editor";
 
 /**
- * The chart editor renders its inspector once. The inspector is the
- * persistent column on wide viewports and the drawer on narrow ones, so the
- * preview and the validation list must never exist twice (issue #74).
+ * The chart editor of issue #216.
+ *
+ * The preview, the transport and the inspector are part of the initial
+ * render. The preview is no longer inside a drawer, so it exists exactly
+ * once even when the narrow layout stacks the columns.
  */
 describe("ChartEditor", () => {
   const html = renderToStaticMarkup(
@@ -19,26 +21,53 @@ describe("ChartEditor", () => {
   );
 
   it("renders the inspector once", () => {
-    expect(html.match(/aria-label="Editor sidebar"/g) ?? []).toHaveLength(1);
+    expect(html.match(/aria-label="Editor inspector"/g) ?? []).toHaveLength(1);
   });
 
   it("renders the preview once", () => {
+    expect(html.match(/data-testid="editor-preview-panel"/g) ?? []).toHaveLength(1);
     expect(html.match(/YouTube video/g) ?? []).toHaveLength(1);
   });
 
-  it("keeps the drawer toggle for the narrow viewports", () => {
-    expect(html).toContain("Open the editor sidebar");
+  it("keeps the preview and the validation out of a collapsed drawer", () => {
+    expect(html).not.toContain("Open the editor sidebar");
+    expect(html).toContain("Song preview");
+    expect(html).toContain('data-testid="validation-panel"');
+  });
+
+  it("shows the transport on first paint", () => {
+    expect(html).toContain('data-testid="transport-toggle"');
+    expect(html).toContain('data-testid="transport-restart"');
+    expect(html).toContain('data-testid="playhead-slider"');
+    expect(html).toContain('data-testid="transport-time"');
+  });
+
+  it("shows Undo, Redo and Delete next to the transport", () => {
+    expect(html).toContain('data-testid="undo-button"');
+    expect(html).toContain('data-testid="redo-button"');
+    expect(html).toContain('data-testid="delete-button"');
+  });
+
+  it("groups the chart configuration into Chart setup", () => {
+    expect(html).toContain('data-testid="chart-settings"');
+    expect(html).toContain('data-testid="song-name-input"');
+    expect(html).toContain('data-testid="bpm-input"');
+    expect(html).toContain('data-testid="import-button"');
+    expect(html).toContain('data-testid="export-button"');
+  });
+
+  it("shows the selected-note inspector with a quiet empty state", () => {
+    expect(html).toContain('data-testid="selection-panel"');
+    expect(html).toContain('data-testid="selection-empty"');
   });
 });
 
 /**
- * The switch between placing taps and placing holds (issue #164).
+ * The switch between placing taps and placing holds (issue #164 / #216).
  *
  * The hold is placed with the same gesture as a tap and is resized with the
  * handle at its end, so the operator needs a way to say which kind of note
- * the next click places. The switch is part of the grid bar, next to the
- * note count, and it must not live in the toolbar: the toolbar belongs to
- * another issue.
+ * the next click places.
  */
 describe("ChartEditor note kinds", () => {
   const html = renderToStaticMarkup(
@@ -66,7 +95,7 @@ describe("ChartEditor note kinds", () => {
   });
 
   it("tells the operator how to change the length of a hold", () => {
-    expect(html).toContain("drag the handle of a hold to change its length");
+    expect(html).toContain("Drag the blue handle at its end to change the length");
   });
 });
 

@@ -14,10 +14,7 @@ import { expect, test, type Page } from "@playwright/test";
  * Prerequisites: local `vp dev` with seeded D1 (see playwright.config.ts).
  */
 
-const ARTIFACTS_DIR = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "artifacts",
-);
+const ARTIFACTS_DIR = join(dirname(fileURLToPath(import.meta.url)), "artifacts");
 
 const VIEWPORTS = [
   { name: "1920x1080", width: 1920, height: 1080 },
@@ -51,9 +48,19 @@ const CONTRAST_PAIRS = [
   { name: "fg.default on canvas (body text)", fg: "#FFFFFF", bg: CANVAS, threshold: 4.5 },
   { name: "fg.muted on canvas (secondary text)", fg: "#B0B0B0", bg: CANVAS, threshold: 4.5 },
   { name: "fg.subtle on canvas (hints)", fg: "#8C8C8C", bg: CANVAS, threshold: 4.5 },
-  { name: "primary CTA fg on solid.bg (再生して試す)", fg: "#131313", bg: "#3FA9F5", threshold: 4.5 },
+  {
+    name: "primary CTA fg on solid.bg (再生して試す)",
+    fg: "#131313",
+    bg: "#3FA9F5",
+    threshold: 4.5,
+  },
   { name: "visitor nav fg on solid.bg (曲を選ぶ)", fg: "#131313", bg: "#3FA9F5", threshold: 4.5 },
-  { name: "selected fg on accent tint (aria-current)", fg: "#9AD3FA", bg: "#2B4457", threshold: 4.5 },
+  {
+    name: "selected fg on accent tint (aria-current)",
+    fg: "#9AD3FA",
+    bg: "#2B4457",
+    threshold: 4.5,
+  },
 ];
 
 function writeMetadata(): void {
@@ -141,7 +148,12 @@ for (const viewport of VIEWPORTS) {
     // The source video is a demoted secondary link now.
     await expect(page.getByTestId("open-youtube-link")).toBeVisible();
     await tryIt.click();
-    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeFocused();
+    // The primary CTA starts the preview through the editor's imperative
+    // handle and focuses the preview panel. The panel is asserted rather than
+    // the iframe or the playing state: the YouTube API replaces the iframe
+    // when playback starts and can pause again (autoplay policy), neither of
+    // which is a Studio failure.
+    await expect(page.getByTestId("editor-preview-panel")).toBeFocused();
     await shot(page, viewport.name, "2-chart");
 
     // 4. 戻る: back to the song list, then やり直し: pick again.

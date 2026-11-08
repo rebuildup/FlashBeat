@@ -16,9 +16,10 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: ".",
-  testMatch: ["studio-flow.spec.ts", "visitor-flow.spec.ts"],
+  testMatch: ["studio-flow.spec.ts", "visitor-flow.spec.ts", "editor-note-flow.spec.ts"],
   // The dev server compiles pages on demand; a cold first hit of the editor
-  // and publish chunks can exceed 30s within one test.
+  // and publish chunks can exceed 30s within one test (kept from #232: the
+  // editor-note-flow spec hits both cold chunks in one run).
   timeout: 120_000,
   retries: 0,
   // The dev server compiles pages on demand; a cold first hit can exceed the

@@ -1,11 +1,20 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Field, Input } from "@/components/ui";
-import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
+import {
+  Suspense,
+  forwardRef,
+  lazy,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartLenient } from "@/lib/chart/import";
 import { mergeLoadWarnings } from "@/lib/chart/issues";
-import { createHold, isHold } from "@/lib/chart/long-note";
+import { createHold, holdEndBeat, isHold } from "@/lib/chart/long-note";
 import {
   addNote,
   createNote,
@@ -14,18 +23,21 @@ import {
   moveNote,
   removeNote,
   setHoldEnd,
+  setNoteKind as setChartNoteKind,
   updateChartMeta,
 } from "@/lib/chart/notes";
 import { validateChart } from "@/lib/chart/schema";
 import { snapLine } from "@/lib/chart/snap";
-import { noteBeat } from "@/lib/chart/timing";
-import type { Chart, ValidationIssue } from "@/lib/chart/types";
+import { beatToSeconds, noteBeat } from "@/lib/chart/timing";
+import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type Chart, type ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
-import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
+import { EditorToolbar, fieldLabel, inputBox } from "./editor-toolbar";
 import { useSnapDivision } from "./snap-store";
 import { LyricsEditor } from "./lyrics-editor";
+import { SelectionPanel } from "./selection-panel";
 import { ValidationPanel } from "./validation-panel";
 import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
+import { useChartHistory } from "./use-chart-history";
 
 /**
  * Konva pulls in a canvas stack that only works in the browser, so the grid
@@ -34,8 +46,19 @@ import { YouTubePreview, type YouTubePreviewHandle } from "./youtube-preview";
 const NoteGrid = lazy(() => import("./note-grid").then((module) => ({ default: module.NoteGrid })));
 
 /**
- * The chart editor: toolbar on top, the recessed lane well on the left and
- * the inspector panels on the right.
+ * The chart editor (issue #216).
+ *
+ * The screen is arranged around the two things a first-time operator needs
+ * at the same time — the song and the lanes:
+ *
+ * 1. the toolbar: Play/Pause, the playhead slider, Undo/Redo and Delete,
+ *    plus the `Chart setup` disclosure for everything that configures the
+ *    chart instead of editing it;
+ * 2. the work area: the video preview next to the 8-lane grid, with the
+ *    note kind (Tap/Hold) and the current playhead always visible;
+ * 3. the inspector: the selected note (lane/beat/time/kind/length) and its
+ *    mouse-only edits, followed by the contract check;
+ * 4. the lyrics panel below the work area, secondary to the note grid.
  *
  * Panels follow design/flashbeat-ui.pen v5: page background #1B1B1B (k1),
  * panels #2D2D2D (k3) with the 16px panel radius, recessed strips and lists
@@ -54,19 +77,124 @@ const layout = css({
 const body = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 17rem" },
-  /**
-   * The left column holds the lane well (row 1) and the lyrics panel (row 2).
-   * The lyrics panel keeps 20rem at FHD and 45% of the column below `lg`, so
-   * the note grid stays usable on a laptop while the lyrics list scrolls on
-   * its own. The inspector on the right spans both rows.
-   */
-  gridTemplateRows: {
-    base: "minmax(0, 1fr) minmax(0, 45%)",
-    lg: "minmax(0, 1fr) minmax(0, 20rem)",
-  },
+  gridTemplateColumns: { base: "1fr", lg: "minmax(0, 1fr) 20rem" },
+  gridTemplateRows: { base: "auto auto auto", lg: "minmax(0, 1fr) 15rem" },
   minHeight: "0",
+  overflowX: "hidden",
+  overflowY: { base: "auto", lg: "hidden" },
   p: "3",
+});
+
+/**
+ * The work area: the video preview and the lanes share one row, so the
+ * operator sees the music and the notes at the same time (issue #216).
+ */
+const mainRow = css({
+  display: "grid",
+  gap: "3",
+  gridColumn: "1",
+  gridRow: "1",
+  gridTemplateColumns: { base: "1fr", lg: "minmax(19rem, 0.85fr) minmax(0, 1.7fr)" },
+  gridTemplateRows: { base: "auto auto", lg: "minmax(0, 1fr)" },
+  minHeight: "0",
+  minWidth: "0",
+});
+
+const previewPanel = css({
+  alignSelf: { base: "stretch", lg: "start" },
+  bg: "#131313",
+  borderRadius: "16px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  minHeight: "0",
+  minWidth: "0",
+  overflow: "hidden",
+  padding: "3",
+});
+
+const panelHeader = css({
+  alignItems: "center",
+  display: "flex",
+  justifyContent: "space-between",
+});
+
+const panelTitle = css({
+  color: "#ffffff",
+  fontSize: "xs",
+  fontWeight: "medium",
+  margin: "0",
+});
+
+const playState = css({
+  bg: "#222222",
+  borderRadius: "4px",
+  color: "#b0b0b0",
+  fontSize: "2xs",
+  fontVariantNumeric: "tabular-nums",
+  padding: "0.5 2",
+});
+
+const previewFooter = css({
+  display: "grid",
+  gap: "2",
+});
+
+/**
+ * The middle of the preview column explains the two note shapes while the
+ * video is on screen, so the shapes on the lanes are never guessed
+ * (issue #216). It only fills the space the 16:9 player leaves.
+ */
+const previewGuide = css({
+  borderTopColor: "#222222",
+  borderTopWidth: "1px",
+  display: "grid",
+  gap: "3",
+  paddingTop: "3",
+});
+
+const guideList = css({
+  display: "grid",
+  gap: "2",
+  listStyle: "none",
+  margin: "0",
+  padding: "0",
+});
+
+const guideRow = css({
+  alignItems: "flex-start",
+  display: "grid",
+  gap: "2",
+  gridTemplateColumns: "2.25rem minmax(0, 1fr)",
+});
+
+const guideShape = css({
+  alignItems: "center",
+  display: "flex",
+  height: "1rem",
+  justifyContent: "center",
+});
+
+const guideText = css({
+  color: "#b0b0b0",
+  fontSize: "xs",
+  lineHeight: "1.5",
+  margin: "0",
+});
+
+const guideStrong = css({
+  color: "#ffffff",
+  fontWeight: "medium",
+});
+
+const swatchTap = css({ bg: "#ededed", width: "1rem" });
+const swatchHold = css({ bg: "#8a8a8a", width: "1.5rem" });
+const swatchPlayhead = css({ bg: "#3fa9f5", height: "12px", width: "2px" });
+
+const previewSummary = css({
+  color: "#8c8c8c",
+  fontSize: "2xs",
+  margin: "0",
 });
 
 const gridPanel = css({
@@ -74,49 +202,32 @@ const gridPanel = css({
   borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
-  gridColumn: "1",
-  gridRow: "1",
-  minHeight: "0",
+  minHeight: { base: "30rem", lg: "0" },
   minWidth: "0",
-  overflow: "visible",
+  overflow: "hidden",
+  position: "relative",
 });
 
-/** Placement of the lyrics panel in the left column. */
-const lyricsPanel = css({
-  gridColumn: "1",
-  gridRow: "2",
-  minHeight: "0",
-  minWidth: "0",
-});
-
-const gridHint = css({
-  alignItems: "center",
+const gridHeader = css({
   borderBottomColor: "#222222",
   borderBottomWidth: "1px",
-  color: "#8c8c8c",
-  display: "flex",
-  flexWrap: "wrap",
-  fontSize: "2xs",
-  gap: "3",
+  display: "grid",
+  gap: "2",
   paddingBottom: "2",
   paddingTop: "2",
   px: "3",
 });
 
-const playheadReadout = css({
-  color: "#ffffff",
-  fontVariantNumeric: "tabular-nums",
-  marginRight: "2",
+const gridHeaderTop = css({
+  alignItems: "center",
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "2",
 });
 
-const holdReadout = css({
+const sectionLabel = css({
   color: "#8c8c8c",
-  fontVariantNumeric: "tabular-nums",
-});
-
-const hintText = css({
-  color: "#8c8c8c",
-  flex: "1 1 18rem",
+  fontSize: "2xs",
 });
 
 /** Switch between placing taps and placing holds. */
@@ -129,103 +240,115 @@ const kindSwitch = css({
 });
 
 const kindButton = css({
+  alignItems: "flex-start",
   background: "transparent",
   borderRadius: "6px",
   color: "#8c8c8c",
   cursor: "pointer",
-  fontSize: "2xs",
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
   paddingBottom: "1",
   paddingTop: "1",
   px: "3",
   _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
+  _hover: { color: "#ffffff" },
 });
 
 const kindButtonActive = css({
+  alignItems: "flex-start",
   background: "#3a3a3a",
   borderRadius: "6px",
   color: "#ffffff",
   cursor: "pointer",
-  fontSize: "2xs",
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
   paddingBottom: "1",
   paddingTop: "1",
   px: "3",
   _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "1px" },
 });
 
-const side = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "3",
-  gridColumn: { base: "1", lg: "2" },
-  gridRow: { base: "1", lg: "1 / span 2" },
-  minHeight: 0,
-  overflowY: "auto",
-  /**
-   * Narrow viewports: the inspector is an off-canvas drawer over the work
-   * area (issue #74). Wide viewports: the persistent right column.
-   */
-  bg: { base: "#1b1b1b", lg: "transparent" },
-  borderLeftColor: { base: "#2d2d2d", lg: "transparent" },
-  borderLeftWidth: { base: "1px", lg: "0px" },
-  bottom: { base: "0", lg: "auto" },
-  height: { base: "100dvh", lg: "auto" },
-  maxWidth: "100%",
-  pb: { base: "3", lg: "0" },
-  position: { base: "fixed", lg: "static" },
-  pt: { base: "3", lg: "0" },
-  px: { base: "3", lg: "0" },
-  right: { base: "0", lg: "auto" },
-  top: { base: "0", lg: "auto" },
-  width: { base: "17rem", lg: "17rem" },
-  zIndex: { base: "popover", lg: "auto" },
-});
-
-/** Closed drawers leave the tab order and sit behind the right edge. */
-const sideClosed = css({
-  transform: { base: "translateX(100%)", lg: "none" },
-  visibility: { base: "hidden", lg: "visible" },
-});
-
-const sideOpen = css({
-  transform: { base: "none", lg: "none" },
-  visibility: { base: "visible", lg: "visible" },
-});
-
-const sideHeader = css({
-  alignItems: "center",
-  display: "flex",
-  gap: "2",
-  justifyContent: "space-between",
-});
-
-const sideClose = css({
-  alignItems: "center",
-  bg: "#3a3a3a",
-  borderRadius: "8px",
-  color: "#ffffff",
-  display: { base: "flex", lg: "none" },
-  height: "sizes.7",
-  justifyContent: "center",
-  width: "sizes.7",
-  _hover: { bg: "#454545" },
-  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "2px" },
-});
-
-const sideFrame = css({
-  bg: "#2d2d2d",
-  borderRadius: "16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "3",
-  width: { base: "100%", lg: "17rem" },
-});
-
-const sideTitle = css({
-  color: "#ffffff",
+const kindName = css({
   fontSize: "xs",
   fontWeight: "medium",
-  margin: "0",
+  lineHeight: "1.1",
+});
+
+const kindHint = css({
+  color: "#8c8c8c",
+  fontSize: "2xs",
+  lineHeight: "1.1",
+});
+
+const selectionChip = css({
+  bg: "#222222",
+  borderRadius: "8px",
+  color: "#b0b0b0",
+  fontSize: "2xs",
+  fontVariantNumeric: "tabular-nums",
+  padding: "1 3",
+});
+
+const selectionChipActive = css({
+  bg: "rgba(63,169,245,0.14)",
+  borderRadius: "8px",
+  color: "#9ad3fa",
+  fontSize: "2xs",
+  fontVariantNumeric: "tabular-nums",
+  padding: "1 3",
+});
+
+const playheadChip = css({
+  color: "#ffffff",
+  fontFamily: "mono",
+  fontSize: "2xs",
+  fontVariantNumeric: "tabular-nums",
+  marginLeft: "auto",
+  whiteSpace: "nowrap",
+});
+
+const gridHint = css({
+  alignItems: "center",
+  color: "#8c8c8c",
+  display: "flex",
+  flexWrap: "wrap",
+  fontSize: "2xs",
+  gap: "3",
+});
+
+const holdReadout = css({
+  color: "#8c8c8c",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const hintText = css({
+  color: "#8c8c8c",
+  flex: "1 1 16rem",
+});
+
+const emptyOverlay = css({
+  alignItems: "center",
+  bottom: "4",
+  display: "flex",
+  justifyContent: "center",
+  left: "0",
+  pointerEvents: "none",
+  position: "absolute",
+  right: "0",
+  top: "6rem",
+});
+
+const emptyCard = css({
+  bg: "#222222",
+  borderColor: "#3a3a3a",
+  borderRadius: "12px",
+  borderStyle: "dashed",
+  borderWidth: "1px",
+  color: "#b0b0b0",
+  fontSize: "sm",
+  padding: "4",
 });
 
 const placeholder = css({
@@ -237,6 +360,25 @@ const placeholder = css({
   justifyContent: "center",
   padding: "4",
   textAlign: "center",
+});
+
+const lyricsPanel = css({
+  gridColumn: "1",
+  gridRow: "2",
+  minHeight: "0",
+  minWidth: "0",
+  overflow: "hidden",
+});
+
+const side = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  gridColumn: { base: "1", lg: "2" },
+  gridRow: { base: "2", lg: "1 / span 2" },
+  minHeight: 0,
+  minWidth: 0,
+  overflowY: "auto",
 });
 
 export interface ChartEditorProps {
@@ -267,14 +409,44 @@ export interface ChartEditorProps {
   initialIssues?: ValidationIssue[];
 }
 
-export function ChartEditor({
-  initialChart,
-  initialYouTubeId,
-  onChartChange,
-  onValidationChange,
-  initialIssues,
-}: ChartEditorProps) {
-  const [chart, setChart] = useState<Chart | null>(initialChart);
+/**
+ * What a parent may do to the editor's transport (#232 follow-up).
+ *
+ * The preview inside the editor is the only owner of playback, so a page that
+ * wants to start the song (the chart page's "Try it" CTA) must not reach for
+ * a `Play` button in the markup. It calls the editor instead, and the editor
+ * forwards the request to its preview:
+ *
+ * - `play()` — start the video (the same thing the toolbar's Play does);
+ * - `pause()` — stop it;
+ * - `seekTo(seconds)` — move the playhead and the video together.
+ *
+ * None of the three throw when the YouTube player could not load (offline
+ * exhibition); the playhead can still be positioned.
+ */
+export interface ChartEditorHandle {
+  play(): void;
+  pause(): void;
+  seekTo(seconds: number): void;
+}
+
+export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(function ChartEditor(
+  {
+    initialChart,
+    initialYouTubeId,
+    onChartChange,
+    onValidationChange,
+    initialIssues,
+  }: ChartEditorProps,
+  ref,
+) {
+  /**
+   * Chart and selection live in one history, so Undo/Redo puts back the
+   * edit *and* the note it was made on (issue #216).
+   */
+  const { chart, selectedIndex, canUndo, canRedo, commit, select, undo, redo, reset } =
+    useChartHistory(initialChart);
+
   const [importIssues, setImportIssues] = useState<ValidationIssue[]>([]);
   /**
    * Warnings of the chart the editor was opened with (or with the file the
@@ -282,7 +454,6 @@ export function ChartEditor({
    * read; the live validation of the editor stays strict.
    */
   const [loadWarnings, setLoadWarnings] = useState<ValidationIssue[]>(initialIssues ?? []);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState(() => dominantResolution(initialChart));
   /**
    * Grid the notes are placed on (issue #180).
@@ -294,9 +465,9 @@ export function ChartEditor({
   const snapDivision = useSnapDivision();
   const [zoom, setZoom] = useState(1);
   const [playheadSec, setPlayheadSec] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const [youtubeInput, setYoutubeInput] = useState(initialYouTubeId);
   const [youtubeId, setYoutubeId] = useState(initialYouTubeId);
-  const [isSideOpen, setIsSideOpen] = useState(false);
   /**
    * Kind of the note the next click on the grid places.
    *
@@ -307,15 +478,6 @@ export function ChartEditor({
   const [noteKind, setNoteKind] = useState<"tap" | "hold">("tap");
 
   const previewRef = useRef<YouTubePreviewHandle | null>(null);
-  const sideRef = useRef<HTMLElement | null>(null);
-
-  // The inspector is a drawer below the `lg` breakpoint: the focus enters it
-  // on open, stays inside it and returns to the trigger when it closes.
-  useDrawerFocus({
-    open: isSideOpen,
-    panelRef: sideRef,
-    onClose: useCallback(() => setIsSideOpen(false), []),
-  });
 
   // The callbacks are read through a ref, so a parent that builds a new
   // function on every render does not restart the effects below.
@@ -344,28 +506,29 @@ export function ChartEditor({
     validationChangeRef.current?.(issues);
   }, [issues]);
 
-  const handleImportFile = useCallback(async (file: File) => {
-    const text = await file.text();
-    // The file is read leniently: a chart whose relations are broken is
-    // loaded and the violations are shown as warnings, so a chart that was
-    // published before the rules were unified can be repaired here instead of
-    // being dropped (issue #208).
-    const result = importChartLenient(text);
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      const text = await file.text();
+      // The file is read leniently: a chart whose relations are broken is
+      // loaded and the violations are shown as warnings, so a chart that was
+      // published before the rules were unified can be repaired here instead
+      // of being dropped (issue #208).
+      const result = importChartLenient(text);
 
-    if (!result.ok) {
-      setImportIssues(result.issues);
-      setLoadWarnings([]);
-      setChart(null);
-      setSelectedIndex(null);
-      return;
-    }
+      if (!result.ok) {
+        setImportIssues(result.issues);
+        setLoadWarnings([]);
+        reset(null);
+        return;
+      }
 
-    setImportIssues([]);
-    setLoadWarnings(result.issues ?? []);
-    setChart(result.chart);
-    setSelectedIndex(null);
-    setResolution(dominantResolution(result.chart));
-  }, []);
+      setImportIssues([]);
+      setLoadWarnings(result.issues ?? []);
+      reset(result.chart);
+      setResolution(dominantResolution(result.chart));
+    },
+    [reset],
+  );
 
   const handleExport = useCallback(() => {
     if (!chart) {
@@ -382,95 +545,155 @@ export function ChartEditor({
   }, [chart]);
 
   /**
+   * End of the seekable timeline.
+   *
+   * The slider covers the chart (its last note plus a little) and never less
+   * than half a minute, so a new chart can still be scrubbed before the
+   * first note is placed.
+   */
+  const timelineSec = useMemo(() => {
+    const bpm = chart?.BPM ?? 0;
+    if (!chart || bpm <= 0) {
+      return 60;
+    }
+    let lastBeat = 0;
+    for (const note of chart.notes) {
+      lastBeat = Math.max(lastBeat, noteBeat(note));
+      if (isHold(note)) {
+        lastBeat = Math.max(lastBeat, holdEndBeat(note));
+      }
+    }
+    return Math.max(30, Math.ceil(beatToSeconds(lastBeat, bpm)) + 10);
+  }, [chart]);
+
+  /**
+   * Move the playhead and the video together.
+   *
+   * The YouTube player stays the owner of playback, but the readout must
+   * follow the slider immediately: when the preview cannot load (offline
+   * exhibition) the timeline is still usable for positioning the grid.
+   */
+  const handleSeek = useCallback(
+    (seconds: number) => {
+      const next = Math.max(0, Math.min(timelineSec, seconds));
+      setPlayheadSec(next);
+      previewRef.current?.seekTo(next);
+    },
+    [timelineSec],
+  );
+
+  /**
+   * Start/stop the preview.
+   *
+   * The toolbar and the imperative handle (`play()`/`pause()`) share these,
+   * so a parent that drives the editor and an operator who presses the
+   * toolbar button see the same state.
+   */
+  const handlePlay = useCallback(() => {
+    previewRef.current?.play();
+    setPlaying(true);
+  }, []);
+
+  const handlePause = useCallback(() => {
+    previewRef.current?.pause();
+    setPlaying(false);
+  }, []);
+
+  const handleTogglePlay = useCallback(() => {
+    if (!chart) {
+      return;
+    }
+    if (playing) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  }, [chart, handlePause, handlePlay, playing]);
+
+  /**
+   * Forward the parent's transport calls to the preview (#232 follow-up).
+   *
+   * `chart.tsx` no longer finds a `Play` button in the markup: it holds a ref
+   * to this editor and calls `play()`. The contract is `ChartEditorHandle`.
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      play: handlePlay,
+      pause: handlePause,
+      seekTo: handleSeek,
+    }),
+    [handlePlay, handlePause, handleSeek],
+  );
+
+  const handleRestart = useCallback(() => {
+    handleSeek(0);
+  }, [handleSeek]);
+
+  /**
    * Seek the preview from the lyrics panel.
    *
    * The lyrics panel works in seconds; the YouTube player stays the only
    * owner of playback. The request is forwarded to it and the new position
    * comes back through `onTimeUpdate`, so both panels read one playhead.
    */
-  const handleLyricsSeek = useCallback((seconds: number) => {
-    previewRef.current?.seekTo(seconds);
-  }, []);
+  const handleLyricsSeek = useCallback(
+    (seconds: number) => {
+      handleSeek(seconds);
+    },
+    [handleSeek],
+  );
 
   /**
-   * Place a hold.
+   * Place the note the kind switch selected.
    *
    * A hold is placed with the same gesture as a tap and then resized with
    * the handle at its end, so the operator does not have to know the length
    * of the hold before placing it. It starts with the length of one beat,
    * which is the shortest hold the grid can show.
    */
-  const handleAddHold = useCallback(
-    (block: number, beat: number) => {
-      setChart((current) => {
-        if (!current) {
-          return current;
-        }
-        // The grid of the toolbar decides where the note lands: the snap
-        // division when it is set, the lines per beat of the chart otherwise.
-        const line = snapLine(beat * resolution, resolution, snapDivision);
-        const existing = current.notes.findIndex(
-          (note) => note.block === block && note.num === line,
-        );
-        if (existing >= 0) {
-          setSelectedIndex(existing);
-          return current;
-        }
-        // Same as taps: the new hold is the selection, so Del and the resize
-        // handle work immediately after the placement gesture.
-        setSelectedIndex(current.notes.length);
-        return addNote(
-          current,
-          createHold(
-            block,
-            line / resolution,
-            (line + resolution) / resolution,
-            resolution,
-            snapDivision,
-          ),
-        );
-      });
-    },
-    [resolution, snapDivision],
-  );
-
   const handleAddNote = useCallback(
     (block: number, beat: number) => {
-      if (noteKind === "hold") {
-        handleAddHold(block, beat);
+      if (!chart) {
+        return;
+      }
+      // The grid of the toolbar decides where the note lands: the snap
+      // division when it is set, the lines per beat of the chart otherwise.
+      const line = snapLine(beat * resolution, resolution, snapDivision);
+      // A cell that already holds a note selects it instead of stacking a
+      // duplicate on the same line.
+      const existing = chart.notes.findIndex((note) => note.block === block && note.num === line);
+      if (existing >= 0) {
+        select(existing);
         return;
       }
 
-      setChart((current) => {
-        if (!current) {
-          return current;
-        }
-        const line = snapLine(beat * resolution, resolution, snapDivision);
-        // A cell that already holds a note selects it instead of stacking a
-        // duplicate on the same line.
-        const existing = current.notes.findIndex(
-          (note) => note.block === block && note.num === line,
-        );
-        if (existing >= 0) {
-          setSelectedIndex(existing);
-          return current;
-        }
-        // The just-placed note becomes the selection, so Del removes it
-        // right away and the drag handle is immediately available.
-        setSelectedIndex(current.notes.length);
-        return addNote(current, createNote(block, line, resolution));
-      });
+      const note =
+        noteKind === "hold"
+          ? createHold(
+              block,
+              line / resolution,
+              (line + resolution) / resolution,
+              resolution,
+              snapDivision,
+            )
+          : createNote(block, line, resolution);
+
+      // The just-placed note becomes the selection, so the inspector and the
+      // Delete/Undo controls work right after the placement gesture.
+      commit(addNote(chart, note), chart.notes.length);
     },
-    [handleAddHold, noteKind, resolution, snapDivision],
+    [chart, commit, noteKind, resolution, select, snapDivision],
   );
 
   const handleMoveNote = useCallback(
     (index: number, block: number, beat: number) => {
-      setChart((current) =>
-        current ? moveNote(current, index, block, beat, snapDivision) : current,
-      );
+      if (!chart) {
+        return;
+      }
+      commit(moveNote(chart, index, block, beat, snapDivision), index);
     },
-    [snapDivision],
+    [chart, commit, snapDivision],
   );
 
   /**
@@ -481,80 +704,134 @@ export function ChartEditor({
    */
   const handleResizeHold = useCallback(
     (index: number, endBeat: number) => {
-      setChart((current) =>
-        current ? setHoldEnd(current, index, endBeat, snapDivision) : current,
-      );
+      if (!chart) {
+        return;
+      }
+      commit(setHoldEnd(chart, index, endBeat, snapDivision), index);
     },
-    [snapDivision],
+    [chart, commit, snapDivision],
   );
 
   const handleDeleteSelected = useCallback(() => {
-    setChart((current) => {
-      if (!current || selectedIndex === null) {
-        return current;
-      }
-      return removeNote(current, selectedIndex);
-    });
-    setSelectedIndex(null);
-  }, [selectedIndex]);
+    if (!chart || selectedIndex === null) {
+      return;
+    }
+    // The history records the selected note with the chart, so Undo brings
+    // the note back *and* selects it again.
+    commit(removeNote(chart, selectedIndex), null);
+  }, [chart, commit, selectedIndex]);
 
   // Arrow keys move the selected note by one grid line (beat) or one lane
   // (block), so fine placement never needs the mouse.
   const handleNudgeSelected = useCallback(
     (deltaBeat: number, deltaBlock: number) => {
-      if (selectedIndex === null) {
+      if (!chart || selectedIndex === null) {
         return;
       }
-      setChart((current) => {
-        const note = current?.notes[selectedIndex];
-        if (!current || !note) {
-          return current;
-        }
-        const beat = Math.max(0, noteBeat(note) + deltaBeat);
-        const block = Math.min(7, Math.max(0, note.block + deltaBlock));
-        return moveNote(current, selectedIndex, block, beat, snapDivision);
-      });
+      const note = chart.notes[selectedIndex];
+      if (!note) {
+        return;
+      }
+      const beat = Math.max(0, noteBeat(note) + deltaBeat);
+      const block = Math.min(7, Math.max(0, note.block + deltaBlock));
+      commit(moveNote(chart, selectedIndex, block, beat, snapDivision), selectedIndex);
     },
-    [selectedIndex, snapDivision],
+    [chart, commit, selectedIndex, snapDivision],
   );
 
   /**
-   * Change the length of the selected hold by one grid line.
+   * Change the length of the selected hold by `deltaBeat`.
    *
-   * The keyboard is the precise way to set the length of a hold: the handle
-   * is dragged for the rough length, the arrow keys for the exact one.
+   * The handle is dragged for the rough length, the inspector's +/− buttons
+   * and the arrow keys for the exact one.
    */
   const handleResizeSelectedHold = useCallback(
     (deltaBeat: number) => {
-      if (selectedIndex === null) {
+      if (!chart || selectedIndex === null) {
         return;
       }
-      setChart((current) => {
-        const note = current?.notes[selectedIndex];
-        if (!current || !note || !isHold(note)) {
-          return current;
-        }
-        const endBeat = noteBeat(note) + deltaBeat + (note.endNum ?? note.num + 1) / note.LPB;
-        return setHoldEnd(current, selectedIndex, endBeat, snapDivision);
-      });
+      const note = chart.notes[selectedIndex];
+      if (!note || !isHold(note)) {
+        return;
+      }
+      commit(
+        setHoldEnd(chart, selectedIndex, holdEndBeat(note) + deltaBeat, snapDivision),
+        selectedIndex,
+      );
     },
-    [selectedIndex, snapDivision],
+    [chart, commit, selectedIndex, snapDivision],
   );
 
-  // The selected note disappears with the chart, so the index is kept in range.
-  useEffect(() => {
-    setSelectedIndex((current) => {
-      if (current === null || !chart) {
-        return null;
+  const handleSetKind = useCallback(
+    (kind: "tap" | "hold") => {
+      if (!chart || selectedIndex === null) {
+        return;
       }
-      return current < chart.notes.length ? current : null;
-    });
-  }, [chart]);
+      const type = kind === "hold" ? NOTE_TYPE_HOLD : NOTE_TYPE_TAP;
+      commit(setChartNoteKind(chart, selectedIndex, type), selectedIndex);
+    },
+    [chart, commit, selectedIndex],
+  );
+
+  const handleDeselect = useCallback(() => {
+    select(null);
+  }, [select]);
+
+  const handleNameChange = useCallback(
+    (name: string) => {
+      if (!chart) {
+        return;
+      }
+      commit(updateChartMeta(chart, { name }), selectedIndex);
+    },
+    [chart, commit, selectedIndex],
+  );
+
+  const handleBpmChange = useCallback(
+    (bpm: number) => {
+      if (!chart) {
+        return;
+      }
+      commit(updateChartMeta(chart, { BPM: bpm }), selectedIndex);
+    },
+    [chart, commit, selectedIndex],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+        return;
+      }
+      if (target?.isContentEditable) {
+        return;
+      }
+
+      const modifier = event.metaKey || event.ctrlKey;
+
+      if (modifier && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
+      if (modifier && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (event.code === "Space") {
+        // A focused button/link/summary keeps its own Space behaviour.
+        if (target?.closest("button, a, summary, [role='button'], [role='combobox']")) {
+          return;
+        }
+        event.preventDefault();
+        handleTogglePlay();
         return;
       }
 
@@ -565,9 +842,7 @@ export function ChartEditor({
       }
 
       if (event.key === "Escape") {
-        // The drawer closes itself and stops the event before it reaches
-        // this handler; here Escape only clears the note selection.
-        setSelectedIndex(null);
+        select(null);
         return;
       }
 
@@ -604,11 +879,17 @@ export function ChartEditor({
     handleDeleteSelected,
     handleNudgeSelected,
     handleResizeSelectedHold,
-    selectedIndex,
+    handleTogglePlay,
+    redo,
     resolution,
+    select,
+    selectedIndex,
+    undo,
   ]);
 
   const noteCount = chart?.notes.length ?? 0;
+  const selectedNote = selectedIndex !== null ? chart?.notes[selectedIndex] : undefined;
+  const playheadBeat = chart && chart.BPM > 0 ? (playheadSec * chart.BPM) / 60 : 0;
 
   const youtubeSummary = useMemo(() => {
     const parsed = parseYouTubeId(youtubeInput);
@@ -628,146 +909,209 @@ export function ChartEditor({
         resolution={resolution}
         zoom={zoom}
         canDelete={selectedIndex !== null}
-        onNameChange={(name) =>
-          setChart((current) => (current ? updateChartMeta(current, { name }) : current))
-        }
-        onBpmChange={(bpm) =>
-          setChart((current) => (current ? updateChartMeta(current, { BPM: bpm }) : current))
-        }
+        playing={playing}
+        onTogglePlay={handleTogglePlay}
+        onRestart={handleRestart}
+        playheadSec={playheadSec}
+        timelineSec={timelineSec}
+        onSeek={handleSeek}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onNameChange={handleNameChange}
+        onBpmChange={handleBpmChange}
         onResolutionChange={setResolution}
         onZoomChange={setZoom}
         onImportFile={handleImportFile}
         onExport={handleExport}
         onDeleteSelected={handleDeleteSelected}
-        onToggleSide={() => setIsSideOpen((current) => !current)}
-        sideOpen={isSideOpen}
       />
 
       <div className={body}>
-        <section className={gridPanel}>
-          <div className={gridHint}>
-            <span className={playheadReadout} data-testid="playhead-readout">
-              {playheadSec.toFixed(2)}s · beat {((playheadSec * (chart?.BPM ?? 0)) / 60).toFixed(2)}
-            </span>
-            <span className={holdReadout} data-testid="hold-count">
-              {chart ? holdCount(chart) : 0} holds
-            </span>
-            <div className={kindSwitch} role="group" aria-label="Note kind">
-              <button
-                type="button"
-                className={noteKind === "tap" ? kindButtonActive : kindButton}
-                aria-pressed={noteKind === "tap"}
-                onClick={() => setNoteKind("tap")}
-                data-testid="kind-tap"
-              >
-                Tap
-              </button>
-              <button
-                type="button"
-                className={noteKind === "hold" ? kindButtonActive : kindButton}
-                aria-pressed={noteKind === "hold"}
-                onClick={() => setNoteKind("hold")}
-                data-testid="kind-hold"
-              >
-                Hold
-              </button>
+        <div className={mainRow}>
+          <section
+            className={previewPanel}
+            data-testid="editor-preview-panel"
+            aria-label="Song preview"
+          >
+            <div className={panelHeader}>
+              <h3 className={panelTitle}>Song preview</h3>
+              <span className={playState} data-testid="preview-state">
+                {playing ? "Playing" : "Paused"}
+              </span>
             </div>
-            <span className={hintText}>
-              Click an empty cell to add a {noteKind === "hold" ? "hold" : "tap note"} · drag to
-              move · drag the handle of a hold to change its length · Shift+←/→ resizes a hold ·
-              arrows nudge · Del removes · Esc deselects
-            </span>
-          </div>
-
-          {chart ? (
-            <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
-              <NoteGrid
-                chart={chart}
-                resolution={resolution}
-                zoom={zoom}
-                selectedIndex={selectedIndex}
-                playheadSec={playheadSec}
-                onSelect={setSelectedIndex}
-                onAddNote={handleAddNote}
-                onMoveNote={handleMoveNote}
-                onResizeHold={handleResizeHold}
-              />
-            </Suspense>
-          ) : (
-            <p className={placeholder}>
-              No chart loaded. Import a chart file or fix the problems listed on the right.
-            </p>
-          )}
-        </section>
-
-        <LyricsEditor
-          className={lyricsPanel}
-          chart={chart}
-          playheadSec={playheadSec}
-          onChartChange={setChart}
-          onSeek={handleLyricsSeek}
-        />
-
-        <aside
-          className={`${side} ${isSideOpen ? sideOpen : sideClosed}`}
-          ref={sideRef}
-          role={isSideOpen ? "dialog" : undefined}
-          aria-modal={isSideOpen ? true : undefined}
-          aria-label="Editor sidebar"
-        >
-          <div className={sideHeader}>
-            <h3 className={sideTitle}>Editor tools</h3>
-            <button
-              type="button"
-              className={sideClose}
-              onClick={() => setIsSideOpen(false)}
-              aria-label="Close the editor sidebar"
-            >
-              <span aria-hidden="true">✕</span>
-            </button>
-          </div>
-
-          <section className={sideFrame}>
-            <h3 className={sideTitle}>Preview</h3>
-            <Field.Root>
-              <Field.Label className={fieldLabel}>YouTube video</Field.Label>
-              <Input
-                className={inputBox}
-                value={youtubeInput}
-                placeholder="https://www.youtube.com/watch?v=..."
-                onChange={(event) => setYoutubeInput(event.currentTarget.value)}
-                onBlur={() => {
-                  const parsed = parseYouTubeId(youtubeInput);
-                  if (parsed) {
-                    setYoutubeId(parsed);
-                  }
-                }}
-              />
-              {youtubeSummary ? <Field.HelperText>{youtubeSummary}</Field.HelperText> : null}
-            </Field.Root>
 
             <YouTubePreview
               ref={previewRef}
               videoId={youtubeId}
               onTimeUpdate={setPlayheadSec}
-              onPlayingChange={() => {}}
+              onPlayingChange={setPlaying}
+              showControls={false}
             />
 
-            <Button
-              className={buttonSecondary}
-              size="sm"
-              onClick={() => previewRef.current?.seekTo(0)}
-              data-testid="rewind-button"
-            >
-              Back to start
-            </Button>
+            <div className={previewGuide}>
+              <ul className={guideList}>
+                <li className={guideRow}>
+                  <span className={guideShape}>
+                    <span className={swatchTap} aria-hidden="true" />
+                  </span>
+                  <p className={guideText}>
+                    <span className={guideStrong}>Tap</span> — press the key once. The note is the
+                    short white bar.
+                  </p>
+                </li>
+                <li className={guideRow}>
+                  <span className={guideShape}>
+                    <span className={swatchHold} aria-hidden="true" />
+                  </span>
+                  <p className={guideText}>
+                    <span className={guideStrong}>Hold</span> — keep it pressed. Drag the blue
+                    handle at its end to change the length.
+                  </p>
+                </li>
+                <li className={guideRow}>
+                  <span className={guideShape}>
+                    <span className={swatchPlayhead} aria-hidden="true" />
+                  </span>
+                  <p className={guideText}>
+                    <span className={guideStrong}>Playhead</span> — the blue line follows the video
+                    and the slider above.
+                  </p>
+                </li>
+              </ul>
+            </div>
+
+            <div className={previewFooter}>
+              <Field.Root>
+                <Field.Label className={fieldLabel}>YouTube video</Field.Label>
+                <Input
+                  className={inputBox}
+                  data-testid="youtube-input"
+                  value={youtubeInput}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  onChange={(event) => setYoutubeInput(event.currentTarget.value)}
+                  onBlur={() => {
+                    const parsed = parseYouTubeId(youtubeInput);
+                    if (parsed) {
+                      setYoutubeId(parsed);
+                    }
+                  }}
+                />
+                {youtubeSummary ? <Field.HelperText>{youtubeSummary}</Field.HelperText> : null}
+              </Field.Root>
+
+              <p className={previewSummary}>
+                {noteCount} {noteCount === 1 ? "note" : "notes"} · {chart ? holdCount(chart) : 0}{" "}
+                holds · {chart?.BPM ?? 0} BPM
+              </p>
+            </div>
           </section>
 
+          <section className={gridPanel} aria-label="Note editor">
+            <div className={gridHeader}>
+              <div className={gridHeaderTop}>
+                <span className={sectionLabel}>Add note</span>
+                <div className={kindSwitch} role="group" aria-label="Note kind">
+                  <button
+                    type="button"
+                    className={noteKind === "tap" ? kindButtonActive : kindButton}
+                    aria-pressed={noteKind === "tap"}
+                    onClick={() => setNoteKind("tap")}
+                    data-testid="kind-tap"
+                  >
+                    <span className={kindName}>Tap</span>
+                    <span className={kindHint}>press once</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={noteKind === "hold" ? kindButtonActive : kindButton}
+                    aria-pressed={noteKind === "hold"}
+                    onClick={() => setNoteKind("hold")}
+                    data-testid="kind-hold"
+                  >
+                    <span className={kindName}>Hold</span>
+                    <span className={kindHint}>press and hold</span>
+                  </button>
+                </div>
+
+                <span
+                  className={selectedNote ? selectionChipActive : selectionChip}
+                  data-testid="grid-selection"
+                >
+                  {selectedNote
+                    ? `Lane ${selectedNote.block + 1} · beat ${noteBeat(selectedNote).toFixed(2)}`
+                    : "No note selected"}
+                </span>
+
+                <span className={playheadChip} data-testid="playhead-readout">
+                  {playheadSec.toFixed(2)}s · beat {playheadBeat.toFixed(2)}
+                </span>
+              </div>
+
+              <div className={gridHint}>
+                <span className={holdReadout} data-testid="hold-count">
+                  {chart ? holdCount(chart) : 0} holds
+                </span>
+                <span className={hintText}>
+                  Click an empty cell to place a {noteKind === "hold" ? "Hold" : "Tap"}. Drag a note
+                  to move it.
+                  {noteKind === "hold"
+                    ? " Drag the blue handle at its end to change the length."
+                    : " Hold makes a long note with a draggable end."}
+                </span>
+              </div>
+            </div>
+
+            {chart ? (
+              <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
+                <NoteGrid
+                  chart={chart}
+                  resolution={resolution}
+                  zoom={zoom}
+                  selectedIndex={selectedIndex}
+                  playheadSec={playheadSec}
+                  onSelect={select}
+                  onAddNote={handleAddNote}
+                  onMoveNote={handleMoveNote}
+                  onResizeHold={handleResizeHold}
+                />
+              </Suspense>
+            ) : (
+              <p className={placeholder}>
+                No chart loaded. Import a chart file or fix the problems listed in the inspector.
+              </p>
+            )}
+
+            {chart && chart.notes.length === 0 ? (
+              <div className={emptyOverlay} aria-hidden="true">
+                <span className={emptyCard}>Tap a lane to place the first note</span>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <LyricsEditor
+          className={lyricsPanel}
+          chart={chart}
+          playheadSec={playheadSec}
+          onChartChange={commit}
+          onSeek={handleLyricsSeek}
+        />
+
+        <aside className={side} aria-label="Editor inspector" data-testid="editor-inspector">
+          <SelectionPanel
+            chart={chart}
+            selectedIndex={selectedIndex}
+            onDeselect={handleDeselect}
+            onSetKind={handleSetKind}
+            onResizeHold={handleResizeSelectedHold}
+            onNudge={handleNudgeSelected}
+            onDelete={handleDeleteSelected}
+          />
           <ValidationPanel issues={issues} />
         </aside>
-
-        {isSideOpen ? <DrawerBackdrop onClose={() => setIsSideOpen(false)} /> : null}
       </div>
     </div>
   );
-}
+});

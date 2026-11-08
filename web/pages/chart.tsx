@@ -1,8 +1,8 @@
 import { savePublishDraft } from "@/lib/publish/draft";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
-import { ChartEditor } from "@/components/chart-editor/chart-editor";
+import { ChartEditor, type ChartEditorHandle } from "@/components/chart-editor/chart-editor";
 import { loadSongSession, type SongSession } from "@/lib/song-session/load";
 import { StudioShell } from "@/app/app-shell";
 import {
@@ -73,29 +73,27 @@ const youtubeLink = css({
 });
 
 /**
- * Bring the editor's YouTube preview — the only owner of playback (#216) —
- * into view and focus its Play control, so Enter/Space starts the song
- * without leaving the Studio. Falls back to the player container itself when
- * the Play control is not found (the preview markup is #216's area).
+ * Start the editor's YouTube preview — the only owner of playback (#216) —
+ * through the editor's imperative handle, then bring the preview panel into
+ * view and focus it, so the visitor sees the song start without leaving the
+ * Studio.
+ *
+ * The panel is the focus target, not the player iframe: the YouTube API
+ * replaces its iframe when playback starts, which drops the focus. The panel
+ * is rendered by the editor and stays in place, so keyboard users keep a
+ * stable anchor.
  */
-function tryPreview(): void {
-  const player = document.querySelector<HTMLElement>('[data-testid="youtube-player"]');
-  if (!player) return;
-  player.scrollIntoView({ block: "center" });
-  const play = Array.from(document.querySelectorAll("button")).find(
-    (button) =>
-      (button.textContent ?? "").trim() === "Play" &&
-      (button.offsetParent !== null || button === document.activeElement),
-  );
-  if (play) {
-    play.focus();
-    return;
-  }
-  player.tabIndex = -1;
-  player.focus();
+function tryPreview(editor: ChartEditorHandle | null): void {
+  editor?.play();
+  const panel = document.querySelector<HTMLElement>('[data-testid="editor-preview-panel"]');
+  if (!panel) return;
+  panel.scrollIntoView({ block: "center" });
+  panel.tabIndex = -1;
+  panel.focus();
 }
 
 export default function ChartPage({ songId, version }: Props) {
+  const editorRef = useRef<ChartEditorHandle | null>(null);
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
   const [error, setError] = useState("");
@@ -151,7 +149,7 @@ export default function ChartPage({ songId, version }: Props) {
                 className={primaryCta}
                 size="sm"
                 data-testid="try-song-button"
-                onClick={tryPreview}
+                onClick={() => tryPreview(editorRef.current)}
               >
                 再生して試す / Try it
               </Button>
@@ -210,6 +208,7 @@ export default function ChartPage({ songId, version }: Props) {
             initialChart={session?.chart ?? emptyChart}
             initialYouTubeId={session?.song.youtubeId ?? ""}
             initialIssues={session?.issues}
+            ref={editorRef}
             onChartChange={setEditedChart}
           />
         </div>

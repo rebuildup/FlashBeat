@@ -110,22 +110,10 @@ function inputByTestId(testId: string): HTMLInputElement {
 
 /** React の value tracker を通す typing の再現 (paste / IME 確定と同じ経路)。 */
 function type(input: HTMLInputElement, value: string): void {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )!.set!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   setter.call(input, value);
   act(() => {
     input.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-}
-
-function focusAndBlur(input: HTMLInputElement): void {
-  act(() => {
-    input.focus();
-  });
-  act(() => {
-    input.blur();
   });
 }
 
@@ -195,28 +183,32 @@ describe("EditorToolbar BPM draft input (issue #163)", () => {
     expect(bpm.value).toBe("96");
   });
 
-  it("keeps the empty draft after Ctrl/Cmd+A + Delete and commits a re-entry on blur", { timeout: 20000 }, () => {
-    const onBpmChange = vi.fn();
-    renderToolbar({ onBpmChange });
-    const bpm = inputByTestId("bpm-input");
+  it(
+    "keeps the empty draft after Ctrl/Cmd+A + Delete and commits a re-entry on blur",
+    { timeout: 20000 },
+    () => {
+      const onBpmChange = vi.fn();
+      renderToolbar({ onBpmChange });
+      const bpm = inputByTestId("bpm-input");
 
-    act(() => {
-      bpm.focus();
-    });
-    // Ctrl/⌘+A → Delete: 選択範囲の削除は空文字の input event として届く。
-    type(bpm, "");
-    expect(bpm.value).toBe("");
-    // 空文字は確定できない (譜面の BPM が壊れない)。
-    expect(onBpmChange).not.toHaveBeenCalled();
+      act(() => {
+        bpm.focus();
+      });
+      // Ctrl/⌘+A → Delete: 選択範囲の削除は空文字の input event として届く。
+      type(bpm, "");
+      expect(bpm.value).toBe("");
+      // 空文字は確定できない (譜面の BPM が壊れない)。
+      expect(onBpmChange).not.toHaveBeenCalled();
 
-    // 全再入力して blur。
-    type(bpm, "96");
-    act(() => {
-      bpm.blur();
-    });
-    expect(bpm.value).toBe("96");
-    expect(onBpmChange).toHaveBeenLastCalledWith(96);
-  });
+      // 全再入力して blur。
+      type(bpm, "96");
+      act(() => {
+        bpm.blur();
+      });
+      expect(bpm.value).toBe("96");
+      expect(onBpmChange).toHaveBeenLastCalledWith(96);
+    },
+  );
 
   it("reverts an invalid draft on blur and keeps the committed value", { timeout: 20000 }, () => {
     const onBpmChange = vi.fn();
@@ -272,23 +264,27 @@ describe("EditorToolbar BPM draft input (issue #163)", () => {
     expect(bpm.value).toBe("128");
   });
 
-  it("does not commit while the IME conversion is open, commits at compositionend", { timeout: 20000 }, () => {
-    const onBpmChange = vi.fn();
-    renderToolbar({ onBpmChange });
-    const bpm = inputByTestId("bpm-input");
+  it(
+    "does not commit while the IME conversion is open, commits at compositionend",
+    { timeout: 20000 },
+    () => {
+      const onBpmChange = vi.fn();
+      renderToolbar({ onBpmChange });
+      const bpm = inputByTestId("bpm-input");
 
-    act(() => {
-      bpm.focus();
-      bpm.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
-    });
-    type(bpm, "12");
-    expect(onBpmChange).not.toHaveBeenCalled();
+      act(() => {
+        bpm.focus();
+        bpm.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+      });
+      type(bpm, "12");
+      expect(onBpmChange).not.toHaveBeenCalled();
 
-    act(() => {
-      bpm.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
-    });
-    expect(onBpmChange).toHaveBeenLastCalledWith(12);
-  });
+      act(() => {
+        bpm.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+      });
+      expect(onBpmChange).toHaveBeenLastCalledWith(12);
+    },
+  );
 });
 
 describe("EditorToolbar rest", () => {
@@ -301,20 +297,24 @@ describe("EditorToolbar rest", () => {
     expect(name.value).toBe("新しい曲名");
   });
 
-  it("opens the grid select from the control and commits the resolution", { timeout: 20000 }, async () => {
-    const onResolutionChange = vi.fn();
-    renderToolbar({ onResolutionChange });
-    await selectOption("Grid", "1/16");
-    expect(onResolutionChange).toHaveBeenLastCalledWith(16);
-    // 選択した実値がトリガーに表示される。
-    const triggers = document.body.querySelectorAll('button[role="combobox"]');
-    expect(Array.from(triggers).some((element) => element.textContent === "1/16")).toBe(true);
-  });
+  it(
+    "opens the resolution select from the control and commits it",
+    { timeout: 20000 },
+    async () => {
+      const onResolutionChange = vi.fn();
+      renderToolbar({ onResolutionChange });
+      await selectOption("Resolution", "1/16");
+      expect(onResolutionChange).toHaveBeenLastCalledWith(16);
+      // 選択した実値がトリガーに表示される。
+      const triggers = document.body.querySelectorAll('button[role="combobox"]');
+      expect(Array.from(triggers).some((element) => element.textContent === "1/16")).toBe(true);
+    },
+  );
 
-  it("opens the view select from the control and commits the zoom", { timeout: 20000 }, async () => {
+  it("opens the zoom select from the control and commits it", { timeout: 20000 }, async () => {
     const onZoomChange = vi.fn();
     renderToolbar({ onZoomChange });
-    await selectOption("View", "2×");
+    await selectOption("Zoom", "2×");
     expect(onZoomChange).toHaveBeenLastCalledWith(2);
   });
 });
@@ -376,5 +376,39 @@ describe("EditorToolbar snap division (issue #180)", () => {
     });
     const labels = Array.from(openListboxOptions()).map((option) => option.textContent);
     expect(labels).toEqual(["off", "1/1", "1/2", "1/4", "1/8", "1/16"]);
+  });
+});
+
+/**
+ * The transport and the grouped chart setup (issue #216).
+ *
+ * The toolbar is the first thing the operator sees: play/pause, the playhead
+ * readout and Undo/Redo/Delete are always present, while the chart
+ * configuration lives in the `Chart setup` disclosure.
+ */
+describe("EditorToolbar transport (issue #216)", () => {
+  it("shows the playhead readout and starts with an empty edit history", { timeout: 20000 }, () => {
+    renderToolbar();
+    expect(document.body.querySelector('[data-testid="transport-time"]')?.textContent).toContain(
+      "0.00s",
+    );
+    expect(
+      (document.body.querySelector('[data-testid="undo-button"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (document.body.querySelector('[data-testid="redo-button"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (document.body.querySelector('[data-testid="delete-button"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("keeps every chart setting reachable", { timeout: 20000 }, () => {
+    renderToolbar();
+    expect(document.body.querySelector('[data-testid="chart-settings"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="song-name-input"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="import-button"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="export-button"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="playhead-slider"]')).not.toBeNull();
   });
 });

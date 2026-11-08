@@ -1,4 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { css } from "styled-system/css";
 import { Button } from "@/components/ui";
 
@@ -105,6 +112,14 @@ export interface YouTubePreviewProps {
   onTimeUpdate(seconds: number): void;
   /** Called when the player starts or stops playing. */
   onPlayingChange(playing: boolean): void;
+  /**
+   * Render the built-in Play/Pause row.
+   *
+   * The chart editor owns the transport in its toolbar (issue #216), so it
+   * turns the local controls off and drives the player through the handle.
+   * The default keeps the standalone preview usable on its own.
+   */
+  showControls?: boolean;
 }
 
 const frame = css({
@@ -120,6 +135,15 @@ const playerBox = css({
   aspectRatio: "16 / 9",
   width: "full",
   maxWidth: "100%",
+});
+
+const statusText = css({
+  color: "#b0b0b0",
+  fontSize: "2xs",
+  left: "0",
+  padding: "2",
+  position: "absolute",
+  top: "0",
 });
 
 const errorText = css({
@@ -154,21 +178,42 @@ const raisedButton = css({
 });
 
 export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewProps>(
-  function YouTubePreview({ videoId, onTimeUpdate, onPlayingChange }, ref) {
+  function YouTubePreview({ videoId, onTimeUpdate, onPlayingChange, showControls = true }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const playerRef = useRef<YTPlayer | null>(null);
     const timerRef = useRef<number | null>(null);
     const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
     const [errorMessage, setErrorMessage] = useState("");
     const [position, setPosition] = useState(0);
+    /**
+     * A play request that arrived before the player was ready. The visitor
+     * presses the primary CTA as soon as the page paints; the YouTube API
+     * may still be loading, and `playVideo()` on a not-ready player is a
+     * silent no-op that would leave the CTA looking broken. The intent is
+     * kept and replayed in `onReady`.
+     */
+    const pendingPlayRef = useRef(false);
+
+    /** Shared by the handle and the built-in buttons; safe before `onReady`. */
+    const startPlay = useCallback(() => {
+      pendingPlayRef.current = true;
+      // Between construction and `onReady` the API object exists but its
+      // methods are not attached yet; calling them throws.
+      if (typeof playerRef.current?.playVideo === "function") {
+        playerRef.current.playVideo();
+      }
+    }, []);
+
+    const startPause = useCallback(() => {
+      pendingPlayRef.current = false;
+      if (typeof playerRef.current?.pauseVideo === "function") {
+        playerRef.current.pauseVideo();
+      }
+    }, []);
 
     useImperativeHandle(ref, () => ({
-      play() {
-        playerRef.current?.playVideo();
-      },
-      pause() {
-        playerRef.current?.pauseVideo();
-      },
+      play: startPlay,
+      pause: startPause,
       seekTo(seconds: number) {
         playerRef.current?.seekTo(seconds, true);
         setPosition(seconds);
@@ -192,9 +237,22 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
             events: {
               onReady: () => {
                 setStatus("ready");
+                if (pendingPlayRef.current) {
+                  pendingPlayRef.current = false;
+                  playerRef.current?.playVideo();
+                }
                 timerRef.current = window.setInterval(() => {
                   const current = playerRef.current;
                   if (!current) {
+                    return;
+                  }
+                  /*
+                   * Only a playing player moves the playhead. When the video
+                   * is paused the editor's slider and its seek are the only
+                   * owners of the position; otherwise the paused player would
+                   * overwrite a seek back to its stale time (issue #216).
+                   */
+                  if (current.getPlayerState() !== YT.PlayerState.PLAYING) {
                     return;
                   }
                   const time = current.getCurrentTime();
@@ -203,7 +261,15 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
                 }, 200);
               },
               onStateChange: (event) => {
-                onPlayingChange(event.data === YT.PlayerState.PLAYING);
+                const isPlaying = event.data === YT.PlayerState.PLAYING;
+                onPlayingChange(isPlaying);
+                if (!isPlaying) {
+                  // Report the resting position once, so pausing does not
+                  // leave the readout on an older value.
+                  const time = playerRef.current?.getCurrentTime() ?? 0;
+                  setPosition(time);
+                  onTimeUpdate(time);
+                }
               },
             },
           });
@@ -226,6 +292,7 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+        pendingPlayRef.current = false;
         playerRef.current?.destroy();
         playerRef.current = null;
       };
@@ -236,7 +303,7 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
       <div>
         <div className={frame}>
           <div ref={hostRef} className={playerBox} data-testid="youtube-player" />
-          {status === "loading" ? <p className={status}>Loading the YouTube player…</p> : null}
+          {status === "loading" ? <p className={statusText}>Loading the YouTube player…</p> : null}
           {status === "error" ? (
             <p className={errorText} data-testid="youtube-error">
               {errorMessage} The preview needs a network connection to YouTube; editing works
@@ -245,29 +312,27 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
           ) : null}
         </div>
 
-        <div className={controls}>
-          <Button
-            className={raisedButton}
-            size="sm"
-            onClick={() => {
-              playerRef.current?.playVideo();
-            }}
-          >
-            Play
-          </Button>
-          <Button
-            className={raisedButton}
-            size="sm"
-            onClick={() => {
-              playerRef.current?.pauseVideo();
-            }}
-          >
-            Pause
-          </Button>
-          <span className={time} data-testid="youtube-time">
-            {position.toFixed(1)}s
-          </span>
-        </div>
+        {showControls ? (
+          <div className={controls}>
+            <Button
+              className={raisedButton}
+              size="sm"
+              onClick={startPlay}
+            >
+              Play
+            </Button>
+            <Button
+              className={raisedButton}
+              size="sm"
+              onClick={startPause}
+            >
+              Pause
+            </Button>
+            <span className={time} data-testid="youtube-time">
+              {position.toFixed(1)}s
+            </span>
+          </div>
+        ) : null}
       </div>
     );
   },
