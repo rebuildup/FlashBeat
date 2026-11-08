@@ -63,10 +63,17 @@ namespace FlashBeat.UI.V5
 
         private readonly HashSet<VideoPlayer> subscribedPlayers = new HashSet<VideoPlayer>();
         private float nextVideoScan;
+        private float nextLegacyHide;
         private bool videoError;
         private float loadingSeconds;
         private GameObject legacyMenuPanel;
         private GameObject legacyLoadingIndicator;
+
+        /// <summary>直近に適用した UI フェーズ (GameUiExclusivity の正本、観測用)。</summary>
+        private GameUiPhase currentPhase;
+
+        /// <summary>旧 UI の再適用 (名前ベースの SetActive(false)) の間隔 (秒)。</summary>
+        private const float LegacyHideInterval = 0.5f;
 
         private void Start()
         {
@@ -113,39 +120,52 @@ namespace FlashBeat.UI.V5
 
             HideLegacyHud();
             DisableLegacyRaycaster();
+
+            // 初期フェーズを決定して適用 (Ready 中は HUD を出さない — Issue #233)。
+            currentPhase = GameUiExclusivity.ResolvePhase(
+                HudPlayPhase.Hidden, GManager.played, false);
+            Apply(GameUiExclusivity.Resolve(currentPhase, V6Flags(), pause != null && pause.IsOpen));
         }
 
         private void Update()
         {
             ScanForVideoPlayers();
 
+            // 旧 UI の非表示は 1 回きりだと後から再有効化されたオブジェクトが
+            // 残る (Issue #233 の原因)。状態から毎フレーム再適用する (負荷抑止で
+            // LegacyHideInterval 秒ごと)。
+            ReapplyLegacyHud();
+
             // パイプラインの状態判定 (HudPlayState: Issue #93 の純ロジック)
             bool mediaLoading = IsLegacyLoadingIndicatorActive();
             if (mediaLoading && !GManager.played) loadingSeconds += Time.unscaledDeltaTime;
 
-            var phase = HudPlayState.Evaluate(videoError, GManager.played, mediaLoading, loadingSeconds,
+            var play = HudPlayState.Evaluate(videoError, GManager.played, mediaLoading, loadingSeconds,
                 MusicManager.SelectReturnPending);
-            LastPhase = phase; // v6 側 (V6GameRuntime) がローディング表示に使う
-            if (phase == HudPlayPhase.Failed)
-            {
-                error.Show();
-                loading.SetVisible(false);
-                pause.Close();
-            }
-            else if (phase == HudPlayPhase.Preparing)
-            {
-                error.Hide();
-                loading.SetVisible(true);
-            }
-            else
-            {
-                error.Hide();
-                loading.SetVisible(false);
-                loadingSeconds = 0f;
-            }
+            LastPhase = play; // v6 側 (V6GameRuntime) がローディング表示に使う
+            if (play != HudPlayPhase.Preparing) loadingSeconds = 0f;
+
+            // 表示の正本は GameUiExclusivity (Issue #233)。毎フレーム状態から再適用する。
+            bool pauseOpen = pause != null && pause.IsOpen;
+            currentPhase = GameUiExclusivity.ResolvePhase(play, GManager.played, pauseOpen);
+            Apply(GameUiExclusivity.Resolve(currentPhase, V6Flags(), pauseOpen));
 
             // エラー表示中はポーズを開かない (Esc は選曲へ戻る導線)。
-            pause.InputEnabled = !error.IsShown;
+            if (pause != null) pause.InputEnabled = currentPhase != GameUiPhase.Failed;
+        }
+
+        private static V6UiFlags V6Flags()
+        {
+            return new V6UiFlags
+            {
+                GameHud = FlashBeat.UI.V6.V6UiMode.GameHud,
+                PauseEnabled = FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled,
+            };
+        }
+
+        private void Apply(in GameUiVisibility vis)
+        {
+            GameUiExclusivity.Apply(vis, ready, hud, loading, error, pause);
         }
 
         private void LateUpdate()
@@ -209,7 +229,9 @@ namespace FlashBeat.UI.V5
 
         /// <summary>
         /// v5 側が担うレガシー HUD を隠す。歌詞 (TextPanel) は残す。
-        /// 対象は Canvas 配下など階層のどこにあっても良い (起動時の 1 回の全探索)。
+        /// 対象は Canvas 配下など階層のどこにあっても良い。
+        /// Start の 1 回きりではなく <see cref="ReapplyLegacyHud"/> から
+        /// 定期的に再適用する (後から再有効化された旧 UI を消し続ける — Issue #233)。
         /// </summary>
         private void HideLegacyHud()
         {
@@ -231,6 +253,17 @@ namespace FlashBeat.UI.V5
                     if (legacyLoadingIndicator == null) legacyLoadingIndicator = go;
                 }
             }
+        }
+
+        /// <summary>
+        /// 旧 UI 非表示の再適用。毎フレームは重い (シーン全体の走査) ので
+        /// <see cref="LegacyHideInterval"/> 秒ごとに実施する。冪等。
+        /// </summary>
+        private void ReapplyLegacyHud()
+        {
+            if (Time.unscaledTime < nextLegacyHide) return;
+            nextLegacyHide = Time.unscaledTime + LegacyHideInterval;
+            HideLegacyHud();
         }
 
         private static readonly string[] LegacyHideNames =

@@ -10,11 +10,13 @@ namespace FlashBeat.UI.V5
     /// GameScene の Ready 状態 (design export: 03c-game-ready)。
     /// Space 待ちの間だけ出る: 右上に曲情報 (タイトル/アーティスト/BPM/Lv + ジャケット)、
     /// 中央に "Space to Start"、その下に Esc の説明。
-    /// 再生が始まったら非表示。レガシーの SpacetoStart は GameHudRuntime が隠す。
+    /// 可視の正本は <see cref="GameUiExclusivity"/> (Issue #233)。再生が始まったら
+    /// GameHudController が非表示にする。レガシーの SpacetoStart も GameHudRuntime が隠す。
     /// </summary>
     public sealed class GameReadyView : MonoBehaviour
     {
         private GameObject root;
+        private Canvas canvas;
         private TextMeshProUGUI titleText;
         private TextMeshProUGUI metaText;
         private Image jacketImage;
@@ -22,6 +24,7 @@ namespace FlashBeat.UI.V5
 
         public void Build(Canvas canvas)
         {
+            this.canvas = canvas;
             var p = UISizeProfile.Current;
             float s = GameHudView.S;
 
@@ -85,11 +88,23 @@ namespace FlashBeat.UI.V5
             V5GameUi.LegendItem(hint.gameObject, "Esc", "メニュー (設定・表示・ランキング)");
         }
 
+        /// <summary>
+        /// 表示 / 非表示。正本は <see cref="GameUiExclusivity"/> (Issue #233)。
+        /// Update が自前で可視を切り替える方式は廃止した: 後から再適用できる
+        /// 単一の状態配線に集約する (Canvas ごと止めるので、隠れている間は
+        /// Update / コルーチンも止まる)。
+        /// </summary>
+        public void SetVisible(bool visible)
+        {
+            if (canvas != null && canvas.gameObject.activeSelf != visible)
+            {
+                canvas.gameObject.SetActive(visible);
+            }
+        }
+
         private void Update()
         {
-            bool ready = !GManager.Start && !GManager.played;
-            if (root.activeSelf != ready) root.SetActive(ready);
-            if (!ready) return;
+            if (root == null || !root.activeInHierarchy) return;
 
             var song = GManager.GetSong(GManager.songID);
             if (song == null) return;
