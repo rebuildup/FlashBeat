@@ -70,10 +70,10 @@ esac
 OUT="$PROJECT_DIR/FlashBeat.compilecheck.csproj"
 mkdir -p "$PROJECT_DIR/Temp"
 
-python3 - "$TEMPLATE_CSPROJ" "$OUT" "$PROJECT_DIR" "$SRC_ROOT" <<'PY'
+python3 - "$TEMPLATE_CSPROJ" "$OUT" "$PROJECT_DIR" "$SRC_ROOT" "$ASSEMBLY" <<'PY'
 import os, re, sys
 
-template, out, project_dir, src_root = sys.argv[1:5]
+template, out, project_dir, src_root, assembly = sys.argv[1:6]
 text = open(template, encoding="utf-8-sig").read()
 
 # Drop every Compile Include from the template and re-add the real file set,
@@ -86,12 +86,24 @@ text = re.sub(r'[ \t]*<ProjectReference Include="[^"]+"[^>]*/>\r?\n', "", text)
 
 dll_refs = []
 sa = os.path.join(project_dir, "Library", "ScriptAssemblies")
-for name in ("SimpleFadeSystem", "UniRx", "NoteEditor"):
+# tests アセンブリは FlashBeat 本体の型 (GManager / V5Tokens / V6 の UI) を使うので、
+# FlashBeat.dll を参照に足す。Unity がビルドしたものは新規 .cs を含まないので、
+# この worktree で直前にビルドした flashbeat の DLL を優先する (flashbeat ビルド
+# 自身には足さない: 自分自身の古い DLL で型が解決されるのを防ぐ)。
+dll_ref_names = ["SimpleFadeSystem", "UniRx", "NoteEditor"]
+if assembly == "tests":
+    dll_ref_names.append("FlashBeat")
+for name in dll_ref_names:
     path = os.path.join(sa, name + ".dll")
+    if assembly == "tests" and name == "FlashBeat":
+        fresh = os.path.join(project_dir, "Temp", "bin", "Debug", "FlashBeat.dll")
+        if os.path.exists(fresh):
+            path = fresh
     if os.path.exists(path):
+        hint = os.path.relpath(path, project_dir).replace(os.sep, "/")
         dll_refs.append(
             f'    <Reference Include="{name}">\n'
-            f'      <HintPath>Library/ScriptAssemblies/{name}.dll</HintPath>\n'
+            f'      <HintPath>{hint}</HintPath>\n'
             f'      <Private>false</Private>\n'
             f'    </Reference>'
         )
@@ -119,4 +131,12 @@ cd "$PROJECT_DIR"
 # BuildProjectReferences=false: Unity が生成した関連 csproj (NoteEditor / UniRx) を
 # 再ビルドしない。参照 DLL は既に Library/ScriptAssemblies にある。
 # ここでは対象アセンブリの型エラーだけを見たい。
-dotnet build "$OUT" -v q --nologo -p:BuildProjectReferences=false 2>&1 | grep -E "error|Build succeeded|エラー|警告" | head -60 || true
+# tests ビルドは AssemblyName が FlashBeat のままなので、そのまま出すと
+# flashbeat ビルドの Temp/bin/Debug/FlashBeat.dll を上書きしてしまう
+# (次回の tests ビルドの「新しめの FlashBeat.dll」参照が壊れる)。
+# そこで tests だけ別の OutputPath に出す。
+OUT_PATH="Temp/bin/Debug"
+if [ "$ASSEMBLY" = "tests" ]; then
+  OUT_PATH="Temp/bin/tests"
+fi
+dotnet build "$OUT" -v q --nologo -p:BuildProjectReferences=false -p:OutputPath="$OUT_PATH/" 2>&1 | grep -E "error|Build succeeded|エラー|警告" | head -60 || true
