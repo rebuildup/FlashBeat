@@ -76,7 +76,9 @@ namespace FlashBeat.UI.V6
         /// (TitleScene.unity 実測: 旧 UI はシーン配置 "Canvas" 配下にあるので、原則は
         /// "Canvas" を非表示にすれば消える。名前での列挙は実機で効かなかった場合の保険)。
         /// v6 が無効なときは呼ばない (旧 UI がそのまま動く)。
-        /// 戻り値: 一巡したら true (以降のフレームで再試行しない)。
+        /// 戻り値: 常に true (=「この API は毎フレーム呼んでよい」の合図)。
+        /// 旧 v5 TitleView は Start/OnEnable で自前のメニューを後から生成するので、
+        /// 1 回だけでは足りない。呼び出し側 (V6TitleViewDriver.Update) は毎フレーム呼ぶ。
         /// </summary>
         public static bool HideLegacyTitleUi()
         {
@@ -87,7 +89,10 @@ namespace FlashBeat.UI.V6
                 var t = transforms[i];
                 if (t == null) continue;
                 if (!FlashBeat.UI.V6.Title.V6TitleLogic.IsLegacyTitleObjectName(t.gameObject.name)) continue;
-                if (IsUnderV6Canvas(t)) continue;
+                // v6 自身も "Logo" という名を使う (V6TitleView.BuildRoot)。v6 Canvas 配下の
+                // "Logo" は v6 自分なので隠さない。それ以外の旧名は親 Canvas に関係なく隠す
+                // (旧 v5 側が v6 Canvas 配下に生成した場合も消す)。
+                if (IsUnderV6Canvas(t) && t.gameObject.name == "Logo") continue;
                 if (t.gameObject.activeSelf) { t.gameObject.SetActive(false); }
             }
             return true;

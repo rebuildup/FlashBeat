@@ -18,6 +18,11 @@ namespace FlashBeat.UI.V6.Title
 
         private void Update()
         {
+            // 旧 (v5) TitleView は Start/OnEnable で自前のメニュー ("Menu GameStart" など) を
+            // 生成する。V6TitleView.Create 時の 1 回だけでは後から生成された分が残るので、
+            // 毎フレーム隠し直す (戻り値での早期終了はしない)。
+            V6UiMode.HideLegacyTitleUi();
+
             if (!updateNoticeHidden)
             {
                 updateNoticeHidden = V6UiMode.HideLegacyUpdateNotice();
