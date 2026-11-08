@@ -78,7 +78,9 @@ namespace FlashBeat.UI.V5
                 hud.Build();
             }
 
-            var readyCanvas = V5GameUi.NewCanvas("V5ReadyCanvas", 1);
+            // 550: v6 の dim (-1) / プレイフィールド (400) / HUD (450) より手前。
+            // Ready 中は v6 HUD を隠すので、この画面が Ready 専用表示になる (Issue #233)。
+            var readyCanvas = V5GameUi.NewCanvas("V5ReadyCanvas", 550);
             ready = readyCanvas.gameObject.AddComponent<GameReadyView>();
             ready.Build(readyCanvas);
 

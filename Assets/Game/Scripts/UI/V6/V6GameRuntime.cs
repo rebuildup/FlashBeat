@@ -9,11 +9,13 @@ namespace FlashBeat.UI.V6
     /// <summary>
     /// v6 ゲーム画面 (プレイフィールド + HUD) の起動 (Issue #223 統合担当)。
     ///
-    /// 描画の積層 (v6 デザイン `Uc9v6` / `nrfw8` の順):
+    /// 描画の積層 (v6 デザイン `Uc9v6` / `nrfw8` の順、Issue #233 で整理):
+    ///   - レガシー歌詞 Canvas (order 0) — v6 より手前 (歌詞は減光しない)
     ///   1. 動画 (3D / VideoPlayer が描く)
-    ///   2. Video Dim  #00000080  ← 別 Canvas (sorting 300)
+    ///   2. Video Dim  #00000080  ← 別 Canvas (sorting -1、歌詞より下)
     ///   3. プレイフィールド (レーン線 / ノーツ / 判定ライン)  ← Canvas (sorting 400)
-    ///   4. HUD (グレード / スコア / コンボ / キーガイド / 歌詞)   ← Canvas (sorting 500)
+    ///   4. HUD (グレード / スコア / コンボ / キーガイド / 歌詞)   ← Canvas (sorting 450)
+    ///   5. v5 Overlay (Loading / Error, 500) / v5 Ready (550) / v5 Pause (600)
     ///
     /// 旧 3D プレイフィールド (GameScene の "Lane" / "JudgeLine" / "LaneLight*") は
     /// v6 有効時は隠す (2 枚同時に描かれると崩れて見える)。
@@ -65,13 +67,25 @@ namespace FlashBeat.UI.V6
 
         private void Update()
         {
-            if (hud != null) hud.Refresh();
+            if (hud != null)
+            {
+                // 表示所有: Ready (再生前) は v5 の GameReadyView、演奏中は v6 HUD。
+                // 同時に出すと HUD と Ready が重なって崩れる (Issue #233)。
+                bool show = GManager.played;
+                if (hud.Root.gameObject.activeSelf != show)
+                {
+                    hud.SetVisible(show);
+                }
+                hud.Refresh();
+            }
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
         private void BuildDimLayer()
         {
-            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", 300);
+            // order -1: レガシー歌詞 Canvas (order 0) より下に置く。
+            // 300 等にすると演奏中の歌詞が減光されて読めなくなる (Issue #233)。
+            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", -1);
             dimCanvas = canvas.gameObject;
             dimCanvas.transform.SetParent(transform, false);
 
@@ -96,7 +110,9 @@ namespace FlashBeat.UI.V6
 
         private void BuildHudLayer()
         {
-            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", 500);
+            // 500 は v5 の OverlayCanvas (Loading/Error) と衝突するため 450。
+            // Loading/Error は v6 HUD の手前に出す。
+            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", 450);
             canvas.gameObject.transform.SetParent(transform, false);
             hud = V6GameHudView.Create(canvas.GetComponent<RectTransform>());
 

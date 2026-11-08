@@ -364,7 +364,11 @@ public class GameSceneManager : MonoBehaviour
     /// </summary>
     void ApplyTextPanelVisibility()
     {
-        bool show = Menu && display && !menuVisible && FlashBeat.UI.V5.PlaySession.LyricsEnabled;
+        // v6 HUD (V6UiMode.GameHud) は歌詞を自分のレイヤーで描く (Issue #233)。
+        // レガシー TextPanel も出すと歌詞が二重表示になるので隠す。
+        bool show = Menu && display && !menuVisible
+            && FlashBeat.UI.V5.PlaySession.LyricsEnabled
+            && !FlashBeat.UI.V6.V6UiMode.GameHud;
         if (TextPanel.activeSelf != show) TextPanel.SetActive(show);
     }
 
