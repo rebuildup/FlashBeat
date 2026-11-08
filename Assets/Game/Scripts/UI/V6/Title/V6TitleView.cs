@@ -339,7 +339,7 @@ namespace FlashBeat.UI.V6.Title
             string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
             if (!string.IsNullOrEmpty(exitKey))
             {
-                V5Ui.KeyCap(exit.gameObject, exitKey, new Vector2(44f, 36f));
+                V6Ui.KeyCap(exit.gameObject, exitKey, new Vector2(44f, 36f));
             }
             var exitLabel = V5GameUi.Text(exit.gameObject, "Label", "Exit", 30f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Midline | TextAlignmentOptions.Left);
