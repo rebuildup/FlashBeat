@@ -84,6 +84,7 @@ namespace FlashBeat.UI.V6
         private void Update()
         {
             UpdatePause();
+            UpdateLoading();
             ApplyHudScale();
             if (hud != null)
             {
@@ -133,10 +134,33 @@ namespace FlashBeat.UI.V6
             }
         }
 
-        /// <summary>開始前の案内を出し、プレイ開始で隠す。</summary>
-        private void UpdateStartHint()
+        /// <summary>
+        /// v6 のローディング / 失敗表示を実際のロード状態へ接続する (Issue #233)。
+        /// 状態判定は v5 の GameHudController が毎フレーム計算した LastPhase を読む —
+        /// v5 の OverlayCanvas は非表示化済みなので、表示の所有はここへ移す。
+        /// </summary>
+        private void UpdateLoading()
         {
-            // v5 の GameReadyView が Space 案内を出すのでここでは何もしない。
+            if (loading == null) return;
+            var phase = FlashBeat.UI.V5.GameHudController.LastPhase;
+
+            if (phase == HudPlayPhase.Preparing)
+            {
+                var song = GManager.GetSong(GManager.songID);
+                loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "", null);
+                loading.SetVisible(true);
+            }
+            else if (phase == HudPlayPhase.Failed)
+            {
+                // v5 と同じ: 失敗時はポーズを閉じ、選曲への導線を優先する。
+                if (pause != null && pause.IsOpen) pause.Close();
+                loading.SetError("Esc キーか下のボタンで選曲画面へ戻れます");
+                loading.SetVisible(true);
+            }
+            else
+            {
+                loading.SetVisible(false);
+            }
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
