@@ -58,6 +58,9 @@ namespace FlashBeat.UI.V5
         private GameErrorView error;
         private PauseMenuView pause;
 
+        /// <summary>直近のパイプライン状態。v6 のローディング表示 (V6GameRuntime) が読む。</summary>
+        public static HudPlayPhase LastPhase;
+
         private readonly HashSet<VideoPlayer> subscribedPlayers = new HashSet<VideoPlayer>();
         private float nextVideoScan;
         private bool videoError;
@@ -122,7 +125,7 @@ namespace FlashBeat.UI.V5
 
             var phase = HudPlayState.Evaluate(videoError, GManager.played, mediaLoading, loadingSeconds,
                 MusicManager.SelectReturnPending);
-
+            LastPhase = phase; // v6 側 (V6GameRuntime) がローディング表示に使う
             if (phase == HudPlayPhase.Failed)
             {
                 error.Show();

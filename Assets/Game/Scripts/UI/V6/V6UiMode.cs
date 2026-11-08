@@ -20,23 +20,20 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// v6 の遠近法プレイフィールド (8 レーンの透视描画) を使うか。
         ///
-        /// **既定は false**。既存の 3D レーン (角度・判定ライン・キー入力時の
-        /// レーン光) はもともと安定して動いているため、design に合わせる理由で
-        /// 差し替えない。オンにすると旧 3D プレイフィールドは隠される。
+        /// **false** (Issue #233 オーナー判定 2026-11-08): 現行の v6 プレイフィールド実装は
+        /// design を再現していない (独自解釈)。design に一致させるまで 3D レーンを使う。
         /// </summary>
         public static bool Playfield = false;
 
         /// <summary>
         /// 動画を減光 (design の Video Dim #00000080) するか。
-        /// 既定は false: 映像の明るさを元のまま保つ (減光すると 3D レーンも
-        /// 暗くなり、元の見え方を崩すため)。
+        /// Playfield=false の間は 3D レーンが映るため減光しない (レーンが暗くなる)。
         /// </summary>
         public static bool VideoDim = false;
 
         /// <summary>
         /// v6 HUD のレーン別判定行 (画面下の PERFECT/GREAT/MISS) を使うか。
-        /// 既定は false: 判定のフィードバックは元の 3D エフェクト
-        /// (Judge が Instantiate する判定プレハブ) のままにする。
+        /// **false**: 判定のフィードバックは元の 3D エフェクト (Judge の判定プレハブ)。
         /// </summary>
         public static bool VerdictRow = false;
 
