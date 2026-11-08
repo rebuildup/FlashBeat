@@ -5,9 +5,11 @@ namespace FlashBeat.UI.V6.Common
 {
     /// <summary>
     /// v6 共有フレーム 1728×972 (契約 §4) を構築するビルダ。
-    /// 実画面ピクセルではなく design 空間 (左上原点・y_down) で組み、
-    /// 実機では親側が <see cref="FlashBeat.UI.V6.Select.View.V6SelectViewLogic.DesignScale"/>
-    /// 倍して画面中央に置く。
+    /// design 空間 (左上原点・y_down) の座標をそのまま実ピクセル 1:1 で組み、
+    /// 実機では <see cref="OriginFor"/> が返す解像度別 origin
+    /// (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / Mac 2560×1664 → (416,346))
+    /// に等倍のまま配置する。親側で scale を掛けて引き伸ばすことはしない
+    /// (design フレームは固定解像度であり、解像度ごとに origin だけが変わる)。
     ///
     /// ゾーン (契約 §4 の座標そのもの):
     /// - Header (24,0)   1680×96
@@ -16,6 +18,11 @@ namespace FlashBeat.UI.V6.Common
     /// - Modal  (0,0)    1728×972 (既定非表示)
     ///
     /// 座標変換は <see cref="V6Layout.ToLocal"/> に集約 (全 v6 画面共通の規約)。
+    ///
+    /// 背景の扱い: フレームの外側はゲーム自身のアニメーション背景
+    /// (bg-anim3, mode=cover) が敷かれているのが正 (design の「Resolution ·
+    /// MacBook Air M5 2560×1664」フレーム基準)。v6 側は画面全体を
+    /// 不透明パネルで覆わない (覆うとゲーム背景を潰して退行になる)。
     /// </summary>
     public static class V6Frame
     {
@@ -39,8 +46,28 @@ namespace FlashBeat.UI.V6.Common
         private const string ModalNodeName = "Modal";
 
         /// <summary>
+        /// 解像度別のフレーム origin (design の "Resolution Check" の実配置)。
+        /// ((screenW - 1728) / 2, (screenH - 972) / 2) の整数切り捨て。
+        /// FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / Mac 2560×1664 → (416,346)。
+        ///
+        /// 画面がフレーム (1728×972) より小さい場合 origin は負になるが、
+        /// クランプしない (クランプすると 1:1 中央配置が崩れる)。負 origin は
+        /// 「フレームが画面からはみ出す」状態であり、呼び出し側は画面解像度が
+        /// フレーム以上であることを前提とする。0 未満の座標はスクリーン外なので、
+        /// その扱いは本関数の責務ではない (別問題として扱う)。
+        /// </summary>
+        public static Vector2 OriginFor(int screenW, int screenH)
+        {
+            return new Vector2(
+                Mathf.FloorToInt((screenW - DesignW) / 2f),
+                Mathf.FloorToInt((screenH - DesignH) / 2f));
+        }
+
+        /// <summary>
         /// 1728×972 の frame GameObject を作る。戻り値の RectTransform は
-        /// anchor/pivot (0.5,0.5) (呼び出し側が Canvas 中央に置いて DesignScale 倍する前提)。
+        /// anchor/pivot (0.5,0.5)。フレームは常に実ピクセル 1:1 (scale 1) で作られ、
+        /// 呼び出し側が親 (Canvas) の中央に <see cref="OriginFor"/> の origin で
+        /// 配置する。親側で scale を掛けてはならない。
         /// </summary>
         public static GameObject Create(Transform parent, string name)
         {
