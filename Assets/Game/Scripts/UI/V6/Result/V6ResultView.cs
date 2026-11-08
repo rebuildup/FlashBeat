@@ -291,21 +291,9 @@ namespace FlashBeat.UI.V6.Result
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            // 画面全体に v6 の背景色 (契約 §3 bg = #1B1B1B) を敷く。
-            // レガシー クリーム背景が透けないようにするための不透明パネル
-            // (Result シーンにはゲームのアニメーション背景が無く、design の
-            // Resolution フレームも暗色背景の上にフレームが載る)。
-            var bg = new GameObject("V6 Result Background", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(rootGo.transform, false);
-            var bgImage = bg.GetComponent<Image>();
-            bgImage.color = V5Tokens.Key1;
-            bgImage.raycastTarget = false;
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero;
-            bgRt.anchorMax = Vector2.one;
-            bgRt.offsetMin = Vector2.zero;
-            bgRt.offsetMax = Vector2.zero;
-
+            // 全面背景は敷かない: フレームの外側はゲーム自身のアニメーション背景
+            // (bg-anim3, cover) が敷く (V6Frame.cs の規約。Title / Select と同じ)。
+            // 不透明パネルで覆うとゲーム背景を潰して退行になる。
             frame = V5Ui.Node(rootGo, "V6 Result Frame 1728x972").GetComponent<RectTransform>();
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
@@ -377,6 +365,9 @@ namespace FlashBeat.UI.V6.Result
         {
             var block = At(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, GradeBoxH);
 
+            // 可読性: 文字が乗る Result Block の内側だけ薄いスクリーン (全面は覆わない)。
+            Scrim(block);
+
             var gradeBox = At(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
             gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);
@@ -432,6 +423,10 @@ namespace FlashBeat.UI.V6.Result
         private void BuildJudgements(GameObject main)
         {
             var block = At(V5Ui.Node(main, "Judgements"), 0f, JudgeY, 840f, JudgeCellH);
+
+            // 可読性: 判定ラベル / 数値が乗る領域だけ薄いスクリーン (全面は覆わない)。
+            Scrim(block);
+
             string[] labels = { "Perfect", "Great", "Bad", "Miss", "Combo" };
             for (int i = 0; i < labels.Length; i++)
             {
@@ -1444,6 +1439,24 @@ namespace FlashBeat.UI.V6.Result
         private static Color Clear()
         {
             return new Color(0f, 0f, 0f, 0f);
+        }
+
+        /// <summary>
+        /// 親いっぱいに広がる薄い暗色スクリーン ($scrim #00000099、raycast なし)。
+        /// 全面背景は敷かない代わりに、文字が乗る領域の可読性を確保する。
+        /// </summary>
+        private static void Scrim(GameObject parent)
+        {
+            var scrim = new GameObject("Scrim", typeof(RectTransform), typeof(Image));
+            scrim.transform.SetParent(parent.transform, false);
+            var image = scrim.GetComponent<Image>();
+            image.color = V6Tokens.Scrim;
+            image.raycastTarget = false;
+            var rt = scrim.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         private static Color FromHex(string hex)
