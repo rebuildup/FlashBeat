@@ -17,11 +17,10 @@ namespace FlashBeat.UI.V6.Title
     /// - 共通フレームは V6Frame (1728×972、契約 §4) を使い、実画面へは
     ///   <see cref="V6TitleLogic.FrameOrigin"/> で 1:1 (等倍) 中央配置する。
     ///   引き伸ばし (等比スケール) はしない (design POJwG "Resolution Check · Title":
-    ///   FHD (96,54) / 2K (416,234) / Mac (416,346))。フレーム外の画面全体には
-    ///   v6 の背景色 (契約 §3 bg = #1B1B1B) を敷き、レガシー 3D の背景を隠す。
+    ///   FHD (96,54) / 2K (416,234) / Mac (416,346))。フレーム外の画面外周には
+    ///   不透明パネルを敷かない (design QJtTv の fill はゲーム自身の背景 = タイトル動画)。
     /// - design の Logo (CnRJj / assets/13.png) は
-    ///   Assets/Game/Resources/V5/Common/13.png を描く (背景が不透明のため
-    ///   タイトル動画は見えない。動画にロゴを委ねる旧方式は廃止)。
+    ///   Assets/Game/Resources/V5/Common/13.png を描く (タイトル動画の上に重ねる)。
     /// - 実データ: 曲数 / カタログ状態は GManager (ActiveSongs / HasRemoteCatalog)、
     ///   右上の曲情報 (自己ベスト) は GManager のカタログと保存済みベストスコア
     ///   (GManager.BestScoreOf)、バージョンと更新状態は Application.version と
@@ -259,18 +258,9 @@ namespace FlashBeat.UI.V6.Title
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            // 画面全体に v6 の背景色 (契約 §3 bg = #1B1B1B) を敷く。
-            // レガシー 3D のクリーム色背景を隠すための不透明パネル (レターボックス枠は作らない)。
-            var bg = new GameObject("V6 Title Background", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(rootGo.transform, false);
-            var bgImage = bg.GetComponent<Image>();
-            bgImage.color = V6Tokens.Key1;
-            bgImage.raycastTarget = false;
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero;
-            bgRt.anchorMax = Vector2.one;
-            bgRt.offsetMin = Vector2.zero;
-            bgRt.offsetMax = Vector2.zero;
+            // 画面外周には不透明パネルを敷かない: design QJtTv の fill は
+            // assets/bg-anim3.png (mode=cover) 相当 = ゲーム自身の背景
+            // (タイトル動画 VideoPlayer "Screen") が見えるままにする。
 
             // 共通フレーム (1728×972、Header/Main/Footer/Modal ゾーン + 外周付き)。
             frame = V6Frame.Create(rootGo.transform, "V6 Title Frame 1728x972").GetComponent<RectTransform>();
@@ -455,7 +445,7 @@ namespace FlashBeat.UI.V6.Title
             var main = mainZone.gameObject;
 
             // Logo (design CnRJj): Main ローカル (0,180) 1680×332、assets/13.png contain。
-            // 背景が不透明 (V6Tokens.Key1) のためタイトル動画は見えない。ロゴは design どおり描く。
+            // タイトル動画 (ゲーム自身の背景) の上に重ねて描く。
             var logo = new GameObject("Logo", typeof(RectTransform), typeof(Image));
             logo.transform.SetParent(main.transform, false);
             var logoImage = logo.GetComponent<Image>();
