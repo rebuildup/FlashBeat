@@ -72,8 +72,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int BonusRowH;
         /// <summary>コンボボーナス block の高さ。</summary>
         public readonly int BonusBlockH;
-        /// <summary>コラム内でコンボステータス block を積む位置 (ボーナス block の下 + 隙間)。</summary>
-        public readonly int StatusTop;
         /// <summary>コンボステータス block の高さ。</summary>
         public readonly int StatusBlockH;
         /// <summary>右コラム上端の y オフセット (画面中央基準, 負で上)。</summary>
@@ -114,7 +112,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             int scoreLabelY, int scoreValueY, int scoreLabelFs, int scoreFs,
             int menuW, int menuH, int menuFs,
             int comboW, int comboH, int comboLabelFs, int comboValueFs, int comboValueY,
-            int rightColW, int bonusFs, int statusFs, int bonusRowH, int bonusBlockH, int statusTop, int statusBlockH,
+            int rightColW, int bonusFs, int statusFs, int bonusRowH, int bonusBlockH, int statusBlockH,
             int rightColTopOffset,
             int statusTrackW, int statusTrackH, int statusTrackY, int statusRowH, int statusRowY,
             int fcChipW, int fcChipH,
@@ -149,7 +147,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             StatusFs = statusFs;
             BonusRowH = bonusRowH;
             BonusBlockH = bonusBlockH;
-            StatusTop = statusTop;
             StatusBlockH = statusBlockH;
             RightColTopOffset = rightColTopOffset;
             StatusTrackW = statusTrackW;
@@ -211,7 +208,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 R(78, s), R(100, s), R(22, s), R(38, s),
                 R(180, s), R(48, s), R(22, s),
                 R(600, s), R(220, s), R(22, s), R(180, s), R(24, s),
-                R(360, s), R(22, s), R(22, s), R(44, s), R(90, s), R(98, s), R(160, s),
+                R(360, s), R(22, s), R(22, s), R(44, s), R(90, s), R(160, s),
                 R(80, s),
                 R(280, s), R(8, s), R(52, s), R(44, s), R(96, s),
                 R(150, s), R(40, s),
@@ -221,19 +218,31 @@ namespace FlashBeat.UI.V6.Game.Hud
                 R(170, s), R(36, s));
         }
 
-        /// <summary>解像度比較用の 4/3 倍スナップショット。ランタイムでは使用しない。</summary>
+        /// <summary>
+        /// 契約 §8 の 2K (<c>E51yo</c> 2560×1440) design 実測テーブル (design px)。
+        /// ランタイムは FHD テンプレートの等比拡大で描くので直接は使わないが、
+        /// 契約値の正本として EditMode テスト (<c>Metrics_TwoK_MatchesDesign</c>) と
+        /// <see cref="LaneGridDesign"/> の KeyGuide 格子が参照する。
+        /// 注意: デザイナーの丸めで FHD×4/3 と一致しない項目がある
+        /// (Grade fs 95×4/3=126.7 に対し design 実測は 125)。
+        /// </summary>
         public static V6HudMetrics TwoK()
         {
-            return Fhd(4f / 3f);
-        }
-
-        /// <summary>
-        /// 解像度プロファイルに関係なく同じ論理寸法を返す。
-        /// 実解像度への倍率は親フレームに一度だけ適用する。
-        /// </summary>
-        public static V6HudMetrics ForProfile(UISizeProfile profile)
-        {
-            return Fhd(1f);
+            return new V6HudMetrics(
+                4f / 3f,
+                347, 11, 64,
+                125, 251, 64, 800, 48,
+                104, 133, 30, 50,
+                240, 64, 30,
+                800, 293, 30, 240, 32,
+                480, 30, 30, 59, 120, 213,
+                107,
+                373, 11, 69, 59, 128,
+                200, 53,
+                40, 187, 59, 98,
+                75, 48, 32, 48, 45,
+                566.5f, 203.57143f,
+                227, 48);
         }
 
         /// <summary>現在の画面用 HUD テンプレート寸法 (解像度非依存)。</summary>
@@ -270,6 +279,70 @@ namespace FlashBeat.UI.V6.Game.Hud
         public float KeyColumnCenter(int lane)
         {
             return KeyFirstCenter + lane * KeySpacing;
+        }
+
+        /// <summary>
+        /// 契約 §8 の 8 列格子 (KeyGuide と判定行は同じ格子) を design px で返す。
+        /// 第 0 列の中心 x と列間隔: FHD (338, 177.43) / 2K (566.5, 203.57) /
+        /// Mac (501.5, 222.14)。design 実測値であり等比スケールとは一致しない
+        /// (契約 §8 ⚠: FHD 177.4 / 2K 203.6 / Mac 222 ≒ レーン 166.7×スケール)。
+        /// 契約に無い解像度は FHD 格子の等比拡大 (design px = FHD 値 × scale)。
+        /// </summary>
+        public static void LaneGridDesign(float width, float height, out float firstCenter, out float spacing)
+        {
+            string profile = UISizeProfile.Select(
+                Mathf.RoundToInt(width), Mathf.RoundToInt(height)).Name;
+            if (profile == "mac")
+            {
+                // 契約 §8 Mac: KeyGuide x = 464..2019 (KeyCap 75 幅 → 中心は +37.5)
+                firstCenter = 464f + 37.5f;
+                spacing = (2019f + 37.5f - firstCenter) / 7f;
+                return;
+            }
+            if (profile == "2k")
+            {
+                // 契約 §8 2K: KeyGuide x = 529..1954
+                firstCenter = 529f + 37.5f;
+                spacing = (1954f + 37.5f - firstCenter) / 7f;
+                return;
+            }
+
+            float s = ScaleForResolution(width, height);
+            firstCenter = 338f * s;
+            spacing = 177.42857f * s;
+        }
+
+        /// <summary>
+        /// 契約 §8 の第 lane 列中心を HUD テンプレート座標 (画面左原点) へ写した値。
+        /// design px を等比倍率で割る (描画時に frameScale を掛けて design px に戻る)。
+        /// </summary>
+        public static float KeyGuideTemplateX(float width, float height, int lane)
+        {
+            LaneGridDesign(width, height, out float firstCenter, out float spacing);
+            return (firstCenter + lane * spacing) / ScaleForResolution(width, height);
+        }
+
+        /// <summary>
+        /// 中央アンカー + 上オフセット (テンプレート px) で置いた要素の上端の design px y
+        /// (画面上端原点)。V6GameRuntime は HUD フレームを論理ビューポート
+        /// (= canvas / scale) に広げるので、中央アンカー要素は論理高さの中央へ追従する。
+        /// 契約 §8: Combo 上端 FHD 430 / 2K 573 / Mac 685、Combo Status 上端 460 / 613 / 725。
+        /// </summary>
+        public static float MiddleAnchoredTopDesignY(float width, float height, float templateTopOffset)
+        {
+            float s = ScaleForResolution(width, height);
+            return (height / s * 0.5f - templateTopOffset) * s;
+        }
+
+        /// <summary>
+        /// 下端アンカー + マージンで置いた帯 (テンプレート高さ h) の上端の design px y。
+        /// 契約 §8: KeyGuide 上端 FHD 1011 / 2K 1347 / Mac 1571。
+        /// </summary>
+        public static float BottomAnchoredTopDesignY(
+            float width, float height, float templateBottomMargin, float templateH)
+        {
+            float s = ScaleForResolution(width, height);
+            return (height / s - templateBottomMargin - templateH) * s;
         }
 
         private static int R(int fhdPx, float scale)

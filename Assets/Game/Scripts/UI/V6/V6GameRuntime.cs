@@ -46,6 +46,12 @@ namespace FlashBeat.UI.V6
         private V6LoadingView loading;
         private Vector2 appliedCanvasSize;
 
+        /// <summary>隠し対象の旧 v5 ポーズ (キャッシュ。シーン再ロードで作り直す)。</summary>
+        private FlashBeat.UI.V5.PauseMenuView legacyPause;
+
+        /// <summary>隠し対象の旧 v5 ローディング / エラー Canvas (キャッシュ)。</summary>
+        private Canvas legacyOverlayCanvas;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
@@ -78,7 +84,56 @@ namespace FlashBeat.UI.V6
             BuildPauseAndLoading();
             HideLegacyPlayfield();
             HideLegacyUi();
-            HideLegacyPauseAndLoading();
+        }
+
+        /// <summary>
+        /// 旧 v5 のポーズ / ローディング / エラー表示を毎フレーム隠す (表示の所有は v6)。
+        /// v5 の GameHudController は [DefaultExecutionOrder(100)] の Start で
+        /// PauseMenuView / V5OverlayCanvas (loading / error) を **作り**、Update で
+        /// 毎フレーム出し直す (Preparing → loading.SetVisible(true) 等)。
+        /// かつて Start (実行順 0) の 1 回だけ隠していたため v5 の生成前に走って
+        /// 二重表示になっていた。全 Update の後に走る LateUpdate で隠す。
+        /// 破棄はしない: GameHudController が毎フレーム参照していて
+        /// (pause.InputEnabled / pause.Close)、破棄するとその経路で
+        /// MissingReferenceException になる。
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (legacyPause == null)
+            {
+                legacyPause = FindObjectOfType<FlashBeat.UI.V5.PauseMenuView>();
+            }
+
+            // v6 ポーズが無効 (V6PauseView.Enabled = false) のときは v5 ポーズが役割を持つ。
+            if (legacyPause != null && V6PauseView.Enabled && legacyPause.gameObject.activeSelf)
+            {
+                legacyPause.gameObject.SetActive(false);
+            }
+
+            if (legacyOverlayCanvas == null)
+            {
+                var canvases = FindObjectsOfType<Canvas>();
+                for (int i = 0; i < canvases.Length; i++)
+                {
+                    if (canvases[i] != null && canvases[i].name == "V5OverlayCanvas")
+                    {
+                        legacyOverlayCanvas = canvases[i];
+                        break;
+                    }
+                }
+            }
+
+            if (legacyOverlayCanvas != null)
+            {
+                var graphics = legacyOverlayCanvas.GetComponentsInChildren<Graphic>(true);
+                for (int g = 0; g < graphics.Length; g++)
+                {
+                    if (graphics[g] != null && graphics[g].enabled)
+                    {
+                        graphics[g].enabled = false;
+                    }
+                }
+            }
         }
 
         private void Update()
@@ -101,36 +156,41 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// v6 ポーズの開閉と入力。Esc で開閉、矢印で項目移動、左右で値変更。
         /// 既存の KeyActions の割当をそのまま使う (Judge / KeyBindings と同じ正本)。
+        ///
+        /// 開閉状態の正本は <see cref="V6PauseView.IsOpen"/> (v6 自前の状態)。
+        /// かつて GameSceneManager.Menu を「ポーズが開いている」意味で読み書きしていたが、
+        /// Menu はレガシー歌詞パネルのフラグ (MusicManager.Start が true を書く) で、
+        /// 副作用で開閉判定が壊れるため読まない・書かない (v6 有効時は Menu を触らない)。
+        /// Esc は押下エッジで 1 回だけ発火するので、開閉は 1 押下につき 1 回。
         /// </summary>
         private void UpdatePause()
         {
             if (pause == null) return;
 
-            bool menuOpen = GameSceneManager.Menu;
-            if (!menuOpen && KeyActions.IsDown(KeyActions.KeyAction.Back))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
-                pause.Open();
-                GameSceneManager.Menu = true;
-                return;
-            }
-            if (menuOpen && pause.IsOpen)
-            {
-                if (KeyActions.IsDown(KeyActions.KeyAction.Back))
+                if (pause.IsOpen)
                 {
                     pause.Close();
-                    GameSceneManager.Menu = false;
-                    return;
                 }
-                if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch)) pause.SelectNextTab(1);
-                if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev)) pause.MoveSelection(-1);
-                if (KeyActions.IsDown(KeyActions.KeyAction.NavNext)) pause.MoveSelection(1);
-                var manager = FindObjectOfType<GameSceneManager>();
-                if (manager == null) return;
-                if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); GameSceneManager.Menu = false; manager.RetryGame(); }
-                if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd)) { pause.Close(); GameSceneManager.Menu = false; manager.GameEnd(); }
-                if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetire)) { pause.Close(); GameSceneManager.Menu = false; manager.RetireGame(); }
-                pause.Refresh();
+                else
+                {
+                    pause.Open();
+                }
+                return;
             }
+
+            if (!pause.IsOpen) return;
+
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch)) pause.SelectNextTab(1);
+            if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev)) pause.MoveSelection(-1);
+            if (KeyActions.IsDown(KeyActions.KeyAction.NavNext)) pause.MoveSelection(1);
+            var manager = FindObjectOfType<GameSceneManager>();
+            if (manager == null) return;
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); manager.RetryGame(); }
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd)) { pause.Close(); manager.GameEnd(); }
+            if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetire)) { pause.Close(); manager.RetireGame(); }
+            pause.Refresh();
         }
 
         /// <summary>
@@ -357,32 +417,6 @@ namespace FlashBeat.UI.V6
             for (int i = 0; i < ready.Length; i++)
             {
                 if (ready[i] != null) ready[i].gameObject.SetActive(false);
-            }
-        }
-
-        /// <summary>
-        /// 旧 v5 のポーズ / ローディング / エラー表示を隠す (v6 が同じ役割を持つ)。
-        /// ReadyView (Space 待ち) は残す — 表示所有は Ready 中が v5 / 演奏中が v6。
-        /// </summary>
-        private void HideLegacyPauseAndLoading()
-        {
-            var pauseViews = FindObjectsOfType<FlashBeat.UI.V5.PauseMenuView>();
-            for (int i = 0; i < pauseViews.Length; i++)
-            {
-                if (pauseViews[i] != null) pauseViews[i].gameObject.SetActive(false);
-            }
-
-            var canvases = FindObjectsOfType<Canvas>();
-            for (int i = 0; i < canvases.Length; i++)
-            {
-                Canvas canvas = canvases[i];
-                if (canvas == null) continue;
-                if (canvas.name != "V5OverlayCanvas") continue;
-                var graphics = canvas.GetComponentsInChildren<Graphic>(true);
-                for (int g = 0; g < graphics.Length; g++)
-                {
-                    if (graphics[g] != null) graphics[g].enabled = false;
-                }
             }
         }
 

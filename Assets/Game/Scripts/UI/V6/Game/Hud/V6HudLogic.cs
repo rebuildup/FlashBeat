@@ -61,6 +61,24 @@ namespace FlashBeat.UI.V6.Game.Hud
             return miss == 0 && totalJudged > 0;
         }
 
+        /// <summary>
+        /// コンボボーナス block を出すか。契約 §12: Combo Bonus と Combo Status は
+        /// 同じ座標 (FHD 1512,460) にあり <b>排他</b>。ステータスが出ている間は
+        /// ボーナスを隠す (縦積みにすると契約位置からずれ、同時表示になる)。
+        /// </summary>
+        public static bool ShowComboBonus(int combo, bool comboStatusVisible)
+        {
+            return combo > 0 && !comboStatusVisible;
+        }
+
+        /// <summary>
+        /// 契約 §8 / §12 の強調下地色 <c>#3A3220</c>。
+        /// スコアゲージの「+」セグメントと FULL COMBO チップの背景。
+        /// v5 トークンにはこの値が無い (Key0 #131313 / WarnTint #4A4029 は近いが別値) ので
+        /// v6 側で契約値を保持する。
+        /// </summary>
+        public static readonly Color AccentBase = new Color32(0x3A, 0x32, 0x20, 0xFF);
+
         /// <summary>コンボトラックの塗り比率 (0..1)。milestone 無効は 0。</summary>
         public static float ComboFillFraction(int combo, int milestone)
         {
@@ -143,6 +161,22 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             return KeyGuideUI.GetKeyDisplayName(keys[0]);
+        }
+
+        /// <summary>
+        /// スクリーン x (左原点 px) を HUD フレーム内のテンプレート x (左原点) へ写す。
+        /// フレームは frameScale 倍の等比拡大で画面全体を覆う
+        /// (V6HudMetrics.LogicalViewportSize) ので、テンプレート x = screen x / frameScale。
+        /// frameScale 0 以下 (未初期化) は等倍として扱う。
+        /// </summary>
+        public static float ScreenXToTemplateX(float screenX, float frameScale)
+        {
+            if (frameScale <= 0f)
+            {
+                return screenX;
+            }
+
+            return screenX / frameScale;
         }
 
         /// <summary>

@@ -169,42 +169,72 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void Metrics_TwoK_IsUniformlyScaledTemplate()
+        public void Metrics_TwoK_MatchesDesign()
         {
+            // 契約 §8 の 2K (E51yo 2560×1440) design 実測値
+            // (docs/design/v6/flashbeat-v6-contract.md)。FHD の 4/3 倍と一致しない項目
+            // (デザイナーの丸め: Grade fs 95→125 等) があるため、V6HudMetrics.TwoK は
+            // 契約値をそのまま保持する。
             var m = V6HudMetrics.TwoK();
-            var scaled = V6HudMetrics.Fhd(4f / 3f);
-            Assert.AreEqual(scaled.TopShadeH, m.TopShadeH);
-            Assert.AreEqual(scaled.GradeFs, m.GradeFs);
-            Assert.AreEqual(scaled.GaugeW, m.GaugeW);
-            Assert.AreEqual(scaled.GaugeSegH, m.GaugeSegH);
-            Assert.AreEqual(scaled.GaugeFillH, m.GaugeFillH);
-            Assert.AreEqual(scaled.GaugeFillMax, m.GaugeFillMax);
-            Assert.AreEqual(scaled.ComboValueFs, m.ComboValueFs);
-            Assert.AreEqual(scaled.KeyCapW, m.KeyCapW);
+            Assert.AreEqual(347, m.TopShadeH);        // Top Shade 2560×347
+            Assert.AreEqual(11, m.ProgressH);         // Progress Bar 2560×11
+            Assert.AreEqual(64, m.Margin);            // Grade (64,64)
+            Assert.AreEqual(125, m.GradeFs);          // fs125 (FHD 95 の 4/3 ではない)
+            Assert.AreEqual(800, m.GaugeW);           // Score Gauge 800×48
+            Assert.AreEqual(48, m.GaugeH);
+            Assert.AreEqual(699, m.GaugeFillMax);     // Fill 699×14
+            Assert.AreEqual(800, m.ComboW);           // Combo 800×293
+            Assert.AreEqual(293, m.ComboH);
+            Assert.AreEqual(240, m.ComboValueFs);     // Value fs240
+            Assert.AreEqual(213, m.StatusBlockH);     // Combo Status 480×213
+            Assert.AreEqual(200, m.FcChipW);          // FC チップ 200×53
+            Assert.AreEqual(53, m.FcChipH);
+            Assert.AreEqual(75, m.KeyCapW);           // KeyCap 75×48 (Key fs32)
+            Assert.AreEqual(48, m.KeyCapH);
+            Assert.AreEqual(32, m.KeyCapLabelFs);
+            // KeyGuide 格子: x = 529, 733, … (左端 + KeyCap 幅の半分が中心)
+            Assert.AreEqual(566.5f, m.KeyFirstCenter, 0.5f);
+            Assert.AreEqual(203.571f, m.KeySpacing, 0.01f);
         }
 
         [Test]
-        public void Metrics_ResolutionProfilesUseSameLogicalTemplate()
+        public void Metrics_MacProfile_MatchesTwoKSizes()
         {
-            var template = V6HudMetrics.Fhd(1f);
-            var profiles = new[]
-            {
-                UISizeProfile.Select(1920, 1080),
-                UISizeProfile.Select(2560, 1440),
-                UISizeProfile.Select(2560, 1664),
-                UISizeProfile.Select(1440, 900)
-            };
+            // 契約 §8: Mac (QrSwA 2560×1664) は 2K と同じ寸法で、縦位置だけ
+            // 中央 / 下端アンカーに追従してずれる (Combo y685 / Status y725 / KeyGuide y1571)。
+            // 実装は「FHD 論理テンプレート × 等比拡大 + アンカー追従」でこれを実現する:
+            // design px = テンプレート値 × ScaleForResolution、
+            // 中央 / 下端アンカー要素の上端 = (論理高さ / 2 − オフセット) × scale 等。
+            var m = V6HudMetrics.Fhd(1f);
+            float s2k = V6HudMetrics.ScaleForResolution(2560, 1440);
+            float sMac = V6HudMetrics.ScaleForResolution(2560, 1664);
+            Assert.AreEqual(4f / 3f, s2k, 1e-4f);
+            Assert.AreEqual(4f / 3f, sMac, 1e-4f);
 
-            for (int i = 0; i < profiles.Length; i++)
-            {
-                var metrics = V6HudMetrics.ForProfile(profiles[i]);
-                Assert.AreEqual(template.TopShadeH, metrics.TopShadeH);
-                Assert.AreEqual(template.GradeFs, metrics.GradeFs);
-                Assert.AreEqual(template.GaugeW, metrics.GaugeW);
-                Assert.AreEqual(template.GaugeFillMax, metrics.GaugeFillMax);
-                Assert.AreEqual(template.ComboValueFs, metrics.ComboValueFs);
-                Assert.AreEqual(template.KeyCapW, metrics.KeyCapW);
-            }
+            // 共有寸法は Mac も 2K と同じ (design px = FHD テンプレート × 4/3、
+            // デザイナーの丸めで ±1.5px)
+            Assert.AreEqual(347, m.TopShadeH * s2k, 1.5f);
+            Assert.AreEqual(800, m.GaugeW * s2k, 0.5f);
+            Assert.AreEqual(24, m.GaugeTrackH * s2k, 0.5f);
+            Assert.AreEqual(699, m.GaugeFillMax * s2k, 1.5f);
+            Assert.AreEqual(240, m.ComboValueFs * s2k, 0.5f);
+            Assert.AreEqual(75, m.KeyCapW * s2k, 0.5f);
+            Assert.AreEqual(48, m.KeyCapH * s2k, 0.5f);
+            Assert.AreEqual(32, m.KeyCapLabelFs * s2k, 0.5f);
+
+            // 縦位置は中央 / 下端アンカーが効いて 2K からずれる (契約 Mac 列)
+            float comboOffset = m.ComboH * 0.5f;
+            Assert.AreEqual(430f, V6HudMetrics.MiddleAnchoredTopDesignY(1920, 1080, comboOffset), 0.5f);
+            Assert.AreEqual(573f, V6HudMetrics.MiddleAnchoredTopDesignY(2560, 1440, comboOffset), 1.5f);
+            Assert.AreEqual(685f, V6HudMetrics.MiddleAnchoredTopDesignY(2560, 1664, comboOffset), 1.5f);
+            float statusOffset = m.RightColTopOffset;
+            Assert.AreEqual(460f, V6HudMetrics.MiddleAnchoredTopDesignY(1920, 1080, statusOffset), 0.5f);
+            Assert.AreEqual(613f, V6HudMetrics.MiddleAnchoredTopDesignY(2560, 1440, statusOffset), 1.5f);
+            Assert.AreEqual(725f, V6HudMetrics.MiddleAnchoredTopDesignY(2560, 1664, statusOffset), 1.5f);
+            float guideOffset = m.KeyGuideBottom + m.KeyGuideH;
+            Assert.AreEqual(1011f, V6HudMetrics.BottomAnchoredTopDesignY(1920, 1080, m.KeyGuideBottom, m.KeyGuideH), 0.5f);
+            Assert.AreEqual(1347f, V6HudMetrics.BottomAnchoredTopDesignY(2560, 1440, m.KeyGuideBottom, m.KeyGuideH), 2f);
+            Assert.AreEqual(1571f, V6HudMetrics.BottomAnchoredTopDesignY(2560, 1664, m.KeyGuideBottom, m.KeyGuideH), 2f);
         }
 
         [TestCase(1920, 1080, 1f)]
