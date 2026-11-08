@@ -1,4 +1,5 @@
 using System;
+using FlashBeat.UI.V6.Select.View;
 using UnityEngine;
 
 namespace FlashBeat.UI.V6.Option
@@ -50,9 +51,13 @@ namespace FlashBeat.UI.V6.Option
     /// </summary>
     public static class V6OptionLogic
     {
-        /// <summary>design v6 共通フレームの基準サイズ。</summary>
-        public const float DesignW = 1728f;
-        public const float DesignH = 972f;
+        /// <summary>
+        /// design v6 共通フレームの基準サイズ (1728x972)。
+        /// 実体は他の v6 画面と同じ共通実装
+        /// (<see cref="V6SelectViewLogic.DesignW"/> / <see cref="V6SelectViewLogic.DesignH"/>) を参照する。
+        /// </summary>
+        public const float DesignW = V6SelectViewLogic.DesignW;
+        public const float DesignH = V6SelectViewLogic.DesignH;
 
         /// <summary>タブ数 (Play / Display / Sound / Data)。</summary>
         public const int TabCount = 4;
@@ -71,37 +76,24 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>
         /// design px → 実ピクセルの倍率。基準は design v6 の共通フレーム 1728x972 (16:9)。
         ///
-        /// ・画面が design より縦長 (H/W &gt; 972/1728) のとき:
-        ///   16:10 (1920x1200) は「幅より高さが制約になる」画面として扱う。
-        ///   design フレーム (16:9) を横へ伸ばすのではなく、高さ基準で縮める
-        ///   (designH/H = 972/1200 = 0.81)。
-        /// ・横長・同纵横のとき:
-        ///   フレームが画面内に収まる範囲で等倍する。ただし design px 自体、等倍であり
-        ///   1 を超える拡大 (アップスケール) はしない (1920x1080 は 1.111 ではなく 1)。
+        /// 実装は他の v6 画面と同じ共通式
+        /// (<see cref="V6SelectViewLogic.DesignScale"/>) に委譲する:
+        /// min(W/1728, H/972) 倍し、フレームが画面内に収まる範囲で等比拡大する
+        /// (アップスケール可 / 異常系 (0 以下) は 1 にフォールバック)。
         ///
-        /// 結果: 1728x972 → 1 / 1920x1080 → 1 / 1920x1200 → 0.81。
-        /// 異常系 (0 以下) は等倍 1 にフォールバックする。
+        /// 方針変更 (旧: 縦長画面は高さ基準 + 1 でクランプ):
+        /// v6 の全画面は design 上の共通フレーム `Frame/Shared 1728x972` を ref 共有している
+        /// (契約 docs/design/v6/flashbeat-v6-contract.md §2 のノード表)。
+        /// 同じフレームの描画倍率だけを Option で小さくしていると、
+        /// Select / History / Ranking / Result / Title から Option へ連続して遷移したときに
+        /// 視覚的に破綻する (実測: 2560x1664 で Option 0.584 に対し他画面 1.4815)。
+        /// よって Option も他画面と同一の式に統一する。
+        ///
+        /// 結果: 1728x972 → 1 / 1920x1080 → 1.111 / 2560x1664 → 1.4815。
         /// </summary>
         public static float DesignScale(int width, int height)
         {
-            if (width <= 0 || height <= 0)
-            {
-                return 1f;
-            }
-
-            float designAspect = DesignH / DesignW;
-            float screenAspect = (float)height / width;
-
-            if (screenAspect > designAspect)
-            {
-                // 縦長画面: 高さで制約する (16:10 は幅より高さが制約になる)。
-                return DesignH / height;
-            }
-
-            float byW = width / DesignW;
-            float byH = height / DesignH;
-            float scale = byW < byH ? byW : byH;
-            return scale > 1f ? 1f : scale;
+            return V6SelectViewLogic.DesignScale(width, height);
         }
 
         /// <summary>タブ index を範囲内に収める。</summary>

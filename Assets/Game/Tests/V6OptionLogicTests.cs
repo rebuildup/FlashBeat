@@ -9,10 +9,18 @@ namespace FlashBeat.UI.V6.Option
         [Test]
         public static void DesignScale_FitsThreeResolutions()
         {
+            // 方針変更 (期待値を実装へ寄せただけの更新ではなく、前提自体が変わったための更新):
+            // v6 の全画面は design 上の共通フレーム `Frame/Shared 1728x972` を ref 共有している
+            // (契約 docs/design/v6/flashbeat-v6-contract.md §2 のノード表)。
+            // 同じフレームの描画倍率が画面ごとに違うと、
+            // Select / History / Ranking / Result / Title から Option へ連続して遷移したときに
+            // 視覚的に破綻するため、
+            // Option も他の v6 画面と同じ min(W/1728, H/972) (アップスケール可) に統一した。
+            // 旧テストは「縦長画面は高さ基準 (972/H)」「1 を超える拡大をしない」前提を固定していた。
             Assert.AreEqual(1f, V6OptionLogic.DesignScale(1728, 972), 0.0001f);
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(1920, 1080), 0.0001f);
-            // 16:10 は幅より高さが制約になる
-            Assert.AreEqual(972f / 1200f, V6OptionLogic.DesignScale(1920, 1200), 0.0001f);
+            Assert.AreEqual(1920f / 1728f, V6OptionLogic.DesignScale(1920, 1080), 0.0001f);
+            // 16:10 は共通フレームが幅に律速される (min なので幅優先)
+            Assert.AreEqual(1920f / 1728f, V6OptionLogic.DesignScale(1920, 1200), 0.0001f);
             Assert.AreEqual(1f, V6OptionLogic.DesignScale(0, 0)); // 異常系は等倍
         }
 
