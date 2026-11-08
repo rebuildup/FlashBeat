@@ -16,18 +16,67 @@ namespace FlashBeat.UI.V6.Title
         public const float FrameH = 972f;
 
         /// <summary>
-        /// design px (1728x972) を画面へ等比拡大する倍率 (v6 共通: min 倍率)。
-        /// 異常値 (0 以下) は 1 倍にフォールバックする (V6ResultLogic.DesignScale と同じ)。
+        /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
+        /// 左上 origin = ((w−1728)/2, (h−972)/2) (design px、切り捨て)。
+        /// 正本: design POJwG "Resolution Check · Title" の実配置
+        /// (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / Mac 2560×1664 → (416,346))。
+        /// 旧実装の min(w/1728, h/972) による引き伸ばし (等比スケール) は廃止
+        /// (フレームは固定解像度であり、拡大縮小はしない)。
         /// </summary>
-        public static float DesignScale(int screenW, int screenH)
+        public static Vector2 FrameOrigin(int screenW, int screenH)
         {
             if (screenW <= 0 || screenH <= 0)
             {
-                return 1f;
+                return Vector2.zero;
             }
 
-            return Mathf.Min(screenW / FrameW, screenH / FrameH);
+            return new Vector2(
+                Mathf.Floor((screenW - FrameW) / 2f),
+                Mathf.Floor((screenH - FrameH) / 2f));
         }
+
+        // --- Title 固有ノードの design 配置 (QJtTv "01 Title · v6") ---
+        // 座標は各ゾーン ローカルの design px (左上原点・y_down)。
+        // Header/Main/Footer ゾーン自体の矩形は V6Frame (契約 §4) が持つ。
+
+        /// <summary>戻るボタン (zUcsi/zCQBY): Header ローカル 56×56。</summary>
+        public static readonly Vector2 BackButtonPos = new Vector2(0f, 20f);
+        public static readonly Vector2 BackButtonSize = new Vector2(56f, 56f);
+
+        /// <summary>ヘッダー タイトル文字 (aqq3q/ci867): Header ローカル。</summary>
+        public static readonly Vector2 HeaderTitlePos = new Vector2(72f, 20f);
+        public static readonly Vector2 HeaderTitleSize = new Vector2(185f, 56f);
+        public const float HeaderTitleFontSize = 38f;
+
+        /// <summary>右上の曲情報ゾーン (WUQeP) / 状態ゾーン (l26KMD): Header ローカル 300×96。</summary>
+        public static readonly Vector2 SongInfoZonePos = new Vector2(1080f, 0f);
+        public static readonly Vector2 StateZonePos = new Vector2(1380f, 0f);
+        public static readonly Vector2 HeaderZoneSize = new Vector2(300f, 96f);
+
+        /// <summary>ロゴ (CnRJj, assets/13.png contain): Main ローカル。</summary>
+        public static readonly Vector2 LogoPos = new Vector2(0f, 180f);
+        public static readonly Vector2 LogoSize = new Vector2(1680f, 332f);
+
+        /// <summary>タブ列 (FHcxk, $overlay r8) とタブ 1 枚: Main ローカル。</summary>
+        public static readonly Vector2 TabsPos = new Vector2(280f, 552f);
+        public static readonly Vector2 TabsSize = new Vector2(1120f, 48f);
+        public static readonly Vector2 TabSize = new Vector2(280f, 48f);
+        public const float TabIconSize = 24f;
+        public const float TabGap = 8f;
+        public const float TabPaddingX = 10f;
+        public const float TabLabelFontSize = 26f;
+
+        /// <summary>フッター キー凡例 (QQ4jM, gap16): Footer ローカル。</summary>
+        public static readonly Vector2 LegendPos = new Vector2(0f, 30f);
+        public const float LegendGap = 16f;
+        public const float LegendInnerGap = 8f;
+        public const float LegendFontSize = 22f;
+
+        /// <summary>右下の補助操作 (FChYu→G1dOc 設定) / 主操作 (F8SwvS→i9eZ1G START): Footer ローカル。</summary>
+        public static readonly Vector2 FooterAuxPos = new Vector2(1198f, 20f);
+        public static readonly Vector2 FooterAuxSize = new Vector2(197f, 56f);
+        public static readonly Vector2 FooterPrimaryPos = new Vector2(1407f, 20f);
+        public static readonly Vector2 FooterPrimarySize = new Vector2(273f, 56f);
 
         /// <summary>
         /// プレイ可能な曲数 (選曲画面 V6SelectDataSource.RebuildSongs と同じ基準):
