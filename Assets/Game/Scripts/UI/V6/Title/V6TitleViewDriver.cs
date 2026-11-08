@@ -18,6 +18,10 @@ namespace FlashBeat.UI.V6.Title
 
         private void Update()
         {
+            // 旧 (v5) 側の Canvas / ルート ("V5 Title Canvas" など) も毎フレーム隠し直す
+            // (v5 は Start/OnEnable で自前の Canvas を後から生成するため 1 回では足りない)。
+            V6UiMode.HideLegacyV5Canvases();
+
             // 旧 (v5) TitleView は Start/OnEnable で自前のメニュー ("Menu GameStart" など) を
             // 生成する。V6TitleView.Create 時の 1 回だけでは後から生成された分が残るので、
             // 毎フレーム隠し直す (戻り値での早期終了はしない)。

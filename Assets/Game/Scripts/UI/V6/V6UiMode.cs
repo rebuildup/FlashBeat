@@ -134,5 +134,27 @@ namespace FlashBeat.UI.V6
             }
             return found;
         }
+
+        /// <summary>
+        /// 旧 (v5) の Canvas / ルート ("V5 Title Canvas" / "V5 Select View" など) を
+        /// すべて非表示にする。v6 モードでは v5 の描画を重ねない (二重表示防止)。
+        /// 毎フレーム呼んでも安全 (冪等)。v6 側の "V6..." 名前には触らない。
+        /// 旧 v5 TitleView / SelectView は Start/OnEnable で自前の Canvas を後から
+        /// 生成するので、1 回だけでは足りない。呼び出し側 (V6TitleViewDriver /
+        /// V6SelectViewDriver の Update) は毎フレーム呼ぶ。
+        /// </summary>
+        public static bool HideLegacyV5Canvases()
+        {
+            var roots = UnityEngine.Object.FindObjectsByType<UnityEngine.RectTransform>(
+                UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+            for (int i = 0; i < roots.Length; i++)
+            {
+                var rt = roots[i];
+                if (rt == null) continue;
+                if (!rt.gameObject.name.StartsWith("V5")) continue;
+                if (rt.gameObject.activeSelf) rt.gameObject.SetActive(false);
+            }
+            return true;
+        }
     }
 }
