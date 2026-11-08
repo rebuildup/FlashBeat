@@ -159,5 +159,40 @@ namespace FlashBeat.UI.V6
             }
             return true;
         }
+
+        /// <summary>
+        /// v6 Result モードで旧 (v5) Result の残骸を非表示にする。
+        /// 呼び出し側 (V6ResultViewDriver.Update) は毎フレーム呼ぶ。
+        ///
+        /// ResultScene.unity 実測: "V5" 以外の名前で v5 由来のものが残る。
+        /// - "Canvas" (シーン配置の旧 UI ルート。BPM / TotalHits / SongLevel / Hiscore
+        ///   ラベル、リトライ / 登録 ボタン、sen の白枠、サムネイル Image を含む。
+        ///   ResultSceneManager.legacyCanvasV5 / legacyCanvasV6 はシーンで未割り当て
+        ///   のため HideLegacyCanvases では消えない)
+        /// - "スクリーン" (3D の曲サムネイル Panel: VideoPlayer + MeshRenderer の Quad。
+        ///   Canvas 外の 3D オブジェクトで v6 には属さない)
+        ///
+        /// 触らないもの: "BackGround" (v6 Result もこのアニメーション背景を敷く —
+        /// V6ResultView.BuildRoot のコメント参照)、"Songnum" (Canvas 非所属で描画されない)、
+        /// v6 自身 ("V6 Result Canvas" は "Canvas" と完全一致しない上、IsUnderV6Canvas で二重に守る)。
+        /// 毎フレーム呼んでも安全 (冪等)。戻り値: 常に true。
+        /// </summary>
+        public static bool HideLegacyResultUi()
+        {
+            HideLegacyV5Canvases();
+
+            var transforms = UnityEngine.Object.FindObjectsByType<UnityEngine.Transform>(
+                UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                var t = transforms[i];
+                if (t == null) continue;
+                string n = t.gameObject.name;
+                if (n != "Canvas" && n != "スクリーン") continue;
+                if (IsUnderV6Canvas(t)) continue;
+                if (t.gameObject.activeSelf) t.gameObject.SetActive(false);
+            }
+            return true;
+        }
     }
 }
