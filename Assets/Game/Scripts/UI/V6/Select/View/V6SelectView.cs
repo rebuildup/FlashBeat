@@ -81,6 +81,12 @@ namespace FlashBeat.UI.V6.Select.View
 
             var view = new V6SelectView(data, onReady, onBack, onOpenSettings);
             view.BuildRoot(parent);
+            // 初期選択が無いと中央パネルが Skeleton のままになるので 1 曲目を選んでおく。
+            // 購読前に実行するため Changed による再入再描画は起きない。
+            if (data.Selected == null && data.FilteredSongs.Count > 0)
+            {
+                data.Select(data.FilteredSongs[0].SongId);
+            }
             // 実データの変更 (選択の移動・検索・カタログ更新) を再描画の起点にする。
             // 購読しないと中央パネルとランキングが古い状態のままになる。
             data.Changed += view.OnDataChanged;
@@ -597,11 +603,14 @@ namespace FlashBeat.UI.V6.Select.View
             var songTitle = V5GameUi.Text(row, "Title", song.Title, 26f, V5Tokens.Text, TextAlignmentOptions.Left,
                 FontStyles.Normal);
             Ellipsis(songTitle);
-            At(songTitle, 182f, 14f, 240f, 28f);
+            // Ellipsis は「1 行も矩形に収まらないと何も描画しない」。NotoSansJP の
+            // 行高は fs の約 1.45 倍なので fs26 には 38px 必要 (28 だと無描画になる)。
+            At(songTitle, 182f, 14f, 240f, 38f);
             var songArtist = V5GameUi.Text(row, "Artist", song.Artist, 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left, FontStyles.Normal);
             Ellipsis(songArtist);
-            At(songArtist, 182f, 42f, 240f, 22f);
+            // fs20 × 1.448 ≒ 29 → 30px。ink は fs20 (20px) なので Title との重なりは行高 padding のみ。
+            At(songArtist, 182f, 42f, 240f, 30f);
 
             var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 432f, 18f);
             var gradeText = V5GameUi.Text(grade.gameObject, "Text", string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade,
@@ -627,7 +636,8 @@ namespace FlashBeat.UI.V6.Select.View
             var hint = V5GameUi.Text(list, "Hint", ListHintText(songs, selectIndex), 18f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left);
             Ellipsis(hint);
-            At(hint, rect.X, rect.Y, rect.W, rect.H);
+            // fs18 × 1.448 ≒ 26 → design の h24 だと Ellipsis が無描画になるため 28 に持ち上げる。
+            At(hint, rect.X, rect.Y, rect.W, 28f);
         }
 
         /// <summary>曲リスト下端のヒント文 (選択位置 / 曲数)。</summary>
