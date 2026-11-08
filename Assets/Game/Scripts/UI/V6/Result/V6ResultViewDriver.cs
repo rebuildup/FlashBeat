@@ -13,10 +13,6 @@ namespace FlashBeat.UI.V6.Result
 
         private void Update()
         {
-            // v6 Result が有効な間、旧 (v5) Result の残骸 (シーン配置 Canvas / 3D の
-            // サムネイル Panel など) を毎フレーム隠す (Title / Select と同じ考え方)。
-            FlashBeat.UI.V6.V6UiMode.HideLegacyResultUi();
-
             if (View != null)
             {
                 View.Tick();
