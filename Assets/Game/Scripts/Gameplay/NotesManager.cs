@@ -188,7 +188,7 @@ public class NotesManager : MonoBehaviour
                 LaneNum.Add(lanes[index]);
                 NoteType.Add(types[index]);
                 NotesEndTime.Add(endTimes[index]);
-                GameObject instance = Instantiate(noteObj, new Vector3(lanes[index] - 3.5f, 0.55f, positionsZ[index]), Quaternion.identity);
+                GameObject instance = Instantiate(noteObj, new Vector3(Judge.LaneWorldX(lanes[index]), 0.55f, positionsZ[index]), Quaternion.identity);
 
                 // ロングノーツは体を引き伸ばす (Issue #164)。タップは長さを
                 // 持たない (0) ので、Notes は何も変えない。

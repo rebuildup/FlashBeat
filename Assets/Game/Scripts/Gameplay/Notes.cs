@@ -41,7 +41,7 @@ public class Notes : MonoBehaviour
         noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, GManager.noteSpeed);
 
         // NotesManager が x = block - 3.5 で生成する (Judge.EffectPosition と同じ写像)。
-        lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x + 3.5f), 0, V6LaneGeometry.LaneCount - 1);
+        lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x - Judge.LaneFirstCenterX), 0, V6LaneGeometry.LaneCount - 1);
 
         meshRenderer = GetComponentInChildren<MeshRenderer>();
         boxCollider = GetComponent<BoxCollider>();

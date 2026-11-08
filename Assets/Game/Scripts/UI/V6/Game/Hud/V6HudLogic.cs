@@ -186,7 +186,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         public static int LaneFromEffectPositionX(float effectX)
         {
-            int lane = Mathf.RoundToInt(effectX + 3.5f);
+            int lane = Mathf.RoundToInt(effectX - Judge.LaneFirstCenterX);
             return Mathf.Clamp(lane, 0, 7);
         }
     }

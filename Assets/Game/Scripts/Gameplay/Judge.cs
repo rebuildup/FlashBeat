@@ -5,8 +5,27 @@ using TMPro;
 using UnityEngine;
 using FlashBeat.Gameplay;
 
+/// <summary>
+/// レーンのワールド配置。ノートはレーン i の中心 (LaneWorldX(i), 0.55, z) に置かれ、
+/// 判定エフェクトも同じ x を使う (Judge.EffectPosition)。
+/// </summary>
 public class Judge : MonoBehaviour
 {
+    /// <summary>レーン数 (Judge.LaneKeys / NotesManager の block と同一)。</summary>
+    public const int LaneCount = 8;
+
+    /// <summary>レーン 0 の中心 x。レーン i の中心は LaneWorldX(i)。</summary>
+    public const float LaneFirstCenterX = -3.5f;
+
+    /// <summary>隣接レーンの中心間隔 (ワールド単位)。</summary>
+    public const float LaneSpacing = 1f;
+
+    /// <summary>レーン i の中心ワールド x (= i - 3.5)。</summary>
+    public static float LaneWorldX(int lane)
+    {
+        return LaneFirstCenterX + lane * LaneSpacing;
+    }
+
     [SerializeField] private GameObject[] MessageObj;
     [SerializeField] private GameObject[] ParticleObj;
     [SerializeField] private NotesManager notesManager;
@@ -272,7 +291,7 @@ public class Judge : MonoBehaviour
             lane = laneNum[noteIndex];
         }
 
-        // the notes use the same mapping (block - 3.5), see NotesManager.Load
-        return new Vector3(lane - 3.5f, 0.76f, 0.15f);
+        // the notes use the same mapping, see NotesManager.Load
+        return new Vector3(LaneWorldX(lane), 0.76f, 0.15f);
     }
 }

@@ -836,25 +836,31 @@ namespace FlashBeat.UI.V6.Game.Hud
             if (cam == null) return;
             for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
-                Vector3 world = new Vector3(lane - 3.5f, 0.76f, 0.15f);
+                Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
                 Vector3 screen = cam.WorldToScreenPoint(world);
                 if (screen.z <= 0f) continue;
                 SetLaneGridX(lane, V6HudLogic.ScreenXToTemplateX(screen.x, rootScale));
             }
         }
 
-        /// <summary>レーン格子の第 lane 列へキーキャップと判定テキストを載せる。</summary>
-        private void SetLaneGridX(int lane, float x)
+        /// <summary>
+        /// レーン格子の第 lane 列へキーキャップと判定テキストを載せる。
+        /// x は canvas (root) 左原点。子は PinBottom された行の中に (0, 0.5) アンカーで
+        /// 置かれているので anchoredPosition は行左端基準 → 行の inset (offsetMin.x) を
+        /// 引いてから載さないと行 inset 分 (Mac KeyGuide 45px / Verdict 98px) 右にずれる。
+        /// キーキャップはラベル (TMP, stretch アンカー) ではなくキャップ (親) を動かす。
+        /// </summary>
+        private void SetLaneGridX(int lane, float canvasX)
         {
             if (lane < verdictTexts.Count)
             {
                 var rt = verdictTexts[lane].rectTransform;
-                rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
+                rt.anchoredPosition = new Vector2(canvasX - ((RectTransform)rt.parent).offsetMin.x, rt.anchoredPosition.y);
             }
             if (lane < keyCaps.Count)
             {
-                var rt = keyCaps[lane].rectTransform;
-                rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
+                var cap = (RectTransform)keyCaps[lane].transform.parent;
+                cap.anchoredPosition = new Vector2(canvasX - ((RectTransform)cap.parent).offsetMin.x, cap.anchoredPosition.y);
             }
         }
 
