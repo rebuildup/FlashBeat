@@ -394,13 +394,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             layout.spacing = 6f;
             layout.padding = new RectOffset(24, 24, 16, 16);
             layout.childControlWidth = true;
-            layout.childControlHeight = false;
+            // true でないと LayoutElement.preferredHeight が無視され、行は V5Ui.Text の
+            // rect 高さ 0 のままになる → TMP は 1 行も描画されない (歌詞消失の根本原因)。
+            layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            // V5Ui.Text は rect 高さ 0 で作る。childControlHeight=false の縦 layout では
-            // 高さ 0 のままになりテキストが描画されない (空の黒い矩形だけ見える)。
-            // preferredHeight (fs × 行送り) を LayoutElement で渡して行を確保する。
+            // V5Ui.Text は rect 高さ 0 で作る。preferredHeight (fs × 行送り) を
+            // LayoutElement で渡し、上の childControlHeight=true で行の高さを確保する。
             lyricFuriganaText = V5Ui.Text(box, "Furigana", "", LyricFuriganaFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
             SetLyricRowHeight(lyricFuriganaText, LyricFuriganaFs);
@@ -414,8 +415,19 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
         private static void SetLyricRowHeight(TextMeshProUGUI text, float fontSize)
         {
-            var le = text.gameObject.AddComponent<LayoutElement>();
+            var le = text.GetComponent<LayoutElement>();
+            if (le == null) le = text.gameObject.AddComponent<LayoutElement>();
             le.preferredHeight = fontSize * 1.25f;
+        }
+
+        /// <summary>
+        /// 歌詞行の fs を変えつつ行高を追従させる (Ready prompt の拡大 fs 対応)。
+        /// 行高が行送り未満だと TMP は 1 行も描画しない。
+        /// </summary>
+        private void SetLyricTextFontSize(float fontSize)
+        {
+            lyricText.fontSize = fontSize;
+            SetLyricRowHeight(lyricText, fontSize);
         }
 
         private void BuildGrade()
@@ -901,7 +913,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 {
                     lyricIndex = -1;
                     lyricText.text = "Space to Start";
-                    lyricText.fontSize = m.LyricFs * 1.79f; // design: Ready prompt
+                    SetLyricTextFontSize(m.LyricFs * 1.79f); // design: Ready prompt
                     lyricFuriganaText.text = "";
                     lyricRomajiText.text = "";
                 }
@@ -931,7 +943,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 lyricText.text = hasLine && lyricLines[index].HasText
                     ? lyricLines[index].Text
                     : "";
-                lyricText.fontSize = m.LyricFs; // Ready prompt の拡大 fs を戻す
+                SetLyricTextFontSize(m.LyricFs); // Ready prompt の拡大 fs を戻す
                 lyricFuriganaText.text = hasLine ? lyricLines[index].Furigana ?? "" : "";
                 lyricRomajiText.text = hasLine ? lyricLines[index].Romaji ?? "" : "";
             }
@@ -970,7 +982,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 lyricData.StartTime ?? new float[0],
                 lyricData.EndTime ?? new float[0],
                 lyricData.Mondai ?? new string[0],
-                lyricData.Furigana ?? new string[0]);
+                lyricData.Furigana ?? new string[0],
+                lyricData.romaji ?? new string[0]);
             lyricIndex = -2;
         }
 
