@@ -46,11 +46,24 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void GaugeBestX_MatchesDesignSample()
+        public void GaugeBestX_ProportionalWithinScoreSpace()
         {
-            // design: Best マーカー x=553 (hiscore 1,043,396 / 530 span)
-            Assert.AreEqual(553f, V6HudLogic.GaugeBestX(1043396, 530f), 0.5f);
+            // 点数空間は 0..1,000,000 (既存 gauge.fillAmount = score/1000000f と同じ)。
+            // 得点に比例し、Best マーカーは自分のスコア位置に置かれる。
             Assert.AreEqual(0f, V6HudLogic.GaugeBestX(0, 530f), 1e-3f);
+            Assert.AreEqual(265f, V6HudLogic.GaugeBestX(500000, 530f), 0.5f);
+            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(1000000, 530f), 0.5f);
+        }
+
+        [Test]
+        public void GaugeBestX_StaysOnTrackBeyondScoreSpace()
+        {
+            // design (docs/design/v6/flashbeat-v6-nodes.json) の Best x=553 は
+            // hiscore 1,043,396 をクランプせず 530 で割った点数空間外のサンプル。
+            // ゲームの点数は空間外に出ないが、保存スコアが空間上限を超える
+            // データが来てもマーカーがトラック外に出ないこと (クランプ) を決定的に検証する。
+            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(1043396, 530f), 0.5f);
+            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(int.MaxValue, 530f), 0.5f);
         }
 
         // --- コンボ ---
@@ -171,16 +184,23 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void Metrics_MacUsesTwoKSizes()
+        public void Metrics_MacProfile_MatchesTwoKSizes()
         {
-            // Mac 2560×1664 は 2K と同じ寸法 (縦位置はアンカーで追従)
+            // Mac 2560×1664 は 2K と同じ寸法 (縦位置はアンカーで追従)。
+            // 画面サイズに依存する Current ではなく、UISizeProfile.Select の
+            // 決定論的な選択結果で検証する。
+            UISizeProfile.ClearCache();
+            var mac = UISizeProfile.Select(2560, 1664);
+            Assert.AreEqual("mac", mac.Name);
+
+            var m = V6HudMetrics.ForProfile(mac);
             var twoK = V6HudMetrics.TwoK();
-            var current = V6HudMetrics.Current;
-            // 縦横比 1.538 の解像度は選べない (EditMode では画面依存) ので
-            // Current は「2k/mac なら TwoK、それ以外は Fhd 系」の分岐だけを検証する
-            Assert.IsNotNull(current);
-            Assert.IsTrue(
-                current.TopShadeH == twoK.TopShadeH || current.TopShadeH == V6HudMetrics.Fhd(1f).TopShadeH);
+            Assert.AreEqual(twoK.TopShadeH, m.TopShadeH);
+            Assert.AreEqual(twoK.GradeFs, m.GradeFs);
+            Assert.AreEqual(twoK.GaugeW, m.GaugeW);
+            Assert.AreEqual(twoK.GaugeFillMax, m.GaugeFillMax);
+            Assert.AreEqual(twoK.ComboValueFs, m.ComboValueFs);
+            Assert.AreEqual(twoK.KeyCapW, m.KeyCapW);
         }
 
         [Test]

@@ -42,7 +42,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             return Mathf.Clamp01(score / 1_000_000f) * fillMax;
         }
 
-        /// <summary>スコアゲージの Best マーカー x (px)。</summary>
+        /// <summary>スコアゲージの Best マーカー x (px)。
+        /// 点数空間は 0..1,000,000 (既存 gauge.fillAmount = score/1000000f と同じ)。
+        /// design の Best x=553 は hiscore 1,043,396 をクランプせず 530 で割った
+        /// 範囲外サンプル。ゲームの点数は空間外に出ないので、マーカーが
+        /// トラック外に出ないよう 1,000,000 でクランプする (トラック端に留まる)。</summary>
         public static float GaugeBestX(int hiscore, float fillMax)
         {
             return Mathf.Clamp01(hiscore / 1_000_000f) * fillMax;
