@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Select.View;
 
 namespace FlashBeat.UI.V6.Game.Pause
@@ -266,8 +267,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             backLayout.childControlHeight = true;
             backLayout.childForceExpandWidth = false;
             backLayout.childForceExpandHeight = false;
-            var backArrow = V5Ui.Text(back, "Icon", "←", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(backArrow.gameObject, 0f, 24f);
+            var backArrow = V6Icons.Create(back, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
+            if (backArrow != null)
+            {
+                LayoutItem(backArrow.gameObject, 0f, 24f);
+            }
             var backKey = V5Ui.Text(back, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
             LayoutItem(backKey.gameObject, 0f, 16f);
             var backBtn = back.AddComponent<Button>();

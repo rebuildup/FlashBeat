@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
 
 namespace FlashBeat.UI.V6.Option
 {
@@ -380,7 +381,7 @@ namespace FlashBeat.UI.V6.Option
                 if (onBack != null) onBack();
             });
             var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
-            V5GameUi.Text(backCol.gameObject, "Icon", "←", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
             Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
 
@@ -422,7 +423,7 @@ namespace FlashBeat.UI.V6.Option
             At(back, 1407f, 20f);
             var backRow = V5GameUi.Row(back, "Inner", 10f, TextAnchor.MiddleCenter);
             Stretch(backRow.GetComponent<RectTransform>(), 273f, 56f);
-            V5GameUi.Text(backRow.gameObject, "Icon", "◀", 24f, V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
+            var backIcon = V6Icons.Create(backRow.gameObject, "chevron-left", 24f, V5Tokens.ButtonPrimaryLabel, "Icon");
             V5GameUi.Text(backRow.gameObject, "Label", "戻る", 30f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center);
             var backCap = V5Ui.Panel(backRow.gameObject, "Cap", new Vector2(64f, 32f),
@@ -511,8 +512,11 @@ namespace FlashBeat.UI.V6.Option
                 AdjustSelected(-1);
             });
             At(prev, 392f, 8f);
-            var prevIcon = V5GameUi.Text(prev, "Icon", "←", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(prevIcon.GetComponent<RectTransform>(), 40f, 40f);
+            var prevIcon = V6Icons.Create(prev, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
+            if (prevIcon != null)
+            {
+                Stretch(prevIcon.rectTransform, 40f, 40f);
+            }
 
             var next = Button(line, "Next", 40f, 40f, 8f, V5Tokens.Key4, () =>
             {
@@ -520,8 +524,11 @@ namespace FlashBeat.UI.V6.Option
                 AdjustSelected(1);
             });
             At(next, 444f, 8f);
-            var nextIcon = V5GameUi.Text(next, "Icon", "→", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(nextIcon.GetComponent<RectTransform>(), 40f, 40f);
+            var nextIcon = V6Icons.Create(next, "chevron-right", 24f, V5Tokens.TextMuted, "Icon");
+            if (nextIcon != null)
+            {
+                Stretch(nextIcon.rectTransform, 40f, 40f);
+            }
         }
 
         // --- プレビュー (列4-5) (864,68) 512x688 ---

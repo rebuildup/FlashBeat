@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
 
 namespace FlashBeat.UI.V6.Title
 {
@@ -61,11 +62,11 @@ namespace FlashBeat.UI.V6.Title
         private Action onHistory;
         private Action onRanking;
 
-        /// <summary>タブ 1 件の表示情報 (ラベル / 実キー / 操作)。</summary>
+        /// <summary>タブ 1 件の表示情報 (ラベル / アイコンスプライト名 / 実キー / 操作)。</summary>
         private sealed class Tab
         {
             public string Name;
-            public string Icon;
+            public string IconSprite; // スプライト名 (Resources/Icons/ 以下)。空なら非表示。
             public string Label;
             public string Key;
             public Action Action;
@@ -334,8 +335,11 @@ namespace FlashBeat.UI.V6.Title
             // (v5 タイトルと同じ判断: フォントに無い字形は描かない)。
             var exit = At(V5GameUi.Row(header.gameObject, "Zone Exit", 12f, TextAnchor.MiddleLeft), 0f, 20f, 400f, 56f);
             var exitButton = Button(exit.gameObject, "Exit Button", 56f, 56f, 8f, V5Tokens.Key4, onExit);
-            var exitIcon = V5GameUi.Text(exitButton, "Icon", "×", 32f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(exitIcon.GetComponent<RectTransform>(), 56f, 56f);
+            var exitIcon = V6Icons.Create(exitButton, "x", 32f, V5Tokens.TextMuted, "Icon");
+            if (exitIcon != null)
+            {
+                Stretch(exitIcon.rectTransform, 56f, 56f);
+            }
             string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
             if (!string.IsNullOrEmpty(exitKey))
             {
@@ -409,9 +413,9 @@ namespace FlashBeat.UI.V6.Title
             At(currentVersion, 0f, 50f, 140f, 24f);
             if (model != null && V6TitleLogic.ShowNewVersion(model.Phase, model.LatestVersion))
             {
-                var arrow = V5GameUi.Text(stateZone.gameObject, "Arrow", "→", 16f, V5Tokens.TextDim,
-                    TextAlignmentOptions.Left);
-                At(arrow, 140f, 50f, 24f, 24f);
+                var arrowGo = V5Ui.Node(stateZone.gameObject, "Arrow");
+                At(arrowGo, 140f, 50f, 24f, 24f);
+                var arrowIcon = V6Icons.Create(arrowGo, "chevron-right", 16f, V5Tokens.TextDim, "Icon");
                 var newVersion = V5GameUi.Text(stateZone.gameObject, "New Version",
                     V6TitleLogic.VersionLabel(model.LatestVersion), 16f, V5Tokens.AccentLight,
                     TextAlignmentOptions.Left, FontStyles.Bold);
@@ -477,7 +481,7 @@ namespace FlashBeat.UI.V6.Title
             tabList.Add(new Tab
             {
                 Name = "Tab GameStart",
-                Icon = "▶",
+                IconSprite = "play",
                 Label = "GameStart",
                 Key = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start),
                 Action = onStart,
@@ -488,7 +492,7 @@ namespace FlashBeat.UI.V6.Title
                 tabList.Add(new Tab
                 {
                     Name = "Tab History",
-                    Icon = "≡",
+                    IconSprite = "list-filter",
                     Label = "History",
                     Key = "",
                     Action = onHistory,
@@ -500,7 +504,7 @@ namespace FlashBeat.UI.V6.Title
                 tabList.Add(new Tab
                 {
                     Name = "Tab Ranking",
-                    Icon = "★",
+                    IconSprite = "star",
                     Label = "Ranking",
                     Key = "",
                     Action = onRanking,
@@ -508,11 +512,11 @@ namespace FlashBeat.UI.V6.Title
             }
 
             // Option のアイコン "⚙" (U+2699) は NotoSansJP に字形が無い (豆腐になる) ので
-            // 描かない (v5 タイトルと同じ判断)。ラベルだけで懂了。
+            // これまでは描かなかったが、スプライトアイコンなら表示できる。
             tabList.Add(new Tab
             {
                 Name = "Tab Option",
-                Icon = "",
+                IconSprite = "settings",
                 Label = "Option",
                 Key = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Option),
                 Action = onOption,
@@ -534,11 +538,14 @@ namespace FlashBeat.UI.V6.Title
             var row = V5GameUi.Row(tabGo, "Inner", 8f, TextAnchor.MiddleLeft);
             Stretch(row.GetComponent<RectTransform>(), TabW, TabsH);
             row.padding = new RectOffset(10, 10, 0, 0);
-            if (!string.IsNullOrEmpty(tab.Icon))
+            if (!string.IsNullOrEmpty(tab.IconSprite))
             {
-                var icon = V5GameUi.Text(row.gameObject, "Icon", tab.Icon, 24f,
-                    selected ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                icon.rectTransform.sizeDelta = new Vector2(32f, 32f);
+                var iconColor = selected ? V5Tokens.Text : V5Tokens.TextMuted;
+                var icon = V6Icons.Create(row.gameObject, tab.IconSprite, 24f, iconColor, "Icon");
+                if (icon != null)
+                {
+                    icon.rectTransform.sizeDelta = new Vector2(32f, 32f);
+                }
             }
             var label = V5GameUi.Text(row.gameObject, "Label", tab.Label, 26f,
                 selected ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Left);

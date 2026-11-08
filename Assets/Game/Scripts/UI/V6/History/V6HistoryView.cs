@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Ranking;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
@@ -305,7 +306,7 @@ namespace FlashBeat.UI.V6.History
                 () => TriggerBack());
             var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
             Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            V5GameUi.Text(backCol.gameObject, "Icon", "←", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
 
             var title = V5GameUi.Text(header.gameObject, "Title", "HISTORY", 38f, V5Tokens.Text,
@@ -345,7 +346,7 @@ namespace FlashBeat.UI.V6.History
             At(settingsBtn, 1198f, 20f);
             var settingsRow = V5GameUi.Row(settingsBtn, "Inner", 10f, TextAnchor.MiddleCenter);
             Stretch(settingsRow.GetComponent<RectTransform>(), 197f, 56f);
-            V5GameUi.Text(settingsRow.gameObject, "Icon", "⚙", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            var settingsIcon = V6Icons.Create(settingsRow.gameObject, "settings", 24f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(settingsRow.gameObject, "Label", "設定", 30f, V5Tokens.Text, TextAlignmentOptions.Center);
 
             var gotoBtn = MakeButton(V5Ui.Panel(footer, "Op この曲へ", new Vector2(273f, 56f),
@@ -353,7 +354,7 @@ namespace FlashBeat.UI.V6.History
             At(gotoBtn, 1407f, 20f);
             var gotoRow = V5GameUi.Row(gotoBtn, "Inner", 10f, TextAnchor.MiddleCenter);
             Stretch(gotoRow.GetComponent<RectTransform>(), 273f, 56f);
-            V5GameUi.Text(gotoRow.gameObject, "Icon", "♪", 26f, V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
+            var gotoIcon = V6Icons.Create(gotoRow.gameObject, "music", 26f, V5Tokens.ButtonPrimaryLabel, "Icon");
             V5GameUi.Text(gotoRow.gameObject, "Label", "この曲へ", 30f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center);
             var cap = V5Ui.Panel(gotoRow.gameObject, "Cap", new Vector2(84f, 32f), new Color(0f, 0f, 0f, 0.15f), 4f);
@@ -379,7 +380,7 @@ namespace FlashBeat.UI.V6.History
                 var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
                 var col = V5GameUi.Column(empty.gameObject, "Inner", 8f, TextAnchor.MiddleCenter);
                 Stretch(col.GetComponent<RectTransform>(), 448f, 140f);
-                V5GameUi.Text(col.gameObject, "Icon", "♪", 32f, V5Tokens.TextDim, TextAlignmentOptions.Center);
+                var emptyIcon = V6Icons.Create(col.gameObject, "music", 32f, V5Tokens.TextDim, "Icon");
                 V5GameUi.Text(col.gameObject, "Title", "プレイ履歴がありません", 24f, V5Tokens.Text,
                     TextAlignmentOptions.Center);
                 V5GameUi.Text(col.gameObject, "Hint", "曲をプレイすると記録がここに残ります", 20f,
@@ -394,9 +395,8 @@ namespace FlashBeat.UI.V6.History
                     BuildHistoryRow(rows, history[i], i + 1, i == selectIndex, RowY0 + RowStep * (i - first));
                 }
             }
-
-            BuildScrollButton(list, "Scroll Up", 0f, "↑", -1);
-            BuildScrollButton(list, "Scroll Down", 732f, "↓", 1);
+            BuildScrollButton(list, "Scroll Up", 0f, "chevron-up", -1);
+            BuildScrollButton(list, "Scroll Down", 732f, "chevron-down", 1);
         }
 
         private void BuildHistoryRow(GameObject parent, V6SongEntry song, int pos, bool selected, float y)
@@ -426,13 +426,16 @@ namespace FlashBeat.UI.V6.History
             Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
         }
 
-        private void BuildScrollButton(GameObject list, string name, float y, string glyph, int delta)
+        private void BuildScrollButton(GameObject list, string name, float y, string iconSprite, int delta)
         {
             var btn = MakeButton(V5Ui.Panel(list, name, new Vector2(140f, 44f), V5Tokens.Key4, 8f),
                 () => ScrollList(delta));
             At(btn, 210f, y);
-            var icon = V5GameUi.Text(btn, "Icon", glyph, 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(icon.GetComponent<RectTransform>(), 140f, 44f);
+            var icon = V6Icons.Create(btn, iconSprite, 24f, V5Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                Stretch(icon.rectTransform, 140f, 44f);
+            }
         }
 
         // --- 中央列: 選択中の曲 (dRztp と同じ構造) ---
@@ -486,9 +489,9 @@ namespace FlashBeat.UI.V6.History
             // データソースに無いため装飾 (未実装は PR に記載、V6SelectView と同じ扱い)。
             var controls = V5Ui.Node(panel, "Controls");
             At(controls.GetComponent<RectTransform>(), 12f, 668f, 512f, 88f);
-            BuildControlButton(controls, "skip-back", 0f, 56f, 56f, 28f, "◀", 24f);
-            BuildControlButton(controls, "play", 220f, 72f, 72f, 36f, "▶", 32f);
-            BuildControlButton(controls, "skip-forward", 326f, 56f, 56f, 28f, "▶", 24f);
+            BuildControlButton(controls, "skip-back", 0f, 56f, 56f, 28f, "skip-back", 28f);
+            BuildControlButton(controls, "play", 220f, 72f, 72f, 36f, "play", 32f);
+            BuildControlButton(controls, "skip-forward", 326f, 56f, 56f, 28f, "skip-forward", 28f);
         }
 
         /// <summary>
@@ -519,13 +522,15 @@ namespace FlashBeat.UI.V6.History
         }
 
         private void BuildControlButton(GameObject controls, string name, float x, float w, float h, float radius,
-            string glyph, float fs)
+            string iconSprite, float fs)
         {
             var btn = MakeButton(V5Ui.Panel(controls, "Btn " + name, new Vector2(w, h), V5Tokens.Key4, radius), null);
             At(btn, x, (88f - h) * 0.5f);
-            var icon = V5GameUi.Text(btn, "Icon", glyph, fs, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(icon.GetComponent<RectTransform>(), w, h);
+            var icon = V6Icons.Create(btn, iconSprite, fs, V5Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                Stretch(icon.rectTransform, w, h);
+            }
         }
 
         // --- 右列: プレイヤー情報 / プレイ情報 / 曲ランキング情報 ---

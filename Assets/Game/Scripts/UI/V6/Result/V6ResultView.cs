@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
 
 namespace FlashBeat.UI.V6.Result
 {
@@ -328,7 +329,7 @@ namespace FlashBeat.UI.V6.Result
             var back = Button(backZone, "Back Button", 56f, 56f, 8f, V5Tokens.Key4, onSelect);
             var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
             Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            V5GameUi.Text(backCol.gameObject, "Icon", "←", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
 
             var title = V5GameUi.Text(header.gameObject, "Title", "RESULT", 38f, V5Tokens.Text,
@@ -481,23 +482,24 @@ namespace FlashBeat.UI.V6.Result
             var head = At(V5Ui.Node(panel.gameObject, "Head"), 8f, 8f, 512f, 36f);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "登録名ごとのランキング", 18f, V5Tokens.TextDim);
             At(headTitle, 12f, 0f, 300f, 36f, new Vector2(0f, 0.5f));
-
-            BuildChevron(head, 380f, "←");
+            BuildChevron(head, 380f, "chevron-left");
             var metric = V5GameUi.Text(head.gameObject, "Metric", "累計スコア", 18f, V5Tokens.Text,
                 TextAlignmentOptions.Center);
             At(metric, 412f, 0f, 68f, 36f, new Vector2(0f, 0.5f));
-            BuildChevron(head, 480f, "→");
+            BuildChevron(head, 480f, "chevron-right");
 
             playerRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
             At(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
         }
 
-        private void BuildChevron(GameObject head, float x, string glyph)
+        private void BuildChevron(GameObject head, float x, string iconName)
         {
             var chevron = At(V5Ui.Panel(head.gameObject, "Arrow", new Vector2(32f, 32f), V5Tokens.Key4, 8f), x, 2f);
-            var icon = V5GameUi.Text(chevron.gameObject, "Icon", glyph, 24f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(icon.GetComponent<RectTransform>(), 32f, 32f);
+            var icon = V6Icons.Create(chevron.gameObject, iconName, 24f, V5Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                Stretch(icon.rectTransform, 32f, 32f);
+            }
         }
 
         // --- フッター (x24 y876 1680x96) ---
@@ -514,13 +516,13 @@ namespace FlashBeat.UI.V6.Result
             BuildLegendItem(legend.gameObject, "Space", "決定");
 
             // 右下: Retry (secondary) + Register (secondary) + OK (primary)。
-            var retry = BuildFooterButton(footer, "Op Retry", 220f, V5Tokens.Key4, "↻", "Retry", "R",
+            var retry = BuildFooterButton(footer, "Op Retry", 220f, V5Tokens.Key4, "skip-back", "Retry", "R",
                 V5Tokens.TextMuted, V5Tokens.Text, onRetry);
             At(retry, 882f, 20f);
-            var register = BuildFooterButton(footer, "Op Register", 273f, V5Tokens.Key4, "✎", "Register", "Enter",
+            var register = BuildFooterButton(footer, "Op Register", 273f, V5Tokens.Key4, "plus", "Register", "Enter",
                 V5Tokens.TextMuted, V5Tokens.Text, OpenModal);
             At(register, 1118f, 20f);
-            var ok = BuildFooterButton(footer, "Op OK", 273f, V5Tokens.ButtonPrimaryBg, "▶", "OK", "Space",
+            var ok = BuildFooterButton(footer, "Op OK", 273f, V5Tokens.ButtonPrimaryBg, "skip-forward", "OK", "Space",
                 V5Tokens.ButtonPrimaryLabel, V5Tokens.ButtonPrimaryLabel, onSelect);
             At(ok, 1407f, 20f);
         }
@@ -532,14 +534,17 @@ namespace FlashBeat.UI.V6.Result
             V5GameUi.Text(item.gameObject, "Label", label, 22f, V5Tokens.TextMuted);
         }
 
-        private GameObject BuildFooterButton(GameObject footer, string name, float w, Color bg, string icon,
+        private GameObject BuildFooterButton(GameObject footer, string name, float w, Color bg, string iconSprite,
             string label, string keyCap, Color iconColor, Color labelColor, Action onClick)
         {
             var btn = Button(footer, name, w, 56f, 8f, bg, onClick);
             var row = V5GameUi.Row(btn, "Inner", 12f, TextAnchor.MiddleCenter);
             Stretch(row.GetComponent<RectTransform>(), w, 56f);
             row.padding = new RectOffset(0, 0, 0, 0);
-            V5GameUi.Text(row.gameObject, "Icon", icon, 28f, iconColor, TextAlignmentOptions.Center);
+            if (!string.IsNullOrEmpty(iconSprite))
+            {
+                var icon = V6Icons.Create(row.gameObject, iconSprite, 28f, iconColor, "Icon");
+            }
             V5GameUi.Text(row.gameObject, "Label", label, 30f, labelColor, TextAlignmentOptions.Center,
                 FontStyles.Normal);
             var cap = V5Ui.Panel(row.gameObject, "KeyCap", new Vector2(Mathf.Max(56f, keyCap.Length * 14f + 16f), 36f),
