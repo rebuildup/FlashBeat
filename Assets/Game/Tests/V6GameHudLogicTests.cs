@@ -223,5 +223,38 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(693f, m.KeyColumnCenter(2), 0.5f);
             Assert.AreEqual(1225f, m.KeyColumnCenter(5), 0.5f);
         }
+
+        // --- 歌詞 (design HcP8N: Furigana/Lyrics/Romaji の 3 行) ---
+
+        [Test]
+        public void LyricsTimeline_Build_CarriesFuriganaAndRomaji()
+        {
+            var lines = FlashBeat.UI.LyricsTimeline.Build(
+                new[] { 0f, 10f },
+                new[] { 4f, 14f },
+                new[] { "終夜ノ摩天楼は", "夢を見る" },
+                new[] { "よやのまてんろうわ", "ゆめをみる" },
+                new[] { "shuya no matenrou wa", "yume wo miru" });
+
+            Assert.AreEqual(2, lines.Count);
+            Assert.AreEqual("終夜ノ摩天楼は", lines[0].Text);
+            Assert.AreEqual("よやのまてんろうわ", lines[0].Furigana);
+            Assert.AreEqual("shuya no matenrou wa", lines[0].Romaji);
+            Assert.AreEqual("夢を見る", lines[1].Text);
+            Assert.AreEqual("yume wo miru", lines[1].Romaji);
+        }
+
+        [Test]
+        public void LyricsTimeline_Build_WithoutRomaji_RomajiIsNull()
+        {
+            var lines = LyricsTimeline.Build(
+                new[] { 0f },
+                new[] { 4f },
+                new[] { "終夜ノ摩天楼は" },
+                new[] { "よやのまてんろうわ" });
+
+            Assert.AreEqual(1, lines.Count);
+            Assert.IsNull(lines[0].Romaji);
+        }
     }
 }

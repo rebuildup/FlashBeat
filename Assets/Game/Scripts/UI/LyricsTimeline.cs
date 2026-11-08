@@ -19,12 +19,25 @@ namespace FlashBeat.UI
         /// <summary>ふりがな (未設定なら null)。</summary>
         public readonly string Furigana;
 
+        /// <summary>ローマ字 (未設定なら null)。</summary>
+        public readonly string Romaji;
+
         public LyricLine(float start, float end, string text, string furigana)
         {
             Start = start;
             End = end;
             Text = text;
             Furigana = furigana;
+            Romaji = null;
+        }
+
+        public LyricLine(float start, float end, string text, string furigana, string romaji)
+        {
+            Start = start;
+            End = end;
+            Text = text;
+            Furigana = furigana;
+            Romaji = romaji;
         }
 
         /// <summary>
@@ -63,7 +76,8 @@ namespace FlashBeat.UI
         /// 譜面の歌詞配列を表示区間つきの行へ変換する。
         /// 長さの違う配列は短い方に合わせ、表示区間が壊れている行は捨てる。
         /// </summary>
-        public static List<LyricLine> Build(float[] startTimes, float[] endTimes, string[] texts, string[] furiganas)
+        public static List<LyricLine> Build(float[] startTimes, float[] endTimes, string[] texts, string[] furiganas,
+            string[] romajis = null)
         {
             var lines = new List<LyricLine>();
             if (startTimes == null || texts == null) return lines;
@@ -76,7 +90,8 @@ namespace FlashBeat.UI
                 if (end <= start) continue;
 
                 string furigana = furiganas != null && i < furiganas.Length ? furiganas[i] : null;
-                lines.Add(new LyricLine(start, end, texts[i], furigana));
+                string romaji = romajis != null && i < romajis.Length ? romajis[i] : null;
+                lines.Add(new LyricLine(start, end, texts[i], furigana, romaji));
             }
             return lines;
         }

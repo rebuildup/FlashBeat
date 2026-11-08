@@ -588,7 +588,9 @@ namespace FlashBeat.UI.V6.Select.Data
         /// <summary>
         /// コルーチンを動かすためだけのホスト (このクラスは MonoBehaviour ではない)。
         /// GameObject は実行時に作るだけなので .meta は不要 (アセットではない)。
-        /// HideAndDontSave でシーン遷移 (フェード中) をまたいでも止まらない。
+        /// HideFlags は付けない: 通常のシーンオブジェクトなので、選曲画面を離れる
+        /// (シーンがアンロードされる) ときに Unity が自動で破棄し、静的参照が
+        /// 残り続けることがない。
         /// </summary>
         sealed class CoroutineHost : MonoBehaviour { }
 
@@ -599,7 +601,6 @@ namespace FlashBeat.UI.V6.Select.Data
             if (host == null)
             {
                 var go = new GameObject("V6SelectDataSourceHost");
-                go.hideFlags = HideFlags.HideAndDontSave;
                 host = go.AddComponent<CoroutineHost>();
             }
             return host.StartCoroutine(routine);
