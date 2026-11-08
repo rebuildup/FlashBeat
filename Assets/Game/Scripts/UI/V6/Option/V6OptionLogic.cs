@@ -18,6 +18,32 @@ namespace FlashBeat.UI.V6.Option
     }
 
     /// <summary>
+    /// Option 画面のキー入力 (名前付き)。bool の位置渡しで意味が読めない箇所を無くすため用意する。
+    /// <see cref="V6OptionLogic.MapKey(V6OptionInput)"/> に渡す。
+    /// </summary>
+    public struct V6OptionInput
+    {
+        /// <summary>モーダル (確認ダイアログ等) が開いているか。</summary>
+        public bool ModalOpen;
+        /// <summary>↑ キー。</summary>
+        public bool Up;
+        /// <summary>↓ キー。</summary>
+        public bool Down;
+        /// <summary>← キー (値の減)。</summary>
+        public bool Left;
+        /// <summary>→ キー (値の増)。</summary>
+        public bool Right;
+        /// <summary>決定 (Enter / Space)。</summary>
+        public bool Confirm;
+        /// <summary>取り消し (Esc)。</summary>
+        public bool Cancel;
+        /// <summary>タブ切替 (Tab)。</summary>
+        public bool TabNext;
+        /// <summary>タブ切替 (Shift + Tab)。</summary>
+        public bool TabPrev;
+    }
+
+    /// <summary>
     /// v6 Option 画面の純ロジック (EditMode テスト対象)。
     /// design v6 の 06 Play (B6If6Z) / 06 Display (EzLfb) / 06 Sound (z7joSy) / 06 Data (DQHHp)
     /// 共通フレーム 1728x972 基準。Unity API は KeyCode (列挙体) と数値計算のみに限定する。
@@ -43,9 +69,18 @@ namespace FlashBeat.UI.V6.Option
         public const float RowStepTight = 60f;
 
         /// <summary>
-        /// design px → 実ピクセルの倍率。実画面 3 解像度
-        /// (1920x1080 / 2560x1440 / 2560x1664) でフレームが収まるよう
-        /// min(W/1728, H/972) 倍する (V6SelectViewLogic.DesignScale と同じ方式)。
+        /// design px → 実ピクセルの倍率。基準は design v6 の共通フレーム 1728x972 (16:9)。
+        ///
+        /// ・画面が design より縦長 (H/W &gt; 972/1728) のとき:
+        ///   16:10 (1920x1200) は「幅より高さが制約になる」画面として扱う。
+        ///   design フレーム (16:9) を横へ伸ばすのではなく、高さ基準で縮める
+        ///   (designH/H = 972/1200 = 0.81)。
+        /// ・横長・同纵横のとき:
+        ///   フレームが画面内に収まる範囲で等倍する。ただし design px 自体、等倍であり
+        ///   1 を超える拡大 (アップスケール) はしない (1920x1080 は 1.111 ではなく 1)。
+        ///
+        /// 結果: 1728x972 → 1 / 1920x1080 → 1 / 1920x1200 → 0.81。
+        /// 異常系 (0 以下) は等倍 1 にフォールバックする。
         /// </summary>
         public static float DesignScale(int width, int height)
         {
@@ -54,9 +89,19 @@ namespace FlashBeat.UI.V6.Option
                 return 1f;
             }
 
+            float designAspect = DesignH / DesignW;
+            float screenAspect = (float)height / width;
+
+            if (screenAspect > designAspect)
+            {
+                // 縦長画面: 高さで制約する (16:10 は幅より高さが制約になる)。
+                return DesignH / height;
+            }
+
             float byW = width / DesignW;
             float byH = height / DesignH;
-            return byW < byH ? byW : byH;
+            float scale = byW < byH ? byW : byH;
+            return scale > 1f ? 1f : scale;
         }
 
         /// <summary>タブ index を範囲内に収める。</summary>
@@ -131,25 +176,50 @@ namespace FlashBeat.UI.V6.Option
             return steps[(index + delta % steps.Length + steps.Length) % steps.Length];
         }
 
-        /// <summary>キー入力をアクションに写像する (モーダル中は Confirm / Cancel だけを返す)。</summary>
-        public static V6OptionAction MapKey(bool modalOpen, bool up, bool down, bool left, bool right,
-            bool confirm, bool cancel, bool tabNext, bool tabPrev)
+        /// <summary>
+        /// キー入力をアクションに写像する (モーダル中は Confirm / Cancel だけを返す)。
+        ///
+        /// bool の羅列なので引数の位置が意味を決める。位置は次のとおり:
+        /// 1: modalOpen / 2: up / 3: down / 4: right / 5: left /
+        /// 6: confirm / 7: tabNext / 8: tabPrev / 9: cancel。
+        /// (4 は「右」= AdjustNext、9 は「モーダル中の Cancel」= Cancel。)
+        /// 引数の位置を間違えやすい呼び出し側は <see cref="V6OptionInput"/> 版を使う。
+        /// </summary>
+        public static V6OptionAction MapKey(bool modalOpen, bool up, bool down, bool right, bool left,
+            bool confirm, bool tabNext, bool tabPrev, bool cancel)
         {
-            if (modalOpen)
+            return MapKey(new V6OptionInput
             {
-                if (cancel) return V6OptionAction.Cancel;
-                if (confirm) return V6OptionAction.Confirm;
+                ModalOpen = modalOpen,
+                Up = up,
+                Down = down,
+                Left = left,
+                Right = right,
+                Confirm = confirm,
+                Cancel = cancel,
+                TabNext = tabNext,
+                TabPrev = tabPrev,
+            });
+        }
+
+        /// <summary>キー入力をアクションに写像する (名前付き引数版)。</summary>
+        public static V6OptionAction MapKey(V6OptionInput input)
+        {
+            if (input.ModalOpen)
+            {
+                if (input.Cancel) return V6OptionAction.Cancel;
+                if (input.Confirm) return V6OptionAction.Confirm;
                 return V6OptionAction.None;
             }
 
-            if (up) return V6OptionAction.MoveUp;
-            if (down) return V6OptionAction.MoveDown;
-            if (left) return V6OptionAction.AdjustPrev;
-            if (right) return V6OptionAction.AdjustNext;
-            if (confirm) return V6OptionAction.Confirm;
-            if (cancel) return V6OptionAction.Cancel;
-            if (tabNext) return V6OptionAction.NextTab;
-            if (tabPrev) return V6OptionAction.PrevTab;
+            if (input.Up) return V6OptionAction.MoveUp;
+            if (input.Down) return V6OptionAction.MoveDown;
+            if (input.Right) return V6OptionAction.AdjustNext;
+            if (input.Left) return V6OptionAction.AdjustPrev;
+            if (input.Confirm) return V6OptionAction.Confirm;
+            if (input.Cancel) return V6OptionAction.Cancel;
+            if (input.TabNext) return V6OptionAction.NextTab;
+            if (input.TabPrev) return V6OptionAction.PrevTab;
             return V6OptionAction.None;
         }
 
