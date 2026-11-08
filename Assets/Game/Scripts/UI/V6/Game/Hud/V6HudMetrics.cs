@@ -197,7 +197,10 @@ namespace FlashBeat.UI.V6.Game.Hud
                 GaugeSegW[i] = Mathf.RoundToInt(fhdSegW[i] * g);
             }
 
-            GaugeFillMax = GaugeW - (int)GaugeSegW[5];
+            // design 実測: Fill は 524px (FHD 600 のトラックに対して "+" セグメントの
+            // 開始 530 までで 6px 止める)。"+ セグメント幅" から引くと 530 になり
+            // 6px ずれるので、design の実測値 524 を基準にする。
+            GaugeFillMax = Mathf.RoundToInt(524f * g);
             GaugeBestW = Mathf.RoundToInt(4f * g);
             GaugeBestH = GaugeTrackH;
         }

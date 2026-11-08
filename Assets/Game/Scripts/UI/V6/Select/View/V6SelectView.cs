@@ -62,6 +62,9 @@ namespace FlashBeat.UI.V6.Select.View
         private int listScroll;
         private int rankingScroll;
         private bool searchFocused;
+
+        /// <summary>「未プレイのみ」で絞り込む (design の Filter ボタン / F キー)。</summary>
+        private bool unplayedOnly;
         private bool settingsOpen;
         private int settingsRow;
 
@@ -109,6 +112,29 @@ namespace FlashBeat.UI.V6.Select.View
         public void FocusSearch()
         {
             searchFocused = true;
+            Rebuild(false);
+        }
+
+        /// <summary>表示する曲リスト (実データ + 未プレイのみトグル)。</summary>
+        private List<V6SongEntry> DisplaySongs()
+        {
+            IReadOnlyList<V6SongEntry> filtered = data.FilteredSongs;
+            var list = new List<V6SongEntry>();
+            if (filtered == null) return list;
+            for (int i = 0; i < filtered.Count; i++)
+            {
+                V6SongEntry song = filtered[i];
+                if (song == null) continue;
+                if (unplayedOnly && song.BestScore >= 0) continue; // プレイ済みの曲を除く
+                list.Add(song);
+            }
+            return list;
+        }
+
+        /// <summary>「未プレイのみ」絞り込みの切り替え。</summary>
+        private void ToggleUnplayedFilter()
+        {
+            unplayedOnly = !unplayedOnly;
             Rebuild(false);
         }
 
@@ -203,6 +229,11 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 OpenSettings();
             }
+
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                ToggleUnplayedFilter();
+            }
         }
 
         // --- 構築 ---
@@ -266,7 +297,8 @@ namespace FlashBeat.UI.V6.Select.View
                 V5GameUi.DestroyNow(children[i]);
             }
 
-            var songs = data.FilteredSongs;
+            // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
+            var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
             if (revealSelection)
             {
@@ -334,7 +366,8 @@ namespace FlashBeat.UI.V6.Select.View
                 At(status, 864f, 72f, 792f, 22f, new Vector2(0f, 0.5f));
             }
 
-            var filter = Button(header, "Filter Button", 48f, 48f, 8f, V5Tokens.Key4, FocusSearch);
+            var filter = Button(header, "Filter Button", 48f, 48f, 8f,
+                unplayedOnly ? V5Tokens.Key6 : V5Tokens.Key4, ToggleUnplayedFilter);
             At(filter, 1608f, 24f);
             var filterIcon = V5GameUi.Text(filter, "Icon", "≡", 24f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
@@ -353,9 +386,9 @@ namespace FlashBeat.UI.V6.Select.View
             V5GameUi.Text(legend.gameObject, "L1", "決定", 20f, V5Tokens.TextMuted);
             V5Ui.KeyCap(legend.gameObject, "↑↓", new Vector2(56f, 32f));
             V5GameUi.Text(legend.gameObject, "L2", "曲送り", 20f, V5Tokens.TextMuted);
-            V5Ui.KeyCap(legend.gameObject, "A-Z", new Vector2(56f, 32f));
-            V5GameUi.Text(legend.gameObject, "L3", "検索", 20f, V5Tokens.TextMuted);
             V5Ui.KeyCap(legend.gameObject, "Tab", new Vector2(56f, 32f));
+            V5GameUi.Text(legend.gameObject, "L3", "検索", 20f, V5Tokens.TextMuted);
+            V5Ui.KeyCap(legend.gameObject, "F", new Vector2(56f, 32f));
             V5GameUi.Text(legend.gameObject, "L4", "絞り込み", 20f, V5Tokens.TextMuted);
 
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。
@@ -477,17 +510,32 @@ namespace FlashBeat.UI.V6.Select.View
             Stretch(icon.GetComponent<RectTransform>(), 140f, 44f);
         }
 
+        /// <summary>
+        /// ドットインジケクタ。design (AqFtx / OENRv) は **全曲数** の分だけ
+        /// (x=536, y=136 から縦に gap 4, size 8、選択中だけ 10px の $accent)。
+        /// 絞り込みで曲数が減ってもドット数は変えない (ページ位置の案内)。
+        /// </summary>
         private void BuildDots(GameObject list, IReadOnlyList<V6SongEntry> songs, int selectIndex)
         {
             var dots = V5Ui.Node(list, "Dot indicator");
-            float gap = songs.Count > 60 ? 2f : 4f;
-            float size = songs.Count > 60 ? 6f : 8f;
-            float total = songs.Count * (size + gap) - gap;
-            float y = Mathf.Max(16f, Mathf.Min(136f, (ListH - total) * 0.5f));
-            At(dots.GetComponent<RectTransform>(), 536f, y, 24f, total);
+            IReadOnlyList<V6SongEntry> all = data.AllSongs;
+            int count = all == null ? 0 : all.Count;
+            float gap = 4f;
+            float size = 8f;
+            float total = count > 0 ? count * (size + gap) - gap : 0f;
+            At(dots.GetComponent<RectTransform>(), 536f, 136f, 24f, total);
 
-            int active = V6SelectViewLogic.DotActiveIndex(selectIndex, songs.Count);
-            for (int i = 0; i < songs.Count; i++)
+            int active = -1;
+            if (data.Selected != null && all != null)
+            {
+                for (int i = 0; i < all.Count; i++)
+                {
+                    if (all[i] != null && all[i].SongId == data.Selected.SongId) { active = i; break; }
+                }
+            }
+            active = V6SelectViewLogic.DotActiveIndex(active, count);
+
+            for (int i = 0; i < count; i++)
             {
                 float d = i == active ? size + 2f : size;
                 var dot = At(V5Ui.Panel(dots, "Dot " + (i + 1), new Vector2(d, d),

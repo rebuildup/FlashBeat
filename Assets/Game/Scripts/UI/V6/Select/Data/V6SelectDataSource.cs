@@ -55,6 +55,8 @@ namespace FlashBeat.UI.V6.Select.Data
         int selectedSongId = -1;
         bool catalogFetchInFlight;
         bool rankingFetchInFlight;
+        string rankingFetchKey;
+        readonly Queue<RankingRequest> rankingQueue = new Queue<RankingRequest>();
         bool hasError;
         string statusMessage = "";
 
@@ -393,17 +395,56 @@ namespace FlashBeat.UI.V6.Select.Data
             string key = RankingKeyOf(song.SongId);
             if (key == null) return;
             if (!force && rankingCache.ContainsKey(key)) return; // 取得済み
-            if (rankingFetchInFlight) return;
             if (!Application.isPlaying) return; // EditMode (テスト) では通信しない
 
             SongData row = GManager.GetSong(song.SongId);
             if (row == null) return;
 
+            // 取得中に別の曲へ移った場合、その要求を取りこぼさないようキューに積む。
+            if (rankingFetchInFlight)
+            {
+                if (rankingFetchKey != key && !QueueContains(key))
+                {
+                    rankingQueue.Enqueue(new RankingRequest(key, row.remoteId, row.chartVersion));
+                }
+                return;
+            }
+
+            BeginRankingFetch(new RankingRequest(key, row.remoteId, row.chartVersion));
+        }
+
+        /// <summary>キューに同じキーの要求が既にないか。</summary>
+        bool QueueContains(string key)
+        {
+            foreach (var item in rankingQueue)
+            {
+                if (item.Key == key) return true;
+            }
+            return false;
+        }
+
+        void BeginRankingFetch(RankingRequest request)
+        {
             rankingFetchInFlight = true;
+            rankingFetchKey = request.Key;
             hasError = false;
             statusMessage = "ランキングを取得しています…";
             FireChanged();
-            RunCoroutine(FetchRanking(key, row.remoteId, row.chartVersion));
+            RunCoroutine(FetchRanking(request.Key, request.RemoteId, request.ChartVersion));
+        }
+
+        struct RankingRequest
+        {
+            public readonly string Key;
+            public readonly string RemoteId;
+            public readonly int ChartVersion;
+
+            public RankingRequest(string key, string remoteId, int chartVersion)
+            {
+                Key = key;
+                RemoteId = remoteId;
+                ChartVersion = chartVersion;
+            }
         }
 
         IEnumerator FetchRanking(string key, string remoteId, int chartVersion)
@@ -412,6 +453,7 @@ namespace FlashBeat.UI.V6.Select.Data
             yield return RankingClient.GetLeaderboard(remoteId, chartVersion, r => { result = r; });
 
             rankingFetchInFlight = false;
+            rankingFetchKey = null;
             if (result != null && result.ok && result.leaderboard != null && result.leaderboard.entries != null)
             {
                 rankingCache[key] = RankingRowsOf(result.leaderboard.entries);
@@ -424,6 +466,12 @@ namespace FlashBeat.UI.V6.Select.Data
                 statusMessage = RankingFailureMessage(result);
             }
             FireChanged();
+
+            // 取得中に積まれた別曲の要求を消化する。
+            if (rankingQueue.Count > 0)
+            {
+                BeginRankingFetch(rankingQueue.Dequeue());
+            }
         }
 
         static List<V6RankingRow> RankingRowsOf(RankingClient.LeaderboardEntry[] entries)
