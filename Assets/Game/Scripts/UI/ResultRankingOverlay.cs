@@ -231,17 +231,19 @@ public class ResultRankingOverlay : MonoBehaviour
                 // 応答待ち。Esc で中断はしない (二重送信を防ぐ)。
                 break;
             case State.SubmitFailed:
+                // 戻る/決定はメニュー操作設定に従う (#142)。ただし名前入力モーダルでは
+                // Space が文字入力になるため Confirm (既定 Space) は読まず Enter のみ。
                 if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
                     Submit();
                 }
-                else if (Input.GetKeyDown(KeyCode.Escape))
+                else if (KeyActions.IsDown(KeyActions.KeyAction.Back))
                 {
                     CloseAll();
                 }
                 break;
             case State.Board:
-                if (Input.GetKeyDown(KeyCode.F5) || Input.GetKeyDown(KeyCode.Escape))
+                if (Input.GetKeyDown(KeyCode.F5) || KeyActions.IsDown(KeyActions.KeyAction.Back))
                 {
                     CloseAll();
                 }
@@ -251,7 +253,9 @@ public class ResultRankingOverlay : MonoBehaviour
 
     private void HandleNameInput()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // 戻るはメニュー操作設定に従う (#142、既定 Esc)。文字入力系 (BS/Enter/Space) は
+        // モーダルのテキスト編集として固定のまま。
+        if (KeyActions.IsDown(KeyActions.KeyAction.Back))
         {
             skippedThisResult = true;
             CloseAll();

@@ -74,10 +74,11 @@ namespace FlashBeat.UI.V5
             buttonsLe.preferredHeight = buttonHeight;
             var back = V5Ui.ButtonSecondary(buttons.gameObject, "← 選曲へ", new Vector2(220f * s, buttonHeight));
             backButton = back.GetComponent<Button>();
-            AddKeyCap(buttons.gameObject, "Esc", buttonHeight * 0.62f);
+            // キャップは KeyActions の現在の割当から生成する (#146/#148)
+            AddKeyCap(buttons.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Back), buttonHeight * 0.62f);
             var retry = V5Ui.ButtonPrimary(buttons.gameObject, "Retry", new Vector2(220f * s, buttonHeight));
             retryButton = retry.GetComponent<Button>();
-            AddKeyCap(buttons.gameObject, "R", buttonHeight * 0.62f);
+            AddKeyCap(buttons.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Retry), buttonHeight * 0.62f);
 
             if (backButton != null) backButton.onClick.AddListener(BackToSelect);
             if (retryButton != null) retryButton.onClick.AddListener(Retry);
@@ -112,8 +113,9 @@ namespace FlashBeat.UI.V5
         private void Update()
         {
             if (!IsShown) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) BackToSelect();
-            if (Input.GetKeyDown(KeyCode.R)) Retry();
+            // メニュー操作は KeyActions 経由 (#142)。既定: Esc=戻る / R=リトライ。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back)) BackToSelect();
+            if (KeyActions.IsDown(KeyActions.KeyAction.Retry)) Retry();
         }
 
         private void BackToSelect()

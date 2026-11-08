@@ -71,7 +71,8 @@ namespace FlashBeat.UI.V5
             promptRt.pivot = new Vector2(0.5f, 1f);
             promptRt.anchoredPosition = new Vector2(0f, 100f * s);
             promptRt.sizeDelta = new Vector2(0f, 68f * s);
-            V5Ui.KeyCap(prompt.gameObject, "Space", new Vector2(168f * s, 56f * s));
+            // キャップは KeyActions の現在の割当から生成する (#146/#148)
+            V5Ui.KeyCap(prompt.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Play), new Vector2(168f * s, 56f * s));
             V5GameUi.Text(prompt.gameObject, "to Start", "to Start", p.FsL * 1.79f, V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
 
             // 中央下: [Esc] メニュー (設定・表示・ランキング)
@@ -82,7 +83,7 @@ namespace FlashBeat.UI.V5
             hintRt.pivot = new Vector2(0.5f, 1f);
             hintRt.anchoredPosition = new Vector2(0f, 20f * s);
             hintRt.sizeDelta = new Vector2(0f, 36f * s);
-            V5GameUi.LegendItem(hint.gameObject, "Esc", "メニュー (設定・表示・ランキング)");
+            V5GameUi.LegendItem(hint.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Back), "メニュー (設定・表示・ランキング)");
         }
 
         private void Update()
