@@ -278,6 +278,101 @@ namespace FlashBeat.UI.V6.Result
             return NicknameError.None;
         }
 
+        // --- 登録の方式 (Issue #240) ---
+        //
+        // v6 Result には 2 つの別々の契約がある:
+        //   - オンライン順位への送信 (RankingClient)。対象はリモート曲だけで、
+        //     応答は 201 / 429 / オフライン / その他の HTTP に区分される。
+        //   - ローカル保存 (端末内の名前)。v5 は
+        //     <see cref="FlashBeat.UI.V5.ResultView"/> が PlayerPrefs キー
+        //     "V5PlayerName" に名前を書いていた。v6 Result は v5 の ResultView を
+        //     使わないため、この経路が到達不能になっていた (Issue #240)。
+        //
+        // 送信対象でない (ローカル) 曲にオンラインの失敗表示 (「オフライン」
+        // 「送信失敗」) を出さないため、方式の判定と表示の語彙をここに純ロジック
+        // として切り出す。PlayerPrefs への書き込みは
+        // <see cref="V6LocalNameStore"/> が担当する。
+
+        /// <summary>ローカル名の PlayerPrefs キー (v5 と同じ)。</summary>
+        public const string LocalPlayerNamePrefsKey = "V5PlayerName";
+
+        /// <summary>ローカル名の最大文字数 (v5 と同じ)。</summary>
+        public const int LocalNameMaxLength = 8;
+
+        /// <summary>ローカル名の未入力時の既定値 (v5 と同じ)。</summary>
+        public const string LocalNameDefault = "YOU";
+
+        /// <summary>
+        /// オンライン順位へ送信する対象か。リモート曲で、songId が妥当で、譜面版が
+        /// 1 以上のときだけ送信する (ローカル曲・譜面未取得は送信しない)。
+        /// </summary>
+        public static bool IsSubmittable(bool isRemote, string remoteId, int chartVersion)
+        {
+            if (!isRemote)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(remoteId) || chartVersion <= 0)
+            {
+                return false;
+            }
+
+            return RankingClient.IsValidSongId(remoteId);
+        }
+
+        /// <summary>曲情報から登録の方式を返す。</summary>
+        public static V6RegistrationMode RegistrationMode(bool isRemote, string remoteId, int chartVersion)
+        {
+            return IsSubmittable(isRemote, remoteId, chartVersion)
+                ? V6RegistrationMode.Online
+                : V6RegistrationMode.Local;
+        }
+
+        /// <summary>
+        /// ローカル名の正規化。v5 の
+        /// <see cref="FlashBeat.UI.V5.ResultView.NormalizeName"/> と同じ規則
+        /// (大文字化 + A-Z0-9 のみ + 最大 8 文字)。空入力は "YOU"。
+        /// オンラインの入力規則 (RankingClient) とは別物なので混ぜない。
+        /// </summary>
+        public static string NormalizeLocalName(string raw)
+        {
+            string normalized = FlashBeat.UI.V5.ResultView.NormalizeName(raw);
+            return string.IsNullOrEmpty(normalized) ? LocalNameDefault : normalized;
+        }
+
+        /// <summary>
+        /// ローカル保存の結果メッセージ。オンライン語彙 (「オフライン」「送信」) を含まない。
+        /// </summary>
+        public static string LocalSaveMessage(string savedName)
+        {
+            return "この端末に「" + (savedName ?? LocalNameDefault) + "」を保存しました";
+        }
+
+        /// <summary>
+        /// モーダルに表示する名前の初期値。ローカルは端末内の保存名、
+        /// オンラインはオンライン側の保存名 (無ければ端末内の保存名) を使う。
+        /// </summary>
+        public static string InitialName(
+            V6RegistrationMode mode, string onlineNickname, string localName)
+        {
+            if (mode == V6RegistrationMode.Online && !string.IsNullOrEmpty(onlineNickname))
+            {
+                return onlineNickname;
+            }
+
+            return localName ?? string.Empty;
+        }
+
+        /// <summary>
+        /// 送信に使う譜面版。プレイ開始時に固定した (pinned) 版を優先する。
+        /// 固定版が無いときだけ操作中のカタログの版を使う。
+        /// </summary>
+        public static int ResolveChartVersion(int pinnedChartVersion, int liveChartVersion)
+        {
+            return pinnedChartVersion > 0 ? pinnedChartVersion : liveChartVersion;
+        }
+
         /// <summary>
         /// POST /api/v1/scores の結果を区分する (openapi.v1.yaml: 201 / 429 / 422)。
         /// 輸送失敗は RankingClient.UnavailableError か httpCode==0 で判別する。

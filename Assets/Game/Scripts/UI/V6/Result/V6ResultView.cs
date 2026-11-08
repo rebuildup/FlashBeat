@@ -98,6 +98,9 @@ namespace FlashBeat.UI.V6.Result
         private GameObject modal;
         private TextMeshProUGUI modalNameValue;
         private TextMeshProUGUI modalStatus;
+        private TextMeshProUGUI modalHead;
+        private TextMeshProUGUI modalNameHint;
+        private TextMeshProUGUI modalRegisterLabel;
         private Button modalRegisterButton;
         private ResultRankingOverlay legacyOverlay;
         private bool legacyOverlayWasEnabled;
@@ -113,6 +116,10 @@ namespace FlashBeat.UI.V6.Result
 
         // 登録送信の状態 (loading / success / duplicate / offline / server error)。
         private V6ResultLogic.SubmitOutcome submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
+
+        // 登録の方式 (Issue #240)。モーダルを開いた時点で確定する。
+        // Online = オンライン順位へ送信 / Local = 端末内だけに保存。
+        private V6RegistrationMode registrationMode = V6RegistrationMode.Local;
         private bool submitInFlight;
         private bool submittedThisResult;
         private readonly System.Text.StringBuilder nameBuffer = new System.Text.StringBuilder();
@@ -612,7 +619,10 @@ namespace FlashBeat.UI.V6.Result
             }
         }
 
-        // --- 登録モーダル (05b lqHaN): 見た目と開閉のみ (入力機能は未実装) ---
+        // --- 登録モーダル (05b lqHaN) ---
+        // 名前の入力 (文字入力 / Backspace / Enter)、送信 (オンライン曲)、
+        // ローカル保存 (ローカル曲)、結果表示 (送信中 / 成功 / 429 / オフライン /
+        // その他 HTTP) を実装済み。
 
         private void BuildModal()
         {
@@ -628,9 +638,9 @@ namespace FlashBeat.UI.V6.Result
             var dialog = At(V5Ui.Panel(modal.gameObject, "Dialog", new Vector2(840f, 510f), V5Tokens.Key1, 16f),
                 444f, 231f);
 
-            var head = V5GameUi.Text(dialog.gameObject, "Head", "スコアを登録", 30f, V5Tokens.Text,
+            modalHead = V5GameUi.Text(dialog.gameObject, "Head", "スコアを登録", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            At(head, 28f, 28f, 400f, 40f, new Vector2(0f, 0.5f));
+            At(modalHead, 28f, 28f, 400f, 40f, new Vector2(0f, 0.5f));
 
             var prompt = V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力↓", 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Right);
@@ -648,7 +658,7 @@ namespace FlashBeat.UI.V6.Result
             var capText = V5GameUi.Text(cap.gameObject, "Key", "A-Z 0-9", 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(capText.GetComponent<RectTransform>(), 104f, 32f);
-            V5GameUi.Text(hints.gameObject, "Hint Text",
+            modalNameHint = V5GameUi.Text(hints.gameObject, "Hint Text",
                 "最大" + RankingClient.NicknameMaxLength + "文字", 16f, V5Tokens.TextMuted);
             var spacer = V5Ui.Node(hints.gameObject, "Spacer");
             var spacerLe = spacer.AddComponent<LayoutElement>();
@@ -698,8 +708,8 @@ namespace FlashBeat.UI.V6.Result
             Stretch(registerRow.GetComponent<RectTransform>(), 252f, 50f);
             // design Dialog の Button · Register: Icon 24x24 (icon=check)。
             V6Icons.Create(registerRow.gameObject, "check", 24f, V5Tokens.ButtonPrimaryLabel, "Icon");
-            V5GameUi.Text(registerRow.gameObject, "Label", "Register", 26f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center, FontStyles.Normal);
+            modalRegisterLabel = V5GameUi.Text(registerRow.gameObject, "Label", "Register", 26f,
+                V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Normal);
             BuildModalKeyCap(registerRow.gameObject, "Enter");
             modalRegisterButton = register.GetComponent<Button>();
 
@@ -739,11 +749,21 @@ namespace FlashBeat.UI.V6.Result
             submitInFlight = false;
             submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
             nameBuffer.Length = 0;
-            string saved = RankingClient.LoadNickname();
+
+            // 登録の方式 (送信対象か) を確定する。曲情報はプレイ開始時に固定した
+            // (pinned) 版を使う (GManager.GetSong が ResultScene では snapshot を優先)。
+            registrationMode = CurrentRegistrationMode();
+
+            // 初期値: オンラインはオンライン側の保存名、無ければ端末内の保存名。
+            // ローカルは端末内の保存名 (v5 と同じ PlayerPrefs キー)。
+            string saved = V6ResultLogic.InitialName(
+                registrationMode, RankingClient.LoadNickname(), V6LocalNameStore.Load());
             if (!string.IsNullOrEmpty(saved))
             {
                 nameBuffer.Append(saved);
             }
+
+            ApplyRegistrationModeTexts();
 
             // 旧オーバーレイ (ResultRankingOverlay) は Result シーンで自動で
             // モーダルを開き、キーも処理する。二重モーダルと二重入力を防ぐため
@@ -797,6 +817,14 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
+            // 送信対象でない (ローカル曲 / 譜面未取得) はオンラインへ送らない。
+            // v5 と同じ PlayerPrefs キーへ端末内保存だけする (Issue #240)。
+            if (registrationMode == V6RegistrationMode.Local)
+            {
+                SaveLocalName();
+                return;
+            }
+
             V6ResultLogic.NicknameError error = V6ResultLogic.ValidateNicknameInput(
                 nameBuffer.ToString(), RankingClient.NicknameMaxLength);
             if (error != V6ResultLogic.NicknameError.None)
@@ -815,19 +843,100 @@ namespace FlashBeat.UI.V6.Result
 
         private IEnumerator SubmitCoroutine(string nickname)
         {
+            // 曲情報はプレイ開始時に固定した (pinned) 版。song.chartVersion が
+            // 実際にプレイした譜面の版になる (GManager.GetSong は ResultScene で
+            // PlaySessionSnapshot の固定を優先する)。
             SongData song = SongOf();
-            if (song == null || string.IsNullOrEmpty(song.remoteId) || song.chartVersion <= 0
-                || !RankingClient.IsValidSongId(song.remoteId))
+            int chartVersion = V6ResultLogic.ResolveChartVersion(
+                PinnedChartVersionOf(), song != null ? song.chartVersion : 0);
+            if (!V6ResultLogic.IsSubmittable(
+                    song != null && song.isRemote,
+                    song != null ? song.remoteId : null,
+                    chartVersion))
             {
-                // 送信対象が無い (ローカル曲 / 譜面未取得)。偽の成功は出さない。
-                OnSubmitResult(null);
+                // 送信対象が無い (ローカル曲 / 譜面未取得)。オンラインの失敗表示
+                // (「オフライン」等) は出さず、端末内保存だけ行う。
+                SaveLocalName();
                 yield break;
             }
 
             RankingClient.Result result = null;
-            yield return RankingClient.PostScore(song.remoteId, song.chartVersion, nickname,
+            yield return RankingClient.PostScore(song.remoteId, chartVersion, nickname,
                 runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo, r => { result = r; });
             OnSubmitResult(result);
+        }
+
+        /// <summary>
+        /// 端末内保存 (Issue #240)。v5 と同じ PlayerPrefs キー "V5PlayerName" に
+        /// v5 と同じ規則 (大文字化 + A-Z0-9 + 最大8文字) で保存し、
+        /// オンライン語彙を含まない結果メッセージを表示する。
+        /// </summary>
+        private void SaveLocalName()
+        {
+            string saved = V6ResultLogic.NormalizeLocalName(nameBuffer.ToString());
+            V6LocalNameStore.Save(saved);
+            submittedThisResult = true;
+
+            // 入力欄を正規化済みの保存名にそろえる。
+            nameBuffer.Length = 0;
+            nameBuffer.Append(saved);
+            RefreshModalName();
+
+            // 保存済み。Register ボタンで二重保存しない (Esc / Skip で閉じる)。
+            SetRegisterInteractable(false);
+            SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), FromHex("#99E5FF"));
+        }
+
+        /// <summary>
+        /// 現在の登録の方式を求める。曲情報はプレイ開始時に固定した版を使う。
+        /// </summary>
+        private V6RegistrationMode CurrentRegistrationMode()
+        {
+            SongData song = SongOf();
+            int chartVersion = V6ResultLogic.ResolveChartVersion(
+                PinnedChartVersionOf(), song != null ? song.chartVersion : 0);
+            return V6ResultLogic.RegistrationMode(
+                song != null && song.isRemote,
+                song != null ? song.remoteId : null,
+                chartVersion);
+        }
+
+        /// <summary>
+        /// プレイ開始時に固定した譜面版 (pin)。固定が無い / 結果画面でないときは 0。
+        /// </summary>
+        private static int PinnedChartVersionOf()
+        {
+            SongData pinned = PlaySessionSnapshot.PinnedSongFor(GManager.songID);
+            return pinned != null ? pinned.chartVersion : 0;
+        }
+
+        /// <summary>
+        /// 方式に応じてモーダルの見出し・ボタン・入力ヒントを切り替える。
+        /// ローカル曲にはオンラインの語彙 (スコア登録 / Register) を出さない。
+        /// ローカル曲の上限は v5 と同じ (8 文字 / A-Z 0-9)。
+        /// </summary>
+        private void ApplyRegistrationModeTexts()
+        {
+            bool local = registrationMode == V6RegistrationMode.Local;
+            if (modalHead != null)
+            {
+                // ローカル曲ではオンラインの語彙 (スコア登録) を出さない。
+                // v5 のローカル登録モーダルと同じ見出し ("この端末の名前") を使う。
+                modalHead.text = local ? "この端末の名前" : "スコアを登録";
+            }
+
+            if (modalRegisterLabel != null)
+            {
+                // v5 と同じ (ローカル保存は Save / オンライン送信は Register)。
+                modalRegisterLabel.text = local ? "Save" : "Register";
+            }
+
+            if (modalNameHint != null)
+            {
+                modalNameHint.text = local
+                    ? "最大" + V6ResultLogic.LocalNameMaxLength + "文字 (A-Z 0-9)"
+                    : "最大" + RankingClient.NicknameMaxLength + "文字";
+            }
         }
 
         private void OnSubmitResult(RankingClient.Result result)
@@ -919,9 +1028,16 @@ namespace FlashBeat.UI.V6.Result
                     continue; // 制御文字 (\n, \b) は KeyCode 側で処理済み
                 }
 
-                if (nameBuffer.Length >= RankingClient.NicknameMaxLength)
+                if (nameBuffer.Length >= NameMaxLength())
                 {
                     break;
+                }
+
+                // ローカル保存は v5 と同じ入力規則 (A-Z0-9 のみ)。
+                // 規則外の文字は捨てる (v5 は TMP_InputField の Alphanumeric 検証)。
+                if (registrationMode == V6RegistrationMode.Local && !IsLocalNameChar(c))
+                {
+                    continue;
                 }
 
                 nameBuffer.Append(c);
@@ -931,6 +1047,20 @@ namespace FlashBeat.UI.V6.Result
             {
                 RefreshModalName();
             }
+        }
+
+        /// <summary>ローカル名に使える文字 (v5 と同じ A-Z0-9)。</summary>
+        private static bool IsLocalNameChar(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+        }
+
+        /// <summary>入力可能な名前の上限文字数 (ローカル 8 / オンライン 16)。</summary>
+        private int NameMaxLength()
+        {
+            return registrationMode == V6RegistrationMode.Local
+                ? V6ResultLogic.LocalNameMaxLength
+                : RankingClient.NicknameMaxLength;
         }
 
         private void RefreshModalName()
@@ -1170,7 +1300,10 @@ namespace FlashBeat.UI.V6.Result
                 return; // ローカル曲にオンラインランキングはない (V6SelectDataSource と同じ規律)
             }
 
-            if (string.IsNullOrEmpty(song.remoteId) || song.chartVersion <= 0
+            // 譜面版はプレイ開始時に固定した (pinned) 版を使う (Issue #240)。
+            int chartVersion = V6ResultLogic.ResolveChartVersion(
+                PinnedChartVersionOf(), song.chartVersion);
+            if (string.IsNullOrEmpty(song.remoteId) || chartVersion <= 0
                 || !RankingClient.IsValidSongId(song.remoteId))
             {
                 return;
@@ -1190,7 +1323,7 @@ namespace FlashBeat.UI.V6.Result
             hasRankingError = false;
             rankingStatusMessage = "ランキングを取得しています…";
             RefreshRanking();
-            RunCoroutine(FetchRanking(song.remoteId, song.chartVersion));
+            RunCoroutine(FetchRanking(song.remoteId, chartVersion));
         }
 
         private IEnumerator FetchRanking(string remoteId, int chartVersion)
@@ -1282,7 +1415,9 @@ namespace FlashBeat.UI.V6.Result
                 return null;
             }
 
-            return songs[id];
+            // GManager.GetSong は ResultScene / GameScene ではプレイ開始時に固定した
+            // (pinned) 曲・譜面版を優先する (Issue #240: chartVersion は固定版を使う)。
+            return GManager.GetSong(id) ?? songs[id];
         }
 
         private static int BestOf()
