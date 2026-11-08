@@ -13,6 +13,114 @@ namespace FlashBeat.UI.V6.History
     /// </summary>
     public static class V6HistoryLogic
     {
+        // ------------------------------------------------------------------
+        // フレーム配置 (design 正本: flashbeat-v6-nodes.json「Resolution Check ·
+        // Select/Result/Option」= vxSO0 / s88VZk / gaI3p の実配置表)
+        //
+        // 共通フレーム rw7zx は 1728×972 の固定解像度で、各解像度とも等倍 (1:1) で
+        // 画面中央へ配置する (引き伸ばし = min(W/1728, H/972) の等比スケールは行わない)。
+        //
+        //   origin = (floor((screenW − 1728) / 2), floor((screenH − 972) / 2))
+        //
+        //   FHD 1920×1080 → (96, 54) / 2K 2560×1440 → (416, 234) / Mac 2560×1664 → (416, 346)
+        // ------------------------------------------------------------------
+
+        /// <summary>共通フレームの design 幅 (px)。V6Frame.DesignW と同値。</summary>
+        public const int FrameW = 1728;
+
+        /// <summary>共通フレームの design 高さ (px)。V6Frame.DesignH と同値。</summary>
+        public const int FrameH = 972;
+
+        /// <summary>フレーム左上原点の x (画面左端から)。1:1 中央配置の floor((screenW − 1728) / 2)。</summary>
+        public static int FrameOriginX(int screenW)
+        {
+            return FloorDiv(screenW - FrameW, 2);
+        }
+
+        /// <summary>フレーム左上原点の y (画面上端から)。1:1 中央配置の floor((screenH − 972) / 2)。</summary>
+        public static int FrameOriginY(int screenH)
+        {
+            return FloorDiv(screenH - FrameH, 2);
+        }
+
+        /// <summary>負の被除数でも数学的な floor で割る (C# の整数除算は 0 方向へ切捨て)。</summary>
+        private static int FloorDiv(int a, int b)
+        {
+            int q = a / b;
+            if (a % b != 0 && (a < 0) != (b < 0))
+            {
+                q--;
+            }
+
+            return q;
+        }
+
+        // ------------------------------------------------------------------
+        // design 座標定数 (design px・フレーム左上原点 / y 下向き)。
+        // 出典: flashbeat-v6-nodes.json の q9JZcH (03 History · v6) 実測値。
+        // ビュー (V6HistoryView) と EditMode テストの単一ソース。
+        // ------------------------------------------------------------------
+
+        /// <summary>Main ゾーン (契約 §4 共通)。</summary>
+        public const float MainX = 24f;
+        public const float MainY = 96f;
+        public const float MainH = 780f;
+
+        /// <summary>フッターゾーン (契約 §4 共通: (24,876) 1680×96)。</summary>
+        public const float FooterY = 876f;
+        public const float FooterH = 96f;
+
+        /// <summary>フッター右のボタン (design: 補助操作 (840+358,20) 197×56 / 主操作 (840+567,20) 273×56)。</summary>
+        public const float FooterSettingsButtonX = 1198f;
+        public const float FooterGotoButtonX = 1407f;
+        public const float FooterButtonY = 20f;
+        public const float FooterButtonH = 56f;
+
+        /// <summary>履歴リスト (列1-2)。Main 内 (0,0) 560×780。</summary>
+        public const float ListPanelW = 560f;
+        public const float ListPanelH = 780f;
+
+        /// <summary>履歴行 (design: (16, 48+72k) 496×64、Pos 36×36 r18 / Title w220 fs24 / Score w120 fs24 / Grade 56×36)。</summary>
+        public const float HistoryRowX = 16f;
+        public const float HistoryRowY0 = 48f;
+        public const float HistoryRowW = 496f;
+        public const float HistoryRowH = 64f;
+        public const float HistoryRowStep = 72f;
+        public const int HistoryVisibleRows = 10;
+
+        /// <summary>選択中の曲パネル (列3-4)。Main 内 (572,0) 536×780。</summary>
+        public const float CenterPanelX = 572f;
+        public const float CenterPanelW = 536f;
+
+        /// <summary>記録情報ゾーン (列5-6)。Main 内 (1120,0)、パネルは x16 w528。</summary>
+        public const float RightColumnX = 1120f;
+        public const float RightPanelX = 16f;
+        public const float RightPanelW = 528f;
+
+        /// <summary>曲ランキング情報パネル (記録情報内 (16,452) 528×304) とその行。</summary>
+        public const float SongRankPanelY = 452f;
+        public const float SongRankPanelH = 304f;
+
+        /// <summary>曲ランキング行 (design: Score·k = (8, 60+60k) 496×52)。</summary>
+        public const float SongRankRowX = 8f;
+        public const float SongRankRowY0 = 60f;
+        public const float SongRankRowW = 496f;
+        public const float SongRankRowH = 52f;
+        public const float SongRankRowStep = 60f;
+        public const int SongRankVisibleRows = 4;
+
+        /// <summary>履歴行 k (可視 index) のリスト内部 design y (y_down)。</summary>
+        public static float HistoryRowTop(int visibleIndex)
+        {
+            return HistoryRowY0 + HistoryRowStep * visibleIndex;
+        }
+
+        /// <summary>曲ランキング行 k (可視 index) のパネル内部 design y (y_down)。</summary>
+        public static float SongRankRowTop(int visibleIndex)
+        {
+            return SongRankRowY0 + SongRankRowStep * visibleIndex;
+        }
+
         /// <summary>履歴リストの並び順。design ヘッダーの Sort チップ ("スコア順") に対応。</summary>
         public enum HistorySort
         {
