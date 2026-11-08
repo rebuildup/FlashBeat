@@ -142,8 +142,9 @@ public class ResultSceneManager : MonoBehaviour
 
     private void BuildV5View()
     {
-        // v5 経路でも旧シーン配置 Canvas は両方隠す (v5 ResultView はコード生成)。
-        HideLegacyCanvases(legacyCanvasV5, legacyCanvasV6);
+        // v5 経路では legacyCanvasV5 を隠さない (従来どおり v5 のシーン配置 Canvas を
+        // 使う)。v6 用の旧 Canvas のみ隠す (v5 ResultView はコード生成)。
+        HideLegacyCanvases(null, legacyCanvasV6);
 
         var song = GManager.ActiveSongs[GManager.songID];
         var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot

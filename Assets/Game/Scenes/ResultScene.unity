@@ -2098,6 +2098,7 @@ MonoBehaviour:
   - https://www.youtube.com/watch?v=s-0HVBCEMZk
   imageObjects:
   - {fileID: 8029747515037643665}
+  legacyCanvasV5: {fileID: 1933621157}
 --- !u!4 &1393764914
 Transform:
   m_ObjectHideFlags: 0
