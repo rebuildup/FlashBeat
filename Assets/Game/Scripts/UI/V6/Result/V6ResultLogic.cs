@@ -101,5 +101,111 @@ namespace FlashBeat.UI.V6.Result
 
             return Mathf.Clamp01((float)score / ScoreMax);
         }
+
+        // --- 登録モーダル (Issue #240) の純ロジック ---
+
+        /// <summary>送信結果の区分 (loading / success / duplicate / offline / server error)。</summary>
+        public enum SubmitOutcome
+        {
+            /// <summary>送信中 (RankingClient.PostScore の応答待ち)。</summary>
+            Pending,
+            /// <summary>サーバが順位を返した (201)。</summary>
+            Success,
+            /// <summary>同じ内容を送信済み (429, 10 秒窓)。</summary>
+            Duplicate,
+            /// <summary>輸送失敗 (オフライン / タイムアウト)。</summary>
+            Offline,
+            /// <summary>その他の失敗 (422 / 5xx / 応答解析失敗)。</summary>
+            Rejected,
+        }
+
+        /// <summary>名前入力の検証結果。</summary>
+        public enum NicknameError
+        {
+            None,
+            /// <summary>空 (トリム後 0 文字)。</summary>
+            Empty,
+            /// <summary>長すぎ (RankingClient.NicknameMaxLength 超過)。</summary>
+            TooLong,
+            /// <summary>使えない文字 (制御文字)。</summary>
+            InvalidChar,
+        }
+
+        /// <summary>
+        /// 登録名を検証する (トリム後、RankingClient.NicknameMaxLength 以下)。
+        /// 制御文字は Input.inputString 経由でも混入しうるため明示的に拒む。
+        /// </summary>
+        public static NicknameError ValidateNicknameInput(string raw, int maxLength)
+        {
+            if (raw == null)
+            {
+                return NicknameError.Empty;
+            }
+
+            string name = raw.Trim();
+            if (name.Length == 0)
+            {
+                return NicknameError.Empty;
+            }
+
+            if (name.Length > maxLength)
+            {
+                return NicknameError.TooLong;
+            }
+
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (char.IsControl(name[i]))
+                {
+                    return NicknameError.InvalidChar;
+                }
+            }
+
+            return NicknameError.None;
+        }
+
+        /// <summary>
+        /// POST /api/v1/scores の結果を区分する (openapi.v1.yaml: 201 / 429 / 422)。
+        /// 輸送失敗は RankingClient.UnavailableError か httpCode==0 で判別する。
+        /// </summary>
+        public static SubmitOutcome ClassifySubmitResult(bool ok, int httpCode, string error)
+        {
+            if (ok)
+            {
+                return SubmitOutcome.Success;
+            }
+
+            if (httpCode == 429)
+            {
+                return SubmitOutcome.Duplicate;
+            }
+
+            if (httpCode == 0 || error == RankingClient.UnavailableError)
+            {
+                return SubmitOutcome.Offline;
+            }
+
+            return SubmitOutcome.Rejected;
+        }
+
+        /// <summary>区分に対応するモーダルの状態メッセージ。失敗時は再送 [Enter] を案内する。</summary>
+        public static string SubmitStatusMessage(SubmitOutcome outcome, int httpCode)
+        {
+            switch (outcome)
+            {
+                case SubmitOutcome.Pending:
+                    return "送信中…";
+                case SubmitOutcome.Success:
+                    return "登録しました";
+                case SubmitOutcome.Duplicate:
+                    return "同じ内容を送信済みです  再送 [Enter] / スキップ [Esc]";
+                case SubmitOutcome.Offline:
+                    return "オフラインのようです  再送 [Enter] / スキップ [Esc]";
+                default:
+                    return httpCode > 0
+                        ? "送信できませんでした (HTTP " + httpCode + ")  再送 [Enter] / スキップ [Esc]"
+                        : "送信できませんでした  再送 [Enter] / スキップ [Esc]";
+            }
+        }
     }
 }
