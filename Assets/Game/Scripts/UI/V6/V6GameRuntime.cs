@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -225,7 +226,13 @@ namespace FlashBeat.UI.V6
             if (phase == HudPlayPhase.Preparing)
             {
                 var song = GManager.GetSong(GManager.songID);
-                loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "", null);
+                // 実進捗 (Issue #224): 譜面準備の done/total。未報告なら null
+                // (不定インジケータ)。0 は既知として確定バーに出る。
+                float? chartProgress = GameLoadingProgress.HasNotesProgress
+                    ? GameLoadingProgress.NotesProgress
+                    : (float?)null;
+                loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "",
+                    LoadJacket(song), chartProgress);
                 loading.SetVisible(true);
             }
             else if (phase == HudPlayPhase.Failed)
@@ -239,6 +246,32 @@ namespace FlashBeat.UI.V6
             {
                 loading.SetVisible(false);
             }
+        }
+
+        // --- ジャケット (Issue #224) ---
+
+        readonly Dictionary<int, Texture2D> jacketCache = new Dictionary<int, Texture2D>();
+
+        /// <summary>
+        /// 選択中の曲のジャケットを Resources から解決する
+        /// (<see cref="V6LoadingViewLogic.JacketResourcePathOf"/>= 選曲画面と同じ対応表)。
+        /// 無い曲は null — ビューが「無し」と正直に表示する。null もキャッシュする
+        /// (毎フレームの Resources.Load を避ける)。
+        /// </summary>
+        private Texture2D LoadJacket(SongData song)
+        {
+            if (song == null) return null;
+            if (jacketCache.TryGetValue(song.id, out var cached)) return cached;
+
+            Texture2D texture = null;
+            string path = V6LoadingViewLogic.JacketResourcePathOf(song.id);
+            if (!string.IsNullOrEmpty(path))
+            {
+                texture = Resources.Load<Texture2D>(path);
+            }
+
+            jacketCache[song.id] = texture;
+            return texture;
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>

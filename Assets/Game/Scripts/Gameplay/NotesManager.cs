@@ -88,6 +88,8 @@ public class NotesManager : MonoBehaviour
         if (session != null) session.RestoreSongId();
         SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
         IsReady = false;
+        // v6 ローディングの実進捗を「不明」に戻してから読み直す (Issue #224)。
+        FlashBeat.UI.V6.Game.Loading.GameLoadingProgress.ResetNotes();
         if (song == null)
         {
             Debug.LogWarning($"[NotesManager] no song for id {GManager.songID} - playing without notes");
@@ -99,7 +101,6 @@ public class NotesManager : MonoBehaviour
         songName = song.title;
         StartCoroutine(LoadRoutine(song));
     }
-
     /// <summary>
     /// 譜面読み込みを段階的に進める (旧実装は OnEnable で全ノーツを同期生成し、
     /// 大きい譜面でフレームが固まった)。
@@ -206,6 +207,7 @@ public class NotesManager : MonoBehaviour
             batchStopwatch.Stop();
             batcher.Report(batch, batchStopwatch.Elapsed.TotalSeconds);
             done += batch;
+            FlashBeat.UI.V6.Game.Loading.GameLoadingProgress.ReportNotes((float)done / total);
             if (showLegacyOverlay)
             {
                 LoadingOverlay.SetProgress(LoadingOverlayLogic.MapProgress((float)done / total), OverlayOwner);
