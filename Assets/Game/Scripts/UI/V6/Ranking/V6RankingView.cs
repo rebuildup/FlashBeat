@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 using FlashBeat.UI.V6.Select.View;
@@ -33,17 +34,27 @@ namespace FlashBeat.UI.V6.Ranking
         /// <summary>現在生成されている v6 ランキング画面 (ランキングシーンに 1 個だけ)。</summary>
         public static V6RankingView Current { get; private set; }
 
-        // --- design px 定数 (S1TZD の実測値) ---
-        private const float FrameW = 1728f;
-        private const float FrameH = 972f;
-
-        private const float MainX = 24f, MainY = 96f;
-        private const float ListW = 560f, ListH = 780f;
-        private const float RowX = 16f, RowY0 = 48f, RowH = 72f, RowStep = 76f;
-        private const int ListVisibleRows = 9; // y48..y656 (+72 = 728 <= 780)
-        private const float RankingX = 584f, RankingW = 512f, RankingH = 732f;
-        private const int RankingVisibleRows = 10; // (732-60) / 64
-        private const float PlayersX = 1144f, PlayersW = 512f;
+        // --- design 定数 (design 空間・フレーム左上原点 / y 下向き) ---
+        // 正本: flashbeat-v6-nodes.json (S1TZD「04 Ranking」/ 契約 §4)。
+        // 値の単一ソースは V6RankingLogic の design 定数群。
+        private const float FrameW = V6RankingLogic.FrameW;
+        private const float FrameH = V6RankingLogic.FrameH;
+        private const float MainX = V6RankingLogic.MainX;
+        private const float MainY = V6RankingLogic.MainY;
+        private const float ListW = V6RankingLogic.ListPanelW;
+        private const float ListH = V6RankingLogic.ListPanelH;
+        private const float RowX = V6RankingLogic.SongRowX;
+        private const float RowY0 = V6RankingLogic.SongRowY0;
+        private const float RowH = V6RankingLogic.SongRowH;
+        private const float RowStep = V6RankingLogic.SongRowStep;
+        private const int ListVisibleRows = V6RankingLogic.ListVisibleRows;
+        private const float RankingX = V6RankingLogic.ScorePanelX;
+        private const float RankingY = V6RankingLogic.ScorePanelY;
+        private const float RankingW = V6RankingLogic.ScorePanelW;
+        private const float RankingH = V6RankingLogic.ScorePanelH;
+        private const int RankingVisibleRows = V6RankingLogic.RankVisibleRows;
+        private const float PlayersX = V6RankingLogic.PlayersPanelX;
+        private const float PlayersW = V6RankingLogic.ScorePanelW;
 
         private readonly IV6SelectDataSource data;
         private readonly Action onBack;
@@ -55,7 +66,7 @@ namespace FlashBeat.UI.V6.Ranking
         private GameObject rootGo;
         private RectTransform frame;
 
-        private float u = 1f;
+        private bool placed;
         private int lastWidth;
         private int lastHeight;
         private int listScroll;
@@ -202,32 +213,48 @@ namespace FlashBeat.UI.V6.Ranking
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            frame = V5Ui.Node(rootGo, "V6 Ranking Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
+            // 画面全体を v6 背景 (契約 §3 bg #1B1B1B) で敷き、レガシーのクリーム色背景が
+            // 透けないようにする。レターボックス枠は作らない。
+            var bg = rootGo.AddComponent<Image>();
+            bg.color = V5Tokens.Bg;
+            bg.raycastTarget = true;
+
+            // 共通フレーム (rw7zx 1728×972 / 契約 §4) を使い回す。
+            frame = V6Frame.Create(rootGo.transform, "V6 Ranking Frame").GetComponent<RectTransform>();
+            // フレームは固定解像度 (1728×972) の等倍 (1:1) 配置。親 (画面) 左下を
+            // 基準に design のフレーム原点へ置く。拡大縮小は行わない。
+            frame.anchorMin = Vector2.zero;
+            frame.anchorMax = Vector2.zero;
+            frame.pivot = Vector2.zero;
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             var driver = rootGo.AddComponent<V6RankingViewDriver>();
             driver.View = this;
-            UpdateScale();
+            UpdatePlacement();
         }
 
-        internal void UpdateScale()
+        /// <summary>
+        /// フレームを等倍 (1:1) で design のフレーム原点へ置く。
+        /// 原点は純関数 V6RankingLogic.FrameOriginX/Y (design「Resolution Check」表どおり:
+        /// FHD (96,54) / 2K (416,234) / MacBook (416,346); floor((screen − 1728×972)/2))。
+        /// </summary>
+        internal void UpdatePlacement()
         {
             int w = Screen.width;
             int h = Screen.height;
-            if (w == lastWidth && h == lastHeight)
+            if (placed && w == lastWidth && h == lastHeight)
             {
                 return;
             }
-
+            placed = true;
             lastWidth = w;
             lastHeight = h;
-            u = V6SelectViewLogic.DesignScale(w, h);
             if (frame != null)
             {
-                frame.localScale = new Vector3(u, u, 1f);
+                frame.localScale = Vector3.one; // 1:1 (引き伸ばしは行わない)
+                frame.anchoredPosition = new Vector2(
+                    V6RankingLogic.FrameOriginX(w),
+                    V6RankingLogic.FrameOriginY(h));
             }
         }
 
@@ -238,18 +265,13 @@ namespace FlashBeat.UI.V6.Ranking
                 return;
             }
 
-            UpdateScale();
+            UpdatePlacement();
 
-            // frame の全子を作り直す (V6SelectView.Rebuild と同じ方針)。
-            var children = new List<GameObject>();
-            foreach (Transform child in frame.transform)
-            {
-                children.Add(child.gameObject);
-            }
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            // 共通フレーム (V6Frame) の stroke / モーダル層は残し、
+            // Header / Main / Footer の各ゾーンの中身を作り直す。
+            ClearChildren(Zone("Header"));
+            ClearChildren(Zone("Footer"));
+            ClearChildren(Zone("Main"));
 
             IReadOnlyList<V6SongEntry> songs = data.AllSongs;
             int selectIndex = -1;
@@ -271,56 +293,88 @@ namespace FlashBeat.UI.V6.Ranking
             listScroll = V6SelectViewLogic.ClampScroll(listScroll, songs.Count, ListVisibleRows);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll, RankingRows().Count, RankingVisibleRows);
 
-            BuildHeader(data.Selected);
-            BuildFooter();
-            BuildSongList(songs, selectIndex);
-            BuildScoreRanking(data.Selected);
-            BuildPlayers();
+            GameObject headerZone = Zone("Header");
+            GameObject footerZone = Zone("Footer");
+            GameObject mainZone = Zone("Main");
+            BuildHeader(headerZone, data.Selected);
+            BuildFooter(footerZone);
+            BuildSongList(mainZone, songs, selectIndex);
+            BuildScoreRanking(mainZone, data.Selected);
+            BuildPlayers(mainZone);
         }
 
-        // --- ヘッダー (x24 y0 1680x96) ---
-
-        private void BuildHeader(V6SongEntry song)
+        /// <summary>V6Frame が作った共通ゾーン (Header / Main / Footer)。</summary>
+        private GameObject Zone(string name)
         {
-            var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
+            Transform t = frame != null ? frame.Find(name) : null;
+            if (t == null)
+            {
+                throw new InvalidOperationException("V6Frame zone not found: " + name);
+            }
+            return t.gameObject;
+        }
 
-            // 戻るボタン 56x56 (#3A3A3A r8) + Esc キャプション
-            var backZone = At(V5Ui.Node(header, "Zone Back"), 0f, 20f);
+        private static void ClearChildren(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+            var children = new List<GameObject>();
+            foreach (Transform child in go.transform)
+            {
+                children.Add(child.gameObject);
+            }
+            for (int i = 0; i < children.Count; i++)
+            {
+                V5GameUi.DestroyNow(children[i]);
+            }
+        }
+
+        // --- ヘッダー (共通フレームの Header ゾーン: design (24,0) 1680×96) ---
+
+        private void BuildHeader(GameObject headerZone, V6SongEntry song)
+        {
+            // 戻るボタン 56×56 (#3A3A3A r8) + Key fs16 (design: Back button / Key 'Esc' fs16)
+            var backZone = At(V5Ui.Node(headerZone, "Zone Back"), 0f, 20f);
             var back = MakeButton(V5Ui.Panel(backZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
                 () => TriggerBack());
             var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
             Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
-            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            V6Icons.Create(backCol.gameObject, "arrow-left", 24f, V5Tokens.TextMuted, "Icon");
+            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
 
-            var title = V5GameUi.Text(header.gameObject, "Title", "RANKING", 38f, V5Tokens.Text,
+            var title = V5GameUi.Text(headerZone, "Title", "RANKING", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             At(title, 72f, 20f, 400f, 56f);
 
-            // 右上: 曲情報 (ジャケット + 曲名/作家 + LEVEL / BPM / NOTES)。右詰め。
+            // 右上: 曲情報 (ジャケット + 曲名/作家 + LEVEL / BPM / NOTES)。
+            // design (S1TZD): 情報ゾーンは header 内 x840..1680。統計は右端で揃え
+            // (NOTES の右端 = header 内 x1680 = フレーム内 x1704)、frame 幅 1728 の外に出さない。
             bool hasSong = song != null;
-            var thumb = At(V5Ui.Panel(header, "Thumb", new Vector2(64f, 36f), V5Tokens.Key3, 4f), 924f, 30f);
+            var thumb = At(V5Ui.Panel(headerZone, "Thumb", new Vector2(64f, 36f), V5Tokens.Key3, 4f),
+                924f, 30f);
             if (hasSong)
             {
                 SetJacket(thumb, song);
             }
 
-            var songZone = V5Ui.Node(header, "Song");
+            var songZone = V5Ui.Node(headerZone, "Song");
             At(songZone.GetComponent<RectTransform>(), 1012f, 10f, 320f, 76f);
             var songTitle = V5GameUi.Text(songZone, "Title", hasSong ? song.Title : "–", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left);
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
-            var songArtist = V5GameUi.Text(songZone, "Artist", hasSong ? song.Artist : "", 22f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Left);
+            var songArtist = V5GameUi.Text(songZone, "Artist", hasSong ? song.Artist : "", 20f,
+                V5Tokens.TextMuted, TextAlignmentOptions.Left);
             songArtist.textWrappingMode = TextWrappingModes.NoWrap;
             At(songArtist, 0f, 40f, 320f, 32f);
 
-            At(V5Ui.Panel(header, "Divider", new Vector2(1f, 44f), FromHex("#FFFFFF26"), 0f), 1356f, 26f);
+            At(V5Ui.Panel(headerZone, "Divider", new Vector2(1f, 44f), FromHex("#FFFFFF26"), 0f), 1356f, 26f);
 
-            BuildHeaderStat(header, 1380f, "LEVEL", hasSong && song.Level > 0 ? song.Level.ToString() : "–");
-            BuildHeaderStat(header, 1490f, "BPM", hasSong && song.Bpm > 0
+            BuildHeaderStat(headerZone, 1360f, "LEVEL", hasSong && song.Level > 0 ? song.Level.ToString() : "–");
+            BuildHeaderStat(headerZone, 1470f, "BPM", hasSong && song.Bpm > 0
                 ? Mathf.RoundToInt((float)song.Bpm).ToString() : "–");
-            BuildHeaderStat(header, 1600f, "NOTES", hasSong && song.NoteCount > 0 ? song.NoteCount.ToString() : "–");
+            BuildHeaderStat(headerZone, 1580f, "NOTES", hasSong && song.NoteCount > 0 ? song.NoteCount.ToString() : "–");
         }
 
         /// <summary>ヘッダー右の統計 (100x62: label 上 / value 下)。</summary>
@@ -335,51 +389,103 @@ namespace FlashBeat.UI.V6.Ranking
                 FontStyles.Bold);
         }
 
-        // --- フッター (x24 y876 1680x96) ---
+        // --- フッター (共通フレームの Footer ゾーン: design (24,876) 1680×96) ---
 
-        private void BuildFooter()
+        private void BuildFooter(GameObject footerZone)
         {
-            var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
+            // design (rw7zx): キー操作ゾーン (0,30)、Legend 間 gap16、Legend 内は
+            // KeyCap (高36 / pad[0,10] / fs22) + gap10 + Label fs22 $text-muted。
+            BuildKeyLegend(footerZone, new[]
+            {
+                new[] { "↑↓", "曲送り" },
+                new[] { "Space", "決定" },
+                new[] { "Tab", "切替" },
+                new[] { "Esc", "戻る" }
+            });
 
-            var legend = V5GameUi.Row(footer.gameObject, "Legend", 24f, TextAnchor.MiddleLeft);
-            At(legend.GetComponent<RectTransform>(), 0f, 30f, 680f, 36f);
-            V6Ui.KeyCap(legend.gameObject, "↑↓", new Vector2(56f, 32f));
-            V5GameUi.Text(legend.gameObject, "L1", "曲送り", 20f, V5Tokens.TextMuted);
-            V6Ui.KeyCap(legend.gameObject, "Space", new Vector2(76f, 32f));
-            V5GameUi.Text(legend.gameObject, "L2", "決定", 20f, V5Tokens.TextMuted);
-            V6Ui.KeyCap(legend.gameObject, "Tab", new Vector2(56f, 32f));
-            V5GameUi.Text(legend.gameObject, "L3", "切替", 20f, V5Tokens.TextMuted);
-            V6Ui.KeyCap(legend.gameObject, "Esc", new Vector2(56f, 32f));
-            V5GameUi.Text(legend.gameObject, "L4", "戻る", 20f, V5Tokens.TextMuted);
+            // 右下: 設定 (design: 補助操作 (840+358,20) 197×56, icon settings + Cap 'O')
+            // と この曲へ (design: 主操作 (840+567,20) 273×56, icon + Cap 'Space')。
+            GameObject settingsBtn = V6Controls.ButtonSecondary(footerZone, "設定",
+                new Vector2(V6RankingLogic.FooterSettingsButtonX, V6RankingLogic.FooterButtonY),
+                new Vector2(197f, V6RankingLogic.FooterButtonH), "settings", "O");
+            ConfigureButton(settingsBtn, TriggerOpenSettings);
+            TintButtonCap(settingsBtn, SecondaryCapColor);
 
-            // 右下: 設定 (secondary) + この曲へ (primary)。design 座標のまま右詰め。
-            var settingsBtn = MakeButton(V5Ui.Panel(footer, "Button Settings", new Vector2(197f, 56f),
-                V5Tokens.ControlBg, 8f), TriggerOpenSettings);
-            At(settingsBtn, 1198f, 20f);
-            var settingsRow = V5GameUi.Row(settingsBtn, "Inner", 10f, TextAnchor.MiddleCenter);
-            Stretch(settingsRow.GetComponent<RectTransform>(), 197f, 56f);
-            var settingsIcon = V6Icons.Create(settingsRow.gameObject, "settings", 24f, V5Tokens.TextMuted, "Icon");
-            V5GameUi.Text(settingsRow.gameObject, "Label", "設定", 30f, V5Tokens.Text, TextAlignmentOptions.Center);
+            GameObject gotoBtn = V6Controls.ButtonPrimary(footerZone, "この曲へ",
+                new Vector2(V6RankingLogic.FooterGotoButtonX, V6RankingLogic.FooterButtonY),
+                new Vector2(273f, V6RankingLogic.FooterButtonH), "music", "Space");
+            ConfigureButton(gotoBtn, TriggerGotoSong);
+            TintButtonCap(gotoBtn, PrimaryCapColor);
+        }
 
-            var gotoBtn = MakeButton(V5Ui.Panel(footer, "Op この曲へ", new Vector2(273f, 56f),
-                V5Tokens.ButtonPrimaryBg, 8f), TriggerGotoSong);
-            At(gotoBtn, 1407f, 20f);
-            var gotoRow = V5GameUi.Row(gotoBtn, "Inner", 10f, TextAnchor.MiddleCenter);
-            Stretch(gotoRow.GetComponent<RectTransform>(), 273f, 56f);
-            var gotoIcon = V6Icons.Create(gotoRow.gameObject, "music", 26f, V5Tokens.ButtonPrimaryLabel, "Icon");
-            V5GameUi.Text(gotoRow.gameObject, "Label", "この曲へ", 30f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center);
-            var cap = V5Ui.Panel(gotoRow.gameObject, "Cap", new Vector2(84f, 32f), new Color(0f, 0f, 0f, 0.15f), 4f);
-            var capText = V5GameUi.Text(cap, "Key", "Space", 20f, V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
-            Stretch(capText.GetComponent<RectTransform>(), 84f, 32f);
+        /// <summary>design (rw7zx) の Secondary ボタン内 Cap の塗り (#00000040)。</summary>
+        private static readonly Color SecondaryCapColor = new Color(0f, 0f, 0f, 0x40 / 255f);
+
+        /// <summary>design (rw7zx / 契約 §4) の Primary ボタン内 KeyCap の塗り (#00000026)。</summary>
+        private static readonly Color PrimaryCapColor = new Color(0f, 0f, 0f, 0x26 / 255f);
+
+        /// <summary>
+        /// フッター左下のキー凡例。design (rw7zx): 高さ 36 の KeyCap (fs22) + gap10 + Label fs22、
+        /// 項目間 gap16、zone 内 y=30 から。
+        /// </summary>
+        private static void BuildKeyLegend(GameObject footer, string[][] items)
+        {
+            float fs = V6Controls.KeyCapFontSize;
+            float x = 0f;
+            for (int i = 0; i < items.Length; i++)
+            {
+                string key = items[i][0];
+                string label = items[i][1];
+                float capW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * fs) + V6Controls.KeyCapPaddingX * 2f;
+                V6Controls.KeyCap(footer, key, new Vector2(x, 30f), new Vector2(capW, V6Tokens.KeyCapHeight));
+                x += capW + 10f;
+                float labelW = Mathf.Max(1f, V6Layout.EstimateTextWidth(label, fs));
+                var labelText = V5GameUi.Text(footer, "Legend Label " + label, label, fs, V5Tokens.TextMuted);
+                At(labelText, x, 30f, labelW, V6Tokens.KeyCapHeight);
+                x += labelW + (i < items.Length - 1 ? 16f : 0f);
+            }
+        }
+
+        /// <summary>V6Controls が作った Button を操作可能にする (遷移なし・onClick 接続)。</summary>
+        private static void ConfigureButton(GameObject go, Action onClick)
+        {
+            var button = go.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            var nav = button.navigation;
+            nav.mode = Navigation.Mode.None;
+            button.navigation = nav;
+            if (onClick != null)
+            {
+                button.onClick.AddListener(() => onClick());
+            }
+        }
+
+        /// <summary>
+        /// ボタン内 Cap の塗りを design 値 (#00000040 / #00000026) に合わせる。
+        /// 共通部品 (V6Controls) は $k4 固定で編集禁止のため、呼び出し側で上書きする。
+        /// </summary>
+        private static void TintButtonCap(GameObject buttonGo, Color color)
+        {
+            for (int i = 0; i < buttonGo.transform.childCount; i++)
+            {
+                Transform child = buttonGo.transform.GetChild(i);
+                if (child.name.StartsWith("KeyCap", StringComparison.Ordinal))
+                {
+                    var img = child.GetComponent<Image>();
+                    if (img != null)
+                    {
+                        img.color = color;
+                    }
+                }
+            }
         }
 
         // --- 左列: 曲リスト (x0 w560 #131313CC r16) ---
 
-        private void BuildSongList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        private void BuildSongList(GameObject mainZone, IReadOnlyList<V6SongEntry> songs, int selectIndex)
         {
-            var list = At(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
-                FromHex("#131313CC"), 16f), MainX + 0f, MainY);
+            var list = At(V5Ui.Panel(mainZone, "Song List", new Vector2(ListW, ListH),
+                FromHex("#131313CC"), 16f), 0f, 0f);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");
@@ -408,9 +514,10 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void BuildSongRow(GameObject parent, V6SongEntry song, bool selected, float y)
         {
-            var row = At(V5Ui.Panel(parent, "Song " + song.Title, new Vector2(504f, RowH),
-                selected ? V5Tokens.Key6 : V5Tokens.Recessed2, 8f), RowX, y);
-            var button = MakeButton(row, null).GetComponent<Button>();
+            var row = V5Ui.Panel(parent, "Song " + song.Title, new Vector2(504f, RowH),
+                selected ? V5Tokens.Key6 : V5Tokens.Recessed2, V6Tokens.RadiusMedium);
+            V6Layout.Place(row.GetComponent<RectTransform>(), new Vector2(RowX, y), new Vector2(504f, RowH));
+            var button = MakeViewButton(row, null).GetComponent<Button>();
             int songId = song.SongId;
             button.onClick.AddListener(() => data.Select(songId));
 
@@ -436,14 +543,10 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void BuildScrollButton(GameObject list, string name, float y, string iconSprite, int delta)
         {
-            var btn = MakeButton(V5Ui.Panel(list, name, new Vector2(140f, 44f), V5Tokens.Key4, 8f),
-                () => ScrollList(delta));
-            At(btn, 210f, y);
-            var icon = V6Icons.Create(btn, iconSprite, 24f, V5Tokens.TextMuted, "Icon");
-            if (icon != null)
-            {
-                Stretch(icon.rectTransform, 140f, 44f);
-            }
+            // design: Scroll Up/Down は 140×44 $k4 r8 + icon 24×24 ($text-muted)
+            GameObject btn = V6Controls.IconButton(list, iconSprite, new Vector2(210f, y),
+                new Vector2(140f, 44f), V5Tokens.Key4, V6Tokens.RadiusMedium, 24f, V5Tokens.TextMuted);
+            ConfigureButton(btn, () => ScrollList(delta));
         }
 
         /// <summary>
@@ -471,10 +574,11 @@ namespace FlashBeat.UI.V6.Ranking
 
         // --- 中列: SCORE RANKING (512x732 $k2) ---
 
-        private void BuildScoreRanking(V6SongEntry song)
+        private void BuildScoreRanking(GameObject mainZone, V6SongEntry song)
         {
-            var panel = At(V5Ui.Panel(frame.gameObject, "Score Ranking", new Vector2(RankingW, RankingH),
-                V5Tokens.Key2, 16f), MainX + RankingX, MainY + 24f);
+            // design (S1TZD): SCORE RANKING は Main 内 (584,24) 512×732
+            var panel = At(V5Ui.Panel(mainZone, "Score Ranking", new Vector2(RankingW, RankingH),
+                V5Tokens.Key2, V6Tokens.RadiusLarge), RankingX, RankingY);
             AddScrollCatcher(panel, 1);
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
@@ -524,7 +628,7 @@ namespace FlashBeat.UI.V6.Ranking
             int last = Mathf.Min(rows.Count, first + RankingVisibleRows);
             for (int i = first; i < last; i++)
             {
-                BuildRankingRow(panel, rows[i], i, 60f + 64f * (i - first));
+                BuildRankingRow(panel, rows[i], i - first);
             }
         }
 
@@ -533,7 +637,8 @@ namespace FlashBeat.UI.V6.Ranking
             bool active = source == target;
             var chip = MakeButton(V5Ui.Panel(head, "Segment " + label, new Vector2(72f, 32f),
                 active ? V5Tokens.Key4 : V5Tokens.Key1, 4f), ToggleSource);
-            var text = V5GameUi.Text(chip, "Text", V6RankingLogic.SourceLabel(target), 18f,
+            // design (S1TZD Segment): text fs20
+            var text = V5GameUi.Text(chip, "Text", V6RankingLogic.SourceLabel(target), 20f,
                 active ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
             Stretch(text.GetComponent<RectTransform>(), 72f, 32f);
         }
@@ -549,27 +654,22 @@ namespace FlashBeat.UI.V6.Ranking
             return data.RankingFor(song);
         }
 
-        private void BuildRankingRow(GameObject panel, V6RankingRow row, int index, float y)
+        /// <summary>
+        /// ランキング行。行内訳 (Pos 36×36 / Name / Value 右寄せ / Grade 56×36) は
+        /// 契約 §5 の Ranking 行仕様 = 共通部品 V6Lists.RankRow を使い回す。
+        /// 行位置・寸法は design (S1TZD): Score·k = (8, 60+64k)、496×56。
+        /// </summary>
+        private void BuildRankingRow(GameObject panel, V6RankingRow row, int visibleIndex)
         {
-            var line = At(V5Ui.Panel(panel, "Score " + (index + 1), new Vector2(496f, 56f),
-                row.IsYou ? V5Tokens.Key6 : V5Tokens.Recessed2, 8f), 8f, y);
-
-            var pos = At(V5Ui.Panel(line, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f), 10f, 10f);
-            var posText = V5GameUi.Text(pos, "PosText", row.Position.ToString(), 22f,
-                row.IsYou ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(posText.GetComponent<RectTransform>(), 36f, 36f);
-
-            var name = V5GameUi.Text(line.gameObject, "Name", row.IsYou ? "YOU" : row.PlayerName, 22f, V5Tokens.Text);
-            At(name, 58f, 0f, 160f, 56f, new Vector2(0f, 0.5f));
-
-            var score = V5GameUi.Text(line.gameObject, "Score", V6SelectViewLogic.FormatScore(row.Score), 22f,
-                V5Tokens.Text, TextAlignmentOptions.Right);
-            At(score, 230f, 0f, 180f, 56f, new Vector2(0f, 0.5f));
-
-            var grade = At(V5Ui.Panel(line, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 426f, 10f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "GradeText",
-                string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade, 22f, V5Tokens.Text, TextAlignmentOptions.Center);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            V6Lists.RankRow(
+                panel,
+                row.Position.ToString(),
+                row.IsYou ? "YOU" : row.PlayerName,
+                V6SelectViewLogic.FormatScore(row.Score),
+                string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
+                new Vector2(V6RankingLogic.RankRowX, V6RankingLogic.RankRowTop(visibleIndex)),
+                new Vector2(V6RankingLogic.RankRowW, V6RankingLogic.RankRowH),
+                row.IsYou);
         }
 
         // --- 右列: PLAYERS (512x732 $k2) ---
@@ -578,36 +678,22 @@ namespace FlashBeat.UI.V6.Ranking
         /// PLAYERS パネル。プレイヤー総合ランキング (累計スコア) を返す既存 API が
         /// 無いため、ヘッドと空状態のみ (未実装は PR に記載)。
         /// </summary>
-        private void BuildPlayers()
+        private void BuildPlayers(GameObject mainZone)
         {
-            var panel = At(V5Ui.Panel(frame.gameObject, "Players", new Vector2(PlayersW, RankingH),
-                V5Tokens.Key2, 16f), MainX + PlayersX, MainY + 24f);
+            var panel = At(V5Ui.Panel(mainZone, "Players", new Vector2(PlayersW, RankingH),
+                V5Tokens.Key2, V6Tokens.RadiusLarge), PlayersX, 24f);
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
-            At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 40f);
-            V5GameUi.Text(head.gameObject, "Label", "PLAYERS", 18f, V5Tokens.TextDim);
-            var headSpacer = V5Ui.Node(head.gameObject, "Spacer");
-            var headSpacerLe = headSpacer.AddComponent<LayoutElement>();
-            headSpacerLe.flexibleWidth = 1f;
-            var chevronLeft = V5Ui.Panel(head.gameObject, "Arrow chevron-left", new Vector2(32f, 32f),
-                V5Tokens.Key4, 8f);
-            var chevronLeftIcon = V6Icons.Create(chevronLeft, "chevron-left", 20f, V5Tokens.TextMuted, "Icon");
-            if (chevronLeftIcon != null)
-            {
-                Stretch(chevronLeftIcon.rectTransform, 32f, 32f);
-            }
+            At(head, 8f, 8f, 496f, 40f);
+            V5GameUi.Text(head.gameObject, "Title", "PLAYERS", 18f, V5Tokens.TextDim);
+            var spacer = V5Ui.Node(head.gameObject, "Spacer");
+            var spacerLe = spacer.AddComponent<LayoutElement>();
+            spacerLe.flexibleWidth = 1f;
+            MakeIconButton(head.gameObject, "chevron-left", 0f, 0f, 32f, V5Tokens.Key4, V6Tokens.RadiusMedium, 24f, V5Tokens.TextMuted);
             V5GameUi.Text(head.gameObject, "Metric", "累計スコア", 18f, V5Tokens.Text, TextAlignmentOptions.Center);
-            var chevronRight = V5Ui.Panel(head.gameObject, "Arrow chevron-right", new Vector2(32f, 32f),
-                V5Tokens.Key4, 8f);
-            var chevronRightIcon = V6Icons.Create(chevronRight, "chevron-right", 20f, V5Tokens.TextMuted, "Icon");
-            if (chevronRightIcon != null)
-            {
-                Stretch(chevronRightIcon.rectTransform, 32f, 32f);
-            }
-
-            var noData = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim,
-                TextAlignmentOptions.Center);
-            At(noData, 8f, 300f, 496f, 44f, new Vector2(0f, 0.5f));
+            MakeIconButton(head.gameObject, "chevron-right", 0f, 0f, 32f, V5Tokens.Key4, V6Tokens.RadiusMedium, 24f, V5Tokens.TextMuted);
+            V5GameUi.Text(panel.gameObject, "NoData", "NO DATA", 24f, V5Tokens.TextDim, TextAlignmentOptions.Center);
+            At(panel.transform.Find("NoData").gameObject, 8f, 300f, 496f, 44f, new Vector2(0f, 0.5f));
         }
 
         // --- 入力ヘルパ (マウスのみ。キーは統合担当が結線する) ---
@@ -679,7 +765,7 @@ namespace FlashBeat.UI.V6.Ranking
             }
         }
 
-        // --- uGUI ユーティリティ (design px 左上原点) ---
+        // --- uGUI ユーティリティ (design 空間・左上原点。変換は V6Layout に集約) ---
 
         private static GameObject At(GameObject go, float x, float y)
         {
@@ -698,30 +784,37 @@ namespace FlashBeat.UI.V6.Ranking
 
         private static GameObject At(Component node, float x, float y)
         {
-            var rt = node.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            return node.gameObject;
+            var rt = (RectTransform)node.transform;
+            V6Layout.Place(rt, new Vector2(x, y), rt.sizeDelta);
+            return rt.gameObject;
         }
 
         private static GameObject At(Component node, float x, float y, float w, float h)
         {
-            At(node, x, y);
-            var rt = node.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(w, h);
-            return node.gameObject;
+            var rt = (RectTransform)node.transform;
+            V6Layout.Place(rt, new Vector2(x, y), new Vector2(w, h));
+            return rt.gameObject;
         }
 
         private static GameObject At(Component node, float x, float y, float w, float h, Vector2 pivot)
         {
-            At(node, x, y, w, h);
-            var rt = node.GetComponent<RectTransform>();
+            var rt = (RectTransform)node.transform;
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = pivot;
-            // pivot 変更で位置がずれるので左上 (x, -y) を維持する。
-            rt.anchoredPosition = new Vector2(x, -y);
-            return node.gameObject;
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = V6Layout.ToLocal(new Vector2(
+                x + pivot.x * w,
+                y + (1f - pivot.y) * h));
+            return rt.gameObject;
+        }
+
+        /// <summary>アイコンのみのボタン (V6Controls.IconButton の薄いラッパ)。</summary>
+        private static GameObject MakeIconButton(GameObject parent, string iconName, float x, float y,
+            float size, Color bg, float radius, float iconSize, Color iconColor)
+        {
+            return V6Controls.IconButton(parent, iconName, new Vector2(x, y), new Vector2(size, size),
+                bg, radius, iconSize, iconColor);
         }
 
         /// <summary>親 (row 等) の中央に stretch する (Row/Column の子として使う)。</summary>
@@ -744,6 +837,7 @@ namespace FlashBeat.UI.V6.Ranking
             rt.sizeDelta = new Vector2(size, size);
         }
 
+        /// <summary>Button を追加して操作可能にする (遷移なし)。</summary>
         private static GameObject MakeButton(GameObject go, Action onClick)
         {
             var button = go.AddComponent<Button>();
@@ -758,16 +852,16 @@ namespace FlashBeat.UI.V6.Ranking
             return go;
         }
 
+        private static GameObject MakeViewButton(GameObject go, Action onClick)
+        {
+            return MakeButton(go, onClick);
+        }
+
         private void AddScrollCatcher(GameObject target, int targetId)
         {
             var catcher = target.AddComponent<V6RankingScrollCatcher>();
             catcher.View = this;
             catcher.Target = targetId;
-        }
-
-        private static Color Clear()
-        {
-            return new Color(0f, 0f, 0f, 0f);
         }
 
         private static Color FromHex(string hex)
@@ -786,7 +880,7 @@ namespace FlashBeat.UI.V6.Ranking
         {
             if (View != null)
             {
-                View.UpdateScale();
+                View.UpdatePlacement();
             }
         }
     }
