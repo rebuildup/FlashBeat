@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 using FlashBeat.UI.V6.Game.Hud;
 
 namespace FlashBeat.UI.V6
@@ -35,6 +36,9 @@ namespace FlashBeat.UI.V6
 
         private V6GameHudView hud;
         private GameObject dimCanvas;
+        private RectTransform hudFrame;
+        private GameObject startHint;
+        private Vector2 appliedCanvasSize;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -67,21 +71,22 @@ namespace FlashBeat.UI.V6
             BuildHudLayer();
             HideLegacyPlayfield();
             HideLegacyUi();
+            HideLegacyReadyView();
         }
 
         private void Update()
         {
-            if (hud != null)
-            {
-                // 表示所有: Ready (再生前) は v5 の GameReadyView (V5ReadyCanvas 550)、
-                // 演奏中は v6 HUD。同時に出すと重なって崩れる (Issue #233 / 実機スクリーンショット)。
-                bool show = GManager.played;
-                if (hud.Root.gameObject.activeSelf != show)
-                {
-                    hud.SetVisible(show);
-                }
-                hud.Refresh();
-            }
+            ApplyHudScale();
+            if (hud != null) hud.Refresh();
+            UpdateStartHint();
+        }
+
+        /// <summary>開始前の案内を出し、プレイ開始で隠す。</summary>
+        private void UpdateStartHint()
+        {
+            if (startHint == null) return;
+            bool show = !GManager.played;
+            if (startHint.activeSelf != show) startHint.SetActive(show);
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
@@ -107,11 +112,91 @@ namespace FlashBeat.UI.V6
         {
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", HudSortingOrder);
             canvas.gameObject.transform.SetParent(transform, false);
-            hud = V6GameHudView.Create(canvas.GetComponent<RectTransform>());
+
+            // HUD は design 1920x1080 の座標で組み立て、画面に合わせて等比拡大する。
+            //   1920x1080 → s=1 (design FHD) / 2560x1440 → s=1.333 (design 2K) /
+            //   2560x1664 → s=1.333 (design Mac = 2K と同じ寸法) /
+            //   それ以外 → s=min(W/1920, H/1080)
+            hudFrame = FlashBeat.UI.V5.V5Ui.Node(canvas.gameObject, "V6 HUD Frame 1920x1080")
+                .GetComponent<RectTransform>();
+            hudFrame.anchorMin = new Vector2(0.5f, 0.5f);
+            hudFrame.anchorMax = new Vector2(0.5f, 0.5f);
+            hudFrame.pivot = new Vector2(0.5f, 0.5f);
+            hudFrame.sizeDelta = new Vector2(1920f, 1080f);
+
+            hud = V6GameHudView.Create(hudFrame);
+            BuildStartHint();
 
             // HUD 側の減光は自分のレイヤー (Video Dim canvas) が出す。
             // HUD 内の同名 Image は使わない (順序が崩れるため)。
             DisableInternalDim();
+        }
+
+        /// <summary>
+        /// 「Space で開始」の案内。旧 v5 の ReadyView は v5 样式で画面中央と右上が
+        /// 埋めるので、v6 では同じ位置・同じ書体の案内をこちらで出す。
+        /// </summary>
+        private void BuildStartHint()
+        {
+            var root = FlashBeat.UI.V5.V5Ui.Node(hudFrame.gameObject, "Start Hint");
+            var rt = root.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(420f, 56f);
+            rt.anchoredPosition = new Vector2(0f, -40f);
+
+            var cap = FlashBeat.UI.V5.V5Ui.KeyCap(root, "Space", new Vector2(84f, 36f));
+            var capRt = cap.GetComponent<RectTransform>();
+            capRt.anchorMin = new Vector2(0.5f, 0.5f);
+            capRt.anchorMax = new Vector2(0.5f, 0.5f);
+            capRt.pivot = new Vector2(0f, 0.5f);
+            capRt.anchoredPosition = new Vector2(-70f, 0f);
+
+            var label = FlashBeat.UI.V5.V5Ui.Text(root, "Label", "で開始", 22f,
+                FlashBeat.UI.V5.V5Tokens.TextMuted, TextAlignmentOptions.Left);
+            var labelRt = label.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0.5f, 0.5f);
+            labelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            labelRt.pivot = new Vector2(0f, 0.5f);
+            labelRt.anchoredPosition = new Vector2(22f, 0f);
+            labelRt.sizeDelta = new Vector2(160f, 36f);
+
+            startHint = root;
+        }
+
+        /// <summary>
+        /// HUD フレームを画面に合わせて等比拡大する。
+        ///
+        /// HUD の内部寸法は design の解像度そのまま (FHD 1920x1080 / 2K-Mac 2560x1440)。
+        /// フレームをその大きさにしてから画面へ等比拡大することで、
+        /// どの解像度でも「design と同じ比率」で全面的になる。
+        ///   1920x1080 → s=1 / 2560x1440 → s=1 / 2560x1664 → s=1 (幅基準) /
+        ///   3420x2148 (FHD プロファイル) → s=min(W/1920, H/1080)
+        /// </summary>
+        private void ApplyHudScale()
+        {
+            if (hudFrame == null) return;
+            var parent = hudFrame.parent as RectTransform;
+            if (parent == null) return;
+            Vector2 size = parent.rect.size;
+            if (size.x <= 0f || size.y <= 0f) return;
+
+            var profile = FlashBeat.UI.V5.UISizeProfile.Current;
+            float frameW = 1920f;
+            float frameH = 1080f;
+            if (profile.Name == "2k" || profile.Name == "mac")
+            {
+                frameW = 2560f;
+                frameH = 1440f;
+            }
+
+            if (size == appliedCanvasSize && hudFrame.sizeDelta.x == frameW) return;
+            appliedCanvasSize = size;
+            hudFrame.sizeDelta = new Vector2(frameW, frameH);
+            float s = Mathf.Min(size.x / frameW, size.y / frameH);
+            if (s <= 0f) s = 1f;
+            hudFrame.localScale = new Vector3(s, s, 1f);
         }
 
         private void DisableInternalDim()
@@ -181,6 +266,19 @@ namespace FlashBeat.UI.V6
 
                 var raycaster = canvas.GetComponent<GraphicRaycaster>();
                 if (raycaster != null) raycaster.enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// 旧 v5 の ReadyView (右上の曲情報 + 中央の "Space / Start") を隠す。
+        /// v6 は自分の Start Hint を出す (同じ位置・同じ書体)。
+        /// </summary>
+        private static void HideLegacyReadyView()
+        {
+            var ready = FindObjectsOfType<FlashBeat.UI.V5.GameReadyView>();
+            for (int i = 0; i < ready.Length; i++)
+            {
+                if (ready[i] != null) ready[i].gameObject.SetActive(false);
             }
         }
 
