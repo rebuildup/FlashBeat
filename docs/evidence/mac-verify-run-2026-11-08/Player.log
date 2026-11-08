@@ -1,0 +1,122 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.012 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x10303c250]: surface size 3420x2148
+UnloadTime: 0.644708 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-08T11:03:57Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_M4VWAB.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[Perf] opening video first frame 0ms
+[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+aac497b)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
+[UpdateChecker] staging 済みの新版を再利用します: FlashBeat-0.1.14-macos-39f0c3c.zip (適用はユーザー確認時のみ)。
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+[AutoShot] /Users/rebui/work/FlashBeat.macverify/Builds/run-20261108-200351/shot-00-Opening.png (2560x1664, fullscreen=True)
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+[Perf] scene load start TitleScene
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+Already Fading
+Already Fading
+UnloadTime: 1.688375 ms
+[Perf] scene load end TitleScene 55ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3259.
+Total: 1.438000 ms (FindLiveObjects: 0.081916 ms CreateObjectMapping: 0.130459 ms MarkObjects: 1.199958 ms  DeleteObjects: 0.025625 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoShot] /Users/rebui/work/FlashBeat.macverify/Builds/run-20261108-200351/shot-01-TitleScene.png (2560x1664, fullscreen=True)
+[AutoShot] /Users/rebui/work/FlashBeat.macverify/Builds/run-20261108-200351/shot-02-TitleScene.png (2560x1664, fullscreen=True)
+[AutoShot] /Users/rebui/work/FlashBeat.macverify/Builds/run-20261108-200351/shot-03-TitleScene.png (2560x1664, fullscreen=True)
+Thread 0x170f5b000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16fbeb000 may have been prematurely finalized
+CodeReloadManager destroyed
