@@ -142,6 +142,10 @@ macOS: `~/Library/Application Support/FlashBeat/update`。
   (`UpdateChecker.IsStagedTagNewerThanCurrent`)。旧版・同一バージョンの別ビルドは
   staging も適用もしない (ダウングレード防止)。
 
+公開前・公開後の判定ルール (タグ命名・バージョン更新・チャンネルの分離・旧 Release の扱い・
+CI のライセンス未設定時の扱い・展示 PC への適用手順・監査チェックリスト) は
+[`release-gate.md`](release-gate.md) にまとめています。
+
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
