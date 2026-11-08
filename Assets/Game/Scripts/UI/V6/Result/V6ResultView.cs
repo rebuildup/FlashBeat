@@ -27,6 +27,12 @@ namespace FlashBeat.UI.V6.Result
     /// </summary>
     public sealed class V6ResultView
     {
+        /// <summary>
+        /// v6 Result を出すか (統合担当が V6UiMode から切替えるための公開フラグ)。
+        /// 既定 true。false のとき ResultSceneManager は従来どおり v5 ResultView を作る。
+        /// </summary>
+        public static bool Enabled = true;
+
         // --- design px 定数 (zcSHh / lqHaN 実測) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -84,9 +90,13 @@ namespace FlashBeat.UI.V6.Result
         private RectTransform songRankRows;
         private TextMeshProUGUI playerRankEmpty;
 
-        // 登録モーダル (05b)。入力ダイアログ機能は未実装 (見た目と開閉のみ)。
+        // 登録モーダル (Issue #240)。名前入力 + 送信 + 結果表示を実装する。
         private GameObject modal;
         private TextMeshProUGUI modalNameValue;
+        private TextMeshProUGUI modalStatus;
+        private Button modalRegisterButton;
+        private ResultRankingOverlay legacyOverlay;
+        private bool legacyOverlayWasEnabled;
         private TextMeshProUGUI modalSongTitle;
         private TextMeshProUGUI modalSongArtist;
         private TextMeshProUGUI modalGrade;
@@ -96,6 +106,20 @@ namespace FlashBeat.UI.V6.Result
         private TextMeshProUGUI modalScoreValue;
         private Image modalThumb;
         private bool modalOpen;
+
+        // 登録送信の状態 (loading / success / duplicate / offline / server error)。
+        private V6ResultLogic.SubmitOutcome submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
+        private bool submitInFlight;
+        private bool submittedThisResult;
+        private readonly System.Text.StringBuilder nameBuffer = new System.Text.StringBuilder();
+
+        // run snapshot (Issue #240): 表示前に GManager.ResetSession() が呼ばれて値が
+        // 消えるなら、消える前に捕捉する。初回 Refresh で固定し、以後は確定値を使う。
+        private int runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo;
+        private bool runCaptured;
+
+        /// <summary>登録成功時にサーバから返された順位 (0 = 未登録)。</summary>
+        private int myRank;
 
         // 前回最高 (リザルト確定時の値)。統合担当が SetPrevHiscore で渡す
         // (未指定なら差分表示は "–")。
@@ -158,6 +182,11 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
+            if (!runCaptured)
+            {
+                CaptureRun();
+            }
+
             UpdateScale();
             RefreshResult();
             RefreshSongInfo();
@@ -181,6 +210,8 @@ namespace FlashBeat.UI.V6.Result
                 V5GameUi.DestroyNow(rootGo);
                 rootGo = null;
             }
+
+            ResumeLegacyOverlay();
         }
 
         // --- 毎フレーム (V6ResultViewDriver から呼ばれる) ---
@@ -203,13 +234,7 @@ namespace FlashBeat.UI.V6.Result
 
             if (modalOpen)
             {
-                // モーダルの入力機能は未実装: Esc / Enter で閉じるだけ。
-                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Return)
-                    || Input.GetKeyDown(KeyCode.KeypadEnter))
-                {
-                    CloseModal();
-                }
-
+                HandleModalInput();
                 return;
             }
 
@@ -227,10 +252,14 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
-            // Enter = 登録モーダルを開く (design 凡例: Enter 登録)。
+            // Enter = 登録モーダルを開く (design 凡例: Enter 登録)。登録済みなら再送しない。
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
-                OpenModal();
+                if (!submittedThisResult)
+                {
+                    OpenModal();
+                }
+
                 return;
             }
 
@@ -556,7 +585,8 @@ namespace FlashBeat.UI.V6.Result
             var capText = V5GameUi.Text(cap.gameObject, "Key", "A-Z 0-9", 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(capText.GetComponent<RectTransform>(), 104f, 32f);
-            V5GameUi.Text(hints.gameObject, "Hint Text", "最大8文字", 16f, V5Tokens.TextMuted);
+            V5GameUi.Text(hints.gameObject, "Hint Text",
+                "最大" + RankingClient.NicknameMaxLength + "文字", 16f, V5Tokens.TextMuted);
             var spacer = V5Ui.Node(hints.gameObject, "Spacer");
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
@@ -599,7 +629,7 @@ namespace FlashBeat.UI.V6.Result
             V5GameUi.Text(skipRow.gameObject, "Label", "Skip", 26f, V5Tokens.Text, TextAlignmentOptions.Center);
             BuildModalKeyCap(skipRow.gameObject, "Esc");
             var register = Button(buttons.gameObject, "Button Register", 252f, 50f, 8f, V5Tokens.ButtonPrimaryBg,
-                CloseModal);
+                TrySubmitFromButton);
             var registerRow = V5GameUi.Row(register, "Inner", 12f, TextAnchor.MiddleCenter);
             Stretch(registerRow.GetComponent<RectTransform>(), 252f, 50f);
             V5GameUi.Text(registerRow.gameObject, "Icon", "✓", 22f, V5Tokens.ButtonPrimaryLabel,
@@ -607,6 +637,13 @@ namespace FlashBeat.UI.V6.Result
             V5GameUi.Text(registerRow.gameObject, "Label", "Register", 26f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center, FontStyles.Normal);
             BuildModalKeyCap(registerRow.gameObject, "Enter");
+            modalRegisterButton = register.GetComponent<Button>();
+
+            // 状態メッセージ (loading / success / duplicate / offline / server error)。
+            // Head と Name Field の間 (y72) に置く (field は y112 から)。
+            modalStatus = V5GameUi.Text(dialog.gameObject, "Status", "", 17f, V5Tokens.TextMuted,
+                TextAlignmentOptions.Left);
+            At(modalStatus, 28f, 72f, 784f, 26f, new Vector2(0f, 0.5f));
 
             modal.SetActive(false);
         }
@@ -635,7 +672,23 @@ namespace FlashBeat.UI.V6.Result
             }
 
             modalOpen = true;
+            submitInFlight = false;
+            submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
+            nameBuffer.Length = 0;
+            string saved = RankingClient.LoadNickname();
+            if (!string.IsNullOrEmpty(saved))
+            {
+                nameBuffer.Append(saved);
+            }
+
+            // 旧オーバーレイ (ResultRankingOverlay) は Result シーンで自動で
+            // モーダルを開き、キーも処理する。二重モーダルと二重入力を防ぐため
+            // v6 モーダル表示中は停止し、閉じたら戻す (ソースは編集しない)。
+            SuspendLegacyOverlay();
+
+            RefreshModalName();
             RefreshModal();
+            SetModalStatus("", V5Tokens.TextMuted);
             modal.SetActive(true);
         }
 
@@ -647,22 +700,256 @@ namespace FlashBeat.UI.V6.Result
             }
 
             modalOpen = false;
+            if (submitInFlight)
+            {
+                // 応答待ちの送信は破棄しない (閉じてもコルーチンは完了させる)。
+                // 失敗しても 429/10 秒窓でサーバ側が重複を拒否するため二重登録にはならない。
+                submitInFlight = false;
+            }
+
+            SetRegisterInteractable(true);
             modal.SetActive(false);
+            ResumeLegacyOverlay();
             FlashBeat.UI.SceneInputGate.BlockThisFrame();
+        }
+
+        // --- 登録送信 (Issue #240) ---
+
+        /// <summary>ボタン経由の送信。送信中と登録済みは無視する (二重送信防止)。</summary>
+        private void TrySubmitFromButton()
+        {
+            if (submitInFlight || submittedThisResult)
+            {
+                return;
+            }
+
+            TrySubmit();
+        }
+
+        private void TrySubmit()
+        {
+            if (submitInFlight || submittedThisResult)
+            {
+                return;
+            }
+
+            V6ResultLogic.NicknameError error = V6ResultLogic.ValidateNicknameInput(
+                nameBuffer.ToString(), RankingClient.NicknameMaxLength);
+            if (error != V6ResultLogic.NicknameError.None)
+            {
+                SetModalStatus(NicknameErrorMessage(error), FromHex("#FFD64D"));
+                return;
+            }
+
+            submitInFlight = true;
+            submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
+            SetModalStatus(V6ResultLogic.SubmitStatusMessage(V6ResultLogic.SubmitOutcome.Pending, 0),
+                FromHex("#99E5FF"));
+            SetRegisterInteractable(false);
+            RunCoroutine(SubmitCoroutine(nameBuffer.ToString().Trim()));
+        }
+
+        private IEnumerator SubmitCoroutine(string nickname)
+        {
+            SongData song = SongOf();
+            if (song == null || string.IsNullOrEmpty(song.remoteId) || song.chartVersion <= 0
+                || !RankingClient.IsValidSongId(song.remoteId))
+            {
+                // 送信対象が無い (ローカル曲 / 譜面未取得)。偽の成功は出さない。
+                OnSubmitResult(null);
+                yield break;
+            }
+
+            RankingClient.Result result = null;
+            yield return RankingClient.PostScore(song.remoteId, song.chartVersion, nickname,
+                runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo, r => { result = r; });
+            OnSubmitResult(result);
+        }
+
+        private void OnSubmitResult(RankingClient.Result result)
+        {
+            if (!submitInFlight)
+            {
+                return; // 閉じたあとの応答は捨てる
+            }
+
+            submitInFlight = false;
+            submitOutcome = V6ResultLogic.ClassifySubmitResult(
+                result != null && result.ok, result != null ? result.httpCode : 0,
+                result != null ? result.error : null);
+
+            if (submitOutcome == V6ResultLogic.SubmitOutcome.Success
+                && result.score != null && result.score.rank > 0)
+            {
+                // 偽の成功を出さない: 順位はサーバ応答からのみ。
+                RankingClient.SaveNickname(nameBuffer.ToString().Trim());
+                submittedThisResult = true;
+                myRank = result.score.rank;
+                SetRegisterInteractable(true);
+                SetModalStatus("", V5Tokens.TextMuted);
+                CloseModal();
+                // 登録後の順位 (自分の行のハイライト) は再取得したランキングから。
+                StartRankingFetch();
+                return;
+            }
+
+            // 失敗: その事実を出して再送を許す (Esc = スキップ)。
+            SetRegisterInteractable(true);
+            SetModalStatus(V6ResultLogic.SubmitStatusMessage(submitOutcome,
+                result != null ? result.httpCode : 0), FromHex("#FF9999"));
+        }
+
+        private static string NicknameErrorMessage(V6ResultLogic.NicknameError error)
+        {
+            switch (error)
+            {
+                case V6ResultLogic.NicknameError.Empty:
+                    return "なまえを いれてください";
+                case V6ResultLogic.NicknameError.TooLong:
+                    return "なまえが ながすぎます (最大 " + RankingClient.NicknameMaxLength + "文字)";
+                case V6ResultLogic.NicknameError.InvalidChar:
+                    return "なまえに つかえない文字が あります";
+                default:
+                    return "";
+            }
+        }
+
+        private void HandleModalInput()
+        {
+            if (submitInFlight)
+            {
+                return; // 応答待ち。Esc で中断はしない (二重送信を防ぐ)。
+            }
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                CloseModal();
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Backspace))
+            {
+                if (nameBuffer.Length > 0)
+                {
+                    nameBuffer.Length -= 1;
+                }
+
+                RefreshModalName();
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                TrySubmit();
+                return;
+            }
+
+            // Input.inputString から 1 文字ずつ受け取る (レイアウト非依存・IME 不要。
+            // ResultRankingOverlay と同じ方式)。
+            string input = Input.inputString;
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (c < ' ')
+                {
+                    continue; // 制御文字 (\n, \b) は KeyCode 側で処理済み
+                }
+
+                if (nameBuffer.Length >= RankingClient.NicknameMaxLength)
+                {
+                    break;
+                }
+
+                nameBuffer.Append(c);
+            }
+
+            if (input.Length > 0)
+            {
+                RefreshModalName();
+            }
+        }
+
+        private void RefreshModalName()
+        {
+            if (modalNameValue != null)
+            {
+                modalNameValue.text = nameBuffer.ToString();
+            }
+        }
+
+        private void SetModalStatus(string message, Color color)
+        {
+            if (modalStatus != null)
+            {
+                modalStatus.text = message;
+                modalStatus.color = color;
+            }
+        }
+
+        private void SetRegisterInteractable(bool interactable)
+        {
+            if (modalRegisterButton != null)
+            {
+                modalRegisterButton.interactable = interactable;
+            }
+        }
+
+        private void SuspendLegacyOverlay()
+        {
+            if (legacyOverlay == null)
+            {
+                legacyOverlay = UnityEngine.Object.FindFirstObjectByType<ResultRankingOverlay>();
+            }
+
+            if (legacyOverlay != null)
+            {
+                // 停止前の状態を覚えておく。統合側が v6 有効時に先に enabled=false して
+                // いる場合、モーダルを閉じたときに再有効化して自動モーダルを
+                // 復活させてしまわないようにする。
+                legacyOverlayWasEnabled = legacyOverlay.enabled;
+                legacyOverlay.enabled = false;
+            }
+        }
+
+        private void ResumeLegacyOverlay()
+        {
+            if (legacyOverlay != null)
+            {
+                if (legacyOverlayWasEnabled)
+                {
+                    legacyOverlay.enabled = true;
+                }
+                legacyOverlay = null;
+            }
         }
 
         // --- 実データの反映 ---
 
+        /// <summary>
+        /// 表示前に GManager.ResetSession() が呼ばれて値が消えるなら、消える前に
+        /// 捕捉する (初回 Refresh で 1 回だけ)。以後の Refresh は確定値を使う。
+        /// </summary>
+        private void CaptureRun()
+        {
+            runScore = Mathf.Max(0, GManager.score);
+            runPerfect = GManager.perfect;
+            runGreat = GManager.great;
+            runBad = GManager.bad;
+            runMiss = GManager.miss;
+            runMaxCombo = GManager.maxCombo;
+            runCaptured = true;
+        }
+
         private void RefreshResult()
         {
-            int score = GManager.score;
+            int score = runScore;
             gradeLetter.text = V6ResultLogic.GradeOf(score);
             scoreValue.text = V6ResultLogic.FormatScore(score);
-            judgeValues[0].text = GManager.perfect.ToString();
-            judgeValues[1].text = GManager.great.ToString();
-            judgeValues[2].text = GManager.bad.ToString();
-            judgeValues[3].text = GManager.miss.ToString();
-            judgeValues[4].text = GManager.maxCombo.ToString();
+            judgeValues[0].text = runPerfect.ToString();
+            judgeValues[1].text = runGreat.ToString();
+            judgeValues[2].text = runBad.ToString();
+            judgeValues[3].text = runMiss.ToString();
+            judgeValues[4].text = runMaxCombo.ToString();
 
             float fill = V6ResultLogic.GaugeFillWidth(score);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);
@@ -774,8 +1061,8 @@ namespace FlashBeat.UI.V6.Result
 
         private void RefreshModal()
         {
-            modalNameValue.text = RankingClient.LoadNickname();
-            int score = GManager.score;
+            RefreshModalName();
+            int score = runScore;
             modalScoreValue.text = V6ResultLogic.FormatScore(score);
             modalGrade.text = V6ResultLogic.GradeOf(score);
 
@@ -869,7 +1156,8 @@ namespace FlashBeat.UI.V6.Result
                         PlayerName = entry.nickname ?? "",
                         Score = entry.score,
                         Grade = FlashBeat.UI.V6.Select.Data.V6SelectDataLogic.GradeOf(entry.score),
-                        IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
+                        IsYou = (!string.IsNullOrEmpty(nickname) && entry.nickname == nickname)
+                            || (myRank > 0 && entry.rank == myRank),
                     });
                 }
             }
