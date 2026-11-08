@@ -92,7 +92,8 @@ public class AutoTestV6 : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return Screenshot("03-game");
 
-        // 4. 旧 UI が残っていないか (v6 以外の Canvas に有効なグラフィックが無いか)。
+        // 4. 旧 UI が残っていないか。ただし Ready 中 (再生前) は v5 の GameReadyView が
+        //    単独所有する設計なので、V5ReadyCanvas は正当な表示。
         var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
         int legacyVisible = 0;
         for (int i = 0; i < graphics.Length; i++)
@@ -101,13 +102,22 @@ public class AutoTestV6 : MonoBehaviour
             if (g == null || !g.isActiveAndEnabled) continue;
             var canvas = g.GetComponentInParent<Canvas>();
             if (canvas == null || canvas.name.StartsWith("V6")) continue;
+            if (canvas.name == "V5ReadyCanvas" && !GManager.played) continue;
             legacyVisible++;
             Debug.Log("[AutoTestV6] LEGACY VISIBLE: " + canvas.name + " / " + g.gameObject.name);
         }
         Check("no legacy graphics are visible", legacyVisible == 0);
 
         // 5. v6 のプレイフィールドと HUD が scene にある。
-        Check("the v6 playfield exists", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current != null);
+        // v6 の遠近法プレイフィールドは既定で無効 (元の 3D レーンを使う)。
+        if (FlashBeat.UI.V6.V6UiMode.Playfield)
+        {
+            Check("the v6 playfield exists", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current != null);
+        }
+        else
+        {
+            Check("the original 3D lanes are kept", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current == null);
+        }
         Check("the v6 hud exists", FindFirstObjectByType<FlashBeat.UI.V6.Game.Hud.V6GameHudView>() != null);
 
         // 5. 実機確認: メディア的准备 → Space で開始 → ノーツが流れる状態の画面を撮る。
