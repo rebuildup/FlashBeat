@@ -84,7 +84,7 @@ namespace FlashBeat.UI.V6.Select.View
             // 実データの変更 (選択の移動・検索・カタログ更新) を再描画の起点にする。
             // 購読しないと中央パネルとランキングが古い状態のままになる。
             data.Changed += view.OnDataChanged;
-            view.Rebuild(false);
+            view.Rebuild();
             Current = view;
             return view;
         }
@@ -95,7 +95,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void OnDataChanged()
         {
             if (rootGo == null || !rootGo.activeInHierarchy) return;
-            Rebuild(true);
+            Rebuild();
         }
 
         /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
@@ -109,7 +109,7 @@ namespace FlashBeat.UI.V6.Select.View
         /// <summary>data.Changed の再描画起点。選択行が見えるようにスクロールを追従させる。</summary>
         public void Refresh()
         {
-            Rebuild(true);
+            Rebuild();
         }
 
         public void SetVisible(bool visible)
@@ -124,7 +124,7 @@ namespace FlashBeat.UI.V6.Select.View
         public void FocusSearch()
         {
             searchFocused = true;
-            Rebuild(false);
+            Rebuild();
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace FlashBeat.UI.V6.Select.View
         public void OpenQuickSettings()
         {
             settingsOpen = true;
-            Rebuild(false);
+            Rebuild();
         }
 
         /// <summary>表示する曲リスト (実データ + 未プレイのみトグル)。</summary>
@@ -157,7 +157,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void ToggleUnplayedFilter()
         {
             unplayedOnly = !unplayedOnly;
-            Rebuild(false);
+            Rebuild();
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 case V6SelectAction.UnfocusSearch:
                     searchFocused = false;
-                    Rebuild(false);
+                    Rebuild();
                     return;
                 case V6SelectAction.MoveUp:
                     data.MoveSelection(-1);
@@ -232,7 +232,7 @@ namespace FlashBeat.UI.V6.Select.View
                     return;
                 case V6SelectAction.FocusSearch:
                     searchFocused = true;
-                    Rebuild(false);
+                    Rebuild();
                     return;
             }
 
@@ -296,7 +296,7 @@ namespace FlashBeat.UI.V6.Select.View
             frame.sizeDelta = new Vector2(FrameW, FrameH);
         }
 
-        private void Rebuild(bool revealSelection)
+        private void Rebuild()
         {
             if (rootGo == null)
             {
@@ -320,12 +320,8 @@ namespace FlashBeat.UI.V6.Select.View
             // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
             var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
-            if (revealSelection)
-            {
-                listScroll = V6SelectViewLogic.ScrollToReveal(selectIndex, listScroll, ListVisibleRows);
-            }
-
-            listScroll = V6SelectViewLogic.ClampScroll(listScroll, songs.Count, ListVisibleRows);
+            // 選択中の曲を常にリスト中央に表示する (端ではクランプ)。以前の位置を引きずらない。
+            listScroll = V6SelectViewLogic.CenterScroll(selectIndex, songs.Count, ListVisibleRows);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
                 data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
 
@@ -880,13 +876,13 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             settingsOpen = true;
-            Rebuild(false);
+            Rebuild();
         }
 
         private void CloseSettings()
         {
             settingsOpen = false;
-            Rebuild(false);
+            Rebuild();
         }
 
         /// <summary>
@@ -957,9 +953,10 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void ScrollList(int delta)
         {
-            listScroll = V6SelectViewLogic.ClampScroll(listScroll + delta, data.FilteredSongs.Count,
-                ListVisibleRows);
-            Rebuild(false);
+            // スクロール (ホイール / ボタン) は選択曲を delta だけ動かす操作。
+            // スクロール位置は Rebuild で選択曲から常に再計算される (中央固定)。
+            data.MoveSelection(delta);
+            Rebuild();
         }
 
         internal void OnScroll(int target, float delta)
@@ -973,7 +970,7 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll + step,
                     data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
-                Rebuild(false);
+                Rebuild();
             }
         }
 

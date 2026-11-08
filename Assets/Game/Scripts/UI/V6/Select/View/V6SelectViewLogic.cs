@@ -238,6 +238,48 @@ namespace FlashBeat.UI.V6.Select.View
             return scroll;
         }
 
+        /// <summary>
+        /// 選択行 (index) がリストの中央に来るスクロール位置を返す。
+        /// index が -1 / 範囲外の場合は既存のクランプに従い 0..rowCount-1 に直してから計算する。
+        /// 端の曲 (上端 / 下端) ではリストが端までスクロールされ、選択行が上端 / 下端に寄る。
+        /// </summary>
+        public static int CenterScroll(int index, int rowCount, int visibleRows)
+        {
+            if (visibleRows <= 0 || rowCount <= 0)
+            {
+                return 0;
+            }
+
+            if (index < 0)
+            {
+                index = 0;
+            }
+
+            if (index > rowCount - 1)
+            {
+                index = rowCount - 1;
+            }
+
+            int max = rowCount - visibleRows;
+            if (max <= 0)
+            {
+                return 0;
+            }
+
+            int scroll = index - visibleRows / 2;
+            if (scroll < 0)
+            {
+                return 0;
+            }
+
+            if (scroll > max)
+            {
+                return max;
+            }
+
+            return scroll;
+        }
+
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>
         public static string FormatScore(int score)
         {
