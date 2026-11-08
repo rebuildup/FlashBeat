@@ -17,7 +17,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: ["studio-flow.spec.ts", "visitor-flow.spec.ts"],
-  timeout: 30_000,
+  // The dev server compiles pages on demand; a cold first hit of the editor
+  // and publish chunks can exceed 30s within one test.
+  timeout: 120_000,
   retries: 0,
   // The dev server compiles pages on demand; a cold first hit can exceed the
   // 5s default expect timeout when workers run in parallel.

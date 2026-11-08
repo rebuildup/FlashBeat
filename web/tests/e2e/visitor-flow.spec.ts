@@ -131,14 +131,17 @@ for (const viewport of VIEWPORTS) {
     await expect(page.locator("a[data-row-link]:visible").first()).toBeFocused();
 
     // 3. 結果確認: the row opens the chart of that song; the primary CTA
-    // plays the song on YouTube (preview playback stays in the editor panel).
+    // stays inside the Studio — it focuses the preview's Play control.
     await firstRow.click();
     await expect(page).toHaveURL(/\/chart\?songId=.+/);
     await expect(page.getByTestId("chart-identity")).toBeVisible();
     await expect(page.getByTestId("publish-token-hint")).toBeVisible();
-    const trySong = page.getByTestId("try-song-link");
-    await expect(trySong).toBeVisible();
-    await expect(trySong).toHaveAttribute("href", /youtu\.be/);
+    const tryIt = page.getByTestId("try-song-button");
+    await expect(tryIt).toBeVisible();
+    // The source video is a demoted secondary link now.
+    await expect(page.getByTestId("open-youtube-link")).toBeVisible();
+    await tryIt.click();
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeFocused();
     await shot(page, viewport.name, "2-chart");
 
     // 4. 戻る: back to the song list, then やり直し: pick again.

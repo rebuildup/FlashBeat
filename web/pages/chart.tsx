@@ -58,6 +58,43 @@ const tokenHint = css({
   whiteSpace: "nowrap",
 });
 
+/** Demoted secondary link to the source video (issue #215 review). */
+const youtubeLink = css({
+  color: "fg.muted",
+  fontSize: "xs",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+  _hover: { color: "fg.default" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "2px",
+  },
+});
+
+/**
+ * Bring the editor's YouTube preview — the only owner of playback (#216) —
+ * into view and focus its Play control, so Enter/Space starts the song
+ * without leaving the Studio. Falls back to the player container itself when
+ * the Play control is not found (the preview markup is #216's area).
+ */
+function tryPreview(): void {
+  const player = document.querySelector<HTMLElement>('[data-testid="youtube-player"]');
+  if (!player) return;
+  player.scrollIntoView({ block: "center" });
+  const play = Array.from(document.querySelectorAll("button")).find(
+    (button) =>
+      (button.textContent ?? "").trim() === "Play" &&
+      (button.offsetParent !== null || button === document.activeElement),
+  );
+  if (play) {
+    play.focus();
+    return;
+  }
+  player.tabIndex = -1;
+  player.focus();
+}
+
 export default function ChartPage({ songId, version }: Props) {
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
@@ -104,19 +141,30 @@ export default function ChartPage({ songId, version }: Props) {
           </p>
         </div>
         <div className={pageActions}>
-          {/* Issue #215 review: the visitor's primary CTA plays the song
-              (preview playback stays inside the editor panel); the publish
-              path is staff and demoted to the outline variant. */}
+          {/* Issue #215 review: the visitor's primary CTA stays inside the
+              Studio — it brings the editor's YouTube preview (the only owner
+              of playback, #216) into view and focuses its Play control. The
+              staff publish path is demoted to the outline variant. */}
           {session?.song.youtubeId ? (
-            <a
-              className={primaryCta}
-              href={`https://youtu.be/${encodeURIComponent(session.song.youtubeId)}`}
-              rel="noreferrer"
-              target="_blank"
-              data-testid="try-song-link"
-            >
-              再生して試す / Try the song
-            </a>
+            <>
+              <Button
+                className={primaryCta}
+                size="sm"
+                data-testid="try-song-button"
+                onClick={tryPreview}
+              >
+                再生して試す / Try it
+              </Button>
+              <a
+                className={youtubeLink}
+                href={`https://youtu.be/${encodeURIComponent(session.song.youtubeId)}`}
+                rel="noreferrer"
+                target="_blank"
+                data-testid="open-youtube-link"
+              >
+                YouTube で開く
+              </a>
+            </>
           ) : null}
           <Button
             variant="outline"

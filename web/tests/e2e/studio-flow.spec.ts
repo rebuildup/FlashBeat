@@ -58,10 +58,10 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await expect(page.getByTestId("chart-identity")).toContainText("Who");
   await expect(page.getByTestId("chart-identity")).toContainText("v1");
 
-  // The editor is ready; the visitor's primary CTA plays the song and the
-  // staff publish path is demoted to the outline variant (issue #215 review).
+  // The editor is ready; the visitor's primary CTA focuses the preview's
+  // Play control and the staff publish path is demoted (issue #215 review).
   await expect(page.getByTestId("publish-token-hint")).toContainText("adminトークン");
-  await expect(page.getByTestId("try-song-link")).toBeVisible();
+  await expect(page.getByTestId("try-song-button")).toBeVisible();
   const review = page.getByRole("button", { name: "公開に進む / Review & Publish" });
   await expect(review).toBeVisible();
   await review.click();
