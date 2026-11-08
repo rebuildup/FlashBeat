@@ -243,10 +243,19 @@ namespace FlashBeat.UI.V6
             var profile = FlashBeat.UI.V5.UISizeProfile.Current;
             float frameW = 1920f;
             float frameH = 1080f;
-            if (profile.Name == "2k" || profile.Name == "mac")
+            if (profile.Name == "2k")
             {
                 frameW = 2560f;
                 frameH = 1440f;
+            }
+            else if (profile.Name == "mac")
+            {
+                // design: MacBook 2560x1664 (16:10)。2K と同じ px だが縦は
+                // ネイティブ解像度いっぱい (上下アンカーが画面端に来る)。
+                // 端数を縮小解像度で埋めない (Issue #233: 解像度を水増しして
+                // テストしない — ネイティブ解像度で design 通りに出す)。
+                frameW = 2560f;
+                frameH = 1664f;
             }
 
             if (size == appliedCanvasSize && hudFrame.sizeDelta.x == frameW) return;

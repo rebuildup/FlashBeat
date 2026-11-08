@@ -57,6 +57,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private GameObject bonusRow;
         private TextMeshProUGUI bonusValueText;
         private GameObject comboStatusRow;
+        private GameObject fullComboChip;
         private TextMeshProUGUI nextBonusText;
         private TextMeshProUGUI nextBonusReward;
         private GameObject keyGuideRow;
@@ -129,6 +130,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
             comboStatusRow.SetActive(showStatus);
+
+            // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
+            // 演奏中ずっと出しっぱなしにすると内容を反映しない表示になる (Issue #233)。
+            var currentSong = GManager.GetSong(GManager.songID);
+            bool songComplete = GManager.played && currentSong != null && currentSong.totalHits > 0
+                && judged >= currentSong.totalHits;
+            if (fullComboChip != null && fullComboChip.activeSelf != (songComplete && GManager.miss == 0))
+            {
+                fullComboChip.SetActive(songComplete && GManager.miss == 0);
+            }
 
             int milestone = GameHudLogic.NextBonusMilestone(GManager.combo);
             comboFill.sizeDelta = new Vector2(
@@ -486,6 +497,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var chip = V5Ui.Panel(comboStatusRow, "Full Combo",
                 new Vector2(m.FcChipW, m.FcChipH), V5Tokens.WarnTint, 4f);
+            fullComboChip = chip;
             var chipLe = chip.AddComponent<LayoutElement>();
             chipLe.minWidth = m.FcChipW;
             chipLe.preferredHeight = m.FcChipH;
