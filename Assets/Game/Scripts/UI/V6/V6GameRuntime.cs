@@ -3,6 +3,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V6.Game.Hud;
+using FlashBeat.UI.V6.Game.Loading;
+using FlashBeat.UI.V6.Game.Pause;
 
 namespace FlashBeat.UI.V6
 {
@@ -32,12 +34,16 @@ namespace FlashBeat.UI.V6
         /// <summary>HUD (プレイフィールドより上)。</summary>
         private const int HudSortingOrder = -1;
 
+        /// <summary>ポーズ / ローディング (最前面)。</summary>
+        private const int PauseSortingOrder = 600;
+
         private static bool subscribed;
 
         private V6GameHudView hud;
         private GameObject dimCanvas;
         private RectTransform hudFrame;
-        private GameObject startHint;
+        private V6PauseView pause;
+        private V6LoadingView loading;
         private Vector2 appliedCanvasSize;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -69,12 +75,15 @@ namespace FlashBeat.UI.V6
         {
             BuildDimLayer();
             BuildHudLayer();
+            BuildPauseAndLoading();
             HideLegacyPlayfield();
             HideLegacyUi();
+            HideLegacyPauseAndLoading();
         }
 
         private void Update()
         {
+            UpdatePause();
             ApplyHudScale();
             if (hud != null)
             {
@@ -86,6 +95,41 @@ namespace FlashBeat.UI.V6
                     hud.SetVisible(show);
                 }
                 hud.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// v6 ポーズの開閉と入力。Esc で開閉、矢印で項目移動、左右で値変更。
+        /// 既存の KeyActions の割当をそのまま使う (Judge / KeyBindings と同じ正本)。
+        /// </summary>
+        private void UpdatePause()
+        {
+            if (pause == null) return;
+
+            bool menuOpen = GameSceneManager.Menu;
+            if (!menuOpen && KeyActions.IsDown(KeyActions.KeyAction.Back))
+            {
+                pause.Open();
+                GameSceneManager.Menu = true;
+                return;
+            }
+            if (menuOpen && pause.IsOpen)
+            {
+                if (KeyActions.IsDown(KeyActions.KeyAction.Back))
+                {
+                    pause.Close();
+                    GameSceneManager.Menu = false;
+                    return;
+                }
+                if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch)) pause.SelectNextTab(1);
+                if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev)) pause.MoveSelection(-1);
+                if (KeyActions.IsDown(KeyActions.KeyAction.NavNext)) pause.MoveSelection(1);
+                var manager = FindObjectOfType<GameSceneManager>();
+                if (manager == null) return;
+                if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); GameSceneManager.Menu = false; manager.RetryGame(); }
+                if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd)) { pause.Close(); GameSceneManager.Menu = false; manager.GameEnd(); }
+                if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetire)) { pause.Close(); GameSceneManager.Menu = false; manager.RetireGame(); }
+                pause.Refresh();
             }
         }
 
@@ -117,6 +161,20 @@ namespace FlashBeat.UI.V6
             rt.offsetMax = Vector2.zero;
         }
 
+        /// <summary>
+        /// v6 のポーズ / 曲ローディング (#224)。旧 v5 の実装は作らない
+        /// (V6UiMode.GameHud が有効なときだけ v6 側を作る)。
+        /// </summary>
+        private void BuildPauseAndLoading()
+        {
+            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GamePauseCanvas", PauseSortingOrder);
+            canvas.gameObject.transform.SetParent(transform, false);
+
+            pause = V6PauseView.Create(canvas.GetComponent<RectTransform>());
+            loading = V6LoadingView.Create(canvas.GetComponent<RectTransform>());
+            loading.SetVisible(false);
+        }
+
         private void BuildHudLayer()
         {
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", HudSortingOrder);
@@ -141,39 +199,6 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// 「Space で開始」の案内。旧 v5 の ReadyView は v5 样式で画面中央と右上が
-        /// 埋めるので、v6 では同じ位置・同じ書体の案内をこちらで出す。
-        /// </summary>
-        [System.Obsolete("Ready 中の Space 案内は v5 の GameReadyView が担当する。")]
-        private void BuildStartHint()
-        {
-            var root = FlashBeat.UI.V5.V5Ui.Node(hudFrame.gameObject, "Start Hint");
-            var rt = root.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(420f, 56f);
-            rt.anchoredPosition = new Vector2(0f, -40f);
-
-            var cap = FlashBeat.UI.V5.V5Ui.KeyCap(root, "Space", new Vector2(84f, 36f));
-            var capRt = cap.GetComponent<RectTransform>();
-            capRt.anchorMin = new Vector2(0.5f, 0.5f);
-            capRt.anchorMax = new Vector2(0.5f, 0.5f);
-            capRt.pivot = new Vector2(0f, 0.5f);
-            capRt.anchoredPosition = new Vector2(-70f, 0f);
-
-            var label = FlashBeat.UI.V5.V5Ui.Text(root, "Label", "で開始", 22f,
-                FlashBeat.UI.V5.V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            var labelRt = label.GetComponent<RectTransform>();
-            labelRt.anchorMin = new Vector2(0.5f, 0.5f);
-            labelRt.anchorMax = new Vector2(0.5f, 0.5f);
-            labelRt.pivot = new Vector2(0f, 0.5f);
-            labelRt.anchoredPosition = new Vector2(22f, 0f);
-            labelRt.sizeDelta = new Vector2(160f, 36f);
-
-            startHint = root;
-        }
-
         /// <summary>
         /// HUD フレームを画面に合わせて等比拡大する。
         ///
@@ -294,6 +319,32 @@ namespace FlashBeat.UI.V6
             for (int i = 0; i < ready.Length; i++)
             {
                 if (ready[i] != null) ready[i].gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 旧 v5 のポーズ / ローディング / エラー表示を隠す (v6 が同じ役割を持つ)。
+        /// ReadyView (Space 待ち) は残す — 表示所有は Ready 中が v5 / 演奏中が v6。
+        /// </summary>
+        private void HideLegacyPauseAndLoading()
+        {
+            var pauseViews = FindObjectsOfType<FlashBeat.UI.V5.PauseMenuView>();
+            for (int i = 0; i < pauseViews.Length; i++)
+            {
+                if (pauseViews[i] != null) pauseViews[i].gameObject.SetActive(false);
+            }
+
+            var canvases = FindObjectsOfType<Canvas>();
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                Canvas canvas = canvases[i];
+                if (canvas == null) continue;
+                if (canvas.name != "V5OverlayCanvas") continue;
+                var graphics = canvas.GetComponentsInChildren<Graphic>(true);
+                for (int g = 0; g < graphics.Length; g++)
+                {
+                    if (graphics[g] != null) graphics[g].enabled = false;
+                }
             }
         }
 
