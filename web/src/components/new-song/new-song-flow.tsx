@@ -83,7 +83,7 @@ const badge = css({
 });
 
 const goal = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "xs",
   margin: "0",
 });

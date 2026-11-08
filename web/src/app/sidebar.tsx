@@ -76,27 +76,34 @@ const navTrigger = css({
   alignItems: "center",
   borderRadius: "l2",
   color: "fg.muted",
+  colorPalette: "blue",
   display: "flex",
   gap: "2",
   minHeight: "10",
   px: "3",
   textDecoration: "none",
   whiteSpace: "nowrap",
-  _hover: { bg: "#262626", color: "fg.default" },
-  _focusVisible: { outline: "2px solid #3FA9F5", outlineOffset: "2px" },
-  "&[aria-current=page]": { bg: "#2B4457", color: "#9AD3FA" },
+  _hover: { bg: "gray.subtle.bg.hover", color: "fg.default" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "2px",
+  },
+  "&[aria-current=page]": { bg: "colorPalette.subtle.bg", color: "colorPalette.subtle.fg" },
   justifyContent: "flex-start",
   textAlign: "left",
   width: { base: "auto", md: "100%" },
 });
 
-/** v5 primary CTA: the raised #EDEDED control with the dark label. */
+/** v5 primary CTA class (Prefab/Button Primary): the visitor entry is the
+ * one raised control of the rail — same class as the screen primary CTAs. */
 const visitorTrigger = css({
-  bg: "#EDEDED",
-  color: "#1B1B1B",
+  colorPalette: "blue",
+  bg: "colorPalette.solid.bg",
+  color: "colorPalette.solid.fg",
   fontWeight: "medium",
-  _hover: { bg: "#EDEDED", opacity: "0.9", color: "#1B1B1B" },
-  "&[aria-current=page]": { bg: "#EDEDED", color: "#1B1B1B", opacity: "0.9" },
+  _hover: { opacity: "0.9" },
+  "&[aria-current=page]": { opacity: "0.9" },
 });
 
 const staffDivider = css({
@@ -118,7 +125,7 @@ const labelEn = css({
 
 /** Visible admin-token badge on Publish: the boundary shows before the click. */
 const adminBadge = css({
-  bg: "#00000040",
+  bg: "gray.subtle.bg",
   borderRadius: "full",
   color: "fg.muted",
   fontSize: "2xs",

@@ -68,6 +68,28 @@ describe("WelcomeHero (issue #215)", () => {
     expect(document.activeElement).toBe(row);
   });
 
+  it("the CTA skips hidden rows and focuses the first visible one", () => {
+    const dom = renderHero(
+      <>
+        <a href="/chart?songId=a&version=1" data-row-link>
+          A
+        </a>
+        <a href="/chart?songId=b&version=1" data-row-link>
+          B
+        </a>
+      </>,
+    );
+    // The hidden card row (base view) sits before the visible table row at
+    // md+ widths; focus() on a hidden element is a no-op in a real browser.
+    const rows = dom.querySelectorAll("a[data-row-link]");
+    Object.defineProperty(rows[1], "offsetParent", { value: dom });
+    const start = dom.querySelector<HTMLButtonElement>('[data-testid="welcome-start"]')!;
+    act(() => {
+      start.click();
+    });
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
   it("the CTA focuses the search field when no rows exist", () => {
     const dom = renderHero(null);
     const start = dom.querySelector<HTMLButtonElement>('[data-testid="welcome-start"]')!;

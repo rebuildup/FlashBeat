@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { css } from "styled-system/css";
 import { SEARCH_INPUT_ID } from "@/app/topbar";
+import { primaryCta } from "@/app/panel";
 
 /**
  * Visitor entry of the Studio (issue #215): the first screen states the one
@@ -45,36 +46,43 @@ const steps = css({
   margin: "0",
 });
 
-const stepNow = css({
-  bg: "#2B4457",
-  borderRadius: "full",
-  color: "#9AD3FA",
-  paddingBlock: "0.5",
-  paddingInline: "2",
+/** v5 Prefab/LegendItem: a key cap + label pair. */
+const legendItem = css({
+  alignItems: "center",
+  display: "inline-flex",
+  gap: "1.5",
+});
+
+const stepCap = css({
+  bg: "gray.8",
+  borderRadius: "l1",
+  color: "fg.default",
+  display: "inline-flex",
+  fontSize: "2xs",
+  justifyContent: "center",
+  minWidth: "4",
+  padding: "0.5 1.5",
+  textAlign: "center",
+  whiteSpace: "nowrap",
+});
+
+const stepNowCap = css({
+  bg: "colorPalette.solid.bg",
+  color: "colorPalette.solid.fg",
+  colorPalette: "blue",
 });
 
 const stepArrow = css({
   color: "fg.subtle",
 });
 
-/** v5 primary CTA: solid #EDEDED, dark label, 56px-class height. */
-const startButton = css({
-  alignItems: "center",
-  bg: "#EDEDED",
-  borderRadius: "l2",
-  color: "#1B1B1B",
-  display: "inline-flex",
-  fontSize: "sm",
-  fontWeight: "medium",
-  gap: "2",
-  minHeight: "12",
-  paddingInline: "6",
-  textDecoration: "none",
-  whiteSpace: "nowrap",
-  width: { base: "100%", lg: "auto" },
-  justifyContent: "center",
-  _hover: { opacity: "0.9" },
-  _focusVisible: { outline: "2px solid #3FA9F5", outlineOffset: "2px" },
+/** v5 primary CTA (Prefab/Button Primary, 56px class) — the shared class. */
+const startButton = primaryCta;
+
+/** Full width on narrow viewports, natural width from `lg`. */
+const ctaWrap = css({
+  display: "flex",
+  "& > *": { width: { base: "100%", lg: "auto" } },
 });
 
 export function WelcomeHero() {
@@ -101,18 +109,27 @@ export function WelcomeHero() {
           曲を選んで、その譜面を試してみてください
         </h2>
         <p className={steps}>
-          <span className={stepNow}>1. 曲を選ぶ（ここから）</span>
+          <span className={legendItem}>
+            <span className={`${stepCap} ${stepNowCap}`}>1</span>
+            <span>曲を選ぶ（ここから）</span>
+          </span>
           <span className={stepArrow} aria-hidden="true">
             →
           </span>
-          <span>2. 譜面が開く・再生して試す</span>
+          <span className={legendItem}>
+            <span className={stepCap}>2</span>
+            <span>譜面が開く・再生して試す</span>
+          </span>
           <span className={stepArrow} aria-hidden="true">
             →
           </span>
-          <span>3. 気に入ったらスタッフに伝える（公開はスタッフが行います）</span>
+          <span className={legendItem}>
+            <span className={stepCap}>3</span>
+            <span>気に入ったらスタッフに伝える（公開はスタッフが行います）</span>
+          </span>
         </p>
       </div>
-      <div>
+      <div className={ctaWrap}>
         <button type="button" className={startButton} onClick={start} data-testid="welcome-start">
           リストから曲を選ぶ
         </button>
