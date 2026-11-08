@@ -110,6 +110,99 @@ namespace FlashBeat.UI.V6.Select.View
             return byW < byH ? byW : byH;
         }
 
+        // ============================================================
+        // フレーム配置 (design 空間 1728×972 を実画面に 1:1 で中央配置)
+        // 引き伸ばし (等比スケール) は行わない。実機の各解像度での原点は
+        // ((w-1728)/2, (h-972)/2) の床切り (design の Resolution Check 表の値)。
+        // ============================================================
+
+        /// <summary>
+        /// design frame を実画面に 1:1 で中央配置したときの左上原点。
+        /// </summary>
+        public static void FrameOrigin(int screenW, int screenH, out int x, out int y)
+        {
+            x = FloorHalf(screenW - (int)DesignW);
+            y = FloorHalf(screenH - (int)DesignH);
+        }
+
+        /// <summary>v/2 の床切り (負も正しく床切る)。</summary>
+        private static int FloorHalf(int v)
+        {
+            return v >= 0 ? v / 2 : -((-v + 1) / 2);
+        }
+
+        // ============================================================
+        // ドットインジケータ (契約 §5)
+        // 曲リスト (幅 560) の右端レール x=536、開始 y=136、間隔 4。
+        // アクティブ 10×10 $accent (#3FA9F5) / 非アクティブ 8×8 (#FFFFFF26, 角丸 5)。
+        // ============================================================
+        public const float DotX = 536f;
+        public const float DotY = 136f;
+        public const float DotSize = 8f;
+        public const float DotActiveSize = 10f;
+        public const float DotGap = 4f;
+        public const float DotRadius = 5f;
+
+        /// <summary>ドットの x (dot コンテナ ローカル)。レール幅 (最大ドット 10) の中央。</summary>
+        public static float DotRectX(float dotSize)
+        {
+            return (DotActiveSize - dotSize) * 0.5f;
+        }
+
+        /// <summary>ドットの上端 y (dot コンテナ ローカル)。i 番目は startY + i*(DotSize+DotGap)。</summary>
+        public static float[] DotOffsets(int count, float startY = DotY)
+        {
+            var offsets = new float[count > 0 ? count : 0];
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                offsets[i] = startY + (DotSize + DotGap) * i;
+            }
+
+            return offsets;
+        }
+
+        /// <summary>最下端のドットの下端 y (dot コンテナ ローカル)。</summary>
+        public static float DotBottom(int count, float startY = DotY)
+        {
+            if (count <= 0)
+            {
+                return startY;
+            }
+
+            return startY + (DotSize + DotGap) * (count - 1) + DotSize;
+        }
+
+        // --- クイック設定 (契約 §5 右カラム / v5 OptionView 参照) ---
+        // 右カラム (幅 560) に、ヘッダー「このプレイの設定」(24,8) fs26 w500 と
+        // 行 512×56 (背景 #2D2D2D r8) を 68 間隔で 3 行 (Key Guide / Lyrics / NoteSpeed)。
+        public const int SettingsRowCount = 3;
+        public const float SettingsHeadX = 24f;
+        public const float SettingsHeadY = 8f;
+        public const float SettingsRowX = 24f;
+        public const float SettingsRowY0 = 64f;
+        public const float SettingsRowStep = 68f;
+        public const float SettingsRowW = 512f;
+        public const float SettingsRowH = 56f;
+
+        /// <summary>設定行 row の矩形 (右カラム ローカル)。</summary>
+        public static V6Rect SettingsRowRect(int row)
+        {
+            return new V6Rect(SettingsRowX, SettingsRowY0 + SettingsRowStep * row, SettingsRowW, SettingsRowH);
+        }
+
+        /// <summary>アクティブ ドットの index (範囲外は端に留まる)。</summary>
+        public static int DotActiveIndex(int selectedIndex, int dotCount)
+        {
+            if (dotCount <= 0)
+            {
+                return -1;
+            }
+
+            if (selectedIndex < 0) return 0;
+            if (selectedIndex >= dotCount) return dotCount - 1;
+            return selectedIndex;
+        }
+
         /// <summary>スクロール位置 (先頭の見えている行 index) を範囲内に収める。</summary>
         public static int ClampScroll(int scroll, int rowCount, int visibleRows)
         {
@@ -143,19 +236,6 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             return scroll;
-        }
-
-        /// <summary>ドットインジケータの active index (範囲外は端に留まる)。</summary>
-        public static int DotActiveIndex(int selectedIndex, int dotCount)
-        {
-            if (dotCount <= 0)
-            {
-                return -1;
-            }
-
-            if (selectedIndex < 0) return 0;
-            if (selectedIndex >= dotCount) return dotCount - 1;
-            return selectedIndex;
         }
 
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>
@@ -433,12 +513,13 @@ namespace FlashBeat.UI.V6.Select.View
         /// </summary>
         public static V6LegendItem[] FooterLegend()
         {
+            // design (OENRv フッター): Space 決定 / ↑↓ 曲送り / A-Z 検索 / Tab 絞り込み。
             var defs = new string[][]
             {
                 new[] { "Space", "決定" },
                 new[] { "↑↓", "曲送り" },
-                new[] { "Tab", "検索" },
-                new[] { "F", "絞り込み" },
+                new[] { "A-Z", "検索" },
+                new[] { "Tab", "絞り込み" },
             };
 
             var items = new V6LegendItem[defs.Length];

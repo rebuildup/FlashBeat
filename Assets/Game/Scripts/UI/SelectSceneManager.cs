@@ -160,10 +160,19 @@ public class SelectSceneManager : MonoBehaviour
         SetMode(V6Mode.Select);
     }
 
-    /// <summary>設定パネルは P1 (未移植)。今は選曲画面に留まったままにする。</summary>
+    /// <summary>設定パネルを開く (v6 クイック設定 = 右カラム差し替え)。</summary>
     private void OnV6OpenSettings()
     {
-        Debug.LogWarning("[SelectScene] v6 の設定パネルは未移植です (Issue #224 相当)。");
+        if (currentMode != V6Mode.Select)
+        {
+            Debug.LogWarning("[SelectScene] クイック設定は選曲画面でのみ開けます。");
+            return;
+        }
+
+        if (v6View != null)
+        {
+            v6View.OpenQuickSettings();
+        }
     }
 
     /// <summary>絞り込み結果の先頭の曲 (演奏できるローカル Prefer 優先)。</summary>
