@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.History;
+using FlashBeat.UI.V6.Ranking;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 using FlashBeat.UI.V6.Select.View;
@@ -14,6 +16,7 @@ using FlashBeat.UI.V6.Select.View;
 /// - クラウドカタログの定期更新 (#17)
 /// - プレイ開始パス (GManager.songID → GameScene / リモート譜面の確定)
 /// - タイトルへの遷移と決定音
+/// - v6 選曲 / 履歴 / ランキングの表示切替と入力振り分け
 /// を持つ。旧シーン配置 UI の Canvas は View の Create が非表示化する。
 ///
 /// v6UiMode.SelectScreen が false のときは旧 v5 SelectView を使う (未移植画面の退避先)。
@@ -28,6 +31,14 @@ public class SelectSceneManager : MonoBehaviour
     // v6 選曲画面 (#221 ビュー / #222 データ)
     private V6SelectView v6View;
     private V6SelectDataSource v6Data;
+
+    // v6 履歴 / ランキング (#223 統合)
+    private V6HistoryView historyView;
+    private V6RankingView rankingView;
+
+    // 表示モード: 選曲 / 履歴 / ランキング の 3 画面を排他で出す
+    private enum V6Mode { Select, History, Ranking }
+    private V6Mode currentMode = V6Mode.Select;
 
     // Cloud Catalog (#17)
     Coroutine catalogRefresh;
@@ -62,9 +73,10 @@ public class SelectSceneManager : MonoBehaviour
     }
 
     /// <summary>
-    /// v6 の 3 カラム選曲画面を組み立てる (#221)。
+    /// v6 の 3 画面 (選曲 / 履歴 / ランキング) を組み立てる (#221, #223)。
     /// 遷移は既存の経路 (GameScene / TitleScene) をそのまま使う:
     /// Ready は「選択の確定 (CommitReady)」だけを行い、遷移は GameScene() が行う。
+    /// 履歴 / ランキングの「戻る」は選曲画面に戻る。「この曲へ」は選曲画面に戻って選択を合わせる。
     /// </summary>
     private void CreateV6SelectView()
     {
@@ -73,15 +85,17 @@ public class SelectSceneManager : MonoBehaviour
 
         v6Data = new V6SelectDataSource();
         v6View = V6SelectView.Create(canvasGo.GetComponent<RectTransform>(), v6Data,
-            OnV6Ready, TitleScene, OnV6OpenSettings);
+            OnV6Ready, OnV6Back, OnV6OpenSettings);
 
         // v6 の履歴 / ランキング (03/04)。実データ供給と遷移は既存の経路を使う。
-        var historyView = FlashBeat.UI.V6.History.V6HistoryView.Create(
-            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
-        var rankingView = FlashBeat.UI.V6.Ranking.V6RankingView.Create(
-            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
-        historyView.SetVisible(HistoryRanking);
-        rankingView.SetVisible(HistoryRanking);
+        // onBack は選曲画面への復帰、onGotoSong は選曲画面へ戻って選択を合わせる。
+        historyView = FlashBeat.UI.V6.History.V6HistoryView.Create(
+            canvasGo.GetComponent<RectTransform>(), OnV6BackFromSub, v6Data, OnV6OpenSettings, OnV6GotoSong);
+        rankingView = FlashBeat.UI.V6.Ranking.V6RankingView.Create(
+            canvasGo.GetComponent<RectTransform>(), OnV6BackFromSub, v6Data, OnV6OpenSettings, OnV6GotoSong);
+
+        // 初期状態: 選曲画面のみ表示
+        SetMode(V6Mode.Select);
 
         // レガシー (Issue #57 までのシーン配置 UI) を隠す。
         // 名前で 1 個だけ隠すと別 Canvas に乗った要素が残るので、
@@ -94,25 +108,17 @@ public class SelectSceneManager : MonoBehaviour
         FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
     }
 
-    /// <summary>v6 の Canvas 以外にあるグラフィック (旧 UI) を隠す。</summary>
-    private static void HideLegacyGraphics(GameObject keep)
+    /// <summary>表示モードを切り替える (選曲 / 履歴 / ランキング)。</summary>
+    private void SetMode(V6Mode mode)
     {
-        var canvases = FindObjectsOfType<Canvas>();
-        for (int i = 0; i < canvases.Length; i++)
-        {
-            Canvas canvas = canvases[i];
-            if (canvas == null) continue;
-            if (canvas.gameObject == keep) continue;
-            if (canvas.name.StartsWith("V6")) continue;
+        currentMode = mode;
+        bool isSelect = mode == V6Mode.Select;
+        bool isHistory = mode == V6Mode.History;
+        bool isRanking = mode == V6Mode.Ranking;
 
-            var graphics = canvas.GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
-            for (int g = 0; g < graphics.Length; g++)
-            {
-                if (graphics[g] != null) graphics[g].enabled = false;
-            }
-            var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
-            if (raycaster != null) raycaster.enabled = false;
-        }
+        if (v6View != null) v6View.SetVisible(isSelect);
+        if (historyView != null) historyView.SetVisible(isHistory);
+        if (rankingView != null) rankingView.SetVisible(isRanking);
     }
 
     /// <summary>Ready: 選択を確定してから、既存の開始経路でゲーム画面へ。</summary>
@@ -134,6 +140,32 @@ public class SelectSceneManager : MonoBehaviour
         GameScene();
     }
 
+    /// <summary>選曲画面での「戻る」: タイトルへ遷移。</summary>
+    private void OnV6Back()
+    {
+        TitleScene();
+    }
+
+    /// <summary>履歴 / ランキング画面での「戻る」: 選曲画面に戻る。</summary>
+    private void OnV6BackFromSub()
+    {
+        SetMode(V6Mode.Select);
+    }
+
+    /// <summary>履歴 / ランキングの行から曲へ飛ぶ (選曲画面に戻って選択を合わせる)。</summary>
+    private void OnV6GotoSong()
+    {
+        // 共有データソースの Selected が履歴/ランキング側の操作で既に更新されている。
+        // 選曲画面に戻って中央パネルを更新するだけでよい。
+        SetMode(V6Mode.Select);
+    }
+
+    /// <summary>設定パネルは P1 (未移植)。今は選曲画面に留まったままにする。</summary>
+    private void OnV6OpenSettings()
+    {
+        Debug.LogWarning("[SelectScene] v6 の設定パネルは未移植です (Issue #224 相当)。");
+    }
+
     /// <summary>絞り込み結果の先頭の曲 (演奏できるローカル Prefer 優先)。</summary>
     private static V6SongEntry FirstPlayableSong(IV6SelectDataSource data)
     {
@@ -150,25 +182,108 @@ public class SelectSceneManager : MonoBehaviour
         return firstLocal;
     }
 
-    /// <summary>履歴 / ランキング (03/04) の表示可否 (既定はオフ: 選曲画面の 3 カラムが正)。</summary>
-    private bool HistoryRanking = false;
-
-    /// <summary>履歴/ランキングの行から曲へ飛ぶ (選曲画面の選択を変える)。</summary>
-    private void OnV6GotoSong()
-    {
-        // 履歴/ランキングの行は songId を持つ。選択を変えて中央パネルを更新する。
-        // 実データ供給は v6Data が持つので、ここでは選択の移動だけを行う。
-    }
-
-    /// <summary>設定パネルは P1 (未移植)。今は選曲画面に留まったままにする。</summary>
-    private void OnV6OpenSettings()
-    {
-        Debug.LogWarning("[SelectScene] v6 の設定パネルは未移植です (Issue #224 相当)。");
-    }
-
     void Update()
     {
-        if (view != null) view.HandleInput();
+        if (view != null)
+        {
+            view.HandleInput();
+        }
+        else if (V6UiMode.SelectScreen)
+        {
+            // v6 モード時: アクティブなビューに入力を振り分ける
+            HandleV6Input();
+        }
+    }
+
+    /// <summary>v6 選曲 / 履歴 / ランキングの入力を処理する。</summary>
+    private void HandleV6Input()
+    {
+        // V6SelectView は自前の Driver で Tick() を回しているため、ここでは触らない。
+        // 履歴 / ランキングは Driver がスケール追従のみなので、ここでキーを拾う。
+
+        if (currentMode == V6Mode.History && historyView != null)
+        {
+            HandleHistoryInput();
+        }
+        else if (currentMode == V6Mode.Ranking && rankingView != null)
+        {
+            HandleRankingInput();
+        }
+
+        // モード切替キー (選曲画面でのみ有効): L / R キーで左右の画面へ
+        // (Tab は検索フォーカス、左右矢印は選択移動に使われるため、L/R を割り当て)
+        if (currentMode == V6Mode.Select && v6View != null)
+        {
+            if (Input.GetKeyDown(KeyCode.L))
+            {
+                SetMode(V6Mode.History);
+            }
+            else if (Input.GetKeyDown(KeyCode.R))
+            {
+                SetMode(V6Mode.Ranking);
+            }
+        }
+        // 履歴 / ランキングから選曲へ戻るのは Escape (TriggerBack) と「この曲へ」で行う。
+    }
+
+    private void HandleHistoryInput()
+    {
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            historyView.MoveSelection(-1);
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            historyView.MoveSelection(1);
+        }
+        else if (Input.GetKeyDown(KeyCode.S)) // Sort 切替
+        {
+            historyView.ToggleSort();
+        }
+        else if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            historyView.TriggerBack();
+        }
+        else if (Input.GetKeyDown(KeyCode.O)) // OpenSettings
+        {
+            historyView.TriggerOpenSettings();
+        }
+        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+        {
+            historyView.TriggerGotoSong();
+        }
+    }
+
+    private void HandleRankingInput()
+    {
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            rankingView.MoveSelection(-1);
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            rankingView.MoveSelection(1);
+        }
+        else if (Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online)
+        {
+            rankingView.ToggleSource();
+        }
+        else if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            rankingView.TriggerBack();
+        }
+        else if (Input.GetKeyDown(KeyCode.O)) // OpenSettings
+        {
+            rankingView.TriggerOpenSettings();
+        }
+        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+        {
+            rankingView.TriggerGotoSong();
+        }
+        else if (Input.GetKeyDown(KeyCode.F5)) // Retry fetch (再試行)
+        {
+            rankingView.RetryFetch();
+        }
     }
 
     void OnEnable()
@@ -305,5 +420,26 @@ public class SelectSceneManager : MonoBehaviour
     public void TitleScene()
     {
         Initiate.Fade("TitleScene", Color.black, 1.0f);
+    }
+
+    /// <summary>v6 の Canvas 以外にあるグラフィック (旧 UI) を隠す。</summary>
+    private static void HideLegacyGraphics(GameObject keep)
+    {
+        var canvases = FindObjectsOfType<Canvas>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas canvas = canvases[i];
+            if (canvas == null) continue;
+            if (canvas.gameObject == keep) continue;
+            if (canvas.name.StartsWith("V6")) continue;
+
+            var graphics = canvas.GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
+            for (int g = 0; g < graphics.Length; g++)
+            {
+                if (graphics[g] != null) graphics[g].enabled = false;
+            }
+            var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
+            if (raycaster != null) raycaster.enabled = false;
+        }
     }
 }
