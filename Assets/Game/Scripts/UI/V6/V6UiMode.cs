@@ -20,27 +20,27 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// v6 の遠近法プレイフィールド (8 レーンの透视描画) を使うか。
         ///
-        /// **true** (2026-11-08): design 契約 §6 と実装の照合が終わり、
-        /// 契約どおりに描ける状態になったので有効化する。
-        /// - レーン中心線 8 本 (下端 x=339 step=150 / 上端 x=801 step=18、色 #FFFFFF2E sw2)
-        /// - 判定線 (y=792 h=4 #EDEDED) と判定グロウ (y=796 h=2 #FFFFFF4D)
-        /// - ノーツは uGUI の遠近法描画 (3D メッシュは隠す)
-        ///
-        /// 有効時は旧 3D プレイフィールド (Lane / JudgeLine / LaneLights) を隠す。
+        /// **false** (2026-11-08): オーナー判断による差し戻し。ゲームプレイの
+        /// レーンは元の 3D プレイフィールドに戻す (SRAM commit a156da3 と同じ状態、
+        /// Issue #233)。false の間は v6 プレイフィールドは生成されない。
         /// </summary>
-        public static bool Playfield = true;
+        public static bool Playfield = false;
 
         /// <summary>
         /// 動画を減光 (design の Video Dim #00000080 全画面) するか。
         /// 減光は「動画 → 減光 → プレイフィールド → HUD」の順の Canvas で行う。
+        ///
+        /// **false** (2026-11-08): 3D レーン前提の既存挙動に戻す (減光しない)。
         /// </summary>
-        public static bool VideoDim = true;
+        public static bool VideoDim = false;
 
         /// <summary>
         /// v6 HUD のレーン別判定行 (画面下の PERFECT/GREAT/MISS) を使うか。
         /// 有効時は 3D の判定エフェクト (Judge の判定プレハブ) を隠す。
+        ///
+        /// **false** (2026-11-08): 判定フィードバックは元の 3D の判定表示に戻す。
         /// </summary>
-        public static bool VerdictRow = true;
+        public static bool VerdictRow = false;
 
         /// <summary>
         /// 旧キーガイド (F キー一覧パネル) を隠す。
