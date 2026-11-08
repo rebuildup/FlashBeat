@@ -67,6 +67,10 @@ namespace FlashBeat.UI.V6.Common
             tmp.fontSize = fontSize;
             tmp.color = color;
             tmp.alignment = align;
+            // design 空間の固定 Rect に収める前提なので折り返さない
+            // (幅が足りないラベル "FlashBeat" / "START" / "設定" が 2 行に折れて
+            // 隣の要素と重なる事故を防ぐ。v5 / v6 各ビューと同じ NoWrap 方針)。
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.fontStyle = weight;
             tmp.raycastTarget = false;
             var font = TMP_Settings.defaultFontAsset != null
