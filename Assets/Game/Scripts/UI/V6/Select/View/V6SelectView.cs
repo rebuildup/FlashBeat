@@ -269,11 +269,10 @@ namespace FlashBeat.UI.V6.Select.View
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            // v6 の暗色背景 (契約 §3 bg #1B1B1B)。フレーム外 (画面全体) を敷き、
-            // レガシー 3D のクリーム背景を透けさせない。
-            var backdrop = V5Ui.Panel(rootGo, "V6 Backdrop", new Vector2(0f, 0f), V5Tokens.Bg, 0f);
-            V5Ui.Fill(backdrop.GetComponent<RectTransform>(), 0f);
-            backdrop.GetComponent<Image>().raycastTarget = false;
+            // フレーム外 (画面全体) には背景パネルを敷かない。
+            // design の「Resolution · MacBook Air M5 2560×1664」フレーム外周は
+            // ゲーム自身の背景 (シーンの 3D BackGround 等) が見えるのが正。
+            // 全面不透明パネルは背景アニメーションを潰す (V6Frame.ApplyBackdrop 同様、取り下げ)。
 
             // design frame (1728×972) は 1:1 (等倍) で中央配置。引き伸ばしはしない。
             frame = V5Ui.Node(rootGo, "V6 Select Frame 1728x972").GetComponent<RectTransform>();
