@@ -44,6 +44,9 @@ namespace FlashBeat.UI.V6.Game.Playfield
 
         private static void Ensure()
         {
+            // 既存の 3D レーンをそのまま使う (既定)。v6 の远近法プレイフィールドを
+            // 使うのは明示的にオンにしたときだけ。
+            if (!FlashBeat.UI.V6.V6UiMode.Playfield) return;
             if (V6PlayfieldView.Current != null)
             {
                 return;

@@ -71,27 +71,36 @@ namespace FlashBeat.UI.V6
             BuildHudLayer();
             HideLegacyPlayfield();
             HideLegacyUi();
-            HideLegacyReadyView();
         }
 
         private void Update()
         {
             ApplyHudScale();
-            if (hud != null) hud.Refresh();
-            UpdateStartHint();
+            if (hud != null)
+            {
+                // 表示所有: Ready (再生前) は v5 の GameReadyView が単独所有し、
+                // 演奏中は v6 HUD だけを出す。同時に出ると重なって崩れる。
+                bool show = GManager.played;
+                if (hud.Root != null && hud.Root.gameObject.activeSelf != show)
+                {
+                    hud.SetVisible(show);
+                }
+                hud.Refresh();
+            }
         }
 
         /// <summary>開始前の案内を出し、プレイ開始で隠す。</summary>
         private void UpdateStartHint()
         {
-            if (startHint == null) return;
-            bool show = !GManager.played;
-            if (startHint.activeSelf != show) startHint.SetActive(show);
+            // v5 の GameReadyView が Space 案内を出すのでここでは何もしない。
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
         private void BuildDimLayer()
         {
+            // 既定では映像を減光しない (元の明るさを保つ。減光すると 3D レーンも暗くなる)。
+            if (!V6UiMode.VideoDim) return;
+
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", DimSortingOrder);
             dimCanvas = canvas.gameObject;
             dimCanvas.transform.SetParent(transform, false);
@@ -125,7 +134,6 @@ namespace FlashBeat.UI.V6
             hudFrame.sizeDelta = new Vector2(1920f, 1080f);
 
             hud = V6GameHudView.Create(hudFrame);
-            BuildStartHint();
 
             // HUD 側の減光は自分のレイヤー (Video Dim canvas) が出す。
             // HUD 内の同名 Image は使わない (順序が崩れるため)。
@@ -136,6 +144,7 @@ namespace FlashBeat.UI.V6
         /// 「Space で開始」の案内。旧 v5 の ReadyView は v5 样式で画面中央と右上が
         /// 埋めるので、v6 では同じ位置・同じ書体の案内をこちらで出す。
         /// </summary>
+        [System.Obsolete("Ready 中の Space 案内は v5 の GameReadyView が担当する。")]
         private void BuildStartHint()
         {
             var root = FlashBeat.UI.V5.V5Ui.Node(hudFrame.gameObject, "Start Hint");
@@ -219,9 +228,15 @@ namespace FlashBeat.UI.V6
             return null;
         }
 
-        /// <summary>旧 3D のプレイフィールド (板 / 判定線 / レーン光) を隠す。</summary>
+        /// <summary>
+        /// 旧 3D のプレイフィールド (板 / 判定線 / レーン光) を隠す。
+        /// 既定 (v6 プレイフィールド無効) では **隠さない** — 元のレーン描画と
+        /// キー入力時のレーン光をそのまま使うため。
+        /// </summary>
         private void HideLegacyPlayfield()
         {
+            if (!V6UiMode.Playfield) return;
+
             HideByName("Lane");
             HideByName("JudgeLine");
             for (int i = 1; i <= 8; i++)

@@ -493,6 +493,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             return valueText;
         }
 
+        /// <summary>v6 のレーン別判定行を使うか (既定は false = 元の 3D 判定エフェクト)。</summary>
+        private static bool VerdictRowEnabled
+        {
+            get { return FlashBeat.UI.V6.V6UiMode.VerdictRow; }
+        }
+
         private void BuildVerdictRow()
         {
             var row = V5Ui.Node(gameObject, "Verdict Row");
@@ -732,7 +738,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 laneVerdictUntil[lane] = Time.unscaledTime + JudgeShowSeconds;
                 verdictTexts[lane].text = label;
                 verdictTexts[lane].color = V6HudLogic.VerdictColor(label);
-                t.gameObject.SetActive(false);
+                // 判定行を使わない既定では、元の 3D 判定エフェクトをそのまま残す
+                // (Judge の挙動を変えない)。
+                if (VerdictRowEnabled) t.gameObject.SetActive(false);
             }
         }
 
