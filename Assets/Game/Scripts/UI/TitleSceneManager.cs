@@ -35,6 +35,19 @@ public class TitleSceneManager : MonoBehaviour
         var legacy = GameObject.Find("Canvas");
         if (legacy != null) legacy.SetActive(false);
 
+        // Canvas の外にある旧 UI の残骸 (左下の F5 ランキング / F2 キー設定 の案内など)
+        // も隠す。タイトルは動画だけを見せる画面なので、旧 UI は全部出さない。
+        // 更新ピル (UpdateNoticeCanvas) は残す。
+        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            var graphic = graphics[i];
+            if (graphic == null) continue;
+            var canvas = graphic.GetComponentInParent<Canvas>();
+            if (canvas != null && canvas.name == "UpdateNoticeCanvas") continue;
+            graphic.enabled = false;
+        }
+
         // キーガイド (Tab) はタイトルでは出さない (左下に keycap が常時出ているのを避ける)。
         V6UiMode.HideLegacyKeyGuide();
     }
