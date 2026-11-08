@@ -26,6 +26,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         private const float JudgeShowSeconds = 0.8f;
         private const float VerdictScanSeconds = 1f;
 
+        // --- 歌詞枠 (design HcP8N) ---
+        private const float LyricBoxW = 1120f;
+        private const float LyricBoxH = 220f;
+        private const float LyricFuriganaFs = 22f;
+        private const float LyricFs = 44f;
+        private const float LyricRomajiFs = 20f;
+        private static readonly Color LyricBoxColor = new Color(0f, 0f, 0f, 0x99 / 255f);
+
         /// <summary>Judge がレーンに置く判定エフェクトのクローン名 (Judge.MessageObj 順)。</summary>
         private static readonly string[] JudgeCloneNames = { "Perfect(Clone)", "Great(Clone)", "Bad(Clone)", "Miss(Clone)" };
 
@@ -67,6 +75,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         private TextData lyricData;
         private List<LyricLine> lyricLines;
         private int lyricIndex = -2;
+        private TextMeshProUGUI lyricFuriganaText;
+        private TextMeshProUGUI lyricRomajiText;
 
         /// <summary>
         /// Canvas 配下に自分自身を作る。親は Canvas の RectTransform
@@ -221,14 +231,34 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildLyric()
         {
-            lyricText = V5Ui.Text(gameObject, "Lyric", "", m.LyricFs, V5Tokens.Text,
+            // design HcP8N (Component/歌詞表示枠): 1120×220 / #00000099 / r8 /
+            // 縦 layout gap 6 / padding [16, 24] / 中寄せ。
+            // Furigana fs22 / Lyrics fs44 / Romaji fs20。
+            // 位置は画面上端寄り (design は中央だが、v6 プレイフィールドが画面中央を
+            // 使うため動画の視認性を優先して上に寄せる)。
+            var box = V5Ui.Panel(gameObject, "Lyric Box",
+                new Vector2(LyricBoxW, LyricBoxH) * Scale, LyricBoxColor, 8f);
+            box.GetComponent<Image>().raycastTarget = false;
+            var boxRt = GetRect(box);
+            boxRt.anchorMin = new Vector2(0.5f, 1f);
+            boxRt.anchorMax = new Vector2(0.5f, 1f);
+            boxRt.pivot = new Vector2(0.5f, 1f);
+            boxRt.anchoredPosition = new Vector2(0f, -m.LyricY);
+
+            var layout = box.AddComponent<VerticalLayoutGroup>();
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 6f;
+            layout.padding = new RectOffset(24, 24, 16, 16);
+            layout.childControlWidth = true;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            lyricFuriganaText = V5Ui.Text(box, "Furigana", "", LyricFuriganaFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
-            var rt = lyricText.rectTransform;
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0f, -m.LyricY);
-            rt.sizeDelta = new Vector2(1200f * Scale, m.LyricFs * 1.6f);
+            lyricText = V5Ui.Text(box, "Lyrics", "", LyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            lyricRomajiText = V5Ui.Text(box, "Romaji", "", LyricRomajiFs, V5Tokens.TextDim,
+                TextAlignmentOptions.Center);
         }
 
         private void BuildGrade()
@@ -638,6 +668,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             lyricIndex = index;
             lyricText.text = index >= 0 && index < lyricLines.Count && lyricLines[index].HasText
                 ? lyricLines[index].Text
+                : "";
+            lyricFuriganaText.text = index >= 0 && index < lyricLines.Count
+                ? lyricLines[index].Furigana ?? ""
+                : "";
+            lyricRomajiText.text = index >= 0 && index < lyricLines.Count
+                ? lyricLines[index].Romaji ?? ""
                 : "";
         }
 
