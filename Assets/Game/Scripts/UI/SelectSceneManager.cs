@@ -48,7 +48,16 @@ public class SelectSceneManager : MonoBehaviour
         }
 
         StartCatalogRefresh();
-        KeyGuideUI.Create(null);
+
+        // v6 の画面にはキーガイド行 (画面下) があるので、旧キーガイドパネルは作らない。
+        if (V6UiMode.SelectScreen)
+        {
+            V6UiMode.HideLegacyKeyGuide();
+        }
+        else
+        {
+            KeyGuideUI.Create(null);
+        }
     }
 
     /// <summary>

@@ -57,6 +57,7 @@ namespace FlashBeat.UI.V6.Game.Playfield
             rt.offsetMax = Vector2.zero;
 
             var view = go.AddComponent<V6PlayfieldView>();
+            view.Root = rt;   // Build/ApplyLayout が Root を使うので先に設定する
             view.Build();
             Current = view;
             return view;

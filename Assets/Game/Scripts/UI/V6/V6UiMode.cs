@@ -16,5 +16,21 @@ namespace FlashBeat.UI.V6
 
         /// <summary>選曲画面を v6 の 3 カラムで描画する。</summary>
         public static bool SelectScreen = true;
+
+        /// <summary>
+        /// 旧キーガイド (F キー一覧パネル) を隠す。
+        /// v6 の HUD は画面下部にキーガイド行を持つので、旧パネルが重なると読めなくなる。
+        /// </summary>
+        public static void HideLegacyKeyGuide()
+        {
+            var guides = UnityEngine.Object.FindObjectsOfType<KeyGuideUI>();
+            for (int i = 0; i < guides.Length; i++)
+            {
+                if (guides[i] != null)
+                {
+                    UnityEngine.Object.Destroy(guides[i].gameObject);
+                }
+            }
+        }
     }
 }

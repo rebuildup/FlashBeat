@@ -2,35 +2,39 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using FlashBeat.UI.V6.Game.Hud;
-using FlashBeat.UI.V6.Game.Playfield;
 
 namespace FlashBeat.UI.V6
 {
     /// <summary>
-    /// v6 ゲーム画面 (プレイフィールド + HUD) の起動 (Issue #223 統合担当)。
+    /// v6 ゲーム画面 (HUD) の起動 (Issue #223 統合担当)。
     ///
-    /// 描画の積層 (v6 デザイン `Uc9v6` / `nrfw8` の順、Issue #233 で整理):
-    ///   - レガシー歌詞 Canvas (order 0) — v6 より手前 (歌詞は減光しない)
-    ///   1. 動画 (3D / VideoPlayer が描く)
-    ///   2. Video Dim  #00000080  ← 別 Canvas (sorting -1、歌詞より下)
-    ///   3. プレイフィールド (レーン線 / ノーツ / 判定ライン)  ← Canvas (sorting 400)
-    ///   4. HUD (グレード / スコア / コンボ / キーガイド / 歌詞)   ← Canvas (sorting 450)
-    ///   5. v5 Overlay (Loading / Error, 500) / v5 Ready (550) / v5 Pause (600)
+    /// 描画の積層 (v6 デザイン `Uc9v6` / `nrfw8` の順):
+    ///   1. 動画 (VideoPlayer が描く)
+    ///   2. Video Dim  #00000080              ← Canvas "V6GameDimCanvas" (sorting -3)
+    ///   3. プレイフィールド (レーン / ノーツ) ← Canvas "V6PlayfieldCanvas" (sorting -2, #219 が作る)
+    ///   4. HUD (グレード / スコア / コンボ / キーガイド / 歌詞) ← Canvas "V6GameHudCanvas" (sorting -1)
     ///
-    /// 旧 3D プレイフィールド (GameScene の "Lane" / "JudgeLine" / "LaneLight*") は
-    /// v6 有効時は隠す (2 枚同時に描かれると崩れて見える)。
+    /// プレイフィールドは <c>V6PlayfieldRuntime</c> (#219) が同じ方式で起動する。
+    /// ここで二重に作らない (片方だけが Current を持つ)。
+    ///
+    /// 旧 3D プレイフィールド (GameScene の "Lane" / "JudgeLine" / "LaneLight*") と
+    /// 旧シーン配置 UI は v6 有効時は隠す (2 枚重なると崩れて見える)。
     /// 判定・入力・譜面データ (Judge / Notes / NotesManager) には触らない。
     /// </summary>
     public sealed class V6GameRuntime : MonoBehaviour
     {
         private const string GameSceneName = "GameScene";
 
+        /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
+        private const int DimSortingOrder = -3;
+
+        /// <summary>HUD (プレイフィールドより上)。</summary>
+        private const int HudSortingOrder = -1;
+
         private static bool subscribed;
 
-        private V6PlayfieldView playfield;
         private V6GameHudView hud;
         private GameObject dimCanvas;
-        private Image dimImage;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -60,59 +64,38 @@ namespace FlashBeat.UI.V6
         private void Start()
         {
             BuildDimLayer();
-            BuildPlayfieldLayer();
             BuildHudLayer();
             HideLegacyPlayfield();
+            HideLegacyUi();
         }
 
         private void Update()
         {
-            if (hud != null)
-            {
-                // 表示所有: Ready (再生前) は v5 の GameReadyView、演奏中は v6 HUD。
-                // 同時に出すと HUD と Ready が重なって崩れる (Issue #233)。
-                bool show = GManager.played;
-                if (hud.Root.gameObject.activeSelf != show)
-                {
-                    hud.SetVisible(show);
-                }
-                hud.Refresh();
-            }
+            if (hud != null) hud.Refresh();
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
         private void BuildDimLayer()
         {
-            // order -1: レガシー歌詞 Canvas (order 0) より下に置く。
-            // 300 等にすると演奏中の歌詞が減光されて読めなくなる (Issue #233)。
-            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", -1);
+            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameDimCanvas", DimSortingOrder);
             dimCanvas = canvas.gameObject;
             dimCanvas.transform.SetParent(transform, false);
 
             var go = new GameObject("Video Dim", typeof(RectTransform));
             go.transform.SetParent(dimCanvas.transform, false);
-            dimImage = go.AddComponent<Image>();
-            dimImage.color = new Color(0f, 0f, 0f, 128f / 255f); // #00000080
-            dimImage.raycastTarget = false;
-            var rt = dimImage.rectTransform;
+            var dim = go.AddComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 128f / 255f); // #00000080
+            dim.raycastTarget = false;
+            var rt = dim.rectTransform;
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
         }
 
-        private void BuildPlayfieldLayer()
-        {
-            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GamePlayfieldCanvas", 400);
-            canvas.gameObject.transform.SetParent(transform, false);
-            playfield = V6PlayfieldView.Create(canvas.GetComponent<RectTransform>());
-        }
-
         private void BuildHudLayer()
         {
-            // 500 は v5 の OverlayCanvas (Loading/Error) と衝突するため 450。
-            // Loading/Error は v6 HUD の手前に出す。
-            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", 450);
+            var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", HudSortingOrder);
             canvas.gameObject.transform.SetParent(transform, false);
             hud = V6GameHudView.Create(canvas.GetComponent<RectTransform>());
 
@@ -126,8 +109,6 @@ namespace FlashBeat.UI.V6
             if (hud == null || hud.Root == null) return;
             Transform found = FindChild(hud.Root, "Video Dim");
             if (found == null) return;
-            var img = found.GetComponent<Image>();
-            if (img != null) img.enabled = false;
             found.gameObject.SetActive(false);
         }
 
@@ -158,6 +139,50 @@ namespace FlashBeat.UI.V6
         {
             var obj = GameObject.Find(name);
             if (obj != null) obj.SetActive(false);
+        }
+
+        /// <summary>
+        /// 旧シーン配置 UI (スコア、Space 案内など) を隠す。
+        /// v6 の HUD が同じ場所を描くので、二枚重ねると読めなくなる。
+        ///
+        /// 対象は **シーン配置の "Canvas" だけ**。旧 v5 のランタイム Canvas
+        /// (V5ReadyCanvas / V5OverlayCanvas / V5PauseCanvas) は未移植 (P1) の
+        /// 準備中・失敗・ポーズ表示として残す。
+        /// "loadingmovie" はロード中シグナルとして v5 が使うので触らない。
+        /// </summary>
+        private void HideLegacyUi()
+        {
+            var canvases = FindObjectsOfType<Canvas>();
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                Canvas canvas = canvases[i];
+                if (canvas == null) continue;
+                if (canvas.name != "Canvas") continue;
+
+                var graphics = canvas.GetComponentsInChildren<Graphic>(true);
+                for (int g = 0; g < graphics.Length; g++)
+                {
+                    Graphic graphic = graphics[g];
+                    if (graphic == null) continue;
+                    if (graphic.transform.IsChildOf(transform)) continue;
+                    if (IsLoadingSignal(graphic)) continue;
+                    graphic.enabled = false;
+                }
+
+                var raycaster = canvas.GetComponent<GraphicRaycaster>();
+                if (raycaster != null) raycaster.enabled = false;
+            }
+        }
+
+        private static bool IsLoadingSignal(Graphic graphic)
+        {
+            Transform t = graphic.transform;
+            while (t != null)
+            {
+                if (t.name == "loadingmovie") return true;
+                t = t.parent;
+            }
+            return false;
         }
     }
 }

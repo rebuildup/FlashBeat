@@ -35,6 +35,8 @@ namespace FlashBeat.UI.V6.Select.View
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
+        // design Frame (1728x972) の Main ゾーンは (24, 96)。列はそのローカル座標。
+        private const float MainX = 24f, MainY = 96f;
         private const float ListX = 0f, ListW = 560f, ListH = 780f;
         private const float RowX = 16f, RowY0 = 48f, RowW = 504f, RowH = 72f, RowStep = 76f;
         private const int ListVisibleRows = 9; // y48..y732 (732 / 76)
@@ -310,28 +312,30 @@ namespace FlashBeat.UI.V6.Select.View
             At(title, 72f, 20f, 300f, 56f);
 
             // 右上: 検索欄 / 件数 / 状態メッセージ / フィルターボタン
-            var search = Button(header, "Search", 620f, 48f, 8f, V5Tokens.Overlay, FocusSearch);
-            At(search, 0f, 24f);
+            // 右上情報ゾーンは header-local x=840..1680 (padding 24 / gap 12)。
+            // Search(幅 580) → Count(140) → Filter(48)。
+            var search = Button(header, "Search", 580f, 48f, 8f, V5Tokens.Overlay, FocusSearch);
+            At(search, 864f, 24f);
             var queryText = V5GameUi.Text(search, "Query", SearchDisplayText(), 22f,
                 searchFocused ? V5Tokens.Text : V5Tokens.TextDim, TextAlignmentOptions.Left);
-            At(queryText, 16f, 0f, 480f, 48f, new Vector2(0f, 0.5f));
+            At(queryText, 16f, 0f, 500f, 48f, new Vector2(0f, 0.5f));
             var cap = V5Ui.KeyCap(search, "A-Z", new Vector2(56f, 30f));
-            At(cap, 620f - 56f - 12f, 9f);
+            At(cap, 580f - 56f - 12f, 9f);
 
             var count = V5GameUi.Text(header.gameObject, "Count",
                 $"{filteredCount} / {data.AllSongs.Count}", 22f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Right);
-            At(count, 636f, 24f, 140f, 48f, new Vector2(0f, 0.5f));
+            At(count, 1456f, 24f, 140f, 48f, new Vector2(0f, 0.5f));
 
             if (!string.IsNullOrEmpty(data.StatusMessage))
             {
                 var status = V5GameUi.Text(header.gameObject, "Status", data.StatusMessage, 18f,
                     data.HasError ? V5Tokens.DangerLight : V5Tokens.TextDim, TextAlignmentOptions.Left);
-                At(status, 0f, 0f, 620f, 22f, new Vector2(0f, 0.5f));
+                At(status, 864f, 72f, 792f, 22f, new Vector2(0f, 0.5f));
             }
 
             var filter = Button(header, "Filter Button", 48f, 48f, 8f, V5Tokens.Key4, FocusSearch);
-            At(filter, 792f, 24f);
+            At(filter, 1608f, 24f);
             var filterIcon = V5GameUi.Text(filter, "Icon", "≡", 24f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(filterIcon.GetComponent<RectTransform>(), 48f, 48f);
@@ -356,7 +360,7 @@ namespace FlashBeat.UI.V6.Select.View
 
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。
             var settingsBtn = Button(footer, "Button Settings", 197f, 56f, 8f, V5Tokens.ControlBg, OpenSettings);
-            At(settingsBtn, 358f, 20f);
+            At(settingsBtn, 1198f, 20f);
             var settingsRow = V5GameUi.Row(settingsBtn, "Inner", 10f, TextAnchor.MiddleCenter);
             Stretch(settingsRow.GetComponent<RectTransform>(), 197f, 56f);
             V5GameUi.Text(settingsRow.gameObject, "Icon", "⚙", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
@@ -367,7 +371,7 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 if (onReady != null) onReady();
             });
-            At(ready, 567f, 20f);
+            At(ready, 1407f, 20f);
             var readyRow = V5GameUi.Row(ready, "Inner", 10f, TextAnchor.MiddleCenter);
             Stretch(readyRow.GetComponent<RectTransform>(), 273f, 56f);
             V5GameUi.Text(readyRow.gameObject, "Icon", "▶", 26f, V5Tokens.ButtonPrimaryLabel,
@@ -386,7 +390,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void BuildList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
         {
             var list = At(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
-                FromHex("#131313CC"), 16f), ListX, 0f);
+                FromHex("#131313CC"), 16f), MainX + ListX, MainY);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");
@@ -497,7 +501,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void BuildCenter()
         {
             var panel = At(V5Ui.Panel(frame.gameObject, "Selected Song Panel", new Vector2(CenterW, ListH),
-                V5Tokens.Key2, 16f), CenterX, 0f);
+                V5Tokens.Key2, 16f), MainX + CenterX, MainY);
             var song = data.Selected;
             bool hasSong = song != null;
 
@@ -581,7 +585,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void BuildRight()
         {
             var column = V5Ui.Node(frame.gameObject, "Ranking Column");
-            At(column.GetComponent<RectTransform>(), RightX, 0f, RightW, ListH);
+            At(column.GetComponent<RectTransform>(), MainX + RightX, MainY, RightW, ListH);
 
             var best = At(V5Ui.Panel(column, "Best", new Vector2(528f, 112f), Clear(), 0f), 16f, 24f);
             var bestLabel = V5GameUi.Text(best.gameObject, "Label", "BEST", 22f, V5Tokens.TextDim);
@@ -706,7 +710,7 @@ namespace FlashBeat.UI.V6.Select.View
             button.onClick.AddListener(CloseSettings);
 
             var panel = At(V5Ui.Panel(settingsScrim, "Settings Panel", new Vector2(RightW, ListH),
-                V5Tokens.Key2, 16f), RightX, 0f);
+                V5Tokens.Key2, 16f), 0f, 0f);
             var title = V5GameUi.Text(panel.gameObject, "Title", "このプレイの設定", 26f, V5Tokens.Text, TextAlignmentOptions.Left,
                 FontStyles.Normal);
             At(title, 24f, 16f, 512f, 36f);
@@ -826,6 +830,16 @@ namespace FlashBeat.UI.V6.Select.View
             return query.Length > 0 ? query : "タイプして検索";
         }
 
+        /// <summary>Resources.Load 用に拡張子を取り除く ("a/b.jpg" → "a/b")。</summary>
+        private static string ResourcePathWithoutExtension(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            int dot = path.LastIndexOf('.');
+            int slash = path.LastIndexOf('/');
+            if (dot > 0 && dot > slash) return path.Substring(0, dot);
+            return path;
+        }
+
         private void SetJacket(GameObject thumbPanel, V6SongEntry song)
         {
             var img = thumbPanel.GetComponent<Image>();
@@ -834,7 +848,9 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 if (!jacketCache.TryGetValue(song.JacketResourcePath, out sprite) || sprite == null)
                 {
-                    var tex = Resources.Load<Texture2D>(song.JacketResourcePath);
+                    // Resources.Load は拡張子なしの相対パスで解決する
+                    // ("V6/select/jacket/01-rosen" 形式)。
+                    var tex = Resources.Load<Texture2D>(ResourcePathWithoutExtension(song.JacketResourcePath));
                     sprite = tex == null ? null : Sprite.Create(tex,
                         new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
                     jacketCache[song.JacketResourcePath] = sprite;
