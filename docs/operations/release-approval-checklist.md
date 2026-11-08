@@ -36,6 +36,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 ## C. プレイ証拠（実機・実物）
 
 - [ ] **実物の Win64 ビルド**で再生した記録がある（Editor での動作確認は不可）。
+- [ ] 全画面表示のゲート: `release/check/drive-gameplay.ps1 -RequireFullscreenCoverage` の `run-summary.json` で
+      `displayCoverage >= 0.99`（Issue #88 の受入基準 / `specs/088-fullscreen-ui/tasks.md` T1）。
+      0.99 未満なら FAIL として扱います。
 - [ ] 選曲 → 譜面 → リザルト → リトライが 1 曲ぶん通る（スクリーンショットあり）。
 - [ ] 判定数が **譜面のノーツ数と一致**（例: まにまに = 76 / ロストアンブレラ = 268）。
 - [ ] YouTube ストリームの再生が観測できた（`[MusicManager]` の成功行 + 音）— **S1 の核心**。
