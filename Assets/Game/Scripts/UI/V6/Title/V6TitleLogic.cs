@@ -1,3 +1,4 @@
+using System.Globalization;
 using FlashBeat.Update;
 using UnityEngine;
 
@@ -92,6 +93,124 @@ namespace FlashBeat.UI.V6.Title
         public static bool ShowNewVersion(UpdateFlowPhase phase, string latestVersion)
         {
             return ShowUpdateButton(phase) && !string.IsNullOrEmpty(latestVersion);
+        }
+
+        /// <summary>記録が無いときの文言 (タイトル右上の曲情報)。</summary>
+        public const string NoRecordText = "まだ記録がありません";
+
+        /// <summary>
+        /// タイトル右上の「曲情報」に出す自己ベスト (記録のある曲のうち最高スコアの曲)。
+        /// 実データ (GManager のカタログ + 保存済みベストスコア) だけから作る。
+        /// </summary>
+        public struct V6TitleRecord
+        {
+            /// <summary>記録があるか (0 点は未プレイなので記録なし)。</summary>
+            public bool HasRecord;
+
+            /// <summary>ActiveSongs の index (記録なしなら -1)。</summary>
+            public int SongIndex;
+
+            /// <summary>曲名 (実データの値)。</summary>
+            public string Title;
+
+            /// <summary>アーティスト (実データの値)。</summary>
+            public string Artist;
+
+            /// <summary>その曲のベストスコア (実データの値)。</summary>
+            public int Score;
+        }
+
+        /// <summary>
+        /// 曲ごとのベストスコアから、タイトルに出す自己ベスト (最高スコアの曲) を作る。
+        /// scores は songs と同じ index 対応。記録が 1 件も無いときは HasRecord=false。
+        /// </summary>
+        public static V6TitleRecord BestRecord(SongData[] songs, int[] bestScores)
+        {
+            V6TitleRecord record = new V6TitleRecord();
+            record.SongIndex = -1;
+
+            int index = IndexOfBestRecord(bestScores);
+            if (index < 0 || songs == null || index >= songs.Length)
+            {
+                return record;
+            }
+
+            SongData song = songs[index];
+            if (song == null)
+            {
+                return record;
+            }
+
+            record.HasRecord = true;
+            record.SongIndex = index;
+            record.Title = song.title ?? "";
+            record.Artist = song.musician ?? "";
+            record.Score = bestScores[index];
+            return record;
+        }
+
+        /// <summary>
+        /// スコアの配列から、記録のある曲 (0 点は未プレイとして無視) のうち
+        /// 最高スコアの index を返す。記録が 1 件も無ければ -1。
+        /// 同点はカタログ順 (先頭) を保つ。
+        /// </summary>
+        public static int IndexOfBestRecord(int[] bestScores)
+        {
+            if (bestScores == null)
+            {
+                return -1;
+            }
+
+            int bestIndex = -1;
+            int bestScore = 0;
+            for (int i = 0; i < bestScores.Length; i++)
+            {
+                int score = bestScores[i];
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestIndex = i;
+                }
+            }
+
+            return bestIndex;
+        }
+
+        /// <summary>スコアの表示文字列 (3 桁区切り)。0 以下 (未プレイ) は空文字。</summary>
+        public static string ScoreText(int score)
+        {
+            if (score <= 0)
+            {
+                return "";
+            }
+
+            return score.ToString("#,0", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// タブ選択の移動 (端で折り返す)。count が 0 以下なら -1。
+        /// 現在の選択が範囲外なら先頭から数える。
+        /// </summary>
+        public static int MoveIndex(int current, int delta, int count)
+        {
+            if (count <= 0)
+            {
+                return -1;
+            }
+
+            int index = current;
+            if (index < 0 || index >= count)
+            {
+                index = 0;
+            }
+
+            index = (index + delta) % count;
+            if (index < 0)
+            {
+                index += count;
+            }
+
+            return index;
         }
     }
 }
