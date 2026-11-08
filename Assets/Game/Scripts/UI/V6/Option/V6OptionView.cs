@@ -23,6 +23,12 @@ namespace FlashBeat.UI.V6.Option
     /// - design にあるが実データの無い行 (Live Rank / Hit Timing / Judge Text / Progress Bar)
     ///   は表示しない (V5 OptionView と同じ方針。固定値のダミーは作らない)。
     /// - 構築はコードのみ (シーン YAML / .meta は触らない)。Refresh で frame の全子を作り直す。
+    /// - フレームは 1:1 (等倍) のまま V6OptionLogic.FrameOrigin の origin
+    ///   ((w−1728)/2, (h−972)/2) 切り捨て) で画面中央へ配置する。引き伸ばし
+    ///   (等比スケール) はしない (design gaI3p "Resolution Check · Option":
+    ///   FHD (96,54) / 2K (416,234) / Mac (416,346))。フレーム外の画面全体には
+    ///   v6 の背景色 (契約 §3 bg = #1B1B1B) を敷き、レガシー クリーム背景を隠す
+    ///   (Option シーンにはゲームのアニメーション背景が無い)。
     /// - キー: ↑↓ 行選択 / ←→ 値変更 / Tab タブ切替 / Enter・Space 決定 / Esc 戻る /
     ///   F2 キー設定。マウス: タブ / 行 / ステッパー / 戻る / フッター。
     /// - TitleSceneManager は呼ばない。onBack は統合担当が渡す。
@@ -51,7 +57,6 @@ namespace FlashBeat.UI.V6.Option
 
         private GameObject rootGo;
         private RectTransform frame;
-        private float u = 1f;
         private int lastWidth;
         private int lastHeight;
 
@@ -166,7 +171,7 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            UpdateScale();
+            PlaceFrame();
 
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
@@ -302,18 +307,35 @@ namespace FlashBeat.UI.V6.Option
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
+            // 画面全体に v6 の背景色 (契約 §3 bg = #1B1B1B) を敷く。
+            // レガシー クリーム背景が透けないようにするための不透明パネル
+            // (Option シーンにはゲームのアニメーション背景が無く、design の
+            // Resolution フレームも暗色背景の上にフレームが載る)。
+            var bg = new GameObject("V6 Option Background", typeof(RectTransform), typeof(Image));
+            bg.transform.SetParent(rootGo.transform, false);
+            var bgImage = bg.GetComponent<Image>();
+            bgImage.color = V5Tokens.Key1;
+            bgImage.raycastTarget = false;
+            var bgRt = bg.GetComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero;
+            bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero;
+            bgRt.offsetMax = Vector2.zero;
+
             frame = V5Ui.Node(rootGo, "V6 Option Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             var driver = rootGo.AddComponent<V6OptionViewDriver>();
             driver.View = this;
-            UpdateScale();
+            PlaceFrame();
         }
 
-        private void UpdateScale()
+        /// <summary>
+        /// フレームを 1:1 (等倍) で中央配置する (引き伸ばしはしない)。
+        /// origin = ((w−1728)/2, (h−972)/2) 切り捨て (V6OptionLogic.FrameOrigin、
+        /// design gaI3p "Resolution Check · Option" の実配置)。
+        /// </summary>
+        private void PlaceFrame()
         {
             int w = Screen.width;
             int h = Screen.height;
@@ -324,10 +346,10 @@ namespace FlashBeat.UI.V6.Option
 
             lastWidth = w;
             lastHeight = h;
-            u = V6OptionLogic.DesignScale(w, h);
             if (frame != null)
             {
-                frame.localScale = new Vector3(u, u, 1f);
+                Common.V6Layout.Place(frame, V6OptionLogic.FrameOrigin(w, h),
+                    new Vector2(FrameW, FrameH));
             }
         }
 
@@ -338,7 +360,7 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            UpdateScale();
+            PlaceFrame();
 
             var children = new List<GameObject>();
             foreach (Transform child in frame.transform)

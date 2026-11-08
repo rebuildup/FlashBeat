@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using UnityEngine;
 using FlashBeat.UI.V6.Result;
 
 namespace FlashBeat.UI.V6.Result.Tests
@@ -6,32 +7,37 @@ namespace FlashBeat.UI.V6.Result.Tests
     /// <summary>V6ResultLogic (Issue #217) の純ロジック。グレード算出と表示形式。</summary>
     public sealed class V6ResultLogicTests
     {
-        // --- DesignScale (v6 共通: 1728x972 基準, min 倍率) ---
+        // --- FrameOrigin (design s88VZk "Resolution Check · Result" の実配置) ---
+        // 旧 DesignScale (min 倍率の引き伸ばし) のテストは、Owner 指示「design フレームは
+        // 固定解像度・引き伸ばしは起こらない」により契約変更になったため置換。
+        // 正本: design s88VZk の各解像度フレームに 05 Result · v6 (zcSHh) が
+        // FHD (96,54) / 2K (416,234) / Mac (416,346) に 1:1 で載る実配置。
 
         [Test]
-        public void DesignScale_Fhd_ReturnsUniformScale()
+        public void FrameOrigin_MatchesDesignResolutionTable()
         {
-            Assert.AreEqual(1920f / 1728f, V6ResultLogic.DesignScale(1920, 1080), 0.0001f);
+            Assert.AreEqual(new Vector2(96f, 54f), V6ResultLogic.FrameOrigin(1920, 1080));
+            Assert.AreEqual(new Vector2(416f, 234f), V6ResultLogic.FrameOrigin(2560, 1440));
+            Assert.AreEqual(new Vector2(416f, 346f), V6ResultLogic.FrameOrigin(2560, 1664));
         }
 
         [Test]
-        public void DesignScale_2k_And_Mac_HeightIsBinding()
+        public void FrameOrigin_IsCenteredFloorFormula()
         {
-            float expected = 1440f / 972f;
-            Assert.AreEqual(expected, V6ResultLogic.DesignScale(2560, 1440), 0.0001f);
-            Assert.AreEqual(expected, DesignSafe(2560, 1664), 0.0001f);
+            // ((w−1728)/2, (h−972)/2) の整数切り捨て (design フレーム自体で (0,0))。
+            Assert.AreEqual(Vector2.zero, V6ResultLogic.FrameOrigin(1728, 972));
+            Assert.AreEqual(new Vector2(96f, 114f), V6ResultLogic.FrameOrigin(1920, 1200));
+            // 奇数余りは切り捨て (中央配置の half-pixel ずれを design 表記に合わせる)
+            Assert.AreEqual(new Vector2(0f, 0f), V6ResultLogic.FrameOrigin(1729, 973));
+            // フレーム未満はクランプしない (負 origin = 中央のままはみ出す)
+            Assert.AreEqual(new Vector2(-224f, -126f), V6ResultLogic.FrameOrigin(1280, 720));
         }
 
         [Test]
-        public void DesignScale_InvalidSize_FallsBackToOne()
+        public void FrameOrigin_InvalidSize_FallsBackToZero()
         {
-            Assert.AreEqual(1f, V6ResultLogic.DesignScale(0, 1080));
-            Assert.AreEqual(1f, V6ResultLogic.DesignScale(1920, -1));
-        }
-
-        private static float DesignSafe(int w, int h)
-        {
-            return V6ResultLogic.DesignScale(w, h);
+            Assert.AreEqual(Vector2.zero, V6ResultLogic.FrameOrigin(0, 1080));
+            Assert.AreEqual(Vector2.zero, V6ResultLogic.FrameOrigin(1920, -1));
         }
 
         // --- GradeOf (既存の Assessment 判定 RankFor と 1:1) ---

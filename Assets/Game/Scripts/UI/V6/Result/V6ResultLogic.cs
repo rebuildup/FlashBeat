@@ -22,18 +22,24 @@ namespace FlashBeat.UI.V6.Result
         public const float GaugeW = 824f;
 
         /// <summary>
-        /// design px → 実ピクセルの倍率。実画面 3 解像度
-        /// (1920x1080 / 2560x1440 / 2560x1664) でフレームが収まるよう
-        /// min(W/1728, H/972) 倍する (V6SelectViewLogic.DesignScale と同じ方式)。
+        /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
+        /// 左上 origin = ((w−1728)/2, (h−972)/2) (整数切り捨て)。
+        /// 正本: design s88VZk "Resolution Check · Result" の実配置
+        /// (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / Mac 2560×1664 → (416,346))。
+        /// 旧実装の min(w/1728, h/972) による引き伸ばし (等比スケール) は廃止
+        /// (Owner 指示: design フレームは固定解像度であり、拡大縮小は起こらない。
+        /// 解像度ごとに origin だけが変わる)。異常値 (0 以下) は (0,0) にフォールバックする。
         /// </summary>
-        public static float DesignScale(int width, int height)
+        public static Vector2 FrameOrigin(int screenW, int screenH)
         {
-            if (width <= 0 || height <= 0)
+            if (screenW <= 0 || screenH <= 0)
             {
-                return 1f;
+                return Vector2.zero;
             }
 
-            return Mathf.Min((float)width / DesignW, (float)height / DesignH);
+            return new Vector2(
+                Mathf.Floor((screenW - DesignW) / 2f),
+                Mathf.Floor((screenH - DesignH) / 2f));
         }
 
         /// <summary>

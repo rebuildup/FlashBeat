@@ -19,9 +19,13 @@ namespace FlashBeat.UI.V6.Result
     ///   RankingClient のオンラインランキング。デザイン例の固定値
     ///   (サンプル曲名・"988,513" 等) は決して出さない。
     /// - 構築はコードのみ (シーン YAML / Prefab / .meta は触らない)。
-    /// - 寸法は design px (1728x972 基準)。frame を u = min(W/1728, H/972) 倍して
-    ///   3 解像度 (FHD / 2K / Mac) でクリップしないようにする
-    ///   (v6 HUD / Select と同じ方式)。色は V5Tokens を流用する。
+    /// - 寸法は design px (1728x972 基準)。フレームは 1:1 (等倍) のまま
+    ///   V6ResultLogic.FrameOrigin の origin ((w−1728)/2, (h−972)/2) 切り捨て) で
+    ///   画面中央へ配置する。引き伸ばし (等比スケール) はしない
+    ///   (design s88VZk "Resolution Check · Result": FHD (96,54) / 2K (416,234) /
+    ///   Mac (416,346))。フレーム外の画面全体には v6 の背景色 (契約 §3 bg =
+    ///   #1B1B1B) を敷き、レガシー クリーム背景を隠す
+    ///   (Result シーンにはゲームのアニメーション背景が無い)。色は V5Tokens を流用する。
     /// - 遷移 (リトライ / 選曲へ / タイトルへ) はコールバックで統合担当が渡す。
     ///   ResultSceneManager は呼ばない。
     /// - 実数据的更新 (スコアの確定後) は Refresh() で反映する。
@@ -133,7 +137,6 @@ namespace FlashBeat.UI.V6.Result
         private bool hasRankingError;
         private string rankingStatusMessage = "";
 
-        private float u = 1f;
         private int lastWidth;
         private int lastHeight;
 
@@ -188,7 +191,7 @@ namespace FlashBeat.UI.V6.Result
                 CaptureRun();
             }
 
-            UpdateScale();
+            PlaceFrame();
             RefreshResult();
             RefreshSongInfo();
             RefreshRanking();
@@ -224,7 +227,7 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
-            UpdateScale();
+            PlaceFrame();
 
             // オーバーレイ (ランキング登録等) の開いた・閉じたフレームは入力を捨てる
             // (v5 ResultView と同じ規律)。
@@ -290,18 +293,35 @@ namespace FlashBeat.UI.V6.Result
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
+            // 画面全体に v6 の背景色 (契約 §3 bg = #1B1B1B) を敷く。
+            // レガシー クリーム背景が透けないようにするための不透明パネル
+            // (Result シーンにはゲームのアニメーション背景が無く、design の
+            // Resolution フレームも暗色背景の上にフレームが載る)。
+            var bg = new GameObject("V6 Result Background", typeof(RectTransform), typeof(Image));
+            bg.transform.SetParent(rootGo.transform, false);
+            var bgImage = bg.GetComponent<Image>();
+            bgImage.color = V5Tokens.Key1;
+            bgImage.raycastTarget = false;
+            var bgRt = bg.GetComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero;
+            bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero;
+            bgRt.offsetMax = Vector2.zero;
+
             frame = V5Ui.Node(rootGo, "V6 Result Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             driver = rootGo.AddComponent<V6ResultViewDriver>();
             driver.View = this;
-            UpdateScale();
+            PlaceFrame();
         }
 
-        private void UpdateScale()
+        /// <summary>
+        /// フレームを 1:1 (等倍) で中央配置する (引き伸ばしはしない)。
+        /// origin = ((w−1728)/2, (h−972)/2) 切り捨て (V6ResultLogic.FrameOrigin、
+        /// design s88VZk "Resolution Check · Result" の実配置)。
+        /// </summary>
+        private void PlaceFrame()
         {
             int w = Screen.width;
             int h = Screen.height;
@@ -312,10 +332,10 @@ namespace FlashBeat.UI.V6.Result
 
             lastWidth = w;
             lastHeight = h;
-            u = V6ResultLogic.DesignScale(w, h);
             if (frame != null)
             {
-                frame.localScale = new Vector3(u, u, 1f);
+                Common.V6Layout.Place(frame, V6ResultLogic.FrameOrigin(w, h),
+                    new Vector2(FrameW, FrameH));
             }
         }
 
@@ -332,7 +352,8 @@ namespace FlashBeat.UI.V6.Result
             var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
 
-            var title = V5GameUi.Text(header.gameObject, "Title", "RESULT", 38f, V5Tokens.Text,
+            // design zcSHh の Title ノード (72,20) fs38: 文字列は "FlashBeat"。
+            var title = V5GameUi.Text(header.gameObject, "Title", "FlashBeat", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             At(title, 72f, 20f, 400f, 56f, new Vector2(0f, 0.5f));
         }
@@ -630,15 +651,16 @@ namespace FlashBeat.UI.V6.Result
             var skip = Button(buttons.gameObject, "Button Skip", 198f, 50f, 8f, V5Tokens.Key4, CloseModal);
             var skipRow = V5GameUi.Row(skip, "Inner", 12f, TextAnchor.MiddleCenter);
             Stretch(skipRow.GetComponent<RectTransform>(), 198f, 50f);
-            V5GameUi.Text(skipRow.gameObject, "Icon", "✕", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            // design Dialog の Button · Skip: Icon 24x24 (icon=x)。
+            V6Icons.Create(skipRow.gameObject, "x", 24f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(skipRow.gameObject, "Label", "Skip", 26f, V5Tokens.Text, TextAlignmentOptions.Center);
             BuildModalKeyCap(skipRow.gameObject, "Esc");
             var register = Button(buttons.gameObject, "Button Register", 252f, 50f, 8f, V5Tokens.ButtonPrimaryBg,
                 TrySubmitFromButton);
             var registerRow = V5GameUi.Row(register, "Inner", 12f, TextAnchor.MiddleCenter);
             Stretch(registerRow.GetComponent<RectTransform>(), 252f, 50f);
-            V5GameUi.Text(registerRow.gameObject, "Icon", "✓", 22f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center);
+            // design Dialog の Button · Register: Icon 24x24 (icon=check)。
+            V6Icons.Create(registerRow.gameObject, "check", 24f, V5Tokens.ButtonPrimaryLabel, "Icon");
             V5GameUi.Text(registerRow.gameObject, "Label", "Register", 26f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center, FontStyles.Normal);
             BuildModalKeyCap(registerRow.gameObject, "Enter");

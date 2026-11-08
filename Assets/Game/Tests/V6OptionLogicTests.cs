@@ -7,21 +7,19 @@ namespace FlashBeat.UI.V6.Option
     public static class V6OptionLogicTests
     {
         [Test]
-        public static void DesignScale_FitsThreeResolutions()
+        public static void FrameOrigin_MatchesDesignResolutionTable()
         {
-            // 方針変更 (期待値を実装へ寄せただけの更新ではなく、前提自体が変わったための更新):
-            // v6 の全画面は design 上の共通フレーム `Frame/Shared 1728x972` を ref 共有している
-            // (契約 docs/design/v6/flashbeat-v6-contract.md §2 のノード表)。
-            // 同じフレームの描画倍率が画面ごとに違うと、
-            // Select / History / Ranking / Result / Title から Option へ連続して遷移したときに
-            // 視覚的に破綻するため、
-            // Option も他の v6 画面と同じ min(W/1728, H/972) (アップスケール可) に統一した。
-            // 旧テストは「縦長画面は高さ基準 (972/H)」「1 を超える拡大をしない」前提を固定していた。
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(1728, 972), 0.0001f);
-            Assert.AreEqual(1920f / 1728f, V6OptionLogic.DesignScale(1920, 1080), 0.0001f);
-            // 16:10 は共通フレームが幅に律速される (min なので幅優先)
-            Assert.AreEqual(1920f / 1728f, V6OptionLogic.DesignScale(1920, 1200), 0.0001f);
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(0, 0)); // 異常系は等倍
+            // 旧 DesignScale (min 倍率の引き伸ばし) のテストは、Owner 指示「design フレームは
+            // 固定解像度・引き伸ばしは起こらない」により契約変更になったため置換。
+            // 正本: design gaI3p "Resolution Check · Option" の各解像度フレームに
+            // 06 Play · v6 (B6If6Z) が FHD (96,54) / 2K (416,234) / Mac (416,346) に
+            // 1:1 で載る実配置 (origin = ((w−1728)/2, (h−972)/2) 切り捨て)。
+            Assert.AreEqual(new Vector2(96f, 54f), V6OptionLogic.FrameOrigin(1920, 1080));
+            Assert.AreEqual(new Vector2(416f, 234f), V6OptionLogic.FrameOrigin(2560, 1440));
+            Assert.AreEqual(new Vector2(416f, 346f), V6OptionLogic.FrameOrigin(2560, 1664));
+            Assert.AreEqual(Vector2.zero, V6OptionLogic.FrameOrigin(1728, 972));
+            // 異常系は (0,0) にフォールバック
+            Assert.AreEqual(Vector2.zero, V6OptionLogic.FrameOrigin(0, 0));
         }
 
         [Test]
