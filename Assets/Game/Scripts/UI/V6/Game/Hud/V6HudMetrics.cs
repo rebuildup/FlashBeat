@@ -98,6 +98,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int VerdictBottom;
         public readonly int KeyCapW;
         public readonly int KeyCapH;
+        /// <summary>キーガイド キャップのラベル fs (契約 json: FHD 24 / 2K 32)。</summary>
         public readonly int KeyCapLabelFs;
         public readonly int KeyGuideH;
         public readonly int KeyGuideBottom;
@@ -217,7 +218,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 R(280, s), R(8, s), R(52, s), R(44, s), R(96, s),
                 R(150, s), R(40, s),
                 R(30, s), R(140, s), R(44, s), R(73, s),
-                R(56, s), R(36, s), R(22, s), R(36, s), R(33, s),
+                R(56, s), R(36, s), R(24, s), R(36, s), R(33, s),
                 338f * s, 177.42857f * s,
                 R(170, s), R(36, s));
         }
@@ -237,27 +238,30 @@ namespace FlashBeat.UI.V6.Game.Hud
                 373, 11, 69, 59, 128,
                 200, 53,
                 40, 187, 59, 98,
-                75, 48, 30, 48, 45,
+                75, 48, 32, 48, 45,
                 566.5f, 203.57143f,
                 227, 48);
         }
 
         /// <summary>
-        /// 現在の解像度用の寸法表。UISizeProfile (v5 と共有, 編集不可) の選択結果を
+        /// 指定プロファイル用の寸法表。UISizeProfile (v5 と共有, 編集不可) の選択結果を
         /// v6 の寸法表へ写す。縮小プロファイル ("fhd*s") は FHD 値の s 倍。
+        /// テストからは <see cref="UISizeProfile.Select"/> の結果を渡す (画面サイズ非依存)。
         /// </summary>
+        public static V6HudMetrics ForProfile(UISizeProfile profile)
+        {
+            if (profile.Name == "2k" || profile.Name == "mac")
+            {
+                return TwoK();
+            }
+
+            return Fhd(profile.Scale);
+        }
+
+        /// <summary>現在の解像度用の寸法表。</summary>
         public static V6HudMetrics Current
         {
-            get
-            {
-                var profile = UISizeProfile.Current;
-                if (profile.Name == "2k" || profile.Name == "mac")
-                {
-                    return TwoK();
-                }
-
-                return Fhd(profile.Scale);
-            }
+            get { return ForProfile(UISizeProfile.Current); }
         }
 
         /// <summary>キーガイド / 判定行の第 lane 列の中心 x。</summary>
