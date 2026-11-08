@@ -60,6 +60,19 @@ namespace FlashBeat.UI.V5
 
         public Button PauseButton { get; private set; }
 
+        /// <summary>
+        /// 表示 / 非表示。正本は <see cref="GameUiExclusivity"/> (Issue #233)。
+        /// Canvas ごと止める (Ready 中は HUD を出さない)。隠れている間も
+        /// このコンポーネント (コントローラの GameObject 側) は動き続ける。
+        /// </summary>
+        public void SetVisible(bool visible)
+        {
+            if (Canvas != null && Canvas.gameObject.activeSelf != visible)
+            {
+                Canvas.gameObject.SetActive(visible);
+            }
+        }
+
         public void Build()
         {
             Canvas = V5GameUi.NewCanvas("V5GameHudCanvas", -1);
