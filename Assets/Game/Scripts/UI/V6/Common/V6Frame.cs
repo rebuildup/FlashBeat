@@ -87,7 +87,6 @@ namespace FlashBeat.UI.V6.Common
             CreateZone(go, "Main", MainPos, MainSize);
             CreateZone(go, "Footer", FooterPos, FooterSize);
             CreateModal(go);
-            CreateOuterStroke(go);
             return go;
         }
 
@@ -148,28 +147,6 @@ namespace FlashBeat.UI.V6.Common
             dialogImage.raycastTarget = true;
 
             modal.SetActive(false);
-        }
-
-        /// <summary>
-        /// 外周 stroke (#EDEDED33 sw2)。uGUI に線要素はないため、4 枚の細長 Image で再現する。
-        /// </summary>
-        private static void CreateOuterStroke(GameObject frame)
-        {
-            const float sw = 2f;
-            MakeStroke(frame, "StrokeTop", new Vector2(0f, 0f), new Vector2(DesignW, sw));
-            MakeStroke(frame, "StrokeBottom", new Vector2(0f, DesignH - sw), new Vector2(DesignW, sw));
-            MakeStroke(frame, "StrokeLeft", new Vector2(0f, 0f), new Vector2(sw, DesignH));
-            MakeStroke(frame, "StrokeRight", new Vector2(DesignW - sw, 0f), new Vector2(sw, DesignH));
-        }
-
-        private static void MakeStroke(GameObject frame, string strokeName, Vector2 pos, Vector2 size)
-        {
-            var go = new GameObject(strokeName, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(frame.transform, false);
-            var image = go.GetComponent<Image>();
-            image.color = V6Tokens.Border;
-            image.raycastTarget = false;
-            V6Layout.Place(go.GetComponent<RectTransform>(), pos, size);
         }
     }
 }
