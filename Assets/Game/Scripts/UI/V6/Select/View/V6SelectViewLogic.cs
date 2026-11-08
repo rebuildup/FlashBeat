@@ -240,8 +240,10 @@ namespace FlashBeat.UI.V6.Select.View
 
         /// <summary>
         /// 選択行 (index) がリストの中央に来るスクロール位置を返す。
-        /// index が -1 / 範囲外の場合は既存のクランプに従い 0..rowCount-1 に直してから計算する。
-        /// 端の曲 (上端 / 下端) ではリストが端までスクロールされ、選択行が上端 / 下端に寄る。
+        /// スクロール位置はクランプしない (負値 / rowCount-visibleRows 超えを許す)。
+        /// 先頭 / 末尾の曲では中央スロット以外の行が空になり、選択行は常に中央に来る。
+        /// ただし index が範囲外 (-1 等) または rowCount &lt; visibleRows のときは
+        /// 既存挙動 (index を範囲内に直し、スクロールも 0..rowCount-visibleRows に収める) を保つ。
         /// </summary>
         public static int CenterScroll(int index, int rowCount, int visibleRows)
         {
@@ -250,34 +252,30 @@ namespace FlashBeat.UI.V6.Select.View
                 return 0;
             }
 
-            if (index < 0)
+            if (index < 0 || index > rowCount - 1 || rowCount < visibleRows)
             {
-                index = 0;
+                int clamped = index < 0 ? 0 : (index > rowCount - 1 ? rowCount - 1 : index);
+                int max = rowCount - visibleRows;
+                if (max <= 0)
+                {
+                    return 0;
+                }
+
+                int fallback = clamped - visibleRows / 2;
+                if (fallback < 0)
+                {
+                    return 0;
+                }
+
+                if (fallback > max)
+                {
+                    return max;
+                }
+
+                return fallback;
             }
 
-            if (index > rowCount - 1)
-            {
-                index = rowCount - 1;
-            }
-
-            int max = rowCount - visibleRows;
-            if (max <= 0)
-            {
-                return 0;
-            }
-
-            int scroll = index - visibleRows / 2;
-            if (scroll < 0)
-            {
-                return 0;
-            }
-
-            if (scroll > max)
-            {
-                return max;
-            }
-
-            return scroll;
+            return index - visibleRows / 2;
         }
 
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>

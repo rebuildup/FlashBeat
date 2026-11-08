@@ -5,8 +5,10 @@ namespace FlashBeat.UI.V6.Select.View.Tests
 {
     /// <summary>
     /// 選曲リスト「選択中の曲を常に中央に表示する」方式のテスト。
-    /// - CenterScroll: index がリスト中央に来るスクロール位置 (端はクランプ)。
-    /// - 選択移動 (±1) のあとスクロールが選択に追従すること (端の曲は端に寄る)。
+    /// - CenterScroll: スクロール位置は index - visibleRows/2 (クランプしない)。
+    ///   リスト先頭 / 末尾ではスクロール値が負 / 範囲外になってもよく、
+    ///   選択行のスロット位置 (index - scroll) は常に中央 (visibleRows/2)。
+    /// - ただし index が範囲外 (-1 等) または rowCount &lt; visibleRows のときは既存挙動 (範囲内に収める)。
     /// </summary>
     public sealed class V6SelectCenterScrollTests
     {
@@ -15,9 +17,12 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         // --- CenterScroll: 仕様どおりのスクロール値 ---
 
         [Test]
-        public void CenterScroll_FirstIndex_ClampsToTop()
+        public void CenterScroll_FirstIndex_NegativeScroll_SelectionAtCenter()
         {
-            Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(0, 30, VisibleRows));
+            // index 0 でもクランプしない。scroll = -4 で選択行は中央スロット (4) に来る。
+            int scroll = V6SelectViewLogic.CenterScroll(0, 30, VisibleRows);
+            Assert.AreEqual(-VisibleRows / 2, scroll);
+            Assert.AreEqual(VisibleRows / 2, 0 - scroll);
         }
 
         [Test]
@@ -28,15 +33,18 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         }
 
         [Test]
-        public void CenterScroll_LastIndex_ClampsToBottom()
+        public void CenterScroll_LastIndex_OverflowScroll_SelectionAtCenter()
         {
-            // max scroll = 30 - 9 = 21。index 29 だと 29 - 4 = 25 だが 21 に収める。
-            Assert.AreEqual(21, V6SelectViewLogic.CenterScroll(29, 30, VisibleRows));
+            // max scroll = 30 - 9 = 21 を超えてもよい。index 29 → scroll 25、選択行は中央スロット。
+            int scroll = V6SelectViewLogic.CenterScroll(29, 30, VisibleRows);
+            Assert.AreEqual(25, scroll);
+            Assert.AreEqual(VisibleRows / 2, 29 - scroll);
         }
 
         [Test]
-        public void CenterScroll_RowCountLessThanVisible_ReturnsZero()
+        public void CenterScroll_RowCountLessThanVisible_KeepsWithinRange()
         {
+            // rowCount < visibleRows のときは既存挙動 (0 に収める)。
             Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(0, 5, VisibleRows));
             Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(4, 5, VisibleRows));
         }
@@ -50,17 +58,17 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(0, 0, VisibleRows));
         }
 
-        /// <summary>クランプ領域以外では、選択行が常に中央 (visibleRows / 2) に来る。</summary>
+        /// <summary>有効 index の全範囲で、選択行が常に中央 (visibleRows / 2) に来る。</summary>
         [Test]
-        public void CenterScroll_SelectionSitsAtCenter_WheneverNotClamped()
+        public void CenterScroll_SelectionSitsAtCenter_ForEveryValidIndex()
         {
             int rowCount = 40;
-            for (int index = VisibleRows / 2; index <= rowCount - VisibleRows + VisibleRows / 2; index++)
+            for (int index = 0; index < rowCount; index++)
             {
                 int scroll = V6SelectViewLogic.CenterScroll(index, rowCount, VisibleRows);
                 Assert.AreEqual(index - VisibleRows / 2, scroll, "index {0}", index);
-                Assert.GreaterOrEqual(scroll, 0);
-                Assert.LessOrEqual(scroll, rowCount - VisibleRows);
+                // 選択行のスロット位置は常に中央。
+                Assert.AreEqual(VisibleRows / 2, index - scroll, "index {0}", index);
             }
         }
 
@@ -88,23 +96,23 @@ namespace FlashBeat.UI.V6.Select.View.Tests
 
             source.Select(source.FilteredSongs[0].SongId);
 
-            // 下へ 1 つ: 選択 index は +1、スクロールは選択に追従して中央に来る。
+            // 下へ 1 つ: 選択 index は +1、スクロールは選択に追従して中央に来る (先頭付近は負値も許す)。
             source.MoveSelection(1);
             int index = SelectedIndex(source);
             Assert.AreEqual(1, index);
             int scroll = V6SelectViewLogic.CenterScroll(index, count, VisibleRows);
-            Assert.AreEqual(0, scroll); // index 1 は上端クランプ領域
+            Assert.AreEqual(index - VisibleRows / 2, scroll);
+            Assert.AreEqual(VisibleRows / 2, index - scroll);
 
-            // 中央付近まで進むと中央固定になる。
+            // 中央付近でも同様に中央固定。
             source.Select(source.FilteredSongs[VisibleRows / 2].SongId);
             index = SelectedIndex(source);
             Assert.AreEqual(VisibleRows / 2, index);
             Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(index, count, VisibleRows));
-            Assert.AreEqual(VisibleRows / 2, index - V6SelectViewLogic.CenterScroll(index, count, VisibleRows));
         }
 
         [Test]
-        public void MoveSelectionAtEnd_KeepsSelectionAtEnd_AndClampsScrollToBottom()
+        public void MoveSelectionAtEnd_KeepsSelectionAtEnd_AndSelectionAtCenter()
         {
             var source = new FlashBeat.UI.V6.Select.Data.V6SelectDataSource();
             int count = source.FilteredSongs.Count;
@@ -114,13 +122,17 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             source.MoveSelection(1); // 端でさらに下 → 留まる
             int index = SelectedIndex(source);
             Assert.AreEqual(count - 1, index);
-            Assert.AreEqual(count - VisibleRows, V6SelectViewLogic.CenterScroll(index, count, VisibleRows));
+            int scroll = V6SelectViewLogic.CenterScroll(index, count, VisibleRows);
+            // スクロールは範囲外 (max = count - VisibleRows) を超えてもよく、選択行は中央。
+            Assert.AreEqual(index - VisibleRows / 2, scroll);
+            Assert.AreEqual(VisibleRows / 2, index - scroll);
 
             source.MoveSelection(-1);
             index = SelectedIndex(source);
             Assert.AreEqual(count - 2, index);
-            Assert.AreEqual(index - VisibleRows / 2,
-                V6SelectViewLogic.CenterScroll(index, count, VisibleRows));
+            scroll = V6SelectViewLogic.CenterScroll(index, count, VisibleRows);
+            Assert.AreEqual(index - VisibleRows / 2, scroll);
+            Assert.AreEqual(VisibleRows / 2, index - scroll);
         }
     }
 }

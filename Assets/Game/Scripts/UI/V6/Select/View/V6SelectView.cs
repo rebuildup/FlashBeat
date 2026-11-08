@@ -561,10 +561,18 @@ namespace FlashBeat.UI.V6.Select.View
             }
             else
             {
+                // 中央固定: listScroll = 選択 index - visibleRows/2。スロット 0..visibleRows-1 に
+                // index listScroll+i を対応させ、[0, songCount) のみ描く (範囲外は空行)。
+                // 選択行は常に中央スロット (visibleRows/2) に来る (空スロットには入らない)。
                 int first = listScroll;
-                int last = Mathf.Min(songs.Count, first + ListVisibleRows);
+                int last = first + ListVisibleRows;
                 for (int i = first; i < last; i++)
                 {
+                    if (i < 0 || i >= songs.Count)
+                    {
+                        continue;
+                    }
+
                     BuildSongRow(rows, songs[i], i, i == selectIndex, RowY0 + RowStep * (i - first));
                 }
             }
