@@ -5,7 +5,6 @@ using UnityEngine.Video;
 using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
-using FlashBeat.UI.V6.Select.View;
 
 namespace FlashBeat.UI.V6.Game.Loading
 {
@@ -19,8 +18,11 @@ namespace FlashBeat.UI.V6.Game.Loading
     /// - 状態は SetLoading / SetError で受け取る (統合担当が MusicManager /
     ///   HudPlayState の状態から呼ぶ)。キー入力は持たない (Esc は既存の
     ///   HudPlayStatus が「戻る」を担う)。
-    /// - すべてコードから uGUI を生成。寸法は design px (1728x972)、
-    ///   フレームを min(W/1728, H/972) 倍して画面へ等比拡大。
+    /// - すべてコードから uGUI を生成。寸法は design px (1728x972)。
+    ///   共通フレームを 1:1 (等倍) で画面中央に置く
+    ///   (<see cref="V6LoadingViewLogic.FrameOrigin"/>、ポーズと同じ規約)。
+    ///   等比拡大 (min(W/1728, H/972)) は行わない — design は各解像度ごとに
+    ///   フレーム原点 ((w-1728)/2, (h-972)/2) を固定している。
     /// </summary>
     public sealed class V6LoadingView
     {
@@ -101,7 +103,7 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             if (visible)
             {
-                UpdateScale();
+                UpdatePlacement();
                 // ローディング映像: 表示のたびに最初から再生 (design: 動画を再生するだけ)。
                 if (videoPlayer != null && videoPlayer.clip != null)
                 {
@@ -227,9 +229,9 @@ namespace FlashBeat.UI.V6.Game.Loading
             videoPlayer.errorReceived += OnVideoError;
 
             frame = V5Ui.Node(rootGo, "V6 Loading Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
+            frame.anchorMin = Vector2.zero;
+            frame.anchorMax = Vector2.zero;
+            frame.pivot = Vector2.zero;
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             BuildHeader();
@@ -240,7 +242,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             driver.View = this;
 
             rootGo.SetActive(false);
-            UpdateScale();
+            UpdatePlacement();
         }
 
         private void BuildHeader()
@@ -429,9 +431,14 @@ namespace FlashBeat.UI.V6.Game.Loading
             }
         }
 
-        // --- スケール / 毎フレーム ---
+        // --- 配置 / 毎フレーム ---
 
-        private void UpdateScale()
+        /// <summary>
+        /// 共通フレームを 1:1 (等倍) で画面中央に置く
+        /// (<see cref="V6LoadingViewLogic.FrameOrigin"/>、ポーズと同じ規約)。
+        /// 等比拡大 (min(W/1728, H/972)) は行わない。
+        /// </summary>
+        private void UpdatePlacement()
         {
             if (frame == null)
             {
@@ -440,13 +447,15 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             int w = Screen.width;
             int h = Screen.height;
-            float u = V6SelectViewLogic.DesignScale(w, h);
-            frame.localScale = new Vector3(u, u, 1f);
+            Vector2 origin = V6LoadingViewLogic.FrameOrigin(w, h);
+            frame.localScale = Vector3.one;
+            // anchor/pivot (0,0) = 親 (全画面 root) の左下基準。design 原点は左上。
+            frame.anchoredPosition = new Vector2(origin.x, h - origin.y - FrameH);
         }
 
         internal void Tick()
         {
-            UpdateScale();
+            UpdatePlacement();
             if (fill != null && !errorShown && progressGroup != null && progressGroup.activeSelf)
             {
                 float x = V6LoadingViewLogic.IndeterminateX(Time.unscaledTime, TrackW, FillW);
@@ -489,7 +498,7 @@ namespace FlashBeat.UI.V6.Game.Loading
         }
     }
 
-    /// <summary>V6LoadingView の毎フレーム処理 (スケール + 不定インジケータ)。</summary>
+    /// <summary>V6LoadingView の毎フレーム処理 (1:1 配置 + 不定インジケータ)。</summary>
     internal sealed class V6LoadingViewDriver : MonoBehaviour
     {
         internal V6LoadingView View;

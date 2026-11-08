@@ -1,4 +1,6 @@
-﻿namespace FlashBeat.UI.V6.Game.Loading
+﻿using UnityEngine;
+
+namespace FlashBeat.UI.V6.Game.Loading
 {
     /// <summary>
     /// v6 曲ローディング画面 (Issue #224, design `g4Q3F`) の純ロジック (EditMode テスト対象)。
@@ -6,6 +8,24 @@
     /// </summary>
     public static class V6LoadingViewLogic
     {
+        /// <summary>design 上の共通フレーム寸法 (契約 §4 / V6Frame と同じ)。</summary>
+        public const float FrameW = 1728f;
+        public const float FrameH = 972f;
+
+        /// <summary>
+        /// 共通フレーム 1728×972 を 1:1 (等倍) で画面に置くときの左上原点 (design px)。
+        /// ポーズと同じ式 (<see cref="FlashBeat.UI.V6.Game.Pause.V6PauseViewLogic.FrameOrigin"/> と同値):
+        /// ((w-1728)/2, (h-972)/2) の切捨て — design の "Resolution Check" の配置
+        /// (FHD (96,54) / 2K (416,234) / MacBook (416,346))。等比拡大はしない。
+        /// 画面がフレームより小さいときは (0,0)。
+        /// </summary>
+        public static Vector2 FrameOrigin(int width, int height)
+        {
+            float x = Mathf.Max(0f, Mathf.Floor((width - FrameW) / 2f));
+            float y = Mathf.Max(0f, Mathf.Floor((height - FrameH) / 2f));
+            return new Vector2(x, y);
+        }
+
         /// <summary>不定インジケータの往復周期 (秒)。v5 GameLoadingView と同じ。</summary>
         public const float CycleSeconds = 1.6f;
 

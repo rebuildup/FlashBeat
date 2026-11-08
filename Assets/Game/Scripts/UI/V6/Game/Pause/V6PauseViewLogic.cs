@@ -9,6 +9,25 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// </summary>
     public static class V6PauseViewLogic
     {
+        /// <summary>design 上の共通フレーム寸法 (契約 §4 / V6Frame と同じ)。</summary>
+        public const float FrameW = 1728f;
+        public const float FrameH = 972f;
+
+        /// <summary>
+        /// 共通フレーム 1728×972 を 1:1 (等倍) で画面に置くときの左上原点 (design px)。
+        /// 等比拡大 (min(W/1728, H/972)) は行わない — design の
+        /// "Resolution Check · Game (PAUSE)" は各解像度ごとにフレーム原点を固定している
+        /// (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / MacBook 2560×1664 → (416,346)、
+        /// いずれも ((w-1728)/2, (h-972)/2) の切捨て)。
+        /// 画面がフレームより小さいときは (0,0) (左上固定、はみ出しは右下方向)。
+        /// </summary>
+        public static Vector2 FrameOrigin(int width, int height)
+        {
+            float x = Mathf.Max(0f, Mathf.Floor((width - FrameW) / 2f));
+            float y = Mathf.Max(0f, Mathf.Floor((height - FrameH) / 2f));
+            return new Vector2(x, y);
+        }
+
         /// <summary>タブの数 (design: Play / Display / Sound / Data)。</summary>
         public const int TabCount = 4;
 
