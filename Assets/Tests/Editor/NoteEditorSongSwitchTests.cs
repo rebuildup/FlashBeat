@@ -20,11 +20,19 @@ namespace FlashBeat.Tests.Editor
     public class NoteEditorSongSwitchTests
     {
         string tempDir;
+        GameObject audioGo;
 
         [SetUp]
         public void SetUp()
         {
             SingletonTestHelper.EnsureSingletons();
+            // Serialize は AudioFrequency() 経由で Audio.Source を読む。
+            // テスト用 Audio インスタンスは gameObject を持たないため、
+            // 実 AudioSource を持つ GameObject を差し込む。
+            audioGo = new GameObject("NoteEditorSongSwitchAudio");
+            var source = audioGo.AddComponent<AudioSource>();
+            typeof(Audio).GetField("source_", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .SetValue(Audio.Instance, source);
             EditData.Notes.Clear();
             EditData.Name.Value = "";
             EditData.IsDirty.Value = false;
@@ -36,6 +44,7 @@ namespace FlashBeat.Tests.Editor
         public void TearDown()
         {
             SingletonTestHelper.TeardownSingletons();
+            if (audioGo != null) Object.DestroyImmediate(audioGo);
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
         }
 
