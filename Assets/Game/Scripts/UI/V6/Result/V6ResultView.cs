@@ -42,8 +42,9 @@ namespace FlashBeat.UI.V6.Result
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
-        // メインゾーン (zcSHh は共有フレームの 6 列を 2 列に差し替え: x=164 w=1400)。
-        private const float MainX = 164f, MainY = 96f, MainW = 1400f, MainH = 780f;
+        // メインゾーン: 共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
+        // (旧実装は x=164 w=1400 に狭め、右カラムがフレーム右端から 180px 内側に寄っていた)
+        // 定数は V6ResultLogic.MainX..MainH / RankX (テストと共有)。
 
         // 結果 (列1-3) (0,24) 840x280。
         private const float ResultBlockY = 24f;
@@ -64,8 +65,7 @@ namespace FlashBeat.UI.V6.Result
         private const float SongInfoY = 636f, SongInfoH = 120f;
         private static readonly float[] SongStatX = { 348f, 468f, 588f, 708f };
 
-        // ランキング (列4-5)。
-        private const float RankX = 856f;
+        // ランキング (列4-5, Main 右端に右寄せ → V6ResultLogic.RankX = 1152)。
         private const float SongRankY = 24f, SongRankH = 412f;
         private const float PlayerRankY = 452f, PlayerRankH = 304f;
         private const int SongRankVisibleRows = 6;
@@ -358,12 +358,13 @@ namespace FlashBeat.UI.V6.Result
             At(title, 72f, 20f, 400f, 56f, new Vector2(0f, 0.5f));
         }
 
-        // --- メイン (x164 y96 1400x780) ---
+        // --- メイン (共有フレーム Main: x24 y96 1680x780, 契約 §4) ---
 
         private void BuildMain()
         {
-            var main = At(V5Ui.Panel(frame.gameObject, "Main", new Vector2(MainW, MainH), Clear(), 0f),
-                MainX, MainY);
+            var main = At(V5Ui.Panel(frame.gameObject, "Main",
+                    new Vector2(V6ResultLogic.MainW, V6ResultLogic.MainH), Clear(), 0f),
+                V6ResultLogic.MainX, V6ResultLogic.MainY);
             BuildResultBlock(main);
             BuildGauge(main);
             BuildJudgements(main);
@@ -455,19 +456,23 @@ namespace FlashBeat.UI.V6.Result
             songThumb = At(V5Ui.Panel(panel.gameObject, "Thumb", new Vector2(112f, 63f), V5Tokens.Key3, 4f),
                 16f, 28f).GetComponent<Image>();
 
+            // 曲名 / 作曲者 / メタ (BPM・NOTES・LEVEL・曲長) を帯ごとに縦積みする
+            // (旧実装は Title を幅 200 に詰めたため長い曲名が 2 行に折り返し、
+            //  Artist と重なっていた)。Title は fs34 のまま幅を全幅 (660) に広げ、
+            //  折り返しをなくす (最長 12 文字 x 34 = 408 <= 660)。
             songTitle = V5GameUi.Text(panel.gameObject, "Title", "", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Normal);
-            At(songTitle, 144f, 16f, 200f, 40f, new Vector2(0f, 0.5f));
+            At(songTitle, 144f, 8f, 660f, 44f, new Vector2(0f, 0.5f));
 
-            songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 23f, V5Tokens.TextMuted);
-            At(songArtist, 144f, 66f, 200f, 30f, new Vector2(0f, 0.5f));
+            songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 20f, V5Tokens.TextMuted);
+            At(songArtist, 144f, 58f, 190f, 28f, new Vector2(0f, 0.5f));
 
             string[] statLabels = { "BPM", "NOTES", "LEVEL", "曲長" };
             for (int i = 0; i < statLabels.Length; i++)
             {
-                var cell = At(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]), SongStatX[i], 20f, 116f, 64f);
+                var cell = At(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]), SongStatX[i], 56f, 116f, 60f);
                 var col = V5GameUi.Column(cell, "Inner", 2f, TextAnchor.UpperLeft);
-                Stretch(col.GetComponent<RectTransform>(), 116f, 64f);
+                Stretch(col.GetComponent<RectTransform>(), 116f, 60f);
                 V5GameUi.Text(col.gameObject, "Label", statLabels[i], 18f, V5Tokens.TextDim);
                 songStatValues[i] = V5GameUi.Text(col.gameObject, "Value", "–", 30f, V5Tokens.Text,
                     TextAlignmentOptions.Left, FontStyles.Normal);
@@ -479,7 +484,7 @@ namespace FlashBeat.UI.V6.Result
         private void BuildSongRanking(GameObject main)
         {
             var panel = At(V5Ui.Panel(main.gameObject, "Song Ranking", new Vector2(528f, SongRankH),
-                V5Tokens.Key2, 8f), RankX, SongRankY);
+                V5Tokens.Key2, 8f), V6ResultLogic.RankX, SongRankY);
 
             var head = At(V5Ui.Node(panel.gameObject, "Head"), 8f, 8f, 512f, 36f);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "曲別ランキング", 18f, V5Tokens.TextDim);
@@ -498,7 +503,7 @@ namespace FlashBeat.UI.V6.Result
         private void BuildPlayerRanking(GameObject main)
         {
             var panel = At(V5Ui.Panel(main.gameObject, "Player Ranking", new Vector2(528f, PlayerRankH),
-                V5Tokens.Key2, 8f), RankX, PlayerRankY);
+                V5Tokens.Key2, 8f), V6ResultLogic.RankX, PlayerRankY);
 
             var head = At(V5Ui.Node(panel.gameObject, "Head"), 8f, 8f, 512f, 36f);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "登録名ごとのランキング", 18f, V5Tokens.TextDim);
@@ -529,50 +534,72 @@ namespace FlashBeat.UI.V6.Result
         {
             var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
 
-            // キー凡例 (左下): R リトライ / Enter 登録 / Space 決定。
-            var legend = V5GameUi.Row(footer.gameObject, "Legend", 24f, TextAnchor.MiddleLeft);
-            At(legend.GetComponent<RectTransform>(), 0f, 30f, 620f, 36f);
-            BuildLegendItem(legend.gameObject, "R", "リトライ");
-            BuildLegendItem(legend.gameObject, "Enter", "登録");
-            BuildLegendItem(legend.gameObject, "Space", "決定");
-
-            // 右下: Retry (secondary) + Register (secondary) + OK (primary)。
-            var retry = BuildFooterButton(footer, "Op Retry", 220f, V5Tokens.Key4, "skip-back", "Retry", "R",
-                V5Tokens.TextMuted, V5Tokens.Text, onRetry);
-            At(retry, 882f, 20f);
-            var register = BuildFooterButton(footer, "Op Register", 273f, V5Tokens.Key4, "plus", "Register", "Enter",
-                V5Tokens.TextMuted, V5Tokens.Text, OpenModal);
-            At(register, 1118f, 20f);
-            var ok = BuildFooterButton(footer, "Op OK", 273f, V5Tokens.ButtonPrimaryBg, "skip-forward", "OK", "Space",
-                V5Tokens.ButtonPrimaryLabel, V5Tokens.ButtonPrimaryLabel, onSelect);
-            At(ok, 1407f, 20f);
-        }
-
-        private void BuildLegendItem(GameObject parent, string key, string label)
-        {
-            var item = V5GameUi.Row(parent, "Legend " + label, 8f, TextAnchor.MiddleLeft);
-            V6Ui.KeyCap(item.gameObject, key, new Vector2(Mathf.Max(56f, key.Length * 14f + 16f), 36f));
-            V5GameUi.Text(item.gameObject, "Label", label, 22f, V5Tokens.TextMuted);
-        }
-
-        private GameObject BuildFooterButton(GameObject footer, string name, float w, Color bg, string iconSprite,
-            string label, string keyCap, Color iconColor, Color labelColor, Action onClick)
-        {
-            var btn = Button(footer, name, w, 56f, 8f, bg, onClick);
-            var row = V5GameUi.Row(btn, "Inner", 12f, TextAnchor.MiddleCenter);
-            Stretch(row.GetComponent<RectTransform>(), w, 56f);
-            row.padding = new RectOffset(0, 0, 0, 0);
-            if (!string.IsNullOrEmpty(iconSprite))
+            // キー凡例 (左下, 契約 §4: y30 / 項目間 gap16)。KeyCap と Label の幅を
+            // design px で明示して置く (Row レイアウトグループは幅未確定の TMP ラベルの
+            // 上に隣の KeyCap を重ねるため使わない)。
+            float lx = 0f;
+            for (int i = 0; i < V6ResultLogic.LegendKeys.Length; i++)
             {
-                var icon = V6Icons.Create(row.gameObject, iconSprite, 28f, iconColor, "Icon");
+                lx = PlaceLegendItem(footer, lx, V6ResultLogic.LegendKeys[i], V6ResultLogic.LegendLabels[i]);
             }
-            V5GameUi.Text(row.gameObject, "Label", label, 30f, labelColor, TextAlignmentOptions.Center,
-                FontStyles.Normal);
-            var cap = V5Ui.Panel(row.gameObject, "KeyCap", new Vector2(Mathf.Max(56f, keyCap.Length * 14f + 16f), 36f),
-                bg == V5Tokens.ButtonPrimaryBg ? FromHex("#00000026") : FromHex("#00000040"), 4f);
-            var capText = V5GameUi.Text(cap.gameObject, "Key", keyCap, 22f, iconColor, TextAlignmentOptions.Center);
-            Stretch(capText.GetComponent<RectTransform>(), cap.GetComponent<RectTransform>().sizeDelta.x, 36f);
-            return btn;
+
+            // 右下: Retry (secondary) / Register (secondary) / OK (primary) を
+            // フッター右端から gap16 で横並び (重ならない)。幅は内容
+            // (icon 32 / Label fs30 / KeyCap) から V6ResultLogic.FooterButtonWidth で算出。
+            float wOk = V6ResultLogic.FooterButtonWidth("OK", "Space", true);
+            float wRegister = V6ResultLogic.FooterButtonWidth("Register", "Enter", true);
+            float wRetry = V6ResultLogic.FooterButtonWidth("Retry", "R", true);
+            float[] xs = V6ResultLogic.FooterButtonXs(wOk, wRegister, wRetry);
+            BuildFooterButton(footer, xs[0], "Op OK", "OK", "skip-forward", "Space", true, onSelect);
+            BuildFooterButton(footer, xs[1], "Op Register", "Register", "plus", "Enter", false, OpenModal);
+            BuildFooterButton(footer, xs[2], "Op Retry", "Retry", "skip-back", "R", false, onRetry);
+        }
+
+        /// <summary>
+        /// 凡例 1 項目 (KeyCap + Label fs22) を design 座標で置き、次の項目の左端 x を返す。
+        /// </summary>
+        private float PlaceLegendItem(GameObject footer, float x, string key, string label)
+        {
+            float capW = V6ResultLogic.KeyCapWidth(key);
+            var cap = V6Ui.KeyCap(footer, key, new Vector2(capW, 36f));
+            At(cap, x, V6ResultLogic.FooterLegendY);
+
+            float labelW = Mathf.Ceil(Common.V6Layout.EstimateTextWidth(label, 22f));
+            Common.V6Controls.Text(footer, "Legend Label " + label, label,
+                new Vector2(x + capW + 8f, V6ResultLogic.FooterLegendY), new Vector2(labelW, 36f),
+                22f, V5Tokens.TextMuted);
+            return x + capW + 8f + labelW + V6ResultLogic.FooterLegendGap;
+        }
+
+        /// <summary>
+        /// フッター右のボタンを design 座標 (左上 origin, y20 h56) で置く。
+        /// 構造は契約 §4 の共通ボタン (icon 32 / Label fs30 / KeyCap 高さ 36) で、
+        /// 共通部品 V6Controls.ButtonPrimary/Secondary を使う (KeyCap 右寄せ・
+        /// Label 中央寄せは部品側で確定し、ボタン外へはみ出さない)。
+        /// </summary>
+        private void BuildFooterButton(GameObject footer, float x, string name, string label, string iconSprite,
+            string keyCap, bool primary, Action onClick)
+        {
+            Vector2 topLeft = new Vector2(x, V6ResultLogic.FooterButtonY);
+            Vector2 size = new Vector2(
+                V6ResultLogic.FooterButtonWidth(label, keyCap, !string.IsNullOrEmpty(iconSprite)),
+                V6ResultLogic.FooterButtonH);
+            GameObject go = primary
+                ? Common.V6Controls.ButtonPrimary(footer, label, topLeft, size, iconSprite, keyCap)
+                : Common.V6Controls.ButtonSecondary(footer, label, topLeft, size, iconSprite, keyCap);
+            go.name = name;
+
+            // V6Controls は Button コンポーネントを足すだけなので、イベントと遷移は
+            // ここで配線する (旧ローカルヘルパと同じ規律: transition/navigation なし)。
+            var button = go.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            var nav = button.navigation;
+            nav.mode = Navigation.Mode.None;
+            button.navigation = nav;
+            if (onClick != null)
+            {
+                button.onClick.AddListener(() => onClick());
+            }
         }
 
         // --- 登録モーダル (05b lqHaN): 見た目と開閉のみ (入力機能は未実装) ---
