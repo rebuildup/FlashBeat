@@ -294,10 +294,12 @@ public class GameSceneManager : MonoBehaviour
                 SwitchPanel();
             }
         }
-        else if (!HasV5PauseMenu())
+        else if (!HasV5PauseMenu() && !FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
         {
             // Issue #167: v5 のポーズメニューがあるときは PauseMenuView が Esc を担う。
             // ここでレガシーの MenuPanel を開くと両方が反応して二重になる。
+            // Issue #224: v6 ポーズ (V6PauseView.Enabled) が有効なときも Esc は v6 が担う
+            // (V6GameRuntime.UpdatePause)。レガシー MenuPanel を開くと v6 ポーズと二重になる。
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 OpenMenu();
