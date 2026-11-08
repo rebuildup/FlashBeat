@@ -64,6 +64,35 @@ namespace FlashBeat.UI.V6.Option
 
         public static readonly string[] TabLabels = { "Play", "Display", "Sound", "Data" };
 
+        // --- design ジオメトリ (design B6If6Z パッチ実測、Main ゾーン (24,96) 内のローカル座標) ---
+
+        /// <summary>タブ帯 (design C0piZz): メイン (438,0) 824x48、タブ 200x48 gap8。</summary>
+        public const float TabsX = 438f, TabsY = 0f, TabsW = 824f, TabsH = 48f, TabW = 200f, TabGap = 8f;
+
+        /// <summary>設定パネル (design crVgG): メイン (304,68) 512x688。行 (8, 60+step*k) 496x56。</summary>
+        public const float SetX = 304f, SetY = 68f, SetW = 512f;
+        public const float SetH = SettingsPanelH;
+        public const float SetRowX = 8f, SetRowW = 496f;
+
+        /// <summary>プレビューパネル (design cqQMc): メイン (864,68) 512x688。</summary>
+        public const float PrevX = 864f, PrevY = 68f, PrevW = 512f, PrevH = 688f;
+
+        /// <summary>Game Preview (design 共通): プレビューパネル内 (24,60) 464x280 $k0 r8。</summary>
+        public const float GamePrevX = 24f, GamePrevY = 60f, GamePrevW = 464f, GamePrevH = 280f;
+
+        /// <summary>説明ブロック (design 共通): Divider (24,544) / Desc Title (24,564) fs32 / Desc (24,614) w464。</summary>
+        public const float DescDividerY = 544f, DescTitleY = 564f, DescY = 614f;
+        public const float DescW = 464f, DescH = 68f;
+
+        /// <summary>フッター キー凡例 (design パッチ QQ4jM → r4IJx): フッター内 (0,30)、高さ 36、項目間 gap24。</summary>
+        public const float LegendY = 30f, LegendH = 36f, LegendGap = 24f;
+
+        /// <summary>i 番目のタブの design 左上座標 (Main ゾーン基準)。</summary>
+        public static Vector2 TabTopLeft(int index)
+        {
+            return new Vector2(TabsX + (TabW + TabGap) * index, TabsY);
+        }
+
         // 設定パネル (列2-3) の行ジオメトリ (design px)。
         public const float SettingsPanelH = 688f;
         public const float SettingsRowFirstY = 60f;
