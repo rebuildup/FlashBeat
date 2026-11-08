@@ -22,7 +22,9 @@ public class UpdateNoticeUI : MonoBehaviour
     private const float SafeMargin = 24f;
     private const float PillWidth = 1180f;
     private const float PillHeight = 150f; // 2〜3 行 (前回の更新結果 + アップデートあり + 補足) が枠内に収まる高さ
-    private const int SortingOrder = 400;
+    // 600: Title の Canvas (V5 Title Canvas, 500) は不透明な全画面 Backdrop を持つため、
+    // 400 以下だとピルが背景の裏に隠れて見えない (Issue #233: 実機で更新経路が消える)。
+    private const int SortingOrder = 600;
     private const string TitleSceneName = "TitleScene";
 
     private UpdateChecker checker;

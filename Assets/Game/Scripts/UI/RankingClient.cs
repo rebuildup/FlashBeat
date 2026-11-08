@@ -184,7 +184,10 @@ public static class RankingClient
         try
         {
             LeaderboardResponse response = JsonUtility.FromJson<LeaderboardResponse>(json);
-            if (response == null || response.entries == null || response.entries.Length == 0) return null;
+            if (response == null) return null;
+            // スコアイ合作的曲 (entries が空) は「取得成功・0 件」であり失敗ではない。
+            // 空配列を返さないと v6 選曲画面が「取得失敗 (HTTP 200)」と表示してしまう。
+            if (response.entries == null) return null;
             for (int i = 0; i < response.entries.Length; i++)
             {
                 if (response.entries[i] == null) return null;

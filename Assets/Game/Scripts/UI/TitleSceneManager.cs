@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
+using FlashBeat.UI.V6;
 
 /// <summary>
 /// Title scene (design Unit 01 "Title").
@@ -15,6 +16,7 @@ public class TitleSceneManager : MonoBehaviour
     [SerializeField] private VideoPlayer Screen;
 
     private AudioSource sounds;
+    private FlashBeat.UI.V6.Title.V6TitleView titleView;
 
     void Start()
     {
@@ -26,18 +28,51 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
-        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
-        // 入力は TitleView が処理し、このクラスの public メソッドをコールバックで呼ぶ。
-        // キー割り当て (0.1.9) は TitleView が KeyActions 経由で参照する。
+        // タイトルは v5 のコード生成 UI も、シーン配置の旧 UI も使わない。
+        // (オーナー指示 2026-11-08: v5 を撤回して元の動画を再生するだけにする。)
+        // 旧 UI は画面サイズに追従せず、左下に F2/F5 の案内が常時残るので、
+        // Canvas を隠して動画 (VideoPlayer "Screen") だけを見せる。
+        // 遷移は下の Update (Start / Option / Exit) が受け持つ。
+        // タイトルは v6 のコード生成 UI を使う (オーナー指示 2026-11-08 の「動画を再生するだけ」から
+        // 全シーン v6 化へ方針変更)。動画 (VideoPlayer "Screen") は消さない — v6 の UI はその上に重なる。
         var legacy = GameObject.Find("Canvas");
-        if (legacy != null) legacy.SetActive(false);
-        FlashBeat.UI.V5.TitleView.Build(SelectScene, OptionScene, EndGame, playSound);
+        if (legacy != null)
+        {
+            legacy.SetActive(true);
+            if (legacy.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+            {
+                legacy.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+        }
 
-        // タイトル画面でもキーガイド (Tab) を開けるようにする。
-        CreateKeyGuide();
+        var canvasRect = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Title Canvas").GetComponent<RectTransform>();
+        titleView = FlashBeat.UI.V6.Title.V6TitleView.Create(canvasRect, SelectScene, OptionScene, EndGame);
+        FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvasRect.GetComponentInParent<Canvas>());
+
+        // 旧 UI の残骸 (左下の F5/F2 案内) を隠す。更新ピル (UpdateNoticeCanvas) は残す。
+        HideLegacyTitleDecorations();
     }
 
-    /// <summary>タイトル画面でもキーガイド (Tab) を開けるようにする。</summary>
+    void Update()
+    {
+        // 元の画面 (ボタン) のキーボード操作。タイトルは動画が流れるだけの画面なので、
+        // 最小限の入力だけ受け持つ。
+        if (KeyActions.IsDown(KeyActions.KeyAction.Start) || Input.GetKeyDown(KeyCode.Return)
+            || Input.GetKeyDown(KeyCode.Space))
+        {
+            SelectScene();
+        }
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Option))
+        {
+            OptionScene();
+        }
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Exit) || Input.GetKeyDown(KeyCode.Escape))
+        {
+            EndGame();
+        }
+    }
+
+    /// <summary>旧キーガイド (タイトルでは使わない)。</summary>
     private void CreateKeyGuide()
     {
         KeyGuideUI.Create(null);
@@ -61,6 +96,24 @@ public class TitleSceneManager : MonoBehaviour
         tmp.raycastTarget = false;
         var font = JapaneseFontFinder.FindJapaneseFont();
         if (font != null) { tmp.font = font; }
+    }
+
+    /// <summary>タイトルの旧装飾 (左下の F5/F2 案内) を隠す。更新ピルは残す。</summary>
+    private void HideLegacyTitleDecorations()
+    {
+        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            var graphic = graphics[i];
+            if (graphic == null) continue;
+            var canvas = graphic.GetComponentInParent<Canvas>();
+            if (canvas == null) continue;
+            if (canvas.name == "UpdateNoticeCanvas") continue;
+            if (canvas.name.StartsWith("V6")) continue;
+            graphic.enabled = false;
+        }
+
+        V6UiMode.HideLegacyKeyGuide();
     }
 
     public void EndGame()

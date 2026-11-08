@@ -1,15 +1,21 @@
 using System.Collections;
 using UnityEngine;
+using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Select.Data;
+using FlashBeat.UI.V6.Select.View;
 
 /// <summary>
-/// Select scene (design Unit 02 "Select", v5 rebuild #121).
+/// Select scene (design Unit 02 "Select", v5 rebuild #121 → v6 移植 #221/#222).
 ///
-/// データと遷移の所有者。見た目と入力は <see cref="FlashBeat.UI.V5.SelectView"/>
-/// (コード生成 uGUI, design/flashbeat-ui.pen v5) が担い、このクラスは
+/// データと遷移の所有者。見た目と入力は
+/// <see cref="FlashBeat.UI.V6.Select.View.V6SelectView"/> (v6, コード生成 uGUI) が担い、
+/// 実データは <see cref="V6SelectDataSource"/> が持つ。このクラスは
 /// - クラウドカタログの定期更新 (#17)
 /// - プレイ開始パス (GManager.songID → GameScene / リモート譜面の確定)
 /// - タイトルへの遷移と決定音
-/// を持つ。旧シーン配置 UI の Canvas は SelectView.Create が非表示化する。
+/// を持つ。旧シーン配置 UI の Canvas は View の Create が非表示化する。
+///
+/// v6UiMode.SelectScreen が false のときは旧 v5 SelectView を使う (未移植画面の退避先)。
 /// </summary>
 public class SelectSceneManager : MonoBehaviour
 {
@@ -17,6 +23,10 @@ public class SelectSceneManager : MonoBehaviour
 
     private AudioSource sounds;
     private FlashBeat.UI.V5.SelectView view;
+
+    // v6 選曲画面 (#221 ビュー / #222 データ)
+    private V6SelectView v6View;
+    private V6SelectDataSource v6Data;
 
     // Cloud Catalog (#17)
     Coroutine catalogRefresh;
@@ -27,9 +37,106 @@ public class SelectSceneManager : MonoBehaviour
     {
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
-        view = FlashBeat.UI.V5.SelectView.Create(this);
+
+        if (V6UiMode.SelectScreen)
+        {
+            CreateV6SelectView();
+        }
+        else
+        {
+            view = FlashBeat.UI.V5.SelectView.Create(this);
+        }
+
         StartCatalogRefresh();
-        KeyGuideUI.Create(null);
+
+        // v6 の画面にはキーガイド行 (画面下) があるので、旧キーガイドパネルは作らない。
+        if (V6UiMode.SelectScreen)
+        {
+            V6UiMode.HideLegacyKeyGuide();
+        }
+        else
+        {
+            KeyGuideUI.Create(null);
+        }
+    }
+
+    /// <summary>
+    /// v6 の 3 カラム選曲画面を組み立てる (#221)。
+    /// 遷移は既存の経路 (GameScene / TitleScene) をそのまま使う:
+    /// Ready は「選択の確定 (CommitReady)」だけを行い、遷移は GameScene() が行う。
+    /// </summary>
+    private void CreateV6SelectView()
+    {
+        var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Select Canvas");
+        var canvasGo = canvas.gameObject;
+
+        v6Data = new V6SelectDataSource();
+        v6View = V6SelectView.Create(canvasGo.GetComponent<RectTransform>(), v6Data,
+            OnV6Ready, TitleScene, OnV6OpenSettings);
+
+        // v6 の履歴 / ランキング (03/04)。実データ供給と遷移は既存の経路を使う。
+        var historyView = FlashBeat.UI.V6.History.V6HistoryView.Create(
+            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
+        var rankingView = FlashBeat.UI.V6.Ranking.V6RankingView.Create(
+            canvasGo.GetComponent<RectTransform>(), TitleScene, v6Data, OnV6OpenSettings, OnV6GotoSong);
+        historyView.SetVisible(HistoryRanking);
+        rankingView.SetVisible(HistoryRanking);
+
+        // レガシー (Issue #57 までのシーン配置 UI) を隠す。
+        // 名前で 1 個だけ隠すと別 Canvas に乗った要素が残るので、
+        // v6 の Canvas 以外の Canvas にあるグラフィックをすべて隠す。
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null && legacy != canvasGo) legacy.SetActive(false);
+        HideLegacyGraphics(canvasGo);
+
+        // v6 ビュー自身が矢印キー操作を担うので、Unity の自動ナビゲーションは切る。
+        FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
+    }
+
+    /// <summary>v6 の Canvas 以外にあるグラフィック (旧 UI) を隠す。</summary>
+    private static void HideLegacyGraphics(GameObject keep)
+    {
+        var canvases = FindObjectsOfType<Canvas>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas canvas = canvases[i];
+            if (canvas == null) continue;
+            if (canvas.gameObject == keep) continue;
+            if (canvas.name.StartsWith("V6")) continue;
+
+            var graphics = canvas.GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
+            for (int g = 0; g < graphics.Length; g++)
+            {
+                if (graphics[g] != null) graphics[g].enabled = false;
+            }
+            var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
+            if (raycaster != null) raycaster.enabled = false;
+        }
+    }
+
+    /// <summary>Ready: 選択を確定してから、既存の開始経路でゲーム画面へ。</summary>
+    private void OnV6Ready()
+    {
+        if (v6Data == null) return;
+        v6Data.CommitReady();
+        if (v6Data.HasError) return; // 開始できない理由をデータ側に持たせる (選曲画面に留まる)
+        GameScene();
+    }
+
+    /// <summary>履歴 / ランキング (03/04) の表示可否 (既定はオフ: 選曲画面の 3 カラムが正)。</summary>
+    private bool HistoryRanking = false;
+
+    /// <summary>履歴/ランキングの行から曲へ飛ぶ (選曲画面の選択を変える)。</summary>
+    private void OnV6GotoSong()
+    {
+        // 履歴/ランキングの行は songId を持つ。選択を変えて中央パネルを更新する。
+        // 実データ供給は v6Data が持つので、ここでは選択の移動だけを行う。
+    }
+
+    /// <summary>設定パネルは P1 (未移植)。今は選曲画面に留まったままにする。</summary>
+    private void OnV6OpenSettings()
+    {
+        Debug.LogWarning("[SelectScene] v6 の設定パネルは未移植です (Issue #224 相当)。");
     }
 
     void Update()
@@ -107,6 +214,7 @@ public class SelectSceneManager : MonoBehaviour
     private void OnCatalogChanged()
     {
         if (view != null) view.OnCatalogChanged();
+        if (v6Data != null) v6Data.RefreshAsync();
     }
 
     /// <summary>選択中の曲でプレイを開始する (リモート曲は譜面を確定してから)。</summary>
@@ -131,6 +239,7 @@ public class SelectSceneManager : MonoBehaviour
         if (config == null)
         {
             Debug.LogWarning("[SelectScene] remote song selected but no API is configured - staying on the select screen");
+            v6Data?.ReportStartFailure("クラウドカタログが設定されていないため、この曲は開始できません");
             yield break;
         }
 
@@ -145,6 +254,7 @@ public class SelectSceneManager : MonoBehaviour
             // 404 / network error / malformed body: warn and stay; the fixed
             // catalog and the rest of the game keep working.
             Debug.LogWarning($"[SelectScene] chart for '{song.remoteId}' v{version} unavailable (status={status}) - start cancelled");
+            v6Data?.ReportStartFailure("譜面を取得できなかったため開始できませんでした (HTTP " + status + ")");
             yield break;
         }
 
