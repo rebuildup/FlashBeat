@@ -4,22 +4,17 @@ using FlashBeat.UI.V5;
 namespace FlashBeat.UI.V6.Game.Hud
 {
     /// <summary>
-    /// v6 Game HUD の寸法表 (design/flashbeat-ui.pen の Game · HUD フレーム実測値)。
-    ///
-    /// 一次ソースは Pencil ノード (feature/pencil-ui @ 19f08b3):
-    /// - Uc9v6 "Game · HUD · FHD 1920×1080"
-    /// - E51yo "Game · HUD · 2K 2560×1440"
-    /// - QrSwA "Game · HUD · MacBook Air M5 2560×1664"
-    ///
-    /// 2K/Mac は FHD の 4/3 倍だが、デザイナーの丸めで一致しない値 (グレード fs 95→125 等)
-    /// があるため、抽出できた値は実測値をそのまま持つ。fhd 縮小プロファイル
-    /// (UISizeProfile の "fhd*s") は FHD 値を s 倍する。
-    /// Mac (2560×1664) は 2K と同じ寸法で、縦方向の位置は中央/下端アンカーで自動的に
-    /// 追従する (デザイン上も中央ブロックは中央固定・下端ブロックは下端固定)。
+    /// v6 Game HUD の 1920×1080 論理テンプレート寸法。
+    /// すべての解像度で同じ論理値を使い、V6GameRuntime がテンプレート全体を
+    /// min(width / 1920, height / 1080) で等比拡大する。表示フレームは画面全体を覆う
+    /// 論理サイズに広げ、余分な軸を HUD 内の top/center/bottom anchor へ反映する。
     /// </summary>
     public sealed class V6HudMetrics
     {
-        /// <summary>プロファイル倍率 (fhd=1, 2k/mac=4/3, fhd*s=s)。視認用の余白に使う。</summary>
+        public const int TemplateWidth = 1920;
+        public const int TemplateHeight = 1080;
+
+        /// <summary>この寸法セットに適用済みの倍率 (ランタイムでは常に 1)。</summary>
         public readonly float Scale;
 
         // --- 画面帯 ---
@@ -178,13 +173,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             LyricY = lyricY;
             LyricFs = lyricFs;
 
-            // ゲージ内部は FHD 実測値を GaugeW/GaugeH 比で伸縮する (2K 実測と一致することを確認済み)。
+            // ゲージ内部もテンプレート寸法を GaugeW/GaugeH 比で伸縮する。
             float g = (float)GaugeW / 600f;
             float gh = (float)GaugeH / 36f;
             GaugeTrackH = Mathf.RoundToInt(18f * gh);
             GaugeSegY = Mathf.RoundToInt(2f * gh);
-            GaugeSegH = 14; // 2K 実測でも 14 (デザイナー未拡大)
-            GaugeFillH = 14; // 同上
+            GaugeSegH = R(14, gh);
+            GaugeFillH = R(14, gh);
             GaugeLabelY = Mathf.RoundToInt(18f * gh);
             GaugeLabelFs = Mathf.RoundToInt(16f * g);
             GaugeSegX = new float[6];
@@ -197,7 +192,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 GaugeSegW[i] = Mathf.RoundToInt(fhdSegW[i] * g);
             }
 
-            // design 実測: Fill は 524px (FHD 600 のトラックに対して "+" セグメントの
+            // design template: Fill は 524px (FHD 600 のトラックに対して "+" セグメントの
             // 開始 530 までで 6px 止める)。"+ セグメント幅" から引くと 530 になり
             // 6px ずれるので、design の実測値 524 を基準にする。
             GaugeFillMax = Mathf.RoundToInt(524f * g);
@@ -205,7 +200,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             GaugeBestH = GaugeTrackH;
         }
 
-        /// <summary>design 実測: FHD 1920×1080。</summary>
+        /// <summary>唯一の HUD 座標テンプレート: FHD 1920×1080。</summary>
         public static V6HudMetrics Fhd(float scale)
         {
             float s = scale;
@@ -226,45 +221,49 @@ namespace FlashBeat.UI.V6.Game.Hud
                 R(170, s), R(36, s));
         }
 
-        /// <summary>design 実測: 2K 2560×1440 (Mac 2560×1664 も同じ寸法)。</summary>
+        /// <summary>解像度比較用の 4/3 倍スナップショット。ランタイムでは使用しない。</summary>
         public static V6HudMetrics TwoK()
         {
-            return new V6HudMetrics(
-                4f / 3f,
-                347, 11, 64,
-                125, 251, 64, 800, 48,
-                104, 133, 30, 50,
-                240, 64, 30,
-                800, 293, 30, 240, 32,
-                480, 30, 30, 59, 120, 131, 213,
-                107,
-                373, 11, 69, 59, 128,
-                200, 53,
-                40, 187, 59, 98,
-                75, 48, 32, 48, 45,
-                566.5f, 203.57143f,
-                227, 48);
+            return Fhd(4f / 3f);
         }
 
         /// <summary>
-        /// 指定プロファイル用の寸法表。UISizeProfile (v5 と共有, 編集不可) の選択結果を
-        /// v6 の寸法表へ写す。縮小プロファイル ("fhd*s") は FHD 値の s 倍。
-        /// テストからは <see cref="UISizeProfile.Select"/> の結果を渡す (画面サイズ非依存)。
+        /// 解像度プロファイルに関係なく同じ論理寸法を返す。
+        /// 実解像度への倍率は親フレームに一度だけ適用する。
         /// </summary>
         public static V6HudMetrics ForProfile(UISizeProfile profile)
         {
-            if (profile.Name == "2k" || profile.Name == "mac")
-            {
-                return TwoK();
-            }
-
-            return Fhd(profile.Scale);
+            return Fhd(1f);
         }
 
-        /// <summary>現在の解像度用の寸法表。</summary>
+        /// <summary>現在の画面用 HUD テンプレート寸法 (解像度非依存)。</summary>
         public static V6HudMetrics Current
         {
-            get { return ForProfile(UISizeProfile.Current); }
+            get { return Fhd(1f); }
+        }
+
+        /// <summary>
+        /// 1920×1080 論理テンプレートを画面内に収める等比倍率。
+        /// 0 以下のサイズは未初期化画面として 1 倍を返す。
+        /// </summary>
+        public static float ScaleForResolution(float width, float height)
+        {
+            if (width <= 0f || height <= 0f)
+            {
+                return 1f;
+            }
+
+            return Mathf.Min(width / TemplateWidth, height / TemplateHeight);
+        }
+
+        /// <summary>
+        /// 等比スケール後に画面全体を覆う論理ビューポート寸法。
+        /// 短辺側はテンプレート寸法、余分な軸はアンカーが使える領域になる。
+        /// </summary>
+        public static Vector2 LogicalViewportSize(float width, float height)
+        {
+            float scale = ScaleForResolution(width, height);
+            return new Vector2(width / scale, height / scale);
         }
 
         /// <summary>キーガイド / 判定行の第 lane 列の中心 x。</summary>

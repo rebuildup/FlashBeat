@@ -7,7 +7,7 @@ name: build-macos
 # 前提:
 #   - リポジトリは public なので標準ランナーの Actions は無料。
 #   - Unity ライセンスは secret 経由で渡す。以下のどちらか:
-#       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
+#       UNITY_LICENSE      : .ulf ライセンスファイル (中身の XML。base64 でも可)
 #       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
 #   - ライセンス未設定は blocker として失敗する。
 
@@ -19,9 +19,9 @@ on:
         required: false
         default: ""
       update_channel:
-        description: "更新チャンネル (stable | preview)"
+        description: "更新チャンネル (stable | preview)。手動実行は preview を推奨"
         required: false
-        default: "stable"
+        default: "preview"
   push:
     branches:
       - main
@@ -94,19 +94,55 @@ jobs:
           echo "UNITY_EDITOR=$editor" >> "$GITHUB_ENV"
           echo "installed: $editor"
 
+      # game-ci/unity-activate は Docker 前提のため GitHub-hosted ランナーでは
+      # そのまま使えない。Unity 公式のライセンス引数を直接使って認証する。
       - name: Unity ライセンスを適用
-        uses: game-ci/unity-activate@v2
-        with:
-          unityLicense: ${{ secrets.UNITY_LICENSE }}
-          unityEmail: ${{ secrets.UNITY_EMAIL }}
-          unityPassword: ${{ secrets.UNITY_PASSWORD }}
-          unitySerial: ${{ secrets.UNITY_SERIAL }}
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/activate.log"
+          has_ulf=0; [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
+          has_account=0; { [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ]; } && has_account=1
+          if [ "$has_ulf" -eq 1 ]; then
+            # secret は「.ulf の XML」か「base64」のどちらでも受ける
+            raw="$UNITY_LICENSE"
+            case "$(printf '%s' "$raw" | tr -d ' \n' | cut -c1)" in
+              "<") content="$raw" ;;
+              *) content="$(printf '%s' "$raw" | base64 --decode 2>/dev/null || true)" ;;
+            esac
+            case "$(printf '%s' "$content" | tr -d ' \n' | cut -c1)" in
+              "<") ;;
+              *) echo "::error title=Unity license required::UNITY_LICENSE の内容が .ulf XML ではありません"; exit 1 ;;
+            esac
+            ulf="$RUNNER_TEMP/Unity_lic.ulf"
+            printf '%s' "$content" > "$ulf"
+            "$UNITY_EDITOR" -batchmode -quit -nographics -manualLicenseFile "$ulf" -logFile "$log"
+            code=$?
+          elif [ "$has_account" -eq 1 ]; then
+            args=(-batchmode -quit -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD")
+            [ -n "${UNITY_SERIAL:-}" ] && args+=(-serial "$UNITY_SERIAL")
+            "$UNITY_EDITOR" "${args[@]}" -logFile "$log"
+            code=$?
+          else
+            echo "::error title=Unity license required::Unity ライセンス認証情報がありません"
+            exit 1
+          fi
+          [ -f "$log" ] && tail -60 "$log"
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=Unity activation failed::Unity ライセンス認証に失敗しました (exit $code)"
+            exit 1
+          fi
 
       - name: macOS ビルド
         shell: bash
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'stable' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
         run: |
           log="$RUNNER_TEMP/build.log"
           "$UNITY_EDITOR" -batchmode -quit \
