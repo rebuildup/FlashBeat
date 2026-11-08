@@ -453,8 +453,17 @@ namespace FlashBeat.UI.V6.Title
             // タイトル動画 (ゲーム自身の背景) の上に重ねて描く。
             var logo = new GameObject("Logo", typeof(RectTransform), typeof(Image));
             logo.transform.SetParent(main.transform, false);
+            // 13.png は importer が textureType: Default (spriteMode: 0) のため
+            // Resources.Load<Sprite> は常に null を返す (実機で白クアッドに
+            // なっていた原因)。Texture2D で読んでスプライトを作る。
+            var logoTex = Resources.Load<Texture2D>("V5/Common/13");
             var logoImage = logo.GetComponent<Image>();
-            logoImage.sprite = Resources.Load<Sprite>("V5/Common/13");
+            if (logoTex != null)
+            {
+                logoImage.sprite = Sprite.Create(logoTex,
+                    new Rect(0f, 0f, logoTex.width, logoTex.height),
+                    new Vector2(0.5f, 0.5f), 100f);
+            }
             logoImage.preserveAspect = true;
             logoImage.raycastTarget = false;
             if (logoImage.sprite == null)
