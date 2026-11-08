@@ -97,32 +97,34 @@ namespace FlashBeat.V5CanvasTests
         [Test]
         public void ResultSongInfoBand_LabelsAndValues_StayInsideBand()
         {
-            // 楽曲情報バンド (Main 内 (0,636) 840x120) の子要素はすべてバンド内に収まる
+            // 楽曲情報バンド (Main 内 (0,636)) の子要素はすべてバンド内に収まる
             // (旧実装は Stat の値がバンドの下へはみ出した)。
+            // Song* 定数はバンド内相対座標 (V6ResultView の At 呼び出しと同一)。
+            // FitsIn は design 絶対座標で判定するため、バンド原点を加算して渡す。
             var bandOrigin = new Vector2(V6ResultLogic.MainX, V6ResultLogic.MainY + V6ResultLogic.SongInfoY);
             var bandSize = new Vector2(V6ResultLogic.SongInfoW, V6ResultLogic.SongInfoH);
 
             Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize,
-                new Vector2(V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY),
+                bandOrigin + new Vector2(V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY),
                 new Vector2(V6ResultLogic.SongThumbW, V6ResultLogic.SongThumbH)), "thumb");
             Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize,
-                new Vector2(V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY),
+                bandOrigin + new Vector2(V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY),
                 new Vector2(V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH)), "title");
             Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize,
-                new Vector2(V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY),
+                bandOrigin + new Vector2(V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY),
                 new Vector2(V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH)), "artist");
 
             for (int i = 0; i < V6ResultLogic.SongStatX.Length; i++)
             {
-                var cellPos = new Vector2(V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY);
+                var cellPos = bandOrigin + new Vector2(V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY);
                 var cellSize = new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
                 Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize, cellPos, cellSize), "stat cell " + i);
                 // セル内の Label (上 20) + Value (y20 h42) もセル内に収まる。
                 Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
-                    new Vector2(0f, 0f),
+                    cellPos,
                     new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH)), "stat label " + i);
                 Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
-                    new Vector2(0f, V6ResultLogic.SongStatValueY),
+                    cellPos + new Vector2(0f, V6ResultLogic.SongStatValueY),
                     new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH)), "stat value " + i);
             }
 
@@ -141,13 +143,16 @@ namespace FlashBeat.V5CanvasTests
             var headOrigin = panelOrigin + new Vector2(V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY);
             var headSize = new Vector2(V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
 
-            var titlePos = new Vector2(12f, 0f);
+            // title/metric/chevron の定数・リテラルは Head 内相対座標
+            // (V6ResultView の At 呼び出しと同一)。FitsIn は design 絶対座標で
+            // 判定するため、Head 原点を加算してから渡す。
+            var titlePos = headOrigin + new Vector2(12f, 0f);
             var titleSize = new Vector2(V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH);
-            var metricPos = new Vector2(V6ResultLogic.RankHeadMetricX, 0f);
+            var metricPos = headOrigin + new Vector2(V6ResultLogic.RankHeadMetricX, 0f);
             var metricSize = new Vector2(V6ResultLogic.RankHeadMetricW, V6ResultLogic.RankHeadH);
             var chevronSize = new Vector2(V6ResultLogic.RankHeadChevronSize, V6ResultLogic.RankHeadChevronSize);
-            var chevronLPos = new Vector2(V6ResultLogic.RankHeadChevronL, 2f);
-            var chevronRPos = new Vector2(V6ResultLogic.RankHeadChevronR, 2f);
+            var chevronLPos = headOrigin + new Vector2(V6ResultLogic.RankHeadChevronL, 2f);
+            var chevronRPos = headOrigin + new Vector2(V6ResultLogic.RankHeadChevronR, 2f);
 
             Assert.IsTrue(V6Layout.FitsIn(headOrigin, headSize, titlePos, titleSize), "title");
             Assert.IsTrue(V6Layout.FitsIn(headOrigin, headSize, metricPos, metricSize), "metric");

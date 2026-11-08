@@ -127,8 +127,14 @@ namespace FlashBeat.UI.V6.Result
         public const float FooterLegendY = 30f;
         public const float FooterLegendGap = 16f;
 
-        /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x (Main 右端に右寄せ)。
-        public const float RankX = MainX + MainW - 528f;
+        /// <summary>
+        /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x。
+        /// フレーム右端 (1728) ではなく Main の右端 (フレーム x 1704 = フッター右端) に
+        /// 右寄せする: rankLeft = MainX + RankX = 1176, 右端 = 1176 + 528 = 1704。
+        /// 旧値 (MainX + MainW - 528 = 1176) は Main 相対 x に MainX を二重加算して
+        /// 右端がフレーム外 (1728) にはみ出していた。
+        /// </summary>
+        public const float RankX = MainW - 528f;
 
         /// 楽曲情報バンド (Main 内 (0,636)) 840x120 と子要素の配置 (design zcSHh)。
         /// Stat を y56 (design の y20 ではなく) に置くのは、実データの曲名
