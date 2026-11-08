@@ -61,9 +61,7 @@ namespace FlashBeat.UI.V6.Result
         private static readonly float[] JudgeX = { 0f, 168f, 336f, 504f, 672f };
         private const float JudgeCellW = 160f, JudgeCellH = 140f;
 
-        // 楽曲情報 (0,636) 840x120。
-        private const float SongInfoY = 636f, SongInfoH = 120f;
-        private static readonly float[] SongStatX = { 348f, 468f, 588f, 708f };
+        // 楽曲情報 (0,636) 840x120 の寸法は V6ResultLogic.SongInfo* (テストと共有)。
 
         // ランキング (列4-5, Main 右端に右寄せ → V6ResultLogic.RankX = 1152)。
         private const float SongRankY = 24f, SongRankH = 412f;
@@ -447,35 +445,44 @@ namespace FlashBeat.UI.V6.Result
         }
 
         // 楽曲情報 (0,636) 840x120: Thumb + Title/Artist + BPM/NOTES/LEVEL/曲長。
+        // 寸法は V6ResultLogic.SongInfo* (テストと共有)。
 
         private void BuildSongInfo(GameObject main)
         {
-            var panel = At(V5Ui.Panel(main.gameObject, "Song Info", new Vector2(840f, SongInfoH),
-                V5Tokens.Key2, 16f), 0f, SongInfoY);
+            var panel = At(V5Ui.Panel(main.gameObject, "Song Info",
+                    new Vector2(V6ResultLogic.SongInfoW, V6ResultLogic.SongInfoH), V5Tokens.Key2, 16f),
+                0f, V6ResultLogic.SongInfoY);
 
-            songThumb = At(V5Ui.Panel(panel.gameObject, "Thumb", new Vector2(112f, 63f), V5Tokens.Key3, 4f),
-                16f, 28f).GetComponent<Image>();
+            songThumb = At(V5Ui.Panel(panel.gameObject, "Thumb",
+                    new Vector2(V6ResultLogic.SongThumbW, V6ResultLogic.SongThumbH), V5Tokens.Key3, 4f),
+                V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY).GetComponent<Image>();
 
-            // 曲名 / 作曲者 / メタ (BPM・NOTES・LEVEL・曲長) を帯ごとに縦積みする
-            // (旧実装は Title を幅 200 に詰めたため長い曲名が 2 行に折り返し、
-            //  Artist と重なっていた)。Title は fs34 のまま幅を全幅 (660) に広げ、
-            //  折り返しをなくす (最長 12 文字 x 34 = 408 <= 660)。
+            // 曲名 / 作曲者はサムネイルの右 (x144) に左揃えで縦積み (design zcSHh)。
+            // Title は幅を全幅 (660) に広げて折り返しをなくす (最長 12 文字 x 34 = 408 <= 660)。
             songTitle = V5GameUi.Text(panel.gameObject, "Title", "", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Normal);
-            At(songTitle, 144f, 8f, 660f, 44f, new Vector2(0f, 0.5f));
+            At(songTitle, V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY,
+                V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH, new Vector2(0f, 0.5f));
 
-            songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 20f, V5Tokens.TextMuted);
-            At(songArtist, 144f, 58f, 190f, 28f, new Vector2(0f, 0.5f));
+            songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 23f, V5Tokens.TextMuted);
+            At(songArtist, V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY,
+                V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH, new Vector2(0f, 0.5f));
 
+            // Stat (BPM/NOTES/LEVEL/曲長) は Label + Value を明示矩形で縦積みする
+            // (旧実装は Column レイアウトで TMP の既定サイズにレイアウトが追従できず、
+            // 値がバンドの下へはみ出していた)。
             string[] statLabels = { "BPM", "NOTES", "LEVEL", "曲長" };
             for (int i = 0; i < statLabels.Length; i++)
             {
-                var cell = At(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]), SongStatX[i], 56f, 116f, 60f);
-                var col = V5GameUi.Column(cell, "Inner", 2f, TextAnchor.UpperLeft);
-                Stretch(col.GetComponent<RectTransform>(), 116f, 60f);
-                V5GameUi.Text(col.gameObject, "Label", statLabels[i], 18f, V5Tokens.TextDim);
-                songStatValues[i] = V5GameUi.Text(col.gameObject, "Value", "–", 30f, V5Tokens.Text,
+                var cell = At(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]),
+                    V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY,
+                    V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
+                var label = V5GameUi.Text(cell.gameObject, "Label", statLabels[i], 18f, V5Tokens.TextDim);
+                At(label, 0f, 0f, V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH);
+                songStatValues[i] = V5GameUi.Text(cell.gameObject, "Value", "–", 30f, V5Tokens.Text,
                     TextAlignmentOptions.Left, FontStyles.Normal);
+                At(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
+                    V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
             }
         }
 
@@ -486,9 +493,10 @@ namespace FlashBeat.UI.V6.Result
             var panel = At(V5Ui.Panel(main.gameObject, "Song Ranking", new Vector2(528f, SongRankH),
                 V5Tokens.Key2, 8f), V6ResultLogic.RankX, SongRankY);
 
-            var head = At(V5Ui.Node(panel.gameObject, "Head"), 8f, 8f, 512f, 36f);
+            var head = At(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
+                V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "曲別ランキング", 18f, V5Tokens.TextDim);
-            At(headTitle, 12f, 0f, 300f, 36f, new Vector2(0f, 0.5f));
+            At(headTitle, 12f, 0f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH, new Vector2(0f, 0.5f));
 
             songRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "", 24f, V5Tokens.TextDim);
             At(songRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
@@ -498,6 +506,7 @@ namespace FlashBeat.UI.V6.Result
         }
 
         // 登録名ランキング (856,452) 528x304: Head (集計軸) + 4 行。
+        // Head は design どおり 1 行 (見出し | 矢印 | 集計軸 | 矢印、padding [0,12] gap8)。
         // 登録名ごとの集計は既存 API に無いため空状態のみ (未実装は PR に記載)。
 
         private void BuildPlayerRanking(GameObject main)
@@ -505,14 +514,19 @@ namespace FlashBeat.UI.V6.Result
             var panel = At(V5Ui.Panel(main.gameObject, "Player Ranking", new Vector2(528f, PlayerRankH),
                 V5Tokens.Key2, 8f), V6ResultLogic.RankX, PlayerRankY);
 
-            var head = At(V5Ui.Node(panel.gameObject, "Head"), 8f, 8f, 512f, 36f);
+            var head = At(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
+                V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "登録名ごとのランキング", 18f, V5Tokens.TextDim);
-            At(headTitle, 12f, 0f, 300f, 36f, new Vector2(0f, 0.5f));
-            BuildChevron(head, 380f, "chevron-left");
+            At(headTitle, 12f, 0f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH, new Vector2(0f, 0.5f));
+            BuildChevron(head, V6ResultLogic.RankHeadChevronL, "chevron-left");
             var metric = V5GameUi.Text(head.gameObject, "Metric", "累計スコア", 18f, V5Tokens.Text,
                 TextAlignmentOptions.Center);
-            At(metric, 412f, 0f, 68f, 36f, new Vector2(0f, 0.5f));
-            BuildChevron(head, 480f, "chevron-right");
+            // 累計スコア (5 文字 x 18 = 90) が幅 92 に収まるよう折り返さない
+            // (旧実装は幅 68 で折り返し、2 行目が矢印と重なった)。
+            metric.textWrappingMode = TextWrappingModes.NoWrap;
+            At(metric, V6ResultLogic.RankHeadMetricX, 0f, V6ResultLogic.RankHeadMetricW, V6ResultLogic.RankHeadH,
+                new Vector2(0f, 0.5f));
+            BuildChevron(head, V6ResultLogic.RankHeadChevronR, "chevron-right");
 
             playerRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
             At(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
@@ -1393,8 +1407,11 @@ namespace FlashBeat.UI.V6.Result
             At(node.gameObject, x, y, w, h);
             var rt = node.GetComponent<RectTransform>();
             rt.pivot = pivot;
-            // pivot 変更で位置がずれるので左上 (x, -y) を維持する。
-            rt.anchoredPosition = new Vector2(x, -y);
+            // anchoredPosition は pivot の位置を指す。pivot を (0,1) から変えたときも
+            // 矩形の左上が (x, -y) に来るよう pivot 分を補正する (旧実装は補正が無く、
+            // 矩形全体が (1 - pivot.y) * h だけ上へずれ、パネル見出しや「累計スコア」が
+            // パネル上端の枠線に乗っていた)。
+            rt.anchoredPosition = new Vector2(x + pivot.x * w, -(y + (1f - pivot.y) * h));
             return node.gameObject;
         }
 

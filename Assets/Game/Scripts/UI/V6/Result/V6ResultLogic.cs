@@ -130,6 +130,29 @@ namespace FlashBeat.UI.V6.Result
         /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x (Main 右端に右寄せ)。
         public const float RankX = MainX + MainW - 528f;
 
+        /// 楽曲情報バンド (Main 内 (0,636)) 840x120 と子要素の配置 (design zcSHh)。
+        /// Stat を y56 (design の y20 ではなく) に置くのは、実データの曲名
+        /// (最長 12 文字 x fs34 で y21..55 まで食い込む) と Stat のラベル行が
+        /// 衝突するため (design の例は 5 文字想定)。
+        public const float SongInfoY = 636f;
+        public const float SongInfoW = 840f;
+        public const float SongInfoH = 120f;
+        public const float SongThumbX = 16f, SongThumbY = 28f, SongThumbW = 112f, SongThumbH = 63f;
+        public const float SongTitleX = 144f, SongTitleY = 16f, SongTitleW = 660f, SongTitleH = 40f;
+        public const float SongArtistX = 144f, SongArtistY = 66f, SongArtistW = 190f, SongArtistH = 28f;
+        public const float SongStatY = 56f, SongStatW = 116f, SongStatH = 64f;
+        public const float SongStatLabelH = 20f, SongStatValueY = 20f, SongStatValueH = 42f;
+        public static readonly float[] SongStatX = { 348f, 468f, 588f, 708f };
+
+        /// ランキング Head (パネル内 (8,8)) 512x36 と矢印 / 集計軸の配置
+        /// (design: padding [0,12] / gap8 / Arrow 32x32 / Metric fs18)。
+        /// Metric は「累計スコア」(5 文字 x 18 = 90) が収まる幅 92 を取る
+        /// (旧実装の幅 68 は折り返して矢印と重なった)。
+        public const float RankHeadX = 8f, RankHeadY = 8f, RankHeadW = 512f, RankHeadH = 36f;
+        public const float RankHeadTitleW = 220f;
+        public const float RankHeadChevronL = 329f, RankHeadChevronR = 468f, RankHeadChevronSize = 32f;
+        public const float RankHeadMetricX = 369f, RankHeadMetricW = 92f;
+
         /// フッター左のキー凡例 (契約 §4: KeyCap (fill,36) fs22 + Label fs22 $text-muted)。
         public static readonly string[] LegendKeys = { "R", "Enter", "Space" };
         public static readonly string[] LegendLabels = { "リトライ", "登録", "決定" };
