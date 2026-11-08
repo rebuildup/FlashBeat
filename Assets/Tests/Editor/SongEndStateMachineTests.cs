@@ -115,7 +115,8 @@ public class SongEndStateMachineTests
         Assert.AreEqual(SongEndState.Finishing, machine.State);
 
         // 猶予内 (SettleDeadline + SettleGraceSeconds 未満) は待つ。
-        bool done = machine.Update(Tick(true, 62.5f, 60.4f, 3, 10));
+        // 猶予の終端は 60.4 + 2 = 62.4 なので、62.3 ならまだ猶予内。
+        bool done = machine.Update(Tick(true, 62.3f, 60.4f, 3, 10));
         Assert.IsFalse(done);
 
         // 期限を過ぎても確定しない場合は強制完了 (未確定を残す印付き)。
