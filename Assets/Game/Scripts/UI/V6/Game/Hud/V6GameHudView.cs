@@ -17,7 +17,7 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// - 判定クローンは v5 と同じく読み取った後に非表示にする (3D プレイフィールドには
     ///   判定ポップアップを出さず、画面最下部の判定行に一本化)。
     /// - 「準備中 / 失敗」の表示は既存 HudPlayStatus (v5) の責務。二重に出さない。
-    /// - 解像度は <see cref="V6HudMetrics"/> (3 プロファイル実測値)。
+    /// - 寸法は <see cref="V6HudMetrics"/> の 1920×1080 論理テンプレート。
     ///
     /// MusicManager / Judge / NotesManager は所有外。変更しない。
     /// </summary>

@@ -203,11 +203,9 @@ namespace FlashBeat.UI.V6
             var canvas = FlashBeat.UI.V5.V5GameUi.NewCanvas("V6GameHudCanvas", HudSortingOrder);
             canvas.gameObject.transform.SetParent(transform, false);
 
-            // HUD は design 1920x1080 の座標で組み立て、画面に合わせて等比拡大する。
-            //   1920x1080 → s=1 (design FHD) / 2560x1440 → s=1.333 (design 2K) /
-            //   2560x1664 → s=1.333 (design Mac = 2K と同じ寸法) /
-            //   それ以外 → s=min(W/1920, H/1080)
-            hudFrame = FlashBeat.UI.V5.V5Ui.Node(canvas.gameObject, "V6 HUD Frame 1920x1080")
+            // HUD 部品は 1920x1080 の共通テンプレート座標で組み立て、親フレームを
+            // min(width / 1920, height / 1080) で等比拡大する。余分な軸はフレームを広げる。
+            hudFrame = FlashBeat.UI.V5.V5Ui.Node(canvas.gameObject, "V6 HUD Logical Viewport · 1920x1080 base")
                 .GetComponent<RectTransform>();
             hudFrame.anchorMin = new Vector2(0.5f, 0.5f);
             hudFrame.anchorMax = new Vector2(0.5f, 0.5f);
@@ -223,13 +221,11 @@ namespace FlashBeat.UI.V6
 
         /// <summary>
         /// <summary>
-        /// HUD フレームを画面に合わせて等比拡大する。
+        /// HUD フレーム全体に一度だけ等比倍率を適用する。
         ///
-        /// HUD の内部寸法は design の解像度そのまま (FHD 1920x1080 / 2K-Mac 2560x1440)。
-        /// フレームをその大きさにしてから画面へ等比拡大することで、
-        /// どの解像度でも「design と同じ比率」で全面的になる。
-        ///   1920x1080 → s=1 / 2560x1440 → s=1 / 2560x1664 → s=1 (幅基準) /
-        ///   3420x2148 (FHD プロファイル) → s=min(W/1920, H/1080)
+        /// 部品寸法は 1920x1080 の論理テンプレートを使い、フレームの論理サイズを
+        /// 画面寸法 / 倍率へ広げる。Mac 2560x1664 は 1920x1248 の論理領域となり、
+        /// 上端・中央・下端に配置した既存要素がそれぞれのアンカーに追従する。
         /// </summary>
         private void ApplyHudScale()
         {
@@ -239,29 +235,13 @@ namespace FlashBeat.UI.V6
             Vector2 size = parent.rect.size;
             if (size.x <= 0f || size.y <= 0f) return;
 
-            var profile = FlashBeat.UI.V5.UISizeProfile.Current;
-            float frameW = 1920f;
-            float frameH = 1080f;
-            if (profile.Name == "2k")
-            {
-                frameW = 2560f;
-                frameH = 1440f;
-            }
-            else if (profile.Name == "mac")
-            {
-                // design: MacBook 2560x1664 (16:10)。2K と同じ px だが縦は
-                // ネイティブ解像度いっぱい (上下アンカーが画面端に来る)。
-                // 端数を縮小解像度で埋めない (Issue #233: 解像度を水増しして
-                // テストしない — ネイティブ解像度で design 通りに出す)。
-                frameW = 2560f;
-                frameH = 1664f;
-            }
-
-            if (size == appliedCanvasSize && hudFrame.sizeDelta.x == frameW) return;
+            // 1920x1080 の論理テンプレートを画面寸法へ等比拡大し、余分な軸は
+            // 論理ビューポートとして広げる (Issue #220: 単一解像度テンプレート)。
+            float s = V6HudMetrics.ScaleForResolution(size.x, size.y);
+            Vector2 logicalSize = V6HudMetrics.LogicalViewportSize(size.x, size.y);
+            if (size == appliedCanvasSize && hudFrame.sizeDelta == logicalSize) return;
             appliedCanvasSize = size;
-            hudFrame.sizeDelta = new Vector2(frameW, frameH);
-            float s = Mathf.Min(size.x / frameW, size.y / frameH);
-            if (s <= 0f) s = 1f;
+            hudFrame.sizeDelta = logicalSize;
             hudFrame.localScale = new Vector3(s, s, 1f);
         }
 

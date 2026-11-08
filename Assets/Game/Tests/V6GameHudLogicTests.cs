@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using UnityEngine;
+using FlashBeat.UI;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Hud;
 
@@ -149,7 +150,7 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(string.Empty, V6HudLogic.RepresentativeKeyText(new KeyCode[0]));
         }
 
-        // --- 寸法表 (3 解像度) ---
+        // --- 1920×1080 HUD テンプレート ---
 
         [Test]
         public void Metrics_Fhd_MatchesDesign()
@@ -161,46 +162,75 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(95, m.GradeFs);
             Assert.AreEqual(600, m.GaugeW);
             Assert.AreEqual(36, m.GaugeH);
-            Assert.AreEqual(530, m.GaugeFillMax);
+            Assert.AreEqual(524, m.GaugeFillMax);
             Assert.AreEqual(180, m.ComboValueFs);
             Assert.AreEqual(56, m.KeyCapW);
             Assert.AreEqual(36, m.KeyCapH);
         }
 
         [Test]
-        public void Metrics_TwoK_MatchesDesign()
+        public void Metrics_TwoK_IsUniformlyScaledTemplate()
         {
             var m = V6HudMetrics.TwoK();
-            Assert.AreEqual(347, m.TopShadeH);
-            Assert.AreEqual(11, m.ProgressH);
-            Assert.AreEqual(64, m.Margin);
-            Assert.AreEqual(125, m.GradeFs);
-            Assert.AreEqual(800, m.GaugeW);
-            Assert.AreEqual(48, m.GaugeH);
-            Assert.AreEqual(707, m.GaugeFillMax);
-            Assert.AreEqual(240, m.ComboValueFs);
-            Assert.AreEqual(75, m.KeyCapW);
-            Assert.AreEqual(48, m.KeyCapH);
+            var scaled = V6HudMetrics.Fhd(4f / 3f);
+            Assert.AreEqual(scaled.TopShadeH, m.TopShadeH);
+            Assert.AreEqual(scaled.GradeFs, m.GradeFs);
+            Assert.AreEqual(scaled.GaugeW, m.GaugeW);
+            Assert.AreEqual(scaled.GaugeSegH, m.GaugeSegH);
+            Assert.AreEqual(scaled.GaugeFillH, m.GaugeFillH);
+            Assert.AreEqual(scaled.GaugeFillMax, m.GaugeFillMax);
+            Assert.AreEqual(scaled.ComboValueFs, m.ComboValueFs);
+            Assert.AreEqual(scaled.KeyCapW, m.KeyCapW);
         }
 
         [Test]
-        public void Metrics_MacProfile_MatchesTwoKSizes()
+        public void Metrics_ResolutionProfilesUseSameLogicalTemplate()
         {
-            // Mac 2560×1664 は 2K と同じ寸法 (縦位置はアンカーで追従)。
-            // 画面サイズに依存する Current ではなく、UISizeProfile.Select の
-            // 決定論的な選択結果で検証する。
-            UISizeProfile.ClearCache();
-            var mac = UISizeProfile.Select(2560, 1664);
-            Assert.AreEqual("mac", mac.Name);
+            var template = V6HudMetrics.Fhd(1f);
+            var profiles = new[]
+            {
+                UISizeProfile.Select(1920, 1080),
+                UISizeProfile.Select(2560, 1440),
+                UISizeProfile.Select(2560, 1664),
+                UISizeProfile.Select(1440, 900)
+            };
 
-            var m = V6HudMetrics.ForProfile(mac);
-            var twoK = V6HudMetrics.TwoK();
-            Assert.AreEqual(twoK.TopShadeH, m.TopShadeH);
-            Assert.AreEqual(twoK.GradeFs, m.GradeFs);
-            Assert.AreEqual(twoK.GaugeW, m.GaugeW);
-            Assert.AreEqual(twoK.GaugeFillMax, m.GaugeFillMax);
-            Assert.AreEqual(twoK.ComboValueFs, m.ComboValueFs);
-            Assert.AreEqual(twoK.KeyCapW, m.KeyCapW);
+            for (int i = 0; i < profiles.Length; i++)
+            {
+                var metrics = V6HudMetrics.ForProfile(profiles[i]);
+                Assert.AreEqual(template.TopShadeH, metrics.TopShadeH);
+                Assert.AreEqual(template.GradeFs, metrics.GradeFs);
+                Assert.AreEqual(template.GaugeW, metrics.GaugeW);
+                Assert.AreEqual(template.GaugeFillMax, metrics.GaugeFillMax);
+                Assert.AreEqual(template.ComboValueFs, metrics.ComboValueFs);
+                Assert.AreEqual(template.KeyCapW, metrics.KeyCapW);
+            }
+        }
+
+        [TestCase(1920, 1080, 1f)]
+        [TestCase(2560, 1440, 4f / 3f)]
+        [TestCase(2560, 1664, 4f / 3f)]
+        [TestCase(1440, 900, 0.75f)]
+        [TestCase(1280, 720, 2f / 3f)]
+        public void TemplateScale_UsesContainFit(int width, int height, float expected)
+        {
+            Assert.AreEqual(expected, V6HudMetrics.ScaleForResolution(width, height), 0.0001f);
+        }
+
+        [TestCase(1920, 1080, 1920f, 1080f)]
+        [TestCase(2560, 1440, 1920f, 1080f)]
+        [TestCase(2560, 1664, 1920f, 1248f)]
+        [TestCase(1440, 900, 1920f, 1200f)]
+        [TestCase(1280, 720, 1920f, 1080f)]
+        public void LogicalViewportSize_FillsResolutionAndExpandsOnlyFreeAxis(
+            int width, int height, float expectedWidth, float expectedHeight)
+        {
+            var logical = V6HudMetrics.LogicalViewportSize(width, height);
+
+            Assert.AreEqual(expectedWidth, logical.x, 0.01f);
+            Assert.AreEqual(expectedHeight, logical.y, 0.01f);
+            Assert.AreEqual(width, logical.x * V6HudMetrics.ScaleForResolution(width, height), 0.01f);
+            Assert.AreEqual(height, logical.y * V6HudMetrics.ScaleForResolution(width, height), 0.01f);
         }
 
         [Test]
@@ -210,6 +240,8 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(130, m.TopShadeH);
             Assert.AreEqual(300, m.GaugeW);
             Assert.AreEqual(48, m.GradeFs); // 95*0.5 = 47.5 → RoundToInt → 48
+            Assert.AreEqual(7, m.GaugeSegH);
+            Assert.AreEqual(7, m.GaugeFillH);
         }
 
         [Test]
