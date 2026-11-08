@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
+using FlashBeat.UI.V6;
 
 /// <summary>
 /// Title scene (design Unit 01 "Title").
@@ -26,18 +27,46 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
-        // v5 UI (Issue #120): レガシー Canvas を隠し、コード生成の v5 画面に置き換える。
-        // 入力は TitleView が処理し、このクラスの public メソッドをコールバックで呼ぶ。
-        // キー割り当て (0.1.9) は TitleView が KeyActions 経由で参照する。
+        // タイトルは v5 のコード生成 UI を使わず、**シーン配置の元の画面**を使う
+        // (オーナー指示 2026-11-08: v5 を撤回して元の動画を再生するだけにする)。
+        // TitleScene.unity には動画 (VideoPlayer "Screen") + ロゴ + メニューが
+        // 置かれていて、それがそのままタイトルになる。
         var legacy = GameObject.Find("Canvas");
-        if (legacy != null) legacy.SetActive(false);
-        FlashBeat.UI.V5.TitleView.Build(SelectScene, OptionScene, EndGame, playSound);
+        if (legacy != null)
+        {
+            legacy.SetActive(true);
+            // v5  Obi 之前 のレガシー Canvas には GraphicRaycaster が無く、
+            // マウス操作がボタンに届かなかった (Issue #167)。元の画面を使うので足す。
+            if (legacy.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+            {
+                legacy.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+        }
 
-        // タイトル画面でもキーガイド (Tab) を開けるようにする。
-        CreateKeyGuide();
+        // キーガイド (Tab) はタイトルでは出さない (左下に常時(keycap)が出るのを避ける)。
+        V6UiMode.HideLegacyKeyGuide();
     }
 
-    /// <summary>タイトル画面でもキーガイド (Tab) を開けるようにする。</summary>
+    void Update()
+    {
+        // 元の画面 (ボタン) のキーボード操作。タイトルは動画が流れるだけの画面なので、
+        // 最小限の入力だけ受け持つ。
+        if (KeyActions.IsDown(KeyActions.KeyAction.Start) || Input.GetKeyDown(KeyCode.Return)
+            || Input.GetKeyDown(KeyCode.Space))
+        {
+            SelectScene();
+        }
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Option))
+        {
+            OptionScene();
+        }
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Exit) || Input.GetKeyDown(KeyCode.Escape))
+        {
+            EndGame();
+        }
+    }
+
+    /// <summary>旧キーガイド (タイトルでは使わない)。</summary>
     private void CreateKeyGuide()
     {
         KeyGuideUI.Create(null);

@@ -234,7 +234,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildGrade()
         {
             gradeText = V5Ui.Text(gameObject, "Grade", "C", m.GradeFs, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
+                TextAlignmentOptions.TopLeft, FontStyles.Bold);
             var rt = gradeText.rectTransform;
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(0f, 1f);
@@ -308,11 +308,12 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildScoreTexts()
         {
-            var label = V5Ui.Text(gameObject, "SCORE", "SCORE", m.ScoreLabelFs, V5Tokens.TextMuted);
+            var label = V5Ui.Text(gameObject, "SCORE", "SCORE", m.ScoreLabelFs, V5Tokens.TextMuted,
+                TextAlignmentOptions.TopLeft);
             PlaceTopLeft(label.rectTransform, m.GaugeX, -m.ScoreLabelY);
 
             scoreText = V5Ui.Text(gameObject, "Score Value", "0", m.ScoreFs, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
+                TextAlignmentOptions.TopLeft, FontStyles.Bold);
             PlaceTopLeft(scoreText.rectTransform, m.GaugeX, -m.ScoreValueY);
         }
 
@@ -372,11 +373,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = new Vector2(m.Margin, m.ComboH * 0.5f);
             rt.sizeDelta = new Vector2(m.ComboW, m.ComboH);
 
-            var label = V5Ui.Text(block, "COMBO", "COMBO", m.ComboLabelFs, V5Tokens.TextMuted);
+            var label = V5Ui.Text(block, "COMBO", "COMBO", m.ComboLabelFs, V5Tokens.TextMuted,
+                TextAlignmentOptions.TopLeft);
             PlaceTopLeft(label.rectTransform, 0f, 0f);
 
             comboText = V5Ui.Text(block, "Value", "0", m.ComboValueFs, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
+                TextAlignmentOptions.TopLeft, FontStyles.Bold);
             comboText.textWrappingMode = TextWrappingModes.NoWrap;
             PlaceTopLeft(comboText.rectTransform, 0f, -m.ComboValueY);
         }
