@@ -98,7 +98,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void FooterLegend_FitsInLegendArea()
         {
-            float width = V6SelectViewLogic.FooterLegendWidth();
+            float width = V6SelectViewLogic.FooterLegendWidth("Space");
             V6Rect area = V6SelectViewLogic.FooterLegendArea();
 
             Assert.LessOrEqual(width, area.W, "the legend must fit the footer legend area");
@@ -109,7 +109,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void FooterLegend_ItemsDoNotOverlapEachOther()
         {
-            V6LegendItem[] items = V6SelectViewLogic.FooterLegend();
+            V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
             Assert.Greater(items.Length, 1);
 
             for (int i = 0; i < items.Length; i++)
@@ -129,7 +129,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void FooterLegend_CapsAndLabelsDoNotOverlap()
         {
-            V6LegendItem[] items = V6SelectViewLogic.FooterLegend();
+            V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
 
             for (int i = 0; i < items.Length; i++)
             {
@@ -146,7 +146,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void FooterLegend_CapLabelsFitOnOneLine()
         {
-            V6LegendItem[] items = V6SelectViewLogic.FooterLegend();
+            V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
 
             for (int i = 0; i < items.Length; i++)
             {
@@ -178,7 +178,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             V6Rect ready = V6SelectViewLogic.FooterReady();
 
             Assert.IsFalse(settings.Overlaps(ready), "the settings and Ready buttons overlap");
-            Assert.GreaterOrEqual(settings.X - V6SelectViewLogic.FooterLegendWidth(), 24f,
+            Assert.GreaterOrEqual(settings.X - V6SelectViewLogic.FooterLegendWidth("Space"), 24f,
                 "the legend needs a gap from the settings button");
         }
 
@@ -296,7 +296,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             {
                 float u = V6SelectViewLogic.DesignScale(res[0], res[1]);
 
-                V6LegendItem[] items = V6SelectViewLogic.FooterLegend();
+                V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
                 for (int i = 0; i < items.Length; i++)
                 {
                     float inner = (items[i].CapWidth - V6SelectViewLogic.CapPadX * 2f) * u;
@@ -320,7 +320,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             // 画面サイズを変えても、同じ design 座標の矩形が返ることを確認する。
             V6Rect title = V6SelectViewLogic.HeaderTitle();
             V6Rect back = V6SelectViewLogic.HeaderBackButton();
-            float legendWidth = V6SelectViewLogic.FooterLegendWidth();
+            float legendWidth = V6SelectViewLogic.FooterLegendWidth("Space");
 
             foreach (int[] res in TargetResolutions)
             {
@@ -328,7 +328,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
                 Assert.AreEqual(20f, V6SelectViewLogic.LabelFontSize, "the label font size must be a design constant");
                 Assert.AreEqual(0f, back.X);
                 Assert.AreEqual(80f, title.X);
-                Assert.AreEqual(legendWidth, V6SelectViewLogic.FooterLegendWidth());
+                Assert.AreEqual(legendWidth, V6SelectViewLogic.FooterLegendWidth("Space"));
                 Assert.LessOrEqual(legendWidth, V6SelectViewLogic.FooterLegendArea().W);
             }
         }
