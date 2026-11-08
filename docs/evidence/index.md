@@ -24,6 +24,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 | **S3** | chart editor + publisher → Win64 plays a published chart | **未証明** | none | **未証明** — no published chart version |
 | **S4** | leaderboard (optional) | **未証明** | none | not started — keep the current playable build |
 
+> 上表は **Windows 実機** のみを根拠とする。macOS で観測した v6 統合同ブランチの証跡は
+> **§1.6** に分けて記載している（Win64 の代替ではない）。
+
 `FlashBeat.exe` has the **same SHA-256 in every build** (it is the Unity launcher stub), so the
 **folder fingerprint** is the artifact identity:
 
@@ -52,6 +55,35 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 **未証明**: ストリーム音声、実機 1280×720 fullscreen、S2/S3。
 詳細: [`win64-2026-11-06-release-gate/README-gen3.md`](win64-2026-11-06-release-gate/README-gen3.md)（Run D）/
 [`win64-2026-11-06-release-gate/README.md`](win64-2026-11-06-release-gate/README.md)（Run A/B/C = 第 1・2 世代）。
+
+## 1.6 Mac 検証（2026-11-08・v6 統合中ブランチ）
+
+**これは Win64 の代用ではない。** 展示は Windows 実機で行うため、macOS の実機ログは
+「ソースがビルドでき、起動し、例外を出さない」証明に過ぎない。ここに書くのも
+**実機で観測できたことだけ** で、観測できなかった項目は「未証明」と明記する。
+
+| 項目 | 結果 | 根拠 |
+|---|---|---|
+| macOS スタンドアロンビルド | **成功** | `script/mac-verify build integration/v6-followup` → `Builds/macOS/FlashBeat.app` |
+| 実機起動 | **成功**（プロセスは生存） | `script/mac-verify run` → `process alive: yes` |
+| Player.log の例外/エラー行 | **0 行** | `grep -c -i -E 'exception\|error' Player.log` = 0 |
+| シーン遷移 | **成功** | `[Perf] scene load end TitleScene 55ms` |
+| 実解像度 | **2560×1664**（実ディスプレイの全画面表示） | AutoShot の実画像サイズ |
+| v6 Title 描画 | **成功**（ロゴ・背景動画・自己ベスト・START が出る） | `shot-01-TitleScene.png` / `shot-02-TitleScene.png` |
+| 更新通知 | **表示された**（`v0.1.0+aac497b → v0.1.14`、`更新して再起動 F3`） | `shot-02-TitleScene.png` |
+| 選曲 → プレイ → Result → リトライ | **未証明**（この run では GameScene まで進まなかった） | `shot-00-Opening.png` / `shot-01-TitleScene.png` のみ |
+| Win64 全画面表示 | **未証明**（Windows 実機は展示用につき未操作） | — |
+
+証跡: [`mac-verify-run-2026-11-08/`](mac-verify-run-2026-11-08/)（`README.md` / `Player.log` / 3 枚のスクリーンショット）。
+
+**Win64 CI が赤である理由**: 直近の `build-win64` 失敗は **ライセンス未設定** であって
+**ソースのビルド失敗ではない**。該当ジョブは `license-precheck` で終了し、Unity は 1 度も起動していない:
+
+```
+[error]UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。
+```
+
+切り分け手順と推奨手順は [`docs/operations/unity-ci-license.md`](../operations/unity-ci-license.md) を参照。
 
 ## 2. Artifact index (SHA)
 
