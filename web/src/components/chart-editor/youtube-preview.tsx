@@ -1,4 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { css } from "styled-system/css";
 import { Button } from "@/components/ui";
 
@@ -178,14 +185,35 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
     const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
     const [errorMessage, setErrorMessage] = useState("");
     const [position, setPosition] = useState(0);
+    /**
+     * A play request that arrived before the player was ready. The visitor
+     * presses the primary CTA as soon as the page paints; the YouTube API
+     * may still be loading, and `playVideo()` on a not-ready player is a
+     * silent no-op that would leave the CTA looking broken. The intent is
+     * kept and replayed in `onReady`.
+     */
+    const pendingPlayRef = useRef(false);
+
+    /** Shared by the handle and the built-in buttons; safe before `onReady`. */
+    const startPlay = useCallback(() => {
+      pendingPlayRef.current = true;
+      // Between construction and `onReady` the API object exists but its
+      // methods are not attached yet; calling them throws.
+      if (typeof playerRef.current?.playVideo === "function") {
+        playerRef.current.playVideo();
+      }
+    }, []);
+
+    const startPause = useCallback(() => {
+      pendingPlayRef.current = false;
+      if (typeof playerRef.current?.pauseVideo === "function") {
+        playerRef.current.pauseVideo();
+      }
+    }, []);
 
     useImperativeHandle(ref, () => ({
-      play() {
-        playerRef.current?.playVideo();
-      },
-      pause() {
-        playerRef.current?.pauseVideo();
-      },
+      play: startPlay,
+      pause: startPause,
       seekTo(seconds: number) {
         playerRef.current?.seekTo(seconds, true);
         setPosition(seconds);
@@ -209,6 +237,10 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
             events: {
               onReady: () => {
                 setStatus("ready");
+                if (pendingPlayRef.current) {
+                  pendingPlayRef.current = false;
+                  playerRef.current?.playVideo();
+                }
                 timerRef.current = window.setInterval(() => {
                   const current = playerRef.current;
                   if (!current) {
@@ -260,6 +292,7 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+        pendingPlayRef.current = false;
         playerRef.current?.destroy();
         playerRef.current = null;
       };
@@ -284,18 +317,14 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
             <Button
               className={raisedButton}
               size="sm"
-              onClick={() => {
-                playerRef.current?.playVideo();
-              }}
+              onClick={startPlay}
             >
               Play
             </Button>
             <Button
               className={raisedButton}
               size="sm"
-              onClick={() => {
-                playerRef.current?.pauseVideo();
-              }}
+              onClick={startPause}
             >
               Pause
             </Button>
