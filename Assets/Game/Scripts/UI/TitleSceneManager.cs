@@ -16,6 +16,7 @@ public class TitleSceneManager : MonoBehaviour
     [SerializeField] private VideoPlayer Screen;
 
     private AudioSource sounds;
+    private FlashBeat.UI.V6.Title.V6TitleView titleView;
 
     void Start()
     {
@@ -32,24 +33,24 @@ public class TitleSceneManager : MonoBehaviour
         // 旧 UI は画面サイズに追従せず、左下に F2/F5 の案内が常時残るので、
         // Canvas を隠して動画 (VideoPlayer "Screen") だけを見せる。
         // 遷移は下の Update (Start / Option / Exit) が受け持つ。
+        // タイトルは v6 のコード生成 UI を使う (オーナー指示 2026-11-08 の「動画を再生するだけ」から
+        // 全シーン v6 化へ方針変更)。動画 (VideoPlayer "Screen") は消さない — v6 の UI はその上に重なる。
         var legacy = GameObject.Find("Canvas");
-        if (legacy != null) legacy.SetActive(false);
-
-        // Canvas の外にある旧 UI の残骸 (左下の F5 ランキング / F2 キー設定 の案内など)
-        // も隠す。タイトルは動画だけを見せる画面なので、旧 UI は全部出さない。
-        // 更新ピル (UpdateNoticeCanvas) は残す。
-        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
-        for (int i = 0; i < graphics.Length; i++)
+        if (legacy != null)
         {
-            var graphic = graphics[i];
-            if (graphic == null) continue;
-            var canvas = graphic.GetComponentInParent<Canvas>();
-            if (canvas != null && canvas.name == "UpdateNoticeCanvas") continue;
-            graphic.enabled = false;
+            legacy.SetActive(true);
+            if (legacy.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+            {
+                legacy.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
         }
 
-        // キーガイド (Tab) はタイトルでは出さない (左下に keycap が常時出ているのを避ける)。
-        V6UiMode.HideLegacyKeyGuide();
+        var canvasRect = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Title Canvas").GetComponent<RectTransform>();
+        titleView = FlashBeat.UI.V6.Title.V6TitleView.Create(canvasRect, SelectScene, OptionScene, EndGame);
+        FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvasRect.GetComponentInParent<Canvas>());
+
+        // 旧 UI の残骸 (左下の F5/F2 案内) を隠す。更新ピル (UpdateNoticeCanvas) は残す。
+        HideLegacyTitleDecorations();
     }
 
     void Update()
@@ -95,6 +96,24 @@ public class TitleSceneManager : MonoBehaviour
         tmp.raycastTarget = false;
         var font = JapaneseFontFinder.FindJapaneseFont();
         if (font != null) { tmp.font = font; }
+    }
+
+    /// <summary>タイトルの旧装飾 (左下の F5/F2 案内) を隠す。更新ピルは残す。</summary>
+    private void HideLegacyTitleDecorations()
+    {
+        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            var graphic = graphics[i];
+            if (graphic == null) continue;
+            var canvas = graphic.GetComponentInParent<Canvas>();
+            if (canvas == null) continue;
+            if (canvas.name == "UpdateNoticeCanvas") continue;
+            if (canvas.name.StartsWith("V6")) continue;
+            graphic.enabled = false;
+        }
+
+        V6UiMode.HideLegacyKeyGuide();
     }
 
     public void EndGame()
