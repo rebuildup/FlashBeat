@@ -447,12 +447,12 @@ public static class V6ScreenAudit
             && inner.yMax <= outer.yMax + tolerance;
     }
 
-    /// <summary>inner が outer からはみ出す最大量 (px)。収まっているときは &le;0。</summary>
+    /// <summary>inner が outer からはみ出す最大量 (px)。完全に収まっているときは 0。</summary>
     public static float Overshoot(Rect outer, Rect inner)
     {
-        return Mathf.Max(
-            Mathf.Max(outer.xMin - inner.xMin, inner.xMax - outer.xMax),
-            Mathf.Max(outer.yMin - inner.yMin, inner.yMax - outer.yMax));
+        float dx = Mathf.Max(0f, Mathf.Max(outer.xMin - inner.xMin, inner.xMax - outer.xMax));
+        float dy = Mathf.Max(0f, Mathf.Max(outer.yMin - inner.yMin, inner.yMax - outer.yMax));
+        return Mathf.Max(dx, dy);
     }
 
     /// <summary>RectTransform の 4 隅からワールド (Screen Space Overlay では画面 px) 矩形を作る。</summary>

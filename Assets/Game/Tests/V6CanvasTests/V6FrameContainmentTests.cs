@@ -97,6 +97,8 @@ public sealed class V6FrameContainmentTests
         Assert.AreEqual(5f, V6ScreenAudit.Overshoot(outer, new Rect(10f, 10f, 95f, 92f)));
         // 左に 3px はみ出す。
         Assert.AreEqual(3f, V6ScreenAudit.Overshoot(outer, new Rect(-3f, 0f, 50f, 50f)));
+        // 上に 4px はみ出す。
+        Assert.AreEqual(4f, V6ScreenAudit.Overshoot(outer, new Rect(0f, 0f, 50f, 104f)));
     }
 
     // --- WorldRect (RectTransform → 矩形) ---
