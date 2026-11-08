@@ -12,8 +12,17 @@ namespace FlashBeat.UI.V6.Title
     {
         internal V6TitleView View;
 
+        // 旧更新通知バナー (UpdateNoticeCanvas) は UpdateNoticeUI が最初の Update で
+        // 生成するので、Start 時点ではまだ無い。見つかって隠せるまで毎フレーム試す。
+        private bool updateNoticeHidden;
+
         private void Update()
         {
+            if (!updateNoticeHidden)
+            {
+                updateNoticeHidden = V6UiMode.HideLegacyUpdateNotice();
+            }
+
             if (View != null)
             {
                 View.Tick();

@@ -69,5 +69,65 @@ namespace FlashBeat.UI.V6
                 }
             }
         }
+
+        /// <summary>
+        /// v6 タイトルモードで旧 (v5) タイトル UI を非表示にする。
+        /// 対象名の判定は <see cref="FlashBeat.UI.V6.Title.V6TitleLogic.IsLegacyTitleObjectName"/>
+        /// (TitleScene.unity 実測: 旧 UI はシーン配置 "Canvas" 配下にあるので、原則は
+        /// "Canvas" を非表示にすれば消える。名前での列挙は実機で効かなかった場合の保険)。
+        /// v6 が無効なときは呼ばない (旧 UI がそのまま動く)。
+        /// 戻り値: 一巡したら true (以降のフレームで再試行しない)。
+        /// </summary>
+        public static bool HideLegacyTitleUi()
+        {
+            var transforms = UnityEngine.Object.FindObjectsByType<UnityEngine.Transform>(
+                UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                var t = transforms[i];
+                if (t == null) continue;
+                if (!FlashBeat.UI.V6.Title.V6TitleLogic.IsLegacyTitleObjectName(t.gameObject.name)) continue;
+                if (IsUnderV6Canvas(t)) continue;
+                if (t.gameObject.activeSelf) { t.gameObject.SetActive(false); }
+            }
+            return true;
+        }
+
+        /// <summary>親をたどって v6 の Canvas ("V6 ..." という名) 配下なら true。</summary>
+        private static bool IsUnderV6Canvas(UnityEngine.Transform t)
+        {
+            var canvases = t.GetComponentsInParent<UnityEngine.Canvas>(true);
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                var c = canvases[i];
+                if (c != null && c.gameObject.name.StartsWith("V6")) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 旧 (v5) の更新通知バナー (UpdateNoticeUI のピル) を隠す。
+        /// v6 タイトルは UpdateChecker.Model で自分用の更新表示を持つので、
+        /// 旧バナーは二重表示になるだけ。**コンポーネント (FlashBeatUpdateNotice) は
+        /// 無効化しない**: v6 の更新ボタンが UpdateNoticeUI.Trigger() を呼ぶため、
+        /// 非表示にするのは見た目 (UpdateNoticeCanvas) だけ。
+        /// UpdateNoticeUI は最初の Update でピルを生成するので、Start 時点では
+        /// まだ無い → 毎フレーム試して見つかり次第隠す (戻り値 true で完了)。
+        /// </summary>
+        public static bool HideLegacyUpdateNotice()
+        {
+            var canvases = UnityEngine.Object.FindObjectsByType<UnityEngine.Canvas>(
+                UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+            bool found = false;
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                var c = canvases[i];
+                if (c == null) continue;
+                if (c.gameObject.name != "UpdateNoticeCanvas") continue;
+                if (c.gameObject.activeSelf) { c.gameObject.SetActive(false); }
+                found = true;
+            }
+            return found;
+        }
     }
 }

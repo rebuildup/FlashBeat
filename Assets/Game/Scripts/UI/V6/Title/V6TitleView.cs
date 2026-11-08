@@ -102,6 +102,11 @@ namespace FlashBeat.UI.V6.Title
             }
 
             var view = new V6TitleView(onStart, onOption, onExit, onHistory, onRanking);
+            // 旧 (v5) タイトル UI と更新通知バナーを隠す (v6 が自前で更新情報を
+            // 描くので、旧側は二重表示になるだけ)。Create は v6 モード
+            // (V6TitleView.Enabled) でしか呼ばれないので、ここで分岐する。
+            V6UiMode.HideLegacyTitleUi();
+            V6UiMode.HideLegacyUpdateNotice();
             view.BuildRoot(parent);
             view.Rebuild();
             Current = view;

@@ -16,6 +16,41 @@ namespace FlashBeat.UI.V6.Title
         public const float FrameH = 972f;
 
         /// <summary>
+        /// 旧 (v5) タイトル UI のオブジェクト名か (V6UiMode.HideLegacyTitleUi の判定本体)。
+        /// 名前は TitleScene.unity 実測 (シーン配置 "Canvas" 配下の Stage 16:9 ゾーンと
+        /// その子: Logo / Menu / Menu GameStart|Option|Exit / Catalog Status / 枠飾り)。
+        /// v6 側の名前 ("V6 Title Canvas" / "V6 Title View" / "Tabs" / "KeyCap" など) は
+        /// 一致させない (v6 自身を隠さない)。null / 空 / 前後空白は非該当。
+        /// </summary>
+        public static bool IsLegacyTitleObjectName(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName))
+            {
+                return false;
+            }
+
+            switch (objectName)
+            {
+                case "Canvas":
+                case "Stage 16:9":
+                case "BG":
+                case "Logo":
+                case "Menu":
+                case "Menu GameStart":
+                case "Menu Option":
+                case "Menu Exit":
+                case "Catalog Status":
+                case "Edge Deco Left":
+                case "Edge Deco Right":
+                case "Bar V":
+                case "Bar H":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
         /// 左上 origin = ((w−1728)/2, (h−972)/2) (design px、切り捨て)。
         /// 正本: design POJwG "Resolution Check · Title" の実配置
