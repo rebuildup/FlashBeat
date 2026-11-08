@@ -224,14 +224,17 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            // 戻るはメニュー操作設定に従う (#142)。既定は Esc。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 if (onBack != null) onBack();
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) ||
-                Input.GetKeyDown(KeyCode.Space))
+            // 決定はメニュー操作設定に従う (#142)。既定は Space (無設定時の Enter 併用を維持)。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)
+                || Input.GetKeyDown(KeyCode.Return)
+                || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
                 var row = rows[selectedRow];
                 if (row.Activate != null) row.Activate();
@@ -721,17 +724,17 @@ namespace FlashBeat.UI.V5
             }
         }
 
-        /// <summary>Legend (48,1000): ↑↓ 項目 / ←→ 値 / Tab カテゴリ / Esc 戻る。</summary>
+        /// <summary>Legend (48,1000): ↑↓ 項目 / ←→ 値 / Tab カテゴリ / 戻る操作キー (#148 は現在の割当から生成)。</summary>
         private void BuildLegend()
         {
             V5Decor.BuildLegend(gameObject, new Vector2(S(48f), -S(1000f)), new[]
             {
                 ("↑", S(46f), (string)"項目"),
                 ("↓", S(46f), (string)null),
-                ("←", S(46f), (string)"値"),
-                ("→", S(46f), (string)null),
+                ("←", S(46f), "値"),
+                ("→", S(46f), null),
                 ("Tab", S(76f), (string)"カテゴリ"),
-                ("Esc", S(76f), (string)"戻る"),
+                (ActionKeyHint.Primary(KeyActions.KeyAction.Back), S(76f), (string)"戻る"),
             });
         }
     }

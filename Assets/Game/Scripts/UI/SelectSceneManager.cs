@@ -245,19 +245,21 @@ public class SelectSceneManager : MonoBehaviour
         {
             historyView.MoveSelection(1);
         }
-        else if (Input.GetKeyDown(KeyCode.S)) // Sort 切替
+        else if (Input.GetKeyDown(KeyCode.S)) // Sort 切替 (ビュー固有の固定ショートカット)
         {
             historyView.ToggleSort();
         }
-        else if (Input.GetKeyDown(KeyCode.Escape))
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Back)) // 既定 Esc (#142)
         {
             historyView.TriggerBack();
         }
-        else if (Input.GetKeyDown(KeyCode.O)) // OpenSettings
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
         {
             historyView.TriggerOpenSettings();
         }
-        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)
+            || Input.GetKeyDown(KeyCode.Return)
+            || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
             historyView.TriggerGotoSong();
         }
@@ -273,23 +275,25 @@ public class SelectSceneManager : MonoBehaviour
         {
             rankingView.MoveSelection(1);
         }
-        else if (Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online)
+        else if (Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online、ビュー固有の固定ショートカット)
         {
             rankingView.ToggleSource();
         }
-        else if (Input.GetKeyDown(KeyCode.Escape))
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Back)) // 既定 Esc (#142)
         {
             rankingView.TriggerBack();
         }
-        else if (Input.GetKeyDown(KeyCode.O)) // OpenSettings
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
         {
             rankingView.TriggerOpenSettings();
         }
-        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+        else if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)
+            || Input.GetKeyDown(KeyCode.Return)
+            || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
             rankingView.TriggerGotoSong();
         }
-        else if (Input.GetKeyDown(KeyCode.F5)) // Retry fetch (再試行)
+        else if (Input.GetKeyDown(KeyCode.F5)) // Retry fetch (再試行、ビュー固有の固定ショートカット)
         {
             rankingView.RetryFetch();
         }

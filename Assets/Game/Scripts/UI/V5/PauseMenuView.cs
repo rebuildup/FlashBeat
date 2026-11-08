@@ -608,7 +608,7 @@ namespace FlashBeat.UI.V5
             V5GameUi.LegendItem(legend.gameObject, "↑ ↓", "項目");
             V5GameUi.LegendItem(legend.gameObject, "← →", "値");
             V5GameUi.LegendItem(legend.gameObject, "S D L K", "タブ");
-            V5GameUi.LegendItem(legend.gameObject, "Esc", "再開");
+            V5GameUi.LegendItem(legend.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Back), "再開");
         }
 
         private void BuildActions(UISizeProfile p, float s)
@@ -622,19 +622,18 @@ namespace FlashBeat.UI.V5
             actionsRt.sizeDelta = new Vector2(0f, 48f * s);
             actions.childControlWidth = false;
             actions.childControlHeight = false;
-            // リトライ/リタイアはメニュー操作設定 (KeyActions) に従う (0.1.9)。
-            // キーキャップ表示も設定値から生成する (既定: R / Backspace)。
-            AddAction(actions.gameObject, "Retire", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetire)), p, s, () =>
+            // リトライ/リタイア/再開のキャップは KeyActions の現在の割当から生成する (#146/#148)。
+            AddAction(actions.gameObject, "Retire", ActionKeyHint.All(KeyActions.KeyAction.MenuRetire), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetireGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Retry", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetry)), p, s, () =>
+            AddAction(actions.gameObject, "Retry", ActionKeyHint.All(KeyActions.KeyAction.MenuRetry), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetryGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Resume", "Esc", p, s, Close, primary: true);
+            AddAction(actions.gameObject, "Resume", ActionKeyHint.Primary(KeyActions.KeyAction.Back), p, s, Close, primary: true);
         }
 
         private void AddAction(GameObject parent, string label, string key, UISizeProfile p, float s,
@@ -806,7 +805,8 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
-            if (InputEnabled && Input.GetKeyDown(KeyCode.Escape))
+            // ポーズの開閉は Back 操作 (#142)。既定は Esc。
+            if (InputEnabled && KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 Toggle();
                 return;
