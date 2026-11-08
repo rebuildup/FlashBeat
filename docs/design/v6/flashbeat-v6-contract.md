@@ -1,5 +1,8 @@
 # FlashBeat v6 デザイン契約 (Worker A / Issue #218)
 
+> ⚠ **これは旧配置のミラー**。正本は [`docs/ui/v6-screen-contract.md`](../../ui/v6-screen-contract.md) (Issue #218 の Owned Path)。
+> 差分は正本側のみ更新する。
+
 他ワーカーがそのままコードへ落とせるデザイン契約。正本は
 `feature/pencil-ui` @ `19f08b31a3cf269bd0921543d6bc4f8ee3b6b876` の `design/flashbeat-ui.pen` (JSON, version 2.22)。
 機械可読な全量は同梱の **`flashbeat-v6-nodes.json`** (解決済みノードツリー + 変数) を参照。

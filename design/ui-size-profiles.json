@@ -1,5 +1,7 @@
 {
-  "_doc": "FlashBeat UI size profiles. 1 prefab set, sizes switched per profile at runtime (UISizeProfile ScriptableObject). All values are real pixels of that screen.",
+  "_doc": "FlashBeat UI size profiles (v6 正本 / Issue #218). 1 prefab set, sizes switched per profile at runtime (UISizeProfile ScriptableObject). All values are real pixels of that screen.",
+  "_v6": "v6 の画面寸法は FHD 1920x1080 / 2K 2560x1440 / MacBook Air M5 2560x1664 (旧 Mac 1440x900 仕様は廃止)。HUD は 1 枚の 1920x1080 テンプレートに s = min(w/1920, h/1080) を適用する (docs/ui/v6-screen-contract.md §8)。profiles.* は v5 スタックの共有定数として残置。",
+  "_v5_legacy": "grid / controls_v3 は v5 スタック由来の設計時グリッド (Unity では未実装)。v6 の基準には使わない。",
   "select": "2560x1664 (aspect~1.538) -> mac ; screen.height>=1440 -> 2k ; else fhd (screen.height<1080 -> fhd scaled by height/1080)",
   "canvas": "Constant Pixel Size x1 (profile values are real px). Fonts: NotoSansJP.",
   "profiles": {
