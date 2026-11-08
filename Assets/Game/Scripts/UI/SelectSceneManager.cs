@@ -221,6 +221,7 @@ public class SelectSceneManager : MonoBehaviour
         if (config == null)
         {
             Debug.LogWarning("[SelectScene] remote song selected but no API is configured - staying on the select screen");
+            v6Data?.ReportStartFailure("クラウドカタログが設定されていないため、この曲は開始できません");
             yield break;
         }
 
@@ -235,6 +236,7 @@ public class SelectSceneManager : MonoBehaviour
             // 404 / network error / malformed body: warn and stay; the fixed
             // catalog and the rest of the game keep working.
             Debug.LogWarning($"[SelectScene] chart for '{song.remoteId}' v{version} unavailable (status={status}) - start cancelled");
+            v6Data?.ReportStartFailure("譜面を取得できなかったため開始できませんでした (HTTP " + status + ")");
             yield break;
         }
 

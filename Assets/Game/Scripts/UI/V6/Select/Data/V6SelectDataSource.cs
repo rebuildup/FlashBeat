@@ -201,9 +201,13 @@ namespace FlashBeat.UI.V6.Select.Data
 
             // 既定選択: 未選択のまま Space (Ready) を押すと「曲が選択されていません」で
             // 何も起きず詰む (Issue #233 実機)。最初の曲を選択しておく。
+            // オフライン展示ではクラウド曲の開始が失敗するので、**ローカル曲 (固定カタログ)**
+            // を優先する (Issue #233: 選曲→開始でフリーズしたように見える)。
             if (selectedSongId < 0 && filteredSongs.Count > 0)
             {
-                selectedSongId = filteredSongs[0].SongId;
+                V6SongEntry first = filteredSongs.Find(s => s != null && !s.IsCloud);
+                if (first == null) first = filteredSongs[0];
+                selectedSongId = first.SongId;
                 StartRankingFetch(Selected, false);
             }
         }
@@ -576,6 +580,15 @@ namespace FlashBeat.UI.V6.Select.Data
             exists = Resources.Load<TextAsset>(title) != null;
             chartExistsCache[title] = exists;
             return exists;
+        }
+
+        /// <summary>
+        /// 開始経路 (SelectSceneManager.StartRemoteSong) の失敗を選曲画面へ見せる。
+        /// 沈黙のまま留まると「フリーズしたように見える」(Issue #233 実機)。
+        /// </summary>
+        public void ReportStartFailure(string message)
+        {
+            SetError(message);
         }
 
         void SetError(string message)
