@@ -65,6 +65,10 @@ public class Notes : MonoBehaviour
 
         if (GManager.Start)
         {
+            // Issue #224: ポーズ中は譜面を進めない。step_time が固定されていても
+            // 明示的にガードする (remaining の再計算と v6 描画更新を止める)。
+            if (PauseGate.IsPaused) return;
+
             // The notes follow the media clock (GManager.step_time), not the frame
             // clock: a buffering stall holds the notes instead of letting them run
             // ahead of the music, and the note reaches the hit line exactly when

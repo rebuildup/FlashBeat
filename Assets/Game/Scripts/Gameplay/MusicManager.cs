@@ -149,6 +149,10 @@ public class MusicManager : MonoBehaviour
 
     void Start()
     {
+        // Issue #224: GameScene の読み直し (リトライ / 再プレイ) でゲートを閉じる。
+        // ポーズ中にリトライ / リタイアしても次のプレイが止まったままにならない。
+        PauseGate.HardReset();
+
         waitback.SetActive(true);
         GameSceneManager.Menu = true;
         GManager.Start = false;
@@ -780,8 +784,71 @@ public class MusicManager : MonoBehaviour
         stage = MediaStage.Failed;
     }
 
+    // --- Issue #224: ポーズゲートのメディア停止 / 再開 --------------------------------
+
+    /// <summary>ポーズゲート側でメディアを止めた (再開待ち)。</summary>
+    bool pausedByGate;
+
+    /// <summary>
+    /// ポーズ中にメディア (映像 / 音声) を止める。毎フレーム呼ばれて冪等。
+    /// 実メンバー名はこのクラスの所有するもの (songVideo / streamAudioPlayer /
+    /// audioS) をそのまま使う。
+    /// </summary>
+    void PauseMediaForGate()
+    {
+        if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
+        if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null && streamAudioPlayer.isPlaying)
+        {
+            streamAudioPlayer.Pause();
+        }
+        if (audioMode == PlaybackSource.BundledWave && audioS != null && audioS.isPlaying) audioS.Pause();
+        pausedByGate = true;
+    }
+
+    /// <summary>
+    /// 再開 (ポーズ解除) の最初のフレームにメディアを再開し、時計の簿記を
+    /// リセットする。判定基準時刻の補正 (壁時計の詰め) は PauseGate.Exit が行う。
+    /// 再生開始前 (Space 前) のポーズでは何も再生しない (StartPlayback だけが
+    /// 再生を始める)。メディア終端後のポーズでも再再生しない (終端で止まっているのが正常)。
+    /// </summary>
+    void ResumeMediaFromGate()
+    {
+        pausedByGate = false;
+
+        if (playbackStarted && !mediaEnded)
+        {
+            if (songVideo != null && songVideo.isPrepared && !songVideo.isPlaying) songVideo.Play();
+            if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null &&
+                streamAudioPlayer.isPrepared && !streamAudioPlayer.isPlaying)
+            {
+                streamAudioPlayer.Play();
+            }
+            if (audioMode == PlaybackSource.BundledWave && audioS != null) audioS.UnPause();
+        }
+
+        // ストール誤検出の防止: メディアはポーズ中の間止まっていたので、
+        // 直前の進行时刻はもう意味を持たない。固定中の譜面時刻からやり直す。
+        lastMediaTime = PauseGate.FrozenMediaTime;
+        mediaTime = PauseGate.FrozenMediaTime;
+        stallSeconds = 0f;
+        lastMediaProgressWallTime = Time.time;
+    }
+
     void Update()
     {
+        // Issue #224: ポーズ中はメディアも時計も止める。ここより先の処理
+        // (メディア時計の追従 / stall 判定 / 曲終了の状態機械) はすべて
+        // 時計が動いている前提なので、ポーズ中は丸ごとスキップする。
+        if (PauseGate.IsPaused)
+        {
+            PauseMediaForGate();
+            return;
+        }
+        if (pausedByGate)
+        {
+            ResumeMediaFromGate();
+        }
+
         if (!playbackStarted)
         {
             // Nothing may play before the player starts the song.
@@ -789,7 +856,7 @@ public class MusicManager : MonoBehaviour
 
             // Space may only start the song when the media is ready AND the
             // chart (notes) finished loading - otherwise the judge would miss
-            // the first notes.
+            // the first notes. ポーズメニューが開いている間は開始しない。
             bool notesReady = notesManager == null || notesManager.IsReady;
             bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout) && notesReady;
             if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
