@@ -55,12 +55,14 @@ namespace FlashBeat.UI.V6.Common.Tests
         }
 
         [Test]
-        public void BackdropColor_MatchesContractSection3BgToken()
+        public void BgToken_MatchesContractSection3()
         {
-            // 契約 §3 の bg トークン (#1B1B1B)。背景はゲーム自身のアニメーション
-            // 背景 (bg-anim3, cover) のまま (v6 は画面全体を不透明パネルで覆わない)。
-            // 本トークンは全面背景用途には使わない。
-            Assert.AreEqual(new Color32(0x1B, 0x1B, 0x1B, 0xFF), V6Tokens.Bg);
+            // 契約 §3 の bg トークン (#1B1B1B) の値を固定する。全面背景パネルは
+            // 取り下げ済み (dd4877f) で、背景はゲーム自身のアニメーション背景
+            // (bg-anim3, cover) のまま。本トークンは全面背景用途には使わない。
+            // Color32 と Color は別の型で AreEqual(object, object) では一致しないため
+            // Color32 へ変換して比較する (V6GameHudContractTests.AccentBase と同様)。
+            Assert.AreEqual(new Color32(0x1B, 0x1B, 0x1B, 0xFF), (Color32)V6Tokens.Bg);
         }
     }
 }
