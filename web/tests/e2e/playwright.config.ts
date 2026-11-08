@@ -16,7 +16,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: ".",
-  testMatch: "studio-flow.spec.ts",
+  testMatch: ["studio-flow.spec.ts", "editor-note-flow.spec.ts"],
   timeout: 30_000,
   retries: 0,
   reporter: [["list"]],
