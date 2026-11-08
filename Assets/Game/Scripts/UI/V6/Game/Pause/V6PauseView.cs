@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 
@@ -143,6 +144,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             open = true;
+            // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める。
+            PauseGate.Enter();
             Refresh();
             UpdatePlacement();
             rootGo.SetActive(true);
@@ -157,6 +160,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             open = false;
+            // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
+            PauseGate.Exit();
             rootGo.SetActive(false);
         }
 
@@ -777,6 +782,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
             // 左下: キー凡例 4 個 (キー入力は統合担当が持つ。ここは表示のみ)
+            // 凡例は実際に動くキーと一致させる (Issue #224):
+            // - ←→ は V6GameRuntime.UpdatePause が MoveSelection (行選択) に配線
+            // - タブ切替の実キーは KeyActions.MenuSwitch (既定 T)
+            // - 値の変更は行のステッパー / クリック (マウス) のみで、←→ には配線していない
             var legend = V5Ui.Node(footer, "Legends");
             PlaceAt(legend, 0f, 30f, new Vector2(840f, 36f));
             var legendLayout = legend.AddComponent<HorizontalLayoutGroup>();
@@ -786,9 +795,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             legendLayout.childControlHeight = true;
             legendLayout.childForceExpandWidth = false;
             legendLayout.childForceExpandHeight = false;
-            AddLegend(legend, new[] { "chevron-up", "chevron-down" }, "選択");
-            AddLegend(legend, new[] { "chevron-left", "chevron-right" }, "変更");
-            AddLegend(legend, null, "タブ切替", "Tab");
+            AddLegend(legend, new[] { "chevron-left", "chevron-right" }, "選択");
+            AddLegend(legend, null, "タブ切替", "T");
             AddLegend(legend, null, "再開", "Esc");
 
             // 右下: 選曲へ / リトライ / 再開 (実遷移)

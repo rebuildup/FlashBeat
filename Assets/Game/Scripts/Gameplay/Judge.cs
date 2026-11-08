@@ -80,13 +80,19 @@ public class Judge : MonoBehaviour
     {
         if (!GManager.Start) return;
 
+        // Issue #224: ポーズ中は判定・スコア加算を行わない。
+        if (PauseGate.IsPaused) return;
+
         EnsureQueue();
         if (queue == null) return;
 
         // 時刻の基準は既存方式を維持する: Time.time と GManager.StartTime から
         // メディア時刻 (譜面上の秒) を出す。譜面の時刻はメディア時刻なので、
         // 判定はすべてこの mediaTime で行う。
-        float mediaTime = Time.time - GManager.StartTime;
+        // MusicManager は GManager.step_time を毎フレーム同じ式で更新するので、
+        // ポーズ中はそこが固定される — Time.time を直接読むとポーズ中も
+        // 判定時刻が進んでしまうため、ここでは GManager.step_time を基準にする。
+        float mediaTime = GManager.step_time;
 
         // 1) 押下判定: レーンごとに独立に処理する (Issue #182)。2 レーンを
         //    同時に叩いても、それぞれのレーンのキューが別々に判定する。

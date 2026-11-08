@@ -663,6 +663,8 @@ namespace FlashBeat.UI.V5
             // ここでも見る)。Esc は PauseMenuView.Update 側で同じフラグを見る。
             if (open || !InputEnabled) return;
             open = true;
+            // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める (v6 と同じ挙動)。
+            FlashBeat.Gameplay.PauseGate.Enter();
             RefreshValues();
             root.SetActive(true);
             group.blocksRaycasts = true;
@@ -673,6 +675,8 @@ namespace FlashBeat.UI.V5
         {
             if (!open) return;
             open = false;
+            // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
+            FlashBeat.Gameplay.PauseGate.Exit();
             group.blocksRaycasts = false;
             group.alpha = 0f;
             root.SetActive(false);
