@@ -100,26 +100,28 @@ jobs:
         with:
           lfs: true
 
-      - name: Unity Hub CLI を準備
+      - name: Unity Editor をインストール (Hub 不使用)
         shell: pwsh
         run: |
-          $installer = "$env:RUNNER_TEMP\UnityHubSetup.exe"
-          Invoke-WebRequest -Uri "https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe" -OutFile $installer
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
-          $hub = "$env:ProgramFiles\Unity Hub\Unity Hub.exe"
-          if (-not (Test-Path $hub)) { throw "Unity Hub をインストールできませんでした" }
-
-      - name: Unity Editor をインストール
-        shell: pwsh
-        run: |
-          & "$env:ProgramFiles\Unity Hub\Unity Hub.exe" -- --headless install --version "$env:UNITY_VERSION"
-          $editor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor" -Directory |
-                    Where-Object { $_.Name -like "$env:UNITY_VERSION*" } |
-                    Select-Object -First 1
-          if (-not $editor) { throw "Unity $env:UNITY_VERSION をインストールできませんでした" }
-          "UNITY_EDITOR=$($editor.FullName)\Editor\Unity.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "UNITY_EDITOR_DIR=$($editor.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Output "installed: $($editor.FullName)"
+          $ErrorActionPreference = 'Stop'
+          # Hub を経由せず、エディタ本体のインストーラを直接入れる。
+          # revision は Unity リリース API で確認済みの 6000.5.6f1 のもの。
+          $rev = '0e0577a1a2ac'
+          $exe = "$env:RUNNER_TEMP\UnitySetup64-$($env:UNITY_VERSION).exe"
+          $url = "https://download.unity3d.com/download_unity/$rev/Windows64EditorInstaller/UnitySetup64-$($env:UNITY_VERSION).exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe
+          # ダウンロードした実行ファイルは Mark-of-the-Web でブロックされることがあるため解除する。
+          Unblock-File -Path $exe
+          # /D= は引用符なし・空白を含まないパスのみ有効。ランナーの D: (一時 disk) は
+          # 空きが大きく、Program Files と違って昇格 (UAC) 不要で書き込める。
+          $dest = 'D:\Unity\Editor\6000.5.6f1'
+          $proc = Start-Process -FilePath $exe -ArgumentList "/S /D=$dest" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Unity Editor インストーラが exit $($proc.ExitCode) で失敗しました" }
+          $unityExe = "$dest\Editor\Unity.exe"
+          if (-not (Test-Path $unityExe)) { throw "Unity Editor をインストールできませんでした ($unityExe が見つかりません)" }
+          "UNITY_EDITOR=$unityExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "UNITY_EDITOR_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Output "installed: $unityExe"
 
       # game-ci/unity-activate は Docker 前提のため GitHub-hosted Windows ランナーでは
       # そのまま使えない。Unity の公式ライセンス引数 (-manualLicenseFile / -username) を
@@ -161,9 +163,12 @@ jobs:
           }
           if (Test-Path $log) { Get-Content $log -Tail 60 }
           if ($code -ne 0) { throw "Unity ライセンス認証に失敗しました (exit $code)" }
-          # 認証結果の/licenses を確認
+          # 認証後にライセンス実ファイルが降りてきたことを確認する (内容はログに出さない)。
           $lic = "$env:ProgramData\Unity\Unity_lic.ulf"
-          Write-Output "license file present: $(Test-Path $lic)"
+          if (-not (Test-Path $lic)) {
+            throw "ライセンスファイルが作成されませんでした ($lic)。認証処理は成功扱いでもライセンスが適用されていないため、ここで失敗させる"
+          }
+          Write-Output "license file present: True"
 
       - name: EditMode テスト
         if: ${{ inputs.run_tests != 'false' }}
