@@ -476,12 +476,18 @@ namespace FlashBeat.UI.V6.Title
             V6Layout.Place(logo.GetComponent<RectTransform>(), V6TitleLogic.LogoPos, V6TitleLogic.LogoSize);
 
             // Controls · タブ (FHcxk): (280,552) 1120×48, $overlay r8, タブ各 280×48。
-            var tabs = V6Controls.Panel(main, "Tabs", V6TitleLogic.TabsPos, V6TitleLogic.TabsSize,
-                V6Tokens.Overlay, V6Tokens.RadiusMedium);
-
-            for (int i = 0; i < tabList.Count; i++)
+            // V6UiMode.TitleTabs が false の間は描かない (2026-11-08 オーナー指示:
+            // 実機で中段のバーを消す。フッターの START / 設定ボタンが同じ操作を
+            // 受け持つため二重表示だった)。tabList 自体は BuildTabList が作り続けるので
+            // キー操作 (↑↓/Space/O) は無効化しない。
+            if (V6UiMode.TitleTabs)
             {
-                BuildTab(tabs, tabList[i], i);
+                var tabs = V6Controls.Panel(main, "Tabs", V6TitleLogic.TabsPos, V6TitleLogic.TabsSize,
+                    V6Tokens.Overlay, V6Tokens.RadiusMedium);
+                for (int i = 0; i < tabList.Count; i++)
+                {
+                    BuildTab(tabs, tabList[i], i);
+                }
             }
         }
 
@@ -598,18 +604,21 @@ namespace FlashBeat.UI.V6.Title
         {
             var footer = footerZone.gameObject;
 
-            // 左下: キー操作の凡例 (design QQ4jM、gap16、3 個):
-            // 決定 (Space) / 曲送り (↑↓) / 戻る (Esc)。
-            // キーの文字は実際の割り当て (KeyActions) から取る
-            // (design 値 Space / Esc は既定割り当てと同じ。↑↓ は design QJtTv RpQyz の Key 文字列)。
-            var legend = V6Layout.Row(footer, "Legend", V6TitleLogic.LegendPos,
-                new Vector2(840f, V6Tokens.KeyCapHeight), V6TitleLogic.LegendGap);
-            float x = 0f;
-            string startKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start);
-            x = AddLegendItem(legend, x, startKey, "決定");
-            x = AddLegendItem(legend, x, "↑↓", "曲送り");
-            string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
-            AddLegendItem(legend, x, exitKey, "戻る");
+            // 左下: キー凡例 (design QQ4jM、gap16、3 個)。
+            // V6UiMode.TitleLegend が false の間は描かない (2026-11-08 オーナー指示:
+            // 実機で左下のヒント行を消す。フッター右下の START / 設定ボタンにも
+            // キー表記があるため二重表示だった)。
+            if (V6UiMode.TitleLegend)
+            {
+                var legend = V6Layout.Row(footer, "Legend", V6TitleLogic.LegendPos,
+                    new Vector2(840f, V6Tokens.KeyCapHeight), V6TitleLogic.LegendGap);
+                float x = 0f;
+                string startKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start);
+                x = AddLegendItem(legend, x, startKey, "決定");
+                x = AddLegendItem(legend, x, "↑↓", "曲送り");
+                string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
+                AddLegendItem(legend, x, exitKey, "戻る");
+            }
 
             // 右下の操作ボタン (design T8HuQS):
             // 補助操作 (1198,20) 197×56 = Button Secondary (settings / 設定 / O)、

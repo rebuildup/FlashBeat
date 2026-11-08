@@ -43,6 +43,21 @@ namespace FlashBeat.UI.V6
         public static bool VerdictRow = false;
 
         /// <summary>
+        /// Title 中段のバー (▷ GameStart / ⚙ Option のタブ行) を描くか。
+        /// **false** (2026-11-08, オーナー実機スクリーンショット修正): Title から消すよう
+        /// 指示があった。フッターの START / 設定 ボタンが同じ操作を受け持つためタブ行は
+        /// 二重表示だった。キー操作 (↑↓/Space/O) は tabList を残しているので無効化しない。
+        /// </summary>
+        public static bool TitleTabs = false;
+
+        /// <summary>
+        /// Title 左下のキー凡例行 (Space 決定 / ↑↓ 曲送り / E 戻る) を描くか。
+        /// **false** (2026-11-08): 同じくオーナーの指示で消す。フッターの START / 設定
+        /// ボタンにもキー表記 (Space / O) があるため凡例行は二重表示だった。
+        /// </summary>
+        public static bool TitleLegend = false;
+
+        /// <summary>
         /// 旧キーガイド (F キー一覧パネル) を隠す。
         /// v6 の HUD は画面下部にキーガイド行を持つので、旧パネルが重なると読めなくなる。
         /// </summary>
