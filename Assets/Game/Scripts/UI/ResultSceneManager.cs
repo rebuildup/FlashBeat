@@ -12,6 +12,9 @@ public class ResultSceneManager : MonoBehaviour
     [SerializeField] private AudioClip sound;
     AudioSource sounds;
 
+    [SerializeField] private Canvas legacyCanvasV5;
+    [SerializeField] private Canvas legacyCanvasV6;
+
     private FlashBeat.UI.V5.ResultView view;
     private FlashBeat.UI.V6.Result.V6ResultView v6View;
     private int prevHiscore;
@@ -104,10 +107,9 @@ public class ResultSceneManager : MonoBehaviour
     {
         // 旧シーン配置 UI (v5 テキスト群) を隠す。v6 が代替しない情報
         // (サムネイル等) も v5 側に残すが、v5 パスと同様に非表示で運用する。
-        var legacy = GameObject.Find("Canvas");
-        if (legacy != null)
+        if (legacyCanvasV6 != null)
         {
-            legacy.SetActive(false);
+            legacyCanvasV6.gameObject.SetActive(false);
         }
 
         // 旧オーバーレイの自動モーダル (結果画面入場 1.2 秒後の登録モーダル) を止める。
@@ -131,10 +133,9 @@ public class ResultSceneManager : MonoBehaviour
 
     private void BuildV5View()
     {
-        var legacy = GameObject.Find("Canvas");
-        if (legacy != null)
+        if (legacyCanvasV5 != null)
         {
-            legacy.SetActive(false);
+            legacyCanvasV5.gameObject.SetActive(false);
         }
 
         var song = GManager.ActiveSongs[GManager.songID];
