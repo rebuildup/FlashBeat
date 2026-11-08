@@ -51,10 +51,45 @@ namespace FlashBeat.Gameplay
             return Mathf.Abs(mediaTime - noteTime);
         }
 
-        /// <summary>True once the song has played long enough to fade into the result screen.</summary>
+        /// <summary>
+        /// True when the catalog duration can be used as an end condition at all.
+        /// A missing (0 / negative) or broken (NaN, Infinity) duration must never
+        /// decide the song end: with a real media clock the media end decides
+        /// instead, without one the fallback end (<see cref="FallbackSongEnd"/>)
+        /// keeps the game from trapping the player (issue #226).
+        /// </summary>
+        public static bool IsUsableDuration(float duration)
+        {
+            return duration > 0f && !float.IsNaN(duration) && !float.IsInfinity(duration);
+        }
+
+        /// <summary>
+        /// True once the song has played long enough to fade into the result screen.
+        /// A broken duration (<see cref="IsUsableDuration"/>) never ends the song
+        /// here — the media end decides instead (see SongEndMachine, issue #226).
+        /// </summary>
         public static bool HasSongEnded(float mediaTime, float songDuration, float leadOutSeconds = 1.0f)
         {
+            if (!IsUsableDuration(songDuration))
+            {
+                return false;
+            }
             return mediaTime >= songDuration - leadOutSeconds;
+        }
+
+        /// <summary>
+        /// End position for a play without a real media clock (the wall clock
+        /// fallback in MusicManager.CurrentMediaTime). A usable catalog duration
+        /// stays the authority; a broken duration ends the song immediately —
+        /// a zero-length song must not trap the player (issue #226).
+        /// </summary>
+        public static float FallbackSongEnd(float songDuration, float leadOutSeconds = 1.0f)
+        {
+            if (!IsUsableDuration(songDuration))
+            {
+                return 0f;
+            }
+            return Mathf.Max(0f, songDuration - leadOutSeconds);
         }
 
         /// <summary>
