@@ -81,6 +81,24 @@ namespace FlashBeat.UI.V6.Game.Pause
             return (total / 60) + ":" + (total % 60).ToString("D2");
         }
 
+        /// <summary>
+        /// 判定数の表示 (Data タブの「判定」行)。例: "P12 G3 B1 M2"。
+        /// 判定 4 種を 1 行にまとめる (Data タブのページは 8 行までしか入らない)。
+        /// </summary>
+        public static string FormatJudgements(int perfect, int great, int bad, int miss)
+        {
+            return "P" + perfect + " G" + great + " B" + bad + " M" + miss;
+        }
+
+        /// <summary>
+        /// 演奏進捗の表示 (Data タブの「進捗」行)。例: "12 / 345"。
+        /// cleared は判定済みノーツ数 (perfect+great+bad+miss)、total は譜面の総ノーツ数。
+        /// </summary>
+        public static string FormatProgress(int cleared, int total)
+        {
+            return cleared + " / " + total;
+        }
+
         /// <summary>NOTES の表示。クラウド譜面の実ノーツ数 (noteCount) を優先し、
         /// 不明のときだけローカルの totalHits に頼る (#95: Shit は実譜面とずれる)。</summary>
         public static string FormatNotes(SongData song)

@@ -28,6 +28,13 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>現在生成されている v6 ポーズ画面 (GameScene に 1 個)。統合側・検証から参照する。</summary>
         public static V6PauseView Current { get; private set; }
 
+        /// <summary>
+        /// v6 ポーズを有効にするか (既定 true)。V6UiMode は統合担当の所有なので、
+        /// 連動フラグはここに置く。false のときは <see cref="Create"/> が null を返し、
+        /// Esc は旧 v5 (PauseMenuView / レガシー MenuPanel) の経路に戻る。
+        /// </summary>
+        public static bool Enabled = true;
+
         // --- design px 定数 (flashbeat-v6-nodes.json uDNC0 / rw7zx) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -80,9 +87,15 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
         }
 
-        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。</summary>
+        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。
+        /// <see cref="Enabled"/> が false のときは null を返す (v5 のポーズに任せる)。</summary>
         public static V6PauseView Create(RectTransform parent)
         {
+            if (!Enabled)
+            {
+                return null;
+            }
+
             if (parent == null)
             {
                 throw new ArgumentNullException(nameof(parent));
@@ -455,6 +468,19 @@ namespace FlashBeat.UI.V6.Game.Pause
                 AddRow(rows, pageRoot, 1, "記録済みの曲",
                     () => PlayedSongs() + "曲",
                     null);
+                // 演奏中の実データ (GManager の静的カウンタ。ポーズ中も毎フレーム再描画される)。
+                AddRow(rows, pageRoot, 2, "スコア",
+                    () => GameHudLogic.FormatScore(GManager.score),
+                    null);
+                AddRow(rows, pageRoot, 3, "コンボ",
+                    () => GManager.combo.ToString(),
+                    null);
+                AddRow(rows, pageRoot, 4, "判定",
+                    () => V6PauseViewLogic.FormatJudgements(GManager.perfect, GManager.great, GManager.bad, GManager.miss),
+                    null);
+                AddRow(rows, pageRoot, 5, "進捗",
+                    () => V6PauseViewLogic.FormatProgress(JudgedNotes(), TotalNotes()),
+                    null);
             }
 
             return rows;
@@ -540,6 +566,25 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             return played;
+        }
+
+        /// <summary>判定済みノーツ数 (進捗の分子)。GManager の判定カウンタの和。</summary>
+        private static int JudgedNotes()
+        {
+            return GManager.perfect + GManager.great + GManager.bad + GManager.miss;
+        }
+
+        private NotesManager notesManager;
+
+        /// <summary>譜面の総ノーツ数 (進捗の分母)。NotesManager.noteNum (生成した実ノーツ数)。</summary>
+        private int TotalNotes()
+        {
+            if (notesManager == null)
+            {
+                notesManager = UnityEngine.Object.FindFirstObjectByType<NotesManager>();
+            }
+
+            return notesManager != null ? notesManager.noteNum : 0;
         }
 
         private void AddRow(List<Row> rows, GameObject pageRoot, int row, string label,
