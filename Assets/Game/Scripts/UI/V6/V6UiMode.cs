@@ -145,14 +145,17 @@ namespace FlashBeat.UI.V6
         /// </summary>
         public static bool HideLegacyV5Canvases()
         {
-            var roots = UnityEngine.Object.FindObjectsByType<UnityEngine.RectTransform>(
+            // RectTransform 経由だと RectTransform を持たない素の "V5..." GameObject を
+            // 見つけられない (EditMode テストが素の GameObject を作る) ので GameObject 単位で列挙。
+            // 子孫は親の "V5" Canvas と一緒に消えるので、個々に非表示にしてよい。
+            var roots = UnityEngine.Object.FindObjectsByType<UnityEngine.GameObject>(
                 UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
             for (int i = 0; i < roots.Length; i++)
             {
-                var rt = roots[i];
-                if (rt == null) continue;
-                if (!rt.gameObject.name.StartsWith("V5")) continue;
-                if (rt.gameObject.activeSelf) rt.gameObject.SetActive(false);
+                var go = roots[i];
+                if (go == null) continue;
+                if (!go.name.StartsWith("V5")) continue;
+                if (go.activeSelf) go.SetActive(false);
             }
             return true;
         }
