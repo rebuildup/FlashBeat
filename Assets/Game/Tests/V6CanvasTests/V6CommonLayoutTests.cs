@@ -1,0 +1,265 @@
+using NUnit.Framework;
+using UnityEngine;
+using FlashBeat.UI.V6.Common;
+
+namespace FlashBeat.UI.V6.Common.Tests
+{
+    /// <summary>
+    /// v6 共通部品ライブラリの純ロジック (design 空間 1728×972) 検証。
+    /// 「左右カラムが design 幅 1728 からはみ出さない」「Main ゾーン内の要素が
+    /// 24..1704 に収まる」「契約の寸法 (ボタン高 56 / KeyCap 高 36 / 角丸 / fs) が
+    /// トークンとして正しく写されている」ことを EditMode で保証する。
+    /// </summary>
+    public sealed class V6CommonLayoutTests
+    {
+        private static readonly Vector2 DesignOrigin = new Vector2(0f, 0f);
+        private static readonly Vector2 DesignSize = new Vector2(V6Frame.DesignW, V6Frame.DesignH);
+        private static readonly Vector2 MainOrigin = V6Frame.MainPos;
+        private static readonly Vector2 MainSize = V6Frame.MainSize;
+
+        // --- 座標変換 (design 左上原点 y_down → RectTransform 左下原点 y_up) ---
+
+        [Test]
+        public void ToLocal_FlipsYOnly()
+        {
+            var local = V6Layout.ToLocal(new Vector2(24f, 96f));
+            Assert.AreEqual(24f, local.x);
+            Assert.AreEqual(-96f, local.y);
+        }
+
+        [Test]
+        public void ToLocal_OriginStaysAtParentTopLeft()
+        {
+            var local = V6Layout.ToLocal(Vector2.zero);
+            Assert.AreEqual(0f, local.x);
+            Assert.AreEqual(0f, local.y);
+        }
+
+        // --- フレーム ゾーン (契約 §4 の座標そのもの) ---
+
+        [Test]
+        public void FrameZones_MatchContractCoordinates()
+        {
+            Assert.AreEqual(new Vector2(24f, 0f), V6Frame.HeaderPos);
+            Assert.AreEqual(new Vector2(1680f, 96f), V6Frame.HeaderSize);
+            Assert.AreEqual(new Vector2(24f, 96f), V6Frame.MainPos);
+            Assert.AreEqual(new Vector2(1680f, 780f), V6Frame.MainSize);
+            Assert.AreEqual(new Vector2(24f, 876f), V6Frame.FooterPos);
+            Assert.AreEqual(new Vector2(1680f, 96f), V6Frame.FooterSize);
+            Assert.AreEqual(new Vector2(0f, 0f), V6Frame.ModalPos);
+            Assert.AreEqual(new Vector2(1728f, 972f), V6Frame.ModalSize);
+        }
+
+        [Test]
+        public void FrameZones_StayInsideDesignFrame()
+        {
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, V6Frame.HeaderPos, V6Frame.HeaderSize));
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, V6Frame.MainPos, V6Frame.MainSize));
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, V6Frame.FooterPos, V6Frame.FooterSize));
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, V6Frame.ModalPos, V6Frame.ModalSize));
+        }
+
+        [Test]
+        public void MainZone_SpansContractXRange()
+        {
+            // 契約: Main ゾーン内の要素は x 24..1704 に収まる。
+            Assert.AreEqual(24f, MainOrigin.x);
+            Assert.AreEqual(1704f, MainOrigin.x + MainSize.x);
+        }
+
+        // --- 右寄せ / 中央 / 下寄せ (右カラムはみ出し防止) ---
+
+        [Test]
+        public void PlaceRight_RightColumnStaysInsideDesignWidth()
+        {
+            // Main ゾーン右端 (1704) に右寄せした 560 幅の右カラム。
+            var size = new Vector2(560f, 780f);
+            var topLeft = V6Layout.RightTopLeft(MainOrigin.x + MainSize.x, MainOrigin.y, size);
+
+            Assert.AreEqual(1144f, topLeft.x);
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, topLeft, size),
+                "right column must stay inside the 1728 design width");
+        }
+
+        [Test]
+        public void PlaceRight_RowsWithContractWidths_StayInsideMainZone()
+        {
+            // 契約 §5 の行幅 (Song 504 / Rank 496) を Main 右端に右寄せしても収まる。
+            var songTopLeft = V6Layout.RightTopLeft(1704f, 96f, new Vector2(V6Lists.SongRowW, V6Lists.SongRowH));
+            var rankTopLeft = V6Layout.RightTopLeft(1704f, 96f, new Vector2(V6Lists.RankRowW, V6Lists.RankRowH));
+            Assert.IsTrue(V6Layout.FitsIn(MainOrigin, MainSize, songTopLeft, new Vector2(V6Lists.SongRowW, V6Lists.SongRowH)));
+            Assert.IsTrue(V6Layout.FitsIn(MainOrigin, MainSize, rankTopLeft, new Vector2(V6Lists.RankRowW, V6Lists.RankRowH)));
+        }
+
+        [Test]
+        public void PlaceCenter_KeepsElementCentered()
+        {
+            var size = new Vector2(512f, 88f);
+            var topLeft = V6Layout.CenterTopLeft(V6Frame.DesignW * 0.5f, 668f, size);
+            Assert.AreEqual(864f - 256f, topLeft.x, 0.001f);
+            Assert.AreEqual(668f, topLeft.y);
+        }
+
+        [Test]
+        public void PlaceBottom_KeepsFooterInsideDesignHeight()
+        {
+            var size = new Vector2(273f, 56f);
+            var topLeft = V6Layout.BottomTopLeft(567f, V6Frame.FooterPos.y + V6Frame.FooterSize.y, size);
+            Assert.AreEqual(972f - 56f, topLeft.y, 0.001f);
+            Assert.IsTrue(V6Layout.FitsIn(DesignOrigin, DesignSize, topLeft, size));
+        }
+
+        // --- 積みオフセット (リスト行間隔: Select 76 / Ranking 52) ---
+
+        [Test]
+        public void VerticalOffsets_SelectRowPitch76()
+        {
+            // 行高 72 + gap 4 = 76 間隔 (Select の一覧スクロール)。
+            var offsets = V6Layout.VerticalOffsets(4f, 72f, 72f, 72f, 72f);
+            Assert.AreEqual(new[] { 0f, 76f, 152f, 228f }, offsets);
+        }
+
+        [Test]
+        public void VerticalOffsets_RankingRowPitch52()
+        {
+            // 行高 44 + gap 8 = 52 間隔 (Ranking / Players)。
+            var offsets = V6Layout.VerticalOffsets(8f, 44f, 44f, 44f, 44f);
+            Assert.AreEqual(new[] { 0f, 52f, 104f, 156f }, offsets);
+        }
+
+        [Test]
+        public void HorizontalOffsets_StacksWithGap()
+        {
+            var offsets = V6Layout.HorizontalOffsets(12f, 96f, 248f, 56f, 44f);
+            Assert.AreEqual(new[] { 0f, 108f, 368f, 436f }, offsets);
+            // 合計 + padding 12×2 = 504 (SongRow 幅)。
+            Assert.AreEqual(504f, 12f + 96f + 12f + 248f + 12f + 56f + 12f + 44f + 12f);
+        }
+
+        // --- 行内レイアウト (契約 §5 の座標で右端が行幅を超えない) ---
+
+        [Test]
+        public void SongRow_InternalElements_StayInsideRow()
+        {
+            float levelRight = V6Lists.SongRowW - V6Lists.RowPaddingX;
+            float gradeLeft = levelRight - V6Lists.SongLevelSize - V6Lists.RowGap - V6Lists.SongGradeW;
+            float textsLeft = V6Lists.RowPaddingX + V6Lists.SongThumbW + V6Lists.RowGap;
+
+            Assert.GreaterOrEqual(levelRight, V6Lists.SongLevelSize);
+            Assert.GreaterOrEqual(gradeLeft - V6Lists.RowGap, textsLeft, "Texts must not overlap Grade");
+            Assert.LessOrEqual(levelRight, V6Lists.SongRowW);
+        }
+
+        [Test]
+        public void RankRow_InternalElements_StayInsideRow()
+        {
+            float gradeRight = V6Lists.RankRowW - V6Lists.RowPaddingX;
+            float valueRight = gradeRight - V6Lists.RowGap;
+            float nameRight = V6Lists.RowPaddingX + V6Lists.RankPosSize + V6Lists.RowGap + V6Lists.RankNameW;
+
+            Assert.LessOrEqual(gradeRight, V6Lists.RankRowW);
+            Assert.LessOrEqual(valueRight, V6Lists.RankRowW);
+            Assert.LessOrEqual(nameRight, valueRight - V6Lists.RankValueW, "Name must not overlap Value");
+        }
+
+        [Test]
+        public void PlayerRow_InternalElements_StayInsideRow()
+        {
+            float playsRight = V6Lists.RankRowW - V6Lists.RowPaddingX;
+            float valueRight = playsRight - V6Lists.PlayerPlaysW;
+            float nameRight = V6Lists.RowPaddingX + V6Lists.RankPosSize + V6Lists.RowGap + V6Lists.RankNameW;
+
+            Assert.LessOrEqual(playsRight, V6Lists.RankRowW);
+            Assert.LessOrEqual(nameRight, valueRight - V6Lists.RankValueW, "Name must not overlap Value");
+        }
+
+        // --- 契約値の写し (fs / 角丸 / 高さ) ---
+
+        [Test]
+        public void Tokens_MatchContractConstants()
+        {
+            Assert.AreEqual(4f, V6Tokens.RadiusSmall);
+            Assert.AreEqual(8f, V6Tokens.RadiusMedium);
+            Assert.AreEqual(16f, V6Tokens.RadiusLarge);
+            Assert.AreEqual(56f, V6Tokens.ButtonHeight);
+            Assert.AreEqual(36f, V6Tokens.KeyCapHeight);
+        }
+
+        [Test]
+        public void Tokens_MatchContractColors()
+        {
+            Assert.AreEqual(new Color(1f, 1f, 1f), V6Tokens.Text);
+            AssertColor(new Color(0x1B / 255f, 0x1B / 255f, 0x1B / 255f, 1f), V6Tokens.Key1);
+            AssertColor(new Color(0x3A / 255f, 0x3A / 255f, 0x3A / 255f, 1f), V6Tokens.Key4);
+            AssertColor(new Color(0x52 / 255f, 0x52 / 255f, 0x52 / 255f, 1f), V6Tokens.Key6);
+            AssertColor(new Color(0x3F / 255f, 0xA9 / 255f, 0xF5 / 255f, 1f), V6Tokens.Accent);
+            AssertColor(new Color(0f, 0f, 0f, 0x99 / 255f), V6Tokens.Scrim);
+            AssertColor(new Color(0xED / 255f, 0xED / 255f, 0xED / 255f, 0x33 / 255f), V6Tokens.Border);
+        }
+
+        private static void AssertColor(Color expected, Color actual)
+        {
+            Assert.AreEqual(expected.r, actual.r, 1f / 255f, "r");
+            Assert.AreEqual(expected.g, actual.g, 1f / 255f, "g");
+            Assert.AreEqual(expected.b, actual.b, 1f / 255f, "b");
+            Assert.AreEqual(expected.a, actual.a, 1f / 255f, "a");
+        }
+
+        [Test]
+        public void Controls_UseContractFontSizes()
+        {
+            Assert.AreEqual(30f, V6Controls.ButtonFontSize);
+            Assert.AreEqual(22f, V6Controls.KeyCapFontSize);
+            Assert.AreEqual(22f, V6Controls.TagFontSize);
+            Assert.AreEqual(32f, V6Controls.ButtonIconSize);
+        }
+
+        // --- テキスト幅の事前見積り (実行レイアウト前に確定しない preferredWidth の代替) ---
+
+        [Test]
+        public void EstimateTextWidth_ScalesWithFontSize()
+        {
+            float at22 = V6Layout.EstimateTextWidth("Space", 22f);
+            float at44 = V6Layout.EstimateTextWidth("Space", 44f);
+            Assert.AreEqual(at22 * 2f, at44, 0.001f);
+            Assert.Greater(at22, 0f);
+        }
+
+        [Test]
+        public void EstimateTextWidth_FullWidthCharsAreWiderThanAscii()
+        {
+            string ascii = "ab";
+            string fullWidth = "ああ";
+            Assert.Greater(
+                V6Layout.EstimateTextWidth(fullWidth, 22f),
+                V6Layout.EstimateTextWidth(ascii, 22f));
+        }
+
+        [Test]
+        public void KeyCapFontSize_FitsContractRatioAndClampsToWidth()
+        {
+            // 高さ比基準: 36 × 22/36 = 22。
+            Assert.AreEqual(22f, V6Ui.KeyCapFontSize(104f, 36f, "Space"));
+            // 幅が狭い場合は幅フィットで縮む (利用幅 = 幅 - padding×2)。
+            float narrow = V6Ui.KeyCapFontSize(40f, 36f, "Space");
+            Assert.Less(narrow, 22f);
+            Assert.GreaterOrEqual(narrow, 1f);
+        }
+
+        // --- 選択中の曲パネル Controls 行 (契約 §7) ---
+
+        [Test]
+        public void PanelControls_StayInsideContractPanel()
+        {
+            float[] offsets = V6Panel.ControlsOffsets();
+            float total = V6Panel.SkipSize + V6Panel.ControlsGap + V6Panel.PlaySize + V6Panel.ControlsGap + V6Panel.SkipSize;
+
+            Assert.GreaterOrEqual(offsets[0], 0f);
+            Assert.LessOrEqual(offsets[2] + V6Panel.SkipSize, V6Panel.ControlsW);
+            Assert.AreEqual((V6Panel.ControlsW - total) * 0.5f, offsets[0], 0.001f);
+            // Controls 行 (512×88) はパネル (536×780) 内に収まる。
+            Assert.LessOrEqual(12f + V6Panel.ControlsW, V6Panel.PanelW);
+            Assert.LessOrEqual(668f + V6Panel.ControlsH, V6Panel.PanelH);
+        }
+    }
+}
