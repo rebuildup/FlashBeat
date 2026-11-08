@@ -1,4 +1,14 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  forwardRef,
+  lazy,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
@@ -399,13 +409,37 @@ export interface ChartEditorProps {
   initialIssues?: ValidationIssue[];
 }
 
-export function ChartEditor({
-  initialChart,
-  initialYouTubeId,
-  onChartChange,
-  onValidationChange,
-  initialIssues,
-}: ChartEditorProps) {
+/**
+ * What a parent may do to the editor's transport (#232 follow-up).
+ *
+ * The preview inside the editor is the only owner of playback, so a page that
+ * wants to start the song (the chart page's "Try it" CTA) must not reach for
+ * a `Play` button in the markup. It calls the editor instead, and the editor
+ * forwards the request to its preview:
+ *
+ * - `play()` — start the video (the same thing the toolbar's Play does);
+ * - `pause()` — stop it;
+ * - `seekTo(seconds)` — move the playhead and the video together.
+ *
+ * None of the three throw when the YouTube player could not load (offline
+ * exhibition); the playhead can still be positioned.
+ */
+export interface ChartEditorHandle {
+  play(): void;
+  pause(): void;
+  seekTo(seconds: number): void;
+}
+
+export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(function ChartEditor(
+  {
+    initialChart,
+    initialYouTubeId,
+    onChartChange,
+    onValidationChange,
+    initialIssues,
+  }: ChartEditorProps,
+  ref,
+) {
   /**
    * Chart and selection live in one history, so Undo/Redo puts back the
    * edit *and* the note it was made on (issue #216).
@@ -548,18 +582,49 @@ export function ChartEditor({
     [timelineSec],
   );
 
+  /**
+   * Start/stop the preview.
+   *
+   * The toolbar and the imperative handle (`play()`/`pause()`) share these,
+   * so a parent that drives the editor and an operator who presses the
+   * toolbar button see the same state.
+   */
+  const handlePlay = useCallback(() => {
+    previewRef.current?.play();
+    setPlaying(true);
+  }, []);
+
+  const handlePause = useCallback(() => {
+    previewRef.current?.pause();
+    setPlaying(false);
+  }, []);
+
   const handleTogglePlay = useCallback(() => {
     if (!chart) {
       return;
     }
     if (playing) {
-      previewRef.current?.pause();
-      setPlaying(false);
+      handlePause();
     } else {
-      previewRef.current?.play();
-      setPlaying(true);
+      handlePlay();
     }
-  }, [chart, playing]);
+  }, [chart, handlePause, handlePlay, playing]);
+
+  /**
+   * Forward the parent's transport calls to the preview (#232 follow-up).
+   *
+   * `chart.tsx` no longer finds a `Play` button in the markup: it holds a ref
+   * to this editor and calls `play()`. The contract is `ChartEditorHandle`.
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      play: handlePlay,
+      pause: handlePause,
+      seekTo: handleSeek,
+    }),
+    [handlePlay, handlePause, handleSeek],
+  );
 
   const handleRestart = useCallback(() => {
     handleSeek(0);
@@ -1049,4 +1114,4 @@ export function ChartEditor({
       </div>
     </div>
   );
-}
+});
