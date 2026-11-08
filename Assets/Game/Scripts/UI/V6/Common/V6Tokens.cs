@@ -13,6 +13,7 @@ namespace FlashBeat.UI.V6.Common
     public static class V6Tokens
     {
         // --- text / surface (契約 §3) ---
+        public static readonly Color Bg = FromHex("#1B1B1B");
         public static readonly Color Text = FromHex("#FFFFFF");
         public static readonly Color TextMuted = FromHex("#B0B0B0");
         public static readonly Color TextDim = FromHex("#8C8C8C");

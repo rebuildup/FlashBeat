@@ -14,8 +14,10 @@ namespace FlashBeat.UI.V6.Common
     ///
     /// 変換規約: 子の RectTransform は anchor (0,1) / pivot (0,1) (親の左上基準、
     /// 自分の左上を原点にする) とし、anchoredPosition = (x, -y)。
-    /// 実画面ピクセル (UISizeProfile) はここでは扱わない。フレーム全体を
-    /// V6SelectViewLogic.DesignScale で等比拡大する前提。
+    /// 実画面ピクセル (UISizeProfile) はここでは扱わない。design 空間 1728×972 は
+    /// 実ピクセル 1:1 で描き、解像度別の origin ((w-1728)/2, (h-972)/2 の切り捨て、
+    /// <see cref="V6Frame.OriginFor"/>) で画面中央に配置する。
+    /// 親側で scale を掛けることはしない (等比拡大は行わない)。
     ///
     /// pure 関数 (RectTransform を触らない) は EditMode テスト対象:
     /// Assets/Game/Tests/V6CanvasTests/V6CommonLayoutTests.cs
