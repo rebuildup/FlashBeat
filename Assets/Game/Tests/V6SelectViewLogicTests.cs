@@ -50,10 +50,10 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void ScrollToReveal_RevealsSelectedRow()
         {
-            // 上へ出ている行は上端へ、下へ出ている行は下端へ。
+            // 可視範囲 [scroll, scroll+visibleRows) 内なら動かさない。
             Assert.AreEqual(2, V6SelectViewLogic.ScrollToReveal(2, 5, 9));
-            Assert.AreEqual(12, V6SelectViewLogic.ScrollToReveal(12, 5, 9));
-            Assert.AreEqual(4, V6SelectViewLogic.ScrollToReveal(4, 5, 9));
+            Assert.AreEqual(6, V6SelectViewLogic.ScrollToReveal(14, 5, 9));
+            Assert.AreEqual(5, V6SelectViewLogic.ScrollToReveal(12, 5, 9));
         }
 
         // --- ドットインジケータ ---
@@ -88,7 +88,8 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         public void ApplySearchInput_AppendsPrintableChars()
         {
             Assert.AreEqual("abc", V6SelectViewLogic.ApplySearchInput("", "abc"));
-            Assert.AreEqual("まに", V6SelectViewLogic.ApplySearchInput("まに", "に"));
+            // 入力文字は末尾に追記される (Backspace は 1 文字削る)。
+            Assert.AreEqual("まにに", V6SelectViewLogic.ApplySearchInput("まに", "に"));
         }
 
         [Test]
