@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import { css } from "styled-system/css";
+import {
+  Archive,
+  ChartColumnBig,
+  CloudUpload,
+  ListMusic,
+  PencilRuler,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { BrandHeader } from "@/components/brand";
 
 /**
@@ -8,6 +17,9 @@ import { BrandHeader } from "@/components/brand";
  * design v5 (Prefab/Button Primary); staff entries stay in the muted list
  * look and carry the admin-token boundary on Publish, so a guest sees the
  * permission line before pressing it — not as an error after the fact.
+ *
+ * Every entry carries an icon (issue #151): a text-only rail is hard to
+ * scan, and the icons are the same in every page of the studio.
  */
 export const NAV_VISITOR = {
   value: "catalog",
@@ -16,17 +28,36 @@ export const NAV_VISITOR = {
   href: "/",
 } as const;
 
-export const NAV_STAFF_ITEMS = [
-  { value: "new-song", ja: "新曲を登録", en: "New song", href: "/new-song" },
-  { value: "editor", ja: "譜面を編集", en: "Edit chart", href: "/chart" },
-  {
-    value: "publish",
-    ja: "公開する",
-    en: "Publish",
-    href: "/publish",
-    admin: true,
-  },
-] as const;
+/** One navigation entry of the studio. */
+export type StudioNavItem = {
+  value: string;
+  /** The English label (used by `NAV_ITEMS`, the flat icon list). */
+  label: string;
+  ja: string;
+  en: string;
+  href: string;
+  icon: LucideIcon;
+  /** True when the route needs the admin token. */
+  admin?: boolean;
+};
+
+export const NAV_STAFF_ITEMS: readonly StudioNavItem[] = [
+  { value: "dashboard", label: "Dashboard", ja: "ダッシュボード", en: "Dashboard", href: "/dashboard", icon: ChartColumnBig },
+  { value: "songs", label: "Songs", ja: "楽曲アーカイブ", en: "Songs", href: "/songs", icon: Archive },
+  { value: "new-song", label: "New song", ja: "新曲を登録", en: "New song", href: "/new-song", icon: Sparkles },
+  { value: "editor", label: "New chart", ja: "譜面を編集", en: "Edit chart", href: "/chart", icon: PencilRuler },
+  { value: "publish", label: "Publish", ja: "公開する", en: "Publish", href: "/publish", icon: CloudUpload, admin: true },
+];
+
+/**
+ * The flat, icon-first list of every route of the studio. The rail renders
+ * `NAV_VISITOR` + `NAV_STAFF_ITEMS`; this export keeps the flat form for
+ * callers that want the whole set in one array (issue #151).
+ */
+export const NAV_ITEMS: readonly StudioNavItem[] = [
+  { value: "catalog", label: "Catalog", ja: NAV_VISITOR.ja, en: NAV_VISITOR.en, href: NAV_VISITOR.href, icon: ListMusic },
+  ...NAV_STAFF_ITEMS,
+];
 
 const sidebar = css({
   bg: "gray.surface.bg",
@@ -74,6 +105,7 @@ const groupLabel = css({
 
 const navTrigger = css({
   alignItems: "center",
+  columnGap: "2",
   borderRadius: "l2",
   color: "fg.muted",
   colorPalette: "blue",
@@ -135,13 +167,25 @@ const adminBadge = css({
   whiteSpace: "nowrap",
 });
 
-export function Sidebar() {
+/** The icon of a navigation entry. */
+const navIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
+export function Sidebar({ active }: { active?: string }) {
   // The active entry follows the URL; the default covers the server-rendered
-  // first paint of `/` (the catalog).
+  // first paint of `/` (the catalog). A page can pin it with `active`.
   const [path, setPath] = useState("/");
   useEffect(() => {
     setPath(window.location.pathname);
   }, []);
+
+  const isActive = (item: StudioNavItem): boolean => {
+    if (active !== undefined) return item.value === active;
+    if (item.href === "/") return path === "/";
+    return path.startsWith(item.href);
+  };
 
   return (
     <aside className={sidebar}>
@@ -156,6 +200,7 @@ export function Sidebar() {
           className={`${navTrigger} ${visitorTrigger}`}
           data-testid="nav-visitor"
         >
+          <ListMusic className={navIcon} size={16} aria-hidden="true" />
           <span className={labelGrid}>
             <span>{NAV_VISITOR.ja}</span>
             <span className={labelEn}>{NAV_VISITOR.en}</span>
@@ -169,10 +214,11 @@ export function Sidebar() {
           <a
             key={item.value}
             href={item.href}
-            aria-current={item.href === path ? "page" : undefined}
+            aria-current={isActive(item) ? "page" : undefined}
             className={navTrigger}
             data-testid={`nav-${item.value}`}
           >
+            <item.icon className={navIcon} size={16} aria-hidden="true" />
             <span className={labelGrid}>
               <span>{item.ja}</span>
               <span className={labelEn}>{item.en}</span>

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { ArrowLeft, CircleX, CloudUpload, LoaderCircle } from "lucide-react";
 import { Button, Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
@@ -84,6 +85,13 @@ const raisedButton = css({
 
 const accent = css({ colorPalette: "blue" });
 
+/** The icon inside a button or a status line. */
+const buttonIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+  verticalAlign: "middle",
+});
+
 const failure = css({
   bg: "red.solid.bg",
   borderColor: "red.solid.border",
@@ -151,7 +159,7 @@ export function PublishStep({
         ok: false,
         failure: {
           code: "invalid",
-          message: "曲情報に不備があります。 / The song info has problems.",
+          message: "曲情報に不備があります。以下の項目を修正してください。 / The song info has problems. Fix the fields below.",
           details: built.issues.map((issue) => `${issue.field}: ${issue.message}`),
         },
       });
@@ -189,8 +197,8 @@ export function PublishStep({
         </dl>
         {chartIssues.length > 0 ? (
           <p className={`${failureList}`} style={{ color: "#ff6b6b" }}>
-            譜面に契約違反が{chartIssues.length}件あります。 / The chart has {chartIssues.length}{" "}
-            contract problems.
+            譜面に問題が{chartIssues.length}件あります。戻って修正してください。 / The chart has{" "}
+            {chartIssues.length} problems. Go back and fix them.
           </p>
         ) : null}
       </section>
@@ -223,6 +231,7 @@ export function PublishStep({
         {result !== null && !result.ok ? (
           <section className={failure} data-testid="publish-error">
             <p style={{ fontWeight: "semibold", margin: "0" }}>
+              <CircleX className={buttonIcon} size={14} aria-hidden="true" />
               公開できませんでした / Not published
             </p>
             <p style={{ fontSize: "2xs", margin: "0" }}>{result.failure.message}</p>
@@ -241,10 +250,21 @@ export function PublishStep({
 
         <div className={actions}>
           <Button className={raisedButton} size="md" disabled={publishing} onClick={onBack}>
+            <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
             戻る / Back
           </Button>
           <Button className={accent} size="md" disabled={publishing} onClick={handlePublish}>
-            {publishing ? "公開中… / Publishing…" : "公開する / Publish"}
+            {publishing ? (
+              <>
+                <LoaderCircle className={buttonIcon} size={14} aria-hidden="true" />
+                公開中… / Publishing…
+              </>
+            ) : (
+              <>
+                <CloudUpload className={buttonIcon} size={14} aria-hidden="true" />
+                公開する / Publish
+              </>
+            )}
           </Button>
         </div>
       </section>

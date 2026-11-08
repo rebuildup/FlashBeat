@@ -4,6 +4,7 @@ import { Button, Field, Input, Select } from "@/components/ui";
 import { DraftInput, parseIntegerOrNull } from "@/components/ui/input";
 import { useCallback, useEffect, useRef } from "react";
 import { css } from "styled-system/css";
+import { Redo2, Trash2, Undo2 } from "lucide-react";
 import {
   SNAP_SETTINGS,
   snapDivisionLabel,
@@ -243,6 +244,12 @@ const keycap = css({
   lineHeight: "1.2",
   marginLeft: "1",
   padding: "0 0.5rem",
+});
+
+/** The icon of a toolbar button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
 });
 
 /** v5 Button Primary: the light raised button. */
@@ -513,6 +520,7 @@ export function EditorToolbar({
           title="Undo (Ctrl/Cmd+Z)"
           data-testid="undo-button"
         >
+          <Undo2 className={buttonIcon} size={14} aria-hidden="true" />
           Undo
         </Button>
         <Button
@@ -523,6 +531,7 @@ export function EditorToolbar({
           title="Redo (Ctrl/Cmd+Shift+Z)"
           data-testid="redo-button"
         >
+          <Redo2 className={buttonIcon} size={14} aria-hidden="true" />
           Redo
         </Button>
         <Button
@@ -533,6 +542,7 @@ export function EditorToolbar({
           title="Delete the selected note (Del)"
           data-testid="delete-button"
         >
+          <Trash2 className={buttonIcon} size={14} aria-hidden="true" />
           Delete
           <kbd className={keycap} aria-hidden="true">
             Del

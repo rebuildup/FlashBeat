@@ -9,8 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { Field, Input } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
 import { css } from "styled-system/css";
+import { Rewind } from "lucide-react";
 import { chartFileName, exportChartJson } from "@/lib/chart/export";
 import { importChartLenient } from "@/lib/chart/import";
 import { mergeLoadWarnings } from "@/lib/chart/issues";
@@ -31,7 +32,7 @@ import { snapLine } from "@/lib/chart/snap";
 import { beatToSeconds, noteBeat } from "@/lib/chart/timing";
 import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type Chart, type ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
-import { EditorToolbar, fieldLabel, inputBox } from "./editor-toolbar";
+import { EditorToolbar, buttonSecondary, fieldLabel, inputBox } from "./editor-toolbar";
 import { useSnapDivision } from "./snap-store";
 import { LyricsEditor } from "./lyrics-editor";
 import { SelectionPanel } from "./selection-panel";
@@ -379,6 +380,12 @@ const side = css({
   minHeight: 0,
   minWidth: 0,
   overflowY: "auto",
+});
+
+/** The icon of a side panel button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
 });
 
 export interface ChartEditorProps {
@@ -1006,6 +1013,16 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                 holds · {chart?.BPM ?? 0} BPM
               </p>
             </div>
+
+            <Button
+              className={buttonSecondary}
+              size="sm"
+              onClick={() => previewRef.current?.seekTo(0)}
+              data-testid="rewind-button"
+            >
+              <Rewind className={buttonIcon} size={14} aria-hidden="true" />
+              Back to start
+            </Button>
           </section>
 
           <section className={gridPanel} aria-label="Note editor">

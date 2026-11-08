@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { css } from "styled-system/css";
+import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui";
 
 /**
@@ -177,6 +178,12 @@ const raisedButton = css({
   _disabled: { opacity: 0.4 },
 });
 
+/** The icon of a player control button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
 export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewProps>(
   function YouTubePreview({ videoId, onTimeUpdate, onPlayingChange, showControls = true }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null);
@@ -319,6 +326,7 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
               size="sm"
               onClick={startPlay}
             >
+              <Play className={buttonIcon} size={14} aria-hidden="true" />
               Play
             </Button>
             <Button
@@ -326,6 +334,7 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
               size="sm"
               onClick={startPause}
             >
+              <Pause className={buttonIcon} size={14} aria-hidden="true" />
               Pause
             </Button>
             <span className={time} data-testid="youtube-time">

@@ -1,0 +1,353 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "5bb482ed-3530-4709-9a12-353939235f97",
+  "prevId": "2fd923a3-b7ae-48f4-ad73-9076c5bbf08f",
+  "tables": {
+    "chart_versions": {
+      "name": "chart_versions",
+      "columns": {
+        "songId": {
+          "name": "songId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "json": {
+          "name": "json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "noteCount": {
+          "name": "noteCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
+        }
+      },
+      "indexes": {
+        "chart_versions_song_idx": {
+          "name": "chart_versions_song_idx",
+          "columns": [
+            "songId"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "chart_versions_songId_songs_id_fk": {
+          "name": "chart_versions_songId_songs_id_fk",
+          "tableFrom": "chart_versions",
+          "tableTo": "songs",
+          "columnsFrom": [
+            "songId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "chart_versions_songId_version_pk": {
+          "columns": [
+            "songId",
+            "version"
+          ],
+          "name": "chart_versions_songId_version_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "chart_versions_version_positive": {
+          "name": "chart_versions_version_positive",
+          "value": "\"chart_versions\".\"version\" >= 1"
+        },
+        "chart_versions_note_count_range": {
+          "name": "chart_versions_note_count_range",
+          "value": "\"chart_versions\".\"noteCount\" >= 0"
+        }
+      }
+    },
+    "scores": {
+      "name": "scores",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "songId": {
+          "name": "songId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "p": {
+          "name": "p",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "g": {
+          "name": "g",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "b": {
+          "name": "b",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "m": {
+          "name": "m",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
+        }
+      },
+      "indexes": {
+        "scores_leaderboard_idx": {
+          "name": "scores_leaderboard_idx",
+          "columns": [
+            "songId",
+            "version",
+            "score"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "scores_songId_songs_id_fk": {
+          "name": "scores_songId_songs_id_fk",
+          "tableFrom": "scores",
+          "tableTo": "songs",
+          "columnsFrom": [
+            "songId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "scores_version_positive": {
+          "name": "scores_version_positive",
+          "value": "\"scores\".\"version\" >= 1"
+        },
+        "scores_nickname_length": {
+          "name": "scores_nickname_length",
+          "value": "length(\"scores\".\"nickname\") BETWEEN 1 AND 16"
+        },
+        "scores_judgments_non_negative": {
+          "name": "scores_judgments_non_negative",
+          "value": "\"scores\".\"p\" >= 0 AND \"scores\".\"g\" >= 0 AND \"scores\".\"b\" >= 0 AND \"scores\".\"m\" >= 0"
+        },
+        "scores_score_range": {
+          "name": "scores_score_range",
+          "value": "\"scores\".\"score\" BETWEEN 0 AND 1000000"
+        }
+      }
+    },
+    "songs": {
+      "name": "songs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "youtubeId": {
+          "name": "youtubeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bpm": {
+          "name": "bpm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "level": {
+          "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "durationSec": {
+          "name": "durationSec",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currentVersion": {
+          "name": "currentVersion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "archived": {
+          "name": "archived",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "archivedAt": {
+          "name": "archivedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "songs_archived_idx": {
+          "name": "songs_archived_idx",
+          "columns": [
+            "archived"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "songs_id_format": {
+          "name": "songs_id_format",
+          "value": "length(\"songs\".\"id\") BETWEEN 3 AND 64 AND \"songs\".\"id\" NOT GLOB '*[^a-z0-9-]*'"
+        },
+        "songs_title_length": {
+          "name": "songs_title_length",
+          "value": "length(\"songs\".\"title\") BETWEEN 1 AND 160"
+        },
+        "songs_artist_length": {
+          "name": "songs_artist_length",
+          "value": "length(\"songs\".\"artist\") <= 160"
+        },
+        "songs_youtube_id_format": {
+          "name": "songs_youtube_id_format",
+          "value": "length(\"songs\".\"youtubeId\") = 11 AND \"songs\".\"youtubeId\" NOT GLOB '*[^A-Za-z0-9_-]*'"
+        },
+        "songs_bpm_range": {
+          "name": "songs_bpm_range",
+          "value": "\"songs\".\"bpm\" BETWEEN 1 AND 600"
+        },
+        "songs_level_range": {
+          "name": "songs_level_range",
+          "value": "\"songs\".\"level\" BETWEEN 1 AND 99"
+        },
+        "songs_duration_range": {
+          "name": "songs_duration_range",
+          "value": "\"songs\".\"durationSec\" > 0 AND \"songs\".\"durationSec\" <= 1800"
+        },
+        "songs_current_version_positive": {
+          "name": "songs_current_version_positive",
+          "value": "\"songs\".\"currentVersion\" >= 1"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

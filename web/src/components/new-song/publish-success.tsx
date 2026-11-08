@@ -1,4 +1,4 @@
-import { CircleCheckIcon } from "lucide-react";
+import { CircleCheckIcon, ExternalLink, ListMusic, ListPlus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { SongPublishResponse } from "@/lib/publish/types";
@@ -85,6 +85,12 @@ const raisedButton = css({
 
 const accent = css({ colorPalette: "blue" });
 
+/** The icon inside a button. */
+const buttonIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+});
+
 export interface PublishSuccessViewProps {
   response: SongPublishResponse;
   noteCount: number;
@@ -105,7 +111,7 @@ export function PublishSuccessView({
   return (
     <section className={panel} data-testid="new-song-success">
       <p className={headline}>
-        <CircleCheckIcon size={18} />
+        <CircleCheckIcon size={18} aria-hidden="true" />
         公開しました / Published
       </p>
 
@@ -145,15 +151,18 @@ export function PublishSuccessView({
       <div className={actions}>
         <a href={catalogHref} target="_blank" rel="noreferrer">
           <Button className={raisedButton} size="md">
+            <ExternalLink className={buttonIcon} size={14} aria-hidden="true" />
             カタログで確認 / Check the catalog
           </Button>
         </a>
         <a href="/">
           <Button className={raisedButton} size="md">
+            <ListMusic className={buttonIcon} size={14} aria-hidden="true" />
             Studioのカタログ / Studio catalog
           </Button>
         </a>
         <Button className={accent} size="md" onClick={onRegisterAnother}>
+          <ListPlus className={buttonIcon} size={14} aria-hidden="true" />
           新しい曲を登録 / Register another song
         </Button>
       </div>

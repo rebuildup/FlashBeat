@@ -14,6 +14,11 @@
  * (`COUNT(chart_versions)`). It is a simple, monotonic counter: every publish
  * adds a chart version, so the number changes whenever the published charts
  * change. The publish endpoint (#16) returns the same value.
+ *
+ * Archived songs (issue #151) are not listed. The festival never deletes a
+ * song: "removing" one archives it, so the row, its chart snapshots and its
+ * scores stay in the database and the song only leaves the public catalog.
+ * The staff list (`GET /api/v1/admin/songs`) still shows archived songs.
  */
 import { defineHandler } from "void";
 import { and, asc, count, db, eq } from "void/db";
@@ -38,6 +43,7 @@ export const GET = defineHandler(async (c) => {
       chartVersions,
       and(eq(chartVersions.songId, songs.id), eq(chartVersions.version, songs.currentVersion)),
     )
+    .where(eq(songs.archived, 0))
     .orderBy(asc(songs.id))) as CatalogRow[];
 
   const [total] = await db.select({ value: count() }).from(chartVersions);
