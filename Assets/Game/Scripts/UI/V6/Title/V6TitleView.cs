@@ -381,7 +381,7 @@ namespace FlashBeat.UI.V6.Title
             if (record.HasRecord)
             {
                 V6Controls.Text(songZone, "Record Score", V6TitleLogic.ScoreText(record.Score),
-                    new Vector2(140f, 12f), new Vector2(160f, 28f), 22f, V6Tokens.Text,
+                    new Vector2(120f, 12f), new Vector2(160f, 28f), 22f, V6Tokens.Text,
                     TextAlignmentOptions.Right, FontStyles.Bold);
                 V6Controls.Text(songZone, "Song Title", record.Title, new Vector2(0f, 42f), new Vector2(300f, 30f),
                     24f, V6Tokens.Text, TextAlignmentOptions.Left);
@@ -457,6 +457,13 @@ namespace FlashBeat.UI.V6.Title
             logoImage.sprite = Resources.Load<Sprite>("V5/Common/13");
             logoImage.preserveAspect = true;
             logoImage.raycastTarget = false;
+            if (logoImage.sprite == null)
+            {
+                // スプライトが読めないとき (LFS 未取得のビルド等) は白クアッドを
+                // 描かない: Image はスプライト無しで白く塗られるため、
+                // タイトル動画 (ゲーム背景) が隠れてしまう。動画を見せる。
+                logoImage.enabled = false;
+            }
             V6Layout.Place(logo.GetComponent<RectTransform>(), V6TitleLogic.LogoPos, V6TitleLogic.LogoSize);
 
             // Controls · タブ (FHcxk): (280,552) 1120×48, $overlay r8, タブ各 280×48。
