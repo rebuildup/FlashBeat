@@ -33,11 +33,15 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void ValidateNickname_RejectsEmptyOrNullAndTooLong()
         {
+            // ニックネーム上限は 16 文字 (契約: contracts/openapi.v1.yaml
+            // ScoreSubmission.nickname の maxLength: 16)。以前の 12 文字は
+            // 契約変更前の古い値で、16 文字は有効 / 17 文字は拒否。
             Assert.IsNull(RankingClient.ValidateNickname(null));
             Assert.IsNull(RankingClient.ValidateNickname(""));
             Assert.IsNull(RankingClient.ValidateNickname("   "));
-            Assert.IsNull(RankingClient.ValidateNickname(new string('a', 13)));
-            Assert.IsNotNull(RankingClient.ValidateNickname(new string('a', 12)));
+            Assert.IsNull(RankingClient.ValidateNickname(new string('a', 17)));
+            Assert.AreEqual(new string('a', 16), RankingClient.ValidateNickname(new string('a', 16)));
+            Assert.AreEqual(new string('a', 12), RankingClient.ValidateNickname(new string('a', 12)));
         }
 
         // --- payload building ---
@@ -63,7 +67,13 @@ namespace FlashBeat.Tests.Editor
         public void BuildScoreRequestJson_RejectsInvalidNicknameOrSongId()
         {
             Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, "", 1, 0, 0, 0, 0, 0));
-            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 13), 1, 0, 0, 0, 0, 0));
+            // 17 文字は契約上限 (contracts/openapi.v1.yaml ScoreSubmission.nickname
+            // maxLength: 16) を超えるので拒否、16 文字は通る。
+            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 17), 1, 0, 0, 0, 0, 0));
+            string atLimit = RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 16), 1, 0, 0, 0, 0, 0);
+            Assert.IsNotNull(atLimit, "16 文字 (契約上限) のニックネームは受理される");
+            Assert.AreEqual(new string('a', 16),
+                JsonUtility.FromJson<RankingClient.ScoreRequest>(atLimit).nickname);
             Assert.IsNull(RankingClient.BuildScoreRequestJson("Bad_Song", 1, "abc", 1, 0, 0, 0, 0, 0));
         }
 
