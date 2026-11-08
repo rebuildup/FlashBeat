@@ -134,39 +134,65 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
-          $ErrorActionPreference = 'Continue'
+          $ErrorActionPreference = 'Stop'
           $log = "$env:RUNNER_TEMP\activate.log"
-          $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
-          $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
-          if ($hasUlf) {
-            # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
-            $raw = $env:UNITY_LICENSE
-            $content = $null
-            if ($raw.TrimStart().StartsWith("<")) {
-              $content = $raw
+          $lic = "$env:ProgramData\Unity\Unity_lic.ulf"
+          # Unity が起動早期に Caches ディレクトリを作ろうとして失敗するケースへの対策:
+          # 必要なディレクトリを作成しておき、作業ディレクトリも明示しておく。
+          # (実測: CreateDirectory 'C:/Users/runneradmin/AppData/Local/Unity/Caches' failed
+          #  で Unity が落ち、$LASTEXITCODE も空になりジョブが失敗した)
+          foreach ($dir in @(
+            "$env:LOCALAPPDATA\Unity",
+            "$env:LOCALAPPDATA\Unity\Caches",
+            "$env:APPDATA\Unity",
+            "$env:ProgramData\Unity"
+          )) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          }
+          Push-Location $env:GITHUB_WORKSPACE
+          try {
+            $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
+            $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
+            if ($hasUlf) {
+              # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
+              $raw = $env:UNITY_LICENSE
+              $content = $null
+              if ($raw.TrimStart().StartsWith("<")) {
+                $content = $raw
+              } else {
+                try { $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($raw)) }
+                catch { throw "UNITY_LICENSE が XML でも base64 でもありません (secret の内容を確認してください)" }
+              }
+              if (-not $content.TrimStart().StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
+              $ulf = "$env:RUNNER_TEMP\Unity_lic.ulf"
+              [IO.File]::WriteAllText($ulf, $content, (New-Object Text.UTF8Encoding($false)))
+              & $env:UNITY_EDITOR -batchmode -quit -nographics -manualLicenseFile $ulf -logFile $log
+              $code = $LASTEXITCODE
+            } elseif ($hasAccount) {
+              $activateArgs = @("-batchmode", "-quit", "-nographics", "-username", $env:UNITY_EMAIL, "-password", $env:UNITY_PASSWORD)
+              if (-not [string]::IsNullOrWhiteSpace($env:UNITY_SERIAL)) { $activateArgs += @("-serial", $env:UNITY_SERIAL) }
+              & $env:UNITY_EDITOR @activateArgs -logFile $log
+              $code = $LASTEXITCODE
             } else {
-              try { $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($raw)) }
-              catch { throw "UNITY_LICENSE が XML でも base64 でもありません (secret の内容を確認してください)" }
+              throw "Unity ライセンス認証情報がありません"
             }
-            if (-not $content.TrimStart().StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
-            $ulf = "$env:RUNNER_TEMP\Unity_lic.ulf"
-            [IO.File]::WriteAllText($ulf, $content, (New-Object Text.UTF8Encoding($false)))
-            & $env:UNITY_EDITOR -batchmode -quit -nographics -manualLicenseFile $ulf -logFile $log
-            $code = $LASTEXITCODE
-          } elseif ($hasAccount) {
-            $args = @("-batchmode", "-quit", "-nographics", "-username", $env:UNITY_EMAIL, "-password", $env:UNITY_PASSWORD)
-            if (-not [string]::IsNullOrWhiteSpace($env:UNITY_SERIAL)) { $args += @("-serial", $env:UNITY_SERIAL) }
-            & $env:UNITY_EDITOR @args -logFile $log
-            $code = $LASTEXITCODE
-          } else {
-            throw "Unity ライセンス認証情報がありません"
+          } finally {
+            Pop-Location
           }
           if (Test-Path $log) { Get-Content $log -Tail 60 }
-          if ($code -ne 0) { throw "Unity ライセンス認証に失敗しました (exit $code)" }
-          # 認証後にライセンス実ファイルが降りてきたことを確認する (内容はログに出さない)。
-          $lic = "$env:ProgramData\Unity\Unity_lic.ulf"
+          # $LASTEXITCODE が空のままのことがある (Unity が早期クラッシュした場合など)。
+          # その場合は exit コードではなくライセンス実ファイルの有無で判定する。
+          $activated = ($code -eq 0) -or (Test-Path $lic)
+          if (-not $activated) {
+            # フォールバック: 認証済み .ulf を ProgramData へ直接置いて再確認する。
+            # (内容はログに出さない)
+            if ($hasUlf -and (Test-Path $ulf)) {
+              Write-Output "manual activation failed (exit $code); falling back to copying .ulf to ProgramData"
+              Copy-Item -Force -Path $ulf -Destination $lic
+            }
+          }
           if (-not (Test-Path $lic)) {
-            throw "ライセンスファイルが作成されませんでした ($lic)。認証処理は成功扱いでもライセンスが適用されていないため、ここで失敗させる"
+            throw "Unity ライセンス認証に失敗しました (exit $code)。ライセンスファイルが作成されませんでした ($lic)"
           }
           Write-Output "license file present: True"
 
