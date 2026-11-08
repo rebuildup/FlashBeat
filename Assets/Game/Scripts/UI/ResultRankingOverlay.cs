@@ -92,6 +92,15 @@ public class ResultRankingOverlay : MonoBehaviour
 
     private void Update()
     {
+        // v6 UI モードでは旧オーバーレイ (自動登録モーダル / F5 ボード / ヒント
+        // 「更新を適用して再起動」等) を出さない。v6 側が自前の登録モーダルと
+        // ランキングを持つため。フラグ分岐なので V6ResultView.Enabled = false
+        // (v5 へ戻す) で従来どおり動く。
+        if (FlashBeat.UI.V6.Result.V6ResultView.Enabled)
+        {
+            return;
+        }
+
         string sceneName = SceneManager.GetActiveScene().name;
         if (sceneName != lastSceneName)
         {

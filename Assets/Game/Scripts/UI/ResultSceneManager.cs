@@ -105,12 +105,10 @@ public class ResultSceneManager : MonoBehaviour
     /// </summary>
     private void BuildV6View()
     {
-        // 旧シーン配置 UI (v5 テキスト群) を隠す。v6 が代替しない情報
-        // (サムネイル等) も v5 側に残すが、v5 パスと同様に非表示で運用する。
-        if (legacyCanvasV6 != null)
-        {
-            legacyCanvasV6.gameObject.SetActive(false);
-        }
+        // 旧 Canvas は v5 / v6 両方とも非表示にする。v6 モードで legacyCanvasV5
+        // が生き残り、v6 の Retry / Register の上に旧ヒントや OK ボタンが
+        // 重なる不具合の修正 (片方だけ隠すと他方が残る)。null 許容。
+        HideLegacyCanvases(legacyCanvasV5, legacyCanvasV6);
 
         // 旧オーバーレイの自動モーダル (結果画面入場 1.2 秒後の登録モーダル) を止める。
         // コードは消さず enabled 切替。v6 側は自前の登録モーダルを持つ
@@ -131,12 +129,21 @@ public class ResultSceneManager : MonoBehaviour
         FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
     }
 
+    /// <summary>
+    /// 旧シーン配置 Canvas (v5 用 / v6 用の両方) を非表示にする。
+    /// どちらかがシーンに無くても例外を出さない。フラグ分岐は呼び出し側
+    /// (BuildV6View / BuildV5View) が担うので、ここでは常に非表示にするだけ。
+    /// </summary>
+    public static void HideLegacyCanvases(Canvas canvasA, Canvas canvasB)
+    {
+        if (canvasA != null) canvasA.gameObject.SetActive(false);
+        if (canvasB != null) canvasB.gameObject.SetActive(false);
+    }
+
     private void BuildV5View()
     {
-        if (legacyCanvasV5 != null)
-        {
-            legacyCanvasV5.gameObject.SetActive(false);
-        }
+        // v5 経路でも旧シーン配置 Canvas は両方隠す (v5 ResultView はコード生成)。
+        HideLegacyCanvases(legacyCanvasV5, legacyCanvasV6);
 
         var song = GManager.ActiveSongs[GManager.songID];
         var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot
