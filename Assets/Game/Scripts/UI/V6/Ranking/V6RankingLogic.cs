@@ -179,5 +179,38 @@ namespace FlashBeat.UI.V6.Ranking
             }
             return source == RankingSource.Online ? "NO DATA" : "記録がありません";
         }
+
+        /// <summary>
+        /// Online セグメントを出すかどうか (spec 167: cloud 曲以外では Online
+        /// セグメントを非表示にする)。ローカル曲にオンラインランキングは無い。
+        /// </summary>
+        public static bool ShowOnlineSegment(V6SongEntry song)
+        {
+            return song != null && song.IsCloud;
+        }
+
+        /// <summary>
+        /// 選択中の曲の「曲別ランキング」(History 画面の曲ランキングパネル / Online 1 曲分)
+        /// が空のときの本文。cloud 曲はオンライン取得の状態 (失敗 / 取得中 / 空データ) を、
+        /// ローカル曲はローカル記録の有無だけを出す。取得状態と対象外を混同しない。
+        /// </summary>
+        public static string SongRankingEmptyMessage(
+            V6SongEntry song, bool isLoading, bool hasError, string statusMessage)
+        {
+            if (!ShowOnlineSegment(song))
+            {
+                return EmptyMessage(RankingSource.Local, false, false, "");
+            }
+            return EmptyMessage(RankingSource.Online, isLoading, hasError, statusMessage);
+        }
+
+        /// <summary>
+        /// PLAYERS パネルの空状態文言。総合 (プレイヤー別) の集計 API は既存に無いため、
+        /// 「データ無し」ではなく未対応であることを出す (Issue #239)。
+        /// </summary>
+        public static string PlayersEmptyMessage()
+        {
+            return "プレイヤー別の集計には対応していません";
+        }
     }
 }

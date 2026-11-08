@@ -101,6 +101,22 @@ namespace FlashBeat.UI.V6.Title
         public const float TabPaddingX = 10f;
         public const float TabLabelFontSize = 26f;
 
+        // Issue #239: History / Ranking タブの KeyCap 表記と、TitleSceneManager が
+        // 実際に poll するキー。KeyActions に割当が無い固定キーなので、cap 文字と
+        // KeyCode を単一ソースに置いて凡例と実キーの食い違いを防ぐ。
+        /// <summary>History タブの KeyCap 表記。</summary>
+        public const string HistoryTabKey = "H";
+
+        /// <summary>Ranking タブの KeyCap 表記。</summary>
+        public const string RankingTabKey = "R";
+
+        /// <summary>History タブを開くキー (KeyActions に割当が無いため固定)。</summary>
+        public static KeyCode HistoryTabKeyCode { get { return KeyCode.H; } }
+
+        /// <summary>Ranking タブを開くキー (KeyActions に割当は無い)。</summary>
+        public static KeyCode RankingTabKeyCode { get { return KeyCode.R; } }
+
+
         /// <summary>フッター キー凡例 (QQ4jM, gap16): Footer ローカル。</summary>
         public static readonly Vector2 LegendPos = new Vector2(0f, 30f);
         public const float LegendGap = 16f;

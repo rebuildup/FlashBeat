@@ -53,6 +53,7 @@ public class SelectSceneManager : MonoBehaviour
         if (V6UiMode.SelectScreen)
         {
             CreateV6SelectView();
+            ConsumeV6EntryRequest();
         }
         else
         {
@@ -163,15 +164,42 @@ public class SelectSceneManager : MonoBehaviour
     /// <summary>設定パネルを開く (v6 クイック設定 = 右カラム差し替え)。</summary>
     private void OnV6OpenSettings()
     {
+        // History / Ranking 画面の「設定」(フッターボタン / O キー) も有効にする (Issue #239)。
+        // クイック設定は選曲画面の右カラム差し替えなので、一度選曲画面へ戻してから開く。
         if (currentMode != V6Mode.Select)
         {
-            Debug.LogWarning("[SelectScene] クイック設定は選曲画面でのみ開けます。");
-            return;
+            SetMode(V6Mode.Select);
         }
 
         if (v6View != null)
         {
             v6View.OpenQuickSettings();
+        }
+    }
+
+    /// <summary>
+    /// Title の History / Ranking タブ (H / R キー) からの入口要求を消費する
+    /// (Issue #239)。TitleSceneManager が遷移前に積んだ V6TitleLinks.PendingEntry
+    /// に従い、選曲画面の代わりに History / Ranking を初期表示する。
+    /// </summary>
+    private void ConsumeV6EntryRequest()
+    {
+        var entry = FlashBeat.UI.V6.Title.V6TitleLinks.PendingEntry;
+        FlashBeat.UI.V6.Title.V6TitleLinks.PendingEntry =
+            FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
+
+        if (v6View == null)
+        {
+            return; // v6 無効時は History / Ranking の表示先が無い
+        }
+
+        if (entry == FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.History)
+        {
+            SetMode(V6Mode.History);
+        }
+        else if (entry == FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.Ranking)
+        {
+            SetMode(V6Mode.Ranking);
         }
     }
 

@@ -1,4 +1,6 @@
+using System;
 using NUnit.Framework;
+using UnityEngine;
 using FlashBeat.UI.V6.Title;
 
 /// <summary>
@@ -124,5 +126,25 @@ public class V6TitleRuntimeTests
         // 選択が範囲外なら先頭 (0) から数える。
         Assert.AreEqual(1, V6TitleLogic.MoveIndex(9, 1, 3));
         Assert.AreEqual(1, V6TitleLogic.MoveIndex(-1, 1, 3));
+    }
+
+    // --- Issue #239: タブの KeyCap 表記と poll 対象キーの一致 ---
+
+    [Test]
+    public void HistoryTabKey_MatchesPolledKeyCode()
+    {
+        // KeyCap 凡例と TitleSceneManager が poll するキーがずれると
+        // 「表示されているが押せないキー」になる。単一ソースの対応を固定する。
+        Assert.IsTrue(Enum.TryParse(V6TitleLogic.HistoryTabKey, out KeyCode historyKey),
+            "HistoryTabKey は KeyCode 名であること");
+        Assert.AreEqual(V6TitleLogic.HistoryTabKeyCode, historyKey);
+    }
+
+    [Test]
+    public void RankingTabKey_MatchesPolledKeyCode()
+    {
+        Assert.IsTrue(Enum.TryParse(V6TitleLogic.RankingTabKey, out KeyCode parsed),
+            "RankingTabKey は KeyCode 名であること");
+        Assert.AreEqual(V6TitleLogic.RankingTabKeyCode, parsed);
     }
 }

@@ -235,10 +235,13 @@ namespace FlashBeat.UI.V6.History
             return count;
         }
 
-        /// <summary>ヘッダー右の件数表示 (design: "4 plays")。</summary>
-        public static string PlaysLabel(int playedCount)
+        /// <summary>
+        /// ヘッダー右の件数表示。値は「記録のある曲数」でありプレイ回数ではないので、
+        /// 意味どおりの文言にする (design 例の "N plays" は実値と合わないため不使用)。
+        /// </summary>
+        public static string RecordedCountLabel(int recordedSongCount)
         {
-            return playedCount + " plays";
+            return "記録 " + recordedSongCount + "曲";
         }
 
         /// <summary>

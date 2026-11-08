@@ -22,9 +22,24 @@ namespace FlashBeat.UI.V6.Title
         public static Action HistoryRequested;
 
         /// <summary>
-        /// Title の Ranking タブが押されたら呼ばれる (ランキング画面を開く)。
+        /// Title の Ranking タブ (または R キー) が押されたら呼ばれる。
         /// null の間は Ranking タブを描かない。
         /// </summary>
         public static Action RankingRequested;
+
+        /// <summary>Title タブ / H・R キーで開いてほしい画面 (Issue #239)。</summary>
+        public enum EntryScreen
+        {
+            None,
+            History,
+            Ranking
+        }
+
+        /// <summary>
+        /// Title から要求された遷移先。TitleSceneManager が History / Ranking を
+        /// 要求するとき設定して SelectScene へ遷移し、SelectSceneManager が
+        /// Start で消費して初期モードを決める。消費したら None に戻す。
+        /// </summary>
+        public static EntryScreen PendingEntry = EntryScreen.None;
     }
 }

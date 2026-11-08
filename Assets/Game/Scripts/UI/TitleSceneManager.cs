@@ -36,7 +36,13 @@ public class TitleSceneManager : MonoBehaviour
 
     void Start()
     {
-        // 保存済みの設定 (音量 / ノーツ速度 / 判定幅) を復元する (Issue #167)。
+        // Issue #239: History / Ranking タブの遷移先を設定する。
+        // タブは操作 (フック) が設定されているときだけ描かれる。
+        // 遷移先は Select シーンなので、要求は PendingEntry 経由で渡す。
+        FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested = OnHistoryRequested;
+        FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested = OnRankingRequested;
+
+        // 保存済み設定 (音量 / ノーツ速度 / 判定幅) の復元 (Issue #167)。
         // 以前は GManager.noteTiming-- と OptionSceneManager.TimingUp() で
         // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
         OptionSettings.Load();
@@ -154,6 +160,43 @@ public class TitleSceneManager : MonoBehaviour
         }
     }
 
+    // --- History / Ranking タブからの遷移 (Issue #239) ---
+
+    /// <summary>
+    /// Title の History タブ / H キー。要求を PendingEntry に積んでから
+    /// SelectScene へ遷移する (SelectSceneManager が Start で消費して History を開く)。
+    /// </summary>
+    private void OnHistoryRequested()
+    {
+        SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.History);
+    }
+
+    /// <summary>Ranking タブ / R キー。同上 (Ranking を開く)。</summary>
+    private void OnRankingRequested()
+    {
+        SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.Ranking);
+    }
+
+    private void SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen screen)
+    {
+        FlashBeat.UI.V6.Title.V6TitleLinks.PendingEntry = screen;
+        SelectScene();
+    }
+
+    void OnDestroy()
+    {
+        // 静的フックはシーンをまたいで残るので、このシーンのインスタンスの
+        // 分だけ解除する (dangling delegate の防止)。
+        if (FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested == OnHistoryRequested)
+        {
+            FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested = null;
+        }
+        if (FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested == OnRankingRequested)
+        {
+            FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested = null;
+        }
+    }
+
     void Update()
     {
         if (titleView == null)
@@ -183,6 +226,18 @@ public class TitleSceneManager : MonoBehaviour
         if (KeyBindings.GetKeyDownOrInjected(KeyCode.DownArrow) || KeyBindings.GetKeyDownOrInjected(KeyCode.S))
         {
             titleView.MoveSelection(1);
+            return;
+        }
+
+        // History / Ranking タブ (KeyCap H / R — V6TitleLogic の固定キー)。
+        if (historyAvailable && KeyBindings.GetKeyDownOrInjected(FlashBeat.UI.V6.Title.V6TitleLogic.HistoryTabKeyCode))
+        {
+            InvokeHistory();
+            return;
+        }
+        if (rankingAvailable && KeyBindings.GetKeyDownOrInjected(FlashBeat.UI.V6.Title.V6TitleLogic.RankingTabKeyCode))
+        {
+            InvokeRanking();
             return;
         }
 

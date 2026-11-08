@@ -77,8 +77,52 @@ namespace FlashBeat.UI.V6.Ranking.Tests
             Assert.AreEqual("NO DATA", V6RankingLogic.EmptyMessage(
                 V6RankingLogic.RankingSource.Online, false, false, ""));
             // Local に記録が無いときはオンライン取得失敗の文言ではない。
-            Assert.AreEqual("記録がありません", V6RankingLogic.EmptyMessage(
-                V6RankingLogic.RankingSource.Local, false, false, ""));
+            Assert.AreEqual("記録がありません",
+                V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Local, false, false, ""));
+        }
+
+        // --- Issue #239: Online セグメントの対象絞り込みと空状態の区別 ---
+
+        [Test]
+        public void ShowOnlineSegment_OnlyForCloudSongs()
+        {
+            Assert.IsTrue(V6RankingLogic.ShowOnlineSegment(new V6SongEntry { SongId = 1, IsCloud = true }));
+            Assert.IsFalse(V6RankingLogic.ShowOnlineSegment(new V6SongEntry { SongId = 2, IsCloud = false }));
+            Assert.IsFalse(V6RankingLogic.ShowOnlineSegment(null));
+        }
+
+        [Test]
+        public void SongRankingEmpty_LocalSong_ShowsLocalRecordState()
+        {
+            // ローカル曲はオンラインの取得状態 (エラー/読込中) を混同しない。
+            Assert.AreEqual(
+                "記録がありません",
+                V6RankingLogic.SongRankingEmptyMessage(
+                    new V6SongEntry { SongId = 1, IsCloud = false },
+                    isLoading: true, hasError: true, statusMessage: "HTTP 500"));
+        }
+
+        [Test]
+        public void SongRankingEmpty_CloudSong_ShowsFetchState()
+        {
+            var song = new V6SongEntry { SongId = 1, IsCloud = true };
+
+            // 失敗 → 理由をそのまま出す。
+            Assert.AreEqual("HTTP 500", V6RankingLogic.SongRankingEmptyMessage(
+                song, isLoading: false, hasError: true, statusMessage: "HTTP 500"));
+            // 取得中 → 取得中の文言。
+            Assert.AreEqual("ランキングを取得しています…", V6RankingLogic.SongRankingEmptyMessage(
+                song, isLoading: true, hasError: false, ""));
+            // 取得成功で 0 件 → データ無し。
+            Assert.AreEqual("NO DATA", V6RankingLogic.SongRankingEmptyMessage(
+                song, isLoading: false, hasError: false, ""));
+        }
+
+        [Test]
+        public void SongRankingEmpty_NullSong_ShowsLocalRecordState()
+        {
+            Assert.AreEqual("記録がありません", V6RankingLogic.SongRankingEmptyMessage(null, false, false, ""));
         }
     }
+
 }

@@ -24,7 +24,8 @@ namespace FlashBeat.UI.V6.History
     ///   1 件も無い場合は空状態 (プレイ履歴がありません) を出す。
     /// - プレイ情報パネルは直前のプレイ (GManager の play 静的フィールド) を
     ///   選択中の曲が最後にプレイした曲のときだけ実数で出す。データが無い
-    ///   (未プレイ / 別曲を選択中) 場合は "–"。HOLD は既存に集計が無いので常に "–"。
+    ///   (未プレイ / 別曲を選択中) 場合は "–"。HOLD セルは集計が存在しないため削除した
+    ///   (Issue #239)。
     /// - キー操作は統合担当が結線する (Input は直接読まない):
     ///   MoveSelection / ToggleSort / TriggerBack / TriggerOpenSettings / TriggerGotoSong。
     /// - SelectSceneManager は呼ばない。onBack / onOpenSettings / onGotoSong は統合担当が渡す。
@@ -372,7 +373,7 @@ namespace FlashBeat.UI.V6.History
             Stretch(sortText.GetComponent<RectTransform>(), 132f, 44f);
 
             // design: Count fs24、右端はヘッダー右端 (ヘッダー内 x 1400+280 = 1680) で揃える
-            var count = V5GameUi.Text(headerZone, "Count", V6HistoryLogic.PlaysLabel(playedCount), 24f,
+            var count = V5GameUi.Text(headerZone, "Count", V6HistoryLogic.RecordedCountLabel(playedCount), 24f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right);
             At(count, 1400f, 24f, 280f, 48f, new Vector2(0f, 0.5f));
         }
@@ -383,9 +384,12 @@ namespace FlashBeat.UI.V6.History
         {
             // design (rw7zx): キー操作ゾーン (0,30)、Legend 間 gap16、Legend 内は
             // KeyCap (高36 / pad[0,10] / fs22) + gap10 + Label fs22 $text-muted。
+            // 凡例は実キーと一致させる (Issue #239): S は HandleHistoryInput の
+            // ToggleSort (ヘッダーの Sort チップと同じ操作)。
             BuildKeyLegend(footerZone, new[]
             {
                 new[] { "↑↓", "選択" },
+                new[] { "S", "並べ替え" },
                 new[] { "Space", "決定" },
                 new[] { "Esc", "戻る" }
             });
@@ -649,7 +653,7 @@ namespace FlashBeat.UI.V6.History
             BuildSongRanking(column, song);
         }
 
-        /// <summary>プレイヤー情報 (528x176 $k2): 累計 / プレイ曲 / S以上 / 順位。</summary>
+        /// <summary>プレイヤー情報 (528x176 $k2): 累計 / プレイ済み / S以上 (Issue #239 で順位セルは削除)。</summary>
         private void BuildPlayerInfo(GameObject column, V6SongEntry song)
         {
             List<V6SongEntry> history = V6HistoryLogic.HistoryList(data.AllSongs, sort);
@@ -668,11 +672,11 @@ namespace FlashBeat.UI.V6.History
                 TextAlignmentOptions.Right);
 
             BuildInfoCell(panel, 8f, 52f, "累計", V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history)));
-            BuildInfoCell(panel, 272f, 52f, "プレイ曲", history.Count + " / " + data.AllSongs.Count);
-            BuildInfoCell(panel, 8f, 116f, "S以上",
-                V6HistoryLogic.CountGradeAtLeastS(history).ToString());
-            // 自分の総合順位は既存 API (オンライン) に存在しないので空表示。
-            BuildInfoCell(panel, 272f, 116f, "順位", "–位 / –人");
+            // 値は「記録のある曲数 / 全曲数」(プレイ回数ではない) のでラベルもその意味にする。
+            BuildInfoCell(panel, 272f, 52f, "プレイ済み", history.Count + " / " + data.AllSongs.Count);
+            BuildInfoCell(panel, 8f, 116f, "S以上", V6HistoryLogic.CountGradeAtLeastS(history).ToString());
+            // 「順位」セルは削除 (Issue #239): 総合順位を返す既存 API が無く、
+            // 常に "–位 / –人" を出すだけの死んだ表示だった (design 差分は evidence に記録)。
         }
 
         /// <summary>プレイ情報 (528x220 $k2): 直前のプレイの SCORE と判定内訳。</summary>
@@ -696,8 +700,8 @@ namespace FlashBeat.UI.V6.History
             BuildJudgeCell(panel, 189f, 52f, "GREAT", valid ? GManager.great.ToString() : "–");
             BuildJudgeCell(panel, 358f, 52f, "BAD", valid ? GManager.bad.ToString() : "–");
             BuildJudgeCell(panel, 20f, 140f, "MISS", valid ? GManager.miss.ToString() : "–");
-            // HOLD は既存の集計 (GManager / Judge) に成功ホールド数が無いので常に "–"。
-            BuildJudgeCell(panel, 189f, 140f, "HOLD", "–");
+            // HOLD セルは削除 (Issue #239): ホールド成功数の集計は既存コードに無く
+            // (ホールドは先頭押下時に通常判定へ加算済み)、常に "–" の死んだセルだった。
             // design: MAX COMBO の value のみ fs24
             BuildJudgeCell(panel, 358f, 140f, "MAX COMBO",
                 valid ? V6HistoryLogic.ComboLabel(GManager.maxCombo, song != null ? song.NoteCount : 0) : "–",
@@ -738,9 +742,12 @@ namespace FlashBeat.UI.V6.History
             List<V6RankingRow> rows = SongRankingRows(song);
             if (rows.Count == 0)
             {
-                var empty = V5GameUi.Text(panel.gameObject, "No Data",
-                    data.IsLoading ? "ランキングを取得しています…" : "NO DATA", 24f, V5Tokens.TextDim,
-                    TextAlignmentOptions.Left);
+                // 空 / 取得中 / 失敗 / 対象外を区別して出す (Issue #239)。
+                // cloud 曲はデータソースの取得状態、ローカル曲は記録の有無のみ。
+                string message = V6RankingLogic.SongRankingEmptyMessage(
+                    song, data.IsLoading, data.HasError, data.StatusMessage);
+                var empty = V5GameUi.Text(panel.gameObject, "No Data", message,
+                    24f, V5Tokens.TextDim, TextAlignmentOptions.Left);
                 At(empty, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
                 return;
             }

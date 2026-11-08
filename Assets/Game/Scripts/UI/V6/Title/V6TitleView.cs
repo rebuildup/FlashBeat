@@ -497,7 +497,8 @@ namespace FlashBeat.UI.V6.Title
         /// アイコン / ラベル / キーは design QJtTv のタブ 4 枚 (play/history/trophy/settings)。
         /// Start / Option のキーは実際の割り当て (KeyActions) から取る
         /// (design 値 Space / O は既定割り当てと同じ)。
-        /// History / Ranking は KeyActions に割り当てが無いため design 値 (H / R) を出す。
+        /// History / Ranking は KeyActions に割り当てが無いため固定キー
+        /// (V6TitleLogic の単一ソース。TitleSceneManager が poll するキーと同じ)。
         /// </summary>
         private void BuildTabList()
         {
@@ -518,7 +519,7 @@ namespace FlashBeat.UI.V6.Title
                     Name = "Tab History",
                     IconSprite = "history",
                     Label = "History",
-                    Key = "H",
+                    Key = V6TitleLogic.HistoryTabKey,
                     Action = onHistory,
                 });
             }
@@ -530,7 +531,7 @@ namespace FlashBeat.UI.V6.Title
                     Name = "Tab Ranking",
                     IconSprite = "trophy",
                     Label = "Ranking",
-                    Key = "R",
+                    Key = V6TitleLogic.RankingTabKey,
                     Action = onRanking,
                 });
             }

@@ -24,8 +24,8 @@ namespace FlashBeat.UI.V6.Ranking
     /// - 対象曲は左の曲リストで切り替える (実カタログ全曲)。
     /// - SCORE RANKING は Local (実保存の自分のベスト) / Online (実 API) を
     ///   セグメントで切り替える。取得失敗時はエラー表示 + 再試行ボタン。
-    /// - PLAYERS はプレイヤー総合ランキングの API が既存に無いので空状態
-    ///   (NO DATA) のみ。未実装は PR に記載する。
+    /// - PLAYERS はプレイヤー別 (総合) の集計 API が既存に無いため空状態のみ
+    ///   (未対応であることを出す、Issue #239)。design の左右矢印は死んだボタンだったため削除。
     /// - キー操作は統合担当が結線する (Input は直接読まない):
     ///   MoveSelection / ToggleSource / TriggerBack / TriggerOpenSettings / TriggerGotoSong。
     /// </summary>
@@ -147,9 +147,16 @@ namespace FlashBeat.UI.V6.Ranking
             data.MoveSelection(delta);
         }
 
-        /// <summary>SCORE RANKING のセグメント (Local / Online) を切り替える。</summary>
+        /// <summary>
+        /// SCORE RANKING のセグメント (Local / Online) を切り替える。
+        /// Online セグメントの無い曲 (cloud 以外) は切替先が無いので何もしない。
+        /// </summary>
         public void ToggleSource()
         {
+            if (!ShowOnlineSegmentForSelected())
+            {
+                return;
+            }
             source = V6RankingLogic.NextSource(source);
             Rebuild(false);
         }
@@ -291,7 +298,7 @@ namespace FlashBeat.UI.V6.Ranking
                 listScroll = V6SelectViewLogic.ScrollToReveal(selectIndex, listScroll, ListVisibleRows);
             }
             listScroll = V6SelectViewLogic.ClampScroll(listScroll, songs.Count, ListVisibleRows);
-            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll, RankingRows().Count, RankingVisibleRows);
+            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll, RankingRows(EffectiveSource()).Count, RankingVisibleRows);
 
             GameObject headerZone = Zone("Header");
             GameObject footerZone = Zone("Footer");
@@ -395,11 +402,14 @@ namespace FlashBeat.UI.V6.Ranking
         {
             // design (rw7zx): キー操作ゾーン (0,30)、Legend 間 gap16、Legend 内は
             // KeyCap (高36 / pad[0,10] / fs22) + gap10 + Label fs22 $text-muted。
+            // 凡例は実キーと一致させる (Issue #239): 切替は S (HandleRankingInput の
+            // ToggleSource)、再試行は F5 (RetryFetch)。「Tab 切替」は実装と不一致のため削除。
             BuildKeyLegend(footerZone, new[]
             {
                 new[] { "↑↓", "曲送り" },
                 new[] { "Space", "決定" },
-                new[] { "Tab", "切替" },
+                new[] { "S", "切替" },
+                new[] { "F5", "再試行" },
                 new[] { "Esc", "戻る" }
             });
 
@@ -598,20 +608,28 @@ namespace FlashBeat.UI.V6.Ranking
             var headSpacerLe = headSpacer.AddComponent<LayoutElement>();
             headSpacerLe.flexibleWidth = 1f;
 
-            // Local / Online セグメント (design: 有効側が $k4 + $text、無効側が $k1 + $text-muted)。
-            BuildSegment(head.gameObject, "Local", V6RankingLogic.RankingSource.Local);
-            BuildSegment(head.gameObject, "Online", V6RankingLogic.RankingSource.Online);
+            // Online セグメントは cloud 曲だけ (spec 167: ローカル曲では非表示)。
+            // 非表示の間は表示を Local に寄せる (見えないセグメントへの切替で
+            // 本体が空になることを防ぐ)。
+            bool onlineAvailable = ShowOnlineSegmentForSelected();
+            V6RankingLogic.RankingSource effectiveSource = EffectiveSource();
 
-            IReadOnlyList<V6RankingRow> rows = RankingRows();
+            BuildSegment(head.gameObject, "Local", V6RankingLogic.RankingSource.Local);
+            if (onlineAvailable)
+            {
+                BuildSegment(head.gameObject, "Online", V6RankingLogic.RankingSource.Online);
+            }
+
+            IReadOnlyList<V6RankingRow> rows = RankingRows(effectiveSource);
             if (rows.Count == 0)
             {
-                string message = V6RankingLogic.EmptyMessage(source, data.IsLoading, data.HasError, data.StatusMessage);
+                string message = V6RankingLogic.EmptyMessage(effectiveSource, data.IsLoading, data.HasError, data.StatusMessage);
                 var empty = V5GameUi.Text(panel.gameObject, "No Data", message, 24f, V5Tokens.TextDim,
                     TextAlignmentOptions.Left);
                 At(empty, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
 
-                // 取得失敗時は再試行ボタン (Online のみ。Local は通信しない)。
-                if (source == V6RankingLogic.RankingSource.Online && data.HasError && !data.IsLoading)
+                // 取得失敗時は再試行ボタン (Online のみ。Local は通信しない)
+                if (effectiveSource == V6RankingLogic.RankingSource.Online && data.HasError && !data.IsLoading)
                 {
                     var retry = MakeButton(V5Ui.Panel(panel, "Retry", new Vector2(160f, 48f), V5Tokens.Key4, 8f),
                         RetryFetch);
@@ -634,7 +652,8 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void BuildSegment(GameObject head, string label, V6RankingLogic.RankingSource target)
         {
-            bool active = source == target;
+            // 有効判定は実効ソース基準 (Online 非対象の曲は Local 表示のため)。
+            bool active = EffectiveSource() == target;
             var chip = MakeButton(V5Ui.Panel(head, "Segment " + label, new Vector2(72f, 32f),
                 active ? V5Tokens.Key4 : V5Tokens.Key1, 4f), ToggleSource);
             // design (S1TZD Segment): text fs20
@@ -643,11 +662,25 @@ namespace FlashBeat.UI.V6.Ranking
             Stretch(text.GetComponent<RectTransform>(), 72f, 32f);
         }
 
+        /// <summary>選択中の曲での実効ソース (Online セグメント非表示の曲は Local)。</summary>
+        private V6RankingLogic.RankingSource EffectiveSource()
+        {
+            return ShowOnlineSegmentForSelected()
+                ? source
+                : V6RankingLogic.RankingSource.Local;
+        }
+
+        /// <summary>選択中の曲で Online セグメントを出すか。</summary>
+        private bool ShowOnlineSegmentForSelected()
+        {
+            return V6RankingLogic.ShowOnlineSegment(data.Selected);
+        }
+
         /// <summary>表示するランキング行 (Local = 実保存の自分のベスト / Online = 実 API)。</summary>
-        private IReadOnlyList<V6RankingRow> RankingRows()
+        private IReadOnlyList<V6RankingRow> RankingRows(V6RankingLogic.RankingSource rankingSource)
         {
             V6SongEntry song = data.Selected;
-            if (source == V6RankingLogic.RankingSource.Local)
+            if (rankingSource == V6RankingLogic.RankingSource.Local)
             {
                 return V6RankingLogic.LocalRows(song);
             }
@@ -675,8 +708,9 @@ namespace FlashBeat.UI.V6.Ranking
         // --- 右列: PLAYERS (512x732 $k2) ---
 
         /// <summary>
-        /// PLAYERS パネル。プレイヤー総合ランキング (累計スコア) を返す既存 API が
-        /// 無いため、ヘッドと空状態のみ (未実装は PR に記載)。
+        /// PLAYERS パネル。プレイヤー別 (総合) の集計 API は既存に無いため
+        /// 空状態のみ。design の左右矢印は操作先が無い死んだボタンだったので
+        /// 削除した (Issue #239、design 差分は evidence に記録)。
         /// </summary>
         private void BuildPlayers(GameObject mainZone)
         {
@@ -689,11 +723,9 @@ namespace FlashBeat.UI.V6.Ranking
             var spacer = V5Ui.Node(head.gameObject, "Spacer");
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
-            MakeIconButton(head.gameObject, "chevron-left", 0f, 0f, 32f, V5Tokens.Key4, V6Tokens.RadiusMedium, 24f, V5Tokens.TextMuted);
-            V5GameUi.Text(head.gameObject, "Metric", "累計スコア", 18f, V5Tokens.Text, TextAlignmentOptions.Center);
-            MakeIconButton(head.gameObject, "chevron-right", 0f, 0f, 32f, V5Tokens.Key4, V6Tokens.RadiusMedium, 24f, V5Tokens.TextMuted);
-            V5GameUi.Text(panel.gameObject, "NoData", "NO DATA", 24f, V5Tokens.TextDim, TextAlignmentOptions.Center);
-            At(panel.transform.Find("NoData").gameObject, 8f, 300f, 496f, 44f, new Vector2(0f, 0.5f));
+            var empty = V5GameUi.Text(panel.gameObject, "NoData", V6RankingLogic.PlayersEmptyMessage(),
+                24f, V5Tokens.TextDim, TextAlignmentOptions.Center);
+            At(empty, 8f, 300f, 496f, 44f, new Vector2(0f, 0.5f));
         }
 
         // --- 入力ヘルパ (マウスのみ。キーは統合担当が結線する) ---
@@ -712,7 +744,7 @@ namespace FlashBeat.UI.V6.Ranking
                 ScrollList(step);
                 return;
             }
-            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll + step, RankingRows().Count, RankingVisibleRows);
+            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll + step, RankingRows(EffectiveSource()).Count, RankingVisibleRows);
             Rebuild(false);
         }
 
@@ -807,14 +839,6 @@ namespace FlashBeat.UI.V6.Ranking
                 x + pivot.x * w,
                 y + (1f - pivot.y) * h));
             return rt.gameObject;
-        }
-
-        /// <summary>アイコンのみのボタン (V6Controls.IconButton の薄いラッパ)。</summary>
-        private static GameObject MakeIconButton(GameObject parent, string iconName, float x, float y,
-            float size, Color bg, float radius, float iconSize, Color iconColor)
-        {
-            return V6Controls.IconButton(parent, iconName, new Vector2(x, y), new Vector2(size, size),
-                bg, radius, iconSize, iconColor);
         }
 
         /// <summary>親 (row 等) の中央に stretch する (Row/Column の子として使う)。</summary>
