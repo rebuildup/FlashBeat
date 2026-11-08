@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CircleX, LoaderCircle } from "lucide-react";
 import { css } from "styled-system/css";
 import { loadYouTubeIframeApi, type YTPlayer } from "@/lib/new-song/iframe-api";
 
@@ -25,6 +26,13 @@ const status = css({
   color: "#8c8c8c",
   fontSize: "2xs",
   margin: "0",
+});
+
+/** The inline icon of a status line. */
+const statusIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+  verticalAlign: "middle",
 });
 
 const errorStatus = css({
@@ -93,10 +101,14 @@ export function DurationProbe({ videoId, onDuration }: DurationProbeProps) {
         <div ref={hostRef} data-testid="duration-probe-player" />
       </div>
       {state === "loading" ? (
-        <p className={status}>プレイヤーを読み込み中… / Loading the player…</p>
+        <p className={status}>
+          <LoaderCircle className={statusIcon} size={12} aria-hidden="true" />
+          プレイヤーを読み込み中… / Loading the player…
+        </p>
       ) : null}
       {state === "error" ? (
         <p className={`${status} ${errorStatus}`} data-testid="duration-probe-error">
+          <CircleX className={statusIcon} size={12} aria-hidden="true" />
           プレイヤーを読み込めませんでした（オフライン）。再生時間は手動で入力してください。 / The
           player could not load (offline). Enter the duration manually.
         </p>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { css } from "styled-system/css";
 import type { ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
@@ -63,6 +64,13 @@ const backLink = css({
   fontSize: "xs",
   textDecoration: "none",
   _hover: { color: "#ffffff" },
+});
+
+/** The arrow icon of the back link. */
+const backIcon = css({
+  color: "currentColor",
+  marginRight: "1",
+  verticalAlign: "middle",
 });
 
 const title = css({
@@ -283,7 +291,8 @@ function Header({ transport }: { transport: PublishTransport }) {
     <header className={header}>
       <div className={headerTitles}>
         <a className={backLink} href="/">
-          ← 曲を選ぶ / Back to songs
+          <ArrowLeft className={backIcon} size={14} aria-hidden="true" />
+          曲を選ぶ / Back to songs
         </a>
         <h1 className={title}>新曲を登録 / New song</h1>
         {/* Issue #215: the goal and the permission boundary are stated up

@@ -1,4 +1,4 @@
-import { CircleCheckIcon, CircleXIcon } from "lucide-react";
+import { ArrowLeft, CircleCheckIcon, CircleXIcon, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { PublishResult } from "@/lib/publish/types";
@@ -61,6 +61,12 @@ const actions = css({
   marginTop: "1",
 });
 
+/** The icon of a result action button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
+});
+
 export interface PublishResultPanelProps {
   result: PublishResult | null;
   /** Re-open the publish dialog with every input and the token retained. */
@@ -78,7 +84,7 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
     return (
       <section className={`${frame} ${success}`} data-testid="publish-success">
         <p className={headline}>
-          <CircleCheckIcon width={14} height={14} />
+          <CircleCheckIcon width={14} height={14} aria-hidden="true" />
           Published
         </p>
         <p className={detail}>
@@ -92,7 +98,7 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
   return (
     <section className={`${frame} ${failure}`} data-testid="publish-error">
       <p className={headline}>
-        <CircleXIcon width={14} height={14} />
+        <CircleXIcon width={14} height={14} aria-hidden="true" />
         Not published
       </p>
       <p className={detail}>{result.failure.message}</p>
@@ -107,11 +113,13 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
       <div className={actions}>
         {onRetry ? (
           <Button size="xs" onClick={onRetry}>
+            <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
             Retry
           </Button>
         ) : null}
         {onBackToEditor ? (
           <Button size="xs" variant="outline" onClick={onBackToEditor}>
+            <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
             Back to editor
           </Button>
         ) : null}

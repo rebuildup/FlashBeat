@@ -128,7 +128,7 @@ export function Stepper({ current, maxReached, onSelect }: StepperProps) {
               }}
             >
               <span className={stepNumber} aria-hidden>
-                {state === "done" ? <CheckIcon size={12} /> : item.step}
+                {state === "done" ? <CheckIcon size={12} aria-hidden="true" /> : item.step}
               </span>
               <span className={stepLabel}>
                 <span className={stepLabelJa}>{item.ja}</span>

@@ -24,6 +24,17 @@ export const songs = sqliteTable(
     level: integer("level").notNull(),
     durationSec: real("durationSec").notNull(),
     currentVersion: integer("currentVersion").notNull().default(1),
+    /**
+     * Archive flag (issue #151): 1 = the song is archived.
+     *
+     * The festival never deletes a song. "Removing" a song means archiving
+     * it: the row, its chart snapshots and its scores stay in the database,
+     * the song simply leaves the public catalog. Unarchiving brings it back
+     * with its history intact.
+     */
+    archived: integer("archived").notNull().default(0),
+    /** When the song was archived (`null` while it is live). */
+    archivedAt: text("archivedAt"),
   },
   (table) => [
     // SongId parameter of the contract: ^[a-z0-9-]{3,64}$
@@ -42,6 +53,12 @@ export const songs = sqliteTable(
     check("songs_level_range", sql`${table.level} BETWEEN 1 AND 99`),
     check("songs_duration_range", sql`${table.durationSec} > 0 AND ${table.durationSec} <= 1800`),
     check("songs_current_version_positive", sql`${table.currentVersion} >= 1`),
+    // The archive flag is a boolean stored as 0/1. SQLite cannot add a CHECK
+    // constraint to an existing table, so the flag is written as 0 or 1 by
+    // the archive route alone; the invariant lives in the API, not in the
+    // table.
+    // The public catalog filters on the flag, so it needs an index.
+    index("songs_archived_idx").on(table.archived),
   ],
 );
 
