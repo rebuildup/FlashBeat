@@ -18,7 +18,9 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// - 判定クローンは v5 と同じく読み取った後に非表示にする (3D プレイフィールドには
     ///   判定ポップアップを出さず、画面最下部の判定行に一本化)。
     /// - 「準備中 / 失敗」の表示は既存 HudPlayStatus (v5) の責務。二重に出さない。
-    /// - 寸法は <see cref="V6HudMetrics"/> の 1920×1080 論理テンプレート。
+    /// - 寸法は <see cref="V6HudMetrics"/> の解像度プロファイル (契約 §8)。
+    ///   design px を実ピクセルのまま使い、等比拡大 (引き伸ばし) はしない
+    ///   (Owner 指示 2026-11-08)。ルートは 1:1 でスクリーン左上に置く。
     ///
     /// MusicManager / Judge / NotesManager は所有外。変更しない。
     /// </summary>
@@ -50,6 +52,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private TextMeshProUGUI scoreText;
         private TextMeshProUGUI comboText;
         private TextMeshProUGUI lyricText;
+        private GameObject lyricBox;
         private RectTransform progressFill;
         private RectTransform progressTrack;
         private RectTransform gaugeFill;
@@ -167,7 +170,124 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void Update()
         {
+            ApplyRootTransform();
+
+            // 解像度変更 (プロファイル境界をまたぐ) で HUD を作り直す。
+            // 寸法は design px を実ピクセルで使うので、アンカー追従だけでは対応できない。
+            Vector2 canvasSize = CanvasSize();
+            if (m == null || !m.MatchesResolution(canvasSize.x, canvasSize.y))
+            {
+                Rebuild();
+            }
+
             Refresh();
+        }
+
+        /// <summary>
+        /// 描画面 (Canvas) の実ピクセル寸法。v6 の Canvas は
+        /// CanvasConfigurator (Constant Pixel Size x1) の ScreenSpaceOverlay なので
+        /// Canvas の rect サイズ = 実スクリーン解像度。
+        /// </summary>
+        private Vector2 CanvasSize()
+        {
+            if (cachedCanvas == null)
+            {
+                cachedCanvas = GetComponentInParent<Canvas>();
+            }
+
+            var rt = cachedCanvas != null ? cachedCanvas.transform as RectTransform : null;
+            if (rt != null && rt.rect.width > 0f && rt.rect.height > 0f)
+            {
+                return rt.rect.size;
+            }
+
+            return new Vector2(Screen.width, Screen.height);
+        }
+
+        private Canvas cachedCanvas;
+
+        /// <summary>
+        /// HUD ルートを実スクリーン解像度の <b>1:1</b> (等倍) で置く。
+        ///
+        /// 親フレーム (V6GameRuntime.hudFrame) は Canvas (= 実スクリーン解像度) 全体を
+        /// 覆い、scale は常に 1 (引き伸ばしなし / Owner 指示 2026-11-08)。
+        /// かつて親の等比拡大を 1/parentScale で打ち消す逆倍率を毎フレーム掛けていたが、
+        /// 親が等倍になったので廃止。ルートは左上アンカーで親フレームいっぱいに置き、
+        /// 子は design px の絶対座標 (左上原点) と端アンカーの両方で置ける。
+        /// 解像度変更で親が変わるので毎フレーム同期する (変化があればのみ dirty)。
+        /// </summary>
+        private void ApplyRootTransform()
+        {
+            var parent = transform.parent as RectTransform;
+            if (parent == null)
+            {
+                return;
+            }
+
+            var size = parent.rect.size;
+            if (size.x <= 0f || size.y <= 0f)
+            {
+                return;
+            }
+
+            var rt = GetRect(gameObject);
+            if (rt.anchorMin == new Vector2(0f, 1f) && rt.anchorMax == new Vector2(0f, 1f)
+                && rt.pivot == new Vector2(0f, 1f) && rt.anchoredPosition == Vector2.zero
+                && rt.sizeDelta == size && rt.localScale == Vector3.one)
+            {
+                return;
+            }
+
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = size;
+            rt.localScale = Vector3.one;
+        }
+
+        /// <summary>
+        /// 解像度プロファイルが変わったとき、HUD を作り直す。
+        /// 子は全てコード生成なので消して <see cref="Build"/> し直すだけでよい。
+        /// V5GameUi.DestroyNow は Play モードではフレーム末破棄なので、旧子が
+        /// 1 フレームだけ残る (解像度変更の瞬間のみの二重描画で、実害はない)。
+        /// </summary>
+        private void Rebuild()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                V5GameUi.DestroyNow(transform.GetChild(i).gameObject);
+            }
+
+            keyCaps.Clear();
+            verdictTexts.Clear();
+            seenJudgeIds.Clear();
+            lastJudged = -1;
+            songIdCached = int.MinValue;
+            lyricData = null;
+            lyricLines = null;
+            lyricIndex = -2;
+            cachedCanvas = null;
+            progressTrack = null;
+            progressFill = null;
+            gaugeFill = null;
+            gaugeBest = null;
+            comboFill = null;
+            bonusRow = null;
+            comboStatusBlock = null;
+            comboStatusRow = null;
+            fullComboChip = null;
+            keyGuideRow = null;
+            gradeText = null;
+            scoreText = null;
+            comboText = null;
+            lyricText = null;
+            lyricFuriganaText = null;
+            lyricRomajiText = null;
+            lyricBox = null;
+            MenuButton = null;
+
+            Build();
         }
 
         private void OnEnable()
@@ -184,8 +304,15 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void Build()
         {
-            m = V6HudMetrics.Current;
-            V5Ui.Fill(GetRect(gameObject), 0f);
+            // 契約 §8: HUD は解像度ごとの固有フレーム (1920×1080 / 2560×1440 / 2560×1664)。
+            // design px を実ピクセルのまま使い、等比拡大 (引き伸ばし) はしない
+            // (Owner 指示 2026-11-08)。
+            Vector2 canvasSize = CanvasSize();
+            m = V6HudMetrics.ForResolution(canvasSize.x, canvasSize.y);
+            // Root は自分自身。未代入だと Refresh のガードが常に早期 return し、
+            // スコア / コンボ / 歌詞 / 判定行 / レーン格子の更新が一切走らない。
+            Root = GetRect(gameObject);
+            ApplyRootTransform();
 
             BuildDim();
             BuildTopShade();
@@ -247,14 +374,15 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildLyric()
         {
-            // design HcP8N (Component/歌詞表示枠): 1120×220 / #00000099 / r8 /
+            // design HcP8N (契約 §10): 1120×220 / #00000099 / r8 /
             // 縦 layout gap 6 / padding [16, 24] / 中寄せ。
             // Furigana fs22 / Lyrics fs44 / Romaji fs20。
             // 位置は画面上端寄り (design は中央だが、v6 プレイフィールドが画面中央を
-            // 使うため動画の視認性を優先して上に寄せる)。
+            // 使うため動画の視認性を優先して上に寄せる)。キーガイド行 (y963..) とは重ならない。
             var box = V5Ui.Panel(gameObject, "Lyric Box",
                 new Vector2(LyricBoxW, LyricBoxH) * Scale, LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
+            lyricBox = box;
             var boxRt = GetRect(box);
             boxRt.anchorMin = new Vector2(0.5f, 1f);
             boxRt.anchorMax = new Vector2(0.5f, 1f);
@@ -270,11 +398,24 @@ namespace FlashBeat.UI.V6.Game.Hud
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
+            // V5Ui.Text は rect 高さ 0 で作る。childControlHeight=false の縦 layout では
+            // 高さ 0 のままになりテキストが描画されない (空の黒い矩形だけ見える)。
+            // preferredHeight (fs × 行送り) を LayoutElement で渡して行を確保する。
             lyricFuriganaText = V5Ui.Text(box, "Furigana", "", LyricFuriganaFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
+            SetLyricRowHeight(lyricFuriganaText, LyricFuriganaFs);
             lyricText = V5Ui.Text(box, "Lyrics", "", LyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            SetLyricRowHeight(lyricText, LyricFs);
             lyricRomajiText = V5Ui.Text(box, "Romaji", "", LyricRomajiFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
+            SetLyricRowHeight(lyricRomajiText, LyricRomajiFs);
+        }
+
+        /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
+        private static void SetLyricRowHeight(TextMeshProUGUI text, float fontSize)
+        {
+            var le = text.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = fontSize * 1.25f;
         }
 
         private void BuildGrade()
@@ -424,12 +565,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildComboBlock()
         {
+            // 契約 §8: Combo 左上は design px 絶対座標 (FHD (48,430) / 2K (64,573) / Mac (64,685))。
+            // 1:1 固定配置なので中央アンカー + オフセット計算は不要 (左上アンカーでそのまま置く)。
             var block = V5Ui.Node(gameObject, "Combo Block");
             var rt = GetRect(block);
-            rt.anchorMin = new Vector2(0f, 0.5f);
-            rt.anchorMax = new Vector2(0f, 0.5f);
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(m.Margin, m.ComboH * 0.5f);
+            rt.anchoredPosition = new Vector2(m.ComboX, -m.ComboY);
             rt.sizeDelta = new Vector2(m.ComboW, m.ComboH);
 
             var label = V5Ui.Text(block, "COMBO", "COMBO", m.ComboLabelFs, V5Tokens.TextMuted,
@@ -445,13 +588,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildRightColumn()
         {
             // 両 block は同座標 (排他) なので、コラムの高さは高い方 = ステータス block。
+            // 契約 §8: 右コラム左上は design px (FHD (1512,460) / 2K・Mac (2016,613/725))。
+            // 右端アンカーで置く (右端 = design 右マージン: FHD 48 / 2K・Mac 64) ので、
+            // 未知解像度でプロファイルを流用したときも画面外へはみ出さない。
             float columnH = m.StatusBlockH;
             var column = V5Ui.Node(gameObject, "Right Column");
             var rt = GetRect(column);
-            rt.anchorMin = new Vector2(1f, 0.5f);
-            rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 1f);
-            rt.anchoredPosition = new Vector2(-m.Margin, m.RightColTopOffset);
+            rt.anchoredPosition = new Vector2(-m.Margin, -m.RightColY);
             rt.sizeDelta = new Vector2(m.RightColW, columnH);
 
             // --- コンボボーナス (上) ---
@@ -651,40 +797,37 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>
         /// キーガイド / 判定行の 8 列の x を実際の画面へ合わせる (Issue #233 実機指摘 +
-        /// 契約 §8 整合)。
+        /// 契約 §8 整合 + Owner 指示 2026-11-08「キーガイドをレーン中心に一致させる」)。
         ///
-        /// - v6 プレイフィールド有効時: 契約 §8 の design 実測格子
-        ///   (KeyGuide x = FHD 310.. / 2K 529.. / Mac 464..) をテンプレート座標へ写す
-        ///   (<see cref="V6HudMetrics.KeyGuideTemplateX"/>)。build 時の固定値は
-        ///   FHD 格子を等比拡大しただけなので 2K / Mac で契約位置からずれる。
+        /// - v6 プレイフィールド有効時: 契約 §6 のレーン中心線 (判定線 y=792 上の下端
+        ///   x = 339 + 150·lane) を <see cref="V6HudMetrics.LaneCenterScreenX"/>
+        ///   (= <see cref="V6LaneGeometry.DesignToScreen"/>: 高さ合わせ + 水平中央寄せ) で
+        ///   実画面 x へ写す。プレイフィールドと同じ写像なので、キーガイド / 判定行は
+        ///   レーン中心と必ず一致する (契約 §8 の KeyGuide 格子 310.. / 529.. / 464.. は
+        ///   design サンプル値で、レーン中心 (FHD 376.7 / 2K 502.2 / Mac 381.1) とはずれる)。
         /// - レガシー 3D プレイフィールド時: レーン判定位置 (y=0.76, z=0.15) を
-        ///   Camera.Main で投影してテンプレート x へ写す (契約 §8 ⚠ の
-        ///   「レーン中心への追従」推奨案。design px の固定値はカメラ投影とズレる)。
+        ///   Camera.Main で投影してローカル x へ写す (契約 §8 ⚠ の「レーン中心への追従」)。
         ///   投影できない (カメラ無し等) ときは build 時の design px のまま。
         ///
         /// 判定行も同じ格子に載せる (契約 §8: 判定行サンプルは KeyGuide 格子と同位置)。
         ///
-        /// 注意: 自分 (hud root) の localScale は常に 1 で、等比倍率は親フレーム
-        /// (V6GameRuntime.hudFrame) に掛る。かつて自分の localScale (=1) で割っていたため
-        /// 2K / Mac で 1.333 倍ズレていた → lossyScale (親フレーム倍率を含む) を使う。
-        /// またローカル x の原点はフレーム左端 (アンカー x=0) なので中央原点には寄せない。
         /// 変換式は純ロジック (<see cref="V6HudLogic.ScreenXToTemplateX"/> /
-        /// <see cref="V6HudMetrics.KeyGuideTemplateX"/>) として EditMode テスト可能。
+        /// <see cref="V6HudMetrics.LaneCenterScreenX"/>) として EditMode テスト可能。
         /// </summary>
         private void UpdateLaneGrids()
         {
-            var frameRt = transform.parent as RectTransform;
-            if (frameRt == null) return;
-            float frameScale = frameRt.lossyScale.x;
-            if (frameScale <= 0f) return;
-            Vector2 canvasSize = frameRt.rect.size * frameScale;
+            Vector2 canvasSize = CanvasSize();
+            // HUD ルートは 1:1 (等倍) なのでローカル x = スクリーン x。
+            // lossyScale で割っておけば親フレームが何をしていても成立する。
+            float rootScale = transform.lossyScale.x;
+            if (rootScale <= 0f) return;
 
             if (FlashBeat.UI.V6.V6UiMode.Playfield)
             {
                 for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
                 {
-                    float x = V6HudMetrics.KeyGuideTemplateX(canvasSize.x, canvasSize.y, lane);
-                    SetLaneGridX(lane, x);
+                    float x = V6HudMetrics.LaneCenterScreenX(lane, canvasSize.x, canvasSize.y);
+                    SetLaneGridX(lane, V6HudLogic.ScreenXToTemplateX(x, rootScale));
                 }
                 return;
             }
@@ -696,7 +839,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 Vector3 world = new Vector3(lane - 3.5f, 0.76f, 0.15f);
                 Vector3 screen = cam.WorldToScreenPoint(world);
                 if (screen.z <= 0f) continue;
-                SetLaneGridX(lane, V6HudLogic.ScreenXToTemplateX(screen.x, frameScale));
+                SetLaneGridX(lane, V6HudLogic.ScreenXToTemplateX(screen.x, rootScale));
             }
         }
 
@@ -740,7 +883,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         private int songIdCached = int.MinValue;
         private float songDurationCached;
 
-        /// <summary>歌詞: 再生時刻と一致した行だけを出す (固定文字列は常時出さない)。</summary>
+        /// <summary>歌詞: 再生時刻と一致した行だけを出す (固定文字列は常時出さない)。
+        /// 中身が無いときは枠ごと隠す (空の黒い矩形を出さない)。</summary>
         private void UpdateLyrics()
         {
             // Space 待ちの間は歌詞位置に「Space to Start」を出す (design の Ready 案内)。
@@ -755,6 +899,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                     lyricFuriganaText.text = "";
                     lyricRomajiText.text = "";
                 }
+
+                SetLyricBoxVisible(true);
                 return;
             }
 
@@ -767,25 +913,33 @@ namespace FlashBeat.UI.V6.Game.Hud
                     lyricText.text = "";
                 }
 
+                SetLyricBoxVisible(false);
                 return;
             }
 
             int index = LyricsTimeline.IndexAt(lyricLines, GManager.step_time);
-            if (index == lyricIndex)
+            if (index != lyricIndex)
             {
-                return;
+                lyricIndex = index;
+                bool hasLine = index >= 0 && index < lyricLines.Count;
+                lyricText.text = hasLine && lyricLines[index].HasText
+                    ? lyricLines[index].Text
+                    : "";
+                lyricText.fontSize = m.LyricFs; // Ready prompt の拡大 fs を戻す
+                lyricFuriganaText.text = hasLine ? lyricLines[index].Furigana ?? "" : "";
+                lyricRomajiText.text = hasLine ? lyricLines[index].Romaji ?? "" : "";
             }
 
-            lyricIndex = index;
-            lyricText.text = index >= 0 && index < lyricLines.Count && lyricLines[index].HasText
-                ? lyricLines[index].Text
-                : "";
-            lyricFuriganaText.text = index >= 0 && index < lyricLines.Count
-                ? lyricLines[index].Furigana ?? ""
-                : "";
-            lyricRomajiText.text = index >= 0 && index < lyricLines.Count
-                ? lyricLines[index].Romaji ?? ""
-                : "";
+            SetLyricBoxVisible(lyricText.text.Length > 0);
+        }
+
+        /// <summary>歌詞枠の表示/非表示。空の黒い矩形を出さない。</summary>
+        private void SetLyricBoxVisible(bool visible)
+        {
+            if (lyricBox != null && lyricBox.activeSelf != visible)
+            {
+                lyricBox.SetActive(visible);
+            }
         }
 
         private void EnsureLyricLines()
