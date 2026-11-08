@@ -24,12 +24,29 @@ namespace FlashBeat.UI.V6.Game.Pause
             return index;
         }
 
-        /// <summary>Tab キーでのタブ切替のように、端で折り返す。</summary>
+        /// <summary>
+        /// Tab キーでのタブ切替のように、端で折り返す。
+        /// 端をまたぐ (index + delta が count を超える / 0 を下回る) ときだけ折り返し、
+        /// 上方向には 0 へ戻す。負値は count を足してから mod を取る。
+        /// </summary>
         public static int WrapIndex(int index, int delta, int count)
         {
             if (count <= 0) return 0;
-            int next = (index + delta) % count;
-            if (next < 0) next += count;
+
+            int next = index + delta;
+            if (next < 0)
+            {
+                // 負値は count を足してから mod を取る (0 の 1 つ前 = count - 1)。
+                next = ((next % count) + count) % count;
+                return next;
+            }
+
+            if (next > count - 1)
+            {
+                // 端をまたいだときは 0 へ折り返す (範囲外 index も 0 に戻す)。
+                return 0;
+            }
+
             return next;
         }
 

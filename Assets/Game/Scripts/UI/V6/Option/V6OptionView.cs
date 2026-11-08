@@ -176,8 +176,18 @@ namespace FlashBeat.UI.V6.Option
             bool cancel = Input.GetKeyDown(KeyCode.Escape);
             bool tab = Input.GetKeyDown(KeyCode.Tab);
             bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            var action = V6OptionLogic.MapKey(confirmClearOpen, up, down, left, right, confirm, cancel,
-                tab && !shift, tab && shift);
+            var action = V6OptionLogic.MapKey(new V6OptionInput
+            {
+                ModalOpen = confirmClearOpen,
+                Up = up,
+                Down = down,
+                Left = left,
+                Right = right,
+                Confirm = confirm,
+                Cancel = cancel,
+                TabNext = tab && !shift,
+                TabPrev = tab && shift,
+            });
 
             if (Input.GetKeyDown(KeyCode.F2))
             {
