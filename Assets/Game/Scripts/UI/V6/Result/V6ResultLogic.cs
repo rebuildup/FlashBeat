@@ -108,6 +108,85 @@ namespace FlashBeat.UI.V6.Result
             return Mathf.Clamp01((float)score / ScoreMax);
         }
 
+        // --- メイン / フッターの layout 幾何 (契約 §4)。
+        //     V6ResultView の構築と EditMode 配置テスト (V6ResultFramePlacementTests) で
+        //     共有する純定数・純関数。 ---
+
+        /// メインゾーン: 共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
+        public const float MainX = 24f;
+        public const float MainY = 96f;
+        public const float MainW = 1680f;
+        public const float MainH = 780f;
+
+        /// フッターゾーン (24,876) 1680x96 (契約 §4)。
+        public const float FooterW = 1680f;
+        public const float FooterH = 96f;
+        public const float FooterButtonY = 20f;
+        public const float FooterButtonH = 56f;
+        public const float FooterButtonGap = 16f;
+        public const float FooterLegendY = 30f;
+        public const float FooterLegendGap = 16f;
+
+        /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x (Main 右端に右寄せ)。
+        public const float RankX = MainX + MainW - 528f;
+
+        /// フッター左のキー凡例 (契約 §4: KeyCap (fill,36) fs22 + Label fs22 $text-muted)。
+        public static readonly string[] LegendKeys = { "R", "Enter", "Space" };
+        public static readonly string[] LegendLabels = { "リトライ", "登録", "決定" };
+
+        /// KeyCap 幅 (契約 §4: Key fs22 / padding [0,10]。短キーは 56 の下限)。
+        public static float KeyCapWidth(string key)
+        {
+            return Mathf.Max(56f, Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * 22f) + V6Ui.KeyCapPaddingX * 2f);
+        }
+
+        /// 凡例 1 項目の幅 (KeyCap + gap8 + Label fs22)。
+        public static float LegendItemWidth(string key, string label)
+        {
+            return KeyCapWidth(key) + 8f + Mathf.Ceil(Common.V6Layout.EstimateTextWidth(label, 22f));
+        }
+
+        /// フッター左のキー凡例 3 項目の合計幅 (項目間 gap16 込み)。
+        public static float FooterLegendWidth()
+        {
+            float end = 0f;
+            for (int i = 0; i < LegendKeys.Length; i++)
+            {
+                end += LegendItemWidth(LegendKeys[i], LegendLabels[i]) + FooterLegendGap;
+            }
+
+            return end - FooterLegendGap;
+        }
+
+        /// <summary>
+        /// フッター右ボタンの幅 (契約 §4 Button: padding [0,24] / icon 32 + gap12 /
+        /// Label fs30 / gap12 / KeyCap)。Label の字形幅は上側推定なので保険 +8 を足す。
+        /// </summary>
+        public static float FooterButtonWidth(string label, string keyCap, bool hasIcon)
+        {
+            return 24f * 2f
+                + (hasIcon ? 32f + 12f : 0f)
+                + Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * 30f)
+                + 12f
+                + KeyCapWidth(keyCap)
+                + 8f;
+        }
+
+        /// 幅をフッター右端から gap16 で右寄せ横並びしたときの各ボタン左端 x (design, フッター内)。
+        public static float[] FooterButtonXs(params float[] widths)
+        {
+            int n = widths == null ? 0 : widths.Length;
+            var xs = new float[n];
+            float right = FooterW;
+            for (int i = 0; i < n; i++)
+            {
+                xs[i] = right - widths[i];
+                right = xs[i] - FooterButtonGap;
+            }
+
+            return xs;
+        }
+
         // --- 登録モーダル (Issue #240) の純ロジック ---
 
         /// <summary>送信結果の区分 (loading / success / duplicate / offline / server error)。</summary>
