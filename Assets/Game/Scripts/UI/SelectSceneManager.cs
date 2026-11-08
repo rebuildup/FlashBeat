@@ -75,11 +75,35 @@ public class SelectSceneManager : MonoBehaviour
             OnV6Ready, TitleScene, OnV6OpenSettings);
 
         // レガシー (Issue #57 までのシーン配置 UI) を隠す。
+        // 名前で 1 個だけ隠すと別 Canvas に乗った要素が残るので、
+        // v6 の Canvas 以外の Canvas にあるグラフィックをすべて隠す。
         var legacy = GameObject.Find("Canvas");
         if (legacy != null && legacy != canvasGo) legacy.SetActive(false);
+        HideLegacyGraphics(canvasGo);
 
         // v6 ビュー自身が矢印キー操作を担うので、Unity の自動ナビゲーションは切る。
         FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
+    }
+
+    /// <summary>v6 の Canvas 以外にあるグラフィック (旧 UI) を隠す。</summary>
+    private static void HideLegacyGraphics(GameObject keep)
+    {
+        var canvases = FindObjectsOfType<Canvas>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas canvas = canvases[i];
+            if (canvas == null) continue;
+            if (canvas.gameObject == keep) continue;
+            if (canvas.name.StartsWith("V6")) continue;
+
+            var graphics = canvas.GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
+            for (int g = 0; g < graphics.Length; g++)
+            {
+                if (graphics[g] != null) graphics[g].enabled = false;
+            }
+            var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
+            if (raycaster != null) raycaster.enabled = false;
+        }
     }
 
     /// <summary>Ready: 選択を確定してから、既存の開始経路でゲーム画面へ。</summary>

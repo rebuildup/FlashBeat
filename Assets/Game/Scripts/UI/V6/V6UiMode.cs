@@ -31,6 +31,18 @@ namespace FlashBeat.UI.V6
                     UnityEngine.Object.Destroy(guides[i].gameObject);
                 }
             }
+
+            // 名前_opts の補助オブジェクト (タイトル画面の "KeyGuideHint" など) も消す。
+            var all = UnityEngine.Object.FindObjectsOfType<UnityEngine.RectTransform>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null) continue;
+                string n = all[i].gameObject.name;
+                if (n == "KeyGuideUI" || n == "KeyGuideHint" || n == "KeyGuide Panel")
+                {
+                    UnityEngine.Object.Destroy(all[i].gameObject);
+                }
+            }
         }
     }
 }

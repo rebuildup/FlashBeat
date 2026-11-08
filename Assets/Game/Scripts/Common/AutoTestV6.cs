@@ -92,9 +92,45 @@ public class AutoTestV6 : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return Screenshot("03-game");
 
-        // 4. v6 のプレイフィールドと HUD が scene にある。
+        // 4. 旧 UI が残っていないか (v6 以外の Canvas に有効なグラフィックが無いか)。
+        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
+        int legacyVisible = 0;
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            var g = graphics[i];
+            if (g == null || !g.isActiveAndEnabled) continue;
+            var canvas = g.GetComponentInParent<Canvas>();
+            if (canvas == null || canvas.name.StartsWith("V6")) continue;
+            legacyVisible++;
+            Debug.Log("[AutoTestV6] LEGACY VISIBLE: " + canvas.name + " / " + g.gameObject.name);
+        }
+        Check("no legacy graphics are visible", legacyVisible == 0);
+
+        // 5. v6 のプレイフィールドと HUD が scene にある。
         Check("the v6 playfield exists", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current != null);
         Check("the v6 hud exists", FindFirstObjectByType<FlashBeat.UI.V6.Game.Hud.V6GameHudView>() != null);
+
+        // 5. 実機確認: メディア的准备 → Space で開始 → ノーツが流れる状態の画面を撮る。
+        MusicManager music = FindFirstObjectByType<MusicManager>();
+        float mediaWaited = 0f;
+        while (mediaWaited < 90f)
+        {
+            if (music != null && music.MediaReady) break;
+            mediaWaited += 1f;
+            yield return new WaitForSecondsRealtime(1f);
+        }
+        Check("the media is ready", music != null && music.MediaReady);
+        yield return Screenshot("04-media-ready");
+
+        if (music != null && music.MediaReady)
+        {
+            KeyBindings.InjectKeyDown(KeyCode.Space);
+            yield return new WaitForSecondsRealtime(1.5f);
+            Check("the playback started", music.PlaybackStarted);
+            yield return new WaitForSecondsRealtime(4f);
+            Check("the media clock advances", music.MediaTimeNow > 0f);
+            yield return Screenshot("05-gameplay");
+        }
 
         Finish();
     }

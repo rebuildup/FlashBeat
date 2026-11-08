@@ -87,12 +87,30 @@ namespace FlashBeat.UI.V6.Select.View
 
             var view = new V6SelectView(data, onReady, onBack, onOpenSettings);
             view.BuildRoot(parent);
+            // 実データの変更 (選択の移動・検索・カタログ更新) を再描画の起点にする。
+            // 購読しないと中央パネルとランキングが古い状態のままになる。
+            data.Changed += view.OnDataChanged;
             view.Rebuild(false);
             Current = view;
             return view;
         }
 
         public RectTransform Root => frame;
+
+        /// <summary>データソースの変更通知。選択行が見えるようにスクロールを追従させる。</summary>
+        private void OnDataChanged()
+        {
+            if (rootGo == null || !rootGo.activeInHierarchy) return;
+            Rebuild(true);
+        }
+
+        /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
+        public void Dispose()
+        {
+            if (data != null) data.Changed -= OnDataChanged;
+            if (rootGo != null) FlashBeat.UI.V5.V5GameUi.DestroyNow(rootGo);
+            if (ReferenceEquals(Current, this)) Current = null;
+        }
 
         /// <summary>data.Changed の再描画起点。選択行が見えるようにスクロールを追従させる。</summary>
         public void Refresh()
