@@ -13,6 +13,7 @@ public class ResultSceneManager : MonoBehaviour
     AudioSource sounds;
 
     private FlashBeat.UI.V5.ResultView view;
+    private FlashBeat.UI.V6.Result.V6ResultView v6View;
     private int prevHiscore;
 
     [SerializeField] private TextMeshProUGUI scoreText;
@@ -80,8 +81,52 @@ public class ResultSceneManager : MonoBehaviour
         if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
         Hiscore.text = GManager.Hiscore[hiIndex].ToString();
         StartCoroutine(FetchThumbnail(GManager.ActiveSongs[GManager.songID].videoId, 0));
-        BuildV5View();
 
+        // v6 Result (#217 / Issue #240)。V6ResultView.Enabled で切替える
+        // (統合担当は V6UiMode からこのフラグを設定する)。既定は true。
+        if (FlashBeat.UI.V6.Result.V6ResultView.Enabled)
+        {
+            BuildV6View();
+        }
+        else
+        {
+            BuildV5View();
+        }
+    }
+
+    /// <summary>
+    /// v6 の Result 画面を組み立てる (#217)。データは GManager / ScorePersistence の
+    /// 実値のみ。Create 内の初回 Refresh() が GManager から run スナップショットを
+    /// 捕捉するので、以後 Retry でカウンタが 0 に戻っても表示は消えない。
+    /// 遷移 (リトライ / 選曲へ / タイトルへ) はこのクラスの既存経路をコールバックで渡す。
+    /// </summary>
+    private void BuildV6View()
+    {
+        // 旧シーン配置 UI (v5 テキスト群) を隠す。v6 が代替しない情報
+        // (サムネイル等) も v5 側に残すが、v5 パスと同様に非表示で運用する。
+        var legacy = GameObject.Find("Canvas");
+        if (legacy != null)
+        {
+            legacy.SetActive(false);
+        }
+
+        // 旧オーバーレイの自動モーダル (結果画面入場 1.2 秒後の登録モーダル) を止める。
+        // コードは消さず enabled 切替。v6 側は自前の登録モーダルを持つ
+        // (SuspendLegacyOverlay が停止前の enabled 状態を覚えるので二重に止めて安全)。
+        var overlay = FindFirstObjectByType<ResultRankingOverlay>();
+        if (overlay != null)
+        {
+            overlay.enabled = false;
+        }
+
+        var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Result Canvas");
+        var canvasGo = canvas.gameObject;
+        v6View = FlashBeat.UI.V6.Result.V6ResultView.Create(
+            canvasGo.GetComponent<RectTransform>(), Retry, SelectScene, TitleScene);
+        v6View.SetPrevHiscore(prevHiscore);
+
+        // v6 ビュー自身がキー入力を担うので、Unity の自動ナビゲーションは切る。
+        FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
     }
 
     private void BuildV5View()
@@ -114,9 +159,9 @@ public class ResultSceneManager : MonoBehaviour
 
     void Update()
     {
-        if (view != null)
+        if (view != null || v6View != null)
         {
-            return; // 入力は v5 ResultView が処理する (二重処理防止)
+            return; // 入力は v5 ResultView / v6 ResultView が処理する (二重処理防止)
         }
         if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
@@ -148,6 +193,12 @@ public class ResultSceneManager : MonoBehaviour
 
         Initiate.Fade("SelectScene", Color.black, 1.0f);
 
+    }
+
+    /// <summary>v6 Result の「タイトルへ」(T キー / design 凡例) 用の遷移。</summary>
+    public void TitleScene()
+    {
+        Initiate.Fade("TitleScene", Color.black, 1.0f);
     }
     public void playSound()
     {

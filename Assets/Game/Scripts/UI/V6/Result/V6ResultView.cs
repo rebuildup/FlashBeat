@@ -27,6 +27,12 @@ namespace FlashBeat.UI.V6.Result
     /// </summary>
     public sealed class V6ResultView
     {
+        /// <summary>
+        /// v6 Result を出すか (統合担当が V6UiMode から切替えるための公開フラグ)。
+        /// 既定 true。false のとき ResultSceneManager は従来どおり v5 ResultView を作る。
+        /// </summary>
+        public static bool Enabled = true;
+
         // --- design px 定数 (zcSHh / lqHaN 実測) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -90,6 +96,7 @@ namespace FlashBeat.UI.V6.Result
         private TextMeshProUGUI modalStatus;
         private Button modalRegisterButton;
         private ResultRankingOverlay legacyOverlay;
+        private bool legacyOverlayWasEnabled;
         private TextMeshProUGUI modalSongTitle;
         private TextMeshProUGUI modalSongArtist;
         private TextMeshProUGUI modalGrade;
@@ -896,6 +903,10 @@ namespace FlashBeat.UI.V6.Result
 
             if (legacyOverlay != null)
             {
+                // 停止前の状態を覚えておく。統合側が v6 有効時に先に enabled=false して
+                // いる場合、モーダルを閉じたときに再有効化して自動モーダルを
+                // 復活させてしまわないようにする。
+                legacyOverlayWasEnabled = legacyOverlay.enabled;
                 legacyOverlay.enabled = false;
             }
         }
@@ -904,7 +915,10 @@ namespace FlashBeat.UI.V6.Result
         {
             if (legacyOverlay != null)
             {
-                legacyOverlay.enabled = true;
+                if (legacyOverlayWasEnabled)
+                {
+                    legacyOverlay.enabled = true;
+                }
                 legacyOverlay = null;
             }
         }
