@@ -71,7 +71,17 @@ namespace FlashBeat.UI.V6
 
         private void Update()
         {
-            if (hud != null) hud.Refresh();
+            if (hud != null)
+            {
+                // 表示所有: Ready (再生前) は v5 の GameReadyView (V5ReadyCanvas 550)、
+                // 演奏中は v6 HUD。同時に出すと重なって崩れる (Issue #233 / 実機スクリーンショット)。
+                bool show = GManager.played;
+                if (hud.Root.gameObject.activeSelf != show)
+                {
+                    hud.SetVisible(show);
+                }
+                hud.Refresh();
+            }
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
