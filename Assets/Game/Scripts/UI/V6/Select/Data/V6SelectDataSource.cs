@@ -147,6 +147,15 @@ namespace FlashBeat.UI.V6.Select.Data
                 return;
             }
 
+            // 絞り込み (検索) で隠れた曲は Ready できない (#221/#222)。
+            // Selected は絞り込みをまたいで生き残るため、表示リストに見えない
+            // 選択で開始すると「リストに無い曲が始まる」ことになる。
+            if (IndexOfSong(filteredSongs, selected.SongId) < 0)
+            {
+                SetError("選択中の曲が絞り込みで隠れています (検索を変更してください)");
+                return;
+            }
+
             SongData row = GManager.GetSong(selected.SongId);
             if (row == null || row.unplayable)
             {

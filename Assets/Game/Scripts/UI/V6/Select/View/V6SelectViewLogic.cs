@@ -1,4 +1,5 @@
-﻿﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 
 namespace FlashBeat.UI.V6.Select.View
 {
@@ -550,16 +551,25 @@ namespace FlashBeat.UI.V6.Select.View
         /// <summary>
         /// フッターの凡例。design 空間の自然幅から各項目の位置を決める
         /// (HorizontalLayoutGroup は子要素の幅が解らないので使わない)。
+        ///
+        /// 実装と一致させる (#221 / #222 Task 2「すでにある短縮キーも維持」):
+        ///   - 確定: KeyActions.Confirm (キー設定の正本。ビューから
+        ///     ActionKeyHint.Primary(KeyActions.KeyAction.Confirm) を渡す)。
+        ///   - 曲送り: ↑↓ (←→ = KeyActions.NavPrev/NavNext も有効。キャップは design どおり ↑↓)。
+        ///   - 検索: Tab (検索欄へフォーカス)。
+        ///   - 絞り込み: F (未プレイのみトグル。v6 固定ショートカット)。
+        /// design 記載の「Tab 絞り込み」は実装 (Tab = 検索フォーカス / F = 絞り込み) と
+        /// 矛盾していたため修正した。
         /// </summary>
-        public static V6LegendItem[] FooterLegend()
+        /// <param name="confirmKey">決定のキーキャップ表示 (ActionKeyHint.Primary(Confirm))。</param>
+        public static V6LegendItem[] FooterLegend(string confirmKey)
         {
-            // design (OENRv フッター): Space 決定 / ↑↓ 曲送り / A-Z 検索 / Tab 絞り込み。
             var defs = new string[][]
             {
-                new[] { "Space", "決定" },
+                new[] { string.IsNullOrEmpty(confirmKey) ? "Space" : confirmKey, "決定" },
                 new[] { "↑↓", "曲送り" },
-                new[] { "A-Z", "検索" },
-                new[] { "Tab", "絞り込み" },
+                new[] { "Tab", "検索" },
+                new[] { "F", "絞り込み" },
             };
 
             var items = new V6LegendItem[defs.Length];
@@ -585,9 +595,9 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>凡例全体の幅 (フッター ローカル)。最後の項目の右端。</summary>
-        public static float FooterLegendWidth()
+        public static float FooterLegendWidth(string confirmKey)
         {
-            var items = FooterLegend();
+            var items = FooterLegend(confirmKey);
             float right = 0f;
             for (int i = 0; i < items.Length; i++)
             {
@@ -750,6 +760,86 @@ namespace FlashBeat.UI.V6.Select.View
         public static float KeyCapWidth(string label, float fontSize)
         {
             return EstimateTextWidth(label, fontSize) + CapPadX * 2f;
+        }
+
+        // ============================================================
+        // Ready の有効性 (#221 / #222: 絞り込みで隠れた曲を Ready させない)
+        // ============================================================
+
+        /// <summary>
+        /// Ready を有効にするか。選択中の曲が **表示リスト** (検索絞り込み +
+        /// 「未プレイのみ」の両方を適用した結果) に見えるときだけ true。
+        /// 隠れた曲は Ready できず、開始もされない。データ側 (V6SelectDataSource.
+        /// CommitReady) の検索絞り込みガードと二重に守る。
+        /// </summary>
+        public static bool ReadyAvailable(V6SongEntry selected, IReadOnlyList<V6SongEntry> displaySongs)
+        {
+            if (selected == null || displaySongs == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < displaySongs.Count; i++)
+            {
+                if (displaySongs[i] != null && displaySongs[i].SongId == selected.SongId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // ============================================================
+        // 中央カード (dRztp) の操作ボタン (#221 Task 3: 疑似ボタン禁止)
+        // ============================================================
+
+        /// <summary>中央カードの操作ボタンが発火する操作。実在する操作だけを列挙する。</summary>
+        public enum V6SelectControlAction
+        {
+            /// <summary>前の曲へ (data.MoveSelection(-1))。</summary>
+            MovePrev,
+
+            /// <summary>Ready → プレイ開始 (onReady → CommitReady → GameScene)。</summary>
+            Ready,
+
+            /// <summary>次の曲へ (data.MoveSelection(+1))。</summary>
+            MoveNext,
+        }
+
+        /// <summary>中央カードの操作ボタン 1 個分の定義。</summary>
+        public struct V6CenterControlDef
+        {
+            /// <summary>V6Icons のアイコン名。</summary>
+            public string Icon;
+
+            /// <summary>ボタンの一辺 (design px)。</summary>
+            public float Size;
+
+            /// <summary>コントロール行 (512x88) ローカルの x。</summary>
+            public float X;
+
+            /// <summary>強調表示 (play ボタン = ButtonPrimaryBg)。</summary>
+            public bool Primary;
+
+            /// <summary>結線する実操作 (null にならない)。</summary>
+            public V6SelectControlAction Action;
+        }
+
+        /// <summary>
+        /// 中央カードの操作ボタン 3 個分の定義 (design dRztp の skip-back / play /
+        /// skip-forward の位置・寸法を保持)。以前は onClick=null の装飾だったが、
+        /// 実在する操作 (曲送り / Ready) への結線を必須にしたため、
+        /// Action は常に有効な操作を返す (疑似ボタンは作らない)。
+        /// </summary>
+        public static V6CenterControlDef[] CenterControls()
+        {
+            return new V6CenterControlDef[]
+            {
+                new V6CenterControlDef { Icon = "skip-back", Size = 56f, X = 130f, Primary = false, Action = V6SelectControlAction.MovePrev },
+                new V6CenterControlDef { Icon = "play", Size = 72f, X = 220f, Primary = true, Action = V6SelectControlAction.Ready },
+                new V6CenterControlDef { Icon = "skip-forward", Size = 56f, X = 326f, Primary = false, Action = V6SelectControlAction.MoveNext },
+            };
         }
     }
 }

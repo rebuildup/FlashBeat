@@ -207,5 +207,23 @@ namespace FlashBeat.V5CanvasTests
             Assert.IsFalse(source.HasError, source.StatusMessage);
             Assert.AreEqual(5, GManager.songID);
         }
+
+        [Test]
+        public void CommitReady_WhenSelectionHiddenByQuery_ReportsErrorAndKeepsSongId()
+        {
+            // 絞り込みで隠れた曲は Ready できない (#221/#222)。Selected は
+            // 絞り込みをまたいで生き残るが、リストに見えない曲の開始は禁止。
+            var source = new V6SelectDataSource();
+            source.Select(5); // 終焉逃避行
+            GManager.songID = 1;
+            source.SetQuery("存在しない曲名XYZ"); // 全件がリストから消える (5 も隠れる)
+            Assume.That(source.FilteredSongs, Is.Empty);
+
+            source.CommitReady();
+
+            Assert.IsTrue(source.HasError);
+            Assert.IsFalse(string.IsNullOrEmpty(source.StatusMessage));
+            Assert.AreEqual(1, GManager.songID, "隠れた曲で開始しない (遷移の確定もしない)");
+        }
     }
 }

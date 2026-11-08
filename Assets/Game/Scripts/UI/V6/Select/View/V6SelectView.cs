@@ -169,10 +169,21 @@ namespace FlashBeat.UI.V6.Select.View
         /// <summary>
         /// Ready _button を押したのと同じ動作 (遷移は統合担当が onReady で決める)。
         /// 検証スクリプト (AutoTestV6) から実データ経路で遷移を確認するための口。
+        /// 絞り込みで隠れた選択は Ready できない (#221/#222)。
         /// </summary>
         public void TriggerReady()
         {
+            if (!ReadyAvailable()) return;
             if (onReady != null) onReady();
+        }
+
+        /// <summary>
+        /// Ready が有効か。選択中の曲が表示リスト (検索絞り込み + 未プレイのみ)
+        /// に見えるときだけ true。隠れた曲は Ready ボタン・Space どちらでも開始できない。
+        /// </summary>
+        internal bool ReadyAvailable()
+        {
+            return V6SelectViewLogic.ReadyAvailable(data != null ? data.Selected : null, DisplaySongs());
         }
 
         /// <summary>検証用: 現在の曲リスト (絞り込み後) の曲数。</summary>
@@ -198,11 +209,16 @@ namespace FlashBeat.UI.V6.Select.View
 
             PlaceFrame();
 
-            bool up = Input.GetKeyDown(KeyCode.UpArrow);
-            bool down = Input.GetKeyDown(KeyCode.DownArrow);
-            bool confirm = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || Input.GetKeyDown(KeyCode.Space);
-            bool cancel = Input.GetKeyDown(KeyCode.Escape);
+            // メニュー操作は KeyActions (キー設定の正本, #142) 経由で拾う。
+            // v5 SelectView と同じ短縮キーを維持する: ↑↓ / ←→ (NavPrev/NavNext) で
+            // 曲送り、Confirm (既定 Space) と Enter/KeypadEnter で Ready、
+            // Back (既定 Esc) で戻る。Tab (検索フォーカス) と F (絞り込み) は
+            // KeyActions に無い v6 固定ショートカットなので raw KeyCode のまま。
+            bool up = Input.GetKeyDown(KeyCode.UpArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavPrev);
+            bool down = Input.GetKeyDown(KeyCode.DownArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavNext);
+            bool confirm = KeyActions.IsDown(KeyActions.KeyAction.Confirm)
+                || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+            bool cancel = KeyActions.IsDown(KeyActions.KeyAction.Back);
             bool toggleSearch = Input.GetKeyDown(KeyCode.Tab);
             var action = V6SelectViewLogic.MapKey(searchFocused, up, down, confirm, cancel, toggleSearch);
 
@@ -221,7 +237,8 @@ namespace FlashBeat.UI.V6.Select.View
                 case V6SelectAction.Confirm:
                     // Enter/Space = Ready。遷移は統合担当が onReady で決める
                     // (data.CommitReady の後にゲーム画面へ移す)。
-                    if (onReady != null)
+                    // 絞り込みで隠れた選択は Ready できない (#221/#222)。
+                    if (ReadyAvailable() && onReady != null)
                     {
                         onReady();
                     }
@@ -253,7 +270,7 @@ namespace FlashBeat.UI.V6.Select.View
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.O))
+            if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
             {
                 OpenSettings();
             }
@@ -375,7 +392,8 @@ namespace FlashBeat.UI.V6.Select.View
                 if (onBack != null) onBack();
             });
             V6Icons.Create(back, "arrow-left", 22f, V5Tokens.TextMuted);
-            var backKey = V5GameUi.Text(back, "Key", "Esc", 13f, V5Tokens.TextMuted,
+            var backKey = V5GameUi.Text(back, "Key",
+                FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back), 13f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             At(backKey, 0f, 32f, backRect.W, 18f);
 
@@ -427,7 +445,9 @@ namespace FlashBeat.UI.V6.Select.View
             var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
 
             // 凡例は絶対位置 (design px)。各項目の幅は純ロジック (V6SelectViewLogic) が決める。
-            var legendItems = V6SelectViewLogic.FooterLegend();
+            // 確定キーはキー設定 (KeyActions) の正本から取る (#142 / #221)。
+            string confirmKey = FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Confirm);
+            var legendItems = V6SelectViewLogic.FooterLegend(confirmKey);
             for (int i = 0; i < legendItems.Length; i++)
             {
                 var item = legendItems[i];
@@ -473,18 +493,25 @@ namespace FlashBeat.UI.V6.Select.View
             capRt.anchorMax = new Vector2(1f, 0.5f);
             capRt.pivot = new Vector2(1f, 0.5f);
             capRt.anchoredPosition = new Vector2(-8f, 0f);
-            V5GameUi.Text(settingsCap, "Key", settingsOpen ? "Esc" : "O", 22f, V5Tokens.TextMuted,
+            V5GameUi.Text(settingsCap, "Key", settingsOpen
+                ? FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back)
+                : FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Option), 22f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(settingsCap.transform.Find("Key").GetComponent<RectTransform>(), 48f, 32f);
 
             var readyRect = V6SelectViewLogic.FooterReady();
-            var ready = Button(footer, "Op Ready", readyRect.W, readyRect.H, 8f, V5Tokens.ButtonPrimaryBg, () =>
-            {
-                if (onReady != null) onReady();
-            });
+            // 絞り込みで隠れた選択は Ready できない (#221/#222)。無効のときは
+            // 押しても反応しないよう、クリックを張らず弱い色で描画する。
+            bool readyEnabled = ReadyAvailable();
+            var ready = Button(footer, "Op Ready", readyRect.W, readyRect.H, 8f,
+                readyEnabled ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key1,
+                readyEnabled ? (Action)(() =>
+                {
+                    if (onReady != null) onReady();
+                }) : null);
             At(ready, readyRect.X, readyRect.Y);
             var readyIconRect = V6SelectViewLogic.FooterReadyIcon();
-            V6Icons.Create(ready, "play", 26f, V5Tokens.ButtonPrimaryLabel);
+            V6Icons.Create(ready, "play", 26f, readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim);
             var readyIconTf = ready.transform.Find("Icon");
             if (readyIconTf != null)
             {
@@ -495,7 +522,8 @@ namespace FlashBeat.UI.V6.Select.View
                 iconRt.anchoredPosition = new Vector2(readyIconRect.X + readyIconRect.W * 0.5f, 0f);
             }
             var readyLabelRect = V6SelectViewLogic.FooterReadyLabel();
-            var readyLabel = V5GameUi.Text(ready, "Label", "Ready", 30f, V5Tokens.ButtonPrimaryLabel,
+            var readyLabel = V5GameUi.Text(ready, "Label", "Ready", 30f,
+                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Normal);
             SingleLine(readyLabel);
             At(readyLabel, readyLabelRect.X, readyLabelRect.Y, readyLabelRect.W, readyLabelRect.H);
@@ -504,8 +532,10 @@ namespace FlashBeat.UI.V6.Select.View
                 new Color(0f, 0f, 0f, 0.15f), 4f);
             At(readyCap, readyCapRect.X, readyCapRect.Y);
             // V6Ui.KeyCapFontSize で幅に収まる fs を決める (Spa/ce 折り返し対策)。
-            var readyCapText = V5GameUi.Text(readyCap, "Key", "Space",
-                V6Ui.KeyCapFontSize(readyCapRect.W, readyCapRect.H, "Space"), V5Tokens.ButtonPrimaryLabel,
+            // キャップ表示もキー設定の正本 (KeyActions.Confirm) に合わせる。
+            var readyCapText = V5GameUi.Text(readyCap, "Key", confirmKey,
+                V6Ui.KeyCapFontSize(readyCapRect.W, readyCapRect.H, confirmKey),
+                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
             SingleLine(readyCapText);
             At(readyCapText, 0f, 0f, readyCapRect.W, readyCapRect.H);
@@ -737,13 +767,17 @@ namespace FlashBeat.UI.V6.Select.View
             At(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), FromHex("#FFFFFF1F"), 0f), 256f, 0f);
             At(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), FromHex("#FFFFFF1F"), 0f), 0f, 98f);
 
-            // Controls (skip-back / play / skip-forward): プレビュー再生の API が
-            // IV6SelectDataSource に無いため装飾 (未実装は PR に記載)。
+            // Controls (skip-back / play / skip-forward): 実在する操作だけに結線する
+            // (#221 Task 3: 押せない疑似ボタンは禁止)。曲送りは data.MoveSelection、
+            // play は Ready (フッターの Ready ボタンと同じ経路)。プレビュー再生の
+            // ような新しい操作は作らない (Issue #222 スコープ訂正 2026-11-08)。
             var controls = V5Ui.Node(panel, "Controls");
             At(controls.GetComponent<RectTransform>(), 12f, 668f, 512f, 88f);
-            BuildControlButton(controls, "skip-back", 56f, 56f, 28f, V5Tokens.Key1, "skip-back", 32f, 130f);
-            BuildControlButton(controls, "play", 72f, 72f, 36f, V5Tokens.ButtonPrimaryBg, "play", 36f, 220f);
-            BuildControlButton(controls, "skip-forward", 56f, 56f, 28f, V5Tokens.Key1, "skip-forward", 32f, 326f);
+            var controlDefs = V6SelectViewLogic.CenterControls();
+            for (int i = 0; i < controlDefs.Length; i++)
+            {
+                BuildControlButton(controls, controlDefs[i]);
+            }
         }
 
         /// <summary>
@@ -774,15 +808,36 @@ namespace FlashBeat.UI.V6.Select.View
             valueRt.sizeDelta = new Vector2(200f, 44f);
         }
 
-        /// <summary>中央パネルの Controls 行 (skip-back / play / skip-forward)。契約 §7 の寸法。</summary>
-        private void BuildControlButton(GameObject controls, string name, float w, float h, float radius,
-            Color bg, string iconName, float iconSize, float x)
+        /// <summary>中央パネルの Controls 行のボタン 1 個分。実操作へ結線する (onClick null は作らない)。</summary>
+        private void BuildControlButton(GameObject controls, V6SelectViewLogic.V6CenterControlDef def)
         {
-            var btn = Button(controls, "Btn " + name, w, h, radius, bg, null);
-            At(btn, x, (88f - h) * 0.5f);
-            V6Icons.Create(btn, iconName, iconSize,
-                bg == V5Tokens.ButtonPrimaryBg ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted,
-                name);
+            float h = def.Size;
+            Color bg = def.Primary ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key1;
+            Action onClick;
+            switch (def.Action)
+            {
+                case V6SelectViewLogic.V6SelectControlAction.MovePrev:
+                    onClick = () => data.MoveSelection(-1);
+                    break;
+                case V6SelectViewLogic.V6SelectControlAction.MoveNext:
+                    onClick = () => data.MoveSelection(1);
+                    break;
+                case V6SelectViewLogic.V6SelectControlAction.Ready:
+                    // Ready は絞り込みで隠れた選択には効かない (フッターと同じ規約)。
+                    onClick = ReadyAvailable() ? (Action)(() =>
+                    {
+                        if (onReady != null) onReady();
+                    }) : null;
+                    break;
+                default:
+                    // 実在しない操作のボタンは作らない (疑似ボタン禁止)。
+                    return;
+            }
+
+            var btn = Button(controls, "Btn " + def.Icon, def.Size, def.Size, def.Size * 0.5f, bg, onClick);
+            At(btn, def.X, (88f - def.Size) * 0.5f);
+            V6Icons.Create(btn, def.Icon, def.Primary ? 36f : 32f,
+                def.Primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted, def.Icon);
         }
 
         // --- 右列: BEST / SCORE RANKING / PLAYERS ---
@@ -822,17 +877,19 @@ namespace FlashBeat.UI.V6.Select.View
             var headSpacer = V5Ui.Node(head.gameObject, "Spacer");
             var headSpacerLe = headSpacer.AddComponent<LayoutElement>();
             headSpacerLe.flexibleWidth = 1f;
+            // ランキングの source タグは実データから決める (#221)。
+            // ローカル曲に「オンライン」と表示するのは嘘なので、IsCloud をそのまま出す。
             var source = V5Ui.Panel(head.gameObject, "Source", new Vector2(96f, 28f), V5Tokens.Key4, 4f);
-            var sourceText = V5GameUi.Text(source, "Text", "オンライン", 18f, V5Tokens.TextMuted,
+            var sourceText = V5GameUi.Text(source, "Text", RankingSourceLabel(song), 18f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(sourceText.GetComponent<RectTransform>(), 96f, 28f);
 
             var rows = data.Selected != null ? data.RankingFor(data.Selected) : null;
             if (rows == null || rows.Count == 0)
             {
-                var empty = V5GameUi.Text(ranking.gameObject, "No Data", data.HasError
-                    ? (string.IsNullOrEmpty(data.StatusMessage) ? "NO DATA" : data.StatusMessage)
-                    : "NO DATA", 24f, V5Tokens.TextDim, TextAlignmentOptions.Left);
+                // 空状態も実データの状態を言う (固定の "NO DATA" で誤魔化さない)。
+                var empty = V5GameUi.Text(ranking.gameObject, "No Data", RankingEmptyText(song), 24f,
+                    V5Tokens.TextDim, TextAlignmentOptions.Left);
                 At(empty, 24f, 92f, 496f, 44f, new Vector2(0f, 0.5f));
             }
             else
@@ -846,7 +903,8 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             // PLAYERS (528x288, $k2 r8): IV6SelectDataSource にプレイヤー集計の
-            // データ源が無いため空状態のみ (未実装は PR に記載)。
+            // データ源が無い。実データを出せないので「データ無し」と正直に言う
+            // (#221: 固定文字列を実データに見せかけない)。
             var players = At(V5Ui.Panel(column, "Players", new Vector2(528f, 288f), V5Tokens.Key2, 8f), 16f, 468f);
             var playersHead = V5GameUi.Row(players.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
             At(playersHead.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
@@ -856,8 +914,32 @@ namespace FlashBeat.UI.V6.Select.View
             playersSpacerLe.flexibleWidth = 1f;
             V5GameUi.Text(playersHead.gameObject, "Mode", "累計スコア", 18f, V5Tokens.Text, TextAlignmentOptions.Right,
                 FontStyles.Normal);
-            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
+            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "データがありません", 24f,
+                V5Tokens.TextDim, TextAlignmentOptions.Left);
             At(noPlayers, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+        }
+
+        /// <summary>ランキングの source タグ表示。実データ (クラウド配信か) から決める。</summary>
+        private static string RankingSourceLabel(V6SongEntry song)
+        {
+            if (song == null) return "–";
+            return song.IsCloud ? "オンライン" : "ローカル";
+        }
+
+        /// <summary>ランキングが空のときの文言。ローカル曲はオンラインランキングが存在しない旨を言う。</summary>
+        private string RankingEmptyText(V6SongEntry song)
+        {
+            if (song != null && !song.IsCloud)
+            {
+                return "ローカル曲のランキングはありません";
+            }
+
+            if (data.HasError && !string.IsNullOrEmpty(data.StatusMessage))
+            {
+                return data.StatusMessage;
+            }
+
+            return "ランキングのデータがありません";
         }
 
         private void BuildRankingRow(GameObject ranking, V6RankingRow row, int index, float y)
