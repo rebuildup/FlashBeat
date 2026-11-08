@@ -131,7 +131,7 @@ public static class RankingClient
         return true;
     }
 
-    /// <summary>Trims and validates a nickname (1..12 chars). Returns null when unusable.</summary>
+    /// <summary>Trims and validates a nickname (1..NicknameMaxLength chars). Returns null when unusable.</summary>
     public static string ValidateNickname(string raw)
     {
         if (raw == null) return null;

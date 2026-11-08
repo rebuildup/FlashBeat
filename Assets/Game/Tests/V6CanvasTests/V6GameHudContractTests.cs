@@ -104,7 +104,9 @@ namespace FlashBeat.V6CanvasTests
         [Test]
         public void AccentBase_MatchesContractColor()
         {
-            Assert.AreEqual(new Color32(0x3A, 0x32, 0x20, 0xFF), V6HudLogic.AccentBase);
+            // AccentBase は Color 型なので Color32 へ変換して比較する
+            // (Color32 と Color は別の型で、AreEqual(object, object) では一致しない)。
+            Assert.AreEqual(new Color32(0x3A, 0x32, 0x20, 0xFF), (Color32)V6HudLogic.AccentBase);
         }
     }
 }
