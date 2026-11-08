@@ -27,23 +27,15 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
-        // タイトルは v5 のコード生成 UI を使わず、**シーン配置の元の画面**を使う
-        // (オーナー指示 2026-11-08: v5 を撤回して元の動画を再生するだけにする)。
-        // TitleScene.unity には動画 (VideoPlayer "Screen") + ロゴ + メニューが
-        // 置かれていて、それがそのままタイトルになる。
+        // タイトルは v5 のコード生成 UI も、シーン配置の旧 UI も使わない。
+        // (オーナー指示 2026-11-08: v5 を撤回して元の動画を再生するだけにする。)
+        // 旧 UI は画面サイズに追従せず、左下に F2/F5 の案内が常時残るので、
+        // Canvas を隠して動画 (VideoPlayer "Screen") だけを見せる。
+        // 遷移は下の Update (Start / Option / Exit) が受け持つ。
         var legacy = GameObject.Find("Canvas");
-        if (legacy != null)
-        {
-            legacy.SetActive(true);
-            // v5  Obi 之前 のレガシー Canvas には GraphicRaycaster が無く、
-            // マウス操作がボタンに届かなかった (Issue #167)。元の画面を使うので足す。
-            if (legacy.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
-            {
-                legacy.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-            }
-        }
+        if (legacy != null) legacy.SetActive(false);
 
-        // キーガイド (Tab) はタイトルでは出さない (左下に常時(keycap)が出るのを避ける)。
+        // キーガイド (Tab) はタイトルでは出さない (左下に keycap が常時出ているのを避ける)。
         V6UiMode.HideLegacyKeyGuide();
     }
 
