@@ -482,8 +482,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             rowLayout.childForceExpandHeight = false;
 
             var labelText = V5Ui.Text(row, "Label", label, m.BonusFs, V5Tokens.TextMuted);
+            // 折り返すと 1 行目のラベルが 2 行目に重なって崩れる (実機スクリーンショットで確認)。
+            labelText.textWrappingMode = TextWrappingModes.NoWrap;
             var labelLe = labelText.gameObject.AddComponent<LayoutElement>();
             labelLe.flexibleWidth = 1f;
+            labelLe.preferredWidth = m.RightColW - 120f;
             labelLe.preferredHeight = m.BonusRowH;
 
             var valueText = V5Ui.Text(row, "Value", value, m.BonusFs, V5Tokens.WarnLight,
@@ -501,6 +504,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildVerdictRow()
         {
+            // 既定 (VerdictRow=false) では判定のフィードバックは元の 3D エフェクトが担う。
+            if (!VerdictRowEnabled) return;
+
             var row = V5Ui.Node(gameObject, "Verdict Row");
             V5Ui.PinBottom(GetRect(row), m.VerdictH, m.VerdictBottom);
 
