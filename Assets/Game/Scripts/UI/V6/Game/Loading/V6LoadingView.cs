@@ -44,7 +44,12 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         private GameObject rootGo;
         private VideoPlayer videoPlayer;
+        private RawImage videoRaw;
+        private Image bgImage;
         private bool videoErrorLogged;
+        private bool videoErrored;
+        private bool shown;
+        private V6LoadingVideoSurface? lastSurface;
         private RectTransform frame;
         private V6LoadingViewDriver driver;
         private TextMeshProUGUI headline;
@@ -105,7 +110,11 @@ namespace FlashBeat.UI.V6.Game.Loading
                     videoPlayer.targetTexture = null;
                 }
 
-                videoTexture.Release();
+                if (videoTexture.IsCreated())
+                {
+                    videoTexture.Release();
+                }
+
                 UnityEngine.Object.Destroy(videoTexture);
                 videoTexture = null;
             }
@@ -123,6 +132,8 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         public void SetVisible(bool visible)
         {
+            bool wasShown = shown;
+            shown = visible;
             if (rootGo != null)
             {
                 rootGo.SetActive(visible);
@@ -131,18 +142,142 @@ namespace FlashBeat.UI.V6.Game.Loading
             if (visible)
             {
                 UpdatePlacement();
-                // ローディング映像: 表示のたびに最初から再生 (design: 動画を再生するだけ)。
-                if (videoPlayer != null && videoPlayer.clip != null)
+                // 画面に出始めた瞬間だけ初期化する。SetVisible(true) は毎フレーム
+                // 呼ばれるので、ここで Play を呼び直したり警告フラグを戻したり
+                // すると、途中で届いた映像エラーが毎回鳴り直す (review Finding A)。
+                if (!wasShown)
                 {
                     videoErrorLogged = false;
-                    videoPlayer.Play();
+                    videoErrored = false;
+                    // 映像面を作り直す (テクスチャをreleasedした状態から戻す)。
+                    lastSurface = null;
+                    StartVideo();
                 }
+            }
+            else
+            {
+                if (wasShown)
+                {
+                    StopVideo();
+                }
+            }
+
+            ApplyVideoSurface();
+        }
+
+        /// <summary>
+        /// ローディング映像を頭から再生する。clip が無ければ何もしない
+        /// (その場合は背景のみ — 白画面は出さない)。
+        /// </summary>
+        private void StartVideo()
+        {
+            if (videoPlayer == null || videoPlayer.clip == null)
+            {
+                return;
+            }
+
+            if (videoTexture != null)
+            {
+                if (!videoTexture.IsCreated())
+                {
+                    videoTexture.Create();
+                }
+
+                // 出力先を張ってから再生する (Prepare が targetTexture を要求する)。
+                videoPlayer.targetTexture = videoTexture;
+            }
+
+            videoPlayer.Play();
+        }
+
+        /// <summary>
+        /// 非表示になった時に映像を止めテクスチャを解放する (素の映像を
+        /// 裏で再生し続ける / 古いテクスチャを保持したままにしない)。
+        /// </summary>
+        private void StopVideo()
+        {
+            if (videoPlayer != null)
+            {
+                videoPlayer.Stop();
+                videoPlayer.targetTexture = null;
+            }
+
+            if (videoRaw != null)
+            {
+                videoRaw.texture = null;
+                videoRaw.enabled = false;
+            }
+
+            if (videoTexture != null && videoTexture.IsCreated())
+            {
+                videoTexture.Release();
+            }
+        }
+
+        /// <summary>
+        /// 映像面の状態を決める (純ロジック — <see cref="V6LoadingVideoPolicy"/> に
+        /// 抽出して EditMode テストする)。
+        /// </summary>
+        private void ApplyVideoSurface()
+        {
+            if (videoRaw == null)
+            {
+                return;
+            }
+
+            bool hasClip = videoPlayer != null && videoPlayer.clip != null;
+            bool prepared = videoPlayer != null && videoPlayer.isPrepared;
+            V6LoadingVideoSurface surface = V6LoadingVideoPolicy.Decide(shown, hasClip, prepared, videoErrored);
+            if (surface == lastSurface)
+            {
+                return;
+            }
+
+            lastSurface = surface;
+
+            switch (surface)
+            {
+                case V6LoadingVideoSurface.Video:
+                    if (videoTexture != null)
+                    {
+                        if (!videoTexture.IsCreated())
+                        {
+                            videoTexture.Create();
+                        }
+
+                        videoPlayer.targetTexture = videoTexture;
+                        videoRaw.texture = videoTexture;
+                    }
+
+                    videoRaw.enabled = true;
+                    break;
+
+                case V6LoadingVideoSurface.Background:
+                    // 映像が無い / 準備できていない / エラー → 白い RawImage を残さない。
+                    videoRaw.enabled = false;
+                    videoRaw.texture = null;
+                    break;
+
+                default:
+                    // Hidden: ビューごと隠れている — テクスチャも背景も残さない。
+                    videoRaw.enabled = false;
+                    videoRaw.texture = null;
+                    break;
+            }
+
+            // 背景は常に Commerce 背景 (fallback) として残す。映像が無いときは
+            // こちらだけが画面を埋め、白い画面は出ない。
+            if (bgImage != null)
+            {
+                bgImage.enabled = surface != V6LoadingVideoSurface.Hidden;
             }
         }
 
         /// <summary>ローディング映像の再生エラー。無音で推移しない (Issue #233)。</summary>
         private void OnVideoError(VideoPlayer source, string message)
         {
+            videoErrored = true;
+            ApplyVideoSurface();
             if (videoErrorLogged) return;
             videoErrorLogged = true;
             Debug.LogWarning($"[V6Loading] loading video unavailable: {message}");
@@ -268,11 +403,13 @@ namespace FlashBeat.UI.V6.Game.Loading
             rootRt.offsetMax = Vector2.zero;
 
             // design: フレーム全面が背景 (ロード中はゲームの背後を隠す)。
+            // 映像が使えない時はこの背景がそのまま見える (白い画面を出さない)。
             var bg = V5Ui.Node(rootGo, "Loading Background");
             V5Ui.Fill(bg.GetComponent<RectTransform>(), 0f);
-            var bgImg = bg.AddComponent<Image>();
-            bgImg.color = V5Tokens.Bg;
-            bgImg.raycastTarget = true;
+            bgImage = bg.AddComponent<Image>();
+            bgImage.color = V5Tokens.Bg;
+            bgImage.raycastTarget = true;
+
 
             // ローディング映像 (design: ローディング画面は動画を再生するだけ。
             // Assets/Game/Resources/Videos/loading.mp4 = 自作素材、同梱する)。
@@ -281,8 +418,9 @@ namespace FlashBeat.UI.V6.Game.Loading
             // RawImage に出す。
             var videoBg = V5Ui.Node(rootGo, "Loading Video");
             V5Ui.Fill(videoBg.GetComponent<RectTransform>(), 0f);
-            var videoRaw = videoBg.AddComponent<RawImage>();
+            videoRaw = videoBg.AddComponent<RawImage>();
             videoRaw.raycastTarget = false;
+            videoRaw.color = Color.white;
             videoTexture = new RenderTexture(1920, 1080, 0);
             videoPlayer = videoBg.AddComponent<VideoPlayer>();
             videoPlayer.playOnAwake = false;
@@ -290,9 +428,11 @@ namespace FlashBeat.UI.V6.Game.Loading
             videoPlayer.renderMode = VideoRenderMode.APIOnly;
             videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
             videoPlayer.targetTexture = videoTexture;
-            videoRaw.texture = videoTexture;
             videoPlayer.clip = Resources.Load<VideoClip>("Videos/loading");
             videoPlayer.errorReceived += OnVideoError;
+            // 映像が準備できるまで RawImage は出さない (白画面回避)。
+            videoRaw.enabled = false;
+            videoRaw.texture = null;
 
             frame = V5Ui.Node(rootGo, "V6 Loading Frame 1728x972").GetComponent<RectTransform>();
             frame.anchorMin = Vector2.zero;
@@ -567,6 +707,9 @@ namespace FlashBeat.UI.V6.Game.Loading
         internal void Tick()
         {
             UpdatePlacement();
+            // VideoPlayer の準備完了は非同期なので、準備できた瞬間に映像面が
+            // 動画に切り替わるよう毎フレーム状態を見直す。
+            ApplyVideoSurface();
             if (fill != null && !errorShown && progressGroup != null && progressGroup.activeSelf)
             {
                 if (V6LoadingViewLogic.HasProgress(progress))
@@ -632,6 +775,50 @@ namespace FlashBeat.UI.V6.Game.Loading
             {
                 View.Tick();
             }
+        }
+    }
+
+    /// <summary>ローディング画面の映像面の状態。</summary>
+    public enum V6LoadingVideoSurface
+    {
+        /// <summary>ローディング映像を出す (RawImage に映像テクスチャを接続)。</summary>
+        Video = 0,
+
+        /// <summary>映像は出さず、背景だけを見せる (白い画面を出さない)。</summary>
+        Background = 1,
+
+        /// <summary>何も出さない (ビューごと非表示)。</summary>
+        Hidden = 2,
+    }
+
+    /// <summary>
+    /// ローディング画面の映像面をどの状態にするかの判断 (純ロジック)。
+    /// EditMode テストから直接呼べるよう、VideoPlayer に依存しない形で
+    /// (clip 有無, 準備完了, エラー) → 状態 だけを受け取る。
+    /// </summary>
+    public static class V6LoadingVideoPolicy
+    {
+        /// <summary>
+        /// 映像面の状態を決める。
+        /// </summary>
+        /// <param name="visible">ローディング画面が出ているか。</param>
+        /// <param name="hasClip">再生する clip があるか。</param>
+        /// <param name="prepared">VideoPlayer が準備完了か。</param>
+        /// <param name="errored">再生エラーが起きたか。</param>
+        public static V6LoadingVideoSurface Decide(bool visible, bool hasClip, bool prepared, bool errored)
+        {
+            if (!visible)
+            {
+                return V6LoadingVideoSurface.Hidden;
+            }
+
+            // clip が無い / 準備できない / エラー → 映像は出さない (白画面回避)。
+            if (!hasClip || errored || !prepared)
+            {
+                return V6LoadingVideoSurface.Background;
+            }
+
+            return V6LoadingVideoSurface.Video;
         }
     }
 }
