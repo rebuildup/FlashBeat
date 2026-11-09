@@ -1193,6 +1193,8 @@ GameObject:
   - component: {fileID: 107512840}
   - component: {fileID: 107512839}
   - component: {fileID: 107512841}
+  - component: {fileID: 1930245711}
+  - component: {fileID: 1930245712}
   m_Layer: 5
   m_Name: MusicSelector
   m_TagString: Untagged
@@ -1261,6 +1263,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 21671ffcddd0aac47a3b2216637cd90d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1930245711
+MonoBehaviour:
+  m_GameObject: {fileID: 107512837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcc635c94b10495d8e662650d28e0761, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fileItemContainer: {fileID: 381058713}
+  fileItemPrefab: {fileID: 132690, guid: 1e268423609e86e4da1648375715dd32, type: 3}
+  emptyMessageText: {fileID: 0}
+  refreshButton: {fileID: 0}
+--- !u!114 &1930245712
+MonoBehaviour:
+  m_GameObject: {fileID: 107512837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 676447d49c26541819c9d7ddda811749, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &112924639
