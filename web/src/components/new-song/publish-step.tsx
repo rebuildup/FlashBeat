@@ -159,7 +159,8 @@ export function PublishStep({
         ok: false,
         failure: {
           code: "invalid",
-          message: "曲情報に不備があります。以下の項目を修正してください。 / The song info has problems. Fix the fields below.",
+          message:
+            "曲情報に不備があります。以下の項目を修正してください。 / The song info has problems. Fix the fields below.",
           details: built.issues.map((issue) => `${issue.field}: ${issue.message}`),
         },
       });

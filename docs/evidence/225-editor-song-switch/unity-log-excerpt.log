@@ -1,0 +1,49 @@
+# Unity Editor 実機実行ログ (Issue #225 条件 7 プローブ)
+# Unity 6000.5.6f1 / macOS (Apple M5) / batchmode
+# 抽出: NoteEditorSongSwitchProbe に関する行のみ (Statements/Unity のフッターは省略)
+# 抽出元: /tmp/w225probe2.log
+
+NoteEditorSongSwitchProbe.Run
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+NoteEditorSongSwitchProbe:RunNoDirtySwitchCase (NoteEditor.Presenter.FlashBeatSong.FlashBeatSongLoader,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:248)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:184)
+[Assets/Editor/NoteEditorSongSwitchProbe.cs line 184]
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+NoteEditorSongSwitchProbe:RunNoDirtySwitchCase (NoteEditor.Presenter.FlashBeatSong.FlashBeatSongLoader,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:248)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:184)
+[Assets/Editor/NoteEditorSongSwitchProbe.cs line 184]
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json
+NoteEditorSongSwitchProbe:RunNoDirtySwitchCase (NoteEditor.Presenter.FlashBeatSong.FlashBeatSongLoader,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:248)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:184)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json
+NoteEditorSongSwitchProbe:RunNoDirtySwitchCase (NoteEditor.Presenter.FlashBeatSong.FlashBeatSongLoader,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:261)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:184)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json
+NoteEditorSongSwitchProbe:LoadSongA (string&) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:413)
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:299)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:187)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json
+NoteEditorSongSwitchProbe:LoadSongA (string&) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:413)
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:299)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:188)
+[FlashBeatSongLoader] Saved before switching: Assets/Game/Resources/__probe_a.json
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:326)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:188)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:326)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:188)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json
+NoteEditorSongSwitchProbe:LoadSongA (string&) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:413)
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:299)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:189)
+[FlashBeatSongLoader] Loaded: /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json
+NoteEditorSongSwitchProbe:RunSwitchCase (string,NoteEditor.Presenter.FlashBeatSong.SongSwitchChoice,NoteEditor.Presenter.FlashBeatSong.SongSwitchCoordinator,UnityEngine.GameObject) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:326)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:189)
+[NoteEditorSongSwitchProbe] report written: /Users/rebui/work/FlashBeat.w225/docs/evidence/225-editor-song-switch/results.json
+NoteEditorSongSwitchProbe:WriteReport (NoteEditorSongSwitchProbe/ProbeReport) (at Assets/Editor/NoteEditorSongSwitchProbe.cs:628)
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:232)
+(Filename: Assets/Editor/NoteEditorSongSwitchProbe.cs Line: 628)
+[NoteEditorSongSwitchProbe] 4/4 cases passed
+NoteEditorSongSwitchProbe:Run () (at Assets/Editor/NoteEditorSongSwitchProbe.cs:233)
+(Filename: Assets/Editor/NoteEditorSongSwitchProbe.cs Line: 233)
+Exiting batchmode successfully now!

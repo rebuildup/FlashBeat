@@ -43,11 +43,47 @@ export type StudioNavItem = {
 };
 
 export const NAV_STAFF_ITEMS: readonly StudioNavItem[] = [
-  { value: "dashboard", label: "Dashboard", ja: "ダッシュボード", en: "Dashboard", href: "/dashboard", icon: ChartColumnBig },
-  { value: "songs", label: "Songs", ja: "楽曲アーカイブ", en: "Songs", href: "/songs", icon: Archive },
-  { value: "new-song", label: "New song", ja: "新曲を登録", en: "New song", href: "/new-song", icon: Sparkles },
-  { value: "editor", label: "New chart", ja: "譜面を編集", en: "Edit chart", href: "/chart", icon: PencilRuler },
-  { value: "publish", label: "Publish", ja: "公開する", en: "Publish", href: "/publish", icon: CloudUpload, admin: true },
+  {
+    value: "dashboard",
+    label: "Dashboard",
+    ja: "ダッシュボード",
+    en: "Dashboard",
+    href: "/dashboard",
+    icon: ChartColumnBig,
+  },
+  {
+    value: "songs",
+    label: "Songs",
+    ja: "楽曲アーカイブ",
+    en: "Songs",
+    href: "/songs",
+    icon: Archive,
+  },
+  {
+    value: "new-song",
+    label: "New song",
+    ja: "新曲を登録",
+    en: "New song",
+    href: "/new-song",
+    icon: Sparkles,
+  },
+  {
+    value: "editor",
+    label: "New chart",
+    ja: "譜面を編集",
+    en: "Edit chart",
+    href: "/chart",
+    icon: PencilRuler,
+  },
+  {
+    value: "publish",
+    label: "Publish",
+    ja: "公開する",
+    en: "Publish",
+    href: "/publish",
+    icon: CloudUpload,
+    admin: true,
+  },
 ];
 
 /**
@@ -56,7 +92,14 @@ export const NAV_STAFF_ITEMS: readonly StudioNavItem[] = [
  * callers that want the whole set in one array (issue #151).
  */
 export const NAV_ITEMS: readonly StudioNavItem[] = [
-  { value: "catalog", label: "Catalog", ja: NAV_VISITOR.ja, en: NAV_VISITOR.en, href: NAV_VISITOR.href, icon: ListMusic },
+  {
+    value: "catalog",
+    label: "Catalog",
+    ja: NAV_VISITOR.ja,
+    en: NAV_VISITOR.en,
+    href: NAV_VISITOR.href,
+    icon: ListMusic,
+  },
   ...NAV_STAFF_ITEMS,
 ];
 
