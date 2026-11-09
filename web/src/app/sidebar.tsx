@@ -70,14 +70,20 @@ const sidebar = css({
   display: "flex",
   flexDirection: { base: "column", md: "column" },
   flexWrap: "wrap",
-  gap: "2",
+  /**
+   * Narrow viewports keep the tight gap of the reflowed rail (issue #74);
+   * wide viewports keep the spacing of the desktop rail (4), so the desktop
+   * layout is not changed by the narrow-viewport work.
+   */
+  gap: { base: "2", md: "4" },
   minHeight: "0",
   /**
    * The rail must never widen the document: a narrow viewport reflows the
-   * entries (issue #74), so nothing sticks out sideways.
+   * entries (issue #74), so nothing sticks out sideways. The entries wrap
+   * inside the rail, so no `overflow-x: hidden` guard is needed — a guard
+   * would only hide a future long label without a scroll path.
    */
   maxWidth: "100%",
-  overflowX: "hidden",
   paddingBottom: { base: "2", md: "4" },
   paddingTop: { base: "2", md: "4" },
   px: "3",
