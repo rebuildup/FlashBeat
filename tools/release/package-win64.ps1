@@ -544,7 +544,7 @@ $versionJson = [ordered]@{
 
 # version.json 自身の mtime も commit 日時に固定する。
 # tar は各エントリの mtime を ZIP に埋め込むので、ここが実行時刻のままだと
-# ZIP はバイト単位で再現しない (createdAt を固定しても mtime が違う)。
+# 2 段構えでも ZIP がバイト単位で再現しない (createdAt を固定しても mtime が違う)。
 [System.IO.File]::SetLastWriteTimeUtc($versionJsonPath, $commitDateUtc)
 
 try {

@@ -66,6 +66,10 @@ v<version>-win64-<sha>
 - Release は `draft=false` / `prerelease=false` (= **stable**) で公開します。
   検証用の Release は `prerelease=true` として公開し、展示用 stable ビルドの
   自動更新候補から外します。
+- **パッケージングの実装は 1 本** — `tools/release/package-win64.ps1` だけが ZIP を作ります
+  (Windows / macOS 共通、`pwsh` で実行)。
+  macOS 側の `script/win64-build-mac.sh` は **ビルドを駆動するだけ** で、
+  ZIP は上のスクリプトに作らせます (macOS に別のパッケージング経路を残さないため)。
 
 ### 1.5 第三者楽曲のメディアを同梱しない
 
@@ -104,6 +108,15 @@ v<version>-win64-<sha>
 - ライセンス secret (`UNITY_LICENSE` の base64 .ulf か `UNITY_EMAIL` + `UNITY_PASSWORD`)
   が無い限り、**CI での Win64 ビルドは成立しません**。公開済み Release は
   Windows 実機ビルド (Unity 所有者的) で作成しています。
+- **CI が使えないときの代替経路 (macOS / pwsh)**: Unity 6000.5.6f1 に
+  WindowsStandaloneSupport を入れた Mac から `script/win64-build-mac.sh` を実行すると、
+  Windows 実機と同じ `BuildScript.BuildStandaloneWindows64` を macOS からクロスコンパイルして
+  ビルドし、**パッケージングは §1.4 の `tools/release/package-win64.ps1` に一本化** した経路で
+  ZIP + SHA-256 を作れます。
+  - 証跡: [`docs/evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) /
+    [`docs/evidence/index.md`](../evidence/index.md) §1.8 (fingerprint / exe SHA-256 / ファイル数を実測値つきで記載)
+  - 同じ入力なら **ZIP の SHA-256 は一致します** (`version.json` の `createdAt` は commit の日時から作る)。
+  - **Windows 実機での起動・プレイは未証明**。展示 PC で確認するまで Release 化しません。
 
 ---
 

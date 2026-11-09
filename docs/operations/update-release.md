@@ -36,6 +36,13 @@ Windows 版と macOS 版が互いの更新候補になることはない。
   }
   ```
 
+- `createdAt` の意味は **プラットフォームごとに異なる**:
+  - **win64** (`tools/release/package-win64.ps1`): **ビルド元 commit の日時 (UTC)**。
+    同じビルド出力から再パッケージしても **ZIP の SHA-256 が一致** します
+    (同一入力 → 同一 SHA。実測: [`docs/evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md))。
+  - **macos** (`tools/release/package-macos.sh`): 従来のとおり **パッケージ実行時刻** (`date -u`)。
+    macOS 側は **まだバイト単位で再現しません** (win64 の方式を適用していない)。
+
 - UpdateChecker は実行中ビルドの版識別子 (`Application.version` = `bundleVersion` = `<version>+<shortsha>`) を読み、
   同じプラットフォームの GitHub Releases 候補タグと比較して新版を判定する
   (`version.json` は人が読むための同梱メタデータで、判定には使わない)。

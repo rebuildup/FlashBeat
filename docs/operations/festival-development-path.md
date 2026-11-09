@@ -11,10 +11,11 @@
 ## 0. 要点
 
 - **展示を止めずに進められるのは、譜面・カタログ・曲メタ（= Web/API 側）だけ**です。
-  Unity の再ビルドが要るのは**コード修正**だけで、そのビルドは **展示 PC と別の GitHub Actions ランナー**で行います。
+  Unity の再ビルドが要るのは**コード修正**だけで、そのビルドは **展示 PC 以外**（GitHub Actions
+  ランナー、または **macOS**）で行います（§1 / §5 fallback）。
 - **展示 PC（Windows 実機）は現状 1 台しかなく、その上に Unity Editor が入っています。**
   展示中は新規作業に使いません（Issue #41 の決定: 「明日から Windows 実機は展示専用」）。
-- **CI は Unity ライセンスの secret が未設定ならジョブ全体が skip されます。**
+- **CI は Unity ライセンスの secret が未設定ならビルド前に失敗します**（skip ではなく exit 1）。
   この 2 点は隠さず前提として運用に載せます（§2）。
 
 ---
@@ -23,9 +24,9 @@
 
 | 担い手 | 担当 | Unity の再ビルド | 展示への影響 |
 |---|---|---|---|
-| **Mac（開発者）** | Web / API / 譜面 / カタログ / ドキュメント。`web/` の実装、`void deploy` による本番反映、publish | **不要** | **なし**（反映は即時） |
+| **Mac（開発者）** | Web / API / 譜面 / カタログ / ドキュメント。`web/` の実装、`void deploy` による本番反映、publish。**Win64 のビルドとパッケージング**（`script/win64-build-mac.sh` → `tools/release/package-win64.ps1`、§5 fallback） | Web 系は **不要**。Win64 は **必要**（この Mac で行う。展示 PC は使わない） | **なし**（反映は即時） |
 | **Windows 実機（展示 PC）** | 展示そのもの + 実機検証（起動・プレイ・ログ確認）。**展示中は新建作業に使わない** | 展示時間外なら可 | 展示中は触らない |
-| **GitHub Actions** | 展示 PC と独立した Win64 ビルド環境（`.github/workflows/build-win64.yml`）。`windows-latest` ランナーで Unity 6000.5.6f1 を入れてビルドし、ZIP + `.sha256` を artifact として出す | 必要（代わりにこれを使う） | **なし**（別マシンで動く） |
+| **GitHub Actions** | 展示 PC と独立した Win64 ビルド環境（`.github/workflows/build-win64.yml`）。`windows-latest` ランナーで Unity 6000.5.6f1 を入れてビルドし、ZIP + `.sha256` を artifact として出す。**ただし現状は Unity ライセンスが未設定で `license-precheck` に止まっており、ビルドには到達していません**（実測 2026-11-08 / run 42470147986） | 必要（ただし未成立。実質的な代替は §5 の macOS 経路） | **なし**（別マシンで動く） |
 
 - リリース（GitHub Release の作成・公開）は**監督者の承認が前提**です
   （[`update-release.md` §パッチ版の発行手順](update-release.md)）。
@@ -42,14 +43,19 @@
 2. **CI は展示 PC とは別のマシン（GitHub の `windows-latest` ランナー）でビルドします。**
    したがって CI が動いても展示 PC の Unity Editor とは競合しません
    （展示 PC 側はビルドしません）。
-3. **CI は Unity ライセンスの secret を要求し、未設定ならジョブは skip されます。**
+   ただし **現時点で CI は Unity ライセンス未設定により `license-precheck` で止まっており**、
+   ビルドが成立したことはありません。配布物を実際に作る場合は §5 fallback の
+   **macOS (pwsh) 経路**を使います（展示 PC には触りません）。
+3. **CI は Unity ライセンスの secret を要求し、未設定ならジョブは失敗します（skip ではありません）。**
    `.github/workflows/build-win64.yml` の「Unity ライセンスの secret を確認」ステップが
    `UNITY_LICENSE`（base64 化した `.ulf`）または `UNITY_EMAIL` + `UNITY_PASSWORD`
-   の有無を確認し、どちらも無ければ **skip=true** にして以降のステップを全部飛ばします
-   （通知として `::notice::` が出ます）。
+   の有無を確認し、どちらも無ければ **`::error` を出して exit 1** になります
+   （以降のステップは実行されません）。
    - secret は **Infisical の FlashBeat プロジェクト**に置き、必要な secret 名だけを
      GitHub Actions の secret として登録します（値はリポジトリ・ログ・この文書に出しません）。
-   - **skip は「ビルド成功」ではありません。** 「ビルドが成功した証拠」として扱わないでください。
+   - **緑 = 成果物が生成された証拠**（パッケージ step が ZIP 1 件 + `.sha256` を検証し、
+     欠けていれば throw）。**赤（ライセンス未設定）は「ビルド失敗」ではなく
+     「ビルド前段で止まった」** 状態です。
 4. **CI は Release を作りません**（§1）。artifact（`flashbeat-win64-<sha>`、保持 30 日）が出ます。
    Release 化は別工程です。
 5. **Web/API 側に秘密値は要りません。** publish 用トークンはブラウザのメモリ内で扱い、
@@ -132,13 +138,13 @@
 
    - ワークフローは `main` への push でも起動します（`Assets/**` / `Packages/**` /
      `ProjectSettings/**` / ワークフロー自身の変更時）。
-   - **Unity ライセンスの secret が未設定なら skip されます**（§2.3）。skip 時のログに
-     `::notice::` が出るので、成果物が無い理由をここに確認します。
+   - **Unity ライセンスの secret が未設定なら `license-precheck` で失敗します**（§2.3）。
+     `::error title=Unity license required::...` が出るので、成果物が無い理由をここに確認します。
 
 3. **成果物（artifact）を取り出します**: `flashbeat-win64-<sha>`（保持 30 日）。
    中身は `tools/release/package-win64.ps1` が出した
    **ZIP（Unity 出力フォルダ一式 + `version.json`）と `.sha256` sidecar** です。
-   CI 側は `-MediaPolicy free` でパッケージします（第三者楽曲を同梱しません）。
+   CI 側は `-MediaPolicy song-free` でパッケージします（第三者楽曲を同梱しません）。
 
 4. **Release を作ります**（承認済みなら公開、未承認なら draft）。手順は
    [`update-release.md` §パッチ版の発行手順](update-release.md) に従います。
@@ -163,10 +169,26 @@
    （[`release-approval-checklist.md`](release-approval-checklist.md)）。
    展示を止められない時間帯は、展示時間外（閉店後）に実機検証します。
 
-### CI が使えないとき（fallback）
+### CI が使えないとき（fallback）— macOS (pwsh) 経路
 
-- CI が skip される（ライセンス未設定）か失敗した場合は、**展示時間外の Windows 実機**で
-  Unity 6000.5.6f1 から Win64 ビルドし、同じパッケージング手順を通します。
+CI が失敗する（ライセンス未設定）場合は、**展示 PC とは別の Mac** で
+Win64 のビルドとパッケージングを行います（展示 PC は触りません）。
+
+1. 前提: Unity 6000.5.6f1 に **WindowsStandaloneSupport** が入っている Mac、
+   および PowerShell 7（`pwsh`）。
+2. `script/win64-build-mac.sh <ref> <outdir>` を実行します。
+   ビルドだけを行い、**ZIP は §1.4 の正規実装 `tools/release/package-win64.ps1` に作らせます**
+   （パッケージング経路は **1 本**。macOS 側に別の実装は置きません）。
+3. 出力は `FlashBeat-<version>-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ**です。
+   - `version.json` を同梱（`createdAt` は **ビルド元 commit の日時**。実行時刻ではない）
+   - `FlashBeat_BurstDebugInformation_DoNotShip` を除外
+   - 第三者楽曲メディアを同梱せず、`-MediaPolicy song-free` を検査済み
+   - 同じ入力なら **ZIP の SHA-256 は一致** します
+4. 証跡: [`docs/evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) /
+   [`docs/evidence/index.md`](../evidence/index.md) §1.8（fingerprint / exe SHA-256 / ファイル数を実測値つきで記載）。
+5. **Windows 実機での起動・プレイの検証は別工程**です（§5.6 / 展示時間外）。macOS で作った
+   ZIP を展示 PC で動かした証跡はまだありません（**未証明**）。
+
 - 展示時間中にビルドが要る緊急修正は、原則「展示を止めてやる」のではなく、
   **展示閉店後の時間帯に実施**します。
 
@@ -191,8 +213,8 @@
 
 | # | 制約 | 影響 | 対処 |
 |---|---|---|---|
-| 1 | **Windows 実機は 1 台**（Unity Editor を含む） | 展示と新規ビルドを同時にできない | CI を使う。fallback は展示時間外 |
-| 2 | **CI の Unity ライセンス secret が未整備の可能性**（未設定なら skip） | CI でビルドできない場合がある | Infisical から該当 secret を設定してから GitHub Actions の secret に登録する。skip を「成功」に見立てない |
+| 1 | **Windows 実機は 1 台**（Unity Editor を含む） | 展示と新規ビルドを同時にできない | CI を使う。fallback は §5 の macOS (pwsh) 経路（展示 PC には触らない） |
+| 2 | **CI の Unity ライセンス secret が未整備の可能性**（未設定なら `license-precheck` で失敗） | CI でビルドできない場合がある | Infisical から該当 secret を設定してから GitHub Actions の secret に登録する。失敗を「成功」に見立てない |
 | 3 | **CI は Release を作らない**（artifact のみ） | Release 化の工程は手動 | §5.4 の手順を承認プロセスに載せる |
 | 4 | **自動更新の候補判定の実装を「バージョンが厳密に大きい Release のみ」に揃える対応は監督側の担当** | 同じバージョンの Release を作ると更新対象にならない | 版数を上げる運用ルール（§5.4） |
 | 5 | **展示 PC の最終的な配置パス**が旧記録（`D:\4_apps\Unity\Build\FlashBeatExhibit*`）と新記録（`C:\Users\rebui\Desktop\FlashBeat-Exhibit\`）で食い違う | 運営者の手順がずれる | 監督者の決定事項。確定後は [`exhibit-runbook.md`](exhibit-runbook.md) §1 を更新する |
