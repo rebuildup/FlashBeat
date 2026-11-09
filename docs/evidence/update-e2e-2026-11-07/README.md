@@ -1,5 +1,11 @@
 # 自動更新 E2E 実機検証 (2026-11-07)
 
+> **注記 (Issue #118 適用前の記録)**: 本記録は **#118「更新は明示式」を適用する前の挙動**の記録で、
+> 手順 5〜6 の「通常終了で `OnApplicationQuit` から自動適用」・手順 4 の「自動 staging」は
+> 当時の仕様である。現在の設計には **`OnApplicationQuit` からの自動適用・自動 staging は存在しない**
+> (ダウンロードも適用もユーザー操作が必要 — 現状の根拠は
+> [`docs/evidence/118-explicit-update.md`](../118-explicit-update.md) を参照)。
+
 機械: Windows 実機 (RTX 4050 Laptop / Windows 11)。機械上の FlashBeat.exe を手動で起動・終了したのみ。
 
 ## 手順と結果 (時系列)

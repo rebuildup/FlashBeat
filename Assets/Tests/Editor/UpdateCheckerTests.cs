@@ -531,13 +531,36 @@ public class UpdateCheckDecisionTests
         Assert.IsTrue(d.SkipReason.Contains("同じバージョン"));
     }
 
+    /// <summary>
+    /// 「現行ビルド識別子が解釈できない」場合は更新しない。
+    /// なお、この分岐は production からは到達しない:
+    /// 呼び出し元 (UpdateChecker.CheckForUpdate) が通信前に current.Valid を判定して
+    /// yield break するためで、ここは将来 EvaluateCheck を直接呼ぶ利用者に向けの
+    /// 防御ガードである。production 側の経路は
+    /// UpdateCheckerEntryPointTests.FinishCheckWithoutUpdate_ReturnsToIdle_AndAllowsRecheck
+    /// と UpdateSourceStructureTests.EvaluateCheck_InvalidBuildBranch_IsGuardedByTheCaller
+    /// が担保する。
+    /// </summary>
     [Test]
-    public void EvaluateCheck_InvalidCurrentBuild_IsNoUpdate()
+    public void EvaluateCheck_InvalidCurrentBuild_IsNoUpdate_ByDefensiveGuard()
     {
         var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
                                            UpdatePlatform.Windows64, "unknown");
         Assert.IsFalse(d.HasUpdate);
         Assert.IsTrue(d.SkipReason.Contains("ビルド版識別子"));
+    }
+
+    /// <summary>draft の Release は更新候補にしない (未公開 Release を配らない)。</summary>
+    [Test]
+    public void EvaluateCheck_DraftRelease_IsNoUpdate()
+    {
+        var json = @"
+[{""tag_name"":""v0.2.0-win64-abc1234"",""draft"":true,""prerelease"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.2.0-win64-abc1234.zip"",""browser_download_url"":""https://example.com/b.zip""}]}]";
+        var d = UpdateChecker.EvaluateCheck(json, includePrerelease: true,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate, "draft の Release が更新候補になっています");
     }
 
     [Test]

@@ -135,9 +135,10 @@ namespace FlashBeat.Update
 
             if (!current.Valid)
             {
-                Debug.LogWarning("[UpdateChecker] ビルド版識別子を解釈できません: '" + Application.version +
-                                 "' — 更新確認を省略します (現行版を維持します)。");
-                Model.CheckFinishedWithoutUpdate();
+                // ビルド版識別子が解釈できない場合は通信もせず終了する。
+                // 状態は Idle に戻す (Checking に残ると再チェックできなくなる)。
+                FinishCheckWithoutUpdate("ビルド版識別子を解釈できません: '" + Application.version +
+                                         "' — 更新確認を省略します (現行版を維持します)。", warning: true);
                 yield break;
             }
 
@@ -157,9 +158,9 @@ namespace FlashBeat.Update
             yield return listReq.SendWebRequest();
             if (listReq.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning("[UpdateChecker] Releases の確認に失敗しました (" + listReq.error +
-                                 ") — 現行版のまま続行します。");
-                Model.CheckFinishedWithoutUpdate();
+                // 通信失敗: 現行版のまま。状態は Idle に戻す (Checking に残さない)。
+                FinishCheckWithoutUpdate("Releases の確認に失敗しました (" + listReq.error +
+                                         ") — 現行版のまま続行します。", warning: true);
                 yield break;
             }
 
@@ -169,8 +170,8 @@ namespace FlashBeat.Update
                                          Application.version);
             if (!decision.HasUpdate)
             {
-                Debug.Log("[UpdateChecker] " + decision.SkipReason + " — 現行版のまま続行します。");
-                Model.CheckFinishedWithoutUpdate();
+                // 新版なし / 応答を解釈できない: 現行版のまま。状態は Idle に戻す。
+                FinishCheckWithoutUpdate(decision.SkipReason + " — 現行版のまま続行します。");
                 yield break;
             }
 
@@ -196,6 +197,26 @@ namespace FlashBeat.Update
             }
 
             // ここで終わる。ダウンロードは RequestDownload() で開始する。
+        }
+
+        /// <summary>
+        /// 「確認を終えたが新版が無い (または確認に失敗した)」の共通処理。
+        /// 状態機械を <see cref="UpdateFlowPhase.Idle"/> へ戻す — <b>Checking のまま残さない</b>
+        /// (Checking に固まると <see cref="UpdateFlowModel.StartCheck"/> が no-op になり、
+        /// 将来「再チェック」機構を追加したときに確認できなくなるため)。
+        /// 現行版のファイル・状態には一切触れない (安全側)。
+        /// </summary>
+        public void FinishCheckWithoutUpdate(string reason, bool warning = false)
+        {
+            if (warning)
+            {
+                Debug.LogWarning("[UpdateChecker] " + reason);
+            }
+            else
+            {
+                Debug.Log("[UpdateChecker] " + reason);
+            }
+            Model.CheckFinishedWithoutUpdate();
         }
 
         /// <summary>ユーザー操作 (Title 通知の F3 / クリック) によるダウンロード開始。
@@ -455,6 +476,12 @@ namespace FlashBeat.Update
         /// 2. 実行プラットフォームのタグか (他プラットフォームの Release を候補にしない)
         /// 3. 現行ビルドより新しい版か (同バージョンの別ビルド・ダウングレードは候補にしない)
         /// 4. プラットフォーム別 ZIP アセットがあるか
+        ///
+        /// 現行ビルド識別子の解釈可否は「呼び出し元 (CheckForUpdate) が通信前に判定する」責務で、
+        /// 本関数の <c>!current.Valid</c> 分岐は **production から到達しない防御ガード**である
+        /// (CheckForUpdate が解釈不能なら通信せずに終了する。UpdateChecker.cs の
+        /// 「current.Valid の判定 → yield break」を参照)。
+        /// 直接この関数を呼ぶ将来の利用者向けに「解釈不能なら更新しない」ことは保証する。
         /// </summary>
         public static UpdateCheckDecision EvaluateCheck(string releasesJson, bool includePrerelease,
                                                          UpdatePlatform platform, string currentBuildId)
