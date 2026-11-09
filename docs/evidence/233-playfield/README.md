@@ -7,15 +7,27 @@
 
 「空っぽ」に見えた原因は **描画の失敗ではなく、譜面の見える時間が短すぎた** +
 **レーン構造の部品が全部無効／透明だった** の 2 つだった。加えて、座標指示 (#233 fact 2)
-で指摘されたとおり、**映像プレーンが一度も有効化されておらず映像本身が描画されて
-いなかった**。3 点ともコード側で修正し、シーンファイル (`GameScene.unity`) は
-**一切編集していない**。
+で指摘されたとおり、**映像プレーンが 1 フレームも描画されなかった**。3 点ともコード側で
+修正し、シーンファイル (`GameScene.unity`) は **一切編集していない**。
+
+> **原因の訂正 (PR #263 レビュー B2)**: 当初「映像プレーンはシーンで inactive のまま
+> で、`MusicManager` が有効化していたのは YoutubePlayer の *親* だけ。プレーン本体
+> (`VPlayer[GManager.songID]`) は一度も有効化されなかった」と記載していたが、**誤り**。
+> 実際は `MusicManager.Start` が `YPlayer[GManager.songID].SetActive(true)` で
+> **選択した平面をランタイムに有効化している** (`YPlayer[1]` = fileID 1583463234 =
+> 平面 "1"、`VPlayer[1]` = 1583463237 = 同じ平面の VideoPlayer)。
+> つまり映像が出ない **本当の原因** は、シーンの VideoPlayer に
+> **target renderer も render texture も設定されていなかった**こと
+> (`m_TargetMaterialRenderer: {fileID: 0}` / `m_RenderMode: 3` + `m_TargetTexture: {fileID: 0}`)。
+> 実行時の配線 (`MusicManager.WireVideoPicture`) が実質的な修正である。
+> シーンがプレーンを inactive のまま置くのは「映像表示をランタイムに委ねる」運用であり、
+> シーン側の不備ではない。
 
 | # | 症状 | 原因 | 修正 | 影響するファイル |
 | --- | --- | --- | --- | --- |
 | A | 画面に出る譜面が 0.86 秒分しかない (次のノートが画面外) | z スケールに「秒あたりワールド z 移動量」ではなく素の `noteSpeed` (10) を渡していた。カメラ可視範囲 8.61 / 10 = 0.861 秒 | z スケールをカメラ基準 (`ZScaleFor`) に統一。速度 10 で **1.600 秒** (設計意図どおり) | `MediaTimeline.cs`, `Notes.cs`, `NotesManager.cs` |
 | B | レーン構造 (線) が見えない | "Lane" は `m_IsActive: 0`、しかも不透明な 8x40 の板で動画の上半分を覆う。"LaneLight1..8" は alpha 0 のまま (キー入力時だけ光る) | 実行時にレーン境界 9 本のガイド線を生成 (1 メッシュ / 1 レンダラ) | `PlayfieldLaneGuides.cs` (新規) |
-| fact 2 | 映像が 1 フレームも描画されない | 映像プレーン "1".."29" が**すべて** `m_IsActive: 0`。`MusicManager` が有効化していたのは YoutubePlayer の親だけ | 準備できた時点でプレーンを実行時に有効化 (フレームが出るまで白板は隠す) | `VideoPicture.cs` (新規), `MusicManager.cs` |
+| fact 2 | 映像が 1 フレームも描画されない | シーンの VideoPlayer に target renderer も render texture も設定されていなかった (実行時の配線に到達しなかった) | 実行時に `targetMaterialRenderer` / `renderMode` を配線 (`WireVideoPicture`)。板は **平面が選択された時点** で隠し、フレームが出たら出す | `VideoPicture.cs` (新規), `MusicManager.cs` |
 
 ## 変更ファイル (origin/main..HEAD)
 
@@ -25,12 +37,12 @@
 | `Assets/Game/Scripts/Gameplay/Notes.cs` | 3D レーンの z スケールを `MediaTimeline.CurrentZScale` 1 箇所から読む (生成・時刻復元・移動で同じ値) |
 | `Assets/Game/Scripts/Gameplay/NotesManager.cs` | 生成位置 `positionsZ.Add(time * MediaTimeline.CurrentZScale)` |
 | `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs` (新規) | 実行時にレーン境界 9 本のガイド線を生成 (v6 遠近法プレイフィールドが有効なときは自動的に非表示) |
-| `Assets/Game/Scripts/Gameplay/VideoPicture.cs` (新規) | 映像プレーンの実行時有効化 + フレームが出るまで板を隠す |
-| `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `PrepareLocalVideo` / `StartPlayback` で映像プレーンを有効化、`Update` でフレーム確認 |
+| `Assets/Game/Scripts/Gameplay/VideoPicture.cs` (新規) | 映像プレーンの実行時有効化 + **平面が選択された時点で板を隠す** + フレームが出るまで板を隠す |
+| `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `PrepareLocalVideo` / `StartPlayback` で映像プレーンを有効化、**平面選択時に板を隠す**、`Update` でフレーム確認、Invidious 除去は `VideoPicture` に一本化 |
 | `Assets/Game/Scripts/Common/AutoTestV6.cs` | 撮影タイミングを「実際にカメラに写っているノートが 3 枚以上ある区間」に変更 (疎な区間で撮ると何も写らない问题的回避) |
 | `Assets/Tests/Editor/PlaybackClockTests.cs` | z スケールの契約を固定 (値 + 3 箇所が同じ尺度を使うことのソース固定) |
 | `Assets/Tests/Editor/PlayfieldGeometryTests.cs` (新規) | カメラ幾何を **シーンファイルから** 再導出 (8.6143) して 8.61 と突き合わせる |
-| `Assets/Tests/Editor/VideoPictureTests.cs` (新規) | 映像プレーンの有効化と板の出し分けを固定 |
+| `Assets/Tests/Editor/VideoPictureTests.cs` (新規) | 映像プレーンの有効化と板の出し分けを固定 (prepare 前から板が隠れていること / Invidious 除去は挙動で検証) |
 
 編集していないもの: `Assets/Game/Scenes/GameScene.unity` ((cc が所有)) / `LaneFlash` /
 `AutoTestKeyConfig.cs` (他ワーカーのハーネス) / v6 Option・Result・Title / Web Studio /
@@ -106,37 +118,57 @@ FOV 60 度から、ノーツ面 y = 0.55 に当たる視錐台の上端 z を再
 z <= 8.81 → ガイド線もノートも映像より手前なので、映像がガイドを覆わない。
 (Lane マテリアルは不透明なので **使っていない**)
 
-## fact 2: 映像プレーンの有効化
+## fact 2: 映像プレーンの配線と板の出し分け
 
-### 症状
+### 症状 (原因の訂正を含む)
 
-`GameScene.unity` の映像プレーン "1".."29" が **すべて** `m_IsActive: 0`。
-`MusicManager.Start()` が有効化していたのは `YPlayer[songID]` (YoutubePlayer の親)
-だけ で、`songVideo = VPlayer[GManager.songID]` (プレーン本体) は
-**一度も有効化されなかった**。さらに `WireVideoPicture()` は `PrepareLocalVideo` から
-しか呼ばれず、レンダラ もマテリアル も未設定のままだった。
+`GameScene.unity` の映像プレーン "1".."29" は **すべて** `m_IsActive: 0`。
+これは「シーンが映像表示をランタイムに委ねる」運用で、**不備ではない**。
+ランタイムでは `MusicManager.Start()` が `YPlayer[GManager.songID].SetActive(true)`
+で **選択した平面を有効化** している (`YPlayer[1]` = fileID 1583463234 = 平面 "1")。
+したがって `VideoPicture.Activate()` 内の `SetActive(true)` は実行時には no-op である。
 
-つまり映像は 1 フレームも描画されず、画面には背景しか出ていなかった。
+映像が 1 フレームも描画されなかった **本当の原因** は別のところにある。
+シーンの `VideoPlayer` が
+
+- `m_TargetMaterialRenderer: {fileID: 0}` (描画先のレンダラが無い)
+- `m_RenderMode: 3` (RenderTexture) かつ `m_TargetTexture: {fileID: 0}` (RT も無い)
+
+という状態だったため、**Prepare してもどこにも描画されなかった**。
+`WireVideoPicture()` が `PrepareLocalVideo` からしか到達しなかったため、
+実行時の配線が有効になる経路が限られていた。
 
 ### 修正 (コード側)
 
-`VideoPicture.Activate(video)`:
+1. `MusicManager.WireVideoPicture()` が実行時に `targetMaterialRenderer` /
+   `targetMaterialProperty` / `renderMode` を設定する (シーンは編集しない)。
+2. `VideoPicture.Activate(video)`:
+   - プレーン (`video.gameObject`) を必要なら `SetActive(true)`
+   - プレーンに乗っている `InvidiousVideoPlayer` を無効化して破棄
+     (実装は `VideoPicture.RemoveDeadInvidiousPlayer` に一本化。
+     `MusicManager.DisableInvidiousPlayer` も同じ実装を呼ぶので二重に壊さない)
+   - 板 (レンダラ) を **無効** にする
+3. `VideoPicture.ShowWhenFrameReady(video, hasFrame)` は `songVideo.frameCount > 0`
+   になった時点でレンダラを有効にする。`MusicManager.Update` から呼ぶ。
+   **これだけが板を有効化する経路**である。
 
-1. プレーン (`video.gameObject`) を `SetActive(true)`
-2. プレーンに乗っている `InvidiousVideoPlayer` を無効化して破棄
-   (Invidious の公開インスタンスは減衰しており応答 0/13。映像は yt-dlp の URL を使う)
-3. レンダラを **無効** にする
+### 板 (白い quad) を prepare 前に隠す (レビュー B1)
 
-3 番目が必要な理由: `Assets/Game/Art/Materials/VideoPicture.mat` は
-`FlatUnlit` で `_MainTex` が空 (= 白) なので、映像フレームが出る前に板を出すと
-**白い板が画面を覆う**。
+`Assets/Game/Art/Materials/VideoPicture.mat` は `FlatUnlit` で `_MainTex` が空 (= 白)。
+28.7 x 15.84 の板が画面を覆う。
 
-`VideoPicture.ShowWhenFrameReady(video, hasFrame)` は `songVideo.frameCount > 0`
-になった時点でレンダラを有効にする。`MusicManager.Update` から呼ぶ。
+当初の実装では板を隠すのは `VideoPicture.Activate` だけであり、これは
+**`songVideo.isPrepared` が true のときだけ** 呼ばれていた
+(`PrepareLocalVideo` / `StartPlayback`)。Issue #13 (Media Foundation が
+`googlevideo.com` を開けない) の環境では `isPrepared` が true にならず、
+**白い板が永久に出続ける**。つまり改良が効いていなかった。
 
-呼び出し位置: `PrepareLocalVideo` (準備できた時) と `StartPlayback` (準備済みの経路)。
-どちらも **準備できたプレーンだけ** を有効化するので、映像がprepare できなければ
-板は出ない (白の板も出ない)。
+修正: 板は **その曲の平面が選択された時点** (`MusicManager.Start` の
+`YPlayer[GManager.songID].SetActive(true)` の直後) に `VideoPicture.HideBoard` で隠す。
+prepare の完了とは独立に隠すので、prepare が失敗する環境でも白い板は出ない。
+有効化は `ShowWhenFrameReady` だけが行う (EditMode テスト
+`VideoPictureTests.TheBoardIsHiddenBeforeTheVideoIsPrepared` /
+`TheBoardIsHiddenWhenThePlaneIsSelectedAndNotWhenTheVideoIsPrepared` で固定)。
 
 ## 検証
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using FlashBeat.Gameplay;
 using NUnit.Framework;
@@ -7,15 +8,24 @@ using UnityEngine;
 using UnityEngine.Video;
 
 /// <summary>
-/// Issue #233 (-fact 2): 映像プレーンの有効化。
+/// Issue #233: 映像プレーンの制御。
 ///
-/// GameScene.unity の映像プレーン ("1".."29") は **すべて**
-/// <c>m_IsActive: 0</c> で置かれ、MusicManager が有効化していたのは
-/// YoutubePlayer の親だけだった。そのため映像は 1 フレームも描画されなかった。
+/// 事実の訂正 (PR #263 レビュー B2):
+///   * シーンファイル (GameScene.unity) の映像プレーン ("1".."29") は
+///     **すべて** <c>m_IsActive: 0</c> で置かれているが、これは
+///     「シーンが映像表示をランタイムに委ねている」ためである。
+///   * 実行時に <c>MusicManager.Start</c> が
+///     <c>YPlayer[GManager.songID].SetActive(true)</c> で **選択した平面を
+///     有効化する** ので、<c>VideoPicture.Activate</c> 内の SetActive は
+///     実行時には no-op である。
+///   * 映像が 1 フレームも描画されなかった **本当の原因** は、シーンの
+///     VideoPlayer に target renderer も render texture も設定されて
+///     いなかったこと (実行時に <c>MusicManager.WireVideoPicture</c> が
+///     配線する) である。
 ///
-/// シーンファイルは編集しないので、実行時の有効化が必須になる。
-/// ここでは「シーンが非アクティブであること」を固定し、実行時の
-/// 有効化 (板の出し分け) を検証する。
+/// 板 (プレーンの renderer) は prepare 完了とは独立に隠す (レビュー B1):
+/// prepare が成功しない環境 (Issue #13) では prepare が終わるまで板が
+/// 白いまま残るので、「prepare 完了を待つ」方式では直らない。
 /// </summary>
 public class VideoPictureTests
 {
@@ -38,18 +48,22 @@ public class VideoPictureTests
         var go = new GameObject("PicturePlane");
         go.AddComponent<MeshFilter>();
         go.AddComponent<MeshRenderer>();
-        go.AddComponent<VideoPlayer>();
+        var video = go.AddComponent<VideoPlayer>();
+        // テスト中に VideoPlayer 自身が再生を始めないようにする。
+        video.playOnAwake = false;
         created.Add(go);
         return go;
     }
 
     /// <summary>
-    /// シーンの映像プレーンが非アクティブであることを固定する。
-    /// これが崩れると「実行時に有効化する」理由がなくなるので、
-    /// 修正が不要になったことを検出できる。
+    /// シーンは映像プレーンを非アクティブなまま置き、**実行時に選択した
+    /// 平面だけを有効化する** という運用であることを固定する。
+    ///
+    /// (レビュー B2: 「平面は一度も有効化されなかった」という誤ったモデルを
+    /// 固定していたテストを、市场に即した言い換えに置き換える。)
     /// </summary>
     [Test]
-    public void EveryPicturePlaneInTheSceneIsInactive()
+    public void TheSceneDelegatesThePictureDisplayToTheRuntime()
     {
         string scene = File.ReadAllText(SourcePath("Assets/" + ScenePath));
         var videoFileIds = ReadVideoPlayerFileIds(scene);
@@ -71,6 +85,57 @@ public class VideoPictureTests
         }
 
         Assert.GreaterOrEqual(inactive, 20, "No inactive picture plane was found in the scene.");
+
+        // ランタイムが「選択した平面」を有効化している (ここが誤った原因
+        // 説明の訂正点)。
+        string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MusicManager.cs"));
+        StringAssert.Contains("YPlayer[GManager.songID].SetActive(true)", manager,
+            "The runtime has to enable the picture plane of the selected song.");
+    }
+
+    /// <summary>
+    /// レビュー B1: **prepare の前** から板 (白い quad) が見えないこと。
+    ///
+    /// 板は「その曲の平面が選択された時点」で隠され、フレームが出てきた
+    /// ときだけ <see cref="VideoPicture.ShowWhenFrameReady"/> が出す。
+    /// </summary>
+    [Test]
+    public void TheBoardIsHiddenBeforeTheVideoIsPrepared()
+    {
+        var go = CreatePicturePlane();
+        var video = go.GetComponent<VideoPlayer>();
+        var renderer = go.GetComponent<Renderer>();
+
+        // シーンのプレーンと同じく、レンダラは有効な状態から始まる。
+        Assert.IsTrue(renderer.enabled, "The board starts visible in the scene.");
+
+        Assert.IsTrue(VideoPicture.HideBoard(video), "The board should be hideable.");
+        Assert.IsFalse(renderer.enabled, "The board must be hidden before the video is prepared.");
+        Assert.IsFalse(VideoPicture.IsVisible(video));
+
+        // prepare が失敗しても、フレームは出ない → 板は出ない。
+        VideoPicture.ShowWhenFrameReady(video, false);
+        Assert.IsFalse(renderer.enabled, "The board must stay hidden while there is no frame.");
+    }
+
+    /// <summary>
+    /// 板を隠すのは「prepare 完了を待つ」ためではなく、
+    /// **平面が選択された時点** である (prepare 失敗環境でも効くため)。
+    /// </summary>
+    [Test]
+    public void TheBoardIsHiddenWhenThePlaneIsSelectedAndNotWhenTheVideoIsPrepared()
+    {
+        string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MusicManager.cs"));
+
+        int select = manager.IndexOf("YPlayer[GManager.songID].SetActive(true)", System.StringComparison.Ordinal);
+        int hide = manager.IndexOf("VideoPicture.HideBoard(songVideo)", System.StringComparison.Ordinal);
+        int prepared = manager.IndexOf("songVideo.isPrepared", System.StringComparison.Ordinal);
+
+        Assert.GreaterOrEqual(select, 0, "The runtime has to select the picture plane of the song.");
+        Assert.Greater(hide, select,
+            "The board has to be hidden when the picture plane of the song is selected.");
+        Assert.Greater(prepared, hide,
+            "The board must not wait for the video to be prepared - a failed prepare would keep the white board.");
     }
 
     /// <summary>
@@ -120,24 +185,51 @@ public class VideoPictureTests
 
     /// <summary>
     /// 死んだ Invidious 経路 (機能しない公開インスタンス) が
-    /// プレーンに残らないことをソースで固定する。
+    /// プレーンから **外される** ことを **挙動** で固定する (レビュー S6:
+    /// ソース grep ではなく挙動で検証する)。
     /// </summary>
     [Test]
     public void TheDeadInvidiousPlayerIsRemovedFromThePicture()
     {
-        string source = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/VideoPicture.cs"));
-        StringAssert.Contains("GetComponent<InvidiousVideoPlayer>", source,
-            "The picture plane must drop the Invidious player component.");
-        StringAssert.Contains("Destroy", source,
-            "The Invidious player component must be destroyed, not only disabled.");
+        var go = CreatePicturePlane();
+        // 非 active のままコンポーネントを足す: Awake が走らないので
+        // InvidiousVideoPlayer の Awake / OnDestroy が壊れずに済む。
+        go.SetActive(false);
 
-        // MusicManager が実際にこの補助を呼んでいること
-        // (呼ばないと補助が死んだコードになる)。
-        string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MusicManager.cs"));
-        StringAssert.Contains("VideoPicture.Activate(songVideo)", manager,
-            "MusicManager must activate the picture plane at runtime.");
-        StringAssert.Contains("VideoPicture.ShowWhenFrameReady(songVideo", manager,
-            "MusicManager must reveal the board once the video has frames.");
+        var video = go.GetComponent<VideoPlayer>();
+        System.Type invidiousType = FindInvidiousType();
+        Assert.IsNotNull(invidiousType, "The youtube-player package (InvidiousVideoPlayer) is gone.");
+
+        var invidious = go.AddComponent(invidiousType);
+        Assert.IsNotNull(invidious, "The Invidious player component could not be added.");
+
+        // Awake は EditMode で走らないので、OnDestroy が購読解除できる
+        // ように VideoPlayer を差し込んでおく。
+        SetInvidiousVideoPlayer(invidious, video);
+
+        Assert.IsTrue(VideoPicture.Activate(video), "The picture plane should be activated.");
+        Assert.IsNull(go.GetComponent(invidiousType),
+            "The dead Invidious player must be removed from the picture plane.");
+    }
+
+    // --- InvidiousVideoPlayer (リフレクションで触る) ------------------------
+
+    static System.Type FindInvidiousType()
+    {
+        foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType("YoutubePlayer.Components.InvidiousVideoPlayer");
+            if (type != null) return type;
+        }
+        return null;
+    }
+
+    static void SetInvidiousVideoPlayer(Component invidious, VideoPlayer video)
+    {
+        var field = invidious.GetType().GetField("<VideoPlayer>k__BackingField",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(field, "The VideoPlayer property of InvidiousVideoPlayer is gone.");
+        field.SetValue(invidious, video);
     }
 
     // --- シーンのパース補助 -------------------------------------------------

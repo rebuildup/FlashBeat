@@ -222,6 +222,15 @@ public class MusicManager : MonoBehaviour
         }
 
         sceneStartTime = Time.time;
+
+        // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
+        // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
+        // Media Foundation が googlevideo.com を開けない) では prepare が
+        // 終わるまで板は白いままなので、prepare 完了を待つ方式では
+        // 「白い板」問題がそのまま残る。映像のフレームが 1 枚も出ていない
+        // 間は板を出さない。有効化は ShowWhenFrameReady だけが行う。
+        VideoPicture.HideBoard(songVideo);
+
         AttachLevelProbe();
 
         load.SetActive(true);
@@ -564,11 +573,9 @@ public class MusicManager : MonoBehaviour
     {
         if (GManager.songID >= YPlayer.Length) return;
 
-        var invidious = YPlayer[GManager.songID].GetComponent<InvidiousVideoPlayer>();
-        if (invidious == null) return;
+        // 実装は VideoPicture 側に一本化している (レビュー S6: 二重に壊さない)。
+        if (!VideoPicture.RemoveDeadInvidiousPlayer(YPlayer[GManager.songID])) return;
 
-        invidious.enabled = false;
-        Destroy(invidious);
         Debug.Log($"[MusicManager] InvidiousVideoPlayer removed for '{songName}' (yt-dlp takes over)");
     }
 
