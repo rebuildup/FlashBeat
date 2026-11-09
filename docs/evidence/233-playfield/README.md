@@ -170,10 +170,64 @@ cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`or
 変えたのはこの 2 テストだけ (他の 1130 は通った)。変更加入後は元に戻し、
 1132 / 1132 に戻ることを確認済み。
 
-### macOS ビルドと 3 解像度の実画面
+### macOS 実機 (2560x1664 実ディスプレイ全画面) — 実施済み
 
-- 1920x1080 / 2560x1440 / 2560x1664 を**実ディスプレイ全画面**で実行 (窓リサイズでの
-  擬似全画面は不可)。スクリーンショットは `docs/evidence/233-playfield/` に置く。
+本機の実ディスプレイはネイティブ 2560x1664 (Liquid Retina) のため、
+「実ディスプレイ全画面」の条件を満たした状態で実行した
+(窓リサイズでの擬似全画面は不可。`[FullscreenDiagnostics]` 行で実効値を確認する)。
+
+| 項目 | 値 |
+| --- | --- |
+| ビルド | Unity 6000.5.6f1 / macOS スタンドアロン (`BuildScript.BuildStandaloneMacOS`) |
+| 起動 | `-screen-width 2560 -screen-height 1664 -screen-fullscreen 1 -autotest v6` |
+| 実効解像度 | `screen=2560x1664, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299` (Player.log の `[FullscreenDiagnostics]`) |
+| autotest 結果 | **pass=25 / fail=0** (旧:main では `no legacy graphics are visible` が fail していた) |
+| スクリーンショット | `screenshots/game-03-prepare-2560x1664.png` / `game-05-gameplay-2560x1664.png` / `game-06-dense-2560x1664.png` |
+| Player.log | `screenshots/Player-2560x1664.log` |
+| 判定結果 | `screenshots/autotest-v6-result.txt` |
+
+#### 実際に見えたもの (スクリーンショットの読み取り)
+
+| 要素 | 結果 | 根拠 |
+| --- | --- | --- |
+| **映像 (動画プレーン)** | **出ている** | ゲーム画面全体でアニメーションが再生されている。`fact 2` の「映像プレーンが 1 フレームも描画されない」は解消 |
+| **レーン構造 (境界 9 本)** | **出ている** | 判定線から画面上端へ伸びる斜めの白線が 9 本 (8 レーンの境界) |
+| **判定ライン** | **出ている** | 画面下部 (y≈1480/1664) を横切る全幅の白線 |
+| **ノート** | **出ている** | 密区間の撮影 (`game-06-dense-2560x1664.png`, mediaTime=7.37) で **白い横棒 5 本** が z=3.34..8.06 に並んでいる (Player.log の `[AutoTestV6] media time at 2nd capture`) |
+| **歌詞 (v6 HUD)** | 出ている | 中央の黒パネルに「ああ / ala」 |
+| **旧 v5 歌詞の二重表示** | **出ていない** | 旧歌詞オブジェクト (QuestionText / FuriganaText / RomajiText) は非 active。autotest に検査を追加 |
+
+#### 旧 UI 残存検査の誤検出を直した
+
+旧 main の autotest は `no legacy graphics are visible` で **fail** になっていた。
+原因は誤検出で、実行時生成の旧ロード表示 (`LoadingOverlay`) は alpha 0 で待機しているだけだが、
+`Graphic.isActiveAndEnabled` が true を返すため「見えている」と判定されていた。
+
+- 判定を `GraphicVisibility.IsDrawn` (祖先 CanvasGroup の alpha を考慮) に変更
+- 旧歌詞オブジェクトが active でないこと、旧ロード表示が描かれていないことを
+  **別個の検査**として追加 (EditMode テスト 9 件を追加)
+
+#### 確認できたこと (この macOS 実機で確認できた範囲)
+
+1. プレイフィールド (映像 / レーン / 判定ライン / ノート) が **実際に描画される**。
+2. 可視時間は **1.600 秒** (速度 10) になり、譜面の疎な区間でも空画面にならない。
+3. 旧 v5 の歌詞と v6 の歌詞の **二重表示はない**。
+
+#### 実機で確認できていないこと (正直に)
+
+1. **Windows 実機 (Windows 11 + Unity 6000.5.6f1) では未検証。**
+   Media Foundation の URL 読み込み失敗 (issue #13) があるため、Windows では
+   映像プレーンが有効化されてもフレームが出ない可能性がある。macOS で出した証拠は
+   Windows の挙動を保証しない。
+2. **判定 (キー入力 → スコア) と曲終了 → Result 到達は、この撮影では未確認。**
+   autotest v6 は Space だけを送るので、譜面中のノーツは Miss になる。
+   曲終了 → Result の実機検証は別 PR (#258) の担当。
+3. **HUD の歌詞パネルがプレイフィールドの中央を覆う** (上部のノートが隠れる)。
+   v6 HUD のレイアウト設計 (#223) の領域であり、本 PR では直していない。
+4. **fact 3 (メディア時計が 0.00 → 14.80 秒に飛ぶ) は未解決。**
+   原因が特定できておらず、再現手順だけ記録してある (下「fact 3」)。
+5. 映像プレーンを有効化すると **背景が黒から動画に変わる**。
+   「ゲーム画面として見やすいか」は他者の目視判断が必要。
 
 ## 未検証点 / 残存リスク
 
@@ -190,6 +244,12 @@ cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`or
    再生中だけ有効。
 5. v6 モード (`V6UiMode.Playfield` / `VideoDim`) との併用はコード上は排他になっている
    だけ。v6 側の担当者の検証は別。
+6. **HUD の歌詞パネルがプレイフィールドの中央を覆う。** 密区間の撮影では
+   中央付近のノートが歌詞パネルの下に隠れている。v6 HUD のレイアウト設計 (#223) の
+   領域であり、本 PR では直していない (フォローアップが必要)。
+7. **キー入力 → 判定 → スコア → 曲終了 → Result** はこの撮影では未確認。
+   autotest v6 は Space だけを送るため、譜面中のノーツは Miss になる。
+   曲終了 → Result の実機検証は PR #258 の担当。
 
 ## fact 3: メディア時計の飛ばし (未解決)
 

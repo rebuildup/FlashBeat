@@ -1,0 +1,189 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.012 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x106c7c250]: surface size 3420x2148
+UnloadTime: 0.502583 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-09T14:50:02Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_V0jswe.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.825417 ms
+Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3465.
+Total: 1.228667 ms (FindLiveObjects: 0.066542 ms CreateObjectMapping: 0.104541 ms MarkObjects: 1.043125 ms  DeleteObjects: 0.014417 ms)
+
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+ro-dokanryou
+[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+e1b589b)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
+[UpdateChecker] staging 済みの新版を再利用します: FlashBeat-0.1.14-macos-39f0c3c.zip (適用はユーザー確認時のみ)。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[AutoTestV6] PASS the select scene is loaded
+[AutoTestV6] PASS the v6 select view exists
+[AutoTestV6] PASS the select screen lists real songs
+[AutoTestV6] PASS the screenshot 01-select was written
+[AutoTestV6] PASS the data source is present
+[AutoTestV6] PASS the catalog has more than one song
+[AutoTestV6] PASS a song with a real title exists
+[AutoTestV6] PASS the selection follows the picked song
+[AutoTestV6] PASS the selected song has a title
+[AutoTestV6] PASS the screenshot 02-select-selected was written
+[PlaySession] session fixed: songId=1 title='ロストアンブレラ' remoteId='lost-umbrella' chartVersion=2 chart=snapshot
+[Perf] scene load start GameScene
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.491708 ms
+[Perf] notes parse 0ms (268 notes)
+[Perf] scene load end GameScene 77ms
+[MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[MusicManager] yt-dlp -F videoId=DeKLpgzh-qQ formats=37 ok
+[MusicManager]   format sb2 mhtml 48x27 v=images a=
+[MusicManager]   format sb1 mhtml 80x45 v=images a=
+[MusicManager]   format sb0 mhtml 160x90 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'ロストアンブレラ': combined mp4/H.264 itag=18 640x360 (merge available: True)
+[MusicManager] video file: /Users/rebui/Library/Application Support/KimuraYusuke/FlashBeat/FlashBeatMedia/DeKLpgzh-qQ/merged.mp4 (cache)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+[AutoTestV6] PASS ready starts the game scene
+[AutoTestV6] PASS the started song is the picked one
+Unloading 79 unused Assets to reduce memory usage. Loaded Objects now: 6855.
+Total: 2.772167 ms (FindLiveObjects: 0.137167 ms CreateObjectMapping: 0.159375 ms MarkObjects: 2.402625 ms  DeleteObjects: 0.072875 ms)
+
+[Perf] notes instantiate 268 notes in 2952ms
+[MusicManager] picture wired to the renderer of '1' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
+[MusicManager] no bundled wav for 'ロストアンブレラ' - the YouTube media is the only sound source
+[Perf] media ready 20ms
+[MusicManager] media ready: song='ロストアンブレラ' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6] PASS the screenshot 03-game was written
+[AutoTestV6] PASS no legacy graphics are visible
+[AutoTestV6] PASS no legacy lyric objects are active
+[AutoTestV6] PASS the legacy loading overlay is not drawn
+[AutoTestV6] PASS the original 3D lanes are kept
+[AutoTestV6] PASS the v6 hud exists
+[AutoTestV6] PASS the media is ready
+[AutoTestV6] PASS the screenshot 04-media-ready was written
+[MusicManager] PLAYBACK_START song='ロストアンブレラ' videoId='DeKLpgzh-qQ' source=StreamCombined mediaTime=0.000 wallClock=2026-11-09T23:50:17.848 gameTime=12.010
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+Miss
+Miss
+[AutoTestV6] PASS the playback started
+[AutoTestV6] PASS the media clock advances
+[AutoTestV6] media time at capture = 1.47 visible notes = 4 z range = 2.10 .. 6.81
+[AutoTestV6] PASS the capture lands in a dense chart region
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.4757 peak=0.5281 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
+Miss
+Miss
+[AutoTestV6] PASS the screenshot 05-gameplay was written
+Miss
+Miss
+[MusicManager] STATUS mediaTime=4.03 audioMode=StreamCombined rms=0.2438 peak=0.6417 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=6 failure=None
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=6.03 audioMode=StreamCombined rms=0.3693 peak=0.6615 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=10 failure=None
+Miss
+Miss
+[AutoTestV6] media time at 2nd capture = 7.37 visible notes = 5 z range = 3.34 .. 8.06
+[AutoTestV6] PASS the screenshot 05b-gameplay-dense was written
+[AutoTestV6] RESULT pass=25 fail=0
+Thread 0x16d3f7000 may have been prematurely finalized
+Thread 0x16d063000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16c087000 may have been prematurely finalized
+CodeReloadManager destroyed
