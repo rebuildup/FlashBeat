@@ -85,6 +85,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/check/verify-stage.p
 
 切り分け手順と推奨手順は [`docs/operations/unity-ci-license.md`](../operations/unity-ci-license.md) を参照。
 
+## 1.7 main 統合後の再検証（2026-11-09・PR #249 merge 済み）
+
+PR #249（v6 統合 + Win64 CI 再構成）が `main` に merge された状態で、各ゲートを
+**再実行**した結果。Windows 実機に関する記述は §1.6 と同じく **未証明** のまま。
+
+| ゲート | 結果 | 根拠 |
+|---|---|---|
+| Unity EditMode テスト | **1071 / 1071 成功**（失敗 0 / skipped 0） | Unity 6000.5.6f1 / macOS batchmode、`TestResults.xml` を直接パース（`a4bda77`） |
+| web テスト | **node 73 件 + vitest 399 件 すべて成功** | `cd web && bun run test` |
+| 視覚ゲート `npm run visual` | **exit 1 (FAIL)** — `home@390x844` の横スクロール溢出 | PR 内で記録済みの失敗ベースライン（`specs/075-visual-gate/evidence/2026-11-08/README.md`）と一致。**新規の regressions ではなく未解決 issue**（#74 / #75 / #68 系） |
+| ワークフロー構文 | YAML パース（node `yaml`）/ 全 bash `bash -n` / 全 pwsh `pwsh [scriptblock]::Create` すべて OK | `.github/workflows/build-macos.yml` / `build-win64.yml` |
+| Personal ライセンス判定 | bash・pwsh 双方で Personal / Pro / BOM+base64 の実入力により確認 | `.ulf` の `DeveloperData Value="Personal"` / `SerialMasked Value="XXXX"` を検出して明示的に失敗 |
+| CodeRabbit 指摘 | **8 thread すべて解消**（返信 + resolve 済み） | PR #249 |
+| Windows 実機 / Win64 CI 緑 / Win64 成果物 (ZIP + SHA-256) | **未証明** | ライセンス未設定により `license-precheck` が blocker として停止。展示 PC は無操作 |
+| Pencil デザイン全画面一致 | **未受入** | 契約照合表は実装コメントに残置済み。3 解像度の受入は Windows 実機に残ります |
+
 ## 2. Artifact index (SHA)
 
 | Stage | Artifact (external, Git-free) | Build tree | `FlashBeat.exe` SHA-256 | Folder fingerprint | Files / bytes | Built (exe mtime) |
