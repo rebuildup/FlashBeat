@@ -1,6 +1,6 @@
 # Evidence — Issue #233: 「1 曲完走 → Result 画面到達」の実機ハーネス
 
-日付: 2026-11-09 / Branch: `w/w233-songend-harness` (base `origin/main` = d8c1b39) / 対象: macOS 実機 (Unity 6000.5.6f1 の macOS player)
+日付: 2026-11-09 / Branch: `w/w233-songend-harness` (base `origin/main` = 40b0dbc) / 対象: macOS 実機 (Unity 6000.5.6f1 の macOS player)
 
 ## 1. 何を証明するための仕組みか
 
@@ -35,7 +35,7 @@ duration (44 秒) を基準に作られているため、**約 43 秒の再生�
 
 | ファイル | 変更 | 理由 |
 |---|---|---|
-| `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `SongEndState` / `ResultTriggered` の public getter を追加 | ハーネスが「曲終了が検出された」ことを **観測** するため。状態機械 (`SongEndMachine`) 自体は無変更。 |
+| `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `SongEndState` / `ResultTriggered` / `SongEndForcedByDeadline` の public getter を追加 | ハーネスが「曲終了が検出された」ことと「**期限切れ強制完了ではない**」ことを **観測** するため。状態機械 (`SongEndMachine`) 自体は無変更。 |
 | `Assets/Game/Scripts/Gameplay/Judge.cs` | `IsLaneKeyPressed` が `Input.GetKeyDown` ではなく `KeyBindings.GetKeyDownOrInjected` を見る | 検証ハーネスからレーンのキーを **注入** できるようにするため (「キーで判定される」を実証するため)。`GetKeyDownOrInjected` は `Input.GetKeyDown || 注入されたキー` なので、**製品ビルドでは注入が起きず挙動は従来と完全に同じ**。参照するキー表 (`KeyBindings.GetKeys`) も従来通り。 |
 
 **注入用の口は製品コードに開いていない**: クロック注入も譜面の差し替えも行っていないため、
@@ -59,11 +59,16 @@ duration (44 秒) を基準に作られているため、**約 43 秒の再生�
   4. メディアのパイプラインが完了する (`MediaReady`)
   5. 再生が始まる (`PlaybackStarted`)
   6. メディア時計が進む (`MediaTimeNow` が増加)
-  7. ノーツが判定される (`perfect+great+bad+miss > 0`)
-  8. スコアとコンボが動く (`perfect+great > 0` または `score > 0`)
-  9. **曲終了が検出される** (`SongEndMachine.State == Completed`)
-  10. **ResultScene へ遷移する** (`SceneManager.GetActiveScene().name == "ResultScene"`)
-  11. **Result 画面が描画されている** (v6 の `V6 Result Canvas` が active かつ空でない文字がある)
+  7. **譜面の全ノーツが確定する** (`GManager.settledNoteCount` == 譜面のノーツ数)
+  8. **実行時のノーツ数が譜面と一致する** (`NotesManager.noteNum` == 譜面のノーツ数)
+  9. **スコアが 0 より大きい** (`GManager.score > 0`)
+  10. **コンボが 0 より大きくなる** (再生中に `GManager.combo` のピーク > 0、`GManager.maxCombo` > 0)
+  11. **曲終了が検出される** (`SongEndMachine.State == Completed`)
+  12. **期限切れ強制完了ではない** (`MusicManager.SongEndForcedByDeadline` == false)
+  13. **ResultScene へ遷移する** (`SceneManager.GetActiveScene().name == "ResultScene"`)
+  14. **Result 画面が v6 の Result Canvas の中で描画されている**
+      (`V6 Result Canvas` が active、その **子孫** に空でない文字があり、
+      その文字に **曲名** と **最終スコア** が含まれる)
 - 出力: `[AutoTestV6SongEnd] RESULT pass=N fail=M` / `<outDir>/autotest-v6songend-result.txt` /
   `<outDir>/autotest-v6songend-NN-*.png`
 - 再現スクリプト: `script/mac-songend-harness.sh`
@@ -85,7 +90,8 @@ duration (44 秒) を基準に作られているため、**約 43 秒の再生�
   合わない結果 = 成功偽装になる。EditMode でこの関係を固定する)
 - その前提のもとで **本物の `SongEndMachine` が `ForcedByDeadline` なしで `Completed` になる**
   (メディア時刻を 0.05 秒刻みで進め、終了条件と pending を実データから再現)
-- `MusicManager` が曲終了状態を観測できる (新規 getter が実体に入っている)
+- `MusicManager` が曲終了状態を観測できる (新規 getter が実体に入っている)。
+  `SongEndForcedByDeadline` も「新しい MusicManager では false」であることを確認する
 
 ### `GManager.nextNotes` と HOLD について (Issue #182 / PR #256 との関係)
 
@@ -96,9 +102,12 @@ duration (44 秒) を基準に作られているため、**約 43 秒の再生�
   これらは `JudgeScoreboard` の集計で **ノーツ 1 個につき 1 判定** (HOLD 中断は BAD への
   *差し替え* で二重加算されない) なので、判定合計はノーツ数に一致する。
 - 一方 `GManager.nextNotes` は `Judge.message()` が呼ばれるたび +1 される **判定イベント数**
-  で、HOLD 中断では同じノーツが 2 回分として数えられる。PR #256 はこれを
-  `1 + JudgeScoreboard.Settled` に直す。**本ハーネスの挙動は nextNotes の定義に依存しない
-  ので、PR #256 を入れても変わらない** (本ブランチは `origin/main` 起点のため旧定義のまま)。
+  で、HOLD 中断では同じノーツが 2 回分として数えられる。PR #256 (#182) が
+  正本の `GManager.settledNoteCount` (= `JudgeScoreboard.Settled`) を追加し、
+  `nextNotes` は「1 + 確定数」の互換値になった。本ブランチは **PR #256 取り込み後の
+  `origin/main` (40b0dbc) 起点** なので、確定数は `GManager.settledNoteCount` から読む。
+  (`settledNoteCount == Perfect + Great + Bad + Miss` が定義なので、判定の内訳の総数と
+   必ず一致する。本ハーネスはこの **正** の値を「全ノーツ確定」の根拠にする。)
 - ただし **HOLD を含む譜面での実機確認は今回できていない**。カタログの譜面は
   全て Tap のみで HOLD を含まない (`ChartDataIntegrityTests.EveryNoteOfTheExistingChartsIsATapNote`
   が固定) ため、HOLD 実機ケースは別譜面を用意する必要があり、本作業の範囲外。
@@ -109,56 +118,75 @@ duration (44 秒) を基準に作られているため、**約 43 秒の再生�
 
 ```
 Unity -batchmode -quit -projectPath . -executeMethod BuildScript.BuildStandaloneMacOS
-→ [BuildScript] Build succeeded: 409386403 bytes, output to Builds/macOS/FlashBeat.app
+→ [BuildScript] Build succeeded: 409424755 bytes, output to Builds/macOS/FlashBeat.app
 ```
 
-起動 (`script/mac-songend-harness.sh`): `open -n Builds/macOS/FlashBeat.app --args
--screen-width 2560 -screen-height 1664 -screen-fullscreen 1 -autotest v6songend
--autotest-out <dir> -logFile <dir>/Player.log`
+起動 (`script/mac-songend-harness.sh`): **実行ファイルを直叩き**して pid を保持する
+(ユーザーが手元で起動した FlashBeat は kill しない。`pkill` / `osascript` は使わない)。
+
+```
+Builds/macOS/FlashBeat.app/Contents/MacOS/FlashBeat \
+  -screen-width 2560 -screen-height 1664 -screen-fullscreen 1 \
+  -autotest v6songend -autotest-out <dir> -logFile <dir>/Player.log
+```
+
 = **実ディスプレイ (2560x1664) の全画面**。窓リサイズによる擬似全画面ではない。
+(ログの `FullscreenDiagnostics`: `screen=2560x1664 ... fullScreen=True
+fullScreenMode=FullScreenWindow`)。スクリプトは **失敗を隠さない**: 結果ファイルが無い /
+`fail=0` でない / `Player.log` に `FAIL ` 行がある のいずれかなら非 0 で終了する
+(スクリプトの終了コードが実行の合否の唯一の根拠)。
 
-#### 実行 A (`Builds/songend-run4/`, メディアを再ダウンロードした実行)
+#### 実行 A (`Builds/songend-20261110-001010/`, レビュー指摘の修正後の実行)
 
-結果ファイル `Builds/songend-run4/autotest-v6songend-result.txt`:
+結果ファイル `Builds/songend-20261110-001010/autotest-v6songend-result.txt`:
 
 ```
-[AutoTestV6SongEnd] RESULT pass=21 fail=0
+[AutoTestV6SongEnd] RESULT pass=29 fail=0
 song=ツイッターランド
 songEndState=Completed
+forcedByDeadline=False
 scene=ResultScene
-perfect=66 great=21 bad=14 miss=29
-score=626153 combo=28
+perfect=116 great=0 bad=1 miss=13
+judged=130
+settled=130
+chartNotes=130 runtimeNotes=130
+score=893846 combo=111 maxCombo=111 comboPeak=111
 ```
 
-判定合計 = 66 + 21 + 14 + 29 = **130 = 譜面のノーツ数と一致**。
+判定合計 = 116 + 0 + 1 + 13 = **130 = 譜面のノーツ数と一致**、
+かつ `settled == chartNotes == runtimeNotes == 130`、
+`score = 893,846 > 0`、`combo / maxCombo / comboPeak = 111 > 0`、
+`forcedByDeadline=False` (= 期限切れ強制完了ではない)。
 
 `Player.log` の抜粋:
 
 ```
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True
 [MusicManager] media plan 'ツイッターランド': combined mp4/H.264 itag=18 640x360 (merge available: True)
-[MusicManager] video file: /Users/rebui/Library/Application Support/KimuraYusuke/FlashBeat/FlashBeatMedia/e_qQEU_uGjw/merged.mp4 (downloaded)
+[MusicManager] video file: .../FlashBeatMedia/e_qQEU_uGjw/merged.mp4 (cache)
 [MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
 [MusicManager] media ready: song='ツイッターランド' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
-[MusicManager] PLAYBACK_START song='ツイッターランド' videoId='e_qQEU_uGjw' source=StreamCombined mediaTime=0.000 wallClock=2026-11-09T18:23:34.234
-[MusicManager] STATUS mediaTime=16.83 audioMode=StreamCombined rms=0.4369 peak=0.5071 video[playing=True frame=4158 prepared=True] perfect=6 great=2 bad=1 miss=20
-[MusicManager] STATUS mediaTime=41.03 audioMode=StreamCombined rms=0.4588 peak=0.6895 video[playing=True frame=4158 prepared=True] perfect=66 great=21 bad=14 miss=29
+[MusicManager] PLAYBACK_START song='ツイッターランド' videoId='e_qQEU_uGjw' source=StreamCombined mediaTime=0.000 wallClock=2026-11-10T00:10:33.374 gameTime=11.677
+[MusicManager] STATUS mediaTime=19.77 audioMode=StreamCombined rms=0.4345 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=36 great=0 bad=1 miss=13 failure=None
+[MusicManager] STATUS mediaTime=33.90 audioMode=StreamCombined rms=0.2795 peak=0.6951 video[playing=True frame=4158 prepared=True] perfect=92 great=0 bad=1 miss=13 failure=None
 [MusicManager] song completed: judged 130/130, mediaEnded=False, state=Completed
+[AutoTestV6SongEnd] playback summary: songEndState=Completed mediaTime=44.07 hitsSent=118 perfect=116 great=0 bad=1 miss=13 score=893846 combo=111 maxCombo=111 comboPeak=111 judged=130 settled=130 chartNotes=130 runtimeNotes=130 forcedByDeadline=False
 ```
 
 読み取れること:
 
-- **本物のメディア経路**: yt-dlp が 44  formats を列挙し、`combined mp4/H.264 itag=18 640x360`
-  を選び、ffmpeg でマージした `merged.mp4` を **この実行で実際にダウンロード** した
-  (キャッシュ再利用ではない)。
-- **音が出ている**: `rms` が 0.11〜0.49 で 0 になっていない (bundled wav は無いので
+- **音が出ている**: `rms` が 0.24〜0.47 で 0 になっていない (bundled wav は無いので
   YouTube メディアの音声が唯一の音源)。
 - `mediaEnded=False` = YouTube 動画 (139 秒) 自体は終わっていないが、**カタログ曲長
   (44 秒) の終了条件 (mediaTime >= duration − 1 = 43 秒) が成立して曲終了になった**。
-  `judged 130/130` と `state=Completed` であり、**期限切れ強制完了ではない**。
-- 判定は時間とともに積み上がっている (`mediaTime=16.83` で perfect=6 / great=2 / bad=1
-  → `mediaTime=41.03` で perfect=66 / great=21 / bad=14)。
+  `judged 130/130` と `state=Completed` であり、**期限切れ強制完了ではない**
+  (`forcedByDeadline=False`)。
+- 判定は時間とともに積み上がっている (`mediaTime=19.77` で perfect=36 →
+  `mediaTime=33.90` で perfect=92)。
+- **毎フレーム注入**に直した結果、当たり判定 (perfect) が 116/130 と 大幅に良くなった
+  (修正前は 0.25 秒周期のポーリングで 66〜74 個しか当たらなかった)。
 
-ハーネスのアサーションは 21 件すべて PASS で、**FAIL 行は 1 行も出ていない**:
+ハーネスのアサーションは 29 件すべて PASS で、**FAIL 行は 1 行も出ていない**:
 
 ```
 [AutoTestV6SongEnd] PASS the select scene is loaded
@@ -173,61 +201,83 @@ score=626153 combo=28
 [AutoTestV6SongEnd] PASS the screenshot 02-game was written
 [AutoTestV6SongEnd] PASS the music manager exists
 [AutoTestV6SongEnd] PASS the media pipeline finished
-[AutoTestV6SongEnd] media: ready=True audioMode=StreamCombined videoPrepared=True failure=None
 [AutoTestV6SongEnd] PASS the playback started
 [AutoTestV6SongEnd] PASS the screenshot 03-gameplay was written
-[AutoTestV6SongEnd] playback summary: songEndState=Completed mediaTime=43.97 hitsSent=111 perfect=66 great=21 bad=14 miss=29 score=626153 combo=28
 [AutoTestV6SongEnd] PASS the media clock advances
-[AutoTestV6SongEnd] PASS the notes are judged
-[AutoTestV6SongEnd] PASS the score and the combo move
+[AutoTestV6SongEnd] PASS the chart note count is known
+[AutoTestV6SongEnd] PASS the runtime note count matches the chart (runtimeNotes == chartNotes)
+[AutoTestV6SongEnd] PASS every chart note is settled (settled == chart notes)
+[AutoTestV6SongEnd] PASS the score is greater than zero
+[AutoTestV6SongEnd] PASS the combo rises above zero during the playback (GManager.combo peaked above zero)
+[AutoTestV6SongEnd] PASS the peak combo is recorded (GManager.maxCombo > 0)
 [AutoTestV6SongEnd] PASS the song end state machine completes
+[AutoTestV6SongEnd] PASS the song end is not a forced deadline completion
 [AutoTestV6SongEnd] PASS the result scene is loaded
-[AutoTestV6SongEnd] PASS the result screen is drawn
-[AutoTestV6SongEnd] result screen: v6ResultCanvas=True nonEmptyText=True texts=182 scene=ResultScene
+[AutoTestV6SongEnd] PASS the v6 result canvas exists
+[AutoTestV6SongEnd] PASS the v6 result canvas has non-empty text
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the song title
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the final score
 [AutoTestV6SongEnd] PASS the screenshot 04-result was written
-[AutoTestV6SongEnd] RESULT pass=21 fail=0
+[AutoTestV6SongEnd] RESULT pass=29 fail=0
 ```
 
-#### 実行 B (`Builds/songend-run3/`, メディアキャッシュを再利用した実行) = 再現性
+Result Canvas の実測 (S2 の強化) :
+
+```
+[AutoTestV6SongEnd] result screen: v6ResultCanvas=True nonEmptyTextUnderCanvas=True titleFound=True scoreFound=True textsUnderCanvas=51 texts=182 scene=ResultScene
+```
+
+= 「`V6 Result Canvas` の **子孫** に空でない文字がある (51 文字 / Canvas 全体で 182)」
+かつ「その中に **曲名** がある」かつ「**最終スコア** がある」。
+
+#### 実行 B (修正前, `Builds/songend-run4/` / `Builds/songend-run3/`) = 参考 (レビュー前)
 
 ```
 [AutoTestV6SongEnd] RESULT pass=21 fail=0
 song=ツイッターランド
 songEndState=Completed
 scene=ResultScene
-perfect=74 great=25 bad=21 miss=10
-score=716923 combo=22
+perfect=66 great=21 bad=14 miss=29
+score=626153 combo=28
 ```
 
 2 回の独立実行で **どちらも pass=21 fail=0 / songEndState=Completed / scene=ResultScene**、
 かつ **どちらも判定合計 130 = ノーツ数**。判定の粒 (perfect/great/bad/miss の内訳) は
 キーの注入タイミングで変わるので run 間で差が出るのは想定どおり。
+(この 2 回は **修正前の実装** — アサーション 21 件・0.25 秒周期ポーリング・結果ファイルに
+`fail=0` を書かない — での実行であり、**スクリプトは常に 0 で終了していた**。
+修正後は実行 A がそのままの合否判定になる。)
 
 #### スクリーンショット (ゲーム内で `ScreenCapture` した実機の画面)
 
 | ファイル | 画面 | 目視所見 |
 |---|---|---|
-| `Builds/songend-run4/autotest-v6songend-01-01-select.png` | 選曲画面 | 「ツイッターランド」が**実機の画面上で選択**されている (ジャケット画像が描画)。詳細パネルに `No.4 / STEAKA`、BPM 142 / NOTES 130 / LEVEL 15 / BEST 738,461。曲リストは 28/28 を表示し、対象行だけがハイライト。右下に `Ready (Space)`。日本語は `□` にならず **`ツイッターランド` / `曲別ランキング` / `設定` などが正常に描画**されている。 |
-| `Builds/songend-run4/autotest-v6songend-02-02-game.png` | GameScene (開始前) | 中央に `Space to Start` パネル。HUD は Rank C / SCORE 0 / レートバー (C B A S SS +) が描画。左に COMBO 0。**下端のレーンキー表示 (A S D F J K L …) と判定ライン (白い横線) は描画されている**。右上に `メニュー` ボタン。 |
-| `Builds/songend-run4/autotest-v6songend-03-03-gameplay.png` | 再生中 | HUD と判定表示 (`Miss` の文字が 6 個同時に出ている) は描画されている。**ただしレーン上に落ちるノーツの絵と動画映像は写っていない** (プレイフィールドが黒のまま)。同じフレームのログは `video[playing=True]` なので動画自体は再生している。→ プレイフィールド/映像の見え方は本ハーネスの管外 (#233 の別受入項目で別ワークが対応中)。**本ハーネスの主張は「曲終了 → Result 到達」であり、プレイフィールドの見え方は主張していない。** |
-| `Builds/songend-run4/autotest-v6songend-04-04-result.png` | **Result 画面** | **v6 の Result 画面が実機で描画されている**: 左に Rank **C**、`SCORE 626,153`、`前回最高 738,461`、レートバー (C B A S SS + の目盛、現在位置は A)。判定欄 `Perfect 66 / Great 21 / Bad 14 / Miss 29 / Combo 28`。選曲欄 `ツイッターランド / STEAKA`、BPM 142 / NOTES 130 / LEVEL 15 / 曲長 0:44。右に `曲別ランキング / NO DATA` と `登録名ごとのランキング / NO DATA`。下部に操作表示 `R リトライ / Enter 登録 / Space 決定` とボタン `Retry (R)` / `Register (Enter)` / `OK (Space)`。**この 1 枚を目視で確認した** (スクリーンショットを実際に読み込んで目視)。 |
+| `Builds/songend-20261110-001010/autotest-v6songend-01-01-select.png` | 選曲画面 | 「ツイッターランド」が**実機の画面上で選択**されている (ジャケット画像が描画)。詳細パネルに `No.4 / STEAKA`、BPM 142 / NOTES 130 / LEVEL 15 / BEST 738,461。曲リストは 28/28 を表示し、対象行だけがハイライト。右下に `Ready (Space)`。日本語は `□` にならず **`ツイッターランド` / `曲別ランキング` / `設定` などが正常に描画**されている。 |
+| `Builds/songend-20261110-001010/autotest-v6songend-02-02-game.png` | GameScene (開始前) | 中央に `Space to Start` パネル。HUD は Rank C / SCORE 0 / レートバー (C B A S SS +) が描画。左に COMBO 0。**下端のレーンキー表示 (A S D F J K L …) と判定ライン (白い横線) は描画されている**。右上に `メニュー` ボタン。 |
+| `Builds/songend-20261110-001010/autotest-v6songend-03-03-gameplay.png` | 再生中 | HUD と判定表示 (`Miss` の文字が 6 個同時に出ている) は描画されている。**ただしレーン上に落ちるノーツの絵と動画映像は写っていない** (プレイフィールドが黒のまま)。同じフレームのログは `video[playing=True]` なので動画自体は再生している。→ プレイフィールド/映像の見え方は本ハーネスの管外 (#233 の別受入項目で別ワークが対応中)。**本ハーネスの主張は「曲終了 → Result 到達」であり、プレイフィールドの見え方は主張していない。** |
+| `Builds/songend-20261110-001010/autotest-v6songend-04-04-result.png` | **Result 画面** | **v6 の Result 画面が実機で描画されている**: 左に Rank **B**、`SCORE 893,846`、`前回最高 +155,385`、レートバー (C B A S SS + の目盛)。判定欄 `Perfect 116 / Great 0 / Bad 1 / Miss 13 / Combo 111`。選曲欄 `ツイッターランド / STEAKA`、BPM 142 / NOTES 130 / LEVEL 15 / 曲長 0:44。右に `曲別ランキング / NO DATA` と `登録名ごとのランキング / NO DATA`。下部に操作表示 `R リトライ / Enter 登録 / Space 決定` とボタン `Retry (R)` / `Register (Enter)` / `OK (Space)`。**この 1 枚を目視で確認した** (スクリーンショットを実際に読み込んで目視)。曲名 (`ツイッターランド`) と最終スコア (`893,846`) が **同じ Result Canvas の中に** 描画されている = S2 の主張と整合する。 |
 
-実行 B (`run3`) の Result 画面も同構造で、Rank **B** / SCORE **716,923** /
+修正前の実行 B (`run3`) の Result 画面も同構造で、Rank **B** / SCORE **716,923** /
 Perfect 74 / Great 25 / Bad 21 / Miss 10 / Combo 22 だった (数値は result.txt と一致)。
+修正後の実行 A は Rank **B** / SCORE **893,846** / Perfect 116 / Great 0 / Bad 1 /
+Miss 13 / Combo 111 (数値は result.txt と一致)。
 
 OS レベルの `screencapture` は macOS の Space 分離で **ゲームの Space ではなく
 デスクトップを撮る** ため `os-*.png` は本証拠には使っていない (Evidence として採用しない)。
-使用するのはゲーム内 `ScreenCapture` の 4 枚。
+**スクリプトは既定で OS レベルのスクリーンショットを撮らない** (`--with-os-screenshot`
+を明示した時だけ撮る)。使用するのはゲーム内 `ScreenCapture` の 4 枚。
 
 #### EditMode テスト (全件, `-quit` なし)
 
 ```
-Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
-→ total=1081 passed=1081 failed=0 skipped=0 inconclusive=0 duration=2.95s
+Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults-258.xml
+→ total=1181 passed=1181 failed=0 skipped=0 inconclusive=0 duration=3.0998702s
 ```
 
-`origin/main` のベースライン 1073 件 + 本作業で追加した 8 件 = **1081 件、失敗 0**。
-新規 8 件 (`SongEndHarnessTests`) は全て PASS を確認済み。
+`origin/main` (40b0dbc) のベースライン 1173 件 + 本作業で追加した 8 件 = **1181 件、失敗 0**。
+新規 8 件 (`SongEndHarnessTests`) は全て PASS を確認済み
+(うち 1 件は `MusicManager.SongEndForcedByDeadline` が「新しい MusicManager では false」
+であることを確認するものを含む)。
 
 ## 3. 未検証点 / 残存リスク
 
@@ -245,15 +295,26 @@ Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults Te
 4. **1 曲分だけ**。全曲への適用は未実施 (譜面によっては末尾ノーツが曲長を超えるため
    強制完了になる歌がある。EditMode テストは対象曲についてのみ固定している)。
 5. `Judge` の入力判定を `KeyBindings.GetKeyDownOrInjected` に変えた点は、製品ビルドでは
-   挙動不変 (注入は自動テストからのみ)。ただし `GetKeyDownOrInjected` は注入された
-   フレームの **次のフレーム**でも真になるため、仮にキーコンフィグを
-   書き換えた直後の 1 フレームだけ入力を 2 回見る可能性がある。製品では注入が無いため
-   影響なし。
+   挙動不変 (注入は自動テストからのみ)。`GetKeyDownOrInjected` の注入は
+   **注入したフレームの 1 回だけ** 真になる (`Time.frameCount == 注入フレーム + 1`)。
+   つまり「注入されたフレームの次のフレーム」で真になる 것이 1 回だけで、
+   さらに次のフレームでは false に戻る。同一キーを 2 回注入すると後勝ちで
+   最初の注入が失われる (そのためハーネスは 1 フレームにつき 1 レーン 1 打に
+   している)。製品ビルドでは注入が起きないため影響なし。
 6. **再生中のプレイフィールド (落ちるノーツ / 動画映像) は目視で確認できなかった**
    (実機のスクリーンショット `autotest-v6songend-03-03-gameplay.png` では HUD と判定表示
    (`Miss` 等) と下端のレーンキー表示・判定ラインは描画されているが、レーン上にノートは
    写っていない)。同じフレームのログは `video[playing=True]` なので再生自体はしている。
    曲終了 → Result 到達 (本ハーネスの主張) とは別の論点であり、#233 の残りの受入条件
    (プレイフィールドの見え方) は本作業では触っていない。
-7. **再現スクリプトは macOS 専用** (`script/mac-songend-harness.sh` は `open -n` と
-   `screencapture` を使う)。Windows 実機用の起動スクリプトは作っていない。
+7. **再現スクリプトは macOS 専用** (`script/mac-songend-harness.sh` は macOS の
+   プレイヤー (.app) を直接起動する)。Windows 実機用の起動スクリプトは作っていない。
+8. **本次の実行が確かめたのは「カタログ曲長 (duration) による終端」の経路だけ**。
+   YouTube の実動画 (139 秒) は再生中に終わらないので、
+   `mediaEnded` (実メディアの終端) 側は本研究では通っていない。
+   したがって **「メディアが先に終わった場合」の曲終了経路**、
+   および **メディアの破綻 (ストール / VideoPlayer エラー) で `Failed` になる経路** は
+   実機未検証である (この 2 経路は `SongEndMachine` の EditMode テストと
+   `MediaTimeline` の単体テストでロジックだけを検証している)。
+   実機ハーネスが通した経路は「duration 到達 → ノーツ確定待ち → Completed」であり、
+   `Failed` への遷移は本ハーネスでは観測していない。
