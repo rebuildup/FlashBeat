@@ -101,6 +101,45 @@ PR #249（v6 統合 + Win64 CI 再構成）が `main` に merge された状態�
 | Windows 実機 / Win64 CI 緑 / Win64 成果物 (ZIP + SHA-256) | **未証明** | ライセンス未設定により `license-precheck` が blocker として停止。展示 PC は無操作 |
 | Pencil デザイン全画面一致 | **未受入** | 契約照合表は実装コメントに残置済み。3 解像度の受入は Windows 実機に残ります |
 
+## 1.8 macOS ビルドの Win64 配布物 (2026-11-09・PR #253)
+
+**Windows 実機の代用ではない。** §1.6 と同じく、macOS で観測できたことだけを書いており、
+展示 PC での実プレイは **未証明** のまま。
+
+macOS の Unity 6000.5.6f1 (WindowsStandaloneSupport 入り) で `d8c1b39` を
+Windows ターゲットとしてビルドし、`tools/release/package-win64.ps1` で
+**正規のパッケージング経路** を使って ZIP + SHA-256 にしたもの。
+手順・実測ログの全文: [`win64-build-from-macos.md`](win64-build-from-macos.md)。
+
+identity model (§1 / `release/check/stage-manifest.json` の `fingerprint.definition`) に従い、
+**成果物の同一性は ZIP の SHA-256 ではなくフォルダ fingerprint** で表す。
+以下は `release/check/verify-stage.ps1` の `Get-FolderFingerprint` と **同一の定義** で実測した値:
+
+| 項目 | 値 |
+|---|---|
+| フォルダ fingerprint (SHA-256) | `9f01a42acfe6a89ba4f2a798e13fd5c859b5f4b7625a5d3ed8566019318b6174` |
+| `FlashBeat.exe` SHA-256 | `79cadd0ab0635f4275b58104273a1ec40201d624cd1e1a0b0cf8878ff8a34887` |
+| ファイル数 / 総バイト | 203 / 408,136,773 bytes |
+| ZIP SHA-256 | `d21d91737c7f630fe77a4a7cdc1ca0876cea23a894bd64a5c3aade8e9155b1f9` |
+| ZIP サイズ | 274,824,993 bytes |
+| ZIP エントリ数 / Managed DLL 数 | 224 / 138 |
+| メディアポリシー | `song-free` (ZIP 内メディア 0 件 / `FlashBeat_BurstDebugInformation_DoNotShip` 0 件) |
+| 更新チャンネル | `preview` |
+| ビルド元 commit | `d8c1b39` (main / PR #251 merge 時点) |
+
+* **再現性の実測**: 同一ビルド出力・同一 commit から 2 回パッケージして **SHA-256 が一致** した
+  (2 回とも `d21d9173…`)。`version.json` の `createdAt` は実行時刻ではなく commit の日時から作る。
+* **sidecar**: 同梱の `.zip.sha256` と `shasum -a 256 -c` で一致 (`OK`)。
+* **未証明**: Windows 実機での起動・プレイ、GitHub Release への publish。
+
+**`release/check/stage-manifest.json` には追加していない。**
+同 manifest は「このマシンにアセットが存在する stage」だけを列挙し、`verify-stage.ps1` は
+各 stage のアセットが **このマシンに存在すること** を要求する (存在しなければ `[FAIL]`)。
+macOS ローカルの絶対パスを載せると Windows 実機や他のマシンで gate が壊れるため、
+この成果物は **証跡として本 index に登録** し、stage には追加していない。
+#35 の GitHub Release 化 (Windows 実機での受入後) の時点で、
+Windows 実機上のパスと 함께 stage へ追加する。
+
 ## 2. Artifact index (SHA)
 
 | Stage | Artifact (external, Git-free) | Build tree | `FlashBeat.exe` SHA-256 | Folder fingerprint | Files / bytes | Built (exe mtime) |
@@ -119,6 +158,9 @@ if the owning worker rebuilds, the fingerprint changes and the index has to be r
 
 Screenshots are LFS-tracked binaries and are **not copied into this branch**; they stay in the owning
 branch / the external archive and are indexed here with their SHA-256.
+
+macOS から作った Win64 配布物 (ZIP + SHA-256, PR #253) は **§1.8** に登録済みです:
+[`win64-build-from-macos.md`](win64-build-from-macos.md)。
 
 ### S0 — branch `11`, commit `1c5137e`, PR [#26](https://github.com/rebuildup/FlashBeat/pull/26)
 
