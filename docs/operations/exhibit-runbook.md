@@ -277,7 +277,7 @@ C:\Users\rebui\Desktop\FlashBeat-Exhibit\
 | 項目 | 値 |
 |---|---|
 | 候補 ID (ZIP 内部のラベル) | `0.1.14-win64-d8c1b39` |
-| ビルド元 commit | `d8c1b39` (main, PR #251 merge 時点) |
+| ビルド元 commit | `d8c1b39` (main, PR #251 merge 時点)。**ただし未コミット差分を含みます** (下記) |
 | 内部版数 (`Application.version`) | `0.1.14` (`ProjectSettings.bundleVersion` = `0.1.14+d8c1b39`) |
 | ZIP | `FlashBeat-0.1.14-win64-d8c1b39.zip` (274,826,784 bytes / 224 entries / Managed DLL 138 個) |
 | SHA-256 | `3ac76d0d7a9e30f1063d733fbd17028c853f6c4b8fc4950de51761b9b81abfb3` |
@@ -285,10 +285,21 @@ C:\Users\rebui\Desktop\FlashBeat-Exhibit\
 | メディアポリシー | `song-free` — **第三者楽曲の wav / mp4 は非同梱** (配信は `yt-dlp` 経由)。ただし **譜面 JSON と歌詞は同梱** (28 曲分) |
 | 更新チャンネル | `preview` — **prerelease も更新候補に含める設定**。`stable` ではない |
 
-生成手順と全ログは [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります。
-Unity の Windows Build Support が入っている macOS からは Win64 をビルドできます
-(PowerShell 7 が必要。`pwsh` は `mise.toml` に未登録なので、`mise exec -- pwsh` は
-使えない前提で書いています)。
+生成手順と全ログは [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります
+(**このファイルは PR #253 が持ち込みます。#253 → #254 の順で merge する**)。
+
+パッケージは `tools/release/package-win64.ps1` で行います。main 版は `tar.exe` を
+前提にしていますが macOS には `tar.exe` が無いため、macOS から実行するには
+**PR #253 の `Resolve-TarCommand` フォールバック (PR #253 merge 後に main に入ります)**
+が必要です。PowerShell 7 (`pwsh`) も必須ですが、**`pwsh` は `mise.toml` に未登録**なので
+`mise exec -- pwsh` はこのプロジェクトでは解決しません (グローバル設定経由でのみ
+使えるマシンを前提にしないでください)。
+
+> **再現性の注意**: この候補は **未コミットの作業ツリー差分を含んだ状態でビルド**されています
+> (`ProjectSettings/ProjectSettings.asset` の `bundleVersion` 変更と、
+> `scriptingDefineSymbols` への `SENTIS_ANALYTICS_ENABLED` 追加)。
+> クリーンチェックアウトからは同じバイナリになりません。**再ビルドし直して
+> SHA-256 を再実測してから**使ってください (→ §11.2 の 5)。
 
 > ### ⚠ この候補をそのまま展示 PC に置いてはいけません
 >
@@ -358,7 +369,8 @@ Expand-Archive .\FlashBeat-0.1.14-win64-d8c1b39.zip 'C:\Users\rebui\Desktop\Flas
 | 映像の再生 | ☐ | スクリーンショット |
 | ノーツ表示 / キー判定 / スコア更新 | ☐ | スクリーンショット |
 | Result 画面 → 曲選択 → Retry | ☐ | スクリーンショット |
-| 3 解像度 (FHD 1920×1080 / 2K 2560×1440 / Mac 2560×1664) を **実ディスプレイ全画面** にして崩れなし | ☐ | スクリーンショット |
+| 3 解像度 (FHD 1920×1080 / 2K 2560×1440 / Mac 2560×1664) を **実ディスプレイ全画面** にして崩れなし | ☐ | **実ディスプレイ全画面**でのスクリーンショット (窓リサイズによる擬似全画面は不可) + `Player.log` の実効解像度 |
+| 公開前の版数見直し (現在 `0.1.14` → 公開するなら `0.1.22` で再ビルド) | ☐ | 本表 + [`release-gate.md`](release-gate.md) §1.2 |
 | プレイヤー ID / 版 | ☐ | 本表 |
 
 **スクリーンショットと Player.log は機密情報を含む可能性があるため、公開 Issue へ

@@ -1,8 +1,8 @@
 # 監督ログ 2026-11-09 (開発継続のための引き継ぎ記録)
 
 このファイルは **cc (開発監督) の作業 Continuity 用**です。
-Issue の受入条件の記録は各 Issue のコメントに置，但因为 **Worker の作業が
-API 上限で中断されたときの再開手順** をここに集約します。
+Issue の受入条件の記録は各 Issue のコメントに置、**ただし Worker の作業が
+API 上限で中断されたときの再開手順** はここに集約します。
 
 対象 Issue: #250 (全 Issue 完遂と展示) / #233 / #182 / #118 / #41
 
@@ -56,16 +56,21 @@ API 上限で中断されたときの再開手順** をここに集約します�
 **パスの区切りはハイフン**です (`FlashBeat-w233` が実体。`FlashBeat.w233` は存在しません)。
 区切り記号はハイフンに統一してください。
 
-| worktree (絶対パス) | ブランチ | 状態 (2026-11-09 実測) | 内容 |
+| worktree (絶対パス) | ブランチ | 状態 (2026-11-09 19:45 JST 実測) | 内容 |
 |---|---|---|---|
-| `/Users/rebui/work/FlashBeat.wpf` | `w/w233-playfield` | clean / origin/main より 3 commit ahead | #233 プレイフィールド (3D レーン復元 / 撮影窓 / z スケール統一) |
-| `/Users/rebui/work/FlashBeat.wend` | `w/w233-songend-harness` | clean / 2 commit ahead | #233/#226 曲終了ハーネス |
-| `/Users/rebui/work/FlashBeat-w233` | `w/w233-loadingoverlay` | **未コミット**: `Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` | #233 旧 UI 排他 / 歌詞二重表示 |
-| `/Users/rebui/work/FlashBeat.w241` | `w/w241fix` | **未コミット**: `OptionSceneManager.cs`, `V6OptionView.cs` 修正 + 未追跡 `Assets/Tests/Editor/V6OptionWiringTests.cs` (+ `.meta`) | #241 v6 Option |
-| `/Users/rebui/work/FlashBeat.w56` | `w/w56fix` | **staged のみ**: `.agents/skills/*` (9 ファイル) | #56 AI 開発環境 |
-| `/Users/rebui/work/FlashBeat.waudit` | `w/audit-open-issues` | clean / 5 commit ahead | 全 open Issue 監査 (`docs/audit/open-issues-audit.md` は **このブランチにのみ存在**。未 merge) |
-| `/Users/rebui/work/FlashBeat.w253fix` | `w/win64-mac-package-v2` | clean / 8 commit ahead | #253 (PR 反映済み) |
-| `/Users/rebui/work/FlashBeat.wdocs` | `w/docs-exhibit-runbook` | clean / 2 commit ahead | #254 (PR 反映済み) |
+| `/Users/rebui/work/FlashBeat.wpf` | `w/w233-playfield` | `origin/main` より 6 behind / 6 ahead。**未コミット**: `Assets/Tests/Editor/PlaybackClockTests.cs`, `Assets/Tests/Editor/PlayfieldGeometryTests.cs` (+ 未追跡 `unity-run.out`, `unity-wpf.log`) | #233 プレイフィールド (3D レーン復元 / 撮影窓 / z スケール統一) |
+| `/Users/rebui/work/FlashBeat.wend` | `w/w233-songend-harness` | 4 behind / 2 ahead / clean | #233/#226 曲終了ハーネス |
+| `/Users/rebui/work/FlashBeat-w233` | `w/w233-loadingoverlay` | 7 behind / 0 ahead。**未コミット**: `Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` | #233 旧 UI 排他 / 歌詞二重表示 |
+| `/Users/rebui/work/FlashBeat.w241` | `w/w241fix` | 0 behind / 0 ahead。**未コミット**: `OptionSceneManager.cs`, `V6OptionView.cs` 修正 + 未追跡 `Assets/Tests/Editor/V6OptionWiringTests.cs` (+ `.meta`) | #241 v6 Option |
+| `/Users/rebui/work/FlashBeat.w56` | `w/w56fix` | 4 behind / 0 ahead。**staged のみ**: `.agents/skills/*` ほか (`mise.toml`, `AGENTS.md`, `skills-lock.json` も変更) | #56 AI 開発環境 |
+| `/Users/rebui/work/FlashBeat.waudit` | `w/audit-open-issues` | 0 behind / 6 ahead / clean | 全 open Issue 監査 (`docs/audit/open-issues-audit.md` は **このブランチにのみ存在**。未 merge) |
+| `/Users/rebui/work/FlashBeat.w253fix` | `w/win64-mac-package-v2` | 4 behind / 8 ahead / clean | #253 (PR 反映済み) |
+| `/Users/rebui/work/FlashBeat.wdocs` | `w/docs-exhibit-runbook` | 4 behind / 3 ahead / clean | #254 (PR 反映済み) |
+
+この表は **2026-11-09 19:45 JST 時点のスナップショット**です。Worker が並行動作しているため
+実際の状態は必ず `git -C <worktree> status --porcelain` と
+`git -C <worktree> rev-list --left-right --count origin/main...HEAD` で再確認してから
+判断してください (表の数値をそのまま信用しない)。
 
 ---
 
