@@ -26,23 +26,23 @@ Begin MonoManager ReloadAssembly
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Metal RecreateSurface[0x106c7c250]: surface size 3420x2148
-UnloadTime: 0.502583 ms
-[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-09T14:50:02Z
-Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_V0jswe.mov
+Metal RecreateSurface[0x104b7c250]: surface size 3420x2148
+UnloadTime: 0.529459 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-09T14:56:22Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_ppR9cn.mov
 [UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
 [Perf] opening scene start
 Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
-UnloadTime: 0.825417 ms
+UnloadTime: 0.788333 ms
 Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3465.
-Total: 1.228667 ms (FindLiveObjects: 0.066542 ms CreateObjectMapping: 0.104541 ms MarkObjects: 1.043125 ms  DeleteObjects: 0.014417 ms)
+Total: 0.934167 ms (FindLiveObjects: 0.048417 ms CreateObjectMapping: 0.089208 ms MarkObjects: 0.786917 ms  DeleteObjects: 0.009542 ms)
 
 Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.wpf/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
 ro-dokanryou
-[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+e1b589b)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+e2495bf)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
 [UpdateChecker] staging 済みの新版を再利用します: FlashBeat-0.1.14-macos-39f0c3c.zip (適用はユーザー確認時のみ)。
-[GManager] cloud catalog applied: local=29 merged=31 remote=28
-[GManager] cloud catalog applied: local=29 merged=31 remote=28
 [AutoTestV6] PASS the select scene is loaded
 [AutoTestV6] PASS the v6 select view exists
 [AutoTestV6] PASS the select screen lists real songs
@@ -57,7 +57,7 @@ ro-dokanryou
 [Perf] scene load start GameScene
 The resource UI/Skin/Knob.psd could not be loaded from the resource file!
 Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
-UnloadTime: 4.491708 ms
+UnloadTime: 4.098792 ms
 [Perf] notes parse 0ms (268 notes)
 [Perf] scene load end GameScene 77ms
 [MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
@@ -135,9 +135,9 @@ Serialization hierarchy:
 [AutoTestV6] PASS ready starts the game scene
 [AutoTestV6] PASS the started song is the picked one
 Unloading 79 unused Assets to reduce memory usage. Loaded Objects now: 6855.
-Total: 2.772167 ms (FindLiveObjects: 0.137167 ms CreateObjectMapping: 0.159375 ms MarkObjects: 2.402625 ms  DeleteObjects: 0.072875 ms)
+Total: 2.643958 ms (FindLiveObjects: 0.155458 ms CreateObjectMapping: 0.169250 ms MarkObjects: 2.239125 ms  DeleteObjects: 0.080000 ms)
 
-[Perf] notes instantiate 268 notes in 2952ms
+[Perf] notes instantiate 268 notes in 4056ms
 [MusicManager] picture wired to the renderer of '1' (_MainTex, renderMode=MaterialOverride)
 [MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
 [MusicManager] no bundled wav for 'ロストアンブレラ' - the YouTube media is the only sound source
@@ -153,15 +153,15 @@ Your scene has been loaded , and fading in has just ended
 [AutoTestV6] PASS the v6 hud exists
 [AutoTestV6] PASS the media is ready
 [AutoTestV6] PASS the screenshot 04-media-ready was written
-[MusicManager] PLAYBACK_START song='ロストアンブレラ' videoId='DeKLpgzh-qQ' source=StreamCombined mediaTime=0.000 wallClock=2026-11-09T23:50:17.848 gameTime=12.010
+[MusicManager] PLAYBACK_START song='ロストアンブレラ' videoId='DeKLpgzh-qQ' source=StreamCombined mediaTime=0.000 wallClock=2026-11-09T23:56:38.713 gameTime=12.028
 [MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
 Miss
 Miss
 [AutoTestV6] PASS the playback started
 [AutoTestV6] PASS the media clock advances
-[AutoTestV6] media time at capture = 1.47 visible notes = 4 z range = 2.10 .. 6.81
+[AutoTestV6] media time at capture = 1.50 visible notes = 4 z range = 2.10 .. 6.81
 [AutoTestV6] PASS the capture lands in a dense chart region
-[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.4757 peak=0.5281 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.2674 peak=0.5281 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
 Miss
 Miss
 [AutoTestV6] PASS the screenshot 05-gameplay was written
@@ -172,18 +172,18 @@ Miss
 Miss
 Miss
 Miss
-[MusicManager] STATUS mediaTime=6.03 audioMode=StreamCombined rms=0.3693 peak=0.6615 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=10 failure=None
+[MusicManager] STATUS mediaTime=6.03 audioMode=StreamCombined rms=0.3275 peak=0.6615 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=10 failure=None
 Miss
 Miss
-[AutoTestV6] media time at 2nd capture = 7.37 visible notes = 5 z range = 3.34 .. 8.06
+[AutoTestV6] media time at 2nd capture = 7.40 visible notes = 5 z range = 3.16 .. 7.88
 [AutoTestV6] PASS the screenshot 05b-gameplay-dense was written
 [AutoTestV6] RESULT pass=25 fail=0
-Thread 0x16d3f7000 may have been prematurely finalized
-Thread 0x16d063000 may have been prematurely finalized
+Thread 0x16f57f000 may have been prematurely finalized
+Thread 0x16f0d3000 may have been prematurely finalized
 [Physics::Module] Cleanup current backend.
 [Physics::Module] Id: 0xf2b8ea05
 Input System module state changed to: ShutdownInProgress.
 Input Polling Thread exited.
 Input System module state changed to: Shutdown.
-Thread 0x16c087000 may have been prematurely finalized
+Thread 0x16e0f7000 may have been prematurely finalized
 CodeReloadManager destroyed

@@ -144,11 +144,14 @@ z <= 8.81 → ガイド線もノートも映像より手前なので、映像が
 
 | 対象 | total | passed | failed |
 | --- | --- | --- | --- |
-| **本ブランチ** (`w/w233-playfield`, 81eade3) | **1132** | **1132** | **0** |
+| **本ブランチ** (`w/w233-playfield` 終端 = main rebase 後) | **1196** | **1196** | **0** |
+| 本ブランチ (main rebase 前、負の対照の基準点) | 1132 | 1132 | 0 |
 | ベースライン (`origin/main` = `ab8c336`、同一 worktree で detached checkout して測定) | 1118 | 1118 | 0 |
+| ベースライン (`origin/main` = `40b0dbc`、PR #256 統合後) | 1173 | 1173 | 0 |
 
 差分 +14 = 追加したテスト (PlaybackClockTests +3 / PlayfieldGeometryTests +7 /
-VideoPictureTests +4)。
+VideoPictureTests +4)。main rebase 後はさらに旧 UI 残存検査のテスト (GraphicVisibility 6 件 +
+LegacyLyricObjectNames 3 件) を足している。
 
 cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`origin/main` は
 `ab8c336` まで進み、他ワーカーの PR のテストが入っているので 1118 になる
