@@ -53,6 +53,19 @@ public sealed class PlaySessionSnapshot
     public static PlaySessionSnapshot Current { get { return current; } }
 
     /// <summary>
+    /// 譜面 JSON の差し替え (Issue #278)。
+    ///
+    /// 通常は null (= リモートカタログ / Resources の譜面をそのまま使う)。
+    /// HOLD 入り譜面など、商品カタログには無い譜面を一時的に差し込むときに使う
+    /// (テスト用ハーネスからのみ設定する)。
+    ///
+    /// null のときは商品パスと完全に同じ挙動になる。
+    /// 設定されている間は、Begin() が chartJson == null (ローカル曲) の
+    /// たびにこの JSON が優先して固定される。
+    /// </summary>
+    public static string ChartJsonOverride { get; set; }
+
+    /// <summary>
     /// プレイセッションを確定させる。
     ///
     /// song はカタログの行でも呼び出し元が持つ SongData でもよい (内容を複製する
@@ -64,6 +77,17 @@ public sealed class PlaySessionSnapshot
     public static PlaySessionSnapshot Begin(SongData song, int chartVersion, string chartJson)
     {
         if (song == null) return null;
+
+        // 差し替え (Issue #278): 明示的な chartJson (リモート取得済みの譜面) が
+        // ないときだけ、差し替え用 JSON を優先する。差し替えが null のときは
+        // 従来とまったく同じ固定内容になる。
+        string pinnedChartJson = chartJson;
+        bool usedOverride = false;
+        if (pinnedChartJson == null && !string.IsNullOrEmpty(ChartJsonOverride))
+        {
+            pinnedChartJson = ChartJsonOverride;
+            usedOverride = true;
+        }
 
         SongData pinned = new SongData(
             song.id,
@@ -81,10 +105,10 @@ public sealed class PlaySessionSnapshot
             noteCount = song.noteCount,
             unplayable = song.unplayable,
         };
-        current = new PlaySessionSnapshot(pinned, chartJson);
+        current = new PlaySessionSnapshot(pinned, pinnedChartJson);
         Debug.Log($"[PlaySession] session fixed: songId={pinned.id} title='{pinned.title}' " +
                   $"remoteId='{pinned.remoteId}' chartVersion={pinned.chartVersion} " +
-                  $"chart={(chartJson != null ? "snapshot" : "local resources")}");
+                  $"chart={(pinnedChartJson != null ? (usedOverride ? "override" : "snapshot") : "local resources")}");
         return current;
     }
 
@@ -92,6 +116,9 @@ public sealed class PlaySessionSnapshot
     public static void Clear()
     {
         current = null;
+        // 差し替え (Issue #278) もセッションと一緒に破棄する。
+        // 次のプレイへ持ち越して別の曲に HOLD 譜面が混ざるのを防ぐ。
+        ChartJsonOverride = null;
     }
 
     /// <summary>
