@@ -12,10 +12,10 @@ API 上限で中断されたときの再開手順** をここに集約します�
 
 | 項目 | 値 |
 |---|---|
-| `origin/main` | `d8c1b39` (PR #251 merge 時点) |
-| EditMode スイート (main で実測) | **1073 / 1073 成功** (Unity 6000.5.6f1 / macOS batchmode) |
+| `origin/main` | `ab8c336` (PR #255 merge 時点) |
+| EditMode スイート (main で実測) | **1118 / 1118 成功** (Unity 6000.5.6f1 / macOS batchmode) |
 
-基準となる実測値はこの 1073 です。Worker 申告の数値は cc が各 PR ごとに独立に再実測しています。
+基準となる実測値はこの 1118 です。Worker 申告の数値は cc が各 PR ごとに独立に再実測しています。
 
 ---
 
@@ -23,12 +23,21 @@ API 上限で中断されたときの再開手順** をここに集約します�
 
 | PR | Issue | 内容 | cc 側の検証 | 独立レビュー |
 |---|---|---|---|---|
-| #252 | #225 | NoteEditor 曲切替時に未保存確認 | EditMode **1086/1086** | 済 (中断で投稿前、再開中) |
-| #253 | #41/#35 | Win64 パッケージを macOS pwsh でも実行可能 | `pwsh` で実実行 (224 entries / 138 DLL / song-free) | 未了 |
-| #254 | #41 | 展示 runbook に候補ビルドと受入記録表 | 文書のみ | 未了 |
-| #255 | #118 | 更新フローの受入条件固定 + 純関数化 | EditMode **1118/1118** (Worker 申告) | **済** (blocking 0 / should-fix 5 → 全件解消済) |
-| #256 | #182 | 判定キューの受入条件裏付け + **実バグ修正** | EditMode **1080/1080** | 再開中 |
-| #257 | #74/#75 | Web Studio 狭幅 (390px) 横スクロール解消 | `npm test` / visual gate 再実測中 | 未了 |
+| #252 | #225 | NoteEditor 曲切替時に未保存確認 | cc 再実測待ち (Worker 申告 EditMode **1114/1114**) | 済 (blocking 3 → Worker が `3a95037` で解消) |
+| #253 | #35 | Win64 パッケージを macOS pwsh でも実行可能 / 再現可能化 | `pwsh` で実実行 (224 entries / 138 DLL / song-free / 2 回ビルドで SHA 一致) | 済 (should-fix 5 → Worker が `13a5855` で解消) |
+| #254 | #41 | 展示 runbook に候補ビルドと受入記録表 | 文書のみ | 済 (blocking 4 → 本 PR で解消。PR #253 の merge が前提) |
+| #255 | #118 | 更新フローの受入条件固定 + 純関数化 | EditMode **1118/1118** | 済 → **merged** |
+| #256 | #182 | 判定キューの受入条件裏付け + **実バグ修正** | cc 再実測待ち | 済 (should-fix 3 → Worker が対応中) |
+| #257 | #74/#75 | Web Studio 狭幅 (390px) 横スクロール解消 | `npm test` 399/399 + visual gate PASS (cc 再実測) | レビュー中 |
+| #258 | #233 | 曲終了 → Result 到達の実機ハーネス | Draft | 済 (blocking 4 → 要修正。S1 は #233 プレイフィールド側と同一原因) |
+| #259 | CI | macOS ビルド CI の runner / インストーラ修正 | 2 回 dispatch で 5 ステップ進行 → ライセンス検査で 22 秒失敗 (正しい.owner アクション) | 済 (blocking 0 / should-fix 2 → `eeac115` で F1/F2/F3 解消) |
+| #260 | #240 | v6 Result のローカル登録契約の実測証跡 | 文書のみ | blocking 0 / should-fix 2 残 → 要修正 |
+
+### 統合順の制約
+
+- **#253 → #254 の順**。#254 の runbook が参照する
+  [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) は
+  #253 が持ち込むファイルで、#253 を merge しないと dead link になります。
 
 ### PR #255 で既に把握している残点 (統合時に要確認)
 
@@ -38,20 +47,25 @@ API 上限で中断されたときの再開手順** をここに集約します�
 
 ---
 
-## 2. 未コミット変更が残っている worktree (中断した Worker の作業)
+## 2. worktree ごとの未コミット / 未 push 状態
 
 **重要**: Worker が API 上限で中断されると、**作業内容は worktree に未コミットで残ります**。
 再開時は `git -C <worktree> status --porcelain` と `git diff` で把握してから続けてください
 (推測で書き直さないこと)。
 
-| worktree | ブランチ | 未コミット | 中断した Worker の作業 |
+**パスの区切りはハイフン**です (`FlashBeat-w233` が実体。`FlashBeat.w233` は存在しません)。
+区切り記号はハイフンに統一してください。
+
+| worktree (絶対パス) | ブランチ | 状態 (2026-11-09 実測) | 内容 |
 |---|---|---|---|
-| `FlashBeat.wpf` | `w/w233-playfield` | `AutoTestV6.cs`, `MediaTimeline.cs` | #233 プレイフィールド (確認窓 1.6 s / レーン構造 / 密区間の撮影) |
-| `FlashBeat.wend` | `w/w233-songend-harness` | `Judge.cs`, `MusicManager.cs`, `MediaTimeline.cs`(未追跡) | #233/#226 「曲終了 → Result 到達」の実機ハーネス |
-| `FlashBeat.w233` | `w/w233-loadingoverlay` | `GameUiExclusivity.cs` | #233 旧 UI 排他 / 歌詞二重表示 |
-| `FlashBeat.w241` | `w/w241fix` | `OptionSceneManager.cs`, `V6OptionView.cs` | #241 v6 Option |
-| `FlashBeat.w56` | `w/w56fix` | `.agents/skills/*` (staged) | #56 AI 開発環境 |
-| `FlashBeat.waudit` | `w/audit-open-issues` | — | 全 open Issue 監査 (`docs/audit/open-issues-audit.md`) |
+| `/Users/rebui/work/FlashBeat.wpf` | `w/w233-playfield` | clean / origin/main より 3 commit ahead | #233 プレイフィールド (3D レーン復元 / 撮影窓 / z スケール統一) |
+| `/Users/rebui/work/FlashBeat.wend` | `w/w233-songend-harness` | clean / 2 commit ahead | #233/#226 曲終了ハーネス |
+| `/Users/rebui/work/FlashBeat-w233` | `w/w233-loadingoverlay` | **未コミット**: `Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` | #233 旧 UI 排他 / 歌詞二重表示 |
+| `/Users/rebui/work/FlashBeat.w241` | `w/w241fix` | **未コミット**: `OptionSceneManager.cs`, `V6OptionView.cs` 修正 + 未追跡 `Assets/Tests/Editor/V6OptionWiringTests.cs` (+ `.meta`) | #241 v6 Option |
+| `/Users/rebui/work/FlashBeat.w56` | `w/w56fix` | **staged のみ**: `.agents/skills/*` (9 ファイル) | #56 AI 開発環境 |
+| `/Users/rebui/work/FlashBeat.waudit` | `w/audit-open-issues` | clean / 5 commit ahead | 全 open Issue 監査 (`docs/audit/open-issues-audit.md` は **このブランチにのみ存在**。未 merge) |
+| `/Users/rebui/work/FlashBeat.w253fix` | `w/win64-mac-package-v2` | clean / 8 commit ahead | #253 (PR 反映済み) |
+| `/Users/rebui/work/FlashBeat.wdocs` | `w/docs-exhibit-runbook` | clean / 2 commit ahead | #254 (PR 反映済み) |
 
 ---
 
@@ -63,11 +77,24 @@ API 上限で中断されたときの再開手順** をここに集約します�
 
 | 領域 | 担当 |
 |---|---|
-| `GameScene.unity` | 旧 UI 排他 Worker (w233-loadingoverlay) が優先。プレイフィールド / 曲終了 Worker は**コード側で完結**させること |
+| `GameScene.unity` | 旧 UI 排他 Worker (`w/w233-loadingoverlay`) が優先。プレイフィールド / 曲終了 Worker は**コード側で完結**させること |
 | `TitleScene.unity` | v6 Title Worker (#239) |
 | `ResultScene.unity` | v6 Result Worker (#240) |
 | `OptionScene.unity` | v6 Option Worker (#241) |
 | `NoteEditor.unity` | 別 (NoteEditor は build scenes list に入らず展示ビルドに影響しない) |
+
+### #233 で建立的 2 つの独立 defect (2026-11-09 に cc が実測で特定)
+
+1. **3D レーンの z スケール** — カメラ (pos 0, 4.9, -0.8 / euler 54.8, 0, 0 / FOV 60 / far 1000)
+   の可視地面は z ∈ [-0.76, 8.83] (far clip ではなく FOV が制約)。noteSpeed 10 では
+   画面上に出るのは約 0.9 秒分。→ `w/w233-playfield` の `MediaTimeline.VisibleDepthZ` /
+   `ZScaleFor` で対応中。
+2. **映像プレーンが非表示** — `GameScene.unity` の曲別映像プレーン "1"〜"29" が
+   **すべて `m_IsActive: 0`** (`a156da3` / `f17979a` / HEAD のいずれでも 0 =  longstanding
+   regression)。`MusicManager` は `YPlayer[songID]` のみ active にする
+   (`MusicManager.cs:183`) で、`VPlayer[songID]` のプレーン GameObject は一度も active に
+   しない (`MusicManager.cs:185` は代入のみ、`AttachVideoPicture()` は物料配線だけ)。
+   → **コード側で** active 化すること。シーンは触らない。
 
 ---
 
@@ -80,6 +107,8 @@ API の Token 上限で Worker が中断されるため、**cc は次のこと�
 3. 対象 Issue へのコメント投稿は **cc が行う** (Worker は PR まででよい)。
 4. Worker の完了申告は **cc が main の実コードと突き合わせて検証するまで受け入れない**
    (「Worker の自己申告や Issue の Closed だけを実装完了の証拠にしない」)。
+5. **変異テスト (mutation test) を必須にする** — ガードを意図的に壊して
+   「そのテストが落ちる」ことを確認する。落ちなければ core が未検証。
 
 ---
 
@@ -87,20 +116,22 @@ API の Token 上限で Worker が中断されるため、**cc は次のこと�
 
 | # | 操作 | 影響 |
 |---|---|---|
-| 1 | GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` を登録 | Win64 CI が緑になる (现在是 Personal `.ulf` 拒否で必ず失敗) |
-| 2 | Windows 実機で 1 曲完走 (Title→Select→Game→Result→Retry) | #233 / #242 の受入条件。展示 PC は cc が触らない |
-| 3 | 展示候補の GitHub Release 化 | **Windows 実機受入後に限る** (未検証の配布は公開しない) |
+| 1 | GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` を登録 | Win64 / macOS の両 CI が緑になる。**現状は Personal `.ulf` 拒否で必ず失敗** (macOS は runner image / インストーラを直して「正しい失敗」に到達済み。Win64 は 5GB 取得前に落とす precheck 済み) |
+| 2 | Windows 実機で 1 曲完走 (Title→Select→Game→Result→Retry) | #233 / #242 の受入条件。**展示 PC は cc が触らない** (メモリ方針) |
+| 3 | 3 解像度 (FHD 1920×1080 / 2K 2560×1440 / Mac 2560×1664) を **実ディスプレイ全画面** で確認 | 窓リサイズによる擬似全画面は検証にならない (メモリ方針) |
+| 4 | 展示候補の GitHub Release 化 | **Windows 実機受入後に限る** (未検証の配布は公開しない)。公開版数は `0.1.22` が次の候補 (Latest は `v0.1.21`) |
 
 運用手順は [`exhibit-runbook.md`](exhibit-runbook.md) に、
-候補ビルドの詳細は [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります。
+候補ビルドの詳細は [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります
+(このファイルは PR #253 で追加されます)。
 
 ---
 
 ## 6. 監査で判明した、重要な事実 (Issue の open/closed と実装の対応)
 
 **open な Issue 数 = 未実装件数ではありません。** 次の 3 件は**実装が既に main にあり**、
-Issue だけが open・コメント無しの状態でした。全 open Issue の分類は
-`docs/audit/open-issues-audit.md` (作成中) にあります。
+Issue だけが open・コメント無しの状態でした。全 open Issue 47 件の分類は
+`docs/audit/open-issues-audit.md` (ブランチ `w/audit-open-issues`、**未 merge**) にあります。
 
 | Issue | 実装 (main 済み) |
 |---|---|
@@ -117,9 +148,23 @@ Issue だけが open・コメント無しの状態でした。全 open Issue の
 
 | 項目 | 値 |
 |---|---|
-| 版 | `0.1.14-win64-d8c1b39` |
+| 候補 ID (ZIP 内部のラベル) | `0.1.14-win64-d8c1b39` |
+| 内部版数 (`Application.version`) | `0.1.14` (`ProjectSettings.bundleVersion` = `0.1.14+d8c1b39`) |
 | ZIP | `FlashBeat-0.1.14-win64-d8c1b39.zip` (274,826,784 bytes / 224 entries / Managed DLL 138) |
 | SHA-256 | `3ac76d0d7a9e30f1063d733fbd17028c853f6c4b8fc4950de51761b9b81abfb3` |
-| 置き場 | `/Users/rebui/work/FlashBeat.macverify/dist2/` |
+| 置き場 | `/Users/rebui/work/FlashBeat.macverify/dist2/` (**`dist2/` のみが正**) |
 | 状態 | **未検証** (Windows 実機未完走 / Releases 未 publish) |
-| 注意 | ZIP は modification time を含むため**バイト単位で再現しない**。再パッケージすると SHA-256 は変わる。完全性検証は同梱の `.sha256` sidecar と 1 対 1 |
+| 更新チャンネル | `preview` (prerelease も更新候補に含める設定)。**展示用は `stable` が必要** |
+| 公開時の版数 | `0.1.22` (Latest `v0.1.21` の次。同じ版数・別 SHA の公開は禁止) |
+
+### 注意
+
+- **同名 ZIP が 2 つあります。** `dist3/` にも `FlashBeat-0.1.14-win64-d8c1b39.zip` が
+  あって SHA-256 が異なります (`eb337474…` / 274,826,785 bytes)。原因は旧パッケージャが
+  `version.json` の `createdAt` に実行時刻を埋め込んでいたこと。**PR #253 で再現可能化
+  済み** (2 回ビルドして SHA-256 一致を実測) なので、再ビルドし直して SHA-256 を
+  再実測してから使ってください。
+- **この ZIP は再現できません** — 未コミットの作業ツリー差分
+  (`scriptingDefineSymbols` に `SENTIS_ANALYTICS_ENABLED` を追加) を含んだ状態で
+  ビルドされています。クリーンチェックアウトからは同じバイナリになりません。
+- 完全性検証は同梱の `.sha256` sidecar と 1 対 1。
