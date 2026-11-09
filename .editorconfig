@@ -8,6 +8,15 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
+# Agent Skills evaluation scripts.
+# BOM-less on purpose: these files carry a `#!/usr/bin/env -S bun` shebang and a
+# UTF-8 BOM in front of it breaks direct execution. They are invoked as
+# `bun <file>` / `node --experimental-strip-types <file>` (see mise.toml).
+[*.mts]
+charset = utf-8
+indent_style = space
+indent_size = 2
+
 # C# source code
 [*.cs]
 indent_style = space

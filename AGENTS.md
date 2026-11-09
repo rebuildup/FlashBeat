@@ -153,4 +153,57 @@ The comment block at the bottom of `Assets/Scripts/MakeFileSceneManager.cs` docu
 - Top-level contract: [`constitution/CONSTITUTION.md`](constitution/CONSTITUTION.md)
 - Current Operating Model: [`organization/profiles/release-driven-solo.md`](organization/profiles/release-driven-solo.md)
 - Unity/LFS/build/test specifics in this file remain project-specific authority while preserving the Constitution.
-- project-init Skills are managed project-locally through `bunx skills` and `skills-lock.json`.
+
+## Skills (能力ごとの担当)
+
+Skills are vendored into `.agents/skills/` and `.claude/skills/` and pinned by `skills-lock.json`. Do not edit a vendored copy; send the change upstream instead. The adoption decision and its reasons are recorded in [`docs/adr/ADR-0001-agent-environment.md`](docs/adr/ADR-0001-agent-environment.md) section 6.
+
+| 能力 | 担当 | 使う場面 |
+| --- | --- | --- |
+| routing | この `AGENTS.md` | 常に |
+| delivery | `github-delivery` | Issue / branch / PR / release |
+| recovery | `agent-recovery` | 中断・crash・sandbox 再作成からの再開 |
+| orchestration | `parallel-orchestration` | subagent / 複数 worker への分解と統合 |
+| supervisor runtime | `herdr-runtime` | Herdr pane で worker を起動・監視する |
+| execution isolation | `sandbox-runtime` | worker ごとの mutable runtime 分離 |
+| workspace lifecycle | `worktree-workflow` | worktree の作成・掃除・build cache |
+| quality gate | `quality-gate` | verification level、test / CI / build の設計 |
+| design-before-build | `design-refinement` | 非自明な feature / architecture / product design |
+| engineering decisions | `engineering-decisions` | 実装判断と user への escalation 境界 |
+| debugging | `diagnosing-bugs` | 再現する失敗・性能劣化の原因調査 |
+| TDD | `tdd` | test-first / red-green-refactor を明示した時 |
+| code review | `code-review` | branch / PR / WIP の diff review |
+| correctness | `correctness-assurance` | 不変条件と最小十分な保証手段 |
+| naming | `code-naming` | 新規命名・rename・命名 review |
+| security advisory | `security-maintenance` | dependency / runtime の脆弱性判断 |
+| security audit | `security-audit` | 未知の security defect の能動探索 |
+| secrets | `secrets-management` | Infisical の project / path / 権限 / 注入 |
+| estimation | `agent-delivery-estimation` | 中長期の release / capacity 見積もり |
+| onboarding | `onboarding` | fresh clone から開発・復旧できる docs |
+| prose | `writing-discipline` | 残る文章を書く |
+| Japanese prose | `natural-japanese` | 日本語の自然さ・読みやすさ |
+| interaction | `interaction-discipline` | 質問・blocker・進捗の見せ方 |
+| policy evaluation | `policy-evaluation` | Constitution / Skill / 環境自体の評価 |
+| skill selection | `skill-selection` | 導入 Skill の選定・見直し |
+| visual design | `design-intent` | UI の visual direction が未確定な時 |
+| Cloudflare | `cf-cli` + `workers-best-practices` | API / D1 / Worker の操作と review（multi） |
+| React / frontend | `web/AGENTS.md` | `web/` の実装。汎用 React Skill は使わない |
+| release planning | GitHub Issues | Linear は採用していない |
+| skill authoring | なし | 変更は upstream (`rebuildup/project-init` 等) へ PR |
+| ideation / document formats / motion | なし | 必要になった時点で `skill-selection` で評価する |
+
+Linear 系 Skill (`linear-release-control`) と pack 全体の router (`using-superpowers`, `poteto-mode` 等) は不採用。入口は root contract だけが持つ。
+
+Spec Kit の `speckit-*` Skill（`.agents/skills/`, `.claude/skills/`）は、`docs/agent/spec-kit-workflow.md` の spec / plan / tasks workflow で使う。project-init の能力表とは別の layer として扱う。
+
+外部 Skill が pack 内の未導入 Skill を参照する場合は、この repository の担当で読み替える。`tdd` の `codebase-design` は `design-refinement` を、`code-review` の `/setup-matt-pocock-skills` は GitHub Issue / PR を tracker として使う（setup command は実行しない）。
+
+### Skill の管理
+
+```sh
+bun evals/policy-evaluation/vendor-skills.mts            # upstream から再取得して lock を更新
+bun evals/policy-evaluation/vendor-skills.mts --check    # lock が最新か確認（network 必要）
+mise run skills-check                                     # vendored と lock の hash 検査（offline）
+```
+
+`skills-lock.json` の各 entry は upstream の commit SHA で pin され、`computedHash` は skill directory 配下の全通常ファイル（`.git/` と `node_modules/` を除く）を lower-case 相対パス昇順で「パス + 生バイト列」の連結として sha256 したもの。`mise run skills-check` はこの定義を実装した eval script であり、CI でも同じ検査を走らせる。
