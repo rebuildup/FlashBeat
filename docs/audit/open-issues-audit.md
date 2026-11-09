@@ -54,7 +54,7 @@
 
 ---
 
-## 1. サマリ表 (全 47 件)
+## 1. サマリ表 (全 48 件)
 
 | # | タイトル (短縮) | 区分 | 実装位置 | 充足/未充足/未検証 | ブロック | 推奨アクション |
 |---|---|---|---|---|---|---|
@@ -72,7 +72,8 @@
 | 30 | Product Spec ゲーム体験の理想形 | **E (一部解消)** | `docs/ui/issue-30-spec-decisions.md` | 0/0/1 | オーナーの仕様確定 (D1〜D6) | HOLD 4 項目は #164 で凍結済 (PR #265)。残り D1〜D6 はオーナー決定。**代替既定値**があるため他 Issue は止まらない |
 | 56 | Infra AIエージェント開発環境再整備 | **B → Closed** | `mise.toml`, `skills-lock.json`, `evals/policy-evaluation/**` | 5/0/0 | — | **PR #267 merged → Issue Closed**。`mise install --locked` と `mise run skills-check` が exit 0 (27 Skill 一致) |
 | 58 | 検証 カタログ合成(30曲)+再生クロック | **B** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs` | 2/1/2 | — | 「30曲」前提が stale (現在 29 行/28 選曲可)。基準の更新が必要 |
-| 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ |
+| 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
+| 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B** | `Assets/Game/Scripts/Gameplay/LongNote.cs:29`, `Assets/Game/Scripts/Gameplay/NotesManager.cs` (HOLD 生成経路は既存) | **0/1/2** | — (新規 Worker 実行中) | **実測**: `Assets/Game/Resources/*.json` 全 27 曲で `notes[].type` は 1 (Tap) のみ、`type=2` (HOLD) は **0 個**。HOLD の実装は main にあり EditMode テストもあるが、**プレイヤーが到達できる内容が無く実機受入が成立しない**。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネス (Worker 実装中) / (B) 実曲への HOLD 追加 (オーナー判断) |
 | 60 | Web/UI Foundation Pen v5 → Panda/Park | **A** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | 4/0/1 | — | クローズ提案可 (視覚一致のみ未検証) |
 | 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
 | 68 | Web/Catalog 本番 Catalog API 接続 | **A** | `web/src/app/catalog.ts:21,28,32,57,79` | 4/0/1 | — | クローズ提案可 |
@@ -111,13 +112,13 @@
 | 区分 | 件数 | Issue 番号 |
 |---|---|---|
 | **A** | **17** | 12, 19, 60, 68, 71, 73, 118, 129, 135, 182, 221, 222, 224, 225, 226, 239, 240 |
-| **B** | **21** | 7, 13, 17, 21, 22, 56, 58, 59, 61, 74, 75, 88, 96, 98, 134, 140, 162, 167, 219, 233, 241 |
+| **B** | **22** | 7, 13, 17, 21, 22, 56, 58, 59, 61, 74, 75, 88, 96, 98, 134, 140, 162, 167, 219, 233, 241, 278 |
 | **C** | **0** | — |
 | **D** | **8** | 3, 4, 5, 6, 217, 223, 242, 250 |
 | **E** | **1** | 30 |
-| 合計 | **47** | |
+| 合計 | **48** | |
 
-> **C (未実装) が 0 件**なのは「歴史的に全件が実装済みだったわけではない」からではなく、**47 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
+> **C (未実装) が 0 件**なのは「歴史的に全件が実装済みだったわけではない」からではなく、**48 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
 
 ---
 
@@ -1450,6 +1451,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
 | **U8** ストリーム音声 (m4a) の再生実証 | **未着手 (Windows 実機)** | `YouTubeStreamResolver` に split 経路 (映像/音声を別々) が既にある。Windows Media Foundation の制約が実機-specific |
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
+| **U12** (追加) HOLD ノーツの実機到達 (#278) | **進行中** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない) |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
 
 ---
