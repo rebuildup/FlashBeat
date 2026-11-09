@@ -14,10 +14,7 @@ let container: HTMLElement | null = null;
 
 /** React の value tracker を通す typing の再現 (paste / IME 確定と同じ経路)。 */
 function type(input: HTMLInputElement, value: string): void {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )!.set!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   act(() => {
     setter.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -29,9 +26,7 @@ function inputByLabel(labelText: string): HTMLInputElement {
     node.textContent?.includes(labelText),
   );
   const id = label?.getAttribute("for") ?? undefined;
-  const input = id
-    ? document.getElementById(id)
-    : (label?.querySelector("input") ?? null);
+  const input = id ? document.getElementById(id) : (label?.querySelector("input") ?? null);
   if (!(input instanceof HTMLInputElement)) throw new Error(`input not found: ${labelText}`);
   return input;
 }

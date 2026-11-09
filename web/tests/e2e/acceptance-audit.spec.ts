@@ -216,12 +216,7 @@ for (const viewport of VIEWPORTS) {
           return inFlow.map((cell) => (cell as HTMLElement).textContent?.trim() ?? "");
         });
         if (cells === null || cells.length !== 7) {
-          recordFail(
-            vp,
-            rt,
-            "row: one cell per header column",
-            `cells=${JSON.stringify(cells)}`,
-          );
+          recordFail(vp, rt, "row: one cell per header column", `cells=${JSON.stringify(cells)}`);
         } else {
           record(vp, rt, "row: one cell per header column");
           const level = cells[1];
@@ -305,7 +300,9 @@ for (const viewport of VIEWPORTS) {
       expect(layout.offscreen, `${vp} ${rt}: offscreen elements`).toEqual([]);
       // 記録した失敗が 1 件でもあると、そのルートは「動かない UI が残存」。
       expect(
-        log.filter((entry) => entry.result === "fail" && entry.viewport === vp && entry.route === rt),
+        log.filter(
+          (entry) => entry.result === "fail" && entry.viewport === vp && entry.route === rt,
+        ),
         `${vp} ${rt}: failed operations`,
       ).toEqual([]);
       void testInfo;

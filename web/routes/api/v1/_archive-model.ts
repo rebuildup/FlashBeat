@@ -55,7 +55,7 @@ export function validateArchiveRequest(body: unknown): ArchiveValidation {
     if (key !== "archived") {
       diagnostics.push({
         path: `/${key}`,
-        message: "is not a member of the archive request (only \"archived\" is allowed)",
+        message: 'is not a member of the archive request (only "archived" is allowed)',
       });
     }
   }

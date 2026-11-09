@@ -303,7 +303,8 @@ export function LyricsEditor({
           </button>
           {activeIndex !== null ? (
             <span className={playhead} data-testid="lyrics-now">
-              Line {activeIndex + 1} at <span className={playheadValue}>{formatTimecode(playheadSec)}</span>
+              Line {activeIndex + 1} at{" "}
+              <span className={playheadValue}>{formatTimecode(playheadSec)}</span>
             </span>
           ) : (
             <span className={playhead}>
