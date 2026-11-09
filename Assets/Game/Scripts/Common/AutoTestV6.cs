@@ -138,8 +138,8 @@ public class AutoTestV6 : MonoBehaviour
             yield return new WaitForSecondsRealtime(1.5f);
             Check("the playback started", music.PlaybackStarted);
 
-            // Issue #233: 谱面が疎な区間 (先頭) で撮るとノートが画面に 1 枚も
-            // 出ない。曲に依存しない办法として「実際にカメラに写っている
+            // Issue #233: 譜面が疎な区間 (先頭) で撮るとノートが画面に 1 枚も
+            // 出ない。曲に依存しない方法として「実際にカメラに写っている
             // ノーツが 3 枚以上あり、手前 (z <= 5.5) まで入るまで待つ」ので、
             // どの曲でも白い帯 (ノート) が見える状態で撮れる。
             float denseWaited = 0f;
@@ -169,7 +169,7 @@ public class AutoTestV6 : MonoBehaviour
     /// <summary>
     /// 実際にカメラに写っている 3D ノーツの枚数と z の範囲 (Issue #233)。
     /// Renderer.isVisible は「カメラに写っている」ことを表すので、
-    /// 谱面が密でもカメラ外なら 0 になる。
+    /// 譜面が密でもカメラ外なら 0 になる。
     /// カメラ可視範囲は z &lt;= MediaTimeline.VisibleDepthZ (8.61) なので、
     /// この測定値がそのまま「見えているか」の実測値になる。
     /// </summary>
