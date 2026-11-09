@@ -15,6 +15,13 @@ namespace NoteEditor.Presenter.FlashBeatSong
         [SerializeField] UnityEngine.UI.Text emptyMessageText = default;
         [SerializeField] UnityEngine.UI.Button refreshButton = default;
 
+        SongSwitchCoordinator coordinator_;
+
+        void Awake()
+        {
+            coordinator_ = BuildCoordinator();
+        }
+
         void Start()
         {
             if (refreshButton != null) refreshButton.onClick.AddListener(RefreshList);
@@ -42,7 +49,49 @@ namespace NoteEditor.Presenter.FlashBeatSong
             if (emptyMessageText != null) emptyMessageText.gameObject.SetActive(jsonPaths.Count == 0);
         }
 
+        // 曲切替の入口。
+        // 未保存の変更がある場合は確認ダイアログを出し、
+        // 保存 / 破棄 / キャンセル の選択に従ってから読み込む。
         public void OnFileSelected(string jsonPath)
+        {
+            if (coordinator_ == null)
+                coordinator_ = BuildCoordinator();
+
+            coordinator_.RequestSwitch(jsonPath);
+        }
+
+        SongSwitchCoordinator BuildCoordinator()
+        {
+            var prompt = GetComponent<SongSwitchPromptDialog>();
+            if (prompt == null)
+                prompt = gameObject.AddComponent<SongSwitchPromptDialog>();
+
+            return new SongSwitchCoordinator(
+                () => EditData.IsDirty.Value,
+                () => ChartFileWriter.CurrentSongName(),
+                prompt,
+                SaveCurrentSong,
+                LoadSongFile);
+        }
+
+        // いま編集中の曲を本番の Resources へ保存する。
+        // 保存に失敗した場合は切り替えを中止する。
+        bool SaveCurrentSong()
+        {
+            try
+            {
+                var path = ChartFileWriter.SaveCurrentSong(ChartFileWriter.ResourcesDir);
+                Debug.Log($"[FlashBeatSongLoader] Saved before switching: {path}");
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[FlashBeatSongLoader] Save before switching failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        void LoadSongFile(string jsonPath)
         {
             try
             {

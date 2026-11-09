@@ -101,6 +101,13 @@ namespace NoteEditor.Presenter
                         () => notes.ForEach(x => ChangeNoteStates(x.prev)))));
 
 
+            // ノーツの追加・削除・状態変更は「未保存の変更」として扱う。
+            // 曲切替時の確認ダイアログ (Issue #225) はこのフラグで判断する。
+            // 読み込み (Deserialize) は AddNote を直接呼ぶため、ここでは反応しない。
+            RequestForAddNote.Subscribe(_ => EditData.IsDirty.Value = true);
+            RequestForRemoveNote.Subscribe(_ => EditData.IsDirty.Value = true);
+            RequestForChangeNoteStatus.Subscribe(_ => EditData.IsDirty.Value = true);
+
             RequestForEditNote.Subscribe(note =>
             {
                 if (note.type == NoteTypes.Single)

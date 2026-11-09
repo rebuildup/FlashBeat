@@ -5,8 +5,6 @@ using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using System.IO;
-using System.Text;
 
 namespace NoteEditor.Presenter
 {
@@ -107,24 +105,14 @@ namespace NoteEditor.Presenter
             return true;
         }
 
-        const string ResourcesDir = "Assets/Game/Resources";
-
+        // 公開中の Resources は ChartFileWriter に集約する。
+        // 保存先は必ず「いま編集中の曲」の JSON になり、
+        // 別の曲の JSON を上書きすることがない (Issue #225)。
         public void Save()
         {
             try
             {
-                var songName = Path.GetFileNameWithoutExtension(EditData.Name.Value);
-                if (string.IsNullOrEmpty(songName))
-                {
-                    Debug.LogError("[SavePresenter] EditData.Name is empty");
-                    if (messageText != null) messageText.text = "曲名が空のため保存できません";
-                    return;
-                }
-                var path = Path.Combine(ResourcesDir, songName + ".json");
-                if (!Directory.Exists(ResourcesDir)) Directory.CreateDirectory(ResourcesDir);
-                var json = EditDataSerializer.Serialize();
-                File.WriteAllText(path, json, Encoding.UTF8);
-                EditData.IsDirty.Value = false;
+                var path = ChartFileWriter.SaveCurrentSong(ChartFileWriter.ResourcesDir);
                 Debug.Log($"[NoteEditor] Saved: {path}");
                 if (messageText != null) messageText.text = path + " に保存しました";
             }
