@@ -185,6 +185,7 @@ public class SongEndHarnessTests
             var music = go.AddComponent<MusicManager>();
             Assert.AreEqual(SongEndState.Playing, music.SongEndState, "a fresh music manager is playing");
             Assert.IsFalse(music.ResultTriggered, "a fresh music manager has not triggered the result");
+            Assert.IsFalse(music.SongEndForcedByDeadline, "a fresh music manager has not forced the deadline");
         }
         finally
         {

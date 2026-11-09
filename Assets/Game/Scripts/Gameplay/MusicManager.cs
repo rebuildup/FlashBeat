@@ -144,6 +144,13 @@ public class MusicManager : MonoBehaviour
     /// <summary>Result への遷移が発火済みか (遷移は 1 回だけ)。</summary>
     public bool ResultTriggered { get { return resultTriggered; } }
 
+    /// <summary>
+    /// 曲終了が **期限切れ強制完了** だったか (未確定ノーツを残したまま完了した)。
+    /// 検証ハーネス (AutoTestV6SongEnd) は「自然に完走した」ことを主張したいので、
+    /// 遷移前にこの値を控えて「期限切れではない」ことを確認する。
+    /// </summary>
+    public bool SongEndForcedByDeadline { get { return songEnd.ForcedByDeadline; } }
+
     /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
     public float MediaTimeNow { get { return CurrentMediaTime(); } }
 
