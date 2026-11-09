@@ -1,0 +1,186 @@
+{
+    "unityVersion": "6000.5.6f1",
+    "projectRoot": "/Users/rebui/work/FlashBeat.w225",
+    "resourcesDir": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources",
+    "currentDirectoryBefore": "/Users/rebui/work/FlashBeat.w225",
+    "currentDirectoryAfter": "/Users/rebui/work/FlashBeat.w225",
+    "timestampUtc": "2026-11-09T15:49:57.9247390Z",
+    "pass": true,
+    "cases": [
+        {
+            "name": "no-dirty-switch",
+            "pass": true,
+            "switchResult": "",
+            "promptShown": false,
+            "promptMessage": "",
+            "editDataNameAfter": "__probe_b",
+            "editDataNoteCountAfter": 1,
+            "isDirtyAfter": false,
+            "aChanged": false,
+            "bChanged": false,
+            "aBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "aAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "bBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "bAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "savedAName": "",
+            "savedANoteCount": 0,
+            "savedAContainsSongBNote": false,
+            "savedAContent": "",
+            "aAfterContent": "",
+            "failures": []
+        },
+        {
+            "name": "cancel",
+            "pass": true,
+            "switchResult": "AwaitingChoice",
+            "promptShown": true,
+            "promptMessage": "曲「__probe_a」に未保存の変更があります。\n曲「__probe_b」に切り替えますか?\n「保存して切り替え」を選ぶと現在の曲を保存してから切り替えます。",
+            "editDataNameAfter": "__probe_a",
+            "editDataNoteCountAfter": 3,
+            "isDirtyAfter": true,
+            "aChanged": false,
+            "bChanged": false,
+            "aBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "aAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "bBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "bAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "savedAName": "__probe_a",
+            "savedANoteCount": 2,
+            "savedAContainsSongBNote": false,
+            "savedAContent": "",
+            "aAfterContent": "{\"name\":\"__probe_a\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"videoId\":\"probe-a-video\",\"notes\":[{\"LPB\":4,\"num\":4,\"block\":0,\"type\":1,\"notes\":[]},{\"LPB\":4,\"num\":5,\"block\":0,\"type\":1,\"notes\":[]}],\"lyrics\":{\"startTime\":[],\"furigana\":[],\"mondai\":[],\"romaji\":[],\"endTime\":[]}}",
+            "failures": []
+        },
+        {
+            "name": "save",
+            "pass": true,
+            "switchResult": "AwaitingChoice",
+            "promptShown": true,
+            "promptMessage": "曲「__probe_a」に未保存の変更があります。\n曲「__probe_b」に切り替えますか?\n「保存して切り替え」を選ぶと現在の曲を保存してから切り替えます。",
+            "editDataNameAfter": "__probe_b",
+            "editDataNoteCountAfter": 1,
+            "isDirtyAfter": false,
+            "aChanged": true,
+            "bChanged": false,
+            "aBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "aAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 314,
+                "sha256": "50fef7a507d24676a7b431ae979054de3c6b8caf7020cf101de288694d6cf814"
+            },
+            "bBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "bAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "savedAName": "__probe_a",
+            "savedANoteCount": 3,
+            "savedAContainsSongBNote": false,
+            "savedAContent": "",
+            "aAfterContent": "{\"name\":\"__probe_a\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"videoId\":\"probe-a-video\",\"notes\":[{\"LPB\":4,\"num\":4,\"block\":0,\"type\":1,\"notes\":[]},{\"LPB\":4,\"num\":5,\"block\":0,\"type\":1,\"notes\":[]},{\"LPB\":4,\"num\":6,\"block\":0,\"type\":1,\"notes\":[]}],\"lyrics\":{\"startTime\":[],\"furigana\":[],\"mondai\":[],\"romaji\":[],\"endTime\":[]}}",
+            "failures": []
+        },
+        {
+            "name": "discard",
+            "pass": true,
+            "switchResult": "AwaitingChoice",
+            "promptShown": true,
+            "promptMessage": "曲「__probe_a」に未保存の変更があります。\n曲「__probe_b」に切り替えますか?\n「保存して切り替え」を選ぶと現在の曲を保存してから切り替えます。",
+            "editDataNameAfter": "__probe_b",
+            "editDataNoteCountAfter": 1,
+            "isDirtyAfter": false,
+            "aChanged": false,
+            "bChanged": false,
+            "aBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "aAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+                "exists": true,
+                "size": 266,
+                "sha256": "bb4999244fb9f08dc4883562f3993f408220751476688670528e2b36cf07b201"
+            },
+            "bBefore": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "bAfter": {
+                "path": "/Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json",
+                "exists": true,
+                "size": 220,
+                "sha256": "5e3600479e084595395252f6cd5b02a4b8af69a7b01d8f361b80c0997c3b0c48"
+            },
+            "savedAName": "__probe_a",
+            "savedANoteCount": 2,
+            "savedAContainsSongBNote": false,
+            "savedAContent": "",
+            "aAfterContent": "{\"name\":\"__probe_a\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"videoId\":\"probe-a-video\",\"notes\":[{\"LPB\":4,\"num\":4,\"block\":0,\"type\":1,\"notes\":[]},{\"LPB\":4,\"num\":5,\"block\":0,\"type\":1,\"notes\":[]}],\"lyrics\":{\"startTime\":[],\"furigana\":[],\"mondai\":[],\"romaji\":[],\"endTime\":[]}}",
+            "failures": []
+        }
+    ],
+    "cleanup": [
+        "deleted /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_a.json",
+        "deleted /Users/rebui/work/FlashBeat.w225/Assets/Game/Resources/__probe_b.json"
+    ],
+    "summary": "4/4 cases passed",
+    "originalAContent": "{\"name\":\"__probe_a\",\"maxBlock\":8,\"BPM\":120,\"offset\":0,\"videoId\":\"probe-a-video\",\"notes\":[{\"LPB\":4,\"num\":4,\"block\":0,\"type\":1,\"notes\":[]},{\"LPB\":4,\"num\":5,\"block\":0,\"type\":1,\"notes\":[]}],\"lyrics\":{\"startTime\":[],\"furigana\":[],\"mondai\":[],\"romaji\":[],\"endTime\":[]}}",
+    "originalBContent": "{\"name\":\"__probe_b\",\"maxBlock\":8,\"BPM\":150,\"offset\":480,\"videoId\":\"probe-b-video\",\"notes\":[{\"LPB\":4,\"num\":8,\"block\":0,\"type\":1,\"notes\":[]}],\"lyrics\":{\"startTime\":[],\"furigana\":[],\"mondai\":[],\"romaji\":[],\"endTime\":[]}}"
+}
