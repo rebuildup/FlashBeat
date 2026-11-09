@@ -506,3 +506,219 @@
 - **依存**: 子の #219 #221 #222 #224 #233 #239 #240 #241 が未完了。**#233 と #219 が effective なボトルネック**。
 
 ---
+
+## 3.2 Unity ゲームプレイ / 既存 UI クラスタ (#182 / #167 / #162 / #140 / #135 / #134 / #129 / #96 / #88)
+
+### #182 — [Game/P1] 判定キューをレーン別・時刻順に再設計
+
+- **区分**: **A (実装済み・証拠待ち)** — cc 実測確定
+- **実装/証拠**:
+  - `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` — `public class JudgeQueue` (レーン分割 + 時刻順)
+  - `Assets/Game/Scripts/Gameplay/Judge.cs` — `EnsureQueue` でキュー経由の判定に統一
+  - commit: `ad20d21` / `6d9a4ae` / `f953eea` — **すべて `git merge-base --is-ancestor <sha> origin/main` = true**
+    - `f953eea` "refactor(gameplay): HOLD の判定ルールを LongNote に集約し、テストと実挙動の分離を解消"
+  - テスト: `Assets/Tests/Editor/JudgeQueueTests.cs`, `JudgeLogicTests.cs`, `PublishedChartJudgeRegressionTests.cs`, `LongNoteTests.cs`
+  - 証跡: `docs/evidence/182-publish-to-judge-regression.md`
+  - **PR #256 (open)** `w/w182-close` — 「判定の確定数 = noteCount とスコア API の整合を固定し、HOLD 中断の二重計数を直す」。**main には未マージ**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | Web で後ろ→前順にノーツ追加 or 既存ノーツを前へ移動して公開しても、見えるノーツを正しい時刻に判定できる | 充足 | `JudgeQueue.cs:21` + `Judge.cs` の `EnsureQueue` 結線 |
+| 2 | 時刻順に並んだ譜面でも、他レーンの直前のノーツを見逃すと後続レーンの正常入力が無視されない | 充足 | `JudgeQueueTests.cs` (レーン分割キュー) |
+| 3 | 判定合計が noteCount に一致する | 未充足 | PR #256 が未マージ。`68e1183` でテスト期待値は実挙動に合わせ済みだが、**noteCount 一致の固定は PR #256 側** |
+| 4 | HOLD 中断の二重計数がない | 未充足 | 同上 (PR #256 の修正対象) |
+| 5 | 実プレイでの通し確認 | 未検証 | 実 Win64 必須 |
+
+- **未検証の区別**: 条件 5 は実機必須。**EditMode 緑は譜面順序の実挙動を保証しない**。代替 = `JudgeQueueTests.cs` 緑 + `docs/evidence/182-publish-to-judge-regression.md`。
+- **依存**: #217 の子 #219 (判定と描画の同期) の前提。**PR #256 の統合で A の受入条件が完全に固定される**。
+
+### #167 — [Game/P0] Unity全画面の描画だけのUIを排除し全ボタンを実動作へ接続
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Tests/Editor/V5UiWiringTests.cs` — **8 テスト** (テスト名と行):
+    - `ScreenCanvas_CarriesGraphicRaycaster` (`:20`)
+    - `TitleCanvas_CarriesGraphicRaycaster_AndMenuButtonCallsRealHandler` (`:40`)
+    - `OptionCanvas_CarriesGraphicRaycaster_AndBackButtonCallsRealHandler` (`:69`)
+    - `ResultCanvas_CarriesGraphicRaycaster_AndRetryButtonCallsRealHandler` (`:91`)
+    - `ReadyOptions_AreForwardedToGameHud` (`:137`)
+    - `SelectReadyRow_WritesPlaySession` (`:199`)
+    - `PauseDisplay_HasNoDeadRows` (`:246`)
+    - `OptionSettings_SaveAndLoad_RoundTrips` (`:279`)
+  - `docs/ui/issue-167-handler-audit.md` — F1〜F7 の欠陥と修正 (入力二重発火 / suspend 漏れ / F2 の二重割当 / Esc 同一フレーム裏渡し / ポーズとエラーダイアログ / NoteSpeed clamp 不一致 / カタログ更新停止)
+  - `docs/ui/issue-167-ui-acceptance.md` — 実機受入手順 (手順のみ)
+  - `Assets/Game/Scripts/UI/SceneInputGate.cs` — F4 の新規コンポーネント
+  - commit: `36da73c` "fix(ui): v5 のdestroyをEditモードでも安全にし、代表キーの実バグを直す (#167)" (main ancestor), `5f11ce8`, `d4d758a`, `880aa56`
+  - `specs/167-v5-ui-functional-wiring/tasks.md` = **0 完了 / 5 未完了** (Issue 本文の T1–T3 も未チェック)
+- **受入条件**:
+
+| # | 条件 (Issue 本文 T1–T3) | 判定 | 根拠 |
+|---|---|---|---|
+| T1 | FHD/2K/Mac の各解像度で実Windows/Unity画面を取得し、pointer hitbox / Raycaster / EventSystem / input mode / handler・state遷移の監査表を作る | 未充足 | 監査表 `docs/ui/issue-167-handler-audit.md` はあるが **コード読解による静的監査**。Issue 本文の「実Windows画面取得」は未実施 |
+| T2 | Title/Select/Ready の全主要操作をクリック・キーボード両方で機能接続。設定保存/次画面反映を検証 | 充足 (コード) / 未検証 (実操作) | `TitleCanvas_...CallsRealHandler`, `SelectReadyRow_WritesPlaySession`, `ReadyOptions_AreForwardedToGameHud` |
+| T3 | Game/Pause/Option/Result の全主要操作を実機で動作確認、Ranking/履歴/設定は実処理に接続し偽値を除く | 未充足 | `issue-167-handler-audit.md` の F1–F7 はコード修正まで。**実機動作確認は未実施** |
+| 追加 | 「Owner実操作が合格条件」 | 未検証 | Issue 本文 80 行目。Windows 実機必須 |
+
+- **未検証の区別**: **「実Windows/Unity画面を取得」と「Owner実操作」が受入条件そのもの**。`V5UiWiringTests.cs` 緑は **Canvas/Raycaster の静的構造とハンドラ接続を検証するだけにすぎず、クリック・キー操作の実挙動・画面遷移・描画は含まない**。代替 = 8 テスト緑 + 静的監査表 (F1–F7)。
+- **依存**: Parent #162。→ #96 / #88 の前提。
+
+### #162 — [P0/REBUILD] v0.1.13 のUI受け入れ撤回：全画面・全画面遷移・実操作を機能から再構築
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `docs/ui/issue-162-ui-contract.md` — **タスク2 の機能UI契約表**。6 シーン (`ProjectSettings/EditorBuildSettings.asset:9-24`) × 入力/ハンドラ/効果/フィードバック/根拠 を file:line 付きで F1–F18 として記録
+  - `docs/ui/pr204-playtest-checkpoints.md` — 実プレイの受入チェックポイント (手順)
+  - 全画面方針: `ProjectSettings/ProjectSettings.asset:119` `fullscreenMode: 1`, `:107` `resizableWindow: 0`, `defaultIsNativeResolution: 1`
+  - テスト: `Assets/Game/Tests/FullscreenPolicyTests.cs` — `ProjectSettings_FullScreenMode_IsFullScreenWindow`, `ProjectSettings_DefaultIsNativeResolution_IsTrue`, `ProjectSettings_ResizableWindow_IsFalse`, `GameScripts_HaveNoScreenSetResolution`, `JsonMacScreen_Is2560x1664`, `JsonFhdScreen_Is1920x1080`, `JsonTwoKScreen_Is2560x1440`, `FhdProfile_MatchesJson`, `TwoKProfile_MatchesJson`, `MacProfile_MatchesJson`
+  - テスト: `Assets/Tests/Editor/WindowBaselineTests.cs`, `V5UiTests.cs`, `V5GameHudTests.cs`, `TitleOptionV5Tests.cs`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 全画面表示になる (PlayerSettings 設定だけでは不十分) | 充足 (コード) / 未検証 (実機) | `ProjectSettings.asset:107,119` + `FullscreenPolicyTests.cs` 4 テスト |
+| 2 | 画面配置・操作可能領域が成立 | 未充足 | `docs/ui/issue-162-ui-contract.md` が A-1 (Ranking 未接続) / B-3 / C-2 (凡例と実挙動の不一致) 等を defect として記録 |
+| 3 | 見た目だけで内部機能がない UI がない | 充足 (コード) | `V5UiWiringTests.cs` 8 テスト + `issue-167-handler-audit.md` の F1–F7 修正 |
+| 4 | 旧 Canvas を `SetActive(false)` にして v5 動的 Canvas を表示する画面で、旧機能の表示/遷移が落とらない | 充足 | `Assets/Tests/Editor/GameUiExclusivityTests.cs` |
+| 5 | 実機での受入 | 未検証 | `docs/ui/pr204-playtest-checkpoints.md` は手順のみ。Windows 実機必須 |
+
+- **未検証の区別**: 条件 5 は実機必須。**契約表は「コード読解による静的監査」であり、自筆が「実プレイ証拠は無い」と明記** (`docs/ui/issue-162-ui-contract.md` 5 行目)。代替 = EditMode 緑 + 静的契約表。
+- **依存**: #167 → #96 / #88 の上位。
+
+### #140 — [Unity/Font] 日本語の □ (豆腐) を根絶: コード内文字列を文字セットに追加 + 動的フォールバックフォント
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Editor/JapaneseFontAssetBuilder.cs:233` — `CollectCodeTexts()` (スクリプト内文字列を収集)
+  - `Assets/Editor/JapaneseFontAssetBuilder.cs:249` — `EnsureDynamicFallback()` 定義 / `:104` — 呼び出し
+  - `Assets/Editor/JapaneseFontAssetBuilder.cs:33` — `DynamicFallbackPath = "Assets/Game/Fonts/Japanese/NotoSansJP-Dynamic SDF.asset"` (実在、6513 bytes)
+  - テスト: `Assets/Tests/Editor/JapaneseFontCodeStringCoverageTests.cs` — `CodeStringLiterals_AreCoveredByMainAtlasOrDynamicFallback` (`:38`), `DynamicFallback_IsRegisteredOnTheMainFontAsset` (`:79`); `Assets/Tests/Editor/JapaneseFontCoverageTests.cs`
+  - commit: `aa5e908` "test(#140): コード内文字列の字形カバレッジ EditMode テストを追加 / fix(#88): 全画面カバレッジ閾値を 0.99 に" (main ancestor), `8a50bab` (merge `w/w140fix`)
+  - 証跡: `docs/evidence/140-font-code-strings.md`
+  - **展示 patch line には未適用**: `git ls-tree -r --name-only b677f8f` に `CollectCodeTexts` / `EnsureDynamicFallback` は **0 件** (`JapaneseFontAssetBuilder.cs` 自体はあるが旧版)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | `Assets/Game/Scripts/**/*.cs` の日本語を文字セットに追加して再生成 | 充足 | `JapaneseFontAssetBuilder.cs:233 CollectCodeTexts()` + `aa5e908` のテスト |
+| 2 | 動的 NotoSansJP をフォールバックとして追加し、足りない文字を実行時に生成 | 充足 | `JapaneseFontAssetBuilder.cs:249 EnsureDynamicFallback()` + `NotoSansJP-Dynamic SDF.asset` |
+| 3 | フォールバックが主フォントアセットに登録されている | 充足 | `JapaneseFontCodeStringCoverageTests.cs:79` |
+| 4 | コード内文字列の字形が主アトラス or 動的フォールバックで必ずカバーされる | 充足 (EditMode) | `JapaneseFontCodeStringCoverageTests.cs:38` |
+| 5 | **trunk と展示 patch line の両方へ** | **未充足** | 展示 patch line `b677f8f` に `CollectCodeTexts` / `EnsureDynamicFallback` が **0 件** |
+| 6 | 実機画面での豆腐 0 | 未検証 | `docs/evidence/win64-2026-11-06-font/` は存在するが、**本監査では実画像の中身を検査していない** → 観測項目として記録 |
+
+- **未検証の区別**: 条件 4 は **EditMode 静的カバレッジ** であって **実描画の豆腐 0 ではない** (字形が存在してもアトラス配置の問題は別)。代替 = EditMode 緑 + `docs/evidence/140-font-code-strings.md`。
+- **依存**: #88 の受入条件 3 (日本語フォント欠落 0) と連動。展示 patch line 側は #22/#250 の配布対象と同時対応。
+
+### #135 — [Registration/P0] Web Studio: 新規楽曲の登録をブラウザだけで完結
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/pages/new-song.tsx`, `web/pages/new-song.server.ts`
+  - `web/src/components/new-song/` — `new-song-flow.tsx` (`:16` `resolvePublishTransport` / `:216` `parseYouTubeId` / `:137` published state / `:30-31`「token はメモリのみ。API が応答し published データを読み戻すまで成功表示しない」), `song-info-step.tsx`, `chart-step.tsx`, `publish-step.tsx`, `publish-success.tsx`, `stepper.tsx`, `duration-probe.tsx`
+  - `web/src/lib/new-song/` — `draft.ts`, `slug.ts` (重複チェック), `oembed.ts` (YouTube videoId / 長さ取得), `validation.ts`, `iframe-api.ts`, `fixture-api.ts`
+  - テスト: `web/src/components/new-song/new-song-flow.test.tsx`, `web/src/lib/new-song/__tests__/{draft,slug,validation,oembed,fixture-api}.test.ts`
+  - `specs/135-new-song/tasks.md` = **5 完了 / 0 未完了**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 新規 songId (slug) 入力と重複チェック | 充足 | `web/src/lib/new-song/slug.ts` + `__tests__/slug.test.ts` |
+| 2 | YouTube URL 貼り付けから videoId / 長さ取得 | 充足 | `web/src/lib/new-song/oembed.ts` + `__tests__/oembed.test.ts`、`new-song-flow.tsx:216` |
+| 3 | 譜面エディタとの往復 | 充足 | `new-song-flow.tsx` の `chart-step.tsx` 連携 (`web/src/components/chart-editor/**`) |
+| 4 | Publish の検証付き成功表示 | 充足 | `new-song-flow.tsx:30-31` + `publish-success.tsx` |
+| 5 | Unity カタログに反映されるまでの確認手順 | 充足 (手順) / 未検証 (実行) | `web/src/lib/publish/transport.ts:25` + 手順書。**反映の実測は未実施** |
+
+- **未検証の区別**: 条件 5 の実行部は **実 API + Unity 実機の双方が必要**。**Vitest 緑は本番 API への publish 成功を意味しない** (`transport.ts:31-35` は fixture が明示許可されない限り例外を投げる設計)。代替 = Vitest 緑。
+- **依存**: #61 (Web Studio 親仕様) の子、#73 (Publish Flow) の上に成り立つ。#3 の S3 ゲート。
+
+### #134 — [Ranking/P0] Unity: リザルトでスコア登録 (名前入力) と曲別ランキング表示
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/UI/RankingClient.cs:113` (`POST /api/v1/scores`), `:143` `BuildScoreRequestJson`, `:240` `PostScore`, `:318` `UnityWebRequest(url,"POST")`
+  - `Assets/Game/Scripts/UI/ResultRankingOverlay.cs:186` `GetLeaderboard`, `:307` `PostScore`
+  - `Assets/Game/Scripts/UI/RankingPanel.cs`, `Assets/Game/Scripts/UI/V6/Result/V6ResultViewDriver.cs:23`
+  - テスト: `Assets/Tests/Editor/RankingClientTests.cs` — 11 テスト (`ValidateNickname_TrimsAndAcceptsAsciiAndKana` `:26`, `BuildScoreRequestJson_ContainsSubmissionFields` `:50`, `ParseLeaderboard_ReadsEntries` `:100`, `Urls_FollowTheOpenApiContract` `:142`, `IsValidSongId_FollowsTheServerPattern` `:152`, `Nickname_RoundTripsThroughPlayerPrefs` `:165` ほか)
+  - サーバ側: `web/routes/api/v1/scores.ts` — サーバが `computeUnityScore` で **再計算** し、一致しないクライアント値には 422
+  - **展示 patch line には未移植**: `git ls-tree -r --name-only b677f8f` に `RankingClient.cs` / `ResultRankingOverlay.cs` は **0 件**
+  - 関連ブランチ: `origin/134-patch` に `615db66` "feat(ranking): festival ranking client + scene-independent overlays (#134)" と `5067329` (main 未マージ)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | リザルトで『ランキング登録』(ニックネーム入力、Enter 登録 / Esc スキップ) | 充足 | `RankingClient.cs:205 SaveNickname` + `ResultRankingOverlay.cs:307` |
+| 2 | その曲の Top10 + 自分の順位を表示 | 充足 | `ResultRankingOverlay.cs:186 GetLeaderboard` + `web/routes/api/v1/leaderboards/**` |
+| 3 | シーン非依存のオーバーレイ (KeyConfigUI と同方式) | 充足 | `ResultRankingOverlay.cs` は独立 MonoBehaviour。`Assets/Tests/Editor/RankingPanelBackdropTests.cs` |
+| 4 | オフライン/失敗でもゲームを止めない | 充足 | `RankingClientTests.cs` のパース失敗系 + `V6ResultLogic.ClassifySubmitResult` (201/429/422) |
+| 5 | **trunk と v0.1.2 ベースの展示 patch line の両方に載せる** | **未充足** | 展示 patch line `b677f8f` に `RankingClient.cs` / `ResultRankingOverlay.cs` が **0 件** |
+| 6 | 実 Win64 での送信 → 2 台目での表示 | 未検証 | 実機・2 クライアント必須 |
+
+- **未検証の区別**: 条件 6 は実機必須。**EditMode 緑は HTTP 通信の結果・サーバの受入を保証しない** (`Urls_FollowTheOpenApiContract` は URL 書式の検証のみ)。代替 = 11 テスト緑 + サーバ側 `scores.ts` の実装読解。
+- **依存**: #21 / #7 (S4) の Unity 側。展示 patch line 側は #22/#250 の配布と連動。
+
+### #129 — [Dev/Mac] オーナー直接確認用の独立 macOS アプリを Desktop に置く
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `Assets/Editor/BuildScript.cs:50` — `public static void BuildStandaloneMacOS()` (patch line に macOS ビルド入口が無かったのを追加)
+  - 配布物 (Git 外): `~/Desktop/FlashBeat-Mac/FlashBeat.app` + `起動.command` + `README.txt` + `FlashBeat-update.log` + `FlashBeat-backup-20261109132410.app` + `old/` (実在確認済)
+  - `README.txt` の記載: バージョン `0.1.0+fffc399` / commit `fffc399` / Unity `6000.5.6f1` / アプリ内自動更新 (Windows 版と同じ)
+  - `b677f8f` (展示 patch line の base) は `git merge-base --is-ancestor b677f8f origin/main` = **true**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | Mac に直接確認用の独立アプリが Desktop 配下にある | 充足 | `~/Desktop/FlashBeat-Mac/FlashBeat.app` (実在確認済) |
+| 2 | patch line に macOS ビルド入口 (`BuildStandaloneMacOS`) を足す | 充足 | `Assets/Editor/BuildScript.cs:50` (main にある) |
+| 3 | **v0.1.5 のソース (patch line `b677f8f`) からビルドする** | 未充足 | 配布物の README は `0.1.0+fffc399` = **main の最新**からビルド。指定ソース `b677f8f` ではない (main は b677f8f の後継で内容的には下回らないが、指定と別) |
+| 4 | 展示と挙動を揃える (同一 SHA) | 未検証 | 展示 Windows 世代 3 は `b77b63c`、Mac は `fffc399`。**同一 SHA ではない** |
+
+- **未検証の区別**: 条件 4 は実機比較が必要。**macOS Player の起動確認は Win64 の代用にならない** (`docs/evidence/index.md` §1.6)。
+- **依存**: #22 (配布) と同じ「展示と同一 SHA」の要件に連動。
+
+### #96 — [Unity/P1] Title/Result/Option/Opening の UI を 1024x768〜2560x1440 で崩れなくする
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/UI/V5/UISizeProfile.cs` — `UISizeProfile.Fhd()` / `.TwoK()` / `.Mac()` + `CanvasConfigurator.Configure(canvas)`
+  - `Assets/Game/Scripts/UI/V6/Common/V6UiProfile.cs:73-75` — FHD 1920×1080 / 2K 2560×1440 / MacBook 2560×1664
+  - テスト: `Assets/Game/Tests/FullscreenPolicyTests.cs` — `FhdProfile_MatchesJson`, `TwoKProfile_MatchesJson`, `MacProfile_MatchesJson`, `JsonMacScreen_Is2560x1664` 等 10 テスト
+  - テスト: `Assets/Tests/Editor/TitleOptionV5Tests.cs`, `ResultV5ViewTests.cs`, `V5UiTests.cs`
+  - 証跡 (実機 PNG の実解像度は `file` コマンドで実測):
+    - `docs/evidence/win64-2026-11-06/*.png` — **7 枚すべて 2560×1440** (01-title / 02-select-no1 / 03-select-no2-manimani / 04-game-playing / 05-result / 06-retry-game-reloaded / 07-result-run2)
+    - `docs/evidence/win64-2026-11-06-issue13/*.png` — 11 枚すべて **1296×759** (ウィンドウ枠込み。クライアント 1280×720)
+    - `docs/evidence/233-hud-nre/*.png` — **2560×1664** (Mac 実機)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | Title / Result / Option / Opening が 1024×768〜2560×1440 で崩れない | 充足 (コード) | `UISizeProfile.cs` + `V6UiProfile.cs:73-75`。`FullscreenPolicyTests.cs` が json↔C# 一致を固定 |
+| 2 | 実機スクリーンショット (01_title.png / 07_result.png / 08_retry.png) での確認 | 未充足 (解像度カバレッジ不足) | 2560×1440 と 1296×759 (=1280×720 ウィンドウ) の **2 解像度のみ**。**1024×768 と 1920×1080 の撮影が無い** |
+| 3 | Select / Game は #88 が担当 | — | スコープ外 (§3.2 #88 参照) |
+
+- **未検証の区別**: 条件 2 は **実機撮影** 必須。**プロファイル座標の EditMode 検証は実描画の見切れ・重なりを保証しない**。代替 = `FullscreenPolicyTests.cs` 緑 + 2560×1440 / 1296×759 の実 PNG。
+- **依存**: #162 → #167 の下位。#88 と解像度方針を共有 (`design/ui-size-profiles.json`)。
+
+### #88 — [Win/P0] 最新統合版が全画面にならず Select/Game の UI が崩れる (#52 回帰)
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `ProjectSettings/ProjectSettings.asset:119` — `fullscreenMode: 1` (= FullScreenWindow)。**Issue 本文 119 行目が指摘した `fullscreenMode: 2` (= Maximized Window) は解消済み**
+  - `ProjectSettings/ProjectSettings.asset:107` — `resizableWindow: 0` (擬似全画面を禁止)
+  - `defaultIsNativeResolution: 1`
+  - テスト: `Assets/Game/Tests/FullscreenPolicyTests.cs` — `ProjectSettings_FullScreenMode_IsFullScreenWindow`, `ProjectSettings_ResizableWindow_IsFalse`, `ProjectSettings_DefaultIsNativeResolution_IsTrue`, `GameScripts_HaveNoScreenSetResolution` (Assets/Game/Scripts 配下に `Screen.SetResolution` が 0 件であることを検証)
+  - commit: `86b3911` "test(settings): Issue #169 フルスクリーン方針と mac プロファイル契約の固定テスト" (main ancestor), `aa5e908` "fix(#88): 全画面カバレッジ閾値を 0.99 に"
+  - 実機 run-summary (Git 内): `docs/evidence/win64-2026-11-06-release-gate/run-summary-exhibit-743c88d.json`, `run-summary-exhibit-s1.json` → いずれも `"resolution": "1280 x 720 (fullscreen=0)"`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 起動引数なしで `displayCoverage ≥ 0.99` (`-RequireFullscreenCoverage` が PASS) | 未充足 | Git 内の run-summary 2 件は **`fullscreen=0`**。`displayCoverage` を持つ run-summary は main に存在しない。`docs/evidence/index.md` §1.5「未証明: … 実機 1280×720 fullscreen」 |
+| 2 | 1920×1080 / 2560×1440 / 1024×768 / 1280×720 で Select・Game・Result が見切れず重ならない (実機スクリーンショット) | 未充足 | 2560×1440 (7 枚) と 1296×759 (11 枚) のみ。**1920×1080 と 1024×768 の撮影が無い** |
+| 3 | 日本語フォント欠落 (□) 0 | 未充足 (patch line) | trunk は #140 で充足、**展示 patch line `b677f8f` は未適用** (§3.2 #140) |
+
+- **未検証の区別**: 条件 1 は **実 Windows 実機の計測** 必須。**`FullscreenPolicyTests.cs` が緑でも、PlayerSettings の serialized 値と実機のウィンドウ挙動は別物** (Issue 本文 104 行目も「設定だけ変えて修正済みと言わない」と明記)。代替 = EditMode 緑 + `ProjectSettings.asset` の値読み取り。
+- **依存**: #162 / #167 の下位。#250 の 11/14 展示の前提。
+
+---
