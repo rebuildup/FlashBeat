@@ -23,7 +23,12 @@
 
 ## 未実施 (スコープ外 / 他者の作業)
 
-- [ ] EditMode テストの実実行 (Unity Editor 起動が必要なため Supervisor が統合時に実行)。
+- [x] EditMode テストの実実行 — 2026-11-09 に実行 (Unity 6000.5.6f1 / batchmode /
+      `-quit` なし)。**1118 / 1118** (`origin/main` = `ab8c336`)。
+      #240 の新規テスト 18 件はすべて `Passed`。
+      negative control (`V6LocalNameStore.Save` の保存キーを壊す) で、
+      契約に紐づく 2 件が fail することも実測 (元に戻して 1118 / 1118 に戻ることを確認)。
+      詳細は `docs/evidence/240-result-registration.md` §3.2 / §3.4。
 - [ ] 実機 (Windows 展示 PC) での画面確認 — 展示 PC 操作は禁止。
       `docs/evidence/240-result-registration.md` に「未検証」と記録済み。
 - [ ] 実オンライン送信の確認 (実 API 呼び出しは禁止)。
