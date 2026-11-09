@@ -93,7 +93,7 @@
 | 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **B** | `Assets/Tests/Editor/V5UiWiringTests.cs` (8 tests), `docs/ui/issue-167-handler-audit.md` | 2/1/2 | Windows 実機 | `specs/167` の 5 タスクが未チェック。実機操作受入が未了 |
 | 182 | Game/P1 判定キュー再設計 | **A** | `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` | 2/0/1 | — | **PR #256 merged → Issue Closed** (受入条件 5 項目すべて充足) |
 | 217 | P0/v6 Pencil UI 並列移植 (umbrella) | **D** | `Assets/Game/Scripts/UI/V6/**` | 1/1/2 | Windows 実機 + 子 Issue | 子 (#219–#241) の完了待ち |
-| 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72` | 2/2/1 | — | **`V6UiMode.Playfield = false`** で無効化。`GameScene.unity:2837 m_IsActive: 0` |
+| 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B → 統合 owner が方式を確定 (2026-11-10)** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72`, 3D 側は PR #263 | 2/2/1 | Windows 実機 (3 解像度の画像比較) | **統合 owner の決定**: 展示 (11/14) の正は **3D プレイフィールド** (PR #263 でカメラ基準 z スケール + レーンガイドを復元)。`V6UiMode.Playfield` は **false のまま** (v6 canvas 版はコードとして main に残置し、展示後に実機証跡付きで再評価)。`GameScene.unity` の `Lane` は **シーン編集せず**、#263 の実行時生成ガイドを使う。残るのは 3 解像度の実機画像比較 (Windows) |
 | 221 | P0/v6 Select 3カラム View 再実装 | **A** | `Assets/Game/Scripts/UI/V6/Select/View/V6SelectView.cs` | 4/0/1 | — | クローズ提案可 |
 | 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **6/1/1** | Windows 実機 | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**。Issue の「45 曲」前提は古く、「45 曲以上を満たす」ことが要求なら未実装 = **オーナー決定事項**)。残りは実機の Ready 連打操作と検索/絞り込みの実機確認 |
 | 223 | P0/v6 Integration 排他統合+実Win64 | **D** | — (統合ゲート) | 0/1/3 | Windows 実機 + Unity Editor 単独所有者 | #219–#222 の統合 + Win64 1 曲完走 |
@@ -479,8 +479,24 @@
 | 5 | 統合 Worker が GameScene へ一度で導入できるよう公開API/接続手順/所有オブジェクト/必要なアセットを PR に明記 | 充足 | `specs/` に接続手順あり |
 | 6 | **8 レーンとノーツが実プレイで動き、判定と描画が合い、動画が背景として再生される** | **未充足** | `V6UiMode.Playfield = false` で描画自体が無効。加えて `GameScene.unity:2837` の `Lane` が `m_IsActive: 0` で、シーン側の構造も無い |
 
-- **未充足の具体箇所**:
-  1. `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` → `Playfield` を `true` にする (owner rollback の再承認が要る = オーナー判断待ち)。現状 `V6PlayfieldRuntime.cs:52` の `if (!V6UiMode.Playfield) return;` で **Canvas 自体が作られない**
+- **統合 owner の決定 (2026-11-10 / cc)**: **展示版の正は 3D プレイフィールド**。
+  - 理由: (a) 判定位置がカメラ基準で 1 対 1 に対応し、判定器 (`Judge`/`JudgeQueue`) を
+    触らずに済み、展示 4 日前の安定性を確保できる。(b) 動画背景が 3D プレーンとして
+    実物として再生される。(c) v6 canvas 版 (`V6UiMode.Playfield = true`) は 2026-11-08 に
+    **一度 rollback 済み**で、 Notes を uGUI Image に載せる前提のため
+    `Notes`/`NotesManager`/`Judge`/`MediaTimeline`/`GameScene.unity` の改変が
+    #219 の Owned Paths 上 **排他的合意なしに行えない**。
+  - 決定事項: `V6UiMode.Playfield` は **false のまま**。`GameScene.unity` の `Lane`
+    (`m_IsActive: 0`) は **シーン編集で戻さない**。代わりに PR #263 が実行時に
+    レーン境界ガイドを生成する。
+  - 残り (本決定で解消されないもの): v6 canvas プレイフィールドの実機証跡
+    (3 解像度の画像比較) は **展示後** の課題。#219 は **open のまま**。
+  - `V6UiMode.Playfield` を `true` にする場合は、`Notes`/`NotesManager`/`Judge`/
+    `MediaTimeline`/`GameScene.unity` に対する **排他的合意の窓** を統合 owner が
+    明示してから行う (単独で触らない)。
+
+- **未充足の具体箇所 (参考: v6 canvas 版に切り替えた場合)**:
+  1. `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` → `Playfield` を `true` にする (本決定では行わない)。現状 `V6PlayfieldRuntime.cs:52` の `if (!V6UiMode.Playfield) return;` で **Canvas 自体が作られない**
   2. `Assets/Game/Scenes/GameScene.unity:2837` → `Lane` の `m_IsActive: 0` を戻し、コード側から active にする enabler を追加 (grep で enabler 0 件)。`Notes.cs:25,111` は `V6PlayfieldView.Current == null` のとき **3D 描画へフォールバック**する設計だが、フォールバック先の `Lane` が非 active なので **どちらの描画も出ない**
   3. `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` → `HideLegacyPlayfield()` が `Playfield` 有効時にのみ `HideByName("Lane")` を呼ぶ設計は legacy 排除として正しいが、**この状態では旧 v5 側のレーンも隠れない** (= 1 の再承認と 2 の enabler 追加が同時に必要)
 - **未検証の区別**: 条件 4 の画像比較、条件 6 の実プレイは **実機必須**。**EditMode 緑は描画上の問題を検出しない** (フラグで無効化されている箇所は純論理的テストを通る)。
