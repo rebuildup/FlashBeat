@@ -127,14 +127,23 @@ public class VideoPictureTests
     {
         string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MusicManager.cs"));
 
-        int select = manager.IndexOf("YPlayer[GManager.songID].SetActive(true)", System.StringComparison.Ordinal);
-        int hide = manager.IndexOf("VideoPicture.HideBoard(songVideo)", System.StringComparison.Ordinal);
-        int prepared = manager.IndexOf("songVideo.isPrepared", System.StringComparison.Ordinal);
+        // 平面の選択 (Start) と同じメソッドの中で板を隠す。
+        int startIndex = manager.IndexOf("void Start()", System.StringComparison.Ordinal);
+        Assert.GreaterOrEqual(startIndex, 0, "MusicManager.Start is gone.");
+        int nextMethod = manager.IndexOf("\n    void ", startIndex + 5, System.StringComparison.Ordinal);
+        if (nextMethod < 0) nextMethod = manager.Length;
+        string startBody = manager.Substring(startIndex, nextMethod - startIndex);
 
-        Assert.GreaterOrEqual(select, 0, "The runtime has to select the picture plane of the song.");
-        Assert.Greater(hide, select,
+        Assert.IsTrue(startBody.Contains("YPlayer[GManager.songID].SetActive(true)"),
+            "The runtime has to select the picture plane of the song.");
+        Assert.IsTrue(startBody.Contains("VideoPicture.HideBoard(songVideo)"),
             "The board has to be hidden when the picture plane of the song is selected.");
-        Assert.Greater(prepared, hide,
+
+        // 「prepare できた時だけ隠す」ではないこと (prepare が失敗する環境では
+        // 白い板が残ってしまう)。
+        int hide = startBody.IndexOf("VideoPicture.HideBoard(songVideo)", System.StringComparison.Ordinal);
+        int prepared = startBody.IndexOf("isPrepared", System.StringComparison.Ordinal);
+        Assert.IsTrue(prepared < 0 || prepared > hide,
             "The board must not wait for the video to be prepared - a failed prepare would keep the white board.");
     }
 
