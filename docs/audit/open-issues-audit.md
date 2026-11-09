@@ -1081,4 +1081,490 @@
 - **未検証の区別**: 条件 5 は実機必須。**「HOLD 実装が main にある」ことは「HOLD の判定仕様が確定した」ことを意味しない** — 判定仕様は本文の 未確定 1–4 のとおり未決。
 - **依存**: **#59 の OK/NG 判定が本 Issue に-blocked**。#164 / #165 は closed だが、判定仕様が固まったかの証跡は main にない。
 
+
+## 3.4 展示ゲート / S0–S4 クラスタ (#3 / #4 / #5 / #6 / #7 / #12 / #13 / #17 / #19 / #21 / #22)
+
+このクラスタは #3 を親とする **段階ゲート**。 Issue 本文自身が「**Gate issue, not a worker implementation worktree**」と宣言しており、実装単位は子 Issue (#12 / #13 / #17 / #19 / #21) が持つ。したがって親ゲートは **D (阻塞)** が基本で、判定の焦点は「**各ステージの証跡が実 Win64 で出ているか**」にある。
+
+### #3 — 展示版: 5 API に限定した契約と段階的実装 (umbrella)
+
+- **区分**: **D (阻塞)**
+- **実装/証拠**:
+  - 契約: `contracts/openapi.v1.yaml` — **8 path** (`/api/v1/catalog`, `/api/v1/charts/{songId}`, `/api/v1/admin/songs/{songId}`, `/api/v1/admin/songs`, `/api/v1/rankings`, `/api/v1/stats`, `/api/v1/scores`, `/api/v1/leaderboards/{songId}`)。Issue 本文は「5 endpoints」だが、**#151 のランキング・統計・アーカイブ追加で 8 に増加** (commit `13102ee` "merge(#151): ランキング + 統計ダッシュボード + 楽曲アーカイブを統合する" — main ancestor)。**元 Issue の「5 API 限定」は現状の契約と一致しない**
+  - 譜面スキーマ: `contracts/schemas/chart.v1.schema.json` — `notes[].type` は `[1,2]` (HOLD 許容、commit `6be2e07` "feat(chart): HOLD のデータモデルと意味論検証を実装 (#164)")
+  - 契約 bugfix 記録: Issue #3 コメント「実物の譜面 2 曲を凍結スキーマが拒否 → `maxBlock` の `const: 8` を `integer 1..8` に、`notes` の `minItems: 1` を解除」。commit `2a98c22` "fix(contract): accept every real chart of the Unity project" (**main ancestor**)、web 側コピー `web/src/lib/chart/chart.v1.schema.json` も同期、ドリフト検知テストあり
+  - アーキテクチャ正本: `docs/architecture/festival-mvp.md:53-59` — S0–S4 の段階定義と停止条件。`:61` 「**Source changes are not evidence of a working build.**」
+  - 段階表: `docs/evidence/index.md` §1 — **S0 proven (partial) / S0-FONT proven (partial) / S1 未証明 / S2 未証明 / S3 未証明 / S4 未証明**
+  - D1 適用記録: `docs/operations/d1-migrations.md:59-121` — migration `20261106124714_heavy_harrier.sql` は**リモート D1 に適用済み**（`d1_migrations` id 1 / applied 2026-11-06 12:54:38）。`:206` — 第 2 migration `20261107042653_friendly_purple_man.sql` は **Remote D1 — not applied yet**
+  - デプロイ手順: `docs/operations/cloudflare-bootstrap.md`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 段階順と各 SHA の証跡を記録 | 充足 | `docs/evidence/index.md` §1 の 5 行 + `release/check/stage-manifest.json` (`updatedAt`, `fingerprint.algorithm`, 3 世代の `exhibitDeployment`) |
+| 2 | 依存実装前に契約レビュー | 充足 | `contracts/openapi.v1.yaml` + Issue コメントの「インターフェース v1 凍結宣言 (2026-11-06)」 |
+| 3 | 過不足ない設計 (Hono → **Void**、React、Vite、Ajv、D1) | 充足 | `web/package.json` — `void 1.6.2`, `vite-plus ^1.4.0`, `react ^19.2.4`, `@pandacss/dev 2.5.0`, `@ark-ui/react 5.40.0`, `konva ^10.9.1`, `lucide-react 1.70.0` |
+| 4 | 実 Win テストまで full playback / build を主張しない | 充足 (規律) | `docs/architecture/festival-mvp.md:61`、`docs/evidence/index.md` の「未証明」表記 |
+| 5 | **S0–S4 の各段階が Win64 証跡を持つ** | **未充足** | `docs/evidence/index.md` §1 — S1–S4 が全て未証明 |
+| 6 | **契約が 5 API のまま** | **未充足 (意図的な逸脱)** | 8 path に増加。 Issue 本文の記述が main と一致しない |
+
+- **未検証の区別**: 条件 5 は **実 Win64** 必須。**Cloudflare に API がデプロイされていることは、Win Unity がその API を読んで再生できることの証明にならない** (S2 / S3 が未証明)。代替 = `docs/evidence/index.md` の自己申告 (S0 partial のみ)。
+- **依存**: #4 → #5 → #6 → #7 と S2/S3 の Web 側 (#12 → #19)。#22 が全ゲートの証跡を回収する。
+
+### #4 — [Gate S0/S1] Windows 展示版: ベースラインと YouTube 再生完走
+
+- **区分**: **D (阻塞)**
+- **実装/証拠**:
+  - S0 相当は **proven (partial)**: `docs/evidence/index.md` §1 — S0 の fingerprint `7ef323ad…`, 「chart/result/retry **proven**; YouTube stream + audio **未証明**」
+  - S0-FONT も proven (partial): fingerprint `e07ccba2…`
+  - S1 は **未証明**: 同表「S1 | 未証明 | build exists in the #13 worktree — fingerprint `b8c0acde…`」
+  - 実機第 3 世代の記録: `docs/evidence/index.md` §1.5 — code state `b77b63c` (2026-11-07 00:01)、Title → Select → まにまに → 判定 76 → Result → `R` リトライ、起動 14.1 秒、**映像あり** (`VideoPlayer prepared=True`)、**音あり** (`rms=0.44 … peak=0.82`、ただし `audioMode=Bundled`)
+  - 詳細: `docs/evidence/win64-2026-11-06-release-gate/README-gen3.md` (Run D)
+  - プレイヤー log: `docs/evidence/win64-2026-11-06-release-gate/Player-exhibit-743c88d.redacted.log` / `-s1` / `-s2`
+  - ランサマリ: `run-summary-exhibit-743c88d.json` — `"resolution": "1280 x 720 (fullscreen=0)"`
+  - ゲート判定スクリプト: `release/check/verify-stage.ps1` (`-Stage S0` / `S1`)、`release/check/drive-gameplay.ps1`、`release/check/stage-manifest.json`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | S0: Unity 6000.5.6f1 が Win64 で compile/build される | 充足 (証跡あり) | `docs/evidence/index.md` §1.5 の第 3 世代 (199 ファイル / 1 588 795 255 bytes、code state `b77b63c`) |
+| 2 | S0: 既存 1 曲が ResultScene まで完走、tested artifact と commit SHA を保存 | 充足 | §1.5「判定 76 → Result → `R` リトライまで到達」+ `EXHIBIT-MANIFEST.txt` の世代・SHA |
+| 3 | S1: yt-dlp + Deno で combined A/V ストリーミング | **未充足** | `docs/evidence/index.md` §1.5「音源は **同梱 wav** (`audioMode=Bundled`): ストリームの音声トラック（m4a）は `Failed to recognize video file format` で準備できず、**「YouTube ストリームの音声そのもの」は未証明**」 |
+| 4 | S1: video-timeline 判定と retry | 充足 (部分) | 映像が `video[playing=True]` で判定 76 まで到達。**「映像の再生時刻に同期した判定」の測定値は未取得** |
+| 5 | S1: Win64 artifact を保存 | 充足 | fingerprint `b8c0acde…` が §1 に記録されている |
+| 6 | **S0 と S1 を別々に green にする** | **未充足** | §1 の S1 行が「未証明」 |
+| 7 | S0 artifact 存在前に破壊的リファクタを始めない | 充足 (運用) | S0 artifact が §1.5 に実在 |
+| 8 | **ソースだけの green を禁止** | 充足 (規律) | `docs/evidence/index.md` の冒頭の「A stage without a real Win64 play run is written as **未証明 (unproven)** — no green is claimed」 |
+
+- **未検証の区別**: 条件 3 が核心。**映像が再生して判定が 76 まで進むことは、「YouTube の音声トラックが鳴っている」ことを保証しない** — 実測は同梱 wav の `rms` である。代替 = 追記は同梱 wav の数値のみ。
+- **依存**: **Windows 実機 (展示 PC)** が所有者。コード側の実装は #13 が持つ。
+
+### #5 — [Gate S2] Cloudflare API + Unity 動的カタログのデモ
+
+- **区分**: **D (阻塞)**
+- **実装/証拠**:
+  - API 側: `web/routes/api/v1/catalog.ts` — `catalogVersion` = 公開済みスナップショット数、`Cache-Control: no-store`、アーカイブ済みは非掲載
+  - PUT 公開: `web/routes/api/v1/admin/songs/[songId].ts:42` `export const PUT` → `:45` `adminTokenMatches(...)`、1 トランザクションで songs メタデータ + currentVersion + `chart_versions` 不変行追加 + catalogVersion bump、同一曲再 publish で chartVersion +1 (`:140` の同時 publish 対策)
+  - D1: migration `20261106124714_heavy_harrier.sql` = **リモート適用済み** (`docs/operations/d1-migrations.md:121`)
+  - Unity 側: `Assets/Game/Scripts/Songs/CloudCatalog.cs:89` `CatalogUrl(baseUrl)` / `:94` `ChartUrl(baseUrl, songId, chartVersion)` / `:110` `ParseCatalog(json)`
+  - `Assets/Game/Scripts/UI/SelectSceneManager.cs:63` `StartCatalogRefresh()` / `:351` `StartCatalogRefresh` / `:360` `RefreshCatalogLoop` / `:370` `RefreshCatalogOnce` (`:374` `CloudCatalog.GetText(CloudCatalog.CatalogUrl(config.baseUrl), …)` / `:376` `ParseCatalog(body)`) / `:421-434` — 曲 ID + version で chart を取得
+  - 設定: `Assets/Game/Resources/CloudCatalogConfig.json` = `{"enabled":true,"baseUrl":"https://flashbeat.rebuildup.dev","chartVersion":1,"refreshSeconds":8}` (**有効**・本番 URL 固定)
+  - テスト: `Assets/Tests/Editor/CloudCatalogTests.cs`, `CatalogMergeTests.cs`, `SongCatalogRobustnessTests.cs`, `ScoreCatalogIntegrityTests.cs`, `SceneVideoCatalogOrderTests.cs`
+  - 段階表: `docs/evidence/index.md` §1 — **S2 = 未証明** (「no deployed API, no client build」)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 契約: `contracts/openapi.v1.yaml` (5 routes) + `contracts/schemas/chart.v1.schema.json` | 充足 (拡張伴随) | 8 path に増加 (ランキング等)。**Issue の「5 routes」は現状と不一致** |
+| 2 | Backend: native Void + Vite+ + D1、secrets は Infisical | 充足 | `web/package.json` (`void 1.6.2`, `vite-plus`)、`web/env.ts:15` `FLASHBEAT_ADMIN_TOKEN: string()` (runtime secret のみ)、`docs/operations/cloudflare-bootstrap.md` |
+| 3 | UI: Panda CSS + Park UI + Konva (Tailwind/shadcn なし) | 充足 | `web/package.json` に tailwind / shadcn **0 件**。`web/panda.config.ts:76` `include: ["gray","blue","red","green","amber"]`、`web/src/components/ui/` = 15 ファイル (すべて `@ark-ui/react` ベース) |
+| 4 | Gate: Mac が既存有効 chart を HTTP PUT で公開 | 充足 (コード) / 未検証 (実行) | `admin/songs/[songId].ts:42` PUT。**本監査は PUT を実行していない**。`web/tests/production-api.test.ts:198` `describe("deployed publish API", { skip: !publishEnabled })` — スキップされる構造 |
+| 5 | Gate: Win Unity が再ビルドなしでカタログ更新し新曲を再生 | **未充足** | §1 S2 = 未証明 |
+| 6 | Gate: 実 yt-dlp ストリーム | 未充足 | #4 / #13 と同一のブロッカー |
+| 7 | S1 の runnable build を保持 | 充足 | §1.5 の 3 世代が別フォルダで保持 |
+| 8 | このゲートでランキングやエディタ UI を実装しない | 充足 (規律) | ランキングは #7 / #135 に分離 |
+
+- **未検証の区別**: 条件 4–6 は **実デプロイ + Win 実機**。**`production-api.test.ts` が `skip` される限り、本番 API の到達性は緑ではない** — 緑に見える緑が危険。代替 = `docs/evidence/index.md` の「未証明」。
+- **依存**: **Windows 実機** + **本番 PUT の承認** (Infisical token が Worker に投入済みかどうか)。#17 が実装側。
+
+### #6 — [Gate S3] Panda CSS + Park UI Web Studio → Unity 公開デモ
+
+- **区分**: **D (阻塞)**
+- **実装/証拠**:
+  - Web Studio の実装は §3.3 の #19 / #61 / #73 / #135 / #74 / #75 に記載。`web/src/components/new-song/**`, `web/src/components/song-publisher/**`, `web/src/components/chart-editor/**` (19 ファイル、Konva は `web/src/components/chart-editor/note-grid.tsx:1` `from "react-konva"`)
+  - 発行経路: `web/pages/publish.tsx:140` → `web/src/lib/publish/client.ts:39` `PUT` / `web/routes/api/v1/admin/songs/[songId].ts:42`
+  - E2E: `web/tests/e2e/studio-flow.spec.ts` (4 テスト: 「all screens share the studio shell」「publish shows the admin-token boundary before pressing it」「catalog → editor → publish → back to catalog」「forced catalog states render inside the shared shell」)、`visitor-flow.spec.ts` (viewport ごとの clean console)、`editor-note-flow.spec.ts`
+  - 視覚: `web/tests/visual/capture.mjs` の 3 viewport に `1280×720` / `1440×900` を含む → Issue の「1280×720 と 1440×900 checked」に対応
+  - 段階表: `docs/evidence/index.md` §1 — **S3 = 未証明** (「no published chart version」)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | UI stack 固定 (Void + Vite+ + React/TS + Panda + Park UI (Ark UI) + Konva + YouTube IFrame API、**Tailwind/shadcn 禁止**) | 充足 | `web/package.json` に tailwind/shadcn 0 件。`web/src/components/ui/*` は `@ark-ui/react` 由来。`web/src/components/chart-editor/youtube-preview.tsx` が IFrame API |
+| 2 | Gate: Mac Web Studio が既存 chart JSON を import/edit し Cloudflare へ publish | 充足 (コード) / 未検証 (実接続) | `web/src/lib/new-song/**`, `web/src/components/new-song/new-song-flow.tsx`, `publish-dialog.tsx` |
+| 3 | Gate: Win Unity が再ビルドなしで選択画面に出て ResultScene まで再生 | **未充足** | §1 S3 = 未証明 |
+| 4 | 1280×720 と 1440×900 で確認 | 充足 (撮影あり) / 未検証 (目視) | `web/tests/visual/capture.mjs` の viewport 設定。ただし**ゲートは現在 exit 1** |
+| 5 | UI feedback は小さな分離 Issue にする | 充足 (運用) | `docs/architecture/festival-mvp.md:67` 「New UI feedback can be handled by an unallocated UI iteration issue without blocking playable S2/S3」 |
+| 6 | 依存: S2 の remote catalog が証明済み / 最後の Windows artifact を保持 | 未充足 | S2 が未証明 |
+
+- **未検証の区別**: 条件 3 は **実 Win64**。**Web 側の publish テスト緑は、公開が D1 に到達し Win Unity がそれを読めることを保証しない**。代替 = `studio-flow.spec.ts` 緑 + §1 の「未証明」。
+- **依存**: **#5 (S2) が未証明 = S3 の前提が未成立**。これが #6 を D にする直接理由。
+
+### #7 — [Gate S4 optional] 展示用クラウドランキング
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `web/routes/api/v1/scores.ts`
+    - `:10-17` 仕様コメント — 「client-sent `score` that disagrees is a **422**」、「duplicate identical submission (same songId + nickname + score) within **10 seconds** is a **429** with `Retry-After`」
+    - `:115` `const score = computeUnityScore(request.perfect, request.great, request.bad, chart.noteCount);` → **サーバ側で再計算**
+    - `:53` / `:74` / `:101` / `:111` / `:127` / `:141` — 各 422 の診断経路
+  - `web/routes/api/v1/_score-model.ts:176` — `if (sum !== noteCount)` → 「perfect + great + bad + miss must equal the N notes of chart version M」 = **Issue の「check judgment count==noteCount」**
+  - `web/routes/api/v1/_score-model.ts:182` — `maxCombo > noteCount` → 422
+  - `web/routes/api/v1/_score-model.ts:213` — `maxScore = Math.fround(noteCount * 5)` (float32 精度の明示)
+  - `web/routes/api/v1/leaderboards/[songId].ts:22` `const LEADERBOARD_SIZE = 10;` / `:51` `.limit(LEADERBOARD_SIZE)` = **top 10 per songId+chartVersion**
+  - D1: migration `20261106124714_heavy_harrier.sql` に `scores` / `chart_versions` テーブル (リモート適用済み)
+  - Unity 側: `Assets/Game/Scripts/UI/RankingClient.cs:113` (nickname 検証) / `:143` (POST body) / `:205` (GET) / `:240` / `:243` `PostScore(...)` / `:277` / `:318`; `Assets/Game/Scripts/UI/ResultRankingOverlay.cs:186` `GetLeaderboard` / `:307` `PostScore` / `:325` 再取得
+  - v6 側: `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:864` `RankingClient.PostScore(...)` / `:1332` `GetLeaderboard(...)`; `V6/Select/Data/V6SelectDataSource.cs:466`
+  - テスト: `web/tests/score-model.test.ts`, `web/tests/api.test.ts`, `Assets/Tests/Editor/RankingClientTests.cs` (11 テスト)
+  - 段階表: `docs/evidence/index.md` §1 — **S4 = 未証明**、証跡欄は「not started — keep the current playable build」
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | D1 に score submission と songId+chartVersion ごとの top 10 | 充足 | `scores` テーブル + `leaderboards/[songId].ts:22,51` |
+| 2 | サーバが score を再計算 | 充足 | `scores.ts:115` + `_score-model.ts:176,182,213` |
+| 3 | judgment count == noteCount を検査 | 充足 | `_score-model.ts:176` |
+| 4 | 単純な編集可能ニックネーム、アカウント無し、実アンチチート無し | 充足 | `RankingClient.cs:113` の ASCII/かな検証。`RankingClientTests.cs:26` `ValidateNickname_TrimsAndAcceptsAsciiAndKana` |
+| 5 | ランキングを casual / unverified と表示 | 充足 (要文言確認) | `V6RankingView.cs` / `V6RankingLogic.cs:124` にオンラインランキング表示。**「casual/unverified」の文言ラベルは本監査で実文字列を確認していない** → 観測不足 |
+| 6 | Gate: 実 Win64 play が result を送信する | 未充足 | §1 S4 = 未証明 |
+| 7 | Gate: 2 番目のブラウザ/クライアントがそれを見る | 未充足 | 同上。**「2 台目のクライアント」の観測記録が無い** |
+| 8 | 永続ローカルハイスコアを server の権威にしない | 充足 (コード) | `ScorePersistence` はローカルの保存であり、サーバの真値としない。`GManager.Hiscore` は PlayerPrefs |
+| 9 | 時間がなければ S3 を維持 | 充足 (運用) | §1 S4 行「keep the current playable build」 |
+
+- **未検証の区別**: 条件 6–7 は **実 Win64 + 2 クライアント**。**`score-model.test.ts` 緑は「サーバが 422 を返す」ことの証明であって、「実プレーの結果が実際に submit される」ことの証明ではない**。代替 = サーバ側ユニットテストのみ。
+- **依存**: #21 (Unity 送信側) + #5 (S2 のデプロイ済み API) が前提。**Issue 自身が optional を明示**。
+
+### #12 — [S2/Mac] Void + Vite+ React + Panda CSS/Park UI 最小アプリの足場
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/package.json`
+    - `"dev": "vp dev"` / `"build": "vp build"` / `"preview": "vp preview"` / `"postinstall": "void prepare && panda codegen"`
+    - `void 1.6.2` / `@void/react 1.6.2` / `vite: npm:@voidzero-dev/vite-plus-core@^1.4.0` / `vite-plus ^1.4.0` / `react ^19.2.4` / `@pandacss/dev 2.5.0` + `@pandacss/preset-base` + `@pandacss/preset-panda` + `@pandacss/vite` + `@pandacss/types` / `@park-ui/cli 1.0.1` / `@ark-ui/react 5.40.0` / `konva ^10.9.1` / `react-konva ^19.3.2` / `lucide-react 1.70.0`
+    - **`tailwind` / `shadcn` は package.json に 0 件** (grep で確認)
+  - `web/panda.config.ts` — `include` は 5 スケール (`gray`, `blue`, `red`, `green`, `amber`)。`web/src/theme/tokens/colors.ts`, `text-styles.ts`, `layer-styles.ts`, `conditions.ts`, `global-css.ts`, `keyframes.ts`, `animation-styles.ts`, `durations.ts`, `shadows.ts`, `z-index.ts`
+  - `web/src/components/ui/` = 15 ファイル、`@ark-ui/react` の `ark` factory ベース (`group.tsx`, `tabs.tsx`, `field.tsx`, `select.tsx`, `dialog.tsx`, `button.tsx`, `input.tsx`, `toast.tsx`, `icon.tsx`, `icon-button.tsx`, `close-button.tsx`, `loader.tsx`, `spinner.tsx`, `span.tsx`, `absolute-center.tsx`)
+  - `web/src/app/` = アプリシェル (`topbar.tsx` が `Portal` / `createListCollection` を使用、`drawer.tsx` が `FOCUSABLE_SELECTOR` と純関数 `nextFocusTarget`)
+  - `web/src/theme/colors/{gray,blue,red,green,amber}.ts` + `docs/design/web-token-mapping.md`
+  - `web/void.config.ts`, `web/void.lock.json`, `web/components.json` (Park UI 設定), `web/vite.config.ts`, `web/tsconfig.json`
+  - テスト: `web/src/app/drawer.test.ts`, `web/src/app/catalog-view.test.ts`, `web/src/app/catalog-panel.test.tsx`, `web/src/app/topbar.test.tsx`, `web/src/components/ui/select.test.tsx` ほか **47 ファイル**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 公式 Void scaffold (`--toolchain vite-plus --framework react`)、生成 agent ファイル 검토 | 充足 | `web/package.json` の `void 1.6.2` + `void.lock.json` + `web/AGENTS.md` |
+| 2 | T2: Panda の公式 Vite plugin を React plugin の前、typed styled-system codegen、Void の実ソースディレクトリを include | 充足 | `web/vite.config.ts` + `web/panda.config.ts` (`include` 5 スケール) + `"codegen": "panda codegen"` |
+| 3 | T3: `@park-ui/cli init` と prebuilt Button/Input/Field/Tabs/Dialog/Select/Toast | 充足 | `web/src/components/ui/` の 15 コンポーネント。**Park 由来であることが `web/components.json` で宣言されている** |
+| 4 | T3: **独自 UI プリミティブを作らない** | 充足 | `web/src/components/ui/` は全て `ark` factory / `@ark-ui/react` の再エクスポート。**自作 primitive はありません** |
+| 5 | T4: コンパクトな dark シェル、単一 accent、sidebar/top tools、1280×720 と 1440×900 対応、loading/empty/error | 充足 (コード) | `web/src/app/**` + `web/src/components/welcome/**` + `catalog.ts` の `CatalogMode` (loading/ready/empty/error) |
+| 6 | T5: `vp check` / `vp build` + スクリーンショット証跡、**tailwind/shadcn が package に無い** | 充足 (証跡あり) | `web/tests/visual/capture.mjs` の撮影 + `docs/evidence/web-visual/{before,after,interaction}/`。tailwind/shadcn 0 件は grep で確認 |
+| 7 | Acceptance: エディタが存在する前に **単独で起動・ビルドできる** | 充足 | `"dev": "vp dev"` / `"build": "vp build"` が `web/` 単体で完結 |
+| 8 | Acceptance: 新しい backend / 自作 UI システムを作らない | 充足 | backend は `web/routes/api/v1/**` の既存のみ。UI は Park 由来 |
+
+- **未検証の区別**: 条件 6 の「スクリーンショット証跡」は撮られしているが、**本監査では目視していない** (Issue が求める 1440×900 / 1280×720 の目視レビュー)。代替 = 視覚ゲートの機械的結果 + token 対応表。
+- **依存**: #19 / #135 / #73 が本足場の上に載る。**#5 の子**。
+
+### #13 — [S1/Win] yt-dlp+Deno→Unity VideoPlayer 1曲ストリーミング完走
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs`
+    - `:92` `public static class YouTubeStreamResolver`
+    - `:74-80` — 「**the media is downloaded to a local cache instead of streamed by URL**… Media Foundation (`MFCreateSourceReaderFromURL`) cannot send custom HTTP headers. Downloading the exact same bytes with yt-dlp and playing the local file sidesteps that limitation entirely.」
+    - `:111` `ResolveYtDlpPath()` — PATH → mise install tree → Python install dirs → `Assets/StreamingAssets/yt-dlp/yt-dlp.exe` → Unix 3 箇所 (`:126/:135/:148-156/:156`)
+    - `:166` `ResolveDenoPath()` / `:269` — ffmpeg 探索
+    - `:67-91` — Invidious 経路を **弃却** した理由のコメント (「0/13 hosts return valid JSON today」)
+  - `Assets/Game/Scripts/Gameplay/YouTubeMediaCache.cs:52` `public static class YouTubeMediaCache` / `:294` `YouTubeStreamResolver.DownloadAsync(...)` / `:91` `DownloadOverride` (テスト用フック)
+  - `Assets/Game/Scripts/Gameplay/MediaCacheManager.cs:17` — `GetCachedVideoIds` / `:52` `GetCachedSongCount` / `:58` `GetCacheSizeBytes` / `:76` `Clear` / `:93` `ClearAll`
+  - `Assets/Game/Scripts/Gameplay/MusicManager.cs`
+    - `:43` `PrepareTimeout = 20f` / `:44` `FallbackStartTimeout = 30f` / `:48` `StallFailSeconds = 30f` — **「unconditional fixed 8-second wait」は無い**
+    - `:260-263` + `:538-547` — `DisableInvidiousPlayer()` で Invidious 経路を削除
+    - `:337-343` / `:362-368` — 結合 / 分割 (video-only + audio-only) の 2 経路
+    - `:401` `audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);`
+    - `:168-169` — `Resources.LoadAsync<AudioClip>("Musics/" + songName)`
+    - `:580-589` — direct URL probe
+  - タイミング同期: `Assets/Game/Scripts/Gameplay/MediaTimeline.cs`, `Assets/Game/Scripts/Gameplay/PlaybackRecovery.cs`, `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`
+  - テスト: `Assets/Tests/Editor/PlaybackClockTests.cs`, `MediaTimelineTests.cs` ほか `Assets/Game/Tests/` の再生系テスト
+  - 実機: `docs/evidence/win64-2026-11-06-release-gate/README-gen3.md` (Run D) — 映像 `prepared=True` / `video[playing=True]`、音 `rms=0.44…0.56 peak=0.82`、**`audioMode=Bundled`**、**m4a は `Failed to recognize video file format`**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 実 yt-dlp/Deno probe、`-F` で combined A/V 形式を選択、**download-to-local fallback なし** | **未充足 (意図的な逸脱)** | 実装は **ローカルキャッシュへダウンロード**して再生する (`YouTubeStreamResolver.cs:74-80`, `YouTubeMediaCache.cs:294`)。Issue は「no download-to-local fallback」と明記しているが、Media Foundation の制約に対する**明示的な設計変更**として main に取り込まれている |
+| 2 | T2: VideoPlayer Prepare→Play、音声出力、fail/retry UI、**固定 8 秒待ちの除去**、Invidious fallback 除去 | 充足 (コード) | `MusicManager.cs:43-48` (タイムアウト定義)、`:538-547` (Invidious 除去)、`:401` `PlaybackRecovery.DecideAudioSource` |
+| 3 | T3: note 描画/判定を video 再生時刻に同期、buffering で pause、**stall 越しに `Time.time` を累積しない**、既存 note JSON 変換を維持 | 充足 (コード) / 未検証 (実機) | `MediaTimeline.cs` + `PlaybackClockTests.cs` / `MediaTimelineTests.cs`。**実機での判定同期誤差の測定値は未取得** |
+| 4 | T4: Unity EditMode タイミングテスト + **Win64 実ストリーミング select→result→retry**、測定値 (起動遅延・判定同期誤差) の取得 | **部分充足** | EditMode テストは存在。実 Win64 の select→result→retry は §1.5 で到達済み。ただし**起動遅延 14.1 秒**の記録は `docs/evidence/index.md` §1.5 にあり、**判定同期誤差の数値は未記載** |
+| 5 | T5: SHA と chart タグ付けした runnable Win build を保存 | 充足 | §1 S1 行 fingerprint `b8c0acde…`、§1.5 第 3 世代 code state `b77b63c` + `EXHIBIT-MANIFEST.txt` |
+| 6 | No scope: 新 UI / auth / 編集ツール / オフライン / 新 note type | 充足 (規律) | 該当実装の追加なし |
+
+- **未充足の具体箇所**: **T1 の「download-to-local fallback なし」**。これは Issue の陳腐化 (2026-11-06 時点の想定) であり、main の実装は **`googlevideo.com` の URL を Unity の `VideoPlayer` が読めない** (`WindowsVideoMedia error 0x80070005` / `MFCreateSourceReaderFromURL`) ため、**同一バイト列を yt-dlp で落してローカル再生する**方式に置き換えたもの。Issue #13 のコメント 2 (rebuildup 2026-11-06) がこの実測報告の出典。
+- **未検証の区別**: **「映像が再生した」「判定が 76 まで進んだ」は「ストリームの音声トラックが鳴った」ことを保証しない**。実測の `rms` は **同梱 wav**。代替 = `docs/evidence/win64-2026-11-06-release-gate/Player-exhibit-*.redacted.log` の `audioMode=Bundled` 行。
+- **依存**: #4 (S1 ゲート) の実装側。**この Issue を閉じるには、ストリーム音声 (m4a) の再生が実 Win64 で証明されること**が必要。
+
+### #17 — [S2/Win] Unity の固定楽曲配列を Cloud Catalog 読込へ切替
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/Songs/CloudCatalog.cs`
+    - `:18` `public static class CloudCatalog`
+    - `:89` `public static string CatalogUrl(string baseUrl)`
+    - `:94` `public static string ChartUrl(string baseUrl, string songId, int chartVersion)`
+    - `:110` `public static SongData[] ParseCatalog(string json)`
+  - `Assets/Game/Scripts/UI/SelectSceneManager.cs`
+    - `:63` `StartCatalogRefresh()` (選曲画面入場時)
+    - `:334-343` — 既存の refresh が動いていればスキップ / 完了でクリア
+    - `:351` `StartCatalogRefresh` / `:357` `StartCoroutine(RefreshCatalogLoop(config))`
+    - `:360` `RefreshCatalogLoop` / `:370` `RefreshCatalogOnce` / `:374` `CloudCatalog.GetText(CloudCatalog.CatalogUrl(config.baseUrl), (code, text) => …)` / `:376` `status == 200 ? CloudCatalog.ParseCatalog(body) : null`
+    - `:400` `if (v6Data != null) v6Data.RefreshAsync();` — v6 選曲画面への反映
+    - `:421-434` — `CloudCatalog.ChartUrl(config.baseUrl, song.remoteId, version)` で **exact version** の譜面を取得
+  - `Assets/Game/Scripts/Songs/GManager.cs:88` — `public static SongData[] ActiveSongs => mergedSongs;` (:80 のコメント「the cloud snapshot only *updates* the songs it knows」) — **固定カタログが真値ではなく、cloud が上書きする構造** (Issue タスク 3 の「do not use Resources or parallel GManager arrays as remote catalog truth」を満たす)
+  - 設定: `Assets/Game/Resources/CloudCatalogConfig.json` = `enabled: true`, `baseUrl: https://flashbeat.rebuildup.dev`, `refreshSeconds: 8`
+  - テスト: `Assets/Tests/Editor/CloudCatalogTests.cs`, `CatalogMergeTests.cs`, `SongCatalogRobustnessTests.cs`, `ScoreCatalogIntegrityTests.cs`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 契約に fit した小さな typed UnityWebRequest GET クライアント、base URL を config 化、unavailable/empty/error で crash しない | 充足 | `CloudCatalog.cs:89,94` + `CloudCatalogConfig.json` + `SelectSceneManager.cs:374-376` (`status == 200 ? … : null`) |
+| 2 | T2: 選曲画面入場時 + idle 中 5–10 秒周期で更新、remote の曲名/メタデータを既存 UI に表示、realtime socket 無し | 充足 (コード) | `SelectSceneManager.cs:63` (入場時) + `:360 RefreshCatalogLoop` + `CloudCatalogConfig.json` `refreshSeconds: 8` (**Issue 指定の 5–10 秒範囲内**) + socket コードなし |
+| 3 | T3: (songId, chartVersion) で譜面を取得し完走まで snapshot を保持、**Resources / 並列配列を remote catalog の真値にしない** | 充足 (コード) | `SelectSceneManager.cs:421-434` (exact version) + `GManager.cs:88` `ActiveSongs` の merge 構造 |
+| 4 | T4: 動的 Youtube VideoPlayer を 1 個使う（曲ごとに object を作らない） | 充足 | `MusicManager` は `songVideo` を 1 つ保持し、`YPlayer[GManager.songID]` を初期化時に一度だけ張る構造。`MusicManager.cs:542` の `YPlayer[GManager.songID]` 参照が単一 |
+| 5 | T5: **Win64 E2E — PUT で新曲を公開 → 再ビルドなし → 選曲 → ストリーム → ノーツ/判定 → result → artifact + SHA** | **未充足** | `docs/evidence/index.md` §1 S2 = 未証明 |
+| 6 | Gate: S2 が単独で demo でき、S1 の last-good build を保持 | **未充足** (S2 側) | §1.5 に 3 世代が保持されている点は充足 |
+
+- **未検証の区別**: 条件 5 は **実 Win64 + 本番 PUT**。**`CloudCatalogTests.cs` 緑は「remote catalog を読める」ことの証明であって、「公開直後の新曲が再ビルドなしで出现在再生できる」ことの証明ではない**。代替 = ユニットテスト + `CloudCatalogConfig.json` の設定確認。
+- **依存**: **#13 (S1) と #15/#16 (公開スキーマ)** が前提 (Issue 本文)。加えて **本番 API の到達性**。
+
+### #19 — [S3/Mac] Park UI 楽曲メタデータ・Publish 画面を接続
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/src/components/song-publisher/` — `song-publisher.tsx`, `song-metadata-form.tsx`, `publish-dialog.tsx`, `publish-result.tsx` ほか
+    - `song-publisher.tsx:29` — 「#18, the request goes to `PUT /api/v1/admin/songs/{songId}`」
+    - `song-publisher.tsx:290` `const [token, setToken] = useState("")` — **token は実行時入力**
+    - `song-publisher.tsx:400` token を publish へ渡す / `:426` 依存 / `:569` ダイアログへ渡す
+    - `publish-dialog.tsx:10-11` — 「the staff token of the operator. The token lives in the memory of the browser tab for this screen」/ `:117` `Field.Label` "Staff token" / `:144` token 未入力なら Publish ボタン無効
+  - `web/src/lib/publish/client.ts:7` — 「The staff token travels as a bearer token in …」 / `:22-23` `token: string` = 「Staff token, entered by the operator at runtime」 / `:39` `fetch(...)`
+  - `web/src/lib/publish/transport.ts:9-11` — 「`/api/v1/admin/songs/{songId}` of the host the studio was loaded from … the value is a public URL, the staff token is never part of …」
+  - `web/env.ts:15` — `FLASHBEAT_ADMIN_TOKEN: string()` (**Worker runtime secret のみ**。Web バンドル・Unity バイナリ・コミットに出さない = Issue タスク 2 の「never bundled」)
+  - `web/src/components/chart-editor/` — `chart-editor.tsx`, `note-grid.tsx` (Konva `react-konva`), `lyrics-editor.tsx`, `selection-panel.tsx`, `validation-panel.tsx`, `youtube-preview.tsx` = **Issue タスク 1 の「existing chart editor」**
+  - `web/src/components/new-song/` — `new-song-flow.tsx:16` / `:30-31` / `:137` / `:216` (Issue #135 の別動線)
+  - テスト: `web/src/lib/publish/__tests__/{client,draft,mock,transport,validation}.test.ts`, `web/src/components/song-publisher/{song-metadata-form.test.tsx,song-publisher.test.ts}`
+  - 証跡: `docs/evidence/web-acceptance/{1920x1080,2560x1440,2560x1664}/` + `docs/evidence/web-visual/`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 最小の曲メタデータ入力 (title, artist, video ID, level, duration) + 既存 chart editor、validation が可視 | 充足 | `song-metadata-form.tsx` + `song-metadata-form.test.tsx` + `chart-editor/validation-panel.tsx` |
+| 2 | T2: 1 つの Publish ボタン → typed fetch で `PUT /api/v1/admin/songs/{songId}`、**token は operator の runtime entry から (bundle には入れない)**、success/error 状態 | 充足 | `client.ts:39` + `publish-dialog.tsx:117,144` + `env.ts:15` |
+| 3 | T3: 1280×720 と 1440×900 で preview/test、**横溢れなし**、密度とタイポグラフィの一致 | **未充足** | **視覚ゲートが `exitCode: 1`**、`horizontalOverflow: ["home@390x844"]` (`specs/075-visual-gate/evidence/2026-11-08/index.json`)。1280×720 / 1440×900 の 2 viewport 自体は撮影済みだが、横溢れは 390 幅で残存 |
+| 4 | T4: Mac ブラウザ publish → Windows Unity のカタログ更新と full streamed play、**S3 runnable build とログを保存** | 未充足 (実装側) | **publish → Win Unity の再生は #6 (Gate S3) の責務**。本 Issue は Web 側のみ。ログ保存の記録は §1 S3 = 未証明 |
+| 5 | Gate: **Unity 再ビルドなしで Web UI が再生可能な公開 chart を作る** | 充足 (Web 側) / 未検証 (Win 侧) | publish 経路は実装済み。**再ビルドなし再生は #6 で未証明** |
+| 6 | No scope: private cloud drafts / auth UI / 余計な styling infrastructure | 充足 (規律) | 認証 UI は無い。token は 1 入力欄のみ |
+
+- **未検証の区別**: 条件 3 は **実ブラウザ撮影 + 目視**。**Vitest 緑は「1280×720 で横溢れしない」ことを保証しない** — 実測で溢れがある。代替 = 視覚ゲートの機械的結果。
+- **依存**: #12 (足場) / #16 (公開 API) が前提。**#6 が本 Issue の Win 側ゲート**。
+
+### #21 — [S4/Win optional] Unity リザルトをオンライン送信しランキング表示
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/UI/RankingClient.cs`
+    - `:113` — nickname 検証 (ASCII + かな)
+    - `:143` — POST body 構築
+    - `:205` — GET leaderboard
+    - `:240` — endpoint 組み立て
+    - `:243` `public static IEnumerator PostScore(string songId, int chartVersion, string nickname, …)`
+    - `:277` `public static IEnumerator GetLeaderboard(string songId, int chartVersion, Action<Result> onDone)`
+    - `:318` — レスポンス解釈
+  - `Assets/Game/Scripts/UI/ResultRankingOverlay.cs:18` `public class ResultRankingOverlay : MonoBehaviour` / `:186` `GetLeaderboard` / `:307` `PostScore` / `:325` 送信後の再取得
+  - v6: `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:864` `RankingClient.PostScore(song.remoteId, chartVersion, nickname, …)` / `:1332` `GetLeaderboard(remoteId, chartVersion, r => { result = r; })`
+  - v6 選曲: `Assets/Game/Scripts/UI/V6/Select/Data/V6SelectDataSource.cs:466` `GetLeaderboard(remoteId, chartVersion, …)`
+  - v5 選曲: `Assets/Game/Scripts/UI/V5/SelectView.cs:1703` `GetLeaderboard(song.remoteId, song.chartVersion, …)`
+  - ローカル保存: `Assets/Game/Scripts/Persistence/ScorePersistence.cs` + `Assets/Game/Scripts/Persistence/SaveLoadManager.cs`
+  - テスト: `Assets/Tests/Editor/RankingClientTests.cs` (11 テスト: `:26` `ValidateNickname_TrimsAndAcceptsAsciiAndKana`, `:50` `BuildScoreRequestJson_ContainsSubmissionFields`, `:100` `ParseLeaderboard_ReadsEntries`, `:142` `Urls_FollowTheOpenApiContract`, `:152` `IsValidSongId_FollowsTheServerPattern`, `:165` `Nickname_RoundTripsThroughPlayerPrefs`)
+  - 契約整合: `RankingClientTests.cs:142` `Urls_FollowTheOpenApiContract` = `contracts/openapi.v1.yaml` との一致を固定
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 譜面完走後に nickname と P/G/B/M で 1 回 POST、songId と chartVersion は実行中の run から固定、**end での missed notes 修正** | 充足 (コード) / 未検証 (実機) | `V6ResultView.cs:864` / `ResultRankingOverlay.cs:307` / `RankingClient.cs:143`。**end 時の missed notes 修正の実機挙動は未確認** |
+| 2 | T2: **結果はネットワーク遅延に関わらず即表示**、非同期で top10 GET。**ローカルハイスコアを server の権威にしない** | 充足 (コード) | `V6ResultView.cs` は result 表示と送信を分離 (`V6ResultLogic.cs:224` 「送信中 (RankingClient.PostScore の応答待ち)」) + `:1332` 非同期取得 |
+| 3 | T3: submitting / error / leaderboard-empty の状態を既存 uGUI/TMP で表示、UI framework 変更なし | 充足 | `V6ResultLogic.cs:224` + `V6ResultView.cs` の状態表示。`Assets/Game/Scripts/UI/V5/UISizeProfile.cs` 体系を維持 |
+| 4 | T4: **End-to-end streamed play → submit → 2 台目のデバイスで表示**、artifact 保存 | **未充足** | §1 S4 = 未証明 |
+| 5 | Gate: 実 run 後にスコアボードが見える、S3 build は fallback のまま | **未充足** (実機) | 同上 |
+| 6 | No scope: login / anti-cheat | 充足 (規律) | 該当実装なし |
+
+- **未検証の区別**: 条件 4 は **実 Win64 + 2 台目**。**`RankingClientTests.cs` 緑は「JSON が正しい」ことの証明であって、「実プレーの結果が実際に POST され、2 台目に表示される」ことの証明ではない**。代替 = クライアントのユニットテスト + サーバ側 `score-model.test.ts`。
+- **依存**: #17 (catalog) と #7 (サーバ側 API) が前提。**optional**。
+
+### #22 — [Release/Win] 各ステップ Win64 展示版 smoke / パッチ配布ゲート
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - 証跡インデックス: `docs/evidence/index.md` — §1 ステージ表 / §1.5 展示フォルダ 3 世代 / §1.6 Mac 検証 / §1.7 統合後再検証
+  - 機械可読な双子: `release/check/stage-manifest.json` — `fingerprint.algorithm` (SHA-256 over `<fileSha256>  <relative/path>`) / `artifactRoots` / `exhibitDeployment` (activeGeneration 3、3 世代の path / content / sourceBuild / buildResult)
+  - 検証スクリプト: `release/check/verify-stage.ps1` (`-Stage S0` 等) / `drive-gameplay.ps1` / `redact-log.ps1` / `README.md`
+  - 承認チェックリスト: `docs/operations/release-approval-checklist.md` — 「**1 項目でも確認できていないものは「未証明」と書き、green を作りません**」/ A. 前提と権限 / B. 成果物チェック / … の複数セクション
+  - runbook: `docs/operations/festival-runbook.md` — §1 展示フォルダ / **§4 1280×720 スモークチェックリスト (10 項目のチェックボックス)** / 「**起動は `FlashBeat.exe` の直接起動だけ**」「ランチャー / `Play.cmd` / `Update.cmd` / 起動時自動更新 / ロールバックコマンドは **存在しません**」
+  - 補助: `docs/operations/exhibit-runbook.md`, `docs/operations/exhibit-handoff-2026-11-08.md`, `docs/operations/release-gate.md`, `docs/operations/update-patch.md` (#36), `docs/operations/three-resolution-fullscreen-verification.md`
+  - 段階表 §1: **S0 proven (partial) / S0-FONT proven (partial) / S1 未証明 / S2 未証明 / S3 未証明 / S4 未証明**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: S0–S3 (S4 任意) ごとに**実 Win64 play 証跡と正確 SHA** — select → YouTube ストリーム → notes/result → retry、ログ/スクリーンショット + CF URL/chartVersion | **未充足** | §1 の S1–S4 が未証明。**S0 のみ partial** |
+| 2 | T2: 1280×720 での高速 UX smoke (日本語グリフ、入力マッピング、音画同期、ネットワークエラー状態)、**source チェックと実ゲーム証跡を区別** | **未充足 (チェックリスト未実施)** | `festival-runbook.md` §4 の 10 項目は **チェックボックス未記入**。`:99` 自身が「実機 1280×720 パネルでの fullscreen は **未検証**」と記載。`:189` は「ウィンドウモードで `FlashBeat.exe -screen-width 1280 -screen-height 720 -screen-fullscreen 0`」を代替手順として提示 |
+| 3 | T3: 証明済み Win64 artifact を保存し短い展示 runbook を維持 | 充足 | `stage-manifest.json` の 3 世代 + `festival-runbook.md` + `exhibit-runbook.md` |
+| 4 | T4: パッチは **テスト済みの新リリースを承認**し、**ゲームを閉じて 1 回適用 (#36) してから `FlashBeat.exe` を直接起動**。展示中に強制更新しない、**ロールバック経路を足さない**、壊れた更新は別パッチで出版 | 充足 (運用) | `festival-runbook.md` 冒頭 + `docs/operations/update-patch.md` の「**`OnApplicationQuit` からの自動適用は存在しません** (issue #118 で廃止)」 |
+| 5 | T5: 承認済み PR のみを release に merge、**本番 main と Cloudflare を独立に承認**、backend API v1 互換 | 充足 (運用) | `release-approval-checklist.md` の A 節「片方の承認を他方の承認に読み替えない」 |
+| 6 | Acceptance: 各ゲートに**文書化された直接起動可能な `FlashBeat.exe`** が存在 | **部分充足** | §1.5 に第 3 世代の直接起動構成が実在。**S1–S3 の直接起動可能ビルドは未証明** |
+| 7 | Acceptance: **未検証の後続パッチが現在の展示ビルドを置き換えない** | 充足 (運用) | `festival-runbook.md`「展示中は **読み取り専用**」+ `update-patch.md`「1 世代だけ残します」 |
+| 8 | Acceptance: ランチャー無し、ユーザー向けロールバック無し | 充足 | `festival-runbook.md` 冒頭 + `update-patch.md` |
+
+- **未検証の区別**: 条件 1–2 が核心。**`release-approval-checklist.md` が存在して緑でも、チェックボックスが未記入なら gate は通っていない** — 文書自身の原則どおり「未証明」。代替 = `docs/evidence/index.md` の自己申告 (S0 partial のみ)。
+- **依存**: **全 S ゲート**。且つ #22 は **PR readiness を確認するのみで merge しない** (チェックリスト A 節) = 統合は cc 側。
+
+
+## 4. 推奨する次の実装単位 (≤10 件)
+
+cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム機能完成 → Web Studio → 残件**) に沿って並べた。各単位は **1 Worker が 1 PR で完了できる粒度**、かつ **igi 了一件直ちに検証できる**ことを基準にしている。
+
+### 優先順位サマリ
+
+| # | 単位 | 対象 Issue | 優先度 | 想定工数 | 完了判定 (DoD) |
+|---|---|---|---|---|---|
+| U1 | v6 プレイフィールドの再有効化 + `Lane` 構造の復活 | #219, #233(B) | **P0** | 中 | 実 Win64 で 8 レーンとノーツが見え、判定が同期する |
+| U2 | ゲーム確認窓 (0.86s → 1.6s) と旧歌詞二重描画の解消 | #233(B) | **P0** | 小 | 旧 v5 歌詞 canv が GameScene に出ない |
+| U3 | v6 Option「データ初期化」の保存範囲統一 | #241 | P0 | 小 | `ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ |
+| U4 | Web の publish → chart ドラフト復元動線 | #98 | P0 (Web) | 小 | `/chart?draft=…` を開くと編集内容が復元される |
+| U5 | 視覚ゲートの緑化 (狭幅横溢れ) | #74, #75, #61 | P0 (Web) | 中 | `npm run visual` が exit 0 |
+| U6 | 展示 patch line `b677f8f` への #140 / #134 移植 | #140, #134 | P0 (展示) | 中 | 展示ビルドで豆腐 0 かつリザルト登録が動く |
+| U7 | Win64 実機解像度スイープ (1920×1080 / 1280×720 / 1024×768) | #88, #96 | P0 | 中 | `displayCoverage ≥ 0.99` の実測値が記録に残る |
+| U8 | ストリーム音声 (m4a) の再生と `audioS.Play()` の実証 | #13, #4 | P0 (S1) | 中〜大 | 展示ビルドでストリーム音声が鳴る |
+| U9 | `skills-check` と agent 環境の欠落ファイル | #56 | 残件 | 小 | `mise run skills-check` が lock と一致する |
+| U10 | 受入記録の整備 (#59 / #58 / #22 のチェックリスト実測) | #59, #58, #22 | 残件 | 中 | OK/NG/未検証の判定表とスクリーンショットが残る |
+
 ---
+
+### U1 — v6 プレイフィールドの再有効化 + `Lane` 構造の復活 (#219, #233)
+
+- **なぜ最優先か**: #233 の実機表示が壊れている直接原因で、#217 / #223 / #242 / #250 のすべてがここで塞がれている。cc は「8 レーンが見えない」が描画失敗ではないと実測済みだが、**`V6UiMode.Playfield = false` により v6 プレイフィールド自体が描画されない**状態は未解決。
+- **対象**:
+  - `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` — `public static bool Playfield = false;` → 有効化 (または v6 実行時に限り true にする profile 追加)
+  - `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldRuntime.cs:52` — `if (!FlashBeat.UI.V6.V6UiMode.Playfield) return;` のガードを実装修正に合わせる
+  - `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` — `HideByName("Lane")` が `Playfield` 有効時に旧 v5 構造を隠すか残すかを決定 (両方可あり，但要明示)
+  - `Assets/Game/Scenes/GameScene.unity:2837` — `m_Name: Lane` の `m_IsActive: 0` (**enabler が 0 件**)。**启用するコードパスを 1 つ追加** (例: `GameSceneManager` の `Start()` で `GameObject.Find("Lane").SetActive(true)`)。ただし **v6 有効時は v5 経路と二重描画になるため排他が必要** (`Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` の既存パターンに倣う)
+  - `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs:38` `NoteLayer` / `:88-115` lanes/separators/judgeLine / `:155-165` lane flash — 既存の投影ロジックは完備
+- **注意**: `Assets/Game/Scripts/Gameplay/Notes.cs:105-129,158-165` は既に `V6PlayfieldView.Current` 経由で head/body Image を生成する。**再有効化で破綻しないか**が要点 (`Notes.cs:25` に 3D フォールバックの分岐コメントがある)。
+- **DoD**: (1) `V6UiMode.Playfield` 有効状態で GameScene に 8 レーン・判定ライン・ノーツが出ることを **EditMode テスト** (`Assets/Game/Tests/V6PlayfieldGeometryTests.cs` の拡張) で固定、(2) **実 Win64** で 1 曲再生しノーツと判定の同期を目視確認、(3) 旧 v5 `Lane` の二重描画が無いことをスクリーンショットで確認。
+- **依存**: なし (他 Issue より先行)。**#233 の残り 2 件の前提**。
+
+### U2 — ゲーム確認窓の拡張と旧歌詞二重描画の解消 (#233)
+
+- **対象**:
+  - 確認窓 0.86 秒 → 設計意図 1.6 秒。**本監査では 0.86 s の定義位置を file:line で特定できなかった** → Worker がまず `grep -rn "0.86\|ConfirmWindow\|confirm" Assets/Game/Scripts/` で実体を特定すること (候補: `V6GameHudView` / `GameHudRuntime` / `Judge` の Miss Quite 判定)
+  - 旧 v5 歌詞二重描画: v5 の歌詞表示 (`LyricsOverlay` 相当) と v6 の歌詞表示の両方が active になっている箇所。`Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` と同じ排他パターンで v5 側を無効化する
+- **DoD**: 実 Win64 で (1) 1 曲再生し、後半にノーツの無い区間 (**Blank interval**) でもレーン/判定ラインが判定直前まで確認できること、(2) 歌詞が二重表示されないこと の 2 点のスクリーンショット。
+- **依存**: **U1 と同じ PR 内、または直後の PR**。#233 の B 判定を A に上げる最後の 2 項目。
+
+### U3 — v6 Option「データ初期化」の保存範囲統一 (#241)
+
+- **対象**: `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs:1044-1053` の `ClearSaveData()`:
+  ```csharp
+  PlayerPrefs.DeleteKey("Hiscore");
+  PlayerPrefs.DeleteKey(FlashBeat.UI.V5.OptionView.KeyBindingsPrefsKey);
+  PlayerPrefs.Save();
+  Array.Clear(GManager.Hiscore, 0, GManager.Hiscore.Length);
+  KeyBindings.ResetToDefaults();
+  ```
+  → **`ScorePersistence.ResetAll()` (`Assets/Game/Scripts/Persistence/ScorePersistence.cs:276`) を呼んでいない**。`:280-281` は `ScoreStore.StorageKey` と `LegacyStorageKey` を削除するが、この経路の呼び出し元は `Assets/Game/Scripts/Persistence/SaveLoadManager.cs:54 ResetHiscore()` だけ (`Assets/Game/Scenes/OptionScene.unity:11105 m_MethodName: ResetHiscore`)。**`Assets/Game/Scripts/UI/**` 配下から `ResetAll()` の呼び出しは 0 件**
+- **影響**: v6 のオプション画面から「データを初期化」を押しても、**新スコア保存 (`FlashBeat.ScoreStore`) が残る**。旧 `Hiscore` だけ消える = 実装と UI の説明が食い違う
+- **DoD**: `ClearSaveData` が `ScorePersistence.ResetAll()` を呼び、EditMode テスト (`Assets/Tests/Editor/` 配下に追加) で「保存済みスコア・Hiscore・キーマップ・キーバインドの 4 種がすべて初期化される」を固定。**他タブ (音量 / 曲速度 / タイミング / フラッシュ) の保存範囲は変えない** (Issue の主要受入条件)
+- **依存**: なし
+
+### U4 — Web の publish → chart ドラフト復元動線 (#98)
+
+- **対象**:
+  - `web/pages/chart.server.ts:6` — loader が `{ songId, version }` のみ返す → **`draft` パラメータを受け取る** (`params.get("draft")`)
+  - `web/pages/chart.tsx:1` — `import { savePublishDraft }` のみ → **`readPublishDraft` も import** して、draft があれば `readPublishDraft(draftId, songId, version)` で復元
+  - 参照: `web/pages/publish.tsx:1,:140` が既に `readPublishDraft(draftId, songId, version)` を使っている — **publish 側は完成、chart 側だけが欠落**
+  - `web/src/lib/publish/draft.ts` の既存 API をそのまま使う (uuid 検証 + song/version 一致 + chart import 検証つき)
+- **注意**: `specs/098-*` の tasks は `specs/` に存在しないが、Issue 本文のチェックはpublish 側 2 項目 + chart 側 1 項目。**chart 側 1 項目が未充足**
+- **DoD**: `web/src/lib/publish/__tests__/draft.test.ts` を拡張し、「publish → `/chart?draft=…` → 開くと同じ draft が復元される」を**ページレベル**で 1 テスト追加 (`web/tests/e2e/studio-flow.spec.ts` の "catalog → editor → publish → back to catalog" が近い)
+- **依存**: なし (#73 の publish 側は A 判定済)
+
+### U5 — 視覚ゲートの緑化 (狭幅横溢れ) (#74, #75, #61)
+
+- **対象**: `specs/075-visual-gate/evidence/2026-11-08/index.json` → `{"horizontalOverflow": ["home@390x844"], "consoleErrors": [], "exitCode": 1}`。**PR #257 (`w/w74fix2`) が未マージ**
+- **手順**: (1) PR #257 をレビューして main に取り込む、(2) `web/tests/visual/capture.mjs` を再実行し `exitCode: 0` を確認、(3) `specs/075-visual-gate/evidence/` に新日付の証跡を追加、(4) `specs/74-responsive/tasks.md` の残り 3 タスク (「Real browser tab order walk」「Rendered check at 390px」「Screenshots of the five viewports」) をチェック
+- **DoD**: `npm run visual` の exit code が 0、かつ `web/tests/e2e/visitor-flow.spec.ts` が全 viewport で clean console
+- **依存**: **#61 Gate C の前提**。#61 が閉じられるにはこれが緑
+
+### U6 — 展示 patch line `b677f8f` への #140 / #134 移植 (#140, #134)
+
+- **対象**: 展示用ビルドは **patch line `b677f8f`** から作られている (`docs/evidence/index.md` §1.5 の第 3 世代 code state は `b77b63c`)。しかし:
+  - `git ls-tree -r --name-only b677f8f` に `CollectCodeTexts` / `EnsureDynamicFallback` は **0 件** → **#140 の動的フォールバックフォントが展示ビルドに無い** (豆腐 0 の保証失效)
+  - 同様に #134 のランキング送信 (`RankingClient`) が展示ビルドに無い可能性
+- **手順**: (1) `b677f8f` と `main` の差分をレビューし、#140 / #134 を移植 (または展示 line を main に追いつかせる判断)、(2) 展示ビルドを再生成し `docs/evidence/index.md` §1.5 の世代表を更新
+- **DoD**: 展示第 4 世代の `EXHIBIT-MANIFEST.txt` に新 SHA が載り、豆腐 0 とリザルト登録が**そのビルドで**確認できる
+- **依存**: **Windows 実機**。**注意**: 展示 line と main をどちらに寄せるかは cc / オーナーの判断 (issue 本文は main 基準)
+
+### U7 — Win64 実機解像度スイープ (#88, #96)
+
+- **対象**: `docs/evidence/win64-2026-11-06-release-gate/run-summary-exhibit-*.json` → `"resolution": "1280 x 720 (fullscreen=0)"`。**`displayCoverage` キーは main のどこにも存在しない**
+- **手順**: (1) `PlayerSettings` は `ProjectSettings/ProjectSettings.asset:119 fullscreenMode: 1` / `:107 resizableWindow: 0` / `:48-49 1920×1080` で、**設定値は正しい**。問題は**実機での実効値**。(2) `Assets/Game/Scripts/UI/V5/FullscreenDiagnostics` 相当の実効値取得 (`Screen.width/height/fullScreenMode/dpi`) を Player.log に吐かせ、1920×1080 / 1280×720 / 1024×768 の 3 解像度で採取 (3) `displayCoverage` (描画領域が実ディスプレイを覆う割合) を run-summary に記録
+- **禁止**: `docs/operations/exhibit-handoff-2026-11-08.md` §1 が明文で **「ウィンドウのドラッグ / リサイズで擬似全画面を再現することは禁止」** と書いている。**リサイズしたスクリーンショットは証跡にならない**
+- **既存**: `Assets/Game/Tests/FullscreenPolicyTests.cs` (10 テスト) は設定値の固定のみ。**実測値の固定ではない**
+- **DoD**: 3 解像度それぞれの「実効解像度 + displayCoverage ≥ 0.99」の記録が `docs/evidence/` に残り、`docs/ui/` と `docs/operations/three-resolution-fullscreen-verification.md` の記述と一致
+- **依存**: **Windows 実機** (展示 PC は展示中。具体 Passive PC が必要)
+
+### U8 — ストリーム音声 (m4a) の再生実証 (#13, #4)
+
+- **対象**: 展示第 3 世代の `Player.log` は **`audioMode=Bundled`** — 鳴っているのは**同梱 wav**。**ストリームの音声トラック (m4a) は `Failed to recognize video file format` で準備できない**
+- **前提**: `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs:74-80` のコメントが既に答え스크している — 「Media Foundation (`MFCreateSourceReaderFromURL`) はカスタム HTTP ヘッダを送れない。yt-dlp で同じバイト列をローカルにダウンロードして再生すればこの制限を回避できる」。つまり **映像は成功、音声トラックだけが失敗**している
+- **候補手段 (Worker が実測で選ぶ)**: (1) 結合 format (video+audio) の itag を優先選択して単一ファイルにする (`-F` の出力を解析する箇所は `YouTubeStreamResolver.cs:34` `One line of yt-dlp -F output`)、(2) 音声のみ m4a を別 yt-dlp で取得して `AudioSource` に渡す (`MusicManager.cs:362-368` の split 経路は既に存在する)、(3) ffmpeg で結合してから再生
+- **DoD**: 実 Win64 で `Player.log` に **`audioMode=Stream` (または同値)** が記録され、**ストリーム音声の `rms` 値が同梱 wav ではなくストリーム由来である**ことを示すログ/数値が残る
+- **依存**: **Windows 実機**。**注意**: この Issue が解けるまで #4 (Gate S1) は green にならない
+
+### U9 — `skills-check` と agent 環境の欠落ファイル (#56)
+
+- **対象** (本監査で実測した欠落):
+  | 期待 | 現状 |
+  |---|---|
+  | `mise run skills-check` | **`mise.toml` にタスクが存在しない** (`[tasks.skills-list]` `:14`, `skills-bootstrap` `:17`, `skills-update` `:20` のみ) |
+  | lock 19 エントリ vs vendored 9 個 | `.claude/skills/` + `.agents/skills/` は **speckit 9 個のみ**。lock 側 (`skills-lock.json`) は 19 エントリ → **hash 不一致になる** |
+  | `evals/policy-evaluation/` | **ディレクトリが存在しない** |
+  | `.config/wt.toml` | **`.config/` ディレクトリ自体が存在しない** |
+  | `.github/workflows/agent-config.yml` | **存在しない** (`.github/workflows/` は `build-macos.yml`, `build-win64.yml`, `summaries/` のみ) |
+  | `scripts/agent-routing/` | **存在しない** (`scripts/` には `worktree/` のみ) |
+  | `AGENTS.md` の能力→Skill ディスパッチ表 | **無い** (`AGENTS.md` は `CLAUDE.md` の写しで 145 行の差)。root contract へのポインタ (`constitution/CONSTITUTION.md`, `organization/profiles/release-driven-solo.md`) のみ |
+- **DoD**: `mise install --locked && mise run skills-check` が **exit 0** で、lock と vendored Skill の hash が一致することが CI で固定される
+- **依存**: なし。**ただし #56 の未完了は他 Issue の実装を直接ブロックしていない** (worktree setup は動いている) ため優先度は P2
+
+### U10 — 受入記録の整備 (#59 / #58 / #22)
+
+- **対象**: 本監査で特定した「**実装は揃っているのに受入記録が無い**」案件。
+  - **#59**: 4 機能 (歌詞同期 / キーガイド / HOLD / HUD) とも実装と EditMode テストは揃っている (`LyricsTimeline.cs` + `LyricsTimelineTests.cs`, `KeyGuideUI.cs` + `KeyGuideTests.cs`, `LongNote.cs` + `LongNoteTests.cs`, `GameHudView.cs` + `V5GameHudTests.cs`) が、**`docs/evidence/` に `lyrics-sync-*` / `key-guide-*` / `long-note*` / `hud-ux*` ディレクトリが 1 つも無い**。Issue 本文 189–192 行目の 4 チェックボックスも未チェック
+  - **#58**: 「**30 曲全部**」の基準が現状と不一致 (`GManager` の 7 並列配列は 29 エントリ、`totalSong = ActiveSongs.Length - 1` = 28、`ニセモノ` 2 件は `UnplayableTitles` で選曲不可)。**Issue の基準自体の更新**が必要
+  - **#22**: `docs/operations/release-approval-checklist.md` のチェックボックスが**全項目未記入**。`docs/operations/festival-runbook.md` §4 の 1280×720 スモーク 10 項目も未記入
+- **DoD**: 各 Issue に「機能ごとの OK / NG / 未検証 の判定表 + 根拠ファイル:行 + スクリーンショットパス」が残り、NG は起票記録がある
+- **注意**: #59 の OK/NG 判定は **#30 の HOLD 判定仕様が未確定 (E 判定)** のため、**HOLD 1 項目だけは判定を出せない**。残りは先行して記録してよい
+- **依存**: #30 の仕様確定待ちは #59 の HOLD 行のみ
+
+---
+
+## 5. 監査できなかったこと (Why not audited)
+
+以下は **本監査 worktree からは確認できなかった**。推測で埋めていない。
+
+| 項目 | 理由 | 代替 |
+|---|---|---|
+| Windows 実機 (展示 PC) での実挙動 | 監査 worktree は macOS。展示 PC への起動・入力・kill は禁止 (`feedback_no_exhibit_machine_automation`) | `docs/evidence/**` の既存証跡のみ |
+| Win64 CI の Unity ライセンス | `docs/operations/unity-ci-license.md` — CI は Secret 未設定で停止 | Issue #249 の状態を引き継ぐ |
+| `production-api.test.ts` の実デプロイ到達性 | テストが `skip: !publishEnabled` で **緑でも到達性は証明にならない** | `docs/operations/d1-migrations.md` の適用記録 |
+| 確認窓 0.86 秒の定義位置 | `grep` で一意な定義箇所を特定できなかった | U2 の Worker が `grep -rn "0.86\|ConfirmWindow"` で特定する |
+| `GameScene.unity` の `Lane` を active にする enabler | コード内に **0 件**。存在しないものは file:line を示せない | `GameScene.unity:2837 m_IsActive: 0` の事実のみ |
+| 「casual / unverified」の UI ラベル文言 | 該当文字列の実 worded 位置を確認できなかった | `V6RankingView.cs` の表示構造のみ |
+| 実機 1280×720 ディスプレイでの fullscreen | 展示 PC に 1280×720 パネルが**無い** (`festival-runbook.md:189`) | ウィンドウモードでの代替手順のみ |
+| `specs/060` / `specs/075` / `specs/074` などの証跡画像の**内容** | ピクセル画像の目視レビューは本監査の範囲外 | ファイル存在と機械的結果 (`index.json`) のみ |
+| GitHub 側 main protection / branch protection の状態 | GitHub API の権限・設定 Troll の範囲外 | `docs/operations/release-approval-checklist.md` の運用記述のみ |
+
+---
+
+## 6. 監査方法の再掲 (§0 の要約)
+
+- **判定の根拠順序**: (1) `git merge-base --is-ancestor <sha> origin/main` で main 到達を確認した実コード、(2) `main` 上の file:line、(3) `main` 上のテスト名、(4) `specs/*/tasks.md` のチェックボックス、(5) `docs/evidence/**` の実物。
+- **使っていないもの**: Issue の Closed/Open 状態、Worker の自己申告、Issue 本文のチェックボックス **単独では判定根拠にしていない** (チェックボックスが `[x]` でも §3 の判定が B になる例が #118 / #56 / #75 / #60 にある)。
+- **3 値判定**: 「充足」は**コードが存在する**こと、「未検証」は**実機/実サービスの観測が要る**ことを意味し、両者を混用しない。**EditMode 緑 / Vitest 緑は「充足」の根拠にはなるが「未検証」を「充足」に変えることはできない**。
+- **secret 値**: 本ドキュメントには GitHub Actions secret や Infisical の実値を一切記載していない。`web/env.ts` への言及は **変数名のみ**。
+- **コード変更**: 本監査は **読み取り専用**。`docs/audit/open-issues-audit.md` 以外のファイルは一切変更していない。
