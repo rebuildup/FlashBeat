@@ -237,8 +237,11 @@ namespace FlashBeat.UI.V6.Title
                 return "none";
             }
 
+            // dismiss (F4) も表示状態に影響するのでキーに含める (消えた表示を
+            // 再描画で復活させない)。
             return model.Phase + "|" + (model.LatestVersion ?? "") + "|"
-                + Mathf.RoundToInt(model.DownloadProgress * 100f);
+                + Mathf.RoundToInt(model.DownloadProgress * 100f) + "|"
+                + (model.DismissedForSession ? "dismissed" : "shown");
         }
 
         /// <summary>更新ボタンのクリック。UpdateNoticeUI.Trigger と同じ分岐
@@ -304,14 +307,17 @@ namespace FlashBeat.UI.V6.Title
             PlaceFrame();
             lastUpdateStateKey = UpdateStateKey();
 
+            // 更新の実状態 (UpdateChecker.Model)。ヘッダー / メインの双方から参照する。
+            UpdateFlowModel model = UpdateModel();
+
             // 各ゾーンの中身を作り直す (ゾーン自体 / Modal / 外周は V6Frame が所有)。
             ClearChildren(headerZone);
             ClearChildren(mainZone);
             ClearChildren(footerZone);
 
-            BuildHeader();
+            BuildHeader(model);
             BuildTabList();
-            BuildMain();
+            BuildMain(model);
             BuildFooter();
         }
 
@@ -336,7 +342,7 @@ namespace FlashBeat.UI.V6.Title
 
         // --- ヘッダー (24,0) 1680x96 (V6Frame の Header ゾーン内) ---
 
-        private void BuildHeader()
+        private void BuildHeader(UpdateFlowModel model)
         {
             var header = headerZone.gameObject;
 
@@ -357,8 +363,6 @@ namespace FlashBeat.UI.V6.Title
             V6Controls.Text(header, "Title", "FlashBeat", V6TitleLogic.HeaderTitlePos,
                 V6TitleLogic.HeaderTitleSize, V6TitleLogic.HeaderTitleFontSize, V6Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-
-            UpdateFlowModel model = UpdateModel();
 
             // 更新ボタン (更新があるときだけ)。design の右上には無いが、更新の導線は
             // Title にしか無いので、同じヘッダー帯の左側に置く (右側は曲情報 / 状態)。
@@ -445,7 +449,7 @@ namespace FlashBeat.UI.V6.Title
 
         // --- メイン (x24 y96 1680x780) ---
 
-        private void BuildMain()
+        private void BuildMain(UpdateFlowModel model)
         {
             var main = mainZone.gameObject;
 
@@ -488,6 +492,64 @@ namespace FlashBeat.UI.V6.Title
                 {
                     BuildTab(tabs, tabList[i], i);
                 }
+            }
+
+            BuildUpdateNotice(model);
+        }
+
+        /// <summary>
+        /// 「アップデートあり」通知 (issue #118)。
+        /// 更新が実際に利用できるときだけ出し、「更新して再起動」ヘッダーボタン
+        /// (操作) とは別 element として示す (状態の表示と操作の表示を分ける)。
+        /// 旧 (v5) の更新通知ピルは v6 モードで隠されるため (V6UiMode.HideLegacyUpdateNotice)、
+        /// v6 タイトルが自前で描く。
+        /// </summary>
+        private void BuildUpdateNotice(UpdateFlowModel model)
+        {
+            if (!V6TitleLogic.ShowUpdateAvailableNotice(model))
+            {
+                return;
+            }
+
+            var main = mainZone.gameObject;
+            string title = V6TitleLogic.UpdateNoticeTitle(model.Phase, model.LatestVersion,
+                model.DownloadProgress);
+            string hint = V6TitleLogic.UpdateNoticeHint(model.Phase);
+
+            var banner = V6Controls.Panel(main, "Update Notice", V6TitleLogic.UpdateNoticePos,
+                V6TitleLogic.UpdateNoticeSize, V6Tokens.Overlay, V6Tokens.RadiusMedium);
+            // 背景パネルはクリックを透過させる (下のロゴ画像などに干渉しない)。
+            var bannerImage = banner.GetComponent<Image>();
+            if (bannerImage != null)
+            {
+                bannerImage.raycastTarget = false;
+            }
+
+            // 左端のアクセント帯 (通知だと分かる目印)。
+            var accent = V6Controls.Panel(banner, "Update Notice Accent", Vector2.zero,
+                new Vector2(V6TitleLogic.UpdateNoticeAccentWidth, V6TitleLogic.UpdateNoticeSize.y),
+                V6Tokens.Accent, V6Tokens.RadiusSmall);
+            var accentImage = accent.GetComponent<Image>();
+            if (accentImage != null)
+            {
+                accentImage.raycastTarget = false;
+            }
+
+            // 見出し (「アップデートあり」+ 版番号)。
+            float titleWidth = V6Layout.EstimateTextWidth(title, V6TitleLogic.UpdateNoticeTitleFontSize);
+            V6Controls.Text(banner, "Update Notice Title", title,
+                new Vector2(V6TitleLogic.UpdateNoticePadX, 13f),
+                new Vector2(titleWidth, 30f), V6TitleLogic.UpdateNoticeTitleFontSize,
+                V6Tokens.AccentLight, TextAlignmentOptions.Left, FontStyles.Bold);
+
+            // 補足 (操作の説明 / 「押さなければ更新しません」)。
+            if (!string.IsNullOrEmpty(hint))
+            {
+                float hintX = V6TitleLogic.UpdateNoticePadX + titleWidth + V6TitleLogic.UpdateNoticeGap;
+                float hintWidth = V6TitleLogic.UpdateNoticeSize.x - hintX - V6TitleLogic.UpdateNoticePadX;
+                V6Controls.Text(banner, "Update Notice Hint", hint, new Vector2(hintX, 15f),
+                    new Vector2(hintWidth, 26f), V6TitleLogic.UpdateNoticeHintFontSize,
+                    V6Tokens.TextMuted, TextAlignmentOptions.Left);
             }
         }
 
