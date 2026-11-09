@@ -11,7 +11,7 @@ Issue 本文は「`UpdateChecker.cs:394 付近` で `OnApplicationQuit` から�
 書いているが、`origin/main` の現状は Issue 本文より **かなり進んでいる**。
 本作業は「実装状況の確定 + 不足分のテスト・証拠化」が目的。
 
-`grep -rn OnApplicationQuit Assets/ | grep -v NoteEditor` (更新有关的`:
+`grep -rn OnApplicationQuit Assets/ | grep -v NoteEditor` (更新関連の参照のみ):
 
 ```
 Assets/Game/Scripts/Update/UpdateFlowModel.cs:18:    /// 自動適用の経路はこのクラスに存在しない (OnApplicationQuit から呼ぶ API を提供しない)。
