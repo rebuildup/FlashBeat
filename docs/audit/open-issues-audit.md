@@ -1482,13 +1482,13 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U4** publish → chart ドラフト復元 | **進行中** | #98 の chart 側復元を Worker が実装中 (PR 未作成) |
 | **U5** 視覚ゲートの緑化 | **完了** | PR #257 merged。`npm run visual` exit 0 / `clipped=0` / `hScroll=false` を実測。Web テスト 403 件 green |
 | **U6** 展示 patch line への #140/#134 移植 | **未着手** | 展示 line (`b677f8f`) と main のどちらに寄せるかはオーナー判断。**現展示物の SHA 不一致 (#129) が先** |
-| **U11** (追加) #226 残受入条件 | **進行中** | duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち・ランキング送信の回帰テストを Worker が実装中 (#273 と同時進行) |
+| **U11** (追加) #226 残受入条件 | **完了 (テスト) / Windows 実機のみ残** | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の回帰テスト **20 件** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。残るのは Windows 実機完走とランキングの実 API 送信の 2 項目のみ |
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
 | **U8** ストリーム音声 (m4a) の再生実証 | **未着手 (Windows 実機)** | `YouTubeStreamResolver` に split 経路 (映像/音声を別々) が既にある。Windows Media Foundation の制約が実機-specific |
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
 | **U12** (追加) HOLD ノーツの実機到達 (#278) | **進行中** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない) |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
-| **U12** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
+| **U13** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
 
 ---
 
