@@ -11,7 +11,7 @@ namespace FlashBeat.UI.V5
     /// alpha が 0 のとき (読込オーバーレイの待機中など) は **画面には何も出ていないのに**
     /// true を返す。旧 UI の残存検査を「本当に見えているか」で行うために使う。
     ///
-    /// 検査の-strength として、この判定は「祖先チェーンに alpha 0 の
+    /// 検査の前提として、この判定は「祖先チェーンに alpha 0 の
     /// CanvasGroup が 1 つでもあれば描かれていない」とする。
     /// </summary>
     public static class GraphicVisibility
