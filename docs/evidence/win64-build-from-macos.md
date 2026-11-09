@@ -97,6 +97,23 @@ Sidecar: .../FlashBeat-0.1.14-win64-d8c1b39.zip.sha256
 | メディアポリシー | `song-free` — 第三者楽曲の wav / 動画を含まないことを `flashbeat-media-policy.json` で証明 |
 | 更新チャンネル | `preview` (未検証の自動更新をしないため。`stable` は実機受入後) |
 
+### ZIP はバイト単位で再現しない (重要)
+
+ZIP にはファイル modification time が埋め込まれるため、**同じビルド出力から
+再パッケージすると SHA-256 は変わります** (実測: 同一 `Builds/Windows` から
+再実行 → `eb3374749202bd017e32e16751dfa3639def26d86bdf4c5db3b20852076e28a5`,
+サイズ 274,826,785 bytes。上の `3ac76d0d…` とは 1 byte 差)。
+
+したがって:
+
+- 上に書いた SHA-256 は **その 1 つの成果物に対する値** であり、
+  「この SHA なら中身の完全性を保証できる」根拠です。
+- **再現性検証 (同じソース → 同じ SHA) は成立しません。**
+- 必ず **ZIP に同梱された `.sha256` sidecar** と突き合わせてください
+  (`sha256sum -c` 互換)。sidecar は常に同梱の ZIP と 1 対 1 で対応します。
+- 更新判定は SHA ではなく Release タグとバージョンを使います
+  (`docs/operations/update-release.md` の配布仕様)。
+
 ### 成果物の置き場所 (この Mac 上)
 
 ```
