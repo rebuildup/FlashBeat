@@ -90,7 +90,7 @@
 | 135 | Registration/P0 ブラウザだけで新規曲登録 | **A** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | 5/0/1 | — | クローズ提案可 (Unity 反映の確認手順のみ未検証) |
 | 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **B** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 3/1/1 | — | **展示 patch line に未適用** (`b677f8f` に `CollectCodeTexts` なし) |
 | 162 | P0/REBUILD v0.1.13 UI 受け入れ撤回 | **B** | `docs/ui/issue-162-ui-contract.md` (F1–F18) | 3/3/2 | Windows 実機 | 実操作での受け入れが未了。子 #167 が残作業 |
-| 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **B** | `Assets/Tests/Editor/V5UiWiringTests.cs` (8 tests), `docs/ui/issue-167-handler-audit.md` | 2/1/2 | Windows 実機 | `specs/167` の 5 タスクが未チェック。実機操作受入が未了 |
+| 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **B → コード実装済 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (8 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-verify-2026-11-10.md` | 3/2/1 | Windows 実機 | **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
 | 182 | Game/P1 判定キュー再設計 | **A** | `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` | 2/0/1 | — | **PR #256 merged → Issue Closed** (受入条件 5 項目すべて充足) |
 | 217 | P0/v6 Pencil UI 並列移植 (umbrella) | **D** | `Assets/Game/Scripts/UI/V6/**` | 1/1/2 | Windows 実機 + 子 Issue | 子 (#219–#241) の完了待ち |
 | 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B → 統合 owner が方式を確定 (2026-11-10)** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72`, 3D 側は PR #263 | 2/2/1 | Windows 実機 (3 解像度の画像比較) | **統合 owner の決定**: 展示 (11/14) の正は **3D プレイフィールド** (PR #263 でカメラ基準 z スケール + レーンガイドを復元)。`V6UiMode.Playfield` は **false のまま** (v6 canvas 版はコードとして main に残置し、展示後に実機証跡付きで再評価)。`GameScene.unity` の `Lane` は **シーン編集せず**、#263 の実行時生成ガイドを使う。残るのは 3 解像度の実機画像比較 (Windows) |
@@ -566,8 +566,11 @@
   - `docs/ui/issue-167-handler-audit.md` — F1〜F7 の欠陥と修正 (入力二重発火 / suspend 漏れ / F2 の二重割当 / Esc 同一フレーム裏渡し / ポーズとエラーダイアログ / NoteSpeed clamp 不一致 / カタログ更新停止)
   - `docs/ui/issue-167-ui-acceptance.md` — 実機受入手順 (手順のみ)
   - `Assets/Game/Scripts/UI/SceneInputGate.cs` — F4 の新規コンポーネント
-  - commit: `36da73c` "fix(ui): v5 のdestroyをEditモードでも安全にし、代表キーの実バグを直す (#167)" (main ancestor), `5f11ce8`, `d4d758a`, `880aa56`
-  - `specs/167-v5-ui-functional-wiring/tasks.md` = **0 完了 / 5 未完了** (Issue 本文の T1–T3 も未チェック)
+  - commit: `467fe8a` "feat(ui): Issue #167 v5 全画面を実動作へ接続 (クリック不可・偽値・死んだ行の排除)" (実装本体: `PlaySession.cs` 新規 / v5 View / SceneManager / `V5UiWiringTests.cs` / 手順書), `36da73c` "fix(ui): v5 のdestroyをEditモードでも安全にし、代表キーの実バグを直す (#167)" (main ancestor), `5f11ce8`, `d4d758a`, `485e91b`, `e174e65`, `880aa56`
+  - `docs/ui/issue-167-verify-2026-11-10.md` — **2026-11-10 の読み取り専用監査記録** (Unity 未実行 / 実機未受入)
+  - `specs/167-v5-ui-functional-wiring/tasks.md` = **チェックは 2026-11-10 時点では 0 完了 / 5 未完了だった**。
+    **2026-11-10 のコード照合で T2 / T3 / T4 = 充足・T1 / T5 = 部分充足と判定**し、
+    充足分だけチェックを入れた (T1 / T5 は未チェックのまま検証結果ノートを追記)
 - **受入条件**:
 
 | # | 条件 (Issue 本文 T1–T3) | 判定 | 根拠 |
@@ -576,6 +579,22 @@
 | T2 | Title/Select/Ready の全主要操作をクリック・キーボード両方で機能接続。設定保存/次画面反映を検証 | 充足 (コード) / 未検証 (実操作) | `TitleCanvas_...CallsRealHandler`, `SelectReadyRow_WritesPlaySession`, `ReadyOptions_AreForwardedToGameHud` |
 | T3 | Game/Pause/Option/Result の全主要操作を実機で動作確認、Ranking/履歴/設定は実処理に接続し偽値を除く | 未充足 | `issue-167-handler-audit.md` の F1–F7 はコード修正まで。**実機動作確認は未実施** |
 | 追加 | 「Owner実操作が合格条件」 | 未検証 | Issue 本文 80 行目。Windows 実機必須 |
+
+### 2026-11-10: `specs/167` の T1〜T5 の判定 (コード照合 / Unity 未実行)
+
+| タスク | 判定 | 根拠 |
+|---|---|---|
+| T1 機能 UI 契約表 | **部分充足** | `spec.md:104-203` の契約表 56 行 + Findings F1〜F18、**全行に実装根拠 (シンボル名) あり**。ただし **Game の Loading ビュー** と **Result の Ranking (`ResultRankingOverlay`)** の行が契約表に無い |
+| T2 Title / Select / Ready | **充足** | `V5GameUi.cs:20`/`:32` (GraphicRaycaster) / `PlaySession.cs` / `SelectView.cs:1689`・`:1698` (cloud 曲のみ Ranking) / `:1261` (Start 1 個) / `:968` → `:601` (`interactable=false`) |
+| T3 Game / Pause / Option / Result | **充足** | `PauseMenuView.cs:325`/`:344` / `:442`・`:466`・`SelectView.cs:1608`・`ResultView.cs:664`・`:787`・`:803` / `OptionSceneManager.cs:29`・`:63`・`:77`・`:237`・`:427` / `TitleSceneManager.cs:46-50` / `GameSceneManager.cs:235`・`:297` / `GameHudRuntime.cs:122`・`:201-213` / `ResultSceneManager.cs:46-58` |
+| T4 Scene 監査 | **充足** | `spec.md:286-302` の監査表 + 「シーン YAML 変更不要」の判断理由。`.unity` は `467fe8a` で未変更。検証側で EventSystem / CanvasRenderer 数を再集計して一致 (TMP テキスト列のみ再導出できず) |
+| T5 完了ゲート Preparation | **部分充足** | 手順書と 8 テストは存在。ただし **`ResultRegister_IsLabelledLocal` が未存在** (`spec.md:92` が名指し)、F2・F6〜F8・F10・F15〜F17・F7 のテストが無い、手順書が PR #177 参照のまま / S5・S6 の「F5 で Game へ」が誤り / **v6 UI 既定を未考慮** |
+
+- **文言とコードの食い違い**: T2(b)/完了条件の「NoteSpeed を `PlaySession` で保持」は実装と不一致
+  (`GManager.noteSpeed` + `OptionSettings.Save()`。`SelectView.cs:378-379`、spec.md F4 の決着どおり)。**機能欠落ではない**。
+- **残作業**: ① 契約表に Loading / Result Ranking の 2 行を追加 ② F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト追加
+  ③ 手順書の差し替え ④ **Win64 実機での一循環 (Title → Select → Ready → Game → Result → Retry)**。
+  **実機受入が未了のため #167 はクローズしない。**
 
 - **未検証の区別**: **「実Windows/Unity画面を取得」と「Owner実操作」が受入条件そのもの**。`V5UiWiringTests.cs` 緑は **Canvas/Raycaster の静的構造とハンドラ接続を検証するだけにすぎず、クリック・キー操作の実挙動・画面遷移・描画は含まない**。代替 = 8 テスト緑 + 静的監査表 (F1–F7)。
 - **依存**: Parent #162。→ #96 / #88 の前提。
@@ -1469,6 +1488,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
 | **U12** (追加) HOLD ノーツの実機到達 (#278) | **進行中** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない) |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
+| **U12** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
 
 ---
 
