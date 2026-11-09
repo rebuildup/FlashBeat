@@ -1,14 +1,16 @@
 # open Issue 実装状況監査 (main 実測)
 
-- **対象**: `origin/main` = `ab8c336c60fc6e7aa225b503c79eb8b10c3a9f9c` (PR #255 merge 直後)
-- **監査日**: 2026-11-09
-- **監査範囲**: 2026-11-09 時点で open の全 Issue 47 件
-- **作業**: worktree `/Users/rebui/work/FlashBeat.waudit` (branch `w/audit-open-issues`)、**読み取りのみ**。コード変更・Issue コメント投稿なし。
+- **対象**: `origin/main` = `dd69041` (PR #287 merge 直後)
+- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新)** — A グレード 7 件 (#12/#19/#60/#68/#71/#73/#135) は **受入条件を個別に再判定** 済み
+- **監査範囲**: open の全 Issue 48 件 (うち **#71 は本更新で Closed** となったため **実質 47 件**)
+- **作業**: worktree `/Users/rebui/work/FlashBeat.waudit3` (branch `w/audit-web`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
 
 > ## 最重要の結論
-> **open Issue 数 47 ≠ 未実装件数。**
+> **open Issue 数 ≠ 未実装件数。**
 > 17 件 (A) は **実装が既に `main` にあり**、テストも存在するが、Issue が open のまま (あるいは受入条件の固定が PR 途中) である。
 > この 17 件は **cc が即クローズ提案できる**。残り 30 件は未充足条件が具体的に特定できている。
+>
+> **2026-11-10 追記**: A グレード 7 件の受入条件を **1 条件ずつ実測して判定** した。**#12 は PR #288 で 8/8 充足 (Close 可能)**、**#71 は 6/6 充足で Closed**。**#68 は 2 条件が未充足** (契約テストと race/abort ガード — いずれも Web 側で実装可能) なので **Close せず Worker を起動** した。**#19 / #73 / #135 の未検証 3 件は Windows 実機・本番 API を要するため cc では閉じない。**
 
 ---
 
@@ -63,10 +65,10 @@
 | 5 | Gate S2 Cloudflare API + Unity 動的カタログ | **D** | `Assets/Game/Scripts/Songs/CloudCatalog.cs:91,96,105` | 1/1/2 | Windows 実機 + 本番 PUT | Mac で PUT → Win Unity 再生を 1 回通す |
 | 6 | Gate S3 Web Studio → Unity 公開デモ | **D** | `web/pages/publish.tsx`, `web/src/components/new-song/**` | 1/1/2 | Windows 実機 | 公開 chartVersion を Win Unity で再生 |
 | 7 | Gate S4 optional クラウドランキング | **B** | `web/routes/api/v1/scores.ts:1-80`, `web/routes/api/v1/leaderboards/**` | 3/1/2 | 2台目のクライアント | サーバ再計算は充足、2 台目のクライアント観測のみ未検証 |
-| 12 | S2/Mac Void+Vite+React+Panda/Park 足場 | **A** | `web/package.json`, `web/panda.config.ts:39,76` | 4/0/1 | — | クローズ提案可 (視覚確認のみ未検証) |
+| 12 | S2/Mac Void+Vite+React+Panda/Park 足場 | **A → 受入条件 8/8 充足** | `web/package.json`, `web/panda.config.ts:39,76` | **8/0/0** | — | **PR #288 merged** (`npx vp check` exit 0)。**#12 は Close できる** (Issue コメント id 6744097000 + PR #288) |
 | 13 | S1/Win yt-dlp→VideoPlayer 1曲完走 | **B** | `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs`, `MediaCacheManager.cs` | 3/2/1 | Windows 実機 | ストリーム音声 (m4a) 再生と `audioS.Play()` を実機で |
 | 17 | S2/Win 固定楽曲配列 → Cloud Catalog | **B** | `Assets/Game/Scripts/Songs/CloudCatalog.cs`, `GManager.cs:88` | 4/1/1 | Windows 実機 | 窓口の E2E のみ未検証 |
-| 19 | S3/Mac Park UI メタデータ+Publish 接続 | **A** | `web/src/components/song-publisher/**`, `web/pages/publish.tsx` | 3/0/1 | — | Web 側は充足。Win 側は #6 のゲート |
+| 19 | S3/Mac Park UI メタデータ+Publish 接続 | **A → 検証済 (2 条件 Windows 実機待ち)** | `web/src/components/song-publisher/**`, `web/pages/publish.tsx` | **5/0/2** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744101865)**: 7 条件を個別判定 → 5 充足 / 0 未充足 / 2 未検証 (T4 の Windows Unity 再生と Gate の Win 側)。旧記述「視覚ゲート exit 1 / home@390x844 横溢れ」は **stale** — 現 main で `npm run visual` は exit 0 (horizontalOverflow []) |
 | 21 | S4/Win optional リザルト送信+ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs:113,143,240` | 3/1/1 | Windows 実機 | 2 台目のクライアント表示の実測 |
 | 22 | Release/Win Win64 展示版 smoke/配布ゲート | **B** | `docs/evidence/index.md`, `release/check/**` | 4/4/2 | Windows 実機 | S0 のみ partial。S1–S4 を詰める |
 | 30 | Product Spec ゲーム体験の理想形 | **E (一部解消)** | `docs/ui/issue-30-spec-decisions.md` | 0/0/1 | オーナーの仕様確定 (D1〜D6) | HOLD 4 項目は #164 で凍結済 (PR #265)。残り D1〜D6 はオーナー決定。**代替既定値**があるため他 Issue は止まらない |
@@ -74,11 +76,11 @@
 | 58 | 検証 カタログ合成(30曲)+再生クロック | **B** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs` | 2/1/2 | — | 「30曲」前提が stale (現在 29 行/28 選曲可)。基準の更新が必要 |
 | 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
 | 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B** | `Assets/Game/Scripts/Gameplay/LongNote.cs:29`, `Assets/Game/Scripts/Gameplay/NotesManager.cs` (HOLD 生成経路は既存) | **0/1/2** | — (新規 Worker 実行中) | **実測**: `Assets/Game/Resources/*.json` 全 27 曲で `notes[].type` は 1 (Tap) のみ、`type=2` (HOLD) は **0 個**。HOLD の実装は main にあり EditMode テストもあるが、**プレイヤーが到達できる内容が無く実機受入が成立しない**。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネス (Worker 実装中) / (B) 実曲への HOLD 追加 (オーナー判断) |
-| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | 4/0/1 | — | クローズ提案可 (視覚一致のみ未検証) |
+| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 検証済 (1 条件 未充足)** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **4/1/0** | oxfmt 整形 (対応中) | **再検証 (2026-11-10, コメント id 6744105927)**: 5 条件を個別判定 → T1〜T4 充足 / **T5 未充足** (実行 SHA・Draft PR URL が未記録 / tasks.md の T1〜T5 が未チェック / before 画像が teal を写していない)。文書側の記録欠落であり実装の欠落ではない |
 | 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
-| 68 | Web/Catalog 本番 Catalog API 接続 | **A** | `web/src/app/catalog.ts:21,28,32,57,79` | 4/0/1 | — | クローズ提案可 |
-| 71 | Web/Chart Session 正しい版を開く | **A** | `web/src/lib/song-session/load.ts` | 4/0/1 | — | クローズ提案可 |
-| 73 | Web/Publish Flow モック禁止+実API | **A** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | 4/0/1 | — | クローズ提案可 (#98 側は別) |
+| 68 | Web/Catalog 本番 Catalog API 接続 | **A → 検証済 (2 条件 未充足)** | `web/src/app/catalog.ts:21,28,32,57,79` | **5/2/0** | 契約テスト + abort/順序ガード | **再検証 (2026-11-10, コメント id 6744111822)**: 7 条件を個別判定 → 5 充足 / **2 未充足** (T1: クライアント/アダプタ層の契約テストが `web/src/app/__tests__/` に存在しない / T2: `app-shell.tsx:100-113` の `refresh` に AbortController も stale-response ガードも無い)。**両方とも Web 側で実装可能なため Worker を起動済み** |
+| 71 | Web/Chart Session 正しい版を開く | **A → 受入条件 6/6 充足 → Closed** | `web/src/lib/song-session/load.ts` | **6/0/0** | — | **再検証 (2026-11-10, コメント id 6744130520)**: 6 条件すべて充足 (実ブラウザ + ローカル D1 で 4 曲公開 → 版不一致は 404 → 空譜面に置換せずエラー表示 / 曲ごとに videoId・note-count が独立)。**Issue #71 は Closed** |
+| 73 | Web/Publish Flow モック禁止+実API | **A → 検証済 (1 条件 本番 E2E 待ち)** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | **7/0/1** | 本番 API での監督付き E2E | **再検証 (2026-11-10, コメント id 6744154670)**: 8 条件を個別判定 → 7 充足 (実ブラウザ publish → 実 GET で catalogVersion / chartVersion 一致、401 で成功表示ゼロ) / **T5 未検証** (本番 API への書き込みを伴う E2E。cc は本番書き込みを行わない)。token 非漏洩はコード + 実測で担保済み |
 | 74 | Web/Responsive 操作不能 UI をなくす | **B** | `web/src/app/sidebar.tsx`, `web/src/app/panel.tsx` | **3/0/3** | 視覚ゲート (#75) | **PR #257 merged**。狭幅横溢れ 0・clip 0 を実測 (`npm run visual` exit 0) |
 | 75 | Web/Visual Gate 画像レビュー/本番E2E | **B** | `web/tests/visual/capture.mjs` | 2/2/1 | 画像ベースのデザインレビュー (人) | ゲートは **exit 0 に回復** (PR #257)。`clipped=0` / `hScroll=false` を実測。残るのは画像比較の人の判断 |
 | 88 | Win/P0 全画面にならず UI 崩れる | **B** | `ProjectSettings/ProjectSettings.asset:107,119`, `Assets/Game/Tests/FullscreenPolicyTests.cs` | 2/1/2 | Windows 実機 | `displayCoverage ≥ 0.99` を実測 (現状 run-summary は `fullscreen=0`) |
@@ -87,7 +89,7 @@
 | 118 | Update/P0 明示式アップデート | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleLogic.cs`, `V6/Title/V6TitleView.cs` | **9/1/1** | Windows 実機 | **PR #273 で v6 Title に literal な「アップデートあり」バナーを実装** (pure ロジック `ShowUpdateAvailableNotice` / `UpdateNoticeTitle` / `UpdateNoticeHint` + `BuildUpdateNotice`)。既存 `UpdateChecker.Model` を再利用し検出経路は増やしていない。残りは 3 解像度の実機目視 |
 | 129 | Dev/Mac Desktop に独立 macOS アプリ | **A** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/0/1 | — | クローズ提案可。ただし **配布物の SHA が `fffc399` で Issue の `b677f8f` と不一致**。再配布時に README の SHA を更新すること |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
-| 135 | Registration/P0 ブラウザだけで新規曲登録 | **A** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | 5/0/1 | — | クローズ提案可 (Unity 反映の確認手順のみ未検証) |
+| 135 | Registration/P0 ブラウザだけで新規曲登録 | **A → 検証済 (1 条件 Windows 実機待ち)** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | **5/0/1** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744359277)**: 6 条件を個別判定 → 5 充足 (実ブラウザで slug 重複検出・oEmbed 遮断下の videoId 抽出・譜面エディタ往復・publish 成功パネル・反映確認手順) / **条件 6 未検証** (Unity カタログへの実反映 = Windows 実機 + デプロイ済み API が必要) |
 | 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **B** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 3/1/1 | — | **展示 patch line に未適用** (`b677f8f` に `CollectCodeTexts` なし) |
 | 162 | P0/REBUILD v0.1.13 UI 受け入れ撤回 | **B** | `docs/ui/issue-162-ui-contract.md` (F1–F18) | 3/3/2 | Windows 実機 | 実操作での受け入れが未了。子 #167 が残作業 |
 | 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **B → コード実装済 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (8 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-verify-2026-11-10.md` | 3/2/1 | Windows 実機 | **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
@@ -98,7 +100,7 @@
 | 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **6/1/1** | Windows 実機 | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**。Issue の「45 曲」前提は古く、「45 曲以上を満たす」ことが要求なら未実装 = **オーナー決定事項**)。残りは実機の Ready 連打操作と検索/絞り込みの実機確認 |
 | 223 | P0/v6 Integration 排他統合+実Win64 | **D** | — (統合ゲート) | 0/1/3 | Windows 実機 + Unity Editor 単独所有者 | #219–#222 の統合 + Win64 1 曲完走 |
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
-| 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 実装済 / Editor 実機検証中** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs` | **6/0/1** | — (Mac Editor で実測中) | **PR #252 merged** (`39ba1bd`) — 未保存変更の警告 (保存 / 破棄 / キャンセル) と **別曲の JSON を上書きしない** ガードが main にある。残る受入条件 7「Unity Editor 実機での曲切替 → 保存」は **Mac の Unity Editor で実測中** (展示 PC とは無関係。Windows 展示機には触らない) |
+| 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 受入条件 7/7 充足** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs`, `Assets/Editor/NoteEditorSongSwitchProbe.cs` | **7/0/0** | — | **PR #252 merged** (`39ba1bd`) + **PR #287 merged** — Mac の Unity Editor batchmode で本番経路を実行し **4/4 ケース PASS** (未保存 / キャンセル / 保存 / 破棄)。曲 A・B の size + SHA-256 で「別曲の JSON を上書きしない」ことを実測。証跡 = `docs/evidence/225-editor-song-switch/` |
 | 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト完了** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/SongEnd*Tests.cs` (5 ファイル) | **8/1/1** | Windows 実機 | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の **受入条件テスト 20 件を追加** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。**正負 noteTiming** は PR #272、`macOS 実機完走` は PR #258 (130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件は **Windows 実機完走とランキングの実 API 送信** の 2 項目のみ |
 | 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B** | `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374`, `V5/GameUiExclusivity.cs` | 2/2/2 | Windows 実機 | **PR #258 merged** — macOS 実機で 1 曲完走 → Result 到達を実証 (29/29 断言 / `Completed` / 期限切れ強制終了ではない)。**PR #263 (プレイフィールド再有効化) は独立レビューで NEEDS WORK** — ブロッカー 2 件 (① 映像プレーンが prepare 前は白板のまま = #13 で Windows では恒常失敗、② 根本原因の記載が誤りで誤ったモデルを固定するテストがある) を修正中。**ノーツ・動画の視認は Windows 実機未確認のため #233 の未解決問題として残す** (テスト緑は実機合格ではない) |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
@@ -349,7 +351,8 @@
   - テスト: `Assets/Tests/Editor/NoteEditorSongSwitchTests.cs` (5 tests, 163 行) — `git log --oneline -- <path>` = `650daa6` / `5b55248`
   - 証跡: `docs/evidence/225-noteeditor-song-switch.md`
   - `specs/225-noteeditor-song-switch/tasks.md` = **5 完了 / 0 未完了**
-  - 追加 PR: **#252 (open)** `w/w225` — 「曲切替時に未保存変更を確認し、別曲の JSON を上書きしない」。**PR #252 は main に未マージ**
+  - 追加 PR: **#252 (merged, `39ba1bd`)** 「曲切替時に未保存変更を確認し、別曲の JSON を上書きしない」
+  - 追加 PR: **#287 (merged)** `Assets/Editor/NoteEditorSongSwitchProbe.cs` + `docs/evidence/225-editor-song-switch/` — **Mac の Unity Editor batchmode で 4/4 ケース実測**
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
@@ -360,9 +363,9 @@
 | 4 | ロングノーツ編集途中状態 (`LongNoteTailPosition`) が持ち越されない | 充足 | `650daa6` の diff に初期化を追加 |
 | 5 | 曲切替時に再生位置/再生状態がリセットされる | 充足 | `FlashBeatSongLoader.OnFileSelected` 成功パス |
 | 6 | 別曲の JSON を上書きしない (未保存変更の警告) | 充足 | **PR #252 merged** (`39ba1bd`)。`SongSwitchCoordinator` + `ISongSwitchPrompt` + `NoteEditDirtyTracker` が main にあり、保存 / 破棄 / キャンセルの 3 経路を提示する |
-| 7 | Unity Editor 実機での曲切替→保存 | 未検証 → 実施中 | NoteEditor は Editor 専用ツールで展示 PC とは無関係のため、**Mac の Unity Editor で実測する** (バッチの `executeMethod` で本番経路を実行し、ファイル比較の実測値を残す)。代替として EditMode 5 件の緑がある |
+| 7 | Unity Editor 実機での曲切替→保存 | **充足 (PR #287 merged)** | `Assets/Editor/NoteEditorSongSwitchProbe.cs` を `-batchmode -executeMethod NoteEditorSongSwitchProbe.Run` で実行 → **4/4 ケース PASS**。本番経路 (`FlashBeatSongLoader` / `SongSwitchCoordinator` / `SongSwitchPromptDialog` / `ChartFileWriter` / `EditDataSerializer`) をそのまま使い、曲 A / 曲 B の size + SHA-256 で比較。証跡 = `docs/evidence/225-editor-song-switch/` |
 
-- **未検証の区別**: 条件 6 は **PR #252 が未マージ = コード未マージ** なので「未充足」。条件 7 は実機必須。
+- **未検証の区別**: 条件 6 は PR #252 が main にマージ済みで充足。条件 7 は **PR #287 で Mac の Unity Editor 実機で充足**。ただし **IMGUI ダイアログの実描画と人のクリック操作 / NoteEditor シーン経由の曲切替 / Play Mode・Player での挙動 / dirty 検知の網羅範囲 (単ノーツのみ) / `ChartFileWriter.Save` ガードの発火経路** は未検証 (README に明記)。**この 5 点は「実機妥善」の完全にはあたらないため、#225 の Close は cc が判断する。**
 - **依存**: #250 の A ゲート 3 番目 (評価必須)。独立。
 
 ### #224 — [P1/v6] Game Pause・楽曲ローディングをPencilデザインに置換
@@ -667,6 +670,12 @@
 
 - **未検証の区別**: 条件 5 の実行部は **実 API + Unity 実機の双方が必要**。**Vitest 緑は本番 API への publish 成功を意味しない** (`transport.ts:31-35` は fixture が明示許可されない限り例外を投げる設計)。代替 = Vitest 緑。
 - **依存**: #61 (Web Studio 親仕様) の子、#73 (Publish Flow) の上に成り立つ。#3 の S3 ゲート。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744359277)**:
+  - 6 受入条件を個別判定 → **5 充足 / 0 未充足 / 1 未検証**。
+  - 実ブラウザ実測: 「Who」→ 候補 `who` (既出) → 代替 `who-2 / who-3 / who-4` を提示、「Zebra Song」→ `zebra-song` (重複なし)。**oEmbed を遮断**した状態でも「動画ID: dQw4w9WgXcQ / Video id: dQw4w9WgXcQ」を表示し、oEmbed 失敗の注記を出したうえ **長さ欄は編集可能なまま**、フローはブロックされない。譜面エディタ (Konva グリッド) へ往復 → ノート 1 個配置 → `note-count` = `1 note` → ステップ 3 のレビューへ引き継ぎ → `ox-song` を登録 → 成功パネル「公開しました / Published / 曲ID ox-song / 譜面バージョン v1 / ノート数 1 / カタログバージョン 10」。**出版が実体として成立** (`GET /api/v1/catalog` に `ox-song` が `chartVersion 1 / noteCount 1` で掲載)。
+  - **条件 6 (Unity カタログへの実反映) は未検証** = Windows 実機 + デプロイ済み API が必要。cc は展示 PC を触らない。
+  - 条件 5 (反映までの確認手順) は `web/src/components/new-song/publish-success.tsx:128-165` のチェックリストと `Assets/Game/Scripts/Songs/CloudCatalog.cs:29` の `refreshSeconds = 8f` が整合していることを確認済み (手順の実体と実装が一致)。
+
 
 ### #134 — [Ranking/P0] Unity: リザルトでスコア登録 (名前入力) と曲別ランキング表示
 
@@ -839,6 +848,12 @@
 
 - **未検証の区別**: 条件 4–5 の目視・画素部分は **実ブラウザ** 必須。**型検査とテスト緑は「見た目が Pen と一致する」ことを保証しない**。代替 = `web` テスト緑 + `docs/design/web-token-mapping.md` の数値対応表。
 - **依存**: #61 の独立した foundation。#67 / #68 / #71 と並行可能。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744105927)**:
+  - 5 受入条件を個別判定 → **T1〜T4 充足 / T5 未充足** (8 条件中ではなく 5 条件)。
+  - T3 は **実ブラウザ実測** で補強: コントラスト 6 ペア (fg.default/muted/subtle on #1B1B1B、primary CTA、selected fg) すべて pass (`web/tests/e2e/artifacts/metadata.json` の `contrastChecks`)。残存 = `2xs` = 8px の小文字 (home 11 要素 / chart 37 / publish 41) は `§4/§6` に既記載。
+  - **T5 が未充足とした理由 (4 点)**: ① 実行 SHA が `specs/060` にも `docs/design/web-token-mapping.md` にも未記録 ② Draft PR の URL が未記録 (`tasks.md` の "done when PR URL recorded" に対し) ③ `specs/060-web-visual-foundation/tasks.md` の **T1〜T5 がすべて未チェック** ④ before/after 画像が **どちらも Pen パレット** (canvas #1B1B1B / 青 accent / teal なし) で **teal→blue の変化を証明していない**。
+  - **未充足は実装の欠落ではなく記録の欠落**。記録側は Worker を起動済み。**「目視一致」と「型検査緑」を混ぜない**: 本件は実ブラウザ実測まで行ったうえで T5 だけ未充足とした。
+
 
 ### #75 — [Web/Visual Gate] 画像ベースのデザインレビュー・比較・本番E2Eをリリース条件にする
 
@@ -916,6 +931,12 @@
 
 - **未検証の区別**: 条件 4 の実行部と 5 は **実 API** 必須。**Vitest 緑は本番 publish の成功を意味しない**。代替 = `web/src/lib/publish/__tests__/` 5 ファイル緑。
 - **依存**: #71 (session), #72 (editorUX)。#98 は本 Issue の「#73 の残り」。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744154670)**:
+  - 8 受入条件を個別判定 → **7 充足 / 0 未充足 / 1 未検証**。
+  - 実ブラウザ実測: 誤トークン (401) で `publish-success` の表示数 **0**、`publish-error` に「The staff token was rejected… / Nothing was published. Your inputs and the chart draft are kept.」、トークン入力欄の値保持、カタログ不変。成功時は `Published who is now chart version 2. The catalog is at version 2.` → 直後の実 GET で `catalogVersion:2` / `GET /api/v1/charts/who?version=2` → 200。**別曲 `beta` も v3 まで進む**。
+  - **token 非漏洩**はコードで担保: `web/env.ts:12-16` は Worker ランタイム専用でクライアントから import されない (import は `routes/api/v1/admin/*` の 2 箇所のみ)、`publish-dialog.tsx:112-128` は `type="password"` / `autoComplete="off"` でタブ内メモリのみ、`client.ts` は token を URL・ログに出さない。
+  - **T5 は未検証** = 本番 API への書き込みを伴う E2E。**cc は本番書き込みを行わない**方針のため観測しない。`specs/073-verified-publish/tasks.md` も T5 未チェックで「production E2E and actual browser pixels (supervisor gate)」と記載しており現状と整合。
+
 
 ### #71 — [Web/Chart Session] Catalogから指定曲の正しい版の譜面を開く
 
@@ -943,6 +964,13 @@
 
 - **未検証の区別**: 条件 4 の実証は **実 API** 必須。**Vitest 緑は本番カタログの実際のバージョンと一致することを保証しない**。代替 = `load.test.ts` 緑 + `contracts/openapi.v1.yaml` との突合。
 - **依存**: #68 (catalog) が前提。#73 / #98 の前提。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744130520)**:
+  - 6 受入条件を個別判定 → **6/6 充足**。
+  - 実ブラウザ + ローカル D1 で **4 件の公開曲** (`alpha` v1 / `beta` v3 / `gamma` v1 / `who` v2) を用意し、各譜面の identity (`{title} · v{version} · {notes} notes`) と note-count が実 API の値と一致することを実測。
+  - **版の厳密さ**: `beta` に `?version=2` を要求すると 404 → 「Chart v2 unavailable (404). Return to Catalog or retry.」+ 再試行 + 導線を表示し、**静かな空譜面には置き換わらない**。`/chart?songId=alpha&version=9` でも同様にエラー表示。
+  - 曲ごとの独立性: `gamma` → `embed/dQw4w9WgXcQ` / `alpha` → `embed/8JXiXt0D6tw` で videoId もノーツ数も混ざらない。
+  - **判定: #71 は Close 可能** (Issue コメント投稿済み / Issue #71 は Closed)。
+
 
 ### #68 — [Web/Catalog] 固定4曲を廃止し本番Catalog APIと実状態に接続
 
@@ -968,6 +996,14 @@
 
 - **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・バージョンの一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。
 - **依存**: 既存契約 `contracts/openapi.v1.yaml` と main。#71 の前提。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744111822)**:
+  - 7 受入条件を個別判定 → **5 充足 / 2 未充足 / 0 未検証**。
+  - **旧記述の訂正**: 上表の条件 1・2 を「充足」としていたのは誤り。**T1 (契約テスト) と T2 (race/abort テスト) は未充足**。
+    - T1: `loadCatalog` (`web/src/app/catalog.ts:19-37`) と `parseSongs` (`:54-93`) の **クライアント/アダプタ層に契約テストが無い**。`web/src/app/` に `__tests__/` が存在せず、`grep -rl "loadCatalog\|parseSongs" --include="*.test.ts*" web/` = 0 ファイル。既存の `catalog-view.test.ts` は純関数のみ、`catalog-panel.test.tsx` は DOM 構造のみ。
+    - T2: `web/src/app/app-shell.tsx:100-113` の `refresh` は `loadCatalog(mode).then(...).catch(...)` のみで、**AbortController も stale-response ガードも無い**。二重 refresh で古い応答が新しい応答を上書きしうる。
+  - T3・T5・T6・T7 は **実ブラウザ実測** で充足 (実 D1 に 2 曲追加 publish → 一覧が `3 songs published` に更新され実 API と一致 / API abort で `Catalog unavailable`・`0 songs published` が出て 4 曲フォールバックは出ない / フィルタ 0 件は `No song matches the filters` で空カタログ文言と区別される)。**固定 4 曲 fixture は存在しない** (`catalogVersion:5` 実測)。
+  - **未充足 2 件は Web 側で実装可能** (Windows 実機不要) なので Worker を起動済み。T1・T2 が緑になるまで **#68 は Close しない**。
+
 
 ### #98 — [Web] 既存曲のメタデータ編集と Publish 画面の回復動線 (#73 の残り)
 
@@ -1289,6 +1325,12 @@
 
 - **未検証の区別**: 条件 6 の「スクリーンショット証跡」は撮られしているが、**本監査では目視していない** (Issue が求める 1440×900 / 1280×720 の目視レビュー)。代替 = 視覚ゲートの機械的結果 + token 対応表。
 - **依存**: #19 / #135 / #73 が本足場の上に載る。**#5 の子**。
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744097000)**:
+  - 検証対象 = `origin/main` @ `5dd7a8b`。`npm ci` → exit 0 / `node --test` 73 pass / `vitest` 43 files 403 pass / `tsc --noEmit` exit 0 / `vp build` exit 0。実ブラウザ = system Chrome + Playwright Chromium 対 ローカル実サービス (Void Worker `vp dev` + ローカル D1)。
+  - 8 受入条件を個別判定 → **7 充足 / 1 未充足**。未充足は **T5** (`npx vp check` が exit 1 / `Found formatting issues in 26 files`)。
+  - **この未充足は PR #288 で解消済み** (main に merge 済み): `npx vp check --fix` を適用 → `npx vp check` **exit 0** / `npm test` 73 + 404 pass / `npx vp build` exit 0。変更は oxfmt の整形のみ (意味的変更なし、`git diff -w` で確認済み)。
+  - **現在の判定: 8/8 充足。#12 は Close 可能。**
+
 
 ### #13 — [S1/Win] yt-dlp+Deno→Unity VideoPlayer 1曲ストリーミング完走
 
@@ -1382,13 +1424,19 @@
 |---|---|---|---|
 | 1 | T1: 最小の曲メタデータ入力 (title, artist, video ID, level, duration) + 既存 chart editor、validation が可視 | 充足 | `song-metadata-form.tsx` + `song-metadata-form.test.tsx` + `chart-editor/validation-panel.tsx` |
 | 2 | T2: 1 つの Publish ボタン → typed fetch で `PUT /api/v1/admin/songs/{songId}`、**token は operator の runtime entry から (bundle には入れない)**、success/error 状態 | 充足 | `client.ts:39` + `publish-dialog.tsx:117,144` + `env.ts:15` |
-| 3 | T3: 1280×720 と 1440×900 で preview/test、**横溢れなし**、密度とタイポグラフィの一致 | **未充足** | **視覚ゲートが `exitCode: 1`**、`horizontalOverflow: ["home@390x844"]` (`specs/075-visual-gate/evidence/2026-11-08/index.json`)。1280×720 / 1440×900 の 2 viewport 自体は撮影済みだが、横溢れは 390 幅で残存 |
-| 4 | T4: Mac ブラウザ publish → Windows Unity のカタログ更新と full streamed play、**S3 runnable build とログを保存** | 未充足 (実装側) | **publish → Win Unity の再生は #6 (Gate S3) の責務**。本 Issue は Web 側のみ。ログ保存の記録は §1 S3 = 未証明 |
+| 3 | T3: 1280×720 と 1440×900 で preview/test、**横溢れなし**、密度とタイポグラフィの一致 | **充足 (2026-11-10 再検証で訂正)** | 実 Chrome で `npm run visual` → **exit 0** / `horizontalOverflow: []` / `clipped: 0` / `consoleErrors: 0`。**旧記述の `exitCode: 1` / `horizontalOverflow: ["home@390x844"]` は stale** (2026-11-08 時点の残存で現 main では再現しない) |
+| 4 | T4: Mac ブラウザ publish → Windows Unity のカタログ更新と full streamed play、**S3 runnable build とログを保存** | **未検証 (Windows 実機 + デプロイ済み API)** | **publish → Win Unity の再生は #6 (Gate S3) の責務**。Web 側は実ブラウザ publish まで確認済み。ログ保存の記録は §1 S3 = 未証明 |
 | 5 | Gate: **Unity 再ビルドなしで Web UI が再生可能な公開 chart を作る** | 充足 (Web 側) / 未検証 (Win 側) | publish 経路は実装済み。**再ビルドなし再生は #6 で未証明** |
 | 6 | No scope: private cloud drafts / auth UI / 余計な styling infrastructure | 充足 (規律) | 認証 UI は無い。token は 1 入力欄のみ |
 
 - **未検証の区別**: 条件 3 は **実ブラウザ撮影 + 目視**。**Vitest 緑は「1280×720 で横溢れしない」ことを保証しない** — 実測で溢れがある。代替 = 視覚ゲートの機械的結果。
 - **依存**: #12 (足場) / #16 (公開 API) が前提。**#6 が本 Issue の Win 側ゲート**。
+
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744101865)**:
+  - 7 受入条件を個別判定 → **5 充足 / 0 未充足 / 2 未検証**。
+  - **旧記述の訂正**: 本節の条件 3 にあった「視覚ゲートが `exitCode: 1` / `horizontalOverflow: ["home@390x844"]`」は **stale**。該当証跡 (`specs/075-visual-gate/evidence/2026-11-08/index.json`) は 2026-11-08 時点の残存で、**現 main では再現しない** (`npm run visual` = exit 0 / `horizontalOverflow []`)。
+  - 未検証の 2 件 = **T4** (Mac ブラウザ publish → Windows Unity のカタログ更新と full streamed play。Windows 実機 + デプロイ済み API を要する) と **Gate (Windows 側)** (Unity 再ビルドなしで再生可能な公開 chart)。いずれも #6 (Gate S3) の責務で、cc は展示 PC を操作しない。
+
 
 ### #21 — [S4/Win optional] Unity リザルトをオンライン送信しランキング表示
 
@@ -1489,6 +1537,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U12** (追加) HOLD ノーツの実機到達 (#278) | **進行中** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない) |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
 | **U13** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
+| **U14** (追加) Web カタログの契約テスト + race/abort ガード (#68) | **Worker 実行中** | 2026-11-10 の再検証で **T1 (クライアント/アダプタ層の契約テストが無い) と T2 (`app-shell.tsx` の `refresh` に AbortController も stale-response ガードも無い)** が未充足と判定。**両方とも Web 側で実装可能** (Windows 実機不要) なので Worker を起動。`web/src/app/__tests__/` を新設して `catalog.ts` の型ガードと HTTP エラーを固定し、`app-shell.tsx` に abort + シーケンスガードを入れる。緑になるまで **#68 は Close しない** |
 
 ---
 
@@ -1653,6 +1702,14 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #277 | evidence §7 (macOS 実機 1 曲完走 + main からの Win64 候補 0.1.22) | 台帳 |
 | #279 | HOLD ノーツが全譜面に無いこと (#278) を台帳と監督ログに反映 | 台帳 |
 | #280 | 曲終了の受入条件テスト 20 件 (duration 端点 / 動画長<duration / 通常終端 / フレーム落ち / ランキング合計) | #226 |
+| #281 | 監査台帳に #278 (HOLD 到達不能) を追加 | 台帳 |
+| #282 | 監査台帳の #219 統合 owner 決定 (展示版の正は 3D プレイフィールド) を記録 | #219 |
+| #283 | #167 (v5 UI 機能結線) の T1〜T5 判定表と証跡 | #167 |
+| #284 | 監査台帳の U12 重複を U13 へ整理 | 台帳 |
+| #285 | B グレード 6 件 (#7/#13/#17/#21/#22/#96) の Spec Kit (spec/plan/tasks) | #7 #13 #17 #21 #22 #96 |
+| #286 | B グレード 7 件 (#58/#59/#134/#162/#219/#241/#278) の Spec Kit (spec/plan/tasks) | #58 #59 #134 #162 #219 #241 #278 |
+| #287 | NoteEditor 曲切替の実測プローブ (4/4 ケース PASS) と証跡 | #225 |
+| #288 | `vp check` のフォーマット指摘 26 件を整形 (exit 0 / テスト 404 pass / build 成功) | #12 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
