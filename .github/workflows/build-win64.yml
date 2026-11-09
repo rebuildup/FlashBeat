@@ -44,6 +44,12 @@ concurrency:
 permissions:
   contents: read
 
+# 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
+#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
+env:
+  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+
 jobs:
   # ライセンス未設定を数分で検出するため、Unity を導入する前に落とす。
   license-precheck:
@@ -87,6 +93,7 @@ jobs:
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
+      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4
@@ -151,15 +158,32 @@ jobs:
             # (実測 2026-11-08, run 42470147986)。
             if (-not $hasAccount -and $hasUlf) {
               # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
+              # UTF-8 BOM (EF BB BF) が付いた .ulf があり、BOM のままだと
+              # 先頭が '<' ではなく base64 と誤判定される。BOM は除去する。
               $raw = $env:UNITY_LICENSE
               $content = $null
-              if ($raw.TrimStart().StartsWith("<")) {
-                $content = $raw
+              # 先頭の空白と UTF-8 BOM を除去する (BOM 由来の U+FEFF と、
+              # バイト列のまま解釈された EF BB BF の両方に対応する)。
+              $trimmed = $raw.TrimStart()
+              $trimmed = $trimmed.TrimStart([char]0xFEFF).TrimStart()
+              if ($trimmed.StartsWith([char]0xEF) -and $trimmed.Length -ge 3 -and
+                  $trimmed[1] -eq [char]0xBB -and $trimmed[2] -eq [char]0xBF) {
+                $trimmed = $trimmed.Substring(3).TrimStart()
+              }
+              if ($trimmed.StartsWith("<")) {
+                $content = $trimmed
               } else {
-                try { $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($raw)) }
+                try { $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($trimmed)) }
                 catch { throw "UNITY_LICENSE が XML でも base64 でもありません (secret の内容を確認してください)" }
               }
-              if (-not $content.TrimStart().StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
+              # base64 復号後にも BOM が残りうるので、もう一度除去する
+              $content = $content.TrimStart()
+              $content = $content.TrimStart([char]0xFEFF).TrimStart()
+              if ($content.StartsWith([char]0xEF) -and $content.Length -ge 3 -and
+                  $content[1] -eq [char]0xBB -and $content[2] -eq [char]0xBF) {
+                $content = $content.Substring(3).TrimStart()
+              }
+              if (-not $content.StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
               $ulf = "$env:RUNNER_TEMP\Unity_lic.ulf"
               [IO.File]::WriteAllText($ulf, $content, (New-Object Text.UTF8Encoding($false)))
               & $env:UNITY_EDITOR -batchmode -quit -nographics -manualLicenseFile $ulf -logFile $log
@@ -231,9 +255,20 @@ jobs:
           [xml]$xml = Get-Content $results
           $total = $xml."test-run".total; $passed = $xml."test-run".passed; $failed = $xml."test-run".failed
           Write-Output "tests total=$total passed=$passed failed=$failed"
-          $xml."test-run"."test-suite"."test-case" | Where-Object { $_.result -ne "Passed" } |
-            ForEach-Object { Write-Output "FAIL $($_.fullname)" }
-          "## EditMode テスト`n`ntotal=$total passed=$passed failed=$failed`n" >> $env:GITHUB_STEP_SUMMARY
+          # '//test-case' で全階層 (入れ子の fixture / sub-suite 内の test-case も)
+          # を列挙する。test-run 直下の test-suite だけを見ると入れ子の失敗が漏れる。
+          $failedCases = @(Select-Xml -Xml $xml -XPath '//test-case' |
+            ForEach-Object { $_.Node } |
+            Where-Object { $_.result -ne 'Passed' })
+          $summary = "## EditMode テスト`n`ntotal=$total passed=$passed failed=$failed`n"
+          if ($failedCases.Count -gt 0) {
+            $summary += "`n### 失敗したテスト`n"
+            foreach ($case in $failedCases) {
+              Write-Output "FAIL $($case.fullname)"
+              $summary += "- $($case.fullname)`n"
+            }
+          }
+          $summary >> $env:GITHUB_STEP_SUMMARY
           if ([int]$failed -gt 0) { throw "EditMode テストが $failed 件失敗しました" }
 
       - name: テスト結果と Unity ログを保存
@@ -252,7 +287,7 @@ jobs:
         shell: pwsh
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
           $log = "$env:RUNNER_TEMP\build.log"
           & $env:UNITY_EDITOR -batchmode -nographics -quit `

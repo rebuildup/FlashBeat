@@ -4,11 +4,19 @@
 
 ## 現状 (2026-11-08 監査結果)
 
-- 登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ** (`gh secret list` で確認)。
-  `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**。
-- ただし `UNITY_LICENSE` は **中身が空** であり、実質的に「未設定」と同義。
-  → `license-precheck` ジョブは **期待どおりに blocker として fail する** (Unity を導入する前に落ちる)。
-- GitHub-hosted ランナーに `.ulf` (Unity 人工ライセンス XML) だけを渡す方式は
+- 2026-11-08 時点の監査では、登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ**で、
+  `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**だった。
+  ただしこの状態は **登録直後に変わる** ので、Secret の有無永远是固定された前提で
+  書いてはいけない。以降の挙動は「登録されているか」に応じて変わる。
+- **Secret が未設定の場合** (アカウント認証も `.ulf` も無い):
+  `license-precheck` ジョブは **期待どおりに blocker として fail する**
+  (Unity を 1 度も起動する前に落ちる)。CI が緑になることは期待しない。
+- **Secret が設定済みで `UNITY_EMAIL` / `UNITY_PASSWORD` が揃っている場合**:
+  `license-precheck` は成功し、`build` ジョブは **アカウント認証**でライセンスを
+  取得する (この 2 つが揃えば `UNITY_LICENSE` は不要)。CI が緑になる。
+- **Secret が設定済みでも `UNITY_EMAIL` / `UNITY_PASSWORD` が未登録で `.ulf` だけの場合**:
+  `license-precheck` は **機械紐付け不一致** として fail する。理由:
+  GitHub-hosted ランナーに `.ulf` (Unity 人工ライセンス XML) だけを渡す方式は
   **機械に紐づく** ため、毎回 次のようなエラーで失敗する:
 
   ```
@@ -18,6 +26,8 @@
   → **Actions の secret には「ライセンスのあり/なし」しか持てない**。CI 側での回避は不可能。
 - したがって **CI が緑になるのは、オーナーが `UNITY_EMAIL` / `UNITY_PASSWORD` を Secret 登録した後のみ**
   (この 2 つが揃えば `UNITY_LICENSE` は不要。ワークフローはアカウント認証を優先する)。
+- **Secret の値 (ライセンスファイルの中身・パスワード・シリアル) は、このドキュメントにも
+  CI ログにも一切記録しない**。名前と挙動だけを扱う。
 
 ### ライセンス失敗 と ソースビルド失敗 の区別 (重要)
 
@@ -47,27 +57,44 @@ Settings → **Secrets and variables → Actions** → **New repository secret**
 
 | Secret | 必須 | 内容 |
 |---|---|---|
-| `UNITY_LICENSE` | (A) or (B) のどちらか | Unity の `.ulf` ライセンスファイルの**中身 (XML)**。base64 でも可 (ワークフローは両方を受け付ける) |
-| `UNITY_EMAIL` | (A) or (B) のどちらか | Unity アカウントのメール |
-| `UNITY_PASSWORD` | (A) or (B) のどちらか | Unity アカウントのパスワード |
+| `UNITY_EMAIL` | 必須 | Unity アカウントのメール |
+| `UNITY_PASSWORD` | 必須 | Unity アカウントのパスワード |
 | `UNITY_SERIAL` | 有償ライセンスのみ | `XX-XXXX-XXXX-XXXX-XXXX-XXXX` 形式 |
+| `UNITY_LICENSE` | 任意 (フォールバック) | Unity の `.ulf` ライセンスファイルの**中身 (XML)**。base64 でも可 (ワークフローは両方を受け付ける)。GitHub-hosted runner では後述の理由で期待どおりに働かない |
 
-### (A) Unity Personal (推奨・無料)
+### (A) Unity アカウント認証 (推奨・主経路)
+
+**GitHub-hosted ランナーではこれが唯一のサポートされた経路**。
+
+1. `UNITY_EMAIL` / `UNITY_PASSWORD` を Actions Secrets に登録する
+   (有償ライセンスなら `UNITY_SERIAL` も)。
+2. ワークフローは
+   `Unity.exe -batchmode -quit -username <email> -password <password> [-serial <serial>]`
+   で認証する。ワークフローは **アカウント認証を優先** する (`.ulf` が同時に設定されていても)。
+
+Personal (無料) でも Unity Hub でアカウントを作り、同じ 2 つの Secret を登録すればよい。
+
+### (B) `.ulf` 手動発行 (フォールバック・GitHub-hosted では期待どおりに失敗する)
 
 1. Unity Hub → 対象アカウントでログイン → 「Preferences → Licenses → Add → Get a free personal license」。
 2. 発行された `.ulf` を開く:
    - macOS: `/Library/Application Support/Unity/Unity_lic.ulf`
    - Windows: `C:\ProgramData\Unity\Unity_lic.ulf`
 3. **ファイルの中身をそのまま** `UNITY_LICENSE` に貼り付ける (そのままだと XML になる)。
+   base64 化した内容を貼り付ける形式も、ワークフローは受け付ける
+   (UTF-8 BOM 付きの XML も判定できるようにしている)。
 
 ワークフローはこの `.ulf` を `Unity.exe -batchmode -quit -manualLicenseFile <ulf>` に渡して
-認証する。Personal ライセンスは `UNITY_EMAIL` / `UNITY_PASSWORD` が無くても有効。
+認証するが、**この経路は次の理由で GitHub-hosted ランナーでは成立しない**:
 
-### (B) Unity Plus / Pro (有償)
+- `.ulf` は **発行元マシンに紐づく**。GitHub-hosted ランナーは毎回別マシンなので
+  機械結合 (machine binding) が一致せず、
+  `[Licensing::Client] Error: Code 400 : ... (status: Machine bindings don't match)`
+  で失敗する (実測 2026-11-08)。
+- さらに Unity 6000.5 系では **Personal の手動 `.ulf` 激活はサポートされた認証経路ではない**。
 
-`UNITY_SERIAL` + `UNITY_EMAIL` + `UNITY_PASSWORD` を登録する。
-ワークフローは `Unity.exe -batchmode -quit -username <email> -password <password> [-serial <serial>]`
-で認証する。
+したがって (B) は **自前の固定マシン / self-hosted runner で手元検証したい場合**の
+フォールバックとしてのみ残す。GitHub-hosted CI で緑を期待してよい経路は **(A) のみ**。
 
 > 資格情報 (ライセンスファイル・パスワード・シリアル) の内容を、チャット / Issue / PR /
 > ログ / ソースコードに **never** 出力しない。Secret としてのみ登録する。
@@ -83,6 +110,8 @@ gh workflow run build-win64.yml \
 ```
 
 - `update_channel=preview` を指定する (`stable` は配布用。CI から自動公開はしない)。
+  なお **`push` (main) トリガのビルドは `update_channel` 入力の値に関わらず常に `stable`** になる
+  (展示用候補は preview にならない)。preview を選べるのは `workflow_dispatch` の手動実行のみ。
 - `run_tests=true` の場合、ビルド前に **EditMode テストが実実行**され、
   `TestResults.xml` が生成されたことを確認してからビルドに進む
   (`TestResults.xml` が無ければテスト未実行として失敗させる)。
@@ -99,5 +128,6 @@ gh workflow run build-win64.yml \
 ## 関連
 
 - `.github/workflows/build-win64.yml`
+- `.github/workflows/build-macos.yml`
 - `docs/operations/release-approval-checklist.md`
 - `docs/operations/update-release.md`
