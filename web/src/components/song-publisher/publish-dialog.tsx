@@ -123,8 +123,7 @@ export function PublishDialog({
                   onChange={(event) => onTokenChange(event.currentTarget.value)}
                 />
                 <Field.HelperText>
-                  It is held in this browser tab only and is never written to disk or to the
-                  bundle.
+                  It is held in this browser tab only and is never written to disk or to the bundle.
                 </Field.HelperText>
               </Field.Root>
             </Dialog.Body>

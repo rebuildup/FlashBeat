@@ -146,10 +146,7 @@ export function snapHoldEndLine(
   endBeat: number,
   division: SnapSetting = "off",
 ): number {
-  return Math.max(
-    note.num + MIN_HOLD_LINES,
-    snapLine(endBeat * note.LPB, note.LPB, division),
-  );
+  return Math.max(note.num + MIN_HOLD_LINES, snapLine(endBeat * note.LPB, note.LPB, division));
 }
 
 /**

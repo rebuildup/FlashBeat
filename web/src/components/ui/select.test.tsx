@@ -103,9 +103,7 @@ function press(key: string, fallbackTarget: Element): Promise<void> {
     // 開いた後は focus が listbox (content) に移る。開閉に関わらず
     // 「今フォーカスのある要素」にキーを届かせるのが実操作と同じ経路。
     const target = document.activeElement ?? fallbackTarget;
-    target.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
-    );
+    target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
     // Zag は状態通知を microtask / rAF の後ろに流すので、act 内で回す。
     await Promise.resolve();
     await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -158,27 +156,31 @@ describe("Select.Control (issue #163)", () => {
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("selects with the keyboard: ArrowDown + Enter, closes with Escape", { timeout: 20000 }, async () => {
-    const onValueChange = vi.fn();
-    renderSelect({ onValueChange });
-    const button = trigger();
+  it(
+    "selects with the keyboard: ArrowDown + Enter, closes with Escape",
+    { timeout: 20000 },
+    async () => {
+      const onValueChange = vi.fn();
+      renderSelect({ onValueChange });
+      const button = trigger();
 
-    await act(async () => {
-      button.focus();
-      await Promise.resolve();
-    });
-    await press("ArrowDown", button);
-    expect(button.getAttribute("aria-expanded")).toBe("true");
+      await act(async () => {
+        button.focus();
+        await Promise.resolve();
+      });
+      await press("ArrowDown", button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
 
-    await press("ArrowDown", button);
-    await press("Enter", button);
-    expect(onValueChange).toHaveBeenCalledWith(expect.objectContaining({ value: ["b"] }));
+      await press("ArrowDown", button);
+      await press("Enter", button);
+      expect(onValueChange).toHaveBeenCalledWith(expect.objectContaining({ value: ["b"] }));
 
-    await clickTrigger(button);
-    expect(button.getAttribute("aria-expanded")).toBe("true");
-    await press("Escape", button);
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-  });
+      await clickTrigger(button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
+      await press("Escape", button);
+      expect(button.getAttribute("aria-expanded")).toBe("false");
+    },
+  );
 
   it("keeps a disabled select closed", { timeout: 20000 }, async () => {
     renderSelect({ disabled: true });

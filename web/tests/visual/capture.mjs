@@ -38,7 +38,14 @@ const ROUTES = [
 const VIEWPORTS = [
   { label: "1440x900", width: 1440, height: 900, deviceScaleFactor: 1 },
   { label: "1280x720", width: 1280, height: 720, deviceScaleFactor: 1 },
-  { label: "390x844", width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+  {
+    label: "390x844",
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+  },
 ];
 
 function findChrome() {
@@ -87,7 +94,12 @@ async function startDevServer() {
     FLASHBEAT_ADMIN_TOKEN: process.env.FLASHBEAT_ADMIN_TOKEN ?? "local-dev-only",
   };
   console.log("[visual] seeding local D1 (void db seed)…");
-  execFileSync("npx", ["void", "db", "seed"], { cwd: WEB_ROOT, env, stdio: "inherit", shell: process.platform === "win32" });
+  execFileSync("npx", ["void", "db", "seed"], {
+    cwd: WEB_ROOT,
+    env,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
   const base = `http://127.0.0.1:${MANAGED_PORT}`;
   console.log(`[visual] starting dev server at ${base}…`);
   const child = spawn("npx", ["vp", "dev", "--port", String(MANAGED_PORT), "--host", "127.0.0.1"], {
@@ -113,9 +125,17 @@ function measurePage() {
   const describe = (el, r) => ({
     tag: el.tagName.toLowerCase(),
     id: el.id || undefined,
-    class: typeof el.className === "string" && el.className ? el.className.split(/\s+/).slice(0, 3).join(" ") : undefined,
+    class:
+      typeof el.className === "string" && el.className
+        ? el.className.split(/\s+/).slice(0, 3).join(" ")
+        : undefined,
     text: (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 60) || undefined,
-    rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+    rect: {
+      x: Math.round(r.x),
+      y: Math.round(r.y),
+      w: Math.round(r.width),
+      h: Math.round(r.height),
+    },
   });
 
   const clipped = [];
@@ -132,13 +152,20 @@ function measurePage() {
     visible++;
     if (r.right > vw + 1 || r.left < -1) clipped.push(describe(el, r));
     if (r.bottom > vh + 1) belowFold++;
-    const hasText = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+    const hasText = [...el.childNodes].some(
+      (n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim(),
+    );
     if (hasText) {
       const fontSize = Number.parseFloat(s.fontSize);
       if (fontSize < 12) smallFonts.push({ ...describe(el, r), fontSize });
     }
-    if (el.matches('a,button,input,select,textarea,[role="button"],[role="tab"],[role="switch"],[tabindex]')) {
-      if (Math.min(r.width, r.height) < 32) smallTargets.push({ ...describe(el, r), w: Math.round(r.width), h: Math.round(r.height) });
+    if (
+      el.matches(
+        'a,button,input,select,textarea,[role="button"],[role="tab"],[role="switch"],[tabindex]',
+      )
+    ) {
+      if (Math.min(r.width, r.height) < 32)
+        smallTargets.push({ ...describe(el, r), w: Math.round(r.width), h: Math.round(r.height) });
     }
   }
 
@@ -164,7 +191,12 @@ function describeActiveElement() {
     id: el.id || undefined,
     ariaLabel: el.getAttribute("aria-label") || undefined,
     text: (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 60) || undefined,
-    rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+    rect: {
+      x: Math.round(r.x),
+      y: Math.round(r.y),
+      w: Math.round(r.width),
+      h: Math.round(r.height),
+    },
   };
 }
 
@@ -274,8 +306,12 @@ async function main() {
     stopServer();
   }
 
-  const overflowViewports = captures.filter((c) => c.measured.horizontalScroll).map((c) => `${c.route}@${c.viewport}`);
-  const errorRoutes = captures.filter((c) => c.consoleErrors.length > 0).map((c) => `${c.route}@${c.viewport}`);
+  const overflowViewports = captures
+    .filter((c) => c.measured.horizontalScroll)
+    .map((c) => `${c.route}@${c.viewport}`);
+  const errorRoutes = captures
+    .filter((c) => c.consoleErrors.length > 0)
+    .map((c) => `${c.route}@${c.viewport}`);
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -292,13 +328,17 @@ async function main() {
     },
     needsHumanVisualReview: {
       note: "The flags above are DOM measurements, NOT a pixel/design review. Spacing, visual hierarchy, information density, interaction states, copy and brand match (design-skills + unslop signs) must be judged by a human or model looking at the actual PNGs (use *.full.png for below-fold areas).",
-      perCapture: captures.map((c) => `${c.route} @ ${c.viewport}: ${c.file} (+ ${c.fullPageFile})`),
+      perCapture: captures.map(
+        (c) => `${c.route} @ ${c.viewport}: ${c.file} (+ ${c.fullPageFile})`,
+      ),
     },
   };
 
   await fs.writeFile(path.join(dir, "index.json"), JSON.stringify(report, null, 2) + "\n");
   console.log(`[visual] report: ${path.join(dir, "index.json")}`);
-  console.log(`[visual] horizontal overflow: ${overflowViewports.length ? overflowViewports.join(", ") : "none"}`);
+  console.log(
+    `[visual] horizontal overflow: ${overflowViewports.length ? overflowViewports.join(", ") : "none"}`,
+  );
   console.log(`[visual] console errors: ${errorRoutes.length ? errorRoutes.join(", ") : "none"}`);
   console.log(failed ? "[visual] FAIL (exit 1)" : "[visual] PASS");
   process.exitCode = failed ? 1 : 0;

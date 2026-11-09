@@ -544,7 +544,11 @@ export function CatalogPanel({
                   <div className={cardHeader}>
                     <span className={cardTitleRow}>
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
-                      <a className={`${rowLink} ${cardTitleLink}`} href={chartHref(song)} data-row-link>
+                      <a
+                        className={`${rowLink} ${cardTitleLink}`}
+                        href={chartHref(song)}
+                        data-row-link
+                      >
                         <span className={cardTitle}>{song.title}</span>
                       </a>
                     </span>

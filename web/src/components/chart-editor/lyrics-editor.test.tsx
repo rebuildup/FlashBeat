@@ -223,7 +223,9 @@ describe("LyricsEditor", () => {
     const ui = render(6.25);
 
     act(() => {
-      ui.querySelector<HTMLButtonElement>('[aria-label="Set line 2 start to the playhead"]')?.click();
+      ui.querySelector<HTMLButtonElement>(
+        '[aria-label="Set line 2 start to the playhead"]',
+      )?.click();
     });
 
     expect(emitted?.lyrics?.startTime?.[1]).toBe(6.25);

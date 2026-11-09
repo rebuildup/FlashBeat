@@ -97,10 +97,7 @@ function triggerByLabel(labelText: string): HTMLButtonElement {
 
 /** React の value tracker を通す typing の再現 (paste / IME 確定と同じ経路)。 */
 function type(input: HTMLInputElement, value: string): void {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )!.set!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   setter.call(input, value);
   act(() => {
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -118,9 +115,7 @@ async function clickTrigger(trigger: HTMLButtonElement): Promise<void> {
 async function pressKey(key: string, target: Element): Promise<void> {
   await act(async () => {
     const active = document.activeElement ?? target;
-    active.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
-    );
+    active.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
     await Promise.resolve();
     await new Promise((resolve) => requestAnimationFrame(resolve));
   });
