@@ -142,20 +142,33 @@ z <= 8.81 → ガイド線もノートも映像より手前なので、映像が
 
 ### EditMode テスト (Unity 6000.5.6f1, `-runTests -testPlatform editmode`, `-quit` なし)
 
-| 指標 | 値 |
-| --- | --- |
-| 総テスト数 | (この表の最終版は下記「実施結果」参照) |
-| passed | |
-| failed | |
-| 結果 XML | `TestResults-wpf.xml` (worktree 直下) |
-| ログ | `unity-wpf.log` (worktree 直下) |
+| 対象 | total | passed | failed |
+| --- | --- | --- | --- |
+| **本ブランチ** (`w/w233-playfield`, 81eade3) | **1132** | **1132** | **0** |
+| ベースライン (`origin/main` = `ab8c336`、同一 worktree で detached checkout して測定) | 1118 | 1118 | 0 |
 
-ベースライン (`origin/main` = `ab8c336`): 1073 / 1073 passed。
+差分 +14 = 追加したテスト (PlaybackClockTests +3 / PlayfieldGeometryTests +7 /
+VideoPictureTests +4)。
 
-### 負の対照 (negative control)
+cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`origin/main` は
+`ab8c336` まで進み、他ワーカーの PR のテストが入っているので 1118 になる
+(本ブランチが既存テストを壊していないことは「同一 worktree での base / head
+比較」で確認している)。
 
-固定した値を 1 つ書き換えて → 対応するテストが落ちる → 元に戻す、を実際にやった
-結果を下に記録する。
+結果 XML: `TestResults-wpf.xml` (本ブランチ) / `TestResults-base.xml` (ベースライン)
+ログ: `unity-wpf.log` / `unity-base.log` (worktree 直下。**コミットしていない**)
+
+### 負の対照 (negative control) — 実施済み
+
+固定した値を 2 つ書き換えて、**対応するテストだけが落ちる**ことを確認してから戻した。
+
+| 変えた値 | 期待した失敗 | 実測 |
+| --- | --- | --- |
+| `MediaTimeline.VisibleDepthZ` 8.61 → **9.5** | `PlayfieldGeometryTests.TheVisibleDepthMatchesTheCameraInTheSceneFile` が落ちる (シーンから再導出すると 8.6143 なので一致しない) | **失敗した** (total 1132 / passed 1130 / failed 2) メッセージ: `MediaTimeline.VisibleDepthZ does not match the camera in Assets/Game/Scenes/GameScene.unity (derived 8.6143). Re-derive it.` |
+| `Notes.cs` の移動を `ZScale` → **`GManager.noteSpeed`** | `PlaybackClockTests.TheThreeLaneSitesUseTheSameZScale` が落ちる (3 箇所が同じ尺度を使うことのソース固定) | **失敗した** メッセージ: `The note movement must use the shared z scale.` |
+
+変えたのはこの 2 テストだけ (他の 1130 は通った)。変更加入後は元に戻し、
+1132 / 1132 に戻ることを確認済み。
 
 ### macOS ビルドと 3 解像度の実画面
 
