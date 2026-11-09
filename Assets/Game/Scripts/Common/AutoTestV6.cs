@@ -137,12 +137,60 @@ public class AutoTestV6 : MonoBehaviour
             KeyBindings.InjectKeyDown(KeyCode.Space);
             yield return new WaitForSecondsRealtime(1.5f);
             Check("the playback started", music.PlaybackStarted);
-            yield return new WaitForSecondsRealtime(4f);
+
+            // Issue #233: 谱面が疎な区間 (先頭) で撮るとノートが画面に 1 枚も
+            // 出ない。曲に依存しない办法として「実際にカメラに写っている
+            // ノーツが 3 枚以上あり、手前 (z <= 5.5) まで入るまで待つ」ので、
+            // どの曲でも白い帯 (ノート) が見える状態で撮れる。
+            float denseWaited = 0f;
+            int visibleNotes = 0;
+            float nearestZ = 0f;
+            float farthestZ = 0f;
+            while (denseWaited < 60f)
+            {
+                ScanVisibleNotes(out visibleNotes, out nearestZ, out farthestZ);
+                if (visibleNotes >= 3 && nearestZ <= 5.5f) break;
+                denseWaited += 0.25f;
+                yield return new WaitForSecondsRealtime(0.25f);
+            }
+            ScanVisibleNotes(out visibleNotes, out nearestZ, out farthestZ);
             Check("the media clock advances", music.MediaTimeNow > 0f);
+            Debug.Log("[AutoTestV6] media time at capture = " + music.MediaTimeNow.ToString("F2")
+                + " visible notes = " + visibleNotes
+                + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
+            Check("the capture lands in a dense chart region", visibleNotes >= 3);
+
             yield return Screenshot("05-gameplay");
         }
 
         Finish();
+    }
+
+    /// <summary>
+    /// 実際にカメラに写っている 3D ノーツの枚数と z の範囲 (Issue #233)。
+    /// Renderer.isVisible は「カメラに写っている」ことを表すので、
+    /// 谱面が密でもカメラ外なら 0 になる。
+    /// カメラ可視範囲は z &lt;= MediaTimeline.VisibleDepthZ (8.61) なので、
+    /// この測定値がそのまま「見えているか」の実測値になる。
+    /// </summary>
+    private void ScanVisibleNotes(out int count, out float nearestZ, out float farthestZ)
+    {
+        count = 0;
+        nearestZ = 0f;
+        farthestZ = 0f;
+        Notes[] notes = FindObjectsByType<Notes>(FindObjectsSortMode.None);
+        for (int i = 0; i < notes.Length; i++)
+        {
+            if (notes[i] == null) continue;
+            Renderer renderer = notes[i].GetComponentInChildren<Renderer>();
+            if (renderer == null) continue;
+            if (!renderer.enabled) continue;
+            if (!renderer.isVisible) continue;
+            count++;
+            float z = notes[i].transform.position.z;
+            if (count == 1 || z < nearestZ) nearestZ = z;
+            if (count == 1 || z > farthestZ) farthestZ = z;
+        }
     }
 
     private void Finish()
