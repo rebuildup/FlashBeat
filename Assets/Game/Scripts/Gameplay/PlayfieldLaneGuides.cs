@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Rendering;
 
@@ -72,7 +72,7 @@ namespace FlashBeat.Gameplay
             }
         }
 
-        private static void OnSceneLoaded(Scene scene, LoadMode mode)
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name == GameSceneName)
             {
