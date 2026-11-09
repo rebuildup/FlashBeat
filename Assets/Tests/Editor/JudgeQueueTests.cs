@@ -358,14 +358,17 @@ public class JudgeQueueTests
     }
 
     [Test]
-    public void Hold_NeverPressed_BecomesMissAndNotHold()
+    public void Hold_NeverPressed_BecomesMissAndNeverEntersHoldState()
     {
         JudgeQueue queue = new JudgeQueue(Lanes);
         queue.Add(Hold(3, 5.0f, 7.0f, 0));
 
-        // 押し下げ失敗: 保持は始まらない。時間切れで Miss になる。
-        Assert.IsFalse(queue.TryPress(3, 5.0f, LongNote.BAD_WINDOW, out _, out _));
+        // 一度も押されない HOLD は保持に入らない (BeginHold されない)。
+        // 開始 + BAD_WINDOW をすぎた時点で Miss 候補になる。
+        Assert.IsFalse(queue.IsHolding(3));
         Assert.IsTrue(queue.TryPeekMiss(3, 5.5f, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry missed));
         Assert.AreEqual(0, missed.SourceIndex);
+        Assert.AreEqual(LongNote.TYPE_HOLD, missed.Type);
+        Assert.IsFalse(queue.IsHolding(3));
     }
 }

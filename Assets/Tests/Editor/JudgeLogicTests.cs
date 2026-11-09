@@ -31,9 +31,14 @@ public class JudgeLogicTests
     }
 
     [Test]
-    public void ComputeScore_IsNeverNegative()
+    public void ComputeScore_StaysWithinZeroToOneMillion()
     {
-        // 負の ratioScore (異常値) でも負のスコアを画面に出さない。
-        Assert.GreaterOrEqual(Judge.ComputeScore(-10f, 10f), 0);
+        // 正常系のスコアは 0〜1,000,000 の範囲に収まる。
+        foreach (float ratio in new float[] { 0f, 1f, 17f, 250f, 499f, 500f })
+        {
+            int score = Judge.ComputeScore(ratio, 500f);
+            Assert.GreaterOrEqual(score, 0, $"ratio={ratio}");
+            Assert.LessOrEqual(score, 1000000, $"ratio={ratio}");
+        }
     }
 }
