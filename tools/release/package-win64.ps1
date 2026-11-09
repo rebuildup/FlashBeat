@@ -19,6 +19,10 @@
       ビルド出力の StreamingAssets/update-channel.txt (更新チャンネル) もそのまま同梱されます。
     - ZIP の隣に `<zip名>.sha256` (SHA-256 sidecar, sha256sum -c 互換) を書き出す。
     - 秘密情報 (トークン・署名付き URL・credential) は ZIP に一切含めない。入力はビルドフォルダのみ。
+    - **再現性**: 同じビルド出力から再パッケージすると **SHA-256 が一致する**。
+      version.json の createdAt は実行時刻 (Get-Date) ではなく **ビルド元 commit の日時** から作り、
+      version.json 自身の mtime も同じ値に固定する (実行時刻を使うと ZIP がバイト単位で再現しなくなる)。
+      実測: docs/evidence/win64-build-from-macos.md。
 
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File tools/release/package-win64.ps1 `
@@ -53,13 +57,172 @@ param(
 
     # MediaPolicy=free / song-free のときの resources.resource サイズ上限 (既定 300MB)。
     # 自作の背景アニメーション (Resources/Videos/*.mp4) だけで約 196MB になる。
-    [long]$MaxResourcesBytes = 300MB
+    [long]$MaxResourcesBytes = 300MB,
+
+    # ビルド元 commit の日時 (ISO 8601)。version.json の createdAt はこの値から決める。
+    # 未指定なら git (git show -s --format=%cI <CommitSha>) から導出する。
+    # **実行時刻を使ってはいけない**: 同じ入力でも ZIP がバイト単位で再現しなくなり、
+    # 再現性検証 (同じソース → 同じ SHA) が成立しなくなる。
+    [string]$CommitDate = ''
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# PowerShell 7.4+ は「ネイティブコマンドの非ゼロ終了を例外にする」設定がある。
+# tar の失敗は .NET 例外ではなくこのスクリプトの日本語診断で扱うため、無効化する。
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
+
 $script:MediaExtensions = @('.wav', '.mp3', '.mp4', '.mov', '.ogg', '.m4a', '.webm', '.avi')
+
+# --- プラットフォーム判定 ----------------------------------------------------
+# このスクリプトは Windows 上で使う想定だったが、macOS (pwsh) からも
+# Win64 ビルドをパッケージできる必要がある (Unity の Windows Build Support が
+# macOS Editor に入っていれば macOS から Win64 をビルドできる)。
+# そのため (a) パス区切りを Join-Path で解決し (b) tar は Windows 同梱の
+# tar.exe ではなく libarchive の tar を優先して使う。
+# PowerShell 5.1 は Windows 専用なので $IsWindows は使えない。
+$script:OnWindows = if ($PSVersionTable.PSVersion.Major -ge 6) { $IsWindows } else { $true }
+
+function Get-ExecutableFromPath {
+    param([string]$Name)
+
+    # PATH を先頭から順に走査して **実行ファイルだけ** を探す。
+    # Get-Command を使うと Function / Alias を優先して掴まされ、
+    # ユーザープロフィールの `function tar { ... }` で .Source が空文字になる。
+    $exts = @('')
+    if ($script:OnWindows) {
+        $pathext = $env:PATHEXT
+        if ([string]::IsNullOrWhiteSpace($pathext)) { $pathext = '.COM;.EXE;.BAT;.CMD' }
+        $exts = @($pathext -split ';' | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() })
+    }
+
+    $sep = [System.IO.Path]::PathSeparator
+    foreach ($dir in ($env:PATH -split [regex]::Escape($sep))) {
+        if ([string]::IsNullOrWhiteSpace($dir)) { continue }
+        foreach ($ext in $exts) {
+            $candidate = Join-Path $dir ($Name + $ext)
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+        }
+    }
+    return $null
+}
+
+function Test-ZipMagic {
+    param([string]$Path)
+
+    # ZIP かどうか切实に判定する (拡張子 .zip でも中身が tar なら false)。
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $head = New-Object byte[] 4
+        $read = $stream.Read($head, 0, 4)
+        if ($read -lt 4) { return $false }
+        if ($head[0] -ne 0x50 -or $head[1] -ne 0x4B) { return $false }
+        # "PK\x03\x04" = ローカルファイルヘッダ / "PK\x05\x06" = 空 ZIP の EOCD
+        return ($head[2] -eq 0x03 -and $head[3] -eq 0x04) -or ($head[2] -eq 0x05 -and $head[3] -eq 0x06)
+    }
+    finally { $stream.Dispose() }
+}
+
+function Resolve-TarCommand {
+    # 候補は PATH の先頭から順に見て、最初に見つかった実行ファイルを採る
+    # (Function / Alias は実行ファイルではないので採らない)。
+    # Windows 同梱の tar.exe (libarchive) と macOS / Linux の bsdtar はどちらも
+    # zip 形式を作れる。**zip を作れない tar は Resolve-TarZipFlags で弾く**。
+    $candidates = if ($script:OnWindows) { @('tar.exe', 'tar') } else { @('tar', 'tar.exe') }
+    foreach ($name in $candidates) {
+        $path = Get-ExecutableFromPath -Name $name
+        if ($path) { return $path }
+    }
+    throw "ZIP 作成に使う tar が見つかりません (試した名前: $($candidates -join ', '))"
+}
+
+function Resolve-TarZipFlags {
+    param([string]$TarPath)
+
+    # libarchive 系 (Windows 同梱 tar.exe / macOS の bsdtar) は拡張子から形式を
+    # 推断する -a と、明示指定の --format=zip の両方を受け付ける。
+    # GNU tar は zip を作れない (拡張子 .zip でも中身を無圧縮 tar にする) ため、
+    # **名前ではなく実際に作ってから ZIP のマジックで判定する**。
+    $flagSets = @(
+        , @('-a')
+        , @('--format=zip')
+    )
+
+    $probeDir = Join-Path ([System.IO.Path]::GetTempPath()) ('fb-tar-probe-' + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        [System.IO.File]::WriteAllText((Join-Path $probeDir 'probe.txt'), "probe`n")
+        foreach ($flags in $flagSets) {
+            $out = Join-Path $probeDir 'probe.zip'
+            if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Force }
+            $code = -1
+            try {
+                & $TarPath @flags -cf $out -C $probeDir 'probe.txt' 1>$null 2>$null
+                $code = $LASTEXITCODE
+            }
+            catch { $code = -1 }
+            if ($code -eq 0 -and (Test-ZipMagic -Path $out)) { return , $flags }
+        }
+    }
+    finally {
+        $ErrorActionPreference = $prevEap
+        Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $tried = (($flagSets | ForEach-Object { $_ -join ' ' }) -join ' / ')
+    throw ("ZIP を作れない tar が選ばれました: {0}`n" +
+           "この tar は zip 形式に対応していません (拡張子 .zip の中身が tar .archive になります)。" +
+           "Windows 同梱の tar.exe (libarchive) または macOS / Linux の bsdtar を PATH の先頭に置いてください。" +
+           " 試した形式指定: {1}") -f $TarPath, $tried
+}
+
+function Test-TarTwoHopSupport {
+    param(
+        [string]$TarPath,
+        [string[]]$ZipFlags
+    )
+
+    # 「2 段構え」(ディスク → ustar → zip) が使えるか調べる。
+    # ustar には atime / ctime のフィールドが無いので、この経路で ZIP を作ると
+    # ZIP に記録されるのは **mtime だけ** になり、ZIP がバイト単位で再現する。
+    # (1 段構えだとローカルヘッダの UT 拡張フィールドに実行時刻の atime / ctime が
+    #  載り、version.json のエントリだけ ZIP が変わる)
+    $probeDir = Join-Path ([System.IO.Path]::GetTempPath()) ('fb-tar-hop-' + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        [System.IO.File]::WriteAllText((Join-Path $probeDir 'probe.txt'), "probe`n")
+        $mid = Join-Path $probeDir 'probe.tar'
+        $out = Join-Path $probeDir 'probe.zip'
+
+        & $TarPath -c --format ustar -f $mid -C $probeDir 'probe.txt' 1>$null 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mid -PathType Leaf)) { return $false }
+
+        & $TarPath @ZipFlags -cf $out "@$mid" 1>$null 2>$null
+        if ($LASTEXITCODE -ne 0) { return $false }
+
+        return (Test-ZipMagic -Path $out)
+    }
+    catch { return $false }
+    finally {
+        $ErrorActionPreference = $prevEap
+        Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Join-PathSegments {
+    param([string]$Base, [string[]]$Segments)
+    $p = $Base
+    foreach ($s in $Segments) { $p = Join-Path $p $s }
+    return $p
+}
 
 function Assert-Win64BuildLayout {
     param([string]$Dir)
@@ -78,9 +241,9 @@ function Assert-Win64BuildLayout {
 function Get-ManagedDllCount {
     param([string]$Dir)
 
-    $managed = Join-Path $Dir 'FlashBeat_Data\Managed'
+    $managed = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'Managed')
     if (-not (Test-Path -LiteralPath $managed -PathType Container)) {
-        throw "FlashBeat_Data\Managed が見つかりません: $managed"
+        throw ("{0} が見つかりません: {1}" -f (Join-PathSegments -Base 'FlashBeat_Data' -Segments @('Managed')), $managed)
     }
     return (Get-ChildItem -LiteralPath $managed -Filter '*.dll' -File).Count
 }
@@ -121,7 +284,7 @@ function Assert-MediaPolicy {
         Write-Host ("[media] 第三者楽曲メディアはビルド対象から除外済み (manifest: {0})" -f ($excluded -join ', '))
     }
 
-    $packed = Join-Path $Dir 'FlashBeat_Data\resources.resource'
+    $packed = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'resources.resource')
     if (-not (Test-Path -LiteralPath $packed -PathType Leaf)) {
         if ($MediaPolicy -eq 'free' -or $MediaPolicy -eq 'song-free') {
             Write-Warning 'resources.resource が存在しません (メディア完全分離済みと解釈します)'
@@ -141,10 +304,14 @@ function New-BuildZip {
     param(
         [string]$Dir,
         [string]$VersionJsonPath,
-        [string]$ZipPath
+        [string]$ZipPath,
+        [string]$TarPath,
+        [string[]]$TarFlags,
+        [string]$IntermediateTarPath,
+        [bool]$UseTwoHop
     )
 
-    # Windows 同梱の bsdtar (libarchive) を使用。拡張子 .zip で自動的に zip 形式になる。
+    # libarchive の tar を使用 (Windows 同梱の tar.exe / macOS の bsdtar)。
     # -C でカーソルを移動し、トップレベルのエントリをそのまま ZIP ルートに置く。
     # version.json はステージングから ZIP ルートへ追加する。
     $entries = Get-ChildItem -LiteralPath $Dir -Force |
@@ -156,9 +323,38 @@ function New-BuildZip {
     }
 
     $staging = [System.IO.Path]::GetDirectoryName($VersionJsonPath)
-    & tar.exe -a -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
-    if ($LASTEXITCODE -ne 0) {
-        throw "tar.exe が失敗しました (exit=$LASTEXITCODE): $ZipPath"
+    try {
+        if ($UseTwoHop) {
+            # 1 段目: ビルド出力 + version.json を ustar に固める。
+            # ustar には atime / ctime のフィールドが無いので、mtime だけが載る。
+            & $TarPath -c --format ustar -f $IntermediateTarPath -C $Dir @entries -C $staging 'version.json'
+            $code = $LASTEXITCODE
+            if ($code -ne 0) {
+                throw "tar (ustar) が失敗しました (exit=$code): $IntermediateTarPath"
+            }
+            # 2 段目: ustar を zip に変換する (atime / ctime は載らない → 再現する)。
+            & $TarPath @TarFlags -cf $ZipPath "@$IntermediateTarPath"
+            $code = $LASTEXITCODE
+            if ($code -ne 0) {
+                throw "tar (zip) が失敗しました (exit=$code): $ZipPath"
+            }
+        }
+        else {
+            & $TarPath @TarFlags -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
+            $code = $LASTEXITCODE
+            if ($code -ne 0) {
+                throw "tar が失敗しました (exit=$code): $ZipPath"
+            }
+        }
+    }
+    catch {
+        # 壊れた / ZIP でない .zip を残さない (release 手順は *.zip を glob で拾うため)。
+        Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
+        throw
+    }
+    if (-not (Test-ZipMagic -Path $ZipPath)) {
+        Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
+        throw ("tar が ZIP 形式でないファイルを作りました (削除しました): {0}" -f $ZipPath)
     }
 }
 
@@ -192,12 +388,29 @@ function Test-ZipContents {
             throw "Managed DLL 数が不一致: zip=$dllCount source=$ExpectedDllCount"
         }
 
-        # arch integrity: 全エントリの圧縮/非圧縮サイズが読めることを確認
+        # 全エントリが展開できること (壊れたエントリの検出)。
+        # Length / CompressedLength は ZipArchiveEntry では常に 0 以上なので、
+        # 値を見る検査では何も検出できない。実際に読み出す。
         foreach ($e in $zip.Entries) {
-            if ($e.Length -lt 0 -or $e.CompressedLength -lt 0) {
-                throw "壊れたエントリ: $($e.FullName)"
+            $s = $e.Open()
+            try {
+                $buf = New-Object byte[] 1
+                [void]$s.Read($buf, 0, 1)
+            }
+            finally { $s.Dispose() }
+        }
+
+        # FlashBeat.exe が PE 実行ファイル (MZ ヘッダ) であること。
+        $exeEntry = $zip.Entries | Where-Object { $_.FullName -eq 'FlashBeat.exe' } | Select-Object -First 1
+        $s = $exeEntry.Open()
+        try {
+            $mz = New-Object byte[] 2
+            [void]$s.Read($mz, 0, 2)
+            if ($mz[0] -ne 0x4D -or $mz[1] -ne 0x5A) {
+                throw 'ZIP 内の FlashBeat.exe が PE 実行ファイルではありません (MZ ヘッダがありません)'
             }
         }
+        finally { $s.Dispose() }
 
         [pscustomobject]@{
             TotalEntries = $zip.Entries.Count
@@ -233,6 +446,57 @@ function Write-Sha256Sidecar {
     return $hash
 }
 
+function ConvertTo-UtcDate {
+    param([string]$Text)
+
+    # ISO 8601 を UTC に正規化する (ロケール非依存)。
+    return [DateTimeOffset]::Parse(
+        $Text,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
+    ).UtcDateTime
+}
+
+function Resolve-CommitDateUtc {
+    param(
+        [string]$CommitSha,
+        [string]$Explicit
+    )
+
+    # version.json の createdAt は「パッケージ実行時刻」ではなく「ビルド元 commit の日時」にする。
+    # 実行時刻を使うと、同じビルド出力から再パッケージするたびに ZIP の SHA-256 が変わる
+    # (version.json の内容と mtime が変わるため) ので、再現性検証が成立しない。
+    if (-not [string]::IsNullOrWhiteSpace($Explicit)) {
+        try { return (ConvertTo-UtcDate -Text $Explicit.Trim()) }
+        catch {
+            throw ("-CommitDate の書式が不正です (ISO 8601 を指定してください。例: 2026-11-09T19:00:00+09:00): {0}" -f $Explicit)
+        }
+    }
+
+    # 明示されなければ git からビルド元 commit の committer date を取る。
+    $roots = @()
+    if ($PSScriptRoot) { $roots += (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) }
+    $roots += (Get-Location).Path
+    $seen = @{}
+    foreach ($root in $roots) {
+        if ([string]::IsNullOrWhiteSpace($root) -or $seen.ContainsKey($root)) { continue }
+        $seen[$root] = $true
+        $raw = @()
+        $code = 1
+        try {
+            $raw = @(& git -C $root show -s --format=%cI $CommitSha 2>$null)
+            $code = $LASTEXITCODE
+        }
+        catch { $code = 1 }
+        if ($code -eq 0 -and $raw.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($raw[0])) {
+            try { return (ConvertTo-UtcDate -Text $raw[0].Trim()) }
+            catch { throw ("git が返した commit 日時の書式が不正です: {0}" -f $raw[0]) }
+        }
+    }
+
+    throw ("ビルド元 commit ({0}) の日時を git から取得できませんでした。-CommitDate (ISO 8601) を明示してください。" -f $CommitSha)
+}
+
 # --- main ---
 
 # Version 内の短縮 SHA と CommitSha の整合を検証 (タグ命名契約: v<Version> の SHA 部は CommitSha の先頭)
@@ -258,6 +522,10 @@ if (Test-Path -LiteralPath $zipPath) {
 }
 
 # version.json をステージングに作成 (#36 UpdateChecker / Update.ps1 が読む契約)
+# createdAt は「実行時刻」ではなく「ビルド元 commit の日時」にする (再現性のため)。
+$commitDateUtc = Resolve-CommitDateUtc -CommitSha $CommitSha -Explicit $CommitDate
+$createdAt = $commitDateUtc.ToString('yyyy-MM-ddTHH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) + 'Z'
+
 $stagingDir = Join-Path $OutDir ([System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 $versionJsonPath = Join-Path $stagingDir 'version.json'
@@ -267,16 +535,34 @@ $versionJson = [ordered]@{
     tag         = "v$Version"
     platform    = 'win64'
     mediaPolicy = $MediaPolicy
-    createdAt   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    createdAt   = $createdAt
 }
 [System.IO.File]::WriteAllText(
     $versionJsonPath,
     ([System.Text.UTF8Encoding]::new($false)).GetString([System.Text.Encoding]::UTF8.GetBytes(($versionJson | ConvertTo-Json))),
     (New-Object System.Text.UTF8Encoding($false)))
 
+# version.json 自身の mtime も commit 日時に固定する。
+# tar は各エントリの mtime を ZIP に埋め込むので、ここが実行時刻のままだと
+# 2 段構えでも ZIP がバイト単位で再現しない (createdAt を固定しても mtime が違う)。
+[System.IO.File]::SetLastWriteTimeUtc($versionJsonPath, $commitDateUtc)
+
 try {
     Write-Host "[1/4] ZIP 作成中: $zipPath"
-    New-BuildZip -Dir $SourceDir -VersionJsonPath $versionJsonPath -ZipPath $zipPath
+    $tarPath = Resolve-TarCommand
+    $tarFlags = Resolve-TarZipFlags -TarPath $tarPath
+    $useTwoHop = Test-TarTwoHopSupport -TarPath $tarPath -ZipFlags $tarFlags
+    if ($useTwoHop) {
+        Write-Host ("      tar: {0} ({1}) / 2 段構え (ustar → zip): 再現します" -f $tarPath, ($tarFlags -join ' '))
+    }
+    else {
+        Write-Warning ("この tar は 2 段構え (--format ustar + @archive) に非対応です。" +
+                       "ZIP はバイト単位で再現しません (atime / ctime が記録されるため): {0}" -f $tarPath)
+        Write-Host ("      tar: {0} ({1})" -f $tarPath, ($tarFlags -join ' '))
+    }
+    $intermediateTarPath = Join-Path $stagingDir 'intermediate.tar'
+    New-BuildZip -Dir $SourceDir -VersionJsonPath $versionJsonPath -ZipPath $zipPath `
+        -TarPath $tarPath -TarFlags $tarFlags -IntermediateTarPath $intermediateTarPath -UseTwoHop $useTwoHop
 
     Write-Host '[2/4] ZIP 内容検査中'
     $inspect = Test-ZipContents -ZipPath $zipPath -ExpectedDllCount $expectedDlls
@@ -289,6 +575,7 @@ try {
             $inspect.TotalEntries, $inspect.ManagedDlls, $MediaPolicy, $sizeBytes)
     Write-Host "SHA-256: $hash"
     Write-Host "Sidecar: $zipPath.sha256"
+    Write-Host "createdAt (ビルド元 commit の日時, UTC): $createdAt"
     Write-Host "タグ (GitHub Release): v$Version"
 
     [pscustomobject]@{
@@ -300,7 +587,14 @@ try {
         MediaPolicy  = $MediaPolicy
         Tag          = "v$Version"
         SourceDir    = $SourceDir
+        CreatedAt    = $createdAt
     }
+}
+catch {
+    # 失敗したとき zip / sidecar を残さない (release 手順は *.zip を glob で拾うため)。
+    Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "$zipPath.sha256" -Force -ErrorAction SilentlyContinue
+    throw
 }
 finally {
     Remove-Item -LiteralPath $stagingDir -Recurse -Force -ErrorAction SilentlyContinue

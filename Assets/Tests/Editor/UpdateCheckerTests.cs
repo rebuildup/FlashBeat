@@ -470,3 +470,152 @@ public class UpdateChannelTests
         Assert.IsTrue(UpdateChannel.IncludesPrerelease(raw));
     }
 }
+
+/// <summary>
+/// issue #118「起動時は確認だけ」の判定部分 (EvaluateCheck)。
+/// ネットワークを叩かずに「更新候補 是否」を決定論的に検証する。
+/// ダウンロード・適用はこの関数の外側 (ユーザー操作) だけで行われる。
+/// </summary>
+public class UpdateCheckDecisionTests
+{
+    private const string ReleasesJson = @"
+[{""tag_name"":""v0.1.0-win64-743c88d"",""draft"":false,""prerelease"":false,
+  ""published_at"":""2026-11-06T13:41:01Z"",""created_at"":""2026-11-06T13:18:29Z"",
+  ""assets"":[{""name"":""FlashBeat-0.1.0-win64-743c88d.zip"",""browser_download_url"":""https://example.com/a.zip""}]},
+ {""tag_name"":""v0.2.0-win64-abc1234"",""draft"":false,""prerelease"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",""created_at"":""2026-11-06T23:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.2.0-win64-abc1234.zip"",""browser_download_url"":""https://example.com/b.zip""}]}]";
+
+    private const string PrereleaseOnlyJson = @"
+[{""tag_name"":""v0.3.0-win64-abc1234"",""draft"":false,""prerelease"":true,
+  ""published_at"":""2026-11-08T00:00:00Z"",""created_at"":""2026-11-08T00:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.3.0-win64-abc1234.zip"",""browser_download_url"":""https://example.com/c.zip""}]}]";
+
+    [Test]
+    public void EvaluateCheck_NewerStableRelease_OffersUpdateWithZip()
+    {
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsTrue(d.HasUpdate);
+        Assert.AreEqual("v0.2.0-win64-abc1234", d.Tag);
+        Assert.AreEqual("0.2.0", d.Version);
+        Assert.IsNotNull(d.Zip);
+        Assert.AreEqual("https://example.com/b.zip", d.Zip.browser_download_url);
+    }
+
+    [Test]
+    public void EvaluateCheck_SameVersion_IsNoUpdate()
+    {
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.2.0+abc1234");
+        Assert.IsFalse(d.HasUpdate);
+        Assert.IsNotNull(d.SkipReason);
+    }
+
+    [Test]
+    public void EvaluateCheck_OlderRelease_IsNoUpdate()
+    {
+        // ダウングレードさせない
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.9.0+fffffff");
+        Assert.IsFalse(d.HasUpdate);
+    }
+
+    [Test]
+    public void EvaluateCheck_SameVersionDifferentBuild_IsNoUpdate()
+    {
+        // 同じバージョンで別のビルドは「新旧」が判定できないので候補にしない。
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.2.0+9999999");
+        Assert.IsFalse(d.HasUpdate);
+        Assert.IsTrue(d.SkipReason.Contains("同じバージョン"));
+    }
+
+    /// <summary>
+    /// 「現行ビルド識別子が解釈できない」場合は更新しない。
+    /// なお、この分岐は production からは到達しない:
+    /// 呼び出し元 (UpdateChecker.CheckForUpdate) が通信前に current.Valid を判定して
+    /// yield break するためで、ここは将来 EvaluateCheck を直接呼ぶ利用者に向けの
+    /// 防御ガードである。production 側の経路は
+    /// UpdateCheckerEntryPointTests.FinishCheckWithoutUpdate_ReturnsToIdle_AndAllowsRecheck
+    /// と UpdateSourceStructureTests.EvaluateCheck_InvalidBuildBranch_IsGuardedByTheCaller
+    /// が担保する。
+    /// </summary>
+    [Test]
+    public void EvaluateCheck_InvalidCurrentBuild_IsNoUpdate_ByDefensiveGuard()
+    {
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "unknown");
+        Assert.IsFalse(d.HasUpdate);
+        Assert.IsTrue(d.SkipReason.Contains("ビルド版識別子"));
+    }
+
+    /// <summary>draft の Release は更新候補にしない (未公開 Release を配らない)。</summary>
+    [Test]
+    public void EvaluateCheck_DraftRelease_IsNoUpdate()
+    {
+        var json = @"
+[{""tag_name"":""v0.2.0-win64-abc1234"",""draft"":true,""prerelease"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",
+  ""assets"":[{""name"":""FlashBeat-0.2.0-win64-abc1234.zip"",""browser_download_url"":""https://example.com/b.zip""}]}]";
+        var d = UpdateChecker.EvaluateCheck(json, includePrerelease: true,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate, "draft の Release が更新候補になっています");
+    }
+
+    [Test]
+    public void EvaluateCheck_StableChannel_DoesNotOfferPrerelease()
+    {
+        // 受入条件 7: prerelease を stable に自動適用しない。
+        var d = UpdateChecker.EvaluateCheck(PrereleaseOnlyJson, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate);
+    }
+
+    [Test]
+    public void EvaluateCheck_PreviewChannel_OffersPrerelease()
+    {
+        var d = UpdateChecker.EvaluateCheck(PrereleaseOnlyJson, includePrerelease: true,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsTrue(d.HasUpdate);
+        Assert.AreEqual("v0.3.0-win64-abc1234", d.Tag);
+    }
+
+    [Test]
+    public void EvaluateCheck_OtherPlatformRelease_IsNoUpdate()
+    {
+        // macOS ビルドが Windows の Release を更新候補にしない。
+        var d = UpdateChecker.EvaluateCheck(ReleasesJson, includePrerelease: false,
+                                           UpdatePlatform.MacOS, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate);
+    }
+
+    [Test]
+    public void EvaluateCheck_ReleaseWithoutPlatformZip_IsNoUpdate()
+    {
+        var json = @"
+[{""tag_name"":""v0.2.0-win64-abc1234"",""draft"":false,""prerelease"":false,
+  ""published_at"":""2026-11-07T00:00:00Z"",""assets"":[]}]";
+        var d = UpdateChecker.EvaluateCheck(json, includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate);
+        Assert.IsTrue(d.SkipReason.Contains("ZIP"));
+    }
+
+    [Test]
+    public void EvaluateCheck_UnparsableJson_IsNoUpdate()
+    {
+        var d = UpdateChecker.EvaluateCheck("not json", includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate);
+        Assert.IsNotNull(d.SkipReason);
+    }
+
+    [Test]
+    public void EvaluateCheck_EmptyList_IsNoUpdate()
+    {
+        var d = UpdateChecker.EvaluateCheck("[]", includePrerelease: false,
+                                           UpdatePlatform.Windows64, "0.1.0+743c88d");
+        Assert.IsFalse(d.HasUpdate);
+    }
+}

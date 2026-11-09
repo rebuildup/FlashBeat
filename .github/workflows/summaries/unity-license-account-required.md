@@ -1,4 +1,4 @@
-## Win64 ビルド blocked: `UNITY_LICENSE` だけでは hosted runner で認証できない
+## ビルド blocked: `UNITY_LICENSE` だけでは hosted runner で認証できない
 
 `UNITY_LICENSE` (`.ulf`) は **発行元マシンに紐づく** ため、GitHub Actions の
 hosted runner (毎回別マシン) では必ず次のエラーで失敗します。

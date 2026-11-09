@@ -49,6 +49,16 @@ public static class OptionSettings
     /// <summary>判定幅 (ms) の上限。</summary>
     public const int NoteTimingMax = 10;
 
+    /// <summary>
+    /// フラッシュ速度の有効値かどうか (1 / 2 / 4 / 8)。
+    /// 範囲外の値 (0 など) は実際のフラッシュへ反映されないため、保存値を復元する時に
+    /// 正規化してから GManager へ入れる。
+    /// </summary>
+    public static bool IsValidFlashSpeed(int value)
+    {
+        return value == 1 || value == 2 || value == 4 || value == 8;
+    }
+
     /// <summary>現在の GManager の値を全部保存する。</summary>
     public static void Save()
     {
@@ -76,8 +86,11 @@ public static class OptionSettings
         GManager.noteTiming = Mathf.Clamp(PlayerPrefs.GetInt(NoteTimingKey, GManager.noteTiming),
             NoteTimingMin, NoteTimingMax);
         GManager.Flash = PlayerPrefs.GetInt(FlashKey, GManager.Flash ? 1 : 0) != 0;
-        GManager.FlashT = PlayerPrefs.GetInt(FlashTimingKey, GManager.FlashT);
-        GManager.FlashBG = PlayerPrefs.GetInt(FlashSpeedKey, GManager.FlashBG);
+        // 負の FlashTiming はフラッシュの計算 (FlashT/100 BPM) が成立しないため 0 へ寄せる。
+        GManager.FlashT = Mathf.Max(0, PlayerPrefs.GetInt(FlashTimingKey, GManager.FlashT));
+        // 範囲外のフラッシュ速度 (0 など) は実際の表示へ反映されないので有効値へ戻す。
+        int flashSpeed = PlayerPrefs.GetInt(FlashSpeedKey, GManager.FlashBG);
+        GManager.FlashBG = IsValidFlashSpeed(flashSpeed) ? flashSpeed : 1;
     }
 }
 
@@ -245,17 +258,28 @@ public class OptionSceneManager : MonoBehaviour
     }
 
     /// <summary>設定を書き込む先。
-    /// 編集環境 (プロジェクト直下で起動) は従来どおり Assets/Resources へ書き出す。
-    /// ビルド版の実行ディレクトリには Assets が無く、書き出しが例外となって
-    /// タイトル画面の処理が中断していたため、ユーザー領域 (persistentDataPath) を使う。</summary>
+    ///
+    /// 編集環境 (Editor / プロジェクト直下から起動) はプロジェクト直下の
+    /// <c>UserSettings/song-settings/</c> を使う。**Resources フォルダには置かない。**
+    /// 以前は Assets/Resources/ へ書き出していたため、
+    /// - 設定 JSON (譜面と同じ形: name / maxBlock / BPM / offset / notes) が
+    ///   譜面 JSON と区別できずに残り、Resources.Load("曲名") が
+    ///   「どちらの譜面か不定」になっていた (Issue #241)。
+    /// - 譜面の重複検査 (ResourceChartUniquenessTests) が編集のたびに壊れていた。
+    ///
+    /// ビルド版は Assets が無く書き出しが例外となってタイトル画面の処理が
+    /// 中断していたため、ユーザー領域 (persistentDataPath) を使う。</summary>
     public static string SettingsDirectory()
     {
-        const string editorDirectory = "Assets/Resources";
-        try
+        if (Application.isEditor)
         {
-            if (Directory.Exists(editorDirectory)) { return editorDirectory; }
+            try
+            {
+                string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                return Path.Combine(projectRoot, "UserSettings", "song-settings");
+            }
+            catch (Exception) { }
         }
-        catch (Exception) { }
         return Path.Combine(Application.persistentDataPath, "settings");
     }
 
@@ -267,7 +291,8 @@ public class OptionSceneManager : MonoBehaviour
         {
             name = name.Replace(invalid, '_');
         }
-        return name + ".json";
+        // ".setting.json" にして譜面 JSON とファイル名で区別できるようにする。
+        return name + ".setting.json";
     }
 
     public static void saveSettings(int I,SettingItemData newData)
@@ -345,10 +370,25 @@ public class OptionSceneManager : MonoBehaviour
 
     }
 
-    public static void TimingUp()
+    /// <summary>
+    /// NoteTiming を delta だけ調整する (上下とも同じ経路)。
+    ///
+    /// 以前は 上方向が static・下方向が instance メソッドで、v6 Option 画面から
+    /// 片方だけ静的呼出しすると per-song offset の書き戻しが欠けていた。
+    /// 値の更新・保存・offset の書き戻しは statics にまとめ、既存のメソッドは
+    /// そのままの形で委譲する (UnityEvent の参照は壊さない)。
+    /// </summary>
+    public static void AdjustNoteTiming(int delta)
     {
-        GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + 1, OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
+        GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + delta,
+            OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
         OptionSettings.Save();
+        WriteNoteTimingToSongOffsets();
+    }
+
+    /// <summary>判定幅を各曲の offset へ書き戻す (既存の保存先 = ユーザー領域の設定 JSON)。</summary>
+    public static void WriteNoteTimingToSongOffsets()
+    {
         for (int i = 1; i <= GManager.totalSong; i++)
         {
             SettingItemData settingData = new SettingItemData(); // settingDataを宣言して初期化
@@ -357,45 +397,48 @@ public class OptionSceneManager : MonoBehaviour
             saveSettings(i, settingData);
             Debug.Log("設定完了 offset=" + settingData.offset);
         }
+    }
+
+    public static void TimingUp()
+    {
+        AdjustNoteTiming(1);
     }
     public void TimingDown()
     {
-        GManager.noteTiming = Mathf.Clamp(GManager.noteTiming - 1, OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
-        OptionSettings.Save();
-        for (int i = 1; i <= GManager.totalSong; i++)
-        {
-            SettingItemData settingData = new SettingItemData(); // settingDataを宣言して初期化
-            settingData = LoadSettings(i); // 既存のJSONデータを読み込む
-            settingData.offset = GManager.noteTiming;
-            saveSettings(i, settingData);
-            Debug.Log("設定完了 offset=" + settingData.offset);
-        }
+        AdjustNoteTiming(-1);
     }
     public void FlashTUp()
     {
-        GManager.FlashT++;
-        flashTText.text = (GManager.FlashT).ToString();
+        GManager.FlashT = Mathf.Max(0, GManager.FlashT + 1);
+        if (flashTText != null) flashTText.text = (GManager.FlashT).ToString();
+        OptionSettings.Save();
     }
     public void FlashTDown()
     {
-        GManager.FlashT--;
-        flashTText.text = (GManager.FlashT).ToString();
+        GManager.FlashT = Mathf.Max(0, GManager.FlashT - 1);
+        if (flashTText != null) flashTText.text = (GManager.FlashT).ToString();
+        OptionSettings.Save();
+    }
+
+    /// <summary>
+    /// NoteSpeed を delta だけ調整する (上下とも同じ経路・同じ保存先)。
+    /// 0 以下だとノーツが逆に流れるため範囲を制限する (Issue #167)。
+    /// </summary>
+    public static void AdjustNoteSpeed(int delta)
+    {
+        GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed + delta * 0.1f,
+            OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
+        OptionSettings.Save();
+        Debug.Log("設定完了 noteSpeed=" + GManager.noteSpeed);
     }
 
     public void SpeedUp()
     {
-        // 0 以下だとノーツが逆に流れるため範囲を制限する (Issue #167)。
-        GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed + 0.1f,
-            OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
-        OptionSettings.Save();
-        Debug.Log("設定完了 noteSpeed=" + GManager.noteSpeed);
+        AdjustNoteSpeed(1);
     }
     public void SpeedDown()
     {
-        GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed - 0.1f,
-            OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
-        OptionSettings.Save();
-        Debug.Log("設定完了 noteSpeed=" + GManager.noteSpeed);
+        AdjustNoteSpeed(-1);
     }
     public void playSound()
     {
@@ -407,60 +450,38 @@ public class OptionSceneManager : MonoBehaviour
     {
         if (GManager.Flash)
         {
-            FlashON.SetActive(false);
-            FlashOFF.SetActive(true);
+            if (FlashON != null) FlashON.SetActive(false);
+            if (FlashOFF != null) FlashOFF.SetActive(true);
             GManager.Flash = false;
         }
         else
         {
-            FlashON.SetActive(true);
-            FlashOFF.SetActive(false);
+            if (FlashON != null) FlashON.SetActive(true);
+            if (FlashOFF != null) FlashOFF.SetActive(false);
             GManager.Flash = true;
         }
+
+        // 変更は保存先へ書いておく (他の画面へ持ち越す設定なので)。
+        OptionSettings.Save();
     }
+
+    /// <summary>
+    /// フラッシュ速度を 1 段上げる (1 → 2 → 4 → 8 → 1)。
+    /// 範囲外の値は 1 へ戻す (0 などの値は実際のフラッシュへ反映されないため)。
+    /// </summary>
     public void FlashSUp()
     {
-        switch (GManager.FlashBG)
-        {
-            case 1:
-                GManager.FlashBG = 2;
-                break;
-            case 2:
-                GManager.FlashBG = 4;
-                break;
-            case 4:
-                GManager.FlashBG = 8;
-                break;
-            case 8:
-                GManager.FlashBG = 1;
-                break;
-            default:
-                GManager.FlashBG = 0;
-                break;
-        }
-        flashSText.text = (GManager.FlashBG).ToString();
+        GManager.FlashBG = FlashBeat.UI.V6.Option.V6OptionLogic.CycleFlashSpeed(GManager.FlashBG, 1);
+        if (flashSText != null) flashSText.text = (GManager.FlashBG).ToString();
+        OptionSettings.Save();
     }
+
+    /// <summary>フラッシュ速度を 1 段下げる (1 → 8 → 4 → 2 → 1)。</summary>
     public void FlashSDown()
     {
-        switch (GManager.FlashBG)
-        {
-            case 1:
-                GManager.FlashBG = 8;
-                break;
-            case 2:
-                GManager.FlashBG = 1;
-                break;
-            case 4:
-                GManager.FlashBG = 2;
-                break;
-            case 8:
-                GManager.FlashBG = 4;
-                break;
-            default:
-                GManager.FlashBG = 0;
-                break;
-        }
-        flashSText.text = (GManager.FlashBG).ToString();
+        GManager.FlashBG = FlashBeat.UI.V6.Option.V6OptionLogic.CycleFlashSpeed(GManager.FlashBG, -1);
+        if (flashSText != null) flashSText.text = (GManager.FlashBG).ToString();
+        OptionSettings.Save();
     }
     
     public void timingUpUp()

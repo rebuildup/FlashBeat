@@ -263,3 +263,115 @@ C:\Users\rebui\Desktop\FlashBeat-Exhibit\
 | 3 | 自動更新の候補判定の実装 | 本書は「バージョンが厳密に大きい Release のみ」を前提に書いています。実装をこの方針に揃える対応は監督側の担当事項です（[`update-release.md`](update-release.md) の版数ルール参照） |
 | 4 | `gh` CLI を展示 PC に置くか | `-Tag` 指定の適用には `gh` が必要です。置かない運用なら §6.1(b) の手動差し替え、または `-ZipPath` を使います |
 | 5 | 展示 PC の台数 | 現状は Windows 実機 1 台（Unity Editor を含む）のため、展示と開発の両立には CI が必要です（[`festival-development-path.md`](festival-development-path.md)） |
+
+---
+
+## 11. 付録: 展示候補ビルド (2026-11-09 時点)
+
+**この節は「いま手元にある候補」の記録であり、確定版ではありません。**
+本書の他節は版数を確定値として書きません (→ §10 の #2)。本節も同じ方針に従い、
+**出版済み / 実機受入済みとは区別して**書いています。
+
+### 11.1 手元にある候補配布物
+
+| 項目 | 値 |
+|---|---|
+| 候補 ID (ZIP 内部のラベル) | `0.1.14-win64-d8c1b39` |
+| ビルド元 commit | `d8c1b39` (main, PR #251 merge 時点)。**ただし未コミット差分を含みます** (下記) |
+| 内部版数 (`Application.version`) | `0.1.14` (`ProjectSettings.bundleVersion` = `0.1.14+d8c1b39`) |
+| ZIP | `FlashBeat-0.1.14-win64-d8c1b39.zip` (274,826,784 bytes / 224 entries / Managed DLL 138 個) |
+| SHA-256 | `3ac76d0d7a9e30f1063d733fbd17028c853f6c4b8fc4950de51761b9b81abfb3` |
+| 置き場所 (開発用 Mac) | `/Users/rebui/work/FlashBeat.macverify/dist2/` (**`dist2/` のみが正**。`dist3/` にも同名 ZIP があって SHA が異なる) |
+| メディアポリシー | `song-free` — **第三者楽曲の wav / mp4 は非同梱** (配信は `yt-dlp` 経由)。ただし **譜面 JSON と歌詞は同梱** (28 曲分) |
+| 更新チャンネル | `preview` — **prerelease も更新候補に含める設定**。`stable` ではない |
+
+生成手順と全ログは [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります
+(**このファイルは PR #253 が持ち込みます。#253 → #254 の順で merge する**)。
+
+パッケージは `tools/release/package-win64.ps1` で行います。main 版は `tar.exe` を
+前提にしていますが macOS には `tar.exe` が無いため、macOS から実行するには
+**PR #253 の `Resolve-TarCommand` フォールバック (PR #253 merge 後に main に入ります)**
+が必要です。PowerShell 7 (`pwsh`) も必須ですが、**`pwsh` は `mise.toml` に未登録**なので
+`mise exec -- pwsh` はこのプロジェクトでは解決しません (グローバル設定経由でのみ
+使えるマシンを前提にしないでください)。
+
+> **再現性の注意**: この候補は **未コミットの作業ツリー差分を含んだ状態でビルド**されています
+> (`ProjectSettings/ProjectSettings.asset` の `bundleVersion` 変更と、
+> `scriptingDefineSymbols` への `SENTIS_ANALYTICS_ENABLED` 追加)。
+> クリーンチェックアウトからは同じバイナリになりません。**再ビルドし直して
+> SHA-256 を再実測してから**使ってください (→ §11.2 の 5)。
+
+> ### ⚠ この候補をそのまま展示 PC に置いてはいけません
+>
+> 理由が 3 つあります。**公開・配置の前に解就算是必要**です。
+>
+> 1. **版数が古く、publish 済みと衝突します。** 同じ `0.1.14` の Win64 Release が既に
+>    2 本公開済み (`v0.1.14-win64-617c2b6` / `v0.1.14-win64-b7b7073`)、Latest は
+>    `v0.1.21-win64-d581c4c` です。[`release-gate.md`](release-gate.md) §1.2 の
+>    「同一バージョンで異なる SHA の Release は公開しない (更新経路が Dead になる)」
+>    に該当します。**公開するなら `0.1.22`** (v0.1.21 の次) でビルドし直します。
+>    作り直すと SHA-256 も変わります。
+> 2. **更新チャンネルが `preview` です。** `preview` は **prerelease を更新候補に含める**
+>    設定です (「未検証の自動更新をしないから preview」という理由ではありません。**逆**)。
+>    展示用ビルドは §0 の 4 行目・§3・[`release-gate.md`](release-gate.md) §1.3 に従い
+>    **`stable`** である必要があります (`FLASHBEAT_UPDATE_CHANNEL=stable` でビルドし直す)。
+> 3. **内部版数が `0.1.14` なので、起動時に `v0.1.21` が更新候補として通知されます。**
+>    適用は自動では走りません — ダウンロードも適用も F3 / クリックの明示操作だけです
+>    (`UpdateChecker.RequestDownload` / `RequestApply`)。ただし実機受入するときは
+>    **別のビルドが更新として入るのである**ことを前提に検証してください。
+
+### 11.2 この候補で「まだ確認していないこと」
+
+1. **Windows 実機で起動して 1 曲完走していない** (映像 → ノーツ → キー判定 → スコア → Result → Retry)。
+2. **GitHub Releases には publish していない** (Windows 実機受入前なので)。
+   §6.1(a) の `-ZipPath` を使う手動差し替え (§6.1(b) と同義) か、§11.3 の手順で
+   ローカル展開します。**ただし §8 の「展示に置くのは GitHub Release の ZIP だけ」には
+   抵触するため、展示配置は §10 の #1 (監督者の決定事項) を先に解決してください。
+3. **Win64 CI は未緑** — `UNITY_EMAIL` / `UNITY_PASSWORD` が Actions Secrets に未登録のため
+   (Personal の `.ulf` は GitHub-hosted runner で machine binding mismatch が必ず起きる)。
+   詳細は [`unity-ci-license.md`](unity-ci-license.md) と Issue #250 のコメント。
+4. **3 解像度の実ディスプレイ全画面は未検証** — 手順は
+   [`three-resolution-fullscreen-verification.md`](three-resolution-fullscreen-verification.md)。
+   **窓をリサイズした擬似全画面は検証にならない**ので、実ディスプレイで全画面表示に
+   した状態で行ってください (FHD 1920×1080 / 2K 2560×1440 / Mac 2560×1664)。
+5. **ビルドの再現性が不完全** — この ZIP は未コミットの作業ツリー差分
+   (`scriptingDefineSymbols` に `SENTIS_ANALYTICS_ENABLED` を追加) を含んだ状態で
+   ビルドされています。クリーンチェックアウトからは同じバイナリになりません。
+   PR #253 でパッケージャを再現可能化済み (2 回ビルドして SHA-256 一致を実測) なので、
+   **再ビルドし直して SHA-256 を再実測してから**使ってください。
+
+### 11.3 候補を Windows 実機で試す手順 (Windows 実機では未検証)
+
+> **注意**: この節は **Windows 実機で検証済みではありません**。
+> **これは「展示配置」の手順ではありません** — §8 の正手順は GitHub Release 経由の
+> 差し替えで、展示配置の判断は §10 の #1 に従います。実行前に、ZIP の中身を必ず確認してください。
+
+```powershell
+# 1) ZIP と .sha256 を同じフォルダーに置く
+# 2) 検証 (一致しなければ使わない)
+Get-FileHash .\FlashBeat-0.1.14-win64-d8c1b39.zip -Algorithm SHA256
+Get-Content .\FlashBeat-0.1.14-win64-d8c1b39.zip.sha256
+
+# 3) 既存フォルダを退避してから差し替える (中身を直接編集しない: §1.1)
+Rename-Item 'C:\Users\rebui\Desktop\FlashBeat-Exhibit' 'FlashBeat-backup-<年月日-時刻>'
+Expand-Archive .\FlashBeat-0.1.14-win64-d8c1b39.zip 'C:\Users\rebui\Desktop\FlashBeat-Exhibit'
+
+# 4) 起動して 1 曲完走する (§2 の起動手順 → §3 の選曲 → ゴールまで)
+```
+
+### 11.4 受入記録 (Windows 実機で確認したらここを埋める)
+
+| 項目 | 結果 | 記録場所 |
+|---|---|---|
+| ビルド SHA | `d8c1b395e30ea8c4ec44e3e50d1e00914cc25744` (`version.json` の `buildSha` は 40 桁完全形) | `version.json` / `FlashBeat.exe` のプロパティ |
+| 起動 → タイトル | ☐ | Player.log |
+| 選曲 → ゲーム開始 | ☐ | Player.log |
+| 映像の再生 | ☐ | スクリーンショット |
+| ノーツ表示 / キー判定 / スコア更新 | ☐ | スクリーンショット |
+| Result 画面 → 曲選択 → Retry | ☐ | スクリーンショット |
+| 3 解像度 (FHD 1920×1080 / 2K 2560×1440 / Mac 2560×1664) を **実ディスプレイ全画面** にして崩れなし | ☐ | **実ディスプレイ全画面**でのスクリーンショット (窓リサイズによる擬似全画面は不可) + `Player.log` の実効解像度 |
+| 公開前の版数見直し (現在 `0.1.14` → 公開するなら `0.1.22` で再ビルド) | ☐ | 本表 + [`release-gate.md`](release-gate.md) §1.2 |
+| プレイヤー ID / 版 | ☐ | 本表 |
+
+**スクリーンショットと Player.log は機密情報を含む可能性があるため、公開 Issue へ
+そのまま貼らず `docs/evidence/` へ保存してください。**

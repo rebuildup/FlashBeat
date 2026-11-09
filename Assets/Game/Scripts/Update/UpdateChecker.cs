@@ -135,8 +135,10 @@ namespace FlashBeat.Update
 
             if (!current.Valid)
             {
-                Debug.LogWarning("[UpdateChecker] ビルド版識別子を解釈できません: '" + Application.version +
-                                 "' — 更新確認を省略します (現行版を維持します)。");
+                // ビルド版識別子が解釈できない場合は通信もせず終了する。
+                // 状態は Idle に戻す (Checking に残ると再チェックできなくなる)。
+                FinishCheckWithoutUpdate("ビルド版識別子を解釈できません: '" + Application.version +
+                                         "' — 更新確認を省略します (現行版を維持します)。", warning: true);
                 yield break;
             }
 
@@ -156,71 +158,31 @@ namespace FlashBeat.Update
             yield return listReq.SendWebRequest();
             if (listReq.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning("[UpdateChecker] Releases の確認に失敗しました (" + listReq.error +
-                                 ") — 現行版のまま続行します。");
+                // 通信失敗: 現行版のまま。状態は Idle に戻す (Checking に残さない)。
+                FinishCheckWithoutUpdate("Releases の確認に失敗しました (" + listReq.error +
+                                         ") — 現行版のまま続行します。", warning: true);
                 yield break;
             }
 
-            var latest = ParseLatestRelease(listReq.downloadHandler.text, includePrerelease, platform, out var releasesParsed);
-            if (latest == null)
+            // ── 2. 更新候補の判定 (純粋関数・ネットワーク不要) ──
+            // 判定だけを行い、ここではダウンロードしない。
+            var decision = EvaluateCheck(listReq.downloadHandler.text, includePrerelease, platform,
+                                         Application.version);
+            if (!decision.HasUpdate)
             {
-                if (!releasesParsed)
-                {
-                    Debug.LogWarning("[UpdateChecker] Releases の応答を解釈できませんでした — 現行版のまま続行します。");
-                }
-                else
-                {
-                    Debug.Log("[UpdateChecker] " + UpdateVersion.GetTagToken(platform) +
-                              " の更新候補はありません — 現行版のまま続行します。");
-                }
+                // 新版なし / 応答を解釈できない: 現行版のまま。状態は Idle に戻す。
+                FinishCheckWithoutUpdate(decision.SkipReason + " — 現行版のまま続行します。");
                 yield break;
             }
 
-            var latestId = UpdateVersion.ParseTag(latest.tag_name, platform);
-            if (!latestId.Valid)
-            {
-                Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
-                          (latest.tag_name ?? "(無効なタグ)") + ")。");
-                yield break;
-            }
-
-            if (UpdateVersion.IsSameVersionDifferentBuild(latestId, current))
-            {
-                // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
-                // 自動適用すると古いビルドへ戻す可能性があるので、更新候補にしない。
-                Debug.Log("[UpdateChecker] 同じバージョン " + latestId.Version + " の別ビルドがあります " +
-                          "(" + latest.tag_name + " / 現行 " + current.ShortSha + ")。" +
-                          "更新はしません (適用は運営者が Update.ps1 -Tag で行えます)。");
-                yield break;
-            }
-
-            if (!UpdateVersion.IsNewerThan(latestId, current))
-            {
-                Debug.Log("[UpdateChecker] 最新です (build=" + Application.version + ", latest=" +
-                          (latest.tag_name ?? "(無効なタグ)") + ")。");
-                yield break;
-            }
-
-            // ── 2. ZIP アセットを特定 ──
-            // プラットフォーム別 Release のため、他プラットフォームの ZIP を誤って
-            // ダウンロードしないようアセット名の token まで確認する。
-            var zip = FindPlatformZip(latest, platform);
-            if (zip == null)
-            {
-                Debug.LogWarning("[UpdateChecker] Release " + latest.tag_name +
-                                 " に " + UpdateVersion.GetTagToken(platform) +
-                                 " の ZIP アセットがありません — 現行版のまま続行します。");
-                yield break;
-            }
-
-            Debug.Log("[UpdateChecker] 新版を確認: " + latest.tag_name + " (現行 " + Application.version + ")。" +
+            Debug.Log("[UpdateChecker] 新版を確認: " + decision.Tag + " (現行 " + Application.version + ")。" +
                       "ダウンロードはユーザーが Title 画面で指示したときだけ行います。");
-            Model.CheckFoundNewVersion(latest.tag_name, latestId.Version);
-            pendingZip = zip;
+            Model.CheckFoundNewVersion(decision.Tag, decision.Version);
+            pendingZip = decision.Zip;
 
             // ── 3. 同一タグの staging 済みがあれば再利用 (前回 staging したが適用しなかった場合) ──
             var existing = UpdateStaging.ReadManifest();
-            if (existing != null && existing.tag == latest.tag_name)
+            if (existing != null && existing.tag == decision.Tag)
             {
                 string reuseProblem;
                 if (UpdateStaging.VerifyStaged(existing, out reuseProblem))
@@ -235,6 +197,26 @@ namespace FlashBeat.Update
             }
 
             // ここで終わる。ダウンロードは RequestDownload() で開始する。
+        }
+
+        /// <summary>
+        /// 「確認を終えたが新版が無い (または確認に失敗した)」の共通処理。
+        /// 状態機械を <see cref="UpdateFlowPhase.Idle"/> へ戻す — <b>Checking のまま残さない</b>
+        /// (Checking に固まると <see cref="UpdateFlowModel.StartCheck"/> が no-op になり、
+        /// 将来「再チェック」機構を追加したときに確認できなくなるため)。
+        /// 現行版のファイル・状態には一切触れない (安全側)。
+        /// </summary>
+        public void FinishCheckWithoutUpdate(string reason, bool warning = false)
+        {
+            if (warning)
+            {
+                Debug.LogWarning("[UpdateChecker] " + reason);
+            }
+            else
+            {
+                Debug.Log("[UpdateChecker] " + reason);
+            }
+            Model.CheckFinishedWithoutUpdate();
         }
 
         /// <summary>ユーザー操作 (Title 通知の F3 / クリック) によるダウンロード開始。
@@ -463,6 +445,104 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] Releases JSON の解析に失敗しました: " + e.Message);
                 return null;
             }
+        }
+
+        /// <summary>起動時の更新確認の結果 (純粋関数・ネットワーク不要)。</summary>
+        public struct UpdateCheckDecision
+        {
+            /// <summary>更新候補があるか。false なら <see cref="SkipReason"/> に理由がある。</summary>
+            public bool HasUpdate;
+
+            /// <summary>更新候補のタグ (例: "v0.1.3-win64-abc1234")。</summary>
+            public string Tag;
+
+            /// <summary>更新候補のバージョン表示 (例: "0.1.3")。</summary>
+            public string Version;
+
+            /// <summary>更新候補の ZIP アセット。</summary>
+            public ReleaseAsset Zip;
+
+            /// <summary>更新候補が無かった理由 (ユーザー向けの説明文・ログ用)。</summary>
+            public string SkipReason;
+        }
+
+        /// <summary>
+        /// 起動時の更新確認を「候補の判定」だけに純関数として切り出したもの (issue #118)。
+        /// Releases JSON が更新候補 Colaborするかどうかだけを返す — ダウンロードも適用も行わない。
+        /// ネットワーク・ファイル IO に依存しないので EditMode テストで決定論的に検証できる。
+        ///
+        /// 判定順序:
+        /// 1. チャンネル (includePrerelease) を考慮した Release 選択
+        /// 2. 実行プラットフォームのタグか (他プラットフォームの Release を候補にしない)
+        /// 3. 現行ビルドより新しい版か (同バージョンの別ビルド・ダウングレードは候補にしない)
+        /// 4. プラットフォーム別 ZIP アセットがあるか
+        ///
+        /// 現行ビルド識別子の解釈可否は「呼び出し元 (CheckForUpdate) が通信前に判定する」責務で、
+        /// 本関数の <c>!current.Valid</c> 分岐は **production から到達しない防御ガード**である
+        /// (CheckForUpdate が解釈不能なら通信せずに終了する。UpdateChecker.cs の
+        /// 「current.Valid の判定 → yield break」を参照)。
+        /// 直接この関数を呼ぶ将来の利用者向けに「解釈不能なら更新しない」ことは保証する。
+        /// </summary>
+        public static UpdateCheckDecision EvaluateCheck(string releasesJson, bool includePrerelease,
+                                                         UpdatePlatform platform, string currentBuildId)
+        {
+            var decision = new UpdateCheckDecision();
+
+            var latest = ParseLatestRelease(releasesJson, includePrerelease, platform, out var releasesParsed);
+            if (latest == null)
+            {
+                decision.SkipReason = releasesParsed
+                    ? (UpdateVersion.GetTagToken(platform) + " の更新候補はありません")
+                    : "Releases の応答を解釈できませんでした";
+                return decision;
+            }
+
+            var latestId = UpdateVersion.ParseTag(latest.tag_name, platform);
+            if (!latestId.Valid)
+            {
+                decision.SkipReason = "最新です (build=" + currentBuildId + ", latest=" +
+                                      (latest.tag_name ?? "(無効なタグ)") + ")";
+                return decision;
+            }
+
+            var current = UpdateVersion.ParseBuildId(currentBuildId);
+            if (!current.Valid)
+            {
+                decision.SkipReason = "ビルド版識別子を解釈できません: '" + currentBuildId + "'";
+                return decision;
+            }
+
+            if (UpdateVersion.IsSameVersionDifferentBuild(latestId, current))
+            {
+                // 同じバージョンで別のビルドは「新旧」を判定できない (SHA に大小関係がない)。
+                // 自動適用すると古いビルドへ戻す可能性があるので、更新候補にしない。
+                decision.SkipReason = "同じバージョン " + latestId.Version + " の別ビルドがあります (" +
+                                      latest.tag_name + " / 現行 " + current.ShortSha + ")。" +
+                                      "更新はしません (適用は運営者が Update.ps1 -Tag で行えます)";
+                return decision;
+            }
+
+            if (!UpdateVersion.IsNewerThan(latestId, current))
+            {
+                decision.SkipReason = "最新です (build=" + currentBuildId + ", latest=" + latest.tag_name + ")";
+                return decision;
+            }
+
+            // プラットフォーム別 Release のため、他プラットフォームの ZIP を誤って
+            // ダウンロードしないようアセット名の token まで確認する。
+            var zip = FindPlatformZip(latest, platform);
+            if (zip == null)
+            {
+                decision.SkipReason = "Release " + latest.tag_name + " に " +
+                                      UpdateVersion.GetTagToken(platform) + " の ZIP アセットがありません";
+                return decision;
+            }
+
+            decision.HasUpdate = true;
+            decision.Tag = latest.tag_name;
+            decision.Version = latestId.Version;
+            decision.Zip = zip;
+            return decision;
         }
 
         /// <summary>Release のアセットから指定プラットフォームの ZIP を選ぶ。

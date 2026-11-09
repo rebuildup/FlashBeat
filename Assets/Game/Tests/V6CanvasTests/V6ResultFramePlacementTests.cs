@@ -163,5 +163,45 @@ namespace FlashBeat.V5CanvasTests
             Assert.LessOrEqual(titlePos.x + titleSize.x, chevronLPos.x);
             Assert.LessOrEqual(metricPos.x + metricSize.x, chevronRPos.x);
         }
+
+        [Test]
+        public void ResultModalDialog_FitsInsideSharedFrame()
+        {
+            // 登録モーダル (design 05b lqHaN) の Dialog は共通フレーム内に収まる。
+            // scrim ("Modal 05b") はフレーム全面、Dialog は 840x510。
+            // 座標は design px の左上原点 (V6Layout.FitsIn / At と同じ方式)。
+            var frameOrigin = Vector2.zero;
+            var frameSize = new Vector2(V6ResultLogic.DesignW, V6ResultLogic.DesignH);
+            Assert.IsTrue(V6Layout.FitsIn(frameOrigin, frameSize,
+                new Vector2(V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY),
+                new Vector2(V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH)), "modal dialog");
+        }
+
+        [Test]
+        public void ResultModalDialog_IsFullyVisibleAtDesignResolutions()
+        {
+            // Issue #240 の受入条件「3解像度で結果・ボタン・モーダルに重なりや
+            // クリップがない」の **幾何部分**。実画面のスクリーンショットは
+            // 別 (未検証)。フレームは 1:1 固定解像度なので、Dialog の矩形が
+            // 画面矩形に収まること (= クリップされない) を各解像度で確認する。
+            int[][] sizes =
+            {
+                new[] { 1920, 1080 }, // FHD
+                new[] { 2560, 1440 }, // 2K
+                new[] { 2560, 1664 }, // Mac
+            };
+
+            for (int i = 0; i < sizes.Length; i++)
+            {
+                int w = sizes[i][0];
+                int h = sizes[i][1];
+                Vector2 topLeft = V6ResultLogic.ModalDialogTopLeft(w, h);
+
+                Assert.GreaterOrEqual(topLeft.x, 0f, "dialog left @ " + w + "x" + h);
+                Assert.GreaterOrEqual(topLeft.y, 0f, "dialog top @ " + w + "x" + h);
+                Assert.LessOrEqual(topLeft.x + V6ResultLogic.ModalDialogW, w, "dialog right @ " + w + "x" + h);
+                Assert.LessOrEqual(topLeft.y + V6ResultLogic.ModalDialogH, h, "dialog bottom @ " + w + "x" + h);
+            }
+        }
     }
 }

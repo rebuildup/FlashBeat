@@ -218,6 +218,37 @@ namespace FlashBeat.UI.V6.Result
 
         // --- 登録モーダル (Issue #240) の純ロジック ---
 
+        // --- 登録モーダルの幾何 (design 05b lqHaN) ---
+        //
+        // 座標は design px の **左上原点** (V6ResultView の At ヘルパ /
+        // V6Layout.FitsIn と同じ方式)。scrim ("Modal 05b") は共通フレーム
+        // (1728x972) 全面、Dialog はその中に 840x510 で中央置き。
+        // 数値をここに一本化して、配置テスト (V6ResultFramePlacementTests) が
+        // 「実レイアウトの値」を検査できるようにする (コピーの検査にしない)。
+
+        /// <summary>登録モーダル Dialog の幅 (design px)。</summary>
+        public const float ModalDialogW = 840f;
+
+        /// <summary>登録モーダル Dialog の高さ (design px)。</summary>
+        public const float ModalDialogH = 510f;
+
+        /// <summary>登録モーダル Dialog の左端 (design px, 左上原点)。</summary>
+        public const float ModalDialogX = 444f;
+
+        /// <summary>登録モーダル Dialog の上端 (design px, 左上原点)。</summary>
+        public const float ModalDialogY = 231f;
+
+        /// <summary>
+        /// 指定解像度に置いた登録モーダル Dialog の左上 (画面座標, 左上原点)。
+        /// 共通フレームは 1:1 固定解像度で置かれるので、フレーム原点
+        /// (<see cref="FrameOrigin"/>) に Dialog の design 座標を足すだけ。
+        /// </summary>
+        public static Vector2 ModalDialogTopLeft(int screenW, int screenH)
+        {
+            Vector2 origin = FrameOrigin(screenW, screenH);
+            return new Vector2(origin.x + ModalDialogX, origin.y + ModalDialogY);
+        }
+
         /// <summary>送信結果の区分 (loading / success / duplicate / offline / server error)。</summary>
         public enum SubmitOutcome
         {
