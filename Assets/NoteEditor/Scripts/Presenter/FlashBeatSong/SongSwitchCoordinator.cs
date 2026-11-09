@@ -3,6 +3,27 @@ using System.IO;
 
 namespace NoteEditor.Presenter.FlashBeatSong
 {
+    // 曲切替の要求の結果。
+    //
+    // 独立レビュー S-4: 以前の bool 戻り値は「切り替えが成立したか」を
+    // 表すと読めて実際は違う (ダイアログを出しただけの場合も true) ので、
+    // 状態ごとに明示的な値を返す。
+    public enum SongSwitchResult
+    {
+        // パスが空など、要求自体が不正で処理されなかった。
+        InvalidRequest,
+        // 確認なしで曲に切り替わった。
+        Switched,
+        // 確認ダイアログを出し、ユーザーの選択を待っている。
+        AwaitingChoice,
+        // ダイアログ表示中のため新しい要求を受け付けなかった。
+        Busy,
+        // 保存に失敗したため切り替えを中止した。
+        SaveFailed,
+        // 読み込みに失敗したため切り替えを中止した。
+        LoadFailed,
+    }
+
     // 曲切替の orchestration。UI (ダイアログ) も Unity にも依存しないため、
     // EditMode テストから直接検証できる。
     //
@@ -15,8 +36,9 @@ namespace NoteEditor.Presenter.FlashBeatSong
         // いま編集中の曲を保存する。保存できた場合 true を返す。
         public delegate bool SaveCurrentSong();
 
-        // 指定した JSON を開く。
-        public delegate void LoadSong(string jsonPath);
+        // 指定した JSON を開く。成功したら true を返す。
+        // 失敗した場合は error に理由を返す (UI に出すため)。
+        public delegate bool LoadSong(string jsonPath, out string error);
 
         readonly Func<bool> hasUnsavedChanges_;
         readonly Func<string> currentSongName_;
@@ -42,20 +64,27 @@ namespace NoteEditor.Presenter.FlashBeatSong
         // 未保存の変更がない場合は確認なしで切り替える。
         // 未保存の変更がある場合は確認ダイアログを出し、選択結果に従う
         // (ダイアログの選択は後から通知されるため、このメソッドは同期的に戻らない)。
-        public bool RequestSwitch(string jsonPath)
+        public SongSwitchResult RequestSwitch(string jsonPath)
         {
             if (string.IsNullOrEmpty(jsonPath))
-                return false;
+                return SongSwitchResult.InvalidRequest;
 
             if (!SongSwitchDecision.NeedsConfirmation(hasUnsavedChanges_()))
             {
-                loadSong_(jsonPath);
-                return true;
+                return LoadOrReportError(jsonPath)
+                    ? SongSwitchResult.Switched
+                    : SongSwitchResult.LoadFailed;
             }
 
             var message = BuildMessage(currentSongName_(), Path.GetFileNameWithoutExtension(jsonPath));
-            prompt_.Show(message, choice => Complete(jsonPath, choice));
-            return true;
+            if (!prompt_.Show(message, choice => Complete(jsonPath, choice)))
+            {
+                // ダイアログ表示中に別の要求が来た場合、保留中の切替を
+                // 上書きしない (消えてしまうのを防ぐ)。
+                return SongSwitchResult.Busy;
+            }
+
+            return SongSwitchResult.AwaitingChoice;
         }
 
         // ダイアログで選ばれた選択を実際の動作へ翻訳する。
@@ -66,19 +95,37 @@ namespace NoteEditor.Presenter.FlashBeatSong
                 case SongSwitchAction.SaveThenSwitch:
                     // 保存に失敗したら切り替えを中止する (変更を失わないため)。
                     if (!saveCurrentSong_())
+                    {
+                        prompt_.ShowError("現在の曲を保存できなかったため、曲の切り替えを中止しました。");
                         return;
+                    }
 
-                    loadSong_(jsonPath);
+                    LoadOrReportError(jsonPath);
                     return;
 
                 case SongSwitchAction.SwitchWithoutSaving:
-                    loadSong_(jsonPath);
+                    LoadOrReportError(jsonPath);
                     return;
 
                 case SongSwitchAction.StayOnCurrentSong:
                     // 現在の曲も編集中の変更もそのまま残す。何もしない。
                     return;
             }
+        }
+
+        // 読み込み失敗は UI に出す (独立レビュー S-3)。
+        bool LoadOrReportError(string jsonPath)
+        {
+            string error;
+            if (loadSong_(jsonPath, out error))
+                return true;
+
+            var message = "曲を読み込めませんでした。";
+            if (!string.IsNullOrEmpty(error))
+                message = message + "\n" + error;
+
+            prompt_.ShowError(message);
+            return false;
         }
 
         // 確認ダイアログに出す文言。

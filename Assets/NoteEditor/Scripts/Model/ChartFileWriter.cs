@@ -10,6 +10,7 @@ namespace NoteEditor.Model
     public static class ChartFileWriter
     {
         // 本番の保存先。Resources/<曲名>.json。
+        // 列挙側 (FlashBeatSongLoader) も同じ値を参照する (二重定義しない)。
         public const string ResourcesDir = "Assets/Game/Resources";
 
         // 現在の譜面を directory 配下へ保存し、書き出し先のパスを返す。
@@ -18,9 +19,14 @@ namespace NoteEditor.Model
         // Issue #225: 曲切替の直後に保存すると「いま編集中の曲」ではない
         // 別の曲の JSON を上書きしてしまうことがあるため、songName が
         // いま編集中の曲名と一致しない場合は保存を中止する。
-        public static string Save(string songName, string directory)
+        //
+        // 本番経路 (SaveCurrentSong) からはこのメソッドは呼べない。
+        // internal にする: ガード (別曲の上書き防止) は公開 API ではなく
+        // 不変条件として持つため。テストアセンブリからは
+        // InternalsVisibleTo 経由で検証できる。
+        internal static string Save(string songName, string directory)
         {
-            var name = Path.GetFileNameWithoutExtension(songName ?? "");
+            var name = SongName.Normalize(songName);
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("曲名が空のため保存できません", nameof(songName));
 
@@ -51,7 +57,7 @@ namespace NoteEditor.Model
         // いま編集中の曲名 (拡張子なし)。未読込なら空文字。
         public static string CurrentSongName()
         {
-            return Path.GetFileNameWithoutExtension(EditData.Name.Value ?? "");
+            return SongName.Normalize(EditData.Name.Value ?? "");
         }
     }
 }

@@ -6,6 +6,9 @@ using System.Text;
 using NUnit.Framework;
 using NoteEditor.DTO;
 using NoteEditor.Model;
+using NoteEditor.Notes;
+using EditorNote = NoteEditor.Notes.Note;
+using NoteEditor.Presenter;
 using NoteEditor.Presenter.FlashBeatSong;
 using UnityEngine;
 
@@ -18,24 +21,36 @@ namespace FlashBeat.Tests.Editor
     // 曲切替の判断ロジック (SongSwitchCoordinator) と保存本体 (ChartFileWriter) を
     // 直接検証する。UI (SongSwitchPromptDialog) は実機操作でしか検証できないため、
     // ここではダイアログを ISongSwitchPrompt のフェイクに差し替える。
+    //
+    // 「未保存変更がある」状態は EditData.IsDirty を手代入せず、
+    // 本番と同じ購読 (EditNotesPresenter → NoteEditDirtyTracker) で作る。
     public class NoteEditorSongSwitchPromptTests
     {
         string tempDir;
         GameObject audioGo;
 
-        // ダイアログの代わりに使う、選択を記録するフェイク。
+        // ダイアログの代わりに使う、選択とエラーを記録するフェイク。
         class RecordingPrompt : ISongSwitchPrompt
         {
             public bool Shown;
             public string Message;
             public SongSwitchChoice? Choice;
+            public string ErrorMessage;
+            public int ShowCount;
 
-            public void Show(string message, Action<SongSwitchChoice> onChoice)
+            public bool Show(string message, Action<SongSwitchChoice> onChoice)
             {
+                ShowCount++;
                 Shown = true;
                 Message = message;
                 if (Choice.HasValue)
                     onChoice(Choice.Value);
+                return true;
+            }
+
+            public void ShowError(string message)
+            {
+                ErrorMessage = message;
             }
         }
 
@@ -96,6 +111,16 @@ namespace FlashBeat.Tests.Editor
             EditData.IsDirty.Value = false;
         }
 
+        // 本番と同じ経路で「未保存の変更がある」状態を作る
+        // (IsDirty を手代入しない)。
+        static void MakeDirtyByEditingNote()
+        {
+            var presenter = EditNotesPresenter.Instance;
+            presenter.Init();
+            presenter.RequestForAddNote.OnNext(new EditorNote(new NotePosition(4, 0, 0), NoteTypes.Single));
+            Assert.IsTrue(EditData.IsDirty.Value, "編集しても dirty が上がらない (dirty 検知が壊れている)");
+        }
+
         string WriteSongFile(string songName, string json)
         {
             var path = Path.Combine(tempDir, songName + ".json");
@@ -130,13 +155,32 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => { saved++; return true; },
-                path => loaded.Add(path));
+                (string path, out string error) => { error = ""; loaded.Add(path); return true; });
 
-            coordinator.RequestSwitch("/tmp/SongB.json");
+            var result = coordinator.RequestSwitch("/tmp/SongB.json");
 
+            Assert.AreEqual(SongSwitchResult.Switched, result);
             Assert.IsFalse(prompt.Shown, "未保存変更がないのに確認ダイアログが出ています");
             Assert.AreEqual(0, saved);
             CollectionAssert.AreEqual(new[] { "/tmp/SongB.json" }, loaded);
+        }
+
+        [Test]
+        public void RequestSwitch_EmptyPath_IsRejected()
+        {
+            var prompt = new RecordingPrompt();
+            var loaded = new List<string>();
+
+            var coordinator = new SongSwitchCoordinator(
+                () => false,
+                () => "SongA",
+                prompt,
+                () => true,
+                (string path, out string error) => { error = ""; loaded.Add(path); return true; });
+
+            Assert.AreEqual(SongSwitchResult.InvalidRequest, coordinator.RequestSwitch(""));
+            Assert.AreEqual(SongSwitchResult.InvalidRequest, coordinator.RequestSwitch(null));
+            Assert.AreEqual(0, loaded.Count, "不正な要求で曲が変わっています");
         }
 
         [Test]
@@ -150,10 +194,11 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => true,
-                path => loaded.Add(path));
+                (string path, out string error) => { error = ""; loaded.Add(path); return true; });
 
-            coordinator.RequestSwitch("/tmp/SongB.json");
+            var result = coordinator.RequestSwitch("/tmp/SongB.json");
 
+            Assert.AreEqual(SongSwitchResult.AwaitingChoice, result);
             Assert.IsTrue(prompt.Shown, "未保存変更があるのに確認ダイアログが出ていません");
             Assert.AreEqual(0, loaded.Count, "確認前に新しい曲を読み込んでいます");
             StringAssert.Contains("SongA", prompt.Message);
@@ -171,7 +216,7 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => { order.Add("save"); return true; },
-                path => order.Add("load:" + Path.GetFileNameWithoutExtension(path)));
+                (string path, out string error) => { error = ""; order.Add("load:" + Path.GetFileNameWithoutExtension(path)); return true; });
 
             coordinator.RequestSwitch("/tmp/SongB.json");
 
@@ -189,7 +234,7 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => { order.Add("save"); return true; },
-                path => order.Add("load"));
+                (string path, out string error) => { error = ""; order.Add("load"); return true; });
 
             coordinator.RequestSwitch("/tmp/SongB.json");
 
@@ -207,7 +252,7 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => { order.Add("save"); return true; },
-                path => order.Add("load"));
+                (string path, out string error) => { error = ""; order.Add("load"); return true; });
 
             coordinator.RequestSwitch("/tmp/SongB.json");
 
@@ -225,18 +270,57 @@ namespace FlashBeat.Tests.Editor
                 () => "SongA",
                 prompt,
                 () => false,
-                path => loaded.Add(path));
+                (string path, out string error) => { error = ""; loaded.Add(path); return true; });
 
             coordinator.RequestSwitch("/tmp/SongB.json");
 
             Assert.AreEqual(0, loaded.Count, "保存に失敗したのに曲が変わっています");
         }
 
+        // S-3: 保存失敗がユーザーに伝わらない。
+        [Test]
+        public void RequestSwitch_SaveFails_ReportsErrorToUser()
+        {
+            var prompt = new RecordingPrompt { Choice = SongSwitchChoice.SaveAndSwitch };
+
+            var coordinator = new SongSwitchCoordinator(
+                () => true,
+                () => "SongA",
+                prompt,
+                () => false,
+                (string path, out string error) => { error = ""; return true; });
+
+            coordinator.RequestSwitch("/tmp/SongB.json");
+
+            Assert.IsNotNull(prompt.ErrorMessage, "保存失敗が UI に出ていません");
+            StringAssert.Contains("保存", prompt.ErrorMessage);
+        }
+
+        // S-3: 読み込み失敗がユーザーに伝わらない。
+        [Test]
+        public void RequestSwitch_LoadFails_ReportsErrorToUser()
+        {
+            var prompt = new RecordingPrompt();
+
+            var coordinator = new SongSwitchCoordinator(
+                () => false,
+                () => "SongA",
+                prompt,
+                () => true,
+                (string path, out string error) => { error = "壊れた JSON"; return false; });
+
+            var result = coordinator.RequestSwitch("/tmp/SongB.json");
+
+            Assert.AreEqual(SongSwitchResult.LoadFailed, result);
+            Assert.IsNotNull(prompt.ErrorMessage, "読み込み失敗が UI に出ていません");
+            StringAssert.Contains("壊れた JSON", prompt.ErrorMessage);
+        }
+
         [Test]
         public void ChartFileWriter_Save_WritesToCurrentSongFileAndClearsDirty()
         {
             LoadLikeLoader(SongJson("SongA", 120, Tap(4, 0, 4)), "SongA");
-            EditData.IsDirty.Value = true;
+            MakeDirtyByEditingNote();
 
             var path = ChartFileWriter.SaveCurrentSong(tempDir);
 
@@ -257,6 +341,21 @@ namespace FlashBeat.Tests.Editor
 
             Assert.Throws<InvalidOperationException>(() => ChartFileWriter.Save("SongB", tempDir));
 
+            Assert.AreEqual(before, File.ReadAllText(otherPath, Encoding.UTF8),
+                "別曲の JSON が上書きされました");
+        }
+
+        // S-2: 本番経路 (SaveCurrentSong) は別曲へ書き込まない。
+        [Test]
+        public void ChartFileWriter_SaveCurrentSong_DoesNotTouchOtherSongFiles()
+        {
+            LoadLikeLoader(SongJson("SongA", 120, Tap(4, 0, 4)), "SongA");
+            var otherPath = WriteSongFile("SongB", SongJson("SongB", 150, Tap(8, 0, 4)));
+            var before = File.ReadAllText(otherPath, Encoding.UTF8);
+
+            var path = ChartFileWriter.SaveCurrentSong(tempDir);
+
+            Assert.AreEqual(Path.Combine(tempDir, "SongA.json"), path);
             Assert.AreEqual(before, File.ReadAllText(otherPath, Encoding.UTF8),
                 "別曲の JSON が上書きされました");
         }
@@ -288,7 +387,7 @@ namespace FlashBeat.Tests.Editor
             var songBBefore = File.ReadAllText(songBPath, Encoding.UTF8);
 
             LoadLikeLoader(songAJson, "SongA");
-            EditData.IsDirty.Value = true; // A を編集中 (未保存変更あり)
+            MakeDirtyByEditingNote();
 
             var prompt = new RecordingPrompt { Choice = SongSwitchChoice.SaveAndSwitch };
             var coordinator = new SongSwitchCoordinator(
@@ -300,8 +399,13 @@ namespace FlashBeat.Tests.Editor
                     ChartFileWriter.SaveCurrentSong(tempDir);
                     return true;
                 },
-                path => LoadLikeLoader(File.ReadAllText(path, Encoding.UTF8),
-                    Path.GetFileNameWithoutExtension(path)));
+                (string path, out string error) =>
+                {
+                    error = "";
+                    LoadLikeLoader(File.ReadAllText(path, Encoding.UTF8),
+                        Path.GetFileNameWithoutExtension(path));
+                    return true;
+                });
 
             coordinator.RequestSwitch(songBPath);
 
@@ -333,7 +437,7 @@ namespace FlashBeat.Tests.Editor
             var songBBefore = File.ReadAllText(songBPath, Encoding.UTF8);
 
             LoadLikeLoader(songAJson, "SongA");
-            EditData.IsDirty.Value = true;
+            MakeDirtyByEditingNote();
 
             var prompt = new RecordingPrompt { Choice = SongSwitchChoice.DiscardAndSwitch };
             var coordinator = new SongSwitchCoordinator(
@@ -345,8 +449,13 @@ namespace FlashBeat.Tests.Editor
                     ChartFileWriter.SaveCurrentSong(tempDir);
                     return true;
                 },
-                path => LoadLikeLoader(File.ReadAllText(path, Encoding.UTF8),
-                    Path.GetFileNameWithoutExtension(path)));
+                (string path, out string error) =>
+                {
+                    error = "";
+                    LoadLikeLoader(File.ReadAllText(path, Encoding.UTF8),
+                        Path.GetFileNameWithoutExtension(path));
+                    return true;
+                });
 
             coordinator.RequestSwitch(songBPath);
 

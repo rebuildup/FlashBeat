@@ -8,8 +8,6 @@ namespace NoteEditor.Presenter.FlashBeatSong
 {
     public class FlashBeatSongLoader : MonoBehaviour
     {
-        public const string ResourcesDir = "Assets/Game/Resources";
-
         [SerializeField] Transform fileItemContainer = default;
         [SerializeField] GameObject fileItemPrefab = default;
         [SerializeField] UnityEngine.UI.Text emptyMessageText = default;
@@ -30,9 +28,12 @@ namespace NoteEditor.Presenter.FlashBeatSong
 
         public void RefreshList()
         {
+            if (fileItemContainer == null)
+                return;
+
             foreach (Transform child in fileItemContainer) Destroy(child.gameObject);
 
-            var jsonPaths = EnumerateJsonFilesForTest(ResourcesDir).ToList();
+            var jsonPaths = EnumerateJsonFilesForTest(ChartFileWriter.ResourcesDir).ToList();
 
             foreach (var path in jsonPaths)
             {
@@ -51,7 +52,7 @@ namespace NoteEditor.Presenter.FlashBeatSong
 
         // 曲切替の入口。
         // 未保存の変更がある場合は確認ダイアログを出し、
-        // 保存 / 破棄 / キャンセル の選択に従ってから読み込む。
+        // 保存 / 破棄 / キャンセルの選択に従ってから読み込む。
         public void OnFileSelected(string jsonPath)
         {
             if (coordinator_ == null)
@@ -91,13 +92,20 @@ namespace NoteEditor.Presenter.FlashBeatSong
             }
         }
 
-        void LoadSongFile(string jsonPath)
+        // 指定した JSON を読み込む。
+        //
+        // 失敗した場合は false を返し、error に理由を載せる。
+        // 失敗しても旧曲の状態は壊さない (EditDataSerializer.Deserialize が
+        // 置換トランザクションで実装されている。Issue #225 B-3)。
+        public bool LoadSongFile(string jsonPath, out string error)
         {
+            error = "";
+
             try
             {
                 var json = File.ReadAllText(jsonPath, System.Text.Encoding.UTF8);
                 NoteEditor.Model.EditDataSerializer.Deserialize(json);
-                NoteEditor.Model.EditData.Name.Value = Path.GetFileNameWithoutExtension(jsonPath);
+                NoteEditor.Model.EditData.Name.Value = SongName.Normalize(Path.GetFileName(jsonPath));
                 NoteEditor.Model.EditData.IsDirty.Value = false;
 
                 // 新曲のセッションへ切り替える: 旧曲の再生位置・再生状態を持ち込まない。
@@ -109,10 +117,13 @@ namespace NoteEditor.Presenter.FlashBeatSong
                 ProvideSyntheticAudioClip();
                 NoteEditor.Model.Audio.OnLoad.OnNext(UniRx.Unit.Default);
                 Debug.Log($"[FlashBeatSongLoader] Loaded: {jsonPath}");
+                return true;
             }
             catch (System.Exception ex)
             {
+                error = ex.Message;
                 Debug.LogError($"[FlashBeatSongLoader] Failed to load {jsonPath}: {ex.Message}");
+                return false;
             }
         }
 
