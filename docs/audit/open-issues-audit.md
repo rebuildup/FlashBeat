@@ -83,7 +83,7 @@
 | 88 | Win/P0 全画面にならず UI 崩れる | **B** | `ProjectSettings/ProjectSettings.asset:107,119`, `Assets/Game/Tests/FullscreenPolicyTests.cs` | 2/1/2 | Windows 実機 | `displayCoverage ≥ 0.99` を実測 (現状 run-summary は `fullscreen=0`) |
 | 96 | Unity/P1 Title/Result/Option/Opening 崩れ | **B** | `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `V6/Common/V6UiProfile.cs:73-75` | 2/1/2 | Windows 実機 | 1024×768 / 1280×720 の実機撮影が未取得 |
 | 98 | Web 既存曲メタ編集 + Publish 回復動線 | **B** | `web/src/lib/publish/draft.ts`, `web/pages/publish.tsx:140` | 2/1/1 | — | **chart 側ドラフト復元が未実装** (`web/pages/chart.server.ts:6`) |
-| 118 | Update/P0 明示式アップデート | **A → 未充足 1** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleView.cs` | **8/1/1** | — | v5 のピルは `V6UiMode.cs:137 HideLegacyUpdateNotice()` で隠し、v6 Title に literal な「アップデートあり」表示が無い。**#239 と併せて実装が必要** |
+| 118 | Update/P0 明示式アップデート | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleLogic.cs`, `V6/Title/V6TitleView.cs` | **9/1/1** | Windows 実機 | **PR #273 で v6 Title に literal な「アップデートあり」バナーを実装** (pure ロジック `ShowUpdateAvailableNotice` / `UpdateNoticeTitle` / `UpdateNoticeHint` + `BuildUpdateNotice`)。既存 `UpdateChecker.Model` を再利用し検出経路は増やしていない。残りは 3 解像度の実機目視 |
 | 129 | Dev/Mac Desktop に独立 macOS アプリ | **A** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/0/1 | — | クローズ提案可。ただし **配布物の SHA が `fffc399` で Issue の `b677f8f` と不一致**。再配布時に README の SHA を更新すること |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
 | 135 | Registration/P0 ブラウザだけで新規曲登録 | **A** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | 5/0/1 | — | クローズ提案可 (Unity 反映の確認手順のみ未検証) |
@@ -94,12 +94,12 @@
 | 217 | P0/v6 Pencil UI 並列移植 (umbrella) | **D** | `Assets/Game/Scripts/UI/V6/**` | 1/1/2 | Windows 実機 + 子 Issue | 子 (#219–#241) の完了待ち |
 | 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72` | 2/2/1 | — | **`V6UiMode.Playfield = false`** で無効化。`GameScene.unity:2837 m_IsActive: 0` |
 | 221 | P0/v6 Select 3カラム View 再実装 | **A** | `Assets/Game/Scripts/UI/V6/Select/View/V6SelectView.cs` | 4/0/1 | — | クローズ提案可 |
-| 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **4/1/1** | — | (1) カタログ件数の回帰テストが不在 (「45 曲」前提は stale: 実際は 29 件 / 選曲可 27 件)、(2) `SelectSceneManager.cs:404 GameScene()` に遷移ガードが無く **Ready 連打で Scene 遷移が重複**しうる |
+| 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **6/1/1** | Windows 実機 | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**。Issue の「45 曲」前提は古く、「45 曲以上を満たす」ことが要求なら未実装 = **オーナー決定事項**)。残りは実機の Ready 連打操作と検索/絞り込みの実機確認 |
 | 223 | P0/v6 Integration 排他統合+実Win64 | **D** | — (統合ゲート) | 0/1/3 | Windows 実機 + Unity Editor 単独所有者 | #219–#222 の統合 + Win64 1 曲完走 |
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
 | 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6) | 3/0/1 | — | クローズ提案可 (PR #252 は追加ガード) |
-| 226 | Gameplay/P1 曲終了判定 | **A** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78` | **3/1/1** | — | **正負 noteTiming の回帰テストが不在** (既存テストは 0/4/5 のみ)。判定ロジック自体と実機完走は充足 |
-| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B** | `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374`, `V5/GameUiExclusivity.cs` | 1/2/2 | Windows 実機 | **PR #263 (プレイフィールド再有効化) は review 中**、**PR #258 (曲終了→Result 実機ハーネス) は macOS 実機ビルド中**。**ノーツ・動画が視認できない点は #233 の未解決問題として残す** (テスト緑は実機合格ではない) |
+| 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト一部追加** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/NoteTimingRegressionTests.cs` | **4/1/1** | Windows 実機 | **正負 noteTiming の回帰テストを追加** (PR #272 merged)。負の noteTiming は正規仕様 (`OptionSettings.NoteTimingMin=-10`) でクランプ追加は不要。**macOS 実機完走も証明済み** (PR #258: 130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件 (duration 端点 Tap/HOLD・動画長<duration・フレーム落ち・ランキング送信) は Worker が実装中 |
+| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B** | `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374`, `V5/GameUiExclusivity.cs` | 2/2/2 | Windows 実機 | **PR #258 merged** — macOS 実機で 1 曲完走 → Result 到達を実証 (29/29 断言 / `Completed` / 期限切れ強制終了ではない)。**PR #263 (プレイフィールド再有効化) は独立レビューで NEEDS WORK** — ブロッカー 2 件 (① 映像プレーンが prepare 前は白板のまま = #13 で Windows では恒常失敗、② 根本原因の記載が誤りで誤ったモデルを固定するテストがある) を修正中。**ノーツ・動画の視認は Windows 実機未確認のため #233 の未解決問題として残す** (テスト緑は実機合格ではない) |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
 | 240 | P0/v6 Result + 登録モーダル | **A** | `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:124,741,990` | 6/0/1 | — | クローズ提案可 (実機/実API は `specs/240` 3 タスク) |
 | 241 | P0/v6 Option 4タブ整合 | **B** | `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` | **5/0/1** | — | **PR #264 merged** (`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ)。あわせて **譜面と設定 JSON が同じ Resources に混在するバグ** も修正 (`OptionSceneManager.SettingsDirectory()` → `UserSettings/song-settings/`) |
@@ -1440,12 +1440,13 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 
 | 単位 | 状態 | 進捗 / 残作業 |
 |---|---|---|
-| **U1** プレイフィールド再有効化 | **進行中** | PR #263 (`w/w233-playfield`) が review 中。`GraphicVisibility.IsDrawn` による実描画検査を追加。**実機 (Windows) の視認確認は #233 の未解決問題として残す** |
-| **U2** 確認窓 + 旧歌詞二重描画 | **進行中** | 二重描画の検査は `GameUiExclusivity` / `GraphicVisibility` で固定 (PR #263)。確認窓の 0.86s → 1.6s 拡張は未着手 (定義位置を特定してから) |
+| **U1** プレイフィールド再有効化 | **進行中 (修正 PR 作成中)** | PR #263 は独立レビューで **NEEDS WORK**。ブロッカー 2 件: ①映像プレーンが prepare 前は白板 (Windows は #13 で恒常失敗) ②根本原因の記載が誤り・誤ったテストがある。加えて S1 (2560×1664 = aspect 1.538 で外側レーンが判定ラインで欠ける / テストが 16:9 固定で見えない)、S2〜S7 も同時に修正中。**実機 (Windows) の視認確認は #233 の未解決問題として残す** |
+| **U2** 確認窓 + 旧歌詞二重描画 | **進行中** | 二重描画の検査は `GameUiExclusivity` / `GraphicVisibility` で固定 (PR #263)。`GraphicVisibility.IsDrawn` の誤検出 (透明な Image / 無効な祖先 Canvas / 入れ子 CanvasGroup の積) の修正も PR #263 修正に含む。確認窓の 0.86s → 1.6s 拡張は未着手 (定義位置を特定してから) |
 | **U3** v6 Option の保存範囲統一 | **完了** | PR #264 merged。`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ。回帰テスト 8 件 (保存先・4 タブ・セッション設定・マウス経路)。あわせて **譜面/設定 JSON の Resources 混在バグ** を修正 |
 | **U4** publish → chart ドラフト復元 | **進行中** | #98 の chart 側復元を Worker が実装中 (PR 未作成) |
 | **U5** 視覚ゲートの緑化 | **完了** | PR #257 merged。`npm run visual` exit 0 / `clipped=0` / `hScroll=false` を実測。Web テスト 403 件 green |
 | **U6** 展示 patch line への #140/#134 移植 | **未着手** | 展示 line (`b677f8f`) と main のどちらに寄せるかはオーナー判断。**現展示物の SHA 不一致 (#129) が先** |
+| **U11** (追加) #226 残受入条件 | **進行中** | duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち・ランキング送信の回帰テストを Worker が実装中 (#273 と同時進行) |
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
 | **U8** ストリーム音声 (m4a) の再生実証 | **未着手 (Windows 実機)** | `YouTubeStreamResolver` に split 経路 (映像/音声を別々) が既にある。Windows Media Foundation の制約が実機-specific |
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
@@ -1604,6 +1605,12 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #266 | #59 の 4 機能 (歌詞同期/キーガイド/HOLD/HUD) 受入記録 | #59 |
 | #267 | agent 環境 (vendored Skills / skills-check / CI) の整備 | #56 → **Closed** |
 | #268 | `YuGothB SDF.asset` を LFS ポインタとして保存 (`git lfs pull` の失敗を解消) | 配布ビルド経路 |
+| #269 | 監査台帳を 2026-11-10 の進捗に更新 (U1〜U10 / §1 / §7) | 台帳 |
+| #270 | ビルド後の退避メディア復元が例外 → ZIP が作られないバグを修正 (+ 回帰テスト 4 件) | 配布ビルド経路 |
+| #271 | Win64 展示候補のオーナー受入手順 (SHA-256 照合 / 実全画面 3 解像度 / 1 曲完走 7 項目) | #242 / #233 |
+| #258 | 曲終了 → Result の **実機 (macOS) ハーネス** (製品変更は getter 3 本と `Judge` のキー注入 1 行) | #233 |
+| #272 | Ready 連打の遷移ガード + カタログ回帰テスト + 負の noteTiming 回帰テスト (+ 未実行だった `MenuKeyActionWiringTests` の meta 復旧) | #222 / #226 |
+| #273 | v6 タイトルに「アップデートあり」の明示表示 | #118 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
@@ -1620,5 +1627,6 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **Windows 実機** | #4 / #13 (ストリーム完走) / #88 / #96 (解像度スイープ) / #242 (全画面受入) / #59 の残り / HOLD の実機演奏。**展示 PC は保護対象**のため cc は自発的に操作しない。候補と手順は cc が別途準備 |
 | **オーナー決定** | #30 の D1〜D6 (歌詞形状 / 歌詞表示仕様 / キーガイド仕様 / pen.dev 正本 / `scoringVersion` / 既存ふりがな) |
 | **未実装 (要実装)** | #118 の v6 Title「アップデートあり」表示 / #222 のカタログ件数の回帰テストと Ready 連打ガード / #226 の正負 noteTiming 回帰テスト / #239 連携 |
-| **進行中 PR** | #263 (プレイフィールド再有効化) / #258 (曲終了→Result 実機ハーネス) |
+| **進行中 PR** | #263 修正 PR (B1 白い板 / B2 原因記載 / S1〜S7) / #273 / #226 残受入条件の回帰テスト PR |
+| **レビュー差戻し** | PR #263 は独立レビューで **NEEDS WORK** (ブロッカー 2 件)。マージせず修正中 |
 
