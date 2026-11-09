@@ -74,8 +74,14 @@ const cardTitle = css({
   lineHeight: "1.3",
   minWidth: "0",
   overflow: "hidden",
+  /**
+   * A long, unbroken title (no spaces) must break inside the card instead of
+   * pushing the catalog list into a horizontal scroll (issue #74).
+   */
+  overflowWrap: "anywhere",
   textOverflow: "ellipsis",
   whiteSpace: "normal",
+  wordBreak: "break-word",
   display: "-webkit-box",
   WebkitLineClamp: "2",
   boxOrient: "vertical",
@@ -189,6 +195,12 @@ const rowLink = css({
  */
 const cardTitleLink = css({
   inset: "auto",
+  /**
+   * The link is a flex item of `cardTitleRow`; without `min-width: 0` its
+   * automatic minimum size is the width of the longest word, so a long title
+   * widens the card (and the catalog list) beyond the viewport (issue #74).
+   */
+  minWidth: "0",
   paddingLeft: "0",
   position: "static",
   width: "auto",
