@@ -1,3 +1,4 @@
+using FlashBeat.UI;
 using FlashBeat.Update;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -25,7 +26,7 @@ public class UpdateNoticeUI : MonoBehaviour
     // 600: Title の Canvas (V5 Title Canvas, 500) は不透明な全画面 Backdrop を持つため、
     // 400 以下だとピルが背景の裏に隠れて見えない (Issue #233: 実機で更新経路が消える)。
     private const int SortingOrder = 600;
-    private const string TitleSceneName = "TitleScene";
+    private const string TitleSceneName = UpdateNoticePresenter.TitleSceneName;
 
     private UpdateChecker checker;
     private UpdateFlowModel model;
@@ -58,8 +59,7 @@ public class UpdateNoticeUI : MonoBehaviour
 
         bool onTitle = SceneManager.GetActiveScene().name == TitleSceneName;
         bool hasResultNotice = model != null && !string.IsNullOrEmpty(model.LastResultNotice);
-        bool visible = onTitle && model != null && !model.DismissedForSession &&
-                       (model.HasAvailableUpdate || model.Phase == UpdateFlowPhase.Applying || hasResultNotice);
+        bool visible = UpdateNoticePresenter.ShouldShow(SceneManager.GetActiveScene().name, model);
         if (pill != null && pill.activeSelf != visible) { pill.SetActive(visible); }
         if (visible)
         {
@@ -86,12 +86,14 @@ public class UpdateNoticeUI : MonoBehaviour
     /// <summary>F3 / ピルクリックの共通トリガー。Available → ダウンロード、Ready → 適用。</summary>
     public void Trigger()
     {
-        if (model == null || model.DismissedForSession) { return; }
-        if (model.Phase == UpdateFlowPhase.Available)
+        var action = UpdateNoticePresenter.ResolveAction(model);
+        if (action == UpdateNoticeAction.None) { return; }
+        if (checker == null) { return; }
+        if (action == UpdateNoticeAction.Download)
         {
             checker.RequestDownload();
         }
-        else if (model.Phase == UpdateFlowPhase.Ready)
+        else if (action == UpdateNoticeAction.Apply)
         {
             checker.RequestApply();
         }
@@ -108,42 +110,7 @@ public class UpdateNoticeUI : MonoBehaviour
 
     private void RefreshText()
     {
-        string phaseText;
-        switch (model.Phase)
-        {
-            case UpdateFlowPhase.Available:
-                phaseText = "アップデートあり v" + (model.LatestVersion ?? "?") +
-                            "  [F3: 今すぐ更新]  (押さなければ更新しません)";
-                break;
-            case UpdateFlowPhase.Downloading:
-                phaseText = "アップデート v" + (model.LatestVersion ?? "?") + " を準備中... " +
-                            Mathf.RoundToInt(model.DownloadProgress * 100f) + "%";
-                break;
-            case UpdateFlowPhase.Ready:
-                phaseText = "更新の準備ができました。終了して適用 [F3] (アプリを終了して再起動します)";
-                break;
-            case UpdateFlowPhase.Applying:
-                phaseText = "適用中... 終了すると更新されます";
-                break;
-            default:
-                phaseText = null;
-                break;
-        }
-        var resultNotice = model.LastResultNotice;
-        if (string.IsNullOrEmpty(resultNotice) && string.IsNullOrEmpty(phaseText)) { return; }
-        string text;
-        if (!string.IsNullOrEmpty(resultNotice) && !string.IsNullOrEmpty(phaseText))
-        {
-            text = resultNotice + "\n" + phaseText;
-        }
-        else
-        {
-            text = string.IsNullOrEmpty(resultNotice) ? phaseText : resultNotice;
-        }
-        if (!string.IsNullOrEmpty(model.Message))
-        {
-            text += "\n" + model.Message;
-        }
+        var text = UpdateNoticePresenter.BuildText(model);
         if (text != renderedText)
         {
             renderedText = text;
