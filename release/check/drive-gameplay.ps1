@@ -424,9 +424,11 @@ Write-Host '[drive] done'
 
 if ($RequireFullscreenCoverage) {
     $coverage = if ($geometry) { [double]$geometry.coverage } else { 0.0 }
-    if ($coverage -lt 0.98) {
-        Write-Host ("[drive] FAIL: the player window covers only {0:P1} of the display - the game is not fullscreen (issue #52)" -f $coverage)
+    # 閾値は Issue #88 の受入基準 (displayCoverage >= 0.99) に合わせる。
+    # specs/088-fullscreen-ui/tasks.md T1: "acceptance: displayCoverage >= 0.99".
+    if ($coverage -lt 0.99) {
+        Write-Host ("[drive] FAIL: the player window covers only {0:P1} of the display - required >= 99% (issue #52 / #88)" -f $coverage)
         exit 5
     }
-    Write-Host ("[drive] OK: the player window covers {0:P1} of the display" -f $coverage)
+    Write-Host ("[drive] OK: the player window covers {0:P1} of the display (required >= 99%)" -f $coverage)
 }
