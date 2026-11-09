@@ -1,0 +1,3264 @@
+{
+  "generatedAt": "2026-11-09T04:20:58.710Z",
+  "base": "http://127.0.0.1:5199",
+  "chrome": "Google Chrome",
+  "tool": "puppeteer-core (real headless Chromium)",
+  "routes": [
+    "/",
+    "/chart?songId=who&version=1",
+    "/publish"
+  ],
+  "viewports": [
+    "1440x900",
+    "1280x720",
+    "390x844"
+  ],
+  "captures": [
+    {
+      "route": "home",
+      "url": "http://127.0.0.1:5199/",
+      "viewport": "1440x900",
+      "file": "home_1440x900.png",
+      "fullPageFile": "home_1440x900.full.png",
+      "bytes": 84789,
+      "measured": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1440,
+        "visibleElementCount": 152,
+        "clippedElements": {
+          "count": 0,
+          "samples": []
+        },
+        "belowFoldElements": {
+          "count": 0,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 11,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "1",
+              "rect": {
+                "x": 224,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "2",
+              "rect": {
+                "x": 394,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "3",
+              "rect": {
+                "x": 588,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 3,
+          "samples": [
+            {
+              "tag": "button",
+              "id": "select:_R_5a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "Catalog",
+              "rect": {
+                "x": 1173,
+                "y": 142,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_R_7a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "All levels",
+              "rect": {
+                "x": 1309,
+                "y": 142,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "a",
+              "class": "ai_center bdr_l1 c_fg.muted",
+              "rect": {
+                "x": 1377,
+                "y": 311,
+                "w": 30,
+                "h": 32
+              },
+              "w": 30,
+              "h": 32
+            }
+          ]
+        }
+      },
+      "consoleErrors": [],
+      "focus": [
+        {
+          "tabs": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "file": "home_1440x900_focus1.png"
+        },
+        {
+          "tabs": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "file": "home_1440x900_focus3.png"
+        }
+      ]
+    },
+    {
+      "route": "home",
+      "url": "http://127.0.0.1:5199/",
+      "viewport": "1280x720",
+      "file": "home_1280x720.png",
+      "fullPageFile": "home_1280x720.full.png",
+      "bytes": 80273,
+      "measured": {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1280,
+        "visibleElementCount": 152,
+        "clippedElements": {
+          "count": 0,
+          "samples": []
+        },
+        "belowFoldElements": {
+          "count": 0,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 11,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "1",
+              "rect": {
+                "x": 224,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "2",
+              "rect": {
+                "x": 394,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "3",
+              "rect": {
+                "x": 588,
+                "y": 54,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 3,
+          "samples": [
+            {
+              "tag": "button",
+              "id": "select:_R_5a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "Catalog",
+              "rect": {
+                "x": 1013,
+                "y": 142,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_R_7a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "All levels",
+              "rect": {
+                "x": 1149,
+                "y": 142,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "a",
+              "class": "ai_center bdr_l1 c_fg.muted",
+              "rect": {
+                "x": 1217,
+                "y": 311,
+                "w": 30,
+                "h": 32
+              },
+              "w": 30,
+              "h": 32
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "route": "home",
+      "url": "http://127.0.0.1:5199/",
+      "viewport": "390x844",
+      "file": "home_390x844.png",
+      "fullPageFile": "home_390x844.full.png",
+      "bytes": 153790,
+      "measured": {
+        "viewport": {
+          "width": 390,
+          "height": 1946
+        },
+        "horizontalScroll": true,
+        "documentScrollWidth": 899,
+        "visibleElementCount": 133,
+        "clippedElements": {
+          "count": 31,
+          "samples": [
+            {
+              "tag": "nav",
+              "class": "d_flex flex-d_row md:flex-d_column",
+              "text": "曲を選ぶPick a songスタッフ操作 / StaffダッシュボードDashboard楽曲アーカイブSongs新曲を",
+              "rect": {
+                "x": 12,
+                "y": 72,
+                "w": 887,
+                "h": 40
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 296,
+                "y": 72,
+                "w": 159,
+                "h": 40
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 29
+              }
+            },
+            {
+              "tag": "span",
+              "text": "楽曲アーカイブ",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 19
+              }
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 459,
+                "y": 72,
+                "w": 128,
+                "h": 40
+              }
+            },
+            {
+              "tag": "svg",
+              "rect": {
+                "x": 471,
+                "y": 84,
+                "w": 16,
+                "h": 16
+              }
+            },
+            {
+              "tag": "path",
+              "rect": {
+                "x": 472,
+                "y": 85,
+                "w": 13,
+                "h": 13
+              }
+            },
+            {
+              "tag": "circle",
+              "rect": {
+                "x": 472,
+                "y": 96,
+                "w": 3,
+                "h": 3
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 495,
+                "y": 78,
+                "w": 80,
+                "h": 29
+              }
+            }
+          ]
+        },
+        "belowFoldElements": {
+          "count": 0,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 168,
+                "y": 97,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 495,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 627,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 759,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 831,
+                "y": 84,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "1",
+              "rect": {
+                "x": 16,
+                "y": 171,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "2",
+              "rect": {
+                "x": 186,
+                "y": 171,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.8 bdr_l1 c_fg.default",
+              "text": "3",
+              "rect": {
+                "x": 16,
+                "y": 197,
+                "w": 16,
+                "h": 12
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 3,
+          "samples": [
+            {
+              "tag": "button",
+              "id": "select:_R_5a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "Catalog",
+              "rect": {
+                "x": 259,
+                "y": 409,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_R_7a_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "All levels",
+              "rect": {
+                "x": 29,
+                "y": 469,
+                "w": 102,
+                "h": 24
+              },
+              "w": 102,
+              "h": 24
+            },
+            {
+              "tag": "a",
+              "class": "ai_center bdr_l1 c_fg.muted",
+              "rect": {
+                "x": 327,
+                "y": 723,
+                "w": 30,
+                "h": 32
+              },
+              "w": 30,
+              "h": 32
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "route": "chart",
+      "url": "http://127.0.0.1:5199/chart?songId=who&version=1",
+      "viewport": "1440x900",
+      "file": "chart_1440x900.png",
+      "fullPageFile": "chart_1440x900.full.png",
+      "bytes": 240659,
+      "measured": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1440,
+        "visibleElementCount": 226,
+        "clippedElements": {
+          "count": 0,
+          "samples": []
+        },
+        "belowFoldElements": {
+          "count": 3,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 37,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_fg.subtle fs_2xs white-space_nowrap",
+              "text": "公開にはスタッフのadminトークンが必要です / Staff admin token required",
+              "rect": {
+                "x": 1150,
+                "y": 30,
+                "w": 274,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 635,
+                "y": 100,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 1052,
+                "y": 98,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "139 notes",
+              "rect": {
+                "x": 1248,
+                "y": 97,
+                "w": 44,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup128 BPM · 1/4",
+              "rect": {
+                "x": 1300,
+                "y": 97,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "128 BPM · 1/4",
+              "rect": {
+                "x": 1364,
+                "y": 97,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": 1073,
+                "y": 160,
+                "w": 342,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "YouTube で開く",
+              "rect": {
+                "x": 815,
+                "y": 27,
+                "w": 87,
+                "h": 18
+              },
+              "w": 87,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 401,
+                "y": 95,
+                "w": 187,
+                "h": 16
+              },
+              "w": 187,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": 1262,
+                "y": 287,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": 1085,
+                "y": 365,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": 1262,
+                "y": 365,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_#3a3a3a bdr_6px",
+              "text": "Tappress once",
+              "rect": {
+                "x": 593,
+                "y": 158,
+                "w": 64,
+                "h": 32
+              },
+              "w": 64,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_transparent bdr_6px",
+              "text": "Holdpress and hold",
+              "rect": {
+                "x": 661,
+                "y": 158,
+                "w": 79,
+                "h": 32
+              },
+              "w": 79,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 233,
+                "y": 700,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 271,
+                "y": 700,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 623,
+                "y": 804,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            }
+          ]
+        }
+      },
+      "consoleErrors": [],
+      "focus": [
+        {
+          "tabs": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "file": "chart_1440x900_focus1.png"
+        },
+        {
+          "tabs": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "file": "chart_1440x900_focus3.png"
+        }
+      ]
+    },
+    {
+      "route": "chart",
+      "url": "http://127.0.0.1:5199/chart?songId=who&version=1",
+      "viewport": "1280x720",
+      "file": "chart_1280x720.png",
+      "fullPageFile": "chart_1280x720.full.png",
+      "bytes": 218768,
+      "measured": {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1280,
+        "visibleElementCount": 226,
+        "clippedElements": {
+          "count": 19,
+          "samples": [
+            {
+              "tag": "div",
+              "class": "bg_#2d2d2d bd-c_#131313 bdr_12px",
+              "text": "Chart setupSong, grid and file tools. Placing and editing no",
+              "rect": {
+                "x": -20,
+                "y": 153,
+                "w": 368,
+                "h": 398
+              }
+            },
+            {
+              "tag": "h3",
+              "class": "c_#ffffff fs_xs fw_medium",
+              "text": "Chart setup",
+              "rect": {
+                "x": -7,
+                "y": 166,
+                "w": 342,
+                "h": 18
+              }
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": -7,
+                "y": 196,
+                "w": 342,
+                "h": 11
+              }
+            },
+            {
+              "tag": "div",
+              "class": "d_grid gap_3 grid-tc_repeat(2,_minmax(0,_1fr))",
+              "text": "Song nameBPMResolution1/4How finely notes are written.Snapof",
+              "rect": {
+                "x": -7,
+                "y": 219,
+                "w": 342,
+                "h": 217
+              }
+            },
+            {
+              "tag": "div",
+              "id": "field::_r_0_",
+              "class": "field__root grid-c_1_/_-1",
+              "text": "Song name",
+              "rect": {
+                "x": -7,
+                "y": 219,
+                "w": 342,
+                "h": 66
+              }
+            },
+            {
+              "tag": "label",
+              "id": "field::_r_0_::label",
+              "class": "field__label c_#b0b0b0 fw_normal",
+              "text": "Song name",
+              "rect": {
+                "x": -7,
+                "y": 219,
+                "w": 342,
+                "h": 20
+              }
+            },
+            {
+              "tag": "input",
+              "id": "_r_0_",
+              "class": "input input--size_md input--variant_outline",
+              "rect": {
+                "x": -7,
+                "y": 245,
+                "w": 342,
+                "h": 40
+              }
+            },
+            {
+              "tag": "div",
+              "id": "field::_r_1_",
+              "class": "field__root min-w_0",
+              "text": "BPM",
+              "rect": {
+                "x": -7,
+                "y": 297,
+                "w": 165,
+                "h": 66
+              }
+            },
+            {
+              "tag": "label",
+              "id": "field::_r_1_::label",
+              "class": "field__label c_#b0b0b0 fw_normal",
+              "text": "BPM",
+              "rect": {
+                "x": -7,
+                "y": 297,
+                "w": 165,
+                "h": 20
+              }
+            },
+            {
+              "tag": "input",
+              "id": "_r_1_",
+              "class": "input input--size_md input--variant_outline",
+              "rect": {
+                "x": -7,
+                "y": 323,
+                "w": 165,
+                "h": 40
+              }
+            }
+          ]
+        },
+        "belowFoldElements": {
+          "count": 13,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 37,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_fg.subtle fs_2xs white-space_nowrap",
+              "text": "公開にはスタッフのadminトークンが必要です / Staff admin token required",
+              "rect": {
+                "x": 990,
+                "y": 30,
+                "w": 274,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 614,
+                "y": 100,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 1031,
+                "y": 98,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "139 notes",
+              "rect": {
+                "x": 1224,
+                "y": 97,
+                "w": 44,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup128 BPM · 1/4",
+              "rect": {
+                "x": 220,
+                "y": 133,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "128 BPM · 1/4",
+              "rect": {
+                "x": 284,
+                "y": 133,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": -7,
+                "y": 196,
+                "w": 342,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "YouTube で開く",
+              "rect": {
+                "x": 655,
+                "y": 27,
+                "w": 87,
+                "h": 18
+              },
+              "w": 87,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 401,
+                "y": 95,
+                "w": 166,
+                "h": 16
+              },
+              "w": 166,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": 182,
+                "y": 323,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": 5,
+                "y": 401,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": 182,
+                "y": 401,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_#3a3a3a bdr_6px",
+              "text": "Tappress once",
+              "rect": {
+                "x": 593,
+                "y": 178,
+                "w": 64,
+                "h": 32
+              },
+              "w": 64,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_transparent bdr_6px",
+              "text": "Holdpress and hold",
+              "rect": {
+                "x": 661,
+                "y": 178,
+                "w": 79,
+                "h": 32
+              },
+              "w": 79,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 233,
+                "y": 520,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 271,
+                "y": 520,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 543,
+                "y": 624,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "route": "chart",
+      "url": "http://127.0.0.1:5199/chart?songId=who&version=1",
+      "viewport": "390x844",
+      "file": "chart_390x844.png",
+      "fullPageFile": "chart_390x844.full.png",
+      "bytes": 107042,
+      "measured": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 390,
+        "visibleElementCount": 224,
+        "clippedElements": {
+          "count": 129,
+          "samples": [
+            {
+              "tag": "nav",
+              "class": "d_flex flex-d_row md:flex-d_column",
+              "text": "曲を選ぶPick a songスタッフ操作 / StaffダッシュボードDashboard楽曲アーカイブSongs新曲を",
+              "rect": {
+                "x": 12,
+                "y": 72,
+                "w": 887,
+                "h": 40
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 296,
+                "y": 72,
+                "w": 159,
+                "h": 40
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 29
+              }
+            },
+            {
+              "tag": "span",
+              "text": "楽曲アーカイブ",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 19
+              }
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 459,
+                "y": 72,
+                "w": 128,
+                "h": 40
+              }
+            },
+            {
+              "tag": "svg",
+              "rect": {
+                "x": 471,
+                "y": 84,
+                "w": 16,
+                "h": 16
+              }
+            },
+            {
+              "tag": "path",
+              "rect": {
+                "x": 472,
+                "y": 85,
+                "w": 13,
+                "h": 13
+              }
+            },
+            {
+              "tag": "circle",
+              "rect": {
+                "x": 472,
+                "y": 96,
+                "w": 3,
+                "h": 3
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 495,
+                "y": 78,
+                "w": 80,
+                "h": 29
+              }
+            }
+          ]
+        },
+        "belowFoldElements": {
+          "count": 38,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 36,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 168,
+                "y": 97,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 495,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 627,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 759,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 831,
+                "y": 84,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_fg.subtle fs_2xs white-space_nowrap",
+              "text": "公開にはスタッフのadminトークンが必要です / Staff admin token required",
+              "rect": {
+                "x": 540,
+                "y": 215,
+                "w": 274,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 352,
+                "y": 284,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 296,
+                "y": 331,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "139 notes",
+              "rect": {
+                "x": 433,
+                "y": 330,
+                "w": 44,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup128 BPM · 1/4",
+              "rect": {
+                "x": 12,
+                "y": 362,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "128 BPM · 1/4",
+              "rect": {
+                "x": 76,
+                "y": 362,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": -205,
+                "y": 425,
+                "w": 332,
+                "h": 11
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "How finely notes are written.",
+              "rect": {
+                "x": -33,
+                "y": 576,
+                "w": 160,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "YouTube で開く",
+              "rect": {
+                "x": 205,
+                "y": 212,
+                "w": 87,
+                "h": 18
+              },
+              "w": 87,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 193,
+                "y": 280,
+                "w": 112,
+                "h": 16
+              },
+              "w": 112,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": -21,
+                "y": 552,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": -193,
+                "y": 630,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": -21,
+                "y": 630,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_#3a3a3a bdr_6px",
+              "text": "Tappress once",
+              "rect": {
+                "x": 69,
+                "y": 443,
+                "w": 64,
+                "h": 32
+              },
+              "w": 64,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_transparent bdr_6px",
+              "text": "Holdpress and hold",
+              "rect": {
+                "x": 137,
+                "y": 443,
+                "w": 79,
+                "h": 32
+              },
+              "w": 79,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 25,
+                "y": 782,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 63,
+                "y": 782,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 210,
+                "y": 886,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "route": "publish",
+      "url": "http://127.0.0.1:5199/publish",
+      "viewport": "1440x900",
+      "file": "publish_1440x900.png",
+      "fullPageFile": "publish_1440x900.full.png",
+      "bytes": 124376,
+      "measured": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1440,
+        "visibleElementCount": 296,
+        "clippedElements": {
+          "count": 0,
+          "samples": []
+        },
+        "belowFoldElements": {
+          "count": 10,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 41,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.surface.bg.hover bdr_full c_fg.muted",
+              "text": "Live API (this origin)",
+              "rect": {
+                "x": 1334,
+                "y": 37,
+                "w": 90,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 647,
+                "y": 129,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 507,
+                "y": 175,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "0 notes",
+              "rect": {
+                "x": 897,
+                "y": 174,
+                "w": 35,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup120 BPM · 1/4",
+              "rect": {
+                "x": 940,
+                "y": 174,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "120 BPM · 1/4",
+              "rect": {
+                "x": 1004,
+                "y": 174,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": 713,
+                "y": 237,
+                "w": 342,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 11,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "← Web Studio",
+              "rect": {
+                "x": 224,
+                "y": 12,
+                "w": 128,
+                "h": 18
+              },
+              "w": 128,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 413,
+                "y": 124,
+                "w": 187,
+                "h": 16
+              },
+              "w": 187,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": 902,
+                "y": 364,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": 725,
+                "y": 442,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": 902,
+                "y": 442,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_#3a3a3a bdr_6px",
+              "text": "Tappress once",
+              "rect": {
+                "x": 564,
+                "y": 251,
+                "w": 64,
+                "h": 32
+              },
+              "w": 64,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_transparent bdr_6px",
+              "text": "Holdpress and hold",
+              "rect": {
+                "x": 632,
+                "y": 251,
+                "w": 79,
+                "h": 32
+              },
+              "w": 79,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 245,
+                "y": 688,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 283,
+                "y": 688,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 449,
+                "y": 792,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_b_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "Level 10",
+              "rect": {
+                "x": 1118,
+                "y": 618,
+                "w": 284,
+                "h": 24
+              },
+              "w": 284,
+              "h": 24
+            }
+          ]
+        }
+      },
+      "consoleErrors": [],
+      "focus": [
+        {
+          "tabs": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "file": "publish_1440x900_focus1.png"
+        },
+        {
+          "tabs": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "file": "publish_1440x900_focus3.png"
+        }
+      ]
+    },
+    {
+      "route": "publish",
+      "url": "http://127.0.0.1:5199/publish",
+      "viewport": "1280x720",
+      "file": "publish_1280x720.png",
+      "fullPageFile": "publish_1280x720.full.png",
+      "bytes": 95989,
+      "measured": {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 1280,
+        "visibleElementCount": 296,
+        "clippedElements": {
+          "count": 0,
+          "samples": []
+        },
+        "belowFoldElements": {
+          "count": 39,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 41,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 105,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_fg.subtle d_none md:d_block",
+              "text": "スタッフ操作 / Staff",
+              "rect": {
+                "x": 12,
+                "y": 129,
+                "w": 183,
+                "h": 20
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 48,
+                "y": 178,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 48,
+                "y": 222,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 48,
+                "y": 266,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 48,
+                "y": 310,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 48,
+                "y": 354,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 127,
+                "y": 341,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.surface.bg.hover bdr_full c_fg.muted",
+              "text": "Live API (this origin)",
+              "rect": {
+                "x": 1174,
+                "y": 37,
+                "w": 90,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 626,
+                "y": 129,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 507,
+                "y": 175,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "0 notes",
+              "rect": {
+                "x": 737,
+                "y": 174,
+                "w": 35,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup120 BPM · 1/4",
+              "rect": {
+                "x": 780,
+                "y": 174,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "120 BPM · 1/4",
+              "rect": {
+                "x": 844,
+                "y": 174,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": 553,
+                "y": 237,
+                "w": 342,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "← Web Studio",
+              "rect": {
+                "x": 224,
+                "y": 12,
+                "w": 128,
+                "h": 18
+              },
+              "w": 128,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 413,
+                "y": 124,
+                "w": 166,
+                "h": 16
+              },
+              "w": 166,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": 742,
+                "y": 364,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": 565,
+                "y": 442,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": 742,
+                "y": 442,
+                "w": 141,
+                "h": 24
+              },
+              "w": 141,
+              "h": 24
+            },
+            {
+              "tag": "div",
+              "class": "flex_1 min-h_0 ov_auto",
+              "rect": {
+                "x": 548,
+                "y": 434,
+                "w": 28,
+                "h": 10
+              },
+              "w": 28,
+              "h": 10
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 245,
+                "y": 508,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 283,
+                "y": 508,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 369,
+                "y": 630,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_b_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "Level 10",
+              "rect": {
+                "x": 958,
+                "y": 618,
+                "w": 284,
+                "h": 24
+              },
+              "w": 284,
+              "h": 24
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "route": "publish",
+      "url": "http://127.0.0.1:5199/publish",
+      "viewport": "390x844",
+      "file": "publish_390x844.png",
+      "fullPageFile": "publish_390x844.full.png",
+      "bytes": 93907,
+      "measured": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalScroll": false,
+        "documentScrollWidth": 390,
+        "visibleElementCount": 232,
+        "clippedElements": {
+          "count": 128,
+          "samples": [
+            {
+              "tag": "nav",
+              "class": "d_flex flex-d_row md:flex-d_column",
+              "text": "曲を選ぶPick a songスタッフ操作 / StaffダッシュボードDashboard楽曲アーカイブSongs新曲を",
+              "rect": {
+                "x": 12,
+                "y": 72,
+                "w": 887,
+                "h": 40
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 296,
+                "y": 72,
+                "w": 159,
+                "h": 40
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "楽曲アーカイブSongs",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 29
+              }
+            },
+            {
+              "tag": "span",
+              "text": "楽曲アーカイブ",
+              "rect": {
+                "x": 332,
+                "y": 78,
+                "w": 111,
+                "h": 19
+              }
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              }
+            },
+            {
+              "tag": "a",
+              "class": "ai_center cg_2 bdr_l2",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 459,
+                "y": 72,
+                "w": 128,
+                "h": 40
+              }
+            },
+            {
+              "tag": "svg",
+              "rect": {
+                "x": 471,
+                "y": 84,
+                "w": 16,
+                "h": 16
+              }
+            },
+            {
+              "tag": "path",
+              "rect": {
+                "x": 472,
+                "y": 85,
+                "w": 13,
+                "h": 13
+              }
+            },
+            {
+              "tag": "circle",
+              "rect": {
+                "x": 472,
+                "y": 96,
+                "w": 3,
+                "h": 3
+              }
+            },
+            {
+              "tag": "span",
+              "class": "d_grid lh_1.2 ta_left",
+              "text": "新曲を登録New song",
+              "rect": {
+                "x": 495,
+                "y": 78,
+                "w": 80,
+                "h": 29
+              }
+            }
+          ]
+        },
+        "belowFoldElements": {
+          "count": 40,
+          "note": "informational; vertical scroll is expected"
+        },
+        "smallFontElements": {
+          "count": 36,
+          "samples": [
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Pick a song",
+              "rect": {
+                "x": 48,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Dashboard",
+              "rect": {
+                "x": 168,
+                "y": 97,
+                "w": 112,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Songs",
+              "rect": {
+                "x": 332,
+                "y": 97,
+                "w": 111,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "New song",
+              "rect": {
+                "x": 495,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Edit chart",
+              "rect": {
+                "x": 627,
+                "y": 97,
+                "w": 80,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "fs_2xs op_0.7",
+              "text": "Publish",
+              "rect": {
+                "x": 759,
+                "y": 97,
+                "w": 64,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.subtle.bg bdr_full c_fg.muted",
+              "text": "要トークン",
+              "rect": {
+                "x": 831,
+                "y": 84,
+                "w": 56,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "bg_gray.surface.bg.hover bdr_full c_fg.muted",
+              "text": "Live API (this origin)",
+              "rect": {
+                "x": 242,
+                "y": 158,
+                "w": 90,
+                "h": 16
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs",
+              "text": "· beat 0.00",
+              "rect": {
+                "x": 364,
+                "y": 250,
+                "w": 40,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "kbd",
+              "class": "bg_#3a3a3a bdr_4px c_#b0b0b0",
+              "text": "Del",
+              "rect": {
+                "x": 308,
+                "y": 296,
+                "w": 30,
+                "h": 10
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#8c8c8c fs_2xs fv-num_tabular-nums",
+              "text": "0 notes",
+              "rect": {
+                "x": 454,
+                "y": 295,
+                "w": 35,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "summary",
+              "class": "ai_center bg_#3a3a3a bdr_8px",
+              "text": "Chart setup120 BPM · 1/4",
+              "rect": {
+                "x": 24,
+                "y": 327,
+                "w": 128,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "span",
+              "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
+              "text": "120 BPM · 1/4",
+              "rect": {
+                "x": 88,
+                "y": 327,
+                "w": 52,
+                "h": 12
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "Song, grid and file tools. Placing and editing notes never n",
+              "rect": {
+                "x": -193,
+                "y": 390,
+                "w": 332,
+                "h": 11
+              },
+              "fontSize": 8
+            },
+            {
+              "tag": "p",
+              "class": "c_#8c8c8c fs_2xs lh_1.4",
+              "text": "How finely notes are written.",
+              "rect": {
+                "x": -21,
+                "y": 541,
+                "w": 160,
+                "h": 11
+              },
+              "fontSize": 8
+            }
+          ]
+        },
+        "smallTapTargets": {
+          "count": 10,
+          "samples": [
+            {
+              "tag": "a",
+              "class": "c_fg.muted fs_xs td_none",
+              "text": "← Web Studio",
+              "rect": {
+                "x": 16,
+                "y": 133,
+                "w": 128,
+                "h": 18
+              },
+              "w": 128,
+              "h": 18
+            },
+            {
+              "tag": "input",
+              "class": "ac-c_#3fa9f5 cursor_pointer w_clamp(7rem,_13vw,_13rem)",
+              "rect": {
+                "x": 205,
+                "y": 245,
+                "w": 112,
+                "h": 16
+              },
+              "w": 112,
+              "h": 16
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_2_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1/4",
+              "rect": {
+                "x": -9,
+                "y": 517,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_3_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "off",
+              "rect": {
+                "x": -181,
+                "y": 595,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "id": "select:_r_4_:trigger",
+              "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
+              "text": "1×",
+              "rect": {
+                "x": -9,
+                "y": 595,
+                "w": 136,
+                "h": 24
+              },
+              "w": 136,
+              "h": 24
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_#3a3a3a bdr_6px",
+              "text": "Tappress once",
+              "rect": {
+                "x": 81,
+                "y": 408,
+                "w": 64,
+                "h": 32
+              },
+              "w": 64,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "ai_flex-start bg_transparent bdr_6px",
+              "text": "Holdpress and hold",
+              "rect": {
+                "x": 149,
+                "y": 408,
+                "w": 79,
+                "h": 32
+              },
+              "w": 79,
+              "h": 32
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Add line",
+              "rect": {
+                "x": 37,
+                "y": 770,
+                "w": 30,
+                "h": 11
+              },
+              "w": 30,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bd-c_transparent bdr_6px",
+              "text": "Sort by time",
+              "rect": {
+                "x": 75,
+                "y": 770,
+                "w": 45,
+                "h": 11
+              },
+              "w": 45,
+              "h": 11
+            },
+            {
+              "tag": "button",
+              "class": "bg_#3a3a3a bdr_6px c_#ffffff",
+              "text": "Add line",
+              "rect": {
+                "x": 222,
+                "y": 874,
+                "w": 70,
+                "h": 30
+              },
+              "w": 70,
+              "h": 30
+            }
+          ]
+        }
+      },
+      "consoleErrors": []
+    }
+  ],
+  "summary": {
+    "horizontalOverflow": [
+      "home@390x844"
+    ],
+    "consoleErrors": [],
+    "exitCode": 1
+  },
+  "needsHumanVisualReview": {
+    "note": "The flags above are DOM measurements, NOT a pixel/design review. Spacing, visual hierarchy, information density, interaction states, copy and brand match (design-skills + unslop signs) must be judged by a human or model looking at the actual PNGs (use *.full.png for below-fold areas).",
+    "perCapture": [
+      "home @ 1440x900: home_1440x900.png (+ home_1440x900.full.png)",
+      "home @ 1280x720: home_1280x720.png (+ home_1280x720.full.png)",
+      "home @ 390x844: home_390x844.png (+ home_390x844.full.png)",
+      "chart @ 1440x900: chart_1440x900.png (+ chart_1440x900.full.png)",
+      "chart @ 1280x720: chart_1280x720.png (+ chart_1280x720.full.png)",
+      "chart @ 390x844: chart_390x844.png (+ chart_390x844.full.png)",
+      "publish @ 1440x900: publish_1440x900.png (+ publish_1440x900.full.png)",
+      "publish @ 1280x720: publish_1280x720.png (+ publish_1280x720.full.png)",
+      "publish @ 390x844: publish_390x844.png (+ publish_390x844.full.png)"
+    ]
+  }
+}

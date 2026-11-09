@@ -1,0 +1,24 @@
+# Worktrunk project hook (Issue #56 / ADR-0001 decision 3).
+#
+# Worktrunk is one of several frontends that may materialize a worktree for
+# this repository (the others are plain `git worktree add` and IDE-created
+# worktrees). The worktree lifecycle must therefore NOT live in the frontend:
+# every frontend calls the same repository-controlled entry points, so the
+# resulting state does not depend on which tool created the worktree.
+#
+# The entry points live in `scripts/worktree/` and are exposed as mise tasks:
+#   mise run worktree:setup     -> writes .worktree.env, materializes the toolchain
+#   mise run worktree:teardown  -> releases per-worktree resources
+#
+# Per-worktree values (WORKTREE_KEY, PORT) are derived from the branch name
+# inside `scripts/worktree/setup.sh`, not from a frontend template, so plain
+# git and IDE worktrees get the same values.
+#
+# Unity's `Library/`, `Temp/`, `Obj/` and `Logs/` stay inside each worktree.
+# They must never be shared or symlinked between worktrees.
+
+[pre-start]
+setup = "mise run worktree:setup"
+
+[pre-remove]
+teardown = "mise run worktree:teardown"

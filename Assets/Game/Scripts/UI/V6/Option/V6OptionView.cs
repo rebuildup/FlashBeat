@@ -68,6 +68,9 @@ namespace FlashBeat.UI.V6.Option
         private int selectedRow;
         private bool confirmClearOpen;
 
+        /// <summary>Clear save data の実行結果 (消去完了の文言。空なら未実行)。</summary>
+        private string clearResult = "";
+
         private List<Row> currentRows = new List<Row>();
 
         /// <summary>設定行の定義 (表示値と操作をデリゲートで持つ。V5 OptionView.Row と同じ形)。</summary>
@@ -210,8 +213,7 @@ namespace FlashBeat.UI.V6.Option
                 case V6OptionAction.Cancel:
                     if (confirmClearOpen)
                     {
-                        confirmClearOpen = false;
-                        Rebuild();
+                        CancelClearConfirm();
                     }
                     else if (onBack != null)
                     {
@@ -221,9 +223,7 @@ namespace FlashBeat.UI.V6.Option
                 case V6OptionAction.Confirm:
                     if (confirmClearOpen)
                     {
-                        ClearSaveData();
-                        confirmClearOpen = false;
-                        Rebuild();
+                        ConfirmClearSaveData();
                         return;
                     }
                     ActivateRow();
@@ -574,6 +574,15 @@ namespace FlashBeat.UI.V6.Option
             rowButton.onClick.AddListener(() =>
             {
                 selectedRow = index;
+
+                // ステッパー (◀ ▶) を持たない行 (キー設定 / Media cache / Clear save data) は
+                // クリック＝実行にする。値を変える行は ◀ ▶ ボタンで変えられるので、
+                // どの行もマウスだけで操作できるようにするため (Acceptance: マウスとキーボードの両方)。
+                if (row.IsAction && row.Activate != null)
+                {
+                    row.Activate();
+                }
+
                 Rebuild();
             });
 
@@ -640,7 +649,7 @@ namespace FlashBeat.UI.V6.Option
             {
                 case 0:
                     // design: キー割当 (JIS / 標準)。実際の配列状態を出す。
-                    return "キー割当 (" + (KeyConfigUI.IsCustomLayout() ? "カスタム" : "JIS / 標準") + ")";
+                    return "キー割当 (" + (IsDefaultKeyLayout() ? "JIS / 標準" : "カスタム") + ")";
                 case 1:
                     return "判定表示";
                 case 2:
@@ -769,7 +778,7 @@ namespace FlashBeat.UI.V6.Option
             title.textWrappingMode = TextWrappingModes.NoWrap;
 
             var desc = V6Controls.Text(dialog, "Desc",
-                "ハイスコアとキー設定を消去します。取り消せません。",
+                "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。\n実行後は元に戻せません。",
                 new Vector2(28f, 100f), new Vector2(784f, 120f), 24f, V6Tokens.Text,
                 TextAlignmentOptions.TopLeft);
             desc.lineSpacing = 40f; // design lineHeight 1.4
@@ -781,11 +790,7 @@ namespace FlashBeat.UI.V6.Option
             var cancelNav = cancelButton.navigation;
             cancelNav.mode = Navigation.Mode.None;
             cancelButton.navigation = cancelNav;
-            cancelButton.onClick.AddListener(() =>
-            {
-                confirmClearOpen = false;
-                Rebuild();
-            });
+            cancelButton.onClick.AddListener(CancelClearConfirm);
             V6Controls.Text(cancel, "Label", "キャンセル", Vector2.zero, new Vector2(198f, 50f),
                 26f, V6Tokens.Text, TextAlignmentOptions.Center);
 
@@ -796,7 +801,7 @@ namespace FlashBeat.UI.V6.Option
             var clearNav = clearButton.navigation;
             clearNav.mode = Navigation.Mode.None;
             clearButton.navigation = clearNav;
-            clearButton.onClick.AddListener(ClearSaveData);
+            clearButton.onClick.AddListener(ConfirmClearSaveData);
             V6Controls.Text(clear, "Label", "消去する", Vector2.zero, new Vector2(252f, 50f),
                 26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
         }
@@ -831,7 +836,7 @@ namespace FlashBeat.UI.V6.Option
                     "NoteTiming",
                     "判定タイミングのずれを調整します。"),
                 new Row("Key Layout",
-                    () => KeyConfigUI.IsCustomLayout() ? "カスタム" : "標準",
+                    () => IsDefaultKeyLayout() ? "標準" : "カスタム",
                     d =>
                     {
                         if (d > 0)
@@ -840,7 +845,7 @@ namespace FlashBeat.UI.V6.Option
                         }
                         else
                         {
-                            KeyBindings.ResetToDefaults();
+                            ResetKeyLayout();
                         }
                     },
                     OpenKeyConfig,
@@ -866,41 +871,28 @@ namespace FlashBeat.UI.V6.Option
                     {
                         if (d != 0)
                         {
-                            GManager.Flash = !GManager.Flash;
-                            OptionSettings.Save();
+                            ToggleFlash();
                         }
                     },
-                    () =>
-                    {
-                        GManager.Flash = !GManager.Flash;
-                        OptionSettings.Save();
-                    },
+                    ToggleFlash,
                     "Flash",
                     "ノーツ判定時の背景フラッシュの On/Off。"),
                 new Row("FlashTiming",
                     () => GManager.FlashT.ToString(),
-                    d =>
-                    {
-                        GManager.FlashT += d;
-                        OptionSettings.Save();
-                    },
+                    AdjustFlashTiming,
                     null,
                     "FlashTiming",
                     "フラッシュのタイミングを調整します。"),
                 new Row("FlashSpeed",
                     () => GManager.FlashBG.ToString(),
-                    d =>
-                    {
-                        GManager.FlashBG = V6OptionLogic.CycleFlashSpeed(GManager.FlashBG, d);
-                        OptionSettings.Save();
-                    },
+                    AdjustFlashSpeed,
                     null,
                     "FlashSpeed",
                     "フラッシュの速さ。1 が最も速く、8 が最も遅い。"),
                 new Row("Key Guide",
                     () => PlaySession.KeyGuideLabel(PlaySession.KeyGuide),
-                    d => PlaySession.SetKeyGuide(PlaySession.NextKeyGuide(PlaySession.KeyGuide, d)),
-                    () => PlaySession.SetKeyGuide(PlaySession.NextKeyGuide(PlaySession.KeyGuide, 1)),
+                    SetKeyGuide,
+                    () => SetKeyGuide(1),
                     "Key Guide",
                     "プレイ中の下部キーガイドの表示形式。"),
                 new Row("Lyrics",
@@ -909,10 +901,10 @@ namespace FlashBeat.UI.V6.Option
                     {
                         if (d != 0)
                         {
-                            PlaySession.SetLyricsEnabled(!PlaySession.LyricsEnabled);
+                            ToggleLyrics();
                         }
                     },
-                    () => PlaySession.SetLyricsEnabled(!PlaySession.LyricsEnabled),
+                    ToggleLyrics,
                     "Lyrics",
                     "プレイ中の歌詞表示の On/Off。"),
             };
@@ -924,13 +916,13 @@ namespace FlashBeat.UI.V6.Option
             {
                 new Row("Main Volume",
                     () => V6OptionLogic.FormatVolume(GManager.mainVolume),
-                    d => AdjustVolume(d, true),
+                    d => AdjustMainVolume(d),
                     null,
                     "Main Volume",
                     "全体の音量。"),
                 new Row("Effect Volume",
                     () => V6OptionLogic.FormatVolume(GManager.effectVolume),
-                    d => AdjustVolume(d, false),
+                    d => AdjustEffectVolume(d),
                     null,
                     "Effect Volume",
                     "効果音の音量。"),
@@ -948,7 +940,7 @@ namespace FlashBeat.UI.V6.Option
             return new List<Row>
             {
                 new Row("Media cache",
-                    () => Gameplay.MediaCacheManager.FormatSize(Gameplay.MediaCacheManager.GetCacheSizeBytes()),
+                    () => MediaCacheSizeLabel(),
                     null,
                     ClearMediaCache,
                     "Media cache",
@@ -956,99 +948,164 @@ namespace FlashBeat.UI.V6.Option
                     danger: true,
                     isAction: true),
                 new Row("Clear save data",
-                    () => "",
+                    () => clearResult,
                     null,
-                    () =>
-                    {
-                        confirmClearOpen = true;
-                        Rebuild();
-                    },
+                    OpenClearConfirm,
                     "Clear save data",
-                    "ハイスコアとキー設定を消去します。取り消せません。",
+                    "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。確認してから実行されます。",
                     danger: true,
                     isAction: true),
             };
         }
 
-        // --- データ操作 (既存 API 経由) ---
+        // --- データ操作 (既存 API へ委譲するだけ) ---
+        //
+        // ここで新しい保存経路は作らない。表示値・実動作・保存先は既存の
+        // OptionSettings (PlayerPrefs) / ScorePersistence (安定キーのベストスコア) /
+        // KeyBindings・KeyActions (キー設定) / PlaySession (セッション設定) /
+        // MediaCacheManager (キャッシュ) がそのまま担う。
+        // public static にしてあるので、EditMode テストから同じ経路を呼べる。
 
-        /// <summary>NoteSpeed。既存の OptionSceneManager.SpeedUp/Down (clamp + 保存) を優先する。</summary>
-        private void AdjustNoteSpeed(int delta)
+        /// <summary>NoteSpeed。既存の OptionSceneManager.AdjustNoteSpeed (clamp + 保存) へ委譲。</summary>
+        public static void AdjustNoteSpeed(int delta)
         {
-            var mgr = OptionSceneManager.Instance;
-            if (mgr != null)
-            {
-                if (delta > 0) { mgr.SpeedUp(); }
-                else if (delta < 0) { mgr.SpeedDown(); }
-                return;
-            }
-
-            GManager.noteSpeed = Mathf.Clamp(GManager.noteSpeed + delta * 0.1f,
-                OptionSettings.NoteSpeedMin, OptionSettings.NoteSpeedMax);
-            OptionSettings.Save();
+            OptionSceneManager.AdjustNoteSpeed(delta);
         }
 
-        /// <summary>
-        /// NoteTiming。既存の TimingUp/Down (全曲の offset JSON への書き戻しを含む) を優先する。
-        /// </summary>
-        private void AdjustNoteTiming(int delta)
+        /// <summary>NoteTiming。既存の OptionSceneManager.AdjustNoteTiming (保存 + offset 書込) へ委譲。</summary>
+        public static void AdjustNoteTiming(int delta)
         {
-            if (delta > 0)
-            {
-                OptionSceneManager.TimingUp();
-                return;
-            }
-
-            var mgr = OptionSceneManager.Instance;
-            if (mgr != null)
-            {
-                mgr.TimingDown();
-                return;
-            }
-
-            GManager.noteTiming = Mathf.Clamp(GManager.noteTiming - 1,
-                OptionSettings.NoteTimingMin, OptionSettings.NoteTimingMax);
-            OptionSettings.Save();
+            OptionSceneManager.AdjustNoteTiming(delta);
         }
 
-        /// <summary>音量。即時反映 (ApplyVolumes) + 保存 (V5 OptionView と同じ結線)。</summary>
-        private void AdjustVolume(int delta, bool main)
+        /// <summary>Main Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        public static void AdjustMainVolume(int delta)
         {
-            if (main)
-            {
-                GManager.mainVolume = V6OptionLogic.AdjustVolume(GManager.mainVolume, delta);
-                AudioListener.volume = GManager.mainVolume;
-            }
-            else
-            {
-                GManager.effectVolume = V6OptionLogic.AdjustVolume(GManager.effectVolume, delta);
-            }
-
+            GManager.mainVolume = V6OptionLogic.AdjustVolume(GManager.mainVolume, delta);
             OptionSceneManager.ApplyVolumes();
             OptionSettings.Save();
         }
 
-        private void AdjustBgmVolume(int delta)
+        /// <summary>Effect Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        public static void AdjustEffectVolume(int delta)
+        {
+            GManager.effectVolume = V6OptionLogic.AdjustVolume(GManager.effectVolume, delta);
+            OptionSceneManager.ApplyVolumes();
+            OptionSettings.Save();
+        }
+
+        /// <summary>BGM Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        public static void AdjustBgmVolume(int delta)
         {
             GManager.BGMVolume = V6OptionLogic.AdjustVolume(GManager.BGMVolume, delta);
             OptionSceneManager.ApplyVolumes();
             OptionSettings.Save();
         }
 
-        private void ClearMediaCache()
+        /// <summary>背景フラッシュの On/Off を切り替えて保存する。</summary>
+        public static void ToggleFlash()
+        {
+            GManager.Flash = !GManager.Flash;
+            OptionSettings.Save();
+        }
+
+        /// <summary>フラッシュのタイミング調整。負の値 (計算が成立しない) は 0 へ寄せる。</summary>
+        public static void AdjustFlashTiming(int delta)
+        {
+            GManager.FlashT = Mathf.Max(0, GManager.FlashT + delta);
+            OptionSettings.Save();
+        }
+
+        /// <summary>フラッシュの速さ (1 → 2 → 4 → 8 → 1)。</summary>
+        public static void AdjustFlashSpeed(int delta)
+        {
+            GManager.FlashBG = V6OptionLogic.CycleFlashSpeed(GManager.FlashBG, delta);
+            OptionSettings.Save();
+        }
+
+        /// <summary>キーガイドの表示形式 (セッション設定。保存はしない)。</summary>
+        public static void SetKeyGuide(int delta)
+        {
+            PlaySession.SetKeyGuide(PlaySession.NextKeyGuide(PlaySession.KeyGuide, delta));
+        }
+
+        /// <summary>歌詞の表示 On/Off (セッション設定。保存はしない)。</summary>
+        public static void ToggleLyrics()
+        {
+            PlaySession.SetLyricsEnabled(!PlaySession.LyricsEnabled);
+        }
+
+        /// <summary>レーンのキー割り当てを既定へ戻す (保存は KeyBindings が行う)。</summary>
+        public static void ResetKeyLayout()
+        {
+            KeyBindings.ResetToDefaults();
+        }
+
+        /// <summary>キャッシュ容量の表示 (既存の MediaCacheManager の実測値)。</summary>
+        public static string MediaCacheSizeLabel()
+        {
+            return Gameplay.MediaCacheManager.FormatSize(Gameplay.MediaCacheManager.GetCacheSizeBytes());
+        }
+
+        /// <summary>ダウンロード済みキャッシュを消す (既存の MediaCacheManager)。</summary>
+        public static void ClearMediaCache()
         {
             Gameplay.MediaCacheManager.ClearAll();
+        }
+
+        /// <summary>
+        /// ハイスコアとキー設定 (レーン・メニュー操作) を消去する。
+        ///
+        /// 消去対象は案内している既存データだけ:
+        /// - ベストスコア (実体は安定キーの ScorePersistence / FlashBeat.ScoreStore)。
+        ///   旧 PlayerPrefs の Hiscore だけ消すと、安定した保存先から記録が復活する
+        ///   ので、既存の ScorePersistence.ResetAll() でまとめて消す。
+        /// - キー設定 (レーン = KeyBindings / メニュー操作 = KeyActions)。
+        ///
+        /// 既存の API (ScorePersistence.ResetAll / KeyBindings.ResetToDefaults /
+        /// KeyActions.ResetToDefaults) をそのまま使うので、新しい保存経路は増えない。
+        /// </summary>
+        public static void ClearSaveData()
+        {
+            FlashBeat.Persistence.ScorePersistence.ResetAll();
+
+            if (GManager.Hiscore != null)
+            {
+                Array.Clear(GManager.Hiscore, 0, GManager.Hiscore.Length);
+            }
+
+            KeyBindings.ResetToDefaults();
+            KeyActions.ResetToDefaults();
+        }
+
+        /// <summary>キー割当が既定と同じか (正本は KeyBindings.DefaultKeys)。</summary>
+        public static bool IsDefaultKeyLayout()
+        {
+            return KeyConfigUI.IsDefaultLayout(KeyBindings.Current, KeyBindings.DefaultKeys);
+        }
+
+        // --- Clear save data の確認モーダル (マウスとキーボードで同じ結果にする) ---
+
+        /// <summary>確認モーダルを開く (まだ何も消去しない)。</summary>
+        private void OpenClearConfirm()
+        {
+            confirmClearOpen = true;
+        }
+
+        /// <summary>確認モーダルを閉じるだけ (何も変えない)。</summary>
+        private void CancelClearConfirm()
+        {
+            confirmClearOpen = false;
             Rebuild();
         }
 
-        /// <summary>ハイスコアとキー設定を消去する (V5 OptionView.ClearSaveData と同じ範囲)。</summary>
-        private void ClearSaveData()
+        /// <summary>消去を実行し、結果をモーダルを閉じて表示する (マウス・キーボードで共通)。</summary>
+        private void ConfirmClearSaveData()
         {
-            PlayerPrefs.DeleteKey("Hiscore");
-            PlayerPrefs.DeleteKey(FlashBeat.UI.V5.OptionView.KeyBindingsPrefsKey);
-            PlayerPrefs.Save();
-            Array.Clear(GManager.Hiscore, 0, GManager.Hiscore.Length);
-            KeyBindings.ResetToDefaults();
+            ClearSaveData();
+            clearResult = "消去しました";
+            confirmClearOpen = false;
+            Rebuild();
         }
 
         private void OpenKeyConfig()

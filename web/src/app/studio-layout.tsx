@@ -12,7 +12,7 @@ import { PageHeader } from "./page-header";
  */
 export const shell = css({
   display: "grid",
-  gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
+  gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { base: "auto 1fr", md: "1fr" },
   height: "100dvh",
   overflow: "hidden",

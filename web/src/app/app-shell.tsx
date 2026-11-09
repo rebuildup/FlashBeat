@@ -18,17 +18,23 @@ import type { SongSummary } from "./types";
  * - `true` (default): the shell scrolls the page content (catalog, forms).
  * - `false`: the shell is locked to the viewport and the page manages its own
  *   scrolling (the chart editor draws into a canvas and must not scroll).
+ *
+ * Issue #74: on a narrow viewport the fixed shell becomes a grid as well, so
+ * the rail takes its natural height and the work area gets the rest of the
+ * viewport. The scroll owner stays inside the editor, not on the document.
  */
 const shell = css({
   display: { base: "block", md: "grid" },
-  gridTemplateColumns: { base: "1fr", md: "13rem minmax(0, 1fr)" },
-  gridTemplateRows: { base: "auto 1fr", md: "1fr" },
+  gridTemplateColumns: { md: "13rem minmax(0, 1fr)" },
+  gridTemplateRows: { md: "1fr" },
   minHeight: "100dvh",
-});
-
-const shellFixed = css({
-  height: "100dvh",
-  overflow: "hidden",
+  "&[data-fixed]": {
+    display: "grid",
+    gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
+    gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
+    height: "100dvh",
+    overflow: "hidden",
+  },
 });
 
 const main = css({
@@ -62,7 +68,7 @@ export function StudioShell({
   scroll?: boolean;
 }) {
   return (
-    <div className={cx(shell, !scroll && shellFixed)}>
+    <div className={shell} data-fixed={scroll ? undefined : "true"}>
       <Sidebar />
       <main id="studio-content" className={cx(main, !scroll && mainFixed)}>
         {children}
