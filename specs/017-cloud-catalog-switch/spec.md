@@ -26,10 +26,10 @@ Unity 上で出現し再生できる」ことの E2E 証明**、および Issue 
 | 取得 snapshot の保持 | 選曲時に取得した chart JSON は `CloudChartHolder` (`:16` `Hold` / `:30` `TryGet` / `:50` `TryGetForSong` / `:63` `Clear`) で保持し、**1 回のプレイは同一版で完走させる**。プレイ中に catalog が更新されても谱面は差し替えない |
 | 経路の頑健性 | catalog / chart の取得失敗・空・例外で **クラッシュしない**。`SelectSceneManager.cs:380` `status == 200 ? CloudCatalog.ParseCatalog(body) : null` のガードがある。**raw の例外を握りつぶさない** (ログは残す) |
 | refresh の周期 | 選曲画面入場時 + idle 中の周期 refresh。`CloudCatalogConfig.json` の `refreshSeconds: 8` は Issue 本文の「5–10 秒」範囲内。**realtime socket は使わない** |
-| base URL の外部化 | `Assets/Game/Resources/CloudCatalogConfig.json` の `baseUrl` (`https://flashbeat.rebuildup.dev`) / `enabled` / `refreshSeconds`。**バイナリに API の秘密 信息は入れない** (token  Breton無い。publish 用の staff token は Web Studio 側の runtime 入力) |
-| VideoPlayer の扱い | `MusicManager` は `songVideo` を 1 つだけ持ち、`YPlayer[GManager.songID]` を初期化時に一度だけ張る (`MusicManager.cs:202` / `:207`)。**曲ごとに GameObject を作らない**。新規song 追加時のシーン配線は `YouTubeSceneWiring` (Editor ツール) が自動化済 — **手動シーン編集は不要** |
+| base URL の外部化 | `Assets/Game/Resources/CloudCatalogConfig.json` の `baseUrl` (`https://flashbeat.rebuildup.dev`) / `enabled` / `refreshSeconds`。**バイナリに API の秘密情報は入れない** (トークン無し。publish 用の staff token は Web Studio 側の runtime 入力) |
+| VideoPlayer の扱い | `MusicManager` は `songVideo` を 1 つだけ持ち、`YPlayer[GManager.songID]` を初期化時に一度だけ張る (`MusicManager.cs:202` / `:207`)。**曲ごとに GameObject を作らない**。新規曲追加時のシーン配線は `YouTubeSceneWiring` (Editor ツール) が自動化済 — **手動シーン編集は不要** |
 | 実機操作 | **Windows 実機は展示 PC のため cc は実行しない。オーナー実施。** `CloudCatalogTests.cs` 緑は「remote catalog を読める」ことの証明であって「公開直後の新曲が再ビルドなしで再生できる」ことの証明ではない |
-| 既存 local 曲 | 27 曲 (local `Resources/<song>.json`) は ** playable のまま維持** する。cloud への切替は **追加** であり、既存カタログの削除ではない (Issue 本文 "Keep necessary local game state only") |
+| 既存 local 曲 | 27 曲 (local `Resources/<song>.json`) は **playable のまま維持** する。cloud への切替は **追加** であり、既存カタログの削除ではない (Issue 本文 "Keep necessary local game state only") |
 | 実装の境界 | 本 spec はドキュメントのみ。**新規コードは書かない**。未充足分は **E2E 手順と証跡** |
 
 ## 非目標 (Out of scope)
@@ -65,7 +65,7 @@ Unity 上で出現し再生できる」ことの E2E 証明**、および Issue 
 | T2: 選曲画面入場時 + idle 中 5–10 秒周期で更新、remote の曲名/メタデータを既存 UI に表示、realtime socket 無し | `Assets/Game/Scripts/UI/SelectSceneManager.cs:67` `StartCatalogRefresh()` (入場時) / `:340` / `:355` `StartCatalogRefresh` / `:361` `StartCoroutine(RefreshCatalogLoop(config))` / `:364` `RefreshCatalogLoop` / `:374` `RefreshCatalogOnce` / `:404` `v6Data.RefreshAsync()` (v6 選曲画面への反映) / `CloudCatalogConfig.json` `refreshSeconds: 8` (Issue 指定の 5–10 秒内) / socket コードなし | 充足 (コード) |
 | T3: (songId, chartVersion) で譜面を取得し完走まで snapshot を保持、**Resources / 並列配列を remote catalog の真値にしない** | `SelectSceneManager.cs:442` `CloudCatalog.GetText(CloudCatalog.ChartUrl(config.baseUrl, song.remoteId, version), …)` / `:444` `status == 200 ? CloudCatalog.ParseChartResponse(body) : null` / `Assets/Game/Scripts/Songs/CloudChartHolder.cs:16` `Hold` / `:30` `TryGet` / `:50` `TryGetForSong` / `:63` `Clear` / `Assets/Game/Scripts/Songs/GManager.cs:80` (「the cloud snapshot only *updates* the songs it knows」) / `:86` `mergedSongs` / `:88` `ActiveSongs` / `:93` `Merge(Songs, remoteSongs)` | 充足 (コード) |
 | T4: 動的 Youtube VideoPlayer を 1 個使う（曲ごとに object を作らない） | `Assets/Game/Scripts/Gameplay/MusicManager.cs:202` `YPlayer[GManager.songID].SetActive(true)` / `:207` `songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>()` (単一参照) / 新規曲のシーン配線は `Assets/Editor/MakeFileSceneManager.cs` の `YouTubeSceneWiring` が自動化 | 充足 |
-| 既存 local 27 曲.select 可能 (回帰の非-target) | `GManager.cs:407` `totalSong => ActiveSongs.Length - 1` / `UnplayableTitles` で `ニセモノ` 2 件のみ選曲不可 | 充足 |
+| 既存 local 27 曲 (内置) の選曲可能性 (回帰の非対象) | `GManager.cs:407` `totalSong => ActiveSongs.Length - 1` / `UnplayableTitles` で `ニセモノ` 2 件のみ選曲不可 | 充足 |
 
 ### 未充足 / 未検証
 
