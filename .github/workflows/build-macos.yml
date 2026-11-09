@@ -55,7 +55,7 @@ jobs:
     name: macOS ビルド
     # macos-14 の runner image は提供終了しており、job は 1 秒で cancelled
     # (steps: 0, annotation: "The configuration 'macos-14-arm64-us-default' is not supported")
-    # になっていた。macos-15 (Intel) を使う。
+    # になっていた。macos-15 (Apple Silicon / arm64) を使う。
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -110,17 +110,30 @@ jobs:
           curl -fL --retry 3 --retry-delay 10 -o "$pkg" "$url"
           echo "installing: $pkg"
           sudo installer -pkg "$pkg" -target /
-          editor="/Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity"
+          # この .pkg は Unity Hub の配置ではなく
+          # /Applications/Unity/Unity-<version>/Unity.app に展開する
+          # (install-location="/Applications/Unity" + postinstall の mv)。
+          # Hub 配下の /Applications/Unity/Hub/Editor/... は存在しない。
+          editor="/Applications/Unity/Unity-$UNITY_VERSION/Unity.app/Contents/MacOS/Unity"
           if [ ! -x "$editor" ]; then
-            # 想定外のパスに展開された場合のフォールバック (Junctions/Volume 差異など)
-            editor="$(find /Applications -maxdepth 6 -type d -name Unity.app -path "*$UNITY_VERSION*" -print -quit | sed 's#$#/Contents/MacOS/Unity#')"
+            # 想定外のパスに展開された場合のフォールバック (Junctions/Volume 差異など)。
+            # macOS の find は読めないディレクトリがあると exit 1 を返すため、
+            # `set -eo pipefail` だと代入が失敗して ::error:: 出力前にステップが死に。
+            # そのため `|| true` を付けて失敗しても代入自体を失敗にしない。
+            found="$(find /Applications -maxdepth 6 -type d -name Unity.app -path "*$UNITY_VERSION*" -print -quit 2>/dev/null || true)"
+            if [ -n "$found" ]; then
+              editor="$found/Contents/MacOS/Unity"
+            fi
           fi
           if [ ! -x "$editor" ]; then
             echo "::error::Unity $UNITY_VERSION をインストールできませんでした"
+            ls -la /Applications/Unity 2>/dev/null || true
             exit 1
           fi
           echo "UNITY_EDITOR=$editor" >> "$GITHUB_ENV"
           echo "installed: $editor"
+          # 5GB の pkg を残さない (後続 job のディスクを圧迫しない)
+          rm -f "$pkg" || true
 
       # game-ci/unity-activate は Docker 前提のため GitHub-hosted ランナーでは
       # そのまま使えない。Unity 公式のライセンス引数を直接使って認証する。
