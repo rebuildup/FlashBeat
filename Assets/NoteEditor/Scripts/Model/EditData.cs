@@ -16,14 +16,37 @@ namespace NoteEditor.Model
         ReactiveProperty<bool> isDirty_ = new ReactiveProperty<bool>(false);
         Dictionary<NotePosition, NoteObject> notes_ = new Dictionary<NotePosition, NoteObject>();
 
+        // BPM / MaxBlock / OffsetSamples の変更も dirty として扱うかどうかのフラグ。
+        bool dirtyTrackingStarted_;
+
         public static ReactiveProperty<string> Name { get { return Instance.name_; } }
-        public static ReactiveProperty<int> MaxBlock { get { return Instance.maxBlock_; } }
+        public static ReactiveProperty<int> MaxBlock { get { var instance = Instance; instance.EnsureDirtyTracking(); return instance.maxBlock_; } }
         public static ReactiveProperty<int> LPB { get { return Instance.LPB_; } }
-        public static ReactiveProperty<int> BPM { get { return Instance.BPM_; } }
-        public static ReactiveProperty<int> OffsetSamples { get { return Instance.offsetSamples_; } }
+        public static ReactiveProperty<int> BPM { get { var instance = Instance; instance.EnsureDirtyTracking(); return instance.BPM_; } }
+        public static ReactiveProperty<int> OffsetSamples { get { var instance = Instance; instance.EnsureDirtyTracking(); return instance.offsetSamples_; } }
         public static ReactiveProperty<string> VideoId { get { return Instance.videoId_; } }
         public static ReactiveProperty<bool> IsDirty { get { return Instance.isDirty_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }
+
+        // 「未保存の変更」の notion を IsDirty 1 箇所に集約する (Issue #225 / 独立レビュー S-5)。
+        //
+        // ノーツ編集は NoteEditDirtyTracker、歌詞編集は LyricsTabPresenter が
+        // IsDirty を立てる。BPM / MaxBlock / OffsetSamples の変更も
+        // 曲切替の確認 (保存 / 破棄 / キャンセル) 対象なので、ここでも立てる。
+        //
+        // 購読は遅延開始 (初回アクセス時)。ReactiveProperty は購読時に
+        // 現在の値を 1 度 emit するため、Skip(1) で初期値を「変更」から外す。
+        void EnsureDirtyTracking()
+        {
+            if (dirtyTrackingStarted_)
+                return;
+
+            dirtyTrackingStarted_ = true;
+
+            BPM_.Skip(1).Subscribe(_ => isDirty_.Value = true);
+            maxBlock_.Skip(1).Subscribe(_ => isDirty_.Value = true);
+            offsetSamples_.Skip(1).Subscribe(_ => isDirty_.Value = true);
+        }
 
         public static int AudioFrequency()
         {

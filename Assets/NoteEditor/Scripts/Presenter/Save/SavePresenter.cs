@@ -34,8 +34,6 @@ namespace NoteEditor.Presenter
 
         void Awake()
         {
-            var editPresenter = EditNotesPresenter.Instance;
-
             this.UpdateAsObservable()
                 .Where(_ => Input.GetKeyDown(KeyCode.Escape))
                 .Subscribe(_ => Application.Quit());
@@ -44,17 +42,14 @@ namespace NoteEditor.Presenter
                 .Where(_ => KeyInput.CtrlPlus(KeyCode.S))
                 .Merge(saveButton.OnClickAsObservable());
 
-            mustBeSaved = Observable.Merge(
-                    EditData.BPM.Select(_ => true),
-                    EditData.OffsetSamples.Select(_ => true),
-                    EditData.MaxBlock.Select(_ => true),
-                    editPresenter.RequestForEditNote.Select(_ => true),
-                    editPresenter.RequestForAddNote.Select(_ => true),
-                    editPresenter.RequestForRemoveNote.Select(_ => true),
-                    editPresenter.RequestForChangeNoteStatus.Select(_ => true),
-                    EditData.Lyrics.Mondai.Select(_ => true),
-                    saveActionObservable.Select(_ => false),
-                    EditData.IsDirty.Select(_ => EditData.IsDirty.Value))
+            // 「未保存の変更」の notion は EditData.IsDirty 1 箇所に集約する
+            // (Issue #225 / 独立レビュー S-5)。
+            //
+            // ノーツ編集は NoteEditDirtyTracker、歌詞編集は LyricsTabPresenter、
+            // BPM / MaxBlock / offset の編集は EditData 自身が IsDirty を立てる。
+            // 以前は 2 つの notion (mustBeSaved と IsDirty) が食い違い、
+            // 曲切替の確認をすり抜ける可能性があった。
+            mustBeSaved = EditData.IsDirty
                 .Do(unsaved => saveButton.GetComponent<Image>().color = unsaved ? unsavedStateButtonColor : savedStateButtonColor)
                 .ToReactiveProperty();
 
@@ -66,7 +61,8 @@ namespace NoteEditor.Presenter
                 EventTriggerType.PointerClick,
                 (e) =>
                 {
-                    mustBeSaved.Value = false;
+                    // 保存は ChartFileWriter が行い、成功時に IsDirty を落とす。
+                    // 保存に失敗した場合は IsDirty が残るので、終了確認が再度出る。
                     saveDialog.SetActive(false);
                     Save();
                     Application.Quit();
@@ -76,7 +72,8 @@ namespace NoteEditor.Presenter
                 EventTriggerType.PointerClick,
                 (e) =>
                 {
-                    mustBeSaved.Value = false;
+                    // 変更を破棄するので「保存済み」扱いにする。
+                    EditData.IsDirty.Value = false;
                     saveDialog.SetActive(false);
                     Application.Quit();
                 });

@@ -144,5 +144,56 @@ namespace FlashBeat.Tests.Editor
 
             Assert.IsNotNull(tracker);
         }
+
+        // S-5: BPM / MaxBlock / offset の変更も「未保存の変更」として
+        // EditData.IsDirty 1 箇所に集約されている (曲切替の確認をすり抜けない)。
+        [Test]
+        public void ChangingBPM_MarksSongAsDirty()
+        {
+            StartPresenter();
+            Assert.IsFalse(EditData.IsDirty.Value, "初期状態で dirty が立っています");
+
+            EditData.BPM.Value = 150;
+
+            Assert.IsTrue(EditData.IsDirty.Value, "BPM 変更が dirty として検知されていません");
+        }
+
+        [Test]
+        public void ChangingMaxBlock_MarksSongAsDirty()
+        {
+            StartPresenter();
+            Assert.IsFalse(EditData.IsDirty.Value, "初期状態で dirty が立っています");
+
+            EditData.MaxBlock.Value = 8;
+
+            Assert.IsTrue(EditData.IsDirty.Value, "MaxBlock 変更が dirty として検知されていません");
+        }
+
+        [Test]
+        public void ChangingOffsetSamples_MarksSongAsDirty()
+        {
+            StartPresenter();
+            Assert.IsFalse(EditData.IsDirty.Value, "初期状態で dirty が立っています");
+
+            EditData.OffsetSamples.Value = 100;
+
+            Assert.IsTrue(EditData.IsDirty.Value, "offset 変更が dirty として検知されていません");
+        }
+
+        // S-5: 変更していないのに dirty が立つことはない (初期値の emit は無視)。
+        [Test]
+        public void ReadingBPM_DoesNotMarkSongAsDirty()
+        {
+            StartPresenter();
+
+            var bpm = EditData.BPM.Value;
+            var maxBlock = EditData.MaxBlock.Value;
+            var offset = EditData.OffsetSamples.Value;
+
+            Assert.AreEqual(120, bpm);
+            Assert.AreEqual(5, maxBlock);
+            Assert.AreEqual(0, offset);
+            Assert.IsFalse(EditData.IsDirty.Value, "参照しただけで dirty が立っています");
+        }
     }
 }
