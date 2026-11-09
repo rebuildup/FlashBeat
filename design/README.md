@@ -23,20 +23,34 @@ cd design
 
 ## 構成
 
+### v6 (現行の正本 — Issue #218)
+
+| Unit | 内容 |
+|---|---|
+| Screens v6 | 共通フレーム `rw7zx` (1728×972) を使う v6 画面群: Select (`OENRv` / 該当なし `AqFtx` / 設定 `wSjAm`) / History / Ranking / Game プレイフィールド (`nrfw8`) / ポーズ (`uDNC0`) / 曲ローディング (`g4Q3F`) / HUD (`Uc9v6` FHD 1920×1080, `E51yo` 2K 2560×1440, `QrSwA` Mac 2560×1664) |
+| Components v6 | `o0zh7` (5400×1160): 共通フレーム本体 / 選択中の曲パネル `dRztp` / Dialog / スコアゲージ `PyPE1` / 歌詞枠 `HcP8N` |
+
+- **正本画像**: `design/exports/v6/screens/` (ノード ID 対応表は `docs/ui/v6-screen-contract.md` §14)。
+- **契約 (座標・トークン・素材インベントリ)**: [`docs/ui/v6-screen-contract.md`](../docs/ui/v6-screen-contract.md)。機械可読な全量は `docs/design/v6/flashbeat-v6-nodes.json`。
+- **サイズ仕様**: `ui-size-profiles.json` の `fhd` / `2k` / `mac` (1920×1080 / 2560×1440 / 2560×1664)。旧 Mac 1440×900 仕様は廃止。
+
+### v5 (旧スタック)
+
 | Unit | 内容 |
 |---|---|
 | Screens v5 · layers & shapes (FHD) | Title / Select (+typing, Ready) / History / Ranking / Game (+over 1M, Ready, Loading, YouTube error) / Pause (+Settings, Display, Ranking, Keys) / Result (+Register) / Option (+Play, Display, Data)。各画面の PNG は `design/exports/screens/` |
 | Components v5 | Controls (raised): KeyCap, LegendItem, Tag, Button Primary/Secondary/Icon, MenuButton, TabItem, FilterButton, SearchField / Lists (recessed): SettingRow, RankRow, PlayerRow, HistoryRow, SongRow / Data: StatRow, BigStat, ScoreRail |
 | Design System v5 | layers / controls vs lists / shapes / ranking |
 
-UI 変更はこのファイルの **v5 の Screens / Components / Design System** を正とし、コンポーネントは `Prefab/*` 命名に対応させる。
+v5 は **旧スタックの実装 (Assets/Game/Scripts/UI/V5/**) の正本** であり、v6 への移行進行中。v6 の画面を実装するときは **v6 の正本 (上表) を優先**する。v5 の agreed 済み機能を v6 側で消さないこと。
 
-## 設計の正本 (Issue #100)
+## 設計の正本 (Issue #100 / #218)
 
-- 正本は `flashbeat-ui.pen` の **v5 の 3 フレーム**のみ: `Components v5` / `Screens v5 · layers & shapes (FHD)` / `Design System v5`。
+- 正本は `flashbeat-ui.pen` の **v6 フレーム群** (`Components v6` / Select / Game Playfield / HUD 3 解像度 / Pause / Loading)。
+- 旧 v5 フレーム (`Components v5` / `Screens v5 · layers & shapes (FHD)` / `Design System v5`) は **v5 スタックの正本** として残す。v6 実装の基準にはしない。
 - 旧 `Wireframes FHD 1920x1080` (ワイヤーフレーム) は削除済み。ワイヤーフレームを実装・トークン抽出の基準にしない。
 - `.pen` が参照する画像は `design/assets/` (相対パス `assets/...`) に置く。`.pen` は暗号化されているため必ず pencil MCP ツール経由で読む。
-- `ui-size-profiles.json`: Unity UI のサイズ仕様 (UISizeProfile: Constant Pixel Size x1、`fhd` / `2k` / `mac` を画面比で切替、値は実ピクセル)。現行 Unity シーンの `ScaleWithScreenSize 1920x1080` はこの仕様と一致していない (#88/#96)。
+- `ui-size-profiles.json`: Unity UI のサイズ仕様 (UISizeProfile: Constant Pixel Size x1、`fhd` / `2k` / `mac` を画面比で切替、値は実ピクセル)。v6 の HUD は **1 枚の 1920×1080 テンプレート** に `s = min(w/1920, h/1080)` を適用する方式が正 (§8 参照)。現行 Unity シーンの `ScaleWithScreenSize 1920x1080` はこの仕様と一致していない (#88/#96)。
 
 ## Worker が .pen を読む/編集する方法
 

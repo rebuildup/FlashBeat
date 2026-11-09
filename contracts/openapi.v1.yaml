@@ -76,6 +76,97 @@ paths:
                   catalogVersion: { type: integer }
         '401': { description: Incorrect staff token }
         '422': { description: Invalid song/chart }
+    post:
+      operationId: archiveSong
+      description: >-
+        Staff only. Archive or unarchive a song. The festival never deletes a
+        song: archiving hides it from the public catalog and keeps its chart
+        snapshots and its scores; unarchiving brings it back.
+      security: [{ staffToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/SongId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SongArchiveRequest' }
+      responses:
+        '200':
+          description: Archived or restored
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songId, archived, archivedAt, catalogVersion]
+                properties:
+                  songId: { type: string }
+                  archived: { type: boolean }
+                  archivedAt:
+                    type: [string, 'null']
+                    description: ISO timestamp of the archive moment, null for a live song.
+                  catalogVersion: { type: integer }
+        '401': { description: Incorrect staff token }
+        '404': { description: Unknown song }
+        '422': { description: Invalid archive request }
+  /api/v1/admin/songs:
+    get:
+      operationId: listAdminSongs
+      description: >-
+        Staff only. Every song of the database, archived ones included, with
+        the number of plays and the best score of each song.
+      security: [{ staffToken: [] }]
+      responses:
+        '200':
+          description: Staff song list. Cache-Control no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [catalogVersion, songs]
+                properties:
+                  catalogVersion: { type: integer, minimum: 0 }
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminSong' }
+        '401': { description: Incorrect staff token }
+  /api/v1/rankings:
+    get:
+      operationId: getRankings
+      description: >-
+        Public ranking board of every live song: the best scores of the
+        currently published chart version of each song. One request for the
+        whole dashboard.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          description: Number of entries per song (1–10). Defaults to 10.
+          schema: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        '200':
+          description: Ranking board. Cache-Control no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [catalogVersion, songs]
+                properties:
+                  catalogVersion: { type: integer, minimum: 0 }
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/RankingSong' }
+  /api/v1/stats:
+    get:
+      operationId: getStats
+      description: >-
+        Public festival statistics: totals, the plays of every song, the level
+        distribution and the best players.
+      responses:
+        '200':
+          description: Statistics. Cache-Control no-store.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatsResponse' }
   /api/v1/scores:
     post:
       operationId: submitScore
@@ -202,3 +293,121 @@ components:
             server recomputes it from the judgment counts and rejects a
             mismatch (422), so a broken or manipulated client score is never
             stored.
+    SongArchiveRequest:
+      type: object
+      additionalProperties: false
+      required: [archived]
+      properties:
+        archived:
+          type: boolean
+          description: true archives the song, false brings an archived song back.
+    AdminSong:
+      type: object
+      required:
+        [id, title, artist, youtubeId, level, bpm, durationSec, chartVersion, archived, archivedAt, plays, bestScore]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        youtubeId: { type: string }
+        level: { type: integer }
+        bpm: { type: integer }
+        durationSec: { type: number }
+        chartVersion: { type: integer }
+        archived: { type: boolean }
+        archivedAt:
+          type: [string, 'null']
+          description: ISO timestamp of the archive moment, null for a live song.
+        plays: { type: integer, minimum: 0 }
+        bestScore:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 1000000
+          description: Best score of this song, null when nobody played it.
+    RankingEntry:
+      type: object
+      required: [nickname, score]
+      properties:
+        nickname: { type: string }
+        score: { type: integer, minimum: 0, maximum: 1000000 }
+    RankingSong:
+      type: object
+      required: [songId, title, artist, level, chartVersion, plays, entries]
+      properties:
+        songId: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        level: { type: integer }
+        chartVersion: { type: integer }
+        plays: { type: integer, minimum: 0 }
+        entries:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/RankingEntry' }
+    SongStats:
+      type: object
+      required:
+        [songId, title, artist, level, bpm, durationSec, chartVersion, archived, plays, distinctPlayers, averageScore, bestScore, averageAccuracy]
+      properties:
+        songId: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        level: { type: integer }
+        bpm: { type: integer }
+        durationSec: { type: number }
+        chartVersion: { type: integer }
+        archived: { type: boolean }
+        plays: { type: integer, minimum: 0 }
+        distinctPlayers: { type: integer, minimum: 0 }
+        averageScore:
+          type: [number, 'null']
+          description: Average score of the plays of this song.
+        bestScore:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 1000000
+        averageAccuracy:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: >-
+            Accuracy of a play is (perfect + 0.6 * great + 0.3 * bad) / notes of
+            the played chart version; this is the average of the plays.
+    PlayerStats:
+      type: object
+      required: [nickname, plays, totalScore, bestScore]
+      properties:
+        nickname: { type: string }
+        plays: { type: integer, minimum: 0 }
+        totalScore: { type: integer, minimum: 0 }
+        bestScore: { type: integer, minimum: 0, maximum: 1000000 }
+    StatsResponse:
+      type: object
+      required: [generatedAt, totals, perSong, levelDistribution, topPlayers]
+      properties:
+        generatedAt: { type: string }
+        totals:
+          type: object
+          required: [songs, liveSongs, archivedSongs, charts, scores, players, playsLast24h]
+          properties:
+            songs: { type: integer, minimum: 0 }
+            liveSongs: { type: integer, minimum: 0 }
+            archivedSongs: { type: integer, minimum: 0 }
+            charts: { type: integer, minimum: 0 }
+            scores: { type: integer, minimum: 0 }
+            players: { type: integer, minimum: 0 }
+            playsLast24h: { type: integer, minimum: 0 }
+        perSong:
+          type: array
+          items: { $ref: '#/components/schemas/SongStats' }
+        levelDistribution:
+          type: array
+          items:
+            type: object
+            required: [level, songs]
+            properties:
+              level: { type: integer }
+              songs: { type: integer, minimum: 0 }
+        topPlayers:
+          type: array
+          items: { $ref: '#/components/schemas/PlayerStats' }

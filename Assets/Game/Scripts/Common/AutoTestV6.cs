@@ -92,8 +92,9 @@ public class AutoTestV6 : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return Screenshot("03-game");
 
-        // 4. 旧 UI が残っていないか。ただし Ready 中 (再生前) は v5 の GameReadyView が
-        //    単独所有する設計なので、V5ReadyCanvas は正当な表示。
+        // 4. 旧 UI が残っていないか。v6 モードでは表示の正本 (GameUiExclusivity,
+        //    Issue #233) が全フェーズで v5 の Canvas を隠す。Ready 中 (再生前) の
+        //    V5ReadyCanvas も正当な表示ではない (Ready 案内は v6 HUD が出す)。
         var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
         int legacyVisible = 0;
         for (int i = 0; i < graphics.Length; i++)
@@ -102,7 +103,6 @@ public class AutoTestV6 : MonoBehaviour
             if (g == null || !g.isActiveAndEnabled) continue;
             var canvas = g.GetComponentInParent<Canvas>();
             if (canvas == null || canvas.name.StartsWith("V6")) continue;
-            if (canvas.name == "V5ReadyCanvas" && !GManager.played) continue;
             legacyVisible++;
             Debug.Log("[AutoTestV6] LEGACY VISIBLE: " + canvas.name + " / " + g.gameObject.name);
         }

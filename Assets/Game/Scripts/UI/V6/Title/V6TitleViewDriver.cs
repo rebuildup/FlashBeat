@@ -12,8 +12,26 @@ namespace FlashBeat.UI.V6.Title
     {
         internal V6TitleView View;
 
+        // 旧更新通知バナー (UpdateNoticeCanvas) は UpdateNoticeUI が最初の Update で
+        // 生成するので、Start 時点ではまだ無い。見つかって隠せるまで毎フレーム試す。
+        private bool updateNoticeHidden;
+
         private void Update()
         {
+            // 旧 (v5) 側の Canvas / ルート ("V5 Title Canvas" など) も毎フレーム隠し直す
+            // (v5 は Start/OnEnable で自前の Canvas を後から生成するため 1 回では足りない)。
+            V6UiMode.HideLegacyV5Canvases();
+
+            // 旧 (v5) TitleView は Start/OnEnable で自前のメニュー ("Menu GameStart" など) を
+            // 生成する。V6TitleView.Create 時の 1 回だけでは後から生成された分が残るので、
+            // 毎フレーム隠し直す (戻り値での早期終了はしない)。
+            V6UiMode.HideLegacyTitleUi();
+
+            if (!updateNoticeHidden)
+            {
+                updateNoticeHidden = V6UiMode.HideLegacyUpdateNotice();
+            }
+
             if (View != null)
             {
                 View.Tick();

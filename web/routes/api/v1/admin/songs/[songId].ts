@@ -1,8 +1,9 @@
 /**
  * `PUT /api/v1/admin/songs/{songId}` — staff publish endpoint (issue #16).
+ * `POST /api/v1/admin/songs/{songId}` — staff archive endpoint (issue #151).
  *
- * Contract: `contracts/openapi.v1.yaml` (`publishSong`). One atomic upsert:
- * the song metadata is written, the chart text is appended to
+ * Contract: `contracts/openapi.v1.yaml` (`publishSong`, `archiveSong`). One
+ * atomic upsert: the song metadata is written, the chart text is appended to
  * `chart_versions` as a new immutable snapshot, and `songs.currentVersion`
  * moves to it. `catalogVersion` is `COUNT(chart_versions)` (see the read
  * API), so every successful publish bumps it by one and the response reports
@@ -32,6 +33,11 @@ import {
   type PublishDiagnostic,
 } from "../../_publish-model";
 import { SONG_ID_PATTERN } from "../../_read-model";
+import {
+  buildArchiveResponse,
+  validateArchiveRequest,
+  type ArchiveDiagnostic,
+} from "../../_archive-model";
 
 export const PUT = defineHandler(async (c) => {
   const songId = c.req.param("songId") ?? "";
@@ -150,4 +156,89 @@ export const PUT = defineHandler(async (c) => {
   const [total] = await db.select({ value: count() }).from(chartVersions);
 
   return c.json({ songId, chartVersion, catalogVersion: total.value });
+});
+
+/**
+ * `POST /api/v1/admin/songs/{songId}` — archive or unarchive a song (issue #151).
+ *
+ * The festival never deletes a song. This route flips the `songs.archived`
+ * flag: an archived song leaves the public catalog (`GET /api/v1/catalog`)
+ * but keeps its row, its chart snapshots and its scores, and it can be brought
+ * back with `{"archived": false}`. There is no `DELETE` route for a song.
+ *
+ * Behaviour:
+ *   - 401 — the staff token does not match (same constant-time compare as
+ *     the publish route). Auth is checked before the body is read.
+ *   - 404 — no song with that id exists.
+ *   - 422 — the body is not `{"archived": <boolean>}`; one diagnostic per
+ *     problem, nothing is written.
+ *   - 200 — the flag was written; the answer reports the new state and the
+ *     current `catalogVersion`.
+ */
+export const POST = defineHandler(async (c) => {
+  const songId = c.req.param("songId") ?? "";
+
+  const authorized = await adminTokenMatches(
+    c.req.header("Authorization")?.replace(/^Bearer /, ""),
+    env.FLASHBEAT_ADMIN_TOKEN,
+  );
+  if (!authorized) {
+    return c.json({ error: "incorrect staff token" }, 401);
+  }
+
+  if (!SONG_ID_PATTERN.test(songId)) {
+    return c.json(
+      {
+        error: "invalid song id",
+        diagnostics: [
+          {
+            path: "songId",
+            message: "must match ^[a-z0-9-]{3,64}$ (lowercase letters, digits and hyphens)",
+          } satisfies ArchiveDiagnostic,
+        ],
+      },
+      422,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json(
+      {
+        error: "request body is not valid JSON",
+        diagnostics: [
+          { path: "(body)", message: "must be a single JSON object" } satisfies ArchiveDiagnostic,
+        ],
+      },
+      422,
+    );
+  }
+
+  const validation = validateArchiveRequest(body);
+  if (!validation.ok) {
+    return c.json({ error: "invalid archive request", diagnostics: validation.diagnostics }, 422);
+  }
+  const archived = validation.request.archived;
+
+  const existing = await db
+    .select({ archived: songs.archived })
+    .from(songs)
+    .where(eq(songs.id, songId))
+    .get();
+  if (!existing) {
+    return c.json({ error: "song not found" }, 404);
+  }
+
+  // The archive moment is written by the server; the client never chooses it.
+  const archivedAt = archived ? new Date().toISOString() : null;
+  await db
+    .update(songs)
+    .set({ archived: archived ? 1 : 0, archivedAt })
+    .where(eq(songs.id, songId));
+
+  const [total] = await db.select({ value: count() }).from(chartVersions);
+
+  return c.json(buildArchiveResponse(songId, archived, archivedAt, total.value));
 });

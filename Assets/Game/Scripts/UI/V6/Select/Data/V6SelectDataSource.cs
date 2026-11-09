@@ -147,6 +147,15 @@ namespace FlashBeat.UI.V6.Select.Data
                 return;
             }
 
+            // 絞り込み (検索) で隠れた曲は Ready できない (#221/#222)。
+            // Selected は絞り込みをまたいで生き残るため、表示リストに見えない
+            // 選択で開始すると「リストに無い曲が始まる」ことになる。
+            if (IndexOfSong(filteredSongs, selected.SongId) < 0)
+            {
+                SetError("選択中の曲が絞り込みで隠れています (検索を変更してください)");
+                return;
+            }
+
             SongData row = GManager.GetSong(selected.SongId);
             if (row == null || row.unplayable)
             {
@@ -199,17 +208,9 @@ namespace FlashBeat.UI.V6.Select.Data
             }
             ApplyFilter();
 
-            // 既定選択: 未選択のまま Space (Ready) を押すと「曲が選択されていません」で
-            // 何も起きず詰む (Issue #233 実機)。最初の曲を選択しておく。
-            // オフライン展示ではクラウド曲の開始が失敗するので、**ローカル曲 (固定カタログ)**
-            // を優先する (Issue #233: 選曲→開始でフリーズしたように見える)。
-            if (selectedSongId < 0 && filteredSongs.Count > 0)
-            {
-                V6SongEntry first = filteredSongs.Find(s => s != null && !s.IsCloud);
-                if (first == null) first = filteredSongs[0];
-                selectedSongId = first.SongId;
-                StartRankingFetch(Selected, false);
-            }
+            // 既定選択はしない (未選択で開始する)。未選択のまま Space (Ready) を
+            // 押した場合は CommitReady が「曲が選択されていません」を表示して
+            // 留まる (Issue #233)。黙って詰ませないための表示は CommitReady の責務。
         }
 
         static V6SongEntry BuildEntry(SongData song)

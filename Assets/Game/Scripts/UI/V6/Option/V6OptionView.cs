@@ -4,26 +4,29 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Option
 {
     /// <summary>
-    /// Option 画面の v6 UI。design/flashbeat-ui.pen v6 の
-    /// 06 Play (B6If6Z) / 06 Display (EzLfb) / 06 Sound (z7joSy) / 06 Data (DQHHp) を
-    /// 実行時に構築する (1 フレーム 1728x972 / 4 タブ)。
+    /// Option 画面の v6 UI。共通部品 (<see cref="V6Frame"/> / <see cref="V6Controls"/> /
+    /// <see cref="V6Layout"/>) だけで design v6 の 06 Play (B6If6Z) / 06 Display (EzLfb) /
+    /// 06 Sound (z7joSy) / 06 Data (DQHHp) を実行時に構築する (共通フレーム 1728x972 / 4 タブ)。
     ///
+    /// - design 空間 (1728×972、左上原点・y_down) の座標を 1:1 (scale 1) で描き、
+    ///   <see cref="V6OptionLogic.FrameOrigin"/> の origin (design gaI3p "Resolution Check ·
+    ///   Option": FHD (96,54) / 2K (416,234) / Mac (416,346)) で画面中央へ配置する。
     /// - 実データ: GManager (noteSpeed / noteTiming / Flash / FlashT / FlashBG / 音量) +
     ///   OptionSettings (保存) + KeyBindings / KeyConfigUI (キー配列) + PlaySession
     ///   (Key Guide / Lyrics) + MediaCacheManager (Media cache)。サンプル値は書かない。
-    /// - 設定の書き戻しは既存 API 経由 (NoteSpeed / NoteTiming は OptionSceneManager の
-    ///   SpeedUp / SpeedDown / TimingUp / TimingDown — Timing は全曲の offset JSON への
-    ///   書き戻しを含む既存経路。Flash / 音量は V5 OptionView と同じ GManager 直接 +
-    ///   OptionSettings.Save()。新しい保存経路は作らない)。
-    /// - design にあるが実データの無い行 (Live Rank / Hit Timing / Judge Text / Progress Bar)
-    ///   は表示しない (V5 OptionView と同じ方針。固定値のダミーは作らない)。
-    /// - 構築はコードのみ (シーン YAML / .meta は触らない)。Refresh で frame の全子を作り直す。
+    /// - 設定の書き戻しは既存 API 経由 (OptionSceneManager の SpeedUp/Down・TimingUp/Down、
+    ///   GManager 直接 + OptionSettings.Save())。新しい保存経路は作らない。
+    /// - design にあるが実データの無い行は表示しない (固定値のダミーは作らない)。
+    /// - フッターは design パッチ (QQ4jM / FChYu / F8SwvS) の通りキー凡例のみ
+    ///   (ボタン無し)。決定は Enter / 行クリック、戻るは Esc / ヘッダー戻るボタン。
     /// - キー: ↑↓ 行選択 / ←→ 値変更 / Tab タブ切替 / Enter・Space 決定 / Esc 戻る /
-    ///   F2 キー設定。マウス: タブ / 行 / ステッパー / 戻る / フッター。
+    ///   F2 キー設定。マウス: タブ / 行 / ステッパー / 戻る。
     /// - TitleSceneManager は呼ばない。onBack は統合担当が渡す。
     /// </summary>
     public sealed class V6OptionView
@@ -31,26 +34,33 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>現在生成されている v6 Option 画面 (シーンに 1 個だけ)。</summary>
         public static V6OptionView Current { get; private set; }
 
-        // --- design px 定数 (06 Play / Display / Sound / Data の実測) ---
+        // design px 定数は V6OptionLogic (design B6If6Z パッチ実測) に集約。
+        // 以下は view 内の略記 (値の単一ソースは V6OptionLogic)。
+
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
-        private const float MainX = 24f, MainY = 96f;
-        private const float TabsX = 438f, TabsY = 0f, TabsW = 824f, TabsH = 48f, TabW = 200f, TabGap = 8f;
+        private const float TabsX = V6OptionLogic.TabsX, TabsY = V6OptionLogic.TabsY;
+        private const float TabsW = V6OptionLogic.TabsW, TabsH = V6OptionLogic.TabsH;
+        private const float TabW = V6OptionLogic.TabW, TabGap = V6OptionLogic.TabGap;
 
-        // 設定 (列2-3) (304,68) 512x688
-        private const float SetX = 304f, SetY = 68f, SetW = 512f, SetH = 688f;
-        private const float SetRowX = 8f, SetRowW = 496f, SetRowH = 56f, SetRowY0 = 60f;
+        private const float SetX = V6OptionLogic.SetX, SetY = V6OptionLogic.SetY;
+        private const float SetW = V6OptionLogic.SetW, SetH = V6OptionLogic.SetH;
+        private const float SetRowX = V6OptionLogic.SetRowX, SetRowW = V6OptionLogic.SetRowW;
+        private const float SetRowH = V6OptionLogic.SettingsRowH, SetRowY0 = V6OptionLogic.SettingsRowFirstY;
 
-        // プレビュー (列4-5) (864,68) 512x688
-        private const float PrevX = 864f, PrevY = 68f, PrevW = 512f, PrevH = 688f;
-        private const float GamePrevX = 24f, GamePrevY = 60f, GamePrevW = 464f, GamePrevH = 280f;
+        private const float PrevX = V6OptionLogic.PrevX, PrevY = V6OptionLogic.PrevY;
+        private const float PrevW = V6OptionLogic.PrevW, PrevH = V6OptionLogic.PrevH;
+        private const float GamePrevX = V6OptionLogic.GamePrevX, GamePrevY = V6OptionLogic.GamePrevY;
+        private const float GamePrevW = V6OptionLogic.GamePrevW, GamePrevH = V6OptionLogic.GamePrevH;
+
+        /// <summary>契約 §3 danger トークン (#FF6B6B)。V6Tokens に未定義のため design 値を直接持つ。</summary>
+        private static readonly Color DangerLabel = FromHex("#FF6B6B");
 
         private readonly Action onBack;
 
         private GameObject rootGo;
         private RectTransform frame;
-        private float u = 1f;
         private int lastWidth;
         private int lastHeight;
 
@@ -165,7 +175,7 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            UpdateScale();
+            PlaceFrame();
 
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
@@ -176,8 +186,18 @@ namespace FlashBeat.UI.V6.Option
             bool cancel = Input.GetKeyDown(KeyCode.Escape);
             bool tab = Input.GetKeyDown(KeyCode.Tab);
             bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            var action = V6OptionLogic.MapKey(confirmClearOpen, up, down, left, right, confirm, cancel,
-                tab && !shift, tab && shift);
+            var action = V6OptionLogic.MapKey(new V6OptionInput
+            {
+                ModalOpen = confirmClearOpen,
+                Up = up,
+                Down = down,
+                Left = left,
+                Right = right,
+                Confirm = confirm,
+                Cancel = cancel,
+                TabNext = tab && !shift,
+                TabPrev = tab && shift,
+            });
 
             if (Input.GetKeyDown(KeyCode.F2))
             {
@@ -284,25 +304,43 @@ namespace FlashBeat.UI.V6.Option
 
         private void BuildRoot(RectTransform parent)
         {
-            rootGo = V5Ui.Node(parent.gameObject, "V6 Option View");
+            rootGo = new GameObject("V6 Option View", typeof(RectTransform));
+            rootGo.transform.SetParent(parent.transform, false);
             var rt = rootGo.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            frame = V5Ui.Node(rootGo, "V6 Option Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
-            frame.sizeDelta = new Vector2(FrameW, FrameH);
+            // 画面全体に v6 の背景色 (契約 §3 bg = #1B1B1B) を敷く。
+            // design (gaI3p Resolution Check) は bg-anim3 (ゲームのアニメーション背景) の上に
+            // フレームを載せるが、OptionScene にはその背景が無いため代わりの下敷き。
+            // (V6Tokens.Bg の doc「全面に敷かない」は bg-anim3 がある画面の規約。)
+            var bg = new GameObject("V6 Option Background", typeof(RectTransform), typeof(Image));
+            bg.transform.SetParent(rootGo.transform, false);
+            var bgImage = bg.GetComponent<Image>();
+            bgImage.color = V6Tokens.Bg;
+            bgImage.raycastTarget = false;
+            var bgRt = bg.GetComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero;
+            bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero;
+            bgRt.offsetMax = Vector2.zero;
+
+            // 共通フレーム (契約 §4): Header/Main/Footer ゾーン + モーダル層 + 外周 stroke。
+            frame = V6Frame.Create(rootGo.transform, "V6 Option Frame 1728x972").GetComponent<RectTransform>();
 
             var driver = rootGo.AddComponent<V6OptionViewDriver>();
             driver.View = this;
-            UpdateScale();
+            PlaceFrame();
         }
 
-        private void UpdateScale()
+        /// <summary>
+        /// フレームを 1:1 (等倍) で中央配置する (引き伸ばしはしない)。
+        /// origin = ((w−1728)/2, (h−972)/2) 切り捨て (V6OptionLogic.FrameOrigin、
+        /// design gaI3p "Resolution Check · Option" の実配置)。
+        /// </summary>
+        private void PlaceFrame()
         {
             int w = Screen.width;
             int h = Screen.height;
@@ -313,10 +351,10 @@ namespace FlashBeat.UI.V6.Option
 
             lastWidth = w;
             lastHeight = h;
-            u = V6OptionLogic.DesignScale(w, h);
             if (frame != null)
             {
-                frame.localScale = new Vector3(u, u, 1f);
+                Common.V6Layout.Place(frame, V6OptionLogic.FrameOrigin(w, h),
+                    new Vector2(FrameW, FrameH));
             }
         }
 
@@ -327,17 +365,22 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            UpdateScale();
+            PlaceFrame();
 
-            var children = new List<GameObject>();
-            foreach (Transform child in frame.transform)
+            // 共通フレームのゾーン (Header/Main/Footer) とモーダル Dialog の中身だけ作り直す。
+            // ゾーン自体 / 外周 stroke / モーダル層は V6Frame.Create が所有する
+            // (ゾーン名は V6Frame.Create の契約: Header / Main / Footer / Modal > Dialog)。
+            ClearChildren(Zone("Main"));
+            ClearChildren(Zone("Header"));
+            ClearChildren(Zone("Footer"));
+            var modal = V6Frame.GetModal(frame.gameObject);
+            if (modal != null)
             {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
+                var dialog = modal.transform.Find("Dialog");
+                if (dialog != null)
+                {
+                    ClearChildren(dialog);
+                }
             }
 
             currentRows = RowsForTab(selectedTab);
@@ -353,106 +396,162 @@ namespace FlashBeat.UI.V6.Option
             BuildPreview();
             if (confirmClearOpen)
             {
-                BuildConfirmClearModal();
+                BuildConfirmClearModal(modal);
+            }
+            else
+            {
+                V6Frame.HideModal(frame.gameObject);
             }
         }
 
-        // --- ヘッダー (24,0 1680x96) ---
+        private Transform Zone(string zoneName)
+        {
+            var zone = frame.transform.Find(zoneName);
+            if (zone == null)
+            {
+                throw new InvalidOperationException("V6 frame zone missing: " + zoneName);
+            }
+
+            return zone;
+        }
+
+        private static void ClearChildren(Transform parent)
+        {
+            var children = new List<GameObject>();
+            foreach (Transform child in parent)
+            {
+                children.Add(child.gameObject);
+            }
+
+            for (int i = 0; i < children.Count; i++)
+            {
+                V5GameUi.DestroyNow(children[i]);
+            }
+        }
+
+        // --- ヘッダー (契約 §4 + design B6If6Z パッチ: (24,0) 1680x96) ---
+        // Title はパッチ ci867 で「OPTION」に差し替え。右上情報ゾーン (840,0) は空
+        // (パッチ sBFcr で子なしに差し替え)。戻るは base zUcsi/zCQBY (0,20) 56×56
+        // #3A3A3A r8 + arrow-left 24 + Key "Esc" fs16。
 
         private void BuildHeader()
         {
-            var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
+            var header = Zone("Header");
 
-            // 戻るボタン 56x56 (#3A3A3A) + Esc キャプション (V6SelectView と同じ構造)
-            var backZone = At(V5Ui.Node(header, "Zone Back"), 0f, 20f);
-            var back = Button(backZone, "Back Button", 56f, 56f, 8f, V5Tokens.Key4, () =>
+            var back = V6Controls.Panel(header.gameObject, "Back button",
+                new Vector2(0f, 20f), new Vector2(56f, 56f), V6Tokens.Key4, V6Tokens.RadiusMedium);
+            var backButton = back.AddComponent<Button>();
+            backButton.transition = Selectable.Transition.None;
+            var nav = backButton.navigation;
+            nav.mode = Navigation.Mode.None;
+            backButton.navigation = nav;
+            backButton.onClick.AddListener(() =>
             {
                 if (onBack != null) onBack();
             });
-            var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
-            V5GameUi.Text(backCol.gameObject, "Icon", "←", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
 
-            var title = V5GameUi.Text(header.gameObject, "Title", "FlashBeat", 38f, V5Tokens.Text,
+            var backCol = V6Layout.Column(back, "Inner", new Vector2(0f, 7f), new Vector2(56f, 42f), 2f);
+            var backIcon = V6Icons.Create(backCol, "arrow-left", 24f, V6Tokens.TextMuted, "Icon");
+            var backKey = V6Controls.Text(backCol, "Key", "Esc", Vector2.zero, new Vector2(56f, 16f),
+                16f, V6Tokens.TextMuted, TextAlignmentOptions.Center);
+            var icons = new[] { backIcon, (Component)backKey };
+            V6Layout.StackVertical(backCol.GetComponent<RectTransform>(), 2f, icons);
+
+            V6Controls.Text(header.gameObject, "Title", "OPTION",
+                new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            At(title, 72f, 20f, 400f, 56f);
         }
 
-        // --- フッター (24,876 1680x96) ---
+        // --- フッター (契約 §4 + design B6If6Z パッチ: (24,876) 1680x96) ---
+        // キー凡例はパッチ QQ4jM → r4IJx (0,30) gap24: ↑↓選択 / ←→変更 / Tabタブ切替 /
+        // Esc戻る / Enter決定 (KeyCap h36 r4 padding[0,8] fs22 + Label fs22, 項内 gap8)。
+        // 補助操作 / 主操作はパッチ FChYu / F8SwvS で「Op · なし」(空フレーム) に
+        // 差し替え済み — Option にフッターボタンは無い (決定は Enter / 行クリック)。
 
         private void BuildFooter()
         {
-            var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
+            var footer = Zone("Footer");
 
-            var legend = V5GameUi.Row(footer.gameObject, "Legend", 24f, TextAnchor.MiddleLeft);
-            At(legend.GetComponent<RectTransform>(), 0f, 30f, 700f, 36f);
-            V5GameUi.LegendItem(legend.gameObject, "↑↓", "選択");
-            V5GameUi.LegendItem(legend.gameObject, "←→", "値変更");
-            V5GameUi.LegendItem(legend.gameObject, "Tab", "タブ切替");
-            V5GameUi.LegendItem(legend.gameObject, "Space", "決定");
-            V5GameUi.LegendItem(legend.gameObject, "Esc", "戻る");
-
-            // 右下: 決定 (secondary) + 戻る (primary)。design の座標 (補助 358 / 主 567) を右詰め。
-            var decide = Button(footer, "Button Decide", 197f, 56f, 8f, V5Tokens.ControlBg, ActivateRow);
-            At(decide, 1198f, 20f);
-            var decideRow = V5GameUi.Row(decide, "Inner", 10f, TextAnchor.MiddleCenter);
-            Stretch(decideRow.GetComponent<RectTransform>(), 197f, 56f);
-            V5GameUi.Text(decideRow.gameObject, "Label", "決定", 30f, V5Tokens.Text, TextAlignmentOptions.Center);
-            var decideCap = V5Ui.Panel(decideRow.gameObject, "Cap", new Vector2(84f, 32f),
-                new Color(0f, 0f, 0f, 0.25f), 4f);
-            var decideCapText = V5GameUi.Text(decideCap, "Key", "Space", 20f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(decideCapText.GetComponent<RectTransform>(), 84f, 32f);
-
-            var back = Button(footer, "Button Back", 273f, 56f, 8f, V5Tokens.ButtonPrimaryBg, () =>
+            var legend = V6Layout.Row(footer.gameObject, "Zone Key Ops",
+                new Vector2(0f, 30f), new Vector2(840f, 36f), 24f);
+            var items = new Component[]
             {
-                if (onBack != null) onBack();
-            });
-            At(back, 1407f, 20f);
-            var backRow = V5GameUi.Row(back, "Inner", 10f, TextAnchor.MiddleCenter);
-            Stretch(backRow.GetComponent<RectTransform>(), 273f, 56f);
-            V5GameUi.Text(backRow.gameObject, "Icon", "◀", 24f, V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
-            V5GameUi.Text(backRow.gameObject, "Label", "戻る", 30f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center);
-            var backCap = V5Ui.Panel(backRow.gameObject, "Cap", new Vector2(64f, 32f),
-                new Color(0f, 0f, 0f, 0.15f), 4f);
-            var backCapText = V5GameUi.Text(backCap, "Key", "Esc", 20f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center);
-            Stretch(backCapText.GetComponent<RectTransform>(), 64f, 32f);
+                LegendItem(legend, "↑↓", "選択").transform,
+                LegendItem(legend, "←→", "変更").transform,
+                LegendItem(legend, "Tab", "タブ切替").transform,
+                LegendItem(legend, "Esc", "戻る").transform,
+                LegendItem(legend, "Enter", "決定").transform,
+            };
+            V6Layout.StackHorizontal(legend.GetComponent<RectTransform>(), 24f, items);
         }
 
-        // --- タブ (メイン上部 438,0 824x48) ---
+        /// <summary>凡例 1 項目 (KeyCap + Label, gap8 — design パッチの L0..L4 構造)。</summary>
+        private static GameObject LegendItem(GameObject parent, string key, string label)
+        {
+            float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * V6Controls.KeyCapFontSize)
+                + 8f * 2f; // design パッチの KeyCap padding [0,8]
+            var item = V6Layout.Row(parent, "Legend " + label, Vector2.zero,
+                new Vector2(keyW + 8f + 60f, 36f), 8f);
+            var cap = V6Controls.KeyCap(item, key, new Vector2(0f, 0f), new Vector2(keyW, V6Tokens.KeyCapHeight));
+            V6Controls.Text(item, "Label", label,
+                new Vector2(keyW + 8f, 0f), new Vector2(60f, 36f), 22f, V6Tokens.TextMuted,
+                TextAlignmentOptions.Left);
+            return item;
+        }
+
+        // --- タブ (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
+        // 選択タブ: fill $k6 / Label fs24 w500 $text。非選択: $k2 / fs24 $text-muted。
 
         private void BuildTabs()
         {
-            var strip = At(V5Ui.Panel(frame.gameObject, "Tabs", new Vector2(TabsW, TabsH), Clear(), 0f),
-                MainX + TabsX, MainY + TabsY);
+            var main = Zone("Main");
+            var strip = V6Layout.Row(main.gameObject, "Zone Tabs",
+                new Vector2(TabsX, TabsY), new Vector2(TabsW, TabsH), TabGap);
 
+            var tabs = new Component[V6OptionLogic.TabCount];
             for (int i = 0; i < V6OptionLogic.TabCount; i++)
             {
                 int index = i;
                 bool selected = i == selectedTab;
-                var tab = Button(strip, "Tab " + V6OptionLogic.TabLabels[i], TabW, TabsH, 8f,
-                    selected ? V5Tokens.Key6 : V5Tokens.Key2, () => SelectTab(index));
-                At(tab, (TabW + TabGap) * i, 0f);
-                var label = V5GameUi.Text(tab, "Label", V6OptionLogic.TabLabels[i], 24f,
-                    selected ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center,
+                var tab = V6Controls.Panel(strip, "Tab " + V6OptionLogic.TabLabels[i],
+                    new Vector2((TabW + TabGap) * i, 0f), new Vector2(TabW, TabsH),
+                    selected ? V6Tokens.Key6 : V6Tokens.Key2, V6Tokens.RadiusMedium);
+                var button = tab.AddComponent<Button>();
+                button.transition = Selectable.Transition.None;
+                var nav = button.navigation;
+                nav.mode = Navigation.Mode.None;
+                button.navigation = nav;
+                button.onClick.AddListener(() => SelectTab(index));
+                var label = V6Controls.Text(tab, "Label", V6OptionLogic.TabLabels[i],
+                    new Vector2(0f, 0f), new Vector2(TabW, TabsH), 24f,
+                    selected ? V6Tokens.Text : V6Tokens.TextMuted, TextAlignmentOptions.Center,
                     selected ? FontStyles.Bold : FontStyles.Normal);
-                Stretch(label.GetComponent<RectTransform>(), TabW, TabsH);
+                var labelRt = label.rectTransform;
+                labelRt.anchorMin = Vector2.zero;
+                labelRt.anchorMax = Vector2.one;
+                labelRt.offsetMin = Vector2.zero;
+                labelRt.offsetMax = Vector2.zero;
+                tabs[i] = tab.transform;
             }
+
+            V6Layout.StackHorizontal(strip.GetComponent<RectTransform>(), TabGap, tabs);
         }
 
-        // --- 設定 (列2-3) (304,68) 512x688 ---
+        // --- 設定 (design crVgG: メイン (304,68) 512x688 $k2 r16) ---
+        // Head (8,8) 496x36 (Title fs18 $text-dim)。行 (8, 60+step*k) 496x56 r8:
+        // 背景 $k1 (選択行 / アクション行 キー設定 は $k6)。Label w200 fs24、
+        // Value w120 右寄せ fs24、Prev/Next 40x40 $k4 r8 (icon 24 $text-muted)。
+        // 行の内側 padding [0,12] gap12 → Prev x=392 / Next x=444 / Value 右端 x=380。
 
         private void BuildSettings()
         {
-            var panel = At(V5Ui.Panel(frame.gameObject, "Settings", new Vector2(SetW, SetH), V5Tokens.Key2, 16f),
-                MainX + SetX, MainY + SetY);
+            var main = Zone("Main");
+            var panel = V6Controls.Panel(main.gameObject, "Settings",
+                new Vector2(SetX, SetY), new Vector2(SetW, SetH), V6Tokens.Key2, V6Tokens.RadiusLarge);
 
-            var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
-            At(head.GetComponent<RectTransform>(), 8f, 8f, SetRowW, 36f);
-            V5GameUi.Text(head.gameObject, "Title", V6OptionLogic.TabLabels[selectedTab], 18f, V5Tokens.TextDim);
+            var head = V6Layout.Row(panel, "Head", new Vector2(8f, 8f), new Vector2(SetRowW, 36f), 12f);
+            V6Controls.Text(head, "Title", V6OptionLogic.TabLabels[selectedTab],
+                new Vector2(12f, 0f), new Vector2(200f, 36f), 18f, V6Tokens.TextDim);
 
             float step = V6OptionLogic.RowStep(currentRows.Count);
             for (int i = 0; i < currentRows.Count; i++)
@@ -464,8 +563,8 @@ namespace FlashBeat.UI.V6.Option
         private void BuildSettingRow(GameObject panel, Row row, int index, float y)
         {
             bool selected = index == selectedRow;
-            var line = At(V5Ui.Panel(panel, "Set " + row.Label, new Vector2(SetRowW, SetRowH),
-                selected ? V5Tokens.Key6 : V5Tokens.Key1, 8f), SetRowX, y);
+            var line = V6Controls.Panel(panel, "Set " + row.Label, new Vector2(SetRowX, y),
+                new Vector2(SetRowW, SetRowH), selected ? V6Tokens.Key6 : V6Tokens.Key1, V6Tokens.RadiusMedium);
 
             var rowButton = line.AddComponent<Button>();
             rowButton.transition = Selectable.Transition.None;
@@ -478,15 +577,13 @@ namespace FlashBeat.UI.V6.Option
                 Rebuild();
             });
 
-            var label = V5GameUi.Text(line.gameObject, "Label", row.Label, 24f,
-                row.Danger ? V5Tokens.Danger : V5Tokens.Text, TextAlignmentOptions.Left);
-            At(label, 12f, 0f, 200f, SetRowH, new Vector2(0f, 0.5f));
+            var label = V6Controls.Text(line, "Label", row.Label, new Vector2(12f, 0f),
+                new Vector2(200f, SetRowH), 24f, row.Danger ? DangerLabel : V6Tokens.Text);
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Ellipsis;
 
-            var value = V5GameUi.Text(line.gameObject, "Value", row.Value(), 24f, V5Tokens.Text,
-                TextAlignmentOptions.Right);
-            At(value, 260f, 0f, 120f, SetRowH, new Vector2(0f, 0.5f));
+            var value = V6Controls.Text(line, "Value", row.Value(), new Vector2(260f, 0f),
+                new Vector2(120f, SetRowH), 24f, V6Tokens.Text, TextAlignmentOptions.Right);
             value.textWrappingMode = TextWrappingModes.NoWrap;
             value.overflowMode = TextOverflowModes.Ellipsis;
 
@@ -495,53 +592,46 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            var prev = Button(line, "Prev", 40f, 40f, 8f, V5Tokens.Key4, () =>
+            var prev = V6Controls.IconButton(line, "chevron-left", new Vector2(392f, 8f),
+                new Vector2(40f, 40f), V6Tokens.Key4, V6Tokens.RadiusMedium, 24f, V6Tokens.TextMuted);
+            prev.GetComponent<Button>().onClick.AddListener(() =>
             {
                 selectedRow = index;
                 AdjustSelected(-1);
             });
-            At(prev, 392f, 8f);
-            var prevIcon = V5GameUi.Text(prev, "Icon", "←", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(prevIcon.GetComponent<RectTransform>(), 40f, 40f);
 
-            var next = Button(line, "Next", 40f, 40f, 8f, V5Tokens.Key4, () =>
+            var next = V6Controls.IconButton(line, "chevron-right", new Vector2(444f, 8f),
+                new Vector2(40f, 40f), V6Tokens.Key4, V6Tokens.RadiusMedium, 24f, V6Tokens.TextMuted);
+            next.GetComponent<Button>().onClick.AddListener(() =>
             {
                 selectedRow = index;
                 AdjustSelected(1);
             });
-            At(next, 444f, 8f);
-            var nextIcon = V5GameUi.Text(next, "Icon", "→", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(nextIcon.GetComponent<RectTransform>(), 40f, 40f);
         }
 
-        // --- プレビュー (列4-5) (864,68) 512x688 ---
+        // --- プレビュー (design cqQMc: メイン (864,68) 512x688 $k2 r16) ---
+        // 4 タブ共通: Head (8,8) / Game Preview (24,60) 464x280 $k0 r8 /
+        // Divider (24,544) 464x1 #FFFFFF1F / Desc Title (24,564) fs32 w500 /
+        // Desc (24,614) w464 fs24 lineHeight1.4。Play のみキー一覧 (8,356〜) を追加。
 
         private void BuildPreview()
         {
-            var panel = At(V5Ui.Panel(frame.gameObject, "Preview", new Vector2(PrevW, PrevH), V5Tokens.Key2, 16f),
-                MainX + PrevX, MainY + PrevY);
+            var main = Zone("Main");
+            var panel = V6Controls.Panel(main.gameObject, "Preview",
+                new Vector2(PrevX, PrevY), new Vector2(PrevW, PrevH), V6Tokens.Key2, V6Tokens.RadiusLarge);
 
-            var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
-            At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
-            V5GameUi.Text(head.gameObject, "Title", PreviewHeadTitle(), 18f, V5Tokens.TextDim);
+            var head = V6Layout.Row(panel, "Head", new Vector2(8f, 8f), new Vector2(496f, 36f), 12f);
+            V6Controls.Text(head, "Title", PreviewHeadTitle(),
+                new Vector2(12f, 0f), new Vector2(400f, 36f), 18f, V6Tokens.TextDim);
 
             BuildGamePreview(panel);
 
-            switch (selectedTab)
+            if (selectedTab == 0)
             {
-                case 0:
-                    BuildPlayPreviewExtra(panel);
-                    break;
-                case 1:
-                    BuildDisplayPreviewExtra(panel);
-                    break;
-                case 2:
-                    BuildSoundPreviewExtra(panel);
-                    break;
-                default:
-                    BuildDataPreviewExtra(panel);
-                    break;
+                BuildKeyGrid(panel);
             }
+
+            BuildDesc(panel, V6OptionLogic.DescDividerY, SelectedRowDesc());
         }
 
         private string PreviewHeadTitle()
@@ -563,8 +653,8 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>8 レーンの遠近法プレビュー (design 共通: 464x280 / 判定線 y240 / レーン番号)。</summary>
         private void BuildGamePreview(GameObject panel)
         {
-            var well = At(V5Ui.Panel(panel, "Game Preview", new Vector2(GamePrevW, GamePrevH), V5Tokens.Key0, 8f),
-                GamePrevX, GamePrevY);
+            var well = V6Controls.Panel(panel, "Game Preview", new Vector2(GamePrevX, GamePrevY),
+                new Vector2(GamePrevW, GamePrevH), V6Tokens.Key0, V6Tokens.RadiusMedium);
 
             // レーン中心線: 下端 (判定線 y240) で 58px 間隔、上端 (y0) で約 7px 間隔
             // (design プレイフィールドの 150 → 18 px の縮約)。
@@ -588,22 +678,24 @@ namespace FlashBeat.UI.V6.Option
             for (int i = 0; i < notes.GetLength(0); i++)
             {
                 var note = Rect(well, "Note " + i, notes[i, 2], 10f, FromHex("#EDEDED"));
-                At(note, notes[i, 0], notes[i, 1]);
+                V6Layout.Place(note.GetComponent<RectTransform>(), new Vector2(notes[i, 0], notes[i, 1]),
+                    new Vector2(notes[i, 2], 10f));
             }
 
             var judgeLine = Rect(well, "Judge Line", GamePrevW, 3f, FromHex("#EDEDED"));
-            At(judgeLine, 0f, judgeY);
+            V6Layout.Place(judgeLine.GetComponent<RectTransform>(), new Vector2(0f, judgeY),
+                new Vector2(GamePrevW, 3f));
 
             for (int i = 0; i < 8; i++)
             {
-                var laneLabel = V5GameUi.Text(well.gameObject, "Lane Label " + i, (i + 1).ToString(), 18f,
-                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                At(laneLabel, 6f + 58f * i, 246f, 40f, 22f);
+                V6Controls.Text(well, "Lane Label " + i, (i + 1).ToString(),
+                    new Vector2(6f + 58f * i, 246f), new Vector2(40f, 22f), 18f, V6Tokens.TextMuted,
+                    TextAlignmentOptions.Center);
             }
         }
 
-        /// <summary>Play タブ: JIS キーボード + 実際のレーン割当 + 説明。</summary>
-        private void BuildPlayPreviewExtra(GameObject panel)
+        /// <summary>Play タブ: JIS キーボード + 実際のレーン割当 (design の Key 1..Key _)。</summary>
+        private void BuildKeyGrid(GameObject panel)
         {
             KeyCode[][] table = KeyBindings.Current;
             for (int r = 0; r < V6OptionLogic.JisGridKeys.Length; r++)
@@ -613,75 +705,34 @@ namespace FlashBeat.UI.V6.Option
                 float x0 = V6OptionLogic.GridRowX[r];
                 for (int k = 0; k < keys.Length; k++)
                 {
-                    var cap = At(V5Ui.Panel(panel, "Key " + V6OptionLogic.KeyDisplayName(keys[k]),
-                        new Vector2(V6OptionLogic.GridKeyW, V6OptionLogic.GridKeyH), V5Tokens.Key4, 4f),
-                        x0 + V6OptionLogic.GridKeyStepX * k, y);
+                    var cap = V6Controls.Panel(panel, "Key " + V6OptionLogic.KeyDisplayName(keys[k]),
+                        new Vector2(x0 + V6OptionLogic.GridKeyStepX * k, y),
+                        new Vector2(V6OptionLogic.GridKeyW, V6OptionLogic.GridKeyH),
+                        V6Tokens.Key4, V6Tokens.RadiusSmall);
                     int lane = V6OptionLogic.DisplayLaneOf(keys[k], table);
-                    var laneText = V5GameUi.Text(cap, "Lane", lane > 0 ? lane.ToString() : "", 20f,
-                        V5Tokens.Text, TextAlignmentOptions.Center);
-                    Stretch(laneText.GetComponent<RectTransform>(), V6OptionLogic.GridKeyW, V6OptionLogic.GridKeyH);
+                    V6Controls.Text(cap, "Lane", lane > 0 ? lane.ToString() : "",
+                        new Vector2(0f, 9f), new Vector2(V6OptionLogic.GridKeyW, 20f), 20f, V6Tokens.Text,
+                        TextAlignmentOptions.Center);
                 }
             }
-
-            BuildDesc(panel, 544f, SelectedRowDesc());
         }
 
-        /// <summary>Display タブ: 判定チップ (PERFECT / GREAT / BAD / MISS) + 説明。</summary>
-        private void BuildDisplayPreviewExtra(GameObject panel)
-        {
-            string[] labels = { "PERFECT", "GREAT", "BAD", "MISS" };
-            Color[] markers = { V5Tokens.Text, V5Tokens.Ok, V5Tokens.Warn, V5Tokens.Danger };
-            for (int i = 0; i < labels.Length; i++)
-            {
-                var chip = At(V5Ui.Panel(panel, "Judge " + labels[i], new Vector2(106f, 64f), V5Tokens.Key1, 8f),
-                    24f + 118f * i, 360f);
-                var marker = Rect(chip, "Marker", 32f, 4f, markers[i]);
-                At(marker, (106f - 32f) * 0.5f, 14f);
-                var text = V5GameUi.Text(chip, "Label", labels[i], 20f, V5Tokens.TextDim, TextAlignmentOptions.Center);
-                At(text, 0f, 30f, 106f, 24f);
-            }
-
-            BuildDesc(panel, 456f, SelectedRowDesc());
-        }
-
-        /// <summary>Sound タブ: Main Volume の値とゲージ + 説明。</summary>
-        private void BuildSoundPreviewExtra(GameObject panel)
-        {
-            var value = V5GameUi.Text(panel.gameObject, "Volume Value", V6OptionLogic.FormatVolume(GManager.mainVolume),
-                40f, V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
-            At(value, 24f, 360f, 464f, 48f);
-            value.textWrappingMode = TextWrappingModes.NoWrap;
-
-            var track = At(V5Ui.Panel(panel, "Track", new Vector2(464f, 20f), V5Tokens.Key1, 4f), 24f, 420f);
-            var fill = Rect(track, "Fill", Mathf.Max(2f, 464f * Mathf.Clamp01(GManager.mainVolume)), 20f,
-                V5Tokens.Key6);
-            At(fill, 0f, 0f);
-
-            BuildDesc(panel, 472f, SelectedRowDesc());
-        }
-
-        /// <summary>Data タブ: 説明のみ (design はプレビューに Game Preview + 説明)。</summary>
-        private void BuildDataPreviewExtra(GameObject panel)
-        {
-            BuildDesc(panel, 380f, SelectedRowDesc());
-        }
-
-        /// <summary>Divider + Desc Title + Desc (design の各タブ実測 y)。</summary>
+        /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 / Desc y614)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, Row row)
         {
             var divider = Rect(panel, "Divider", 464f, 1f, FromHex("#FFFFFF1F"));
-            At(divider, 24f, dividerY);
+            V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
-            var title = V5GameUi.Text(panel.gameObject, "Desc Title",
-                row != null ? row.DescTitle : "", 32f, V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Normal);
-            At(title, 24f, dividerY + 20f, 464f, 40f);
+            var title = V6Controls.Text(panel, "Desc Title",
+                row != null ? row.DescTitle : "", new Vector2(24f, dividerY + 20f), new Vector2(464f, 40f),
+                32f, V6Tokens.Text, TextAlignmentOptions.Left); // design w500 = 既定フォント (Medium) のウェイト
             title.textWrappingMode = TextWrappingModes.NoWrap;
             title.overflowMode = TextOverflowModes.Ellipsis;
 
-            var desc = V5GameUi.Text(panel.gameObject, "Desc", row != null ? row.Desc : "", 24f,
-                V5Tokens.Text, TextAlignmentOptions.TopLeft);
-            At(desc, 24f, dividerY + 70f, 464f, 100f);
-            desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP はフォントサイズ比の追加率)
+            var desc = V6Controls.Text(panel, "Desc", row != null ? row.Desc : "",
+                new Vector2(24f, dividerY + 70f), new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
+                24f, V6Tokens.Text, TextAlignmentOptions.TopLeft);
+            desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP lineSpacing は fs 比の追加率: 24×0.4=9.6px → 40%)
         }
 
         private Row SelectedRowDesc()
@@ -694,49 +745,60 @@ namespace FlashBeat.UI.V6.Option
             return currentRows[selectedRow];
         }
 
-        // --- モーダル (Clear save data の確認。design のモーダルゾーン 444,231 840x510) ---
+        // --- モーダル (Clear save data の確認。契約 §4 モーダルゾーン: Scrim 全面 +
+        //     Dialog (444,231) 840x510 $k1 r16 — V6Frame.Create が層ごと所有) ---
 
-        private void BuildConfirmClearModal()
+        private void BuildConfirmClearModal(GameObject modal)
         {
-            var scrim = At(V5Ui.Panel(frame.gameObject, "Confirm Scrim", new Vector2(FrameW, FrameH),
-                FromHex("#00000099"), 0f), 0f, 0f);
-            var scrimButton = scrim.AddComponent<Button>();
-            scrimButton.transition = Selectable.Transition.None;
-            var nav = scrimButton.navigation;
-            nav.mode = Navigation.Mode.None;
-            scrimButton.navigation = nav;
-            scrimButton.onClick.AddListener(() =>
+            if (modal == null)
             {
-                confirmClearOpen = false;
-                Rebuild();
-            });
+                return;
+            }
 
-            var dialog = At(V5Ui.Panel(scrim, "Dialog", new Vector2(840f, 510f), V5Tokens.Key1, 16f), 444f, 231f);
+            var dialog = modal.transform.Find("Dialog")?.gameObject;
+            if (dialog == null)
+            {
+                return;
+            }
 
-            var title = V5GameUi.Text(dialog.gameObject, "Head", "Clear save data", 30f, V5Tokens.Text,
+            V6Frame.ShowModal(frame.gameObject);
+
+            var title = V6Controls.Text(dialog, "Head", "Clear save data",
+                new Vector2(28f, 28f), new Vector2(784f, 40f), 30f, V6Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            At(title, 28f, 28f, 784f, 40f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
 
-            var desc = V5GameUi.Text(dialog.gameObject, "Desc",
-                "ハイスコアとキー設定を消去します。取り消せません。", 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
-            At(desc, 28f, 100f, 784f, 120f);
-            desc.lineSpacing = 40f;
+            var desc = V6Controls.Text(dialog, "Desc",
+                "ハイスコアとキー設定を消去します。取り消せません。",
+                new Vector2(28f, 100f), new Vector2(784f, 120f), 24f, V6Tokens.Text,
+                TextAlignmentOptions.TopLeft);
+            desc.lineSpacing = 40f; // design lineHeight 1.4
 
-            var cancel = Button(dialog, "Op Cancel", 198f, 50f, 8f, V5Tokens.Key4, () =>
+            var cancel = V6Controls.Panel(dialog, "Op Cancel", new Vector2(28f, 432f),
+                new Vector2(198f, 50f), V6Tokens.Key4, V6Tokens.RadiusMedium);
+            var cancelButton = cancel.AddComponent<Button>();
+            cancelButton.transition = Selectable.Transition.None;
+            var cancelNav = cancelButton.navigation;
+            cancelNav.mode = Navigation.Mode.None;
+            cancelButton.navigation = cancelNav;
+            cancelButton.onClick.AddListener(() =>
             {
                 confirmClearOpen = false;
                 Rebuild();
             });
-            At(cancel, 28f, 432f);
-            var cancelText = V5GameUi.Text(cancel, "Label", "キャンセル", 26f, V5Tokens.Text, TextAlignmentOptions.Center);
-            Stretch(cancelText.GetComponent<RectTransform>(), 198f, 50f);
+            V6Controls.Text(cancel, "Label", "キャンセル", Vector2.zero, new Vector2(198f, 50f),
+                26f, V6Tokens.Text, TextAlignmentOptions.Center);
 
-            var clear = Button(dialog, "Op Clear", 252f, 50f, 8f, V5Tokens.Danger, ClearSaveData);
-            At(clear, 784f - 252f + 28f, 432f);
-            var clearText = V5GameUi.Text(clear, "Label", "消去する", 26f, V5Tokens.ButtonPrimaryLabel,
-                TextAlignmentOptions.Center);
-            Stretch(clearText.GetComponent<RectTransform>(), 252f, 50f);
+            var clear = V6Controls.Panel(dialog, "Op Clear", new Vector2(784f - 252f + 28f, 432f),
+                new Vector2(252f, 50f), DangerLabel, V6Tokens.RadiusMedium);
+            var clearButton = clear.AddComponent<Button>();
+            clearButton.transition = Selectable.Transition.None;
+            var clearNav = clearButton.navigation;
+            clearNav.mode = Navigation.Mode.None;
+            clearButton.navigation = clearNav;
+            clearButton.onClick.AddListener(ClearSaveData);
+            V6Controls.Text(clear, "Label", "消去する", Vector2.zero, new Vector2(252f, 50f),
+                26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
         }
 
         // --- 行定義 (実データに結線) ---
@@ -996,13 +1058,12 @@ namespace FlashBeat.UI.V6.Option
 
         // --- uGUI ユーティリティ (design px 左上原点) ---
 
-        /// <summary>素の Image (角丸無し)。細線 / 矩形用。</summary>
+        /// <summary>素の Image (角丸無し)。細線 / 矩形用 (共通部品に 1px 線は無いため最小限のローカル helper)。</summary>
         private static GameObject Rect(GameObject parent, string name, float w, float h, Color color)
         {
-            var go = V5Ui.Node(parent, name);
-            var rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(w, h);
-            var img = go.AddComponent<Image>();
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent.transform, false);
+            var img = go.GetComponent<Image>();
             img.color = color;
             img.raycastTarget = false;
             return go;
@@ -1025,83 +1086,6 @@ namespace FlashBeat.UI.V6.Option
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2((lx1 + lx2) * 0.5f, (ly1 + ly2) * 0.5f);
             rt.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg - 90f);
-        }
-
-        private static GameObject At(GameObject go, float x, float y, float w, float h)
-        {
-            return At(go.GetComponent<RectTransform>(), x, y, w, h);
-        }
-
-        private static GameObject At(GameObject go, float x, float y)
-        {
-            return At(go.GetComponent<RectTransform>(), x, y);
-        }
-
-        private static GameObject At(GameObject go, float x, float y, float w, float h, Vector2 pivot)
-        {
-            return At(go.GetComponent<RectTransform>(), x, y, w, h, pivot);
-        }
-
-        private static GameObject At(Component node, float x, float y, float w, float h)
-        {
-            var rt = node.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            rt.sizeDelta = new Vector2(w, h);
-            return node.gameObject;
-        }
-
-        private static GameObject At(Component node, float x, float y)
-        {
-            var rt = node.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            return node.gameObject;
-        }
-
-        private static GameObject At(Component node, float x, float y, float w, float h, Vector2 pivot)
-        {
-            At(node, x, y, w, h);
-            var rt = node.GetComponent<RectTransform>();
-            rt.pivot = pivot;
-            // pivot 変更で位置がずれるので左上 (x, -y) を維持する。
-            rt.anchoredPosition = new Vector2(x, -y);
-            return node.gameObject;
-        }
-
-        private static void Stretch(RectTransform rt, float w, float h)
-        {
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(w, h);
-        }
-
-        private static GameObject Button(GameObject parent, string name, float w, float h, float radius, Color bg,
-            Action onClick)
-        {
-            var go = V5Ui.Panel(parent, name, new Vector2(w, h), bg, radius);
-            var button = go.AddComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            var nav = button.navigation;
-            nav.mode = Navigation.Mode.None;
-            button.navigation = nav;
-            if (onClick != null)
-            {
-                button.onClick.AddListener(() => onClick());
-            }
-
-            return go;
-        }
-
-        private static Color Clear()
-        {
-            return new Color(0f, 0f, 0f, 0f);
         }
 
         private static Color FromHex(string hex)

@@ -1,0 +1,2 @@
+# Evidence PNGs stay plain blobs: LFS binaries are unavailable in this environment.
+*.png -filter -diff -merge -text

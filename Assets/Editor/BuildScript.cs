@@ -27,11 +27,11 @@ public static class BuildScript
     // 無条件で取り込まれるため、ビルド中だけプロジェクト外 (Builds/.media-excluded) へ退避し、
     // ビルド後に元へ戻す。GameScene の VideoPlayer は yt-dlp で解決したストリーム URL を
     // 再生するため、プレイヤーではローカルの音声・動画を使わない。
+    // loading.mp4 は自作素材 (8.7MB) でローディング画面の本体なので同梱する (Issue #233)。
     private static readonly string[] MediaExcludePaths =
     {
         "Assets/Game/Resources/Musics",
         "Assets/Game/Resources/Videos/UnityYoutube",
-        "Assets/Game/Resources/Videos/loading.mp4",
     };
     private const string MediaExcludeRoot = "Builds/.media-excluded";
 

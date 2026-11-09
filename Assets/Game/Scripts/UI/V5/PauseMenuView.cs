@@ -486,7 +486,7 @@ namespace FlashBeat.UI.V5
             laneLegend.childControlWidth = true;
             laneLegend.childForceExpandWidth = true;
 
-            // 下段: JIS キーボード (Judge.LaneKeys の正本から生成)
+            // 下段: JIS キーボード (KeyBindings.DefaultKeys の正本から生成)
             var keyboard = V5GameUi.Column(keysPage, "Keyboard", 8f * s, TextAnchor.UpperLeft);
             var kbRt = keyboard.GetComponent<RectTransform>();
             kbRt.anchorMin = new Vector2(0.5f, 0.5f);
@@ -495,7 +495,7 @@ namespace FlashBeat.UI.V5
             kbRt.anchoredPosition = new Vector2(0f, -60f * s);
 
             // Lane 1..8 の見出し
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
                 var cap = V5Ui.Panel(laneLegend.gameObject, "Lane " + (lane + 1), new Vector2(0f, 56f * s), LaneColor(lane), V5Tokens.RadiusMedium);
                 var capLe = cap.AddComponent<LayoutElement>();
@@ -510,7 +510,7 @@ namespace FlashBeat.UI.V5
             }
 
             // キー配列 (JIS 上段 / 中段 / 下段)。キーキャップは所属レーンの色で塗る
-            // (KeyBindings が trunk に無いので Judge.LaneKeys が正本)。
+            // (正本は KeyBindings.DefaultKeys。Judge.LaneKeys はそのエイリアス)。
             laneByKey = BuildLaneKeyMap();
             AddKeyRow(keyboard.gameObject, new[] { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\' }, p, s, 0f);
             AddKeyRow(keyboard.gameObject, new[] { 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[' }, p, s, 0.5f);
@@ -521,13 +521,13 @@ namespace FlashBeat.UI.V5
 
         private Dictionary<KeyCode, int> laneByKey;
 
-        /// <summary>Judge.LaneKeys を KeyCode→レーン番号へ展開する。</summary>
+        /// <summary>KeyBindings.DefaultKeys を KeyCode→レーン番号へ展開する。</summary>
         private static Dictionary<KeyCode, int> BuildLaneKeyMap()
         {
             var map = new Dictionary<KeyCode, int>();
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
-                foreach (var key in Judge.LaneKeys[lane])
+                foreach (var key in KeyBindings.DefaultKeys[lane])
                 {
                     if (!map.ContainsKey(key)) map[key] = lane;
                 }
@@ -535,7 +535,7 @@ namespace FlashBeat.UI.V5
             return map;
         }
 
-        /// <summary>キーボード刻印 1 文字 → KeyCode (Judge.LaneKeys が使うものだけ)。</summary>
+        /// <summary>キーボード刻印 1 文字 → KeyCode (KeyBindings.DefaultKeys が使うものだけ)。</summary>
         private static KeyCode CharToKeyCode(char c)
         {
             if (c >= '0' && c <= '9') return KeyCode.Alpha0 + (c - '0');
@@ -608,7 +608,7 @@ namespace FlashBeat.UI.V5
             V5GameUi.LegendItem(legend.gameObject, "↑ ↓", "項目");
             V5GameUi.LegendItem(legend.gameObject, "← →", "値");
             V5GameUi.LegendItem(legend.gameObject, "S D L K", "タブ");
-            V5GameUi.LegendItem(legend.gameObject, "Esc", "再開");
+            V5GameUi.LegendItem(legend.gameObject, ActionKeyHint.Primary(KeyActions.KeyAction.Back), "再開");
         }
 
         private void BuildActions(UISizeProfile p, float s)
@@ -622,19 +622,18 @@ namespace FlashBeat.UI.V5
             actionsRt.sizeDelta = new Vector2(0f, 48f * s);
             actions.childControlWidth = false;
             actions.childControlHeight = false;
-            // リトライ/リタイアはメニュー操作設定 (KeyActions) に従う (0.1.9)。
-            // キーキャップ表示も設定値から生成する (既定: R / Backspace)。
-            AddAction(actions.gameObject, "Retire", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetire)), p, s, () =>
+            // リトライ/リタイア/再開のキャップは KeyActions の現在の割当から生成する (#146/#148)。
+            AddAction(actions.gameObject, "Retire", ActionKeyHint.All(KeyActions.KeyAction.MenuRetire), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetireGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Retry", KeyConfigUI.GetKeysText(KeyActions.Get(KeyActions.KeyAction.MenuRetry)), p, s, () =>
+            AddAction(actions.gameObject, "Retry", ActionKeyHint.All(KeyActions.KeyAction.MenuRetry), p, s, () =>
             {
                 if (sceneManager != null) sceneManager.RetryGame();
                 Close();
             });
-            AddAction(actions.gameObject, "Resume", "Esc", p, s, Close, primary: true);
+            AddAction(actions.gameObject, "Resume", ActionKeyHint.Primary(KeyActions.KeyAction.Back), p, s, Close, primary: true);
         }
 
         private void AddAction(GameObject parent, string label, string key, UISizeProfile p, float s,
@@ -664,6 +663,8 @@ namespace FlashBeat.UI.V5
             // ここでも見る)。Esc は PauseMenuView.Update 側で同じフラグを見る。
             if (open || !InputEnabled) return;
             open = true;
+            // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める (v6 と同じ挙動)。
+            FlashBeat.Gameplay.PauseGate.Enter();
             RefreshValues();
             root.SetActive(true);
             group.blocksRaycasts = true;
@@ -674,6 +675,8 @@ namespace FlashBeat.UI.V5
         {
             if (!open) return;
             open = false;
+            // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
+            FlashBeat.Gameplay.PauseGate.Exit();
             group.blocksRaycasts = false;
             group.alpha = 0f;
             root.SetActive(false);
@@ -806,7 +809,8 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
-            if (InputEnabled && Input.GetKeyDown(KeyCode.Escape))
+            // ポーズの開閉は Back 操作 (#142)。既定は Esc。
+            if (InputEnabled && KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 Toggle();
                 return;

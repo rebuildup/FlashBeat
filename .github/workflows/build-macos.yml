@@ -6,9 +6,12 @@ name: build-macos
 #
 # 前提:
 #   - リポジトリは public なので標準ランナーの Actions は無料。
-#   - Unity ライセンスは secret 経由で渡す。以下のどちらか:
-#       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
+#   - Unity ライセンスは secret 経由で渡す。CI で緑にできる経路は
+#     **アカウント認証のみ** (こちらを優先する):
 #       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
+#       UNITY_LICENSE      : .ulf ライセンスファイル (中身の XML。base64 でも可)
+#           Personal の .ulf は Unity 6000.5 の -manualLicenseFile が未サポートで、
+#           かつ発行元マシンに紐づくため GitHub-hosted runner では成立しない。
 #   - ライセンス未設定は blocker として失敗する。
 
 on:
@@ -19,9 +22,9 @@ on:
         required: false
         default: ""
       update_channel:
-        description: "更新チャンネル (stable | preview)"
+        description: "更新チャンネル (stable | preview)。手動実行は preview を推奨"
         required: false
-        default: "stable"
+        default: "preview"
   push:
     branches:
       - main
@@ -40,6 +43,13 @@ concurrency:
 permissions:
   contents: read
 
+# 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
+#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
+# push と手動実行で同じ式を使わず、push は必ず stable になるよう固定する。
+env:
+  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+
 jobs:
   build:
     name: macOS ビルド
@@ -47,6 +57,7 @@ jobs:
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
+      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4
@@ -94,19 +105,89 @@ jobs:
           echo "UNITY_EDITOR=$editor" >> "$GITHUB_ENV"
           echo "installed: $editor"
 
+      # game-ci/unity-activate は Docker 前提のため GitHub-hosted ランナーでは
+      # そのまま使えない。Unity 公式のライセンス引数を直接使って認証する。
       - name: Unity ライセンスを適用
-        uses: game-ci/unity-activate@v2
-        with:
-          unityLicense: ${{ secrets.UNITY_LICENSE }}
-          unityEmail: ${{ secrets.UNITY_EMAIL }}
-          unityPassword: ${{ secrets.UNITY_PASSWORD }}
-          unitySerial: ${{ secrets.UNITY_SERIAL }}
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/activate.log"
+          has_ulf=0; [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
+          has_account=0; { [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ]; } && has_account=1
+          # UTF-8 BOM (EF BB BF) を除いた文字列を返す。.ulf は BOM 付きで
+          # 保存されていることがあり、BOM のままだと「先頭が '<' ではない」
+          # ので base64 と誤判定され「XML ではない」と拒否されてしまう。
+          strip_bom() {
+            local s="$1" bom
+            [ -n "$s" ] || { printf '%s' ""; return; }
+            bom="$(printf '%s' "$s" | head -c 3 | od -An -tx1 | tr -d ' \n')"
+            if [ "$bom" = "efbbbf" ]; then
+              printf '%s' "$s" | tail -c +4
+            else
+              printf '%s' "$s"
+            fi
+          }
+          # アカウント認証を優先する。.ulf は発行元マシンに紐づくため
+          # GitHub-hosted runner では machine binding mismatch で失敗する。
+          # base64 を復号する。GNU coreutils は --decode、macOS の BSD 版は -D。
+          decode_base64() {
+            local out
+            out="$(printf '%s' "$1" | base64 --decode 2>/dev/null || true)"
+            if [ -z "$out" ]; then
+              out="$(printf '%s' "$1" | base64 -D 2>/dev/null || true)"
+            fi
+            printf '%s' "$out"
+          }
+          if [ "$has_account" -eq 1 ]; then
+            args=(-batchmode -quit -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD")
+            [ -n "${UNITY_SERIAL:-}" ] && args+=(-serial "$UNITY_SERIAL")
+            "$UNITY_EDITOR" "${args[@]}" -logFile "$log"
+            code=$?
+          elif [ "$has_ulf" -eq 1 ]; then
+            # secret は「.ulf の XML」か「base64」のどちらでも受ける
+            raw="$(strip_bom "$UNITY_LICENSE")"
+            case "$(printf '%s' "$raw" | tr -d ' \n' | cut -c1)" in
+              "<") content="$raw" ;;
+              *) content="$(decode_base64 "$raw")" ;;
+            esac
+            # base64 復号後にも BOM が残りうるので、もう一度除去する
+            content="$(strip_bom "$content")"
+            case "$(printf '%s' "$content" | tr -d ' \n' | cut -c1)" in
+              "<") ;;
+              *) echo "::error title=Unity license required::UNITY_LICENSE の内容が .ulf XML ではありません"; exit 1 ;;
+            esac
+            # Personal ライセンス (.ulf) は Unity 6000.5 の -manualLicenseFile では
+            # サポートされた認証経路ではない (Account 認証を使う)。推測で
+            # 失敗させず、原因を特定して対処を指示する。
+            if printf '%s' "$content" | grep -qi 'Value="Personal"' ||
+               printf '%s' "$content" | grep -qi 'SerialMasked Value="XXXX'; then
+              echo "::error title=Unity Personal license is not supported::UNITY_LICENSE は Personal ライセンスの .ulf です。Unity 6000.5 は Personal の手動激活 (-manualLicenseFile) をサポートしていません。UNITY_EMAIL / UNITY_PASSWORD (Actions Secrets) を登録してアカウント認証してください。"
+              exit 1
+            fi
+            ulf="$RUNNER_TEMP/Unity_lic.ulf"
+            printf '%s' "$content" > "$ulf"
+            "$UNITY_EDITOR" -batchmode -quit -nographics -manualLicenseFile "$ulf" -logFile "$log"
+            code=$?
+          else
+            echo "::error title=Unity license required::Unity ライセンス認証情報がありません"
+            exit 1
+          fi
+          [ -f "$log" ] && tail -60 "$log"
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=Unity activation failed::Unity ライセンス認証に失敗しました (exit $code)"
+            exit 1
+          fi
 
       - name: macOS ビルド
         shell: bash
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'stable' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
           log="$RUNNER_TEMP/build.log"
           "$UNITY_EDITOR" -batchmode -quit \

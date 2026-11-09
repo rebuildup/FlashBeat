@@ -87,3 +87,10 @@ PerformanceTestRunSettings.json
 # Unity batchmode / worktree ローカル生成物
 TestResults*.xml
 FlashBeat.*.slnx
+
+dist/
+__pycache__/
+__pycache__/
+
+# Node/Bun 依存 (package.json / bun.lock は追跡する)
+node_modules/

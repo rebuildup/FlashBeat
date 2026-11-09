@@ -1,14 +1,19 @@
 name: build-win64
 
-# 展示中も Unity 本体のビルドを展示 PC 以外で行い，展示ビルドの ZIP と
+# 展示中も Unity 本体のビルドを展示 PC 以外で行い、展示ビルドの ZIP と
 # SHA-256 を GitHub Releases の材料として出すための経路 (issue #41 / P3)。
 #
 # 前提:
-#   - リポジトリは public なので標準ランナー (windows-latest) の-actions は無料。
-#   - Unity のライセンスは secret 経由で渡す。以下のどちらか:
-#       UNITY_LICENSE      : base64 化した .ulf ライセンスファイル
-#       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
+#   - リポジトリは public なので GitHub-hosted (windows-latest) ランナーは無料。
+#   - Unity のライセンスは secret 経由で渡す。CI で緑にできる経路は **(B) のみ**:
+#       (B) UNITY_EMAIL / UNITY_PASSWORD ( + 有償ライセンスなら UNITY_SERIAL )
+#           Unity アカウントでのライセンス認証用。**こちらを優先する**。
+#       (A) UNITY_LICENSE : .ulf ライセンスファイル (中身の XML, または base64)。
+#           Personal の .ulf は Unity 6000.5 の -manualLicenseFile が未サポートで、
+#           かつ発行元マシンに紐づくため GitHub-hosted runner では成立しない。
+#           設定されていても Personal なら明示的にエラーにする。
 #   - ライセンス未設定は blocker として失敗する。緑は成果物生成成功だけを表す。
+#   - 展示 Windows PC は CI の self-hosted runner として使わない (展示と干渉するため)。
 
 on:
   workflow_dispatch:
@@ -18,9 +23,13 @@ on:
         required: false
         default: ""
       update_channel:
-        description: "更新チャンネル (stable | preview)"
+        description: "更新チャンネル (stable | preview)。手動実行は preview を推奨"
         required: false
-        default: "stable"
+        default: "preview"
+      run_tests:
+        description: "EditMode テストを先に実行するか (true | false)"
+        required: false
+        default: "true"
   push:
     branches:
       - main
@@ -37,68 +46,259 @@ concurrency:
 permissions:
   contents: read
 
+# 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
+#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
+env:
+  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+
 jobs:
+  # ライセンス未設定を数分で検出するため、Unity を導入する前に落とす。
+  license-precheck:
+    name: ライセンス設定の確認
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: ソースを取得 (summary 文面の取得用)
+        uses: actions/checkout@v4
+
+      - name: 必要な secret があるか確認
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set -euo pipefail
+          has_ulf=0; has_account=0
+          [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
+          { [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ]; } && has_account=1
+          if [ "$has_account" = 1 ]; then
+            echo "Unity アカウント認証情報が設定されています。"
+            exit 0
+          fi
+          if [ "$has_ulf" = 1 ]; then
+            # .ulf は発行元マシンに紐づく。GitHub-hosted runner では必ず
+            # machine binding mismatch で失敗する (実測 2026-11-08)。
+            cat .github/workflows/summaries/unity-license-account-required.md >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Unity license machine-binding mismatch::UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。"
+            exit 1
+          fi
+          cat .github/workflows/summaries/unity-license-missing.md >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Unity license required::UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。"
+          exit 1
+
   build:
     name: Win64 ビルド
+    needs: license-precheck
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
+      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Unity ライセンスの secret を確認
+      - name: Unity Editor をインストール (Hub 不使用)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Hub を経由せず、エディタ本体のインストーラを直接入れる。
+          # revision は Unity リリース API で確認済みの 6000.5.6f1 のもの。
+          $rev = '0e0577a1a2ac'
+          $exe = "$env:RUNNER_TEMP\UnitySetup64-$($env:UNITY_VERSION).exe"
+          $url = "https://download.unity3d.com/download_unity/$rev/Windows64EditorInstaller/UnitySetup64-$($env:UNITY_VERSION).exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe
+          # ダウンロードした実行ファイルは Mark-of-the-Web でブロックされることがあるため解除する。
+          Unblock-File -Path $exe
+          # /D= は引用符なし・空白を含まないパスのみ有効。ランナーの D: (一時 disk) は
+          # 空きが大きく、Program Files と違って昇格 (UAC) 不要で書き込める。
+          $dest = 'D:\Unity\Editor\6000.5.6f1'
+          $proc = Start-Process -FilePath $exe -ArgumentList "/S /D=$dest" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Unity Editor インストーラが exit $($proc.ExitCode) で失敗しました" }
+          $unityExe = "$dest\Editor\Unity.exe"
+          if (-not (Test-Path $unityExe)) { throw "Unity Editor をインストールできませんでした ($unityExe が見つかりません)" }
+          "UNITY_EDITOR=$unityExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "UNITY_EDITOR_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Output "installed: $unityExe"
+
+      # game-ci/unity-activate は Docker 前提のため GitHub-hosted Windows ランナーでは
+      # そのまま使えない。Unity の公式ライセンス引数 (-manualLicenseFile / -username) を
+      # 直接使って認証する。
+      - name: Unity ライセンスを適用
         shell: pwsh
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
-          $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
-          $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
-          if (-not ($hasUlf -or $hasAccount)) {
-            "## Win64 build blocked`nUnity ライセンス未設定のため Win64 ビルドは未生成です。UNITY_LICENSE または UNITY_EMAIL / UNITY_PASSWORD を設定してください。" >> $env:GITHUB_STEP_SUMMARY
-            Write-Output "::error title=Unity license required::Win64 artifact was not generated. Configure UNITY_LICENSE or UNITY_EMAIL / UNITY_PASSWORD."
-            exit 1
+          $ErrorActionPreference = 'Stop'
+          $log = "$env:RUNNER_TEMP\activate.log"
+          $lic = "$env:ProgramData\Unity\Unity_lic.ulf"
+          # Unity が起動早期に Caches ディレクトリを作ろうとして失敗するケースへの対策:
+          # 必要なディレクトリを作成しておき、作業ディレクトリも明示しておく。
+          # (実測: CreateDirectory 'C:/Users/runneradmin/AppData/Local/Unity/Caches' failed
+          #  で Unity が落ち、$LASTEXITCODE も空になりジョブが失敗した)
+          foreach ($dir in @(
+            "$env:LOCALAPPDATA\Unity",
+            "$env:LOCALAPPDATA\Unity\Caches",
+            "$env:APPDATA\Unity",
+            "$env:ProgramData\Unity"
+          )) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          }
+          Push-Location $env:GITHUB_WORKSPACE
+          try {
+            $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
+            $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
+            # アカウント認証を優先する。Personal ライセンスの .ulf は
+            #   - Unity 6000.5 の -manualLicenseFile がサポートされていない
+            #   - .ulf 自体が発行元マシンに紐づく (GitHub-hosted runner では
+            #     machine binding mismatch で必ず失敗する: 実測 2026-11-08,
+            #     run 42470147986)
+            # ため、CI で緑にできる経路はアカウント認証だけ。
+            if ($hasAccount) {
+              $activateArgs = @("-batchmode", "-quit", "-nographics", "-username", $env:UNITY_EMAIL, "-password", $env:UNITY_PASSWORD)
+              if (-not [string]::IsNullOrWhiteSpace($env:UNITY_SERIAL)) { $activateArgs += @("-serial", $env:UNITY_SERIAL) }
+              & $env:UNITY_EDITOR @activateArgs -logFile $log
+              $code = $LASTEXITCODE
+            } elseif ($hasUlf) {
+              # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
+              # UTF-8 BOM (EF BB BF) が付いた .ulf があり、BOM のままだと
+              # 先頭が '<' ではなく base64 と誤判定される。BOM は除去する。
+              $raw = $env:UNITY_LICENSE
+              $content = $null
+              # 先頭の空白と UTF-8 BOM を除去する (BOM 由来の U+FEFF と、
+              # バイト列のまま解釈された EF BB BF の両方に対応する)。
+              $trimmed = $raw.TrimStart()
+              $trimmed = $trimmed.TrimStart([char]0xFEFF).TrimStart()
+              if ($trimmed.StartsWith([char]0xEF) -and $trimmed.Length -ge 3 -and
+                  $trimmed[1] -eq [char]0xBB -and $trimmed[2] -eq [char]0xBF) {
+                $trimmed = $trimmed.Substring(3).TrimStart()
+              }
+              if ($trimmed.StartsWith("<")) {
+                $content = $trimmed
+              } else {
+                try { $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($trimmed)) }
+                catch { throw "UNITY_LICENSE が XML でも base64 でもありません (secret の内容を確認してください)" }
+              }
+              # base64 復号後にも BOM が残りうるので、もう一度除去する
+              $content = $content.TrimStart()
+              $content = $content.TrimStart([char]0xFEFF).TrimStart()
+              if ($content.StartsWith([char]0xEF) -and $content.Length -ge 3 -and
+                  $content[1] -eq [char]0xBB -and $content[2] -eq [char]0xBF) {
+                $content = $content.Substring(3).TrimStart()
+              }
+              if (-not $content.StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
+              # Personal ライセンス (.ulf) は Unity 6000.5 の -manualLicenseFile では
+              # サポートされた認証経路ではない (Account 認証を使う)。推測で失敗させず、
+              # 原因を特定して対処を指示する。
+              if ($content -match 'Value="Personal"' -or $content -match 'SerialMasked Value="XXXX') {
+                throw "UNITY_LICENSE は Personal ライセンスの .ulf です。Unity 6000.5 は Personal の手動激活 (-manualLicenseFile) をサポートしていません。UNITY_EMAIL / UNITY_PASSWORD (Actions Secrets) を登録してアカウント認証してください。"
+              }
+              $ulf = "$env:RUNNER_TEMP\Unity_lic.ulf"
+              [IO.File]::WriteAllText($ulf, $content, (New-Object Text.UTF8Encoding($false)))
+              & $env:UNITY_EDITOR -batchmode -quit -nographics -manualLicenseFile $ulf -logFile $log
+              $code = $LASTEXITCODE
+            } else {
+              throw "Unity ライセンス認証情報がありません (UNITY_EMAIL / UNITY_PASSWORD を Actions Secrets に登録してください)"
+            }
+          } finally {
+            Pop-Location
+          }
+          if (Test-Path $log) { Get-Content $log -Tail 60 }
+
+          # --- 認証結果の判定 -------------------------------------------------
+          # 実測 (2026-11-08, run 42470147986) の教训:
+          #   認証そのものは exit 0 で終わるのに、後続の Editor 起動が
+          #     [Licensing::Client] Error: Code 400 ... (status: Machine bindings don't match)
+          #     No valid Unity Editor license found. Please activate your license. (exit 198)
+          # で失敗することがある。UNITY_LICENSE の .ulf は **発行元マシンに紐づく** ため、
+          # GitHub-hosted runner (毎回別マシン) では機械結合が一致しない。
+          # つまり「.ulf を ProgramData に置けば通る」わけではない — 置いただけでは
+          # 次の Editor 起動は 198 で落ちる。ライセンスファイルの有無で成功判定すると
+          # Lie になるため、**Unity が実際にライセンスを認識したか** で判定する。
+          $bindingMismatch = $false
+          if (Test-Path $log) {
+            $bindingMismatch = (Select-String -Path $log -Pattern "Machine bindings don't match" -Quiet)
+          }
+          if ($bindingMismatch) {
+            Get-Content .github/workflows/summaries/unity-license-binding-mismatch.md -Raw |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            throw "Unity ライセンスの機械結合が一致しません (machine binding mismatch)。UNITY_EMAIL / UNITY_PASSWORD の secret 登録が必要です。"
           }
 
-      - name: Unity Hub CLI を準備
+          if ($code -ne 0) {
+            throw "Unity ライセンス認証に失敗しました (exit $code)。認証ログ: $log"
+          }
+          if (-not (Test-Path $lic)) {
+            throw "ライセンスファイルが作成されませんでした ($lic)。認証ログ: $log"
+          }
+          # ライセンスファイルがあるだけでは不十分。Editor が実際にライセンスを
+          # 認識できるかを確認するため、短いバッチ起動で検証する
+          # (機械結合不一致はここで exit 198 になる)。
+          & $env:UNITY_EDITOR -batchmode -quit -nographics -logFile "$env:RUNNER_TEMP\license-check.log"
+          $checkCode = $LASTEXITCODE
+          if (Test-Path "$env:RUNNER_TEMP\license-check.log") {
+            Get-Content "$env:RUNNER_TEMP\license-check.log" -Tail 30
+          }
+          if ($checkCode -ne 0) {
+            throw "ライセンスはファイルとして存在するが Unity が認識しません (exit $checkCode)。機械結合不一致の可能性が高いです。認証ログ: $log"
+          }
+          Write-Output "license file present: True"
+
+      - name: EditMode テスト
+        if: ${{ inputs.run_tests != 'false' }}
         shell: pwsh
         run: |
-          $installer = "$env:RUNNER_TEMP\UnityHubSetup.exe"
-          Invoke-WebRequest -Uri "https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe" -OutFile $installer
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
-          $hub = "$env:ProgramFiles\Unity Hub\Unity Hub.exe"
-          if (-not (Test-Path $hub)) { throw "Unity Hub をインストールできませんでした" }
-          "UNITY_HUB=$hub" >> $env:GITHUB_ENV
+          $results = "$env:RUNNER_TEMP\TestResults.xml"
+          # -quit を付けるとテストランナーが起動する前に Editor が終了する (仕様)。
+          & $env:UNITY_EDITOR -batchmode -projectPath "$env:GITHUB_WORKSPACE" `
+              -runTests -testPlatform editmode -testResults $results -logFile "$env:RUNNER_TEMP\test.log"
+          if (-not (Test-Path $results)) {
+            if (Test-Path "$env:RUNNER_TEMP\test.log") { Get-Content "$env:RUNNER_TEMP\test.log" -Tail 100 }
+            throw "TestResults.xml が生成されていません (テストが実行されていない可能性が高い)"
+          }
+          [xml]$xml = Get-Content $results
+          $total = $xml."test-run".total; $passed = $xml."test-run".passed; $failed = $xml."test-run".failed
+          Write-Output "tests total=$total passed=$passed failed=$failed"
+          # '//test-case' で全階層 (入れ子の fixture / sub-suite 内の test-case も)
+          # を列挙する。test-run 直下の test-suite だけを見ると入れ子の失敗が漏れる。
+          $failedCases = @(Select-Xml -Xml $xml -XPath '//test-case' |
+            ForEach-Object { $_.Node } |
+            Where-Object { $_.result -ne 'Passed' })
+          $summary = "## EditMode テスト`n`ntotal=$total passed=$passed failed=$failed`n"
+          if ($failedCases.Count -gt 0) {
+            $summary += "`n### 失敗したテスト`n"
+            foreach ($case in $failedCases) {
+              Write-Output "FAIL $($case.fullname)"
+              $summary += "- $($case.fullname)`n"
+            }
+          }
+          $summary >> $env:GITHUB_STEP_SUMMARY
+          if ([int]$failed -gt 0) { throw "EditMode テストが $failed 件失敗しました" }
 
-      - name: Unity Editor をインストール
-        shell: pwsh
-        run: |
-          & $env:UNITY_HUB -- --headless install --version "$env:UNITY_VERSION"
-          $editor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor" -Directory |
-                    Where-Object { $_.Name -like "$env:UNITY_VERSION*" } |
-                    Select-Object -First 1
-          if (-not $editor) { throw "Unity $env:UNITY_VERSION をインストールできませんでした" }
-          "UNITY_EDITOR=$($editor.FullName)\Editor\Unity.exe" >> $env:GITHUB_ENV
-          Write-Output "installed: $($editor.FullName)"
-
-      - name: Unity ライセンスを適用
-        uses: game-ci/unity-activate@v2
+      - name: テスト結果と Unity ログを保存
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
-          unityLicense: ${{ secrets.UNITY_LICENSE }}
-          unityEmail: ${{ secrets.UNITY_EMAIL }}
-          unityPassword: ${{ secrets.UNITY_PASSWORD }}
-          unitySerial: ${{ secrets.UNITY_SERIAL }}
+          name: flashbeat-editmode-tests-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/TestResults.xml
+            ${{ runner.temp }}/test.log
+            ${{ runner.temp }}/activate.log
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Win64 ビルド
         shell: pwsh
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'stable' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
           $log = "$env:RUNNER_TEMP\build.log"
           & $env:UNITY_EDITOR -batchmode -nographics -quit `
@@ -136,6 +336,7 @@ jobs:
           $actual = (Get-FileHash $zips[0].FullName -Algorithm SHA256).Hash
           if ($expected -ne $actual) { throw "ZIP SHA-256 mismatch" }
           Get-ChildItem $out | Select-Object Name, Length
+          "## Win64 ビルド成果物`n`n- 対象 SHA: $full`n- バージョン: $base-win64-$sha`n- 更新チャンネル: $env:FLASHBEAT_UPDATE_CHANNEL`n- SHA-256: $actual" >> $env:GITHUB_STEP_SUMMARY
 
       - name: 成果物をアップロード
         uses: actions/upload-artifact@v4

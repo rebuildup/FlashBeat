@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
@@ -9,6 +10,17 @@ using FlashBeat.UI.V6;
 /// The screen itself is built as uGUI objects inside TitleScene.unity
 /// (see design/flashbeat-ui.pen); this script only owns the input handling,
 /// the scene transitions and the catalog status chip.
+///
+/// v6 タイトル (Issue #239) の統合担当:
+///  - v6 (V6TitleView.Enabled) のときは v6 のタイトルを新しい Canvas に描き、
+///    旧 (シーン配置) の Canvas は非アクティブにして二重表示を止める。
+///    動画 (VideoPlayer "Screen") はシーン直下の 3D オブジェクトなので、
+///    Canvas を隠しても動画と背景は映り続ける。
+///  - v6 を無効にしたときは旧タイトルをそのまま動かす (シーン配置のボタンの
+///    onClick は TitleSceneManager.SelectScene / OptionScene / EndGame に結線済み)。
+///  - キー入力は TitleSceneManager.Update だけが受け持つ (二重処理防止)。
+///    v5 の TitleView (コード生成) はどこからも作られていないので、
+///    旧 UI 側の入力ハンドラは存在しない。
 /// </summary>
 public class TitleSceneManager : MonoBehaviour
 {
@@ -18,9 +30,19 @@ public class TitleSceneManager : MonoBehaviour
     private AudioSource sounds;
     private FlashBeat.UI.V6.Title.V6TitleView titleView;
 
+    // History / Ranking タブの操作が設定されているか (描画の切り替えに使う)。
+    private bool historyAvailable;
+    private bool rankingAvailable;
+
     void Start()
     {
-        // 保存済みの設定 (音量 / ノーツ速度 / 判定幅) を復元する (Issue #167)。
+        // Issue #239: History / Ranking タブの遷移先を設定する。
+        // タブは操作 (フック) が設定されているときだけ描かれる。
+        // 遷移先は Select シーンなので、要求は PendingEntry 経由で渡す。
+        FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested = OnHistoryRequested;
+        FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested = OnRankingRequested;
+
+        // 保存済み設定 (音量 / ノーツ速度 / 判定幅) の復元 (Issue #167)。
         // 以前は GManager.noteTiming-- と OptionSceneManager.TimingUp() で
         // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
         OptionSettings.Load();
@@ -28,35 +50,222 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
-        // タイトルは v5 のコード生成 UI も、シーン配置の旧 UI も使わない。
-        // (オーナー指示 2026-11-08: v5 を撤回して元の動画を再生するだけにする。)
-        // 旧 UI は画面サイズに追従せず、左下に F2/F5 の案内が常時残るので、
-        // Canvas を隠して動画 (VideoPlayer "Screen") だけを見せる。
-        // 遷移は下の Update (Start / Option / Exit) が受け持つ。
-        // タイトルは v6 のコード生成 UI を使う (オーナー指示 2026-11-08 の「動画を再生するだけ」から
-        // 全シーン v6 化へ方針変更)。動画 (VideoPlayer "Screen") は消さない — v6 の UI はその上に重なる。
-        var legacy = GameObject.Find("Canvas");
+        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
+        {
+            BuildV6Title();
+        }
+        else
+        {
+            BuildLegacyTitle();
+        }
+    }
+
+    /// <summary>
+    /// v6 のタイトルを組み立てる。旧 (シーン配置) の UI と同じ画面には出さない。
+    /// </summary>
+    private void BuildV6Title()
+    {
+        // 旧 UI (シーン配置の Canvas) を隠す。動画 (VideoPlayer "Screen") と
+        // 背景 (BackGround) は 3D オブジェクトなので影響を受けない。
+        var legacy = FindLegacyCanvas();
         if (legacy != null)
         {
-            legacy.SetActive(true);
-            if (legacy.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
-            {
-                legacy.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-            }
+            legacy.SetActive(false);
         }
 
         var canvasRect = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Title Canvas").GetComponent<RectTransform>();
         titleView = FlashBeat.UI.V6.Title.V6TitleView.Create(canvasRect, SelectScene, OptionScene, EndGame);
+        RefreshPanelHandlers();
+
+        // v6 ビュー自身がキー操作を担うので、Unity の自動ナビゲーションは切る。
         FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvasRect.GetComponentInParent<Canvas>());
 
         // 旧 UI の残骸 (左下の F5/F2 案内) を隠す。更新ピル (UpdateNoticeCanvas) は残す。
         HideLegacyTitleDecorations();
     }
 
+    /// <summary>v6 を無効にしたときは旧 (シーン配置) のタイトルをそのまま動かす。</summary>
+    private void BuildLegacyTitle()
+    {
+        var legacy = FindLegacyCanvas();
+        if (legacy != null)
+        {
+            legacy.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// シーン配置の旧 Canvas ("Canvas") を探す。非アクティブな Canvas も含めて
+    /// 探す (隠したあとに GameObject.Find で見つからなくなるため)。
+    /// </summary>
+    private static GameObject FindLegacyCanvas()
+    {
+        var canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            if (canvases[i] != null && canvases[i].gameObject.name == "Canvas")
+            {
+                return canvases[i].gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// History / Ranking タブの操作を反映する。フック (V6TitleLinks) が
+    /// 設定されている間だけタブを描く。設定が変わったら描き直す。
+    /// </summary>
+    private void RefreshPanelHandlers()
+    {
+        bool history = FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested != null;
+        bool ranking = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested != null
+            || FlashBeat.UI.V5.TitleLinks.RankingRequested != null;
+        if (history == historyAvailable && ranking == rankingAvailable)
+        {
+            return;
+        }
+
+        historyAvailable = history;
+        rankingAvailable = ranking;
+        if (titleView != null)
+        {
+            titleView.SetPanelHandlers(history ? (Action)InvokeHistory : null,
+                ranking ? (Action)InvokeRanking : null);
+        }
+    }
+
+    private void InvokeHistory()
+    {
+        var hook = FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested;
+        if (hook != null)
+        {
+            hook();
+        }
+    }
+
+    private void InvokeRanking()
+    {
+        var hook = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested;
+        if (hook != null)
+        {
+            hook();
+            return;
+        }
+
+        var legacyHook = FlashBeat.UI.V5.TitleLinks.RankingRequested;
+        if (legacyHook != null)
+        {
+            legacyHook();
+        }
+    }
+
+    // --- History / Ranking タブからの遷移 (Issue #239) ---
+
+    /// <summary>
+    /// Title の History タブ / H キー。要求を PendingEntry に積んでから
+    /// SelectScene へ遷移する (SelectSceneManager が Start で消費して History を開く)。
+    /// </summary>
+    private void OnHistoryRequested()
+    {
+        SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.History);
+    }
+
+    /// <summary>Ranking タブ / R キー。同上 (Ranking を開く)。</summary>
+    private void OnRankingRequested()
+    {
+        SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.Ranking);
+    }
+
+    private void SetV6Entry(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen screen)
+    {
+        FlashBeat.UI.V6.Title.V6TitleLinks.PendingEntry = screen;
+        SelectScene();
+    }
+
+    void OnDestroy()
+    {
+        // 静的フックはシーンをまたいで残るので、このシーンのインスタンスの
+        // 分だけ解除する (dangling delegate の防止)。
+        if (FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested == OnHistoryRequested)
+        {
+            FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested = null;
+        }
+        if (FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested == OnRankingRequested)
+        {
+            FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested = null;
+        }
+    }
+
     void Update()
     {
-        // 元の画面 (ボタン) のキーボード操作。タイトルは動画が流れるだけの画面なので、
-        // 最小限の入力だけ受け持つ。
+        if (titleView == null)
+        {
+            HandleLegacyInput();
+            return;
+        }
+
+        // 履歴 / ランキングのフックが後から設定された場合にタブを出す。
+        RefreshPanelHandlers();
+
+        // オーバーレイ (キー設定 / 更新通知) が開いた直後のフレームは
+        // 背面(scene) 側の入力を捨てる (二重処理防止)。
+        if (!FlashBeat.UI.SceneInputGate.InputAllowed)
+        {
+            return;
+        }
+
+        // タブの選択 (↑↓ / W / S)。
+        // GetKeyDownOrInjected: 入力注入 (自動テスト / Web 版) のキーも拾う。
+        if (KeyBindings.GetKeyDownOrInjected(KeyCode.UpArrow) || KeyBindings.GetKeyDownOrInjected(KeyCode.W))
+        {
+            titleView.MoveSelection(-1);
+            return;
+        }
+
+        if (KeyBindings.GetKeyDownOrInjected(KeyCode.DownArrow) || KeyBindings.GetKeyDownOrInjected(KeyCode.S))
+        {
+            titleView.MoveSelection(1);
+            return;
+        }
+
+        // History / Ranking タブ (KeyCap H / R — V6TitleLogic の固定キー)。
+        if (historyAvailable && KeyBindings.GetKeyDownOrInjected(FlashBeat.UI.V6.Title.V6TitleLogic.HistoryTabKeyCode))
+        {
+            InvokeHistory();
+            return;
+        }
+        if (rankingAvailable && KeyBindings.GetKeyDownOrInjected(FlashBeat.UI.V6.Title.V6TitleLogic.RankingTabKeyCode))
+        {
+            InvokeRanking();
+            return;
+        }
+
+        // 決定 (実キーの割り当てに従う: KeyActions.Start)。
+        if (KeyActions.IsDown(KeyActions.KeyAction.Start))
+        {
+            titleView.ActivateSelected();
+            return;
+        }
+
+        if (KeyActions.IsDown(KeyActions.KeyAction.Option))
+        {
+            OptionScene();
+            return;
+        }
+
+        if (KeyActions.IsDown(KeyActions.KeyAction.Exit) || KeyBindings.GetKeyDownOrInjected(KeyCode.Escape))
+        {
+            EndGame();
+        }
+    }
+
+    /// <summary>
+    /// v6 を無効にしたときの入力 (旧タイトル用)。決定は選曲へ、
+    /// Option は設定へ、終了 (Exit / Esc) は強制終了。
+    /// </summary>
+    private void HandleLegacyInput()
+    {
         if (KeyActions.IsDown(KeyActions.KeyAction.Start) || Input.GetKeyDown(KeyCode.Return)
             || Input.GetKeyDown(KeyCode.Space))
         {

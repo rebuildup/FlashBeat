@@ -33,13 +33,25 @@ public class Notes : MonoBehaviour
     private bool v6Attached;
     private Image headImage;
     private Image bodyImage;
+    private MeshRenderer meshRenderer;
+    private BoxCollider boxCollider;
 
     void Start()
     {
         noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, GManager.noteSpeed);
 
         // NotesManager が x = block - 3.5 で生成する (Judge.EffectPosition と同じ写像)。
-        lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x + 3.5f), 0, V6LaneGeometry.LaneCount - 1);
+        lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x - Judge.LaneFirstCenterX), 0, V6LaneGeometry.LaneCount - 1);
+
+        meshRenderer = GetComponentInChildren<MeshRenderer>();
+        boxCollider = GetComponent<BoxCollider>();
+
+        // v6 プレイフィールド有効時は 3D のノーツは描かない (最初から隠す)。
+        // uGUI のノーツは接続できたフレームから描かれる。
+        if (FlashBeat.UI.V6.V6UiMode.Playfield)
+        {
+            SetMeshVisible(false);
+        }
 
         ApplyHoldLength();
     }
@@ -53,6 +65,10 @@ public class Notes : MonoBehaviour
 
         if (GManager.Start)
         {
+            // Issue #224: ポーズ中は譜面を進めない。step_time が固定されていても
+            // 明示的にガードする (remaining の再計算と v6 描画更新を止める)。
+            if (PauseGate.IsPaused) return;
+
             // The notes follow the media clock (GManager.step_time), not the frame
             // clock: a buffering stall holds the notes instead of letting them run
             // ahead of the music, and the note reaches the hit line exactly when
@@ -61,6 +77,13 @@ public class Notes : MonoBehaviour
 
             if (!v6Attached)
             {
+                if (FlashBeat.UI.V6.V6UiMode.Playfield)
+                {
+                    // v6 プレイフィールド有効時は 3D には描かない
+                    // (旧 3D レーンは隠れるので、3D ノーツだけが中途半端に見える)。
+                    SetMeshVisible(false);
+                }
+
                 TryAttachV6();
             }
 
@@ -68,7 +91,7 @@ public class Notes : MonoBehaviour
             {
                 UpdateV6Visual(remaining);
             }
-            else
+            else if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
                 float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, GManager.noteSpeed);
                 transform.position = new Vector3(transform.position.x, transform.position.y, z);
@@ -87,24 +110,49 @@ public class Notes : MonoBehaviour
         V6PlayfieldView view = V6PlayfieldView.Current;
         if (view == null || view.NoteLayer == null)
         {
+            // ビューはシーン起動時に生成される。作り終わるまで毎フレーム再試行する。
             return;
         }
 
-        MeshRenderer meshRenderer = GetComponentInChildren<MeshRenderer>();
-        if (meshRenderer != null)
+        // 3D の描画は uGUI に置き換わる (ノーツの判定は時刻だけで行うので
+        // コライダーは不要)。
+        SetMeshVisible(false);
+        if (boxCollider != null && boxCollider.enabled)
         {
-            meshRenderer.enabled = false;
+            boxCollider.enabled = false;
         }
 
-        BoxCollider collider = GetComponent<BoxCollider>();
-        if (collider != null)
-        {
-            collider.enabled = false;
-        }
+        // 前回の接続が残っている場合 (ビューが作り直された) は作り直す。
+        DestroyNoteImages();
 
         headImage = CreateNoteImage(view.NoteLayer, "Head");
         bodyImage = holdSeconds > 0f ? CreateNoteImage(view.NoteLayer, "Body") : null;
         v6Attached = true;
+    }
+
+    /// <summary>3D のメッシュの表示を切り替える。</summary>
+    private void SetMeshVisible(bool visible)
+    {
+        if (meshRenderer != null && meshRenderer.enabled != visible)
+        {
+            meshRenderer.enabled = visible;
+        }
+    }
+
+    /// <summary>uGUI のノーツ Image を破棄する (ビュー消滅時の付け直し用)。</summary>
+    private void DestroyNoteImages()
+    {
+        if (headImage != null)
+        {
+            Destroy(headImage.gameObject);
+            headImage = null;
+        }
+
+        if (bodyImage != null)
+        {
+            Destroy(bodyImage.gameObject);
+            bodyImage = null;
+        }
     }
 
     private static Image CreateNoteImage(RectTransform parent, string name)
@@ -133,13 +181,14 @@ public class Notes : MonoBehaviour
         V6PlayfieldView view = V6PlayfieldView.Current;
         if (view == null)
         {
-            // ビューが消えた (シーン遷移等) ので 3D 描画に戻す。
+            // ビューが消えた (シーン遷移等) ので、次フレームで付け直す。
+            // v6 有効時は 3D に戻さない (旧 3D レーンは隠れている)。
             v6Attached = false;
-            MeshRenderer meshRenderer = GetComponentInChildren<MeshRenderer>();
-            if (meshRenderer != null)
+            if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
-                meshRenderer.enabled = true;
+                SetMeshVisible(true);
             }
+
             return;
         }
 
@@ -157,13 +206,13 @@ public class Notes : MonoBehaviour
 
         SetImagesEnabled(true);
 
-        if (!V6LaneGeometry.TryLanePoint(lane, tHead, out Vector2 headDesign, out float scale))
+        if (!V6LaneGeometry.TryLanePoint(lane, tHead, out Vector2 headDesign, out _))
         {
             return;
         }
 
-        float widthDesign = V6LaneGeometry.LaneCentreBottomStep * scale * V6LaneGeometry.NoteWidthRatio;
-        float thicknessDesign = widthDesign * V6LaneGeometry.NoteThicknessRatio;
+        float widthDesign = V6LaneGeometry.NoteWidthAt(tHead);
+        float thicknessDesign = V6LaneGeometry.NoteThicknessAt(tHead);
         float px = view.PixelsPerDesignPixel;
         Vector2 headLocal = view.DesignToLocal(headDesign);
 

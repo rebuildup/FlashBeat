@@ -40,7 +40,7 @@ public class AutoTestKeyGuide : MonoBehaviour
 
         if (guide != null)
         {
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
                 string row = guide.GetRowLabel(lane);
                 bool ok = !string.IsNullOrEmpty(row);

@@ -1,6 +1,7 @@
 import type { SongSummary } from "@/app/types";
 import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { CloudUpload } from "lucide-react";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
 import { Button, Toaster, toaster } from "@/components/ui";
 import { css } from "styled-system/css";
@@ -232,6 +233,12 @@ const sideTitle = css({
   fontSize: "xs",
   fontWeight: "medium",
   margin: "0",
+});
+
+/** The icon of the review button. */
+const buttonIcon = css({
+  color: "currentColor",
+  flexShrink: 0,
 });
 
 const NO_TOUCHED: Record<SongMetadataField, boolean> = {
@@ -539,6 +546,7 @@ export function SongPublisher({
               ) : null}
 
               <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
+                <CloudUpload className={buttonIcon} size={16} aria-hidden="true" />
                 Review publish
               </Button>
             </section>

@@ -142,4 +142,37 @@ public class KeyGuideTests
             Object.DestroyImmediate(host);
         }
     }
+
+    /// <summary>
+    /// レーンキー表は 1 箇所 (KeyBindings.DefaultKeys) にしか存在しないこと。
+    /// Judge.LaneKeys はそのエイリアスで、コピーが戻ると UI と判定が静かにずれる。
+    /// </summary>
+    [Test]
+    public void TestLaneKeysIsAliasOfKeyBindingsDefaults()
+    {
+        Assert.AreSame(KeyBindings.DefaultKeys, Judge.LaneKeys,
+            "Judge.LaneKeys must be an alias of KeyBindings.DefaultKeys, not a copy.");
+
+        for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+        {
+            Assert.AreEqual(KeyBindings.DefaultKeys[lane], Judge.LaneKeys[lane],
+                $"Lane {lane}: Judge.LaneKeys diverges from KeyBindings.DefaultKeys.");
+        }
+    }
+
+    /// <summary>
+    /// 判定が実際に読むキー (KeyBindings.GetKeys) と、UI が出す既定キーが
+    /// 同じ配列のコピーか References でないことを確認する。
+    /// </summary>
+    [Test]
+    public void TestJudgeAndUiReadTheSameDefaultTable()
+    {
+        for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
+        {
+            Assert.AreEqual(
+                KeyBindings.DefaultKeys[lane],
+                KeyBindings.GetKeys(lane),
+                $"Lane {lane}: the table the judge reads diverges from the defaults the UI shows.");
+        }
+    }
 }

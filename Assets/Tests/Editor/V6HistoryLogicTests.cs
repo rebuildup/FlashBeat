@@ -120,10 +120,11 @@ namespace FlashBeat.UI.V6.History.Tests
         }
 
         [Test]
-        public void PlaysLabel_ShowsCount()
+        public void RecordedCountLabel_ShowsRecordedSongCount()
         {
-            Assert.AreEqual("0 plays", V6HistoryLogic.PlaysLabel(0));
-            Assert.AreEqual("4 plays", V6HistoryLogic.PlaysLabel(4));
+            // 値は「記録のある曲数」でありプレイ回数ではない (Issue #239)。
+            Assert.AreEqual("記録 0曲", V6HistoryLogic.RecordedCountLabel(0));
+            Assert.AreEqual("記録 4曲", V6HistoryLogic.RecordedCountLabel(4));
         }
     }
 }

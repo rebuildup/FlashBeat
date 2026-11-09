@@ -27,6 +27,7 @@ namespace FlashBeat.Tests.Editor
         {
             EnsureEditData();
             EnsureEditNotesPresenter();
+            EnsureEditState();
             // Force Audio to exist so EditNotesPresenter.Awake's subscription doesn't
             // create an unmanaged instance we cannot later tear down.
             EnsureAudio();
@@ -83,6 +84,23 @@ namespace FlashBeat.Tests.Editor
             // MonoBehaviours, and the tests never exercise canvas event observables.
             var instance = (EditNotesPresenter)RuntimeHelpers.GetUninitializedObject(typeof(EditNotesPresenter));
             SetInstance<EditNotesPresenter>(instance);
+        }
+
+        static void EnsureEditState()
+        {
+            if (IsInstanceSet<EditState>())
+            {
+                return;
+            }
+
+            var instance = (EditState)RuntimeHelpers.GetUninitializedObject(typeof(EditState));
+            typeof(EditState).GetField("isOperatingPlaybackPositionDuringPlay_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<bool>(false));
+            typeof(EditState).GetField("noteType_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<NoteEditor.Notes.NoteTypes>(NoteEditor.Notes.NoteTypes.Single));
+            typeof(EditState).GetField("longNoteTailPosition_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<NoteEditor.Notes.NotePosition>(NoteEditor.Notes.NotePosition.None));
+            SetInstance<EditState>(instance);
         }
 
         static void EnsureAudio()

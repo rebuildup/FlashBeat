@@ -201,7 +201,16 @@ if [ -n "$WAIT_PID" ]; then
     log "waited for PID $WAIT_PID ($waited s)"
 fi
 
-others="$(ps -axo pid=,command= | grep -F "$INSTALL_DIR/Contents/MacOS/FlashBeat" | awk '{print $1}' | grep -v -x -e "$$" -e "${WAIT_PID:-}" || true)"
+# 実行中判定は argv (command) ではなく実行ファイルの実パス (ps の comm) で行う。
+# command を grep すると、この判定自身の grep プロセスが検索語に一致して
+# 常に「二重起動」と誤判定する (自己一致)。comm はカーネルが持つ実パスなので、
+# 相対パス起動でも同じインストール先の .app を確実に検出できる。
+others="$(ps -axo pid=,comm= | awk -v exe="$INSTALL_DIR/Contents/MacOS/FlashBeat" -v self="$$" -v wait="${WAIT_PID:-}" '
+    {
+        pid = $1
+        sub(/^[[:space:]]*[0-9]+[[:space:]]+/, "", $0)
+        if ($0 == exe && pid != self && pid != wait) { print pid }
+    }')"
 if [ -n "$others" ]; then
     abort "$EXIT_RUNNING" "他の FlashBeat が実行中です (PID: $(echo "$others" | tr '\n' ' '))"
 fi

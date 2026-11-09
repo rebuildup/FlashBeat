@@ -42,6 +42,10 @@ public class MusicManager : MonoBehaviour
     const float DirectUrlProbeTimeout = 10f;
     const float PrepareTimeout = 20f;
     const float FallbackStartTimeout = 30f;
+    // Issue #226: メディア時計がこの秒数進まなければ破綻 (デコード停止) として
+    // 曲を Failed にする。バッファ待ちの一時的な停止を誤検出しないよう、
+    // 十分長くする (メディアは再生前にローカルへダウンロード済み)。
+    const float StallFailSeconds = 30f;
     const string DirectUrlProbeKeyPrefix = "FlashBeat.DirectUrlProbed.";
     const string GameSceneName = "GameScene";
     const string SelectSceneName = "SelectScene";
@@ -64,6 +68,22 @@ public class MusicManager : MonoBehaviour
     bool playbackStarted;
     bool pictureStarted;
     bool resultTriggered;
+
+    // --- song end (issue #226) -------------------------------------------------
+    // 曲終了の状態機械。duration だけでは (a) 末尾ノーツの確定前に Result へ進み、
+    // (b) 動画がメタデータより先に終わると Result に進めない (issue #226)。
+    readonly SongEndMachine songEnd = new SongEndMachine();
+    /// <summary>メディアの終端 (loop point または再生停止) に達した。以後 judge の
+    /// 時計は固定された StartTime から壁時計で進み、末尾ノーツを確定させる。</summary>
+    bool mediaEnded;
+    bool videoSeenPlaying;
+    bool streamAudioSeenPlaying;
+    /// <summary>メディアの時刻が最後に進んだ壁時計 (StallFailSeconds の判定用)。</summary>
+    float lastMediaProgressWallTime;
+    /// <summary>最後のノーツが確定する譜面上の時刻 (SettleDeadline のキャッシュ)。</summary>
+    float settleDeadlineCache;
+    bool settleDeadlineKnown;
+
     bool fallbackChecked;
     bool videoPrepared;
     bool streamAudioPrepared;
@@ -75,6 +95,8 @@ public class MusicManager : MonoBehaviour
     float lastStatusLogTime;
     float lastMediaTime;
     float stallSeconds;
+    NotesManager notesManager;
+    ResourceRequest musicRequest;
 
     /// <summary>
     /// Wall clock of the moment the song was started. It is the reference for
@@ -127,6 +149,10 @@ public class MusicManager : MonoBehaviour
 
     void Start()
     {
+        // Issue #224: GameScene の読み直し (リトライ / 再プレイ) でゲートを閉じる。
+        // ポーズ中にリトライ / リタイアしても次のプレイが止まったままにならない。
+        PauseGate.HardReset();
+
         waitback.SetActive(true);
         GameSceneManager.Menu = true;
         GManager.Start = false;
@@ -138,16 +164,10 @@ public class MusicManager : MonoBehaviour
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         songName = sessionSong != null ? sessionSong.title : "";
         audioS = GetComponent<AudioSource>();
-        Music = (AudioClip)Resources.Load("Musics/" + songName);
-        if (Music == null)
-        {
-            // The release build ships no third party media: the build moves
-            // Assets/Game/Resources/Musics out of the build, so the wav that
-            // belongs to the chart is not there. The YouTube media is then the
-            // only sound source - that is the wanted state, it is only logged so
-            // that the player log shows where the sound comes from.
-            Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
-        }
+        // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
+        // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
+        musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
         audioS.volume = GManager.mainVolume;
@@ -243,9 +263,14 @@ public class MusicManager : MonoBehaviour
         DisableInvidiousPlayer();
 
         // 読み込み中表示 (動画のダウンロード・準備中)。失敗時は理由を表示してから自動で隠す。
+        // v6 有効時は V6LoadingView が単独で表示するため、MediaLoadingOverlay は出さない。
         MediaLoadingOverlay loading = null;
-        try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
-        if (loading != null) { loading.Show("曲情報を取得中…"); }
+        bool showLegacyMediaOverlay = GameLoadingRoute.UsesLegacyOverlay;
+        if (showLegacyMediaOverlay)
+        {
+            try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
+            if (loading != null) { loading.Show("曲情報を取得中…"); }
+        }
 
         // 1. What does YouTube offer for this video?
         stage = MediaStage.ResolvingStream;
@@ -278,12 +303,12 @@ public class MusicManager : MonoBehaviour
         //    release build ships no third party media at all.
         stage = MediaStage.DownloadingMedia;
         var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
-        if (loading != null) { loading.Show("動画をダウンロード中…"); }
+        if (showLegacyMediaOverlay && loading != null) { loading.Show("動画をダウンロード中…"); }
         var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
         while (!videoTask.IsCompleted) yield return null;
         var videoFile = videoTask.Result;
         Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
-        if (!videoFile.Ok && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
+        if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
         // The merged file (video + YouTube sound in one mp4) is the wanted state.
         // If the merge failed (no ffmpeg, download error) the picture still has to
@@ -314,7 +339,7 @@ public class MusicManager : MonoBehaviour
         if (videoFile.Ok && songVideo != null)
         {
             stage = MediaStage.PreparingVideo;
-            if (loading != null) { loading.Show("動画を準備中…"); }
+            if (showLegacyMediaOverlay && loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
 
@@ -339,7 +364,7 @@ public class MusicManager : MonoBehaviour
         if (!combined && audioFile != null && audioFile.Ok)
         {
             stage = MediaStage.PreparingAudio;
-            if (loading != null) { loading.Show("音声を準備中…"); }
+            if (showLegacyMediaOverlay && loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
 
@@ -357,12 +382,29 @@ public class MusicManager : MonoBehaviour
 
         // 6. Decide where the sound comes from (a missing wav yields None
         //    instead of throwing - the recovery then takes over).
+        // The bundled wav is loaded asynchronously (Start); the decision needs
+        // to know whether it exists, so wait for the request here.
+        if (musicRequest != null)
+        {
+            while (!musicRequest.isDone) yield return null;
+            Music = musicRequest.asset as AudioClip;
+            if (Music == null)
+            {
+                // The release build ships no third party media: the build moves
+                // Assets/Game/Resources/Musics out of the build, so the wav that
+                // belongs to the chart is not there. The YouTube media is then the
+                // only sound source - that is the wanted state, it is only logged so
+                // that the player log shows where the sound comes from.
+                Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
+            }
+        }
         audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
-        if (loading != null) { loading.Hide(); }
+        if (showLegacyMediaOverlay && loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
+        Debug.Log($"[Perf] media ready {(Time.time - sceneStartTime) * 1000f:F0}ms");
 
         // 7. Which stage broke? The most specific reason wins.
         if (!streamResolved)
@@ -560,6 +602,7 @@ public class MusicManager : MonoBehaviour
     {
         videoPrepared = false;
         songVideo.errorReceived += OnVideoError;
+        songVideo.loopPointReached += OnSongVideoLoopReached;
         songVideo.source = VideoSource.Url;
         songVideo.audioOutputMode = VideoAudioOutputMode.AudioSource;
         songVideo.SetTargetAudioSource(0, audioS);
@@ -699,16 +742,123 @@ public class MusicManager : MonoBehaviour
     void OnVideoError(VideoPlayer source, string message)
     {
         Debug.LogWarning($"[MusicManager] VideoPlayer error: {message}");
+        if (playbackStarted)
+        {
+            FailSongEnd(SongEndFailure.MediaError,
+                "[MusicManager] media error during playback: the song is marked failed and will not be completed as a success (issue #226)");
+        }
+    }
+
+    /// <summary>
+    /// Issue #226: 映像の終端 (loop point) を実メディアの終端とみなす。
+    /// メタデータの duration が実動画より長くても、ここで曲の終端条件が成立する。
+    /// </summary>
+    void OnSongVideoLoopReached(VideoPlayer source)
+    {
+        if (source != songVideo || !playbackStarted)
+        {
+            return;
+        }
+        if (!mediaEnded)
+        {
+            mediaEnded = true;
+            Debug.Log("[MusicManager] media reached its end (loop point)");
+        }
+    }
+
+    /// <summary>
+    /// Issue #226: 曲終了の破綻 (再生中のエラー、長時間のストール)。
+    /// 状態機械を Failed にして Result への自動遷移を止める。
+    /// 表示と回復は既存の経路に流す: VideoPlayer のエラーは GameHudRuntime が
+    /// errorReceived を購読して GameErrorView を出す。エラーイベントのない破綻
+    /// (ストール) では Esc のポーズメニューから選曲画面へ戻れる。
+    /// </summary>
+    void FailSongEnd(SongEndFailure reason, string log)
+    {
+        if (songEnd.State == SongEndState.Completed || songEnd.State == SongEndState.Failed)
+        {
+            return;
+        }
+        Debug.LogWarning(log);
+        songEnd.Fail(reason);
+        stage = MediaStage.Failed;
+    }
+
+    // --- Issue #224: ポーズゲートのメディア停止 / 再開 --------------------------------
+
+    /// <summary>ポーズゲート側でメディアを止めた (再開待ち)。</summary>
+    bool pausedByGate;
+
+    /// <summary>
+    /// ポーズ中にメディア (映像 / 音声) を止める。毎フレーム呼ばれて冪等。
+    /// 実メンバー名はこのクラスの所有するもの (songVideo / streamAudioPlayer /
+    /// audioS) をそのまま使う。
+    /// </summary>
+    void PauseMediaForGate()
+    {
+        if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
+        if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null && streamAudioPlayer.isPlaying)
+        {
+            streamAudioPlayer.Pause();
+        }
+        if (audioMode == PlaybackSource.BundledWave && audioS != null && audioS.isPlaying) audioS.Pause();
+        pausedByGate = true;
+    }
+
+    /// <summary>
+    /// 再開 (ポーズ解除) の最初のフレームにメディアを再開し、時計の簿記を
+    /// リセットする。判定基準時刻の補正 (壁時計の詰め) は PauseGate.Exit が行う。
+    /// 再生開始前 (Space 前) のポーズでは何も再生しない (StartPlayback だけが
+    /// 再生を始める)。メディア終端後のポーズでも再再生しない (終端で止まっているのが正常)。
+    /// </summary>
+    void ResumeMediaFromGate()
+    {
+        pausedByGate = false;
+
+        if (playbackStarted && !mediaEnded)
+        {
+            if (songVideo != null && songVideo.isPrepared && !songVideo.isPlaying) songVideo.Play();
+            if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null &&
+                streamAudioPlayer.isPrepared && !streamAudioPlayer.isPlaying)
+            {
+                streamAudioPlayer.Play();
+            }
+            if (audioMode == PlaybackSource.BundledWave && audioS != null) audioS.UnPause();
+        }
+
+        // ストール誤検出の防止: メディアはポーズ中の間止まっていたので、
+        // 直前の進行时刻はもう意味を持たない。固定中の譜面時刻からやり直す。
+        lastMediaTime = PauseGate.FrozenMediaTime;
+        mediaTime = PauseGate.FrozenMediaTime;
+        stallSeconds = 0f;
+        lastMediaProgressWallTime = Time.time;
     }
 
     void Update()
     {
+        // Issue #224: ポーズ中はメディアも時計も止める。ここより先の処理
+        // (メディア時計の追従 / stall 判定 / 曲終了の状態機械) はすべて
+        // 時計が動いている前提なので、ポーズ中は丸ごとスキップする。
+        if (PauseGate.IsPaused)
+        {
+            PauseMediaForGate();
+            return;
+        }
+        if (pausedByGate)
+        {
+            ResumeMediaFromGate();
+        }
+
         if (!playbackStarted)
         {
             // Nothing may play before the player starts the song.
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
 
-            bool canStart = mediaReady || Time.time - sceneStartTime > FallbackStartTimeout;
+            // Space may only start the song when the media is ready AND the
+            // chart (notes) finished loading - otherwise the judge would miss
+            // the first notes. ポーズメニューが開いている間は開始しない。
+            bool notesReady = notesManager == null || notesManager.IsReady;
+            bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout) && notesReady;
             if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
             {
                 StartPlayback();
@@ -718,12 +868,32 @@ public class MusicManager : MonoBehaviour
 
         mediaTime = CurrentMediaTime();
 
-        // The judgement clock follows the media clock, so a dropped frame or a
-        // buffering stall cannot make the notes drift away from the song.
-        GManager.StartTime = MediaTimeline.JudgeStartTime(Time.time, mediaTime);
-        GManager.step_time = mediaTime;
+        if (!mediaEnded)
+        {
+            DetectMediaEnd();
+        }
 
-        if (Mathf.Abs(mediaTime - lastMediaTime) < 0.0005f)
+        if (mediaEnded)
+        {
+            // Issue #226: メディア (映像) が終端で止まっても judge の時計は進める。
+            // StartTime を固定したままにすると Time.time - StartTime が終端時刻から
+            // 続き、末尾ノーツが既定の Miss 窓で確定する (HOLD は中断 / 期限切れ)。
+            GManager.step_time = Time.time - GManager.StartTime;
+        }
+        else
+        {
+            // The judgement clock follows the media clock, so a dropped frame or
+            // a buffering stall cannot make the notes drift away from the song.
+            GManager.StartTime = MediaTimeline.JudgeStartTime(Time.time, mediaTime);
+            GManager.step_time = mediaTime;
+        }
+
+        if (mediaEnded)
+        {
+            // メディア終端後は時計が止まっているのが正常なので、ストール扱いにしない。
+            lastMediaTime = mediaTime;
+        }
+        else if (Mathf.Abs(mediaTime - lastMediaTime) < 0.0005f)
         {
             stallSeconds += Time.deltaTime;
             if (stallSeconds > 1f)
@@ -731,12 +901,21 @@ public class MusicManager : MonoBehaviour
                 Debug.LogWarning($"[MusicManager] media stalled for {stallSeconds:F1}s at mediaTime={mediaTime:F2}");
                 stallSeconds = 0f;
             }
+            // Issue #226: 時計が長時間止まったままならデコード破綻として Failed にする
+            // (成功偽装の完了遷移をしない)。時計が進めば lastMediaProgressWallTime が
+            // 更新され、この判定は解除される。
+            if (HasRealMediaClock() && Time.time - lastMediaProgressWallTime > StallFailSeconds)
+            {
+                FailSongEnd(SongEndFailure.MediaStalled,
+                    $"[MusicManager] media clock stuck at {mediaTime:F2}s for over {StallFailSeconds}s (issue #226): marking the song failed");
+            }
         }
         else
         {
             stallSeconds = 0f;
+            lastMediaProgressWallTime = Time.time;
+            lastMediaTime = mediaTime;
         }
-        lastMediaTime = mediaTime;
 
         // The split stream runs picture and sound in two players, so they can
         // drift apart. The picture is the reference (the chart was authored
@@ -791,14 +970,52 @@ public class MusicManager : MonoBehaviour
                       $"failure={failure}");
         }
 
-        // Issue #183: 曲の長さもプレイセッションで固定した曲から読む。
+        // Issue #226: 曲終了は状態機械 (SongEndMachine) で裁定する。
+        // duration だけの判定は (a) 末尾ノーツの確定前に Result へ進み、
+        // (b) メタデータより先に動画が終わると Result に進めなかった。
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         float songDuration = sessionSong != null ? sessionSong.duration : 0f;
-        if (!resultTriggered && MediaTimeline.HasSongEnded(mediaTime, songDuration))
+
+        if (!resultTriggered)
         {
-            resultTriggered = true;
-            audioS.volume -= 0.001f;
-            Initiate.Fade("ResultScene", Color.black, 1.0f);
+            bool mediaClockIsReal = HasRealMediaClock();
+            bool durationEnded = mediaClockIsReal
+                ? MediaTimeline.HasSongEnded(mediaTime, songDuration)
+                : mediaTime >= MediaTimeline.FallbackSongEnd(songDuration);
+
+            int totalNotes = notesManager != null ? notesManager.noteNum : 0;
+            int settledNotes = GManager.nextNotes - 1;
+            if (settledNotes < 0)
+            {
+                settledNotes = 0;
+            }
+            int pendingNotes = totalNotes - settledNotes;
+            if (pendingNotes < 0)
+            {
+                pendingNotes = 0;
+            }
+
+            var endTick = new SongEndTick
+            {
+                EndReached = mediaEnded || durationEnded,
+                JudgeTime = Time.time - GManager.StartTime,
+                SettleDeadline = SettleDeadline(),
+                PendingNotes = pendingNotes,
+                TotalNotes = totalNotes
+            };
+            if (songEnd.Update(in endTick))
+            {
+                resultTriggered = true;
+                if (songEnd.ForcedByDeadline)
+                {
+                    Debug.LogWarning(
+                        $"[MusicManager] song end forced with {pendingNotes} unsettled note(s) " +
+                        "(judge accounting drift or skipped notes) - the result total may not match the note count");
+                }
+                Debug.Log($"[MusicManager] song completed: judged {settledNotes}/{totalNotes}, mediaEnded={mediaEnded}, state={songEnd.State}");
+                audioS.volume -= 0.001f;
+                Initiate.Fade("ResultScene", Color.black, 1.0f);
+            }
         }
     }
 
@@ -812,6 +1029,7 @@ public class MusicManager : MonoBehaviour
         GManager.Start = true;
         GManager.played = true;
         playbackStartWallTime = Time.time;
+        lastMediaProgressWallTime = Time.time;
         LastPlaybackSource = audioMode;
         stage = MediaStage.Playing;
 
@@ -869,6 +1087,115 @@ public class MusicManager : MonoBehaviour
         audioS.Play();
 
         Debug.Log($"[MusicManager] switched to the bundled wav at mediaTime={atMediaTime:F2}");
+    }
+
+    /// <summary>
+    /// Issue #226: 実際のメディア時計 (壁時計フォールバックではない) が動いているか。
+    /// duration を終了条件に使ってよいかの判定に使う。映像 (マスター) があれば真。
+    /// </summary>
+    bool HasRealMediaClock()
+    {
+        if (pictureStarted)
+        {
+            return true;
+        }
+        switch (audioMode)
+        {
+            case PlaybackSource.StreamSeparate:
+                return streamAudioPlayer != null;
+            case PlaybackSource.BundledWave:
+                return audioS != null && audioS.clip != null;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Issue #226: メディアが終端に達したかを検出する。
+    /// loop point イベント (OnSongVideoLoopReached) が一次情報で、
+    /// ここは isPlaying の立ち下がりを拾う補完経路。メディアがなければ何もしない、
+    /// (終端判定は FallbackSongEnd の壁時計側で行う)。
+    /// </summary>
+    void DetectMediaEnd()
+    {
+        if (pictureStarted && songVideo != null && songVideo.isPrepared)
+        {
+            if (songVideo.isPlaying)
+            {
+                videoSeenPlaying = true;
+            }
+            else if (videoSeenPlaying)
+            {
+                mediaEnded = true;
+                Debug.Log("[MusicManager] the picture player stopped - treating it as the media end (issue #226)");
+            }
+            return;
+        }
+
+        if (audioMode == PlaybackSource.BundledWave && audioS != null && audioS.clip != null)
+        {
+            if (!audioS.isPlaying && audioS.time >= audioS.clip.length - 0.05f)
+            {
+                mediaEnded = true;
+                Debug.Log("[MusicManager] the bundled wave reached its end (issue #226)");
+            }
+            return;
+        }
+
+        if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null && streamAudioPlayer.isPrepared)
+        {
+            if (streamAudioPlayer.isPlaying)
+            {
+                streamAudioSeenPlaying = true;
+            }
+            else if (streamAudioSeenPlaying)
+            {
+                mediaEnded = true;
+                Debug.Log("[MusicManager] the audio stream stopped - treating it as the media end (issue #226)");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Issue #226: 譜面上で最後のノーツが確定する時刻。
+    /// タップは時刻 + BAD 窓、HOLD は終端 + GREAT 猶予 (押し続けた場合の期限)。
+    /// 末尾の判定猶予を保証するための期限で、judge の時計 (JudgeTime) と比較する。
+    /// </summary>
+    float SettleDeadline()
+    {
+        if (!settleDeadlineKnown)
+        {
+            settleDeadlineKnown = true;
+            settleDeadlineCache = ComputeSettleDeadline();
+        }
+        return settleDeadlineCache;
+    }
+
+    float ComputeSettleDeadline()
+    {
+        if (notesManager == null)
+        {
+            return 0f;
+        }
+        int count = Mathf.Min(notesManager.noteNum, notesManager.NoteType.Count);
+        float last = 0f;
+        for (int i = 0; i < count; i++)
+        {
+            float settle;
+            if (notesManager.NoteType[i] == LongNote.TYPE_HOLD && i < notesManager.NotesEndTime.Count)
+            {
+                settle = notesManager.NotesEndTime[i] + LongNote.GREAT_WINDOW;
+            }
+            else
+            {
+                settle = notesManager.NotesTime[i] + LongNote.BAD_WINDOW;
+            }
+            if (settle > last)
+            {
+                last = settle;
+            }
+        }
+        return last;
     }
 
     float CurrentMediaTime()

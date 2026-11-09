@@ -10,27 +10,38 @@ using FlashBeat.UI.V6.Title;
 /// </summary>
 public class V6TitleLogicTests
 {
-    // --- DesignScale (v6 共通: 1728x972 基準, min 倍率) ---
+    // --- FrameOrigin (1:1 固定中央配置) ---
+    // 旧 DesignScale (min(w/1728, h/972) の等比拡大) の期待値テストは廃止:
+    // design フレームは固定解像度で、引き伸ばしは一切しない (Owner 指示による契約変更)。
+    // 正本: design POJwG "Resolution Check · Title" の実配置
+    // (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / Mac 2560×1664 → (416,346))。
 
     [Test]
-    public void DesignScale_Fhd_WidthIsBinding()
+    public void FrameOrigin_Fhd_MatchesDesignPlacement()
     {
-        Assert.AreEqual(1920f / 1728f, V6TitleLogic.DesignScale(1920, 1080), 0.0001f);
+        Assert.AreEqual(new Vector2(96f, 54f), V6TitleLogic.FrameOrigin(1920, 1080));
     }
 
     [Test]
-    public void DesignScale_2k_And_Mac_HeightIsBinding()
+    public void FrameOrigin_2k_And_Mac_MatchDesignPlacement()
     {
-        float expected = 1440f / 972f;
-        Assert.AreEqual(expected, V6TitleLogic.DesignScale(2560, 1440), 0.0001f);
-        Assert.AreEqual(expected, V6TitleLogic.DesignScale(2560, 1664), 0.0001f);
+        Assert.AreEqual(new Vector2(416f, 234f), V6TitleLogic.FrameOrigin(2560, 1440));
+        Assert.AreEqual(new Vector2(416f, 346f), V6TitleLogic.FrameOrigin(2560, 1664));
     }
 
     [Test]
-    public void DesignScale_InvalidSize_FallsBackToOne()
+    public void FrameOrigin_IsCenteredAtEveryResolution()
     {
-        Assert.AreEqual(1f, V6TitleLogic.DesignScale(0, 1080));
-        Assert.AreEqual(1f, V6TitleLogic.DesignScale(1920, -1));
+        // (w−1728)/2, (h−972)/2 の切り捨て (design の定義)。
+        Assert.AreEqual(new Vector2(96f, 54f), V6TitleLogic.FrameOrigin(1921, 1081));
+        Assert.AreEqual(new Vector2(416f, 346f), V6TitleLogic.FrameOrigin(2561, 1665));
+    }
+
+    [Test]
+    public void FrameOrigin_InvalidSize_ReturnsZero()
+    {
+        Assert.AreEqual(Vector2.zero, V6TitleLogic.FrameOrigin(0, 1080));
+        Assert.AreEqual(Vector2.zero, V6TitleLogic.FrameOrigin(1920, -1));
     }
 
     // --- PlayableSongCount ---

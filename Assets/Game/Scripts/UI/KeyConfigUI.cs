@@ -1273,7 +1273,11 @@ public class KeyConfigUI : MonoBehaviour
     {
         if (hintLabel == null) return;
         string sceneName = SceneManager.GetActiveScene().name;
-        bool show = !open && sceneName == "TitleScene";
+        // v6 タイトルはフッターにキー凡例 (決定 / 曲送り / 戻る) を持つので
+        // 旧ヒントは二重表示になる (Update 毎フレームで再表示される遅延生成物。
+        // v6 モードではここで確実に隠す)。
+        bool v6Title = FlashBeat.UI.V6.Title.V6TitleView.Enabled;
+        bool show = !open && sceneName == "TitleScene" && !v6Title;
         if (hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);

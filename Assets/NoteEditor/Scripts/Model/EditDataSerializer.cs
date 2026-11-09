@@ -59,7 +59,24 @@ namespace NoteEditor.Model
 
         public static void Deserialize(string json)
         {
+            // 曲切替は置換トランザクションとして扱う (Issue #225)。
+            // 最初に JSON を丸ごとパースするので、壊れた JSON に対しては
+            // 旧曲の状態 (ノーツ / BPM / 歌詞) を一切変更せず例外を投げられる。
             var editData = UnityEngine.JsonUtility.FromJson<MusicDTO.EditData>(json);
+            var incomingNotes = editData.notes ?? new List<MusicDTO.Note>();
+
+            // 旧曲の NoteObject をすべて破棄してから辞書をクリアする。
+            // NoteObject は MonoBehaviour ではないが、Init() で購読した
+            // UniRx subscriptions (GL 線描画を含む) を持つため、Dispose せずに
+            // 捨てると旧曲ノーツ上に購読が漏れる。GameObject は保持しないので
+            // Dispose + Clear で破棄は完了する。
+            foreach (var noteObject in EditData.Notes.Values)
+                noteObject.Dispose();
+            EditData.Notes.Clear();
+
+            // 旧曲のロングノーツ編集途中状態を持ち込まない。
+            EditState.LongNoteTailPosition.Value = NotePosition.None;
+
             var notePresenter = EditNotesPresenter.Instance;
 
             EditData.BPM.Value = editData.BPM;
@@ -84,7 +101,7 @@ namespace NoteEditor.Model
                 EditData.Lyrics.EndTime.Value   = new float[0];
             }
 
-            foreach (var note in editData.notes)
+            foreach (var note in incomingNotes)
             {
                 if (note.type == 1)
                 {

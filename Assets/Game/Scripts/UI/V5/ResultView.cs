@@ -200,7 +200,8 @@ namespace FlashBeat.UI.V5
 
             if (modalOpen)
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
+                // メニュー操作は KeyActions 経由 (#142)。既定: Esc=閉じる。
+                if (KeyActions.IsDown(KeyActions.KeyAction.Back))
                 {
                     CloseModal();
                     return;
@@ -222,7 +223,8 @@ namespace FlashBeat.UI.V5
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            // Esc (Back 操作) も選曲画面へ戻る (#142)
+            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 onSelect();
                 return;
@@ -619,9 +621,9 @@ namespace FlashBeat.UI.V5
             row.childForceExpandWidth = false;
             row.childForceExpandHeight = false;
 
-            BuildLegendItem(legend, "R", S(56f), "Retry");
+            BuildLegendItem(legend, ActionKeyHint.Primary(KeyActions.KeyAction.Retry), S(56f), "Retry");
             BuildLegendItem(legend, "Enter", S(96f), "名前");
-            BuildLegendItem(legend, "Space", S(96f), "決定");
+            BuildLegendItem(legend, ActionKeyHint.Primary(KeyActions.KeyAction.Confirm), S(96f), "決定");
         }
 
         private void BuildLegendItem(GameObject parent, string cap, float capW, string label)
@@ -884,7 +886,7 @@ namespace FlashBeat.UI.V5
             hintRt.anchoredPosition = new Vector2(S(168f), -S(278f));
             hintRt.sizeDelta = new Vector2(S(560f), S(32f));
 
-            BuildModalButton(dialog, "Skip", "Esc", S(220f), S(32f), false, CloseModal);
+            BuildModalButton(dialog, "Skip", ActionKeyHint.Primary(KeyActions.KeyAction.Back), S(220f), S(32f), false, CloseModal);
             BuildModalButton(dialog, "Save", "Enter", S(280f), S(32f + 220f + UISizeProfile.Current.GapM), true,
                 ConfirmRegister);
 

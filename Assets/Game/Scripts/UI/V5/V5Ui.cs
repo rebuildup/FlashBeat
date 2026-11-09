@@ -211,6 +211,14 @@ namespace FlashBeat.UI.V5
             if (font != null)
             {
                 tmp.font = font;
+                // V6Controls.Text と同一の行送り詰め: NotoSansJP の行送りは fs の約 1.45 倍で、
+                // 矩形の縦高が行送り未満だと Ellipsis で 1 行も描画されない。
+                // 行送りを ≈ fs にして「矩形高 ≥ fs なら必ず 1 行描画」にする。
+                // 折り返し段落で行間を広げたい呼び出し側は後から lineSpacing を上書きする。
+                if (font.faceInfo.pointSize > 0)
+                {
+                    tmp.lineSpacing = (1f - font.faceInfo.lineHeight / font.faceInfo.pointSize) * 100f;
+                }
             }
 
             return tmp;
@@ -218,19 +226,28 @@ namespace FlashBeat.UI.V5
 
         // --- Components v5 相当部品 ---
 
-        /// <summary>Prefab/KeyCap 相当: bg Key4, 角丸 4, ラベル fs_s muted。</summary>
-        public static GameObject KeyCap(GameObject parent, string label, Vector2 size)
+        /// <summary>
+        /// Prefab/KeyCap 相当: bg Key4, 角丸 4, ラベル fs_s muted。
+        /// fontSize &gt; 0 のときはその値をラベル fs に使う (呼び出し側の座標空間で指定)。
+        /// 既定 0 は従来どおり <see cref="UISizeProfile.Current"/>.FsS。
+        /// </summary>
+        public static GameObject KeyCap(GameObject parent, string label, Vector2 size, float fontSize = 0f)
         {
+            var fs = fontSize > 0f ? fontSize : UISizeProfile.Current.FsS;
             var go = Panel(parent, "KeyCap " + label, size, V5Tokens.ControlBg, V5Tokens.RadiusSmall);
-            StretchText(go, "Key", label, UISizeProfile.Current.FsS, V5Tokens.TextMuted);
+            StretchText(go, "Key", label, fs, V5Tokens.TextMuted);
             return go;
         }
 
-        /// <summary>Prefab/Tag 相当: bg Key4, 角丸 4, ラベル fs_s。</summary>
-        public static GameObject Tag(GameObject parent, string label, Vector2 size)
+        /// <summary>
+        /// Prefab/Tag 相当: bg Key4, 角丸 4, ラベル fs_s。
+        /// fontSize &gt; 0 のときはその値をラベル fs に使う。既定 0 は従来どおり FsS。
+        /// </summary>
+        public static GameObject Tag(GameObject parent, string label, Vector2 size, float fontSize = 0f)
         {
+            var fs = fontSize > 0f ? fontSize : UISizeProfile.Current.FsS;
             var go = Panel(parent, "Tag " + label, size, V5Tokens.ControlBg, V5Tokens.RadiusSmall);
-            StretchText(go, "Text", label, UISizeProfile.Current.FsS, V5Tokens.Text);
+            StretchText(go, "Text", label, fs, V5Tokens.Text);
             return go;
         }
 

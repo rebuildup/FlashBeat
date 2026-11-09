@@ -28,6 +28,10 @@ export type SongFixture = {
   level: number;
   durationSec: number;
   currentVersion: number;
+  /** Archive flag: 0 = live, 1 = archived (issue #151). */
+  archived: number;
+  /** Archive moment, `null` while the song is live (issue #151). */
+  archivedAt: string | null;
 };
 
 /**

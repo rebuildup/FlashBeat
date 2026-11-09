@@ -21,11 +21,12 @@ namespace FlashBeat.UI.V6.Game.Playfield
         /// <summary>現在のビュー (GameScene で 1 つ)。無い場合は <see cref="Notes"/> が 3D 描画にフォールバックする。</summary>
         public static V6PlayfieldView Current { get; private set; }
 
-        private const float SeparatorStrokeDesignPx = 2f;
-        private const float JudgeLineHeightDesignPx = 4f;
-        private const float JudgeGlowHeightDesignPx = 2f;
+        private const float SeparatorStrokeDesignPx = V6LaneGeometry.SeparatorStrokeDesignPx;
+        private const float JudgeLineHeightDesignPx = V6LaneGeometry.JudgeLineHeightDesignPx;
+        private const float JudgeGlowHeightDesignPx = V6LaneGeometry.JudgeGlowHeightDesignPx;
 
         private readonly List<Image> separatorLines = new List<Image>();
+        private readonly List<Image> laneFlashes = new List<Image>();
         private Image judgeLine;
         private Image judgeGlow;
         private Vector2 lastSize;
@@ -80,6 +81,23 @@ namespace FlashBeat.UI.V6.Game.Playfield
 
         private void Build()
         {
+            // レーンフラッシュ 8 本 (旧 LaneFlash と同等: 押している間 alpha 0.3、
+            // 離すと 3/s で減衰)。分離線より奥 (兄弟順で先) に置く。
+            // 旧 3D の LaneLight は V6GameRuntime が隠すので、入力フィードバックは
+            // ここが担う (Issue #233: レーンフラッシュが消えた)。
+            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
+            {
+                var flashGo = new GameObject("LaneFlash " + lane, typeof(RectTransform));
+                var flash = flashGo.AddComponent<Image>();
+                flash.color = new Color(1f, 1f, 1f, 0f);
+                flash.raycastTarget = false;
+                flash.rectTransform.SetParent(Root, false);
+                flash.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                flash.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                flash.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                laneFlashes.Add(flash);
+            }
+
             // レーン分離線 8 本 (回転した細長 Image = 線。スプライト無しの Image は白矩形)
             for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
@@ -132,6 +150,25 @@ namespace FlashBeat.UI.V6.Game.Playfield
             {
                 ApplyLayout();
             }
+
+            // レーンフラッシュ (旧 LaneFlash と同一の挙動: 押下で alpha 0.3、3/s で減衰)。
+            for (int lane = 0; lane < laneFlashes.Count; lane++)
+            {
+                var img = laneFlashes[lane];
+                float alpha = img.color.a;
+                if (KeyBindings.IsLaneKeyDown(lane))
+                {
+                    alpha = 0.3f;
+                }
+                else if (alpha > 0f)
+                {
+                    alpha = Mathf.Max(0f, alpha - 3f * Time.deltaTime);
+                }
+                if (img.color.a != alpha)
+                {
+                    img.color = new Color(1f, 1f, 1f, alpha);
+                }
+            }
         }
 
         private void ApplyLayout()
@@ -154,13 +191,33 @@ namespace FlashBeat.UI.V6.Game.Playfield
                 rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
             }
 
+            // レーンフラッシュ: レーン中心線に沿った帯 (幅はレーン幅の実測)。
+            // 旧 LaneFlash と同じ減衰 (押下 0.3 → 3/s) は Update で扱う。
+            for (int lane = 0; lane < laneFlashes.Count; lane++)
+            {
+                V6LaneGeometry.TryLanePoint(lane, 0f, out var fBottom, out var fBottomScale);
+                V6LaneGeometry.TryLanePoint(lane, 1f, out var fTop, out var fTopScale);
+                var fa = DesignToLocal(fBottom);
+                var fb = DesignToLocal(fTop);
+                var fdir = fb - fa;
+
+                var frt = laneFlashes[lane].rectTransform;
+                frt.anchoredPosition = (fa + fb) * 0.5f;
+                frt.sizeDelta = new Vector2(
+                    V6LaneGeometry.LaneCentreBottomStep * (fBottomScale + fTopScale) * 0.5f * px,
+                    fdir.magnitude);
+                frt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(fdir.y, fdir.x) * Mathf.Rad2Deg);
+            }
+
             // 判定ライン y=792..796、グロウ y=796..798 (設計座標、y 下向き)
+            // 幅は画面全幅 (design では x=0 w=1728 = フレーム全幅。16:9 / 16:10 の
+            // 対応解像度では設計フレーム幅が画面幅と一致する)。
             var lineRt = judgeLine.rectTransform;
             lineRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx) * px);
             lineRt.offsetMax = new Vector2(0f, size.y * 0.5f - V6LaneGeometry.JudgeLineY * px);
             var glowRt = judgeGlow.rectTransform;
-            glowRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx + JudgeGlowHeightDesignPx) * px);
-            glowRt.offsetMax = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeLineY + JudgeLineHeightDesignPx) * px);
+            glowRt.offsetMin = new Vector2(0f, size.y * 0.5f - (V6LaneGeometry.JudgeGlowY + JudgeGlowHeightDesignPx) * px);
+            glowRt.offsetMax = new Vector2(0f, size.y * 0.5f - V6LaneGeometry.JudgeGlowY * px);
         }
 
         private void OnDestroy()

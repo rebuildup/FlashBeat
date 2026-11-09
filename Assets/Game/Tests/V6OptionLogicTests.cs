@@ -7,13 +7,19 @@ namespace FlashBeat.UI.V6.Option
     public static class V6OptionLogicTests
     {
         [Test]
-        public static void DesignScale_FitsThreeResolutions()
+        public static void FrameOrigin_MatchesDesignResolutionTable()
         {
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(1728, 972), 0.0001f);
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(1920, 1080), 0.0001f);
-            // 16:10 は幅より高さが制約になる
-            Assert.AreEqual(972f / 1200f, V6OptionLogic.DesignScale(1920, 1200), 0.0001f);
-            Assert.AreEqual(1f, V6OptionLogic.DesignScale(0, 0)); // 異常系は等倍
+            // 旧 DesignScale (min 倍率の引き伸ばし) のテストは、Owner 指示「design フレームは
+            // 固定解像度・引き伸ばしは起こらない」により契約変更になったため置換。
+            // 正本: design gaI3p "Resolution Check · Option" の各解像度フレームに
+            // 06 Play · v6 (B6If6Z) が FHD (96,54) / 2K (416,234) / Mac (416,346) に
+            // 1:1 で載る実配置 (origin = ((w−1728)/2, (h−972)/2) 切り捨て)。
+            Assert.AreEqual(new Vector2(96f, 54f), V6OptionLogic.FrameOrigin(1920, 1080));
+            Assert.AreEqual(new Vector2(416f, 234f), V6OptionLogic.FrameOrigin(2560, 1440));
+            Assert.AreEqual(new Vector2(416f, 346f), V6OptionLogic.FrameOrigin(2560, 1664));
+            Assert.AreEqual(Vector2.zero, V6OptionLogic.FrameOrigin(1728, 972));
+            // 異常系は (0,0) にフォールバック
+            Assert.AreEqual(Vector2.zero, V6OptionLogic.FrameOrigin(0, 0));
         }
 
         [Test]
@@ -118,6 +124,40 @@ namespace FlashBeat.UI.V6.Option
             {
                 Assert.IsTrue(seen.Contains(lane), $"レーン {lane} に届くキーが JIS グリッドに無い");
             }
+        }
+
+        [Test]
+        public static void WrapIndex_WrapsForwardAndBackward()
+        {
+            // 剰余ベースの折り返し: 正負どちらの delta でも 0..count-1 に収まる
+            const int count = 5;
+
+            // 前方向の折り返し
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(0, count, 1));
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, 2));
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, count, 5));
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(0, count, 6));
+            Assert.AreEqual(3, V6OptionLogic.WrapIndex(4, count, 4)); // 4+4=8→3
+
+            // 後方向の折り返し
+            Assert.AreEqual(4, V6OptionLogic.WrapIndex(0, count, -1));
+            Assert.AreEqual(3, V6OptionLogic.WrapIndex(0, count, -2));
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, count, -5));
+            Assert.AreEqual(4, V6OptionLogic.WrapIndex(0, count, -6));
+            Assert.AreEqual(1, V6OptionLogic.WrapIndex(1, count, -5)); // 1-5=-4→1
+
+            // 大きな delta
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, 102));
+            Assert.AreEqual(2, V6OptionLogic.WrapIndex(0, count, -98));
+        }
+
+        [Test]
+        public static void WrapIndex_HandlesEdgeCases()
+        {
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, 0, 5));   // count=0
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(0, -1, 5));  // count<0
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(5, 1, 10));  // count=1
+            Assert.AreEqual(0, V6OptionLogic.WrapIndex(-3, 1, -7)); // count=1, 負 index
         }
     }
 }

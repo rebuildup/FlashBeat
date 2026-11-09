@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
-using FlashBeat.UI.V6.Select.View;
+using FlashBeat.UI.V6;
 
 namespace FlashBeat.UI.V6.Game.Pause
 {
@@ -13,8 +14,10 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// v6 ポーズ画面 (Issue #224, design/flashbeat-ui.pen の `uDNC0` / 共通フレーム `rw7zx`)。
     ///
     /// - すべてコードから uGUI を生成する (v5 PauseMenuView / v6 V6GameHudView と同じ方針)。
-    /// - 寸法は design px (1728x972)。フレームを <see cref="V6SelectViewLogic.DesignScale"/>
-    ///   と同じ min(W/1728, H/972) 倍して画面へ等比拡大する。
+    /// - 寸法は design px (1728x972)。共通フレームを 1:1 (等倍) で画面中央に置く
+    ///   (design "Resolution Check · Game (PAUSE)": <see cref="V6PauseViewLogic.FrameOrigin"/>)。
+    ///   等比拡大 (min(W/1728, H/972)) は行わない — design は各解像度ごとに
+    ///   フレーム原点を固定している (FHD (96,54) / 2K (416,234) / MacBook (416,346))。
     /// - 色は V5Tokens の既存値 (v6 は色トークンを追加していない)。
     /// - 表示値はすべて実データ: GManager (曲情報 / noteSpeed / noteTiming / Hiscore)、
     ///   KeyBindings (Key Layout / プレビューのキー割当、Changed で即時更新)、
@@ -27,6 +30,13 @@ namespace FlashBeat.UI.V6.Game.Pause
     {
         /// <summary>現在生成されている v6 ポーズ画面 (GameScene に 1 個)。統合側・検証から参照する。</summary>
         public static V6PauseView Current { get; private set; }
+
+        /// <summary>
+        /// v6 ポーズを有効にするか (既定 true)。V6UiMode は統合担当の所有なので、
+        /// 連動フラグはここに置く。false のときは <see cref="Create"/> が null を返し、
+        /// Esc は旧 v5 (PauseMenuView / レガシー MenuPanel) の経路に戻る。
+        /// </summary>
+        public static bool Enabled = true;
 
         // --- design px 定数 (flashbeat-v6-nodes.json uDNC0 / rw7zx) ---
         private const float FrameW = 1728f;
@@ -80,9 +90,15 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
         }
 
-        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。</summary>
+        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。
+        /// <see cref="Enabled"/> が false のときは null を返す (v5 のポーズに任せる)。</summary>
         public static V6PauseView Create(RectTransform parent)
         {
+            if (!Enabled)
+            {
+                return null;
+            }
+
             if (parent == null)
             {
                 throw new ArgumentNullException(nameof(parent));
@@ -128,8 +144,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             open = true;
+            // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める。
+            PauseGate.Enter();
             Refresh();
-            UpdateScale();
+            UpdatePlacement();
             rootGo.SetActive(true);
         }
 
@@ -142,6 +160,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             open = false;
+            // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
+            PauseGate.Exit();
             rootGo.SetActive(false);
         }
 
@@ -220,9 +240,9 @@ namespace FlashBeat.UI.V6.Game.Pause
             dimImg.raycastTarget = true;
 
             frame = V5Ui.Node(rootGo, "V6 Pause Frame 1728x972").GetComponent<RectTransform>();
-            frame.anchorMin = new Vector2(0.5f, 0.5f);
-            frame.anchorMax = new Vector2(0.5f, 0.5f);
-            frame.pivot = new Vector2(0.5f, 0.5f);
+            frame.anchorMin = Vector2.zero;
+            frame.anchorMax = Vector2.zero;
+            frame.pivot = Vector2.zero;
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             BuildHeader();
@@ -235,7 +255,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             KeyBindings.Changed += RefreshKeyBindings;
 
             rootGo.SetActive(false);
-            UpdateScale();
+            UpdatePlacement();
         }
 
         private void BuildHeader()
@@ -253,8 +273,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             backLayout.childControlHeight = true;
             backLayout.childForceExpandWidth = false;
             backLayout.childForceExpandHeight = false;
-            var backArrow = V5Ui.Text(back, "Icon", "←", 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(backArrow.gameObject, 0f, 24f);
+            var backArrow = V6Icons.Create(back, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
+            if (backArrow != null)
+            {
+                LayoutItem(backArrow.gameObject, 0f, 24f);
+            }
             var backKey = V5Ui.Text(back, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
             LayoutItem(backKey.gameObject, 0f, 16f);
             var backBtn = back.AddComponent<Button>();
@@ -455,6 +478,19 @@ namespace FlashBeat.UI.V6.Game.Pause
                 AddRow(rows, pageRoot, 1, "記録済みの曲",
                     () => PlayedSongs() + "曲",
                     null);
+                // 演奏中の実データ (GManager の静的カウンタ。ポーズ中も毎フレーム再描画される)。
+                AddRow(rows, pageRoot, 2, "スコア",
+                    () => GameHudLogic.FormatScore(GManager.score),
+                    null);
+                AddRow(rows, pageRoot, 3, "コンボ",
+                    () => GManager.combo.ToString(),
+                    null);
+                AddRow(rows, pageRoot, 4, "判定",
+                    () => V6PauseViewLogic.FormatJudgements(GManager.perfect, GManager.great, GManager.bad, GManager.miss),
+                    null);
+                AddRow(rows, pageRoot, 5, "進捗",
+                    () => V6PauseViewLogic.FormatProgress(JudgedNotes(), TotalNotes()),
+                    null);
             }
 
             return rows;
@@ -542,6 +578,25 @@ namespace FlashBeat.UI.V6.Game.Pause
             return played;
         }
 
+        /// <summary>判定済みノーツ数 (進捗の分子)。GManager の判定カウンタの和。</summary>
+        private static int JudgedNotes()
+        {
+            return GManager.perfect + GManager.great + GManager.bad + GManager.miss;
+        }
+
+        private NotesManager notesManager;
+
+        /// <summary>譜面の総ノーツ数 (進捗の分母)。NotesManager.noteNum (生成した実ノーツ数)。</summary>
+        private int TotalNotes()
+        {
+            if (notesManager == null)
+            {
+                notesManager = UnityEngine.Object.FindFirstObjectByType<NotesManager>();
+            }
+
+            return notesManager != null ? notesManager.noteNum : 0;
+        }
+
         private void AddRow(List<Row> rows, GameObject pageRoot, int row, string label,
             Func<string> read, Action<int> adjust, Action click = null)
         {
@@ -573,7 +628,7 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             if (adjust != null)
             {
-                Button prev = MakeStepper(panel, "Prev", "‹");
+                Button prev = MakeStepper(panel, "Prev", "chevron-left");
                 int capturedRow = rows.Count;
                 prev.onClick.AddListener(() =>
                 {
@@ -581,7 +636,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                     adjust(-1);
                     RefreshRows();
                 });
-                Button next = MakeStepper(panel, "Next", "›");
+                Button next = MakeStepper(panel, "Next", "chevron-right");
                 next.onClick.AddListener(() =>
                 {
                     SelectRow(selectedTab, capturedRow);
@@ -612,13 +667,20 @@ namespace FlashBeat.UI.V6.Game.Pause
             rows.Add(record);
         }
 
-        /// <summary>design: 40×40 $k4 r8 のステッパー (アイコンは v5 と同じテキスト代替)。</summary>
-        private Button MakeStepper(GameObject parent, string name, string glyph)
+        /// <summary>design: 40×40 $k4 r8 のステッパー (icon 24 $text-muted、lucide PNG)。</summary>
+        private Button MakeStepper(GameObject parent, string name, string iconName)
         {
             var btn = V5Ui.Panel(parent, name, new Vector2(40f, 40f), V5Tokens.Key4, 8f);
             LayoutItem(btn, 40f, 40f);
-            var tmp = V5Ui.Text(btn, "Icon", glyph, 24f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(tmp.rectTransform);
+            var icon = V6Icons.Create(btn, iconName, 24f, V5Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                // Panel はレイアウトグループを持たないので中央に置く (V6Icons の既定)。
+                icon.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                icon.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                icon.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                icon.rectTransform.anchoredPosition = Vector2.zero;
+            }
             var button = btn.AddComponent<Button>();
             button.targetGraphic = btn.GetComponent<Image>();
             return button;
@@ -720,6 +782,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
             // 左下: キー凡例 4 個 (キー入力は統合担当が持つ。ここは表示のみ)
+            // 凡例は実際に動くキーと一致させる (Issue #224):
+            // - ←→ は V6GameRuntime.UpdatePause が MoveSelection (行選択) に配線
+            // - タブ切替の実キーは KeyActions.MenuSwitch (既定 T)
+            // - 値の変更は行のステッパー / クリック (マウス) のみで、←→ には配線していない
             var legend = V5Ui.Node(footer, "Legends");
             PlaceAt(legend, 0f, 30f, new Vector2(840f, 36f));
             var legendLayout = legend.AddComponent<HorizontalLayoutGroup>();
@@ -729,10 +795,9 @@ namespace FlashBeat.UI.V6.Game.Pause
             legendLayout.childControlHeight = true;
             legendLayout.childForceExpandWidth = false;
             legendLayout.childForceExpandHeight = false;
-            AddLegend(legend, "↑↓", "選択");
-            AddLegend(legend, "←→", "変更");
-            AddLegend(legend, "Tab", "タブ切替");
-            AddLegend(legend, "Esc", "再開");
+            AddLegend(legend, new[] { "chevron-left", "chevron-right" }, "選択");
+            AddLegend(legend, null, "タブ切替", "T");
+            AddLegend(legend, null, "再開", "Esc");
 
             // 右下: 選曲へ / リトライ / 再開 (実遷移)
             var actions = V5Ui.Node(footer, "Actions");
@@ -743,7 +808,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             actionsLayout.childControlHeight = true;
             actionsLayout.childForceExpandWidth = false;
             actionsLayout.childForceExpandHeight = false;
-            BuildActionButton(actions, "選曲へ", "Backspace", false, () =>
+            BuildActionButton(actions, "選曲へ", "arrow-left", "Backspace", false, () =>
             {
                 Close();
                 if (sceneManager != null)
@@ -751,7 +816,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                     sceneManager.RetireGame();
                 }
             });
-            BuildActionButton(actions, "リトライ", "R", false, () =>
+            BuildActionButton(actions, "リトライ", "skip-back", "R", false, () =>
             {
                 Close();
                 if (sceneManager != null)
@@ -762,10 +827,15 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             var resume = V5Ui.Node(footer, "Resume");
             PlaceAt(resume, 1414f, 20f, new Vector2(266f, 56f));
-            BuildActionButton(resume, "再開", "Esc", true, Close);
+            BuildActionButton(resume, "再開", "play", "Esc", true, Close);
         }
 
-        private void AddLegend(GameObject parent, string key, string label)
+        /// <summary>
+        /// キー凡例 1 個 (KeyCap (fill,36) #3A3A3A r4 [0,10] + Label fs22)。
+        /// iconNames が非 null のときは KeyCap 内に lucide アイコン (16px) を並べる
+        /// (Unicode 記号 ↑↓ ←→ は使わない)。null のときは key 文字列 (Tab / Esc)。
+        /// </summary>
+        private void AddLegend(GameObject parent, string[] iconNames, string label, string key = null)
         {
             var item = V5Ui.Node(parent, "Legend " + label);
             var layout = item.AddComponent<HorizontalLayoutGroup>();
@@ -776,9 +846,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            var cap = V5Ui.Panel(item, "KeyCap " + key, new Vector2(0f, 36f),
+            var cap = V5Ui.Panel(item, "KeyCap " + (key ?? label), new Vector2(0f, 36f),
                 new Color(0x3A / 255f, 0x3A / 255f, 0x3A / 255f), 4f);
             var capLayout = cap.AddComponent<HorizontalLayoutGroup>();
+            capLayout.spacing = 2f;
             capLayout.padding = new RectOffset(Mathf.RoundToInt(10f), Mathf.RoundToInt(10f), 0, 0);
             capLayout.childAlignment = TextAnchor.MiddleCenter;
             capLayout.childControlWidth = true;
@@ -787,16 +858,35 @@ namespace FlashBeat.UI.V6.Game.Pause
             capLayout.childForceExpandHeight = false;
             var capLe = cap.AddComponent<LayoutElement>();
             capLe.preferredHeight = 36f;
-            var keyTmp = V5Ui.Text(cap, "Key", key, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(keyTmp.gameObject, 0f, 26f);
+
+            if (iconNames != null)
+            {
+                for (int i = 0; i < iconNames.Length; i++)
+                {
+                    var icon = V6Icons.Create(cap, iconNames[i], 16f, V5Tokens.TextMuted, "Icon " + iconNames[i]);
+                    if (icon != null)
+                    {
+                        LayoutItem(icon.gameObject, 16f, 16f);
+                    }
+                }
+            }
+            else
+            {
+                var keyTmp = V5Ui.Text(cap, "Key", key, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                LayoutItem(keyTmp.gameObject, 0f, 26f);
+            }
 
             var labelTmp = V5Ui.Text(item, "Label", label, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
             LayoutItem(labelTmp.gameObject, 0f, 26f);
         }
 
-        /// <summary>design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
-        /// アイコンは v5 Button と同じくテキスト省略 (lucide 相当の素材が無い)。</summary>
-        private void BuildActionButton(GameObject parent, string label, string key, bool primary, Action action)
+        /// <summary>
+        /// design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
+        /// アイコン 32×32 (lucide PNG、design §4 の Button 構成どおり Label の前)。
+        /// iconName は実在する Resources/Icons/ の名前 (design log-out / rotate-ccw は
+        /// PNG が無いので同系統の既存素材: arrow-left / skip-back — Ranking のリトライと同じ)。
+        /// </summary>
+        private void BuildActionButton(GameObject parent, string label, string iconName, string key, bool primary, Action action)
         {
             float width = primary ? 266f : (label == "リトライ" ? 220f : 280f);
             var go = V5Ui.Panel(parent, "Button " + label, new Vector2(width, 56f),
@@ -815,6 +905,15 @@ namespace FlashBeat.UI.V6.Game.Pause
             layout.childForceExpandHeight = false;
 
             Color labelColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.Text;
+            Color iconColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted;
+
+            // design: icon 32×32 (Button 構成の先頭要素)。
+            var icon = V6Icons.Create(go, iconName, 32f, iconColor, "Icon");
+            if (icon != null)
+            {
+                LayoutItem(icon.gameObject, 32f, 32f);
+            }
+
             var labelTmp = V5Ui.Text(go, "Label", label, 30f, labelColor, TextAlignmentOptions.Center,
                 primary ? FontStyles.Bold : FontStyles.Normal);
             LayoutItem(labelTmp.gameObject, 0f, 34f);
@@ -1023,10 +1122,15 @@ namespace FlashBeat.UI.V6.Game.Pause
             return '\0';
         }
 
-        // --- スケール ---
+        // --- 配置 ---
 
-        /// <summary>フレームを画面に合わせて等比拡大する (v6 選曲画面と同じ方式)。</summary>
-        private void UpdateScale()
+        /// <summary>
+        /// 共通フレームを 1:1 (等倍) で画面中央に置く。
+        /// 原点は <see cref="V6PauseViewLogic.FrameOrigin"/> ((w-1728)/2, (h-972)/2) の切捨て —
+        /// design "Resolution Check · Game (PAUSE)" の各解像度配置と同じ。
+        /// 等比拡大 (min(W/1728, H/972)) は行わない (Owner 指示: 引き伸ばしはバグ)。
+        /// </summary>
+        private void UpdatePlacement()
         {
             if (frame == null)
             {
@@ -1042,13 +1146,16 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             lastWidth = w;
             lastHeight = h;
-            float u = V6SelectViewLogic.DesignScale(w, h);
-            frame.localScale = new Vector3(u, u, 1f);
+            Vector2 origin = V6PauseViewLogic.FrameOrigin(w, h);
+            frame.localScale = Vector3.one;
+            // anchor/pivot (0,0) = 親 (全画面 root) の左下基準。design 原点は左上なので
+            // y は下端から: h - origin.y - 972 (= (h-972)/2 の切り上げ側)。
+            frame.anchoredPosition = new Vector2(origin.x, h - origin.y - FrameH);
         }
 
         internal void Tick()
         {
-            UpdateScale();
+            UpdatePlacement();
             if (open)
             {
                 Refresh();
@@ -1110,7 +1217,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         }
     }
 
-    /// <summary>V6PauseView の毎フレーム処理 (スケール + 実データの再描画)。</summary>
+    /// <summary>V6PauseView の毎フレーム処理 (1:1 配置 + 実データの再描画)。</summary>
     internal sealed class V6PauseViewDriver : MonoBehaviour
     {
         internal V6PauseView View;

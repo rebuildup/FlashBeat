@@ -116,6 +116,26 @@ public class OptionSceneManager : MonoBehaviour
     AudioSource sounds;
     private FlashBeat.UI.V6.Option.V6OptionView optionView;
 
+    /// <summary>
+    /// active シーン内の全 Canvas (名前・active 状態を問わず) を非表示にする。
+    /// Option は常に v6 で描画されるため、旧 Canvas が何であれ v6 と重なる前に隠す。
+    /// DontDestroyOnLoad の Canvas (ResultRankingOverlay の RankingPanel など) は
+    /// active シーン外なので対象外。
+    /// </summary>
+    public static void HideLegacySceneCanvases()
+    {
+        var activeScene = SceneManager.GetActiveScene();
+        var canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (canvas != null && canvas.gameObject.scene == activeScene)
+            {
+                canvas.gameObject.SetActive(false);
+            }
+        }
+    }
+
     void Start()
     {
         // 保存済みの設定を復元してから UI へ反映する (Issue #167)。
@@ -173,8 +193,12 @@ public class OptionSceneManager : MonoBehaviour
 
         // v6 UI: 4 タブ (Play / Display / Sound / Data) のコード生成画面。
         // 設定の実体 (GManager / OptionSettings) と保存経路は既存のものをそのまま使う。
-        var legacy = GameObject.Find("Canvas");
-        if (legacy != null) legacy.SetActive(false);
+        // シーン内の旧 Canvas は名前に関係なく全て非表示にする ("Canvas" 以外の
+        // 名前の Canvas が残って v6 と重なるのを防ぐ)。v6 Canvas はこの直後に
+        // NewScreenCanvas で作られるので、この時点で active シーンに見える
+        // Canvas は全て旧 UI。DontDestroyOnLoad 側 (ResultRankingOverlay の
+        // RankingPanel など) は active シーン外なので触らない。
+        HideLegacySceneCanvases();
 
         var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Option Canvas");
         optionView = FlashBeat.UI.V6.Option.V6OptionView.Create(

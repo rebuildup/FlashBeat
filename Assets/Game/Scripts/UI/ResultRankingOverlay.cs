@@ -92,6 +92,15 @@ public class ResultRankingOverlay : MonoBehaviour
 
     private void Update()
     {
+        // v6 UI モードでは旧オーバーレイ (自動登録モーダル / F5 ボード / ヒント
+        // 「更新を適用して再起動」等) を出さない。v6 側が自前の登録モーダルと
+        // ランキングを持つため。フラグ分岐なので V6ResultView.Enabled = false
+        // (v5 へ戻す) で従来どおり動く。
+        if (FlashBeat.UI.V6.Result.V6ResultView.Enabled)
+        {
+            return;
+        }
+
         string sceneName = SceneManager.GetActiveScene().name;
         if (sceneName != lastSceneName)
         {
@@ -222,17 +231,19 @@ public class ResultRankingOverlay : MonoBehaviour
                 // 応答待ち。Esc で中断はしない (二重送信を防ぐ)。
                 break;
             case State.SubmitFailed:
+                // 戻る/決定はメニュー操作設定に従う (#142)。ただし名前入力モーダルでは
+                // Space が文字入力になるため Confirm (既定 Space) は読まず Enter のみ。
                 if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
                     Submit();
                 }
-                else if (Input.GetKeyDown(KeyCode.Escape))
+                else if (KeyActions.IsDown(KeyActions.KeyAction.Back))
                 {
                     CloseAll();
                 }
                 break;
             case State.Board:
-                if (Input.GetKeyDown(KeyCode.F5) || Input.GetKeyDown(KeyCode.Escape))
+                if (Input.GetKeyDown(KeyCode.F5) || KeyActions.IsDown(KeyActions.KeyAction.Back))
                 {
                     CloseAll();
                 }
@@ -242,7 +253,9 @@ public class ResultRankingOverlay : MonoBehaviour
 
     private void HandleNameInput()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // 戻るはメニュー操作設定に従う (#142、既定 Esc)。文字入力系 (BS/Enter/Space) は
+        // モーダルのテキスト編集として固定のまま。
+        if (KeyActions.IsDown(KeyActions.KeyAction.Back))
         {
             skippedThisResult = true;
             CloseAll();

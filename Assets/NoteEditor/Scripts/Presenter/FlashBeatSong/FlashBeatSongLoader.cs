@@ -50,6 +50,13 @@ namespace NoteEditor.Presenter.FlashBeatSong
                 NoteEditor.Model.EditDataSerializer.Deserialize(json);
                 NoteEditor.Model.EditData.Name.Value = Path.GetFileNameWithoutExtension(jsonPath);
                 NoteEditor.Model.EditData.IsDirty.Value = false;
+
+                // 新曲のセッションへ切り替える: 旧曲の再生位置・再生状態を持ち込まない。
+                // undo/redo 履歴は Audio.OnLoad → EditCommandManager.Clear で破棄される。
+                NoteEditor.Model.Audio.TimeSamples.Value = 0;
+                NoteEditor.Model.Audio.SmoothedTimeSamples.Value = 0;
+                NoteEditor.Model.Audio.IsPlaying.Value = false;
+
                 ProvideSyntheticAudioClip();
                 NoteEditor.Model.Audio.OnLoad.OnNext(UniRx.Unit.Default);
                 Debug.Log($"[FlashBeatSongLoader] Loaded: {jsonPath}");

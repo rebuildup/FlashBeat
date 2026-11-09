@@ -8,6 +8,13 @@
       "when": 1793969234802,
       "tag": "20261106124714_heavy_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794025614011,
+      "tag": "20261107042653_friendly_purple_man",
+      "breakpoints": true
     }
   ]
 }

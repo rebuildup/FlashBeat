@@ -20,6 +20,14 @@ run = "bunx skills add rebuildup/project-init --skill '*' --agent claude-code --
 [tasks.skills-update]
 run = "bunx skills update -p -y"
 
+# One lifecycle for Worktrunk, plain git and IDE-created worktrees.
+# See scripts/worktree/setup.sh and docs/adr/ADR-0001-agent-environment.md.
+[tasks."worktree:setup"]
+run = "bash scripts/worktree/setup.sh"
+
+[tasks."worktree:teardown"]
+run = "bash scripts/worktree/teardown.sh"
+
 # Spec Kit CLI (github/spec-kit). Pinned version, installed into the
 # project-local .tools/ directory so Mac and Windows workers materialize the
 # same CLI. See docs/agent/spec-kit-workflow.md.

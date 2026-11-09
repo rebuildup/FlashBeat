@@ -9,6 +9,25 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// </summary>
     public static class V6PauseViewLogic
     {
+        /// <summary>design 上の共通フレーム寸法 (契約 §4 / V6Frame と同じ)。</summary>
+        public const float FrameW = 1728f;
+        public const float FrameH = 972f;
+
+        /// <summary>
+        /// 共通フレーム 1728×972 を 1:1 (等倍) で画面に置くときの左上原点 (design px)。
+        /// 等比拡大 (min(W/1728, H/972)) は行わない — design の
+        /// "Resolution Check · Game (PAUSE)" は各解像度ごとにフレーム原点を固定している
+        /// (FHD 1920×1080 → (96,54) / 2K 2560×1440 → (416,234) / MacBook 2560×1664 → (416,346)、
+        /// いずれも ((w-1728)/2, (h-972)/2) の切捨て)。
+        /// 画面がフレームより小さいときは (0,0) (左上固定、はみ出しは右下方向)。
+        /// </summary>
+        public static Vector2 FrameOrigin(int width, int height)
+        {
+            float x = Mathf.Max(0f, Mathf.Floor((width - FrameW) / 2f));
+            float y = Mathf.Max(0f, Mathf.Floor((height - FrameH) / 2f));
+            return new Vector2(x, y);
+        }
+
         /// <summary>タブの数 (design: Play / Display / Sound / Data)。</summary>
         public const int TabCount = 4;
 
@@ -24,12 +43,29 @@ namespace FlashBeat.UI.V6.Game.Pause
             return index;
         }
 
-        /// <summary>Tab キーでのタブ切替のように、端で折り返す。</summary>
+        /// <summary>
+        /// Tab キーでのタブ切替のように、端で折り返す。
+        /// 端をまたぐ (index + delta が count を超える / 0 を下回る) ときだけ折り返し、
+        /// 上方向には 0 へ戻す。負値は count を足してから mod を取る。
+        /// </summary>
         public static int WrapIndex(int index, int delta, int count)
         {
             if (count <= 0) return 0;
-            int next = (index + delta) % count;
-            if (next < 0) next += count;
+
+            int next = index + delta;
+            if (next < 0)
+            {
+                // 負値は count を足してから mod を取る (0 の 1 つ前 = count - 1)。
+                next = ((next % count) + count) % count;
+                return next;
+            }
+
+            if (next > count - 1)
+            {
+                // 端をまたいだときは 0 へ折り返す (範囲外 index も 0 に戻す)。
+                return 0;
+            }
+
             return next;
         }
 
@@ -62,6 +98,24 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             int total = (int)seconds;
             return (total / 60) + ":" + (total % 60).ToString("D2");
+        }
+
+        /// <summary>
+        /// 判定数の表示 (Data タブの「判定」行)。例: "P12 G3 B1 M2"。
+        /// 判定 4 種を 1 行にまとめる (Data タブのページは 8 行までしか入らない)。
+        /// </summary>
+        public static string FormatJudgements(int perfect, int great, int bad, int miss)
+        {
+            return "P" + perfect + " G" + great + " B" + bad + " M" + miss;
+        }
+
+        /// <summary>
+        /// 演奏進捗の表示 (Data タブの「進捗」行)。例: "12 / 345"。
+        /// cleared は判定済みノーツ数 (perfect+great+bad+miss)、total は譜面の総ノーツ数。
+        /// </summary>
+        public static string FormatProgress(int cleared, int total)
+        {
+            return cleared + " / " + total;
         }
 
         /// <summary>NOTES の表示。クラウド譜面の実ノーツ数 (noteCount) を優先し、
