@@ -121,20 +121,20 @@ const navTopRow = css({
   width: { base: "full", md: "auto" },
 });
 
-/** The staff group: a grid on narrow viewports, a plain column on wide ones. */
+/**
+ * The staff group: a grid on narrow viewports, a plain column on wide ones.
+ *
+ * The open/closed state is carried by `data-open` (mirroring `aria-expanded`
+ * of the toggle) instead of a separate class per state, so the disclosure can
+ * be asserted without a browser.
+ */
 const staffGroup = css({
   gap: { base: "2", md: "1" },
   gridTemplateColumns: { base: "repeat(2, minmax(0, 1fr))" },
   minWidth: "0",
   width: { base: "full", md: "auto" },
-});
-
-const staffGroupOpen = css({
-  display: { base: "grid", md: "contents" },
-});
-
-const staffGroupClosed = css({
-  display: { base: "none", md: "contents" },
+  "&[data-open=false]": { display: { base: "none", md: "contents" } },
+  "&[data-open=true]": { display: { base: "grid", md: "contents" } },
 });
 
 const groupLabel = css({
@@ -313,7 +313,9 @@ export function Sidebar({ active }: { active?: string }) {
 
         <div
           id="studio-staff-nav"
-          className={`${staffGroup} ${staffOpen ? staffGroupOpen : staffGroupClosed}`}
+          data-staff-nav=""
+          data-open={staffOpen ? "true" : "false"}
+          className={staffGroup}
         >
           <div className={staffDivider} aria-hidden="true" />
           <p className={groupLabel}>スタッフ操作 / Staff</p>
