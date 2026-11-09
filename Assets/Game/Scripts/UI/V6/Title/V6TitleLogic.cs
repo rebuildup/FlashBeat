@@ -195,6 +195,103 @@ namespace FlashBeat.UI.V6.Title
             return ShowUpdateButton(phase) && !string.IsNullOrEmpty(latestVersion);
         }
 
+        // --- Issue #118: v6 タイトルでの明示的な「アップデートあり」表示 ---
+        //
+        // 旧 (v5) タイトルは UpdateNoticeUI のピルで「アップデートあり」を出して
+        // いたが、v6 モードでは V6UiMode.HideLegacyUpdateNotice() がそのピルを隠す
+        // (v6 側が更新情報を自前で描くため)。v6 タイトルには「更新して再起動」ボタン
+        // (操作) しかなく、「更新があること」自体は示していなかった。
+        // ここでは **状態** の表示 (「アップデートあり」) を、**操作**
+        // (「更新して再起動」ボタン) と別 element として出す。
+
+        /// <summary>
+        /// 更新が利用できるときの通知ラベル。
+        /// 旧 UpdateNoticePresenter.BuildText と同じ文言 (日本語フォントのアトラスに
+        /// 既存の字形がある文言だけを使う)。
+        /// </summary>
+        public const string UpdateAvailableLabel = "アップデートあり";
+
+        /// <summary>
+        /// 「アップデートあり」通知 (状態表示) を出すか。
+        /// - 更新が実際に利用できる (Available / Downloading / Ready / Applying) ときだけ
+        /// - このセッションで dismiss (F4 / ×) されていないときだけ
+        /// 「更新して再起動」ボタンの **操作** とは別の 표시。
+        /// </summary>
+        public static bool ShowUpdateAvailableNotice(UpdateFlowModel model)
+        {
+            if (model == null) { return false; }
+            if (model.DismissedForSession) { return false; }
+            return model.HasAvailableUpdate;
+        }
+
+        /// <summary>
+        /// 通知の見出し (版の番号がわかれば併記)。
+        /// 通知を出さない状態 (Idle / Checking) では空文字。
+        /// </summary>
+        public static string UpdateNoticeTitle(UpdateFlowPhase phase, string latestVersion, float progress)
+        {
+            string version = VersionLabel(latestVersion);
+            switch (phase)
+            {
+                case UpdateFlowPhase.Available:
+                    return version.Length > 0
+                        ? UpdateAvailableLabel + " " + version
+                        : UpdateAvailableLabel;
+                case UpdateFlowPhase.Downloading:
+                    return "アップデート" + (version.Length > 0 ? " " + version : "") + " を準備中... " +
+                        Mathf.RoundToInt(Mathf.Clamp01(progress) * 100f) + "%";
+                case UpdateFlowPhase.Ready:
+                    return version.Length > 0
+                        ? "更新の準備ができました " + version
+                        : "更新の準備ができました";
+                case UpdateFlowPhase.Applying:
+                    return "適用中... 終了すると更新されます";
+                default:
+                    return "";
+            }
+        }
+
+        /// <summary>
+        /// 通知の補足 (操作の説明)。見出しを出さない状態では空文字。
+        /// 「押さなければ更新しません」を明示する (issue #118 の受入条件)。
+        /// </summary>
+        public static string UpdateNoticeHint(UpdateFlowPhase phase)
+        {
+            switch (phase)
+            {
+                case UpdateFlowPhase.Available:
+                    return "[F3: 今すぐ更新] (押さなければ更新しません)";
+                case UpdateFlowPhase.Downloading:
+                    return "[完了したら F3 で適用]";
+                case UpdateFlowPhase.Ready:
+                    return "[F3: 適用] (アプリを終了して再起動します)";
+                default:
+                    return "";
+            }
+        }
+
+        /// <summary>
+        /// 「アップデートあり」バナー (Main ゾーン ローカル)。
+        /// タブ列 (TabsPos) と同じ幅・左右位置にして、タイトル画面の中央軸に揃える。
+        /// </summary>
+        public static readonly Vector2 UpdateNoticePos = new Vector2(280f, 96f);
+        public static readonly Vector2 UpdateNoticeSize = new Vector2(1120f, 56f);
+
+        /// <summary>バナー左端のアクセント帯 (通知だと分かる目印) の幅。</summary>
+        public const float UpdateNoticeAccentWidth = 6f;
+
+        /// <summary>バナー内の左右余白。</summary>
+        public const float UpdateNoticePadX = 24f;
+
+        /// <summary>見出しと補足の間の空き。</summary>
+        public const float UpdateNoticeGap = 16f;
+
+        /// <summary>見出しの fs (design 空間)。</summary>
+        public const float UpdateNoticeTitleFontSize = 26f;
+
+        /// <summary>補足の fs (design 空間)。</summary>
+        public const float UpdateNoticeHintFontSize = 22f;
+
         /// <summary>記録が無いときの文言 (タイトル右上の曲情報)。</summary>
         public const string NoRecordText = "まだ記録がありません";
 
