@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T04:47:03.798Z",
+  "generatedAt": "2026-11-09T15:04:01.105Z",
   "base": "http://127.0.0.1:5199",
   "chrome": "Google Chrome",
   "tool": "puppeteer-core (real headless Chromium)",
@@ -20,7 +20,7 @@
       "viewport": "1440x900",
       "file": "home_1440x900.png",
       "fullPageFile": "home_1440x900.full.png",
-      "bytes": 84144,
+      "bytes": 84789,
       "measured": {
         "viewport": {
           "width": 1440,
@@ -46,7 +46,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -58,7 +58,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -70,7 +70,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -82,7 +82,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -94,7 +94,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -106,7 +106,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -118,7 +118,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -130,7 +130,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
@@ -229,7 +229,7 @@
           "text": "曲を選ぶPick a song",
           "rect": {
             "x": 12,
-            "y": 72,
+            "y": 80,
             "w": 183,
             "h": 40
           },
@@ -242,7 +242,7 @@
           "text": "楽曲アーカイブSongs",
           "rect": {
             "x": 12,
-            "y": 189,
+            "y": 197,
             "w": 183,
             "h": 40
           },
@@ -256,7 +256,7 @@
       "viewport": "1280x720",
       "file": "home_1280x720.png",
       "fullPageFile": "home_1280x720.full.png",
-      "bytes": 79783,
+      "bytes": 80273,
       "measured": {
         "viewport": {
           "width": 1280,
@@ -282,7 +282,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -294,7 +294,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -306,7 +306,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -318,7 +318,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -330,7 +330,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -342,7 +342,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -354,7 +354,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -366,7 +366,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
@@ -613,7 +613,7 @@
       "viewport": "1440x900",
       "file": "chart_1440x900.png",
       "fullPageFile": "chart_1440x900.full.png",
-      "bytes": 240979,
+      "bytes": 240659,
       "measured": {
         "viewport": {
           "width": 1440,
@@ -639,7 +639,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -651,7 +651,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -663,7 +663,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -675,7 +675,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -687,7 +687,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -699,7 +699,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -711,7 +711,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -723,7 +723,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
@@ -962,7 +962,7 @@
           "text": "曲を選ぶPick a song",
           "rect": {
             "x": 12,
-            "y": 72,
+            "y": 80,
             "w": 183,
             "h": 40
           },
@@ -975,7 +975,7 @@
           "text": "楽曲アーカイブSongs",
           "rect": {
             "x": 12,
-            "y": 189,
+            "y": 197,
             "w": 183,
             "h": 40
           },
@@ -989,7 +989,7 @@
       "viewport": "1280x720",
       "file": "chart_1280x720.png",
       "fullPageFile": "chart_1280x720.full.png",
-      "bytes": 218425,
+      "bytes": 218727,
       "measured": {
         "viewport": {
           "width": 1280,
@@ -999,123 +999,8 @@
         "documentScrollWidth": 1280,
         "visibleElementCount": 226,
         "clippedElements": {
-          "count": 19,
-          "samples": [
-            {
-              "tag": "div",
-              "class": "bg_#2d2d2d bd-c_#131313 bdr_12px",
-              "text": "Chart setupSong, grid and file tools. Placing and editing no",
-              "rect": {
-                "x": -20,
-                "y": 153,
-                "w": 368,
-                "h": 398
-              }
-            },
-            {
-              "tag": "h3",
-              "class": "c_#ffffff fs_xs fw_medium",
-              "text": "Chart setup",
-              "rect": {
-                "x": -7,
-                "y": 166,
-                "w": 342,
-                "h": 18
-              }
-            },
-            {
-              "tag": "p",
-              "class": "c_#8c8c8c fs_2xs lh_1.4",
-              "text": "Song, grid and file tools. Placing and editing notes never n",
-              "rect": {
-                "x": -7,
-                "y": 196,
-                "w": 342,
-                "h": 11
-              }
-            },
-            {
-              "tag": "div",
-              "class": "d_grid gap_3 grid-tc_repeat(2,_minmax(0,_1fr))",
-              "text": "Song nameBPMResolution1/4How finely notes are written.Snapof",
-              "rect": {
-                "x": -7,
-                "y": 219,
-                "w": 342,
-                "h": 217
-              }
-            },
-            {
-              "tag": "div",
-              "id": "field::_r_0_",
-              "class": "field__root grid-c_1_/_-1",
-              "text": "Song name",
-              "rect": {
-                "x": -7,
-                "y": 219,
-                "w": 342,
-                "h": 66
-              }
-            },
-            {
-              "tag": "label",
-              "id": "field::_r_0_::label",
-              "class": "field__label c_#b0b0b0 fw_normal",
-              "text": "Song name",
-              "rect": {
-                "x": -7,
-                "y": 219,
-                "w": 342,
-                "h": 20
-              }
-            },
-            {
-              "tag": "input",
-              "id": "_r_0_",
-              "class": "input input--size_md input--variant_outline",
-              "rect": {
-                "x": -7,
-                "y": 245,
-                "w": 342,
-                "h": 40
-              }
-            },
-            {
-              "tag": "div",
-              "id": "field::_r_1_",
-              "class": "field__root min-w_0",
-              "text": "BPM",
-              "rect": {
-                "x": -7,
-                "y": 297,
-                "w": 165,
-                "h": 66
-              }
-            },
-            {
-              "tag": "label",
-              "id": "field::_r_1_::label",
-              "class": "field__label c_#b0b0b0 fw_normal",
-              "text": "BPM",
-              "rect": {
-                "x": -7,
-                "y": 297,
-                "w": 165,
-                "h": 20
-              }
-            },
-            {
-              "tag": "input",
-              "id": "_r_1_",
-              "class": "input input--size_md input--variant_outline",
-              "rect": {
-                "x": -7,
-                "y": 323,
-                "w": 165,
-                "h": 40
-              }
-            }
-          ]
+          "count": 0,
+          "samples": []
         },
         "belowFoldElements": {
           "count": 13,
@@ -1130,7 +1015,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -1142,7 +1027,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -1154,7 +1039,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -1166,7 +1051,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -1178,7 +1063,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -1190,7 +1075,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -1202,7 +1087,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -1214,7 +1099,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
@@ -1273,7 +1158,7 @@
               "class": "ai_center bg_#3a3a3a bdr_8px",
               "text": "Chart setup128 BPM · 1/4",
               "rect": {
-                "x": 220,
+                "x": 1140,
                 "y": 133,
                 "w": 128,
                 "h": 12
@@ -1285,7 +1170,7 @@
               "class": "c_#b0b0b0 fv-num_tabular-nums fw_normal",
               "text": "128 BPM · 1/4",
               "rect": {
-                "x": 284,
+                "x": 1204,
                 "y": 133,
                 "w": 52,
                 "h": 12
@@ -1297,7 +1182,7 @@
               "class": "c_#8c8c8c fs_2xs lh_1.4",
               "text": "Song, grid and file tools. Placing and editing notes never n",
               "rect": {
-                "x": -7,
+                "x": 913,
                 "y": 196,
                 "w": 342,
                 "h": 11
@@ -1340,7 +1225,7 @@
               "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
               "text": "1/4",
               "rect": {
-                "x": 182,
+                "x": 1102,
                 "y": 323,
                 "w": 141,
                 "h": 24
@@ -1354,7 +1239,7 @@
               "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
               "text": "off",
               "rect": {
-                "x": 5,
+                "x": 925,
                 "y": 401,
                 "w": 141,
                 "h": 24
@@ -1368,7 +1253,7 @@
               "class": "select__trigger select__trigger--size_md select__trigger--variant_outline",
               "text": "1×",
               "rect": {
-                "x": 182,
+                "x": 1102,
                 "y": 401,
                 "w": 141,
                 "h": 24
@@ -1838,7 +1723,7 @@
       "viewport": "1440x900",
       "file": "publish_1440x900.png",
       "fullPageFile": "publish_1440x900.full.png",
-      "bytes": 124142,
+      "bytes": 124372,
       "measured": {
         "viewport": {
           "width": 1440,
@@ -1864,7 +1749,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -1876,7 +1761,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -1888,7 +1773,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -1900,7 +1785,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -1912,7 +1797,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -1924,7 +1809,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -1936,7 +1821,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -1948,7 +1833,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
@@ -2201,7 +2086,7 @@
           "text": "曲を選ぶPick a song",
           "rect": {
             "x": 12,
-            "y": 72,
+            "y": 80,
             "w": 183,
             "h": 40
           },
@@ -2214,7 +2099,7 @@
           "text": "楽曲アーカイブSongs",
           "rect": {
             "x": 12,
-            "y": 189,
+            "y": 197,
             "w": 183,
             "h": 40
           },
@@ -2228,7 +2113,7 @@
       "viewport": "1280x720",
       "file": "publish_1280x720.png",
       "fullPageFile": "publish_1280x720.full.png",
-      "bytes": 95821,
+      "bytes": 95989,
       "measured": {
         "viewport": {
           "width": 1280,
@@ -2254,7 +2139,7 @@
               "text": "Pick a song",
               "rect": {
                 "x": 48,
-                "y": 97,
+                "y": 105,
                 "w": 64,
                 "h": 10
               },
@@ -2266,7 +2151,7 @@
               "text": "スタッフ操作 / Staff",
               "rect": {
                 "x": 12,
-                "y": 121,
+                "y": 129,
                 "w": 183,
                 "h": 20
               },
@@ -2278,7 +2163,7 @@
               "text": "Dashboard",
               "rect": {
                 "x": 48,
-                "y": 170,
+                "y": 178,
                 "w": 112,
                 "h": 10
               },
@@ -2290,7 +2175,7 @@
               "text": "Songs",
               "rect": {
                 "x": 48,
-                "y": 214,
+                "y": 222,
                 "w": 111,
                 "h": 10
               },
@@ -2302,7 +2187,7 @@
               "text": "New song",
               "rect": {
                 "x": 48,
-                "y": 258,
+                "y": 266,
                 "w": 80,
                 "h": 10
               },
@@ -2314,7 +2199,7 @@
               "text": "Edit chart",
               "rect": {
                 "x": 48,
-                "y": 302,
+                "y": 310,
                 "w": 80,
                 "h": 10
               },
@@ -2326,7 +2211,7 @@
               "text": "Publish",
               "rect": {
                 "x": 48,
-                "y": 346,
+                "y": 354,
                 "w": 64,
                 "h": 10
               },
@@ -2338,7 +2223,7 @@
               "text": "要トークン",
               "rect": {
                 "x": 127,
-                "y": 333,
+                "y": 341,
                 "w": 56,
                 "h": 16
               },
