@@ -30,6 +30,11 @@ public class AutoTestV6 : MonoBehaviour
     private int shot;
     private string outDir;
 
+    // 直近の ScanVisibleNotes の測定結果 (イテレータは out 引数を持てないため保持する)。
+    private int lastVisibleNotes;
+    private float lastNearestZ;
+    private float lastFarthestZ;
+
     private IEnumerator Start()
     {
         outDir = GetArg("-autotest-out");
@@ -178,18 +183,10 @@ public class AutoTestV6 : MonoBehaviour
             // 出ない。曲に依存しない方法として「実際にカメラに写っている
             // ノーツが 3 枚以上あり、手前 (z <= 5.5) まで入るまで待つ」ので、
             // どの曲でも白い帯 (ノート) が見える状態で撮れる。
-            float denseWaited = 0f;
-            int visibleNotes = 0;
-            float nearestZ = 0f;
-            float farthestZ = 0f;
-            while (denseWaited < 60f)
-            {
-                ScanVisibleNotes(out visibleNotes, out nearestZ, out farthestZ);
-                if (visibleNotes >= 3 && nearestZ <= 5.5f) break;
-                denseWaited += 0.25f;
-                yield return new WaitForSecondsRealtime(0.25f);
-            }
-            ScanVisibleNotes(out visibleNotes, out nearestZ, out farthestZ);
+            yield return WaitForDenseNotes(3, 60f);
+            int visibleNotes = lastVisibleNotes;
+            float nearestZ = lastNearestZ;
+            float farthestZ = lastFarthestZ;
             Check("the media clock advances", music.MediaTimeNow > 0f);
             Debug.Log("[AutoTestV6] media time at capture = " + music.MediaTimeNow.ToString("F2")
                 + " visible notes = " + visibleNotes
@@ -197,9 +194,42 @@ public class AutoTestV6 : MonoBehaviour
             Check("the capture lands in a dense chart region", visibleNotes >= 3);
 
             yield return Screenshot("05-gameplay");
+
+            // 5b. さらに **別の** 密区間まで進めて撮る (Issue #233)。
+            // 1 枚目では手前のノートが HUD の歌詞パネルに隠れるため、
+            // 「譜面の密区間にノートが並んでいる」ことが 2 枚目で確認できる。
+            // 同じ区間だと同じ絵になるので、1 枚目より **ノート数が多い** 区間を待つ。
+            yield return WaitForDenseNotes(visibleNotes + 1, 60f);
+            visibleNotes = lastVisibleNotes;
+            nearestZ = lastNearestZ;
+            farthestZ = lastFarthestZ;
+            Debug.Log("[AutoTestV6] media time at 2nd capture = " + music.MediaTimeNow.ToString("F2")
+                + " visible notes = " + visibleNotes
+                + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
+            yield return Screenshot("05b-gameplay-dense");
         }
 
         Finish();
+    }
+
+    /// <summary>
+    /// 実際にカメラに写っているノーツが <paramref name="minNotes"/> 枚以上
+    /// になるまで待つ (Issue #233)。手前 (z &lt;= 5.5) まで进来的ら条件成立。
+    /// 見つからなくても <paramref name="maxWait"/> 秒で打ち切る。
+    /// 結果は lastVisibleNotes / lastNearestZ / lastFarthestZ に入れて返す
+    /// (イテレータは out 引数を持てないため)。
+    /// </summary>
+    private IEnumerator WaitForDenseNotes(int minNotes, float maxWait)
+    {
+        float waited = 0f;
+        while (waited < maxWait)
+        {
+            ScanVisibleNotes(out lastVisibleNotes, out lastNearestZ, out lastFarthestZ);
+            if (lastVisibleNotes >= minNotes && lastNearestZ <= 5.5f) break;
+            waited += 0.25f;
+            yield return new WaitForSecondsRealtime(0.25f);
+        }
+        ScanVisibleNotes(out lastVisibleNotes, out lastNearestZ, out lastFarthestZ);
     }
 
     /// <summary>

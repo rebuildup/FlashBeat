@@ -1,0 +1,1 @@
+[AutoTestV6] RESULT pass=25 fail=0
