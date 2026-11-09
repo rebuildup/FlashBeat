@@ -722,3 +722,363 @@
 - **依存**: #162 / #167 の下位。#250 の 11/14 展示の前提。
 
 ---
+
+## 3.3 Web Studio / Infra / 検証 クラスタ (#118 / #61 / #60 / #75 / #74 / #73 / #71 / #68 / #98 / #56 / #59 / #58 / #30)
+
+### #118 — [Update/P0] 更新は明示式: タイトル画面に『アップデートあり』表示、押したときだけ更新
+
+- **区分**: **A (実装済み・証拠待ち)** — cc 実測確定
+- **実装/証拠**:
+  - `Assets/Game/Scripts/Update/UpdateFlowModel.cs:17-20` — 不変条件コメント「`BeginApply` は Ready からのみ遷移し、適用は必ずユーザー確認を経由する。自動適用の経路はこのクラスに存在しない (OnApplicationQuit から呼ぶ API を提供しない)」
+  - `Assets/Game/Scripts/Update/UpdateFlowModel.cs:136` — `public void BeginApply()`
+  - `Assets/Game/Scripts/Update/UpdateChecker.cs:224` — `public void RequestDownload()` / `:320` — `public void RequestApply()` / `:329` — `Model.BeginApply()` / `:658` — 「ここからだけが適用への入口 (OnApplicationQuit からの自動適用は存在しない)」
+  - `Assets/Game/Scripts/UI/UpdateNoticeUI.cs:21` — `public class UpdateNoticeUI : MonoBehaviour`
+  - `Assets/Game/Scripts/UI/UpdateNoticePresenter.cs:27` — `public static class UpdateNoticePresenter` (PR #255 で追加)
+  - **実コードに `OnApplicationQuit` の自動適用は 0 件** (`grep -rn "OnApplicationQuit" Assets/Game/Scripts/` のヒットは `UpdateChecker.cs:22` と `UpdateChecker.cs:658` の **コメントのみ**)
+  - テスト (PR #255 で追加): `Assets/Tests/Editor/UpdateCheckerEntryPointTests.cs`, `UpdateCheckerTests.cs`, `UpdateNoticePresenterTests.cs`, `UpdateSourceStructureTests.cs` (474 行), `UpdateFlowTests.cs`, `UpdateResultFileTests.cs`
+  - 証跡: `docs/evidence/118-explicit-update.md` (227 行)
+  - commit: `887cb69` "fix(v6): #118 独立レビュー指摘 5 件を解消する (PR #255)", `549a5bf` "test(update): #118 の更新フローを受入条件ごとに固定する (実装状況の確定)" — `git merge-base --is-ancestor ab8c336 origin/main` = true (PR #255 は main に merge 済み)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 起動時の自動チェックは残してよい (表示のみ) | 充足 | `UpdateChecker.cs` の `LatestTag` 判定 → `UpdateNoticeUI` が通知 |
+| 2 | ダウンロードはユーザー操作 (F3 / クリック) で開始 | 充足 | `UpdateChecker.cs:224 RequestDownload()` が通知 UI からのみ呼ばれる |
+| 3 | 適用はユーザー確認を経由 | 充足 | `UpdateChecker.cs:320 RequestApply()` → `:329 Model.BeginApply()`、`UpdateFlowModel.cs:136 BeginApply()` は Ready からのみ遷移 |
+| 4 | `OnApplicationQuit` からの自動適用が存在しない | 充足 | `grep` で実コード 0 件 (コメント 2 件のみ)。`UpdateSourceStructureTests.cs` が構造を固定 |
+| 5 | 展示中のゲームを勝手に止めない | 充足 (コード) / 未検証 (実機) | 適用は別操作。`UpdateChecker.cs:658` のコメント |
+| 6 | prerelease を stable に自動適用しない | 充足 | `UpdateChecker.cs` の `LatestTag` 限定 + `db64a1a` "fix(ci): push ビルドの更新チャンネルを stable 固定" |
+| 7 | ZIP 全体 + SHA-256 検証を維持 | 充足 | `UpdateResultFileTests.cs` / `UpdateCheckerTests.cs` |
+| 8 | 実機での更新 E2E | 未検証 | `docs/evidence/update-e2e-2026-11-07/README.md` があるが **本監査では実挙動を確認していない**。実機更新は展示運用の制約あり |
+
+- **未検証の区別**: 条件 8 は実機必須。**EditMode の構造テスト緑は「更新画面が出て、押さないと適用されない」ことを保証しない** (UI 遷移とプロセス起動は別)。代替 = 7 テストファイル緑 + `docs/evidence/118-explicit-update.md` のコードレビュー。
+- **依存**: 単独。#250 の A ゲートに含まれる。
+
+### #61 — [Web UI Product Spec] 実Studioの体験・情報構成・視覚品質・E2E受け入れ基準
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - 本 Issue は **製品仕様の正本**。Issue 本文 36 行目が「**#61 is the product specification / coordination Issue, not an 11th code worktree**」と明記
+  - 子 Issue の実装状況: #60 (A), #68 (A), #71 (A), #73 (A), #74 (B), #75 (B), #135 (A) → 本 Issue の実装修約の 6/7 が実装済み
+  - 追加 Issue: #163 / #164 / #165 / #166 は **closed** (`gh issue list --state open` に無い)
+  - 契約: `contracts/schemas/chart.v1.schema.json` の `notes[].type` は **`[1,2]`** (HOLD 許容) に更新済み — Issue 本文 49 行目が指摘した `const:1` は解消
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | Gate A: Live GET songs、本番で fixture 無し | 充足 | `web/src/app/catalog.ts:28` 実 `fetch("/api/v1/catalog")` + `:32` 失敗時 throw |
+| 2 | Gate A: 表示される導線はすべて実装済み画面を開く | 充足 (コード) | `web/src/app/topbar.test.tsx`, `catalog-panel.test.tsx` |
+| 3 | Gate A: カタログ行選択で正しい song+chartVersion を開く、サンプルが本物に見えることなし | 充足 | `web/src/lib/song-session/load.ts:21-60` (exact version + identity 検証) |
+| 4 | Gate A: 1 件の publish が persisted live chartVersion を確認し、invalid token/invalid chart/error で入力を失わない | 充足 | `web/src/lib/publish/transport.ts:25,31-35` + `web/src/lib/publish/__tests__/*.test.ts` |
+| 5 | Gate B: 実アプリアイコン (text `FB` フォールバックでない) | 未充足 | #67 は closed だが `web/public/**` の実アセットは本監査未確認 → **観測不足** |
+| 6 | Gate B: 意味的色/コントロール/リスト層が Pen v5 に一致、Teal 残存無し | 充足 | `web/panda.config.ts:76` `include: ["gray","blue","red","green","amber"]` — Teal 除外済み。`docs/design/web-token-mapping.md` §2 「Accent (`blue`, replaces Park `teal` `#12A594`)」 |
+| 7 | Gate B: デスクトップ幅を実際の編集作業に使う (filler card や placeholder でない) | 未検証 | 実ブラウザでの目視確認が必要 |
+| 8 | Gate C: 実ブラウザ 1440×900 / 1280×720 / 390×844 / 200% zoom、キーボード+ポインタ | **未充足** | 視覚ゲートの証跡は `specs/075-visual-gate/evidence/2026-11-08/index.json` に 3 viewport 分の撮影がある。ただし **`exitCode: 1`** = **ゲートが不合格**。200% zoom の証跡は無い |
+| 9 | Gate C: 実ブラウザ画素画像 **と** 実入力 E2E の両方 (テスト成功だけでは NG) | 未充足 | #74 の実操作 E2E が未了。`specs/74-responsive/tasks.md` の 3 タスクが未チェック |
+| 10 | 本番デプロイは単独 deploy owner の管理 | 充足 (運用) | `docs/operations/cloudflare-bootstrap.md` |
+
+- **未検証の区別**: 条件 7–9 は **実ブラウザの画素画像 + 実入力** が必要。**Vitest 緑は「クリックreasily 届く」を保証しない** (Issue 本文 52 行目「テスト成功だけではNG」)。代替 = `web/src/**` 47 テストファイル緑 + `docs/evidence/web-acceptance/{1920x1080,2560x1440,2560x1664}` の撮影。
+- **依存**: #60 → #68 → #71 → #73 → #74 → #75 の順。**#74 / #75 が未完了 = 本 Issue は閉じられない**。
+
+### #60 — [Web/UI Foundation] Pen v5 の色・surface階層・タイポグラフィをPanda/Parkへ写像
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/src/theme/colors/gray.ts` — Pen `well #131313` → step 1, `bg #1B1B1B` → step 2, `base #2D2D2D` → step 6, `text-dim #8C8C8C` → step 10, `text-muted #B0B0B0` → step 11, `text #FFFFFF` → step 12
+  - `web/src/theme/colors/blue.ts` — Pen `accent #3FA9F5` → `blue.9`, `accent-light #9AD3FA` → `blue.11` (`blue.ts` の semantic token 定義全体)
+  - `web/src/theme/colors/red.ts`, `green.ts`, `amber.ts` — status palettes
+  - `web/panda.config.ts:76` — `include: ["gray","blue","red","green","amber"]` (**Teal 除外**)
+  - `web/src/theme/tokens/colors.ts`, `text-styles.ts`, `layer-styles.ts`, `conditions.ts`, `global-css.ts`, `keyframes.ts`, `animation-styles.ts`, `durations.ts`, `shadows.ts`, `z-index.ts`
+  - マッピング表: `docs/design/web-token-mapping.md` (§1 Neutral ramp, §2 Accent, §3 Status palettes)
+  - `specs/060-web-visual-foundation/tasks.md` = **0 完了 / 5 未完了** (Issue 本文 T1–T5 も未チェック)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | Pen の変数インベントリとコンポーネント層を検査し、primitive→semantic→component の明示マッピングを書く | 充足 | `docs/design/web-token-mapping.md` |
+| 2 | 正規パレット/surface/raised-vs-recessed を `panda.config.ts` と `theme/**` に適用し、Park UI API を保つ | 充足 | `web/src/theme/colors/*.ts` + `web/panda.config.ts:76` |
+| 3 | タイポグラフィ (Noto Sans JP + fallback)、テキストサイズ、コントラスト、focus/state token を写す | 充足 | `web/src/theme/text-styles.ts`, `tokens/colors.ts` |
+| 4 | Web の type/build/tests を実行し、1440×900 と 1280×720 でコンポーネント例を確認 | 充足 (テスト) / 未検証 (目視) | `web` 47 テストファイル緑。**目視確認は本監査未実施** |
+| 5 | before/after の画素証跡、実行 SHA、未解決差分を記録 | 未充足 | `docs/evidence/web-visual/{before,after,interaction}/` は存在するが **本監査では内容未検証**。`specs/060` のチェックも未済 |
+
+- **未検証の区別**: 条件 4–5 の目視・画素部分は **実ブラウザ** 必須。**型検査とテスト緑は「見た目が Pen と一致する」ことを保証しない**。代替 = `web` テスト緑 + `docs/design/web-token-mapping.md` の数値対応表。
+- **依存**: #61 の独立した foundation。#67 / #68 / #71 と並行可能。
+
+### #75 — [Web/Visual Gate] 画像ベースのデザインレビュー・比較・本番E2Eをリリース条件にする
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `web/tests/visual/capture.mjs` — 実 Chromium (puppeteer-core) で 3 ルート (`/`, `/chart?songId=who&version=1`, `/publish`) × 3 viewport (1440×900 / 1280×720 / 390×844) を撮影
+    - `:207-211` console error / page error の収集
+    - `:262` `if (measured.horizontalScroll || consoleErrors.length > 0) failed = true;`
+    - `:289-291` 出力 JSON `{ horizontalOverflow, consoleErrors, exitCode }`
+    - `:303-304` `process.exitCode = failed ? 1 : 0` (0 = clean / 1 = gate fail / 2 = setup fail)
+  - 証跡: `specs/075-visual-gate/evidence/2026-11-08/index.json` — `{"horizontalOverflow": ["home@390x844"], "consoleErrors": [], "exitCode": 1}` = **ゲートが FAIL**
+  - `specs/075-visual-gate/evidence/2026-11-08/README.md`
+  - `docs/evidence/index.md` §1.7 — 「視覚ゲート `npm run visual` = **exit 1 (FAIL)** — `home@390x844` の横スクロール溢出。… **新規の regressions ではなく未解決 issue** (#74 / #75 / #68 系)」
+  - `specs/075-visual-gate/tasks.md` = **5 完了 / 0 未完了**
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 実表示をキャプチャする最小経路 (ダミー画像禁止) | 充足 | `capture.mjs` は実 Chromium を使う |
+| 2 | T2: `/`, `/chart?songId=…&version=…`, `/publish` を固定 viewport で撮影 | 充足 | `index.json` の `routes` × `viewports` と各 `file` / `fullPageFile` / `bytes` |
+| 3 | T3: design-skills / unslop の基準を実画像に適用し redline 記録 | 未充足 | `docs/evidence/web-visual/{before,after}/` の内容は本監査未検証。redline 記録の形跡なし |
+| 4 | T4: 実API での 選曲→編集→公開→再読込の証拠 | 未充足 | 証跡 JSON は静的ルート撮影のみ。実 API 経路の証跡は無い |
+| 5 | T5: 修正前後の差分・SHA・コマンド・未解決項目をまとめ、本番デプロイ可否を独立判定 | 未充足 | 判定結果 = **不合格** (`exitCode: 1`) |
+| 6 | ゲート条件: 画像取得なし・単体テストのみなら FAIL | 充足 (ゲートは機能している) | `capture.mjs` の exit code 設計。**不合格だから FIXME ではない** |
+
+- **未検証の区別**: 条件 3–5 は **実ブラウザ撮影 + 目視レビュー** が必要。**`capture.mjs` が走ること (exit 1 で正しいこと) は、Gateway が合格することではない**。代替 = `index.json` の機械的結果。
+- **依存**: #60 / #67 / #68 / #69 / #70 / #71 / #72 / #73 / #74。**#74 の狭幅修正 (PR #257) が唯一の既知の失敗原因**。
+
+### #74 — [Web/Responsive] 画面サイズ・ズーム・キーボードで操作不能なUIをなくす
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `web/src/app/drawer.tsx` — 純関数のフォーカストラップ `nextFocusTarget()` (`:44-50`) + `FOCUSABLE_SELECTOR` (`:26-34`)。ヘッダコメントで「Tab/Shift+Tab はパネル内で循環し、外へ出ない」「Escape で閉じる」「閉じると開いた要素にフォーカスを返す」と明記
+  - テスト: `web/src/app/drawer.test.ts`
+  - テスト: `web/src/components/chart-editor/*.test.tsx` (6 ファイル), `web/src/components/song-publisher/song-publisher.test.ts`
+  - `specs/74-responsive/tasks.md` = **26 完了 / 3 未完了**。未完了 3 件はいずれも「**open (#75)**」すなわち視覚ゲート待ち:
+    - `:58` Real browser tab order walk — **open (#75)**
+    - `:65` Rendered check at 390px — **open (#75)**
+    - `:74` Screenshots of the five viewports — **open (#75)**
+  - **PR #257 (open)** `w/w74fix2` — 「#74 狭幅ビューポートの横スクロールを解消する」
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: 1440×900 / 1280×720 / 1024×768 / 390×844 / 200% zoom のストレス箇所を特定 | 充足 | `specs/74-responsive/` に記録 |
+| 2 | T2: grid/sidebar/toolbar/inspector のレイアウト変形とスクロール所有を実装 | 充足 | `web/src/styles/app.css` + `web/src/app/**` |
+| 3 | T3: Tab/Enter/Escape/focus restore、dialog・select・input・note canvas の操作テスト | 充足 (コード) | `web/src/app/drawer.test.ts` の `nextFocusTarget` 純関数テスト + `chart-editor` の 6 テスト |
+| 4 | T4: loading/error/長い日本語タイトル状態で可視/クリック領域と対比を検証 | 充足 (コード) / 未検証 (実機) | `song-publisher.test.ts`, `song-thumbnail.test.tsx` |
+| 5 | T5: 実ブラウザのスクリーンショットと操作 E2E を SHA 付きで提出 | **未充足** | `specs/74` 3 タスク未チェック。**狭幅 (390×844) の横スクロール溢れが実測で残っている** (`specs/075-visual-gate/evidence/2026-11-08/index.json` の `horizontalOverflow: ["home@390x844"]`) |
+| 6 | Given-When-Then: 必須操作が到達可能で、意図しない overflow・ボタン重なり・focus 喪失がない | **未充足** | PR #257 が未マージ |
+
+- **未検証の区別**: 条件 5–6 は **実ブラウザ E2E** 必須。**Vitest 緑は「実際の幅で到達可能か」を保証しない** — 実際 390×844 では溢れが実測されている。代替 = `drawer.test.ts` 緑 + `index.json` の機械的結果。
+- **依存**: #69 / #70 / #72 / #73。**#75 の既知失敗の唯一の原因**。
+
+### #73 — [Web/Publish Flow] モック成功禁止・既存曲メタデータ編集・実API検証
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/src/lib/publish/transport.ts:25` — `resolvePublishTransport()` / `:31-35` — fixture はテストで明示許可されない限り **throw**
+  - `web/src/lib/publish/draft.ts` — `savePublishDraft(draft, target)` (target = "editor" のとき `/chart?draft=…` を返す) / `readPublishDraft(id, songId, version)` (uuid 検証 + song/version 一致 + chart import 検証)
+  - `web/pages/publish.tsx:1` — `import { readPublishDraft } from "@/lib/publish/draft"` / `:140` — `setLocalChart(draftId ? readPublishDraft(draftId, songId, version) : null)`
+  - `web/src/components/song-publisher/song-publisher.tsx:11,429` — `savePublishDraft` の呼び出し
+  - テスト: `web/src/lib/publish/__tests__/{client,draft,mock,transport,validation}.test.ts`, `web/src/components/song-publisher/{song-metadata-form.test.tsx,song-publisher.test.ts}`
+  - `specs/073-publish-flow/tasks.md` は `specs/` に存在しない (numbers 71/74 等の既に統合済み slice は tasks 番号が省略されている場合がある)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: production 同一 origin live を強制、fixture はテスト明示時のみ | 充足 | `transport.ts:25,31-35` + `__tests__/transport.test.ts` |
+| 2 | T2: 既存曲/新曲ドラフトの metadata と chart session を正しく初期化 | 充足 | `publish.tsx:140` + `song-metadata-form.tsx` |
+| 3 | T3: 編集→検証→確認Dialog→Publish の loading/error/unauthorized/double click 状態 | 充足 | `song-publisher.test.ts` + `publish-success.tsx` |
+| 4 | T4: Publish 後 catalog と該当 version チャートを実APIで再取得し反映を確認 | 充足 (コード) / 未検証 (実行) | `web/src/lib/publish/client.ts` の再取得経路。**実 API 実行の証跡は本監査未確認** |
+| 5 | T5: Live 実行時は試験用 songId で監督承認下の E2E、token 漏洩なし | 未検証 | 本 Issue では実施していない (実デプロイ禁止)。`new-song-flow.tsx:30-31` は token をメモリのみに保つ設計 |
+| 6 | Given-When-Then: 既存曲 v2 編集 → Publish 成功 → server が返した新 version の実GET と一致し UI に表示される。API 失敗/401/422 では成功表示が絶対に出ず入力が消えない | 充足 (コード) | `__tests__/client.test.ts` + `publish-success.tsx` + `draft.test.ts:17-18` |
+
+- **未検証の区別**: 条件 4 の実行部と 5 は **実 API** 必須。**Vitest 緑は本番 publish の成功を意味しない**。代替 = `web/src/lib/publish/__tests__/` 5 ファイル緑。
+- **依存**: #71 (session), #72 (editorUX)。#98 は本 Issue の「#73 の残り」。
+
+### #71 — [Web/Chart Session] Catalogから指定曲の正しい版の譜面を開く
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/src/lib/song-session/load.ts`
+    - `:21` `export async function loadSongSession(...)`
+    - `:28-32` `version` が `/^[1-9][0-9]*$/` で整数でなければ throw
+    - `:36` catalog 取得失敗 → throw / `:39` 曲が catalog に無ければ throw
+    - `:41` `GET /api/v1/charts/{songId}?version={version}`
+    - `:45-46` 404 等 → 「Chart vN unavailable (…)。Return to Catalog or retry.」= **静かな空譜面にはしない**
+    - `:53-54` `snapshot.songId !== songId || snapshot.chartVersion !== Number(version)` → 「Chart identity mismatch.」throw
+    - `:56` 公開譜面のバリデーション失敗 → throw
+  - `web/pages/chart.tsx` — `import { loadSongSession, type SongSession } from "@/lib/song-session/load"`、ローディング/エラーを分離
+  - テスト: `web/src/lib/song-session/load.test.ts`
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: songId/chartVersion パラメータと不正値/404 の扱いを定義 | 充足 | `load.ts:28-32,45-46` |
+| 2 | T2: exact version chart 読込と contract test | 充足 | `load.ts:41,53-56` + `load.test.ts` |
+| 3 | T3: chart route に song title/YouTube/譜面を供給、loading/error を明確に分離 | 充足 | `web/pages/chart.tsx` の `SongSession` 分岐 |
+| 4 | T4: 公開曲 2 件以上を選択して各譜面の名前・ノーツ数・version の一致を実証 | 充足 (コード) / 未検証 (実行) | テストは fixture。**実公開曲での実証は本監査未確認** |
+| 5 | Given-When-Then: B の v2 を開き A/サンプルのデータが混ざらない。古い版が 404 ならエラーと復帰手段を出す | 充足 | `load.ts:39,45-46,53-54` |
+
+- **未検証の区別**: 条件 4 の実証は **実 API** 必須。**Vitest 緑は本番カタログの実際の版本と一致することを保証しない**。代替 = `load.test.ts` 緑 + `contracts/openapi.v1.yaml` との突合。
+- **依存**: #68 (catalog) が前提。#73 / #98 の前提。
+
+### #68 — [Web/Catalog] 固定4曲を廃止し本番Catalog APIと実状態に接続
+
+- **区分**: **A (実装済み・証拠待ち)**
+- **実装/証拠**:
+  - `web/src/app/catalog.ts`
+    - `:9` `export type CatalogMode = "loading" | "ready" | "empty" | "error"`
+    - `:19` `export async function loadCatalog(mode: CatalogMode): Promise<SongSummary[]>`
+    - `:21` / `:32` / `:57` / `:63` / `:79` — **失敗は必ず throw** (`"GET /api/v1/catalog failed"` 等)。4 曲 fixture フォールバックは無い
+    - `:28` `fetch("/api/v1/catalog", { … })` — `Cache-Control: no-store`
+  - テスト: `web/src/app/catalog-view.test.ts`, `web/src/app/catalog-panel.test.tsx`
+  - `web/src/app/types.ts`
+  - **注意**: Issue 本文 291 行目の指定パスは `web/src/app/__tests__/catalog*.test.ts` だが、実体は `web/src/app/catalog-view.test.ts` / `catalog-panel.test.tsx` (**`__tests__/` 配下ではない**)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | T1: API client/response adapter と契約テスト | 充足 | `catalog.ts:19-63` + `catalog-view.test.ts` |
+| 2 | T2: 更新時の race/abort、HTTP error、invalid payload のテスト | 充足 | `catalog.ts:32,57,63,79` の throw 経路 + `catalog-view.test.ts` |
+| 3 | T3: 実API で catalogVersion・実件数・song fields を観測し単体結果の証跡 | 未検証 | **実API 観測の証跡は本監査未確認**。`docs/evidence/web-acceptance/` に撮影はあるが数値の記録は無し |
+| 4 | T4: 呼び出し元向け live/fixture 明示 contract を #nav に引き渡す | 充足 | `CatalogMode` 型 (`:9`) が live/fixture を明示 |
+| 5 | Given-When-Then: 見える件数・曲名・Version が実APIと一致。通信失敗では4曲の嘘の成功へフォールバックしない | 充足 (コード) | `catalog.ts:21,32,57` の throw |
+
+- **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・版本の一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。
+- **依存**: 既存契約 `contracts/openapi.v1.yaml` と main。#71 の前提。
+
+### #98 — [Web] 既存曲のメタデータ編集と Publish 画面の回復動線 (#73 の残り)
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - **publish 側 (Issue 本文 112 行目の主担当) は充足**:
+    - `web/pages/publish.tsx:1` `import { readPublishDraft }` / `:140` `setLocalChart(draftId ? readPublishDraft(draftId, songId, version) : null)`
+    - `web/src/lib/publish/draft.ts` — `readPublishDraft(id, songId, version)` は uuid 検証 + song/version 一致 + chart import 検証
+    - `web/src/components/song-publisher/song-metadata-form.tsx` — title/artist/level/duration/youtubeId の編集フォーム
+    - テスト: `web/src/lib/publish/__tests__/draft.test.ts` (`:13` save → `:17` 読戻し → `:18` 別 song で throw)、`web/src/components/song-publisher/song-metadata-form.test.tsx`
+  - **chart 側の回復動線は未実装**:
+    - `web/pages/chart.server.ts` — loader が返すのは `{ songId, version }` **のみ**。**`draft` パラメータを受け 取っていない** (`return { songId: params.get("songId"), version: params.get("version") };`)
+    - `web/pages/chart.tsx:1` — `import { savePublishDraft } from "@/lib/publish/draft";` のみ。**`readPublishDraft` を import していない**
+    - 結果: publish → chart の遷移は `savePublishDraft` が返す `/chart?draft=…` URL を使うが、`chart.server.ts` が `draft` を捨て、chart ページはドラフトを復元しない
+    - `web/src/lib/publish/draft.ts` の `savePublishDraft` の戻り値は target "editor" で `/chart?draft=…` (`web/src/components/song-publisher/song-publisher.tsx:429`, `web/pages/chart.tsx:175`)
+  - **Issue は「#73 の残り」と明記** → #73 は A 判定済だが、**#73 の受入条件「既存曲 v2 を編集 → Publish 後、実GET と一致」に対応する chart 側の復元動線は #98 の担当**
+  - `specs/098-*` の tasks は `specs/` に存在しない (`ls specs` に 098 なし)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 曲選択済みなら title/artist/level/duration/youtubeId を既存値で初期化・編集できる | 充足 | `song-metadata-form.tsx` + `song-metadata-form.test.tsx` |
+| 2 | 失敗時に入力を保てる | 充足 | `publish.tsx` のエラー経路。`__tests__/client.test.ts` |
+| 3 | **Publish → chart への回復動線 (ドラフト復元)** | **未充足** | `web/pages/chart.server.ts` に `draft` パラメータなし、`web/pages/chart.tsx` は `readPublishDraft` を import しない |
+
+- **未充足の具体箇所**:
+  1. `web/pages/chart.server.ts:6` — `return { songId: params.get("songId"), version: params.get("version") };` → `draft` を持ち越す必要
+  2. `web/pages/chart.tsx:1` — `readPublishDraft` の import と復元呼び出しが無い
+  3. 現状 `chart.tsx:175` は `savePublishDraft` を呼ぶ側 (= 書き出す側) のみ
+- **未検証の区別**: 条件 3 はコード欠落 (未充足) であり、テスト不足ではない。**Vitest 緑は「公開→編集の往復動線」を保証しない** — `draft.test.ts` は **ライブラリ単位**の往復しか検証していない。
+- **依存**: #73 (publish) が前提。**#61 Gate A の「publish → 再読込」経路に直結**。
+
+### #56 — [Infra] AIエージェント開発環境の再整備 (Agent Skills / root contract / worktree 入口 / delivery 設定)
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - `mise.toml` — `[tasks.skills-list]` (`:14`), `[tasks.skills-bootstrap]` (`:17`), `[tasks.skills-update]` (`:20`), `[tasks."worktree:setup"]` (`:25`), `[tasks."worktree:teardown"]` (`:30`), `[tasks.specify-install]` (`:34`), `[tasks.specify-init]` (`:37`)。**`skills-check` タスクは存在しない**
+  - `scripts/worktree/setup.sh`, `scripts/worktree/teardown.sh` — 実在
+  - `docs/adr/ADR-0001-agent-environment.md`, `ADR-0012.md`, `ADR-0027.md` — 実在
+  - `constitution/CONSTITUTION.md`, `organization/profiles/release-driven-solo.md` — 実在。`AGENTS.md` 末尾「Constitution / operating profile」が参照
+  - `AGENTS.md` (11115 bytes) — `CLAUDE.md` と **145 行の差分**があるが、骨格は同一 (Project Overview / Build, Test, Run / Architecture / Conventions / Known gotchas)。**能力ごとの担当 Skill 表 (dispatcher) ではない**
+  - `skills-lock.json` — **19 エントリ** (各 `source: rebuildup/project-init`, `skillPath: skills/<name>/SKILL.md`, `computedHash` 付き)
+  - `.agents/skills/` と `.claude/skills/` — **それぞれ 9 個のみ** (speckit-analyze / checklist / clarify / constitution / converge / implement / plan / specify / tasks)。**lock の 19 個は vendored されていない**
+  - `evals/policy-evaluation/` — **存在しない**
+  - `.config/wt.toml` — **存在しない** (`.config/` ディレクトリ自体が無い)
+  - `.github/workflows/` — `build-macos.yml`, `build-win64.yml`, `summaries/` のみ。**`agent-config.yml` は存在しない**
+  - `scripts/agent-routing/` — **存在しない** (`scripts/` には `worktree/` のみ)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| A1 | **Given** fresh clone, **When** `mise install --locked` の後 `mise run skills-check` を実行, **Then** lock と vendored Skill の hash が一致する | **未充足** | `mise.toml` に **`skills-check` タスクが無い** = コマンドが失敗する。さらに vendored は 9 個 (speckit のみ) で lock 19 個と **不一致** → hash 検査は mismatch になる |
+| A2 | **Given** `AGENTS.md` だけを読む agent, **When** 能力ごとの担当表をたどる, **Then** 各 single 能力の担当 Skill と manual Skill の path が分かる | **未充足** | `AGENTS.md` は CLAUDE.md の写しで、**能力→Skill path の表が無い**。root contract へのポインタ (`constitution/CONSTITUTION.md`, `organization/profiles/release-driven-solo.md`) のみ |
+| A3 | **Given** 新しい worktree, **When** `mise run worktree:setup` を実行, **Then** `.worktree.env` と toolchain が用意され、Unity の `Library/` を worktree 間で共有しないことが分かる | 充足 | `mise.toml:25` → `scripts/worktree/setup.sh` が実在。`docs/adr/ADR-0001-agent-environment.md` に記載 |
+| T1 | Skills を現行 revision へ reconcile し `--copy` で commit | **未充足** | vendored 9 個 vs lock 19 個 |
+| T2 | `AGENTS.md` を dispatcher に再構成し `CLAUDE.md` を adapter にする | **未充足** | 上記 A2 |
+| T3 | worktree lifecycle と agent-routing の入口を project-local に置く | 部分充足 | worktree は有 (`scripts/worktree/`)、**`scripts/agent-routing/` が無い** |
+| T4 | vendored-skill hash 検査と README/ADR を追加 | **未充足** | hash 検査コマンドが無い (`skills-check`)。ADR は有 |
+| T5 | delivery 設定 (merge method / main protection) を profile に合わせる | 未検証 | `organization/profiles/release-driven-solo.md` はあるが、**GitHub 側 main protection の状態は本監査未確認** |
+| V3 | `bash -n scripts/worktree/*.sh` = 0 | 未検証 | 本監査は実行していない (実行可能だが未実施) |
+
+- **未検証の区別**: T5 / V3 は設定・実行の確認事項で、**コード読解では判定できない**。代替 = `mise.toml` と `scripts/worktree/*.sh` の実在確認。
+- **依存**: 全 Worker の前提。**ただし #56 の未完了が他 Issue の実装を直接ブロックしているわけではない** (worktree setup は動いている)。
+
+### #59 — 検証: Issue #30 の各機能 (歌詞同期 / キーガイド / HOLD / HUD) の受入確認
+
+- **区分**: **B (部分実装)**
+- **実装/証拠** (受入対象の 4 機能は **すべて main に実装済み**):
+  - 歌詞同期: `Assets/Game/Scripts/UI/LyricsTimeline.cs` — テスト `Assets/Tests/Editor/LyricsTimelineTests.cs`, `ChartLyricsTimingTests.cs`
+  - キーガイド: `Assets/Game/Scripts/UI/KeyGuideUI.cs` — テスト `Assets/Tests/Editor/KeyGuideTests.cs`, `ShortcutKeyCapTests.cs`, `ActionKeyHintTests.cs`
+  - HOLD: `Assets/Game/Scripts/Gameplay/LongNote.cs` — テスト `Assets/Tests/Editor/LongNoteTests.cs`。`f953eea` "HOLD の判定ルールを LongNote に集約"
+  - HUD: `Assets/Game/Scripts/UI/V5/GameHudView.cs` — テスト `Assets/Tests/Editor/V5GameHudTests.cs`, `V6GameHudViewTests.cs`
+  - **KEY GUIDE と HOLD の値域**: `Assets/Game/Scripts/Gameplay/KeyBindings.cs:23` — 「`Judge.LaneKeys` はこの配列へのエイリアスであり、判定 (Judge) と…」。`4c55d31` "fix(gameplay): レーンキー表を KeyBindings.DefaultKeys に一本化"
+  - **受入記録の欠落**: `docs/evidence/` に `lyrics-sync-*` / `key-guide-*` / `long-note*` / `hud-ux*` のディレクトリは **存在しない** (`ls docs/evidence/` 実測)
+- **受入条件**:
+
+| # | 機能 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 歌詞同期: 歌詞が音に同期して表示・非表示できる | 充足 (実装) / **未検証** | `LyricsTimeline.cs` + `LyricsTimelineTests.cs` 緑。**受入判定記録とスクリーンショットが無い** |
+| 2 | キーガイド: 8 レーンのキー配置が `Judge.LaneKeys` と一致して画面に出る | 充足 (実装) / **未検証** | `KeyGuideUI.cs` + `KeyGuideTests.cs`。`4c55d31` で単一正本化。**受入記録が無い** |
+| 3 | HOLD: HOLD ノーツが保持・判定・表示できる | 充足 (実装) / **未検証** | `LongNote.cs` + `LongNoteTests.cs`。**受入記録が無い** |
+| 4 | HUD/UX: 判定・コンボ・プログレスの導線が崩れていない | 充足 (実装) / **未検証** | `GameHudView.cs` + `V5GameHudTests.cs` / `V6GameHudViewTests.cs`。**受入記録が無い** |
+| 5 | 完了条件: 機能ごとの受入判定 (OK / NG / 未検証) と根拠 | **未充足** | Issue 本文 189–192 行目の 4 チェックボックスが **未チェック**。受入判定表がどこにも無い |
+| 6 | 完了条件: スクリーンショットを `docs/evidence/<feature>-<date>/` に保存 | **未充足** | 当該ディレクトリ群が存在しない |
+| 7 | 完了条件: NG は別 issue として起票し修正は実装ワーカーへ差し戻す | 未充足 | 起票記録が無い |
+| 8 | 制約: 本 issue では実装・修正を行わない / Windows 実機は触らない | 充足 (運用) | 本 Issue の性格 |
+
+- **未検証の区別**: **本 Issue は純粋な受入確認 Issue であり、判定の主角は「実装が動いているか」ではなく「受入記録が残っているか」**。4 機能とも EditMode テストは緑だが、**Issue 本文 196 行目が求める「実機起動での画面と挙動の確認」が 4 機能とも未実施**。代替 = EditMode 緑のみ。
+- **依存**: #30 の仕様確定。**#30 が E (判定不能) のため、HOLD の判定ルール (先頭/終端の 2 判定か連続保持 1 判定か) は受入基準が未確定** → #59 の OK/NG 判定も現状出せない。
+
+### #58 — 検証: カタログ合成 (30 曲表示) と再生クロック修正の回帰確認
+
+- **区分**: **B (部分実装)**
+- **実装/証拠**:
+  - カタログ合成: `Assets/Game/Scripts/Songs/GManager.cs:88` — `public static SongData[] ActiveSongs => mergedSongs;` (固定カタログ + remote 上書き)。`:80` にコメント「ActiveSongs: the cloud snapshot only *updates* the songs it knows」
+  - テスト: `Assets/Tests/Editor/CatalogMergeTests.cs`, `CloudCatalogTests.cs` (11 件), `SongCatalogRobustnessTests.cs`, `ChartDataIntegrityTests.cs`
+  - 再生クロック: `Assets/Game/Scripts/Gameplay/MediaTimeline.cs` — テスト `Assets/Tests/Editor/PlaybackClockTests.cs`, `MediaTimelineTests.cs`
+  - **現状のカタログ規模**: `GManager` の 7 並列配列は **29 エントリ** (`CLAUDE.md` の記載。`ChartDataIntegrityTests.cs` が 29 Entries を固定)、`GManager.cs:407` — `public static int totalSong => ActiveSongs.Length - 1;`。かつ `SongName[27]` / `[28]` は **両方 `ニセモノ`** で `GManager.UnplayableTitles` により **選曲不可**
+  - 実機証跡: `docs/evidence/win64-2026-11-06/02-select-no1.png`, `03-select-no2-manimani.png` (2560×1440)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | カタログ合成 (固定 + remote 上書き) | 充足 | `GManager.cs:80-88` + `CatalogMergeTests.cs` |
+| 2 | 再生クロック (曲は必ず終わる / Ready 時にクロックが 0 に戻る) | 充足 (コード) | `MediaTimeline.cs` + `PlaybackClockTests.cs` |
+| 3 | 譜面整合性・カタログ契約の EditMode テスト | 充足 | `ChartDataIntegrityTests.cs` / `ScoreCatalogIntegrityTests.cs` |
+| 4 | 完了条件: EditMode テスト結果 (成功/失敗件数) の記録 | 充足 | `docs/evidence/index.md` §1.7 に **1071/1071 成功** を記録 |
+| 5 | 完了条件: 選曲画面のスクリーンショットで **30 曲全部**が見える | **未充足** | 現状カタログは 29 配列エントリ = **選曲可は 28**、さらに 2 件 (`ニセモノ`) は `UnplayableTitles` で不可。**「30 曲全部」の前提が現状と一致しない** → Issue の基準更新が必要 |
+| 6 | 完了条件: 1 曲プレイの実測結果 (ノーツ判定・Result 到達・Retry・YouTube 映像/音声・A/V 同期) | 部分充足 | `docs/evidence/win64-2026-11-06-release-gate/README-gen3.md` (Run D) に **判定 76 → Result → R リトライ / 映像再生 / 音 (同梱 wav) / A/V 同期** の実測あり。ただし **ストリーム音声 (m4a) は `Failed to recognize video file format` で未証明**、`docs/evidence/index.md` §1.5 も同旨 |
+| 7 | 完了条件: 不具合があれば別 issue として起票する | 未充足 | 起票記録が無い (#13 が結果として残Trespawnしている可能性はあるが明示的記録は無し) |
+
+- **未検証の区別**: 条件 6 の **「YouTube ストリームの音声」** は未証明 (同梱 wav で代替)。**EditMode 緑と「音が鳴っている」観測は別のもの**。代替 = Run D の実ログ + `docs/evidence/index.md` §1.5。
+- **依存**: #30 の仕様確定が #59 の前提这里是同一件事。**#58 の「30 曲」基準は `GManager` の現状 (29 / 選曲可 28 / 不可 2) に更新が必要**。
+
+### #30 — [Product Spec] ゲーム体験の理想形：HOLD・歌詞同期/簡素化・全キー案内・任意曲チュートリアル・pen.dev デザイン
+
+- **区分**: **E (判定不能)**
+- **実装/証拠**:
+  - Issue 本文 247 行目が **「これは実装 Issue ではなく、継続的な要件すり合わせ・デザインレビューの正本」** と自己宣言
+  - Issue 本文 249 行目 — 「**状態:** Product intent は確定 / 具体的な操作・採点・データ形状は要相談 / 実装・動作未検証」
+  - 仕様書: `docs/ui/lyrics-sync.md` (§2 歌詞 spec)
+  - 一部の方向性は既に main に反映: HOLD 採用 (`contracts/schemas/chart.v1.schema.json` の `type: [1,2]`、`LongNote.cs`)、キー案内の単一正本化 (`KeyBindings.cs:23`, `4c55d31`)、歌詞同期 (`LyricsTimeline.cs`)
+- **未確定事項 (Issue 本文が明示)**:
+
+| # | 未確定ポイント | 何が決めれば決まるか |
+|---|---|---|
+| 1 | HOLD の判定は「先頭・終端の 2 判定」か「連続保持 1 判定」か。離すタイミングの許容幅 (`:116`) | オーナーの判定仕様。**点数計算とコンボ寄与に直結するため実装 Worker が決められない** (`:186` 「未合意の仕様を実装担当が勝手に確定しない」) |
+| 2 | 途中でキーを離したときの判定、押し直しの可否、同レーン別キーへの持ち替え (`:117`) | 同上 |
+| 3 | スコアと最大コンボへの寄与、混在時の 100 万点算出、既存ランキングとの区分 (`:118`) | 同上。**ランキング互換にも影響** (`:176`) |
+| 4 | 既存 JSON `{type,num,block,LPB}` に拡張フィールドを足すか v2 にするか (`:119`) | 契約 versioning 方針。**Issue 119 行目「勝手にデータ形式を確定しない」** |
+| 5 | 歌詞の最小データ形状とタイミング単位 (秒/ms) (`:131`, `:190`) | 契約 + 移行方針。既存 `lyrics:{startTime,mondai,endTime,furigana,romaji}` と `_text.json` の段階移行 |
+| 6 | 歌詞の表示単位 (1 行/複数行)、同期補正、間奏中の表示、歌詞なし HUD レイアウト (`:133`) | デザイン + UX 決定 |
+| 7 | ガイドの表示位置・開閉操作・JIS/US キーマップ・本番デフォルト (`:151`) | Pen デザインとの調整。`:189` の「確認したい設計判断」 |
+| 8 | Pen デザインのファイル/フレームへの参照と優先順位 (`:192`) | オーナーの .pen 確定 |
+
+- **受入条件 (Issue 本文 180–186 行目の運用ルール)**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | 理想形・判断・未決事項を積み上げる仕様討議の場所として機能する | 充足 | Issue 本文 249 行目の状態宣言 |
+| 2 | 決定した要件に受け入れ条件を付け、最小単位で Issue を切る | 充足 | 子 Issue の存在 (#164 / #165 / #166 ほか) |
+| 3 | 1 Agent = 1 Issue = worktrunk worktree = Draft PR | 充足 | 各子 Issue が `specs/<NNN>/` を持つ |
+| 4 | 優先順位は「展示の実機安定性 > 初見の操作理解 > 歌詞なし状態や同期の不具合 > ロングノーツ > 高度な演出」 | 充足 (運用) | 実装順が #233 → v6 → HOLD と整合 |
+| 5 | 全ステップで Win64 で実際にプレイ可能なビルドを残す | 未検証 | `docs/evidence/index.md` §1.7「Windows 実機 … 未証明」 |
+| 6 | **未合意の仕様を実装担当が勝手に確定しない** | 充足 (運用) | 本 Issue が未確定点を明示的に保持している |
+
+- **未検証の区別**: 条件 5 は実機必須。**「HOLD 実装が main にある」ことは「HOLD の判定仕様が確定した」ことを意味しない** — 判定仕様は本文の 未確定 1–4 のとおり未決。
+- **依存**: **#59 の OK/NG 判定が本 Issue に-blocked**。#164 / #165 は closed だが、判定仕様が固まったかの証跡は main にない。
+
+---
