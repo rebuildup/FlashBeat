@@ -124,18 +124,18 @@ namespace FlashBeat.Gameplay
         /// The parameter is named after its unit on purpose (PR #263 review N7):
         /// passing `GManager.noteSpeed` here would be a silent factor of ~1.86.
         /// </summary>
-        public static float NotePositionZ(float noteTime, float mediaTime, float zScale)
+        public static float NotePositionZ(float noteTime, float mediaTime, float zUnitsPerSecond)
         {
-            return (noteTime - mediaTime) * zScale;
+            return (noteTime - mediaTime) * zUnitsPerSecond;
         }
 
         /// <summary>
         /// Time of a note, recovered from the position the NotesManager created
         /// it at (z = noteTime * zScale).
         /// </summary>
-        public static float NoteTimeFromPositionZ(float z, float zScale)
+        public static float NoteTimeFromPositionZ(float z, float zUnitsPerSecond)
         {
-            return zScale > 0f ? z / zScale : 0f;
+            return zUnitsPerSecond > 0f ? z / zUnitsPerSecond : 0f;
         }
 
         /// <summary>
@@ -187,6 +187,42 @@ namespace FlashBeat.Gameplay
         public static float CurrentZScale
         {
             get { return ZScaleFor(GManager.noteSpeed); }
+        }
+
+        /// <summary>
+        /// The z scale of the running play session.
+        ///
+        /// The scale is decided **once per song** (see <see cref="BeginSession"/>)
+        /// and then read by all three lane sites (generation, time recovery,
+        /// movement) plus the hold body length. A note speed change in the
+        /// middle of a song would otherwise move the notes discontinuously
+        /// (the scale is a ratio) and would make the recovered note time differ
+        /// from the judged one (PR #263 review S7). The new speed applies to
+        /// the next song.
+        /// </summary>
+        public static float SessionZScale
+        {
+            get { return sessionZScale > 0f ? sessionZScale : CurrentZScale; }
+        }
+
+        private static float sessionZScale;
+
+        /// <summary>
+        /// Fix the z scale of the play session that is about to start.
+        /// Called by the NotesManager when it loads the chart, i.e. before the
+        /// first note is created.
+        /// </summary>
+        public static void BeginSession(float noteSpeed)
+        {
+            sessionZScale = ZScaleFor(noteSpeed);
+        }
+
+        /// <summary>
+        /// Forget the session scale (tests / a new play session).
+        /// </summary>
+        public static void ResetSession()
+        {
+            sessionZScale = 0f;
         }
 
         /// <summary>

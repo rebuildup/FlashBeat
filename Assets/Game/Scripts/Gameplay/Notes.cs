@@ -20,14 +20,10 @@ public class Notes : MonoBehaviour
     public float holdSeconds;
 
     // --- v6 プレイフィールド (Issue #219) ---
-    // ノーツの移動クロック (noteTime / step_time / noteSpeed) は v5 と同じ。
+    // ノーツの移動クロック (noteTime / step_time / zScale) は v5 と同じ。
     // 違うのは見た目だけ: 3D の板の代わりに、v6 遠近法 (V6LaneGeometry) の
     // レーン上を流れる uGUI Image として描く。V6PlayfieldView が無い環境
     // (EditMode テスト等) では従来どおり 3D transform を動かす。
-
-    /// <summary>アプローチ時間の基準: noteSpeed 10 のとき 1.6 秒。速度オプションは
-    /// 「見えてから判定線までの時間」が 1/speed に比例する形で効く (旧 z 速度と同じ向き)。</summary>
-    private const float ApproachSecondsAtSpeed10 = 1.6f;
 
     /// <summary>
     /// ワールド z の 1 秒あたりの移動量 (chart time -> world z)。
@@ -36,12 +32,14 @@ public class Notes : MonoBehaviour
     /// 時刻を復元し、毎フレーム同じ zScale で動かす。3 つが同じ値なので、
     /// ノーツは判定線 (z = 0) に自分の判定時刻ちょうどに着く (Issue #233)。
     ///
-    /// 値は <see cref="MediaTimeline.CurrentZScale"/> 1 箇所から取る
-    /// (生成・復元・移動で別の値を使うとずれるため)。
+    /// 値は <see cref="MediaTimeline.SessionZScale"/> 1 箇所から取る
+    /// (生成・復元・移動で別の値を使うとずれるため)。セッションごとに
+    /// 確定した値なので、曲中の速度変更でノーツが飛ぶことはない
+    /// (PR #263 レビュー S7)。
     /// </summary>
     private static float ZScale
     {
-        get { return MediaTimeline.CurrentZScale; }
+        get { return MediaTimeline.SessionZScale; }
     }
 
     private int lane;
@@ -207,7 +205,7 @@ public class Notes : MonoBehaviour
             return;
         }
 
-        float approach = ApproachSecondsAtSpeed10 * 10f / Mathf.Max(0.1f, GManager.noteSpeed);
+        float approach = MediaTimeline.ApproachSecondsAtSpeed10 * 10f / Mathf.Max(0.1f, GManager.noteSpeed);
         float tHead = remaining / approach;
 
         // 奥 (t01 > 1) はまだ見えない。判定ラインを通ったあとは描かない

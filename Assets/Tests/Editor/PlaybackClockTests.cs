@@ -145,6 +145,64 @@ public class PlaybackClockTests
     }
 
     /// <summary>
+    /// z スケールの **復元** は、どんなスケールでも厳密である (S7)。
+    ///
+    /// ノーツ時刻は生成位置 z = noteTime * zScale から復元する。復元が
+    /// 「生成した位置」ではなく「その時のスケール」で計算されると、曲中の
+    /// 速度変更で判定する時刻と描画される時刻がずれる。
+    /// </summary>
+    [TestCase(0.538125f)]
+    [TestCase(5.38125f)]
+    [TestCase(13.453125f)]
+    [TestCase(0.1f)]
+    public void TheNoteTimeIsRecoveredExactlyForEveryScale(float zScale)
+    {
+        const float noteTime = 7.25f;
+
+        float created = noteTime * zScale;
+        float recovered = MediaTimeline.NoteTimeFromPositionZ(created, zScale);
+
+        Assert.AreEqual(noteTime, recovered, 0.0001f,
+            "The note time recovery must be exact for the scale " + zScale.ToString("F4") + ".");
+        Assert.AreEqual(0f, MediaTimeline.NotePositionZ(noteTime, noteTime, zScale), 0.0001f);
+    }
+
+    /// <summary>
+    /// セッションごとに z スケールは 1 回だけ確定する (PR #263 レビュー S7)。
+    ///
+    /// 曲中に速度を変更しても、生成・復元・移動はbegin_session の値を使う
+    /// ので、ノーツは不連続に飛ばない。変更は次の曲から効く。
+    /// </summary>
+    [Test]
+    public void TheSessionZScaleIsFixedWhenTheSessionBegins()
+    {
+        float saved = GManager.noteSpeed;
+        try
+        {
+            MediaTimeline.ResetSession();
+            GManager.noteSpeed = 10f;
+            MediaTimeline.BeginSession(GManager.noteSpeed);
+
+            float sessionScale = MediaTimeline.SessionZScale;
+            Assert.AreEqual(MediaTimeline.ZScaleFor(10f), sessionScale, 0.0001f);
+
+            // 曲中に速度を変更してもセッションの値は変わらない。
+            GManager.noteSpeed = 25f;
+            Assert.AreEqual(sessionScale, MediaTimeline.SessionZScale, 0.0001f);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.CurrentZScale, 0.0001f);
+
+            // 次のセッションでは新しい速度が使われる。
+            MediaTimeline.BeginSession(GManager.noteSpeed);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.SessionZScale, 0.0001f);
+        }
+        finally
+        {
+            GManager.noteSpeed = saved;
+            MediaTimeline.ResetSession();
+        }
+    }
+
+    /// <summary>
     /// 3D レーンの 3 箇所 (生成 / 時刻復元 / 移動) が同じスケールを使うことを
     /// **ソースレベル** で固定する。
     ///
@@ -159,7 +217,7 @@ public class PlaybackClockTests
         string timeline = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MediaTimeline.cs"));
 
         // 1. 生成 (NotesManager)
-        StringAssert.Contains("positionsZ.Add(time * FlashBeat.Gameplay.MediaTimeline.CurrentZScale)", manager,
+        StringAssert.Contains("positionsZ.Add(time * FlashBeat.Gameplay.MediaTimeline.SessionZScale)", manager,
             "The note generation must use the shared z scale.");
 
         // 2. 時刻復元 (Notes.Start) と 3. 移動 (Notes.Update)
@@ -173,6 +231,10 @@ public class PlaybackClockTests
             "A note position call passes the raw note speed instead of the shared z scale.");
         Assert.IsFalse(Regex.IsMatch(manager, @"Note(PositionZ|TimeFromPositionZ)\([^)]*GManager\.noteSpeed"),
             "A note position call passes the raw note speed instead of the shared z scale.");
+
+        // Notes はセッション確定済みのスケールだけを読む。
+        StringAssert.Contains("MediaTimeline.SessionZScale", notes,
+            "Notes must read the session z scale.");
 
         // CurrentZScale は ZScaleFor(GManager.noteSpeed) そのもの。
         StringAssert.Contains("ZScaleFor(GManager.noteSpeed)", timeline,
