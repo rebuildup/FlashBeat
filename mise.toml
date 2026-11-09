@@ -20,6 +20,12 @@ run = "bunx skills add rebuildup/project-init --skill '*' --agent claude-code --
 [tasks.skills-update]
 run = "bunx skills update -p -y"
 
+# Verify that every vendored Skill still matches skills-lock.json.
+# Offline (no network) and is the gate referenced by
+# docs/adr/ADR-0001-agent-environment.md and specs/056-agent-env/spec.md.
+[tasks."skills-check"]
+run = "bun evals/policy-evaluation/vendored-skills-contract.mts"
+
 # One lifecycle for Worktrunk, plain git and IDE-created worktrees.
 # See scripts/worktree/setup.sh and docs/adr/ADR-0001-agent-environment.md.
 [tasks."worktree:setup"]

@@ -193,7 +193,16 @@ public static class BuildScript
         foreach (string rel in MediaExcludePaths)
         {
             string fileName = Path.GetFileName(rel.TrimEnd('/'));
-            MovePath(Path.Combine(excludeRoot, fileName), ProjectPath(rel));
+            try
+            {
+                MovePath(Path.Combine(excludeRoot, fileName), ProjectPath(rel));
+            }
+            catch (Exception e)
+            {
+                // ビルド自体は成功している。メディアの復元に失敗してもバッチ全体を
+                // 失敗扱いにしない (メディアは Git LFS 管理なので git で戻せる)。
+                Debug.LogError($"[BuildScript] 退避メディアの復元に失敗しました: {rel} ({e.Message})");
+            }
         }
         try
         {
@@ -209,7 +218,12 @@ public static class BuildScript
         AssetDatabase.Refresh();
     }
 
-    /// <summary>src (ファイル/ディレクトリ) と隣接する .meta を dst へ移動する。src が無ければ何もしない。</summary>
+    /// <summary>src (ファイル/ディレクトリ) と隣接する .meta を dst へ移動する。src が無ければ何もしない。
+    ///
+    /// 移動先が既に存在する場合は **上書きマージ** する。ビルド中に Unity が
+    /// 退避先と同じ名前のフォルダを作り直すことがあるため、
+    /// Directory.Move のままだと「同名がある」で例外になり、
+    /// ビルド成功後にもかかわらずバッチ全体が失敗扱いになっていた (2026-11-10 実測)。</summary>
     private static void MovePath(string src, string dst)
     {
         if (!File.Exists(src) && !Directory.Exists(src))
@@ -223,7 +237,14 @@ public static class BuildScript
         }
         if (File.Exists(src))
         {
-            File.Move(src, dst);
+            File.Copy(src, dst, true);
+            File.Delete(src);
+        }
+        else if (Directory.Exists(dst))
+        {
+            // 移動先がある: 中身を残したまま上書きマージし、移動元を消す。
+            MergeDirectory(src, dst);
+            Directory.Delete(src, true);
         }
         else
         {
@@ -231,7 +252,24 @@ public static class BuildScript
         }
         if (File.Exists(src + ".meta"))
         {
-            File.Move(src + ".meta", dst + ".meta");
+            File.Copy(src + ".meta", dst + ".meta", true);
+            File.Delete(src + ".meta");
+        }
+    }
+
+    /// <summary>src ディレクトリの内容を dst へ上書きマージする (移動元のファイルは消える)。</summary>
+    private static void MergeDirectory(string src, string dst)
+    {
+        Directory.CreateDirectory(dst);
+        foreach (string file in Directory.GetFiles(src))
+        {
+            File.Copy(file, Path.Combine(dst, Path.GetFileName(file)), true);
+            File.Delete(file);
+        }
+        foreach (string dir in Directory.GetDirectories(src))
+        {
+            MergeDirectory(dir, Path.Combine(dst, Path.GetFileName(dir)));
+            Directory.Delete(dir);
         }
     }
 

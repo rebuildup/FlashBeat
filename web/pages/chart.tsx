@@ -54,8 +54,10 @@ const editorPane = css({
 /** Permission boundary of the publish path, visible before pressing it. */
 const tokenHint = css({
   color: "fg.subtle",
+  flexBasis: { base: "100%", md: "auto" },
   fontSize: "2xs",
-  whiteSpace: "nowrap",
+  minWidth: "0",
+  whiteSpace: { base: "normal", md: "nowrap" },
 });
 
 /** Demoted secondary link to the source video (issue #215 review). */

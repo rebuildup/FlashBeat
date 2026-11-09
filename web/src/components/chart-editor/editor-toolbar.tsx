@@ -58,7 +58,11 @@ const transport = css({
   bg: "#222222",
   borderRadius: "10px",
   display: "flex",
+  /** Narrow: the transport wraps instead of pushing the toolbar sideways. */
+  flexWrap: "wrap",
   gap: "2",
+  maxWidth: "100%",
+  minWidth: "0",
   padding: "1",
   paddingRight: "3",
 });
@@ -85,7 +89,7 @@ const readout = css({
   display: "flex",
   fontVariantNumeric: "tabular-nums",
   gap: "1",
-  minWidth: "9.5rem",
+  minWidth: { base: "0", md: "9.5rem" },
   whiteSpace: "nowrap",
 });
 
@@ -110,6 +114,14 @@ const counter = css({
 });
 
 const details = css({
+  /**
+   * Wide viewports: the disclosure is pushed to the right edge of the bar, so
+   * the `Chart setup` popover (anchored to it, `right: 0`) never starts left
+   * of the viewport — at 1280 the bar wraps and the disclosure used to land
+   * on the left of the second row, which put the panel at x=-20.
+   * Narrow viewports: the panel is a fixed sheet, so no offset is needed.
+   */
+  marginLeft: { base: "0", md: "auto" },
   position: "relative",
 });
 
@@ -142,6 +154,14 @@ const summaryMeta = css({
   fontWeight: "normal",
 });
 
+/**
+ * The `Chart setup` panel.
+ *
+ * Wide viewports: a popover anchored to the disclosure. Narrow viewports: the
+ * anchor would be pushed off-screen, so the panel becomes a sheet that owns
+ * its own scroll (issue #74) — the controls stay reachable instead of being
+ * clipped away.
+ */
 const popover = css({
   bg: "#2d2d2d",
   borderColor: "#131313",
@@ -149,12 +169,15 @@ const popover = css({
   borderWidth: "1px",
   display: "grid",
   gap: "3",
+  left: { base: "1rem", md: "auto" },
+  maxHeight: { base: "calc(100dvh - 6rem)", md: "none" },
   maxWidth: "calc(100vw - 2rem)",
+  overflowY: { base: "auto", md: "visible" },
   padding: "3",
-  position: "absolute",
-  right: "0",
-  top: "calc(100% + 8px)",
-  width: "23rem",
+  position: { base: "fixed", md: "absolute" },
+  right: { base: "1rem", md: "0" },
+  top: { base: "4rem", md: "calc(100% + 8px)" },
+  width: { base: "auto", md: "23rem" },
   zIndex: "popover",
 });
 
