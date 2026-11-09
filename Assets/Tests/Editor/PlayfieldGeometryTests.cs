@@ -181,7 +181,9 @@ public class PlayfieldGeometryTests
     {
         foreach (string block in SplitBlocks(text))
         {
-            if (!block.StartsWith("!u!1 &")) continue;
+            // The split removes the "\n--- !u!" prefix, so a GameObject block
+            // starts with its class id ("1 &<fileId>").
+            if (!block.StartsWith("1 &")) continue;
             if (Regex.IsMatch(block, @"m_Name: " + Regex.Escape(name) + "\r?\n")) return block;
         }
         return null;
@@ -203,7 +205,7 @@ public class PlayfieldGeometryTests
         string gameObject = FindGameObjectBlock(text, "Main Camera");
         Assert.IsNotNull(gameObject, "The 'Main Camera' object is gone from " + SceneRelativePath);
 
-        Match idMatch = Regex.Match(gameObject, @"^!u!1 &(\d+)");
+        Match idMatch = Regex.Match(gameObject, @"^1 &(\d+)");
         Assert.IsTrue(idMatch.Success, "Could not read the file id of the 'Main Camera' object.");
         string goId = idMatch.Groups[1].Value;
 

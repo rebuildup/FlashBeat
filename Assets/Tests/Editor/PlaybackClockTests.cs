@@ -136,7 +136,7 @@ public class PlaybackClockTests
 
             GManager.noteSpeed = 25f;
             Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.CurrentZScale, 0.0001f);
-            Assert.AreEqual(MediaTimeline.ZScaleFor(25f) * 2.5f, MediaTimeline.CurrentZScale, 0.0001f);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(10f) * 2.5f, MediaTimeline.CurrentZScale, 0.0001f);
         }
         finally
         {
