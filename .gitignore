@@ -97,3 +97,9 @@ __pycache__/
 
 # Node/Bun 依存 (package.json / bun.lock は追跡する)
 node_modules/
+
+# ─────── agent 環境のローカル生成物 (Issue #56) ───────
+# mise の npm backend が使う取得キャッシュ (mise.lock 自体は追跡する)
+.mise/
+# scripts/worktree/setup.sh が worktree ごとに作る環境変数ファイル
+.worktree.env
