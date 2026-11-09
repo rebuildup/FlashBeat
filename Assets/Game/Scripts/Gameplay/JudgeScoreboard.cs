@@ -66,9 +66,14 @@ namespace FlashBeat.Gameplay
         /// 先頭判定を BAD に差し替える: Perfect / Great だった分を取り消して
         /// BAD (1 点) にする。すでに BAD なら何も変わらない。コンボは
         /// 先頭で 1 回だけ数えたまま (中断で追加も消失もしない)。
+        ///
+        /// 先頭判定が無い (<see cref="LongNote.Judgement.None"/>) ときは
+        /// 何もしない: 差し替える対象が無いので、Bad を増やすと
+        /// 「確定したノーツ数」 (<see cref="Settled"/>) が水増しする。
         /// </summary>
         public void DowngradeHoldToBad(LongNote.Judgement headJudgement)
         {
+            if (headJudgement == LongNote.Judgement.None) return;
             if (headJudgement == LongNote.Judgement.Bad) return;
 
             if (headJudgement == LongNote.Judgement.Perfect)

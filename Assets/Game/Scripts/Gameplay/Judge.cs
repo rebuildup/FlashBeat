@@ -57,8 +57,21 @@ public class Judge : MonoBehaviour
     /// <summary>
     /// 保持中のロングノーツの先頭判定 (Issue #164)。途中で離した (中断)
     /// ときにこの判定を BAD へ差し替えるために覚えておく。
+    ///
+    /// 初期値は「まだ先頭判定が無い」= <see cref="LongNote.Judgement.None"/>。
+    /// 既定値 (0 = Perfect) のままだと、HOLD を持たないレーンが
+    /// <see cref="JudgeScoreboard.DowngradeHoldToBad"/> を受けたときに
+    /// 確定したノーツ数を水増ししてしまう。
     /// </summary>
-    private readonly LongNote.Judgement[] holdHead = new LongNote.Judgement[LaneKeys.Length];
+    private readonly LongNote.Judgement[] holdHead = CreateHoldHead();
+
+    /// <summary>holdHead の初期配列 (None 埋め)。</summary>
+    private static LongNote.Judgement[] CreateHoldHead()
+    {
+        LongNote.Judgement[] head = new LongNote.Judgement[LaneKeys.Length];
+        Array.Fill(head, LongNote.Judgement.None);
+        return head;
+    }
 
     // 互換エイリアス: 正本は KeyBindings.DefaultKeys。
     // 判定 (Judge) とキーガイド UI の両方が同じ配列を参照する。
@@ -73,6 +86,11 @@ public class Judge : MonoBehaviour
         if (comboText != null) comboText.text = "0";
         if (scoreText != null) scoreText.text = "0";
         if (audioHit != null) audioHit.volume = GManager.effectVolume;
+
+        // 保持中のロングノーツの先頭判定は「まだ無い」状態で始める。
+        // 既定値 (0 = Perfect) だと、HOLD を持たないレーンが
+        // DowngradeHoldToBad を受けたときに確定数を水増しする。
+        Array.Fill(holdHead, LongNote.Judgement.None);
     }
 
     void Update()
