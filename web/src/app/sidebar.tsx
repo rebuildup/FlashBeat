@@ -3,6 +3,7 @@ import { css } from "styled-system/css";
 import {
   Archive,
   ChartColumnBig,
+  ChevronDown,
   CloudUpload,
   ListMusic,
   PencilRuler,
@@ -63,14 +64,20 @@ const sidebar = css({
   bg: "gray.surface.bg",
   borderColor: "gray.surface.border",
   /** Narrow viewports: the rail becomes a compact top bar (issue #70 390px target). */
-  alignItems: { base: "center", md: "stretch" },
+  alignItems: { base: "stretch", md: "stretch" },
   borderBottomWidth: { base: "1px", md: "0px" },
   borderRightWidth: { base: "0px", md: "1px" },
   display: "flex",
-  flexDirection: { base: "row", md: "column" },
+  flexDirection: { base: "column", md: "column" },
   flexWrap: "wrap",
-  gap: "4",
+  gap: "2",
   minHeight: "0",
+  /**
+   * The rail must never widen the document: a narrow viewport reflows the
+   * entries (issue #74), so nothing sticks out sideways.
+   */
+  maxWidth: "100%",
+  overflowX: "hidden",
   paddingBottom: { base: "2", md: "4" },
   paddingTop: { base: "2", md: "4" },
   px: "3",
@@ -87,9 +94,41 @@ const brand = css({
 
 const navList = css({
   display: "flex",
-  flexDirection: { base: "row", md: "column" },
-  flex: "1",
+  flexDirection: "column",
+  flex: { base: "none", md: "1" },
   gap: "1",
+  minWidth: "0",
+  width: { base: "full", md: "auto" },
+});
+
+/**
+ * Narrow viewports: the visitor entry and the staff toggle share one row,
+ * the staff entries themselves live in a disclosure below (issue #74).
+ * Wide viewports: the wrapper disappears (`display: contents`), so the rail
+ * keeps its plain column of entries.
+ */
+const navTopRow = css({
+  alignItems: "center",
+  display: { base: "flex", md: "contents" },
+  gap: "2",
+  minWidth: "0",
+  width: { base: "full", md: "auto" },
+});
+
+/** The staff group: a grid on narrow viewports, a plain column on wide ones. */
+const staffGroup = css({
+  gap: { base: "2", md: "1" },
+  gridTemplateColumns: { base: "repeat(2, minmax(0, 1fr))" },
+  minWidth: "0",
+  width: { base: "full", md: "auto" },
+});
+
+const staffGroupOpen = css({
+  display: { base: "grid", md: "contents" },
+});
+
+const staffGroupClosed = css({
+  display: { base: "none", md: "contents" },
 });
 
 const groupLabel = css({
@@ -110,11 +149,14 @@ const navTrigger = css({
   color: "fg.muted",
   colorPalette: "blue",
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
   minHeight: "10",
+  minWidth: "0",
   px: "3",
   textDecoration: "none",
-  whiteSpace: "nowrap",
+  /** Narrow: long labels wrap inside the grid cell instead of pushing sideways. */
+  whiteSpace: { base: "normal", md: "nowrap" },
   _hover: { bg: "gray.subtle.bg.hover", color: "fg.default" },
   _focusVisible: {
     outline: "2px solid",
@@ -133,13 +175,49 @@ const visitorTrigger = css({
   colorPalette: "blue",
   bg: "colorPalette.solid.bg",
   color: "colorPalette.solid.fg",
+  flex: { base: "1", md: "none" },
   fontWeight: "medium",
+  minWidth: "0",
   _hover: { opacity: "0.9" },
   "&[aria-current=page]": { opacity: "0.9" },
 });
 
+/**
+ * The disclosure of the staff entries on narrow viewports (issue #74): the
+ * rail keeps its own height, so the work area below is not pushed away.
+ */
+const staffToggle = css({
+  alignItems: "center",
+  background: "transparent",
+  borderColor: "gray.surface.border",
+  borderRadius: "l2",
+  borderWidth: "1px",
+  color: "fg.muted",
+  cursor: "pointer",
+  display: { base: "inline-flex", md: "none" },
+  flexShrink: "0",
+  gap: "2",
+  minHeight: "10",
+  paddingInline: "3",
+  textAlign: "left",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "2px",
+  },
+  "&[aria-expanded=true]": { color: "fg.default" },
+});
+
+const staffToggleIcon = css({
+  color: "currentColor",
+  flexShrink: "0",
+  transition: "transform 120ms ease-out",
+  "[aria-expanded=true] &": { transform: "rotate(180deg)" },
+});
+
 const staffDivider = css({
   bg: "gray.surface.border",
+  display: { base: "none", md: "block" },
   height: "1px",
   width: "100%",
 });
@@ -147,6 +225,7 @@ const staffDivider = css({
 const labelGrid = css({
   display: "grid",
   lineHeight: "1.2",
+  minWidth: "0",
   textAlign: "left",
 });
 
@@ -170,13 +249,15 @@ const adminBadge = css({
 /** The icon of a navigation entry. */
 const navIcon = css({
   color: "currentColor",
-  flexShrink: 0,
+  flexShrink: "0",
 });
 
 export function Sidebar({ active }: { active?: string }) {
   // The active entry follows the URL; the default covers the server-rendered
   // first paint of `/` (the catalog). A page can pin it with `active`.
   const [path, setPath] = useState("/");
+  // Narrow viewports keep the staff entries in a disclosure (issue #74).
+  const [staffOpen, setStaffOpen] = useState(false);
   useEffect(() => {
     setPath(window.location.pathname);
   }, []);
@@ -194,42 +275,64 @@ export function Sidebar({ active }: { active?: string }) {
       </div>
 
       <nav aria-label="Studio" className={navList}>
-        <a
-          href={NAV_VISITOR.href}
-          aria-current={NAV_VISITOR.href === path ? "page" : undefined}
-          className={`${navTrigger} ${visitorTrigger}`}
-          data-testid="nav-visitor"
-        >
-          <ListMusic className={navIcon} size={16} aria-hidden="true" />
-          <span className={labelGrid}>
-            <span>{NAV_VISITOR.ja}</span>
-            <span className={labelEn}>{NAV_VISITOR.en}</span>
-          </span>
-        </a>
-
-        <div className={staffDivider} aria-hidden="true" />
-        <p className={groupLabel}>スタッフ操作 / Staff</p>
-
-        {NAV_STAFF_ITEMS.map((item) => (
+        <div className={navTopRow}>
           <a
-            key={item.value}
-            href={item.href}
-            aria-current={isActive(item) ? "page" : undefined}
-            className={navTrigger}
-            data-testid={`nav-${item.value}`}
+            href={NAV_VISITOR.href}
+            aria-current={NAV_VISITOR.href === path ? "page" : undefined}
+            className={`${navTrigger} ${visitorTrigger}`}
+            data-testid="nav-visitor"
           >
-            <item.icon className={navIcon} size={16} aria-hidden="true" />
+            <ListMusic className={navIcon} size={16} aria-hidden="true" />
             <span className={labelGrid}>
-              <span>{item.ja}</span>
-              <span className={labelEn}>{item.en}</span>
+              <span>{NAV_VISITOR.ja}</span>
+              <span className={labelEn}>{NAV_VISITOR.en}</span>
             </span>
-            {"admin" in item && item.admin ? (
-              <span className={adminBadge} data-testid="nav-publish-admin-badge">
-                要トークン
-              </span>
-            ) : null}
           </a>
-        ))}
+
+          <button
+            type="button"
+            className={staffToggle}
+            aria-expanded={staffOpen}
+            aria-controls="studio-staff-nav"
+            onClick={() => setStaffOpen((open) => !open)}
+            data-testid="nav-staff-toggle"
+          >
+            <span className={labelGrid}>
+              <span>スタッフ操作</span>
+              <span className={labelEn}>Staff</span>
+            </span>
+            <ChevronDown className={staffToggleIcon} size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div
+          id="studio-staff-nav"
+          className={`${staffGroup} ${staffOpen ? staffGroupOpen : staffGroupClosed}`}
+        >
+          <div className={staffDivider} aria-hidden="true" />
+          <p className={groupLabel}>スタッフ操作 / Staff</p>
+
+          {NAV_STAFF_ITEMS.map((item) => (
+            <a
+              key={item.value}
+              href={item.href}
+              aria-current={isActive(item) ? "page" : undefined}
+              className={navTrigger}
+              data-testid={`nav-${item.value}`}
+            >
+              <item.icon className={navIcon} size={16} aria-hidden="true" />
+              <span className={labelGrid}>
+                <span>{item.ja}</span>
+                <span className={labelEn}>{item.en}</span>
+              </span>
+              {"admin" in item && item.admin ? (
+                <span className={adminBadge} data-testid="nav-publish-admin-badge">
+                  要トークン
+                </span>
+              ) : null}
+            </a>
+          ))}
+        </div>
       </nav>
     </aside>
   );

@@ -59,6 +59,12 @@ const cardTitleRow = css({
   display: "flex",
   gap: "3",
   minWidth: "0",
+  /**
+   * The stretched link inside the card is absolutely positioned (issue #74):
+   * without a positioned ancestor it resolves against the viewport and the
+   * whole page ends up covered by a 390px-wide invisible link.
+   */
+  position: "relative",
 });
 
 const cardTitle = css({
@@ -173,6 +179,19 @@ const rowLink = css({
     outlineColor: "blue.9",
     outlineOffset: "-2px",
   },
+});
+
+/**
+ * The card layout has no table row to stretch over, so the title is an
+ * ordinary link next to the thumbnail (issue #74). An absolute link here
+ * would cover the thumbnail — and, without a positioned ancestor, the whole
+ * viewport.
+ */
+const cardTitleLink = css({
+  inset: "auto",
+  paddingLeft: "0",
+  position: "static",
+  width: "auto",
 });
 
 const rowBody = css({
@@ -513,7 +532,7 @@ export function CatalogPanel({
                   <div className={cardHeader}>
                     <span className={cardTitleRow}>
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
-                      <a className={rowLink} href={chartHref(song)} data-row-link>
+                      <a className={`${rowLink} ${cardTitleLink}`} href={chartHref(song)} data-row-link>
                         <span className={cardTitle}>{song.title}</span>
                       </a>
                     </span>

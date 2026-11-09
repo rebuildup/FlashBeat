@@ -46,7 +46,8 @@ export const pageHeader = css({
 export const pageHeaderIdentity = css({
   display: "flex",
   flexDirection: "column",
-  flex: "1",
+  /** Narrow: the heading takes its own row so the actions keep full width. */
+  flex: { base: "1 0 100%", md: "1 1 0%" },
   gap: "0",
   minWidth: "0",
 });
@@ -84,12 +85,20 @@ export const pageBackLink = css({
   _focusVisible: { outline: "2px solid", outlineOffset: "2px" },
 });
 
+/**
+ * The action cluster of a page header. On a narrow viewport the cluster takes
+ * its own row and wraps: a rigid cluster used to push the primary action
+ * (issue #74, `Review & Publish`) out of the viewport.
+ */
 export const pageActions = css({
   alignItems: "center",
   display: "flex",
-  flexShrink: "0",
+  flex: { base: "1 0 100%", md: "0 0 auto" },
   flexWrap: "wrap",
   gap: "3",
+  justifyContent: { base: "flex-start", md: "flex-end" },
+  maxWidth: "100%",
+  minWidth: "0",
 });
 
 export const panelHeader = css({
