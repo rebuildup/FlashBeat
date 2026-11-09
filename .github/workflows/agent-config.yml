@@ -1,0 +1,67 @@
+name: agent-config
+
+# Issue #56 の agent 環境 gate。
+#
+# vendored Skill (.agents/skills/, .claude/skills/) と skills-lock.json の
+# hash 一致を CI で固定する。これは ADR-0001 decision 1 の gate であり、
+# ローカルと同じ検査を `mise run skills-check` で走らせる。
+#
+# Unity ライセンスは使わない。Unity のビルド / EditMode test は
+# build-macos.yml / build-win64.yml の責務で、このジョブとは独立している。
+#
+# 参照:
+#   - docs/adr/ADR-0001-agent-environment.md
+#   - specs/056-agent-env/spec.md (Gate: `mise run skills-check`)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - "skills-lock.json"
+      - "evals/policy-evaluation/**"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/workflows/agent-config.yml"
+  pull_request:
+    paths:
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - "skills-lock.json"
+      - "evals/policy-evaluation/**"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/workflows/agent-config.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-config-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skills-check:
+    name: skills-check (vendored vs skills-lock.json)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v4
+
+      # mise.lock があると action 側で `mise install --locked` を実行する
+      # (locked な tool version だけを入れる)。
+      - name: mise を導入
+        uses: jdx/mise-action@v2
+        with:
+          version: v2026.10.25
+          install: true
+
+      - name: 依存ツールを lock どおりに導入
+        run: mise install --locked
+
+      - name: vendored Skill と lock の hash を比較
+        run: mise run skills-check
