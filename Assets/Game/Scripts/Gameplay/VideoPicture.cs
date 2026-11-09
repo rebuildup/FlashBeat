@@ -61,7 +61,12 @@ namespace FlashBeat.Gameplay
         ///   * 板 (renderer) は隠したままにする。有効化は
         ///     <see cref="ShowWhenFrameReady"/> だけが行う。
         /// </summary>
-        /// <returns>プレーンが有効になったか (null なら false)。</returns>
+        /// <returns>
+        /// プレーン (GameObject) が有効になったか。
+        /// **映像が見えるかではない** (板は隠したままで、
+        /// 有効化は <see cref="ShowWhenFrameReady"/> だけが行う)。
+        /// Renderer が無い平面でも「平面としては有効」なので true。
+        /// </returns>
         public static bool Activate(VideoPlayer video)
         {
             if (video == null) return false;
@@ -79,6 +84,19 @@ namespace FlashBeat.Gameplay
             HideBoard(video);
 
             return true;
+        }
+
+        /// <summary>
+        /// 映像プレーン (GameObject) が有効かどうか。
+        ///
+        /// <see cref="Activate"/> の戻り値は「平面が有効か」の意味なので、
+        /// 呼び出し側で意味を取り違えないように、名前で分かるようにしておく
+        /// (PR #263 レビュー N9)。
+        /// </summary>
+        public static bool IsPlaneActive(VideoPlayer video)
+        {
+            if (video == null) return false;
+            return video.gameObject.activeSelf;
         }
 
         /// <summary>
