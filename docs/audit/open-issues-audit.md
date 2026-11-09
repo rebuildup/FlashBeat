@@ -21,7 +21,7 @@
 | **A: 実装済み・証拠待ち** | 実装が `main` にあり、受入条件を満たすコードが存在する。残るのは「Issue への記録」「実測証跡」「受入条件の固定」だけ |
 | **B: 部分実装** | 一部の受入条件のみ充足。未充足の条件を **具体的 file:line 付きで** 列挙できる |
 | **C: 未実装** | 実装が存在しない |
-| **D: 阻塞 (blocked)** | 着手・完了が他 Issue / オーナー判断 / Windows 実機 / Unity ライセンス / secrets などに依存する。何を待っているかを明記する |
+| **D: ブロック (blocked)** | 着手・完了が他 Issue / オーナー判断 / Windows 実機 / Unity ライセンス / secrets などに依存する。何を待っているかを明記する |
 | **E: 判定不能** | 判断材料が Issue 記述・コード・証跡のいずれにも不足。何が決めれば決まるかを明記する |
 
 ### 受入条件の 3 値
@@ -36,8 +36,8 @@
 
 | 代替検証 | 実機確認に代わらない理由 |
 |---|---|
-| EditMode / Vitest 緑 | 実行環境・描画・入力・実サービスewel を再現しない。**画面表示・操作性・実通信の結果は含まれない** |
-| コード読み | 「動く」保証にならない。null 参照・シーン不整合・実 API 差異はcaught されない |
+| EditMode / Vitest 緑 | 実行環境・描画・入力・実サービスの通信を再現しない。**画面表示・操作性・実通信の結果は含まれない** |
+| コード読み | 「動く」保証にならない。null 参照・シーン不整合・実 API 差異は捕捉されない |
 | macOS Player 起動 | **Win64 の代用にならない** (`docs/evidence/index.md` §1.6 が明記) |
 | スクリーンショット 1 枚 | 譜面の空白区間などを誤って「正常」と読む危険 (#233 の実例) |
 
@@ -48,7 +48,7 @@
 - `git merge-base --is-ancestor <sha> origin/main` — commit が `main` に入っているかの判定
 - `git log --oneline -- <path>` — 実装ファイルの導入 commit
 - `gh issue view <n>` — Issue 本文 + 全コメント
-- `Assets/Tests/Editor/` (73 ファイル) / `Assets/Game/Tests/` (18 ファイル) / `web/**/*.test.ts(x)` (47 ファイル) の実在 확인
+- `Assets/Tests/Editor/` (73 ファイル) / `Assets/Game/Tests/` (18 ファイル) / `web/**/*.test.ts(x)` (47 ファイル) の実在を確認
 - `specs/*/tasks.md` のチェックボックス (証拠信号。ただし stale な場合あり)
 - `docs/evidence/**` の実測アーティファクト
 
@@ -56,24 +56,24 @@
 
 ## 1. サマリ表 (全 47 件)
 
-| # | タイトル (短縮) | 区分 | 実装位置 | 充足/未充足/未検証 | 阻塞 | 推奨アクション |
+| # | タイトル (短縮) | 区分 | 実装位置 | 充足/未充足/未検証 | ブロック | 推奨アクション |
 |---|---|---|---|---|---|---|
 | 3 | 展示版: 5 API 契約と段階的実装 | **D** | `contracts/openapi.v1.yaml`, `web/routes/api/v1/**` | 3/2/1 | Win64 CI ライセンス・Windows 実機 | S1–S4 ゲートの証跡を 1 段ずつ作る |
-| 4 | Gate S0/S1 Win64 ベースライン+YouTube | **D** | `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs` | 2/1/1 | Windows 実機 (展示 PC) | S1 の Win64 run を取得 (映像あり・音声 unresolved) |
+| 4 | Gate S0/S1 Win64 ベースライン+YouTube | **D** | `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs` | 2/1/1 | Windows 実機 (展示 PC) | S1 の Win64 run を取得 (映像あり・音声 未証明) |
 | 5 | Gate S2 Cloudflare API + Unity 動的カタログ | **D** | `Assets/Game/Scripts/Songs/CloudCatalog.cs:91,96,105` | 1/1/2 | Windows 実機 + 本番 PUT | Mac で PUT → Win Unity 再生を 1 回通す |
 | 6 | Gate S3 Web Studio → Unity 公開デモ | **D** | `web/pages/publish.tsx`, `web/src/components/new-song/**` | 1/1/2 | Windows 実機 | 公開 chartVersion を Win Unity で再生 |
-| 7 | Gate S4 optional クラウドランキング | **B** | `web/routes/api/v1/scores.ts:1-80`, `web/routes/api/v1/leaderboards/**` | 3/1/2 | 2台目のクライアント | サーバ再計算は充足、2nd クライアント観測のみ未検証 |
-| 12 | S2/Mac Void+Vite+React+Panda/Park 足場 | **A** | `web/package.json`, `web/panda.config.ts:39,76` | 4/0/1 | — | クローズ提案可 (视觉确认のみ未検証) |
+| 7 | Gate S4 optional クラウドランキング | **B** | `web/routes/api/v1/scores.ts:1-80`, `web/routes/api/v1/leaderboards/**` | 3/1/2 | 2台目のクライアント | サーバ再計算は充足、2 台目のクライアント観測のみ未検証 |
+| 12 | S2/Mac Void+Vite+React+Panda/Park 足場 | **A** | `web/package.json`, `web/panda.config.ts:39,76` | 4/0/1 | — | クローズ提案可 (視覚確認のみ未検証) |
 | 13 | S1/Win yt-dlp→VideoPlayer 1曲完走 | **B** | `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs`, `MediaCacheManager.cs` | 3/2/1 | Windows 実機 | ストリーム音声 (m4a) 再生と `audioS.Play()` を実機で |
-| 17 | S2/Win 固定楽曲配列 → Cloud Catalog | **B** | `Assets/Game/Scripts/Songs/CloudCatalog.cs`, `GManager.cs:88` | 4/1/1 | Windows 実機 | 关口の E2E のみ未検証 |
+| 17 | S2/Win 固定楽曲配列 → Cloud Catalog | **B** | `Assets/Game/Scripts/Songs/CloudCatalog.cs`, `GManager.cs:88` | 4/1/1 | Windows 実機 | 窓口の E2E のみ未検証 |
 | 19 | S3/Mac Park UI メタデータ+Publish 接続 | **A** | `web/src/components/song-publisher/**`, `web/pages/publish.tsx` | 3/0/1 | — | Web 側は充足。Win 側は #6 のゲート |
-| 21 | S4/Win optional リザルト送信+ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs:113,143,240` | 3/1/1 | Windows 実機 | 2nd クライアント表示の実測 |
+| 21 | S4/Win optional リザルト送信+ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs:113,143,240` | 3/1/1 | Windows 実機 | 2 台目のクライアント表示の実測 |
 | 22 | Release/Win Win64 展示版 smoke/配布ゲート | **B** | `docs/evidence/index.md`, `release/check/**` | 4/4/2 | Windows 実機 | S0 のみ partial。S1–S4 を詰める |
 | 30 | Product Spec ゲーム体験の理想形 | **E** | `docs/ui/lyrics-sync.md` | 0/0/1 | オーナーの仕様確定 | HOLD/歌詞の操作・採点形状の確定待ち |
 | 56 | Infra AIエージェント開発環境再整備 | **B** | `mise.toml:14-37`, `skills-lock.json` | 2/3/0 | — | `skills-check` / `evals/` / `.config/wt.toml` / `agent-config.yml` が欠落 |
 | 58 | 検証 カタログ合成(30曲)+再生クロック | **B** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs` | 2/1/2 | — | 「30曲」前提が stale (現在 29 行/28 選曲可)。基準の更新が必要 |
 | 59 | 検証 #30 各機能の受入確認 | **B** | `LyricsTimeline.cs`, `KeyGuideUI.cs`, `LongNote.cs`, `GameHudView.cs` | 0/1/4 | — | 機能別 OK/NG/未検証 の記録と証跡が未作成 |
-| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | 4/0/1 | — | クローズ提案可 (视觉一致のみ未検証) |
+| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | 4/0/1 | — | クローズ提案可 (視覚一致のみ未検証) |
 | 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
 | 68 | Web/Catalog 本番 Catalog API 接続 | **A** | `web/src/app/catalog.ts:21,28,32,57,79` | 4/0/1 | — | クローズ提案可 |
 | 71 | Web/Chart Session 正しい版を開く | **A** | `web/src/lib/song-session/load.ts` | 4/0/1 | — | クローズ提案可 |
@@ -117,7 +117,7 @@
 | **E** | **1** | 30 |
 | 合計 | **47** | |
 
-> **C (未実装) が 0 件**なのは「全部做强历史上実装済みではない」ではなく、**47 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
+> **C (未実装) が 0 件**なのは「歴史的に全件が実装済みだったわけではない」からではなく、**47 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
 
 ---
 
@@ -160,7 +160,7 @@
 
 ### #250 — [Roadmap] 高専祭後の全Issue完遂と11/14 U-16山口大会展示
 
-- **区分**: **D (阻塞)** — 集約 Issue。単独で実装できる単位ではない
+- **区分**: **D (ブロック)** — 集約 Issue。単独で実装できる単位ではない
 - **実装/証拠**:
   - 対応 Issue: `docs/evidence/index.md` (S0–S4 ステージ表), `docs/evidence/250-hold-rules-single-source.md`
   - commit: `2a0c833` "docs(evidence): #250 の Unity EditMode 検証結果を 1071/1071 で記録" (main ancestor)
@@ -180,7 +180,7 @@
 
 ### #242 — [P0/v6 Acceptance] 全画面の視覚・機能品質を実Win64で確認
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - 本 Issue は **受入ゲート** (実装単位ではない)
   - 前提: `docs/evidence/index.md` §1.7「Pencil デザイン全画面一致 = **未受入**。3 解像度の受入は Windows 実機に残ります」
@@ -189,7 +189,7 @@
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | #220 解像度テンプレートと実値 HUD、游戏既存レーン/効果/判定は回帰確認対象 | 充足 | `V6/Common/V6UiProfile.cs:73-75` (FHD/2K/MacBook), `V6/Game/Hud/V6GameHudView.cs` |
+| 1 | #220 解像度テンプレートと実値 HUD、ゲーム既存レーン/効果/判定は回帰確認対象 | 充足 | `V6/Common/V6UiProfile.cs:73-75` (FHD/2K/MacBook), `V6/Game/Hud/V6GameHudView.cs` |
 | 2 | #221 / #222 Select View と実カタログ/操作 | 充足 | いずれも §3.1 で A 判定 |
 | 3 | #223 / #233 統合・Canvas 排他・実Win64 の Game/Select 復旧 | 未充足 | #233 の 3 欠陥が未修正 (§3.1 #233) |
 | 4 | #224 Pause / Loading | 充足 | `V6/Game/Pause/*`, `V6/Game/Loading/*` |
@@ -391,7 +391,7 @@
 
 ### #223 — [P0/v6 Integration] Game/SelectのEditor排他統合・実Win64プレイ・展示候補配布ゲート
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**: 本 Issue は **統合ゲート**。コード所有は `Assets/Game/Scenes/**`, `Assets/Game/Scripts/UI/GameSceneManager.cs`, `Assets/Game/Scripts/UI/V5/GameHudRuntime.cs` (Issue 本文 74 行目)
   - 既存統合の状態: `Assets/Game/Scripts/UI/GameSceneManager.cs:87` — `if (FlashBeat.UI.V6.V6UiMode.GameHud)`; `Assets/Game/Scripts/UI/SelectSceneManager.cs:53` — `if (V6UiMode.SelectScreen)`
   - `Assets/Game/Scripts/UI/V6/V6UiMode.cs:15,18` — `GameHud = true`, `SelectScreen = true` / `:27` `Playfield = false`
@@ -472,8 +472,8 @@
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
 | 1 | 既存 GameScene / NotesManager / Judge / 動画背景 / レーン描画の追跡、判定・HOLD の再実装なし | 充足 | `V6LaneGeometry.cs:47` が `Judge.LaneKeys` と同一定義を参照 |
-| 2 | v6 の 8 レーン遠近形状・判定ライン・ノーツを **実プレイデータに投影** する描画にする (静的设计を貼って誤魔化さない) | 充足 (コード) | `V6PlayfieldView.cs:38,118-124` が `NoteLayer` (uGUI "Notes" RectTransform) を提供し、**既存の `Assets/Game/Scripts/Gameplay/Notes.cs:110-129,158-165` が head/body の Image を `NoteLayer` に生成**して `V6LaneGeometry.NoteColor` / `LaneCount` を使う。`Notes.cs:181` がフレームごとに `V6PlayfieldView.Current` を参照 |
-| 3 | 通常/ロング/同時押し/Miss/レーン別判定エフェクトが現行 Time/NoteIndex/Judge と一致 | 充足 (コード) | `Notes.cs:129` (HOLD の body Image)、`V6PlayfieldView.cs:155-165` (レーンフラッシュは `KeyBindings.IsLaneKeyDown(lane)` 驱动) |
+| 2 | v6 の 8 レーン遠近形状・判定ライン・ノーツを **実プレイデータに投影** する描画にする (静かな設計を貼って誤魔化さない) | 充足 (コード) | `V6PlayfieldView.cs:38,118-124` が `NoteLayer` (uGUI "Notes" RectTransform) を提供し、**既存の `Assets/Game/Scripts/Gameplay/Notes.cs:110-129,158-165` が head/body の Image を `NoteLayer` に生成**して `V6LaneGeometry.NoteColor` / `LaneCount` を使う。`Notes.cs:181` がフレームごとに `V6PlayfieldView.Current` を参照 |
+| 3 | 通常/ロング/同時押し/Miss/レーン別判定エフェクトが現行 Time/NoteIndex/Judge と一致 | 充足 (コード) | `Notes.cs:129` (HOLD の body Image)、`V6PlayfieldView.cs:155-165` (レーンフラッシュは `KeyBindings.IsLaneKeyDown(lane)` 駆動) |
 | 4 | レーン描画/時間進行/リサイズの EditMode ロジックテスト、FHD/2K/Mac でフレーム切れ/ズレ/上下反転の画像比較 | 充足 (EditMode) / **未検証 (画像比較)** | `V6PlayfieldGeometryTests.cs` 存在。画像比較は実機必須 |
 | 5 | 統合 Worker が GameScene へ一度で導入できるよう公開API/接続手順/所有オブジェクト/必要なアセットを PR に明記 | 充足 | `specs/` に接続手順あり |
 | 6 | **8 レーンとノーツが実プレイで動き、判定と描画が合い、動画が背景として再生される** | **未充足** | `V6UiMode.Playfield = false` で描画自体が無効。加えて `GameScene.unity:2837` の `Lane` が `m_IsActive: 0` で、シーン側の構造も無い |
@@ -482,12 +482,12 @@
   1. `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` → `Playfield` を `true` にする (owner rollback の再承認が要る = オーナー判断待ち)。現状 `V6PlayfieldRuntime.cs:52` の `if (!V6UiMode.Playfield) return;` で **Canvas 自体が作られない**
   2. `Assets/Game/Scenes/GameScene.unity:2837` → `Lane` の `m_IsActive: 0` を戻し、コード側から active にする enabler を追加 (grep で enabler 0 件)。`Notes.cs:25,111` は `V6PlayfieldView.Current == null` のとき **3D 描画へフォールバック**する設計だが、フォールバック先の `Lane` が非 active なので **どちらの描画も出ない**
   3. `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` → `HideLegacyPlayfield()` が `Playfield` 有効時にのみ `HideByName("Lane")` を呼ぶ設計は legacy 排除として正しいが、**この状態では旧 v5 側のレーンも隠れない** (= 1 の再承認と 2 の enabler 追加が同時に必要)
-- **未検証の区別**: 条件 4 の画像比較、条件 6 の実プレイは **実機必須**。**EditMode 緑は描画存在的问题を検出しない** (フラグで無効化されている箇所は純論理的テストを通る)。
+- **未検証の区別**: 条件 4 の画像比較、条件 6 の実プレイは **実機必須**。**EditMode 緑は描画上の問題を検出しない** (フラグで無効化されている箇所は純論理的テストを通る)。
 - **依存**: **#217 の子**。#182 (判定キュー) が判定同期の前提。→ #223 → #242。
 
 ### #217 — [P0/v6] Pencil確定UIをUnityに並列移植 — Game/Select最優先
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - umbrella。子 Issue の実装は `Assets/Game/Scripts/UI/V6/**` に集約済み (Common/Game{Playfield,Hud,Loading,Pause}/History/Option/Ranking/Result/Select/Title)
   - `Assets/Game/Scripts/UI/V6/V6UiMode.cs` — 機能フラグの正本
@@ -777,7 +777,7 @@
 | 9 | Gate C: 実ブラウザ画素画像 **と** 実入力 E2E の両方 (テスト成功だけでは NG) | 未充足 | #74 の実操作 E2E が未了。`specs/74-responsive/tasks.md` の 3 タスクが未チェック |
 | 10 | 本番デプロイは単独 deploy owner の管理 | 充足 (運用) | `docs/operations/cloudflare-bootstrap.md` |
 
-- **未検証の区別**: 条件 7–9 は **実ブラウザの画素画像 + 実入力** が必要。**Vitest 緑は「クリックreasily 届く」を保証しない** (Issue 本文 52 行目「テスト成功だけではNG」)。代替 = `web/src/**` 47 テストファイル緑 + `docs/evidence/web-acceptance/{1920x1080,2560x1440,2560x1664}` の撮影。
+- **未検証の区別**: 条件 7–9 は **実ブラウザの画素画像 + 実入力** が必要。**Vitest 緑は「クリックが確実に届く」を保証しない** (Issue 本文 52 行目「テスト成功だけではNG」)。代替 = `web/src/**` 47 テストファイル緑 + `docs/evidence/web-acceptance/{1920x1080,2560x1440,2560x1664}` の撮影。
 - **依存**: #60 → #68 → #71 → #73 → #74 → #75 の順。**#74 / #75 が未完了 = 本 Issue は閉じられない**。
 
 ### #60 — [Web/UI Foundation] Pen v5 の色・surface階層・タイポグラフィをPanda/Parkへ写像
@@ -905,7 +905,7 @@
 | 4 | T4: 公開曲 2 件以上を選択して各譜面の名前・ノーツ数・version の一致を実証 | 充足 (コード) / 未検証 (実行) | テストは fixture。**実公開曲での実証は本監査未確認** |
 | 5 | Given-When-Then: B の v2 を開き A/サンプルのデータが混ざらない。古い版が 404 ならエラーと復帰手段を出す | 充足 | `load.ts:39,45-46,53-54` |
 
-- **未検証の区別**: 条件 4 の実証は **実 API** 必須。**Vitest 緑は本番カタログの実際の版本と一致することを保証しない**。代替 = `load.test.ts` 緑 + `contracts/openapi.v1.yaml` との突合。
+- **未検証の区別**: 条件 4 の実証は **実 API** 必須。**Vitest 緑は本番カタログの実際のバージョンと一致することを保証しない**。代替 = `load.test.ts` 緑 + `contracts/openapi.v1.yaml` との突合。
 - **依存**: #68 (catalog) が前提。#73 / #98 の前提。
 
 ### #68 — [Web/Catalog] 固定4曲を廃止し本番Catalog APIと実状態に接続
@@ -930,7 +930,7 @@
 | 4 | T4: 呼び出し元向け live/fixture 明示 contract を #nav に引き渡す | 充足 | `CatalogMode` 型 (`:9`) が live/fixture を明示 |
 | 5 | Given-When-Then: 見える件数・曲名・Version が実APIと一致。通信失敗では4曲の嘘の成功へフォールバックしない | 充足 (コード) | `catalog.ts:21,32,57` の throw |
 
-- **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・版本の一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。
+- **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・バージョンの一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。
 - **依存**: 既存契約 `contracts/openapi.v1.yaml` と main。#71 の前提。
 
 ### #98 — [Web] 既存曲のメタデータ編集と Publish 画面の回復動線 (#73 の残り)
@@ -1041,10 +1041,10 @@
 | 4 | 完了条件: EditMode テスト結果 (成功/失敗件数) の記録 | 充足 | `docs/evidence/index.md` §1.7 に **1071/1071 成功** を記録 |
 | 5 | 完了条件: 選曲画面のスクリーンショットで **30 曲全部**が見える | **未充足** | 現状カタログは 29 配列エントリ = **選曲可は 28**、さらに 2 件 (`ニセモノ`) は `UnplayableTitles` で不可。**「30 曲全部」の前提が現状と一致しない** → Issue の基準更新が必要 |
 | 6 | 完了条件: 1 曲プレイの実測結果 (ノーツ判定・Result 到達・Retry・YouTube 映像/音声・A/V 同期) | 部分充足 | `docs/evidence/win64-2026-11-06-release-gate/README-gen3.md` (Run D) に **判定 76 → Result → R リトライ / 映像再生 / 音 (同梱 wav) / A/V 同期** の実測あり。ただし **ストリーム音声 (m4a) は `Failed to recognize video file format` で未証明**、`docs/evidence/index.md` §1.5 も同旨 |
-| 7 | 完了条件: 不具合があれば別 issue として起票する | 未充足 | 起票記録が無い (#13 が結果として残Trespawnしている可能性はあるが明示的記録は無し) |
+| 7 | 完了条件: 不具合があれば別 issue として起票する | 未充足 | 起票記録が無い (#13 が結果として残る可能性はあるが明示的記録は無し) |
 
 - **未検証の区別**: 条件 6 の **「YouTube ストリームの音声」** は未証明 (同梱 wav で代替)。**EditMode 緑と「音が鳴っている」観測は別のもの**。代替 = Run D の実ログ + `docs/evidence/index.md` §1.5。
-- **依存**: #30 の仕様確定が #59 の前提这里是同一件事。**#58 の「30 曲」基準は `GManager` の現状 (29 / 選曲可 28 / 不可 2) に更新が必要**。
+- **依存**: #30 の仕様確定が #59 の前提。#59 と #58 は同じ論点である。**#58 の「30 曲」基準は `GManager` の現状 (29 / 選曲可 28 / 不可 2) に更新が必要**。
 
 ### #30 — [Product Spec] ゲーム体験の理想形：HOLD・歌詞同期/簡素化・全キー案内・任意曲チュートリアル・pen.dev デザイン
 
@@ -1084,11 +1084,11 @@
 
 ## 3.4 展示ゲート / S0–S4 クラスタ (#3 / #4 / #5 / #6 / #7 / #12 / #13 / #17 / #19 / #21 / #22)
 
-このクラスタは #3 を親とする **段階ゲート**。 Issue 本文自身が「**Gate issue, not a worker implementation worktree**」と宣言しており、実装単位は子 Issue (#12 / #13 / #17 / #19 / #21) が持つ。したがって親ゲートは **D (阻塞)** が基本で、判定の焦点は「**各ステージの証跡が実 Win64 で出ているか**」にある。
+このクラスタは #3 を親とする **段階ゲート**。 Issue 本文自身が「**Gate issue, not a worker implementation worktree**」と宣言しており、実装単位は子 Issue (#12 / #13 / #17 / #19 / #21) が持つ。したがって親ゲートは **D (ブロック)** が基本で、判定の焦点は「**各ステージの証跡が実 Win64 で出ているか**」にある。
 
 ### #3 — 展示版: 5 API に限定した契約と段階的実装 (umbrella)
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - 契約: `contracts/openapi.v1.yaml` — **8 path** (`/api/v1/catalog`, `/api/v1/charts/{songId}`, `/api/v1/admin/songs/{songId}`, `/api/v1/admin/songs`, `/api/v1/rankings`, `/api/v1/stats`, `/api/v1/scores`, `/api/v1/leaderboards/{songId}`)。Issue 本文は「5 endpoints」だが、**#151 のランキング・統計・アーカイブ追加で 8 に増加** (commit `13102ee` "merge(#151): ランキング + 統計ダッシュボード + 楽曲アーカイブを統合する" — main ancestor)。**元 Issue の「5 API 限定」は現状の契約と一致しない**
   - 譜面スキーマ: `contracts/schemas/chart.v1.schema.json` — `notes[].type` は `[1,2]` (HOLD 許容、commit `6be2e07` "feat(chart): HOLD のデータモデルと意味論検証を実装 (#164)")
@@ -1113,7 +1113,7 @@
 
 ### #4 — [Gate S0/S1] Windows 展示版: ベースラインと YouTube 再生完走
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - S0 相当は **proven (partial)**: `docs/evidence/index.md` §1 — S0 の fingerprint `7ef323ad…`, 「chart/result/retry **proven**; YouTube stream + audio **未証明**」
   - S0-FONT も proven (partial): fingerprint `e07ccba2…`
@@ -1141,7 +1141,7 @@
 
 ### #5 — [Gate S2] Cloudflare API + Unity 動的カタログのデモ
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - API 側: `web/routes/api/v1/catalog.ts` — `catalogVersion` = 公開済みスナップショット数、`Cache-Control: no-store`、アーカイブ済みは非掲載
   - PUT 公開: `web/routes/api/v1/admin/songs/[songId].ts:42` `export const PUT` → `:45` `adminTokenMatches(...)`、1 トランザクションで songs メタデータ + currentVersion + `chart_versions` 不変行追加 + catalogVersion bump、同一曲再 publish で chartVersion +1 (`:140` の同時 publish 対策)
@@ -1169,7 +1169,7 @@
 
 ### #6 — [Gate S3] Panda CSS + Park UI Web Studio → Unity 公開デモ
 
-- **区分**: **D (阻塞)**
+- **区分**: **D (ブロック)**
 - **実装/証拠**:
   - Web Studio の実装は §3.3 の #19 / #61 / #73 / #135 / #74 / #75 に記載。`web/src/components/new-song/**`, `web/src/components/song-publisher/**`, `web/src/components/chart-editor/**` (19 ファイル、Konva は `web/src/components/chart-editor/note-grid.tsx:1` `from "react-konva"`)
   - 発行経路: `web/pages/publish.tsx:140` → `web/src/lib/publish/client.ts:39` `PUT` / `web/routes/api/v1/admin/songs/[songId].ts:42`
@@ -1242,7 +1242,7 @@
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | T1: 公式 Void scaffold (`--toolchain vite-plus --framework react`)、生成 agent ファイル 검토 | 充足 | `web/package.json` の `void 1.6.2` + `void.lock.json` + `web/AGENTS.md` |
+| 1 | T1: 公式 Void scaffold (`--toolchain vite-plus --framework react`)、生成 agent ファイルの確認 | 充足 | `web/package.json` の `void 1.6.2` + `void.lock.json` + `web/AGENTS.md` |
 | 2 | T2: Panda の公式 Vite plugin を React plugin の前、typed styled-system codegen、Void の実ソースディレクトリを include | 充足 | `web/vite.config.ts` + `web/panda.config.ts` (`include` 5 スケール) + `"codegen": "panda codegen"` |
 | 3 | T3: `@park-ui/cli init` と prebuilt Button/Input/Field/Tabs/Dialog/Select/Toast | 充足 | `web/src/components/ui/` の 15 コンポーネント。**Park 由来であることが `web/components.json` で宣言されている** |
 | 4 | T3: **独自 UI プリミティブを作らない** | 充足 | `web/src/components/ui/` は全て `ark` factory / `@ark-ui/react` の再エクスポート。**自作 primitive はありません** |
@@ -1263,7 +1263,7 @@
     - `:74-80` — 「**the media is downloaded to a local cache instead of streamed by URL**… Media Foundation (`MFCreateSourceReaderFromURL`) cannot send custom HTTP headers. Downloading the exact same bytes with yt-dlp and playing the local file sidesteps that limitation entirely.」
     - `:111` `ResolveYtDlpPath()` — PATH → mise install tree → Python install dirs → `Assets/StreamingAssets/yt-dlp/yt-dlp.exe` → Unix 3 箇所 (`:126/:135/:148-156/:156`)
     - `:166` `ResolveDenoPath()` / `:269` — ffmpeg 探索
-    - `:67-91` — Invidious 経路を **弃却** した理由のコメント (「0/13 hosts return valid JSON today」)
+    - `:67-91` — Invidious 経路を **採用しない** ことにした理由のコメント (「0/13 hosts return valid JSON today」)
   - `Assets/Game/Scripts/Gameplay/YouTubeMediaCache.cs:52` `public static class YouTubeMediaCache` / `:294` `YouTubeStreamResolver.DownloadAsync(...)` / `:91` `DownloadOverride` (テスト用フック)
   - `Assets/Game/Scripts/Gameplay/MediaCacheManager.cs:17` — `GetCachedVideoIds` / `:52` `GetCachedSongCount` / `:58` `GetCacheSizeBytes` / `:76` `Clear` / `:93` `ClearAll`
   - `Assets/Game/Scripts/Gameplay/MusicManager.cs`
@@ -1321,7 +1321,7 @@
 | 5 | T5: **Win64 E2E — PUT で新曲を公開 → 再ビルドなし → 選曲 → ストリーム → ノーツ/判定 → result → artifact + SHA** | **未充足** | `docs/evidence/index.md` §1 S2 = 未証明 |
 | 6 | Gate: S2 が単独で demo でき、S1 の last-good build を保持 | **未充足** (S2 側) | §1.5 に 3 世代が保持されている点は充足 |
 
-- **未検証の区別**: 条件 5 は **実 Win64 + 本番 PUT**。**`CloudCatalogTests.cs` 緑は「remote catalog を読める」ことの証明であって、「公開直後の新曲が再ビルドなしで出现在再生できる」ことの証明ではない**。代替 = ユニットテスト + `CloudCatalogConfig.json` の設定確認。
+- **未検証の区別**: 条件 5 は **実 Win64 + 本番 PUT**。**`CloudCatalogTests.cs` 緑は「remote catalog を読める」ことの証明であって、「公開直後の新曲が再ビルドなしで出現して再生できる」ことの証明ではない**。代替 = ユニットテスト + `CloudCatalogConfig.json` の設定確認。
 - **依存**: **#13 (S1) と #15/#16 (公開スキーマ)** が前提 (Issue 本文)。加えて **本番 API の到達性**。
 
 ### #19 — [S3/Mac] Park UI 楽曲メタデータ・Publish 画面を接続
@@ -1348,7 +1348,7 @@
 | 2 | T2: 1 つの Publish ボタン → typed fetch で `PUT /api/v1/admin/songs/{songId}`、**token は operator の runtime entry から (bundle には入れない)**、success/error 状態 | 充足 | `client.ts:39` + `publish-dialog.tsx:117,144` + `env.ts:15` |
 | 3 | T3: 1280×720 と 1440×900 で preview/test、**横溢れなし**、密度とタイポグラフィの一致 | **未充足** | **視覚ゲートが `exitCode: 1`**、`horizontalOverflow: ["home@390x844"]` (`specs/075-visual-gate/evidence/2026-11-08/index.json`)。1280×720 / 1440×900 の 2 viewport 自体は撮影済みだが、横溢れは 390 幅で残存 |
 | 4 | T4: Mac ブラウザ publish → Windows Unity のカタログ更新と full streamed play、**S3 runnable build とログを保存** | 未充足 (実装側) | **publish → Win Unity の再生は #6 (Gate S3) の責務**。本 Issue は Web 側のみ。ログ保存の記録は §1 S3 = 未証明 |
-| 5 | Gate: **Unity 再ビルドなしで Web UI が再生可能な公開 chart を作る** | 充足 (Web 側) / 未検証 (Win 侧) | publish 経路は実装済み。**再ビルドなし再生は #6 で未証明** |
+| 5 | Gate: **Unity 再ビルドなしで Web UI が再生可能な公開 chart を作る** | 充足 (Web 側) / 未検証 (Win 側) | publish 経路は実装済み。**再ビルドなし再生は #6 で未証明** |
 | 6 | No scope: private cloud drafts / auth UI / 余計な styling infrastructure | 充足 (規律) | 認証 UI は無い。token は 1 入力欄のみ |
 
 - **未検証の区別**: 条件 3 は **実ブラウザ撮影 + 目視**。**Vitest 緑は「1280×720 で横溢れしない」ことを保証しない** — 実測で溢れがある。代替 = 視覚ゲートの機械的結果。
@@ -1417,14 +1417,14 @@
 
 ## 4. 推奨する次の実装単位 (≤10 件)
 
-cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム機能完成 → Web Studio → 残件**) に沿って並べた。各単位は **1 Worker が 1 PR で完了できる粒度**、かつ **igi 了一件直ちに検証できる**ことを基準にしている。
+cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム機能完成 → Web Studio → 残件**) に沿って並べた。各単位は **1 Worker が 1 PR で完了できる粒度**、かつ **1 件を直ちに検証できる**ことを基準にしている。
 
 ### 優先順位サマリ
 
 | # | 単位 | 対象 Issue | 優先度 | 想定工数 | 完了判定 (DoD) |
 |---|---|---|---|---|---|
 | U1 | v6 プレイフィールドの再有効化 + `Lane` 構造の復活 | #219, #233(B) | **P0** | 中 | 実 Win64 で 8 レーンとノーツが見え、判定が同期する |
-| U2 | ゲーム確認窓 (0.86s → 1.6s) と旧歌詞二重描画の解消 | #233(B) | **P0** | 小 | 旧 v5 歌詞 canv が GameScene に出ない |
+| U2 | ゲーム確認窓 (0.86s → 1.6s) と旧歌詞二重描画の解消 | #233(B) | **P0** | 小 | 旧 v5 歌詞 Canvas が GameScene に出ない |
 | U3 | v6 Option「データ初期化」の保存範囲統一 | #241 | P0 | 小 | `ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ |
 | U4 | Web の publish → chart ドラフト復元動線 | #98 | P0 (Web) | 小 | `/chart?draft=…` を開くと編集内容が復元される |
 | U5 | 視覚ゲートの緑化 (狭幅横溢れ) | #74, #75, #61 | P0 (Web) | 中 | `npm run visual` が exit 0 |
@@ -1442,8 +1442,8 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **対象**:
   - `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` — `public static bool Playfield = false;` → 有効化 (または v6 実行時に限り true にする profile 追加)
   - `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldRuntime.cs:52` — `if (!FlashBeat.UI.V6.V6UiMode.Playfield) return;` のガードを実装修正に合わせる
-  - `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` — `HideByName("Lane")` が `Playfield` 有効時に旧 v5 構造を隠すか残すかを決定 (両方可あり，但要明示)
-  - `Assets/Game/Scenes/GameScene.unity:2837` — `m_Name: Lane` の `m_IsActive: 0` (**enabler が 0 件**)。**启用するコードパスを 1 つ追加** (例: `GameSceneManager` の `Start()` で `GameObject.Find("Lane").SetActive(true)`)。ただし **v6 有効時は v5 経路と二重描画になるため排他が必要** (`Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` の既存パターンに倣う)
+  - `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` — `HideByName("Lane")` が `Playfield` 有効時に旧 v5 構造を隠すか残すかを決定 (どちらでもよいが、採る方を明示すること)
+  - `Assets/Game/Scenes/GameScene.unity:2837` — `m_Name: Lane` の `m_IsActive: 0` (**enabler が 0 件**)。**有効化するコードパスを 1 つ追加** (例: `GameSceneManager` の `Start()` で `GameObject.Find("Lane").SetActive(true)`)。ただし **v6 有効時は v5 経路と二重描画になるため排他が必要** (`Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` の既存パターンに倣う)
   - `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs:38` `NoteLayer` / `:88-115` lanes/separators/judgeLine / `:155-165` lane flash — 既存の投影ロジックは完備
 - **注意**: `Assets/Game/Scripts/Gameplay/Notes.cs:105-129,158-165` は既に `V6PlayfieldView.Current` 経由で head/body Image を生成する。**再有効化で破綻しないか**が要点 (`Notes.cs:25` に 3D フォールバックの分岐コメントがある)。
 - **DoD**: (1) `V6UiMode.Playfield` 有効状態で GameScene に 8 レーン・判定ライン・ノーツが出ることを **EditMode テスト** (`Assets/Game/Tests/V6PlayfieldGeometryTests.cs` の拡張) で固定、(2) **実 Win64** で 1 曲再生しノーツと判定の同期を目視確認、(3) 旧 v5 `Lane` の二重描画が無いことをスクリーンショットで確認。
@@ -1452,7 +1452,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 ### U2 — ゲーム確認窓の拡張と旧歌詞二重描画の解消 (#233)
 
 - **対象**:
-  - 確認窓 0.86 秒 → 設計意図 1.6 秒。**本監査では 0.86 s の定義位置を file:line で特定できなかった** → Worker がまず `grep -rn "0.86\|ConfirmWindow\|confirm" Assets/Game/Scripts/` で実体を特定すること (候補: `V6GameHudView` / `GameHudRuntime` / `Judge` の Miss Quite 判定)
+  - 確認窓 0.86 秒 → 設計意図 1.6 秒。**本監査では 0.86 s の定義位置を file:line で特定できなかった** → Worker がまず `grep -rn "0.86\|ConfirmWindow\|confirm" Assets/Game/Scripts/` で実体を特定すること (候補: `V6GameHudView` / `GameHudRuntime` / `Judge` の Miss 判定)
   - 旧 v5 歌詞二重描画: v5 の歌詞表示 (`LyricsOverlay` 相当) と v6 の歌詞表示の両方が active になっている箇所。`Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` と同じ排他パターンで v5 側を無効化する
 - **DoD**: 実 Win64 で (1) 1 曲再生し、後半にノーツの無い区間 (**Blank interval**) でもレーン/判定ラインが判定直前まで確認できること、(2) 歌詞が二重表示されないこと の 2 点のスクリーンショット。
 - **依存**: **U1 と同じ PR 内、または直後の PR**。#233 の B 判定を A に上げる最後の 2 項目。
@@ -1502,7 +1502,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 ### U7 — Win64 実機解像度スイープ (#88, #96)
 
 - **対象**: `docs/evidence/win64-2026-11-06-release-gate/run-summary-exhibit-*.json` → `"resolution": "1280 x 720 (fullscreen=0)"`。**`displayCoverage` キーは main のどこにも存在しない**
-- **手順**: (1) `PlayerSettings` は `ProjectSettings/ProjectSettings.asset:119 fullscreenMode: 1` / `:107 resizableWindow: 0` / `:48-49 1920×1080` で、**設定値は正しい**。問題は**実機での実効値**。(2) `Assets/Game/Scripts/UI/V5/FullscreenDiagnostics` 相当の実効値取得 (`Screen.width/height/fullScreenMode/dpi`) を Player.log に吐かせ、1920×1080 / 1280×720 / 1024×768 の 3 解像度で採取 (3) `displayCoverage` (描画領域が実ディスプレイを覆う割合) を run-summary に記録
+- **手順**: (1) `PlayerSettings` は `ProjectSettings/ProjectSettings.asset:119 fullscreenMode: 1` / `:107 resizableWindow: 0` / `:48-49 1920×1080` で、**設定値は正しい**。問題は**実機での実効値**。(2) `Assets/Game/Scripts/UI/V5/FullscreenDiagnostics` 相当の実効値取得 (`Screen.width/height/fullScreenMode/dpi`) を Player.log に記録させ、1920×1080 / 1280×720 / 1024×768 の 3 解像度で採取 (3) `displayCoverage` (描画領域が実ディスプレイを覆う割合) を run-summary に記録
 - **禁止**: `docs/operations/exhibit-handoff-2026-11-08.md` §1 が明文で **「ウィンドウのドラッグ / リサイズで擬似全画面を再現することは禁止」** と書いている。**リサイズしたスクリーンショットは証跡にならない**
 - **既存**: `Assets/Game/Tests/FullscreenPolicyTests.cs` (10 テスト) は設定値の固定のみ。**実測値の固定ではない**
 - **DoD**: 3 解像度それぞれの「実効解像度 + displayCoverage ≥ 0.99」の記録が `docs/evidence/` に残り、`docs/ui/` と `docs/operations/three-resolution-fullscreen-verification.md` の記述と一致
@@ -1511,7 +1511,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 ### U8 — ストリーム音声 (m4a) の再生実証 (#13, #4)
 
 - **対象**: 展示第 3 世代の `Player.log` は **`audioMode=Bundled`** — 鳴っているのは**同梱 wav**。**ストリームの音声トラック (m4a) は `Failed to recognize video file format` で準備できない**
-- **前提**: `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs:74-80` のコメントが既に答え스크している — 「Media Foundation (`MFCreateSourceReaderFromURL`) はカスタム HTTP ヘッダを送れない。yt-dlp で同じバイト列をローカルにダウンロードして再生すればこの制限を回避できる」。つまり **映像は成功、音声トラックだけが失敗**している
+- **前提**: `Assets/Game/Scripts/Gameplay/YouTubeStreamResolver.cs:74-80` のコメントが既に答えを出している — 「Media Foundation (`MFCreateSourceReaderFromURL`) はカスタム HTTP ヘッダを送れない。yt-dlp で同じバイト列をローカルにダウンロードして再生すればこの制限を回避できる」。つまり **映像は成功、音声トラックだけが失敗**している
 - **候補手段 (Worker が実測で選ぶ)**: (1) 結合 format (video+audio) の itag を優先選択して単一ファイルにする (`-F` の出力を解析する箇所は `YouTubeStreamResolver.cs:34` `One line of yt-dlp -F output`)、(2) 音声のみ m4a を別 yt-dlp で取得して `AudioSource` に渡す (`MusicManager.cs:362-368` の split 経路は既に存在する)、(3) ffmpeg で結合してから再生
 - **DoD**: 実 Win64 で `Player.log` に **`audioMode=Stream` (または同値)** が記録され、**ストリーム音声の `rms` 値が同梱 wav ではなくストリーム由来である**ことを示すログ/数値が残る
 - **依存**: **Windows 実機**。**注意**: この Issue が解けるまで #4 (Gate S1) は green にならない
@@ -1554,10 +1554,10 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | `production-api.test.ts` の実デプロイ到達性 | テストが `skip: !publishEnabled` で **緑でも到達性は証明にならない** | `docs/operations/d1-migrations.md` の適用記録 |
 | 確認窓 0.86 秒の定義位置 | `grep` で一意な定義箇所を特定できなかった | U2 の Worker が `grep -rn "0.86\|ConfirmWindow"` で特定する |
 | `GameScene.unity` の `Lane` を active にする enabler | コード内に **0 件**。存在しないものは file:line を示せない | `GameScene.unity:2837 m_IsActive: 0` の事実のみ |
-| 「casual / unverified」の UI ラベル文言 | 該当文字列の実 worded 位置を確認できなかった | `V6RankingView.cs` の表示構造のみ |
+| 「casual / unverified」の UI ラベル文言 | 該当文字列の実ファイル位置を確認できなかった | `V6RankingView.cs` の表示構造のみ |
 | 実機 1280×720 ディスプレイでの fullscreen | 展示 PC に 1280×720 パネルが**無い** (`festival-runbook.md:189`) | ウィンドウモードでの代替手順のみ |
 | `specs/060` / `specs/075` / `specs/074` などの証跡画像の**内容** | ピクセル画像の目視レビューは本監査の範囲外 | ファイル存在と機械的結果 (`index.json`) のみ |
-| GitHub 側 main protection / branch protection の状態 | GitHub API の権限・設定 Troll の範囲外 | `docs/operations/release-approval-checklist.md` の運用記述のみ |
+| GitHub 側 main protection / branch protection の状態 | GitHub API の権限・設定確認の範囲外 | `docs/operations/release-approval-checklist.md` の運用記述のみ |
 
 ---
 
