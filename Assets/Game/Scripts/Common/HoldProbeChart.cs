@@ -72,7 +72,7 @@ public static class HoldProbeChart
     /// CloudCatalog.ParseChartResponse に渡すのは <see cref="Json"/> (封筒)。
     ///
     /// 値は文字列リテラルで持つ (C# の定数式では int → string の連結が
-    /// できないため)。上の ChartName / Bpm / MaxBlock と同じ値uyoこと
+    /// できないため)。上の ChartName / Bpm / MaxBlock と同じ値にすること
     /// (HoldProbeChartTests が一致を検証する)。
     /// </summary>
     public const string ChartJson =
