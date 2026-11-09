@@ -99,7 +99,7 @@ if (LongNote.IsHoldExpired(mediaTime, hold.EndTime, greatWindow))
 |---|---|
 | `Hold_RuntimeResult_MatchesLongNoteRules` | 離し時刻を 5.5 / 6.7 / 6.86 / 7.0 / 7.1 / 7.14 / 7.5 で走らせ、`UpdateHold` の結果が `LongNote.IsBroken` と `LongNote.JudgeRelease` の双方と一致することを確認 |
 | `Hold_ExpiryBoundary_MatchesLongNoteRule` | 押しっぱなし的情形で `UpdateHold` の結果が `LongNote.IsHoldExpired` と一致することを確認（7.0 / 7.1 / 7.14 / 7.2 / 7.5） |
-| `Hold_NeverPressed_BecomesMissAndNotHold` | 一度も押されない HOLD は保持に入らず、時間切れで Miss になることを確認 |
+| `Hold_NeverPressed_BecomesMissAndNeverEntersHoldState` | 一度も押されない HOLD は保持に入らない (`IsHolding` が false のまま) ことを、開始 + BAD_WINDOW 超過で Miss 候補になることと併せて確認 |
 
 既存テストは**すべてそのまま**残している（変更していない）。
 
@@ -111,7 +111,8 @@ if (LongNote.IsHoldExpired(mediaTime, hold.EndTime, greatWindow))
   生成 DLL に追加 3 テストが含まれることを確認:
   `Hold_RuntimeResult_MatchesLongNoteRules`, `Hold_ExpiryBoundary_MatchesLongNoteRule`,
   `Hold_NeverPressed_BecomesMissAndNotHold`
-- Unity EditMode スイート: **監督側で統合後に実行**（基準 1057/1057）
+- Unity EditMode スイート: **監督側で統合後に実行** → **1071 / 1071 成功**（失敗 0・skipped 0）。
+  内訳: 追加した HOLD 関連 3 件を含む。
 
 ## 未検証（実機が必要）
 
