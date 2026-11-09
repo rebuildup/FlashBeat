@@ -22,7 +22,7 @@ description: "FlashBeat lean spec — Issue 058"
 
 - (A) **選曲画面のスクリーンショット (全件が見えること)**
 - (B) **1 曲フルプレイの実測** (ノーツ判定 / Result 到達 / Retry / 映像音声 / A/V 同期)
-- (C) **基準の更新** — Issue 本文の「30 曲」は stale。`GManager` の現 realities に読み替える
+- (C) **基準の更新** — Issue 本文の「30 曲」は stale。`GManager` の実状 (29 / 26 / 2) に読み替える
 
 ## Decisions (凍結する設計)
 
