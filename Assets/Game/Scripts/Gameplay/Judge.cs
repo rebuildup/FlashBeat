@@ -75,22 +75,43 @@ public class Judge : MonoBehaviour
         // Issue #224: ポーズ中は判定・スコア加算を行わない。
         if (PauseGate.IsPaused) return;
 
-        EnsureQueue();
-        if (queue == null) return;
-
-        // 時刻の基準は既存方式を維持する: Time.time と GManager.StartTime から
-        // メディア時刻 (譜面上の秒) を出す。譜面の時刻はメディア時刻なので、
-        // 判定はすべてこの mediaTime で行う。
+        // 時刻の基準は既存方式を維持する: GManager.step_time は譜面上の
+        // メディア時刻 (秒) なので、判定はすべてこの mediaTime で行う。
         // MusicManager は GManager.step_time を毎フレーム同じ式で更新するので、
         // ポーズ中はそこが固定される — Time.time を直接読むとポーズ中も
         // 判定時刻が進んでしまうため、ここでは GManager.step_time を基準にする。
-        float mediaTime = GManager.step_time;
+        JudgeStep(GManager.step_time, IsLaneKeyPressed, IsLaneKeyDown);
+
+        if (fSize > 197) fSize -= 1;
+        if (Fsize > 59) Fsize -= 1;
+
+        if (comboText != null) comboText.fontSize = fSize;
+        if (scoreText != null) scoreText.fontSize = Fsize;
+    }
+
+    /// <summary>
+    /// 判定の 1 ステップ (Issue #182)。
+    ///
+    /// 時刻と各レーンの入力状態を引数で受け取るので、EditMode テストから
+    /// 実機と同じ経路 (EnsureQueue → PressLane → UpdateHold → TryPeekMiss)
+    /// をそのまま再現できる。実機 (<see cref="Update"/>) は入力を
+    /// UnityEngine.Input から読み、ここには渡さない。
+    ///
+    /// 1 ノーツ = 1 判定が保たれること:
+    ///   - 押下 (タップ / HOLD の先頭) と Miss が「確定したノーツ」を数える。
+    ///   - HOLD の中断は先頭判定の差し替えであり、確定数には数えない
+    ///     (<see cref="JudgeScoreboard.Settled"/>)。
+    /// </summary>
+    public void JudgeStep(float mediaTime, Func<int, bool> lanePressed, Func<int, bool> laneDown)
+    {
+        EnsureQueue();
+        if (queue == null) return;
 
         // 1) 押下判定: レーンごとに独立に処理する (Issue #182)。2 レーンを
         //    同時に叩いても、それぞれのレーンのキューが別々に判定する。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            if (IsLaneKeyPressed(lane))
+            if (lanePressed(lane))
             {
                 PressLane(lane, mediaTime);
             }
@@ -101,7 +122,7 @@ public class Judge : MonoBehaviour
         //    中断の差し替えだけを行う。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, IsLaneKeyDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
+            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, laneDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
             if (result == JudgeQueue.HoldResult.Broken)
             {
                 // 途中で離した: 先頭判定を BAD に差し替える (追加加点しない)。
@@ -131,12 +152,6 @@ public class Judge : MonoBehaviour
                 FlushScore();
             }
         }
-
-        if (fSize > 197) fSize -= 1;
-        if (Fsize > 59) Fsize -= 1;
-
-        if (comboText != null) comboText.fontSize = fSize;
-        if (scoreText != null) scoreText.fontSize = Fsize;
     }
 
     /// <summary>
@@ -250,6 +265,20 @@ public class Judge : MonoBehaviour
         GManager.miss = board.Miss;
         GManager.combo = board.Combo;
         GManager.maxCombo = board.MaxCombo;
+
+        // 「確定したノーツ数」を GManager.nextNotes に書く。
+        // MusicManager は <c>settledNotes = GManager.nextNotes - 1</c> で
+        // 「残りのノーツ数」を計算し、それが 0 になったら曲終了を確定する
+        // (SongEndStateMachine.AllSettled)。よって nextNotes は
+        // **ノーツ数** でなければならない。
+        //
+        // 以前は message() が呼ばれた回数 (= 判定イベント数) を数えていた
+        // ため、HOLD を途中で離して BAD に差し替えたノーツは 2 回分として
+        // 数えられ、残りノーツ数が実際より早く 0 になっていた
+        // (Issue #182 の「1 ノーツ = 1 判定」に反する)。
+        // ここでは JudgeScoreboard.Settled (確定したノーツ数) を書く。
+        GManager.nextNotes = 1 + board.Settled;
+
         UpdateScore();
     }
 
@@ -280,9 +309,15 @@ public class Judge : MonoBehaviour
         if (scoreText != null) scoreText.text = GManager.score.ToString();
     }
 
+    /// <summary>
+    /// 判定エフェクトを出す。
+    ///
+    /// 「確定したノーツ数」はここでは数えない (数えるのは
+    /// <see cref="JudgeScoreboard.Settled"/>)。HOLD の中断ではこの関数が
+    /// 2 回目を呼ぶが、同じノーツなので 1 ノーツ = 1 判定を保つ必要がある。
+    /// </summary>
     private void message(int judge, int noteIndex)
     {
-        GManager.nextNotes++;
         if (judge >= 0 && judge < MessageObj.Length && MessageObj[judge] != null)
         {
             Instantiate(MessageObj[judge], EffectPosition(notesManager.LaneNum, noteIndex), Quaternion.Euler(45, 0, 0));

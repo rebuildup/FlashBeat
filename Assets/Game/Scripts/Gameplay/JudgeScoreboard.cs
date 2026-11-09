@@ -26,6 +26,19 @@ namespace FlashBeat.Gameplay
         public int Combo;
         public int MaxCombo;
 
+        /// <summary>
+        /// 確定したノーツ数 (Issue #182)。
+        ///
+        /// タップ / HOLD の先頭の押下と Miss が 1 ずつ数える。HOLD の中断
+        /// (<see cref="DowngradeHoldToBad"/>) は先頭判定の差し替えなので
+        /// 数えない。よって「1 ノーツ = 1 判定」であり、
+        /// <c>Settled == Perfect + Great + Bad + Miss</c> が成り立つ。
+        ///
+        /// MusicManager はこの値を GManager.nextNotes 経由で「確定済みノーツ数」
+        /// として曲終了の判定に使うので、ノーツ数と一致していなければならない。
+        /// </summary>
+        public int Settled;
+
         /// <summary>配点の合計 (1 ノーツ最大 5)。スコア表示は GManager 側で行う。</summary>
         public float RatioScore;
 
@@ -39,6 +52,9 @@ namespace FlashBeat.Gameplay
 
             Combo++;
             if (Combo > MaxCombo) MaxCombo = Combo;
+
+            // 押下は 1 ノーツの確定 (HOLD の先頭も 1 ノーツ = 1 判定)。
+            Settled++;
         }
 
         /// <summary>
@@ -71,6 +87,9 @@ namespace FlashBeat.Gameplay
         {
             Miss++;
             Combo = 0;
+
+            // Miss も 1 ノーツの確定。
+            Settled++;
         }
     }
 }
