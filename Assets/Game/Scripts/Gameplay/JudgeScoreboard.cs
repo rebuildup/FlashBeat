@@ -29,15 +29,21 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// 確定したノーツ数 (Issue #182)。
         ///
-        /// タップ / HOLD の先頭の押下と Miss が 1 ずつ数える。HOLD の中断
-        /// (<see cref="DowngradeHoldToBad"/>) は先頭判定の差し替えなので
-        /// 数えない。よって「1 ノーツ = 1 判定」であり、
-        /// <c>Settled == Perfect + Great + Bad + Miss</c> が成り立つ。
+        /// 判定の内訳 (Perfect / Great / Bad / Miss) から**算出する**ので、
+        /// <c>Settled == Perfect + Great + Bad + Miss</c> は入力によらず常に
+        /// 成り立つ (加算箇所が 2 箇所あるためずれる、という事故を起こさない)。
         ///
-        /// MusicManager はこの値を GManager.nextNotes 経由で「確定済みノーツ数」
-        /// として曲終了の判定に使うので、ノーツ数と一致していなければならない。
+        ///   - タップ / HOLD の先頭の押下は <see cref="ApplyHead"/> が
+        ///     Perfect / Great / Bad のいずれか 1 つだけを増やす。
+        ///   - 時刻切れは <see cref="ApplyMiss"/> が Miss を 1 つ増やす。
+        ///   - HOLD の中断 (<see cref="DowngradeHoldToBad"/>) は先頭判定の
+        ///     **差し替え** なので確定数は増えない (内訳も同じ個数で入れ替わる)。
+        ///
+        /// MusicManager はこの値を <c>GManager.SettledNoteCount</c> 経由で
+        /// 「確定済みノーツ数」として曲終了の判定に使うので、
+        /// ノーツ数と一致していなければならない。
         /// </summary>
-        public int Settled;
+        public int Settled => Perfect + Great + Bad + Miss;
 
         /// <summary>配点の合計 (1 ノーツ最大 5)。スコア表示は GManager 側で行う。</summary>
         public float RatioScore;
@@ -52,9 +58,6 @@ namespace FlashBeat.Gameplay
 
             Combo++;
             if (Combo > MaxCombo) MaxCombo = Combo;
-
-            // 押下は 1 ノーツの確定 (HOLD の先頭も 1 ノーツ = 1 判定)。
-            Settled++;
         }
 
         /// <summary>
@@ -87,9 +90,6 @@ namespace FlashBeat.Gameplay
         {
             Miss++;
             Combo = 0;
-
-            // Miss も 1 ノーツの確定。
-            Settled++;
         }
     }
 }

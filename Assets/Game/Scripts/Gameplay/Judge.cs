@@ -44,6 +44,13 @@ public class Judge : MonoBehaviour
     /// </summary>
     private JudgeQueue queue;
 
+    /// <summary>
+    /// 入力判定用のキャッシュ済みデリゲート (Issue #182 / PR #256 S2)。
+    /// 毎フレームのデリゲート生成 (GC 圧力) を避けるため static readonly で保持。
+    /// </summary>
+    private static readonly Func<int, bool> LanePressedPredicate = IsLaneKeyPressed;
+    private static readonly Func<int, bool> LaneDownPredicate = IsLaneKeyDown;
+
     /// <summary>スコアの集計 (1 ノーツ = 1 判定を保証する, Issue #164)。</summary>
     private readonly JudgeScoreboard board = new JudgeScoreboard();
 
@@ -80,13 +87,18 @@ public class Judge : MonoBehaviour
         // MusicManager は GManager.step_time を毎フレーム同じ式で更新するので、
         // ポーズ中はそこが固定される — Time.time を直接読むとポーズ中も
         // 判定時刻が進んでしまうため、ここでは GManager.step_time を基準にする。
-        JudgeStep(GManager.step_time, IsLaneKeyPressed, IsLaneKeyDown);
+        JudgeStep(GManager.step_time, LanePressedPredicate, LaneDownPredicate);
 
-        if (fSize > 197) fSize -= 1;
-        if (Fsize > 59) Fsize -= 1;
+        // フォントサイズの縮退はキューが有効なときだけ実行 (main と同じ挙動)。
+        // queue == null のときは譜面が無い / 未読み込みなので、フォント縮退をスキップする。
+        if (queue != null)
+        {
+            if (fSize > 197) fSize -= 1;
+            if (Fsize > 59) Fsize -= 1;
 
-        if (comboText != null) comboText.fontSize = fSize;
-        if (scoreText != null) scoreText.fontSize = Fsize;
+            if (comboText != null) comboText.fontSize = fSize;
+            if (scoreText != null) scoreText.fontSize = Fsize;
+        }
     }
 
     /// <summary>
