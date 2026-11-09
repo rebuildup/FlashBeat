@@ -47,6 +47,10 @@ public class SelectSceneManager : MonoBehaviour
 
     void Start()
     {
+        // 選曲画面に戻ったので、遷移ガードを解除する (#222)。
+        // (ガードは static なので、シーンを跨いでも残る。選び直しはここからできる。)
+        SelectSceneTransitionGuard.Reset();
+
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
@@ -403,6 +407,11 @@ public class SelectSceneManager : MonoBehaviour
     /// <summary>選択中の曲でプレイを開始する (リモート曲は譜面を確定してから)。</summary>
     public void GameScene()
     {
+        // Issue #222: Ready の連打 (クリック / キー連打) で同じ遷移が 2 回走ると
+        // シーンの重複ロードや状態 (GManager.ResetSession) の二重化が起こる。
+        // 遷移を要求できるのは 1 回だけにする (解除は Start / 開始失敗のとき)。
+        if (!SelectSceneTransitionGuard.TryRequest()) return;
+
         SongData song = GManager.GetSong(GManager.songID);
         if (song != null && song.isRemote)
         {
@@ -423,6 +432,7 @@ public class SelectSceneManager : MonoBehaviour
         {
             Debug.LogWarning("[SelectScene] remote song selected but no API is configured - staying on the select screen");
             v6Data?.ReportStartFailure("クラウドカタログが設定されていないため、この曲は開始できません");
+            SelectSceneTransitionGuard.Reset(); // 開始できなかったので、次の操作を許す
             yield break;
         }
 
@@ -438,6 +448,7 @@ public class SelectSceneManager : MonoBehaviour
             // catalog and the rest of the game keep working.
             Debug.LogWarning($"[SelectScene] chart for '{song.remoteId}' v{version} unavailable (status={status}) - start cancelled");
             v6Data?.ReportStartFailure("譜面を取得できなかったため開始できませんでした (HTTP " + status + ")");
+            SelectSceneTransitionGuard.Reset(); // 開始できなかったので、次の操作を許す
             yield break;
         }
 
@@ -482,5 +493,46 @@ public class SelectSceneManager : MonoBehaviour
             var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
             if (raycaster != null) raycaster.enabled = false;
         }
+    }
+}
+
+/// <summary>
+/// 選曲画面からゲーム画面へ移るときの遷移ガード (Issue #222)。
+///
+/// Ready はマウス・キーの連打で複数回呼び出されうる。ガードが無いと
+/// 同じ遷移が 2 回走ってシーンが重複ロードされ、プレイセッションの状態
+/// (GManager.ResetSession) も二重にされる。ここでは 1 回の遷移だけを許し、
+/// 選曲画面へ戻ったとき (SelectSceneManager.Start) か、開始に失敗したとき
+/// に解除する。
+///
+/// static なのでシーンを跨いで残る。テストから直接呼べるよう、
+/// 遷移の可否は TryRequest / Reset だけで操作する。
+/// </summary>
+public static class SelectSceneTransitionGuard
+{
+    /// <summary>遷移が既に要求されているか。</summary>
+    static bool transitionRequested;
+
+    /// <summary>遷移を要求してよいとき true (要求済みの 2 回目以降は false)。</summary>
+    public static bool TryRequest()
+    {
+        if (transitionRequested) return false;
+        transitionRequested = true;
+        return true;
+    }
+
+    /// <summary>
+    /// ガードを解除する (選曲画面に戻ったとき / 開始に失敗したとき)。
+    /// 次の Ready で再び遷移できる。
+    /// </summary>
+    public static void Reset()
+    {
+        transitionRequested = false;
+    }
+
+    /// <summary>ガードが有効な状態か (診断・テスト用)。</summary>
+    public static bool IsLocked
+    {
+        get { return transitionRequested; }
     }
 }
