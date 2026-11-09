@@ -62,7 +62,9 @@ command -v "$PWSH" >/dev/null 2>&1 || {
   echo "パッケージスクリプトが見つかりません: $PACKAGER" >&2; exit 2; }
 
 # リモートの追跡 ref を最新にしておく (build する対象が古いと危ない)。
-git -C "$REPO_ROOT" fetch -q origin
+# ネットワークが使えない環境でもローカルの参照で続行できるようにする。
+git -C "$REPO_ROOT" fetch -q origin || \
+  echo "警告: git fetch に失敗しました (ローカルの参照で続行します)" >&2
 
 # 参照を commit に解決する。
 #   1) ローカルのブランチ / タグ / SHA
