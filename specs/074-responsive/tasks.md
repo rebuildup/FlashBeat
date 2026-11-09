@@ -18,25 +18,25 @@ the issue is too big — split it and open a follow-up Issue.
 
 ## Tasks
 
-- [ ] **T1** [P] Narrow rail: reflow the navigation into a grid and move the staff
+- [x] **T1** [P] Narrow rail: reflow the navigation into a grid and move the staff
       entries into a disclosure (`web/src/app/sidebar.tsx`) — done when: at 390×844 the
       rail is ~110px high, the staff entries are reachable through
       `[data-testid="nav-staff-toggle"]`, and no entry sticks out of the viewport.
-- [ ] **T2** [P] Scroll ownership and header reflow: the fixed shell becomes a grid on
+- [x] **T2** [P] Scroll ownership and header reflow: the fixed shell becomes a grid on
       narrow viewports, the grid column can no longer be widened by its content, the page
       header identity and the action cluster take their own row and wrap
       (`web/src/app/app-shell.tsx`, `web/src/app/studio-layout.tsx`,
       `web/src/app/panel.tsx`, `web/pages/chart.tsx`) — done when: `公開に進む /
       Review & Publish` and the token hint are inside the viewport at 390×844.
-- [ ] **T3** [P] Catalog card title link: stop the absolutely positioned link from
+- [x] **T3** [P] Catalog card title link: stop the absolutely positioned link from
       covering the thumbnail and the viewport (`web/src/app/catalog-panel.tsx`) — done
       when: the song title is readable next to the thumbnail and no invisible overlay
       link covers the page.
-- [ ] **T4** [P] Editor toolbar: let the transport wrap and turn `Chart setup` into a
+- [x] **T4** [P] Editor toolbar: let the transport wrap and turn `Chart setup` into a
       sheet that owns its own scroll on narrow viewports
       (`web/src/components/chart-editor/editor-toolbar.tsx`) — done when: every transport
       control and every `Chart setup` field is reachable at 390×844.
-- [ ] **T5** Evidence, gate and specification (`docs/evidence/web-studio/responsive-before/`,
+- [x] **T5** Evidence, gate and specification (`docs/evidence/web-studio/responsive-before/`,
       `docs/evidence/web-studio/responsive-after/`, `specs/074-responsive/`) — done when:
       `npm run visual` exits 0, `npm test` is green and the before/after screenshots and
       `index.json` are committed.
@@ -59,7 +59,7 @@ Chrome check at 390×844 are used as fallback.
 | T2 | Header / actions | `npm run visual` → `chart @ 390x844` | `hScroll=false`, `Review & Publish` visible |
 | T3 | Catalog card | `npm run visual` → `home @ 390x844` | `clipped=0`, title next to the thumbnail |
 | T4 | Editor toolbar | `npm run visual` → `chart @ 390x844`, `publish @ 390x844` | `hScroll=false`, only the 4 stage elements of the note grid stay clipped |
-| T5 | Gate + tests | `npm run visual` and `npm test` | exit code 0; 73 + 399 tests passed, 0 failed |
+| T5 | Gate + tests | `npm run visual` and `npm test` | exit code 0; 73 + 403 tests passed, 0 failed |
 
 ## Rollback
 
@@ -72,3 +72,9 @@ branch and no Unity asset depends on it.
 - Scope discipline: implement only the tasks above; new ideas become follow-up Issues.
 - The Unity Editor / scene / prefab mutation is serialized: only the issue that
   owns the scene may run the Editor. This issue touches no Unity file at all.
+- レビューの指摘を受けて同じ Issue の範囲で 4 点を追記修正した (別コミット):
+  desktop のレールの間隔を復元 (T1)、カタログカードの長タイトルが
+  カードをはみ出さないように修正 (T3)、`Chart setup` パネルを 1280 幅の
+  ビューポート内に収める (T4)、`data-open` 属性による disclosure の
+  jsdom テスト追加 (T1)。また `web/package-lock.json` の同期 (main の
+  `npm ci` 復旧) は独立したコミットに切り出した。
