@@ -82,7 +82,7 @@
 | 75 | Web/Visual Gate 画像レビュー/本番E2E | **B** | `web/tests/visual/capture.mjs` | 2/2/1 | 画像ベースのデザインレビュー (人) | ゲートは **exit 0 に回復** (PR #257)。`clipped=0` / `hScroll=false` を実測。残るのは画像比較の人の判断 |
 | 88 | Win/P0 全画面にならず UI 崩れる | **B** | `ProjectSettings/ProjectSettings.asset:107,119`, `Assets/Game/Tests/FullscreenPolicyTests.cs` | 2/1/2 | Windows 実機 | `displayCoverage ≥ 0.99` を実測 (現状 run-summary は `fullscreen=0`) |
 | 96 | Unity/P1 Title/Result/Option/Opening 崩れ | **B** | `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `V6/Common/V6UiProfile.cs:73-75` | 2/1/2 | Windows 実機 | 1024×768 / 1280×720 の実機撮影が未取得 |
-| 98 | Web 既存曲メタ編集 + Publish 回復動線 | **B** | `web/src/lib/publish/draft.ts`, `web/pages/publish.tsx:140` | 2/1/1 | — | **chart 側ドラフト復元が未実装** (`web/pages/chart.server.ts:6`) |
+| 98 | Web 既存曲メタ編集 + Publish 回復動線 | **B → 実装済 / E2E 未検証** | `web/src/lib/publish/draft.ts`, `web/pages/chart.server.ts`, `web/pages/chart.tsx` | 3/0/1 | 実ブラウザ E2E | **PR #275 merged**: publish が失敗した時の `/chart?draft=…` が下書きを復元するようになった (loader が `draftId` を返し、ページが `readPublishDraft` で復元し、復元バナーと失敗バナーを出す)。回帰テスト 1 件をページレベルで追加。残りは実ブラウザでの publish → 失敗 → 復元往復 |
 | 118 | Update/P0 明示式アップデート | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleLogic.cs`, `V6/Title/V6TitleView.cs` | **9/1/1** | Windows 実機 | **PR #273 で v6 Title に literal な「アップデートあり」バナーを実装** (pure ロジック `ShowUpdateAvailableNotice` / `UpdateNoticeTitle` / `UpdateNoticeHint` + `BuildUpdateNotice`)。既存 `UpdateChecker.Model` を再利用し検出経路は増やしていない。残りは 3 解像度の実機目視 |
 | 129 | Dev/Mac Desktop に独立 macOS アプリ | **A** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/0/1 | — | クローズ提案可。ただし **配布物の SHA が `fffc399` で Issue の `b677f8f` と不一致**。再配布時に README の SHA を更新すること |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
@@ -1611,6 +1611,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #258 | 曲終了 → Result の **実機 (macOS) ハーネス** (製品変更は getter 3 本と `Judge` のキー注入 1 行) | #233 |
 | #272 | Ready 連打の遷移ガード + カタログ回帰テスト + 負の noteTiming 回帰テスト (+ 未実行だった `MenuKeyActionWiringTests` の meta 復旧) | #222 / #226 |
 | #273 | v6 タイトルに「アップデートあり」の明示表示 | #118 |
+| #275 | publish 失敗時の `/chart?draft=…` で下書きを復元 (chart 側) | #98 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
