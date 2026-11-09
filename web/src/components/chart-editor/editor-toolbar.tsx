@@ -114,6 +114,14 @@ const counter = css({
 });
 
 const details = css({
+  /**
+   * Wide viewports: the disclosure is pushed to the right edge of the bar, so
+   * the `Chart setup` popover (anchored to it, `right: 0`) never starts left
+   * of the viewport — at 1280 the bar wraps and the disclosure used to land
+   * on the left of the second row, which put the panel at x=-20.
+   * Narrow viewports: the panel is a fixed sheet, so no offset is needed.
+   */
+  marginLeft: { base: "0", md: "auto" },
   position: "relative",
 });
 
