@@ -1,6 +1,6 @@
-## Win64 ビルド blocked: Unity ライセンス未設定
+## ビルド blocked: Unity ライセンス未設定
 
-Win64 成果物 (ZIP / SHA-256) は生成されていません。リポジトリの
+ビルド成果物 (ZIP / SHA-256) は生成されていません。リポジトリの
 **Settings → Secrets and variables → Actions** に次の secret を登録してください。
 
 | secret | 必須 | 内容 |
