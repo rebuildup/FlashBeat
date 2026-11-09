@@ -8,7 +8,7 @@ using FlashBeat.UI.V6.Game.Playfield;
 public class Notes : MonoBehaviour
 {
     // Time of this note on the chart timeline. The note is created by the
-    // NotesManager at z = noteTime * noteSpeed, so the start position carries
+    // NotesManager at z = noteTime * zScale, so the start position carries
     // the time.
     float noteTime;
 
@@ -29,6 +29,21 @@ public class Notes : MonoBehaviour
     /// 「見えてから判定線までの時間」が 1/speed に比例する形で効く (旧 z 速度と同じ向き)。</summary>
     private const float ApproachSecondsAtSpeed10 = 1.6f;
 
+    /// <summary>
+    /// ワールド z の 1 秒あたりの移動量 (chart time -> world z)。
+    ///
+    /// NotesManager はノーツを z = noteTime * zScale に生成し、Notes はその z から
+    /// 時刻を復元し、毎フレーム同じ zScale で動かす。3 つが同じ値なので、
+    /// ノーツは判定線 (z = 0) に自分の判定時刻ちょうどに着く (Issue #233)。
+    ///
+    /// 値は <see cref="MediaTimeline.CurrentZScale"/> 1 箇所から取る
+    /// (生成・復元・移動で別の値を使うとずれるため)。
+    /// </summary>
+    private static float ZScale
+    {
+        get { return MediaTimeline.CurrentZScale; }
+    }
+
     private int lane;
     private bool v6Attached;
     private Image headImage;
@@ -38,7 +53,7 @@ public class Notes : MonoBehaviour
 
     void Start()
     {
-        noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, GManager.noteSpeed);
+        noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, ZScale);
 
         // NotesManager が x = block - 3.5 で生成する (Judge.EffectPosition と同じ写像)。
         lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x - Judge.LaneFirstCenterX), 0, V6LaneGeometry.LaneCount - 1);
@@ -93,7 +108,7 @@ public class Notes : MonoBehaviour
             }
             else if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
-                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, GManager.noteSpeed);
+                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale);
                 transform.position = new Vector3(transform.position.x, transform.position.y, z);
             }
         }
@@ -263,7 +278,7 @@ public class Notes : MonoBehaviour
     {
         if (holdSeconds <= 0f) return;
 
-        float length = holdSeconds * GManager.noteSpeed;
+        float length = holdSeconds * ZScale;
         if (length <= 0f) return;
 
         Vector3 scale = transform.localScale;

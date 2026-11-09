@@ -146,7 +146,16 @@ public class NotesManager : MonoBehaviour
             times.Add(time);
             lanes.Add(note.block);
             types.Add(note.type);
-            positionsZ.Add(time * GManager.noteSpeed);
+            // The world z of a note is (noteTime - mediaTime) * zScale. The
+            // scale is the same one Notes uses to move the note and to recover
+            // its time, so the note reaches the judge line exactly at its own
+            // judge time (Issue #233). zScale is pinned to the camera, so the
+            // visible approach time is the designed 1.6 s at note speed 10.
+            //
+            // CurrentZScale is the single entry point for the scale
+            // (generation / recovery / movement must never read the note
+            // speed option directly - one note = one judgement).
+            positionsZ.Add(time * FlashBeat.Gameplay.MediaTimeline.CurrentZScale);
             GameSceneManager.SaveNotesTime.Add(time);
 
             // ロングノーツの終端 (Issue #164)。タップは 0 (終端なし)。

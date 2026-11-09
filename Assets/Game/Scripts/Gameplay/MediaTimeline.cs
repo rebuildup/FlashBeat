@@ -118,19 +118,73 @@ namespace FlashBeat.Gameplay
         /// reaches the hit line exactly when the media reaches its time. A
         /// buffering stall therefore holds the notes instead of letting them run
         /// ahead of the music.
+        ///
+        /// The third argument is the world z units per second of chart time
+        /// (see <see cref="ZScaleFor"/>), not the raw note speed option.
         /// </summary>
-        public static float NotePositionZ(float noteTime, float mediaTime, float noteSpeed)
+        public static float NotePositionZ(float noteTime, float mediaTime, float zScale)
         {
-            return (noteTime - mediaTime) * noteSpeed;
+            return (noteTime - mediaTime) * zScale;
         }
 
         /// <summary>
         /// Time of a note, recovered from the position the NotesManager created
-        /// it at (z = noteTime * noteSpeed).
+        /// it at (z = noteTime * zScale).
         /// </summary>
-        public static float NoteTimeFromPositionZ(float z, float noteSpeed)
+        public static float NoteTimeFromPositionZ(float z, float zScale)
         {
-            return noteSpeed > 0f ? z / noteSpeed : 0f;
+            return zScale > 0f ? z / zScale : 0f;
+        }
+
+        /// <summary>
+        /// How far the game camera sees along the lane, in world z units from
+        /// the hit line (z = 0).
+        ///
+        /// This is a property of the Main Camera in GameScene.unity
+        /// (position 0 / 4.9 / -0.8, pitch 54.8 deg, vertical FOV 60 deg):
+        /// the top edge of the frustum hits the note plane (y = 0.55) at
+        /// z = 8.61. PlayfieldGeometryTests re-derives the number from the
+        /// scene file, so a camera change cannot silently break the window.
+        /// </summary>
+        public const float VisibleDepthZ = 8.61f;
+
+        /// <summary>
+        /// The time a note stays visible before it has to be hit, at note speed
+        /// 10 - the design intent of the playfield (the v6 perspective
+        /// playfield uses the same constant).
+        ///
+        /// Before Issue #233 the 3D lane only showed 8.61 / 10 = 0.86 s of the
+        /// chart, so the playfield looked empty on most charts.
+        /// </summary>
+        public const float ApproachSecondsAtSpeed10 = 1.6f;
+
+        /// <summary>
+        /// World z units per second of chart time for the given note speed.
+        ///
+        /// The note speed option keeps its meaning (a higher speed = a shorter
+        /// time to react), but the conversion into the world is pinned to the
+        /// camera: at note speed 10 a note is on the screen 1.6 s before it
+        /// has to be hit, i.e. exactly as long as the camera can see.
+        /// </summary>
+        public static float ZScaleFor(float noteSpeed)
+        {
+            float speed = Mathf.Max(0.1f, noteSpeed);
+            return speed * (VisibleDepthZ / (ApproachSecondsAtSpeed10 * 10f));
+        }
+
+        /// <summary>
+        /// The z scale for the note speed the player currently has configured.
+        ///
+        /// This is the single entry point for the 3D lane: the note creation
+        /// (NotesManager), the recovery of the note time from the start
+        /// position (Notes.Start) and the per-frame movement (Notes.Update)
+        /// all read the scale from here. One value for all three is what keeps
+        /// "one note = one judgement" and "the note reaches the hit line
+        /// exactly at its own judge time" true (Issue #233).
+        /// </summary>
+        public static float CurrentZScale
+        {
+            get { return ZScaleFor(GManager.noteSpeed); }
         }
     }
 }
