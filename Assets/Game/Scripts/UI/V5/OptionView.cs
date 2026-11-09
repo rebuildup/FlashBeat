@@ -119,9 +119,9 @@ namespace FlashBeat.UI.V5
             var current = KeyBindings.Current;
             if (current == null) { return true; }
 
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
-                var defaults = Judge.LaneKeys[lane];
+                var defaults = KeyBindings.DefaultKeys[lane];
                 var keys = lane < current.Length ? current[lane] : null;
                 if (keys == null || defaults == null) { continue; }
                 if (keys.Length != defaults.Length) { return false; }

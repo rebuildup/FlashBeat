@@ -53,18 +53,10 @@ public class Judge : MonoBehaviour
     /// </summary>
     private readonly LongNote.Judgement[] holdHead = new LongNote.Judgement[LaneKeys.Length];
 
-    // 正本 (single source of truth): 判定とキーガイド UI の両方がこの配列を参照する
-    public static readonly KeyCode[][] LaneKeys = new KeyCode[][]
-    {
-        new KeyCode[] { KeyCode.Alpha1, KeyCode.Q, KeyCode.A, KeyCode.Z },
-        new KeyCode[] { KeyCode.Alpha2, KeyCode.W, KeyCode.S, KeyCode.X },
-        new KeyCode[] { KeyCode.Alpha3, KeyCode.E, KeyCode.D, KeyCode.C },
-        new KeyCode[] { KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.R, KeyCode.T, KeyCode.F, KeyCode.G, KeyCode.V, KeyCode.B },
-        new KeyCode[] { KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Y, KeyCode.U, KeyCode.H, KeyCode.J, KeyCode.N, KeyCode.M },
-        new KeyCode[] { KeyCode.Alpha8, KeyCode.I, KeyCode.K, KeyCode.Less, KeyCode.Comma },
-        new KeyCode[] { KeyCode.Alpha9, KeyCode.O, KeyCode.L, KeyCode.Greater, KeyCode.Period },
-        new KeyCode[] { KeyCode.Alpha0, KeyCode.Equals, KeyCode.Caret, KeyCode.Backslash, KeyCode.P, KeyCode.At, KeyCode.LeftBracket, KeyCode.Semicolon, KeyCode.Colon, KeyCode.RightBracket, KeyCode.Slash, KeyCode.Underscore, KeyCode.Minus, KeyCode.Asterisk, KeyCode.BackQuote }
-    };
+    // 互換エイリアス: 正本は KeyBindings.DefaultKeys。
+    // 判定 (Judge) とキーガイド UI の両方が同じ配列を参照する。
+    // ここにもテーブルを書くと UI と判定が静かにずれる (Issue #30 §3)。
+    public static readonly KeyCode[][] LaneKeys = KeyBindings.DefaultKeys;
 
     void Start()
     {
@@ -261,10 +253,26 @@ public class Judge : MonoBehaviour
         UpdateScore();
     }
 
+    /// <summary>
+    /// スコアの計算 (純ロジック)。
+    ///
+    /// maxScore が 0 (譜面が無いセッション) のときは 0 で割って NaN になり、
+    /// (int) キャストすると不定の値 (int.MinValue) になるため、0 を返す。
+    /// </summary>
+    public static int ComputeScore(float ratioScore, float maxScore)
+    {
+        if (maxScore <= 0f)
+        {
+            return 0;
+        }
+
+        return (int)Math.Round(1000000 * Math.Floor(ratioScore / maxScore * 1000000) / 1000000);
+    }
+
     /// <summary>スコア表示と内部スコアの更新。</summary>
     private void UpdateScore()
     {
-        GManager.score = (int)Math.Round(1000000 * Math.Floor(GManager.ratioScore / GManager.maxScore * 1000000) / 1000000);
+        GManager.score = ComputeScore(GManager.ratioScore, GManager.maxScore);
         fSize = 220;
         Fsize = 67;
 

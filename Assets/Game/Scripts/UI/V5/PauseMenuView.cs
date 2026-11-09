@@ -486,7 +486,7 @@ namespace FlashBeat.UI.V5
             laneLegend.childControlWidth = true;
             laneLegend.childForceExpandWidth = true;
 
-            // 下段: JIS キーボード (Judge.LaneKeys の正本から生成)
+            // 下段: JIS キーボード (KeyBindings.DefaultKeys の正本から生成)
             var keyboard = V5GameUi.Column(keysPage, "Keyboard", 8f * s, TextAnchor.UpperLeft);
             var kbRt = keyboard.GetComponent<RectTransform>();
             kbRt.anchorMin = new Vector2(0.5f, 0.5f);
@@ -495,7 +495,7 @@ namespace FlashBeat.UI.V5
             kbRt.anchoredPosition = new Vector2(0f, -60f * s);
 
             // Lane 1..8 の見出し
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
                 var cap = V5Ui.Panel(laneLegend.gameObject, "Lane " + (lane + 1), new Vector2(0f, 56f * s), LaneColor(lane), V5Tokens.RadiusMedium);
                 var capLe = cap.AddComponent<LayoutElement>();
@@ -510,7 +510,7 @@ namespace FlashBeat.UI.V5
             }
 
             // キー配列 (JIS 上段 / 中段 / 下段)。キーキャップは所属レーンの色で塗る
-            // (KeyBindings が trunk に無いので Judge.LaneKeys が正本)。
+            // (正本は KeyBindings.DefaultKeys。Judge.LaneKeys はそのエイリアス)。
             laneByKey = BuildLaneKeyMap();
             AddKeyRow(keyboard.gameObject, new[] { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\' }, p, s, 0f);
             AddKeyRow(keyboard.gameObject, new[] { 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[' }, p, s, 0.5f);
@@ -521,13 +521,13 @@ namespace FlashBeat.UI.V5
 
         private Dictionary<KeyCode, int> laneByKey;
 
-        /// <summary>Judge.LaneKeys を KeyCode→レーン番号へ展開する。</summary>
+        /// <summary>KeyBindings.DefaultKeys を KeyCode→レーン番号へ展開する。</summary>
         private static Dictionary<KeyCode, int> BuildLaneKeyMap()
         {
             var map = new Dictionary<KeyCode, int>();
-            for (int lane = 0; lane < Judge.LaneKeys.Length; lane++)
+            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
             {
-                foreach (var key in Judge.LaneKeys[lane])
+                foreach (var key in KeyBindings.DefaultKeys[lane])
                 {
                     if (!map.ContainsKey(key)) map[key] = lane;
                 }
@@ -535,7 +535,7 @@ namespace FlashBeat.UI.V5
             return map;
         }
 
-        /// <summary>キーボード刻印 1 文字 → KeyCode (Judge.LaneKeys が使うものだけ)。</summary>
+        /// <summary>キーボード刻印 1 文字 → KeyCode (KeyBindings.DefaultKeys が使うものだけ)。</summary>
         private static KeyCode CharToKeyCode(char c)
         {
             if (c >= '0' && c <= '9') return KeyCode.Alpha0 + (c - '0');

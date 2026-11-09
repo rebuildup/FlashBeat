@@ -19,9 +19,11 @@ public static class KeyBindings
         void SaveRaw(string json);
     }
 
-    // 正本: 8 レーンの既定キー (Judge.LaneKeys と同じ構成)。
-    // v0.1.2 では Judge.LaneKeys が private のため、ここに独自に持つ。
-    private static readonly KeyCode[][] DefaultKeys = new KeyCode[][]
+    // 正本 (single source of truth): 8 レーンの既定キー。
+    // Judge.LaneKeys はこの配列へのエイリアスであり、判定 (Judge) と
+    // キーガイド UI (KeyGuideUI / V5 / V6) はすべてここを参照する。
+    // テーブルを二重に持つと UI と判定が静かにずれるため、ここ以外には定義しない。
+    public static readonly KeyCode[][] DefaultKeys = new KeyCode[][]
     {
         new KeyCode[] { KeyCode.Alpha1, KeyCode.Q, KeyCode.A, KeyCode.Z },
         new KeyCode[] { KeyCode.Alpha2, KeyCode.W, KeyCode.S, KeyCode.X },
