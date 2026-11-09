@@ -61,6 +61,33 @@ $ErrorActionPreference = 'Stop'
 
 $script:MediaExtensions = @('.wav', '.mp3', '.mp4', '.mov', '.ogg', '.m4a', '.webm', '.avi')
 
+# --- プラットフォーム判定 ----------------------------------------------------
+# このスクリプトは Windows 上で使う想定だったが、macOS (pwsh) からも
+# Win64 ビルドをパッケージできる必要がある (Unity の Windows Build Support が
+# macOS Editor に入っていれば macOS から Win64 をビルドできる)。
+# そのため (a) パス区切りを Join-Path で解決し (b) tar は Windows 同梱の
+# tar.exe ではなく libarchive の tar を優先して使う。
+# PowerShell 5.1 は Windows 専用なので $IsWindows は使えない。
+$script:OnWindows = if ($PSVersionTable.PSVersion.Major -ge 6) { $IsWindows } else { $true }
+
+function Resolve-TarCommand {
+    # Windows 同梱の tar.exe (libarchive) を優先し、無ければ PATH 上の tar
+    # (macOS / Linux の bsdtar 系)。どちらも -a で zip 形式を出せる。
+    $candidates = if ($script:OnWindows) { @('tar.exe', 'tar') } else { @('tar', 'tar.exe') }
+    foreach ($c in $candidates) {
+        $cmd = Get-Command $c -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+    }
+    throw "ZIP 作成に使う tar が見つかりません (試した名前: $($candidates -join ', '))"
+}
+
+function Join-PathSegments {
+    param([string]$Base, [string[]]$Segments)
+    $p = $Base
+    foreach ($s in $Segments) { $p = Join-Path $p $s }
+    return $p
+}
+
 function Assert-Win64BuildLayout {
     param([string]$Dir)
 
@@ -78,7 +105,7 @@ function Assert-Win64BuildLayout {
 function Get-ManagedDllCount {
     param([string]$Dir)
 
-    $managed = Join-Path $Dir 'FlashBeat_Data\Managed'
+    $managed = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'Managed')
     if (-not (Test-Path -LiteralPath $managed -PathType Container)) {
         throw "FlashBeat_Data\Managed が見つかりません: $managed"
     }
@@ -121,7 +148,7 @@ function Assert-MediaPolicy {
         Write-Host ("[media] 第三者楽曲メディアはビルド対象から除外済み (manifest: {0})" -f ($excluded -join ', '))
     }
 
-    $packed = Join-Path $Dir 'FlashBeat_Data\resources.resource'
+    $packed = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'resources.resource')
     if (-not (Test-Path -LiteralPath $packed -PathType Leaf)) {
         if ($MediaPolicy -eq 'free' -or $MediaPolicy -eq 'song-free') {
             Write-Warning 'resources.resource が存在しません (メディア完全分離済みと解釈します)'
@@ -144,7 +171,8 @@ function New-BuildZip {
         [string]$ZipPath
     )
 
-    # Windows 同梱の bsdtar (libarchive) を使用。拡張子 .zip で自動的に zip 形式になる。
+    # libarchive の tar を使用 (Windows 同梱の tar.exe / macOS の bsdtar)。
+    # 拡張子 .zip で自動的に zip 形式になる。
     # -C でカーソルを移動し、トップレベルのエントリをそのまま ZIP ルートに置く。
     # version.json はステージングから ZIP ルートへ追加する。
     $entries = Get-ChildItem -LiteralPath $Dir -Force |
@@ -156,9 +184,10 @@ function New-BuildZip {
     }
 
     $staging = [System.IO.Path]::GetDirectoryName($VersionJsonPath)
-    & tar.exe -a -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
+    $tar = Resolve-TarCommand
+    & $tar -a -cf $ZipPath -C $Dir @entries -C $staging 'version.json'
     if ($LASTEXITCODE -ne 0) {
-        throw "tar.exe が失敗しました (exit=$LASTEXITCODE): $ZipPath"
+        throw "tar が失敗しました (exit=$LASTEXITCODE): $ZipPath"
     }
 }
 
