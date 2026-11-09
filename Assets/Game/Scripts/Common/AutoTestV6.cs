@@ -95,18 +95,54 @@ public class AutoTestV6 : MonoBehaviour
         // 4. 旧 UI が残っていないか。v6 モードでは表示の正本 (GameUiExclusivity,
         //    Issue #233) が全フェーズで v5 の Canvas を隠す。Ready 中 (再生前) の
         //    V5ReadyCanvas も正当な表示ではない (Ready 案内は v6 HUD が出す)。
-        var graphics = FindObjectsOfType<UnityEngine.UI.Graphic>();
+        //
+        //    「残っている」の判定は **実際に描かれているか** で見る。
+        //    isActiveAndEnabled だけでは、実行時生成の旧ロード表示
+        //    (LoadingOverlay) は alpha 0 で待機しているだけなのに
+        //    「見えている」ことになってしまう (実測の誤検出)。
+        var graphics = FindObjectsByType<UnityEngine.UI.Graphic>(FindObjectsSortMode.None);
         int legacyVisible = 0;
         for (int i = 0; i < graphics.Length; i++)
         {
             var g = graphics[i];
-            if (g == null || !g.isActiveAndEnabled) continue;
+            if (g == null) continue;
+            if (!FlashBeat.UI.V5.GraphicVisibility.IsDrawn(g)) continue;
             var canvas = g.GetComponentInParent<Canvas>();
             if (canvas == null || canvas.name.StartsWith("V6")) continue;
             legacyVisible++;
             Debug.Log("[AutoTestV6] LEGACY VISIBLE: " + canvas.name + " / " + g.gameObject.name);
         }
         Check("no legacy graphics are visible", legacyVisible == 0);
+
+        // 4b. 旧 v5 の歌詞オブジェクト (QuestionText / FuriganaText / RomajiText) が
+        //     active だと v6 の HUD の歌詞と **二重表示** になる (Issue #233)。
+        //     旧 UI 排他 (GameSceneManager.ApplyTextPanelVisibility) が
+        //     TextPanel を隠すので、歌詞の 3 オブジェクトも inactive になる。
+        var legacyLyricActive = 0;
+        var transforms = FindObjectsByType<Transform>(FindObjectsSortMode.None);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            var t = transforms[i];
+            if (t == null) continue;
+            if (!FlashBeat.UI.V5.GameUiExclusivity.IsLegacyLyricObjectName(t.name)) continue;
+            if (!t.gameObject.activeInHierarchy) continue;
+            legacyLyricActive++;
+            Debug.Log("[AutoTestV6] LEGACY LYRIC ACTIVE: " + t.name);
+        }
+        Check("no legacy lyric objects are active", legacyLyricActive == 0);
+
+        // 4c. 旧ロード表示 (LoadingOverlay) が画面に被っていないか。
+        //     v6 モードの曲準備は V6LoadingView が所有し、旧オーバーレイは
+        //     alpha 0 で待機しているだけなので「描かれていない」ことが正。
+        var legacyOverlay = GameObject.Find(FlashBeat.UI.V5.GameUiExclusivity.LegacyLoadingOverlayName);
+        bool legacyOverlayDrawn = false;
+        if (legacyOverlay != null)
+        {
+            var group = legacyOverlay.GetComponent<CanvasGroup>();
+            legacyOverlayDrawn = group == null
+                || group.alpha > FlashBeat.UI.V5.GraphicVisibility.InvisibleAlpha;
+        }
+        Check("the legacy loading overlay is not drawn", !legacyOverlayDrawn);
 
         // 5. v6 のプレイフィールドと HUD が scene にある。
         // v6 の遠近法プレイフィールドは既定で無効 (元の 3D レーンを使う)。
