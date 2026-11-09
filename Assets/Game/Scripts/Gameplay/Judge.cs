@@ -219,7 +219,10 @@ public class Judge : MonoBehaviour
         KeyCode[] keys = KeyBindings.GetKeys(lane);
         for (int i = 0; i < keys.Length; i++)
         {
-            if (Input.GetKeyDown(keys[i])) return true;
+            // GetKeyDownOrInjected は「そのキーが押された (Input)」と「検証ハーネス
+            // が注入した (KeyBindings.InjectKeyDown)」の両方を見る。製品ビルドでは
+            // 注入されないので、結果は従来と同じ Input.GetKeyDown と同じになる。
+            if (KeyBindings.GetKeyDownOrInjected(keys[i])) return true;
         }
         return false;
     }

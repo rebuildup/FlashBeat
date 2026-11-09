@@ -133,6 +133,17 @@ public class MusicManager : MonoBehaviour
     /// <summary>映像播放器の準備完了状態。</summary>
     public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
 
+    /// <summary>
+    /// 曲終了の状態機械 (Issue #226) の現在地。
+    /// 検証ハーネス (AutoTestV6SongEnd) が「曲終了が検出された」ことを実機で
+    /// 確認するために読む。Result へ遷移するとこの MonoBehaviour は消えるので、
+    /// 遷移前に値を控えておく必要がある。
+    /// </summary>
+    public SongEndState SongEndState { get { return songEnd.State; } }
+
+    /// <summary>Result への遷移が発火済みか (遷移は 1 回だけ)。</summary>
+    public bool ResultTriggered { get { return resultTriggered; } }
+
     /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
     public float MediaTimeNow { get { return CurrentMediaTime(); } }
 
