@@ -53,7 +53,10 @@ env:
 jobs:
   build:
     name: macOS ビルド
-    runs-on: macos-14
+    # macos-14 の runner image は提供終了しており、job は 1 秒で cancelled
+    # (steps: 0, annotation: "The configuration 'macos-14-arm64-us-default' is not supported")
+    # になっていた。macos-15 (Intel) を使う。
+    runs-on: macos-15
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
