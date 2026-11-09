@@ -128,7 +128,7 @@ fingerprint の定義: ビルドフォルダ配下の各ファイルについて
 
 ### 修正前の実測と原因の訂正
 
-，独立レビュー (PR #253) の指摘どおり、**当初この doc が原因帰属を間違えていた**。
+、独立レビュー (PR #253) の指摘どおり、**当初この doc が原因帰属を間違えていた**。
 訂正する:
 
 - 誤った記述: 「ZIP にはファイル modification time が埋め込まれるため、同じビルド出力から
@@ -157,7 +157,7 @@ entries with differing CRC (content): ['version.json']
      (`d8c1b39` → `2026-11-09T13:24:21+09:00` → `createdAt = 2026-11-09T04:24:21Z`)。
    - `version.json` 自身の mtime も同じ commit 日時に固定する
      (tar は各エントリの mtime を ZIP に埋め込むため)。
-2. **ZIP  creation を 2 段構えにした。** `ディスク → ustar → zip`。
+2. **ZIP 生成を 2 段構えにした。** `ディスク → ustar → zip`。
    ustar には atime / ctime のフィールドが無いため、ZIP のローカルヘッダの
    UT 拡張フィールドに **実行時刻由来の atime / ctime が入らない**。
    (1 段構えだと `version.json` だけ mtime が違う ZIP になる)
@@ -248,6 +248,36 @@ macOS のパッケージング経路が 2 本ある状態 (`script/win64-build-m
 が **1 つの実装** に集約される。release gate の契約
 (`docs/operations/release-gate.md` §1.4 添付アセット / §1.5 メディア非同梱) に従う。
 
+### 実測: ラッパ経由でもアセットは 2 点だけ
+
+`script/win64-build-mac.sh` を **Unity 起動だけをスタブに差し替えた** 状態で実行
+(ビルド出力は既存の実ビルドをコピー、-ref は `main` = `origin/main` `ab8c336`):
+
+```
+$ FB_WIN64_WORKTREE=<worktree> UNITY_BIN=<Unity のスタブ> \
+  PWSH_BIN=<pwsh 7.6.6> FLASHBEAT_VERSION_BASE=0.1.14 \
+  bash script/win64-build-mac.sh main <出力先>
+[media] 第三者楽曲メディアはビルド対象から除外済み (manifest: …)
+[1/4] ZIP 作成中: <出力先>/FlashBeat-0.1.14-win64-ab8c336.zip
+      tar: /usr/bin/tar (-a) / 2 段構え (ustar → zip): 再現します
+[4/4] 完了: entries=224 managedDlls=138 mediaPolicy=song-free size=274,824,994 bytes
+SHA-256: bb1047f4e132b57bc02b50e65ef07b9f1cb7f8a0cfad464acd1fc9fe33e04e48
+Sidecar: <出力先>/FlashBeat-0.1.14-win64-ab8c336.zip.sha256
+createdAt (ビルド元 commit の日時, UTC): 2026-11-09T10:00:25Z
+
+dist: <出力先>
+-rw-r--r--  1 rebui  wheel  274824994  FlashBeat-0.1.14-win64-ab8c336.zip
+-rw-r--r--  1 rebui  wheel        101  FlashBeat-0.1.14-win64-ab8c336.zip.sha256
+```
+
+→ 出力先に並ぶのは **ZIP と sidecar の 2 点だけ** (`.build-info.txt` などの 3 つ目はない)。
+`entries=224 / managedDlls=138 / mediaPolicy=song-free` は直接実行と同一。
+
+なお、この実行で `$REF` は **ローカルに `main` ブランチが無い環境** でも
+`origin/main` に解決されることを確認した (解決順: ローカル → `origin/<ref>`)。
+`git checkout --detach <branch>` は、そのブランチが別の worktree で checkout 済みのとき
+`-b` 相当の DWIM と衝突して失敗するため、**必ず commit SHA に解決してから detached checkout する**。
+
 ## 成果物の置き場所 (この Mac 上の記録)
 
 リポジトリ外の個人環境。以下は **この Mac での記録** で、
@@ -255,9 +285,13 @@ macOS のパッケージング経路が 2 本ある状態 (`script/win64-build-m
 
 ```
 <この Mac の作業ツリー>/Builds/Windows/            # ビルド出力 (展開用)
-<この Mac の作業ツリー>/dist2/FlashBeat-0.1.14-win64-d8c1b39.zip
-<この Mac の作業ツリー>/dist2/FlashBeat-0.1.14-win64-d8c1b39.zip.sha256
+<この Mac の作業ツリー>/dist4/FlashBeat-0.1.14-win64-d8c1b39.zip         # 修正後 (再現可能)
+<この Mac の作業ツリー>/dist4/FlashBeat-0.1.14-win64-d8c1b39.zip.sha256
+<この Mac の作業ツリー>/dist2/ … / dist3/ …                            # 修正前 (再現しない)
 ```
+
+`dist4` の ZIP は上の「再現性」節の 2 回目実行の成果物 (`shasum -a 256 -c` → `OK`)。
+`dist2` / `dist3` は **修正前** の成果物なので SHA-256 が一致しない (参考値)。
 
 ## 未検証 / 残課題
 
