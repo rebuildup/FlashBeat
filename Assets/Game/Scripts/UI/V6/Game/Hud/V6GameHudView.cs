@@ -274,6 +274,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBest = null;
             comboFill = null;
             bonusRow = null;
+            bonusValueText = null;
             comboStatusBlock = null;
             comboStatusRow = null;
             fullComboChip = null;
@@ -628,7 +629,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 捨てていたため nextBonusReward が null のままになり、Refresh が
             // 毎フレーム NullReferenceException で止まっていた (Issue #233)。
             BuildBonusRow(bonusRow, 0f, "+ COMBO BONUS", "+0", out _, out bonusValueText);
-            BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス 300", "+0", out nextBonusText, out nextBonusReward);
+            // 次のボーナス行の閾値 (300) は構築時には確定していない — 実際の milestone は
+            // Refresh() が GManager.combo から求めて "次のボーナス <n>" を書き込む。
+            // ここでは数値を含めない初期値を入れ、構築直後に 300 と表示齟齬しないようにする。
+            BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス", "+0", out nextBonusText, out nextBonusReward);
 
             // --- コンボステータス (同座標・排他) ---
             // 契約 §12: Combo Bonus と Combo Status は同じ座標 (FHD 1512,460) にあり排他。
