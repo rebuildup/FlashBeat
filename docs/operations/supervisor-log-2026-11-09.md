@@ -12,7 +12,7 @@ API 上限で中断されたときの再開手順** はここに集約します�
 
 | 項目 | 値 |
 |---|---|
-| `origin/main` | `ab8c336` (PR #255 merge 時点) |
+| `origin/main` | `45c00db` (PR #253 merge 時点) |
 | EditMode スイート (main で実測) | **1118 / 1118 成功** (Unity 6000.5.6f1 / macOS batchmode) |
 
 基準となる実測値はこの 1118 です。Worker 申告の数値は cc が各 PR ごとに独立に再実測しています。
@@ -24,20 +24,22 @@ API 上限で中断されたときの再開手順** はここに集約します�
 | PR | Issue | 内容 | cc 側の検証 | 独立レビュー |
 |---|---|---|---|---|
 | #252 | #225 | NoteEditor 曲切替時に未保存確認 | cc 再実測待ち (Worker 申告 EditMode **1114/1114**) | 済 (blocking 3 → Worker が `3a95037` で解消) |
-| #253 | #35 | Win64 パッケージを macOS pwsh でも実行可能 / 再現可能化 | `pwsh` で実実行 (224 entries / 138 DLL / song-free / 2 回ビルドで SHA 一致) | 済 (should-fix 5 → Worker が `13a5855` で解消) |
-| #254 | #41 | 展示 runbook に候補ビルドと受入記録表 | 文書のみ | 済 (blocking 4 → 本 PR で解消。PR #253 の merge が前提) |
+| #253 | #35 | Win64 パッケージを macOS pwsh でも実行可能 / 再現可能化 | `pwsh` で **2 回実行して SHA-256 一致を再実測** (224 entries / 138 DLL / song-free / Burst 0 / sidecar OK) | 済 (should-fix 5 → Worker が `13a5855` で解消) → **merged (`45c00db`)** |
+| #254 | #41 | 展示 runbook に候補ビルドと受入記録表 | 文書のみ | 済 (blocking 4 → 本 PR で解消) → **merge 待ち** |
 | #255 | #118 | 更新フローの受入条件固定 + 純関数化 | EditMode **1118/1118** | 済 → **merged** |
 | #256 | #182 | 判定キューの受入条件裏付け + **実バグ修正** | cc 再実測待ち | 済 (should-fix 3 → Worker が対応中) |
 | #257 | #74/#75 | Web Studio 狭幅 (390px) 横スクロール解消 | `npm test` 399/399 + visual gate PASS (cc 再実測) | レビュー中 |
 | #258 | #233 | 曲終了 → Result 到達の実機ハーネス | Draft | 済 (blocking 4 → 要修正。S1 は #233 プレイフィールド側と同一原因) |
-| #259 | CI | macOS ビルド CI の runner / インストーラ修正 | 2 回 dispatch で 5 ステップ進行 → ライセンス検査で 22 秒失敗 (正しい.owner アクション) | 済 (blocking 0 / should-fix 2 → `eeac115` で F1/F2/F3 解消) |
+| #259 | CI | macOS ビルド CI の runner / インストーラ修正 | 2 回 dispatch で 5 ステップ進行 → ライセンス検査で 22 秒失敗 (正しいオーナーアクション) | 済 (blocking 0 / should-fix 2 → `eeac115` で F1/F2/F3 解消) |
 | #260 | #240 | v6 Result のローカル登録契約の実測証跡 | 文書のみ | blocking 0 / should-fix 2 残 → 要修正 |
 
 ### 統合順の制約
 
-- **#253 → #254 の順**。#254 の runbook が参照する
+- **#253 → #254 の順**で解消済み。#253 を `45c00db` で merge したため、
+  #254 の runbook が参照する
   [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) は
-  #253 が持ち込むファイルで、#253 を merge しないと dead link になります。
+  **main に実在します** (`git cat-file -e origin/main:docs/evidence/win64-build-from-macos.md`
+  で確認済み)。dead link にはなっていません。
 
 ### PR #255 で既に把握している残点 (統合時に要確認)
 
@@ -173,3 +175,33 @@ Issue だけが open・コメント無しの状態でした。全 open Issue 47 
   (`scriptingDefineSymbols` に `SENTIS_ANALYTICS_ENABLED` を追加) を含んだ状態で
   ビルドされています。クリーンチェックアウトからは同じバイナリになりません。
 - 完全性検証は同梱の `.sha256` sidecar と 1 対 1。
+
+### 再現性のパッケージャ実測 (2026-11-09 19:47 JST / PR #253 merge 後の head で再実行)
+
+cc が PR head (`13a5855`) の `tools/release/package-win64.ps1` を **別出力先で 2 回**
+実行しました。入力は `/Users/rebui/work/FlashBeat.macverify/Builds/Windows`、
+`-CommitDate 2026-11-09T19:00:00+09:00` (ISO 8601) を固定。
+
+```
+-rw-r--r--  274824992  /tmp/v253a.x3Hl0f/FlashBeat-0.1.14-win64-d8c1b39.zip
+-rw-r--r--  274824992  /tmp/v253b.VFONe1/FlashBeat-0.1.14-win64-d8c1b39.zip
+281c457d8789c1a8de7089cb4c1e98d596b3697cb85b462fc8737fbc83342fe9  /tmp/v253a.x3Hl0f/...zip
+281c457d8789c1a8de7089cb4c1e98d596b3697cb85b462fc8737fbc83342fe9  /tmp/v253b.VFONe1/...zip
+```
+
+**同一 SHA-256**。`version.json` の `createdAt` は実行時刻ではなく
+**ビルド元 commit の日時** (`2026-11-09T10:00:00Z`) になっていることも確認しました。
+
+| 検査 | 結果 |
+|---|---|
+| エントリ数 | 224 |
+| Managed DLL | 138 |
+| メディア (`*.wav` / `*.mp4` / `Musics/` / `UnityYoutube`) | **0 件** |
+| `BurstDebugInformation` | **0 件** |
+| `.sha256` sidecar の `shasum -c` | OK |
+| `unzip -t` | No errors detected |
+
+この SHA (`281c457d…`) は上表の候補 (`3ac76d0d…`) とは異なります — 上表は旧パッケージャ
+の産物で、`-CommitDate` を固定していない実行だったためです。**実際の配布候補は
+`281c457d…` の再ビルド成果物を版数 `0.1.22` チャンネル `stable` で作り直してから
+使ってください** (上表の `3ac76d0d…` は参考値としてのみ)。
