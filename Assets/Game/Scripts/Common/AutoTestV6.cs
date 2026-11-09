@@ -139,13 +139,24 @@ public class AutoTestV6 : MonoBehaviour
         // 4c. 旧ロード表示 (LoadingOverlay) が画面に被っていないか。
         //     v6 モードの曲準備は V6LoadingView が所有し、旧オーバーレイは
         //     alpha 0 で待機しているだけなので「描かれていない」ことが正。
+        //     判定は「実際に描かれているか」(GraphicVisibility.IsDrawn) に
+        //     統一する (PR #263 レビュー N5/N6: CanvasGroup を 1 段だけ見る
+        //     実装だと、親の alpha と子の alpha の積や、無効な Canvas を
+        //     見落とす)。
         var legacyOverlay = GameObject.Find(FlashBeat.UI.V5.GameUiExclusivity.LegacyLoadingOverlayName);
         bool legacyOverlayDrawn = false;
         if (legacyOverlay != null)
         {
-            var group = legacyOverlay.GetComponent<CanvasGroup>();
-            legacyOverlayDrawn = group == null
-                || group.alpha > FlashBeat.UI.V5.GraphicVisibility.InvisibleAlpha;
+            // 非 active の Graphic も対象にする (「隠されている」と
+            // 「描かれていない」を混同しないため)。
+            var overlayGraphics = legacyOverlay.GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
+            for (int i = 0; i < overlayGraphics.Length; i++)
+            {
+                if (!FlashBeat.UI.V5.GraphicVisibility.IsDrawn(overlayGraphics[i])) continue;
+                legacyOverlayDrawn = true;
+                Debug.Log("[AutoTestV6] LEGACY OVERLAY DRAWN: " + overlayGraphics[i].gameObject.name);
+                break;
+            }
         }
         Check("the legacy loading overlay is not drawn", !legacyOverlayDrawn);
 
@@ -171,7 +182,7 @@ public class AutoTestV6 : MonoBehaviour
             yield return new WaitForSecondsRealtime(1f);
         }
         Check("the media is ready", music != null && music.MediaReady);
-        yield return Screenshot("04-media-ready");
+        yield return CaptureGameplay("04-media-ready");
 
         if (music != null && music.MediaReady)
         {
@@ -183,7 +194,7 @@ public class AutoTestV6 : MonoBehaviour
             // 出ない。曲に依存しない方法として「実際にカメラに写っている
             // ノーツが 3 枚以上あり、手前 (z <= 5.5) まで入るまで待つ」ので、
             // どの曲でも白い帯 (ノート) が見える状態で撮れる。
-            yield return WaitForDenseNotes(3, 60f);
+            yield return WaitForDenseNotes(3, 30f);
             int visibleNotes = lastVisibleNotes;
             float nearestZ = lastNearestZ;
             float farthestZ = lastFarthestZ;
@@ -191,22 +202,27 @@ public class AutoTestV6 : MonoBehaviour
             Debug.Log("[AutoTestV6] media time at capture = " + music.MediaTimeNow.ToString("F2")
                 + " visible notes = " + visibleNotes
                 + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
-            Check("the capture lands in a dense chart region", visibleNotes >= 3);
+            // 密区間に到什么能否は **譜面に依存する** ので、失敗にはしない
+            // (PR #263 レビュー S5: 曲によって必ず失敗する断言は自動テストの
+            // 信頼性を下げる)。soft な記録として残す。
+            CheckSoft("the capture lands in a dense chart region (soft)", visibleNotes >= 3);
 
-            yield return Screenshot("05-gameplay");
+            yield return CaptureGameplay("05-gameplay");
 
             // 5b. さらに **別の** 密区間まで進めて撮る (Issue #233)。
             // 1 枚目では手前のノートが HUD の歌詞パネルに隠れるため、
             // 「譜面の密区間にノートが並んでいる」ことが 2 枚目で確認できる。
             // 同じ区間だと同じ絵になるので、1 枚目より **ノート数が多い** 区間を待つ。
-            yield return WaitForDenseNotes(visibleNotes + 1, 60f);
+            // 待ちは上限つきの **短時間** (S5: 無制限に待たない)。
+            yield return WaitForDenseNotes(visibleNotes + 1, 15f);
             visibleNotes = lastVisibleNotes;
             nearestZ = lastNearestZ;
             farthestZ = lastFarthestZ;
             Debug.Log("[AutoTestV6] media time at 2nd capture = " + music.MediaTimeNow.ToString("F2")
                 + " visible notes = " + visibleNotes
                 + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
-            yield return Screenshot("05b-gameplay-dense");
+            CheckSoft("a denser chart region was found (soft)", visibleNotes >= 3);
+            yield return CaptureGameplay("05b-gameplay-dense");
         }
 
         Finish();
@@ -224,6 +240,8 @@ public class AutoTestV6 : MonoBehaviour
         float waited = 0f;
         while (waited < maxWait)
         {
+            // 曲が終わってシーンが変わったら待たない (S5)。
+            if (SceneManager.GetActiveScene().name != "GameScene") break;
             ScanVisibleNotes(out lastVisibleNotes, out lastNearestZ, out lastFarthestZ);
             if (lastVisibleNotes >= minNotes && lastNearestZ <= 5.5f) break;
             waited += 0.25f;
@@ -280,6 +298,34 @@ public class AutoTestV6 : MonoBehaviour
         ScreenCapture.CaptureScreenshot(path);
         yield return new WaitForSecondsRealtime(0.6f);
         Check("the screenshot " + name + " was written", File.Exists(path));
+    }
+
+    /// <summary>
+    /// ゲーム画面のスクリーンショットを撮る前に、**まだ GameScene にいるか**
+    /// を確認する (PR #263 レビュー S5)。
+    ///
+    /// 曲が終わって ResultScene に遷移したあとに撮ると、プレイフィールドの
+    /// 絵ではないものを「プレイフィールドの証拠」として残してしまう。
+    /// </summary>
+    private IEnumerator CaptureGameplay(string name)
+    {
+        bool inGameScene = SceneManager.GetActiveScene().name == "GameScene";
+        Check("the game scene is still active before the capture " + name, inGameScene);
+        if (!inGameScene) yield break;
+        yield return Screenshot(name);
+    }
+
+    /// <summary>
+    /// **soft** な検査 (PR #263 レビュー S5)。
+    ///
+    /// 結果は記録するが、失敗には数えない。曲や譜面に依存する条件
+    /// (ノーツの密度など) は、これで自動テスト全体が曲に左右されるのを
+    /// 防ぐ。
+    /// </summary>
+    private void CheckSoft(string label, bool ok)
+    {
+        if (ok) { Debug.Log("[AutoTestV6] SOFT PASS " + label); }
+        else { Debug.LogWarning("[AutoTestV6] SOFT FAIL " + label); }
     }
 
     private void Check(string label, bool ok)
