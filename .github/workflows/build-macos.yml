@@ -40,6 +40,13 @@ concurrency:
 permissions:
   contents: read
 
+# 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
+#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
+# push と手動実行で同じ式を使わず、push は必ず stable になるよう固定する。
+env:
+  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+
 jobs:
   build:
     name: macOS ビルド
@@ -47,6 +54,7 @@ jobs:
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
+      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4
@@ -108,13 +116,44 @@ jobs:
           log="$RUNNER_TEMP/activate.log"
           has_ulf=0; [ -n "${UNITY_LICENSE:-}" ] && has_ulf=1
           has_account=0; { [ -n "${UNITY_EMAIL:-}" ] && [ -n "${UNITY_PASSWORD:-}" ]; } && has_account=1
-          if [ "$has_ulf" -eq 1 ]; then
+          # UTF-8 BOM (EF BB BF) を除いた文字列を返す。.ulf は BOM 付きで
+          # 保存されていることがあり、BOM のままだと「先頭が '<' ではない」
+          # ので base64 と誤判定され「XML ではない」と拒否されてしまう。
+          strip_bom() {
+            local s="$1" bom
+            [ -n "$s" ] || { printf '%s' ""; return; }
+            bom="$(printf '%s' "$s" | head -c 3 | od -An -tx1 | tr -d ' \n')"
+            if [ "$bom" = "efbbbf" ]; then
+              printf '%s' "$s" | tail -c +4
+            else
+              printf '%s' "$s"
+            fi
+          }
+          # アカウント認証を優先する。.ulf は発行元マシンに紐づくため
+          # GitHub-hosted runner では machine binding mismatch で失敗する。
+          # base64 を復号する。GNU coreutils は --decode、macOS の BSD 版は -D。
+          decode_base64() {
+            local out
+            out="$(printf '%s' "$1" | base64 --decode 2>/dev/null || true)"
+            if [ -z "$out" ]; then
+              out="$(printf '%s' "$1" | base64 -D 2>/dev/null || true)"
+            fi
+            printf '%s' "$out"
+          }
+          if [ "$has_account" -eq 1 ]; then
+            args=(-batchmode -quit -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD")
+            [ -n "${UNITY_SERIAL:-}" ] && args+=(-serial "$UNITY_SERIAL")
+            "$UNITY_EDITOR" "${args[@]}" -logFile "$log"
+            code=$?
+          elif [ "$has_ulf" -eq 1 ]; then
             # secret は「.ulf の XML」か「base64」のどちらでも受ける
-            raw="$UNITY_LICENSE"
+            raw="$(strip_bom "$UNITY_LICENSE")"
             case "$(printf '%s' "$raw" | tr -d ' \n' | cut -c1)" in
               "<") content="$raw" ;;
-              *) content="$(printf '%s' "$raw" | base64 --decode 2>/dev/null || true)" ;;
+              *) content="$(decode_base64 "$raw")" ;;
             esac
+            # base64 復号後にも BOM が残りうるので、もう一度除去する
+            content="$(strip_bom "$content")"
             case "$(printf '%s' "$content" | tr -d ' \n' | cut -c1)" in
               "<") ;;
               *) echo "::error title=Unity license required::UNITY_LICENSE の内容が .ulf XML ではありません"; exit 1 ;;
@@ -122,11 +161,6 @@ jobs:
             ulf="$RUNNER_TEMP/Unity_lic.ulf"
             printf '%s' "$content" > "$ulf"
             "$UNITY_EDITOR" -batchmode -quit -nographics -manualLicenseFile "$ulf" -logFile "$log"
-            code=$?
-          elif [ "$has_account" -eq 1 ]; then
-            args=(-batchmode -quit -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD")
-            [ -n "${UNITY_SERIAL:-}" ] && args+=(-serial "$UNITY_SERIAL")
-            "$UNITY_EDITOR" "${args[@]}" -logFile "$log"
             code=$?
           else
             echo "::error title=Unity license required::Unity ライセンス認証情報がありません"
@@ -142,7 +176,7 @@ jobs:
         shell: bash
         env:
           FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
           log="$RUNNER_TEMP/build.log"
           "$UNITY_EDITOR" -batchmode -quit \
