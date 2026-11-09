@@ -98,8 +98,8 @@
 | 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **6/1/1** | Windows 実機 | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**。Issue の「45 曲」前提は古く、「45 曲以上を満たす」ことが要求なら未実装 = **オーナー決定事項**)。残りは実機の Ready 連打操作と検索/絞り込みの実機確認 |
 | 223 | P0/v6 Integration 排他統合+実Win64 | **D** | — (統合ゲート) | 0/1/3 | Windows 実機 + Unity Editor 単独所有者 | #219–#222 の統合 + Win64 1 曲完走 |
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
-| 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6) | 3/0/1 | — | クローズ提案可 (PR #252 は追加ガード) |
-| 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト一部追加** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/NoteTimingRegressionTests.cs` | **4/1/1** | Windows 実機 | **正負 noteTiming の回帰テストを追加** (PR #272 merged)。負の noteTiming は正規仕様 (`OptionSettings.NoteTimingMin=-10`) でクランプ追加は不要。**macOS 実機完走も証明済み** (PR #258: 130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件 (duration 端点 Tap/HOLD・動画長<duration・フレーム落ち・ランキング送信) は Worker が実装中 |
+| 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 実装済 / Editor 実機検証中** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs` | **6/0/1** | — (Mac Editor で実測中) | **PR #252 merged** (`39ba1bd`) — 未保存変更の警告 (保存 / 破棄 / キャンセル) と **別曲の JSON を上書きしない** ガードが main にある。残る受入条件 7「Unity Editor 実機での曲切替 → 保存」は **Mac の Unity Editor で実測中** (展示 PC とは無関係。Windows 展示機には触らない) |
+| 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト完了** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/SongEnd*Tests.cs` (5 ファイル) | **8/1/1** | Windows 実機 | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の **受入条件テスト 20 件を追加** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。**正負 noteTiming** は PR #272、`macOS 実機完走` は PR #258 (130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件は **Windows 実機完走とランキングの実 API 送信** の 2 項目のみ |
 | 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B** | `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374`, `V5/GameUiExclusivity.cs` | 2/2/2 | Windows 実機 | **PR #258 merged** — macOS 実機で 1 曲完走 → Result 到達を実証 (29/29 断言 / `Completed` / 期限切れ強制終了ではない)。**PR #263 (プレイフィールド再有効化) は独立レビューで NEEDS WORK** — ブロッカー 2 件 (① 映像プレーンが prepare 前は白板のまま = #13 で Windows では恒常失敗、② 根本原因の記載が誤りで誤ったモデルを固定するテストがある) を修正中。**ノーツ・動画の視認は Windows 実機未確認のため #233 の未解決問題として残す** (テスト緑は実機合格ではない) |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
 | 240 | P0/v6 Result + 登録モーダル | **A** | `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:124,741,990` | 6/0/1 | — | クローズ提案可 (実機/実API は `specs/240` 3 タスク) |
@@ -359,8 +359,8 @@
 | 3 | 壊れた JSON で切替した場合、旧曲の状態が保持される | 充足 | 先行パース + `ArgumentException` で失敗、既存 `Assets/Tests/Editor/FlashBeatSongLoaderTests.cs` |
 | 4 | ロングノーツ編集途中状態 (`LongNoteTailPosition`) が持ち越されない | 充足 | `650daa6` の diff に初期化を追加 |
 | 5 | 曲切替時に再生位置/再生状態がリセットされる | 充足 | `FlashBeatSongLoader.OnFileSelected` 成功パス |
-| 6 | 別曲の JSON を上書きしない (未保存変更の警告) | 未充足 | **PR #252 が open** (`w/w225`)。main には未マージ |
-| 7 | Unity Editor 実機での曲切替→保存 | 未検証 | 展示 PC 操作禁止のため未実施。代替 = EditMode 5 件の緑 |
+| 6 | 別曲の JSON を上書きしない (未保存変更の警告) | 充足 | **PR #252 merged** (`39ba1bd`)。`SongSwitchCoordinator` + `ISongSwitchPrompt` + `NoteEditDirtyTracker` が main にあり、保存 / 破棄 / キャンセルの 3 経路を提示する |
+| 7 | Unity Editor 実機での曲切替→保存 | 未検証 → 実施中 | NoteEditor は Editor 専用ツールで展示 PC とは無関係のため、**Mac の Unity Editor で実測する** (バッチの `executeMethod` で本番経路を実行し、ファイル比較の実測値を残す)。代替として EditMode 5 件の緑がある |
 
 - **未検証の区別**: 条件 6 は **PR #252 が未マージ = コード未マージ** なので「未充足」。条件 7 は実機必須。
 - **依存**: #250 の A ゲート 3 番目 (評価必須)。独立。
@@ -1614,6 +1614,9 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #272 | Ready 連打の遷移ガード + カタログ回帰テスト + 負の noteTiming 回帰テスト (+ 未実行だった `MenuKeyActionWiringTests` の meta 復旧) | #222 / #226 |
 | #273 | v6 タイトルに「アップデートあり」の明示表示 | #118 |
 | #275 | publish 失敗時の `/chart?draft=…` で下書きを復元 (chart 側) | #98 |
+| #277 | evidence §7 (macOS 実機 1 曲完走 + main からの Win64 候補 0.1.22) | 台帳 |
+| #279 | HOLD ノーツが全譜面に無いこと (#278) を台帳と監督ログに反映 | 台帳 |
+| #280 | 曲終了の受入条件テスト 20 件 (duration 端点 / 動画長<duration / 通常終端 / フレーム落ち / ランキング合計) | #226 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
@@ -1629,7 +1632,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 |---|---|
 | **Windows 実機** | #4 / #13 (ストリーム完走) / #88 / #96 (解像度スイープ) / #242 (全画面受入) / #59 の残り / HOLD の実機演奏。**展示 PC は保護対象**のため cc は自発的に操作しない。候補と手順は cc が別途準備 |
 | **オーナー決定** | #30 の D1〜D6 (歌詞形状 / 歌詞表示仕様 / キーガイド仕様 / pen.dev 正本 / `scoringVersion` / 既存ふりがな) |
-| **未実装 (要実装)** | #118 の v6 Title「アップデートあり」表示 / #222 のカタログ件数の回帰テストと Ready 連打ガード / #226 の正負 noteTiming 回帰テスト / #239 連携 |
-| **進行中 PR** | #263 修正 PR (B1 白い板 / B2 原因記載 / S1〜S7) / #273 / #226 残受入条件の回帰テスト PR |
+| **未実装 (要実装)** | #239 連携 / #278 の HOLD 譜面 (対策 A は Worker 実行中) |
+| **進行中 PR** | #263 修正 PR (B1 白い板 / B2 原因記載 / S1〜S7) / #225 の Editor 実機プローブ / #58 の macOS 実機証跡 / B グレードの Spec Kit タスク化 (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) |
 | **レビュー差戻し** | PR #263 は独立レビューで **NEEDS WORK** (ブロッカー 2 件)。マージせず修正中 |
 
