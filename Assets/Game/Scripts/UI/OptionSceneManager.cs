@@ -258,17 +258,28 @@ public class OptionSceneManager : MonoBehaviour
     }
 
     /// <summary>設定を書き込む先。
-    /// 編集環境 (プロジェクト直下で起動) は従来どおり Assets/Resources へ書き出す。
-    /// ビルド版の実行ディレクトリには Assets が無く、書き出しが例外となって
-    /// タイトル画面の処理が中断していたため、ユーザー領域 (persistentDataPath) を使う。</summary>
+    ///
+    /// 編集環境 (Editor / プロジェクト直下から起動) はプロジェクト直下の
+    /// <c>UserSettings/song-settings/</c> を使う。**Resources フォルダには置かない。**
+    /// 以前は Assets/Resources/ へ書き出していたため、
+    /// - 設定 JSON (譜面と同じ形: name / maxBlock / BPM / offset / notes) が
+    ///   譜面 JSON と区別できずに残り、Resources.Load("曲名") が
+    ///   「どちらの譜面か不定」になっていた (Issue #241)。
+    /// - 譜面の重複検査 (ResourceChartUniquenessTests) が編集のたびに壊れていた。
+    ///
+    /// ビルド版は Assets が無く書き出しが例外となってタイトル画面の処理が
+    /// 中断していたため、ユーザー領域 (persistentDataPath) を使う。</summary>
     public static string SettingsDirectory()
     {
-        const string editorDirectory = "Assets/Resources";
-        try
+        if (Application.isEditor)
         {
-            if (Directory.Exists(editorDirectory)) { return editorDirectory; }
+            try
+            {
+                string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                return Path.Combine(projectRoot, "UserSettings", "song-settings");
+            }
+            catch (Exception) { }
         }
-        catch (Exception) { }
         return Path.Combine(Application.persistentDataPath, "settings");
     }
 
@@ -280,7 +291,8 @@ public class OptionSceneManager : MonoBehaviour
         {
             name = name.Replace(invalid, '_');
         }
-        return name + ".json";
+        // ".setting.json" にして譜面 JSON とファイル名で区別できるようにする。
+        return name + ".setting.json";
     }
 
     public static void saveSettings(int I,SettingItemData newData)

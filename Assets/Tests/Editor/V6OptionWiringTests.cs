@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using FlashBeat.Persistence;
 using FlashBeat.UI.V5;
@@ -386,6 +387,63 @@ namespace FlashBeat.Tests.Editor
                 }
                 Object.DestroyImmediate(parent);
             }
+        }
+
+        // --- 保存先 (Resources フォルダに書かない) ---
+
+        [Test]
+        public void SavingPerSongSettings_DoesNotWriteIntoAnyResourcesFolder()
+        {
+            // 設定の書き出し先は Assets 配下 (Resources を含む) ではない。
+            string directory = OptionSceneManager.SettingsDirectory().Replace('\\', '/');
+            Assert.IsFalse(directory.Contains("/Assets/"),
+                "設定は Assets 配下 (Resources を含む) へ書かない: " + directory);
+
+            // 実動作: 判定幅の変更で全曲の offset を書き戻す (設定を保存する経路)。
+            V6OptionView.AdjustNoteTiming(1);
+
+            // Assets 配下の Resources フォルダに譜面 JSON が増えることは無い。
+            // 正本 (Assets/Game/Resources) には譜面があるのが正しいので、
+            // 正本以外の Resources フォルダを見て 「譜面と同じ形の JSON」 がないことを見る。
+            string canonical = Path.Combine(Application.dataPath, "Game", "Resources").Replace('\\', '/');
+            string[] roots = FindResourcesRoots();
+            for (int r = 0; r < roots.Length; r++)
+            {
+                string root = roots[r].Replace('\\', '/');
+                string[] files = Directory.GetFiles(roots[r], "*.json", SearchOption.TopDirectoryOnly);
+                for (int i = 0; i < files.Length; i++)
+                {
+                    Assert.IsFalse(files[i].EndsWith(".setting.json"),
+                        "Resources フォルダへ設定ファイルを書かない: " + files[i]);
+                    if (root == canonical) { continue; }
+                    Assert.IsFalse(File.ReadAllText(files[i]).Contains("\"notes\""),
+                        "Resources フォルダへ譜面と同じ形の JSON を書かない: " + files[i]);
+                }
+            }
+
+            // 書き出した設定ファイルは譜面と区別できる名前 (…setting.json) になる。
+            if (Directory.Exists(directory))
+            {
+                string[] written = Directory.GetFiles(directory, "*.json", SearchOption.TopDirectoryOnly);
+                for (int i = 0; i < written.Length; i++)
+                {
+                    Assert.IsTrue(written[i].EndsWith(".setting.json"),
+                        "設定ファイルは .setting.json 名前である: " + written[i]);
+                }
+            }
+        }
+
+        /// <summary>Assets 配下の Resources フォルダを探す。</summary>
+        static string[] FindResourcesRoots()
+        {
+            string assets = Application.dataPath.Replace('\\', '/');
+            var found = new List<string>();
+            string[] dirs = Directory.GetDirectories(assets, "Resources", SearchOption.AllDirectories);
+            for (int i = 0; i < dirs.Length; i++)
+            {
+                found.Add(dirs[i]);
+            }
+            return found.ToArray();
         }
 
         // --- ヘルパ ---
