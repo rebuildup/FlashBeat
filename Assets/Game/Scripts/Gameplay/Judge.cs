@@ -44,14 +44,43 @@ public class Judge : MonoBehaviour
     /// </summary>
     private JudgeQueue queue;
 
+    /// <summary>
+    /// 入力判定用のキャッシュ済みデリゲート (Issue #182 / PR #256 S2)。
+    /// 毎フレームのデリゲート生成 (GC 圧力) を避けるため static readonly で保持。
+    /// </summary>
+    private static readonly Func<int, bool> LanePressedPredicate = IsLaneKeyPressed;
+    private static readonly Func<int, bool> LaneDownPredicate = IsLaneKeyDown;
+
     /// <summary>スコアの集計 (1 ノーツ = 1 判定を保証する, Issue #164)。</summary>
     private readonly JudgeScoreboard board = new JudgeScoreboard();
 
     /// <summary>
+    /// 直近の <see cref="JudgeStep"/> に渡されたメディア時刻 (Issue #182)。
+    ///
+    /// 実機 (Update) は「GManager.step_time」を渡す。EditMode テストは
+    /// private な Update を直接呼んで、**実際に渡された値** が
+    /// GManager.step_time と一致するかで確認する (観測点)。
+    /// </summary>
+    public float LastJudgeMediaTime { get; private set; }
+
+    /// <summary>
     /// 保持中のロングノーツの先頭判定 (Issue #164)。途中で離した (中断)
     /// ときにこの判定を BAD へ差し替えるために覚えておく。
+    ///
+    /// 初期値は「まだ先頭判定が無い」= <see cref="LongNote.Judgement.None"/>。
+    /// 既定値 (0 = Perfect) のままだと、HOLD を持たないレーンが
+    /// <see cref="JudgeScoreboard.DowngradeHoldToBad"/> を受けたときに
+    /// 確定したノーツ数を水増ししてしまう。
     /// </summary>
-    private readonly LongNote.Judgement[] holdHead = new LongNote.Judgement[LaneKeys.Length];
+    private readonly LongNote.Judgement[] holdHead = CreateHoldHead();
+
+    /// <summary>holdHead の初期配列 (None 埋め)。</summary>
+    private static LongNote.Judgement[] CreateHoldHead()
+    {
+        LongNote.Judgement[] head = new LongNote.Judgement[LaneKeys.Length];
+        Array.Fill(head, LongNote.Judgement.None);
+        return head;
+    }
 
     // 互換エイリアス: 正本は KeyBindings.DefaultKeys。
     // 判定 (Judge) とキーガイド UI の両方が同じ配列を参照する。
@@ -66,6 +95,11 @@ public class Judge : MonoBehaviour
         if (comboText != null) comboText.text = "0";
         if (scoreText != null) scoreText.text = "0";
         if (audioHit != null) audioHit.volume = GManager.effectVolume;
+
+        // 保持中のロングノーツの先頭判定は「まだ無い」状態で始める。
+        // 既定値 (0 = Perfect) だと、HOLD を持たないレーンが
+        // DowngradeHoldToBad を受けたときに確定数を水増しする。
+        Array.Fill(holdHead, LongNote.Judgement.None);
     }
 
     void Update()
@@ -75,22 +109,57 @@ public class Judge : MonoBehaviour
         // Issue #224: ポーズ中は判定・スコア加算を行わない。
         if (PauseGate.IsPaused) return;
 
-        EnsureQueue();
-        if (queue == null) return;
-
-        // 時刻の基準は既存方式を維持する: Time.time と GManager.StartTime から
-        // メディア時刻 (譜面上の秒) を出す。譜面の時刻はメディア時刻なので、
-        // 判定はすべてこの mediaTime で行う。
+        // 時刻の基準は既存方式を維持する: GManager.step_time は譜面上の
+        // メディア時刻 (秒) なので、判定はすべてこの mediaTime で行う。
         // MusicManager は GManager.step_time を毎フレーム同じ式で更新するので、
         // ポーズ中はそこが固定される — Time.time を直接読むとポーズ中も
         // 判定時刻が進んでしまうため、ここでは GManager.step_time を基準にする。
-        float mediaTime = GManager.step_time;
+        JudgeStep(GManager.step_time, LanePressedPredicate, LaneDownPredicate);
+
+        // フォントサイズの縮退はキューが有効なときだけ実行 (main と同じ挙動)。
+        // queue == null のときは譜面が無い / 未読み込みなので、フォント縮退をスキップする。
+        if (queue != null)
+        {
+            if (fSize > 197) fSize -= 1;
+            if (Fsize > 59) Fsize -= 1;
+
+            if (comboText != null) comboText.fontSize = fSize;
+            if (scoreText != null) scoreText.fontSize = Fsize;
+        }
+    }
+
+    /// <summary>
+    /// 判定の 1 ステップ (Issue #182)。
+    ///
+    /// 時刻と各レーンの入力状態を引数で受け取るので、EditMode テストから
+    /// 実機と同じ経路 (EnsureQueue → PressLane → UpdateHold → TryPeekMiss)
+    /// をそのまま再現できる。実機 (<see cref="Update"/>) は入力を
+    /// UnityEngine.Input から読み、ここには渡さない。
+    ///
+    /// 1 ノーツ = 1 判定が保たれること:
+    ///   - 押下 (タップ / HOLD の先頭) と Miss が「確定したノーツ」を数える。
+    ///   - HOLD の中断は先頭判定の差し替えであり、確定数には数えない
+    ///     (<see cref="JudgeScoreboard.Settled"/>)。
+    ///
+    /// virtual なのは、テスト側から判定ステップを差し替えられるようにするため
+    /// (Issue #182 の S3)。実機では常にこのメソッドをそのまま使う。
+    /// </summary>
+    public virtual void JudgeStep(float mediaTime, Func<int, bool> lanePressed, Func<int, bool> laneDown)
+    {
+        // 渡されたメディア時刻を観測できるようにする (Issue #182 の S3)。
+        // 実機の Update は「GManager.step_time」を JudgeStep に渡すので、
+        // EditMode テストは private な Update を直接呼んで、
+        // ここに残った値が GManager.step_time と一致するかで確認できる。
+        LastJudgeMediaTime = mediaTime;
+
+        EnsureQueue();
+        if (queue == null) return;
 
         // 1) 押下判定: レーンごとに独立に処理する (Issue #182)。2 レーンを
         //    同時に叩いても、それぞれのレーンのキューが別々に判定する。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            if (IsLaneKeyPressed(lane))
+            if (lanePressed(lane))
             {
                 PressLane(lane, mediaTime);
             }
@@ -101,7 +170,7 @@ public class Judge : MonoBehaviour
         //    中断の差し替えだけを行う。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, IsLaneKeyDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
+            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, laneDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
             if (result == JudgeQueue.HoldResult.Broken)
             {
                 // 途中で離した: 先頭判定を BAD に差し替える (追加加点しない)。
@@ -131,12 +200,6 @@ public class Judge : MonoBehaviour
                 FlushScore();
             }
         }
-
-        if (fSize > 197) fSize -= 1;
-        if (Fsize > 59) Fsize -= 1;
-
-        if (comboText != null) comboText.fontSize = fSize;
-        if (scoreText != null) scoreText.fontSize = Fsize;
     }
 
     /// <summary>
@@ -250,6 +313,20 @@ public class Judge : MonoBehaviour
         GManager.miss = board.Miss;
         GManager.combo = board.Combo;
         GManager.maxCombo = board.MaxCombo;
+
+        // 「確定したノーツ数」を GManager へ書く (Issue #182)。
+        //
+        // 以前は message() が呼ばれた回数 (= 判定イベント数) を数えていた
+        // ため、HOLD を途中で離して BAD に差し替えたノーツは 2 回分として
+        // 数えられ、残りノーツ数が実際より早く 0 になっていた
+        // (Issue #182 の「1 ノーツ = 1 判定」に反する)。
+        // ここでは JudgeScoreboard.Settled (確定したノーツ数) を書く。
+        //
+        // 正は settledNoteCount (曲終了判定はこの値を直接読む)。
+        // nextNotes は旧 API の互換値として「1 + 確定数」を保つ。
+        GManager.settledNoteCount = board.Settled;
+        GManager.nextNotes = 1 + board.Settled;
+
         UpdateScore();
     }
 
@@ -280,9 +357,15 @@ public class Judge : MonoBehaviour
         if (scoreText != null) scoreText.text = GManager.score.ToString();
     }
 
+    /// <summary>
+    /// 判定エフェクトを出す。
+    ///
+    /// 「確定したノーツ数」はここでは数えない (数えるのは
+    /// <see cref="JudgeScoreboard.Settled"/>)。HOLD の中断ではこの関数が
+    /// 2 回目を呼ぶが、同じノーツなので 1 ノーツ = 1 判定を保つ必要がある。
+    /// </summary>
     private void message(int judge, int noteIndex)
     {
-        GManager.nextNotes++;
         if (judge >= 0 && judge < MessageObj.Length && MessageObj[judge] != null)
         {
             Instantiate(MessageObj[judge], EffectPosition(notesManager.LaneNum, noteIndex), Quaternion.Euler(45, 0, 0));

@@ -66,6 +66,9 @@ desktop.ini
 # Build/test logs (regenerated, not tracked)
 /build*.log
 /test-run.log
+# Unity のバッチモード実行ログ (絶対パスを含む環境固有情報なので追跡しない)
+/unity-*.log
+/unity-*.out
 
 # ─────── メディアキャッシュ (yt-dlp が取得した YouTube 動画/音声) ───────
 # キャッシュは persistentDataPath/FlashBeatMedia のみに置く。

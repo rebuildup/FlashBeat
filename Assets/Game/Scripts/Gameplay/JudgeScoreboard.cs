@@ -26,6 +26,25 @@ namespace FlashBeat.Gameplay
         public int Combo;
         public int MaxCombo;
 
+        /// <summary>
+        /// 確定したノーツ数 (Issue #182)。
+        ///
+        /// 判定の内訳 (Perfect / Great / Bad / Miss) から**算出する**ので、
+        /// <c>Settled == Perfect + Great + Bad + Miss</c> は入力によらず常に
+        /// 成り立つ (加算箇所が 2 箇所あるためずれる、という事故を起こさない)。
+        ///
+        ///   - タップ / HOLD の先頭の押下は <see cref="ApplyHead"/> が
+        ///     Perfect / Great / Bad のいずれか 1 つだけを増やす。
+        ///   - 時刻切れは <see cref="ApplyMiss"/> が Miss を 1 つ増やす。
+        ///   - HOLD の中断 (<see cref="DowngradeHoldToBad"/>) は先頭判定の
+        ///     **差し替え** なので確定数は増えない (内訳も同じ個数で入れ替わる)。
+        ///
+        /// MusicManager はこの値を <c>GManager.settledNoteCount</c> へ書き、
+        /// 「確定済みノーツ数」として曲終了の判定に使うので、
+        /// ノーツ数と一致していなければならない。
+        /// </summary>
+        public int Settled => Perfect + Great + Bad + Miss;
+
         /// <summary>配点の合計 (1 ノーツ最大 5)。スコア表示は GManager 側で行う。</summary>
         public float RatioScore;
 
@@ -47,9 +66,14 @@ namespace FlashBeat.Gameplay
         /// 先頭判定を BAD に差し替える: Perfect / Great だった分を取り消して
         /// BAD (1 点) にする。すでに BAD なら何も変わらない。コンボは
         /// 先頭で 1 回だけ数えたまま (中断で追加も消失もしない)。
+        ///
+        /// 先頭判定が無い (<see cref="LongNote.Judgement.None"/>) ときは
+        /// 何もしない: 差し替える対象が無いので、Bad を増やすと
+        /// 「確定したノーツ数」 (<see cref="Settled"/>) が水増しする。
         /// </summary>
         public void DowngradeHoldToBad(LongNote.Judgement headJudgement)
         {
+            if (headJudgement == LongNote.Judgement.None) return;
             if (headJudgement == LongNote.Judgement.Bad) return;
 
             if (headJudgement == LongNote.Judgement.Perfect)
