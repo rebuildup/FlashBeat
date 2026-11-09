@@ -274,9 +274,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBest = null;
             comboFill = null;
             bonusRow = null;
+            bonusValueText = null;
             comboStatusBlock = null;
             comboStatusRow = null;
             fullComboChip = null;
+            nextBonusText = null;
+            nextBonusReward = null;
             keyGuideRow = null;
             gradeText = null;
             scoreText = null;
@@ -621,8 +624,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             bonusRt.anchoredPosition = Vector2.zero;
             bonusRt.sizeDelta = new Vector2(m.RightColW, m.BonusBlockH);
 
-            bonusValueText = BuildBonusRow(bonusRow, 0f, "+ COMBO BONUS", "+0");
-            nextBonusText = BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス 300", "+0");
+            // 各行は「ラベル」と「値」の 2 要素。どちらを保持するかを明示する。
+            // 以前は戻り値 (値側の Text) だけを nextBonusText に代入し、値側の Text を
+            // 捨てていたため nextBonusReward が null のままになり、Refresh が
+            // 毎フレーム NullReferenceException で止まっていた (Issue #233)。
+            BuildBonusRow(bonusRow, 0f, "+ COMBO BONUS", "+0", out _, out bonusValueText);
+            // 次のボーナス行の閾値 (300) は構築時には確定していない — 実際の milestone は
+            // Refresh() が GManager.combo から求めて "次のボーナス <n>" を書き込む。
+            // ここでは数値を含めない初期値を入れ、構築直後に 300 と表示齟齬しないようにする。
+            BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス", "+0", out nextBonusText, out nextBonusReward);
 
             // --- コンボステータス (同座標・排他) ---
             // 契約 §12: Combo Bonus と Combo Status は同じ座標 (FHD 1512,460) にあり排他。
@@ -687,7 +697,13 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>コンボボーナスの 1 行 (ラベル左寄せ muted / 値右寄せ)。値テキストを返す。</summary>
-        private TextMeshProUGUI BuildBonusRow(GameObject parent, float y, string label, string value)
+        /// <summary>
+        /// コンボボーナスの 1 行 (ラベル + 値) を作る。
+        /// ラベルと値の <b>両方の</b> Text を返す。片方だけ返すと、もう片方が
+        /// 参照できずに毎フレームの更新で NullReferenceException になる (Issue #233)。
+        /// </summary>
+        private TextMeshProUGUI BuildBonusRow(GameObject parent, float y, string label, string value,
+            out TextMeshProUGUI labelText, out TextMeshProUGUI valueText)
         {
             var row = V5Ui.Node(parent, "Row");
             var rowRt = GetRect(row);
@@ -704,7 +720,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             rowLayout.childForceExpandWidth = false;
             rowLayout.childForceExpandHeight = false;
 
-            var labelText = V5Ui.Text(row, "Label", label, m.BonusFs, V5Tokens.TextMuted);
+            labelText = V5Ui.Text(row, "Label", label, m.BonusFs, V5Tokens.TextMuted);
             // 折り返すと 1 行目のラベルが 2 行目に重なって崩れる (実機スクリーンショットで確認)。
             labelText.textWrappingMode = TextWrappingModes.NoWrap;
             var labelLe = labelText.gameObject.AddComponent<LayoutElement>();
@@ -712,7 +728,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             labelLe.preferredWidth = m.RightColW - 120f;
             labelLe.preferredHeight = m.BonusRowH;
 
-            var valueText = V5Ui.Text(row, "Value", value, m.BonusFs, V5Tokens.WarnLight,
+            valueText = V5Ui.Text(row, "Value", value, m.BonusFs, V5Tokens.WarnLight,
                 TextAlignmentOptions.Right);
             var valueLe = valueText.gameObject.AddComponent<LayoutElement>();
             valueLe.preferredHeight = m.BonusRowH;
