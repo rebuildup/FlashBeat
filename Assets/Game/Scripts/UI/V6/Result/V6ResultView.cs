@@ -635,8 +635,9 @@ namespace FlashBeat.UI.V6.Result
             scrimButton.navigation = nav;
             scrimButton.onClick.AddListener(CloseModal);
 
-            var dialog = At(V5Ui.Panel(modal.gameObject, "Dialog", new Vector2(840f, 510f), V5Tokens.Key1, 16f),
-                444f, 231f);
+            var dialog = At(V5Ui.Panel(modal.gameObject, "Dialog",
+                    new Vector2(V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH), V5Tokens.Key1, 16f),
+                V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY);
 
             modalHead = V5GameUi.Text(dialog.gameObject, "Head", "スコアを登録", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
