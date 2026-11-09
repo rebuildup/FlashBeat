@@ -56,6 +56,13 @@ right = (1, 0, 0)
 PlayerPrefs の意味は変わらない: `OptionSettings.Load()` がタイトル画面
 (`TitleSceneManager.cs:48`) で `GManager.noteSpeed` を読む。速度域 1..50 も不変。
 
+**セッション固定 (PR #263 レビュー S7)**: 上のスケールは「プレイセッションごとに
+1 回だけ」確定する (`MediaTimeline.BeginSession` = `NotesManager.LoadRoutine` で確定、
+`MediaTimeline.SessionZScale` で参照)。生成 (NotesManager) / 時刻復元 (Notes.Start) /
+移動 (Notes.Update) / HOLD の胴体長が同じ値を使うので、曲中に速度を変えても
+ノーツが飛び、復元した時刻が判定時刻とずれることがない。曲中の速度変更は
+次の曲から効く。
+
 ## 4. レーンとカメラ (16:9 = 1920x1080)
 
 | 項目 | 値 |
@@ -63,11 +70,30 @@ PlayerPrefs の意味は変わらない: `OptionSettings.Load()` がタイトル
 | レーン数 | 8 (`Judge.LaneCount`) |
 | レーン中心 x | -3.5 .. +3.5 (`Judge.LaneFirstCenterX = -3.5`, `Judge.LaneSpacing = 1`) |
 | レーン境界 x (ガイド線) | -4.0 .. +4.0 (9 本) |
+| ノーツ幅 (ワールド x) | **1.0** (`Note.prefab` = builtin Quad 1x1 を localScale x = 1) |
 | 水平 FOV (16:9) | 45.7464222598386 度 (半角) |
 | 判定線 z = 0 で見える x 範囲 | **±4.121** → 8 レーン (境界 ±4.0) がすべて収まる |
-| 2560x1664 (aspect 1.538) の判定線上の x 範囲 | **±3.567** → レーン中心 (±3.5) は収まるが、**外側のレーン境界 (±4.0) は切れる** |
+| 2560x1664 (aspect 1.538) の判定線上の x 範囲 | **±3.567** → レーン中心 (±3.5) は収まるが、**外側のレーン境界 (±4.0) とノーツ幅 1.0 を含む外側ノーツ (x -4.0..-3.0) は約 43% 切れる** |
 
-→ 2560x1664 ではガイド線の外端が画面外に出る。ノーツ (レーン中心) には影響しない。
+## 4b. カメラ fit (PR #263 レビュー S1)
+
+Main Camera は `m_GateFitMode: 2` (Vertical) なので、水平の可視範囲は
+アスペクト比に比例する。実行時に `PlayfieldCameraFit` が
+`camera.aspect = max(画面アスペクト比, 16/9)` に固定する
+(シーンファイルは編集しない)。
+
+| 項目 | fit 前 (2560x1664, aspect 1.538) | fit 後 (aspect 1.778) |
+| --- | --- | --- |
+| 描画アスペクト比 | 1.538 | **1.778** |
+| 判定線での可視半幅 | 3.567 | **4.122** (必要値 4.1) |
+| 外側ノーツ (幅 1.0) | 43% 切れる | **収まる** |
+| 可視深度 (y = 0.55 の平面上) | 8.614261967997546 | **8.614261967997546 (不変)** |
+| z スケール (noteSpeed 10) | 5.38125 | **5.38125 (不変)** |
+| 可視時間 (noteSpeed 10) | 1.600 秒 | **1.600 秒 (不変)** |
+
+水平方向だけが変わるので、判定線 (z = 0) を渡る時刻 (= 判定時刻) も不変。
+導出と検証は `Assets/Tests/Editor/PlayfieldGeometryTests.cs`
+(`PlayfieldCameraFit` / `MediaTimeline.HalfWidthAtHitLine` / `VisibleDepth`)。
 
 ## 5. オブジェクトのビュー深度 (重なり順)
 

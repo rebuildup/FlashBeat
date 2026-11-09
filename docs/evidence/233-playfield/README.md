@@ -27,21 +27,25 @@
 | --- | --- | --- | --- | --- |
 | A | 画面に出る譜面が 0.86 秒分しかない (次のノートが画面外) | z スケールに「秒あたりワールド z 移動量」ではなく素の `noteSpeed` (10) を渡していた。カメラ可視範囲 8.61 / 10 = 0.861 秒 | z スケールをカメラ基準 (`ZScaleFor`) に統一。速度 10 で **1.600 秒** (設計意図どおり) | `MediaTimeline.cs`, `Notes.cs`, `NotesManager.cs` |
 | B | レーン構造 (線) が見えない | "Lane" は `m_IsActive: 0`、しかも不透明な 8x40 の板で動画の上半分を覆う。"LaneLight1..8" は alpha 0 のまま (キー入力時だけ光る) | 実行時にレーン境界 9 本のガイド線を生成 (1 メッシュ / 1 レンダラ) | `PlayfieldLaneGuides.cs` (新規) |
+| C | 縦長画面 (2560x1664) で外側レーンのノーツが画面外に出る | GateFit = Vertical のままなので、判定線での可視半幅が 3.567 でノーツ幅 1.0 を含め外側が切れる (約 43%) | カメラが描画するアスペクト比を `max(画面, 16:9)` に固定 (実行時のみ、**シーンは編集しない**)。垂直の幾何は不変 | `MediaTimeline.cs` (`PlayfieldCameraFit`), `PlayfieldLaneGuides.cs` |
 | fact 2 | 映像が 1 フレームも描画されない | シーンの VideoPlayer に target renderer も render texture も設定されていなかった (実行時の配線に到達しなかった) | 実行時に `targetMaterialRenderer` / `renderMode` を配線 (`WireVideoPicture`)。板は **平面が選択された時点** で隠し、フレームが出たら出す | `VideoPicture.cs` (新規), `MusicManager.cs` |
 
 ## 変更ファイル (origin/main..HEAD)
 
 | ファイル | 変更 |
 | --- | --- |
-| `Assets/Game/Scripts/Gameplay/MediaTimeline.cs` | `VisibleDepthZ = 8.61` / `ApproachSecondsAtSpeed10 = 1.6` を追加。`ZScaleFor(noteSpeed)` と `CurrentZScale` (= `ZScaleFor(GManager.noteSpeed)`) を追加。`NotePositionZ` / `NoteTimeFromPositionZ` の第 3 引数の意味を「秒あたり z 移動量」に確定 |
-| `Assets/Game/Scripts/Gameplay/Notes.cs` | 3D レーンの z スケールを `MediaTimeline.CurrentZScale` 1 箇所から読む (生成・時刻復元・移動で同じ値) |
-| `Assets/Game/Scripts/Gameplay/NotesManager.cs` | 生成位置 `positionsZ.Add(time * MediaTimeline.CurrentZScale)` |
-| `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs` (新規) | 実行時にレーン境界 9 本のガイド線を生成 (v6 遠近法プレイフィールドが有効なときは自動的に非表示) |
-| `Assets/Game/Scripts/Gameplay/VideoPicture.cs` (新規) | 映像プレーンの実行時有効化 + **平面が選択された時点で板を隠す** + フレームが出るまで板を隠す |
+| `Assets/Game/Scripts/Gameplay/MediaTimeline.cs` | `VisibleDepthZ = 8.61` / `ApproachSecondsAtSpeed10 = 1.6` を追加。`ZScaleFor(noteSpeed)` と `CurrentZScale` (= `ZScaleFor(GManager.noteSpeed)`) を追加。`NotePositionZ` / `NoteTimeFromPositionZ` の第 3 引数の意味を「秒あたり z 移動量」に確定 (N7: 単位付きの名前 `zUnitsPerSecond`)。**セッションごとの z スケール** (`SessionZScale` / `BeginSession` / `ResetSession`, S7) とカメラ幾何のヘルパ (`VisibleDepth` / `HalfWidthAtHitLine` / `IsVisible`) と `PlayfieldCameraFit` (S1) を追加 |
+| `Assets/Game/Scripts/Gameplay/Notes.cs` | 3D レーンの z スケールを `MediaTimeline.SessionZScale` 1 箇所から読む (生成・時刻復元・移動・HOLD の胴体長で同じ値) |
+| `Assets/Game/Scripts/Gameplay/NotesManager.cs` | セッション開始時に `MediaTimeline.BeginSession(GManager.noteSpeed)`、生成位置 `positionsZ.Add(time * MediaTimeline.SessionZScale)` |
+| `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs` (新規) | 実行時にレーン境界 9 本のガイド線を生成 (v6 遠近法プレイフィールドが有効なときは自動的に非表示)。**カメラ fit の適用** (S1)、生成した Mesh / Material の `OnDestroy` での破棄 (S2)、null 安全なマテリアル生成 (S3)、UV の設定 (N3) |
+| `Assets/Game/Scripts/Gameplay/VideoPicture.cs` (新規) | 映像プレーンの実行時有効化 + **平面が選択された時点で板を隠す** + フレームが出るまで板を隠す。`Activate` の戻り値の意味を明記し `IsPlaneActive` を追加 (N9) |
 | `Assets/Game/Scripts/Gameplay/MusicManager.cs` | `PrepareLocalVideo` / `StartPlayback` で映像プレーンを有効化、**平面選択時に板を隠す**、`Update` でフレーム確認、Invidious 除去は `VideoPicture` に一本化 |
-| `Assets/Game/Scripts/Common/AutoTestV6.cs` | 撮影タイミングを「実際にカメラに写っているノートが 3 枚以上ある区間」に変更 (疎な区間で撮ると何も写らない问题的回避) |
-| `Assets/Tests/Editor/PlaybackClockTests.cs` | z スケールの契約を固定 (値 + 3 箇所が同じ尺度を使うことのソース固定) |
-| `Assets/Tests/Editor/PlayfieldGeometryTests.cs` (新規) | カメラ幾何を **シーンファイルから** 再導出 (8.6143) して 8.61 と突き合わせる |
+| `Assets/Game/Scripts/UI/V5/GraphicVisibility.cs` | `IsDrawn` を alpha 考慮にする (S4): 祖先の alpha を掛け算で合成、祖先の Canvas が無効なら描かれていない、`graphic.color.a` も見る |
+| `Assets/Game/Scripts/Common/AutoTestV6.cs` | 撮影タイミングを「実際にカメラに写っているノートが 3 枚以上ある区間」に変更 (疎な区間で撮ると何も写らない問題の回避)。**譜面依存の断言を soft 化**、待ちに上限、**撮影前にシーンが GameScene のままかを確認** (S5)。旧ロード表示の判定を `GraphicVisibility.IsDrawn` に統一 (N5/N6) |
+| `Assets/Tests/Editor/PlaybackClockTests.cs` | z スケールの契約を固定 (値 + 3 箇所が同じ尺度を使うことのソース固定)。**どんなスケールでも時刻復元が厳密**であること、**セッションのスケールが曲中の速度変更で変わらない**ことを固定 (S7) |
+| `Assets/Tests/Editor/PlayfieldGeometryTests.cs` (新規) | カメラ幾何を **シーンファイルから** 再導出 (8.6143) して 8.61 と突き合わせる。**1920x1080 と 2560x1664 の両方**で 8 レーン + ノーツ幅 1.0 が収まることを固定し、**判定線 (z = 0) と 1.6 秒のアプローチ時間の不変条件**がどちらのアスペクト比でも変わらないことを固定 (S1)。fit を入れない場合の外側切れを負の対照として固定 |
+| `Assets/Tests/Editor/PlayfieldLaneGuidesTests.cs` (新規) | 生成した Mesh / Material が `OnDestroy` で破棄されること (S2)、マテリアル生成が例外を投げないこと (S3)、生成メッシュが 9 本の境界を覆うこと |
+| `Assets/Tests/Editor/GraphicVisibilityTests.cs` | `IsDrawn` の alpha 合成・無効な Canvas・透明な色を追加 (S4) |
 | `Assets/Tests/Editor/VideoPictureTests.cs` (新規) | 映像プレーンの有効化と板の出し分けを固定 (prepare 前から板が隠れていること / Invidious 除去は挙動で検証) |
 
 編集していないもの: `Assets/Game/Scenes/GameScene.unity` ((cc が所有)) / `LaneFlash` /
@@ -118,6 +122,63 @@ FOV 60 度から、ノーツ面 y = 0.55 に当たる視錐台の上端 z を再
 z <= 8.81 → ガイド線もノートも映像より手前なので、映像がガイドを覆わない。
 (Lane マテリアルは不透明なので **使っていない**)
 
+## C: 縦長画面での収まり (PR #263 レビュー S1)
+
+### 症状
+
+Main Camera は `m_GateFitMode: 2` (Vertical) で、垂直 FOV が 60 度に固定される。
+そのため **水平の可視範囲は画面のアスペクト比に比例して狭くなる**。
+
+| 画面 | アスペクト比 | 判定線 (z = 0) での可視半幅 | 外側ノーツ (x -4.0..-3.0) |
+| --- | --- | --- | --- |
+| 1920x1080 | 1.778 | **±4.121** | 収まる |
+| 2560x1664 (展示機) | 1.538 | **±3.567** | **約 43% が画面外** |
+
+レーン中心 (±3.5) は入るので「線は見えない」症状には出ないが、
+**ノーツ幅 1.0 を含めた外側のレーンは切れている**。16:9 固定のテストでは
+これが見えなかった。
+
+### 修正 (実行時のみ、シーンは編集しない)
+
+`PlayfieldCameraFit` が、カメラが描画するアスペクト比を
+`max(画面アスペクト比, 16:9)` に固定する (GateFit は Vertical のまま)。
+
+| 項目 | fit 前 (2560x1664) | fit 後 |
+| --- | --- | --- |
+| 描画アスペクト比 | 1.538 | **1.778** |
+| 判定線での可視半幅 | 3.567 | **4.122** (必要値 4.1 以上) |
+| 外側ノーツ (幅 1.0) | 43% 切れる | **収まる** |
+| 可視深度 (縦方向) | 8.6143 | **8.6143 (不変)** |
+| z スケール (速度 10) | 5.38125 | **5.38125 (不変)** |
+| アプローチ時間 (速度 10) | 1.600 秒 | **1.600 秒 (不変)** |
+| 判定線 (z = 0) 通過時刻 | 判定時刻ちょうど | **判定時刻ちょうど (不変)** |
+
+### 判定タイミングがが変わらない理由
+
+水平方向だけを変える:
+
+- GateFit が Vertical のままなので **垂直 FOV = 60 度が変わらない** →
+  視錐台の上端がノーツ面 (y = 0.55) に当たる z (= 可視深度 8.6143) は不変。
+- z スケールは可視深度から決まるので 5.38125 のまま
+  → 「画面に入るまでの時間」= 1.600 秒 のまま。
+- ノーツの位置は `z = (noteTime - mediaTime) * zScale` で、
+  `mediaTime = noteTime` のとき z = 0 (判定線) になる。
+  水平の fit はこの式に現れないので、**判定線に着く時刻はビット単位で同一**。
+
+シーン全体が同じ比率で水平に伸び縮みする (アナモーフィック) ので、
+映像プレーンとノーツの相対位置 (譜面は動画に合わせて作られている) も保たれる。
+
+### テスト
+
+`PlayfieldGeometryTests` が 1920x1080 と 2560x1664 の **両方** で
+
+1. 8 レーンの中心 **と** ノーツ幅 1.0 の外縁が判定線で見える
+2. ガイド線の 9 本の境界が見える
+3. 可視深度・1.6 秒・アプローチ時間の不変条件が成立する
+4. fit を適用しないと外側が切れている (負の対照)
+
+を固定する。
+
 ## fact 2: 映像プレーンの配線と板の出し分け
 
 ### 症状 (原因の訂正を含む)
@@ -176,7 +237,8 @@ prepare の完了とは独立に隠すので、prepare が失敗する環境で�
 
 | 対象 | total | passed | failed |
 | --- | --- | --- | --- |
-| **本ブランチ** (`w/w233-playfield` 終端 = main rebase 後) | **1196** | **1196** | **0** |
+| **本ブランチ (PR #263 レビュー反映後)** | **1295** | **1295** | **0** |
+| 本ブランチ (レビュー反映前) | 1196 | 1196 | 0 |
 | 本ブランチ (main rebase 前、負の対照の基準点) | 1132 | 1132 | 0 |
 | ベースライン (`origin/main` = `ab8c336`、同一 worktree で detached checkout して測定) | 1118 | 1118 | 0 |
 | ベースライン (`origin/main` = `40b0dbc`、PR #256 統合後) | 1173 | 1173 | 0 |
@@ -184,6 +246,25 @@ prepare の完了とは独立に隠すので、prepare が失敗する環境で�
 差分 +14 = 追加したテスト (PlaybackClockTests +3 / PlayfieldGeometryTests +7 /
 VideoPictureTests +4)。main rebase 後はさらに旧 UI 残存検査のテスト (GraphicVisibility 6 件 +
 LegacyLyricObjectNames 3 件) を足している。
+
+レビュー反映で足した分 (本ブランチ 1196 → 1295 の差には、`origin/main` の
+マージで入ってきた他ワーカーのテストも含まれる):
+
+- `PlayfieldGeometryTests`: 2 アスペクト比の「8 レーン + ノーツ幅が収まる」「判定線と
+  1.6 秒の不変条件」「負の対照」「実行時 fit」= +7
+- `PlayfieldLaneGuidesTests` (新規): Mesh / Material の破棄、null 安全な生成、メッシュの
+  境界被覆 = +4
+- `GraphicVisibilityTests`: alpha の積、無効な Canvas、透明な色 = +4
+- `PlaybackClockTests`: どのスケールでも厳密な時刻復元、セッション固定 = +6
+- 既存のテストがパラメータ化 (TestCase) されて件数が増えたもの
+
+実行コマンド (`-quit` を付けない。付けるとテストランナーが起動する前に終了する):
+
+```
+"/Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -projectPath <worktree> -runTests -testPlatform editmode \
+  -testResults /tmp/testresults-263-fix4.xml
+```
 
 cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`origin/main` は
 `ab8c336` まで進み、他ワーカーの PR のテストが入っているので 1118 になる
@@ -228,7 +309,7 @@ cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`or
 | **映像 (動画プレーン)** | **出ている** | ゲーム画面全体でアニメーションが再生されている。`fact 2` の「映像プレーンが 1 フレームも描画されない」は解消 |
 | **レーン構造 (境界 9 本)** | **出ている** | 判定線から画面上端へ伸びる斜めの白線が 9 本 (8 レーンの境界) |
 | **判定ライン** | **出ている** | 画面下部 (y≈1480/1664) を横切る全幅の白線 |
-| **ノート** | **出ている** | 密区間の撮影 (`game-06-dense-2560x1664.png`, mediaTime=7.37) で **白い横棒 5 本** が z=3.34..8.06 に並んでいる (Player.log の `[AutoTestV6] media time at 2nd capture`) |
+| **ノート** | **出ている** | 密区間の撮影 (`game-06-dense-2560x1664.png`) で **白い横棒 5 本** が並んでいる。Player.log (`screenshots/Player-2560x1664.log` 178 行目) の `[AutoTestV6] media time at 2nd capture` = **mediaTime 7.40 / visible notes 5 / z range 3.16..7.88** |
 | **歌詞 (v6 HUD)** | 出ている | 中央の黒パネルに「ああ / ala」 |
 | **旧 v5 歌詞の二重表示** | **出ていない** | 旧歌詞オブジェクト (QuestionText / FuriganaText / RomajiText) は非 active。autotest に検査を追加 |
 
@@ -266,6 +347,10 @@ cc が先に示していたベースライン 1073 は `d8c1b39` のもの。`or
 
 ## 未検証点 / 残存リスク
 
+0. **この PR の変更 (カメラ fit / 板の隠し方 / 判定ロジック) は EditMode テストと
+   macOS 実機の撮影でしか確認していない。Windows 実機での「ノーツと映像の視認」は
+   依然として未検証であり、#233 の未解決問題として残る。**
+   EditMode テストが緑であることは実機合格を意味しない。
 1. **Windows 実機 (Windows 11 + Unity 6000.5.6f1) では未検証。**
    Media Foundation の URL 読み込み失敗 (issue #13) と関連するため、Windows では
    映像プレーンが有効化されてもフレームが出ない可能性がある。macOS で出した証拠は
