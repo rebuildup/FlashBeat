@@ -31,9 +31,9 @@ namespace NoteEditor.Presenter.FlashBeatSong
             if (fileItemContainer == null)
                 return;
 
-            foreach (Transform child in fileItemContainer) Destroy(child.gameObject);
+            foreach (Transform child in fileItemContainer) DestroyItem(child.gameObject);
 
-            var jsonPaths = EnumerateJsonFilesForTest(ChartFileWriter.ResourcesDir).ToList();
+            var jsonPaths = EnumerateJsonFilesForTest(ResolveResourcesDirectory()).ToList();
 
             foreach (var path in jsonPaths)
             {
@@ -48,6 +48,19 @@ namespace NoteEditor.Presenter.FlashBeatSong
             }
 
             if (emptyMessageText != null) emptyMessageText.gameObject.SetActive(jsonPaths.Count == 0);
+        }
+
+        // 一覧を作り直すときに古い項目を消す。
+        // EditMode (Editor 上) では Destroy が使えないため DestroyImmediate にする。
+        static void DestroyItem(GameObject item)
+        {
+            if (item == null)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(item);
+            else
+                DestroyImmediate(item);
         }
 
         // 曲切替の入口。
@@ -81,7 +94,7 @@ namespace NoteEditor.Presenter.FlashBeatSong
         {
             try
             {
-                var path = ChartFileWriter.SaveCurrentSong(ChartFileWriter.ResourcesDir);
+                var path = ChartFileWriter.SaveCurrentSong(ResolveResourcesDirectory());
                 Debug.Log($"[FlashBeatSongLoader] Saved before switching: {path}");
                 return true;
             }
@@ -90,6 +103,28 @@ namespace NoteEditor.Presenter.FlashBeatSong
                 Debug.LogError($"[FlashBeatSongLoader] Save before switching failed: {ex.Message}");
                 return false;
             }
+        }
+
+        // 本番の譜面置き場 (ChartFileWriter.ResourcesDir) の実体パス。
+        //
+        // 相対パスは Editor の作業ディレクトリ (プロジェクトルート) に
+        // 解決できるが、作業ディレクトリが別的地方のときは
+        // プロジェクトルートから組み立てた絶対パスを使う。
+        // ディレクトリ名は ChartFileWriter が 1 箇所で持つ (二重定義しない)。
+        public static string ResolveResourcesDirectory()
+        {
+            if (Directory.Exists(ChartFileWriter.ResourcesDir))
+                return ChartFileWriter.ResourcesDir;
+
+            var projectRoot = Path.GetDirectoryName(Application.dataPath);
+            if (!string.IsNullOrEmpty(projectRoot))
+            {
+                var absolute = Path.Combine(projectRoot, ChartFileWriter.ResourcesDir);
+                if (Directory.Exists(absolute))
+                    return absolute;
+            }
+
+            return ChartFileWriter.ResourcesDir;
         }
 
         // 指定した JSON を読み込む。
