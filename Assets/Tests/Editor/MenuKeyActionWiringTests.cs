@@ -75,7 +75,7 @@ public class MenuKeyActionWiringTests
     private static readonly string[] V5ViewSources =
     {
         "Game/Scripts/UI/V5/SelectView.cs",
-        "Game/Scripts/UI/OptionView.cs",
+        "Game/Scripts/UI/V5/OptionView.cs",
         "Game/Scripts/UI/V5/PauseMenuView.cs",
         "Game/Scripts/UI/V5/ResultView.cs",
         "Game/Scripts/UI/V5/GameErrorView.cs",

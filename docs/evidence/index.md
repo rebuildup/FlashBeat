@@ -259,3 +259,59 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 | 本番 API の契約一致 | **証明済み** — `web/tests/production-api.test.ts` 10 pass / 0 fail |
 | Unity カタログの受け渡し | **コード + 応答の形で証明済み** — 取得経路 / キャッシュ / バージョン固定の実装と本番応答の検査 |
 | Unity 実機の選曲 → 再生 → Result | **未証明** — Issue #48 / #31 の Worker の範囲 |
+
+---
+
+## 7. 2026-11-10 — macOS 実機の 1 曲完走と、main からの Win64 配布候補
+
+**Windows 実機の代用ではない。** §1.6 / §1.8 と同じく、macOS で観測できたことだけを記録し、
+展示 PC での実プレイは **未証明** のまま残す。
+
+### 7.1 macOS 実機: 曲終了 → Result 到達 (PR #258)
+
+`Assets/Game/Scripts/Common/AutoTestV6SongEnd.cs` + `script/mac-songend-harness.sh` による
+**実機 (macOS プレイヤー) の自動実走**。克隆・時計注入・譜面の差し替えはしていない
+(本物の曲・本物のメディア・本物の判定をそのまま通す)。
+
+| 項目 | 実測値 |
+|---|---|
+| 再生曲 | 実カタログの最短曲「ツイッターランド」 (130 notes) |
+| 譜面ノーツ数 / 実行時ノーツ数 | 130 / **130** (一致) |
+| 確定 (settled) ノーツ数 | **130 / 130** |
+| スコア / 最大コンボ | **992,307** / 129 |
+| 曲終了状態 | `Completed` |
+| 期限切れ強制完了だったか | **false** |
+| 遷移先 | `ResultScene` (曲名と最終スコアが描画) |
+| 実効解像度 | `screen=2560x1664 fullScreen=True` (**実ディスプレイ全画面**) |
+| ハーネス | `RESULT pass=29 fail=0` / `script/mac-songend-harness.sh` が **exit 0** |
+| EditMode | **1193 / 1193 passed / failed 0** |
+
+証跡: [`233-song-end-harness.md`](233-song-end-harness.md)
+
+### 7.2 Win64 配布候補 (main から生成)
+
+| 項目 | 値 |
+|---|---|
+| 版 | `0.1.22` (`FLASHBEAT_VERSION_BASE=0.1.22` — 現行 Release `v0.1.21-win64-d581c4c` の次) |
+| ソース SHA | `0bab5499dd6557b69577f885d17068987c1777b1` (`origin/main`) |
+| 成果物 | `0.1.22+0bab549-win64-0bab549.zip` (274,854,582 bytes / 228 files) |
+| ZIP SHA-256 | `a23c8c4af6983ffc6b19b1c69329fd2ebab3137f9d77e3a01598ca9c831b1c5d` |
+| ビルド | `script/win64-build-mac.sh` (macOS ホスト + WindowsStandaloneSupport / Unity 6000.5.6f1) |
+| 中身の確認 | `tools/update/Update.ps1` / `StreamingAssets/update-channel.txt` / `flashbeat-media-policy.json` あり。**同梱の音声・動画なし** |
+| 状態 | **未証明** (Windows 実機での実行なし) |
+
+手順 (SHA-256 照合 → 展開 → 3 解像度の実全画面 → 1 曲完走 7 項目) は
+[`../operations/win64-candidate-acceptance-2026-11-10.md`](../operations/win64-candidate-acceptance-2026-11-10.md)。
+
+### 7.3 この時点でなお未証明のもの
+
+1. **Windows 実機での 1 曲完走**と **ノーツ・映像の視認**（展示 PC は未操作）。
+2. **ストリーム音声 (m4a)** の再生（#13 / #4。Windows Media Foundation の制約）。
+3. **3 解像度の実全画面**。macOS 側で証明できるのは実ディスプレイの 2560×1664 だけで、
+   1920×1080 / 2560×1440 は **窓をリサイズした擬似全画面**であり証拠にならない。
+4. **HOLD (ロングノーツ) の実機演奏**。`Assets/Game/Resources/*.json` の 27 曲すべての
+   `notes[].type` は **1 (Tap) のみ**で、**type=2 (HOLD) のノーツが 1 つも存在しない**
+   （`LongNote.TYPE_HOLD = 2`）。HOLD の実装は main にあるが、**到達可能な内容が無く**
+   実機検証もできない。HOLD を含む検証用譜面（または実曲への HOLD 追加）が前提。
+5. **#263 の修正後の再撮影**。PR #263 の独立レビューで、映像プレーンが prepare 前は
+   白板のままになることと、根本原因の記載が誤っていることが判明し、修正中。

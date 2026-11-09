@@ -111,6 +111,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
     int hitsSent;
 
+    /// <summary>ランキング登録方式 (Online / Local)。結果ファイルに記録する。</summary>
+    string rankingMode = "unknown";
+
+    /// <summary>判定数の合計が譜面のノーツ数と一致したか (ランキング受理条件)。</summary>
+    bool judgedMatchesChart;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
     {
@@ -360,6 +366,39 @@ public class AutoTestV6SongEnd : MonoBehaviour
             Check("the screenshot 04-result was written", File.Exists(resultShot));
         }
 
+        // 8. ランキング送信の前提 (ネットワーク不要の検証)。
+        //
+        //    ランキング API (POST /api/v1/scores) は、送信された判定数の合計が
+        //    譜面のノーツ数と一致する時だけ受理する
+        //    (contracts/openapi.v1.yaml「Server validates judgment sum against
+        //    published version」/ 422 = "Invalid counts or chart version"。
+        //    実装は web/routes/api/v1/_score-model.ts の
+        //    scoreSemanticsDiagnostics)。
+        //
+        //    ここでは **ネットワークを使わずに** その受理条件が満たされているか
+        //    を確かめる:
+        //      - 判定数の合計 (perfect + great + bad + miss) == 譜面のノーツ数
+        //      - この曲のランキング登録方式 (オンライン送信 / 端末内保存) が決まる
+        //
+        //    API への実送信 (201 / 422) はネットワークと認証が要るので、
+        //    ここでは行わない。サーバ側の規則そのものは
+        //    web/tests/score-model.test.ts が担保している。
+        Check("the judgement total equals the chart note count (the ranking acceptance condition)",
+            judged == chartNoteCount);
+
+        SongData playedSong = GManager.GetSong(GManager.songID);
+        FlashBeat.UI.V6.Result.V6RegistrationMode registrationMode = FlashBeat.UI.V6.Result.V6ResultLogic.RegistrationMode(
+            playedSong != null && playedSong.isRemote,
+            playedSong != null ? playedSong.remoteId : null,
+            playedSong != null ? playedSong.chartVersion : 0);
+        Check("the ranking registration mode is resolved",
+            registrationMode == FlashBeat.UI.V6.Result.V6RegistrationMode.Local ||
+            registrationMode == FlashBeat.UI.V6.Result.V6RegistrationMode.Online);
+        rankingMode = registrationMode.ToString();
+        judgedMatchesChart = judged == chartNoteCount;
+        Debug.Log(Tag + " ranking: judged=" + judged + " chartNotes=" + chartNoteCount +
+                  " registrationMode=" + registrationMode);
+
         Finish();
     }
 
@@ -558,7 +597,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 "settled=" + GManager.settledNoteCount + "\n" +
                 "chartNotes=" + chartNoteCount + " runtimeNotes=" + runtimeNoteCount + "\n" +
                 "score=" + GManager.score + " combo=" + GManager.combo +
-                " maxCombo=" + GManager.maxCombo + " comboPeak=" + comboPeak + "\n");
+                " maxCombo=" + GManager.maxCombo + " comboPeak=" + comboPeak + "\n" +
+                "rankingMode=" + rankingMode + "\n" +
+                "judgedMatchesChart=" + judgedMatchesChart + "\n");
         }
         catch (Exception e) { Debug.LogWarning(Tag + " could not write the result file: " + e.Message); }
 

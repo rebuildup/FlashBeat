@@ -78,6 +78,18 @@ public class NotesManager : MonoBehaviour
         return beatSec * note.num / (float)note.LPB;
     }
 
+    /// <summary>
+    /// 譜面上の時刻へ判定幅 (NoteTiming) を加えた時刻 (秒) (Issue #226)。
+    ///
+    /// NoteTiming は 0.01 秒単位のオフセットで、**負の値も有効**である
+    /// (負 = 少し早く判定する。上下限は OptionSettings.NoteTimingMin/Max が持つ)。
+    /// 開始と終端のどちらにも同じオフセットを適用するので、式は 1 箇所に置く。
+    /// </summary>
+    public static float NoteTimeWithTiming(float baseTime, int noteTiming)
+    {
+        return baseTime + noteTiming * 0.01f;
+    }
+
     void OnEnable()
     {
         //NotesSpeed = GManager.noteSpeed;
@@ -142,7 +154,7 @@ public class NotesManager : MonoBehaviour
         for (int i = 0; i < total; i++)
         {
             Note note = inputJson.notes[i];
-            float time = NoteTimeSeconds(inputJson.BPM, note) + GManager.noteTiming * 0.01f;
+            float time = NoteTimeWithTiming(NoteTimeSeconds(inputJson.BPM, note), GManager.noteTiming);
             times.Add(time);
             lanes.Add(note.block);
             types.Add(note.type);
@@ -161,7 +173,7 @@ public class NotesManager : MonoBehaviour
             // ロングノーツの終端 (Issue #164)。タップは 0 (終端なし)。
             if (note.type == FlashBeat.Gameplay.LongNote.TYPE_HOLD)
             {
-                float endTime = FlashBeat.Gameplay.LongNote.EndSeconds(inputJson.BPM, note) + GManager.noteTiming * 0.01f;
+                float endTime = NoteTimeWithTiming(FlashBeat.Gameplay.LongNote.EndSeconds(inputJson.BPM, note), GManager.noteTiming);
                 // 終端は開始より後になければならない。壊れた譜面でも
                 // 判定が破綻しないように、最低 1 拍ぶんは最低長を保つ。
                 if (endTime <= time)

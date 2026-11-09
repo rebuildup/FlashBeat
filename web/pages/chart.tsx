@@ -1,4 +1,4 @@
-import { savePublishDraft } from "@/lib/publish/draft";
+import { readPublishDraft, savePublishDraft } from "@/lib/publish/draft";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
@@ -29,6 +29,19 @@ const banner = css({
   fontSize: "xs",
   gap: "3",
   justifyContent: "space-between",
+  padding: "2 3",
+  flexShrink: "0",
+});
+
+/** The restored draft is a notice, not a failure: the editor stays usable. */
+const draftBanner = css({
+  alignItems: "center",
+  bg: "green.subtle.bg",
+  color: "green.subtle.fg",
+  colorPalette: "green",
+  display: "flex",
+  fontSize: "xs",
+  gap: "3",
   padding: "2 3",
   flexShrink: "0",
 });
@@ -94,12 +107,19 @@ function tryPreview(editor: ChartEditorHandle | null): void {
   panel.focus();
 }
 
-export default function ChartPage({ songId, version }: Props) {
+export default function ChartPage({ songId, version, draftId }: Props) {
   const editorRef = useRef<ChartEditorHandle | null>(null);
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  /**
+   * The local draft the publish screen handed back to the editor
+   * (issue #98). It carries the operator's unsaved edits, so it wins over
+   * the published chart of the same song.
+   */
+  const [draft, setDraft] = useState<{ id: string; chart: Chart } | null>(null);
+  const [draftError, setDraftError] = useState("");
   const selected = songId !== null || version !== null;
   useEffect(() => {
     let active = true;
@@ -119,6 +139,23 @@ export default function ChartPage({ songId, version }: Props) {
       active = false;
     };
   }, [songId, version, selected, attempt]);
+  /**
+   * The draft is read on its own, so a broken draft does not disturb the
+   * published chart of the same song. `readPublishDraft` checks the id, the
+   * song and the version, and validates the chart.
+   */
+  useEffect(() => {
+    setDraft(null);
+    setDraftError("");
+    if (draftId === null) return;
+    try {
+      setDraft({ id: draftId, chart: readPublishDraft(draftId, songId, version) });
+    } catch (reason) {
+      setDraftError(reason instanceof Error ? reason.message : String(reason));
+    }
+  }, [draftId, songId, version]);
+  /** The draft of the operator wins over the published chart of the song. */
+  const editorChart = draft?.chart ?? session?.chart ?? emptyChart;
   return (
     <StudioShell scroll={false}>
       <header className={pageHeader}>
@@ -177,7 +214,7 @@ export default function ChartPage({ songId, version }: Props) {
                   savePublishDraft({
                     songId,
                     version,
-                    chart: editedChart ?? session?.chart ?? emptyChart,
+                    chart: editedChart ?? editorChart,
                   }),
                 );
               } catch {
@@ -192,6 +229,16 @@ export default function ChartPage({ songId, version }: Props) {
           </span>
         </div>
       </header>
+      {draft ? (
+        <section className={draftBanner} role="status" data-testid="draft-restored">
+          公開画面の下書きを復元しました / The draft from the publish screen is restored.
+        </section>
+      ) : null}
+      {draftError ? (
+        <section className={draftBanner} role="alert" data-testid="draft-error">
+          {draftError}
+        </section>
+      ) : null}
       {error ? (
         <section className={banner} role="alert">
           {error}
@@ -199,15 +246,21 @@ export default function ChartPage({ songId, version }: Props) {
             Retry
           </Button>
         </section>
-      ) : selected && !session ? (
+      ) : null}
+      {/* A restored draft keeps the editor alive even when the published
+          session failed to load: the operator's own chart is the point. */}
+      {error && !draft ? null : selected && !session && !error ? (
         <p className={statusLine} role="status">
           Loading selected chart…
         </p>
       ) : (
         <div className={editorPane}>
+          {/* The key carries the draft id: the editor seeds its history from
+              `initialChart` only on mount, so a restored draft needs a fresh
+              editor. */}
           <ChartEditor
-            key={`${songId}:${version}:${attempt}`}
-            initialChart={session?.chart ?? emptyChart}
+            key={`${songId}:${version}:${draft?.id ?? ""}:${attempt}`}
+            initialChart={editorChart}
             initialYouTubeId={session?.song.youtubeId ?? ""}
             initialIssues={session?.issues}
             ref={editorRef}
