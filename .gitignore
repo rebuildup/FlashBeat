@@ -99,7 +99,10 @@ __pycache__/
 node_modules/
 
 # ─────── agent 環境のローカル生成物 (Issue #56) ───────
-# mise の npm backend が使う取得キャッシュ (mise.lock 自体は追跡する)
-.mise/
+# mise の npm backend は install 時に `.mise/locks/<backend>/<version>/` を
+# 参照する。この sidecar を commit しないと `mise install --locked` が
+# fresh clone で失敗する (missing dependency sidecar) ので locks/ だけは追跡する。
+.mise/*
+!.mise/locks/
 # scripts/worktree/setup.sh が worktree ごとに作る環境変数ファイル
 .worktree.env
