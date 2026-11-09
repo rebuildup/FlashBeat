@@ -70,11 +70,15 @@ public static class HoldProbeChart
     /// <summary>
     /// 封筒の中の譜面本体 (Data 相当)。
     /// CloudCatalog.ParseChartResponse に渡すのは <see cref="Json"/> (封筒)。
+    ///
+    /// 値は文字列リテラルで持つ (C# の定数式では int → string の連結が
+    /// できないため)。上の ChartName / Bpm / MaxBlock と同じ値uyoこと
+    /// (HoldProbeChartTests が一致を検証する)。
     /// </summary>
     public const string ChartJson =
-        "{\"name\":\"" + ChartName + "\"," +
-        "\"maxBlock\":" + MaxBlock + "," +
-        "\"BPM\":" + Bpm + "," +
+        "{\"name\":\"HoldProbe\"," +
+        "\"maxBlock\":8," +
+        "\"BPM\":120," +
         "\"offset\":0," +
         "\"notes\":[" +
         // 0: HOLD lane 0 @ 8.0 秒 → 終端 13.0 秒 (5.0 秒保持)
@@ -98,8 +102,8 @@ public static class HoldProbeChart
     /// PlaySessionSnapshot.ChartJsonOverride にそのまま渡す。
     /// </summary>
     public const string Json =
-        "{\"songId\":\"" + SongId + "\"," +
-        "\"chartVersion\":" + ChartVersion + "," +
+        "{\"songId\":\"hold-probe\"," +
+        "\"chartVersion\":1," +
         "\"chart\":" + ChartJson +
         "}";
 }
