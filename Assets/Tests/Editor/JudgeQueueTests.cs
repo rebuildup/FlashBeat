@@ -295,4 +295,77 @@ public class JudgeQueueTests
         Assert.AreEqual(2, board.Combo);
         Assert.AreEqual(2 * LongNote.SCORE_PERFECT, board.RatioScore, 0.0001f);
     }
+
+    // ------------------------------------------------------------------
+    // HOLD の判定ルールは LongNote が単一の出所であること
+    // (テストと実挙動の分離を解消する回帰テスト)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// 実行時経路 (JudgeQueue.UpdateHold) の結果が、LongNote の判定関数と
+    /// 一致することを確認する。両者が二重実装になると、LongNote 側のテストが
+    /// 緑でも実挙動は壊れている状態になる (既知の不具合)。
+    /// </summary>
+    [Test]
+    public void Hold_RuntimeResult_MatchesLongNoteRules()
+    {
+        float[] releaseTimes = { 5.5f, 6.7f, 6.86f, 7.0f, 7.1f, 7.14f, 7.5f };
+        foreach (float releaseTime in releaseTimes)
+        {
+            JudgeQueue queue = new JudgeQueue(Lanes);
+            queue.Add(Hold(3, 5.0f, 7.0f, 0));
+            Assert.IsTrue(queue.TryPress(3, 5.0f, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry head, out _));
+            queue.BeginHold(head);
+
+            JudgeQueue.HoldResult actual =
+                queue.UpdateHold(3, releaseTime, keyDown: false, LongNote.GREAT_WINDOW, out _);
+
+            // 期待値は LongNote の判定そのものを単一の出所として作る。
+            bool broken = LongNote.IsBroken(releaseTime, 7.0f, LongNote.GREAT_WINDOW);
+            JudgeQueue.HoldResult expected = broken
+                ? JudgeQueue.HoldResult.Broken
+                : JudgeQueue.HoldResult.Released;
+
+            Assert.AreEqual(expected, actual, $"releaseTime={releaseTime}");
+            Assert.AreEqual(
+                LongNote.JudgeRelease(releaseTime, 7.0f, LongNote.GREAT_WINDOW),
+                actual == JudgeQueue.HoldResult.Released,
+                $"releaseTime={releaseTime}");
+        }
+    }
+
+    [Test]
+    public void Hold_ExpiryBoundary_MatchesLongNoteRule()
+    {
+        float[] mediaTimes = { 7.0f, 7.1f, 7.14f, 7.2f, 7.5f };
+        foreach (float mediaTime in mediaTimes)
+        {
+            JudgeQueue queue = new JudgeQueue(Lanes);
+            queue.Add(Hold(0, 5.0f, 7.0f, 0));
+            Assert.IsTrue(queue.TryPress(0, 5.0f, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry head, out _));
+            queue.BeginHold(head);
+
+            JudgeQueue.HoldResult actual =
+                queue.UpdateHold(0, mediaTime, keyDown: true, LongNote.GREAT_WINDOW, out _);
+
+            bool expired = LongNote.IsHoldExpired(mediaTime, 7.0f, LongNote.GREAT_WINDOW);
+            JudgeQueue.HoldResult expected = expired
+                ? JudgeQueue.HoldResult.Expired
+                : JudgeQueue.HoldResult.None;
+
+            Assert.AreEqual(expected, actual, $"mediaTime={mediaTime}");
+        }
+    }
+
+    [Test]
+    public void Hold_NeverPressed_BecomesMissAndNotHold()
+    {
+        JudgeQueue queue = new JudgeQueue(Lanes);
+        queue.Add(Hold(3, 5.0f, 7.0f, 0));
+
+        // 押し下げ失敗: 保持は始まらない。時間切れで Miss になる。
+        Assert.IsFalse(queue.TryPress(3, 5.0f, LongNote.BAD_WINDOW, out _, out _));
+        Assert.IsTrue(queue.TryPeekMiss(3, 5.5f, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry missed));
+        Assert.AreEqual(0, missed.SourceIndex);
+    }
 }
