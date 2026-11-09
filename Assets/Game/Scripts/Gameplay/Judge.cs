@@ -278,17 +278,17 @@ public class Judge : MonoBehaviour
         GManager.combo = board.Combo;
         GManager.maxCombo = board.MaxCombo;
 
-        // 「確定したノーツ数」を GManager.nextNotes に書く。
-        // MusicManager は <c>settledNotes = GManager.nextNotes - 1</c> で
-        // 「残りのノーツ数」を計算し、それが 0 になったら曲終了を確定する
-        // (SongEndStateMachine.AllSettled)。よって nextNotes は
-        // **ノーツ数** でなければならない。
+        // 「確定したノーツ数」を GManager へ書く (Issue #182)。
         //
         // 以前は message() が呼ばれた回数 (= 判定イベント数) を数えていた
         // ため、HOLD を途中で離して BAD に差し替えたノーツは 2 回分として
         // 数えられ、残りノーツ数が実際より早く 0 になっていた
         // (Issue #182 の「1 ノーツ = 1 判定」に反する)。
         // ここでは JudgeScoreboard.Settled (確定したノーツ数) を書く。
+        //
+        // 正は settledNoteCount (曲終了判定はこの値を直接読む)。
+        // nextNotes は旧 API の互換値として「1 + 確定数」を保つ。
+        GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
         UpdateScore();

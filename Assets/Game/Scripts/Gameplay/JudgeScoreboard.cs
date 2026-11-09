@@ -39,7 +39,7 @@ namespace FlashBeat.Gameplay
         ///   - HOLD の中断 (<see cref="DowngradeHoldToBad"/>) は先頭判定の
         ///     **差し替え** なので確定数は増えない (内訳も同じ個数で入れ替わる)。
         ///
-        /// MusicManager はこの値を <c>GManager.SettledNoteCount</c> 経由で
+        /// MusicManager はこの値を <c>GManager.settledNoteCount</c> へ書き、
         /// 「確定済みノーツ数」として曲終了の判定に使うので、
         /// ノーツ数と一致していなければならない。
         /// </summary>

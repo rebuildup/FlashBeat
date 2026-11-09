@@ -170,6 +170,7 @@ public class MusicManager : MonoBehaviour
         notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
+        GManager.settledNoteCount = 0;
         audioS.volume = GManager.mainVolume;
         StartText.SetActive(true);
 
@@ -984,7 +985,9 @@ public class MusicManager : MonoBehaviour
                 : mediaTime >= MediaTimeline.FallbackSongEnd(songDuration);
 
             int totalNotes = notesManager != null ? notesManager.noteNum : 0;
-            int settledNotes = GManager.nextNotes - 1;
+            // 確定したノーツ数は GManager.settledNoteCount が正 (Issue #182)。
+            // nextNotes の「1 + N」規約に頼らず、確定数そのものを読む。
+            int settledNotes = GManager.settledNoteCount;
             if (settledNotes < 0)
             {
                 settledNotes = 0;

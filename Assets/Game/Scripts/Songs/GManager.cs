@@ -422,6 +422,23 @@ public class GManager : MonoBehaviour
     public static int FlashT = 0;
 
     public static float step_time;
+
+    /// <summary>
+    /// 確定したノーツ数 (Issue #182)。
+    ///
+    /// Judge が 1 ノーツ = 1 判定を保証しながら書き換える「正」の値で、
+    /// 曲終了判定 (MusicManager → SongEndStateMachine) はこの値を読む。
+    /// ノーツ数と等しければ全ノーツ確定済み。
+    /// </summary>
+    public static int settledNoteCount;
+
+    /// <summary>
+    /// 旧 API の互換値 (Issue #182)。<c>1 + settledNoteCount</c> を保つ。
+    ///
+    /// 「1 + N」 / 「- 1」 という規約は読み手に誤解を招くので、
+    /// 曲終了判定などの**新しい**コードは
+    /// <see cref="settledNoteCount"/> を直接読むこと。
+    /// </summary>
     public static int nextNotes;
 
     public static float mainVolume = 1.0f;
@@ -454,6 +471,7 @@ public class GManager : MonoBehaviour
         maxCombo = 0;
         maxScore = 0;
         ratioScore = 0;
+        settledNoteCount = 0;
         BeginPlaySession();
     }
 
