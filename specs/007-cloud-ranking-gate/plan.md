@@ -49,7 +49,7 @@ description: "FlashBeat lean implementation plan — Issue 007"
    - 対象の cloud 曲と `chartVersion` を確認する (ローカル曲には `remoteId` が無く送信対象外)。
    - `RankingClient.Origin()` の base URL が `CloudCatalogConfig.json` と一致していることを確認。
 2. **Windows 実機での 1 ラン** (オーナー実施, cc は操作しない):
-   - 実机的表示に `FlashBeat.exe` を **引数なし** で起動 (擬似全画面は禁止)。
+   - 実機の表示に `FlashBeat.exe` を **引数なし** で起動 (擬似全画面は禁止)。
    - Select で cloud 由来の曲を選ぶ → Game → 完走 → Result → nickname 入力 → 送信。
    - Player.log を `%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log` から回収。
    - 429 / 422 を避けるため、**同じ nickname で 10 秒以内に再送しない**。

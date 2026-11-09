@@ -36,7 +36,7 @@ Issue #22 は **PR readiness を確認するのみで merge しない**（`relea
 | 承認の独立性 | 本番 main と Cloudflare は **独立に承認** する。一方の承認を他方の承認に読み替えない (`release-approval-checklist.md` §A) |
 | 証拠の区別 | **source チェックと実ゲーム証跡を区別する** (Issue 本文 T2)。チェックリストが存在すること、テストが緑であることは **ゲート通過の根拠にならない**。チェックボックス未記入は「未証明」 |
 | 未検証パッチの扱い | **未検証の後続パッチが現在の展示ビルドを置き換えない** (Issue Acceptance)。展示フォルダは読み取り参照 |
-| 1280×720 smoke | `docs/operations/festival-runbook.md` §4 の 10 項目。**source チェックと実ゲーム証跡を区別** して記入する。代替手順として `FlashBeat.exe -screen-width 1280 -screen-height 720 -screen-fullscreen 0` が runbook §4 に提示されているが、**実机的 fullscreen とは別物** |
+| 1280×720 smoke | `docs/operations/festival-runbook.md` §4 の 10 項目。**source チェックと実ゲーム証跡を区別** して記入する。代替手順として `FlashBeat.exe -screen-width 1280 -screen-height 720 -screen-fullscreen 0` が runbook §4 に提示されているが、**実機の fullscreen とは別物** |
 | 候補ビルドの同一性 | macOS で作られた候補 ZIP は `.zip.sha256` sidecar で照合する。**sha256 一致は「Windows で動く」ことの証明ではない**。実機での確認 (手順書 `docs/operations/win64-candidate-acceptance-2026-11-10.md`) が未実施のあいだ **未検証** |
 | 証跡の秘密情報 | コミットする Player.log は `release/check/redact-log.ps1` でマスクする (YouTube の署名 URL / video id)。**素のログをコミントしない** |
 | 実機操作 | **Windows 実機は展示 PC のため cc は実行しない。オーナー実施。** macOS の完走は Win64 の代用にならない (`docs/evidence/index.md` §1.6) |

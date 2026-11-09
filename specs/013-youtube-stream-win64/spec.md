@@ -13,7 +13,7 @@ description: "FlashBeat lean spec — Issue 013"
 Issue #13 は「YouTube の動画を Unity `VideoPlayer` で 1 曲完走させる」ことを求める。
 `main` の実装は、**URL ストリーミングではなく yt-dlp によるローカルキャッシュ再生**へ
 **意図的に設計変更**されている (Media Foundation の制約)。
-映像 (`video.mp4`) は Win64 実機で再生已有的证迹がある一方、
+映像 (`video.mp4`) は Win64 実機で再生された記録がある一方、
 **ストリームの音声トラック (m4a) は `Failed to recognize video file format` で準備できず**、
 音は同梱 wav (`audioMode=Bundled`) で鳴っている。
 
