@@ -263,3 +263,70 @@ C:\Users\rebui\Desktop\FlashBeat-Exhibit\
 | 3 | 自動更新の候補判定の実装 | 本書は「バージョンが厳密に大きい Release のみ」を前提に書いています。実装をこの方針に揃える対応は監督側の担当事項です（[`update-release.md`](update-release.md) の版数ルール参照） |
 | 4 | `gh` CLI を展示 PC に置くか | `-Tag` 指定の適用には `gh` が必要です。置かない運用なら §6.1(b) の手動差し替え、または `-ZipPath` を使います |
 | 5 | 展示 PC の台数 | 現状は Windows 実機 1 台（Unity Editor を含む）のため、展示と開発の両立には CI が必要です（[`festival-development-path.md`](festival-development-path.md)） |
+
+---
+
+## 11. 付録: 展示候補ビルド (2026-11-09 時点)
+
+**この節は「いま手元にある候補」の記録であり、確定版ではありません。**
+本書の他節は版数を確定値として書きません (→ §10 の #2)。本節も同じ方針に従い、
+**出版済み / 実機受入済みとは区別して**書いています。
+
+### 11.1 手元にある候補配布物
+
+| 項目 | 値 |
+|---|---|
+| 版 | `0.1.14-win64-d8c1b39` |
+| ビルド元 commit | `d8c1b39` (main, PR #251 merge 時点) |
+| ZIP | `FlashBeat-0.1.14-win64-d8c1b39.zip` (274,826,784 bytes / 224 entries / Managed DLL 138 個) |
+| SHA-256 | `3ac76d0d7a9e30f1063d733fbd17028c853f6c4b8fc4950de51761b9b81abfb3` |
+| 置き場所 (開発用 Mac) | `/Users/rebui/work/FlashBeat.macverify/dist2/` |
+| メディアポリシー | `song-free` — 第三者楽曲の wav / 動画は非同梱 (曲名は `Resources/Musics` に入らず、配信は `yt-dlp` 経由) |
+| 更新チャンネル | `preview` (未検証の自動更新をしないため。`stable` は実機受入後に変更) |
+
+生成手順と全ログは [`../evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) にあります。
+Unity の Windows Build Support が入っている macOS からは Win64 をビルドできます
+(PowerShell 7 が必要。`mise exec -- pwsh` でも実行可)。
+
+### 11.2 この候補で「まだ確認していないこと」
+
+1. **Windows 実機で起動して 1 曲完走していない** (映像 → ノーツ → キー判定 → スコア → Result → Retry)。
+2. **GitHub Releases には publish していない** (Windows 実機受入前なので)。
+   §6.1(b) の手動差し替え不能用です。展示 PC へ入れる手順は下記 11.3。
+3. **Win64 CI は未緑** — `UNITY_EMAIL` / `UNITY_PASSWORD` が Actions Secrets に未登録のため
+   (Personal の `.ulf` は GitHub-hosted runner で machine binding mismatch が必ず起きる)。
+   詳細は [`unity-ci-license.md`](unity-ci-license.md) と Issue #250 のコメント。
+
+### 11.3 展示 PC にこの候補を入れる手順 (Windows 実機では未検証)
+
+> **注意**: この節の手順は **Windows 実機で検証済みではありません**。
+> 実行前に、ZIP の中身を必ず確認してください。
+
+```powershell
+# 1) ZIP と .sha256 を同じフォルダーに置く
+# 2) 検証 (一致しなければ使わない)
+Get-FileHash .\FlashBeat-0.1.14-win64-d8c1b39.zip -Algorithm SHA256
+Get-Content .\FlashBeat-0.1.14-win64-d8c1b39.zip.sha256
+
+# 3) 既存フォルダを退避してから差し替える (中身を直接編集しない: §1.1)
+Rename-Item 'C:\Users\rebui\Desktop\FlashBeat-Exhibit' 'FlashBeat-backup-<年月日-時刻>'
+Expand-Archive .\FlashBeat-0.1.14-win64-d8c1b39.zip 'C:\Users\rebui\Desktop\FlashBeat-Exhibit'
+
+# 4) 起動して 1 曲完走する (§2 の起動手順 → §3 の選曲 → ゴールまで)
+```
+
+### 11.4 受入記録 (|Windows 実機で確認したらここを埋める)
+
+| 項目 | 結果 | 記録場所 |
+|---|---|---|
+| ビルド SHA | `d8c1b39` | `version.json` / `FlashBeat.exe` のプロパティ |
+| 起動 → タイトル | ☐ | Player.log |
+| 選曲 → ゲーム開始 | ☐ | Player.log |
+| 映像の再生 | ☐ | スクリーンショット |
+| ノーツ表示 / キー判定 / スコア更新 | ☐ | スクリーンショット |
+| Result 画面 → 曲選択 → Retry | ☐ | スクリーンショット |
+| 3 解像度 (1920×1080 / 2560×1440 / 2560×1664) で崩れなし | ☐ | スクリーンショット |
+| プレイヤー ID / 版 | ☐ | 本表 |
+
+**スクリーンショットと Player.log は機密情報を含む可能性があるため、公開 Issue へ
+そのまま貼らず `docs/evidence/` へ保存してください。**
