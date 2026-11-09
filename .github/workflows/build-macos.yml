@@ -6,9 +6,12 @@ name: build-macos
 #
 # 前提:
 #   - リポジトリは public なので標準ランナーの Actions は無料。
-#   - Unity ライセンスは secret 経由で渡す。以下のどちらか:
-#       UNITY_LICENSE      : .ulf ライセンスファイル (中身の XML。base64 でも可)
+#   - Unity ライセンスは secret 経由で渡す。CI で緑にできる経路は
+#     **アカウント認証のみ** (こちらを優先する):
 #       UNITY_EMAIL / UNITY_PASSWORD (+ UNITY_SERIAL) : Unity アカウント
+#       UNITY_LICENSE      : .ulf ライセンスファイル (中身の XML。base64 でも可)
+#           Personal の .ulf は Unity 6000.5 の -manualLicenseFile が未サポートで、
+#           かつ発行元マシンに紐づくため GitHub-hosted runner では成立しない。
 #   - ライセンス未設定は blocker として失敗する。
 
 on:
@@ -158,6 +161,14 @@ jobs:
               "<") ;;
               *) echo "::error title=Unity license required::UNITY_LICENSE の内容が .ulf XML ではありません"; exit 1 ;;
             esac
+            # Personal ライセンス (.ulf) は Unity 6000.5 の -manualLicenseFile では
+            # サポートされた認証経路ではない (Account 認証を使う)。推測で
+            # 失敗させず、原因を特定して対処を指示する。
+            if printf '%s' "$content" | grep -qi 'Value="Personal"' ||
+               printf '%s' "$content" | grep -qi 'SerialMasked Value="XXXX'; then
+              echo "::error title=Unity Personal license is not supported::UNITY_LICENSE は Personal ライセンスの .ulf です。Unity 6000.5 は Personal の手動激活 (-manualLicenseFile) をサポートしていません。UNITY_EMAIL / UNITY_PASSWORD (Actions Secrets) を登録してアカウント認証してください。"
+              exit 1
+            fi
             ulf="$RUNNER_TEMP/Unity_lic.ulf"
             printf '%s' "$content" > "$ulf"
             "$UNITY_EDITOR" -batchmode -quit -nographics -manualLicenseFile "$ulf" -logFile "$log"

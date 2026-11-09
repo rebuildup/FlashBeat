@@ -5,11 +5,13 @@ name: build-win64
 #
 # 前提:
 #   - リポジトリは public なので GitHub-hosted (windows-latest) ランナーは無料。
-#   - Unity のライセンスは secret 経由で渡す。以下のどちらか:
-#       (A) UNITY_LICENSE : .ulf ライセンスファイル (中身の XML, または base64)
-#           Unity 的人工ライセンス (Personal) 用。UNITY_EMAIL / UNITY_PASSWORD は任意。
+#   - Unity のライセンスは secret 経由で渡す。CI で緑にできる経路は **(B) のみ**:
 #       (B) UNITY_EMAIL / UNITY_PASSWORD ( + 有償ライセンスなら UNITY_SERIAL )
-#           Unity アカウントでのライセンス認証用。
+#           Unity アカウントでのライセンス認証用。**こちらを優先する**。
+#       (A) UNITY_LICENSE : .ulf ライセンスファイル (中身の XML, または base64)。
+#           Personal の .ulf は Unity 6000.5 の -manualLicenseFile が未サポートで、
+#           かつ発行元マシンに紐づくため GitHub-hosted runner では成立しない。
+#           設定されていても Personal なら明示的にエラーにする。
 #   - ライセンス未設定は blocker として失敗する。緑は成果物生成成功だけを表す。
 #   - 展示 Windows PC は CI の self-hosted runner として使わない (展示と干渉するため)。
 
@@ -153,10 +155,18 @@ jobs:
           try {
             $hasUlf = -not [string]::IsNullOrWhiteSpace($env:UNITY_LICENSE)
             $hasAccount = (-not [string]::IsNullOrWhiteSpace($env:UNITY_EMAIL)) -and (-not [string]::IsNullOrWhiteSpace($env:UNITY_PASSWORD))
-            # アカウント認証を優先する。.ulf は発行元マシンに紐づくため
-            # GitHub-hosted runner では machine binding mismatch で必ず失敗する
-            # (実測 2026-11-08, run 42470147986)。
-            if (-not $hasAccount -and $hasUlf) {
+            # アカウント認証を優先する。Personal ライセンスの .ulf は
+            #   - Unity 6000.5 の -manualLicenseFile がサポートされていない
+            #   - .ulf 自体が発行元マシンに紐づく (GitHub-hosted runner では
+            #     machine binding mismatch で必ず失敗する: 実測 2026-11-08,
+            #     run 42470147986)
+            # ため、CI で緑にできる経路はアカウント認証だけ。
+            if ($hasAccount) {
+              $activateArgs = @("-batchmode", "-quit", "-nographics", "-username", $env:UNITY_EMAIL, "-password", $env:UNITY_PASSWORD)
+              if (-not [string]::IsNullOrWhiteSpace($env:UNITY_SERIAL)) { $activateArgs += @("-serial", $env:UNITY_SERIAL) }
+              & $env:UNITY_EDITOR @activateArgs -logFile $log
+              $code = $LASTEXITCODE
+            } elseif ($hasUlf) {
               # secret は「.ulf の XML そのもの」か「base64」のどちらでも受ける。
               # UTF-8 BOM (EF BB BF) が付いた .ulf があり、BOM のままだと
               # 先頭が '<' ではなく base64 と誤判定される。BOM は除去する。
@@ -184,17 +194,18 @@ jobs:
                 $content = $content.Substring(3).TrimStart()
               }
               if (-not $content.StartsWith("<")) { throw "UNITY_LICENSE の内容が .ulf XML ではありません" }
+              # Personal ライセンス (.ulf) は Unity 6000.5 の -manualLicenseFile では
+              # サポートされた認証経路ではない (Account 認証を使う)。推測で失敗させず、
+              # 原因を特定して対処を指示する。
+              if ($content -match 'Value="Personal"' -or $content -match 'SerialMasked Value="XXXX') {
+                throw "UNITY_LICENSE は Personal ライセンスの .ulf です。Unity 6000.5 は Personal の手動激活 (-manualLicenseFile) をサポートしていません。UNITY_EMAIL / UNITY_PASSWORD (Actions Secrets) を登録してアカウント認証してください。"
+              }
               $ulf = "$env:RUNNER_TEMP\Unity_lic.ulf"
               [IO.File]::WriteAllText($ulf, $content, (New-Object Text.UTF8Encoding($false)))
               & $env:UNITY_EDITOR -batchmode -quit -nographics -manualLicenseFile $ulf -logFile $log
               $code = $LASTEXITCODE
-            } elseif ($hasAccount) {
-              $activateArgs = @("-batchmode", "-quit", "-nographics", "-username", $env:UNITY_EMAIL, "-password", $env:UNITY_PASSWORD)
-              if (-not [string]::IsNullOrWhiteSpace($env:UNITY_SERIAL)) { $activateArgs += @("-serial", $env:UNITY_SERIAL) }
-              & $env:UNITY_EDITOR @activateArgs -logFile $log
-              $code = $LASTEXITCODE
             } else {
-              throw "Unity ライセンス認証情報がありません"
+              throw "Unity ライセンス認証情報がありません (UNITY_EMAIL / UNITY_PASSWORD を Actions Secrets に登録してください)"
             }
           } finally {
             Pop-Location

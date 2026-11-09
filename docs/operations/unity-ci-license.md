@@ -93,6 +93,12 @@ Personal (無料) でも Unity Hub でアカウントを作り、同じ 2 つの
   で失敗する (実測 2026-11-08)。
 - さらに Unity 6000.5 系では **Personal の手動 `.ulf` 激活はサポートされた認証経路ではない**。
 
+ワークフローは (B) が渡された `.ulf` の内容を検査し、**Personal ライセンス
+(`DeveloperData Value="Personal"` / `SerialMasked Value="XXXX..."`) なら
+`-manualLicenseFile` に渡さずに、その場で理由と対処を明示して失敗する**
+(推測による失敗にしないため)。Personal の `.ulf` を secret に登録した状態で
+CI を走らせると、このエラーで即座に停止する。
+
 したがって (B) は **自前の固定マシン / self-hosted runner で手元検証したい場合**の
 フォールバックとしてのみ残す。GitHub-hosted CI で緑を期待してよい経路は **(A) のみ**。
 
