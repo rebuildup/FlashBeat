@@ -190,11 +190,13 @@ namespace FlashBeat.Gameplay
             {
                 holding[lane] = null;
                 entry = hold;
-                return Mathf.Abs(mediaTime - hold.EndTime) <= greatWindow
-                    ? HoldResult.Released
-                    : HoldResult.Broken;
+                // HOLD の判定ルールは LongNote が単一の出所。
+                // ここでは再実装しない (テストと実挙動が分離していた既知の不具合を閉じる)。
+                return LongNote.IsBroken(mediaTime, hold.EndTime, greatWindow)
+                    ? HoldResult.Broken
+                    : HoldResult.Released;
             }
-            if (mediaTime > hold.EndTime + greatWindow)
+            if (LongNote.IsHoldExpired(mediaTime, hold.EndTime, greatWindow))
             {
                 holding[lane] = null;
                 entry = hold;

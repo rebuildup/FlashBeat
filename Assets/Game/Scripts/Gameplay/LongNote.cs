@@ -138,17 +138,48 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public static bool JudgeRelease(float releaseTime, float endSeconds)
         {
-            return Mathf.Abs(releaseTime - endSeconds) <= GREAT_WINDOW;
+            return JudgeRelease(releaseTime, endSeconds, GREAT_WINDOW);
+        }
+
+        /// <summary>
+        /// 終端での離しを判定する (判定幅を明示する版)。
+        ///
+        /// 実機経路 (JudgeQueue.UpdateHold) はこの版を使う。
+        /// </summary>
+        public static bool JudgeRelease(float releaseTime, float endSeconds, float greatWindow)
+        {
+            return Mathf.Abs(releaseTime - endSeconds) <= greatWindow;
         }
 
         /// <summary>
         /// 保持中の離しでInterrupt(中断)したか。
         ///
-        /// 終端より前にキーを離したら中断であり、BAD として確定する。
+        /// 終端の許容幅の外でキーを離したら中断であり、BAD として確定する。
+        /// 許容幅より前 (早すぎる離し) も後 (押しすぎ) も中断。
         /// </summary>
         public static bool IsBroken(float releaseTime, float endSeconds)
         {
-            return releaseTime < endSeconds - GREAT_WINDOW;
+            return IsBroken(releaseTime, endSeconds, GREAT_WINDOW);
+        }
+
+        /// <summary>
+        /// 保持中の離しでInterrupt(中断)したか (判定幅を明示する版)。
+        ///
+        /// 実機経路 (JudgeQueue.UpdateHold) はこの版を使う。
+        /// </summary>
+        public static bool IsBroken(float releaseTime, float endSeconds, float greatWindow)
+        {
+            return !JudgeRelease(releaseTime, endSeconds, greatWindow);
+        }
+
+        /// <summary>
+        /// 押しっぱなしで終端の許容幅をすぎたか (押し続けていた = 成功扱い)。
+        ///
+        /// 実機経路 (JudgeQueue.UpdateHold) はこの版を使う。
+        /// </summary>
+        public static bool IsHoldExpired(float mediaTime, float endSeconds, float greatWindow)
+        {
+            return mediaTime > endSeconds + greatWindow;
         }
 
         /// <summary>判定に対応するスコア。</summary>
