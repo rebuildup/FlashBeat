@@ -1,7 +1,7 @@
 name: build-win64
 
 # 展示中も Unity 本体のビルドを展示 PC 以外で行い、展示ビルドの ZIP と
-# SHA-256 を GitHub Releases の材料として出すための経路 (issue #41 / P3)。
+# SHA-256 を GitHub Releases の材料として出すための経路 (issue #35 / P3)。
 #
 # 前提:
 #   - リポジトリは public なので GitHub-hosted (windows-latest) ランナーは無料。
@@ -321,11 +321,17 @@ jobs:
           if (-not $base) { $base = "0.1.0" }
           $out = "$env:RUNNER_TEMP\dist"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
+          # createdAt はビルド元 commit の日時から作る (実行時刻を使うと ZIP が再現しない)。
+          # 空のまま渡すとパッケージ側でも git から導出する。
+          $commitDate = ''
+          $raw = @(git show -s --format=%cI $full)
+          if ($LASTEXITCODE -eq 0 -and $raw.Count -gt 0) { $commitDate = $raw[0].Trim() }
           & pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\package-win64.ps1 `
               -SourceDir "$env:GITHUB_WORKSPACE\Builds\Windows" `
               -OutDir $out `
               -Version "$base-win64-$sha" `
               -CommitSha $full `
+              -CommitDate $commitDate `
               -MediaPolicy song-free
           if ($LASTEXITCODE -ne 0) { throw "Packaging failed (exit $LASTEXITCODE)" }
           $zips = @(Get-ChildItem $out -Filter *.zip -File)
