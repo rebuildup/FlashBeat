@@ -121,6 +121,8 @@ namespace FlashBeat.Gameplay
         ///
         /// The third argument is the world z units per second of chart time
         /// (see <see cref="ZScaleFor"/>), not the raw note speed option.
+        /// The parameter is named after its unit on purpose (PR #263 review N7):
+        /// passing `GManager.noteSpeed` here would be a silent factor of ~1.86.
         /// </summary>
         public static float NotePositionZ(float noteTime, float mediaTime, float zScale)
         {
@@ -185,6 +187,154 @@ namespace FlashBeat.Gameplay
         public static float CurrentZScale
         {
             get { return ZScaleFor(GManager.noteSpeed); }
+        }
+
+        /// <summary>
+        /// Height of the note plane (y). The NotesManager puts the notes here
+        /// and the playfield geometry is derived from it.
+        /// </summary>
+        public const float NotePlaneY = 0.55f;
+
+        /// <summary>The judge line (z = 0). The notes reach it at their judge time.</summary>
+        public const float HitLineZ = 0f;
+
+        /// <summary>
+        /// How far the camera sees along the lane, in world z units from the hit
+        /// line, derived from the camera itself.
+        ///
+        /// The top edge of the frustum hits the note plane (y = notePlaneY) at
+        /// this z. For the Main Camera of GameScene.unity this is 8.6143,
+        /// which is what <see cref="VisibleDepthZ"/> holds.
+        /// </summary>
+        public static float VisibleDepth(Camera camera, float notePlaneY = NotePlaneY)
+        {
+            if (camera == null) return 0f;
+
+            Transform t = camera.transform;
+            float half = camera.fieldOfView * 0.5f * Mathf.Deg2Rad;
+            Vector3 top = t.forward * Mathf.Cos(half) + t.up * Mathf.Sin(half);
+            if (Mathf.Abs(top.y) < 1e-6f) return 0f;
+
+            float step = (notePlaneY - t.position.y) / top.y;
+            return t.position.z + top.z * step;
+        }
+
+        /// <summary>
+        /// Half of the world width the camera shows at the judge line
+        /// (x = +- this is on the screen, z = hitLineZ).
+        ///
+        /// The horizontal extent depends on the aspect the camera renders with
+        /// (see <see cref="PlayfieldCameraFit"/>), so a narrow screen shows a
+        /// narrower lane unless the fit is applied.
+        /// </summary>
+        public static float HalfWidthAtHitLine(Camera camera, float notePlaneY = NotePlaneY, float hitLineZ = HitLineZ)
+        {
+            if (camera == null) return 0f;
+
+            Transform t = camera.transform;
+            Vector3 d = new Vector3(0f, notePlaneY, hitLineZ) - t.position;
+            float depth = Vector3.Dot(d, t.forward);
+            if (depth <= 0f) return 0f;
+
+            float tanVertical = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            return depth * tanVertical * camera.aspect;
+        }
+
+        /// <summary>
+        /// True when the world point is inside the frustum of the camera
+        /// (with the aspect the camera renders with).
+        /// </summary>
+        public static bool IsVisible(Camera camera, Vector3 worldPoint)
+        {
+            if (camera == null) return false;
+
+            Transform t = camera.transform;
+            Vector3 d = worldPoint - t.position;
+            float depth = Vector3.Dot(d, t.forward);
+            if (depth <= 0f) return false;
+
+            float tanVertical = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            float tanHorizontal = tanVertical * camera.aspect;
+
+            return Mathf.Abs(Vector3.Dot(d, t.right)) / depth <= tanHorizontal
+                && Mathf.Abs(Vector3.Dot(d, t.up)) / depth <= tanVertical;
+        }
+    }
+
+    /// <summary>
+    /// Keeps the whole playfield (8 lanes **and** the note width) inside the
+    /// camera view on every display (Issue #233, PR #263 review S1).
+    ///
+    /// Background:
+    ///   * The Main Camera of GameScene uses GateFit = Vertical, so the
+    ///     vertical FOV (60 deg) is fixed and the horizontal extent shrinks
+    ///     with the aspect ratio.
+    ///   * At 2560x1664 (aspect 1.538) the visible half width at the judge
+    ///     line was 3.567 while the outer lane note reaches x = -4.0, so
+    ///     ~43 % of the outer notes were cut off.
+    ///
+    /// How it is fixed (runtime only - the scene file is not touched):
+    /// the aspect the camera renders with is pinned to the larger of the
+    /// screen aspect and the design aspect (16:9). Because the gate fit stays
+    /// "Vertical", the **vertical** geometry does not change at all:
+    ///
+    ///   * the visible depth stays 8.6143, so the z scale and the designed
+    ///     1.6 s approach time are untouched;
+    ///   * the notes still cross the judge line (z = 0) exactly at their own
+    ///     judge time, so the judgement is bit-identical.
+    ///
+    /// The whole scene is squeezed horizontally by the same ratio, so the
+    /// picture and the notes keep their relative position (the chart is
+    /// authored against the video).
+    /// </summary>
+    public static class PlayfieldCameraFit
+    {
+        /// <summary>
+        /// The aspect the playfield was designed for (16:9). The lane span
+        /// (+-4.0) plus the note width (1.0) fits into it.
+        /// </summary>
+        public const float DesignAspect = 16f / 9f;
+
+        /// <summary>
+        /// Half width that has to be visible at the judge line: the outer
+        /// edge of the outer lane note (4.0) plus a small margin.
+        /// </summary>
+        public const float RequiredHalfWidth = 4.1f;
+
+        /// <summary>The aspect the camera has to render with.</summary>
+        public static float FittedAspect(float screenAspect)
+        {
+            if (screenAspect <= 0f) return DesignAspect;
+            return Mathf.Max(screenAspect, DesignAspect);
+        }
+
+        /// <summary>The aspect of the screen the game is running on.</summary>
+        public static float ScreenAspect()
+        {
+            return (float)Screen.width / Mathf.Max(1, Screen.height);
+        }
+
+        /// <summary>
+        /// Apply the fit to the camera and return the aspect it renders with.
+        /// </summary>
+        public static float Apply(Camera camera, float screenAspect)
+        {
+            if (camera == null) return 0f;
+
+            float aspect = FittedAspect(screenAspect);
+            if (!Mathf.Approximately(camera.aspect, aspect)) camera.aspect = aspect;
+            return aspect;
+        }
+
+        /// <summary>
+        /// Apply the fit to the game camera. Safe to call every frame (the
+        /// value only changes when the screen resolution changes).
+        /// </summary>
+        public static void EnsureApplied()
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return;
+            Apply(camera, ScreenAspect());
         }
     }
 }

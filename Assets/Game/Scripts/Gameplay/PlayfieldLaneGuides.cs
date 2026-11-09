@@ -57,6 +57,18 @@ namespace FlashBeat.Gameplay
         private static bool subscribed;
 
         private MeshRenderer guideRenderer;
+        private Mesh guideMesh;
+        private Material guideMaterial;
+        private Camera fittedCamera;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            // "Enter Play Mode without domain reload" では static が残るため、
+            // sceneLoaded の購読が二重にならないように戻す (PR #263 レビュー N4)。
+            subscribed = false;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -97,6 +109,7 @@ namespace FlashBeat.Gameplay
         private void Start()
         {
             Build();
+            ApplyCameraFit();
         }
 
         private void Update()
@@ -108,6 +121,26 @@ namespace FlashBeat.Gameplay
             {
                 guideRenderer.enabled = show;
             }
+
+            if (show) ApplyCameraFit();
+        }
+
+        /// <summary>
+        /// 3D レーンを使うときは、カメラの水平 fit を設計アスペクト比に
+        /// 固定する (Issue #233, PR #263 レビュー S1)。
+        ///
+        /// 縦長画面 (2560x1664 = 1.538) では GateFit = Vertical のままでは
+        /// 判定線での可視半幅が 3.567 しかなく、外側レーンのノーツ
+        /// (x -4.0..-3.0) の 43% が画面外になる。固定すると垂直方向の幾何
+        /// (可視深度 8.6143) は変わらず、判定線 (z = 0) と 1.6 秒の
+        /// アプローチ時間の不変条件は保たれる。
+        /// </summary>
+        private void ApplyCameraFit()
+        {
+            if (fittedCamera == null) fittedCamera = Camera.main;
+            if (fittedCamera == null) return;
+
+            PlayfieldCameraFit.Apply(fittedCamera, PlayfieldCameraFit.ScreenAspect());
         }
 
         /// <summary>9 本のガイド線を 1 メッシュ・1 レンダラで生成する。</summary>
@@ -118,6 +151,7 @@ namespace FlashBeat.Gameplay
 
             var vertices = new Vector3[GuideCount * 4];
             var triangles = new int[GuideCount * 6];
+            var uv = new Vector2[GuideCount * 4];
             for (int i = 0; i < GuideCount; i++)
             {
                 float x = LaneBoundaryX(i);
@@ -127,6 +161,14 @@ namespace FlashBeat.Gameplay
                 vertices[v + 1] = new Vector3(x + half, GuideY, 0f);
                 vertices[v + 2] = new Vector3(x - half, GuideY, GuideDepth);
                 vertices[v + 3] = new Vector3(x + half, GuideY, GuideDepth);
+
+                // UV を明示する (PR #263 レビュー N3: UV が無いと texel (0,0) を
+                // サンプルするので、テクスチャのあるシェーダだと 1 画素の色で
+                // guide 全体が塗られる)。
+                uv[v + 0] = new Vector2(0f, 0f);
+                uv[v + 1] = new Vector2(1f, 0f);
+                uv[v + 2] = new Vector2(0f, 1f);
+                uv[v + 3] = new Vector2(1f, 1f);
 
                 int t = i * 6;
                 triangles[t + 0] = v + 0;
@@ -139,31 +181,83 @@ namespace FlashBeat.Gameplay
 
             var mesh = new Mesh { name = "LaneGuides" };
             mesh.vertices = vertices;
+            mesh.uv = uv;
             mesh.triangles = triangles;
             mesh.RecalculateBounds();
+            guideMesh = mesh;
 
             var filter = go.AddComponent<MeshFilter>();
             filter.sharedMesh = mesh;
 
             guideRenderer = go.AddComponent<MeshRenderer>();
-            guideRenderer.sharedMaterial = CreateMaterial();
+            guideMaterial = CreateMaterial();
+            if (guideMaterial != null)
+            {
+                guideRenderer.sharedMaterial = guideMaterial;
+            }
             guideRenderer.shadowCastingMode = ShadowCastingMode.Off;
             guideRenderer.receiveShadows = false;
+        }
+
+        /// <summary>
+        /// 実行時に生成した Mesh と Material を破棄する (PR #263 レビュー S2)。
+        ///
+        /// GameObject はシーン依存で消えるが、Mesh / Material は native
+        /// オブジェクトなので破棄しないとアプリ終了まで残り、GameScene に
+        /// 入るたびに 1 個ずつリークする (リトライ / 再プレイ / 毎曲)。
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (guideRenderer != null) guideRenderer.sharedMaterial = null;
+
+            // 参照を先に外してから破棄する (破棄対象がまだ使われていると
+            // Unity が破棄を拒否することがある)。
+            var filter = GetComponentInChildren<MeshFilter>();
+            if (filter != null) filter.sharedMesh = null;
+
+            if (guideMesh != null)
+            {
+                SafeDestroy(guideMesh);
+                guideMesh = null;
+            }
+            if (guideMaterial != null)
+            {
+                SafeDestroy(guideMaterial);
+                guideMaterial = null;
+            }
+        }
+
+        static void SafeDestroy(Object target)
+        {
+            if (target == null) return;
+            // EditMode (テスト) では Destroy が使えない。
+            if (Application.isPlaying) Object.Destroy(target);
+            else Object.DestroyImmediate(target);
         }
 
         /// <summary>
         /// 透明な無光 (unlit) マテリアルを生成する。
         /// シーンの FlatUnlit (LaneLight.mat と同じシェーダ) を使い、
         /// 動画の上に乗る半透明の線にする。
+        ///
+        /// シェーダが見つからない場合は例外を投げずに null を返す
+        /// (PR #263 レビュー S3: `new Material(null)` は
+        /// ArgumentNullException を投げる)。
         /// </summary>
         private static Material CreateMaterial()
         {
             Shader shader = Shader.Find("FlashBeat/FlatUnlit");
             if (shader == null) shader = Shader.Find("Unlit/Transparent");
             if (shader == null) shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                Debug.LogWarning("[PlayfieldLaneGuides] no unlit shader found - the lane guides stay invisible.");
+                return null;
+            }
 
             var material = new Material(shader) { name = "LaneGuides (runtime)" };
-            material.SetColor("_Color", new Color(1f, 1f, 1f, GuideAlpha));
+            // fallback シェーダには _Color が無い (HasProperty で保護する)。
+            if (material.HasProperty("_Color")) material.SetColor("_Color", new Color(1f, 1f, 1f, GuideAlpha));
             if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
             if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
             if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
