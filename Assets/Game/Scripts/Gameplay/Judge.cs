@@ -55,6 +55,15 @@ public class Judge : MonoBehaviour
     private readonly JudgeScoreboard board = new JudgeScoreboard();
 
     /// <summary>
+    /// 直近の <see cref="JudgeStep"/> に渡されたメディア時刻 (Issue #182)。
+    ///
+    /// 実機 (Update) は「GManager.step_time」を渡す。EditMode テストは
+    /// private な Update を直接呼んで、**実際に渡された値** が
+    /// GManager.step_time と一致するかで確認する (観測点)。
+    /// </summary>
+    public float LastJudgeMediaTime { get; private set; }
+
+    /// <summary>
     /// 保持中のロングノーツの先頭判定 (Issue #164)。途中で離した (中断)
     /// ときにこの判定を BAD へ差し替えるために覚えておく。
     ///
@@ -131,9 +140,18 @@ public class Judge : MonoBehaviour
     ///   - 押下 (タップ / HOLD の先頭) と Miss が「確定したノーツ」を数える。
     ///   - HOLD の中断は先頭判定の差し替えであり、確定数には数えない
     ///     (<see cref="JudgeScoreboard.Settled"/>)。
+    ///
+    /// virtual なのは、テスト側から判定ステップを差し替えられるようにするため
+    /// (Issue #182 の S3)。実機では常にこのメソッドをそのまま使う。
     /// </summary>
-    public void JudgeStep(float mediaTime, Func<int, bool> lanePressed, Func<int, bool> laneDown)
+    public virtual void JudgeStep(float mediaTime, Func<int, bool> lanePressed, Func<int, bool> laneDown)
     {
+        // 渡されたメディア時刻を観測できるようにする (Issue #182 の S3)。
+        // 実機の Update は「GManager.step_time」を JudgeStep に渡すので、
+        // EditMode テストは private な Update を直接呼んで、
+        // ここに残った値が GManager.step_time と一致するかで確認できる。
+        LastJudgeMediaTime = mediaTime;
+
         EnsureQueue();
         if (queue == null) return;
 

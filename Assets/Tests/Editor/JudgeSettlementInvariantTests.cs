@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -26,7 +26,7 @@ using FlashBeat.Gameplay;
 ///      <c>GManager.maxScore == noteCount x 5</c>、
 ///      <c>GManager.ratioScore == 5*perfect + 3*great + 1*bad</c>、
 ///      <c>GManager.score == Judge.ComputeScore(ratioScore, maxScore)</c>、
-///      さらに曲終了判定に使う <c>GManager.nextNotes - 1</c> が
+///      さらに曲終了判定に使う <c>GManager.settledNoteCount</c> が
 ///      「確定したノーツ数」と一致すること (HOLD 中断の差し替えで二重に
 ///      数えないこと)。
 ///   3. 譜面は Web 公開と同じ形 (CloudCatalog.ParseChartResponse) で読み込み、
@@ -105,12 +105,25 @@ public class JudgeSettlementInvariantTests
         // MusicManager は曲開始時に nextNotes = 1 にする (MusicManager.cs:172)。
         //  Judge は「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
         GManager.nextNotes = 1;
+        GManager.settledNoteCount = 0;
         GManager.noteTiming = 0;
     }
 
     [TearDown]
     public void TearDown()
     {
+        // 本番のノーツ生成 (LoadRoutine) で作ったインスタンスを先に片付ける。
+        if (notesManager != null)
+        {
+            for (int i = 0; i < notesManager.NotesObj.Count; i++)
+            {
+                if (notesManager.NotesObj[i] != null)
+                {
+                    Object.DestroyImmediate(notesManager.NotesObj[i]);
+                }
+            }
+        }
+
         if (rigRoot != null)
         {
             Object.DestroyImmediate(rigRoot);
@@ -118,6 +131,9 @@ public class JudgeSettlementInvariantTests
         }
         judge = null;
         notesManager = null;
+
+        // 固定したプレイセッションを破棄する (他テストに持ち越さない)。
+        PlaySessionSnapshot.Clear();
 
         GManager.perfect = 0;
         GManager.great = 0;
@@ -129,6 +145,7 @@ public class JudgeSettlementInvariantTests
         GManager.ratioScore = 0f;
         GManager.maxScore = 0f;
         GManager.nextNotes = 0;
+        GManager.settledNoteCount = 0;
         GManager.noteTiming = 5;
     }
 
@@ -167,7 +184,7 @@ public class JudgeSettlementInvariantTests
         Assert.AreEqual(0, GManager.great);
         Assert.AreEqual(0, GManager.bad);
         Assert.AreEqual(0, GManager.miss);
-        Assert.AreEqual(MixedChartNoteCount, GManager.nextNotes - 1, "確定ノーツ数が noteCount と一致しない");
+        Assert.AreEqual(MixedChartNoteCount, GManager.settledNoteCount, "確定ノーツ数が noteCount と一致しない");
 
         // キューは空 (すべてのノーツが 1 回ずつ消費された)。
         Assert.AreEqual(0, rig.Queue.TotalPendingCount, "未判定のノーツが残っている");
@@ -220,8 +237,8 @@ public class JudgeSettlementInvariantTests
         Assert.AreEqual(MixedChartNoteCount - pressed.Length, GManager.miss, "未押しのノーツが Miss になっていない");
 
         // 「確定したノーツ数」(曲終了判定に使われる値) も noteCount。
-        Assert.AreEqual(MixedChartNoteCount, GManager.nextNotes - 1,
-            "GManager.nextNotes - 1 が noteCount と一致しない (HOLD 中断で二重に数えていないか)");
+        Assert.AreEqual(MixedChartNoteCount, GManager.settledNoteCount,
+            "GManager.settledNoteCount が noteCount と一致しない (HOLD 中断で二重に数えていないか)");
 
         Assert.AreEqual(0, rig.Queue.TotalPendingCount, "未判定のノーツが残っている");
     }
@@ -243,7 +260,7 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 1.2f, 0.05f));
 
         // 確定したノーツは HOLD の 1 本だけ。
-        Assert.AreEqual(1, GManager.nextNotes - 1, "HOLD 中断で確定ノーツ数が 2 になった");
+        Assert.AreEqual(1, GManager.settledNoteCount, "HOLD 中断で確定ノーツ数が 2 になった");
         Assert.AreEqual(1, GManager.perfect + GManager.great + GManager.bad + GManager.miss);
         Assert.AreEqual(1, GManager.bad, "中断した HOLD は BAD");
         Assert.AreEqual(0, GManager.perfect);
@@ -273,7 +290,7 @@ public class JudgeSettlementInvariantTests
         Assert.AreEqual(SameLaneSameTimeNoteCount, GManager.perfect + GManager.great + GManager.bad + GManager.miss,
             "同時ノーツが一度だけ確定していない");
         Assert.AreEqual(SameLaneSameTimeNoteCount, GManager.perfect);
-        Assert.AreEqual(SameLaneSameTimeNoteCount, GManager.nextNotes - 1);
+        Assert.AreEqual(SameLaneSameTimeNoteCount, GManager.settledNoteCount);
         Assert.AreEqual(0, rig.Queue.TotalPendingCount);
     }
 
@@ -305,7 +322,7 @@ public class JudgeSettlementInvariantTests
         // 確定ノーツ数 = 押下 2 + Miss 6 = 8、残存は 4 本 (2.0 / 1.5 / 3.0 / 2.5 秒)。
         Assert.AreEqual(4, rig.Queue.TotalPendingCount, "残存ノーツ数 (pending) が違う: " + PendingDump(rig));
         Assert.AreEqual(6, GManager.miss, $"Miss の数が違う (perfect={GManager.perfect} bad={GManager.bad}) " + PendingDump(rig));
-        Assert.AreEqual(8, GManager.nextNotes - 1, "確定ノーツ数が 8 になっていない " + PendingDump(rig));
+        Assert.AreEqual(8, GManager.settledNoteCount, "確定ノーツ数が 8 になっていない " + PendingDump(rig));
     }
 
     // ------------------------------------------------------------------
@@ -358,7 +375,7 @@ public class JudgeSettlementInvariantTests
         // 結果画面が読むフィールドが 0 のまま (判定が反映されていない) でないこと。
         Assert.Greater(GManager.score, 0, "スコアが 0 のまま (Judge が GManager に反映していない)");
         Assert.Greater(GManager.maxCombo, 0);
-        Assert.AreEqual(MixedChartNoteCount, GManager.nextNotes - 1);
+        Assert.AreEqual(MixedChartNoteCount, GManager.settledNoteCount);
     }
 
     /// <summary>
@@ -402,8 +419,12 @@ public class JudgeSettlementInvariantTests
 
     /// <summary>
     /// Web 公開の譜面を読み、Judge と NotesManager を組み立てる。
-    /// NotesManager のリストは本番 (NotesManager.LoadRoutine) と同じ作り方で
-    /// 埋める (時刻・終端・番兵 10 本を含む)。
+    ///
+    /// 譜面の読み込みは **本番と同じ経路**
+    /// (<c>NotesManager.LoadRoutine</c>) を通す。テスト側で
+    /// GManager.maxScore などを代入しないので、
+    /// 「配点上限 = ノーツ数 x 5」の書き込み (NotesManager) も
+    /// 本番のコードが設定した値であることを検証できる。
     /// </summary>
     private Rig BuildRig(string chartJson, int expectedNoteCount)
     {
@@ -426,6 +447,11 @@ public class JudgeSettlementInvariantTests
             Notes = notesManager,
         };
 
+        // 本番の読み込み経路を通す (GManager.maxScore の書き込みを含む)。
+        LoadChartThroughProduction(notesManager, chartJson);
+
+        // 期待値はテスト側で独立に計算する (production の時刻式との
+        // 食い違いも検出できる)。
         for (int i = 0; i < chart.notes.Length; i++)
         {
             Note note = chart.notes[i];
@@ -437,10 +463,11 @@ public class JudgeSettlementInvariantTests
                 if (endTime <= time) endTime = time + (60f / chart.BPM);
             }
 
-            notesManager.NotesTime.Add(time);
-            notesManager.LaneNum.Add(note.block);
-            notesManager.NoteType.Add(note.type);
-            notesManager.NotesEndTime.Add(endTime);
+            // 本番が作った時刻と一致すること (読み込み経路の検証)。
+            Assert.AreEqual(time, notesManager.NotesTime[i], 0.0001f, $"ノーツ {i} の時刻が違う");
+            Assert.AreEqual(note.block, notesManager.LaneNum[i], $"ノーツ {i} のレーンが違う");
+            Assert.AreEqual(note.type, notesManager.NoteType[i], $"ノーツ {i} の種別が違う");
+            Assert.AreEqual(endTime, notesManager.NotesEndTime[i], 0.0001f, $"ノーツ {i} の終端時刻が違う");
 
             rig.NoteIndices.Add(i);
             rig.NoteTime.Add(time);
@@ -449,25 +476,57 @@ public class JudgeSettlementInvariantTests
             rig.NoteType.Add(note.type);
         }
 
-        // 本番 (NotesManager.LoadRoutine) は末尾に番兵 10 本を足す。
-        // Judge.EnsureQueue は noteNum で切るので、番兵は判定対象にならない。
-        notesManager.noteNum = chart.notes.Length;
-        for (int i = 0; i < 10; i++)
-        {
-            notesManager.NotesTime.Add(10000f);
-            notesManager.LaneNum.Add(1);
-            notesManager.NoteType.Add(LongNote.TYPE_TAP);
-            notesManager.NotesEndTime.Add(0f);
-        }
-
         // Judge の private フィールド (譜面の参照とエフェクトの配列) を差し込む。
         SetPrivateField(judge, "notesManager", notesManager);
         SetPrivateField(judge, "MessageObj", new GameObject[4]);
 
-        // 本番 (NotesManager.LoadRoutine) と同じ配点上限。
-        GManager.maxScore = chart.notes.Length * 5;
-
         return rig;
+    }
+
+    /// <summary>
+    /// 本番の読み込み経路 (<c>NotesManager.LoadRoutine</c>) で譜面を読み込む。
+    ///
+    /// rigRoot は非アクティブなので <c>NotesManager.OnEnable</c> は走らない。
+    /// そのため private な LoadRoutine を直接呼んで、コルーチンを
+    /// 最後まで進める。こうすれば「GManager.maxScore = ノーツ数 x 5」の
+    /// 書き込みは **テスト側の代入ではなく** 本番のコードが行う。
+    /// </summary>
+    private void LoadChartThroughProduction(NotesManager target, string chartJson)
+    {
+        // 譜面 JSON をプレイセッションに固定する。NotesManager.ParseChart は
+        // 固定 JSON (CloudCatalog.ParseChartResponse) を優先して読む。
+        var song = new SongData(9001, "w182-invariant-test", "tester", "testVideo", BPM, 5, 0, 60f);
+        PlaySessionSnapshot.Begin(song, 1,
+            "{\"songId\":\"w182-test\",\"chartVersion\":1,\"chart\":" + chartJson + "}");
+        SongData pinned = PlaySessionSnapshot.Current.Song;
+
+        // ノーツ prefab: LoadRoutine が Instantiate する。null だと
+        // 破碎するので、テスト用の空オブジェクトを差し込む。
+        GameObject notePrefab = new GameObject("W182TestNotePrefab");
+        notePrefab.transform.SetParent(rigRoot.transform);
+        SetPrivateField(target, "noteObj", notePrefab);
+
+        // 旧ローディング画面 (uGUI) を出さないようにする (UI 副作用を避ける)。
+        bool savedGameHud = FlashBeat.UI.V6.V6UiMode.GameHud;
+        FlashBeat.UI.V6.V6UiMode.GameHud = true;
+        try
+        {
+            MethodInfo load = typeof(NotesManager).GetMethod("LoadRoutine",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(load, "NotesManager.LoadRoutine が見つからない");
+
+            var routine = load.Invoke(target, new object[] { pinned }) as System.Collections.IEnumerator;
+            Assert.IsNotNull(routine, "LoadRoutine のコルーチンが取得できない");
+
+            // コルーチンを最後まで進める (yield は手動でスキップする)。
+            while (routine.MoveNext())
+            {
+            }
+        }
+        finally
+        {
+            FlashBeat.UI.V6.V6UiMode.GameHud = savedGameHud;
+        }
     }
 
     /// <summary>診断用: レーンごとの未判定ノーツ数。</summary>
@@ -490,43 +549,110 @@ public class JudgeSettlementInvariantTests
     }
 
     /// <summary>
-    /// S3: Update が GManager.step_time を JudgeStep に渡していることをソース構造で固定する。
-    /// 実機の Update は「GManager.step_time」を 1 回読んで JudgeStep に渡す。
-    /// これを壊す変更 (Time.time を直接読む、別の時刻を渡す) は赤になる。
+    /// S3: Judge.Update が JudgeStep に渡す時刻が GManager.step_time であること。
+    ///
+    /// Judge.Update は private なのでリフレクションで呼び、JudgeStep が
+    /// **実際に受け取った値** (<see cref="Judge.LastJudgeMediaTime"/>)
+    /// observe する。Judge が Time.time など別の時刻を渡すよう改変すると
+    /// このテストは赤になる。
     /// </summary>
     [Test]
-    public void Update_PassesGManagerStepTimeToJudgeStep_SourceStructure()
+    public void Update_PassesGManagerStepTimeToJudgeStep()
     {
-        // Judge.Update の IL を読んで "GManager.step_time" への読み取りがあるか確認する。
-        // より堅牢なのは「Update 内で JudgeStep を呼び出し、引数が GManager.step_time である」こと。
-        var updateMethod = typeof(Judge).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.IsNotNull(updateMethod, "Judge.Update が見つからない");
+        rigRoot = new GameObject("JudgeMediaTimeProbe");
+        rigRoot.SetActive(false);
+        Judge probe = rigRoot.AddComponent<Judge>();
 
-        var body = updateMethod.GetMethodBody();
-        Assert.IsNotNull(body, "Update のメソッドボディが取得できない");
+        bool savedStart = GManager.Start;
+        float savedStepTime = GManager.step_time;
+        try
+        {
+            PauseGate.HardReset();
+            GManager.Start = true;
+            GManager.step_time = 123.5f;
 
-        var il = body.GetILAsByteArray();
-        Assert.IsNotNull(il, "IL が取得できない");
+            MethodInfo update = typeof(Judge).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(update, "Judge.Update が見つからない");
 
-        // IL に "GManager.get_step_time" (get_step_time) への call が含まれることを確認。
-        // System.Reflection.Emit.OpCodes.Call / Callvirt で get_step_time が呼ばれているか。
-        // 簡易的に: メソッド名で文字列検索 (IL バイト列では直接見にくいため、ここでは実行時チェックにフォールバック)。
-        // 実行時チェック: Judge.Update を呼んで、JudgeStep が GManager.step_time で呼ばれたことを確認。
-        // ただし Judge は MonoBehaviour でテストから直接呼ぶのは面倒なので、
-        // ここでは「JudgeStep の引数が Update と同じメソッド内で GManager.step_time から来ている」ことを
-        // ソースコード検査レベルで確認するだけに留める (Unit test としては弱いが、リグレッション防止にはなる)。
+            update.Invoke(probe, null);
 
-        // 代替案: Judge の protected virtual float CurrentMediaTime プロパティを設けて、
-        // Update がそれを JudgeStep に渡すようにすればテスト可能になる。
-        // 今回は「ソース構造テスト」として、Update のソースに "GManager.step_time" という文字列が
-        // 含まれることを確認する簡易版にする (本質は PR レビューで確認済み)。
+            Assert.AreEqual(GManager.step_time, probe.LastJudgeMediaTime, 0.0001f,
+                "Judge.Update が JudgeStep に渡した時刻が GManager.step_time と一致しない");
 
-        // 実用的なテスト: 実際に Judge インスタンスを作って Update を呼び、
-        // JudgeStep が呼ばれたときの mediaTime をフックで取得して GManager.step_time と一致するか見る。
-        // ただし JudgeStep は public だが virtual ではないため、継承してオーバーライドできない。
+            // 時刻を変えると追従する (たまたま一致しただけでは通らない)。
+            GManager.step_time = 456.75f;
+            update.Invoke(probe, null);
 
-        // 最低限のアサーション: 型が存在すること
-        Assert.Pass("S3: Update passes GManager.step_time to JudgeStep — verified by source inspection (PR review). For automated guard, add a virtual CurrentMediaTime property to Judge.");
+            Assert.AreEqual(GManager.step_time, probe.LastJudgeMediaTime, 0.0001f,
+                "Judge.Update が JudgeStep に渡した時刻が GManager.step_time を追従しない");
+        }
+        finally
+        {
+            GManager.Start = savedStart;
+            GManager.step_time = savedStepTime;
+        }
+    }
+
+    /// <summary>
+    /// S2: HOLD の先頭判定が無い (None) とき、中断の差し替えが
+    /// 「確定したノーツ数」を水増ししないこと。
+    /// </summary>
+    [Test]
+    public void DowngradeHoldToBad_WithNoHeadJudgement_DoesNotInflateSettledCount()
+    {
+        var board = new JudgeScoreboard();
+        board.ApplyHead(LongNote.Judgement.Perfect);
+
+        board.DowngradeHoldToBad(LongNote.Judgement.None);
+
+        Assert.AreEqual(0, board.Bad, "None の先頭判定で Bad が増えた");
+        Assert.AreEqual(1, board.Settled, "None の先頭判定で確定ノーツ数が増えた");
+        Assert.AreEqual(LongNote.SCORE_PERFECT, board.RatioScore, 0.0001f,
+            "None の先頭判定で配点が変わった");
+    }
+
+    /// <summary>
+    /// S2: Judge の holdHead (保持中のロングノーツの先頭判定) は
+    /// 初期値が None (未判定) であること。
+    /// 既定値 (0 = Perfect) だと、HOLD を持たないレーンが
+    /// DowngradeHoldToBad を受けたときに確定数を水増しする。
+    /// </summary>
+    [Test]
+    public void Judge_HoldHeadStartsAsNone()
+    {
+        rigRoot = new GameObject("JudgeHoldHeadProbe");
+        rigRoot.SetActive(false);
+        Judge probe = rigRoot.AddComponent<Judge>();
+
+        FieldInfo field = typeof(Judge).GetField("holdHead", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(field, "Judge.holdHead が見つからない");
+        var head = (LongNote.Judgement[])field.GetValue(probe);
+        Assert.IsNotNull(head, "Judge.holdHead が読めない");
+        Assert.AreEqual(Judge.LaneKeys.Length, head.Length, "holdHead の長さがレーン数と違う");
+
+        for (int lane = 0; lane < head.Length; lane++)
+        {
+            Assert.AreEqual(LongNote.Judgement.None, head[lane], $"lane {lane} の holdHead が None でない");
+        }
+    }
+
+    /// <summary>
+    /// 旧 API nextNotes は互換値「1 + 確定ノーツ数」を保つこと
+    /// (正は GManager.settledNoteCount)。
+    /// </summary>
+    [Test]
+    public void NextNotes_StaysCompatibleWithSettledNoteCount()
+    {
+        Rig rig = BuildRig(HoldOnlyChartJson, HoldOnlyNoteCount);
+        Player player = new Player(rig);
+
+        player.SchedulePress(rig.NoteTime[0], rig.NoteLane[0]);
+        player.ScheduleRelease(1.0f, rig.NoteLane[0]);
+        player.Run(Frames(0f, 1.2f, 0.05f));
+
+        Assert.AreEqual(1, GManager.settledNoteCount, "確定ノーツ数が 1 ではない");
+        Assert.AreEqual(GManager.settledNoteCount + 1, GManager.nextNotes,
+            "nextNotes の互換値 (1 + 確定ノーツ数) が崩れている");
     }
 
     /// <summary>
@@ -564,7 +690,7 @@ public class JudgeSettlementInvariantTests
 
         // 確定ノーツ数 = noteCount
         Assert.AreEqual(noteCount, GManager.perfect + GManager.great + GManager.bad + GManager.miss);
-        Assert.AreEqual(noteCount, GManager.nextNotes - 1);
+        Assert.AreEqual(noteCount, GManager.settledNoteCount);
 
         // SongEndTick を作って SongEndMachine.Update を呼ぶ
         var tick = new SongEndTick
@@ -572,7 +698,7 @@ public class JudgeSettlementInvariantTests
             EndReached = true,
             SettleDeadline = rig.NoteTime.Max() + 1f, // 最後のノーツ時刻 + 1秒
             JudgeTime = rig.NoteTime.Max() + 2f,      // 判定時刻は期限を超えている
-            PendingNotes = noteCount - (GManager.nextNotes - 1), // = 0
+            PendingNotes = noteCount - (GManager.settledNoteCount), // = 0
             TotalNotes = noteCount,
         };
 
@@ -597,14 +723,14 @@ public class JudgeSettlementInvariantTests
         player2.Run(Frames(0f, 1f, 0.05f));
 
         // 確定ノーツ数 = 2、未判定 = 1
-        Assert.AreEqual(2, GManager.nextNotes - 1);
+        Assert.AreEqual(2, GManager.settledNoteCount);
 
         var tick2 = new SongEndTick
         {
             EndReached = true,
             SettleDeadline = rig2.NoteTime.Max() + 1f,
             JudgeTime = rig2.NoteTime.Max() + 0.5f, // まだ猶予期間内 (SettleGraceSeconds = 2f)
-            PendingNotes = noteCount - (GManager.nextNotes - 1), // = 1
+            PendingNotes = noteCount - (GManager.settledNoteCount), // = 1
             TotalNotes = noteCount,
         };
 
@@ -622,7 +748,7 @@ public class JudgeSettlementInvariantTests
             EndReached = true,
             SettleDeadline = rig2.NoteTime.Max() + 1f,
             JudgeTime = rig2.NoteTime.Max() + 3f, // 強制完了ラインを超えている (SettleGraceSeconds = 2f)
-            PendingNotes = noteCount - (GManager.nextNotes - 1), // = 1
+            PendingNotes = noteCount - (GManager.settledNoteCount), // = 1
             TotalNotes = noteCount,
         };
 
