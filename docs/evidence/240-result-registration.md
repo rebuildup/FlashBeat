@@ -139,18 +139,20 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
   -logFile /Users/rebui/work/FlashBeat.w240/unity-w240.log
 ```
 
-| 指標 | 実測値 |
-|---|---|
-| total | **1118** |
-| passed | **1118** |
-| failed | **0** |
-| skipped / inconclusive | 0 / 0 |
-| 実行時間 (`test-run` の `duration`) | 3.046 s |
-| 対象 commit | `ab8c336` (= `origin/main`, PR #255 merge 済) |
+| 指標 | 実測値 (main 基準) | 実測値 (モーダル配置テスト追加後) |
+|---|---|---|
+| 対象 commit | `ab8c336` (= `origin/main`, PR #255 merge 済) | `2c163a0` (本ブランチ) |
+| total | **1118** | **1120** |
+| passed | **1118** | **1120** |
+| failed | **0** | **0** |
+| skipped / inconclusive | 0 / 0 | 0 / 0 |
+| 実行時間 (`test-run` の `duration`) | 3.046 s | 3.748 s |
 
-基準値 (`origin/main` = 1118 / 1118) からの増減は 0。#240 のテストが EditMode
-スイートに含まれており、既存テストの期待値も変更していない
-(`ClassifySubmitResult` / `SubmitStatusMessage` / `ValidateNicknameInput` は無改変)。
+基準値 (`origin/main` = 1118 / 1118) からの増減は、main 基準の実行では 0、
+本ブランチでは **+2** (今回追加したモーダル配置テスト 2 件)。
+#240 のテストが EditMode スイートに含まれており、既存テストの期待値も
+変更していない (`ClassifySubmitResult` / `SubmitStatusMessage` /
+`ValidateNicknameInput` は無改変)。
 
 #### #240 の新規テスト 18 件 (すべて `Passed`)
 
@@ -176,6 +178,16 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
 | `ResolveChartVersion_PrefersPinnedVersion` | Passed |
 | `ResolveChartVersion_FallsBackToLiveVersionWhenNotPinned` | Passed |
 | `OnlineSubmit_KeepsFourWayDistinction` | Passed |
+
+#### 追加した登録モーダル配置テスト 2 件 (すべて `Passed`)
+
+`FlashBeat.V5CanvasTests.V6ResultFramePlacementTests`
+(asmdef は `Assets/Game/Tests/V6CanvasTests/FlashBeat.V6CanvasTests.asmdef`):
+
+| テスト名 | 結果 | 検証内容 |
+|---|---|---|
+| `ResultModalDialog_FitsInsideSharedFrame` | Passed | 登録モーダル Dialog (840x510 @ 444,231) が共通フレーム (1728x972) 内に収まる |
+| `ResultModalDialog_IsFullyVisibleAtDesignResolutions` | Passed | FHD 1920x1080 / 2K 2560x1440 / Mac 2560x1664 の 3 解像度で Dialog の矩形が画面内に収まる (クリップされない) |
 
 ### 3.3 実機での画面確認 — **未検証**
 
@@ -212,7 +224,23 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
 **復元後の再実行**: 壊した 1 行を元に戻したうえで EditMode スイートを再実行し、
 **1118 / 1118 に戻る**ことを確認した (§3.2 と同じ実測値)。
 
-## 4. 残存リスク
+## 4. Issue #240 の受入条件ごとの確認結果
+
+Issue #240 の受入条件: 「実結果と表示が一致し、既存の保存・登録の意味を保って
+操作できる。閉じるだけの登録、偽の成功、二重入力がない。3解像度で結果・ボタン・
+モーダルに重なりやクリップがない。新しいゲーム集計やサーバー機能を必須にしない。」
+
+| # | 受入条件 | 確認方法 | 結果 |
+|---|---|---|---|
+| 1 | 実結果と表示が一致する | `V6ResultView` は GManager / PlaySessionSnapshot の実値のみを採る (design の固定値を描画しない)。`V6ResultLogic` の採点・ゲージ・差分計算は既存 `ResultView` / `SelectViewLogic` の閾値と一致 | **コードレビュー + 既存 EditMode テスト** (`V6ResultLogicTests` 11 件 / `V6ResultSubmitTests` 10 件 すべて Passed) |
+| 2 | 既存の保存・登録の意味を保つ | ローカル保存は v5 と同じ PlayerPrefs キー `"V5PlayerName"` / 同じ正規化 / 同じ上限 8 文字。オンライン送信は `RankingClient` の既存経路 (201 / 429 / オフライン / その他 HTTP) | **合格** — `V6ResultRegistrationTests` 18 件 Passed。negative control で保存キーを壊すと 2 件が fail (§3.4) |
+| 3 | 閉じるだけの登録をしない | `TrySubmit()` は Local 方式で `SaveLocalName()` を呼び、Online 方式で `RankingClient.PostScore` を呼ぶ。`OpenModal`/`CloseModal` だけでは保存しない | **合格** (コードレビュー + 純ロジックテスト) |
+| 4 | 偽の成功を出すがない | 送信不可 (ローカル曲 / 譜面未取得) は旧実装の `OnSubmitResult(null)` (=「オフライン」判定) を呼ばず、ローカル保存へ落とす。ローカル結果メッセージにオンライン語彙 (オフライン / 送信 / HTTP) は含まれない | **合格** — `LocalMessage_HasNoOnlineVocabulary` Passed |
+| 5 | 二重入力がない | モーダル表示中は `modalOpen` で背景の Retry / 遷移入力を早期 return する。旧 `ResultRankingOverlay` は `SuspendLegacyOverlay` で停止 | **合格** (コードレビュー。実操作は未検証) |
+| 6 | 3解像度で重なり・クリップがない | 共通フレームは 1:1 固定解像度 (`FrameOrigin`)。Main / 右カラム / フッター / 曲情報バンド / ランキング見出し / **登録モーダル** の各矩形がフレーム内・画面内に収まることを EditMode で検証 | **幾何は合格** (配置テスト 8 件 Passed)。**実画面のスクリーンショットは未検証** |
+| 7 | 新しいゲーム集計・サーバー機能を必須にしない | 追加したのはローカル名の保存と表示の切替のみ。`GManager` / `Judge` / 履歴ストア / REST API への変更なし | **合格** (差分は UI 層と PlayerPrefs のみ) |
+
+## 5. 残存リスク
 
 1. **実画面での文言・導線未確認 (中)**
    ローカル曲でモーダルを開き Register を押すと「端末に保存」メッセージが出て
@@ -222,6 +250,8 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
    design (05b 登録モーダル) の既定文言「スコアを登録」「Register」は
    オンライン曲でのみ使う。design 側にもローカル用の文言定義が無いので、
    文言の最終確定は Owner の目視確認が必要。
+   (配置の幾何は 2026-11-09 の追記で EditMode 検証済み — §3.2 の
+   `ResultModalDialog_*` 2 件。**文言と導線**の見た目は依然として未検証。)
 2. **ローカル曲で登録モーダルを開きに行く導線 (中)**
    v6 Result の Enter / 「Op Register」ボタンから開くモーダルは、
    ローカル曲でも同じ操作で到達する (v5 の `ResultView` と同じ位置づけ)。
@@ -247,7 +277,7 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
    走る (他テストと干渉しないことを推奨)。
    2026-11-09 の実測で、同一バイナリでの実行は干渉なし (1118 / 1118) を確認した。
 
-## 5. 変更ファイル
+## 6. 変更ファイル
 
 | ファイル | 変更 |
 |---|---|
@@ -262,5 +292,8 @@ $ /Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity -batc
 
 | ファイル | 変更 |
 |---|---|
-| `docs/evidence/240-result-registration.md` | §3.2 に EditMode 実測値 (1118 / 1118) と #240 のテスト名 18 件、§3.4 に negative control の実測を追記 |
+| `docs/evidence/240-result-registration.md` | §3.2 に EditMode 実測値 (main 1118 / 1118、本ブランチ 1120 / 1120) と #240 のテスト名 18 件 + 配置テスト 2 件、§3.4 に negative control の実測、§4 に受入条件ごとの確認結果を追記 |
 | `specs/240-result-registration/tasks.md` | 「EditMode テストの実実行」を完了に更新 |
+| `Assets/Game/Scripts/UI/V6/Result/V6ResultLogic.cs` | 登録モーダル Dialog の幾何 (`ModalDialogW/H/X/Y`) と `ModalDialogTopLeft()` を追加 (値は変えない) |
+| `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs` | `BuildModal` が上記定数を使うように変更 (値は変えない) |
+| `Assets/Game/Tests/V6CanvasTests/V6ResultFramePlacementTests.cs` | モーダル配置のテスト 2 件を追加 |

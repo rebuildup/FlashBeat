@@ -20,6 +20,13 @@
 - [x] 5. compile-check: `--assembly flashbeat` / `--assembly tests` ともに成功。
 - [x] 6. `specs/240-result-registration/{spec,plan,tasks}.md` と
       `docs/evidence/240-result-registration.md` の作成。
+- [x] 7. (2026-11-09 追記) 登録モーダルの配置検証 —
+      `V6ResultLogic` に Dialog の幾何定数 (`ModalDialogW/H/X/Y`) を追加し、
+      `V6ResultView.BuildModal` がそれを使うように変更 (値は変えない)。
+      `V6ResultFramePlacementTests` に
+      `ResultModalDialog_FitsInsideSharedFrame` /
+      `ResultModalDialog_IsFullyVisibleAtDesignResolutions` の 2 件を追加。
+      実測: **1120 / 1120** (追加 2 件とも Passed)。
 
 ## 未実施 (スコープ外 / 他者の作業)
 
