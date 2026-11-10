@@ -4,6 +4,10 @@
 [tools]
 bun = "1.4.2"
 uv = "0.13.7"
+# `script/compile-check.sh` が使う C# コンパイラ。Unity 本体のツールチェーンではなく
+# 「Unity を起動せずに型エラーを見る」ための補助。無いと shim が
+# "No version is set for shim: dotnet" で落ちる (2026-11-10 追加)。
+dotnet = "8.0.427"
 # Cloud / festival API toolchain (Issue #9 preflight).
 # Project-local only: never install these globally. Run them via
 # `mise exec -- cf ...` / `mise exec -- void ...` so every host (macOS,

@@ -12,7 +12,15 @@
 # picked up.
 #
 # Usage:
-#   script/compile-check.sh [--project <dir>] [--assembly flashbeat|editor|tests]
+#   script/compile-check.sh [--project <dir>] [--assembly flashbeat|editor|tests|tests-editor]
+#
+#   tests        = Assets/Game/Tests (FlashBeat.V5CanvasTests など)
+#   tests-editor = Assets/Tests/Editor (FlashBeat.Tests / 95 ファイル)
+#
+# Exit codes:
+#   0 = コンパイル成功
+#   1 = 型エラー・コンパイル失敗 (詳細は Temp/compile-check-<assembly>.log)
+#   2 = 前提不足で実行できない (不明な assembly / Editor 用 DLL が未生成)
 #
 # Defaults: --project $PWD --assembly flashbeat
 set -euo pipefail
@@ -59,9 +67,10 @@ if [ ! -e "$PROJECT_DIR/Library/ScriptAssemblies" ]; then
 fi
 
 case "$ASSEMBLY" in
-  flashbeat) SRC_ROOT="Assets/Game/Scripts" ;;
-  editor)    SRC_ROOT="Assets/Editor" ;;
-  tests)     SRC_ROOT="Assets/Game/Tests" ;;
+  flashbeat)    SRC_ROOT="Assets/Game/Scripts" ;;
+  editor)       SRC_ROOT="Assets/Editor" ;;
+  tests)        SRC_ROOT="Assets/Game/Tests" ;;
+  tests-editor) SRC_ROOT="Assets/Tests/Editor" ;;
   *) echo "unknown assembly: $ASSEMBLY" >&2; exit 2 ;;
 esac
 
@@ -91,11 +100,13 @@ sa = os.path.join(project_dir, "Library", "ScriptAssemblies")
 # この worktree で直前にビルドした flashbeat の DLL を優先する (flashbeat ビルド
 # 自身には足さない: 自分自身の古い DLL で型が解決されるのを防ぐ)。
 dll_ref_names = ["SimpleFadeSystem", "UniRx", "NoteEditor"]
-if assembly == "tests":
-    dll_ref_names.append("FlashBeat")
+if assembly in ("tests", "tests-editor"):
+    # Editor 専用テストは UnityEngine.TestRunner (UnityTest) と
+    # NoteEditor.Editor (MigrateLegacyTextJson / SongSwitchPrompt) も使う。
+    dll_ref_names += ["FlashBeat", "UnityEngine.TestRunner", "NoteEditor.Editor"]
 for name in dll_ref_names:
     path = os.path.join(sa, name + ".dll")
-    if assembly == "tests" and name == "FlashBeat":
+    if assembly in ("tests", "tests-editor") and name == "FlashBeat":
         fresh = os.path.join(project_dir, "Temp", "bin", "Debug", "FlashBeat.dll")
         if os.path.exists(fresh):
             path = fresh
@@ -139,4 +150,33 @@ OUT_PATH="Temp/bin/Debug"
 if [ "$ASSEMBLY" = "tests" ]; then
   OUT_PATH="Temp/bin/tests"
 fi
-dotnet build "$OUT" -v q --nologo -p:BuildProjectReferences=false -p:OutputPath="$OUT_PATH/" 2>&1 | grep -E "error|Build succeeded|エラー|警告" | head -60 || true
+if [ "$ASSEMBLY" = "tests-editor" ]; then
+  OUT_PATH="Temp/bin/tests-editor"
+  # Editor 専用アセンブリ (NoteEditor / NoteEditor.Editor) は Unity が一度でも
+  # プロジェクトを開いた時にだけ生成される。無いままビルドすると
+  # 「型が見つからない」が 40 件出て原因が分からないので、先に明示して止める。
+  if [ ! -f "$PROJECT_DIR/Library/ScriptAssemblies/NoteEditor.Editor.dll" ]; then
+    echo "compile-check: 実行できません (tests-editor) — Library/ScriptAssemblies/NoteEditor.Editor.dll がありません。" >&2
+    echo "  Editor 用アセンブリは Unity でプロジェクトを開いた時に生成されます。" >&2
+    echo "  この worktree で一度 Unity (batchmode 可) を実行してから再試行してください。" >&2
+    exit 2
+  fi
+fi
+
+# 終了コードを意味のあるものにする。以前は `| grep ... || true` で終わっていたため、
+# 型エラーがあっても exit 0 になり「通った」と誤読できた (2026-11-10 修正)。
+BUILD_LOG="Temp/compile-check-$ASSEMBLY.log"
+mkdir -p Temp
+set +e
+dotnet build "$OUT" -v q --nologo -p:BuildProjectReferences=false -p:OutputPath="$OUT_PATH/" >"$BUILD_LOG" 2>&1
+BUILD_STATUS=$?
+set -e
+
+grep -E "error|Build succeeded|エラー" "$BUILD_LOG" | head -60 || true
+
+if [ "$BUILD_STATUS" -ne 0 ] || grep -qE "^\s*.*error [A-Z]+[0-9]+" "$BUILD_LOG"; then
+  echo "compile-check: FAILED ($ASSEMBLY) — 詳細: $PROJECT_DIR/$BUILD_LOG" >&2
+  exit 1
+fi
+
+echo "compile-check: OK ($ASSEMBLY)"
