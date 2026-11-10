@@ -19,7 +19,16 @@ public class AutoTestV6 : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        if (GetArg("-autotest") != "v6") { return; }
+        var mode = GetArg("-autotest");
+        if (mode != "v6" && mode != "v6playfield") { return; }
+        // v6playfield モードでは -playfield 1 で遠近法プレイフィールドを
+        // 有効にする (-playfield 0 または無指定なら既定の false のまま)。
+        if (mode == "v6playfield")
+        {
+            FlashBeat.UI.V6.V6UiMode.Playfield = GetArg("-playfield") == "1";
+        }
+        Debug.Log("[AutoTestV6] playfield=" + (FlashBeat.UI.V6.V6UiMode.Playfield ? "1" : "0")
+            + " (mode=" + mode + ")");
         var go = new GameObject("AutoTestV6");
         DontDestroyOnLoad(go);
         go.AddComponent<AutoTestV6>();
