@@ -643,7 +643,7 @@
 | 2 | 動的 NotoSansJP をフォールバックとして追加し、足りない文字を実行時に生成 | 充足 | `JapaneseFontAssetBuilder.cs:249 EnsureDynamicFallback()` + `NotoSansJP-Dynamic SDF.asset` |
 | 3 | フォールバックが主フォントアセットに登録されている | 充足 | `JapaneseFontCodeStringCoverageTests.cs:79` |
 | 4 | コード内文字列の字形が主アトラス or 動的フォールバックで必ずカバーされる | 充足 (EditMode) | `JapaneseFontCodeStringCoverageTests.cs:38` |
-| 5 | **trunk と展示 patch line の両方へ** | **充足** | 展示候補が `main` `4445279` から生成され `4479114` (#140) を含むため trunk と同一の木になった (`git merge-base --is-ancestor 4479114 4445279` 真)。旧ビルド元 `b677f8f` は `main` の祖先だが実装は含まない。根拠: `docs/evidence/140-font-code-strings.md` §「条件 5 の現在地」 |
+| 5 | **trunk と展示 patch line の両方へ** | **充足** | 展示候補が `main` `7af9242d` から生成され `4479114` (#140) を含むため trunk と同一の木になった (`git merge-base --is-ancestor 4479114 7af9242d` 真)。旧ビルド元 `b677f8f` は `main` の祖先だが実装は含まない。根拠: `docs/evidence/140-font-code-strings.md` §「条件 5 の現在地」 |
 | 6 | 実機画面での豆腐 0 | **macOS 充足 / Windows 未検証** | 2026-11-10 に `main` の実機スクリーンショットを実読: Game (`docs/evidence/233-playfield/run-2026-11-10-main/autotest-v6-5.png`, `-6.png`) / Select (`docs/evidence/58-select-screen/run-b-ichikan/autotest-v6songend-01-01-select.png`) / Result (`.../04-04-result.png`) の 3 画面で、コード文字列・曲名・**譜面 JSON の歌詞**まで豆腐 0 を確認 (`docs/evidence/140-font-code-strings.md` §5)。**Windows 実機は未検証** (展示 PC は保護対象) |
 
 - **未検証の区別**: 条件 4 は **EditMode 静的カバレッジ** であって **実描画の豆腐 0 ではない** (字形が存在してもアトラス配置の問題は別)。代替 = EditMode 緑 + `docs/evidence/140-font-code-strings.md`。
