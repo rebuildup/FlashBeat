@@ -157,9 +157,11 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void Override_DoesNotReplaceAnExplicitChartJson()
+        public void Override_ReplacesAnExplicitChartJson()
         {
-            // リモート取得済みの譜面 (chartJson != null) のほうが優先される。
+            // 差し替えは **リモート取得済みの譜面より優先** する。
+            // (macOS 実機 run 1: 差し替えが負けたため商品譜面が再生され、
+            //  検証譜面ではなくカタログの譜面が実測されていた)
             const string explicitChart = "{\"songId\":\"who\",\"chartVersion\":1,\"chart\":{" +
                                         "\"name\":\"Who\",\"maxBlock\":8,\"BPM\":128,\"offset\":0," +
                                         "\"notes\":[{\"type\":1,\"num\":0,\"block\":3,\"LPB\":4,\"endNum\":0}]}}";
@@ -168,7 +170,8 @@ namespace FlashBeat.Tests.Editor
             PlaySessionSnapshot session = PlaySessionSnapshot.Begin(LocalSong(), 1, explicitChart);
 
             Assert.IsNotNull(session);
-            Assert.AreEqual(explicitChart, session.ChartJson);
+            Assert.AreEqual(HoldProbeChart.Json, session.ChartJson,
+                "差し替えは取得済みの譜面より優先する (差し替えが負けると検証谱面が再生されない)");
         }
 
         [Test]

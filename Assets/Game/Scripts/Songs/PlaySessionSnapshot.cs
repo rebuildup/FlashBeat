@@ -60,8 +60,9 @@ public sealed class PlaySessionSnapshot
     /// (テスト用ハーネスからのみ設定する)。
     ///
     /// null のときは商品パスと完全に同じ挙動になる。
-    /// 設定されている間は、Begin() が chartJson == null (ローカル曲) の
-    /// たびにこの JSON が優先して固定される。
+    /// 設定されている間は、Begin() が呼ばれるたびにこの JSON が
+    /// **他のどの譜面より優先して** 固定される (リモート取得済みの
+    /// chartJson を含む)。
     /// </summary>
     public static string ChartJsonOverride { get; set; }
 
@@ -78,12 +79,13 @@ public sealed class PlaySessionSnapshot
     {
         if (song == null) return null;
 
-        // 差し替え (Issue #278): 明示的な chartJson (リモート取得済みの譜面) が
-        // ないときだけ、差し替え用 JSON を優先する。差し替えが null のときは
-        // 従来とまったく同じ固定内容になる。
+        // 差し替え (Issue #278): 差し替え用 JSON は **他の譜面より優先** する。
+        // リモート取得済みの chartJson には負けてはいけない。
+        // (macOS 実機 run 1: 差し替えが負けたため商品譜面が再生され、
+        //  検証譜面ではなくカタログの譜面が実測されていた)
         string pinnedChartJson = chartJson;
         bool usedOverride = false;
-        if (pinnedChartJson == null && !string.IsNullOrEmpty(ChartJsonOverride))
+        if (!string.IsNullOrEmpty(ChartJsonOverride))
         {
             pinnedChartJson = ChartJsonOverride;
             usedOverride = true;
