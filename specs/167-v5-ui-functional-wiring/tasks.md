@@ -8,7 +8,7 @@ description: "Task list template for feature implementation"
 **Tests**: EditMode テスト (`Assets/Tests/Editor/V5UiWiringTests.cs`) を T5 で追加する。
 **上限**: 5 タスク (Issue #167 の指定)。
 
-- [ ] **T1 機能 UI 契約表**
+- [x] **T1 機能 UI 契約表**
   `specs/167-v5-ui-functional-wiring/spec.md` に Opening / Title / Select (List, Typing, Ready, History,
   Ranking) / Game (HUD, Ready, Loading, Error) / Pause (Setting, Display, Ranking, Keys) / Option /
   Result (Register, Ranking) の **全 visible control** を
@@ -16,14 +16,15 @@ description: "Task list template for feature implementation"
   未接続・偽値・誤ラベル・空画面は Findings 表 (F1〜F18) として明示する。
   **完了条件**: spec.md に上記表と Findings が存在し、各行に実装根拠 (ファイル:行 or シンボル名) が書いてある。
 
-  > 検証結果 (2026-11-10): **部分充足**。`spec.md:104-226` に契約表 (56 行) と Findings F1〜F18 が存在し、
-  > **56 行すべてに実装根拠 (シンボル名) あり** (未接続・除外行の F5 / F8 / F9 は Findings にも記載済)。
-  > 残る不足は 2 行分の列挙漏れ:
-  > ① **Game の Loading ビュー (`GameLoadingView`) の行が無い** — spec.md の Game 節 (`:154-171`) にも
-  > `docs/ui/issue-167-handler-audit.md` §1b の Game 節 (`:126-140`) にも存在しない。
-  > ② **Result の Ranking (F5 ボード / `ResultRankingOverlay`) の行が spec.md の Result 節 (`:196-203`) に無い**
-  > (F18 に既知問題として記載されているだけ。§1b Result 節には「ランキング登録 (cloud 曲)」の行がある)。
-  > 根拠: `docs/ui/issue-167-verify-2026-11-10.md`
+  > 検証結果 (2026-11-10): **充足** (契約表 56 行 + 本作業で不足 2 行を追加 = 58 行)。
+  > `spec.md:104-226` に契約表と Findings F1〜F18 が存在し、全行に実装根拠 (シンボル名) あり。
+  > 以前の検証 (`docs/ui/issue-167-verify-2026-11-10.md`) で指摘された列挙漏れ 2 行を追加した:
+  > ① **Game の Loading** — `GameHudRuntime.cs:98-100` (`GameLoadingView.Build` / `LoadingOverlayHook.Bind`) と
+  > 表示可否の単一情報源 `GameLoadingRoute.UsesLegacyOverlay` (`LoadingOverlay.cs:32`) を根拠に
+  > Game 節 (`spec.md:159`) へ追加 (v6 既定では `V6LoadingView` が単独表示である旨も記載)。
+  > ② **Result の Ranking** — `ResultRankingOverlay.Update` (`ResultRankingOverlay.cs:120-143`) を根拠に
+  > Result 節 (`spec.md:204`) へ追加。ローカル固定曲で開けない点は F18 (Known Issue)、
+  > v6 Result 既定ではオーバーレイ停止 (`:100-103`) である旨を列に明記。
 
 - [x] **T2 Title / Select / Ready を実接続**
   `Assets/Game/Scripts/UI/V5/TitleView.cs`, `SelectView.cs`, `SelectViewLogic.cs`,
@@ -87,27 +88,31 @@ description: "Task list template for feature implementation"
   > ただし監査表の「TMP テキスト」列は TMP が GUID 参照のため grep で再導出できず、**再検証できていない**。
   > 根拠: `docs/ui/issue-167-verify-2026-11-10.md`
 
-- [ ] **T5 完了ゲート Preparation (証跡手順書 + EditMode テスト)**
+- [x] **T5 完了ゲート Preparation (証跡手順書 + EditMode テスト)**
   `docs/ui/issue-167-ui-acceptance.md` に Win64 実機での操作ログ表
   (画面 / 押すキーやボタン / 期待される結果 / スクリーンショット取得位置) と、
   `Assets/Tests/Editor/V5UiWiringTests.cs` に **実ハンドラが呼ばれる** ことを検証する EditMode テスト
   (実 `Button.onClick.Invoke()` / 実 View 生成 / `PlaySession` 受け渡し / 死んだ行が無いこと) を追加する。
   **完了条件**: 手順書に操作表があり、テストが本 Issue の受入条件 (F1〜F18 の修正) を直接検証している。
 
-  > 検証結果 (2026-11-10): **部分充足**。
-  > 存在するもの: `docs/ui/issue-167-ui-acceptance.md` (Title / Select / Game / Result / Option の操作ログ表
-  > T1〜T7 / S1〜S11 / G1〜G15 / R1〜R6 / O1〜O8、期待動作・証跡 shot 名・§2 取得位置・§3 トラブルシュート)、
-  > `Assets/Tests/Editor/V5UiWiringTests.cs` (8 テスト、実 `Button.onClick.Invoke()` / 実 View 生成 /
-  > `PlaySession` 受け渡し / 死んだ行が無いことの検証を含む)。
-  > 残る不足:
-  > ① **spec.md:92 が名指しする `V5UiWiringTests.ResultRegister_IsLabelledLocal` がリポジトリに存在しない**
-  > (`grep` 済み)。F2 / F6 / F8 / F10 / F15 / F16 / F17 / F7 に対応する EditMode テストも無い
-  > = 完了条件の「F1〜F18 の修正を直接検証」全覆盖には届いていない (F18 は仕様どおり未修正 = Known Issue)。
-  > ② 手順書が古い: ヘッダが Draft PR #177 / `git checkout 167` を指し、S5/S6 の
-  > 「**この後 F5 で Game へ**」は誤り (F5 は Ranking 画面。Game へは `Enter` / `Space` / 右下 `Start`)。
-  > ③ 手順書が **v6 UI 既定** (`V6UiMode.GameHud = true` / `SelectScreen = true`) を考慮しておらず、
-  > v5 HUD / v5 ポーズ / v5 Select を前提にした操作が実機ではそのまま再現できない。
-  > 根拠: `docs/ui/issue-167-verify-2026-11-10.md`
+  > 検証結果 (2026-11-10): **EditMode 実装分は完了 / 実機受入 (Win64) は未了**。
+  > 実装したもの:
+  > ① `Assets/Tests/Editor/V5UiWiringTests.cs` に Findings **F2 / F6 / F7 / F8 / F10 / F15 / F16 / F17**
+  > を直接検証する 8 テストを追加 (実 View 生成 → 実 `Button.onClick.Invoke()` → 実状態 Assert、
+  > `finally` で `DestroyImmediate` + `GManager` 静的状態の復元)。spec.md:92 が名指しする
+  > `ResultRegister_IsLabelledLocal` を含む。テスト可能化のための最小抽出のみ実施:
+  > `GameHudController.DisableLegacyRaycastersIn(Scene)` (F2)、`SelectView.CanFetchOnlineRanking` を
+  > public static 化 (F7)、`GameSceneManager.LegacyBackOpensMenu` (F15)、
+  > `ResultSceneManager.ApplyBestScore` (F16)。挙動は変えていない。
+  > ② `docs/ui/issue-167-ui-acceptance.md` を v6 UI 既定 (`V6UiMode.GameHud = true` /
+  > `SelectScreen = true` / `V6TitleView.Enabled` / `V6PauseView.Enabled` / `V6ResultView.Enabled` が
+  > すべて true) に合わせて書き直した。旧記述 (Draft PR #177 / base `release-0-1-11` /
+  > `git checkout 167`) は削除。S5 / S6 の「この後 F5 で Game へ」の誤りを修正
+  > (Game へは Ready / `Enter` / `Space`)。解像度要件 (FHD 1920×1080 / 2K 2560×1440 /
+  > Mac 2560×1664 の実ディスプレイ全画面のみ有効) と「Windows 実機の操作受入は未実施」を明記。
+  > **残る未了 (本チェックの対象外)**: T5 の完了条件のうち **実機 (Win64) での一巡受入**。
+  > 手順書 §4 がオーナー実施節として残っている (cc は展示 PC を操作しない)。
+  > EditMode テストの緑は実機合格の代用ではない。
 
 ## Dependencies & Execution Order
 

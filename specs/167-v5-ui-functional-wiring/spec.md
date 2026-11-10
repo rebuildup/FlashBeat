@@ -156,6 +156,7 @@ online ランキングを持たない / local のみの画面は **「ローカ�
 | control | 入力 | ハンドラ | 効果 | フィードバック | 退出 |
 |---|---|---|---|---|---|
 | Ready パネル `Space` | クリック / `Space` | `GameReadyView` → `MusicManager.Start` | 動画 + 音源の再生開始 | パネル消滅 | — |
+| Loading 表示 (`GameLoadingView` / v6 では `V6LoadingView`) | (クリック不可) | 生成: `GameHudController.Start` → `GameLoadingView.Build` (`GameHudRuntime.cs:98-100`)。表示可否の単一情報源は `GameLoadingRoute.UsesLegacyOverlay` (`LoadingOverlay.cs:32`) | 動画・音源の準備中に "Loading youtube video ..." と不定バー (往復インジケータ) を出す。v6 既定 (`V6UiMode.GameHud = true`) では `V6LoadingView` が単独で表示し、旧 `LoadingOverlay` / `MediaLoadingOverlay` とは 2 枚重ねにしない | 不定インジケータ | — |
 | HUD `Pause` ボタン | クリック | `PauseMenuView` を開く | 一時停止メニュー表示 | メニュー | — |
 | Pause `Resume` | クリック / `Esc` | `PauseMenuView.Close()` | 一時停止解除 | メニュー消滅 | — |
 | Pause `Retry` | クリック | `GameSceneManager.RetryGame()` | `GManager.ResetSession()` + GameScene 再読込 | フェード | Game |
@@ -200,6 +201,7 @@ online ランキングを持たない / local のみの画面は **「ローカ�
 | `Retry` | クリック / `Enter` | `owner.Retry()` | `GManager.ResetSession()` + GameScene 再読込 | フェード | Game |
 | `OK` (Select へ) | クリック / `Esc` | `owner.SelectScene()` | Select へ | フェード | Select |
 | `Register` (名前入力モーダル) | クリック | `ResultView` のモーダル | **この端末の保存名**として保存 (ローカル限定 と明記) | モーダル表示 | モーダルを閉じる |
+| `Ranking` (F5 ボード / `ResultRankingOverlay`, 外部所有) | `F5` / 結果画面入場 1.2 秒後の自動モーダル | `ResultRankingOverlay.Update` → `RankingPanel` (`ResultRankingOverlay.cs:120-143`) | cloud 曲 (`isRemote` && `remoteId` && `chartVersion>0`, score>0) だけ読み取り専用 Top 10 とスコア登録モーダル。**ローカル固定曲では `RankingSong()` が null で開けない = F18 Known Issue**。v6 Result 既定 (`V6ResultView.Enabled = true`) では本オーバーレイは停止し、v6 側の登録モーダル / ランキングが担う (`ResultRankingOverlay.cs:100-103`) | パネル / モーダル | `F5` / `Esc` で閉じる |
 | 順位 / スコア / 判定内訳 / ベストスコア | (クリック不可) | `GManager` の実データ | 表示のみ | — | — |
 
 ## 偽値・未接続・誤ラベルの明示リスト (T1 のFindings)

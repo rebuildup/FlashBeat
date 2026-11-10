@@ -1685,8 +1685,10 @@ namespace FlashBeat.UI.V5
             }
         }
 
-        /// <summary>オンラインランキングを取得できる曲か (cloud 曲のみ)。</summary>
-        private static bool CanFetchOnlineRanking(SongData song)
+        /// <summary>オンラインランキングを取得できる曲か (cloud 曲のみ)。
+        /// EditMode テストが SongData を組み立てて真偽を直接検証できるよう公開した
+        /// (Issue #167 F7。読み取り専用の述語で、状態は持たない)。</summary>
+        public static bool CanFetchOnlineRanking(SongData song)
         {
             if (song == null || !song.isRemote) { return false; }
             if (string.IsNullOrEmpty(song.remoteId)) { return false; }
