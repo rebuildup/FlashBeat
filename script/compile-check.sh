@@ -138,6 +138,17 @@ open(out, "w", encoding="utf-8").write(text)
 print(f"compile-check: {len(sources)} sources -> {out}")
 PY
 
+# test 系は FlashBeat.dll を参照する。この worktree で flashbeat をビルドしていない
+# 場合は Library/ScriptAssemblies のもの (= Unity が最後に import した時点) を使うので、
+# 新しく足した型が「無い」と誤って言われることがある。先に --assembly flashbeat を
+# 実行するのが正しい順序だと分かるように明示する。
+if { [ "$ASSEMBLY" = "tests" ] || [ "$ASSEMBLY" = "tests-editor" ]; } &&
+   [ ! -f "$PROJECT_DIR/Temp/bin/Debug/FlashBeat.dll" ]; then
+  echo "compile-check: 注意 — Temp/bin/Debug/FlashBeat.dll がありません。" >&2
+  echo "  Library/ScriptAssemblies/FlashBeat.dll (Unity の最終 import 時点) で型を解決します。" >&2
+  echo "  最新ソースで検証するには先に --assembly flashbeat を実行してください。" >&2
+fi
+
 cd "$PROJECT_DIR"
 # BuildProjectReferences=false: Unity が生成した関連 csproj (NoteEditor / UniRx) を
 # 再ビルドしない。参照 DLL は既に Library/ScriptAssemblies にある。
