@@ -249,6 +249,39 @@ namespace FlashBeat.Tests.Editor
                     null, null, null, null, null));
         }
 
+        // --- 旧歌詞オブジェクト名 (二重表示の正本) ---
+
+        [Test]
+        public static void LegacyLyricObjectNames_CoverTheThreeLegacyLyricTexts()
+        {
+            // v6 の HUD と二重表示になる旧 v5 の歌詞オブジェクト 3 つ。
+            Assert.IsTrue(GameUiExclusivity.IsLegacyLyricObjectName("QuestionText"));
+            Assert.IsTrue(GameUiExclusivity.IsLegacyLyricObjectName("FuriganaText"));
+            Assert.IsTrue(GameUiExclusivity.IsLegacyLyricObjectName("RomajiText"));
+        }
+
+        [Test]
+        public static void IsLegacyLyricObjectName_RejectsUnrelatedAndEmptyNames()
+        {
+            Assert.IsFalse(GameUiExclusivity.IsLegacyLyricObjectName("TextPanel"));
+            Assert.IsFalse(GameUiExclusivity.IsLegacyLyricObjectName("V6GameHudCanvas"));
+            Assert.IsFalse(GameUiExclusivity.IsLegacyLyricObjectName(""));
+            Assert.IsFalse(GameUiExclusivity.IsLegacyLyricObjectName(null));
+        }
+
+        [Test]
+        public static void LegacyLyricObjectNames_AreUnique()
+        {
+            var names = GameUiExclusivity.LegacyLyricObjectNames;
+            for (int i = 0; i < names.Length; i++)
+            {
+                for (int j = i + 1; j < names.Length; j++)
+                {
+                    Assert.AreNotEqual(names[i], names[j]);
+                }
+            }
+        }
+
         // --- ヘルパ ---
 
         private static V6UiFlags DefaultV5()
