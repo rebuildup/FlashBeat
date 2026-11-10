@@ -4,6 +4,7 @@ using FlashBeat.Persistence;
 using FlashBeat.UI.V6.Game.Pause;
 using FlashBeat.UI.V6.Result;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 
 namespace FlashBeat.Tests.Editor
