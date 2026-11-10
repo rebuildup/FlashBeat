@@ -2,6 +2,7 @@
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
+- **更新 6 (2026-11-10)**: **#61 を再判定して Closed** (10 条件すべて充足。条件 5/7/8/9 を実ブラウザ証跡と本番 read-only E2E 14/14 で埋めた — `docs/evidence/61-studio-acceptance-2026-11-10.md`)。
 - **更新 5 (2026-11-10)**: **#98 を Closed** (PR #307 merged `fe2acfc` — chart 側の下書き復元 7 テスト) / **#224 の受入条件 5 を充足** (`specs/224-pause-loading/rollout.md`)。
 - **監査範囲**: open の全 Issue 48 件のうち **#71 / #68 / #278 / #60 は Closed** となったため **実質 44 件**
 - **作業**: worktree `/Users/rebui/work/FlashBeat.waudit4` (branch `w/audit-update-3`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
@@ -80,7 +81,7 @@
 | 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
 | 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B → 対策 (A) 実施済 → Closed** | `Assets/Game/Scripts/Common/HoldProbeChart.cs` (新規), `PlaySessionSnapshot.ChartJsonOverride`, `AutoTestV6Hold.cs` (新規), `script/mac-holdprobe-harness.sh` (新規) | **2/0/1** | Windows 実機 / 本物のキー押下 | **PR #291 merged** (EditMode 1306/1306)。macOS 実機 run = `RESULT pass=41 fail=0` / `holdClear=3 holdBroken=0` / `holdBodiesVisible=3` / `judged=7 == settled=7 == chartNotes=7`。**負の対照** (修正前 run は同じハーネスで `fail=2`) も収録 (`docs/evidence/278-hold/`)。**Issue #278 は Closed** (コメント id 6757024894)。**残 = 本物のキー押下での HOLD 保持 (macOS の Unity legacy Input は CGEvent を見ないため保持は注入シーム) / Windows 実機** / 対策 (B) のオーナー判断 |
 | 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 受入条件 5/5 充足 → Closed** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **5/0/0** | — | **PR #295 merged** (実行 SHA `2bd7302` / before SHA `54505c2` / PR #90 URL / tasks.md T1〜T5 チェック / before-after 画素証跡 20 ファイル) + **PR #296 merged** (記録の訂正: teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み)。**Issue #60 は Closed** (コメント id 6757102070)。残存 = 2xs 可読性・フォーカスリングのコントラスト・390px サイドバー (いずれも #74 のスコープ) |
-| 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
+| 61 | Web UI Product Spec (Studio 全体) | **A → 受入条件 10/10 充足 → Closed** | `web/src/**`, `web/tests/visual/**`, `web/tests/e2e/**` | **10/0/0** | — | **再判定 (2026-11-10, `docs/evidence/61-studio-acceptance-2026-11-10.md`)**: 旧判定の条件 5 (アイコン) / 7 (デスクトップ幅) / 8 (5 viewport + 200% zoom) / 9 (画素画像 + 実入力) は PR #257 / #305 の実ブラウザ証跡と本番 read-only E2E (**14/14 pass**, catalogVersion 38) で充足。**本番書き込みは未実施** (専用テスト曲 + オーナー承認が必要) |
 | 68 | Web/Catalog 本番 Catalog API 接続 | **A → 受入条件 7/7 充足 → Closed** | `web/src/app/catalog.ts:21,28,32,57,79`, `web/src/app/app-shell.tsx` | **7/0/0** | — | **PR #293 merged** (abort / stale-response ガード + 契約テスト 21 件) + **PR #294 merged** (`cache: "no-store"`)。**実 API の生レスポンス** を取得して `parseSongs` が受理することを実測。**Issue #68 は Closed** (コメント id 6757022442) |
 | 71 | Web/Chart Session 正しい版を開く | **A → 受入条件 6/6 充足 → Closed** | `web/src/lib/song-session/load.ts` | **6/0/0** | — | **再検証 (2026-11-10, コメント id 6744130520)**: 6 条件すべて充足 (実ブラウザ + ローカル D1 で 4 曲公開 → 版不一致は 404 → 空譜面に置換せずエラー表示 / 曲ごとに videoId・note-count が独立)。**Issue #71 は Closed** |
 | 73 | Web/Publish Flow モック禁止+実API | **A → 検証済 (1 条件 本番 E2E 待ち)** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | **7/0/1** | 本番 API での監督付き E2E | **再検証 (2026-11-10, コメント id 6744154670)**: 8 条件を個別判定 → 7 充足 (実ブラウザ publish → 実 GET で catalogVersion / chartVersion 一致、401 で成功表示ゼロ) / **T5 未検証** (本番 API への書き込みを伴う E2E。cc は本番書き込みを行わない)。token 非漏洩はコード + 実測で担保済み |
@@ -823,29 +824,33 @@
 
 ### #61 — [Web UI Product Spec] 実Studioの体験・情報構成・視覚品質・E2E受け入れ基準
 
-- **区分**: **B (部分実装)**
+- **区分**: **A (実装済み・証拠あり)** — 2026-11-10 に再判定し **Closed**
 - **実装/証拠**:
   - 本 Issue は **製品仕様の正本**。Issue 本文 36 行目が「**#61 is the product specification / coordination Issue, not an 11th code worktree**」と明記
-  - 子 Issue の実装状況: #60 (A), #68 (A), #71 (A), #73 (A), #74 (B), #75 (B), #135 (A) → 本 Issue の実装修約の 6/7 が実装済み
-  - 追加 Issue: #163 / #164 / #165 / #166 は **closed** (`gh issue list --state open` に無い)
-  - 契約: `contracts/schemas/chart.v1.schema.json` の `notes[].type` は **`[1,2]`** (HOLD 許容) に更新済み — Issue 本文 49 行目が指摘した `const:1` は解消
+  - 子 Issue: #60 / #68 / #71 / #73 / #74 / #75 / #135 はすべて充足判定 (本監査の各節)
+  - 契約: `contracts/schemas/chart.v1.schema.json` の `notes[].type` は **`[1,2]`** (HOLD 許容) に更新済み
+  - 再判定の記録: **`docs/evidence/61-studio-acceptance-2026-11-10.md`**
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | Gate A: Live GET songs、本番で fixture 無し | 充足 | `web/src/app/catalog.ts:28` 実 `fetch("/api/v1/catalog")` + `:32` 失敗時 throw |
+| 1 | Gate A: Live GET songs、本番で fixture 無し | 充足 | `web/src/app/catalog.ts:28` + 本番 read-only E2E (`catalog.status` 200) |
 | 2 | Gate A: 表示される導線はすべて実装済み画面を開く | 充足 (コード) | `web/src/app/topbar.test.tsx`, `catalog-panel.test.tsx` |
-| 3 | Gate A: カタログ行選択で正しい song+chartVersion を開く、サンプルが本物に見えることなし | 充足 | `web/src/lib/song-session/load.ts:21-60` (exact version + identity 検証) |
-| 4 | Gate A: 1 件の publish が persisted live chartVersion を確認し、invalid token/invalid chart/error で入力を失わない | 充足 | `web/src/lib/publish/transport.ts:25,31-35` + `web/src/lib/publish/__tests__/*.test.ts` |
-| 5 | Gate B: 実アプリアイコン (text `FB` フォールバックでない) | 未充足 | #67 は closed だが `web/public/**` の実アセットは本監査未確認 → **観測不足** |
-| 6 | Gate B: 意味的色/コントロール/リスト層が Pen v5 に一致、Teal 残存無し | 充足 | `web/panda.config.ts:76` `include: ["gray","blue","red","green","amber"]` — Teal 除外済み。`docs/design/web-token-mapping.md` §2 「Accent (`blue`, replaces Park `teal` `#12A594`)」 |
-| 7 | Gate B: デスクトップ幅を実際の編集作業に使う (filler card や placeholder でない) | 未検証 | 実ブラウザでの目視確認が必要 |
-| 8 | Gate C: 実ブラウザ 1440×900 / 1280×720 / 390×844 / 200% zoom、キーボード+ポインタ | **未充足** | 視覚ゲートの証跡は `specs/075-visual-gate/evidence/2026-11-08/index.json` に 3 viewport 分の撮影がある。ただし **`exitCode: 1`** = **ゲートが不合格**。200% zoom の証跡は無い |
-| 9 | Gate C: 実ブラウザ画素画像 **と** 実入力 E2E の両方 (テスト成功だけでは NG) | 未充足 | #74 の実操作 E2E が未了。`specs/74-responsive/tasks.md` の 3 タスクが未チェック |
+| 3 | Gate A: カタログ行選択で正しい song+chartVersion を開く、サンプルが本物に見えることなし | 充足 | `web/src/lib/song-session/load.ts:21-60` + 本番 E2E `chart.identity` |
+| 4 | Gate A: 1 件の publish が persisted live chartVersion を確認し、invalid token/invalid chart/error で入力を失わない | 充足 | `web/src/lib/publish/transport.ts:25,31-35` + `__tests__/*`。**本番書き込みは未実施** |
+| 5 | Gate B: 実アプリアイコン (text `FB` フォールバックでない) | **充足** | `web/public/flashbeat-icon-{32,64,180,192,512}.png` (実 PNG) / `web/void.config.ts:52-54` (favicon 32・192 / apple-touch 180) / `brand-header.tsx:21`。導入 `9ad25d7` |
+| 6 | Gate B: 意味的色/コントロール/リスト層が Pen v5 に一致、Teal 残存無し | 充足 | `web/panda.config.ts:76` / `docs/design/web-token-mapping.md` §2 |
+| 7 | Gate B: デスクトップ幅を実際の編集作業に使う (filler card や placeholder でない) | **充足** | `specs/74-responsive/evidence/2026-11-10/` の 1440×900 / 1280×720 / 1024×768 実 Chrome 撮影、`npm run visual` PASS (overflow 0 / console error 0) |
+| 8 | Gate C: 実ブラウザ 1440×900 / 1280×720 / 390×844 / 200% zoom、キーボード+ポインタ | **充足** | 同ディレクトリに **5 viewport** (上 3 + 390×844 + **200% zoom = 720×450 CSS px**) × 3 route = 15 capture。統合 owner が `origin/main` (`4a63974`) で再実行し PASS。旧「`exitCode: 1`」は PR #257 で解消 |
+| 9 | Gate C: 実ブラウザ画素画像 **と** 実入力 E2E の両方 | **充足** | 画素画像 = 上記 15 capture。実入力 = `tab-walk.json` (3 route × 2 viewport の Tab 順 / ドロワー focus trap / focus 復帰) + 本番 read-only E2E **14/14 pass** |
 | 10 | 本番デプロイは単独 deploy owner の管理 | 充足 (運用) | `docs/operations/cloudflare-bootstrap.md` |
 
-- **未検証の区別**: 条件 7–9 は **実ブラウザの画素画像 + 実入力** が必要。**Vitest 緑は「クリックが確実に届く」を保証しない** (Issue 本文 52 行目「テスト成功だけではNG」)。代替 = `web/src/**` 47 テストファイル緑 + `docs/evidence/web-acceptance/{1920x1080,2560x1440,2560x1664}` の撮影。
-- **依存**: #60 → #68 → #71 → #73 → #74 → #75 の順。**#74 / #75 が未完了 = 本 Issue は閉じられない**。
+- **本番 read-only E2E (2026-11-10T04:40Z)**: `npm run e2e` → total 14 / passed 14 / failed 0、
+  `catalogVersion` 38、`chart.noteCount === chart.notes.length`、chart schema 適合、leaderboard 降順。
+- **未検証の区別**: **本番への publish 書き込み**は未実施 (`--write` は専用テスト曲 id + オーナー承認が要る)。
+  `web/tests/e2e/*.spec.ts` (Playwright) は当日実行していない。200% zoom はブラウザのズーム UI ではなく
+  **720×450 CSS px のビューポート**で再現。画素画像の**デザインレビュー (人の判断)** は #75 の領域。
+- **依存**: 子 Issue (#60 / #68 / #71 / #73 / #74 / #75 / #135) は充足済み。
 
 ### #60 — [Web/UI Foundation] Pen v5 の色・surface階層・タイポグラフィをPanda/Parkへ写像
 
