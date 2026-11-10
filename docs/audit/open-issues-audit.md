@@ -1,7 +1,7 @@
 # open Issue 実装状況監査 (main 実測)
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
-- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映
+- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
 - **監査範囲**: open の全 Issue 48 件のうち **#71 / #68 / #278 / #60 は Closed** となったため **実質 44 件**
 - **作業**: worktree `/Users/rebui/work/FlashBeat.waudit4` (branch `w/audit-update-3`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
 
@@ -83,7 +83,7 @@
 | 68 | Web/Catalog 本番 Catalog API 接続 | **A → 受入条件 7/7 充足 → Closed** | `web/src/app/catalog.ts:21,28,32,57,79`, `web/src/app/app-shell.tsx` | **7/0/0** | — | **PR #293 merged** (abort / stale-response ガード + 契約テスト 21 件) + **PR #294 merged** (`cache: "no-store"`)。**実 API の生レスポンス** を取得して `parseSongs` が受理することを実測。**Issue #68 は Closed** (コメント id 6757022442) |
 | 71 | Web/Chart Session 正しい版を開く | **A → 受入条件 6/6 充足 → Closed** | `web/src/lib/song-session/load.ts` | **6/0/0** | — | **再検証 (2026-11-10, コメント id 6744130520)**: 6 条件すべて充足 (実ブラウザ + ローカル D1 で 4 曲公開 → 版不一致は 404 → 空譜面に置換せずエラー表示 / 曲ごとに videoId・note-count が独立)。**Issue #71 は Closed** |
 | 73 | Web/Publish Flow モック禁止+実API | **A → 検証済 (1 条件 本番 E2E 待ち)** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | **7/0/1** | 本番 API での監督付き E2E | **再検証 (2026-11-10, コメント id 6744154670)**: 8 条件を個別判定 → 7 充足 (実ブラウザ publish → 実 GET で catalogVersion / chartVersion 一致、401 で成功表示ゼロ) / **T5 未検証** (本番 API への書き込みを伴う E2E。cc は本番書き込みを行わない)。token 非漏洩はコード + 実測で担保済み |
-| 74 | Web/Responsive 操作不能 UI をなくす | **B** | `web/src/app/sidebar.tsx`, `web/src/app/panel.tsx` | **3/0/3** | 視覚ゲート (#75) | **PR #257 merged**。狭幅横溢れ 0・clip 0 を実測 (`npm run visual` exit 0) |
+| 74 | Web/Responsive 操作不能 UI をなくす | **A → 受入条件 6/6 充足** | `web/src/app/sidebar.tsx`, `web/src/app/panel.tsx`, `specs/74-responsive/evidence/2026-11-10/` | **6/0/0** | — | **PR #257 merged** (狭幅横溢れ 0) + **PR #305 merged** — 残り 3 タスク (Tab 順 walk / 390px rendered check / 5 viewport 撮影) を実 Chrome で実施し tasks.md 29/29。統合 owner が `origin/main` で再実行 (`npm run visual` PASS / `tab-walk` 0 outsideViewport / trap held / focus 復帰)。**記録のみ**: YouTube iframe に focus ring 無し / `home@1024×768` の actions 列が panel 内 50px スクロール |
 | 75 | Web/Visual Gate 画像レビュー/本番E2E | **B** | `web/tests/visual/capture.mjs` | 2/2/1 | 画像ベースのデザインレビュー (人) | ゲートは **exit 0 に回復** (PR #257)。`clipped=0` / `hScroll=false` を実測。残るのは画像比較の人の判断 |
 | 88 | Win/P0 全画面にならず UI 崩れる | **B** | `ProjectSettings/ProjectSettings.asset:107,119`, `Assets/Game/Tests/FullscreenPolicyTests.cs` | 2/1/2 | Windows 実機 | `displayCoverage ≥ 0.99` を実測 (現状 run-summary は `fullscreen=0`) |
 | 96 | Unity/P1 Title/Result/Option/Opening 崩れ | **B** | `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `V6/Common/V6UiProfile.cs:73-75` | 2/1/2 | Windows 実機 | 1024×768 / 1280×720 の実機撮影が未取得 |
@@ -94,7 +94,7 @@
 | 135 | Registration/P0 ブラウザだけで新規曲登録 | **A → 検証済 (1 条件 Windows 実機待ち)** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | **5/0/1** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744359277)**: 6 条件を個別判定 → 5 充足 (実ブラウザで slug 重複検出・oEmbed 遮断下の videoId 抽出・譜面エディタ往復・publish 成功パネル・反映確認手順) / **条件 6 未検証** (Unity カタログへの実反映 = Windows 実機 + デプロイ済み API が必要) |
 | 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **B** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 3/1/1 | — | **展示 patch line に未適用** (`b677f8f` に `CollectCodeTexts` なし) |
 | 162 | P0/REBUILD v0.1.13 UI 受け入れ撤回 | **B** | `docs/ui/issue-162-ui-contract.md` (F1–F18) | 3/3/2 | Windows 実機 | 実操作での受け入れが未了。子 #167 が残作業 |
-| 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **B → コード実装済 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (8 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-verify-2026-11-10.md` | 3/2/1 | Windows 実機 | **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
+| 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **A → EditMode 実装分充足 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (17 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-ui-acceptance.md` | **1/0/3** | Windows 実機 | **PR #304 merged** — 契約表に Loading / Result Ranking の 2 行、F2/F6〜F8/F10/F15〜F17 の EditMode テスト 9 件、手順書を v6 UI 既定で全面差し替え。**EditMode 1322/1322 passed** (macOS, Unity 6000.5.6f1)。残 = **Win64 実機の一循環のみ** **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
 | 182 | Game/P1 判定キュー再設計 | **A** | `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` | 2/0/1 | — | **PR #256 merged → Issue Closed** (受入条件 5 項目すべて充足) |
 | 217 | P0/v6 Pencil UI 並列移植 (umbrella) | **D** | `Assets/Game/Scripts/UI/V6/**` | 1/1/2 | Windows 実機 + 子 Issue | 子 (#219–#241) の完了待ち |
 | 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B → 統合 owner が方式を確定 (2026-11-10)** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72`, 3D 側は PR #263 | 2/2/1 | Windows 実機 (3 解像度の画像比較) | **統合 owner の決定**: 展示 (11/14) の正は **3D プレイフィールド** (PR #263 でカメラ基準 z スケール + レーンガイドを復元)。`V6UiMode.Playfield` は **false のまま** (v6 canvas 版はコードとして main に残置し、展示後に実機証跡付きで再評価)。`GameScene.unity` の `Lane` は **シーン編集せず**、#263 の実行時生成ガイドを使う。残るのは 3 解像度の実機画像比較 (Windows) |
@@ -557,9 +557,9 @@
 
 ### #167 — [Game/P0] Unity全画面の描画だけのUIを排除し全ボタンを実動作へ接続
 
-- **区分**: **B (部分実装)**
+- **区分**: **A (実装済み・EditMode 証跡あり) / Windows 実機受入のみ残**
 - **実装/証拠**:
-  - `Assets/Tests/Editor/V5UiWiringTests.cs` — **8 テスト** (テスト名と行):
+  - `Assets/Tests/Editor/V5UiWiringTests.cs` — **17 テスト** (既存 8 + 2026-11-10 に 9 追加 = F2 / F6 / F7 / F8 / F10 / F15 / F16 / F17 を直接検証):
     - `ScreenCanvas_CarriesGraphicRaycaster` (`:20`)
     - `TitleCanvas_CarriesGraphicRaycaster_AndMenuButtonCallsRealHandler` (`:40`)
     - `OptionCanvas_CarriesGraphicRaycaster_AndBackButtonCallsRealHandler` (`:69`)
@@ -573,35 +573,41 @@
   - `Assets/Game/Scripts/UI/SceneInputGate.cs` — F4 の新規コンポーネント
   - commit: `467fe8a` "feat(ui): Issue #167 v5 全画面を実動作へ接続 (クリック不可・偽値・死んだ行の排除)" (実装本体: `PlaySession.cs` 新規 / v5 View / SceneManager / `V5UiWiringTests.cs` / 手順書), `36da73c` "fix(ui): v5 のdestroyをEditモードでも安全にし、代表キーの実バグを直す (#167)" (main ancestor), `5f11ce8`, `d4d758a`, `485e91b`, `e174e65`, `880aa56`
   - `docs/ui/issue-167-verify-2026-11-10.md` — **2026-11-10 の読み取り専用監査記録** (Unity 未実行 / 実機未受入)
-  - `specs/167-v5-ui-functional-wiring/tasks.md` = **チェックは 2026-11-10 時点では 0 完了 / 5 未完了だった**。
-    **2026-11-10 のコード照合で T2 / T3 / T4 = 充足・T1 / T5 = 部分充足と判定**し、
-    充足分だけチェックを入れた (T1 / T5 は未チェックのまま検証結果ノートを追記)
+  - `specs/167-v5-ui-functional-wiring/tasks.md` = **T1〜T5 すべて `[x]`** (PR #304)。T5 本文に
+    「EditMode 実装分は完了 / 実機受入 (Win64) は未了」と書き分けている
+  - **PR #304 merged** `w/w167-residual` — 契約表に Loading / Result Ranking の 2 行追加、
+    F2・F6〜F8・F10・F15〜F17 の EditMode テスト 9 件、手順書 `docs/ui/issue-167-ui-acceptance.md` を
+    v6 UI 既定に合わせて全面差し替え
 - **受入条件**:
 
 | # | 条件 (Issue 本文 T1–T3) | 判定 | 根拠 |
 |---|---|---|---|
-| T1 | FHD/2K/Mac の各解像度で実Windows/Unity画面を取得し、pointer hitbox / Raycaster / EventSystem / input mode / handler・state遷移の監査表を作る | 未充足 | 監査表 `docs/ui/issue-167-handler-audit.md` はあるが **コード読解による静的監査**。Issue 本文の「実Windows画面取得」は未実施 |
+| T1 | FHD/2K/Mac の各解像度で実Windows/Unity画面を取得し、pointer hitbox / Raycaster / EventSystem / input mode / handler・state遷移の監査表を作る | **未検証 (監査表は充足 / 実画面取得のみ未了)** | 監査表 `docs/ui/issue-167-handler-audit.md` + 契約表 58 行 (PR #304 で 2 行追加)。**「実Windows/Unity画面を取得」だけが未実施** = オーナーの Windows 実機作業 |
 | T2 | Title/Select/Ready の全主要操作をクリック・キーボード両方で機能接続。設定保存/次画面反映を検証 | 充足 (コード) / 未検証 (実操作) | `TitleCanvas_...CallsRealHandler`, `SelectReadyRow_WritesPlaySession`, `ReadyOptions_AreForwardedToGameHud` |
-| T3 | Game/Pause/Option/Result の全主要操作を実機で動作確認、Ranking/履歴/設定は実処理に接続し偽値を除く | 未充足 | `issue-167-handler-audit.md` の F1–F7 はコード修正まで。**実機動作確認は未実施** |
+| T3 | Game/Pause/Option/Result の全主要操作を実機で動作確認、Ranking/履歴/設定は実処理に接続し偽値を除く | **未検証 (接続は充足 / 実機動作確認のみ未了)** | 接続は F1–F18 の修正 + PAUSE/Ranking/Register のラベル検証テスト (`PauseRanking_IsLabelledLocal` / `SelectRanking_*` / `ResultRegister_IsLabelledLocal`)。**実機での押下確認は未実施** |
 | 追加 | 「Owner実操作が合格条件」 | 未検証 | Issue 本文 80 行目。Windows 実機必須 |
 
 ### 2026-11-10: `specs/167` の T1〜T5 の判定 (コード照合 / Unity 未実行)
 
 | タスク | 判定 | 根拠 |
 |---|---|---|
-| T1 機能 UI 契約表 | **部分充足** | `spec.md:104-203` の契約表 56 行 + Findings F1〜F18、**全行に実装根拠 (シンボル名) あり**。ただし **Game の Loading ビュー** と **Result の Ranking (`ResultRankingOverlay`)** の行が契約表に無い |
+| T1 機能 UI 契約表 | **充足 (PR #304)** | `spec.md` の契約表 **58 行** + Findings F1〜F18、全行に実装根拠。不足していた **Game の Loading** (`GameLoadingView` / v6 `V6LoadingView`、`GameLoadingRoute.UsesLegacyOverlay` が単一情報源) と **Result の Ranking** (`ResultRankingOverlay`、F18 Known Issue と v6 既定での停止を明記) の 2 行を追加 |
 | T2 Title / Select / Ready | **充足** | `V5GameUi.cs:20`/`:32` (GraphicRaycaster) / `PlaySession.cs` / `SelectView.cs:1689`・`:1698` (cloud 曲のみ Ranking) / `:1261` (Start 1 個) / `:968` → `:601` (`interactable=false`) |
 | T3 Game / Pause / Option / Result | **充足** | `PauseMenuView.cs:325`/`:344` / `:442`・`:466`・`SelectView.cs:1608`・`ResultView.cs:664`・`:787`・`:803` / `OptionSceneManager.cs:29`・`:63`・`:77`・`:237`・`:427` / `TitleSceneManager.cs:46-50` / `GameSceneManager.cs:235`・`:297` / `GameHudRuntime.cs:122`・`:201-213` / `ResultSceneManager.cs:46-58` |
 | T4 Scene 監査 | **充足** | `spec.md:286-302` の監査表 + 「シーン YAML 変更不要」の判断理由。`.unity` は `467fe8a` で未変更。検証側で EventSystem / CanvasRenderer 数を再集計して一致 (TMP テキスト列のみ再導出できず) |
-| T5 完了ゲート Preparation | **部分充足** | 手順書と 8 テストは存在。ただし **`ResultRegister_IsLabelledLocal` が未存在** (`spec.md:92` が名指し)、F2・F6〜F8・F10・F15〜F17・F7 のテストが無い、手順書が PR #177 参照のまま / S5・S6 の「F5 で Game へ」が誤り / **v6 UI 既定を未考慮** |
+| T5 完了ゲート Preparation | **充足 (EditMode 分) / 実機は未了** | 手順書を全面差し替え (基点 `origin/main`、v6 UI 既定 = `V6UiMode.GameHud`/`SelectScreen`/`V6TitleView`/`V6ResultView`/`V6PauseView`、S5・S6 の「F5 で Game へ」誤記を修正、解像度は実ディスプレイ全画面のみ有効、Windows 実機節を明示)。テストは **8 → 17** (`ResultRegister_IsLabelledLocal` / `LegacyCanvasRaycaster_IsDisabled` / `PauseRanking_IsLabelledLocal` / `SelectRanking_*` / `LegacyBack_IsHandledByV5PauseOnly` / `ResultBestScore_IsAppliedInAwake` / `SelectReadyPanel_*`) |
 
 - **文言とコードの食い違い**: T2(b)/完了条件の「NoteSpeed を `PlaySession` で保持」は実装と不一致
   (`GManager.noteSpeed` + `OptionSettings.Save()`。`SelectView.cs:378-379`、spec.md F4 の決着どおり)。**機能欠落ではない**。
-- **残作業**: ① 契約表に Loading / Result Ranking の 2 行を追加 ② F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト追加
-  ③ 手順書の差し替え ④ **Win64 実機での一循環 (Title → Select → Ready → Game → Result → Retry)**。
-  **実機受入が未了のため #167 はクローズしない。**
+- **残作業**: **Win64 実機での一循環 (Title → Select → Ready → Game → Result → Retry) のみ**。
+  ①②③ は PR #304 で完了。**実機受入が未了のため #167 はクローズしない。**
+- **2026-11-10 実測 (統合 owner)**: `Unity -batchmode -runTests -testPlatform editmode` (Unity 6000.5.6f1 / macOS)
+  で **1322 / 1322 passed, 0 failed, 0 skipped**。途中 `LegacyCanvasRaycaster_IsDisabled` (F2) が
+  EditMode では `NewScene(Additive)` 不可で 1 件落ちたため、`NewPreviewScene` +
+  `EditorSceneManager.MoveGameObjectToScene` に直して再実行 (全件緑)。`compile-check` も flashbeat /
+  tests-editor とも Build succeeded。
 
-- **未検証の区別**: **「実Windows/Unity画面を取得」と「Owner実操作」が受入条件そのもの**。`V5UiWiringTests.cs` 緑は **Canvas/Raycaster の静的構造とハンドラ接続を検証するだけにすぎず、クリック・キー操作の実挙動・画面遷移・描画は含まない**。代替 = 8 テスト緑 + 静的監査表 (F1–F7)。
+- **未検証の区別**: **「実Windows/Unity画面を取得」と「Owner実操作」が受入条件そのもの**。`V5UiWiringTests.cs` 緑 (17 テスト) は **Canvas/Raycaster の静的構造・ハンドラ接続・ラベルを検証するだけにすぎず、クリック・キー操作の実挙動・画面遷移・描画は含まない**。代替 = 17 テスト緑 + 静的監査表 (F1–F18) + EditMode 1322/1322。**テスト緑を実機合格の代用にしない。**
 - **依存**: Parent #162。→ #96 / #88 の前提。
 
 ### #162 — [P0/REBUILD] v0.1.13 のUI受け入れ撤回：全画面・全画面遷移・実操作を機能から再構築
@@ -906,29 +912,30 @@
 
 ### #74 — [Web/Responsive] 画面サイズ・ズーム・キーボードで操作不能なUIをなくす
 
-- **区分**: **B (部分実装)**
+- **区分**: **A (実装済み・実ブラウザ証跡あり / 記録した所見 2 件を除き充足)**
 - **実装/証拠**:
-  - `web/src/app/drawer.tsx` — 純関数のフォーカストラップ `nextFocusTarget()` (`:44-50`) + `FOCUSABLE_SELECTOR` (`:26-34`)。ヘッダコメントで「Tab/Shift+Tab はパネル内で循環し、外へ出ない」「Escape で閉じる」「閉じると開いた要素にフォーカスを返す」と明記
-  - テスト: `web/src/app/drawer.test.ts`
-  - テスト: `web/src/components/chart-editor/*.test.tsx` (6 ファイル), `web/src/components/song-publisher/song-publisher.test.ts`
-  - `specs/74-responsive/tasks.md` = **26 完了 / 3 未完了**。未完了 3 件はいずれも「**open (#75)**」すなわち視覚ゲート待ち:
-    - `:58` Real browser tab order walk — **open (#75)**
-    - `:65` Rendered check at 390px — **open (#75)**
-    - `:74` Screenshots of the five viewports — **open (#75)**
-  - **PR #257 (open)** `w/w74fix2` — 「#74 狭幅ビューポートの横スクロールを解消する」
+  - `web/src/app/drawer.tsx` — 純関数のフォーカストラップ `nextFocusTarget()` (`:44-50`) + `FOCUSABLE_SELECTOR` (`:26-34`)
+  - `specs/74-responsive/tasks.md` = **29 完了 / 0 未完了** (PR #305 で残り 3 件を実測で充足)
+  - **PR #257 merged** `w/w74fix2` — 狭幅ビューポートの横スクロール解消 (2026-11-09)
+  - **PR #305 merged** `w/w74-evidence` — 実 Chrome での証跡:
+    `specs/74-responsive/evidence/2026-11-10/` (PNG 44 枚 + `visual-index.json` + `tab-walk.json` + `README.md`)、
+    ハーネス `web/tests/visual/{capture.mjs,dev-server.mjs,tab-walk.mjs}`
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | T1: 1440×900 / 1280×720 / 1024×768 / 390×844 / 200% zoom のストレス箇所を特定 | 充足 | `specs/74-responsive/` に記録 |
+| 1 | T1: 1440×900 / 1280×720 / 1024×768 / 390×844 / 200% zoom のストレス箇所を特定 | 充足 | `specs/74-responsive/spec.md` + `evidence/2026-11-10/README.md` §2 |
 | 2 | T2: grid/sidebar/toolbar/inspector のレイアウト変形とスクロール所有を実装 | 充足 | `web/src/styles/app.css` + `web/src/app/**` |
-| 3 | T3: Tab/Enter/Escape/focus restore、dialog・select・input・note canvas の操作テスト | 充足 (コード) | `web/src/app/drawer.test.ts` の `nextFocusTarget` 純関数テスト + `chart-editor` の 6 テスト |
-| 4 | T4: loading/error/長い日本語タイトル状態で可視/クリック領域と対比を検証 | 充足 (コード) / 未検証 (実機) | `song-publisher.test.ts`, `song-thumbnail.test.tsx` |
-| 5 | T5: 実ブラウザのスクリーンショットと操作 E2E を SHA 付きで提出 | **未充足** | `specs/74` 3 タスク未チェック。**狭幅 (390×844) の横スクロール溢れが実測で残っている** (`specs/075-visual-gate/evidence/2026-11-08/index.json` の `horizontalOverflow: ["home@390x844"]`) |
-| 6 | Given-When-Then: 必須操作が到達可能で、意図しない overflow・ボタン重なり・focus 喪失がない | **未充足** | PR #257 が未マージ |
+| 3 | T3: Tab/Enter/Escape/focus restore、dialog・select・input・note canvas の操作テスト | **充足 (実ブラウザ)** | `tab-walk.json`: 3 route × 2 viewport で Tab 30〜40 step を実測、`inViewport: false` **0 件**、ドロワー trap `held=true` / Escape で閉じて `focusRestored=true`、`drawer.test.ts` の純関数テスト併存 |
+| 4 | T4: loading/error/長い日本語タイトル状態で可視/クリック領域と対比を検証 | 充足 (コード) | `song-publisher.test.ts`, `song-thumbnail.test.tsx` |
+| 5 | T5: 実ブラウザのスクリーンショットと操作 E2E を SHA 付きで提出 | **充足** | 15 capture (3 route × 5 viewport) を実 Chrome で撮影、ビルド SHA 明記。統合 owner が `origin/main` (`4a63974`) へ rebase 後に再実行し `npm run visual` **PASS** (horizontal overflow 無し / console error 無し) |
+| 6 | Given-When-Then: 必須操作が到達可能で、意図しない overflow・ボタン重なり・focus 喪失がない | **充足 (重なりのみ未機械判定)** | 全 15 capture で `document.scrollWidth == clientWidth`。390×844 の主要操作は Tab 到達 + viewport 内。**要素の重なりはハーネスが機械判定しない** (目視用 PNG を残置 = README §5) |
 
-- **未検証の区別**: 条件 5–6 は **実ブラウザ E2E** 必須。**Vitest 緑は「実際の幅で到達可能か」を保証しない** — 実際 390×844 では溢れが実測されている。代替 = `drawer.test.ts` 緑 + `index.json` の機械的結果。
-- **依存**: #69 / #70 / #72 / #73。**#75 の既知失敗の唯一の原因**。
+- **記録のみ (修正は範囲外 / 別 Issue 提案)**:
+  - YouTube 埋め込み `iframe` にグローバル focus ring が出ない (`:focus-visible` が iframe に match しない)。chart@1440 で tab 15–19、chart@390 で tab 11–17・36–40 が連続 iframe = **フォーカス位置が見えない期間がある**。
+  - `home@1024×768` の catalog actions 列が panel 内スクローラーで約 50px スクロール必要 (到達は可能)。
+- **未検証の区別**: 上記 2 件は「欠陥の記録」であり、受入条件 (到達可能・溢れない・focus 喪失しない) は満たしている。**修正するかは別 Issue の判断**。
+- **依存**: #69 / #70 / #72 / #73。#75 の視覚ゲートは #257 + #305 で exit 0。
 
 ### #73 — [Web/Publish Flow] モック成功禁止・既存曲メタデータ編集・実API検証
 
@@ -1588,7 +1595,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U2** 確認窓 + 旧歌詞二重描画 | **進行中** | 二重描画の検査は `GameUiExclusivity` / `GraphicVisibility` で固定 (PR #263)。`GraphicVisibility.IsDrawn` の誤検出 (透明な Image / 無効な祖先 Canvas / 入れ子 CanvasGroup の積) の修正も PR #263 修正に含む。確認窓の 0.86s → 1.6s 拡張は未着手 (定義位置を特定してから) |
 | **U3** v6 Option の保存範囲統一 | **完了** | PR #264 merged。`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ。回帰テスト 8 件 (保存先・4 タブ・セッション設定・マウス経路)。あわせて **譜面/設定 JSON の Resources 混在バグ** を修正 |
 | **U4** publish → chart ドラフト復元 | **進行中** | #98 の chart 側復元を Worker が実装中 (PR 未作成) |
-| **U5** 視覚ゲートの緑化 | **完了** | PR #257 merged。`npm run visual` exit 0 / `clipped=0` / `hScroll=false` を実測。Web テスト 403 件 green |
+| **U5** 視覚ゲートの緑化 | **完了** | PR #257 merged (狭幅横溢れ 0) + **PR #305 merged** — `specs/74-responsive/evidence/2026-11-10/` に 5 viewport × 3 route の実写 44 枚と `tab-walk.json`。統合 owner の再実行で `npm run visual` **PASS** (horizontal overflow 無し / console error 無し) / `tab-walk` 0 outsideViewport / drawer trap held / focus 復帰。Web テスト 73 + 426 件 green / `vp build` exit 0 |
 | **U6** 展示 patch line への #140/#134 移植 | **未着手** | 展示 line (`b677f8f`) と main のどちらに寄せるかはオーナー判断。**現展示物の SHA 不一致 (#129) が先** |
 | **U11** (追加) #226 残受入条件 | **完了 (テスト) / Windows 実機のみ残** | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の回帰テスト **20 件** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。残るのは Windows 実機完走とランキングの実 API 送信の 2 項目のみ |
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
@@ -1596,7 +1603,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
 | **U12** (追加) HOLD ノーツの実機到達 (#278) | **完了 (macOS 実機 3 段階判定まで)** | **PR #291 merged**。全 27 曲に HOLD が無く実機受入が成立しないため、検証用 HOLD 譜面 (タップ 4 + HOLD 3) を `PlaySessionSnapshot.ChartJsonOverride` で **プレイ時だけ** 差し込む (カタログは増やさない) + macOS 実機ハーネス (`AutoTestV6Hold` / `script/mac-holdprobe-harness.sh`)。2026-11-10 の実機 run: `RESULT pass=41 fail=0` / `holdClear=3 holdBroken=0` / `holdBodiesVisible=3` / `judged=7 == settled=7 == chartNotes=7`。**負の対照** (修正前 run は同じハーネスで `fail=2` / HOLD 3 個とも Broken) も収録。**Issue #278 Closed**。残 = **本物のキーボードを押して HOLD が保たれることは未検証** (macOS の Unity legacy Input は CGEvent の合成キーを見ないため保持は注入シーム `KeyBindings.InjectKeyHold` で模擬) + **Windows 実機** + 対策 (B) のオーナー判断 |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
-| **U13** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
+| **U13** (追加) #167 v5 UI 実接続の残受入 | **完了 (EditMode 実装分) / Win64 実機のみ残** | **PR #304 merged** — 契約表 58 行 (Loading / Result Ranking を追加)、`V5UiWiringTests` 8 → **17** (F2/F6〜F8/F10/F15〜F17)、手順書を v6 UI 既定で差し替え、`tasks.md` T1〜T5 `[x]`。統合 owner の実測 = **EditMode 1322/1322 passed, 0 failed** (macOS / Unity 6000.5.6f1)。残 = **Win64 実機の一循環** (オーナー作業) |
 | **U14** (追加) Web カタログの契約テスト + race/abort ガード (#68) | **完了 / #68 Closed** | **PR #293 merged** — `web/src/app/__tests__/` に契約テスト 21 件、`app-shell.tsx` に `AbortController` + リクエスト ID の stale ガード。**PR #294 merged** — `catalog.ts` の fetch に `cache: "no-store"`。統合 owner が **実 API の生レスポンス** を取得して `parseSongs` が受理することを実測。**Issue #68 は Closed** (コメント id 6757022442) |
 | **U15** (追加) #60 の受入記録の残 (T5) | **完了 / #60 Closed** | **PR #295 merged** — 実行 SHA `2bd7302` (PR #90 の head) / before SHA `54505c2` / PR URL / `tasks.md` の T1〜T5 を実測に同期 / **before-after の画素証跡 20 ファイル** (実行 SHA `2bd7302` で `npx tsc --noEmit` / `npm test` / `npx vp build` が exit 0、Chrome headless で 1440×900 / 1280×720 / 390×844 を撮影)。**PR #296 merged** — 記録の訂正 (teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み。`git grep -in "12a594" origin/main -- web/` = 0 ヒット)。**Issue #60 は Closed** (コメント id 6757102070)。残 = 2xs 可読性・フォーカスリングのコントラスト・390px サイドバー (いずれも #74 のスコープ) |
 | **U16** (追加) #233 の macOS 再撮影 (新しい撮影順) + #278 の macOS HOLD run | **完了** | #233: `main` (`e45c494`) から macOS 実機ビルドし直し、**実ディスプレイ 2560×1664 全画面**で `-autotest v6` を再走 → `RESULT pass=29 fail=0`。映像 / レーン 8 本 / 判定ライン / ノーツ / 歌詞 を画像で確認 (`docs/evidence/233-playfield/run-2026-11-10-main/`)。**密度の高い区間を捉えた撮影自体は未証明** (該当判定は SOFT PASS)。#278: HOLD ハーネスを macOS 実機で走らせ `pass=41 fail=0` / `holdClear=3 holdBroken=0`。**Windows 実機の受入は別** (cc は展示 PC に触らない) |
