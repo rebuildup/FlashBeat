@@ -15,17 +15,24 @@
 | 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
 | **未検証** | **Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。ここが本手順の目的 |
 
-### 現在の候補 (2026-11-10 再生成 / main `60854c8`)
+### 現在の候補 (2026-11-10 再生成 / main `4445279`)
 
 | 項目 | 値 |
 |---|---|
-| ZIP | `FlashBeat-0.1.22-win64-60854c8.zip` (274,848,934 bytes) |
-| SHA-256 | `839ad62db7e7fa4995da6e67efa11578aeb139d9187298481be44e3708f95664` |
-| ソース SHA | `60854c84a6e510d116c5373041538829fe334ed8` (`origin/main` — PR #324 / #325 merge 後) |
-| Application.version | `0.1.22+60854c8` (Player の `globalgamemanagers` に埋まっていることを確認済み) |
-| version.json | `version=0.1.22` / `tag=v0.1.22-win64-60854c8` / `mediaPolicy=song-free` |
-| 更新チャンネル | `stable` (`StreamingAssets/update-channel.txt`) |
-| ビルド日時 | 2026-11-10T06:38:18Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
+| ZIP | `FlashBeat-0.1.22-win64-4445279.zip` (274,849,307 bytes) |
+| SHA-256 | `ed67277e8381e8e404cb53c60b625ab56982d5b6929ce8643c8e78cfcab9c645` |
+| ソース SHA | `4445279d69d047c40d8eef713bab24abe7985914` (`origin/main` — PR #327〜#331 merge 後) |
+| Application.version | `0.1.22+4445279` (Player の `globalgamemanagers` に埋まっていることを確認済み) |
+| version.json | `version=0.1.22` / `tag=v0.1.22-win64-4445279` / `mediaPolicy=song-free` / `buildSha` 一致 |
+| 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt`) |
+| ビルド日時 | 2026-11-10T08:02:30Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
+
+> **ビルドは必ず main のチェックアウトから行う。** 2026-11-10 に `w/ja-text-cleanup`
+> チェックアウト (=古い `script/win64-build-mac.sh`) からビルドしてしまい、
+> `0.1.22+<sha>-win64-<sha>.zip` + `.build-info.txt` という **契約違反の ZIP** ができた。
+> 旧スクリプトはビルド出力をそのまま ZIP 化する (version.json なし / BurstDebug 同梱)。
+> 現在の正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみで、
+> `dist/forbidden-old-script/` 配下の成果物は **使用禁止**。
 
 > **古い候補は使用禁止。** 次の ZIP はソースが古いか、旧スクリプト (ビルド出力をそのまま ZIP 化する
 > 経路) で作られており、`version.json` 非同梱 / `FlashBeat_BurstDebugInformation_DoNotShip` 同梱 /
@@ -37,6 +44,9 @@
 > - `0.1.22+36a3572-win64-36a3572.zip`
 > - `0.1.0+c9fb812-win64-c9fb812.zip` / `FlashBeat-0.1.0-win64-60854c8.zip`
 >   (構造は正規だがバージョンが `0.1.0` のため更新判定に使えない)
+> - `FlashBeat-0.1.22-win64-60854c8.zip` (構造は正規。**#327〜#331 より前の main** のため、
+>   今回の候補 `4445279` に置き換えられた)
+> - `0.1.22+4445279-win64-4445279.zip` (旧スクリプトで作られた契約違反の ZIP。`dist/forbidden-old-script/`)
 >
 > 旧形式 (`0.1.22+<sha>-win64-<sha>.zip`) は **もう生成されない**。もし見つけたら、
 > それは旧版 `script/win64-build-mac.sh` (w/ja-text-cleanup など古いチェックアウト) で
