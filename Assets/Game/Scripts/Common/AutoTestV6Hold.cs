@@ -21,7 +21,7 @@ using FlashBeat.UI.V6.Select.View;
 ///   任意で "-autotest-song &lt;曲名&gt;" (既定: ツイッターランド) を渡すと、
 ///   その曲を鳴らす。
 ///
-/// 谱面は **差し替え** で持ち込む (カタログは増やさない):
+/// 譜面は **差し替え** で持ち込む (カタログは増やさない):
 ///   - PlaySessionSnapshot.ChartJsonOverride に HoldProbeChart.Json (HOLD 3 +
 ///     タップ 4) を設定してから Ready を押す。
 ///   - NotesManager.ParseChart は固定済み譜面 JSON を CloudCatalog.ParseChartResponse
@@ -33,7 +33,7 @@ using FlashBeat.UI.V6.Select.View;
 ///      HOLD = 3)。
 ///   b. HOLD のノーツ実体が存在し、胴体 (holdSeconds) が伸びている。
 ///   c. HOLD の先頭が判定され、終端フェーズ (保持の終了) まで到達している。
-///   d. スコア / コンボがタップだけの譜面 (−) 不一样的値になる
+///   d. スコア / コンボがタップだけの譜面 (−) と **違う** 値になる
 ///      (maxScore = 7 x 5 = 35, スコア > 0, コンボ > 0)。
 ///   e. HOLD の胴体が描画されている (レンダラーが見えている / 長さが伸びている)。
 ///      保持中のスクリーンショットも撮る。
@@ -64,6 +64,9 @@ public class AutoTestV6Hold : MonoBehaviour
     /// <summary>ノーツを叩く注入の窓 (秒)。</summary>
     const float HitWindowSeconds = 0.05f;
 
+    /// <summary>HOLD の終端から「離す」までの余裕 (秒)。判定幅 (GREAT_WINDOW) 内。</summary>
+    const float HoldReleaseMarginSeconds = 0.05f;
+
     /// <summary>v6 の Result Canvas の GameObject 名。</summary>
     const string ResultCanvasName = "V6 Result Canvas";
 
@@ -90,6 +93,9 @@ public class AutoTestV6Hold : MonoBehaviour
 
     /// <summary>このフレームに注入済みのレーン (1 レーン 1 打)。</summary>
     readonly bool[] laneInjectedThisFrame = new bool[8];
+
+    /// <summary>注入した「押したまま」を解除する (キー, 解除するメディア時刻)。</summary>
+    readonly List<KeyValuePair<KeyCode, float>> pendingHoldReleases = new List<KeyValuePair<KeyCode, float>>();
 
     // --- ログ観測 (Judge の "Hold clear" / "Hold broken" / "Miss") ------------
 
@@ -390,6 +396,7 @@ public class AutoTestV6Hold : MonoBehaviour
                 if (lastMediaTime < 0f || mediaTime > lastMediaTime) { lastMediaTime = mediaTime; }
 
                 AutoHit(notes);
+                ReleaseFinishedHolds();
                 ObserveHolds(notes);
 
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
@@ -472,13 +479,33 @@ public class AutoTestV6Hold : MonoBehaviour
         probeHoldCount = 0;
         probeTapCount = 0;
         if (notes == null || notes.NoteType == null) { return; }
-        for (int i = 0; i < notes.NoteType.Count; i++)
+        // NotesManager は実ノーツの末尾に **番兵 10 個** (type = TAP,
+        // time = 10000) を足す。全部数えるとタップが 10 個多く見えるので、
+        // 実ノーツの個数 (NotesObj の要素数) だけを見る。
+        int realCount = notes.NoteType.Count;
+        if (notes.NotesObj != null && notes.NotesObj.Count < realCount) { realCount = notes.NotesObj.Count; }
+        CountNoteTypes(notes.NoteType, realCount, out probeTapCount, out probeHoldCount);
+        probeNoteCount = probeTapCount + probeHoldCount;
+    }
+
+    /// <summary>
+    /// ノーツ種別配列の **先頭 realCount 個** からタップ数と HOLD 数を数える。
+    ///
+    /// NotesManager は実ノーツの後ろに番兵 (type = TAP) を 10 個足すため、
+    /// 配列全体を数えるとタップが 10 個多く見える。実ノーツの個数だけを見る
+    /// のはこのハーネスの責務。
+    /// </summary>
+    public static void CountNoteTypes(IList<int> types, int realCount, out int taps, out int holds)
+    {
+        taps = 0;
+        holds = 0;
+        if (types == null) { return; }
+        int count = Mathf.Min(realCount, types.Count);
+        for (int i = 0; i < count; i++)
         {
-            int type = notes.NoteType[i];
-            if (type != LongNote.TYPE_HOLD && type != LongNote.TYPE_TAP) { continue; }
-            probeNoteCount++;
-            if (type == LongNote.TYPE_HOLD) { probeHoldCount++; }
-            else { probeTapCount++; }
+            int type = types[i];
+            if (type == LongNote.TYPE_HOLD) { holds++; }
+            else if (type == LongNote.TYPE_TAP) { taps++; }
         }
     }
 
@@ -731,9 +758,50 @@ public class AutoTestV6Hold : MonoBehaviour
             KeyCode[] keys = KeyBindings.GetKeys(lane);
             if (keys == null || keys.Length == 0) { hitSent.Add(i); continue; }
             KeyBindings.InjectKeyDown(keys[0]);
+            // HOLD は **押したまま** にする必要がある (保持フェーズ)。
+            // macOS の Unity legacy Input は CGEvent の合成キーイベントを
+            // Input.GetKey として見ないため、実キーでは再現できない
+            // (実測: 2026-11-10 macOS run 2 で HOLD が全部 Broken になった)。
+            // 判定ロジック (Judge → JudgeQueue → LongNote) は実機パスそのもの。
+            if (IsHoldNote(notes, i))
+            {
+                KeyBindings.InjectKeyHold(keys[0]);
+                float end = notes.NotesEndTime != null && i < notes.NotesEndTime.Count
+                    ? notes.NotesEndTime[i]
+                    : time;
+                pendingHoldReleases.Add(new KeyValuePair<KeyCode, float>(keys[0], end + HoldReleaseMarginSeconds));
+                Debug.Log(Tag + " hold injected: lane=" + lane + " key=" + keys[0] +
+                          " end=" + end.ToString("F2", CultureInfo.InvariantCulture));
+            }
             hitSent.Add(i);
             laneInjectedThisFrame[lane] = true;
             hitsSent++;
+        }
+    }
+
+    /// <summary>指定のノーツが HOLD か。</summary>
+    static bool IsHoldNote(NotesManager notes, int index)
+    {
+        if (notes == null || notes.NoteType == null) { return false; }
+        if (index < 0 || index >= notes.NoteType.Count) { return false; }
+        return notes.NoteType[index] == LongNote.TYPE_HOLD;
+    }
+
+    /// <summary>
+    /// 終端 (+ 余裕) を過ぎた HOLD の注入保持を解除する。
+    ///
+    /// 離す時刻が終端の判定幅 (GREAT_WINDOW) 内なら「Hold clear」になる。
+    /// 離しが遅すぎると (判定幅外) 中断扱いになるので、余裕は小さく取る。
+    /// </summary>
+    void ReleaseFinishedHolds()
+    {
+        if (pendingHoldReleases.Count == 0) { return; }
+        float mediaTime = GManager.step_time;
+        for (int i = pendingHoldReleases.Count - 1; i >= 0; i--)
+        {
+            if (mediaTime < pendingHoldReleases[i].Value) { continue; }
+            KeyBindings.ReleaseInjectedKeyHold(pendingHoldReleases[i].Key);
+            pendingHoldReleases.RemoveAt(i);
         }
     }
 

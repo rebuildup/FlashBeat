@@ -171,7 +171,7 @@ namespace FlashBeat.Tests.Editor
 
             Assert.IsNotNull(session);
             Assert.AreEqual(HoldProbeChart.Json, session.ChartJson,
-                "差し替えは取得済みの譜面より優先する (差し替えが負けると検証谱面が再生されない)");
+                "差し替えは取得済みの譜面より優先する (差し替えが負けると検証譜面が再生されない)");
         }
 
         [Test]

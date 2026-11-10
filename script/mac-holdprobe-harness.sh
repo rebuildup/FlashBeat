@@ -11,6 +11,12 @@
 #    なぜ必要か: HOLD の保持フェーズは判定 (Judge.IsLaneKeyDown) が
 #    UnityEngine.Input.GetKey = **実キーの押下状態** を読むので、キー注入
 #    (KeyBindings.InjectKeyDown) だけでは保持できない。
+#
+#    注意 (実測 2026-11-10 macOS run 2): macOS の Unity legacy Input は
+#    CGEvent の合成キーイベントを Input.GetKey として **見ない**。
+#    このドライバのキー押下は判定に反映されないので、HOLD の保持は
+#    プレイヤー側の注入シーム (KeyBindings.InjectKeyHold) が担う。
+#    ドライバは「実キーを押す経路が動くなら動く」補助として残す。
 # 3. 結果ファイル (autotest-v6hold-result.txt) が現れるまで待つ。
 # 4. **結果を検証する**: 結果ファイルが無い / fail=0 でない / ログに FAIL 行が
 #    ある のいずれかなら非 0 で終わる。
@@ -186,8 +192,11 @@ drive_keys() {
       continue
     fi
 
-    down_at="$(perl -e "printf '%.3f', $head_wall - 0.5")"
-    up_at="$(perl -e "printf '%.3f', $end_wall + 0.6")"
+    # 先頭は判定幅 (PERFECT 0.10 秒) の内側で **少し前** に押す。
+    # 0.5 秒前처럼押すと判定幅の外なので先頭が当たらない。
+    # 終端は判定幅 (GREAT 0.15 秒) の内側で離す。外すと中断 (Broken) になる。
+    down_at="$(perl -e "printf '%.3f', $head_wall - 0.05")"
+    up_at="$(perl -e "printf '%.3f', $end_wall + 0.05")"
     echo "[holdprobe] lane $lane: key $keycode down at $down_at, up at $up_at"
     wait_until "$down_at"
     "$helper" down "$keycode" "$app_pid" || true
