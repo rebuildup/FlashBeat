@@ -70,7 +70,12 @@ function describeActiveElement() {
     type: el.getAttribute("type") || undefined,
     text: (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 50) || undefined,
     value: el instanceof HTMLInputElement ? el.value.slice(0, 40) || undefined : undefined,
-    rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+    rect: {
+      x: Math.round(r.x),
+      y: Math.round(r.y),
+      w: Math.round(r.width),
+      h: Math.round(r.height),
+    },
     inViewport,
     focusVisible: el.matches(":focus-visible"),
     focusRing: s.outlineStyle !== "none" && s.outlineWidth !== "0px" ? s.outline : undefined,
@@ -127,9 +132,18 @@ async function walkRoute(page, route, vp) {
     tabsPressed: steps.length,
     file: shotFile,
     findings: {
-      focusEscapedToBody: { count: bodyEscapes, tabs: steps.filter((s) => !s.focused).map((s) => s.tab) },
-      focusOutsideViewport: { count: invisibleFocus, tabs: steps.filter((s) => s.focused && !s.inViewport).map((s) => s.tab) },
-      focusVisibleNotMatched: { count: noRing, note: ":focus-visible did not match — check the global ring" },
+      focusEscapedToBody: {
+        count: bodyEscapes,
+        tabs: steps.filter((s) => !s.focused).map((s) => s.tab),
+      },
+      focusOutsideViewport: {
+        count: invisibleFocus,
+        tabs: steps.filter((s) => s.focused && !s.inViewport).map((s) => s.tab),
+      },
+      focusVisibleNotMatched: {
+        count: noRing,
+        note: ":focus-visible did not match — check the global ring",
+      },
     },
     steps,
     shiftTabSteps: backSteps,
@@ -142,7 +156,13 @@ async function walkRoute(page, route, vp) {
  */
 async function drawerTrapCheck(page) {
   const url = `${process.env.VISUAL_BASE_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:5199"}/publish`;
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await page.setViewport({
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+  });
   await page.goto(url, { waitUntil: "networkidle2", timeout: 60_000 });
   await sleep(1_200);
 
@@ -170,7 +190,11 @@ async function drawerTrapCheck(page) {
   for (let i = 1; i <= 12; i++) {
     await page.keyboard.press("Tab");
     await sleep(120);
-    trap.push({ tab: i, ...(await page.evaluate(describeActiveElement)), insideDrawer: await page.evaluate(insideDrawerPanel) });
+    trap.push({
+      tab: i,
+      ...(await page.evaluate(describeActiveElement)),
+      insideDrawer: await page.evaluate(insideDrawerPanel),
+    });
   }
   result.trapTabs = trap;
   result.trapHeld = trap.every((t) => t.insideDrawer);
@@ -181,7 +205,9 @@ async function drawerTrapCheck(page) {
   await sleep(400);
   result.afterEscape = {
     activeElement: await page.evaluate(describeActiveElement),
-    drawerStillInDom: await page.evaluate(() => document.querySelector('aside[aria-label="Publish sidebar"]') !== null),
+    drawerStillInDom: await page.evaluate(
+      () => document.querySelector('aside[aria-label="Publish sidebar"]') !== null,
+    ),
     drawerClosed: await page.evaluate(
       () => document.querySelector('aside[aria-label="Publish sidebar"][role="dialog"]') === null,
     ),
