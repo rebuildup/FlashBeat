@@ -7,7 +7,7 @@ import { defineConfig } from "vitest/config";
  * The root `web/vitest.config.ts` only includes files under `src`, and this
  * directory owns its tests, so they get their own config. Only the unit tests
  * are collected here; the Playwright specs (`*.spec.ts`) are run by Playwright
- * (`npm run test:studio`), not by Vitest. Everything is imported relatively,
+ * (`npm run test:e2e`), not by Vitest. Everything is imported relatively,
  * no aliases needed.
  */
 export default defineConfig({

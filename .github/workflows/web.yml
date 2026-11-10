@@ -1,10 +1,13 @@
 name: web
 
-# Web Studio (`web/`) の品質ゲート: typecheck → unit tests → production build。
+# Web Studio (`web/`) の品質ゲート:
 #
-# - Playwright は実行しない (ブラウザのインストールが重く、E2E は dev server 前提
-#   のため)。spec はローカルで `npm run test:studio` で実行する。
-# - シークレットは不要。本番や外部サービスへの通信は行わない。
+# - `check`: typecheck → unit tests → production build。
+# - `browser-e2e`: Playwright による実ブラウザ E2E。ローカル D1 を seed し、
+#   dev server を起動して `npm run test:e2e` を回す。本番への通信は発生しない
+#   (ローカル D1 のみ、admin token はローカル専用の literal `local-dev-only`)。
+#
+# シークレットは不要。
 
 on:
   push:
@@ -46,3 +49,69 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 開発環境 (Node v26) に合わせる。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        # バージョンは lockfile の @playwright/test に従う (pin しない)。
+        run: npx playwright install --with-deps chromium
+
+      # ローカル D1 のみをリセットして seed する (リモートには触れない)。
+      - name: Seed the isolated local D1
+        run: npx void db seed
+        env:
+          FLASHBEAT_ADMIN_TOKEN: local-dev-only
+
+      # dev server を固定ポートでバックグラウンド起動し、有界の readiness
+      # ループで待つ。上がらなければログを出して失敗する。
+      - name: Start the dev server
+        run: |
+          nohup npx vp dev --port 5173 --host 127.0.0.1 --strictPort \
+            > dev-server.log 2>&1 &
+          ready=""
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:5173/api/v1/catalog > /dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$ready" ]; then
+            echo "::error::dev server did not become ready within 180s"
+            cat dev-server.log
+            exit 1
+          fi
+        env:
+          FLASHBEAT_ADMIN_TOKEN: local-dev-only
+
+      # 0 件収集 / 全 skip を非ゼロ終了にするのは gate reporter
+      # (tests/e2e/reporters/gate-reporter.ts) の担当。
+      - name: Browser E2E (Playwright)
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:5173
+          FLASHBEAT_ADMIN_TOKEN: local-dev-only
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            web/test-results/
+            web/dev-server.log
+          if-no-files-found: ignore
+          retention-days: 7

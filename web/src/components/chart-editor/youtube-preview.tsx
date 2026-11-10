@@ -215,7 +215,12 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
       play: startPlay,
       pause: startPause,
       seekTo(seconds: number) {
-        playerRef.current?.seekTo(seconds, true);
+        // Between construction and `onReady` the API object exists but its
+        // methods are not attached yet; calling them throws (same guard as
+        // startPlay / startPause).
+        if (typeof playerRef.current?.seekTo === "function") {
+          playerRef.current.seekTo(seconds, true);
+        }
         setPosition(seconds);
         onTimeUpdate(seconds);
       },

@@ -107,6 +107,12 @@ async function shot(page: Page, viewport: string, name: string): Promise<void> {
   await page.screenshot({
     path: join(ARTIFACTS_DIR, `${viewport}-${name}.png`),
     fullPage: true,
+    // Default `caret: "hide"` sets `caret-color: transparent !important` on
+    // every input for the duration of the shot; if React hydrates inside that
+    // window it reports a hydration mismatch and the clean-console assertion
+    // below flakes. The inputs are not focused in these shots, so nothing
+    // hides.
+    caret: "initial",
   });
 }
 
