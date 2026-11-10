@@ -4,6 +4,12 @@ Source of truth: `design/flashbeat-ui.pen` (variables + `Prefab/*` component lay
 Target: `web/panda.config.ts` + `web/src/theme/colors/**` (Park UI shaped palettes).
 Date: 2026-11-07 · branch `60`.
 
+**Issue**: #60 · **PR**: [#90](https://github.com/rebuildup/FlashBeat/pull/90)
+**実行 SHA（証跡撮影・検証の基準）**: `2bd7302aac0419d80d662eaa4315253a2b36707f`
+**マージコミット**: `5e4e43f9e4a482a79cf1ff5ed7f686c930c8bff5`
+**before SHA（#60 適用直前）**: `54505c2998fb4e8c756e632ea48c396bd36dad88`（= `2bd7302^`）
+**証跡**: [`docs/evidence/60-web-visual-foundation/README.md`](../evidence/60-web-visual-foundation/README.md)
+
 Pen v5 defines named colors, five neutral ramps and status triples — **not** 12-step
 ramps. Park UI palettes need steps 1–12 + alpha steps `a1–a12` + the semantic pairs
 `solid / subtle / surface / outline / plain`. This document records, per Panda step,
@@ -119,6 +125,13 @@ at component level (#70/#72/#73 responsibility).
 3. `bg #1B1B1B` vs `g1 #1A1A1A` are near-duplicates in Pen; web keeps both as gray.2/gray.1
    roles (canvas vs raised-adjacent) without merging, per token-audit "normalize without
    flattening".
+4. `web/src/components/chart-editor/note-grid.tsx` はノート塗りとして旧 teal `#12A594` を
+   ハードコードしている（token 経由ではないため #60 の差し替えでは書き換わらない）。
+   PR #90 の handoff contract で「#72 のスコープ」と明記している残存。実測でも after 撮影の
+   ノートブロックは `#12A594` のままである（証跡: `docs/evidence/60-web-visual-foundation/`）。
+5. サイドバーの選択色（`#2B4457` / `#9AD3FA`）は #60 の実装前から `web/src/app/sidebar.tsx`
+   に Pen 値がハードコードされていた。token を teal から blue へ差し替えても描画は変わらず、
+   そのため catalog 一覧のスクリーンショットだけでは accent の変化が差分として現れない。
 
 ## Regeneration script
 

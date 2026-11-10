@@ -1,0 +1,518 @@
+{
+  "issue": 60,
+  "title": "Web/UI Foundation: Pen v5 の色・surface階層・タイポグラフィを Panda/Park へ写像",
+  "pr": {
+    "number": 90,
+    "url": "https://github.com/rebuildup/FlashBeat/pull/90",
+    "headSha": "2bd7302aac0419d80d662eaa4315253a2b36707f",
+    "mergeCommit": "5e4e43f9e4a482a79cf1ff5ed7f686c930c8bff5",
+    "mergedAt": "2026-11-06T22:02:16Z"
+  },
+  "before": {
+    "sha": "54505c2998fb4e8c756e632ea48c396bd36dad88",
+    "label": "2bd7302 の直前の基底（teal テーマの旧状態）"
+  },
+  "after": {
+    "sha": "2bd7302aac0419d80d662eaa4315253a2b36707f",
+    "label": "PR #90 の head（Pen パレット適用済み）"
+  },
+  "captureTool": {
+    "path": "web/tests/visual/capture.mjs",
+    "blobAtOriginMain": "94b4ebdf4fab6ac0d4aa571012d62de06a0f6699",
+    "addedInCommit": "3ad994727264adb3a0fcf93c3ac3f7ea8ee4563b",
+    "note": "このツールは #75 で追加されたため #60 の 2 つの SHA には存在しない。origin/main 版を両作業ツリーに同一でコピーして使用した（アプリ本体は未変更）。"
+  },
+  "environment": {
+    "os": "macOS (darwin)",
+    "browser": "Google Chrome (system, headless) via puppeteer-core",
+    "secretsUsed": "なし（ローカルの FLASHBEAT_ADMIN_TOKEN=local-dev-only のみ。Infisical は未使用）",
+    "deploymentTouched": "なし（ローカル dev サーバとローカル D1 のみ）"
+  },
+  "commands": [
+    "cd <worktree>/web && cp -a <repo>/web/node_modules ./node_modules",
+    "cd <worktree>/web && find node_modules/.vite -delete; find node_modules/.panda -delete",
+    "cd <worktree>/web && npx void prepare",
+    "cd <worktree>/web && npx panda codegen",
+    "cd <worktree>/web && FLASHBEAT_ADMIN_TOKEN=local-dev-only npx void db migrate",
+    "cd <worktree>/web && FLASHBEAT_ADMIN_TOKEN=local-dev-only npx void db seed",
+    "cd <worktree>/web && FLASHBEAT_ADMIN_TOKEN=local-dev-only npx vp dev --port 5312 --host 127.0.0.1  (before) / --port 5311 (after)",
+    "cd <worktree>/web && VISUAL_BASE_URL=http://127.0.0.1:<port> node tests/visual/capture.mjs"
+  ],
+  "checksAtAfterSha": [
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "detail": "node --test 19 pass / vitest 11 files, 93 tests, 0 fail"
+    },
+    {
+      "command": "npx vp build",
+      "exitCode": 0,
+      "detail": "built in 402ms"
+    },
+    {
+      "command": "grep -rin teal src panda.config.ts",
+      "exitCode": 1,
+      "detail": "ヒット 0 件（teal パレットは削除済み）"
+    },
+    {
+      "command": "grep -rin \"12a594\" src panda.config.ts",
+      "exitCode": 0,
+      "detail": "1 件: src/components/chart-editor/note-grid.tsx:32 のハードコード残存（#72 スコープ）"
+    }
+  ],
+  "captures": {
+    "before-54505c2": {
+      "generatedAt": "2026-11-10T02:06:44.265Z",
+      "base": "http://127.0.0.1:5312",
+      "chrome": "Google Chrome",
+      "tool": "puppeteer-core (real headless Chromium)",
+      "routes": [
+        "/",
+        "/chart?songId=who&version=1",
+        "/publish"
+      ],
+      "viewports": [
+        "1440x900",
+        "1280x720",
+        "390x844"
+      ],
+      "summary": {
+        "horizontalOverflow": [],
+        "consoleErrors": [],
+        "exitCode": 0
+      },
+      "captures": [
+        {
+          "route": "home",
+          "viewport": "1440x900",
+          "file": "home_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "home",
+          "viewport": "1280x720",
+          "file": "home_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "home",
+          "viewport": "390x844",
+          "file": "home_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 18,
+          "smallFontElements": 8,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "1440x900",
+          "file": "chart_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "1280x720",
+          "file": "chart_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "390x844",
+          "file": "chart_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 2,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "1440x900",
+          "file": "publish_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "1280x720",
+          "file": "publish_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "390x844",
+          "file": "publish_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 2,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        }
+      ]
+    },
+    "after-2bd7302": {
+      "generatedAt": "2026-11-10T02:08:32.701Z",
+      "base": "http://127.0.0.1:5311",
+      "chrome": "Google Chrome",
+      "tool": "puppeteer-core (real headless Chromium)",
+      "routes": [
+        "/",
+        "/chart?songId=who&version=1",
+        "/publish"
+      ],
+      "viewports": [
+        "1440x900",
+        "1280x720",
+        "390x844"
+      ],
+      "summary": {
+        "horizontalOverflow": [],
+        "consoleErrors": [],
+        "exitCode": 0
+      },
+      "captures": [
+        {
+          "route": "home",
+          "viewport": "1440x900",
+          "file": "home_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "home",
+          "viewport": "1280x720",
+          "file": "home_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "home",
+          "viewport": "390x844",
+          "file": "home_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 18,
+          "smallFontElements": 8,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "1440x900",
+          "file": "chart_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "1280x720",
+          "file": "chart_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "chart",
+          "viewport": "390x844",
+          "file": "chart_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 2,
+          "smallFontElements": 4,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "1440x900",
+          "file": "publish_1440x900.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "1280x720",
+          "file": "publish_1280x720.png",
+          "horizontalScroll": false,
+          "clippedElements": 0,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        },
+        {
+          "route": "publish",
+          "viewport": "390x844",
+          "file": "publish_390x844.png",
+          "horizontalScroll": false,
+          "clippedElements": 2,
+          "smallFontElements": 9,
+          "smallTapTargets": 1,
+          "consoleErrors": 0
+        }
+      ]
+    }
+  },
+  "pixelSamples": [
+    {
+      "point": "export-button-fill",
+      "route_image": "publish_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/publish_1440x900.png",
+        "x": 155,
+        "y": 145,
+        "hex": "#12a594"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/publish_1440x900.png",
+        "x": 155,
+        "y": 145,
+        "hex": "#3fa9f5"
+      }
+    },
+    {
+      "point": "review-publish-button-fill",
+      "route_image": "publish_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/publish_1440x900.png",
+        "x": 1120,
+        "y": 845,
+        "hex": "#12a594"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/publish_1440x900.png",
+        "x": 1120,
+        "y": 845,
+        "hex": "#3fa9f5"
+      }
+    },
+    {
+      "point": "canvas",
+      "route_image": "publish_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/publish_1440x900.png",
+        "x": 600,
+        "y": 700,
+        "hex": "#111113"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/publish_1440x900.png",
+        "x": 600,
+        "y": 700,
+        "hex": "#1c1c1c"
+      }
+    },
+    {
+      "point": "note-block-fill",
+      "route_image": "publish_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/publish_1440x900.png",
+        "x": 270,
+        "y": 758,
+        "hex": "#12a594"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/publish_1440x900.png",
+        "x": 270,
+        "y": 758,
+        "hex": "#12a594"
+      }
+    },
+    {
+      "point": "export-button-fill",
+      "route_image": "chart_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/chart_1440x900.png",
+        "x": 143,
+        "y": 85,
+        "hex": "#12a594"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/chart_1440x900.png",
+        "x": 143,
+        "y": 85,
+        "hex": "#3fa9f5"
+      }
+    },
+    {
+      "point": "canvas",
+      "route_image": "chart_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/chart_1440x900.png",
+        "x": 600,
+        "y": 400,
+        "hex": "#111113"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/chart_1440x900.png",
+        "x": 600,
+        "y": 400,
+        "hex": "#1c1c1c"
+      }
+    },
+    {
+      "point": "canvas",
+      "route_image": "home_1440x900",
+      "before": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/before-54505c2/home_1440x900.png",
+        "x": 700,
+        "y": 400,
+        "hex": "#111113"
+      },
+      "after": {
+        "file": "specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/home_1440x900.png",
+        "x": 700,
+        "y": 400,
+        "hex": "#1c1c1c"
+      }
+    }
+  ],
+  "proves": [
+    "publish/chart 画面の token 駆動アクセントが teal #12A594 から Pen accent #3FA9F5 に変わったこと",
+    "canvas 地色が Park 既定 gray #111113 から Pen bg #1B1B1B 系になったこと"
+  ],
+  "doesNotProve": [
+    "ノートブロックの色は #12A594 のまま（note-grid.tsx のハードコード残存・#72 スコープ）",
+    "2xs (8px) テキストの可読性（残存課題。#74 で再監査）",
+    "フォーカスリングのコントラスト 2.5:1（Pen 固定値。#74 で再監査）",
+    "390px でのサイドバー折りたたみ（#74 スコープ）",
+    "旧 before-ready-*.png / after2-*.png は teal→青の差分を証明しない（本 Issue で撮った evidence/pixel/before-54505c2/ が正しい before 実物）"
+  ],
+  "uncheckedTasks": [],
+  "remainingUnverified": [
+    "note-grid.tsx のノート塗り #12A594 はハードコード残存のため差分として現れない（#72 スコープ）",
+    "2xs (8px) テキストの可読性（#74 で再監査）",
+    "フォーカスリングのコントラスト 2.5:1（Pen 固定値。#74 で再監査）",
+    "390px でのサイドバー折りたたみ（#74 スコープ）",
+    "旧 before-ready-*.png / after2-*.png は accent 差分を証明しない（本 Issue で撮った evidence/pixel/before-54505c2/ が正しい before 実物）"
+  ],
+  "tasksStatus": {
+    "T1": "done",
+    "T2": "done",
+    "T3": "done",
+    "T4": "done",
+    "T5": "done"
+  },
+  "tasksNote": "specs/060-web-visual-foundation/tasks.md を実測に同期（5 件すべて checked）。各タスクの根拠と残存は同ファイルの注記を参照。",
+  "artifactSha256": {
+    "before-54505c2/chart_1280x720.png": {
+      "sha256": "cd00fb21e126bf01b34406bab57c653026f84baebf39767e8480e1acae9c90a8",
+      "bytes": 181983
+    },
+    "before-54505c2/chart_1440x900.png": {
+      "sha256": "1b0fe24f5446ffb42793f14adf293e0d42915e2bb6dc4439ebf31f34852897ce",
+      "bytes": 189813
+    },
+    "before-54505c2/chart_390x844.png": {
+      "sha256": "8e94938fac2abaeaa623120463c07ddc2c81293916fda0131c2e86d40509a48b",
+      "bytes": 469528
+    },
+    "before-54505c2/home_1280x720.png": {
+      "sha256": "5fab855b96287d462e7babac29c9e5aa8dc5f2d6794f01d6d14bd809ef805a86",
+      "bytes": 30704
+    },
+    "before-54505c2/home_1440x900.png": {
+      "sha256": "f5f8dc0fda7a8dbceb363d3ac686db04768a6708d6d1895541b1196ef68b20c9",
+      "bytes": 32654
+    },
+    "before-54505c2/home_390x844.png": {
+      "sha256": "13df5f8cec9b05c81398da37c6a8c5e78040c530b94bde906665d0a3493bdf1c",
+      "bytes": 44955
+    },
+    "before-54505c2/index.json": {
+      "sha256": "7fe716e08e733f52ac7b0e465a09b87186ebff0c8663a61d5614baddeff2a42a",
+      "bytes": 38520
+    },
+    "before-54505c2/publish_1280x720.png": {
+      "sha256": "47d84d87831530fe56c6286b7b2123d51ff3c295ec932371c23e59c062427ecc",
+      "bytes": 111127
+    },
+    "before-54505c2/publish_1440x900.png": {
+      "sha256": "984e681691898b87feea18a9d76837e75726e9539fb0a2171d1e17a9c235a54e",
+      "bytes": 134432
+    },
+    "before-54505c2/publish_390x844.png": {
+      "sha256": "39e12d8ad92104cf691b7822b9cae84e6413728af5487f0ebb3e3df97637c8f5",
+      "bytes": 115246
+    },
+    "after-2bd7302/chart_1280x720.png": {
+      "sha256": "269aad00dfd3f49ffe88381d4171f569c0d4e553a06449515e0f7bea72316caa",
+      "bytes": 180839
+    },
+    "after-2bd7302/chart_1440x900.png": {
+      "sha256": "b618c072b4a35cbae26cafcc1dc703499243bc5083b1396c4b2016f192245dc3",
+      "bytes": 189021
+    },
+    "after-2bd7302/chart_390x844.png": {
+      "sha256": "b9561343eed825507d3c0234883061b6f71848cfd159e961d4438691782796d0",
+      "bytes": 464076
+    },
+    "after-2bd7302/home_1280x720.png": {
+      "sha256": "1c193908bfcef652a663b2e05b0ac4a6b21877d78b73202d454b6f039a05ad5a",
+      "bytes": 28671
+    },
+    "after-2bd7302/home_1440x900.png": {
+      "sha256": "c8150976bb13a650fdc23510953925f1adcb17da6ecf844aaff41ca448dcfe67",
+      "bytes": 30848
+    },
+    "after-2bd7302/home_390x844.png": {
+      "sha256": "2dc23ebd1070fa478f81cb5afecc8b0f6c86edd11587b6e1cbfb4f782fadf619",
+      "bytes": 43061
+    },
+    "after-2bd7302/index.json": {
+      "sha256": "5a19c75643cb477933627d4e171e57f47fbf05ba7c2ccf1698d9591f1a993559",
+      "bytes": 38520
+    },
+    "after-2bd7302/publish_1280x720.png": {
+      "sha256": "e07cb9fa428591804298376dfac4de36b09296f4e78f95509bd4bb328534df5a",
+      "bytes": 104367
+    },
+    "after-2bd7302/publish_1440x900.png": {
+      "sha256": "bdd7beff9055832500e9dc35c066d9573c8870299c8f4747433558c1c7d1a3e1",
+      "bytes": 127973
+    },
+    "after-2bd7302/publish_390x844.png": {
+      "sha256": "563ebd1fb0fa644318de589a9d0e2e724838d37df59fb1dc6a0e2b8c1b00987a",
+      "bytes": 102282
+    }
+  }
+}

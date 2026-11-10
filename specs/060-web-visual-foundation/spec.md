@@ -4,7 +4,14 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 
 # Spec: Pen v5 tokens → Panda/Park mapping (web visual foundation)
 
-**Issue**: #60 | **Branch**: `60` | **PR base**: `release-0-1-3` | **Date**: 2026-11-07 | **Status**: Draft
+**Issue**: #60 | **Branch**: `60` | **PR base**: `release-0-1-3` | **Date**: 2026-11-07 | **Status**: Merged
+
+**PR**: [#90](https://github.com/rebuildup/FlashBeat/pull/90)
+**実行 SHA（証跡撮影・検証の 기준）**: `2bd7302aac0419d80d662eaa4315253a2b36707f`
+**マージコミット**: `5e4e43f9e4a482a79cf1ff5ed7f686c930c8bff5`
+**before SHA（#60 適用直前）**: `54505c2998fb4e8c756e632ea48c396bd36dad88`（= `2bd7302^`）
+**証跡**: [`docs/evidence/60-web-visual-foundation/README.md`](../../docs/evidence/60-web-visual-foundation/README.md)
+（この証跡の出典・コマンド・画素サンプル・残存課題を記載）
 
 **Input**: #60 + #61 (product spec, visual reference authority)
 
