@@ -215,7 +215,7 @@ namespace FlashBeat.UI.V6.Title
         /// 「アップデートあり」通知 (状態表示) を出すか。
         /// - 更新が実際に利用できる (Available / Downloading / Ready / Applying) ときだけ
         /// - このセッションで dismiss (F4 / ×) されていないときだけ
-        /// 「更新して再起動」ボタンの **操作** とは別の 표시。
+        /// 「更新して再起動」ボタンの **操作** とは別の表示。
         /// </summary>
         public static bool ShowUpdateAvailableNotice(UpdateFlowModel model)
         {

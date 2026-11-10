@@ -71,7 +71,7 @@ description: "FlashBeat lean tasks — Issue 017"
   — **done when**: 判定数が公開した譜面のノーツ数と一致し、Result に到達したこと
   — **備考**: **Windows 実機は展示 PC のため cc は実行しない。オーナー実施。**
   実行した **chartVersion が意図した版** と一致すること
-  (`CloudChartHolder` が (id, version) で保持している谱面を使ったことの確認)。
+  (`CloudChartHolder` が (id, version) で保持している譜面を使ったことの確認)。
   前提: #13 (S1) のストリーム再生が成立していること。
 
 - [ ] **T9** catalog 取得の失敗 / 空 / HTTP エラーで Unity がクラッシュせず、

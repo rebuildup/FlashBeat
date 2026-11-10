@@ -56,7 +56,7 @@ description: "FlashBeat lean tasks — Issue 059"
 
 - [ ] **T7** NG が見つかった場合の別 Issue 起票 (修正はしない)。
   — **done when**: 起票した Issue 番号が `docs/evidence/59-feature-acceptance.md` §3 に載っていること
-  (起票が不要なら「本次検査で NG は無し」と明記)
+  (起票が不要なら「今回検査で NG は無し」と明記)
   — 既に 1 件あり: 譜面/設定 JSON の Resources 混在バグ → #241 → PR #264 で修正済み
 
 - [ ] **T8** Issue 本文の 4 チェックボックスを、受入判定が確定した範囲でのみチェックする。

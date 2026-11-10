@@ -62,7 +62,7 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 **Given** 固定 45 要素の `Hiscore` 配列assumption だった時代の挙動
 **When** 50 曲以上の曲でプレイして再起動する
 **Then** 各曲在自己的 stable key に記録が残り、slot 0 を共有して記録が
-失われる / 他曲へ移る 일이 없다
+失われる / 他曲へ移ることはない
 
 **Independent Test**:
 `Unity -batchmode -quit -projectPath . -runTests -testPlatform editmode`
@@ -76,7 +76,7 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 **When** 新しいバージョンで読み込む
 **Then** 内蔵曲 (固定 id → stable key の **既知の対応**) の記録は移行され、
 **内蔵曲に対応しないスロット** (旧 remote slot) は **どの曲にも割り当てず**、
-移行済み_FLAG と 함께保持 (黙って消さない / 推測で別曲に割り当てない)
+移行済みフラグと一緒に保持 (黙って消さない / 推測で別曲に割り当てない)
 
 **Independent Test**:
 `Unity -batchmode -quit -projectPath . -runTests -testPlatform editmode`
@@ -91,7 +91,7 @@ description: "FlashBeat lean per-issue specification template (project-local ove
   全面リセットしない
 - **新形式 (key 付き) が既に保存されている**: 新形式を優先し、旧 CSV の移行は
   **一度だけ** (移行済み FLAG) 行う。再起動で二重適用しない
-- **chartVersion が 0 / 不明な曲** (cloud catalog 未取得時): 谱面版は
+- **chartVersion が 0 / 不明な曲** (cloud catalog 未取得時): 譜面版は
   `chartVersion = 0` (「版不明」) として扱う。同じ曲でも版が変わると
   **別の key** になり、ベストは **Guy 历来の値を引き継がない** (R4 のポリシー)
 - **同名曲 / 同 YouTube ID の重複**: stable key の衝突は **後勝ち** で
@@ -126,7 +126,7 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 
 ## Known Issues (この Issue が解かないもの)
 
-### K1 — UI 層は 아직 index ベースの `GManager.Hiscore` を読んでいる
+### K1 — UI 層はまだ index ベースの `GManager.Hiscore` を読んでいる
 
 `ResultSceneManager` / `SelectView` / `PauseMenuView` / `GameHudView` /
 `SelectViewLogic` は `GManager.Hiscore[arrayIndex]` を直接読んでいて、

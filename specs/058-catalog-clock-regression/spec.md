@@ -31,7 +31,7 @@ description: "FlashBeat lean spec — Issue 058"
 | 曲数の基準 | Issue 本文の「30 曲」を **削除しない**。読み替え表として **GManager の 7 並列配列 = 29 エントリ / placeholder (index 0) = 1 / 選曲不可 (ニセモノ index 27, 28) = 2 / 選曲可能 = 26** を固定する。受入条件は「曲数が 30 であること」ではなく「**配列・カタログ・譜面が整合し、選曲可能な曲が全部選べる**」こと (`GManager.cs:88` / `:407` / `ChartDataIntegrityTests.cs`) |
 | 選曲画面の証跡 (A) | **実ディスプレイ全画面**のスクリーンショットを macOS (2560×1664) で取得する。**窓リサイズによる擬似全画面は証拠にならない** (memory: 3解像度は実ディスプレイ全画面)。v6 Select は `ListVisibleRows = 9` (`V6SelectView.cs:42`) なので **1 枚では全件は見えない**。**先頭・末尾・途中**の 3 枚を撮って「全件がスクロールで到達できる」ことを示す |
 | カタログ到達時の差分 (A) | 「カタログ到達時 / 未到達時 の両方」を撮る。ただし **cloud catalog の到達は環境依存** (到達できなければ未到達時の証跡として残し、云側を触らない) |
-| 1 曲フルプレイ (B) | 既存ハーネス `Assets/Game/Scripts/Common/AutoTestV6SongEnd.cs` + `script/mac-songend-harness.sh` を **そのまま使う** (PR #258 で実証済み)。谱面もクロックも差し替えない。判定数・`SongEndMachine` 状態・`ResultScene` 到達・スクリーンショットを 1 回で観測する |
+| 1 曲フルプレイ (B) | 既存ハーネス `Assets/Game/Scripts/Common/AutoTestV6SongEnd.cs` + `script/mac-songend-harness.sh` を **そのまま使う** (PR #258 で実証済み)。譜面もクロックも差し替えない。判定数・`SongEndMachine` 状態・`ResultScene` 到達・スクリーンショットを 1 回で観測する |
 | 1 曲フルプレイ (B) の Windows 側 | Windows 実機は展示 PC のため **cc は実行しない**。手順書 (`docs/operations/win64-candidate-acceptance-2026-11-10.md`) を残し、オーナー実施とする |
 | ストリーム音声 (m4a) | Issue の「YouTube 映像/音声が出るか」の中の **ストリーム音声** は `#13` / `#4` の未解決事項 (Windows Media Foundation が `googlevideo.com` を読めない) なので、**本 Issue では再検証しない**。「同梱 wav が鳴る」ことを観測して **「ストリーム音声は未証明」** と明記する |
 | 不具合の扱い | 見つけた不具合は **Issue 化だけ** して報告する。**本 Issue では修正しない** (Issue 本文の制約) |

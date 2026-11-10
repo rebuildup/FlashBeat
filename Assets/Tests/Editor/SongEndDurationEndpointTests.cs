@@ -93,7 +93,7 @@ public class SongEndDurationEndpointTests
         SongEndAcceptanceRig.Player player = new SongEndAcceptanceRig.Player(rig);
 
         // 先頭の Tap (1.0 秒) を押さえる。末尾の Tap (10.0 秒) の入力は
-        // 予約하지만、9.0 秒までしか回さないので **まだ適用されない**
+        // 予約するが、9.0 秒までしか回さないので **まだ適用されない**
         // (未判定のまま曲が終わるのが旧バグ)。
         player.SchedulePress(rig.NoteTime[0], rig.NoteLane[0]);
         player.SchedulePress(rig.NoteTime[1], rig.NoteLane[1]);

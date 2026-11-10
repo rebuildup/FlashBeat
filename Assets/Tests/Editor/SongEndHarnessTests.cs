@@ -106,7 +106,7 @@ public class SongEndHarnessTests
         //     ハーネスの結果 (曲終了の観測) に取り込まないため、HOLD の無い譜面で
         //     固定する。
         //  2) 判定の内訳 (perfect / great / bad / miss) はノーツ 1 個につき 1 個なので
-        //     HOLD でも二重計上されない。ハーネスが読むのはこの쪽だけ。
+        //     HOLD でも二重計上されない。ハーネスが読むのはこの箇所だけ。
         int holds = 0;
         for (int i = 0; i < chart.notes.Length; i++)
         {

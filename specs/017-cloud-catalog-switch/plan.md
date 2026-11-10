@@ -53,7 +53,7 @@ main の現状 (catalog / chart の取得経路は実装済) を踏まえた、*
         │     CloudChartHolder.cs:16 Hold(id, version, json)  → 1 ランは同一版で完走
         │
         ├─ Game: MusicManager.cs:202/:207  YPlayer[songID] を 1 回だけ初期化 (曲ごとに object を作らない)
-        │       NotesManager が CloudChartHolder の谱面でノーツを生成
+        │       NotesManager が CloudChartHolder の譜面でノーツを生成
         │
         └─ Result → Retry
               Player.log に [GManager] cloud catalog applied: local=… merged=… remote=… 行
@@ -64,7 +64,7 @@ main の現状 (catalog / chart の取得経路は実装済) を踏まえた、*
 本 Issue に **新規実装は不要**。順序は「準備 → 観測 → 記録」。
 
 1. **公開 API の生存確認** (cc 側, macOS, read-only):
-   - `GET {base}/api/v1/catalog` が 200 を返し、空でない数组を返すこと。
+   - `GET {base}/api/v1/catalog` が 200 を返し、空でない配列を返すこと。
    - `GET {base}/api/v1/charts/{songId}?version=N` が 200 を返すこと (catalog の 1 行で検証)。
    - `CloudCatalogConfig.json` の `baseUrl` が実際のデプロイ先と一致していることを確認。
    - **存在しなければ S2 の前提 (#15 / #16) が未達**。cc はデプロイを行わない (read-only のみ)。
@@ -77,7 +77,7 @@ main の現状 (catalog / chart の取得経路は実装済) を踏まえた、*
    - 新曲が選曲画面に出現し、タイトル / アーティスト / 版が正しいことを確認。
 4. **選曲 → ストリーム → ノーツ/判定 → result** (オーナー / Windows 実機):
    - 公開した新曲を選んで 1 ラン完走。判定数が公開した譜面のノーツ数と一致すること。
-   - 実行した chartVersion が意図した版であること (`Player.log` の谱面取得行)。
+   - 実行した chartVersion が意図した版であること (`Player.log` の譜面取得行)。
 5. **障害系の確認** (オーナー / Windows 実機):
    - API 遮断 / 404 / 空応答のいずれかで、**Unity がクラッシュせず** 選曲画面が操作可能なまま残ること。
 6. **回帰確認**: 既存 27 曲 (local) が引き続き選曲・再生できること。

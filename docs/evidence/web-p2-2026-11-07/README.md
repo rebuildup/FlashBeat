@@ -79,7 +79,7 @@ D1 (`cf d1 query`) にも `p2-e2e-probe` v2 が書き込まれていることを
 | 取得経路 | `Assets/Game/Scripts/UI/SelectSceneManager.cs` (`RefreshCatalogLoop` / `RefreshCatalogOnce`) | 選曲画面入場時と 8 秒ごとに `GET /api/v1/catalog` (`Resources/CloudCatalogConfig.json` の `baseUrl` = `https://flashbeat.rebuildup.dev`) |
 | キャッシュ | サーバは `Cache-Control: no-store` / クライアントは直近の合成結果のみ保持 | `GManager.Merge()` が固定カタログへ cloud を合成 (未知の公開曲が末尾に追加) |
 | バージョン取得タイミング | `SelectSceneManager.StartRemoteSong` | 曲開始時にカタログの `chartVersion` を固定し、`GET /api/v1/charts/{songId}?version=N` を 1 回取得。`CloudChartHolder` がリトライ含め保持 |
-| 再ビルド | 不要 | 公開曲・chartVersion は実行時に API から取得するため、Unity の再ビルドなしで新しい公開 곡が選曲画面に出現する |
+| 再ビルド | 不要 | 公開曲・chartVersion は実行時に API から取得するため、Unity の再ビルドなしで新しい公開曲が選曲画面に出現する |
 
 本番 E2E の 2 テストが API 応答を Unity 側の読み取り規則で検査している
 (曲 id `^[a-z0-9-]{3,64}$` / タイトル非空 / video id `^[A-Za-z0-9_-]{11}$` /

@@ -44,7 +44,7 @@ HOLD の **実装と EditMode テストは main に存在する** が、
 
 - HOLD の判定ロジックの再実装・仕様変更 (`specs/164-long-note/spec.md` は凍結済)。
 - 対策 (A) の重複実装 (**別 Worker が実装中**)。
-- 対策 (B) の実施 (谱面内容の方針決定は **オーナー判断**。cc は実曲へ HOLD を追加しない)。
+- 対策 (B) の実施 (譜面内容の方針決定は **オーナー判断**。cc は実曲へ HOLD を追加しない)。
 - カタログへの新規曲登録 / `GManager` の 7 並列配列の追加。
 - Windows 実機での HOLD 演奏 (別途残す)。
 - `docs/evidence/index.md` / `docs/audit/open-issues-audit.md` の編集 (他 Worker 所有)。
@@ -82,5 +82,5 @@ HOLD の **実装と EditMode テストは main に存在する** が、
 | 3. HOLD の中断 (BAD) の実機観測 | **未充足** | 同上。既存は `LongNoteTests` の純ロジック検証のみ |
 | 4. 実機での既存曲回帰 | **未充足 (macOS で可能)** | `script/mac-songend-harness.sh` で既存曲 (「ツイッターランド」130 notes) の完走は実証済み (`docs/evidence/233-song-end-harness.md`) が、**HOLD 追加後に同じ結果か** は未確認 |
 | 5. Windows 実機での HOLD 演奏 | **未充足 (Windows 実機必須)** | Issue 本文の受入条件 3 として **別途残す** 項目。**Windows 実機は展示 PC のため cc は実行しない。オーナー実施** |
-| 6. 対策 (A) / (B) の採否判断 | **未決 (オーナー判断)** | 対策 (A) は推奨案だが Worker が実装中、対策 (B) は谱面内容の方針決定が必要 = **オーナー判断** |
+| 6. 対策 (A) / (B) の採否判断 | **未決 (オーナー判断)** | 対策 (A) は推奨案だが Worker が実装中、対策 (B) は譜面内容の方針決定が必要 = **オーナー判断** |
 | Issue #59 への波及 | **未充足** | `docs/evidence/59-feature-acceptance.md` §2.3 の「残存」が「実機での HOLD 演奏 2 ケース (成功 / 中断) の確認」のまま。#278 完了後に更新される |

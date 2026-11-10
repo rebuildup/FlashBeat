@@ -116,7 +116,7 @@ namespace FlashBeat.Tests.Editor
         /// (PR #263 レビュー S4)。
         ///
         /// 親の alpha 0.5 と子の alpha 0.5 = 0.25 なので「片方だけ 0」
-        ///  보는実装だと 0.5 x 0.5 でも見えたことになってしまう。
+        /// 見る実装だと 0.5 x 0.5 でも見えたことになってしまう。
         /// </summary>
         [Test]
         public static void IsDrawn_HalfTransparentParentAndChild_IsTrue()

@@ -76,7 +76,7 @@ namespace FlashBeat.Tests.Editor
                 "NoteEditor シーンに FlashBeatSongLoader がありません (回復経路が到達不能)");
         }
 
-        // B-2: ローダーが一覧컨테이너と項目プレハブまで配線されていること。
+        // B-2: ローダーが一覧コンテナと項目プレハブまで配線されていること。
         [Test]
         public void NoteEditorScene_LoaderIsWiredToFileList()
         {

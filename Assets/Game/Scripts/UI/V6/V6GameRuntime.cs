@@ -123,7 +123,7 @@ namespace FlashBeat.UI.V6
 
             // v6 HUD が Ready 中の「Space to Start」を出す (V6GameHudView の歌詞位置)。
             // v5 の Ready プロンプト ("Start (設定・表示・ランク)" + Space/Esc KeyCap) は
-            // 二重表示になるので、V6UiMode.GameHud が有効な間만隠す (v5 モードでは出る)。
+            // 二重表示になるので、V6UiMode.GameHud が有効な間だけ隠す (v5 モードでは出る)。
             // GameObject を止めると GameReadyView.Update も止まり再表示されない。
             // 破棄はしない (GameHudController が ready 参照を持つ)。
             if (legacyReadyCanvas != null && legacyReadyCanvas.gameObject.activeSelf)
