@@ -82,8 +82,9 @@ public class MusicManager : MonoBehaviour
     /// <summary>メディアの終端 (loop point または再生停止) に達した。以後 judge の
     /// 時計は固定された StartTime から壁時計で進み、末尾ノーツを確定させる。</summary>
     bool mediaEnded;
-    bool videoSeenPlaying;
-    bool streamAudioSeenPlaying;
+    /// <summary>メディア終端の裁定 (単フレームの停止を終端と誤認しない)。状態と規則は
+    /// <see cref="MediaEndDetector"/> にあり、EditMode テストで検証できる。</summary>
+    readonly MediaEndDetector mediaEndDetector = new MediaEndDetector();
     /// <summary>メディアの時刻が最後に進んだ壁時計 (StallFailSeconds の判定用)。</summary>
     float lastMediaProgressWallTime;
     /// <summary>最後のノーツが確定する譜面上の時刻 (SettleDeadline のキャッシュ)。</summary>
@@ -903,6 +904,12 @@ public class MusicManager : MonoBehaviour
         mediaTime = PauseGate.FrozenMediaTime;
         stallSeconds = 0f;
         lastMediaProgressWallTime = Time.time;
+        // 終端検出も同じ理由でやり直す: ポーズ前の「停止」秒数を持ち越すと、
+        // 再開直後のわずかな停止で終端と誤認する。
+        if (!mediaEnded)
+        {
+            mediaEndDetector.Reset();
+        }
     }
 
     void Update()
@@ -1206,44 +1213,44 @@ public class MusicManager : MonoBehaviour
     /// loop point イベント (OnSongVideoLoopReached) が一次情報で、
     /// ここは isPlaying の立ち下がりを拾う補完経路。メディアがなければ何もしない、
     /// (終端判定は FallbackSongEnd の壁時計側で行う)。
+    ///
+    /// 単フレームの「停止」はバッファ詰まりや seek でも起きるので、終端の裁定は
+    /// <see cref="MediaEndDetector"/> に委ねる: 停止が ConfirmSeconds 続いたとき
+    /// だけ終端と認め、長さの分かるメディア (bundled wave) は位置も終端付近を要求する。
     /// </summary>
     void DetectMediaEnd()
     {
         if (pictureStarted && songVideo != null && songVideo.isPrepared)
         {
-            if (songVideo.isPlaying)
-            {
-                videoSeenPlaying = true;
-            }
-            else if (videoSeenPlaying)
-            {
-                mediaEnded = true;
-                Debug.Log("[MusicManager] the picture player stopped - treating it as the media end (issue #226)");
-            }
+            // 映像がマスター: 実動画はメタデータの duration より短いことがある
+            // (issue #226) ので、位置は検証せず「停止の持続」だけを終端条件にする。
+            ObserveMediaEnd(songVideo.isPlaying, (float)songVideo.time, 0f,
+                "[MusicManager] the picture player stopped - treating it as the media end (issue #226)");
             return;
         }
 
         if (audioMode == PlaybackSource.BundledWave && audioS != null && audioS.clip != null)
         {
-            if (!audioS.isPlaying && audioS.time >= audioS.clip.length - 0.05f)
-            {
-                mediaEnded = true;
-                Debug.Log("[MusicManager] the bundled wave reached its end (issue #226)");
-            }
+            ObserveMediaEnd(audioS.isPlaying, audioS.time, audioS.clip.length,
+                "[MusicManager] the bundled wave reached its end (issue #226)");
             return;
         }
 
         if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null && streamAudioPlayer.isPrepared)
         {
-            if (streamAudioPlayer.isPlaying)
-            {
-                streamAudioSeenPlaying = true;
-            }
-            else if (streamAudioSeenPlaying)
-            {
-                mediaEnded = true;
-                Debug.Log("[MusicManager] the audio stream stopped - treating it as the media end (issue #226)");
-            }
+            ObserveMediaEnd(streamAudioPlayer.isPlaying, (float)streamAudioPlayer.time, 0f,
+                "[MusicManager] the audio stream stopped - treating it as the media end (issue #226)");
+        }
+    }
+
+    /// <summary>1 フレーム分の観察を <see cref="MediaEndDetector"/> に渡し、
+    /// 確定したら一度だけ mediaEnded を立てる (FailSongEnd / 曲完了の契約を維持)。</summary>
+    void ObserveMediaEnd(bool isPlaying, float mediaTime, float mediaDuration, string endedLog)
+    {
+        if (mediaEndDetector.Tick(Time.time, mediaTime, true, isPlaying, mediaDuration) == MediaEndDecision.Ended)
+        {
+            mediaEnded = true;
+            Debug.Log(endedLog);
         }
     }
 
