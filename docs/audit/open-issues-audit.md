@@ -1,7 +1,7 @@
 # open Issue 実装状況監査 (main 実測)
 
-- **対象**: `origin/main` = `dd69041` (PR #287 merge 直後)
-- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新)** — A グレード 7 件 (#12/#19/#60/#68/#71/#73/#135) は **受入条件を個別に再判定** 済み
+- **対象**: `origin/main` = `85d79ab` (PR #290 merge 直後)
+- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映
 - **監査範囲**: open の全 Issue 48 件 (うち **#71 は本更新で Closed** となったため **実質 47 件**)
 - **作業**: worktree `/Users/rebui/work/FlashBeat.waudit3` (branch `w/audit-web`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
 
@@ -73,12 +73,12 @@
 | 22 | Release/Win Win64 展示版 smoke/配布ゲート | **B** | `docs/evidence/index.md`, `release/check/**` | 4/4/2 | Windows 実機 | S0 のみ partial。S1–S4 を詰める |
 | 30 | Product Spec ゲーム体験の理想形 | **E (一部解消)** | `docs/ui/issue-30-spec-decisions.md` | 0/0/1 | オーナーの仕様確定 (D1〜D6) | HOLD 4 項目は #164 で凍結済 (PR #265)。残り D1〜D6 はオーナー決定。**代替既定値**があるため他 Issue は止まらない |
 | 56 | Infra AIエージェント開発環境再整備 | **B → Closed** | `mise.toml`, `skills-lock.json`, `evals/policy-evaluation/**` | 5/0/0 | — | **PR #267 merged → Issue Closed**。`mise install --locked` と `mise run skills-check` が exit 0 (27 Skill 一致) |
-| 58 | 検証 カタログ合成(30曲)+再生クロック | **B** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs` | 2/1/2 | — | 「30曲」前提が stale (現在 29 行/28 選曲可)。基準の更新が必要 |
+| 58 | 検証 カタログ合成(30曲)+再生クロック | **B → 実機証跡 追加** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs`, `docs/evidence/58-select-screen/` | **3/1/1** | Windows 実機 (映像 / A-V 同期 / Retry) | **PR #290 merged** — macOS 実ディスプレイ全画面 (2560×1664) で **2 曲 (ツイッターランド / 一龠) を完走**。両曲 `pass=31 fail=0` / `songEndState=Completed` / `forcedByDeadline=False` / `scene=ResultScene` / `judged == settled == chartNotes` (130/130, 191/191)。**YouTube 映像の視認・A/V 同期・Retry・選曲可 26 曲すべての完走は未検証** (Issue の「30 曲」前提は stale → 選曲可 26 曲) |
 | 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
-| 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B** | `Assets/Game/Scripts/Gameplay/LongNote.cs:29`, `Assets/Game/Scripts/Gameplay/NotesManager.cs` (HOLD 生成経路は既存) | **0/1/2** | — (新規 Worker 実行中) | **実測**: `Assets/Game/Resources/*.json` 全 27 曲で `notes[].type` は 1 (Tap) のみ、`type=2` (HOLD) は **0 個**。HOLD の実装は main にあり EditMode テストもあるが、**プレイヤーが到達できる内容が無く実機受入が成立しない**。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネス (Worker 実装中) / (B) 実曲への HOLD 追加 (オーナー判断) |
-| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 検証済 (1 条件 未充足)** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **4/1/0** | oxfmt 整形 (対応中) | **再検証 (2026-11-10, コメント id 6744105927)**: 5 条件を個別判定 → T1〜T4 充足 / **T5 未充足** (実行 SHA・Draft PR URL が未記録 / tasks.md の T1〜T5 が未チェック / before 画像が teal を写していない)。文書側の記録欠落であり実装の欠落ではない |
+| 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B → 対策 (A) 実装済 (PR #291 draft) / 実機 run は未実施** | `Assets/Game/Scripts/Common/HoldProbeChart.cs` (新規), `PlaySessionSnapshot.ChartJsonOverride`, `AutoTestV6Hold.cs` (新規), `script/mac-holdprobe-harness.sh` (新規) | **1/1/1** | macOS 実機 (キー押下) / Windows 実機 | **実測**: `Assets/Game/Resources/*.json` 全 27 曲で `notes[].type` は 1 (Tap) のみ、`type=2` (HOLD) は **0 個**。対策 (A) = 検証用 HOLD 譜面 (タップ 4 + HOLD 3) を `PlaySessionSnapshot.ChartJsonOverride` で **プレイ時だけ** 差し込む (カタログは増やさない / Resources にも置かない) + macOS 実機ハーネス。**PR #291 (draft)**: EditMode **1306/1306**。**macOS 実機の HOLD 保持 (CGEvent の実キー押下) は未実施**。対策 (B) 実曲への HOLD 追加 はオーナー判断待ち |
+| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 検証済 (1 条件 未充足)** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **4/1/0** | 記録の欠落 (Worker 再実行中) | **再検証 (2026-11-10, コメント id 6744105927)**: 5 条件を個別判定 → T1〜T4 充足 / **T5 未充足** (実行 SHA・Draft PR URL が未記録 / tasks.md の T1〜T5 が未チェック / before 画像が teal を写していない)。文書側の記録欠落であり実装の欠落ではない。**2026-11-10: 記録 Worker を再起動** (実行 SHA / PR URL / tasks.md のチェック / before-after の正直な扱い) |
 | 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
-| 68 | Web/Catalog 本番 Catalog API 接続 | **A → 検証済 (2 条件 未充足)** | `web/src/app/catalog.ts:21,28,32,57,79` | **5/2/0** | 契約テスト + abort/順序ガード | **再検証 (2026-11-10, コメント id 6744111822)**: 7 条件を個別判定 → 5 充足 / **2 未充足** (T1: クライアント/アダプタ層の契約テストが `web/src/app/__tests__/` に存在しない / T2: `app-shell.tsx:100-113` の `refresh` に AbortController も stale-response ガードも無い)。**両方とも Web 側で実装可能なため Worker を起動済み** |
+| 68 | Web/Catalog 本番 Catalog API 接続 | **A → 検証済 (2 条件 未充足)** | `web/src/app/catalog.ts:21,28,32,57,79` | **5/2/0** | 契約テスト + abort/順序ガード | **再検証 (2026-11-10, コメント id 6744111822)**: 7 条件を個別判定 → 5 充足 / **2 未充足** (T1: クライアント/アダプタ層の契約テストが `web/src/app/__tests__/` に存在しない / T2: `app-shell.tsx:100-113` の `refresh` に AbortController も stale-response ガードも無い)。**両方とも Web 側で実装可能なため Worker を再起動** (初回起動回は 429 で中断 → 作業内容は残っていないので作り直し) |
 | 71 | Web/Chart Session 正しい版を開く | **A → 受入条件 6/6 充足 → Closed** | `web/src/lib/song-session/load.ts` | **6/0/0** | — | **再検証 (2026-11-10, コメント id 6744130520)**: 6 条件すべて充足 (実ブラウザ + ローカル D1 で 4 曲公開 → 版不一致は 404 → 空譜面に置換せずエラー表示 / 曲ごとに videoId・note-count が独立)。**Issue #71 は Closed** |
 | 73 | Web/Publish Flow モック禁止+実API | **A → 検証済 (1 条件 本番 E2E 待ち)** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | **7/0/1** | 本番 API での監督付き E2E | **再検証 (2026-11-10, コメント id 6744154670)**: 8 条件を個別判定 → 7 充足 (実ブラウザ publish → 実 GET で catalogVersion / chartVersion 一致、401 で成功表示ゼロ) / **T5 未検証** (本番 API への書き込みを伴う E2E。cc は本番書き込みを行わない)。token 非漏洩はコード + 実測で担保済み |
 | 74 | Web/Responsive 操作不能 UI をなくす | **B** | `web/src/app/sidebar.tsx`, `web/src/app/panel.tsx` | **3/0/3** | 視覚ゲート (#75) | **PR #257 merged**。狭幅横溢れ 0・clip 0 を実測 (`npm run visual` exit 0) |
@@ -102,7 +102,7 @@
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
 | 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 受入条件 7/7 充足** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs`, `Assets/Editor/NoteEditorSongSwitchProbe.cs` | **7/0/0** | — | **PR #252 merged** (`39ba1bd`) + **PR #287 merged** — Mac の Unity Editor batchmode で本番経路を実行し **4/4 ケース PASS** (未保存 / キャンセル / 保存 / 破棄)。曲 A・B の size + SHA-256 で「別曲の JSON を上書きしない」ことを実測。証跡 = `docs/evidence/225-editor-song-switch/` |
 | 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト完了** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/SongEnd*Tests.cs` (5 ファイル) | **8/1/1** | Windows 実機 | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の **受入条件テスト 20 件を追加** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。**正負 noteTiming** は PR #272、`macOS 実機完走` は PR #258 (130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件は **Windows 実機完走とランキングの実 API 送信** の 2 項目のみ |
-| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B** | `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374`, `V5/GameUiExclusivity.cs` | 2/2/2 | Windows 実機 | **PR #258 merged** — macOS 実機で 1 曲完走 → Result 到達を実証 (29/29 断言 / `Completed` / 期限切れ強制終了ではない)。**PR #263 (プレイフィールド再有効化) は独立レビューで NEEDS WORK** — ブロッカー 2 件 (① 映像プレーンが prepare 前は白板のまま = #13 で Windows では恒常失敗、② 根本原因の記載が誤りで誤ったモデルを固定するテストがある) を修正中。**ノーツ・動画の視認は Windows 実機未確認のため #233 の未解決問題として残す** (テスト緑は実機合格ではない) |
+| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B → 実装 merged / 実機受入は Windows 待ち** | `Assets/Game/Scripts/Gameplay/MediaTimeline.cs` (`PlayfieldCameraFit`), `PlayfieldLaneGuides.cs`, `VideoPicture.cs`, `MusicManager.cs`, `docs/evidence/233-playfield/` | **3/2/1** | Windows 実機 (展示 PC) | **PR #263 merged (`06ccefe`)** — 独立レビュー (CodeRabbit 13 スレッド) を全件コードで解消。macOS 実機 (2560×1664 実ディスプレイ全画面) で **映像 / レーン境界 9 本 / 判定ライン / ノーツ 5 本 / 歌詞** の描画を実証。EditMode **1296/1296**。**Windows 実機でのノーツ・動画の視認は未検証** = #233 の未解決問題として残す (テスト緑は実機合格ではない)。Issue コメント id 6756759851 |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
 | 240 | P0/v6 Result + 登録モーダル | **A** | `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:124,741,990` | 6/0/1 | — | クローズ提案可 (実機/実API は `specs/240` 3 タスク) |
 | 241 | P0/v6 Option 4タブ整合 | **B** | `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` | **5/0/1** | — | **PR #264 merged** (`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ)。あわせて **譜面と設定 JSON が同じ Resources に混在するバグ** も修正 (`OptionSceneManager.SettingsDirectory()` → `UserSettings/song-settings/`) |
@@ -670,7 +670,20 @@
 
 - **未検証の区別**: 条件 5 の実行部は **実 API + Unity 実機の双方が必要**。**Vitest 緑は本番 API への publish 成功を意味しない** (`transport.ts:31-35` は fixture が明示許可されない限り例外を投げる設計)。代替 = Vitest 緑。
 - **依存**: #61 (Web Studio 親仕様) の子、#73 (Publish Flow) の上に成り立つ。#3 の S3 ゲート。
-- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744359277)**:
+- **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744359277)**:- **2026-11-10 実装完了 (PR #263 merged, `06ccefe`)**:
+  - 独立レビュー (CodeRabbit) の **13 スレッドを全件、コードで解消** して merge。レビュー指摘と対処:
+    | 指摘 | 対処 |
+    |---|---|
+    | 描画判定が「総フレーム数」(`frameCount`) | `VideoPicture.HasRenderedFrame` = `frame > 0 \|\| isPlaying` に修正 |
+    | `GraphicVisibility.IsDrawn` が Canvas の無効を見落とす | 祖先チェーンを辿り CanvasGroup の積と Canvas の有効性を評価 |
+    | v6 の 2D プレイフィールドと 3D カメラ fit の競合 | `V6UiMode.Playfield` 有効時は fit しない |
+    | 計測表の「ビュー深度」がワールド z と混同 | `dot(P - cameraPos, forward)` で再導出 (判定線 4.06 / ノーツ 4.02..8.98 / ガイド 4.04..9.12) |
+    | 映像プレーンの描画モード説明が誤り | `m_RenderMode: 3` = **MaterialOverride** (RenderTexture ではない)。原因は `m_TargetMaterialRenderer: {fileID: 0}` |
+    | 撮影順 (密区間の待ちの前に `05-gameplay` を撮る) / 2 枚目の条件検証 / 再開時のプレーン配線 | いずれもコードで反映 (`AutoTestV6.cs` / `MusicManager.ResumeMediaFromGate`) |
+  - 独立実行した EditMode: **1296 / 1296 passed, failed 0**。
+  - macOS 実機 (2560×1664 実ディスプレイ全画面) で **映像 / レーン境界 9 本 / 判定ライン / ノーツ 5 本 / 歌詞** の描画を実証。
+  - **Windows 実機での視認は未検証**。#233 は **open のまま** (Issue コメント id 6756759851)。
+
   - 6 受入条件を個別判定 → **5 充足 / 0 未充足 / 1 未検証**。
   - 実ブラウザ実測: 「Who」→ 候補 `who` (既出) → 代替 `who-2 / who-3 / who-4` を提示、「Zebra Song」→ `zebra-song` (重複なし)。**oEmbed を遮断**した状態でも「動画ID: dQw4w9WgXcQ / Video id: dQw4w9WgXcQ」を表示し、oEmbed 失敗の注記を出したうえ **長さ欄は編集可能なまま**、フローはブロックされない。譜面エディタ (Konva グリッド) へ往復 → ノート 1 個配置 → `note-count` = `1 note` → ステップ 3 のレビューへ引き継ぎ → `ox-song` を登録 → 成功パネル「公開しました / Published / 曲ID ox-song / 譜面バージョン v1 / ノート数 1 / カタログバージョン 10」。**出版が実体として成立** (`GET /api/v1/catalog` に `ox-song` が `chartVersion 1 / noteCount 1` で掲載)。
   - **条件 6 (Unity カタログへの実反映) は未検証** = Windows 実機 + デプロイ済み API が必要。cc は展示 PC を触らない。
@@ -1115,7 +1128,13 @@
 | 6 | 完了条件: 1 曲プレイの実測結果 (ノーツ判定・Result 到達・Retry・YouTube 映像/音声・A/V 同期) | 部分充足 | `docs/evidence/win64-2026-11-06-release-gate/README-gen3.md` (Run D) に **判定 76 → Result → R リトライ / 映像再生 / 音 (同梱 wav) / A/V 同期** の実測あり。ただし **ストリーム音声 (m4a) は `Failed to recognize video file format` で未証明**、`docs/evidence/index.md` §1.5 も同旨 |
 | 7 | 完了条件: 不具合があれば別 issue として起票する | 未充足 | 起票記録が無い (#13 が結果として残る可能性はあるが明示的記録は無し) |
 
-- **未検証の区別**: 条件 6 の **「YouTube ストリームの音声」** は未証明 (同梱 wav で代替)。**EditMode 緑と「音が鳴っている」観測は別のもの**。代替 = Run D の実ログ + `docs/evidence/index.md` §1.5。
+- **未検証の区別**: 条件 6 の **「YouTube ストリームの音声」** は未証明 (同梱 wav で代替)。**EditMode 緑と「音が鳴っている」観測は別のもの**。代替 = Run D の実ログ + `docs/evidence/index.md` §1.5。- **2026-11-10 実機証跡の追加 (PR #290 merged)**:
+  - macOS 実ディスプレイ全画面 (2560×1664) で **2 曲完走**。`script/mac-select-evidence.sh` (既存 `mac-songend-harness.sh` と同じ方式のラッパ)。
+  - ツイッターランド: `pass=31 fail=0` / `Completed` / `forcedByDeadline=False` / `ResultScene` / `judged=130 == chartNotes=130`。
+  - 一龠: `pass=31 fail=0` / `Completed` / `forcedByDeadline=False` / `ResultScene` / `judged=191 == chartNotes=191`。
+  - 証跡 = `docs/evidence/58-select-screen/` (各 run に Player.log + 4 枚 + result txt)。
+  - **仍未検証**: YouTube 映像の視認 / A-V 同期 / Retry / 選曲可 26 曲すべての完走 / Windows 実機。
+
 - **依存**: #30 の仕様確定が #59 の前提。#59 と #58 は同じ論点である。**#58 の「30 曲」基準は `GManager` の現状 (29 / 選曲可 28 / 不可 2) に更新が必要**。
 
 ### #30 — [Product Spec] ゲーム体験の理想形：HOLD・歌詞同期/簡素化・全キー案内・任意曲チュートリアル・pen.dev デザイン
@@ -1534,10 +1553,12 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
 | **U8** ストリーム音声 (m4a) の再生実証 | **未着手 (Windows 実機)** | `YouTubeStreamResolver` に split 経路 (映像/音声を別々) が既にある。Windows Media Foundation の制約が実機-specific |
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
-| **U12** (追加) HOLD ノーツの実機到達 (#278) | **進行中** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない) |
+| **U12** (追加) HOLD ノーツの実機到達 (#278) | **対策 (A) 実装済 / 実機 run は未実施** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) = 検証用 HOLD 譜面 (タップ 4 + HOLD 3) + `PlaySessionSnapshot.ChartJsonOverride` の差し替えシーム (カタログは増やさない) + macOS 実機ハーネス (`AutoTestV6Hold` / `script/mac-holdprobe-harness.sh`)。**PR #291 (draft)**、EditMode 1306/1306。残 = macOS 実機の HOLD 保持 (CGEvent の実キー押下) の観測 / HOLD 胴体の伸び (N10) / 対策 (B) のオーナー判断 |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
 | **U13** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
 | **U14** (追加) Web カタログの契約テスト + race/abort ガード (#68) | **Worker 実行中** | 2026-11-10 の再検証で **T1 (クライアント/アダプタ層の契約テストが無い) と T2 (`app-shell.tsx` の `refresh` に AbortController も stale-response ガードも無い)** が未充足と判定。**両方とも Web 側で実装可能** (Windows 実機不要) なので Worker を起動。`web/src/app/__tests__/` を新設して `catalog.ts` の型ガードと HTTP エラーを固定し、`app-shell.tsx` に abort + シーケンスガードを入れる。緑になるまで **#68 は Close しない** |
+| **U15** (追加) #60 の受入記録の残 (T5) | **Worker 実行中** | 2026-11-10 の再検証で **T5 未充足** (実行 SHA / Draft PR URL が未記録、`tasks.md` の T1〜T5 が未チェック、before/after 画像が Pen パレットで teal→blue を証明していない)。**実装の欠落ではなく記録の欠落**。Worker を再起動し、実行 SHA と PR URL を実測して記録、**Assert できる things だけを** チェックし、before/after が差分を証明できないなら「証明できていない」と明記する (画像を捏造しない) |
+| **U16** (追加) #233 の macOS 再撮影 (新しい撮影順) + #278 の macOS HOLD run | **cc 実行予定** | PR #263 で撮影順を変えた (`05-gameplay` を密区間の待ちの前に移動) ため、macOS 実機写真を **新しい順で取り直す**。加えて PR #291 の HOLD ハーネスを macOS 実機で走らせ、HOLD 保持 (実キー押下) の観測結果を残す。**Windows 実機の受入は別** (cc は展示 PC に触らない) |
 
 ---
 
@@ -1679,7 +1700,9 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 
 ## 7. 2026-11-10 の進捗 (統合者の記録)
 
-基準点: `origin/main` = 0bc754c (PR #268 のマージ直後)
+基準点: `origin/main` = `85d79ab` (PR #290 のマージ直後)
+
+> 下の表は **PR #268 のマージ直後** までの記録。以降の取り込みは §7.4 に追記する。
 
 ### 7.1 今日 main へ取り込んだもの
 
@@ -1710,6 +1733,9 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #286 | B グレード 7 件 (#58/#59/#134/#162/#219/#241/#278) の Spec Kit (spec/plan/tasks) | #58 #59 #134 #162 #219 #241 #278 |
 | #287 | NoteEditor 曲切替の実測プローブ (4/4 ケース PASS) と証跡 | #225 |
 | #288 | `vp check` のフォーマット指摘 26 件を整形 (exit 0 / テスト 404 pass / build 成功) | #12 |
+| #289 | 監査台帳の A グレード 7 件の個別再判定を反映 | 台帳 |
+| #290 | #58 の macOS 実機証跡 (選曲 → 2 曲完走 → Result、Player.log + スクリーンショット) | #58 |
+| #263 | プレイフィールドの視認 (z スケール / レーンガイド / 映像プレーン配線) と CodeRabbit 13 スレッドの解消。EditMode 1296/1296 | #233 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
@@ -1726,6 +1752,20 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **Windows 実機** | #4 / #13 (ストリーム完走) / #88 / #96 (解像度スイープ) / #242 (全画面受入) / #59 の残り / HOLD の実機演奏。**展示 PC は保護対象**のため cc は自発的に操作しない。候補と手順は cc が別途準備 |
 | **オーナー決定** | #30 の D1〜D6 (歌詞形状 / 歌詞表示仕様 / キーガイド仕様 / pen.dev 正本 / `scoringVersion` / 既存ふりがな) |
 | **未実装 (要実装)** | #239 連携 / #278 の HOLD 譜面 (対策 A は Worker 実行中) |
-| **進行中 PR** | #263 修正 PR (B1 白い板 / B2 原因記載 / S1〜S7) / #225 の Editor 実機プローブ / #58 の macOS 実機証跡 / B グレードの Spec Kit タスク化 (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) |
-| **レビュー差戻し** | PR #263 は独立レビューで **NEEDS WORK** (ブロッカー 2 件)。マージせず修正中 |
+| **進行中 PR** | **#291 (draft)** HOLD 実機検証の土台 (#278) / **#68 の Worker 再実行** (契約テスト + abort ガード) / **#60 の Worker 再実行** (受入記録 T5) / B グレードの Spec Kit タスク化 (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) |
+| **レビュー差戻し** | なし (PR #263 の 13 スレッドは 2026-11-10 に全件解消して merge) |
 
+### 7.4 2026-11-10 午後 — #263 の merge、#58 の macOS 実機証跡、#278 の土台
+
+| PR | 内容 | Issue |
+|---|---|---|
+| **#263 (merged, `06ccefe`)** | プレイフィールドの視認を 4 つの根本原因から修正 (A: z スケール / B: レーン構造 / C: 縦長画面の収まり / fact 2: 映像プレーンの配線)。**独立レビュー (CodeRabbit) の 13 スレッドを全件コードで解消**して merge。EditMode **1296/1296** | #233 / #219 |
+| **#290 (merged, `85d79ab`)** | macOS 実ディスプレイ全画面 (2560×1664) で **2 曲完走**の証跡 (ツイッターランド / 一龠)。両曲 `pass=31 fail=0` / `Completed` / `forcedByDeadline=False` / `ResultScene` / `judged == chartNotes` | #58 |
+| **#291 (draft)** | HOLD 実機検証の土台 (検証用譜面 + `ChartJsonOverride` 差し替え + `AutoTestV6Hold` + macOS ハーネス)。EditMode **1306/1306**。**macOS 実機の HOLD run は未実施** | #278 |
+
+**この時点でなお未解決**:
+
+1. **Windows 実機での 1 曲完走 / ノーツと映像の視認 / 3 解像度の実全画面** (#233 / #242 / #59)。展示 PC は保護対象のため cc は自発的に操作しない。候補と手順は `docs/operations/win64-candidate-acceptance-2026-11-10.md`。
+2. **#278 の macOS HOLD run** (U16) — cg イベントの実キー押下が必要。
+3. **#68 / #60 の Worker** (U14 / U15)。
+4. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。
