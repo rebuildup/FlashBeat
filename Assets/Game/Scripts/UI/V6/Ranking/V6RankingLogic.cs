@@ -162,9 +162,17 @@ namespace FlashBeat.UI.V6.Ranking
         /// <summary>
         /// ランキング行が空のときの本文。エラー中はその理由 (StatusMessage)、
         /// 読み込み中は「取得中」、それ以外はデータ無し。
+        /// Local (ローカル保存の自分のベスト) は通信と無関係なので、取得中/失敗の
+        /// 文言は出さない (Issue #239)。data.IsLoading / HasError にはカタログ取得や
+        /// Ready エラーも流れ込むため、それを Local パネルに出すと表示の意味と
+        /// 実データが食い違う。
         /// </summary>
         public static string EmptyMessage(RankingSource source, bool isLoading, bool hasError, string statusMessage)
         {
+            if (source == RankingSource.Local)
+            {
+                return "記録がありません";
+            }
             if (hasError && !string.IsNullOrEmpty(statusMessage))
             {
                 return statusMessage;
@@ -211,6 +219,16 @@ namespace FlashBeat.UI.V6.Ranking
         public static string PlayersEmptyMessage()
         {
             return "プレイヤー別の集計には対応していません";
+        }
+
+        /// <summary>
+        /// SCORE RANKING パネルの空状態文言。曲が未選択のときは「記録がありません」
+        /// (データ空) ではなく未選択であることを出す (Issue #239)。未選択のまま
+        /// データ空と同じ文言にすると、記録の有無と選択状態を区別できなくなる。
+        /// </summary>
+        public static string NoSongSelectedMessage()
+        {
+            return "曲が選択されていません";
         }
     }
 }
