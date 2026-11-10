@@ -40,7 +40,7 @@ Draft PR に記録」）を満たすために記録した証跡である。
 |---|---|
 | `specs/060-web-visual-foundation/evidence/pixel/before-54505c2/` | before 撮影（SHA `54505c2`）の `{home,chart,publish}_{1440x900,1280x720,390x844}.png` と `index.json` |
 | `specs/060-web-visual-foundation/evidence/pixel/after-2bd7302/` | after 撮影（SHA `2bd7302`）の同構成 |
-| `results.json` | 上記の機械可読サマリ（SHA・PR・コマンド・画素サンプル・残存課題） |
+| `results.json` | 上記の機械可読サマリ（SHA・PR・コマンド・画素サンプル・残存課題・各証跡ファイルの sha256/bytes） |
 | `specs/060-web-visual-foundation/evidence/README.md` | 既存の `before-ready-*` / `after2-*` 画像が何を証明し / しないかの説明 |
 
 ### 各画像が証明できること / できないこと
@@ -68,6 +68,8 @@ Draft PR に記録」）を満たすために記録した証跡である。
 | `publish` — ノートブロック塗り | `#12A594` | `#12A594` | **差なし** = 既知の残存（4 節を参照） |
 
 座標と値は `results.json` の `pixelSamples` に機械可読で記録してある。
+各 PNG の `sha256` と `bytes` も `results.json` の `artifactSha256` に記録してあるので、
+再取得時に `shasum -a 256` で同一物を確認できる。
 
 ---
 
