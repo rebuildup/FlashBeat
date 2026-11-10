@@ -242,6 +242,17 @@ public class GameSceneManager : MonoBehaviour
         return cachedPauseMenu != null;
     }
 
+    /// <summary>
+    /// レガシー MenuPanel が Esc (Back) を担うべきか (Issue #167 / #224)。
+    /// v5 Pause (PauseMenuView) と v6 ポーズ (V6PauseView) が無いときだけレガシーが
+    /// Esc を処理する (二重 handling の防止)。Update の条件を EditMode テストから
+    /// 直接検証できるよう純粋関数に抽出した。
+    /// </summary>
+    public static bool LegacyBackOpensMenu(bool hasV5Pause, bool hasV6Pause)
+    {
+        return !hasV5Pause && !hasV6Pause;
+    }
+
 
     void Update()
     {
@@ -294,7 +305,7 @@ public class GameSceneManager : MonoBehaviour
                 SwitchPanel();
             }
         }
-        else if (!HasV5PauseMenu() && !FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
+        else if (LegacyBackOpensMenu(HasV5PauseMenu(), FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled))
         {
             // Issue #167: v5 のポーズメニューがあるときは PauseMenuView が Esc を担う。
             // ここでレガシーの MenuPanel を開くと両方が反応して二重になる。

@@ -49,13 +49,25 @@ public class ResultSceneManager : MonoBehaviour
         // Start の実行順はコンポーネントの並びで決まるため、Start で更新すると
         // SaveLoadManager (Result シーンで Start 時に保存) より後になり、
         // 新記録が保存されないことがあった。Awake は全ての Start より先に走る。
-        int hiIndex = GManager.songID;
-        if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
-        prevHiscore = GManager.Hiscore[hiIndex];
-        if (GManager.score >= GManager.Hiscore[hiIndex])
+        // 更新処理は EditMode テストから直接検証できるよう純粋関数に抽出した。
+        prevHiscore = ApplyBestScore(GManager.songID, GManager.score);
+    }
+
+    /// <summary>
+    /// ベストスコアを保存テーブル (<see cref="GManager.Hiscore"/>) へ反映する (Issue #167)。
+    /// 返り値は更新前の値 (Result 画面の HISCORE 行の差分表示に使う)。
+    /// 固定テーブル外の songId (cloud カタログで増えた曲) は 0 番スロットを使う
+    /// (0 番は noSong placeholder で未使用のスロット)。
+    /// </summary>
+    public static int ApplyBestScore(int songId, int score)
+    {
+        int hiIndex = songId < GManager.Hiscore.Length ? songId : 0; // remote songs beyond the fixed table keep slot 0 unused
+        int prev = GManager.Hiscore[hiIndex];
+        if (score >= GManager.Hiscore[hiIndex])
         {
-            GManager.Hiscore[hiIndex] = GManager.score;
+            GManager.Hiscore[hiIndex] = score;
         }
+        return prev;
     }
 
     void Start()

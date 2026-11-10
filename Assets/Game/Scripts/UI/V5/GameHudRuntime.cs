@@ -197,17 +197,31 @@ namespace FlashBeat.UI.V5
         /// レガシー Canvas は sortingOrder 0 で v5 HUD (-1) より手前にあり、
         /// 歌詞パネルなどの Raycast 対象が v5 のボタン (ポーズ等) を横取りしていた。
         /// v5 UI が画面上の操作を受け持つため、レガシー側はクリックを受けない。
+        /// シーンを引数に取る公開純粋関数として抽出した (EditMode テストから
+        /// 直接検証するため)。返り値は今回無効化した個数 (すでに無効なものは
+        /// 数えない = 冪等)。
         /// </summary>
-        private void DisableLegacyRaycaster()
+        public static int DisableLegacyRaycastersIn(Scene scene)
         {
-            var roots = gameObject.scene.GetRootGameObjects();
+            int disabled = 0;
+            var roots = scene.GetRootGameObjects();
             for (int i = 0; i < roots.Length; i++)
             {
                 var legacyCanvas = roots[i].GetComponent<Canvas>();
                 if (legacyCanvas == null) { continue; }
                 var raycaster = legacyCanvas.GetComponent<GraphicRaycaster>();
-                if (raycaster != null) { raycaster.enabled = false; }
+                if (raycaster != null && raycaster.enabled)
+                {
+                    raycaster.enabled = false;
+                    disabled++;
+                }
             }
+            return disabled;
+        }
+
+        private void DisableLegacyRaycaster()
+        {
+            DisableLegacyRaycastersIn(gameObject.scene);
         }
 
         /// <summary>
