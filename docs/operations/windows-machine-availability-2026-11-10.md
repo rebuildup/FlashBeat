@@ -30,7 +30,7 @@
 | 材料 | 内容 |
 |---|---|
 | 引き継ぎ文書 | `docs/ops/handoff-mistral-supervisor.md:31` は **`Windows` (machine) / `device-windows` (SSH)** を Windows 節の見出しにし、`:49` に「**展示機につき**強制操作は実施せず」、`:102` に「展示機。ユーザー確認の上…」と書いている = **`device-windows` は展示機として扱われている** |
-| 展示実行の証跡 | 展示実機で採った `Player.log` はすべて `Renderer: NVIDIA GeForce RTX 4050 Laptop GPU` / Windows 11 (`docs/evidence/win64-2026-11-06*/`)。今回 SSH で見えた機材も **RTX 4050 Laptop + Windows 11** で一致する |
+| 展示実行の証跡 | 展示実機で採った `Player.log` はすべて `Renderer: NVIDIA GeForce RTX 4050 Laptop GPU` / Windows 11 で、実行パスは **`C:\Users\rebui\Desktop\FlashBeat.13\Builds\Windows\`** (`docs/evidence/win64-2026-11-06-issue13/Player-*.log`)。今回 SSH で見えたのは **同じ `C:\Users\rebui` プロファイル + RTX 4050 Laptop + Windows 11** で一致する |
 | ホスト名 | `UUU` だが、リポジトリに展示 PC のホスト名の記録が無いため **「別名だから別機」とは言えない** |
 
 したがって **`device-windows` は展示 PC と同一である可能性が高い** と扱う。
