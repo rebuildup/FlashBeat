@@ -1,6 +1,7 @@
 # open Issue 実装状況監査 (main 実測)
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
+- **更新 9 (2026-11-10 夜)**: **#140 の条件 5 を充足に再判定** — 展示候補が `main` から作られるようになり trunk と同一の木になった (旧ビルド元 `b677f8f` は実装を含まない)。**#13 の「Media Foundation URL リーダーが開けない」はもう再生経路ではない** — `main` は yt-dlp でローカルへダウンロードしたファイルを再生し、URL 直渡しは 1 回だけの診断 probe に退いた (`MusicManager.cs:332`/`:591` 対 `:341`/`:637`)。「`audioS.Play()` を呼ばないので無音」も解消済み。詳細: `docs/superpowers/plans/baseline-win64.md` §2026-11-10 追記。残る未検証は **Windows 実機の再生/音/豆腐 0** のみ。
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
 - **更新 8 (2026-11-10)**: **#241 の ClearSaveData 欠陥は解消済み** (`e10a34f` + `V6OptionWiringTests` の実 View 操作テスト) — 条件 6 / 7 を充足に、#242 の表の古い記述を撤回。**#182 の条件 3 / 4 は PR #256 (merged) で充足** (#182 は Closed 済み)。#217 の表の「#233 歌詞二重描画」も撤回。
 - **更新 7 (2026-11-10)**: **#233 のコードを再照合** — 受入条件 2 / 5 / 6 を **充足** に、条件 1 を **充足 (macOS 実機) / Windows 未検証** に改めた。残る未検証は条件 7 (実 Win64 1 曲完走) のみで **#233 は open のまま**。あわせて #223 / #242 の表に残っていた「#233 に歌詞二重描画」の記述を撤回 (解消済み)。
@@ -641,7 +642,7 @@
 | 2 | 動的 NotoSansJP をフォールバックとして追加し、足りない文字を実行時に生成 | 充足 | `JapaneseFontAssetBuilder.cs:249 EnsureDynamicFallback()` + `NotoSansJP-Dynamic SDF.asset` |
 | 3 | フォールバックが主フォントアセットに登録されている | 充足 | `JapaneseFontCodeStringCoverageTests.cs:79` |
 | 4 | コード内文字列の字形が主アトラス or 動的フォールバックで必ずカバーされる | 充足 (EditMode) | `JapaneseFontCodeStringCoverageTests.cs:38` |
-| 5 | **trunk と展示 patch line の両方へ** | **未充足** | 展示 patch line `b677f8f` に `CollectCodeTexts` / `EnsureDynamicFallback` が **0 件** |
+| 5 | **trunk と展示 patch line の両方へ** | **充足** | 展示候補が `main` `4445279` から生成され `4479114` (#140) を含むため trunk と同一の木になった (`git merge-base --is-ancestor 4479114 4445279` 真)。旧ビルド元 `b677f8f` は `main` の祖先だが実装は含まない。根拠: `docs/evidence/140-font-code-strings.md` §「条件 5 の現在地」 |
 | 6 | 実機画面での豆腐 0 | **macOS 充足 / Windows 未検証** | 2026-11-10 に `main` の実機スクリーンショットを実読: Game (`docs/evidence/233-playfield/run-2026-11-10-main/autotest-v6-5.png`, `-6.png`) / Select (`docs/evidence/58-select-screen/run-b-ichikan/autotest-v6songend-01-01-select.png`) / Result (`.../04-04-result.png`) の 3 画面で、コード文字列・曲名・**譜面 JSON の歌詞**まで豆腐 0 を確認 (`docs/evidence/140-font-code-strings.md` §5)。**Windows 実機は未検証** (展示 PC は保護対象) |
 
 - **未検証の区別**: 条件 4 は **EditMode 静的カバレッジ** であって **実描画の豆腐 0 ではない** (字形が存在してもアトラス配置の問題は別)。代替 = EditMode 緑 + `docs/evidence/140-font-code-strings.md`。
