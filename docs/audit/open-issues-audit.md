@@ -88,7 +88,7 @@
 | 75 | Web/Visual Gate 画像レビュー/本番E2E | **B** | `web/tests/visual/capture.mjs` | 2/2/1 | 画像ベースのデザインレビュー (人) | ゲートは **exit 0 に回復** (PR #257)。`clipped=0` / `hScroll=false` を実測。残るのは画像比較の人の判断 |
 | 88 | Win/P0 全画面にならず UI 崩れる | **B** | `ProjectSettings/ProjectSettings.asset:107,119`, `Assets/Game/Tests/FullscreenPolicyTests.cs` | 2/1/2 | Windows 実機 | `displayCoverage ≥ 0.99` を実測 (現状 run-summary は `fullscreen=0`) |
 | 96 | Unity/P1 Title/Result/Option/Opening 崩れ | **B** | `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `V6/Common/V6UiProfile.cs:73-75` | 2/1/2 | Windows 実機 | 1024×768 / 1280×720 の実機撮影が未取得 |
-| 98 | Web 既存曲メタ編集 + Publish 回復動線 | **B → 実装済 / E2E 未検証** | `web/src/lib/publish/draft.ts`, `web/pages/chart.server.ts`, `web/pages/chart.tsx` | 3/0/1 | 実ブラウザ E2E | **PR #275 merged**: publish が失敗した時の `/chart?draft=…` が下書きを復元するようになった (loader が `draftId` を返し、ページが `readPublishDraft` で復元し、復元バナーと失敗バナーを出す)。回帰テスト 1 件をページレベルで追加。残りは実ブラウザでの publish → 失敗 → 復元往復 |
+| 98 | Web 既存曲メタ編集 + Publish 回復動線 | **A → 受入条件 3/3 充足 → Closed** | `web/src/lib/publish/draft.ts`, `web/pages/chart.server.ts`, `web/pages/chart.tsx` | **3/0/0** | (実ブラウザ 1 往復のみ未実施) | 実装 **PR #275 merged** (`5c46e12`) + ページ単位テスト **PR #307 merged** (`fe2acfc`, `web/pages/__tests__/chart.test.tsx` 7 本)。Vitest 432 / tsc 0 / vp check 0。**2026-11-10 に Closed**。未実施は実ブラウザでの publish → 失敗 → 復元の 1 往復のみ |
 | 118 | Update/P0 明示式アップデート | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleLogic.cs`, `V6/Title/V6TitleView.cs` | **9/1/1** | Windows 実機 | **PR #273 で v6 Title に literal な「アップデートあり」バナーを実装** (pure ロジック `ShowUpdateAvailableNotice` / `UpdateNoticeTitle` / `UpdateNoticeHint` + `BuildUpdateNotice`)。既存 `UpdateChecker.Model` を再利用し検出経路は増やしていない。残りは 3 解像度の実機目視 |
 | 129 | Dev/Mac Desktop に独立 macOS アプリ | **A** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/0/1 | — | クローズ提案可。ただし **配布物の SHA が `fffc399` で Issue の `b677f8f` と不一致**。再配布時に README の SHA を更新すること |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
@@ -1050,7 +1050,7 @@
     - `web/src/lib/publish/draft.ts` — `readPublishDraft(id, songId, version)` は uuid 検証 + song/version 一致 + chart import 検証
     - `web/src/components/song-publisher/song-metadata-form.tsx` — title/artist/level/duration/youtubeId の編集フォーム
     - テスト: `web/src/lib/publish/__tests__/draft.test.ts`, `web/src/components/song-publisher/song-metadata-form.test.tsx`
-  - **chart 側の回復動線 (旧・未充足。PR #307 で実装済み)**:
+  - **chart 側の回復動線 (実装は PR #275 / `5c46e12`、ページ単位のテストは PR #307 / `fe2acfc`)**:
     - `web/pages/chart.server.ts` — loader が `draftId: params.get("draft")` を返す
     - `web/pages/chart.tsx` — `readPublishDraft` を通し、`draft?.chart ?? session?.chart ?? emptyChart`
       の順で解決する。下書きの採用 / 拒否はテスト ID `draft-restored` / `draft-error` で観測できる
@@ -1595,7 +1595,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U1** プレイフィールド再有効化 | **完了 (macOS 実機まで) / Windows 実機は残** | PR #263 merged (`06ccefe`) — 独立レビュー 13 スレッドを全件コードで解消。2026-11-10 に `main` から macOS 実機ビルドし直し、**実ディスプレイ 2560×1664 全画面**で `-autotest v6` を再走 (`RESULT pass=29 fail=0`)。画像で **映像 / レーン境界 8 本 / 判定ライン / ノーツ / 歌詞** の描画を確認 (`docs/evidence/233-playfield/run-2026-11-10-main/`)。**Windows 実機での視認確認は #233 の未解決問題として残す** (テスト緑も macOS 実機も Windows の合格を保証しない) |
 | **U2** 確認窓 + 旧歌詞二重描画 | **進行中** | 二重描画の検査は `GameUiExclusivity` / `GraphicVisibility` で固定 (PR #263)。`GraphicVisibility.IsDrawn` の誤検出 (透明な Image / 無効な祖先 Canvas / 入れ子 CanvasGroup の積) の修正も PR #263 修正に含む。確認窓の 0.86s → 1.6s 拡張は未着手 (定義位置を特定してから) |
 | **U3** v6 Option の保存範囲統一 | **完了** | PR #264 merged。`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ。回帰テスト 8 件 (保存先・4 タブ・セッション設定・マウス経路)。あわせて **譜面/設定 JSON の Resources 混在バグ** を修正 |
-| **U4** publish → chart ドラフト復元 | **完了 (Web 自動テスト) / 実ブラウザ 1 往復は未検証** | **PR #307 merged** (`fe2acfc`) — `web/pages/chart.tsx` が `draft?.chart ?? session?.chart ?? emptyChart` で解決し、`web/pages/__tests__/chart.test.tsx` に 7 テスト (復元 / 別 song・別 version 拒否 / 不正 ID / 下書き消失 / 公開譜面 503 / 下書き無し)。Vitest 432 passed / `tsc` 0 / `vp check` 0、負の対照あり。**#98 は Closed** |
+| **U4** publish → chart ドラフト復元 | **完了 (Web 自動テスト) / 実ブラウザ 1 往復は未検証** | 実装は **PR #275 merged** (`5c46e12`)、テストは **PR #307 merged** (`fe2acfc`) — `web/pages/chart.tsx` が `draft?.chart ?? session?.chart ?? emptyChart` で解決し、`web/pages/__tests__/chart.test.tsx` に 7 テスト (復元 / 別 song・別 version 拒否 / 不正 ID / 下書き消失 / 公開譜面 503 / 下書き無し)。Vitest 432 passed / `tsc` 0 / `vp check` 0、負の対照あり。**#98 は Closed** |
 | **U5** 視覚ゲートの緑化 | **完了** | PR #257 merged (狭幅横溢れ 0) + **PR #305 merged** — `specs/74-responsive/evidence/2026-11-10/` に 5 viewport × 3 route の実写 44 枚と `tab-walk.json`。統合 owner の再実行で `npm run visual` **PASS** (horizontal overflow 無し / console error 無し) / `tab-walk` 0 outsideViewport / drawer trap held / focus 復帰。Web テスト 73 + 426 件 green / `vp build` exit 0 |
 | **U6** 展示 patch line への #140/#134 移植 | **未着手** | 展示 line (`b677f8f`) と main のどちらに寄せるかはオーナー判断。**現展示物の SHA 不一致 (#129) が先** |
 | **U11** (追加) #226 残受入条件 | **完了 (テスト) / Windows 実機のみ残** | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の回帰テスト **20 件** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。残るのは Windows 実機完走とランキングの実 API 送信の 2 項目のみ |
@@ -1653,15 +1653,15 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
   - `web/pages/chart.server.ts` の loader が `{ songId, version }` のみを返し、`draft` を捨てていた
   - `web/pages/chart.tsx` は `savePublishDraft` (書き出す側) だけを import し、`readPublishDraft` を使っていなかった
   - publish 側 (`web/pages/publish.tsx`) は完成しており、**chart 側の 1 項目だけが未充足**だった
-- **結果 (2026-11-10)**: **PR #307 merged (`fe2acfc`)** で実装済み。
+- **結果 (2026-11-10)**: 実装は **PR #275 merged (`5c46e12`)**、ページ単位のテストは **PR #307 merged (`fe2acfc`)**。
   - `web/pages/chart.server.ts` の loader が `draftId: params.get("draft")` を返す
   - `web/pages/chart.tsx` は `draft?.chart ?? session?.chart ?? emptyChart` の順で解決し、
     採用 / 拒否を `draft-restored` / `draft-error` のテスト ID で観測できる
-  - テストは `web/pages/__tests__/chart.test.tsx` の **7 本** (`loader` → `ChartPage` → 実エディタ)。
+  - テストは `web/pages/__tests__/chart.test.tsx` の **7 本** (既存 1 + PR #307 で 6 追加) (`loader` → `ChartPage` → 実エディタ)。
     復元 / 別 song・別 version 拒否 / 不正 ID (`../../etc/passwd`) / このタブに下書きが無い /
     公開譜面 503 でも下書き保持 / 下書き無し。**DoD の「ページレベルで 1 テスト」を満たす**
   - `npx vitest run` 432 passed / `npx tsc --noEmit` 0 / `npx vp check` 0 errors。
-    負の対照 (`draft?.chart ??` → `session?.chart ??`) で復元系 2 テストが落ちることも確認
+    負の対照 (`draft?.chart ??` → `session?.chart ??`) で復元系 2 テストが落ちることも確認 (PR #307 で実施)
   - **未検証**: 実ブラウザで「publish 失敗 → `/chart?draft=…` を開く」1 往復 (jsdom + stub `fetch`)
 
 ### U5 — 視覚ゲートの緑化 (狭幅横溢れ) (#74, #75, #61)
