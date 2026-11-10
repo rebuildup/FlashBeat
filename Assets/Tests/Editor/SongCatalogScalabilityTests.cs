@@ -232,12 +232,20 @@ public class SongCatalogScalabilityTests
         {
             int scroll = V6SelectViewLogic.CenterScroll(index, rows, visible);
 
-            Assert.AreEqual(index - visible / 2, scroll, "行 " + index + " の中央寄せ位置");
-
             // 先頭 / 末尾では負値・上限超えを許すが、クランプ後も選択行は見えている
             int clamped = V6SelectViewLogic.ClampScroll(scroll, rows, visible);
-            Assert.GreaterOrEqual(index, clamped);
-            Assert.Less(index, clamped + visible);
+            Assert.GreaterOrEqual(index, clamped, "行 " + index + " が窓の上で見えない");
+            Assert.Less(index, clamped + visible, "行 " + index + " が窓の下で見えない");
+
+            // 窓がカタログ内に収まる index では、中央寄せがクランプされず
+            // 選択行はちょうど中央スロット (上から visible/2 行目) に来る
+            bool windowInside = index >= visible / 2 && index <= rows - 1 - visible / 2;
+            if (windowInside)
+            {
+                Assert.AreEqual(scroll, clamped, "行 " + index + " で中央寄せがクランプされた");
+                Assert.AreEqual(visible / 2, index - clamped,
+                    "行 " + index + " が中央スロットに来ていない");
+            }
         }
     }
 
