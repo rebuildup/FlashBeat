@@ -200,10 +200,10 @@ TMP の `characterLookupTable` が持つ codepoint 数と一致する設計（YA
 
 | 事実 | 実測 |
 |---|---|
-| `b677f8f` (旧展示ビルド元) は `main` の祖先 | `git merge-base --is-ancestor b677f8f 4445279` → 真 |
+| `b677f8f` (旧展示ビルド元) は `main` の祖先 | `git merge-base --is-ancestor b677f8f 7af9242d` → 真 |
 | `b677f8f` は #140 の実装 (`4479114`) を含まない | `git merge-base --is-ancestor 4479114 b677f8f` → 偽 |
-| 現在の展示候補は `main` の `4445279` から生成 | `FlashBeat-0.1.22-win64-4445279.zip` (SHA-256 `ed67277e8381e8e404cb53c60b625ab56982d5b6929ce8643c8e78cfcab9c645`) |
-| `4445279` は #140 の実装を含む | `git merge-base --is-ancestor 4479114 4445279` → 真 |
+| 現在の展示候補は `main` の `7af9242d` から生成 | `FlashBeat-0.1.22-win64-7af9242d.zip` (SHA-256 `33acd1069987694549f5f594dc910b6de79eada51cee5514378cf13b6bdb7a01`) |
+| `7af9242d` は #140 の実装を含む | `git merge-base --is-ancestor 4479114 7af9242d` → 真 |
 
 正規経路 `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` は `main` の
 チェックアウトからのみビルドし、`b677f8f` 由来の旧ビルドは候補一覧から外れている

@@ -12,12 +12,10 @@ name: verify
 # のみで、ライセンス secret が前提。責任範囲の全体は
 # `docs/operations/ci-pr-gate.md` を参照。
 
+# すべての PR で走らせる (パスの絞り込みをしない)。ドキュメントだけの PR でも
+# チェック欄が空にならず、「PR のチェックが 0 件」を Unity の合否と読み違えない。
 on:
   pull_request:
-    paths:
-      - "Assets/**"
-      - "script/**"
-      - ".github/workflows/verify.yml"
   push:
     branches:
       - main
