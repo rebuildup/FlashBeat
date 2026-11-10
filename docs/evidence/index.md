@@ -293,9 +293,9 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 | 項目 | 値 |
 |---|---|
 | 版 | `0.1.22` (`FLASHBEAT_VERSION_BASE=0.1.22` — 現行 Release `v0.1.21-win64-d581c4c` の次) |
-| ソース SHA | `0bab5499dd6557b69577f885d17068987c1777b1` (`origin/main`) |
-| 成果物 | `0.1.22+0bab549-win64-0bab549.zip` (274,854,582 bytes / 228 files) |
-| ZIP SHA-256 | `a23c8c4af6983ffc6b19b1c69329fd2ebab3137f9d77e3a01598ca9c831b1c5d` |
+| ソース SHA | `36a3572cf75de73c45ef90d6d643ee248522df2a` (`origin/main` — PR #296 merge 直後) |
+| 成果物 | `0.1.22+36a3572-win64-36a3572.zip` (274,842,010 bytes / 223 files) |
+| ZIP SHA-256 | `d3a605f297ff43e4fa59436fc5da34e9c49d846d2a07aa808e43a78b711791a7` |
 | ビルド | `script/win64-build-mac.sh` (macOS ホスト + WindowsStandaloneSupport / Unity 6000.5.6f1) |
 | 中身の確認 | `tools/update/Update.ps1` / `StreamingAssets/update-channel.txt` / `flashbeat-media-policy.json` あり。**同梱の音声・動画なし** |
 | 状態 | **未証明** (Windows 実機での実行なし) |
@@ -303,15 +303,41 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 手順 (SHA-256 照合 → 展開 → 3 解像度の実全画面 → 1 曲完走 7 項目) は
 [`../operations/win64-candidate-acceptance-2026-11-10.md`](../operations/win64-candidate-acceptance-2026-11-10.md)。
 
+> **この候補だけが現行。** 同じ出力ディレクトリに古い候補
+> (`0.1.0+877bde7` / `0.1.22+0bab549` / `0.1.22+e45c494`) が残っているが、
+> **ソース SHA が古く (未マージの PR を含まない)、再利用してはならない**。
+> 版の大小で自動更新が効くため、**同じ版 `0.1.22` の別 SHA を Releases に作假しないこと**。
+
 ### 7.3 この時点でなお未証明のもの
 
 1. **Windows 実機での 1 曲完走**と **ノーツ・映像の視認**（展示 PC は未操作）。
 2. **ストリーム音声 (m4a)** の再生（#13 / #4。Windows Media Foundation の制約）。
 3. **3 解像度の実全画面**。macOS 側で証明できるのは実ディスプレイの 2560×1664 だけで、
    1920×1080 / 2560×1440 は **窓をリサイズした擬似全画面**であり証拠にならない。
-4. **HOLD (ロングノーツ) の実機演奏**。`Assets/Game/Resources/*.json` の 27 曲すべての
-   `notes[].type` は **1 (Tap) のみ**で、**type=2 (HOLD) のノーツが 1 つも存在しない**
-   （`LongNote.TYPE_HOLD = 2`）。HOLD の実装は main にあるが、**到達可能な内容が無く**
-   実機検証もできない。HOLD を含む検証用譜面（または実曲への HOLD 追加）が前提。
-5. **#263 の修正後の再撮影**。PR #263 の独立レビューで、映像プレーンが prepare 前は
-   白板のままになることと、根本原因の記載が誤っていることが判明し、修正中。
+4. **HOLD (ロングノーツ) の Windows 実機演奏**。macOS 実機での 3 段階判定
+   (開始 → 保持 → 終端) は **#278 で実施済み** (PR #291 / `docs/evidence/278-hold/`)。
+   ただし **キー押下は注入シーム** (`KeyBindings.InjectKeyHold`) による模擬であり、
+   macOS の Unity legacy Input は CGEvent の合成キーイベントを `Input.GetKey` として
+   見ないため、**本物のキーボードを押して HOLD が保たれることは未検証**。
+   Windows 実機でも未検証。
+5. **「密度の高い譜面区間での描画」の実測**。#263 の再撮影 (2026-11-10) では
+   描画そのものは確認できたが、密区間の判定は **SOFT PASS** であり、
+   「密区間を捉えた撮影」自体は未証明。
+
+### 7.4 #263 の再撮影 (2026-11-10・main 直後)
+
+`origin/main` = `e45c494` から macOS 実機ビルド直し、実ディスプレイ 2560×1664 全画面で
+`-autotest v6` ハーネスを再走した。
+
+| 項目 | 実測値 |
+|---|---|
+| ハーネス | `RESULT pass=29 fail=0` (FAIL 行 0 件) |
+| 実効解像度 | `2560x1664` / `fullScreen=True` / `fullScreenMode=FullScreenWindow` / `dpi=299` |
+| 描画の確認 (画像目視) | **映像プレーン / レーン境界 8 本 / 判定ライン / ノーツ / 歌詞パネル** が見えている |
+| 旧 UI の非表示 | `no legacy graphics are visible` / `no legacy lyric objects are active` / `the legacy loading overlay is not drawn` の 3 項目が PASS |
+| 映像 | `the media is ready` / `the playback started` / `the media clock advances` が PASS |
+
+証跡: [`233-playfield/run-2026-11-10-main/README.md`](233-playfield/run-2026-11-10-main/README.md)
+
+> **Windows 実機でのノーツ・動画の視認は引き続き未検証** (#233 の未解決問題)。
+> テスト緑も macOS 実機も **Windows の合格を保証しない**。
