@@ -288,6 +288,27 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 
 証跡: [`233-song-end-harness.md`](233-song-end-harness.md)
 
+### 7.3 macOS 実機: 併置した確認用アプリ `0.1.22+7af9242d` で 選曲 → Game → Result (2026-11-10)
+
+`~/Desktop/FlashBeat-Mac/FlashBeat-0.1.22-7af9242d.app` (Win64 展示候補と**同一ソース SHA**
+`7af9242d`) を実ディスプレイ全画面で起動し、`script/mac-select-evidence.sh` で通した。
+§7.1 は**曲の後半だけ**を通したのに対し、こちらは **選曲画面から** 通している。
+
+| 項目 | 実測値 |
+|---|---|
+| 画面 | `screen=2560x1664, fullScreen=True, fullScreenMode=FullScreenWindow` |
+| 選曲 → Game | `PASS the select scene is loaded` / `PASS the selection follows the picked song` / `PASS the started song is the picked one` |
+| 遷移時間 | `GameScene 89ms` / `ResultScene 66ms` |
+| メディア | `ready=True audioMode=StreamCombined videoPrepared=True failure=None` |
+| 判定 | `perfect=129 great=0 bad=0 miss=1` / `judged=130 settled=130 chartNotes=130 runtimeNotes=130` |
+| 曲終了 | `songEndState=Completed` (期限切れ強制終了ではない) |
+| ハーネス | **`RESULT pass=31 fail=0`** / exit 0 |
+
+証跡: [`129-mac-0.1.22-7af9242d/`](129-mac-0.1.22-7af9242d/) (README + Player.log + 4 枚 2560×1664 PNG)。
+
+**本物のキー入力ではない / Windows 実機ではない / 3 解像度のうち MAC 枠のみ**。
+#222 条件 7 (選曲 → Game 遷移) の **macOS 分の証拠** であり、Windows 分は未検証のまま。
+
 ### 7.2 Win64 配布候補 (main から生成)
 
 | 項目 | 値 |
