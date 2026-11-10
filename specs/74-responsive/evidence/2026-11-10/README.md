@@ -29,6 +29,13 @@ screenshots — いずれも #75 扱い) を **実 Chrome (headless) で測定**
 補足: 既定の管理ポート 5199 は別セッションの残置プロセスが掴んでいたため、
 dev server を手動起動 (ポート 5210) し `VISUAL_BASE_URL` で指した。測定内容に差はない。
 
+統合 owner による再実行 (2026-11-10 13:06-13:14 JST): ブランチを `origin/main` = `4a63974` へ
+rebase した上で、上の表のコマンドを同じ手順で再実行し、同じ結果を得た
+(`tsc` exit 0 / `npm test` 73 + 426 pass / `vp build` exit 0 / `npm run visual` PASS /
+`tab-walk.mjs` 0 outsideViewport・ドロワー trap held=true・focusRestored=true)。
+`a2fefe1..4a63974` の差分は `web/` に 1 行も入っていないため、本文のビルド SHA 表記は
+そのまま有効 (rebase は証跡の内容を変えない)。
+
 ## 2. 5 viewport スクリーンショット (T5)
 
 撮影条件: 各 route (home `/`、chart `/chart?songId=who&version=1`、publish `/publish`) ×
