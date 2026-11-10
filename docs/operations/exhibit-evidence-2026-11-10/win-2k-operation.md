@@ -289,6 +289,7 @@ Title → 選曲 → Ready → 曲開始 → 完走 → Result → Retry まで�
 | 収録方法 | `ffmpeg -f gdigrab -framerate 30 -video_size 2560x1440 -draw_mouse 0 -i desktop` (libx264 ultrafast / crf 21 / yuv420p) |
 | 収録対象 | 実ディスプレイのデスクトップ全体 (ゲームは `FullScreenWindow`)。ウィンドウの移動・リサイズはしていない |
 | 素ファイル | `play7.mkv` 200,015,872 bytes / SHA-256 `cba725fa206b5f7104476bfa27c6e0bc40befc45424e1f1b4af4330b37ee4d4f` |
+| 納品ファイル | `FlashBeat-v0.1.22-play7-2560x1440-silent.mp4` 199,987,514 bytes — 壊れた mkv を `-c copy` で mp4 に詰め直した無音版 (`+faststart`)。映像の中身は素ファイルと同じ |
 | 実フレーム数 | 4,336 フレーム (`ffprobe -count_frames`) |
 | 解像度 / 公称 fps | 2560×1440 / 30 (`-framerate 30`) |
 | 実効 fps | **29.69 fps** (2168000/73033)。gdigrab の取りこぼしで 30 fps をわずかに下回る |
@@ -317,7 +318,8 @@ Title → 選曲 → Ready → 曲開始 → 完走 → Result → Retry まで�
 ### 11.2 保管場所 (非公開)
 
 第三者の楽曲・映像 (YouTube PV) が画面に映るため、**公開リポジトリ / GitHub Release には置かない**。
-オーナー確認用に、この PR の作成元マシン上で非公開に保管している (パスは PR コメントで連絡)。
+オーナー確認用に、この PR の作成元マシン上で非公開に保管している (場所はオーナーへの納品メッセージで直接連絡する)。
+再取得に使った曲は既存のスクリーンショットと同じロストアンブレラで、代わりの曲への差し替えはしていない。
 
 ## 12. 視覚レビュー (録画フレームを 1 枚ずつ確認)
 
