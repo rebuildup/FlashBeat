@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.IO;
 using System.Threading;
@@ -93,6 +93,8 @@ public class MusicManager : MonoBehaviour
     bool fallbackChecked;
     bool videoPrepared;
     bool streamAudioPrepared;
+    /// <summary>直近に VideoPlayer へ渡した URL / パス (Issue #13 の診断用。値はログに出さない)。</summary>
+    string lastVideoUrl;
     PlaybackSource audioMode = PlaybackSource.None;
     MediaStage stage = MediaStage.Idle;
     MediaFailure failure = MediaFailure.None;
@@ -609,6 +611,7 @@ public class MusicManager : MonoBehaviour
                 songVideo.errorReceived += OnVideoError;
                 songVideo.source = VideoSource.Url;
                 songVideo.url = url;
+                lastVideoUrl = url;
                 songVideo.Prepare();
 
                 float waited = 0f;
@@ -633,6 +636,8 @@ public class MusicManager : MonoBehaviour
     IEnumerator PrepareLocalVideo(string path, bool combined)
     {
         videoPrepared = false;
+        // Issue #13: URL の「形」だけを後でログに出すために控える (値は出さない)。
+        lastVideoUrl = path;
         songVideo.errorReceived += OnVideoError;
         songVideo.loopPointReached += OnSongVideoLoopReached;
         songVideo.source = VideoSource.Url;
@@ -777,6 +782,22 @@ public class MusicManager : MonoBehaviour
     void OnVideoError(VideoPlayer source, string message)
     {
         Debug.LogWarning($"[MusicManager] VideoPlayer error: {message}");
+        if (!playbackStarted)
+        {
+            // Issue #13: Windows の Media Foundation は URL を開けないことがある
+            // (WindowsVideoMedia 0x80070005 / MFCreateSourceReaderFromURL)。原因を
+            // 切り分けるため、URL の値ではなく「形」だけを残す。
+            Debug.Log("[MusicManager] video source shape: " + MediaUrlDiagnostics.Summarize(lastVideoUrl));
+            // TODO(#13): WindowsMediaRecovery.ShouldRetryVideoWithFreshUrl による
+            // 「URL を解決し直して 1 回だけ再 prepare」は、Windows 実機で効果を
+            // 確かめられるまで接続しない (未検証の分岐を展示経路に入れない)。
+            bool isWindows = WindowsMediaRecovery.CurrentPlatformIsWindows();
+            string hint = WindowsMediaRecovery.VideoFailureHint(isWindows, Music != null);
+            if (!string.IsNullOrEmpty(hint))
+            {
+                Debug.Log("[MusicManager] video recovery: " + hint);
+            }
+        }
         if (playbackStarted)
         {
             FailSongEnd(SongEndFailure.MediaError,
