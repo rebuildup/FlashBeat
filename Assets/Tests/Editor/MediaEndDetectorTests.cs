@@ -104,6 +104,9 @@ public class MediaEndDetectorTests
         var detector = NewDetector();
         float now = Play(detector, 60f, 0f);
 
+        // 停止の観測が始まった tick は「開始時刻」を記録するだけで、確定はまだ。
+        Assert.That(detector.Tick(now, 60f, true, false, 0f), Is.EqualTo(MediaEndDecision.None),
+                    "停止の 1 フレーム目では確定しない (ConfirmSeconds の観測が要る)");
         Assert.That(detector.Tick(now + MediaEndDetector.ConfirmSeconds, 60f, true, false, 0f),
                     Is.EqualTo(MediaEndDecision.Ended));
     }
@@ -113,6 +116,7 @@ public class MediaEndDetectorTests
     {
         var detector = NewDetector();
         float now = Play(detector, Duration, Duration);
+        Assert.That(detector.Tick(now, End, true, false, Duration), Is.EqualTo(MediaEndDecision.None));
         Assert.That(detector.Tick(now + MediaEndDetector.ConfirmSeconds, End, true, false, Duration),
                     Is.EqualTo(MediaEndDecision.Ended));
 
