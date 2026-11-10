@@ -2,6 +2,7 @@
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
+- **更新 7 (2026-11-10)**: **#233 のコードを再照合** — 受入条件 2 / 5 / 6 を **充足** に、条件 1 を **充足 (macOS 実機) / Windows 未検証** に改めた。残る未検証は条件 7 (実 Win64 1 曲完走) のみで **#233 は open のまま**。あわせて #223 / #242 の表に残っていた「#233 に歌詞二重描画」の記述を撤回 (解消済み)。
 - **更新 6 (2026-11-10)**: **#61 を再判定して Closed** (10 条件すべて充足。条件 5/7/8/9 を実ブラウザ証跡と本番 read-only E2E 14/14 で埋めた — `docs/evidence/61-studio-acceptance-2026-11-10.md`)。
 - **更新 5 (2026-11-10)**: **#98 を Closed** (PR #307 merged `fe2acfc` — chart 側の下書き復元 7 テスト) / **#224 の受入条件 5 を充足** (`specs/224-pause-loading/rollout.md`)。
 - **監査範囲**: open の全 Issue 48 件のうち **#71 / #68 / #278 / #60 は Closed** となったため **実質 44 件**
@@ -106,7 +107,7 @@
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
 | 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 受入条件 7/7 充足** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs`, `Assets/Editor/NoteEditorSongSwitchProbe.cs` | **7/0/0** | — | **PR #252 merged** (`39ba1bd`) + **PR #287 merged** — Mac の Unity Editor batchmode で本番経路を実行し **4/4 ケース PASS** (未保存 / キャンセル / 保存 / 破棄)。曲 A・B の size + SHA-256 で「別曲の JSON を上書きしない」ことを実測。証跡 = `docs/evidence/225-editor-song-switch/` |
 | 226 | Gameplay/P1 曲終了判定 | **A → 実装済 / 回帰テスト完了** | `Assets/Game/Scripts/Gameplay/SongEndStateMachine.cs:78`, `Assets/Tests/Editor/SongEnd*Tests.cs` (5 ファイル) | **8/1/1** | Windows 実機 | **PR #280 merged** — duration 端点 Tap/HOLD・動画長<duration・通常終端・フレーム落ち/時計停止・ランキング送信合計 の **受入条件テスト 20 件を追加** (本番経路を使う共有リグ `SongEndAcceptanceRig.cs`、本番コード変更なし)。**正負 noteTiming** は PR #272、`macOS 実機完走` は PR #258 (130/130 確定 / `Completed` / `forcedByDeadline=false` → Result)。残る受入条件は **Windows 実機完走とランキングの実 API 送信** の 2 項目のみ |
-| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B → 実装 merged / 実機受入は Windows 待ち** | `Assets/Game/Scripts/Gameplay/MediaTimeline.cs` (`PlayfieldCameraFit`), `PlayfieldLaneGuides.cs`, `VideoPicture.cs`, `MusicManager.cs`, `docs/evidence/233-playfield/` | **3/2/1** | Windows 実機 (展示 PC) | **PR #263 merged (`06ccefe`)** — 独立レビュー (CodeRabbit 13 スレッド) を全件コードで解消。macOS 実機 (2560×1664 実ディスプレイ全画面) で **映像 / レーン境界 9 本 / 判定ライン / ノーツ 5 本 / 歌詞** の描画を実証。EditMode **1296/1296**。**Windows 実機でのノーツ・動画の視認は未検証** = #233 の未解決問題として残す (テスト緑は実機合格ではない)。Issue コメント id 6756759851 |
+| 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B → コード側 6/7 充足 / 残 = 実Win64** | `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs`, `MediaTimeline.cs:161` (`ApproachSecondsAtSpeed10 = 1.6f`), `Assets/Game/Scripts/UI/GameSceneManager.cs` (`ApplyTextPanelVisibility`), `docs/evidence/233-playfield/` | **6/0/1** | Windows 実機 (展示 PC) | **2026-11-10 再照合**: 条件 1 = 充足 (macOS 実機) / Windows 未検証、2・5・6 = 充足 (`bddf8fc` / `7b26699` / `3af8103` / `85ca06e`)、残 = 条件 7 実 Win64 1 曲完走。EditMode **1322/1322** (`a5bdd25`)、macOS 実機 `pass=29 fail=0`。**#258 の「ノーツ・動画が見えない」は Windows で未解決のまま残す** |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
 | 240 | P0/v6 Result + 登録モーダル | **A** | `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:124,741,990` | 6/0/1 | — | クローズ提案可 (実機/実API は `specs/240` 3 タスク) |
 | 241 | P0/v6 Option 4タブ整合 | **B** | `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` | **5/0/1** | — | **PR #264 merged** (`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ)。あわせて **譜面と設定 JSON が同じ Resources に混在するバグ** も修正 (`OptionSceneManager.SettingsDirectory()` → `UserSettings/song-settings/`) |
@@ -177,7 +178,7 @@
 | # | 条件 (Issue 本文) | 判定 | 根拠 |
 |---|---|---|---|
 | 1 | #233 / #223: 実Win64 の同一artifact/SHA で Title→Select→Ready→Game→Result→Retry が通る | 未検証 | `docs/evidence/index.md` §1.7「Windows 実機 … **未証明**」。Win64 CI は `license-precheck` で停止 |
-| 2 | #217 / #242 と各v6子Issue: 実データ・実操作に結線、描画重複なし | 未充足 | #219 は `V6UiMode.Playfield = false`、#233 に歌詞二重描画 |
+| 2 | #217 / #242 と各v6子Issue: 実データ・実操作に結線、描画重複なし | 未充足 | #219 は `V6UiMode.Playfield = false` のまま (owner rollback 未承認)。**#233 の歌詞二重描画は `85ca06e` で解消済み** (2026-11-10 再照合) |
 | 3 | #225 / #226 のデータ破壊・プレイ不能リスクを評価し修正を検証 | 充足 | #225 = `650daa6` (main), #226 = `cfcd59f` (main) |
 | 4 | #249: Win64 CI の Unity ライセンス問題を切り分けて復旧 | 未充足 | `docs/operations/unity-ci-license.md`。CI は Secret 未設定で停止 |
 | 5 | 運営/スタッフが `FlashBeat.exe` を直接起動でき、回復・再起動・配布更新の運用手順が明確 | 未検証 | `docs/evidence/index.md` §1.5 に第 1/2/3 世代の配置表あり。手順書の diff は PR #254 (open) |
@@ -198,7 +199,7 @@
 |---|---|---|---|
 | 1 | #220 解像度テンプレートと実値 HUD、ゲーム既存レーン/効果/判定は回帰確認対象 | 充足 | `V6/Common/V6UiProfile.cs:73-75` (FHD/2K/MacBook), `V6/Game/Hud/V6GameHudView.cs` |
 | 2 | #221 / #222 Select View と実カタログ/操作 | 充足 | いずれも §3.1 で A 判定 |
-| 3 | #223 / #233 統合・Canvas 排他・実Win64 の Game/Select 復旧 | 未充足 | #233 の 3 欠陥が未修正 (§3.1 #233) |
+| 3 | #223 / #233 統合・Canvas 排他・実Win64 の Game/Select 復旧 | 未充足 | #233 のコード側 (レーン / 1.6 s 確認窓 / 歌詞二重描画) は main で修正済み (§3.1 #233)。残 = **実Win64 の画面確認** = 本条件そのもの |
 | 4 | #224 Pause / Loading | 充足 | `V6/Game/Pause/*`, `V6/Game/Loading/*` |
 | 5 | #239 Title/History/Ranking, #240 Result/登録, #241 Option 4タブ | 未充足 | #241 の ClearSaveData 欠陥 (§3.1 #241) |
 | 6 | 実Win64 で 3 解像度 (1920×1080 / 2560×1440 / 2560×1664) の受入 | 未検証 | Windows 実機必須。`docs/evidence/index.md` §1.7 |
@@ -301,26 +302,30 @@
 
 ### #233 — [P0 BLOCKER/Owner real PC] ゲーム画面崩壊・プレイフィールド不可視・HUD重複
 
-- **区分**: **B (部分実装)** — cc 実測確定 (レーン非表示はレンダリング失敗ではない)
+- **区分**: **B (実装 merged / 実機受入は Windows 待ち)** — 2026-11-10 にコード再照合。条件 2 / 5 / 6 は main 上で充足、条件 1 は **macOS 実機で充足 / Windows 未検証**、残る未検証は条件 7 (実 Win64) のみ
 - **実装/証拠**:
   - 既存実装: `Assets/Game/Scripts/UI/V5/GameHudRuntime.cs`, `Assets/Game/Scripts/UI/V5/GameUiExclusivity.cs` (旧 v5 Canvas 排他), `Assets/Game/Scripts/UI/V6/V6GameRuntime.cs:370-374` `HideLegacyPlayfield()` → `HideByName("Lane")`
-  - テスト: `Assets/Tests/Editor/GameUiExclusivityTests.cs`, `Assets/Tests/Editor/V6GameHudViewTests.cs`
-  - 証跡: `docs/evidence/233-legacy-ui-exclusivity.md`, `docs/evidence/233-hud-nre.md`, `docs/evidence/233-hud-nre/{before,after}-fix-gameplay-2560x1664.png`
+  - **レーン構造の実行時復元**: `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs` — レーン境界 9 本を `RuntimeInitializeOnLoadMethod` + `sceneLoaded` で生成 (`GameScene.unity` は編集しない = #219 の owner 決定を維持)。commit `bddf8fc` / `7b26699` (S1 縦長画面で外側レーンが画面外) / `3af8103`
+  - **確認窓 1.6 s**: `Assets/Game/Scripts/Gameplay/MediaTimeline.cs:161` `ApproachSecondsAtSpeed10 = 1.6f` + `ZScaleFor()` (`:174`)。commit `bddf8fc` / `f4860c6` (z スケールをセッションで 1 回だけ確定)
+  - **旧歌詞パネルの排他**: `Assets/Game/Scripts/UI/GameSceneManager.cs` `ApplyTextPanelVisibility()` が `&& !FlashBeat.UI.V6.V6UiMode.GameHud` で `TextPanel` を常に非表示。commit `85ca06e`
+  - テスト: `Assets/Tests/Editor/PlayfieldGeometryTests.cs`, `Assets/Tests/Editor/PlayfieldLaneGuidesTests.cs`, `Assets/Tests/Editor/GameUiExclusivityTests.cs`, `Assets/Tests/Editor/V6GameHudViewTests.cs`
+  - 実測: **EditMode 1322 / 1322 passed, 0 failed, 0 skipped** (macOS / Unity 6000.5.6f1, `main` = `a5bdd25`。上の 5 commit すべてを含む commit)
+  - 証跡: `docs/evidence/233-legacy-ui-exclusivity.md`, `docs/evidence/233-hud-nre.md`, `docs/evidence/233-hud-nre/{before,after}-fix-gameplay-2560x1664.png`, **`docs/evidence/233-playfield/run-2026-11-10-main/`** (`pass=29 fail=0` / 実ディスプレイ 2560×1664 全画面 / 画像 7 枚)
   - commit: `00074c0` (コンボボーナス Text 参照欠落 NRE 修正), `6e01a6b` (証跡), `fffc399` (PR #251 残差 5 件) — すべて main ancestor
-  - `specs/233-game-screen-recovery/tasks.md` = 8 完了 / **2 未完了** (EditMode 実実行 / 実 Win64 1 曲完走)
+  - `specs/233-game-screen-recovery/tasks.md` = **9 完了 / 1 未完了** (残 = 実 Win64 1 曲完走)
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | 8レーン・判定ライン・ノーツが画面に出る | **未充足** | `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` `public static bool Playfield = false;` (owner rollback 2026-11-08)。`V6GameRuntime.cs:370-372` が `if (!V6UiMode.Playfield) return;` で早期 return |
-| 2 | シーン側のレーン構造が存在する | **未充足** | `Assets/Game/Scenes/GameScene.unity:2832 m_Name: Lane` / **`:2837 m_IsActive: 0`** (blame: 原始 commit `ee11d76` 2024-11-12)。コード内に `Lane` を active にする enabler は **0 件** |
+| 1 | 8レーン・判定ライン・ノーツが画面に出る | **充足 (macOS 実機) / Windows 未検証** | `PlayfieldLaneGuides.cs` は `V6UiMode.Playfield` の値に依らず動く (`false` → 3D ガイドを表示、`true` → v6 のレーン線が描く)。旧根拠 `V6UiMode.cs:27 Playfield = false` は **レーン非表示の理由ではなくなった**。`docs/evidence/233-playfield/run-2026-11-10-main/` の画像を実読: `autotest-v6-5.png` に **映像プレーン / 奥へ収束するレーン境界線 / 判定ライン / 歌詞パネル**、`autotest-v6-7.png` に加えて **レーン上のノーツ 2 本**。ただし「密度の高い区間を捉えた」ことは SOFT PASS で **未証明** |
+| 2 | シーン側のレーン構造が存在する | **充足 (方式変更)** | シーンの `Lane` は `GameScene.unity:2837 m_IsActive: 0` のまま **有効化していない** (暗色板で動画下半分を覆うため。#219 の owner 決定)。代わりに `PlayfieldLaneGuides` が実行時に境界線 9 本を生成。`PlayfieldGeometryTests.cs:262-291` が **ガイド本数 = LaneCount+1 / x の単調増加 / 深度 ≥ VisibleDepthZ** を固定、`PlayfieldLaneGuidesTests.cs` が生成・カメラ fit を検証 |
 | 3 | HUD 重複・毎フレーム NRE がない | 充足 | `00074c0` でコンボボーナス Text 参照を修正。`docs/evidence/233-hud-nre/after-fix-gameplay-2560x1664.png` (2560×1664 Mac 実機) |
 | 4 | 判定ライン・3D 判定エフェクトの描画 | 充足 (cc 実測) | cc が実機スクリーンショットで正常描画を確認 |
-| 5 | 確認窓が設計意図 1.6 s | **未充足** | 実測 **0.86 s**。該当コードの確定箇所は本監査では特定できず (cc 実測値)。要 Owner/Worker の再特定 |
-| 6 | v6 中に旧 v5 歌詞が二重描画されない | **未充足** | `V6UiMode.HideLegacyKeyGuide()` / `HideLegacyTitleUi()` はあるが **歌詞 (Lyrics) の旧描画を消す同等処理は未確認**。`Assets/Game/Scripts/UI/GameSceneManager.cs` の `ApplyTextPanelVisibility` が要確認 |
-| 7 | 実 Win64 で 1 曲完走 | 未検証 | `specs/233` 2 番。Windows 実機必須 |
+| 5 | 確認窓が設計意図 1.6 s | **充足** | `MediaTimeline.cs:161` `ApproachSecondsAtSpeed10 = 1.6f`、`:174` `ZScaleFor()` = `speed * (8.61 / (1.6 * 10))`。`PlayfieldGeometryTests.cs:81-94` が「速度 10 で判定線の 1.6 秒前にノーツが画面奥の端 (z = VisibleDepthZ)」を 16:9 / 2560×1664 の両方で数値固定。旧「実測 0.86 s」は修正 (PR #263 系) 前の値 |
+| 6 | v6 中に旧 v5 歌詞が二重描画されない | **充足** | `Assets/Game/Scripts/UI/GameSceneManager.cs` `ApplyTextPanelVisibility()` → `bool show = … && !FlashBeat.UI.V6.V6UiMode.GameHud;` で `TextPanel` を `SetActive(false)` (`85ca06e`)。`GameUiExclusivityTests.cs:258-269` が v5 歌詞の個別 Text (`QuestionText` / `FuriganaText` / `RomajiText`) を排他対象に保ち、`TextPanel` (親) は対象外であることを固定。実機ハーネスも `no legacy lyric objects are active` = PASS |
+| 7 | 実 Win64 で 1 曲完走 | 未検証 | `specs/233` 1 番。Windows 実機必須 |
 
-- **未検証の区別**: 条件 7 は実機必須。**EditMode 緑は画面表示・操作性を含まない**。cc の実機スクリーンショット観察 (判定ライン/エフェクト正常、撮影時刻が譜面空白区間) はレーン可視性の **代替にならない**。
+- **未検証の区別**: 条件 1 の **Windows 実機での視認**と条件 7 は実機必須。**EditMode 1322/1322 も macOS 実機の 29/29 も Windows の合格を保証しない**。**#258 が観測した「レーン上のノートと動画映像が写っていない」は Windows で未解決のまま #233 に残す** (macOS 側は PR #263 以降の run で映像・ノーツ・レーンが写ることを確認済み)。証拠として使えるのは **実ディスプレイ全画面**の撮影のみで、窓リサイズの擬似全画面は不可 (memory: 3解像度は実ディスプレイ全画面)。
 - **依存**: #223 の前提条件。**#250 の最短経路の入口**。
 
 ### #226 — [Gameplay/P1] 曲終了をdurationだけで決めるため末尾ノーツが未判定で確定
