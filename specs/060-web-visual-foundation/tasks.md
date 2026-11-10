@@ -24,8 +24,10 @@
       `web/package.json`) — done when `panda codegen` passes and no `teal` remains.
       → `panda codegen` exit 0。`grep -rin teal src panda.config.ts` は 0 件
       （`src/theme/colors/` は gray/blue/amber/red/green のみ、teal.ts は削除済み）。
-      **残存**: `src/components/chart-editor/note-grid.tsx:32` の `NOTE_FILL = "#12a594"`
-      はハードコードのままであり、PR #90 の handoff contract で #72 のスコープと明記済み。
+      **残存(撮影 SHA 時点)**: `src/components/chart-editor/note-grid.tsx:32` の
+      `NOTE_FILL = "#12a594"` はハードコードのままであり、PR #90 の handoff contract で
+      #72 のスコープと明記していた。**その後 `41d7da1` (#72) で `NOTE_FILL = "#ededed"` に
+      差し替わり、`main` に teal ハードコードは残っていない。**
 - [x] **T3** Mechanical rename `colorPalette: "teal"` → `"blue"` in `catalog-panel.tsx`,
       `editor-toolbar.tsx`, `publish-dialog.tsx`, `song-publisher.tsx` — done when
       `npx tsc --noEmit` passes.

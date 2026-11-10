@@ -411,7 +411,7 @@
     "canvas 地色が Park 既定 gray #111113 から Pen bg #1B1B1B 系になったこと"
   ],
   "doesNotProve": [
-    "ノートブロックの色は #12A594 のまま（note-grid.tsx のハードコード残存・#72 スコープ）",
+    "ノートブロックの色は撮影 SHA 2bd7302 の時点では #12A594 のまま（main では 41d7da1 (#72) で #ededed / 選択時 #3fa9f5 に差し替わり teal 残存は解消済み）",
     "2xs (8px) テキストの可読性（残存課題。#74 で再監査）",
     "フォーカスリングのコントラスト 2.5:1（Pen 固定値。#74 で再監査）",
     "390px でのサイドバー折りたたみ（#74 スコープ）",
@@ -419,7 +419,7 @@
   ],
   "uncheckedTasks": [],
   "remainingUnverified": [
-    "note-grid.tsx のノート塗り #12A594 はハードコード残存のため差分として現れない（#72 スコープ）",
+    "note-grid.tsx のノート塗りは撮影 SHA 2bd7302 の時点で #12A594 だった。main では 41d7da1 (#72) で #ededed に差し替わっている（未解決の残存ではない）",
     "2xs (8px) テキストの可読性（#74 で再監査）",
     "フォーカスリングのコントラスト 2.5:1（Pen 固定値。#74 で再監査）",
     "390px でのサイドバー折りたたみ（#74 スコープ）",
@@ -514,5 +514,12 @@
       "sha256": "563ebd1fb0fa644318de589a9d0e2e724838d37df59fb1dc6a0e2b8c1b00987a",
       "bytes": 102282
     }
-  }
+  },
+  "corrections": [
+    {
+      "date": "2026-11-10",
+      "what": "note-grid.tsx の teal ハードコードを「未解決の残存」と記していた_areaを訂正",
+      "reason": "41d7da1 (style(editor): align chart editor with design v5 tokens (#72), 2026-11-07) で main の note-grid.tsx は NOTE_FILL=#ededed / NOTE_FILL_SELECTED=#3fa9f5 / HOLD_FILL=#8a8a8a に差し替わっている。git grep -in \"12a594\" origin/main -- web/ は 0 ヒット。撮影 SHA 2bd7302 は #72 の前なので、画素証跡のノート塗り teal はその SHA の実態としてそのまま残す。"
+    }
+  ]
 }
