@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Win64 ビルドを Mac 上で行い、**正規のパッケージスクリプト** に委譲する
 # (Issue #35 / #249 / PR #253)。
 #
