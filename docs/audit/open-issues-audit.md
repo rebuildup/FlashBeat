@@ -1,6 +1,7 @@
 # open Issue 実装状況監査 (main 実測)
 
-- **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
+- **対象**: `origin/main` = `36a3572` (PR #296 merge 直後) / **最新の追記は `9d729e5f` (PR #341 merge 直後)**
+- **更新 10 (2026-11-10 深夜)**: **issue-162 §8 の 41 項目を v6 UI に対して再照合し、到達可能な 7 件を実際に修正した** (PR #339)。判定は **fixed 34 / moot 6 / live 1** (live は D-1 のみ)。**Web E2E を実ブラウザの品質ゲートに置き換えた** (PR #341、CI `browser-e2e` 初回実行 success)。**本番 API 受け入れの条件を文書化** (PR #340、未実行)。→ §7.6
 - **更新 9 (2026-11-10 夜)**: **#140 の条件 5 を充足に再判定** — 展示候補が `main` から作られるようになり trunk と同一の木になった (旧ビルド元 `b677f8f` は実装を含まない)。**#13 の「Media Foundation URL リーダーが開けない」はもう再生経路ではない** — `main` は yt-dlp でローカルへダウンロードしたファイルを再生し、URL 直渡しは 1 回だけの診断 probe に退いた (`MusicManager.cs:332`/`:591` 対 `:341`/`:637`)。「`audioS.Play()` を呼ばないので無音」も解消済み。詳細: `docs/superpowers/plans/baseline-win64.md` §2026-11-10 追記。残る未検証は **Windows 実機の再生/音/豆腐 0** のみ。
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
 - **更新 8 (2026-11-10)**: **#241 の ClearSaveData 欠陥は解消済み** (`e10a34f` + `V6OptionWiringTests` の実 View 操作テスト) — 条件 6 / 7 を充足に、#242 の表の古い記述を撤回。**#182 の条件 3 / 4 は PR #256 (merged) で充足** (#182 は Closed 済み)。#217 の表の「#233 歌詞二重描画」も撤回。
@@ -1849,3 +1850,19 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 中断された Worker の未コミット差分の退避。中身は旧ロード表示の所有判定だが、
 **`main` は別 (`GameLoadingRoute.UsesLegacyOverlay` を正本にし、歌詞専用の
 `LegacyLyricObjectNames` に分離) で実装済み**。→ **再実装不要。統合も不要。**
+
+### 7.6 2026-11-10 深夜 — UI 欠陥の再照合 (#339) / 本番受け入れ条件 (#340) / Web E2E のゲート化 (#341)
+
+| PR | 内容 | Issue |
+|---|---|---|
+| **#339 (merged, `791fa298`)** | **issue-162 §8 の 41 項目を v6 UI に対して再照合**し、§8.1 として状態とコード根拠を追記。既定フラグで到達しない v5 専用経路は **moot**、v6 で直っているものは **fixed**、依然誤っているものは **live** とした (クラスの存在自体は到達性の根拠にしない)。内訳: **fixed 34 / moot 6 / live 1**。**live は D-1 (Display 設定の非永続) のみ**で、永続化は新しい保存系の追加になるため別タスクとした。**このうち 7 件は「文書化」ではなく実コードを修正した** — A-6 (固定テーブル外のベストがスロット 0 を共有) / B-4 (実在しないコンボボーナス表示) / B-11 (効かない BGMVolume 行) / C-6 (Key Layout の無確認リセット) / C-7 (全曲 offset 書き換えの説明不足) / C-8 (KeyConfigUI の凡例と実挙動の不一致) / D-7 (Result Retry が `ResetSession` を呼ばない)。回帰テストは `Issue162RecheckTests.cs` の 3 件 + 契約変更に追随させた既存テスト 1 件。**Unity EditMode 1394/1394 pass, 0 failed** | #162 (§8.1 に結果を追記) |
+| **#340 (merged, `eb2fabfc`)** | **#73 / #135 の本番 API 受け入れ条件を明文化** — 変更対象は専用 id (`e2e-publish-flow` / `e2e-acceptance-<YYYYMMDD>`) のみ、復旧は `POST /api/v1/admin/songs/{id}` `{"archived":true}` の 1 リクエスト (soft delete、`catalogVersion` は単調増加で戻らない)、必要権限は staff token のみ (Cloudflare / D1 直叩きは不要)、実行コマンドと記録様式まで記載。**実行はしていない** (オーナー承認待ち) | #73 / #135 |
+| **#341 (merged, `9d729e5f`)** | **`npm run test:e2e` を実ブラウザの品質ゲートに置き換えた**。従来の `test:e2e` は Vitest 22 件 (ブラウザを一切通らない) で、CI は Playwright を実行しておらず、`studio-smoke.spec.ts` は前提が無いと黙って skip していた。**`test:e2e` = Playwright 12 件 / `test:e2e:harness` = Vitest 22 件** に分離。`webServer` が隔離ローカル D1 を seed して dev server を起動 (失敗すれば即 fail)、`gate-reporter.ts` が **0 件収集 / 全件 skip を exit 1** にし、`publish-flow.spec.ts` が Catalog → Editor → Publish (実 `PUT`) → Catalog 反映を実 HTTP で検証する (書き込み先は `e2e-publish-flow` のみ、`afterAll` で archive)。CI に `browser-e2e` job を追加し、**初回実行で success (2m49s)**。ゲートが落ちることは 4 通り (全 skip / 期待値破壊 / ブラウザ無し / サーバー起動不能) で実測確認 | #97 / #41 / #61 の関連 |
+
+**この時点でなお未解決**:
+
+1. **Windows 実機での 1 曲完走 / ノーツと映像の視認 / 3 解像度の実全画面** (#233 / #241 / #140 / #22 / #13)。**macOS 実機もテスト緑も CI 緑も Windows の合格を保証しない**。`V6UiMode.Playfield = false` はオーナーの現行判断であり、独断で有効化しない。
+2. **本番 API (#73 / #135) の最終確認** — 条件は §7.6 / `docs/operations/production-api-acceptance.md` に固定したが、**本番データを勝手に書き換えない**方針のため未実行。オーナー承認が必要。
+3. **issue-162 D-1** (Display 設定の非永続) — 再照合で唯一 **live** と判定した項目。保存系の追加を伴うため別タスク化。
+4. **マージ済みリモートブランチの整理** — 削除可能と証明できた 77 本を `docs/operations/merged-remote-branches-2026-11-10.md` に列挙済みだが、**削除ガードを迂回しない**方針のため実削除は未実施。
+5. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。CI の Unity ライセンス (`UNITY_EMAIL` / `UNITY_PASSWORD`) も未登録。
