@@ -196,7 +196,7 @@
 | 3 | **CI は Release を作らない**（artifact のみ） | Release 化の工程は手動 | §5.4 の手順を承認プロセスに載せる |
 | 4 | **自動更新の候補判定の実装を「バージョンが厳密に大きい Release のみ」に揃える対応は監督側の担当** | 同じバージョンの Release を作ると更新対象にならない | 版数を上げる運用ルール（§5.4） |
 | 5 | **展示 PC の最終的な配置パス**が旧記録（`D:\4_apps\Unity\Build\FlashBeatExhibit*`）と新記録（`C:\Users\rebui\Desktop\FlashBeat-Exhibit\`）で食い違う | 運営者の手順がずれる | 監督者の決定事項。確定後は [`exhibit-runbook.md`](exhibit-runbook.md) §1 を更新する |
-| 6 | **Web Studio の publish はブラウザ操作**（トークン手入力） | 无人化できない | 展示運営者ではなく開発者が担当する |
+| 6 | **Web Studio の publish はブラウザ操作**（トークン手入力） | 無人化できない | 展示運営者ではなく開発者が担当する |
 | 7 | **API v1 は凍結** | 破壊的変更は既存バイナリを壊す | 破壊的変更は v2 として追加（[`update-release.md` §既存バイナリ互換](update-release.md)） |
 
 ---

@@ -5,7 +5,7 @@
 
 ---
 
-## 0. 出发点: Issue 本文は古い
+## 0. 出発点: Issue 本文は古い
 
 Issue 本文は「`UpdateChecker.cs:394 付近` で `OnApplicationQuit` から自動適用している」と
 書いているが、`origin/main` の現状は Issue 本文より **かなり進んでいる**。

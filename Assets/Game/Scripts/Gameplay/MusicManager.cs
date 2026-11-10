@@ -827,7 +827,7 @@ public class MusicManager : MonoBehaviour
         }
 
         // ストール誤検出の防止: メディアはポーズ中の間止まっていたので、
-        // 直前の進行时刻はもう意味を持たない。固定中の譜面時刻からやり直す。
+        // 直前の進行時刻はもう意味を持たない。固定中の譜面時刻からやり直す。
         lastMediaTime = PauseGate.FrozenMediaTime;
         mediaTime = PauseGate.FrozenMediaTime;
         stallSeconds = 0f;

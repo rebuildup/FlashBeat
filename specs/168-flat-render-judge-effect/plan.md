@@ -46,7 +46,7 @@
 
 ## リスク
 
-- Unity が:mats と `ProjectSettings.asset` を编辑器起動時に書き換える (BOM 消失・`m_AllowLocking` 追加)。
+- Unity が:mats と `ProjectSettings.asset` をエディタ起動時に書き換える (BOM 消失・`m_AllowLocking` 追加)。
   → コミット前に `git checkout` で戻す。BOM は `head -c3 | xxd -p` で `efbbbf` を確認。
 - `_Color` の比較で `_EmissionColor` を誤って拾う (素材が `_EmissionColor` を先に持つため)。
   → `^\s+- _Color:` で限定して比較する。

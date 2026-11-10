@@ -264,7 +264,7 @@ if ($others.Count -gt 0) {
 
 $launchArgs = @('-logFile', "`"$log`"")
 if ($Fullscreen -ge 0) {
-    # 表示相关的引数は「明示して起動する場合」だけ渡す。Default (-1) は
+    # 表示関連の引数は「明示して起動する場合」だけ渡す。Default (-1) は
     # 展示運用と同じ「引数なし起動」を検証する (issue #52)。
     $launchArgs += @('-screen-width', "$Width", '-screen-height', "$Height", '-screen-fullscreen', "$Fullscreen")
 }

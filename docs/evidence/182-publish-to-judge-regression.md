@@ -116,7 +116,7 @@ Build succeeded.
 
 ## Web の形と Unity の形で一致しなかった点
 
-调查结果 (コード変更はしていない):
+調査結果 (コード変更はしていない):
 
 1. **`lyrics` は Unity の `Data` には存在しない。**
    Web は `chart.lyrics` (startTime / endTime / furigana / mondai / romaji) を

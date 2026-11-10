@@ -127,7 +127,7 @@ public class SelectSceneManager : MonoBehaviour
     {
         if (v6Data == null) return;
 
-        // 未選択で Ready を押したとき、数据層の既定選択はしない (#222 の契約)。
+        // 未選択で Ready を押したとき、データ層の既定選択はしない (#222 の契約)。
         // ただし「曲が選択されていません」で詰ませないよう、**この操作のときだけ**
         // 先頭の曲 (クラウド曲よりローカル曲を優先) を選んでから確定する。
         if (v6Data.Selected == null)

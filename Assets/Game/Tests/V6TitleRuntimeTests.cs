@@ -13,7 +13,7 @@ using FlashBeat.UI.V6.Title;
 /// </summary>
 public class V6TitleRuntimeTests
 {
-    // --- IndexOfBestRecord (自己ベストの挑选) ---
+    // --- IndexOfBestRecord (自己ベストの選択) ---
 
     [Test]
     public void IndexOfBestRecord_NullScores_HasNoRecord()

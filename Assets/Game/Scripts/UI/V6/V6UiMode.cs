@@ -18,7 +18,7 @@ namespace FlashBeat.UI.V6
         public static bool SelectScreen = true;
 
         /// <summary>
-        /// v6 の遠近法プレイフィールド (8 レーンの透视描画) を使うか。
+        /// v6 の遠近法プレイフィールド (8 レーンの透視描画) を使うか。
         ///
         /// **false** (2026-11-08): オーナー判断による差し戻し。ゲームプレイの
         /// レーンは元の 3D プレイフィールドに戻す (SRAM commit a156da3 と同じ状態、

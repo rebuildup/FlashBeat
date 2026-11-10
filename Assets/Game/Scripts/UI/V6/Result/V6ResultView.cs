@@ -29,7 +29,7 @@ namespace FlashBeat.UI.V6.Result
     ///   (Result シーンにはゲームのアニメーション背景が無い)。色は V5Tokens を流用する。
     /// - 遷移 (リトライ / 選曲へ / タイトルへ) はコールバックで統合担当が渡す。
     ///   ResultSceneManager は呼ばない。
-    /// - 実数据的更新 (スコアの確定後) は Refresh() で反映する。
+    /// - 実データの更新 (スコアの確定後) は Refresh() で反映する。
     /// </summary>
     public sealed class V6ResultView
     {

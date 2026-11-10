@@ -377,7 +377,7 @@ namespace FlashBeat.UI.V6.Select.Data
                 case 19: return "19-mushin.jpg";
                 case 20: return "20-haruarashi.jpg";
                 case 21: return "21-bibibibi.jpg";
-                // 22 (灰Φ倶楽部) に対応するジャケットは無い (设计の 22-haihai は別の曲)。
+                // 22 (灰Φ倶楽部) に対応するジャケットは無い (設計の 22-haihai は別の曲)。
                 case 23: return "23-override.jpg";
                 case 24: return "24-igaku.jpg";
                 case 25: return "25-tekkyu.jpg";
