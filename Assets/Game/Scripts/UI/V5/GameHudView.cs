@@ -446,10 +446,17 @@ namespace FlashBeat.UI.V5
             scoreText.color = score >= 1_000_000 ? V5Tokens.WarnLight : V5Tokens.Text;
 
             float s = S;
-            railFill.sizeDelta = new Vector2(GameHudLogic.RailFillWidth(score, 1f) * RailWidth * s, RailHeight * s);
-            railPlusFill.sizeDelta = new Vector2(GameHudLogic.RailPlusWidth(score, 1f) * PlusSpan * s, RailHeight * s);
+            // レール幅は **設計 px で計算してから** 実 px 倍率 s を掛ける。
+            // GameHudLogic 側の引数 railWidth は「レール全体の設計幅」(= RailWidth) で、
+            // 戻り値も設計 px。以前は railWidth に 1f を渡して結果に RailWidth を掛けており、
+            // (1f - 70f) = -69 の負の幅・70 倍の過大幅になっていた (#162 B-3)。
+            railFill.sizeDelta = new Vector2(
+                GameHudLogic.RailFillWidth(score, RailWidth) * s, RailHeight * s);
+            railPlusFill.sizeDelta = new Vector2(
+                GameHudLogic.RailPlusWidth(score, RailWidth) * s, RailHeight * s);
             int hiIndex = GManager.songID < GManager.Hiscore.Length ? GManager.songID : 0;
-            railBest.anchoredPosition = new Vector2(GameHudLogic.RailBestX(GManager.Hiscore[hiIndex], 1f) * RailWidth * s, 0f);
+            railBest.anchoredPosition = new Vector2(
+                GameHudLogic.RailBestX(GManager.Hiscore[hiIndex], RailWidth) * s, 0f);
 
             bonusRow.gameObject.SetActive(GManager.combo > 0);
             bonusText.text = "+ COMBO BONUS +" + GameHudLogic.FormatScore((int)GameHudLogic.BonusTotal(GManager.combo));
