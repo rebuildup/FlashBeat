@@ -154,14 +154,14 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>歌詞の供給源。UpdateLyrics は FindFirstObjectByType で探す。</summary>
-        private GameSceneManager CreateLyricsSource(TextData lyrics)
+        private GameObject CreateLyricsSource(TextData lyrics)
         {
             var go = new GameObject("V6GameHudViewTests LyricsSource", typeof(GameSceneManager));
             var field = typeof(GameSceneManager).GetField("inputJson",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Assert.IsNotNull(field, "GameSceneManager.inputJson が見つからない");
             field.SetValue(go.GetComponent<GameSceneManager>(), lyrics);
-            return go.GetComponent<GameSceneManager>();
+            return go;
         }
 
         private static TextMeshProUGUI LyricTextOf(V6GameHudView target)
