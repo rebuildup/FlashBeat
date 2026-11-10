@@ -98,7 +98,7 @@ elif [ "$manual" = 1 ]; then
   # 手動操作モード: builtin の自動テストは使わず、**実キーの入力**だけで
   # 選曲 → ゲーム → Result → Retry までを進める (画面は -autoshot が自前で撮る)。
   # 入力は osascript (System Events) で行うが、**最前面が FlashBeat のときだけ**
-  # 送る。(user 頓着の别的アプリにキーを飛ばさないため)
+  # 送る。(ユーザーの他のアプリにキーを飛ばさないため)
   args=(
     -screen-width "$width" -screen-height "$height" -screen-fullscreen 1
     -autoshot "$outdir" -autoshot-interval 4 -autoshot-count 90 -logFile "$log"
