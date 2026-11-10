@@ -17,7 +17,15 @@
       (Assets/Tests/Editor) の手動ビルド検証。
 - [x] 8. `docs/evidence/233-legacy-ui-exclusivity.md` — 実装・検証・残存リスクの記録。
 
-## 未実施 (スコープ外 / Owner 作業)
+## 実測と残作業
 
-- [ ] 実 EditMode テスト実行 (Unity Editor 起動が必要 — Supervisor が実施)。
+- [x] 9. 実 EditMode テスト実行 — 2026-11-10 に `main` (`a5bdd25`) で
+      `Unity -batchmode -runTests -testPlatform editmode` を実行し
+      **1322 / 1322 passed, 0 failed, 0 skipped**。この commit は本 spec の
+      修正 (`bddf8fc` / `7b26699` / `3af8103` / `85ca06e` / `f4860c6`) をすべて含む。
+      あわせて macOS 実機 (実ディスプレイ 2560×1664 全画面) で
+      `docs/evidence/233-playfield/run-2026-11-10-main/` = **pass=29 fail=0**
+      (映像 / レーン境界 / 判定ライン / ノーツ / 歌詞パネルを画像で目視)。
 - [ ] 実 Win64 での画面確認・1 曲完走 (Owner 実機 — Issue #233 の本体ゲート)。
+      **EditMode 緑も macOS 実機の緑も Windows の合格の代わりにならない**。
+      #258 が観測した「ノーツ・動画が見えない」は Windows で未検証のまま残る。
