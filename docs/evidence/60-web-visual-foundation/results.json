@@ -432,5 +432,87 @@
     "T4": "done",
     "T5": "done"
   },
-  "tasksNote": "specs/060-web-visual-foundation/tasks.md を実測に同期（5 件すべて checked）。各タスクの根拠と残存は同ファイルの注記を参照。"
+  "tasksNote": "specs/060-web-visual-foundation/tasks.md を実測に同期（5 件すべて checked）。各タスクの根拠と残存は同ファイルの注記を参照。",
+  "artifactSha256": {
+    "before-54505c2/chart_1280x720.png": {
+      "sha256": "cd00fb21e126bf01b34406bab57c653026f84baebf39767e8480e1acae9c90a8",
+      "bytes": 181983
+    },
+    "before-54505c2/chart_1440x900.png": {
+      "sha256": "1b0fe24f5446ffb42793f14adf293e0d42915e2bb6dc4439ebf31f34852897ce",
+      "bytes": 189813
+    },
+    "before-54505c2/chart_390x844.png": {
+      "sha256": "8e94938fac2abaeaa623120463c07ddc2c81293916fda0131c2e86d40509a48b",
+      "bytes": 469528
+    },
+    "before-54505c2/home_1280x720.png": {
+      "sha256": "5fab855b96287d462e7babac29c9e5aa8dc5f2d6794f01d6d14bd809ef805a86",
+      "bytes": 30704
+    },
+    "before-54505c2/home_1440x900.png": {
+      "sha256": "f5f8dc0fda7a8dbceb363d3ac686db04768a6708d6d1895541b1196ef68b20c9",
+      "bytes": 32654
+    },
+    "before-54505c2/home_390x844.png": {
+      "sha256": "13df5f8cec9b05c81398da37c6a8c5e78040c530b94bde906665d0a3493bdf1c",
+      "bytes": 44955
+    },
+    "before-54505c2/index.json": {
+      "sha256": "7fe716e08e733f52ac7b0e465a09b87186ebff0c8663a61d5614baddeff2a42a",
+      "bytes": 38520
+    },
+    "before-54505c2/publish_1280x720.png": {
+      "sha256": "47d84d87831530fe56c6286b7b2123d51ff3c295ec932371c23e59c062427ecc",
+      "bytes": 111127
+    },
+    "before-54505c2/publish_1440x900.png": {
+      "sha256": "984e681691898b87feea18a9d76837e75726e9539fb0a2171d1e17a9c235a54e",
+      "bytes": 134432
+    },
+    "before-54505c2/publish_390x844.png": {
+      "sha256": "39e12d8ad92104cf691b7822b9cae84e6413728af5487f0ebb3e3df97637c8f5",
+      "bytes": 115246
+    },
+    "after-2bd7302/chart_1280x720.png": {
+      "sha256": "269aad00dfd3f49ffe88381d4171f569c0d4e553a06449515e0f7bea72316caa",
+      "bytes": 180839
+    },
+    "after-2bd7302/chart_1440x900.png": {
+      "sha256": "b618c072b4a35cbae26cafcc1dc703499243bc5083b1396c4b2016f192245dc3",
+      "bytes": 189021
+    },
+    "after-2bd7302/chart_390x844.png": {
+      "sha256": "b9561343eed825507d3c0234883061b6f71848cfd159e961d4438691782796d0",
+      "bytes": 464076
+    },
+    "after-2bd7302/home_1280x720.png": {
+      "sha256": "1c193908bfcef652a663b2e05b0ac4a6b21877d78b73202d454b6f039a05ad5a",
+      "bytes": 28671
+    },
+    "after-2bd7302/home_1440x900.png": {
+      "sha256": "c8150976bb13a650fdc23510953925f1adcb17da6ecf844aaff41ca448dcfe67",
+      "bytes": 30848
+    },
+    "after-2bd7302/home_390x844.png": {
+      "sha256": "2dc23ebd1070fa478f81cb5afecc8b0f6c86edd11587b6e1cbfb4f782fadf619",
+      "bytes": 43061
+    },
+    "after-2bd7302/index.json": {
+      "sha256": "5a19c75643cb477933627d4e171e57f47fbf05ba7c2ccf1698d9591f1a993559",
+      "bytes": 38520
+    },
+    "after-2bd7302/publish_1280x720.png": {
+      "sha256": "e07cb9fa428591804298376dfac4de36b09296f4e78f95509bd4bb328534df5a",
+      "bytes": 104367
+    },
+    "after-2bd7302/publish_1440x900.png": {
+      "sha256": "bdd7beff9055832500e9dc35c066d9573c8870299c8f4747433558c1c7d1a3e1",
+      "bytes": 127973
+    },
+    "after-2bd7302/publish_390x844.png": {
+      "sha256": "563ebd1fb0fa644318de589a9d0e2e724838d37df59fb1dc6a0e2b8c1b00987a",
+      "bytes": 102282
+    }
+  }
 }
