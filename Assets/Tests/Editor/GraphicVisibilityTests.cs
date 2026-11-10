@@ -16,7 +16,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public static void IsDrawn_VisibleImage_IsTrue()
         {
-            var root = new GameObject("root", typeof(RectTransform));
+            var root = new GameObject("root", typeof(RectTransform), typeof(Canvas));
             try
             {
                 var go = new GameObject("img", typeof(RectTransform), typeof(Image));
@@ -52,7 +52,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public static void IsDrawn_ImageUnderVisibleCanvasGroup_IsTrue()
         {
-            var root = new GameObject("root", typeof(RectTransform), typeof(CanvasGroup));
+            var root = new GameObject("root", typeof(RectTransform), typeof(CanvasGroup), typeof(Canvas));
             try
             {
                 root.GetComponent<CanvasGroup>().alpha = 1f;
@@ -83,6 +83,28 @@ namespace FlashBeat.Tests.Editor
             }
         }
 
+        /// <summary>
+        /// Canvas が 1 つも無い Graphic は uGUI の描画対象にならない
+        /// (PR #263 レビュー)。祖先チェーンを辿って Canvas が見つからない
+        /// 場合は「描かれていない」と判定する。
+        /// </summary>
+        [Test]
+        public static void IsDrawn_ImageWithoutAnyCanvas_IsFalse()
+        {
+            var root = new GameObject("root", typeof(RectTransform));
+            try
+            {
+                var go = new GameObject("img", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(root.transform, false);
+                Assert.IsFalse(GraphicVisibility.IsDrawn(go.GetComponent<Image>()),
+                    "A Graphic that is not under any Canvas is never rendered.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         [Test]
         public static void IsDrawn_Null_IsFalse()
         {
@@ -99,7 +121,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public static void IsDrawn_HalfTransparentParentAndChild_IsTrue()
         {
-            var root = new GameObject("root", typeof(RectTransform), typeof(CanvasGroup));
+            var root = new GameObject("root", typeof(RectTransform), typeof(CanvasGroup), typeof(Canvas));
             try
             {
                 root.GetComponent<CanvasGroup>().alpha = 0.5f;
@@ -172,7 +194,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public static void IsDrawn_TransparentGraphic_IsFalse()
         {
-            var root = new GameObject("root", typeof(RectTransform));
+            var root = new GameObject("root", typeof(RectTransform), typeof(Canvas));
             try
             {
                 var go = new GameObject("img", typeof(RectTransform), typeof(Image));

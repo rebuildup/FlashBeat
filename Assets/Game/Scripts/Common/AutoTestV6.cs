@@ -262,20 +262,56 @@ public class AutoTestV6 : MonoBehaviour
         count = 0;
         nearestZ = 0f;
         farthestZ = 0f;
+
+        // 撮影対象はゲーム画面 (MainCamera) なので、可視判定もそのカメラ
+        // の視錐台で行う。Renderer.isVisible を使うと、Editor の Scene view
+        // カメラに写るゲーム画面外のノーツまで数えてしまう
+        // (PR #263 レビュー)。
+        Camera camera = Camera.main;
+        Plane[] planes = null;
+        if (camera != null)
+        {
+            planes = new Plane[6];
+            GeometryUtility.CalculateFrustumPlanes(camera, planes);
+        }
+
         Notes[] notes = FindObjectsByType<Notes>(FindObjectsSortMode.None);
         for (int i = 0; i < notes.Length; i++)
         {
             if (notes[i] == null) continue;
-            Renderer renderer = notes[i].GetComponentInChildren<Renderer>();
-            if (renderer == null) continue;
-            if (!renderer.enabled) continue;
-            if (!renderer.isVisible) continue;
-            count++;
             float z = notes[i].transform.position.z;
+            bool visible = false;
+
+            Renderer renderer = notes[i].GetComponentInChildren<Renderer>();
+            if (renderer != null && renderer.enabled)
+            {
+                if (planes != null)
+                {
+                    visible = GeometryUtility.TestPlanesAABB(planes, renderer.bounds);
+                }
+                else
+                {
+                    visible = renderer.isVisible;
+                }
+            }
+            else
+            {
+                // v6 プレイフィールド (2D) の場合はレンダラではなく
+                // Image (Canvas 上の CanvasRenderer) で描かれる。v6 の
+                // プレイフィールドが有効なときは Image 側を数える。
+                var head = notes[i].HeadImage;
+                visible = head != null
+                          && head.isActiveAndEnabled
+                          && FlashBeat.UI.V5.GraphicVisibility.IsDrawn(head);
+            }
+
+            if (!visible) continue;
+            count++;
             if (count == 1 || z < nearestZ) nearestZ = z;
             if (count == 1 || z > farthestZ) farthestZ = z;
         }
     }
+
 
     private void Finish()
     {

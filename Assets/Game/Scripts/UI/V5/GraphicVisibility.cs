@@ -33,6 +33,8 @@ namespace FlashBeat.UI.V5
         ///   3. 祖先チェーンの <see cref="Canvas"/> が無効なら描かれない
         ///      (Canvas を切ると下の UI は全部消える)。
         ///   4. Graphic 自身の色 (color.a) が透明なら描かれない。
+        ///   5. 祖先チェーンに <see cref="Canvas"/> が 1 つも無いなら描かれない
+        ///      (uGUI の Graphic は Canvas の中でしか描画されない)。
         /// </summary>
         public static bool IsDrawn(Graphic graphic)
         {
@@ -43,6 +45,7 @@ namespace FlashBeat.UI.V5
             if (graphic.color.a <= InvisibleAlpha) return false;
 
             float alpha = graphic.color.a;
+            bool hasCanvas = false;
             Transform t = graphic.transform;
             while (t != null)
             {
@@ -54,10 +57,19 @@ namespace FlashBeat.UI.V5
                 }
 
                 var canvas = t.GetComponent<Canvas>();
-                if (canvas != null && !canvas.isActiveAndEnabled) return false;
+                if (canvas != null)
+                {
+                    hasCanvas = true;
+                    if (!canvas.isActiveAndEnabled) return false;
+                }
 
                 t = t.parent;
             }
+
+            // Canvas が 1 つも無い Graphic は uGUI の描画対象にならない
+            // (CanvasRenderer は 있지만、Canvas の中に入るときの矩形が無い)。
+            if (!hasCanvas) return false;
+
             return alpha > InvisibleAlpha;
         }
 

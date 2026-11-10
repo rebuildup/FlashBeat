@@ -16,9 +16,12 @@
 > 実際は `MusicManager.Start` が `YPlayer[GManager.songID].SetActive(true)` で
 > **選択した平面をランタイムに有効化している** (`YPlayer[1]` = fileID 1583463234 =
 > 平面 "1"、`VPlayer[1]` = 1583463237 = 同じ平面の VideoPlayer)。
-> つまり映像が出ない **本当の原因** は、シーンの VideoPlayer に
-> **target renderer も render texture も設定されていなかった**こと
-> (`m_TargetMaterialRenderer: {fileID: 0}` / `m_RenderMode: 3` + `m_TargetTexture: {fileID: 0}`)。
+> つまり映像が出ない **本当の原因** は、シーンの VideoPlayer の
+> **描画先レンダラが設定されていなかった**こと
+> (`m_TargetMaterialRenderer: {fileID: 0}`)。
+> `m_RenderMode: 3` は **MaterialOverride** (UnityEngine.Video.VideoRenderMode:
+> 0=API / 1=Camera / 2=RenderTexture / 3=MaterialOverride) であり、
+> RenderTexture モードではないので `m_TargetTexture` は無関係である。
 > 実行時の配線 (`MusicManager.WireVideoPicture`) が実質的な修正である。
 > シーンがプレーンを inactive のまま置くのは「映像表示をランタイムに委ねる」運用であり、
 > シーン側の不備ではない。
@@ -28,7 +31,7 @@
 | A | 画面に出る譜面が 0.86 秒分しかない (次のノートが画面外) | z スケールに「秒あたりワールド z 移動量」ではなく素の `noteSpeed` (10) を渡していた。カメラ可視範囲 8.61 / 10 = 0.861 秒 | z スケールをカメラ基準 (`ZScaleFor`) に統一。速度 10 で **1.600 秒** (設計意図どおり) | `MediaTimeline.cs`, `Notes.cs`, `NotesManager.cs` |
 | B | レーン構造 (線) が見えない | "Lane" は `m_IsActive: 0`、しかも不透明な 8x40 の板で動画の上半分を覆う。"LaneLight1..8" は alpha 0 のまま (キー入力時だけ光る) | 実行時にレーン境界 9 本のガイド線を生成 (1 メッシュ / 1 レンダラ) | `PlayfieldLaneGuides.cs` (新規) |
 | C | 縦長画面 (2560x1664) で外側レーンのノーツが画面外に出る | GateFit = Vertical のままなので、判定線での可視半幅が 3.567 でノーツ幅 1.0 を含め外側が切れる (約 43%) | カメラが描画するアスペクト比を `max(画面, 16:9)` に固定 (実行時のみ、**シーンは編集しない**)。垂直の幾何は不変 | `MediaTimeline.cs` (`PlayfieldCameraFit`), `PlayfieldLaneGuides.cs` |
-| fact 2 | 映像が 1 フレームも描画されない | シーンの VideoPlayer に target renderer も render texture も設定されていなかった (実行時の配線に到達しなかった) | 実行時に `targetMaterialRenderer` / `renderMode` を配線 (`WireVideoPicture`)。板は **平面が選択された時点** で隠し、フレームが出たら出す | `VideoPicture.cs` (新規), `MusicManager.cs` |
+| fact 2 | 映像が 1 フレームも描画されない | シーンの VideoPlayer の **描画先レンダラが未設定** (`m_TargetMaterialRenderer: {fileID: 0}`) で、MaterialOverride モードの出力先がなかった (実行時の配線に到達しなかった) | 実行時に `targetMaterialRenderer` / `renderMode` を配線 (`WireVideoPicture`)。板は **平面が選択された時点** で隠し、**描画済みフレーム** (`VideoPicture.HasRenderedFrame` = `frame > 0 || isPlaying`) が出たら出す | `VideoPicture.cs` (新規), `MusicManager.cs` |
 
 ## 変更ファイル (origin/main..HEAD)
 
@@ -193,7 +196,9 @@ Main Camera は `m_GateFitMode: 2` (Vertical) で、垂直 FOV が 60 度に固�
 シーンの `VideoPlayer` が
 
 - `m_TargetMaterialRenderer: {fileID: 0}` (描画先のレンダラが無い)
-- `m_RenderMode: 3` (RenderTexture) かつ `m_TargetTexture: {fileID: 0}` (RT も無い)
+- `m_RenderMode: 3` (**MaterialOverride**。`VideoRenderMode` は 0=API / 1=Camera /
+  2=RenderTexture / 3=MaterialOverride。RenderTexture モードではないので
+  `m_TargetTexture` は関係しない)
 
 という状態だったため、**Prepare してもどこにも描画されなかった**。
 `WireVideoPicture()` が `PrepareLocalVideo` からしか到達しなかったため、
@@ -209,9 +214,12 @@ Main Camera は `m_GateFitMode: 2` (Vertical) で、垂直 FOV が 60 度に固�
      (実装は `VideoPicture.RemoveDeadInvidiousPlayer` に一本化。
      `MusicManager.DisableInvidiousPlayer` も同じ実装を呼ぶので二重に壊さない)
    - 板 (レンダラ) を **無効** にする
-3. `VideoPicture.ShowWhenFrameReady(video, hasFrame)` は `songVideo.frameCount > 0`
-   になった時点でレンダラを有効にする。`MusicManager.Update` から呼ぶ。
-   **これだけが板を有効化する経路**である。
+3. `VideoPicture.ShowWhenFrameReady(video, hasFrame)` は
+   `VideoPicture.HasRenderedFrame(video)` (= `isPrepared` かつ
+   `frame > 0 || isPlaying`) が真になった時点でレンダラを有効にする。
+   `MusicManager.Update` から呼ぶ。**これだけが板を有効化する経路**である。
+   `frameCount` (動画全体のフレーム数) ではないのは、prepare 済みだが
+   まだ 1 フレームも描画されていない間に板が戻ってしまうため。
 
 ### 板 (白い quad) を prepare 前に隠す (レビュー B1)
 

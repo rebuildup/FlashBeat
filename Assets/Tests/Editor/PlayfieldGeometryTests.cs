@@ -229,6 +229,9 @@ public class PlayfieldGeometryTests
         {
             if (others[i] == camera) continue;
             if (!others[i].CompareTag("MainCamera")) continue;
+            // 元々無効だったカメラは有効化しない (後処理で「元に戻した」ことに
+            // なるうえ、後続テストの Camera.main を壊す)。
+            if (!others[i].enabled) continue;
             others[i].enabled = false;
             disabled.Add(others[i]);
         }

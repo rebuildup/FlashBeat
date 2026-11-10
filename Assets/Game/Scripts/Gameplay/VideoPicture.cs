@@ -125,6 +125,25 @@ namespace FlashBeat.Gameplay
         /// 映像が出ないままなら板は出さない (白い板で画面を覆わない)。
         /// </summary>
         /// <returns>板が今見えている状態か。</returns>
+        /// <summary>
+        /// 映像のフレームが **1 枚でも描画された** かどうか。
+        ///
+        /// <see cref="VideoPlayer.frameCount"/> は「動画全体のフレーム数」なので、
+        /// prepare が終わった時点で 0 より大きくなり、**「まだ 1 フレームも
+        /// 出ていない」ことを表さない**。実際に描画済みのフレームは
+        /// <see cref="VideoPlayer.frame"/> (現在フレーム番号) で判定する。
+        ///
+        /// これを区別しないと、prepare だけされて再生していない間に板 (白) が
+        /// 戻ってプレイフィールドを覆う (PR #263 レビュー)。
+        /// </summary>
+        public static bool HasRenderedFrame(VideoPlayer video)
+        {
+            if (video == null) return false;
+            if (!video.isPrepared) return false;
+            if (video.frame > 0) return true;
+            return video.isPlaying;
+        }
+
         public static bool ShowWhenFrameReady(VideoPlayer video, bool hasFrame)
         {
             if (video == null) return false;

@@ -904,10 +904,12 @@ public class MusicManager : MonoBehaviour
         mediaTime = CurrentMediaTime();
 
         // Issue #233: 映像プレーンは有効化しても、映像のフレームが 1 枚も
-        // 出ていない間は板 (白) を隠す。フレームが出たら板を見せる。
+        // 描画されていない間は板 (白) を隠す。フレームが出たら板を見せる。
+        // 判定は「総フレーム数」ではなく「描画済みフレーム」で行う
+        // (prepare 済みだが未再生だと板が戻ってしまう)。
         if (picturePlaneActive && songVideo != null)
         {
-            VideoPicture.ShowWhenFrameReady(songVideo, songVideo.frameCount > 0);
+            VideoPicture.ShowWhenFrameReady(songVideo, VideoPicture.HasRenderedFrame(songVideo));
         }
 
         if (!mediaEnded)

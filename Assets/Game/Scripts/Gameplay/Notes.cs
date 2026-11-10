@@ -46,6 +46,14 @@ public class Notes : MonoBehaviour
     private bool v6Attached;
     private Image headImage;
     private Image bodyImage;
+
+    /// <summary>
+    /// v6 プレイフィールド (2D) で描かれるノーツ本体の Image。
+    /// レンダラが無いので、v6 有効時の可視判定はこれを使う。
+    /// (PR #263 レビュー: 3D の Renderer.isVisible だけで数えると
+    ///  v6 では常に 0 になる)
+    /// </summary>
+    public Image HeadImage { get { return headImage; } }
     private MeshRenderer meshRenderer;
     private BoxCollider boxCollider;
 
@@ -205,7 +213,10 @@ public class Notes : MonoBehaviour
             return;
         }
 
-        float approach = MediaTimeline.ApproachSecondsAtSpeed10 * 10f / Mathf.Max(0.1f, GManager.noteSpeed);
+        // アプローチ時間は **セッション固定の z スケール** から求める
+        // (PR #263 レビュー: 曲中に noteSpeed を変えると、v6 側の表示だけが
+        //  1.6 秒 → 0.64 秒と変わり、3D 側とずれる)。
+        float approach = MediaTimeline.VisibleDepthZ / Mathf.Max(0.0001f, MediaTimeline.SessionZScale);
         float tHead = remaining / approach;
 
         // 奥 (t01 > 1) はまだ見えない。判定ラインを通ったあとは描かない

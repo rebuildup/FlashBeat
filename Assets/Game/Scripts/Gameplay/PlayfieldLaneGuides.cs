@@ -137,6 +137,11 @@ namespace FlashBeat.Gameplay
         /// </summary>
         private void ApplyCameraFit()
         {
+            // v6 の 2D プレイフィールド (画面座標で描画する) を有効にしている
+            // ときは、カメラの水平 fit をしてはいけない。映像だけが水平に
+            // 圧縮され、v6 のレーンとの位置関係がずれる (PR #263 レビュー)。
+            if (FlashBeat.UI.V6.V6UiMode.Playfield) return;
+
             if (fittedCamera == null) fittedCamera = Camera.main;
             if (fittedCamera == null) return;
 
