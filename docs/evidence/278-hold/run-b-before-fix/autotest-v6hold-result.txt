@@ -1,0 +1,11 @@
+[AutoTestV6Hold] RESULT pass=39 fail=2
+song=ツイッターランド
+scene=ResultScene
+chartNotes=17 runtimeNotes=7 taps=14 holds=3
+holdInstances=3 maxHoldSeconds=5.00
+holdObserved=3 holdEnded=3 holdBodiesVisible=3
+holdClear=0 holdBroken=3 missLog=0 holdEndEvents=broken@8.03,broken@20.00,broken@32.00
+perfect=4 great=0 bad=3 miss=0
+judged=7
+settled=7
+maxScore=35 score=657142 combo=7 maxCombo=7 comboPeak=7 hitsSent=7

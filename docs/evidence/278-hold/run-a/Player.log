@@ -1,0 +1,246 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.012 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x1032ff750]: surface size 3420x2148
+UnloadTime: 0.651792 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-10T02:09:57Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_BBhBHX.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6Hold] start: song='ツイッターランド' outDir='/Users/rebui/work/FlashBeat.whold/Builds/holdprobe-run3'
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.629959 ms
+Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3468.
+Total: 1.647792 ms (FindLiveObjects: 0.089292 ms CreateObjectMapping: 0.182166 ms MarkObjects: 1.356000 ms  DeleteObjects: 0.020208 ms)
+
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+ro-dokanryou
+[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+8bcd038)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
+[UpdateChecker] staging 済みの新版を再利用します: FlashBeat-0.1.14-macos-39f0c3c.zip (適用はユーザー確認時のみ)。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[AutoTestV6Hold] PASS the select scene is loaded
+[AutoTestV6Hold] PASS the v6 select view exists
+[AutoTestV6Hold] PASS the data source is present
+[AutoTestV6Hold] PASS the catalog has more than one song
+[AutoTestV6Hold] PASS the song 'ツイッターランド' is in the catalog
+[AutoTestV6Hold] PASS the selection follows the picked song
+[AutoTestV6Hold] chart override set: 459 chars
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=override
+[AutoTestV6Hold] PASS the screenshot 01-select was written
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=override
+[Perf] scene load start GameScene
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.410167 ms
+[Perf] notes parse 0ms (7 notes)
+[Perf] notes instantiate 7 notes in 0ms
+[Perf] scene load end GameScene 90ms
+[MusicManager] InvidiousVideoPlayer removed for 'ツイッターランド' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[MusicManager] yt-dlp -F videoId=e_qQEU_uGjw formats=44 ok
+[MusicManager]   format sb3 mhtml 48x27 v=images a=
+[MusicManager]   format sb2 mhtml 80x45 v=images a=
+[MusicManager]   format sb1 mhtml 160x90 v=images a=
+[MusicManager]   format sb0 mhtml 320x180 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager]   format 270 mp4 1920x1080 v=avc1.640028 a=video only
+[MusicManager]   format 137 mp4 1920x1080 v=avc1.640028 a=video only
+[MusicManager]   format 614 mp4 1920x1080 v=vp09.00.40.08 a=video only
+[MusicManager]   format 248 webm 1920x1080 v=vp9 a=video only
+[MusicManager]   format 399 mp4 1920x1080 v=av01.0.08M.08 a=video only
+[MusicManager]   format 616 mp4 1920x1080 v=vp09.00.40.08 a=video only
+[MusicManager] media plan 'ツイッターランド': combined mp4/H.264 itag=18 640x360 (merge available: True)
+[MusicManager] video file: /Users/rebui/Library/Application Support/KimuraYusuke/FlashBeat/FlashBeatMedia/e_qQEU_uGjw/merged.mp4 (cache)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+[AutoTestV6Hold] PASS ready starts the game scene
+[AutoTestV6Hold] PASS the started song is the picked one
+[AutoTestV6Hold] PASS the play session pinned the probe chart
+[AutoTestV6Hold] PASS the chart is ready
+[AutoTestV6Hold] chart: notes=7 taps=4 holds=3 maxScore=35
+[AutoTestV6Hold] PASS the probe chart is loaded (runtime notes == 7)
+[AutoTestV6Hold] PASS the probe chart has 3 HOLD notes
+[AutoTestV6Hold] PASS the probe chart has 4 tap notes
+[AutoTestV6Hold] PASS the score ceiling follows the probe chart (maxScore == notes x 5)
+[AutoTestV6Hold] PASS the HOLD notes exist as objects with a stretched body (holdSeconds > 0)
+[AutoTestV6Hold] PASS the HOLD body length is positive (maxHoldSeconds > 0)
+Unloading 79 unused Assets to reduce memory usage. Loaded Objects now: 6855.
+Total: 2.897833 ms (FindLiveObjects: 0.189333 ms CreateObjectMapping: 0.176667 ms MarkObjects: 2.450459 ms  DeleteObjects: 0.081291 ms)
+
+[MusicManager] picture wired to the renderer of '4' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
+[MusicManager] no bundled wav for 'ツイッターランド' - the YouTube media is the only sound source
+[Perf] media ready 20ms
+[MusicManager] media ready: song='ツイッターランド' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6Hold] PASS the screenshot 02-game was written
+[AutoTestV6Hold] PASS the music manager exists
+[AutoTestV6Hold] PASS the media pipeline finished
+[AutoTestV6Hold] media: ready=True audioMode=StreamCombined videoPrepared=True failure=None
+[MusicManager] PLAYBACK_START song='ツイッターランド' videoId='e_qQEU_uGjw' source=StreamCombined mediaTime=0.000 wallClock=2026-11-10T11:10:10.704 gameTime=10.143
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Hold] PASS the playback started
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.2151 peak=0.4958 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Hold] PASS the screenshot 03-gameplay was written
+[AutoTestV6Hold] hold schedule written: /Users/rebui/work/FlashBeat.whold/Builds/holdprobe-run3/hold-schedule.txt lines=3
+[AutoTestV6Hold] schedule: lane=0 keycode=0 headMedia=8.050 endMedia=13.050 headWall=1794276618.763 endWall=1794276623.763
+[AutoTestV6Hold] schedule: lane=2 keycode=2 headMedia=20.050 endMedia=24.050 headWall=1794276630.763 endWall=1794276634.763
+[AutoTestV6Hold] schedule: lane=4 keycode=4 headMedia=32.050 endMedia=35.050 headWall=1794276642.763 endWall=1794276645.763
+[MusicManager] STATUS mediaTime=4.03 audioMode=StreamCombined rms=0.2461 peak=0.4958 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=6.03 audioMode=StreamCombined rms=0.4155 peak=0.5106 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=8.03 audioMode=StreamCombined rms=0.0792 peak=0.5106 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Hold] hold injected: lane=0 key=Alpha1 end=13.05
+[AutoTestV6Hold] hold body screenshot: /Users/rebui/work/FlashBeat.whold/Builds/holdprobe-run3/autotest-v6hold-04-04-hold-body.png
+[AutoTestV6Hold] PASS the screenshot 04-hold-body was written
+[MusicManager] STATUS mediaTime=10.03 audioMode=StreamCombined rms=0.2030 peak=0.5106 video[playing=True frame=4158 prepared=True] perfect=1 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=12.07 audioMode=StreamCombined rms=0.1424 peak=0.5106 video[playing=True frame=4158 prepared=True] perfect=1 great=0 bad=0 miss=0 failure=None
+Hold clear
+[MusicManager] STATUS mediaTime=14.07 audioMode=StreamCombined rms=0.1901 peak=0.5487 video[playing=True frame=4158 prepared=True] perfect=1 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=16.07 audioMode=StreamCombined rms=0.2533 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=2 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=18.10 audioMode=StreamCombined rms=0.3402 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=2 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Hold] hold injected: lane=2 key=Alpha3 end=24.05
+[MusicManager] STATUS mediaTime=20.10 audioMode=StreamCombined rms=0.2924 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=3 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=22.13 audioMode=StreamCombined rms=0.3901 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=3 great=0 bad=0 miss=0 failure=None
+Hold clear
+[MusicManager] STATUS mediaTime=24.13 audioMode=StreamCombined rms=0.1398 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=3 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=26.13 audioMode=StreamCombined rms=0.2360 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=3 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=28.13 audioMode=StreamCombined rms=0.3176 peak=0.5489 video[playing=True frame=4158 prepared=True] perfect=4 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=30.13 audioMode=StreamCombined rms=0.4446 peak=0.6638 video[playing=True frame=4158 prepared=True] perfect=4 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Hold] hold injected: lane=4 key=Alpha6 end=35.05
+[MusicManager] STATUS mediaTime=32.13 audioMode=StreamCombined rms=0.2504 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=5 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=34.13 audioMode=StreamCombined rms=0.3901 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=5 great=0 bad=0 miss=0 failure=None
+Hold clear
+[MusicManager] STATUS mediaTime=36.17 audioMode=StreamCombined rms=0.5052 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=5 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=38.17 audioMode=StreamCombined rms=0.5171 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=6 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=40.17 audioMode=StreamCombined rms=0.3084 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=7 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=42.17 audioMode=StreamCombined rms=0.1959 peak=0.6846 video[playing=True frame=4158 prepared=True] perfect=7 great=0 bad=0 miss=0 failure=None
+[MusicManager] song completed: judged 7/7, mediaEnded=False, state=Completed
+[Perf] scene load start ResultScene
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.535375 ms
+[Perf] scene load end ResultScene 72ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.whold/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6Hold] playback summary: songEndState=Completed mediaTime=44.03 hitsSent=7 perfect=7 great=0 bad=0 miss=0 score=1000000 combo=7 maxCombo=7 comboPeak=7 judged=7 settled=7 chartNotes=7 runtimeNotes=7 holdClear=3 holdBroken=0 missLog=0 holdObserved=3 holdEnded=3 holdBodiesVisible=3 forcedByDeadline=False
+[AutoTestV6Hold] PASS the media clock advances
+[AutoTestV6Hold] PASS every probe note is settled (settled == chart notes)
+[AutoTestV6Hold] PASS the score is greater than zero
+[AutoTestV6Hold] PASS the combo rises above zero during the playback
+[AutoTestV6Hold] PASS the peak combo is recorded
+[AutoTestV6Hold] PASS the score is not the tap-only score (maxScore == 35, not the catalog chart)
+[AutoTestV6Hold] PASS all HOLD notes reached their end phase
+[AutoTestV6Hold] PASS the HOLD bodies were visible while held
+[AutoTestV6Hold] PASS the HOLD hold phase was observed (start / hold / end)
+[AutoTestV6Hold] PASS every HOLD was sustained to its end (no broken hold)
+[AutoTestV6Hold] PASS the song end state machine completes
+[AutoTestV6Hold] PASS the song end is not a forced deadline completion
+[AutoTestV6Hold] PASS the result scene is loaded
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 4007.
+Total: 2.511084 ms (FindLiveObjects: 0.149500 ms CreateObjectMapping: 0.105959 ms MarkObjects: 2.174666 ms  DeleteObjects: 0.080959 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6Hold] result screen: v6ResultCanvas=True nonEmptyTextUnderCanvas=True titleFound=True scoreFound=True textsUnderCanvas=51 texts=182 scene=ResultScene
+[AutoTestV6Hold] PASS the v6 result canvas exists
+[AutoTestV6Hold] PASS the v6 result canvas has non-empty text
+[AutoTestV6Hold] PASS the v6 result canvas shows the song title
+[AutoTestV6Hold] PASS the v6 result canvas shows the final score
+[AutoTestV6Hold] PASS the screenshot 06-result was written
+[AutoTestV6Hold] RESULT pass=41 fail=0
+Thread 0x170dc3000 may have been prematurely finalized
+Thread 0x170917000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16f93b000 may have been prematurely finalized
+CodeReloadManager destroyed
