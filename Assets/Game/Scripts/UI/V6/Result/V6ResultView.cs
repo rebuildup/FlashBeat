@@ -1430,12 +1430,14 @@ namespace FlashBeat.UI.V6.Result
             }
 
             int idx = GManager.songID;
-            if (idx < 0 || idx >= hiscores.Length)
+            if (idx >= 0 && idx < hiscores.Length)
             {
-                idx = 0; // 固定テーブル外の remote songs は slot 0 (ResultSceneManager と同じ規律)
+                return hiscores[idx];
             }
 
-            return hiscores[idx];
+            // 固定テーブル外の remote songs はスロット 0 を共有しない
+            // (issue-162 A-6 再照合)。安定キーの保存先から読む。
+            return GManager.BestScoreOf(idx);
         }
 
         private static float SongLongOf()

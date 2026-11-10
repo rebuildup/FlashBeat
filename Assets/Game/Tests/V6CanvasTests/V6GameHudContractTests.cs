@@ -88,16 +88,9 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(1571f, V6HudMetrics.BottomAnchoredTopDesignY(2560, 1664, 33f, 36f), 2f);
         }
 
-        // --- 契約 §12: Combo Bonus と Combo Status は排他 ---
-
-        [Test]
-        public void ShowComboBonus_IsExclusiveWithComboStatus()
-        {
-            Assert.IsFalse(V6HudLogic.ShowComboBonus(246, true));  // ステータス表示中は隠す
-            Assert.IsTrue(V6HudLogic.ShowComboBonus(246, false));
-            Assert.IsFalse(V6HudLogic.ShowComboBonus(0, false));   // コンボ 0 では出さない
-            Assert.IsFalse(V6HudLogic.ShowComboBonus(0, true));
-        }
+        // --- 契約 §12: Combo Bonus block は廃止 (issue-162 B-4 再照合) ---
+        // 「+ COMBO BONUS」「次のボーナス」は実在しない加点の表示 (近似値 / 仮の式)
+        // だったため block ごと削除した。この座標は Combo Status が単独で使う。
 
         // --- 契約 §8 / §12: 強調下地色 #3A3220 (+ セグメント / FC チップ) ---
 

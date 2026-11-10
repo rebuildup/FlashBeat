@@ -62,16 +62,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// コンボボーナス block を出すか。契約 §12: Combo Bonus と Combo Status は
-        /// 同じ座標 (FHD 1512,460) にあり <b>排他</b>。ステータスが出ている間は
-        /// ボーナスを隠す (縦積みにすると契約位置からずれ、同時表示になる)。
-        /// </summary>
-        public static bool ShowComboBonus(int combo, bool comboStatusVisible)
-        {
-            return combo > 0 && !comboStatusVisible;
-        }
-
-        /// <summary>
         /// 契約 §8 / §12 の強調下地色 <c>#3A3220</c>。
         /// スコアゲージの「+」セグメントと FULL COMBO チップの背景。
         /// v5 トークンにはこの値が無い (Key0 #131313 / WarnTint #4A4029 は近いが別値) ので

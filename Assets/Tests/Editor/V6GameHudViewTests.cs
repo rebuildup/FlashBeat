@@ -77,61 +77,33 @@ namespace FlashBeat.Tests
                 GameHudLogic.FormatScore(GManager.score), score.text,
                 "Refresh が早期 return してスコアの表示が更新されていない");
 
-            // コンボボーナスの値側 Text も更新されている (=": 更新経路が最後まで通った")。
-            TextMeshProUGUI bonusValue = BonusRows(view)[0]
-                .GetComponentsInChildren<TextMeshProUGUI>(true)
-                .FirstOrDefault(t => t.name == "Value");
-            Assert.IsNotNull(bonusValue, "コンボボーナスの値 Text が見つからない");
-            StringAssert.StartsWith("+", bonusValue.text);
+            // コンボの値 Text も更新されている (=": 更新経路が最後まで通った")。
+            TextMeshProUGUI combo = comboTextOf(view);
+            Assert.IsNotNull(combo, "コンボの値 Text が見つからない");
+            Assert.AreEqual("7", combo.text);
+        }
+
+        private static TextMeshProUGUI comboTextOf(V6GameHudView target)
+        {
+            var field = typeof(V6GameHudView).GetField("comboText",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            return (TextMeshProUGUI)field.GetValue(target);
         }
 
         /// <summary>
-        /// コンボボーナスの 2 行目 (次のボーナス) は「ラベル」と「値」が別々の Text である。
-        ///
-        /// 実害は「参照の取り違え」だった — 以前は 2 行目の**値**側の Text が
-        /// ラベル用の変数へ代入され、値用の変数 (nextBonusReward) が null のまま
-        /// 残っていた。その結果 Refresh() が毎フレーム NullReferenceException で
-        /// 止まり、歌詞・進捗バー・レーン判定行の更新が一切走っていなかった。
-        /// ここでは「ラベルと値が別の Text であること」と「値側の参照が
-        /// 実際に更新されること」の両方を固定する。
+        /// 「+ COMBO BONUS」「次のボーナス」の block は構築しない (issue-162 B-4 再照合)。
+        /// 表示値 (BonusTotal = combo*50 の近似 / NextBonusReward = milestone*10 の仮式)
+        /// は JudgeScoreboard の配点に存在しない加点で、実スコアと異なる偽値だった。
         /// </summary>
         [Test]
-        public void ComboBonus_HasSeparateLabelAndValueTexts()
+        public void FakeComboBonusBlock_IsNotBuilt()
         {
             GManager.combo = 7;
-
             view.Refresh();
 
             Transform bonus = view.GetComponentsInChildren<Transform>(true)
                 .FirstOrDefault(t => t.name == "Combo Bonus");
-            Assert.IsNotNull(bonus, "コンボボーナスの行が見つからない");
-
-            Transform[] rows = bonus.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name == "Row")
-                .ToArray();
-            Assert.AreEqual(2, rows.Length, "コンボボーナスの行数が 2 ではない");
-
-            TextMeshProUGUI label = rows[1].GetComponentsInChildren<TextMeshProUGUI>(true)
-                .FirstOrDefault(t => t.name == "Label");
-            TextMeshProUGUI value = rows[1].GetComponentsInChildren<TextMeshProUGUI>(true)
-                .FirstOrDefault(t => t.name == "Value");
-
-            Assert.IsNotNull(label, "「次のボーナス」のラベルがない");
-            Assert.IsNotNull(value, "「次のボーナス」の値がない");
-            Assert.AreNotSame(label, value, "ラベルと値が同じ Text を指している");
-            StringAssert.StartsWith("次のボーナス", label.text);
-            StringAssert.StartsWith("+", value.text);
-        }
-
-        /// <summary>コンボボーナスの 2 行 (0 = ボーナス合計、1 = 次のボーナス)。</summary>
-        private static Transform[] BonusRows(V6GameHudView target)
-        {
-            Transform bonus = target.GetComponentsInChildren<Transform>(true)
-                .FirstOrDefault(t => t.name == "Combo Bonus");
-            Assert.IsNotNull(bonus, "コンボボーナスの行が見つからない");
-            return bonus.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name == "Row")
-                .ToArray();
+            Assert.IsNull(bonus, "実在しないコンボボーナスの表示が戻っています (issue-162 B-4)");
         }
 
         // --- 歌詞 (issue #59) ------------------------------------------------

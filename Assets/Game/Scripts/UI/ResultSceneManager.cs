@@ -56,18 +56,30 @@ public class ResultSceneManager : MonoBehaviour
     /// <summary>
     /// ベストスコアを保存テーブル (<see cref="GManager.Hiscore"/>) へ反映する (Issue #167)。
     /// 返り値は更新前の値 (Result 画面の HISCORE 行の差分表示に使う)。
-    /// 固定テーブル外の songId (cloud カタログで増えた曲) は 0 番スロットを使う
-    /// (0 番は noSong placeholder で未使用のスロット)。
+    /// 固定テーブル外の songId (cloud カタログで増えた曲) は 0 番スロットに
+    /// 書かない (issue-162 A-6 再照合): スロット 0 は全 cloud 曲で共有され、
+    /// 別曲のベストが「前回最高」として表示されていた。代わりに安定キー
+    /// (remoteId@chartVersion) の保存先 (<see cref="FlashBeat.Persistence.ScorePersistence"/>)
+    /// へ直接書く。
     /// </summary>
     public static int ApplyBestScore(int songId, int score)
     {
-        int hiIndex = songId < GManager.Hiscore.Length ? songId : 0; // remote songs beyond the fixed table keep slot 0 unused
-        int prev = GManager.Hiscore[hiIndex];
-        if (score >= GManager.Hiscore[hiIndex])
+        if (songId >= 0 && songId < GManager.Hiscore.Length)
         {
-            GManager.Hiscore[hiIndex] = score;
+            int prev = GManager.Hiscore[songId];
+            if (score >= GManager.Hiscore[songId])
+            {
+                GManager.Hiscore[songId] = score;
+            }
+            return prev;
         }
-        return prev;
+
+        int stablePrev = FlashBeat.Persistence.ScorePersistence.BestOf(songId);
+        if (score >= stablePrev)
+        {
+            FlashBeat.Persistence.ScorePersistence.SubmitForCatalogIndex(songId, score);
+        }
+        return stablePrev;
     }
 
     void Start()
@@ -193,21 +205,21 @@ public class ResultSceneManager : MonoBehaviour
             Retry();
         }
     }
+    /// <summary>
+    /// Result からのリトライ。カウンタのゼロ化は正本
+    /// (<see cref="GManager.ResetSession"/>) を使う (issue-162 D-7 再照合)。
+    /// 以前の自前実装は <c>settledNoteCount</c> とプレイセッションの固定
+    /// (BeginPlaySession) を漏らしており、次のプレイに前回の状態が残った。
+    /// </summary>
+    public static void ResetRunCounters()
+    {
+        GManager.ResetSession();
+    }
+
     public void Retry()
     {
-        GManager.perfect = 0;
-        GManager.great = 0;
-        GManager.bad = 0;
-        GManager.miss = 0;
-        GManager.score = 0;
-        GManager.combo = 0;
-        GManager.maxCombo = 0;
-        GManager.maxScore = 0;
-        GManager.ratioScore = 0;
-        
+        ResetRunCounters();
         Initiate.Fade("GameScene", Color.black, 1.0f);
-       
-
     }
     public void SelectScene()
     {

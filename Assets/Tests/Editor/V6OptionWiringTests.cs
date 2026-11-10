@@ -389,6 +389,61 @@ namespace FlashBeat.Tests.Editor
             }
         }
 
+        // --- Play タブ: Key Layout のリセットは確認モーダルを経由する (issue-162 C-6) ---
+
+        [Test]
+        public void KeyLayoutReset_AskForConfirmationBeforeResetting()
+        {
+            Assert.IsTrue(KeyBindings.SetLane(0, new[] { KeyCode.I }), "前提: レーンの割当を変更できる");
+            Assert.IsFalse(V6OptionView.IsDefaultKeyLayout(), "前提: カスタム配列");
+
+            var parent = new GameObject("V6 Option KeyLayout Test Parent", typeof(RectTransform));
+            V6OptionView view = null;
+            try
+            {
+                view = V6OptionView.Create(parent.GetComponent<RectTransform>(), () => { });
+
+                // Play タブの Key Layout 行の ◀ (標準へ戻す方向) を押す。
+                GameObject row = FindChild(view.Root.gameObject, "Set Key Layout");
+                Assert.IsNotNull(row, "Key Layout 行がある");
+                Button prev = FindButton(row, "IconButton chevron-left");
+                Assert.IsNotNull(prev, "◀ ステッパーがある");
+                prev.onClick.Invoke();
+
+                // 確認ダイアログが出て、まだリセットされていない。
+                Assert.IsNotNull(FindButton(view.Root.gameObject, "Op Clear"),
+                    "◀ で確認ダイアログが開く (確認なしでリセットしない)");
+                Assert.IsFalse(V6OptionView.IsDefaultKeyLayout(), "確認中はまだ戻らない");
+
+                // キャンセル → 何も変わらない。
+                ClickButton(view.Root.gameObject, "Op Cancel");
+                Assert.IsFalse(V6OptionView.IsDefaultKeyLayout(), "キャンセルでは戻らない");
+                Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"), "キャンセルでダイアログが閉じる");
+
+                // もう一度 ◀ → 「戻す」で標準へ戻る。
+                row = FindChild(view.Root.gameObject, "Set Key Layout");
+                FindButton(row, "IconButton chevron-left").onClick.Invoke();
+                ClickButton(view.Root.gameObject, "Op Clear");
+                Assert.IsTrue(V6OptionView.IsDefaultKeyLayout(), "「戻す」で標準配列に戻る");
+                Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"), "実行後はダイアログが閉じる");
+
+                // 既に標準のときは ◀ で確認ダイアログを出さない (する操作が無い)。
+                row = FindChild(view.Root.gameObject, "Set Key Layout");
+                FindButton(row, "IconButton chevron-left").onClick.Invoke();
+                Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"),
+                    "標準配列のときの ◀ は確認ダイアログを出さない");
+            }
+            finally
+            {
+                if (view != null)
+                {
+                    view.Dispose();
+                }
+                Object.DestroyImmediate(parent);
+                KeyBindings.ResetToDefaults();
+            }
+        }
+
         // --- 保存先 (Resources フォルダに書かない) ---
 
         [Test]
