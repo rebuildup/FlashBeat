@@ -27,6 +27,16 @@ public class V6UiWiringTests
     }
 
     [Test]
+    public void PauseSettingsPage_DoesNotOfferKeySettingsItCannotOpen()
+    {
+        // KeyConfigUI.Open() は Title / Option 画面でしか動かない (AllowedScenes)。
+        // ポーズに「キー設定」行を置くと、押しても何も起きない行になる (issue #167)。
+        string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
+        Assert.IsFalse(src.Contains("KeyConfigUI.Open()"),
+            "ポーズに開けないキー設定の入口が戻っています。編集は Option 画面の Key Layout 行から。");
+    }
+
+    [Test]
     public void PauseView_DoesNotKeepUnwiredValueChangeApi()
     {
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");

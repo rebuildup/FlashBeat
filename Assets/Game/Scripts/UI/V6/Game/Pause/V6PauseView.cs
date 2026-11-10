@@ -420,13 +420,10 @@ namespace FlashBeat.UI.V6.Game.Pause
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
                         OptionSettings.Save();
                     });
-                // 「Key Layout」行は廃止: 選択/編集の実体 (KeyConfigUI) は Title / Option 画面
-                // 限定 (AllowedScenes) でポーズからは開けず、描画だけの惰性行になっていた。
-                // 現在の割当はプレビュー パネルの「キー割当 (JIS / …)」に表示される。
-                AddRow(rows, pageRoot, 2, "キー設定",
-                    () => "F2",
-                    null,
-                    () => KeyConfigUI.Open());
+                // 「Key Layout」「キー設定」の 2 行は廃止 (issue #167: 描画だけの UI を残さない)。
+                // 編集の実体 KeyConfigUI は Title / Option 画面限定 (AllowedScenes) なので
+                // ポーズからは開けず、F2 もここでは効かない。現在の割当はプレビュー パネルの
+                // 「キー割当 (JIS / …)」に表示され、編集は Option 画面の同じ行から行う。
             }
             else if (page == 1)
             {
@@ -692,8 +689,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
 
             // design 文言は「F2 でも開けます」だが、KeyConfigUI は Title / Option 画面でしか
-            // 開けない (AllowedScenes)。画面に出す文言は実挙動に合わせる。
-            var desc = V5Ui.Text(panel, "Desc", "キーの割り当てを編集します。(キー設定は Title / Option 画面で開けます)",
+            // 開けない (AllowedScenes)。ポーズからは開けないので、行き先を書く。
+            var desc = V5Ui.Text(panel, "Desc", "キーの割り当ての編集は Option 画面の「Key Layout」から行えます。",
                 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
             var descRt = desc.rectTransform;
             descRt.anchorMin = new Vector2(0f, 1f);
