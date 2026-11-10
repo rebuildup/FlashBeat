@@ -300,7 +300,7 @@ v6 UI (`Assets/Game/Scripts/UI/V6/`, `V6UiMode` 既定値: GameHud / SelectScree
 | C-8 | **fixed (本再照合)** | KeyConfigUI フッターを実挙動どおり ←→「切替」/ Tab「選択」に修正 (`KeyConfigUI.cs:1021-1025`。実装は `KeyConfigUI.cs:381-390`) |
 | C-9 | fixed | v6 ポーズの開閉は `KeyActions.Back` (`V6GameRuntime.cs` `UpdatePause`)、MenuEnd / MenuSwitch も v6 ポーズ経由で到達可能。v5 の生 `KeyCode.Escape` 読みは v6 モードで非表示 (`V6GameRuntime.cs` `LateUpdate`) |
 | C-10 | fixed | v6 Result の凡例は実ボタンと一致 (R=リトライ / Enter=登録 / Space=決定=OK, `V6ResultLogic.cs:163-164` と `V6ResultView.cs` Tick の実装) |
-| D-1 | live | `PlaySession` は未永続のまま (`PlaySession.cs:43-58`)。永続化は新しい保存系の追加になるため本再照合では見送り (要: 別タスク) |
+| D-1 | **fixed (2026-11-10 追加対応)** | Key Guide / Lyrics を `PlayerPrefs` へ保存する (`PlaySession.Save`/`Load`, `PlaySession.cs:95,107`、保存先は `IDisplaySettingsStorage` = `Assets/Game/Scripts/Persistence/DisplaySettingsStorage.cs`)。設定変更は即時保存 (`SetKeyGuide`/`SetLyricsEnabled`)、起動時に `TitleSceneManager.Start` が `PlaySession.Load()` で復元する (`TitleSceneManager.cs:51`)。範囲外の保存値は既定値へ寄せる。`Reset()` はセッション値を戻すだけで保存値には触らない (やり直しで利用者の選択を消さない)。テスト: `PlaySessionPersistenceTests.cs` 7 件 |
 | D-2 | fixed | v6 ポーズの値行は `Func<string>` Read を開いている間毎フレーム再評価 (`V6PauseView.cs:1024-1040` / `Tick:1142-1150`) |
 | D-3 | fixed | v6 選曲の PLAYERS は「データがありません」(`V6SelectView.cs:917-921`)、Ranking 画面は「プレイヤー別の集計には対応していません」(`V6RankingLogic.cs:219-222`) |
 | D-4 | fixed | v6 履歴の「順位」セルは削除済み (`V6HistoryView.cs:692-694`) |

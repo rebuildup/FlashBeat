@@ -23,6 +23,10 @@ namespace FlashBeat.Tests.Editor
         public void UseMemoryStorageForTheWholeRun()
         {
             ScorePersistence.Storage = new MemoryScoreStorage();
+            // 表示設定 (Key Guide / Lyrics) も同じ理由でメモリへ逃がす
+            // (issue-162 D-1)。設定を切り替えるテストが開発者の
+            // PlayerPrefs を書き換え、次の実行の既定値を変えないようにする。
+            FlashBeat.UI.V5.PlaySession.Storage = new MemoryDisplaySettingsStorage();
         }
 
         /// <summary>Give the real storage back when the run is over.</summary>
@@ -31,6 +35,34 @@ namespace FlashBeat.Tests.Editor
         {
             ScorePersistence.Unload();
             ScorePersistence.Storage = new PlayerPrefsScoreStorage();
+            FlashBeat.UI.V5.PlaySession.Storage = new PlayerPrefsDisplaySettingsStorage();
+        }
+    }
+
+    /// <summary>An in-memory `IDisplaySettingsStorage` for the tests.</summary>
+    public class MemoryDisplaySettingsStorage : IDisplaySettingsStorage
+    {
+        readonly Dictionary<string, int> values = new Dictionary<string, int>();
+
+        public int GetInt(string key, int fallback)
+        {
+            int value;
+            return values.TryGetValue(key, out value) ? value : fallback;
+        }
+
+        public void SetInt(string key, int value)
+        {
+            values[key] = value;
+        }
+
+        public bool HasKey(string key)
+        {
+            return values.ContainsKey(key);
+        }
+
+        public void Save()
+        {
+            // Nothing to flush: the memory is the file.
         }
     }
 
