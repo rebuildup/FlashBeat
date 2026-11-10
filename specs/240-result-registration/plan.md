@@ -36,7 +36,7 @@ V6ResultLogic (純ロジック)          V6ResultRegistration.cs (enum + store)
    - ロジックは持たせない (純ロジックは `V6ResultLogic`)。
 3. **`V6ResultView` の配線** (`Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs`)
    - `OpenModal()`: 方式を確定し、初期値を `InitialName` で決める。
-   - `TrySubmit()`: ローカル方式なら `SaveLocalName()` だけ。お在线方式は既存フロー。
+   - `TrySubmit()`: ローカル方式なら `SaveLocalName()` だけ。オンライン方式は既存フロー。
    - `SubmitCoroutine()`: `ResolveChartVersion` で pinned 版を使い、送信不可なら
      `OnSubmitResult(null)` (=「オフライン」) ではなく `SaveLocalName()`。
    - `SaveLocalName()`: v5 と同じ規則で正規化 → `V6LocalNameStore.Save` →

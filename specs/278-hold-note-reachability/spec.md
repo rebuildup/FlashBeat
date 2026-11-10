@@ -29,7 +29,7 @@ HOLD の **実装と EditMode テストは main に存在する** が、
 | --- | --- |
 | 対策 (A) — 検証用譜面 (推奨) | HOLD (Tap と HOLD が混ざるもの) を含む **小さな譜面**を、カタログには **登録せずに** テスト用譜面ファイルとして用意し、macOS 実機ハーネスで HOLD の判定 (タップ開始 → 保持 → 終端) を実機検証する。**リリース用カタログに合成の項目を増やさない**。譜面の差し替えは `Assets/Game/Scripts/Songs/PlaySessionSnapshot.cs` の差し替えシームを使う |
 | 対策 (A) の実装主体 | **別 Worker が実装中** (`docs/audit/open-issues-audit.md` §4 U12 「対策 (A) テスト用 HOLD 譜面 + macOS 実機ハーネスを Worker が実装中 (譜面は `PlaySessionSnapshot` の差し替えシームを使い、カタログは増やさない)」。**本 spec の Worker は A を重複実装しない**。A の完了を待ち、結果を本 Issue の受入記録に反映する |
-| 対策 (B) — 実曲へ HOLD 追加 | チュートリアル曲などに HOLD を入れる。**体験の设计上も意味があるが、譜面内容の方針決定が要る = オーナー判断**。**cc は実曲へ HOLD を追加しない**。追加する場合は `GManager` の 7 並列配列ではなく **譜面 JSON のみ** の変更に留める (曲数・index は増やさない) |
+| 対策 (B) — 実曲へ HOLD 追加 | チュートリアル曲などに HOLD を入れる。**体験の設計上も意味があるが、譜面内容の方針決定が要る = オーナー判断**。**cc は実曲へ HOLD を追加しない**。追加する場合は `GManager` の 7 並列配列ではなく **譜面 JSON のみ** の変更に留める (曲数・index は増やさない) |
 | HOLD の判定仕様 | `specs/164-long-note/spec.md` に **凍結済み** (PR #265 merged)。先頭 1 判定 + 終端で離す / 離す許容幅 ±0.15s / 中断で即 BAD・押し直し不可 / タップと同一配点 / `type=2` + `endNum`。**判定仕様は再設計しない** |
 | 譜面の置き場所 | 対策 (A) のテスト用譜面は **カタログ外**。`Assets/Game/Resources/` に置く場合は **Resources 名の重複禁止** (`Assets/Tests/Editor/ResourceChartUniquenessTests.cs` が固定) に注意 |
 | 変更しないもの | `LongNote` / `JudgeQueue` / `Judge` / `JudgeScoreboard` の判定ロジック。**HOLD の実装は main にあり修正不要**。**既存の Tap 譜面の最終 note 時刻が変わらない** ことを `LongNoteTests` が固定している |

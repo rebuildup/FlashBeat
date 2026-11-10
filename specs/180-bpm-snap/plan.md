@@ -36,7 +36,7 @@ specs/180-bpm-snap/{spec.md,plan.md,tasks.md}
 - `chart-editor.tsx` の変更 (Worker E と競合するため)
 - 譜面 JSON のフォーマット変更 / 既存公開データ (D1) の更新
 - スナップ粒度の永続化 (sessionStorage / localStorage)
-- ライブ入力 (入力中に音を出す機能) 类似的scope
+- ライブ入力 (入力中に音を出す機能) 同様の scope
 
 ## Constitution Check
 

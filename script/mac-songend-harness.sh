@@ -63,7 +63,7 @@ fi
 
 app_pid=""
 
-# Ctrl-C でも自分の子だけを殺す (ユーザーが手元で起動した实例には触らない)。
+# Ctrl-C でも自分の子だけを殺す (ユーザーが手元で起動したインスタンスには触らない)。
 cleanup() {
   if [ -n "$app_pid" ] && kill -0 "$app_pid" 2>/dev/null; then
     echo "[songend] stopping the player (pid $app_pid)"

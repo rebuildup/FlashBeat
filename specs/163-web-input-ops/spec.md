@@ -31,7 +31,7 @@ Web Studio の全入力フィールド (Catalog 検索、Chart 名前/BPM、Publ
 - `web/src/components/chart-editor/{chart-editor,note-grid,youtube-preview,validation-panel}.tsx` (Worker D / #164)
 - `web/src/lib/chart/**` (Worker D / Worker E)
 - `web/src/components/chart-editor/lyrics-*` 新規 (Worker E / #165)
-- `web/src/components/new-song/**` — 所有外。共通 primitive の恩恵は受けるが直接改编しない
+- `web/src/components/new-song/**` — 所有外。共通 primitive の恩恵は受けるが直接改変しない
 - Unity 側・D1・Cloudflare デプロイ・本番DB には触れない
 
 ## User Scenarios & Testing *(mandatory)*

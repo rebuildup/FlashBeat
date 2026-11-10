@@ -26,7 +26,7 @@ fullscreenMode: 1                 # L119 (FullScreenWindow)
 
 1. `fullscreenMode: 1` は起動時の **希望** を示すだけ。`defaultIsNativeResolution: 0` の
    場合 Unity は defaultScreenWidth/Height (1920x1080) でウィンドウを作り、OS 側の
-   DPI スケーリングやディスプレイ構成によっては的实际解像度が一致しない。
+   DPI スケーリングやディスプレイ構成によっては実際の解像度が一致しない。
    Windows 実機で「全画面にならない」ように見える一因はここ。
 2. 実行中に `Screen.SetResolution` を呼ぶコードは存在しない
    (`grep -rn "SetResolution" Assets/Game/Scripts` → 0件)。起動時設定のみに依存。

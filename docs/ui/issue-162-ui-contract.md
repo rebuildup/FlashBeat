@@ -105,7 +105,7 @@
 | `←` / Esc / F3 | マウス / キー | List へ戻る | `SelectView.cs:1458,1485-1487` |
 | 曲リスト (左) | ホイール / ↑↓ / クリック | `GManager.songID` 更新 | `SelectView.cs:1468-1483` |
 | セグメント `Local` | マウス / Tab | `rankingSegment=0` | `SelectView.cs:1515-1526,233` |
-| セグメント `Online` (API 設定时) | マウス | クリックは `FetchOnlineRanking` (GET `/api/v1/leaderboards/...`)。**Tab での切替は取得しない** (→ A-5) | `SelectView.cs:1536-1551,1660-1682,233` |
+| セグメント `Online` (API 設定時) | マウス | クリックは `FetchOnlineRanking` (GET `/api/v1/leaderboards/...`)。**Tab での切替は取得しない** (→ A-5) | `SelectView.cs:1536-1551,1660-1682,233` |
 | `YOU` / `–位 / –人` / `累計` / `プレイ曲` / `S 以上` | なし | `GManager.Hiscore` 集計の実値。順位のみ固定 `–位 / –人` (→ D-4) | `SelectView.cs:1590-1622` |
 
 ## 4. Game (`GameSceneManager.cs` + `V5/GameHudView` / `GameHudRuntime` ほか)

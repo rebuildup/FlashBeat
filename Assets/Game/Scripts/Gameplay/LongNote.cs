@@ -8,7 +8,7 @@ namespace FlashBeat.Gameplay
     /// 仕様は <c>specs/164-long-note/spec.md</c> に凍結されている。要点は次の 3 つ:
     ///
     ///   1. **先頭 1 判定 + 終端での離し** (2 判定方式)。保持中 (開始〜終端) は
-    ///      連続評価しない。押下はタップと同じ幅で判定し、終端で離した时被が
+    ///      連続評価しない。押下はタップと同じ幅で判定し、終端で離した時点が
     ///      成功になる。
     ///   2. **保持中に離すと即 BAD**。押し直しても救済しない (1 note = 1 判定)。
     ///      救済ありにすると「離して BAD → 押し直して Perfect」で 1 note に
@@ -106,7 +106,7 @@ namespace FlashBeat.Gameplay
         ///
         /// タップと同じ幅を使う (Perfect &lt;= 0.10s / Great &lt;= 0.15s /
         /// Bad &lt;= 0.20s)。幅の外は何も起きない (==
-        /// タップと同じで、单押しは問答無用)。
+        /// タップと同じで、単押しは問答無用)。
         /// </summary>
         public static Judgement JudgeHead(float timeLag)
         {

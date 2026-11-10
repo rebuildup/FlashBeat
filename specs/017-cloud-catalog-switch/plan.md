@@ -18,7 +18,7 @@ main の現状 (catalog / chart の取得経路は実装済) を踏まえた、*
         │
         │ PUT /api/v1/admin/songs/{songId}   (bearer token)
         ▼
-  song-publisher.tsx:29  → 公開 (chartVersion 明确规定)
+  song-publisher.tsx:29  → 公開 (chartVersion を明示)
         │
         │ GET /api/v1/catalog
         ▼

@@ -1,7 +1,7 @@
 # 監督ログ 2026-11-09 (開発継続のための引き継ぎ記録)
 
 このファイルは **cc (開発監督) の作業 Continuity 用**です。
-Issue の受入条件の記録は各 Issue のコメントに置，但因为 **Worker の作業が
+Issue の受入条件の記録は各 Issue のコメントに置き、しかし **Worker の作業が
 API 上限で中断されたときの再開手順** をここに集約します。
 
 対象 Issue: #250 (全 Issue 完遂と展示) / #233 / #182 / #118 / #41
@@ -87,7 +87,7 @@ API の Token 上限で Worker が中断されるため、**cc は次のこと�
 
 | # | 操作 | 影響 |
 |---|---|---|
-| 1 | GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` を登録 | Win64 CI が緑になる (现在是 Personal `.ulf` 拒否で必ず失敗) |
+| 1 | GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` を登録 | Win64 CI が緑になる (現在は Personal `.ulf` 拒否で必ず失敗) |
 | 2 | Windows 実機で 1 曲完走 (Title→Select→Game→Result→Retry) | #233 / #242 の受入条件。展示 PC は cc が触らない |
 | 3 | 展示候補の GitHub Release 化 | **Windows 実機受入後に限る** (未検証の配布は公開しない) |
 

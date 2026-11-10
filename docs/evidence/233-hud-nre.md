@@ -56,7 +56,7 @@ nextBonusReward.text = "+" + ...;   // ← ここで NullReferenceException
 `Refresh()` はこの地点で中断するため、**以降の更新が一切走っていなかった**:
 
 - 進捗バー (progress fill)
-- **歌詞** (UpdateLyrics) — 歌詞枠が真っ黒のまま可能出现
+- **歌詞** (UpdateLyrics) — 歌詞枠が真っ黒のまま発生しうる
 - レーン別判定行 (UpdateLaneVerdicts)
 - レーン格子 / キーキャップ位置 (UpdateLaneGrids)
 
