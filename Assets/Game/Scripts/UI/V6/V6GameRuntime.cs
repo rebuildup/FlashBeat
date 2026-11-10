@@ -174,7 +174,8 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// v6 ポーズの開閉と入力。Esc で開閉、矢印で項目移動、左右で値変更。
+        /// v6 ポーズの開閉と入力。Esc で開閉、←→ で項目移動。
+        /// 値の変更はキーボードには配線せず、行のステッパー / クリック (マウス) のみ。
         /// 既存の KeyActions の割当をそのまま使う (Judge / KeyBindings と同じ正本)。
         ///
         /// 開閉状態の正本は <see cref="V6PauseView.IsOpen"/> (v6 自前の状態)。

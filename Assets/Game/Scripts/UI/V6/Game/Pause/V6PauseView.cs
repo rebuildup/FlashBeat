@@ -181,29 +181,15 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         // --- 統合担当がキー入力 (矢印 / Tab) から呼ぶ操作 API ---
 
-        /// <summary>設定行の選択を移動する (↑ / ↓)。</summary>
+        /// <summary>設定行の選択を移動する (←→ / NavPrev・NavNext)。</summary>
         public void MoveSelection(int delta)
         {
             selectedRow = V6PauseViewLogic.ClampIndex(selectedRow + delta, pageRows[selectedTab].Count);
             RefreshRowHighlight();
         }
 
-        /// <summary>選択中の設定行の値を変更する (← / →)。変更できない行は何もしない。</summary>
-        public void AdjustSelected(int delta)
-        {
-            var rows = pageRows[selectedTab];
-            if (selectedRow < 0 || selectedRow >= rows.Count)
-            {
-                return;
-            }
-
-            Action<int> adjust = rows[selectedRow].Adjust;
-            if (adjust != null)
-            {
-                adjust(delta);
-                RefreshRows();
-            }
-        }
+        // 値の変更 (←→) はポーズのキーボード操作には配線しない (Issue #224):
+        // ←→ は行選択に使う。値の変更は行のステッパー / クリック (マウス) のみ。
 
         /// <summary>タブを切り替える (端で折り返す)。</summary>
         public void SelectNextTab(int delta)
@@ -434,10 +420,10 @@ namespace FlashBeat.UI.V6.Game.Pause
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
                         OptionSettings.Save();
                     });
-                AddRow(rows, pageRoot, 2, "Key Layout",
-                    () => V6PauseViewLogic.LayoutLabel(IsCustomLayout()),
-                    null);
-                AddRow(rows, pageRoot, 3, "キー設定",
+                // 「Key Layout」行は廃止: 選択/編集の実体 (KeyConfigUI) は Title / Option 画面
+                // 限定 (AllowedScenes) でポーズからは開けず、描画だけの惰性行になっていた。
+                // 現在の割当はプレビュー パネルの「キー割当 (JIS / …)」に表示される。
+                AddRow(rows, pageRoot, 2, "キー設定",
                     () => "F2",
                     null,
                     () => KeyConfigUI.Open());

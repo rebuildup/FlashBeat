@@ -160,6 +160,16 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         }
 
         [Test]
+        public void FooterLegend_SongScrollKey_ListsEverySelectionMoveKey()
+        {
+            // 曲送りは ↑↓ に加えて ←→ (NavPrev/NavNext の既定) も有効 (V6SelectView.Tick)。
+            // 凡例は実際に選択を動かすキーを全て列挙しなければならない。
+            V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
+            Assert.AreEqual("↑↓←→", items[1].Key);
+            Assert.AreEqual("曲送り", items[1].Label);
+        }
+
+        [Test]
         public void FooterLegend_ConfirmKey_FollowsUserRebinding()
         {
             // キー設定を変えると凡例のキャップも変わる (ActionKeyHint 方式の一元化)。
