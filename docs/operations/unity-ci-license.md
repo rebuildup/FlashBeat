@@ -6,7 +6,7 @@
 
 - 2026-11-08 時点の監査では、登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ**で、
   `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**だった。
-  ただしこの状態は **登録直後に変わる** ので、Secret の有無永远是固定された前提で
+  ただしこの状態は **登録直後に変わる** ので、Secret の有無を固定の前提にして
   書いてはいけない。以降の挙動は「登録されているか」に応じて変わる。
 - **Secret が未設定の場合** (アカウント認証も `.ulf` も無い):
   `license-precheck` ジョブは **期待どおりに blocker として fail する**
@@ -46,7 +46,7 @@ CI が落ちたとき、**原因がライセンスなのかソースなのかを
 ワークフローからは `cat` / `Get-Content` で出力する ( heredoc を `run: |` の中に置くと
 YAML として壊れるため **使わない** )。
 
-- ワークフローは Secret 設定後に **再実行不会再に失敗しない** よう、2段構えにしている。
+- ワークフローは Secret 設定後に **再実行で同じ失敗を繰り返さない** よう、2段構えにしている。
   - `license-precheck` ジョブ (ubuntu-latest, 数秒): Secret の有無だけを検査し、
     不足していれば **手順を書いた job summary** を出して即座に fail する (Unity を導入しないので速い)。
   - `build` ジョブ (windows-latest): ライセンス認証 → EditMode テスト → Win64 ビルド → ZIP + SHA-256。
