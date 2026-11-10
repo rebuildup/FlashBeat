@@ -126,9 +126,13 @@ at component level (#70/#72/#73 responsibility).
    roles (canvas vs raised-adjacent) without merging, per token-audit "normalize without
    flattening".
 4. `web/src/components/chart-editor/note-grid.tsx` はノート塗りとして旧 teal `#12A594` を
-   ハードコードしている（token 経由ではないため #60 の差し替えでは書き換わらない）。
-   PR #90 の handoff contract で「#72 のスコープ」と明記している残存。実測でも after 撮影の
-   ノートブロックは `#12A594` のままである（証跡: `docs/evidence/60-web-visual-foundation/`）。
+   ハードコードしていた（token 経由ではないため #60 の差し替えでは書き換わらなかった）。
+   PR #90 の handoff contract で「#72 のスコープ」と明記していた。
+   **その後 `41d7da1`（`style(editor): align chart editor with design v5 tokens (#72)`、
+   2026-11-07）で `NOTE_FILL = "#ededed"` / 選択時 `#3fa9f5` / 保持 `#8a8a8a` に差し替わり、
+   `main` に teal ハードコードは残っていない**（`git grep -in "12a594" origin/main -- web/` = 0 ヒット）。
+   #60 の証跡撮影は SHA `2bd7302`（#72 の前）のままなので、after 撮影のノートは teal のまま。
+   証跡: `docs/evidence/60-web-visual-foundation/`。
 5. サイドバーの選択色（`#2B4457` / `#9AD3FA`）は #60 の実装前から `web/src/app/sidebar.tsx`
    に Pen 値がハードコードされていた。token を teal から blue へ差し替えても描画は変わらず、
    そのため catalog 一覧のスクリーンショットだけでは accent の変化が差分として現れない。

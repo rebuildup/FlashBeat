@@ -48,7 +48,7 @@ Draft PR に記録」）を満たすために記録した証跡である。
 | 画像 | 証明できること | 証明できないこと |
 |---|---|---|
 | `pixel/before-54505c2/publish_1440x900.png` | 旧 Slate/Teal テーマの実描画（`Export` / `Review publish` ボタンが teal `#12A594`、canvas が `#111113`） | — |
-| `pixel/after-2bd7302/publish_1440x900.png` | Pen パレット適用後の実描画（同名ボタンが Pen accent `#3FA9F5`、canvas が `#1B1B1B` 系） | ノートブロックの色（ハードコード teal の残存。4 節を参照） |
+| `pixel/after-2bd7302/publish_1440x900.png` | Pen パレット適用後の実描画（同名ボタンが Pen accent `#3FA9F5`、canvas が `#1B1B1B` 系） | ノートブロックの色（撮影 SHA `2bd7302` の時点では teal ハードコード。`main` では `41d7da1` (#72) で解消済み。4 節を参照） |
 | `pixel/*/chart_1440x900.png` | チャート編集画面の `Export` ボタンが teal から Pen accent に変わったこと | — |
 | `pixel/*/home_1440x900.png` | catalog 一覧の canvas が `#111113` から `#1B1B1B` 系になったこと | accent の変化（catalog 一覧には token 駆動の accent 要素がほぼ無い） |
 | `pixel/*/index.json` | 各撮影の測定値（横スクロール無し・console error 無し・`smallFontElements` 件数）と撮影条件 | ピクセル平坦性の主観評価（`needsHumanVisualReview` は本来人が判断する項目） |
@@ -65,7 +65,7 @@ Draft PR に記録」）を満たすために記録した証跡である。
 | `publish` — `Review publish` ボタン塗り | `#12A594` | `#3FA9F5` | **teal から Pen accent へ** |
 | `publish` — canvas 地色 | `#111113` | `#1C1C1C` | Park 既定 gray から Pen `bg #1B1B1B` へ（実測は 1 段階の明度差） |
 | `chart` — `Export` ボタン塗り | `#12A594` | `#3FA9F5` | **teal から Pen accent へ** |
-| `publish` — ノートブロック塗り | `#12A594` | `#12A594` | **差なし** = 既知の残存（4 節を参照） |
+| `publish` — ノートブロック塗り | `#12A594` | `#12A594` | **差なし**。撮影 SHA `2bd7302` の時点では teal のままだった。`main` では `41d7da1` (#72) で `NOTE_FILL = "#ededed"` / 選択時 `#3fa9f5` に差し替わっている（4 節を参照） |
 
 座標と値は `results.json` の `pixelSamples` に機械可読で記録してある。
 各 PNG の `sha256` と `bytes` も `results.json` の `artifactSha256` に記録してあるので、
@@ -75,12 +75,18 @@ Draft PR に記録」）を満たすために記録した証跡である。
 
 ## 4. 未解決・残存（この Issue の範囲外）
 
-1. **ノートブロックの teal ハードコード残存** —
-   `web/src/components/chart-editor/note-grid.tsx:32` の `const NOTE_FILL = "#12a594";`。
-   トークン駆動ではないため #60 の変更では書き換わらず、after 撮影でもノートは teal のまま
-   （3 節の表のとおり）。PR #90 の handoff contract でも「#72 のスコープ」と明記している残存。
+1. **ノートブロックの teal ハードコード — 撮影時点では残存だったが、`main` では解消済み** —
+   撮影した SHA `2bd7302` では `web/src/components/chart-editor/note-grid.tsx` の
+   `const NOTE_FILL = "#12a594";` がトークン駆動でなく、after 撮影でもノートは teal のまま
+   （3 節の表のとおり）。PR #90 の handoff contract でも「#72 のスコープ」と明記していた。
+   **その後 `41d7da1`（`style(editor): align chart editor with design v5 tokens (#72)`、
+   2026-11-07）で `NOTE_FILL = "#ededed"` / 選択時 `#3fa9f5` / 保持 `#8a8a8a` に差し替わり、
+   `main` に teal ハードコードは残っていない**（`git grep -in "12a594" origin/main -- web/` = 0 ヒット）。
+   よってこれは「未解決の残存」ではなく「**撮影 SHA 時点の実態**」である。
+   再撮影すれば after のノート塗りも Pen 系の色になる。
 2. **`2xs` = 8px の可読性** — 実測 `smallFontElements` は before/after いずれも
    home 9 / chart 4 / publish 9 件。トークンマッピング表 §4/§6 に残差として記録済み。
+   #74 のスコープ。
 3. **フォーカスリングのコントラスト 2.5:1** — accent が Pen 固定値のため。#74 で再監査。
 4. **390px のサイドバーが折りたたまれない** — レスポンシブは #74 のスコープ。
 
