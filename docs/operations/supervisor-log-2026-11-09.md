@@ -299,3 +299,65 @@ PR #263 (`w/w233-playfield`) を独立レビューしたところ **NEEDS WORK**
 | 3 | 展示候補の GitHub Release 化 | Windows 実機受入後に限る |
 | 4 | #30 の D1〜D6 | 他 Issue は代替既定値で進行中 |
 | 5 | **#278 対策 (B) の可否** (実曲に HOLD を入れるか) | 対策 (A) は cc が実装する |
+
+---
+
+## 6. 2026-11-10 (午後〜夜) — 統合の続き
+
+### 6.1 この節で main に取り込んだ PR
+
+| PR | 内容 | Issue |
+|---|---|---|
+| #291 | HOLD 実機検証用の譜面差し替え + ハーネス (macOS 実機で 3 段階判定) | #278 |
+| #293 | カタログ取得の abort / 古い応答の棄却 + 契約テスト 21 件 | #68 |
+| #294 | カタログ取得に `cache: "no-store"` を明示 | #68 |
+| #295 | #60 の受入記録 (実行 SHA / PR URL / tasks.md / before-after 画素証跡) | #60 |
+| #296 | #60 の記録の訂正 (teal ハードコードは main で解消済みだった) | #60 |
+| #292 | 台帳の更新 (#263 merge / #58 の macOS 証跡 / #278 の土台) | 台帳 |
+
+### 6.2 Close した Issue (受入条件を個別判定した上で)
+
+| Issue | 判定 | 根拠 |
+|---|---|---|
+| #278 | 受入条件 1 / 2 充足 | PR #291 + macOS 実機 run (`docs/evidence/278-hold/`)。**Windows 実機での HOLD 演奏は未検証として残す**。キー押下は注入シーム (`KeyBindings.InjectKeyHold`) |
+| #68 | 受入条件 7 / 7 充足 | PR #293 + #294。実 API の生レスポンスを取得して `parseSongs` が受理することを実測 |
+| #60 | 受入条件 5 / 5 充足 | PR #295 + #296。実行 SHA `2bd7302` / before SHA `54505c2` / PR #90 URL / 画素証跡 20 ファイル |
+
+### 6.3 実機での観測 (macOS 実ディスプレイ 2560×1664 全画面)
+
+| 対象 | 結果 |
+|---|---|
+| #233 の再撮影 (`-autotest v6`) | `RESULT pass=29 fail=0`。映像 / レーン境界 8 本 / 判定ライン / ノーツ / 歌詞パネル を画像で確認。**Windows 実機の視認は未検証** |
+| #278 の HOLD | `RESULT pass=41 fail=0` (`holdClear=3 holdBroken=0`)。修正前 run は `fail=2` (**負の対照**) |
+| #58 の選曲 → 完走 | 2 曲を完走 (`pass=31 fail=0` / `judged == settled == chartNotes`) |
+
+### 6.4 Win64 展示候補の再生成
+
+| 項目 | 値 |
+|---|---|
+| ZIP | `0.1.22+36a3572-win64-36a3572.zip` (274,842,010 bytes / 223 files) |
+| SHA-256 | `d3a605f297ff43e4fa59436fc5da34e9c49d846d2a07aa808e43a78b711791a7` |
+| ソース SHA | `36a3572cf75de73c45ef90d6d643ee248522df2a` (`origin/main` — PR #296 merge 直後) |
+| ビルド | `FLASHBEAT_VERSION_BASE=0.1.22 bash script/win64-build-mac.sh origin/main /Users/rebui/work/dist/win64` |
+
+**同じ出力ディレクトリの `0.1.0+877bde7` / `0.1.22+0bab549` / `0.1.22+e45c494` は
+ソース SHA が古く (後続の PR を含まない) 使用禁止。** 手順は
+`docs/operations/win64-candidate-acceptance-2026-11-10.md`。
+
+### 6.5 保全した (統合不要だった) Worker の差分
+
+`w/w233-loadingoverlay-preserve` (`bd2f80f`) は中断された Worker の未コミット差分の退避。
+中身は `GameUiExclusivity.cs` の旧ロード表示の所有判定だが、**`main` は別 ((1) `GameLoadingRoute.UsesLegacyOverlay` を正本にし、(2) 歌詞専用の
+`LegacyLyricObjectNames` に分離) で実装済み**。→ **再実装不要。統合も不要。**
+(教訓: 未コミット差分の保全ブランチは、main の実装と突き合わせてから統合を決める)
+
+### 6.6 オーナー待ち (cc では解けないもの) — 2026-11-10 夜
+
+| # | 操作 | 影響 |
+|---|---|---|
+| 1 | GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` を登録 | Win64 CI が緑になる |
+| 2 | Windows 実機で 1 曲完走 + 3 解像度の実全画面 | #233 / #242 / #88 / #96 / #59 の残り |
+| 3 | Windows 実機での HOLD 演奏 (本物のキー押下) | #278 の受入条件 3 |
+| 4 | 展示候補 `0.1.22+36a3572` の GitHub Release 化 | Windows 実機受入後に限る |
+| 5 | #30 の D1〜D6 | 他 Issue は代替既定値で進行中 |
+| 6 | #278 対策 (B) の可否 (実曲に HOLD を入れるか) | 対策 (A) は main に実装済み |
