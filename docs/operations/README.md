@@ -20,6 +20,7 @@ FlashBeat の展示・リリース・クラウド運用に関する文書の一�
 | [`festival-development-path.md`](festival-development-path.md) | 開発者 + リリース担当 | 役割分担（Mac / Windows 実機 / CI）、展示中に反映できるものと再ビルドが要るもの、コンテンツ更新手順、CI → Release → 運営者適用の手順、展示 PC を中断させない運用ルール、現時点の制約 | 展示を止めずに開発とパッチ配布を続けたいとき |
 | [`cloudflare-bootstrap.md`](cloudflare-bootstrap.md) | 開発者 + 運用者 | Cloudflare アカウント / 認証情報の扱い、Infisical の束縛、ツール（`cf` / `void`）の固定版、権限と禁止境界、再検証手順 | クラウドを触るとき、権限が疑わしいとき |
 | [`d1-migrations.md`](d1-migrations.md) | 開発者 | D1 のスキーマ（3 テーブル）、migration ファイル、ローカル / リモートの適用手順、制約、テスト | スキーマを変えるとき、公開カタログが壊れたとき |
+| [`production-api-acceptance.md`](production-api-acceptance.md) | 開発者 + オーナー（承認者） | 本番環境での公開 API 受け入れ（#73 / #135）の実施条件。変更するデータ、復旧方法、必要権限、手順、やらないこと | 本番で書き込みを伴う受け入れを行うか判断するとき |
 
 ---
 
