@@ -46,6 +46,9 @@ public class TitleSceneManager : MonoBehaviour
         // 以前は GManager.noteTiming-- と OptionSceneManager.TimingUp() で
         // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
         OptionSettings.Load();
+        // Display 設定 (Key Guide / Lyrics) の復元 (issue-162 D-1)。
+        // ここまで静的フィールドだけで、再起動すると選んだ値が消えていた。
+        FlashBeat.UI.V5.PlaySession.Load();
         AudioListener.volume = GManager.mainVolume;
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
