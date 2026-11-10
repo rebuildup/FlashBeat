@@ -193,6 +193,25 @@ TMP の `characterLookupTable` が持つ codepoint 数と一致する設計（YA
 - **Windows 実機での目視は未検証** (展示 PC は保護対象。cc は操作しない)。フォントアセットは同一だが、
   「同一アセット = 同一描画」は実機観測の代わりにならないため、この区別は崩さない。
 
+### 条件 5「trunk と展示 patch line の両方」の現在地 (2026-11-10)
+
+前回は「展示ビルドは `b677f8f` から作られており、そこに `CollectCodeTexts` / `EnsureDynamicFallback` が無い」
+として条件 5 を未充足としたが、**前提が変わった**ため再判定する。
+
+| 事実 | 実測 |
+|---|---|
+| `b677f8f` (旧展示ビルド元) は `main` の祖先 | `git merge-base --is-ancestor b677f8f 4445279` → 真 |
+| `b677f8f` は #140 の実装 (`4479114`) を含まない | `git merge-base --is-ancestor 4479114 b677f8f` → 偽 |
+| 現在の展示候補は `main` の `4445279` から生成 | `FlashBeat-0.1.22-win64-4445279.zip` (SHA-256 `ed67277e8381e8e404cb53c60b625ab56982d5b6929ce8643c8e78cfcab9c645`) |
+| `4445279` は #140 の実装を含む | `git merge-base --is-ancestor 4479114 4445279` → 真 |
+
+正規経路 `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` は `main` の
+チェックアウトからのみビルドし、`b677f8f` 由来の旧ビルドは候補一覧から外れている
+(`docs/operations/win64-candidate-acceptance-2026-11-10.md` の「古い候補は使用禁止」)。
+したがって **trunk と展示候補は同じ木**であり、条件 5 は充足。
+
+残る未充足は **Windows 実機での豆腐 0 の目視** (下の「この確認で言えないこと」) のみ。
+
 ### この確認で言えないこと
 
 - アトラス外の文字 (今後追加される曲名・歌詞) は、動的フォールバックの実行時生成に依存する。
