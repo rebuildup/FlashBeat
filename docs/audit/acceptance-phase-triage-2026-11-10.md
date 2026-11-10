@@ -77,7 +77,7 @@ A=本番 API (オーナー承認後) / S=仕様判断。
 | 22 | 未検証 | `release/check/stage-manifest.json`, `verify-stage.ps1` | S1〜S4 の実機証跡 (S0 のみ partial) | W |
 | 30 | 仕様判断待ち | `docs/ui/issue-30-spec-decisions.md` (HOLD 4 項目は #164 で凍結済み) | D1 (歌詞形式) 〜 D6 (既存ふりがな) の決定。**D1 / D5 は決定まで実装を開始しない** | S |
 | 58 | 未検証 | `CatalogMergeTests.cs`, macOS 2 曲完走 | Win の映像視認・A/V 同期・Retry・全曲完走 | W |
-| 59 | 未検証 | 4 機能実装 + `docs/evidence/59-feature-acceptance.md` | 実機の目視記録 (HOLD の OK/NG は #30 D1 待ち) | W, S |
+| 59 | 未検証 | 4 機能実装 + `docs/evidence/59-feature-acceptance.md` | 実機の目視記録 (HOLD の判定規則は **#164 で凍結済み**。残るのは Windows 実機の演奏確認) | W |
 | 73 | 未検証 | ローカル実 HTTP E2E 21/21 (`docs/evidence/73-local-api-write-e2e-2026-11-10.md`) | 本番書き込み E2E (T5・隔離 ID・復旧手順) | A |
 | 75 | 未検証 | `web/tests/visual/capture.mjs`、ゲート exit 0 (PR #257) | 人手 redline レビュー (T3–T5) + 本番 E2E | R(人), A |
 | 88 | 未検証 | `ProjectSettings.asset:119 fullscreenMode:1` / `:107 resizableWindow:0`, `FullscreenPolicyTests.cs` | `displayCoverage ≥0.99` と 1024×768 / 1920×1080 の実機撮影 | W, R |
