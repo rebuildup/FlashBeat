@@ -371,7 +371,20 @@ namespace FlashBeat.UI.V6.Title
                 var update = V6Controls.ButtonSecondary(header,
                     V6TitleLogic.UpdateButtonLabel(model.Phase, model.DownloadProgress),
                     new Vector2(340f, 20f), new Vector2(460f, 56f), null, "F3");
-                WireClick(update, TriggerUpdate);
+
+                // 押したときに実行できる操作 (Available → DL / Ready → 適用) が
+                // あるときだけ結線する。Downloading 中は進捗表示だけなので
+                // **押しても何も起きないボタン**にせず、非活性にする。
+                // dismiss (F4) 後も操作できる (通知を閉じた = 更新しない、ではない)。
+                if (UpdateNoticePresenter.ResolveUserAction(model) != UpdateNoticeAction.None)
+                {
+                    WireClick(update, TriggerUpdate);
+                }
+                else
+                {
+                    var button = update.GetComponent<Button>();
+                    if (button != null) { button.interactable = false; }
+                }
             }
 
             // 右上: 曲情報 (design "Zone ・曲情報 (右上)" WUQeP = Header ローカル (1080,0) 300×96)。

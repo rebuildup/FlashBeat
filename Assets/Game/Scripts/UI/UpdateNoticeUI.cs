@@ -1,4 +1,4 @@
-using FlashBeat.UI;
+﻿using FlashBeat.UI;
 using FlashBeat.Update;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -86,7 +86,8 @@ public class UpdateNoticeUI : MonoBehaviour
     /// <summary>F3 / ピルクリックの共通トリガー。Available → ダウンロード、Ready → 適用。</summary>
     public void Trigger()
     {
-        var action = UpdateNoticePresenter.ResolveAction(model);
+        // 押した操作は dismiss 済みでも実行する (通知を閉じた = 更新しない、ではない)。
+        var action = UpdateNoticePresenter.ResolveUserAction(model);
         if (action == UpdateNoticeAction.None) { return; }
         if (checker == null) { return; }
         if (action == UpdateNoticeAction.Download)
