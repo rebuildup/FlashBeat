@@ -38,4 +38,7 @@
 - [x] `script/compile-check.sh --assembly flashbeat` → Build succeeded
 - [x] `script/compile-check.sh --assembly tests` → Build succeeded
 - [x] `docs/evidence/224-pause-gate.md` に実装 / 検証 / 残存リスクを記録
-- [ ] (Supervisor) 統合時に EditMode テストを実行
+- [x] (Supervisor) 統合時に EditMode テストを実行 — 2026-11-10 に `main` (`a5bdd25`) で
+  `Unity -batchmode -runTests -testPlatform editmode` を実行し **1322 / 1322 passed, 0 failed, 0 skipped**
+  (`TestResults.xml` の `<test-suite>` 集計)。中断 (Pause) 系の `PauseGateTests` /
+  `V6PauseRuntimeTests` / `V6PauseViewLogicTests` もこの 1322 に含まれる。
