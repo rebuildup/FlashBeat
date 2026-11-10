@@ -35,7 +35,7 @@
 #   UNITY_BIN               Unity 本体 (既定 Unity Hub の 6000.5.6f1)
 #   FB_WIN64_WORKTREE       ビルド用 worktree のパス (既定 ../FlashBeat.win64build)
 #   FLASHBEAT_VERSION_BASE  バージョン基準 (既定 0.1.0 / BuildScript と同じ既定)
-#   FLASHBEAT_UPDATE_CHANNEL 更新チャンネル (既定 preview)
+#   FLASHBEAT_UPDATE_CHANNEL 更新チャンネル (既定 stable / BuildScript と同じ既定)
 #   PWSH_BIN                PowerShell 7 (既定 pwsh)
 #
 # 出力: <outdir>/FlashBeat-<version>-win64-<sha>.zip と .zip.sha256 (2 点だけ)
@@ -51,7 +51,11 @@ OUT_DIR="${2:-$REPO_ROOT/../dist/win64}"
 PACKAGER="$REPO_ROOT/tools/release/package-win64.ps1"
 PWSH="${PWSH_BIN:-pwsh}"
 VERSION_BASE="${FLASHBEAT_VERSION_BASE:-0.1.0}"
-UPDATE_CHANNEL="${FLASHBEAT_UPDATE_CHANNEL:-preview}"
+# 既定は stable。展示・配布候補は stable チャンネルで作る
+# (docs/operations/update-release.md)。prerelease を取り込みたい検証ビルドだけが
+# FLASHBEAT_UPDATE_CHANNEL=preview を明示する。BuildScript 側の既定も stable であり、
+# この wrapper が preview を既定にすると、Release 候補が知らずに preview 扱いになる。
+UPDATE_CHANNEL="${FLASHBEAT_UPDATE_CHANNEL:-stable}"
 
 [ -x "$UNITY" ] || { echo "Unity not found: $UNITY" >&2; exit 2; }
 [ -d "/Applications/Unity/Hub/Editor/6000.5.6f1/PlaybackEngines/WindowsStandaloneSupport" ] || {
