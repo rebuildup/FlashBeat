@@ -10,16 +10,20 @@ This directory holds two different things:
 
 ## Which command runs which suite
 
-| Command                     | Suite                                                             | Where                        | Tests |
-| --------------------------- | ----------------------------------------------------------------- | ---------------------------- | ----- |
-| `npm test`                  | Unit: read-API integration (`node --test`) + app unit (Vitest)     | `tests/*.test.*`, `src/**`   | 73 + 436 |
-| `npm run test:e2e:harness`  | Vitest unit tests of the production harness comparison logic      | `tests/e2e/harness.test.ts`  | 22    |
-| `npm run test:e2e`          | **Playwright browser E2E** (Chromium, seeded local D1, dev server) | `tests/e2e/*.spec.ts`        | 12    |
-| `npm run e2e`               | Production harness (real HTTP against the deployed worker)        | `tests/e2e/run.ts`           | stages, not tests |
+| Command                    | Suite                                                              | Where                       | Tests             |
+| -------------------------- | ------------------------------------------------------------------ | --------------------------- | ----------------- |
+| `npm test`                 | Unit: read-API integration (`node --test`) + app unit (Vitest)     | `tests/*.test.*`, `src/**`  | 73 + 436          |
+| `npm run test:e2e:harness` | Vitest unit tests of the production harness comparison logic       | `tests/e2e/harness.test.ts` | 22                |
+| `npm run test:e2e`         | **Playwright browser E2E** (Chromium, seeded local D1, dev server) | `tests/e2e/*.spec.ts`       | 12                |
+| `npm run e2e`              | Production harness (real HTTP against the deployed worker)         | `tests/e2e/run.ts`          | stages, not tests |
 
 `test:e2e` used to be the name of the Vitest harness suite (misleading: no
 browser was involved). It is now the Playwright gate; the harness suite lives
 under `test:e2e:harness`.
+
+`test:studio` is kept as an alias of `test:e2e` (same config, same suite): the
+historical records under `specs/216-chart-editor-operation/` quote it, and those
+commands should keep working.
 
 ## Browser E2E (`npm run test:e2e`)
 
@@ -74,6 +78,19 @@ of `Who`, the run exits 1 with:
 
 Exit code: 1 (serial mode stops the remaining tests of the file). The reverted
 suite is green again (12 passed).
+
+The four degenerate outcomes were re-proved independently after the worker's
+run, each one exiting 1:
+
+| Break                                                                     | Observed                                                                                  | Exit |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
+| Nothing collected / every test skipped                                    | `[gate] FAIL: all 1 collected tests were skipped`                                         | 1    |
+| One expectation wrong (`Who` → `Who?`)                                    | `1 failed`, `element(s) not found`                                                        | 1    |
+| Browser not installed (`PLAYWRIGHT_BROWSERS_PATH` points at an empty dir) | `browserType.launch: Executable doesn't exist … npx playwright install`                   | 1    |
+| Dev server cannot start (`E2E_BASE_URL` on a port already in use)         | `Error: Port … is already in use` / `Process from config.webServer was not able to start` | 1    |
+
+All four reach CI (the workflow runs `npm run test:e2e` without a `--reporter`
+flag, so the gate reporter stays in the reporter list).
 
 ## Production harness (issue #97, refs #41)
 

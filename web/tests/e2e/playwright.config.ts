@@ -49,10 +49,7 @@ export default defineConfig({
   workers: 1,
   // Absolute path: relative custom-reporter paths resolve against an
   // undocumented base and silently fail to load.
-  reporter: [
-    ["list"],
-    [path.resolve(import.meta.dirname, "reporters/gate-reporter.ts")],
-  ],
+  reporter: [["list"], [path.resolve(import.meta.dirname, "reporters/gate-reporter.ts")]],
   use: {
     baseURL,
     ...devices["Desktop Chrome"],
