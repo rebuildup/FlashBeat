@@ -181,29 +181,15 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         // --- 統合担当がキー入力 (矢印 / Tab) から呼ぶ操作 API ---
 
-        /// <summary>設定行の選択を移動する (↑ / ↓)。</summary>
+        /// <summary>設定行の選択を移動する (←→ / NavPrev・NavNext)。</summary>
         public void MoveSelection(int delta)
         {
             selectedRow = V6PauseViewLogic.ClampIndex(selectedRow + delta, pageRows[selectedTab].Count);
             RefreshRowHighlight();
         }
 
-        /// <summary>選択中の設定行の値を変更する (← / →)。変更できない行は何もしない。</summary>
-        public void AdjustSelected(int delta)
-        {
-            var rows = pageRows[selectedTab];
-            if (selectedRow < 0 || selectedRow >= rows.Count)
-            {
-                return;
-            }
-
-            Action<int> adjust = rows[selectedRow].Adjust;
-            if (adjust != null)
-            {
-                adjust(delta);
-                RefreshRows();
-            }
-        }
+        // 値の変更 (←→) はポーズのキーボード操作には配線しない (Issue #224):
+        // ←→ は行選択に使う。値の変更は行のステッパー / クリック (マウス) のみ。
 
         /// <summary>タブを切り替える (端で折り返す)。</summary>
         public void SelectNextTab(int delta)
@@ -434,13 +420,10 @@ namespace FlashBeat.UI.V6.Game.Pause
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
                         OptionSettings.Save();
                     });
-                AddRow(rows, pageRoot, 2, "Key Layout",
-                    () => V6PauseViewLogic.LayoutLabel(IsCustomLayout()),
-                    null);
-                AddRow(rows, pageRoot, 3, "キー設定",
-                    () => "F2",
-                    null,
-                    () => KeyConfigUI.Open());
+                // 「Key Layout」「キー設定」の 2 行は廃止 (issue #167: 描画だけの UI を残さない)。
+                // 編集の実体 KeyConfigUI は Title / Option 画面限定 (AllowedScenes) なので
+                // ポーズからは開けず、F2 もここでは効かない。現在の割当はプレビュー パネルの
+                // 「キー割当 (JIS / …)」に表示され、編集は Option 画面の同じ行から行う。
             }
             else if (page == 1)
             {
@@ -706,8 +689,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
 
             // design 文言は「F2 でも開けます」だが、KeyConfigUI は Title / Option 画面でしか
-            // 開けない (AllowedScenes)。画面に出す文言は実挙動に合わせる。
-            var desc = V5Ui.Text(panel, "Desc", "キーの割り当てを編集します。(キー設定は Title / Option 画面で開けます)",
+            // 開けない (AllowedScenes)。ポーズからは開けないので、行き先を書く。
+            var desc = V5Ui.Text(panel, "Desc", "キーの割り当ての編集は Option 画面の「Key Layout」から行えます。",
                 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
             var descRt = desc.rectTransform;
             descRt.anchorMin = new Vector2(0f, 1f);

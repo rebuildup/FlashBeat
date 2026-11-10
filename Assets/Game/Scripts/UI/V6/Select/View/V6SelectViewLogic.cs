@@ -555,7 +555,8 @@ namespace FlashBeat.UI.V6.Select.View
         /// 実装と一致させる (#221 / #222 Task 2「すでにある短縮キーも維持」):
         ///   - 確定: KeyActions.Confirm (キー設定の正本。ビューから
         ///     ActionKeyHint.Primary(KeyActions.KeyAction.Confirm) を渡す)。
-        ///   - 曲送り: ↑↓ (←→ = KeyActions.NavPrev/NavNext も有効。キャップは design どおり ↑↓)。
+        ///   - 曲送り: ↑↓←→ (←→ = KeyActions.NavPrev/NavNext の既定割当。design は ↑↓ のみ
+        ///     だったが、実装は ←→ も曲送りに使うため全て列挙する。キャップは生矢印のまま)。
         ///   - 検索: Tab (検索欄へフォーカス)。
         ///   - 絞り込み: F (未プレイのみトグル。v6 固定ショートカット)。
         /// design 記載の「Tab 絞り込み」は実装 (Tab = 検索フォーカス / F = 絞り込み) と
@@ -567,7 +568,9 @@ namespace FlashBeat.UI.V6.Select.View
             var defs = new string[][]
             {
                 new[] { string.IsNullOrEmpty(confirmKey) ? "Space" : confirmKey, "決定" },
-                new[] { "↑↓", "曲送り" },
+                // 曲送りは ↑↓ に加えて ←→ (NavPrev/NavNext の既定割当) も有効。
+                // design は ↑↓ のみだったが、実挙動に合わせて ←→ も列挙する。
+                new[] { "↑↓←→", "曲送り" },
                 new[] { "Tab", "検索" },
                 new[] { "F", "絞り込み" },
             };

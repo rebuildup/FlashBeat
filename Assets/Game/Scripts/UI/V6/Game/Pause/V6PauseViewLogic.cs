@@ -31,9 +31,6 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>タブの数 (design: Play / Display / Sound / Data)。</summary>
         public const int TabCount = 4;
 
-        /// <summary>Play タブの設定行の数 (NoteSpeed / NoteTiming / Key Layout / キー設定)。</summary>
-        public const int PlayRowCount = 4;
-
         /// <summary>index を 0..count-1 に収める (範囲外は端に止める)。</summary>
         public static int ClampIndex(int index, int count)
         {
@@ -142,7 +139,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             return musician + "BPM " + song.bpm;
         }
 
-        /// <summary>Key Layout 行の値。KeyBindings の現在値が既定と同じかで出し分ける。</summary>
+        /// <summary>プレビュー パネルの「キー割当」見出しに添える現在のレイアウト状態。
+        /// KeyBindings の現在値が既定と同じかで出し分ける (旧 Key Layout 行と共通)。</summary>
         public static string LayoutLabel(bool customLayout)
         {
             return customLayout ? "カスタム" : "標準";
