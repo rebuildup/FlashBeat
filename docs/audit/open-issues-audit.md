@@ -2,6 +2,7 @@
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
+- **更新 8 (2026-11-10)**: **#241 の ClearSaveData 欠陥は解消済み** (`e10a34f` + `V6OptionWiringTests` の実 View 操作テスト) — 条件 6 / 7 を充足に、#242 の表の古い記述を撤回。**#182 の条件 3 / 4 は PR #256 (merged) で充足** (#182 は Closed 済み)。#217 の表の「#233 歌詞二重描画」も撤回。
 - **更新 7 (2026-11-10)**: **#233 のコードを再照合** — 受入条件 2 / 5 / 6 を **充足** に、条件 1 を **充足 (macOS 実機) / Windows 未検証** に改めた。残る未検証は条件 7 (実 Win64 1 曲完走) のみで **#233 は open のまま**。あわせて #223 / #242 の表に残っていた「#233 に歌詞二重描画」の記述を撤回 (解消済み)。
 - **更新 6 (2026-11-10)**: **#61 を再判定して Closed** (10 条件すべて充足。条件 5/7/8/9 を実ブラウザ証跡と本番 read-only E2E 14/14 で埋めた — `docs/evidence/61-studio-acceptance-2026-11-10.md`)。
 - **更新 5 (2026-11-10)**: **#98 を Closed** (PR #307 merged `fe2acfc` — chart 側の下書き復元 7 テスト) / **#224 の受入条件 5 を充足** (`specs/224-pause-loading/rollout.md`)。
@@ -110,7 +111,7 @@
 | 233 | P0 BLOCKER ゲーム画面崩壊/プレイフィールド不可視 | **B → コード側 6/7 充足 / 残 = 実Win64** | `Assets/Game/Scripts/Gameplay/PlayfieldLaneGuides.cs`, `MediaTimeline.cs:161` (`ApproachSecondsAtSpeed10 = 1.6f`), `Assets/Game/Scripts/UI/GameSceneManager.cs` (`ApplyTextPanelVisibility`), `docs/evidence/233-playfield/` | **6/0/1** | Windows 実機 (展示 PC) | **2026-11-10 再照合**: 条件 1 = 充足 (macOS 実機) / Windows 未検証、2・5・6 = 充足 (`bddf8fc` / `7b26699` / `3af8103` / `85ca06e`)、残 = 条件 7 実 Win64 1 曲完走。EditMode **1322/1322** (`a5bdd25`)、macOS 実機 `pass=29 fail=0`。**#258 の「ノーツ・動画が見えない」は Windows で未解決のまま残す** |
 | 239 | P0/v6 Front Door Title/History/Ranking | **A** | `Assets/Game/Scripts/UI/TitleSceneManager.cs:53`, `Assets/Game/Tests/V6HistoryRankingTests.cs` | 5/0/1 | — | クローズ提案可 |
 | 240 | P0/v6 Result + 登録モーダル | **A** | `Assets/Game/Scripts/UI/V6/Result/V6ResultView.cs:124,741,990` | 6/0/1 | — | クローズ提案可 (実機/実API は `specs/240` 3 タスク) |
-| 241 | P0/v6 Option 4タブ整合 | **B** | `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` | **5/0/1** | — | **PR #264 merged** (`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ)。あわせて **譜面と設定 JSON が同じ Resources に混在するバグ** も修正 (`OptionSceneManager.SettingsDirectory()` → `UserSettings/song-settings/`) |
+| 241 | P0/v6 Option 4タブ整合 | **A → 受入条件 7/7 (EditMode 実 View) / 可視は実機待ち** | `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` | **7/0/0** | 3解像度の実機目視 | **PR #264 merged** — `ClearSaveData` が `ScorePersistence.ResetAll()` を呼び、`V6OptionWiringTests` (実 View を生成して Button を押す) が 消去 / キャンセル / 結果表示 / キー既定復帰を固定 (`e10a34f`)。あわせて **譜面と設定 JSON が同じ Resources に混在するバグ** も修正 (`SettingsDirectory()` → `UserSettings/song-settings/`)。**残 = 3 解像度での重なり・欠けの目視** (EditMode 緑は画素の合格ではない) |
 | 242 | P0/v6 Acceptance 全画面実Win64受入 | **D** | — (受入ゲート) | 0/0/3 | Windows 実機 | #223/#233 が blocker |
 | 250 | Roadmap 全Issue完遂+11/14 展示 | **D** | — (ロードマップ) | 0/0/1 | #233/#223/#217/#242/#249 | #233 を最優先で解決 |
 
@@ -201,7 +202,7 @@
 | 2 | #221 / #222 Select View と実カタログ/操作 | 充足 | いずれも §3.1 で A 判定 |
 | 3 | #223 / #233 統合・Canvas 排他・実Win64 の Game/Select 復旧 | 未充足 | #233 のコード側 (レーン / 1.6 s 確認窓 / 歌詞二重描画) は main で修正済み (§3.1 #233)。残 = **実Win64 の画面確認** = 本条件そのもの |
 | 4 | #224 Pause / Loading | 充足 | `V6/Game/Pause/*`, `V6/Game/Loading/*` |
-| 5 | #239 Title/History/Ranking, #240 Result/登録, #241 Option 4タブ | 未充足 | #241 の ClearSaveData 欠陥 (§3.1 #241) |
+| 5 | #239 Title/History/Ranking, #240 Result/登録, #241 Option 4タブ | 未充足 | **#241 の ClearSaveData 欠陥は `e10a34f` で解消済み** (2026-11-10 再照合)。残 = 3 解像度の実機目視 (#239 / #240 / #241) |
 | 6 | 実Win64 で 3 解像度 (1920×1080 / 2560×1440 / 2560×1664) の受入 | 未検証 | Windows 実機必須。`docs/evidence/index.md` §1.7 |
 
 - **未検証の区別**: 条件 6 は実機必須。代替検証 = Mac 実機 2560×1664 起動 (`docs/evidence/mac-verify-run-2026-11-08/`)、EditMode 緑、Pencil ノード座標の読み取り (**.pen の描画画像は未確認** — Issue 本文 21 行目も明記)。
@@ -209,7 +210,7 @@
 
 ### #241 — [P0/v6 Option] 既存設定の意味・保存範囲を保って4タブのUIを整合
 
-- **区分**: **B (部分実装)**
+- **区分**: **A (受入条件 7/7 充足 / 可視は実機待ち)** — 2026-11-10 にコードとテストを再照合。旧台帳が指摘した ClearSaveData の欠陥は `e10a34f` で修正済み
 - **実装/証拠**:
   - `Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs` — 4 タブ実装。Play の NoteSpeed (`:822,986`)/NoteTiming (`:828,1009`)/Key Layout・キー設定 (`:843`)、Display の Flash (`:863-895`)、Sound の Main/Effect/BGM 音量 (`:926-938`, `:1019-1028`)、Data の cache size (`:951`) / clear (`:799`)
   - `Assets/Game/Scripts/UI/V6/Option/V6OptionLogic.cs`, `V6OptionViewDriver.cs`
@@ -226,28 +227,10 @@
 | 3 | Sound: Main / Effect / BGM へ即時反映 | 充足 | `V6OptionView.cs:1019-1028` |
 | 4 | 設定の寿命: OptionSettings 永続分は保存/復元、Key Guide/Lyrics はセッション設定 | 充足 | `OptionSettings.Save()` 呼び出し群 (`V6OptionView.cs:870,876,885,895,988,1011,1028`) |
 | 5 | Data: cache size / cache clear は既存 `MediaCacheManager` を使う | 充足 | `V6OptionView.cs:951` (`MediaCacheManager.FormatSize` / `GetCacheSizeBytes`) |
-| 6 | **Clear save data は既存のハイスコア・キー設定の消去範囲を維持する** | **未充足** | `V6OptionView.cs:1045-1053` — `PlayerPrefs.DeleteKey("Hiscore")` と `OptionView.KeyBindingsPrefsKey` のみ削除。**`FlashBeat.ScoreStore` を消していない** |
-| 7 | 確認/キャンセルと結果表示を一致させる | 未検証 | モーダルの実表示は Win 実機必須 |
+| 6 | **Clear save data は既存のハイスコア・キー設定の消去範囲を維持する** | **充足** | `V6OptionView.ClearSaveData()` (`:1068`) が `ScorePersistence.ResetAll()` (安定キー `FlashBeat.ScoreStore` + 旧 `Hiscore` + 移行フラグ) → `GManager.Hiscore` クリア → `KeyBindings.ResetToDefaults()` / `KeyActions.ResetToDefaults()`。commit **`e10a34f`**。テスト `V6OptionWiringTests.ClearSaveData_ErasesTheStableScoreStore_SoTheScoreDoesNotRevive` (`:181`) が **再起動後も旧形式からの移行でも復活しない**ことを固定、`ClearSaveData_ResetsTheLaneKeysAndTheMenuActions` (`:208`) がキー割当を固定 |
+| 7 | 確認/キャンセルと結果表示を一致させる | **充足 (EditMode 実 View) / 実機目視は未検証** | `V6OptionWiringTests.TheClearSaveDataDialog_CancelsWithoutChangingAnything_AndClearsWithTheMouse` (`:347`) が実 `V6OptionView` を生成し **行クリック → 確認ダイアログ → キャンセルで不変 → 消去で実保存先が消える → 「消去しました」表示** を実 Button 操作で固定。**画素としての見た目は未確認** |
 
-- **未充足の具体箇所 (Issue 本文 13 行目が名指しした欠陥そのもの)**:
-  ```csharp
-  // Assets/Game/Scripts/UI/V6/Option/V6OptionView.cs:1045
-  private void ClearSaveData()
-  {
-      PlayerPrefs.DeleteKey("Hiscore");
-      PlayerPrefs.DeleteKey(FlashBeat.UI.V5.OptionView.KeyBindingsPrefsKey);
-      PlayerPrefs.Save();
-      Array.Clear(GManager.Hiscore, 0, GManager.Hiscore.Length);
-      KeyBindings.ResetToDefaults();
-  }
-  ```
-  実際のベスト保存は `ScorePersistence` / `ScoreStore` 側。`Assets/Game/Scripts/Persistence/ScorePersistence.cs:276` に
-  `public static void ResetAll()` があり `:280-281` で `ScoreStore.StorageKey` と `ScoreStore.LegacyStorageKey` を削除するが、
-  **これを呼ぶのは `Assets/Game/Scripts/Persistence/SaveLoadManager.cs:54 ResetHiscore()` だけ**で、
-  呼び出し元は `Assets/Game/Scenes/OptionScene.unity:11105` の UnityEvent (`m_MethodName: ResetHiscore`) のみ。
-  `Assets/Game/Scripts/UI/**` からの呼び出しは **0 件** → v6 Option の Clear save data は v5 と **挙動が食い違う**。
-  - 既存テスト: `Assets/Tests/Editor/ScoreStoreTests.cs` は `ScoreStore` の永続化を検証するが、**v6 の ClearSaveData が Store を消すことは検証していない**。
-- **未検証の区別**: 条件 7 は実機必須。代替検証 = `V6OptionLogicTests.cs` の EditMode 緑 + コード読み。
+- **未検証の区別**: 条件 7 の**画素としての見た目**は実機必須。代替検証 = `V6OptionWiringTests.cs` (実 View を生成して Button を押す) + `V6OptionLogicTests.cs` の EditMode 緑。**EditMode の操作緑は画面の重なり・欠けの合格ではない**。
 - **依存**: Parent #217。#223 (排他統合) の Scene 切替で effective になる。
 
 ### #240 — [P0/v6 Result] 既存結果・登録操作へv6画面とモーダルを接続
@@ -528,7 +511,7 @@
 | 1 | P0 Game: 8レーン遠近法プレイフィールド・ノーツ・判定ライン、実動画背景、進捗/Grade/Score/Gauge/Combo/Lyrics/レーンキー・判定。静的デザイン貼付禁止 | **未充足** | #219 の 2 欠陥 (フラグ false / Lane 非 active) |
 | 2 | P0 Select: 左560/中央536/右560、検索/フィルタ/Ready/戻る/該当なし、Cloud/ローカル実カタログ、songId/chartVersion | 充足 | #221 + #222 で充足 |
 | 3 | 必須検証解像度 1920×1080 / 2560×1440 / 2560×1664 | 未検証 | Win 実機必須 (`docs/evidence/index.md` §1.7) |
-| 4 | 旧 v5 / legacy / v6 の描画重複がない | 未充足 | #233 の歌詞二重描画 |
+| 4 | 旧 v5 / legacy / v6 の描画重複がない | 未充足 | **#233 の歌詞二重描画は `85ca06e` で解消済み** (2026-11-10 再照合)。残 = v6 プレイフィールド有効時の重複 (`V6UiMode.Playfield = false` のため未観測) |
 | 5 | ブランチ丸ごとマージ禁止、最新 main で作業 | 充足 (運用) | 本監査ブランチも main (`ab8c336`) 基準 |
 
 - **未検証の区別**: 条件 3 は実機必須。**Pencil の座標読取は「デザインに clipping がない」証明であって「実装に重なりがない」証明ではない** (Issue #242 本文 21 行目も同旨を明記)。
@@ -548,15 +531,15 @@
     - `f953eea` "refactor(gameplay): HOLD の判定ルールを LongNote に集約し、テストと実挙動の分離を解消"
   - テスト: `Assets/Tests/Editor/JudgeQueueTests.cs`, `JudgeLogicTests.cs`, `PublishedChartJudgeRegressionTests.cs`, `LongNoteTests.cs`
   - 証跡: `docs/evidence/182-publish-to-judge-regression.md`
-  - **PR #256 (open)** `w/w182-close` — 「判定の確定数 = noteCount とスコア API の整合を固定し、HOLD 中断の二重計数を直す」。**main には未マージ**
+  - **PR #256 merged (2026-11-09)** — 「判定の確定数 = noteCount とスコア API の整合を固定し、HOLD 中断の二重計数を直す」。main の `Assets/Tests/Editor/JudgeSettlementInvariantTests.cs` が本受入条件の固定テスト (下記 条件 3 / 4)
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
 | 1 | Web で後ろ→前順にノーツ追加 or 既存ノーツを前へ移動して公開しても、見えるノーツを正しい時刻に判定できる | 充足 | `JudgeQueue.cs:21` + `Judge.cs` の `EnsureQueue` 結線 |
 | 2 | 時刻順に並んだ譜面でも、他レーンの直前のノーツを見逃すと後続レーンの正常入力が無視されない | 充足 | `JudgeQueueTests.cs` (レーン分割キュー) |
-| 3 | 判定合計が noteCount に一致する | 未充足 | PR #256 が未マージ。`68e1183` でテスト期待値は実挙動に合わせ済みだが、**noteCount 一致の固定は PR #256 側** |
-| 4 | HOLD 中断の二重計数がない | 未充足 | 同上 (PR #256 の修正対象) |
+| 3 | 判定合計が noteCount に一致する | **充足** | PR #256 (merged)。`JudgeSettlementInvariantTests.AllNotesPressed_ExactlyOnce_TotalJudgementsEqualNoteCount` が `perfect+great+bad+miss == noteCount` と `settledNoteCount == noteCount` を固定、`FrameDrop_ManyNotesExpireAtOnce_EveryNoteSettledExactlyOnce` が取りこぼし/二重判定なしを固定 |
+| 4 | HOLD 中断の二重計数がない | **充足** | 同上。`JudgeSettlementInvariantTests` の HOLD ケース + `Judge.cs` / `JudgeScoreboard.cs` の確定経路 (PR #256) |
 | 5 | 実プレイでの通し確認 | 未検証 | 実 Win64 必須 |
 
 - **未検証の区別**: 条件 5 は実機必須。**EditMode 緑は譜面順序の実挙動を保証しない**。代替 = `JudgeQueueTests.cs` 緑 + `docs/evidence/182-publish-to-judge-regression.md`。
