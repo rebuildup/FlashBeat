@@ -2,6 +2,7 @@
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後) / **最新の追記は `7af9242` (PR #344 merge 直後)**
 - **更新 11 (2026-11-10 受入フェーズ)**: **open 37 件を「実装完了 / 未検証 / 仕様判断待ち」に 1 件ずつ区分し、クローズは 0 件**。クローズ候補 5 件 (#221 / #224 / #239 / #240 / #241) はいずれも受入条件に **3 解像度の実画面** を含み、#242 の完了対象に集約済みのため、#242 と同時に閉じる。判断の全体は [`acceptance-phase-triage-2026-11-10.md`](acceptance-phase-triage-2026-11-10.md)
+- **更新 12 (2026-11-10 受入フェーズ / PR #348)**: **#222 を「仕様判断待ち」から「実装完了 (受入待ち)」へ**。「45 曲以上」は実曲数ではなく **選曲機能のスケーラビリティ要件** として採用し、60 件の合成カタログ回帰テスト (`SongCatalogScalabilityTests`) を追加 (EditMode 1419/1419)。**#30 の D1 は歌詞データ形式** (HOLD 判定ではない) と訂正し、D1 / D5 は決定まで実装しないと明記。クローズ可能な Issue は **0 件のまま** (残るのはすべて実機・3 解像度・本番 API の証拠)。
 - **更新 10 (2026-11-10 深夜)**: **issue-162 §8 の 41 項目を v6 UI に対して再照合し、到達可能な 7 件を実際に修正した** (PR #339)。判定は **fixed 34 / moot 6 / live 1** (live は D-1 のみ)。**Web E2E を実ブラウザの品質ゲートに置き換えた** (PR #341、CI `browser-e2e` 初回実行 success)。**本番 API 受け入れの条件を文書化** (PR #340、未実行)。**唯一 live だった D-1 も追加対応で解消 (fixed)**。→ §7.6
 - **更新 9 (2026-11-10 夜)**: **#140 の条件 5 を充足に再判定** — 展示候補が `main` から作られるようになり trunk と同一の木になった (旧ビルド元 `b677f8f` は実装を含まない)。**#13 の「Media Foundation URL リーダーが開けない」はもう再生経路ではない** — `main` は yt-dlp でローカルへダウンロードしたファイルを再生し、URL 直渡しは 1 回だけの診断 probe に退いた (`MusicManager.cs:332`/`:591` 対 `:341`/`:637`)。「`audioS.Play()` を呼ばないので無音」も解消済み。詳細: `docs/superpowers/plans/baseline-win64.md` §2026-11-10 追記。残る未検証は **Windows 実機の再生/音/豆腐 0** のみ。
 - **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映 / **2026-11-10 (更新 4)** — #167 の EditMode 実装分と #74 の実ブラウザ証跡を取り込み (#303 / #304 / #305 merged)
@@ -80,7 +81,7 @@
 | 19 | S3/Mac Park UI メタデータ+Publish 接続 | **A → 検証済 (2 条件 Windows 実機待ち)** | `web/src/components/song-publisher/**`, `web/pages/publish.tsx` | **5/0/2** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744101865)**: 7 条件を個別判定 → 5 充足 / 0 未充足 / 2 未検証 (T4 の Windows Unity 再生と Gate の Win 側)。旧記述「視覚ゲート exit 1 / home@390x844 横溢れ」は **stale** — 現 main で `npm run visual` は exit 0 (horizontalOverflow []) |
 | 21 | S4/Win optional リザルト送信+ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs:113,143,240` | 3/1/1 | Windows 実機 | 2 台目のクライアント表示の実測 |
 | 22 | Release/Win Win64 展示版 smoke/配布ゲート | **B** | `docs/evidence/index.md`, `release/check/**` | 4/4/2 | Windows 実機 | S0 のみ partial。S1–S4 を詰める |
-| 30 | Product Spec ゲーム体験の理想形 | **E (一部解消)** | `docs/ui/issue-30-spec-decisions.md` | 0/0/1 | オーナーの仕様確定 (D1〜D6) | HOLD 4 項目は #164 で凍結済 (PR #265)。残り D1〜D6 はオーナー決定。**代替既定値**があるため他 Issue は止まらない |
+| 30 | Product Spec ゲーム体験の理想形 | **E (一部解消)** | `docs/ui/issue-30-spec-decisions.md` | 0/0/1 | オーナーの仕様確定 (D1〜D6) | **HOLD 4 項目 (判定方式・離す許容幅・中断・データ形式) は #164 で凍結済** (PR #265)。**D1 は HOLD 判定ではなく歌詞データ形式** (監査台帳の誤記を 2026-11-10 訂正)。残る D1〜D6 はオーナー決定で、**D1 (歌詞形式) と D5 (`scoringVersion`) は決定まで実装を開始しない**。**代替既定値**があるため他 Issue は止まらない |
 | 56 | Infra AIエージェント開発環境再整備 | **B → Closed** | `mise.toml`, `skills-lock.json`, `evals/policy-evaluation/**` | 5/0/0 | — | **PR #267 merged → Issue Closed**。`mise install --locked` と `mise run skills-check` が exit 0 (27 Skill 一致) |
 | 58 | 検証 カタログ合成(30曲)+再生クロック | **B → 実機証跡 追加** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs`, `docs/evidence/58-select-screen/` | **3/1/1** | Windows 実機 (映像 / A-V 同期 / Retry) | **PR #290 merged** — macOS 実ディスプレイ全画面 (2560×1664) で **2 曲 (ツイッターランド / 一龠) を完走**。両曲 `pass=31 fail=0` / `songEndState=Completed` / `forcedByDeadline=False` / `scene=ResultScene` / `judged == settled == chartNotes` (130/130, 191/191)。**YouTube 映像の視認・A/V 同期・Retry・選曲可 26 曲すべての完走は未検証** (Issue の「30 曲」前提は stale → 選曲可 26 曲) |
 | 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
@@ -96,7 +97,7 @@
 | 96 | Unity/P1 Title/Result/Option/Opening 崩れ | **B** | `Assets/Game/Scripts/UI/V5/UISizeProfile.cs`, `V6/Common/V6UiProfile.cs:73-75` | 2/1/2 | Windows 実機 | 1024×768 / 1280×720 の実機撮影が未取得 |
 | 98 | Web 既存曲メタ編集 + Publish 回復動線 | **A → 受入条件 3/3 充足 → Closed** | `web/src/lib/publish/draft.ts`, `web/pages/chart.server.ts`, `web/pages/chart.tsx` | **3/0/0** | (実ブラウザ 1 往復のみ未実施) | 実装 **PR #275 merged** (`5c46e12`) + ページ単位テスト **PR #307 merged** (`fe2acfc`, `web/pages/__tests__/chart.test.tsx` 7 本)。Vitest 432 / tsc 0 / vp check 0。**2026-11-10 に Closed**。未実施は実ブラウザでの publish → 失敗 → 復元の 1 往復のみ |
 | 118 | Update/P0 明示式アップデート | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/Update/UpdateFlowModel.cs`, `V6/Title/V6TitleLogic.cs`, `V6/Title/V6TitleView.cs` | **9/1/1** | Windows 実機 | **PR #273 で v6 Title に literal な「アップデートあり」バナーを実装** (pure ロジック `ShowUpdateAvailableNotice` / `UpdateNoticeTitle` / `UpdateNoticeHint` + `BuildUpdateNotice`)。既存 `UpdateChecker.Model` を再利用し検出経路は増やしていない。残りは 3 解像度の実機目視 |
-| 129 | Dev/Mac Desktop に独立 macOS アプリ | **B (配布物あり / ソース SHA 未決)** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/1/0 | オーナーの SHA 判断 | **訂正 (2026-11-10 再確認)**: `~/Desktop/FlashBeat-Mac/FlashBeat.app` は **存在する** (README は `0.1.0+fffc399` / commit `fffc399`)。以前の「`~/Desktop` に app が無い」は誤り。Issue が指す `b677f8f` ではないため、**どちらのソース SHA を正とするかが未決**。判断後にビルド + 配置 + README の SHA 更新を行う |
+| 129 | Dev/Mac Desktop に独立 macOS アプリ | **B (配布物あり / ソース SHA 確定待ち)** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/1/0 | オーナー承認後にビルド + 配置 | **訂正 (2026-11-10 再確認)**: `~/Desktop/FlashBeat-Mac/FlashBeat.app` は **存在する** (README は `0.1.0+fffc399` / commit `fffc399`)。以前の「`~/Desktop` に app が無い」は誤り。Issue が指す `b677f8f` のビルドは現存しない (`old/` の 54 個にも無い。唯一の 0.1.5 系は `old/FlashBeat-0.1.5-8e712b3.app`)。**オーナー推奨 = 最新展示候補と同一ソース SHA (`7af9242d`。現在の main `fd876534` との差はドキュメントと CI 設定のみ)** で macOS をビルドし、**既存 `FlashBeat.app` を上書きせず** `FlashBeat-0.1.22-7af9242d.app` として併置、切替はオーナー操作。**2026-11-10 に併置済み** (`0.1.22+7af9242d` / 391 MB / 起動確認は未実施)。棚卸しと手順は [`../operations/spec-decisions-2026-11-10.md`](../operations/spec-decisions-2026-11-10.md) §4 |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
 | 135 | Registration/P0 ブラウザだけで新規曲登録 | **A → 検証済 (1 条件 Windows 実機待ち)** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | **5/0/1** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744359277)**: 6 条件を個別判定 → 5 充足 (実ブラウザで slug 重複検出・oEmbed 遮断下の videoId 抽出・譜面エディタ往復・publish 成功パネル・反映確認手順) / **条件 6 未検証** (Unity カタログへの実反映 = Windows 実機 + デプロイ済み API が必要) |
 | 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **A → 条件 1–5 充足 / 実機の豆腐 0 のみ未検証** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 5/0/1 | Windows 実機 | **展示 patch line の未適用は解消**: 展示候補が `main` `7af9242d` から生成され `4479114` を含む (`git merge-base --is-ancestor 4479114 7af9242d` 真)。**2026-11-10: macOS 実画面 3 枚を実読して豆腐 0 を確認** (`docs/evidence/140-font-code-strings.md` §5, 条件 5)。Windows 実機の豆腐 0 のみ未検証 |
@@ -104,9 +105,9 @@
 | 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **A → EditMode 実装分充足 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (17 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-ui-acceptance.md` | **1/0/3** | Windows 実機 | **PR #304 merged** — 契約表に Loading / Result Ranking の 2 行、F2/F6〜F8/F10/F15〜F17 の EditMode テスト 9 件、手順書を v6 UI 既定で全面差し替え。**EditMode 1322/1322 passed** (macOS, Unity 6000.5.6f1)。残 = **Win64 実機の一循環のみ** **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
 | 182 | Game/P1 判定キュー再設計 | **A** | `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` | 2/0/1 | — | **PR #256 merged → Issue Closed** (受入条件 5 項目すべて充足) |
 | 217 | P0/v6 Pencil UI 並列移植 (umbrella) | **D** | `Assets/Game/Scripts/UI/V6/**` | 1/1/2 | Windows 実機 + 子 Issue | 子 (#219–#241) の完了待ち |
-| 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B → 統合 owner が方式を確定 (2026-11-10)** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72`, 3D 側は PR #263 | 2/2/1 | Windows 実機 (3 解像度の画像比較) | **統合 owner の決定**: 展示 (11/14) の正は **3D プレイフィールド** (PR #263 でカメラ基準 z スケール + レーンガイドを復元)。`V6UiMode.Playfield` は **false のまま** (v6 canvas 版はコードとして main に残置し、展示後に実機証跡付きで再評価)。`GameScene.unity` の `Lane` は **シーン編集せず**、#263 の実行時生成ガイドを使う。残るのは 3 解像度の実機画像比較 (Windows) |
+| 219 | P0/v6 Game 8レーン遠近法プレイフィールド | **B → 統合 owner が方式を確定 (2026-11-10)** | `Assets/Game/Scripts/UI/V6/Game/Playfield/V6PlayfieldView.cs`, `V6LaneGeometry.cs:45,66,72`, 3D 側は PR #263 | 2/2/1 | Windows 実機 (3 解像度の画像比較) | **統合 owner の決定**: 展示 (11/14) の正は **3D プレイフィールド** (PR #263 でカメラ基準 z スケール + レーンガイドを復元)。`V6UiMode.Playfield` は **false のまま** (v6 canvas 版はコードとして main に残置し、展示後に実機証跡付きで再評価)。`GameScene.unity` の `Lane` は **シーン編集せず**、#263 の実行時生成ガイドを使う。残るのは 3 解像度の実機画像比較 (Windows)。**2026-11-10 オーナー再確認**: 展示時の 3D 維持で確定、v6 Canvas 版は **展示後の未完了要求として保持** (クローズしない) |
 | 221 | P0/v6 Select 3カラム View 再実装 | **A** | `Assets/Game/Scripts/UI/V6/Select/View/V6SelectView.cs` | 4/0/1 | — | クローズ提案可 |
-| 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装済 / 実機未検証** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547` | **6/1/1** | Windows 実機 | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**。Issue の「45 曲」前提は古く、「45 曲以上を満たす」ことが要求なら未実装 = **オーナー決定事項**)。残りは実機の Ready 連打操作と検索/絞り込みの実機確認 |
+| 222 | P0/v6 Select 実カタログ/検索/Ready 結線 | **A → 実装完了 (受入待ち)** | `Assets/Game/Scripts/UI/SelectSceneManager.cs:53`, `V6/Select/Data/V6SelectDataSource.cs:547`, `Assets/Tests/Editor/SongCatalogScalabilityTests.cs` | **6/1/1 → 6/0/1** | Windows 実機 (条件 7 の選曲→Game 遷移 / Ready 連打 / 検索の実操作) | **PR #272 merged**: (1) `SelectSceneTransitionGuard` により Ready 連打で遷移が二重に走らない (解除は選曲画面へ戻った時と開始失敗時の 3 箇所)、(2) `SongCatalogSelectionTests` でカタログの不変条件を固定 (7 並列配列 × **29 エントリ** / 選曲可 **26 曲**)。**2026-11-10 オーナー採用**: 「45 曲以上」は **実曲数ではなく選曲機能のスケーラビリティ要件**として扱い、実カタログは増やさない。`SongCatalogScalabilityTests` (60 件の合成カタログ / 18 テスト) を追加し **EditMode 1419/1419** で緑。条件 4 の「45 曲以上」は充足 (合成 60 件で検索 / スクロール / Ready 可否を固定。**ドットレールは 54 曲が上限**で 60 曲ではパネルからはみ出す = 設計判断待ちの残課題)。残るのは **条件 7 (実機の選曲→Game 遷移)** と Ready 連打・検索の実操作確認 |
 | 223 | P0/v6 Integration 排他統合+実Win64 | **D** | — (統合ゲート) | 0/1/3 | Windows 実機 + Unity Editor 単独所有者 | #219–#222 の統合 + Win64 1 曲完走 |
 | 224 | P1/v6 Game Pause + ローディング | **A** | `Assets/Game/Scripts/UI/V6/**` (Pause/Loading), `Assets/Game/Tests/V6PauseRuntimeTests.cs` 等 | 4/0/1 | — | クローズ提案可 (`specs/224` 1 タスクは Supervisor 実行) |
 | 225 | NoteEditor/P1 曲切替で旧曲ノーツ混入 | **A → 受入条件 7/7 充足** | `Assets/NoteEditor/Scripts/Model/EditDataSerializer.cs` (650daa6), `FlashBeatSong/SongSwitchCoordinator.cs`, `NoteCanvas/NoteEditDirtyTracker.cs`, `Assets/Editor/NoteEditorSongSwitchProbe.cs` | **7/0/0** | — | **PR #252 merged** (`39ba1bd`) + **PR #287 merged** — Mac の Unity Editor batchmode で本番経路を実行し **4/4 ケース PASS** (未保存 / キャンセル / 保存 / 破棄)。曲 A・B の size + SHA-256 で「別曲の JSON を上書きしない」ことを実測。証跡 = `docs/evidence/225-editor-song-switch/` |
@@ -1124,7 +1125,7 @@
 | 8 | 制約: 本 issue では実装・修正を行わない / Windows 実機は触らない | 充足 (運用) | 本 Issue の性格 |
 
 - **未検証の区別**: **本 Issue は純粋な受入確認 Issue であり、判定の主角は「実装が動いているか」ではなく「受入記録が残っているか」**。4 機能とも EditMode テストは緑だが、**Issue 本文 196 行目が求める「実機起動での画面と挙動の確認」が 4 機能とも未実施**。代替 = EditMode 緑のみ。
-- **依存**: #30 の仕様確定。**#30 が E (判定不能) のため、HOLD の判定ルール (先頭/終端の 2 判定か連続保持 1 判定か) は受入基準が未確定** → #59 の OK/NG 判定も現状出せない。
+- **依存**: ~~#30 の仕様確定~~ → **解消済み (2026-11-10 訂正)**。HOLD の判定規則は #164 で凍結されており、#59 の HOLD 行は `specs/164-long-note/spec.md` を基準に OK/NG を出せる。残るのは **Windows 実機での演奏確認**のみ (HOLD の実曲演奏は #278 の範囲)。
 
 ### #278 — Gameplay HOLD ノーツが全譜面に存在しない
 
@@ -1192,16 +1193,23 @@
   - 一部の方向性は既に main に反映: HOLD 採用 (`contracts/schemas/chart.v1.schema.json` の `type: [1,2]`、`LongNote.cs`)、キー案内の単一正本化 (`KeyBindings.cs:23`, `4c55d31`)、歌詞同期 (`LyricsTimeline.cs`)
 - **未確定事項 (Issue 本文が明示)**:
 
-| # | 未確定ポイント | 何が決めれば決まるか |
+**HOLD の 4 項目は #164 で凍結済み (Issue CLOSED)。ここを「未確定」と書いていたのは誤記** (2026-11-10 訂正)。
+
+| 凍結済み (Issue #164 / `specs/164-long-note/spec.md`) | 確定内容 |
+|---|---|
+| HOLD の判定方式 | **先頭 1 判定 + 終端で離す (2 判定方式)**。保持中は連続評価しない |
+| 離す許容幅 | 終端の Great 幅 **±0.15 秒** (早期リリース・保持継続の両方向) |
+| 途中で離した場合 | 即 **BAD (コンボ維持) / 押し直し不可**。`maxScore = note 数 x 5` を変えない |
+| データ形式 | **新フィールド不要**。`notes[].type` を `1` = Tap / `2` = HOLD に拡張し、HOLD のときだけ `endNum` |
+
+| # | 未確定ポイント (D 番号は `docs/ui/issue-30-spec-decisions.md` と同一) | 何が決めれば決まるか |
 |---|---|---|
-| 1 | HOLD の判定は「先頭・終端の 2 判定」か「連続保持 1 判定」か。離すタイミングの許容幅 (`:116`) | オーナーの判定仕様。**点数計算とコンボ寄与に直結するため実装 Worker が決められない** (`:186` 「未合意の仕様を実装担当が勝手に確定しない」) |
-| 2 | 途中でキーを離したときの判定、押し直しの可否、同レーン別キーへの持ち替え (`:117`) | 同上 |
-| 3 | スコアと最大コンボへの寄与、混在時の 100 万点算出、既存ランキングとの区分 (`:118`) | 同上。**ランキング互換にも影響** (`:176`) |
-| 4 | 既存 JSON `{type,num,block,LPB}` に拡張フィールドを足すか v2 にするか (`:119`) | 契約 versioning 方針。**Issue 119 行目「勝手にデータ形式を確定しない」** |
-| 5 | 歌詞の最小データ形状とタイミング単位 (秒/ms) (`:131`, `:190`) | 契約 + 移行方針。既存 `lyrics:{startTime,mondai,endTime,furigana,romaji}` と `_text.json` の段階移行 |
-| 6 | 歌詞の表示単位 (1 行/複数行)、同期補正、間奏中の表示、歌詞なし HUD レイアウト (`:133`) | デザイン + UX 決定 |
-| 7 | ガイドの表示位置・開閉操作・JIS/US キーマップ・本番デフォルト (`:151`) | Pen デザインとの調整。`:189` の「確認したい設計判断」 |
-| 8 | Pen デザインのファイル/フレームへの参照と優先順位 (`:192`) | オーナーの .pen 確定 |
+| **D1** | **歌詞の正式データ形式** (`lyrics?: [{startMs,endMs,text}]` へ統一するか) と既存 `lyrics:{startTime,mondai,endTime,furigana,romaji}` / `_text.json` の移行方針 (`:131`, `:190`) | 契約 + 移行方針。**決定まで新形式の実装を開始しない**。既存ブロックを正本のまま使う |
+| **D2** | 歌詞の表示仕様 (1 行/複数行、間奏中、歌詞なし曲の HUD レイアウト) (`:133`) | デザイン + UX 決定 |
+| **D3** | キーガイドの仕様 (表示位置・開閉・JIS/US・本番デフォルト) (`:151`) | Pen デザインとの調整 |
+| **D4** | pen.dev デザイン正本の参照 (ファイル / フレーム / 優先順位) (`:192`) | オーナーの .pen 確定 |
+| **D5** | HOLD 混在譜面のランキング記録を `scoringVersion` で分けるか | 採点互換の判断。**決定まで `scoringVersion` を追加しない** |
+| **D6** | 既存 27 曲分の `furigana` / `romaji` を削除するか | 既存データの保持方針 (推奨: 保持し、新規作成分のみ作らない) |
 
 - **受入条件 (Issue 本文 180–186 行目の運用ルール)**:
 
@@ -1715,8 +1723,8 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
   - **#58**: 「**30 曲全部**」の基準が現状と不一致 (`GManager` の 7 並列配列は 29 エントリ、`totalSong = ActiveSongs.Length - 1` = 28、`ニセモノ` 2 件は `UnplayableTitles` で選曲不可)。**Issue の基準自体の更新**が必要
   - **#22**: `docs/operations/release-approval-checklist.md` のチェックボックスが**全項目未記入**。`docs/operations/festival-runbook.md` §4 の 1280×720 スモーク 10 項目も未記入
 - **DoD**: 各 Issue に「機能ごとの OK / NG / 未検証 の判定表 + 根拠ファイル:行 + スクリーンショットパス」が残り、NG は起票記録がある
-- **注意**: #59 の OK/NG 判定は **#30 の HOLD 判定仕様が未確定 (E 判定)** のため、**HOLD 1 項目だけは判定を出せない**。残りは先行して記録してよい
-- **依存**: #30 の仕様確定待ちは #59 の HOLD 行のみ
+- **注意**: ~~#30 の HOLD 判定仕様が未確定なため HOLD 1 項目だけ判定できない~~ → **誤記 (2026-11-10 訂正)**。HOLD 判定は #164 で凍結済みで、#59 の HOLD 行は判定できる。残るのは Windows 実機の演奏確認
+- **依存**: #30 の仕様確定待ちは **解消済み**。残るオーナー決定は D1〜D6 (歌詞形式 / 歌詞表示 / キーガイド / pen 正本 / `scoringVersion` / 既存ふりがな)
 
 ---
 

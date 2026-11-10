@@ -23,6 +23,9 @@ FlashBeat の展示・リリース・クラウド運用に関する文書の一�
 | [`d1-migrations.md`](d1-migrations.md) | 開発者 | D1 のスキーマ（3 テーブル）、migration ファイル、ローカル / リモートの適用手順、制約、テスト | スキーマを変えるとき、公開カタログが壊れたとき |
 | [`ci-pr-gate.md`](ci-pr-gate.md) | 開発者 + レビュー担当 + オーナー | PR で走る検証と走らない検証 (Unity は PR では走らない)、ライセンス不要の `verify` / `web`、Unity ビルドの責任範囲、緑の PR の読み方 | PR を出す・レビューするとき、CI が赤い/空のとき |
 | [`production-api-acceptance.md`](production-api-acceptance.md) | 開発者 + オーナー（承認者） | 本番環境での公開 API 受け入れ（#73 / #135）の実施条件。変更するデータ、復旧方法、必要権限、手順、やらないこと | 本番で書き込みを伴う受け入れを行うか判断するとき |
+| [`spec-decisions-2026-11-10.md`](spec-decisions-2026-11-10.md) | オーナー + 開発者 | 受入フェーズの仕様判断の整理: #30 (HOLD は #164 で凍結済み / D1 は歌詞形式 / D1・D5 は決定まで実装しない)、#222 (45 曲はスケーラビリティ要件)、#219 (展示は 3D)、#129 (Mac アプリの棚卸しと同一 SHA 併置) | 「この仕様は決まっているのか」を確認するとき、実装を始めてよいか判断するとき |
+| [`issue-241-vs-343-display-settings.md`](issue-241-vs-343-display-settings.md) | オーナー + 開発者 | Display 設定 (Key Guide / Lyrics) の寿命について #241 の記述と #343 の実装が矛盾している件。影響範囲と 2 案の差分 (未決定・コード変更なし) | 表示設定の永続化をどうするか決めるとき |
+| [`windows-machine-availability-2026-11-10.md`](windows-machine-availability-2026-11-10.md) | オーナー + 開発者 | Herdr 経由で到達できる Windows 機の読み取り専用調査結果。**`device-windows` は展示 PC と同一の可能性が高い** (引き継ぎ文書 + 実機ログの GPU 一致) ため、同一性の確認が取れるまで接続・操作しないこと、画面キャプチャで証明できる項目とできない項目 | Windows 実機の受入をどこで行うか決めるとき |
 
 ---
 
