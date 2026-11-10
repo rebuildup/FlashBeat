@@ -190,38 +190,54 @@ public class AutoTestV6 : MonoBehaviour
             yield return new WaitForSecondsRealtime(1.5f);
             Check("the playback started", music.PlaybackStarted);
 
+            // 曲が終わってから撮ると 05-gameplay が取れない (短い疎な譜面で
+            // 密区間の待機中に曲が終わると、シーン確認ごと失敗する)。
+            // 先に **再生中** のゲーム画面を撮ってから密区間を探す
+            // (PR #263 レビュー)。
+            yield return CaptureGameplay("05-gameplay");
+
             // Issue #233: 譜面が疎な区間 (先頭) で撮るとノートが画面に 1 枚も
             // 出ない。曲に依存しない方法として「実際にカメラに写っている
             // ノーツが 3 枚以上あり、手前 (z <= 5.5) まで入るまで待つ」ので、
             // どの曲でも白い帯 (ノート) が見える状態で撮れる。
             yield return WaitForDenseNotes(3, 30f);
-            int visibleNotes = lastVisibleNotes;
-            float nearestZ = lastNearestZ;
+            // 1 枚目のノート数は 2 枚目の比較のために **別に保持** する
+            // (上書きすると「2 枚目が 1 枚目より密か」を判定できない)。
+            int firstVisibleNotes = lastVisibleNotes;
+            float firstNearestZ = lastNearestZ;
             float farthestZ = lastFarthestZ;
             Check("the media clock advances", music.MediaTimeNow > 0f);
             Debug.Log("[AutoTestV6] media time at capture = " + music.MediaTimeNow.ToString("F2")
-                + " visible notes = " + visibleNotes
-                + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
+                + " visible notes = " + firstVisibleNotes
+                + " z range = " + firstNearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
             // 密区間に到什么能否は **譜面に依存する** ので、失敗にはしない
             // (PR #263 レビュー S5: 曲によって必ず失敗する断言は自動テストの
             // 信頼性を下げる)。soft な記録として残す。
-            CheckSoft("the capture lands in a dense chart region (soft)", visibleNotes >= 3);
+            CheckSoft("the capture lands in a dense chart region (soft)", firstVisibleNotes >= 3);
 
-            yield return CaptureGameplay("05-gameplay");
+            // 密区間に到達した最初の区間も撮る (Issue #233 の「白い帯が
+            // 並んでいる」証拠)。撮れなくても曲子には影響しない。
+            yield return CaptureGameplay("05a-gameplay-dense");
 
             // 5b. さらに **別の** 密区間まで進めて撮る (Issue #233)。
             // 1 枚目では手前のノートが HUD の歌詞パネルに隠れるため、
             // 「譜面の密区間にノートが並んでいる」ことが 2 枚目で確認できる。
             // 同じ区間だと同じ絵になるので、1 枚目より **ノート数が多い** 区間を待つ。
             // 待ちは上限つきの **短時間** (S5: 無制限に待たない)。
-            yield return WaitForDenseNotes(visibleNotes + 1, 15f);
-            visibleNotes = lastVisibleNotes;
-            nearestZ = lastNearestZ;
-            farthestZ = lastFarthestZ;
+            yield return WaitForDenseNotes(firstVisibleNotes + 1, 15f);
+            int secondVisibleNotes = lastVisibleNotes;
+            float secondNearestZ = lastNearestZ;
+            float secondFarthestZ = lastFarthestZ;
             Debug.Log("[AutoTestV6] media time at 2nd capture = " + music.MediaTimeNow.ToString("F2")
-                + " visible notes = " + visibleNotes
-                + " z range = " + nearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
-            CheckSoft("a denser chart region was found (soft)", visibleNotes >= 3);
+                + " visible notes = " + secondVisibleNotes
+                + " z range = " + secondNearestZ.ToString("F2") + " .. " + secondFarthestZ.ToString("F2"));
+            // 2 枚目の撮影条件は「1 枚目よりノートが多い」ことと
+            // 「手前 (z <= 5.5) まで入ること」。ただし **どちらも譜面依存** なので
+            // soft 判定にする (S5)。画像が撮れていても条件を満たさないことは
+            // ログで分かるようにしておく。
+            CheckSoft("the 2nd capture has more notes than the 1st (soft)",
+                secondVisibleNotes > firstVisibleNotes);
+            CheckSoft("the 2nd capture reaches the near field (soft)", secondNearestZ <= 5.5f);
             yield return CaptureGameplay("05b-gameplay-dense");
         }
 

@@ -133,10 +133,10 @@ public class MusicManager : MonoBehaviour
     /// <summary>再生が始まったか。</summary>
     public bool PlaybackStarted { get { return playbackStarted; } }
 
-    /// <summary>映像播放器が再生中か。</summary>
+    /// <summary>映像プレーヤーが再生中か。</summary>
     public bool VideoPlaying { get { return songVideo != null && songVideo.isPlaying; } }
 
-    /// <summary>映像播放器の準備完了状態。</summary>
+    /// <summary>映像プレーヤーの準備完了状態。</summary>
     public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
 
     /// <summary>
@@ -852,7 +852,22 @@ public class MusicManager : MonoBehaviour
 
         if (playbackStarted && !mediaEnded)
         {
-            if (songVideo != null && songVideo.isPrepared && !songVideo.isPlaying) songVideo.Play();
+            if (songVideo != null && songVideo.isPrepared)
+            {
+                // Issue #233: 映像の準備が **期限切れ** になったあとに完了する
+                // ことがある (準備待ちを抜けた後に prepare が終わる)。その場合
+                // 曲開始時点では映像プレーンが未配線で、ポーズ解除時に
+                // 再生しても **画面には出ない**。再開のタイミングで
+                // プレーンを配線・有効化してから再生する。
+                // フレーム準備前は隠すのは Update 側の
+                // VideoPicture.ShowWhenFrameReady が担う。
+                if (!picturePlaneActive)
+                {
+                    WireVideoPicture();
+                    picturePlaneActive = VideoPicture.Activate(songVideo);
+                }
+                if (!songVideo.isPlaying) songVideo.Play();
+            }
             if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null &&
                 streamAudioPlayer.isPrepared && !streamAudioPlayer.isPlaying)
             {
