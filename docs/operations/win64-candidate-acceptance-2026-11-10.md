@@ -21,7 +21,7 @@
 |---|---|
 | ZIP | `FlashBeat-0.1.22-win64-7af9242d.zip` (274,849,480 bytes) |
 | SHA-256 | `33acd1069987694549f5f594dc910b6de79eada51cee5514378cf13b6bdb7a01` |
-| ソース SHA | `7af9242d9ca9d580ad5078f085973a72120e5085` (`origin/main` — PR #339〜#344 merge 後) |
+| ソース SHA | `7af9242d9ca9d580ad5078f085973a72120e5085` (`origin/main` — PR #339〜#344 merge 後。PR #345 / #346 は**ドキュメントのみ**でこの候補のバイナリを変えない) |
 | Application.version | `0.1.22+7af9242d` (ZIP 内 `FlashBeat_Data/globalgamemanagers` に埋まっていることを確認済み) |
 | version.json | `version=0.1.22` / `tag=v0.1.22-win64-7af9242d` / `mediaPolicy=song-free` / `buildSha` 一致 |
 | 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt`) |
