@@ -20,7 +20,7 @@ namespace FlashBeat.Gameplay
     /// そこで **シーンアセット (GameScene.unity) を触らず**、実行時に
     /// レーン境界のガイド線 (8 レーン = 9 本) を生成してレーン構造を出す。
     /// 設計上は v6 遠近法プレイフィールドのレーン線 (白 #FFFFFF2E) と同じ
-    /// 「线的で.video の上に乗る」表現にしてある。
+    /// 「線として video の上に乗る」表現にしてある。
     ///
     /// 起動は <see cref="V6PlayfieldRuntime"/> と同じ
     /// RuntimeInitializeOnLoad + sceneLoaded の方式 (シーンにコンポーネントを

@@ -69,7 +69,7 @@ GameScene.unity:2832  m_Name: Lane
      `Assets/Game/Scripts/Gameplay/MediaTimeline.cs`。
    - 合意の記録 (日時 / 合意者 / 対象ファイル / 変更内容) を PR に残す。
    - **合意が得られるまで、5 ファイルとシーンには一切手を触れない。**
-2. **`V6UiMode.Playfield` の再承認を请求する (オーナー判断)**
+2. **`V6UiMode.Playfield` の再承認を要請する (オーナー判断)**
    - `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` を `true` にする承認を得る。
    - owner rollback (2026-11-08) の経緯を PR に引用する。
 3. **描画コードの現状確認 (読み取り)**

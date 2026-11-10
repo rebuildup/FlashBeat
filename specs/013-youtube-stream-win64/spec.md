@@ -37,7 +37,7 @@ Issue 本文の陳腐化した要求 (**「download-to-local fallback なし」*
 
 - 新ゲーム UI・認証・編集ツール・オフラインメディア・新しい note type (Issue 本文 "No scope")。
 - `web/**` / API の変更 (Issue 本文 "No web/ or API changes")。
-- Invidious 経路の复活 (公開インスタンス 13 ホストが 0/13 で JSON を返さない。`YouTubeStreamResolver.cs:67-91` に理由記載 / `MusicManager.cs:557` `DisableInvidiousPlayer` で除去済)。
+- Invidious 経路の復活 (公開インスタンス 13 ホストが 0/13 で JSON を返さない。`YouTubeStreamResolver.cs:67-91` に理由記載 / `MusicManager.cs:557` `DisableInvidiousPlayer` で除去済)。
 - 曲エンド状態機械 (#226) と判定キュー (#182) の改修。
 - **`Assets/**` のコード変更** (本 spec はドキュメントのみ)。
 
@@ -48,7 +48,7 @@ Issue 本文の陳腐化した要求 (**「download-to-local fallback なし」*
 2. `mediaMode` / `audioMode` の判定根拠が Player.log に 1 行で残り、**「何が鳴っているか」を推測で埋められない**。
 3. 映像 (video track) と音声 (audio track) の **同期** が観測でき、note の描画位置・判定タイミングが
    音源の時刻に一致している (同期誤差の測定値が記録に残ること)。
-4. 起動遅延 (，选曲から音が出るまでの実測秒数) が記録に残ること。
+4. 起動遅延 (、選曲から音が出るまでの実測秒数) が記録に残ること。
 5. バッファリング / ストール時に `Time.time` の累積が再開せず、判定がずれない (EditMode の既存
    クロック契約 + 実機での observational 確認)。
 6. 同じ run で **select → 再生 → result → retry** が通ること (retry 後に再計測可能)。

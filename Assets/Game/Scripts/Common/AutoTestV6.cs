@@ -210,7 +210,7 @@ public class AutoTestV6 : MonoBehaviour
             Debug.Log("[AutoTestV6] media time at capture = " + music.MediaTimeNow.ToString("F2")
                 + " visible notes = " + firstVisibleNotes
                 + " z range = " + firstNearestZ.ToString("F2") + " .. " + farthestZ.ToString("F2"));
-            // 密区間に到什么能否は **譜面に依存する** ので、失敗にはしない
+            // 密区間に入るか否かは **譜面に依存する** ので、失敗にはしない
             // (PR #263 レビュー S5: 曲によって必ず失敗する断言は自動テストの
             // 信頼性を下げる)。soft な記録として残す。
             CheckSoft("the capture lands in a dense chart region (soft)", firstVisibleNotes >= 3);

@@ -74,7 +74,7 @@ namespace FlashBeat.UI.V6.Select
         /// <summary>読み込み中か。</summary>
         bool IsLoading { get; }
 
-        /// <summary>読み込み/取得エラー有没有。true のときは StatusMessage に理由が入る。</summary>
+        /// <summary>読み込み/取得エラーの有無。true のときは StatusMessage に理由が入る。</summary>
         bool HasError { get; }
 
         /// <summary>画面に出す状態メッセージ (空文字なら表示なし)。</summary>

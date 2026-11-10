@@ -41,7 +41,7 @@ using FlashBeat.UI.V6.Select.View;
 ///
 /// HOLD の「保持」フェーズは判定が **Input.GetKey (実キーの押下状態)** を
 /// 読むため、キー注入 (KeyBindings.InjectKeyDown) だけでは保持できない。
-/// 実機では「キーを押した状態」を作，考试の 3 段階を観測する。
+/// 実機では「キーを押した状態」を作り、試験の 3 段階を観測する。
 /// macOS ではハーネス (シェル) 側の CGEvent が、そのキーを実際に押す
 /// (スクリプト script/mac-holdprobe-harness.sh)。
 /// </summary>
@@ -663,7 +663,7 @@ public class AutoTestV6Hold : MonoBehaviour
     }
 
     /// <summary>
-    /// そのレーンで押せるキー对应的 macOS 仮想キーコード。
+    /// そのレーンで押せるキーに対応する macOS 仮想キーコード。
     /// 既定の割り当てで英字を含むレーン (A / D / H) だけを Corresponding キーとして使う。
     /// そのレーンに対応キーが無いときは -1 (押下なし = キー注入のみ)。
     /// </summary>

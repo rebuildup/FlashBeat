@@ -75,8 +75,8 @@ public class LoadingOverlay : MonoBehaviour
     TMP_FontAsset font;
 
     // unscaled 時間で駆動する状態機械
-    float requestedAtRealtime = -1f; // 最初の Show の时刻 (表示前の遅延計測)
-    float shownAtRealtime = -1f;     // 実際に見え始めた时刻 (最短表示の計測)
+    float requestedAtRealtime = -1f; // 最初の Show の時刻 (表示前の遅延計測)
+    float shownAtRealtime = -1f;     // 実際に見え始めた時刻 (最短表示の計測)
     float progressValue = -1f;       // -1 = 不定 (スウィープ表示)
     bool fadingOut;
 

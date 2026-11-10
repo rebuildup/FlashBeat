@@ -42,7 +42,7 @@ cd /Users/rebui/work/FlashBeat.w225
   - `FlashBeatSongLoader` (公開入口 `OnFileSelected` / 本体 `LoadSongFile`)
   - `SongSwitchCoordinator` (本番の `RequestSwitch` → `Complete`)
   - `SongSwitchPromptDialog` (本番の `ISongSwitchPrompt` 実装。`Choose()` は
-    本クラスが「ボタン押下 / テストからの注入」用として公开している注入点)
+    本クラスが「ボタン押下 / テストからの注入」用として公開している注入点)
   - `ChartFileWriter.SaveCurrentSong` (本番の保存先 = `Assets/Game/Resources/<編集中の曲名>.json`)
   - `EditDataSerializer` (本番の Deserialize / Serialize)
   - `EditNotesPresenter` + `NoteEditDirtyTracker` (本番の編集操作 → dirty 検知)

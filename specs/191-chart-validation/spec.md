@@ -134,7 +134,7 @@ Workers ランタイムは `new Function` を禁じるため、API 側 Ajv を�
 
 `loadSongSession` は `importChartJson` を使うので、共有 validator への
 切り替えにより **自動的に** 同じ判定になる。ただし **lenient モード**を
-ここに接线する検討は `web/src/lib/song-session/**` の排他所有なので触っていない。
+ここに配線する検討は `web/src/lib/song-session/**` の排他所有なので触っていない。
 → follow-up: 「公開済み譜面の lenient 読み込みを song-session に接続する」。
 
 ### K3 — 既に公開済みの不整合譜面の **実データ** は触らない

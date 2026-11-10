@@ -105,7 +105,7 @@ namespace FlashBeat.UI.V5
         /// <summary>
         /// Key Layout 行の表示値 (Issue #167)。
         /// 以前は PlayerPrefs のキー有無だけで判定していたため、
-        /// 実際の割り当て (設定ファイル) と食い違って「標準」と出过。
+        /// 実際の割り当て (設定ファイル) と食い違って「標準」と出ていた。
         /// 現在の割り当てと既定値を比較して判定する。
         /// </summary>
         public static string KeyLayoutLabel()

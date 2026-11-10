@@ -113,7 +113,7 @@ function Get-ExecutableFromPath {
 function Test-ZipMagic {
     param([string]$Path)
 
-    # ZIP かどうか切实に判定する (拡張子 .zip でも中身が tar なら false)。
+    # ZIP かどうか確実に判定する (拡張子 .zip でも中身が tar なら false)。
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
     $stream = [System.IO.File]::OpenRead($Path)
     try {
