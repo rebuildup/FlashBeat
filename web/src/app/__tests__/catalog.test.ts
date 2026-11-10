@@ -59,6 +59,15 @@ describe("loadCatalog", () => {
     expect(headers?.accept).toBe("application/json");
   });
 
+  it("キャッシュを使わない (サーバと同じ no-store)", async () => {
+    const fetchMock = stubJsonResponse(contractAnswer);
+
+    await loadCatalog("loading");
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options?.cache).toBe("no-store");
+  });
+
   it("曲リストが空の答えでも成功する", async () => {
     stubJsonResponse({ catalogVersion: 0, songs: [] });
 

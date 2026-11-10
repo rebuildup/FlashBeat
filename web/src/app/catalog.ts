@@ -39,6 +39,9 @@ export async function loadCatalog(
 
   const response = await fetch("/api/v1/catalog", {
     headers: { accept: "application/json" },
+    // サーバは Cache-Control: no-store を出力している (web/routes/api/v1/catalog.ts)。
+    // クライアント側も同じ指示を出し、他のクライアントと一貫させる。
+    cache: "no-store",
     signal: options.signal,
   });
   if (!response.ok) {
