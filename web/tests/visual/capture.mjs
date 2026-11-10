@@ -29,6 +29,7 @@ const OUT_DIR = path.join(HERE, "out");
 const ROUTES = [
   { name: "home", path: "/" },
   { name: "chart", path: "/chart?songId=who&version=1", waitFor: "canvas" },
+  { name: "new-song", path: "/new-song" },
   { name: "publish", path: "/publish" },
 ];
 
