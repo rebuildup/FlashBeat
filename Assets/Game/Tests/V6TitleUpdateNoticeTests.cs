@@ -174,4 +174,51 @@ public class V6TitleUpdateNoticeTests
         Assert.AreEqual(V6TitleLogic.TabsPos.x, V6TitleLogic.UpdateNoticePos.x);
         Assert.AreEqual(V6TitleLogic.TabsSize.x, V6TitleLogic.UpdateNoticeSize.x);
     }
+
+    // --- 操作ボタンとの整合 (Issue #118 / #167) ---
+    //
+    // v6 タイトルは「状態」(バナー) と「操作」(ヘッダーの更新ボタン) を別要素で出す。
+    // 操作ボタンはバナーが dismiss されても残るので、押したときに実行できる操作が
+    // 無い状態 (= 押しても何も起きないボタン) を作ってはいけない。
+
+    [Test]
+    public void UpdateAction_IsAvailableWheneverTheButtonCanAct()
+    {
+        MakeAvailable();
+        Assert.IsTrue(V6TitleLogic.ShowUpdateButton(model.Phase));
+        Assert.AreNotEqual(FlashBeat.UI.UpdateNoticeAction.None,
+            FlashBeat.UI.UpdateNoticePresenter.ResolveUserAction(model));
+
+        model.BeginDownload();
+        model.DownloadSucceeded();
+        Assert.AreEqual(FlashBeat.Update.UpdateFlowPhase.Ready, model.Phase);
+        Assert.IsTrue(V6TitleLogic.ShowUpdateButton(model.Phase));
+        Assert.AreNotEqual(FlashBeat.UI.UpdateNoticeAction.None,
+            FlashBeat.UI.UpdateNoticePresenter.ResolveUserAction(model));
+    }
+
+    [Test]
+    public void UpdateAction_StillWorksAfterTheBannerIsDismissed()
+    {
+        MakeAvailable();
+        model.Dismiss();
+
+        Assert.IsFalse(V6TitleLogic.ShowUpdateAvailableNotice(model), "バナーは閉じている");
+        Assert.IsTrue(V6TitleLogic.ShowUpdateButton(model.Phase), "操作ボタンは残る");
+        Assert.AreEqual(FlashBeat.UI.UpdateNoticeAction.Download,
+            FlashBeat.UI.UpdateNoticePresenter.ResolveUserAction(model),
+            "バナーを閉じただけで更新操作まで殺してはいけない");
+    }
+
+    [Test]
+    public void UpdateAction_IsNoneWhileDownloading()
+    {
+        // Downloading 中は進捗表示のみ。ボタンは非活性で、再押下で二重に開始しない。
+        MakeAvailable();
+        model.BeginDownload();
+
+        Assert.IsTrue(V6TitleLogic.ShowUpdateButton(model.Phase));
+        Assert.AreEqual(FlashBeat.UI.UpdateNoticeAction.None,
+            FlashBeat.UI.UpdateNoticePresenter.ResolveUserAction(model));
+    }
 }

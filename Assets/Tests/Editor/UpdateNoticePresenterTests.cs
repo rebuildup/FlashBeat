@@ -130,9 +130,45 @@ public class UpdateNoticePresenterTests
         MakeReady();
         model.Dismiss();
         Assert.AreEqual(UpdateNoticeAction.None, UpdateNoticePresenter.ResolveAction(model),
-                       "dismiss した後は更新しない (押さない = 更新しない)");
+                       "dismiss した後は通知そのものを出さない (押さない = 更新しない)");
         // 状態 (staging) は保持される — 適用は別経路 (Option のボタン) から明示的に行える。
         Assert.AreEqual(UpdateFlowPhase.Ready, model.Phase);
+    }
+
+    // ── 明示操作 (v6 タイトルの「更新して再起動」ボタン) ─────────────
+    //
+    // dismiss (F4) は「このセッションは通知を出さない」だけで、更新を禁じる
+    // ものではない。v6 タイトルでは通知バナーと操作ボタンが別要素なので、
+    // dismiss 後にボタンを押しても効かなければ「押しても何も起きないボタン」
+    // になる (Issue #118 / #167)。
+
+    [Test]
+    public void ResolveUserAction_Available_IsDownloadEvenAfterDismiss()
+    {
+        MakeAvailable();
+        model.Dismiss();
+        Assert.AreEqual(UpdateNoticeAction.Download, UpdateNoticePresenter.ResolveUserAction(model));
+    }
+
+    [Test]
+    public void ResolveUserAction_Ready_IsApplyEvenAfterDismiss()
+    {
+        MakeReady();
+        model.Dismiss();
+        Assert.AreEqual(UpdateNoticeAction.Apply, UpdateNoticePresenter.ResolveUserAction(model));
+    }
+
+    [Test]
+    public void ResolveUserAction_NoneWhileDownloadingOrIdle()
+    {
+        Assert.AreEqual(UpdateNoticeAction.None, UpdateNoticePresenter.ResolveUserAction(model),
+                       "Idle では押しても何も起きない (ボタン自体が出ない)");
+        Assert.AreEqual(UpdateNoticeAction.None, UpdateNoticePresenter.ResolveUserAction(null));
+
+        MakeAvailable();
+        model.BeginDownload();
+        Assert.AreEqual(UpdateNoticeAction.None, UpdateNoticePresenter.ResolveUserAction(model),
+                       "Downloading 中は進捗表示のみ (再押下で二重に開始しない)");
     }
 
     // ── 文言 ─────────────────────────────────────────────────────
