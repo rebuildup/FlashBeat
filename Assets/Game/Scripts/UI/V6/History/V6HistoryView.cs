@@ -187,6 +187,17 @@ namespace FlashBeat.UI.V6.History
         /// <summary>「この曲へ」(選択中の曲を選曲へ送る。遷移は統合担当が決める)。</summary>
         public void TriggerGotoSong()
         {
+            // 統合担当 (OnV6GotoSong) は共有データソースの Selected を選曲画面の選択として使う。
+            // View のハイライトは Rebuild が決めるので、まだ一度も曲送りしていない
+            // (= data.Select を呼んでいない) 状態では data.Selected が空のままになり、
+            // 「この曲へ」で選曲画面に戻っても何も選ばれていない、という食い違いが起きる。
+            // 押した時点でハイライト中の曲をデータ層へ反映してから遷移要求を出す。
+            // (表示のたびに data を書き換えると #222 の「既定選択はしない」を壊すので、
+            //  ここ = 明示操作のときだけ同期する。)
+            if (selectedSongId >= 0)
+            {
+                data.Select(selectedSongId);
+            }
             if (onGotoSong != null)
             {
                 onGotoSong();
@@ -590,14 +601,16 @@ namespace FlashBeat.UI.V6.History
             At(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), FromHex("#FFFFFF1F"), 0f), 256f, 0f);
             At(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), FromHex("#FFFFFF1F"), 0f), 0f, 98f);
 
-            // Controls (skip-back / play / skip-forward): プレビュー再生の API が
-            // データソースに無いため装飾 (未実装は PR に記載、V6SelectView と同じ扱い)。
+            // Controls (skip-back / play / skip-forward): 実在する操作だけに結線する
+            // (V6SelectView と同じ規約。プレビュー再生のような新しい操作は作らない)。
+            // skip は履歴リストの曲送り (MoveSelection)、play はフッターの
+            // 「この曲へ」と同じ経路 (TriggerGotoSong)。
             var controls = V5Ui.Node(panel, "Controls");
             At(controls.GetComponent<RectTransform>(), 12f, 668f, 512f, 88f);
             // design (dRztp Controls): gap20 で中央寄せ → 56+20+72+20+56 = 224、開始 x = (512−224)/2 = 144
-            BuildControlButton(controls, "skip-back", 144f, 56f, 28f, 32f);
-            BuildControlButton(controls, "play", 210f, 72f, 36f, 36f);
-            BuildControlButton(controls, "skip-forward", 292f, 56f, 28f, 32f);
+            BuildControlButton(controls, "skip-back", 144f, 56f, 28f, 32f, () => MoveSelection(-1));
+            BuildControlButton(controls, "play", 210f, 72f, 36f, 36f, TriggerGotoSong);
+            BuildControlButton(controls, "skip-forward", 292f, 56f, 28f, 32f, () => MoveSelection(1));
         }
 
         /// <summary>
@@ -627,8 +640,9 @@ namespace FlashBeat.UI.V6.History
             valueRt.sizeDelta = new Vector2(200f, 44f);
         }
 
+        /// <summary>中央パネルの Controls 行のボタン 1 個分。実操作へ結線する (onClick null は作らない)。</summary>
         private void BuildControlButton(GameObject controls, string name, float x, float size, float radius,
-            float iconSize)
+            float iconSize, Action onClick)
         {
             // design (dRztp Controls): skip 56×56 r28 $k4 / play 72×72 r36 #EDEDED、
             // icon は skip 系 32 $text-muted、play 36 #1B1B1B。
@@ -637,7 +651,7 @@ namespace FlashBeat.UI.V6.History
                 new Vector2(x, (88f - size) * 0.5f), new Vector2(size, size),
                 isPlay ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key4, radius,
                 iconSize, isPlay ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted);
-            ConfigureButton(btn, null);
+            ConfigureButton(btn, onClick);
         }
 
         // --- 右列: プレイヤー情報 / プレイ情報 / 曲ランキング情報 ---
