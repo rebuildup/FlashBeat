@@ -327,14 +327,15 @@ namespace FlashBeat.UI.V5
             // GraphicRaycaster が有効なままだとレガシー側が v5 のボタンを横取りする。
             // GameHudController.DisableLegacyRaycastersIn (Update と同じ処理をシーン単位で
             // 抽出した公開静的関数) を、実際に作ったシーンで検証する。
-            var scene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(
-                UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,
-                UnityEditor.SceneManagement.NewSceneMode.Additive);
+            // EditMode では NewScene(Additive) が「未保存の untitled シーンがあると
+            // 追加シーンを作れない」で落ちる (batchmode では必ずそうなる) ため、
+            // プレビューシーンを使う。GameObject はアクティブシーンに作ってから
+            // EditorSceneManager.MoveGameObjectToScene で移す。
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
             try
             {
-                // 新規 GameObject はアクティブシーンに入るので、検査対象シーンへ移す。
                 var canvasGo = new GameObject("Legacy Canvas", typeof(Canvas), typeof(GraphicRaycaster));
-                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(canvasGo, scene);
+                UnityEditor.SceneManagement.EditorSceneManager.MoveGameObjectToScene(canvasGo, scene);
 
                 Assert.AreEqual(1, GameHudController.DisableLegacyRaycastersIn(scene),
                     "レガシー Canvas の GraphicRaycaster が無効化されていない (F2)。");
@@ -347,13 +348,13 @@ namespace FlashBeat.UI.V5
 
                 // Raycaster を持たない Canvas は数えない。
                 var plainGo = new GameObject("Plain Canvas", typeof(Canvas));
-                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(plainGo, scene);
+                UnityEditor.SceneManagement.EditorSceneManager.MoveGameObjectToScene(plainGo, scene);
                 Assert.AreEqual(0, GameHudController.DisableLegacyRaycastersIn(scene),
                     "GraphicRaycaster の無い Canvas を数えている。");
             }
             finally
             {
-                UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+                UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
             }
         }
 
