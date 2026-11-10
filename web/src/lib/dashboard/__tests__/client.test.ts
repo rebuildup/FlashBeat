@@ -88,7 +88,11 @@ describe("parseStats", () => {
 
   it("keeps the nullable fields of a song without a play", () => {
     const withoutPlays = structuredClone(statsAnswer) as {
-      perSong: { averageScore: number | null; bestScore: number | null; averageAccuracy: number | null }[];
+      perSong: {
+        averageScore: number | null;
+        bestScore: number | null;
+        averageAccuracy: number | null;
+      }[];
     };
     withoutPlays.perSong[0]!.averageScore = null;
     withoutPlays.perSong[0]!.bestScore = null;

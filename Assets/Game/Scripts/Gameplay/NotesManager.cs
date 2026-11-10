@@ -124,6 +124,11 @@ public class NotesManager : MonoBehaviour
     /// </summary>
     IEnumerator LoadRoutine(SongData song)
     {
+        // セッションの z スケールを確定する (PR #263 レビュー S7)。
+        // 生成・時刻復元・移動・HOLD の胴体長が同じ値を使うので、曲中に
+        // 速度オプションが変わってもノーツが飛びも復元値もずれない。
+        FlashBeat.Gameplay.MediaTimeline.BeginSession(GManager.noteSpeed);
+
         // Every run starts with an empty list: a retry must not keep the note
         // times of the previous attempt.
         GameSceneManager.SaveNotesTime.Clear();
@@ -158,7 +163,20 @@ public class NotesManager : MonoBehaviour
             times.Add(time);
             lanes.Add(note.block);
             types.Add(note.type);
-            positionsZ.Add(time * GManager.noteSpeed);
+            // The world z of a note is (noteTime - mediaTime) * zScale. The
+            // scale is the same one Notes uses to move the note and to recover
+            // its time, so the note reaches the judge line exactly at its own
+            // judge time (Issue #233). zScale is pinned to the camera, so the
+            // visible approach time is the designed 1.6 s at note speed 10.
+            //
+            // CurrentZScale is the single entry point for the scale
+            // (generation / recovery / movement must never read the note
+            // speed option directly - one note = one judgement).
+            //
+            // セッションごとに確定した値 (SessionZScale) を使う: 生成した
+            // 位置から時刻を復元するときも、移動するときも同じ値なので、
+            // 「判定する時刻」と「描画される時刻」がずれない。
+            positionsZ.Add(time * FlashBeat.Gameplay.MediaTimeline.SessionZScale);
             GameSceneManager.SaveNotesTime.Add(time);
 
             // ロングノーツの終端 (Issue #164)。タップは 0 (終端なし)。

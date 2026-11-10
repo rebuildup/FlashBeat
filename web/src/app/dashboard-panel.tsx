@@ -46,7 +46,11 @@ const page = css({
 const tiles = css({
   display: "grid",
   gap: "3",
-  gridTemplateColumns: { base: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))", xl: "repeat(6, minmax(0, 1fr))" },
+  gridTemplateColumns: {
+    base: "repeat(2, minmax(0, 1fr))",
+    md: "repeat(3, minmax(0, 1fr))",
+    xl: "repeat(6, minmax(0, 1fr))",
+  },
 });
 
 const tile = css({
@@ -320,7 +324,8 @@ export function DashboardPanel() {
   const orderedSongs = useMemo(() => {
     const bestScoreOf = (song: RankingSong) => song.entries[0]?.score ?? -1;
     return [...rankings].sort(
-      (a, b) => bestScoreOf(b) - bestScoreOf(a) || b.plays - a.plays || a.title.localeCompare(b.title),
+      (a, b) =>
+        bestScoreOf(b) - bestScoreOf(a) || b.plays - a.plays || a.title.localeCompare(b.title),
     );
   }, [rankings]);
 
@@ -370,7 +375,11 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={Trophy} title="Ranking" subtitle="Best score of the published chart." />
+              <Heading
+                icon={Trophy}
+                title="Ranking"
+                subtitle="Best score of the published chart."
+              />
             </div>
             <div className={panelBodyAuto}>
               {orderedSongs.length === 0 ? (
@@ -428,11 +437,7 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading
-                icon={Users}
-                title="Best players"
-                subtitle="Total score of every player."
-              />
+              <Heading icon={Users} title="Best players" subtitle="Total score of every player." />
             </div>
             <div className={panelBodyAuto}>
               {stats.topPlayers.length === 0 ? (
@@ -450,7 +455,9 @@ export function DashboardPanel() {
                       <div key={player.nickname} className={row}>
                         <div className={songCell}>
                           <span className={songTitle}>
-                            <span className={index === 0 ? rankBadgeFirst : rankBadge}>{index + 1}</span>{" "}
+                            <span className={index === 0 ? rankBadgeFirst : rankBadge}>
+                              {index + 1}
+                            </span>{" "}
                             {player.nickname}
                           </span>
                           <span className={songMeta}>{plural(player.plays, "play")}</span>
@@ -468,11 +475,7 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading
-                icon={ChartColumnBig}
-                title="Difficulty"
-                subtitle="Songs per level."
-              />
+              <Heading icon={ChartColumnBig} title="Difficulty" subtitle="Songs per level." />
             </div>
             <div className={panelBodyAuto}>
               {levelBars.distribution.length === 0 ? (
@@ -531,15 +534,7 @@ function Heading({
   );
 }
 
-function Tile({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-}) {
+function Tile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
   return (
     <div className={tile}>
       <span className={tileChip}>

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text.RegularExpressions;
 using FlashBeat.Gameplay;
 using NUnit.Framework;
 using UnityEngine;
@@ -54,38 +56,196 @@ public class PlaybackClockTests
     public void ANoteReachesTheHitLineExactlyWhenTheMediaReachesItsTime()
     {
         const float noteTime = 4.5f;
-        const float speed = 10f;
+        float zScale = MediaTimeline.ZScaleFor(10f);
 
-        Assert.AreEqual(0f, MediaTimeline.NotePositionZ(noteTime, noteTime, speed), 0.0001f);
-        Assert.Greater(MediaTimeline.NotePositionZ(noteTime, noteTime - 1f, speed), 0f);
-        Assert.Less(MediaTimeline.NotePositionZ(noteTime, noteTime + 1f, speed), 0f);
+        Assert.AreEqual(0f, MediaTimeline.NotePositionZ(noteTime, noteTime, zScale), 0.0001f);
+        Assert.Greater(MediaTimeline.NotePositionZ(noteTime, noteTime - 1f, zScale), 0f);
+        Assert.Less(MediaTimeline.NotePositionZ(noteTime, noteTime + 1f, zScale), 0f);
     }
 
     [Test]
     public void TheNotesDoNotJumpWhenTheSongStarts()
     {
         const float noteTime = 4.5f;
-        const float speed = 10f;
+        float zScale = MediaTimeline.ZScaleFor(10f);
 
-        // The NotesManager creates the note at z = noteTime * noteSpeed.
-        float initialZ = noteTime * speed;
-        Assert.AreEqual(initialZ, MediaTimeline.NotePositionZ(noteTime, 0f, speed), 0.0001f);
+        // The NotesManager creates the note at z = noteTime * zScale.
+        float initialZ = noteTime * zScale;
+        Assert.AreEqual(initialZ, MediaTimeline.NotePositionZ(noteTime, 0f, zScale), 0.0001f);
 
         // The note time is recovered from that position again.
-        Assert.AreEqual(noteTime, MediaTimeline.NoteTimeFromPositionZ(initialZ, speed), 0.0001f);
+        Assert.AreEqual(noteTime, MediaTimeline.NoteTimeFromPositionZ(initialZ, zScale), 0.0001f);
     }
 
     [Test]
     public void AStalledMediaClockHoldsTheNotesInsteadOfLettingThemRunAhead()
     {
         const float noteTime = 4.5f;
-        const float speed = 10f;
+        float zScale = MediaTimeline.ZScaleFor(10f);
 
-        float whileBuffering = MediaTimeline.NotePositionZ(noteTime, 2f, speed);
-        float whileBufferingLater = MediaTimeline.NotePositionZ(noteTime, 2f, speed);
+        float whileBuffering = MediaTimeline.NotePositionZ(noteTime, 2f, zScale);
+        float whileBufferingLater = MediaTimeline.NotePositionZ(noteTime, 2f, zScale);
 
         Assert.AreEqual(whileBuffering, whileBufferingLater, 0.0001f);
         Assert.Greater(whileBuffering, 0f);
+    }
+
+    /// <summary>
+    /// Issue #233: z スケールの決め方の契約。
+    ///
+    /// MediaTimeline の第 3 引数は「chart time 1 秒あたりのワールド z 移動量」
+    /// (zScale) であって、素の noteSpeed オプション **ではない**。
+    /// 変換は <see cref="MediaTimeline.ZScaleFor"/> が持ち、
+    /// 実運用の 3 箇所 (生成 / 時刻復元 / 移動) は
+    /// <see cref="MediaTimeline.CurrentZScale"/> 1 箇所から読む。
+    ///
+    /// 旧来の意味 (noteSpeed をそのまま z スケールにする) を保つ wrapper は
+    /// **残さない**: その解釈だとカメラ可視範囲 8.61 / 10 = 0.86 秒しか
+    /// 譜面が見えず、Issue #233 の直接原因そのものである。
+    /// </summary>
+    [Test]
+    public void TheZScaleComesFromTheCameraPinnedConversion()
+    {
+        float zScale = MediaTimeline.ZScaleFor(10f);
+
+        // ノーツ速度 10 のとき 1.6 秒 (設計意図) が画面に入る。
+        Assert.AreEqual(MediaTimeline.ApproachSecondsAtSpeed10,
+            MediaTimeline.VisibleDepthZ / zScale, 0.0001f);
+
+        // 速度に比例する (速い = 同じ画面距離を速く移動)。
+        Assert.AreEqual(zScale * 2f, MediaTimeline.ZScaleFor(20f), 0.0001f);
+        Assert.AreEqual(zScale * 0.5f, MediaTimeline.ZScaleFor(5f), 0.0001f);
+
+        // 0 や負の速度でも破綻しない (軸が反転しない)。
+        Assert.Greater(MediaTimeline.ZScaleFor(0f), 0f);
+        Assert.Greater(MediaTimeline.ZScaleFor(-3f), 0f);
+    }
+
+    /// <summary>
+    /// 実運用が使うスケールは <see cref="MediaTimeline.CurrentZScale"/> 1 箇所から
+    /// 来る (生成・復元・移動で同じ値)。
+    /// </summary>
+    [Test]
+    public void TheCurrentZScaleFollowsTheConfiguredNoteSpeed()
+    {
+        float saved = GManager.noteSpeed;
+        try
+        {
+            GManager.noteSpeed = 10f;
+            Assert.AreEqual(MediaTimeline.ZScaleFor(10f), MediaTimeline.CurrentZScale, 0.0001f);
+
+            GManager.noteSpeed = 25f;
+            Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.CurrentZScale, 0.0001f);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(10f) * 2.5f, MediaTimeline.CurrentZScale, 0.0001f);
+        }
+        finally
+        {
+            GManager.noteSpeed = saved;
+        }
+    }
+
+    /// <summary>
+    /// z スケールの **復元** は、どんなスケールでも厳密である (S7)。
+    ///
+    /// ノーツ時刻は生成位置 z = noteTime * zScale から復元する。復元が
+    /// 「生成した位置」ではなく「その時のスケール」で計算されると、曲中の
+    /// 速度変更で判定する時刻と描画される時刻がずれる。
+    /// </summary>
+    [TestCase(0.538125f)]
+    [TestCase(5.38125f)]
+    [TestCase(13.453125f)]
+    [TestCase(0.1f)]
+    public void TheNoteTimeIsRecoveredExactlyForEveryScale(float zScale)
+    {
+        const float noteTime = 7.25f;
+
+        float created = noteTime * zScale;
+        float recovered = MediaTimeline.NoteTimeFromPositionZ(created, zScale);
+
+        Assert.AreEqual(noteTime, recovered, 0.0001f,
+            "The note time recovery must be exact for the scale " + zScale.ToString("F4") + ".");
+        Assert.AreEqual(0f, MediaTimeline.NotePositionZ(noteTime, noteTime, zScale), 0.0001f);
+    }
+
+    /// <summary>
+    /// セッションごとに z スケールは 1 回だけ確定する (PR #263 レビュー S7)。
+    ///
+    /// 曲中に速度を変更しても、生成・復元・移動はbegin_session の値を使う
+    /// ので、ノーツは不連続に飛ばない。変更は次の曲から効く。
+    /// </summary>
+    [Test]
+    public void TheSessionZScaleIsFixedWhenTheSessionBegins()
+    {
+        float saved = GManager.noteSpeed;
+        try
+        {
+            MediaTimeline.ResetSession();
+            GManager.noteSpeed = 10f;
+            MediaTimeline.BeginSession(GManager.noteSpeed);
+
+            float sessionScale = MediaTimeline.SessionZScale;
+            Assert.AreEqual(MediaTimeline.ZScaleFor(10f), sessionScale, 0.0001f);
+
+            // 曲中に速度を変更してもセッションの値は変わらない。
+            GManager.noteSpeed = 25f;
+            Assert.AreEqual(sessionScale, MediaTimeline.SessionZScale, 0.0001f);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.CurrentZScale, 0.0001f);
+
+            // 次のセッションでは新しい速度が使われる。
+            MediaTimeline.BeginSession(GManager.noteSpeed);
+            Assert.AreEqual(MediaTimeline.ZScaleFor(25f), MediaTimeline.SessionZScale, 0.0001f);
+        }
+        finally
+        {
+            GManager.noteSpeed = saved;
+            MediaTimeline.ResetSession();
+        }
+    }
+
+    /// <summary>
+    /// 3D レーンの 3 箇所 (生成 / 時刻復元 / 移動) が同じスケールを使うことを
+    /// **ソースレベル** で固定する。
+    ///
+    /// 片方だけ直すと「1 ノーツ = 1 判定」「判定線に着く時刻 = メディア時刻」が
+    /// 崩れるので、数値テストだけでは守れない。
+    /// </summary>
+    [Test]
+    public void TheThreeLaneSitesUseTheSameZScale()
+    {
+        string notes = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/Notes.cs"));
+        string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/NotesManager.cs"));
+        string timeline = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MediaTimeline.cs"));
+
+        // 1. 生成 (NotesManager)
+        StringAssert.Contains("positionsZ.Add(time * FlashBeat.Gameplay.MediaTimeline.SessionZScale)", manager,
+            "The note generation must use the shared z scale.");
+
+        // 2. 時刻復元 (Notes.Start) と 3. 移動 (Notes.Update)
+        StringAssert.Contains("MediaTimeline.NoteTimeFromPositionZ(transform.position.z, ZScale)", notes,
+            "The note time recovery must use the shared z scale.");
+        StringAssert.Contains("MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale)", notes,
+            "The note movement must use the shared z scale.");
+
+        // どれか 1 箇所でも生の noteSpeed を z スケールを渡してはいけない。
+        Assert.IsFalse(Regex.IsMatch(notes, @"Note(PositionZ|TimeFromPositionZ)\([^)]*GManager\.noteSpeed"),
+            "A note position call passes the raw note speed instead of the shared z scale.");
+        Assert.IsFalse(Regex.IsMatch(manager, @"Note(PositionZ|TimeFromPositionZ)\([^)]*GManager\.noteSpeed"),
+            "A note position call passes the raw note speed instead of the shared z scale.");
+
+        // Notes はセッション確定済みのスケールだけを読む。
+        StringAssert.Contains("MediaTimeline.SessionZScale", notes,
+            "Notes must read the session z scale.");
+
+        // CurrentZScale は ZScaleFor(GManager.noteSpeed) そのもの。
+        StringAssert.Contains("ZScaleFor(GManager.noteSpeed)", timeline,
+            "MediaTimeline.CurrentZScale must be the camera pinned conversion of the note speed.");
+    }
+
+    private static string SourcePath(string relative)
+    {
+        string absolute = Path.Combine(Application.dataPath, relative.Substring("Assets/".Length));
+        if (File.Exists(absolute)) return absolute;
+        return relative;
     }
 
     [Test]

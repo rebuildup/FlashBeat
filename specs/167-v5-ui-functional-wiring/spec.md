@@ -308,6 +308,36 @@ Unity 6.0.5.6f1 の `UnityEngine.*` DLL と `Library/ScriptAssemblies/{UnityEngi
 SimpleFadeSystem, NoteEditor, YoutubePlayer}.dll` を参照にして `dotnet build` で型検査 →
 **0 エラー** (テストコードを含む)。
 
+## 検証記録 (2026-11-10 / 読み取り専用監査)
+
+`origin/main` (`9e3c63e`) のコード・テスト・履歴と本 spec / `tasks.md` を突合して T1〜T5 を判定した結果。
+**Unity は起動していない** (他ワーカーが使用中 / ディスク・CPU 制約)。
+**EditMode テストの pass 件数は本記録では主張しない** (統合者の確認事項)。
+本 Issue は実機受入が未了のため **クローズしない**。
+
+| タスク | 判定 | 根拠 (要点) |
+|---|---|---|
+| T1 機能 UI 契約表 | **部分充足** | 契約表 (`spec.md:104-203`) 56 行 + Findings F1〜F18 があり、**全 56 行に実装根拠 (シンボル名) あり**。ただし **Game の Loading ビュー (`GameLoadingView`) の行** と **Result の Ranking (`ResultRankingOverlay`) の行** が契約表に無い |
+| T2 Title / Select / Ready | **充足** | `467fe8a`: `V5GameUi.NewScreenCanvas` の GraphicRaycaster (`:20`/`:32`)、`PlaySession` 実値、cloud 曲のみ Ranking 実取得 (`SelectView.cs:1689`/`:1698`)、Start 重複解消 (`:1261`) と `interactable=false` (`:968` → `HasPlayableSong()` `:601`) |
+| T3 Game / Pause / Option / Result | **充足** | (a) `PauseMenuView.cs:325`/`:344` (b) `PauseMenuView.cs:442`/`:466`, `SelectView.cs:1608`, `ResultView.cs:664`/`:787`/`:803` (c) `OptionSceneManager.cs:29`/`:63`/`:77`/`:237`/`:427` (d) `TitleSceneManager.cs:46-50` (e) `GameSceneManager.cs:235`/`:297` (f) `GameHudRuntime.cs:122`/`:201-213` (g) `ResultSceneManager.cs:46-58` |
+| T4 Scene / Canvas / EventSystem 監査 | **充足** | 本 spec `:286-302` の監査表 + 「シーン YAML の変更は不要」の判断理由。`.unity` は `467fe8a` で未変更。検証側で EventSystem / CanvasRenderer 数を再集計して一致を確認 (TMP テキスト列のみ再導出できず) |
+| T5 完了ゲート Preparation | **部分充足** | `docs/ui/issue-167-ui-acceptance.md` と `V5UiWiringTests.cs` (8 テスト) は存在。ただし **spec `:92` が名指しする `V5UiWiringTests.ResultRegister_IsLabelledLocal` が存在しない** / F2・F6〜F8・F10・F15〜F17・F7 のテストが無い / 手順書が PR #177 参照のまま・S5/S6 の「F5 で Game へ」が誤り・v6 UI 既定を未考慮 |
+
+**タスク文言とコードの食い違い (要確認)**
+
+- T2(b)/完了条件「NoteSpeed を `PlaySession` で保持」→ 実装は `GManager.noteSpeed` + `OptionSettings.Save()`
+  (`SelectView.cs:378-379`、本 spec F4 の決着どおり)。**機能欠落ではない**。
+- T1 の列挙にある Loading / Result Ranking の 2 行が契約表に無い (上表 T1 参照)。
+- 本 spec `:92` が名指しする `ResultRegister_IsLabelledLocal` がリポジトリに存在しない。
+- 実機に出る画面は v6 既定 (`V6UiMode.GameHud` / `SelectScreen` = true) のため、
+  v5 前提の手順書 (T5) は v6 実画面への差し替えが要る。
+
+**残実機受入**: Win64 での一巡 (Title → Select → Ready → Game → Result → Retry)、マウス/キーボード、
+Ready 設定の演奏中実反映、cloud 曲 Online ランキング、Option の実動作 + 永続化、Esc の単独処理、
+3 解像度のスクリーンショット。**すべて未了**。
+
+詳細: `docs/ui/issue-167-verify-2026-11-10.md`
+
 ## Rollback
 
 本 Issue の変更は Owned Paths 内に閉じており、他ブランチの成果物と競合しない。

@@ -24,11 +24,11 @@ Output: `web/tests/visual/out/<timestamp>/` (gitignored):
 
 ## Routes / viewports
 
-| Route | Note |
-| --- | --- |
-| `/` | catalog home |
+| Route                         | Note                                               |
+| ----------------------------- | -------------------------------------------------- |
+| `/`                           | catalog home                                       |
 | `/chart?songId=who&version=1` | seeded fixture chart; waits for the Konva `canvas` |
-| `/publish` | publish screen |
+| `/publish`                    | publish screen                                     |
 
 Viewports: 1440×900, 1280×720, 390×844 (mobile emulation, DPR 2, touch).
 
@@ -53,10 +53,10 @@ that pass.
 
 ## Exit codes
 
-| Code | Meaning |
-| --- | --- |
-| 0 | no horizontal overflow, no console errors |
-| 1 | **gate failure**: horizontal overflow at ≥1 viewport and/or console errors |
-| 2 | setup failure (no Chrome found, server never became ready) |
+| Code | Meaning                                                                    |
+| ---- | -------------------------------------------------------------------------- |
+| 0    | no horizontal overflow, no console errors                                  |
+| 1    | **gate failure**: horizontal overflow at ≥1 viewport and/or console errors |
+| 2    | setup failure (no Chrome found, server never became ready)                 |
 
 Horizontal overflow or console errors at any viewport fail the run.
