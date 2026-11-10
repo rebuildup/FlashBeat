@@ -63,7 +63,7 @@
 3. `FlashBeat.exe` を**引数なし**で起動する
 4. Title → Select → Game (1 曲) → Result → Retry を 1 周し、**動画・ノーツ・判定・音声**を確認する
 5. Option を開き、4 タブ (Play / Display / Sound / Data) の表示と操作を確認する (#241)
-6. 実ディスプレイ全画面のスクリーンショットと `Player.log` を保存する (§3.5)
+6. 実ディスプレイ全画面のスクリーンショットと `Player.log` を保存する (§3.6)
 
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
@@ -139,7 +139,29 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 | 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134) | — |
 | 7 | Retry | Retry で Game に戻れる | — |
 
-### 3.5 記録するファイル
+### 3.5 期待値 (ビルドに入っている状態) — 迷ったときの照合用
+
+同じ ZIP でも「何が出るのが正しいか」を知らないと合否を付けられないため、コード上の現在値を載せます。
+**ここに書いた値と違う画面が出たら、まず `Player.log` を保存してから §4 の表で切り分けてください。**
+
+| 対象 | 現在値 | 根拠 |
+|---|---|---|
+| プレイフィールド | **v6 の遠近プレイフィールドは無効**。従来の 3D レーンが動く (オーナー判断による差し戻し) | `Assets/Game/Scripts/UI/V6/V6UiMode.cs:27` `Playfield = false` |
+| ゲーム HUD | v6 HUD (スコア/コンボ/ゲージ/歌詞/キーガイド行) | `V6UiMode.cs:15` `GameHud = true` |
+| 判定表示 | 3D の判定表示 (v6 のレーン別判定行は無効) | `V6UiMode.cs:43` `VerdictRow = false` |
+| 動画の減光 | しない (v6 の減光レイヤーは無効) | `V6UiMode.cs:35` `VideoDim = false` |
+| 選曲画面 | v6 の 3 カラム | `V6UiMode.cs:18` `SelectScreen = true` |
+| Title のタブ行 / キー凡例 | どちらも描かない (フッターの START / 設定 が同じ操作) | `V6UiMode.cs:51` `TitleTabs = false`, `:58` `TitleLegend = false` |
+| 音の経路 | `[MusicManager] PLAYBACK_START … source=StreamCombined \| StreamSeparate \| BundledWave` | `MusicManager.cs:1166` の `Debug.Log` |
+| 映像 | ダウンロードしたローカル mp4 を再生 (URL 直渡しは診断のみ) | `MusicManager.cs:637` `PrepareLocalVideo` |
+| フォント | NotoSansJP (静的アトラス + 動的フォールバック) | `JapaneseFontAssetBuilder.cs:233,249` |
+
+> 「ノーツが見えない」「映像が出ない」の切り分けは、まずこの表の**期待値どおりの画面か**を確認し、
+> そのうえで `Player.log` の該当行 (`video file:` / `VideoPlayer prepared=` / `PLAYBACK_START` /
+> `source=`) を採取してください。**`0x80070005` の 1 行だけでは不合格の根拠になりません**
+> (URL の診断 probe が期待どおり失敗しただけのことがあります)。
+
+### 3.6 記録するファイル
 
 `docs/operations/exhibit-evidence-2026-11-10/` 配下に保存してください。
 
