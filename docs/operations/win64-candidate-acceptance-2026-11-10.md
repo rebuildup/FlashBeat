@@ -5,7 +5,7 @@
 
 ---
 
-## 0. 前提 ((cc が確認済みの範囲)
+## 0. 前提 (cc が確認済みの範囲)
 
 | 項目 | 内容 |
 |---|---|
@@ -15,17 +15,27 @@
 | 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
 | **未検証** | **Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。ここが本手順の目的 |
 
-### 現在の候補 (2026-11-10 再生成 / main `4445279`)
+### 現在の候補 (2026-11-10 再生成 / main `7af9242`)
 
 | 項目 | 値 |
 |---|---|
-| ZIP | `FlashBeat-0.1.22-win64-4445279.zip` (274,849,307 bytes) |
-| SHA-256 | `ed67277e8381e8e404cb53c60b625ab56982d5b6929ce8643c8e78cfcab9c645` |
-| ソース SHA | `4445279d69d047c40d8eef713bab24abe7985914` (`origin/main` — PR #327〜#331 merge 後) |
-| Application.version | `0.1.22+4445279` (Player の `globalgamemanagers` に埋まっていることを確認済み) |
-| version.json | `version=0.1.22` / `tag=v0.1.22-win64-4445279` / `mediaPolicy=song-free` / `buildSha` 一致 |
+| ZIP | `FlashBeat-0.1.22-win64-7af9242d.zip` (274,849,480 bytes) |
+| SHA-256 | `33acd1069987694549f5f594dc910b6de79eada51cee5514378cf13b6bdb7a01` |
+| ソース SHA | `7af9242d9ca9d580ad5078f085973a72120e5085` (`origin/main` — PR #339〜#344 merge 後) |
+| Application.version | `0.1.22+7af9242d` (ZIP 内 `FlashBeat_Data/globalgamemanagers` に埋まっていることを確認済み) |
+| version.json | `version=0.1.22` / `tag=v0.1.22-win64-7af9242d` / `mediaPolicy=song-free` / `buildSha` 一致 |
 | 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt`) |
-| ビルド日時 | 2026-11-10T08:02:30Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
+| ビルド日時 | 2026-11-10T09:18:56Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
+| ビルド結果 | `Build Finished, Result: Success.` / `error CS` **0 件** / 224 entries / 138 managed DLL |
+| `.zip.sha256` | sidecar の値と `shasum -a 256` の実測が一致 |
+
+**前候補 `4445279` からの差分** (展示に効くもの):
+
+| 変更 | 内容 | 受入での見え方 |
+|---|---|---|
+| UI 欠陥の修正 (#339) | A-6 / B-4 / B-11 / C-6 / C-7 / C-8 / D-7 | HUD・Pause・Option・Result の表示/操作が変わる |
+| 表示設定の保存 (#343, D-1) | Key Guide モードと Lyrics の ON/OFF を `PlayerPrefs` に保存 | Option で切り替えた設定が、ゲームを終了しても次回起動時に残る |
+| Key Layout のリセット確認 (C-6) | Option → Display → Key Layout で `←` を押すと **確認ダイアログ**が出る | 押しても即リセットされない (確認してから戻す) |
 
 > **ビルドは必ず main のチェックアウトから行う。** 2026-11-10 に `w/ja-text-cleanup`
 > チェックアウト (=古い `script/win64-build-mac.sh`) からビルドしてしまい、
@@ -45,7 +55,9 @@
 > - `0.1.0+c9fb812-win64-c9fb812.zip` / `FlashBeat-0.1.0-win64-60854c8.zip`
 >   (構造は正規だがバージョンが `0.1.0` のため更新判定に使えない)
 > - `FlashBeat-0.1.22-win64-60854c8.zip` (構造は正規。**#327〜#331 より前の main** のため、
->   今回の候補 `4445279` に置き換えられた)
+>   候補 `4445279` に置き換えられた)
+> - `FlashBeat-0.1.22-win64-4445279.zip` (構造は正規。**#339〜#344 より前の main** のため、
+>   今回の候補 `7af9242d` に置き換えられた。UI 欠陥修正と表示設定の保存を含まない)
 > - `0.1.22+4445279-win64-4445279.zip` (旧スクリプトで作られた契約違反の ZIP。`dist/forbidden-old-script/`)
 >
 > 旧形式 (`0.1.22+<sha>-win64-<sha>.zip`) は **もう生成されない**。もし見つけたら、
@@ -155,6 +167,8 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 | 音の経路 | `[MusicManager] PLAYBACK_START … source=StreamCombined \| StreamSeparate \| BundledWave` | `MusicManager.cs:1166` の `Debug.Log` |
 | 映像 | ダウンロードしたローカル mp4 を再生 (URL 直渡しは診断のみ) | `MusicManager.cs:637` `PrepareLocalVideo` |
 | フォント | NotoSansJP (静的アトラス + 動的フォールバック) | `JapaneseFontAssetBuilder.cs:233,249` |
+| 表示設定 (Key Guide / Lyrics) | Option で切り替えた値は **保存**され、次回起動でも残る (前候補までは起動ごとに既定へ戻っていた) | `PlaySession.cs:107` `Load()` / `TitleSceneManager.cs:51` |
+| Key Layout のリセット | カスタム配列のとき `←` を押すと **確認ダイアログ**が出る (即リセットしない) | `V6OptionView.cs:880` `OpenResetKeyLayoutConfirm()` |
 
 > 「ノーツが見えない」「映像が出ない」の切り分けは、まずこの表の**期待値どおりの画面か**を確認し、
 > そのうえで `Player.log` の該当行 (`video file:` / `VideoPlayer prepared=` / `PLAYBACK_START` /
@@ -194,6 +208,13 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 ---
 
 ## 6. CI (GitHub Actions) の Unity ライセンス secret
+
+**展示候補の ZIP は CI では作れません。** `build-win64` は `workflow_dispatch` と main への push
+だけで走り、2026-11-10 時点では `license-precheck` で失敗します (`UNITY_EMAIL` /
+`UNITY_PASSWORD` が未登録)。したがって候補 `7af9242d` は §0 の macOS 経路
+(`script/win64-build-mac.sh` → `tools/release/package-win64.ps1`) でだけ作られています。
+PR で走るライセンス不要の検証は `verify` (リポジトリ整合性) と `web` だけで、**どちらも
+ビルド成果物を作りません**。責任範囲の全体は [`ci-pr-gate.md`](ci-pr-gate.md) を参照。
 
 2026-11-10 時点で `build-win64` / `build-macos` は **ライセンス確認ステップで失敗**している
 (`--error UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。`)。
