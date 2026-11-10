@@ -94,7 +94,7 @@ PR #249（v6 統合 + Win64 CI 再構成）が `main` に merge された状態�
 |---|---|---|
 | Unity EditMode テスト | **1071 / 1071 成功**（失敗 0 / skipped 0） | Unity 6000.5.6f1 / macOS batchmode、`TestResults.xml` を直接パース（`a4bda77`） |
 | web テスト | **node 73 件 + vitest 399 件 すべて成功** | `cd web && bun run test` |
-| 視覚ゲート `npm run visual` | **exit 1 (FAIL)** — `home@390x844` の横スクロール溢出 | PR 内で記録済みの失敗ベースライン（`specs/075-visual-gate/evidence/2026-11-08/README.md`）と一致。**新規の regressions ではなく未解決 issue**（#74 / #75 / #68 系） |
+| 視覚ゲート `npm run visual` | **exit 1 (FAIL)** — `home@390x844` の横スクロール溢出 | PR 内で記録済みの失敗ベースライン（`specs/075-visual-gate/evidence/2026-11-08/README.md`）と一致。**新規の regressions ではなく未解決 issue**（#74 / #75 / #68 系）。→ **2026-11-10、#74 の修正後ブランチで再実行し PASS (exit 0)**: `specs/74-responsive/evidence/2026-11-10/README.md`（5 viewport・390px 到達性・Tab 順・ドロワー focus trap の実ブラウザ証跡） |
 | ワークフロー構文 | YAML パース（node `yaml`）/ 全 bash `bash -n` / 全 pwsh `pwsh [scriptblock]::Create` すべて OK | `.github/workflows/build-macos.yml` / `build-win64.yml` |
 | Personal ライセンス判定 | bash・pwsh 双方で Personal / Pro / BOM+base64 の実入力により確認 | `.ulf` の `DeveloperData Value="Personal"` / `SerialMasked Value="XXXX"` を検出して明示的に失敗 |
 | CodeRabbit 指摘 | **8 thread すべて解消**（返信 + resolve 済み） | PR #249 |

@@ -55,14 +55,27 @@
 - [x] Note grid focusable (`tabIndex`, `role`, `aria-label`).
 - [x] Publisher toggle: `aria-expanded`, state dependent `aria-label`,
       the broken `sidebar-toggle` class name removed.
-- [ ] Real browser tab order walk — **open (#75)**.
+- [x] Real browser tab order walk — evidence:
+      `specs/74-responsive/evidence/2026-11-10/tab-walk.json` (+ `tabwalk_*.png`).
+      Tab / Shift+Tab を実 Chrome で全 route × 2 viewport (1440×900 / 390×844) で走査。
+      ドロワー (publish sidebar) はフォーカストラップが保持され、`Escape` で閉じ、
+      トリガーにフォーカスが復帰。所見: 末尾 wrap 時に 1 step だけ `<body>` を経過
+      (headless Chrome の通常挙動)、YouTube iframe にはグローバル focus ring が
+      出ない (別 Issue 提案、README 参照)。
 
 ### T4 — content overflow
 
 - [x] Table and card titles wrap and clamp to two lines.
 - [x] Error and validation messages break inside their container.
 - [x] The YouTube preview stays inside its panel.
-- [ ] Rendered check at 390px — **open (#75)**.
+- [x] Rendered check at 390px — evidence:
+      `specs/74-responsive/evidence/2026-11-10/visual-index.json` の
+      `home/chart/publish@390x844`。実 Chrome 描画で
+      `document.scrollWidth == clientWidth` (横スクロール無し)、
+      フォーカス可能要素は全 step で viewport 内
+      (`tab-walk.json` の `inViewport` 全 true)。`clipped` 4 件は
+      ノートグリッド stage (8 レーン × 56px = 448px) の**設計どおりの
+      内部横スクロール**で、document は溢れない。
 
 ### T5 — verification
 
@@ -71,7 +84,11 @@
 - [x] `npx vp check` — format and lint.
 - [x] Dev server started locally with `FLASHBEAT_ADMIN_TOKEN=devtoken` to
       prove the application still boots (URL and port in the PR body).
-- [ ] Screenshots of the five viewports — **open (#75)**.
+- [x] Screenshots of the five viewports — evidence:
+      `specs/74-responsive/evidence/2026-11-10/` の `*.png` (1440×900 /
+      1280×720 / 1024×768 / 390×844 / 200% zoom 相当 720×450 × 3 route) と
+      `visual-index.json`。`npm run visual` は **PASS (exit 0)**:
+      horizontal overflow 無し、console error 無し。
 
 ## Files in this PR
 

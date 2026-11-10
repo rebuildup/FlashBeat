@@ -1,0 +1,4182 @@
+{
+  "generatedAt": "2026-11-10T03:59:36.169Z",
+  "base": "http://127.0.0.1:5210",
+  "chrome": "Google Chrome",
+  "tool": "puppeteer-core (real headless Chromium)",
+  "method": "Tab / Shift+Tab pressed on the real page; document.activeElement recorded per step. inViewport = the focused element has a non-zero rect intersecting the viewport. focusVisible = the element matches :focus-visible (the global ring from app.css).",
+  "walks": [
+    {
+      "route": "home",
+      "url": "http://127.0.0.1:5210/",
+      "viewport": "1440x900",
+      "tabsPressed": 30,
+      "file": "tabwalk_home_1440x900.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 2,
+          "tabs": [
+            14,
+            28
+          ]
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 0,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "リストから曲を選ぶ",
+          "rect": {
+            "x": 1250,
+            "y": 16,
+            "w": 174,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 955,
+            "y": 127,
+            "w": 197,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(75, 75, 75) solid 1px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 1173,
+            "y": 142,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 1309,
+            "y": 142,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 11,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 1306,
+            "y": 211,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く: Who — Azari, level 5, version 1",
+          "rect": {
+            "x": 225,
+            "y": 292,
+            "w": 1198,
+            "h": 70
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "a",
+          "ariaLabel": "Who on YouTube",
+          "rect": {
+            "x": 1377,
+            "y": 311,
+            "w": 30,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 14,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 18,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "リストから曲を選ぶ",
+          "rect": {
+            "x": 1250,
+            "y": 16,
+            "w": 174,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 955,
+            "y": 127,
+            "w": 197,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 1173,
+            "y": 142,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 1309,
+            "y": 142,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 1306,
+            "y": 211,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く: Who — Azari, level 5, version 1",
+          "rect": {
+            "x": 225,
+            "y": 292,
+            "w": 1198,
+            "h": 70
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 27,
+          "focused": true,
+          "tag": "a",
+          "ariaLabel": "Who on YouTube",
+          "rect": {
+            "x": 1377,
+            "y": 311,
+            "w": 30,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 28,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "a",
+          "ariaLabel": "Who on YouTube",
+          "rect": {
+            "x": 1377,
+            "y": 311,
+            "w": 30,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く: Who — Azari, level 5, version 1",
+          "rect": {
+            "x": 225,
+            "y": 292,
+            "w": 1198,
+            "h": 70
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 1306,
+            "y": 211,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 1309,
+            "y": 142,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        }
+      ]
+    },
+    {
+      "route": "home",
+      "url": "http://127.0.0.1:5210/",
+      "viewport": "390x844",
+      "tabsPressed": 30,
+      "file": "tabwalk_home_390x844.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 1,
+          "tabs": [
+            11
+          ]
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 0,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "リストから曲を選ぶ",
+          "rect": {
+            "x": 16,
+            "y": 220,
+            "w": 358,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 16,
+            "y": 386,
+            "w": 222,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(75, 75, 75) solid 1px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 259,
+            "y": 401,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 29,
+            "y": 461,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 256,
+            "y": 530,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "a",
+          "text": "Who",
+          "rect": {
+            "x": 109,
+            "y": 601,
+            "w": 46,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く / Open chart",
+          "rect": {
+            "x": 207,
+            "y": 675,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "a",
+          "ariaLabel": "Who on YouTube",
+          "rect": {
+            "x": 327,
+            "y": 715,
+            "w": 30,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 11,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 14,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "リストから曲を選ぶ",
+          "rect": {
+            "x": 16,
+            "y": 220,
+            "w": 358,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 16,
+            "y": 386,
+            "w": 222,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 259,
+            "y": 401,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 29,
+            "y": 461,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 18,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 256,
+            "y": 530,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "a",
+          "text": "Who",
+          "rect": {
+            "x": 109,
+            "y": 601,
+            "w": 46,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く / Open chart",
+          "rect": {
+            "x": 207,
+            "y": 675,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "a",
+          "ariaLabel": "Who on YouTube",
+          "rect": {
+            "x": 327,
+            "y": 715,
+            "w": 30,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "リストから曲を選ぶ",
+          "rect": {
+            "x": 16,
+            "y": 220,
+            "w": 358,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 16,
+            "y": 386,
+            "w": 222,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 259,
+            "y": 401,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 27,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 29,
+            "y": 461,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 28,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 256,
+            "y": 530,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "a",
+          "text": "Who",
+          "rect": {
+            "x": 109,
+            "y": 601,
+            "w": 46,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を開く / Open chart",
+          "rect": {
+            "x": 207,
+            "y": 675,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "Who",
+          "rect": {
+            "x": 109,
+            "y": 601,
+            "w": 46,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Refresh",
+          "rect": {
+            "x": 256,
+            "y": 530,
+            "w": 101,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "All levels",
+          "rect": {
+            "x": 29,
+            "y": 461,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Catalog",
+          "rect": {
+            "x": 259,
+            "y": 401,
+            "w": 102,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 16,
+            "y": 386,
+            "w": 222,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(75, 75, 75) solid 1px"
+        }
+      ]
+    },
+    {
+      "route": "chart",
+      "url": "http://127.0.0.1:5210/chart?songId=who&version=1",
+      "viewport": "1440x900",
+      "tabsPressed": 40,
+      "file": "tabwalk_chart_1440x900.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 1,
+          "tabs": [
+            27
+          ]
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 5,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "a",
+          "text": "← 曲を選ぶ / Back to songs",
+          "rect": {
+            "x": 224,
+            "y": 20,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(176, 176, 176) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "再生して試す / Try it",
+          "rect": {
+            "x": 626,
+            "y": 8,
+            "w": 177,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "a",
+          "text": "YouTube で開く",
+          "rect": {
+            "x": 815,
+            "y": 27,
+            "w": 87,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "公開に進む / Review & Publish",
+          "rect": {
+            "x": 914,
+            "y": 18,
+            "w": 224,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 11,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 224,
+            "y": 85,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 320,
+            "y": 85,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 401,
+            "y": 95,
+            "w": 187,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 14,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup128 BPM · 1/4",
+          "rect": {
+            "x": 1300,
+            "y": 97,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 232,
+            "y": 188,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 232,
+            "y": 188,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 232,
+            "y": 188,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 18,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 232,
+            "y": 188,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 232,
+            "y": 188,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "input",
+          "value": "8JXiXt0D6tw",
+          "rect": {
+            "x": 232,
+            "y": 735,
+            "w": 280,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(64, 170, 245) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Back to start",
+          "rect": {
+            "x": 232,
+            "y": 807,
+            "w": 280,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Tappress once",
+          "rect": {
+            "x": 593,
+            "y": 158,
+            "w": 64,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Holdpress and hold",
+          "rect": {
+            "x": 661,
+            "y": 158,
+            "w": 79,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "div",
+          "role": "group",
+          "ariaLabel": "Note grid",
+          "rect": {
+            "x": 536,
+            "y": 223,
+            "w": 560,
+            "h": 413
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 233,
+            "y": 700,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 623,
+            "y": 804,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 27,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 28,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 31,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 32,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 33,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 34,
+          "focused": true,
+          "tag": "a",
+          "text": "← 曲を選ぶ / Back to songs",
+          "rect": {
+            "x": 224,
+            "y": 20,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(176, 176, 176) solid 2px"
+        },
+        {
+          "tab": 35,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "再生して試す / Try it",
+          "rect": {
+            "x": 626,
+            "y": 8,
+            "w": 177,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 36,
+          "focused": true,
+          "tag": "a",
+          "text": "YouTube で開く",
+          "rect": {
+            "x": 815,
+            "y": 27,
+            "w": 87,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 37,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "公開に進む / Review & Publish",
+          "rect": {
+            "x": 914,
+            "y": 18,
+            "w": 224,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 38,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 224,
+            "y": 85,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 39,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 320,
+            "y": 85,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 40,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 401,
+            "y": 95,
+            "w": 187,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 320,
+            "y": 85,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 224,
+            "y": 85,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "公開に進む / Review & Publish",
+          "rect": {
+            "x": 914,
+            "y": 18,
+            "w": 224,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "a",
+          "text": "YouTube で開く",
+          "rect": {
+            "x": 815,
+            "y": 27,
+            "w": 87,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "再生して試す / Try it",
+          "rect": {
+            "x": 626,
+            "y": 8,
+            "w": 177,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        }
+      ]
+    },
+    {
+      "route": "chart",
+      "url": "http://127.0.0.1:5210/chart?songId=who&version=1",
+      "viewport": "390x844",
+      "tabsPressed": 40,
+      "file": "tabwalk_chart_390x844.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 12,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "← 曲を選ぶ / Back to songs",
+          "rect": {
+            "x": 16,
+            "y": 121,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(176, 176, 176) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "再生して試す / Try it",
+          "rect": {
+            "x": 16,
+            "y": 229,
+            "w": 177,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "a",
+          "text": "YouTube で開く",
+          "rect": {
+            "x": 205,
+            "y": 248,
+            "w": 87,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "公開に進む / Review & Publish",
+          "rect": {
+            "x": 16,
+            "y": 297,
+            "w": 224,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 16,
+            "y": 378,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 112,
+            "y": 378,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 193,
+            "y": 388,
+            "w": 112,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup128 BPM · 1/4",
+          "rect": {
+            "x": 64,
+            "y": 499,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 11,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 364,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 538,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 532,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 14,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 501,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 501,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 220,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 220,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 18,
+          "focused": true,
+          "tag": "input",
+          "value": "8JXiXt0D6tw",
+          "rect": {
+            "x": 24,
+            "y": 524,
+            "w": 342,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(64, 170, 245) solid 2px"
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Back to start",
+          "rect": {
+            "x": 24,
+            "y": 526,
+            "w": 342,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Tappress once",
+          "rect": {
+            "x": 69,
+            "y": 580,
+            "w": 64,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Holdpress and hold",
+          "rect": {
+            "x": 137,
+            "y": 580,
+            "w": 79,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "div",
+          "role": "group",
+          "ariaLabel": "Note grid",
+          "rect": {
+            "x": 12,
+            "y": 520,
+            "w": 366,
+            "h": 371
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 25,
+            "y": 576,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 160,
+            "y": 608,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "aside",
+          "ariaLabel": "Editor inspector",
+          "text": "Selected noteClick a note on the lanes to read its",
+          "rect": {
+            "x": 12,
+            "y": 524,
+            "w": 366,
+            "h": 139
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 27,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 28,
+          "focused": true,
+          "tag": "a",
+          "text": "← 曲を選ぶ / Back to songs",
+          "rect": {
+            "x": 16,
+            "y": 121,
+            "w": 150,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(176, 176, 176) solid 2px"
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "再生して試す / Try it",
+          "rect": {
+            "x": 16,
+            "y": 229,
+            "w": 177,
+            "h": 56
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "a",
+          "text": "YouTube で開く",
+          "rect": {
+            "x": 205,
+            "y": 248,
+            "w": 87,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 31,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "公開に進む / Review & Publish",
+          "rect": {
+            "x": 16,
+            "y": 297,
+            "w": 224,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 32,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 16,
+            "y": 378,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 33,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 112,
+            "y": 378,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 34,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 193,
+            "y": 388,
+            "w": 112,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 35,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup128 BPM · 1/4",
+          "rect": {
+            "x": 64,
+            "y": 499,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 36,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 364,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 37,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 538,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 38,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 532,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 39,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 501,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 40,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 501,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 501,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 520,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 538,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 24,
+            "y": 364,
+            "w": 342,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup128 BPM · 1/4",
+          "rect": {
+            "x": 64,
+            "y": 499,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        }
+      ]
+    },
+    {
+      "route": "publish",
+      "url": "http://127.0.0.1:5210/publish",
+      "viewport": "1440x900",
+      "tabsPressed": 40,
+      "file": "tabwalk_publish_1440x900.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 1,
+          "tabs": [
+            28
+          ]
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 3,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 224,
+            "y": 12,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 236,
+            "y": 114,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 332,
+            "y": 114,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 413,
+            "y": 124,
+            "w": 187,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 11,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup120 BPM · 1/4",
+          "rect": {
+            "x": 940,
+            "y": 174,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 244,
+            "y": 261,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 244,
+            "y": 261,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 14,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 244,
+            "y": 808,
+            "w": 280,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(64, 170, 245) solid 2px"
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Back to start",
+          "rect": {
+            "x": 244,
+            "y": 840,
+            "w": 280,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Tappress once",
+          "rect": {
+            "x": 564,
+            "y": 207,
+            "w": 64,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Holdpress and hold",
+          "rect": {
+            "x": 632,
+            "y": 207,
+            "w": 79,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 18,
+          "focused": true,
+          "tag": "div",
+          "role": "group",
+          "ariaLabel": "Note grid",
+          "rect": {
+            "x": 548,
+            "y": 340,
+            "w": 188,
+            "h": 240
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 245,
+            "y": 644,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 449,
+            "y": 748,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 1105,
+            "y": 201,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "input",
+          "value": "Untitled draft",
+          "rect": {
+            "x": 1105,
+            "y": 305,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 1105,
+            "y": 409,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 1105,
+            "y": 513,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(88, 88, 88) solid 1px"
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "button",
+          "role": "combobox",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "Level 10",
+          "rect": {
+            "x": 1118,
+            "y": 618,
+            "w": 284,
+            "h": 24
+          },
+          "inViewport": true,
+          "focusVisible": true
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 1105,
+            "y": 707,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(80, 80, 80) solid 1px"
+        },
+        {
+          "tab": 27,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Review publish",
+          "rect": {
+            "x": 1105,
+            "y": 848,
+            "w": 310,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 28,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 80,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "a",
+          "text": "ダッシュボードDashboard",
+          "rect": {
+            "x": 12,
+            "y": 153,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 31,
+          "focused": true,
+          "tag": "a",
+          "text": "楽曲アーカイブSongs",
+          "rect": {
+            "x": 12,
+            "y": 197,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 32,
+          "focused": true,
+          "tag": "a",
+          "text": "新曲を登録New song",
+          "rect": {
+            "x": 12,
+            "y": 241,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 33,
+          "focused": true,
+          "tag": "a",
+          "text": "譜面を編集Edit chart",
+          "rect": {
+            "x": 12,
+            "y": 285,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 34,
+          "focused": true,
+          "tag": "a",
+          "text": "公開するPublish要トークン",
+          "rect": {
+            "x": 12,
+            "y": 329,
+            "w": 183,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 35,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 224,
+            "y": 12,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 36,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 236,
+            "y": 114,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 37,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 332,
+            "y": 114,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 38,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 413,
+            "y": 124,
+            "w": 187,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 39,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup120 BPM · 1/4",
+          "rect": {
+            "x": 940,
+            "y": 174,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 40,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 244,
+            "y": 217,
+            "w": 280,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup120 BPM · 1/4",
+          "rect": {
+            "x": 940,
+            "y": 174,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 413,
+            "y": 124,
+            "w": 187,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 332,
+            "y": 114,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 236,
+            "y": 114,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 224,
+            "y": 12,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        }
+      ]
+    },
+    {
+      "route": "publish",
+      "url": "http://127.0.0.1:5210/publish",
+      "viewport": "390x844",
+      "tabsPressed": 40,
+      "file": "tabwalk_publish_390x844.png",
+      "findings": {
+        "focusEscapedToBody": {
+          "count": 2,
+          "tabs": [
+            18,
+            36
+          ]
+        },
+        "focusOutsideViewport": {
+          "count": 0,
+          "tabs": []
+        },
+        "focusVisibleNotMatched": {
+          "count": 4,
+          "note": ":focus-visible did not match — check the global ring"
+        }
+      },
+      "steps": [
+        {
+          "tab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 2,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 16,
+            "y": 125,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 4,
+          "focused": true,
+          "tag": "button",
+          "ariaLabel": "Open the publish sidebar",
+          "ariaExpanded": "false",
+          "type": "button",
+          "rect": {
+            "x": 332,
+            "y": 140,
+            "w": 42,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 5,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 28,
+            "y": 227,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 6,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 124,
+            "y": 227,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 7,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 205,
+            "y": 237,
+            "w": 112,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 8,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup120 BPM · 1/4",
+          "rect": {
+            "x": 67,
+            "y": 348,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 9,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 36,
+            "y": 213,
+            "w": 318,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 10,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 36,
+            "y": 387,
+            "w": 318,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 11,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 36,
+            "y": 373,
+            "w": 318,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(69, 172, 245) solid 2px"
+        },
+        {
+          "tab": 12,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Back to start",
+          "rect": {
+            "x": 36,
+            "y": 375,
+            "w": 318,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 13,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Tappress once",
+          "rect": {
+            "x": 81,
+            "y": 429,
+            "w": 64,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 14,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Holdpress and hold",
+          "rect": {
+            "x": 149,
+            "y": 429,
+            "w": 79,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 15,
+          "focused": true,
+          "tag": "div",
+          "role": "group",
+          "ariaLabel": "Note grid",
+          "rect": {
+            "x": 24,
+            "y": 461,
+            "w": 342,
+            "h": 371
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 16,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 37,
+            "y": 586,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 17,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 160,
+            "y": 709,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 18,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 19,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 20,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 21,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 16,
+            "y": 125,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 22,
+          "focused": true,
+          "tag": "button",
+          "ariaLabel": "Open the publish sidebar",
+          "ariaExpanded": "false",
+          "type": "button",
+          "rect": {
+            "x": 332,
+            "y": 140,
+            "w": 42,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 23,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Play",
+          "rect": {
+            "x": 28,
+            "y": 227,
+            "w": 88,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 24,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Restart",
+          "rect": {
+            "x": 124,
+            "y": 227,
+            "w": 73,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 25,
+          "focused": true,
+          "tag": "input",
+          "ariaLabel": "Playhead",
+          "type": "range",
+          "value": "0",
+          "rect": {
+            "x": 205,
+            "y": 237,
+            "w": 112,
+            "h": 16
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 26,
+          "focused": true,
+          "tag": "summary",
+          "text": "Chart setup120 BPM · 1/4",
+          "rect": {
+            "x": 67,
+            "y": 348,
+            "w": 128,
+            "h": 12
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 27,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 36,
+            "y": 213,
+            "w": 318,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 28,
+          "focused": true,
+          "tag": "iframe",
+          "rect": {
+            "x": 36,
+            "y": 387,
+            "w": 318,
+            "h": 360
+          },
+          "inViewport": true,
+          "focusVisible": false
+        },
+        {
+          "tab": 29,
+          "focused": true,
+          "tag": "input",
+          "rect": {
+            "x": 36,
+            "y": 373,
+            "w": 318,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(69, 172, 245) solid 2px"
+        },
+        {
+          "tab": 30,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Back to start",
+          "rect": {
+            "x": 36,
+            "y": 375,
+            "w": 318,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 31,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Tappress once",
+          "rect": {
+            "x": 81,
+            "y": 429,
+            "w": 64,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 32,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Holdpress and hold",
+          "rect": {
+            "x": 149,
+            "y": 429,
+            "w": 79,
+            "h": 32
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 33,
+          "focused": true,
+          "tag": "div",
+          "role": "group",
+          "ariaLabel": "Note grid",
+          "rect": {
+            "x": 24,
+            "y": 461,
+            "w": 342,
+            "h": 371
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 34,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 37,
+            "y": 586,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 35,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 160,
+            "y": 709,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 36,
+          "focused": false,
+          "reason": "focus is on <body> (left the page widgets)"
+        },
+        {
+          "tab": 37,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "tab": 38,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 39,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 16,
+            "y": 125,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "tab": 40,
+          "focused": true,
+          "tag": "button",
+          "ariaLabel": "Open the publish sidebar",
+          "ariaExpanded": "false",
+          "type": "button",
+          "rect": {
+            "x": 332,
+            "y": 140,
+            "w": 42,
+            "h": 36
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        }
+      ],
+      "shiftTabSteps": [
+        {
+          "shiftTab": 1,
+          "focused": true,
+          "tag": "a",
+          "text": "← Web Studio",
+          "rect": {
+            "x": 16,
+            "y": 125,
+            "w": 128,
+            "h": 18
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 2,
+          "focused": true,
+          "tag": "button",
+          "ariaExpanded": "false",
+          "type": "button",
+          "text": "スタッフ操作Staff",
+          "rect": {
+            "x": 232,
+            "y": 64,
+            "w": 146,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(74, 74, 74) solid 2px"
+        },
+        {
+          "shiftTab": 3,
+          "focused": true,
+          "tag": "a",
+          "text": "曲を選ぶPick a song",
+          "rect": {
+            "x": 12,
+            "y": 64,
+            "w": 212,
+            "h": 40
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 4,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 160,
+            "y": 709,
+            "w": 70,
+            "h": 30
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        },
+        {
+          "shiftTab": 5,
+          "focused": true,
+          "tag": "button",
+          "type": "button",
+          "text": "Add line",
+          "rect": {
+            "x": 37,
+            "y": 586,
+            "w": 30,
+            "h": 11
+          },
+          "inViewport": true,
+          "focusVisible": true,
+          "focusRing": "rgb(63, 169, 245) solid 2px"
+        }
+      ]
+    }
+  ],
+  "drawerTrap": {
+    "route": "publish",
+    "viewport": "390x844",
+    "scenario": "drawer focus trap",
+    "toggleReachedByFocus": {
+      "focused": true,
+      "tag": "button",
+      "ariaLabel": "Open the publish sidebar",
+      "ariaExpanded": "false",
+      "type": "button",
+      "rect": {
+        "x": 332,
+        "y": 140,
+        "w": 42,
+        "h": 36
+      },
+      "inViewport": true,
+      "focusVisible": true,
+      "focusRing": "rgb(74, 74, 74) solid 2px"
+    },
+    "afterOpen": {
+      "activeElement": {
+        "focused": true,
+        "tag": "button",
+        "ariaLabel": "Close the publish sidebar",
+        "type": "button",
+        "text": "✕",
+        "rect": {
+          "x": 378,
+          "y": 0,
+          "w": 12,
+          "h": 24
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(63, 169, 245) solid 2px"
+      },
+      "insideDrawer": true
+    },
+    "trapTabs": [
+      {
+        "tab": 1,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 105,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(80, 80, 80) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 2,
+        "focused": true,
+        "tag": "input",
+        "value": "Untitled draft",
+        "rect": {
+          "x": 68,
+          "y": 209,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(80, 80, 80) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 3,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 313,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(88, 88, 88) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 4,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 417,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(80, 80, 80) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 5,
+        "focused": true,
+        "tag": "button",
+        "role": "combobox",
+        "ariaExpanded": "false",
+        "type": "button",
+        "text": "Level 10",
+        "rect": {
+          "x": 81,
+          "y": 522,
+          "w": 283,
+          "h": 24
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "insideDrawer": true
+      },
+      {
+        "tab": 6,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 611,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(75, 75, 75) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 7,
+        "focused": true,
+        "tag": "button",
+        "type": "button",
+        "text": "Review publish",
+        "rect": {
+          "x": 68,
+          "y": 785,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(63, 169, 245) solid 2px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 8,
+        "focused": true,
+        "tag": "button",
+        "ariaLabel": "Close the publish sidebar",
+        "type": "button",
+        "text": "✕",
+        "rect": {
+          "x": 378,
+          "y": 0,
+          "w": 12,
+          "h": 24
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(63, 169, 245) solid 2px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 9,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 105,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(255, 112, 112) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 10,
+        "focused": true,
+        "tag": "input",
+        "value": "Untitled draft",
+        "rect": {
+          "x": 68,
+          "y": 209,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(88, 88, 88) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 11,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 313,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(80, 80, 80) solid 1px",
+        "insideDrawer": true
+      },
+      {
+        "tab": 12,
+        "focused": true,
+        "tag": "input",
+        "rect": {
+          "x": 68,
+          "y": 417,
+          "w": 309,
+          "h": 40
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(255, 112, 112) solid 1px",
+        "insideDrawer": true
+      }
+    ],
+    "trapHeld": true,
+    "afterEscape": {
+      "activeElement": {
+        "focused": true,
+        "tag": "button",
+        "ariaLabel": "Open the publish sidebar",
+        "ariaExpanded": "false",
+        "type": "button",
+        "rect": {
+          "x": 332,
+          "y": 140,
+          "w": 42,
+          "h": 36
+        },
+        "inViewport": true,
+        "focusVisible": true,
+        "focusRing": "rgb(74, 74, 74) solid 2px"
+      },
+      "drawerStillInDom": true,
+      "drawerClosed": true
+    },
+    "focusRestoredToTrigger": true
+  }
+}
