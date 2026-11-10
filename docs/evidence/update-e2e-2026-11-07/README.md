@@ -1,10 +1,15 @@
 # 自動更新 E2E 実機検証 (2026-11-07)
 
-> **注記 (Issue #118 適用前の記録)**: 本記録は **#118「更新は明示式」を適用する前の挙動**の記録で、
-> 手順 5〜6 の「通常終了で `OnApplicationQuit` から自動適用」・手順 4 の「自動 staging」は
-> 当時の仕様である。現在の設計には **`OnApplicationQuit` からの自動適用・自動 staging は存在しない**
-> (ダウンロードも適用もユーザー操作が必要 — 現状の根拠は
-> [`docs/evidence/118-explicit-update.md`](../118-explicit-update.md) を参照)。
+> **注記 (Issue #118 適用前の記録 — 本記録は #118 により置き換えられた)**: 本記録は
+> **#118「更新は明示式」を適用する前の挙動**の記録で、手順 5〜6 の「通常終了で
+> `OnApplicationQuit` から自動適用」・手順 4 の「自動 staging」は**当時の仕様**である。
+> 現在の設計ではダウンロードも適用も**ユーザーの明示操作でのみ**行われる
+> (Title 通知の `UpdateChecker.RequestDownload` → Option の「更新を適用して再起動」ボタンの
+> `UpdateChecker.RequestApply`。`OnApplicationQuit` からの自動適用・自動 staging は存在しない)。
+> 実装: [`Assets/Game/Scripts/Update/UpdateChecker.cs`](../../../Assets/Game/Scripts/Update/UpdateChecker.cs) /
+> [`Assets/Game/Scripts/UI/UpdateNoticeUI.cs`](../../../Assets/Game/Scripts/UI/UpdateNoticeUI.cs)。
+> 現状の根拠は [`docs/evidence/118-explicit-update.md`](../118-explicit-update.md) を参照。
+> 以下の表は当時の実測記録としてそのまま残す (手順 4〜6 は現行仕様では起きない)。
 
 機械: Windows 実機 (RTX 4050 Laptop / Windows 11)。機械上の FlashBeat.exe を手動で起動・終了したのみ。
 

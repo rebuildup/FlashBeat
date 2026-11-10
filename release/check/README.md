@@ -9,6 +9,7 @@ an artifact and never start the Unity Editor.
 | `verify-stage.ps1` | Re-computes the artifact fingerprint and the evidence hashes and compares them with the manifest; also checks that `docs/evidence/index.md` mentions every fingerprint |
 | `drive-gameplay.ps1` | Gameplay smoke driver (the #11 driver, parameterized): artifact path, output directory, window geometry; writes `run-summary.json` |
 | `redact-log.ps1` | Masks signed YouTube URLs / video ids in a player log, or `-Check`s an already masked log |
+| `tests/Run-VerifyStageTests.ps1` | Fixture tests for `verify-stage.ps1`: builds a throwaway stage + manifest in a temp dir and asserts good stage passes / missing `FlashBeat.exe` fails / fingerprint mismatch fails / evidence hash mismatch fails (no network, no real artifact) |
 
 ## Typical use
 

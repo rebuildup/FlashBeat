@@ -124,7 +124,8 @@ v<version>-win64-<sha>
 
 展示 PC のゲームは **常設ランチナー無し**。運営者は `FlashBeat.exe` を直接起動するだけです。
 
-1. **適用前**: ゲームを終了しておく (更新は「終了時」に走るため)。
+1. **適用前**: ゲームを終了しておく (手動適用は実行中の `FlashBeat.exe` が置き換えるフォルダを
+   展開し直すため)。ゲーム実行中に更新が勝手に走ることはない (§2 の 6 を参照)。
 2. **取得**: GitHub Releases から対象 Release の ZIP と `.sha256` を取得する。
 3. **検証**: `Get-FileHash .\FlashBeat-<version>-win64-<sha>.zip -Algorithm SHA256` が
    `.sha256` の値と一致すること。不一致なら再ダウンロード (公開しない)。
@@ -133,10 +134,16 @@ v<version>-win64-<sha>
    - スクリプト: 配布物内の `tools\update\Update.ps1 -Tag <tag>`
      (SHA-256 検証 → 別ディレクトリ展開 → 一括切替 → 退避 1 世代保持 → 新 exe 再起動)。
 5. **起動**: `FlashBeat.exe` を直接起動する。
-6. **自動更新 (反映済みビルドの場合)**: 起動時に裏で Releases を確認し、
-   **バージョンが真に大きい** Release があれば ZIP を staging して SHA-256 を検証し、
-   **終了時に** `Update.ps1 -Apply -WaitPid -Relaunch` で展開・切替・再起動します。
-   つまり「アプリを終了して再起動すると更新済み」になります。
+6. **アプリ内更新 (明示式 — issue #118)**: 起動時に GitHub Releases を**確認だけ**行い、
+   **バージョンが真に大きい** Release があれば Title に『アップデートあり』を出す。
+   ダウンロード (staging) も適用も**ユーザーが明示的にトリガーしたときだけ**行われる:
+   Title 通知 (F3 / クリック) の `UpdateChecker.RequestDownload` でダウンロード + SHA-256 検証 + staging、
+   Option の「更新を適用して再起動」ボタンの `UpdateChecker.RequestApply` で
+   `Update.ps1 -Apply -WaitPid -Relaunch` を分離プロセス起動 (アプリ終了 → 展開 → 検証 → 一括切替 → 新 exe 再起動)。
+   押さなければダウンロードも適用も行わない。**`OnApplicationQuit` からの終了時自動適用は存在しない**
+   (実装: [`Assets/Game/Scripts/Update/UpdateChecker.cs`](../../Assets/Game/Scripts/Update/UpdateChecker.cs) /
+   [`Assets/Game/Scripts/UI/UpdateNoticeUI.cs`](../../Assets/Game/Scripts/UI/UpdateNoticeUI.cs)、
+   実証: [`docs/evidence/118-explicit-update.md`](../evidence/118-explicit-update.md))。
 7. **失敗時**: SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を変更せず、
    ゲームは止まりません。前の世代は `FlashBeat-backup-*` に 1 世代残ります。
 
