@@ -10,28 +10,53 @@
 | 項目 | 内容 |
 |---|---|
 | ビルド環境 | macOS (Apple Silicon) + Unity 6000.5.6f1 + WindowsStandaloneSupport |
-| ビルド手順 | `FLASHBEAT_VERSION_BASE=0.1.22 bash script/win64-build-mac.sh origin/main /Users/rebui/work/dist/win64` |
-| 出力 | `<outdir>/0.1.22+<sha>-win64-<sha>.zip` / `.zip.sha256` / `.build-info.txt` |
-| 中身 (実測) | 223 entries / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
+| ビルド手順 | `FLASHBEAT_VERSION_BASE=0.1.22 FLASHBEAT_UPDATE_CHANNEL=stable bash script/win64-build-mac.sh <sha> <outdir>` (正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみ) |
+| 出力 | `<outdir>/FlashBeat-0.1.22-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ** (`.build-info.txt` は作らない) |
+| 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
 | **未検証** | **Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。ここが本手順の目的 |
 
-### 現在の候補 (2026-11-10 再生成)
+### 現在の候補 (2026-11-10 再生成 / main `60854c8`)
 
 | 項目 | 値 |
 |---|---|
-| ZIP | `0.1.22+36a3572-win64-36a3572.zip` (274,842,010 bytes) |
-| SHA-256 | `d3a605f297ff43e4fa59436fc5da34e9c49d846d2a07aa808e43a78b711791a7` |
-| ソース SHA | `36a3572cf75de73c45ef90d6d643ee248522df2a` (`origin/main` — PR #296 merge 直後) |
-| ビルド日時 | 2026-11-10T02:21:24Z |
+| ZIP | `FlashBeat-0.1.22-win64-60854c8.zip` (274,848,934 bytes) |
+| SHA-256 | `839ad62db7e7fa4995da6e67efa11578aeb139d9187298481be44e3708f95664` |
+| ソース SHA | `60854c84a6e510d116c5373041538829fe334ed8` (`origin/main` — PR #324 / #325 merge 後) |
+| Application.version | `0.1.22+60854c8` (Player の `globalgamemanagers` に埋まっていることを確認済み) |
+| version.json | `version=0.1.22` / `tag=v0.1.22-win64-60854c8` / `mediaPolicy=song-free` |
+| 更新チャンネル | `stable` (`StreamingAssets/update-channel.txt`) |
+| ビルド日時 | 2026-11-10T06:38:18Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
 
-> **同じ出力ディレクトリに古い候補 (`0.1.0+877bde7` / `0.1.22+0bab549` /
-> `0.1.22+e45c494`) が残っている。** これらは **ソース SHA が古く**、
-> 後にマージされた PR (#291 / #293 / #294 / #295 / #296) を含まない。
-> **使用してはならない。** 上表の SHA-256 が一致しない候補は使わないこと。
+> **古い候補は使用禁止。** 次の ZIP はソースが古いか、旧スクリプト (ビルド出力をそのまま ZIP 化する
+> 経路) で作られており、`version.json` 非同梱 / `FlashBeat_BurstDebugInformation_DoNotShip` 同梱 /
+> `.build-info.txt` 付きのいずれかに該当する。**ZIP 名と SHA-256 が上表と一致しない候補は使わない。**
+>
+> - `0.1.0+877bde7-win64-877bde7.zip`
+> - `0.1.22+0bab549-win64-0bab549.zip`
+> - `0.1.22+e45c494-win64-e45c494.zip`
+> - `0.1.22+36a3572-win64-36a3572.zip`
+> - `0.1.0+c9fb812-win64-c9fb812.zip` / `FlashBeat-0.1.0-win64-60854c8.zip`
+>   (構造は正規だがバージョンが `0.1.0` のため更新判定に使えない)
+>
+> 旧形式 (`0.1.22+<sha>-win64-<sha>.zip`) は **もう生成されない**。もし見つけたら、
+> それは旧版 `script/win64-build-mac.sh` (w/ja-text-cleanup など古いチェックアウト) で
+> 作られたものなので、正規候補として扱わないこと。
 
 **版の基準について**: 現行の GitHub Release は `v0.1.21-win64-d581c4c`。
 自動更新はバージョンの大小で判定するため、**同じ版 (`0.1.21`) で別 SHA の Release を作っても
 更新が効きません**。次の配布は **`0.1.22`** として作ってください (`FLASHBEAT_VERSION_BASE=0.1.22`)。
+
+### 0.1 オーナーが行う操作 (これだけ)
+
+1. ZIP を**新しいフォルダ**へ展開する (既存の展示ディレクトリへ上書きしない)
+2. `Get-FileHash -Algorithm SHA256` で上表の SHA-256 と照合する
+3. `FlashBeat.exe` を**引数なし**で起動する
+4. Title → Select → Game (1 曲) → Result → Retry を 1 周し、**動画・ノーツ・判定・音声**を確認する
+5. Option を開き、4 タブ (Play / Display / Sound / Data) の表示と操作を確認する (#241)
+6. 実ディスプレイ全画面のスクリーンショットと `Player.log` を保存する (§3.5)
+
+開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
+Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
 
 ---
 
@@ -133,6 +158,29 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 2. 伸びた受入項目を Issue ごとに閉じ直す (#233 / #242 / #88 / #96 / #4 / #13 / #59)
 3. **Windows 実機受入が通ってから** GitHub Release として publish する
    (未検証の配布は公開しない)
+
+---
+
+## 6. CI (GitHub Actions) の Unity ライセンス secret
+
+2026-11-10 時点で `build-win64` / `build-macos` は **ライセンス確認ステップで失敗**している
+(`--error UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。`)。
+これはコードの問題ではなく secret 未登録によるもの。
+
+| secret | 位置づけ | 備考 |
+|---|---|---|
+| `UNITY_EMAIL` / `UNITY_PASSWORD` | **推奨** (Unity アカウント認証) | GitHub-hosted runner では `.ulf` の機械結合が一致しないため |
+| `UNITY_LICENSE` (`.ulf`) | 代替 | 登録元マシンに固定される。hosted runner では実質不可 |
+| `UNITY_SERIAL` | 代替 (Pro/Plus) | シリアル認証を使う場合 |
+
+登録後の期待結果:
+
+- `ライセンス設定の確認` ステップが成功し、続く `BuildScript.BuildStandaloneWindows64` /
+  `BuildStandaloneMacOS` が実行されて artifact が残る
+- 失敗が続く場合は run ログの `[Licensing::...]` 行を確認する (値を Issue に貼らない)
+
+登録・値の管理は**オーナー**が行う。secret の値はログ・Issue・PR に出さない。
+手順の詳細は `docs/operations/unity-ci-license.md` を参照。
 
 ---
 
