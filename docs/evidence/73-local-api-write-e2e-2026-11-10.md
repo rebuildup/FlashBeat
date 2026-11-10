@@ -95,7 +95,8 @@ lsof -ti tcp:5301 | xargs kill
 ## 7. この記録で言えないこと
 
 - **本番環境**での同等の確認 (本番 D1 / 本番 Worker / 本番トークン) は行っていない。書き込みを伴うため、
-  対象データ・復旧方法・必要権限を明示したうえで別途実施する。
+  対象データ・復旧方法・必要権限を明示したうえで別途実施する。条件と手順は
+  [`docs/operations/production-api-acceptance.md`](../operations/production-api-acceptance.md) にまとめた。
 - ブラウザ操作 (Playwright) での通し確認はこの記録の範囲外。`web/tests/e2e/*.spec.ts` のブラウザ E2E と
   CI 実行は別 Issue (#75 / #73) で扱う。
 - #135 の「ブラウザだけで登録が完結する」の**受入そのもの**は、この API 往復 + 画面操作の両方が揃って初めて言える。
