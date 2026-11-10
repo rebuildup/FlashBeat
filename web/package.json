@@ -6,7 +6,7 @@
     "dev": "vp dev",
     "build": "vp build",
     "preview": "vp preview",
-    "test": "node --test tests/ && vitest run",
+    "test": "node --test tests/*.test.ts tests/*.test.mjs && vitest run",
     "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
     "e2e": "node tests/e2e/run.ts",
     "test:studio": "playwright test --config tests/e2e/playwright.config.ts",
