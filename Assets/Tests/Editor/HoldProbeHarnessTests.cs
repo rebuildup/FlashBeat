@@ -133,4 +133,102 @@ public class HoldProbeHarnessTests
         Assert.IsFalse(KeyBindings.IsLaneKeyHeld(0));
         Assert.IsFalse(KeyBindings.IsLaneKeyHeld(2));
     }
+
+    // ---- 注入 → 判定 → 保持ウィンドウの連結 (issue #59) --------------------
+    //
+    // 実機の保持フェーズは「Judge がそのレーンのキーが押されているか
+    // (Judge.IsLaneKeyDown → KeyBindings.IsLaneKeyHeld)」を毎フレーム
+    // JudgeQueue.UpdateHold へ渡し、時刻判定は LongNote が単一の出所。
+    // LongNote / JudgeQueue は Input に依存しない純粋クラスなので、
+    // 実プレイヤーなしでここまでの連結を検証できる。
+
+    /// <summary>
+    /// ハーネスの注入が Judge の保持判定に届くこと。Judge 側は private なので
+    /// reflection で呼ぶ (実装が KeyBindings の注入を見なくてもコンパイルは
+    /// 通ってしまうため、配線をここで固定する)。
+    /// </summary>
+    [Test]
+    public void TheInjectedHoldReachesTheJudgeSeam()
+    {
+        var judgeSeesKeyDown = typeof(Judge).GetMethod("IsLaneKeyDown",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        Assert.IsNotNull(judgeSeesKeyDown, "Judge.IsLaneKeyDown が見つからない");
+        var laneDown = (System.Func<int, bool>)System.Delegate.CreateDelegate(
+            typeof(System.Func<int, bool>), judgeSeesKeyDown);
+
+        KeyBindings.InjectKeyHold(KeyCode.A);
+        Assert.IsTrue(laneDown(0), "注入した保持が Judge の保持判定に届く");
+
+        KeyBindings.ReleaseInjectedKeyHold(KeyCode.A);
+        Assert.IsFalse(laneDown(0), "解除すると Judge の保持判定も離れる");
+    }
+
+    /// <summary>
+    /// 保持ウィンドウの時刻判定 (LongNote が単一の出所): 開始ちょうどと
+    /// 終端ちょうどは保持中、その外は保持中ではない。
+    /// </summary>
+    [Test]
+    public void TheHoldWindowIsInclusiveAtBothEnds()
+    {
+        const float start = 10f;
+        const float end = 12.5f;
+
+        Assert.IsFalse(LongNote.IsHolding(9.99f, start, end), "開始の前は保持中ではない");
+        Assert.IsTrue(LongNote.IsHolding(start, start, end), "開始ちょうどは保持中");
+        Assert.IsTrue(LongNote.IsHolding(11f, start, end), "区間の途中は保持中");
+        Assert.IsTrue(LongNote.IsHolding(end, start, end), "終端ちょうどは保持中");
+        Assert.IsFalse(LongNote.IsHolding(12.51f, start, end), "終端の後は保持中ではない");
+    }
+
+    /// <summary>
+    /// 保持フェーズの状態遷移 (実プレイヤーなしで到達できる範囲):
+    /// 注入した保持のままでは保持が続き、離すと終端からの距離で
+    /// Released / Broken が決まり、押したまま終端 + 許容幅をすぎると Expired。
+    /// </summary>
+    [Test]
+    public void TheHoldPhaseTransitionsFollowTheInjectedKeyAndTheClock()
+    {
+        const int lane = 0;
+        const float greatWindow = LongNote.GREAT_WINDOW;
+
+        var queue = new JudgeQueue(8);
+        queue.BeginHold(new JudgeQueue.NoteEntry
+        {
+            Time = 10f,
+            EndTime = 12.5f,
+            Type = LongNote.TYPE_HOLD,
+            Lane = lane,
+            SourceIndex = 0,
+        });
+        Assert.IsTrue(queue.IsHolding(lane), "開始判定の後は保持中");
+
+        // 注入した保持のままなら、区間中は何も確定しない。
+        KeyBindings.InjectKeyHold(KeyCode.A);
+        Assert.AreEqual(JudgeQueue.HoldResult.None,
+            queue.UpdateHold(lane, 11f, KeyBindings.IsLaneKeyHeld(lane), greatWindow, out var settled),
+            "保持中のレーンは次の判定を生まない");
+        Assert.IsTrue(queue.IsHolding(lane));
+
+        // 終端の許容幅内で離す → 成功。
+        KeyBindings.ReleaseInjectedKeyHold(KeyCode.A);
+        Assert.AreEqual(JudgeQueue.HoldResult.Released,
+            queue.UpdateHold(lane, 12.6f, KeyBindings.IsLaneKeyHeld(lane), greatWindow, out settled),
+            "終端の許容幅内の離しは成功");
+        Assert.IsFalse(queue.IsHolding(lane), "確定したら保持は終わる");
+
+        // 許容幅より前の離し → 中断 (BAD)。
+        var queue2 = new JudgeQueue(8);
+        queue2.BeginHold(new JudgeQueue.NoteEntry { Time = 10f, EndTime = 12.5f, Type = LongNote.TYPE_HOLD, Lane = lane, SourceIndex = 1 });
+        Assert.AreEqual(JudgeQueue.HoldResult.Broken,
+            queue2.UpdateHold(lane, 11.5f, false, greatWindow, out settled),
+            "許容幅より前の離しは中断");
+
+        // 押したまま終端 + 許容幅をすぎた → 成功扱い (離し忘れ)。
+        var queue3 = new JudgeQueue(8);
+        queue3.BeginHold(new JudgeQueue.NoteEntry { Time = 10f, EndTime = 12.5f, Type = LongNote.TYPE_HOLD, Lane = lane, SourceIndex = 2 });
+        KeyBindings.InjectKeyHold(KeyCode.A);
+        Assert.AreEqual(JudgeQueue.HoldResult.Expired,
+            queue3.UpdateHold(lane, 12.5f + greatWindow + 0.01f, KeyBindings.IsLaneKeyHeld(lane), greatWindow, out settled),
+            "押し続けたままの終端超過は成功扱い");
+    }
 }

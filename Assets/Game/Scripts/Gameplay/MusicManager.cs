@@ -1303,23 +1303,31 @@ public class MusicManager : MonoBehaviour
         // very same file, so picture and sound cannot drift apart.
         // Only after the picture was started: a file that is prepared while the
         // song is already running must not throw the clock back to zero.
-        if (pictureStarted && songVideo != null && songVideo.isPrepared) return (float)songVideo.time;
+        // The decision itself is MediaTimeline.SelectMediaTime (tested purely).
+        bool picturePrepared = songVideo != null && songVideo.isPrepared;
+        float pictureTime = picturePrepared ? (float)songVideo.time : 0f;
 
+        bool audioReady = false;
+        float audioTime = 0f;
         switch (audioMode)
         {
             case PlaybackSource.StreamSeparate:
-                if (streamAudioPlayer != null && streamAudioPlayer.isPrepared) return (float)streamAudioPlayer.time;
+                audioReady = streamAudioPlayer != null && streamAudioPlayer.isPrepared;
+                audioTime = audioReady ? (float)streamAudioPlayer.time : 0f;
                 break;
 
             case PlaybackSource.BundledWave:
-                if (audioS != null && audioS.clip != null) return audioS.time;
+                audioReady = audioS != null && audioS.clip != null;
+                audioTime = audioReady ? audioS.time : 0f;
                 break;
         }
 
         // No media at all (the download failed, the file could not be opened):
         // the wall clock keeps the song running, so the game still reaches the
         // result screen and the player can retry or go back to the song list.
-        return MediaTimeline.FallbackMediaTime(Time.time, playbackStartWallTime);
+        return MediaTimeline.SelectMediaTime(pictureStarted, picturePrepared, pictureTime,
+            audioReady, audioTime,
+            MediaTimeline.FallbackMediaTime(Time.time, playbackStartWallTime));
     }
 
     static string FirstUrl(string stdout)

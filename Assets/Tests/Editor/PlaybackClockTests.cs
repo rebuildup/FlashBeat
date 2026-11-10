@@ -255,4 +255,102 @@ public class PlaybackClockTests
         Assert.IsTrue(MediaTimeline.ShouldResync(10f, 10.5f));
         Assert.IsTrue(MediaTimeline.ShouldResync(10f, 9.5f));
     }
+
+    // --- issue #58 / regression 86ad62d: メディアの Ready と再生開始の順番 ----
+    //
+    // CurrentMediaTime の「どの時計を正とするか」の決定は
+    // MediaTimeline.SelectMediaTime に抽出した (VideoPlayer.isPrepared は
+    // EditMode で偽装できないため、実 VideoPlayer を使う直接テストは不可能)。
+    // 抽出は振る舞いを変えない (同じ節・同じ順序)。
+
+    /// <summary>
+    /// メディアの準備が済んでも **まだ再生していない** なら、クロックは 0。
+    /// 曲はまだ始まっていないので、譜面も動いてはいけない。
+    /// </summary>
+    [Test]
+    public void PreparedButNotStartedMediaKeepsTheClockAtZero()
+    {
+        // 映像は準備済みだが未再生 (pictureStarted = false): 映像の時刻ではなく
+        // 動いている時計 (ここではフォールバック 0) を使う。
+        Assert.AreEqual(0f, MediaTimeline.SelectMediaTime(false, true, 0f, false, 0f, 0f), 0.0001f);
+
+        // 音声だけ準備済みで未再生 (BundledWave 相当): audioS.time = 0。
+        Assert.AreEqual(0f, MediaTimeline.SelectMediaTime(false, false, 0f, true, 0f, 0f), 0.0001f);
+    }
+
+    /// <summary>
+    /// 再生開始前にメディアが Ready になった場合、再生開始の瞬間のクロックは 0
+    /// (映像の時刻 0 がそのまま正になる)。後から来た別ストリームの Ready
+    /// (時刻 0) に引っ張られても、開始直後のクロックは 0 のままであること。
+    /// </summary>
+    [Test]
+    public void ReadyBeforePlaybackStartsTheClockAtZero()
+    {
+        // 映像を再生し始めた瞬間: 映像の時刻はまだ 0。
+        Assert.AreEqual(0f, MediaTimeline.SelectMediaTime(true, true, 0f, true, 0f, 0f), 0.0001f);
+    }
+
+    /// <summary>
+    /// 再生中 (pictureStarted 済み) に別のストリームが Ready になっても、
+    /// クロックは 0 に戻らない (単調)。86ad62d の回帰: 準備が再生開始より
+    /// 遅いと、Ready の瞬間に映像の時刻 (0) がクロックを掴んでノーツが
+    /// 曲の先頭へ戻っていた。映像を再生し始めた後は映像の時刻が正であり、
+    /// 準備できたばかりの音声 (時刻 0) やフォールバックが上書きしない。
+    /// </summary>
+    [Test]
+    public void AMidPlayReadyEventDoesNotResetTheClockAfterThePictureStarted()
+    {
+        // 映像は 5 秒目で再生中。その後に音声ストリームが Ready (時刻 0) に
+        // なっても、クロックは映像の 5 秒のまま。
+        Assert.AreEqual(5f, MediaTimeline.SelectMediaTime(true, true, 5f, true, 0f, 12f), 0.0001f);
+
+        // 音声が Ready でなくても同じ (フォールバックにも戻らない)。
+        Assert.AreEqual(5f, MediaTimeline.SelectMediaTime(true, true, 5f, false, 0f, 12f), 0.0001f);
+
+        // 逆に、まだ映像を再生し始めていないなら (86ad62d 前の状態)、
+        // 準備済み映像の時刻 0 がクロックを掴んではいけない。
+        Assert.AreEqual(12f, MediaTimeline.SelectMediaTime(false, true, 0f, false, 0f, 12f), 0.0001f);
+    }
+
+    /// <summary>
+    /// 実コンポーネントの経路でも同じ契約を確かめる: 音声 (BundledWave) が
+    /// 準備済みでも再生していないなら <see cref="MusicManager.MediaTimeNow"/>
+    /// は 0。StartPlayback が走っていない EditMode では Start は呼ばれないので、
+    /// 反映は private フィールド経由で行う (実機の StartPlayback は
+    /// pictureStarted を立てて映像の時刻へ切り替える = 上の pure テスト)。
+    /// </summary>
+    [Test]
+    public void TheComponentsClockIsZeroUntilThePlaybackStarts()
+    {
+        GameObject go = null;
+        AudioClip clip = null;
+        try
+        {
+            go = new GameObject("PlaybackClockTests.MusicManager");
+            MusicManager manager = go.AddComponent<MusicManager>();
+            clip = AudioClip.Create("PlaybackClockTests.Silent", 44100, 1, 44100, false);
+            AudioSource audio = go.AddComponent<AudioSource>();
+            audio.clip = clip;
+
+            SetPrivateField(manager, "audioMode", FlashBeat.Gameplay.PlaybackSource.BundledWave);
+            SetPrivateField(manager, "audioS", audio);
+            SetPrivateField(manager, "playbackStartWallTime", 0f);
+
+            // 準備済み (clip あり) だが未再生: audioS.time == 0 がクロックになる。
+            Assert.AreEqual(0f, manager.MediaTimeNow, 0.0001f);
+        }
+        finally
+        {
+            if (go != null) Object.DestroyImmediate(go);
+            if (clip != null) Object.DestroyImmediate(clip);
+        }
+    }
+
+    static void SetPrivateField(object target, string name, object value)
+    {
+        System.Reflection.FieldInfo field = target.GetType()
+            .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.IsNotNull(field, "private field not found: " + name);
+        field.SetValue(target, value);
+    }
 }

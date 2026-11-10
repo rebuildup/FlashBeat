@@ -211,6 +211,91 @@ public class ChartDataIntegrityTests
         Assert.AreEqual(songs, GManager.SongLong.Length, "SongLong has a different length than SongName");
     }
 
+    // --- カタログの契約 (issue #58): 並列配列から Songs が組み上がること ----
+
+    /// <summary>
+    /// <see cref="GManager.Songs"/> は並列配列から 1 行ずつ組み上がる。
+    /// id は配列の添字そのもの、タイトルは SongName そのもの。特に先頭は
+    /// noSong プレースホルダ (id = 0、再生不可) でなければならない
+    /// (実曲は id 1 以降。GManager.songID の初期値も 1)。
+    /// </summary>
+    [Test]
+    public void TheSongsAreBuiltFromTheCatalogWithThePlaceholderAtZero()
+    {
+        Assert.AreEqual(GManager.SongName.Length, GManager.Songs.Length,
+            "Songs has a different length than SongName");
+
+        for (int i = 0; i < GManager.Songs.Length; i++)
+        {
+            Assert.AreEqual(i, GManager.Songs[i].id, $"Songs[{i}].id must be the array index");
+            Assert.AreEqual(GManager.SongName[i], GManager.Songs[i].title, $"Songs[{i}].title must be SongName[{i}]");
+        }
+
+        SongData placeholder = GManager.Songs[0];
+        Assert.AreEqual(0, placeholder.id, "the placeholder must stay at id 0");
+        Assert.AreEqual("noSong", placeholder.title, "the placeholder must stay noSong");
+        Assert.IsTrue(placeholder.unplayable, "the placeholder must not be playable");
+    }
+
+    /// <summary>
+    /// UnplayableTitles (private) の全タイトルがカタログの実在する行へ解決し、
+    /// その行が実際に再生不可としてマークされていること。タイトルの綴りが
+    /// ずれると、再生できないはずの行が選曲に出てしまう (#95)。
+    /// </summary>
+    [Test]
+    public void EveryUnplayableTitleResolvesToACatalogEntry()
+    {
+        var unplayableTitles = UnplayableTitles();
+        Assert.IsNotEmpty(unplayableTitles, "UnplayableTitles must not be empty");
+
+        var missing = new List<string>();
+        foreach (var title in unplayableTitles)
+        {
+            bool resolved = false;
+            for (int i = 0; i < GManager.SongName.Length; i++)
+            {
+                if (GManager.SongName[i] != title) continue;
+                resolved = true;
+                Assert.IsTrue(GManager.Songs[i].unplayable,
+                    $"{title} (index {i}) is in UnplayableTitles but the row is playable");
+            }
+            if (!resolved) missing.Add(title);
+        }
+        Assert.IsEmpty(missing, "UnplayableTitles without a catalog entry: " + string.Join(", ", missing));
+    }
+
+    /// <summary>
+    /// 選曲に出せる行 (unplayable = false) は、並列配列の行数から
+    /// UnplayableTitles に当たった行を引いた数。既知のプレースホルダ
+    /// (noSong とクラウドカタログの残骸) を引いても、なお十分な曲が
+    /// 選べることを下限で固定する。
+    /// </summary>
+    [Test]
+    public void TheCatalogKeepsAPlayableFloor()
+    {
+        var unplayableTitles = UnplayableTitles();
+        int playable = 0;
+        for (int i = 0; i < GManager.Songs.Length; i++)
+        {
+            bool marked = GManager.Songs[i].unplayable;
+            Assert.AreEqual(unplayableTitles.Contains(GManager.SongName[i]), marked,
+                $"Songs[{i}] ({GManager.SongName[i]}) differs from UnplayableTitles");
+            if (!marked) playable++;
+        }
+
+        Assert.GreaterOrEqual(playable, 20,
+            "the catalog lost playable songs - the song list is broken for the player");
+    }
+
+    /// <summary>UnplayableTitles は private。契約の対象なので reflection で読む。</summary>
+    static HashSet<string> UnplayableTitles()
+    {
+        var field = typeof(GManager).GetField("UnplayableTitles",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        Assert.IsNotNull(field, "GManager.UnplayableTitles not found");
+        return (HashSet<string>)field.GetValue(null);
+    }
+
     [Test]
     public void EveryNoteOfTheExistingChartsIsATapNote()
     {

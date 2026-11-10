@@ -104,6 +104,25 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
+        /// Which clock drives the judgement (issue #58, regression 86ad62d).
+        ///
+        /// The picture time is used only after the picture playback was started
+        /// (pictureStarted). A file that becomes prepared while the song is
+        /// already running must not throw the clock back to zero - before the
+        /// picture plays, its time is 0 and the running clock (the audio or the
+        /// wall clock fallback) stays the authority. Once the picture plays it
+        /// is the master and a later Ready event of another stream must not
+        /// reset the clock either.
+        /// </summary>
+        public static float SelectMediaTime(bool pictureStarted, bool picturePrepared, float pictureTime,
+            bool audioReady, float audioTime, float fallbackTime)
+        {
+            if (pictureStarted && picturePrepared) return pictureTime;
+            if (audioReady) return audioTime;
+            return fallbackTime;
+        }
+
+        /// <summary>
         /// True when the picture and the separate sound track drift apart far
         /// enough to be corrected. The picture is the reference (the chart was
         /// authored against the video), the sound is re-seeked to it.
