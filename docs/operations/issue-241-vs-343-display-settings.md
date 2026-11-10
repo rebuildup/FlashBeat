@@ -45,7 +45,7 @@
 | v6 Select (Ready の設定行) | `V6SelectView.cs:1005,1007` | 同 |
 | v5 Select | `V5/SelectView.cs:366,374` | 同 |
 | v5 Pause | `V5/PauseMenuView.cs:349,356` | 同 |
-| ゲーム HUD / 描画 | — | `PlaySession.KeyGuide` / `LyricsEnabled` の読み出し **31 箇所** |
+| ゲーム HUD / 描画 | — | `PlaySession.KeyGuide` / `LyricsEnabled` を参照する行は **31 行** (うち上の表の setter 呼び出し 10 箇所を除く 22 行が純粋な読み出し) |
 
 ### 2.3 案の違いで **新たに** 変わる挙動
 
