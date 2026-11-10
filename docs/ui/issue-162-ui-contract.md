@@ -263,6 +263,56 @@ v5 は `GameHudRuntime.Ensure()` が Canvas 群を構築し (`GameHudRuntime.cs:
 
 ---
 
+### 8.1 再照合 (2026-11-10, v6 UI 対応)
+
+v6 UI (`Assets/Game/Scripts/UI/V6/`, `V6UiMode` 既定値: GameHud / SelectScreen / Pause / Result / Option / Title すべて有効) の投入後、§8 のリストを現行コードに対して再照合した。判定は「誰がそのビューを生成するか・入力経路が届くか」で行った (クラスが残っていること自体は到達性の根拠にしない)。既定フラグで到達しない v5 専用経路は **moot**、v6 で修正済みは **fixed**、依然到達して誤りのものは **live** とする。
+
+| # | 状態 | 根拠 (2026-11-10 時点) |
+|---|---|---|
+| A-1 | fixed | v6 タイトルの Ranking タブが実遷移に接続 (`TitleSceneManager.cs:43` → `OnRankingRequested` → `PendingEntry` 経由で Select の Ranking を初期表示)。v5 `TitleView` はどこからも生成されない (`TitleSceneManager.cs:20-22` コメント) |
+| A-2 | fixed | v6 モードでは v5 `GameErrorView` は常に非表示 (`GameUiExclusivity.cs:127-146` Resolve: v6 有効時は Error を立てない)。v6 の失敗表示 `V6LoadingView.Retry` は `GameSceneManager.RetryGame` (=`GManager.ResetSession` + Fade) を呼ぶ (`V6LoadingView.cs:373-389`) |
+| A-3 | fixed | Option は無条件で v6 `V6OptionView` を構築 (`OptionSceneManager.cs:215-219`)。Media cache は Data タブの行として到達可能 (`V6OptionView.cs:974-980`)。旧 `MediaCacheOptionPanel` の不可視問題の経路は死んだ |
+| A-4 | moot | レガシー MenuPanel は起動時非表示 + 0.5 秒ごとに再非表示 (`GameHudRuntime.cs` `LegacyHideNames` / `LateUpdate:176-186`)。Esc は v6 ポーズが担う (`V6GameRuntime.cs` `UpdatePause`) |
+| A-5 | fixed | v6 ランキングは選択・表示時に実取得 (`V6SelectDataSource.cs:130,243,562`)。空状態は取得中 / 失敗 / 0 件を区別 (`V6RankingLogic.cs:170-189`) |
+| A-6 | **fixed (本再照合)** | `ResultSceneManager.ApplyBestScore` が固定テーブル外 (cloud 追加曲) をスロット 0 に上書きしていたのを、安定キー (remoteId@chartVersion) の保存先へ書くよう修正 (`ResultSceneManager.cs:65-83`)。読み側も V6ResultView (`V6ResultView.cs:1424-1441`) / v6 HUD ゲージ (`V6GameHudView.cs:126-128`) / v6 ポーズ (`V6PauseView.cs:545-555`) で安定キーへフォールバック |
+| A-7 | fixed | v6 Result はモーダル表示中・入力ゲート中は背面キーを捨てる (`V6ResultView.cs:240-247`)。旧自動モーダルは v6 で無効化 (`ResultSceneManager.cs:143`)。Title も `SceneInputGate` を確認 (`TitleSceneManager.cs:213`) |
+| A-8 | moot | v6 モードでは KeyGuideUI を生成せず、既存も破棄 (`GameSceneManager.cs:89` / `SelectSceneManager.cs:72` / `TitleSceneManager.cs:325` → `V6UiMode.HideLegacyKeyGuide`)。v6 HUD のキーガイド行は `KeyBindings` 実値 (`V6GameHudView.cs:717`) |
+| A-9 | moot | TypingScene への遷移は存在しないまま (孤児の到達不能シーン)。プレイヤーから届かない |
+| A-10 | moot | `LoadingOverlayHook.Show/Hide` の呼び出し元は無いまま (`GameHudRuntime.cs:100` Bind のみ)。v5 GameLoadingView 自体が v6 モードで非表示 (`GameUiExclusivity.cs:127-146`) |
+| B-1 | fixed | v6 履歴の判定内訳は直前プレイの実値 (`V6HistoryView.cs:712-721`)。死んだ HOLD セルは削除済み |
+| B-2 | fixed | v6 ポーズは `PauseGate.Enter/Exit` (`V6PauseView.cs:148,164`)。MusicManager (`MusicManager.cs:920`) / Judge (`Judge.cs:110`) / Notes (`Notes.cs:91`) が停止する |
+| B-3 | fixed | v5 GameHudView は設計 px を渡すよう修正済み (`GameHudView.cs:450-456`、#162 B-3 コメント)。v6 HUD は px を直接計算 (`V6HudLogic.cs:40-52`)。なお v5 HUD は v6 モードで生成されない (`GameHudRuntime.cs:83-85`) |
+| B-4 | **fixed (本再照合)** | v6 HUD の「+ COMBO BONUS +N」「次のボーナス +N」(近似値 / 仮の式。`GameHudLogic.cs:20-35`。`JudgeScoreboard` の配点にコンボボーナスは存在しない) を廃止 (`V6GameHudView.cs:611-615`、`V6HudLogic.ShowComboBonus` 削除)。v5 GameHudView には残るが v6 モードでは生成されない (`GameHudRuntime.cs:83-85`) |
+| B-5 | fixed | v6 ローディングは譜面準備の実進捗 (`GameLoadingProgress`、`NotesManager.cs:240`) を出し、未報告時は「不定」と正直に出す (`V6GameRuntime.cs:236-241` / `V6LoadingViewLogic.cs:91`) |
+| B-6 | fixed | v6 の失敗表示は原因を断定しない文言 (`V6GameRuntime.cs:243`)。403 固定表示の v5 GameErrorView は v6 モードで非表示 (`GameUiExclusivity.cs:127-146`) |
+| B-7 | fixed | v6 の FULL COMBO チップは曲完走 (全ノーツ判定済み) かつノーミスのときだけ出る (`V6GameHudView.cs:139-145`) |
+| B-8 | fixed | v6 Result の Combo は最大コンボ (`runMaxCombo`) を出す (`V6ResultView.cs:1134,1147`) |
+| B-9 | fixed | v6 はオンラインで空入力を拒否 (`V6ResultLogic.cs:283-307`)、ローカル保存は保存名を明示するメッセージ (`V6ResultView.cs:888` / `V6ResultLogic.cs:378-380`。空入力→`YOU` は v5 互換の意図的既定値)。ローカル名とオンライン名は `InitialName` で統合 (`V6ResultLogic.cs:387-400`) |
+| B-10 | fixed | v6 ポーズのキー一覧は `KeyBindings.Current` 実値で、`Changed` で即時更新 (`V6PauseView.cs:1073-1090`) |
+| B-11 | **fixed (本再照合)** | v6 ポーズの「BGMVolume」行を廃止 (`V6PauseView.cs:449-455`)。動画音声は MainVolume に従い (`MusicManager.cs:201,754,1184`)、BGMVolume の実行時消費者は GameScene に居ない (`VideoTime.cs:20` のみ)。「押しても効かない行は描画しない」(Key Layout 行廃止と同じ規律) |
+| C-1 | fixed | v6 履歴の件数は「記録のある曲数」の文言 (`V6HistoryLogic.cs:239-243`) |
+| C-2 | fixed | v6 タイトルのキーキャップは `KeyActions` の実割当から取る (`V6TitleView.cs:574,701-708`)。「Enter 決定」凡例の v5 TitleView は生成されない |
+| C-3 | moot | v6 選曲に Sort コントロールは無い (カタログ順固定) |
+| C-4 | fixed | v6 は Tab で検索フォーカス → `Input.inputString` を `SetQuery` (`V6SelectView.cs:222,262-268`)。KeyGuideUI が v6 で破棄されるため Tab の二重束縛も解消 (`SelectSceneManager.cs:72`) |
+| C-5 | moot | Ready 状態は廃止 (Issue #233)。v6 の Esc はタイトルへ (`SelectSceneManager.cs:149-154` `OnV6Back`) |
+| C-6 | **fixed (本再照合)** | v6 Option の Key Layout `←` リセットが確認モーダルを経由する (`V6OptionView.cs:880,1129-1134`)。説明文にも明記 (`V6OptionView.cs:853`)。既に標準のときはモーダルを出さない |
+| C-7 | **fixed (本再照合)** | 全曲 offset への書き戻し自体は既存の保存経路 (意図的, `OptionSceneManager.cs:381-399`)。説明文に「変更は全曲の譜面設定 (offset) に書き込まれます」を追記 (`V6OptionView.cs:837`) |
+| C-8 | **fixed (本再照合)** | KeyConfigUI フッターを実挙動どおり ←→「切替」/ Tab「選択」に修正 (`KeyConfigUI.cs:1021-1025`。実装は `KeyConfigUI.cs:381-390`) |
+| C-9 | fixed | v6 ポーズの開閉は `KeyActions.Back` (`V6GameRuntime.cs` `UpdatePause`)、MenuEnd / MenuSwitch も v6 ポーズ経由で到達可能。v5 の生 `KeyCode.Escape` 読みは v6 モードで非表示 (`V6GameRuntime.cs` `LateUpdate`) |
+| C-10 | fixed | v6 Result の凡例は実ボタンと一致 (R=リトライ / Enter=登録 / Space=決定=OK, `V6ResultLogic.cs:163-164` と `V6ResultView.cs` Tick の実装) |
+| D-1 | live | `PlaySession` は未永続のまま (`PlaySession.cs:43-58`)。永続化は新しい保存系の追加になるため本再照合では見送り (要: 別タスク) |
+| D-2 | fixed | v6 ポーズの値行は `Func<string>` Read を開いている間毎フレーム再評価 (`V6PauseView.cs:1024-1040` / `Tick:1142-1150`) |
+| D-3 | fixed | v6 選曲の PLAYERS は「データがありません」(`V6SelectView.cs:917-921`)、Ranking 画面は「プレイヤー別の集計には対応していません」(`V6RankingLogic.cs:219-222`) |
+| D-4 | fixed | v6 履歴の「順位」セルは削除済み (`V6HistoryView.cs:692-694`) |
+| D-5 | fixed | v6 選曲は 0 件で「曲が見つかりません」の空状態を出す (`V6SelectView.cs:571-584`) |
+| D-6 | fixed | FlashTiming は負へ寄せない (`V6OptionView.cs:1045-1048` / `OptionSceneManager.cs:412,418`)。上限は意図的に無し (`FlashT/100` = フラッシュ BPM) |
+| D-7 | **fixed (本再照合)** | Result の Retry は正本 `GManager.ResetSession` を呼ぶ (`ResultSceneManager.cs:208-223`)。旧自前実装は `settledNoteCount` とプレイセッションの固定 (`BeginPlaySession`) を漏らしていた |
+| D-8 | fixed | ポーズ中は `PauseGate` でメディア・判定・Space 開始が停止 (`MusicManager.cs:920-925`)。NoteSpeed クランプは Option/Ready と同じ 1..50 (`PauseMenuView.cs:784-787`) |
+| D-9 | fixed | 空配列は取得成功・0 件扱い (`RankingClient.cs:188-195`)。空状態文言は取得中 / 失敗 / 0 件を区別 (`V6RankingLogic.cs:170-189`) |
+| D-10 | fixed | v6 はニックネーム一致のときだけ YOU を付ける (`V6SelectDataSource.cs:504` / `V6ResultView.cs:1357`)。匿名エントリは空名で表示される |
+
+実機 (Windows / 実ディスプレイ) でしか検証できない項目は本再照合の対象外 (§0 の X1〜X8 を継続利用)。上記の fixed 判定はコード読解 + EditMode テストによる。
+
 ## 9. PR #204 (判定キュー) 実プレイ確認ポイント
 
 → `docs/ui/pr204-playtest-checkpoints.md` (X1〜X8)

@@ -590,13 +590,29 @@ namespace FlashBeat.UI.V5
                 Assert.AreEqual(500, ResultSceneManager.ApplyBestScore(1, 500), "同点の返り値が不正。");
                 Assert.AreEqual(500, GManager.Hiscore[1], "同点で記録が変わった。");
 
-                // 範囲外 songId (cloud カタログで増えた曲) は 0 番スロットを使う。
-                GManager.Hiscore[0] = 0;
-                int outOfRange = GManager.Hiscore.Length + 3;
-                Assert.AreEqual(0, ResultSceneManager.ApplyBestScore(outOfRange, 700),
-                    "範囲外 songId の返り値が 0 番スロットの値でない (F16)。");
-                Assert.AreEqual(700, GManager.Hiscore[0],
-                    "範囲外 songId が 0 番スロットに記録されていない (F16)。");
+                // 範囲外 songId (cloud カタログで増えた曲) は 0 番スロットを
+                // 共有しない (issue-162 A-6 再照合)。安定キーの保存先へ書く。
+                // 保存先はテスト用のメモリに差し替える (実セーブデータを汚さない)。
+                var previousStorage = FlashBeat.Persistence.ScorePersistence.Storage;
+                FlashBeat.Persistence.ScorePersistence.Storage =
+                    new FlashBeat.Tests.Editor.MemoryScoreStorage();
+                FlashBeat.Persistence.ScorePersistence.Unload();
+                try
+                {
+                    GManager.Hiscore[0] = 0;
+                    int outOfRange = GManager.Hiscore.Length + 3;
+                    Assert.AreEqual(0, ResultSceneManager.ApplyBestScore(outOfRange, 700),
+                        "範囲外 songId の返り値が安定キー保存先の前回値でない (F16)。");
+                    Assert.AreEqual(0, GManager.Hiscore[0],
+                        "範囲外 songId を 0 番スロットに書いてはいけない (issue-162 A-6)。");
+                    Assert.AreEqual(700, FlashBeat.Persistence.ScorePersistence.BestOf(outOfRange),
+                        "範囲外 songId のベストが安定キーの保存先に入っていない (issue-162 A-6)。");
+                }
+                finally
+                {
+                    FlashBeat.Persistence.ScorePersistence.Unload();
+                    FlashBeat.Persistence.ScorePersistence.Storage = previousStorage;
+                }
             }
             finally
             {

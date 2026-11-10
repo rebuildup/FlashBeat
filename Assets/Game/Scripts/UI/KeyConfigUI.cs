@@ -1018,10 +1018,10 @@ public class KeyConfigUI : MonoBehaviour
         // 説明文の羅列ではなく、キーキャップで「どのキーが何をするか」を見せる。
         var footerA = FlashBeat.UI.V5.ShortcutKeyCap.BuildCapRow(content, new[]
         {
-            ("←→", "変更"),
+            ("←→", "切替"),
             ("PgUp", "切替"),
             ("PgDn", "切替"),
-            ("Tab", "切替"),
+            ("Tab", "選択"),
             ("↑↓", "選択"),
         }, FooterFontSize, FooterFontSize);
         footerA.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 32f;

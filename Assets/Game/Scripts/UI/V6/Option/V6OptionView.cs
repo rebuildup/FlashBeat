@@ -68,6 +68,11 @@ namespace FlashBeat.UI.V6.Option
         private int selectedRow;
         private bool confirmClearOpen;
 
+        /// <summary>確認モーダルの種類 (issue-162 C-6: Key Layout のリセットも確認する)。</summary>
+        private enum ConfirmKind { ClearSaveData, ResetKeyLayout }
+
+        private ConfirmKind confirmKind = ConfirmKind.ClearSaveData;
+
         /// <summary>Clear save data の実行結果 (消去完了の文言。空なら未実行)。</summary>
         private string clearResult = "";
 
@@ -223,7 +228,14 @@ namespace FlashBeat.UI.V6.Option
                 case V6OptionAction.Confirm:
                     if (confirmClearOpen)
                     {
-                        ConfirmClearSaveData();
+                        if (confirmKind == ConfirmKind.ClearSaveData)
+                        {
+                            ConfirmClearSaveData();
+                        }
+                        else
+                        {
+                            ConfirmResetKeyLayout();
+                        }
                         return;
                     }
                     ActivateRow();
@@ -754,8 +766,24 @@ namespace FlashBeat.UI.V6.Option
             return currentRows[selectedRow];
         }
 
-        // --- モーダル (Clear save data の確認。契約 §4 モーダルゾーン: Scrim 全面 +
+        // --- モーダル (確認。契約 §4 モーダルゾーン: Scrim 全面 +
         //     Dialog (444,231) 840x510 $k1 r16 — V6Frame.Create が層ごと所有) ---
+
+        /// <summary>確認モーダルの文言 (種類ごと)。</summary>
+        private void ConfirmTexts(out string title, out string desc, out string confirmLabel)
+        {
+            if (confirmKind == ConfirmKind.ResetKeyLayout)
+            {
+                title = "Key Layout";
+                desc = "すべてのレーンのキー割り当てを標準に戻します。\n現在のカスタム割り当ては消去されます (元に戻せません)。";
+                confirmLabel = "戻す";
+                return;
+            }
+
+            title = "Clear save data";
+            desc = "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。\n実行後は元に戻せません。";
+            confirmLabel = "消去する";
+        }
 
         private void BuildConfirmClearModal(GameObject modal)
         {
@@ -772,13 +800,15 @@ namespace FlashBeat.UI.V6.Option
 
             V6Frame.ShowModal(frame.gameObject);
 
-            var title = V6Controls.Text(dialog, "Head", "Clear save data",
+            string titleText, descText, confirmLabelText;
+            ConfirmTexts(out titleText, out descText, out confirmLabelText);
+
+            var title = V6Controls.Text(dialog, "Head", titleText,
                 new Vector2(28f, 28f), new Vector2(784f, 40f), 30f, V6Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             title.textWrappingMode = TextWrappingModes.NoWrap;
 
-            var desc = V6Controls.Text(dialog, "Desc",
-                "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。\n実行後は元に戻せません。",
+            var desc = V6Controls.Text(dialog, "Desc", descText,
                 new Vector2(28f, 100f), new Vector2(784f, 120f), 24f, V6Tokens.Text,
                 TextAlignmentOptions.TopLeft);
             desc.lineSpacing = 40f; // design lineHeight 1.4
@@ -801,8 +831,10 @@ namespace FlashBeat.UI.V6.Option
             var clearNav = clearButton.navigation;
             clearNav.mode = Navigation.Mode.None;
             clearButton.navigation = clearNav;
-            clearButton.onClick.AddListener(ConfirmClearSaveData);
-            V6Controls.Text(clear, "Label", "消去する", Vector2.zero, new Vector2(252f, 50f),
+            clearButton.onClick.AddListener(confirmKind == ConfirmKind.ResetKeyLayout
+                ? (UnityEngine.Events.UnityAction)ConfirmResetKeyLayout
+                : (UnityEngine.Events.UnityAction)ConfirmClearSaveData);
+            V6Controls.Text(clear, "Label", confirmLabelText, Vector2.zero, new Vector2(252f, 50f),
                 26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
         }
 
@@ -834,7 +866,7 @@ namespace FlashBeat.UI.V6.Option
                     AdjustNoteTiming,
                     null,
                     "NoteTiming",
-                    "判定タイミングのずれを調整します。"),
+                    "判定タイミングのずれを調整します。変更は全曲の譜面設定 (offset) に書き込まれます。"),
                 new Row("Key Layout",
                     () => IsDefaultKeyLayout() ? "標準" : "カスタム",
                     d =>
@@ -843,14 +875,14 @@ namespace FlashBeat.UI.V6.Option
                         {
                             OpenKeyConfig(); // カスタムはキー設定で編集する
                         }
-                        else
+                        else if (!IsDefaultKeyLayout())
                         {
-                            ResetKeyLayout();
+                            OpenResetKeyLayoutConfirm(); // 破壊的なリセットは確認してから (issue-162 C-6)
                         }
                     },
                     OpenKeyConfig,
                     "Key Layout",
-                    "キー配列を選びます。標準は既定の配列、カスタムはキー設定で編集します。"),
+                    "キー配列を選びます。標準は既定の配列、カスタムはキー設定で編集します。← で標準に戻します (確認ダイアログが出ます)。"),
                 new Row("キー設定",
                     () => "F2",
                     null,
@@ -1089,7 +1121,16 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>確認モーダルを開く (まだ何も消去しない)。</summary>
         private void OpenClearConfirm()
         {
+            confirmKind = ConfirmKind.ClearSaveData;
             confirmClearOpen = true;
+        }
+
+        /// <summary>Key Layout のリセット確認を開く (まだ何も戻さない)。</summary>
+        private void OpenResetKeyLayoutConfirm()
+        {
+            confirmKind = ConfirmKind.ResetKeyLayout;
+            confirmClearOpen = true;
+            Rebuild();
         }
 
         /// <summary>確認モーダルを閉じるだけ (何も変えない)。</summary>
@@ -1104,6 +1145,14 @@ namespace FlashBeat.UI.V6.Option
         {
             ClearSaveData();
             clearResult = "消去しました";
+            confirmClearOpen = false;
+            Rebuild();
+        }
+
+        /// <summary>レーン割当を標準へ戻し、モーダルを閉じる (マウス・キーボードで共通)。</summary>
+        private void ConfirmResetKeyLayout()
+        {
+            ResetKeyLayout();
             confirmClearOpen = false;
             Rebuild();
         }

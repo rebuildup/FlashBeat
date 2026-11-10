@@ -446,10 +446,11 @@ namespace FlashBeat.UI.V6.Game.Pause
                 AddRow(rows, pageRoot, 0, "MainVolume",
                     () => V6PauseViewLogic.FormatVolume(GManager.mainVolume),
                     dir => AdjustVolume(dir, VolumeTarget.Main));
-                AddRow(rows, pageRoot, 1, "BGMVolume",
-                    () => V6PauseViewLogic.FormatVolume(GManager.BGMVolume),
-                    dir => AdjustVolume(dir, VolumeTarget.Bgm));
-                AddRow(rows, pageRoot, 2, "SEVolume",
+                // 「BGMVolume」の行は廃止 (issue-162 B-11 再照合): 動画音声は
+                // MainVolume に従い (MusicManager)、BGMVolume の実行時消費者は
+                // GameScene に居ない (VideoTime は配置されていない)。
+                // 押しても効かない行は描画しない (Key Layout 行の廃止と同じ規律)。
+                AddRow(rows, pageRoot, 1, "SEVolume",
                     () => V6PauseViewLogic.FormatVolume(GManager.effectVolume),
                     dir => AdjustVolume(dir, VolumeTarget.Se));
             }
@@ -490,7 +491,6 @@ namespace FlashBeat.UI.V6.Game.Pause
         private enum VolumeTarget
         {
             Main = 0,
-            Bgm = 1,
             Se = 2,
         }
 
@@ -501,9 +501,6 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 case VolumeTarget.Main:
                     GManager.mainVolume = Mathf.Clamp01(GManager.mainVolume + dir * Step);
-                    break;
-                case VolumeTarget.Bgm:
-                    GManager.BGMVolume = Mathf.Clamp01(GManager.BGMVolume + dir * Step);
                     break;
                 case VolumeTarget.Se:
                     GManager.effectVolume = Mathf.Clamp01(GManager.effectVolume + dir * Step);
@@ -544,7 +541,13 @@ namespace FlashBeat.UI.V6.Game.Pause
         private static int BestScore()
         {
             int id = GManager.songID;
-            return id >= 0 && id < GManager.Hiscore.Length ? GManager.Hiscore[id] : 0;
+            if (id >= 0 && id < GManager.Hiscore.Length)
+            {
+                return GManager.Hiscore[id];
+            }
+
+            // 固定テーブル外 (cloud 追加曲) は安定キーの保存先から読む (issue-162 A-6)。
+            return GManager.BestScoreOf(id);
         }
 
         private static int PlayedSongs()

@@ -58,13 +58,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         private RectTransform gaugeFill;
         private RectTransform gaugeBest;
         private RectTransform comboFill;
-        private GameObject bonusRow;
-        private TextMeshProUGUI bonusValueText;
         private GameObject comboStatusBlock;
         private GameObject comboStatusRow;
         private GameObject fullComboChip;
-        private TextMeshProUGUI nextBonusText;
-        private TextMeshProUGUI nextBonusReward;
         private GameObject keyGuideRow;
         private readonly List<TextMeshProUGUI> keyCaps = new List<TextMeshProUGUI>();
         private readonly List<TextMeshProUGUI> verdictTexts = new List<TextMeshProUGUI>();
@@ -125,7 +121,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 V6HudLogic.GaugeFillWidth(score, m.GaugeFillMax), m.GaugeFillH);
             int hi = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
                 ? GManager.Hiscore[GManager.songID]
-                : 0;
+                : GManager.BestScoreOf(GManager.songID); // 固定テーブル外は安定キー (issue-162 A-6)
             gaugeBest.anchoredPosition = new Vector2(
                 V6HudLogic.GaugeBestX(hi, m.GaugeFillMax), 0f);
 
@@ -134,8 +130,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
-            // 契約 §12: Combo Bonus と Combo Status は同座標・排他。ステータスが出ている間は
-            // ボーナスを隠す (縦積みだと契約位置からずれ、両方同時に出てしまう)。
+            // 契約 §12: この座標 (FHD 1512,460) は Combo Status が使う
+            // (旧 Combo Bonus block は廃止 — issue-162 B-4)。
             comboStatusBlock.SetActive(showStatus);
 
             // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
@@ -152,10 +148,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboFill.sizeDelta = new Vector2(
                 V6HudLogic.ComboFillFraction(GManager.combo, milestone) * m.StatusTrackW, m.StatusTrackH);
 
-            bonusRow.SetActive(V6HudLogic.ShowComboBonus(GManager.combo, showStatus));
-            bonusValueText.text = "+" + GameHudLogic.FormatScore((int)GameHudLogic.BonusTotal(GManager.combo));
-            nextBonusText.text = "次のボーナス " + milestone;
-            nextBonusReward.text = "+" + GameHudLogic.FormatScore(GameHudLogic.NextBonusReward(milestone));
+            // issue-162 B-4 再照合: 「+ COMBO BONUS +N」「次のボーナス +N」は
+            // 実在しない加点の表示だった (JudgeScoreboard の配点にコンボボーナスは
+            // 無く、BonusTotal / NextBonusReward は近似・仮の式)。偽値は出さないので
+            // block ごと廃止した。右コラムは Combo Status (NO MISS / FULL COMBO) が
+            // 同じ契約座標 (§12) を使う。
 
             // 進捗バー + 歌詞 (メディアタイム = GManager.step_time)
             float duration = CurrentSongDuration();
@@ -273,13 +270,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeFill = null;
             gaugeBest = null;
             comboFill = null;
-            bonusRow = null;
-            bonusValueText = null;
             comboStatusBlock = null;
             comboStatusRow = null;
             fullComboChip = null;
-            nextBonusText = null;
-            nextBonusReward = null;
             keyGuideRow = null;
             gradeText = null;
             scoreText = null;
@@ -615,28 +608,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = new Vector2(-m.Margin, -m.RightColY);
             rt.sizeDelta = new Vector2(m.RightColW, columnH);
 
-            // --- コンボボーナス (上) ---
-            bonusRow = V5Ui.Node(column, "Combo Bonus");
-            var bonusRt = GetRect(bonusRow);
-            bonusRt.anchorMin = new Vector2(1f, 1f);
-            bonusRt.anchorMax = new Vector2(1f, 1f);
-            bonusRt.pivot = new Vector2(1f, 1f);
-            bonusRt.anchoredPosition = Vector2.zero;
-            bonusRt.sizeDelta = new Vector2(m.RightColW, m.BonusBlockH);
-
-            // 各行は「ラベル」と「値」の 2 要素。どちらを保持するかを明示する。
-            // 以前は戻り値 (値側の Text) だけを nextBonusText に代入し、値側の Text を
-            // 捨てていたため nextBonusReward が null のままになり、Refresh が
-            // 毎フレーム NullReferenceException で止まっていた (Issue #233)。
-            BuildBonusRow(bonusRow, 0f, "+ COMBO BONUS", "+0", out _, out bonusValueText);
-            // 次のボーナス行の閾値 (300) は構築時には確定していない — 実際の milestone は
-            // Refresh() が GManager.combo から求めて "次のボーナス <n>" を書き込む。
-            // ここでは数値を含めない初期値を入れ、構築直後に 300 と表示齟齬しないようにする。
-            BuildBonusRow(bonusRow, m.BonusRowH, "次のボーナス", "+0", out nextBonusText, out nextBonusReward);
-
-            // --- コンボステータス (同座標・排他) ---
-            // 契約 §12: Combo Bonus と Combo Status は同じ座標 (FHD 1512,460) にあり排他。
-            // 縦積みにすると契約位置からずれ、両方同時に出てしまう。
+            // --- コンボステータス ---
+            // issue-162 B-4 再照合: ここにあった「+ COMBO BONUS」「次のボーナス」の
+            // 2 行は実在しない加点の表示 (近似値 / 仮の式) なので廃止した。
+            // 契約 §12: Combo Status はこの座標 (FHD 1512,460) を使う。
             var status = V5Ui.Node(column, "Combo Status");
             var statusRt = GetRect(status);
             statusRt.anchorMin = new Vector2(1f, 1f);
@@ -694,45 +669,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             chipLe.preferredHeight = m.FcChipH;
             V5Ui.Text(chip, "Text", "FULL COMBO", m.StatusFs, V5Tokens.WarnLight,
                 TextAlignmentOptions.Center);
-        }
-
-        /// <summary>コンボボーナスの 1 行 (ラベル左寄せ muted / 値右寄せ)。値テキストを返す。</summary>
-        /// <summary>
-        /// コンボボーナスの 1 行 (ラベル + 値) を作る。
-        /// ラベルと値の <b>両方の</b> Text を返す。片方だけ返すと、もう片方が
-        /// 参照できずに毎フレームの更新で NullReferenceException になる (Issue #233)。
-        /// </summary>
-        private TextMeshProUGUI BuildBonusRow(GameObject parent, float y, string label, string value,
-            out TextMeshProUGUI labelText, out TextMeshProUGUI valueText)
-        {
-            var row = V5Ui.Node(parent, "Row");
-            var rowRt = GetRect(row);
-            rowRt.anchorMin = new Vector2(0f, 1f);
-            rowRt.anchorMax = new Vector2(0f, 1f);
-            rowRt.pivot = new Vector2(0f, 1f);
-            rowRt.anchoredPosition = new Vector2(0f, -y);
-            rowRt.sizeDelta = new Vector2(m.RightColW, m.BonusRowH);
-
-            var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
-            rowLayout.childAlignment = TextAnchor.UpperLeft;
-            rowLayout.childControlWidth = false;
-            rowLayout.childControlHeight = false;
-            rowLayout.childForceExpandWidth = false;
-            rowLayout.childForceExpandHeight = false;
-
-            labelText = V5Ui.Text(row, "Label", label, m.BonusFs, V5Tokens.TextMuted);
-            // 折り返すと 1 行目のラベルが 2 行目に重なって崩れる (実機スクリーンショットで確認)。
-            labelText.textWrappingMode = TextWrappingModes.NoWrap;
-            var labelLe = labelText.gameObject.AddComponent<LayoutElement>();
-            labelLe.flexibleWidth = 1f;
-            labelLe.preferredWidth = m.RightColW - 120f;
-            labelLe.preferredHeight = m.BonusRowH;
-
-            valueText = V5Ui.Text(row, "Value", value, m.BonusFs, V5Tokens.WarnLight,
-                TextAlignmentOptions.Right);
-            var valueLe = valueText.gameObject.AddComponent<LayoutElement>();
-            valueLe.preferredHeight = m.BonusRowH;
-            return valueText;
         }
 
         /// <summary>v6 のレーン別判定行を使うか (既定は false = 元の 3D 判定エフェクト)。</summary>
