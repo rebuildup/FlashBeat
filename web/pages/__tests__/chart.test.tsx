@@ -88,6 +88,7 @@ let container: HTMLElement | null = null;
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  sessionStorage.clear();
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -138,24 +139,19 @@ function editorChartName(): string | undefined {
 describe("the chart page", () => {
   it("restores the draft the publish screen handed back", async () => {
     const draftChart = { ...SAMPLE_CHART, name: "Restored draft", BPM: 190 };
-    const url = savePublishDraft({ songId: "who", version: "2", chart: draftChart }, "editor");
-    const parsed = new URL(url, "https://studio.test");
+    const parsed = new URL(
+      savePublishDraft({ songId: "who", version: "2", chart: draftChart }, "editor"),
+      "https://studio.test",
+    );
 
-    const props = (await loader({ req: { url: parsed.href } } as never)) as Props;
+    const props = await propsFor(parsed.searchParams.toString());
 
     expect(props.draftId).toBe(parsed.searchParams.get("draft"));
 
-    await act(async () => {
-      root!.render(<ChartPage {...props} />);
-    });
-    // The published session is fetched in parallel; the draft must survive it.
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await renderPage(props);
 
     expect(container!.querySelector('[data-testid="draft-restored"]')).not.toBeNull();
-    const name = container!.querySelector<HTMLInputElement>('[data-testid="song-name-input"]');
-    expect(name?.value).toBe("Restored draft");
+    expect(editorChartName()).toBe("Restored draft");
   });
 
   /**
@@ -184,6 +180,22 @@ describe("the chart page", () => {
 
     expect(container!.querySelector('[data-testid="draft-error"]')?.textContent).toContain(
       "Invalid local draft identifier",
+    );
+    expect(editorChartName()).toBe("Published chart");
+  });
+
+  /**
+   * The draft lives in this tab's session storage, so a bookmarked URL or a
+   * copy opened in another tab finds the id but not the draft. That is a
+   * notice, not a failure: the published chart still opens.
+   */
+  it("keeps the published chart when the draft is gone from this tab", async () => {
+    await renderPage(
+      await propsFor("songId=who&version=2&draft=0b7c1f4e-9a63-4c1d-8f52-2a6f0e3d5a19"),
+    );
+
+    expect(container!.querySelector('[data-testid="draft-error"]')?.textContent).toContain(
+      "This local draft is unavailable",
     );
     expect(editorChartName()).toBe("Published chart");
   });
