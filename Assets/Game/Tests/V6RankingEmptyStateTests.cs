@@ -31,7 +31,9 @@ namespace FlashBeat.V6Tests
 
             public string Query { get { return ""; } set { } }
 
-            public V6SongEntry Selected { get { return null; } }
+            public V6SongEntry SelectedValue;
+
+            public V6SongEntry Selected { get { return SelectedValue; } }
 
             public bool IsLoading { get { return false; } }
 
@@ -41,7 +43,7 @@ namespace FlashBeat.V6Tests
 
             public void SetQuery(string query) { }
 
-            public void Select(int songId) { }
+            public void Select(int songId) { SelectedValue = Songs.Find(song => song.SongId == songId); }
 
             public void MoveSelection(int delta) { }
 
@@ -116,6 +118,9 @@ namespace FlashBeat.V6Tests
         {
             // Local (ローカル記録) は通信状態と無関係。エラー状態があっても
             // 「記録がありません」を出す (Issue #239)。
+            // 未選択だと NoSongSelectedMessage 側の分岐になるため、先に曲を選ぶ。
+            data.Select(1);
+            Assert.IsNotNull(data.Selected, "前提: ローカル曲が選ばれている");
             data.HasErrorValue = true;
             data.StatusMessageValue = "カタログの更新に失敗しました (HTTP 500)";
             var view = V6RankingView.Create((RectTransform)canvasGo.transform, null, data, null, null);
