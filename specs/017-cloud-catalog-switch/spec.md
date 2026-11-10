@@ -23,7 +23,7 @@ Unity 上で出現し再生できる」ことの E2E 証明**、および Issue 
 | --- | --- |
 | 並列配列の位置づけ | `GManager` の 7 並列配列は **固定カタログの初期値**であり、**remote catalog の真値ではない**。`GManager.cs:88` `ActiveSongs` は `mergedSongs` を返し、cloud snapshot は **知っている曲だけを更新する** (`GManager.cs:80` コメント / `:93` `Merge(Songs, remoteSongs)`)。**この merge 構造を維持する** (並列配列を削除しない) |
 | 譜面の取得単位 | `(songId, chartVersion)` の **exact version** で取得する。`CloudCatalog.cs:94` `ChartUrl(baseUrl, songId, chartVersion)` = `{base}/api/v1/charts/{songId}?version={chartVersion}`。**「最新版」で代用しない** |
-| 取得 snapshot の保持 | 選曲時に取得した chart JSON は `CloudChartHolder` (`:16` `Hold` / `:30` `TryGet` / `:50` `TryGetForSong` / `:63` `Clear`) で保持し、**1 回のプレイは同一版で完走させる**。プレイ中に catalog が更新されても谱面は差し替えない |
+| 取得 snapshot の保持 | 選曲時に取得した chart JSON は `CloudChartHolder` (`:16` `Hold` / `:30` `TryGet` / `:50` `TryGetForSong` / `:63` `Clear`) で保持し、**1 回のプレイは同一版で完走させる**。プレイ中に catalog が更新されても譜面は差し替えない |
 | 経路の頑健性 | catalog / chart の取得失敗・空・例外で **クラッシュしない**。`SelectSceneManager.cs:380` `status == 200 ? CloudCatalog.ParseCatalog(body) : null` のガードがある。**raw の例外を握りつぶさない** (ログは残す) |
 | refresh の周期 | 選曲画面入場時 + idle 中の周期 refresh。`CloudCatalogConfig.json` の `refreshSeconds: 8` は Issue 本文の「5–10 秒」範囲内。**realtime socket は使わない** |
 | base URL の外部化 | `Assets/Game/Resources/CloudCatalogConfig.json` の `baseUrl` (`https://flashbeat.rebuildup.dev`) / `enabled` / `refreshSeconds`。**バイナリに API の秘密情報は入れない** (トークン無し。publish 用の staff token は Web Studio 側の runtime 入力) |
@@ -74,8 +74,8 @@ Unity 上で出現し再生できる」ことの E2E 証明**、および Issue 
 | 1 | T5: **Win64 E2E — PUT で新曲を公開 → 再ビルドなし → 選曲 → ストリーム → ノーツ/判定 → result → artifact + SHA** | **未充足** | `docs/evidence/index.md` §1 の **S2 = 未証明** (`release/check/stage-manifest.json` の S2 エントリも `status: "unproven"`、成果物 path 空)。**この一連の観測記録が 1 件も無い** |
 | 2 | Gate: S2 が単独で demo でき、**S1 の last-good build が保持** | **未充足 (S2 側)** | `docs/evidence/index.md` §1.5 に 3 世代の成果物が保持されている点は充足。**S2 側 (dynamic catalog 付き) の demo は未証明** |
 | 3 | 公開直後の新曲 (新規 songId) が remoteId 付きで Unity に載る | **未検証 (コードは充足)** | `Assets/Game/Scripts/Songs/GManager.cs:132` `Merge(localSongs, remoteSongs)` は (a) 同じ remoteId → 行を更新 (`:149-153` `Overlay`)、(b) 内蔵曲と対応 → 内蔵行を更新 (`:157-162`)、(c) **未知の cloud 曲 → 末尾に追加** (`:166` `Append`) の 3 分岐。**新規 songId の追加は merge で対応する設計**。テスト `Assets/Tests/Editor/CatalogMergeTests.cs` / `SongCatalogRobustnessTests.cs` / `ScoreCatalogIntegrityTests.cs` が merge の不変条件を固定しているが、**実機・実 API での新規曲追加の挙動は未観測** |
-| 4 | 谱面取得失敗時にクラッシュしない | **未検証 (コードは充足)** | `SelectSceneManager.cs:444` のガードはあるが、**実ネットワーク断での挙動は未観測** |
-| 5 | 公開した chartVersion と再生した谱面が一致する | **未検証** | `CloudChartHolder` は (id, version) で保持するが、**実 run で意図した版が使われたことの記録が無い** |
+| 4 | 譜面取得失敗時にクラッシュしない | **未検証 (コードは充足)** | `SelectSceneManager.cs:444` のガードはあるが、**実ネットワーク断での挙動は未観測** |
+| 5 | 公開した chartVersion と再生した譜面が一致する | **未検証** | `CloudChartHolder` は (id, version) で保持するが、**実 run で意図した版が使われたことの記録が無い** |
 | 6 | 本番 API の到達性 | **未検証** | `CloudCatalogConfig.json` の `baseUrl` = `https://flashbeat.rebuildup.dev`。**S2 の API がデプロイ済みで応答するかの実測記録が無い** (`docs/evidence/index.md` §1 S2 行 "no deployed API, no client build") |
 
 ### ブロッカー

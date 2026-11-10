@@ -92,7 +92,7 @@ warning CS count : 352
 | ウィンドウ | windowed 1280×720（クライアント領域 1280×720） |
 | **音** | **鳴っている（実証）**。ログの `[MusicManager] STATUS mediaTime=… audioMode=Bundled rms=0.30 peak=0.47` … `rms=0.37 peak=0.52`（RMS > 0 = 音出し中）。音源は `audioMode=Bundled`（=`Resources/Musics/<曲>.wav`） |
 | **映像（YouTube ストリーム）** | **未証明**。yt-dlp は 37 format を取得し `video-only mp4 itag=232 1280x720 + audio-only m4a itag=140` を選び `persistentDataPath` にキャッシュしたが、Unity の `VideoPlayer` が **拡張子なしファイル**を認識できず `Failed to recognize video file format` → `VideoPlayer prepared=False` / `stream audio prepared=False`。結果として **音は同梱 wav フォールバック**、映像は出ない |
-| 再生の開始条件 | #13 ビルドはメディア準備後に `press Space to start` を要求する。**準備前に Space を押しても始まらない**（本次 run は準備完了後に Space を 1 回押して開始） |
+| 再生の開始条件 | #13 ビルドはメディア準備後に `press Space to start` を要求する。**準備前に Space を押しても始まらない**（今回 run は準備完了後に Space を 1 回押して開始） |
 | ノーツ判定 | `PLAYBACK_START song='まにまに' videoId='<REDACTED-VIDEO-ID>' audioMode=Bundled mediaTime=0.000` → `STATUS … miss=76`（譜面全部） |
 
 証跡（**Git 外**）:

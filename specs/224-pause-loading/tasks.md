@@ -42,3 +42,10 @@
   `Unity -batchmode -runTests -testPlatform editmode` を実行し **1322 / 1322 passed, 0 failed, 0 skipped**
   (`TestResults.xml` の `<test-suite>` 集計)。中断 (Pause) 系の `PauseGateTests` /
   `V6PauseRuntimeTests` / `V6PauseViewLogicTests` もこの 1322 に含まれる。
+
+## 7. 差し替え / 切り戻し (受入条件 5)
+
+- [x] `specs/224-pause-loading/rollout.md` を追加 — 所有者の判定点 (Pause =
+  `V6UiMode.GameHud && V6PauseView.Enabled` / Loading = `GameLoadingScreen.ForGameScene`)、
+  v6 → v5 の切り戻し 2 通り、`PauseGate` が両モード共通であること、提出済みコミットの一覧。
+  シーン / プレハブ / アセットは編集していないので、切り戻しは静的フィールド 1 行で済む。

@@ -335,7 +335,7 @@ namespace FlashBeat.UI.V6.Select.Data
         /// <summary>
         /// ジャケットの Resources パス。
         ///
-        /// v6 では全곡のジャケットを Resources/V6/select/jacket/ に置いてある
+        /// v6 では全曲のジャケットを Resources/V6/select/jacket/ に置いてある
         /// (Pencil 設計の正式データ。ファイル名は "&lt;カタログ index&gt;-&lt;slug&gt;.jpg"、
         /// index は GManager.SongName の並びと一致する)。
         /// 対応する画像が無い曲 (灰Φ倶楽部: 22) は空文字を返し、固定画像を流用しない。

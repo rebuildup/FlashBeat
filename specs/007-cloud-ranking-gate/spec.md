@@ -34,7 +34,7 @@ Issue 本文が要求するゲートは次の 2 点に集約される:
 | ローカル保存 | `ScorePersistence` / `GManager.Hiscore` (PlayerPrefs) は **端末内記録**であり、サーバの権威データではない (#7 本文 "No persistent local high-score authority")。**変更しない** |
 | 2 客户端観測 | 「2 台目」は **別ブラウザ (Web Studio) か別 Windows クライアント**のどちらでもよい。**展示 PC を 2 台用意する要件はない** — 1 台目の Windows が送信し、**別マシンのブラウザ** で `GET /api/v1/leaderboards/{songId}?version=N` が当該 nickname を含む top 10 を返すこと、で足りる |
 | 実機操作 | **Windows 実機は展示 PC のため cc は実行しない。オーナー実施。** macOS Player / EditMode 緑 / `score-model.test.ts` 緑は **実プレーの結果の送信・表示の証明にはならない** (`docs/audit/open-issues-audit.md` §3.4 未検証の区別) |
-| 実装の境界 | 本 spec の未充足分は **証跡と実機観測だけ**。サーバ / Unity コードの新規実装は **既に `main` にある**ため本 spec では 새로書かない (新規コードが必要な場合は #21 / #17 のスコープ) |
+| 実装の境界 | 本 spec の未充足分は **証跡と実機観測だけ**。サーバ / Unity コードの新規実装は **既に `main` にある**ため本 spec では新しく書かない (新規コードが必要な場合は #21 / #17 のスコープ) |
 
 ## 非目標 (Out of scope)
 

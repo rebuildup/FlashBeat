@@ -41,7 +41,7 @@ main の既存構成 (変更しない) と、誰が何を観測するかを以�
     ├─ Player.log の [FullscreenDiagnostics] 行 (screen= / fullScreenMode= / dpi= / displays=)
     ├─ Title / Select / Result / Option / Opening を順に撮影
     │     ※ Select / Game の崩れ対応は #88 の担当だが、
-    │       画面 tour のために 함께 撮るのは可 (判定は #88 側)
+    │       画面 tour のために併せて撮るのは可 (判定は #88 側)
     └─ 3 解像度 (1920×1080 / 2560×1440 / 2560×1664) で繰り返す
 
   禁止: ウィンドウのリサイズで「そのサイズに見せかける」擬似全画面

@@ -67,7 +67,7 @@ namespace FlashBeat.UI.V5
             }
 
             // Canvas が 1 つも無い Graphic は uGUI の描画対象にならない
-            // (CanvasRenderer は 있지만、Canvas の中に入るときの矩形が無い)。
+            // (CanvasRenderer はあるが、Canvas の中に入るときの矩形が無い)。
             if (!hasCanvas) return false;
 
             return alpha > InvisibleAlpha;

@@ -7,7 +7,7 @@ description: "FlashBeat lean per-issue specification template (project-local ove
 **Issue**: #60 | **Branch**: `60` | **PR base**: `release-0-1-3` | **Date**: 2026-11-07 | **Status**: Merged
 
 **PR**: [#90](https://github.com/rebuildup/FlashBeat/pull/90)
-**実行 SHA（証跡撮影・検証の 기준）**: `2bd7302aac0419d80d662eaa4315253a2b36707f`
+**実行 SHA（証跡撮影・検証の基準）**: `2bd7302aac0419d80d662eaa4315253a2b36707f`
 **マージコミット**: `5e4e43f9e4a482a79cf1ff5ed7f686c930c8bff5`
 **before SHA（#60 適用直前）**: `54505c2998fb4e8c756e632ea48c396bd36dad88`（= `2bd7302^`）
 **証跡**: [`docs/evidence/60-web-visual-foundation/README.md`](../../docs/evidence/60-web-visual-foundation/README.md)

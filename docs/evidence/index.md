@@ -138,7 +138,7 @@ identity model (§1 / `release/check/stage-manifest.json` の `fingerprint.defin
 macOS ローカルの絶対パスを載せると Windows 実機や他のマシンで gate が壊れるため、
 この成果物は **証跡として本 index に登録** し、stage には追加していない。
 #35 の GitHub Release 化 (Windows 実機での受入後) の時点で、
-Windows 実機上のパスと 함께 stage へ追加する。
+Windows 実機上のパスとともに stage へ追加する。
 
 ## 2. Artifact index (SHA)
 

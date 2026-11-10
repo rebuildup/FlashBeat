@@ -105,7 +105,7 @@ public class UpdateCheckerEntryPointTests
         checker.Model.StartCheck();
         Assert.AreEqual(UpdateFlowPhase.Checking, checker.Model.Phase);
 
-        // 「新版あり에도見える」誤表示はしない (通知は出ない)。
+        // 「新版あり」でも見える誤表示はしない (通知は出ない)。
         checker.FinishCheckWithoutUpdate(reason);
         Assert.IsFalse(UpdateNoticePresenter.ShouldShow("TitleScene", checker.Model),
                        "確認失敗後に更新の通知が出ています");

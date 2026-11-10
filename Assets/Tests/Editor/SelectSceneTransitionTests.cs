@@ -72,7 +72,7 @@ public class SelectSceneTransitionTests
         string body = source.Substring(start, end - start);
 
         Assert.IsTrue(body.Contains("SelectSceneTransitionGuard.TryRequest()"),
-            "GameScene() は遷移ガードを通아야する (二重遷移の防止)");
+            "GameScene() は遷移ガードを通る (二重遷移の防止)");
     }
 
     [Test]

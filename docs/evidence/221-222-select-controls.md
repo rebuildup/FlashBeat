@@ -3,7 +3,7 @@
 - **Branch**: `w/w221`
 - **Date**: 2026-11-08
 - **Spec**: `specs/221-222-select-v6/`
-- **基准**: 監査は integration/v6-followup HEAD 87d723f 基準。本ブランチの同一箇所に対して実装した。
+- **基準**: 監査は integration/v6-followup HEAD 87d723f 基準。本ブランチの同一箇所に対して実装した。
 
 ## 実装
 

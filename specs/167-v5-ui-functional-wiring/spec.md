@@ -238,7 +238,7 @@ online ランキングを持たない / local のみの画面は **「ローカ�
   「ローカル」であることが UI 上に明記される。
 - **R6**: Select Ranking の Online セグメントは cloud 曲で実データを表示し、cloud 曲では非表示。
 - **R7**: Option の音量 / NoteSpeed / NoteTiming / Flash 系は入力中に実動作 (音・落下速度・判定幅) へ反映され、
-  `PlayerPrefs` に保存되어次回起動でも復元される。
+  `PlayerPrefs` に保存され、次回起動でも復元される。
 - **R8**: 入力が一意に決まる (v5 の自前キー処理と Unity の `Selectable` ナビゲーションが二重に動かない)。
 - **R9**: 対象曲が無い / placeholder のとき、遷移ボタンは `interactable = false`。
 - **R10**: 既存の判定・動画・音声・永続化ロジックは壊さない (判定値・譜面形式・保存キー名を変えない)。
