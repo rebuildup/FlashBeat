@@ -1865,4 +1865,5 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 2. **本番 API (#73 / #135) の最終確認** — 条件は §7.6 / `docs/operations/production-api-acceptance.md` に固定したが、**本番データを勝手に書き換えない**方針のため未実行。オーナー承認が必要。
 3. **issue-162 の live 項目は 0 件** (D-1 は Key Guide / Lyrics を `PlayerPrefs` へ保存する形で解消。`PlaySessionPersistenceTests.cs` 7 件)。
 4. **マージ済みリモートブランチの整理** — 削除可能と証明できた 77 本を `docs/operations/merged-remote-branches-2026-11-10.md` に列挙済みだが、**削除ガードを迂回しない**方針のため実削除は未実施。
-5. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。CI の Unity ライセンス (`UNITY_EMAIL` / `UNITY_PASSWORD`) も未登録。
+5. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。
+6. **CI の役割分担** — Unity のワークフローには `pull_request` トリガーが無いため、**PR のチェック欄に Unity の項目は出ない**(設定どおりの挙動。ライセンス未登録による失敗とは別問題)。main への push ビルドは `license-precheck` で止まる。整理は `docs/operations/ci-pr-gate.md`、ライセンス手順は `docs/operations/unity-ci-license.md`。**ライセンス不要の PR 検証**として `verify` ワークフロー (リポジトリ整合性) を追加した。

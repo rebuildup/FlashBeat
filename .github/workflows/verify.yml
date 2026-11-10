@@ -1,0 +1,37 @@
+name: verify
+
+# ライセンス不要の PR 検証。
+#
+# Unity は **PR で走らせない** (ライセンスが必須で、fork PR は secret を読めず、
+# GitHub-hosted runner では .ulf のマシン紐付けも通らない)。そのため PR の
+# チェック欄には Unity の項目が 1 つも出ない。これは「PR が Unity CI を通過した」
+# ことを意味しない。ここでは、その代わりに **ライセンス無しで判定できる**
+# リポジトリ整合性 (meta の対応 / asmdef・譜面 JSON の妥当性 / LF・タブ) だけを見る。
+#
+# Unity ビルド (build-win64 / build-macos) は `workflow_dispatch` と main への push
+# のみで、ライセンス secret が前提。責任範囲の全体は
+# `docs/operations/ci-pr-gate.md` を参照。
+
+on:
+  pull_request:
+    paths:
+      - "Assets/**"
+      - "script/**"
+      - ".github/workflows/verify.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Assets/**"
+      - "script/**"
+      - ".github/workflows/verify.yml"
+  workflow_dispatch:
+
+jobs:
+  repo-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Repository integrity (no Unity license needed)
+        run: bash script/check-repo-integrity.sh
