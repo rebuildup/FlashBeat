@@ -118,6 +118,11 @@ for res in $resolutions; do
   mkdir -p "$run_dir"
   log="$run_dir/Player.log"
 
+  # 出力先を再利用したときに前回の PNG / ログを今回の結果と取り違えないよう先に消す。
+  # (待ちループ・枚数判定・解像度判定は「今回の run が書いたファイル」だけを見る。
+  #  残っていると、今回 1 枚も撮れなくても前回の分で PASS しうる。)
+  rm -f "$run_dir"/scene-*.png "$log"
+
   echo "[res-matrix] === $res === app=$app"
   "$binary" \
     -screen-width "$w" -screen-height "$h" -screen-fullscreen 1 \
