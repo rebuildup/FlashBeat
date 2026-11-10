@@ -256,8 +256,22 @@ namespace FlashBeat.V6Tests
             var msg = V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Online, false, true, "HTTP 500");
             Assert.AreEqual("HTTP 500", msg);
 
+            // Local は通信状態と無関係なのでエラー文言を出さない (Issue #239)。
             msg = V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Local, false, true, "Error");
-            Assert.AreEqual("Error", msg);
+            Assert.AreEqual("記録がありません", msg);
+        }
+
+        [Test]
+        public void EmptyMessage_Local_IgnoresLoadingAndError()
+        {
+            // カタログ取得中 / 取得失敗でも Local パネルは「記録がありません」のまま
+            // (通信状態を Local の表示に流さない、Issue #239)。
+            Assert.AreEqual("記録がありません",
+                V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Local, true, false, ""));
+            Assert.AreEqual("記録がありません",
+                V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Local, false, true, "HTTP 500"));
+            Assert.AreEqual("記録がありません",
+                V6RankingLogic.EmptyMessage(V6RankingLogic.RankingSource.Local, true, true, "カタログを取得しています…"));
         }
 
         [Test]

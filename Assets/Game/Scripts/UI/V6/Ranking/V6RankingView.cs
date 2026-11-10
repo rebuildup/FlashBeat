@@ -623,7 +623,11 @@ namespace FlashBeat.UI.V6.Ranking
             IReadOnlyList<V6RankingRow> rows = RankingRows(effectiveSource);
             if (rows.Count == 0)
             {
-                string message = V6RankingLogic.EmptyMessage(effectiveSource, data.IsLoading, data.HasError, data.StatusMessage);
+                // 未選択のときは「記録がありません」ではなく未選択であることを出す
+                // (Issue #239)。空データと未選択を同じ文言にしない。
+                string message = song == null
+                    ? V6RankingLogic.NoSongSelectedMessage()
+                    : V6RankingLogic.EmptyMessage(effectiveSource, data.IsLoading, data.HasError, data.StatusMessage);
                 var empty = V5GameUi.Text(panel.gameObject, "No Data", message, 24f, V5Tokens.TextDim,
                     TextAlignmentOptions.Left);
                 At(empty, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
