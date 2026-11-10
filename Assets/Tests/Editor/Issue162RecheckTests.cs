@@ -23,12 +23,20 @@ namespace FlashBeat.Tests.Editor
 
         private SongData[] originalCatalogSnapshot;
         private bool hadRemoteCatalog;
+        private IScoreStorage previousStorage;
 
         [SetUp]
         public void SetUp()
         {
             hadRemoteCatalog = GManager.HasRemoteCatalog;
             originalCatalogSnapshot = GManager.RemoteSongs;
+
+            // 各テストにまっさらな保存先を与える。共有のメモリ保存先をそのまま使うと、
+            // 同じエディタセッションで再実行したときに前回の記録が残り、
+            // 「初回の前回値は 0」の前提が崩れる (ScoreStoreTests と同じ規律)。
+            previousStorage = ScorePersistence.Storage;
+            ScorePersistence.Storage = new MemoryScoreStorage();
+            ScorePersistence.Unload();
         }
 
         [TearDown]
@@ -45,6 +53,7 @@ namespace FlashBeat.Tests.Editor
             }
 
             ScorePersistence.Unload();
+            ScorePersistence.Storage = previousStorage;
         }
 
         /// <summary>固定テーブル (29 曲) より後に並ぶ cloud 曲を含むカタログを作る。
