@@ -114,6 +114,10 @@ writing `TestResults.xml` — `-quit` terminates the editor before the test runn
 
 ## Findings that are *not* fixed by this issue (recorded for the follow-ups)
 
+> **2026-11-10 追記**: 下の 1〜3 は `main` の実装で解消済みです。現在地は
+> 下の「## 2026-11-10 追記 — 下の 1〜3 の現在地(issue #13 / #4)」を参照してください (1 は URL 再生経路を外してローカル再生に変更、2 は #140 の
+> フォント対応、3 は #95 のロックステップ統一)。記録として当時の観測は残します。
+
 1. **Video playback fails on this machine** (this is issue #13's subject):
    ```
    WindowsVideoMedia error 0x80070005 while reading https://…googlevideo.com/…
@@ -134,6 +138,66 @@ writing `TestResults.xml` — `-quit` terminates the editor before the test runn
 4. **Songs No.27 / No.28 are both `ニセモノ`** and there is no `Assets/Game/Resources/Musics/ニセモノ.wav`;
    the select screen shows them with Total-Hits 0. `MusicManager` does not null-check
    `Resources.Load("Musics/" + songName)`, so selecting those slots is not safe.
+
+## 2026-11-10 追記 — 下の 1〜3 の現在地(issue #13 / #4)
+
+> これは 2026-11-06 の観測を `main` (`44986de`、候補 `0.1.22` = `4445279`) の実装に
+> 照合した結果です。**Windows 実機での再生は依然として未証明**です (結論 3 参照)。
+
+### 1. 映像: URL を直接渡す経路はもう再生経路ではない
+
+2026-11-06 の失敗 (`MFCreateSourceReaderFromURL` → `0x80070005`) は
+**googlevideo の URL を `VideoPlayer` に直接渡す経路**の話でした。`main` ではその経路が
+再生経路から外れ、**ダウンロードしたローカルファイルを再生**しています。
+
+| 段 | 実装 | 何をするか |
+|---|---|---|
+| 0 | `MusicManager.cs:314` `ListFormatsAsync` → `:327` `YouTubeMediaCache.SelectPlan` | yt-dlp `-F` の結果から merged / 映像+音声 のどれを取るかを決める |
+| 1 | `MusicManager.cs:332` → `ProbeDirectUrl` (`:591`, 判定 `:585`) | **動画ごとに 1 回だけ** googlevideo URL を `Prepare()` してみる。**診断専用** で、結果は再生に使わない (`PlayerPrefs` の `DirectUrlProbeKeyPrefix` で 1 回に制限) |
+| 2 | `MusicManager.cs:341` `DownloadingMedia` → `YouTubeMediaCache.EnsureFileAsync` (`YouTubeMediaCache.cs:226`) | yt-dlp で同一バイト列を `persistentDataPath/FlashBeatMedia/<videoId>/` に落とす (キャッシュ再利用。ffmpeg があれば merged、無ければ映像と音声を別ファイル) |
+| 3 | `MusicManager.cs:637` `PrepareLocalVideo` | ローカルファイルを `VideoSource.Url` で開く。開けなければ `file://` 形式で 1 回だけ再試行 (`:660`) |
+
+回避の理由はコード内にも書いてあります (`YouTubeStreamResolver.cs:74`–`:79`):
+Media Foundation は googlevideo の URL を拒否する (要求に必要な User-Agent / po-token を
+`VideoPlayer` が送れない) ため、**同じバイト列をダウンロードしてローカル再生**して回避する。
+
+したがって:
+
+- Player.log の `0x80070005` / `MFCreateSourceReaderFromURL` は **故障ではなく probe の診断結果**。
+  これ 1 行で「映像が出ない原因」と判断しないこと。
+- 映像が出ないときは probe ではなく **段 2/3 のログ**を見る:
+  `video file: … (cache|downloaded)` / `VideoPlayer prepared=… file=…` /
+  `the player cannot open the cached file (…)`。
+
+### 2. 音: 「`audioS.Play()` を呼ばないので無音」はもう当てはまらない
+
+| `audioMode` | 開始処理 |
+|---|---|
+| `StreamCombined` (merged mp4) | `MusicManager.cs:1136` `songVideo.Play()`。音は映像トラックから `audioS` へ (`SetTargetAudioSource`) |
+| `StreamSeparate` (映像+音声) | `:1147` `streamAudioPlayer.Play()` |
+| `BundledWave` (同梱 wav / 復帰) | `:1151`–`:1153` と `SwitchToBundledAudio` (`:1170`, 中の `:1185`) で `audioS.Play()` |
+| 失速時の切替 | `SwitchToBundledAudio` (`:1170`〜) |
+
+どの経路を通ったかは起動ログの
+`[MusicManager] PLAYBACK_START song=… source=<PlaybackSource> mediaTime=…` に残ります。
+`docs/operations/win64-candidate-acceptance-2026-11-10.md` §3.4 の 5 行目はこの行で判定します。
+
+### 3. まだ未証明 (Windows 実機が要る)
+
+1. ダウンロードしたローカル mp4 を Media Foundation が開けるか (`VideoPlayer prepared=True`)。
+2. その状態で音が鳴るか (`source=StreamCombined` / `StreamSeparate` / `BundledWave` のどれでもよい)。
+3. `persistentDataPath` への書き込み権限 (展示 PC のユーザー権限) と、初回ダウンロードの待ち時間。
+
+これらは macOS のテストでは代替できません。受入手順は
+`docs/operations/win64-candidate-acceptance-2026-11-10.md` §3 です。
+
+### 4. 2 と 3 も `main` では解消済み
+
+- 2 (日本語が `□`): `4479114` (#140) が C# コード内文字列を SDF の文字セットに取り込み、
+  `JapaneseFontAssetBuilder.EnsureDynamicFallback` (`Assets/Editor/JapaneseFontAssetBuilder.cs:249`)
+  が動的フォールバックを付ける。`4479114` は候補 `4445279` の祖先 (確認済み)。
+- 3 (並列配列の不整合): `main` では 7 配列すべて 29 件でロックステップ (#95)。
+  `ChartDataIntegrityTests` が固定している。
 
 ## Repeat steps
 
