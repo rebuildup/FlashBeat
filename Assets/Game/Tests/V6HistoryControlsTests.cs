@@ -165,11 +165,13 @@ namespace FlashBeat.V6Tests
         [Test]
         public void Controls_SkipForward_MovesSelectionToNextSong()
         {
-            // Create 直後は履歴先頭 (スコア順 → Song 1) が自動選択される。
-            Assert.AreEqual(1, data.Selected.SongId, "前提: 初期選択は履歴先頭");
+            // Create 直後は履歴先頭 (スコア順 → Song 1) がハイライトされる。
+            // ただし表示しただけではデータ層を選ばない (#222 の「既定選択はしない」)。
+            Assert.IsNull(data.Selected, "前提: 起動直後にデータ層の選択を作ってはいけない");
 
             ControlButton("skip-forward").onClick.Invoke();
 
+            Assert.IsNotNull(data.Selected, "skip-forward がデータ層の選択を作っていない");
             Assert.AreEqual(2, data.Selected.SongId, "skip-forward で次の曲へ選択が移っていない");
         }
 
@@ -194,6 +196,20 @@ namespace FlashBeat.V6Tests
             ControlButton("play").onClick.Invoke();
 
             Assert.AreEqual(1, gotoCalls, "play が「この曲へ」(onGotoSong) を通っていない");
+        }
+
+        [Test]
+        public void Controls_Play_AppliesTheHighlightedSongBeforeLeaving()
+        {
+            // 曲送りしていない状態でも、ハイライト中の曲がデータ層に入ってから遷移する。
+            // 空のまま選曲画面へ戻ると「この曲へ」を押したのに何も選ばれていない、になる。
+            Assert.IsNull(data.Selected, "前提: 起動直後は未選択");
+
+            ControlButton("play").onClick.Invoke();
+
+            Assert.IsNotNull(data.Selected, "「この曲へ」がデータ層の選択を作っていない");
+            Assert.AreEqual(1, data.Selected.SongId, "ハイライト中の曲 (Song 1) がデータ層に入っていない");
+            Assert.AreEqual(1, gotoCalls);
         }
 
         [Test]

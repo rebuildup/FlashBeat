@@ -187,6 +187,17 @@ namespace FlashBeat.UI.V6.History
         /// <summary>「この曲へ」(選択中の曲を選曲へ送る。遷移は統合担当が決める)。</summary>
         public void TriggerGotoSong()
         {
+            // 統合担当 (OnV6GotoSong) は共有データソースの Selected を選曲画面の選択として使う。
+            // View のハイライトは Rebuild が決めるので、まだ一度も曲送りしていない
+            // (= data.Select を呼んでいない) 状態では data.Selected が空のままになり、
+            // 「この曲へ」で選曲画面に戻っても何も選ばれていない、という食い違いが起きる。
+            // 押した時点でハイライト中の曲をデータ層へ反映してから遷移要求を出す。
+            // (表示のたびに data を書き換えると #222 の「既定選択はしない」を壊すので、
+            //  ここ = 明示操作のときだけ同期する。)
+            if (selectedSongId >= 0)
+            {
+                data.Select(selectedSongId);
+            }
             if (onGotoSong != null)
             {
                 onGotoSong();
