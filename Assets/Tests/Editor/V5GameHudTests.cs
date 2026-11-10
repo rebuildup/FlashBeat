@@ -124,5 +124,62 @@ namespace FlashBeat.Tests.Editor
         {
             Assert.AreEqual("0", GameHudLogic.FormatScore(0));
         }
+
+        // --- 呼び出し側の不変条件 (#162 B-3) ---
+        //
+        // GameHudView は以前 `RailFillWidth(score, 1f) * RailWidth` と書いていた。
+        // railWidth に 1f を渡すと (1f - 70f) = -69 で **負の幅**になり、
+        // レールが描かれなかった。ここでは GameHudView が実際に使う値
+        // (railWidth = RailWidth = 600) で、幅が常に 0 以上かつ設計上限以下に
+        // 収まることを固定する。
+
+        [Test]
+        public void RailFillWidth_AtRailWidth_IsAlwaysPositiveForPositiveScore()
+        {
+            // スコア 1 でも正の幅 (旧コードでは -69 で負だった)。
+            Assert.Greater(GameHudLogic.RailFillWidth(1, 600f), 0f);
+        }
+
+        [Test]
+        public void RailFillWidth_AtRailWidth_NeverExceedsFillSpan()
+        {
+            foreach (var score in new[] { 0, 1, 250_000, 500_000, 999_999, 1_000_000, 5_000_000 })
+            {
+                var width = GameHudLogic.RailFillWidth(score, 600f);
+                Assert.GreaterOrEqual(width, 0f, "score=" + score);
+                Assert.LessOrEqual(width, 530f, "score=" + score);
+            }
+        }
+
+        [Test]
+        public void RailPlusWidth_AtRailWidth_NeverExceedsPlusSpan()
+        {
+            foreach (var score in new[] { 1_000_000, 1_050_000, 1_100_000, 2_000_000 })
+            {
+                var width = GameHudLogic.RailPlusWidth(score, 600f);
+                Assert.GreaterOrEqual(width, 0f, "score=" + score);
+                Assert.LessOrEqual(width, 70f, "score=" + score);
+            }
+        }
+
+        [Test]
+        public void RailBestX_AtRailWidth_StaysWithinFillSpan()
+        {
+            foreach (var hiscore in new[] { 0, 1, 500_000, 1_000_000, 3_000_000 })
+            {
+                var x = GameHudLogic.RailBestX(hiscore, 600f);
+                Assert.GreaterOrEqual(x, 0f, "hiscore=" + hiscore);
+                Assert.LessOrEqual(x, 530f, "hiscore=" + hiscore);
+            }
+        }
+
+        [Test]
+        public void RailFillWidth_ScaledByDesignToScreenFactor_StaysWithinScaledSpan()
+        {
+            // GameHudView は「設計 px で計算 → * s」の順で実 px へ写す (s = 1.5 の例)。
+            const float s = 1.5f;
+            Assert.LessOrEqual(GameHudLogic.RailFillWidth(500_000, 600f) * s, 530f * s);
+            Assert.LessOrEqual(GameHudLogic.RailPlusWidth(1_050_000, 600f) * s, 70f * s);
+        }
     }
 }
