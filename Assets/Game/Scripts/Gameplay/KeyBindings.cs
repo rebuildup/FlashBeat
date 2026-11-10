@@ -60,6 +60,56 @@ public static class KeyBindings
         return Input.GetKeyDown(key) || (injectedDown.TryGetValue(key, out frame) && Time.frameCount == frame + 1);
     }
 
+    // ---- 検証ハーネス用の「押したまま」注入状態 -----------------------------
+    // HOLD (ロングノーツ) の保持フェーズは「キーが **押されたまま** いるか」を
+    // 毎フレーム見る。押下の 1 フレームだけInjectKeyDown しても保持できない。
+    //
+    // macOS の Unity legacy Input は CGEvent で送った合成キーイベントを
+    // Input.GetKey として **見ない** ので、実キーの押下では保持を再現できない
+    // (実測: 2026-11-10 macOS run 2)。そのため、既存の注入シームを拡張して
+    // 保持状態も注入できるようにする。
+    //
+    // 製品ビルドでは誰も注入しないので、Input.GetKey と同じ結果になる。
+    private static readonly HashSet<KeyCode> injectedHolds = new HashSet<KeyCode>();
+
+    /// <summary>キーを「押したまま」にする (検証ハーネス専用)。</summary>
+    public static void InjectKeyHold(KeyCode key)
+    {
+        if (key == KeyCode.None) { return; }
+        injectedHolds.Add(key);
+    }
+
+    /// <summary>注入した「押したまま」を解除する (検証ハーネス専用)。</summary>
+    public static void ReleaseInjectedKeyHold(KeyCode key)
+    {
+        injectedHolds.Remove(key);
+    }
+
+    /// <summary>注入した「押したまま」を全部解除する (検証ハーネス専用)。</summary>
+    public static void ClearInjectedKeyHolds()
+    {
+        injectedHolds.Clear();
+    }
+
+    /// <summary>キーが押されているか (実キー + 注入された保持)。</summary>
+    public static bool IsKeyHeld(KeyCode key)
+    {
+        if (key == KeyCode.None) { return false; }
+        if (injectedHolds.Contains(key)) { return true; }
+        return Input.GetKey(key);
+    }
+
+    /// <summary>そのレーンのキーが 1 つでも押されているか (保持判定用)。</summary>
+    public static bool IsLaneKeyHeld(int lane)
+    {
+        KeyCode[] keys = GetKeys(lane);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            if (IsKeyHeld(keys[i])) { return true; }
+        }
+        return false;
+    }
+
     /// <summary>True when any key bound to the lane (0-based) went down this frame.</summary>
     public static bool IsLaneKeyDown(int lane)
     {

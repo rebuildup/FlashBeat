@@ -295,12 +295,11 @@ public class Judge : MonoBehaviour
     {
         if (lane < 0 || lane >= LaneKeys.Length) return false;
 
-        KeyCode[] keys = KeyBindings.GetKeys(lane);
-        for (int i = 0; i < keys.Length; i++)
-        {
-            if (Input.GetKey(keys[i])) return true;
-        }
-        return false;
+        // IsLaneKeyHeld は「実キーの押下状態 (Input.GetKey)」と
+        // 「検証ハーネスが注入した保持状態 (KeyBindings.InjectKeyHold)」の
+        // **両方** を見る。製品ビルドでは注入されないので、
+        // 結果は従来と同じ Input.GetKey と同じになる。
+        return KeyBindings.IsLaneKeyHeld(lane);
     }
 
     /// <summary>

@@ -1,0 +1,8 @@
+53:[AutoTestV6Hold] chart override set: 459 chars
+54:[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=override
+56:[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=override
+150:[AutoTestV6Hold] FAIL the probe chart has 4 tap notes
+179:Hold broken
+188:Hold broken
+195:Hold broken
+219:[AutoTestV6Hold] FAIL every HOLD was sustained to its end (no broken hold)
