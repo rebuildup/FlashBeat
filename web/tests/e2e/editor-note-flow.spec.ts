@@ -16,7 +16,7 @@ import { expect, test, type Page } from "@playwright/test";
  * Run (dev server + seeded D1):
  *
  *   cd web && npx vp dev
- *   E2E_BASE_URL=http://localhost:5173 npm run test:studio
+ *   E2E_BASE_URL=http://localhost:5173 npm run test:e2e
  */
 
 const EVIDENCE_DIR = fileURLToPath(

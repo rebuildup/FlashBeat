@@ -7,9 +7,10 @@
     "build": "vp build",
     "preview": "vp preview",
     "test": "node --test tests/*.test.ts tests/*.test.mjs && vitest run",
-    "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
-    "e2e": "node tests/e2e/run.ts",
+    "test:e2e:harness": "vitest run --config tests/e2e/vitest.config.ts",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
     "test:studio": "playwright test --config tests/e2e/playwright.config.ts",
+    "e2e": "node tests/e2e/run.ts",
     "visual": "node tests/visual/capture.mjs",
     "codegen": "panda codegen",
     "postinstall": "void prepare && panda codegen"

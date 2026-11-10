@@ -1,4 +1,98 @@
-# Production E2E harness (issue #97, refs #41)
+# Browser E2E & production harness (issues #97, #41; browser gate since 2026-11)
+
+This directory holds two different things:
+
+1. **The Playwright browser E2E** (`*.spec.ts`) — the quality gate that drives
+   the real dev server in a real Chromium (`npm run test:e2e`).
+2. **The production harness** (`run.ts`) — stage-by-stage real-value
+   verification of the production chain at `https://flashbeat.rebuildup.dev`
+   (`npm run e2e`), plus its unit tests (`npm run test:e2e:harness`).
+
+## Which command runs which suite
+
+| Command                    | Suite                                                              | Where                       | Tests             |
+| -------------------------- | ------------------------------------------------------------------ | --------------------------- | ----------------- |
+| `npm test`                 | Unit: read-API integration (`node --test`) + app unit (Vitest)     | `tests/*.test.*`, `src/**`  | 73 + 436          |
+| `npm run test:e2e:harness` | Vitest unit tests of the production harness comparison logic       | `tests/e2e/harness.test.ts` | 22                |
+| `npm run test:e2e`         | **Playwright browser E2E** (Chromium, seeded local D1, dev server) | `tests/e2e/*.spec.ts`       | 12                |
+| `npm run e2e`              | Production harness (real HTTP against the deployed worker)         | `tests/e2e/run.ts`          | stages, not tests |
+
+`test:e2e` used to be the name of the Vitest harness suite (misleading: no
+browser was involved). It is now the Playwright gate; the harness suite lives
+under `test:e2e:harness`.
+
+`test:studio` is kept as an alias of `test:e2e` (same config, same suite): the
+historical records under `specs/216-chart-editor-operation/` quote it, and those
+commands should keep working.
+
+## Browser E2E (`npm run test:e2e`)
+
+Playwright config: `playwright.config.ts` (testMatch: `studio-flow`,
+`visitor-flow`, `editor-note-flow`, `studio-smoke`, `publish-flow`).
+
+Prerequisites are not optional and **nothing is skipped**:
+
+- The `webServer` entry seeds the local D1 (`void db seed`) and boots the dev
+  server when `E2E_BASE_URL` (default `http://localhost:5173`) answers
+  nothing; a server that is already up is reused as-is. A server that never
+  comes up fails the run loudly.
+- A missing browser fails naturally at the first launch.
+- `reporters/gate-reporter.ts` counts the outcomes: **0 collected tests or a
+  run where every test was skipped exits non-zero.** Individual skips are
+  reported as a warning line.
+
+```sh
+cd web
+npm run test:e2e                                   # seeds + boots the server itself
+E2E_BASE_URL=http://localhost:5199 npm run test:e2e  # against an already-running server
+```
+
+`publish-flow.spec.ts` is a real write flow: Catalog → Editor → Publish with
+the local admin token (`local-dev-only`) against the seeded local D1, asserting
+the success panel and the catalog reflection (`catalogVersion`, title, chart
+version). It writes to the isolated song id `e2e-publish-flow` and archives it
+again afterwards, so the suite stays repeatable. It never touches the remote
+database.
+
+## Gate self-check
+
+Proof that the gate can actually fail (2026-11-10, Playwright 1.65.0,
+Chromium): with `studio-flow.spec.ts` asserting the row title `Who?` instead
+of `Who`, the run exits 1 with:
+
+```
+  1) tests/e2e/studio-flow.spec.ts:33:1 › publish shows the admin-token boundary before pressing it
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByTestId('catalog-list').locator('a[data-row-link]').filter({ hasText: 'Who?' }).first()
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+  1 failed
+    tests/e2e/studio-flow.spec.ts:33:1 › publish shows the admin-token boundary before pressing it ─
+  2 did not run
+  9 passed (39.3s)
+```
+
+Exit code: 1 (serial mode stops the remaining tests of the file). The reverted
+suite is green again (12 passed).
+
+The four degenerate outcomes were re-proved independently after the worker's
+run, each one exiting 1:
+
+| Break                                                                     | Observed                                                                                  | Exit |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
+| Nothing collected / every test skipped                                    | `[gate] FAIL: all 1 collected tests were skipped`                                         | 1    |
+| One expectation wrong (`Who` → `Who?`)                                    | `1 failed`, `element(s) not found`                                                        | 1    |
+| Browser not installed (`PLAYWRIGHT_BROWSERS_PATH` points at an empty dir) | `browserType.launch: Executable doesn't exist … npx playwright install`                   | 1    |
+| Dev server cannot start (`E2E_BASE_URL` on a port already in use)         | `Error: Port … is already in use` / `Process from config.webServer was not able to start` | 1    |
+
+All four reach CI (the workflow runs `npm run test:e2e` without a `--reporter`
+flag, so the gate reporter stays in the reporter list).
+
+## Production harness (issue #97, refs #41)
 
 Stage-by-stage real-value verification of the production chain at
 `https://flashbeat.rebuildup.dev`. Default mode is **read-only**; a write needs
@@ -50,5 +144,5 @@ code 0 only when every entry passes.
 The comparison logic is unit tested with mocked `fetch`:
 
 ```sh
-npm run test:e2e
+npm run test:e2e:harness
 ```

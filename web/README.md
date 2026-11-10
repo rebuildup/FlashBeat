@@ -16,7 +16,15 @@ npx tsc --noEmit
 npx vitest run # unit tests
 vp build
 npm test       # database tests (node --test tests/)
+npm run test:e2e          # Playwright browser E2E (seeds local D1 + boots vp dev)
+npm run test:e2e:harness  # Vitest unit tests of the E2E harness logic
 ```
+
+The browser E2E is the quality gate (`npm run test:e2e`, Chromium, real HTTP,
+isolated local D1): it fails — rather than skips — when the browser is missing,
+the server does not start, or no test is collected. See
+[`tests/e2e/README.md`](tests/e2e/README.md) for the suites, the gate
+self-check and the production harness.
 
 ### Database
 

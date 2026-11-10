@@ -95,13 +95,10 @@ async function publishWith(
         headers: { "Content-Type": "application/json" },
       });
     }
-    return new Response(
-      JSON.stringify({ songId: SONG.id, chartVersion: 3, chart: SAMPLE_CHART }),
-      {
-        status: readBack.ok ? 200 : 503,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ songId: SONG.id, chartVersion: 3, chart: SAMPLE_CHART }), {
+      status: readBack.ok ? 200 : 503,
+      headers: { "Content-Type": "application/json" },
+    });
   });
   vi.stubGlobal("fetch", vi.fn(request));
 
@@ -127,9 +124,7 @@ describe("SongPublisher publish state machine (issue #73)", () => {
     expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
     expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
     // The form keeps the draft: the operator can fix and retry without retyping.
-    const values = Array.from(document.body.querySelectorAll("input")).map(
-      (input) => input.value,
-    );
+    const values = Array.from(document.body.querySelectorAll("input")).map((input) => input.value);
     expect(values).toContain("who");
   });
 
@@ -151,11 +146,7 @@ describe("SongPublisher publish state machine (issue #73)", () => {
 
   it("does not claim success when the published snapshot cannot be read back", async () => {
     await renderPublisher();
-    await publishWith(
-      200,
-      { songId: SONG.id, chartVersion: 3, catalogVersion: 8 },
-      { ok: false },
-    );
+    await publishWith(200, { songId: SONG.id, chartVersion: 3, catalogVersion: 8 }, { ok: false });
 
     expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
     expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();

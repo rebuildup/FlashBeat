@@ -107,6 +107,11 @@ async function shot(page: Page, viewport: string, name: string): Promise<void> {
   await page.screenshot({
     path: join(ARTIFACTS_DIR, `${viewport}-${name}.png`),
     fullPage: true,
+    // Default `caret: "hide"` injects a stylesheet that rewrites the caret
+    // colour of every input for the duration of the shot; the clean-console
+    // assertion below flaked while that stylesheet was active. The inputs are
+    // not focused in these shots, so there is no caret to hide.
+    caret: "initial",
   });
 }
 
