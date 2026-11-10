@@ -92,7 +92,7 @@
 | 129 | Dev/Mac Desktop に独立 macOS アプリ | **A** | `Assets/Editor/BuildScript.cs:50` (`BuildStandaloneMacOS`) | 2/0/1 | — | クローズ提案可。ただし **配布物の SHA が `fffc399` で Issue の `b677f8f` と不一致**。再配布時に README の SHA を更新すること |
 | 134 | Ranking/P0 リザルト登録+曲別ランキング | **B** | `Assets/Game/Scripts/UI/RankingClient.cs`, `ResultRankingOverlay.cs:186,307` | 3/1/1 | — | **展示 patch line `b677f8f` に未移植** |
 | 135 | Registration/P0 ブラウザだけで新規曲登録 | **A → 検証済 (1 条件 Windows 実機待ち)** | `web/src/components/new-song/**`, `web/src/lib/new-song/**`, `web/pages/new-song.tsx` | **5/0/1** | Windows 実機 (展示 PC) | **再検証 (2026-11-10, コメント id 6744359277)**: 6 条件を個別判定 → 5 充足 (実ブラウザで slug 重複検出・oEmbed 遮断下の videoId 抽出・譜面エディタ往復・publish 成功パネル・反映確認手順) / **条件 6 未検証** (Unity カタログへの実反映 = Windows 実機 + デプロイ済み API が必要) |
-| 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **B** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 3/1/1 | — | **展示 patch line に未適用** (`b677f8f` に `CollectCodeTexts` なし) |
+| 140 | Unity/Font 豆腐を根絶 + 動的フォールバック | **B** | `Assets/Editor/JapaneseFontAssetBuilder.cs:33,104,233,249` | 4/1/1 | — | **展示 patch line に未適用** (`b677f8f` に `CollectCodeTexts` なし)。**2026-11-10: macOS 実画面 3 枚を実読して豆腐 0 を確認** (`docs/evidence/140-font-code-strings.md` §5)。Windows 実機は未検証 |
 | 162 | P0/REBUILD v0.1.13 UI 受け入れ撤回 | **B** | `docs/ui/issue-162-ui-contract.md` (F1–F18) | 3/3/2 | Windows 実機 | 実操作での受け入れが未了。子 #167 が残作業 |
 | 167 | Game/P0 描画だけ UI 排除+全ボタン実動作 | **A → EditMode 実装分充足 / 実機未受入** | `Assets/Tests/Editor/V5UiWiringTests.cs` (17 tests), `docs/ui/issue-167-handler-audit.md`, `docs/ui/issue-167-ui-acceptance.md` | **1/0/3** | Windows 実機 | **PR #304 merged** — 契約表に Loading / Result Ranking の 2 行、F2/F6〜F8/F10/F15〜F17 の EditMode テスト 9 件、手順書を v6 UI 既定で全面差し替え。**EditMode 1322/1322 passed** (macOS, Unity 6000.5.6f1)。残 = **Win64 実機の一循環のみ** **`specs/167` の 5 タスクは未チェックだったが、実装は `origin/main` に存在** (本体 `467fe8a` / `5f11ce8` / `36da73c` / `d4d758a` / `485e91b` / `e174e65`)。2026-11-10 のコード照合判定 = **T2 / T3 / T4 充足・T1 / T5 部分充足** (契約表に Loading/Result Ranking の 2 行欠落、`ResultRegister_IsLabelledLocal` が未存在、手順書が古い)。残 = 契約表 2 行 + テスト追加 + 手順書差し替え + **実機一循環** |
 | 182 | Game/P1 判定キュー再設計 | **A** | `Assets/Game/Scripts/Gameplay/JudgeQueue.cs:21` | 2/0/1 | — | **PR #256 merged → Issue Closed** (受入条件 5 項目すべて充足) |
@@ -652,7 +652,7 @@
 | 3 | フォールバックが主フォントアセットに登録されている | 充足 | `JapaneseFontCodeStringCoverageTests.cs:79` |
 | 4 | コード内文字列の字形が主アトラス or 動的フォールバックで必ずカバーされる | 充足 (EditMode) | `JapaneseFontCodeStringCoverageTests.cs:38` |
 | 5 | **trunk と展示 patch line の両方へ** | **未充足** | 展示 patch line `b677f8f` に `CollectCodeTexts` / `EnsureDynamicFallback` が **0 件** |
-| 6 | 実機画面での豆腐 0 | 未検証 | `docs/evidence/win64-2026-11-06-font/` は存在するが、**本監査では実画像の中身を検査していない** → 観測項目として記録 |
+| 6 | 実機画面での豆腐 0 | **macOS 充足 / Windows 未検証** | 2026-11-10 に `main` の実機スクリーンショットを実読: Game (`docs/evidence/233-playfield/run-2026-11-10-main/autotest-v6-5.png`, `-6.png`) / Select (`docs/evidence/58-select-screen/run-b-ichikan/autotest-v6songend-01-01-select.png`) / Result (`.../04-04-result.png`) の 3 画面で、コード文字列・曲名・**譜面 JSON の歌詞**まで豆腐 0 を確認 (`docs/evidence/140-font-code-strings.md` §5)。**Windows 実機は未検証** (展示 PC は保護対象) |
 
 - **未検証の区別**: 条件 4 は **EditMode 静的カバレッジ** であって **実描画の豆腐 0 ではない** (字形が存在してもアトラス配置の問題は別)。代替 = EditMode 緑 + `docs/evidence/140-font-code-strings.md`。
 - **依存**: #88 の受入条件 3 (日本語フォント欠落 0) と連動。展示 patch line 側は #22/#250 の配布対象と同時対応。
