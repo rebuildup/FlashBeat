@@ -34,8 +34,13 @@ run_one() {
   local name="$1" playfield="$2"
   local dir="$outdir/$name"
   mkdir -p "$dir"
+  # 出力先を再利用したときに前回の結果を今回の結果と取り違えないよう先に消す
+  # (待ちループと最終判定は「今回の run が書いたファイル」だけを見る)。
+  rm -f "$dir/autotest-v6-result.txt"
   echo "[playfield-compare] run=$name playfield=$playfield"
-  "$binary" \
+  # exec で置き換える: 背景で走らせた関数の子ではなく、$! がそのまま
+  # プレイヤーの PID になる (cleanup が確実に本人を止める)。
+  exec "$binary" \
     -screen-width 2560 -screen-height 1664 -screen-fullscreen 1 \
     -autotest v6playfield -playfield "$playfield" \
     -autotest-out "$dir" -logFile "$dir/Player.log"
