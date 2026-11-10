@@ -1,9 +1,9 @@
 # open Issue 実装状況監査 (main 実測)
 
-- **対象**: `origin/main` = `85d79ab` (PR #290 merge 直後)
-- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映
-- **監査範囲**: open の全 Issue 48 件 (うち **#71 は本更新で Closed** となったため **実質 47 件**)
-- **作業**: worktree `/Users/rebui/work/FlashBeat.waudit3` (branch `w/audit-web`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
+- **対象**: `origin/main` = `36a3572` (PR #296 merge 直後)
+- **監査日**: 2026-11-09 (初回) / **2026-11-10 (更新 1)** — A グレード 7 件の個別再判定 / **2026-11-10 (更新 2)** — #233 / #58 / #278 の実装進捗と macOS 実機証跡を反映 / **2026-11-10 (更新 3)** — #68 / #278 / #60 を Close した反映
+- **監査範囲**: open の全 Issue 48 件のうち **#71 / #68 / #278 / #60 は Closed** となったため **実質 44 件**
+- **作業**: worktree `/Users/rebui/work/FlashBeat.waudit4` (branch `w/audit-update-3`)、**読み取りのみ**。コード変更・Issue コメント投稿なし (Issue コメントは統合担当が別途投稿)。
 
 > ## 最重要の結論
 > **open Issue 数 ≠ 未実装件数。**
@@ -11,6 +11,8 @@
 > この 17 件は **cc が即クローズ提案できる**。残り 30 件は未充足条件が具体的に特定できている。
 >
 > **2026-11-10 追記**: A グレード 7 件の受入条件を **1 条件ずつ実測して判定** した。**#12 は PR #288 で 8/8 充足 (Close 可能)**、**#71 は 6/6 充足で Closed**。**#68 は 2 条件が未充足** (契約テストと race/abort ガード — いずれも Web 側で実装可能) なので **Close せず Worker を起動** した。**#19 / #73 / #135 の未検証 3 件は Windows 実機・本番 API を要するため cc では閉じない。**
+>
+> **2026-11-10 夜 追記**: Worker の成果が取り込まれ、**#68 (PR #293 / #294) / #60 (PR #295 / #296) / #278 (PR #291) は受入条件を個別判定した上で Close 済み**。**残る Windows 実機・本番 API の未検証は cc では閉じない** (手順と候補は `docs/operations/win64-candidate-acceptance-2026-11-10.md`)。
 
 ---
 
@@ -56,7 +58,7 @@
 
 ---
 
-## 1. サマリ表 (全 48 件)
+## 1. サマリ表 (全 44 件 — #71 / #68 / #278 / #60 は Closed)
 
 | # | タイトル (短縮) | 区分 | 実装位置 | 充足/未充足/未検証 | ブロック | 推奨アクション |
 |---|---|---|---|---|---|---|
@@ -75,10 +77,10 @@
 | 56 | Infra AIエージェント開発環境再整備 | **B → Closed** | `mise.toml`, `skills-lock.json`, `evals/policy-evaluation/**` | 5/0/0 | — | **PR #267 merged → Issue Closed**。`mise install --locked` と `mise run skills-check` が exit 0 (27 Skill 一致) |
 | 58 | 検証 カタログ合成(30曲)+再生クロック | **B → 実機証跡 追加** | `GManager.cs:88`, `Assets/Tests/Editor/CatalogMergeTests.cs`, `docs/evidence/58-select-screen/` | **3/1/1** | Windows 実機 (映像 / A-V 同期 / Retry) | **PR #290 merged** — macOS 実ディスプレイ全画面 (2560×1664) で **2 曲 (ツイッターランド / 一龠) を完走**。両曲 `pass=31 fail=0` / `songEndState=Completed` / `forcedByDeadline=False` / `scene=ResultScene` / `judged == settled == chartNotes` (130/130, 191/191)。**YouTube 映像の視認・A/V 同期・Retry・選曲可 26 曲すべての完走は未検証** (Issue の「30 曲」前提は stale → 選曲可 26 曲) |
 | 59 | 検証 #30 各機能の受入確認 | **B** | `docs/evidence/59-feature-acceptance.md` | **0/0/4** | Windows 実機 (展示 PC) | **受入記録を作成 (PR #266 merged)**。4 機能とも充足。残りは Windows 実機の目視と HOLD の実機演奏のみ。**HOLD の実機演奏は #278 に切り出し** (譜面 27 曲すべてに type=2 が 1 つも無い = 到達不能) |
-| 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B → 対策 (A) 実装済 (PR #291 draft) / 実機 run は未実施** | `Assets/Game/Scripts/Common/HoldProbeChart.cs` (新規), `PlaySessionSnapshot.ChartJsonOverride`, `AutoTestV6Hold.cs` (新規), `script/mac-holdprobe-harness.sh` (新規) | **1/1/1** | macOS 実機 (キー押下) / Windows 実機 | **実測**: `Assets/Game/Resources/*.json` 全 27 曲で `notes[].type` は 1 (Tap) のみ、`type=2` (HOLD) は **0 個**。対策 (A) = 検証用 HOLD 譜面 (タップ 4 + HOLD 3) を `PlaySessionSnapshot.ChartJsonOverride` で **プレイ時だけ** 差し込む (カタログは増やさない / Resources にも置かない) + macOS 実機ハーネス。**PR #291 (draft)**: EditMode **1306/1306**。**macOS 実機の HOLD 保持 (CGEvent の実キー押下) は未実施**。対策 (B) 実曲への HOLD 追加 はオーナー判断待ち |
-| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 検証済 (1 条件 未充足)** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **4/1/0** | 記録の欠落 (Worker 再実行中) | **再検証 (2026-11-10, コメント id 6744105927)**: 5 条件を個別判定 → T1〜T4 充足 / **T5 未充足** (実行 SHA・Draft PR URL が未記録 / tasks.md の T1〜T5 が未チェック / before 画像が teal を写していない)。文書側の記録欠落であり実装の欠落ではない。**2026-11-10: 記録 Worker を再起動** (実行 SHA / PR URL / tasks.md のチェック / before-after の正直な扱い) |
+| 278 | Gameplay HOLD ノーツが全譜面に存在しない | **B → 対策 (A) 実施済 → Closed** | `Assets/Game/Scripts/Common/HoldProbeChart.cs` (新規), `PlaySessionSnapshot.ChartJsonOverride`, `AutoTestV6Hold.cs` (新規), `script/mac-holdprobe-harness.sh` (新規) | **2/0/1** | Windows 実機 / 本物のキー押下 | **PR #291 merged** (EditMode 1306/1306)。macOS 実機 run = `RESULT pass=41 fail=0` / `holdClear=3 holdBroken=0` / `holdBodiesVisible=3` / `judged=7 == settled=7 == chartNotes=7`。**負の対照** (修正前 run は同じハーネスで `fail=2`) も収録 (`docs/evidence/278-hold/`)。**Issue #278 は Closed** (コメント id 6757024894)。**残 = 本物のキー押下での HOLD 保持 (macOS の Unity legacy Input は CGEvent を見ないため保持は注入シーム) / Windows 実機** / 対策 (B) のオーナー判断 |
+| 60 | Web/UI Foundation Pen v5 → Panda/Park | **A → 受入条件 5/5 充足 → Closed** | `web/src/theme/colors/{gray,blue,red,green,amber}.ts`, `docs/design/web-token-mapping.md` | **5/0/0** | — | **PR #295 merged** (実行 SHA `2bd7302` / before SHA `54505c2` / PR #90 URL / tasks.md T1〜T5 チェック / before-after 画素証跡 20 ファイル) + **PR #296 merged** (記録の訂正: teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み)。**Issue #60 は Closed** (コメント id 6757102070)。残存 = 2xs 可読性・フォーカスリングのコントラスト・390px サイドバー (いずれも #74 のスコープ) |
 | 61 | Web UI Product Spec (Studio 全体) | **B** | `web/src/**` | 2/1/2 | — | 子 Issue 実装済み。製品レベル E2E 受け入れが未完 |
-| 68 | Web/Catalog 本番 Catalog API 接続 | **A → 検証済 (2 条件 未充足)** | `web/src/app/catalog.ts:21,28,32,57,79` | **5/2/0** | 契約テスト + abort/順序ガード | **再検証 (2026-11-10, コメント id 6744111822)**: 7 条件を個別判定 → 5 充足 / **2 未充足** (T1: クライアント/アダプタ層の契約テストが `web/src/app/__tests__/` に存在しない / T2: `app-shell.tsx:100-113` の `refresh` に AbortController も stale-response ガードも無い)。**両方とも Web 側で実装可能なため Worker を再起動** (初回起動回は 429 で中断 → 作業内容は残っていないので作り直し) |
+| 68 | Web/Catalog 本番 Catalog API 接続 | **A → 受入条件 7/7 充足 → Closed** | `web/src/app/catalog.ts:21,28,32,57,79`, `web/src/app/app-shell.tsx` | **7/0/0** | — | **PR #293 merged** (abort / stale-response ガード + 契約テスト 21 件) + **PR #294 merged** (`cache: "no-store"`)。**実 API の生レスポンス** を取得して `parseSongs` が受理することを実測。**Issue #68 は Closed** (コメント id 6757022442) |
 | 71 | Web/Chart Session 正しい版を開く | **A → 受入条件 6/6 充足 → Closed** | `web/src/lib/song-session/load.ts` | **6/0/0** | — | **再検証 (2026-11-10, コメント id 6744130520)**: 6 条件すべて充足 (実ブラウザ + ローカル D1 で 4 曲公開 → 版不一致は 404 → 空譜面に置換せずエラー表示 / 曲ごとに videoId・note-count が独立)。**Issue #71 は Closed** |
 | 73 | Web/Publish Flow モック禁止+実API | **A → 検証済 (1 条件 本番 E2E 待ち)** | `web/src/lib/publish/transport.ts:25,31-35`, `web/pages/publish.tsx:140` | **7/0/1** | 本番 API での監督付き E2E | **再検証 (2026-11-10, コメント id 6744154670)**: 8 条件を個別判定 → 7 充足 (実ブラウザ publish → 実 GET で catalogVersion / chartVersion 一致、401 で成功表示ゼロ) / **T5 未検証** (本番 API への書き込みを伴う E2E。cc は本番書き込みを行わない)。token 非漏洩はコード + 実測で担保済み |
 | 74 | Web/Responsive 操作不能 UI をなくす | **B** | `web/src/app/sidebar.tsx`, `web/src/app/panel.tsx` | **3/0/3** | 視覚ゲート (#75) | **PR #257 merged**。狭幅横溢れ 0・clip 0 を実測 (`npm run visual` exit 0) |
@@ -113,14 +115,14 @@
 
 | 区分 | 件数 | Issue 番号 |
 |---|---|---|
-| **A** | **17** | 12, 19, 60, 68, 71, 73, 118, 129, 135, 182, 221, 222, 224, 225, 226, 239, 240 |
-| **B** | **22** | 7, 13, 17, 21, 22, 56, 58, 59, 61, 74, 75, 88, 96, 98, 134, 140, 162, 167, 219, 233, 241, 278 |
+| **A** | **14** | 12, 19, 73, 118, 129, 135, 182, 221, 222, 224, 225, 226, 239, 240 |
+| **B** | **21** | 7, 13, 17, 21, 22, 56, 58, 59, 61, 74, 75, 88, 96, 98, 134, 140, 162, 167, 219, 233, 241 |
 | **C** | **0** | — |
 | **D** | **8** | 3, 4, 5, 6, 217, 223, 242, 250 |
 | **E** | **1** | 30 |
-| 合計 | **48** | |
+| 合計 | **44** | |
 
-> **C (未実装) が 0 件**なのは「歴史的に全件が実装済みだったわけではない」からではなく、**48 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
+> **C (未実装) が 0 件**なのは「歴史的に全件が実装済みだったわけではない」からではなく、**44 件すべてに `main` 上のコード or ゲート定義 or 仕様書が存在する**ため。未充足なのは個別の受入条件であり、それは各詳細節で file:line を伴って列挙した。
 
 ---
 
@@ -848,7 +850,9 @@
   - `web/panda.config.ts:76` — `include: ["gray","blue","red","green","amber"]` (**Teal 除外**)
   - `web/src/theme/tokens/colors.ts`, `text-styles.ts`, `layer-styles.ts`, `conditions.ts`, `global-css.ts`, `keyframes.ts`, `animation-styles.ts`, `durations.ts`, `shadows.ts`, `z-index.ts`
   - マッピング表: `docs/design/web-token-mapping.md` (§1 Neutral ramp, §2 Accent, §3 Status palettes)
-  - `specs/060-web-visual-foundation/tasks.md` = **0 完了 / 5 未完了** (Issue 本文 T1–T5 も未チェック)
+  - `specs/060-web-visual-foundation/tasks.md` = **5 完了 / 0 未完了** (Issue 本文 T1–T5 もチェック済み。**PR #295**)
+  - 画素証跡: `specs/060-web-visual-foundation/evidence/pixel/{before-54505c2,after-2bd7302}/` (20 ファイル)
+  - 実行 SHA `2bd7302` (PR #90 の head) / before SHA `54505c2` / 実行コマンドと結果は `docs/evidence/60-web-visual-foundation/results.json`
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
@@ -856,16 +860,21 @@
 | 1 | Pen の変数インベントリとコンポーネント層を検査し、primitive→semantic→component の明示マッピングを書く | 充足 | `docs/design/web-token-mapping.md` |
 | 2 | 正規パレット/surface/raised-vs-recessed を `panda.config.ts` と `theme/**` に適用し、Park UI API を保つ | 充足 | `web/src/theme/colors/*.ts` + `web/panda.config.ts:76` |
 | 3 | タイポグラフィ (Noto Sans JP + fallback)、テキストサイズ、コントラスト、focus/state token を写す | 充足 | `web/src/theme/text-styles.ts`, `tokens/colors.ts` |
-| 4 | Web の type/build/tests を実行し、1440×900 と 1280×720 でコンポーネント例を確認 | 充足 (テスト) / 未検証 (目視) | `web` 47 テストファイル緑。**目視確認は本監査未実施** |
-| 5 | before/after の画素証跡、実行 SHA、未解決差分を記録 | 未充足 | `docs/evidence/web-visual/{before,after,interaction}/` は存在するが **本監査では内容未検証**。`specs/060` のチェックも未済 |
+| 4 | Web の type/build/tests を実行し、1440×900 と 1280×720 でコンポーネント例を確認 | 充足 | 実行 SHA `2bd7302` で `npx tsc --noEmit` / `npm test` (node --test 19 + vitest 93 件) / `npx vp build` が exit 0。**実 Chromium (headless) による 1440×900 / 1280×720 / 390×844 の撮影** (`evidence/pixel/`) |
+| 5 | before/after の画素証跡、実行 SHA、未解決差分を記録 | 充足 | **PR #295** — 実行 SHA `2bd7302` / before SHA `54505c2` / PR #90 の URL / `tasks.md` の T1〜T5 チェック / 画素サンプル (PNG を直接デコード) / 証跡ファイルの sha256 マニフェスト。**PR #296** で記録の訂正 (teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み) |
 
-- **未検証の区別**: 条件 4–5 の目視・画素部分は **実ブラウザ** 必須。**型検査とテスト緑は「見た目が Pen と一致する」ことを保証しない**。代替 = `web` テスト緑 + `docs/design/web-token-mapping.md` の数値対応表。
+- **未検証の区別**: 条件 4–5 の目視・画素部分は **実ブラウザ** 必須。**型検査とテスト緑は「見た目が Pen と一致する」ことを保証しない**。→ 2026-11-10 に実 Chromium で撮影し画素を直接デコードして差分を証明済み。
+- **残存 (本 Issue の範囲外)**: `2xs` = 8px の可読性 / フォーカスリングのコントラスト 2.5:1 / 390px のサイドバー折りたたみ。いずれも **#74** のスコープ。
 - **依存**: #61 の独立した foundation。#67 / #68 / #71 と並行可能。
 - **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744105927)**:
   - 5 受入条件を個別判定 → **T1〜T4 充足 / T5 未充足** (8 条件中ではなく 5 条件)。
   - T3 は **実ブラウザ実測** で補強: コントラスト 6 ペア (fg.default/muted/subtle on #1B1B1B、primary CTA、selected fg) すべて pass (`web/tests/e2e/artifacts/metadata.json` の `contrastChecks`)。残存 = `2xs` = 8px の小文字 (home 11 要素 / chart 37 / publish 41) は `§4/§6` に既記載。
   - **T5 が未充足とした理由 (4 点)**: ① 実行 SHA が `specs/060` にも `docs/design/web-token-mapping.md` にも未記録 ② Draft PR の URL が未記録 (`tasks.md` の "done when PR URL recorded" に対し) ③ `specs/060-web-visual-foundation/tasks.md` の **T1〜T5 がすべて未チェック** ④ before/after 画像が **どちらも Pen パレット** (canvas #1B1B1B / 青 accent / teal なし) で **teal→blue の変化を証明していない**。
   - **未充足は実装の欠落ではなく記録の欠落**。記録側は Worker を起動済み。**「目視一致」と「型検査緑」を混ぜない**: 本件は実ブラウザ実測まで行ったうえで T5 だけ未充足とした。
+- **2026-11-10 統合 owner の再判定 (コメント id 6757102070 / Issue Closed)**:
+  - 記録 Worker の成果は **PR #295** (実行 SHA / PR URL / `tasks.md` 同期 / 画素証跡 20 ファイル) と **PR #296** (記録の訂正)。
+  - 統合 owner が **LFS ポインタ 18 件の sha256 一致**、**`git grep -in teal` が `2bd7302` で 0 ヒット**、**PR #90 の head / mergeCommit の一致** を独立に確認。
+  - 5 条件すべて充足 → **#60 は Close 済み**。
 
 
 ### #75 — [Web/Visual Gate] 画像ベースのデザインレビュー・比較・本番E2Eをリリース条件にする
@@ -987,7 +996,7 @@
 
 ### #68 — [Web/Catalog] 固定4曲を廃止し本番Catalog APIと実状態に接続
 
-- **区分**: **A (実装済み・証拠待ち)**
+- **区分**: **A → 受入条件 7/7 充足 → Closed**
 - **実装/証拠**:
   - `web/src/app/catalog.ts`
     - `:9` `export type CatalogMode = "loading" | "ready" | "empty" | "error"`
@@ -996,19 +1005,25 @@
     - `:28` `fetch("/api/v1/catalog", { … })` — `Cache-Control: no-store`
   - テスト: `web/src/app/catalog-view.test.ts`, `web/src/app/catalog-panel.test.tsx`
   - `web/src/app/types.ts`
-  - **注意**: Issue 本文 291 行目の指定パスは `web/src/app/__tests__/catalog*.test.ts` だが、実体は `web/src/app/catalog-view.test.ts` / `catalog-panel.test.tsx` (**`__tests__/` 配下ではない**)
+  - **注意**: Issue 本文 291 行目の指定パスは `web/src/app/__tests__/catalog*.test.ts` だが、**PR #293 で `web/src/app/__tests__/` 配下に表示 adapter の契約テストを追加済み** (元の `catalog-view.test.ts` / `catalog-panel.test.tsx` も残置)
+  - **PR #293 merged** — `web/src/app/app-shell.tsx` に `AbortController` + リクエスト ID の stale ガード、`web/src/app/__tests__/` に契約テスト 21 件
+  - **PR #294 merged** — `catalog.ts` の fetch に `cache: "no-store"` を明示
 - **受入条件**:
 
 | # | 条件 | 判定 | 根拠 |
 |---|---|---|---|
-| 1 | T1: API client/response adapter と契約テスト | 充足 | `catalog.ts:19-63` + `catalog-view.test.ts` |
-| 2 | T2: 更新時の race/abort、HTTP error、invalid payload のテスト | 充足 | `catalog.ts:32,57,63,79` の throw 経路 + `catalog-view.test.ts` |
-| 3 | T3: 実API で catalogVersion・実件数・song fields を観測し単体結果の証跡 | 未検証 | **実API 観測の証跡は本監査未確認**。`docs/evidence/web-acceptance/` に撮影はあるが数値の記録は無し |
+| 1 | T1: API client/response adapter と契約テスト | 充足 | **PR #293** — `web/src/app/__tests__/catalog.test.ts` に `loadCatalog` / `parseSongs` の契約テスト (型ガード・HTTP エラー) |
+| 2 | T2: 更新時の race/abort、HTTP error、invalid payload のテスト | 充足 | **PR #293** — `app-shell.tsx` の `AbortController` + stale ガード、`__tests__/app-shell.test.ts` の 21 件 |
+| 3 | T3: 実API で catalogVersion・実件数・song fields を観測し単体結果の証跡 | 充足 | 統合 owner が **実 API の生レスポンス** を取得し、`parseSongs` が受理することを確認 (`catalogVersion` / 実件数 / song fields の一致) |
 | 4 | T4: 呼び出し元向け live/fixture 明示 contract を #nav に引き渡す | 充足 | `CatalogMode` 型 (`:9`) が live/fixture を明示 |
 | 5 | Given-When-Then: 見える件数・曲名・Version が実APIと一致。通信失敗では4曲の嘘の成功へフォールバックしない | 充足 (コード) | `catalog.ts:21,32,57` の throw |
 
-- **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・バージョンの一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。
+- **未検証の区別**: 条件 3 は **実 API 観測** 必須。**Vitest 緑は本番の曲数・バージョンの一致を保証しない**。代替 = `catalog-view.test.ts` 緑 + `contracts/openapi.v1.yaml` の形。→ 2026-11-10 に実 API を観測済み。
 - **依存**: 既存契約 `contracts/openapi.v1.yaml` と main。#71 の前提。
+- **2026-11-10 統合 owner の再判定 (コメント id 6757022442 / Issue Closed)**:
+  - 前回の「T1 / T2 未充足」は **PR #293 / #294 で解消**。7 条件すべて充足 → **#68 は Close 済み**。
+  - **実 API の生レスポンス** を取得して `parseSongs` がその応答を受理することを実測。**モックや fixture は使っていない**。
+  - 残る未検証は **本番デプロイ後のブラウザ E2E のみ** (Web 側では判定条件外)。
 - **2026-11-10 再検証 (A グレード監査 Worker / コメント id 6744111822)**:
   - 7 受入条件を個別判定 → **5 充足 / 2 未充足 / 0 未検証**。
   - **旧記述の訂正**: 上表の条件 1・2 を「充足」としていたのは誤り。**T1 (契約テスト) と T2 (race/abort テスト) は未充足**。
@@ -1106,6 +1121,32 @@
 
 - **未検証の区別**: **本 Issue は純粋な受入確認 Issue であり、判定の主角は「実装が動いているか」ではなく「受入記録が残っているか」**。4 機能とも EditMode テストは緑だが、**Issue 本文 196 行目が求める「実機起動での画面と挙動の確認」が 4 機能とも未実施**。代替 = EditMode 緑のみ。
 - **依存**: #30 の仕様確定。**#30 が E (判定不能) のため、HOLD の判定ルール (先頭/終端の 2 判定か連続保持 1 判定か) は受入基準が未確定** → #59 の OK/NG 判定も現状出せない。
+
+### #278 — Gameplay HOLD ノーツが全譜面に存在しない
+
+- **区分**: **B → 対策 (A) 実施済 → Closed (Windows 実機は残)**
+- **実装/証拠**:
+  - `Assets/Game/Scripts/Common/HoldProbeChart.cs` (新規) — 封筒つきの検証用譜面 (タップ 4 + HOLD 3)。**カタログ (`GManager` の 7 並列配列) にも `Assets/Game/Resources/` にも追加していない**
+  - `Assets/Game/Scripts/Songs/PlaySessionSnapshot.cs` — `ChartJsonOverride` の差し替えシーム。**取得済みの chartJson より優先する** (修正前は差し替えが負けて商品譜面が再生されていた)
+  - `Assets/Game/Scripts/Common/AutoTestV6Hold.cs` (新規) — プレイヤー引数 `-autotest v6hold` のハーネス
+  - `Assets/Game/Scripts/Gameplay/KeyBindings.cs` — `InjectKeyHold` / `ReleaseInjectedKeyHold` / `IsLaneKeyHeld` (保持状態の注入シーム。押下とは別枠)
+  - `Assets/Game/Scripts/Gameplay/Judge.cs` — `IsLaneKeyDown` が `KeyBindings.IsLaneKeyHeld` を経由するように変更 (製品ビルドでは注入されないので挙動は同じ)
+  - `script/mac-holdprobe-harness.sh` (新規) — macOS 実機の起動スクリプト
+  - テスト: `Assets/Tests/Editor/HoldProbeChartTests.cs` / `HoldProbeHarnessTests.cs` (7 件)
+  - 証跡: `docs/evidence/278-hold/` (run-a / 負の対照 run-b-before-fix)
+- **受入条件**:
+
+| # | 条件 | 判定 | 根拠 |
+|---|---|---|---|
+| 1 | HOLD を含む譜面を **カタログに登録せず** に実機で到達できる | 充足 | `PlaySessionSnapshot.ChartJsonOverride` で **プレイ時だけ** 差し込む。カタログも `Resources/` も変更なし (実測: `Assets/Game/Resources/*.json` 全 27 曲で `type=2` は 0 個のまま) |
+| 2 | macOS 実機で HOLD の **開始 → 保持 → 終端** が観測できる | 充足 | `docs/evidence/278-hold/run-a/` — `RESULT pass=41 fail=0` / `holdObserved=3` / `holdBodiesVisible=3` / `holdClear=3` / `holdBroken=0` / `judged=7 == settled=7 == chartNotes=7` |
+| 3 | Windows 実機での HOLD 実演奏 | **未検証** | **cc は展示 PC に触らない**。補足: macOS の Unity legacy Input は CGEvent の合成キーイベントを `Input.GetKey` として見ないため、保持は **注入シーム** で模擬している。**本物のキーボードを押して HOLD が保たれることは未検証** |
+
+- **負の対照**: 修正前の同じハーネスは `fail=2` (`holdClear=0 holdBroken=3`、`taps=14` = 番兵 10 個を数えていた)。**同じハーネスが修正前は落ちて修正後は緑** なので「緑だから正しい」とは言えない。
+- **2026-11-10 統合 owner (コメント id 6757024894 / Issue Closed)**:
+  - PR #291 merged (EditMode 1306/1306)。受入条件 1 / 2 を充足として **#278 は Close 済み**。
+  - **残 (Issue は Closed でも事項は残す)**: 本物のキー押下による HOLD 保持 / Windows 実機 / 対策 (B) (実曲に HOLD を入れるか) のオーナー判断。
+
 
 ### #58 — 検証: カタログ合成 (30 曲表示) と再生クロック修正の回帰確認
 
@@ -1543,7 +1584,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 
 | 単位 | 状態 | 進捗 / 残作業 |
 |---|---|---|
-| **U1** プレイフィールド再有効化 | **進行中 (修正 PR 作成中)** | PR #263 は独立レビューで **NEEDS WORK**。ブロッカー 2 件: ①映像プレーンが prepare 前は白板 (Windows は #13 で恒常失敗) ②根本原因の記載が誤り・誤ったテストがある。加えて S1 (2560×1664 = aspect 1.538 で外側レーンが判定ラインで欠ける / テストが 16:9 固定で見えない)、S2〜S7 も同時に修正中。**実機 (Windows) の視認確認は #233 の未解決問題として残す** |
+| **U1** プレイフィールド再有効化 | **完了 (macOS 実機まで) / Windows 実機は残** | PR #263 merged (`06ccefe`) — 独立レビュー 13 スレッドを全件コードで解消。2026-11-10 に `main` から macOS 実機ビルドし直し、**実ディスプレイ 2560×1664 全画面**で `-autotest v6` を再走 (`RESULT pass=29 fail=0`)。画像で **映像 / レーン境界 8 本 / 判定ライン / ノーツ / 歌詞** の描画を確認 (`docs/evidence/233-playfield/run-2026-11-10-main/`)。**Windows 実機での視認確認は #233 の未解決問題として残す** (テスト緑も macOS 実機も Windows の合格を保証しない) |
 | **U2** 確認窓 + 旧歌詞二重描画 | **進行中** | 二重描画の検査は `GameUiExclusivity` / `GraphicVisibility` で固定 (PR #263)。`GraphicVisibility.IsDrawn` の誤検出 (透明な Image / 無効な祖先 Canvas / 入れ子 CanvasGroup の積) の修正も PR #263 修正に含む。確認窓の 0.86s → 1.6s 拡張は未着手 (定義位置を特定してから) |
 | **U3** v6 Option の保存範囲統一 | **完了** | PR #264 merged。`ClearSaveData` が `ScorePersistence.ResetAll()` を呼ぶ。回帰テスト 8 件 (保存先・4 タブ・セッション設定・マウス経路)。あわせて **譜面/設定 JSON の Resources 混在バグ** を修正 |
 | **U4** publish → chart ドラフト復元 | **進行中** | #98 の chart 側復元を Worker が実装中 (PR 未作成) |
@@ -1553,12 +1594,12 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | **U7** Win64 実機解像度スイープ | **ブロッカー (Windows 実機)** | 展示 PC は保護対象のため未操作。macOS 実ディスプレイ全画面 (2560×1664) の確認は済。Windows の 3 解像度実測はオーナー作業として手順書を準備する |
 | **U8** ストリーム音声 (m4a) の再生実証 | **未着手 (Windows 実機)** | `YouTubeStreamResolver` に split 経路 (映像/音声を別々) が既にある。Windows Media Foundation の制約が実機-specific |
 | **U9** skills-check と agent 環境 | **完了** | PR #267 merged。`mise install --locked` / `mise run skills-check` が exit 0 (27 Skill 一致)。Issue #56 Closed |
-| **U12** (追加) HOLD ノーツの実機到達 (#278) | **対策 (A) 実装済 / 実機 run は未実施** | 全 27 曲に HOLD が無く実機受入が成立しない。対策 (A) = 検証用 HOLD 譜面 (タップ 4 + HOLD 3) + `PlaySessionSnapshot.ChartJsonOverride` の差し替えシーム (カタログは増やさない) + macOS 実機ハーネス (`AutoTestV6Hold` / `script/mac-holdprobe-harness.sh`)。**PR #291 (draft)**、EditMode 1306/1306。残 = macOS 実機の HOLD 保持 (CGEvent の実キー押下) の観測 / HOLD 胴体の伸び (N10) / 対策 (B) のオーナー判断 |
+| **U12** (追加) HOLD ノーツの実機到達 (#278) | **完了 (macOS 実機 3 段階判定まで)** | **PR #291 merged**。全 27 曲に HOLD が無く実機受入が成立しないため、検証用 HOLD 譜面 (タップ 4 + HOLD 3) を `PlaySessionSnapshot.ChartJsonOverride` で **プレイ時だけ** 差し込む (カタログは増やさない) + macOS 実機ハーネス (`AutoTestV6Hold` / `script/mac-holdprobe-harness.sh`)。2026-11-10 の実機 run: `RESULT pass=41 fail=0` / `holdClear=3 holdBroken=0` / `holdBodiesVisible=3` / `judged=7 == settled=7 == chartNotes=7`。**負の対照** (修正前 run は同じハーネスで `fail=2` / HOLD 3 個とも Broken) も収録。**Issue #278 Closed**。残 = **本物のキーボードを押して HOLD が保たれることは未検証** (macOS の Unity legacy Input は CGEvent の合成キーを見ないため保持は注入シーム `KeyBindings.InjectKeyHold` で模擬) + **Windows 実機** + 対策 (B) のオーナー判断 |
 | **U10** 受入記録の整備 | **一部完了** | #59 の受入記録 (`docs/evidence/59-feature-acceptance.md`, PR #266 merged)。**#58 / #22 は残** |
 | **U13** (追加) #167 v5 UI 実接続の残受入 | **一部充足 (実機未受入)** | 2026-11-10 のコード照合で **T2 / T3 / T4 充足・T1 / T5 部分充足** (`docs/ui/issue-167-verify-2026-11-10.md`)。残 = 契約表に Loading / Result Ranking の 2 行追加 + F2・F6〜F8・F10・F15〜F17・F7 の EditMode テスト + 手順書差し替え (v6 UI 既定) + **Win64 実機での一循環** |
-| **U14** (追加) Web カタログの契約テスト + race/abort ガード (#68) | **Worker 実行中** | 2026-11-10 の再検証で **T1 (クライアント/アダプタ層の契約テストが無い) と T2 (`app-shell.tsx` の `refresh` に AbortController も stale-response ガードも無い)** が未充足と判定。**両方とも Web 側で実装可能** (Windows 実機不要) なので Worker を起動。`web/src/app/__tests__/` を新設して `catalog.ts` の型ガードと HTTP エラーを固定し、`app-shell.tsx` に abort + シーケンスガードを入れる。緑になるまで **#68 は Close しない** |
-| **U15** (追加) #60 の受入記録の残 (T5) | **Worker 実行中** | 2026-11-10 の再検証で **T5 未充足** (実行 SHA / Draft PR URL が未記録、`tasks.md` の T1〜T5 が未チェック、before/after 画像が Pen パレットで teal→blue を証明していない)。**実装の欠落ではなく記録の欠落**。Worker を再起動し、実行 SHA と PR URL を実測して記録、**Assert できる things だけを** チェックし、before/after が差分を証明できないなら「証明できていない」と明記する (画像を捏造しない) |
-| **U16** (追加) #233 の macOS 再撮影 (新しい撮影順) + #278 の macOS HOLD run | **cc 実行予定** | PR #263 で撮影順を変えた (`05-gameplay` を密区間の待ちの前に移動) ため、macOS 実機写真を **新しい順で取り直す**。加えて PR #291 の HOLD ハーネスを macOS 実機で走らせ、HOLD 保持 (実キー押下) の観測結果を残す。**Windows 実機の受入は別** (cc は展示 PC に触らない) |
+| **U14** (追加) Web カタログの契約テスト + race/abort ガード (#68) | **完了 / #68 Closed** | **PR #293 merged** — `web/src/app/__tests__/` に契約テスト 21 件、`app-shell.tsx` に `AbortController` + リクエスト ID の stale ガード。**PR #294 merged** — `catalog.ts` の fetch に `cache: "no-store"`。統合 owner が **実 API の生レスポンス** を取得して `parseSongs` が受理することを実測。**Issue #68 は Closed** (コメント id 6757022442) |
+| **U15** (追加) #60 の受入記録の残 (T5) | **完了 / #60 Closed** | **PR #295 merged** — 実行 SHA `2bd7302` (PR #90 の head) / before SHA `54505c2` / PR URL / `tasks.md` の T1〜T5 を実測に同期 / **before-after の画素証跡 20 ファイル** (実行 SHA `2bd7302` で `npx tsc --noEmit` / `npm test` / `npx vp build` が exit 0、Chrome headless で 1440×900 / 1280×720 / 390×844 を撮影)。**PR #296 merged** — 記録の訂正 (teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み。`git grep -in "12a594" origin/main -- web/` = 0 ヒット)。**Issue #60 は Closed** (コメント id 6757102070)。残 = 2xs 可読性・フォーカスリングのコントラスト・390px サイドバー (いずれも #74 のスコープ) |
+| **U16** (追加) #233 の macOS 再撮影 (新しい撮影順) + #278 の macOS HOLD run | **完了** | #233: `main` (`e45c494`) から macOS 実機ビルドし直し、**実ディスプレイ 2560×1664 全画面**で `-autotest v6` を再走 → `RESULT pass=29 fail=0`。映像 / レーン 8 本 / 判定ライン / ノーツ / 歌詞 を画像で確認 (`docs/evidence/233-playfield/run-2026-11-10-main/`)。**密度の高い区間を捉えた撮影自体は未証明** (該当判定は SOFT PASS)。#278: HOLD ハーネスを macOS 実機で走らせ `pass=41 fail=0` / `holdClear=3 holdBroken=0`。**Windows 実機の受入は別** (cc は展示 PC に触らない) |
 
 ---
 
@@ -1700,7 +1741,7 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 
 ## 7. 2026-11-10 の進捗 (統合者の記録)
 
-基準点: `origin/main` = `85d79ab` (PR #290 のマージ直後)
+基準点: `origin/main` = `36a3572` (PR #296 のマージ直後)
 
 > 下の表は **PR #268 のマージ直後** までの記録。以降の取り込みは §7.4 に追記する。
 
@@ -1736,6 +1777,13 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 | #289 | 監査台帳の A グレード 7 件の個別再判定を反映 | 台帳 |
 | #290 | #58 の macOS 実機証跡 (選曲 → 2 曲完走 → Result、Player.log + スクリーンショット) | #58 |
 | #263 | プレイフィールドの視認 (z スケール / レーンガイド / 映像プレーン配線) と CodeRabbit 13 スレッドの解消。EditMode 1296/1296 | #233 |
+| #291 | HOLD 実機検証の土台 (検証用譜面 + `ChartJsonOverride` 差し替え + `AutoTestV6Hold` + macOS ハーネス) | #278 → **Closed** |
+| #292 | 監査台帳 (#263 merge / #58 の macOS 証跡 / #278 の土台) | 台帳 |
+| #293 | Web カタログの abort / 古い応答の棄却 + 契約テスト 21 件 | #68 → **Closed** |
+| #294 | カタログ取得に `cache: "no-store"` を明示 | #68 |
+| #295 | #60 の受入記録 (実行 SHA / PR URL / `tasks.md` / before-after 画素証跡 20 ファイル) | #60 → **Closed** |
+| #296 | #60 の記録の訂正 (teal ハードコードは main で解消済みだった) | #60 |
+| #297 | #233 の実機証跡の再取得 (main 直後) + Win64 候補 `0.1.22+36a3572` への更新 | #233 / #242 |
 
 ### 7.2 統合中に見つけて直した実バグ
 
@@ -1749,10 +1797,10 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 
 | 種類 | 内容 |
 |---|---|
-| **Windows 実機** | #4 / #13 (ストリーム完走) / #88 / #96 (解像度スイープ) / #242 (全画面受入) / #59 の残り / HOLD の実機演奏。**展示 PC は保護対象**のため cc は自発的に操作しない。候補と手順は cc が別途準備 |
-| **オーナー決定** | #30 の D1〜D6 (歌詞形状 / 歌詞表示仕様 / キーガイド仕様 / pen.dev 正本 / `scoringVersion` / 既存ふりがな) |
-| **未実装 (要実装)** | #239 連携 / #278 の HOLD 譜面 (対策 A は Worker 実行中) |
-| **進行中 PR** | **#291 (draft)** HOLD 実機検証の土台 (#278) / **#68 の Worker 再実行** (契約テスト + abort ガード) / **#60 の Worker 再実行** (受入記録 T5) / B グレードの Spec Kit タスク化 (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) |
+| **Windows 実機** | #4 / #13 (ストリーム完走) / #88 / #96 (解像度スイープ) / #242 (全画面受入) / #59 の残り / #233 のノーツ・映像の視認 / HOLD の **本物のキー押下**による実機演奏。**展示 PC は保護対象**のため cc は自発的に操作しない。候補 (`0.1.22+36a3572-win64-36a3572.zip`) と手順 (`docs/operations/win64-candidate-acceptance-2026-11-10.md`) は cc が準備済み |
+| **オーナー決定** | #30 の D1〜D6 (歌詞形状 / 歌詞表示仕様 / キーガイド仕様 / pen.dev 正本 / `scoringVersion` / 既存ふりがな) / **#278 の対策 (B)** (実曲に HOLD を入れるか) |
+| **未実装 (要実装)** | #239 連携 / **#167 の契約表 2 行 + EditMode テスト + 手順書差し替え** (U13) / B グレードの Spec Kit タスク化 (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) |
+| **進行中 PR** | **B グレードの Spec Kit タスク化** (#7 #13 #17 #21 #22 #58 #59 #96 #134 #162 #219 #241 #278) / **#167 の残受入** (U13)。**#291 / #293 / #294 / #295 / #296 / #297 は merged** |
 | **レビュー差戻し** | なし (PR #263 の 13 スレッドは 2026-11-10 に全件解消して merge) |
 
 ### 7.4 2026-11-10 午後 — #263 の merge、#58 の macOS 実機証跡、#278 の土台
@@ -1769,3 +1817,27 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 2. **#278 の macOS HOLD run** (U16) — cg イベントの実キー押下が必要。
 3. **#68 / #60 の Worker** (U14 / U15)。
 4. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。
+
+### 7.5 2026-11-10 夜 — #278 / #68 / #60 の Close と、#233 の再取得 + Win64 候補の再生成
+
+| PR | 内容 | Issue |
+|---|---|---|
+| **#291 (merged, `e45c494`)** | HOLD 実機検証の土台。macOS 実機 run で **3 段階判定 (開始 → 保持 → 終端)** を観測 (`RESULT pass=41 fail=0` / `holdClear=3 holdBroken=0` / `holdBodiesVisible=3`)。**負の対照** (修正前 run は同じハーネスで `fail=2`) も収録 | #278 → **Closed** |
+| **#293 (merged, `5c91667`)** | Web カタログの abort / stale ガード + 契約テスト 21 件 | #68 → **Closed** |
+| **#294 (merged, `85bc35c`)** | カタログ取得に `cache: "no-store"` | #68 |
+| **#295 (merged, `322e64a`)** | #60 の受入記録 (実行 SHA `2bd7302` / before SHA `54505c2` / PR #90 URL / `tasks.md` T1〜T5 / 画素証跡 20 ファイル) | #60 → **Closed** |
+| **#296 (merged, `36a3572`)** | #60 の記録の訂正 (teal ハードコードは撮影 SHA 時点で存在しただけで `41d7da1` (#72) で解消済み) | #60 |
+| **#297 (merged, `21fc8d8`)** | #233 の実機証跡を `main` 直後で再取得 (Player.log + 画像 7 枚) + Win64 候補 `0.1.22+36a3572` への更新 | #233 / #242 |
+
+**この時点でなお未解決**:
+
+1. **Windows 実機での 1 曲完走 / ノーツと映像の視認 / 3 解像度の実全画面** (#233 / #242 / #59 / #88 / #96)。**macOS 実機もテスト緑も Windows の合格を保証しない**。
+2. **HOLD の本物のキー押下での保持** — macOS の Unity legacy Input は CGEvent の合成キーイベントを `Input.GetKey` として見ないため、保持は **注入シーム** (`KeyBindings.InjectKeyHold`) で模擬している。Windows 実機でも未検証 (#278 の受入条件 3)。
+3. **「密度の高い譜面区間での描画」の実測** — #233 の再取得で該当判定は **SOFT PASS** であり、密区間を捉えた撮影自体は未証明。
+4. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。
+5. **CI の Unity ライセンス** — GitHub Actions Secrets に `UNITY_EMAIL` / `UNITY_PASSWORD` の登録が必要。**秘密値はログや Issue に出さない**。
+
+**保全した (統合不要だった) Worker の差分**: `w/w233-loadingoverlay-preserve` (`bd2f80f`) は
+中断された Worker の未コミット差分の退避。中身は旧ロード表示の所有判定だが、
+**`main` は別 (`GameLoadingRoute.UsesLegacyOverlay` を正本にし、歌詞専用の
+`LegacyLyricObjectNames` に分離) で実装済み**。→ **再実装不要。統合も不要。**
