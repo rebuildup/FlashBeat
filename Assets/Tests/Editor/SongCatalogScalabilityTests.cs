@@ -19,8 +19,19 @@ using FlashBeat.UI.V6.Select.View;
 ///   2. スクロール計算 (ClampScroll / ScrollToReveal / CenterScroll) が
 ///      先頭から末尾まで全行を到達可能にする (どの行も「見えないまま」にならない)
 ///   3. 9 行の可視窓と行矩形が、60 件でもリストパネル内に収まる
-///   4. ドットレール (1 曲 1 ドット) が 60 件でもパネル内に収まる
+///   4. ドットレール (1 曲 1 ドット) が **要件の 45 曲** までパネル内に収まること、
+///      および実配置 (y = DotY 起点) での上限が **54 曲** であること
 ///   5. ReadyAvailable が絞り込み後リストに対して判定される
+///
+/// **60 曲ではドットレールがパネルからはみ出す** (54 曲が上限)。実カタログは
+/// 29 エントリ / 選曲可 26 なので現状の欠陥ではないが、ドットを縮める・間引くといった
+/// 設計判断が必要なので、テストで上限を固定して可視化している
+/// (勝手に UI を変えない。#222 の残課題として報告済み)。
+///
+/// 少数件での同じ関数の挙動 (ClampScroll / ScrollToReveal / DotActiveIndex /
+/// ReadyAvailable / Filter) は `Assets/Game/Tests/V6SelectViewLogicTests.cs` と
+/// `V6SelectDataLogicTests.cs` が既に固定している。このファイルは **件数を 45 件以上に
+/// したときの性質** だけを見る (小さい件数の重複は意図的: 件数依存の退行を検出する)。
 ///
 /// 実カタログ側の不変条件 (7 並列配列・演奏可能曲の譜面存在) は
 /// `SongCatalogSelectionTests` / `ChartDataIntegrityTests` が担当する。
@@ -237,14 +248,15 @@ public class SongCatalogScalabilityTests
             Assert.GreaterOrEqual(index, clamped, "行 " + index + " が窓の上で見えない");
             Assert.Less(index, clamped + visible, "行 " + index + " が窓の下で見えない");
 
-            // 窓がカタログ内に収まる index では、中央寄せがクランプされず
-            // 選択行はちょうど中央スロット (上から visible/2 行目) に来る
+            // 窓がカタログ内に収まる index では、選択行の上下に同じ行数が見える
+            // (窓の中央に来ている)。端では上記のとおり「見えている」ことだけを要求する。
             bool windowInside = index >= visible / 2 && index <= rows - 1 - visible / 2;
             if (windowInside)
             {
-                Assert.AreEqual(scroll, clamped, "行 " + index + " で中央寄せがクランプされた");
-                Assert.AreEqual(visible / 2, index - clamped,
-                    "行 " + index + " が中央スロットに来ていない");
+                int above = index - clamped;
+                int below = clamped + visible - 1 - index;
+                Assert.AreEqual(above, below,
+                    "行 " + index + " が窓の中央に来ていない (上 " + above + " 行 / 下 " + below + " 行)");
             }
         }
     }
@@ -260,21 +272,58 @@ public class SongCatalogScalabilityTests
         Assert.AreEqual(0, V6SelectViewLogic.CenterScroll(0, 3, visible), "曲数 < 可視行数なら 0");
     }
 
-    [Test]
-    public void DotRail_FitsInsideListPanel_At60Songs()
+    /// <summary>
+    /// ドットレールの実配置での下端。`V6SelectView.BuildDots` はリストパネル内の
+    /// y = `DotY` に、高さ `DotBottom(count, 0f)` のコンテナを置く。
+    /// </summary>
+    private static float DotRailBottom(int count)
     {
-        float railBottom = V6SelectViewLogic.DotBottom(SyntheticSongCount, 0f);
+        return V6SelectViewLogic.DotY + V6SelectViewLogic.DotBottom(count, 0f);
+    }
 
-        // ドットは 1 曲 1 つ。60 曲でもリストパネルの高さ (780) に収まる
-        Assert.LessOrEqual(railBottom, V6SelectViewLogic.ListH,
-            "60 曲のドットレール (" + railBottom + ") がリストパネル (" + V6SelectViewLogic.ListH + ") からはみ出す");
+    [Test]
+    public void DotRail_FitsInsideListPanel_ForRequired45Songs()
+    {
+        // #222 の要件は 45 曲。実配置 (y = DotY 起点) でパネル内に収まること
+        Assert.LessOrEqual(DotRailBottom(45), V6SelectViewLogic.ListH,
+            "45 曲のドットレール (" + DotRailBottom(45) + ") がリストパネル ("
+            + V6SelectViewLogic.ListH + ") からはみ出す");
+    }
 
+    [Test]
+    public void DotRail_DesignGeometry_HoldsUpTo54Songs()
+    {
+        // 1 曲 1 ドット (design AqFtx / OENRv) のまま積める上限を固定する。
+        // 60 曲 (SyntheticSongCount) ではレール下端がパネルを超えるため、
+        // それ以上のカタログを使うならドットを縮める / 間引く設計判断が要る。
+        int maxFit = 0;
+        for (int count = 1; count <= 200; count++)
+        {
+            if (DotRailBottom(count) > V6SelectViewLogic.ListH)
+            {
+                break;
+            }
+
+            maxFit = count;
+        }
+
+        Assert.AreEqual(54, maxFit,
+            "ドットレールの上限曲数が変わった (実配置で " + maxFit + " 曲)");
+
+        // 60 曲では収まらないことを明示する (沈黙して通さない)
+        Assert.Greater(DotRailBottom(SyntheticSongCount), V6SelectViewLogic.ListH,
+            "60 曲がパネルに収まるようになったら、上限のテストを更新すること");
+    }
+
+    [Test]
+    public void DotRail_SpacingIsDotSizePlusGap_AndActiveIndexClamps()
+    {
         float[] offsets = V6SelectViewLogic.DotOffsets(SyntheticSongCount, 0f);
         Assert.AreEqual(SyntheticSongCount, offsets.Length);
         for (int i = 1; i < offsets.Length; i++)
         {
-            float step = offsets[i] - offsets[i - 1];
-            Assert.GreaterOrEqual(step, V6SelectViewLogic.DotSize, "ドット間隔がドット径より狭い (i=" + i + ")");
+            Assert.AreEqual(V6SelectViewLogic.DotSize + V6SelectViewLogic.DotGap, offsets[i] - offsets[i - 1],
+                "ドット間隔 (i=" + i + ")");
         }
 
         // アクティブ index は範囲外でも端に留まる (60 曲の最後 / 先頭)

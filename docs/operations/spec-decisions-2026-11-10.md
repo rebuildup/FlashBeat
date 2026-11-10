@@ -1,6 +1,7 @@
 # 受入フェーズの仕様判断 — 確定・保留・未決定 (2026-11-10)
 
-対象: `origin/main` = `fd876534` (PR #344〜#347 merge 後) / open Issue 37 件 / open PR 0 件。
+対象: `origin/main` = `fd876534` (PR #344〜#347 merge 後) / open Issue 37 件 / open PR 0 件
+(本整理を PR #348 として起票する前の実測)。
 この文書は、オーナー指示 (2026-11-10) に沿って **どの仕様が確定し、どれが保留で、
 どれが未決定か** を 1 か所にまとめたものである。**仕様判断の記録であり、実装の変更ではない。**
 
@@ -17,8 +18,9 @@
 
 ## 1. #30 — HOLD は凍結済み / D1〜D6 が未決定
 
-**訂正**: 監査台帳 (`docs/audit/open-issues-audit.md` 行 83) は D1 を「HOLD 判定」と
-書いていたが、これは誤記。HOLD の判定方式・離す許容幅・中断時の扱い・データ形式は
+**訂正**: 受入トリアージ (`docs/audit/acceptance-phase-triage-2026-11-10.md` §4.4) は
+D1 を「HOLD 判定」と書いていたが、これは誤記 (台帳の #30 行は「HOLD 4 項目は #164 で凍結済み /
+残り D1〜D6 はオーナー決定」とだけ書いており、D1 の内容を特定していなかった)。HOLD の判定方式・離す許容幅・中断時の扱い・データ形式は
 **Issue #164 で凍結済み** (Issue CLOSED / `specs/164-long-note/spec.md`)。
 **D1 は歌詞データ形式** である。台帳は 2026-11-10 に訂正した。
 
@@ -60,28 +62,40 @@
 
 | 追加 | 内容 |
 |---|---|
-| `Assets/Tests/Editor/SongCatalogScalabilityTests.cs` (16 テスト) | **60 件の合成カタログ** をその場で組み立て、検索 / スクロール / レイアウト / Ready 可否を検証 |
+| `Assets/Tests/Editor/SongCatalogScalabilityTests.cs` (18 テスト) | **60 件の合成カタログ** をその場で組み立て、検索 / スクロール / レイアウト / Ready 可否を検証 |
 | 既存 `SongCatalogSelectionTests` | 実カタログの不変条件 (7 並列配列 × 29 エントリ / 選曲可 26 / 譜面存在) を引き続き担当。**重複しない** |
 
 固定した内容:
 
 1. 検索: 空 / null = 全件カタログ順、曲名部分一致、大小無視、作家一致、0 件、**60 曲すべてが自分の曲名で到達可能**
 2. スクロール: `ClampScroll` の境界 (0 / 行数−可視行数)、`ScrollToReveal` が先頭→末尾まで **全行を見える状態にする**、可視時は冪等、`CenterScroll` が中央スロットを保ちクランプ後も選択行が見える
-3. レイアウト: 9 行の可視窓と **60 曲分のドットレール** (876 px → パネル 780 内) がリストパネルに収まる
+3. レイアウト: 9 行の可視窓がリストパネルに収まる。ドットレールは **要件の 45 曲で収まる**こと、
+   実配置 (`y = DotY` 起点) での上限が **54 曲**、**60 曲でははみ出す**ことを固定 (下記の残課題)
 4. `ReadyAvailable` が絞り込み後リストに追従する
 
 実測 (Unity EditMode, `FlashBeat.wci` / branch `w/acceptance-spec`):
 
 ```
-total 1417 / passed 1417 / failed 0 / skipped 0  →  Passed
-SongCatalogScalabilityTests: total 16 / passed 16 / failed 0
+total 1419 / passed 1419 / failed 0 / skipped 0  →  Passed
+SongCatalogScalabilityTests: total 18 / passed 18 / failed 0
 Scripts have compiler errors : なし
 ```
 
-(直前の main は 1401。今回 +16 で 1417。`TestResults.xml` 実行時刻 2026-11-10 19:13)
+(直前の main は 1401。今回 +18 で 1419。`TestResults.xml` 実行時刻 2026-11-10 19:43 JST)
 
 これにより #222 は **実装完了 (受入待ち)** になった。残るのは
-**Windows 実機での Ready 連打と検索 / 絞り込みの実操作**だけで、仕様判断は残っていない。
+**条件 7 (実機で選曲 → Game に遷移する) と Ready 連打・検索 / 絞り込みの実操作**だけで、
+仕様判断は残っていない。
+
+### 受入中に見つかった残課題 (設計判断待ち / コードは変えていない)
+
+ドットレールは **1 曲 1 ドット** のままパネルに積めるところまでが上限で、
+実配置 (`y = DotY = 136`、パネル下端 = `ListH = 780`) では **54 曲** が限界。
+要件の 45 曲は収まるが、**60 曲ではレール下端が 852 px になり 72 px はみ出す**。
+実カタログは 29 エントリ / 選曲可 26 なので現時点の欠陥ではない。
+`DotRail_DesignGeometry_HoldsUpTo54Songs` が上限を固定しているので、
+曲数を 55 以上にする場合は **ドットを縮める / 間引く / 2 列にする** のいずれかの判断が要る
+(cc は UI を変えていない)。
 
 ---
 
@@ -123,11 +137,28 @@ Scripts have compiler errors : なし
 配布物として指定された版ではない (`old/` の更新履歴を見ると Desktop の app は
 自動更新と手動ビルドで何度も入れ替わっている = **配布物ではなく作業用の確認アプリ**)。
 
-### 推奨手順 (オーナー承認後に実行 / まだ何も変えていない)
+### 実施済み (2026-11-10) — 併置のみ。切替はオーナー判断
+
+| 項目 | 実測 |
+|---|---|
+| ビルド元 | `7af9242d` (Win64 候補と同一 SHA) / Unity 6000.5.6f1 / `BuildScript.BuildStandaloneMacOS` |
+| 出力 | `~/Desktop/FlashBeat-Mac/FlashBeat-0.1.22-7af9242d.app` (**391 MB**) |
+| バージョン | `CFBundleShortVersionString = 0.1.22+7af9242d` |
+| 併置日時 | 2026-11-10 19:29 |
+| 配布後処理 | `update-channel.txt = stable` / `flashbeat-media-policy.json` (第三者楽曲の音声・動画を除外) / `tools/update/update-macos.sh` |
+| `globalgamemanagers` SHA-256 | `1ea7e492ba0baa401c174339aeb1a5fa6fc1a634cc01c3044a4d59a9c302b06b` |
+| 既存 `FlashBeat.app` | **未変更** (`0.1.0+fffc399` のまま) |
+| 説明ファイル | `FlashBeat-0.1.22-7af9242d.txt` (役割と起動方法) |
+
+**起動の確認はまだしていない** (オーナーのデスクトップで全画面ウィンドウを開く操作は、
+許可なく行わない)。切替 (README の SHA 更新 / `FlashBeat.app` の入れ替え) も未実施。
+
+### 手順 (この順で実施した / 今後同じ SHA で作り直す場合も同じ)
 
 1. **macOS を `7af9242d` からビルドする** — Win64 展示候補
    (`FlashBeat-0.1.22-win64-7af9242d.zip`) と同一ソース SHA。現在の main `fd876534`
-   との差は #345〜#347 のドキュメントのみで、バイナリを変えない
+   との差は #345〜#347 の**ドキュメントと CI 設定** (`verify.yml` のパスフィルタ除去) のみで、
+   バイナリは変わらない
    ([`win64-candidate-acceptance-2026-11-10.md`](win64-candidate-acceptance-2026-11-10.md))。
 2. **上書きしない** — `FlashBeat-0.1.22-7af9242d.app` として **併置** する。
    既存 `FlashBeat.app` (`fffc399`) は、オーナーが新アプリで確認を終えるまで残す。
