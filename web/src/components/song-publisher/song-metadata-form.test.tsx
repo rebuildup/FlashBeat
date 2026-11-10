@@ -77,12 +77,10 @@ function touched(draft: SongMetadataDraft, field: keyof SongMetadataDraft): unkn
   return field === "durationSec" ? draft.durationSec : draft[field];
 }
 
-function renderForm(
-  handlers?: {
-    onChange?: (patch: Partial<SongMetadataDraft>) => void;
-    onFieldBlur?: (field: keyof SongMetadataDraft) => void;
-  },
-): HTMLElement {
+function renderForm(handlers?: {
+  onChange?: (patch: Partial<SongMetadataDraft>) => void;
+  onFieldBlur?: (field: keyof SongMetadataDraft) => void;
+}): HTMLElement {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -113,10 +111,7 @@ function inputByLabel(labelText: string): HTMLInputElement {
 
 /** React の value tracker を通す typing の再現 (paste / IME 確定と同じ経路)。 */
 function type(input: HTMLInputElement, value: string): void {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )!.set!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   setter.call(input, value);
   act(() => {
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -198,24 +193,28 @@ describe("SongMetadataForm text fields (issue #163)", () => {
     expect(onChange).toHaveBeenLastCalledWith({ youtube: "https://youtu.be/abcdefghijk" });
   });
 
-  it("keeps Japanese text typed through the IME path (composition events)", { timeout: 20000 }, () => {
-    const onChange = vi.fn();
-    renderForm({ onChange });
-    const title = inputByLabel("Title");
+  it(
+    "keeps Japanese text typed through the IME path (composition events)",
+    { timeout: 20000 },
+    () => {
+      const onChange = vi.fn();
+      renderForm({ onChange });
+      const title = inputByLabel("Title");
 
-    act(() => {
-      title.focus();
-      title.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
-    });
-    type(title, "ほし");
-    // 変換確定前の値も表示から消えない。
-    expect(title.value).toBe("ほし");
+      act(() => {
+        title.focus();
+        title.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+      });
+      type(title, "ほし");
+      // 変換確定前の値も表示から消えない。
+      expect(title.value).toBe("ほし");
 
-    act(() => {
-      title.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
-    });
-    expect(title.value).toBe("ほし");
-  });
+      act(() => {
+        title.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+      });
+      expect(title.value).toBe("ほし");
+    },
+  );
 });
 
 describe("SongMetadataForm duration draft (issue #163)", () => {
@@ -296,16 +295,20 @@ describe("SongMetadataForm duration draft (issue #163)", () => {
 });
 
 describe("SongMetadataForm level select (issue #163)", () => {
-  it("opens from the control, selects a level and reflects the value", { timeout: 20000 }, async () => {
-    const onChange = vi.fn();
-    renderForm({ onChange });
+  it(
+    "opens from the control, selects a level and reflects the value",
+    { timeout: 20000 },
+    async () => {
+      const onChange = vi.fn();
+      renderForm({ onChange });
 
-    await selectOption("Level", "Level 12");
-    expect(onChange).toHaveBeenLastCalledWith({ level: 12 });
+      await selectOption("Level", "Level 12");
+      expect(onChange).toHaveBeenLastCalledWith({ level: 12 });
 
-    const triggers = document.body.querySelectorAll('button[role="combobox"]');
-    expect(Array.from(triggers).some((element) => element.textContent === "Level 12")).toBe(true);
-  });
+      const triggers = document.body.querySelectorAll('button[role="combobox"]');
+      expect(Array.from(triggers).some((element) => element.textContent === "Level 12")).toBe(true);
+    },
+  );
 
   it("keeps the list scrollable per group and closes on Escape", { timeout: 20000 }, async () => {
     renderForm();

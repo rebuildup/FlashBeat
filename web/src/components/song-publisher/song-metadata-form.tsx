@@ -119,9 +119,7 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.songId ? (
           <Field.ErrorText>{errorByField.songId}</Field.ErrorText>
         ) : (
-          <Field.HelperText>
-            Lowercase letters, digits and dashes.
-          </Field.HelperText>
+          <Field.HelperText>Lowercase letters, digits and dashes.</Field.HelperText>
         )}
       </Field.Root>
 

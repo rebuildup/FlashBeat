@@ -1,5 +1,12 @@
 import { Field } from "@ark-ui/react/field";
-import { useRef, useState, type ComponentProps, type CompositionEvent, type FocusEvent, type KeyboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  type ComponentProps,
+  type CompositionEvent,
+  type FocusEvent,
+  type KeyboardEvent,
+} from "react";
 import { styled } from "styled-system/jsx";
 import { input } from "styled-system/recipes";
 
@@ -21,8 +28,10 @@ export const Input = styled(Field.Input, input);
  * `type="number"` は DOM が部分入力を保持できないため使わない。
  * 代わりに `inputMode` を渡すこと。
  */
-export interface DraftInputProps<T>
-  extends Omit<ComponentProps<typeof Input>, "value" | "defaultValue" | "onChange" | "type"> {
+export interface DraftInputProps<T> extends Omit<
+  ComponentProps<typeof Input>,
+  "value" | "defaultValue" | "onChange" | "type"
+> {
   /** 確定値 (committed value)。 */
   value: T;
   /** 確定値 → 表示テキスト。既定は `String`。未確定 (NaN など) は "" を返すこと。 */
@@ -119,9 +128,7 @@ export function DraftInput<T>(props: DraftInputProps<T>) {
 
 /** 全角数字 (U+FF10–FF19) を半角に正規化する。 */
 export function normalizeFullWidthDigits(text: string): string {
-  return text.replace(/[０-９]/g, (char) =>
-    String.fromCharCode(char.charCodeAt(0) - 0xfee0),
-  );
+  return text.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
 }
 
 /**

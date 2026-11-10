@@ -36,14 +36,15 @@ test("publish shows the admin-token boundary before pressing it", async ({ page 
   await expect(page.getByTestId("nav-publish-admin-badge")).toHaveText("要トークン");
   // The catalog row states the requirement as a non-interactive badge; the
   // row never starts a publish operation (issue #215 review).
-  const row = page.getByTestId("catalog-list").locator("a[data-row-link]", { hasText: "Who" }).first();
+  const row = page
+    .getByTestId("catalog-list")
+    .locator("a[data-row-link]", { hasText: "Who" })
+    .first();
   await expect(row).toBeVisible();
   await expect(page.getByTestId("catalog-list").getByTestId("publish-requirement")).toHaveText(
     "公開はスタッフ（要トークン）",
   );
-  await expect(
-    page.getByTestId("catalog-list").locator("a[href^='/publish']"),
-  ).toHaveCount(0);
+  await expect(page.getByTestId("catalog-list").locator("a[href^='/publish']")).toHaveCount(0);
 });
 
 test("catalog → editor → publish → back to catalog", async ({ page }) => {
@@ -51,7 +52,10 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
 
   // The seeded song is listed; its row links into the editor.
   // (md+ ではテーブル、base ではカード。可視側の行リンクだけを見る。)
-  const row = page.getByTestId("catalog-list").locator("a[data-row-link]", { hasText: "Who" }).first();
+  const row = page
+    .getByTestId("catalog-list")
+    .locator("a[data-row-link]", { hasText: "Who" })
+    .first();
   await expect(row).toBeVisible();
   await row.click();
   await expect(page).toHaveURL(/\/chart\?songId=who&version=1/);
@@ -73,7 +77,9 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await page.getByRole("link", { name: "← Web Studio" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("chart-identity")).toHaveCount(0);
-  await expect(page.getByTestId("catalog-list").locator('a[data-row-link]', { hasText: "Who" })).toBeVisible();
+  await expect(
+    page.getByTestId("catalog-list").locator("a[data-row-link]", { hasText: "Who" }),
+  ).toBeVisible();
 });
 
 test("forced catalog states render inside the shared shell", async ({ page }) => {

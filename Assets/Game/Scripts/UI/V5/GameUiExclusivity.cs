@@ -58,6 +58,42 @@ namespace FlashBeat.UI.V5
     public static class GameUiExclusivity
     {
         /// <summary>
+        /// v6 モードで隠すべき旧 (v5) の **歌詞** オブジェクト名の正本。
+        ///
+        /// v6 の HUD は歌詞を自分のレイヤーで描くので、旧の歌詞パネル
+        /// (QuestionText / FuriganaText / RomajiText) が残っていると
+        /// **同じ歌詞が二重表示** になる (Issue #233)。
+        ///
+        /// 名前で列挙する個別の if を増やさず、この 1 箇所に集約する。
+        /// </summary>
+        public static readonly string[] LegacyLyricObjectNames =
+        {
+            "QuestionText",
+            "FuriganaText",
+            "RomajiText",
+        };
+
+        /// <summary>
+        /// 実行時生成の旧ロード表示 (LoadingOverlay) の名前。
+        /// DontDestroyOnLoad なのでシーンをまたいで残り、v6 モードでも
+        /// 「描かれているか」を名前で判定する。
+        /// </summary>
+        public const string LegacyLoadingOverlayName = "LoadingOverlay";
+
+        /// <summary>
+        /// 名前が「v6 モードで隠すべき旧の歌詞オブジェクト」か。
+        /// </summary>
+        public static bool IsLegacyLyricObjectName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            for (int i = 0; i < LegacyLyricObjectNames.Length; i++)
+            {
+                if (LegacyLyricObjectNames[i] == name) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// フェーズ判定 (純粋)。入力は既存の観測値だけ:
         /// <see cref="HudPlayState.Evaluate"/> の結果 (再生パイプライン)、
         /// 再生開始 (GManager.played)、ポーズの開閉 (PauseMenuView.IsOpen)。

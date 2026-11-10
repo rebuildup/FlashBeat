@@ -8,7 +8,7 @@ using FlashBeat.UI.V6.Game.Playfield;
 public class Notes : MonoBehaviour
 {
     // Time of this note on the chart timeline. The note is created by the
-    // NotesManager at z = noteTime * noteSpeed, so the start position carries
+    // NotesManager at z = noteTime * zScale, so the start position carries
     // the time.
     float noteTime;
 
@@ -20,25 +20,46 @@ public class Notes : MonoBehaviour
     public float holdSeconds;
 
     // --- v6 プレイフィールド (Issue #219) ---
-    // ノーツの移動クロック (noteTime / step_time / noteSpeed) は v5 と同じ。
+    // ノーツの移動クロック (noteTime / step_time / zScale) は v5 と同じ。
     // 違うのは見た目だけ: 3D の板の代わりに、v6 遠近法 (V6LaneGeometry) の
     // レーン上を流れる uGUI Image として描く。V6PlayfieldView が無い環境
     // (EditMode テスト等) では従来どおり 3D transform を動かす。
 
-    /// <summary>アプローチ時間の基準: noteSpeed 10 のとき 1.6 秒。速度オプションは
-    /// 「見えてから判定線までの時間」が 1/speed に比例する形で効く (旧 z 速度と同じ向き)。</summary>
-    private const float ApproachSecondsAtSpeed10 = 1.6f;
+    /// <summary>
+    /// ワールド z の 1 秒あたりの移動量 (chart time -> world z)。
+    ///
+    /// NotesManager はノーツを z = noteTime * zScale に生成し、Notes はその z から
+    /// 時刻を復元し、毎フレーム同じ zScale で動かす。3 つが同じ値なので、
+    /// ノーツは判定線 (z = 0) に自分の判定時刻ちょうどに着く (Issue #233)。
+    ///
+    /// 値は <see cref="MediaTimeline.SessionZScale"/> 1 箇所から取る
+    /// (生成・復元・移動で別の値を使うとずれるため)。セッションごとに
+    /// 確定した値なので、曲中の速度変更でノーツが飛ぶことはない
+    /// (PR #263 レビュー S7)。
+    /// </summary>
+    private static float ZScale
+    {
+        get { return MediaTimeline.SessionZScale; }
+    }
 
     private int lane;
     private bool v6Attached;
     private Image headImage;
     private Image bodyImage;
+
+    /// <summary>
+    /// v6 プレイフィールド (2D) で描かれるノーツ本体の Image。
+    /// レンダラが無いので、v6 有効時の可視判定はこれを使う。
+    /// (PR #263 レビュー: 3D の Renderer.isVisible だけで数えると
+    ///  v6 では常に 0 になる)
+    /// </summary>
+    public Image HeadImage { get { return headImage; } }
     private MeshRenderer meshRenderer;
     private BoxCollider boxCollider;
 
     void Start()
     {
-        noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, GManager.noteSpeed);
+        noteTime = MediaTimeline.NoteTimeFromPositionZ(transform.position.z, ZScale);
 
         // NotesManager が x = block - 3.5 で生成する (Judge.EffectPosition と同じ写像)。
         lane = Mathf.Clamp(Mathf.RoundToInt(transform.position.x - Judge.LaneFirstCenterX), 0, V6LaneGeometry.LaneCount - 1);
@@ -93,7 +114,7 @@ public class Notes : MonoBehaviour
             }
             else if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
-                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, GManager.noteSpeed);
+                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale);
                 transform.position = new Vector3(transform.position.x, transform.position.y, z);
             }
         }
@@ -192,7 +213,10 @@ public class Notes : MonoBehaviour
             return;
         }
 
-        float approach = ApproachSecondsAtSpeed10 * 10f / Mathf.Max(0.1f, GManager.noteSpeed);
+        // アプローチ時間は **セッション固定の z スケール** から求める
+        // (PR #263 レビュー: 曲中に noteSpeed を変えると、v6 側の表示だけが
+        //  1.6 秒 → 0.64 秒と変わり、3D 側とずれる)。
+        float approach = MediaTimeline.VisibleDepthZ / Mathf.Max(0.0001f, MediaTimeline.SessionZScale);
         float tHead = remaining / approach;
 
         // 奥 (t01 > 1) はまだ見えない。判定ラインを通ったあとは描かない
@@ -263,7 +287,7 @@ public class Notes : MonoBehaviour
     {
         if (holdSeconds <= 0f) return;
 
-        float length = holdSeconds * GManager.noteSpeed;
+        float length = holdSeconds * ZScale;
         if (length <= 0f) return;
 
         Vector3 scale = transform.localScale;

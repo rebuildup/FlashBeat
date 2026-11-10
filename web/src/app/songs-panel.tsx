@@ -147,21 +147,18 @@ export function SongsPanel() {
   const [songs, setSongs] = useState<AdminSong[]>([]);
   const [busySongId, setBusySongId] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (staffToken: string) => {
-      setStatus("loading");
-      setErrorMessage(undefined);
-      try {
-        const answer = await loadAdminSongs(staffToken);
-        setSongs(answer.songs);
-        setStatus("ready");
-      } catch (error: unknown) {
-        setErrorMessage(error instanceof Error ? error.message : "Unknown error");
-        setStatus("error");
-      }
-    },
-    [],
-  );
+  const load = useCallback(async (staffToken: string) => {
+    setStatus("loading");
+    setErrorMessage(undefined);
+    try {
+      const answer = await loadAdminSongs(staffToken);
+      setSongs(answer.songs);
+      setStatus("ready");
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+      setStatus("error");
+    }
+  }, []);
 
   const archive = useCallback(
     async (song: AdminSong, archived: boolean) => {
@@ -171,9 +168,7 @@ export function SongsPanel() {
       try {
         await setSongArchived(token, song.id, archived);
         setNoticeText(
-          archived
-            ? `${song.title} archived. Its scores are kept.`
-            : `${song.title} restored.`,
+          archived ? `${song.title} archived. Its scores are kept.` : `${song.title} restored.`,
         );
         await load(token);
       } catch (error: unknown) {
@@ -190,8 +185,8 @@ export function SongsPanel() {
       <p className={notice}>
         <Info className={noticeIcon} size={16} aria-hidden="true" />
         <span>
-          Archiving hides a song from the catalog and from the game. Its chart, scores and
-          ranking stay. Restore puts it back.
+          Archiving hides a song from the catalog and from the game. Its chart, scores and ranking
+          stay. Restore puts it back.
         </span>
       </p>
 

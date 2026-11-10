@@ -51,6 +51,12 @@ public class MusicManager : MonoBehaviour
     const string SelectSceneName = "SelectScene";
 
     VideoPlayer songVideo;
+
+    /// <summary>
+    /// 映像プレーンを有効化したか (Issue #233)。
+    /// 映像が 1 フレームも出ていない間は板を隠しておくので、この状態を持つ。
+    /// </summary>
+    bool picturePlaneActive;
     GameObject streamAudioObject;
     VideoPlayer streamAudioPlayer;
     AudioSource streamAudioSource;
@@ -127,10 +133,10 @@ public class MusicManager : MonoBehaviour
     /// <summary>再生が始まったか。</summary>
     public bool PlaybackStarted { get { return playbackStarted; } }
 
-    /// <summary>映像播放器が再生中か。</summary>
+    /// <summary>映像プレーヤーが再生中か。</summary>
     public bool VideoPlaying { get { return songVideo != null && songVideo.isPlaying; } }
 
-    /// <summary>映像播放器の準備完了状態。</summary>
+    /// <summary>映像プレーヤーの準備完了状態。</summary>
     public bool VideoPrepared { get { return songVideo != null && songVideo.isPrepared; } }
 
     /// <summary>
@@ -216,6 +222,15 @@ public class MusicManager : MonoBehaviour
         }
 
         sceneStartTime = Time.time;
+
+        // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
+        // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
+        // Media Foundation が googlevideo.com を開けない) では prepare が
+        // 終わるまで板は白いままなので、prepare 完了を待つ方式では
+        // 「白い板」問題がそのまま残る。映像のフレームが 1 枚も出ていない
+        // 間は板を出さない。有効化は ShowWhenFrameReady だけが行う。
+        VideoPicture.HideBoard(songVideo);
+
         AttachLevelProbe();
 
         load.SetActive(true);
@@ -558,11 +573,9 @@ public class MusicManager : MonoBehaviour
     {
         if (GManager.songID >= YPlayer.Length) return;
 
-        var invidious = YPlayer[GManager.songID].GetComponent<InvidiousVideoPlayer>();
-        if (invidious == null) return;
+        // 実装は VideoPicture 側に一本化している (レビュー S6: 二重に壊さない)。
+        if (!VideoPicture.RemoveDeadInvidiousPlayer(YPlayer[GManager.songID])) return;
 
-        invidious.enabled = false;
-        Destroy(invidious);
         Debug.Log($"[MusicManager] InvidiousVideoPlayer removed for '{songName}' (yt-dlp takes over)");
     }
 
@@ -658,6 +671,9 @@ public class MusicManager : MonoBehaviour
         if (songVideo.isPrepared)
         {
             WireVideoPicture();
+            // Issue #233: 映像プレーンはシーンで非アクティブ (m_IsActive: 0)
+            // なので、準備できたここで有効化する (シーンは編集しない)。
+            picturePlaneActive = VideoPicture.Activate(songVideo);
         }
 
         Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
@@ -836,7 +852,22 @@ public class MusicManager : MonoBehaviour
 
         if (playbackStarted && !mediaEnded)
         {
-            if (songVideo != null && songVideo.isPrepared && !songVideo.isPlaying) songVideo.Play();
+            if (songVideo != null && songVideo.isPrepared)
+            {
+                // Issue #233: 映像の準備が **期限切れ** になったあとに完了する
+                // ことがある (準備待ちを抜けた後に prepare が終わる)。その場合
+                // 曲開始時点では映像プレーンが未配線で、ポーズ解除時に
+                // 再生しても **画面には出ない**。再開のタイミングで
+                // プレーンを配線・有効化してから再生する。
+                // フレーム準備前は隠すのは Update 側の
+                // VideoPicture.ShowWhenFrameReady が担う。
+                if (!picturePlaneActive)
+                {
+                    WireVideoPicture();
+                    picturePlaneActive = VideoPicture.Activate(songVideo);
+                }
+                if (!songVideo.isPlaying) songVideo.Play();
+            }
             if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null &&
                 streamAudioPlayer.isPrepared && !streamAudioPlayer.isPlaying)
             {
@@ -886,6 +917,15 @@ public class MusicManager : MonoBehaviour
         }
 
         mediaTime = CurrentMediaTime();
+
+        // Issue #233: 映像プレーンは有効化しても、映像のフレームが 1 枚も
+        // 描画されていない間は板 (白) を隠す。フレームが出たら板を見せる。
+        // 判定は「総フレーム数」ではなく「描画済みフレーム」で行う
+        // (prepare 済みだが未再生だと板が戻ってしまう)。
+        if (picturePlaneActive && songVideo != null)
+        {
+            VideoPicture.ShowWhenFrameReady(songVideo, VideoPicture.HasRenderedFrame(songVideo));
+        }
 
         if (!mediaEnded)
         {
@@ -1056,6 +1096,15 @@ public class MusicManager : MonoBehaviour
 
         if (songVideo != null && songVideo.isPrepared)
         {
+            // Issue #233: 映像プレーンはシーンで非アクティブなままなので、
+            // 再生の直前に有効化しておく。準備済みの経路が
+            // PrepareLocalVideo 以外 (シーンの VideoClip) でも同じになる。
+            if (!picturePlaneActive)
+            {
+                WireVideoPicture();
+                picturePlaneActive = VideoPicture.Activate(songVideo);
+            }
+
             songVideo.Play();
             pictureStarted = true;
         }

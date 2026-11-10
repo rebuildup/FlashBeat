@@ -259,7 +259,9 @@ function orderedLyrics(
 
   const ordered: Record<string, unknown> = {};
   for (const key of Object.keys(source)) {
-    ordered[key] = Object.prototype.hasOwnProperty.call(arrays, key) ? arrays[key as keyof typeof arrays] : source[key];
+    ordered[key] = Object.prototype.hasOwnProperty.call(arrays, key)
+      ? arrays[key as keyof typeof arrays]
+      : source[key];
   }
   for (const key of KNOWN_KEYS) {
     if (!Object.prototype.hasOwnProperty.call(ordered, key)) {
@@ -298,9 +300,7 @@ export function buildLyricsArrays(document: LyricsDocument): ChartLyrics {
     // A row without a start is repaired with the end of the previous row.
     // The repair never lands *before* the previous row starts, so the
     // timeline stays in order even when the raw data was unusual.
-    const start =
-      row.startTime ??
-      Math.max(previousEnd ?? 0, previousStart ?? 0);
+    const start = row.startTime ?? Math.max(previousEnd ?? 0, previousStart ?? 0);
     let end: number;
 
     if (row.endTime !== null && row.endTime > start + TIME_EPSILON) {
@@ -404,9 +404,10 @@ export function setLyricStart(
   const start = roundTime(Math.max(0, startTime));
   const row = document.rows[index];
   const nextStart = document.rows[index + 1]?.startTime ?? null;
-  const end = row.endTime !== null && row.endTime > start + TIME_EPSILON
-    ? row.endTime
-    : deriveEnd(start, nextStart);
+  const end =
+    row.endTime !== null && row.endTime > start + TIME_EPSILON
+      ? row.endTime
+      : deriveEnd(start, nextStart);
 
   return updateLyricRow(document, id, { startTime: start, endTime: end });
 }
@@ -418,9 +419,10 @@ export function setLyricEnd(document: LyricsDocument, id: number, endTime: numbe
 
 /** Insert an empty line after `afterId` (or at the end). */
 export function addLyricRow(document: LyricsDocument, afterId?: number): LyricsDocument {
-  const afterIndex = afterId === undefined
-    ? document.rows.length - 1
-    : document.rows.findIndex((row) => row.id === afterId);
+  const afterIndex =
+    afterId === undefined
+      ? document.rows.length - 1
+      : document.rows.findIndex((row) => row.id === afterId);
 
   const insertAt = afterIndex < 0 ? document.rows.length : afterIndex + 1;
   // An unknown id still appends at the end, so the new line starts after the

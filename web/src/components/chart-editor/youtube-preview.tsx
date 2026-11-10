@@ -1,11 +1,4 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { css } from "styled-system/css";
 import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -321,19 +314,11 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
 
         {showControls ? (
           <div className={controls}>
-            <Button
-              className={raisedButton}
-              size="sm"
-              onClick={startPlay}
-            >
+            <Button className={raisedButton} size="sm" onClick={startPlay}>
               <Play className={buttonIcon} size={14} aria-hidden="true" />
               Play
             </Button>
-            <Button
-              className={raisedButton}
-              size="sm"
-              onClick={startPause}
-            >
+            <Button className={raisedButton} size="sm" onClick={startPause}>
               <Pause className={buttonIcon} size={14} aria-hidden="true" />
               Pause
             </Button>

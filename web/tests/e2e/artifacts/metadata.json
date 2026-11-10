@@ -1,61 +1,57 @@
 {
-    "commit": "335ca0002fbe382e5fb0bb1e77dd28a9065ac7a1",
-    "date": "2026-11-08T01:52:32.258Z",
-    "runCommand": "cd web && npx void db migrate && npx void db seed && npx vp dev; cd web && E2E_BASE_URL=http://localhost:<port> npx playwright test -c tests/e2e/playwright.config.ts --workers=1",
-    "viewports": [
-        "1920x1080 (CSS viewport)",
-        "2560x1440 (CSS viewport)",
-        "2560x1664 (CSS viewport)"
-    ],
-    "contrastChecks": [
-        {
-            "name": "fg.default on canvas (body text)",
-            "fg": "#FFFFFF",
-            "bg": "#1B1B1B",
-            "threshold": 4.5,
-            "ratio": 17.22,
-            "pass": true
-        },
-        {
-            "name": "fg.muted on canvas (secondary text)",
-            "fg": "#B0B0B0",
-            "bg": "#1B1B1B",
-            "threshold": 4.5,
-            "ratio": 7.94,
-            "pass": true
-        },
-        {
-            "name": "fg.subtle on canvas (hints)",
-            "fg": "#8C8C8C",
-            "bg": "#1B1B1B",
-            "threshold": 4.5,
-            "ratio": 5.12,
-            "pass": true
-        },
-        {
-            "name": "primary CTA fg on solid.bg (再生して試す)",
-            "fg": "#131313",
-            "bg": "#3FA9F5",
-            "threshold": 4.5,
-            "ratio": 7.26,
-            "pass": true
-        },
-        {
-            "name": "visitor nav fg on solid.bg (曲を選ぶ)",
-            "fg": "#131313",
-            "bg": "#3FA9F5",
-            "threshold": 4.5,
-            "ratio": 7.26,
-            "pass": true
-        },
-        {
-            "name": "selected fg on accent tint (aria-current)",
-            "fg": "#9AD3FA",
-            "bg": "#2B4457",
-            "threshold": 4.5,
-            "ratio": 6.32,
-            "pass": true
-        }
-    ],
-    "allContrastPass": true
+  "commit": "335ca0002fbe382e5fb0bb1e77dd28a9065ac7a1",
+  "date": "2026-11-08T01:52:32.258Z",
+  "runCommand": "cd web && npx void db migrate && npx void db seed && npx vp dev; cd web && E2E_BASE_URL=http://localhost:<port> npx playwright test -c tests/e2e/playwright.config.ts --workers=1",
+  "viewports": ["1920x1080 (CSS viewport)", "2560x1440 (CSS viewport)", "2560x1664 (CSS viewport)"],
+  "contrastChecks": [
+    {
+      "name": "fg.default on canvas (body text)",
+      "fg": "#FFFFFF",
+      "bg": "#1B1B1B",
+      "threshold": 4.5,
+      "ratio": 17.22,
+      "pass": true
+    },
+    {
+      "name": "fg.muted on canvas (secondary text)",
+      "fg": "#B0B0B0",
+      "bg": "#1B1B1B",
+      "threshold": 4.5,
+      "ratio": 7.94,
+      "pass": true
+    },
+    {
+      "name": "fg.subtle on canvas (hints)",
+      "fg": "#8C8C8C",
+      "bg": "#1B1B1B",
+      "threshold": 4.5,
+      "ratio": 5.12,
+      "pass": true
+    },
+    {
+      "name": "primary CTA fg on solid.bg (再生して試す)",
+      "fg": "#131313",
+      "bg": "#3FA9F5",
+      "threshold": 4.5,
+      "ratio": 7.26,
+      "pass": true
+    },
+    {
+      "name": "visitor nav fg on solid.bg (曲を選ぶ)",
+      "fg": "#131313",
+      "bg": "#3FA9F5",
+      "threshold": 4.5,
+      "ratio": 7.26,
+      "pass": true
+    },
+    {
+      "name": "selected fg on accent tint (aria-current)",
+      "fg": "#9AD3FA",
+      "bg": "#2B4457",
+      "threshold": 4.5,
+      "ratio": 6.32,
+      "pass": true
+    }
+  ],
+  "allContrastPass": true
 }
