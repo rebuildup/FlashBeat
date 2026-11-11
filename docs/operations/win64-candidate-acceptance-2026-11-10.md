@@ -6,7 +6,11 @@
 > **2026-11-11 更新 — 候補を `0.1.23+09ece5a2` に差し替えた。**
 > 版数はリポジトリ直下の `VERSION` (現在 `0.1.23`) が正本で、`FLASHBEAT_VERSION_BASE` は
 > 任意の上書き。以前の暗黙の既定値 `0.1.0` は廃止し、`VERSION` も環境変数も解決できなければ
-> **ビルドが失敗する** (配布済み `0.1.22` より古い候補が作れない)。
+> **ビルドが失敗する**。これは「未設定のまま `0.1.0` になる」経路を塞ぐもので、
+> `FLASHBEAT_VERSION_BASE` に明示した値と配布済み版数の大小を検査するものではない —
+> 候補を作る前に `VERSION` を配布済みより上げるのは**運用上の確認**で、
+> `BuildVersionSourceTests.RepositoryVersionFile_IsNewerThanTheDistributedVersion` が
+> リポジトリの `VERSION` と `0.1.22` の大小だけを固定している。
 > 前候補 `0.1.22+7af9242d` は Windows 実機 2K の受入まで済んでいるが、
 > #351 / #352 / v6 UI 修正より前の main のため、この候補に置き換えた (証跡は 0.1.22 のものとして区別する)。
 
@@ -179,10 +183,10 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-09ece5a2.zip" | Select-Ob
 | 動画の減光 | しない (v6 の減光レイヤーは無効) | `V6UiMode.cs:35` `VideoDim = false` |
 | 選曲画面 | v6 の 3 カラム | `V6UiMode.cs:18` `SelectScreen = true` |
 | Title のタブ行 / キー凡例 | **どちらも描く** (2026-11-11 に正本 QJtTv へ合わせて撤回。フッター右下の START / 設定は描かない) | `V6UiMode.cs:54` `TitleTabs = true`, `:62` `TitleLegend = true`, `:68` `TitleFooterActions = false` |
-| Title のヘッダー / Exit | ヘッダーの "FlashBeat" 文字は描かず、右上に Exit ボタンを置く | `V6UiMode.cs:74` `TitleHeaderTitle = false` |
-| 準備画面の Space | 準備完了前に押しても**捨てられず**、準備完了 (または 30 秒経過) の最初のフレームで 1 回だけ開始する (#351) | `MusicManager.cs` の `PlaybackStartGate.ShouldStart` |
+| Title のヘッダー / Exit | ヘッダーの "FlashBeat" 文字は描かず、**左端**に Exit ボタン (Icon + キーキャップ + "Exit") を置く | `V6UiMode.cs:74` `TitleHeaderTitle = false`, `V6TitleExit.cs` (Header ローカル (0,20) 162×56) |
+| 準備画面の Space | 準備完了前に押しても**捨てられず**、映像/音声の準備完了 (または 30 秒経過) **かつノーツ準備完了**の最初のフレームで 1 回だけ開始する (#351) | `MusicManager.cs` の `canStart` / `PlaybackStartGate.ShouldStart` |
 | Media cache の消去 | Option → Data で確認ダイアログが出てから消す (#352) | `V6OptionView.cs:875` `ConfirmKind.MediaCache` |
-| Result の登録モーダル | 名前欄の Placeholder は "YOU"、入力上限は 16 文字 (design の見本は 8 文字)、Skip / Register | `V6ResultView` / `RankingClient.NicknameMaxLength = 16` |
+| Result の登録モーダル | 名前欄の Placeholder は "YOU"。入力上限は**モード別**: ローカル登録 8 文字 (A-Z 0-9 のみ) / オンライン登録 16 文字。Skip / Register | `V6ResultView.NameMaxLength()` / `V6ResultLogic.LocalNameMaxLength = 8` / `RankingClient.NicknameMaxLength = 16` |
 | 音の経路 | `[MusicManager] PLAYBACK_START … source=StreamCombined \| StreamSeparate \| BundledWave` | `MusicManager.cs:1166` の `Debug.Log` |
 | 映像 | ダウンロードしたローカル mp4 を再生 (URL 直渡しは診断のみ) | `MusicManager.cs:637` `PrepareLocalVideo` |
 | フォント | NotoSansJP (静的アトラス + 動的フォールバック) | `JapaneseFontAssetBuilder.cs:233,249` |
