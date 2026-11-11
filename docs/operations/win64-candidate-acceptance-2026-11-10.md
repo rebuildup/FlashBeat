@@ -175,7 +175,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | 3 | Game (準備) | 準備画面の進捗が出る。**準備完了前に Space を押しても開始するか** (#351) | 押し直さずに開始する |
 | 4 | Game (プレイ) | **8 レーン / ノーツ / 判定ラインが視認できる** (#233)。**映像が出るか** (#233)。密所でも同じ | **ノーツが見えないなら不合格** |
 | 5 | Game (音) | **ストリーム音声が鳴るか** (#13 / #4)。`Player.log` の `audioMode=Stream` を確認 | 鳴らないなら `#4` は未解決 |
-| 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134) | — |
+| 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134)。本番 API への送信は [`register-online-acceptance.md`](register-online-acceptance.md) の手順 (名前は `ACCEPT`、1 回だけ) に従う | 送信後に順位が出る |
 | 7 | Retry | Retry で Game に戻れる | — |
 
 ### 3.5 期待値 (ビルドに入っている状態) — 迷ったときの照合用
