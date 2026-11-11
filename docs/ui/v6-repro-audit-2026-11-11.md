@@ -325,3 +325,21 @@ frame origin (416,346)。
 Result のジャケットは「拡張子付きパスを `Resources.Load` へ渡していた」共通原因 (C4) の
 修正後に、実データで描画されていることを画素で確認したもの。design の矩形にジャケットが
 載っているかは、この一領域の色分布で判定できる (空枠なら全画素同色)。
+
+### 9.7 02b Select · 該当なし (design AqFtx) の再現
+
+空状態は design に独立フレーム (`AqFtx`) があるのに、実装は音楽アイコン + 独自文言で
+作られていた。design の resolved bounds と Pencil 描画で確認し、次のように直した。
+
+| 対象 | 旧 | design (正本) | 修正後 |
+|---|---|---|---|
+| Empty Note パネル | (56,300) 448×140 `$k0` r8 | 同左 | 同左 |
+| アイコン | `music` 32、下寄せ (y≈16) | 虫めがね + x (`UIN4a`) 32×32、上端 y14 | design から `search-x.png` を書き出して同位置へ |
+| Title | (0,52) 448×32 | (0,54) 448×35 fs24 中央 | 同左 |
+| Hint | (0,88) 448×28 | (0,97) 448×29 fs20 中央 | 同左 |
+| SCORE RANKING 空状態 | 左寄せの長文 (24,92) | 中央 "NO DATA" (8,155) 496×35 fs24 `$text-dim` | 同左。理由はヘッダーの StatusMessage が示す |
+| PLAYERS 空状態 | 左寄せ「データがありません」(24,60) | 中央 "NO DATA" (8,149) 496×35 | 同左 |
+
+`V6SelectEmptyStateTests` 4 件で座標・アライン・スプライト名 (`search-x`) を固定。
+`AutoTestV6Screens` に検索ヒット 0 件の撮影 (`SelectScene-Empty`) を追加し、実機で
+この画面自体を証跡に残せるようにした。
