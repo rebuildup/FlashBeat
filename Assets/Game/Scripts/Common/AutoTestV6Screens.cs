@@ -129,6 +129,17 @@ public class AutoTestV6Screens : MonoBehaviour
                 yield return new WaitForSecondsRealtime(1f);
             }
 
+            // design wSjAm (02c Select · 設定): 右カラムを「このプレイの設定」へ
+            // 差し替えた状態も撮る (実機は O / 設定ボタンで開く)。
+            if (select != null)
+            {
+                select.OpenQuickSettings();
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("SelectScene-Settings", reports);
+                select.CloseQuickSettings();
+                yield return new WaitForSecondsRealtime(1f);
+            }
+
             if (select != null && history != null && ranking != null)
             {
                 select.SetVisible(false);

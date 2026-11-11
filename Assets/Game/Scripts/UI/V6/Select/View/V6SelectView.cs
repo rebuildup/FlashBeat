@@ -163,6 +163,13 @@ namespace FlashBeat.UI.V6.Select.View
             Rebuild();
         }
 
+        /// <summary>クイック設定を閉じる (画面監査 AutoTestV6Screens からも使う)。</summary>
+        public void CloseQuickSettings()
+        {
+            settingsOpen = false;
+            Rebuild();
+        }
+
         /// <summary>表示する曲リスト (実データ + 未プレイのみトグル)。</summary>
         private List<V6SongEntry> DisplaySongs()
         {
@@ -970,38 +977,44 @@ namespace FlashBeat.UI.V6.Select.View
                 });
         }
 
-        /// <summary>設定行 1 個分 (icon + label + ‹ › + 値)。位置は行 index から決める。</summary>
+        /// <summary>
+        /// 設定行 1 個分 (design wSjAm 実測): Icon (12,16) 24 / Label (48, ·) fs24 /
+        /// Arrow · chevron-left (値の左 - 52, 8) 40×40 (icon 24) /
+        /// Value は右端 448 に右寄せ (hug 幅) / Arrow · chevron-right (460,8) 40×40。
+        /// 旧実装は icon を x0 から描き、値を固定幅 96 の中央揃えにしていたため
+        /// "Auto"/"10" が design より左に出ていた。
+        /// </summary>
         private void BuildSettingsRow(GameObject column, int index, string label, string value, Action<int> adjust)
         {
             var rect = V6SelectViewLogic.SettingsRowRect(index);
             var row = At(V5Ui.Panel(column, "Set " + label, new Vector2(rect.W, rect.H),
                 V5Tokens.Base, FlashBeat.UI.V6.Common.V6Tokens.RadiusMedium), rect.X, rect.Y);
 
-            V6Icons.Create(row, "list-filter", 24f, V5Tokens.TextMuted);
-            var icon = row.transform.Find("Icon");
-            if (icon != null)
+            var iconImage = V6Icons.Create(row, "list-filter", 24f, V5Tokens.TextMuted);
+            if (iconImage != null)
             {
-                var iconRt = icon.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(12f, 0f);
+                PlaceTopLeft(iconImage.gameObject, 12f, 16f, 24f, 24f);
             }
 
             var labelText = V5GameUi.Text(row.gameObject, "Label", label, 24f, V5Tokens.Text);
+            labelText.textWrappingMode = TextWrappingModes.NoWrap;
             At(labelText, 48f, 0f, 240f, rect.H, new Vector2(0f, 0.5f));
 
-            var left = Button(row, "Prev", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(-1));
-            At(left, 300f, (rect.H - 40f) * 0.5f);
-            V6Icons.Create(left, "chevron-left", 20f, V5Tokens.TextMuted);
-
+            // 値は右端 448 に右寄せ。幅は TMP 実測 (design の hug 幅 101/53/27 と一致)。
             var valueText = V5GameUi.Text(row.gameObject, "Value", value, 24f, V5Tokens.Text,
-                TextAlignmentOptions.Center);
-            At(valueText, 352f, 0f, 96f, rect.H, new Vector2(0f, 0.5f));
+                TextAlignmentOptions.Right);
+            valueText.textWrappingMode = TextWrappingModes.NoWrap;
+            float valueW = Mathf.Max(27f,
+                FlashBeat.UI.V6.Common.V6Controls.MeasureWidth(valueText, value, 101f));
+            At(valueText, 448f - valueW, 0f, valueW, rect.H, new Vector2(0f, 0.5f));
+
+            var left = Button(row, "Prev", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(-1));
+            At(left, 448f - valueW - 52f, (rect.H - 40f) * 0.5f);
+            V6Icons.Create(left, "chevron-left", 24f, V5Tokens.TextMuted);
 
             var right = Button(row, "Next", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(1));
             At(right, 460f, (rect.H - 40f) * 0.5f);
-            V6Icons.Create(right, "chevron-right", 20f, V5Tokens.TextMuted);
+            V6Icons.Create(right, "chevron-right", 24f, V5Tokens.TextMuted);
         }
 
         // --- 入力ヘルパ ---
@@ -1158,9 +1171,22 @@ namespace FlashBeat.UI.V6.Select.View
             At(node, x, y, w, h);
             var rt = node.GetComponent<RectTransform>();
             rt.pivot = pivot;
-            // pivot 変更で位置がずれるので左上 (x, -y) を維持する。
-            rt.anchoredPosition = new Vector2(x, -y);
+            // anchoredPosition は pivot の位置を指す。pivot を (0,1) から変えたときも
+            // 矩形の左上が (x, -y) に来るよう pivot 分を補正する (旧実装は補正が無く、
+            // 設定行の Label/Value が行の上へ 28px ずれていた)。
+            rt.anchoredPosition = new Vector2(x + pivot.x * w, -(y + (1f - pivot.y) * h));
             return node.gameObject;
+        }
+
+        /// <summary>中央寄せで作られたアイコンを design の左上座標へ置き直す。</summary>
+        private static void PlaceTopLeft(GameObject go, float x, float y, float w, float h)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(x, -y);
+            rt.sizeDelta = new Vector2(w, h);
         }
 
         /// <summary>親 (row 等) の中央に stretch する (Row/Column の子として使う)。</summary>
