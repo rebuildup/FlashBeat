@@ -237,5 +237,66 @@ design 矩形はこの境界を 0.3〜13px 下回るため、`V5Ui.FitEllipsisTo
 
 このラウンドの検証: `script/compile-check.sh` OK、Unity EditMode **1468 件すべて合格**。
 
+### 9.4 第 4 ラウンドの実機確認と「枠が描画されている」指摘の再測定
+
+r4 = 9.3 の修正を含む `f1d5e545` の Mac ビルドを、2560×1664 の実ディスプレイ全画面
+(`-screen-fullscreen 1 -screen-width 2560 -screen-height 1664`) で 8 画面撮影。
+`autotest-v6screens-result.txt` は `RESULT pass=17 fail=0 symbols=41 screenshots=8
+resolution=2560x1664`。切り出しで Result の曲名「ロストアン…」/作家名「稲葉曇」、
+Ranking ヘッダーの「ロストアンブレラ」、Pause の曲名、Result 曲別ランキングの曲名が
+**実データで描画されている**ことを確認した (r3 の 0 行退行は解消)。
+
+オーナー指摘「表示されるべきでない枠が描画されている」について、r4 の Select で見える
+外周の淡い矩形を design と画素比較した。design 書き出し `OENRv.png` (1728×972 を 2 倍の
+3456×1944 RGBA で書き出し) を走査すると、四辺とも外側 4px (= design 2px) が
+`(235,235,235,51)` = `#EBEBEB33`、その内側は `alpha 0`。
+
+| 位置 | design 実測 (2x 書き出し) | 実装 |
+|---|---|---|
+| 上/下/左/右の外周 | `#EBEBEB33` 2px (design px) | `V6SelectView.BuildFrameStroke()` の `#EDEDED33` 2px |
+| 矩形の内側 | alpha 0 (透明) | — |
+
+つまり外周 2px の stroke は**design に実在する共有フレーム rw7zx の stroke** で、
+実装は design どおり。黒背景に対して 51/255 の白なので淡く見えるが、描画されているのが
+正しい。他画面の外周も同じ `#EDEDED33` で、r4 の 8 画面で design のパネル定義
+(fill/radius) と食い違う枠はこの走査では見つからなかった。ただし全画面の全境界を
+1px 単位で照合したわけではないので、残余は Issue #242 の実機確認項目に残す。
+
+### 9.5 第 5 ラウンド (2026-11-11、History の座標を design q9JZcH に合わせる)
+
+History を design 実測と突き合わせ、3 点のずれを修正した。
+
+| 対象 | 旧 | design (正本) | 修正後 |
+|---|---|---|---|
+| 履歴行スタック | 常に上寄せ `RowY0=48` | 4 行が y 254/326/398/470 (上余白 254・下余白 246 の中央) | n≤9 のとき `(780 − 72n)/2 + 8`、10 行以上は `RowY0` + スクロール |
+| 行内部 | Pos x14 / Title x64 h64 / Score x296 h64 | Pos (12,14) / Title (60,15) 220×35 fs24 / Score (292,15) 120×35 右 / Grade (424,14) | 同左。Title は 1 行 Ellipsis (h35 ≥ 行送り 34.75 なので 0 行にならない) |
+| ヘッダー Sort | 132×44 @(840,26)・中央揃え | 104×29 @(864,33.5)・テキスト (12,0) 80×29 左 | 同左。design 外のラベル「カタログ順」(5 文字) は枠を変えず最小 16px へ自動縮小 |
+| ヘッダー Count | 右端 親内 1680 (= ページ 1704) | 右端 親内 1656 (= ページ 1680、情報ゾーン右 padding 24 の内側) | `At(count, 1376, 24, 280, 48, pivot(0,0.5))` |
+
+`V6HistoryLogic` に design 定数と純関数 `HistoryFirstRowY(int count)` を追加し、
+`V6HistoryDesignLayoutTests` (7 件) で n=4→254 / n=2→326 / n≥10→48 と
+View の実配置 (Pos/Title/Score/Grade/Sort/Count) を pin した。
+検証: `script/compile-check.sh` OK、Unity EditMode **1475 件すべて合格**。
+
+続けて r5 の実機画像を design と突き合わせ、**中央パネルの曲名が 13px 下がって
+Artist Row に食い込んでいる**のを見つけた。design 正本 `q9JZcH` 中央の
+`f54HAH/DcLR3` は Meta 内 **(0,9) 512×50 fs48** だが、実装は `sizeDelta` だけを
+変えており既定アンカー (中央) のまま = y22 に置かれていた。Select の同じ構造
+(`dRztp`) も同一コードなので両方を `At(title, 0, 9, 512, 50)` に修正した
+(`c6506361`、`HistoryCenterMeta_Title_MatchesDesign` / `SelectCenterMeta_Title_MatchesDesign`)。
+
+r5 の Option 画面は、オーナー指摘 3 点がすべて design どおりになっていることを
+drawing ではなく座標で確認した:
+
+| 指摘 | design 実測 | r5 実機 (page 座標) |
+|---|---|---|
+| レーン図が 3D コーン | — | 平面 8 レーン (細線 + ノート) に置換済み |
+| キーキャップが行ごとに減る左詰め | 4 行 13/12/12/11、行ごとに +17px の階段、x 896..1362 / 913..1343 / 930..1360 / 947..1341 | 13/12/12/11、x 1313..1777 / 1330..1758 / 1347..1775 / 1364..1756 (= design + frame origin (416,346) と一致) |
+| 右パネル下部の見出し欠落 | `Desc Title` = 選択行ラベル (design 例は「キー設定」fs32) | 選択行ラベル (NoteSpeed) を表示。design に無い固定見出しは足していない |
+
+なお History の design 再現は omp ワーカー (opencode-go) に委譲したが、19 分間
+出力・編集とも 0 のまま停止したため、ルータの規定どおり supervisor が引き取って
+実装・検証まで完了させた。
+
 
 
