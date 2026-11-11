@@ -844,3 +844,44 @@ Windows 実機 (exhibit 機は無断で触らない)、歌詞枠の design `HcP8
 (`RESULT pass=31 fail=0 symbols=71 screenshots=15`)。r25 / r26 で消えていた
 バナーと `symbols=70` は、版数が古い値 (0.1.14) で焼かれていたことの副作用で、
 UI 側の回帰ではない。r27 の Option / Pause の説明文位置は r25 と画素一致。
+
+### 9.18 r28 — 版数 0.1.23 / 暗黙の 0.1.0 廃止後の実機確認 (2026-11-11)
+
+**背景**: r27 のビルドは `0.1.0+4ce9cd81` で、配布済み `0.1.22` より**古い**版数だった。
+自動更新は「真に大きい版」だけを適用するため、このまま配布候補にすると更新経路が
+成立しない。原因は `BuildScript` が未設定時に `0.1.0` へ暗黙フォールバックしていたこと。
+PR #357 で基準バージョンの正本をリポジトリ直下の `VERSION` に移し、既定値を廃止した
+(`release-gate.md` §1.2)。次期版は `0.1.23`。
+
+**r28 ビルド** — `main 09ece5a2` から `VERSION` (0.1.23) のみでビルド
+(環境変数 `FLASHBEAT_VERSION_BASE` 未設定 = フォールバック経路の実地確認)。
+
+| 項目 | 実測 |
+|---|---|
+| Mac 候補の版数 | `CFBundleShortVersionString = 0.1.23+09ece5a2` (`Player.log` の `[UpdateChecker] build=0.1.23+09ece5a2`) |
+| Win64 候補 | `FlashBeat-0.1.23-win64-09ece5a2.zip` / `.sha256` 一致 / `globalgamemanagers` に `0.1.23+09ece5a2` / `update-channel.txt = stable` / メディア拡張子 0 件 |
+| 更新判定 | macOS の最新公開は `v0.1.14-macos-39f0c3c`、Win64 の最新公開は `v0.1.21` (0.1.22 は Draft) のため、どちらも `0.1.23` が最新扱いになり更新バナーは出ない (誤検出なし) |
+| v6screens | `RESULT pass=31 fail=0 symbols=70 screenshots=15 resolution=2560x1664` |
+| v6 gameplay | `RESULT pass=29 fail=0` |
+| 全画面 | `[FullscreenDiagnostics] screen=2560x1664, fullScreen=True, fullScreenMode=FullScreenWindow` |
+| 音声 (信号) | `audioMode=StreamCombined rms=0.22〜0.48 peak=0.66`、`video prepared=True` (人間の聴取は未実施) |
+
+`symbols=71 → 70` は r27 にあった Title の更新バナー (v0.1.0 → v0.1.14 の 2 記号) が、
+版数が最新になったことで 1 記号 (`v0.1.23+09ece5a2`) になったため。他の 14 画面の
+pass 数と撮影内容は r27 と一致。
+
+**Option 設定の保存復元 (実機での復元方向)** — 実 PlayerPrefs
+(`com.KimuraYusuke.FlashBeat`) に `FlashBeat.MainVolume = 0.42` / `FlashBeat.BgmVolume = 0.66`
+を書き、プレイヤーを起動し直して Sound タブを撮影した
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r28-0-1-23/restore-check/`)。
+表示は **Main Volume 42% / BGM Volume 66%**、右パネルのバーも 42% 幅で、
+起動時の `TitleSceneManager.Start → OptionSettings.Load → GManager → 画面` の復元が
+実ビルドで成立している。撮影後にキーは削除し、端末の設定を元へ戻した。
+
+**残る未検証**:
+- 保存方向 (画面で値を変える → PlayerPrefs) の実機操作は未実施。
+  EditMode `V6OptionWiringTests` (Play/Display/Sound の変更が GManager と PlayerPrefs に届く) と
+  `NoteTimingRegressionTests` が担保するが、実機入力の証跡ではない。
+- 1920×1080 / 2560×1440 の実フルスクリーン (この Mac の実ディスプレイは 2560×1664 のみ)。
+- Windows 実機 1 曲完走を **この artifact** で (展示 PC は無断で操作しない)。
+- 人間による音声聴取。
