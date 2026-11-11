@@ -243,6 +243,37 @@ public class AutoTestV6Screens : MonoBehaviour
             yield break;
         }
 
+        if (sceneName == "OptionScene")
+        {
+            // design B6If6Z / EzLfb / z7joSy / DQHHp: Option は 4 タブあり、
+            // タブごとに設定行と説明文が違う。実機は Tab / クリックで切り替えるが
+            // 自動撮影は入力できないため、監査用 API で全タブを撮る。
+            yield return CaptureAndAudit("OptionScene", reports);
+
+            var option = FlashBeat.UI.V6.Option.V6OptionView.Current;
+            if (option == null)
+            {
+                var report = new ScreenReport { Label = "OptionScene-Tabs" };
+                Check(report, "the v6 option view exists", false);
+                reports.Add(report);
+            }
+            else
+            {
+                for (int tab = 1; tab < FlashBeat.UI.V6.Option.V6OptionLogic.TabCount; tab++)
+                {
+                    option.SelectTabForAudit(tab);
+                    yield return new WaitForSecondsRealtime(0.6f);
+                    yield return CaptureAndAudit(
+                        "OptionScene-" + FlashBeat.UI.V6.Option.V6OptionLogic.TabLabels[tab], reports);
+                }
+
+                option.SelectTabForAudit(0);
+                yield return new WaitForSecondsRealtime(0.4f);
+            }
+
+            yield break;
+        }
+
         yield return CaptureAndAudit(sceneName, reports);
     }
 

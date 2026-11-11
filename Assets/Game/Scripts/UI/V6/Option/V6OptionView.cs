@@ -324,6 +324,15 @@ namespace FlashBeat.UI.V6.Option
             Rebuild();
         }
 
+        /// <summary>
+        /// 自動撮影 (-autotest v6screens) が各タブの実画面を撮るための操作 API。
+        /// 実機では Tab / クリックで切り替わる動作そのものを呼ぶ。
+        /// </summary>
+        public void SelectTabForAudit(int index)
+        {
+            SelectTab(index);
+        }
+
         // --- 構築 ---
 
         private void BuildRoot(RectTransform parent)
