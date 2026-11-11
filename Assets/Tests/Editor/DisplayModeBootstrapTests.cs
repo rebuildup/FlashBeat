@@ -63,6 +63,36 @@ namespace FlashBeat.Tests
         }
 
         [Test]
+        public void FillsDisplay_RequiresFullPixelCoverage()
+        {
+            // Mac 実機 (#369): メニューバー分 2224−2148 が欠けた作業領域サイズ。
+            Assert.IsFalse(DisplayModePolicy.FillsDisplay(3420, 2148, 3420, 2224),
+                "高さが足りない = 全画面ではない");
+            Assert.IsTrue(DisplayModePolicy.FillsDisplay(3420, 2224, 3420, 2224));
+            Assert.IsTrue(DisplayModePolicy.FillsDisplay(1920, 1080, 1920, 1080));
+        }
+
+        [Test]
+        public void FillsDisplay_DoesNotCorrectWhenDisplaySizeIsUnknown()
+        {
+            Assert.IsTrue(DisplayModePolicy.FillsDisplay(1920, 1080, 0, 0),
+                "ディスプレイ情報が取れない環境ではトグルしない");
+        }
+
+        [Test]
+        public void SavedResolutionIsStale_DetectsWorkAreaSizedSave()
+        {
+            // ウィンドウ表示で終了した端末の保存値 (3420x2082) はネイティブ (3420x2224) より小さい。
+            Assert.IsTrue(DisplayModePolicy.SavedResolutionIsStale(3420, 2082, 3420, 2224));
+            Assert.IsFalse(DisplayModePolicy.SavedResolutionIsStale(3420, 2224, 3420, 2224),
+                "ネイティブと同じ保存値は残す");
+            Assert.IsFalse(DisplayModePolicy.SavedResolutionIsStale(0, 0, 3420, 2224),
+                "保存値が無い場合は触らない");
+            Assert.IsFalse(DisplayModePolicy.SavedResolutionIsStale(3420, 2082, 0, 0),
+                "ディスプレイ情報が無い場合は触らない");
+        }
+
+        [Test]
         public void Apply_RunsBeforeFirstSceneLoad()
         {
             var method = typeof(DisplayModeBootstrap).GetMethod(

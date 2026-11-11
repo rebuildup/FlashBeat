@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace FlashBeat.Common
@@ -40,6 +41,38 @@ namespace FlashBeat.Common
         {
             return storedMode != (int)RequiredMode;
         }
+
+        /// <summary>
+        /// 描画面がディスプレイ全体を被覆しているか。Screen が報告する表示モードが
+        /// RequiredMode でも、macOS では実ウィンドウがメニューバー分を除いた
+        /// 作業領域サイズのまま残ることがある (#369 Mac 実機)。モード値ではなく
+        /// ピクセル被覆で判定する。
+        /// </summary>
+        public static bool FillsDisplay(int screenWidth, int screenHeight, int displayWidth, int displayHeight)
+        {
+            if (displayWidth <= 0 || displayHeight <= 0)
+            {
+                return true; // 情報が無い環境では補正しない (誤ってトグルしない)
+            }
+
+            return screenWidth >= displayWidth && screenHeight >= displayHeight;
+        }
+
+        /// <summary>
+        /// 保存済みの解像度がディスプレイのネイティブサイズと違うか。
+        /// Unity は終了時にウィンドウサイズを保存し、次回起動でそれを復元するため、
+        /// 一度ウィンドウ表示で終了した端末では全画面のはずが作業領域サイズで
+        /// 起動する (#369)。ネイティブより小さい保存値だけを古い値として扱う。
+        /// </summary>
+        public static bool SavedResolutionIsStale(int width, int height, int displayWidth, int displayHeight)
+        {
+            if (width <= 0 || height <= 0 || displayWidth <= 0 || displayHeight <= 0)
+            {
+                return false;
+            }
+
+            return width < displayWidth || height < displayHeight;
+        }
     }
 
     /// <summary>
@@ -74,6 +107,16 @@ namespace FlashBeat.Common
             }
 
             PurgeStaleStoredMode();
+            PurgeStaleResolution();
+
+            // macOS 実機 (#369): Screen.fullScreenMode が FullScreenWindow を返しても
+            // 実ウィンドウはメニューバー分を除いた作業領域サイズのままで、メニューバーが
+            // 見えることがある。モードの代入だけでは Unity 側の状態が変わらないため、
+            // 最初のフレーム後に被覆を測り、足りなければ Windowed → FullScreenWindow の
+            // 遷移を強制する。
+            var go = new GameObject("DisplayModeBootstrap");
+            Object.DontDestroyOnLoad(go);
+            go.AddComponent<DisplayModeBootstrapDriver>();
         }
 
         /// <summary>
@@ -101,6 +144,91 @@ namespace FlashBeat.Common
 
             PlayerPrefs.Save();
             Debug.Log(Prefix + " event=purge storedMode=" + stored);
+        }
+
+        /// <summary>
+        /// ネイティブより小さい保存解像度を消し、ネイティブ解像度を使う設定へ戻す。
+        /// Unity が終了時に保存し直すため、起動のたびに確認する。
+        /// </summary>
+        private static void PurgeStaleResolution()
+        {
+            int width = PlayerPrefs.GetInt("Screenmanager Resolution Width", 0);
+            int height = PlayerPrefs.GetInt("Screenmanager Resolution Height", 0);
+            int displayWidth = Display.main.systemWidth;
+            int displayHeight = Display.main.systemHeight;
+            if (!DisplayModePolicy.SavedResolutionIsStale(width, height, displayWidth, displayHeight))
+            {
+                return;
+            }
+
+            PlayerPrefs.DeleteKey("Screenmanager Resolution Width");
+            PlayerPrefs.DeleteKey("Screenmanager Resolution Height");
+            PlayerPrefs.SetInt("Screenmanager Resolution Use Native", 1);
+            PlayerPrefs.Save();
+            Debug.Log(Prefix + " event=purge-resolution stored=" + width + "x" + height
+                + ", display=" + displayWidth + "x" + displayHeight);
+        }
+    }
+
+    /// <summary>
+    /// 最初のフレーム後に全画面のピクセル被覆を確かめ、必要なら遷移をやり直す
+    /// (Issue #369)。Unity は Windowed 以外のモードを要求しても、実ウィンドウが
+    /// 作業領域サイズのまま残ると要求モードをそのまま報告するため、遷移を発生
+    /// させるには一度ウィンドウ表示へ戻す必要がある。
+    /// </summary>
+    internal sealed class DisplayModeBootstrapDriver : MonoBehaviour
+    {
+        private const string Prefix = "[FullscreenBootstrap]";
+
+        private IEnumerator Start()
+        {
+            // 起動直後のウィンドウ生成・復元が終わってから測る。
+            yield return null;
+            LogReport("first-frame");
+            if (Covered())
+            {
+                LogReport("covered");
+                yield break;
+            }
+
+            // macOS は「報告モードは FullScreenWindow なのに実ウィンドウは作業領域サイズ」
+            // という状態を作る。ウィンドウは既にボーダーレスなので、
+            // 旧 API の Screen.fullScreen でメニューバーの非表示と再レイアウトを要求する
+            // (Windowed を経由するとタイトルバーが付いて戻らない)。
+            Debug.Log(Prefix + " event=request-legacy-fullscreen");
+            Screen.fullScreen = true;
+            yield return new WaitForSecondsRealtime(0.5f);
+            LogReport("after-legacy-0.5s");
+            yield return new WaitForSecondsRealtime(1.5f);
+            LogReport("after-legacy-2s");
+
+            if (!Covered())
+            {
+                Debug.Log(Prefix + " event=request-fullscreen-mode");
+                Screen.fullScreenMode = DisplayModePolicy.RequiredMode;
+                yield return new WaitForSecondsRealtime(0.5f);
+                LogReport("after-mode-0.5s");
+                yield return new WaitForSecondsRealtime(1.5f);
+                LogReport("after-mode-2s");
+            }
+
+            LogReport(Covered() ? "covered" : "still-uncovered");
+        }
+
+        private static bool Covered()
+        {
+            return DisplayModePolicy.FillsDisplay(Screen.width, Screen.height,
+                Display.main.systemWidth, Display.main.systemHeight);
+        }
+
+        private static void LogReport(string tag)
+        {
+            Debug.Log(Prefix + " event=" + tag
+                + ", screen=" + Screen.width + "x" + Screen.height
+                + ", display=" + Display.main.systemWidth + "x" + Display.main.systemHeight
+                + ", fullScreen=" + Screen.fullScreen
+                + ", fullScreenMode=" + Screen.fullScreenMode
+                + ", safeArea=" + Screen.safeArea.width + "x" + Screen.safeArea.height);
         }
     }
 }
