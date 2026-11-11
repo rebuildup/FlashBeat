@@ -838,3 +838,9 @@ r27 で `CFBundleShortVersionString` が `0.1.0+4ce9cd8` 系になることを�
 Windows 実機 (exhibit 機は無断で触らない)、歌詞枠の design `HcP8N` との照合 (歌詞入りの
 実プレイが必要)、Option Play タブの選択行 (design は 4 行目「キー設定」を選択状態で描画、
 実装は開いた直後 1 行目を選択 — 状態の違いであって座標の不一致ではない)。
+
+**r27 (`4ce9cd81`)** — 版数の焼き込み修正の実機確認。Title の表示が
+`v0.1.0+4ce9cd81 → v0.1.14` とビルド元の SHA になり、更新バナー (F3) も戻った
+(`RESULT pass=31 fail=0 symbols=71 screenshots=15`)。r25 / r26 で消えていた
+バナーと `symbols=70` は、版数が古い値 (0.1.14) で焼かれていたことの副作用で、
+UI 側の回帰ではない。r27 の Option / Pause の説明文位置は r25 と画素一致。
