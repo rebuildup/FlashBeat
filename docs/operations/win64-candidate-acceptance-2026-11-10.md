@@ -182,7 +182,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | 3 | 同一 artifact で 1 曲完走 (#233) | **未実施** | オーナー | `operation-log.md` (§2 の 1 曲完走) / 場面スクショ / `Player.log` |
 | 4 | 人間による音声聴取 | **未実施** (信号レベルのみ) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
 | 5 | Register のオンライン送信 (#134) | ローカル API での契約確認まで。**本番書き込みは未実施** | オーナー (承認後) | [`register-online-acceptance.md`](register-online-acceptance.md) の手順と記録 |
-| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 |
+| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 (再表示 + **再起動後**の値) |
 
 補足:
 - 1 / 2 は「その解像度の実ディスプレイ + 実フルスクリーン」でのみ有効 (ウィンドウリサイズは不可)。
@@ -192,7 +192,9 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
   `operation-log.md` がその記入欄)。
 - 6 の保存方向は、コード側では EditMode で固定済み (`V6OptionWiringTests` の
   `PlayTab_ChangesReachTheRealApiAndAreSaved` / `DisplayTab_…` / `SoundTab_…`)。
-  実機で見るのは「画面で変える → 戻る → もう一度開くと残っている」の 1 手順だけでよい。
+  ただしこれは画面操作を通らないため、実機では
+  **「画面で変える → 戻る → もう一度開く → アプリを終了して再起動し、値が残っているか」** まで見る。
+  再表示だけでは `GManager` のメモリ上の値でも合格できてしまい、保存 (PlayerPrefs) の証拠にならない。
 - 5 は本番 D1 に残る (削除 API なし)。1 回だけ、名前は `ACCEPT`。
 
 ## 3. 実機での受入手順 (3 解像度)
