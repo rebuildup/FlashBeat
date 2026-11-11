@@ -573,26 +573,28 @@ namespace FlashBeat.UI.V6.Select.View
             }
             else if (songs.Count == 0)
             {
-                // AqFtx: 該当なしの空状態。3 要素は絶対位置 (パネル外へはみ出させない)。
+                // AqFtx: 該当なしの空状態。3 要素は design の座標 (Icon 32 @y14 /
+                // Title 24 @(0,54) h35 / Hint 20 @(0,97) h29) に置く。
                 var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
-                V6Icons.Create(empty, "music", 32f, V5Tokens.TextDim);
+                // design UIN4a は「検索して該当なし」の虫めがね + x。音楽アイコンではない。
+                V6Icons.Create(empty, "search-x", 32f, V5Tokens.TextDim);
                 var emptyIcon = empty.transform.Find("Icon")?.gameObject;
                 if (emptyIcon != null)
                 {
                     var iconRt = emptyIcon.GetComponent<RectTransform>();
-                    iconRt.anchorMin = new Vector2(0f, 0f);
-                    iconRt.anchorMax = new Vector2(1f, 0f);
-                    iconRt.pivot = new Vector2(0.5f, 0f);
-                    iconRt.anchoredPosition = new Vector2(0f, 12f);
-                    iconRt.sizeDelta = new Vector2(0f, 40f);
+                    iconRt.anchorMin = new Vector2(0.5f, 1f);
+                    iconRt.anchorMax = new Vector2(0.5f, 1f);
+                    iconRt.pivot = new Vector2(0.5f, 1f);
+                    iconRt.anchoredPosition = new Vector2(0f, -14f);
+                    iconRt.sizeDelta = new Vector2(32f, 32f);
                 }
                 var emptyTitle = V5GameUi.Text(empty.gameObject, "Title", "曲が見つかりません", 24f, V5Tokens.Text,
                     TextAlignmentOptions.Center, FontStyles.Normal);
-                At(emptyTitle, 0f, 52f, 448f, 32f);
+                At(emptyTitle, 0f, 54f, 448f, 35f);
                 var emptyHint = V5GameUi.Text(empty.gameObject, "Hint", "検索語を変えるか フィルターを解除してください", 20f,
                     V5Tokens.TextMuted, TextAlignmentOptions.Center);
                 SingleLine(emptyHint);
-                At(emptyHint, 0f, 88f, 448f, 28f);
+                At(emptyHint, 0f, 97f, 448f, 29f);
             }
             else
             {
@@ -854,10 +856,11 @@ namespace FlashBeat.UI.V6.Select.View
             var rows = data.Selected != null ? data.RankingFor(data.Selected) : null;
             if (rows == null || rows.Count == 0)
             {
-                // 空状態も実データの状態を言う (固定の "NO DATA" で誤魔化さない)。
-                var empty = V5GameUi.Text(ranking.gameObject, "No Data", RankingEmptyText(song), 24f,
-                    V5Tokens.TextDim, TextAlignmentOptions.Left);
-                At(empty, 24f, 92f, 496f, 44f, new Vector2(0f, 0.5f));
+                // design xIoXm: 空状態は中央の "NO DATA" (24 / $text-dim / (8,155) 496×35)。
+                // 具体的な理由 (ローカル曲・通信失敗) はヘッダーの StatusMessage が既に出す。
+                var empty = V5GameUi.Text(ranking.gameObject, "No Data", "NO DATA", 24f,
+                    V5Tokens.TextDim, TextAlignmentOptions.Center);
+                At(empty, 8f, 155f, 496f, 35f);
             }
             else
             {
@@ -881,9 +884,10 @@ namespace FlashBeat.UI.V6.Select.View
             playersSpacerLe.flexibleWidth = 1f;
             V5GameUi.Text(playersHead.gameObject, "Mode", "累計スコア", 18f, V5Tokens.Text, TextAlignmentOptions.Right,
                 FontStyles.Normal);
-            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "データがありません", 24f,
-                V5Tokens.TextDim, TextAlignmentOptions.Left);
-            At(noPlayers, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            // design IL4N7: 中央の "NO DATA" ((8,149) 496×35)。
+            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "NO DATA", 24f,
+                V5Tokens.TextDim, TextAlignmentOptions.Center);
+            At(noPlayers, 8f, 149f, 496f, 35f);
         }
 
         /// <summary>ランキングの source タグ表示。実データ (クラウド配信か) から決める。</summary>
@@ -891,22 +895,6 @@ namespace FlashBeat.UI.V6.Select.View
         {
             if (song == null) return "–";
             return song.IsCloud ? "オンライン" : "ローカル";
-        }
-
-        /// <summary>ランキングが空のときの文言。ローカル曲はオンラインランキングが存在しない旨を言う。</summary>
-        private string RankingEmptyText(V6SongEntry song)
-        {
-            if (song != null && !song.IsCloud)
-            {
-                return "ローカル曲のランキングはありません";
-            }
-
-            if (data.HasError && !string.IsNullOrEmpty(data.StatusMessage))
-            {
-                return data.StatusMessage;
-            }
-
-            return "ランキングのデータがありません";
         }
 
         private void BuildRankingRow(GameObject ranking, V6RankingRow row, int index, float y)
