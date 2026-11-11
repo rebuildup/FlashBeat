@@ -108,7 +108,7 @@ Release 公開判定だけです。展示 PC の操作とビルドの上書き�
 
 ### 0.2 証跡をまとめて採る (任意 / Windows 実機でオーナーが実行)
 
-[`tools/acceptance/collect-win-evidence.ps1`](../../../tools/acceptance/collect-win-evidence.ps1) を
+[`tools/acceptance/collect-win-evidence.ps1`](../../tools/acceptance/collect-win-evidence.ps1) を
 展開先フォルダで実行すると、機械情報 (解像度・DPI・GPU)、`version.json`、exe の版数、
 `Player.log`、**実フルスクリーン判定 (`fullscreen.txt`)**、スクリーンショット、ZIP の
 SHA-256 照合、記入式の `operation-log.md` を 1 つのフォルダにまとめます。
@@ -125,7 +125,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
 `fullscreen.txt` は `Player.log` の `[FullscreenDiagnostics]` 実測行から、
 `fullScreen` / `fullScreenMode` / **`Screen.width` が `currentResolution` を覆う被覆率** /
 期待解像度との一致を判定します (判定式は
-[`fullscreen-report.ps1`](../../../tools/acceptance/fullscreen-report.ps1)、自己テストは
+[`fullscreen-report.ps1`](../../tools/acceptance/fullscreen-report.ps1)、自己テストは
 `fullscreen-report.test.ps1` で 43 ケース固定、Mac 証跡 36 本の実ログで 35 PASS / 1 NO-DATA を再現)。
 
 | 値 | 意味 |

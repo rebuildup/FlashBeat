@@ -56,7 +56,7 @@ Issue #162 により **誤りかつ無効** — 検証にも実装にも使わ�
 | `checkResolution=PASS` | `-ExpectResolution` で指定した解像度と `screen=` が一致 |
 | `result=PASS` | 上の 3 つがすべて PASS |
 
-判定式は [`tools/acceptance/fullscreen-report.ps1`](../../../tools/acceptance/fullscreen-report.ps1)
+判定式は [`tools/acceptance/fullscreen-report.ps1`](../../tools/acceptance/fullscreen-report.ps1)
 (自己テスト `fullscreen-report.test.ps1` が 43 ケースを固定し、Windows 無しで走る)。
 既存の Mac 証跡の `Player.log` 36 本を再判定し、35 本が `result=PASS` (`screen=2560x1664`)、
 残り 1 本 (r17) は起動途中でコピーされて診断行が無く `result=NO-DATA` だった。
