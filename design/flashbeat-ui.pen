@@ -20668,6 +20668,18 @@
                           "fontFamily": "$font-ui",
                           "fontSize": 32,
                           "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "W8jGh",
+                          "x": 336,
+                          "y": 0,
+                          "name": "Trophy",
+                          "width": 32,
+                          "height": 32,
+                          "icon": "trophy",
+                          "library": "lucide",
+                          "fill": "#EDEDED"
                         }
                       ]
                     },
@@ -23473,7 +23485,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 120,
-                              "content": "F2",
+                              "content": "開く ›",
                               "textAlign": "right",
                               "fontFamily": "$font-ui",
                               "fontSize": 24,
@@ -28679,6 +28691,29 @@
                           "lineHeight": 1.4,
                           "fontFamily": "$font-ui",
                           "fontSize": 24,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 12,
+                          "id": "AnrE2",
+                          "x": 464,
+                          "y": 418,
+                          "name": "Slider Knob",
+                          "fill": "$text",
+                          "width": 24,
+                          "height": 24
+                        },
+                        {
+                          "type": "text",
+                          "id": "OAM2f",
+                          "x": 24,
+                          "y": 444,
+                          "name": "Slider Hint",
+                          "fill": "$text-dim",
+                          "content": "ドラッグ / ←→ で調整",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 18,
                           "fontWeight": "normal"
                         }
                       ]
@@ -33995,7 +34030,25 @@
                   "x": 0,
                   "y": 0,
                   "name": "Top Shade",
-                  "fill": "#000000A6",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#000000A6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#00000000",
+                        "position": 1
+                      }
+                    ]
+                  },
                   "width": 1920,
                   "height": 260
                 },
@@ -34613,7 +34666,25 @@
                   "x": 0,
                   "y": 0,
                   "name": "Top Shade",
-                  "fill": "#000000A6",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#000000A6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#00000000",
+                        "position": 1
+                      }
+                    ]
+                  },
                   "width": 2560,
                   "height": 347
                 },
@@ -35231,7 +35302,25 @@
                   "x": 0,
                   "y": 0,
                   "name": "Top Shade",
-                  "fill": "#000000A6",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#000000A6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#00000000",
+                        "position": 1
+                      }
+                    ]
+                  },
                   "width": 2560,
                   "height": 347
                 },
@@ -39453,6 +39542,947 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "J7tBYP",
+          "x": 4100,
+          "y": 870,
+          "name": "Volume Slider",
+          "width": 512,
+          "height": 160,
+          "fill": "#00000000",
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "Lgivb",
+              "x": 0,
+              "y": 0,
+              "name": "Value",
+              "fill": "$text",
+              "content": "100%",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 58,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "MivN9",
+              "x": 0,
+              "y": 84,
+              "name": "Track",
+              "width": 464,
+              "height": 20,
+              "fill": "$k1",
+              "cornerRadius": 10,
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 10,
+                  "id": "yo07M",
+                  "name": "Fill",
+                  "fill": "$k6",
+                  "width": 464,
+                  "height": 20
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 12,
+              "id": "pRJKM",
+              "x": 452,
+              "y": 82,
+              "name": "Knob",
+              "fill": "$text",
+              "width": 24,
+              "height": 24
+            },
+            {
+              "type": "text",
+              "id": "Luw1r",
+              "x": 0,
+              "y": 112,
+              "name": "Hint",
+              "fill": "$text-dim",
+              "content": "ドラッグ / ←→ で調整",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "xuQnv",
+          "x": 4100,
+          "y": 340,
+          "name": "Countdown",
+          "width": 1120,
+          "height": 220,
+          "fill": "#00000099",
+          "cornerRadius": 8,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "TSZsK",
+              "name": "Value",
+              "fill": "$text",
+              "content": "3",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 132,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "xXKic",
+          "x": 4100,
+          "y": 610,
+          "name": "Song End Overlay",
+          "width": 1120,
+          "height": 220,
+          "fill": "#00000099",
+          "cornerRadius": 8,
+          "layout": "vertical",
+          "gap": 6,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "aN8OT",
+              "name": "Title",
+              "fill": "$text",
+              "content": "終了",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 64,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "ohl9x",
+              "name": "Sub",
+              "fill": "$text-dim",
+              "content": "リザルトへ",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vo4kB",
+      "x": 9000,
+      "y": 0,
+      "name": "06b Key Config · v6",
+      "width": 1728,
+      "height": 972,
+      "fill": "#00000000",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "KhZzA",
+          "x": 0,
+          "y": 0,
+          "name": "Scrim",
+          "fill": "#00000099",
+          "width": 1728,
+          "height": 972
+        },
+        {
+          "type": "frame",
+          "id": "fkoJA",
+          "x": 444,
+          "y": 124,
+          "name": "Dialog",
+          "width": 840,
+          "height": 724,
+          "fill": "$k1",
+          "cornerRadius": 16,
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "Q6kHOI",
+              "x": 28,
+              "y": 28,
+              "name": "Head",
+              "fill": "$text",
+              "content": "キー設定",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 32,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "WODmV",
+              "x": 28,
+              "y": 72,
+              "name": "Description",
+              "fill": "$text-dim",
+              "content": "レーンごとに代表キーを変更します。",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "JiiVJ",
+              "x": 28,
+              "y": 112,
+              "name": "Lane List",
+              "width": 784,
+              "height": 472,
+              "fill": "#00000000",
+              "layout": "none",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Rx84j",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Lane Row 1",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k6",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UbWcS",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 1",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "G6Fc2",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fb8Bx",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "1",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "S0Neb",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text",
+                      "content": "Enter で変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SIKVn",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: Q / A / Z",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n3dI9E",
+                  "x": 0,
+                  "y": 60,
+                  "name": "Lane Row 2",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JOcDq",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 2",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tnKFa",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ow0qy",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "2",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "dN8JF",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "h5d2eX",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: W / S / X",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "N669s",
+                  "x": 0,
+                  "y": 120,
+                  "name": "Lane Row 3",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yfWvf",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 3",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I81M4o",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "f7txXy",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "3",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "sZbpQ",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wIn8q",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: E / D / C",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "i5t7I",
+                  "x": 0,
+                  "y": 180,
+                  "name": "Lane Row 4",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p7w5cd",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 4",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Sl4OL",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bCiLM",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "4",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "O3f3Ci",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xGZdf",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: 5 / R / T / F / G / V / B",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jAQQH",
+                  "x": 0,
+                  "y": 240,
+                  "name": "Lane Row 5",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "k4oln",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 5",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "esHC5",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ggjsf",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "6",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "t8fDvo",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "eQzXJ",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: 7 / Y / U / H / J / N / M",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y8S9V",
+                  "x": 0,
+                  "y": 300,
+                  "name": "Lane Row 6",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YxZA5",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 6",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jBgSm",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Wwz0p",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "8",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "kTZR0",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "IEbYK",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: I / K / , / <",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "oVfwE",
+                  "x": 0,
+                  "y": 360,
+                  "name": "Lane Row 7",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vivxW",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 7",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gmiRP",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "etHEh",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "9",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "QRgEZ",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bYqMU",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: O / L / . / >",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LYSLl",
+                  "x": 0,
+                  "y": 420,
+                  "name": "Lane Row 8",
+                  "width": 784,
+                  "height": 52,
+                  "fill": "$k2",
+                  "cornerRadius": 8,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bE3Ny",
+                      "x": 16,
+                      "y": 16,
+                      "name": "Lane",
+                      "fill": "$text-dim",
+                      "content": "Lane 8",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pobHp",
+                      "x": 152,
+                      "y": 6,
+                      "name": "KeyCap",
+                      "width": 120,
+                      "height": 40,
+                      "fill": "$k4",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "V5jFF",
+                          "name": "Key",
+                          "fill": "$text",
+                          "content": "0",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans JP",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "sPhvS",
+                      "x": 288,
+                      "y": 2,
+                      "name": "State",
+                      "fill": "$text-muted",
+                      "content": "変更",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "s1aTLL",
+                      "x": 288,
+                      "y": 32,
+                      "name": "Alternates",
+                      "fill": "$text-dim",
+                      "content": "他: - / ^ /  / P / @ …",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l49icA",
+              "x": 28,
+              "y": 612,
+              "name": "Buttons",
+              "width": 784,
+              "height": 56,
+              "fill": "#00000000",
+              "gap": 12,
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "z1yY8U",
+                  "name": "Button · Reset",
+                  "width": 220,
+                  "height": 56,
+                  "fill": "$k4",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "X79FY",
+                      "name": "Label",
+                      "fill": "$text",
+                      "content": "既定に戻す",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 24,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "o7vGl",
+                  "name": "Button · Cancel",
+                  "width": 180,
+                  "height": 56,
+                  "fill": "$k4",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zftpw",
+                      "name": "Label",
+                      "fill": "$text",
+                      "content": "キャンセル",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 24,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vsY9B",
+                  "name": "Button · Apply",
+                  "width": 252,
+                  "height": 56,
+                  "fill": "#EDEDED",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Cznk9",
+                      "name": "Label",
+                      "fill": "#1B1B1B",
+                      "content": "適用",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 24,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rectangle",
+      "id": "k3Rq6j",
+      "x": 2296,
+      "y": 363,
+      "name": "Result Caret (state)",
+      "fill": "$text",
+      "width": 2,
+      "height": 44
+    },
+    {
+      "type": "frame",
+      "id": "TYshI",
+      "x": 2784,
+      "y": 259,
+      "name": "Registration Success (state)",
+      "width": 272,
+      "height": 32,
+      "fill": "$ok-tint",
+      "cornerRadius": 4,
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "J1B56a",
+          "x": 0,
+          "y": 0,
+          "name": "Label",
+          "fill": "$ok-light",
+          "content": "登録しました",
+          "textAlign": "center",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     }
