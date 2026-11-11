@@ -255,7 +255,7 @@ jobs:
             exit 1
           fi
           # 焼き込まれた版数を実物で確認する (ZIP 名だけを信じない)。
-          baked="$(grep -m1 'bundleVersion:' ProjectSettings/ProjectSettings.asset | awk '{print $2}')"
+          baked="$(grep -m1 '^[[:space:]]*bundleVersion:' ProjectSettings/ProjectSettings.asset | awk '{print $2}')"
           if [ "$baked" != "$base+$short" ]; then
             echo "::error title=version mismatch::埋込版数が一致しません: expected $base+$short, actual $baked"
             exit 1

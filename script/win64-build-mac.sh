@@ -128,7 +128,7 @@ VERSION="${VERSION_BASE}-win64-${SHA}"
 ZIP="$OUT_DIR/FlashBeat-${VERSION}.zip"
 
 # 焼き込まれた版数と更新チャンネルを実物で確認する (ZIP 名だけを信じない)。
-BAKED="$(grep -m1 'bundleVersion:' "$WORKTREE/ProjectSettings/ProjectSettings.asset" | awk '{print $2}')"
+BAKED="$(grep -m1 '^[[:space:]]*bundleVersion:' "$WORKTREE/ProjectSettings/ProjectSettings.asset" | awk '{print $2}')"
 [ "$BAKED" = "${VERSION_BASE}+${SHA}" ] || {
   echo "埋込版数が一致しません: expected ${VERSION_BASE}+${SHA}, actual ${BAKED}" >&2; exit 1; }
 CHANNEL_FILE="$WORKTREE/Builds/Windows/FlashBeat_Data/StreamingAssets/update-channel.txt"
