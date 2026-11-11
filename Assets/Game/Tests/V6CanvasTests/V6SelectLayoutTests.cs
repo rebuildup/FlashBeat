@@ -378,8 +378,11 @@ namespace FlashBeat.UI.V6.Select.View.Tests
 
             foreach (int[] res in TargetResolutions)
             {
-                Assert.AreEqual(20f, V6SelectViewLogic.CapFontSize, "the cap font size must be a design constant");
-                Assert.AreEqual(20f, V6SelectViewLogic.LabelFontSize, "the label font size must be a design constant");
+                // design OENRv の凡例は KeyCap fs22 / Label fs22 (h32 / pad8 / gap8 / gap24)。
+                // 画面解像度では変わらない design 定数であることを固定する。
+                Assert.AreEqual(22f, V6SelectViewLogic.CapFontSize, "the cap font size must be a design constant");
+                Assert.AreEqual(22f, V6SelectViewLogic.LabelFontSize, "the label font size must be a design constant");
+                Assert.AreEqual(32f, V6SelectViewLogic.LegendCapHeight, "the cap height must be a design constant");
                 Assert.AreEqual(0f, back.X);
                 Assert.AreEqual(80f, title.X);
                 Assert.AreEqual(legendWidth, V6SelectViewLogic.FooterLegendWidth("Space"));
