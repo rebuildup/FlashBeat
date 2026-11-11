@@ -1,0 +1,562 @@
+Mono path[0] = 'D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/Managed'
+Mono config path = 'D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=0x28a1)
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.2114
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.042 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 0.714800 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1440, currentResolution=2560x1440@59.951Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=96, safeArea=0,0,2560x1440, displays=3, display0=system:2560x1440,rendering:2560x1440,active:True, display1=system:2560x1600,rendering:2560x1600,active:False, display2=system:1920x1080,rendering:1920x1080,active:False, quality=1, time=2026-11-10T13:16:32Z
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:\FlashBeat-acceptance\v0.1.22-7af9242d\app\FlashBeat_Data\sharedassets0.resource
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: win64
+[UpdateChecker] 最新です (build=0.1.22+7af9242d, latest=v0.1.21-win64-d581c4c) — 現行版のまま続行します。
+[Perf] opening scene start
+[Perf] opening video first frame 0ms
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+Already Fading
+[Perf] scene load start TitleScene
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+Already Fading
+Already Fading
+UnloadTime: 1.749600 ms
+[Perf] scene load end TitleScene 55ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3240.
+Total: 1.266000 ms (FindLiveObjects: 0.090300 ms CreateObjectMapping: 0.154600 ms MarkObjects: 0.983000 ms  DeleteObjects: 0.037900 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Perf] scene load start SelectScene
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.287400 ms
+[Perf] scene load end SelectScene 53ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+ro-dokanryou
+Unloading 34 unused Assets to reduce memory usage. Loaded Objects now: 5974.
+Total: 2.078200 ms (FindLiveObjects: 0.190500 ms CreateObjectMapping: 0.227900 ms MarkObjects: 1.623400 ms  DeleteObjects: 0.036300 ms)
+
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[PlaySession] session fixed: songId=1 title='ロストアンブレラ' remoteId='lost-umbrella' chartVersion=2 chart=snapshot
+[Perf] scene load start GameScene
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.143400 ms
+[Perf] notes parse 0ms (268 notes)
+[Perf] scene load end GameScene 58ms
+[MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+[MusicManager] yt-dlp -F videoId=DeKLpgzh-qQ formats=37 ok
+[MusicManager]   format sb2 mhtml 48x27 v=images a=
+[MusicManager]   format sb1 mhtml 80x45 v=images a=
+[MusicManager]   format sb0 mhtml 160x90 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'ロストアンブレラ': combined mp4/H.264 itag=18 640x360 (merge available: True)
+[MusicManager] video file: <USERPROFILE>/AppData/LocalLow/KimuraYusuke/FlashBeat\FlashBeatMedia\DeKLpgzh-qQ\merged.mp4 (cache)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+First video frame not zero: 1 (0.033333s). Result may be out of sync. Please make sure tracks all start at 0 in <USERPROFILE>\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\DeKLpgzh-qQ\merged.mp4
+Unloading 79 unused Assets to reduce memory usage. Loaded Objects now: 6746.
+Total: 2.046200 ms (FindLiveObjects: 0.212900 ms CreateObjectMapping: 0.284200 ms MarkObjects: 1.455900 ms  DeleteObjects: 0.092900 ms)
+
+[Perf] notes instantiate 268 notes in 3518ms
+[MusicManager] picture wired to the renderer of '1' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
+[MusicManager] no bundled wav for 'ロストアンブレラ' - the YouTube media is the only sound source
+[Perf] media ready 20ms
+[MusicManager] media ready: song='ロストアンブレラ' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[MusicManager] PLAYBACK_START song='ロストアンブレラ' videoId='DeKLpgzh-qQ' source=StreamCombined mediaTime=0.000 wallClock=2026-11-10T22:17:25.889 gameTime=48.921
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+Miss
+Miss
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.5019 peak=0.5067 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=4.00 audioMode=StreamCombined rms=0.2605 peak=0.6665 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=6 failure=None
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=6.00 audioMode=StreamCombined rms=0.0442 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=10 failure=None
+Miss
+Miss
+[MusicManager] STATUS mediaTime=8.00 audioMode=StreamCombined rms=0.4725 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=12 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=10.00 audioMode=StreamCombined rms=0.2337 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=21 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=12.00 audioMode=StreamCombined rms=0.2173 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=30 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=14.00 audioMode=StreamCombined rms=0.2563 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=40 failure=None
+[MusicManager] STATUS mediaTime=16.00 audioMode=StreamCombined rms=0.2279 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=40 failure=None
+[MusicManager] STATUS mediaTime=18.00 audioMode=StreamCombined rms=0.3292 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=40 failure=None
+[MusicManager] STATUS mediaTime=20.03 audioMode=StreamCombined rms=0.3321 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=40 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=22.03 audioMode=StreamCombined rms=0.4836 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=50 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=24.03 audioMode=StreamCombined rms=0.4159 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=59 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=26.03 audioMode=StreamCombined rms=0.4673 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=68 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=28.03 audioMode=StreamCombined rms=0.4004 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=75 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=30.03 audioMode=StreamCombined rms=0.4323 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=84 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=32.03 audioMode=StreamCombined rms=0.4434 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=93 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=34.03 audioMode=StreamCombined rms=0.4543 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=101 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=36.03 audioMode=StreamCombined rms=0.4921 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=109 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=38.03 audioMode=StreamCombined rms=0.4302 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=117 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=40.03 audioMode=StreamCombined rms=0.3322 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=126 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=42.03 audioMode=StreamCombined rms=0.4363 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=132 failure=None
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=44.03 audioMode=StreamCombined rms=0.4351 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=136 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=46.03 audioMode=StreamCombined rms=0.2899 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=144 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=48.03 audioMode=StreamCombined rms=0.3000 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=152 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=50.03 audioMode=StreamCombined rms=0.5199 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=162 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=52.03 audioMode=StreamCombined rms=0.4606 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=172 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=54.03 audioMode=StreamCombined rms=0.3760 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=180 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=56.03 audioMode=StreamCombined rms=0.3940 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=189 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=58.03 audioMode=StreamCombined rms=0.3707 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=198 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=60.07 audioMode=StreamCombined rms=0.2326 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=206 failure=None
+[MusicManager] STATUS mediaTime=62.07 audioMode=StreamCombined rms=0.4739 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=206 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=64.07 audioMode=StreamCombined rms=0.5539 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=218 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=66.07 audioMode=StreamCombined rms=0.3737 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=231 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=68.07 audioMode=StreamCombined rms=0.4255 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=240 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=70.07 audioMode=StreamCombined rms=0.2707 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=247 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=72.07 audioMode=StreamCombined rms=0.3679 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=254 failure=None
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=74.07 audioMode=StreamCombined rms=0.3388 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=263 failure=None
+Miss
+Miss
+Miss
+Miss
+[MusicManager] STATUS mediaTime=76.07 audioMode=StreamCombined rms=0.3590 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] STATUS mediaTime=78.07 audioMode=StreamCombined rms=0.3999 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] STATUS mediaTime=80.07 audioMode=StreamCombined rms=0.3795 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] STATUS mediaTime=82.07 audioMode=StreamCombined rms=0.4563 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] STATUS mediaTime=84.07 audioMode=StreamCombined rms=0.2193 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] STATUS mediaTime=86.07 audioMode=StreamCombined rms=0.3726 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[MusicManager] song completed: judged 268/268, mediaEnded=False, state=Completed
+[MusicManager] STATUS mediaTime=88.07 audioMode=StreamCombined rms=0.3781 peak=0.6726 video[playing=True frame=6077 prepared=True] perfect=1 great=0 bad=0 miss=267 failure=None
+[Perf] scene load start ResultScene
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 11.518700 ms
+[Perf] scene load end ResultScene 64ms
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+se-bukanryou
+Unloading 62 unused Assets to reduce memory usage. Loaded Objects now: 4006.
+Total: 4.098400 ms (FindLiveObjects: 0.164000 ms CreateObjectMapping: 0.288200 ms MarkObjects: 3.537800 ms  DeleteObjects: 0.108100 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Perf] scene load start SelectScene
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.921800 ms
+[Perf] scene load end SelectScene 56ms
+ro-dokanryou
+Unloading 64 unused Assets to reduce memory usage. Loaded Objects now: 5835.
+Total: 4.654600 ms (FindLiveObjects: 0.421200 ms CreateObjectMapping: 0.300200 ms MarkObjects: 3.840900 ms  DeleteObjects: 0.092200 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Perf] scene load start TitleScene
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.731600 ms
+[Perf] scene load end TitleScene 53ms
+Unloading 43 unused Assets to reduce memory usage. Loaded Objects now: 3318.
+Total: 2.724500 ms (FindLiveObjects: 0.144800 ms CreateObjectMapping: 0.180600 ms MarkObjects: 2.326600 ms  DeleteObjects: 0.072200 ms)
+
+Color primaries 0 is unknown or unsupported by WindowsMediaFoundation. Falling back to default may result in color shift. D:/FlashBeat-acceptance/v0.1.22-7af9242d/app/FlashBeat_Data/resources.resource
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed
