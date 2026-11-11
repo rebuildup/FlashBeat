@@ -39,17 +39,8 @@ namespace FlashBeat.UI.V6.Select.Data
         readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
         readonly List<V6RankingRow> emptyRanking = new List<V6RankingRow>();
 
-        // 実在するジャケットのみ (V5 SelectView の JacketResourceNames と同じ対応表)。
-        // 無い曲は空文字を返し、固定画像を流用しない。
-        static readonly Dictionary<string, string> JacketResourceNames = new Dictionary<string, string>
-        {
-            { "Poison", "Poison" },
-            { "Calamity", "Calamity" },
-            { "まにまに", "mani" },
-            { "エウタナシア", "euta" },
-            { "終焉逃避行", "syuen" },
-            { "4th smile", "4th smile" },
-        };
+        // ジャケットの対応表は V6JacketResources (Common) が唯一の正本。
+        // Select 側に写しを置かない (Result / Loading と拡張子の扱いが食い違う原因だった)。
 
         string query = "";
         int selectedSongId = -1;
@@ -333,57 +324,17 @@ namespace FlashBeat.UI.V6.Select.Data
         }
 
         /// <summary>
-        /// ジャケットの Resources パス。
+        /// ジャケットの Resources パス (拡張子なし)。
         ///
         /// v6 では全曲のジャケットを Resources/V6/select/jacket/ に置いてある
         /// (Pencil 設計の正式データ。ファイル名は "&lt;カタログ index&gt;-&lt;slug&gt;.jpg"、
-        /// index は GManager.SongName の並びと一致する)。
-        /// 対応する画像が無い曲 (灰Φ倶楽部: 22) は空文字を返し、固定画像を流用しない。
+        /// index は GManager.SongName の並びと一致する。1..26 はすべて画像あり
+        /// (22 = 灰Φ倶楽部も含む)。表に無い index は空文字を返し、固定画像を流用しない。
+        /// 解決は <see cref="V6JacketResources"/> に一本化している。
         /// </summary>
         static string JacketResourcePathOf(int songId, string title)
         {
-            string v6 = V6JacketFileOf(songId);
-            if (!string.IsNullOrEmpty(v6)) return "V6/select/jacket/" + v6;
-
-            if (string.IsNullOrEmpty(title)) return "";
-            string name;
-            if (JacketResourceNames.TryGetValue(title, out name)) return "V5/select/jacket/" + name;
-            return "";
-        }
-
-        /// <summary>カタログ index → ジャケットファイル名 (画像が無い index は空文字)。</summary>
-        static string V6JacketFileOf(int songId)
-        {
-            switch (songId)
-            {
-                case 1: return "01-rosen.jpg";
-                case 2: return "02-mani.jpg";
-                case 3: return "03-who.jpg";
-                case 4: return "04-tweet.jpg";
-                case 5: return "05-shuumatsu.jpg";
-                case 6: return "06-euta.jpg";
-                case 7: return "07-chartreuse.jpg";
-                case 8: return "08-psyched.jpg";
-                case 9: return "09-dogbite.jpg";
-                case 10: return "10-tutorial.jpg";
-                case 11: return "11-kyoukiranmai.jpg";
-                case 12: return "12-poison.jpg";
-                case 13: return "13-selfie.jpg";
-                case 14: return "14-4thsmile.jpg";
-                case 15: return "15-calamity.jpg";
-                case 16: return "16-panopticon.jpg";
-                case 17: return "17-guru.jpg";
-                case 18: return "18-abun.jpg";
-                case 19: return "19-mushin.jpg";
-                case 20: return "20-haruarashi.jpg";
-                case 21: return "21-bibibibi.jpg";
-                // 22 (灰Φ倶楽部) に対応するジャケットは無い (設計の 22-haihai は別の曲)。
-                case 23: return "23-override.jpg";
-                case 24: return "24-igaku.jpg";
-                case 25: return "25-tekkyu.jpg";
-                case 26: return "26-ikken.jpg";
-                default: return "";
-            }
+            return V6JacketResources.PathOf(songId, title);
         }
 
         // --- ランキング -----------------------------------------------------------

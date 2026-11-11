@@ -211,10 +211,11 @@ namespace FlashBeat.UI.V5
             if (font != null)
             {
                 tmp.font = font;
-                // V6Controls.Text と同一の行送り詰め: NotoSansJP の行送りは fs の約 1.45 倍で、
-                // 矩形の縦高が行送り未満だと Ellipsis で 1 行も描画されない。
-                // 行送りを ≈ fs にして「矩形高 ≥ fs なら必ず 1 行描画」にする。
-                // 折り返し段落で行間を広げたい呼び出し側は後から lineSpacing を上書きする。
+                // 行送りを詰めて 1 行の描画位置を fs に揃える (折り返し段落で行間を広げたい
+                // 呼び出し側は後から lineSpacing を上書きする)。
+                // 注意: lineSpacing は行間 (2 行目以降の間隔) にしか効かず、Ellipsis の
+                // 「矩形高 < 行送りなら 0 行」判定は faceInfo の行送りのまま変わらない。
+                // 固定矩形で Ellipsis を使う箇所は FitEllipsisToLineHeight を併用すること。
                 if (font.faceInfo.pointSize > 0)
                 {
                     tmp.lineSpacing = (1f - font.faceInfo.lineHeight / font.faceInfo.pointSize) * 100f;
@@ -222,6 +223,65 @@ namespace FlashBeat.UI.V5
             }
 
             return tmp;
+        }
+
+        /// <summary>
+        /// 固定矩形 + <see cref="TextOverflowModes.Ellipsis"/> の 1 行テキストが
+        /// 「1 行も描画されない」TMP の挙動を打ち消す。
+        ///
+        /// TMP は矩形の実効高 (rect 高 − margin 上下) が行送り
+        /// (NotoSansJP-Medium: lineHeight 69.504 / pointSize 48 = <b>fs × 1.448</b>) を
+        /// 下回ると Ellipsis で 0 行にし、空白になる。実測 (EditMode):
+        /// fs20×h29 (= 28.96、ちょうど) は描画 / fs23×h33 (33.35) / fs26×h36 (37.65) /
+        /// fs30×h43 (43.44) / fs34×h36 (49.23) は非描画。lineSpacing を詰めても
+        /// この判定には効かない (行間専用)。design 矩形は往々にしてこの境界を
+        /// 数 px 下回るため、矩形を高くする回避 (Pause の 43→46 等) が必要だった。
+        ///
+        /// ここでは上下 margin を同じ負値にして実効高だけを広げる。垂直中央揃えなので
+        /// 描画位置・矩形サイズは自然描画と完全に一致する (実測でベースライン同一)。
+        /// 矩形の高さ自体を増やすと中央揃えで下へずれるので不可。
+        /// <b>rect (design 座標) と fontSize を確定した後に呼ぶこと。</b>
+        /// text の再設定は不要 (margin は再生成後も保持される)。
+        /// </summary>
+        public static void FitEllipsisToLineHeight(TextMeshProUGUI tmp)
+        {
+            FitEllipsisToLineHeight(tmp, 0f);
+        }
+
+        /// <summary>
+        /// <see cref="FitEllipsisToLineHeight(TextMeshProUGUI)"/> の矩形高さ明示版。
+        /// LayoutGroup 配下など、呼び出し時点で rect が確定していない (0 の) 場合に使う。
+        /// rectHeight &lt;= 0 は rect から読む。
+        /// </summary>
+        public static void FitEllipsisToLineHeight(TextMeshProUGUI tmp, float rectHeight)
+        {
+            if (tmp == null)
+            {
+                return;
+            }
+
+            var font = tmp.font;
+            if (font == null || font.faceInfo.pointSize <= 0f)
+            {
+                return;
+            }
+
+            float lineHeight = font.faceInfo.lineHeight / font.faceInfo.pointSize * tmp.fontSize;
+            if (rectHeight <= 0f)
+            {
+                rectHeight = tmp.rectTransform.rect.height;
+            }
+
+            var m = tmp.margin;
+            float effective = rectHeight - m.y - m.w;
+            if (effective >= lineHeight)
+            {
+                return;
+            }
+
+            // 切り上げで必ず行送り以上にする (実測境界が一致値のため丸め負けを防ぐ)。
+            float pad = Mathf.Ceil((lineHeight - effective) * 0.5f);
+            tmp.margin = new Vector4(m.x, m.y - pad, m.z, m.w - pad);
         }
 
         // --- Components v5 相当部品 ---

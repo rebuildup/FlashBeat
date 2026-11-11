@@ -178,7 +178,19 @@ namespace FlashBeat.UI.V6.Option
 
             // キー設定 (KeyConfigUI) が開いている間は背面の操作を止める
             // (ドライバが suspend されない環境でも二重入力しない)。
-            if (KeyConfigUI.IsOpen || !FlashBeat.UI.SceneInputGate.InputAllowed)
+            // オーバーレイが消費しない F1 だけはここで受け取り、編集のキャンセルにする:
+            // 確定 = Esc / F2 で閉じる (= 保存)、キャンセル = F1 で保存値へ戻して閉じる。
+            if (KeyConfigUI.IsOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.F1))
+                {
+                    CancelKeyConfigEdit();
+                }
+
+                return;
+            }
+
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed)
             {
                 return;
             }
@@ -312,6 +324,15 @@ namespace FlashBeat.UI.V6.Option
             Rebuild();
         }
 
+        /// <summary>
+        /// 自動撮影 (-autotest v6screens) が各タブの実画面を撮るための操作 API。
+        /// 実機では Tab / クリックで切り替わる動作そのものを呼ぶ。
+        /// </summary>
+        public void SelectTabForAudit(int index)
+        {
+            SelectTab(index);
+        }
+
         // --- 構築 ---
 
         private void BuildRoot(RectTransform parent)
@@ -429,16 +450,7 @@ namespace FlashBeat.UI.V6.Option
 
         private static void ClearChildren(Transform parent)
         {
-            var children = new List<GameObject>();
-            foreach (Transform child in parent)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(parent);
         }
 
         // --- ヘッダー (契約 §4 + design B6If6Z パッチ: (24,0) 1680x96) ---
@@ -462,12 +474,7 @@ namespace FlashBeat.UI.V6.Option
                 if (onBack != null) onBack();
             });
 
-            var backCol = V6Layout.Column(back, "Inner", new Vector2(0f, 7f), new Vector2(56f, 42f), 2f);
-            var backIcon = V6Icons.Create(backCol, "arrow-left", 24f, V6Tokens.TextMuted, "Icon");
-            var backKey = V6Controls.Text(backCol, "Key", "Esc", Vector2.zero, new Vector2(56f, 16f),
-                16f, V6Tokens.TextMuted, TextAlignmentOptions.Center);
-            var icons = new[] { backIcon, (Component)backKey };
-            V6Layout.StackVertical(backCol.GetComponent<RectTransform>(), 2f, icons);
+            V6Controls.FillBackButton(back, "Esc");
 
             V6Controls.Text(header.gameObject, "Title", "OPTION",
                 new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,
@@ -475,40 +482,24 @@ namespace FlashBeat.UI.V6.Option
         }
 
         // --- フッター (契約 §4 + design B6If6Z パッチ: (24,876) 1680x96) ---
-        // キー凡例はパッチ QQ4jM → r4IJx (0,30) gap24: ↑↓選択 / ←→変更 / Tabタブ切替 /
-        // Esc戻る / Enter決定 (KeyCap h36 r4 padding[0,8] fs22 + Label fs22, 項内 gap8)。
+        // キー凡例はパッチ r4IJx: フッター (0,30) 高さ 32 / 項目間 gap24、
+        // 項内は KeyCap (h32 r4 padding[0,8] #3A3A3A, Key fs22 $text-muted) + Label
+        // (fs22 $text-muted) を gap8 で並べる。design 実測の項幅は
+        // ↑↓選択 114 / ←→変更 114 / Tabタブ切替 151 / Esc戻る 104 / Enter決定 124。
+        // Label の幅は概算 0.62em ではなく TMP 実測で詰める (「タブ切替」= 4 全角で
+        // 89px。固定 60px だと次の項へはみ出し、凡例が「タブ切替 Esc」と繋がって見えた)。
         // 補助操作 / 主操作はパッチ FChYu / F8SwvS で「Op · なし」(空フレーム) に
         // 差し替え済み — Option にフッターボタンは無い (決定は Enter / 行クリック)。
 
         private void BuildFooter()
         {
             var footer = Zone("Footer");
-
-            var legend = V6Layout.Row(footer.gameObject, "Zone Key Ops",
-                new Vector2(0f, 30f), new Vector2(840f, 36f), 24f);
-            var items = new Component[]
-            {
-                LegendItem(legend, "↑↓", "選択").transform,
-                LegendItem(legend, "←→", "変更").transform,
-                LegendItem(legend, "Tab", "タブ切替").transform,
-                LegendItem(legend, "Esc", "戻る").transform,
-                LegendItem(legend, "Enter", "決定").transform,
-            };
-            V6Layout.StackHorizontal(legend.GetComponent<RectTransform>(), 24f, items);
-        }
-
-        /// <summary>凡例 1 項目 (KeyCap + Label, gap8 — design パッチの L0..L4 構造)。</summary>
-        private static GameObject LegendItem(GameObject parent, string key, string label)
-        {
-            float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * V6Controls.KeyCapFontSize)
-                + 8f * 2f; // design パッチの KeyCap padding [0,8]
-            var item = V6Layout.Row(parent, "Legend " + label, Vector2.zero,
-                new Vector2(keyW + 8f + 60f, 36f), 8f);
-            var cap = V6Controls.KeyCap(item, key, new Vector2(0f, 0f), new Vector2(keyW, V6Tokens.KeyCapHeight));
-            V6Controls.Text(item, "Label", label,
-                new Vector2(keyW + 8f, 0f), new Vector2(60f, 36f), 22f, V6Tokens.TextMuted,
-                TextAlignmentOptions.Left);
-            return item;
+            float x = 0f;
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "↑↓", "選択");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "←→", "変更");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Tab", "タブ切替");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Esc", "戻る");
+            V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Enter", "決定");
         }
 
         // --- タブ (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
@@ -651,8 +642,16 @@ namespace FlashBeat.UI.V6.Option
             {
                 BuildKeyGrid(panel);
             }
+            else if (selectedTab == 1)
+            {
+                BuildJudgeLegend(panel);
+            }
+            else if (selectedTab == 2)
+            {
+                BuildVolumePreview(panel);
+            }
 
-            BuildDesc(panel, V6OptionLogic.DescDividerY, SelectedRowDesc());
+            BuildDesc(panel, V6OptionLogic.DescDividerYOf(selectedTab), SelectedRowDesc());
         }
 
         private string PreviewHeadTitle()
@@ -679,14 +678,17 @@ namespace FlashBeat.UI.V6.Option
 
             // レーン中心線: 下端 (判定線 y240) で 58px 間隔、上端 (y0) で約 7px 間隔
             // (design プレイフィールドの 150 → 18 px の縮約)。
+            // design のレーン番号は (6 + 58i, 246) 40x26 の中心、つまり判定線上の中心は
+            // 26 + 58i (中心 229)。464 幅の中央 232 から -3 ずれるが design 実測に合わせる。
             const float judgeY = 240f;
             const float bottomSpacing = 58f;
+            const float bottomCenterX = 26f;
             const float topSpacingRatio = 7f / 58f;
-            float centerX = GamePrevW * 0.5f;
             for (int i = 0; i < 8; i++)
             {
-                float bottomX = centerX + (i - 3.5f) * bottomSpacing;
-                float topX = centerX + (bottomX - centerX) * topSpacingRatio;
+                float bottomX = bottomCenterX + bottomSpacing * i;
+                float hub = GamePrevW * 0.5f;
+                float topX = hub + (bottomX - hub) * topSpacingRatio;
                 DrawLine(well, "Lane " + i, bottomX, judgeY, topX, 0f, 1.5f, FromHex("#FFFFFF24"));
             }
 
@@ -709,8 +711,10 @@ namespace FlashBeat.UI.V6.Option
 
             for (int i = 0; i < 8; i++)
             {
+                // 番号はレーン中心線の真下 (design: (6 + 58i, 246) 40x26 fs18)。
+                float bottomX = bottomCenterX + bottomSpacing * i;
                 V6Controls.Text(well, "Lane Label " + i, (i + 1).ToString(),
-                    new Vector2(6f + 58f * i, 246f), new Vector2(40f, 22f), 18f, V6Tokens.TextMuted,
+                    new Vector2(bottomX - 20f, 246f), new Vector2(40f, 26f), 18f, V6Tokens.TextMuted,
                     TextAlignmentOptions.Center);
             }
         }
@@ -738,22 +742,117 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 / Desc y614)。</summary>
+        /// <summary>
+        /// Display タブ: 判定色の凡例 (design EzLfb Judge PERFECT..MISS)。
+        /// チップ (24,360) 106×64 r8 $k1 / Marker (37,16) 32×4 r2 判定色 /
+        /// Label fs18 $text-dim 中央。判定色は HUD と同じ割り当て。
+        /// </summary>
+        private void BuildJudgeLegend(GameObject panel)
+        {
+            for (int i = 0; i < V6OptionLogic.JudgeLabels.Length; i++)
+            {
+                string label = V6OptionLogic.JudgeLabels[i];
+                var chip = V6Controls.Panel(panel, "Judge " + label,
+                    new Vector2(V6OptionLogic.JudgeChipX + V6OptionLogic.JudgeChipStep * i,
+                        V6OptionLogic.JudgeChipY),
+                    new Vector2(V6OptionLogic.JudgeChipW, V6OptionLogic.JudgeChipH),
+                    V6Tokens.Key1, V6Tokens.RadiusMedium);
+
+                var marker = Rect(chip, "Marker", V6OptionLogic.JudgeMarkerW, V6OptionLogic.JudgeMarkerH,
+                    JudgeColor(label));
+                V6Layout.Place(marker.GetComponent<RectTransform>(),
+                    new Vector2(V6OptionLogic.JudgeMarkerX, V6OptionLogic.JudgeMarkerY),
+                    new Vector2(V6OptionLogic.JudgeMarkerW, V6OptionLogic.JudgeMarkerH));
+
+                V6Controls.Text(chip, "Label", label, new Vector2(0f, 22f),
+                    new Vector2(V6OptionLogic.JudgeChipW, 26f), 18f, V6Tokens.TextDim,
+                    TextAlignmentOptions.Center);
+            }
+        }
+
+        /// <summary>判定色 (HUD の VerdictColor と同じ割り当て。design の $text/$ok/$warn/$danger)。</summary>
+        private static Color JudgeColor(string label)
+        {
+            switch (label)
+            {
+                case "PERFECT": return V5Tokens.Text;
+                case "GREAT": return V5Tokens.Ok;
+                case "BAD": return V5Tokens.Warn;
+                default: return V5Tokens.Danger;
+            }
+        }
+
+        /// <summary>
+        /// Sound タブ: 選択行の音量を Value (24,360) 106×58 fs40 と
+        /// Track (24,420) 464×20 r4 $k1 + Fill $k6 (音量比) で出す (design z7joSy)。
+        /// Fill 幅は実値 — design の 100% = 全幅をそのまま比例配分する。
+        /// </summary>
+        private void BuildVolumePreview(GameObject panel)
+        {
+            Row row = SelectedRowDesc();
+            string value = row != null ? row.Value() : "";
+            V6Controls.Text(panel, "Volume Value", value,
+                new Vector2(V6OptionLogic.VolumeValueX, V6OptionLogic.VolumeValueY),
+                new Vector2(V6OptionLogic.VolumeValueW, V6OptionLogic.VolumeValueH), 40f, V5Tokens.Text,
+                TextAlignmentOptions.TopLeft, FontStyles.Normal);
+
+            var track = V6Controls.Panel(panel, "Volume Track",
+                new Vector2(V6OptionLogic.VolumeTrackX, V6OptionLogic.VolumeTrackY),
+                new Vector2(V6OptionLogic.VolumeTrackW, V6OptionLogic.VolumeTrackH),
+                V6Tokens.Key1, V6Tokens.RadiusSmall);
+
+            float fillW = V6OptionLogic.VolumeFillWidth(ParsePercent(value));
+            if (fillW <= 0f)
+            {
+                return;
+            }
+
+            var fill = Rect(track, "Fill", fillW, V6OptionLogic.VolumeTrackH, V6Tokens.Key6);
+            V6Layout.Place(fill.GetComponent<RectTransform>(), Vector2.zero,
+                new Vector2(fillW, V6OptionLogic.VolumeTrackH));
+        }
+
+        /// <summary>"100%" → 100。数値でなければ 0 (Fill を描かない)。</summary>
+        private static int ParsePercent(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            int end = text.IndexOf('%');
+            string digits = end >= 0 ? text.Substring(0, end) : text;
+            int value;
+            return int.TryParse(digits, out value) ? value : 0;
+        }
+
+        /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, Row row)
         {
             var divider = Rect(panel, "Divider", 464f, 1f, FromHex("#FFFFFF1F"));
             V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
+            // draw shape は「Title y564 h46」— 高さ 40 だと NotoSansJP の行送り (fs32 で約 46px) を
+            // 下回り、TMP の Ellipsis が 1 行も描画しない (実行時に Title が丸ごと消えた原因)。
+            // design と同じ h46 にし、Ellipsis は付けない (はみ出す場合も design は自動幅なので
+            // 切り落とすより描く。値は短い固定文言のみ)。
             var title = V6Controls.Text(panel, "Desc Title",
-                row != null ? row.DescTitle : "", new Vector2(24f, dividerY + 20f), new Vector2(464f, 40f),
-                32f, V6Tokens.Text, TextAlignmentOptions.Left); // design w500 = 既定フォント (Medium) のウェイト
-            title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.overflowMode = TextOverflowModes.Ellipsis;
+                row != null ? row.DescTitle : "",
+                new Vector2(24f, dividerY + V6OptionLogic.DescTitleOffsetY),
+                new Vector2(464f, 46f), 32f, V6Tokens.Text, TextAlignmentOptions.Left);
 
+            // Desc は design 上で複数行に折り返す段落 (w464 h68 lineHeight1.4)。
+            // NoWrap のままだと 1 行で右パネルの外まで伸びて切れていた。
             var desc = V6Controls.Text(panel, "Desc", row != null ? row.Desc : "",
-                new Vector2(24f, dividerY + 70f), new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
-                24f, V6Tokens.Text, TextAlignmentOptions.TopLeft);
-            desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP lineSpacing は fs 比の追加率: 24×0.4=9.6px → 40%)
+                new Vector2(24f, dividerY + V6OptionLogic.DescOffsetY),
+                new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
+                24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
+                TextWrappingModes.Normal);
+            // design lineHeight 1.4 (fs24 → 33.6px)。TMP の lineSpacing は fs への追加率で、
+            // 40 にすると行送りが 34.75 + 24×0.40 = 44.35px になり、design 実測 (Data タブの
+            // 2 行目: 457→492 = 35px) より 9px 下へずれて 2 行目がパネル下端 (688) に
+            // 食い込んでいた (r24 実機)。0 (フォント本来の 34.75px) が design 実測と一致する。
+            desc.lineSpacing = 0f;
         }
 
         private Row SelectedRowDesc()
@@ -888,7 +987,7 @@ namespace FlashBeat.UI.V6.Option
                     null,
                     OpenKeyConfig,
                     "キー設定",
-                    "キーの割り当てを編集します。F2 でも開けます。",
+                    "キーの割り当てを編集します (F2)。Esc / F2 で確定 (保存)、F1 でキャンセル (元に戻して閉じます)。",
                     isAction: true),
             };
         }
@@ -1162,6 +1261,24 @@ namespace FlashBeat.UI.V6.Option
             KeyConfigUI.Open();
         }
 
+        /// <summary>
+        /// キー設定 (KeyConfigUI) の編集をキャンセルして閉じる (Option の F1)。
+        ///
+        /// 保存済みの状態 (KeyBindings / KeyActions の保存先) へ戻してから閉じる。
+        /// 閉じるときの保存は戻した内容を書き直すだけなので、保存値は変わらない
+        /// (元の割当に戻る)。確定は従来どおり Esc / F2 で閉じる (= 保存)。
+        ///
+        /// 「開いた時点の状態 == 保存先」は既存の保存経路が保証する
+        /// (KeyConfigUI の閉じる保存 / ResetToDefaults の保存 / ClearSaveData)。
+        /// 未保存のまま残ることは無いので、Load() で開いた時点へ正確に戻れる。
+        /// </summary>
+        public static void CancelKeyConfigEdit()
+        {
+            KeyBindings.Load();
+            KeyActions.Load();
+            KeyConfigUI.Close();
+        }
+
         // --- uGUI ユーティリティ (design px 左上原点) ---
 
         /// <summary>素の Image (角丸無し)。細線 / 矩形用 (共通部品に 1px 線は無いため最小限のローカル helper)。</summary>
@@ -1169,6 +1286,9 @@ namespace FlashBeat.UI.V6.Option
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent.transform, false);
+            // サイズを必ず反映する。既定 (100×100) のまま回転すると、細線のつもりの
+            // レーン線が 100px 幅の帯になり、プレビューが灰色のコーン状に潰れる。
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(w, h);
             var img = go.GetComponent<Image>();
             img.color = color;
             img.raycastTarget = false;

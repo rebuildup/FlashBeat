@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using FlashBeat.UI.V6.Title;
+using FlashBeat.Update;
 
 namespace FlashBeat.UI.V6.Title.Tests
 {
@@ -60,16 +61,42 @@ namespace FlashBeat.UI.V6.Title.Tests
         [Test]
         public void HeaderNodes_MatchDesignCoordinates()
         {
-            // zUcsi/zCQBY: 戻る 56×56 (Header ローカル y20)。
+            // CtA3V: Exit 162×56 (Header ローカル y20、正本は fill なし)。
+            // 塗りは内部の Icon Button (Z6C0w) 56×56 $k4 r8 だけで、その中に
+            // log-out 32 @(12,12)、KeyCap (68,12) 高さ 32、ラベル (109,6.5)。
             Assert.AreEqual(new Vector2(0f, 20f), V6TitleLogic.BackButtonPos);
-            Assert.AreEqual(new Vector2(56f, 56f), V6TitleLogic.BackButtonSize);
-            // aqq3q/ci867: タイトル文字 (72,20) 185×56。
+            Assert.AreEqual(new Vector2(162f, 56f), V6TitleLogic.BackButtonSize);
+            Assert.AreEqual(new Vector2(0f, 0f), V6TitleLogic.BackIconButtonPos);
+            Assert.AreEqual(56f, V6TitleLogic.BackIconButtonSize);
+            Assert.AreEqual(new Vector2(12f, 12f), V6TitleLogic.BackIconPos);
+            Assert.AreEqual(32f, V6TitleLogic.BackIconSize);
+            Assert.AreEqual(new Vector2(68f, 12f), V6TitleLogic.BackKeyCapPos);
+            Assert.AreEqual(new Vector2(109f, 6.5f), V6TitleLogic.BackLabelPos);
+            // aqq3q/ci867: タイトル文字 (72,20) 185×56 (正本では enabled: false)。
             Assert.AreEqual(new Vector2(72f, 20f), V6TitleLogic.HeaderTitlePos);
             Assert.AreEqual(new Vector2(185f, 56f), V6TitleLogic.HeaderTitleSize);
-            // WUQeP 曲情報 / l26KMD 状態: Header ローカル (1080,0) / (1380,0) 300×96。
-            Assert.AreEqual(new Vector2(1080f, 0f), V6TitleLogic.SongInfoZonePos);
-            Assert.AreEqual(new Vector2(1380f, 0f), V6TitleLogic.StateZonePos);
-            Assert.AreEqual(new Vector2(300f, 96f), V6TitleLogic.HeaderZoneSize);
+            // D7gbLV 更新ボタン: Header ローカル (1021,20) 355×56 (UKhaE 840,20 の中の 181,0)。
+            Assert.AreEqual(new Vector2(1021f, 20f), V6TitleLogic.UpdateButtonPos);
+            Assert.AreEqual(new Vector2(355f, 56f), V6TitleLogic.UpdateButtonSize);
+            // L6w6G バージョン: Header ローカル (1400,32) 280×32、
+            // 現行版 (93,0) / 矢印 (162,2) / 新版 (190,0)。
+            Assert.AreEqual(new Vector2(1400f, 32f), V6TitleLogic.VersionZonePos);
+            Assert.AreEqual(new Vector2(280f, 32f), V6TitleLogic.VersionZoneSize);
+            Assert.AreEqual(new Vector2(93f, 0f), V6TitleLogic.VersionCurrentPos);
+            Assert.AreEqual(new Vector2(162f, 2f), V6TitleLogic.VersionArrowPos);
+            Assert.AreEqual(new Vector2(190f, 0f), V6TitleLogic.VersionNewPos);
+        }
+
+        [Test]
+        public void HeaderRight_DoesNotDrawNonDesignZones()
+        {
+            // 正本 QJtTv のヘッダー右は zPAF8 だけで、中身は [更新操作] [バージョン] の 2 つ。
+            // 曲情報 / カタログ状態 / 自己ベストのゾーンは設計に存在しない。
+            // (以前の実装は (1080,0) / (1380,0) に独自ゾーンを描いていた)
+            Assert.IsFalse(V6TitleLogic.ShowUpdateButton(UpdateFlowPhase.Idle));
+            Assert.IsTrue(V6TitleLogic.ShowUpdateButton(UpdateFlowPhase.Available));
+            Assert.IsTrue(V6TitleLogic.ShowNewVersion(UpdateFlowPhase.Available, "1.2.0"));
+            Assert.IsFalse(V6TitleLogic.ShowNewVersion(UpdateFlowPhase.Available, ""));
         }
 
         [Test]
@@ -103,6 +130,17 @@ namespace FlashBeat.UI.V6.Title.Tests
             // フッターの子は design 幅 1728 内に収まる (右寄せのはみ出し防止)。
             Assert.LessOrEqual(V6TitleLogic.FooterPrimaryPos.x + V6TitleLogic.FooterPrimarySize.x, 1728f);
             Assert.LessOrEqual(V6TitleLogic.FooterAuxPos.x + V6TitleLogic.FooterAuxSize.x, 1728f);
+        }
+
+        [Test]
+        public void TitleVisibility_MatchesDesign()
+        {
+            // 正本 QJtTv の表示状態: タブ (FHcxk) / 凡例 (QQ4jM) は表示、
+            // フッター右下の操作ボタン (T8HuQS) と タイトル文字 (ci867) は enabled: false。
+            Assert.IsTrue(V6UiMode.TitleTabs);
+            Assert.IsTrue(V6UiMode.TitleLegend);
+            Assert.IsFalse(V6UiMode.TitleFooterActions);
+            Assert.IsFalse(V6UiMode.TitleHeaderTitle);
         }
 
         [Test]

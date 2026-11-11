@@ -30,6 +30,9 @@ public class MediaCacheOptionPanel : MonoBehaviour
 
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // v6 Option はデータタブに同じキャッシュ操作を持つ。旧パネルは設計に無く、
+        // v6 のレイアウトに重なるため生成しない。
+        if (FlashBeat.UI.V6.V6UiMode.LegacyOverlaysHidden) return;
         if (scene.name != "OptionScene") return;
         if (FindFirstObjectByType<MediaCacheOptionPanel>() != null) return;
 

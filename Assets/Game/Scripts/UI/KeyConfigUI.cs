@@ -149,6 +149,19 @@ public class KeyConfigUI : MonoBehaviour
     }
 
     /// <summary>
+    /// いま開けるか。正本 uDNC0 (Pause) は「キー設定」行の値が F2 で、
+    /// 説明文も「F2 でも開けます」と明記している。ポーズ中
+    /// (<see cref="FlashBeat.Gameplay.PauseGate.IsPaused"/>) は判定・譜面が
+    /// 止まっているので、GameScene でもポーズ経由に限り開ける。
+    /// 演奏中 (ポーズしていない GameScene) は開かない (音符を叩くキーを奪うため)。
+    /// </summary>
+    public static bool IsAllowedNow(string sceneName)
+    {
+        if (IsAllowedSceneName(sceneName)) return true;
+        return sceneName == "GameScene" && FlashBeat.Gameplay.PauseGate.IsPaused;
+    }
+
+    /// <summary>
     /// 既定のキー割り当て。KeyBindings.DefaultKeys が private のため同じ構成をここに持つ
     /// (v0.1.2 で Judge.LaneKeys を KeyBindings が複製したのと同じ先例)。
     /// 変更したら KeyBindings 側も直すこと。KeyConfigLayoutTests がずれを検出する。
@@ -196,7 +209,7 @@ public class KeyConfigUI : MonoBehaviour
     }
     private static bool IsAllowedScene()
     {
-        return IsAllowedSceneName(SceneManager.GetActiveScene().name);
+        return IsAllowedNow(SceneManager.GetActiveScene().name);
     }
     private bool built;
     private TMP_FontAsset font;

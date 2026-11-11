@@ -6,6 +6,7 @@ using TMPro;
 using FlashBeat.UI.V6.Game.Hud;
 using FlashBeat.UI.V6.Game.Loading;
 using FlashBeat.UI.V6.Game.Pause;
+using FlashBeat.UI.V6.Option;
 
 namespace FlashBeat.UI.V6
 {
@@ -45,6 +46,10 @@ namespace FlashBeat.UI.V6
         private RectTransform hudFrame;
         private V6PauseView pause;
         private V6LoadingView loading;
+        private GameSceneManager cachedSceneManager;
+
+        /// <summary>検証用の固定表示中か (<see cref="ShowLoadingForAudit"/>)。</summary>
+        private bool loadingAudit;
 
         /// <summary>隠し対象の旧 v5 ポーズ (キャッシュ。シーン再ロードで作り直す)。</summary>
         private FlashBeat.UI.V5.PauseMenuView legacyPause;
@@ -174,19 +179,58 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// v6 ポーズの開閉と入力。Esc で開閉、←→ で項目移動。
-        /// 値の変更はキーボードには配線せず、行のステッパー / クリック (マウス) のみ。
-        /// 既存の KeyActions の割当をそのまま使う (Judge / KeyBindings と同じ正本)。
+        /// v6 ポーズの開閉と入力。Esc で開閉、↑↓ で項目移動、←→ で値の変更。
+        /// 正本 uDNC0 の凡例 (↑↓ 選択 / ←→ 変更 / Tab タブ切替 / Esc 再開) が
+        /// そのまま仕様。矢印は KeyActions に ↑↓ の割当が無いため固定キー
+        /// (Title の H/R と同じ扱い。←→ を NavPrev/NavNext に流用すると
+        /// 「選択」と「変更」が同じキーに重なる)。
         ///
         /// 開閉状態の正本は <see cref="V6PauseView.IsOpen"/> (v6 自前の状態)。
         /// かつて GameSceneManager.Menu を「ポーズが開いている」意味で読み書きしていたが、
         /// Menu はレガシー歌詞パネルのフラグ (MusicManager.Start が true を書く) で、
         /// 副作用で開閉判定が壊れるため読まない・書かない (v6 有効時は Menu を触らない)。
         /// Esc は押下エッジで 1 回だけ発火するので、開閉は 1 押下につき 1 回。
+        /// キー設定 (KeyConfigUI) が前面のときは、その入力 (Esc=閉じる) を
+        /// ポーズに渡さない (ポーズとキー設定が同時に閉じる事故を防ぐ)。
         /// </summary>
         private void UpdatePause()
         {
             if (pause == null) return;
+
+            // オーバーレイを開閉したフレームのキーは背面へ流さない (SceneInputGate の契約)。
+            // KeyConfigUI.Update が先に走って Esc で閉じた場合、IsOpen が同じフレームで
+            // false になり、ここが Back を拾ってポーズまで閉じてしまう。Update の実行順は
+            // 保証されないため、フレーム単位のゲートをここでも見る。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed)
+            {
+                return;
+            }
+
+            if (KeyConfigUI.IsOpen)
+            {
+                // キー設定中の F1 = 編集キャンセル (保存済みの割当へ戻して閉じる)。
+                // Option 画面の Update と同じ扱い (V6OptionView.CancelKeyConfigEdit)。
+                // KeyConfigUI は Esc / F2 しか消費しないので F1 はここで受け取れる。
+                if (Input.GetKeyDown(KeyCode.F1))
+                {
+                    V6OptionView.CancelKeyConfigEdit();
+                }
+
+                return;
+            }
+
+            // Key Layout リセットの確認ダイアログ表示中は、背面のポーズ操作を止める。
+            // Scrim はマウスしか遮らないため、Esc=再開 / R=リトライ / Backspace=リタイア /
+            // 矢印=行移動 がダイアログ越しに実行されてしまう。Esc は確認の取り消しに使う。
+            if (pause.HasConfirmDialog)
+            {
+                if (KeyActions.IsDown(KeyActions.KeyAction.Back))
+                {
+                    pause.CancelResetKeyLayout();
+                }
+
+                return;
+            }
 
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
@@ -204,9 +248,13 @@ namespace FlashBeat.UI.V6
             if (!pause.IsOpen) return;
 
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch)) pause.SelectNextTab(1);
-            if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev)) pause.MoveSelection(-1);
-            if (KeyActions.IsDown(KeyActions.KeyAction.NavNext)) pause.MoveSelection(1);
-            var manager = FindObjectOfType<GameSceneManager>();
+            if (Input.GetKeyDown(KeyCode.UpArrow)) pause.MoveSelection(-1);
+            if (Input.GetKeyDown(KeyCode.DownArrow)) pause.MoveSelection(1);
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) pause.AdjustSelected(-1);
+            if (Input.GetKeyDown(KeyCode.RightArrow)) pause.AdjustSelected(1);
+            // ポーズ中は毎フレーム来るため、シーン全体検索を繰り返さず 1 度だけ解決する。
+            if (cachedSceneManager == null) cachedSceneManager = FindAnyObjectByType<GameSceneManager>();
+            var manager = cachedSceneManager;
             if (manager == null) return;
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); manager.RetryGame(); }
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd)) { pause.Close(); manager.GameEnd(); }
@@ -222,6 +270,7 @@ namespace FlashBeat.UI.V6
         private void UpdateLoading()
         {
             if (loading == null) return;
+            if (loadingAudit) return; // 検証用に固定表示中 (実状態で上書きしない)
             var phase = FlashBeat.UI.V5.GameHudController.LastPhase;
 
             if (phase == HudPlayPhase.Preparing)
@@ -247,6 +296,33 @@ namespace FlashBeat.UI.V6
             {
                 loading.SetVisible(false);
             }
+        }
+
+        /// <summary>
+        /// 検証用 (自動撮影): ローディング画面を実データで固定表示する。
+        ///
+        /// 通常の表示は毎フレームの phase (Preparing / Failed) が決めるため、
+        /// GameScene の自動撮影では数秒で Hidden に戻ってしまう。
+        /// ここで固定している間は <see cref="UpdateLoading"/> の上書きを止める
+        /// (解除は <see cref="HideLoadingForAudit"/>)。
+        /// </summary>
+        /// <param name="songId">表示する曲 (カタログ index、design と同じデータで撮るなら 5)。</param>
+        /// <param name="chartProgress">譜面準備の進捗 (null = 不明 → 不定インジケータ)。</param>
+        public void ShowLoadingForAudit(int songId, float? chartProgress)
+        {
+            if (loading == null) return;
+            var song = GManager.GetSong(songId);
+            loadingAudit = true;
+            loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "",
+                LoadJacket(song), chartProgress);
+            loading.SetVisible(true);
+        }
+
+        /// <summary>検証用の固定表示を解除する (実状態の表示に戻す)。</summary>
+        public void HideLoadingForAudit()
+        {
+            loadingAudit = false;
+            if (loading != null) loading.SetVisible(false);
         }
 
         // --- ジャケット (Issue #224) ---

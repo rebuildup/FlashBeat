@@ -79,6 +79,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         private int lyricIndex = -2;
         private TextMeshProUGUI lyricFuriganaText;
         private TextMeshProUGUI lyricRomajiText;
+        /// <summary>開始待ちの案内 (design HcP8N の Start Prompt)。歌詞行とは排他。</summary>
+        private GameObject lyricPrompt;
 
         /// <summary>
         /// Canvas 配下に自分自身を作る。親は Canvas の RectTransform
@@ -148,11 +150,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboFill.sizeDelta = new Vector2(
                 V6HudLogic.ComboFillFraction(GManager.combo, milestone) * m.StatusTrackW, m.StatusTrackH);
 
-            // issue-162 B-4 再照合: 「+ COMBO BONUS +N」「次のボーナス +N」は
-            // 実在しない加点の表示だった (JudgeScoreboard の配点にコンボボーナスは
-            // 無く、BonusTotal / NextBonusReward は近似・仮の式)。偽値は出さないので
-            // block ごと廃止した。右コラムは Combo Status (NO MISS / FULL COMBO) が
-            // 同じ契約座標 (§12) を使う。
+            // issue-162 B-4 再照合 (2026-11-11): 正本 Uc9v6 には Gx3kq "Combo Bonus" が
+            // BIKrJ "Combo Status" と同じ (1512,460) に重ねて置かれている (design 側の
+            // 状態の重複)。Gx3kq の「+1,200」「次のボーナス 300 / +3,000」は
+            // JudgeScoreboard にコンボボーナス加点が無いため実在しない値で、
+            // BonusTotal / NextBonusReward も近似式にすぎない。加点そのものは
+            // 新しいゲーム仕様 (今回のスコープ外) なので、数値を捏造せず
+            // 同じ座標を Combo Status (NO MISS / FULL COMBO) が使う。
 
             // 進捗バー + 歌詞 (メディアタイム = GManager.step_time)
             float duration = CurrentSongDuration();
@@ -281,6 +285,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             lyricFuriganaText = null;
             lyricRomajiText = null;
             lyricBox = null;
+            lyricPrompt = null;
             MenuButton = null;
 
             Build();
@@ -406,6 +411,45 @@ namespace FlashBeat.UI.V6.Game.Hud
             lyricRomajiText = V5Ui.Text(box, "Romaji", "", LyricRomajiFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
             SetLyricRowHeight(lyricRomajiText, LyricRomajiFs);
+
+            BuildLyricPrompt(box);
+        }
+
+        /// <summary>
+        /// 開始待ちの案内 (design HcP8N / Start Prompt W1ppF):
+        /// KeyCap「Space」(36 高 / padding [0,10] / fs22 / #3A3A3A r4) と
+        /// ラベル「to start」(fs22 $text-muted) を gap 10 で横に並べる。
+        /// 以前は「Space to Start」を fs 約 79 の 1 文で出していた (デザインに無い表示)。
+        /// </summary>
+        private void BuildLyricPrompt(GameObject box)
+        {
+            lyricPrompt = V5Ui.Node(box, "Start Prompt");
+            var le = lyricPrompt.AddComponent<LayoutElement>();
+            le.preferredHeight = V6HudLogic.ReadyPromptCapHeight;
+
+            var layout = lyricPrompt.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = V6HudLogic.ReadyPromptGap;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+
+            var cap = V5Ui.Panel(lyricPrompt, "KeyCap Space",
+                new Vector2(0f, V6HudLogic.ReadyPromptCapHeight), V5Tokens.Key4, 4f);
+            var capKey = V5Ui.Text(cap, "Key", "Space", V6HudLogic.ReadyPromptFontSize,
+                V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            FillRect(capKey.rectTransform);
+            float capW = MeasureTextWidth(capKey, "Space", V6HudLogic.ReadyPromptFontSize)
+                + V6Ui.KeyCapPaddingX * 2f;
+            GetRect(cap).sizeDelta = new Vector2(capW, V6HudLogic.ReadyPromptCapHeight);
+
+            var label = V5Ui.Text(lyricPrompt, "Label", "to start", V6HudLogic.ReadyPromptFontSize,
+                V5Tokens.TextMuted, TextAlignmentOptions.Left);
+            float labelW = MeasureTextWidth(label, "to start", V6HudLogic.ReadyPromptFontSize);
+            GetRect(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
+
+            lyricPrompt.SetActive(false);
         }
 
         /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
@@ -523,29 +567,28 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.pivot = new Vector2(1f, 1f);
             rt.anchoredPosition = new Vector2(-m.Margin, -m.Margin);
 
-            var layout = btn.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 8f * Scale;
-            layout.padding = new RectOffset(Mathf.RoundToInt(16f * Scale), Mathf.RoundToInt(16f * Scale), 0, 0);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
+            // design T3U7u6: [ラベル fs22/30][gap 10][KeyCap] を 180×48 の中で中央寄せ。
+            // KeyCap は padding [0,10] の自動幅・自動高 (55×32 @(112,8) at FHD)。
+            // 以前は layout padding 16 / gap 8 / 固定幅 52 で置き、さらに Key の fs が
+            // 未代入 (0) だったため「Esc」が描画されなかった。
             var label = V5Ui.Text(btn, "Label", "メニュー", m.MenuFs, V5Tokens.Text,
-                TextAlignmentOptions.Right);
-            var labelLe = label.gameObject.AddComponent<LayoutElement>();
-            // flexibleWidth 1 だとテキストが右端へ飛んで見た目が崩れる (Issue #233 実機)。
-            // 自然幅でラベル → KeyCap の順に詰める。
-            labelLe.minWidth = 0f;
+                TextAlignmentOptions.Left);
+            float labelW = MeasureTextWidth(label, "メニュー", m.MenuFs);
 
-            // design: KeyCap bg #00000040 r4, "Esc" fs muted
-            var cap = V5Ui.Panel(btn, "KeyCap", new Vector2(52f * Scale, m.MenuH - 16f * Scale),
-                new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
-            var capLe = cap.AddComponent<LayoutElement>();
-            capLe.minWidth = 52f * Scale;
-            capLe.preferredHeight = m.MenuH - 16f * Scale;
-            V5Ui.Text(cap, "Key", "Esc", m.MenuKeyFs, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            var cap = V5Ui.Panel(btn, "KeyCap",
+                new Vector2(0f, m.MenuCapH), new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
+            var capKey = V5Ui.Text(cap, "Key", "Esc", m.MenuFs, V5Tokens.TextMuted,
+                TextAlignmentOptions.Center);
+            FillRect(capKey.rectTransform);
+            float capW = MeasureTextWidth(capKey, "Esc", m.MenuFs) + V6Ui.KeyCapPaddingX * 2f;
+            GetRect(cap).sizeDelta = new Vector2(capW, m.MenuCapH);
+
+            float total = labelW + m.MenuGap + capW;
+            float rowX = Mathf.Round((m.MenuW - total) * 0.5f);
+            float rowY = Mathf.Round((m.MenuH - m.MenuCapH) * 0.5f);
+            PlaceTopLeft(label.rectTransform, rowX, -rowY);
+            GetRect(label).sizeDelta = new Vector2(labelW, m.MenuCapH);
+            PlaceTopLeft(GetRect(cap), rowX + labelW + m.MenuGap, -rowY);
 
             MenuButton = btn.AddComponent<Button>();
             MenuButton.targetGraphic = btn.GetComponent<Image>();
@@ -857,19 +900,20 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// 中身が無いときは枠ごと隠す (空の黒い矩形を出さない)。</summary>
         private void UpdateLyrics()
         {
-            // Space 待ちの間は歌詞位置に「Space to Start」を出す (design の Ready 案内)。
-            // 別シーン (v5 ReadyView) はいらない — Issue #233。
+            // Space 待ちの間は歌詞位置に design の Start Prompt (KeyCap「Space」+
+            // 「to start」) を出す。別シーン (v5 ReadyView) はいらない — Issue #233。
             if (!GManager.played)
             {
-                if (lyricIndex != -1 || lyricText.text.Length == 0)
+                if (lyricIndex != -1)
                 {
                     lyricIndex = -1;
-                    lyricText.text = "Space to Start";
-                    SetLyricTextFontSize(m.LyricFs * 1.79f); // design: Ready prompt
+                    lyricText.text = "";
                     lyricFuriganaText.text = "";
                     lyricRomajiText.text = "";
                 }
 
+                SetLyricLinesVisible(false);
+                SetLyricPromptVisible(true);
                 SetLyricBoxVisible(true);
                 return;
             }
@@ -881,11 +925,17 @@ namespace FlashBeat.UI.V6.Game.Hud
                 {
                     lyricIndex = -1;
                     lyricText.text = "";
+                    lyricFuriganaText.text = "";
+                    lyricRomajiText.text = "";
                 }
 
+                SetLyricPromptVisible(false);
                 SetLyricBoxVisible(false);
                 return;
             }
+
+            SetLyricPromptVisible(false);
+            SetLyricLinesVisible(true);
 
             int index = LyricsTimeline.IndexAt(lyricLines, GManager.step_time);
             if (index != lyricIndex)
@@ -901,6 +951,25 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             SetLyricBoxVisible(lyricText.text.Length > 0);
+        }
+
+        /// <summary>歌詞の 3 行 (Furigana / Lyrics / Romaji) の表示。Start Prompt と排他。</summary>
+        private void SetLyricLinesVisible(bool visible)
+        {
+            if (lyricFuriganaText.gameObject.activeSelf != visible)
+            {
+                lyricFuriganaText.gameObject.SetActive(visible);
+                lyricText.gameObject.SetActive(visible);
+                lyricRomajiText.gameObject.SetActive(visible);
+            }
+        }
+
+        private void SetLyricPromptVisible(bool visible)
+        {
+            if (lyricPrompt != null && lyricPrompt.activeSelf != visible)
+            {
+                lyricPrompt.SetActive(visible);
+            }
         }
 
         /// <summary>歌詞枠の表示/非表示。空の黒い矩形を出さない。</summary>
@@ -1038,6 +1107,35 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(x, y);
+        }
+
+        /// <summary>親いっぱいに広げる (KeyCap 内のラベルなど)。</summary>
+        private static void FillRect(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>
+        /// TMP の実測送り幅 (design px)。design の自動幅 KeyCap (padding [0,10]) を
+        /// 再現するために、推定 em ではなく実フォントで測る。
+        /// フォント未設定などで測れないときは em 推定に落ちる。
+        /// </summary>
+        private static float MeasureTextWidth(TMP_Text text, string content, float fontSize)
+        {
+            float fallback = V6Ui.LabelAdvanceEm(content) * fontSize;
+            if (text == null)
+            {
+                return Mathf.Ceil(fallback);
+            }
+
+            text.text = content;
+            text.fontSize = fontSize;
+            text.ForceMeshUpdate();
+            float width = text.GetPreferredValues(content).x;
+            return Mathf.Ceil(width > 0f ? width : fallback);
         }
 
         private float Scale

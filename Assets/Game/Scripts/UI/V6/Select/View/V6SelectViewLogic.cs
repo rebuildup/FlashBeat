@@ -80,7 +80,7 @@ namespace FlashBeat.UI.V6.Select.View
         MoveDown,
         Confirm,
         Cancel,
-        FocusSearch,
+        ToggleFilter,
         UnfocusSearch,
     }
 
@@ -245,6 +245,7 @@ namespace FlashBeat.UI.V6.Select.View
         /// 先頭 / 末尾の曲では中央スロット以外の行が空になり、選択行は常に中央に来る。
         /// ただし index が範囲外 (-1 等) または rowCount &lt; visibleRows のときは
         /// 既存挙動 (index を範囲内に直し、スクロールも 0..rowCount-visibleRows に収める) を保つ。
+        /// 表示 (V6SelectView) は <see cref="ListScroll"/> でクランプしてから使う。
         /// </summary>
         public static int CenterScroll(int index, int rowCount, int visibleRows)
         {
@@ -277,6 +278,20 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             return index - visibleRows / 2;
+        }
+
+        /// <summary>
+        /// 描画に使う曲リストのスクロール位置 (先頭に描く曲 index)。
+        /// <see cref="CenterScroll"/> の中央固定値を <see cref="ClampScroll"/> で
+        /// 0..rowCount-ListVisibleRows に戻す。負の scroll のまま描くと空スロットが
+        /// 下側にずれて行が下端へ寄る (r1実機 2026-11-11 の症状) ので、表示は必ず
+        /// この関数を通す。選択 index ≥ ListVisibleRows/2 では選択行は中央スロット
+        /// (上に ListVisibleRows/2 行) に来る。
+        /// </summary>
+        public static int ListScroll(int selectIndex, int rowCount)
+        {
+            return ClampScroll(CenterScroll(selectIndex, rowCount, ListVisibleRows),
+                rowCount, ListVisibleRows);
         }
 
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>
@@ -324,13 +339,17 @@ namespace FlashBeat.UI.V6.Select.View
         /// <summary>
         /// キー入力をアクションに写像する (検索フォーカス中は Esc/Enter/Tab を
         /// フォーカス解除として消費し、確定や戻るを同時に発火させない)。
+        ///
+        /// 正本 OENRv のフッター凡例は「Tab = 絞り込み」「A-Z = 検索」。
+        /// 検索フォーカス中以外の Tab は「未プレイのみ」の絞り込みトグル。
+        /// 検索の開始は A-Z の文字入力 (<see cref="SearchSeed"/>)。
         /// </summary>
         public static V6SelectAction MapKey(bool searchFocused, bool up, bool down, bool confirm, bool cancel,
-            bool toggleSearch)
+            bool tab)
         {
             if (searchFocused)
             {
-                if (toggleSearch || confirm || cancel)
+                if (tab || confirm || cancel)
                 {
                     return V6SelectAction.UnfocusSearch;
                 }
@@ -342,8 +361,40 @@ namespace FlashBeat.UI.V6.Select.View
             if (down) return V6SelectAction.MoveDown;
             if (confirm) return V6SelectAction.Confirm;
             if (cancel) return V6SelectAction.Cancel;
-            if (toggleSearch) return V6SelectAction.FocusSearch;
+            if (tab) return V6SelectAction.ToggleFilter;
             return V6SelectAction.None;
+        }
+
+        /// <summary>
+        /// 検索を開始する文字か (正本 OENRv のキャップ "A-Z")。
+        /// 入力欄が非フォーカスのときにアルファベットを押したら検索へ入る。
+        /// 制御文字 (Tab/Enter/Backspace) と空白は対象外。
+        /// </summary>
+        public static bool IsSearchSeedChar(char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+
+        /// <summary>
+        /// Input.inputString から検索開始の 1 文字を取り出す (無ければ '\0')。
+        /// 文字列全体をそのまま流すと制御文字まで入るため、最初の英字だけを使う。
+        /// </summary>
+        public static char SearchSeed(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return '\0';
+            }
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (IsSearchSeedChar(input[i]))
+                {
+                    return input[i];
+                }
+            }
+
+            return '\0';
         }
 
         // ============================================================
@@ -381,17 +432,20 @@ namespace FlashBeat.UI.V6.Select.View
         public const float RowStep = 76f;
         public const int ListVisibleRows = 9;
 
-        /// <summary>キーキャップのラベルサイズ (design px)。</summary>
-        public const float CapFontSize = 20f;
+        /// <summary>キーキャップの Key fs (design OENRv Legend KeyCap / Prefab/KeyCap: fs22)。</summary>
+        public const float CapFontSize = 22f;
 
-        /// <summary>説明ラベルのフォントサイズ (design px)。</summary>
-        public const float LabelFontSize = 20f;
+        /// <summary>説明ラベルのフォントサイズ (design OENRv Legend Label: fs22)。</summary>
+        public const float LabelFontSize = 22f;
 
-        /// <summary>キャップの左右余白 (design px)。</summary>
-        public const float CapPadX = 10f;
+        /// <summary>キャップの左右余白 (design OENRv Legend KeyCap: padding [0,8])。</summary>
+        public const float CapPadX = 8f;
 
-        /// <summary>キャップと説明ラベルの間隔 (design px)。</summary>
-        public const float LegendLabelGap = 12f;
+        /// <summary>キャップと説明ラベルの間隔 (design OENRv Legend: gap 8)。</summary>
+        public const float LegendLabelGap = 8f;
+
+        /// <summary>凡例キャップの高さ (design OENRv Zone · キー操作: h32)。</summary>
+        public const float LegendCapHeight = 32f;
 
         /// <summary>凡例 項目どうしの間隔 (design px)。</summary>
         public const float LegendItemGap = 24f;
@@ -483,21 +537,38 @@ namespace FlashBeat.UI.V6.Select.View
             return new V6Rect(1608f, 24f, 48f, 48f);
         }
 
-        /// <summary>検索欄の入力テキスト (検索欄 ローカル)。</summary>
+        /// <summary>
+        /// 検索欄の虫めがねアイコン (検索欄 ローカル)。
+        /// design OENRv `/W1K1R/sIkNa/FiU1X`: lucide "search" 20x20 @(12,14)。
+        /// </summary>
+        public static V6Rect HeaderSearchIcon()
+        {
+            return new V6Rect(12f, 14f, 20f, 20f);
+        }
+
+        /// <summary>
+        /// 検索欄の入力テキスト (検索欄 ローカル)。
+        /// design OENRv `/W1K1R/sIkNa/E5R3c`: Placeholder @(40,8) h32 (fs22)。
+        /// 幅は design の自然幅 154 ではなく A-Z キャップ手前まで伸ばす
+        /// (入力が長くなってもキャップの下へ潜り込まない)。
+        /// </summary>
         public static V6Rect HeaderSearchQuery()
         {
-            return new V6Rect(16f, 0f, 480f, 48f);
+            var cap = HeaderSearchCap();
+            return new V6Rect(40f, 8f, cap.X - 8f - 40f, 32f);
         }
 
         /// <summary>
         /// 検索欄の A-Z キャップ (検索欄 ローカル)。
-        /// 幅は design 空間のフォントから求めた自然幅 + 余白で決める。
+        /// design OENRv `/W1K1R/sIkNa/mMt7c`: 50x32 @(518,8) (右上 inset 12)。
+        /// 幅は design 空間のフォントから求めた自然幅 + 余白で決める
+        /// (推定値は実際のフォントより広いので、右端だけ design に合わせる)。
         /// </summary>
         public static V6Rect HeaderSearchCap()
         {
             float w = KeyCapWidth("A-Z", CapFontSize);
             float x = HeaderSearch().W - w - 12f;
-            return new V6Rect(x, 9f, w, 30f);
+            return new V6Rect(x, 8f, w, 32f);
         }
 
         /// <summary>設定ボタン (フッター ローカル)。</summary>
@@ -552,15 +623,12 @@ namespace FlashBeat.UI.V6.Select.View
         /// フッターの凡例。design 空間の自然幅から各項目の位置を決める
         /// (HorizontalLayoutGroup は子要素の幅が解らないので使わない)。
         ///
-        /// 実装と一致させる (#221 / #222 Task 2「すでにある短縮キーも維持」):
-        ///   - 確定: KeyActions.Confirm (キー設定の正本。ビューから
+        /// 正本 OENRv の文字列そのまま:
+        ///   - 決定: KeyActions.Confirm (キー設定の正本。ビューから
         ///     ActionKeyHint.Primary(KeyActions.KeyAction.Confirm) を渡す)。
-        ///   - 曲送り: ↑↓←→ (←→ = KeyActions.NavPrev/NavNext の既定割当。design は ↑↓ のみ
-        ///     だったが、実装は ←→ も曲送りに使うため全て列挙する。キャップは生矢印のまま)。
-        ///   - 検索: Tab (検索欄へフォーカス)。
-        ///   - 絞り込み: F (未プレイのみトグル。v6 固定ショートカット)。
-        /// design 記載の「Tab 絞り込み」は実装 (Tab = 検索フォーカス / F = 絞り込み) と
-        /// 矛盾していたため修正した。
+        ///   - 曲送り: ↑↓ (←→ も同じ動作をするが、正本のキャップは ↑↓)。
+        ///   - 検索: A-Z (英字を押すと検索欄へ入る)。
+        ///   - 絞り込み: Tab (未プレイのみトグル)。
         /// </summary>
         /// <param name="confirmKey">決定のキーキャップ表示 (ActionKeyHint.Primary(Confirm))。</param>
         public static V6LegendItem[] FooterLegend(string confirmKey)
@@ -568,11 +636,9 @@ namespace FlashBeat.UI.V6.Select.View
             var defs = new string[][]
             {
                 new[] { string.IsNullOrEmpty(confirmKey) ? "Space" : confirmKey, "決定" },
-                // 曲送りは ↑↓ に加えて ←→ (NavPrev/NavNext の既定割当) も有効。
-                // design は ↑↓ のみだったが、実挙動に合わせて ←→ も列挙する。
-                new[] { "↑↓←→", "曲送り" },
-                new[] { "Tab", "検索" },
-                new[] { "F", "絞り込み" },
+                new[] { "↑↓", "曲送り" },
+                new[] { "A-Z", "検索" },
+                new[] { "Tab", "絞り込み" },
             };
 
             var items = new V6LegendItem[defs.Length];
@@ -617,15 +683,10 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>
-        /// 曲リストパネル下端のヒント帯 (曲リストパネル ローカル)。
-        /// 下矢印ボタン (x210 起) の左側に置き、互いに重ならないようにする。
+        /// 曲リスト行の矩形 (曲リストパネル ローカル)。
+        /// リスト下端はスクロールボタンとドットのみ (正本 OENRv)。
+        /// 選択位置テキスト用の帯は持たない。
         /// </summary>
-        public static V6Rect ListBottomHint()
-        {
-            return new V6Rect(16f, 740f, 180f, 24f);
-        }
-
-        /// <summary>曲リスト行の矩形 (曲リストパネル ローカル)。</summary>
         public static V6Rect ListRowRect(int rowIndex)
         {
             return new V6Rect(RowX, RowY0 + RowStep * rowIndex, RowW, RowH);

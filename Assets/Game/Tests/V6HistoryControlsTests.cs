@@ -233,5 +233,59 @@ namespace FlashBeat.V6Tests
 
             Assert.AreEqual(2, gotoCalls, "play とフッター「この曲へ」が同じ onGotoSong 経路になっていない");
         }
+
+        // =====================================================================
+        // design (q9JZcH) の情報セル・フッターの一致 (2026-11-11 再現品質見直し)
+        // =====================================================================
+
+        private bool HasText(string text)
+        {
+            foreach (var t in view.Root.GetComponentsInChildren<TMPro.TMP_Text>(true))
+            {
+                if (t.text == text)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        [Test]
+        public void PlayerInfo_HasAllFourDesignCells()
+        {
+            Assert.IsTrue(HasText("累計"), "累計 セルが無い");
+            // design (YuQgv) のラベルは「プレイ曲」。
+            Assert.IsTrue(HasText("プレイ曲"), "design の プレイ曲 セルが無い");
+            Assert.IsTrue(HasText("S以上"), "S以上 セルが無い");
+            // design (xnuYO) の 4 番目のセル「順位」。API が無い間は design 同様の未確定表示。
+            Assert.IsTrue(HasText("順位"), "design の 順位 セルが無い");
+            Assert.IsTrue(HasText("–位 / –人"), "順位 の未確定表示が design と違う");
+        }
+
+        [Test]
+        public void PlayInfo_HasAllSixDesignCells()
+        {
+            string[] labels = { "PERFECT", "GREAT", "BAD", "MISS", "HOLD", "MAX COMBO" };
+            for (int i = 0; i < labels.Length; i++)
+            {
+                Assert.IsTrue(HasText(labels[i]), "design の判定セル " + labels[i] + " が無い");
+            }
+        }
+
+        [Test]
+        public void Footer_MatchesDesign()
+        {
+            // design (q9JZcH) の右下は「この曲へ」だけ。設定ボタンは design の
+            // 補助操作ゾーンが空プレースホルダなので描かない。
+            foreach (var b in view.Root.GetComponentsInChildren<Button>(true))
+            {
+                Assert.AreNotEqual("Button 設定", b.gameObject.name, "design に無い設定ボタンが描かれている");
+            }
+            Assert.IsTrue(HasText("この曲へ"), "「この曲へ」ボタンが無い");
+            Assert.IsTrue(HasText("選択"), "選択 の凡例が無い");
+            Assert.IsTrue(HasText("決定"), "決定 の凡例が無い");
+            Assert.IsTrue(HasText("戻る"), "戻る の凡例が無い");
+            Assert.IsFalse(HasText("並べ替え"), "design に無い S 並べ替え の凡例が描かれている");
+        }
     }
 }

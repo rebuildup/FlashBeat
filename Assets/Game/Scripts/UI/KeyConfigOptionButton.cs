@@ -34,6 +34,9 @@ public class KeyConfigOptionButton : MonoBehaviour
 
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // v6 Option は Play タブの「キー設定」行から KeyConfigUI を開く。
+        // 旧 F2 ボタンは設計に無いため生成しない。
+        if (FlashBeat.UI.V6.V6UiMode.LegacyOverlaysHidden) return;
         if (scene.name != "OptionScene") return;
         if (FindFirstObjectByType<KeyConfigOptionButton>() != null) return;
 

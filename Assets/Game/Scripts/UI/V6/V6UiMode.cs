@@ -43,19 +43,49 @@ namespace FlashBeat.UI.V6
         public static bool VerdictRow = false;
 
         /// <summary>
-        /// Title 中段のバー (▷ GameStart / ⚙ Option のタブ行) を描くか。
-        /// **false** (2026-11-08, オーナー実機スクリーンショット修正): Title から消すよう
-        /// 指示があった。フッターの START / 設定 ボタンが同じ操作を受け持つためタブ行は
-        /// 二重表示だった。キー操作 (↑↓/Space/O) は tabList を残しているので無効化しない。
+        /// Title 中段のタブ行 (▷ GameStart / History / Ranking / Option) を描くか。
+        ///
+        /// **true** (2026-11-11): 正本 QJtTv ではタブ行 (FHcxk) が表示され、
+        /// フッター右下の操作ボタンゾーン (T8HuQS) は `enabled: false` で非表示。
+        /// 2026-11-08 にタブ行を消した根拠「フッターの START / 設定と二重」は、
+        /// 正本で非表示のゾーンをこちらの都合で描いていたことによる逆転だった。
+        /// 正本に合わせてタブ行を出し、フッター右下は描かない。
         /// </summary>
-        public static bool TitleTabs = false;
+        public static bool TitleTabs = true;
 
         /// <summary>
-        /// Title 左下のキー凡例行 (Space 決定 / ↑↓ 曲送り / E 戻る) を描くか。
-        /// **false** (2026-11-08): 同じくオーナーの指示で消す。フッターの START / 設定
-        /// ボタンにもキー表記 (Space / O) があるため凡例行は二重表示だった。
+        /// Title 左下のキー凡例行 (Space 決定 / ↑↓ 選択 / E 終了) を描くか。
+        ///
+        /// **true** (2026-11-11): 正本 QJtTv のフッター左 (QQ4jM) は表示されている。
+        /// 上と同じ理由で 2026-11-08 の非表示指示を撤回する。
         /// </summary>
-        public static bool TitleLegend = false;
+        public static bool TitleLegend = true;
+
+        /// <summary>
+        /// Title のフッター右下 (設定 / START) を描くか。
+        /// 正本 QJtTv ではゾーンごと `enabled: false`。タブ行が同じ操作を持つ。
+        /// </summary>
+        public static bool TitleFooterActions = false;
+
+        /// <summary>
+        /// Title のヘッダーに "FlashBeat" の文字を描くか。
+        /// 正本 QJtTv の ci867 は `enabled: false` (Exit ボタンと重なるため)。
+        /// </summary>
+        public static bool TitleHeaderTitle = false;
+
+        /// <summary>
+        /// 旧 (v5) の常設オーバーレイを v6 画面で出さない。
+        ///
+        /// 対象と理由:
+        /// - RankingPanel の「F5 ランキング」ヒント … 正本のどの画面にも無い。
+        /// - UpdateChecker の「更新を適用して再起動」ボタン … 正本の更新導線は
+        ///   Title ヘッダー (D7gbLV) のみ。Option に出す旧ボタンは全シーンへ残り、
+        ///   HUD のキーガイドに重なる。
+        /// - MediaCacheOptionPanel / KeyConfigOptionButton (OptionScene のみ生成) …
+        ///   v6 Option が同じ操作 (データタブのキャッシュ / Play タブのキー設定) を
+        ///   持つため、旧パネルは設計に無い二重表示になる。
+        /// </summary>
+        public static bool LegacyOverlaysHidden = true;
 
         /// <summary>
         /// 旧キーガイド (F キー一覧パネル) を隠す。

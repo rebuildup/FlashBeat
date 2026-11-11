@@ -23,6 +23,9 @@ namespace FlashBeat.UI.V5
             canvas.sortingOrder = sortingOrder;
             CanvasConfigurator.Configure(canvas);
             canvas.sortingOrder = sortingOrder; // Configure は 500 を上書きするので戻す
+            // 監査で同じ名前の Canvas が二重に見えたとき、どの生成かを追えるようにする。
+            Debug.Log("[V5GameUi] NewCanvas " + name + " id=" + canvas.GetEntityId()
+                + " scene=" + go.scene.name + " children=" + go.transform.childCount);
             return canvas;
         }
 

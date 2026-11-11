@@ -1,0 +1,293 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.013 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x106d3f650]: surface size 3420x2148
+UnloadTime: 0.562958 ms
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-11T07:09:58Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_dn86Vy.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6Screens] start scenes=TitleScene,SelectScene,OptionScene,ResultScene,GameScene out=/Users/rebui/work/FlashBeat.v6/docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r19 resolution=2560x1664 fullscreen=True
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.004375 ms
+Unloading 10 unused Assets to reduce memory usage. Loaded Objects now: 3069.
+Total: 1.360125 ms (FindLiveObjects: 0.061292 ms CreateObjectMapping: 0.119583 ms MarkObjects: 1.158458 ms  DeleteObjects: 0.020792 ms)
+
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213755008 scene=TitleScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[UpdateChecker] 新版を確認: v0.1.14-macos-39f0c3c (現行 0.1.0+3df925fb)。ダウンロードはユーザーが Title 画面で指示したときだけ行います。
+[UpdateChecker] staging 済みの新版を再利用します: FlashBeat-0.1.14-macos-39f0c3c.zip (適用はユーザー確認時のみ)。
+[AutoTestV6Screens] PASS no legacy graphics are visible on TitleScene
+[AutoTestV6Screens] AUDIT-CANVAS TitleScene name=V6 Title Canvas id=568105589213755008 scene=TitleScene active=True childCount=1 graphics=46
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Version/Version Arrow: U+2192('→')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOLS TitleScene count=3 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot TitleScene was written
+[AutoTestV6Screens] SCREEN TitleScene pass=43 fail=0 symbols=3 res=2560x1664
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.912125 ms
+Unloading 21 unused Assets to reduce memory usage. Loaded Objects now: 3482.
+Total: 2.228292 ms (FindLiveObjects: 0.109791 ms CreateObjectMapping: 0.216500 ms MarkObjects: 1.856792 ms  DeleteObjects: 0.045083 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213753560 scene=SelectScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[AutoTestV6Screens] PASS no legacy graphics are visible on SelectScene
+[AutoTestV6Screens] AUDIT-CANVAS SelectScene name=V6 Select Canvas id=568105589213753560 scene=SelectScene active=True childCount=3 graphics=181
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOLS SelectScene count=9 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot SelectScene was written
+[AutoTestV6Screens] SCREEN SelectScene pass=180 fail=0 symbols=9 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on SelectScene-Empty
+[AutoTestV6Screens] AUDIT-CANVAS SelectScene-Empty name=V6 Select Canvas id=568105589213753560 scene=SelectScene active=True childCount=3 graphics=113
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOLS SelectScene-Empty count=2 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot SelectScene-Empty was written
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=112 fail=0 symbols=2 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on SelectScene-Settings
+[AutoTestV6Screens] AUDIT-CANVAS SelectScene-Settings name=V6 Select Canvas id=568105589213753560 scene=SelectScene active=True childCount=3 graphics=193
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOLS SelectScene-Settings count=9 (log only, not a failure)
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[AutoTestV6Screens] PASS the screenshot SelectScene-Settings was written
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=192 fail=0 symbols=9 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on SelectScene-History
+[AutoTestV6Screens] AUDIT-CANVAS SelectScene-History name=V6 Select Canvas id=568105589213753560 scene=SelectScene active=True childCount=3 graphics=112
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 順位/Value: U+2013('–') U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Head/Score Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge PERFECT/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge GREAT/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge BAD/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MISS/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge HOLD/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MAX COMBO/Inner/Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOLS SelectScene-History count=11 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot SelectScene-History was written
+[AutoTestV6Screens] SCREEN SelectScene-History pass=114 fail=0 symbols=11 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on SelectScene-Ranking
+[AutoTestV6Screens] AUDIT-CANVAS SelectScene-Ranking name=V6 Select Canvas id=568105589213753560 scene=SelectScene active=True childCount=3 graphics=153
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Grade/Grade: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOLS SelectScene-Ranking count=9 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot SelectScene-Ranking was written
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=155 fail=0 symbols=9 res=2560x1664
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.270167 ms
+Unloading 89 unused Assets to reduce memory usage. Loaded Objects now: 3363.
+Total: 1.835792 ms (FindLiveObjects: 0.121875 ms CreateObjectMapping: 0.189000 ms MarkObjects: 1.441792 ms  DeleteObjects: 0.083000 ms)
+
+[OptionSceneManager] Start id=568105584918796924 frame=1031
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213716840 scene=OptionScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[AutoTestV6Screens] PASS no legacy graphics are visible on OptionScene
+[AutoTestV6Screens] AUDIT-CANVAS OptionScene name=V6 Option Canvas id=568105589213716840 scene=OptionScene active=True childCount=1 graphics=179
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key: U+2190('←') U+2192('→')
+[AutoTestV6Screens] SYMBOLS OptionScene count=4 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot OptionScene was written
+[AutoTestV6Screens] SCREEN OptionScene pass=181 fail=0 symbols=4 res=2560x1664
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.217208 ms
+Unloading 14 unused Assets to reduce memory usage. Loaded Objects now: 3289.
+Total: 2.315833 ms (FindLiveObjects: 0.299833 ms CreateObjectMapping: 0.247167 ms MarkObjects: 1.708042 ms  DeleteObjects: 0.060791 ms)
+
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213714690 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6Screens] PASS no legacy graphics are visible on ResultScene
+[AutoTestV6Screens] AUDIT-CANVAS ResultScene name=V6 Result Canvas id=568105589213714690 scene=ResultScene active=True childCount=1 graphics=82
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter: U+2013('–')
+[AutoTestV6Screens] SYMBOLS ResultScene count=1 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot ResultScene was written
+[AutoTestV6Screens] SCREEN ResultScene pass=81 fail=0 symbols=1 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on ResultScene-RegisterModal
+[AutoTestV6Screens] AUDIT-CANVAS ResultScene-RegisterModal name=V6 Result Canvas id=568105589213714690 scene=ResultScene active=True childCount=1 graphics=120
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Prompt: U+2193('↓')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Input Hints/Legend 移動/KeyCap/Key: U+2190('←') U+2192('→')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Summary/Grade/GradeText: U+2013('–')
+[AutoTestV6Screens] SYMBOLS ResultScene-RegisterModal count=5 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot ResultScene-RegisterModal was written
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=119 fail=0 symbols=5 res=2560x1664
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.602792 ms
+[Perf] notes parse 0ms (268 notes)
+Unloading 54 unused Assets to reduce memory usage. Loaded Objects now: 3542.
+Total: 1.293042 ms (FindLiveObjects: 0.066958 ms CreateObjectMapping: 0.103167 ms MarkObjects: 1.070500 ms  DeleteObjects: 0.052334 ms)
+
+[MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.macverify/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[MusicManager] yt-dlp -F videoId=DeKLpgzh-qQ formats=37 ok
+[MusicManager]   format sb2 mhtml 48x27 v=images a=
+[MusicManager]   format sb1 mhtml 80x45 v=images a=
+[MusicManager]   format sb0 mhtml 160x90 v=images a=
+[MusicManager]   format 233 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 234 mp4 audio only v=audio only a=unknown
+[MusicManager]   format 139 m4a audio only v=audio only a=mp4a.40.5
+[MusicManager]   format 249 webm audio only v=audio only a=opus
+[MusicManager]   format 250 webm audio only v=audio only a=opus
+[MusicManager]   format 140 m4a audio only v=audio only a=mp4a.40.2
+[MusicManager]   format 251 webm audio only v=audio only a=opus
+[MusicManager]   format 602 mp4 256x144 v=vp09.00.10.08 a=video only
+[MusicManager]   format 269 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 160 mp4 256x144 v=avc1.4D400C a=video only
+[MusicManager]   format 603 mp4 256x144 v=vp09.00.11.08 a=video only
+[MusicManager]   format 278 webm 256x144 v=vp9 a=video only
+[MusicManager]   format 394 mp4 256x144 v=av01.0.00M.08 a=video only
+[MusicManager]   format 229 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 133 mp4 426x240 v=avc1.4D4015 a=video only
+[MusicManager]   format 604 mp4 426x240 v=vp09.00.20.08 a=video only
+[MusicManager]   format 242 webm 426x240 v=vp9 a=video only
+[MusicManager]   format 395 mp4 426x240 v=av01.0.00M.08 a=video only
+[MusicManager]   format 230 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 134 mp4 640x360 v=avc1.4D401E a=video only
+[MusicManager]   format 18 mp4 640x360 v=avc1.42001E a=44k
+[MusicManager]   format 605 mp4 640x360 v=vp09.00.21.08 a=video only
+[MusicManager]   format 243 webm 640x360 v=vp9 a=video only
+[MusicManager]   format 396 mp4 640x360 v=av01.0.01M.08 a=video only
+[MusicManager]   format 231 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 135 mp4 854x480 v=avc1.4D401F a=video only
+[MusicManager]   format 606 mp4 854x480 v=vp09.00.30.08 a=video only
+[MusicManager]   format 244 webm 854x480 v=vp9 a=video only
+[MusicManager]   format 397 mp4 854x480 v=av01.0.04M.08 a=video only
+[MusicManager]   format 232 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 136 mp4 1280x720 v=avc1.4D401F a=video only
+[MusicManager]   format 609 mp4 1280x720 v=vp09.00.31.08 a=video only
+[MusicManager]   format 247 webm 1280x720 v=vp9 a=video only
+[MusicManager]   format 398 mp4 1280x720 v=av01.0.05M.08 a=video only
+[MusicManager] media plan 'ロストアンブレラ': combined mp4/H.264 itag=18 640x360 (merge available: True)
+[MusicManager] video file: /Users/rebui/Library/Application Support/KimuraYusuke/FlashBeat/FlashBeatMedia/DeKLpgzh-qQ/merged.mp4 (cache)
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+[V5GameUi] NewCanvas V5ReadyCanvas id=568105589213712986 scene=GameScene children=0
+[V5GameUi] NewCanvas V5OverlayCanvas id=568105589213712814 scene=GameScene children=0
+[V5GameUi] NewCanvas V5PauseCanvas id=568105589213712520 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213709430 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213708724 scene=GameScene children=0
+[Perf] notes instantiate 268 notes in 3444ms
+[MusicManager] picture wired to the renderer of '1' (_MainTex, renderMode=MaterialOverride)
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
+[MusicManager] no bundled wav for 'ロストアンブレラ' - the YouTube media is the only sound source
+[Perf] media ready 20ms
+[MusicManager] media ready: song='ロストアンブレラ' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+[AutoTestV6Screens] PASS the v6 hud exists
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-HUD
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-HUD name=V6GamePauseCanvas id=568105589213708724 scene=GameScene active=True childCount=2 graphics=0
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-HUD name=V6GameHudCanvas id=568105589213709430 scene=GameScene active=True childCount=1 graphics=47
+[AutoTestV6Screens] SYMBOLS GameScene-HUD count=0 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot GameScene-HUD was written
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-Pause
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Pause name=V6GamePauseCanvas id=568105589213708724 scene=GameScene active=True childCount=2 graphics=200
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ↑↓/Key: U+2191('↑') U+2193('↓')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ←→/Key: U+2190('←') U+2192('→')
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Pause name=V6GameHudCanvas id=568105589213709430 scene=GameScene active=True childCount=1 graphics=47
+[AutoTestV6Screens] SYMBOLS GameScene-Pause count=4 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot GameScene-Pause was written
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=249 fail=0 symbols=4 res=2560x1664
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-Loading
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Loading name=V6GamePauseCanvas id=568105589213708724 scene=GameScene active=True childCount=2 graphics=15
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Headline: U+2026('…')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Detail: U+2026('…')
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Loading name=V6GameHudCanvas id=568105589213709430 scene=GameScene active=True childCount=1 graphics=47
+[AutoTestV6Screens] SYMBOLS GameScene-Loading count=2 (log only, not a failure)
+[AutoTestV6Screens] PASS the screenshot GameScene-Loading was written
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=64 fail=0 symbols=2 res=2560x1664
+[AutoTestV6Screens] SCREEN TitleScene pass=43 fail=0 symbols=3 shots=v6screen-TitleScene-1.png
+[AutoTestV6Screens] SCREEN SelectScene pass=180 fail=0 symbols=9 shots=v6screen-SelectScene-2.png
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=112 fail=0 symbols=2 shots=v6screen-SelectScene-Empty-3.png
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=192 fail=0 symbols=9 shots=v6screen-SelectScene-Settings-4.png
+[AutoTestV6Screens] SCREEN SelectScene-History pass=114 fail=0 symbols=11 shots=v6screen-SelectScene-History-5.png
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=155 fail=0 symbols=9 shots=v6screen-SelectScene-Ranking-6.png
+[AutoTestV6Screens] SCREEN OptionScene pass=181 fail=0 symbols=4 shots=v6screen-OptionScene-7.png
+[AutoTestV6Screens] SCREEN ResultScene pass=81 fail=0 symbols=1 shots=v6screen-ResultScene-8.png
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=119 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-9.png
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=50 fail=0 symbols=0 shots=v6screen-GameScene-HUD-10.png
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=249 fail=0 symbols=4 shots=v6screen-GameScene-Pause-11.png
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=64 fail=0 symbols=2 shots=v6screen-GameScene-Loading-12.png
+[AutoTestV6Screens] RESULT pass=25 fail=0 symbols=59 screenshots=12 resolution=2560x1664
+Thread 0x16d43b000 may have been prematurely finalized
+Thread 0x16cf8f000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16bfb3000 may have been prematurely finalized
+CodeReloadManager destroyed

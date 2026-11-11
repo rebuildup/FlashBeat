@@ -118,10 +118,11 @@ namespace FlashBeat.V5CanvasTests
 
             // ジャケットは v6 で全曲分を Resources/V6/select/jacket/ に置いている
             // (Pencil 設計の正式データ。ファイル名はカタログ index 順)。
-            // 画像が無い曲 (灰Φ倶楽部) だけ空文字 (固定画像を流用しない)。
-            Assert.AreEqual("V6/select/jacket/05-shuumatsu.jpg", entry.JacketResourcePath);
-            V6SongEntry noJacket = source.AllSongs.Single(s => s.Title == "灰Φ倶楽部");
-            Assert.AreEqual("", noJacket.JacketResourcePath);
+            // Resources.Load は拡張子付きパスを受け付けないため、パスは拡張子なし。
+            Assert.AreEqual("V6/select/jacket/05-shuumatsu", entry.JacketResourcePath);
+            // 22 = 灰Φ倶楽部 も 22-haihai.jpg に対応する (サムネイル空欄の再発防止)。
+            V6SongEntry hai = source.AllSongs.Single(s => s.Title == "灰Φ倶楽部");
+            Assert.AreEqual("V6/select/jacket/22-haihai", hai.JacketResourcePath);
         }
 
         // --- 選択 / 移動 ------------------------------------------------------------

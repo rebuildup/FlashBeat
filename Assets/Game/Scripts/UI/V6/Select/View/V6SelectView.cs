@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Select.View
 {
@@ -37,9 +38,15 @@ namespace FlashBeat.UI.V6.Select.View
 
         // design Frame (1728x972) の Main ゾーンは (24, 96)。列はそのローカル座標。
         private const float MainX = 24f, MainY = 96f;
-        private const float ListX = 0f, ListW = 560f, ListH = 780f;
-        private const float RowX = 16f, RowY0 = 48f, RowW = 504f, RowH = 72f, RowStep = 76f;
-        private const int ListVisibleRows = 9; // y48..y732 (732 / 76)
+        // 曲リストの design 定数の単一ソースは V6SelectViewLogic (History/Ranking ビューと同じ方式)。
+        private const float ListW = V6SelectViewLogic.ListW;
+        private const float ListH = V6SelectViewLogic.ListH;
+        private const float RowX = V6SelectViewLogic.RowX;
+        private const float RowY0 = V6SelectViewLogic.RowY0;
+        private const float RowW = V6SelectViewLogic.RowW;
+        private const float RowH = V6SelectViewLogic.RowH;
+        private const float RowStep = V6SelectViewLogic.RowStep;
+        private const int ListVisibleRows = V6SelectViewLogic.ListVisibleRows;
         private const int RankingVisibleRows = 4; // 300px パネルに 44px 行 + 8px 間隔で 4 行
 
         private const float CenterX = 572f, CenterW = 536f;
@@ -49,8 +56,6 @@ namespace FlashBeat.UI.V6.Select.View
         private readonly Action onReady;
         private readonly Action onBack;
         private readonly Action onOpenSettings;
-
-        private readonly Dictionary<string, Sprite> jacketCache = new Dictionary<string, Sprite>();
 
         private GameObject rootGo;
         private RectTransform frame;
@@ -126,6 +131,21 @@ namespace FlashBeat.UI.V6.Select.View
             }
         }
 
+        /// <summary>現在の検索語。画面監査 (AutoTestV6Screens) が復元に使う。</summary>
+        public string Query => data != null ? data.Query : "";
+
+        /// <summary>
+        /// 検索語を設定する。キーボード入力と同じ data.SetQuery 経路で、空状態の
+        /// 実機撮影など画面監査から呼ぶ。UI を勝手に変える機能ではない。
+        /// </summary>
+        public void SetQuery(string query)
+        {
+            if (data != null)
+            {
+                data.SetQuery(query);
+            }
+        }
+
         /// <summary>検索欄にフォーカスする (統合担当が画面表示時に呼べる)。</summary>
         public void FocusSearch()
         {
@@ -140,6 +160,13 @@ namespace FlashBeat.UI.V6.Select.View
         public void OpenQuickSettings()
         {
             settingsOpen = true;
+            Rebuild();
+        }
+
+        /// <summary>クイック設定を閉じる (画面監査 AutoTestV6Screens からも使う)。</summary>
+        public void CloseQuickSettings()
+        {
+            settingsOpen = false;
             Rebuild();
         }
 
@@ -212,15 +239,16 @@ namespace FlashBeat.UI.V6.Select.View
             // メニュー操作は KeyActions (キー設定の正本, #142) 経由で拾う。
             // v5 SelectView と同じ短縮キーを維持する: ↑↓ / ←→ (NavPrev/NavNext) で
             // 曲送り、Confirm (既定 Space) と Enter/KeypadEnter で Ready、
-            // Back (既定 Esc) で戻る。Tab (検索フォーカス) と F (絞り込み) は
-            // KeyActions に無い v6 固定ショートカットなので raw KeyCode のまま。
+            // Back (既定 Esc) で戻る。Tab (未プレイのみの絞り込み) は KeyActions に
+            // 無い v6 固定ショートカットなので raw KeyCode のまま。
+            // 検索は正本 OENRv の凡例どおり「A-Z を押すと開始」。
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavPrev);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavNext);
             bool confirm = KeyActions.IsDown(KeyActions.KeyAction.Confirm)
                 || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
             bool cancel = KeyActions.IsDown(KeyActions.KeyAction.Back);
-            bool toggleSearch = Input.GetKeyDown(KeyCode.Tab);
-            var action = V6SelectViewLogic.MapKey(searchFocused, up, down, confirm, cancel, toggleSearch);
+            bool tab = Input.GetKeyDown(KeyCode.Tab);
+            var action = V6SelectViewLogic.MapKey(searchFocused, up, down, confirm, cancel, tab);
 
             switch (action)
             {
@@ -253,9 +281,8 @@ namespace FlashBeat.UI.V6.Select.View
                         onBack();
                     }
                     return;
-                case V6SelectAction.FocusSearch:
-                    searchFocused = true;
-                    Rebuild();
+                case V6SelectAction.ToggleFilter:
+                    ToggleUnplayedFilter();
                     return;
             }
 
@@ -270,14 +297,34 @@ namespace FlashBeat.UI.V6.Select.View
                 return;
             }
 
+            // 正本 OENRv: 英字 (A-Z) を押すと検索欄に入る。制御文字は対象外。
+            // ただし操作キー (既定 O = Option) が優先。検索シードを先に判定すると、
+            // O を押すたびに検索語が入り、フッターの「設定 O」が動かなくなる。
             if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
             {
                 OpenSettings();
+                return;
             }
 
-            if (Input.GetKeyDown(KeyCode.F))
+            string typed = Input.inputString;
+            char seed = V6SelectViewLogic.SearchSeed(typed);
+            if (seed != '\0')
             {
-                ToggleUnplayedFilter();
+                searchFocused = true;
+                string seeded = V6SelectViewLogic.ApplySearchInput("", seed.ToString());
+                if (data.Query == seeded)
+                {
+                    // 検索語が変わらないときは Changed が発火しないため、フォーカス表示を
+                    // 反映する再描画をここで 1 回だけ行う。変わるときは SetQuery →
+                    // Changed → OnDataChanged が再描画するので、二重に呼ばない。
+                    Rebuild();
+                }
+                else
+                {
+                    data.SetQuery(seeded);
+                }
+
+                return;
             }
         }
 
@@ -329,22 +376,16 @@ namespace FlashBeat.UI.V6.Select.View
             PlaceFrame();
 
             // frame の全子を作り直す (V5 SelectView.Rebuild と同じ方針)。
-            var children = new List<GameObject>();
-            foreach (Transform child in frame.transform)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(frame.gameObject);
 
             // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
             var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
-            // 選択中の曲を常にリスト中央に表示する (端ではクランプ)。以前の位置を引きずらない。
-            listScroll = V6SelectViewLogic.CenterScroll(selectIndex, songs.Count, ListVisibleRows);
+            // スクロール位置は design (OENRv) どおり上から 9 行を詰める。
+            // CenterScroll の負値をそのまま描くと空スロットが下側にずれて行が
+            // 下端へ寄る (r1実機 2026-11-11 の症状) ので ListScroll で 0 以上に
+            // 丸める。選択 index ≥ 4 では選択行は 5 行目 (上に 4 行) に来る。
+            listScroll = V6SelectViewLogic.ListScroll(selectIndex, songs.Count);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
                 data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
 
@@ -391,11 +432,13 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 if (onBack != null) onBack();
             });
-            V6Icons.Create(back, "arrow-left", 22f, V5Tokens.TextMuted);
-            var backKey = V5GameUi.Text(back, "Key",
-                FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back), 13f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            At(backKey, 0f, 32f, backRect.W, 18f);
+            // 設計 OENRv: ヘッダー左端 (フレーム (24,20))。At を忘れると
+            // V5Ui.Panel の既定 (親の中央) に落ち、検索欄の左に Esc が出る。
+            At(back, backRect.X, backRect.Y);
+            // 正本 zCQBY: arrow-left 24 @(16,4) + Key "Esc" fs16 @(15,30)。
+            // アイコンを中央寄せすると Key と重なるので専用配置 (共通部品)。
+            V6Controls.FillBackButton(back,
+                FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back));
 
             var title = V5GameUi.Text(header.gameObject, "Title", "選曲", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
@@ -408,13 +451,24 @@ namespace FlashBeat.UI.V6.Select.View
             var searchRect = V6SelectViewLogic.HeaderSearch();
             var search = Button(header, "Search", searchRect.W, searchRect.H, 8f, V5Tokens.Overlay, FocusSearch);
             At(search, searchRect.X, searchRect.Y);
+            // design OENRv `/W1K1R/sIkNa/FiU1X`: lucide "search" 20x20 @(12,14)。
+            // これが無いと design の「虫めがね + タイプして検索」にならない。
+            var searchIcon = V6Icons.Create(search, "search", 20f, V5Tokens.TextDim);
+            if (searchIcon != null)
+            {
+                var iconRect = V6SelectViewLogic.HeaderSearchIcon();
+                At(searchIcon, iconRect.X, iconRect.Y);
+            }
+
             var queryRect = V6SelectViewLogic.HeaderSearchQuery();
             var queryText = V5GameUi.Text(search, "Query", SearchDisplayText(), 22f,
                 searchFocused ? V5Tokens.Text : V5Tokens.TextDim, TextAlignmentOptions.Left);
             SingleLine(queryText);
             At(queryText, queryRect.X, queryRect.Y, queryRect.W, queryRect.H);
             var capRect = V6SelectViewLogic.HeaderSearchCap();
-            var cap = KeyCap(search, "A-Z", V6Ui.KeyCapFontSize(capRect.W, capRect.H, "A-Z"),
+            // design `/W1K1R/sIkNa/mMt7c/T3nJjq`: Key fs22 / h32。高さ比 (22/36) に
+            // 任せると fs19 まで縮むので、design の fs22 を明示する。
+            var cap = KeyCap(search, "A-Z", V6SelectViewLogic.CapFontSize,
                 capRect.W, capRect.H);
             At(cap, capRect.X, capRect.Y);
 
@@ -444,109 +498,96 @@ namespace FlashBeat.UI.V6.Select.View
         {
             var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
 
-            // 凡例は絶対位置 (design px)。各項目の幅は純ロジック (V6SelectViewLogic) が決める。
+            // 凡例 (design OENRv Zone · キー操作: y30 / 項目間 gap24 / 項内 gap8 /
+            // KeyCap h32 pad[0,8] / Key・Label fs22)。幅は共通部品 V6Legend が TMP 実測で
+            // 詰める (design 実測 x = 0 / 155 / 315 / 442、zone 幅 593)。
             // 確定キーはキー設定 (KeyActions) の正本から取る (#142 / #221)。
             string confirmKey = FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Confirm);
             var legendItems = V6SelectViewLogic.FooterLegend(confirmKey);
+            float legendX = 0f;
             for (int i = 0; i < legendItems.Length; i++)
             {
-                var item = legendItems[i];
-                // V6Ui.KeyCapFontSize で幅に収まる fs を決める (Spa/ce 折り返し対策)。
-                var cap = KeyCap(footer.gameObject, item.Key,
-                    V6Ui.KeyCapFontSize(item.CapWidth, 32f, item.Key), item.CapWidth, 32f);
-                At(cap, item.X, 30f);
-                var label = V5GameUi.Text(footer.gameObject, "Legend " + item.Label, item.Label,
-                    V6SelectViewLogic.LabelFontSize, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-                SingleLine(label);
-                At(label, item.X + item.CapWidth + V6SelectViewLogic.LegendLabelGap, 46f, item.LabelWidth, 32f,
-                    new Vector2(0f, 0.5f));
+                legendX = V6Legend.Item(footer, legendX, V6Legend.Y,
+                    legendItems[i].Key, legendItems[i].Label);
             }
 
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。
             // 設定パネル展開中 (wSjAm) は「閉じる (Esc)」Secondary に差し替える。
+            // 中身は正本 Prefab/Button Secondary と同じ中央揃え (共通部品に任せる)。
             var settingsRect = V6SelectViewLogic.FooterSettings();
-            var settingsBtn = Button(footer, settingsOpen ? "Op Close" : "Button Settings",
-                settingsRect.W, settingsRect.H, 8f, V5Tokens.ControlBg,
-                settingsOpen ? (Action)CloseSettings : OpenSettings);
-            At(settingsBtn, settingsRect.X, settingsRect.Y);
-            var settingsIconRect = V6SelectViewLogic.FooterSettingsIcon();
-            V6Icons.Create(settingsBtn, settingsOpen ? "x" : "settings", 24f, V5Tokens.TextMuted);
-            var settingsIconTf = settingsBtn.transform.Find("Icon");
-            if (settingsIconTf != null)
+            string settingsKey = FlashBeat.UI.V5.ActionKeyHint.Primary(settingsOpen
+                ? KeyActions.KeyAction.Back
+                : KeyActions.KeyAction.Option);
+            var settingsBtn = V6Controls.ButtonSecondary(footer,
+                settingsOpen ? "閉じる" : "設定",
+                new Vector2(settingsRect.X, settingsRect.Y),
+                new Vector2(settingsRect.W, settingsRect.H),
+                settingsOpen ? "x" : "settings", settingsKey);
+            settingsBtn.name = settingsOpen ? "Op Close" : "Button Settings";
+            var settingsButton = settingsBtn.GetComponent<Button>();
+            if (settingsButton != null)
             {
-                var iconRt = settingsIconTf.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(
-                    settingsIconRect.X + settingsIconRect.W * 0.5f, 0f);
+                settingsButton.transition = Selectable.Transition.None;
+                var nav = settingsButton.navigation;
+                nav.mode = Navigation.Mode.None;
+                settingsButton.navigation = nav;
+                if (settingsOpen)
+                {
+                    settingsButton.onClick.AddListener(CloseSettings);
+                }
+                else
+                {
+                    settingsButton.onClick.AddListener(OpenSettings);
+                }
             }
-            var settingsLabelRect = V6SelectViewLogic.FooterSettingsLabel();
-            var settingsLabel = V5GameUi.Text(settingsBtn, "Label", settingsOpen ? "閉じる" : "設定", 30f,
-                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Normal);
-            SingleLine(settingsLabel);
-            At(settingsLabel, settingsLabelRect.X, settingsLabelRect.Y, settingsLabelRect.W, settingsLabelRect.H);
-            // design: KeyCap (高さ 32, #00000040 r4, Key fs22 $text-muted) を右端に。
-            var settingsCap = V5Ui.Panel(settingsBtn, "KeyCap", new Vector2(48f, 32f), new Color(0f, 0f, 0f, 0.25f), 4f);
-            var capRt = settingsCap.GetComponent<RectTransform>();
-            capRt.anchorMin = new Vector2(1f, 0.5f);
-            capRt.anchorMax = new Vector2(1f, 0.5f);
-            capRt.pivot = new Vector2(1f, 0.5f);
-            capRt.anchoredPosition = new Vector2(-8f, 0f);
-            V5GameUi.Text(settingsCap, "Key", settingsOpen
-                ? FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back)
-                : FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Option), 22f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(settingsCap.transform.Find("Key").GetComponent<RectTransform>(), 48f, 32f);
 
             var readyRect = V6SelectViewLogic.FooterReady();
             // 絞り込みで隠れた選択は Ready できない (#221/#222)。無効のときは
             // 押しても反応しないよう、クリックを張らず弱い色で描画する。
             bool readyEnabled = ReadyAvailable();
-            var ready = Button(footer, "Op Ready", readyRect.W, readyRect.H, 8f,
-                readyEnabled ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key1,
-                readyEnabled ? (Action)(() =>
-                {
-                    if (onReady != null) onReady();
-                }) : null);
-            At(ready, readyRect.X, readyRect.Y);
-            var readyIconRect = V6SelectViewLogic.FooterReadyIcon();
-            V6Icons.Create(ready, "play", 26f, readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim);
-            var readyIconTf = ready.transform.Find("Icon");
-            if (readyIconTf != null)
+            var ready = V6Controls.ButtonPrimary(footer, "Ready",
+                new Vector2(readyRect.X, readyRect.Y),
+                new Vector2(readyRect.W, readyRect.H), "play", confirmKey);
+            ready.name = "Op Ready";
+            var readyButton = ready.GetComponent<Button>();
+            if (readyButton != null)
             {
-                var iconRt = readyIconTf.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(readyIconRect.X + readyIconRect.W * 0.5f, 0f);
+                readyButton.transition = Selectable.Transition.None;
+                var nav = readyButton.navigation;
+                nav.mode = Navigation.Mode.None;
+                readyButton.navigation = nav;
+                if (readyEnabled)
+                {
+                    readyButton.onClick.AddListener(() =>
+                    {
+                        if (onReady != null) onReady();
+                    });
+                }
+                else
+                {
+                    // design に無効状態の見本は無いが、押せないことが分かるよう
+                    // 背景を $k1、文字・アイコンを $text-dim に落とす (旧実装と同じ扱い)。
+                    readyButton.interactable = false;
+                    var bg = ready.GetComponent<Image>();
+                    if (bg != null) bg.color = V5Tokens.Key1;
+                    foreach (var graphic in ready.GetComponentsInChildren<Graphic>(true))
+                    {
+                        var tmp = graphic as TextMeshProUGUI;
+                        if (tmp != null) tmp.color = V5Tokens.TextDim;
+                        else if (graphic is Image && graphic.gameObject.name.StartsWith("Icon"))
+                            graphic.color = V5Tokens.TextDim;
+                    }
+                }
             }
-            var readyLabelRect = V6SelectViewLogic.FooterReadyLabel();
-            var readyLabel = V5GameUi.Text(ready, "Label", "Ready", 30f,
-                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
-                TextAlignmentOptions.Left, FontStyles.Normal);
-            SingleLine(readyLabel);
-            At(readyLabel, readyLabelRect.X, readyLabelRect.Y, readyLabelRect.W, readyLabelRect.H);
-            var readyCapRect = V6SelectViewLogic.FooterReadyCap();
-            var readyCap = V5Ui.Panel(ready, "Cap", new Vector2(readyCapRect.W, readyCapRect.H),
-                new Color(0f, 0f, 0f, 0.15f), 4f);
-            At(readyCap, readyCapRect.X, readyCapRect.Y);
-            // V6Ui.KeyCapFontSize で幅に収まる fs を決める (Spa/ce 折り返し対策)。
-            // キャップ表示もキー設定の正本 (KeyActions.Confirm) に合わせる。
-            var readyCapText = V5GameUi.Text(readyCap, "Key", confirmKey,
-                V6Ui.KeyCapFontSize(readyCapRect.W, readyCapRect.H, confirmKey),
-                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
-                TextAlignmentOptions.Center);
-            SingleLine(readyCapText);
-            At(readyCapText, 0f, 0f, readyCapRect.W, readyCapRect.H);
         }
 
         // --- 左列: 曲リスト (x0 w560 #131313CC r16) ---
 
         private void BuildList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
         {
+            // 位置も design 定数 (frame ローカル (24,96) 560x780 = ListPanelRect) から取る。
             var list = At(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
-                FromHex("#131313CC"), 16f), MainX + ListX, MainY);
+                FromHex("#131313CC"), 16f), V6SelectViewLogic.ListX, V6SelectViewLogic.ListY);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");
@@ -557,43 +598,47 @@ namespace FlashBeat.UI.V6.Select.View
                 // AqFtx のスケルトン行 (読み込み中)。
                 for (int i = 0; i < ListVisibleRows; i++)
                 {
+                    // スケルトンも design 行 (mcCOI) と同じ x 配置 (Level 12 / Thumb 68 /
+                    // Texts 176 / Grade 436)。バーの寸法・y は AqFtx のプレースホルダのまま。
                     var skeleton = At(V5Ui.Panel(rows, "Song Skeleton " + i, new Vector2(RowW, RowH),
                         V5Tokens.Key1, 8f), RowX, RowY0 + RowStep * i);
-                    At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 14f, 14f);
-                    At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 72f, 9f);
-                    At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 182f, 14f);
-                    At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 182f, 44f);
-                    At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 432f, 18f);
+                    At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 12f, 14f);
+                    At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 68f, 9f);
+                    At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 176f, 14f);
+                    At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 176f, 44f);
+                    At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 436f, 18f);
                 }
             }
             else if (songs.Count == 0)
             {
-                // AqFtx: 該当なしの空状態。3 要素は絶対位置 (パネル外へはみ出させない)。
+                // AqFtx: 該当なしの空状態。3 要素は design の座標 (Icon 32 @y14 /
+                // Title 24 @(0,54) h35 / Hint 20 @(0,97) h29) に置く。
                 var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
-                V6Icons.Create(empty, "music", 32f, V5Tokens.TextDim);
+                // design UIN4a は「検索して該当なし」の虫めがね + x。音楽アイコンではない。
+                V6Icons.Create(empty, "search-x", 32f, V5Tokens.TextDim);
                 var emptyIcon = empty.transform.Find("Icon")?.gameObject;
                 if (emptyIcon != null)
                 {
                     var iconRt = emptyIcon.GetComponent<RectTransform>();
-                    iconRt.anchorMin = new Vector2(0f, 0f);
-                    iconRt.anchorMax = new Vector2(1f, 0f);
-                    iconRt.pivot = new Vector2(0.5f, 0f);
-                    iconRt.anchoredPosition = new Vector2(0f, 12f);
-                    iconRt.sizeDelta = new Vector2(0f, 40f);
+                    iconRt.anchorMin = new Vector2(0.5f, 1f);
+                    iconRt.anchorMax = new Vector2(0.5f, 1f);
+                    iconRt.pivot = new Vector2(0.5f, 1f);
+                    iconRt.anchoredPosition = new Vector2(0f, -14f);
+                    iconRt.sizeDelta = new Vector2(32f, 32f);
                 }
                 var emptyTitle = V5GameUi.Text(empty.gameObject, "Title", "曲が見つかりません", 24f, V5Tokens.Text,
                     TextAlignmentOptions.Center, FontStyles.Normal);
-                At(emptyTitle, 0f, 52f, 448f, 32f);
+                At(emptyTitle, 0f, 54f, 448f, 35f);
                 var emptyHint = V5GameUi.Text(empty.gameObject, "Hint", "検索語を変えるか フィルターを解除してください", 20f,
                     V5Tokens.TextMuted, TextAlignmentOptions.Center);
                 SingleLine(emptyHint);
-                At(emptyHint, 0f, 88f, 448f, 28f);
+                At(emptyHint, 0f, 97f, 448f, 29f);
             }
             else
             {
-                // 中央固定: listScroll = 選択 index - visibleRows/2。スロット 0..visibleRows-1 に
-                // index listScroll+i を対応させ、[0, songCount) のみ描く (範囲外は空行)。
-                // 選択行は常に中央スロット (visibleRows/2) に来る (空スロットには入らない)。
+                // 先頭スロットから連続で描く (ClampScroll 済み)。選択行はその中で
+                // ハイライトされるだけで、スロット位置は曲順どおり。
+                // 範囲外の index は描かない (空行にする)。
                 int first = listScroll;
                 int last = first + ListVisibleRows;
                 for (int i = first; i < last; i++)
@@ -609,15 +654,19 @@ namespace FlashBeat.UI.V6.Select.View
 
             BuildScrollButton(list, "Scroll Up", false);
             BuildScrollButton(list, "Scroll Down", true);
-            BuildListHint(list, songs, selectIndex);
+            // 正本 OENRv のリスト下端はスクロールボタンとドットのみ。
+            // 「1 / 28」のような選択位置テキストは設計に無いので描かない。
             BuildDots(list, songs, selectIndex);
         }
 
         private void BuildSongRow(GameObject parent, V6SongEntry song, int index, bool selected, float y)
         {
-            var row = At(V5Ui.Panel(parent, "Song " + song.Title, new Vector2(RowW, RowH),
-                selected ? V5Tokens.Key6 : V5Tokens.Recessed2, 8f), RowX, y);
-            var button = row.gameObject.AddComponent<Button>();
+            // 行の内部座標は共通部品 V6Lists.SongRow に一本化 (design mcCOI/Odv71 実測値)。
+            // この画面はクリック→選択・ジャケット・グレード文字の結線だけを行う。
+            var row = V6Lists.SongRow(parent, song.Title, song.Artist,
+                song.Level > 0 ? song.Level.ToString() : "–", song.BestGrade,
+                new Vector2(RowX, y), new Vector2(RowW, RowH), selected);
+            var button = row.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
@@ -625,31 +674,7 @@ namespace FlashBeat.UI.V6.Select.View
             int songId = song.SongId;
             button.onClick.AddListener(() => data.Select(songId));
 
-            var levelBadge = At(V5Ui.Panel(row, "Level", new Vector2(44f, 44f), V5Tokens.Key4, 22f), 14f, 14f);
-            var levelText = V5GameUi.Text(levelBadge.gameObject, "Num", song.Level > 0 ? song.Level.ToString() : "–", 22f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(levelText.GetComponent<RectTransform>(), 44f, 44f);
-
-            var thumb = At(V5Ui.Panel(row, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 72f, 9f);
-            SetJacket(thumb, song);
-
-            // 曲名 / アーティストは絶対位置 (行の外へはみ出させない)。
-            var songTitle = V5GameUi.Text(row, "Title", song.Title, 26f, V5Tokens.Text, TextAlignmentOptions.Left,
-                FontStyles.Normal);
-            Ellipsis(songTitle);
-            // Ellipsis は「1 行も矩形に収まらないと何も描画しない」。NotoSansJP の
-            // 行高は fs の約 1.45 倍なので fs26 には 38px 必要 (28 だと無描画になる)。
-            At(songTitle, 182f, 14f, 240f, 38f);
-            var songArtist = V5GameUi.Text(row, "Artist", song.Artist, 20f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Left, FontStyles.Normal);
-            Ellipsis(songArtist);
-            // fs20 × 1.448 ≒ 29 → 30px。ink は fs20 (20px) なので Title との重なりは行高 padding のみ。
-            At(songArtist, 182f, 42f, 240f, 30f);
-
-            var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 432f, 18f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "Text", string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade,
-                22f, V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            SetJacket(V6Lists.Thumb(row), song, V6Tokens.Key2);
         }
 
         private void BuildScrollButton(GameObject list, string name, bool down)
@@ -658,27 +683,6 @@ namespace FlashBeat.UI.V6.Select.View
             var btn = Button(list, name, rect.W, rect.H, 8f, V5Tokens.Key4, () => ScrollList(down ? 1 : -1));
             At(btn, rect.X, rect.Y);
             V6Icons.Create(btn, down ? "chevron-down" : "chevron-up", 24f, V5Tokens.TextMuted);
-        }
-
-        /// <summary>
-        /// 曲リスト下端のヒント (選択位置)。下矢印ボタンの左に置 sehingga、
-        /// ボタンに潜って読めないことがない。
-        /// </summary>
-        private void BuildListHint(GameObject list, IReadOnlyList<V6SongEntry> songs, int selectIndex)
-        {
-            var rect = V6SelectViewLogic.ListBottomHint();
-            var hint = V5GameUi.Text(list, "Hint", ListHintText(songs, selectIndex), 18f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Left);
-            Ellipsis(hint);
-            // fs18 × 1.448 ≒ 26 → design の h24 だと Ellipsis が無描画になるため 28 に持ち上げる。
-            At(hint, rect.X, rect.Y, rect.W, 28f);
-        }
-
-        /// <summary>曲リスト下端のヒント文 (選択位置 / 曲数)。</summary>
-        private static string ListHintText(IReadOnlyList<V6SongEntry> songs, int selectIndex)
-        {
-            int position = selectIndex >= 0 ? selectIndex + 1 : 0;
-            return $"{position} / {songs.Count}";
         }
 
         /// <summary>
@@ -740,7 +744,10 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 var title = V5GameUi.Text(meta, "Title", song.Title, 48f, V5Tokens.Text,
                     TextAlignmentOptions.Center, FontStyles.Bold);
-                title.rectTransform.sizeDelta = new Vector2(512f, 56f);
+                // design OENRv 中央 (dRztp と同じ構造): Title は Meta 内 (0,9) 512×50。
+                // sizeDelta だけ変えると既定アンカー (中央) のままで 13px 下がり、
+                // Artist Row (y60) に食い込む (r4 実機で重なって見えた)。
+                At(title, 0f, 9f, 512f, 50f);
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
                 At(artistRow.GetComponent<RectTransform>(), 0f, 60f, 512f, 36f);
                 var tag = V5Ui.Panel(artistRow.gameObject, "Tag No", new Vector2(64f, 30f), V5Tokens.Key4, 4f);
@@ -887,10 +894,11 @@ namespace FlashBeat.UI.V6.Select.View
             var rows = data.Selected != null ? data.RankingFor(data.Selected) : null;
             if (rows == null || rows.Count == 0)
             {
-                // 空状態も実データの状態を言う (固定の "NO DATA" で誤魔化さない)。
-                var empty = V5GameUi.Text(ranking.gameObject, "No Data", RankingEmptyText(song), 24f,
-                    V5Tokens.TextDim, TextAlignmentOptions.Left);
-                At(empty, 24f, 92f, 496f, 44f, new Vector2(0f, 0.5f));
+                // design xIoXm: 空状態は中央の "NO DATA" (24 / $text-dim / (8,155) 496×35)。
+                // 具体的な理由 (ローカル曲・通信失敗) はヘッダーの StatusMessage が既に出す。
+                var empty = V5GameUi.Text(ranking.gameObject, "No Data", "NO DATA", 24f,
+                    V5Tokens.TextDim, TextAlignmentOptions.Center);
+                At(empty, 8f, 155f, 496f, 35f);
             }
             else
             {
@@ -914,9 +922,10 @@ namespace FlashBeat.UI.V6.Select.View
             playersSpacerLe.flexibleWidth = 1f;
             V5GameUi.Text(playersHead.gameObject, "Mode", "累計スコア", 18f, V5Tokens.Text, TextAlignmentOptions.Right,
                 FontStyles.Normal);
-            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "データがありません", 24f,
-                V5Tokens.TextDim, TextAlignmentOptions.Left);
-            At(noPlayers, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            // design IL4N7: 中央の "NO DATA" ((8,149) 496×35)。
+            var noPlayers = V5GameUi.Text(players.gameObject, "No Data", "NO DATA", 24f,
+                V5Tokens.TextDim, TextAlignmentOptions.Center);
+            At(noPlayers, 8f, 149f, 496f, 35f);
         }
 
         /// <summary>ランキングの source タグ表示。実データ (クラウド配信か) から決める。</summary>
@@ -926,43 +935,12 @@ namespace FlashBeat.UI.V6.Select.View
             return song.IsCloud ? "オンライン" : "ローカル";
         }
 
-        /// <summary>ランキングが空のときの文言。ローカル曲はオンラインランキングが存在しない旨を言う。</summary>
-        private string RankingEmptyText(V6SongEntry song)
-        {
-            if (song != null && !song.IsCloud)
-            {
-                return "ローカル曲のランキングはありません";
-            }
-
-            if (data.HasError && !string.IsNullOrEmpty(data.StatusMessage))
-            {
-                return data.StatusMessage;
-            }
-
-            return "ランキングのデータがありません";
-        }
-
         private void BuildRankingRow(GameObject ranking, V6RankingRow row, int index, float y)
         {
-            var line = At(V5Ui.Panel(ranking, "Score " + (index + 1), new Vector2(496f, 44f),
-                row.IsYou ? V5Tokens.Key6 : V5Tokens.Key1, 8f), 8f, y);
-
-            var pos = At(V5Ui.Panel(line, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f), 4f, 4f);
-            var posText = V5GameUi.Text(pos, "Num", row.Position.ToString(), 22f,
-                row.IsYou ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(posText.GetComponent<RectTransform>(), 36f, 36f);
-
-            var name = V5GameUi.Text(line.gameObject, "Name", row.IsYou ? "YOU" : row.PlayerName, 22f, V5Tokens.Text);
-            At(name, 52f, 0f, 140f, 44f, new Vector2(0f, 0.5f));
-
-            var score = V5GameUi.Text(line.gameObject, "Score", V6SelectViewLogic.FormatScore(row.Score), 22f, V5Tokens.Text,
-                TextAlignmentOptions.Right);
-            At(score, 200f, 0f, 180f, 44f, new Vector2(0f, 0.5f));
-
-            var grade = At(V5Ui.Panel(line, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 436f, 4f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "Text", string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade, 22f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            // 行内部は共通部品 (design jnIY9 496×44) が持つ。座標計算をここへ書き戻さない。
+            V6Lists.CompactRankRow(ranking, row.Position.ToString(),
+                row.IsYou ? "YOU" : row.PlayerName, V6SelectViewLogic.FormatScore(row.Score),
+                row.Grade, new Vector2(8f, y), row.IsYou);
         }
 
         // --- 設定 (wSjAm 右カラム差し替え。モーダル/Scrim は使わない) ---
@@ -1015,38 +993,44 @@ namespace FlashBeat.UI.V6.Select.View
                 });
         }
 
-        /// <summary>設定行 1 個分 (icon + label + ‹ › + 値)。位置は行 index から決める。</summary>
+        /// <summary>
+        /// 設定行 1 個分 (design wSjAm 実測): Icon (12,16) 24 / Label (48, ·) fs24 /
+        /// Arrow · chevron-left (値の左 - 52, 8) 40×40 (icon 24) /
+        /// Value は右端 448 に右寄せ (hug 幅) / Arrow · chevron-right (460,8) 40×40。
+        /// 旧実装は icon を x0 から描き、値を固定幅 96 の中央揃えにしていたため
+        /// "Auto"/"10" が design より左に出ていた。
+        /// </summary>
         private void BuildSettingsRow(GameObject column, int index, string label, string value, Action<int> adjust)
         {
             var rect = V6SelectViewLogic.SettingsRowRect(index);
             var row = At(V5Ui.Panel(column, "Set " + label, new Vector2(rect.W, rect.H),
                 V5Tokens.Base, FlashBeat.UI.V6.Common.V6Tokens.RadiusMedium), rect.X, rect.Y);
 
-            V6Icons.Create(row, "list-filter", 24f, V5Tokens.TextMuted);
-            var icon = row.transform.Find("Icon");
-            if (icon != null)
+            var iconImage = V6Icons.Create(row, "list-filter", 24f, V5Tokens.TextMuted);
+            if (iconImage != null)
             {
-                var iconRt = icon.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(12f, 0f);
+                PlaceTopLeft(iconImage.gameObject, 12f, 16f, 24f, 24f);
             }
 
             var labelText = V5GameUi.Text(row.gameObject, "Label", label, 24f, V5Tokens.Text);
+            labelText.textWrappingMode = TextWrappingModes.NoWrap;
             At(labelText, 48f, 0f, 240f, rect.H, new Vector2(0f, 0.5f));
 
-            var left = Button(row, "Prev", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(-1));
-            At(left, 300f, (rect.H - 40f) * 0.5f);
-            V6Icons.Create(left, "chevron-left", 20f, V5Tokens.TextMuted);
-
+            // 値は右端 448 に右寄せ。幅は TMP 実測 (design の hug 幅 101/53/27 と一致)。
             var valueText = V5GameUi.Text(row.gameObject, "Value", value, 24f, V5Tokens.Text,
-                TextAlignmentOptions.Center);
-            At(valueText, 352f, 0f, 96f, rect.H, new Vector2(0f, 0.5f));
+                TextAlignmentOptions.Right);
+            valueText.textWrappingMode = TextWrappingModes.NoWrap;
+            float valueW = Mathf.Max(27f,
+                FlashBeat.UI.V6.Common.V6Controls.MeasureWidth(valueText, value, 101f));
+            At(valueText, 448f - valueW, 0f, valueW, rect.H, new Vector2(0f, 0.5f));
+
+            var left = Button(row, "Prev", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(-1));
+            At(left, 448f - valueW - 52f, (rect.H - 40f) * 0.5f);
+            V6Icons.Create(left, "chevron-left", 24f, V5Tokens.TextMuted);
 
             var right = Button(row, "Next", 40f, 40f, 8f, V5Tokens.Key4, () => adjust(1));
             At(right, 460f, (rect.H - 40f) * 0.5f);
-            V6Icons.Create(right, "chevron-right", 20f, V5Tokens.TextMuted);
+            V6Icons.Create(right, "chevron-right", 24f, V5Tokens.TextMuted);
         }
 
         // --- 入力ヘルパ ---
@@ -1104,32 +1088,10 @@ namespace FlashBeat.UI.V6.Select.View
             return query.Length > 0 ? query : "タイプして検索";
         }
 
-        /// <summary>Resources.Load 用に拡張子を取り除く ("a/b.jpg" → "a/b")。</summary>
-        private static string ResourcePathWithoutExtension(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return path;
-            int dot = path.LastIndexOf('.');
-            int slash = path.LastIndexOf('/');
-            if (dot > 0 && dot > slash) return path.Substring(0, dot);
-            return path;
-        }
-
-        private void SetJacket(GameObject thumbPanel, V6SongEntry song)
+        private void SetJacket(GameObject thumbPanel, V6SongEntry song, Color? fallback = null)
         {
             var img = thumbPanel.GetComponent<Image>();
-            Sprite sprite = null;
-            if (song != null && !string.IsNullOrEmpty(song.JacketResourcePath))
-            {
-                if (!jacketCache.TryGetValue(song.JacketResourcePath, out sprite) || sprite == null)
-                {
-                    // Resources.Load は拡張子なしの相対パスで解決する
-                    // ("V6/select/jacket/01-rosen" 形式)。
-                    var tex = Resources.Load<Texture2D>(ResourcePathWithoutExtension(song.JacketResourcePath));
-                    sprite = tex == null ? null : Sprite.Create(tex,
-                        new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                    jacketCache[song.JacketResourcePath] = sprite;
-                }
-            }
+            Sprite sprite = song == null ? null : V6JacketResources.LoadSprite(song.SongId, song.Title);
 
             if (sprite != null)
             {
@@ -1140,10 +1102,10 @@ namespace FlashBeat.UI.V6.Select.View
             }
             else
             {
-                // ジャケット無しは空枠 (AqFtx の Thumb と同じ $k3)。
+                // ジャケット無しは空枠。曲行 (design mcCOI) は $k2、Hero は $k3 (AqFtx)。
                 img.type = Image.Type.Sliced;
                 img.sprite = V5Ui.RoundedSprite(4);
-                img.color = V5Tokens.Key3;
+                img.color = fallback ?? V5Tokens.Key3;
             }
         }
 
@@ -1178,18 +1140,6 @@ namespace FlashBeat.UI.V6.Select.View
 
             tmp.enableWordWrapping = false;
             tmp.overflowMode = TextOverflowModes.Overflow;
-        }
-
-        /// <summary>長すぎる文字は 1 行に収めて … で省略する (親からはみ出さない)。</summary>
-        private static void Ellipsis(TextMeshProUGUI tmp)
-        {
-            if (tmp == null)
-            {
-                return;
-            }
-
-            tmp.enableWordWrapping = false;
-            tmp.overflowMode = TextOverflowModes.Ellipsis;
         }
 
         /// <summary>
@@ -1237,9 +1187,22 @@ namespace FlashBeat.UI.V6.Select.View
             At(node, x, y, w, h);
             var rt = node.GetComponent<RectTransform>();
             rt.pivot = pivot;
-            // pivot 変更で位置がずれるので左上 (x, -y) を維持する。
-            rt.anchoredPosition = new Vector2(x, -y);
+            // anchoredPosition は pivot の位置を指す。pivot を (0,1) から変えたときも
+            // 矩形の左上が (x, -y) に来るよう pivot 分を補正する (旧実装は補正が無く、
+            // 設定行の Label/Value が行の上へ 28px ずれていた)。
+            rt.anchoredPosition = new Vector2(x + pivot.x * w, -(y + (1f - pivot.y) * h));
             return node.gameObject;
+        }
+
+        /// <summary>中央寄せで作られたアイコンを design の左上座標へ置き直す。</summary>
+        private static void PlaceTopLeft(GameObject go, float x, float y, float w, float h)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(x, -y);
+            rt.sizeDelta = new Vector2(w, h);
         }
 
         /// <summary>親 (row 等) の中央に stretch する (Row/Column の子として使う)。</summary>

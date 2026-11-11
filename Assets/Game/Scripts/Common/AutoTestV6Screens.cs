@@ -117,6 +117,29 @@ public class AutoTestV6Screens : MonoBehaviour
             var select = FlashBeat.UI.V6.Select.View.V6SelectView.Current;
             var history = FlashBeat.UI.V6.History.V6HistoryView.Current;
             var ranking = FlashBeat.UI.V6.Ranking.V6RankingView.Current;
+
+            // design AqFtx (02b 該当なし): 検索ヒット 0 件の空状態を実機で撮る。
+            if (select != null)
+            {
+                string previous = select.Query;
+                select.SetQuery("__no_song_matches__");
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("SelectScene-Empty", reports);
+                select.SetQuery(previous);
+                yield return new WaitForSecondsRealtime(1f);
+            }
+
+            // design wSjAm (02c Select · 設定): 右カラムを「このプレイの設定」へ
+            // 差し替えた状態も撮る (実機は O / 設定ボタンで開く)。
+            if (select != null)
+            {
+                select.OpenQuickSettings();
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("SelectScene-Settings", reports);
+                select.CloseQuickSettings();
+                yield return new WaitForSecondsRealtime(1f);
+            }
+
             if (select != null && history != null && ranking != null)
             {
                 select.SetVisible(false);
@@ -136,6 +159,32 @@ public class AutoTestV6Screens : MonoBehaviour
             {
                 var report = new ScreenReport { Label = "SelectScene-SubScreens" };
                 Check(report, "the v6 history and ranking views exist", history != null && ranking != null);
+                reports.Add(report);
+            }
+
+            yield break;
+        }
+
+        if (sceneName == "ResultScene")
+        {
+            yield return CaptureAndAudit("ResultScene", reports);
+
+            // design lqHaN (05b 登録モーダル): 実機ではフッターの Register で開く。
+            // 自動撮影は入力できないため、監査用 API で開いて撮る。
+            var driver = FindFirstObjectByType<FlashBeat.UI.V6.Result.V6ResultViewDriver>();
+            var resultView = driver != null ? driver.View : null;
+            if (resultView != null)
+            {
+                resultView.OpenRegisterModalForAudit();
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("ResultScene-RegisterModal", reports);
+                resultView.CloseRegisterModalForAudit();
+                yield return new WaitForSecondsRealtime(0.5f);
+            }
+            else
+            {
+                var report = new ScreenReport { Label = "ResultScene-RegisterModal" };
+                Check(report, "the v6 result view exists", false);
                 reports.Add(report);
             }
 
@@ -170,6 +219,56 @@ public class AutoTestV6Screens : MonoBehaviour
                 var report = new ScreenReport { Label = "GameScene-Pause" };
                 Check(report, "the v6 pause view exists", false);
                 reports.Add(report);
+            }
+
+            // design g4Q3F (曲ローディング)。通常は phase が表示を決めるため
+            // 自動撮影中は数秒で隠れる。検証用 API で固定表示して撮る
+            // (正本と同じ曲 5 = 終焉逃避行 / 柊マグネタイト、進捗 42%)。
+            var runtime = FindFirstObjectByType<FlashBeat.UI.V6.V6GameRuntime>();
+            if (runtime != null)
+            {
+                runtime.ShowLoadingForAudit(5, 0.42f);
+                yield return new WaitForSecondsRealtime(0.8f);
+                yield return CaptureAndAudit("GameScene-Loading", reports);
+                runtime.HideLoadingForAudit();
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+            else
+            {
+                var report = new ScreenReport { Label = "GameScene-Loading" };
+                Check(report, "the v6 game runtime exists", false);
+                reports.Add(report);
+            }
+
+            yield break;
+        }
+
+        if (sceneName == "OptionScene")
+        {
+            // design B6If6Z / EzLfb / z7joSy / DQHHp: Option は 4 タブあり、
+            // タブごとに設定行と説明文が違う。実機は Tab / クリックで切り替えるが
+            // 自動撮影は入力できないため、監査用 API で全タブを撮る。
+            yield return CaptureAndAudit("OptionScene", reports);
+
+            var option = FlashBeat.UI.V6.Option.V6OptionView.Current;
+            if (option == null)
+            {
+                var report = new ScreenReport { Label = "OptionScene-Tabs" };
+                Check(report, "the v6 option view exists", false);
+                reports.Add(report);
+            }
+            else
+            {
+                for (int tab = 1; tab < FlashBeat.UI.V6.Option.V6OptionLogic.TabCount; tab++)
+                {
+                    option.SelectTabForAudit(tab);
+                    yield return new WaitForSecondsRealtime(0.6f);
+                    yield return CaptureAndAudit(
+                        "OptionScene-" + FlashBeat.UI.V6.Option.V6OptionLogic.TabLabels[tab], reports);
+                }
+
+                option.SelectTabForAudit(0);
+                yield return new WaitForSecondsRealtime(0.4f);
             }
 
             yield break;
@@ -213,6 +312,12 @@ public class AutoTestV6Screens : MonoBehaviour
             var canvas = canvases[i];
             if (!V6ScreenAudit.IsV6Canvas(canvas)) { continue; }
 
+            // 非表示 (ルートが inactive) の v6 Canvas は「その画面に居ない」ので判定しない。
+            // 従来は inactive な Pause の Canvas を毎レポート走査し、フレーム節が無いと
+            // FAIL にしていた (HUD レポートに Pause の FAIL が混ざっていた)。
+            var graphics = canvas.GetComponentsInChildren<Graphic>(false);
+            if (graphics.Length == 0) { continue; }
+
             Rect outer;
             if (V6ScreenAudit.IsFullScreenCanvas(canvas))
             {
@@ -238,7 +343,6 @@ public class AutoTestV6Screens : MonoBehaviour
                 }
             }
 
-            var graphics = canvas.GetComponentsInChildren<Graphic>(false);
             for (int g = 0; g < graphics.Length; g++)
             {
                 var graphic = graphics[g];
@@ -248,6 +352,18 @@ public class AutoTestV6Screens : MonoBehaviour
                 if (rt == null) { continue; }
 
                 var rect = V6ScreenAudit.WorldRect(rt);
+
+                // 全画面の暗幕 (Pause Dim 等) はフレームより大きいのが設計どおり。
+                // 画面全体 (許容誤差つき) を覆う 1 枚だけを正当な背景として許容する。
+                var screen = new Rect(0f, 0f, Screen.width, Screen.height);
+                if (rect.width >= screen.width - V6ScreenAudit.TolerancePx
+                    && rect.height >= screen.height - V6ScreenAudit.TolerancePx
+                    && V6ScreenAudit.Contains(rect, screen, V6ScreenAudit.TolerancePx))
+                {
+                    report.Pass++;
+                    continue;
+                }
+
                 if (V6ScreenAudit.Contains(outer, rect, V6ScreenAudit.TolerancePx))
                 {
                     report.Pass++;
@@ -309,6 +425,15 @@ public class AutoTestV6Screens : MonoBehaviour
         {
             var canvas = canvases[i];
             if (!V6ScreenAudit.IsV6Canvas(canvas)) { continue; }
+
+            // 「同じ v6 Canvas が 2 つ監査される」現象 (OptionScene の pass が
+            // 181 / 359 で揺れる) を追うための識別情報。id が違えば別インスタンス。
+            Debug.Log("[AutoTestV6Screens] AUDIT-CANVAS " + report.Label + " name=" + canvas.name
+                + " id=" + canvas.GetEntityId()
+                + " scene=" + canvas.gameObject.scene.name
+                + " active=" + canvas.gameObject.activeInHierarchy
+                + " childCount=" + canvas.transform.childCount
+                + " graphics=" + canvas.GetComponentsInChildren<Graphic>(false).Length);
 
             var tmpTexts = canvas.GetComponentsInChildren<TMP_Text>(false);
             for (int t = 0; t < tmpTexts.Length; t++)

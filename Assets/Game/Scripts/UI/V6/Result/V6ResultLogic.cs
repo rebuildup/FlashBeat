@@ -112,10 +112,12 @@ namespace FlashBeat.UI.V6.Result
         //     V6ResultView の構築と EditMode 配置テスト (V6ResultFramePlacementTests) で
         //     共有する純定数・純関数。 ---
 
-        /// メインゾーン: 共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
-        public const float MainX = 24f;
+        /// メインゾーン: 正本 zcSHh は **共有フレームの Main を 5 列に差し替える**
+        /// ((164,96) 1400×780 = 280×5)。共有フレーム §4 の 6 列 1680 をそのまま
+        /// 使うと、右のランキング 2 枚が 156px 外へ出てデザインと一致しない。
+        public const float MainX = 164f;
         public const float MainY = 96f;
-        public const float MainW = 1680f;
+        public const float MainW = 1400f;
         public const float MainH = 780f;
 
         /// フッターゾーン (24,876) 1680x96 (契約 §4)。
@@ -125,36 +127,54 @@ namespace FlashBeat.UI.V6.Result
         public const float FooterButtonH = 56f;
         public const float FooterButtonGap = 16f;
         public const float FooterLegendY = 30f;
-        public const float FooterLegendGap = 16f;
+
+        /// <summary>フッター凡例の項目間 gap (design zcSHh Zone · キー操作 gap24)。</summary>
+        public const float FooterLegendGap = 24f;
+
+        /// <summary>
+        /// フッター右ボタンの design 幅 (zcSHh の各 Op フレームに固定値が入っている)。
+        /// 内容から逆算すると Latin の送り幅の推定誤差で広がるため、正本の固定値をそのまま使う。
+        /// </summary>
+        public const float FooterRetryButtonW = 220f;
+        public const float FooterRegisterButtonW = 273f;
+        public const float FooterOkButtonW = 273f;
 
         /// <summary>
         /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x。
-        /// フレーム右端 (1728) ではなく Main の右端 (フレーム x 1704 = フッター右端) に
-        /// 右寄せする: rankLeft = MainX + RankX = 1176, 右端 = 1176 + 528 = 1704。
-        /// 旧値 (MainX + MainW - 528 = 1176) は Main 相対 x に MainX を二重加算して
-        /// 右端がフレーム外 (1728) にはみ出していた。
+        /// 正本 zcSHh の "曲別ランキング" / "登録名ランキング" は Main 内 (856,24) /
+        /// (856,452) で、右端は 856 + 528 = 1384 (フレーム x 1548 = Main 右端 1564 の 16px 内側)。
+        /// Main 幅から 528 を引いただけ (872) では 16px 右へずれるため、その内側余白 16 も引く。
         /// </summary>
-        public const float RankX = MainW - 528f;
+        public const float RankX = MainW - 528f - 16f;
 
         /// 楽曲情報バンド (Main 内 (0,636)) 840x120 と子要素の配置 (design zcSHh)。
-        /// Stat を y56 (design の y20 ではなく) に置くのは、実データの曲名
-        /// (最長 12 文字 x fs34 で y21..55 まで食い込む) と Stat のラベル行が
-        /// 衝突するため (design の例は 5 文字想定)。
+        /// Title / Artist は design の hug 幅 (170 / 161) ではなく、Stat 列の左端
+        /// (x348) まで使える幅 204 に固定する (design の例は 5 文字・7 文字サンプルで、
+        /// 実データの最長タイトルは 12 文字 x fs34 = 408)。1 行固定 + ellipsis。
+        /// Stat は design どおり y20 (Label (0,0) h26 / Value (0,28) h43)。
+        /// 旧実装は Title を全幅 660 に広げた代償として Stat を y56 へ落としていた。
         public const float SongInfoY = 636f;
         public const float SongInfoW = 840f;
         public const float SongInfoH = 120f;
         public const float SongThumbX = 16f, SongThumbY = 28f, SongThumbW = 112f, SongThumbH = 63f;
-        public const float SongTitleX = 144f, SongTitleY = 16f, SongTitleW = 660f, SongTitleH = 40f;
-        public const float SongArtistX = 144f, SongArtistY = 66f, SongArtistW = 190f, SongArtistH = 28f;
-        public const float SongStatY = 56f, SongStatW = 116f, SongStatH = 64f;
-        public const float SongStatLabelH = 20f, SongStatValueY = 20f, SongStatValueH = 42f;
+        public const float SongTitleX = 144f, SongTitleY = 16f, SongTitleW = 204f, SongTitleH = 36f;
+        public const float SongArtistX = 144f, SongArtistY = 66f, SongArtistW = 204f, SongArtistH = 33f;
+        public const float SongStatY = 20f, SongStatW = 116f, SongStatH = 64f;
+        public const float SongStatLabelH = 26f, SongStatValueY = 28f, SongStatValueH = 43f;
         public static readonly float[] SongStatX = { 348f, 468f, 588f, 708f };
+
+        /// 曲別ランキングの見出し下の曲名 (design zcSHh / Lo2pD (20,52) 150×43 fs30)。
+        /// 150 は 5 文字サンプルの hug 幅なので、行幅 496 の右端まで使う 484 を実装値にする。
+        public const float SongRankTitleX = 20f, SongRankTitleY = 52f;
+        public const float SongRankTitleW = 484f, SongRankTitleH = 43f;
 
         /// ランキング Head (パネル内 (8,8)) 512x36 と矢印 / 集計軸の配置
         /// (design: padding [0,12] / gap8 / Arrow 32x32 / Metric fs18)。
         /// Metric は「累計スコア」(5 文字 x 18 = 90) が収まる幅 92 を取る
         /// (旧実装の幅 68 は折り返して矢印と重なった)。
         public const float RankHeadX = 8f, RankHeadY = 8f, RankHeadW = 512f, RankHeadH = 36f;
+        /// <summary>曲別ランキングの見出し文字の矩形高 (design d6Noy (12,5) h26)。</summary>
+        public const float RankHeadTitleH = 26f;
         public const float RankHeadTitleW = 220f;
         public const float RankHeadChevronL = 329f, RankHeadChevronR = 468f, RankHeadChevronSize = 32f;
         public const float RankHeadMetricX = 369f, RankHeadMetricW = 92f;
@@ -163,10 +183,11 @@ namespace FlashBeat.UI.V6.Result
         public static readonly string[] LegendKeys = { "R", "Enter", "Space" };
         public static readonly string[] LegendLabels = { "リトライ", "登録", "決定" };
 
-        /// KeyCap 幅 (契約 §4: Key fs22 / padding [0,10]。短キーは 56 の下限)。
+        /// KeyCap 幅 (design zcSHh の Legend KeyCap: Key fs22 / padding [0,8] / 下限なし)。
+        /// 実測 (R = 30px) から 56 の下限は正本に無いと分かる。
         public static float KeyCapWidth(string key)
         {
-            return Mathf.Max(56f, Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * 22f) + V6Ui.KeyCapPaddingX * 2f);
+            return Mathf.Max(1f, Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * 22f) + Common.V6Controls.ButtonKeyCapPaddingX * 2f);
         }
 
         /// 凡例 1 項目の幅 (KeyCap + gap8 + Label fs22)。
@@ -185,20 +206,6 @@ namespace FlashBeat.UI.V6.Result
             }
 
             return end - FooterLegendGap;
-        }
-
-        /// <summary>
-        /// フッター右ボタンの幅 (契約 §4 Button: padding [0,24] / icon 32 + gap12 /
-        /// Label fs30 / gap12 / KeyCap)。Label の字形幅は上側推定なので保険 +8 を足す。
-        /// </summary>
-        public static float FooterButtonWidth(string label, string keyCap, bool hasIcon)
-        {
-            return 24f * 2f
-                + (hasIcon ? 32f + 12f : 0f)
-                + Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * 30f)
-                + 12f
-                + KeyCapWidth(keyCap)
-                + 8f;
         }
 
         /// 幅をフッター右端から gap16 で右寄せ横並びしたときの各ボタン左端 x (design, フッター内)。

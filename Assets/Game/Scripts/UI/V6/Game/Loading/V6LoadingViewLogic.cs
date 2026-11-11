@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace FlashBeat.UI.V6.Game.Loading
 {
@@ -27,6 +26,32 @@ namespace FlashBeat.UI.V6.Game.Loading
             float y = Mathf.Max(0f, Mathf.Floor((height - FrameH) / 2f));
             return new Vector2(x, y);
         }
+
+        // --- フッター凡例 (design g4Q3F) ---
+
+        /// <summary>
+        /// フッター凡例 (Esc「戻る」) の左端 (design フレーム座標)。
+        /// 正本は 決定 / 曲送り を 0×0 の項目として据え置き、項目間 gap16 で
+        /// 各 16 ずつ進めるため、戻る はゾーンローカル x32 = フレーム x56 から始まる
+        /// (design 画素: 2x 書き出しの Cap が x112..221 = フレーム 56..110.5)。
+        /// 旧実装はフレーム x24 に置いていた (32px 左)。
+        /// </summary>
+        public const float FooterLegendX = 56f;
+
+        /// <summary>凡例の上端 (フッターゾーン y876 内在り)。design 30。</summary>
+        public const float FooterLegendY = 30f;
+
+        /// <summary>凡例 KeyCap の高さ。design 36 (Title の凡例と同じ別設計、他画面は 32)。</summary>
+        public const float FooterLegendCapHeight = 36f;
+
+        /// <summary>KeyCap と Label の間隔。design 10 (他画面は 8)。</summary>
+        public const float FooterLegendInnerGap = 10f;
+
+        /// <summary>項目間の間隔。design 16 (他画面は 24)。</summary>
+        public const float FooterLegendItemGap = 16f;
+
+        /// <summary>凡例の文字サイズ。design fs22。</summary>
+        public const float FooterLegendFontSize = 22f;
 
         /// <summary>不定インジケータの往復周期 (秒)。v5 GameLoadingView と同じ。</summary>
         public const float CycleSeconds = 1.6f;
@@ -95,33 +120,32 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         // --- ジャケット (Issue #224) ---
 
-        // V6SelectDataSource.JacketResourcePathOf と同じ対応表。
-        // Select/** は編集不可のため Result 側 (V6ResultView) と同じく写しを置く。
-        // 画像が無い曲 (22 など) は空文字を返し、固定画像を流用しない。
-        static readonly Dictionary<int, string> JacketFiles = new Dictionary<int, string>
+        /// <summary>
+        /// ジャケットを 56×56 の枠に mode:"cover" で埋めるときの切り出し矩形
+        /// (テクスチャ座標、原点は左下)。中心を正方形に取る。
+        /// design N3HPJ は cover 指定なので、16:9 素材 (320×180) を
+        /// そのまま入れて帯にしない。素材が正方形なら全面を返す。
+        /// </summary>
+        public static Rect CoverCropRect(int width, int height)
         {
-            { 1, "01-rosen.jpg" }, { 2, "02-mani.jpg" }, { 3, "03-who.jpg" }, { 4, "04-tweet.jpg" },
-            { 5, "05-shuumatsu.jpg" }, { 6, "06-euta.jpg" }, { 7, "07-chartreuse.jpg" }, { 8, "08-psyched.jpg" },
-            { 9, "09-dogbite.jpg" }, { 10, "10-tutorial.jpg" }, { 11, "11-kyoukiranmai.jpg" },
-            { 12, "12-poison.jpg" }, { 13, "13-selfie.jpg" }, { 14, "14-4thsmile.jpg" },
-            { 15, "15-calamity.jpg" }, { 16, "16-panopticon.jpg" }, { 17, "17-guru.jpg" }, { 18, "18-abun.jpg" },
-            { 19, "19-mushin.jpg" }, { 20, "20-haruarashi.jpg" }, { 21, "21-bibibibi.jpg" },
-            { 23, "23-override.jpg" }, { 24, "24-igaku.jpg" }, { 25, "25-tekkyu.jpg" }, { 26, "26-ikken.jpg" },
-        };
+            if (width <= 0 || height <= 0)
+            {
+                return new Rect(0f, 0f, 0f, 0f);
+            }
+
+            float side = Mathf.Min(width, height);
+            return new Rect((width - side) * 0.5f, (height - side) * 0.5f, side, side);
+        }
 
         /// <summary>
-        /// カタログ index → ジャケットの Resources 相対パス。
-        /// 対応する画像が無い曲は空文字 (呼び出し側は「無し」を正直に表示する)。
+        /// カタログ index → ジャケットの Resources 相対パス (拡張子なし)。
+        /// 1..26 はすべて画像あり (22 = 灰Φ倶楽部も含む)。表に無い index は空文字
+        /// (呼び出し側は「無し」を正直に表示する)。
+        /// 解決は <see cref="V6JacketResources"/> に一本化している。
         /// </summary>
         public static string JacketResourcePathOf(int songId)
         {
-            string file;
-            if (JacketFiles.TryGetValue(songId, out file))
-            {
-                return "V6/select/jacket/" + file;
-            }
-
-            return "";
+            return V6JacketResources.PathOf(songId);
         }
     }
 }

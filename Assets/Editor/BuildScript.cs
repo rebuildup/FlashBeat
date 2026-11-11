@@ -91,6 +91,10 @@ public static class BuildScript
         string versionBase = Environment.GetEnvironmentVariable("FLASHBEAT_VERSION_BASE");
         if (string.IsNullOrEmpty(versionBase)) { versionBase = DefaultVersionBase; }
         PlayerSettings.bundleVersion = versionBase + "+" + shortSha;
+        // batchmode では PlayerSettings の変更が ProjectSettings.asset に書かれず、
+        // BuildPlayer がディスク上の古い bundleVersion を焼き込む (r25/r26 の実機が
+        // 0.1.14+617c2b6 = コミット済みの値のまま出荷された)。SaveAssets で確定させる。
+        AssetDatabase.SaveAssets();
         Debug.Log($"[BuildScript] bundleVersion = {PlayerSettings.bundleVersion}");
 
         ExcludeMediaFromBuild();

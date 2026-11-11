@@ -37,6 +37,7 @@ public class RankingPanel : MonoBehaviour
     private RectTransform boardRoot;
     private RectTransform modalRoot;
     private TextMeshProUGUI hintLabel;
+    private GameObject hintCap;
     private readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
     private readonly List<UnityEngine.UI.Image> rowBackgrounds = new List<UnityEngine.UI.Image>();
     private TextMeshProUGUI yourRankLabel;
@@ -58,6 +59,7 @@ public class RankingPanel : MonoBehaviour
         boardRoot.gameObject.SetActive(false);
         modalRoot.gameObject.SetActive(false);
         if (hintLabel != null) hintLabel.gameObject.SetActive(false);
+        if (hintCap != null) hintCap.SetActive(false);
     }
 
     /// <summary>日本語グリフを持つフォントを探す (既存の TMP テキストから借りる)。</summary>
@@ -316,6 +318,7 @@ public class RankingPanel : MonoBehaviour
 
         // [F5] キャップを左に置いて、キーボードで呼べる操作だと分かるようにする。
         var cap = FlashBeat.UI.V5.ShortcutKeyCap.Create(rect.parent as RectTransform, "F5", 18f);
+        if (cap != null) { hintCap = cap.gameObject; }
         var capRect = cap.GetComponent<RectTransform>();
         capRect.anchorMin = new Vector2(0f, 0f);
         capRect.anchorMax = new Vector2(0f, 0f);
@@ -328,10 +331,15 @@ public class RankingPanel : MonoBehaviour
 
     public void ShowHint(bool show)
     {
-        if (hintLabel == null) return;
-        if (hintLabel.gameObject.activeSelf != show)
+        // F5 キャップとラベルは 1 組。片方だけ残すと「F5」だけが画面に浮く。
+        if (hintLabel != null && hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);
+        }
+
+        if (hintCap != null && hintCap.activeSelf != show)
+        {
+            hintCap.SetActive(show);
         }
     }
 

@@ -73,7 +73,10 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int MenuW;
         public readonly int MenuH;
         public readonly int MenuFs;
-        public readonly int MenuKeyFs;
+        /// <summary>Menu 内 KeyCap の高さ。design は [0,10] padding の自動幅・自動高 (行高 fs×1.45)。</summary>
+        public readonly int MenuCapH;
+        /// <summary>Menu のラベルと KeyCap の間隔 (design T3U7u6 gap: 10、解像度で変わらない)。</summary>
+        public readonly int MenuGap;
 
         // --- コンボ (左) ---
         /// <summary>コンボ block の左上 x (design px、画面左上原点)。</summary>
@@ -135,7 +138,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             int topShadeH, int progressH, int margin,
             int gradeFs, int gaugeX, int gaugeY, int gaugeW, int gaugeH,
             int scoreLabelY, int scoreValueY, int scoreLabelFs, int scoreFs,
-            int menuW, int menuH, int menuFs,
+            int menuW, int menuH, int menuFs, int menuCapH, int menuGap,
             int comboX, int comboY, int comboW, int comboH, int comboLabelFs, int comboValueFs, int comboValueY,
             int rightColX, int rightColY, int rightColW, int bonusFs, int statusFs, int bonusRowH, int bonusBlockH, int statusBlockH,
             int rightColTopOffset,
@@ -164,6 +167,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             MenuW = menuW;
             MenuH = menuH;
             MenuFs = menuFs;
+            MenuCapH = menuCapH;
+            MenuGap = menuGap;
             ComboX = comboX;
             ComboY = comboY;
             ComboW = comboW;
@@ -240,7 +245,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 R(260, s), R(8, s), R(48, s),
                 R(95, s), R(188, s), R(48, s), R(600, s), R(36, s),
                 R(78, s), R(100, s), R(22, s), R(38, s),
-                R(180, s), R(48, s), R(22, s),
+                R(180, s), R(48, s), R(22, s), R(32, s), 10,
                 R(48, s), R(430, s), R(600, s), R(220, s), R(22, s), R(180, s), R(24, s),
                 R(1512, s), R(460, s), R(360, s), R(22, s), R(22, s), R(44, s), R(90, s), R(160, s),
                 R(80, s),
@@ -264,7 +269,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 347, 11, 64,
                 125, 251, 64, 800, 48,
                 104, 133, 30, 50,
-                240, 64, 30,
+                240, 64, 30, 44, 10,
                 64, 573, 800, 293, 30, 240, 32,
                 2016, 613, 480, 30, 30, 59, 120, 213,
                 80,
@@ -289,7 +294,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 347, 11, 64,
                 125, 251, 64, 800, 48,
                 104, 133, 30, 50,
-                240, 64, 30,
+                240, 64, 30, 44, 10,
                 64, 685, 800, 293, 30, 240, 32,
                 2016, 725, 480, 30, 30, 59, 120, 213,
                 80,

@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using UnityEngine;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Result;
@@ -48,33 +48,47 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
+        public void ResultMain_IsFiveDesignColumns()
+        {
+            // 正本 zcSHh: Main (164,96) 1400×780 = 5 列 × 280 (共有フレームの 6 列を
+            // そのまま使うと右パネルが 156 px 右へずれる)。右パネルは x=1020 (528 幅)。
+            Assert.AreEqual(164f, V6ResultLogic.MainX);
+            Assert.AreEqual(1400f, V6ResultLogic.MainW);
+            Assert.AreEqual(5f * 280f, V6ResultLogic.MainW);
+            Assert.AreEqual(856f, V6ResultLogic.RankX);
+            Assert.AreEqual(1020f, V6ResultLogic.MainX + V6ResultLogic.RankX);
+        }
+
+        [Test]
         public void ResultMain_AndRightColumn_FitInSharedFrame()
         {
-            // メインゾーンは共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
+            // メインゾーン (164,96) 1400×780 と右カラム 528 は共有フレーム 1728×972 内。
             var frameOrigin = Vector2.zero;
             var frameSize = new Vector2(V6ResultLogic.DesignW, V6ResultLogic.DesignH);
             Assert.IsTrue(V6Layout.FitsIn(frameOrigin, frameSize,
                 new Vector2(V6ResultLogic.MainX, V6ResultLogic.MainY),
                 new Vector2(V6ResultLogic.MainW, V6ResultLogic.MainH)));
 
-            // 右カラム (ランキング 2 枚, 幅 528) はフレーム内に収まり、
-            // 右端はフッター右端 (design x1704) に揃う (内側に寄らない)。
+            // 右カラム (ランキング 2 枚, 幅 528) はフレーム内に収まる。
+            // 正本 zcSHh では右カラム右端 x1548 = Main 右端 (164+1400=1564) の
+            // 16px 内側 (フッター右端 1704 ではない)。
             float rankLeft = V6ResultLogic.MainX + V6ResultLogic.RankX;
             Assert.IsTrue(V6Layout.FitsIn(frameOrigin, frameSize,
                 new Vector2(rankLeft, V6ResultLogic.MainY), new Vector2(528f, V6ResultLogic.MainH)));
-            Assert.AreEqual(1704f, rankLeft + 528f);
+            Assert.AreEqual(1548f, rankLeft + 528f);
+            Assert.AreEqual(16f, V6ResultLogic.MainX + V6ResultLogic.MainW - (rankLeft + 528f));
         }
 
         [Test]
         public void ResultFooter_ButtonsAndLegend_FitWithoutOverlap()
         {
-            // フッター右の 3 ボタン (OK / Register / Retry) は幅を内容から算出し、
-            // 右端から gap16 で横並び。フッター (24,876) 1680x96 内に収まる (契約 §4)。
+            // フッター右の 3 ボタン (OK / Register / Retry) は正本 zcSHh の固定幅
+            // (273 / 273 / 220) で、右端から gap16 で横並び。フッター (24,876) 1680x96 内に収まる。
             float[] widths =
             {
-                V6ResultLogic.FooterButtonWidth("OK", "Space", true),
-                V6ResultLogic.FooterButtonWidth("Register", "Enter", true),
-                V6ResultLogic.FooterButtonWidth("Retry", "R", true),
+                V6ResultLogic.FooterOkButtonW,
+                V6ResultLogic.FooterRegisterButtonW,
+                V6ResultLogic.FooterRetryButtonW,
             };
             float[] xs = V6ResultLogic.FooterButtonXs(widths);
             var footerOrigin = new Vector2(24f, 876f);
@@ -119,17 +133,26 @@ namespace FlashBeat.V5CanvasTests
                 var cellPos = bandOrigin + new Vector2(V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY);
                 var cellSize = new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
                 Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize, cellPos, cellSize), "stat cell " + i);
-                // セル内の Label (上 20) + Value (y20 h42) もセル内に収まる。
+                // セル内の Label (上 26) はセル内に収まる。
                 Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
                     cellPos,
                     new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH)), "stat label " + i);
-                Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
-                    cellPos + new Vector2(0f, V6ResultLogic.SongStatValueY),
-                    new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH)), "stat value " + i);
+                // design の Value 矩形 (0,28) h43 はセル (h64) を 7px 超える (design 側に
+                // clip は無く、実際はバンド内 91 までに収まる)。バンド内であることを見る。
+                var valuePos = cellPos + new Vector2(0f, V6ResultLogic.SongStatValueY);
+                var valueSize = new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
+                Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize, valuePos, valueSize),
+                    "stat value " + i + " must stay inside the band");
             }
 
-            // 曲名 (fs34, 実データ最長 12 文字) の矩形と Stat のラベル行は縦に重ならない。
-            Assert.LessOrEqual(V6ResultLogic.SongTitleY + V6ResultLogic.SongTitleH, V6ResultLogic.SongStatY);
+            // 曲名 (fs34) / 作家名 (fs23) の矩形は Stat 列の左端 (x348) より手前で終わり、
+            // 縦に並ぶ Stat のラベル行と水平方向で重ならない (design は Title を
+            // hug 幅で置くが、実データの最長タイトル 12 文字は 408 幅になるため
+            // 204 に切り詰めて ellipsis する。Stat は design どおり y20)。
+            float firstStatX = V6ResultLogic.SongStatX[0];
+            Assert.LessOrEqual(V6ResultLogic.SongTitleX + V6ResultLogic.SongTitleW, firstStatX);
+            Assert.LessOrEqual(V6ResultLogic.SongArtistX + V6ResultLogic.SongArtistW, firstStatX);
+            Assert.AreEqual(20f, V6ResultLogic.SongStatY, 0.01f, "Stat は design の y20");
         }
 
         [Test]

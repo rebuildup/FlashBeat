@@ -109,7 +109,10 @@ public class ResultRankingOverlay : MonoBehaviour
             OnSceneChanged();
         }
 
-        panel.ShowHint(!IsModalOrBoardOpen() && IsBoardScene());
+        // v6 画面では旧「F5 ランキング」ヒントを出さない (正本に無い常設オーバーレイ)。
+        // F5 自体は残す (ヒントだけが非設計)。
+        panel.ShowHint(!FlashBeat.UI.V6.V6UiMode.LegacyOverlaysHidden
+            && !IsModalOrBoardOpen() && IsBoardScene());
 
         if (IsModalOrBoardOpen())
         {
