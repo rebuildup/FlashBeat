@@ -554,3 +554,69 @@ Label/Value を design 矩形 + `TopLeft` で明示配置 (`12ffaa1e`)。r14 の
 なお r13 の OptionScene は同じ `V6 Option View` が監査上 2 重に存在し
 (`pass=359 symbols=8`)、r14 は 1 つ (`pass=181 symbols=4`) だった。スクリーン
 ショットに差は無く、判定行の修正とは無関係の重複生成なので、別途追う。
+
+### 9.12 曲ローディング (design `g4Q3F`) の design 一致と、古いバイナリで撮っていた件
+
+ローディングは design `g4Q3F` を正本に、ヘッダー (戻る / ジャケット / 曲情報) と
+フッター凡例の 4 点を実測で合わせた (`1b992790`, `b2a782c2`, `be7c68ca`)。
+
+#### 直したこと (共通部品優先)
+
+| 症状 | 原因 | 修正 |
+|---|---|---|
+| 凡例の Esc Cap が design x56 でなく x81 | `V6Legend.Item` は**親ローカル**座標。フレーム座標 56 をそのまま渡すとフッター分 24 ずれた | `FooterLegendX - FooterX` を渡す (`V6LoadingViewLogic.FooterLegendX = 56`) |
+| ジャケットが 56×27 の帯 | 16:9 素材 320×180 に `preserveAspect` をかけたため letterbox | design `N3HPJ` は `mode:"cover"`。`V6LoadingViewLogic.CoverCropRect` で中央 180×180 を切り出す |
+| 曲名/アーティストが数 px 下がる | `VerticalLayoutGroup` の縦中央寄せ + TMP 既定 | design 矩形を明示 (`Song Title` (0,0) 111×32 TopLeft / `Song Artist` (0,34) 113×23 TopLeft) |
+| 戻るボタンのアイコンが chevron (8px 幅) | 手組みで `chevron-left` を入れていた | 共通部品 `V6Controls.FillBackButton` (arrow-left 24 @ (16,4) + Key fs16 @ (15,30) 26×23) |
+
+#### 検証中の落とし穴: r17 は古いバイナリで撮っていた
+
+`./script/mac-verify build <SHA>` の後に撮った r17 が r16 と**画素完全一致**
+(diff bbox `None`) で、戻るアイコンも chevron のままだった。原因は撮影が
+ビルド完了前だったこと:
+
+- r17 スクリーンショット mtime `15:54:14`
+- `FlashBeat.app/Contents/MacOS/FlashBeat` mtime `15:55:12` (58 秒後)
+
+つまり撮影は旧 app (r16 と同じ `b2a782c2` 以前) を起動していた。ビルド完了後に
+r18 を撮り直すと、r17 → r18 の差分 bbox は **frame (44,28)–(59,43)** —
+戻るアイコンの領域そのもの。教訓: `script/mac-verify build` の後に撮る前に、
+app バイナリの mtime がビルドログより新しいことを確認する。
+
+#### r18 (2560×1664 実全画面, `be7c68ca`) の実測
+
+design 書き出し `/private/tmp/design-render/g4Q3F.png` (1728×972) と同座標で比較。
+値はフレーム座標のインク bbox (design は alpha>0 の実画素)。
+
+| 対象 | design | r18 | 差 |
+|---|---|---|---|
+| 戻るアイコン (arrow-left) | (44,28)–(59,42) 16×15 | (44,28)–(59,43) 16×16 | ≤1px |
+| 戻るキー文字 (Esc) | (40,57)–(62,68) | (41,57)–(63,68) | 1px |
+| 戻るボタン Cap | (24,20)–(79,75) 56×56 | 同左 | 0 |
+| ジャケット | (1104,20)–(1159,75) 56×56 | 同左 | 0 |
+| 曲名インク | (1172,27)–(1280,47) | (1173,28)–(1280,46) | ≤1px |
+| アーティストインク | (1172,59)–(1281,73) | (1172,58)–(1280,72) | ≤1px |
+| フッター Cap | (56,906)–(110,941) 55×36 | (57,907)–(110,940) | 1px (AA) |
+| フッター「戻る」 | (121,916)–(161,935) | (123,916)–(162,934) | 2px |
+
+`RESULT pass=25 fail=0 symbols=63 screenshots=12 resolution=2560x1664`。
+
+#### design との意図的な差 (issue 化済みの範囲)
+
+- design `g4Q3F` の Main は空。実装は「準備中…」+ 進捗バーを中央に置く
+  (Issue #224 の要求)。design に無い情報なので一致判定の対象外。
+- 背景: design フレームに背景塗りは無い。実装は同梱の
+  `Resources/Videos/loading.mp4` を敷いている。
+- フッター凡例の `決定` / `曲送り` は design 側で 0×0 (不可視プレースホルダ) の
+  ため、実装は `戻る` だけを出さない — design と同じく Cap 位置だけを踏襲。
+
+#### テスト
+
+`V6LoadingViewLogicTests` に追加: `CoverCropRect` 4 件 (横長/縦長/正方形/不正)、
+`FooterLegend_MatchesDesignCoordinates` (x56 / y30 / h36 / gap10/16 / fs22)、
+`FooterLegend_StaysInsideDesignFooter`。EditMode は 1498 pass / 0 fail。
+
+#### 未解決として残す観測
+
+- r15〜r18 の OptionScene は `pass=359 symbols=8` (V6 Option View が二重) で、
+  r14 の 181 と非決定的。ローディングの修正とは無関係。追跡項目。
