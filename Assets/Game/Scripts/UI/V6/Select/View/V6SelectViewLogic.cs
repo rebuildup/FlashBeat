@@ -376,8 +376,21 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>
+        /// 選曲画面の L / R は History / Ranking への切替キー (<c>SelectSceneManager</c>)。
+        /// 同じ文字を検索の先頭文字にもすると、一覧で R を押したときに
+        /// 画面が切り替わると同時に検索語 "r" が入ってしまうため、検索の開始文字から外す。
+        /// 検索欄がフォーカス中の L / R は検索語として扱う (検索中は切替を止める)。
+        /// </summary>
+        public static bool IsScreenSwitchKey(char c)
+        {
+            char lower = (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
+            return lower == 'l' || lower == 'r';
+        }
+
+        /// <summary>
         /// Input.inputString から検索開始の 1 文字を取り出す (無ければ '\0')。
         /// 文字列全体をそのまま流すと制御文字まで入るため、最初の英字だけを使う。
+        /// <see cref="IsScreenSwitchKey"/> の文字 (L / R) は画面切替に使うため含めない。
         /// </summary>
         public static char SearchSeed(string input)
         {
@@ -388,7 +401,7 @@ namespace FlashBeat.UI.V6.Select.View
 
             for (int i = 0; i < input.Length; i++)
             {
-                if (IsSearchSeedChar(input[i]))
+                if (IsSearchSeedChar(input[i]) && !IsScreenSwitchKey(input[i]))
                 {
                     return input[i];
                 }

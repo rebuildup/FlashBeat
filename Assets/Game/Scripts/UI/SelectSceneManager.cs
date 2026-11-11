@@ -252,8 +252,11 @@ public class SelectSceneManager : MonoBehaviour
         }
 
         // モード切替キー (選曲画面でのみ有効): L / R キーで左右の画面へ
-        // (Tab は検索フォーカス、左右矢印は選択移動に使われるため、L/R を割り当て)
-        if (currentMode == V6Mode.Select && v6View != null)
+        // (Tab は絞り込み、左右矢印は選択移動に使われるため、L/R を割り当て)。
+        // 検索欄が入力を受け取っているあいだは切替ない — 検索語の L / R を
+        // 打つたびに画面が変わってしまうため (検索の開始文字からも L/R は外す:
+        // V6SelectViewLogic.IsScreenSwitchKey)。
+        if (currentMode == V6Mode.Select && v6View != null && !v6View.SearchFocused)
         {
             if (Input.GetKeyDown(KeyCode.L))
             {

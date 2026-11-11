@@ -885,3 +885,39 @@ pass 数と撮影内容は r27 と一致。
 - 1920×1080 / 2560×1440 の実フルスクリーン (この Mac の実ディスプレイは 2560×1664 のみ)。
 - Windows 実機 1 曲完走を **この artifact** で (展示 PC は無断で操作しない)。
 - 人間による音声聴取。
+
+### 9.19 r29 — PR #355 の独立レビュー指摘 4 件の修正 (2026-11-11)
+
+PR #355 には外部レビューが付かなかったため、`w/review-355-fixes` で C# 差分を読み合わせる
+独立レビューを補完し、確認できた 4 件を修正した。**操作や画面構成は変えていない**
+(L/R の画面切替、検索の A-Z 開始、Pause の各ボタンはいずれも従来どおり)。
+
+| # | 指摘 | 確度 | 修正 |
+|---|---|---|---|
+| 1 | 選曲画面の A-Z 検索と L/R 画面切替が衝突。検索欄フォーカス中も L/R で History / Ranking へ切り替わり、`r`/`l` を含む曲名を打てない。非フォーカス時も R を押すと切替と同時に検索語 "r" が入る | CONFIRMED | `SelectSceneManager` は `V6SelectView.SearchFocused` の間 L/R を切替に使わない。`V6SelectViewLogic.SearchSeed` は L/R を開始文字にしない (`IsScreenSwitchKey`) |
+| 2 | Pause の凡例が「Tab タブ切替」だが実際の切替は `KeyActions.MenuSwitch` (既定 T)。親コミットの "T" を PR #355 で design の "Tab" へ書き換えた退行 | CONFIRMED | 凡例は `KeyCap(MenuSwitch)` で実キー "T" を表示 (固定文字列をやめる) |
+| 3 | Pause のボタン KeyCap が "Backspace" / "R" / "Esc" の固定文字列で、キー再割当に追従しない | PLAUSIBLE | `KeyCap()` で KeyActions から取得。design の "Backspace" 表記は `ActionKeyHint.KeyName` 経由で保持 |
+| 4 | 監査 `AutoTestV6Screens` が Graphic 0 件の v6 Canvas を黙ってスキップし、UI 生成の失敗を「指摘 0 件」の PASS として通せる | CONFIRMED | 画面ごとに「v6 の描画物が 1 枚以上」を Check する。閉じている Pause Canvas (子が inactive) は従来どおり対象外 |
+
+**指摘 4 の経緯**: 最初の修正は Canvas 単位の「描画物が 0 件なら FAIL」で、
+`GameScene-HUD` が `FAIL the v6 canvas has visible graphics: V6GamePauseCanvas` で
+落ちた (Pause Canvas のルートは active のまま子が inactive)。画面単位の
+`sawGraphics` 判定に直し、`GameScene-HUD` は `pass=51 fail=0` で戻った。
+
+**design 差分 (オーナー判断待ち)**: Pause の design キャップは "Tab"、実装の切替キーは
+`KeyActions.MenuSwitch` (既定 T、再割当可)。操作を変えずに表示を実キーへ合わせた。
+"Tab" に合わせるには既定キーの変更 (＝行動の変更) が必要で、正本と実装のどちらを
+直すかはオーナー判断。Issue #360 に選択肢 3 つを記録した。
+
+**r29 実機確認** (`w/review-355-fixes` @ `b3f6e332` + 上記修正、Mac 実ディスプレイ 2560×1664):
+
+| 項目 | r28 (`main 09ece5a2`) | r29 (本修正) |
+|---|---|---|
+| v6screens | `RESULT pass=31 fail=0 symbols=70 screenshots=15` | `RESULT pass=46 fail=0 symbols=70 screenshots=15 resolution=2560x1664` |
+| v6 gameplay | `RESULT pass=29 fail=0` | `RESULT pass=29 fail=0` |
+| GameScene-HUD | `pass=50 fail=0` | `pass=51 fail=0` |
+| 画面ごとの pass | 各 1 件ずつ少ない | 全 15 画面が +1 (描画物 1 枚以上の Check 分) |
+
+`symbols=70` と撮影 15 枚は r28 と同一で、画面構成に変化がないことを確認した。
+EditMode は 1536 件すべて合格 (新規 2 件: `SearchSeed_SkipsScreenSwitchKeys` /
+`IsScreenSwitchKey_OnlyLAndR`)。

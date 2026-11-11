@@ -155,6 +155,33 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.AreEqual('q', V6SelectViewLogic.SearchSeed("\tq"));
         }
 
+        [Test]
+        public void SearchSeed_SkipsScreenSwitchKeys()
+        {
+            // 選曲画面の L / R は History / Ranking への切替キー。検索の開始文字に
+            // すると、一覧で R を押しただけで検索語 "r" も入ってしまう。
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("r"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("R"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("l"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("L"));
+            // L / R 以外の英字は従来どおり開始文字になる。
+            Assert.AreEqual('a', V6SelectViewLogic.SearchSeed("a"));
+            Assert.AreEqual('k', V6SelectViewLogic.SearchSeed("k"));
+        }
+
+        [Test]
+        public void IsScreenSwitchKey_OnlyLAndR()
+        {
+            Assert.IsTrue(V6SelectViewLogic.IsScreenSwitchKey('l'));
+            Assert.IsTrue(V6SelectViewLogic.IsScreenSwitchKey('L'));
+            Assert.IsTrue(V6SelectViewLogic.IsScreenSwitchKey('r'));
+            Assert.IsTrue(V6SelectViewLogic.IsScreenSwitchKey('R'));
+            Assert.IsFalse(V6SelectViewLogic.IsScreenSwitchKey('a'));
+            Assert.IsFalse(V6SelectViewLogic.IsScreenSwitchKey('Q'));
+            Assert.IsFalse(V6SelectViewLogic.IsScreenSwitchKey('1'));
+            Assert.IsFalse(V6SelectViewLogic.IsScreenSwitchKey('\0'));
+        }
+
         // --- 凡例と実装の一致 (#221 / #222 Task 2) ---
 
         [Test]

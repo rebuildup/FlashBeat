@@ -23,7 +23,7 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// - 表示値はすべて実データ: GManager (曲情報 / noteSpeed / noteTiming / Hiscore)、
     ///   KeyBindings (Key Layout / プレビューのキー割当、Changed で即時更新)、
     ///   PlaySession (Key Guide / Lyrics)。
-    /// - キー入力は持たない (統合担当が Esc / 矢印 / Tab を既存キー処理に接続する)。
+    /// - キー入力は持たない (統合担当が Esc / 矢印 / T (MenuSwitch) を既存キー処理に接続する)。
     ///   このビューは状態 (IsOpen) とマウス操作、統合側から呼べる操作 API だけを持つ。
     /// - 選曲へ / リトライ は既存 GameSceneManager.RetireGame / RetryGame に直結 (実遷移)。
     /// </summary>
@@ -896,19 +896,24 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
             // 左下: キー凡例 4 個 (正本 uDNC0 Zone · キー操作: ↑↓ 選択 / ←→ 変更 /
-            // Tab タブ切替 / Esc 再開)。起点は design (フッター内 (0,30)) =
+            // タブ切替 / 再開)。起点は design (フッター内 (0,30)) =
             // ページ (24,906) (V6PauseViewLogic.LegendX/Y)。項目は共通部品
             // V6Legend.Item に座標を渡すだけ (Common は編集しない)。
             // 実際のキーは V6GameRuntime.UpdatePause と一致させる:
             // ↑↓ = 行選択 (MoveSelection) / ←→ = 値の変更 (AdjustSelected) /
-            // Tab = タブ切替 (KeyActions.MenuSwitch) / Esc = 再開 (KeyAction.Back)。
+            // タブ切替 = KeyAction.MenuSwitch (既定 T。design のキャップは "Tab" だが、
+            // 実際に動くキーを表示する) / 再開 = KeyAction.Back。
+            // キャップはキー設定 (KeyActions) から取る。固定文字列にすると再割当後に
+            // 画面が嘘をつく (Title Exit / Select の決定キーと同じ扱い)。
             // 矢印は KeyActions に ↑↓ の割当が無いため固定キー (Title の H/R と同じ扱い)。
             float legendX = V6PauseViewLogic.LegendX - FooterX;
             float legendY = V6PauseViewLogic.LegendY - FooterY;
             legendX = V6Legend.Item(footer, legendX, legendY, "↑↓", "選択");
             legendX = V6Legend.Item(footer, legendX, legendY, "←→", "変更");
-            legendX = V6Legend.Item(footer, legendX, legendY, "Tab", "タブ切替");
-            V6Legend.Item(footer, legendX, legendY, "Esc", "再開");
+            legendX = V6Legend.Item(footer, legendX, legendY,
+                KeyCap(KeyActions.KeyAction.MenuSwitch), "タブ切替");
+            V6Legend.Item(footer, legendX, legendY,
+                KeyCap(KeyActions.KeyAction.Back), "再開");
 
             // 右下: design の Op · 選曲・リトライ (520 = 選曲へ 280 + gap16 + リトライ 220、
             // リトライは独立ボタンのまま左ボタンへ統合しない) + Op · 再開 266。
@@ -917,7 +922,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(opGroup, V6PauseViewLogic.OpGroupX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
                 new Vector2(V6PauseViewLogic.OpGroupW, V6PauseViewLogic.OpButtonH));
 
-            BuildActionButton(opGroup, "選曲へ", "log-out", "Backspace", false,
+            BuildActionButton(opGroup, "選曲へ", "log-out",
+                KeyCap(KeyActions.KeyAction.MenuRetire), false,
                 0f, 0f, V6PauseViewLogic.RetireButtonW, () =>
                 {
                     Close();
@@ -926,7 +932,8 @@ namespace FlashBeat.UI.V6.Game.Pause
                         sceneManager.RetireGame();
                     }
                 });
-            BuildActionButton(opGroup, "リトライ", "rotate-ccw", "R", false,
+            BuildActionButton(opGroup, "リトライ", "rotate-ccw",
+                KeyCap(KeyActions.KeyAction.MenuRetry), false,
                 V6PauseViewLogic.RetireButtonW + V6PauseViewLogic.OpGroupGap, 0f,
                 V6PauseViewLogic.RetryButtonW, () =>
                 {
@@ -936,9 +943,30 @@ namespace FlashBeat.UI.V6.Game.Pause
                         sceneManager.RetryGame();
                     }
                 });
-            BuildActionButton(footer, "再開", "play", "Esc", true,
+            BuildActionButton(footer, "再開", "play",
+                KeyCap(KeyActions.KeyAction.Back), true,
                 V6PauseViewLogic.ResumeButtonX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
                 V6PauseViewLogic.ResumeButtonW, Close);
+        }
+
+        /// <summary>
+        /// ボタン / 凡例のキーキャップをキー設定 (KeyActions) から取る。
+        /// 固定文字列だと再割当後に画面が実際のキーと食い違う。
+        /// <c>ActionKeyHint.Primary</c> は Backspace を "BS" に縮めるが、design の
+        /// キャップは "Backspace" なので <c>KeyName</c> を使う。
+        /// </summary>
+        private static string KeyCap(KeyActions.KeyAction action)
+        {
+            KeyCode[] keys = KeyActions.Get(action);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (keys[i] != KeyCode.None)
+                {
+                    return ActionKeyHint.KeyName(keys[i]);
+                }
+            }
+
+            return "—";
         }
 
         /// <summary>

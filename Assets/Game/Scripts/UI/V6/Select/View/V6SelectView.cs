@@ -63,6 +63,12 @@ namespace FlashBeat.UI.V6.Select.View
         private int rankingScroll;
         private bool searchFocused;
 
+        /// <summary>
+        /// 検索欄が入力を受け取っているか。検索中は L / R を画面切替に使わない
+        /// (select 画面の直上で <c>SelectSceneManager</c> が L / R を切替に読むため)。
+        /// </summary>
+        internal bool SearchFocused => searchFocused;
+
         /// <summary>「未プレイのみ」で絞り込む (design の Filter ボタン / F キー)。</summary>
         private bool unplayedOnly;
         private bool settingsOpen;
