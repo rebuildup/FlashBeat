@@ -30,11 +30,13 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         // --- design uDNC0 (07b Game · v6 · Pause) の実配置値 (ページ座標) ---
 
-        /// <summary>ヘッダー左上 戻るボタン (design Zone · 戻る = ヘッダー内 (0,20) 56×56)。
-        /// 中身は arrow-left 24 + Key "Esc" fs16 (V6Controls.FillBackButton / 正本 zCQBY)。</summary>
-        public const float BackButtonX = 24f;
-        public const float BackButtonY = 20f;
-        public const float BackButtonSize = 56f;
+        /// <summary>ヘッダー左上の戻るゾーン (design Zone · 戻る = ヘッダー内 (0,20) 56×56) は
+        /// 実ノードが中身ゼロの空プレースホルダで、正本の描画 uDNC0-pause にも戻るボタンは
+        /// 出ない。Esc は「再開」(凡例 + 再開ボタンの KeyCap) なので、ここにボタンは置かない。
+        /// 座標は正本との照合用に残す。</summary>
+        public const float BackZoneX = 24f;
+        public const float BackZoneY = 20f;
+        public const float BackZoneSize = 56f;
 
         /// <summary>フッター右下 操作ボタン (design Zone · 操作ボタン = ページ (864,876)):
         /// Op · 選曲・リトライ (864+42, 876+20) 520×56 は gap16 で

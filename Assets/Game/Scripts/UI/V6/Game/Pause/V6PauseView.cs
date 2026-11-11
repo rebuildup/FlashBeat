@@ -373,19 +373,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // design uDNC0 Zone · 戻る (ヘッダー内 (0,20) 56×56 → ページ (24,20)):
-            // #3A3A3A r8 に arrow-left 24 @(16,4) + Key "Esc" fs16 @(15,30) を重ねる
-            // (共通部品 V6Controls.FillBackButton、正本 zCQBY)。押したときの動作は
-            // Esc と同じ KeyAction.Back (V6GameRuntime.UpdatePause) = ポーズを閉じる再開。
-            var back = V5Ui.Panel(header, "Back button",
-                new Vector2(V6PauseViewLogic.BackButtonSize, V6PauseViewLogic.BackButtonSize),
-                V5Tokens.Key4, 8f);
-            PlaceAt(back, V6PauseViewLogic.BackButtonX - HeaderX, V6PauseViewLogic.BackButtonY - HeaderY,
-                new Vector2(V6PauseViewLogic.BackButtonSize, V6PauseViewLogic.BackButtonSize));
-            var backButton = back.AddComponent<Button>();
-            backButton.targetGraphic = back.GetComponent<Image>();
-            backButton.onClick.AddListener(Close);
-            V6Controls.FillBackButton(back, ActionKeyHint.Primary(KeyActions.KeyAction.Back));
+            // design uDNC0/SUD2i: 左上はタイトル "PAUSE" のみ。戻るゾーン (b7VqL) は
+            // design の実ノードが中身ゼロ (子・fill 無し) の空プレースホルダで、
+            // 正本の描画 uDNC0-pause にも戻るボタンは出ない。よって Esc ボタンは描かない
+            // (Esc = 再開は凡例と「再開」ボタンの KeyCap が示す)。
+            // 正本 uDNC0/ci867 は Title ゾーン (72,20) 185×56 に "PAUSE" (fs38 w700)。
 
             // design uDNC0/ci867: Title ゾーン (ヘッダー内 (72,20) 185×56 → ページ (96,20))
             // に "PAUSE" (fs38 w700)。

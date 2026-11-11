@@ -111,13 +111,15 @@ namespace FlashBeat.V6CanvasTests
         // design/exports/v6/screens/uDNC0-pause.png (描画)。
 
         [Test]
-        public void HeaderBackButton_MatchesDesign()
+        public void HeaderBackZone_IsAnEmptyPlaceholder_SoNoButtonIsDrawn()
         {
-            // design Zone · 戻る: ヘッダー内 (0,20) 56×56 → ページ (24,20)。
-            // 中身は arrow-left 24 + Key "Esc" fs16 (V6Controls.FillBackButton / 正本 zCQBY)。
-            Assert.AreEqual(24f, V6PauseViewLogic.BackButtonX, 0.001f, "戻るボタン x (ページ座標)");
-            Assert.AreEqual(20f, V6PauseViewLogic.BackButtonY, 0.001f, "戻るボタン y (ページ座標)");
-            Assert.AreEqual(56f, V6PauseViewLogic.BackButtonSize, 0.001f, "戻るボタン寸法");
+            // design Zone · 戻る (ヘッダー内 (0,20) 56×56 = ページ (24,20)) は
+            // 実ノードが中身ゼロの空プレースホルダで、正本の描画 uDNC0-pause にも
+            // 戻るボタンは出ない。Esc は「再開」なので、ここにボタンを描くと design 違反。
+            // 座標は照合用に保持し、値そのものだけを固定する。
+            Assert.AreEqual(24f, V6PauseViewLogic.BackZoneX, 0.001f, "戻るゾーン x (ページ座標)");
+            Assert.AreEqual(20f, V6PauseViewLogic.BackZoneY, 0.001f, "戻るゾーン y (ページ座標)");
+            Assert.AreEqual(56f, V6PauseViewLogic.BackZoneSize, 0.001f, "戻るゾーン寸法");
         }
 
         [Test]
