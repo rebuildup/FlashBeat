@@ -263,6 +263,11 @@ Write-Step ('fullscreen.txt: result=' + $fullscreenReport.result +
 if ($fullscreenReport.result -eq 'FAIL') {
     Write-Step '注意: 実フルスクリーン条件を満たしていません (fullscreen.txt の check* を確認)'
 }
+if (-not $expectedResolution) {
+    # 解像度未指定だと checkResolution=NOT-CHECKED のまま result=PASS になりうる。
+    # 条件 1 / 2 (FHD / 2K) の証跡と誤読されないよう、必ず知らせる。
+    Write-Step '注意: -ExpectResolution が未指定のため checkResolution=NOT-CHECKED です。解像度の証拠にはなりません (-ExpectResolution FHD / 2K / MAC を指定してください)'
+}
 
 # --- 6. 操作ログのテンプレート ----------------------------------------------
 $template = @'

@@ -134,6 +134,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
 | `result=FAIL` | ウィンドウ表示・被覆不足・解像度違いのいずれか。`check*` 行で切り分ける (証拠にならない) |
 | `result=NO-DATA` | Player.log に診断行が無い (未起動)。ゲームを起動してから再実行する |
 
+**`-ExpectResolution` を渡さなかった場合**は `checkResolution=NOT-CHECKED` になり、`result=PASS` でも
+**解像度の証拠にはなりません** (フルスクリーンと被覆だけの判定)。条件 1 / 2 の証跡にするときは、
+必ず `-ExpectResolution FHD` / `-ExpectResolution 2K` を付けて `checkResolution=PASS` を残してください。
+
 `-Launch` を付けない場合は、**先にゲームを起動して全画面になっている状態**で実行してください。
 
 `Player.log` の場所は ProjectSettings の `companyName` で決まり、このビルドでは
