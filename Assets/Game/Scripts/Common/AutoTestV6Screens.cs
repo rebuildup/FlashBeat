@@ -221,6 +221,25 @@ public class AutoTestV6Screens : MonoBehaviour
                 reports.Add(report);
             }
 
+            // design g4Q3F (曲ローディング)。通常は phase が表示を決めるため
+            // 自動撮影中は数秒で隠れる。検証用 API で固定表示して撮る
+            // (正本と同じ曲 5 = 終焉逃避行 / 柊マグネタイト、進捗 42%)。
+            var runtime = FindFirstObjectByType<FlashBeat.UI.V6.V6GameRuntime>();
+            if (runtime != null)
+            {
+                runtime.ShowLoadingForAudit(5, 0.42f);
+                yield return new WaitForSecondsRealtime(0.8f);
+                yield return CaptureAndAudit("GameScene-Loading", reports);
+                runtime.HideLoadingForAudit();
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+            else
+            {
+                var report = new ScreenReport { Label = "GameScene-Loading" };
+                Check(report, "the v6 game runtime exists", false);
+                reports.Add(report);
+            }
+
             yield break;
         }
 

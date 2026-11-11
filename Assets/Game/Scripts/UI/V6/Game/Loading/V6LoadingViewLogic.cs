@@ -27,6 +27,32 @@ namespace FlashBeat.UI.V6.Game.Loading
             return new Vector2(x, y);
         }
 
+        // --- フッター凡例 (design g4Q3F) ---
+
+        /// <summary>
+        /// フッター凡例 (Esc「戻る」) の左端 (design フレーム座標)。
+        /// 正本は 決定 / 曲送り を 0×0 の項目として据え置き、項目間 gap16 で
+        /// 各 16 ずつ進めるため、戻る はゾーンローカル x32 = フレーム x56 から始まる
+        /// (design 画素: 2x 書き出しの Cap が x112..221 = フレーム 56..110.5)。
+        /// 旧実装はフレーム x24 に置いていた (32px 左)。
+        /// </summary>
+        public const float FooterLegendX = 56f;
+
+        /// <summary>凡例の上端 (フッターゾーン y876 内在り)。design 30。</summary>
+        public const float FooterLegendY = 30f;
+
+        /// <summary>凡例 KeyCap の高さ。design 36 (Title の凡例と同じ別設計、他画面は 32)。</summary>
+        public const float FooterLegendCapHeight = 36f;
+
+        /// <summary>KeyCap と Label の間隔。design 10 (他画面は 8)。</summary>
+        public const float FooterLegendInnerGap = 10f;
+
+        /// <summary>項目間の間隔。design 16 (他画面は 24)。</summary>
+        public const float FooterLegendItemGap = 16f;
+
+        /// <summary>凡例の文字サイズ。design fs22。</summary>
+        public const float FooterLegendFontSize = 22f;
+
         /// <summary>不定インジケータの往復周期 (秒)。v5 GameLoadingView と同じ。</summary>
         public const float CycleSeconds = 1.6f;
 

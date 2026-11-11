@@ -94,5 +94,31 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual("", V6LoadingViewLogic.JacketResourcePathOf(0));
             Assert.AreEqual("", V6LoadingViewLogic.JacketResourcePathOf(27));
         }
+
+        // --- フッター凡例 (design g4Q3F) ---
+
+        [Test]
+        public void FooterLegend_MatchesDesignCoordinates()
+        {
+            // design g4Q3F: 決定 / 曲送り を 0×0 の項目として据え置き、項目間 gap16 で
+            // 戻る まで進める → 戻る はゾーンローカル x32 = フレーム x56
+            // (2x 書き出しの Cap 実測 x112..221 = フレーム 56..110.5)。
+            Assert.AreEqual(56f, V6LoadingViewLogic.FooterLegendX);
+            Assert.AreEqual(30f, V6LoadingViewLogic.FooterLegendY);
+            // KeyCap h36 / pad10 / 項内 gap10 / fs22 (Title の凡例と同じ別設計)。
+            Assert.AreEqual(36f, V6LoadingViewLogic.FooterLegendCapHeight);
+            Assert.AreEqual(10f, V6LoadingViewLogic.FooterLegendInnerGap);
+            Assert.AreEqual(16f, V6LoadingViewLogic.FooterLegendItemGap);
+            Assert.AreEqual(22f, V6LoadingViewLogic.FooterLegendFontSize);
+        }
+
+        [Test]
+        public void FooterLegend_StaysInsideDesignFooter()
+        {
+            // design e6RJ2: Cap 55 + 項内 gap10 + Label 45 = 110 幅。
+            // フレーム x56 から 166 まで — フッター (24..1704) 内に収まる。
+            float width = 55f + V6LoadingViewLogic.FooterLegendInnerGap + 45f;
+            Assert.LessOrEqual(24f + V6LoadingViewLogic.FooterLegendX + width, 24f + 1680f);
+        }
     }
 }

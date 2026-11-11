@@ -47,6 +47,9 @@ namespace FlashBeat.UI.V6
         private V6PauseView pause;
         private V6LoadingView loading;
 
+        /// <summary>検証用の固定表示中か (<see cref="ShowLoadingForAudit"/>)。</summary>
+        private bool loadingAudit;
+
         /// <summary>隠し対象の旧 v5 ポーズ (キャッシュ。シーン再ロードで作り直す)。</summary>
         private FlashBeat.UI.V5.PauseMenuView legacyPause;
 
@@ -241,6 +244,7 @@ namespace FlashBeat.UI.V6
         private void UpdateLoading()
         {
             if (loading == null) return;
+            if (loadingAudit) return; // 検証用に固定表示中 (実状態で上書きしない)
             var phase = FlashBeat.UI.V5.GameHudController.LastPhase;
 
             if (phase == HudPlayPhase.Preparing)
@@ -266,6 +270,33 @@ namespace FlashBeat.UI.V6
             {
                 loading.SetVisible(false);
             }
+        }
+
+        /// <summary>
+        /// 検証用 (自動撮影): ローディング画面を実データで固定表示する。
+        ///
+        /// 通常の表示は毎フレームの phase (Preparing / Failed) が決めるため、
+        /// GameScene の自動撮影では数秒で Hidden に戻ってしまう。
+        /// ここで固定している間は <see cref="UpdateLoading"/> の上書きを止める
+        /// (解除は <see cref="HideLoadingForAudit"/>)。
+        /// </summary>
+        /// <param name="songId">表示する曲 (カタログ index、design と同じデータで撮るなら 5)。</param>
+        /// <param name="chartProgress">譜面準備の進捗 (null = 不明 → 不定インジケータ)。</param>
+        public void ShowLoadingForAudit(int songId, float? chartProgress)
+        {
+            if (loading == null) return;
+            var song = GManager.GetSong(songId);
+            loadingAudit = true;
+            loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "",
+                LoadJacket(song), chartProgress);
+            loading.SetVisible(true);
+        }
+
+        /// <summary>検証用の固定表示を解除する (実状態の表示に戻す)。</summary>
+        public void HideLoadingForAudit()
+        {
+            loadingAudit = false;
+            if (loading != null) loading.SetVisible(false);
         }
 
         // --- ジャケット (Issue #224) ---

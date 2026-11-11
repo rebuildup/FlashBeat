@@ -5,6 +5,7 @@ using UnityEngine.Video;
 using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Game.Loading
 {
@@ -471,7 +472,13 @@ namespace FlashBeat.UI.V6.Game.Loading
             {
                 LayoutItem(backArrow.gameObject, 0f, 24f);
             }
-            var backKey = V5Ui.Text(back, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            string backKeyText = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
+            if (string.IsNullOrEmpty(backKeyText))
+            {
+                backKeyText = "Esc";
+            }
+
+            var backKey = V5Ui.Text(back, "Key", backKeyText, 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
             LayoutItem(backKey.gameObject, 0f, 16f);
             var backBtn = back.AddComponent<Button>();
             backBtn.targetGraphic = back.GetComponent<Image>();
@@ -608,31 +615,22 @@ namespace FlashBeat.UI.V6.Game.Loading
             PlaceAt(footer, FooterX, FooterY, new Vector2(1680f, 96f));
 
             // design: 凡例は Esc「戻る」だけ (決定 / 曲送りは 0×0、補助 / 主操作は非表示)。
-            var item = V5Ui.Node(footer, "Legend Back");
-            PlaceAt(item, 0f, 30f, new Vector2(200f, 36f));
-            var layout = item.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 10f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
+            // 位置はフレーム x56 — 正本は 0×0 の 決定 / 曲送り を据え置き、項目間 gap16 で
+            // 戻る まで進めるため (旧実装は x24 に置いていた = 32px 左)。
+            // 寸法は Title の凡例と同じ別設計 (KeyCap h36 / pad[0,10] / 項内 gap10 /
+            // 項目間 gap16 / fs22)。他画面 (h32 / pad[0,8] / gap8 / gap24) ではない。
+            // キー表示は実際の割当 (Back = Esc) を出す — 変更されても嘘のキーを出さない。
+            string backKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
+            if (string.IsNullOrEmpty(backKey))
+            {
+                backKey = "Esc";
+            }
 
-            var cap = V5Ui.Panel(item, "Cap", new Vector2(0f, 36f), V5Tokens.Key4, 4f);
-            var capLayout = cap.AddComponent<HorizontalLayoutGroup>();
-            capLayout.padding = new RectOffset(Mathf.RoundToInt(10f), Mathf.RoundToInt(10f), 0, 0);
-            capLayout.childAlignment = TextAnchor.MiddleCenter;
-            capLayout.childControlWidth = true;
-            capLayout.childControlHeight = true;
-            capLayout.childForceExpandWidth = false;
-            capLayout.childForceExpandHeight = false;
-            var capLe = cap.AddComponent<LayoutElement>();
-            capLe.preferredHeight = 36f;
-            var keyTmp = V5Ui.Text(cap, "Key", "Esc", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(keyTmp.gameObject, 0f, 26f);
-
-            var labelTmp = V5Ui.Text(item, "Label", "戻る", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            LayoutItem(labelTmp.gameObject, 0f, 26f);
+            V6Legend.Item(footer, V6LoadingViewLogic.FooterLegendX,
+                V6LoadingViewLogic.FooterLegendY, backKey, "戻る",
+                V6LoadingViewLogic.FooterLegendCapHeight, V6Controls.KeyCapPaddingX,
+                V6LoadingViewLogic.FooterLegendInnerGap, V6LoadingViewLogic.FooterLegendItemGap,
+                V6LoadingViewLogic.FooterLegendFontSize, V6Tokens.Key4, V6Tokens.TextMuted);
         }
 
         private void ApplySong(string title, string artist, Texture2D jacket)
