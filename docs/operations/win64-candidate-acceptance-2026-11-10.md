@@ -99,6 +99,21 @@
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
 
+### 0.2 証跡をまとめて採る (任意 / Windows 実機でオーナーが実行)
+
+[`tools/acceptance/collect-win-evidence.ps1`](../../../tools/acceptance/collect-win-evidence.ps1) を
+展開先フォルダで実行すると、機械情報 (解像度・DPI・GPU)、`version.json`、exe の版数、
+`Player.log`、スクリーンショット、ZIP の SHA-256 照合、記入式の `operation-log.md` を
+1 つのフォルダにまとめます。**起動・キー入力はしません** (`-Launch` を明示したときだけ起動)。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
+    -GameDir "$env:USERPROFILE\Desktop\FlashBeat-Exhibit" `
+    -ZipPath "$env:USERPROFILE\Downloads\FlashBeat-0.1.23-win64-b6860a80.zip" `
+    -ExpectedSha256 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20
+```
+
+
 ---
 
 ## 1. 候補の同一性 (SHA-256 で確認する)
@@ -127,6 +142,27 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 > Git LFS は関係ありません (ビルド済み成果物なので、LFS ポインタは含まれません)。
 
 ---
+
+## 2.5 受入条件 (候補 `b6860a80` の管理表)
+
+前候補の実機成功は **この候補の合格として流用しない**。各行の「証跡」が揃って初めて合格。
+
+| # | 条件 | 現状 | 実施者 | 証跡 (この候補のもの) |
+|---|---|---|---|---|
+| 1 | FHD 1920×1080 の実フルスクリーン | **未実施** (Mac に FHD モードが無い) | オーナー (FHD 実機) | `win-fhd-fullscreen.png` / `win-fhd-Player.log` |
+| 2 | 2K 2560×1440 の実フルスクリーン | **未実施** (前候補 0.1.22 では PASS) | オーナー (2K 実機) | `win-2k-fullscreen.png` / `win-2k-Player.log` |
+| 3 | 同一 artifact で 1 曲完走 (#233) | **未実施** | オーナー | `operation-log.md` (§2 の 1 曲完走) / 場面スクショ / `Player.log` |
+| 4 | 人間による音声聴取 | **未実施** (信号レベルのみ) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
+| 5 | Register のオンライン送信 (#134) | ローカル API での契約確認まで。**本番書き込みは未実施** | オーナー (承認後) | [`register-online-acceptance.md`](register-online-acceptance.md) の手順と記録 |
+| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 |
+
+補足:
+- 1 / 2 は「その解像度の実ディスプレイ + 実フルスクリーン」でのみ有効 (ウィンドウリサイズは不可)。
+  この Mac で選べる表示モードは 1920×1200 / 2048×1280 / 2048×1332 / 2560×1600 / 2560×1664 の 5 種で、
+  FHD / 2K は存在しない。
+- 3 / 4 / 6 は 1 曲完走の 1 回の操作でまとめて記録できる (`collect-win-evidence.ps1` の
+  `operation-log.md` がその記入欄)。
+- 5 は本番 D1 に残る (削除 API なし)。1 回だけ、名前は `ACCEPT`。
 
 ## 3. 実機での受入手順 (3 解像度)
 
@@ -175,7 +211,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | 3 | Game (準備) | 準備画面の進捗が出る。**準備完了前に Space を押しても開始するか** (#351) | 押し直さずに開始する |
 | 4 | Game (プレイ) | **8 レーン / ノーツ / 判定ラインが視認できる** (#233)。**映像が出るか** (#233)。密所でも同じ | **ノーツが見えないなら不合格** |
 | 5 | Game (音) | **ストリーム音声が鳴るか** (#13 / #4)。`Player.log` の `audioMode=Stream` を確認 | 鳴らないなら `#4` は未解決 |
-| 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134) | — |
+| 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134)。本番 API への送信は [`register-online-acceptance.md`](register-online-acceptance.md) の手順 (名前は `ACCEPT`、1 回だけ) に従う | 送信後に順位が出る |
 | 7 | Retry | Retry で Game に戻れる | — |
 
 ### 3.5 期待値 (ビルドに入っている状態) — 迷ったときの照合用
