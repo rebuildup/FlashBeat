@@ -373,18 +373,28 @@ namespace FlashBeat.UI.V6.History
                 TextAlignmentOptions.Left, FontStyles.Bold);
             At(title, 72f, 20f, 400f, 56f);
 
-            // 右上: 並び替えチップ (design: 情報ゾーン (840,0) 内の Sort) + 件数
-            var sortChip = MakeButton(V5Ui.Panel(headerZone, "Sort", new Vector2(132f, 44f), V5Tokens.Key4, 8f),
+            // 右上: 並び替えチップ (design q9JZcH/Y8lcc: ヘッダー内 (864,33.5) 104×29 r8) + 件数
+            var sortChip = MakeButton(V5Ui.Panel(headerZone, "Sort",
+                new Vector2(V6HistoryLogic.HeaderSortW, V6HistoryLogic.HeaderSortH), V5Tokens.Key4, 8f),
                 ToggleSort);
-            At(sortChip, 840f, 26f);
+            At(sortChip, V6HistoryLogic.HeaderSortX, V6HistoryLogic.HeaderSortY);
             var sortText = V5GameUi.Text(sortChip, "Text", V6HistoryLogic.SortLabel(sort), 20f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(sortText.GetComponent<RectTransform>(), 132f, 44f);
+                TextAlignmentOptions.Left);
+            At(sortText, V6HistoryLogic.HeaderSortTextX, 0f, V6HistoryLogic.HeaderSortTextW,
+                V6HistoryLogic.HeaderSortH);
+            // design の文言 "スコア順" (4 文字 × fs20 = 80) がテキスト枠ちょうど。
+            // 実装のもう一方のラベル "カタログ順" (5 文字 = 100) は枠を超えるため、
+            // design の枠は変えずに最小 16px まで自動縮小してチップ内 (右 padding 12) に収める。
+            sortText.textWrappingMode = TextWrappingModes.NoWrap;
+            sortText.enableAutoSizing = true;
+            sortText.fontSizeMax = 20f;
+            sortText.fontSizeMin = 16f;
 
-            // design: Count fs24、右端はヘッダー右端 (ヘッダー内 x 1400+280 = 1680) で揃える
+            // design: Count fs24、右端はヘッダー内 1656 (= ページ 1680、情報ゾーン右 padding 24 の内側)
             var count = V5GameUi.Text(headerZone, "Count", V6HistoryLogic.RecordedCountLabel(playedCount), 24f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right);
-            At(count, 1400f, 24f, 280f, 48f, new Vector2(0f, 0.5f));
+            At(count, V6HistoryLogic.HeaderCountX, V6HistoryLogic.HeaderCountY, V6HistoryLogic.HeaderCountW,
+                V6HistoryLogic.HeaderCountH, new Vector2(0f, 0.5f));
         }
 
         // --- フッター (共通フレームの Footer ゾーン: design (24,876) 1680×96) ---
@@ -468,9 +478,12 @@ namespace FlashBeat.UI.V6.History
             {
                 int first = listScroll;
                 int last = Mathf.Min(history.Count, first + ListVisibleRows);
+                // design q9JZcH: 全行が収まるときはスタックを縦中央に置く (4 行 → 254)。
+                // 収まらない / スクロール中のときは上端 RowY0 基準を保つ。
+                float y0 = first == 0 ? V6HistoryLogic.HistoryFirstRowY(history.Count) : RowY0;
                 for (int i = first; i < last; i++)
                 {
-                    BuildHistoryRow(rows, history[i], i + 1, i == selectIndex, RowY0 + RowStep * (i - first));
+                    BuildHistoryRow(rows, history[i], i + 1, i == selectIndex, y0 + RowStep * (i - first));
                 }
             }
             BuildScrollButton(list, "Scroll Up", 0f, "chevron-up", -1);
@@ -485,20 +498,32 @@ namespace FlashBeat.UI.V6.History
             int songId = song.SongId;
             button.onClick.AddListener(() => SelectSong(songId));
 
-            var posBadge = At(V5Ui.Panel(row, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f), 14f, 14f);
+            // design q9JZcH/F676m/BuztA: Pos (12,14) 36×36 r18
+            var posBadge = At(V5Ui.Panel(row, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f),
+                V6HistoryLogic.HistoryPosX, V6HistoryLogic.HistoryPosY);
             var posText = V5GameUi.Text(posBadge.gameObject, "PosText", pos.ToString(), 22f,
                 pos == 1 ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
             Stretch(posText.GetComponent<RectTransform>(), 36f, 36f);
 
+            // design: Title (60,15) 220×35 fs24 左揃え 1 行
             var title = V5GameUi.Text(row.gameObject, "Title", song.Title, 24f, V5Tokens.Text);
-            At(title, 64f, 0f, 220f, RowH, new Vector2(0f, 0.5f));
+            At(title, V6HistoryLogic.HistoryTitleX, V6HistoryLogic.HistoryTitleY,
+                V6HistoryLogic.HistoryTitleW, V6HistoryLogic.HistoryInnerH);
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.overflowMode = TextOverflowModes.Ellipsis;
 
             // design (BuztA 等) の Score は区切りなしの生の数値 ("987410")。
+            // design: Score (292,15) 120×35 fs24 右揃え
             var score = V5GameUi.Text(row.gameObject, "Score", song.BestScore.ToString(), 24f,
                 V5Tokens.Text, TextAlignmentOptions.Right);
-            At(score, 296f, 0f, 120f, RowH, new Vector2(0f, 0.5f));
+            At(score, V6HistoryLogic.HistoryScoreX, V6HistoryLogic.HistoryScoreY,
+                V6HistoryLogic.HistoryScoreW, V6HistoryLogic.HistoryInnerH);
+            score.textWrappingMode = TextWrappingModes.NoWrap;
+            score.overflowMode = TextOverflowModes.Ellipsis;
 
-            var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 424f, 14f);
+            // design: Grade (424,14) 56×36 r4
+            var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f),
+                V6HistoryLogic.HistoryGradeX, V6HistoryLogic.HistoryGradeY);
             var gradeText = V5GameUi.Text(grade.gameObject, "GradeText",
                 string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade, 22f, V5Tokens.Text,
                 TextAlignmentOptions.Center);

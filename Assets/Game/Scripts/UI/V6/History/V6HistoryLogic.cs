@@ -88,6 +88,54 @@ namespace FlashBeat.UI.V6.History
         public const float HistoryRowStep = 72f;
         public const int HistoryVisibleRows = 10;
 
+        // 履歴行の内部座標 (design q9JZcH/F676m/BuztA 496×64、親は行・y_down)。
+        // 旧実装は Pos x14 / Title x64 / Score x296 で design より 2〜4px 右にずれていた。
+        public const float HistoryPosX = 12f;
+        public const float HistoryPosY = 14f;
+        public const float HistoryTitleX = 60f;
+        public const float HistoryTitleY = 15f;
+        public const float HistoryTitleW = 220f;
+        public const float HistoryScoreX = 292f;
+        public const float HistoryScoreY = 15f;
+        public const float HistoryScoreW = 120f;
+        public const float HistoryGradeX = 424f;
+        public const float HistoryGradeY = 14f;
+
+        /// <summary>行内の Title / Score の高さ (design 35)。</summary>
+        public const float HistoryInnerH = 35f;
+
+        /// <summary>全行が縦中央スタックで収まる最大行数 (780 − 88 = 692 / 72 → 9)。</summary>
+        public const int HistoryMaxCenteredRows = 9;
+
+        /// <summary>
+        /// 履歴リスト先頭行のリスト内部 design y (y_down)。
+        /// design q9JZcH では 4 行がリスト中央 (254/326/398/470) に並ぶ — 行スタックを
+        /// 「上余白 254 ≒ 下余白 246」の縦中央に置いており、上寄せではない。
+        /// 収まるとき (count ≤ 9) は (780 − count*72)/2 + 8、収まらないときはスクロール前提の
+        /// <see cref="HistoryRowY0"/> を返す。design 4 行なら 254 で一致する。
+        /// </summary>
+        public static float HistoryFirstRowY(int count)
+        {
+            if (count <= 0 || count > HistoryMaxCenteredRows)
+            {
+                return HistoryRowY0;
+            }
+            return (ListPanelH - count * HistoryRowStep) * 0.5f + 8f;
+        }
+
+        // ヘッダー右 (design q9JZcH/Y8lcc 情報ゾーン、親はヘッダーゾーン (24,0) 1680×96)。
+        // 旧実装は Sort 132×44 @ (840,26)、Count 右端 1680 で design より大きかった。
+        public const float HeaderSortX = 864f;
+        public const float HeaderSortY = 33.5f;
+        public const float HeaderSortW = 104f;
+        public const float HeaderSortH = 29f;
+        public const float HeaderSortTextX = 12f;
+        public const float HeaderSortTextW = 80f;
+        public const float HeaderCountX = 1376f;
+        public const float HeaderCountY = 24f;
+        public const float HeaderCountW = 280f;
+        public const float HeaderCountH = 48f;
+
         /// <summary>選択中の曲パネル (列3-4)。Main 内 (572,0) 536×780。</summary>
         public const float CenterPanelX = 572f;
         public const float CenterPanelW = 536f;
