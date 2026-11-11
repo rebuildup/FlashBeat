@@ -99,6 +99,21 @@
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
 
+### 0.2 証跡をまとめて採る (任意 / Windows 実機でオーナーが実行)
+
+[`tools/acceptance/collect-win-evidence.ps1`](../../../tools/acceptance/collect-win-evidence.ps1) を
+展開先フォルダで実行すると、機械情報 (解像度・DPI・GPU)、`version.json`、exe の版数、
+`Player.log`、スクリーンショット、ZIP の SHA-256 照合、記入式の `operation-log.md` を
+1 つのフォルダにまとめます。**起動・キー入力はしません** (`-Launch` を明示したときだけ起動)。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
+    -GameDir "$env:USERPROFILE\Desktop\FlashBeat-Exhibit" `
+    -ZipPath "$env:USERPROFILE\Downloads\FlashBeat-0.1.23-win64-b6860a80.zip" `
+    -ExpectedSha256 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20
+```
+
+
 ---
 
 ## 1. 候補の同一性 (SHA-256 で確認する)
