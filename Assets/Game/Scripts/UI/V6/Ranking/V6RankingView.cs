@@ -222,11 +222,9 @@ namespace FlashBeat.UI.V6.Ranking
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
 
-            // 画面全体を v6 背景 (契約 §3 bg #1B1B1B) で敷き、レガシーのクリーム色背景が
-            // 透けないようにする。レターボックス枠は作らない。
-            var bg = rootGo.AddComponent<Image>();
-            bg.color = V5Tokens.Bg;
-            bg.raycastTarget = true;
+            // 背景は敷かない (Issue #373)。History / Ranking は SelectScene 内の
+            // モード切替なので、選曲画面と同じ背景映像をそのまま見せる。
+            // 不透明な Image を置くとシーンの VideoPlayer を覆い隠す。
 
             // 共通フレーム (rw7zx 1728×972 / 契約 §4) を使い回す。
             frame = V6Frame.Create(rootGo.transform, "V6 Ranking Frame 1728x972").GetComponent<RectTransform>();
@@ -332,14 +330,10 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void BuildHeader(GameObject headerZone, V6SongEntry song)
         {
-            // 戻るボタン 56×56 (#3A3A3A r8) + Key fs16 (design: Back button / Key 'Esc' fs16)。
-            // header 直下に design (0,20) で置く。V5Ui.Node + At で包むと Node の既定
-            // 100×100 の中央にボタンが寄り、右へ 20px / 下へ 20px ずれてタイトルに
-            // 重なる (r19 実機 q9JZcH 比較で判明)。確定キーはキー設定の正本から取る。
-            var back = MakeButton(V5Ui.Panel(headerZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
-                () => TriggerBack());
-            At(back, 0f, 20f);
-            V6Controls.FillBackButton(back, ActionKeyHint.Primary(KeyActions.KeyAction.Back));
+            // 戻るボタンは共通部品 (Issue #370)。design S1TZD: header (0,20) 56×56。
+            // 確定キーはキー設定の正本から取る。
+            V6Controls.BackButton(headerZone, "Back Button", new Vector2(0f, 20f),
+                ActionKeyHint.Primary(KeyActions.KeyAction.Back), () => TriggerBack());
 
             var title = V5GameUi.Text(headerZone, "Title", "RANKING", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);

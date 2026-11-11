@@ -72,17 +72,20 @@ namespace FlashBeat.UI.V6.Common.Tests
         [Test]
         public void BackButton_MatchesDesignInternals()
         {
-            // 56×56 の中に arrow-left 24 @(16,4) と Key fs16 @(15,30) 26×23。
+            // 56×56 の中に arrow-left 24 @(16,3.5) と Key fs16 @(15,29.5) 26×23。
             // 中央寄せで積むとアイコンが y17..39 に下がり Key (y30..) と重なる。
             Assert.AreEqual(56f, V6Controls.BackButtonSize);
             Assert.AreEqual(24f, V6Controls.BackButtonIconSize);
-            Assert.AreEqual(new Vector2(16f, 4f), V6Controls.BackButtonIconPos);
-            Assert.AreEqual(new Vector2(15f, 30f), V6Controls.BackButtonKeyPos);
+            Assert.AreEqual(new Vector2(16f, 3.5f), V6Controls.BackButtonIconPos);
+            Assert.AreEqual(new Vector2(15f, 29.5f), V6Controls.BackButtonKeyPos);
             Assert.AreEqual(new Vector2(26f, 23f), V6Controls.BackButtonKeySize);
             Assert.AreEqual(16f, V6Controls.BackButtonKeyFontSize);
-            // アイコンが Key の上端より上に収まる (重ならない)。
+            // 上下の余白は等しく (3.5)、アイコンと Key の間は 2。
             Assert.LessOrEqual(V6Controls.BackButtonIconPos.y + V6Controls.BackButtonIconSize,
                 V6Controls.BackButtonKeyPos.y);
+            Assert.AreEqual(V6Controls.BackButtonIconPos.y,
+                V6Controls.BackButtonSize - (V6Controls.BackButtonKeyPos.y + V6Controls.BackButtonKeySize.y),
+                0.001f, "上下の余白が等しくない (アイコンが上へ寄る)");
         }
 
         [Test]

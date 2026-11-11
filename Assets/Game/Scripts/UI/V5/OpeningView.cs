@@ -20,6 +20,7 @@ namespace FlashBeat.UI.V5
         public const float MaxAdvanceSeconds = 12f;
 
         GameObject backdrop;
+        GameObject decorations;
 
         /// <summary>背景 + エッジ装飾 + ロゴで構築する (従来どおり)。</summary>
         public static OpeningView Build()
@@ -29,7 +30,9 @@ namespace FlashBeat.UI.V5
 
         /// <summary>
         /// Canvas (ScreenSpaceOverlay, Constant Pixel Size x1) ごと新規に構築する。
-        /// withBackdrop = false で不透明背景を省く (オープニング映像を見せるとき)。
+        /// withBackdrop = false はオープニング映像だけを表示する (Issue #371)。
+        /// 背景・エッジ装飾・ロゴは映像に重ねない。映像が出せないときは
+        /// <see cref="ShowBackdropFallback"/> が従来の装飾を後から足す。
         /// </summary>
         public static OpeningView Build(bool withBackdrop)
         {
@@ -45,22 +48,33 @@ namespace FlashBeat.UI.V5
             if (withBackdrop)
             {
                 view.backdrop = V5Decor.BuildBackdrop(root);
+                view.decorations = view.BuildDecorations(root);
             }
-            V5Decor.BuildEdgeDeco(root);
+
+            return view;
+        }
+
+        /// <summary>エッジ装飾と中央ロゴ。映像のみのときは生成しない。</summary>
+        private GameObject BuildDecorations(GameObject root)
+        {
+            var group = V5Ui.Node(root, "Decorations");
+            V5Ui.Fill(group.GetComponent<RectTransform>(), 0f);
+            V5Decor.BuildEdgeDeco(group);
 
             // 中央ロゴ: 幅は画面幅の 2/3 (fhd で 1280) にし、高さは設計比率から算出。
             var p = UISizeProfile.Current;
             float logoW = Mathf.Min(Screen.width * (1280f / 1920f), 1280f * (p.FsM / 30f));
             float logoH = logoW / V5Decor.LogoAspect;
-            V5Decor.BuildLogo(root,
+            V5Decor.BuildLogo(group,
                 new Vector2((Screen.width - logoW) / 2f, -(Screen.height - logoH) / 2f),
                 new Vector2(logoW, logoH));
-            return view;
+            return group;
         }
 
         /// <summary>
-        /// 映像の再生に失敗したときのフォールバック: 不透明背景を後から足す
-        /// (黒い画面のまま放置しない)。背景は兄弟末尾に足されるので Canvas 内最前面。
+        /// 映像の再生に失敗したときのフォールバック: 不透明背景と従来の装飾を後から足す
+        /// (黒い画面のまま放置しない)。映像のみで構築したときも、ここで初めて
+        /// ロゴとエッジ装飾を生成する (Issue #371)。
         /// </summary>
         public void ShowBackdropFallback()
         {
@@ -69,6 +83,19 @@ namespace FlashBeat.UI.V5
                 backdrop = V5Decor.BuildBackdrop(gameObject);
             }
             backdrop.SetActive(true);
+
+            if (decorations == null)
+            {
+                decorations = BuildDecorations(gameObject);
+            }
+
+            decorations.SetActive(true);
+        }
+
+        /// <summary>映像のみで構築したか (装飾がまだ無い)。診断とテスト用。</summary>
+        public bool HasDecorations
+        {
+            get { return decorations != null; }
         }
 
         /// <summary>

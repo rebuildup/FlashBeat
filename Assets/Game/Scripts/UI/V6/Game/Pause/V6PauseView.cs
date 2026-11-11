@@ -1099,7 +1099,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                         sceneManager.RetryGame();
                     }
                 });
-            BuildActionButton(footer, "再開", "play",
+            BuildActionButton(footer, "再開", "circle-stop",
                 KeyCap(KeyActions.KeyAction.Back), true,
                 V6PauseViewLogic.ResumeButtonX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
                 V6PauseViewLogic.ResumeButtonW, RequestResume);
@@ -1129,7 +1129,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
         /// アイコン 32×32 とラベル・KeyCap は設計の絶対座標へ置く (レイアウトグループで
         /// 詰めると "Backspace" / "リトライ" が折り返して 2 行に潰れる)。
-        /// iconName は design の lucide 名そのまま (log-out / rotate-ccw / play、
+        /// iconName は design の lucide 名そのまま (log-out / rotate-ccw / circle-stop、
         /// Resources/Icons/ に PNG あり)。x / y は親ノード内の design 座標
         /// (フッター直下なら (1414,20)、Op グループ内なら (0,0) / (296,0))。
         /// </summary>

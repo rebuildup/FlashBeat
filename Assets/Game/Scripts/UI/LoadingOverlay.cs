@@ -100,6 +100,20 @@ public class LoadingOverlay : MonoBehaviour
         overlay.fadingOut = false;
     }
 
+    /// <summary>
+    /// 表示前の遅延 (<see cref="LoadingOverlayLogic.ShowDelayMs"/>) を待たずに、
+    /// 次のフレームで出す。シーン遷移は「押した直後に何か起きた」ことが
+    /// 見える必要があるため (Issue #378)。短い読み込みで点滅しないことは
+    /// 最短表示時間 (<see cref="LoadingOverlayLogic.MinDisplayMs"/>) が担保する。
+    /// </summary>
+    public static void ShowImmediately(string label, object owner = null)
+    {
+        Show(label, owner);
+        var overlay = EnsureInstance();
+        overlay.requestedAtRealtime = Time.realtimeSinceStartup
+            - (float)(LoadingOverlayLogic.ShowDelayMs / 1000.0);
+    }
+
     /// <summary>進捗バーを更新する (0..1)。呼ばれない間はスウィープ表示。</summary>
     public static void SetProgress(float normalized, object owner = null)
     {
@@ -128,7 +142,7 @@ public class LoadingOverlay : MonoBehaviour
     {
         if (subscribedToFadeSystem) return;
         subscribedToFadeSystem = true;
-        Initiate.LoadingFeedback.Begin += sceneName => Show(LoadingOverlayLogic.SceneLabel(sceneName));
+        Initiate.LoadingFeedback.Begin += sceneName => ShowImmediately(LoadingOverlayLogic.SceneLabel(sceneName));
         Initiate.LoadingFeedback.Progress += progress => SetProgress(progress);
         Initiate.LoadingFeedback.End += () => Hide();
         SceneManager.sceneLoaded += OnSceneLoaded;

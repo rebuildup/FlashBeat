@@ -481,19 +481,12 @@ namespace FlashBeat.UI.V6.Option
         {
             var header = Zone("Header");
 
-            var back = V6Controls.Panel(header.gameObject, "Back button",
-                new Vector2(0f, 20f), new Vector2(56f, 56f), V6Tokens.Key4, V6Tokens.RadiusMedium);
-            var backButton = back.AddComponent<Button>();
-            backButton.transition = Selectable.Transition.None;
-            var nav = backButton.navigation;
-            nav.mode = Navigation.Mode.None;
-            backButton.navigation = nav;
-            backButton.onClick.AddListener(() =>
-            {
-                if (onBack != null) onBack();
-            });
-
-            V6Controls.FillBackButton(back, "Esc");
+            // 戻るボタンは共通部品 (Issue #370): 56×56 / $k4 r8 / arrow-left 24 + Key fs16。
+            V6Controls.BackButton(header.gameObject, "Back button", new Vector2(0f, 20f), "Esc",
+                () =>
+                {
+                    if (onBack != null) onBack();
+                });
 
             V6Controls.Text(header.gameObject, "Title", "OPTION",
                 new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,

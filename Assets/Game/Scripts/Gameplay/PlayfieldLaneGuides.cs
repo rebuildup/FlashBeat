@@ -33,11 +33,24 @@ namespace FlashBeat.Gameplay
         /// <summary>ガイド線の本数 (8 レーン = 9 本の境界線)。</summary>
         public const int GuideCount = Judge.LaneCount + 1;
 
-        /// <summary>ガイド線の太さ (ワールド x 単位)。判定線付近で 8 px 程度。</summary>
-        public const float GuideWidth = 0.04f;
+        /// <summary>
+        /// ガイド線の太さ (ワールド x 単位)。design "Lane 0..7" (stroke 2 at
+        /// 1728 wide) を 1920x1080 で約 2 px に写す値。判定線付近で 2.3 px。
+        /// </summary>
+        public const float GuideWidth = 0.011f;
 
-        /// <summary>ガイド線の不透明度 (0-1)。</summary>
-        public const float GuideAlpha = 0.35f;
+        /// <summary>
+        /// ガイド線の不透明度 (0-1)。design の #FFFFFF2E (alpha 46/255)。
+        /// レーンの境界は判別できるが、明るい縁取りにはしない (Issue #380)。
+        /// </summary>
+        public const float GuideAlpha = 46f / 255f;
+
+        /// <summary>
+        /// ガイド線を画面下端より少し先まで伸ばす余白 (z 単位)。
+        /// 視錐台の下端がレーン面を切る位置の外側まで描くので、
+        /// 線は画面下端で切れずに消える。
+        /// </summary>
+        public const float GuideFrontMargin = 0.25f;
 
         /// <summary>
         /// ガイド線のある y。ノーツ面 (0.55) より手前 (下) なので、
@@ -53,6 +66,22 @@ namespace FlashBeat.Gameplay
         /// (視錐台が clips する)。
         /// </summary>
         public const float GuideDepth = MediaTimeline.VisibleDepthZ + 0.2f;
+
+        /// <summary>
+        /// 判定線より手前 (負の z) に伸ばす長さ。カメラの下端がレーン面
+        /// (<see cref="GuideY"/>) を切る位置 + <see cref="GuideFrontMargin"/>。
+        /// design ではレーンは画面下端 (y = 972) まで続き、判定線 (792) で
+        /// 途切れない。
+        /// </summary>
+        public static float FrontDepth(Camera camera)
+        {
+            float front = camera != null
+                ? MediaTimeline.VisibleFrontDepth(camera, GuideY)
+                : 0f;
+            // カメラが無い (テスト等) ときも判定線の下に必ず線を出す。
+            if (front <= 0f) front = 0.4f;
+            return front + GuideFrontMargin;
+        }
 
         private static bool subscribed;
 
@@ -108,8 +137,8 @@ namespace FlashBeat.Gameplay
 
         private void Start()
         {
-            Build();
             ApplyCameraFit();
+            Build();
         }
 
         private void Update()
@@ -154,6 +183,9 @@ namespace FlashBeat.Gameplay
             var go = new GameObject("LaneGuides");
             go.transform.SetParent(transform, false);
 
+            // 判定線 (z = 0) より手前にも伸ばし、画面下端まで続ける (Issue #380)。
+            float front = -FrontDepth(fittedCamera != null ? fittedCamera : Camera.main);
+
             var vertices = new Vector3[GuideCount * 4];
             var triangles = new int[GuideCount * 6];
             var uv = new Vector2[GuideCount * 4];
@@ -162,8 +194,8 @@ namespace FlashBeat.Gameplay
                 float x = LaneBoundaryX(i);
                 float half = GuideWidth * 0.5f;
                 int v = i * 4;
-                vertices[v + 0] = new Vector3(x - half, GuideY, 0f);
-                vertices[v + 1] = new Vector3(x + half, GuideY, 0f);
+                vertices[v + 0] = new Vector3(x - half, GuideY, front);
+                vertices[v + 1] = new Vector3(x + half, GuideY, front);
                 vertices[v + 2] = new Vector3(x - half, GuideY, GuideDepth);
                 vertices[v + 3] = new Vector3(x + half, GuideY, GuideDepth);
 

@@ -17,6 +17,9 @@ public class Fader : MonoBehaviour
     public Color fadeColor;
     [HideInInspector]
     public bool isFadeIn = false;
+    /// <summary>暗転の完了を待たずに読み込みを始める (Issue #378)。</summary>
+    [HideInInspector]
+    public bool loadImmediately = false;
     CanvasGroup myCanvas;
     Image bg;
     float lastTime = 0;
@@ -68,6 +71,14 @@ public class Fader : MonoBehaviour
         lastTime = Time.time;
         float coDelta = lastTime;
         bool hasFadedIn = false;
+
+        // 即時読み込み: 暗転の完了を待たずに読み込みを始める。allowSceneActivation=false
+        // なのでシーンは暗転が終わるまで切り替わらない (見た目は従来どおり暗転してから切替)。
+        if (loadImmediately && !startedLoading)
+        {
+            startedLoading = true;
+            StartCoroutine(LoadSceneRoutine());
+        }
 
         while (!hasFadedIn)
         {

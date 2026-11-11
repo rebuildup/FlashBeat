@@ -125,5 +125,51 @@ namespace FlashBeat.UI.V6.Select.View.Tests
                 Assert.GreaterOrEqual(current.Y - prev.Bottom, 1f, "設定行どうしが重なる");
             }
         }
+
+        // --- 設定行の列 (Issue #370) ---
+
+        [Test]
+        public void SettingsRowColumns_AreFixedRegardlessOfLabelOrValue()
+        {
+            // design wSjAm の auto-layout を固定列へ展開した値。
+            // 行ごとに列が動くと、左矢印の位置と値の中央がばらついて見える。
+            Assert.AreEqual(276f, V6SelectViewLogic.SettingsRowPrevX);
+            Assert.AreEqual(328f, V6SelectViewLogic.SettingsRowValueX);
+            Assert.AreEqual(460f, V6SelectViewLogic.SettingsRowNextX);
+
+            // 3 行すべてが同じ列 (行 index は y だけを変える)。
+            var first = V6SelectViewLogic.SettingsRowRect(0);
+            for (int i = 0; i < V6SelectViewLogic.SettingsRowCount; i++)
+            {
+                var row = V6SelectViewLogic.SettingsRowRect(i);
+                Assert.AreEqual(first.X, row.X);
+                Assert.AreEqual(first.W, row.W);
+            }
+        }
+
+        [Test]
+        public void SettingsRowValue_SitsInTheGeometricCenterBetweenTheArrows()
+        {
+            var prev = V6SelectViewLogic.SettingsRowPrev();
+            var value = V6SelectViewLogic.SettingsRowValue();
+            var next = V6SelectViewLogic.SettingsRowNext();
+
+            Assert.AreEqual(120f, value.W, "値の枠は design の Value フレーム幅 120");
+            float between = (prev.Right + next.X) * 0.5f;
+            Assert.AreEqual(between, value.X + value.W * 0.5f, 0.001f,
+                "値の中心が左右の矢印の中央から外れている");
+            Assert.IsFalse(prev.Overlaps(value));
+            Assert.IsFalse(value.Overlaps(next));
+        }
+
+        [Test]
+        public void SettingsRowLabel_EndsBeforeTheLeftArrow()
+        {
+            var label = V6SelectViewLogic.SettingsRowLabel();
+            var prev = V6SelectViewLogic.SettingsRowPrev();
+
+            Assert.GreaterOrEqual(prev.X - label.Right, 12f, "ラベルと左矢印の間隔が 12 未満");
+            Assert.IsFalse(label.Overlaps(prev));
+        }
     }
 }

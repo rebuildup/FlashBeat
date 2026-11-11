@@ -71,6 +71,11 @@ public class OpeningSceneManager : MonoBehaviour
     /// <returns>映像が見える状態なら true。</returns>
     static bool EnsureVideoRenders(VideoPlayer video)
     {
+        // design の背景は cover (画面全体を覆う)。16:9 の映像を 16:10 の
+        // ディスプレイにそのまま出すと上下に帯が残るため、はみ出し側を切って
+        // 全面に描く。FOV の変更はしないので歪みも出ない。
+        video.aspectRatio = VideoAspectRatio.FitOutside;
+
         bool unusable =
             video.renderMode == VideoRenderMode.APIOnly ||
             (video.renderMode == VideoRenderMode.MaterialOverride &&

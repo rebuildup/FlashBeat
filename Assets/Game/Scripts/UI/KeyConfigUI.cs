@@ -44,6 +44,7 @@ public class KeyConfigUI : MonoBehaviour
     private TextMeshProUGUI messageLabel;
     private TextMeshProUGUI testLabel;
     private TextMeshProUGUI hintLabel;
+    private GameObject hintCap;
     private TextMeshProUGUI layoutLabel;
     private RectTransform laneRowsRoot;
     private RectTransform actionRowsRoot;
@@ -1238,6 +1239,9 @@ public class KeyConfigUI : MonoBehaviour
         capRect.pivot = new Vector2(0f, 0f);
         capRect.anchoredPosition = new Vector2(16f, 16f);
         rect.anchoredPosition = new Vector2(16f + capRect.sizeDelta.x + 8f, 16f);
+        // キャップは hintLabel の子ではないため、ラベルを隠しても残ってしまう
+        // (Opening で左下に [F2] だけが出ていた)。表示切替をラベルと揃える。
+        hintCap = cap;
     }
 
     private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize, TextAlignmentOptions alignment)
@@ -1286,10 +1290,15 @@ public class KeyConfigUI : MonoBehaviour
         // 旧ヒントは二重表示になる (Update 毎フレームで再表示される遅延生成物。
         // v6 モードではここで確実に隠す)。
         bool v6Title = FlashBeat.UI.V6.Title.V6TitleView.Enabled;
-        bool show = !open && sceneName == "TitleScene" && !v6Title;
+        var show = !open && sceneName == "TitleScene" && !v6Title;
         if (hintLabel.gameObject.activeSelf != show)
         {
             hintLabel.gameObject.SetActive(show);
+        }
+
+        if (hintCap != null && hintCap.activeSelf != show)
+        {
+            hintCap.SetActive(show);
         }
     }
 }

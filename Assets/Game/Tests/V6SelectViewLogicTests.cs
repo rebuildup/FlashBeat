@@ -86,6 +86,28 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.AreEqual("0", V6SelectViewLogic.FormatScore(0));
         }
 
+        // --- スケルトン表示 (Issue #374) ---
+
+        [Test]
+        public void ShouldShowSkeleton_FirstLoadWithoutRows()
+        {
+            Assert.IsTrue(V6SelectViewLogic.ShouldShowSkeleton(true, 0));
+        }
+
+        [Test]
+        public void ShouldShowSkeleton_RefetchWithVisibleRows_KeepsRows()
+        {
+            // 一度表示できている行があるなら、再取得中もスケルトンへ戻さない。
+            Assert.IsFalse(V6SelectViewLogic.ShouldShowSkeleton(true, 12));
+        }
+
+        [Test]
+        public void ShouldShowSkeleton_NotLoading_IsFalse()
+        {
+            Assert.IsFalse(V6SelectViewLogic.ShouldShowSkeleton(false, 0));
+            Assert.IsFalse(V6SelectViewLogic.ShouldShowSkeleton(false, 12));
+        }
+
         // --- 検索入力 ---
 
         [Test]
