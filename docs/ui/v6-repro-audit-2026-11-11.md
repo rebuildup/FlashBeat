@@ -303,10 +303,19 @@ drawing ではなく座標で確認した:
 
 ### 9.6 r6 の画素による最終確認 (Esc 位置 / Result ジャケット)
 
-r6 は `9edaffd7` (行送り境界の Ellipsis 余裕確保) のビルド。2560×1664 実ディスプレイ
-全画面 (`-screen-fullscreen 1 -screen-width 2560 -screen-height 1664`) で撮影し、
-`autotest-v6screens-result.txt` は `RESULT pass=17 fail=0 symbols=45 screenshots=8`。
-画像は design 1px = 画面 1px、frame origin (416,346)。
+r6 は **`c6506361`** (中央パネル曲名の修正) のビルド。ビルド成果物の時刻
+(`Builds/macOS/FlashBeat.app` = 14:28:28) と `c6506361` の commit 時刻 (14:27:55) が一致し、
+行送り硬化 `9edaffd7` (14:31:23) は**含まない**。`9edaffd7` の検証は EditMode 1477 件のみで、
+実機証跡は r7 で取り直す (下記)。
+
+2560×1664 実ディスプレイ全画面 (`-screen-fullscreen 1 -screen-width 2560 -screen-height 1664`)
+で撮影し、`autotest-v6screens-result.txt` は
+`RESULT pass=17 fail=0 symbols=45 screenshots=8`。画像は design 1px = 画面 1px、
+frame origin (416,346)。
+
+硬化 `9edaffd7` を含む `7cfcfe51` で**同じ 8 画面を r7 として再取得**し、同じ
+`RESULT pass=17 fail=0 symbols=45 screenshots=8 resolution=2560x1664` を確認した
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r7`)。以下の画素測定は r6 の画像で行った。
 
 | 指摘 | design | r6 実測 (画素) |
 |---|---|---|
