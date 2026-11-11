@@ -558,7 +558,10 @@ namespace FlashBeat.UI.V6.History
             {
                 var title = V5GameUi.Text(meta, "Title", song.Title, 48f, V5Tokens.Text,
                     TextAlignmentOptions.Center, FontStyles.Bold);
-                title.rectTransform.sizeDelta = new Vector2(512f, 56f);
+                // design q9JZcH 中央 選択中の曲/f54HAH/DcLR3: Title は Meta 内 (0,9) 512×50。
+                // sizeDelta だけ変えると既定アンカー (中央) のままで 13px 下がり、
+                // Artist Row (y60) に食い込む (r4 実機で重なって見えた)。
+                At(title, 0f, 9f, 512f, 50f);
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
                 At(artistRow.GetComponent<RectTransform>(), 0f, 60f, 512f, 36f);
                 var tag = V5Ui.Panel(artistRow.gameObject, "Tag No", new Vector2(64f, 30f), V5Tokens.Key4, 4f);

@@ -273,5 +273,53 @@ namespace FlashBeat.V6CanvasTests
                 Object.DestroyImmediate(view.Root.gameObject);
             }
         }
+
+        // --- D. 中央パネルの曲名 (design f54HAH/DcLR3: Meta 内 (0,9) 512×50 fs48) ---
+
+        [Test]
+        public void HistoryCenterMeta_Title_MatchesDesign()
+        {
+            // 旧実装は sizeDelta だけ変えて既定アンカー (中央) のままで、design より
+            // 13px 下がり Artist Row (y60) に食い込んでいた (r4 実機で重なって見えた)。
+            var view = CreateView(1);
+            try
+            {
+                var meta = Find(view.Root, "Meta");
+                var title = (RectTransform)meta.Find("Title");
+                Assert.AreEqual(new Vector2(0f, 9f), DesignTopLeft(title), "Title (0,9)");
+                Assert.AreEqual(new Vector2(512f, 50f), title.sizeDelta, "Title 512×50");
+                Assert.AreEqual(48f, title.GetComponent<TextMeshProUGUI>().fontSize, "Title fs48");
+
+                var artistRow = (RectTransform)meta.Find("Artist Row");
+                Assert.AreEqual(60f, DesignTopLeft(artistRow).y, 0.01f, "Artist Row は y60");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        [Test]
+        public void SelectCenterMeta_Title_MatchesDesign()
+        {
+            var source = new FakeSource();
+            source.Songs.Add(Song(1, "まにまに", 10000));
+            source.SelectedValue = source.Songs[0];
+
+            var view = V6SelectView.Create((RectTransform)canvasGo.transform, source, null, null, null);
+            try
+            {
+                var meta = Find(view.Root, "Meta");
+                var title = (RectTransform)meta.Find("Title");
+                Assert.AreEqual(new Vector2(0f, 9f), DesignTopLeft(title), "Title (0,9)");
+                Assert.AreEqual(new Vector2(512f, 50f), title.sizeDelta, "Title 512×50");
+                Assert.AreEqual(60f, DesignTopLeft((RectTransform)meta.Find("Artist Row")).y, 0.01f,
+                    "Artist Row は y60");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
     }
 }
