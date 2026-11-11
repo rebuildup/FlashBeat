@@ -46,6 +46,7 @@ namespace FlashBeat.UI.V6
         private RectTransform hudFrame;
         private V6PauseView pause;
         private V6LoadingView loading;
+        private GameSceneManager cachedSceneManager;
 
         /// <summary>検証用の固定表示中か (<see cref="ShowLoadingForAudit"/>)。</summary>
         private bool loadingAudit;
@@ -195,6 +196,16 @@ namespace FlashBeat.UI.V6
         private void UpdatePause()
         {
             if (pause == null) return;
+
+            // オーバーレイを開閉したフレームのキーは背面へ流さない (SceneInputGate の契約)。
+            // KeyConfigUI.Update が先に走って Esc で閉じた場合、IsOpen が同じフレームで
+            // false になり、ここが Back を拾ってポーズまで閉じてしまう。Update の実行順は
+            // 保証されないため、フレーム単位のゲートをここでも見る。
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed)
+            {
+                return;
+            }
+
             if (KeyConfigUI.IsOpen)
             {
                 // キー設定中の F1 = 編集キャンセル (保存済みの割当へ戻して閉じる)。
@@ -203,6 +214,19 @@ namespace FlashBeat.UI.V6
                 if (Input.GetKeyDown(KeyCode.F1))
                 {
                     V6OptionView.CancelKeyConfigEdit();
+                }
+
+                return;
+            }
+
+            // Key Layout リセットの確認ダイアログ表示中は、背面のポーズ操作を止める。
+            // Scrim はマウスしか遮らないため、Esc=再開 / R=リトライ / Backspace=リタイア /
+            // 矢印=行移動 がダイアログ越しに実行されてしまう。Esc は確認の取り消しに使う。
+            if (pause.HasConfirmDialog)
+            {
+                if (KeyActions.IsDown(KeyActions.KeyAction.Back))
+                {
+                    pause.CancelResetKeyLayout();
                 }
 
                 return;
@@ -228,7 +252,9 @@ namespace FlashBeat.UI.V6
             if (Input.GetKeyDown(KeyCode.DownArrow)) pause.MoveSelection(1);
             if (Input.GetKeyDown(KeyCode.LeftArrow)) pause.AdjustSelected(-1);
             if (Input.GetKeyDown(KeyCode.RightArrow)) pause.AdjustSelected(1);
-            var manager = FindObjectOfType<GameSceneManager>();
+            // ポーズ中は毎フレーム来るため、シーン全体検索を繰り返さず 1 度だけ解決する。
+            if (cachedSceneManager == null) cachedSceneManager = FindAnyObjectByType<GameSceneManager>();
+            var manager = cachedSceneManager;
             if (manager == null) return;
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); manager.RetryGame(); }
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuEnd)) { pause.Close(); manager.GameEnd(); }

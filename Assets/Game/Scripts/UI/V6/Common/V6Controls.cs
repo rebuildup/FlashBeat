@@ -305,7 +305,10 @@ namespace FlashBeat.UI.V6.Common
             string iconName, string keyLabel)
         {
             var go = Panel(parent, "Button " + label, designTopLeft, size, bg, ButtonRadius);
-            go.AddComponent<Button>();
+            var button = go.AddComponent<Button>();
+            // targetGraphic が無いと ColorTint 遷移が走らず、押下しても見た目が変わらない
+            // (IconButton は設定済み)。主要ボタンすべてに押下 / ホバーの手応えを付ける。
+            button.targetGraphic = go.GetComponent<Image>();
 
             // 正本 (Prefab/Button Primary meK44 / Secondary qWWcD) は
             // gap 12 / justify center / align center。icon・Label・Cap は

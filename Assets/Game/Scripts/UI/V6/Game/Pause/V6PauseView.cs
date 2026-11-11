@@ -124,6 +124,15 @@ namespace FlashBeat.UI.V6.Game.Pause
             get { return open; }
         }
 
+        /// <summary>
+        /// 破壊操作の確認ダイアログ (Key Layout リセット) が開いているか。
+        /// Scrim はマウスしか遮らないため、キーボード入力の排他は呼び出し側が行う。
+        /// </summary>
+        public bool HasConfirmDialog
+        {
+            get { return confirmRoot != null; }
+        }
+
         /// <summary>生成したビューを破棄するときイベント購読を解除する。</summary>
         public void Dispose()
         {

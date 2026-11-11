@@ -151,8 +151,6 @@ public class OptionSceneManager : MonoBehaviour
 
     void Start()
     {
-        // v6 Option Canvas の二重生成 (監査の pass=181/359 揺れ) を追うための識別情報。
-        Debug.Log("[OptionSceneManager] Start id=" + GetEntityId() + " frame=" + Time.frameCount);
         // 保存済みの設定を復元してから UI へ反映する (Issue #167)。
         // 復元しないと Option 画面の値が毎回既定値になり、変更が反映されない。
         OptionSettings.Load();

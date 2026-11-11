@@ -298,19 +298,33 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             // 正本 OENRv: 英字 (A-Z) を押すと検索欄に入る。制御文字は対象外。
+            // ただし操作キー (既定 O = Option) が優先。検索シードを先に判定すると、
+            // O を押すたびに検索語が入り、フッターの「設定 O」が動かなくなる。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
+            {
+                OpenSettings();
+                return;
+            }
+
             string typed = Input.inputString;
             char seed = V6SelectViewLogic.SearchSeed(typed);
             if (seed != '\0')
             {
                 searchFocused = true;
-                data.SetQuery(V6SelectViewLogic.ApplySearchInput("", seed.ToString()));
-                Rebuild();
-                return;
-            }
+                string seeded = V6SelectViewLogic.ApplySearchInput("", seed.ToString());
+                if (data.Query == seeded)
+                {
+                    // 検索語が変わらないときは Changed が発火しないため、フォーカス表示を
+                    // 反映する再描画をここで 1 回だけ行う。変わるときは SetQuery →
+                    // Changed → OnDataChanged が再描画するので、二重に呼ばない。
+                    Rebuild();
+                }
+                else
+                {
+                    data.SetQuery(seeded);
+                }
 
-            if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
-            {
-                OpenSettings();
+                return;
             }
         }
 
