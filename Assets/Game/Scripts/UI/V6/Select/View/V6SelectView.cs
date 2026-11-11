@@ -560,13 +560,15 @@ namespace FlashBeat.UI.V6.Select.View
                 // AqFtx のスケルトン行 (読み込み中)。
                 for (int i = 0; i < ListVisibleRows; i++)
                 {
+                    // スケルトンも design 行 (mcCOI) と同じ x 配置 (Level 12 / Thumb 68 /
+                    // Texts 176 / Grade 436)。バーの寸法・y は AqFtx のプレースホルダのまま。
                     var skeleton = At(V5Ui.Panel(rows, "Song Skeleton " + i, new Vector2(RowW, RowH),
                         V5Tokens.Key1, 8f), RowX, RowY0 + RowStep * i);
-                    At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 14f, 14f);
-                    At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 72f, 9f);
-                    At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 182f, 14f);
-                    At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 182f, 44f);
-                    At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 432f, 18f);
+                    At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 12f, 14f);
+                    At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 68f, 9f);
+                    At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 176f, 14f);
+                    At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 176f, 44f);
+                    At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 436f, 18f);
                 }
             }
             else if (songs.Count == 0)
@@ -619,9 +621,12 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void BuildSongRow(GameObject parent, V6SongEntry song, int index, bool selected, float y)
         {
-            var row = At(V5Ui.Panel(parent, "Song " + song.Title, new Vector2(RowW, RowH),
-                selected ? V5Tokens.Key6 : V5Tokens.Recessed2, 8f), RowX, y);
-            var button = row.gameObject.AddComponent<Button>();
+            // 行の内部座標は共通部品 V6Lists.SongRow に一本化 (design mcCOI/Odv71 実測値)。
+            // この画面はクリック→選択・ジャケット・グレード文字の結線だけを行う。
+            var row = V6Lists.SongRow(parent, song.Title, song.Artist,
+                song.Level > 0 ? song.Level.ToString() : "–", song.BestGrade,
+                new Vector2(RowX, y), new Vector2(RowW, RowH), selected);
+            var button = row.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
@@ -629,31 +634,7 @@ namespace FlashBeat.UI.V6.Select.View
             int songId = song.SongId;
             button.onClick.AddListener(() => data.Select(songId));
 
-            var levelBadge = At(V5Ui.Panel(row, "Level", new Vector2(44f, 44f), V5Tokens.Key4, 22f), 14f, 14f);
-            var levelText = V5GameUi.Text(levelBadge.gameObject, "Num", song.Level > 0 ? song.Level.ToString() : "–", 22f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(levelText.GetComponent<RectTransform>(), 44f, 44f);
-
-            var thumb = At(V5Ui.Panel(row, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 72f, 9f);
-            SetJacket(thumb, song);
-
-            // 曲名 / アーティストは絶対位置 (行の外へはみ出させない)。
-            var songTitle = V5GameUi.Text(row, "Title", song.Title, 26f, V5Tokens.Text, TextAlignmentOptions.Left,
-                FontStyles.Normal);
-            Ellipsis(songTitle);
-            // Ellipsis は「1 行も矩形に収まらないと何も描画しない」。NotoSansJP の
-            // 行高は fs の約 1.45 倍なので fs26 には 38px 必要 (28 だと無描画になる)。
-            At(songTitle, 182f, 14f, 240f, 38f);
-            var songArtist = V5GameUi.Text(row, "Artist", song.Artist, 20f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Left, FontStyles.Normal);
-            Ellipsis(songArtist);
-            // fs20 × 1.448 ≒ 29 → 30px。ink は fs20 (20px) なので Title との重なりは行高 padding のみ。
-            At(songArtist, 182f, 42f, 240f, 30f);
-
-            var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 432f, 18f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "Text", string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade,
-                22f, V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            SetJacket(V6Lists.Thumb(row), song, V6Tokens.Key2);
         }
 
         private void BuildScrollButton(GameObject list, string name, bool down)
@@ -927,25 +908,10 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void BuildRankingRow(GameObject ranking, V6RankingRow row, int index, float y)
         {
-            var line = At(V5Ui.Panel(ranking, "Score " + (index + 1), new Vector2(496f, 44f),
-                row.IsYou ? V5Tokens.Key6 : V5Tokens.Key1, 8f), 8f, y);
-
-            var pos = At(V5Ui.Panel(line, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f), 4f, 4f);
-            var posText = V5GameUi.Text(pos, "Num", row.Position.ToString(), 22f,
-                row.IsYou ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            Stretch(posText.GetComponent<RectTransform>(), 36f, 36f);
-
-            var name = V5GameUi.Text(line.gameObject, "Name", row.IsYou ? "YOU" : row.PlayerName, 22f, V5Tokens.Text);
-            At(name, 52f, 0f, 140f, 44f, new Vector2(0f, 0.5f));
-
-            var score = V5GameUi.Text(line.gameObject, "Score", V6SelectViewLogic.FormatScore(row.Score), 22f, V5Tokens.Text,
-                TextAlignmentOptions.Right);
-            At(score, 200f, 0f, 180f, 44f, new Vector2(0f, 0.5f));
-
-            var grade = At(V5Ui.Panel(line, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 436f, 4f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "Text", string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade, 22f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            // 行内部は共通部品 (design jnIY9 496×44) が持つ。座標計算をここへ書き戻さない。
+            V6Lists.CompactRankRow(ranking, row.Position.ToString(),
+                row.IsYou ? "YOU" : row.PlayerName, V6SelectViewLogic.FormatScore(row.Score),
+                row.Grade, new Vector2(8f, y), row.IsYou);
         }
 
         // --- 設定 (wSjAm 右カラム差し替え。モーダル/Scrim は使わない) ---
@@ -1087,7 +1053,7 @@ namespace FlashBeat.UI.V6.Select.View
             return query.Length > 0 ? query : "タイプして検索";
         }
 
-        private void SetJacket(GameObject thumbPanel, V6SongEntry song)
+        private void SetJacket(GameObject thumbPanel, V6SongEntry song, Color? fallback = null)
         {
             var img = thumbPanel.GetComponent<Image>();
             Sprite sprite = song == null ? null : V6JacketResources.LoadSprite(song.SongId, song.Title);
@@ -1101,10 +1067,10 @@ namespace FlashBeat.UI.V6.Select.View
             }
             else
             {
-                // ジャケット無しは空枠 (AqFtx の Thumb と同じ $k3)。
+                // ジャケット無しは空枠。曲行 (design mcCOI) は $k2、Hero は $k3 (AqFtx)。
                 img.type = Image.Type.Sliced;
                 img.sprite = V5Ui.RoundedSprite(4);
-                img.color = V5Tokens.Key3;
+                img.color = fallback ?? V5Tokens.Key3;
             }
         }
 
@@ -1139,18 +1105,6 @@ namespace FlashBeat.UI.V6.Select.View
 
             tmp.enableWordWrapping = false;
             tmp.overflowMode = TextOverflowModes.Overflow;
-        }
-
-        /// <summary>長すぎる文字は 1 行に収めて … で省略する (親からはみ出さない)。</summary>
-        private static void Ellipsis(TextMeshProUGUI tmp)
-        {
-            if (tmp == null)
-            {
-                return;
-            }
-
-            tmp.enableWordWrapping = false;
-            tmp.overflowMode = TextOverflowModes.Ellipsis;
         }
 
         /// <summary>

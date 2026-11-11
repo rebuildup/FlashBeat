@@ -69,7 +69,7 @@ namespace FlashBeat.UI.V6.Result
         private const float PlayerRankY = 452f, PlayerRankH = 304f;
         private const int SongRankVisibleRows = 6;
         private const int PlayerRankVisibleRows = 4;
-        private const float RankRowW = 496f, RankRowH = 44f, RankRowStep = 52f;
+        private const float RankRowStep = 52f;
 
         private readonly Action onRetry;
         private readonly Action onSelect;
@@ -91,6 +91,7 @@ namespace FlashBeat.UI.V6.Result
         private readonly TextMeshProUGUI[] songStatValues = new TextMeshProUGUI[4];
         private Image songThumb;
         private TextMeshProUGUI songRankEmpty;
+        private TextMeshProUGUI songRankTitle;
         private RectTransform songRankRows;
         private TextMeshProUGUI playerRankEmpty;
 
@@ -453,16 +454,21 @@ namespace FlashBeat.UI.V6.Result
                     new Vector2(V6ResultLogic.SongThumbW, V6ResultLogic.SongThumbH), V5Tokens.Key3, 4f),
                 V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY).GetComponent<Image>();
 
-            // 曲名 / 作曲者はサムネイルの右 (x144) に左揃えで縦積み (design zcSHh)。
-            // Title は幅を全幅 (660) に広げて折り返しをなくす (最長 12 文字 x 34 = 408 <= 660)。
+            // 曲名 / 作曲者はサムネイルの右 (x144) に左揃えで縦積み (design zcSHh:
+            // Title (144,16) fs34 / Artist (144,66) fs23)。幅は Stat 列の左端 x348 まで (204)。
+            // 実データは design のサンプルより長いので 1 行固定 + ellipsis。
             songTitle = V5GameUi.Text(panel.gameObject, "Title", "", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Normal);
             At(songTitle, V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY,
                 V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH, new Vector2(0f, 0.5f));
+            songTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            songTitle.overflowMode = TextOverflowModes.Ellipsis;
 
             songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 23f, V5Tokens.TextMuted);
             At(songArtist, V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY,
                 V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH, new Vector2(0f, 0.5f));
+            songArtist.textWrappingMode = TextWrappingModes.NoWrap;
+            songArtist.overflowMode = TextOverflowModes.Ellipsis;
 
             // Stat (BPM/NOTES/LEVEL/曲長) は Label + Value を明示矩形で縦積みする
             // (旧実装は Column レイアウトで TMP の既定サイズにレイアウトが追従できず、
@@ -492,10 +498,21 @@ namespace FlashBeat.UI.V6.Result
             var head = At(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
                 V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "曲別ランキング", 18f, V5Tokens.TextDim);
-            At(headTitle, 12f, 0f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH, new Vector2(0f, 0.5f));
+            // design d6Noy (12,5) 126×26。Spacer (150,17.5) 350×1 は fill 無しのレイアウト用で描かない。
+            At(headTitle, 12f, 5f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadTitleH);
 
+            // design Lo2pD「終焉逃避行」(20,52) 150×43 fs30。150 は 5 文字サンプルの hug 幅なので、
+            // 実データ (最長 12 文字) は行幅いっぱいの 484 まで使い、はみ出す分だけ … で省略する。
+            songRankTitle = V5GameUi.Text(panel.gameObject, "Song", "", 30f, V5Tokens.Text);
+            At(songRankTitle, V6ResultLogic.SongRankTitleX, V6ResultLogic.SongRankTitleY,
+                V6ResultLogic.SongRankTitleW, V6ResultLogic.SongRankTitleH);
+            songRankTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            songRankTitle.overflowMode = TextOverflowModes.Ellipsis;
+
+            // 空状態は design に無い実装固有の表示。Song 見出し (y52..95) と重ならないよう
+            // 行領域 (y92..404) の縦中央に置く。
             songRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "", 24f, V5Tokens.TextDim);
-            At(songRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            At(songRankEmpty, 20f, 226f, 496f, 44f, new Vector2(0f, 0.5f));
 
             songRankRows = V5Ui.Node(panel.gameObject, "Rows").GetComponent<RectTransform>();
             At(songRankRows, 0f, 0f, 528f, SongRankH);
@@ -1150,6 +1167,11 @@ namespace FlashBeat.UI.V6.Result
             {
                 songTitle.text = "";
                 songArtist.text = "";
+                if (songRankTitle != null)
+                {
+                    songRankTitle.text = "";
+                }
+
                 for (int i = 0; i < songStatValues.Length; i++)
                 {
                     songStatValues[i].text = "–";
@@ -1160,6 +1182,10 @@ namespace FlashBeat.UI.V6.Result
 
             songTitle.text = song.title ?? "";
             songArtist.text = song.musician ?? "";
+            if (songRankTitle != null)
+            {
+                songRankTitle.text = song.title ?? "";
+            }
             songStatValues[0].text = song.bpm > 0 ? song.bpm.ToString() : "–";
             songStatValues[1].text = song.totalHits > 0 ? song.totalHits.ToString() : "–";
             songStatValues[2].text = song.level > 0 ? song.level.ToString() : "–";
@@ -1213,25 +1239,10 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildRankingRow(GameObject parent, FlashBeat.UI.V6.Select.V6RankingRow row, float y)
         {
-            var line = At(V5Ui.Panel(parent, "Score " + row.Position, new Vector2(RankRowW, RankRowH),
-                row.IsYou ? V5Tokens.Key6 : V5Tokens.Key1, 8f), 8f, y);
-
-            var pos = At(V5Ui.Panel(line.gameObject, "Pos", new Vector2(36f, 36f), V5Tokens.Key4, 18f), 4f, 4f);
-            var posText = V5GameUi.Text(pos.gameObject, "PosText", row.Position.ToString(), 22f,
-                row.IsYou ? V5Tokens.Text : V5Tokens.TextMuted, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(posText.GetComponent<RectTransform>(), 36f, 36f);
-
-            var name = V5GameUi.Text(line.gameObject, "Name", row.IsYou ? "YOU" : row.PlayerName, 22f, V5Tokens.Text);
-            At(name, 52f, 0f, 140f, RankRowH, new Vector2(0f, 0.5f));
-
-            var score = V5GameUi.Text(line.gameObject, "Score", V6ResultLogic.FormatScore(row.Score), 22f,
-                V5Tokens.Text, TextAlignmentOptions.Right);
-            At(score, 200f, 0f, 180f, RankRowH, new Vector2(0f, 0.5f));
-
-            var grade = At(V5Ui.Panel(line.gameObject, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f), 436f, 4f);
-            var gradeText = V5GameUi.Text(grade.gameObject, "GradeText", string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
-                22f, V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            // 行内部は共通部品 (design Chlqd 496×44) が持つ。行位置だけがパネル固有点。
+            V6Lists.CompactRankRow(parent, row.Position.ToString(),
+                row.IsYou ? "YOU" : row.PlayerName, V6ResultLogic.FormatScore(row.Score),
+                row.Grade, new Vector2(8f, y), row.IsYou);
         }
 
         private void RefreshModal()

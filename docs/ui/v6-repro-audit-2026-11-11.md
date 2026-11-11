@@ -173,4 +173,28 @@ r1 実機画像 (mac 2560×1664) と design 描画を突き合わせて見つか
 修正後の `mac-2560x1664-r2/` (新候補 SHA で再取得)。
 FHD 1920×1080 / 2K 2560×1440 は **この Mac では未検証** (内蔵 2560×1664 のみ実全画面)。
 
+### 9.2 第 3 ラウンド (2026-11-11、行部品の一本化と Result/Ranking の実測差)
+
+r1/r2 の実機画像と design 描画を突き合わせ、**行の内部座標が画面ごとに写経され、どれも
+design と違う**という共通原因を先に潰した。数値は Pencil `execute` の resolved bounds
+(`ctx.bounds` = `x,y,w,h`、親内座標)。
+
+| 正本 | 直した内容 | コード | 検証 |
+|---|---|---|---|
+| `S1TZD/S1TZD` 曲行 `mcCOI` / `OENRv/Odv71` (504×72) | Select / Ranking / 共通部品が Level x14・Thumb x72・Title x182・Grade x432 と三者三様に写経し、Ranking は Column レイアウトのため曲名が 2 行に折れて行が破綻していた。`V6Lists.SongRow` を design 実測 (Level (12,14) 44 / Thumb (68,9) 96×54 / Texts (176,2) 248×69 = Title 248×38 fs26 + gap2 + Composer 248×29 fs20 / Grade (436,18) 56×36) に直し、1 行固定 + Ellipsis にして Select・Ranking の両方をこの部品へ置換 | `Common/V6Lists.cs`, `Select/View/V6SelectView.cs`, `Ranking/V6RankingView.cs` | `V6RankingDesignLayoutTests.SongRow_MatchesDesignInternals` / `SongList_RowsAreBuiltByCommonSongRow`, `V6CommonLayoutTests` |
+| `S1TZD` ランキング行 `Hbxqf` (496×56) / `q9JZcH` `T8C1Hu` (496×52) / `smhrU/tcgRX` (496×56) | `RankRow` / `PlayerRow` を design 実測 (Pos (12,中央) 36 / Name (60,中央) 160×32 / Value (232,中央) 180×32 右 / Grade (424,中央) 56×36 / Plays (424,中央) 56×29 fs20 `$text-dim` 右) へ。選択行 (YOU) は背景 `$k6` + Pos `$text`。旧テストの 44 / 140 は Select の行 (下表) の値だったため design 値へ更新 | `Common/V6Lists.cs`, `V6HistoryRankingLayoutTests`, `V6CommonLayoutTests` | `V6RankingDesignLayoutTests.RankRow_MatchesDesignInternals_At56And52` / `PlayerRow_MatchesDesignInternals` |
+| `S1TZD` SCORE RANKING ヘッド `H8yC4` / パネル `qICtu`·`smhrU` | 曲名チップが Local/Online セグメントに重なり `Online` が画面外へ切れていた。ヘッドを絶対座標へ (Title (12,7) 139×26 / Song チップ (159,4) 159×32 = Thumb 40×24 + Text 111×32 NoWrap / Segment (335,0) 156×40 = Local (4,4)・Online (80,4) 72×32)、パネル角丸 8。PLAYERS は design の見出し (Title + 右の「累計スコア」) のみで、実装都合の文言「プレイヤー別の集計には対応していません」と疑似矢印を削除 | `Ranking/V6RankingView.cs`, `V6RankingLogic.cs` | 同上 (`ScoreRankingPanelAndHead_MatchDesign`, `PlayersPanel_HeadOnly`) |
+| `S1TZD` ドットレール `vQc4K` | 全ドットが同座標に潰れていた (`Center(dot,24,d)` が y を 0 に上書き)。Select と同じ `DotRectX`/`DotOffsets` 配置 (ピッチ 12、ドット 8×8 / 選択 10×10) へ | `Ranking/V6RankingView.cs` | `V6RankingDesignLayoutTests` (ドット y が単調増加) |
+| `S1TZD` 情報ゾーン `w4siL` | Ranking ヘッダーの曲名 Text に **Rect を与えておらず** 既定の 100×100 中央寄せで design より右下へずれていた。Title (0,1) 320×43 fs30 / Artist (0,46) 320×29 fs20 を明示し 1 行固定 + Ellipsis | `Ranking/V6RankingView.cs` | `V6RankingDesignLayoutTests.Header_SongInfo_MatchesDesignCoordinates` |
+| `zcSHh` 曲別ランキング `PdoPy` | design の `Song` 見出し ((20,52) fs30) が**存在しなかった**。ヘッド下に曲名を 1 行 (実データ長に合わせ幅 484 / Ellipsis) で追加し、空状態は行領域 (y92..404) の中央へ移動。ヘッド Title は (12,5) h26 | `Result/V6ResultView.cs`, `V6ResultLogic.cs` | `V6ResultDesignLayoutTests.SongRankingPanel_HeadAndSongTitle_MatchDesign` |
+| `zcSHh` 曲別ランキング行 `Chlqd` = Select `jnIY9` (496×44) | 両画面が同じ行を 8px 右へずらして写経していた (Pos x4 / Name x52 / Score x200 / Grade x436)。design (Pos (12,4) 36 / Name (60,6) 140×32 / Value (212,6) 180×32 右 / Grade (404,4) 56×36) を持つ `V6Lists.CompactRankRow` に一本化し、Result・Select の両方から使う | `Common/V6Lists.cs`, `Result/V6ResultView.cs`, `Select/View/V6SelectView.cs` | `V6ResultDesignLayoutTests.CompactRankRow_MatchesDesignInternals` |
+| `zcSHh` 楽曲情報 `KKIxx` | Stat を design の y20 (Label (0,0) h26 / Value (0,28) h43) へ戻した。旧実装の y56 は Title を全幅 660 に広げた代償で、design より 36px 下。Title/Artist を Stat 列の左端 (x348) までに制限 (204) して横方向で分離し、長い実データは Ellipsis にした。なお design の Value 矩形は 64 高セルを 7px 超える (design に clip は無く、バンド内 91 に収まる) ため、テストはバンド内包で判定する | `Result/V6ResultLogic.cs`, `Result/V6ResultView.cs`, `V6ResultFramePlacementTests` | `V6ResultDesignLayoutTests.SongInfoBand_MatchesDesignCoordinates` |
+
+このラウンドの検証: `script/compile-check.sh` OK、Unity EditMode **1461 件すべて合格**
+(新規 `V6RankingDesignLayoutTests` / `V6ResultDesignLayoutTests` を含む。compile-check は
+テストアセンブリをコンパイルしないため、実コンパイルのゲートは EditMode 側)。
+
+未完了 (次): History 行スタックの縦中央化 (A) と Sort チップ/Count の位置 (C)、
+修正後ビルドの実機撮影 r3、FHD/2K の実表示確認、Issue の起票・コメント。
+
 

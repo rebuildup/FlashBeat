@@ -766,8 +766,9 @@ namespace FlashBeat.UI.V6.History
         }
 
         /// <summary>
-        /// 選択中の曲のランキング行。行は共通部品 V6Lists.RankRow (契約 §5 Ranking 行仕様:
-        /// Pos 36×36 / Name / Value 右寄せ / Grade 56×36) を使い回し、寸法は design
+        /// 選択中の曲のランキング行。行は共通部品 V6Lists.RankRow (design 実測:
+        /// Pos 36×36 / Name w160 / Value w180 右寄せ / Grade 56×36。正本 Hbxqf/T8C1Hu、
+        /// 契約 §5 の w140 は Select のランキング列の値) を使い回し、寸法は design
         /// (曲ランキング情報: Score·k = (8, 60+60k) 496×52) をそのまま使う。
         /// </summary>
         private void BuildRankingRow(GameObject panel, V6RankingRow row, int visibleIndex)

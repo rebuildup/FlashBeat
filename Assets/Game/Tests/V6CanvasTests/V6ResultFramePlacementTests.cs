@@ -133,17 +133,26 @@ namespace FlashBeat.V5CanvasTests
                 var cellPos = bandOrigin + new Vector2(V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY);
                 var cellSize = new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
                 Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize, cellPos, cellSize), "stat cell " + i);
-                // セル内の Label (上 20) + Value (y20 h42) もセル内に収まる。
+                // セル内の Label (上 26) はセル内に収まる。
                 Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
                     cellPos,
                     new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH)), "stat label " + i);
-                Assert.IsTrue(V6Layout.FitsIn(cellPos, cellSize,
-                    cellPos + new Vector2(0f, V6ResultLogic.SongStatValueY),
-                    new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH)), "stat value " + i);
+                // design の Value 矩形 (0,28) h43 はセル (h64) を 7px 超える (design 側に
+                // clip は無く、実際はバンド内 91 までに収まる)。バンド内であることを見る。
+                var valuePos = cellPos + new Vector2(0f, V6ResultLogic.SongStatValueY);
+                var valueSize = new Vector2(V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
+                Assert.IsTrue(V6Layout.FitsIn(bandOrigin, bandSize, valuePos, valueSize),
+                    "stat value " + i + " must stay inside the band");
             }
 
-            // 曲名 (fs34, 実データ最長 12 文字) の矩形と Stat のラベル行は縦に重ならない。
-            Assert.LessOrEqual(V6ResultLogic.SongTitleY + V6ResultLogic.SongTitleH, V6ResultLogic.SongStatY);
+            // 曲名 (fs34) / 作家名 (fs23) の矩形は Stat 列の左端 (x348) より手前で終わり、
+            // 縦に並ぶ Stat のラベル行と水平方向で重ならない (design は Title を
+            // hug 幅で置くが、実データの最長タイトル 12 文字は 408 幅になるため
+            // 204 に切り詰めて ellipsis する。Stat は design どおり y20)。
+            float firstStatX = V6ResultLogic.SongStatX[0];
+            Assert.LessOrEqual(V6ResultLogic.SongTitleX + V6ResultLogic.SongTitleW, firstStatX);
+            Assert.LessOrEqual(V6ResultLogic.SongArtistX + V6ResultLogic.SongArtistW, firstStatX);
+            Assert.AreEqual(20f, V6ResultLogic.SongStatY, 0.01f, "Stat は design の y20");
         }
 
         [Test]

@@ -91,8 +91,8 @@ namespace FlashBeat.UI.V6.Ranking
         public const float ScorePanelH = 732f;
 
         /// <summary>SCORE RANKING の行 (design: Score·k = (8, 60+64k) 496×56、10 行)。
-        /// 行内の内訳 (Pos 36×36 / Name / Value 右寄せ / Grade 56×36) は
-        /// 契約 §5 の Ranking 行仕様 = 共通部品 V6Lists.RankRow に従う。</summary>
+        /// 行内の内訳 (Pos 36×36 / Name w160 / Value 右寄せ / Grade 56×36) は
+        /// design 実測 (Hbxqf) = 共通部品 V6Lists.RankRow に従う。</summary>
         public const float RankRowX = 8f;
         public const float RankRowY0 = 60f;
         public const float RankRowW = 496f;
@@ -210,15 +210,6 @@ namespace FlashBeat.UI.V6.Ranking
                 return EmptyMessage(RankingSource.Local, false, false, "");
             }
             return EmptyMessage(RankingSource.Online, isLoading, hasError, statusMessage);
-        }
-
-        /// <summary>
-        /// PLAYERS パネルの空状態文言。総合 (プレイヤー別) の集計 API は既存に無いため、
-        /// 「データ無し」ではなく未対応であることを出す (Issue #239)。
-        /// </summary>
-        public static string PlayersEmptyMessage()
-        {
-            return "プレイヤー別の集計には対応していません";
         }
 
         /// <summary>

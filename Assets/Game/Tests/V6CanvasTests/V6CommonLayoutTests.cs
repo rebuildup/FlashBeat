@@ -158,57 +158,77 @@ namespace FlashBeat.UI.V6.Common.Tests
         }
 
         [Test]
-        public void VerticalOffsets_RankingRowPitch52()
+        public void VerticalOffsets_RankingRowPitch64()
         {
-            // 行高 44 + gap 8 = 52 間隔 (Ranking / Players)。
-            var offsets = V6Layout.VerticalOffsets(8f, 44f, 44f, 44f, 44f);
-            Assert.AreEqual(new[] { 0f, 52f, 104f, 156f }, offsets);
+            // design (S1TZD Score·k = (8,60+64k) 496×56): 行高 56 + gap 8 = 64 間隔。
+            var offsets = V6Layout.VerticalOffsets(8f, 56f, 56f, 56f, 56f);
+            Assert.AreEqual(new[] { 0f, 64f, 128f, 192f }, offsets);
         }
 
         [Test]
-        public void HorizontalOffsets_StacksWithGap()
+        public void HorizontalOffsets_StacksWithGap_MatchSongRowDesignX()
         {
-            var offsets = V6Layout.HorizontalOffsets(12f, 96f, 248f, 56f, 44f);
-            Assert.AreEqual(new[] { 0f, 108f, 368f, 436f }, offsets);
+            // design mcCOI (padding [0,12] gap 12): Level (12) / Thumb (68) /
+            // Texts (176) / Grade (436)。順序は design の並び (Level 左) どおり。
+            var offsets = V6Layout.HorizontalOffsets(12f, 44f, 96f, 248f, 56f);
+            Assert.AreEqual(new[] { 12f, 68f, 176f, 436f },
+                new[]
+                {
+                    offsets[0] + V6Lists.RowPaddingX,
+                    offsets[1] + V6Lists.RowPaddingX,
+                    offsets[2] + V6Lists.RowPaddingX,
+                    offsets[3] + V6Lists.RowPaddingX,
+                });
             // 合計 + padding 12×2 = 504 (SongRow 幅)。
-            Assert.AreEqual(504f, 12f + 96f + 12f + 248f + 12f + 56f + 12f + 44f + 12f);
+            Assert.AreEqual(504f, 12f + 44f + 12f + 96f + 12f + 248f + 12f + 56f + 12f);
         }
 
-        // --- 行内レイアウト (契約 §5 の座標で右端が行幅を超えない) ---
+        // --- 行内レイアウト (design 実測座標で右端が行幅を超えない) ---
 
         [Test]
         public void SongRow_InternalElements_StayInsideRow()
         {
-            float levelRight = V6Lists.SongRowW - V6Lists.RowPaddingX;
-            float gradeLeft = levelRight - V6Lists.SongLevelSize - V6Lists.RowGap - V6Lists.SongGradeW;
-            float textsLeft = V6Lists.RowPaddingX + V6Lists.SongThumbW + V6Lists.RowGap;
-
-            Assert.GreaterOrEqual(levelRight, V6Lists.SongLevelSize);
-            Assert.GreaterOrEqual(gradeLeft - V6Lists.RowGap, textsLeft, "Texts must not overlap Grade");
-            Assert.LessOrEqual(levelRight, V6Lists.SongRowW);
+            // design mcCOI: Level (12,14) 44×44 / Thumb (68,9) 96×54 /
+            // Texts (176,2) 248×69 / Grade (436,18) 56×36。
+            Assert.LessOrEqual(V6Lists.SongLevelX + V6Lists.SongLevelSize, V6Lists.SongThumbX,
+                "Level must not overlap Thumb");
+            Assert.LessOrEqual(V6Lists.SongThumbX + V6Lists.SongThumbW, V6Lists.SongTextsX,
+                "Thumb must not overlap Texts");
+            Assert.LessOrEqual(V6Lists.SongTextsX + V6Lists.SongTextsW, V6Lists.SongGradeX,
+                "Texts must not overlap Grade");
+            Assert.LessOrEqual(V6Lists.SongGradeX + V6Lists.SongGradeW, V6Lists.SongRowW,
+                "Grade must stay inside the row");
+            // Texts (Title + gap2 + Composer) が行高 72 に収まる。
+            Assert.LessOrEqual(V6Lists.SongTextsY + V6Lists.SongTextsH, V6Lists.SongRowH,
+                "Texts must stay inside the row height");
         }
 
         [Test]
         public void RankRow_InternalElements_StayInsideRow()
         {
-            float gradeRight = V6Lists.RankRowW - V6Lists.RowPaddingX;
-            float valueRight = gradeRight - V6Lists.RowGap;
-            float nameRight = V6Lists.RowPaddingX + V6Lists.RankPosSize + V6Lists.RowGap + V6Lists.RankNameW;
-
-            Assert.LessOrEqual(gradeRight, V6Lists.RankRowW);
-            Assert.LessOrEqual(valueRight, V6Lists.RankRowW);
-            Assert.LessOrEqual(nameRight, valueRight - V6Lists.RankValueW, "Name must not overlap Value");
+            // design Hbxqf: Pos (12) 36 / Name (60) 160 / Value (232) 180 右寄せ / Grade (424) 56。
+            Assert.LessOrEqual(V6Lists.RankPosX + V6Lists.RankPosSize, V6Lists.RankNameX,
+                "Pos must not overlap Name");
+            Assert.LessOrEqual(V6Lists.RankNameX + V6Lists.RankNameW, V6Lists.RankValueX,
+                "Name must not overlap Value");
+            Assert.LessOrEqual(V6Lists.RankValueX + V6Lists.RankValueW, V6Lists.RankGradeX,
+                "Value must not overlap Grade");
+            Assert.LessOrEqual(V6Lists.RankGradeX + V6Lists.RankGradeW, V6Lists.RankRowW,
+                "Grade must stay inside the row");
         }
 
         [Test]
         public void PlayerRow_InternalElements_StayInsideRow()
         {
-            float playsRight = V6Lists.RankRowW - V6Lists.RowPaddingX;
-            float valueRight = playsRight - V6Lists.PlayerPlaysW;
-            float nameRight = V6Lists.RowPaddingX + V6Lists.RankPosSize + V6Lists.RowGap + V6Lists.RankNameW;
-
-            Assert.LessOrEqual(playsRight, V6Lists.RankRowW);
-            Assert.LessOrEqual(nameRight, valueRight - V6Lists.RankValueW, "Name must not overlap Value");
+            // design tcgRX: Pos (12) 36 / Name (60) 160 / Value (232) 180 / Plays (424) 56。
+            Assert.LessOrEqual(V6Lists.RankPosX + V6Lists.RankPosSize, V6Lists.RankNameX,
+                "Pos must not overlap Name");
+            Assert.LessOrEqual(V6Lists.RankNameX + V6Lists.RankNameW, V6Lists.RankValueX,
+                "Name must not overlap Value");
+            Assert.LessOrEqual(V6Lists.RankValueX + V6Lists.RankValueW, V6Lists.PlayerPlaysX,
+                "Value must not overlap Plays");
+            Assert.LessOrEqual(V6Lists.PlayerPlaysX + V6Lists.PlayerPlaysW, V6Lists.RankRowW,
+                "Plays must stay inside the row");
         }
 
         // --- 契約値の写し (fs / 角丸 / 高さ) ---

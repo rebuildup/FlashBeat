@@ -226,20 +226,28 @@ namespace FlashBeat.UI.V6.History.Tests
                 "the last visible song row fits the song list panel height");
         }
 
-        // --- 共通部品の寸法 (契約 §5) が design どおり ---
+        // --- 共通部品の寸法 (design 実測値) が design どおり ---
 
         [Test]
-        public void RankRowConstants_MatchContractSpec()
+        public void RankRowConstants_MatchDesignSpec()
         {
-            // 契約 §5 Ranking 行: 496×44 / Pos 36×36 / Name w140 fs22 / Value w180 右寄せ / Grade 56×36
-            Assert.AreEqual(496f, V6Lists.RankRowW, "RankRow width matches the contract");
-            Assert.AreEqual(44f, V6Lists.RankRowH, "RankRow height matches the contract");
-            Assert.AreEqual(36f, V6Lists.RankPosSize, "RankRow pos badge size matches the contract");
-            Assert.AreEqual(140f, V6Lists.RankNameW, "RankRow name width matches the contract");
-            Assert.AreEqual(180f, V6Lists.RankValueW, "RankRow value width matches the contract");
-            Assert.AreEqual(56f, V6Lists.RankGradeW, "RankRow grade width matches the contract");
-            Assert.AreEqual(36f, V6Lists.RankGradeH, "RankRow grade height matches the contract");
-            Assert.AreEqual(22f, V6Lists.RankFs, "RankRow font size matches the contract");
+            // design Hbxqf (Ranking 行): 496×56 / Pos 36×36 / Name w160 fs22 /
+            // Value w180 右寄せ / Grade 56×36。History の T8C1Hu は同じ内部座標で高さ 52。
+            // (契約 doc §5 の「496×44 / Name w140」は Select のランキング列
+            //  OENRv jnIY9 系の値。この部品の正本は Ranking/History のノード)。
+            Assert.AreEqual(496f, V6Lists.RankRowW, "RankRow width matches the design");
+            Assert.AreEqual(56f, V6Lists.RankRowH, "RankRow height matches design Hbxqf");
+            Assert.AreEqual(36f, V6Lists.RankPosSize, "RankRow pos badge size matches the design");
+            Assert.AreEqual(160f, V6Lists.RankNameW, "RankRow name width matches design (w160, not 140)");
+            Assert.AreEqual(180f, V6Lists.RankValueW, "RankRow value width matches the design");
+            Assert.AreEqual(56f, V6Lists.RankGradeW, "RankRow grade width matches the design");
+            Assert.AreEqual(36f, V6Lists.RankGradeH, "RankRow grade height matches the design");
+            Assert.AreEqual(22f, V6Lists.RankFs, "RankRow font size matches the design");
+            // design の親内 x (Pos 12 / Name 60 / Value 232 / Grade 424)。
+            Assert.AreEqual(12f, V6Lists.RankPosX, "Pos x");
+            Assert.AreEqual(60f, V6Lists.RankNameX, "Name x");
+            Assert.AreEqual(232f, V6Lists.RankValueX, "Value x");
+            Assert.AreEqual(424f, V6Lists.RankGradeX, "Grade x");
         }
     }
 }

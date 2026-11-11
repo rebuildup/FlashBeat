@@ -148,24 +148,33 @@ namespace FlashBeat.UI.V6.Result
         public const float RankX = MainW - 528f - 16f;
 
         /// 楽曲情報バンド (Main 内 (0,636)) 840x120 と子要素の配置 (design zcSHh)。
-        /// Stat を y56 (design の y20 ではなく) に置くのは、実データの曲名
-        /// (最長 12 文字 x fs34 で y21..55 まで食い込む) と Stat のラベル行が
-        /// 衝突するため (design の例は 5 文字想定)。
+        /// Title / Artist は design の hug 幅 (170 / 161) ではなく、Stat 列の左端
+        /// (x348) まで使える幅 204 に固定する (design の例は 5 文字・7 文字サンプルで、
+        /// 実データの最長タイトルは 12 文字 x fs34 = 408)。1 行固定 + ellipsis。
+        /// Stat は design どおり y20 (Label (0,0) h26 / Value (0,28) h43)。
+        /// 旧実装は Title を全幅 660 に広げた代償として Stat を y56 へ落としていた。
         public const float SongInfoY = 636f;
         public const float SongInfoW = 840f;
         public const float SongInfoH = 120f;
         public const float SongThumbX = 16f, SongThumbY = 28f, SongThumbW = 112f, SongThumbH = 63f;
-        public const float SongTitleX = 144f, SongTitleY = 16f, SongTitleW = 660f, SongTitleH = 40f;
-        public const float SongArtistX = 144f, SongArtistY = 66f, SongArtistW = 190f, SongArtistH = 28f;
-        public const float SongStatY = 56f, SongStatW = 116f, SongStatH = 64f;
-        public const float SongStatLabelH = 20f, SongStatValueY = 20f, SongStatValueH = 42f;
+        public const float SongTitleX = 144f, SongTitleY = 16f, SongTitleW = 204f, SongTitleH = 36f;
+        public const float SongArtistX = 144f, SongArtistY = 66f, SongArtistW = 204f, SongArtistH = 33f;
+        public const float SongStatY = 20f, SongStatW = 116f, SongStatH = 64f;
+        public const float SongStatLabelH = 26f, SongStatValueY = 28f, SongStatValueH = 43f;
         public static readonly float[] SongStatX = { 348f, 468f, 588f, 708f };
+
+        /// 曲別ランキングの見出し下の曲名 (design zcSHh / Lo2pD (20,52) 150×43 fs30)。
+        /// 150 は 5 文字サンプルの hug 幅なので、行幅 496 の右端まで使う 484 を実装値にする。
+        public const float SongRankTitleX = 20f, SongRankTitleY = 52f;
+        public const float SongRankTitleW = 484f, SongRankTitleH = 43f;
 
         /// ランキング Head (パネル内 (8,8)) 512x36 と矢印 / 集計軸の配置
         /// (design: padding [0,12] / gap8 / Arrow 32x32 / Metric fs18)。
         /// Metric は「累計スコア」(5 文字 x 18 = 90) が収まる幅 92 を取る
         /// (旧実装の幅 68 は折り返して矢印と重なった)。
         public const float RankHeadX = 8f, RankHeadY = 8f, RankHeadW = 512f, RankHeadH = 36f;
+        /// <summary>曲別ランキングの見出し文字の矩形高 (design d6Noy (12,5) h26)。</summary>
+        public const float RankHeadTitleH = 26f;
         public const float RankHeadTitleW = 220f;
         public const float RankHeadChevronL = 329f, RankHeadChevronR = 468f, RankHeadChevronSize = 32f;
         public const float RankHeadMetricX = 369f, RankHeadMetricW = 92f;
