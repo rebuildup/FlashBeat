@@ -395,6 +395,15 @@ public class AutoTestV6Screens : MonoBehaviour
             var canvas = canvases[i];
             if (!V6ScreenAudit.IsV6Canvas(canvas)) { continue; }
 
+            // 「同じ v6 Canvas が 2 つ監査される」現象 (OptionScene の pass が
+            // 181 / 359 で揺れる) を追うための識別情報。id が違えば別インスタンス。
+            Debug.Log("[AutoTestV6Screens] AUDIT-CANVAS " + report.Label + " name=" + canvas.name
+                + " id=" + canvas.GetEntityId()
+                + " scene=" + canvas.gameObject.scene.name
+                + " active=" + canvas.gameObject.activeInHierarchy
+                + " childCount=" + canvas.transform.childCount
+                + " graphics=" + canvas.GetComponentsInChildren<Graphic>(false).Length);
+
             var tmpTexts = canvas.GetComponentsInChildren<TMP_Text>(false);
             for (int t = 0; t < tmpTexts.Length; t++)
             {
