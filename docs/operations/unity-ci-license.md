@@ -110,10 +110,13 @@ CI を走らせると、このエラーで即座に停止する。
 ```bash
 # 手動実行 (検証用 candidate。stable Release は自動公開しない)
 gh workflow run build-win64.yml \
-  -f version_base=0.1.0 \
+  -f version_base=0.1.23 \
   -f update_channel=preview \
   -f run_tests=true
 ```
+
+- `version_base` は省略可。省略時はリポジトリ直下の `VERSION` が使われる
+  (どちらも無い / `X.Y.Z` でない場合はビルドが失敗する。既定値のフォールバックは無い)。
 
 - `update_channel=preview` を指定する (`stable` は配布用。CI から自動公開はしない)。
   なお **`push` (main) トリガのビルドは `update_channel` 入力の値に関わらず常に `stable`** になる

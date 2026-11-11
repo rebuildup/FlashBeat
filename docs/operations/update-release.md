@@ -243,7 +243,9 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
 1. ビルドする (Unity 6000.5.6f1)。
    - Windows: `Build → Build Windows 64` または `BuildScript.BuildStandaloneWindows64`
    - macOS: `Build → Build macOS` または `BuildScript.BuildStandaloneMacOS`
-   基準バージョンは環境変数 `FLASHBEAT_VERSION_BASE` で指定する (既定 `0.1.0`)。**前回の Release より大きくする**。
+   基準バージョンはリポジトリ直下の **`VERSION`** ファイル (X.Y.Z) です。環境変数
+   `FLASHBEAT_VERSION_BASE` を付けた場合はそちらが優先されます。どちらも無い / X.Y.Z でない場合は
+   **ビルドが失敗します** (暗黙の既定値は廃止)。**前回の Release より大きくする**ため、Release ごとに `VERSION` を 1 つ上げます。
    展示用のビルドは**既定のまま (stable チャンネル)** で、`FLASHBEAT_UPDATE_CHANNEL=preview` を付けたビルドだけが
    テスト用 prerelease を取り込む。公開前に Player.log の
    `[UpdateChecker] 更新チャンネル: stable ... / プラットフォーム: win64|macos` を確認して証跡に残す。

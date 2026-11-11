@@ -12,9 +12,12 @@ public static class BuildScript
     // "<version>+<sha>" を PlayerSettings.bundleVersion に埋め込み、
     // GitHub Release タグ "v<version>-<platform>-<sha>" (platform = win64 / macos) と
     // UpdateChecker が比較する。
-    // Release をバージョンアップするときは環境変数 FLASHBEAT_VERSION_BASE で上書きする
-    // (例: v0.1.1 Release → FLASHBEAT_VERSION_BASE=0.1.1)。未設定時は 0.1.0。
-    private const string DefaultVersionBase = "0.1.0";
+    //
+    // 解決順: 環境変数 FLASHBEAT_VERSION_BASE → リポジトリ直下の VERSION ファイル。
+    // どちらも無い / X.Y.Z でない場合は **ビルドを中止する**。
+    // 以前は未設定時に 0.1.0 へ暗黙フォールバックしていたため、配布済みの 0.1.22 より
+    // 古い版数の候補が作れてしまった (2026-11-11)。既定値は持たない。
+    public const string VersionFileRelativePath = "VERSION";
 
     // 更新チャンネル (issue #41)。既定は stable = 正式 Release のみを自動更新の対象にする。
     // 検証用の prerelease を取り込みたいときだけ環境変数 FLASHBEAT_UPDATE_CHANNEL=preview で
@@ -88,8 +91,7 @@ public static class BuildScript
         };
 
         string shortSha = GetGitShortSha();
-        string versionBase = Environment.GetEnvironmentVariable("FLASHBEAT_VERSION_BASE");
-        if (string.IsNullOrEmpty(versionBase)) { versionBase = DefaultVersionBase; }
+        string versionBase = ResolveVersionBaseOrAbort();
         PlayerSettings.bundleVersion = versionBase + "+" + shortSha;
         // batchmode では PlayerSettings の変更が ProjectSettings.asset に書かれず、
         // BuildPlayer がディスク上の古い bundleVersion を焼き込む (r25/r26 の実機が
@@ -140,7 +142,99 @@ public static class BuildScript
         }
     }
 
-    /// <summary>git rev-parse --short HEAD。失敗時は "unknown" (bundleVersion は 0.1.0+unknown)。</summary>
+    /// <summary>
+    /// 基準バージョンの解決 (純粋関数 — テスト用)。
+    /// 環境変数の値が空でなければそれを使い、空なら VERSION ファイルの内容を使う。
+    /// 選ばれた値が X.Y.Z でないときは null (暗黙の既定値へは倒さない)。
+    /// </summary>
+    public static string ResolveVersionBase(string envValue, string versionFileText)
+    {
+        string candidate = string.IsNullOrWhiteSpace(envValue) ? versionFileText : envValue;
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return null;
+        }
+
+        candidate = candidate.Trim();
+        return IsVersionTriplet(candidate) ? candidate : null;
+    }
+
+    /// <summary>X.Y.Z (各要素は 1 桁以上の数字) かどうか。Release タグの版数と同形式。</summary>
+    public static bool IsVersionTriplet(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        string[] parts = value.Split('.');
+        if (parts.Length != 3)
+        {
+            return false;
+        }
+
+        foreach (string part in parts)
+        {
+            if (part.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (char c in part)
+            {
+                if (c < '0' || c > '9')
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>基準バージョンを解決し、解決できなければビルドを中止する。</summary>
+    private static string ResolveVersionBaseOrAbort()
+    {
+        string envValue = Environment.GetEnvironmentVariable("FLASHBEAT_VERSION_BASE");
+        string fileValue = TryReadVersionFile();
+        string resolved = ResolveVersionBase(envValue, fileValue);
+        if (resolved != null)
+        {
+            return resolved;
+        }
+
+        string message =
+            "[BuildScript] 基準バージョンを解決できません。FLASHBEAT_VERSION_BASE か "
+            + VersionFileRelativePath
+            + " (X.Y.Z) を設定してください。暗黙の既定値は使いません。"
+            + " env='" + (envValue ?? string.Empty) + "'"
+            + " file='" + (fileValue ?? "(not found)").Trim() + "'";
+        Debug.LogError(message);
+        throw new InvalidOperationException(message);
+    }
+
+    /// <summary>リポジトリ直下の VERSION を読む。無い / 読めないときは null。</summary>
+    private static string TryReadVersionFile()
+    {
+        try
+        {
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string path = Path.Combine(projectRoot, VersionFileRelativePath);
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            return File.ReadAllText(path);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[BuildScript] {VersionFileRelativePath} を読めません: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>git rev-parse --short HEAD。失敗時は "unknown" (bundleVersion は &lt;base&gt;+unknown)。</summary>
     private static string GetGitShortSha()
     {
         try
