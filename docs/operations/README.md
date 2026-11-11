@@ -19,6 +19,10 @@ FlashBeat の展示・リリース・クラウド運用に関する文書の一�
 | [`release-approval-checklist.md`](release-approval-checklist.md) | リリース承認者 | 成果物の fingerprint、プレイ証拠、1280×720 UX スモーク、秘密情報チェック、承認記録の書式 | 「このビルドを展示に使ってよいか」を判断するとき |
 | [`festival-development-path.md`](festival-development-path.md) | 開発者 + リリース担当 | 役割分担（Mac / Windows 実機 / CI）、展示中に反映できるものと再ビルドが要るもの、コンテンツ更新手順、CI → Release → 運営者適用の手順、展示 PC を中断させない運用ルール、現時点の制約 | 展示を止めずに開発とパッチ配布を続けたいとき |
 | [`unity-ci-license.md`](unity-ci-license.md) | オーナー + 開発者 | Unity CI が緑になる条件 (secret の名前と挙動のみ。値は書かない)、ライセンス失敗とソース失敗の切り分け | Unity ビルドを CI で緑にしたいとき |
+| [`win64-candidate-acceptance-2026-11-10.md`](win64-candidate-acceptance-2026-11-10.md) | **オーナー** | 展示候補 `0.1.23+b6860a80` の受入条件 6 件、証跡のまとめ取り (`collect-win-evidence.ps1`)、受入中の復旧 | Windows 実機で受入を行うとき。**実機の手順はこれ** |
+| [`three-resolution-fullscreen-verification.md`](three-resolution-fullscreen-verification.md) | 開発者 + オーナー | FHD / 2K / Mac の実ディスプレイ全画面をどう測るか、擬似全画面を認めない理由、`fullscreen.txt` の判定式 | 「全画面になっているか」を機械的に確かめるとき |
+| [`register-online-acceptance.md`](register-online-acceptance.md) | オーナー (承認後) + 開発者 | スコア登録の端末内保存と本番 API の区別、ローカル API での契約検証 (実施済み)、本番書き込み 1 回だけの手順 | Register (#134) を本番で確認するとき |
+| [`exhibit-handoff-2026-11-08.md`](exhibit-handoff-2026-11-08.md) | 展示運営者 + 開発者 | 展示 PC の引き継ぎ事項、起動・証跡採取・操作ログの最小手順 | 展示 PC を別の人に渡すとき |
 | [`cloudflare-bootstrap.md`](cloudflare-bootstrap.md) | 開発者 + 運用者 | Cloudflare アカウント / 認証情報の扱い、Infisical の束縛、ツール（`cf` / `void`）の固定版、権限と禁止境界、再検証手順 | クラウドを触るとき、権限が疑わしいとき |
 | [`d1-migrations.md`](d1-migrations.md) | 開発者 | D1 のスキーマ（3 テーブル）、migration ファイル、ローカル / リモートの適用手順、制約、テスト | スキーマを変えるとき、公開カタログが壊れたとき |
 | [`ci-pr-gate.md`](ci-pr-gate.md) | 開発者 + レビュー担当 + オーナー | PR で走る検証と走らない検証 (Unity は PR では走らない)、ライセンス不要の `verify` / `web`、Unity ビルドの責任範囲、緑の PR の読み方 | PR を出す・レビューするとき、CI が赤い/空のとき |
@@ -36,6 +40,7 @@ FlashBeat の展示・リリース・クラウド運用に関する文書の一�
 | 目的 | 読む順 |
 |---|---|
 | 展示を運営したい | [`exhibit-runbook.md`](exhibit-runbook.md) → （操作の細部は [`festival-runbook.md`](festival-runbook.md)） |
+| 展示候補を実機で受け入れたい | [`win64-candidate-acceptance-2026-11-10.md`](win64-candidate-acceptance-2026-11-10.md) → [`three-resolution-fullscreen-verification.md`](three-resolution-fullscreen-verification.md) → Register は [`register-online-acceptance.md`](register-online-acceptance.md) |
 | 展示中に譜面やカタログを更新したい | [`festival-development-path.md`](festival-development-path.md) §3–§4 → [`d1-migrations.md`](d1-migrations.md) |
 | 展示中にコード修正を配りたい | [`festival-development-path.md`](festival-development-path.md) §5 → [`update-release.md`](update-release.md) → [`exhibit-runbook.md`](exhibit-runbook.md) §6 |
 | リリース承認の判断をする | [`release-approval-checklist.md`](release-approval-checklist.md) → [`update-release.md`](update-release.md) |

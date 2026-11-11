@@ -148,6 +148,19 @@ namespace FlashBeat.Tests.Editor
             Assert.IsNull(RankingClient.LeaderboardUrl("Bad", 1));
         }
 
+        /// <summary>
+        /// 出荷する Resources/CloudCatalogConfig.json は本番 API を指していること。
+        /// ローカル Worker (`http://localhost:5173`) での検証 (#134) の値を残したまま
+        /// 展示候補を作ると、Register が本番に届かず「オフライン」になる。
+        /// </summary>
+        [Test]
+        public void ShippedConfig_PointsAtProductionApi()
+        {
+            Assert.AreEqual(RankingClient.DefaultOrigin, RankingClient.Origin(),
+                "Resources/CloudCatalogConfig.json の baseUrl が本番と一致しません " +
+                "(ローカル検証用の URL が残っていませんか)");
+        }
+
         [Test]
         public void IsValidSongId_FollowsTheServerPattern()
         {

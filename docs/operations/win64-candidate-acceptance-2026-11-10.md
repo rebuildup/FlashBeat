@@ -96,6 +96,11 @@
 5. Option を開き、4 タブ (Play / Display / Sound / Data) の表示と操作を確認する (#241)
 6. 実ディスプレイ全画面のスクリーンショットと `Player.log` を保存する (§3.6)
 
+受入とは独立した **Secret 依存の作業は 1 つだけ**です (やらなくても受入は進みます):
+GitHub の Settings → Secrets and variables → Actions に `UNITY_EMAIL` と `UNITY_PASSWORD` を
+登録すると、`build-win64` が Unity を起動できるようになります (§6 /
+[`unity-ci-license.md`](unity-ci-license.md))。値はどこにも書かず、Secret としてのみ登録します。
+
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
 
