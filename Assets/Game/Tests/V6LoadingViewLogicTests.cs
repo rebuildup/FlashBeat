@@ -98,6 +98,42 @@ namespace FlashBeat.V6HudTests
         // --- フッター凡例 (design g4Q3F) ---
 
         [Test]
+        public void CoverCropRect_CentersTheSquareOfAWideTexture()
+        {
+            // design N3HPJ は 56×56 を mode:"cover" で埋める。実素材 320×180 は
+            // 中央 180×180 を切り出す (左右 70 ずつ捨てる)。
+            UnityEngine.Rect r = V6LoadingViewLogic.CoverCropRect(320, 180);
+            Assert.AreEqual(70f, r.x, 1e-4f);
+            Assert.AreEqual(0f, r.y, 1e-4f);
+            Assert.AreEqual(180f, r.width, 1e-4f);
+            Assert.AreEqual(180f, r.height, 1e-4f);
+        }
+
+        [Test]
+        public void CoverCropRect_TallTexture_KeepsTheSquareInTheMiddle()
+        {
+            UnityEngine.Rect r = V6LoadingViewLogic.CoverCropRect(180, 320);
+            Assert.AreEqual(0f, r.x, 1e-4f);
+            Assert.AreEqual(70f, r.y, 1e-4f);
+            Assert.AreEqual(180f, r.width, 1e-4f);
+            Assert.AreEqual(180f, r.height, 1e-4f);
+        }
+
+        [Test]
+        public void CoverCropRect_SquareTexture_UsesTheWholeTexture()
+        {
+            UnityEngine.Rect r = V6LoadingViewLogic.CoverCropRect(256, 256);
+            Assert.AreEqual(new UnityEngine.Rect(0f, 0f, 256f, 256f), r);
+        }
+
+        [Test]
+        public void CoverCropRect_InvalidSize_IsEmpty()
+        {
+            Assert.AreEqual(new UnityEngine.Rect(0f, 0f, 0f, 0f), V6LoadingViewLogic.CoverCropRect(0, 180));
+            Assert.AreEqual(new UnityEngine.Rect(0f, 0f, 0f, 0f), V6LoadingViewLogic.CoverCropRect(320, -1));
+        }
+
+        [Test]
         public void FooterLegend_MatchesDesignCoordinates()
         {
             // design g4Q3F: 決定 / 曲送り を 0×0 の項目として据え置き、項目間 gap16 で

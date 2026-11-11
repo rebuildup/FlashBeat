@@ -121,6 +121,23 @@ namespace FlashBeat.UI.V6.Game.Loading
         // --- ジャケット (Issue #224) ---
 
         /// <summary>
+        /// ジャケットを 56×56 の枠に mode:"cover" で埋めるときの切り出し矩形
+        /// (テクスチャ座標、原点は左下)。中心を正方形に取る。
+        /// design N3HPJ は cover 指定なので、16:9 素材 (320×180) を
+        /// そのまま入れて帯にしない。素材が正方形なら全面を返す。
+        /// </summary>
+        public static Rect CoverCropRect(int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+            {
+                return new Rect(0f, 0f, 0f, 0f);
+            }
+
+            float side = Mathf.Min(width, height);
+            return new Rect((width - side) * 0.5f, (height - side) * 0.5f, side, side);
+        }
+
+        /// <summary>
         /// カタログ index → ジャケットの Resources 相対パス (拡張子なし)。
         /// 1..26 はすべて画像あり (22 = 灰Φ倶楽部も含む)。表に無い index は空文字
         /// (呼び出し側は「無し」を正直に表示する)。

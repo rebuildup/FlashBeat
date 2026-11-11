@@ -457,21 +457,17 @@ namespace FlashBeat.UI.V6.Game.Loading
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // design: 戻るボタン (Esc)。
+            // design: 戻るボタン (zUcsi: (0,20) 56×56 $k4)。
+            // 中身は icon (16,4) 24×24 と Key fs16 (15,30) 26×23 を直に置く
+            // (旧実装は VerticalLayoutGroup の中央寄せで 3px 下にずれていた)。
             var back = V5Ui.Panel(header, "Back", new Vector2(56f, 56f), V5Tokens.Key4, 8f);
             PlaceAt(back, 0f, 20f);
-            var backLayout = back.AddComponent<VerticalLayoutGroup>();
-            backLayout.spacing = 2f;
-            backLayout.childAlignment = TextAnchor.MiddleCenter;
-            backLayout.childControlWidth = true;
-            backLayout.childControlHeight = true;
-            backLayout.childForceExpandWidth = false;
-            backLayout.childForceExpandHeight = false;
             var backArrow = V6Icons.Create(back, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
             if (backArrow != null)
             {
-                LayoutItem(backArrow.gameObject, 0f, 24f);
+                PlaceAt(backArrow.gameObject, 16f, 4f, new Vector2(24f, 24f));
             }
+
             string backKeyText = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
             if (string.IsNullOrEmpty(backKeyText))
             {
@@ -479,14 +475,14 @@ namespace FlashBeat.UI.V6.Game.Loading
             }
 
             var backKey = V5Ui.Text(back, "Key", backKeyText, 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(backKey.gameObject, 0f, 16f);
+            PlaceAt(backKey.gameObject, 15f, 30f, new Vector2(26f, 23f));
             var backBtn = back.AddComponent<Button>();
             backBtn.targetGraphic = back.GetComponent<Image>();
             backBtn.onClick.AddListener(Back);
 
             // design: タイトル欄は空 (0×0)。
 
-            // 右上: ジャケット 56×56 + 曲名 fs22 / 作家 fs16。
+            // 右上 (JJwdM): ジャケット 56×56 + 曲名 fs22 / 作家 fs16。
             var info = V5Ui.Node(header, "Song Info");
             PlaceAt(info, 1080f, 0f, new Vector2(300f, HeaderH));
             var infoLayout = info.AddComponent<HorizontalLayoutGroup>();
@@ -510,27 +506,24 @@ namespace FlashBeat.UI.V6.Game.Loading
             noJacketLabel.fontSize = 14f;
             noJacketLabel.gameObject.SetActive(false);
 
+            // design Frw5C: Texts (68,20) 113×57、Song Title (0,0) 111×32 fs22、
+            // Song Artist (0,34) 113×23 fs16 — どちらも左上揃え。
+            // 旧実装は VerticalLayoutGroup の中央寄せで、2 行が design より
+            // 数 px 上に寄っていた (設計の矩形をそのまま使う)。
             var texts = V5Ui.Node(info, "Texts");
-            LayoutItem(texts, 0f, 56f);
-            var textsLayout = texts.AddComponent<VerticalLayoutGroup>();
-            textsLayout.spacing = 2f;
-            textsLayout.childAlignment = TextAnchor.MiddleLeft;
-            textsLayout.childControlWidth = true;
-            textsLayout.childControlHeight = true;
-            textsLayout.childForceExpandWidth = false;
-            textsLayout.childForceExpandHeight = false;
-            songTitle = V5Ui.Text(texts, "Song Title", "", 22f, V5Tokens.Text, TextAlignmentOptions.Left);
+            LayoutItem(texts, 113f, 56f);
+            songTitle = V5Ui.Text(texts, "Song Title", "", 22f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            LayoutItem(songTitle.gameObject, 0f, 26f);
-            // h26 < 行送り (fs22 × 1.448 = 31.9) のため、補正しないと曲名が 0 行になる。
-            // LayoutGroup 配下で rect 未確定のため高さを明示する。
-            V5Ui.FitEllipsisToLineHeight(songTitle, 26f);
-            songArtist = V5Ui.Text(texts, "Song Artist", "", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
+            PlaceAt(songTitle.gameObject, 0f, 0f, new Vector2(111f, 32f));
+            // h32 は行送り (fs22 × 1.448 = 31.9) とほぼ同じ。Ellipsis の 0 行化を
+            // 避けるため上下 margin を広げる (矩形とベースラインは変えない)。
+            V5Ui.FitEllipsisToLineHeight(songTitle, 32f);
+            songArtist = V5Ui.Text(texts, "Song Artist", "", 16f, V5Tokens.TextMuted, TextAlignmentOptions.TopLeft);
             songArtist.textWrappingMode = TextWrappingModes.NoWrap;
             songArtist.overflowMode = TextOverflowModes.Ellipsis;
-            LayoutItem(songArtist.gameObject, 0f, 20f);
-            V5Ui.FitEllipsisToLineHeight(songArtist, 20f);
+            PlaceAt(songArtist.gameObject, 0f, 34f, new Vector2(113f, 23f));
+            V5Ui.FitEllipsisToLineHeight(songArtist, 23f);
         }
 
         /// <summary>design ではメイン空。進捗の表現はこの実装が決めた:
@@ -617,6 +610,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             // design: 凡例は Esc「戻る」だけ (決定 / 曲送りは 0×0、補助 / 主操作は非表示)。
             // 位置はフレーム x56 — 正本は 0×0 の 決定 / 曲送り を据え置き、項目間 gap16 で
             // 戻る まで進めるため (旧実装は x24 に置いていた = 32px 左)。
+            // FooterLegendX はフレーム座標なので、フッターゾーン (x24) のローカルに直す。
             // 寸法は Title の凡例と同じ別設計 (KeyCap h36 / pad[0,10] / 項内 gap10 /
             // 項目間 gap16 / fs22)。他画面 (h32 / pad[0,8] / gap8 / gap24) ではない。
             // キー表示は実際の割当 (Back = Esc) を出す — 変更されても嘘のキーを出さない。
@@ -626,7 +620,7 @@ namespace FlashBeat.UI.V6.Game.Loading
                 backKey = "Esc";
             }
 
-            V6Legend.Item(footer, V6LoadingViewLogic.FooterLegendX,
+            V6Legend.Item(footer, V6LoadingViewLogic.FooterLegendX - FooterX,
                 V6LoadingViewLogic.FooterLegendY, backKey, "戻る",
                 V6LoadingViewLogic.FooterLegendCapHeight, V6Controls.KeyCapPaddingX,
                 V6LoadingViewLogic.FooterLegendInnerGap, V6LoadingViewLogic.FooterLegendItemGap,
@@ -660,8 +654,13 @@ namespace FlashBeat.UI.V6.Game.Loading
                     jacketTexture = jacket;
                     if (jacket != null)
                     {
+                        // design N3HPJ は 56×56 を mode:"cover" で埋める。実素材は
+                        // 16:9 (320×180) なので、中心を正方形に切り出してから Sprite 化する。
+                        // 全体をそのまま入れると 56×31.5 の帯になり、design の
+                        // 正方形から大きく外れる (r15 実機で確認)。
                         jacketSprite = Sprite.Create(jacket,
-                            new Rect(0f, 0f, jacket.width, jacket.height), new Vector2(0.5f, 0.5f), 100f);
+                            V6LoadingViewLogic.CoverCropRect(jacket.width, jacket.height),
+                            new Vector2(0.5f, 0.5f), 100f);
                     }
                 }
 
