@@ -72,6 +72,12 @@ public class MusicManager : MonoBehaviour
 
     bool mediaReady;
     bool playbackStarted;
+    /// <summary>
+    /// Issue #351: the HUD says "Space to Start" before the media is ready. A
+    /// press in that window is kept here and starts the song once it can start,
+    /// instead of being dropped.
+    /// </summary>
+    bool startRequested;
     bool pictureStarted;
     bool resultTriggered;
 
@@ -937,7 +943,10 @@ public class MusicManager : MonoBehaviour
             // the first notes. ポーズメニューが開いている間は開始しない。
             bool notesReady = notesManager == null || notesManager.IsReady;
             bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout) && notesReady;
-            if (canStart && KeyActions.IsDown(KeyActions.KeyAction.Play))
+            // Issue #351: the prompt is visible before the media is ready, so the
+            // press must not be thrown away. PlaybackStartGate holds it until
+            // canStart and then starts the song exactly once.
+            if (PlaybackStartGate.ShouldStart(canStart, KeyActions.IsDown(KeyActions.KeyAction.Play), ref startRequested))
             {
                 StartPlayback();
             }
