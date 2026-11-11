@@ -677,3 +677,56 @@ Title のビルド版数表示 (`v0.1.0+be7c68ca`) のみ。EditMode は 1501 pa
   5 シーン連続実行では出ない。シーン順に依存する起動手順の問題で、
   画面の再現とは別件。追跡項目。
 
+
+### 9.14 第 r21 ラウンド — design 正本画像との全 12 画面突き合わせ
+
+`ffe1147f` のビルド (r21) を 2560×1664 **実フルスクリーン** (Mac の実解像度そのもの) で
+撮影し、12 画面すべてを design ノードの実測 bounds と突き合わせた。証跡:
+`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r21/` (12 PNG + Player.log)、
+`RESULT pass=25 fail=0 symbols=59 screenshots=12 resolution=2560x1664`。
+
+| 画面 | r21 の判定 | 根拠 |
+|---|---|---|
+| Title (`QJtTv`) | 一致 | ロゴは design の `13.png` (白ベタ 1.99M px + #3FA9F5 影 356K px) と同形。タブは 280 ピッチで隙間なし (design 0/280/560/840)、キーキャップ右端差は 12 対 10 の 2px のみ |
+| Select (`OENRv`) | 一致 | 中央パネル / 検索欄 (虫めがね 20 @(12,14)) / 右カラム 2 パネル。ヘッダー見出し "SCORE RANKING"・"PLAYERS"・「累計スコア」は 1 行 (レイアウトグループが preferred width を確保) |
+| Select 空 (`AqFtx`) | 一致 | Empty Note 448×140 @(56,300)。文言は実データ由来 |
+| Select 設定 (`wSjAm`) | 一致 | 右カラムの設定 4 行と説明 |
+| History (`q9JZcH`) | 一致 | 戻るボタン (0,20) 56×56 / 見出し x72 / Sort (864,33.5) 104×29 / Count 右端 1656 / 行スタック縦中央 |
+| Ranking (`S1TZD`) | **不一致 → 修正** (§下記) | パネル見出しが 2 行に折り返し |
+| Option (`B6If6Z`) | 一致 | 設定パネル (304,68) 512×688 $k2 r16、行 496×56 r8、選択行 #525252 を画素で確認 (行上端 y ではなく +10px 内部で採取 — 上端は AA で暗く見える) |
+| Result (`zcSHh`) | 一致 | 5 列 (Perfect/Great/Bad/Miss/Combo)、Grade 280×280、右 2 パネル、判定 5 列。グレードは実スコア 0 のため "–" |
+| Result 登録モーダル (`lqHaN`) | 一致 | Dialog 840×510 / Head / Name / Summary / Buttons |
+| Game HUD (`Uc9v6`) | 一致 | 判定・ゲージ・SCORE/COMBO・下部キー・Menu (Esc キャップ)。3D プレイフィールドは意図的例外のまま |
+| Pause (`uDNC0`) | 一致 | 左設定 4 行 (選択行 #525252)、レーン図、右キー割当 13/12/12/11 |
+| Loading (`g4Q3F`) | 一致 | ジャケット + 進捗 (進捗表現は design main が空のため実装が決めた追加要素 — ヘッダーコメントに明記済み) |
+
+**修正した不一致 (Ranking 見出しの折り返し)**:
+
+- 実機: "SCORE RANKING" が "SCORE" / "RANKING"、"PLAYERS" が "PLAYER" / "S" の 2 行、
+  「累計スコア」も折り返し。design (`qICtu/Title` 139×26 fs18、`smhrU/Title` 74×26 fs18、
+  `smhrU/Metric` 90×26 fs18) はいずれも 1 行。
+- 原因: `V5GameUi.Text` の既定が折り返し有効。この書体では "SCORE RANKING" が fs18 で
+  ≈145px となり 139px 枠に収まらない。`V6Controls.Text` は NoWrap 既定だが Ranking は
+  V5 ヘルパを使っていた (Result の「累計スコア」は既に NoWrap 済みで、同じ症状の先例)。
+- 修正: `V6RankingView.BuildScoreRanking` / `BuildPlayers` の 3 ラベルへ `TextWrappingModes.NoWrap`
+  を明示 (design の rect は変更しない)。NoWrap 時は 139px を数 px 超えて描かれるが、
+  右隣の Song チップは x159 で衝突しない (実測 145px → 右端 157)。
+- 回帰テスト: `V6RankingDesignLayoutTests` に
+  ① 各見出しの `textWrappingMode == NoWrap`、② `ForceMeshUpdate` 後の `textInfo.lineCount == 1`
+  を追加。EditMode 1505 pass / 0 fail (前回 1504 + 1 件)。
+
+**判定を変えなかった点** (design と文字が違うが意図的):
+
+- History の件数ラベル: design `q9JZcH/Count` は "4 plays" だが、実装は「記録 N曲」。
+  これは Issue #239 で「プレイ回数ではなくベスト記録のある曲数」を出すと決めた結果
+  (`docs/evidence/239-v6-front-door.md:26`)。値を偽らない方針を維持する。
+- Ranking が見出し下に Song チップと Local/Online セグメントを持つのは design どおり。
+  Online 非表示はローカル曲の仕様 (spec 167)。
+
+**この 1 回で確認できていないこと** (PASS を設計受入の代用にしない):
+
+- 1920×1080 / 2560×1440 の実フルスクリーン。この Mac の実ディスプレイは 2560×1664 のみで、
+  窓リサイズによる擬似フルスクリーンは検証として認めない方針のため未実施。
+- Windows (exhibit 機) の実機。無断で触れない制約により未実施。
+- 実スコアが入った状態の Result / 本番ランキングの描画 (現状はローカル記録のみで
+  "NO DATA" / スコア 0)。

@@ -548,7 +548,11 @@ namespace FlashBeat.UI.V6.Ranking
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 40f);
 
             // Title "SCORE RANKING" (12,7) 139×26 fs18 $text-dim。
+            // design は 1 行。V5GameUi.Text の既定は折り返し有効で、この書体だと
+            // "SCORE RANKING" が 139px に収まらず "SCORE" / "RANKING" の 2 行に
+            // 割れていた (r21 実機) ため NoWrap を明示する。
             var headTitle = V5GameUi.Text(head.gameObject, "Label", "SCORE RANKING", 18f, V5Tokens.TextDim);
+            headTitle.textWrappingMode = TextWrappingModes.NoWrap;
             At(headTitle, 12f, 7f, 139f, 26f);
 
             if (song != null)
@@ -693,11 +697,14 @@ namespace FlashBeat.UI.V6.Ranking
             var head = V5Ui.Node(panel.gameObject, "Head");
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 40f);
 
+            // design の見出しは 1 行固定 (折り返すと "PLAYER" / "S" に割れる — r21 実機)。
             var headTitle = V5GameUi.Text(head, "Title", "PLAYERS", 18f, V5Tokens.TextDim);
+            headTitle.textWrappingMode = TextWrappingModes.NoWrap;
             At(headTitle, 12f, 7f, 74f, 26f);
 
             var metric = V5GameUi.Text(head, "Metric", "累計スコア", 18f, V5Tokens.Text,
                 TextAlignmentOptions.Right, FontStyles.Normal);
+            metric.textWrappingMode = TextWrappingModes.NoWrap;
             At(metric, 354f, 7f, 90f, 26f);
 
             var empty = V5GameUi.Text(panel.gameObject, "NoData", "データがありません",

@@ -311,6 +311,9 @@ namespace FlashBeat.V6CanvasTests
 
                 var label = TextOf(head, "Label");
                 Assert.AreEqual("SCORE RANKING", label.text, "head title");
+                // design qICtu は 1 行。折り返すと "SCORE" / "RANKING" の 2 行になる (r21 実機)。
+                Assert.AreEqual(TextWrappingModes.NoWrap, label.textWrappingMode,
+                    "SCORE RANKING は 1 行固定 (design どおり)");
                 AssertRect(label.transform, 12f, 7f, 139f, 26f, "head title rect");
 
                 // Song チップ (159,4) 159×32 / Text (48,0) 111×32 1 行固定 ellipsis。
@@ -386,12 +389,16 @@ namespace FlashBeat.V6CanvasTests
 
                 var title = TextOf(head, "Title");
                 Assert.AreEqual("PLAYERS", title.text, "head title");
+                Assert.AreEqual(TextWrappingModes.NoWrap, title.textWrappingMode,
+                    "PLAYERS は 1 行固定 (折り返すと PLAYER / S に割れる)");
                 AssertRect(title.transform, 12f, 7f, 74f, 26f, "title rect");
                 Assert.AreEqual(V6Tokens.TextDim, title.color, "title uses $text-dim");
 
                 // design の見出し構成 = Title + 右寄せ「累計スコア」(矢印は描かない)。
                 var metric = TextOf(head, "Metric");
                 Assert.AreEqual("累計スコア", metric.text, "metric label");
+                Assert.AreEqual(TextWrappingModes.NoWrap, metric.textWrappingMode,
+                    "累計スコアは 1 行固定");
                 AssertRect(metric.transform, 354f, 7f, 90f, 26f, "metric rect");
                 Assert.AreEqual(V6Tokens.Text, metric.color, "metric uses $text");
 
@@ -411,6 +418,43 @@ namespace FlashBeat.V6CanvasTests
                 Assert.Contains("データがありません", texts);
                 Assert.IsFalse(texts.Contains("プレイヤー別の集計には対応していません"),
                     "implementation-convenience message must be removed");
+            }
+            finally
+            {
+                view.Dispose();
+            }
+        }
+
+        [Test]
+        public void PanelHeadings_AreRenderedOnOneLine()
+        {
+            // r21 実機で "SCORE RANKING" が "SCORE" / "RANKING"、"PLAYERS" が
+            // "PLAYER" / "S" の 2 行に折り返していた。design (qICtu / smhrU) は 1 行。
+            // NoWrap 指定だけでなく、実際に 1 行で組まれることまで固定する。
+            data.Songs.Add(MakeSong(1, "Song 1", isCloud: false));
+
+            var view = CreateView();
+            try
+            {
+                Transform scoreHead = view.Root.Find("Main/Score Ranking/Head");
+                Transform playersHead = view.Root.Find("Main/Players/Head");
+                Assert.IsNotNull(scoreHead, "Score Ranking Head");
+                Assert.IsNotNull(playersHead, "Players Head");
+
+                TMP_Text[] headings =
+                {
+                    TextOf(scoreHead, "Label"),
+                    TextOf(playersHead, "Title"),
+                    TextOf(playersHead, "Metric"),
+                };
+                foreach (TMP_Text heading in headings)
+                {
+                    heading.ForceMeshUpdate(true, true);
+                    Assert.Greater(heading.textInfo.characterCount, 0,
+                        heading.name + " が描画される (" + heading.text + ")");
+                    Assert.AreEqual(1, heading.textInfo.lineCount,
+                        heading.name + " は design どおり 1 行で描画される (" + heading.text + ")");
+                }
             }
             finally
             {
