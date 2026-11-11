@@ -332,11 +332,14 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void BuildHeader(GameObject headerZone, V6SongEntry song)
         {
-            // 戻るボタン 56×56 (#3A3A3A r8) + Key fs16 (design: Back button / Key 'Esc' fs16)
-            var backZone = At(V5Ui.Node(headerZone, "Zone Back"), 0f, 20f);
-            var back = MakeButton(V5Ui.Panel(backZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
+            // 戻るボタン 56×56 (#3A3A3A r8) + Key fs16 (design: Back button / Key 'Esc' fs16)。
+            // header 直下に design (0,20) で置く。V5Ui.Node + At で包むと Node の既定
+            // 100×100 の中央にボタンが寄り、右へ 20px / 下へ 20px ずれてタイトルに
+            // 重なる (r19 実機 q9JZcH 比較で判明)。確定キーはキー設定の正本から取る。
+            var back = MakeButton(V5Ui.Panel(headerZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
                 () => TriggerBack());
-            V6Controls.FillBackButton(back, "Esc");
+            At(back, 0f, 20f);
+            V6Controls.FillBackButton(back, ActionKeyHint.Primary(KeyActions.KeyAction.Back));
 
             var title = V5GameUi.Text(headerZone, "Title", "RANKING", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);

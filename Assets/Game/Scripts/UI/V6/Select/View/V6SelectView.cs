@@ -437,13 +437,24 @@ namespace FlashBeat.UI.V6.Select.View
             var searchRect = V6SelectViewLogic.HeaderSearch();
             var search = Button(header, "Search", searchRect.W, searchRect.H, 8f, V5Tokens.Overlay, FocusSearch);
             At(search, searchRect.X, searchRect.Y);
+            // design OENRv `/W1K1R/sIkNa/FiU1X`: lucide "search" 20x20 @(12,14)。
+            // これが無いと design の「虫めがね + タイプして検索」にならない。
+            var searchIcon = V6Icons.Create(search, "search", 20f, V5Tokens.TextDim);
+            if (searchIcon != null)
+            {
+                var iconRect = V6SelectViewLogic.HeaderSearchIcon();
+                At(searchIcon, iconRect.X, iconRect.Y);
+            }
+
             var queryRect = V6SelectViewLogic.HeaderSearchQuery();
             var queryText = V5GameUi.Text(search, "Query", SearchDisplayText(), 22f,
                 searchFocused ? V5Tokens.Text : V5Tokens.TextDim, TextAlignmentOptions.Left);
             SingleLine(queryText);
             At(queryText, queryRect.X, queryRect.Y, queryRect.W, queryRect.H);
             var capRect = V6SelectViewLogic.HeaderSearchCap();
-            var cap = KeyCap(search, "A-Z", V6Ui.KeyCapFontSize(capRect.W, capRect.H, "A-Z"),
+            // design `/W1K1R/sIkNa/mMt7c/T3nJjq`: Key fs22 / h32。高さ比 (22/36) に
+            // 任せると fs19 まで縮むので、design の fs22 を明示する。
+            var cap = KeyCap(search, "A-Z", V6SelectViewLogic.CapFontSize,
                 capRect.W, capRect.H);
             At(cap, capRect.X, capRect.Y);
 

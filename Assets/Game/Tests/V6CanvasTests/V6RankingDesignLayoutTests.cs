@@ -507,6 +507,27 @@ namespace FlashBeat.V6CanvasTests
         // --- ヘッダー右の曲情報 (w4siL) ---
 
         [Test]
+        public void Header_BackButton_SitsAtDesignTopLeft()
+        {
+            // design S1TZD `/wKQlf/SUD2i/zUcsi`: 戻るボタンはヘッダー (0,20) 56×56。
+            // 旧実装は V5Ui.Node("Zone Back") + At で包んでいたため、Node 既定の
+            // 100×100 の中央にボタンが寄り (22,20) へずれてタイトル (x72) に重なった。
+            var view = CreateView();
+            try
+            {
+                Transform back = view.Root.Find("Header/Back Button");
+                Assert.IsNotNull(back, "Header/Back Button は Header 直下 (Node に包まない)");
+                AssertRect(back, 0f, 20f, 56f, 56f, "Back Button");
+                Assert.LessOrEqual(DesignPos(back).x + ((RectTransform)back).sizeDelta.x, 72f,
+                    "戻るボタンの右端はタイトル (x72) より左");
+            }
+            finally
+            {
+                view.Dispose();
+            }
+        }
+
+        [Test]
         public void Header_SongInfo_MatchesDesignCoordinates()
         {
             // design S1TZD 情報ゾーン w4siL (header 内 (840,0) 840×96):

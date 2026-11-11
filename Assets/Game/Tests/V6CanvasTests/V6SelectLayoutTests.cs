@@ -76,6 +76,31 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         }
 
         [Test]
+        public void HeaderSearchIcon_MatchesDesignAndSitsBeforeTheQuery()
+        {
+            // design OENRv `/W1K1R/sIkNa/FiU1X`: lucide "search" 20x20 @(12,14)。
+            V6Rect icon = V6SelectViewLogic.HeaderSearchIcon();
+            V6Rect query = V6SelectViewLogic.HeaderSearchQuery();
+            V6Rect cap = V6SelectViewLogic.HeaderSearchCap();
+            V6Rect search = V6SelectViewLogic.HeaderSearch();
+
+            Assert.AreEqual(12f, icon.X, 0.01f);
+            Assert.AreEqual(14f, icon.Y, 0.01f);
+            Assert.AreEqual(20f, icon.W, 0.01f);
+            Assert.AreEqual(20f, icon.H, 0.01f);
+            // icon は検索欄ローカル、HeaderSearch() はヘッダーローカル。原点だけ揃えて比べる。
+            var searchLocal = new V6Rect(0f, 0f, search.W, search.H);
+            Assert.IsTrue(searchLocal.Contains(icon), "the magnifier must stay in the search field");
+            Assert.IsFalse(icon.Overlaps(query), "the magnifier must not sit under the query text");
+
+            // design: Placeholder @(40,8) / KeyCap @(518,8) 32 高。
+            Assert.AreEqual(40f, query.X, 0.01f);
+            Assert.AreEqual(8f, query.Y, 0.01f);
+            Assert.AreEqual(8f, cap.Y, 0.01f);
+            Assert.AreEqual(32f, cap.H, 0.01f);
+        }
+
+        [Test]
         public void HeaderItems_StayInsideHeader()
         {
             V6Rect header = V6SelectViewLogic.HeaderLocalRect();

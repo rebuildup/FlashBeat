@@ -235,6 +235,29 @@ namespace FlashBeat.V6CanvasTests
         // --- C. ヘッダー右 (Sort チップ / Count) ---
 
         [Test]
+        public void HistoryHeader_BackButton_SitsAtDesignTopLeft()
+        {
+            // design q9JZcH `/wKQlf/SUD2i/zUcsi`: 戻るボタンはヘッダー (0,20) 56×56。
+            // 旧実装は V5Ui.Node("Zone Back") + At で包んでいたため、Node 既定の
+            // 100×100 の中央にボタンが寄り (22,20) へずれてタイトル (x72) に重なった。
+            var view = CreateView(1);
+            try
+            {
+                var back = Find(view.Root, "Back Button");
+                Assert.AreEqual("Header", back.parent.name,
+                    "戻るボタンは Header 直下に置く (100×100 Node に包まない)");
+                Assert.AreEqual(new Vector2(0f, 20f), DesignTopLeft(back), "design (0,20)");
+                Assert.AreEqual(new Vector2(56f, 56f), back.sizeDelta, "56×56");
+                Assert.LessOrEqual(DesignTopLeft(back).x + back.sizeDelta.x, 72f,
+                    "戻るボタンの右端はタイトル (x72) より左");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        [Test]
         public void HistoryHeader_SortChipAndCount_MatchDesign()
         {
             var view = CreateView(2);

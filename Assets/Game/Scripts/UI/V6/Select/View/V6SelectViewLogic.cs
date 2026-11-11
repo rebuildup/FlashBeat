@@ -537,21 +537,38 @@ namespace FlashBeat.UI.V6.Select.View
             return new V6Rect(1608f, 24f, 48f, 48f);
         }
 
-        /// <summary>検索欄の入力テキスト (検索欄 ローカル)。</summary>
+        /// <summary>
+        /// 検索欄の虫めがねアイコン (検索欄 ローカル)。
+        /// design OENRv `/W1K1R/sIkNa/FiU1X`: lucide "search" 20x20 @(12,14)。
+        /// </summary>
+        public static V6Rect HeaderSearchIcon()
+        {
+            return new V6Rect(12f, 14f, 20f, 20f);
+        }
+
+        /// <summary>
+        /// 検索欄の入力テキスト (検索欄 ローカル)。
+        /// design OENRv `/W1K1R/sIkNa/E5R3c`: Placeholder @(40,8) h32 (fs22)。
+        /// 幅は design の自然幅 154 ではなく A-Z キャップ手前まで伸ばす
+        /// (入力が長くなってもキャップの下へ潜り込まない)。
+        /// </summary>
         public static V6Rect HeaderSearchQuery()
         {
-            return new V6Rect(16f, 0f, 480f, 48f);
+            var cap = HeaderSearchCap();
+            return new V6Rect(40f, 8f, cap.X - 8f - 40f, 32f);
         }
 
         /// <summary>
         /// 検索欄の A-Z キャップ (検索欄 ローカル)。
-        /// 幅は design 空間のフォントから求めた自然幅 + 余白で決める。
+        /// design OENRv `/W1K1R/sIkNa/mMt7c`: 50x32 @(518,8) (右上 inset 12)。
+        /// 幅は design 空間のフォントから求めた自然幅 + 余白で決める
+        /// (推定値は実際のフォントより広いので、右端だけ design に合わせる)。
         /// </summary>
         public static V6Rect HeaderSearchCap()
         {
             float w = KeyCapWidth("A-Z", CapFontSize);
             float x = HeaderSearch().W - w - 12f;
-            return new V6Rect(x, 9f, w, 30f);
+            return new V6Rect(x, 8f, w, 32f);
         }
 
         /// <summary>設定ボタン (フッター ローカル)。</summary>
