@@ -3,7 +3,7 @@
 > **この文書は cc (開発側) が用意した「候補の同一性」と「手順」です。**
 > 実行は **オーナー** が行います。cc は展示 PC を操作・ビルド・上書きしません。
 
-> **2026-11-11 更新 — 候補を `0.1.23+09ece5a2` に差し替えた。**
+> **2026-11-11 更新 — 候補を `0.1.23+b6860a80` に差し替えた。**
 > 版数はリポジトリ直下の `VERSION` (現在 `0.1.23`) が正本で、`FLASHBEAT_VERSION_BASE` は
 > 任意の上書き。以前の暗黙の既定値 `0.1.0` は廃止し、`VERSION` も環境変数も解決できなければ
 > **ビルドが失敗する**。これは「未設定のまま `0.1.0` になる」経路を塞ぐもので、
@@ -24,20 +24,20 @@
 | ビルド手順 | `FLASHBEAT_UPDATE_CHANNEL=stable bash script/win64-build-mac.sh <sha> <outdir>` (基準版数は `VERSION` から自動。正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみ) |
 | 出力 | `<outdir>/FlashBeat-0.1.23-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ** (`.build-info.txt` は作らない) |
 | 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
-| **未検証** | **この候補 (`0.1.23+09ece5a2`) の Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。前候補 `0.1.22+7af9242d` は 2K 実機受入済み (`exhibit-evidence-2026-11-10/win-2k-operation.md`) だが、この候補は未実施 |
+| **未検証** | **この候補 (`0.1.23+b6860a80`) の Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。前候補 `0.1.22+7af9242d` は 2K 実機受入済み (`exhibit-evidence-2026-11-10/win-2k-operation.md`) だが、この候補は未実施 |
 
-### 現在の候補 (2026-11-11 再生成 / main `09ece5a2`)
+### 現在の候補 (2026-11-11 再生成 / main `b6860a80`)
 
 | 項目 | 値 |
 |---|---|
-| ZIP | `FlashBeat-0.1.23-win64-09ece5a2.zip` (275,052,241 bytes) |
-| SHA-256 | `314d3de6170f2bc73ea5b14fa8d30096fd2ce7f9072db7d39659e6a53e95cf8b` |
-| ソース SHA | `09ece5a213a6bfdd1d1eeba242396c059de981af` (`origin/main` — PR #355 / #356 / #357 merge 後) |
-| Application.version | `0.1.23+09ece5a2` (ビルド時の焼き込み検査 `bundleVersion: 0.1.23+09ece5a2` が通過。Mac アプリでも `Player.log` / Info.plist で一致を確認済み) |
-| version.json | `version=0.1.23` / `tag=v0.1.23-win64-09ece5a2` / `mediaPolicy=song-free` / `buildSha=09ece5a2…` (ZIP から読み出して確認済み) |
+| ZIP | `FlashBeat-0.1.23-win64-b6860a80.zip` (275,052,255 bytes) |
+| SHA-256 | `9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20` |
+| ソース SHA | `b6860a80117812029b01bba5263027fd929b8687` (`origin/main` — PR #355〜#361 merge 後。v6 レビュー修正と受入手順の更新を含む) |
+| Application.version | `0.1.23+b6860a80` (Win64 ZIP 内 `globalgamemanagers` から実測。Mac 側の実機監査は同じコードの commit `b3f6e332` 上でビルドしており、Mac アプリの版数表記は `0.1.23+b3f6e332`) |
+| version.json | `version=0.1.23` / `tag=v0.1.23-win64-b6860a80` / `mediaPolicy=song-free` / `buildSha=b6860a80…` (ZIP から読み出して確認済み) |
 | 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt` — ZIP から読み出して確認済み) |
-| ビルド日時 | 2026-11-11T09:54:55Z (ビルド元 commit の日時) |
-| ビルド結果 | `Build Finished, Result: Success.` / `error CS` **0 件** / 224 entries / 138 managed DLL / mediaPolicy=song-free |
+| ビルド日時 | 2026-11-11T10:24:47Z (ZIP の `version.json` の `createdAt`) |
+| ビルド結果 | `Build Finished, Result: Success.` / `error CS` **0 件** / 224 entries / 138 managed DLL / mediaPolicy=song-free。新規 worktree では Unity が editor 側の Metal シェーダ variant を作れず `missing Metal Toolchain` を 407 行出すが、Windows ターゲットのビルドは成功し、ZIP 検査も通過 (この行は Windows 実行に影響しない) |
 | `.zip.sha256` | sidecar の値と `shasum -a 256` の実測が一致 |
 
 **前候補 `7af9242d` からの差分** (展示に効くもの):
@@ -47,7 +47,8 @@
 | 準備完了前の Space (#351) | 準備画面で押した Space を捨てず、準備完了時に開始する | 「押したのに始まらない」現象が消える (前候補の 2K 受入で記録した中程度不具合) |
 | Media cache 消去 (#352) | 即消去せず確認ダイアログを挟む | 誤操作でキャッシュが消えない |
 | v6 画面の正本合わせ (PR #355, r12〜r28) | Title Exit / 登録モーダル / 曲リスト / Pause / Option 4 タブ / Loading / Result 判定行 / History / 空状態 を design の実座標へ | 画面の座標・折返し・行送りが前候補と変わる |
-| 版数の正本化 (PR #357) | `VERSION` (0.1.23) を基準にし、暗黙の `0.1.0` を廃止 | 表示版数が `0.1.23+09ece5a2`。更新判定が配布版より古くならない |
+| 版数の正本化 (PR #357) | `VERSION` (0.1.23) を基準にし、暗黙の `0.1.0` を廃止 | 表示版数が `0.1.23+b6860a80`。更新判定が配布版より古くならない |
+| v6 レビュー修正 (#361) | 選曲画面の A-Z 検索と L/R 画面切替の衝突、Pause のキー凡例 (実キー表示)、監査ハーネスの空 Canvas スキップ | 検索欄フォーカス中に L/R で画面が切り替わらない。Pause の凡例が実際の切替キー (既定 T) を表示する |
 
 > **ビルドは必ず main のチェックアウトから行う。** 2026-11-10 に `w/ja-text-cleanup`
 > チェックアウト (=古い `script/win64-build-mac.sh`) からビルドしてしまい、
@@ -72,7 +73,7 @@
 > - `FlashBeat-0.1.22-win64-4445279.zip` (構造は正規。**#339〜#344 より前の main** のため、
 >   候補 `7af9242d` に置き換えられた。UI 欠陥修正と表示設定の保存を含まない)
 > - `FlashBeat-0.1.22-win64-7af9242d.zip` (構造は正規で **Windows 実機 2K 受入済み**。
->   ただし #351 / #352 / v6 UI 修正より前の main のため、今回の候補 `09ece5a2` に置き換えられた。
+>   ただし #351 / #352 / v6 UI 修正より前の main のため、今回の候補 `b6860a80` に置き換えられた。
 >   この ZIP の実機証跡は 0.1.22 のものとして扱い、新候補の証跡と混ぜない)
 > - `0.1.22+4445279-win64-4445279.zip` (旧スクリプトで作られた契約違反の ZIP。`dist/forbidden-old-script/`)
 >
@@ -106,7 +107,7 @@ Release 公開判定だけです。展示 PC の操作とビルドの上書き�
 
 ```powershell
 # PowerShell (Windows)
-Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-09ece5a2.zip" | Select-Object -ExpandProperty Hash
+Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Object -ExpandProperty Hash
 # → 小文字に DownCase して .zip.sha256 の値と一致することを確認する
 ```
 
@@ -143,10 +144,17 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-09ece5a2.zip" | Select-Ob
 |---|---|---|---|
 | FHD | 1920×1080 | 実ディスプレイ (展示PC / FHD モニタ) | **未検証** (前候補でも未実施。Windows 機の FHD 面は inactive だった) |
 | 2K | 2560×1440 | 実ディスプレイ (2K モニタ) | 前候補 `0.1.22+7af9242d` で **実全画面 PASS** (`exhibit-evidence-2026-11-10/win-2k-operation.md`)。**現候補では未実施** |
-| MAC | 2560×1664 | Mac 本機 (ネイティブ) | 現候補 `0.1.23+09ece5a2` で **PASS** (2026-11-11, `docs/ui/v6-repro-audit-2026-11-11.md` §9.18) |
+| MAC | 2560×1664 | Mac 本機 (ネイティブ) | 現候補と同じ内容 (`b6860a80` のコード。Mac アプリの版数表記はビルド時の `0.1.23+b3f6e332`) で **PASS** (2026-11-11, `docs/ui/v6-repro-audit-2026-11-11.md` §9.19 r29) |
+
+
+**FHD / 2K をこの Mac で作れない理由 (2026-11-11 実測)**: 手元の Mac (Apple M5、内蔵 2560×1664) が
+選択できる表示モードは CoreGraphics の実測で **1920×1200 / 2048×1280 / 2048×1332 / 2560×1600 /
+2560×1664 の 5 種のみ**で、1920×1080 と 2560×1440 は存在しません。したがって FHD / 2K の
+実フルスクリーンは、その解像度の実ディスプレイを持つ Windows 機でのみ確認できます
+(ウィンドウのリサイズによる擬似再現は禁止)。
 
 2K モニタが確保できない場合は **「未証明」と記録**してください (Web のビューポート確認は代替になりません)。
-前候補の 2K 証跡は **0.1.22 のもの**であり、現候補 `0.1.23+09ece5a2` の証跡として流用しないでください。
+前候補の 2K 証跡は **0.1.22 のもの**であり、現候補 `0.1.23+b6860a80` の証跡として流用しないでください。
 
 ### 3.3 手順 (各解像度で同じ)
 
@@ -234,7 +242,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-09ece5a2.zip" | Select-Ob
 
 **展示候補の ZIP は CI では作れません。** `build-win64` は `workflow_dispatch` と main への push
 だけで走り、2026-11-11 時点でも `license-precheck` で失敗します (`UNITY_EMAIL` /
-`UNITY_PASSWORD` が未登録)。したがって候補 `09ece5a2` は §0 の macOS 経路
+`UNITY_PASSWORD` が未登録)。したがって候補 `b6860a80` は §0 の macOS 経路
 (`script/win64-build-mac.sh` → `tools/release/package-win64.ps1`) でだけ作られています。
 PR で走るライセンス不要の検証は `verify` (リポジトリ整合性) と `web` だけで、**どちらも
 ビルド成果物を作りません**。責任範囲の全体は [`ci-pr-gate.md`](ci-pr-gate.md) を参照。
