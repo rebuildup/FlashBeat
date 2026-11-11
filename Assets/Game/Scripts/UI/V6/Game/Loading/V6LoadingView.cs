@@ -516,10 +516,14 @@ namespace FlashBeat.UI.V6.Game.Loading
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
             LayoutItem(songTitle.gameObject, 0f, 26f);
+            // h26 < 行送り (fs22 × 1.448 = 31.9) のため、補正しないと曲名が 0 行になる。
+            // LayoutGroup 配下で rect 未確定のため高さを明示する。
+            V5Ui.FitEllipsisToLineHeight(songTitle, 26f);
             songArtist = V5Ui.Text(texts, "Song Artist", "", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
             songArtist.textWrappingMode = TextWrappingModes.NoWrap;
             songArtist.overflowMode = TextOverflowModes.Ellipsis;
             LayoutItem(songArtist.gameObject, 0f, 20f);
+            V5Ui.FitEllipsisToLineHeight(songArtist, 20f);
         }
 
         /// <summary>design ではメイン空。進捗の表現はこの実装が決めた:

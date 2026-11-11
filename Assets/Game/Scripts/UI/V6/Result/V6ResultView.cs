@@ -463,12 +463,16 @@ namespace FlashBeat.UI.V6.Result
                 V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH, new Vector2(0f, 0.5f));
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
+            // design h36 < NotoSansJP の行送り (fs34 × 1.448 = 49.2) のため、
+            // 何もしないと Ellipsis が 0 行になり曲名が消える (r3 実機で発生)。
+            V5Ui.FitEllipsisToLineHeight(songTitle);
 
             songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 23f, V5Tokens.TextMuted);
             At(songArtist, V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY,
                 V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH, new Vector2(0f, 0.5f));
             songArtist.textWrappingMode = TextWrappingModes.NoWrap;
             songArtist.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(songArtist);
 
             // Stat (BPM/NOTES/LEVEL/曲長) は Label + Value を明示矩形で縦積みする
             // (旧実装は Column レイアウトで TMP の既定サイズにレイアウトが追従できず、
@@ -508,6 +512,7 @@ namespace FlashBeat.UI.V6.Result
                 V6ResultLogic.SongRankTitleW, V6ResultLogic.SongRankTitleH);
             songRankTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songRankTitle.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(songRankTitle);
 
             // 空状態は design に無い実装固有の表示。Song 見出し (y52..95) と重ならないよう
             // 行領域 (y92..404) の縦中央に置く。

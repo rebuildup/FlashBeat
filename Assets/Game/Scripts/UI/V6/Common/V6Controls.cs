@@ -99,10 +99,10 @@ namespace FlashBeat.UI.V6.Common
             if (font != null)
             {
                 tmp.font = font;
-                // NotoSansJP の行送りは fs の約 1.45 倍 (lineHeight 69.504 / pointSize 48) で、
-                // 矩形の縦高が行送り未満だと Ellipsis で 1 行も描画されない
-                // (v6-select の fs26×矩形28 消滅事故)。行送りを ≈ fs に詰め、
-                // 「矩形高 ≥ fs なら必ず 1 行描画される」ようにする。
+                // 行送りを詰めて 1 行の描画位置を fs に揃える。
+                // 注意: lineSpacing は行間 (2 行目以降) にしか効かず、Ellipsis の
+                // 「実効高 < 行送り (fs × 1.448) なら 0 行」判定は変わらない
+                // (fs26×h36 で消えた実例の回避は V5Ui.FitEllipsisToLineHeight で行う)。
                 // 折り返し段落で行間を広げたい呼び出し側は後から lineSpacing を上書きする
                 // (lineSpacing は fs への追加率なので、上書き値がそのまま fs 比の行間になる)。
                 if (font.faceInfo.pointSize > 0)

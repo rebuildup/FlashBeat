@@ -197,4 +197,45 @@ design と違う**という共通原因を先に潰した。数値は Pencil `ex
 未完了 (次): History 行スタックの縦中央化 (A) と Sort チップ/Count の位置 (C)、
 修正後ビルドの実機撮影 r3、FHD/2K の実表示確認、Issue の起票・コメント。
 
+### 9.3 第 4 ラウンド (2026-11-11、Ellipsis 0 行の共通原因を潰す)
+
+r3 (commit `dfc634a9` の Mac ビルド、2560×1664 実機) で、直前のラウンドで追加した
+**Result の曲名・作家名、結果画面の曲別ランキング曲名、Ranking ヘッダーの曲名が
+丸ごと描画されない**退行が出た。design 矩形はどれも正しく、原因は TMP 側の描画条件だった。
+
+**実測 (EditMode の一時プローブ、後に削除)** — NotoSansJP-Medium SDF は
+`faceInfo.lineHeight 69.504 / pointSize 48 = fs × 1.448`。TMP は Ellipsis のとき
+**矩形の実効高 (rect 高 − margin 上下) が行送り未満なら 1 文字も描かない**。
+`lineSpacing` を −44.8 に詰めてもこの判定は変わらない (行間専用)。実測:
+
+| fs × 矩形高 | 行送り | Ellipsis の結果 |
+|---|---|---|
+| 20 × 29 | 28.96 | 描画 (境界一致) |
+| 23 × 33 | 33.35 | **0 文字** |
+| 26 × 36 | 37.65 | **0 文字** |
+| 30 × 43 | 43.44 | **0 文字** |
+| 34 × 36 | 49.23 | **0 文字** |
+
+design 矩形はこの境界を 0.3〜13px 下回るため、`V5Ui.FitEllipsisToLineHeight` を追加した
+(上下 margin を同じ負値にして実効高だけを広げる。垂直中央揃えなので**矩形サイズも
+描画ベースラインも自然描画と一致**することを測定で確認。矩形自体を高くすると 10px 下へ
+ずれるので不可)。適用箇所:
+
+| 画面 / 部品 | 直した内容 | コード | 検証 |
+|---|---|---|---|
+| Result 楽曲情報 Title (fs34 h36) / Artist (fs23 h33) | 0 行で消えていた (r3 実機) | `Result/V6ResultView.cs` | `V6EllipsisFitTests.ResultSongInfo_TitleAndArtist_AreDrawnWithRealData` |
+| Result 曲別ランキング Song (fs30 h43) | 同上 | `Result/V6ResultView.cs` | `...ResultSongRanking_SongHeader_IsDrawn` |
+| Ranking ヘッダー Song/Title (fs30 h43) / Artist (fs20 h29) / 曲チップ Text (fs22 h32) | 同上 | `Ranking/V6RankingView.cs` | `...RankingHeader_SongTitle_IsDrawn` |
+| Select / Ranking 曲行 Title (fs26 h38) / Composer | 余裕は 0.35px しかなく、フォント差で再発しうる | `Common/V6Lists.cs` | `V6EllipsisFitTests` |
+| Loading 曲名 (fs22 h26) / 作家 (fs16 h20) | **修正前から 0 行** (ローディング中に曲名が出ていなかった) | `Game/Loading/V6LoadingView.cs` | — |
+| Pause 曲名 | 以前 43→46 に逃げていた design 値を **h43 に戻した** | `Game/Pause/V6PauseView.cs` | — |
+
+テスト側の共通原因も直した: 旧 `V6TextLineFitTests` は「lineSpacing を織り込んだ行送り ≤
+矩形高」だけを検証し、**メッシュ生成後の characterCount を見ていなかった**ため、
+この退行を通していた。`ForceMeshUpdate` 後の描画文字数で判定する形に書き換えた
+(`V6TextLineFitTests` 3 件 + 新規 `V6EllipsisFitTests` 7 件)。
+
+このラウンドの検証: `script/compile-check.sh` OK、Unity EditMode **1468 件すべて合格**。
+
+
 

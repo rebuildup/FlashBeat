@@ -408,9 +408,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             songTitle = V5Ui.Text(songCol, "Title", "", 30f, V5Tokens.Text, TextAlignmentOptions.Left);
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            // TMP は行の実高 (NotoSansJP: fs の約 1.448 倍 = 43.44px / fs30) より矩形が
-            // 低いと Ellipsis で 1 行も描かない。43px だと曲名が消えるため 46px にする。
-            PlaceAt(songTitle.gameObject, 0f, 1f, new Vector2(320f, 46f));
+            // design は h43。TMP は行の実高 (NotoSansJP: fs の約 1.448 倍 = 43.44px / fs30)
+            // より矩形が低いと Ellipsis で 1 行も描かないため、以前は 46px に逃げていた。
+            // いまは margin 補正 (V5Ui.FitEllipsisToLineHeight) で design の h43 を保てる。
+            PlaceAt(songTitle.gameObject, 0f, 1f, new Vector2(320f, 43f));
+            V5Ui.FitEllipsisToLineHeight(songTitle, 43f);
             songSub = V5Ui.Text(songCol, "Sub", "", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
             songSub.textWrappingMode = TextWrappingModes.NoWrap;
             songSub.overflowMode = TextOverflowModes.Ellipsis;

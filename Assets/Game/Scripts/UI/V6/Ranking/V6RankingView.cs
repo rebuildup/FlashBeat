@@ -376,11 +376,15 @@ namespace FlashBeat.UI.V6.Ranking
             At(songTitle, 0f, 1f, 320f, 43f);
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
+            // design h43 < 行送り (fs30 × 1.448 = 43.44) のため、Ellipsis が 0 行に
+            // なって曲名が消える (r3 実機で発生)。margin 補正で実効高を確保する。
+            V5Ui.FitEllipsisToLineHeight(songTitle);
             var songArtist = V5GameUi.Text(songZone, "Artist", hasSong ? song.Artist : "", 20f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
             At(songArtist, 0f, 46f, 320f, 29f);
             songArtist.textWrappingMode = TextWrappingModes.NoWrap;
             songArtist.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(songArtist);
 
             At(V5Ui.Panel(headerZone, "Divider", new Vector2(1f, 44f), FromHex("#FFFFFF26"), 0f), 1280f, 26f);
 
@@ -568,6 +572,7 @@ namespace FlashBeat.UI.V6.Ranking
                 songText.textWrappingMode = TextWrappingModes.NoWrap;
                 songText.overflowMode = TextOverflowModes.Ellipsis;
                 At(songText, 48f, 0f, 111f, 32f);
+                V5Ui.FitEllipsisToLineHeight(songText);
             }
 
             // Online セグメントは cloud 曲だけ (spec 167: ローカル曲では非表示)。

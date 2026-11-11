@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.UI.V5;
 
 namespace FlashBeat.UI.V6.Common
 {
@@ -103,10 +104,12 @@ namespace FlashBeat.UI.V6.Common
                 new Vector2(SongTextsX, SongTextsY), new Vector2(SongTextsW, SongTitleH),
                 SongTitleFs, V6Tokens.Text);
             titleText.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(titleText);
             var composerText = V6Controls.Text(go, "Composer", composer,
                 new Vector2(SongTextsX, SongTextsY + SongComposerY), new Vector2(SongTextsW, SongComposerH),
                 SongComposerFs, V6Tokens.TextMuted);
             composerText.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(composerText);
 
             // Grade 56×36 r4 (436,18)。グレード文字は呼び出し側から渡す。
             var gradeGo = V6Controls.Panel(go, "Grade", new Vector2(SongGradeX, SongGradeY),
