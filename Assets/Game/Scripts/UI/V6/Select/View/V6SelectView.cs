@@ -131,6 +131,21 @@ namespace FlashBeat.UI.V6.Select.View
             }
         }
 
+        /// <summary>現在の検索語。画面監査 (AutoTestV6Screens) が復元に使う。</summary>
+        public string Query => data != null ? data.Query : "";
+
+        /// <summary>
+        /// 検索語を設定する。キーボード入力と同じ data.SetQuery 経路で、空状態の
+        /// 実機撮影など画面監査から呼ぶ。UI を勝手に変える機能ではない。
+        /// </summary>
+        public void SetQuery(string query)
+        {
+            if (data != null)
+            {
+                data.SetQuery(query);
+            }
+        }
+
         /// <summary>検索欄にフォーカスする (統合担当が画面表示時に呼べる)。</summary>
         public void FocusSearch()
         {

@@ -117,6 +117,18 @@ public class AutoTestV6Screens : MonoBehaviour
             var select = FlashBeat.UI.V6.Select.View.V6SelectView.Current;
             var history = FlashBeat.UI.V6.History.V6HistoryView.Current;
             var ranking = FlashBeat.UI.V6.Ranking.V6RankingView.Current;
+
+            // design AqFtx (02b 該当なし): 検索ヒット 0 件の空状態を実機で撮る。
+            if (select != null)
+            {
+                string previous = select.Query;
+                select.SetQuery("__no_song_matches__");
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("SelectScene-Empty", reports);
+                select.SetQuery(previous);
+                yield return new WaitForSecondsRealtime(1f);
+            }
+
             if (select != null && history != null && ranking != null)
             {
                 select.SetVisible(false);
