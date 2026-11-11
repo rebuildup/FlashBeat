@@ -544,56 +544,43 @@ namespace FlashBeat.UI.V6.Result
         {
             var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
 
-            // キー凡例 (左下, 契約 §4: y30 / 項目間 gap16)。KeyCap と Label の幅を
-            // design px で明示して置く (Row レイアウトグループは幅未確定の TMP ラベルの
-            // 上に隣の KeyCap を重ねるため使わない)。
+            // キー凡例 (左下, design zcSHh Zone · キー操作: y30 / 項目間 gap24 /
+            // 項内 gap8 / KeyCap h32 pad[0,8])。共通部品 V6Legend が TMP 実測で幅を詰める
+            // (design 実測の項目幅 127 / 124 / 131、x = 0 / 151 / 299)。
             float lx = 0f;
             for (int i = 0; i < V6ResultLogic.LegendKeys.Length; i++)
             {
-                lx = PlaceLegendItem(footer, lx, V6ResultLogic.LegendKeys[i], V6ResultLogic.LegendLabels[i]);
+                lx = Common.V6Legend.Item(footer, lx, V6ResultLogic.FooterLegendY,
+                    V6ResultLogic.LegendKeys[i], V6ResultLogic.LegendLabels[i]);
             }
 
             // 右下: Retry (secondary) / Register (secondary) / OK (primary) を
-            // フッター右端から gap16 で横並び (重ならない)。幅は内容
-            // (icon 32 / Label fs30 / KeyCap) から V6ResultLogic.FooterButtonWidth で算出。
-            float wOk = V6ResultLogic.FooterButtonWidth("OK", "Space", true);
-            float wRegister = V6ResultLogic.FooterButtonWidth("Register", "Enter", true);
-            float wRetry = V6ResultLogic.FooterButtonWidth("Retry", "R", true);
-            float[] xs = V6ResultLogic.FooterButtonXs(wOk, wRegister, wRetry);
-            BuildFooterButton(footer, xs[0], "Op OK", "OK", "skip-forward", "Space", true, onSelect);
-            BuildFooterButton(footer, xs[1], "Op Register", "Register", "plus", "Enter", false, OpenModal);
-            BuildFooterButton(footer, xs[2], "Op Retry", "Retry", "skip-back", "R", false, onRetry);
-        }
-
-        /// <summary>
-        /// 凡例 1 項目 (KeyCap + Label fs22) を design 座標で置き、次の項目の左端 x を返す。
-        /// </summary>
-        private float PlaceLegendItem(GameObject footer, float x, string key, string label)
-        {
-            float capW = V6ResultLogic.KeyCapWidth(key);
-            var cap = V6Ui.KeyCap(footer, key, new Vector2(capW, 36f));
-            At(cap, x, V6ResultLogic.FooterLegendY);
-
-            float labelW = Mathf.Ceil(Common.V6Layout.EstimateTextWidth(label, 22f));
-            Common.V6Controls.Text(footer, "Legend Label " + label, label,
-                new Vector2(x + capW + 8f, V6ResultLogic.FooterLegendY), new Vector2(labelW, 36f),
-                22f, V5Tokens.TextMuted);
-            return x + capW + 8f + labelW + V6ResultLogic.FooterLegendGap;
+            // フッター右端から gap16 で横並び。幅は正本 zcSHh の固定値
+            // (Retry 220 / Register 273 / OK 273) を使う。内容から逆算すると
+            // Latin の送り幅推定が広く出て design より横に伸びる。
+            float[] widths =
+            {
+                V6ResultLogic.FooterOkButtonW,
+                V6ResultLogic.FooterRegisterButtonW,
+                V6ResultLogic.FooterRetryButtonW,
+            };
+            float[] xs = V6ResultLogic.FooterButtonXs(widths);
+            // icon は design の lucide 名 (check / save / rotate-ccw)。
+            BuildFooterButton(footer, xs[0], "Op OK", "OK", "check", "Space", true, widths[0], onSelect);
+            BuildFooterButton(footer, xs[1], "Op Register", "Register", "save", "Enter", false, widths[1], OpenModal);
+            BuildFooterButton(footer, xs[2], "Op Retry", "Retry", "rotate-ccw", "R", false, widths[2], onRetry);
         }
 
         /// <summary>
         /// フッター右のボタンを design 座標 (左上 origin, y20 h56) で置く。
-        /// 構造は契約 §4 の共通ボタン (icon 32 / Label fs30 / KeyCap 高さ 36) で、
-        /// 共通部品 V6Controls.ButtonPrimary/Secondary を使う (KeyCap 右寄せ・
-        /// Label 中央寄せは部品側で確定し、ボタン外へはみ出さない)。
+        /// 構造は契約 §4 の共通ボタン (正本 Prefab/Button Primary/Secondary:
+        /// icon 32 / Label fs30 / Cap h32 / 中身は中央揃え) を共通部品で作る。
         /// </summary>
         private void BuildFooterButton(GameObject footer, float x, string name, string label, string iconSprite,
-            string keyCap, bool primary, Action onClick)
+            string keyCap, bool primary, float width, Action onClick)
         {
             Vector2 topLeft = new Vector2(x, V6ResultLogic.FooterButtonY);
-            Vector2 size = new Vector2(
-                V6ResultLogic.FooterButtonWidth(label, keyCap, !string.IsNullOrEmpty(iconSprite)),
-                V6ResultLogic.FooterButtonH);
+            Vector2 size = new Vector2(width, V6ResultLogic.FooterButtonH);
             GameObject go = primary
                 ? Common.V6Controls.ButtonPrimary(footer, label, topLeft, size, iconSprite, keyCap)
                 : Common.V6Controls.ButtonSecondary(footer, label, topLeft, size, iconSprite, keyCap);

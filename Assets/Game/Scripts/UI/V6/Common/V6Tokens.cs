@@ -41,6 +41,10 @@ namespace FlashBeat.UI.V6.Common
         // --- 共通ボタン (契約 §4) ---
         public static readonly Color ButtonPrimaryBg = FromHex("#EDEDED");
         public static readonly Color ButtonPrimaryLabel = FromHex("#1B1B1B");
+        /// <summary>Prefab/Button Primary の Cap 塗り (#00000026)。下地 #EDEDED で実測 #CACACA。</summary>
+        public static readonly Color CapPrimary = FromHex("#00000026");
+        /// <summary>Prefab/Button Secondary の Cap 塗り (#00000040)。</summary>
+        public static readonly Color CapSecondary = FromHex("#00000040");
 
         // --- モーダル / 外周 (契約 §4) ---
         public static readonly Color Scrim = FromHex("#00000099");

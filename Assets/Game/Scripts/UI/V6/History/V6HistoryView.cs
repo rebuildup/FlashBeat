@@ -250,7 +250,7 @@ namespace FlashBeat.UI.V6.History
             bg.raycastTarget = true;
 
             // 共通フレーム (rw7zx 1728×972 / 契約 §4) を使い回す。
-            frame = V6Frame.Create(rootGo.transform, "V6 History Frame").GetComponent<RectTransform>();
+            frame = V6Frame.Create(rootGo.transform, "V6 History Frame 1728x972").GetComponent<RectTransform>();
             // フレームは固定解像度 (1728×972) の等倍 (1:1) 配置。親 (画面) 左下を
             // 基準に design のフレーム原点へ置く。拡大縮小は行わない。
             frame.anchorMin = Vector2.zero;
@@ -406,35 +406,23 @@ namespace FlashBeat.UI.V6.History
             // design (q9JZcH): 右下は「この曲へ」(567,20) 273×56 のみ。
             // 「設定」ゾーン (358,20) 197×56 は design で空のプレースホルダ (子ノード無し / fill 無し)
             // なのでボタンは描かない。O キーの設定遷移 (TriggerOpenSettings) はキーボード操作として残す。
+            // icon は design の corner-down-left (旧: music で別アイコンだった)。
             GameObject gotoBtn = V6Controls.ButtonPrimary(footerZone, "この曲へ",
                 new Vector2(V6HistoryLogic.FooterGotoButtonX, V6HistoryLogic.FooterButtonY),
-                new Vector2(273f, V6HistoryLogic.FooterButtonH), "music", "Space");
+                new Vector2(273f, V6HistoryLogic.FooterButtonH), "corner-down-left", "Space");
             ConfigureButton(gotoBtn, TriggerGotoSong);
-            TintButtonCap(gotoBtn, PrimaryCapColor);
         }
 
-        /// <summary>design (rw7zx / 契約 §4) の Primary ボタン内 KeyCap の塗り (#00000026)。</summary>
-        private static readonly Color PrimaryCapColor = new Color(0f, 0f, 0f, 0x26 / 255f);
-
         /// <summary>
-        /// フッター左下のキー凡例。design (rw7zx): 高さ 36 の KeyCap (fs22) + gap10 + Label fs22、
-        /// 項目間 gap16、zone 内 y=30 から。
+        /// フッター左下のキー凡例。design (q9JZcH Zone · キー操作 / Legend):
+        /// zone gap 24、Legend 内 gap 8、KeyCap は h36 pad[0,8] fs22 $text-muted、Label fs22。
         /// </summary>
         private static void BuildKeyLegend(GameObject footer, string[][] items)
         {
-            float fs = V6Controls.KeyCapFontSize;
             float x = 0f;
             for (int i = 0; i < items.Length; i++)
             {
-                string key = items[i][0];
-                string label = items[i][1];
-                float capW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * fs) + V6Controls.KeyCapPaddingX * 2f;
-                V6Controls.KeyCap(footer, key, new Vector2(x, 30f), new Vector2(capW, V6Tokens.KeyCapHeight));
-                x += capW + 10f;
-                float labelW = Mathf.Max(1f, V6Layout.EstimateTextWidth(label, fs));
-                var labelText = V5GameUi.Text(footer, "Legend Label " + label, label, fs, V5Tokens.TextMuted);
-                At(labelText, x, 30f, labelW, V6Tokens.KeyCapHeight);
-                x += labelW + (i < items.Length - 1 ? 16f : 0f);
+                x = V6Legend.Item(footer, x, V6Legend.Y, items[i][0], items[i][1]);
             }
         }
 
@@ -449,26 +437,6 @@ namespace FlashBeat.UI.V6.History
             if (onClick != null)
             {
                 button.onClick.AddListener(() => onClick());
-            }
-        }
-
-        /// <summary>
-        /// ボタン内 Cap の塗りを design 値 (#00000040 / #00000026) に合わせる。
-        /// 共通部品 (V6Controls) は $k4 固定で編集禁止のため、呼び出し側で上書きする。
-        /// </summary>
-        private static void TintButtonCap(GameObject buttonGo, Color color)
-        {
-            for (int i = 0; i < buttonGo.transform.childCount; i++)
-            {
-                Transform child = buttonGo.transform.GetChild(i);
-                if (child.name.StartsWith("KeyCap", StringComparison.Ordinal))
-                {
-                    var img = child.GetComponent<Image>();
-                    if (img != null)
-                    {
-                        img.color = color;
-                    }
-                }
             }
         }
 

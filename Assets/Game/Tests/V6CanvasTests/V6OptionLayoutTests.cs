@@ -145,8 +145,11 @@ namespace FlashBeat.V5CanvasTests
             {
                 float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(items[i][0]) * V6Controls.KeyCapFontSize)
                     + 8f * 2f;
-                float itemW = keyW + 8f + 60f;
-                // 各項目が凡例ゾーン (0,30) 840x36 に収まる (design nrKQv 左下ゾーン幅 840)
+                // Label 幅は TMP 実測で詰める (design 実測: 選択/変更/戻る/決定 45、
+                // タブ切替 89)。ここでは上界として概算 (全角 1em) + 2px を使う。
+                float labelW = Mathf.Ceil(V6Ui.LabelAdvanceEm(items[i][1]) * 22f) + 2f;
+                float itemW = keyW + 8f + labelW;
+                // 各項目が凡例ゾーン (0,30) 840x32 に収まる (design r4IJx 左下ゾーン幅 840)
                 Assert.LessOrEqual(itemW, 840f, $"凡例 {i} がゾーン幅外");
                 total += itemW;
             }

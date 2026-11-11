@@ -417,17 +417,20 @@ namespace FlashBeat.UI.V6.Select.View
         public const float RowStep = 76f;
         public const int ListVisibleRows = 9;
 
-        /// <summary>キーキャップのラベルサイズ (design px)。</summary>
-        public const float CapFontSize = 20f;
+        /// <summary>キーキャップの Key fs (design OENRv Legend KeyCap / Prefab/KeyCap: fs22)。</summary>
+        public const float CapFontSize = 22f;
 
-        /// <summary>説明ラベルのフォントサイズ (design px)。</summary>
-        public const float LabelFontSize = 20f;
+        /// <summary>説明ラベルのフォントサイズ (design OENRv Legend Label: fs22)。</summary>
+        public const float LabelFontSize = 22f;
 
-        /// <summary>キャップの左右余白 (design px)。</summary>
-        public const float CapPadX = 10f;
+        /// <summary>キャップの左右余白 (design OENRv Legend KeyCap: padding [0,8])。</summary>
+        public const float CapPadX = 8f;
 
-        /// <summary>キャップと説明ラベルの間隔 (design px)。</summary>
-        public const float LegendLabelGap = 12f;
+        /// <summary>キャップと説明ラベルの間隔 (design OENRv Legend: gap 8)。</summary>
+        public const float LegendLabelGap = 8f;
+
+        /// <summary>凡例キャップの高さ (design OENRv Zone · キー操作: h32)。</summary>
+        public const float LegendCapHeight = 32f;
 
         /// <summary>凡例 項目どうしの間隔 (design px)。</summary>
         public const float LegendItemGap = 24f;

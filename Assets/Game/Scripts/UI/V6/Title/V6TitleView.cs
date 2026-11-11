@@ -664,14 +664,14 @@ namespace FlashBeat.UI.V6.Title
             // キー表記があるため二重表示だった)。
             if (V6UiMode.TitleLegend)
             {
-                var legend = V6Layout.Row(footer, "Legend", V6TitleLogic.LegendPos,
-                    new Vector2(840f, V6Tokens.KeyCapHeight), V6TitleLogic.LegendGap);
+                // design QQ4jM: KeyCap h36 / pad[0,10] / 項内 gap10 / 項目間 gap16
+                // (他画面の h32 / pad[0,8] / gap8 / gap24 とは別設計)。幅は TMP 実測。
                 float x = 0f;
                 string startKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start);
-                x = AddLegendItem(legend, x, startKey, "決定");
-                x = AddLegendItem(legend, x, "↑↓", "選択");
+                x = AddLegendItem(footer, x, startKey, "決定");
+                x = AddLegendItem(footer, x, "↑↓", "選択");
                 string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
-                AddLegendItem(legend, x, exitKey, "終了");
+                AddLegendItem(footer, x, exitKey, "終了");
             }
 
             // 右下の操作ボタン (design T8HuQS) は正本で `enabled: false`。
@@ -692,27 +692,14 @@ namespace FlashBeat.UI.V6.Title
         }
 
         /// <summary>
-        /// キー凡例 1 個 (design HI6YE): KeyCap (fs22、高さ 36) + Label fs22 $text-muted。
-        /// 戻り値は次のアイテムの x オフセット (KeyCap + 内部 gap + Label + アイテム間 gap)。
+        /// キー凡例 1 個 (design QQ4jM): KeyCap (fs22 / h36 / pad[0,10]) + Label fs22 $text-muted
+        /// を gap10 で並べ、項目間 gap16。戻り値は次の項目の x。
         /// </summary>
         private static float AddLegendItem(GameObject legend, float x, string key, string label)
         {
-            if (string.IsNullOrEmpty(key))
-            {
-                return x;
-            }
-
-            float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * V6Controls.KeyCapFontSize)
-                + V6Controls.KeyCapPaddingX * 2f;
-            V6Controls.KeyCap(legend, key, new Vector2(x, 0f), new Vector2(keyW, V6Tokens.KeyCapHeight));
-
-            float labelX = x + keyW + V6TitleLogic.LegendInnerGap;
-            float labelW = Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * V6TitleLogic.LegendFontSize);
-            V6Controls.Text(legend, "Legend Label", label, new Vector2(labelX, 0f),
-                new Vector2(labelW, V6Tokens.KeyCapHeight), V6TitleLogic.LegendFontSize,
-                V6Tokens.TextMuted, TextAlignmentOptions.Left);
-
-            return labelX + labelW + V6TitleLogic.LegendGap;
+            return V6Legend.Item(legend, x, V6TitleLogic.LegendPos.y, key, label,
+                V6Tokens.KeyCapHeight, V6Controls.KeyCapPaddingX, V6TitleLogic.LegendInnerGap,
+                V6TitleLogic.LegendGap, V6TitleLogic.LegendFontSize, V6Tokens.Key4, V6Tokens.TextMuted);
         }
 
         // --- uGUI ユーティリティ (配置は V6Layout、部品は V6Controls に集約) ---

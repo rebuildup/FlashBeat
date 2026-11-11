@@ -84,8 +84,11 @@ namespace FlashBeat.UI.V6.Option
         public const float DescDividerY = 544f, DescTitleY = 564f, DescY = 614f;
         public const float DescW = 464f, DescH = 68f;
 
-        /// <summary>フッター キー凡例 (design パッチ QQ4jM → r4IJx): フッター内 (0,30)、高さ 36、項目間 gap24。</summary>
-        public const float LegendY = 30f, LegendH = 36f, LegendGap = 24f;
+        /// <summary>
+        /// フッター キー凡例 (design パッチ r4IJx): フッター内 (0,30)、高さ 32、項目間 gap24。
+        /// 項内は KeyCap (h32 pad[0,8]) + Label (fs22) を gap8 で並べる。
+        /// </summary>
+        public const float LegendY = 30f, LegendH = 32f, LegendGap = 24f;
 
         /// <summary>i 番目のタブの design 左上座標 (Main ゾーン基準)。</summary>
         public static Vector2 TabTopLeft(int index)

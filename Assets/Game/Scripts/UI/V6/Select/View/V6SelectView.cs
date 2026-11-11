@@ -348,8 +348,14 @@ namespace FlashBeat.UI.V6.Select.View
             // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
             var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
-            // 選択中の曲を常にリスト中央に表示する (端ではクランプ)。以前の位置を引きずらない。
-            listScroll = V6SelectViewLogic.CenterScroll(selectIndex, songs.Count, ListVisibleRows);
+            // 選択中の曲が見えるようにスクロール位置を決め、範囲内にクランプする。
+            // CenterScroll はスクロールを 0..count-visibleRows に収めない (中央固定)。
+            // そのまま使うと先頭の曲を選んだときリスト上部が空行だけになり、
+            // design (OENRv) の「上から 9 行を埋める」表示と食い違う
+            // (実機で曲一覧が下に寄って見えた原因)。クランプして上から詰める。
+            listScroll = V6SelectViewLogic.ClampScroll(
+                V6SelectViewLogic.CenterScroll(selectIndex, songs.Count, ListVisibleRows),
+                songs.Count, ListVisibleRows);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
                 data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
 
@@ -451,101 +457,87 @@ namespace FlashBeat.UI.V6.Select.View
         {
             var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
 
-            // 凡例は絶対位置 (design px)。各項目の幅は純ロジック (V6SelectViewLogic) が決める。
+            // 凡例 (design OENRv Zone · キー操作: y30 / 項目間 gap24 / 項内 gap8 /
+            // KeyCap h32 pad[0,8] / Key・Label fs22)。幅は共通部品 V6Legend が TMP 実測で
+            // 詰める (design 実測 x = 0 / 155 / 315 / 442、zone 幅 593)。
             // 確定キーはキー設定 (KeyActions) の正本から取る (#142 / #221)。
             string confirmKey = FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Confirm);
             var legendItems = V6SelectViewLogic.FooterLegend(confirmKey);
+            float legendX = 0f;
             for (int i = 0; i < legendItems.Length; i++)
             {
-                var item = legendItems[i];
-                // V6Ui.KeyCapFontSize で幅に収まる fs を決める (Spa/ce 折り返し対策)。
-                var cap = KeyCap(footer.gameObject, item.Key,
-                    V6Ui.KeyCapFontSize(item.CapWidth, 32f, item.Key), item.CapWidth, 32f);
-                At(cap, item.X, 30f);
-                var label = V5GameUi.Text(footer.gameObject, "Legend " + item.Label, item.Label,
-                    V6SelectViewLogic.LabelFontSize, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-                SingleLine(label);
-                At(label, item.X + item.CapWidth + V6SelectViewLogic.LegendLabelGap, 46f, item.LabelWidth, 32f,
-                    new Vector2(0f, 0.5f));
+                legendX = V6Legend.Item(footer, legendX, V6Legend.Y,
+                    legendItems[i].Key, legendItems[i].Label);
             }
 
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。
             // 設定パネル展開中 (wSjAm) は「閉じる (Esc)」Secondary に差し替える。
+            // 中身は正本 Prefab/Button Secondary と同じ中央揃え (共通部品に任せる)。
             var settingsRect = V6SelectViewLogic.FooterSettings();
-            var settingsBtn = Button(footer, settingsOpen ? "Op Close" : "Button Settings",
-                settingsRect.W, settingsRect.H, 8f, V5Tokens.ControlBg,
-                settingsOpen ? (Action)CloseSettings : OpenSettings);
-            At(settingsBtn, settingsRect.X, settingsRect.Y);
-            var settingsIconRect = V6SelectViewLogic.FooterSettingsIcon();
-            V6Icons.Create(settingsBtn, settingsOpen ? "x" : "settings", 24f, V5Tokens.TextMuted);
-            var settingsIconTf = settingsBtn.transform.Find("Icon");
-            if (settingsIconTf != null)
+            string settingsKey = FlashBeat.UI.V5.ActionKeyHint.Primary(settingsOpen
+                ? KeyActions.KeyAction.Back
+                : KeyActions.KeyAction.Option);
+            var settingsBtn = V6Controls.ButtonSecondary(footer,
+                settingsOpen ? "閉じる" : "設定",
+                new Vector2(settingsRect.X, settingsRect.Y),
+                new Vector2(settingsRect.W, settingsRect.H),
+                settingsOpen ? "x" : "settings", settingsKey);
+            settingsBtn.name = settingsOpen ? "Op Close" : "Button Settings";
+            var settingsButton = settingsBtn.GetComponent<Button>();
+            if (settingsButton != null)
             {
-                var iconRt = settingsIconTf.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(
-                    settingsIconRect.X + settingsIconRect.W * 0.5f, 0f);
+                settingsButton.transition = Selectable.Transition.None;
+                var nav = settingsButton.navigation;
+                nav.mode = Navigation.Mode.None;
+                settingsButton.navigation = nav;
+                if (settingsOpen)
+                {
+                    settingsButton.onClick.AddListener(CloseSettings);
+                }
+                else
+                {
+                    settingsButton.onClick.AddListener(OpenSettings);
+                }
             }
-            var settingsLabelRect = V6SelectViewLogic.FooterSettingsLabel();
-            var settingsLabel = V5GameUi.Text(settingsBtn, "Label", settingsOpen ? "閉じる" : "設定", 30f,
-                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Normal);
-            SingleLine(settingsLabel);
-            At(settingsLabel, settingsLabelRect.X, settingsLabelRect.Y, settingsLabelRect.W, settingsLabelRect.H);
-            // design: KeyCap (高さ 32, #00000040 r4, Key fs22 $text-muted) を右端に。
-            var settingsCap = V5Ui.Panel(settingsBtn, "KeyCap", new Vector2(48f, 32f), new Color(0f, 0f, 0f, 0.25f), 4f);
-            var capRt = settingsCap.GetComponent<RectTransform>();
-            capRt.anchorMin = new Vector2(1f, 0.5f);
-            capRt.anchorMax = new Vector2(1f, 0.5f);
-            capRt.pivot = new Vector2(1f, 0.5f);
-            capRt.anchoredPosition = new Vector2(-8f, 0f);
-            V5GameUi.Text(settingsCap, "Key", settingsOpen
-                ? FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back)
-                : FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Option), 22f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            Stretch(settingsCap.transform.Find("Key").GetComponent<RectTransform>(), 48f, 32f);
 
             var readyRect = V6SelectViewLogic.FooterReady();
             // 絞り込みで隠れた選択は Ready できない (#221/#222)。無効のときは
             // 押しても反応しないよう、クリックを張らず弱い色で描画する。
             bool readyEnabled = ReadyAvailable();
-            var ready = Button(footer, "Op Ready", readyRect.W, readyRect.H, 8f,
-                readyEnabled ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key1,
-                readyEnabled ? (Action)(() =>
-                {
-                    if (onReady != null) onReady();
-                }) : null);
-            At(ready, readyRect.X, readyRect.Y);
-            var readyIconRect = V6SelectViewLogic.FooterReadyIcon();
-            V6Icons.Create(ready, "play", 26f, readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim);
-            var readyIconTf = ready.transform.Find("Icon");
-            if (readyIconTf != null)
+            var ready = V6Controls.ButtonPrimary(footer, "Ready",
+                new Vector2(readyRect.X, readyRect.Y),
+                new Vector2(readyRect.W, readyRect.H), "play", confirmKey);
+            ready.name = "Op Ready";
+            var readyButton = ready.GetComponent<Button>();
+            if (readyButton != null)
             {
-                var iconRt = readyIconTf.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0f, 0.5f);
-                iconRt.anchorMax = new Vector2(0f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(readyIconRect.X + readyIconRect.W * 0.5f, 0f);
+                readyButton.transition = Selectable.Transition.None;
+                var nav = readyButton.navigation;
+                nav.mode = Navigation.Mode.None;
+                readyButton.navigation = nav;
+                if (readyEnabled)
+                {
+                    readyButton.onClick.AddListener(() =>
+                    {
+                        if (onReady != null) onReady();
+                    });
+                }
+                else
+                {
+                    // design に無効状態の見本は無いが、押せないことが分かるよう
+                    // 背景を $k1、文字・アイコンを $text-dim に落とす (旧実装と同じ扱い)。
+                    readyButton.interactable = false;
+                    var bg = ready.GetComponent<Image>();
+                    if (bg != null) bg.color = V5Tokens.Key1;
+                    foreach (var graphic in ready.GetComponentsInChildren<Graphic>(true))
+                    {
+                        var tmp = graphic as TextMeshProUGUI;
+                        if (tmp != null) tmp.color = V5Tokens.TextDim;
+                        else if (graphic is Image && graphic.gameObject.name.StartsWith("Icon"))
+                            graphic.color = V5Tokens.TextDim;
+                    }
+                }
             }
-            var readyLabelRect = V6SelectViewLogic.FooterReadyLabel();
-            var readyLabel = V5GameUi.Text(ready, "Label", "Ready", 30f,
-                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
-                TextAlignmentOptions.Left, FontStyles.Normal);
-            SingleLine(readyLabel);
-            At(readyLabel, readyLabelRect.X, readyLabelRect.Y, readyLabelRect.W, readyLabelRect.H);
-            var readyCapRect = V6SelectViewLogic.FooterReadyCap();
-            var readyCap = V5Ui.Panel(ready, "Cap", new Vector2(readyCapRect.W, readyCapRect.H),
-                new Color(0f, 0f, 0f, 0.15f), 4f);
-            At(readyCap, readyCapRect.X, readyCapRect.Y);
-            // V6Ui.KeyCapFontSize で幅に収まる fs を決める (Spa/ce 折り返し対策)。
-            // キャップ表示もキー設定の正本 (KeyActions.Confirm) に合わせる。
-            var readyCapText = V5GameUi.Text(readyCap, "Key", confirmKey,
-                V6Ui.KeyCapFontSize(readyCapRect.W, readyCapRect.H, confirmKey),
-                readyEnabled ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextDim,
-                TextAlignmentOptions.Center);
-            SingleLine(readyCapText);
-            At(readyCapText, 0f, 0f, readyCapRect.W, readyCapRect.H);
         }
 
         // --- 左列: 曲リスト (x0 w560 #131313CC r16) ---
@@ -598,9 +590,9 @@ namespace FlashBeat.UI.V6.Select.View
             }
             else
             {
-                // 中央固定: listScroll = 選択 index - visibleRows/2。スロット 0..visibleRows-1 に
-                // index listScroll+i を対応させ、[0, songCount) のみ描く (範囲外は空行)。
-                // 選択行は常に中央スロット (visibleRows/2) に来る (空スロットには入らない)。
+                // 先頭スロットから連続で描く (ClampScroll 済み)。選択行はその中で
+                // ハイライトされるだけで、スロット位置は曲順どおり。
+                // 範囲外の index は描かない (空行にする)。
                 int first = listScroll;
                 int last = first + ListVisibleRows;
                 for (int i = first; i < last; i++)

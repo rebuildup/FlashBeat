@@ -159,8 +159,10 @@ namespace FlashBeat.UI.V6.Title
 
         /// <summary>フッター キー凡例 (QQ4jM, gap16): Footer ローカル。</summary>
         public static readonly Vector2 LegendPos = new Vector2(0f, 30f);
+        /// <summary>凡例の項目どうしの間隔 (design QQ4jM / QJtTv Zone · キー操作: gap16)。</summary>
         public const float LegendGap = 16f;
-        public const float LegendInnerGap = 8f;
+        /// <summary>KeyCap と Label の間隔 (design QQ4jM Legend: gap10。他画面の 8 とは別)。</summary>
+        public const float LegendInnerGap = 10f;
         public const float LegendFontSize = 22f;
 
         /// <summary>右下の補助操作 (FChYu→G1dOc 設定) / 主操作 (F8SwvS→i9eZ1G START): Footer ローカル。</summary>

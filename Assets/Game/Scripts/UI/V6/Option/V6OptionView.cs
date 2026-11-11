@@ -470,40 +470,24 @@ namespace FlashBeat.UI.V6.Option
         }
 
         // --- フッター (契約 §4 + design B6If6Z パッチ: (24,876) 1680x96) ---
-        // キー凡例はパッチ QQ4jM → r4IJx (0,30) gap24: ↑↓選択 / ←→変更 / Tabタブ切替 /
-        // Esc戻る / Enter決定 (KeyCap h36 r4 padding[0,8] fs22 + Label fs22, 項内 gap8)。
+        // キー凡例はパッチ r4IJx: フッター (0,30) 高さ 32 / 項目間 gap24、
+        // 項内は KeyCap (h32 r4 padding[0,8] #3A3A3A, Key fs22 $text-muted) + Label
+        // (fs22 $text-muted) を gap8 で並べる。design 実測の項幅は
+        // ↑↓選択 114 / ←→変更 114 / Tabタブ切替 151 / Esc戻る 104 / Enter決定 124。
+        // Label の幅は概算 0.62em ではなく TMP 実測で詰める (「タブ切替」= 4 全角で
+        // 89px。固定 60px だと次の項へはみ出し、凡例が「タブ切替 Esc」と繋がって見えた)。
         // 補助操作 / 主操作はパッチ FChYu / F8SwvS で「Op · なし」(空フレーム) に
         // 差し替え済み — Option にフッターボタンは無い (決定は Enter / 行クリック)。
 
         private void BuildFooter()
         {
             var footer = Zone("Footer");
-
-            var legend = V6Layout.Row(footer.gameObject, "Zone Key Ops",
-                new Vector2(0f, 30f), new Vector2(840f, 36f), 24f);
-            var items = new Component[]
-            {
-                LegendItem(legend, "↑↓", "選択").transform,
-                LegendItem(legend, "←→", "変更").transform,
-                LegendItem(legend, "Tab", "タブ切替").transform,
-                LegendItem(legend, "Esc", "戻る").transform,
-                LegendItem(legend, "Enter", "決定").transform,
-            };
-            V6Layout.StackHorizontal(legend.GetComponent<RectTransform>(), 24f, items);
-        }
-
-        /// <summary>凡例 1 項目 (KeyCap + Label, gap8 — design パッチの L0..L4 構造)。</summary>
-        private static GameObject LegendItem(GameObject parent, string key, string label)
-        {
-            float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * V6Controls.KeyCapFontSize)
-                + 8f * 2f; // design パッチの KeyCap padding [0,8]
-            var item = V6Layout.Row(parent, "Legend " + label, Vector2.zero,
-                new Vector2(keyW + 8f + 60f, 36f), 8f);
-            var cap = V6Controls.KeyCap(item, key, new Vector2(0f, 0f), new Vector2(keyW, V6Tokens.KeyCapHeight));
-            V6Controls.Text(item, "Label", label,
-                new Vector2(keyW + 8f, 0f), new Vector2(60f, 36f), 22f, V6Tokens.TextMuted,
-                TextAlignmentOptions.Left);
-            return item;
+            float x = 0f;
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "↑↓", "選択");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "←→", "変更");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Tab", "タブ切替");
+            x = V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Esc", "戻る");
+            V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Enter", "決定");
         }
 
         // --- タブ (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
@@ -674,14 +658,17 @@ namespace FlashBeat.UI.V6.Option
 
             // レーン中心線: 下端 (判定線 y240) で 58px 間隔、上端 (y0) で約 7px 間隔
             // (design プレイフィールドの 150 → 18 px の縮約)。
+            // design のレーン番号は (6 + 58i, 246) 40x26 の中心、つまり判定線上の中心は
+            // 26 + 58i (中心 229)。464 幅の中央 232 から -3 ずれるが design 実測に合わせる。
             const float judgeY = 240f;
             const float bottomSpacing = 58f;
+            const float bottomCenterX = 26f;
             const float topSpacingRatio = 7f / 58f;
-            float centerX = GamePrevW * 0.5f;
             for (int i = 0; i < 8; i++)
             {
-                float bottomX = centerX + (i - 3.5f) * bottomSpacing;
-                float topX = centerX + (bottomX - centerX) * topSpacingRatio;
+                float bottomX = bottomCenterX + bottomSpacing * i;
+                float hub = GamePrevW * 0.5f;
+                float topX = hub + (bottomX - hub) * topSpacingRatio;
                 DrawLine(well, "Lane " + i, bottomX, judgeY, topX, 0f, 1.5f, FromHex("#FFFFFF24"));
             }
 
@@ -704,10 +691,10 @@ namespace FlashBeat.UI.V6.Option
 
             for (int i = 0; i < 8; i++)
             {
-                // 番号はレーン中心線の真下 (判定線 y240 の下端 x) に置く。
-                float bottomX = centerX + (i - 3.5f) * bottomSpacing;
+                // 番号はレーン中心線の真下 (design: (6 + 58i, 246) 40x26 fs18)。
+                float bottomX = bottomCenterX + bottomSpacing * i;
                 V6Controls.Text(well, "Lane Label " + i, (i + 1).ToString(),
-                    new Vector2(bottomX - 20f, 246f), new Vector2(40f, 22f), 18f, V6Tokens.TextMuted,
+                    new Vector2(bottomX - 20f, 246f), new Vector2(40f, 26f), 18f, V6Tokens.TextMuted,
                     TextAlignmentOptions.Center);
             }
         }
@@ -735,21 +722,26 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 / Desc y614)。</summary>
+        /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, Row row)
         {
             var divider = Rect(panel, "Divider", 464f, 1f, FromHex("#FFFFFF1F"));
             V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
+            // draw shape は「Title y564 h46」— 高さ 40 だと NotoSansJP の行送り (fs32 で約 46px) を
+            // 下回り、TMP の Ellipsis が 1 行も描画しない (実行時に Title が丸ごと消えた原因)。
+            // design と同じ h46 にし、Ellipsis は付けない (はみ出す場合も design は自動幅なので
+            // 切り落とすより描く。値は短い固定文言のみ)。
             var title = V6Controls.Text(panel, "Desc Title",
-                row != null ? row.DescTitle : "", new Vector2(24f, dividerY + 20f), new Vector2(464f, 40f),
-                32f, V6Tokens.Text, TextAlignmentOptions.Left); // design w500 = 既定フォント (Medium) のウェイト
-            title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.overflowMode = TextOverflowModes.Ellipsis;
+                row != null ? row.DescTitle : "", new Vector2(24f, V6OptionLogic.DescTitleY),
+                new Vector2(464f, 46f), 32f, V6Tokens.Text, TextAlignmentOptions.Left);
 
+            // Desc は design 上で複数行に折り返す段落 (w464 h68 lineHeight1.4)。
+            // NoWrap のままだと 1 行で右パネルの外まで伸びて切れていた。
             var desc = V6Controls.Text(panel, "Desc", row != null ? row.Desc : "",
-                new Vector2(24f, dividerY + 70f), new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
-                24f, V6Tokens.Text, TextAlignmentOptions.TopLeft);
+                new Vector2(24f, V6OptionLogic.DescY), new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
+                24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
+                TextWrappingModes.Normal);
             desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP lineSpacing は fs 比の追加率: 24×0.4=9.6px → 40%)
         }
 

@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using UnityEngine;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Result;
@@ -82,13 +82,13 @@ namespace FlashBeat.V5CanvasTests
         [Test]
         public void ResultFooter_ButtonsAndLegend_FitWithoutOverlap()
         {
-            // フッター右の 3 ボタン (OK / Register / Retry) は幅を内容から算出し、
-            // 右端から gap16 で横並び。フッター (24,876) 1680x96 内に収まる (契約 §4)。
+            // フッター右の 3 ボタン (OK / Register / Retry) は正本 zcSHh の固定幅
+            // (273 / 273 / 220) で、右端から gap16 で横並び。フッター (24,876) 1680x96 内に収まる。
             float[] widths =
             {
-                V6ResultLogic.FooterButtonWidth("OK", "Space", true),
-                V6ResultLogic.FooterButtonWidth("Register", "Enter", true),
-                V6ResultLogic.FooterButtonWidth("Retry", "R", true),
+                V6ResultLogic.FooterOkButtonW,
+                V6ResultLogic.FooterRegisterButtonW,
+                V6ResultLogic.FooterRetryButtonW,
             };
             float[] xs = V6ResultLogic.FooterButtonXs(widths);
             var footerOrigin = new Vector2(24f, 876f);

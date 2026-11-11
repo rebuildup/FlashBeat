@@ -127,7 +127,17 @@ namespace FlashBeat.UI.V6.Result
         public const float FooterButtonH = 56f;
         public const float FooterButtonGap = 16f;
         public const float FooterLegendY = 30f;
-        public const float FooterLegendGap = 16f;
+
+        /// <summary>フッター凡例の項目間 gap (design zcSHh Zone · キー操作 gap24)。</summary>
+        public const float FooterLegendGap = 24f;
+
+        /// <summary>
+        /// フッター右ボタンの design 幅 (zcSHh の各 Op フレームに固定値が入っている)。
+        /// 内容から逆算すると Latin の送り幅の推定誤差で広がるため、正本の固定値をそのまま使う。
+        /// </summary>
+        public const float FooterRetryButtonW = 220f;
+        public const float FooterRegisterButtonW = 273f;
+        public const float FooterOkButtonW = 273f;
 
         /// <summary>
         /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x。
@@ -164,10 +174,11 @@ namespace FlashBeat.UI.V6.Result
         public static readonly string[] LegendKeys = { "R", "Enter", "Space" };
         public static readonly string[] LegendLabels = { "リトライ", "登録", "決定" };
 
-        /// KeyCap 幅 (契約 §4: Key fs22 / padding [0,10]。短キーは 56 の下限)。
+        /// KeyCap 幅 (design zcSHh の Legend KeyCap: Key fs22 / padding [0,8] / 下限なし)。
+        /// 実測 (R = 30px) から 56 の下限は正本に無いと分かる。
         public static float KeyCapWidth(string key)
         {
-            return Mathf.Max(56f, Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * 22f) + V6Ui.KeyCapPaddingX * 2f);
+            return Mathf.Max(1f, Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * 22f) + Common.V6Controls.ButtonKeyCapPaddingX * 2f);
         }
 
         /// 凡例 1 項目の幅 (KeyCap + gap8 + Label fs22)。
@@ -186,20 +197,6 @@ namespace FlashBeat.UI.V6.Result
             }
 
             return end - FooterLegendGap;
-        }
-
-        /// <summary>
-        /// フッター右ボタンの幅 (契約 §4 Button: padding [0,24] / icon 32 + gap12 /
-        /// Label fs30 / gap12 / KeyCap)。Label の字形幅は上側推定なので保険 +8 を足す。
-        /// </summary>
-        public static float FooterButtonWidth(string label, string keyCap, bool hasIcon)
-        {
-            return 24f * 2f
-                + (hasIcon ? 32f + 12f : 0f)
-                + Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * 30f)
-                + 12f
-                + KeyCapWidth(keyCap)
-                + 8f;
         }
 
         /// 幅をフッター右端から gap16 で右寄せ横並びしたときの各ボタン左端 x (design, フッター内)。

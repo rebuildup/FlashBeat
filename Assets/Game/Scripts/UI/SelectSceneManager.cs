@@ -307,7 +307,7 @@ public class SelectSceneManager : MonoBehaviour
         {
             rankingView.MoveSelection(1);
         }
-        else if (Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online、ビュー固有の固定ショートカット)
+        else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online)。design (S1TZD) の凡例は Tab、S は既存の固定ショートカットとして残す
         {
             rankingView.ToggleSource();
         }
