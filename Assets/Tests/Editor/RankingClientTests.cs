@@ -148,6 +148,39 @@ namespace FlashBeat.Tests.Editor
             Assert.IsNull(RankingClient.LeaderboardUrl("Bad", 1));
         }
 
+        /// <summary>
+        /// 出荷する Resources/CloudCatalogConfig.json が本番ホストを指し、有効であること。
+        /// ローカル Worker (`http://localhost:5173`) での検証 (#134) の値を残したまま
+        /// 候補を作ると、Register が本番に届かず「オフライン」になる。
+        /// `RankingClient.Origin()` だけを見ると、config が無い / 壊れている / enabled=false の
+        /// ときも本番へフォールバックして素通りする (カタログ側は config を直接読むため、
+        /// その状態では公開カタログが読まれない)。よって資源そのものを読んで検査する。
+        /// </summary>
+        [Test]
+        public void ShippedConfig_NamesTheProductionHostAndIsEnabled()
+        {
+            const string ProductionOrigin = "https://flashbeat.rebuildup.dev";
+
+            TextAsset asset = Resources.Load<TextAsset>(RankingClient.ConfigResourceName);
+            Assert.IsNotNull(asset, "Resources/CloudCatalogConfig.json が見つかりません");
+
+            ShippedCloudCatalogConfig shipped = JsonUtility.FromJson<ShippedCloudCatalogConfig>(asset.text);
+            Assert.IsNotNull(shipped, "Resources/CloudCatalogConfig.json を解釈できません");
+            Assert.IsTrue(shipped.enabled, "CloudCatalogConfig.enabled が false です (公開カタログが読まれません)");
+            Assert.AreEqual(ProductionOrigin, (shipped.baseUrl ?? string.Empty).Trim().TrimEnd('/'),
+                "CloudCatalogConfig.baseUrl が本番ホストと一致しません (ローカル検証用の URL が残っていませんか)");
+            Assert.AreEqual(ProductionOrigin, RankingClient.DefaultOrigin,
+                "RankingClient.DefaultOrigin が本番ホストと一致しません");
+        }
+
+        // Resources/CloudCatalogConfig.json のうち、このテストが見る項目だけを持つ受け皿。
+        [Serializable]
+        class ShippedCloudCatalogConfig
+        {
+            public bool enabled;
+            public string baseUrl;
+        }
+
         [Test]
         public void IsValidSongId_FollowsTheServerPattern()
         {

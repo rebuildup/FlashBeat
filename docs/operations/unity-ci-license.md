@@ -2,18 +2,27 @@
 
 対象: `.github/workflows/build-win64.yml` (GitHub-hosted `windows-latest` ランナー)
 
-## 現状 (2026-11-08 監査結果)
+## 現状 (2026-11-11 再確認)
 
-- 2026-11-08 時点の監査では、登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ**で、
-  `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**だった。
+- 2026-11-11 時点で登録されている Unity 用 Secret は **`UNITY_LICENSE` のみ**
+  (`gh api repos/rebuildup/FlashBeat/actions/secrets` の名前一覧で確認)。
+  `UNITY_EMAIL` / `UNITY_PASSWORD` / `UNITY_SERIAL` は **未登録**。
   ただしこの状態は **登録直後に変わる** ので、Secret の有無を固定の前提にして
   書いてはいけない。以降の挙動は「登録されているか」に応じて変わる。
+- 直近の main push ビルド 6 件 (2026-11-10〜11) は **すべて `ライセンス設定の確認` で failure、
+  `Win64 ビルド` は skipped**。Unity は 1 度も起動していない = コードの問題ではない。
 - **Secret が未設定の場合** (アカウント認証も `.ulf` も無い):
   `license-precheck` ジョブは **期待どおりに blocker として fail する**
   (Unity を 1 度も起動する前に落ちる)。CI が緑になることは期待しない。
 - **Secret が設定済みで `UNITY_EMAIL` / `UNITY_PASSWORD` が揃っている場合**:
   `license-precheck` は成功し、`build` ジョブは **アカウント認証**でライセンスを
-  取得する (この 2 つが揃えば `UNITY_LICENSE` は不要)。CI が緑になる。
+  取得する (この 2 つが揃えば `UNITY_LICENSE` は不要)。
+  アカウント認証 (`-username` / `-password`) は Unity 6 の CLI 引数として今も存在する
+  (Unity 6 Manual "Editor command line arguments")。**ただし GitHub-hosted runner 上で
+  Unity 6000.5 + Personal アカウントの認証が通ることは、このリポジトリではまだ実測していない。**
+  2FA / SSO が有効なアカウント、または同時アクティベーション数の上限に当たる場合は
+  認証で止まる。そのときは `build` ジョブの「Unity ライセンスを適用」ログの末尾 60 行を
+  そのまま記録する (推測で Secret を増やさない)。
 - **Secret が設定済みでも `UNITY_EMAIL` / `UNITY_PASSWORD` が未登録で `.ulf` だけの場合**:
   `license-precheck` は **機械紐付け不一致** として fail する。理由:
   GitHub-hosted ランナーに `.ulf` (Unity 人工ライセンス XML) だけを渡す方式は
@@ -24,8 +33,11 @@
   ```
 
   → **Actions の secret には「ライセンスのあり/なし」しか持てない**。CI 側での回避は不可能。
-- したがって **CI が緑になるのは、オーナーが `UNITY_EMAIL` / `UNITY_PASSWORD` を Secret 登録した後のみ**
+- したがって **CI が緑になり得るのは、オーナーが `UNITY_EMAIL` / `UNITY_PASSWORD` を Secret 登録した後だけ**
   (この 2 つが揃えば `UNITY_LICENSE` は不要。ワークフローはアカウント認証を優先する)。
+  ただし登録は「緑の保証」ではなく **前提条件**。アカウント認証そのものが hosted runner で
+  通るかは未実測 (§現状) で、2FA / SSO / 同時アクティベーション上限では止まりうる。
+  認証が通れば、以降の EditMode / ビルドの失敗はソース側の問題として切り分けられる。
 - **Secret の値 (ライセンスファイルの中身・パスワード・シリアル) は、このドキュメントにも
   CI ログにも一切記録しない**。名前と挙動だけを扱う。
 
@@ -73,6 +85,18 @@ Settings → **Secrets and variables → Actions** → **New repository secret**
    で認証する。ワークフローは **アカウント認証を優先** する (`.ulf` が同時に設定されていても)。
 
 Personal (無料) でも Unity Hub でアカウントを作り、同じ 2 つの Secret を登録すればよい。
+登録後に `build` ジョブの `Unity ライセンスを適用` ステップが通るかで判定する
+(通らないときは下の「失敗時の記録」)。
+
+### アカウント認証が通らないときの記録 (推測で Secret を増やさない)
+
+`license-precheck` は通るのに `Unity ライセンスを適用` で失敗した場合は、次を残す:
+
+- run の URL と日時、失敗したステップ名 (`Unity ライセンスを適用`)
+- ログ末尾 60 行のうち `[Licensing::` / `Error` を含む行 (**メール・パスワード・シリアルは貼らない**)
+- アカウントの状態: 2FA / SSO の有無、同時サインイン端末数 (席位の上限に当たっていないか)
+
+この 3 点が揃うまで `UNITY_SERIAL` の追加や `.ulf` の再発行はしない (原因が別の可能性がある)。
 
 ### (B) `.ulf` 手動発行 (フォールバック・GitHub-hosted では期待どおりに失敗する)
 

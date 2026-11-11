@@ -96,6 +96,13 @@
 5. Option を開き、4 タブ (Play / Display / Sound / Data) の表示と操作を確認する (#241)
 6. 実ディスプレイ全画面のスクリーンショットと `Player.log` を保存する (§3.6)
 
+受入とは独立した **Secret 依存の作業は 1 つだけ**です (やらなくても受入は進みます):
+GitHub の Settings → Secrets and variables → Actions に `UNITY_EMAIL` と `UNITY_PASSWORD` を
+登録すると、`build-win64` が Unity の認証を **試行** できます (§6 /
+[`unity-ci-license.md`](unity-ci-license.md))。hosted runner でこの認証が通るかは
+まだ実測していないため、失敗したときは `Unity ライセンスを適用` のログ末尾 60 行を保存してください
+(値・メールは貼らない)。値はどこにも書かず、Secret としてのみ登録します。
+
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
 
@@ -175,7 +182,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | 3 | 同一 artifact で 1 曲完走 (#233) | **未実施** | オーナー | `operation-log.md` (§2 の 1 曲完走) / 場面スクショ / `Player.log` |
 | 4 | 人間による音声聴取 | **未実施** (信号レベルのみ) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
 | 5 | Register のオンライン送信 (#134) | ローカル API での契約確認まで。**本番書き込みは未実施** | オーナー (承認後) | [`register-online-acceptance.md`](register-online-acceptance.md) の手順と記録 |
-| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 |
+| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 (再表示 + **再起動後**の値) |
 
 補足:
 - 1 / 2 は「その解像度の実ディスプレイ + 実フルスクリーン」でのみ有効 (ウィンドウリサイズは不可)。
@@ -183,6 +190,11 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
   FHD / 2K は存在しない。
 - 3 / 4 / 6 は 1 曲完走の 1 回の操作でまとめて記録できる (`collect-win-evidence.ps1` の
   `operation-log.md` がその記入欄)。
+- 6 の保存方向は、コード側では EditMode で固定済み (`V6OptionWiringTests` の
+  `PlayTab_ChangesReachTheRealApiAndAreSaved` / `DisplayTab_…` / `SoundTab_…`)。
+  ただしこれは画面操作を通らないため、実機では
+  **「画面で変える → 戻る → もう一度開く → アプリを終了して再起動し、値が残っているか」** まで見る。
+  再表示だけでは `GManager` のメモリ上の値でも合格できてしまい、保存 (PlayerPrefs) の証拠にならない。
 - 5 は本番 D1 に残る (削除 API なし)。1 回だけ、名前は `ACCEPT`。
 
 ## 3. 実機での受入手順 (3 解像度)
@@ -339,11 +351,13 @@ PR で走るライセンス不要の検証は `verify` (リポジトリ整合性
 | `UNITY_LICENSE` (`.ulf`) | 代替 | 登録元マシンに固定される。hosted runner では実質不可 |
 | `UNITY_SERIAL` | 代替 (Pro/Plus) | シリアル認証を使う場合 |
 
-登録後の期待結果:
+登録後の期待結果 (**認証が通るかは未実測**):
 
-- `ライセンス設定の確認` ステップが成功し、続く `BuildScript.BuildStandaloneWindows64` /
-  `BuildStandaloneMacOS` が実行されて artifact が残る
-- 失敗が続く場合は run ログの `[Licensing::...]` 行を確認する (値を Issue に貼らない)
+- `ライセンス設定の確認` ステップが成功し、`Unity ライセンスを適用` が実行される
+- 認証が通れば、続く `BuildScript.BuildStandaloneWindows64` / `BuildStandaloneMacOS` が
+  実行されて artifact が残る
+- 認証で止まる場合は run ログの `[Licensing::` 行と、最終行 60 行を記録する
+  (メール・パスワード・シリアルは貼らない)
 
 登録・値の管理は**オーナー**が行う。secret の値はログ・Issue・PR に出さない。
 手順の詳細は `docs/operations/unity-ci-license.md` を参照。
