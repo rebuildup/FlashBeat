@@ -87,6 +87,25 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(expectedY + 70f, DesignTopLeft(desc).y, 0.01f, "Desc は Divider +70");
         }
 
+        // --- Desc の行送り (design lineHeight 1.4) ---
+
+        [Test]
+        public void DescLines_UseTheDesignLinePitch()
+        {
+            // r24 実機: Desc の 2 行目が design より 9〜10px 下に出てパネル下端 (688) に
+            // 食い込んでいた。V6Controls.Text は 1 行描画用に lineSpacing を -44.8 (fs 分の
+            // 行送り) にしており、40 を上書きすると 34.75 + 24×0.40 = 44.35px になる。
+            // design 実測 (Data タブ 457→492) は 35px。
+            var view = CreateView();
+            view.SelectTabForAudit(3); // Data は 2 行の説明
+            var desc = TextUnder(view.Root, "Main/Preview/Desc");
+            desc.ForceMeshUpdate(true, true);
+            Assert.GreaterOrEqual(desc.textInfo.lineCount, 2, "Data タブの説明は design でも 2 行");
+            float pitch = Mathf.Abs(desc.textInfo.lineInfo[1].baseline - desc.textInfo.lineInfo[0].baseline);
+            Assert.AreEqual(34.75f, pitch, 1.5f,
+                "行送り = design lineHeight 1.4 (fs24)。40 を足すと 44.35 になり design より 9px 下がる");
+        }
+
         // --- Display: 判定色の凡例 (design EzLfb Judge PERFECT..MISS) ---
 
         [Test]

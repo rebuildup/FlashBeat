@@ -816,8 +816,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             descRt.anchoredPosition = new Vector2(24f, -614f);
             descRt.sizeDelta = new Vector2(464f, 68f);
             // design Desc (fs24 / lineHeight 1.4) は 464 幅で 2 行折り返し。
+            // V5Ui.Text は 1 行描画用に lineSpacing を -44.8 (fs 分) にしているので、
+            // 40 を足すと行送り 34.75 + 24×0.40 = 44.35px になり、design 実測 (uDNC0:
+            // 621→659 = 38px) より 2 行目が 11px 下がる (r24 実機)。0 で 34.75px。
             desc.textWrappingMode = TextWrappingModes.Normal;
-            desc.lineSpacing = 40f;
+            desc.lineSpacing = 0f;
         }
 
         /// <summary>design: 464×280 のゲームプレビュー (8 レーンの遠近線 + ノーツ + 判定線 + レーン番号)。</summary>

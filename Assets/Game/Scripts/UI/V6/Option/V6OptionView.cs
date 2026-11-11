@@ -848,7 +848,11 @@ namespace FlashBeat.UI.V6.Option
                 new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
                 24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
                 TextWrappingModes.Normal);
-            desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP lineSpacing は fs 比の追加率: 24×0.4=9.6px → 40%)
+            // design lineHeight 1.4 (fs24 → 33.6px)。TMP の lineSpacing は fs への追加率で、
+            // 40 にすると行送りが 34.75 + 24×0.40 = 44.35px になり、design 実測 (Data タブの
+            // 2 行目: 457→492 = 35px) より 9px 下へずれて 2 行目がパネル下端 (688) に
+            // 食い込んでいた (r24 実機)。0 (フォント本来の 34.75px) が design 実測と一致する。
+            desc.lineSpacing = 0f;
         }
 
         private Row SelectedRowDesc()
