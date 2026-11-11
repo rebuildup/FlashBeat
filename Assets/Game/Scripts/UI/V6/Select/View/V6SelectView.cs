@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Select.View
 {
@@ -49,8 +50,6 @@ namespace FlashBeat.UI.V6.Select.View
         private readonly Action onReady;
         private readonly Action onBack;
         private readonly Action onOpenSettings;
-
-        private readonly Dictionary<string, Sprite> jacketCache = new Dictionary<string, Sprite>();
 
         private GameObject rootGo;
         private RectTransform frame;
@@ -212,15 +211,16 @@ namespace FlashBeat.UI.V6.Select.View
             // メニュー操作は KeyActions (キー設定の正本, #142) 経由で拾う。
             // v5 SelectView と同じ短縮キーを維持する: ↑↓ / ←→ (NavPrev/NavNext) で
             // 曲送り、Confirm (既定 Space) と Enter/KeypadEnter で Ready、
-            // Back (既定 Esc) で戻る。Tab (検索フォーカス) と F (絞り込み) は
-            // KeyActions に無い v6 固定ショートカットなので raw KeyCode のまま。
+            // Back (既定 Esc) で戻る。Tab (未プレイのみの絞り込み) は KeyActions に
+            // 無い v6 固定ショートカットなので raw KeyCode のまま。
+            // 検索は正本 OENRv の凡例どおり「A-Z を押すと開始」。
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavPrev);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || KeyActions.IsDown(KeyActions.KeyAction.NavNext);
             bool confirm = KeyActions.IsDown(KeyActions.KeyAction.Confirm)
                 || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
             bool cancel = KeyActions.IsDown(KeyActions.KeyAction.Back);
-            bool toggleSearch = Input.GetKeyDown(KeyCode.Tab);
-            var action = V6SelectViewLogic.MapKey(searchFocused, up, down, confirm, cancel, toggleSearch);
+            bool tab = Input.GetKeyDown(KeyCode.Tab);
+            var action = V6SelectViewLogic.MapKey(searchFocused, up, down, confirm, cancel, tab);
 
             switch (action)
             {
@@ -253,9 +253,8 @@ namespace FlashBeat.UI.V6.Select.View
                         onBack();
                     }
                     return;
-                case V6SelectAction.FocusSearch:
-                    searchFocused = true;
-                    Rebuild();
+                case V6SelectAction.ToggleFilter:
+                    ToggleUnplayedFilter();
                     return;
             }
 
@@ -270,14 +269,20 @@ namespace FlashBeat.UI.V6.Select.View
                 return;
             }
 
+            // 正本 OENRv: 英字 (A-Z) を押すと検索欄に入る。制御文字は対象外。
+            string typed = Input.inputString;
+            char seed = V6SelectViewLogic.SearchSeed(typed);
+            if (seed != '\0')
+            {
+                searchFocused = true;
+                data.SetQuery(V6SelectViewLogic.ApplySearchInput("", seed.ToString()));
+                Rebuild();
+                return;
+            }
+
             if (KeyActions.IsDown(KeyActions.KeyAction.Option)) // 既定 O (#142)
             {
                 OpenSettings();
-            }
-
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                ToggleUnplayedFilter();
             }
         }
 
@@ -391,11 +396,13 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 if (onBack != null) onBack();
             });
-            V6Icons.Create(back, "arrow-left", 22f, V5Tokens.TextMuted);
-            var backKey = V5GameUi.Text(back, "Key",
-                FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back), 13f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Center);
-            At(backKey, 0f, 32f, backRect.W, 18f);
+            // 設計 OENRv: ヘッダー左端 (フレーム (24,20))。At を忘れると
+            // V5Ui.Panel の既定 (親の中央) に落ち、検索欄の左に Esc が出る。
+            At(back, backRect.X, backRect.Y);
+            // 正本 zCQBY: arrow-left 24 @(16,4) + Key "Esc" fs16 @(15,30)。
+            // アイコンを中央寄せすると Key と重なるので専用配置 (共通部品)。
+            V6Controls.FillBackButton(back,
+                FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back));
 
             var title = V5GameUi.Text(header.gameObject, "Title", "選曲", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
@@ -609,7 +616,8 @@ namespace FlashBeat.UI.V6.Select.View
 
             BuildScrollButton(list, "Scroll Up", false);
             BuildScrollButton(list, "Scroll Down", true);
-            BuildListHint(list, songs, selectIndex);
+            // 正本 OENRv のリスト下端はスクロールボタンとドットのみ。
+            // 「1 / 28」のような選択位置テキストは設計に無いので描かない。
             BuildDots(list, songs, selectIndex);
         }
 
@@ -658,27 +666,6 @@ namespace FlashBeat.UI.V6.Select.View
             var btn = Button(list, name, rect.W, rect.H, 8f, V5Tokens.Key4, () => ScrollList(down ? 1 : -1));
             At(btn, rect.X, rect.Y);
             V6Icons.Create(btn, down ? "chevron-down" : "chevron-up", 24f, V5Tokens.TextMuted);
-        }
-
-        /// <summary>
-        /// 曲リスト下端のヒント (選択位置)。下矢印ボタンの左に置 sehingga、
-        /// ボタンに潜って読めないことがない。
-        /// </summary>
-        private void BuildListHint(GameObject list, IReadOnlyList<V6SongEntry> songs, int selectIndex)
-        {
-            var rect = V6SelectViewLogic.ListBottomHint();
-            var hint = V5GameUi.Text(list, "Hint", ListHintText(songs, selectIndex), 18f, V5Tokens.TextMuted,
-                TextAlignmentOptions.Left);
-            Ellipsis(hint);
-            // fs18 × 1.448 ≒ 26 → design の h24 だと Ellipsis が無描画になるため 28 に持ち上げる。
-            At(hint, rect.X, rect.Y, rect.W, 28f);
-        }
-
-        /// <summary>曲リスト下端のヒント文 (選択位置 / 曲数)。</summary>
-        private static string ListHintText(IReadOnlyList<V6SongEntry> songs, int selectIndex)
-        {
-            int position = selectIndex >= 0 ? selectIndex + 1 : 0;
-            return $"{position} / {songs.Count}";
         }
 
         /// <summary>
@@ -1104,32 +1091,10 @@ namespace FlashBeat.UI.V6.Select.View
             return query.Length > 0 ? query : "タイプして検索";
         }
 
-        /// <summary>Resources.Load 用に拡張子を取り除く ("a/b.jpg" → "a/b")。</summary>
-        private static string ResourcePathWithoutExtension(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return path;
-            int dot = path.LastIndexOf('.');
-            int slash = path.LastIndexOf('/');
-            if (dot > 0 && dot > slash) return path.Substring(0, dot);
-            return path;
-        }
-
         private void SetJacket(GameObject thumbPanel, V6SongEntry song)
         {
             var img = thumbPanel.GetComponent<Image>();
-            Sprite sprite = null;
-            if (song != null && !string.IsNullOrEmpty(song.JacketResourcePath))
-            {
-                if (!jacketCache.TryGetValue(song.JacketResourcePath, out sprite) || sprite == null)
-                {
-                    // Resources.Load は拡張子なしの相対パスで解決する
-                    // ("V6/select/jacket/01-rosen" 形式)。
-                    var tex = Resources.Load<Texture2D>(ResourcePathWithoutExtension(song.JacketResourcePath));
-                    sprite = tex == null ? null : Sprite.Create(tex,
-                        new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                    jacketCache[song.JacketResourcePath] = sprite;
-                }
-            }
+            Sprite sprite = song == null ? null : V6JacketResources.LoadSprite(song.SongId, song.Title);
 
             if (sprite != null)
             {

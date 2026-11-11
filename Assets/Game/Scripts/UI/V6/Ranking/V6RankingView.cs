@@ -346,10 +346,7 @@ namespace FlashBeat.UI.V6.Ranking
             var backZone = At(V5Ui.Node(headerZone, "Zone Back"), 0f, 20f);
             var back = MakeButton(V5Ui.Panel(backZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
                 () => TriggerBack());
-            var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
-            Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            V6Icons.Create(backCol.gameObject, "arrow-left", 24f, V5Tokens.TextMuted, "Icon");
-            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            V6Controls.FillBackButton(back, "Esc");
 
             var title = V5GameUi.Text(headerZone, "Title", "RANKING", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
@@ -390,6 +387,9 @@ namespace FlashBeat.UI.V6.Ranking
             var cell = V5Ui.Node(header, "Stat " + label);
             At(cell.GetComponent<RectTransform>(), x, 17f, 100f, 62f);
             var col = V5GameUi.Column(cell, "Inner", 2f, TextAnchor.MiddleLeft);
+            // 子の幅は TMP の preferredWidth に従わせる。childControlWidth=false のままだと
+            // 既定の矩形幅 (200) のまま 100 幅のセルから右へはみ出す。
+            col.childControlWidth = true;
             Stretch(col.GetComponent<RectTransform>(), 100f, 62f);
             V5GameUi.Text(col.gameObject, "Label", label, 16f, V5Tokens.TextDim, TextAlignmentOptions.Left);
             V5GameUi.Text(col.gameObject, "Value", value, 24f, V5Tokens.Text, TextAlignmentOptions.Left,

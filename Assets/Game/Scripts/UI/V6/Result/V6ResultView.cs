@@ -43,8 +43,8 @@ namespace FlashBeat.UI.V6.Result
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
-        // メインゾーン: 共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
-        // (旧実装は x=164 w=1400 に狭め、右カラムがフレーム右端から 180px 内側に寄っていた)
+        // メインゾーン: 正本 zcSHh は共有フレームの Main を 5 列 ((164,96) 1400x780) に
+        // 差し替える。共有フレームの 6 列 1680 を使うと右カラムが design より 156px 外へ出る。
         // 定数は V6ResultLogic.MainX..MainH / RankX (テストと共有)。
 
         // 結果 (列1-3) (0,24) 840x280。
@@ -64,7 +64,7 @@ namespace FlashBeat.UI.V6.Result
 
         // 楽曲情報 (0,636) 840x120 の寸法は V6ResultLogic.SongInfo* (テストと共有)。
 
-        // ランキング (列4-5, Main 右端に右寄せ → V6ResultLogic.RankX = 1152)。
+        // ランキング (列4-5, Main 内 x=856 → V6ResultLogic.RankX)。
         private const float SongRankY = 24f, SongRankH = 412f;
         private const float PlayerRankY = 452f, PlayerRankH = 304f;
         private const int SongRankVisibleRows = 6;
@@ -333,21 +333,17 @@ namespace FlashBeat.UI.V6.Result
             }
         }
 
-        // --- ヘッダー (x24 y0 1680x96): 戻る + RESULT ---
+        // --- ヘッダー (x24 y0 1680x96): RESULT (design の戻るゾーンは空) ---
 
         private void BuildHeader()
         {
             var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
 
-            var backZone = At(V5Ui.Node(header, "Zone Back"), 0f, 20f);
-            var back = Button(backZone, "Back Button", 56f, 56f, 8f, V5Tokens.Key4, onSelect);
-            var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
-            Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            var backIcon = V6Icons.Create(backCol.gameObject, "chevron-left", 22f, V5Tokens.TextMuted, "Icon");
-            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 13f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-
-            // design zcSHh の Title ノード (72,20) fs38: 文字列は "FlashBeat"。
-            var title = V5GameUi.Text(header.gameObject, "Title", "FlashBeat", 38f, V5Tokens.Text,
+            // design (zcSHh/biox4) の戻るゾーンは中身が空のプレースホルダなので、
+            // ヘッダーに Esc ボタンは描かない (戻るはフッターの OK / Esc キー)。
+            // design zcSHh/aqq3q の Title (72,20) 185x56 fs38: 文字列は "RESULT"
+            // (全画面のヘッダーは画面名を出す。Title 画面だけ "FlashBeat")。
+            var title = V5GameUi.Text(header.gameObject, "Title", "RESULT", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             At(title, 72f, 20f, 400f, 56f, new Vector2(0f, 0.5f));
         }
@@ -373,9 +369,8 @@ namespace FlashBeat.UI.V6.Result
         {
             var block = At(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, GradeBoxH);
 
-            // 可読性: 文字が乗る Result Block の内側だけ薄いスクリーン (全面は覆わない)。
-            Scrim(block);
-
+            // design (B7Ko8) は fill なし (背景パネルを敷かない)。以前あった可読性目的の
+            // スクリーンは設計に無く、デザインとの差分になっていたので描かない。
             var gradeBox = At(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
             gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);
@@ -432,9 +427,7 @@ namespace FlashBeat.UI.V6.Result
         {
             var block = At(V5Ui.Node(main, "Judgements"), 0f, JudgeY, 840f, JudgeCellH);
 
-            // 可読性: 判定ラベル / 数値が乗る領域だけ薄いスクリーン (全面は覆わない)。
-            Scrim(block);
-
+            // design (EpX3e) は fill なし。可読性目的のスクリーンは設計に無いため描かない。
             string[] labels = { "Perfect", "Great", "Bad", "Miss", "Combo" };
             for (int i = 0; i < labels.Length; i++)
             {
@@ -1452,30 +1445,7 @@ namespace FlashBeat.UI.V6.Result
             return lengths[idx];
         }
 
-        // --- ジャケット (V6SelectDataSource.JacketResourcePathOf と同じ対応表。
-        //     Select/** は編集不可のため Result 側に同じ写しを置く) ---
-
-        private static readonly Dictionary<int, string> JacketFiles = new Dictionary<int, string>
-        {
-            { 1, "01-rosen.jpg" }, { 2, "02-mani.jpg" }, { 3, "03-who.jpg" }, { 4, "04-tweet.jpg" },
-            { 5, "05-shuumatsu.jpg" }, { 6, "06-euta.jpg" }, { 7, "07-chartreuse.jpg" }, { 8, "08-psyched.jpg" },
-            { 9, "09-dogbite.jpg" }, { 10, "10-tutorial.jpg" }, { 11, "11-kyoukiranmai.jpg" },
-            { 12, "12-poison.jpg" }, { 13, "13-selfie.jpg" }, { 14, "14-4thsmile.jpg" },
-            { 15, "15-calamity.jpg" }, { 16, "16-panopticon.jpg" }, { 17, "17-guru.jpg" }, { 18, "18-abun.jpg" },
-            { 19, "19-mushin.jpg" }, { 20, "20-haruarashi.jpg" }, { 21, "21-bibibibi.jpg" },
-            { 23, "23-override.jpg" }, { 24, "24-igaku.jpg" }, { 25, "25-tekkyu.jpg" }, { 26, "26-ikken.jpg" },
-        };
-
-        private static string JacketResourcePathOf(int songId)
-        {
-            string file;
-            if (JacketFiles.TryGetValue(songId, out file))
-            {
-                return "V6/select/jacket/" + file;
-            }
-
-            return "";
-        }
+        // --- ジャケット (解決は V6JacketResources に一本化) ---
 
         private static void SetThumb(Image thumb, SongData song)
         {
@@ -1484,18 +1454,7 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
-            Sprite sprite = null;
-            string path = JacketResourcePathOf(song.id);
-            if (!string.IsNullOrEmpty(path))
-            {
-                var tex = Resources.Load<Texture2D>(path);
-                if (tex != null)
-                {
-                    sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height),
-                        new Vector2(0.5f, 0.5f), 100f);
-                }
-            }
-
+            Sprite sprite = V6JacketResources.LoadSprite(song.id, song.title);
             if (sprite != null)
             {
                 thumb.type = Image.Type.Simple;
@@ -1578,24 +1537,6 @@ namespace FlashBeat.UI.V6.Result
         private static Color Clear()
         {
             return new Color(0f, 0f, 0f, 0f);
-        }
-
-        /// <summary>
-        /// 親いっぱいに広がる薄い暗色スクリーン ($scrim #00000099、raycast なし)。
-        /// 全面背景は敷かない代わりに、文字が乗る領域の可読性を確保する。
-        /// </summary>
-        private static void Scrim(GameObject parent)
-        {
-            var scrim = new GameObject("Scrim", typeof(RectTransform), typeof(Image));
-            scrim.transform.SetParent(parent.transform, false);
-            var image = scrim.GetComponent<Image>();
-            image.color = V6Tokens.Scrim;
-            image.raycastTarget = false;
-            var rt = scrim.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
         }
 
         private static Color FromHex(string hex)

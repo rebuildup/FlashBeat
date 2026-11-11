@@ -212,38 +212,25 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         // --- 曲リスト下端 ---
 
         [Test]
-        public void ListBottomHint_DoesNotOverlapScrollDownButton()
-        {
-            V6Rect hint = V6SelectViewLogic.ListBottomHint();
-            V6Rect down = V6SelectViewLogic.ListScrollButton(true);
-
-            Assert.IsFalse(hint.Overlaps(down), "the list hint overlaps the down arrow button");
-            Assert.GreaterOrEqual(down.X - hint.Right, 8f, "the list hint needs a gap from the down arrow button");
-        }
-
-        [Test]
-        public void ListRows_StayAboveTheScrollButtonsAndTheHint()
+        public void ListRows_StayAboveTheScrollButtons()
         {
             V6Rect first = V6SelectViewLogic.ListRowRect(0);
             V6Rect last = V6SelectViewLogic.ListRowRect(V6SelectViewLogic.ListVisibleRows - 1);
             V6Rect up = V6SelectViewLogic.ListScrollButton(false);
             V6Rect down = V6SelectViewLogic.ListScrollButton(true);
-            V6Rect hint = V6SelectViewLogic.ListBottomHint();
 
             Assert.IsFalse(up.Overlaps(first), "the up arrow button overlaps the first row");
             Assert.IsFalse(last.Overlaps(down), "the last row overlaps the down arrow button");
-            Assert.IsFalse(last.Overlaps(hint), "the last row overlaps the list hint");
             Assert.LessOrEqual(last.Bottom, down.Y, "the rows must end above the down arrow button");
         }
 
         [Test]
-        public void ListBottomHintAndButtons_StayInsideTheListPanel()
+        public void ListScrollButtons_StayInsideTheListPanel()
         {
             V6Rect list = ListLocal();
 
             Assert.IsTrue(list.Contains(V6SelectViewLogic.ListScrollButton(true)));
             Assert.IsTrue(list.Contains(V6SelectViewLogic.ListScrollButton(false)));
-            Assert.IsTrue(list.Contains(V6SelectViewLogic.ListBottomHint()));
         }
 
         // --- 3 解像度で破綻しない根拠 ---
@@ -284,7 +271,6 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.IsTrue(frame.Contains(V6SelectViewLogic.ToFrame(footer, V6SelectViewLogic.FooterSettings())));
             Assert.IsTrue(frame.Contains(V6SelectViewLogic.ToFrame(footer, V6SelectViewLogic.FooterReady())));
             Assert.IsTrue(frame.Contains(V6SelectViewLogic.ToFrame(list, V6SelectViewLogic.ListScrollButton(true))));
-            Assert.IsTrue(frame.Contains(V6SelectViewLogic.ToFrame(list, V6SelectViewLogic.ListBottomHint())));
         }
 
         [Test]

@@ -39,8 +39,17 @@ namespace FlashBeat.UI.V6
         /// </summary>
         public static float KeyCapFontSize(float capWidth, float capHeight, string label)
         {
+            return KeyCapFontSize(capWidth, capHeight, label, KeyCapPaddingX);
+        }
+
+        /// <summary>
+        /// 左右パディング指定版。<see cref="V6Controls.ButtonKeyCapPaddingX"/> (8) のように
+        /// 正本の Cap が [0,8] の箇所で使う。
+        /// </summary>
+        public static float KeyCapFontSize(float capWidth, float capHeight, string label, float paddingX)
+        {
             float byHeight = capHeight * KeyCapFontSizeRatio;
-            float available = capWidth - KeyCapPaddingX * 2f;
+            float available = capWidth - paddingX * 2f;
             float em = LabelAdvanceEm(label);
             if (em <= 0f || available <= 0f)
             {

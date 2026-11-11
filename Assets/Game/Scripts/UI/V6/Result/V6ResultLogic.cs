@@ -112,10 +112,12 @@ namespace FlashBeat.UI.V6.Result
         //     V6ResultView の構築と EditMode 配置テスト (V6ResultFramePlacementTests) で
         //     共有する純定数・純関数。 ---
 
-        /// メインゾーン: 共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
-        public const float MainX = 24f;
+        /// メインゾーン: 正本 zcSHh は **共有フレームの Main を 5 列に差し替える**
+        /// ((164,96) 1400×780 = 280×5)。共有フレーム §4 の 6 列 1680 をそのまま
+        /// 使うと、右のランキング 2 枚が 156px 外へ出てデザインと一致しない。
+        public const float MainX = 164f;
         public const float MainY = 96f;
-        public const float MainW = 1680f;
+        public const float MainW = 1400f;
         public const float MainH = 780f;
 
         /// フッターゾーン (24,876) 1680x96 (契約 §4)。
@@ -129,12 +131,11 @@ namespace FlashBeat.UI.V6.Result
 
         /// <summary>
         /// 右カラム (ランキング 2 枚, 幅 528) の Main 内左端 x。
-        /// フレーム右端 (1728) ではなく Main の右端 (フレーム x 1704 = フッター右端) に
-        /// 右寄せする: rankLeft = MainX + RankX = 1176, 右端 = 1176 + 528 = 1704。
-        /// 旧値 (MainX + MainW - 528 = 1176) は Main 相対 x に MainX を二重加算して
-        /// 右端がフレーム外 (1728) にはみ出していた。
+        /// 正本 zcSHh の "曲別ランキング" / "登録名ランキング" は Main 内 (856,24) /
+        /// (856,452) で、右端は 856 + 528 = 1384 (フレーム x 1548 = Main 右端 1564 の 16px 内側)。
+        /// Main 幅から 528 を引いただけ (872) では 16px 右へずれるため、その内側余白 16 も引く。
         /// </summary>
-        public const float RankX = MainW - 528f;
+        public const float RankX = MainW - 528f - 16f;
 
         /// 楽曲情報バンド (Main 内 (0,636)) 840x120 と子要素の配置 (design zcSHh)。
         /// Stat を y56 (design の y20 ではなく) に置くのは、実データの曲名

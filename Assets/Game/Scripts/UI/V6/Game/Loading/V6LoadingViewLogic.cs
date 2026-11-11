@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace FlashBeat.UI.V6.Game.Loading
 {
@@ -95,33 +94,15 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         // --- ジャケット (Issue #224) ---
 
-        // V6SelectDataSource.JacketResourcePathOf と同じ対応表。
-        // Select/** は編集不可のため Result 側 (V6ResultView) と同じく写しを置く。
-        // 画像が無い曲 (22 など) は空文字を返し、固定画像を流用しない。
-        static readonly Dictionary<int, string> JacketFiles = new Dictionary<int, string>
-        {
-            { 1, "01-rosen.jpg" }, { 2, "02-mani.jpg" }, { 3, "03-who.jpg" }, { 4, "04-tweet.jpg" },
-            { 5, "05-shuumatsu.jpg" }, { 6, "06-euta.jpg" }, { 7, "07-chartreuse.jpg" }, { 8, "08-psyched.jpg" },
-            { 9, "09-dogbite.jpg" }, { 10, "10-tutorial.jpg" }, { 11, "11-kyoukiranmai.jpg" },
-            { 12, "12-poison.jpg" }, { 13, "13-selfie.jpg" }, { 14, "14-4thsmile.jpg" },
-            { 15, "15-calamity.jpg" }, { 16, "16-panopticon.jpg" }, { 17, "17-guru.jpg" }, { 18, "18-abun.jpg" },
-            { 19, "19-mushin.jpg" }, { 20, "20-haruarashi.jpg" }, { 21, "21-bibibibi.jpg" },
-            { 23, "23-override.jpg" }, { 24, "24-igaku.jpg" }, { 25, "25-tekkyu.jpg" }, { 26, "26-ikken.jpg" },
-        };
-
         /// <summary>
-        /// カタログ index → ジャケットの Resources 相対パス。
-        /// 対応する画像が無い曲は空文字 (呼び出し側は「無し」を正直に表示する)。
+        /// カタログ index → ジャケットの Resources 相対パス (拡張子なし)。
+        /// 1..26 はすべて画像あり (22 = 灰Φ倶楽部も含む)。表に無い index は空文字
+        /// (呼び出し側は「無し」を正直に表示する)。
+        /// 解決は <see cref="V6JacketResources"/> に一本化している。
         /// </summary>
         public static string JacketResourcePathOf(int songId)
         {
-            string file;
-            if (JacketFiles.TryGetValue(songId, out file))
-            {
-                return "V6/select/jacket/" + file;
-            }
-
-            return "";
+            return V6JacketResources.PathOf(songId);
         }
     }
 }

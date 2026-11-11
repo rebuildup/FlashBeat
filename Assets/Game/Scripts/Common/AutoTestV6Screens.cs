@@ -213,6 +213,12 @@ public class AutoTestV6Screens : MonoBehaviour
             var canvas = canvases[i];
             if (!V6ScreenAudit.IsV6Canvas(canvas)) { continue; }
 
+            // 非表示 (ルートが inactive) の v6 Canvas は「その画面に居ない」ので判定しない。
+            // 従来は inactive な Pause の Canvas を毎レポート走査し、フレーム節が無いと
+            // FAIL にしていた (HUD レポートに Pause の FAIL が混ざっていた)。
+            var graphics = canvas.GetComponentsInChildren<Graphic>(false);
+            if (graphics.Length == 0) { continue; }
+
             Rect outer;
             if (V6ScreenAudit.IsFullScreenCanvas(canvas))
             {
@@ -238,7 +244,6 @@ public class AutoTestV6Screens : MonoBehaviour
                 }
             }
 
-            var graphics = canvas.GetComponentsInChildren<Graphic>(false);
             for (int g = 0; g < graphics.Length; g++)
             {
                 var graphic = graphics[g];
@@ -248,6 +253,18 @@ public class AutoTestV6Screens : MonoBehaviour
                 if (rt == null) { continue; }
 
                 var rect = V6ScreenAudit.WorldRect(rt);
+
+                // 全画面の暗幕 (Pause Dim 等) はフレームより大きいのが設計どおり。
+                // 画面全体 (許容誤差つき) を覆う 1 枚だけを正当な背景として許容する。
+                var screen = new Rect(0f, 0f, Screen.width, Screen.height);
+                if (rect.width >= screen.width - V6ScreenAudit.TolerancePx
+                    && rect.height >= screen.height - V6ScreenAudit.TolerancePx
+                    && V6ScreenAudit.Contains(rect, screen, V6ScreenAudit.TolerancePx))
+                {
+                    report.Pass++;
+                    continue;
+                }
+
                 if (V6ScreenAudit.Contains(outer, rect, V6ScreenAudit.TolerancePx))
                 {
                     report.Pass++;

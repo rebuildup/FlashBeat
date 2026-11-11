@@ -174,19 +174,24 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// v6 ポーズの開閉と入力。Esc で開閉、←→ で項目移動。
-        /// 値の変更はキーボードには配線せず、行のステッパー / クリック (マウス) のみ。
-        /// 既存の KeyActions の割当をそのまま使う (Judge / KeyBindings と同じ正本)。
+        /// v6 ポーズの開閉と入力。Esc で開閉、↑↓ で項目移動、←→ で値の変更。
+        /// 正本 uDNC0 の凡例 (↑↓ 選択 / ←→ 変更 / Tab タブ切替 / Esc 再開) が
+        /// そのまま仕様。矢印は KeyActions に ↑↓ の割当が無いため固定キー
+        /// (Title の H/R と同じ扱い。←→ を NavPrev/NavNext に流用すると
+        /// 「選択」と「変更」が同じキーに重なる)。
         ///
         /// 開閉状態の正本は <see cref="V6PauseView.IsOpen"/> (v6 自前の状態)。
         /// かつて GameSceneManager.Menu を「ポーズが開いている」意味で読み書きしていたが、
         /// Menu はレガシー歌詞パネルのフラグ (MusicManager.Start が true を書く) で、
         /// 副作用で開閉判定が壊れるため読まない・書かない (v6 有効時は Menu を触らない)。
         /// Esc は押下エッジで 1 回だけ発火するので、開閉は 1 押下につき 1 回。
+        /// キー設定 (KeyConfigUI) が前面のときは、その入力 (Esc=閉じる) を
+        /// ポーズに渡さない (ポーズとキー設定が同時に閉じる事故を防ぐ)。
         /// </summary>
         private void UpdatePause()
         {
             if (pause == null) return;
+            if (KeyConfigUI.IsOpen) return;
 
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
@@ -204,8 +209,10 @@ namespace FlashBeat.UI.V6
             if (!pause.IsOpen) return;
 
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuSwitch)) pause.SelectNextTab(1);
-            if (KeyActions.IsDown(KeyActions.KeyAction.NavPrev)) pause.MoveSelection(-1);
-            if (KeyActions.IsDown(KeyActions.KeyAction.NavNext)) pause.MoveSelection(1);
+            if (Input.GetKeyDown(KeyCode.UpArrow)) pause.MoveSelection(-1);
+            if (Input.GetKeyDown(KeyCode.DownArrow)) pause.MoveSelection(1);
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) pause.AdjustSelected(-1);
+            if (Input.GetKeyDown(KeyCode.RightArrow)) pause.AdjustSelected(1);
             var manager = FindObjectOfType<GameSceneManager>();
             if (manager == null) return;
             if (KeyActions.IsDown(KeyActions.KeyAction.MenuRetry)) { pause.Close(); manager.RetryGame(); }

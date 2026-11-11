@@ -247,7 +247,18 @@ namespace FlashBeat.Tests
 
                 view.Refresh();
 
-                Assert.AreEqual("Space to Start", LyricTextOf(view).text);
+                // design HcP8N の Start Prompt (W1ppF): 「Space to Start」の一文ではなく、
+                // KeyCap「Space」+ ラベル「to start」の行を歌詞枠の中に出す。
+                Transform box = LyricBoxOf(view).transform;
+                Transform prompt = box.Find("Start Prompt");
+                Assert.IsNotNull(prompt, "Start Prompt が無い");
+                Assert.IsTrue(prompt.gameObject.activeSelf, "再生前は Start Prompt を出す");
+                Assert.AreEqual("to start", prompt.Find("Label").GetComponent<TextMeshProUGUI>().text);
+                Assert.AreEqual("Space",
+                    prompt.Find("KeyCap Space/Key").GetComponent<TextMeshProUGUI>().text);
+                // 歌詞 3 行は隠れている (排他)。
+                Assert.AreEqual("", LyricTextOf(view).text);
+                Assert.IsFalse(box.Find("Lyrics").gameObject.activeSelf);
                 Assert.IsTrue(LyricBoxOf(view).activeSelf);
             }
             finally

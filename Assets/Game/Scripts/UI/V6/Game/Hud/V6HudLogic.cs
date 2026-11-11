@@ -69,6 +69,13 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         public static readonly Color AccentBase = new Color32(0x3A, 0x32, 0x20, 0xFF);
 
+        // --- 開始待ちの案内 (design HcP8N の Start Prompt W1ppF) ---
+        // 「Space to Start」の一文ではなく、KeyCap「Space」(36 高 / padding [0,10] /
+        // fs22 / #3A3A3A r4) + ラベル「to start」(fs22 $text-muted) の行 (gap 10)。
+        public const float ReadyPromptCapHeight = 36f;
+        public const float ReadyPromptFontSize = 22f;
+        public const float ReadyPromptGap = 10f;
+
         /// <summary>コンボトラックの塗り比率 (0..1)。milestone 無効は 0。</summary>
         public static float ComboFillFraction(int combo, int milestone)
         {

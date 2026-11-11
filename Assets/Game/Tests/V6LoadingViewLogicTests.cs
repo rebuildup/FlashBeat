@@ -79,16 +79,18 @@ namespace FlashBeat.V6HudTests
         [Test]
         public void JacketResourcePathOf_MapsCatalogIndexToRealFile()
         {
-            Assert.AreEqual("V6/select/jacket/01-rosen.jpg", V6LoadingViewLogic.JacketResourcePathOf(1));
-            Assert.AreEqual("V6/select/jacket/10-tutorial.jpg", V6LoadingViewLogic.JacketResourcePathOf(10));
-            Assert.AreEqual("V6/select/jacket/26-ikken.jpg", V6LoadingViewLogic.JacketResourcePathOf(26));
+            // Resources.Load は拡張子付きパスを受け付けないため、パスは拡張子なし。
+            Assert.AreEqual("V6/select/jacket/01-rosen", V6LoadingViewLogic.JacketResourcePathOf(1));
+            Assert.AreEqual("V6/select/jacket/10-tutorial", V6LoadingViewLogic.JacketResourcePathOf(10));
+            Assert.AreEqual("V6/select/jacket/26-ikken", V6LoadingViewLogic.JacketResourcePathOf(26));
         }
 
         [Test]
         public void JacketResourcePathOf_SongsWithoutJacket_ReturnEmpty()
         {
-            // 22 (灰Φ倶楽部) には対応画像が無い。範囲外も無し。
-            Assert.AreEqual("", V6LoadingViewLogic.JacketResourcePathOf(22));
+            // 22 = 灰Φ倶楽部 も実画像 (22-haihai.jpg) に対応する。
+            Assert.AreEqual("V6/select/jacket/22-haihai", V6LoadingViewLogic.JacketResourcePathOf(22));
+            // 表に無い index (0 / 27) は空文字。
             Assert.AreEqual("", V6LoadingViewLogic.JacketResourcePathOf(0));
             Assert.AreEqual("", V6LoadingViewLogic.JacketResourcePathOf(27));
         }

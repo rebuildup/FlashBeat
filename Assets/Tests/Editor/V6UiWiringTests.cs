@@ -1,15 +1,16 @@
 using System.IO;
+using FlashBeat.Gameplay;
 using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
 /// v6 UI の「表示と実挙動の一致」を検証するソース走査テスト (#224 関連)。
 ///
-/// - ポーズ設定ページに、名前の割当が無い惰性の行 (Key Layout) を残さない。
-///   KeyConfigUI は Title / Option 画面限定 (AllowedScenes) でポーズからは開けず、
-///   値のリセットだけなら行の名前と合わないため、行ごと廃止した。
-/// - ポーズビューに、どのキーにも配線されていない値変更 API (AdjustSelected)
-///   を残さない。←→ は行選択 (MoveSelection) に使う。
+/// - ポーズ設定ページは正本 uDNC0 の Play タブ 4 行 (NoteSpeed / NoteTiming /
+///   Key Layout / キー設定) を持ち、Key Layout と キー設定 は KeyConfigUI.Open() に
+///   接続する (ポーズ中は PauseGate.IsPaused により GameScene でも開ける)。
+/// - ←→ の値変更 (AdjustSelected) は V6GameRuntime に配線されていること。
+///   未配線の API を残さない、が主旨 (行選択は ↑↓ = MoveSelection)。
 /// </summary>
 public class V6UiWiringTests
 {
@@ -19,29 +20,53 @@ public class V6UiWiringTests
     }
 
     [Test]
-    public void PauseSettingsPage_HasNoInertKeyLayoutRow()
+    public void PauseSettingsPage_HasTheDesignPlayRows()
     {
+        // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定 (F2)。
+        // 旧テストは「開けないから行を描かない」を正としたが、行が無いと正本の情報が欠ける。
+        // 行を描いたうえで操作に接続する (下の 2 テスト)。
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsFalse(src.Contains("\"Key Layout\""),
-            "ポーズ設定に割当の無い Key Layout 行が戻っています。開けない操作の行は描画しないこと。");
+        Assert.IsTrue(src.Contains("\"Key Layout\""), "正本の Key Layout 行が無い");
+        Assert.IsTrue(src.Contains("\"キー設定\""), "正本の キー設定 (F2) 行が無い");
+        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\""),
+            "キー設定 は Play タブ 4 行目 (index 3) に置く");
     }
 
     [Test]
-    public void PauseSettingsPage_DoesNotOfferKeySettingsItCannotOpen()
+    public void PauseSettingsPage_KeySettingsOpenFromThePauseMenu()
     {
-        // KeyConfigUI.Open() は Title / Option 画面でしか動かない (AllowedScenes)。
-        // ポーズに「キー設定」行を置くと、押しても何も起きない行になる (issue #167)。
+        // ポーズ行の「キー設定」は KeyConfigUI.Open() に接続する。
+        // ポーズ中 (PauseGate.IsPaused) は判定・譜面が止まっているので GameScene でも開ける
+        // (演奏中は音符のキーを奪うため開かない)。
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsFalse(src.Contains("KeyConfigUI.Open()"),
-            "ポーズに開けないキー設定の入口が戻っています。編集は Option 画面の Key Layout 行から。");
+        Assert.IsTrue(src.Contains("KeyConfigUI.Open()"), "キー設定行が KeyConfigUI.Open に接続されていない");
+        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\", () => \"F2\", null, OpenKeyConfig)"),
+            "キー設定 行の実行 (Enter) が OpenKeyConfig に接続されていない");
+
+        PauseGate.HardReset();
+        try
+        {
+            Assert.IsFalse(KeyConfigUI.IsAllowedNow("GameScene"), "演奏中はキー設定を開かない");
+            PauseGate.Enter();
+            Assert.IsTrue(KeyConfigUI.IsAllowedNow("GameScene"), "ポーズ中はキー設定を開ける");
+        }
+        finally
+        {
+            PauseGate.HardReset();
+        }
     }
 
     [Test]
-    public void PauseView_DoesNotKeepUnwiredValueChangeApi()
+    public void PauseView_ValueChangeApiIsWiredToLeftRight()
     {
-        string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsFalse(src.Contains("AdjustSelected"),
-            "ポーズ ビューに未配線の値変更 API が戻っています。←→ は MoveSelection (行選択) の正本。");
+        // ←→ は選択中の行の値変更 (AdjustSelected)。凡例「変更」と実際の入力を一致させる。
+        string pause = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
+        string runtime = ReadSource("Game/Scripts/UI/V6/V6GameRuntime.cs");
+        Assert.IsTrue(pause.Contains("public void AdjustSelected(int delta)"), "値変更 API が無い");
+        Assert.IsTrue(runtime.Contains("pause.AdjustSelected(-1)") && runtime.Contains("pause.AdjustSelected(1)"),
+            "←→ が AdjustSelected に配線されていない");
+        Assert.IsTrue(runtime.Contains("pause.MoveSelection(-1)") && runtime.Contains("pause.MoveSelection(1)"),
+            "↑↓ が MoveSelection に配線されていない");
     }
 
     // --- issue-162 §8 再照合 (2026-11-10) ---

@@ -75,18 +75,58 @@ namespace FlashBeat.UI.V6.Title
         // Header/Main/Footer ゾーン自体の矩形は V6Frame (契約 §4) が持つ。
 
         /// <summary>戻るボタン (zUcsi/zCQBY): Header ローカル 56×56。</summary>
+        /// <summary>
+        /// ヘッダー左上の Exit (design CtA3V): 162×56 の 1 枚に
+        /// [log-out icon] [KeyCap] [Exit] を横並びで載せる。
+        /// 他画面の「戻る」56×56 とは別部品 (Title は終了)。
+        /// </summary>
         public static readonly Vector2 BackButtonPos = new Vector2(0f, 20f);
-        public static readonly Vector2 BackButtonSize = new Vector2(56f, 56f);
+        public static readonly Vector2 BackButtonSize = new Vector2(162f, 56f);
 
         /// <summary>ヘッダー タイトル文字 (aqq3q/ci867): Header ローカル。</summary>
         public static readonly Vector2 HeaderTitlePos = new Vector2(72f, 20f);
         public static readonly Vector2 HeaderTitleSize = new Vector2(185f, 56f);
         public const float HeaderTitleFontSize = 38f;
 
-        /// <summary>右上の曲情報ゾーン (WUQeP) / 状態ゾーン (l26KMD): Header ローカル 300×96。</summary>
-        public static readonly Vector2 SongInfoZonePos = new Vector2(1080f, 0f);
-        public static readonly Vector2 StateZonePos = new Vector2(1380f, 0f);
-        public static readonly Vector2 HeaderZoneSize = new Vector2(300f, 96f);
+        /// <summary>Exit 内部のアイコン (design Z6C0w: log-out 32×32 を (12,12))。</summary>
+        public static readonly Vector2 BackIconPos = new Vector2(12f, 12f);
+        public const float BackIconSize = 32f;
+
+        /// <summary>Exit 内部の KeyCap (design D7mVkL: (68,12) 高さ 32・padding 8)。</summary>
+        public static readonly Vector2 BackKeyCapPos = new Vector2(68f, 12f);
+        public const float BackKeyCapHeight = 32f;
+        public const float BackKeyCapPaddingX = 8f;
+
+        /// <summary>Exit 内部のラベル (design qttPo: (109,7) 53×43 fs30)。</summary>
+        public static readonly Vector2 BackLabelPos = new Vector2(109f, 7f);
+        public static readonly Vector2 BackLabelSize = new Vector2(53f, 43f);
+
+        /// <summary>
+        /// 右上の更新ボタン (design D7gbLV): Header ローカル (1021,20) 355×56。
+        /// 正本は UKhaE (840,20) 560×56 の中の (181,0)。
+        /// </summary>
+        public static readonly Vector2 UpdateButtonPos = new Vector2(1021f, 20f);
+        public static readonly Vector2 UpdateButtonSize = new Vector2(355f, 56f);
+        public const string UpdateButtonKey = "F3";
+
+        /// <summary>
+        /// 右上のバージョン表示 (design L6w6G): Header ローカル (1400,32) 280×32。
+        /// 現行版 (93,0) / 矢印 (162,2) / 新版 (190,0)。新版が無いときは
+        /// 右端 (256) に揃えて現行版だけを出す。
+        /// </summary>
+        public static readonly Vector2 VersionZonePos = new Vector2(1400f, 32f);
+        public static readonly Vector2 VersionZoneSize = new Vector2(280f, 32f);
+        public static readonly Vector2 VersionCurrentPos = new Vector2(93f, 0f);
+        public static readonly Vector2 VersionCurrentSize = new Vector2(61f, 32f);
+        public static readonly Vector2 VersionArrowPos = new Vector2(162f, 2f);
+        public static readonly Vector2 VersionArrowSize = new Vector2(20f, 29f);
+        public static readonly Vector2 VersionNewPos = new Vector2(190f, 0f);
+        public static readonly Vector2 VersionNewSize = new Vector2(66f, 32f);
+        public const float VersionFontSize = 22f;
+        public const float VersionArrowFontSize = 20f;
+
+        /// <summary>バージョン行の右端 (zone ローカル)。新版が無いときに右揃えする位置。</summary>
+        public const float VersionRightEdge = 256f;
 
         /// <summary>ロゴ (CnRJj, assets/13.png contain): Main ローカル。</summary>
         public static readonly Vector2 LogoPos = new Vector2(0f, 180f);

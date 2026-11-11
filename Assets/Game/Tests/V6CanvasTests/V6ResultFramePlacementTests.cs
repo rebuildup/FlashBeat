@@ -48,21 +48,35 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
+        public void ResultMain_IsFiveDesignColumns()
+        {
+            // 正本 zcSHh: Main (164,96) 1400×780 = 5 列 × 280 (共有フレームの 6 列を
+            // そのまま使うと右パネルが 156 px 右へずれる)。右パネルは x=1020 (528 幅)。
+            Assert.AreEqual(164f, V6ResultLogic.MainX);
+            Assert.AreEqual(1400f, V6ResultLogic.MainW);
+            Assert.AreEqual(5f * 280f, V6ResultLogic.MainW);
+            Assert.AreEqual(856f, V6ResultLogic.RankX);
+            Assert.AreEqual(1020f, V6ResultLogic.MainX + V6ResultLogic.RankX);
+        }
+
+        [Test]
         public void ResultMain_AndRightColumn_FitInSharedFrame()
         {
-            // メインゾーンは共有フレームの Main (24,96) 1680x780 をそのまま使う (契約 §4)。
+            // メインゾーン (164,96) 1400×780 と右カラム 528 は共有フレーム 1728×972 内。
             var frameOrigin = Vector2.zero;
             var frameSize = new Vector2(V6ResultLogic.DesignW, V6ResultLogic.DesignH);
             Assert.IsTrue(V6Layout.FitsIn(frameOrigin, frameSize,
                 new Vector2(V6ResultLogic.MainX, V6ResultLogic.MainY),
                 new Vector2(V6ResultLogic.MainW, V6ResultLogic.MainH)));
 
-            // 右カラム (ランキング 2 枚, 幅 528) はフレーム内に収まり、
-            // 右端はフッター右端 (design x1704) に揃う (内側に寄らない)。
+            // 右カラム (ランキング 2 枚, 幅 528) はフレーム内に収まる。
+            // 正本 zcSHh では右カラム右端 x1548 = Main 右端 (164+1400=1564) の
+            // 16px 内側 (フッター右端 1704 ではない)。
             float rankLeft = V6ResultLogic.MainX + V6ResultLogic.RankX;
             Assert.IsTrue(V6Layout.FitsIn(frameOrigin, frameSize,
                 new Vector2(rankLeft, V6ResultLogic.MainY), new Vector2(528f, V6ResultLogic.MainH)));
-            Assert.AreEqual(1704f, rankLeft + 528f);
+            Assert.AreEqual(1548f, rankLeft + 528f);
+            Assert.AreEqual(16f, V6ResultLogic.MainX + V6ResultLogic.MainW - (rankLeft + 528f));
         }
 
         [Test]

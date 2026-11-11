@@ -67,6 +67,44 @@ namespace FlashBeat.UI.V6.Common.Tests
             Assert.AreEqual(1704f, MainOrigin.x + MainSize.x);
         }
 
+        // --- ヘッダー戻るボタン (design zUcsi/zCQBY) と Button 内 KeyCap ---
+
+        [Test]
+        public void BackButton_MatchesDesignInternals()
+        {
+            // 56×56 の中に arrow-left 24 @(16,4) と Key fs16 @(15,30) 26×23。
+            // 中央寄せで積むとアイコンが y17..39 に下がり Key (y30..) と重なる。
+            Assert.AreEqual(56f, V6Controls.BackButtonSize);
+            Assert.AreEqual(24f, V6Controls.BackButtonIconSize);
+            Assert.AreEqual(new Vector2(16f, 4f), V6Controls.BackButtonIconPos);
+            Assert.AreEqual(new Vector2(15f, 30f), V6Controls.BackButtonKeyPos);
+            Assert.AreEqual(new Vector2(26f, 23f), V6Controls.BackButtonKeySize);
+            Assert.AreEqual(16f, V6Controls.BackButtonKeyFontSize);
+            // アイコンが Key の上端より上に収まる (重ならない)。
+            Assert.LessOrEqual(V6Controls.BackButtonIconPos.y + V6Controls.BackButtonIconSize,
+                V6Controls.BackButtonKeyPos.y);
+        }
+
+        [Test]
+        public void ButtonKeyCap_UsesDesignMetrics()
+        {
+            // Button Primary/Secondary の Cap は高さ 32・padding [0,8] (単体 KeyCap は 36 / [0,10])。
+            Assert.AreEqual(32f, V6Controls.ButtonKeyCapHeight);
+            Assert.AreEqual(8f, V6Controls.ButtonKeyCapPaddingX);
+            // design の Cap 幅は [送り幅 + 16] で作る (E=29 / F3=41 / Space=78 相当)。
+            // Key は高さ 32 でも fs22 のまま (正本 Prefab/Button Primary の Cap 実測値)。
+            // 高さ比 (22/36) で 19 に縮めてはいけない。
+            foreach (var key in new[] { "E", "F3", "Space" })
+            {
+                float capW = Mathf.Ceil(V6Ui.LabelAdvanceEm(key) * V6Controls.ButtonKeyFontSize)
+                    + V6Controls.ButtonKeyCapPaddingX * 2f;
+                Assert.AreEqual(22f, V6Controls.KeyFontSize(capW, key, V6Controls.ButtonKeyCapPaddingX), key);
+            }
+
+            // 幅が極端に狭いときだけ幅フィットで縮む (折り返し防止)。
+            Assert.Less(V6Controls.KeyFontSize(20f, "Space", V6Controls.ButtonKeyCapPaddingX), 22f);
+        }
+
         // --- 右寄せ / 中央 / 下寄せ (右カラムはみ出し防止) ---
 
         [Test]

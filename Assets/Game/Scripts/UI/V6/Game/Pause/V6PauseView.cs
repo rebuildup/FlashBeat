@@ -7,6 +7,7 @@ using TMPro;
 using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
+using FlashBeat.UI.V6.Common;
 
 namespace FlashBeat.UI.V6.Game.Pause
 {
@@ -81,6 +82,9 @@ namespace FlashBeat.UI.V6.Game.Pause
         private int selectedRow;
         private bool open;
 
+        /// <summary>Key Layout リセットの確認ダイアログ (開いていないとき null)。</summary>
+        private GameObject confirmRoot;
+
         private int lastWidth;
         private int lastHeight;
 
@@ -146,9 +150,12 @@ namespace FlashBeat.UI.V6.Game.Pause
             open = true;
             // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める。
             PauseGate.Enter();
+            // Refresh はジャケット取得のコルーチンを起動する。非アクティブな GameObject では
+            // "Coroutine couldn't be started ... inactive" になりサムネイルが欠けるため、
+            // 先にアクティブ化してから Refresh する。
+            rootGo.SetActive(true);
             Refresh();
             UpdatePlacement();
-            rootGo.SetActive(true);
         }
 
         /// <summary>閉じる (再開)。</summary>
@@ -160,6 +167,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             open = false;
+            CancelResetKeyLayout();
             // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
             PauseGate.Exit();
             rootGo.SetActive(false);
@@ -181,15 +189,131 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         // --- 統合担当がキー入力 (矢印 / Tab) から呼ぶ操作 API ---
 
-        /// <summary>設定行の選択を移動する (←→ / NavPrev・NavNext)。</summary>
+        /// <summary>設定行の選択を移動する (↑↓ / 正本 uDNC0 凡例「選択」)。</summary>
         public void MoveSelection(int delta)
         {
             selectedRow = V6PauseViewLogic.ClampIndex(selectedRow + delta, pageRows[selectedTab].Count);
             RefreshRowHighlight();
         }
 
-        // 値の変更 (←→) はポーズのキーボード操作には配線しない (Issue #224):
-        // ←→ は行選択に使う。値の変更は行のステッパー / クリック (マウス) のみ。
+        /// <summary>
+        /// 選択中の行の値を変更する (←→ / 正本 uDNC0 凡例「変更」)。
+        /// 値を持たない行 (キー設定 / 記録の表示) では何もしない。
+        /// </summary>
+        public void AdjustSelected(int delta)
+        {
+            if (!open || delta == 0)
+            {
+                return;
+            }
+
+            var rows = pageRows[selectedTab];
+            if (selectedRow < 0 || selectedRow >= rows.Count)
+            {
+                return;
+            }
+
+            Row row = rows[selectedRow];
+            if (row.Adjust == null)
+            {
+                return;
+            }
+
+            row.Adjust(delta);
+            RefreshRows();
+        }
+
+        /// <summary>キー設定 (KeyConfigUI) を開く。ポーズ中 (PauseGate) なので判定は止まっている。</summary>
+        public void OpenKeyConfig()
+        {
+            KeyConfigUI.Open();
+        }
+
+        /// <summary>Key Layout を標準へ戻す確認を出す (破壊的なので即実行しない)。</summary>
+        public void RequestResetKeyLayout()
+        {
+            if (!IsCustomLayout() || confirmRoot != null)
+            {
+                return;
+            }
+
+            BuildResetConfirm();
+        }
+
+        /// <summary>確認ダイアログを閉じる。</summary>
+        public void CancelResetKeyLayout()
+        {
+            if (confirmRoot != null)
+            {
+                V5GameUi.DestroyNow(confirmRoot);
+                confirmRoot = null;
+            }
+        }
+
+        /// <summary>確認済みのリセット (KeyBindings を既定へ戻し、保存する)。</summary>
+        public void ApplyResetKeyLayout()
+        {
+            CancelResetKeyLayout();
+            if (KeyBindings.Current == null)
+            {
+                return;
+            }
+
+            KeyBindings.ResetToDefaults();
+            KeyBindings.Save();
+            RefreshKeyBindings();
+        }
+
+        /// <summary>
+        /// Key Layout を標準へ戻す確認ダイアログ (共通フレームのモーダルゾーン:
+        /// Scrim 全面 + Dialog (444,231) 840×510 $k1 r16)。Option の同じ操作
+        /// (issue-162 C-6: 破壊的なリセットは確認してから) と形を揃える。
+        /// </summary>
+        private void BuildResetConfirm()
+        {
+            confirmRoot = V5Ui.Node(frame.gameObject, "V6 Pause Confirm");
+            var rootRt = GetRect(confirmRoot);
+            Stretch(rootRt);
+            rootRt.SetAsLastSibling();
+
+            var scrim = V5Ui.Node(confirmRoot, "Scrim");
+            V5Ui.Fill(GetRect(scrim), 0f);
+            var scrimImg = scrim.AddComponent<Image>();
+            scrimImg.color = new Color(0f, 0f, 0f, 0xCC / 255f);
+            scrimImg.raycastTarget = true;
+
+            var dialog = V5Ui.Panel(confirmRoot, "Dialog", new Vector2(840f, 510f), V5Tokens.Key1, 16f);
+            PlaceAt(dialog, 444f, 231f, new Vector2(840f, 510f));
+
+            var head = V5Ui.Text(dialog, "Head", "Key Layout", 30f, V5Tokens.Text,
+                TextAlignmentOptions.Left, FontStyles.Bold);
+            PlaceAt(head.gameObject, 28f, 28f, new Vector2(784f, 40f));
+
+            var desc = V5Ui.Text(dialog, "Desc",
+                "すべてのレーンのキー割り当てを標準に戻します。\n現在のカスタム割り当ては消去されます (元に戻せません)。",
+                24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
+            PlaceAt(desc.gameObject, 28f, 100f, new Vector2(784f, 120f));
+            desc.lineSpacing = 40f;
+
+            var cancel = V5Ui.Panel(dialog, "Op Cancel", new Vector2(198f, 50f), V5Tokens.Key4, 8f);
+            PlaceAt(cancel, 28f, 432f, new Vector2(198f, 50f));
+            var cancelLabel = V5Ui.Text(cancel, "Label", "キャンセル", 26f, V5Tokens.Text,
+                TextAlignmentOptions.Center);
+            Stretch(cancelLabel.rectTransform);
+            var cancelButton = cancel.AddComponent<Button>();
+            cancelButton.targetGraphic = cancel.GetComponent<Image>();
+            cancelButton.onClick.AddListener(CancelResetKeyLayout);
+
+            var confirm = V5Ui.Panel(dialog, "Op Reset", new Vector2(252f, 50f),
+                new Color(0xE5 / 255f, 0x3E / 255f, 0x3E / 255f), 8f);
+            PlaceAt(confirm, 560f, 432f, new Vector2(252f, 50f));
+            var confirmLabel = V5Ui.Text(confirm, "Label", "戻す", 26f, V5Tokens.ButtonPrimaryLabel,
+                TextAlignmentOptions.Center);
+            Stretch(confirmLabel.rectTransform);
+            var confirmButton = confirm.AddComponent<Button>();
+            confirmButton.targetGraphic = confirm.GetComponent<Image>();
+            confirmButton.onClick.AddListener(ApplyResetKeyLayout);
+        }
 
         /// <summary>タブを切り替える (端で折り返す)。</summary>
         public void SelectNextTab(int delta)
@@ -249,98 +373,65 @@ namespace FlashBeat.UI.V6.Game.Pause
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // 左上: 戻る (Esc = 再開) + タイトル
-            var back = V5Ui.Panel(header, "Back", new Vector2(56f, 56f), V5Tokens.Key4, 8f);
-            PlaceAt(back, 0f, 20f);
-            var backLayout = back.AddComponent<VerticalLayoutGroup>();
-            backLayout.spacing = 2f;
-            backLayout.childAlignment = TextAnchor.MiddleCenter;
-            backLayout.childControlWidth = true;
-            backLayout.childControlHeight = true;
-            backLayout.childForceExpandWidth = false;
-            backLayout.childForceExpandHeight = false;
-            var backArrow = V6Icons.Create(back, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
-            if (backArrow != null)
-            {
-                LayoutItem(backArrow.gameObject, 0f, 24f);
-            }
-            var backKey = V5Ui.Text(back, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(backKey.gameObject, 0f, 16f);
-            var backBtn = back.AddComponent<Button>();
-            backBtn.targetGraphic = back.GetComponent<Image>();
-            backBtn.onClick.AddListener(Close);
-
+            // design (uDNC0/SUD2i): 左上はタイトル "PAUSE" のみ。戻るゾーン (b7VqL) は
+            // design で空プレースホルダ (子ノード無し) なので Esc ボタンは描かない
+            // (Esc = 再開はフッターの凡例と「再開」ボタンが示す)。
+            // 正本 uDNC0/ci867 は Title ゾーン (72,20) 185×56 に "PAUSE" (fs38 w700)。
+            // "FlashBeat" は v5 の流用で、設計の文字列ではない。
             var title = V5Ui.Text(header, "Title", "PAUSE", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            PlaceAt(title.gameObject, 72f, 20f, new Vector2(300f, 56f));
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            PlaceAt(title.gameObject, 72f, 20f, new Vector2(185f, 56f));
 
-            // 右上: ジャケット + 曲情報 + 区切り + LEVEL / NOTES / 曲長 (実データ)
+            // 右上: ジャケット + 曲情報 + 区切り + LEVEL / NOTES / 曲長 (実データ)。
+            // 座標は正本 PRqZF (ヘッダー右 840×96) の子の実値 — レイアウトグループで
+            // 詰めると設計の x (Thumb 24 / Song 100 / Divider 432 / Stat 445・557・669) から
+            // ずれて曲名がタブ行に潜り込むため、1 個ずつ設計座標へ置く。
             var info = V5Ui.Node(header, "Song Info");
             var infoRt = GetRect(info);
             infoRt.anchorMin = new Vector2(1f, 1f);
             infoRt.anchorMax = new Vector2(1f, 1f);
             infoRt.pivot = new Vector2(1f, 1f);
-            infoRt.anchoredPosition = new Vector2(0f, -HeaderY);
+            infoRt.anchoredPosition = Vector2.zero;
             infoRt.sizeDelta = new Vector2(840f, HeaderH);
 
-            var layout = info.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(0, Mathf.RoundToInt(24f), 0, 0);
-            layout.childAlignment = TextAnchor.MiddleRight;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
             var thumb = V5Ui.Panel(info, "Thumb", new Vector2(64f, 36f), V5Tokens.Key2, 4f);
-            LayoutItem(thumb, 64f, 36f);
+            PlaceAt(thumb, 24f, 30f);
             thumbImage = thumb.GetComponent<Image>();
             thumbImage.raycastTarget = false;
 
             var songCol = V5Ui.Node(info, "Song");
-            LayoutItem(songCol, 320f, 80f);
-            var songLayout = songCol.AddComponent<VerticalLayoutGroup>();
-            songLayout.spacing = 4f;
-            songLayout.childAlignment = TextAnchor.MiddleLeft;
-            songLayout.childControlWidth = true;
-            songLayout.childControlHeight = true;
-            songLayout.childForceExpandWidth = false;
-            songLayout.childForceExpandHeight = false;
+            PlaceAt(songCol, 100f, 8f, new Vector2(320f, 80f));
             songTitle = V5Ui.Text(songCol, "Title", "", 30f, V5Tokens.Text, TextAlignmentOptions.Left);
             songTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            LayoutItem(songTitle.gameObject, 0f, 34f);
+            // TMP は行の実高 (NotoSansJP: fs の約 1.448 倍 = 43.44px / fs30) より矩形が
+            // 低いと Ellipsis で 1 行も描かない。43px だと曲名が消えるため 46px にする。
+            PlaceAt(songTitle.gameObject, 0f, 1f, new Vector2(320f, 46f));
             songSub = V5Ui.Text(songCol, "Sub", "", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
             songSub.textWrappingMode = TextWrappingModes.NoWrap;
             songSub.overflowMode = TextOverflowModes.Ellipsis;
-            LayoutItem(songSub.gameObject, 0f, 26f);
+            PlaceAt(songSub.gameObject, 0f, 48f, new Vector2(320f, 32f));
 
             var divider = V5Ui.Panel(info, "Divider", new Vector2(1f, 44f), new Color(1f, 1f, 1f, 0x26 / 255f), 0f);
-            LayoutItem(divider, 1f, 44f);
+            PlaceAt(divider, 432f, 26f);
 
-            levelValue = BuildStat(info, "LEVEL");
-            notesValue = BuildStat(info, "NOTES");
-            durationValue = BuildStat(info, "曲長");
+            levelValue = BuildStat(info, "LEVEL", 445f);
+            notesValue = BuildStat(info, "NOTES", 557f);
+            durationValue = BuildStat(info, "曲長", 669f);
         }
 
         /// <summary>右上の統計 1 個 (Label fs18 dim / Value fs30 w500)。値の TMP を返す。</summary>
-        private TextMeshProUGUI BuildStat(GameObject parent, string label)
+        private TextMeshProUGUI BuildStat(GameObject parent, string label, float x)
         {
             var col = V5Ui.Node(parent, "Stat " + label);
-            LayoutItem(col, 100f, 80f);
-            var layout = col.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 2f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
+            PlaceAt(col, x, 8f, new Vector2(100f, 80f));
             var labelTmp = V5Ui.Text(col, "Label", label, 18f, V5Tokens.TextDim, TextAlignmentOptions.Left);
-            LayoutItem(labelTmp.gameObject, 0f, 22f);
+            PlaceAt(labelTmp.gameObject, 0f, 0f, new Vector2(100f, 26f));
             var value = V5Ui.Text(col, "Value", "", 30f, V5Tokens.Text, TextAlignmentOptions.Left,
                 FontStyles.Bold);
             value.textWrappingMode = TextWrappingModes.NoWrap;
-            LayoutItem(value.gameObject, 0f, 38f);
+            PlaceAt(value.gameObject, 0f, 28f, new Vector2(100f, 43f));
             return value;
         }
 
@@ -420,10 +511,26 @@ namespace FlashBeat.UI.V6.Game.Pause
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
                         OptionSettings.Save();
                     });
-                // 「Key Layout」「キー設定」の 2 行は廃止 (issue #167: 描画だけの UI を残さない)。
-                // 編集の実体 KeyConfigUI は Title / Option 画面限定 (AllowedScenes) なので
-                // ポーズからは開けず、F2 もここでは効かない。現在の割当はプレビュー パネルの
-                // 「キー割当 (JIS / …)」に表示され、編集は Option 画面の同じ行から行う。
+                // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定 (F2)。
+                // 2026-11-11 まで Key Layout と キー設定 の 2 行を「開けないから」と描いて
+                // いなかったが、正本に在る行を落とすのは移植の欠落。KeyConfigUI は
+                // ポーズ中 (PauseGate.IsPaused) の GameScene でも開けるようにしたので、
+                // 2 行とも実動作 (編集 / F2) に接続する。
+                AddRow(rows, pageRoot, 2, "Key Layout",
+                    () => IsCustomLayout() ? "カスタム" : "標準",
+                    dir =>
+                    {
+                        if (dir > 0)
+                        {
+                            OpenKeyConfig(); // 編集はキー設定で行う (Option と同じ)
+                        }
+                        else
+                        {
+                            RequestResetKeyLayout(); // 破壊的なリセットは確認してから
+                        }
+                    },
+                    OpenKeyConfig);
+                AddRow(rows, pageRoot, 3, "キー設定", () => "F2", null, OpenKeyConfig);
             }
             else if (page == 1)
             {
@@ -691,9 +798,9 @@ namespace FlashBeat.UI.V6.Game.Pause
                 TextAlignmentOptions.Left, FontStyles.Bold);
             PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
 
-            // design 文言は「F2 でも開けます」だが、KeyConfigUI は Title / Option 画面でしか
-            // 開けない (AllowedScenes)。ポーズからは開けないので、行き先を書く。
-            var desc = V5Ui.Text(panel, "Desc", "キーの割り当ての編集は Option 画面の「Key Layout」から行えます。",
+            // design (uDNC0) の文言そのまま。ポーズ中 (PauseGate.IsPaused) は
+            // KeyConfigUI を GameScene からも開けるので F2 の案内は実動作と一致する。
+            var desc = V5Ui.Text(panel, "Desc", "キーの割り当てを編集します。F2 でも開けます。",
                 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
             var descRt = desc.rectTransform;
             descRt.anchorMin = new Vector2(0f, 1f);
@@ -767,11 +874,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             var footer = V5Ui.Node(frame.gameObject, "Footer");
             PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
-            // 左下: キー凡例 4 個 (キー入力は統合担当が持つ。ここは表示のみ)
-            // 凡例は実際に動くキーと一致させる (Issue #224):
-            // - ←→ は V6GameRuntime.UpdatePause が MoveSelection (行選択) に配線
-            // - タブ切替の実キーは KeyActions.MenuSwitch (既定 T)
-            // - 値の変更は行のステッパー / クリック (マウス) のみで、←→ には配線していない
+            // 左下: キー凡例 4 個 (正本 uDNC0: ↑↓ 選択 / ←→ 変更 / Tab タブ切替 / Esc 再開)。
+            // 実際のキーは V6GameRuntime.UpdatePause と一致させる:
+            // ↑↓ = 行選択 (MoveSelection) / ←→ = 値の変更 (AdjustSelected) /
+            // Tab = タブ切替 (KeyActions.MenuSwitch) / Esc = 再開 (KeyAction.Back)。
+            // 矢印は KeyActions に ↑↓ の割当が無いため固定キー (Title の H/R と同じ扱い)。
             var legend = V5Ui.Node(footer, "Legends");
             PlaceAt(legend, 0f, 30f, new Vector2(840f, 36f));
             var legendLayout = legend.AddComponent<HorizontalLayoutGroup>();
@@ -781,20 +888,14 @@ namespace FlashBeat.UI.V6.Game.Pause
             legendLayout.childControlHeight = true;
             legendLayout.childForceExpandWidth = false;
             legendLayout.childForceExpandHeight = false;
-            AddLegend(legend, new[] { "chevron-left", "chevron-right" }, "選択");
-            AddLegend(legend, null, "タブ切替", "T");
-            AddLegend(legend, null, "再開", "Esc");
+            AddLegend(legend, "選択", "↑↓");
+            AddLegend(legend, "変更", "←→");
+            AddLegend(legend, "タブ切替", "Tab");
+            AddLegend(legend, "再開", "Esc");
 
-            // 右下: 選曲へ / リトライ / 再開 (実遷移)
-            var actions = V5Ui.Node(footer, "Actions");
-            PlaceAt(actions, 882f, 20f, new Vector2(520f, 56f));
-            var actionsLayout = actions.AddComponent<HorizontalLayoutGroup>();
-            actionsLayout.spacing = 16f;
-            actionsLayout.childControlWidth = true;
-            actionsLayout.childControlHeight = true;
-            actionsLayout.childForceExpandWidth = false;
-            actionsLayout.childForceExpandHeight = false;
-            BuildActionButton(actions, "選曲へ", "arrow-left", "Backspace", false, () =>
+            // 右下: 選曲へ / リトライ / 再開 (実遷移)。座標は正本 k1VRDM の実値
+            // (選曲へ (882,20) 280 / リトライ (1178,20) 220 / 再開 (1414,20) 266)。
+            BuildActionButton(footer, "選曲へ", "arrow-left", "Backspace", false, 882f, 280f, () =>
             {
                 Close();
                 if (sceneManager != null)
@@ -802,7 +903,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                     sceneManager.RetireGame();
                 }
             });
-            BuildActionButton(actions, "リトライ", "skip-back", "R", false, () =>
+            BuildActionButton(footer, "リトライ", "skip-back", "R", false, 1178f, 220f, () =>
             {
                 Close();
                 if (sceneManager != null)
@@ -810,18 +911,14 @@ namespace FlashBeat.UI.V6.Game.Pause
                     sceneManager.RetryGame();
                 }
             });
-
-            var resume = V5Ui.Node(footer, "Resume");
-            PlaceAt(resume, 1414f, 20f, new Vector2(266f, 56f));
-            BuildActionButton(resume, "再開", "play", "Esc", true, Close);
+            BuildActionButton(footer, "再開", "play", "Esc", true, 1414f, 266f, Close);
         }
 
         /// <summary>
-        /// キー凡例 1 個 (KeyCap (fill,36) #3A3A3A r4 [0,10] + Label fs22)。
-        /// iconNames が非 null のときは KeyCap 内に lucide アイコン (16px) を並べる
-        /// (Unicode 記号 ↑↓ ←→ は使わない)。null のときは key 文字列 (Tab / Esc)。
+        /// キー凡例 1 個 (KeyCap 36 高 #3A3A3A r4 [0,10] + Label fs22、design oW4i8)。
+        /// キーは設計どおり文字列 (↑↓ / ←→ / Tab / Esc) — 文字送りは TMP に任せる。
         /// </summary>
-        private void AddLegend(GameObject parent, string[] iconNames, string label, string key = null)
+        private void AddLegend(GameObject parent, string label, string key)
         {
             var item = V5Ui.Node(parent, "Legend " + label);
             var layout = item.AddComponent<HorizontalLayoutGroup>();
@@ -832,10 +929,9 @@ namespace FlashBeat.UI.V6.Game.Pause
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            var cap = V5Ui.Panel(item, "KeyCap " + (key ?? label), new Vector2(0f, 36f),
+            var cap = V5Ui.Panel(item, "KeyCap " + key, new Vector2(0f, 36f),
                 new Color(0x3A / 255f, 0x3A / 255f, 0x3A / 255f), 4f);
             var capLayout = cap.AddComponent<HorizontalLayoutGroup>();
-            capLayout.spacing = 2f;
             capLayout.padding = new RectOffset(Mathf.RoundToInt(10f), Mathf.RoundToInt(10f), 0, 0);
             capLayout.childAlignment = TextAnchor.MiddleCenter;
             capLayout.childControlWidth = true;
@@ -845,79 +941,59 @@ namespace FlashBeat.UI.V6.Game.Pause
             var capLe = cap.AddComponent<LayoutElement>();
             capLe.preferredHeight = 36f;
 
-            if (iconNames != null)
-            {
-                for (int i = 0; i < iconNames.Length; i++)
-                {
-                    var icon = V6Icons.Create(cap, iconNames[i], 16f, V5Tokens.TextMuted, "Icon " + iconNames[i]);
-                    if (icon != null)
-                    {
-                        LayoutItem(icon.gameObject, 16f, 16f);
-                    }
-                }
-            }
-            else
-            {
-                var keyTmp = V5Ui.Text(cap, "Key", key, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                LayoutItem(keyTmp.gameObject, 0f, 26f);
-            }
+            var keyTmp = V5Ui.Text(cap, "Key", key, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            keyTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            LayoutItem(keyTmp.gameObject, 0f, 32f);
 
             var labelTmp = V5Ui.Text(item, "Label", label, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            LayoutItem(labelTmp.gameObject, 0f, 26f);
+            labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            LayoutItem(labelTmp.gameObject, 0f, 32f);
         }
 
         /// <summary>
         /// design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
-        /// アイコン 32×32 (lucide PNG、design §4 の Button 構成どおり Label の前)。
+        /// アイコン 32×32 とラベル・KeyCap は設計の絶対座標へ置く (レイアウトグループで
+        /// 詰めると "Backspace" / "リトライ" が折り返して 2 行に潰れる)。
         /// iconName は実在する Resources/Icons/ の名前 (design log-out / rotate-ccw は
         /// PNG が無いので同系統の既存素材: arrow-left / skip-back — Ranking のリトライと同じ)。
         /// </summary>
-        private void BuildActionButton(GameObject parent, string label, string iconName, string key, bool primary, Action action)
+        private void BuildActionButton(GameObject parent, string label, string iconName, string key,
+            bool primary, float x, float width, Action action)
         {
-            float width = primary ? 266f : (label == "リトライ" ? 220f : 280f);
             var go = V5Ui.Panel(parent, "Button " + label, new Vector2(width, 56f),
                 primary ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key4, 8f);
-            var le = go.AddComponent<LayoutElement>();
-            le.minWidth = width;
-            le.preferredHeight = 56f;
-
-            var layout = go.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(0, Mathf.RoundToInt(20f), 0, 0);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
+            PlaceAt(go, x, 20f, new Vector2(width, 56f));
 
             Color labelColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.Text;
             Color iconColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted;
 
-            // design: icon 32×32 (Button 構成の先頭要素)。
+            // 構成 (design の子の x): icon / Label / KeyCap を横に並べる。
+            // 中央寄せは各ボタンの幅から計算する (設計値: 選曲へ 90+125 / リトライ 120+30 / 再開 60+51)。
+            float labelW = V6Layout.EstimateTextWidth(label, 30f);
+            float capW = Mathf.Max(30f, V6Layout.EstimateTextWidth(key, 22f) + 16f);
+            float contentW = 32f + 12f + labelW + 12f + capW;
+            float startX = Mathf.Max(0f, (width - contentW) * 0.5f);
+            float labelX = startX + 32f + 12f;
+            float capX = labelX + labelW + 12f;
+
             var icon = V6Icons.Create(go, iconName, 32f, iconColor, "Icon");
             if (icon != null)
             {
-                LayoutItem(icon.gameObject, 32f, 32f);
+                PlaceAt(icon, startX, 12f, new Vector2(32f, 32f));
             }
 
-            var labelTmp = V5Ui.Text(go, "Label", label, 30f, labelColor, TextAlignmentOptions.Center,
+            var labelTmp = V5Ui.Text(go, "Label", label, 30f, labelColor, TextAlignmentOptions.Left,
                 primary ? FontStyles.Bold : FontStyles.Normal);
-            LayoutItem(labelTmp.gameObject, 0f, 34f);
+            labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            PlaceAt(labelTmp.gameObject, labelX, 6.5f, new Vector2(labelW + 2f, 43f));
 
-            var cap = V5Ui.Panel(go, "KeyCap " + key, new Vector2(0f, 32f),
+            var cap = V5Ui.Panel(go, "KeyCap " + key, new Vector2(capW, 32f),
                 primary ? new Color(0f, 0f, 0f, 0x26 / 255f) : new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
-            var capLayout = cap.AddComponent<HorizontalLayoutGroup>();
-            capLayout.padding = new RectOffset(Mathf.RoundToInt(8f), Mathf.RoundToInt(8f), 0, 0);
-            capLayout.childAlignment = TextAnchor.MiddleCenter;
-            capLayout.childControlWidth = true;
-            capLayout.childControlHeight = true;
-            capLayout.childForceExpandWidth = false;
-            capLayout.childForceExpandHeight = false;
-            var capLe = cap.AddComponent<LayoutElement>();
-            capLe.preferredHeight = 32f;
+            PlaceAt(cap, capX, 12f, new Vector2(capW, 32f));
             var keyTmp = V5Ui.Text(cap, "Key", key, 22f,
                 primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            LayoutItem(keyTmp.gameObject, 0f, 24f);
+            keyTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            Stretch(keyTmp.rectTransform);
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = go.GetComponent<Image>();

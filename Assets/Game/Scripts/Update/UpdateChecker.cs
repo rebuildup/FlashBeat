@@ -607,6 +607,10 @@ namespace FlashBeat.Update
         /// staging 済み更新が無いときは出さない。押すことは明示的なユーザー同意である。</summary>
         private void CreateOptionApplyButton()
         {
+            // v6: 更新の導線は Title ヘッダーの更新ボタン (正本 D7gbLV) のみ。
+            // 旧 Option の適用ボタンは DontDestroyOnLoad の Canvas に残り、
+            // 全シーン (HUD のキーガイド上) に重なるため生成しない。
+            if (FlashBeat.UI.V6.V6UiMode.LegacyOverlaysHidden) { return; }
             if (staged == null || optionApplyButton != null) { return; }
 
             Canvas canvas = null;

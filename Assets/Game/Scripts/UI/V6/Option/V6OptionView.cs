@@ -462,12 +462,7 @@ namespace FlashBeat.UI.V6.Option
                 if (onBack != null) onBack();
             });
 
-            var backCol = V6Layout.Column(back, "Inner", new Vector2(0f, 7f), new Vector2(56f, 42f), 2f);
-            var backIcon = V6Icons.Create(backCol, "arrow-left", 24f, V6Tokens.TextMuted, "Icon");
-            var backKey = V6Controls.Text(backCol, "Key", "Esc", Vector2.zero, new Vector2(56f, 16f),
-                16f, V6Tokens.TextMuted, TextAlignmentOptions.Center);
-            var icons = new[] { backIcon, (Component)backKey };
-            V6Layout.StackVertical(backCol.GetComponent<RectTransform>(), 2f, icons);
+            V6Controls.FillBackButton(back, "Esc");
 
             V6Controls.Text(header.gameObject, "Title", "OPTION",
                 new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,
@@ -709,8 +704,10 @@ namespace FlashBeat.UI.V6.Option
 
             for (int i = 0; i < 8; i++)
             {
+                // 番号はレーン中心線の真下 (判定線 y240 の下端 x) に置く。
+                float bottomX = centerX + (i - 3.5f) * bottomSpacing;
                 V6Controls.Text(well, "Lane Label " + i, (i + 1).ToString(),
-                    new Vector2(6f + 58f * i, 246f), new Vector2(40f, 22f), 18f, V6Tokens.TextMuted,
+                    new Vector2(bottomX - 20f, 246f), new Vector2(40f, 22f), 18f, V6Tokens.TextMuted,
                     TextAlignmentOptions.Center);
             }
         }
@@ -1169,6 +1166,9 @@ namespace FlashBeat.UI.V6.Option
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent.transform, false);
+            // サイズを必ず反映する。既定 (100×100) のまま回転すると、細線のつもりの
+            // レーン線が 100px 幅の帯になり、プレビューが灰色のコーン状に潰れる。
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(w, h);
             var img = go.GetComponent<Image>();
             img.color = color;
             img.raycastTarget = false;

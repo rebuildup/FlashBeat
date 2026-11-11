@@ -346,31 +346,60 @@ namespace FlashBeat.UI.V6.Title
         {
             var header = headerZone.gameObject;
 
-            // 左上: 戻る (design zUcsi/zCQBY): 56×56 #3A3A3A r8、
-            // arrow-left アイコン 24×24 + 実キー (design 既定 "Esc") fs16 を縦に重ねる。
+            // 左上: Exit (design CtA3V): 162×56 #3A3A3A r8 の 1 枚に
+            // [log-out 32] [実キー] [Exit] を正本の座標で載せる。
             var back = V6Controls.Panel(header, "Back button", V6TitleLogic.BackButtonPos,
                 V6TitleLogic.BackButtonSize, V6Tokens.Key4, V6Tokens.RadiusMedium);
             MakeButton(back, onExit);
-            // 縦積み (design: gap2 中央寄せ): アイコン 24 + gap2 + Key 16 = 42、上下 (56−42)/2 = 7。
-            var backCol = V6Layout.Column(back, "Inner", new Vector2(0f, 7f), new Vector2(56f, 42f), 2f);
-            var backIcon = V6Icons.Create(backCol, "arrow-left", 24f, V6Tokens.TextMuted, "Icon");
-            string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
-            var backKey = V6Controls.Text(backCol, "Key", string.IsNullOrEmpty(exitKey) ? "Esc" : exitKey,
-                new Vector2(0f, 26f), new Vector2(56f, 16f), 16f, V6Tokens.TextMuted, TextAlignmentOptions.Center);
-            V6Layout.StackVertical(backCol.GetComponent<RectTransform>(), 2f, backIcon, backKey);
+            var backIcon = V6Icons.Create(back, "log-out", V6TitleLogic.BackIconSize,
+                V6Tokens.TextMuted, "Icon");
+            if (backIcon != null)
+            {
+                var iconRect = backIcon.rectTransform;
+                iconRect.anchorMin = new Vector2(0f, 1f);
+                iconRect.anchorMax = new Vector2(0f, 1f);
+                iconRect.pivot = new Vector2(0f, 1f);
+                iconRect.anchoredPosition = new Vector2(V6TitleLogic.BackIconPos.x,
+                    -V6TitleLogic.BackIconPos.y);
+                iconRect.sizeDelta = new Vector2(V6TitleLogic.BackIconSize, V6TitleLogic.BackIconSize);
+            }
 
-            // タイトル文字 (design aqq3q/ci867): (72,20) fs38 w700 $text。
-            V6Controls.Text(header, "Title", "FlashBeat", V6TitleLogic.HeaderTitlePos,
-                V6TitleLogic.HeaderTitleSize, V6TitleLogic.HeaderTitleFontSize, V6Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
+            string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
+            if (string.IsNullOrEmpty(exitKey))
+            {
+                exitKey = "E";
+            }
+
+            float capW = Mathf.Ceil(V6Ui.LabelAdvanceEm(exitKey) * V6Controls.ButtonKeyFontSize)
+                + V6TitleLogic.BackKeyCapPaddingX * 2f;
+            V6Controls.KeyCap(back, exitKey, V6TitleLogic.BackKeyCapPos,
+                new Vector2(capW, V6TitleLogic.BackKeyCapHeight), V6TitleLogic.BackKeyCapPaddingX);
+            V6Controls.Text(back, "Label", "Exit", V6TitleLogic.BackLabelPos,
+                V6TitleLogic.BackLabelSize, V6Controls.ButtonFontSize, V6Tokens.TextMuted,
+                TextAlignmentOptions.MidlineLeft);
+
+            // タイトル文字 (design aqq3q/ci867) は正本で `enabled: false`
+            // (Exit ボタン 162×56 と重なるため非表示)。既定では描かない。
+            if (V6UiMode.TitleHeaderTitle)
+            {
+                V6Controls.Text(header, "Title", "FlashBeat", V6TitleLogic.HeaderTitlePos,
+                    V6TitleLogic.HeaderTitleSize, V6TitleLogic.HeaderTitleFontSize, V6Tokens.Text,
+                    TextAlignmentOptions.Left, FontStyles.Bold);
+            }
 
             // 更新ボタン (更新があるときだけ)。design の右上には無いが、更新の導線は
             // Title にしか無いので、同じヘッダー帯の左側に置く (右側は曲情報 / 状態)。
             if (model != null && V6TitleLogic.ShowUpdateButton(model.Phase))
             {
+                // 正本 D7gbLV: Header ローカル (1021,20) 355×56、$k4 r8。
+                // アイコン refresh-cw (FMObZ は $accent-light)、KeyCap は半透明黒
+                // (#00000040、ほかの $k4 Cap とは別)。
                 var update = V6Controls.ButtonSecondary(header,
                     V6TitleLogic.UpdateButtonLabel(model.Phase, model.DownloadProgress),
-                    new Vector2(340f, 20f), new Vector2(460f, 56f), null, "F3");
+                    V6TitleLogic.UpdateButtonPos, V6TitleLogic.UpdateButtonSize, "refresh-cw",
+                    V6TitleLogic.UpdateButtonKey);
+                TintChild(update, "Icon", V6Tokens.AccentLight);
+                TintChild(update, "KeyCap " + V6TitleLogic.UpdateButtonKey, new Color32(0, 0, 0, 0x40));
 
                 // 押したときに実行できる操作 (Available → DL / Ready → 適用) が
                 // あるときだけ結線する。Downloading 中は進捗表示だけなので
@@ -387,54 +416,61 @@ namespace FlashBeat.UI.V6.Title
                 }
             }
 
-            // 右上: 曲情報 (design "Zone ・曲情報 (右上)" WUQeP = Header ローカル (1080,0) 300×96)。
-            // 中身は実データだけ: カタログの曲名 / アーティストと、その曲のベストスコア。
-            // 記録が 1 件も無いときは数値を出さず「まだ記録がありません」とだけ書く。
-            var songZone = V6Controls.Panel(header, "Zone Song", V6TitleLogic.SongInfoZonePos,
-                V6TitleLogic.HeaderZoneSize, Clear(), 0f);
-            V6TitleLogic.V6TitleRecord record = BestRecordNow();
-            V6Controls.Text(songZone, "Record Label", "自己ベスト", new Vector2(0f, 12f), new Vector2(160f, 24f),
-                16f, V6Tokens.TextMuted, TextAlignmentOptions.Left);
-            if (record.HasRecord)
+            // 右上: バージョン (design L6w6G = Header ローカル (1400,32) 280×32)。
+            // 正本の要素は [現行版] [→] [新版] の 3 つだけで、曲情報 / カタログ状態 /
+            // 自己ベストは設計に無い (v6 移植時に足していた非設計要素) ため描かない。
+            var versionZone = V6Controls.Panel(header, "Version", V6TitleLogic.VersionZonePos,
+                V6TitleLogic.VersionZoneSize, Clear(), 0f);
+            bool showNewVersion = model != null &&
+                V6TitleLogic.ShowNewVersion(model.Phase, model.LatestVersion);
+            string currentVersion = V6TitleLogic.VersionLabel(Application.version);
+            if (!string.IsNullOrEmpty(currentVersion))
             {
-                V6Controls.Text(songZone, "Record Score", V6TitleLogic.ScoreText(record.Score),
-                    new Vector2(120f, 12f), new Vector2(160f, 28f), 22f, V6Tokens.Text,
-                    TextAlignmentOptions.Right, FontStyles.Bold);
-                V6Controls.Text(songZone, "Song Title", record.Title, new Vector2(0f, 42f), new Vector2(300f, 30f),
-                    24f, V6Tokens.Text, TextAlignmentOptions.Left);
-                V6Controls.Text(songZone, "Song Artist", record.Artist, new Vector2(0f, 72f), new Vector2(300f, 24f),
-                    16f, V6Tokens.TextMuted, TextAlignmentOptions.Left);
-            }
-            else
-            {
-                V6Controls.Text(songZone, "No Record", V6TitleLogic.NoRecordText, new Vector2(0f, 42f),
-                    new Vector2(300f, 28f), 20f, V6Tokens.TextDim, TextAlignmentOptions.Left);
+                // 版番号は桁数が変わるので、正本の右端 (矢印の手前 / zone 右端) に右揃えする。
+                float rightEdge = showNewVersion
+                    ? V6TitleLogic.VersionArrowPos.x - 8f
+                    : V6TitleLogic.VersionRightEdge;
+                V6Controls.Text(versionZone, "Version Current", currentVersion,
+                    new Vector2(0f, V6TitleLogic.VersionCurrentPos.y),
+                    new Vector2(rightEdge, V6TitleLogic.VersionCurrentSize.y),
+                    V6TitleLogic.VersionFontSize, V6Tokens.TextDim, TextAlignmentOptions.Right);
             }
 
-            // 右上: 状態 (design "Zone ・状態 (右上)" l26KMD = Header ローカル (1380,0) 300×96)。
-            // カタログ状態 (曲数 + クラウド / ローカル) とバージョン (実データ)。
-            var stateZone = V6Controls.Panel(header, "Zone State", V6TitleLogic.StateZonePos,
-                V6TitleLogic.HeaderZoneSize, Clear(), 0f);
-            int songCount = V6TitleLogic.PlayableSongCount(GManager.ActiveSongs);
-            V6Controls.Text(stateZone, "Catalog Status",
-                V6TitleLogic.CatalogStatusText(GManager.HasRemoteCatalog, songCount), new Vector2(0f, 20f),
-                new Vector2(300f, 28f), 18f, V6Tokens.TextDim, TextAlignmentOptions.Left);
-            V6Controls.Text(stateZone, "Version", V6TitleLogic.VersionLabel(Application.version),
-                new Vector2(0f, 50f), new Vector2(140f, 24f), 16f, V6Tokens.TextDim, TextAlignmentOptions.Left);
-            if (model != null && V6TitleLogic.ShowNewVersion(model.Phase, model.LatestVersion))
+            if (showNewVersion)
             {
-                var arrowGo = V6Layout.Row(stateZone, "Arrow", new Vector2(140f, 50f), new Vector2(24f, 24f), 0f);
-                V6Icons.Create(arrowGo, "chevron-right", 16f, V6Tokens.TextDim, "Icon");
-                V6Controls.Text(stateZone, "New Version", V6TitleLogic.VersionLabel(model.LatestVersion),
-                    new Vector2(164f, 50f), new Vector2(136f, 24f), 16f, V6Tokens.AccentLight,
-                    TextAlignmentOptions.Left, FontStyles.Bold);
+                V6Controls.Text(versionZone, "Version Arrow", "→", V6TitleLogic.VersionArrowPos,
+                    V6TitleLogic.VersionArrowSize, V6TitleLogic.VersionArrowFontSize,
+                    V6Tokens.TextDim, TextAlignmentOptions.Left);
+                V6Controls.Text(versionZone, "Version New",
+                    V6TitleLogic.VersionLabel(model.LatestVersion), V6TitleLogic.VersionNewPos,
+                    V6TitleLogic.VersionNewSize, V6TitleLogic.VersionFontSize,
+                    V6Tokens.AccentLight, TextAlignmentOptions.Left, FontStyles.Bold);
             }
         }
 
         /// <summary>
-        /// 自己ベスト (実データ) を今読み直す。
-        /// 曲名 / アーティストは GManager のカタログ、最高スコアは保存済みの
-        /// ベストスコア (GManager.BestScoreOf) からだけ取る。
+        /// 直下の子を名前で探して Image の色だけ差し替える (共通部品の既定色が
+        /// 正本と違う 1 点だけを直すため。部品自体は他画面と共有する)。
+        /// </summary>
+        private static void TintChild(GameObject parent, string childName, Color color)
+        {
+            Transform child = parent.transform.Find(childName);
+            if (child == null)
+            {
+                return;
+            }
+
+            var image = child.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = color;
+            }
+        }
+
+        /// <summary>
+        /// 自己ベストの読み出し (GManager のカタログ + 保存済みスコア)。
+        /// 正本 QJtTv のヘッダーは [Exit] [更新] [バージョン] だけなので v6 Title では
+        /// 表示しないが、選曲側の実装と共有するロジックとして残す。
         /// </summary>
         private static V6TitleLogic.V6TitleRecord BestRecordNow()
         {
@@ -507,63 +543,6 @@ namespace FlashBeat.UI.V6.Title
                 }
             }
 
-            BuildUpdateNotice(model);
-        }
-
-        /// <summary>
-        /// 「アップデートあり」通知 (issue #118)。
-        /// 更新が実際に利用できるときだけ出し、「更新して再起動」ヘッダーボタン
-        /// (操作) とは別 element として示す (状態の表示と操作の表示を分ける)。
-        /// 旧 (v5) の更新通知ピルは v6 モードで隠されるため (V6UiMode.HideLegacyUpdateNotice)、
-        /// v6 タイトルが自前で描く。
-        /// </summary>
-        private void BuildUpdateNotice(UpdateFlowModel model)
-        {
-            if (!V6TitleLogic.ShowUpdateAvailableNotice(model))
-            {
-                return;
-            }
-
-            var main = mainZone.gameObject;
-            string title = V6TitleLogic.UpdateNoticeTitle(model.Phase, model.LatestVersion,
-                model.DownloadProgress);
-            string hint = V6TitleLogic.UpdateNoticeHint(model.Phase);
-
-            var banner = V6Controls.Panel(main, "Update Notice", V6TitleLogic.UpdateNoticePos,
-                V6TitleLogic.UpdateNoticeSize, V6Tokens.Overlay, V6Tokens.RadiusMedium);
-            // 背景パネルはクリックを透過させる (下のロゴ画像などに干渉しない)。
-            var bannerImage = banner.GetComponent<Image>();
-            if (bannerImage != null)
-            {
-                bannerImage.raycastTarget = false;
-            }
-
-            // 左端のアクセント帯 (通知だと分かる目印)。
-            var accent = V6Controls.Panel(banner, "Update Notice Accent", Vector2.zero,
-                new Vector2(V6TitleLogic.UpdateNoticeAccentWidth, V6TitleLogic.UpdateNoticeSize.y),
-                V6Tokens.Accent, V6Tokens.RadiusSmall);
-            var accentImage = accent.GetComponent<Image>();
-            if (accentImage != null)
-            {
-                accentImage.raycastTarget = false;
-            }
-
-            // 見出し (「アップデートあり」+ 版番号)。
-            float titleWidth = V6Layout.EstimateTextWidth(title, V6TitleLogic.UpdateNoticeTitleFontSize);
-            V6Controls.Text(banner, "Update Notice Title", title,
-                new Vector2(V6TitleLogic.UpdateNoticePadX, 13f),
-                new Vector2(titleWidth, 30f), V6TitleLogic.UpdateNoticeTitleFontSize,
-                V6Tokens.AccentLight, TextAlignmentOptions.Left, FontStyles.Bold);
-
-            // 補足 (操作の説明 / 「押さなければ更新しません」)。
-            if (!string.IsNullOrEmpty(hint))
-            {
-                float hintX = V6TitleLogic.UpdateNoticePadX + titleWidth + V6TitleLogic.UpdateNoticeGap;
-                float hintWidth = V6TitleLogic.UpdateNoticeSize.x - hintX - V6TitleLogic.UpdateNoticePadX;
-                V6Controls.Text(banner, "Update Notice Hint", hint, new Vector2(hintX, 15f),
-                    new Vector2(hintWidth, 26f), V6TitleLogic.UpdateNoticeHintFontSize,
-                    V6Tokens.TextMuted, TextAlignmentOptions.Left);
-            }
         }
 
         /// <summary>
@@ -655,22 +634,21 @@ namespace FlashBeat.UI.V6.Title
                 }
             }
 
-            // ラベル (design fs26 w500、縦中央)。アイコンの右 (padding + icon + gap) から。
+            // ラベル (design fs26 w500、ノードは y5 / 高さ 38)。アイコンの右から。
             float labelX = V6TitleLogic.TabPaddingX + V6TitleLogic.TabIconSize + V6TitleLogic.TabGap;
             var labelColor = selected ? V6Tokens.Text : V6Tokens.TextMuted;
-            V6Controls.Text(tabGo, "Label", tab.Label,
-                new Vector2(labelX, (V6TitleLogic.TabSize.y - 34f) * 0.5f), new Vector2(160f, 34f),
+            V6Controls.Text(tabGo, "Label", tab.Label, new Vector2(labelX, 5f), new Vector2(160f, 38f),
                 V6TitleLogic.TabLabelFontSize, labelColor, TextAlignmentOptions.Left);
 
-            // 右端の KeyCap (design: fs22、padding [0,8]。共通部品は契約の高さ 36 / padding [0,10])。
+            // 右端の KeyCap (design: 高さ 32・padding [0,8]、y8)。
             if (!string.IsNullOrEmpty(tab.Key))
             {
-                float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(tab.Key) * V6Controls.KeyCapFontSize)
-                    + V6Controls.KeyCapPaddingX * 2f;
+                float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(tab.Key) * V6Controls.ButtonKeyFontSize)
+                    + V6Controls.ButtonKeyCapPaddingX * 2f;
                 V6Controls.KeyCap(tabGo, tab.Key,
                     new Vector2(V6TitleLogic.TabSize.x - V6TitleLogic.TabPaddingX - keyW,
-                        (V6TitleLogic.TabSize.y - V6Tokens.KeyCapHeight) * 0.5f),
-                    new Vector2(keyW, V6Tokens.KeyCapHeight));
+                        (V6TitleLogic.TabSize.y - V6Controls.ButtonKeyCapHeight) * 0.5f),
+                    new Vector2(keyW, V6Controls.ButtonKeyCapHeight), V6Controls.ButtonKeyCapPaddingX);
             }
         }
 
@@ -691,14 +669,18 @@ namespace FlashBeat.UI.V6.Title
                 float x = 0f;
                 string startKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start);
                 x = AddLegendItem(legend, x, startKey, "決定");
-                x = AddLegendItem(legend, x, "↑↓", "曲送り");
+                x = AddLegendItem(legend, x, "↑↓", "選択");
                 string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
-                AddLegendItem(legend, x, exitKey, "戻る");
+                AddLegendItem(legend, x, exitKey, "終了");
             }
 
-            // 右下の操作ボタン (design T8HuQS):
-            // 補助操作 (1198,20) 197×56 = Button Secondary (settings / 設定 / O)、
-            // 主操作 (1407,20) 273×56 = Button Primary (START / Space)。
+            // 右下の操作ボタン (design T8HuQS) は正本で `enabled: false`。
+            // タブ行 (GameStart / Option) とキー操作が同じ導線を持つので描かない。
+            if (!V6UiMode.TitleFooterActions)
+            {
+                return;
+            }
+
             string optionKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Option);
             var aux = V6Controls.ButtonSecondary(footer, "設定", V6TitleLogic.FooterAuxPos,
                 V6TitleLogic.FooterAuxSize, "settings", string.IsNullOrEmpty(optionKey) ? "O" : optionKey);

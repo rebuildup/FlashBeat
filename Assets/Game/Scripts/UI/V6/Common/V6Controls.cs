@@ -24,10 +24,28 @@ namespace FlashBeat.UI.V6.Common
         /// <summary>Button 内 KeyCap の Key fs (契約 §4)。</summary>
         public const float ButtonKeyFontSize = 22f;
 
+        /// <summary>
+        /// Button 内 KeyCap の寸法 (design px)。正本 Button Primary/Secondary の
+        /// Cap は高さ 32・padding [0,8] (単体 KeyCap の 36 / [0,10] とは別)。
+        /// </summary>
+        public const float ButtonKeyCapHeight = 32f;
+        public const float ButtonKeyCapPaddingX = 8f;
+
         // --- 契約 §4 の KeyCap / Tag 定数 (design px) ---
         public const float KeyCapFontSize = 22f;
         public const float KeyCapPaddingX = 10f;
         public const float TagFontSize = 22f;
+
+        // --- ヘッダー左上の戻るボタン (design zUcsi/zCQBY) ---
+        // 単体 KeyCap (36) より小さい専用部品: 56×56 の中に
+        // arrow-left 24 @(16,4) と Key fs16 @(15,30) 26×23 を重ねる。
+        // 中央寄せで積むとアイコンが下がり Key と重なる (Select で発生していた)。
+        public const float BackButtonSize = 56f;
+        public const float BackButtonIconSize = 24f;
+        public static readonly Vector2 BackButtonIconPos = new Vector2(16f, 4f);
+        public static readonly Vector2 BackButtonKeyPos = new Vector2(15f, 30f);
+        public static readonly Vector2 BackButtonKeySize = new Vector2(26f, 23f);
+        public const float BackButtonKeyFontSize = 16f;
 
         private static readonly Dictionary<int, Sprite> SpriteCache = new Dictionary<int, Sprite>();
 
@@ -122,10 +140,66 @@ namespace FlashBeat.UI.V6.Common
         /// </summary>
         public static GameObject KeyCap(GameObject parent, string label, Vector2 designTopLeft, Vector2 size)
         {
+            return KeyCap(parent, label, designTopLeft, size, KeyCapPaddingX);
+        }
+
+        /// <summary>
+        /// 既存の 56×56 戻るボタンに正本どおりの中身 (arrow-left 24 + Key fs16) を入れる。
+        /// ボタン自体の生成 / クリック結線は各画面のヘルパに任せる (二重に Button を付けない)。
+        /// </summary>
+        public static void FillBackButton(GameObject back, string keyLabel)
+        {
+            if (back == null)
+            {
+                return;
+            }
+
+            var icon = V6Icons.Create(back, "arrow-left", BackButtonIconSize, V6Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                var iconRect = icon.rectTransform;
+                iconRect.anchorMin = new Vector2(0f, 1f);
+                iconRect.anchorMax = new Vector2(0f, 1f);
+                iconRect.pivot = new Vector2(0f, 1f);
+                iconRect.anchoredPosition = new Vector2(BackButtonIconPos.x, -BackButtonIconPos.y);
+                iconRect.sizeDelta = new Vector2(BackButtonIconSize, BackButtonIconSize);
+            }
+
+            if (!string.IsNullOrEmpty(keyLabel))
+            {
+                Text(back, "Key", keyLabel, BackButtonKeyPos, BackButtonKeySize,
+                    BackButtonKeyFontSize, V6Tokens.TextMuted, TextAlignmentOptions.Center);
+            }
+        }
+
+        /// <summary>
+        /// KeyCap を左右パディング指定で作る。ボタン内 (padding 8) のように
+        /// 正本の寸法が単体 KeyCap と異なる箇所で使う。
+        /// </summary>
+        public static GameObject KeyCap(GameObject parent, string label, Vector2 designTopLeft, Vector2 size,
+            float paddingX)
+        {
             var go = Panel(parent, "KeyCap " + label, designTopLeft, size, V6Tokens.Key4, V6Tokens.RadiusSmall);
-            float fs = V6Ui.KeyCapFontSize(size.x, size.y, label);
-            StretchText(go, "Key", label, fs, V6Tokens.TextMuted);
+            float fs = KeyFontSize(size.x, label, paddingX);
+            StretchText(go, "Key", label, fs, V6Tokens.TextMuted, paddingX);
             return go;
+        }
+
+        /// <summary>
+        /// KeyCap の Key fs (design 空間)。正本は高さ 36 の単体 Cap も、高さ 32 の
+        /// Button 内 / フッター凡例 Cap も Key fs22 (Prefab/KeyCap, Prefab/Button Primary,
+        /// 05b フッター Legend の実測値)。高さ比では縮めず、幅に収まらないときだけ縮小する。
+        /// </summary>
+        public static float KeyFontSize(float capWidth, string label, float paddingX)
+        {
+            float available = capWidth - paddingX * 2f;
+            float em = V6Ui.LabelAdvanceEm(label);
+            if (em <= 0f || available <= 0f)
+            {
+                return KeyCapFontSize;
+            }
+
+            return Mathf.Max(1f, Mathf.Floor(Mathf.Min(KeyCapFontSize, available / em)));
         }
 
         /// <summary>Tag (契約 §4): fs22 (v6 規定)。背景 $k4 r4。</summary>
@@ -214,11 +288,12 @@ namespace FlashBeat.UI.V6.Common
             float contentRight = size.x - ButtonPaddingX;
             if (!string.IsNullOrEmpty(keyLabel))
             {
-                // 契約 §4: Button 内 KeyCap は Key fs22 (高さ 36, r4, [0,8])。
-                float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(keyLabel) * ButtonKeyFontSize) + KeyCapPaddingX * 2f;
+                // 契約 §4: Button 内 KeyCap は Key fs22 (高さ 32, r4, [0,8])。
+                float keyW = Mathf.Ceil(V6Ui.LabelAdvanceEm(keyLabel) * ButtonKeyFontSize)
+                    + ButtonKeyCapPaddingX * 2f;
                 var keyGo = KeyCap(go, keyLabel,
-                    new Vector2(contentRight - keyW, (size.y - V6Tokens.KeyCapHeight) * 0.5f),
-                    new Vector2(keyW, V6Tokens.KeyCapHeight));
+                    new Vector2(contentRight - keyW, (size.y - ButtonKeyCapHeight) * 0.5f),
+                    new Vector2(keyW, ButtonKeyCapHeight), ButtonKeyCapPaddingX);
                 contentRight = keyGo.GetComponent<RectTransform>().anchoredPosition.x - ButtonGap;
             }
 
@@ -247,15 +322,16 @@ namespace FlashBeat.UI.V6.Common
             return go;
         }
 
-        private static void StretchText(GameObject parent, string name, string content, float fontSize, Color color)
+        private static void StretchText(GameObject parent, string name, string content, float fontSize, Color color,
+            float paddingX = KeyCapPaddingX)
         {
             var tmp = Text(parent, name, content, Vector2.zero, Vector2.zero, fontSize, color,
                 TextAlignmentOptions.Center);
             var rt = tmp.rectTransform;
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(KeyCapPaddingX, 0f);
-            rt.offsetMax = new Vector2(-KeyCapPaddingX, 0f);
+            rt.offsetMin = new Vector2(paddingX, 0f);
+            rt.offsetMax = new Vector2(-paddingX, 0f);
         }
     }
 }

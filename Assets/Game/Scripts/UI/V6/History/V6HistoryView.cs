@@ -24,8 +24,9 @@ namespace FlashBeat.UI.V6.History
     ///   1 件も無い場合は空状態 (プレイ履歴がありません) を出す。
     /// - プレイ情報パネルは直前のプレイ (GManager の play 静的フィールド) を
     ///   選択中の曲が最後にプレイした曲のときだけ実数で出す。データが無い
-    ///   (未プレイ / 別曲を選択中) 場合は "–"。HOLD セルは集計が存在しないため削除した
-    ///   (Issue #239)。
+    ///   (未プレイ / 別曲を選択中) 場合は "–"。design (q9JZcH) の 6 セル
+    ///   (PERFECT / GREAT / BAD / MISS / HOLD / MAX COMBO) をすべて描き、HOLD は
+    ///   現行譜面に HOLD ノーツが無いため有効なプレイでは常に "0" (design 同値)。
     /// - キー操作は統合担当が結線する (Input は直接読まない):
     ///   MoveSelection / ToggleSort / TriggerBack / TriggerOpenSettings / TriggerGotoSong。
     /// - SelectSceneManager は呼ばない。onBack / onOpenSettings / onGotoSong は統合担当が渡す。
@@ -366,10 +367,7 @@ namespace FlashBeat.UI.V6.History
             var backZone = At(V5Ui.Node(headerZone, "Zone Back"), 0f, 20f);
             var back = MakeButton(V5Ui.Panel(backZone, "Back Button", new Vector2(56f, 56f), V5Tokens.Key4, 8f),
                 () => TriggerBack());
-            var backCol = V5GameUi.Column(back, "Inner", 2f, TextAnchor.MiddleCenter);
-            Stretch(backCol.GetComponent<RectTransform>(), 56f, 56f);
-            V6Icons.Create(backCol.gameObject, "arrow-left", 24f, V5Tokens.TextMuted, "Icon");
-            V5GameUi.Text(backCol.gameObject, "Key", "Esc", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+            V6Controls.FillBackButton(back, "Esc");
 
             var title = V5GameUi.Text(headerZone, "Title", "HISTORY", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
@@ -395,33 +393,25 @@ namespace FlashBeat.UI.V6.History
         {
             // design (rw7zx): キー操作ゾーン (0,30)、Legend 間 gap16、Legend 内は
             // KeyCap (高36 / pad[0,10] / fs22) + gap10 + Label fs22 $text-muted。
-            // 凡例は実キーと一致させる (Issue #239): S は HandleHistoryInput の
-            // ToggleSort (ヘッダーの Sort チップと同じ操作)。
+            // design の凡例はこの 3 つだけ (q9JZcH フッター: ↑↓ 選択 / Space 決定 / Esc 戻る)。
+            // S (並べ替え) は実装済みのキー操作だが design に凡例が無いため出さない。
+            // (design の「凡例 (左下)」ゾーン (445,30) 240×36 は中身が空。)
             BuildKeyLegend(footerZone, new[]
             {
                 new[] { "↑↓", "選択" },
-                new[] { "S", "並べ替え" },
                 new[] { "Space", "決定" },
                 new[] { "Esc", "戻る" }
             });
 
-            // 右下: 設定 (design: 補助操作 (840+358,20) 197×56 / icon settings + Cap 'O')
-            // と この曲へ (design: 主操作 (840+567,20) 273×56 / icon + Cap 'Space')。
-            GameObject settingsBtn = V6Controls.ButtonSecondary(footerZone, "設定",
-                new Vector2(V6HistoryLogic.FooterSettingsButtonX, V6HistoryLogic.FooterButtonY),
-                new Vector2(197f, V6HistoryLogic.FooterButtonH), "settings", "O");
-            ConfigureButton(settingsBtn, TriggerOpenSettings);
-            TintButtonCap(settingsBtn, SecondaryCapColor);
-
+            // design (q9JZcH): 右下は「この曲へ」(567,20) 273×56 のみ。
+            // 「設定」ゾーン (358,20) 197×56 は design で空のプレースホルダ (子ノード無し / fill 無し)
+            // なのでボタンは描かない。O キーの設定遷移 (TriggerOpenSettings) はキーボード操作として残す。
             GameObject gotoBtn = V6Controls.ButtonPrimary(footerZone, "この曲へ",
                 new Vector2(V6HistoryLogic.FooterGotoButtonX, V6HistoryLogic.FooterButtonY),
                 new Vector2(273f, V6HistoryLogic.FooterButtonH), "music", "Space");
             ConfigureButton(gotoBtn, TriggerGotoSong);
             TintButtonCap(gotoBtn, PrimaryCapColor);
         }
-
-        /// <summary>design (rw7zx) の Secondary ボタン内 Cap の塗り (#00000040)。</summary>
-        private static readonly Color SecondaryCapColor = new Color(0f, 0f, 0f, 0x40 / 255f);
 
         /// <summary>design (rw7zx / 契約 §4) の Primary ボタン内 KeyCap の塗り (#00000026)。</summary>
         private static readonly Color PrimaryCapColor = new Color(0f, 0f, 0f, 0x26 / 255f);
@@ -535,7 +525,8 @@ namespace FlashBeat.UI.V6.History
             var title = V5GameUi.Text(row.gameObject, "Title", song.Title, 24f, V5Tokens.Text);
             At(title, 64f, 0f, 220f, RowH, new Vector2(0f, 0.5f));
 
-            var score = V5GameUi.Text(row.gameObject, "Score", V6SelectViewLogic.FormatScore(song.BestScore), 24f,
+            // design (BuztA 等) の Score は区切りなしの生の数値 ("987410")。
+            var score = V5GameUi.Text(row.gameObject, "Score", song.BestScore.ToString(), 24f,
                 V5Tokens.Text, TextAlignmentOptions.Right);
             At(score, 296f, 0f, 120f, RowH, new Vector2(0f, 0.5f));
 
@@ -675,6 +666,9 @@ namespace FlashBeat.UI.V6.History
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
+            // 子の幅は TMP の preferredWidth に従わせる。childControlWidth=false だと
+            // 既定の矩形幅 (200) のままヘッダーの右外へはみ出す。
+            head.childControlWidth = true;
             V5GameUi.Text(head.gameObject, "Title", "プレイヤー情報", 18f, V5Tokens.TextDim);
             var spacer = V5Ui.Node(head.gameObject, "Spacer");
             var spacerLe = spacer.AddComponent<LayoutElement>();
@@ -686,11 +680,13 @@ namespace FlashBeat.UI.V6.History
                 TextAlignmentOptions.Right);
 
             BuildInfoCell(panel, 8f, 52f, "累計", V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history)));
-            // 値は「記録のある曲数 / 全曲数」(プレイ回数ではない) のでラベルもその意味にする。
-            BuildInfoCell(panel, 272f, 52f, "プレイ済み", history.Count + " / " + data.AllSongs.Count);
+            // design (YuQgv value "4 / 26") は「記録のある曲数 / 全曲数」。
+            BuildInfoCell(panel, 272f, 52f, "プレイ曲", history.Count + " / " + data.AllSongs.Count);
             BuildInfoCell(panel, 8f, 116f, "S以上", V6HistoryLogic.CountGradeAtLeastS(history).ToString());
-            // 「順位」セルは削除 (Issue #239): 総合順位を返す既存 API が無く、
-            // 常に "–位 / –人" を出すだけの死んだ表示だった (design 差分は evidence に記録)。
+            // design (xnuYO) は 4 番目のセル「順位」("–位 / –人") を持つ。
+            // 総合順位を返す API はまだ無いので、design と同じく未確定表示 "–位 / –人" を出す。
+            // (以前はセルごと削除していたが、それは design 差分だったので戻した。)
+            BuildInfoCell(panel, 272f, 116f, "順位", "–位 / –人");
         }
 
         /// <summary>プレイ情報 (528x220 $k2): 直前のプレイの SCORE と判定内訳。</summary>
@@ -700,6 +696,8 @@ namespace FlashBeat.UI.V6.History
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
+            // 子の幅は TMP の preferredWidth に従わせる (SCORE ラベル + 値が右へはみ出さない)。
+            head.childControlWidth = true;
             V5GameUi.Text(head.gameObject, "Title", "プレイ情報", 18f, V5Tokens.TextDim);
             var spacer = V5Ui.Node(head.gameObject, "Spacer");
             var spacerLe = spacer.AddComponent<LayoutElement>();
@@ -714,8 +712,10 @@ namespace FlashBeat.UI.V6.History
             BuildJudgeCell(panel, 189f, 52f, "GREAT", valid ? GManager.great.ToString() : "–");
             BuildJudgeCell(panel, 358f, 52f, "BAD", valid ? GManager.bad.ToString() : "–");
             BuildJudgeCell(panel, 20f, 140f, "MISS", valid ? GManager.miss.ToString() : "–");
-            // HOLD セルは削除 (Issue #239): ホールド成功数の集計は既存コードに無く
-            // (ホールドは先頭押下時に通常判定へ加算済み)、常に "–" の死んだセルだった。
+            // design (d0bZbJ) は 5 番目のセル「HOLD」("0") を持つ。現行エンジンの譜面は
+            // すべて通常ノーツ (chart の type は 1 のみ) で HOLD の集計は存在しないため、
+            // プレイが有効なときの真の値は常に 0。design と同じ "0" を出す。
+            BuildJudgeCell(panel, 189f, 140f, "HOLD", valid ? "0" : "–");
             // design: MAX COMBO の value のみ fs24
             BuildJudgeCell(panel, 358f, 140f, "MAX COMBO",
                 valid ? V6HistoryLogic.ComboLabel(GManager.maxCombo, song != null ? song.NoteCount : 0) : "–",
@@ -741,6 +741,8 @@ namespace FlashBeat.UI.V6.History
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
+            // 子の幅は TMP の preferredWidth に従わせる (曲名チップが右端を越えない)。
+            head.childControlWidth = true;
             V5GameUi.Text(head.gameObject, "Title", "曲ランキング", 18f, V5Tokens.TextDim);
             var headSpacer = V5Ui.Node(head.gameObject, "Spacer");
             var headSpacerLe = headSpacer.AddComponent<LayoutElement>();
@@ -748,7 +750,14 @@ namespace FlashBeat.UI.V6.History
             if (song != null)
             {
                 var songChip = V5GameUi.Row(head.gameObject, "Song", 6f, TextAnchor.MiddleCenter);
+                // 親 Head は childControlWidth=true。Image 単体は preferredWidth を持たないため、
+                // 40x24 を LayoutElement で明示しないとサムネイルが幅 0 に潰れる。
+                songChip.childControlWidth = true;
+                songChip.childControlHeight = false;
                 var thumb = At(V5Ui.Panel(songChip.gameObject, "Thumb", new Vector2(40f, 24f), V5Tokens.Key3, 4f), 0f, 0f);
+                var thumbLe = thumb.AddComponent<LayoutElement>();
+                thumbLe.preferredWidth = 40f;
+                thumbLe.preferredHeight = 24f;
                 SetJacket(thumb, song);
                 V5GameUi.Text(songChip.gameObject, "Text", song.Title, 18f, V5Tokens.Text);
             }

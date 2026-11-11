@@ -124,7 +124,7 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.AreEqual(V6SelectAction.MoveDown, V6SelectViewLogic.MapKey(false, false, true, false, false, false));
             Assert.AreEqual(V6SelectAction.Confirm, V6SelectViewLogic.MapKey(false, false, false, true, false, false));
             Assert.AreEqual(V6SelectAction.Cancel, V6SelectViewLogic.MapKey(false, false, false, false, true, false));
-            Assert.AreEqual(V6SelectAction.FocusSearch, V6SelectViewLogic.MapKey(false, false, false, false, false, true));
+            Assert.AreEqual(V6SelectAction.ToggleFilter, V6SelectViewLogic.MapKey(false, false, false, false, false, true));
             Assert.AreEqual(V6SelectAction.None, V6SelectViewLogic.MapKey(false, false, false, false, false, false));
         }
 
@@ -138,6 +138,23 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.AreEqual(V6SelectAction.None, V6SelectViewLogic.MapKey(true, true, true, false, false, false));
         }
 
+        [Test]
+        public void SearchSeed_OnlyLettersStartTheSearch()
+        {
+            // 正本 OENRv の「A-Z 検索」: 英字を押すと検索に入る。
+            Assert.AreEqual('a', V6SelectViewLogic.SearchSeed("a"));
+            Assert.AreEqual('Z', V6SelectViewLogic.SearchSeed("Z"));
+            // 制御文字 (Tab/Enter/Backspace)・空白・数字は検索を開始しない。
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("\t"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("\n"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("\b"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed(" "));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed("8"));
+            Assert.AreEqual('\0', V6SelectViewLogic.SearchSeed(null));
+            // 英字が混ざっていればその文字を種にする。
+            Assert.AreEqual('q', V6SelectViewLogic.SearchSeed("\tq"));
+        }
+
         // --- 凡例と実装の一致 (#221 / #222 Task 2) ---
 
         [Test]
@@ -149,23 +166,22 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         }
 
         [Test]
-        public void FooterLegend_FilterToggleKey_MatchesImplementation()
+        public void FooterLegend_FilterToggleAndSearchMatchTheDesign()
         {
-            // 絞り込みは F (Tab は検索フォーカス)。凡例が実装と矛盾しない。
+            // 正本 OENRv の凡例そのまま: A-Z 検索 / Tab 絞り込み。
             V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
-            Assert.AreEqual("Tab", items[2].Key);
+            Assert.AreEqual("A-Z", items[2].Key);
             Assert.AreEqual("検索", items[2].Label);
-            Assert.AreEqual("F", items[3].Key);
+            Assert.AreEqual("Tab", items[3].Key);
             Assert.AreEqual("絞り込み", items[3].Label);
         }
 
         [Test]
-        public void FooterLegend_SongScrollKey_ListsEverySelectionMoveKey()
+        public void FooterLegend_SongScrollKey_MatchesTheDesign()
         {
-            // 曲送りは ↑↓ に加えて ←→ (NavPrev/NavNext の既定) も有効 (V6SelectView.Tick)。
-            // 凡例は実際に選択を動かすキーを全て列挙しなければならない。
+            // 正本 OENRv のキャップは ↑↓ (←→ も同じ動作だが凡例は設計の文字列に合わせる)。
             V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
-            Assert.AreEqual("↑↓←→", items[1].Key);
+            Assert.AreEqual("↑↓", items[1].Key);
             Assert.AreEqual("曲送り", items[1].Label);
         }
 

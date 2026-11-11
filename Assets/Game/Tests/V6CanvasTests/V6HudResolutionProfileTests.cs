@@ -92,6 +92,38 @@ namespace FlashBeat.V6CanvasTests
             Assert.IsFalse(V6HudMetrics.Fhd(1f).MatchesResolution(2560f, 1440f));
         }
 
+        // --- 正本 Uc9v6 T3U7u6 / HcP8N W1ppF: メニューと開始案内の寸法 ---
+
+        [Test]
+        public void MenuButton_MatchesDesignInternals()
+        {
+            // T3U7u6 180×48: [ラベル fs22][gap 10][KeyCap 55×32 (padding [0,10] の自動幅)]。
+            var fhd = V6HudMetrics.Fhd(1f);
+            Assert.AreEqual(180, fhd.MenuW);
+            Assert.AreEqual(48, fhd.MenuH);
+            Assert.AreEqual(22, fhd.MenuFs);
+            Assert.AreEqual(32, fhd.MenuCapH);
+            Assert.AreEqual(10, fhd.MenuGap);
+
+            // 2K/Mac は 240×64 / fs30。KeyCap の自動高は fs の行高に比例 (22→32, 30→44)。
+            var m2k = V6HudMetrics.TwoK();
+            Assert.AreEqual(240, m2k.MenuW);
+            Assert.AreEqual(64, m2k.MenuH);
+            Assert.AreEqual(30, m2k.MenuFs);
+            Assert.AreEqual(44, m2k.MenuCapH);
+            Assert.AreEqual(10, m2k.MenuGap);
+        }
+
+        [Test]
+        public void ReadyPrompt_MatchesDesignStartPrompt()
+        {
+            // HcP8N の Start Prompt (W1ppF): KeyCap 36 高 / fs22 / padding [0,10] と
+            // 「to start」の行 (gap 10)。「Space to Start」の一文は design に無い。
+            Assert.AreEqual(36f, V6HudLogic.ReadyPromptCapHeight);
+            Assert.AreEqual(22f, V6HudLogic.ReadyPromptFontSize);
+            Assert.AreEqual(10f, V6HudLogic.ReadyPromptGap);
+        }
+
         // --- 契約 §6: キーガイド / 判定行はレーン中心に一致する ---
 
         [Test]
