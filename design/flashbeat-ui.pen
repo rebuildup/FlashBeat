@@ -11652,7 +11652,10 @@
                               "id": "jUJiY",
                               "name": "Value",
                               "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
                               "content": "Compact",
+                              "textAlign": "center",
                               "fontFamily": "$font-ui",
                               "fontSize": 24,
                               "fontWeight": "normal"
@@ -11749,7 +11752,10 @@
                               "id": "o6azoz",
                               "name": "Value",
                               "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
                               "content": "Auto",
+                              "textAlign": "center",
                               "fontFamily": "$font-ui",
                               "fontSize": 24,
                               "fontWeight": "normal"
@@ -11846,7 +11852,10 @@
                               "id": "saszB",
                               "name": "Value",
                               "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
                               "content": "10",
+                              "textAlign": "center",
                               "fontFamily": "$font-ui",
                               "fontSize": 24,
                               "fontWeight": "normal"
@@ -18483,6 +18492,18 @@
                           "fontFamily": "$font-ui",
                           "fontSize": 32,
                           "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "q06LNR",
+                          "x": 336,
+                          "y": 0,
+                          "name": "Trophy",
+                          "width": 32,
+                          "height": 32,
+                          "icon": "trophy",
+                          "library": "lucide",
+                          "fill": "#EDEDED"
                         }
                       ]
                     },
@@ -30652,7 +30673,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 0",
-                      "geometry": "M339 792l462-792",
+                      "geometry": "M234 972l567-972",
                       "viewBox": [
                         0,
                         0,
@@ -30670,7 +30691,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 1",
-                      "geometry": "M489 792l330-792",
+                      "geometry": "M414 972l405-972",
                       "viewBox": [
                         0,
                         0,
@@ -30688,7 +30709,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 2",
-                      "geometry": "M639 792l198-792",
+                      "geometry": "M594 972l243-972",
                       "viewBox": [
                         0,
                         0,
@@ -30706,7 +30727,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 3",
-                      "geometry": "M789 792l66-792",
+                      "geometry": "M774 972l81-972",
                       "viewBox": [
                         0,
                         0,
@@ -30724,7 +30745,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 4",
-                      "geometry": "M939 792l-66-792",
+                      "geometry": "M954 972l-81-972",
                       "viewBox": [
                         0,
                         0,
@@ -30742,7 +30763,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 5",
-                      "geometry": "M1089 792l-198-792",
+                      "geometry": "M1134 972l-243-972",
                       "viewBox": [
                         0,
                         0,
@@ -30760,7 +30781,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 6",
-                      "geometry": "M1239 792l-330-792",
+                      "geometry": "M1314 972l-405-972",
                       "viewBox": [
                         0,
                         0,
@@ -30778,7 +30799,7 @@
                       "x": 0,
                       "y": 0,
                       "name": "Lane 7",
-                      "geometry": "M1389 792l-462-792",
+                      "geometry": "M1494 972l-567-972",
                       "viewBox": [
                         0,
                         0,
@@ -31463,7 +31484,7 @@
                           "name": "Icon",
                           "width": 32,
                           "height": 32,
-                          "icon": "play",
+                          "icon": "circle-stop",
                           "library": "lucide",
                           "fill": "#1B1B1B"
                         },
@@ -31772,26 +31793,6 @@
                             },
                             {
                               "type": "frame",
-                              "id": "yYiFy",
-                              "name": "Spacer",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "text",
-                              "id": "K5Vch",
-                              "name": "Value",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 120,
-                              "content": "10.0",
-                              "textAlign": "right",
-                              "fontFamily": "$font-ui",
-                              "fontSize": 24,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "frame",
                               "id": "wjDa5",
                               "name": "Prev",
                               "width": 40,
@@ -31812,6 +31813,19 @@
                                   "fill": "$text-muted"
                                 }
                               ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "K5Vch",
+                              "name": "Value",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
+                              "content": "10.0",
+                              "textAlign": "center",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 24,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -31869,26 +31883,6 @@
                             },
                             {
                               "type": "frame",
-                              "id": "mpr5X",
-                              "name": "Spacer",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "text",
-                              "id": "RpTLQ",
-                              "name": "Value",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 120,
-                              "content": "5",
-                              "textAlign": "right",
-                              "fontFamily": "$font-ui",
-                              "fontSize": 24,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "frame",
                               "id": "ulCLy",
                               "name": "Prev",
                               "width": 40,
@@ -31909,6 +31903,19 @@
                                   "fill": "$text-muted"
                                 }
                               ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "RpTLQ",
+                              "name": "Value",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
+                              "content": "5",
+                              "textAlign": "center",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 24,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -31966,26 +31973,6 @@
                             },
                             {
                               "type": "frame",
-                              "id": "P2iHf",
-                              "name": "Spacer",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "text",
-                              "id": "CZQAM",
-                              "name": "Value",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 120,
-                              "content": "標準",
-                              "textAlign": "right",
-                              "fontFamily": "$font-ui",
-                              "fontSize": 24,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "frame",
                               "id": "HBgGz",
                               "name": "Prev",
                               "width": 40,
@@ -32006,6 +31993,19 @@
                                   "fill": "$text-muted"
                                 }
                               ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "CZQAM",
+                              "name": "Value",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": 120,
+                              "content": "標準",
+                              "textAlign": "center",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 24,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -32062,21 +32062,14 @@
                               "fontWeight": "normal"
                             },
                             {
-                              "type": "frame",
-                              "id": "EagkI",
-                              "name": "Spacer",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
                               "type": "text",
                               "id": "USIc9",
                               "name": "Value",
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 120,
-                              "content": "F2",
-                              "textAlign": "right",
+                              "content": "開く ›",
+                              "textAlign": "center",
                               "fontFamily": "$font-ui",
                               "fontSize": 24,
                               "fontWeight": "normal"
@@ -33957,7 +33950,7 @@
                           "fill": "$text",
                           "textGrowth": "fixed-width",
                           "width": 464,
-                          "content": "キーの割り当てを編集します。F2 でも開けます。",
+                          "content": "キーの割り当てを編集します。",
                           "lineHeight": 1.4,
                           "fontFamily": "$font-ui",
                           "fontSize": 24,
