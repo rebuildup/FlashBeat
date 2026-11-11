@@ -346,37 +346,10 @@ namespace FlashBeat.UI.V6.Title
         {
             var header = headerZone.gameObject;
 
-            // 左上: Exit (design CtA3V): 162×56 #3A3A3A r8 の 1 枚に
-            // [log-out 32] [実キー] [Exit] を正本の座標で載せる。
-            var back = V6Controls.Panel(header, "Back button", V6TitleLogic.BackButtonPos,
-                V6TitleLogic.BackButtonSize, V6Tokens.Key4, V6Tokens.RadiusMedium);
-            MakeButton(back, onExit);
-            var backIcon = V6Icons.Create(back, "log-out", V6TitleLogic.BackIconSize,
-                V6Tokens.TextMuted, "Icon");
-            if (backIcon != null)
-            {
-                var iconRect = backIcon.rectTransform;
-                iconRect.anchorMin = new Vector2(0f, 1f);
-                iconRect.anchorMax = new Vector2(0f, 1f);
-                iconRect.pivot = new Vector2(0f, 1f);
-                iconRect.anchoredPosition = new Vector2(V6TitleLogic.BackIconPos.x,
-                    -V6TitleLogic.BackIconPos.y);
-                iconRect.sizeDelta = new Vector2(V6TitleLogic.BackIconSize, V6TitleLogic.BackIconSize);
-            }
-
-            string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
-            if (string.IsNullOrEmpty(exitKey))
-            {
-                exitKey = "E";
-            }
-
-            float capW = Mathf.Ceil(V6Ui.LabelAdvanceEm(exitKey) * V6Controls.ButtonKeyFontSize)
-                + V6TitleLogic.BackKeyCapPaddingX * 2f;
-            V6Controls.KeyCap(back, exitKey, V6TitleLogic.BackKeyCapPos,
-                new Vector2(capW, V6TitleLogic.BackKeyCapHeight), V6TitleLogic.BackKeyCapPaddingX);
-            V6Controls.Text(back, "Label", "Exit", V6TitleLogic.BackLabelPos,
-                V6TitleLogic.BackLabelSize, V6Controls.ButtonFontSize, V6Tokens.TextMuted,
-                TextAlignmentOptions.MidlineLeft);
+            // 左上: Exit (design CtA3V)。正本の Exit フレームは塗りなしで、
+            // 中に 56×56 の Icon Button ($k4) + KeyCap + Label を載せる
+            // (組み立ては V6TitleExit に集約。旧実装は 162×56 を 1 枚塗っていた)。
+            V6TitleExit.Build(header, onExit);
 
             // タイトル文字 (design aqq3q/ci867) は正本で `enabled: false`
             // (Exit ボタン 162×56 と重なるため非表示)。既定では描かない。

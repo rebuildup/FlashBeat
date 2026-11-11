@@ -74,14 +74,20 @@ namespace FlashBeat.UI.V6.Title
         // 座標は各ゾーン ローカルの design px (左上原点・y_down)。
         // Header/Main/Footer ゾーン自体の矩形は V6Frame (契約 §4) が持つ。
 
-        /// <summary>戻るボタン (zUcsi/zCQBY): Header ローカル 56×56。</summary>
         /// <summary>
-        /// ヘッダー左上の Exit (design CtA3V): 162×56 の 1 枚に
-        /// [log-out icon] [KeyCap] [Exit] を横並びで載せる。
+        /// ヘッダー左上の Exit (design CtA3V): 162×56 の**塗りなし**入れ物に
+        /// [Icon Button 56×56 $k4] [KeyCap] [Exit] を横並びで載せる。
         /// 他画面の「戻る」56×56 とは別部品 (Title は終了)。
         /// </summary>
         public static readonly Vector2 BackButtonPos = new Vector2(0f, 20f);
         public static readonly Vector2 BackButtonSize = new Vector2(162f, 56f);
+
+        /// <summary>
+        /// Exit 内部の Icon Button (design Z6C0w: 56×56 $k4 r8)。
+        /// design で塗られているのはこの 56×56 だけで、Exit フレーム自体は透明。
+        /// </summary>
+        public static readonly Vector2 BackIconButtonPos = new Vector2(0f, 0f);
+        public const float BackIconButtonSize = 56f;
 
         /// <summary>ヘッダー タイトル文字 (aqq3q/ci867): Header ローカル。</summary>
         public static readonly Vector2 HeaderTitlePos = new Vector2(72f, 20f);
@@ -97,8 +103,8 @@ namespace FlashBeat.UI.V6.Title
         public const float BackKeyCapHeight = 32f;
         public const float BackKeyCapPaddingX = 8f;
 
-        /// <summary>Exit 内部のラベル (design qttPo: (109,7) 53×43 fs30)。</summary>
-        public static readonly Vector2 BackLabelPos = new Vector2(109f, 7f);
+        /// <summary>Exit 内部のラベル (design qttPo: (109,6.5) 53×43 fs30)。</summary>
+        public static readonly Vector2 BackLabelPos = new Vector2(109f, 6.5f);
         public static readonly Vector2 BackLabelSize = new Vector2(53f, 43f);
 
         /// <summary>

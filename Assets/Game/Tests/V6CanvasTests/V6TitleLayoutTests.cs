@@ -61,14 +61,17 @@ namespace FlashBeat.UI.V6.Title.Tests
         [Test]
         public void HeaderNodes_MatchDesignCoordinates()
         {
-            // CtA3V: Exit 162×56 (Header ローカル y20)。内部は log-out 32 @(12,12)、
-            // KeyCap (68,12) 高さ 32、ラベル (109,7)。
+            // CtA3V: Exit 162×56 (Header ローカル y20、正本は fill なし)。
+            // 塗りは内部の Icon Button (Z6C0w) 56×56 $k4 r8 だけで、その中に
+            // log-out 32 @(12,12)、KeyCap (68,12) 高さ 32、ラベル (109,6.5)。
             Assert.AreEqual(new Vector2(0f, 20f), V6TitleLogic.BackButtonPos);
             Assert.AreEqual(new Vector2(162f, 56f), V6TitleLogic.BackButtonSize);
+            Assert.AreEqual(new Vector2(0f, 0f), V6TitleLogic.BackIconButtonPos);
+            Assert.AreEqual(56f, V6TitleLogic.BackIconButtonSize);
             Assert.AreEqual(new Vector2(12f, 12f), V6TitleLogic.BackIconPos);
             Assert.AreEqual(32f, V6TitleLogic.BackIconSize);
             Assert.AreEqual(new Vector2(68f, 12f), V6TitleLogic.BackKeyCapPos);
-            Assert.AreEqual(new Vector2(109f, 7f), V6TitleLogic.BackLabelPos);
+            Assert.AreEqual(new Vector2(109f, 6.5f), V6TitleLogic.BackLabelPos);
             // aqq3q/ci867: タイトル文字 (72,20) 185×56 (正本では enabled: false)。
             Assert.AreEqual(new Vector2(72f, 20f), V6TitleLogic.HeaderTitlePos);
             Assert.AreEqual(new Vector2(185f, 56f), V6TitleLogic.HeaderTitleSize);
