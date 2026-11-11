@@ -129,6 +129,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
 
 `-Launch` を付けない場合は、**先にゲームを起動して全画面になっている状態**で実行してください。
 
+`Player.log` の場所は ProjectSettings の `companyName` で決まり、このビルドでは
+`%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` です。スクリプトは
+`LocalLow` 直下を走査して `FlashBeat\Player.log` を持つ最新のフォルダを自動で選ぶので、
+パスを渡す必要はありません。別の場所にあるログを使うときだけ `-PlayerLogPath` を指定します。
+
 
 ---
 
@@ -218,8 +223,15 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 2. `FlashBeat.exe` を **引数なし** で起動
 3. 起動直後に **画面全体** を撮影 (PrintScreen。ウィンドウ枠 / タスクバー / 黒帯が 1px でも見えたら不合格)
 4. Player.log をコピー:
-   `%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log`
+   `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log`
+   (フォルダ名は ProjectSettings の `companyName`。`rebuildup` ではない。
+   見つからない場合は `collect-win-evidence.ps1` が `LocalLow` 直下を自動探索する)
    `[FullscreenDiagnostics]` 行の `screen=` / `fullScreenMode=` / `dpi=` / `displays=` を確認
+   - 目視で読み取る代わりに、この 1 コマンドで実測判定までまとめて残せます (§0.2):
+     `collect-win-evidence.ps1 -GameDir <展開先> -ExpectResolution FHD -NoScreenshot`
+     (2K の日は `-ExpectResolution 2K`)。`fullscreen.txt` が `result=PASS` なら、
+     実フルスクリーン + 被覆 99% 以上 + 期待解像度一致が機械で確認できています。
+   - すでに起動済みなら、`-PlayerLogPath` でその `Player.log` を直接指定できます (起動不要)。
 5. **1 曲完走**的操作ログを残す (下記 §3.4)
 
 ### 3.4 1 曲完走で見るもの (Issue #233 / #242 / #4 / #13 の受入)
@@ -269,9 +281,23 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | ファイル | 内容 |
 |---|---|
 | `win-fhd-fullscreen.png` / `win-2k-fullscreen.png` | 実全画面スクリーンショット |
+| `win-fhd-fullscreen.txt` / `win-2k-fullscreen.txt` | `collect-win-evidence.ps1` の実測判定 (`result=PASS` / `check*`) |
 | `win-fhd-Player.log` / `win-2k-Player.log` | Player.log のコピー |
 | `win-fhd-operation.md` / `win-2k-operation.md` | 操作ログ (1 曲完走含む / 何を押した / 何が起きた) |
 | `win-fullplay-*.png` | Select / Game / Result の場面 |
+
+### 3.7 受入中に崩れたときの復旧
+
+受入は **証跡を残すこと** が目的なので、直すより先に記録します。作業で触るのは展開フォルダと
+`acceptance-*` フォルダだけで、展示 PC の既存配置は変更しません。
+
+| 事象 | 復旧手順 |
+|---|---|
+| 受入用フォルダを壊した / 展開し直したい | `collect-win-evidence.ps1` は毎回 `acceptance-<日時>` を新規作成し、既存を上書きしません。ZIP を新しいフォルダに展開し直して、同じ ZIP で受入をやり直してください (§2)。前回の `acceptance-*` はそのまま残します |
+| `collect-win-evidence.ps1` が「Player.log が見つかりません」 | ゲームを一度起動 → 再実行。それでも出ないときは `-PlayerLogPath` で `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` を直接渡す |
+| 起動しない / 途中で落ちる | [`exhibit-runbook.md` §7](exhibit-runbook.md) の復旧手順。まず `Player.log` をコピーし、元のフォルダを退避してから差し替える (`§1.1` / `§11.3`)。操作ログに「いつ・何を押した・何が出た」を残す |
+| 受入途中で PC を再起動したい | それまでの `acceptance-*` フォルダを保存してから再起動。**同じ ZIP** で継続し、途中から PASS を流用しない (条件ごとにその回の証跡を残す) |
+| 候補を作り直した (SHA が変わった) | 受入は **やり直し**。新しい SHA で §2.5 の表を作り直し、前候補の PASS を流用しない |
 
 ---
 

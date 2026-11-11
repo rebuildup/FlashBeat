@@ -32,7 +32,8 @@ Issue #162 により **誤りかつ無効** — 検証にも実装にも使わ�
 2. 配布 ZIP を展開し、`FlashBeat.exe` を **引数なし** で起動する。
 3. 起動後すぐに **画面全体** のスクリーンショットを採取する。
    - タスクバー / ウィンドウ枠 / 黒帯が 1 ピクセルでも見えたら **不合格**。
-4. `Player.log` (`%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log`) から
+4. `Player.log` (`%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log`。
+   フォルダ名は ProjectSettings の `companyName` で決まる) から
    `[FullscreenDiagnostics]` 行を採取し、実効解像度と fullScreenMode を確認する。
    目視に頼らず、`collect-win-evidence.ps1 -ExpectResolution FHD` (2K / MAC も同様) で
    `fullscreen.txt` を作り、`result=PASS` を残す (被覆率の判定式は §2.2)。

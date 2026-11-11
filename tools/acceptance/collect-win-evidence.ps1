@@ -50,7 +50,8 @@ param(
     [switch]$Launch,
 
     # Player.log の場所を明示する。省略時は
-    # %USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log。
+    # %USERPROFILE%\AppData\LocalLow\<companyName>\FlashBeat\Player.log を自動探索する
+    # (companyName は ProjectSettings。実測 2026-11-11: KimuraYusuke)。
     [string]$PlayerLogPath,
 
     [int]$WaitSeconds = 25,
@@ -144,14 +145,34 @@ if ($ZipPath) {
 }
 
 # --- 3. 起動 (明示したときだけ) ---------------------------------------------
+# Player.log の場所は ProjectSettings の companyName で決まる
+# (`%USERPROFILE%\AppData\LocalLow\<companyName>\FlashBeat\Player.log`)。
+# 実測 2026-11-11: companyName = KimuraYusuke。会社名が変わったビルドでも拾えるよう、
+# LocalLow 直下を走査して「FlashBeat\Player.log」がある最新のものを選ぶ。
+function Find-PlayerLogPath([string]$UserProfile) {
+    $localLow = Join-Path $UserProfile 'AppData\LocalLow'
+    if (-not (Test-Path -LiteralPath $localLow)) { return $null }
+    $candidates = @()
+    foreach ($dir in (Get-ChildItem -LiteralPath $localLow -Directory -ErrorAction SilentlyContinue)) {
+        $candidate = Join-Path $dir.FullName 'FlashBeat\Player.log'
+        if (Test-Path -LiteralPath $candidate) {
+            $candidates += Get-Item -LiteralPath $candidate
+        }
+    }
+    if ($candidates.Count -eq 0) { return $null }
+    return ($candidates | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+}
+
 $playerLog = $null
 $playerLogBackup = $null
 if ($PlayerLogPath) {
     $playerLog = $PlayerLogPath
     $playerLogBackup = $PlayerLogPath + '.prev'
 } elseif ($env:USERPROFILE) {
-    $playerLog = Join-Path $env:USERPROFILE 'AppData\LocalLow\rebuildup\FlashBeat\Player.log'
-    $playerLogBackup = Join-Path $env:USERPROFILE 'AppData\LocalLow\rebuildup\FlashBeat\Player-prev.log'
+    $playerLog = Find-PlayerLogPath -UserProfile $env:USERPROFILE
+    if ($playerLog) {
+        $playerLogBackup = Join-Path (Split-Path -Parent $playerLog) 'Player-prev.log'
+    }
 }
 if ($Launch) {
     if ($playerLog -and (Test-Path -LiteralPath $playerLog)) {
@@ -162,8 +183,14 @@ if ($Launch) {
     # ファイルが出来ただけでは足りない (起動途中のログを読むと [FullscreenDiagnostics] 行が
     # まだ無く、NO-DATA の証跡になる)。診断行が出るまで待つ。
     $deadline = (Get-Date).AddSeconds([Math]::Max($WaitSeconds, 5))
-    while ($playerLog -and (Get-Date) -lt $deadline) {
-        if (Test-Path -LiteralPath $playerLog) {
+    while ((Get-Date) -lt $deadline) {
+        if (-not $playerLog -and -not $PlayerLogPath -and $env:USERPROFILE) {
+            $playerLog = Find-PlayerLogPath -UserProfile $env:USERPROFILE
+            if ($playerLog) {
+                $playerLogBackup = Join-Path (Split-Path -Parent $playerLog) 'Player-prev.log'
+            }
+        }
+        if ($playerLog -and (Test-Path -LiteralPath $playerLog)) {
             try {
                 $probe = Get-Content -LiteralPath $playerLog -TotalCount 2000 -ErrorAction Stop
                 if (Find-FullscreenDiagnosticsLine -Lines $probe) { break }
@@ -172,6 +199,7 @@ if ($Launch) {
         Start-Sleep -Milliseconds 500
     }
 }
+if ($playerLog) { Write-Step ('Player.log: ' + $playerLog) }
 
 # --- 4. スクリーンショット ---------------------------------------------------
 if (-not $NoScreenshot) {

@@ -19,6 +19,11 @@
 #   4. `.cs` files use LF and no tabs in our own code              (`.editorconfig`
 #      / `.gitattributes`; vendored code under Assets/NoteEditor/Plugins and
 #      Assets/ThirdParty is exempt because it is kept verbatim upstream).
+#   5. operational docs / acceptance tools spell the Windows Player.log path with
+#      the real `companyName` from ProjectSettings (`...\LocalLow\<companyName>\
+#      FlashBeat\Player.log`). A wrong segment sends the owner's evidence run to
+#      "Player.log not found" and silently produces NO-DATA. Historical evidence
+#      records (`docs/operations/exhibit-evidence-*/`) are exempt.
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -32,7 +37,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) ROOT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -40,6 +45,7 @@ done
 exec python3 -I - "$ROOT" <<'PY'
 import json
 import os
+import re
 import sys
 
 root = sys.argv[1]
@@ -104,12 +110,58 @@ for dirpath, dirnames, filenames in os.walk(assets):
                 tabs.append(path)
 
 
+# --- Player.log path: must use ProjectSettings companyName ------------------
+# Windows stores the player log at
+#   %USERPROFILE%\AppData\LocalLow\<companyName>\<productName>\Player.log
+# so the folder name is build metadata, not a guess. If a runbook tells the owner
+# the wrong segment, the evidence run reports "Player.log not found" and every
+# fullscreen verdict degrades to NO-DATA without failing loudly.
+settings_path = os.path.join(root, "ProjectSettings", "ProjectSettings.asset")
+company_name = None
+if os.path.exists(settings_path):
+    with open(settings_path, encoding="utf-8", errors="replace") as source:
+        for line in source:
+            matched = re.match(r"^\s*companyName:\s*(.+?)\s*$", line)
+            if matched:
+                company_name = matched.group(1).strip().strip('"')
+                break
+
+log_path_scan = []
+if company_name:
+    log_path = re.compile(r"LocalLow[\\/]+([A-Za-z0-9_.\-]+)[\\/]+FlashBeat", re.IGNORECASE)
+    scan_roots = [
+        os.path.join(root, "docs", "operations"),
+        os.path.join(root, "tools", "acceptance"),
+    ]
+    for scan_root in scan_roots:
+        if not os.path.isdir(scan_root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(scan_root):
+            # Historical evidence records quote the wrong path on purpose.
+            dirnames[:] = sorted(
+                d for d in dirnames if not d.startswith(".") and not d.startswith("exhibit-evidence-")
+            )
+            for name in filenames:
+                if not name.endswith((".md", ".ps1")):
+                    continue
+                path = os.path.join(dirpath, name)
+                with open(path, encoding="utf-8", errors="replace") as source:
+                    for number, line in enumerate(source, 1):
+                        for matched in log_path.finditer(line):
+                            if matched.group(1).lower() != company_name.lower():
+                                log_path_scan.append(
+                                    "%s:%d: LocalLow\\%s (companyName is %s)"
+                                    % (os.path.relpath(path, root), number, matched.group(1), company_name)
+                                )
+
+
 def report(title, paths):
     if not paths:
         return 0
     print("FAIL %s (%d)" % (title, len(paths)))
     for path in sorted(paths):
-        print("  " + os.path.relpath(path, root))
+        # Callers pass either absolute asset paths or pre-formatted "rel:line: ..." strings.
+        print("  " + (os.path.relpath(path, root) if os.path.isabs(path) else path))
     return 1
 
 
@@ -126,11 +178,15 @@ if orphan_meta:
 failures += report("unparsable .asmdef / Resources .json", bad_json)
 failures += report("CRLF line ending in .cs", crlf)
 failures += report("tab indentation in .cs", tabs)
+failures += report("Player.log path does not use ProjectSettings companyName", log_path_scan)
 
 if failures:
     print("")
     print("Repository integrity check failed. See docs/operations/ci-pr-gate.md.")
     sys.exit(1)
 
-print("Repository integrity check passed (Assets/: meta pairing, JSON, LF, no tabs).")
+print(
+    "Repository integrity check passed (Assets/: meta pairing, JSON, LF, no tabs;"
+    " Player.log path uses companyName=%s)." % (company_name or "unknown (ProjectSettings not found)")
+)
 PY

@@ -63,7 +63,7 @@ FLASHBEAT_ADMIN_TOKEN=local-dev-only vp dev   # http://localhost:5173 (token は
 4. ランキング表示 (Result のランキング / Select の Ranking タブ) に `ACCEPT` が出る
 5. 記録するもの:
    - スクリーンショット: Result の登録モーダル (送信後) とランキング表示
-   - `Player.log` (`%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log`)
+   - `Player.log` (`%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log`)
    - 曲名 / スコア / 判定数 / 入力した名前
 6. 失敗した場合は画面の案内に従う (モーダルに `再送 [Enter] / スキップ [Esc]` が出る)。
    - `オフラインのようです …` — 通信できていない。端末内保存だけが行われ、本番には何も書かれない
