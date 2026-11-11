@@ -60,6 +60,40 @@ public class V6HierarchyTests
     }
 
     [Test]
+    public void OptionDisplay_HasNoRowsForFeaturesThatDoNotExist()
+    {
+        // design EzLfb の Display は 9 行だが、Live Rank / Hit Timing / Judge Text /
+        // Progress Bar はこのゲームに設定も挙動も無い。動かない行を描くと嘘の操作に
+        // なるため出さない (V5 OptionView と Pause Display と同じ判断 — Issue #167
+        // の PauseDisplay_HasNoDeadRows)。実データのある 5 行だけを固定する。
+        var canvasGo = new GameObject("V6HierarchyTestRoot", typeof(RectTransform), typeof(Canvas));
+        var view = V6OptionView.Create(canvasGo.GetComponent<RectTransform>(), () => { });
+        view.SelectTabForAudit(1); // Display
+
+        var settings = view.Root.Find("Main/Settings");
+        Assert.IsNotNull(settings, "Settings panel");
+
+        var rows = new System.Collections.Generic.List<string>();
+        foreach (var rt in settings.GetComponentsInChildren<RectTransform>(true))
+        {
+            if (rt.name.StartsWith("Set ", System.StringComparison.Ordinal))
+            {
+                rows.Add(rt.name.Substring("Set ".Length));
+            }
+        }
+
+        CollectionAssert.AreEqual(
+            new[] { "Flash", "FlashTiming", "FlashSpeed", "Key Guide", "Lyrics" }, rows,
+            "Display の行 = 実データのある 5 行 (design の並び順)");
+
+        foreach (string dead in new[] { "Live Rank", "Hit Timing", "Judge Text", "Progress Bar" })
+        {
+            CollectionAssert.DoesNotContain(rows, dead,
+                dead + " は実装が無いので行を描かない (死んだ設定行にしない)");
+        }
+    }
+
+    [Test]
     public void OptionRebuild_DoesNotDuplicateTheFooterLegend()
     {
         var canvasGo = new GameObject("V6HierarchyTestRoot", typeof(RectTransform), typeof(Canvas));

@@ -642,8 +642,16 @@ namespace FlashBeat.UI.V6.Option
             {
                 BuildKeyGrid(panel);
             }
+            else if (selectedTab == 1)
+            {
+                BuildJudgeLegend(panel);
+            }
+            else if (selectedTab == 2)
+            {
+                BuildVolumePreview(panel);
+            }
 
-            BuildDesc(panel, V6OptionLogic.DescDividerY, SelectedRowDesc());
+            BuildDesc(panel, V6OptionLogic.DescDividerYOf(selectedTab), SelectedRowDesc());
         }
 
         private string PreviewHeadTitle()
@@ -734,6 +742,90 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
+        /// <summary>
+        /// Display タブ: 判定色の凡例 (design EzLfb Judge PERFECT..MISS)。
+        /// チップ (24,360) 106×64 r8 $k1 / Marker (37,16) 32×4 r2 判定色 /
+        /// Label fs18 $text-dim 中央。判定色は HUD と同じ割り当て。
+        /// </summary>
+        private void BuildJudgeLegend(GameObject panel)
+        {
+            for (int i = 0; i < V6OptionLogic.JudgeLabels.Length; i++)
+            {
+                string label = V6OptionLogic.JudgeLabels[i];
+                var chip = V6Controls.Panel(panel, "Judge " + label,
+                    new Vector2(V6OptionLogic.JudgeChipX + V6OptionLogic.JudgeChipStep * i,
+                        V6OptionLogic.JudgeChipY),
+                    new Vector2(V6OptionLogic.JudgeChipW, V6OptionLogic.JudgeChipH),
+                    V6Tokens.Key1, V6Tokens.RadiusMedium);
+
+                var marker = Rect(chip, "Marker", V6OptionLogic.JudgeMarkerW, V6OptionLogic.JudgeMarkerH,
+                    JudgeColor(label));
+                V6Layout.Place(marker.GetComponent<RectTransform>(),
+                    new Vector2(V6OptionLogic.JudgeMarkerX, V6OptionLogic.JudgeMarkerY),
+                    new Vector2(V6OptionLogic.JudgeMarkerW, V6OptionLogic.JudgeMarkerH));
+
+                V6Controls.Text(chip, "Label", label, new Vector2(0f, 22f),
+                    new Vector2(V6OptionLogic.JudgeChipW, 26f), 18f, V6Tokens.TextDim,
+                    TextAlignmentOptions.Center);
+            }
+        }
+
+        /// <summary>判定色 (HUD の VerdictColor と同じ割り当て。design の $text/$ok/$warn/$danger)。</summary>
+        private static Color JudgeColor(string label)
+        {
+            switch (label)
+            {
+                case "PERFECT": return V5Tokens.Text;
+                case "GREAT": return V5Tokens.Ok;
+                case "BAD": return V5Tokens.Warn;
+                default: return V5Tokens.Danger;
+            }
+        }
+
+        /// <summary>
+        /// Sound タブ: 選択行の音量を Value (24,360) 106×58 fs40 と
+        /// Track (24,420) 464×20 r4 $k1 + Fill $k6 (音量比) で出す (design z7joSy)。
+        /// Fill 幅は実値 — design の 100% = 全幅をそのまま比例配分する。
+        /// </summary>
+        private void BuildVolumePreview(GameObject panel)
+        {
+            Row row = SelectedRowDesc();
+            string value = row != null ? row.Value() : "";
+            V6Controls.Text(panel, "Volume Value", value,
+                new Vector2(V6OptionLogic.VolumeValueX, V6OptionLogic.VolumeValueY),
+                new Vector2(V6OptionLogic.VolumeValueW, V6OptionLogic.VolumeValueH), 40f, V5Tokens.Text,
+                TextAlignmentOptions.TopLeft, FontStyles.Normal);
+
+            var track = V6Controls.Panel(panel, "Volume Track",
+                new Vector2(V6OptionLogic.VolumeTrackX, V6OptionLogic.VolumeTrackY),
+                new Vector2(V6OptionLogic.VolumeTrackW, V6OptionLogic.VolumeTrackH),
+                V6Tokens.Key1, V6Tokens.RadiusSmall);
+
+            float fillW = V6OptionLogic.VolumeFillWidth(ParsePercent(value));
+            if (fillW <= 0f)
+            {
+                return;
+            }
+
+            var fill = Rect(track, "Fill", fillW, V6OptionLogic.VolumeTrackH, V6Tokens.Key6);
+            V6Layout.Place(fill.GetComponent<RectTransform>(), Vector2.zero,
+                new Vector2(fillW, V6OptionLogic.VolumeTrackH));
+        }
+
+        /// <summary>"100%" → 100。数値でなければ 0 (Fill を描かない)。</summary>
+        private static int ParsePercent(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            int end = text.IndexOf('%');
+            string digits = end >= 0 ? text.Substring(0, end) : text;
+            int value;
+            return int.TryParse(digits, out value) ? value : 0;
+        }
+
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, Row row)
         {
@@ -745,13 +837,15 @@ namespace FlashBeat.UI.V6.Option
             // design と同じ h46 にし、Ellipsis は付けない (はみ出す場合も design は自動幅なので
             // 切り落とすより描く。値は短い固定文言のみ)。
             var title = V6Controls.Text(panel, "Desc Title",
-                row != null ? row.DescTitle : "", new Vector2(24f, V6OptionLogic.DescTitleY),
+                row != null ? row.DescTitle : "",
+                new Vector2(24f, dividerY + V6OptionLogic.DescTitleOffsetY),
                 new Vector2(464f, 46f), 32f, V6Tokens.Text, TextAlignmentOptions.Left);
 
             // Desc は design 上で複数行に折り返す段落 (w464 h68 lineHeight1.4)。
             // NoWrap のままだと 1 行で右パネルの外まで伸びて切れていた。
             var desc = V6Controls.Text(panel, "Desc", row != null ? row.Desc : "",
-                new Vector2(24f, V6OptionLogic.DescY), new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
+                new Vector2(24f, dividerY + V6OptionLogic.DescOffsetY),
+                new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
                 24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
                 TextWrappingModes.Normal);
             desc.lineSpacing = 40f; // design lineHeight 1.4 (TMP lineSpacing は fs 比の追加率: 24×0.4=9.6px → 40%)

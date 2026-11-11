@@ -80,9 +80,56 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>Game Preview (design 共通): プレビューパネル内 (24,60) 464x280 $k0 r8。</summary>
         public const float GamePrevX = 24f, GamePrevY = 60f, GamePrevW = 464f, GamePrevH = 280f;
 
-        /// <summary>説明ブロック (design 共通): Divider (24,544) / Desc Title (24,564) fs32 / Desc (24,614) w464。</summary>
-        public const float DescDividerY = 544f, DescTitleY = 564f, DescY = 614f;
+        /// <summary>
+        /// 説明ブロック (design): Divider (24,Y) / Desc Title (24,Y+20) fs32 / Desc (24,Y+70) w464。
+        /// Y はタブごとに違う — Play 544 / Display 456 / Sound 472 / Data 380
+        /// (r23 で 4 タブを撮ったところ、旧実装は Play の 544 を全タブへ流用しており、
+        /// Display / Sound / Data で説明文が design より 88〜234px 下に落ちていた)。
+        /// </summary>
+        public const float PlayDescDividerY = 544f, DisplayDescDividerY = 456f;
+        public const float SoundDescDividerY = 472f, DataDescDividerY = 380f;
+        public const float DescTitleOffsetY = 20f, DescOffsetY = 70f;
         public const float DescW = 464f, DescH = 68f;
+
+        /// <summary>旧名 (Play タブの値)。しきい値の互換のため残す。</summary>
+        public const float DescDividerY = PlayDescDividerY;
+        public const float DescTitleY = PlayDescDividerY + DescTitleOffsetY;
+        public const float DescY = PlayDescDividerY + DescOffsetY;
+
+        /// <summary>タブごとの説明ブロック上端 (Divider Y)。</summary>
+        public static float DescDividerYOf(int tab)
+        {
+            switch (tab)
+            {
+                case 1: return DisplayDescDividerY;
+                case 2: return SoundDescDividerY;
+                case 3: return DataDescDividerY;
+                default: return PlayDescDividerY;
+            }
+        }
+
+        // --- Display 右パネル: 判定色の凡例 (design EzLfb Judge PERFECT..MISS) ---
+        // チップ (24,360) 106x64 r8 $k1 を 118 ピッチ (gap12) で 4 個。中身は
+        // Marker (37,16) 32x4 r2 (判定色) + Label (fs18 $text-dim, 中央, y22 h26)。
+        public const float JudgeChipX = 24f, JudgeChipY = 360f;
+        public const float JudgeChipW = 106f, JudgeChipH = 64f, JudgeChipStep = 118f;
+        public const float JudgeMarkerX = 37f, JudgeMarkerY = 16f;
+        public const float JudgeMarkerW = 32f, JudgeMarkerH = 4f;
+        public static readonly string[] JudgeLabels = { "PERFECT", "GREAT", "BAD", "MISS" };
+
+        // --- Sound 右パネル: 音量の値とトラック (design z7joSy) ---
+        // Value (24,360) 106x58 fs40 / Track (24,420) 464x20 r4 $k1 + Fill $k6。
+        public const float VolumeValueX = 24f, VolumeValueY = 360f;
+        public const float VolumeValueW = 106f, VolumeValueH = 58f;
+        public const float VolumeTrackX = 24f, VolumeTrackY = 420f;
+        public const float VolumeTrackW = 464f, VolumeTrackH = 20f;
+
+        /// <summary>音量 (%) に対する Fill 幅。design の 100% = 464 (トラック全幅)。</summary>
+        public static float VolumeFillWidth(int volumePercent)
+        {
+            int clamped = volumePercent < 0 ? 0 : (volumePercent > 100 ? 100 : volumePercent);
+            return VolumeTrackW * (clamped / 100f);
+        }
 
         /// <summary>
         /// フッター キー凡例 (design パッチ r4IJx): フッター内 (0,30)、高さ 32、項目間 gap24。
