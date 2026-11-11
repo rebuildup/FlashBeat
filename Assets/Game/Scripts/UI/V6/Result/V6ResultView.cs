@@ -449,11 +449,17 @@ namespace FlashBeat.UI.V6.Result
             for (int i = 0; i < labels.Length; i++)
             {
                 var cell = At(V5Ui.Node(block, "J " + labels[i]), JudgeX[i], 0f, JudgeCellW, JudgeCellH);
-                var col = V5GameUi.Column(cell, "Inner", 14f, TextAnchor.UpperLeft);
-                Stretch(col.GetComponent<RectTransform>(), JudgeCellW, JudgeCellH);
-                V5GameUi.Text(col.gameObject, "Label", labels[i], 20f, V5Tokens.TextDim);
-                judgeValues[i] = V5GameUi.Text(col.gameObject, "Value", "0", 48f, V5Tokens.Text,
-                    TextAlignmentOptions.Left, FontStyles.Normal);
+
+                // design S5n3P: Label (0,0) 66×29 fs20 / Value (0,43) 83×70 fs48、
+                // どちらも左上揃え。以前は VerticalLayoutGroup に任せていたため、
+                // TMP の中央揃え (TextAlignmentOptions.Left) と子の既定サイズが
+                // 混ざり、判定行だけ design より約 11px 下に描かれていた (r13 実機)。
+                var judgeLabel = V5GameUi.Text(cell.gameObject, "Label", labels[i], 20f,
+                    V5Tokens.TextDim, TextAlignmentOptions.TopLeft);
+                At(judgeLabel, 0f, 0f, JudgeCellW, 29f, new Vector2(0f, 1f));
+                judgeValues[i] = V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
+                    TextAlignmentOptions.TopLeft, FontStyles.Normal);
+                At(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
             }
         }
 

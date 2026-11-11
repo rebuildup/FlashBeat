@@ -75,6 +75,44 @@ namespace FlashBeat.V6CanvasTests
 
         // --- 楽曲情報バンド (KKIxx) ---
 
+        // --- 判定行 (EpX3e) ---
+
+        [Test]
+        public void JudgementsRow_MatchesDesignCoordinates()
+        {
+            var view = CreateView();
+            try
+            {
+                // design EpX3e: (0,448) 840×140、セル 160×140 を 168 間隔。
+                // 各セルは Label (0,0) 66×29 fs20 / Value (0,43) 83×70 fs48 の左上揃え。
+                // 旧実装は VerticalLayoutGroup 任せで、判定行だけ design より約 11px 下に出ていた (r13)。
+                Transform block = view.Root.Find("Main/Judgements");
+                AssertRect(block, 0f, 448f, 840f, 140f, "Judgements block");
+
+                string[] labels = { "Perfect", "Great", "Bad", "Miss", "Combo" };
+                float[] xs = { 0f, 168f, 336f, 504f, 672f };
+                for (int i = 0; i < labels.Length; i++)
+                {
+                    Transform cell = block.Find("J " + labels[i]);
+                    AssertRect(cell, xs[i], 0f, 160f, 140f, "J " + labels[i]);
+                    AssertRect(cell.Find("Label"), 0f, 0f, 160f, 29f, labels[i] + " Label");
+                    Assert.AreEqual(20f, TextOf(cell, "Label").fontSize, 0.01f,
+                        labels[i] + " Label fs20");
+                    AssertRect(cell.Find("Value"), 0f, 43f, 160f, 70f, labels[i] + " Value");
+                    Assert.AreEqual(48f, TextOf(cell, "Value").fontSize, 0.01f,
+                        labels[i] + " Value fs48");
+                    Assert.AreEqual(TextAlignmentOptions.TopLeft, TextOf(cell, "Label").alignment,
+                        labels[i] + " Label is top-left (design)");
+                    Assert.AreEqual(TextAlignmentOptions.TopLeft, TextOf(cell, "Value").alignment,
+                        labels[i] + " Value is top-left (design)");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
         [Test]
         public void SongInfoBand_MatchesDesignCoordinates()
         {
