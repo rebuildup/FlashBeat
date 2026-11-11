@@ -30,7 +30,7 @@
 | Tier | トリガー | 走るもの | ライセンス | 緑が意味すること |
 |---|---|---|---|---|
 | **1. PR / main push (Web)** | `web/**` を触る PR と main push | `web`: `tsc --noEmit` → `npm test` (73 + 436) → `npm run build` / **`browser-e2e`**: Chromium 導入 → ローカル D1 seed → `npm run test:e2e` (Playwright 12) | 不要 | Web Studio が型・単体・実ブラウザ E2E で通った |
-| **1. PR / main push (C# 整合性)** | **すべての PR** と main push (`Assets/**` / `script/**` を触ったとき) | `verify`: `script/check-repo-integrity.sh` | 不要 | `.meta` の対応 / `.asmdef`・譜面 JSON の妥当性 / LF・タブ が揃っている (**コンパイルは見ていない**)。PR 側でパスを絞らないのは、ドキュメントだけの PR でも **チェック欄を空にしない** ため |
+| **1. PR / main push (C# 整合性 + 受入ツール)** | **すべての PR** と main push (`Assets/**` / `script/**` / `tools/acceptance/**` を触ったとき) | `verify`: `script/check-repo-integrity.sh` → `tools/acceptance/fullscreen-report.test.ps1` (pwsh) | 不要 | `.meta` の対応 / `.asmdef`・譜面 JSON の妥当性 / LF・タブ が揃っている (**コンパイルは見ていない**)。受入ツールの判定式が自己テスト 43 ケースで固定されている。PR 側でパスを絞らないのは、ドキュメントだけの PR でも **チェック欄を空にしない** ため |
 | **2. main push (Unity ビルド)** | `Assets/**` などの main push、または手動 | `build-win64` / `build-macos`: `license-precheck` → Unity 認証 → EditMode (任意) → ビルド | **必須** | 現状は secret 未登録のため **precheck で fail**。**コードの失敗ではない** |
 | **3. 手動 / オーナー** | — | Unity EditMode (メンテナの手元、実測)、Windows 実機の受入、本番 API の受入 | — | それぞれの記録 (`TestResults.xml` / `docs/evidence/` / `docs/operations/`) が唯一の証拠 |
 
