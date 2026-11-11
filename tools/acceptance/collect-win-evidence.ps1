@@ -11,6 +11,9 @@
       - version.json       候補の同梱メタデータ (そのままコピー)
       - exe-version.txt    FlashBeat.exe の FileVersion / ProductVersion
       - Player.log         直近の Player.log (存在すれば)
+      - fullscreen.txt     Player.log の [FullscreenDiagnostics] から測った実フルスクリーン判定
+                           (被覆率 / fullScreenMode / 期待解像度との一致。判定式は
+                            fullscreen-report.ps1、自己テストは fullscreen-report.test.ps1)
       - screenshot-*.png   スクリーンショット (全画面表示の状態で撮る)
       - operation-log.md   操作ログの記入テンプレート (手で埋める)
       - zip-sha256.txt     ZIP の SHA-256 実測 (ZIP パスを渡したときだけ)
@@ -24,6 +27,7 @@
         -GameDir "$env:USERPROFILE\Desktop\FlashBeat-Exhibit" `
         -ZipPath "$env:USERPROFILE\Downloads\FlashBeat-0.1.23-win64-b6860a80.zip" `
         -ExpectedSha256 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20 `
+        -ExpectResolution FHD `
         -OutDir "$env:USERPROFILE\Desktop\acceptance"
 #>
 [CmdletBinding()]
@@ -36,10 +40,18 @@ param(
     # 期待する SHA-256 (小文字/大文字どちらでもよい)。指定すると ZIP と照合して結果を残す。
     [string]$ExpectedSha256,
 
+    # この実行を撮る実ディスプレイの解像度 (FHD / 2K / MAC / 1920x1080 形式)。
+    # 指定すると Player.log の実測 screen= と照合し、fullscreen.txt に PASS / FAIL を残す。
+    [string]$ExpectResolution,
+
     [string]$OutDir,
 
     # 明示したときだけ FlashBeat.exe を起動する (キー入力は送らない)。
     [switch]$Launch,
+
+    # Player.log の場所を明示する。省略時は
+    # %USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log。
+    [string]$PlayerLogPath,
 
     [int]$WaitSeconds = 25,
 
@@ -49,6 +61,14 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# 実フルスクリーンの判定式は純関数に分離してある (テスト: fullscreen-report.test.ps1)。
+. (Join-Path $PSScriptRoot 'fullscreen-report.ps1')
+
+$expectedResolution = Resolve-ExpectedResolution $ExpectResolution
+if ($ExpectResolution -and -not $expectedResolution) {
+    Write-Host ('[collect] 警告: -ExpectResolution "' + $ExpectResolution + '" を解釈できません (FHD / 2K / MAC / WxH)。解像度の照合は行いません')
+}
 
 function Write-Step([string]$Message) { Write-Host ("[collect] " + $Message) }
 
@@ -126,7 +146,10 @@ if ($ZipPath) {
 # --- 3. 起動 (明示したときだけ) ---------------------------------------------
 $playerLog = $null
 $playerLogBackup = $null
-if ($env:USERPROFILE) {
+if ($PlayerLogPath) {
+    $playerLog = $PlayerLogPath
+    $playerLogBackup = $PlayerLogPath + '.prev'
+} elseif ($env:USERPROFILE) {
     $playerLog = Join-Path $env:USERPROFILE 'AppData\LocalLow\rebuildup\FlashBeat\Player.log'
     $playerLogBackup = Join-Path $env:USERPROFILE 'AppData\LocalLow\rebuildup\FlashBeat\Player-prev.log'
 }
@@ -136,8 +159,16 @@ if ($Launch) {
     }
     Write-Step ('FlashBeat.exe を起動します (キー入力は送りません): ' + $exe)
     Start-Process -FilePath $exe -WorkingDirectory $GameDir | Out-Null
+    # ファイルが出来ただけでは足りない (起動途中のログを読むと [FullscreenDiagnostics] 行が
+    # まだ無く、NO-DATA の証跡になる)。診断行が出るまで待つ。
     $deadline = (Get-Date).AddSeconds([Math]::Max($WaitSeconds, 5))
-    while ($playerLog -and (Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $playerLog)) {
+    while ($playerLog -and (Get-Date) -lt $deadline) {
+        if (Test-Path -LiteralPath $playerLog) {
+            try {
+                $probe = Get-Content -LiteralPath $playerLog -TotalCount 2000 -ErrorAction Stop
+                if (Find-FullscreenDiagnosticsLine -Lines $probe) { break }
+            } catch { }
+        }
         Start-Sleep -Milliseconds 500
     }
 }
@@ -168,11 +199,41 @@ if (-not $NoScreenshot) {
 }
 
 # --- 5. Player.log -----------------------------------------------------------
+$logLines = $null
 if ($playerLog -and (Test-Path -LiteralPath $playerLog)) {
     Copy-Item -LiteralPath $playerLog -Destination (Join-Path $OutDir 'Player.log') -Force
     Write-Step 'Player.log をコピーしました'
+    try {
+        # 診断行は起動直後 (最初のシーンロード後) に出る。長いセッションのログでも先頭側で足りる。
+        $logLines = Get-Content -LiteralPath $playerLog -TotalCount 2000 -ErrorAction Stop
+    } catch {
+        Write-Step ('警告: Player.log を読めませんでした (' + $_.Exception.Message + ')')
+        $logLines = $null
+    }
 } else {
     Write-Step '警告: Player.log が見つかりません (ゲームを一度起動してください)'
+}
+
+# --- 5b. 実フルスクリーン判定 (実測) -----------------------------------------
+$diagnostics = Find-FullscreenDiagnosticsLine -Lines $logLines
+if ($ExpectResolution -and -not $diagnostics) {
+    Write-Step '警告: [FullscreenDiagnostics] 行がありません (-Launch で起動するか、起動後に再実行してください)'
+}
+$fullscreenReport = ConvertFrom-FullscreenDiagnostics -Line $diagnostics -Expected $expectedResolution
+Format-FullscreenReport -Report $fullscreenReport |
+    Set-Content -LiteralPath (Join-Path $OutDir 'fullscreen.txt') -Encoding UTF8
+$showScreen = if ($fullscreenReport.screen) { $fullscreenReport.screen } else { '-' }
+$showDisplayMode = if ($fullscreenReport.mode) { $fullscreenReport.mode } else { '-' }
+$showFullScreenMode = if ($fullscreenReport.fullScreenMode) { $fullscreenReport.fullScreenMode } else { '-' }
+$showCoverageX = if ($fullscreenReport.coverageX) { $fullscreenReport.coverageX + '%' } else { '-' }
+$showCoverageY = if ($fullscreenReport.coverageY) { $fullscreenReport.coverageY + '%' } else { '-' }
+Write-Step ('fullscreen.txt: result=' + $fullscreenReport.result +
+    ' screen=' + $showScreen +
+    ' displayMode=' + $showDisplayMode +
+    ' fullScreenMode=' + $showFullScreenMode +
+    ' coverage=' + $showCoverageX + '/' + $showCoverageY)
+if ($fullscreenReport.result -eq 'FAIL') {
+    Write-Step '注意: 実フルスクリーン条件を満たしていません (fullscreen.txt の check* を確認)'
 }
 
 # --- 6. 操作ログのテンプレート ----------------------------------------------
@@ -188,8 +249,11 @@ Sha256: 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20
 ## 1. 全画面
 
 - [ ] 起動直後に黒帯・タスクバー・ウィンドウ枠が見えない
-- [ ] Player.log の `[FullscreenDiagnostics]` 行: screen= / fullScreenMode= / dpi=
-      (貼り付け)
+- [ ] `fullscreen.txt` の result= (PASS / FAIL / NO-DATA をそのまま転記)
+- [ ] `fullscreen.txt` の checkFullscreen= / checkCoverage= / checkResolution=
+- [ ] 期待解像度を指定した場合: `-ExpectResolution` に何を渡したか
+- [ ] Player.log の `[FullscreenDiagnostics]` 行 (screen= / fullScreenMode= / dpi=) を貼り付け
+      (fullscreen.txt の raw= と同じ行)
 
 ## 2. 1 曲完走
 

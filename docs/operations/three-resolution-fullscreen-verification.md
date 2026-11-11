@@ -14,11 +14,11 @@
 **FHD 未満 (1024×768 / 1280×720 等) は対象外**。旧記載の 1440×900 (Mac) は
 Issue #162 により **誤りかつ無効** — 検証にも実装にも使わない。
 
-## 1. 原則 (-windows をリサイズして擬似再現しない)
+## 1. 原則 (ウィンドウのリサイズで擬似再現しない)
 
 - 検証は **その解像度の実ディスプレイ上でアプリが全画面 (fullscreen) 表示している状態** で行う。
 - ウィンドウをドラッグ / リサイズして「そのサイズに見せかける」検証は **無効**。
-  ウィンドウ Jadged リサイズで得たスクリーンショットは証拠にならない。
+  ウィンドウをリサイズして得たスクリーンショットは証拠にならない。
 - 実装側も同じ原則: `PlayerSettings.fullscreenMode` = FullScreenWindow、
   `defaultIsNativeResolution = 1` により **ディスプレイのネイティブ解像度** で全画面になる。
   `Screen.SetResolution` でウィンドウサイズを擬似的に合わせる実装は禁止。
@@ -27,14 +27,39 @@ Issue #162 により **誤りかつ無効** — 検証にも実装にも使わ�
 
 ## 2. 実機 (Windows) の手順
 
-1. 対象解像度のモニタ displaying PC に接続し、Windows の **推奨解像度** が
+1. 対象解像度のモニタを展示 PC に接続し、Windows の **推奨解像度** が
    上表の解像度になっていることを確認 (スケーリング 100% / 拡大縮小なし)。
 2. 配布 ZIP を展開し、`FlashBeat.exe` を **引数なし** で起動する。
 3. 起動後すぐに **画面全体** のスクリーンショットを採取する。
    - タスクバー / ウィンドウ枠 / 黒帯が 1 ピクセルでも見えたら **不合格**。
 4. `Player.log` (`%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log`) から
    `[FullscreenDiagnostics]` 行を採取し、実効解像度と fullScreenMode を確認する。
+   目視に頼らず、`collect-win-evidence.ps1 -ExpectResolution FHD` (2K / MAC も同様) で
+   `fullscreen.txt` を作り、`result=PASS` を残す (被覆率の判定式は §2.2)。
 5. 操作 E2E (押す → 実機能) を **操作ログ** として残す。
+
+### 2.2 被覆率の実測 (擬似全画面の検出)
+
+`[FullscreenDiagnostics]` 行の `screen=WxH` と `currentResolution=WxH` を比べ、
+`Screen.width/height` (実際に描画している領域) が表示モードの 99% 以上を覆っているかを判定する。
+ウィンドウ表示や枠付きの全画面では `screen` がモードより小さくなる。
+
+`display0=system:WxH` は OS 側のシステム面で、**macOS では描画面と一致しない**
+(実測 2026-11-11 r28: `screen=2560x1664` / `system=3420x2224`)。そのため system との比は
+`systemCoverageX/Y` として INFO で残すだけで、判定には使わない。
+
+| 判定 | 条件 |
+|---|---|
+| `checkFullscreen=PASS` | `fullScreen=True` かつ `fullScreenMode` が `FullScreenWindow` / `ExclusiveFullScreen` |
+| `checkCoverage=PASS` | 横・縦の被覆率 (`screen / currentResolution`) がともに 99% 以上 |
+| `checkResolution=PASS` | `-ExpectResolution` で指定した解像度と `screen=` が一致 |
+| `result=PASS` | 上の 3 つがすべて PASS |
+
+判定式は [`tools/acceptance/fullscreen-report.ps1`](../../../tools/acceptance/fullscreen-report.ps1)
+(自己テスト `fullscreen-report.test.ps1` が 43 ケースを固定し、Windows 無しで走る)。
+既存の Mac 証跡の `Player.log` 36 本を再判定し、35 本が `result=PASS` (`screen=2560x1664`)、
+残り 1 本 (r17) は起動途中でコピーされて診断行が無く `result=NO-DATA` だった。
+その場合は起動完了後に取り直す。
 
 ### 2.1 操作 E2E (各画面 / 各解像度で 1 回ずつ)
 

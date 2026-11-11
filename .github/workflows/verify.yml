@@ -22,6 +22,7 @@ on:
     paths:
       - "Assets/**"
       - "script/**"
+      - "tools/acceptance/**"
       - ".github/workflows/verify.yml"
   workflow_dispatch:
 
@@ -33,3 +34,8 @@ jobs:
 
       - name: Repository integrity (no Unity license needed)
         run: bash script/check-repo-integrity.sh
+
+      # 受入証跡ツール (tools/acceptance) の判定式。Windows / Unity ライセンス不要で走る。
+      - name: Acceptance tooling self-test (PowerShell)
+        shell: pwsh
+        run: pwsh -NoProfile -File ./tools/acceptance/fullscreen-report.test.ps1

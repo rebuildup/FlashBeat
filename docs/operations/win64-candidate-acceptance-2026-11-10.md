@@ -103,15 +103,31 @@ Release 公開判定だけです。展示 PC の操作とビルドの上書き�
 
 [`tools/acceptance/collect-win-evidence.ps1`](../../../tools/acceptance/collect-win-evidence.ps1) を
 展開先フォルダで実行すると、機械情報 (解像度・DPI・GPU)、`version.json`、exe の版数、
-`Player.log`、スクリーンショット、ZIP の SHA-256 照合、記入式の `operation-log.md` を
-1 つのフォルダにまとめます。**起動・キー入力はしません** (`-Launch` を明示したときだけ起動)。
+`Player.log`、**実フルスクリーン判定 (`fullscreen.txt`)**、スクリーンショット、ZIP の
+SHA-256 照合、記入式の `operation-log.md` を 1 つのフォルダにまとめます。
+**起動・キー入力はしません** (`-Launch` を明示したときだけ起動)。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File collect-win-evidence.ps1 `
     -GameDir "$env:USERPROFILE\Desktop\FlashBeat-Exhibit" `
     -ZipPath "$env:USERPROFILE\Downloads\FlashBeat-0.1.23-win64-b6860a80.zip" `
-    -ExpectedSha256 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20
+    -ExpectedSha256 9ee7e4a6ff89c4548e7bf4dc5836a5ab08b57878baea2c148e5a6e6309283d20 `
+    -ExpectResolution FHD            # 2K の日は 2K / Mac は MAC / 明示するなら 1920x1080
 ```
+
+`fullscreen.txt` は `Player.log` の `[FullscreenDiagnostics]` 実測行から、
+`fullScreen` / `fullScreenMode` / **`Screen.width` が `currentResolution` を覆う被覆率** /
+期待解像度との一致を判定します (判定式は
+[`fullscreen-report.ps1`](../../../tools/acceptance/fullscreen-report.ps1)、自己テストは
+`fullscreen-report.test.ps1` で 43 ケース固定、Mac 証跡 36 本の実ログで 35 PASS / 1 NO-DATA を再現)。
+
+| 値 | 意味 |
+|---|---|
+| `result=PASS` | 実フルスクリーン + 被覆 99% 以上 + 期待解像度一致 (その解像度の実ディスプレイで実行した証拠) |
+| `result=FAIL` | ウィンドウ表示・被覆不足・解像度違いのいずれか。`check*` 行で切り分ける (証拠にならない) |
+| `result=NO-DATA` | Player.log に診断行が無い (未起動)。ゲームを起動してから再実行する |
+
+`-Launch` を付けない場合は、**先にゲームを起動して全画面になっている状態**で実行してください。
 
 
 ---
@@ -149,8 +165,8 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 
 | # | 条件 | 現状 | 実施者 | 証跡 (この候補のもの) |
 |---|---|---|---|---|
-| 1 | FHD 1920×1080 の実フルスクリーン | **未実施** (Mac に FHD モードが無い) | オーナー (FHD 実機) | `win-fhd-fullscreen.png` / `win-fhd-Player.log` |
-| 2 | 2K 2560×1440 の実フルスクリーン | **未実施** (前候補 0.1.22 では PASS) | オーナー (2K 実機) | `win-2k-fullscreen.png` / `win-2k-Player.log` |
+| 1 | FHD 1920×1080 の実フルスクリーン | **未実施** (Mac に FHD モードが無い) | オーナー (FHD 実機) | `fullscreen.txt` (`result=PASS` / `checkResolution=PASS`) + `win-fhd-fullscreen.png` / `Player.log` |
+| 2 | 2K 2560×1440 の実フルスクリーン | **未実施** (前候補 0.1.22 では PASS) | オーナー (2K 実機) | `fullscreen.txt` (`result=PASS` / `checkResolution=PASS`) + `win-2k-fullscreen.png` / `Player.log` |
 | 3 | 同一 artifact で 1 曲完走 (#233) | **未実施** | オーナー | `operation-log.md` (§2 の 1 曲完走) / 場面スクショ / `Player.log` |
 | 4 | 人間による音声聴取 | **未実施** (信号レベルのみ) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
 | 5 | Register のオンライン送信 (#134) | ローカル API での契約確認まで。**本番書き込みは未実施** | オーナー (承認後) | [`register-online-acceptance.md`](register-online-acceptance.md) の手順と記録 |
@@ -173,6 +189,10 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
   リサイズで得たスクリーンショットは **証拠にならない**。
 - 起動直後の実効値は `FullscreenDiagnostics` が Player.log に出力します。
   **PlayerSettings の設定値を「実測値」と言い換えないでください。**
+- 被覆率の判定は `collect-win-evidence.ps1` の `fullscreen.txt` で機械的に残します
+  (`checkCoverage=PASS` は `Screen.width/height` がディスプレイの `systemWidth/Height` の
+  99% 以上を覆っていることを意味します)。目視のスクリーンショットだけでは
+  「ウィンドウ表示のまま」を見落とすため、両方を残します。
 
 ### 3.2 対象は 3 解像度だけ
 
