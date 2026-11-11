@@ -769,3 +769,33 @@ Pause Display の `PauseDisplay_HasNoDeadRows` (Issue #167) と同じ判断で�
 
 **未検証**: 2560×1440 / 1920×1080 の実フルスクリーン (この Mac の実ディスプレイは 2560×1664
 のみ)、Windows 実機 (exhibit 機は無断で触らない)。r24 で上記修正の実機確認を行う。
+
+### 9.16 r24 — Option 4 タブ修正の実機確認と Desc 行送りの不一致
+
+**r24 (`6c2f6d03`、2560×1664 実フルスクリーン)** — §9.15 で直した 3 タブを実機で確認した
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r24/`、`RESULT pass=31 fail=0 screenshots=15`)。
+
+| design | r24 の実測 (design 座標) | 判定 |
+|---|---|---|
+| `EzLfb` (Display) | 判定チップ 4 個 (PERFECT / GREAT / BAD / MISS) が (24+118i,360) 106×64 で描画。Marker 32×4 の色 = `$text` / `$ok` / `$warn` / `$danger` | 一致 |
+| `z7joSy` (Sound) | Value fs40 (24,360) / Track 464×20 (24,420) / Fill = 音量比 | 一致 |
+| `B6If6Z` / `EzLfb` / `z7joSy` / `DQHHp` | 説明ブロックの Divider がタブ別 Y (544 / 456 / 472 / 380)、Title +20 / Desc +70 | 一致 |
+| `DQHHp` (Data) | **説明文の 2 行目が design より 10px 下 (impl 502 vs design 492) でパネル下端に接近** | 不一致 |
+| `B6If6Z` (Play) | 説明文の 2 行目が design 659 に対し impl 666 (7px 下) | 不一致 |
+
+**原因**: `V6Controls.Text` / `V5Ui.Text` は 1 行描画用に `lineSpacing` を
+`(1 - lineHeight/pointSize) × 100 = -44.8` (行送りを fs 分 = 24px に詰める) にしている。
+説明文はその上へ `lineSpacing = 40` を足していたため、行送りは
+`34.75 + 24×0.40 = 44.35px` になっていた。design の実測行送りは
+Data タブ 457→492 = 35px / Pause `uDNC0` 621→659 = 38px で、declared は lineHeight 1.4
+(fs24 → 33.6px)。40 は「fs 比で 1.4 倍」のつもりが、実際には TMP の**加算**率として
+効いて 1.85 倍になっていたのが誤り。
+
+**修正 (`419e81a4`)**: `lineSpacing = 0` (フォント本来の 34.75px) に戻した。
+- Option `V6OptionView.BuildDesc`
+- Pause `V6PauseView.BuildPreviewPanel` の Desc (同じ 40 が入っていた)
+- 回帰テスト `V6OptionTabPreviewTests.DescLines_UseTheDesignLinePitch`
+  (TMP の `lineInfo[].baseline` 差を実測し 34.75 ± 1.5px を固定)
+
+**Pause の実測 (r24)**: 1 行目 622 / 2 行目 670 (design 621 / 659)。同じ原因で 2 行目のみ
+11px 下がっていた。r25 で両画面の実機確認を行う。
