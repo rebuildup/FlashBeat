@@ -300,3 +300,19 @@ drawing ではなく座標で確認した:
 
 
 
+
+### 9.6 r6 の画素による最終確認 (Esc 位置 / Result ジャケット)
+
+r6 は `9edaffd7` (行送り境界の Ellipsis 余裕確保) のビルド。2560×1664 実ディスプレイ
+全画面 (`-screen-fullscreen 1 -screen-width 2560 -screen-height 1664`) で撮影し、
+`autotest-v6screens-result.txt` は `RESULT pass=17 fail=0 symbols=45 screenshots=8`。
+画像は design 1px = 画面 1px、frame origin (416,346)。
+
+| 指摘 | design | r6 実測 (画素) |
+|---|---|---|
+| Esc / 戻るボタンの位置 | Select フレーム (24,20) 56×56 → 画面 x 440..496 / y 366..422 | `#3A3A3A` の塗りが y=394 で x 441..494、x=490 で y 367..420 (いずれも AA 1px を除く内側)。中心 (468,394) も `#3A3A3A`。ヘッダー中央 (≈x 1256) には無い |
+| Result の曲サムネイル | `Song ThumbX/Y = 16,28` 112×63、Main (164,96) → 画面 x 596..708 / y 1106..1169 | 同領域に `01-rosen.jpg` の濃淡 (上端 181 前後、中段 15〜181 の絵柄) が乗っている。空枠 (`#2D2D2D` 単色) ではない |
+
+Result のジャケットは「拡張子付きパスを `Resources.Load` へ渡していた」共通原因 (C4) の
+修正後に、実データで描画されていることを画素で確認したもの。design の矩形にジャケットが
+載っているかは、この一領域の色分布で判定できる (空枠なら全画素同色)。
