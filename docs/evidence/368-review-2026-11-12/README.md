@@ -73,7 +73,7 @@ bounds = 0, 38, 1710, 1074 (pt)
 |---|---|---|---|
 | #371 | Opening は映像のみ。ロゴ・エッジ装飾・背景パネルを描かない | `371-opening.png` | 映像の自動遷移は既存仕様どおり (未変更) |
 | #372 | Title の背景が bg-anim3 の全画面表示になり、ベージュの旧背景が消えた | `372-title.png` | pen とのピクセル比較は未実施 |
-| #373 | History / Ranking が背景映像を表示。Title から入ると Esc / 戻るで Title へ戻る。右上の楽曲表示は pen `S1TZD` と同じ 64×36 ジャケット + 曲名・アーティストで重なりなし | `373-history.png`, `373-ranking.png`, `373-back-to-title.png`, `373-ranking-back.png`, `373-ranking-top-right.png` | Issue に書かれた「300×96 / ジャケットが小さい」は現行 pen と一致しないため、その是正は未実施 (pen 側の値が正) |
+| #373 | History / Ranking が背景映像を表示。Title から入ると Esc / 戻るで Title へ戻る。右上の楽曲表示は pen `S1TZD` と同じ 64×36 ジャケット + 曲名・アーティストで重なりなし | `373-history.png`, `373-ranking.png`, `373-back-to-title.png`, `373-ranking-back.png`, `373-ranking-top-right.png`, 時刻の違う 2 枚 `373-history-frame-a.png` / `373-history-frame-b.png` と `373-ranking-frame-a.png` / `373-ranking-frame-b.png` (1.7 秒間で全画素の約 8.5% が変化) | Issue に書かれた「300×96 / ジャケットが小さい」は現行 pen と一致しないため、その是正は未実施 (pen 側の値が正) |
 | #374 | Select の外周ストロークを廃止。背景は全画面。中央パネルの曲名・アーティスト・タグの組版を pen に合わせた | `374-select.png` | スケルトン点滅は読み込みが速く観測できず (未確認) |
 | #370 | 設定行は「アイコン + ラベル + 前矢印 + 値 + 次矢印」の固定列。閉じる / 戻るボタンは hug 幅で、x アイコン + Esc / 戻るアイコン + Esc を表示 | `370-settings.png`, `370-rows.png`, `370-settings-button.png`, `370-close-button.png`, `370-back-button.png` | なし |
 | #375 | Option 右パネルにレーン プレビューとキー一覧を表示。Sound タブは共通音量スライダー | `375-option.png` | 音量スライダーのドラッグ操作は静止画では未確認 |
