@@ -314,8 +314,9 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 |---|---|
 | `J7tBYP` (`o0zh7` 内 `Volume Slider`) | 共有音量スライダー (Option / Pause の Sound)。Option のプレビュー側は `B9EOfX` に `AnrE2` ノブと `OAM2f` ヒントを追加 |
 | `vo4kB` (`06b Key Config · v6`) | キー設定モーダル (8 レーン一覧 / 待受 / 衝突 / リセット) |
+| `F0UFKp` (`o0zh7` 内 `Component/キー設定 レーン行`) | キー設定モーダルのレーン行 (レーン名 / KeyCap / 状態 / 残りキー) |
 | `xuQnv` (`o0zh7` 内 `Countdown`) | 再開 3 → 2 → 1 |
 | `xXKic` (`o0zh7` 内 `Song End Overlay`) | 曲終了表示 |
 | `k3Rq6j` / `TYshI` | 名前入力カーソル / 登録成功チップ (Result モーダル上の状態ノード) |
 
-証拠画像: `design/exports/v6/review-2026-11-11/` の `components-review.png` / `key-config-modal.png` / `hud-top-shade-fhd.png` / `option-sound-slider.png` / `result-register-modal.png` / `result-caret.png` / `result-success.png`。
+証拠画像: `design/exports/v6/review-2026-11-11/` の `components-review.png` / `key-config-modal.png` / `key-config-row.png` / `hud-top-shade-fhd.png` / `option-sound-volume-slider.png` / `pause-sound-volume-slider.png` / `result-register-modal.png` / `result-caret.png` / `result-success.png`。

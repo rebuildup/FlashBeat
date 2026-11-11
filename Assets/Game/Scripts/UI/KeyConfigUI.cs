@@ -7,13 +7,15 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// F2 で開閉できるキー設定オーバーレイ (シーン非依存、コードのみで生成)。
-/// RuntimeInitializeOnLoadMethod で起動し、DontDestroyOnLoad で全シーンで有効。
-/// 閉じているときは入力を一切奪わない (F2 の監視のみ)。
+/// 旧キー設定オーバーレイ (シーン非依存、コードのみで生成)。
+/// v6 の Option / Pause は <see cref="FlashBeat.UI.V6.Common.V6KeyConfigModal"/>
+/// (design vo4kB) を使う (Issue #376)。この画面は旧 v5 経路 (KeyConfigOptionButton /
+/// v5 OptionView) の互換実装として残す。
 ///
-/// Issue #167: F2 の競合を避けるため SelectScene では開かない。
-/// Select 画面の v5 凡例は「F2 履歴」(SelectView) で、キー設定は
-/// Title / Option (キー設定ボタン) から開く。
+/// F2 の入力監視は廃止した (決定 §4.1: キー設定への到達経路は画面内の行だけ)。
+/// 開閉は <see cref="Open"/> / <see cref="Close"/> を呼ぶ。
+///
+/// Issue #167: SelectScene では開かない (Select 画面の v5 凡例は「F2 履歴」)。
 /// </summary>
 public class KeyConfigUI : MonoBehaviour
 {
@@ -256,12 +258,6 @@ public class KeyConfigUI : MonoBehaviour
         if (open && !IsAllowedScene())
         {
             SetOpen(false); // 遷移などで想定外のシーンになったら閉じる
-            return;
-        }
-
-        if (KeyDown(KeyCode.F2))
-        {
-            if (open || IsAllowedScene()) { Toggle(); }
             return;
         }
 

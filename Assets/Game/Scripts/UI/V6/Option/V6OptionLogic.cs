@@ -1,4 +1,5 @@
 using System;
+using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Select.View;
 using UnityEngine;
 
@@ -87,7 +88,12 @@ namespace FlashBeat.UI.V6.Option
         /// Display / Sound / Data で説明文が design より 88〜234px 下に落ちていた)。
         /// </summary>
         public const float PlayDescDividerY = 544f, DisplayDescDividerY = 456f;
-        public const float SoundDescDividerY = 472f, DataDescDividerY = 380f;
+        /// <summary>
+        /// Sound は 472 だったが、音量スライダ (Issue #375、値 fs58 + トラック +
+        /// ヒント = 156px) を Game Preview (60..340) の直下に置くため 504 へ下げた
+        /// (design 更新は pen `z7joSy` に反映)。
+        /// </summary>
+        public const float SoundDescDividerY = 504f, DataDescDividerY = 380f;
         public const float DescTitleOffsetY = 20f, DescOffsetY = 70f;
         public const float DescW = 464f, DescH = 68f;
 
@@ -208,15 +214,24 @@ namespace FlashBeat.UI.V6.Option
             return needed <= SettingsPanelH ? RowStepLoose : RowStepTight;
         }
 
-        /// <summary>音量を 0..1 にクランプし 0.1 刻みで±する (V5 OptionView と同じ数式)。</summary>
+        // --- Sound 右パネル: 音量スライダ (design o0zh7 J7tBYP、Issue #375) ---
+        // 部品の寸法・写像は V6VolumeSlider が持つ (Option と Pause で同じ部品)。
+        // ここは置き場所 (プレビューパネル内の左上) だけを持つ。
+        public const float VolumeSliderX = 24f, VolumeSliderY = 344f;
+
+        /// <summary>音量を 0..1 にクランプし 0.1 刻みで±する (旧ステッパー。互換のため残す)。</summary>
         public static float AdjustVolume(float value, int delta)
         {
-            float shifted = value + delta * 0.1f;
-            // 浮動小数の誤差で 0.3 + 0.1 が 0.40000001 になるのを避けて 10 倍整数で丸める。
-            float rounded = (float)Math.Round(shifted * 10f) / 10f;
-            if (rounded < 0f) return 0f;
-            if (rounded > 1f) return 1f;
-            return rounded;
+            return V6VolumeSlider.Nudge(value, delta, true);
+        }
+
+        /// <summary>
+        /// キー / ステッパー 1 回分の値変更 (Issue #375 決定 §3.2)。
+        /// 通常は 1%、Shift 併用で 10%。スライダーのドラッグと同じ値モデルを編集する。
+        /// </summary>
+        public static float NudgeVolume(float value, int delta, bool shift)
+        {
+            return V6VolumeSlider.Nudge(value, delta, shift);
         }
 
         /// <summary>音量の表示 (% 整数)。</summary>
@@ -292,40 +307,10 @@ namespace FlashBeat.UI.V6.Option
             return V6OptionAction.None;
         }
 
-        /// <summary>キーの表示名 (KeyConfigUI.GetKeyDisplayName と同じ対応表)。</summary>
+        /// <summary>キーの表示名 (表は <see cref="V6KeyConfigLogic.KeyLabel"/> に一本化)。</summary>
         public static string KeyDisplayName(KeyCode key)
         {
-            switch (key)
-            {
-                case KeyCode.Alpha0: return "0";
-                case KeyCode.Alpha1: return "1";
-                case KeyCode.Alpha2: return "2";
-                case KeyCode.Alpha3: return "3";
-                case KeyCode.Alpha4: return "4";
-                case KeyCode.Alpha5: return "5";
-                case KeyCode.Alpha6: return "6";
-                case KeyCode.Alpha7: return "7";
-                case KeyCode.Alpha8: return "8";
-                case KeyCode.Alpha9: return "9";
-                case KeyCode.Minus: return "-";
-                case KeyCode.Equals: return "=";
-                case KeyCode.Caret: return "^";
-                case KeyCode.At: return "@";
-                case KeyCode.LeftBracket: return "[";
-                case KeyCode.RightBracket: return "]";
-                case KeyCode.Semicolon: return ";";
-                case KeyCode.Colon: return ":";
-                case KeyCode.Backslash: return "\\";
-                case KeyCode.BackQuote: return "`";
-                case KeyCode.Slash: return "/";
-                case KeyCode.Underscore: return "_";
-                case KeyCode.Asterisk: return "*";
-                case KeyCode.Comma: return ",";
-                case KeyCode.Period: return ".";
-                case KeyCode.Less: return "<";
-                case KeyCode.Greater: return ">";
-                default: return key.ToString();
-            }
+            return V6KeyConfigLogic.KeyLabel(key);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -64,9 +64,9 @@ public class AutoTestKeyConfig : MonoBehaviour
         Check("on TitleScene", SceneManager.GetActiveScene().name == "TitleScene");
 
         KeyBindings.ResetToDefaults();
-        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        KeyConfigUI.Open();
         yield return Frames();
-        Check("F2 opens the key config", KeyConfigUI.IsOpen);
+        Check("Open() opens the key config", KeyConfigUI.IsOpen);
         Check("scene manager is suspended while open (E/O/Space must not act)", !AnySceneManagerEnabled());
         yield return Shot("01-open");
 
@@ -121,17 +121,17 @@ public class AutoTestKeyConfig : MonoBehaviour
         yield return Frames();
         Check("Esc stops listening", !KeyConfigUI.TestListening);
         KeyBindings.ResetToDefaults();
-        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        KeyConfigUI.Close();
         yield return Frames();
-        Check("F2 closes", !KeyConfigUI.IsOpen);
+        Check("Close() closes the overlay (F2 is no longer an entry point)", !KeyConfigUI.IsOpen);
         Check("scene manager resumed after closing", AnySceneManagerEnabled());
         yield return Shot("04-closed");
 
         // ---- メニュー操作ページ (KeyActions): ページ切替・割り当て・レーン衝突の拒否・タイトルへの反映 ----
         KeyActions.ResetToDefaults();
-        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        KeyConfigUI.Open();
         yield return Frames();
-        Check("F2 opens the key config again", KeyConfigUI.IsOpen);
+        Check("Open() opens the key config again", KeyConfigUI.IsOpen);
         KeyConfigUI.InjectKeyDown(KeyCode.RightArrow);
         yield return Frames();
         Check("Right switches to the menu-actions page", KeyConfigUI.TestPage == 1 && !KeyConfigUI.TestListening);
@@ -191,9 +191,9 @@ public class AutoTestKeyConfig : MonoBehaviour
         }
 
         // close and prove Title reacts to the rebound Start key
-        KeyConfigUI.InjectKeyDown(KeyCode.F2);
+        KeyConfigUI.Close();
         yield return Frames();
-        Check("F2 closes again", !KeyConfigUI.IsOpen);
+        Check("Close() closes again", !KeyConfigUI.IsOpen);
         Check("scene manager resumed after closing again", AnySceneManagerEnabled());
         KeyBindings.InjectKeyDown(KeyCode.Keypad7);
         yield return new WaitForSecondsRealtime(4f);

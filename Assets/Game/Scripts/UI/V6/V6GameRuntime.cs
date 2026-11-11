@@ -210,6 +210,12 @@ namespace FlashBeat.UI.V6
                 return;
             }
 
+            if (FlashBeat.UI.V6.Common.V6KeyConfigModal.BlocksInput)
+            {
+                // v6 のキー設定モーダル (Issue #376) が Esc / Enter / 矢印を消費する。
+                return;
+            }
+
             if (KeyConfigUI.IsOpen)
             {
                 // キー設定中の F1 = 編集キャンセル (保存済みの割当へ戻して閉じる)。

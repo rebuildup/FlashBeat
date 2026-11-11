@@ -28623,44 +28623,10 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "bS6wg",
-                          "x": 24,
-                          "y": 360,
-                          "name": "Value",
-                          "fill": "$text",
-                          "content": "100%",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 40,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "BggY9",
-                          "x": 24,
-                          "y": 420,
-                          "name": "Track",
-                          "width": 464,
-                          "height": 20,
-                          "fill": "$k1",
-                          "cornerRadius": 4,
-                          "children": [
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 4,
-                              "id": "YGVDg",
-                              "name": "Fill",
-                              "fill": "$k6",
-                              "width": 464,
-                              "height": 20
-                            }
-                          ]
-                        },
-                        {
                           "type": "rectangle",
                           "id": "C8zKMG",
                           "x": 24,
-                          "y": 472,
+                          "y": 504,
                           "name": "Divider",
                           "fill": "#FFFFFF1F",
                           "width": 464,
@@ -28670,7 +28636,7 @@
                           "type": "text",
                           "id": "HdMRq",
                           "x": 24,
-                          "y": 492,
+                          "y": 524,
                           "name": "Desc Title",
                           "fill": "$text",
                           "content": "Main Volume",
@@ -28682,7 +28648,7 @@
                           "type": "text",
                           "id": "cAKxi",
                           "x": 24,
-                          "y": 542,
+                          "y": 574,
                           "name": "Desc",
                           "fill": "$text",
                           "textGrowth": "fixed-width",
@@ -28694,27 +28660,74 @@
                           "fontWeight": "normal"
                         },
                         {
-                          "type": "rectangle",
-                          "cornerRadius": 12,
-                          "id": "AnrE2",
-                          "x": 464,
-                          "y": 418,
-                          "name": "Slider Knob",
-                          "fill": "$text",
-                          "width": 24,
-                          "height": 24
-                        },
-                        {
-                          "type": "text",
-                          "id": "OAM2f",
+                          "type": "frame",
+                          "id": "p772gH",
                           "x": 24,
-                          "y": 444,
-                          "name": "Slider Hint",
-                          "fill": "$text-dim",
-                          "content": "ドラッグ / ←→ で調整",
-                          "fontFamily": "Noto Sans JP",
-                          "fontSize": 18,
-                          "fontWeight": "normal"
+                          "y": 344,
+                          "name": "Volume Slider",
+                          "width": 512,
+                          "height": 160,
+                          "fill": "#00000000",
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "xuXpy",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Value",
+                              "fill": "$text",
+                              "content": "100%",
+                              "fontFamily": "Noto Sans JP",
+                              "fontSize": 58,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "cSHzg",
+                              "x": 0,
+                              "y": 84,
+                              "name": "Track",
+                              "width": 464,
+                              "height": 20,
+                              "fill": "$k1",
+                              "cornerRadius": 10,
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 10,
+                                  "id": "gtA7Z",
+                                  "name": "Fill",
+                                  "fill": "$k6",
+                                  "width": 464,
+                                  "height": 20
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "JWTpx",
+                              "x": 452,
+                              "y": 82,
+                              "name": "Knob",
+                              "fill": "$text",
+                              "width": 24,
+                              "height": 24
+                            },
+                            {
+                              "type": "text",
+                              "id": "dZzg2",
+                              "x": 0,
+                              "y": 112,
+                              "name": "Hint",
+                              "fill": "$text-dim",
+                              "content": "ドラッグ / ←→ 1% (Shift 10%)",
+                              "fontFamily": "Noto Sans JP",
+                              "fontSize": 18,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -34381,146 +34394,6 @@
                 },
                 {
                   "type": "frame",
-                  "id": "tyWhi",
-                  "x": 0,
-                  "y": 1011,
-                  "name": "Key Guide (下)",
-                  "width": 1920,
-                  "height": 36,
-                  "layout": "none",
-                  "children": [
-                    {
-                      "id": "TW2qo",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap A",
-                      "x": 310,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "A",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "U6hYQH",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap S",
-                      "x": 487,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "S",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "GOaXl",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap D",
-                      "x": 665,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "D",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "mrNqP",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap F",
-                      "x": 842,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "F",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "k6DrH",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap J",
-                      "x": 1020,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "J",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "nmiOG",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap K",
-                      "x": 1197,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "K",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "sYU5H",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap L",
-                      "x": 1375,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "L",
-                          "fontSize": 24
-                        }
-                      }
-                    },
-                    {
-                      "id": "mFFzR",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap ;",
-                      "x": 1552,
-                      "y": 0,
-                      "width": 56,
-                      "height": 36,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": ";",
-                          "fontSize": 24
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
                   "id": "dctPB",
                   "x": 0,
                   "y": 963,
@@ -35017,146 +34890,6 @@
                 },
                 {
                   "type": "frame",
-                  "id": "pQqZd",
-                  "x": 0,
-                  "y": 1347,
-                  "name": "Key Guide (下)",
-                  "width": 2560,
-                  "height": 48,
-                  "layout": "none",
-                  "children": [
-                    {
-                      "id": "Pv5I5",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap A",
-                      "x": 529,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "A",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "nPfVz",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap S",
-                      "x": 733,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "S",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "NPu3A",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap D",
-                      "x": 936,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "D",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "u7NxD4",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap F",
-                      "x": 1140,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "F",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "o9S6M",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap J",
-                      "x": 1343,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "J",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "a5WptF",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap K",
-                      "x": 1547,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "K",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "XNRrd",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap L",
-                      "x": 1750,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "L",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "ZDaYu",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap ;",
-                      "x": 1954,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": ";",
-                          "fontSize": 32
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
                   "id": "rmW7u",
                   "x": 0,
                   "y": 1283,
@@ -35648,146 +35381,6 @@
                           "height": 11
                         }
                       ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "U9c2J",
-                  "x": 0,
-                  "y": 1571,
-                  "name": "Key Guide (下)",
-                  "width": 2560,
-                  "height": 48,
-                  "layout": "none",
-                  "children": [
-                    {
-                      "id": "m6ssbd",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap A",
-                      "x": 464,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "A",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "ukm1D",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap S",
-                      "x": 686,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "S",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "FsgD6",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap D",
-                      "x": 908,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "D",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "Tzi12",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap F",
-                      "x": 1130,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "F",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "Nw36b",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap J",
-                      "x": 1353,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "J",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "ETSd4",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap K",
-                      "x": 1575,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "K",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "Ck9Gu",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap L",
-                      "x": 1797,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": "L",
-                          "fontSize": 32
-                        }
-                      }
-                    },
-                    {
-                      "id": "R28kCg",
-                      "type": "ref",
-                      "ref": "gr4IM",
-                      "name": "KeyCap ;",
-                      "x": 2019,
-                      "y": 0,
-                      "width": 75,
-                      "height": 48,
-                      "descendants": {
-                        "zgG6x": {
-                          "content": ";",
-                          "fontSize": 32
-                        }
-                      }
                     }
                   ]
                 },
@@ -39606,7 +39199,7 @@
               "y": 112,
               "name": "Hint",
               "fill": "$text-dim",
-              "content": "ドラッグ / ←→ で調整",
+              "content": "ドラッグ / ←→ 1% (Shift 10%)",
               "fontFamily": "Noto Sans JP",
               "fontSize": 18,
               "fontWeight": "normal"
@@ -39674,6 +39267,83 @@
               "textAlign": "center",
               "fontFamily": "Noto Sans JP",
               "fontSize": 22,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "F0UFKp",
+          "x": 0,
+          "y": 760,
+          "name": "Component/キー設定 レーン行",
+          "reusable": true,
+          "width": 784,
+          "height": 52,
+          "fill": "$k6",
+          "cornerRadius": 8,
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "G5BSzc",
+              "x": 16,
+              "y": 16,
+              "name": "Lane",
+              "fill": "$text-dim",
+              "content": "Lane 1",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Nxm6J",
+              "x": 152,
+              "y": 6,
+              "name": "KeyCap",
+              "width": 120,
+              "height": 40,
+              "fill": "$k4",
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dnLol",
+                  "name": "Key",
+                  "fill": "$text",
+                  "content": "1",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "bw4ot",
+              "x": 288,
+              "y": 2,
+              "name": "State",
+              "fill": "$text",
+              "content": "Enter で変更",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 20,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "EYZh4",
+              "x": 288,
+              "y": 32,
+              "name": "Alternates",
+              "fill": "$text-muted",
+              "content": "他: Q / A / Z",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 16,
               "fontWeight": "normal"
             }
           ]
@@ -39807,7 +39477,7 @@
                       "fill": "$text",
                       "content": "Enter で変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -39816,10 +39486,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: Q / A / Z",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -39883,7 +39553,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -39892,10 +39562,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: W / S / X",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -39959,7 +39629,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -39968,10 +39638,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: E / D / C",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40035,7 +39705,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -40044,10 +39714,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: 5 / R / T / F / G / V / B",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40111,7 +39781,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -40120,10 +39790,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: 7 / Y / U / H / J / N / M",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40187,7 +39857,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -40196,10 +39866,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: I / K / , / <",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40263,7 +39933,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -40272,10 +39942,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: O / L / . / >",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40339,7 +40009,7 @@
                       "fill": "$text-muted",
                       "content": "変更",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 18,
+                      "fontSize": 20,
                       "fontWeight": "normal"
                     },
                     {
@@ -40348,10 +40018,10 @@
                       "x": 288,
                       "y": 32,
                       "name": "Alternates",
-                      "fill": "$text-dim",
+                      "fill": "$text-muted",
                       "content": "他: - / ^ /  / P / @ …",
                       "fontFamily": "Noto Sans JP",
-                      "fontSize": 14,
+                      "fontSize": 16,
                       "fontWeight": "normal"
                     }
                   ]
@@ -40482,6 +40152,488 @@
           "textAlign": "center",
           "fontFamily": "Noto Sans JP",
           "fontSize": 20,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "QfoXy",
+      "x": 11000,
+      "y": 0,
+      "name": "07b Game · v6 · Pause · 音量 (プレビュー)",
+      "clip": true,
+      "width": 512,
+      "height": 688,
+      "fill": "$k2",
+      "cornerRadius": 16,
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "RKsIh",
+          "x": 8,
+          "y": 20,
+          "name": "Head Title",
+          "fill": "$text-dim",
+          "content": "音量",
+          "fontFamily": "$font-ui",
+          "fontSize": 18,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "BBZH6",
+          "x": 24,
+          "y": 60,
+          "name": "Game Preview",
+          "width": 464,
+          "height": 280,
+          "fill": "$k0",
+          "cornerRadius": 8,
+          "layout": "none",
+          "children": [
+            {
+              "type": "path",
+              "id": "PbyOj",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 0",
+              "geometry": "M26 234l174.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "hRYyL",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 1",
+              "geometry": "M84 234l125.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "brkOV",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 2",
+              "geometry": "M142 234l76.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "TQ3A5",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 3",
+              "geometry": "M200 234l27.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "dFE9R",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 4",
+              "geometry": "M258 234l-21.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "kZUIY",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 5",
+              "geometry": "M316 234l-70.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "XTpsW",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 6",
+              "geometry": "M374 234l-119.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "path",
+              "id": "VHJdG",
+              "x": 0,
+              "y": 0,
+              "name": "Lane 7",
+              "geometry": "M432 234l-168.5-234",
+              "viewBox": [
+                0,
+                0,
+                464,
+                280
+              ],
+              "width": 464,
+              "height": 280,
+              "stroke": "#FFFFFF24",
+              "strokeWidth": 1
+            },
+            {
+              "type": "rectangle",
+              "id": "W2tKmE",
+              "x": 62,
+              "y": 70,
+              "name": "Note 0",
+              "fill": "#EDEDED",
+              "width": 33,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "h1RkM",
+              "x": 205,
+              "y": 130,
+              "name": "Note 1",
+              "fill": "#EDEDED",
+              "width": 21,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "YZkkJ",
+              "x": 273,
+              "y": 96,
+              "name": "Note 2",
+              "fill": "#EDEDED",
+              "width": 27,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "iN1c8",
+              "x": 291,
+              "y": 186,
+              "name": "Note 3",
+              "fill": "#EDEDED",
+              "width": 14,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "yWqMf",
+              "x": 204,
+              "y": 210,
+              "name": "Note 4",
+              "fill": "#EDEDED",
+              "width": 14,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "fCCVc",
+              "x": 327,
+              "y": 58,
+              "name": "Note 5",
+              "fill": "#EDEDED",
+              "width": 35,
+              "height": 10
+            },
+            {
+              "type": "rectangle",
+              "id": "bF9Ge",
+              "x": 0,
+              "y": 240,
+              "name": "Judge Line",
+              "fill": "#EDEDED",
+              "width": 464,
+              "height": 3
+            },
+            {
+              "type": "text",
+              "id": "aXOKQ",
+              "x": 6,
+              "y": 246,
+              "name": "Lane 0",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "1",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ab1tz",
+              "x": 64,
+              "y": 246,
+              "name": "Lane 1",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "2",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "M34Xw",
+              "x": 122,
+              "y": 246,
+              "name": "Lane 2",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "3",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "SYLuR",
+              "x": 180,
+              "y": 246,
+              "name": "Lane 3",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "4",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "Mszgt",
+              "x": 238,
+              "y": 246,
+              "name": "Lane 4",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "5",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "CNDvj",
+              "x": 296,
+              "y": 246,
+              "name": "Lane 5",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "6",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "WHBhD",
+              "x": 354,
+              "y": 246,
+              "name": "Lane 6",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "7",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "muAVb",
+              "x": 412,
+              "y": 246,
+              "name": "Lane 7",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": 40,
+              "content": "8",
+              "textAlign": "center",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Hoiom",
+          "x": 24,
+          "y": 344,
+          "name": "Volume Slider",
+          "width": 512,
+          "height": 160,
+          "fill": "#00000000",
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "L7W70",
+              "x": 0,
+              "y": 0,
+              "name": "Value",
+              "fill": "$text",
+              "content": "100%",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 58,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "uP8Er",
+              "x": 0,
+              "y": 84,
+              "name": "Track",
+              "width": 464,
+              "height": 20,
+              "fill": "$k1",
+              "cornerRadius": 10,
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 10,
+                  "id": "A6ggG",
+                  "name": "Fill",
+                  "fill": "$k6",
+                  "width": 464,
+                  "height": 20
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 12,
+              "id": "zqyXg",
+              "x": 452,
+              "y": 82,
+              "name": "Knob",
+              "fill": "$text",
+              "width": 24,
+              "height": 24
+            },
+            {
+              "type": "text",
+              "id": "LQz1s",
+              "x": 0,
+              "y": 112,
+              "name": "Hint",
+              "fill": "$text-dim",
+              "content": "ドラッグ / ←→ 1% (Shift 10%)",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "f2wej",
+          "x": 24,
+          "y": 544,
+          "name": "Divider",
+          "fill": "#FFFFFF1F",
+          "width": 464,
+          "height": 1
+        },
+        {
+          "type": "text",
+          "id": "E3gx8",
+          "x": 24,
+          "y": 564,
+          "name": "Desc Title",
+          "fill": "$text",
+          "content": "音量",
+          "fontFamily": "$font-ui",
+          "fontSize": 32,
+          "fontWeight": "bold"
+        },
+        {
+          "type": "text",
+          "id": "zZSsU",
+          "x": 24,
+          "y": 614,
+          "name": "Desc",
+          "fill": "$text",
+          "textGrowth": "fixed-width",
+          "width": 464,
+          "content": "スライダーをドラッグするか ←→ で 1% (Shift で 10%) 調整します。変更は即時に音へ反映されます。",
+          "lineHeight": 1.4,
+          "fontFamily": "$font-ui",
+          "fontSize": 24,
           "fontWeight": "normal"
         }
       ]

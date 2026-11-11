@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using FlashBeat.UI.V5;
@@ -67,7 +67,7 @@ namespace FlashBeat.V6CanvasTests
 
         [TestCase(0, 544f)]
         [TestCase(1, 456f)]
-        [TestCase(2, 472f)]
+        [TestCase(2, V6OptionLogic.SoundDescDividerY)]
         [TestCase(3, 380f)]
         public void DescDivider_UsesTheTabDesignY(int tab, float expectedY)
         {
@@ -150,18 +150,26 @@ namespace FlashBeat.V6CanvasTests
         // --- Sound: 音量の値とトラック (design z7joSy) ---
 
         [Test]
-        public void SoundTab_DrawsVolumeValueAndTrack_WithProportionalFill()
+        public void SoundTab_DrawsTheSharedVolumeSlider_WithProportionalFill()
         {
             var view = CreateView();
             view.SelectTabForAudit(2);
 
-            var value = TextUnder(view.Root, "Main/Preview/Volume Value");
-            Assert.AreEqual(40f, value.fontSize, "Value fs40");
-            Assert.AreEqual(new Vector2(24f, 360f), DesignTopLeft((RectTransform)value.transform), "Value (24,360)");
+            // design o0zh7: Option の Sound タブは共通スライダ部品 (fs58 の値 + トラック) を出す。
+            var slider = (RectTransform)view.Root.Find("Main/Preview/Volume Slider");
+            Assert.IsNotNull(slider, "Volume Slider");
+            Assert.AreEqual(new Vector2(V6OptionLogic.VolumeSliderX, V6OptionLogic.VolumeSliderY),
+                DesignTopLeft(slider), "スライダーは (24,344)");
 
-            var track = (RectTransform)view.Root.Find("Main/Preview/Volume Track");
+            var value = TextUnder(view.Root, "Main/Preview/Volume Slider/Value");
+            Assert.AreEqual(58f, value.fontSize, "Value fs58");
+            Assert.AreEqual(new Vector2(0f, 0f), DesignTopLeft((RectTransform)value.transform),
+                "Value はスライダー左上");
+
+            var track = (RectTransform)view.Root.Find("Main/Preview/Volume Slider/Track");
             Assert.IsNotNull(track, "Volume Track");
-            Assert.AreEqual(new Vector2(24f, 420f), DesignTopLeft(track), "Track (24,420)");
+            Assert.AreEqual(new Vector2(0f, V6VolumeSlider.TrackY), DesignTopLeft(track),
+                "Track はスライダー内 y84");
             Assert.AreEqual(new Vector2(464f, 20f), track.sizeDelta, "Track 464×20");
 
             // Fill は実値の比率 — design の 100% = 464 全幅をそのまま比例配分。
@@ -169,8 +177,8 @@ namespace FlashBeat.V6CanvasTests
             int.TryParse(value.text.Replace("%", ""), out percent);
             var fill = (RectTransform)track.Find("Fill");
             Assert.IsNotNull(fill, "Fill");
-            Assert.AreEqual(V6OptionLogic.VolumeFillWidth(percent), fill.sizeDelta.x, 0.01f,
-                "Fill 幅 = 音量比 × 464");
+            Assert.AreEqual(Mathf.Round(V6OptionLogic.VolumeFillWidth(percent)), fill.sizeDelta.x, 0.01f,
+                "Fill 幅 = 音量比 × 464 (スライダーは整数 px に丸める)");
             Assert.LessOrEqual(fill.sizeDelta.x, 464f, "Fill はトラックを超えない");
         }
 

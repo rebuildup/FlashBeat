@@ -1,5 +1,4 @@
 using System.IO;
-using FlashBeat.Gameplay;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -7,8 +6,8 @@ using UnityEngine;
 /// v6 UI の「表示と実挙動の一致」を検証するソース走査テスト (#224 関連)。
 ///
 /// - ポーズ設定ページは正本 uDNC0 の Play タブ 4 行 (NoteSpeed / NoteTiming /
-///   Key Layout / キー設定) を持ち、Key Layout と キー設定 は KeyConfigUI.Open() に
-///   接続する (ポーズ中は PauseGate.IsPaused により GameScene でも開ける)。
+///   Key Layout / キー設定) を持ち、キー設定の 2 行は v6 モーダル
+///   (design vo4kB、Issue #376) を開く。
 /// - ←→ の値変更 (AdjustSelected) は V6GameRuntime に配線されていること。
 ///   未配線の API を残さない、が主旨 (行選択は ↑↓ = MoveSelection)。
 /// </summary>
@@ -27,7 +26,7 @@ public class V6UiWiringTests
         // 行を描いたうえで操作に接続する (下の 2 テスト)。
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
         Assert.IsTrue(src.Contains("\"Key Layout\""), "正本の Key Layout 行が無い");
-        Assert.IsTrue(src.Contains("\"キー設定\""), "正本の キー設定 (F2) 行が無い");
+        Assert.IsTrue(src.Contains("\"キー設定\""), "正本の キー設定 行が無い");
         Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\""),
             "キー設定 は Play タブ 4 行目 (index 3) に置く");
     }
@@ -35,25 +34,17 @@ public class V6UiWiringTests
     [Test]
     public void PauseSettingsPage_KeySettingsOpenFromThePauseMenu()
     {
-        // ポーズ行の「キー設定」は KeyConfigUI.Open() に接続する。
-        // ポーズ中 (PauseGate.IsPaused) は判定・譜面が止まっているので GameScene でも開ける
-        // (演奏中は音符のキーを奪うため開かない)。
+        // ポーズ行の「キー設定」は v6 のモーダル (design vo4kB) を開く (Issue #376)。
+        // 値欄は「開く ›」で、F2 は表示も監視もしない (決定 §4.1)。
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsTrue(src.Contains("KeyConfigUI.Open()"), "キー設定行が KeyConfigUI.Open に接続されていない");
-        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\", () => \"F2\", null, OpenKeyConfig)"),
+        Assert.IsTrue(src.Contains("keyConfigModal.Show()"),
+            "キー設定行が v6 モーダルに接続されていない");
+        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\", () => \"開く ›\", null, OpenKeyConfig)"),
             "キー設定 行の実行 (Enter) が OpenKeyConfig に接続されていない");
-
-        PauseGate.HardReset();
-        try
-        {
-            Assert.IsFalse(KeyConfigUI.IsAllowedNow("GameScene"), "演奏中はキー設定を開かない");
-            PauseGate.Enter();
-            Assert.IsTrue(KeyConfigUI.IsAllowedNow("GameScene"), "ポーズ中はキー設定を開ける");
-        }
-        finally
-        {
-            PauseGate.HardReset();
-        }
+        Assert.IsFalse(src.Contains("KeyConfigUI.Open()"),
+            "v6 ポーズから旧 KeyConfigUI を開かない (Issue #376)");
+        Assert.IsFalse(src.Contains("\"F2\""),
+            "F2 を画面文言として表示しない (Issue #376 受け入れ条件)");
     }
 
     [Test]
