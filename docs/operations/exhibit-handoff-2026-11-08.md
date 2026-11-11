@@ -52,7 +52,8 @@
    (Win + Shift + S ではなく PrintScreen で全画面。ウィンドウ枠 / タスクバー / 黒帯が
    1px でも見えたら不合格)。
 4. **Player.log 採取**:
-   `%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log` をコピーする。
+   `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\Player.log` をコピーする
+   (フォルダ名は ProjectSettings の `companyName`)。
    `[FullscreenDiagnostics]` 行から `screen=` / `fullScreenMode=` / `dpi=` /
    `displays=` を確認する。
 5. **1 曲完走の操作ログ**: 選曲 → Space 開始 → ノーツ操作 → Result → Retry を
