@@ -325,19 +325,7 @@ namespace FlashBeat.UI.V6.Ranking
 
         private static void ClearChildren(GameObject go)
         {
-            if (go == null)
-            {
-                return;
-            }
-            var children = new List<GameObject>();
-            foreach (Transform child in go.transform)
-            {
-                children.Add(child.gameObject);
-            }
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(go);
         }
 
         // --- ヘッダー (共通フレームの Header ゾーン: design (24,0) 1680×96) ---

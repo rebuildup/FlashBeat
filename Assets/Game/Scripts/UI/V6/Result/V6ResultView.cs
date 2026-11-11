@@ -1302,16 +1302,7 @@ namespace FlashBeat.UI.V6.Result
 
         private void RebuildSongRankingRows()
         {
-            var children = new List<GameObject>();
-            foreach (Transform child in songRankRows.transform)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(songRankRows.gameObject);
 
             int rows = Mathf.Min(rankingRows.Count, SongRankVisibleRows);
             for (int i = 0; i < rows; i++)

@@ -223,8 +223,13 @@ public class OptionSceneManager : MonoBehaviour
 
     void Update()
     {
-        if (optionView != null) optionView.Refresh();
-
+        // 毎フレーム Refresh (＝全ゾーンの作り直し) をしてはいけない。
+        // Rebuild はゾーンの中身を全部 Destroy して作り直すが、Destroy は
+        // フレーム末まで実体が残るため、監査やレイアウトが同じフレーム中に
+        // 走ると「古い Footer + 新しい Footer」の 2 世代が同時に見える
+        // (実機監査の pass が 359 / 181 で揺れた原因)。値の変更は
+        // 入力ハンドラ (ActivateRow 等) と KeyBindings.Changed が Rebuild を
+        // 起こすので、ここでの毎フレーム再構築は不要。
         if (SceneManager.GetActiveScene().name == "OptionScene")
         {
             if (speedNum != null) speedNum.text = GManager.noteSpeed.ToString("F1");

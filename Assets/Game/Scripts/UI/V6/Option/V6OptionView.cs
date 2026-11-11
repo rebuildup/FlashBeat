@@ -441,16 +441,7 @@ namespace FlashBeat.UI.V6.Option
 
         private static void ClearChildren(Transform parent)
         {
-            var children = new List<GameObject>();
-            foreach (Transform child in parent)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(parent);
         }
 
         // --- ヘッダー (契約 §4 + design B6If6Z パッチ: (24,0) 1680x96) ---

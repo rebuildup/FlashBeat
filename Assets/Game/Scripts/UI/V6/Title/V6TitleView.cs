@@ -323,21 +323,7 @@ namespace FlashBeat.UI.V6.Title
 
         private static void ClearChildren(Transform zone)
         {
-            if (zone == null)
-            {
-                return;
-            }
-
-            var children = new List<GameObject>();
-            foreach (Transform child in zone)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(zone);
         }
 
         // --- ヘッダー (24,0) 1680x96 (V6Frame の Header ゾーン内) ---

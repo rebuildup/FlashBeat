@@ -362,16 +362,7 @@ namespace FlashBeat.UI.V6.Select.View
             PlaceFrame();
 
             // frame の全子を作り直す (V5 SelectView.Rebuild と同じ方針)。
-            var children = new List<GameObject>();
-            foreach (Transform child in frame.transform)
-            {
-                children.Add(child.gameObject);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                V5GameUi.DestroyNow(children[i]);
-            }
+            Common.V6Hierarchy.ClearChildren(frame.gameObject);
 
             // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
             var songs = DisplaySongs();
