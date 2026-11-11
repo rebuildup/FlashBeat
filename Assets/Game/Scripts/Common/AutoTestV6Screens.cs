@@ -154,6 +154,32 @@ public class AutoTestV6Screens : MonoBehaviour
             yield break;
         }
 
+        if (sceneName == "ResultScene")
+        {
+            yield return CaptureAndAudit("ResultScene", reports);
+
+            // design lqHaN (05b 登録モーダル): 実機ではフッターの Register で開く。
+            // 自動撮影は入力できないため、監査用 API で開いて撮る。
+            var driver = FindFirstObjectByType<FlashBeat.UI.V6.Result.V6ResultViewDriver>();
+            var resultView = driver != null ? driver.View : null;
+            if (resultView != null)
+            {
+                resultView.OpenRegisterModalForAudit();
+                yield return new WaitForSecondsRealtime(1f);
+                yield return CaptureAndAudit("ResultScene-RegisterModal", reports);
+                resultView.CloseRegisterModalForAudit();
+                yield return new WaitForSecondsRealtime(0.5f);
+            }
+            else
+            {
+                var report = new ScreenReport { Label = "ResultScene-RegisterModal" };
+                Check(report, "the v6 result view exists", false);
+                reports.Add(report);
+            }
+
+            yield break;
+        }
+
         if (sceneName == "GameScene")
         {
             float waited = 0f;

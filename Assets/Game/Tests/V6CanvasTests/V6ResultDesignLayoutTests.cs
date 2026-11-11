@@ -213,9 +213,124 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(dialog.Find("Head"), 28f, 28f, 180f, 43f, "Head");
                 Assert.AreEqual(30f, TextOf(dialog, "Head").fontSize, 0.01f, "Head fs30");
                 AssertRect(dialog.Find("Name Prompt"), 404f, 38f, 380f, 29f, "Name Prompt");
+                Assert.AreEqual(20f, TextOf(dialog, "Name Prompt").fontSize, 0.01f, "Prompt fs20");
                 AssertRect(dialog.Find("Name Field"), 28f, 112f, 784f, 84f, "Name Field");
+                AssertRect(dialog.Find("Name Field/Value"), 24f, 20f, 736f, 58f, "Name Field Value");
+                Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
                 AssertRect(dialog.Find("Summary"), 28f, 264f, 784f, 140f, "Summary");
                 AssertRect(dialog.Find("Buttons"), 28f, 432f, 784f, 50f, "Buttons");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        [Test]
+        public void RegisterModal_InputHints_MatchDesign()
+        {
+            // design: Input Hints (28,208) 784×32 / Hint Cap (0,0) 104×32 /
+            // Hint Text (128,4.5) fs16 / Legend · 移動 (509,3) KeyCap 57×26 + Label (65,0) /
+            // Legend · 削除 (634,3) KeyCap 106×26 + Label (114,0)。
+            var view = CreateView();
+            try
+            {
+                Transform hints = view.Root.Find("Modal 05b/Dialog/Input Hints");
+                Assert.IsNotNull(hints, "Input Hints");
+                AssertRect(hints, 28f, 208f, 784f, 32f, "Input Hints");
+                AssertRect(hints.Find("Hint Cap"), 0f, 0f, 104f, 32f, "Hint Cap");
+                AssertRect(hints.Find("Hint Cap/Key"), 12f, 1.5f, 80f, 29f, "Hint Cap Key");
+                AssertRect(hints.Find("Hint Text"), 128f, 4.5f, 200f, 23f, "Hint Text");
+
+                Transform move = hints.Find("Legend 移動");
+                Assert.IsNotNull(move, "Legend 移動");
+                AssertRect(move, 509f, 3f, 101f, 26f, "Legend 移動");
+                AssertRect(move.Find("KeyCap"), 0f, 0f, 57f, 26f, "移動 KeyCap");
+                AssertRect(move.Find("Label"), 65f, 0f, 36f, 26f, "移動 Label");
+
+                Transform erase = hints.Find("Legend 削除");
+                Assert.IsNotNull(erase, "Legend 削除");
+                AssertRect(erase, 634f, 3f, 150f, 26f, "Legend 削除");
+                AssertRect(erase.Find("KeyCap"), 0f, 0f, 106f, 26f, "削除 KeyCap");
+                AssertRect(erase.Find("Label"), 114f, 0f, 36f, 26f, "削除 Label");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        [Test]
+        public void RegisterModal_Summary_MatchDesign()
+        {
+            // design: Thumb (16,20) 88×50 / Title (120,18) h38 fs26 / Artist (120,52) h26 fs18 /
+            // Grade (704,38) 64×40 / Divider (16,94) 752×1 /
+            // Record Label (16,104) h23 fs16 / Record Value (440,102) 180×29 fs20 右寄せ /
+            // Record Note (640,104) 113×23 fs16 /
+            // Score Group (400,26) 288×52: Label (91,14.5) 51×23 fs16 / Value (156,1.5) 132×49 fs34。
+            var view = CreateView();
+            try
+            {
+                Transform summary = view.Root.Find("Modal 05b/Dialog/Summary");
+                Assert.IsNotNull(summary, "Summary");
+                AssertRect(summary.Find("Thumb"), 16f, 20f, 88f, 50f, "Thumb");
+                AssertRect(summary.Find("Title"), 120f, 18f, 568f, 38f, "Title");
+                Assert.AreEqual(26f, TextOf(summary, "Title").fontSize, 0.01f, "Title fs26");
+                AssertRect(summary.Find("Artist"), 120f, 52f, 568f, 26f, "Artist");
+                Assert.AreEqual(18f, TextOf(summary, "Artist").fontSize, 0.01f, "Artist fs18");
+                AssertRect(summary.Find("Grade"), 704f, 38f, 64f, 40f, "Grade");
+                AssertRect(summary.Find("Divider"), 16f, 94f, 752f, 1f, "Divider");
+                AssertRect(summary.Find("Record Label"), 16f, 104f, 300f, 23f, "Record Label");
+                Assert.AreEqual(16f, TextOf(summary, "Record Label").fontSize, 0.01f, "Record Label fs16");
+                AssertRect(summary.Find("Record Value"), 440f, 102f, 180f, 29f, "Record Value");
+                Assert.AreEqual(TextAlignmentOptions.Right, TextOf(summary, "Record Value").alignment,
+                    "Record Value right aligned");
+                AssertRect(summary.Find("Record Note"), 640f, 104f, 113f, 23f, "Record Note");
+
+                Transform score = summary.Find("Score Group");
+                Assert.IsNotNull(score, "Score Group");
+                AssertRect(score, 400f, 26f, 288f, 52f, "Score Group");
+                AssertRect(score.Find("Score Label"), 91f, 14.5f, 51f, 23f, "Score Label");
+                Assert.AreEqual(16f, TextOf(score, "Score Label").fontSize, 0.01f, "Score Label fs16");
+                AssertRect(score.Find("Score Value"), 156f, 1.5f, 132f, 49f, "Score Value");
+                Assert.AreEqual(34f, TextOf(score, "Score Value").fontSize, 0.01f, "Score Value fs34");
+                Assert.AreEqual(TextAlignmentOptions.Right, TextOf(score, "Score Value").alignment,
+                    "Score Value right aligned");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        [Test]
+        public void RegisterModal_Buttons_MatchDesign()
+        {
+            // design: Buttons (28,432) 784×50 / Skip (318,0) 198×50 /
+            // Register (532,0) 252×50。
+            // Skip 内: Icon (24,13) 24 / Label (60,6) 54×38 fs26 / KeyCap (126,10.5) 48×29。
+            // Register 内: Icon (18.5,13) 24 / Label (54.5,6) 101×38 fs26 /
+            // KeyCap (167.5,10.5) 66×29。
+            var view = CreateView();
+            try
+            {
+                var buttons = view.Root.Find("Modal 05b/Dialog/Buttons");
+                Assert.IsNotNull(buttons, "Buttons");
+                var skip = buttons.Find("Button Skip");
+                Assert.IsNotNull(skip, "Button Skip");
+                AssertRect(skip, 318f, 0f, 198f, 50f, "Button Skip");
+                AssertRect(skip.Find("Icon"), 24f, 13f, 24f, 24f, "Skip Icon");
+                AssertRect(skip.Find("Label"), 60f, 6f, 54f, 38f, "Skip Label");
+                Assert.AreEqual(26f, TextOf(skip, "Label").fontSize, 0.01f, "Skip fs26");
+                AssertRect(skip.Find("KeyCap"), 126f, 10.5f, 48f, 29f, "Skip KeyCap");
+
+                var register = buttons.Find("Button Register");
+                Assert.IsNotNull(register, "Button Register");
+                AssertRect(register, 532f, 0f, 252f, 50f, "Button Register");
+                AssertRect(register.Find("Icon"), 18.5f, 13f, 24f, 24f, "Register Icon");
+                AssertRect(register.Find("Label"), 54.5f, 6f, 101f, 38f, "Register Label");
+                Assert.AreEqual(26f, TextOf(register, "Label").fontSize, 0.01f, "Register fs26");
+                AssertRect(register.Find("KeyCap"), 167.5f, 10.5f, 66f, 29f, "Register KeyCap");
             }
             finally
             {
