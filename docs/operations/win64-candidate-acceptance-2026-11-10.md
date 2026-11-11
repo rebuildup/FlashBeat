@@ -98,8 +98,10 @@
 
 受入とは独立した **Secret 依存の作業は 1 つだけ**です (やらなくても受入は進みます):
 GitHub の Settings → Secrets and variables → Actions に `UNITY_EMAIL` と `UNITY_PASSWORD` を
-登録すると、`build-win64` が Unity を起動できるようになります (§6 /
-[`unity-ci-license.md`](unity-ci-license.md))。値はどこにも書かず、Secret としてのみ登録します。
+登録すると、`build-win64` が Unity の認証を **試行** できます (§6 /
+[`unity-ci-license.md`](unity-ci-license.md))。hosted runner でこの認証が通るかは
+まだ実測していないため、失敗したときは `Unity ライセンスを適用` のログ末尾 60 行を保存してください
+(値・メールは貼らない)。値はどこにも書かず、Secret としてのみ登録します。
 
 開発側 (cc) が行うのは、ログとスクリーンショットの取り込み・Issue への反映・
 Release 公開判定だけです。展示 PC の操作とビルドの上書きは行いません。
@@ -347,11 +349,13 @@ PR で走るライセンス不要の検証は `verify` (リポジトリ整合性
 | `UNITY_LICENSE` (`.ulf`) | 代替 | 登録元マシンに固定される。hosted runner では実質不可 |
 | `UNITY_SERIAL` | 代替 (Pro/Plus) | シリアル認証を使う場合 |
 
-登録後の期待結果:
+登録後の期待結果 (**認証が通るかは未実測**):
 
-- `ライセンス設定の確認` ステップが成功し、続く `BuildScript.BuildStandaloneWindows64` /
-  `BuildStandaloneMacOS` が実行されて artifact が残る
-- 失敗が続く場合は run ログの `[Licensing::...]` 行を確認する (値を Issue に貼らない)
+- `ライセンス設定の確認` ステップが成功し、`Unity ライセンスを適用` が実行される
+- 認証が通れば、続く `BuildScript.BuildStandaloneWindows64` / `BuildStandaloneMacOS` が
+  実行されて artifact が残る
+- 認証で止まる場合は run ログの `[Licensing::` 行と、最終行 60 行を記録する
+  (メール・パスワード・シリアルは貼らない)
 
 登録・値の管理は**オーナー**が行う。secret の値はログ・Issue・PR に出さない。
 手順の詳細は `docs/operations/unity-ci-license.md` を参照。

@@ -18,7 +18,7 @@ FlashBeat の展示・リリース・クラウド運用に関する文書の一�
 | [`update-release.md`](update-release.md) | リリース作成者（Packaging / Release 発行） | 配布物の仕様（タグ / アセット命名 / `.sha256` 形式 / `version.json`）、**版数ルール**、候補の判定規則、パッチ版の発行手順、既存バイナリ互換 | 新しい Win64 ビルドを Release として出すとき |
 | [`release-approval-checklist.md`](release-approval-checklist.md) | リリース承認者 | 成果物の fingerprint、プレイ証拠、1280×720 UX スモーク、秘密情報チェック、承認記録の書式 | 「このビルドを展示に使ってよいか」を判断するとき |
 | [`festival-development-path.md`](festival-development-path.md) | 開発者 + リリース担当 | 役割分担（Mac / Windows 実機 / CI）、展示中に反映できるものと再ビルドが要るもの、コンテンツ更新手順、CI → Release → 運営者適用の手順、展示 PC を中断させない運用ルール、現時点の制約 | 展示を止めずに開発とパッチ配布を続けたいとき |
-| [`unity-ci-license.md`](unity-ci-license.md) | オーナー + 開発者 | Unity CI が緑になる条件 (secret の名前と挙動のみ。値は書かない)、ライセンス失敗とソース失敗の切り分け | Unity ビルドを CI で緑にしたいとき |
+| [`unity-ci-license.md`](unity-ci-license.md) | オーナー + 開発者 | Unity CI の秘密情報 (名前と挙動のみ。値は書かない)、ライセンス失敗とソース失敗の切り分け、hosted runner のアカウント認証は未実測であること | Unity ビルドを CI で緑にしたいとき、CI の失敗がライセンスかソースか切り分けたいとき |
 | [`win64-candidate-acceptance-2026-11-10.md`](win64-candidate-acceptance-2026-11-10.md) | **オーナー** | 展示候補 `0.1.23+b6860a80` の受入条件 6 件、証跡のまとめ取り (`collect-win-evidence.ps1`)、受入中の復旧 | Windows 実機で受入を行うとき。**実機の手順はこれ** |
 | [`three-resolution-fullscreen-verification.md`](three-resolution-fullscreen-verification.md) | 開発者 + オーナー | FHD / 2K / Mac の実ディスプレイ全画面をどう測るか、擬似全画面を認めない理由、`fullscreen.txt` の判定式 | 「全画面になっているか」を機械的に確かめるとき |
 | [`register-online-acceptance.md`](register-online-acceptance.md) | オーナー (承認後) + 開発者 | スコア登録の端末内保存と本番 API の区別、ローカル API での契約検証 (実施済み)、本番書き込み 1 回だけの手順 | Register (#134) を本番で確認するとき |
