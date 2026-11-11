@@ -193,6 +193,10 @@ namespace FlashBeat.V6CanvasTests
                 var titleTmp = title.GetComponent<TextMeshProUGUI>();
                 Assert.AreEqual(24f, titleTmp.fontSize, "Title fs24");
                 Assert.AreEqual(TextWrappingModes.NoWrap, titleTmp.textWrappingMode, "Title は 1 行");
+                // fs24 h35 は行送り 34.75 との余裕が 0.25px しかない。margin 補正で確保する。
+                float need = titleTmp.font.faceInfo.lineHeight / titleTmp.font.faceInfo.pointSize * 24f;
+                Assert.GreaterOrEqual(title.sizeDelta.y - titleTmp.margin.y - titleTmp.margin.w, need - 0.01f,
+                    "Title の実効高が行送り以上");
 
                 var score = (RectTransform)Find(row, "Score").transform;
                 Assert.AreEqual(new Vector2(292f, 15f), DesignTopLeft(score), "Score (292,15)");

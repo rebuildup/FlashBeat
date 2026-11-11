@@ -417,6 +417,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             songSub.textWrappingMode = TextWrappingModes.NoWrap;
             songSub.overflowMode = TextOverflowModes.Ellipsis;
             PlaceAt(songSub.gameObject, 0f, 48f, new Vector2(320f, 32f));
+            // fs22 の行送りは 31.86 で h32 との余裕が 0.14px しかないため確保する。
+            V5Ui.FitEllipsisToLineHeight(songSub, 32f);
 
             var divider = V5Ui.Panel(info, "Divider", new Vector2(1f, 44f), new Color(1f, 1f, 1f, 0x26 / 255f), 0f);
             PlaceAt(divider, 432f, 26f);

@@ -511,6 +511,9 @@ namespace FlashBeat.UI.V6.History
                 V6HistoryLogic.HistoryTitleW, V6HistoryLogic.HistoryInnerH);
             title.textWrappingMode = TextWrappingModes.NoWrap;
             title.overflowMode = TextOverflowModes.Ellipsis;
+            // fs24 の行送りは 34.75 で design h35 との余裕が 0.25px しかないため、
+            // フォント差で 0 行にならないよう実効高を margin で確保する。
+            V5Ui.FitEllipsisToLineHeight(title, V6HistoryLogic.HistoryInnerH);
 
             // design (BuztA 等) の Score は区切りなしの生の数値 ("987410")。
             // design: Score (292,15) 120×35 fs24 右揃え
@@ -520,6 +523,7 @@ namespace FlashBeat.UI.V6.History
                 V6HistoryLogic.HistoryScoreW, V6HistoryLogic.HistoryInnerH);
             score.textWrappingMode = TextWrappingModes.NoWrap;
             score.overflowMode = TextOverflowModes.Ellipsis;
+            V5Ui.FitEllipsisToLineHeight(score, V6HistoryLogic.HistoryInnerH);
 
             // design: Grade (424,14) 56×36 r4
             var grade = At(V5Ui.Panel(row, "Grade", new Vector2(56f, 36f), V5Tokens.Key4, 4f),
