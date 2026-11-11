@@ -33,8 +33,10 @@ namespace FlashBeat.V6CanvasTests
             var mMac = V6HudMetrics.ForResolution(2560f, 1664f);
             Assert.AreEqual(685, mMac.ComboY);
             Assert.AreEqual(725, mMac.RightColY);
-            // 共有寸法は 2K と同じ (契約 §8)。歌詞枠 (契約 §10) の縦位置も同じ
-            Assert.AreEqual(m2k.LyricY, mMac.LyricY);
+            // 共有寸法は 2K と同じ (契約 §8)。歌詞スロットは高さ合わせ写像なので
+            // 2K (y=370) と Mac (y=428) で縦位置だけ変わる。
+            Assert.AreEqual(370, m2k.LyricY);
+            Assert.AreEqual(428, mMac.LyricY);
             Assert.AreEqual(m2k.LyricFs, mMac.LyricFs);
             Assert.AreEqual(m2k.GaugeFillMax, mMac.GaugeFillMax);
         }

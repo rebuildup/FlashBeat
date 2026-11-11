@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Game.Playfield;
 
 namespace FlashBeat.UI.V6.Game.Hud
 {
@@ -53,7 +54,80 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// コンボステータス (NO MISS / FULL COMBO) を出すか。
+        /// 歌詞スロット (design i30vM4) の寸法。ゲームフレーム 1728×972 の
+        /// (304,250) 1120×220 を、プレイフィールドと同じ高さ合わせ写像で実画面へ置く
+        /// (契約 §8「歌詞スロットの位置」)。
+        /// </summary>
+        public const float LyricDesignY = 250f;
+        public const float LyricDesignWidth = 1120f;
+        public const float LyricDesignHeight = 220f;
+
+        /// <summary>歌詞スロット上端の y (画面左上原点)。</summary>
+        public static float LyricTopY(float screenHeight)
+        {
+            return LyricDesignY * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
+        }
+
+        /// <summary>歌詞スロットの幅・高さ。</summary>
+        public static Vector2 LyricSize(float screenHeight)
+        {
+            float scale = V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
+            return new Vector2(LyricDesignWidth * scale, LyricDesignHeight * scale);
+        }
+
+        /// <summary>スコア値の 1 行固定の下限フォントサイズ。design は 38 (FHD)。</summary>
+        public const float ScoreAutoSizeMin = 28f;
+
+        /// <summary>
+        /// スコア加算時のポップ倍率。0〜80ms で 1→1.06、80〜200ms で 1.06→1。
+        /// 表示だけを変え、レイアウトは動かさない (契約 §8)。
+        /// </summary>
+        public static float ScorePulseScale(float elapsed)
+        {
+            if (elapsed < 0f)
+            {
+                return 1f;
+            }
+
+            if (elapsed < 0.08f)
+            {
+                return Mathf.Lerp(1f, 1.06f, elapsed / 0.08f);
+            }
+
+            if (elapsed < 0.2f)
+            {
+                return Mathf.Lerp(1.06f, 1f, (elapsed - 0.08f) / 0.12f);
+            }
+
+            return 1f;
+        }
+
+        public const float ScorePulseSeconds = 0.2f;
+
+        /// <summary>再開カウントダウンの数字サイズ (design 1728×972 基準)。</summary>
+        public const float CountdownDesignFontSize = 132f;
+
+        /// <summary>カウントダウン数字の実ピクセルサイズ (高さ合わせ写像)。</summary>
+        public static float CountdownFontSize(float screenHeight)
+        {
+            return CountdownDesignFontSize * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
+        }
+
+        /// <summary>曲終了「終了」の design フォントサイズ (1728×972 基準)。</summary>
+        public const float SongEndTitleDesignFontSize = 64f;
+        public const float SongEndSubDesignFontSize = 22f;
+
+        public static float SongEndTitleFontSize(float scale)
+        {
+            return SongEndTitleDesignFontSize * scale;
+        }
+
+        public static float SongEndSubFontSize(float scale)
+        {
+            return SongEndSubDesignFontSize * scale;
+        }
+
+        /// <summary>コンボステータス (NO MISS / FULL COMBO) を出すか。
         /// 1 判定も無いうちは出さない (v5 GameHudView と同じ挙動)。
         /// </summary>
         public static bool ShowComboStatus(int miss, int totalJudged)

@@ -197,6 +197,10 @@ namespace FlashBeat.UI.V6
         {
             if (pause == null) return;
 
+            // 再開カウントダウン中は V6ResumeCountdown だけが入力 (Esc = 取り消し) を扱う。
+            // ここで Back を読むと同じフレームにポーズが開き直すため、先に抜ける。
+            if (V6ResumeCountdown.IsRunning) return;
+
             // オーバーレイを開閉したフレームのキーは背面へ流さない (SceneInputGate の契約)。
             // KeyConfigUI.Update が先に走って Esc で閉じた場合、IsOpen が同じフレームで
             // false になり、ここが Back を拾ってポーズまで閉じてしまう。Update の実行順は
@@ -236,7 +240,7 @@ namespace FlashBeat.UI.V6
             {
                 if (pause.IsOpen)
                 {
-                    pause.Close();
+                    pause.RequestResume();
                 }
                 else
                 {

@@ -29,13 +29,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private const float JudgeShowSeconds = 0.8f;
         private const float VerdictScanSeconds = 1f;
 
-        // --- 歌詞枠 (design HcP8N) ---
-        private const float LyricBoxW = 1120f;
-        private const float LyricBoxH = 220f;
+        // --- 歌詞枠 (design i30vM4) ---
         private const float LyricFuriganaFs = 22f;
         private const float LyricFs = 44f;
         private const float LyricRomajiFs = 20f;
         private static readonly Color LyricBoxColor = new Color(0f, 0f, 0f, 0x99 / 255f);
+
+        /// <summary>上部シェードのグラデーション (上端の不透明度)。</summary>
+        private const byte TopShadeAlpha = 0xA6;
+
+        /// <summary>上部シェード用の縦グラデーションスプライト (全 HUD で共有)。</summary>
+        private static Sprite topShadeSprite;
 
         /// <summary>Judge がレーンに置く判定エフェクトのクローン名 (Judge.MessageObj 順)。</summary>
         private static readonly string[] JudgeCloneNames = { "Perfect(Clone)", "Great(Clone)", "Bad(Clone)", "Miss(Clone)" };
@@ -67,6 +71,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         // --- 毎フレームの状態 ---
         private int lastJudged = -1;
+        private int lastScore = -1;
+        private float scorePulseStart = -1f;
         private float verdictScanUntil;
         private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
         private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
@@ -81,6 +87,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         private TextMeshProUGUI lyricRomajiText;
         /// <summary>開始待ちの案内 (design HcP8N の Start Prompt)。歌詞行とは排他。</summary>
         private GameObject lyricPrompt;
+
+        /// <summary>再開カウントダウン (design o0zh7 の Countdown xuQnv)。歌詞と排他。</summary>
+        private GameObject countdownOverlay;
+        private TextMeshProUGUI countdownText;
+
+        /// <summary>曲終了の黒フェード (全画面) と「終了」表示 (design xXKic)。</summary>
+        private Image endFade;
+        private GameObject endOverlay;
 
         /// <summary>
         /// Canvas 配下に自分自身を作る。親は Canvas の RectTransform
@@ -117,6 +131,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             int score = GManager.score;
             gradeText.text = GameHudLogic.RankText(score);
             scoreText.text = GameHudLogic.FormatScore(score);
+            if (lastScore >= 0 && score != lastScore)
+            {
+                scorePulseStart = Time.unscaledTime;
+            }
+
+            lastScore = score;
 
             // スコアゲージ (塗りは + セグメントの手前まで, Best は保存スコア)
             gaugeFill.sizeDelta = new Vector2(
@@ -182,6 +202,29 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             Refresh();
+            UpdateScorePulse();
+        }
+
+        /// <summary>加算直後だけスコア値を拡大する。レイアウト (anchoredPosition) は変えない。</summary>
+        private void UpdateScorePulse()
+        {
+            if (scoreText == null)
+            {
+                return;
+            }
+
+            float scale = 1f;
+            if (scorePulseStart >= 0f)
+            {
+                float elapsed = Time.unscaledTime - scorePulseStart;
+                scale = V6HudLogic.ScorePulseScale(elapsed);
+                if (elapsed >= V6HudLogic.ScorePulseSeconds)
+                {
+                    scorePulseStart = -1f;
+                }
+            }
+
+            scoreText.rectTransform.localScale = new Vector3(scale, scale, 1f);
         }
 
         /// <summary>
@@ -319,6 +362,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             BuildTopShade();
             BuildProgressBar();
             BuildLyric();
+            BuildCountdown();
             BuildGrade();
             BuildScoreGauge();
             BuildScoreTexts();
@@ -327,6 +371,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             BuildRightColumn();
             BuildVerdictRow();
             BuildKeyGuide();
+            BuildEndOverlay();
         }
 
         private void BuildDim()
@@ -347,8 +392,39 @@ namespace FlashBeat.UI.V6.Game.Hud
             var shade = V5Ui.Node(gameObject, "Top Shade");
             V5Ui.PinTop(GetRect(shade), m.TopShadeH, 0f);
             var img = shade.AddComponent<Image>();
-            img.color = new Color(0f, 0f, 0f, 0xA6 / 255f);
+            // 上端 #000000A6 → 下端 #00000000。一様な黒帯にすると下端の境界が見えるため、
+            // 縦グラデーションにして動画の暗部へ溶かす (契約 §8)。
+            img.sprite = TopShadeSprite();
+            img.type = Image.Type.Simple;
+            img.color = Color.white;
             img.raycastTarget = false;
+        }
+
+        /// <summary>
+        /// 1×2 px の縦グラデーション。下が透明、上が TopShadeAlpha。
+        /// バイリニア補間で高さ方向に滑らかに伸ばすため、解像度ごとに作り直さない。
+        /// </summary>
+        private static Sprite TopShadeSprite()
+        {
+            if (topShadeSprite != null)
+            {
+                return topShadeSprite;
+            }
+
+            var tex = new Texture2D(1, 2, TextureFormat.RGBA32, false);
+            tex.name = "TopShadeGradient";
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            tex.SetPixel(0, 0, new Color(0f, 0f, 0f, 0f));
+            tex.SetPixel(0, 1, new Color(0f, 0f, 0f, TopShadeAlpha / 255f));
+            tex.Apply(false, false);
+
+            topShadeSprite = Sprite.Create(tex, new Rect(0f, 0f, 1f, 2f),
+                new Vector2(0.5f, 0.5f), 1f);
+            topShadeSprite.name = "TopShadeGradient";
+            topShadeSprite.hideFlags = HideFlags.HideAndDontSave;
+            return topShadeSprite;
         }
 
         private void BuildProgressBar()
@@ -375,13 +451,12 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private void BuildLyric()
         {
-            // design HcP8N (契約 §10): 1120×220 / #00000099 / r8 /
-            // 縦 layout gap 6 / padding [16, 24] / 中寄せ。
-            // Furigana fs22 / Lyrics fs44 / Romaji fs20。
-            // 位置は画面上端寄り (design は中央だが、v6 プレイフィールドが画面中央を
-            // 使うため動画の視認性を優先して上に寄せる)。キーガイド行 (y963..) とは重ならない。
-            var box = V5Ui.Panel(gameObject, "Lyric Box",
-                new Vector2(LyricBoxW, LyricBoxH) * Scale, LyricBoxColor, 8f);
+            // design i30vM4 (契約 §8): ゲームフレーム 1728×972 の (304,250) 1120×220 を
+            // プレイフィールドと同じ高さ合わせ写像で置く。FHD y=278 / 2K y=370 / Mac y=428。
+            // 内部の Furigana fs22 / Lyrics fs44 / Romaji fs20、gap 6、padding 24/16 は
+            // design のまま (契約 §8)。
+            Vector2 lyricSize = V6HudLogic.LyricSize(CanvasSize().y);
+            var box = V5Ui.Panel(gameObject, "Lyric Box", lyricSize, LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
             lyricBox = box;
             var boxRt = GetRect(box);
@@ -421,6 +496,162 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// ラベル「to start」(fs22 $text-muted) を gap 10 で横に並べる。
         /// 以前は「Space to Start」を fs 約 79 の 1 文で出していた (デザインに無い表示)。
         /// </summary>
+        /// <summary>
+        /// 再開カウントダウンの数字 (design o0zh7 の Countdown xuQnv)。歌詞スロットと同じ位置・
+        /// 同じ幅に置き、カウントダウン中だけ歌詞と Start Prompt を隠す (契約 §9)。
+        /// </summary>
+        private void BuildCountdown()
+        {
+            countdownOverlay = V5Ui.Node(gameObject, "Resume Countdown");
+            var rt = GetRect(countdownOverlay);
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y);
+            rt.anchoredPosition = new Vector2(0f, -m.LyricY);
+
+            countdownText = V5Ui.Text(countdownOverlay, "Value", "3",
+                V6HudLogic.CountdownFontSize(CanvasSize().y), V5Tokens.Text,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            var textRt = countdownText.rectTransform;
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = Vector2.zero;
+            textRt.offsetMax = Vector2.zero;
+            countdownOverlay.SetActive(false);
+        }
+
+        /// <summary>カウントダウンの数字を表示する (3 / 2 / 1)。</summary>
+        public void ShowResumeCountdown(int number)
+        {
+            if (countdownOverlay == null)
+            {
+                return;
+            }
+
+            countdownText.text = number.ToString();
+            countdownOverlay.SetActive(true);
+            SetLyricLinesVisible(false);
+            SetLyricPromptVisible(false);
+            SetLyricBoxVisible(false);
+        }
+
+        /// <summary>開始待ち (startTiming) の間、歌詞スロットに START を出す。</summary>
+        public void ShowStartHold()
+        {
+            if (countdownOverlay == null)
+            {
+                return;
+            }
+
+            countdownText.text = "START";
+            countdownOverlay.SetActive(true);
+            SetLyricLinesVisible(false);
+            SetLyricPromptVisible(false);
+            SetLyricBoxVisible(false);
+        }
+
+        /// <summary>カウントダウンを消し、次のフレームから歌詞表示へ戻す。</summary>
+        public void HideResumeCountdown()
+        {
+            if (countdownOverlay != null)
+            {
+                countdownOverlay.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 曲終了のフェードと「終了」表示 (Issue #383 / design xXKic)。
+        /// フェードは HUD より手前に置いて全画面を黒へ寄せ、その上に「終了」を出す。
+        /// 判定は PauseGate ではなく MusicManager が終端で止める。
+        /// </summary>
+        private void BuildEndOverlay()
+        {
+            var fadeGo = V5Ui.Node(gameObject, "Song End Fade");
+            var fadeRt = GetRect(fadeGo);
+            fadeRt.anchorMin = Vector2.zero;
+            fadeRt.anchorMax = Vector2.one;
+            fadeRt.offsetMin = Vector2.zero;
+            fadeRt.offsetMax = Vector2.zero;
+            endFade = fadeGo.AddComponent<Image>();
+            endFade.color = new Color(0f, 0f, 0f, 0f);
+            endFade.raycastTarget = false;
+            fadeGo.SetActive(false);
+
+            endOverlay = V5Ui.Node(gameObject, "Song End Overlay");
+            var rt = GetRect(endOverlay);
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y);
+            rt.anchoredPosition = new Vector2(0f, -m.LyricY);
+
+            float scale = V6LaneGeometry.ScreenScale(CanvasSize());
+            var box = V5Ui.Panel(endOverlay, "Panel", V6HudLogic.LyricSize(CanvasSize().y),
+                LyricBoxColor, 8f);
+            box.GetComponent<Image>().raycastTarget = false;
+
+            var title = V5Ui.Text(box, "Title", "終了", V6HudLogic.SongEndTitleFontSize(scale),
+                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
+            var titleRt = title.rectTransform;
+            titleRt.anchorMin = new Vector2(0f, 0f);
+            titleRt.anchorMax = new Vector2(1f, 1f);
+            titleRt.offsetMin = new Vector2(0f, 34f * scale);
+            titleRt.offsetMax = new Vector2(0f, -8f * scale);
+
+            var sub = V5Ui.Text(box, "Sub", "リザルトへ", V6HudLogic.SongEndSubFontSize(scale),
+                V5Tokens.TextDim, TextAlignmentOptions.Center);
+            var subRt = sub.rectTransform;
+            subRt.anchorMin = new Vector2(0f, 0f);
+            subRt.anchorMax = new Vector2(1f, 0f);
+            subRt.pivot = new Vector2(0.5f, 0f);
+            subRt.anchoredPosition = new Vector2(0f, 16f * scale);
+            subRt.sizeDelta = new Vector2(0f, 28f * scale);
+
+            endOverlay.SetActive(false);
+        }
+
+        /// <summary>曲終了の黒フェード量 (0..1)。0 のときは非表示。</summary>
+        public void SetEndFadeAlpha(float alpha)
+        {
+            if (endFade == null)
+            {
+                return;
+            }
+
+            float a = Mathf.Clamp01(alpha);
+            bool visible = a > 0.001f;
+            if (endFade.gameObject.activeSelf != visible)
+            {
+                endFade.gameObject.SetActive(visible);
+            }
+
+            endFade.color = new Color(0f, 0f, 0f, a);
+        }
+
+        /// <summary>「終了」表示を出す。歌詞と Start Prompt は隠す。</summary>
+        public void ShowSongEnd()
+        {
+            if (endOverlay == null)
+            {
+                return;
+            }
+
+            endOverlay.SetActive(true);
+            SetLyricLinesVisible(false);
+            SetLyricPromptVisible(false);
+            SetLyricBoxVisible(false);
+        }
+
+        /// <summary>終了表示を消す (再利用時)。</summary>
+        public void HideSongEnd()
+        {
+            if (endOverlay != null)
+            {
+                endOverlay.SetActive(false);
+            }
+        }
+
         private void BuildLyricPrompt(GameObject box)
         {
             lyricPrompt = V5Ui.Node(box, "Start Prompt");
@@ -554,7 +785,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             scoreText = V5Ui.Text(gameObject, "Score Value", "0", m.ScoreFs, V5Tokens.Text,
                 TextAlignmentOptions.TopLeft, FontStyles.Bold);
+            // 1 行固定。8 桁になっても折り返さず、幅を超えた分だけ自動縮小する
+            // (下限 28px、契約 §8)。rect 幅はゲージ幅に合わせる。
+            scoreText.textWrappingMode = TextWrappingModes.NoWrap;
+            scoreText.enableAutoSizing = true;
+            scoreText.fontSizeMin = V6HudLogic.ScoreAutoSizeMin;
+            scoreText.fontSizeMax = m.ScoreFs;
             PlaceTopLeft(scoreText.rectTransform, m.GaugeX, -m.ScoreValueY);
+            scoreText.rectTransform.sizeDelta = new Vector2(m.GaugeW, m.ScoreFs * 1.4f);
         }
 
         private void BuildMenuButton()
@@ -900,6 +1138,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// 中身が無いときは枠ごと隠す (空の黒い矩形を出さない)。</summary>
         private void UpdateLyrics()
         {
+            // カウントダウン中・曲終了表示中は歌詞と Start Prompt を再表示しない。
+            if (countdownOverlay != null && countdownOverlay.activeSelf)
+            {
+                return;
+            }
+            if (endOverlay != null && endOverlay.activeSelf)
+            {
+                return;
+            }
+
             // Space 待ちの間は歌詞位置に design の Start Prompt (KeyCap「Space」+
             // 「to start」) を出す。別シーン (v5 ReadyView) はいらない — Issue #233。
             if (!GManager.played)

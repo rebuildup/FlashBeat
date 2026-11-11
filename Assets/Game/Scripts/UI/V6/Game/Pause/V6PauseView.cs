@@ -156,6 +156,13 @@ namespace FlashBeat.UI.V6.Game.Pause
                 return;
             }
 
+            // 再開カウントダウン中は開かない。取り消しは V6ResumeCountdown が
+            // 自分で Esc を受けてから Open を呼ぶ (IsRunning を先に false にする)。
+            if (V6ResumeCountdown.IsRunning)
+            {
+                return;
+            }
+
             open = true;
             // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める。
             PauseGate.Enter();
@@ -167,10 +174,33 @@ namespace FlashBeat.UI.V6.Game.Pause
             UpdatePlacement();
         }
 
-        /// <summary>閉じる (再開)。</summary>
-        public void Close()
+        /// <summary>
+        /// 再開 (Issue #382)。ポーズ画面を閉じ、歌詞スロットの 3 → 2 → 1 を経てから
+        /// 演奏を再開する。PauseGate はカウントダウン終了まで閉じない。
+        /// </summary>
+        public void RequestResume()
         {
             if (!open)
+            {
+                return;
+            }
+
+            open = false;
+            CancelResetKeyLayout();
+            rootGo.SetActive(false);
+            V6ResumeCountdown.Begin(this);
+        }
+
+        /// <summary>閉じる (再開)。リトライ / 終了 / リタイアなど、演奏を続けない経路で使う。</summary>
+        public void Close()
+        {
+            bool wasCounting = V6ResumeCountdown.IsRunning;
+            if (wasCounting)
+            {
+                V6ResumeCountdown.Abort();
+            }
+
+            if (!open && !wasCounting)
             {
                 return;
             }
@@ -946,7 +976,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             BuildActionButton(footer, "再開", "play",
                 KeyCap(KeyActions.KeyAction.Back), true,
                 V6PauseViewLogic.ResumeButtonX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
-                V6PauseViewLogic.ResumeButtonW, Close);
+                V6PauseViewLogic.ResumeButtonW, RequestResume);
         }
 
         /// <summary>
