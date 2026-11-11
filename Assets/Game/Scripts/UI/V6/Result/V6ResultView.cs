@@ -671,7 +671,10 @@ namespace FlashBeat.UI.V6.Result
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
             var field = At(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
-            modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", "", 40f, V5Tokens.TextDim,
+            // design lqHaN の Name Field は空のとき "YOU" を $text-dim で出す
+            // (v5 ResultView の Placeholder と同じ既定名)。入力すると $text になる。
+            modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value",
+                V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
             At(modalNameValue, 24f, 20f, 736f, 58f);
 
@@ -1125,12 +1128,22 @@ namespace FlashBeat.UI.V6.Result
                 : RankingClient.NicknameMaxLength;
         }
 
+        /// <summary>
+        /// Name Field の表示。未入力は design どおり Placeholder ("YOU") を $text-dim で、
+        /// 入力があれば入力値を $text で出す (design lqHaN の Value は $text-dim)。
+        /// </summary>
         private void RefreshModalName()
         {
-            if (modalNameValue != null)
+            if (modalNameValue == null)
             {
-                modalNameValue.text = nameBuffer.ToString();
+                return;
             }
+
+            bool placeholder = nameBuffer.Length == 0;
+            modalNameValue.text = placeholder
+                ? V6ResultLogic.LocalNameDefault
+                : nameBuffer.ToString();
+            modalNameValue.color = placeholder ? V5Tokens.TextDim : V5Tokens.Text;
         }
 
         private void SetModalStatus(string message, Color color)
