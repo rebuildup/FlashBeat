@@ -353,3 +353,125 @@ resolution=2560x1664`。画像の該当領域 (画面 (496,742) 448×140) には
 なお r9 の OptionScene は `pass=181` と r7 の `pass=359` から減っているが、
 スクリーンショットは PSNR ∞ (画素完全一致) で、containment の pass 件数は
 撮影時の可視グラフィック列挙に依存するため比較対象にしない (fail=0 が判定)。
+
+### 9.8 05b Result · 登録モーダル (design lqHaN / YwPw9) の再現
+
+Result 画面の登録モーダルは v5 の `ResultRankingOverlay` を置き換える新 UI で、
+design の正本は 05b (`lqHaN`)、ダイアログ本体は `YwPw9` (444,231) 840×510。
+`AutoTestV6Screens` の ResultScene 分岐に、監査用 API でモーダルを開いて撮る
+`ResultScene-RegisterModal` を追加した (入力は注入しない)。
+
+**design の内部座標 (ダイアログ内) と修正後の実装**
+
+| 要素 | design 矩形 | 中身 |
+|---|---|---|
+| Head | (28,28) 180×43 | "スコアを登録" fs30 w700 |
+| Name Prompt | (404,38) 380×29 | "プレイヤー名を入力↓" fs20 右寄せ |
+| Name Field | (28,112) 784×84 `$k0` r8 | Value (24,20) 736×58 fs40、未入力は Placeholder "YOU" `$text-dim` |
+| Input Hints | (28,208) 784×32 | Cap (0,0) 104×32 `$k4` / Hint (128,4.5) fs16 / Legend 移動 (509,3) / Legend 削除 (634,3) |
+| Summary | (28,264) 784×140 `$k2` r8 | Thumb (16,20) 88×50 / Title (120,18) / Artist (120,52) / Grade (704,38) 64×40 / Divider (16,94) 752×1 / Record (16,104) / Score Group (400,26) 288×52 |
+| Buttons | (28,432) 784×50 | Skip (318,0) 198×50 `$k4` / Register (532,0) 252×50 primary |
+
+**修正前 (r10, build `3ec4af9e`) に実機で出ていた崩れ**
+
+- "スコアを登録" が 2 行に折り返す。design の hug 幅 180 に対し、ゲームの
+  NotoSansJP は同じ fs30 で 187 px 描くため TMP の既定 wrap (Normal) が折り返す。
+- "SCORE" → "SCOR"/"E"、"Skip" → "Ski"/"p"、"Register" → "Registe"/"r"、
+  "Backspace" → "Backspac"/"e" (いずれも hug 幅がフォント実寸より数 px 狭い)。
+- Score Group / Input Hints / Buttons を `V5GameUi.Row`
+  (HorizontalLayoutGroup, childControlWidth=false) で組んでいたため、
+  幅未指定の TMP 子が 0 幅になり縦に積まれていた。
+- Name Field が空欄 (design は "YOU")。
+
+containment 監査 (`pass=119`) はこの折返しを検出できない。design 画像と
+画素で突き合わせて初めて分かる種類の崩れだった。
+
+**修正**
+
+- `3ec4af9e`: モーダル全体を design の明示座標 (Row を使わない `At`) へ。
+- `23d52037`: モーダル内の全テキストを `OneLine` (NoWrap) にし、hug 幅は
+  design の矩形のまま 1 行で描く。Score Value の左詰めは design の
+  インク実測で確定 (下記)。Select 設定行も同コミットで修正 (§9.9)。
+- `5fc33046`: Score Value を design どおり左詰めに (生ノードは alignment
+  未指定 = 既定左、インクも左端 +1.5 px から始まる)。
+- `410eaac7`: Name Field の Placeholder "YOU" (`$text-dim`)、入力時は `$text`。
+
+**design 画像 (Pencil `Export` lqHaN.png 2x) と r11 実機の画素比較 (ダイアログ内座標)**
+
+画面は design 座標 1:1 (frame origin (416,346) = (2560−1728)/2, (1664−972)/2、
+ダイアログ左上は画面 (860,577))。
+
+| 要素 | design インク | r11 インク | 判定 |
+|---|---|---|---|
+| Head | 30.5..207, 37.5..65 | 30..217, 37..64 | 左端一致。幅 +10.5 は `$font-ui` と NotoSansJP の字幅差 |
+| Name Prompt | 587.5..778, 44.5..62 | 587..777, 45..62 | 右寄せ一致 (±1) |
+| Score Label | 520..568, 311.5..323 | 520..569, 311..322 | 一致 |
+| Score Value | 585.5..713, 305..337 | 585..601, 305..330 | 左端 +0.5 = 左詰め一致 (右端は実データ "0" の分だけ短い) |
+| Record Label | 45..168 | 45..160 | 左端一致。design は "前回最高 921,880"、実機は "前回最高 74,626" |
+| Record Value | 576.5..646.5 ("+66,633") | 空 | design は更新時の差分。r11 はスコア 0 で未更新のため空 (実データ) |
+| Button Skip の塗り | 346..543.5, 432..481.5 | 347..542, 433..480 | 一致 (±1) |
+| Button Register の塗り | 560..811.5, 432..481.5 | 561..810, 433..480 | 一致 (±1) |
+
+design と文言が異なる箇所は実データ・方式依存で、覆い隠さずそのまま出す:
+
+- 入力上限: design の見本は "最大8文字"。実機はオンライン登録 (RankingClient,
+  16 文字) で開くため "最大16文字"。ローカル曲では head "この端末の名前" /
+  "Save" / "最大8文字 (A-Z 0-9)" になる (v5 と同じ語彙、テストで固定済み)。
+- Grade は未ランクの "–"、SCORE は 0 (監査実行時は未プレイ)。
+- Score Value の文字列は design 見本 "988,513" に対し実データ。
+
+**Placeholder の検証 (r12, build `410eaac7`)**
+
+design の Name Field の "YOU" のインクはダイアログ内 (52,148)..(131,178)
+(fs40 `$text-dim`)。r12 実機は (52,149)..(135,177) で、左端・上端が 1 px 以内で
+一致し、色も `$text-dim` (#8C8C8C、110..200 の範囲にのみインクがあり白インクは
+無い) だった。幅 +4 px は NotoSansJP と `$font-ui` の字幅差。画像で
+"YOU" が design と同じ位置に淡色で出ていることを確認した。
+
+r11 は `RESULT pass=23 fail=0 symbols=61 screenshots=11` で
+`ResultScene-RegisterModal pass=119 fail=0`、r12 (`410eaac7`、Placeholder 修正後) も
+同じ `RESULT pass=23 fail=0 symbols=61 screenshots=11 resolution=2560x1664`、
+`ResultScene-RegisterModal pass=119 fail=0`
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r11` / `...-r12`)。
+
+### 9.9 02c Select · 設定 (design wSjAm) 右カラムの再現
+
+「このプレイの設定」は Ranking カラムの位置を差し替えるパネル。design の
+行は Pencil の flex 配置で座標が生ノードに無いため、`wSjAm.png` の書き出しと
+実機画像の画素で位置を確定した。design は列 (1120,96)、行は列内
+(24, 64+68k) 512×56 (背景 `$k2` #2D2D2D、r8)。
+
+| 行内要素 | design (行内) | 旧実装 | 修正後 |
+|---|---|---|---|
+| Icon | (12,16) 24×24 | 中央寄せで左端 x0 | `PlaceTopLeft(12,16,24,24)` |
+| Label | x48、行の縦中央 fs24 | pivot 補正漏れで 28 px 上 | `At(48, 0, 240, 56, pivot(0,0.5))` + `At` の補正修正 |
+| Value | 右端 448 に右寄せ、幅 = TMP 実測 (design hug 101/53/27) | 固定幅 96 の中央寄せ | `MeasureWidth` + `At(448−w)` + Right + NoWrap |
+| chevron-left | 448−値幅−52、y8、40×40 | x300 固定 | 同上 |
+| chevron-right | (460,8) 40×40 | x300 固定 | `At(460,8)` |
+
+`At(Component, x, y, w, h, pivot)` の `anchoredPosition` 補正
+(`x + pivot.x*w`, `−(y + (1−pivot.y)*h)`) が Select 側だけ欠けており、
+pivot (0,0.5) の Label / Value が design より 28 px 上に描かれていた。
+Result 側と同じ契約に揃えた。
+
+**r11 実機の画素 (画面座標。列左 1560 / 行左 1584 = design 1120+24+416, 96+64+346)**
+
+| 対象 | design (行内) | r11 実測 (行内) |
+|---|---|---|
+| 行の背景 | 0..512 | 1586..2093 (≈2..509、角 r8 の AA を除く) |
+| chevron-left (Key Guide) | 294..334 | 296..330 (走査窓の左端でクリップ) |
+| chevron-left (Lyrics) | 343..383 | 342..379 |
+| chevron-left (NoteSpeed) | 369..409 | 369..406 |
+| chevron-right (3 行共通) | 460..499.5 | 461..498 |
+| Value の右端 | 447 / 445.5 / 446 | 446 / 445 / 445 |
+
+値の左端は design の `$font-ui` と NotoSansJP の字幅差で数 px ずれるが、
+右端 (design の hug 右端 448) は 1.5 px 以内で一致する。値を "Compact" /
+"Auto" / "10" と design と同じ実データで表示していることも画像で確認した。
+
+撮影は `AutoTestV6Screens` の Select 分岐に `OpenQuickSettings` /
+`CloseQuickSettings` を足して行った。r11 で
+`SelectScene-Settings pass=192 fail=0`
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r11/v6screen-SelectScene-Settings-4.png`)。
+`V6SelectSettingsLayoutTests` 2 件で Head・3 行の矩形、Icon/Label/Value/
+chevron の座標とアライン、開閉を固定した。
