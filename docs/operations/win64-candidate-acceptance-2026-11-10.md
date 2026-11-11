@@ -220,6 +220,11 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 4. Player.log をコピー:
    `%USERPROFILE%\AppData\LocalLow\rebuildup\FlashBeat\Player.log`
    `[FullscreenDiagnostics]` 行の `screen=` / `fullScreenMode=` / `dpi=` / `displays=` を確認
+   - 目視で読み取る代わりに、この 1 コマンドで実測判定までまとめて残せます (§0.2):
+     `collect-win-evidence.ps1 -GameDir <展開先> -ExpectResolution FHD -NoScreenshot`
+     (2K の日は `-ExpectResolution 2K`)。`fullscreen.txt` が `result=PASS` なら、
+     実フルスクリーン + 被覆 99% 以上 + 期待解像度一致が機械で確認できています。
+   - すでに起動済みなら、`-PlayerLogPath` でその `Player.log` を直接指定できます (起動不要)。
 5. **1 曲完走**的操作ログを残す (下記 §3.4)
 
 ### 3.4 1 曲完走で見るもの (Issue #233 / #242 / #4 / #13 の受入)
@@ -269,6 +274,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 | ファイル | 内容 |
 |---|---|
 | `win-fhd-fullscreen.png` / `win-2k-fullscreen.png` | 実全画面スクリーンショット |
+| `win-fhd-fullscreen.txt` / `win-2k-fullscreen.txt` | `collect-win-evidence.ps1` の実測判定 (`result=PASS` / `check*`) |
 | `win-fhd-Player.log` / `win-2k-Player.log` | Player.log のコピー |
 | `win-fhd-operation.md` / `win-2k-operation.md` | 操作ログ (1 曲完走含む / 何を押した / 何が起きた) |
 | `win-fullplay-*.png` | Select / Game / Result の場面 |
