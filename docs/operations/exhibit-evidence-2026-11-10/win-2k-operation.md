@@ -70,10 +70,11 @@ ZIP は別の候補に差し替えていない。ハッシュは展開前と展�
 | 21:19〜21:22 | ↓ を数回 | 選曲カーソル移動。**ツイッターランド** (No.15, BPM 142, NOTES 130, LEVEL 15, 0:44) を選択 |
 | 21:27:22 | Space (準備画面) | **反応なし** (再生開始せず) → §7-1 |
 | 21:29:21 | Space | 再生開始 (`PLAYBACK_START`) |
-| 21:35〜21:37 | A S D F / J K L ; を繰り返し入力 (実キー) | Perfect/Great/Bad/Miss が発生。映像・ノーツ・判定ライン・キーガイドが見える (`win-fullplay-game.png`) |
+| 21:29〜21:30 | A S D F / J K L ; を繰り返し入力 (実キー、1 周目の再生中) | Perfect/Great/Bad/Miss が発生。映像・ノーツ・判定ライン・キーガイドが見える (`win-fullplay-game.png`) |
 | 21:30:5x | 曲終了 → Result | **Perfect 1 / Great 0 / Bad 0 / Miss 129 = 130 = NOTES 130**、SCORE 7,692 (初プレイなので 前回最高 +7,692) |
 | 21:30:54 | Result で **R (Retry)** | 同じ曲の準備画面 (`win-fullplay-retry.png`) |
 | 21:35:26 | Space | 再生開始 (2 周目) |
+| 21:35〜21:36 | A S D F / J K L ; を繰り返し入力 (実キー、2 周目の再生中) | Perfect 3 / Great 2 / Bad 3 / Miss 122 の判定が発生 |
 | 21:36:10 ごろ | 曲終了 → Result | **Perfect 3 / Great 2 / Bad 3 / Miss 122 = 130**、SCORE 36,923 (前回最高 +29,231 = 36,923 − 7,692) |
 | 21:39:43 | Result で R (Retry) | 準備画面。直後の Space (21:39:46) は**無反応** (再準備中のため = §7-1) |
 | 21:41:51 | Space | 再生開始 (3 周目) |
@@ -116,6 +117,15 @@ ZIP は別の候補に差し替えていない。ハッシュは展開前と展�
 | 22:20:09 | (自動) 曲終了 | `[MusicManager] song completed: judged 268/268, mediaEnded=False, state=Completed` → `[Perf] scene load start ResultScene` |
 | 22:20:10 | 画面撮影 | **Perfect 1 / Great 0 / Bad 0 / Miss 267 = 268 = NOTES 268**、SCORE 3,731、曲長 1:29 (`win-2k-result-lostumbrella.png`) |
 | 22:21:09 | Space (OK) → Esc → Esc | 選曲 → Title → 終了（正常終了） |
+
+> **再生時間の差について (22:17:25 → 22:20:09 = 壁時計 約 164 秒 / 曲長 1:29)**:
+> 証拠として保全した `win-2k-Player.log` (起動 3) の `STATUS mediaTime=` は
+> 0.00 → 88.07 秒で、曲長 1:29 (89 秒) と一致する。壁時計との差 約 76 秒は、
+> ssh コンソールがフォーカスを奪っている間 (Unity は既定で `runInBackground=false`
+> のためプレイヤーループが止まる) にメディア時計が進まなかったためと推定する。
+> ログに pause / stall / 例外は無いが、フォーカス喪失の区間はログに残っていないため、
+> この内訳は**未確定**とする。起動 1 / 2 の Player.log は保全していないため、
+> §4.1 の入力時刻は操作ログ (エージェントログ) の記録に基づく。
 
 ## 5. 受入 10 項目の判定
 
@@ -243,7 +253,7 @@ Enter / クリックで即 `ClearMediaCache()` を呼ぶ。同じタブの「Cle
 ## 9. 後片付け (共有ユーザーデータの復元)
 
 FlashBeat のユーザーデータは**既存の展示インストールと共有** (`HKCU\Software\KimuraYusuke\FlashBeat` と
-`C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat`)。検証前に取得したバックアップから復元した。
+`C:\Users\<user>\AppData\LocalLow\KimuraYusuke\FlashBeat`)。検証前に取得したバックアップから復元した。
 
 | 対象 | 検証前 | 検証後 (復元) |
 |---|---|---|
