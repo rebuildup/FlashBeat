@@ -389,6 +389,45 @@ namespace FlashBeat.Tests.Editor
             }
         }
 
+        // --- Data タブ: Media cache は確認してから消去する (Issue #352) ---
+
+        [Test]
+        public void TheMediaCacheDialog_AsksForConfirmationBeforeClearing()
+        {
+            var parent = new GameObject("V6 Option MediaCache Test Parent", typeof(RectTransform));
+            V6OptionView view = null;
+            try
+            {
+                view = V6OptionView.Create(parent.GetComponent<RectTransform>(), () => { });
+                ClickButton(view.Root.gameObject, "Tab Data");
+
+                string before = V6OptionView.MediaCacheSizeLabel();
+
+                // 行のクリックは消去ではなく確認ダイアログを開く。旧実装は
+                // Activate で即時消去していたため、この assert が退行を捕まえる。
+                ClickButton(view.Root.gameObject, "Set Media cache");
+                Assert.IsNotNull(FindButton(view.Root.gameObject, "Op Clear"),
+                    "Media cache の行クリックで確認ダイアログが開く (即時消去しない)");
+                Assert.AreEqual(before, V6OptionView.MediaCacheSizeLabel(),
+                    "確認ダイアログを開いただけでは消去されない");
+
+                // キャンセル → 何も変わらない。
+                ClickButton(view.Root.gameObject, "Op Cancel");
+                Assert.AreEqual(before, V6OptionView.MediaCacheSizeLabel(),
+                    "キャンセルでは消去されない");
+                Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"),
+                    "キャンセルでダイアログが閉じる");
+            }
+            finally
+            {
+                if (view != null)
+                {
+                    view.Dispose();
+                }
+                Object.DestroyImmediate(parent);
+            }
+        }
+
         // --- Play タブ: Key Layout のリセットは確認モーダルを経由する (issue-162 C-6) ---
 
         [Test]

@@ -69,7 +69,7 @@ namespace FlashBeat.UI.V6.Option
         private bool confirmClearOpen;
 
         /// <summary>確認モーダルの種類 (issue-162 C-6: Key Layout のリセットも確認する)。</summary>
-        private enum ConfirmKind { ClearSaveData, ResetKeyLayout }
+        private enum ConfirmKind { ClearSaveData, ResetKeyLayout, MediaCache }
 
         private ConfirmKind confirmKind = ConfirmKind.ClearSaveData;
 
@@ -240,14 +240,7 @@ namespace FlashBeat.UI.V6.Option
                 case V6OptionAction.Confirm:
                     if (confirmClearOpen)
                     {
-                        if (confirmKind == ConfirmKind.ClearSaveData)
-                        {
-                            ConfirmClearSaveData();
-                        }
-                        else
-                        {
-                            ConfirmResetKeyLayout();
-                        }
+                        ConfirmCurrent();
                         return;
                     }
                     ActivateRow();
@@ -879,6 +872,17 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
+            if (confirmKind == ConfirmKind.MediaCache)
+            {
+                // Issue #352: 消去対象とサイズを明示する。破壊的操作は
+                // 「Clear save data」と同じく確認してから実行する。
+                title = "Media cache";
+                desc = "ダウンロードした楽曲映像のキャッシュ (" + MediaCacheSizeLabel() + ") を消去します。\n"
+                    + "次回プレイ時に再ダウンロードが必要になります。";
+                confirmLabel = "消去する";
+                return;
+            }
+
             title = "Clear save data";
             desc = "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。\n実行後は元に戻せません。";
             confirmLabel = "消去する";
@@ -930,9 +934,7 @@ namespace FlashBeat.UI.V6.Option
             var clearNav = clearButton.navigation;
             clearNav.mode = Navigation.Mode.None;
             clearButton.navigation = clearNav;
-            clearButton.onClick.AddListener(confirmKind == ConfirmKind.ResetKeyLayout
-                ? (UnityEngine.Events.UnityAction)ConfirmResetKeyLayout
-                : (UnityEngine.Events.UnityAction)ConfirmClearSaveData);
+            clearButton.onClick.AddListener(ConfirmCurrent);
             V6Controls.Text(clear, "Label", confirmLabelText, Vector2.zero, new Vector2(252f, 50f),
                 26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
         }
@@ -1073,7 +1075,7 @@ namespace FlashBeat.UI.V6.Option
                 new Row("Media cache",
                     () => MediaCacheSizeLabel(),
                     null,
-                    ClearMediaCache,
+                    OpenMediaCacheConfirm,
                     "Media cache",
                     "ダウンロードした楽曲映像のキャッシュ。消すと次回プレイ時に再ダウンロードします。",
                     danger: true,
@@ -1224,6 +1226,16 @@ namespace FlashBeat.UI.V6.Option
             confirmClearOpen = true;
         }
 
+        /// <summary>
+        /// Media cache の消去確認を開く (Issue #352)。行のクリック / Enter では
+        /// 消去せず、モーダルの「消去する」で初めて実行する。
+        /// </summary>
+        private void OpenMediaCacheConfirm()
+        {
+            confirmKind = ConfirmKind.MediaCache;
+            confirmClearOpen = true;
+        }
+
         /// <summary>Key Layout のリセット確認を開く (まだ何も戻さない)。</summary>
         private void OpenResetKeyLayoutConfirm()
         {
@@ -1246,6 +1258,31 @@ namespace FlashBeat.UI.V6.Option
             clearResult = "消去しました";
             confirmClearOpen = false;
             Rebuild();
+        }
+
+        /// <summary>Media cache を消去してモーダルを閉じる (#352)。表示値は実測サイズ。</summary>
+        private void ConfirmClearMediaCache()
+        {
+            ClearMediaCache();
+            confirmClearOpen = false;
+            Rebuild();
+        }
+
+        /// <summary>モーダルの「消去する / 戻す」を種類ごとの処理へ振り分ける。</summary>
+        private void ConfirmCurrent()
+        {
+            switch (confirmKind)
+            {
+                case ConfirmKind.ResetKeyLayout:
+                    ConfirmResetKeyLayout();
+                    return;
+                case ConfirmKind.MediaCache:
+                    ConfirmClearMediaCache();
+                    return;
+                default:
+                    ConfirmClearSaveData();
+                    return;
+            }
         }
 
         /// <summary>レーン割当を標準へ戻し、モーダルを閉じる (マウス・キーボードで共通)。</summary>
