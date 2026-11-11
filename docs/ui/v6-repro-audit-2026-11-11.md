@@ -343,3 +343,13 @@ Result のジャケットは「拡張子付きパスを `Resources.Load` へ渡�
 `V6SelectEmptyStateTests` 4 件で座標・アライン・スプライト名 (`search-x`) を固定。
 `AutoTestV6Screens` に検索ヒット 0 件の撮影 (`SelectScene-Empty`) を追加し、実機で
 この画面自体を証跡に残せるようにした。
+
+r9 (`b70dd31a`、空状態の撮影ハーネス込み) で実機撮影し、`SelectScene-Empty` が
+`pass=112 fail=0`、全体は `RESULT pass=19 fail=0 symbols=43 screenshots=9
+resolution=2560x1664`。画像の該当領域 (画面 (496,742) 448×140) には design どおり
+虫めがね+x のインク・曲名の白文字・淡色のヒントが乗り、上の行スロットは空
+(背景のみ) であることを画素で確認した。
+
+なお r9 の OptionScene は `pass=181` と r7 の `pass=359` から減っているが、
+スクリーンショットは PSNR ∞ (画素完全一致) で、containment の pass 件数は
+撮影時の可視グラフィック列挙に依存するため比較対象にしない (fail=0 が判定)。

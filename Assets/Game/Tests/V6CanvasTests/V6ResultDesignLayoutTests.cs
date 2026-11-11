@@ -191,5 +191,36 @@ namespace FlashBeat.V6CanvasTests
                 Object.DestroyImmediate(parent);
             }
         }
+
+        // --- 登録モーダル (05b lqHaN) ---
+
+        [Test]
+        public void RegisterModal_MatchesDesignInternals()
+        {
+            // design: Dialog (444,231) 840×510、Head (28,28) 180×43 fs30、
+            // Name Prompt (404,38) 380×29、Name Field (28,112) 784×84、
+            // Summary (28,264) 784×140、Buttons (28,432) 784×50。
+            // 旧実装は Head/Prompt を pivot(0,0.5) で置き、design の上端より 20px 上に描いていた。
+            var view = CreateView();
+            try
+            {
+                var modal = view.Root.Find("Modal 05b");
+                Assert.IsNotNull(modal, "modal root");
+                var dialog = modal.Find("Dialog");
+                AssertRect(dialog, V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY,
+                    V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH, "Dialog");
+
+                AssertRect(dialog.Find("Head"), 28f, 28f, 180f, 43f, "Head");
+                Assert.AreEqual(30f, TextOf(dialog, "Head").fontSize, 0.01f, "Head fs30");
+                AssertRect(dialog.Find("Name Prompt"), 404f, 38f, 380f, 29f, "Name Prompt");
+                AssertRect(dialog.Find("Name Field"), 28f, 112f, 784f, 84f, "Name Field");
+                AssertRect(dialog.Find("Summary"), 28f, 264f, 784f, 140f, "Summary");
+                AssertRect(dialog.Find("Buttons"), 28f, 432f, 784f, 50f, "Buttons");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
     }
 }

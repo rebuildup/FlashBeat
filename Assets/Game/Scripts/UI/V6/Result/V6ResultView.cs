@@ -641,13 +641,16 @@ namespace FlashBeat.UI.V6.Result
                     new Vector2(V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH), V5Tokens.Key1, 16f),
                 V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY);
 
+            // design YwPw9: Head (28,28) 180×43 fs30 / Name Prompt (404,38) 380×29 fs20。
+            // pivot(0,0.5) で y を中心として渡すと design の上端より 20px 上へずれるので、
+            // 左上原点 (既定 pivot) で置く。
             modalHead = V5GameUi.Text(dialog.gameObject, "Head", "スコアを登録", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            At(modalHead, 28f, 28f, 400f, 40f, new Vector2(0f, 0.5f));
+            At(modalHead, 28f, 28f, 180f, 43f);
 
             var prompt = V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力↓", 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Right);
-            At(prompt, 404f, 38f, 380f, 28f, new Vector2(0f, 0.5f));
+            At(prompt, 404f, 38f, 380f, 29f);
 
             var field = At(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
@@ -717,10 +720,10 @@ namespace FlashBeat.UI.V6.Result
             modalRegisterButton = register.GetComponent<Button>();
 
             // 状態メッセージ (loading / success / duplicate / offline / server error)。
-            // Head と Name Field の間 (y72) に置く (field は y112 から)。
+            // design に無い実装都合の行なので Head/Prompt と重ならない位置 (右側 y74) に置く。
             modalStatus = V5GameUi.Text(dialog.gameObject, "Status", "", 17f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left);
-            At(modalStatus, 28f, 72f, 784f, 26f, new Vector2(0f, 0.5f));
+            At(modalStatus, 220f, 74f, 592f, 26f);
 
             modal.SetActive(false);
         }
