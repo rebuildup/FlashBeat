@@ -529,3 +529,28 @@ r13 の画素 (`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r13/`):
 透明コンテナ / 56 px 超の塗りが無いこと / KeyCap・Label の座標と fs /
 クリックで `onExit` が呼ばれることを固定した。r13 は
 `RESULT pass=23 fail=0 symbols=61 screenshots=11 resolution=2560x1664`。
+
+### 9.11 Result · 判定行 (design `EpX3e`) の 11px ずれ
+
+r13 の Result 画像で、判定行 (Perfect/Great/Bad/Miss/Combo) だけが design より
+約 11.5px 下に描かれているのを見つけた (他の要素 — SCORE 列・ゲージ・曲情報 —
+は 1〜2px 以内で一致)。design `EpX3e` は (0,448) 840×140、セル 160×140 を
+168 間隔で、各セルの中身は Label (0,0) 66×29 fs20 / Value (0,43) 83×70 fs48 を
+**左上揃え**で置く。実装は `VerticalLayoutGroup` に任せ、TMP 既定の
+`TextAlignmentOptions.Left` (縦中央) と子の既定サイズが混ざっていた。
+
+Label/Value を design 矩形 + `TopLeft` で明示配置 (`12ffaa1e`)。r14 の画素:
+
+| 対象 | design | r13 (修正前) | r14 (修正後) |
+|---|---|---|---|
+| Perfect ラベルのインク | y552..566.5 | y564..576 | y553..566 |
+| 判定値のインク | y607..643.5 | y618..653 | y606..642 |
+| ラベル列 x (5 列) | 166/333/502/670/837 | 同左 | 166/334/502/670/838 |
+
+`V6ResultDesignLayoutTests.JudgementsRow_MatchesDesignCoordinates` で 5 セルの
+矩形・fs・アラインを固定した。r14 は
+`RESULT pass=23 fail=0 symbols=57 screenshots=11 resolution=2560x1664`。
+
+なお r13 の OptionScene は同じ `V6 Option View` が監査上 2 重に存在し
+(`pass=359 symbols=8`)、r14 は 1 つ (`pass=181 symbols=4`) だった。スクリーン
+ショットに差は無く、判定行の修正とは無関係の重複生成なので、別途追う。
