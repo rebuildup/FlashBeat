@@ -725,13 +725,16 @@ namespace FlashBeat.UI.V6.Result
             At(modalRecordNote, 640f, 104f, 113f, 23f);
             // Score Group (400,26) 288×52:
             // Score Label (91,14.5) 51×23 fs16 / Score Value (156,1.5) 132×49 fs34。
+            // 正本の text ノードは alignment 未指定 = 既定 (左)。design 画像の実測でも
+            // 値のインクは 157..285 (箱 156..288) で左詰め。右寄せにすると 0 のとき
+            // SCORE から離れて Grade の手前へ寄るため、design どおり左にする。
             // 横並びの相対配置ではなく design の実座標に置く (旧 Row 実装では
             // 子の矩形幅が 0 のまま詰められ、SCORE と数値が design と違う位置に出た)。
             var scoreGroup = At(V5Ui.Node(summary, "Score Group"), 400f, 26f, 288f, 52f);
             OneLine(V5GameUi.Text(scoreGroup, "Score Label", "SCORE", 16f, V5Tokens.TextDim));
             At(scoreGroup.transform.Find("Score Label"), 91f, 14.5f, 51f, 23f);
             modalScoreValue = OneLine(V5GameUi.Text(scoreGroup, "Score Value", "0", 34f, V5Tokens.Text,
-                TextAlignmentOptions.Right, FontStyles.Bold));
+                TextAlignmentOptions.Left, FontStyles.Bold));
             At(modalScoreValue, 156f, 1.5f, 132f, 49f);
 
             // Buttons (28,432) 784×50:

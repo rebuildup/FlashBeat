@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -294,8 +294,10 @@ namespace FlashBeat.V6CanvasTests
                 Assert.AreEqual(16f, TextOf(score, "Score Label").fontSize, 0.01f, "Score Label fs16");
                 AssertRect(score.Find("Score Value"), 156f, 1.5f, 132f, 49f, "Score Value");
                 Assert.AreEqual(34f, TextOf(score, "Score Value").fontSize, 0.01f, "Score Value fs34");
-                Assert.AreEqual(TextAlignmentOptions.Right, TextOf(score, "Score Value").alignment,
-                    "Score Value right aligned");
+                Assert.AreEqual(TextAlignmentOptions.Left, TextOf(score, "Score Value").alignment,
+                    "Score Value left aligned (design の text は alignment 未指定 = 既定)");
+                Assert.AreEqual(TextWrappingModes.NoWrap, TextOf(score, "Score Value").textWrappingMode,
+                    "Score Value must not wrap");
             }
             finally
             {
