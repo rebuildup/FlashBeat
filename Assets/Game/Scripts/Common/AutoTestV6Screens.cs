@@ -307,6 +307,7 @@ public class AutoTestV6Screens : MonoBehaviour
     private void AuditFrameContainment(ScreenReport report)
     {
         var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        bool sawGraphics = false;
         for (int i = 0; i < canvases.Length; i++)
         {
             var canvas = canvases[i];
@@ -315,8 +316,16 @@ public class AutoTestV6Screens : MonoBehaviour
             // 非表示 (ルートが inactive) の v6 Canvas は「その画面に居ない」ので判定しない。
             // 従来は inactive な Pause の Canvas を毎レポート走査し、フレーム節が無いと
             // FAIL にしていた (HUD レポートに Pause の FAIL が混ざっていた)。
+            // 同じ理由で「active だが子がすべて inactive」の Canvas (閉じている Pause など)
+            // も判定しない。ただし **1 枚も描画物が無い画面** は UI 生成の失敗を PASS で
+            // 隠してしまうため、ループの後で FAIL にする (監査の pass 数を実際より良く出さない)。
             var graphics = canvas.GetComponentsInChildren<Graphic>(false);
-            if (graphics.Length == 0) { continue; }
+            if (graphics.Length == 0)
+            {
+                continue;
+            }
+
+            sawGraphics = true;
 
             Rect outer;
             if (V6ScreenAudit.IsFullScreenCanvas(canvas))
@@ -388,6 +397,10 @@ public class AutoTestV6Screens : MonoBehaviour
                     + " overshoot=" + V6ScreenAudit.Overshoot(outer, rect).ToString("F1") + "px");
             }
         }
+
+        // この画面に v6 の描画物が 1 枚も無ければ、UI 生成の失敗を「指摘 0 件」で
+        // 通してしまう。描画物が 1 枚以上あることを画面ごとに固定する。
+        Check(report, "the v6 screen draws at least one graphic: " + report.Label, sawGraphics);
     }
 
     /// <summary>
