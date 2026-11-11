@@ -12,6 +12,10 @@ namespace NoteEditor.Model
         ReactiveProperty<int> LPB_ = new ReactiveProperty<int>(4);
         ReactiveProperty<int> BPM_ = new ReactiveProperty<int>(120);
         ReactiveProperty<int> offsetSamples_ = new ReactiveProperty<int>(0);
+        // Issue #383: 編集 UI は無いが、読み書きで失わないよう保持する。
+        ReactiveProperty<float> fadeOut_ = new ReactiveProperty<float>(0f);
+        ReactiveProperty<float> startTiming_ = new ReactiveProperty<float>(0f);
+        ReactiveProperty<float> beatOffset_ = new ReactiveProperty<float>(0f);
         ReactiveProperty<string> videoId_ = new ReactiveProperty<string>("");
         ReactiveProperty<bool> isDirty_ = new ReactiveProperty<bool>(false);
         Dictionary<NotePosition, NoteObject> notes_ = new Dictionary<NotePosition, NoteObject>();
@@ -24,6 +28,9 @@ namespace NoteEditor.Model
         public static ReactiveProperty<int> LPB { get { return Instance.LPB_; } }
         public static ReactiveProperty<int> BPM { get { var instance = Instance; instance.EnsureDirtyTracking(); return instance.BPM_; } }
         public static ReactiveProperty<int> OffsetSamples { get { var instance = Instance; instance.EnsureDirtyTracking(); return instance.offsetSamples_; } }
+        public static ReactiveProperty<float> FadeOut { get { return Instance.fadeOut_; } }
+        public static ReactiveProperty<float> StartTiming { get { return Instance.startTiming_; } }
+        public static ReactiveProperty<float> BeatOffset { get { return Instance.beatOffset_; } }
         public static ReactiveProperty<string> VideoId { get { return Instance.videoId_; } }
         public static ReactiveProperty<bool> IsDirty { get { return Instance.isDirty_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }

@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using YoutubePlayer.Components;
 using FlashBeat.Gameplay;
+using FlashBeat.UI.V6.Game.Hud;
 
 /// <summary>
 /// Owns the media pipeline of the GameScene: it asks yt-dlp (with deno as the
@@ -96,6 +97,12 @@ public class MusicManager : MonoBehaviour
     /// <summary>最後のノーツが確定する譜面上の時刻 (SettleDeadline のキャッシュ)。</summary>
     float settleDeadlineCache;
     bool settleDeadlineKnown;
+
+    // Issue #383: 開始待ち (startTiming) と終端フェード。
+    bool startTimingPending;
+    bool endOverlayShown;
+    bool endFadeApplied;
+    V6GameHudView hudCache;
 
     bool fallbackChecked;
     bool videoPrepared;
@@ -942,7 +949,8 @@ public class MusicManager : MonoBehaviour
             // chart (notes) finished loading - otherwise the judge would miss
             // the first notes. ポーズメニューが開いている間は開始しない。
             bool notesReady = notesManager == null || notesManager.IsReady;
-            bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout) && notesReady;
+            bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout)
+                && notesReady && !startTimingPending;
             // Issue #351: the prompt is visible before the media is ready, so the
             // press must not be thrown away. PlaybackStartGate holds it until
             // canStart and then starts the song exactly once.
@@ -954,6 +962,7 @@ public class MusicManager : MonoBehaviour
         }
 
         mediaTime = CurrentMediaTime();
+        UpdateEndFade(mediaTime);
 
         // Issue #233: 映像プレーンは有効化しても、映像のフレームが 1 枚も
         // 描画されていない間は板 (白) を隠す。フレームが出たら板を見せる。
@@ -1111,14 +1120,122 @@ public class MusicManager : MonoBehaviour
                         "(judge accounting drift or skipped notes) - the result total may not match the note count");
                 }
                 Debug.Log($"[MusicManager] song completed: judged {settledNotes}/{totalNotes}, mediaEnded={mediaEnded}, state={songEnd.State}");
-                audioS.volume -= 0.001f;
-                Initiate.Fade("ResultScene", Color.black, 1.0f);
+                // Issue #383: 「終了」とフェードを 0.8 秒見せてから Result へ。
+                StartCoroutine(FinishToResultAfterDelay());
             }
         }
     }
 
+    IEnumerator StartAfterTiming(float seconds)
+    {
+        var hud = ActiveHud();
+        if (hud != null)
+        {
+            hud.ShowStartHold();
+        }
+
+        yield return new WaitForSecondsRealtime(seconds);
+
+        if (hud != null)
+        {
+            hud.HideResumeCountdown();
+        }
+
+        startTimingPending = false;
+        StartPlayback();
+    }
+
+    V6GameHudView ActiveHud()
+    {
+        if (hudCache == null)
+        {
+            hudCache = FindObjectOfType<V6GameHudView>();
+        }
+
+        return hudCache;
+    }
+
+    /// <summary>
+    /// 終端フェード (Issue #383)。曲長が分かる場合、残り fadeOut 秒から
+    /// 音量と映像を落とし、同時に「終了」を出す。メディアが先に終わった場合も
+    /// そこで「終了」を出し、以降のフェードは完了扱いにする。
+    /// </summary>
+    void UpdateEndFade(float time)
+    {
+        if (!playbackStarted)
+        {
+            return;
+        }
+
+        ChartTiming timing = NotesManager.Timing;
+        float progress = timing.FadeProgress(time);
+        if (mediaEnded && !endOverlayShown)
+        {
+            progress = Mathf.Max(progress, 0.999f);
+        }
+
+        if (!endOverlayShown && progress > 0f)
+        {
+            endOverlayShown = true;
+            var hud = ActiveHud();
+            if (hud != null)
+            {
+                hud.ShowSongEnd();
+            }
+        }
+
+        if (progress <= 0f)
+        {
+            return;
+        }
+
+        endFadeApplied = true;
+        float factor = 1f - Mathf.Clamp01(progress);
+        if (audioS != null)
+        {
+            audioS.volume = GManager.mainVolume * factor;
+        }
+        if (streamAudioSource != null)
+        {
+            streamAudioSource.volume = GManager.mainVolume * factor;
+        }
+        if (songVideo != null && songVideo.audioTrackCount > 0)
+        {
+            songVideo.SetDirectAudioVolume(0, factor);
+        }
+
+        var view = ActiveHud();
+        if (view != null)
+        {
+            view.SetEndFadeAlpha(endFadeApplied ? progress : 0f);
+        }
+    }
+
+    IEnumerator FinishToResultAfterDelay()
+    {
+        var hud = ActiveHud();
+        if (hud != null)
+        {
+            hud.ShowSongEnd();
+            hud.SetEndFadeAlpha(1f);
+        }
+
+        yield return new WaitForSecondsRealtime(0.8f);
+        Initiate.Fade("ResultScene", Color.black, 1.0f);
+    }
+
     void StartPlayback()
     {
+        // Issue #383: startTiming は開始入力から音声・譜面を始めるまでの待ち。
+        // 待っている間は GManager.Start を立てないため、判定とノーツ進行は止まっている。
+        float startTiming = NotesManager.Timing.StartTiming;
+        if (startTiming > 0f && !startTimingPending)
+        {
+            startTimingPending = true;
+            StartCoroutine(StartAfterTiming(startTiming));
+            return;
+        }
+
         playbackStarted = true;
         // The player started the song anyway: the pending return is cancelled
         // (its coroutine yields break on playbackStarted) and the HUD goes

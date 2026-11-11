@@ -11,6 +11,11 @@ namespace NoteEditor.DTO
             public int maxBlock;
             public int BPM;
             public int offset;
+
+            // Issue #383: 実行時の曲終了・開始待ち・拍補正。0 は未指定 (既定値) を意味する。
+            public float fadeOut;
+            public float startTiming;
+            public float beatOffset;
             public string videoId;
             public List<Note> notes;
             public LyricsDTO lyrics;
