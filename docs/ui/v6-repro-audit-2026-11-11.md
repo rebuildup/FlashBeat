@@ -153,3 +153,24 @@ Unity Editor の実行 (テスト/撮影) は直列化する。
 未完了: 実機撮影 (FHD/2K/Mac の 7 画面 + 空状態 + モーダル)、Result 5 列の実機確認、
 Option レーン図、Pause、Issue の起票/コメント。
 
+### 9.1 第 2 ラウンド (2026-11-11、`6dcde9a5` → `d7c73a32`)
+
+r1 実機画像 (mac 2560×1664) と design 描画を突き合わせて見つかった**共通原因**を先に直し、
+各画面へ伝播させた。数値は Pencil `execute` の resolved bounds (`ctx.bounds` / `x,y,w,h`) で取得。
+
+| 正本 | 直した内容 | コード | 検証 |
+|---|---|---|---|
+| `OENRv` / `q9JZcH` / `S1TZD` / `zcSHh` / `B6If6Z` フッター凡例 | **共通契約の誤り**: 凡例 KeyCap を h36 / pad10 / gap 混在で各画面が個別に組んでいた。design は h32 / cap pad(0,8) / key-label gap 8 / item gap 24 / fs22 / y30 で共通 (Title だけ h36 / pad10 / inner10 / gap16)。`V6Legend` に一本化し、幅は TMP 実測 (`GetPreferredValues`) で決める (0.62em 概算は Latin で過大: "Register" 実測 110.5px vs 概算 149px) | `Common/V6Legend.cs` (新規), `Option/History/Ranking/Result/Select/Title` 各 View, `V6OptionLogic`, `V6SelectViewLogic`, `V6ResultLogic`, `V6TitleLogic` | EditMode 1446 件 (r1 の Select 旧 assert 1 件のみ更新) |
+| `uDNC0` (Pause ヘッダー) | **戻るボタンが無かった** (design Zone · 戻る 24,20 56×56)。共通 `V6Controls.FillBackButton` (arrow-left + Key Esc fs16) を配置し、Esc と同じ `KeyAction.Back` に配線 | `Game/Pause/V6PauseView.cs`, `V6PauseViewLogic.cs` | `V6PauseLoadingFrameOriginTests` に design 座標の pin を追加 |
+| `uDNC0/k1VRDM` (Pause フッター) | 3 ボタン (選曲へ 280 / リトライ 220 / 再開 266) を design のグループ構成 (選曲・リトライ 906,896 520×56 = 280+gap16+220 / 再開 1438,896 266×56) へ。凡例は共通 `V6Legend` へ | 同上 | 同上 (ボタン非重なりも assert) |
+| `OENRv/m0fT4` (曲リスト) | **r1 で上半分が空・5 行だけ下端に寄る**症状。原因は `CenterScroll` の負値 (-4) をそのまま描画し、空スロットが下側へずれること。表示用 `ListScroll` (0 以上へクランプ) に一本化し、design 定数 (パネル 24,96 560×780 / 行 x16 y48+76i 504×72 / 矢印 140×44 / ドット x536) を単一ソース化 | `Select/View/V6SelectView.cs`, `V6SelectViewLogic.cs` | `V6SelectLayoutTests` / `V6SelectCenterScrollTests` (28 index で空スロットなし) |
+| `B6If6Z` Option Desc | `overflowMode=Ellipsis` + 矩形高 40 < 行高 46 で **1 行も描画されない**状態だった。h46 にし Ellipsis を廃止、説明文は折り返し (design 464 幅 / 2 行 / lineSpacing 40) | `Option/V6OptionView.cs`, `Common/V6Controls.cs` (wrapping 引数) | EditMode 全件 |
+| `B6If6Z` Option レーン図 | レーンラベルの起点 26 / ラベル枠 40×26 @y246 へ design 合わせ | `Option/V6OptionView.cs` | EditMode 全件 |
+| `QJtTv/Logo · 列1-6` (1680×332) | ロゴ画像 `13.png` (5007×990) が旧 import で 2048×512 に縮小され、描画が 1328×332 の左寄せになっていた (design は 1680×332 いっぱい)。maxTextureSize 4096 / NoNpotScale に修正 | `Assets/Game/Resources/V5/Common/13.png.meta` | **実機で再確認が必要** (r2) |
+| Key Layout (Option/Pause) | 表示・編集・確定・保存・再起動復元は実装済み。**キャンセル (元に戻す) だけ入口が無かった** → Option の F1 と、Pause でも `KeyConfigUI` 前面時の F1 を `V6OptionView.CancelKeyConfigEdit` (保存値へ戻して閉じる) に配線 | `Option/V6OptionView.cs`, `V6GameRuntime.cs` | 新規 `KeyLayoutEditSessionTests` (4 件) |
+
+このラウンドの証跡: `docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r1/` (修正前) と、
+修正後の `mac-2560x1664-r2/` (新候補 SHA で再取得)。
+FHD 1920×1080 / 2K 2560×1440 は **この Mac では未検証** (内蔵 2560×1664 のみ実全画面)。
+
+
