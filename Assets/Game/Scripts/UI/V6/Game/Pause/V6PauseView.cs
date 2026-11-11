@@ -373,11 +373,22 @@ namespace FlashBeat.UI.V6.Game.Pause
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // design (uDNC0/SUD2i): 左上はタイトル "PAUSE" のみ。戻るゾーン (b7VqL) は
-            // design で空プレースホルダ (子ノード無し) なので Esc ボタンは描かない
-            // (Esc = 再開はフッターの凡例と「再開」ボタンが示す)。
-            // 正本 uDNC0/ci867 は Title ゾーン (72,20) 185×56 に "PAUSE" (fs38 w700)。
-            // "FlashBeat" は v5 の流用で、設計の文字列ではない。
+            // design uDNC0 Zone · 戻る (ヘッダー内 (0,20) 56×56 → ページ (24,20)):
+            // #3A3A3A r8 に arrow-left 24 @(16,4) + Key "Esc" fs16 @(15,30) を重ねる
+            // (共通部品 V6Controls.FillBackButton、正本 zCQBY)。押したときの動作は
+            // Esc と同じ KeyAction.Back (V6GameRuntime.UpdatePause) = ポーズを閉じる再開。
+            var back = V5Ui.Panel(header, "Back button",
+                new Vector2(V6PauseViewLogic.BackButtonSize, V6PauseViewLogic.BackButtonSize),
+                V5Tokens.Key4, 8f);
+            PlaceAt(back, V6PauseViewLogic.BackButtonX - HeaderX, V6PauseViewLogic.BackButtonY - HeaderY,
+                new Vector2(V6PauseViewLogic.BackButtonSize, V6PauseViewLogic.BackButtonSize));
+            var backButton = back.AddComponent<Button>();
+            backButton.targetGraphic = back.GetComponent<Image>();
+            backButton.onClick.AddListener(Close);
+            V6Controls.FillBackButton(back, ActionKeyHint.Primary(KeyActions.KeyAction.Back));
+
+            // design uDNC0/ci867: Title ゾーン (ヘッダー内 (72,20) 185×56 → ページ (96,20))
+            // に "PAUSE" (fs38 w700)。
             var title = V5Ui.Text(header, "Title", "PAUSE", 38f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             title.textWrappingMode = TextWrappingModes.NoWrap;
@@ -808,6 +819,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             descRt.pivot = new Vector2(0f, 1f);
             descRt.anchoredPosition = new Vector2(24f, -614f);
             descRt.sizeDelta = new Vector2(464f, 68f);
+            // design Desc (fs24 / lineHeight 1.4) は 464 幅で 2 行折り返し。
+            desc.textWrappingMode = TextWrappingModes.Normal;
             desc.lineSpacing = 40f;
         }
 
@@ -874,95 +887,66 @@ namespace FlashBeat.UI.V6.Game.Pause
             var footer = V5Ui.Node(frame.gameObject, "Footer");
             PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
-            // 左下: キー凡例 4 個 (正本 uDNC0: ↑↓ 選択 / ←→ 変更 / Tab タブ切替 / Esc 再開)。
+            // 左下: キー凡例 4 個 (正本 uDNC0 Zone · キー操作: ↑↓ 選択 / ←→ 変更 /
+            // Tab タブ切替 / Esc 再開)。起点は design (フッター内 (0,30)) =
+            // ページ (24,906) (V6PauseViewLogic.LegendX/Y)。項目は共通部品
+            // V6Legend.Item に座標を渡すだけ (Common は編集しない)。
             // 実際のキーは V6GameRuntime.UpdatePause と一致させる:
             // ↑↓ = 行選択 (MoveSelection) / ←→ = 値の変更 (AdjustSelected) /
             // Tab = タブ切替 (KeyActions.MenuSwitch) / Esc = 再開 (KeyAction.Back)。
             // 矢印は KeyActions に ↑↓ の割当が無いため固定キー (Title の H/R と同じ扱い)。
-            var legend = V5Ui.Node(footer, "Legends");
-            PlaceAt(legend, 0f, 30f, new Vector2(840f, 36f));
-            var legendLayout = legend.AddComponent<HorizontalLayoutGroup>();
-            legendLayout.spacing = 24f;
-            legendLayout.childAlignment = TextAnchor.MiddleLeft;
-            legendLayout.childControlWidth = true;
-            legendLayout.childControlHeight = true;
-            legendLayout.childForceExpandWidth = false;
-            legendLayout.childForceExpandHeight = false;
-            AddLegend(legend, "選択", "↑↓");
-            AddLegend(legend, "変更", "←→");
-            AddLegend(legend, "タブ切替", "Tab");
-            AddLegend(legend, "再開", "Esc");
+            float legendX = V6PauseViewLogic.LegendX - FooterX;
+            float legendY = V6PauseViewLogic.LegendY - FooterY;
+            legendX = V6Legend.Item(footer, legendX, legendY, "↑↓", "選択");
+            legendX = V6Legend.Item(footer, legendX, legendY, "←→", "変更");
+            legendX = V6Legend.Item(footer, legendX, legendY, "Tab", "タブ切替");
+            V6Legend.Item(footer, legendX, legendY, "Esc", "再開");
 
-            // 右下: 選曲へ / リトライ / 再開 (実遷移)。座標は正本 k1VRDM の実値
-            // (選曲へ (882,20) 280 / リトライ (1178,20) 220 / 再開 (1414,20) 266)。
-            BuildActionButton(footer, "選曲へ", "arrow-left", "Backspace", false, 882f, 280f, () =>
-            {
-                Close();
-                if (sceneManager != null)
+            // 右下: design の Op · 選曲・リトライ (520 = 選曲へ 280 + gap16 + リトライ 220、
+            // リトライは独立ボタンのまま左ボタンへ統合しない) + Op · 再開 266。
+            // 座標は design ページ座標 (V6PauseViewLogic)。
+            var opGroup = V5Ui.Node(footer, "Op · 選曲・リトライ");
+            PlaceAt(opGroup, V6PauseViewLogic.OpGroupX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
+                new Vector2(V6PauseViewLogic.OpGroupW, V6PauseViewLogic.OpButtonH));
+
+            BuildActionButton(opGroup, "選曲へ", "log-out", "Backspace", false,
+                0f, 0f, V6PauseViewLogic.RetireButtonW, () =>
                 {
-                    sceneManager.RetireGame();
-                }
-            });
-            BuildActionButton(footer, "リトライ", "skip-back", "R", false, 1178f, 220f, () =>
-            {
-                Close();
-                if (sceneManager != null)
+                    Close();
+                    if (sceneManager != null)
+                    {
+                        sceneManager.RetireGame();
+                    }
+                });
+            BuildActionButton(opGroup, "リトライ", "rotate-ccw", "R", false,
+                V6PauseViewLogic.RetireButtonW + V6PauseViewLogic.OpGroupGap, 0f,
+                V6PauseViewLogic.RetryButtonW, () =>
                 {
-                    sceneManager.RetryGame();
-                }
-            });
-            BuildActionButton(footer, "再開", "play", "Esc", true, 1414f, 266f, Close);
-        }
-
-        /// <summary>
-        /// キー凡例 1 個 (KeyCap 36 高 #3A3A3A r4 [0,10] + Label fs22、design oW4i8)。
-        /// キーは設計どおり文字列 (↑↓ / ←→ / Tab / Esc) — 文字送りは TMP に任せる。
-        /// </summary>
-        private void AddLegend(GameObject parent, string label, string key)
-        {
-            var item = V5Ui.Node(parent, "Legend " + label);
-            var layout = item.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 8f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            var cap = V5Ui.Panel(item, "KeyCap " + key, new Vector2(0f, 36f),
-                new Color(0x3A / 255f, 0x3A / 255f, 0x3A / 255f), 4f);
-            var capLayout = cap.AddComponent<HorizontalLayoutGroup>();
-            capLayout.padding = new RectOffset(Mathf.RoundToInt(10f), Mathf.RoundToInt(10f), 0, 0);
-            capLayout.childAlignment = TextAnchor.MiddleCenter;
-            capLayout.childControlWidth = true;
-            capLayout.childControlHeight = true;
-            capLayout.childForceExpandWidth = false;
-            capLayout.childForceExpandHeight = false;
-            var capLe = cap.AddComponent<LayoutElement>();
-            capLe.preferredHeight = 36f;
-
-            var keyTmp = V5Ui.Text(cap, "Key", key, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            keyTmp.textWrappingMode = TextWrappingModes.NoWrap;
-            LayoutItem(keyTmp.gameObject, 0f, 32f);
-
-            var labelTmp = V5Ui.Text(item, "Label", label, 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
-            LayoutItem(labelTmp.gameObject, 0f, 32f);
+                    Close();
+                    if (sceneManager != null)
+                    {
+                        sceneManager.RetryGame();
+                    }
+                });
+            BuildActionButton(footer, "再開", "play", "Esc", true,
+                V6PauseViewLogic.ResumeButtonX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
+                V6PauseViewLogic.ResumeButtonW, Close);
         }
 
         /// <summary>
         /// design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
         /// アイコン 32×32 とラベル・KeyCap は設計の絶対座標へ置く (レイアウトグループで
         /// 詰めると "Backspace" / "リトライ" が折り返して 2 行に潰れる)。
-        /// iconName は実在する Resources/Icons/ の名前 (design log-out / rotate-ccw は
-        /// PNG が無いので同系統の既存素材: arrow-left / skip-back — Ranking のリトライと同じ)。
+        /// iconName は design の lucide 名そのまま (log-out / rotate-ccw / play、
+        /// Resources/Icons/ に PNG あり)。x / y は親ノード内の design 座標
+        /// (フッター直下なら (1414,20)、Op グループ内なら (0,0) / (296,0))。
         /// </summary>
         private void BuildActionButton(GameObject parent, string label, string iconName, string key,
-            bool primary, float x, float width, Action action)
+            bool primary, float x, float y, float width, Action action)
         {
-            var go = V5Ui.Panel(parent, "Button " + label, new Vector2(width, 56f),
+            var go = V5Ui.Panel(parent, "Button " + label, new Vector2(width, V6PauseViewLogic.OpButtonH),
                 primary ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key4, 8f);
-            PlaceAt(go, x, 20f, new Vector2(width, 56f));
+            PlaceAt(go, x, y, new Vector2(width, V6PauseViewLogic.OpButtonH));
 
             Color labelColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.Text;
             Color iconColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted;

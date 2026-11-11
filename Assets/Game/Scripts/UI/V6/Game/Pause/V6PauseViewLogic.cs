@@ -28,6 +28,35 @@ namespace FlashBeat.UI.V6.Game.Pause
             return new Vector2(x, y);
         }
 
+        // --- design uDNC0 (07b Game · v6 · Pause) の実配置値 (ページ座標) ---
+
+        /// <summary>ヘッダー左上 戻るボタン (design Zone · 戻る = ヘッダー内 (0,20) 56×56)。
+        /// 中身は arrow-left 24 + Key "Esc" fs16 (V6Controls.FillBackButton / 正本 zCQBY)。</summary>
+        public const float BackButtonX = 24f;
+        public const float BackButtonY = 20f;
+        public const float BackButtonSize = 56f;
+
+        /// <summary>フッター右下 操作ボタン (design Zone · 操作ボタン = ページ (864,876)):
+        /// Op · 選曲・リトライ (864+42, 876+20) 520×56 は gap16 で
+        /// 選曲へ 280 + リトライ 220 を並べたグループ (design auto-layout、
+        /// リトライは独立ボタンのまま統合しない)、Op · 再開 (864+574) 266×56。</summary>
+        public const float OpGroupX = 906f;
+        public const float OpButtonsY = 896f;
+        public const float OpGroupW = 520f;
+        public const float OpButtonH = 56f;
+        public const float RetireButtonW = 280f;
+        public const float RetryButtonW = 220f;
+        public const float OpGroupGap = 16f;
+        public const float ResumeButtonX = 1438f;
+        public const float ResumeButtonW = 266f;
+
+        /// <summary>フッター左下 凡例の先頭 (design Zone · キー操作 = フッター内 (0,30))。
+        /// 全画面共通の「Zone · 凡例 (左下)」(フッター内 (445,30) 240×36) は
+        /// 中身が空の注記ゾーン (契約 §4 / uDNC0-pause.png の描画) で、
+        /// 凡例項目はここに入らない。</summary>
+        public const float LegendX = 24f;
+        public const float LegendY = 906f;
+
         /// <summary>タブの数 (design: Play / Display / Sound / Data)。</summary>
         public const int TabCount = 4;
 

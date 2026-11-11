@@ -233,6 +233,74 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             Assert.IsTrue(list.Contains(V6SelectViewLogic.ListScrollButton(false)));
         }
 
+        // --- 曲リスト (design OENRv「曲リスト (列1-2)」の実測値) ---
+
+        [Test]
+        public void ListPanel_MatchesDesignRect()
+        {
+            // 曲リストコンテナ = main ゾーン内 x0 y0 560x780 (frame ローカル (24,96))。
+            V6Rect list = V6SelectViewLogic.ListPanelRect();
+
+            Assert.AreEqual(24f, list.X, "the list panel starts at the main zone origin");
+            Assert.AreEqual(96f, list.Y, "the list panel starts at the main zone origin");
+            Assert.AreEqual(560f, list.W, "the list panel width");
+            Assert.AreEqual(780f, list.H, "the list panel height equals the main zone height");
+        }
+
+        [Test]
+        public void ListRowGeometry_MatchesDesignValues()
+        {
+            // 曲行: x16 / 幅 504 / 高さ 72 / 行間ピッチ 76 / 先頭 y48、9 行分。
+            Assert.AreEqual(16f, V6SelectViewLogic.RowX, "the row x");
+            Assert.AreEqual(48f, V6SelectViewLogic.RowY0, "the first row y");
+            Assert.AreEqual(504f, V6SelectViewLogic.RowW, "the row width");
+            Assert.AreEqual(72f, V6SelectViewLogic.RowH, "the row height");
+            Assert.AreEqual(76f, V6SelectViewLogic.RowStep, "the row pitch");
+            Assert.AreEqual(9, V6SelectViewLogic.ListVisibleRows, "9 visible rows");
+
+            for (int i = 0; i < V6SelectViewLogic.ListVisibleRows; i++)
+            {
+                V6Rect row = V6SelectViewLogic.ListRowRect(i);
+
+                Assert.AreEqual(16f, row.X, "row {0} x", i);
+                Assert.AreEqual(48f + 76f * i, row.Y, 0.001f, "row {0} y (pitch 76 from y48)", i);
+                Assert.AreEqual(504f, row.W, "row {0} width", i);
+                Assert.AreEqual(72f, row.H, "row {0} height", i);
+            }
+
+            // 9 行目は y656+72=728。下矢印 (y732) の手前で止まる。
+            Assert.AreEqual(728f,
+                V6SelectViewLogic.ListRowRect(V6SelectViewLogic.ListVisibleRows - 1).Bottom,
+                0.001f, "the ninth row ends at y728");
+        }
+
+        [Test]
+        public void ListScrollButtons_MatchDesignRect()
+        {
+            V6Rect up = V6SelectViewLogic.ListScrollButton(false);
+            V6Rect down = V6SelectViewLogic.ListScrollButton(true);
+
+            Assert.AreEqual(210f, up.X, "the up arrow x");
+            Assert.AreEqual(0f, up.Y, "the up arrow y");
+            Assert.AreEqual(140f, up.W, "the up arrow width");
+            Assert.AreEqual(44f, up.H, "the up arrow height");
+
+            Assert.AreEqual(210f, down.X, "the down arrow x");
+            Assert.AreEqual(732f, down.Y, "the down arrow y");
+            Assert.AreEqual(140f, down.W, "the down arrow width");
+            Assert.AreEqual(44f, down.H, "the down arrow height");
+        }
+
+        [Test]
+        public void DotIndicator_MatchesDesignRail()
+        {
+            // ドットインジケータは曲リスト右端レール x536 / 開始 y136、8px (選択のみ 10px)。
+            Assert.AreEqual(536f, V6SelectViewLogic.DotX, "the dot rail x");
+            Assert.AreEqual(136f, V6SelectViewLogic.DotY, "the dot rail start y");
+            Assert.AreEqual(8f, V6SelectViewLogic.DotSize, "the dot size");
+            Assert.AreEqual(10f, V6SelectViewLogic.DotActiveSize, "the active dot size");
+        }
+
         // --- 3 解像度で破綻しない根拠 ---
 
         [Test]

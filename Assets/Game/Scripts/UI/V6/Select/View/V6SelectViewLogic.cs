@@ -245,6 +245,7 @@ namespace FlashBeat.UI.V6.Select.View
         /// 先頭 / 末尾の曲では中央スロット以外の行が空になり、選択行は常に中央に来る。
         /// ただし index が範囲外 (-1 等) または rowCount &lt; visibleRows のときは
         /// 既存挙動 (index を範囲内に直し、スクロールも 0..rowCount-visibleRows に収める) を保つ。
+        /// 表示 (V6SelectView) は <see cref="ListScroll"/> でクランプしてから使う。
         /// </summary>
         public static int CenterScroll(int index, int rowCount, int visibleRows)
         {
@@ -277,6 +278,20 @@ namespace FlashBeat.UI.V6.Select.View
             }
 
             return index - visibleRows / 2;
+        }
+
+        /// <summary>
+        /// 描画に使う曲リストのスクロール位置 (先頭に描く曲 index)。
+        /// <see cref="CenterScroll"/> の中央固定値を <see cref="ClampScroll"/> で
+        /// 0..rowCount-ListVisibleRows に戻す。負の scroll のまま描くと空スロットが
+        /// 下側にずれて行が下端へ寄る (r1実機 2026-11-11 の症状) ので、表示は必ず
+        /// この関数を通す。選択 index ≥ ListVisibleRows/2 では選択行は中央スロット
+        /// (上に ListVisibleRows/2 行) に来る。
+        /// </summary>
+        public static int ListScroll(int selectIndex, int rowCount)
+        {
+            return ClampScroll(CenterScroll(selectIndex, rowCount, ListVisibleRows),
+                rowCount, ListVisibleRows);
         }
 
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>

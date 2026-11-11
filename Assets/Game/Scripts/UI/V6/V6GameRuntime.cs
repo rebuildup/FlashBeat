@@ -6,6 +6,7 @@ using TMPro;
 using FlashBeat.UI.V6.Game.Hud;
 using FlashBeat.UI.V6.Game.Loading;
 using FlashBeat.UI.V6.Game.Pause;
+using FlashBeat.UI.V6.Option;
 
 namespace FlashBeat.UI.V6
 {
@@ -191,7 +192,18 @@ namespace FlashBeat.UI.V6
         private void UpdatePause()
         {
             if (pause == null) return;
-            if (KeyConfigUI.IsOpen) return;
+            if (KeyConfigUI.IsOpen)
+            {
+                // キー設定中の F1 = 編集キャンセル (保存済みの割当へ戻して閉じる)。
+                // Option 画面の Update と同じ扱い (V6OptionView.CancelKeyConfigEdit)。
+                // KeyConfigUI は Esc / F2 しか消費しないので F1 はここで受け取れる。
+                if (Input.GetKeyDown(KeyCode.F1))
+                {
+                    V6OptionView.CancelKeyConfigEdit();
+                }
+
+                return;
+            }
 
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {

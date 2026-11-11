@@ -178,7 +178,19 @@ namespace FlashBeat.UI.V6.Option
 
             // キー設定 (KeyConfigUI) が開いている間は背面の操作を止める
             // (ドライバが suspend されない環境でも二重入力しない)。
-            if (KeyConfigUI.IsOpen || !FlashBeat.UI.SceneInputGate.InputAllowed)
+            // オーバーレイが消費しない F1 だけはここで受け取り、編集のキャンセルにする:
+            // 確定 = Esc / F2 で閉じる (= 保存)、キャンセル = F1 で保存値へ戻して閉じる。
+            if (KeyConfigUI.IsOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.F1))
+                {
+                    CancelKeyConfigEdit();
+                }
+
+                return;
+            }
+
+            if (!FlashBeat.UI.SceneInputGate.InputAllowed)
             {
                 return;
             }
@@ -877,7 +889,7 @@ namespace FlashBeat.UI.V6.Option
                     null,
                     OpenKeyConfig,
                     "キー設定",
-                    "キーの割り当てを編集します。F2 でも開けます。",
+                    "キーの割り当てを編集します (F2)。Esc / F2 で確定 (保存)、F1 でキャンセル (元に戻して閉じます)。",
                     isAction: true),
             };
         }
@@ -1149,6 +1161,24 @@ namespace FlashBeat.UI.V6.Option
         private void OpenKeyConfig()
         {
             KeyConfigUI.Open();
+        }
+
+        /// <summary>
+        /// キー設定 (KeyConfigUI) の編集をキャンセルして閉じる (Option の F1)。
+        ///
+        /// 保存済みの状態 (KeyBindings / KeyActions の保存先) へ戻してから閉じる。
+        /// 閉じるときの保存は戻した内容を書き直すだけなので、保存値は変わらない
+        /// (元の割当に戻る)。確定は従来どおり Esc / F2 で閉じる (= 保存)。
+        ///
+        /// 「開いた時点の状態 == 保存先」は既存の保存経路が保証する
+        /// (KeyConfigUI の閉じる保存 / ResetToDefaults の保存 / ClearSaveData)。
+        /// 未保存のまま残ることは無いので、Load() で開いた時点へ正確に戻れる。
+        /// </summary>
+        public static void CancelKeyConfigEdit()
+        {
+            KeyBindings.Load();
+            KeyActions.Load();
+            KeyConfigUI.Close();
         }
 
         // --- uGUI ユーティリティ (design px 左上原点) ---

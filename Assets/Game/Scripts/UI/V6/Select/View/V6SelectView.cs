@@ -38,9 +38,15 @@ namespace FlashBeat.UI.V6.Select.View
 
         // design Frame (1728x972) の Main ゾーンは (24, 96)。列はそのローカル座標。
         private const float MainX = 24f, MainY = 96f;
-        private const float ListX = 0f, ListW = 560f, ListH = 780f;
-        private const float RowX = 16f, RowY0 = 48f, RowW = 504f, RowH = 72f, RowStep = 76f;
-        private const int ListVisibleRows = 9; // y48..y732 (732 / 76)
+        // 曲リストの design 定数の単一ソースは V6SelectViewLogic (History/Ranking ビューと同じ方式)。
+        private const float ListW = V6SelectViewLogic.ListW;
+        private const float ListH = V6SelectViewLogic.ListH;
+        private const float RowX = V6SelectViewLogic.RowX;
+        private const float RowY0 = V6SelectViewLogic.RowY0;
+        private const float RowW = V6SelectViewLogic.RowW;
+        private const float RowH = V6SelectViewLogic.RowH;
+        private const float RowStep = V6SelectViewLogic.RowStep;
+        private const int ListVisibleRows = V6SelectViewLogic.ListVisibleRows;
         private const int RankingVisibleRows = 4; // 300px パネルに 44px 行 + 8px 間隔で 4 行
 
         private const float CenterX = 572f, CenterW = 536f;
@@ -348,14 +354,11 @@ namespace FlashBeat.UI.V6.Select.View
             // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
             var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
-            // 選択中の曲が見えるようにスクロール位置を決め、範囲内にクランプする。
-            // CenterScroll はスクロールを 0..count-visibleRows に収めない (中央固定)。
-            // そのまま使うと先頭の曲を選んだときリスト上部が空行だけになり、
-            // design (OENRv) の「上から 9 行を埋める」表示と食い違う
-            // (実機で曲一覧が下に寄って見えた原因)。クランプして上から詰める。
-            listScroll = V6SelectViewLogic.ClampScroll(
-                V6SelectViewLogic.CenterScroll(selectIndex, songs.Count, ListVisibleRows),
-                songs.Count, ListVisibleRows);
+            // スクロール位置は design (OENRv) どおり上から 9 行を詰める。
+            // CenterScroll の負値をそのまま描くと空スロットが下側にずれて行が
+            // 下端へ寄る (r1実機 2026-11-11 の症状) ので ListScroll で 0 以上に
+            // 丸める。選択 index ≥ 4 では選択行は 5 行目 (上に 4 行) に来る。
+            listScroll = V6SelectViewLogic.ListScroll(selectIndex, songs.Count);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
                 data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
 
@@ -544,8 +547,9 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void BuildList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
         {
+            // 位置も design 定数 (frame ローカル (24,96) 560x780 = ListPanelRect) から取る。
             var list = At(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
-                FromHex("#131313CC"), 16f), MainX + ListX, MainY);
+                FromHex("#131313CC"), 16f), V6SelectViewLogic.ListX, V6SelectViewLogic.ListY);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");
