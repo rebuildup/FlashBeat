@@ -3,6 +3,17 @@
 > **この文書は cc (開発側) が用意した「候補の同一性」と「手順」です。**
 > 実行は **オーナー** が行います。cc は展示 PC を操作・ビルド・上書きしません。
 
+> **2026-11-11 更新 — 候補を `0.1.23+09ece5a2` に差し替えた。**
+> 版数はリポジトリ直下の `VERSION` (現在 `0.1.23`) が正本で、`FLASHBEAT_VERSION_BASE` は
+> 任意の上書き。以前の暗黙の既定値 `0.1.0` は廃止し、`VERSION` も環境変数も解決できなければ
+> **ビルドが失敗する**。これは「未設定のまま `0.1.0` になる」経路を塞ぐもので、
+> `FLASHBEAT_VERSION_BASE` に明示した値と配布済み版数の大小を検査するものではない —
+> 候補を作る前に `VERSION` を配布済みより上げるのは**運用上の確認**で、
+> `BuildVersionSourceTests.RepositoryVersionFile_IsNewerThanTheDistributedVersion` が
+> リポジトリの `VERSION` と `0.1.22` の大小だけを固定している。
+> 前候補 `0.1.22+7af9242d` は Windows 実機 2K の受入まで済んでいるが、
+> #351 / #352 / v6 UI 修正より前の main のため、この候補に置き換えた (証跡は 0.1.22 のものとして区別する)。
+
 ---
 
 ## 0. 前提 (cc が確認済みの範囲)
@@ -10,32 +21,33 @@
 | 項目 | 内容 |
 |---|---|
 | ビルド環境 | macOS (Apple Silicon) + Unity 6000.5.6f1 + WindowsStandaloneSupport |
-| ビルド手順 | `FLASHBEAT_VERSION_BASE=0.1.22 FLASHBEAT_UPDATE_CHANNEL=stable bash script/win64-build-mac.sh <sha> <outdir>` (正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみ) |
-| 出力 | `<outdir>/FlashBeat-0.1.22-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ** (`.build-info.txt` は作らない) |
+| ビルド手順 | `FLASHBEAT_UPDATE_CHANNEL=stable bash script/win64-build-mac.sh <sha> <outdir>` (基準版数は `VERSION` から自動。正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみ) |
+| 出力 | `<outdir>/FlashBeat-0.1.23-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ** (`.build-info.txt` は作らない) |
 | 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
-| **未検証** | **Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。ここが本手順の目的 |
+| **未検証** | **この候補 (`0.1.23+09ece5a2`) の Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。前候補 `0.1.22+7af9242d` は 2K 実機受入済み (`exhibit-evidence-2026-11-10/win-2k-operation.md`) だが、この候補は未実施 |
 
-### 現在の候補 (2026-11-10 再生成 / main `7af9242`)
+### 現在の候補 (2026-11-11 再生成 / main `09ece5a2`)
 
 | 項目 | 値 |
 |---|---|
-| ZIP | `FlashBeat-0.1.22-win64-7af9242d.zip` (274,849,480 bytes) |
-| SHA-256 | `33acd1069987694549f5f594dc910b6de79eada51cee5514378cf13b6bdb7a01` |
-| ソース SHA | `7af9242d9ca9d580ad5078f085973a72120e5085` (`origin/main` — PR #339〜#344 merge 後。PR #345 / #346 は**ドキュメントのみ**でこの候補のバイナリを変えない) |
-| Application.version | `0.1.22+7af9242d` (ZIP 内 `FlashBeat_Data/globalgamemanagers` に埋まっていることを確認済み) |
-| version.json | `version=0.1.22` / `tag=v0.1.22-win64-7af9242d` / `mediaPolicy=song-free` / `buildSha` 一致 |
-| 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt`) |
-| ビルド日時 | 2026-11-10T09:18:56Z (ビルド元 commit の日時。ZIP は同一入力で再現する) |
-| ビルド結果 | `Build Finished, Result: Success.` / `error CS` **0 件** / 224 entries / 138 managed DLL |
+| ZIP | `FlashBeat-0.1.23-win64-09ece5a2.zip` (275,052,241 bytes) |
+| SHA-256 | `314d3de6170f2bc73ea5b14fa8d30096fd2ce7f9072db7d39659e6a53e95cf8b` |
+| ソース SHA | `09ece5a213a6bfdd1d1eeba242396c059de981af` (`origin/main` — PR #355 / #356 / #357 merge 後) |
+| Application.version | `0.1.23+09ece5a2` (ビルド時の焼き込み検査 `bundleVersion: 0.1.23+09ece5a2` が通過。Mac アプリでも `Player.log` / Info.plist で一致を確認済み) |
+| version.json | `version=0.1.23` / `tag=v0.1.23-win64-09ece5a2` / `mediaPolicy=song-free` / `buildSha=09ece5a2…` (ZIP から読み出して確認済み) |
+| 更新チャンネル | `stable` (`FlashBeat_Data/StreamingAssets/update-channel.txt` — ZIP から読み出して確認済み) |
+| ビルド日時 | 2026-11-11T09:54:55Z (ビルド元 commit の日時) |
+| ビルド結果 | `Build Finished, Result: Success.` / `error CS` **0 件** / 224 entries / 138 managed DLL / mediaPolicy=song-free |
 | `.zip.sha256` | sidecar の値と `shasum -a 256` の実測が一致 |
 
-**前候補 `4445279` からの差分** (展示に効くもの):
+**前候補 `7af9242d` からの差分** (展示に効くもの):
 
 | 変更 | 内容 | 受入での見え方 |
 |---|---|---|
-| UI 欠陥の修正 (#339) | A-6 / B-4 / B-11 / C-6 / C-7 / C-8 / D-7 | HUD・Pause・Option・Result の表示/操作が変わる |
-| 表示設定の保存 (#343, D-1) | Key Guide モードと Lyrics の ON/OFF を `PlayerPrefs` に保存 | Option で切り替えた設定が、ゲームを終了しても次回起動時に残る |
-| Key Layout のリセット確認 (C-6) | Option → Display → Key Layout で `←` を押すと **確認ダイアログ**が出る | 押しても即リセットされない (確認してから戻す) |
+| 準備完了前の Space (#351) | 準備画面で押した Space を捨てず、準備完了時に開始する | 「押したのに始まらない」現象が消える (前候補の 2K 受入で記録した中程度不具合) |
+| Media cache 消去 (#352) | 即消去せず確認ダイアログを挟む | 誤操作でキャッシュが消えない |
+| v6 画面の正本合わせ (PR #355, r12〜r28) | Title Exit / 登録モーダル / 曲リスト / Pause / Option 4 タブ / Loading / Result 判定行 / History / 空状態 を design の実座標へ | 画面の座標・折返し・行送りが前候補と変わる |
+| 版数の正本化 (PR #357) | `VERSION` (0.1.23) を基準にし、暗黙の `0.1.0` を廃止 | 表示版数が `0.1.23+09ece5a2`。更新判定が配布版より古くならない |
 
 > **ビルドは必ず main のチェックアウトから行う。** 2026-11-10 に `w/ja-text-cleanup`
 > チェックアウト (=古い `script/win64-build-mac.sh`) からビルドしてしまい、
@@ -47,6 +59,7 @@
 > **古い候補は使用禁止。** 次の ZIP はソースが古いか、旧スクリプト (ビルド出力をそのまま ZIP 化する
 > 経路) で作られており、`version.json` 非同梱 / `FlashBeat_BurstDebugInformation_DoNotShip` 同梱 /
 > `.build-info.txt` 付きのいずれかに該当する。**ZIP 名と SHA-256 が上表と一致しない候補は使わない。**
+> (末尾の `7af9242d` だけは構造・実機受入とも正規だが、現候補に置き換えられたもの。)
 >
 > - `0.1.0+877bde7-win64-877bde7.zip`
 > - `0.1.22+0bab549-win64-0bab549.zip`
@@ -57,16 +70,21 @@
 > - `FlashBeat-0.1.22-win64-60854c8.zip` (構造は正規。**#327〜#331 より前の main** のため、
 >   候補 `4445279` に置き換えられた)
 > - `FlashBeat-0.1.22-win64-4445279.zip` (構造は正規。**#339〜#344 より前の main** のため、
->   今回の候補 `7af9242d` に置き換えられた。UI 欠陥修正と表示設定の保存を含まない)
+>   候補 `7af9242d` に置き換えられた。UI 欠陥修正と表示設定の保存を含まない)
+> - `FlashBeat-0.1.22-win64-7af9242d.zip` (構造は正規で **Windows 実機 2K 受入済み**。
+>   ただし #351 / #352 / v6 UI 修正より前の main のため、今回の候補 `09ece5a2` に置き換えられた。
+>   この ZIP の実機証跡は 0.1.22 のものとして扱い、新候補の証跡と混ぜない)
 > - `0.1.22+4445279-win64-4445279.zip` (旧スクリプトで作られた契約違反の ZIP。`dist/forbidden-old-script/`)
 >
 > 旧形式 (`0.1.22+<sha>-win64-<sha>.zip`) は **もう生成されない**。もし見つけたら、
 > それは旧版 `script/win64-build-mac.sh` (w/ja-text-cleanup など古いチェックアウト) で
 > 作られたものなので、正規候補として扱わないこと。
 
-**版の基準について**: 現行の GitHub Release は `v0.1.21-win64-d581c4c`。
+**版の基準について**: 公開済みの最新 Release は `v0.1.21-win64-d581c4c` (`v0.1.22-win64-7af9242d` は下書きで未公開)。
 自動更新はバージョンの大小で判定するため、**同じ版 (`0.1.21`) で別 SHA の Release を作っても
-更新が効きません**。次の配布は **`0.1.22`** として作ってください (`FLASHBEAT_VERSION_BASE=0.1.22`)。
+更新が効きません**。次の配布は **`0.1.23`** とする
+(リポジトリ直下の `VERSION` が `0.1.23`。`FLASHBEAT_VERSION_BASE` の指定は不要)。
+`VERSION` を書き換えずに次の候補を作ると、同じ `0.1.23` で別 SHA の候補になり更新が効かない。
 
 ### 0.1 オーナーが行う操作 (これだけ)
 
@@ -88,7 +106,7 @@ Release 公開判定だけです。展示 PC の操作とビルドの上書き�
 
 ```powershell
 # PowerShell (Windows)
-Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Object -ExpandProperty Hash
+Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-09ece5a2.zip" | Select-Object -ExpandProperty Hash
 # → 小文字に DownCase して .zip.sha256 の値と一致することを確認する
 ```
 
@@ -121,13 +139,14 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 
 ### 3.2 対象は 3 解像度だけ
 
-| ID | 解像度 | 入手方法 |
-|---|---|---|
-| FHD | 1920×1080 | 実ディスプレイ (展示PC / FHD モニタ) |
-| 2K | 2560×1440 | 実ディスプレイ (2K モニタ) |
-| MAC | 2560×1664 | Mac 本機 (ネイティブ) — **macOS では 2026-11-10 時点で確認済み** |
+| ID | 解像度 | 入手方法 | 現候補での状態 |
+|---|---|---|---|
+| FHD | 1920×1080 | 実ディスプレイ (展示PC / FHD モニタ) | **未検証** (前候補でも未実施。Windows 機の FHD 面は inactive だった) |
+| 2K | 2560×1440 | 実ディスプレイ (2K モニタ) | 前候補 `0.1.22+7af9242d` で **実全画面 PASS** (`exhibit-evidence-2026-11-10/win-2k-operation.md`)。**現候補では未実施** |
+| MAC | 2560×1664 | Mac 本機 (ネイティブ) | 現候補 `0.1.23+09ece5a2` で **PASS** (2026-11-11, `docs/ui/v6-repro-audit-2026-11-11.md` §9.18) |
 
 2K モニタが確保できない場合は **「未証明」と記録**してください (Web のビューポート確認は代替になりません)。
+前候補の 2K 証跡は **0.1.22 のもの**であり、現候補 `0.1.23+09ece5a2` の証跡として流用しないでください。
 
 ### 3.3 手順 (各解像度で同じ)
 
@@ -145,7 +164,7 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 |---|---|---|---|
 | 1 | Title | タイトルが出る。**「アップデートあり」表示** (#118) が出るか否かも確認 | 描画が崩れていない |
 | 2 | Select | 曲一覧が出る。**Ready を連打しても Scene 遷移が重複しない** (#222) | 遷移が 1 回だけ |
-| 3 | Game (準備) | 準備画面の進捗が出る | — |
+| 3 | Game (準備) | 準備画面の進捗が出る。**準備完了前に Space を押しても開始するか** (#351) | 押し直さずに開始する |
 | 4 | Game (プレイ) | **8 レーン / ノーツ / 判定ラインが視認できる** (#233)。**映像が出るか** (#233)。密所でも同じ | **ノーツが見えないなら不合格** |
 | 5 | Game (音) | **ストリーム音声が鳴るか** (#13 / #4)。`Player.log` の `audioMode=Stream` を確認 | 鳴らないなら `#4` は未解決 |
 | 6 | Result | リザルトが出る。スコア登録 (名前入力) が動くか (#134) | — |
@@ -163,7 +182,11 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 | 判定表示 | 3D の判定表示 (v6 のレーン別判定行は無効) | `V6UiMode.cs:43` `VerdictRow = false` |
 | 動画の減光 | しない (v6 の減光レイヤーは無効) | `V6UiMode.cs:35` `VideoDim = false` |
 | 選曲画面 | v6 の 3 カラム | `V6UiMode.cs:18` `SelectScreen = true` |
-| Title のタブ行 / キー凡例 | どちらも描かない (フッターの START / 設定 が同じ操作) | `V6UiMode.cs:51` `TitleTabs = false`, `:58` `TitleLegend = false` |
+| Title のタブ行 / キー凡例 | **どちらも描く** (2026-11-11 に正本 QJtTv へ合わせて撤回。フッター右下の START / 設定は描かない) | `V6UiMode.cs:54` `TitleTabs = true`, `:62` `TitleLegend = true`, `:68` `TitleFooterActions = false` |
+| Title のヘッダー / Exit | ヘッダーの "FlashBeat" 文字は描かず、**左端**に Exit ボタン (Icon + キーキャップ + "Exit") を置く | `V6UiMode.cs:74` `TitleHeaderTitle = false`, `V6TitleExit.cs` (Header ローカル (0,20) 162×56) |
+| 準備画面の Space | 準備完了前に押しても**捨てられず**、映像/音声の準備完了 (または 30 秒経過) **かつノーツ準備完了**の最初のフレームで 1 回だけ開始する (#351) | `MusicManager.cs` の `canStart` / `PlaybackStartGate.ShouldStart` |
+| Media cache の消去 | Option → Data で確認ダイアログが出てから消す (#352) | `V6OptionView.cs:875` `ConfirmKind.MediaCache` |
+| Result の登録モーダル | 名前欄の Placeholder は "YOU"。入力上限は**モード別**: ローカル登録 8 文字 (A-Z 0-9 のみ) / オンライン登録 16 文字。Skip / Register | `V6ResultView.NameMaxLength()` / `V6ResultLogic.LocalNameMaxLength = 8` / `RankingClient.NicknameMaxLength = 16` |
 | 音の経路 | `[MusicManager] PLAYBACK_START … source=StreamCombined \| StreamSeparate \| BundledWave` | `MusicManager.cs:1166` の `Debug.Log` |
 | 映像 | ダウンロードしたローカル mp4 を再生 (URL 直渡しは診断のみ) | `MusicManager.cs:637` `PrepareLocalVideo` |
 | フォント | NotoSansJP (静的アトラス + 動的フォールバック) | `JapaneseFontAssetBuilder.cs:233,249` |
@@ -210,13 +233,13 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.22-win64-<sha>.zip" | Select-Objec
 ## 6. CI (GitHub Actions) の Unity ライセンス secret
 
 **展示候補の ZIP は CI では作れません。** `build-win64` は `workflow_dispatch` と main への push
-だけで走り、2026-11-10 時点では `license-precheck` で失敗します (`UNITY_EMAIL` /
-`UNITY_PASSWORD` が未登録)。したがって候補 `7af9242d` は §0 の macOS 経路
+だけで走り、2026-11-11 時点でも `license-precheck` で失敗します (`UNITY_EMAIL` /
+`UNITY_PASSWORD` が未登録)。したがって候補 `09ece5a2` は §0 の macOS 経路
 (`script/win64-build-mac.sh` → `tools/release/package-win64.ps1`) でだけ作られています。
 PR で走るライセンス不要の検証は `verify` (リポジトリ整合性) と `web` だけで、**どちらも
 ビルド成果物を作りません**。責任範囲の全体は [`ci-pr-gate.md`](ci-pr-gate.md) を参照。
 
-2026-11-10 時点で `build-win64` / `build-macos` は **ライセンス確認ステップで失敗**している
+2026-11-11 時点でも `build-win64` / `build-macos` は **ライセンス確認ステップで失敗**している
 (`--error UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください。`)。
 これはコードの問題ではなく secret 未登録によるもの。
 
