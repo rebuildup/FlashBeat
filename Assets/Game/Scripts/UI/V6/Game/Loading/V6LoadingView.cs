@@ -457,16 +457,12 @@ namespace FlashBeat.UI.V6.Game.Loading
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // design: 戻るボタン (zUcsi: (0,20) 56×56 $k4)。
-            // 中身は icon (16,4) 24×24 と Key fs16 (15,30) 26×23 を直に置く
-            // (旧実装は VerticalLayoutGroup の中央寄せで 3px 下にずれていた)。
+            // design: 戻るボタン (zUcsi: (0,20) 56×56 $k4)。中身は共通部品の
+            // FillBackButton が正本どおりに入れる (arrow-left 24 @(16,4) +
+            // Key fs16 @(15,30) 26×23)。旧実装は chevron-left を
+            // VerticalLayoutGroup の中央寄せで 3px 下に置いていた。
             var back = V5Ui.Panel(header, "Back", new Vector2(56f, 56f), V5Tokens.Key4, 8f);
             PlaceAt(back, 0f, 20f);
-            var backArrow = V6Icons.Create(back, "chevron-left", 24f, V5Tokens.TextMuted, "Icon");
-            if (backArrow != null)
-            {
-                PlaceAt(backArrow.gameObject, 16f, 4f, new Vector2(24f, 24f));
-            }
 
             string backKeyText = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
             if (string.IsNullOrEmpty(backKeyText))
@@ -474,8 +470,7 @@ namespace FlashBeat.UI.V6.Game.Loading
                 backKeyText = "Esc";
             }
 
-            var backKey = V5Ui.Text(back, "Key", backKeyText, 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            PlaceAt(backKey.gameObject, 15f, 30f, new Vector2(26f, 23f));
+            V6Controls.FillBackButton(back, backKeyText);
             var backBtn = back.AddComponent<Button>();
             backBtn.targetGraphic = back.GetComponent<Image>();
             backBtn.onClick.AddListener(Back);
