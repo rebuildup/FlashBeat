@@ -730,3 +730,42 @@ Title のビルド版数表示 (`v0.1.0+be7c68ca`) のみ。EditMode は 1501 pa
 - Windows (exhibit 機) の実機。無断で触れない制約により未実施。
 - 実スコアが入った状態の Result / 本番ランキングの描画 (現状はローカル記録のみで
   "NO DATA" / スコア 0)。
+
+### 9.15 r22 / r23 — Ranking 見出しの実機確認と Option 4 タブの design 突き合わせ
+
+**r22 (`21442a14`)** — §9.14 で直した Ranking 見出しの実機確認。2560×1664 実フルスクリーンで
+再撮影し、"SCORE RANKING" / "PLAYERS" / 「累計スコア」が 1 行で描かれることを画素で確認した
+(`docs/evidence/v6-repro-2026-11-11/mac-2560x1664-r22/`、`RESULT pass=25 fail=0`)。
+
+**r23 (`398fe6bc`)** — 自動撮影に Option の 4 タブ個別撮影を追加して初めて、
+Display / Sound / Data の右パネルを design と突き合わせた。ここで **3 タブ分の不一致**が出た。
+
+| design | 不一致 (r23) | 原因 |
+|---|---|---|
+| `EzLfb` (Display) | ① 判定色の凡例 (Judge PERFECT / GREAT / BAD / MISS) が無い。② 説明ブロックが design の Divider y456 ではなく y544 (Play の値) | 右パネルの追加要素を Play タブしか実装していなかった。説明ブロックは 1 つの定数を全タブで共有 |
+| `z7joSy` (Sound) | ① 音量の値 (fs40 「100%」) とトラックが無い。② 説明ブロックが y472 ではなく y544 | 同上 |
+| `DQHHp` (Data) | 説明ブロックが design の y380 ではなく y544。3 行の説明がパネル下端 (688) を越える | 同上 |
+| `B6If6Z` (Play) | 一致 (キー一覧・説明ともに design 座標) | — |
+
+修正 (`Assets/Game/Scripts/UI/V6/Option/V6OptionLogic.cs` / `V6OptionView.cs`):
+
+- 説明ブロックの Divider Y をタブ別に: Play 544 / Display 456 / Sound 472 / Data 380
+  (design 実測)。Title は +20 / Desc は +70 の相対配置。
+- Display: 判定チップ (24,360) 106×64 r8 を 118 ピッチで 4 個。Marker (37,16) 32×4 r2 の色は
+  design の `$text` / `$ok` / `$warn` / `$danger`、Label fs18 `$text-dim` 中央。
+- Sound: Value (24,360) 106×58 fs40 + Track (24,420) 464×20 r4 `$k1`。Fill 幅は実音量の比率
+  (design の 100% = 464 全幅)。
+- 回帰テスト `V6OptionTabPreviewTests` 6 件 (タブ別 Y ×4 / 判定チップ座標と色 / 音量 Fill の
+  比例と clamp)。
+
+**design と行数が違う点 (意図的)**: design `EzLfb` の設定列は 9 行 (Live Rank / Hit Timing /
+Judge Text / Progress Bar を含む) だが、この 4 つはゲームに設定も挙動も存在しない。
+動かない行を描くと「操作できるのに何も起きない」嘘の UI になるため、実データのある 5 行
+(Flash / FlashTiming / FlashSpeed / Key Guide / Lyrics) だけを出す。V5 `OptionView` と
+Pause Display の `PauseDisplay_HasNoDeadRows` (Issue #167) と同じ判断で、
+`V6HierarchyTests.OptionDisplay_HasNoRowsForFeaturesThatDoNotExist` に固定した。
+**この 4 行を design どおり出すには機能そのものの実装 (別 Issue) が必要** — 見た目だけの
+追加はしない。オーナー判断が必要ならここが論点。
+
+**未検証**: 2560×1440 / 1920×1080 の実フルスクリーン (この Mac の実ディスプレイは 2560×1664
+のみ)、Windows 実機 (exhibit 機は無断で触らない)。r24 で上記修正の実機確認を行う。
