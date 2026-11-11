@@ -620,3 +620,60 @@ design 書き出し `/private/tmp/design-render/g4Q3F.png` (1728×972) と同座
 
 - r15〜r18 の OptionScene は `pass=359 symbols=8` (V6 Option View が二重) で、
   r14 の 181 と非決定的。ローディングの修正とは無関係。追跡項目。
+  → §9.13 で原因を特定・修正した。
+
+### 9.13 「Option の要素が二重に監査される」の正体 — 毎フレーム再構築 × フレーム末 Destroy
+
+§9.12 で保留にした OptionScene の `pass=359 symbols=8` / `181 symbols=4` の揺れ。
+識別ログ (`NewCanvas` / `OptionSceneManager.Start` / `AUDIT-CANVAS`) を足して
+実機で確認したところ、**Canvas も OptionSceneManager も 1 つ**だった:
+
+```
+[OptionSceneManager] Start id=... frame=1031
+[V5GameUi] NewCanvas V6 Option Canvas id=... scene=OptionScene children=0
+[AutoTestV6Screens] AUDIT-CANVAS OptionScene name=V6 Option Canvas id=...
+  scene=OptionScene active=True childCount=1 graphics=179
+```
+
+原因は Canvas の重複ではなく、**同じ Canvas の中に同じ名前の子が 2 世代同居**
+していたこと:
+
+1. `OptionSceneManager.Update` が毎フレーム `optionView.Refresh()` → `Rebuild()` を呼ぶ。
+2. `Rebuild()` は Header / Main / Footer を `ClearChildren` するが、破棄は
+   `V5GameUi.DestroyNow` = 再生中の `Object.Destroy` (フレーム末)。
+3. 同一フレーム内では「古い Footer + 新しい Footer」が両方生きている。
+   監査 (コルーチン → Update 後) がこの瞬間に走ると両世代を数える。
+   → Graphic 数 179 / 357、symbol 4 / 8。スクリーンショットは描画前に
+   破棄が済むため差が出ない (`r18` と `r19` の OptionScene 画像は画素一致)。
+
+修正 (共通原因を先に):
+
+- `Assets/Game/Scripts/UI/V6/Common/V6Hierarchy.cs` を新設し、
+  `ClearChildren` の 6 箇所の重複実装 (Option / Title / Select / Result / History /
+  Ranking) を集約。破棄を予約する**前に** `SetParent(null)` で階層から外す。
+- `OptionSceneManager.Update` の毎フレーム `Refresh()` を削除。表示は入力
+  ハンドラと `KeyBindings.Changed` が Rebuild を起こすので不要 (毎フレーム
+  全 UI 再構築は GC とレイアウトの無駄でもあった)。
+- `V6HierarchyTests` 3 件: 直後に子が 0 / null 安全 / Option の Footer 凡例が
+  `KeyCap ↑↓` 1 個だけ (Rebuild 3 回後)。
+
+実機 (2560×1664) の結果 — 2 回連続で同一:
+
+| 実行 | OptionScene | symbols | Canvas 数 |
+|---|---|---|---|
+| r18 (修正前) | pass=359 fail=0 | 8 | 1 (二重世代を計上) |
+| r19 (修正後) | pass=181 fail=0 | 4 | 1 (graphics=179) |
+| r20 (修正後) | pass=181 fail=0 | 4 | 1 |
+
+`RESULT pass=25 fail=0 symbols=59 screenshots=12` (r19 / r20 同値)。r18 との
+画像差は OptionScene が 0 画素、他は背景アニメーションのフレーム差と
+Title のビルド版数表示 (`v0.1.0+be7c68ca`) のみ。EditMode は 1501 pass / 0 fail。
+
+#### 未解決として残す観測 (続き)
+
+- 単一シーン実行 (`-autotest-scenes OptionScene` のみ) では
+  `no legacy graphics are visible on OptionScene` が FAIL する。正体は
+  DontDestroyOnLoad の `KeyConfigCanvas` (Key / KeyCap F2) で、通常の
+  5 シーン連続実行では出ない。シーン順に依存する起動手順の問題で、
+  画面の再現とは別件。追跡項目。
+
