@@ -188,6 +188,9 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
   FHD / 2K は存在しない。
 - 3 / 4 / 6 は 1 曲完走の 1 回の操作でまとめて記録できる (`collect-win-evidence.ps1` の
   `operation-log.md` がその記入欄)。
+- 6 の保存方向は、コード側では EditMode で固定済み (`V6OptionWiringTests` の
+  `PlayTab_ChangesReachTheRealApiAndAreSaved` / `DisplayTab_…` / `SoundTab_…`)。
+  実機で見るのは「画面で変える → 戻る → もう一度開くと残っている」の 1 手順だけでよい。
 - 5 は本番 D1 に残る (削除 API なし)。1 回だけ、名前は `ACCEPT`。
 
 ## 3. 実機での受入手順 (3 解像度)
