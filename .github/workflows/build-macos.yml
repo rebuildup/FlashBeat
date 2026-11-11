@@ -216,9 +216,17 @@ jobs:
       - name: macOS ビルド
         shell: bash
         env:
-          FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
+          VERSION_BASE_INPUT: ${{ inputs.version_base }}
           FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
+          # 基準バージョン: 入力 → リポジトリ直下の VERSION。暗黙の既定値は持たない。
+          base="$VERSION_BASE_INPUT"
+          [ -n "$base" ] || base="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$base" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=version base::基準バージョンを解決できません (VERSION / version_base): '$base'"
+            exit 1
+          fi
+          export FLASHBEAT_VERSION_BASE="$base"
           log="$RUNNER_TEMP/build.log"
           "$UNITY_EDITOR" -batchmode -quit \
               -projectPath "$GITHUB_WORKSPACE" \
@@ -241,7 +249,17 @@ jobs:
           short="$(git rev-parse --short HEAD)"
           full="$(git rev-parse HEAD)"
           base="${{ inputs.version_base }}"
-          [ -n "$base" ] || base="0.1.0"
+          [ -n "$base" ] || base="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$base" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=version base::基準バージョンを解決できません (VERSION / version_base): '$base'"
+            exit 1
+          fi
+          # 焼き込まれた版数を実物で確認する (ZIP 名だけを信じない)。
+          baked="$(grep -m1 '^[[:space:]]*bundleVersion:' ProjectSettings/ProjectSettings.asset | awk '{print $2}')"
+          if [ "$baked" != "$base+$short" ]; then
+            echo "::error title=version mismatch::埋込版数が一致しません: expected $base+$short, actual $baked"
+            exit 1
+          fi
           out="$RUNNER_TEMP/dist"
           mkdir -p "$out"
           bash tools/release/package-macos.sh \

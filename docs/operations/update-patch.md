@@ -25,8 +25,8 @@
 
 ## ビルド版識別子と Release タグ
 
-- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは既定 `0.1.0`。
-  **Release を出すたびに基準バージョンを上げます** (環境変数 `FLASHBEAT_VERSION_BASE`, 例: `0.1.1` → `FLASHBEAT_VERSION_BASE=0.1.1` でビルド → タグ `v0.1.1-win64-<sha>` / `v0.1.1-macos-<sha>`)。
+- ビルド時、`BuildScript.cs` が `PlayerSettings.bundleVersion` に **`<バージョン>+<git短SHA>`** を埋め込みます (`Assets/Game/Scripts/Update/UpdateChecker.cs` が `Application.version` で読む)。基準バージョンは **リポジトリ直下の `VERSION` ファイル** (`X.Y.Z`) で、環境変数 `FLASHBEAT_VERSION_BASE` があればそれが優先です。どちらも無い / `X.Y.Z` でない場合は **ビルドが失敗します** (以前の暗黙の既定 `0.1.0` は廃止)。
+  **Release を出すたびに `VERSION` を上げます** (例: `0.1.23` → `VERSION` を書き換えてビルド → タグ `v0.1.23-win64-<sha>` / `v0.1.23-macos-<sha>`)。
   自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると自動更新の経路が壊れます。
 - Release タグは **`v<バージョン>-<platform>-<git短SHA>`** 形式 (platform = `win64` / `macos`、例: `v0.1.1-win64-abc1234`, `v0.1.1-macos-abc1234`)。アセットは `FlashBeat-<バージョン>-<platform>-<sha>.zip` と隣接する `.sha256`。
   **プラットフォームごとに別 Release** とし、UpdateChecker は実行中のプラットフォームのタグ/アセットだけを見ます。

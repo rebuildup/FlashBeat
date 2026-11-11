@@ -297,9 +297,16 @@ jobs:
       - name: Win64 ビルド
         shell: pwsh
         env:
-          FLASHBEAT_VERSION_BASE: ${{ inputs.version_base || '0.1.0' }}
+          VERSION_BASE_INPUT: ${{ inputs.version_base }}
           FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
         run: |
+          # 基準バージョン: 入力 → リポジトリ直下の VERSION。暗黙の既定値は持たない。
+          $base = $env:VERSION_BASE_INPUT
+          if (-not $base) { $base = (Get-Content VERSION -Raw).Trim() }
+          if ($base -notmatch '^\d+\.\d+\.\d+$') {
+            throw "基準バージョンを解決できません (VERSION / version_base): '$base'"
+          }
+          $env:FLASHBEAT_VERSION_BASE = $base
           $log = "$env:RUNNER_TEMP\build.log"
           & $env:UNITY_EDITOR -batchmode -nographics -quit `
               -projectPath "$env:GITHUB_WORKSPACE" `
@@ -318,7 +325,14 @@ jobs:
           $sha = (git rev-parse --short HEAD).Trim()
           $full = (git rev-parse HEAD).Trim()
           $base = "${{ inputs.version_base }}"
-          if (-not $base) { $base = "0.1.0" }
+          if (-not $base) { $base = (Get-Content VERSION -Raw).Trim() }
+          if ($base -notmatch '^\d+\.\d+\.\d+$') {
+            throw "基準バージョンを解決できません (VERSION / version_base): '$base'"
+          }
+          # 焼き込まれた版数を実物で確認する (ZIP 名だけを信じない)。
+          $line = (Select-String -Path ProjectSettings\ProjectSettings.asset -Pattern '^\s*bundleVersion:' | Select-Object -First 1).Line
+          $baked = ($line -split '\s+')[-1]
+          if ($baked -ne "$base+$sha") { throw "埋込版数が一致しません: expected $base+$sha, actual $baked" }
           $out = "$env:RUNNER_TEMP\dist"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           # createdAt はビルド元 commit の日時から作る (実行時刻を使うと ZIP が再現しない)。

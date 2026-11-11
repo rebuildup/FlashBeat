@@ -34,7 +34,8 @@
 # 環境変数:
 #   UNITY_BIN               Unity 本体 (既定 Unity Hub の 6000.5.6f1)
 #   FB_WIN64_WORKTREE       ビルド用 worktree のパス (既定 ../FlashBeat.win64build)
-#   FLASHBEAT_VERSION_BASE  バージョン基準 (既定 0.1.0 / BuildScript と同じ既定)
+#   FLASHBEAT_VERSION_BASE  バージョン基準 (未設定ならビルド対象 ref の VERSION を読む。
+#                            どちらも無い / X.Y.Z でない場合はビルドしない — 暗黙の既定値は無い)
 #   FLASHBEAT_UPDATE_CHANNEL 更新チャンネル (既定 stable / BuildScript と同じ既定)
 #   PWSH_BIN                PowerShell 7 (既定 pwsh)
 #
@@ -50,7 +51,7 @@ OUT_DIR="${2:-$REPO_ROOT/../dist/win64}"
 # (ビルドする worktree の ref は古い可能性があり、macOS 対応版が無い)
 PACKAGER="$REPO_ROOT/tools/release/package-win64.ps1"
 PWSH="${PWSH_BIN:-pwsh}"
-VERSION_BASE="${FLASHBEAT_VERSION_BASE:-0.1.0}"
+VERSION_BASE="${FLASHBEAT_VERSION_BASE:-}"
 # 既定は stable。展示・配布候補は stable チャンネルで作る
 # (docs/operations/update-release.md)。prerelease を取り込みたい検証ビルドだけが
 # FLASHBEAT_UPDATE_CHANNEL=preview を明示する。BuildScript 側の既定も stable であり、
@@ -97,6 +98,17 @@ else
 fi
 ( cd "$WORKTREE" && git lfs pull >/dev/null )
 
+# 基準バージョン: 環境変数 → 対象 ref の VERSION。解決できなければビルドしない
+# (以前は未設定時に 0.1.0 へ倒れ、配布済みより古い版数の候補が作れた)。
+if [ -z "$VERSION_BASE" ] && [ -f "$WORKTREE/VERSION" ]; then
+  VERSION_BASE="$(tr -d '[:space:]' < "$WORKTREE/VERSION")"
+fi
+if ! [[ "$VERSION_BASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "基準バージョンを解決できません: FLASHBEAT_VERSION_BASE か $WORKTREE/VERSION に X.Y.Z を設定してください (値: '${VERSION_BASE}')" >&2
+  exit 2
+fi
+echo "version base: $VERSION_BASE (channel: $UPDATE_CHANNEL)"
+
 # 既存出力の上にビルドすると level1 が壊れるので退避する。
 if [ -d "$WORKTREE/Builds/Windows" ]; then
   mv "$WORKTREE/Builds/Windows" "$WORKTREE/Builds/Windows.old.$(date +%s)"
@@ -114,6 +126,15 @@ SHA="$(git -C "$WORKTREE" rev-parse --short HEAD)"
 FULL_SHA="$(git -C "$WORKTREE" rev-parse HEAD)"
 VERSION="${VERSION_BASE}-win64-${SHA}"
 ZIP="$OUT_DIR/FlashBeat-${VERSION}.zip"
+
+# 焼き込まれた版数と更新チャンネルを実物で確認する (ZIP 名だけを信じない)。
+BAKED="$(grep -m1 '^[[:space:]]*bundleVersion:' "$WORKTREE/ProjectSettings/ProjectSettings.asset" | awk '{print $2}')"
+[ "$BAKED" = "${VERSION_BASE}+${SHA}" ] || {
+  echo "埋込版数が一致しません: expected ${VERSION_BASE}+${SHA}, actual ${BAKED}" >&2; exit 1; }
+CHANNEL_FILE="$WORKTREE/Builds/Windows/FlashBeat_Data/StreamingAssets/update-channel.txt"
+[ -f "$CHANNEL_FILE" ] || { echo "update-channel.txt がありません: $CHANNEL_FILE" >&2; exit 1; }
+[ "$(tr -d '[:space:]' < "$CHANNEL_FILE")" = "$UPDATE_CHANNEL" ] || {
+  echo "更新チャンネルが一致しません: expected $UPDATE_CHANNEL, actual $(cat "$CHANNEL_FILE")" >&2; exit 1; }
 
 # media policy: ビルドが除外マニフェストを残した (= 第三者楽曲を除外した) ときだけ song-free。
 if [ -f "$WORKTREE/Builds/Windows/flashbeat-media-policy.json" ]; then
