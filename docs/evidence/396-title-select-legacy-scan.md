@@ -81,3 +81,36 @@ Title / Select の FPS は `script/mac-fbperf.sh` では取れない (GameScene 
 **未計測。** 修正後のビルドで Title / Select を往復し、
 `[PerfProbe] event=window scene=TitleScene` / `scene=SelectScene` の
 `gc0` と `gcKBPerFrame` を before/after で比べる。
+
+## 6. 実装時に踏んだ回帰 (重要)
+
+最初の実装は **v6 の Canvas まで「旧 v5」として登録してしまい**、ゲーム中に
+v6 の HUD Canvas を無効化した。
+
+- `V5GameUi.NewCanvas` は v5 専用ではなく、v6 も同じファクトリを使う
+  (`V6GameHudCanvas` / `V6GamePauseCanvas` / `V6 Result Canvas` / `V6 Select Canvas` など)。
+- 生成時に無条件で登録したため、`HideLegacyV5Canvases()` が v6 の HUD を
+  `SetActive(false)` していた。
+- 実測では GameScene が **avgFps 7〜8 / p50 109〜113ms** まで落ちた
+  (修正前は 60.2 / 16.7ms)。
+
+**修正**: 名前が `V6` で始まる Canvas は登録しない。
+
+```csharp
+if (name != null && !name.StartsWith("V6"))
+{
+    createdCanvases.Add(canvas);
+}
+```
+
+回帰テスト `V6CanvasesMadeThroughTheFactoryAreNeverHidden` を追加し、
+ガードを外すと FAIL することを確認した。
+
+### この回帰から得たこと
+
+1. **「v5 のファクトリ」は v5 専用ではない。** 共有ファクトリで「v5 だけ」を
+   選別する条件を、名前以外に持っていないことが原因だった。
+2. 性能改善の変更は、**測って初めて正しさが分かる**。テストが緑でも
+   (この回帰はテストを追加する前は緑だった)、実機の数値が壊れていた。
+3. 8.4fps を「環境負荷のせい」と片付ける前に、同じ負荷帯で before を測り直した
+   ことで、**自分の変更が原因**だと分かった。負荷の記録は必須。

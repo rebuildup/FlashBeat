@@ -59,6 +59,25 @@ namespace FlashBeat.UI.V6.Tests
         }
 
         [Test]
+        public static void V6CanvasesMadeThroughTheFactoryAreNeverHidden()
+        {
+            // 2026-11-12 に踏んだ回帰: v6 も V5GameUi.NewCanvas を使うため、
+            // 生成時に無条件で登録すると v6 の HUD Canvas まで「旧 v5」として
+            // 無効化され、ゲームが極端に重くなった。V6 名は登録しない。
+            Canvas v6Hud = V6UiMode.CreateLegacyCanvasForAudit("V6GameHudCanvas");
+            Canvas v6Result = V6UiMode.CreateLegacyCanvasForAudit("V6 Result Canvas");
+            Canvas v5 = V6UiMode.CreateLegacyCanvasForAudit("V5 Title Canvas");
+
+            V6UiMode.HideLegacyV5Canvases();
+
+            Assert.IsTrue(v6Hud.gameObject.activeSelf,
+                "v6 の HUD Canvas を旧 v5 として隠してはいけない");
+            Assert.IsTrue(v6Result.gameObject.activeSelf,
+                "v6 の Result Canvas を隠してはいけない");
+            Assert.IsFalse(v5.gameObject.activeSelf, "v5 は隠す");
+        }
+
+        [Test]
         public static void IsIdempotent()
         {
             Canvas v5 = NewV5Canvas("V5 Option Canvas");

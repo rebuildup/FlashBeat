@@ -12,15 +12,18 @@ namespace FlashBeat.UI.V5
     internal static class V5GameUi
     {
         /// <summary>
-        /// 生成した v5 の画面 Canvas (Issue #396)。
+        /// 生成した v5 の Canvas (Issue #396)。
         ///
         /// 旧 v5 UI を隠す処理は、以前シーン全体の GameObject/Transform を毎フレーム
         /// 列挙していた。v5 の Canvas はすべて <see cref="NewCanvas"/> を通るので、
         /// 生成時に参照を登録しておけば、隠す側は登録済みの数個を見るだけで済む
         /// (全走査も配列確保も起きない)。
         ///
-        /// 破棄された Canvas は Unity の偽 null になるので、参照を保持していても
-        /// 判定で飛ばせる (登録を消しに行く必要がない)。
+        /// **v6 の Canvas は登録しない。** v6 も同じファクトリを使う
+        /// (`V6GameHudCanvas` / `V6 Result Canvas` など) が、それらは v6 自身なので
+        /// 隠してはいけない。名前が "V6" で始まるものは対象外にする。
+        /// これを間違えると、v6 の HUD Canvas を v5 の隠す処理が無効化して
+        /// 画面が極端に重くなる (2026-11-12 に実際に踏んだ)。
         /// </summary>
         private static readonly System.Collections.Generic.List<Canvas> createdCanvases =
             new System.Collections.Generic.List<Canvas>();
@@ -66,7 +69,11 @@ namespace FlashBeat.UI.V5
             canvas.sortingOrder = sortingOrder;
             CanvasConfigurator.Configure(canvas);
             canvas.sortingOrder = sortingOrder; // Configure は 500 を上書きするので戻す
-            createdCanvases.Add(canvas);
+            // v6 自身の Canvas は「旧 v5 UI を隠す」対象にしない (登録しない)。
+            if (name != null && !name.StartsWith("V6"))
+            {
+                createdCanvases.Add(canvas);
+            }
             canvasGeneration++;
             // 監査で同じ名前の Canvas が二重に見えたとき、どの生成かを追えるようにする。
             Debug.Log("[V5GameUi] NewCanvas " + name + " id=" + canvas.GetEntityId()
