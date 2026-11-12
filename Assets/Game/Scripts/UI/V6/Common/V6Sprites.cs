@@ -42,17 +42,13 @@ namespace FlashBeat.UI.V6
             return V6AssetOwner.Shared(CacheKey(radius), () => BuildRounded(radius));
         }
 
-        /// <summary>既に角丸スプライトがあるか (生成せずに確認)。</summary>
-        public static bool HasRounded(int radiusPx)
-        {
-            return V6AssetOwner.HasShared(CacheKey(Mathf.Max(1, radiusPx)));
-        }
-
         /// <summary>
         /// Resources のアイコン Sprite。同じ名前は同じ実体を返し、
         /// 呼ぶたびに <c>Resources.Load</c> しない。
         ///
-        /// Resources の Sprite は Unity 所有なので、provider は参照を持つだけで破棄しない。
+        /// Resources の Sprite は Unity 所有なので、共有オーナーには登録しない
+        /// （プロセス終了時に provider が Destroy してしまわないように）。
+        /// ここに参照だけを覚える。
         /// </summary>
         public static Sprite Icon(string iconName)
         {
@@ -61,16 +57,23 @@ namespace FlashBeat.UI.V6
                 return null;
             }
 
-            return V6AssetOwner.Shared("icon:" + iconName,
-                () => Resources.Load<Sprite>("Icons/" + iconName));
+            Sprite cached;
+            if (iconCache.TryGetValue(iconName, out cached))
+            {
+                return cached;
+            }
+
+            cached = Resources.Load<Sprite>(IconsPath + iconName);
+            iconCache[iconName] = cached; // null も覚える（毎回 Load しない）
+            return cached;
         }
 
         /// <summary>
         /// 原 Texture の全面 Sprite (pivot 中央 / PPU 100)。原 Texture と
         /// パラメータが同じなら同じ実体を返す。
         ///
-        /// 原 Texture は Unity 所有 (Resources.Load) のことが多いので破棄しない。
-        /// 生成した Sprite は provider が所有する。
+        /// 原 Texture 自体は Unity（Resources）所有のことが多いので破棄しない。
+        /// この provider は「参照の組 (Texture, name) → Sprite」だけを覚える。
         /// </summary>
         public static Sprite FromTexture(Texture2D texture, string name)
         {
@@ -79,19 +82,53 @@ namespace FlashBeat.UI.V6
                 return null;
             }
 
-            string key = "tex:" + texture.GetEntityId() + ":" + texture.width + "x" + texture.height
-                + ":" + (name ?? "");
-            return V6AssetOwner.Shared(key, () =>
+            var key = new TextureSpriteKey(texture, name);
+            Sprite cached;
+            if (fromTextureCache.TryGetValue(key, out cached))
             {
-                var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
-                    new Vector2(0.5f, 0.5f), 100f);
-                if (!string.IsNullOrEmpty(name))
-                {
-                    sprite.name = name;
-                }
+                return cached;
+            }
 
-                return sprite;
-            });
+            cached = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f), 100f);
+            if (!string.IsNullOrEmpty(name))
+            {
+                cached.name = name;
+            }
+
+            fromTextureCache[key] = cached;
+            return cached;
+        }
+
+        /// <summary>名前を持つ Texture → Sprite 対応表（参照キー）。</summary>
+        private static readonly System.Collections.Generic.Dictionary<TextureSpriteKey, Sprite> fromTextureCache =
+            new System.Collections.Generic.Dictionary<TextureSpriteKey, Sprite>();
+
+        private sealed class TextureSpriteKey
+        {
+            private readonly Texture2D texture;
+            private readonly string name;
+
+            public TextureSpriteKey(Texture2D texture, string name)
+            {
+                this.texture = texture;
+                this.name = name ?? "";
+            }
+
+            public override bool Equals(object obj)
+            {
+                var other = obj as TextureSpriteKey;
+                if (other == null) return false;
+                return ReferenceEquals(texture, other.texture) && name == other.name;
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(texture) * 397 ^ name.GetHashCode();
+                }
+            }
         }
 
         /// <summary>
@@ -118,6 +155,12 @@ namespace FlashBeat.UI.V6
 
             return Mathf.RoundToInt(border.x) - AntialiasPad;
         }
+
+        private const string IconsPath = "Icons/";
+
+        /// <summary>アイコンの参照キャッシュ（Unity 所有スプライトを破棄しない）。</summary>
+        private static readonly System.Collections.Generic.Dictionary<string, Sprite> iconCache =
+            new System.Collections.Generic.Dictionary<string, Sprite>(System.StringComparer.Ordinal);
 
         /// <summary>計測用: このプロセスで保持している共有スプライト数。</summary>
         public static int SharedCount
