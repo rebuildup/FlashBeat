@@ -69,6 +69,37 @@ public class MediaCacheReadyFilesTests
         StringAssert.EndsWith("audio.m4a", media.AudioPath);
     }
 
+    /// <summary>
+    /// PR #387 レビュー指摘: ffmpeg がある環境では分離ペアを再利用しない。
+    /// 結合できるなら結合 mp4 が正しい形で、分離ペアのままだと Unity の
+    /// VideoPlayer が開けない音声コンテナを掴んだまま音が出ない状態で固定される。
+    /// </summary>
+    [Test]
+    public void SplitPairIsNotReusedWhenAMergeIsPossible()
+    {
+        WriteCacheFile("video.mp4", 2048, marked: true);
+        WriteCacheFile("audio.m4a", 512, marked: true);
+
+        ReadyMedia media;
+        Assert.IsFalse(YouTubeMediaCache.TryGetReadyFiles(videoId, out media, canMerge: true),
+            "結合できる環境では形式解決へ進み、結合 mp4 を作らせる");
+        Assert.IsNull(media);
+    }
+
+    /// <summary>結合できる環境でも、結合済みファイルはそのまま再利用する。</summary>
+    [Test]
+    public void MergedFileIsStillReusedWhenAMergeIsPossible()
+    {
+        WriteCacheFile("merged.mp4", 4096, marked: true);
+        WriteCacheFile("video.mp4", 2048, marked: true);
+        WriteCacheFile("audio.m4a", 512, marked: true);
+
+        ReadyMedia media;
+        Assert.IsTrue(YouTubeMediaCache.TryGetReadyFiles(videoId, out media, canMerge: true));
+        Assert.IsTrue(media.Combined);
+        StringAssert.EndsWith("merged.mp4", media.VideoPath);
+    }
+
     [Test]
     public void PictureFileWithoutSoundFileIsNotAReadySet()
     {

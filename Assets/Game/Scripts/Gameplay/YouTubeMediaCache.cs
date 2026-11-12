@@ -405,7 +405,26 @@ namespace FlashBeat.Gameplay
         /// update does not invalidate media because the file is identified by the
         /// YouTube video id, not by the chart version.
         /// </summary>
+        /// <param name="videoId">The YouTube video id.</param>
+        /// <param name="media">The reusable set.</param>
         public static bool TryGetReadyFiles(string videoId, out ReadyMedia media)
+        {
+            // ffmpeg の有無は呼び出し側が決める (試すたびに PATH を引かない)。
+            // 省略時は「結合できない前提」= 分離ペアも再利用可。
+            return TryGetReadyFiles(videoId, out media, canMerge: false);
+        }
+
+        /// <summary>
+        /// <see cref="TryGetReadyFiles(string, out ReadyMedia)"/> の実体
+        /// (PR #387 レビュー指摘)。
+        ///
+        /// <paramref name="canMerge"/> が true の環境では、分離ペア
+        /// (video.mp4 + audio.m4a) を再利用しない: 結合できる環境なら
+        /// 結合 mp4 を作るのが正しい形で、分離ペアをそのまま使うと
+        /// Unity の VideoPlayer が開けない音声コンテナを掴んだまま
+        /// 「音が出ない」状態で固定される。結合済みがあれば当然それを使う。
+        /// </summary>
+        public static bool TryGetReadyFiles(string videoId, out ReadyMedia media, bool canMerge)
         {
             media = null;
             if (string.IsNullOrEmpty(videoId)) return false;
@@ -424,6 +443,13 @@ namespace FlashBeat.Gameplay
 
             string audio = FindCompletedFile(directory, AudioFilePrefix);
             if (string.IsNullOrEmpty(audio)) return false;
+
+            if (canMerge)
+            {
+                // 結合できる環境で分離ペアを採用しない (形式解決へ進み、
+                // yt-dlp に結合 mp4 を作らせる)。
+                return false;
+            }
 
             media = new ReadyMedia { VideoPath = video, AudioPath = audio, Combined = false };
             return true;

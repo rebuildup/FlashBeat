@@ -101,6 +101,16 @@ public class MusicManager : MonoBehaviour
 
     // Issue #383: 開始待ち (startTiming) と終端フェード。
     bool startTimingPending;
+    /// <summary>
+    /// <c>startTiming</c> の待ちが済んだか (PR #387 レビュー指摘)。
+    ///
+    /// <c>startTimingPending</c> は「待ちコルーチンが走っている」を表すので、
+    /// 待ち終わりに <see cref="StartPlayback"/> を呼ぶ前に false へ戻すと、
+    /// 同じ呼び出しがもう一度待ちを始めてしまい <c>playbackStarted</c> に
+    /// 到達しない (startTiming を持つ譜面が開始できなくなる)。
+    /// 「待ち済み」は別のフラグで持ち、戻すのは開始が確定した後にする。
+    /// </summary>
+    bool startTimingSatisfied;
     bool endOverlayShown;
     bool endFadeApplied;
     V6GameHudView hudCache;
@@ -246,6 +256,14 @@ public class MusicManager : MonoBehaviour
         mediaStopwatch.Restart();
         SongEndGate.Reset();
 
+        // Issue #383: 開始待ち・終端フェードは曲ごとに初期化する。Retry は
+        // GameScene を読み直すので通常は新しいインスタンスだが、同じ
+        // MusicManager が次の曲を準備する経路でも状態を持ち越さない。
+        startTimingPending = false;
+        startTimingSatisfied = false;
+        endOverlayShown = false;
+        endFadeApplied = false;
+
         // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
         // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
         // Media Foundation が googlevideo.com を開けない) では prepare が
@@ -339,7 +357,10 @@ public class MusicManager : MonoBehaviour
         MediaFileResult audioFile;
 
         ReadyMedia ready;
-        if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready))
+        // ffmpeg が使える環境では分離ペアを再利用しない (結合 mp4 を作り直す)。
+        // ここで一度だけ PATH を引き、SelectPlan と同じ判断を使う。
+        bool ffmpegAvailable = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+        if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: ffmpegAvailable))
         {
             streamResolved = true;
             combined = ready.Combined;
@@ -365,7 +386,7 @@ public class MusicManager : MonoBehaviour
                 Debug.Log($"[MusicManager]   format {formats[i]}");
             }
 
-            var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+            var canMerge = ffmpegAvailable;
             var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
             Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary} (merge available: {canMerge})");
             Debug.Log($"[Perf] media resolve {mediaStopwatch.ElapsedMilliseconds}ms (yt-dlp -F)");
@@ -1123,9 +1144,13 @@ public class MusicManager : MonoBehaviour
         if (!resultTriggered)
         {
             bool mediaClockIsReal = HasRealMediaClock();
+            // 終端条件は「曲長そのもの」で判定する (リードアウトを差し引かない)。
+            // 既定の 1 秒を差し引くと、Result への遷移要求が曲長の 1 秒前に出て、
+            // 最後の 1 秒が表示されないまま暗転する (PR #387 レビュー指摘)。
+            // フェードの位置は ChartTiming.FadeOut が持つ別の関心事である。
             bool durationEnded = mediaClockIsReal
-                ? MediaTimeline.HasSongEnded(mediaTime, songDuration)
-                : mediaTime >= MediaTimeline.FallbackSongEnd(endDuration);
+                ? MediaTimeline.HasSongEnded(mediaTime, songDuration, leadOutSeconds: 0f)
+                : mediaTime >= MediaTimeline.FallbackSongEnd(endDuration, leadOutSeconds: 0f);
 
             int totalNotes = notesManager != null ? notesManager.noteNum : 0;
             // 確定したノーツ数は GManager.settledNoteCount が正 (Issue #182)。
@@ -1200,6 +1225,10 @@ public class MusicManager : MonoBehaviour
             hud.HideResumeCountdown();
         }
 
+        // 待ちは済んだ。startTimingPending は「コルーチンが走っている」の意味
+        // なのでここで戻してよいが、「待ち済み」を別フラグに立てておかないと
+        // StartPlayback が同じ条件を満たして待ちをやり直す (無限ループ)。
+        startTimingSatisfied = true;
         startTimingPending = false;
         StartPlayback();
     }
@@ -1219,6 +1248,10 @@ public class MusicManager : MonoBehaviour
     /// 終端フェード (Issue #383)。曲長が分かる場合、残り fadeOut 秒から
     /// 音量と映像を落とし、同時に「終了」を出す。メディアが先に終わった場合も
     /// そこで「終了」を出し、以降のフェードは完了扱いにする。
+    ///
+    /// フェードの下限は末尾ノーツの確定時刻 (SettleDeadline)。fadeOut の区間に
+    /// 末尾ノーツが入る譜面で、判定が終わる前に画面を暗くしないため
+    /// (design 決定 2026-11-11 D-383「最終判定後に終了表示とフェード」)。
     /// </summary>
     void UpdateEndFade(float time)
     {
@@ -1228,7 +1261,7 @@ public class MusicManager : MonoBehaviour
         }
 
         ChartTiming timing = NotesManager.Timing;
-        float progress = timing.FadeProgress(time);
+        float progress = timing.FadeProgress(time, SettleDeadline());
         if (mediaEnded && !endOverlayShown)
         {
             progress = Mathf.Max(progress, 0.999f);
@@ -1288,8 +1321,11 @@ public class MusicManager : MonoBehaviour
     {
         // Issue #383: startTiming は開始入力から音声・譜面を始めるまでの待ち。
         // 待っている間は GManager.Start を立てないため、判定とノーツ進行は止まっている。
+        // 待ちが済んだら startTimingSatisfied が立つので、この条件は二度目に
+        // 成立しない (待ち終わりの StartPlayback が待ちをやり直して
+        // playbackStarted に到達しない、という無限ループを防ぐ)。
         float startTiming = NotesManager.Timing.StartTiming;
-        if (startTiming > 0f && !startTimingPending)
+        if (StartTimingGate.ShouldWait(startTiming, startTimingPending, startTimingSatisfied))
         {
             startTimingPending = true;
             StartCoroutine(StartAfterTiming(startTiming));
@@ -1410,6 +1446,12 @@ public class MusicManager : MonoBehaviour
         {
             // 映像がマスター: 実動画はメタデータの duration より短いことがある
             // (issue #226) ので、位置は検証せず「停止の持続」だけを終端条件にする。
+            //
+            // 曲長が未登録の譜面では、実動画の長さが分かった時点で代わりの曲長
+            // (最終ノート + fadeOut + 0.8 秒) を実メディアの長さへ置き換える。
+            // 見積もりのままフェードを計算すると、実メディアが長い曲で早く暗転し
+            // 残りが黒いまま再生される (PR #387 レビュー指摘)。
+            AdoptRealDurationIfEstimated(songVideo.length);
             ObserveMediaEnd(songVideo.isPlaying, (float)songVideo.time, 0f,
                 "[MusicManager] the picture player stopped - treating it as the media end (issue #226)");
             return;
@@ -1417,6 +1459,7 @@ public class MusicManager : MonoBehaviour
 
         if (audioMode == PlaybackSource.BundledWave && audioS != null && audioS.clip != null)
         {
+            AdoptRealDurationIfEstimated(audioS.clip.length);
             ObserveMediaEnd(audioS.isPlaying, audioS.time, audioS.clip.length,
                 "[MusicManager] the bundled wave reached its end (issue #226)");
             return;
@@ -1424,8 +1467,35 @@ public class MusicManager : MonoBehaviour
 
         if (audioMode == PlaybackSource.StreamSeparate && streamAudioPlayer != null && streamAudioPlayer.isPrepared)
         {
+            AdoptRealDurationIfEstimated(streamAudioPlayer.length);
             ObserveMediaEnd(streamAudioPlayer.isPlaying, (float)streamAudioPlayer.time, 0f,
                 "[MusicManager] the audio stream stopped - treating it as the media end (issue #226)");
+        }
+    }
+
+    /// <summary>
+    /// 曲長が未登録 (代わりの曲長) の譜面だけ、実メディアの長さを譜面の曲長へ
+    /// 反映する。譜面が宣言した曲長と、長さの取れないメディアは何もしない。
+    /// </summary>
+    void AdoptRealDurationIfEstimated(double mediaLength)
+    {
+        if (!NotesManager.Timing.IsFallbackEnd)
+        {
+            return;
+        }
+
+        float seconds = (float)mediaLength;
+        if (!MediaTimeline.IsUsableDuration(seconds))
+        {
+            return;
+        }
+
+        float before = NotesManager.Timing.MediaDuration;
+        NotesManager.AdoptRealMediaDuration(seconds);
+        if (!Mathf.Approximately(before, NotesManager.Timing.MediaDuration))
+        {
+            Debug.Log($"[MusicManager] chart has no duration - using the media length {seconds:F2}s " +
+                      $"(was the estimate {before:F2}s) for the end fade");
         }
     }
 

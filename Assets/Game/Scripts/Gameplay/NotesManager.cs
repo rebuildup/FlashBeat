@@ -78,6 +78,16 @@ public class NotesManager : MonoBehaviour
     /// </summary>
     public static ChartTiming Timing { get; private set; } = ChartTiming.Default;
 
+    /// <summary>
+    /// 実メディアの長さが分かったときに譜面の曲長を置き換える (PR #387 レビュー指摘)。
+    /// 曲長が未登録で代わりの値を使っている譜面だけが対象。譜面が宣言した
+    /// 曲長は上書きしない (<see cref="ChartTiming.WithRealMediaDuration"/>)。
+    /// </summary>
+    public static void AdoptRealMediaDuration(float realDuration)
+    {
+        Timing = Timing.WithRealMediaDuration(realDuration);
+    }
+
     /// <summary>1 フレームあたりのノーツ生成の時間予算 (ミリ秒)。</summary>
     internal const double InstantiateBudgetMs = 8.0;
 

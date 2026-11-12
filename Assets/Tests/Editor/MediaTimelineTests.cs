@@ -78,6 +78,34 @@ public class MediaTimelineTests
         Assert.IsTrue(MediaTimeline.HasSongEnded(47.0f, 48f));
         Assert.IsTrue(MediaTimeline.HasSongEnded(47.5f, 48f));
     }
+
+    /// <summary>
+    /// PR #387 レビュー指摘: 本番 (MusicManager) の終端判定はリードアウトを
+    /// 差し引かない。1 秒引くと Result への遷移要求が曲長の 1 秒前に出て、
+    /// 最後の 1 秒が表示されないまま暗転する。フェードの位置は
+    /// ChartTiming.FadeOut が持つ別の関心事。
+    /// </summary>
+    [Test]
+    public void ProductionEndConditionUsesTheFullDuration()
+    {
+        const float duration = 48f;
+
+        Assert.IsFalse(MediaTimeline.HasSongEnded(47.9f, duration, leadOutSeconds: 0f),
+            "曲長の 1 秒前では終わらない");
+        Assert.IsTrue(MediaTimeline.HasSongEnded(48f, duration, leadOutSeconds: 0f),
+            "曲長に達したら終わる");
+        Assert.IsTrue(MediaTimeline.HasSongEnded(48.5f, duration, leadOutSeconds: 0f));
+    }
+
+    /// <summary>同じく本番の、実メディア時計が無いときの終端。</summary>
+    [Test]
+    public void ProductionFallbackEndConditionUsesTheFullDuration()
+    {
+        Assert.AreEqual(48f, MediaTimeline.FallbackSongEnd(48f, leadOutSeconds: 0f), 0.0001f,
+            "本番は曲長そのものを終端にする");
+        Assert.AreEqual(47f, MediaTimeline.FallbackSongEnd(48f), 0.0001f,
+            "既定の引数は従来どおり (既存の呼び出しを壊さない)");
+    }
 }
 
 /// <summary>

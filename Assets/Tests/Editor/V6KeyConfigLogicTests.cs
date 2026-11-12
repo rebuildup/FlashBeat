@@ -192,6 +192,60 @@ namespace FlashBeat.Tests.Editor
             Assert.AreEqual(KeyCode.Alpha1, KeyBindings.GetKeys(0)[0]);
         }
 
+        /// <summary>
+        /// PR #387 レビュー指摘: 保存に失敗したら、適用済みの割り当ても戻す。
+        /// SetAll は保存より先に実行中の表を書き換えるので、戻さないと
+        /// 「適用できていないのに判定キーだけ変わっている」状態が残り、
+        /// その後のキャンセルでも復旧できない。
+        /// </summary>
+        [Test]
+        public void Commit_RestoresTheAssignmentsWhenTheSaveFails()
+        {
+            KeyBindings.ResetToDefaults();
+            KeyCode before = KeyBindings.GetKeys(0)[0];
+
+            var logic = new V6KeyConfigLogic(Defaults());
+            logic.Select(0);
+            logic.BeginListen();
+            logic.Assign(KeyCode.Home);
+            Assert.IsTrue(logic.HasChanges());
+
+            KeyBindings.SetStorage(new FailingStorage());
+
+            Assert.IsFalse(logic.Commit(), "保存できなければ false");
+
+            Assert.AreEqual(before, KeyBindings.GetKeys(0)[0],
+                "保存に失敗したら判定に使う割り当てを元へ戻す");
+        }
+
+        [Test]
+        public void Commit_KeepsTheAssignmentsWhenTheSaveSucceeds()
+        {
+            KeyBindings.ResetToDefaults();
+
+            var logic = new V6KeyConfigLogic(Defaults());
+            logic.Select(0);
+            logic.BeginListen();
+            logic.Assign(KeyCode.Home);
+
+            Assert.IsTrue(logic.Commit());
+            Assert.AreEqual(KeyCode.Home, KeyBindings.GetKeys(0)[0]);
+        }
+
+        /// <summary>書き込みが必ず失敗する保存先。</summary>
+        private sealed class FailingStorage : KeyBindings.IStorage
+        {
+            public string LoadRaw()
+            {
+                return null;
+            }
+
+            public void SaveRaw(string json)
+            {
+                throw new System.IO.IOException("the disk is full");
+            }
+        }
+
         // --- 表示テキスト ---
 
         [Test]

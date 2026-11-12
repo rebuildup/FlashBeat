@@ -137,6 +137,117 @@ namespace FlashBeat.Tests
             var timing = ChartTiming.Normalize(2f, 0f, 0f, 0f);
             Assert.AreEqual(0f, timing.FadeProgress(999f), 1e-4f);
         }
+
+        // --- PR #387 レビュー指摘: フェードは最終判定より前から始めない ---
+
+        [Test]
+        public void FadeProgress_DoesNotBlackOutWhileTheLastNoteIsStillJudged()
+        {
+            // 曲長 100 秒 / fadeOut 2 秒 / 末尾ノーツの確定が 99.5 秒。
+            // 素の FadeProgress は 99 秒で 0.5 だが、判定期限を下限にすると
+            // 99.5 秒までは 0 のまま (暗転中の判定をさせない)。
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+
+            Assert.AreEqual(0.5f, timing.FadeProgress(99f), 1e-4f,
+                "下限なしでは §6.2 の fadeOut 位置から始まる");
+            Assert.AreEqual(0f, timing.FadeProgress(99f, 99.5f), 1e-4f,
+                "末尾ノーツの確定前はプレイフィールドを暗くしない");
+            Assert.AreEqual(0f, timing.FadeProgress(99.4f, 99.5f), 1e-4f);
+        }
+
+        [Test]
+        public void FadeProgress_StillReachesFullAtTheEndWithASettleFloor()
+        {
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+
+            Assert.AreEqual(1f, timing.FadeProgress(100f, 99.5f), 1e-4f,
+                "終端では「終了」表示と暗転を必ず出す");
+            Assert.Greater(timing.FadeProgress(99.75f, 99.5f), 0f);
+            Assert.Less(timing.FadeProgress(99.75f, 99.5f), 1f);
+        }
+
+        [Test]
+        public void FadeProgress_FloorBeforeFadeStartChangesNothing()
+        {
+            // 末尾ノーツがフェード開始より十分前なら、従来の位置から始まる。
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+
+            Assert.AreEqual(0.5f, timing.FadeProgress(99f, 50f), 1e-4f);
+            Assert.AreEqual(0f, timing.FadeProgress(97.9f, 50f), 1e-4f);
+        }
+
+        [Test]
+        public void FadeProgress_FloorAtOrAfterTheEndStillCompletes()
+        {
+            // 末端の判定が曲長より後ろへはみ出す譜面でも、終端で 1 になる。
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+
+            Assert.AreEqual(0f, timing.FadeProgress(99.9f, 101f), 1e-4f);
+            Assert.AreEqual(1f, timing.FadeProgress(100f, 101f), 1e-4f);
+        }
+
+        // --- PR #387 レビュー指摘: 代わりの曲長を実メディアへ置き換える ---
+
+        [Test]
+        public void WithFallbackEnd_IsMarkedAsAnEstimate()
+        {
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 0f).WithFallbackEnd(100f);
+            Assert.IsTrue(timing.IsFallbackEnd, "代わりの曲長は見積もりとして区別できる");
+        }
+
+        [Test]
+        public void KnownMediaDuration_IsNotMarkedAsAnEstimate()
+        {
+            var timing = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+            Assert.IsFalse(timing.IsFallbackEnd);
+        }
+
+        [Test]
+        public void WithRealMediaDuration_ReplacesTheEstimate()
+        {
+            // 曲長未登録 / 最終ノート 100 秒 / 実メディア 180 秒。
+            // 見積もり (102.8 秒) のままだと 102.8 秒で暗転し、残りが黒くなる。
+            var estimate = ChartTiming.Normalize(2f, 0f, 0f, 0f).WithFallbackEnd(100f);
+            Assert.AreEqual(102.8f, estimate.MediaDuration, 1e-3f);
+
+            var real = estimate.WithRealMediaDuration(180f);
+            Assert.AreEqual(180f, real.MediaDuration, 1e-4f, "実メディアの長さを使う");
+            Assert.IsFalse(real.IsFallbackEnd);
+            Assert.AreEqual(0f, real.FadeProgress(102.8f, 0f), 1e-4f,
+                "見積もりの位置ではもう暗転しない");
+            Assert.AreEqual(1f, real.FadeProgress(180f, 0f), 1e-4f);
+        }
+
+        [Test]
+        public void WithRealMediaDuration_KeepsADeclaredChartDuration()
+        {
+            // 譜面が曲長を宣言している場合はそれが正 (カタログの責務)。
+            var declared = ChartTiming.Normalize(2f, 0f, 0f, 100f);
+            var untouched = declared.WithRealMediaDuration(180f);
+
+            Assert.AreEqual(100f, untouched.MediaDuration, 1e-4f,
+                "譜面が宣言した曲長を実メディアで上書きしない");
+        }
+
+        [Test]
+        public void WithRealMediaDuration_IgnoresAnUnknownMediaLength()
+        {
+            var estimate = ChartTiming.Normalize(2f, 0f, 0f, 0f).WithFallbackEnd(100f);
+            Assert.AreEqual(estimate.MediaDuration,
+                estimate.WithRealMediaDuration(0f).MediaDuration, 1e-4f);
+            Assert.AreEqual(estimate.MediaDuration,
+                estimate.WithRealMediaDuration(float.NaN).MediaDuration, 1e-4f);
+        }
+
+        [Test]
+        public void WithRealMediaDuration_ClampsFadeOutToTheRealLength()
+        {
+            // 実メディアが極端に短くても fadeOut が曲全体を覆わない。
+            var estimate = ChartTiming.Normalize(10f, 0f, 0f, 0f).WithFallbackEnd(100f);
+            var real = estimate.WithRealMediaDuration(8f);
+
+            Assert.AreEqual(2f, real.FadeOut, 1e-4f, "fadeOut は実メディア長の 25% まで");
+        }
     }
 
     /// <summary>NoteEditor の保存形式で 3 フィールドが往復すること。</summary>

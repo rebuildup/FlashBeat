@@ -266,14 +266,35 @@ namespace FlashBeat.UI.V6.Common
         }
 
         /// <summary>編集内容を <see cref="KeyBindings"/> へ書き込み、保存する。</summary>
+        /// <remarks>
+        /// 保存に失敗したら、適用済みの割り当ても元へ戻す (PR #387 レビュー指摘)。
+        /// <see cref="KeyBindings.SetAll"/> は保存より先に実行中の表を書き換えて
+        /// <c>Changed</c> を通知するので、そのまま失敗を返すと「適用できていないのに
+        /// 判定キーだけ変わっている」状態になる。キャンセルでも戻せない。
+        /// </remarks>
         public bool Commit()
         {
+            KeyCode[][] previous = KeyBindings.Current;
+            var restore = new KeyCode[LaneCount][];
+            for (int lane = 0; lane < LaneCount; lane++)
+            {
+                restore[lane] = CloneLane(previous != null && lane < previous.Length ? previous[lane] : null);
+            }
+
             if (!KeyBindings.SetAll(working))
             {
                 return false;
             }
 
-            return KeyBindings.Save();
+            if (!KeyBindings.Save())
+            {
+                // 保存できなかった: 実行中の割り当てを保存済みの状態へ戻し、
+                // キーガイドと判定の表示も追随させる (SetAll が Changed を出す)。
+                KeyBindings.SetAll(restore);
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>キーの表示名 (design の KeyCap)。</summary>

@@ -1231,11 +1231,23 @@ namespace FlashBeat.UI.V6.Result
         /// Enter / フォーカス喪失で名前が確定した (Issue #384)。空でなければ
         /// 自動で登録する。送信中・登録済みは gate が弾く。
         /// </summary>
+        /// <remarks>
+        /// Esc で取り消した編集では送信しない (PR #387 レビュー指摘)。
+        /// TMP_InputField は Esc で <c>m_WasCanceled</c> を立ててから
+        /// <c>ReleaseSelection</c> 経由で <c>onEndEdit</c> を通知する。ここで
+        /// <c>wasCanceled</c> を見ないと、保存済みの名前が入力欄に戻った状態で
+        /// 自動登録が走ってしまう (「取り消したのに登録された」)。
+        /// </remarks>
         private void OnNameEditEnd(string value)
         {
             if (suppressNameCommit || !modalOpen)
             {
                 return;
+            }
+
+            if (modalNameInput != null && modalNameInput.wasCanceled)
+            {
+                return; // Esc で取り消した編集は確定しない
             }
 
             string name = (value ?? string.Empty).Trim();

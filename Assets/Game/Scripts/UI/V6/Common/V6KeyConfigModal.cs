@@ -334,6 +334,19 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
+            // 適用へのキーボード経路 (PR #387 レビュー指摘)。Enter は行の待受開始に
+            // 使っているため、修飾キー付きの Enter を「適用」に割り当てる。
+            // Tab でフッターへフォーカスを移す方式は、EventSystem の選択と
+            // Update の Enter 処理が二重に走る危険があるので採らない。
+            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)
+                 || Input.GetKey(KeyCode.LeftCommand) || Input.GetKey(KeyCode.RightCommand))
+                && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+            {
+                Consume();
+                Apply();
+                return;
+            }
+
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
                 logic.BeginListen();

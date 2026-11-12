@@ -39,6 +39,17 @@ namespace FlashBeat.Gameplay
         /// <summary>曲長 (秒)。不明なら 0。</summary>
         public float MediaDuration { get; private set; }
 
+        /// <summary>
+        /// <see cref="MediaDuration"/> が実メディアの長さではなく、最終ノートから
+        /// 見積もった代わりの値か (<see cref="WithFallbackEnd"/>)。
+        ///
+        /// 見積もりを実メディアのフェードに使ってはいけない: 曲長が未登録で
+        /// 最終ノートが 100 秒・実メディアが 180 秒の譜面では 102.8 秒で暗転し、
+        /// 残り 77 秒が黒いまま再生される (PR #387 レビュー指摘)。実メディアの
+        /// 時計があるときは、実メディアの長さが分かるならそれを使う。
+        /// </summary>
+        public bool IsFallbackEnd { get; private set; }
+
         private ChartTiming()
         {
         }
@@ -144,6 +155,38 @@ namespace FlashBeat.Gameplay
             copy.FadeOut = FadeOut;
             copy.StartTiming = StartTiming;
             copy.BeatOffset = BeatOffset;
+            copy.IsFallbackEnd = true;
+            return copy;
+        }
+
+        /// <summary>
+        /// 実メディアの長さが分かったときの譜面長 (PR #387 レビュー指摘)。
+        ///
+        /// <see cref="WithFallbackEnd"/> の見積もりは「実メディアが無い」前提の
+        /// 代用値なので、実メディアの時計が動いていて長さも取れるなら、それを
+        /// 曲長として使う。見積もりのままだと、実メディアが長い曲で早く暗転し、
+        /// 残りが黒いまま再生される。実メディアの長さが取れない (0 以下) ときは
+        /// 現在の値をそのまま返す。
+        /// </summary>
+        public ChartTiming WithRealMediaDuration(float realDuration)
+        {
+            if (!MediaTimeline.IsUsableDuration(realDuration))
+            {
+                return this;
+            }
+
+            // 譜面が曲長を宣言している場合はそちらが正 (曲長はカタログの責務)。
+            if (MediaDuration > 0f && !IsFallbackEnd)
+            {
+                return this;
+            }
+
+            var copy = new ChartTiming();
+            copy.MediaDuration = realDuration;
+            copy.FadeOut = Mathf.Min(FadeOut, realDuration * 0.25f);
+            copy.StartTiming = StartTiming;
+            copy.BeatOffset = BeatOffset;
+            copy.IsFallbackEnd = false;
             return copy;
         }
 
@@ -161,17 +204,51 @@ namespace FlashBeat.Gameplay
         /// <summary>フェードの進行度 (0 = 開始前、1 = 終端)。</summary>
         public float FadeProgress(float mediaTime)
         {
+            return FadeProgress(mediaTime, 0f);
+        }
+
+        /// <summary>
+        /// フェードの進行度。ただし <paramref name="notBeforeSeconds"/> より前は
+        /// 必ず 0 (design 決定 2026-11-11 D-383「最終判定後に終了表示とフェード」)。
+        ///
+        /// §6.2 の「メディア終端の fadeOut 秒前からフェード」だけを使うと、
+        /// 末尾ノーツがフェード区間の中にある譜面 (曲長 100 秒 / fadeOut 2 秒 /
+        /// 末尾ノーツ 99.5 秒) で、判定が終わる前に画面が暗くなる。末尾ノーツの
+        /// 確定時刻 (SettleDeadline) を下限にして、判定が終わるまで暗転させない。
+        /// 曲長が分かる譜面で末尾ノーツがフェード開始より前にある場合は、
+        /// 従来どおり §6.2 の位置から始まる (下限が効かない)。
+        /// </summary>
+        public float FadeProgress(float mediaTime, float notBeforeSeconds)
+        {
             if (MediaDuration <= 0f)
             {
                 return 0f;
             }
 
-            if (FadeOut <= 0f)
+            float start = FadeStartTime();
+            if (notBeforeSeconds > start)
             {
-                return mediaTime >= MediaDuration ? 1f : 0f;
+                start = notBeforeSeconds;
             }
 
-            return Mathf.Clamp01((mediaTime - FadeStartTime()) / FadeOut);
+            // 下限が終端以上なら、フェードできる区間が残っていない。
+            // それでも終端では 1 (「終了」表示と暗転は必ず出す)。
+            if (mediaTime < start && mediaTime < MediaDuration)
+            {
+                return 0f;
+            }
+
+            if (mediaTime >= MediaDuration)
+            {
+                return 1f;
+            }
+
+            if (FadeOut <= 0f || MediaDuration <= start)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01((mediaTime - start) / (MediaDuration - start));
         }
     }
 }
