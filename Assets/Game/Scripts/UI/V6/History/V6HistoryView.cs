@@ -64,8 +64,6 @@ namespace FlashBeat.UI.V6.History
         private readonly Action onOpenSettings;
         private readonly Action onGotoSong;
 
-        private readonly Dictionary<string, Sprite> jacketCache = new Dictionary<string, Sprite>();
-
         private GameObject rootGo;
         private RectTransform frame;
 
@@ -886,36 +884,15 @@ namespace FlashBeat.UI.V6.History
 
         // --- ジャケット ---
 
-        /// <summary>Resources.Load 用に拡張子を取り除く ("a/b.jpg" → "a/b")。</summary>
-        private static string ResourcePathWithoutExtension(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                return path;
-            }
-            int dot = path.LastIndexOf('.');
-            int slash = path.LastIndexOf('/');
-            if (dot > 0 && dot > slash)
-            {
-                return path.Substring(0, dot);
-            }
-            return path;
-        }
-
         private void SetJacket(GameObject thumbPanel, V6SongEntry song)
         {
             var img = thumbPanel.GetComponent<Image>();
-            Sprite sprite = null;
-            if (song != null && !string.IsNullOrEmpty(song.JacketResourcePath))
-            {
-                if (!jacketCache.TryGetValue(song.JacketResourcePath, out sprite) || sprite == null)
-                {
-                    var tex = Resources.Load<Texture2D>(ResourcePathWithoutExtension(song.JacketResourcePath));
-                    sprite = tex == null ? null : Sprite.Create(tex,
-                        new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-                    jacketCache[song.JacketResourcePath] = sprite;
-                }
-            }
+            // Issue #398: ジャケットの Sprite は V6JacketProvider が所有する。
+            // ここで Sprite.Create して独自辞書に持つと、同じ画像が画面ごとに
+            // 何枚も実体化され、View を破棄しても解放されない。
+            Sprite sprite = song == null
+                ? null
+                : V6JacketProvider.Local(song.SongId, song.Title);
 
             if (sprite != null)
             {
