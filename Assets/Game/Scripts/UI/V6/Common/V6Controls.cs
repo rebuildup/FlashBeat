@@ -203,6 +203,7 @@ namespace FlashBeat.UI.V6.Common
             }
 
             FillBackButton(go, keyLabel);
+            V6ButtonPressFeedback.Attach(go);
             return go;
         }
 
@@ -408,6 +409,9 @@ namespace FlashBeat.UI.V6.Common
             // targetGraphic が無いと ColorTint 遷移が走らず、押下しても見た目が変わらない
             // (IconButton は設定済み)。主要ボタンすべてに押下 / ホバーの手応えを付ける。
             button.targetGraphic = go.GetComponent<Image>();
+            // 押した手応え (2026-11-12 オーナー指摘): 輪郭が外へ広がって消える。
+            // 全ボタンで同じ挙動にして、画面ごとに手応えが違わないようにする。
+            V6ButtonPressFeedback.Attach(go);
 
             // 正本 (Prefab/Button Primary meK44 / Secondary qWWcD) は
             // gap 12 / justify center / align center。icon・Label・Cap は

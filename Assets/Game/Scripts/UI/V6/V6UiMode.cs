@@ -126,8 +126,35 @@ namespace FlashBeat.UI.V6
         /// 旧 v5 TitleView は Start/OnEnable で自前のメニューを後から生成するので、
         /// 1 回だけでは足りない。呼び出し側 (V6TitleViewDriver.Update) は毎フレーム呼ぶ。
         /// </summary>
+        /// <remarks>
+        /// Issue #396: **この走査は現行コードでは何も見つけない。**
+        /// <c>TitleSceneManager</c> のコメントどおり、v5 の <c>TitleView</c> (コード生成) は
+        /// どこからも作られておらず、旧 UI はシーン配置の Canvas だけ
+        /// (それは <c>TitleSceneManager.BuildV6Title</c> が 1 回隠す)。
+        /// それでも走査を残すのは、v5 TitleView を再び使う変更が入ったときに
+        /// 二重表示を黙って作らないため。ただし毎フレームは走らせず、
+        /// v5 が Canvas を作ったとき (= 生成番号が変わったとき) と、
+        /// 保険の定期走査のときだけにする。
+        /// </remarks>
         public static bool HideLegacyTitleUi()
         {
+            // Issue #396: 旧 v5 UI が新しく現れるのは、v5 が Canvas を作ったときだけ。
+            // 生成は V5GameUi.NewCanvas を通るので、その回数が変わったときだけ
+            // シーンを走査する。毎フレームの全 Transform 列挙をやめる。
+            //
+            // 保険として、変化が無くても一定フレームごとに 1 回だけ走査する
+            // (登録を通らない生成経路が将来できても二重表示を残さない)。
+            int generation = FlashBeat.UI.V5.V5GameUi.CanvasGeneration;
+            bool shouldScan = generation != lastScannedGeneration
+                || UnityEngine.Time.frameCount - lastScanFrame >= SafetyScanIntervalFrames;
+            if (!shouldScan)
+            {
+                return true;
+            }
+
+            lastScannedGeneration = generation;
+            lastScanFrame = UnityEngine.Time.frameCount;
+
             var transforms = UnityEngine.Object.FindObjectsByType<UnityEngine.Transform>(
                 UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
             for (int i = 0; i < transforms.Length; i++)
@@ -142,6 +169,52 @@ namespace FlashBeat.UI.V6
                 if (t.gameObject.activeSelf) { t.gameObject.SetActive(false); }
             }
             return true;
+        }
+
+        /// <summary>最後に走査したときの v5 Canvas 生成番号 (Issue #396)。</summary>
+        private static int lastScannedGeneration = -1;
+
+        /// <summary>最後に走査したフレーム (保険の定期走査用)。</summary>
+        private static int lastScanFrame = int.MinValue;
+
+        /// <summary>
+        /// 変化が無くても走査する間隔 (フレーム)。登録を通らない生成経路への保険。
+        /// 60fps で約 2 秒に 1 回。毎フレームより 2 桁少ない。
+        /// </summary>
+        public const int SafetyScanIntervalFrames = 120;
+
+        /// <summary>テスト用: 走査の記録を戻す。</summary>
+        public static void ResetLegacyScanStateForAudit()
+        {
+            lastScannedGeneration = -1;
+            lastScanFrame = int.MinValue;
+        }
+
+        /// <summary>
+        /// テスト用: v5 の Canvas 生成番号。v5 が画面を作ると増える。
+        /// 本番コードはこれを読むだけで、値の意味は
+        /// <see cref="FlashBeat.UI.V5.V5GameUi.CanvasGeneration"/> が正本。
+        /// </summary>
+        public static int LegacyCanvasGeneration
+        {
+            get { return FlashBeat.UI.V5.V5GameUi.CanvasGeneration; }
+        }
+
+        /// <summary>テスト用: 登録と走査の記録をまとめて戻す。</summary>
+        public static void ResetLegacyHidingForAudit()
+        {
+            FlashBeat.UI.V5.V5GameUi.ResetCreatedCanvasesForAudit();
+            ResetLegacyScanStateForAudit();
+        }
+
+        /// <summary>
+        /// テスト用: v5 の Canvas ファクトリを呼ぶ。v5 の画面生成と同じ登録経路を
+        /// 通すので、隠す処理の「後から生成された Canvas を隠せるか」を
+        /// 実際の生成経路で検証できる (<c>V5GameUi</c> は internal のため)。
+        /// </summary>
+        public static UnityEngine.Canvas CreateLegacyCanvasForAudit(string name)
+        {
+            return FlashBeat.UI.V5.V5GameUi.NewCanvas(name, 500);
         }
 
         /// <summary>親をたどって v6 の Canvas ("V6 ..." という名) 配下なら true。</summary>
@@ -184,16 +257,39 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// 旧 (v5) の Canvas / ルート ("V5 Title Canvas" / "V5 Select View" など) を
         /// すべて非表示にする。v6 モードでは v5 の描画を重ねない (二重表示防止)。
-        /// 毎フレーム呼んでも安全 (冪等)。v6 側の "V6..." 名前には触らない。
-        /// 旧 v5 TitleView / SelectView は Start/OnEnable で自前の Canvas を後から
-        /// 生成するので、1 回だけでは足りない。呼び出し側 (V6TitleViewDriver /
-        /// V6SelectViewDriver の Update) は毎フレーム呼ぶ。
+        ///
+        /// Issue #396: 以前は毎フレーム **シーン全体の GameObject を列挙**していた
+        /// (`FindObjectsByType<GameObject>`)。v5 の Canvas はすべて
+        /// <see cref="FlashBeat.UI.V5.V5GameUi.NewCanvas"/> を通って生成されるので、
+        /// 生成時に登録された名前だけを見れば全走査が要らない。
+        ///
+        /// 登録名は「v5 が作った名前」なので、v6 側の名前 ("V6...") には触らない。
+        /// 破棄済みの Canvas は null として飛ばす (登録は名前だけなので残ってよい)。
+        /// 冪等: 既に非アクティブなら何もしない。
         /// </summary>
         public static bool HideLegacyV5Canvases()
         {
-            // RectTransform 経由だと RectTransform を持たない素の "V5..." GameObject を
-            // 見つけられない (EditMode テストが素の GameObject を作る) ので GameObject 単位で列挙。
-            // 子孫は親の "V5" Canvas と一緒に消えるので、個々に非表示にしてよい。
+            // Issue #396: 生成時に登録された Canvas 参照だけを見る。毎フレームの
+            // シーン全列挙 (FindObjectsByType) も配列確保も起きない。
+            var canvases = FlashBeat.UI.V5.V5GameUi.CreatedCanvases;
+            for (int i = 0; i < canvases.Count; i++)
+            {
+                UnityEngine.Canvas canvas = canvases[i];
+                if (canvas == null) continue; // 破棄済みは偽 null になる
+                UnityEngine.GameObject go = canvas.gameObject;
+                if (go == null) continue;
+                if (go.activeSelf) go.SetActive(false);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Issue #396: 全走査をやめた後の後始末。登録に無い旧 v5 ルート
+        /// (過去のビルドがシーンへ置いたもの等) を 1 回だけ掃除する。
+        /// 毎フレームは呼ばない (起動時に 1 回)。
+        /// </summary>
+        public static void HideLegacyV5CanvasesOnce()
+        {
             var roots = UnityEngine.Object.FindObjectsByType<UnityEngine.GameObject>(
                 UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
             for (int i = 0; i < roots.Length; i++)
@@ -203,7 +299,6 @@ namespace FlashBeat.UI.V6
                 if (!go.name.StartsWith("V5")) continue;
                 if (go.activeSelf) go.SetActive(false);
             }
-            return true;
         }
     }
 }

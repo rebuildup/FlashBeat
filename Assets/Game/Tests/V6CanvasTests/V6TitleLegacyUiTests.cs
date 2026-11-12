@@ -69,30 +69,69 @@ namespace FlashBeat.UI.V6.Title.Tests
 
         // --- 実行時の非表示 API (V6UiMode.HideLegacyTitleUi) ---
 
+        [SetUp]
+        public void SetUp()
+        {
+            V6UiMode.ResetLegacyHidingForAudit();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            V6UiMode.ResetLegacyHidingForAudit();
+        }
+
         [Test]
-        public void HideLegacyTitleUi_HidesLateCreatedLegacyObjects_OnEveryCall()
+        public void HideLegacyTitleUi_HidesLegacyObjectsWhenV5CreatesACanvas()
         {
             var first = new GameObject("Menu GameStart");
             V6UiMode.HideLegacyTitleUi();
             Assert.IsFalse(first.activeSelf, "1 回目の呼び出しで隠れる");
 
-            // 旧 v5 TitleView が Start/OnEnable で後から生成するケースの再現:
-            // 前回の呼び出しの後に生成されたオブジェクトも、呼び直せば隠れる
-            // (呼び出し側は毎フレーム呼ぶ契約)。
+            // Issue #396: 走査は「v5 が Canvas を作った」ときに走る。v5 の画面生成は
+            // 必ず V5GameUi.NewCanvas を通るので、生成番号が変われば次の呼び出しで
+            // 後から現れた旧 UI も隠れる。
             var late = new GameObject("Menu Option");
+            V6UiMode.CreateLegacyCanvasForAudit("V5 Late Title Canvas");
             V6UiMode.HideLegacyTitleUi();
-            Assert.IsFalse(late.activeSelf, "生成後に呼び直せば隠れる");
+            Assert.IsFalse(late.activeSelf, "v5 が Canvas を作った後の呼び出しで隠れる");
 
             // v6 自身 (V6 Canvas 配下の "Logo") は隠さない。
             var v6Canvas = new GameObject("V6 Title Canvas").AddComponent<Canvas>();
             var v6Logo = new GameObject("Logo");
             v6Logo.transform.SetParent(v6Canvas.transform, false);
+            V6UiMode.CreateLegacyCanvasForAudit("V5 Another Canvas");
             V6UiMode.HideLegacyTitleUi();
             Assert.IsTrue(v6Logo.activeSelf, "v6 自身の Logo は隠さない");
 
             Object.DestroyImmediate(first);
             Object.DestroyImmediate(late);
             Object.DestroyImmediate(v6Canvas.gameObject);
+        }
+
+        [Test]
+        public void HideLegacyTitleUi_DoesNotScanWhenNothingChanged()
+        {
+            // 生成番号が変わっていない同じフレームでは走査しない (毎フレームの
+            // 全 Transform 列挙をやめたことの固定)。
+            V6UiMode.HideLegacyTitleUi(); // 1 回目で走査し、番号を記録
+
+            var late = new GameObject("Menu Exit");
+            V6UiMode.HideLegacyTitleUi(); // 番号が同じなので走査しない
+
+            Assert.IsTrue(late.activeSelf,
+                "v5 の生成が無いフレームでは走査しない (#396)");
+            Object.DestroyImmediate(late);
+        }
+
+        [Test]
+        public void HideLegacyTitleUi_ScansPeriodicallyAsASafetyNet()
+        {
+            // 登録を通らない生成経路への保険。SafetyScanIntervalFrames ごとに
+            // 1 回は走査する契約を、定数の存在と正の値で固定する。
+            Assert.Greater(V6UiMode.SafetyScanIntervalFrames, 0);
+            Assert.Less(V6UiMode.SafetyScanIntervalFrames, 600,
+                "保険の走査は毎フレームに近づけない (2 秒程度以下)");
         }
     }
 }

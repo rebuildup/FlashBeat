@@ -42,9 +42,12 @@ namespace FlashBeat.UI.V6.Result
         public const float GaugeStart = 1.45f;
         public const float GaugeDuration = 0.50f;
 
-        // 曲情報とランキング。
-        public const float SongInfoStart = 1.75f;
-        public const float SongInfoDuration = 0.20f;
+        // 曲情報とランキングは段階表示しない (2026-11-12 オーナー指摘)。
+        // 毎回変わらない要素をアニメーションしても期待感は生まれず、待たされるだけ。
+        // これらは最初から出し、変わる要素 (トロフィー / グレード / スコア / 判定 /
+        // ゲージ) だけを段階表示する。
+        public const float SongInfoStart = 0f;
+        public const float SongInfoDuration = 0f;
 
         // 登録欄 (登録モーダル)。表示し終えた時点で名前欄へフォーカスする。
         public const float RegisterStart = 2.00f;
