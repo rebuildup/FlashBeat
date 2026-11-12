@@ -12,6 +12,49 @@ namespace FlashBeat.UI.V5
     internal static class V5GameUi
     {
         /// <summary>
+        /// 生成した v5 の画面 Canvas (Issue #396)。
+        ///
+        /// 旧 v5 UI を隠す処理は、以前シーン全体の GameObject/Transform を毎フレーム
+        /// 列挙していた。v5 の Canvas はすべて <see cref="NewCanvas"/> を通るので、
+        /// 生成時に参照を登録しておけば、隠す側は登録済みの数個を見るだけで済む
+        /// (全走査も配列確保も起きない)。
+        ///
+        /// 破棄された Canvas は Unity の偽 null になるので、参照を保持していても
+        /// 判定で飛ばせる (登録を消しに行く必要がない)。
+        /// </summary>
+        private static readonly System.Collections.Generic.List<Canvas> createdCanvases =
+            new System.Collections.Generic.List<Canvas>();
+
+        /// <summary>
+        /// v5 が生成した Canvas の一覧。隠す側はこれを読むだけ (コピーしない)。
+        /// 毎フレーム読まれるので、配列を作り直さない。
+        /// </summary>
+        public static System.Collections.Generic.IReadOnlyList<Canvas> CreatedCanvases
+        {
+            get { return createdCanvases; }
+        }
+
+        /// <summary>
+        /// v5 の Canvas を生成した回数 (Issue #396)。
+        ///
+        /// 旧 v5 UI が新しく現れるのは Canvas 生成のときだけなので、隠す側は
+        /// この番号が変わったときだけシーンを走査すればよい。
+        /// </summary>
+        private static int canvasGeneration;
+
+        public static int CanvasGeneration
+        {
+            get { return canvasGeneration; }
+        }
+
+        /// <summary>テスト用: 登録を空に戻す。</summary>
+        public static void ResetCreatedCanvasesForAudit()
+        {
+            createdCanvases.Clear();
+            canvasGeneration = 0;
+        }
+
+        /// <summary>
         /// ScreenSpaceOverlay の Canvas を作る (Constant Pixel Size x1, Raycaster 付き)。
         /// CanvasConfigurator は解像度変化の再適用だけ担当する。
         /// </summary>
@@ -23,6 +66,8 @@ namespace FlashBeat.UI.V5
             canvas.sortingOrder = sortingOrder;
             CanvasConfigurator.Configure(canvas);
             canvas.sortingOrder = sortingOrder; // Configure は 500 を上書きするので戻す
+            createdCanvases.Add(canvas);
+            canvasGeneration++;
             // 監査で同じ名前の Canvas が二重に見えたとき、どの生成かを追えるようにする。
             Debug.Log("[V5GameUi] NewCanvas " + name + " id=" + canvas.GetEntityId()
                 + " scene=" + go.scene.name + " children=" + go.transform.childCount);

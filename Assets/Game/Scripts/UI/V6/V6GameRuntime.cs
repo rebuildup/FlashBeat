@@ -267,7 +267,12 @@ namespace FlashBeat.UI.V6
                 {
                     hud.SetVisible(true);
                 }
-                hud.Refresh();
+
+                // Issue #393: 更新 (Refresh) の所有者は HUD 自身の Update。
+                // ここから Refresh を呼ぶと 1 フレームに 2 回走っていた
+                // (V6GameRuntime.Update と V6GameHudView.Update の両方)。
+                // 表示の出し分けだけを行い、データ反映はビューへ任せる。
+                hud.RequestRefresh();
             }
         }
 

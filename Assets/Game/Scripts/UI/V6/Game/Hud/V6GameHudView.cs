@@ -99,6 +99,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         private float scorePulseStart = -1f;
         /// <summary>コンボ値のポップ開始時刻 (-1 = 停止中)。</summary>
         private float comboPulseStart = -1f;
+
+        // --- Issue #393: 更新回数の観測点 ---
+        /// <summary>このビューが Refresh を実行した総回数。</summary>
+        private int refreshCount;
+        /// <summary>直近に Refresh を実行したフレーム番号。</summary>
+        private int lastRefreshFrame = -1;
+        /// <summary>同じフレームで 2 回以上 Refresh されたフレーム数 (0 が正常)。</summary>
+        private int duplicateRefreshFrames;
         private float verdictScanUntil;
         private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
         private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
@@ -136,9 +144,40 @@ namespace FlashBeat.UI.V6.Game.Hud
             return view;
         }
 
-        /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
-        public void SetVisible(bool visible)
+        /// <summary>
+        /// 更新の所有者はこのビュー自身 (<c>Update</c>)。統合側はこれを呼ぶだけでよく、
+        /// <see cref="Refresh"/> を直接呼ばない (1 フレーム 2 回の更新を作らない)。
+        ///
+        /// 同じフレームで複数回呼ばれても <see cref="Refresh"/> は 1 回だけ走る
+        /// (このフレームで既に更新済みなら何もしない)。統合側が毎フレーム呼んでも
+        /// 二重更新にならないので、呼び出し順に依存しない。
+        /// </summary>
+        public void RequestRefresh()
         {
+            if (lastRefreshFrame == Time.frameCount)
+            {
+                return;
+            }
+
+            Refresh();
+        }
+
+        // --- Issue #393: 更新回数の観測点 (テストと計測ハーネス用) ---
+
+        /// <summary>このビューが Refresh を実行した総回数。</summary>
+        public int RefreshCountForAudit
+        {
+            get { return refreshCount; }
+        }
+
+        /// <summary>同じフレームで 2 回以上 Refresh されたフレーム数 (0 が正常)。</summary>
+        public int DuplicateRefreshFramesForAudit
+        {
+            get { return duplicateRefreshFrames; }
+        }
+
+        /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
+        public void SetVisible(bool visible)        {
             if (Root != null)
             {
                 Root.gameObject.SetActive(visible);
@@ -146,8 +185,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 実データを UI へ反映する。毎フレーム呼んでよい (冪等)。
-        /// 自身の Update からも呼ぶので、統合側が呼ばなくても動く。
+        /// 実データを UI へ反映する。冪等で、呼ぶ側は 1 フレーム 1 回に限る。
+        ///
+        /// Issue #393: 以前は自身の <c>Update</c> と <c>V6GameRuntime.Update</c> の
+        /// 両方が呼び、同じフレームで 2 回走っていた。更新の所有者はこのビュー自身に
+        /// 一本化したので、統合側は <see cref="RequestRefresh"/> を使う。
         /// </summary>
         public void Refresh()
         {
@@ -155,6 +197,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             {
                 return;
             }
+
+            refreshCount++;
+            if (lastRefreshFrame == Time.frameCount)
+            {
+                duplicateRefreshFrames++;
+            }
+
+            lastRefreshFrame = Time.frameCount;
 
             int score = GManager.score;
             // TextMeshPro の文字列設定は値が変わるまで呼ばない (issue #381:
@@ -247,7 +297,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 Rebuild();
             }
 
-            Refresh();
+            // データ反映の唯一の入口 (Issue #393)。統合側が先に RequestRefresh を
+            // 呼んでいても、このフレームでは二重に走らない。
+            RequestRefresh();
             UpdateScorePulse();
             UpdateComboPulse();
         }
