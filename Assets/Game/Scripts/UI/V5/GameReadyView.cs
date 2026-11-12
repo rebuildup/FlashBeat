@@ -103,12 +103,27 @@ namespace FlashBeat.UI.V5
             }
         }
 
+        /// <summary>
+        /// 曲が変わるごとに 1 度だけ本体表示を作る。
+        ///
+        /// Issue #402: 以前は毎フレーム <c>titleText.text</c> / <c>metaText.text</c> を
+        /// 違うかどうかを見ずに代入していた。同じ内容の TMP 書き込みでも、
+        /// 実装によってはレイアウトの dirty になるし少なくとも文字列 GC は毎フレーム発生していた。
+        /// </summary>
         private void Update()
         {
             if (root == null || !root.activeInHierarchy) return;
 
             var song = GManager.GetSong(GManager.songID);
             if (song == null) return;
+
+            // Issue #402: 曲 ID が変わらない限り再代入しない。
+            if (renderedSongId == GManager.songID)
+            {
+                return;
+            }
+
+            renderedSongId = GManager.songID;
             titleText.text = song.title;
             metaText.text = song.musician + " · BPM " + song.bpm + " · Lv " + song.level;
             if (loadedVideoId != song.videoId)
@@ -117,6 +132,9 @@ namespace FlashBeat.UI.V5
                 StartCoroutine(FetchJacket(song.videoId));
             }
         }
+
+        /// <summary>直前に描画した曲 ID (-1 = 未描画、Issue #402)。</summary>
+        private int renderedSongId = -1;
 
         /// <summary>ジャケットは YouTube サムネイル (Reality: 実曲)。失敗時はプレースホルダのまま。</summary>
         private IEnumerator FetchJacket(string videoId)
