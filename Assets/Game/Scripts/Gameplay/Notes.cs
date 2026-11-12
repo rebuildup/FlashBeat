@@ -114,12 +114,49 @@ public class Notes : MonoBehaviour
             }
             else if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
-                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale);
-                transform.position = new Vector3(transform.position.x, transform.position.y, z);
+                // Issue #394: 画面に関係ないノーツの Transform を毎フレーム
+                // 書き換えない。判定はこのクラスの位置ではなく
+                // NotesManager の時刻表 (noteTime) と Judge が行うので、
+                // 描画を省いても判定結果は変わらない。
+                //
+                // 画面に見え得る範囲は「アプローチ時間ぶん手前 〜 判定線の少し後ろ」。
+                // それより奥 (まだ来ない) と、判定線を十分過ぎた先は書かない。
+                if (ShouldUpdateTransform(remaining))
+                {
+                    float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale);
+                    transform.position = new Vector3(transform.position.x, transform.position.y, z);
+                }
             }
         }
 
     }
+
+    /// <summary>
+    /// 3D ノーツの Transform を更新すべきか (Issue #394)。
+    ///
+    /// <paramref name="remaining"/> は「このノーツの判定時刻までの残り秒」。
+    /// 奥 (remaining が大きい) はカメラの視界の外なので書かない。
+    /// 判定線を過ぎた後は、視界の下端を抜けるまでだけ書く。
+    ///
+    /// 判定には影響しない: Judge は時刻表とキー入力で判定し、
+    /// <see cref="Notes"/> の Transform は読み返さない。
+    /// </summary>
+    public static bool ShouldUpdateTransform(float remaining)
+    {
+        // まだ遠い: アプローチ時間 (design 1.6 秒) の少し手前まで。
+        if (remaining > ApproachSlackSeconds) return false;
+
+        // 判定線を過ぎて十分たった: 画面下へ抜けている。
+        if (remaining < -BehindSlackSeconds) return false;
+
+        return true;
+    }
+
+    /// <summary>アプローチ時間に対する余裕 (秒)。</summary>
+    private const float ApproachSlackSeconds = 2.5f;
+
+    /// <summary>判定線を過ぎてから描き続ける余裕 (秒)。</summary>
+    private const float BehindSlackSeconds = 1.0f;
 
     /// <summary>
     /// v6 プレイフィールドへ接続する。3D のメッシュを隠し、代わりに
