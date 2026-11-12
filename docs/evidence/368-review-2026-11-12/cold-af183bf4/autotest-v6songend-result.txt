@@ -1,0 +1,14 @@
+[AutoTestV6SongEnd] RESULT pass=31 fail=0
+song=春嵐
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=313 great=0 bad=0 miss=2
+judged=315
+settled=315
+chartNotes=315 runtimeNotes=315
+score=993650 combo=313 maxCombo=313 comboPeak=313
+rankingMode=Online
+loadingObserved=False
+loadingVisibleSeconds=0.00
+judgedMatchesChart=True
