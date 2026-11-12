@@ -472,9 +472,9 @@ namespace FlashBeat.UI.V6.Title
             var logoImage = logo.GetComponent<Image>();
             if (logoTex != null)
             {
-                logoImage.sprite = Sprite.Create(logoTex,
-                    new Rect(0f, 0f, logoTex.width, logoTex.height),
-                    new Vector2(0.5f, 0.5f), 100f);
+                // Issue #401: タイトルへ戻るたび Sprite.Create していた。
+                // 原 Texture から 1 枚だけ実体化して共有する。
+                logoImage.sprite = V6Sprites.FromTexture(logoTex, "V6TitleLogo");
             }
             logoImage.preserveAspect = true;
             logoImage.raycastTarget = false;

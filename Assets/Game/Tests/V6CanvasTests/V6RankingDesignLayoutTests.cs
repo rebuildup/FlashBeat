@@ -3,6 +3,7 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Ranking;
 using FlashBeat.UI.V6.Select;
@@ -302,7 +303,7 @@ namespace FlashBeat.V6CanvasTests
                 Transform panel = view.Root.Find("Main/Score Ranking");
                 Assert.IsNotNull(panel, "Score Ranking panel");
                 AssertRect(panel, 584f, 24f, 512f, 732f, "panel");
-                Assert.AreEqual("V5Rounded8", panel.GetComponent<Image>().sprite.name,
+                Assert.AreEqual(8, V6Sprites.RoundedRadiusOf(panel.GetComponent<Image>().sprite),
                     "panel corner radius must be 8 (design qICtu, not 16)");
 
                 Transform head = panel.Find("Head");
@@ -380,7 +381,7 @@ namespace FlashBeat.V6CanvasTests
                 Transform panel = view.Root.Find("Main/Players");
                 Assert.IsNotNull(panel, "Players panel");
                 AssertRect(panel, 1144f, 24f, 512f, 732f, "panel");
-                Assert.AreEqual("V5Rounded8", panel.GetComponent<Image>().sprite.name,
+                Assert.AreEqual(8, V6Sprites.RoundedRadiusOf(panel.GetComponent<Image>().sprite),
                     "panel corner radius must be 8 (design smhrU, not 16)");
 
                 Transform head = panel.Find("Head");

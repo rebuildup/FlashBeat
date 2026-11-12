@@ -19,7 +19,7 @@ namespace FlashBeat.UI.V5
         /// <summary>edge-left/right.png の設計比率 (幅/高さ, 380x1080)。</summary>
         public const float EdgeAspect = 380f / 1080f;
 
-        /// <summary>Resources から Texture2D を読み、pivot 中央の Sprite を作る (毎回新規)。</summary>
+        /// <summary>Resources から Texture2D を読み、pivot 中央の Sprite を作る。</summary>
         public static Sprite LoadSprite(string name)
         {
             var tex = Resources.Load<Texture2D>(ResourcePrefix + name);
@@ -29,15 +29,9 @@ namespace FlashBeat.UI.V5
                 return null;
             }
 
-            var sprite = Sprite.Create(
-                tex,
-                new Rect(0f, 0f, tex.width, tex.height),
-                new Vector2(0.5f, 0.5f),
-                100f,
-                0,
-                SpriteMeshType.FullRect);
-            sprite.name = "V5Decor " + name;
-            return sprite;
+            // Issue #401: 呼ぶたび Sprite.Create していた (Title / Opening が
+            // 画面に入り直すたびに実体が増えた)。同じ原 Texture なら同じ実体を共有する。
+            return FlashBeat.UI.V6.V6Sprites.FromTexture(tex, "V5Decor " + name);
         }
 
         /// <summary>画面全体を塗りつぶす不透明背景 (V5Tokens.Bg)。レガシー UI を覆い隠す。</summary>

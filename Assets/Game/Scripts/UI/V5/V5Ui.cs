@@ -33,7 +33,8 @@ namespace FlashBeat.UI.V5
     /// </summary>
     public static class V5Ui
     {
-        private static readonly Dictionary<int, Sprite> spriteCache = new Dictionary<int, Sprite>();
+        // 角丸スプライトの実体キャッシュは V6Sprites / V6AssetOwner (Issue #401) が
+        // 所有する。ここに辞書を戻すと、v5 と v6 で同じ半径のテクスチャが二重化する。
 
         // --- レイアウト ---
 
@@ -122,56 +123,14 @@ namespace FlashBeat.UI.V5
         /// 角丸スプライトを実行時生成する (半径 radiusPx, fhd 実ピクセル基準)。
         /// 9-slice border を radius+pad に設定するので、どんなサイズに伸縮しても角が潰れない。
         /// 半径ごとにキャッシュ。白で塗るので色は Image.color で変える。
+        ///
+        /// Issue #401: 実体の生成・所有は FlashBeat.UI.V6.V6Sprites.Rounded に統合した。
+        /// v5 は FHD 実ピクセル基準の半径を渡す (v6 の design px とはスケールが違う) が、
+        /// 同じ半径なら同じ 9-slice 実体を共有できる。
         /// </summary>
         public static Sprite RoundedSprite(int radiusPx)
         {
-            if (spriteCache.TryGetValue(radiusPx, out var cached) && cached != null)
-            {
-                return cached;
-            }
-
-            const int pad = 2; // アンチエイリアス用の余白
-            int radius = Mathf.Max(1, radiusPx);
-            // +1: 9-slice の中央ストレッチ領域を最低 1px 確保する
-            // (border の合計 2*(radius+pad) がテクスチャ幅と一致すると中央が 0px になり伸縮しない)。
-            int size = radius * 2 + pad * 2 + 1;
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
-            {
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear
-            };
-            var pixels = new Color32[size * size];
-            var opaque = new Color32(255, 255, 255, 255);
-            var clear = new Color32(0, 0, 0, 0);
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    // 角の中心からの距離でアルファを決める (AA 付き角丸)。
-                    float cx = Mathf.Min(x, size - 1 - x);
-                    float cy = Mathf.Min(y, size - 1 - y);
-                    float dx = Mathf.Max(0f, radius - 0.5f - cx);
-                    float dy = Mathf.Max(0f, radius - 0.5f - cy);
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    float alpha = Mathf.Clamp01(radius - dist);
-                    pixels[y * size + x] = alpha <= 0f ? clear : Color32.Lerp(clear, opaque, alpha);
-                }
-            }
-
-            tex.SetPixels32(pixels);
-            tex.Apply(false, true);
-            float border = radius + pad;
-            var sprite = Sprite.Create(
-                tex,
-                new Rect(0f, 0f, size, size),
-                new Vector2(0.5f, 0.5f),
-                100f,
-                0,
-                SpriteMeshType.FullRect,
-                new Vector4(border, border, border, border));
-            sprite.name = "V5Rounded" + radius;
-            spriteCache[radiusPx] = sprite;
-            return sprite;
+            return FlashBeat.UI.V6.V6Sprites.Rounded(radiusPx);
         }
 
         /// <summary>角丸背景付きパネル。色は V5Tokens から選ぶ。</summary>
