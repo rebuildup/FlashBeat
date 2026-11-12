@@ -1,0 +1,14 @@
+[AutoTestV6SongEnd] RESULT pass=31 fail=0
+song=チュートリアル
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=19 great=0 bad=0 miss=34
+judged=53
+settled=53
+chartNotes=53 runtimeNotes=53
+score=358490 combo=18 maxCombo=18 comboPeak=18
+rankingMode=Online
+loadingObserved=False
+loadingVisibleSeconds=0.00
+judgedMatchesChart=True

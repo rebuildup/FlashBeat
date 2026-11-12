@@ -36,7 +36,10 @@ namespace FlashBeat.UI.V6.Select.Data
         readonly List<V6SongEntry> filteredSongs = new List<V6SongEntry>();
         readonly Dictionary<string, List<V6RankingRow>> rankingCache = new Dictionary<string, List<V6RankingRow>>();
         static readonly Dictionary<string, ChartMeta> chartMetaCache = new Dictionary<string, ChartMeta>();
-        readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
+
+        // 譜面の有無は Resources (ビルドに焼き込まれたテキスト) だけで決まり、
+        // 実行中に変わらない。シーンを跨いで使い回す (Issue #377)。
+        static readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
         readonly List<V6RankingRow> emptyRanking = new List<V6RankingRow>();
 
         // ジャケットの対応表は V6JacketResources (Common) が唯一の正本。
@@ -267,6 +270,7 @@ namespace FlashBeat.UI.V6.Select.Data
             if (chartMetaCache.TryGetValue(cacheKey, out cached)) return cached;
 
             ChartMeta meta = ReadChartMeta(song);
+            ChartMetaLoadCount++;
             chartMetaCache[cacheKey] = meta;
             return meta;
         }
@@ -530,8 +534,43 @@ namespace FlashBeat.UI.V6.Select.Data
             bool exists;
             if (chartExistsCache.TryGetValue(title, out exists)) return exists;
             exists = Resources.Load<TextAsset>(title) != null;
+            ChartExistsLoadCount++;
             chartExistsCache[title] = exists;
             return exists;
+        }
+
+        // --- キャッシュの状態 (Issue #377 の計測と無効化) ------------------------
+
+        /// <summary>譜面メタのキャッシュ件数。</summary>
+        public static int ChartMetaCacheCount
+        {
+            get { return chartMetaCache.Count; }
+        }
+
+        /// <summary>譜面の有無のキャッシュ件数。</summary>
+        public static int ChartExistsCacheCount
+        {
+            get { return chartExistsCache.Count; }
+        }
+
+        /// <summary>
+        /// 譜面メタを実際に読んだ回数 (キャッシュ ヒットは含まない)。
+        /// </summary>
+        public static int ChartMetaLoadCount { get; private set; }
+
+        /// <summary>
+        /// 譜面の有無を実際に <see cref="Resources.Load{T}"/> で確かめた回数。
+        /// </summary>
+        public static int ChartExistsLoadCount { get; private set; }
+
+        /// <summary>
+        /// 譜面メタと譜面の有無のキャッシュを捨てる。無効化の入口は
+        /// <see cref="V6ContentCaches.InvalidateAll"/> に一本化する。
+        /// </summary>
+        internal static void ClearContentCaches()
+        {
+            chartMetaCache.Clear();
+            chartExistsCache.Clear();
         }
 
         /// <summary>

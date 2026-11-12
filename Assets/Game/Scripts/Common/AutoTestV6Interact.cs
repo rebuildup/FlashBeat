@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using FlashBeat.Gameplay;
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Game.Hud;
 using FlashBeat.UI.V6.Game.Pause;
 using FlashBeat.UI.V6.Option;
 using FlashBeat.UI.V6.Result;
+using FlashBeat.UI.V6.Select.View;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -70,6 +72,7 @@ public class AutoTestV6Interact : MonoBehaviour
         yield return RunVolumeSlider();
         yield return RunResultReveal();
         yield return RunResumeCountdown();
+        yield return RunContentCache();
 
         WriteResult();
         Application.Quit();
@@ -341,6 +344,77 @@ public class AutoTestV6Interact : MonoBehaviour
         V6ResumeCountdown.Abort();
         pause.Close();
         PauseGate.HardReset();
+    }
+
+    // ---------------------------------------------------------------- #377
+
+    /// <summary>
+    /// 譜面・ジャケットのキャッシュ (Issue #377)。Select を開き、別シーンへ
+    /// 離れて戻ったときに Resources の読み直しが起きないことを、実読込回数で見る。
+    /// </summary>
+    private IEnumerator RunContentCache()
+    {
+        // 冷たい状態 (キャッシュ空) と温かい状態で同じ画面を開き、所要時間と
+        // Resources の実読込回数を比べる。
+        V6ContentCaches.InvalidateAll();
+        float cold = 0f;
+        yield return TimedSelect("cold", v => cold = v);
+        var before = CacheCounts();
+
+        yield return LoadScene("TitleScene");
+        float warm = 0f;
+        yield return TimedSelect("warm", v => warm = v);
+        var after = CacheCounts();
+
+        Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
+            + " first=" + before.Describe() + " second=" + after.Describe());
+
+        Check("the first visit loads charts", before.ChartMetaLoads + before.ChartExistsLoads > 0);
+        Check("the second visit reloads no chart meta",
+            after.ChartMetaLoads == before.ChartMetaLoads);
+        Check("the second visit reloads no chart existence",
+            after.ChartExistsLoads == before.ChartExistsLoads);
+        Check("the second visit reloads no jacket", after.JacketLoads == before.JacketLoads);
+        Check("the jackets stay cached", after.JacketCount > 0 && after.JacketCount >= before.JacketCount);
+    }
+
+    /// <summary>Select シーンを開き、シーンが有効になって 2 フレーム経つまでの秒数を返す。</summary>
+    private IEnumerator TimedSelect(string label, Action<float> report)
+    {
+        float start = Time.unscaledTime;
+        SceneManager.LoadScene("SelectScene");
+        while (SceneManager.GetActiveScene().name != "SelectScene") { yield return null; }
+        yield return null;
+        yield return null;
+        float seconds = Time.unscaledTime - start;
+
+        Check("the select scene is loaded (" + label + ")", V6SelectView.Current != null);
+        report(seconds);
+    }
+
+    private struct Counts
+    {
+        public int ChartMetaLoads;
+        public int ChartExistsLoads;
+        public int JacketLoads;
+        public int JacketCount;
+
+        public string Describe()
+        {
+            return "chartMeta=" + ChartMetaLoads + " chartExists=" + ChartExistsLoads
+                + " jacket=" + JacketLoads + "/cached=" + JacketCount;
+        }
+    }
+
+    private static Counts CacheCounts()
+    {
+        return new Counts
+        {
+            ChartMetaLoads = V6ContentCaches.ChartMetaLoadCount,
+            ChartExistsLoads = V6ContentCaches.ChartExistsLoadCount,
+            JacketLoads = V6ContentCaches.JacketLoadCount,
+            JacketCount = V6ContentCaches.JacketCount,
+        };
     }
 
     // ---------------------------------------------------------------- helpers
