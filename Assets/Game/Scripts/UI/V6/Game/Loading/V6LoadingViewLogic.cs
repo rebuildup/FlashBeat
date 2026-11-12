@@ -125,16 +125,11 @@ namespace FlashBeat.UI.V6.Game.Loading
         /// (テクスチャ座標、原点は左下)。中心を正方形に取る。
         /// design N3HPJ は cover 指定なので、16:9 素材 (320×180) を
         /// そのまま入れて帯にしない。素材が正方形なら全面を返す。
+        /// 正本は <see cref="FlashBeat.UI.V6.V6JacketProvider.CoverCropRect"/>。
         /// </summary>
         public static Rect CoverCropRect(int width, int height)
         {
-            if (width <= 0 || height <= 0)
-            {
-                return new Rect(0f, 0f, 0f, 0f);
-            }
-
-            float side = Mathf.Min(width, height);
-            return new Rect((width - side) * 0.5f, (height - side) * 0.5f, side, side);
+            return V6JacketProvider.CoverCropRect(width, height);
         }
 
         /// <summary>
