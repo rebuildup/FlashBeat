@@ -444,6 +444,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             lastLaneGridCanvas = new Vector2(float.NaN, float.NaN);
             lastLaneGridScale = float.NaN;
             lastLaneGridCamera = null;
+            lastLaneGridPlayfield = false;
             lastJudged = -1;
             songIdCached = int.MinValue;
             lyricData = null;
@@ -1244,6 +1245,8 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             lastLaneGridCanvas = canvasSize;
             lastLaneGridScale = rootScale;
+            lastLaneGridPlayfield = FlashBeat.UI.V6.V6UiMode.Playfield;
+            NoteLaneGridCamera();
 
             if (FlashBeat.UI.V6.V6UiMode.Playfield)
             {
@@ -1271,10 +1274,13 @@ namespace FlashBeat.UI.V6.Game.Hud
         ///
         /// 変わらない限り <see cref="SetLaneGridX"/> を呼ばない。カメラの変換行列も
         /// 入力の 1 つなので、カメラが動いた場合 (v5 プレイフィールドの揺れ等) は
-        /// 追従する。
+        /// 追従する。位置・回転の値を直接追跡する (Transform.hasChanged は
+        /// 読んでもリセットされないので使わない)。
         /// </summary>
         private bool LaneGridInputsChanged(Vector2 canvasSize, float rootScale)
         {
+            bool playfield = FlashBeat.UI.V6.V6UiMode.Playfield;
+
             if (!V6LayoutWrites.NearlyEqual(lastLaneGridCanvas.x, canvasSize.x, V6LayoutWrites.PositionEpsilon)
                 || !V6LayoutWrites.NearlyEqual(lastLaneGridCanvas.y, canvasSize.y, V6LayoutWrites.PositionEpsilon))
             {
@@ -1286,31 +1292,66 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return true;
             }
 
-            if (lastLaneGridPlayfield != FlashBeat.UI.V6.V6UiMode.Playfield)
+            if (lastLaneGridPlayfield != playfield)
             {
                 return true;
             }
 
-            if (!FlashBeat.UI.V6.V6UiMode.Playfield)
+            if (!playfield)
             {
                 var cam = Camera.main;
                 if (cam == null)
                 {
+                    // カメラが無くなった場合だけ作り直す（記録が残っているかを見る）。
                     return lastLaneGridCamera != null;
                 }
 
-                // カメラが入れ替わった / 動いた / 回転した。
                 if (!ReferenceEquals(lastLaneGridCamera, cam)) return true;
-                if (cam.transform.hasChanged) return true;
+
+                var t = cam.transform;
+                if (!NearlyEqualVector(lastLaneGridCameraPosition, t.position)
+                    || !NearlyEqualRotation(lastLaneGridCameraRotation, t.rotation))
+                {
+                    return true;
+                }
             }
 
             return false;
+        }
+
+        /// <summary>Tracked カメラの位置・回転を更新する (UpdateLaneGrids の適用後に呼ぶ)。</summary>
+        private void NoteLaneGridCamera()
+        {
+            if (FlashBeat.UI.V6.V6UiMode.Playfield)
+            {
+                lastLaneGridCamera = null;
+                return;
+            }
+
+            var cam = Camera.main;
+            lastLaneGridCamera = cam;
+            if (cam == null) return;
+
+            lastLaneGridCameraPosition = cam.transform.position;
+            lastLaneGridCameraRotation = cam.transform.rotation;
+        }
+
+        private static bool NearlyEqualVector(Vector3 a, Vector3 b)
+        {
+            return (a - b).sqrMagnitude <= 0.000001f; // 位置 0.001 単位の揺れ
+        }
+
+        private static bool NearlyEqualRotation(Quaternion a, Quaternion b)
+        {
+            return Quaternion.Angle(a, b) <= 0.01f;
         }
 
         private Vector2 lastLaneGridCanvas = new Vector2(float.NaN, float.NaN);
         private float lastLaneGridScale = float.NaN;
         private bool lastLaneGridPlayfield;
         private Camera lastLaneGridCamera;
+        private Vector3 lastLaneGridCameraPosition;
+        private Quaternion lastLaneGridCameraRotation;
 
         /// <summary>
         /// レーン格子の第 lane 列へキーキャップと判定テキストを載せる。
