@@ -1204,16 +1204,23 @@ namespace FlashBeat.UI.V6.Game.Pause
             durationValue.text = V6PauseViewLogic.FormatDuration(song != null ? song.duration : 0f);
 
             string videoId = song != null ? song.videoId : null;
-            if (!string.IsNullOrEmpty(videoId) && loadedVideoId != videoId && driver != null)
+            if (!string.IsNullOrEmpty(videoId) && loadedVideoId != videoId)
             {
                 loadedVideoId = videoId;
-                driver.StartCoroutine(FetchJacket(videoId));
+                RequestJacket(videoId);
             }
         }
 
-        /// <summary>ジャケットは YouTube サムネイル (実曲)。失敗時はプレースホルダのまま
-        /// (v5 GameReadyView.FetchJacket と同じ方式)。</summary>
-        private IEnumerator FetchJacket(string videoId)
+        /// <summary>
+        /// ジャケットは YouTube サムネイル (実曲)。失敗時はプレースホルダのまま。
+        ///
+        /// Issue #398: 取得は <see cref="V6JacketProvider"/> に一本化した。
+        /// 以前はこの画面が独自に UnityWebRequest を回し Sprite.Create していた為、
+        /// (1) 同じ映像 ID を Result / ローディングと同時に取りに行くと HTTP が重複し、
+        /// (2) 生成した Texture2D と Sprite の所有者が無く、ポーズを開くたびに
+        ///     native が積み上がっていた。
+        /// </summary>
+        private void RequestJacket(string videoId)
         {
             if (thumbImage != null)
             {
@@ -1223,28 +1230,26 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             if (string.IsNullOrEmpty(videoId))
             {
-                yield break;
+                return;
             }
 
-            var url = "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
-            using (var req = UnityEngine.Networking.UnityWebRequestTexture.GetTexture(url))
+            V6JacketProvider.RequestRemote(videoId, sprite =>
             {
-                yield return req.SendWebRequest();
-                if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+                // ポーズを閉じた / 別の曲へ移った後に届いた結果は捨てる。
+                if (thumbImage == null || loadedVideoId != videoId)
                 {
-                    yield break;
+                    return;
                 }
 
-                var tex = UnityEngine.Networking.DownloadHandlerTexture.GetContent(req);
-                var sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height),
-                    new Vector2(0.5f, 0.5f), 100f);
-                if (thumbImage != null && loadedVideoId == videoId)
+                if (sprite == null)
                 {
-                    thumbImage.sprite = sprite;
-                    thumbImage.preserveAspect = true;
-                    thumbImage.color = Color.white;
+                    return; // プレースホルダのまま (design の空枠)
                 }
-            }
+
+                thumbImage.sprite = sprite;
+                thumbImage.preserveAspect = true;
+                thumbImage.color = Color.white;
+            });
         }
 
         private void RefreshTabs()

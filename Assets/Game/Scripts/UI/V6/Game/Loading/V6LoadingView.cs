@@ -96,13 +96,11 @@ namespace FlashBeat.UI.V6.Game.Loading
         /// <summary>生成したビューを破棄する。</summary>
         public void Dispose()
         {
-            if (jacketSprite != null)
-            {
-                // Sprite.Create で作った実体 (ApplySong の再生成漏れを防ぐ)。
-                UnityEngine.Object.Destroy(jacketSprite);
-                jacketSprite = null;
-                jacketTexture = null;
-            }
+            // Issue #398: jacketSprite は V6JacketProvider が所有する (原 Texture +
+            // crop 矩形で共有)。ここで Destroy すると、同じ画像を使っている他の画面が
+            // 白くなる。手放すだけにする。
+            jacketSprite = null;
+            jacketTexture = null;
 
             if (videoTexture != null)
             {
@@ -690,23 +688,14 @@ namespace FlashBeat.UI.V6.Game.Loading
                 // Sprite.Create を繰り返さない (実体の作り直しはリークになる)。
                 if (!ReferenceEquals(jacketTexture, jacket))
                 {
-                    if (jacketSprite != null)
-                    {
-                        UnityEngine.Object.Destroy(jacketSprite);
-                        jacketSprite = null;
-                    }
-
                     jacketTexture = jacket;
-                    if (jacket != null)
-                    {
-                        // design N3HPJ は 56×56 を mode:"cover" で埋める。実素材は
-                        // 16:9 (320×180) なので、中心を正方形に切り出してから Sprite 化する。
-                        // 全体をそのまま入れると 56×31.5 の帯になり、design の
-                        // 正方形から大きく外れる (r15 実機で確認)。
-                        jacketSprite = Sprite.Create(jacket,
-                            V6LoadingViewLogic.CoverCropRect(jacket.width, jacket.height),
-                            new Vector2(0.5f, 0.5f), 100f);
-                    }
+                    // Issue #398: design N3HPJ は 56×56 を mode:"cover" で埋める。
+                    // 実素材は 16:9 (320×180) なので中心を正方形に切り出してから
+                    // Sprite 化する。切り抜きは provider が所有する (同じ原 Texture +
+                    // 同じ矩形なら同じ実体を返すので、画面を出入りしても増えない)。
+                    // 全体をそのまま入れると 56×31.5 の帯になり、design の
+                    // 正方形から大きく外れる (r15 実機で確認)。
+                    jacketSprite = V6JacketProvider.SquareCrop(jacket, "V6LoadingJacket");
                 }
 
                 jacketImage.sprite = jacketSprite;

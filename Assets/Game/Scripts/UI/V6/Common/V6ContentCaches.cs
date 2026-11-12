@@ -54,6 +54,9 @@ namespace FlashBeat.UI.V6
         {
             V6SelectDataSource.ClearContentCaches();
             V6JacketResources.ClearCache();
+            // Issue #398: ジャケットの実体は V6JacketProvider が所有する。
+            // ここを忘れると、無効化したのに古い Sprite が返り続ける。
+            V6JacketProvider.InvalidateLocal();
         }
 
         /// <summary>

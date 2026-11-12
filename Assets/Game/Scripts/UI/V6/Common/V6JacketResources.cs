@@ -45,19 +45,23 @@ namespace FlashBeat.UI.V6
             { "4th smile", "4th smile" },
         };
 
-        private static readonly Dictionary<int, Sprite> SpriteCache = new Dictionary<int, Sprite>();
+        // Sprite の実体キャッシュは V6JacketProvider (Issue #398) が所有する。
+        // このクラスは「カタログ index → Resources パス」の対応表だけを持つ。
 
         /// <summary>キャッシュに実際に載った枚数 (Issue #377 の上限見積り用)。</summary>
         public static int CachedSpriteCount
         {
-            get { return SpriteCache.Count; }
+            get { return V6JacketProvider.CachedSpriteCount; }
         }
 
         /// <summary>
         /// <see cref="LoadSprite"/> が実際に Resources から読んだ回数。キャッシュに
         /// 当たった回数は含まない (Issue #377 の再読込が無いことの確認用)。
         /// </summary>
-        public static int TextureLoadCount { get; private set; }
+        public static int TextureLoadCount
+        {
+            get { return V6JacketProvider.LocalLoadCount; }
+        }
 
         /// <summary>
         /// カタログ index → Resources パス (拡張子なし)。無い曲は空文字。
@@ -128,33 +132,21 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// ジャケットの Sprite。同じ曲には同じ Sprite を返す (毎フレーム生成しない)。
         /// 無い曲は null。
+        ///
+        /// Issue #398: 実体の所有は <see cref="V6JacketProvider"/> に移した。
+        /// ここは「カタログ index → Resources パス」の対応表 (このクラスの責務) と
+        /// 互換 API だけを持ち、Sprite の生成・キャッシュは provider が行う。
+        /// 既存の呼び出し (<c>V6SelectView</c> / <c>V6ResultView</c>) は変更不要。
         /// </summary>
         public static Sprite LoadSprite(int songId, string title)
         {
-            Sprite cached;
-            if (SpriteCache.TryGetValue(songId, out cached))
-            {
-                return cached;
-            }
-
-            Texture2D tex = LoadTexture(songId, title);
-            if (tex == null)
-            {
-                return null;
-            }
-
-            TextureLoadCount++;
-            var sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height),
-                new Vector2(0.5f, 0.5f), 100f);
-            sprite.name = "V6Jacket-" + songId;
-            SpriteCache[songId] = sprite;
-            return sprite;
+            return V6JacketProvider.Local(songId, title);
         }
 
         /// <summary>EditMode テスト用。シーンを跨いだキャッシュを捨てる。</summary>
         public static void ClearCache()
         {
-            SpriteCache.Clear();
+            V6JacketProvider.InvalidateLocal();
         }
     }
 }
