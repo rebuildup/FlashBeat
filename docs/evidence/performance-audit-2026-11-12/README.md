@@ -63,7 +63,7 @@ History / Ranking / Option → 再プレイ の全経路。
 | バンドル音声 | `Resources.LoadAsync<AudioClip>` | Unity | Unity の資源キャッシュ |
 | YouTube メディア | `YouTubeMediaCache` | ファイルキャッシュ | 完了印 + 再取得制御 (既存) |
 | 譜面メタ / 存在 | `V6SelectDataSource` | 静的辞書 | プロセス (#377) |
-| メディア容量 | `MediaCacheManager.GetCacheSizeBytes` | 毎回全走査 | **無し** (#403) |
+| メディア容量 | `MediaCacheManager.GetCacheSizeBytes` | スナップショット（TTL 30 秒） | `InvalidateSize` / `Clear` / 完成 |
 | 雲カタログ | `CloudCatalog.LoadConfig` | 呼び出し側 | 無し (#403) |
 
 ### 2.3 画面ごとの更新責務
@@ -71,14 +71,14 @@ History / Ranking / Option → 再プレイ の全経路。
 | 画面 | 毎フレーム更新 | 全再構築の契機 | 備考 |
 | --- | --- | --- | --- |
 | Title | `V6TitleViewDriver.Update` → 旧 UI 隠し | なし | #396 で全走査を削減済み |
-| Select | `V6SelectViewDriver.Update` | **`data.Changed` のたび `Rebuild`** | #399 |
+| Select | `V6SelectViewDriver.Update` | 変動ゾーンだけ差分更新（#399 済み、フッター保持） | #399 |
 | History / Ranking | `V6…View.Update` | **`Refresh` / `Rebuild` で全子破棄** | #399 |
 | Option | なし | **`Refresh` で全ゾーン再構築** | #399 |
 | Game HUD | `V6GameHudView.Update` → `Refresh` | 解像度変更で `Rebuild` | #393 / #402 |
 | Playfield | `V6PlayfieldView.Update` | サイズ変更で `ApplyLayout` | フラッシュのみ時間依存 |
 | Pause | `V6PauseView.Update` | 開くたび `RefreshHeader` | ジャケットは provider 経由 |
 | Loading | `V6LoadingView.Update` | `ApplySong` | crop は provider 共有 |
-| Result | ドライバ `Update` | `RefreshRanking` で全行再生成 | #399 |
+| Result | ドライバ `Update` | `RefreshRanking` で全行再生成 | #399（未着手） |
 
 ---
 
@@ -209,17 +209,26 @@ GPU 時間と Canvas rebuild の内訳は Profiler (UI Details / Canvas.BuildBat
 - `Assets/Game/Scripts/UI/V6/Common/V6JacketProvider.cs`
   - `Local(songId,title)`: ローカル優先。無い曲は負キャッシュ。
   - `Crop` / `SquareCrop`: **原 Texture + 矩形** をキーに共有 (再デコードしない)。
-  - `RequestRemote(videoId, onReady)`: 同時要求 dedupe + 失敗の負キャッシュ
-    (60 秒) + 同時接続 2 本。結果は待っている全員へ配る。
+    キーは Texture の**参照**（`Equals`/`GetHashCode` は参照比較）であり、
+    EntityId のハッシュを使わない。
+  - `RequestRemote(videoId, onReady)` / `RequestRemoteTexture(...)`: 同時要求 dedupe
+    + 失敗の負キャッシュ (60 秒) + 同時接続 2 本。Sprite でも backdrop/Texture でも
+    同じ HTTP 1 本を共有する。
 
 変更:
 - `V6HistoryView` / `V6RankingView`: 独自 `jacketCache` を削除し provider へ。
 - `V6PauseView`: 独自 UnityWebRequest を削除し provider へ。
-- `V6LoadingView`: `SquareCrop` を使用。`Dispose` で provider 所有の Sprite を
+- `V6LoadingView`: `SquareCrop` を使用し、`Dispose` は provider 所有の Sprite を
   Destroy しない (他画面が白くなるため)。
 - `V6JacketResources`: 対応表 (パス解決) だけを残し、実体は provider。
   既存の計測プロパティ (`CachedSpriteCount` / `TextureLoadCount`) は provider を指す。
-- `V6ContentCaches.InvalidateAll`: provider の無効化も呼ぶ。
+- `V6ContentCaches.InvalidateAll`: provider の無効化も呼ぶ。**作った Sprite は
+  ここで破棄する**（Resources 原Texture は Unity/Resources 所有なので破棄しない）。
+- `ResultSceneManager`: legacy の独自 `UnityWebRequestTexture` + `Sprite.Create`
+  (`/0.jpg`) を削除し、provider の backdrop 経路 (`RequestRemoteTexture`) へ統合。
+  ただし **URL が /0.jpg → hqdefault に変わる**（backdrop の解像度が下がる）。
+  これは「同じ遠隔画像を画面間で共有する」ためのトレードオフで、
+  backdrop の見た目再確認は未実施。
 
 検証 (EditMode):
 - `Assets/Tests/Editor/JacketProviderTests.cs` — 同一曲で同一実体 / 負キャッシュ /
@@ -246,25 +255,32 @@ GPU 時間と Canvas rebuild の内訳は Profiler (UI Details / Canvas.BuildBat
 「Title/History/Ranking を往復しても実体が増えない」という構造の改善であり、
 フレーム時間への寄与は小さいと予想する (§5.3 のカウンタで確認可能)。
 
+**所有者の契約**: Resources 側のアイコンは Unity 所有なので provider は破棄しない。
+生成した Sprite は `V6AssetOwner` がプロセス寿命で所有し、`V6AssetScope` は View 固有のものだけ破棄する。
+
 ### 6.3 #403 (一部): キャッシュ容量の全走査
 
 `MediaCacheManager.GetCacheSizeBytes` は呼ぶたび `Directory.GetFiles(..., AllDirectories)`
 で全ファイルを列挙し `FileInfo` を作っていた。変更:
 
 - 同じ root の結果をスナップショットとして保持し、通常の表示ではディスクを舐めない。
+- **スナップショットは TTL 30 秒で失効**（外部変更を永遠に見逃さない保険。テストあり）。
 - 無効化はキャッシュを書き換えた側が行う (Clear / ClearAll / ダウンロード完了)。
 - `ScanSizeBytes` に「常にディスクを読む」計測経路を分離。
 - `SizeScanCount` で実際に舐めた回数を観測できる。
 
 **鮮度の契約**: 外部がファイルを増やした場合、完了した側が `InvalidateSize` を
-呼ぶ。呼ばなければ表示は古いまま。誤った値を素早く返すより規約を明示する。
+呼ぶ。TTL 30 秒経過すれば外部変更も再スキャンで回収する（テストあり）。
 
 ### 6.4 #402: 定常フレームの同値書戻しを止める
 
 `V6LayoutWrites` を追加し、`sizeDelta` / `anchoredPosition` / `alpha` / `active`
 の同値代入を避ける。HUD の固定値書き込みと、プレイフィールドのレーンフラッシュを
 これ経由にした。`UpdateLaneGrids` は解像度・scale・Playfield フラグ・
-カメラの `hasChanged` が変わったときだけ計算する。
+**カメラの位置/回転** が変わったときだけ計算する。
+
+（`Transform.hasChanged` は読んでもリセットされないため使わない。
+`NoteLaneGridCamera()` で前回の位置/回転をメモし、動いた時だけ更新する。）
 
 **時間依存の表示は止めていない** (歌詞・進捗・スコア・判定・ポップ)。
 EditMode テストがその構造を固定する。
