@@ -204,6 +204,27 @@ public class MediaCacheManagerTests
     }
 
     [Test]
+    public void SnapshotExpiresAfterTheTtl()
+    {
+        MediaCacheManager.ResetSizeCacheForAudit();
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        // 外部（このクラスを経ない）でファイルが増えても、TTL 経過で再スキャンされる。
+        var field = typeof(MediaCacheManager).GetField("sizeSnapshot",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.IsNotNull(field);
+        var dict = (System.Collections.Generic.Dictionary<string, (long Bytes, float Stamp)>)field.GetValue(null);
+        var entry = dict[root];
+        dict[root] = (entry.Bytes, -1000f); // 強制的に期限切れにする
+
+        WriteFile(Path.Combine("songB", "video.mp4"), 500);
+        Assert.AreEqual(1500L, MediaCacheManager.GetCacheSizeBytes(root),
+            "TTL を過ぎても古い容量を返している");
+    }
+
+    [Test]
     public void ScanSizeBytesAlwaysReadsTheDisk()
     {
         WriteFile(Path.Combine("songA", "video.mp4"), 1000);

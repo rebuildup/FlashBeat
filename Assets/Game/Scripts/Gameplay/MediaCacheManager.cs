@@ -62,30 +62,34 @@ namespace FlashBeat.Gameplay
         /// 同期 I/O + 一時配列 + GC が発生する。ここでは
         ///
         ///   - 同じ root に対する結果を **スナップショット** として覚える
-        ///   - 無効化は「このクラスが cache を書き換えたとき」に自動で行う
+        ///   - 無効化は「このクラスが cache を書き換えたとき」に行う
         ///     (<see cref="Clear"/> / <see cref="ClearAll"/> / <see cref="InvalidateSize"/>)
+        ///   - スナップショットは <see cref="SizeSnapshotSeconds"/> 秒で陳腐化する
         ///
-        /// という形にして、通常の表示ではディスクを舐めない。
-        ///
-        /// **鮮度の契約**: 外部 (yt-dlp のダウンロード完了) がファイルを増やしても
-        /// この値は自動では変わらない。ダウンロードを完了した側が
-        /// <see cref="InvalidateSize"/> を呼ぶこと。呼ばなかった場合は
-        /// 表示が古いままになる (誤った値を素早く返すより、呼び出し規約を明示する)。
+        /// という形にして、表示のたびにディスクを舐めない。
+        /// 外部（yt-dlp のダウンロード完了）がファイルを増やしたときは
+        /// ダウンロードを完了した側が <see cref="InvalidateSize"/> を呼ぶ。
+        /// TTL は「外部の書き換えを永遠に見逃さない」ための保険であり、
+        /// 陳腐化しても最短でも TTL 秒に 1 回は舐め直す（それ以上古い値は返らない）。
         /// </summary>
         public static long GetCacheSizeBytes(string root = null)
         {
             var directory = root ?? RootDirectory;
-            long cached;
-            if (sizeSnapshot.TryGetValue(directory, out cached))
+            string snapshotKey = directory;
+            if (sizeSnapshot.TryGetValue(snapshotKey, out var snap)
+                && Time.unscaledTime - snap.Stamp < SizeSnapshotSeconds)
             {
-                return cached;
+                return snap.Bytes;
             }
 
             long total = ScanSizeBytes(directory);
-            sizeSnapshot[directory] = total;
+            sizeSnapshot[snapshotKey] = (total, Time.unscaledTime);
             SizeScanCount++;
             return total;
         }
+
+        /// <summary>スナップショットの有効期間 (秒)。</summary>
+        public const float SizeSnapshotSeconds = 30f;
 
         /// <summary>
         /// ディスクを実際に舐めて合計を出す (キャッシュを経由しない)。
@@ -178,8 +182,8 @@ namespace FlashBeat.Gameplay
             SizeScanCount = 0;
         }
 
-        private static readonly Dictionary<string, long> sizeSnapshot =
-            new Dictionary<string, long>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, (long Bytes, float Stamp)> sizeSnapshot =
+            new Dictionary<string, (long Bytes, float Stamp)>(StringComparer.Ordinal);
 
         /// <summary>Deletes the media of one song. Returns true when something was removed.</summary>
         public static bool Clear(string videoId, string root = null)
