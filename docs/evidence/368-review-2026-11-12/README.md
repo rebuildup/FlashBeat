@@ -8,7 +8,7 @@ Issue #368 の子 Issue (#369–#384) に対する、macOS 実機ビルドでの
 | 項目 | 値 |
 |---|---|
 | ビルド | macOS `FlashBeat.app`、`0.1.23+b5b98a6e` (Unity 6000.5.6f1) |
-| ソース | branch `w/v6-368-impl`、HEAD `b5b98a6e` |
+| ソース | branch `w/v6-368-impl`、HEAD `b7af2f12` (ビルドは `b5b98a6e` のツリー。差分はこの文書の追加のみ) |
 | ディスプレイ | 3420×2224 px (1710×1112 pt)、メニューバー 38 pt、Dock は自動非表示 |
 | 起動方法 | `open Builds/macOS/FlashBeat.app`、ハーネスは `Contents/MacOS/FlashBeat <引数>` を直接実行 |
 | 入力 | `osascript` の `key code`、またはプレイヤー内ハーネス (下記 §4) |
