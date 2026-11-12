@@ -461,7 +461,29 @@ public class AutoTestV6Interact : MonoBehaviour
         shot++;
         string path = Path.Combine(outDir, "v6interact-" + label + ".png");
         ScreenCapture.CaptureScreenshot(path);
-        yield return new WaitForSecondsRealtime(0.6f);
+
+        // 書き出しは非同期。0.6 秒の固定待ちだと、直後にシーンを切り替えたときに
+        // ファイルが現れる前に判定してしまうことがある (実測で 1 回)。
+        float waited = 0f;
+        while (!File.Exists(path) && waited < 5f)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (!File.Exists(path))
+        {
+            // 1 度だけ撮り直す (フレーム境界をまたいだ取りこぼし対策)。
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForEndOfFrame();
+            waited = 0f;
+            while (!File.Exists(path) && waited < 5f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
         Check("the screenshot " + label + " was written", File.Exists(path));
     }
 
