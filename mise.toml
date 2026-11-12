@@ -40,6 +40,15 @@ run = "bun evals/evidence-manifest/manifest.mts docs/evidence/368-review-2026-11
 [tasks."evidence-manifest-test"]
 run = "bun test evals/evidence-manifest/"
 
+# Render the reviewer-facing report (Issue #389) from the manifest plus the
+# reviewer notes. The CLI exits 1 while anything is unverified or a human
+# decision is open, so CI cannot mistake it for green; the task itself tolerates
+# that expected 1 and only fails on a real error.
+[tasks."evidence-report"]
+run = """
+bun evals/evidence-manifest/report.mts docs/evidence/368-review-2026-11-12/manifest.json --notes docs/evidence/368-review-2026-11-12/review-notes.json --out docs/ui/v6-review-report-2026-11-12.md || test $? -eq 1
+"""
+
 # One lifecycle for Worktrunk, plain git and IDE-created worktrees.
 # See scripts/worktree/setup.sh and docs/adr/ADR-0001-agent-environment.md.
 [tasks."worktree:setup"]
