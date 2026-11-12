@@ -53,11 +53,17 @@ namespace FlashBeat.UI.V6
             public float FailedAt;
             public bool InFlight;
             public readonly List<Action<Sprite>> Waiting = new List<Action<Sprite>>();
+            public readonly List<Action<Texture2D>> WaitingTexture = new List<Action<Texture2D>>();
         }
 
+        /// <summary>
+        /// crop variant のキャッシュキー。**原 Texture は参照そのもの**で比較する
+        /// (ID のハッシュ値では分けられない: ハッシュ衝突で別のテクスチャの
+        /// 切り抜きが返ると、誤画像がキャッシュに残り続ける)。
+        /// </summary>
         private sealed class SpriteKey
         {
-            public int TextureId;
+            public Texture2D Texture;
             public int CropX;
             public int CropY;
             public int CropW;
@@ -67,7 +73,7 @@ namespace FlashBeat.UI.V6
             {
                 var other = obj as SpriteKey;
                 if (other == null) return false;
-                return TextureId == other.TextureId
+                return ReferenceEquals(Texture, other.Texture)
                     && CropX == other.CropX && CropY == other.CropY
                     && CropW == other.CropW && CropH == other.CropH;
             }
@@ -76,7 +82,8 @@ namespace FlashBeat.UI.V6
             {
                 unchecked
                 {
-                    int hash = TextureId;
+                    // 参照のハッシュ値を容器として使い、比較は Equals が担う。
+                    int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Texture);
                     hash = hash * 397 ^ CropX;
                     hash = hash * 397 ^ CropY;
                     hash = hash * 397 ^ CropW;
@@ -130,21 +137,6 @@ namespace FlashBeat.UI.V6
         public static int CachedSpriteCount
         {
             get { return localSpriteCache.Count + cropCache.Count; }
-        }
-
-        /// <summary>このプロセスが保持している遠隔 Texture の枚数。</summary>
-        public static int RemoteTextureCount
-        {
-            get
-            {
-                int n = 0;
-                foreach (var pair in remoteCache)
-                {
-                    if (pair.Value != null && pair.Value.Texture != null) n++;
-                }
-
-                return n;
-            }
         }
 
         // ------------------------------------------------------------------
@@ -220,7 +212,7 @@ namespace FlashBeat.UI.V6
 
             var key = new SpriteKey
             {
-                TextureId = texture.GetEntityId().GetHashCode(),
+                Texture = texture,
                 CropX = Mathf.RoundToInt(rect.x),
                 CropY = Mathf.RoundToInt(rect.y),
                 CropW = Mathf.RoundToInt(rect.width),
@@ -233,7 +225,8 @@ namespace FlashBeat.UI.V6
                 return cached;
             }
 
-            var sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f), 100f);            if (!string.IsNullOrEmpty(name))
+            var sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f), 100f);
+            if (!string.IsNullOrEmpty(name))
             {
                 sprite.name = name;
             }
@@ -241,21 +234,6 @@ namespace FlashBeat.UI.V6
             CropCreateCount++;
             cropCache[key] = sprite;
             return sprite;
-        }
-
-        /// <summary>
-        /// 正方形の中央 crop (design の mode:"cover")。
-        /// <see cref="V6LoadingViewLogic.CoverCropRect"/> と同じ規則を provider 側にも置き、
-        /// 呼び出し側が Rect を計算しなくて済むようにする。
-        /// </summary>
-        public static Sprite SquareCrop(Texture2D texture, string name)
-        {
-            if (texture == null)
-            {
-                return null;
-            }
-
-            return Crop(texture, CoverCropRect(texture.width, texture.height), name);
         }
 
         /// <summary>中心を正方形に取る crop 矩形 (テクスチャ座標、原点は左下)。</summary>
@@ -268,6 +246,20 @@ namespace FlashBeat.UI.V6
 
             float side = Mathf.Min(width, height);
             return new Rect((width - side) * 0.5f, (height - side) * 0.5f, side, side);
+        }
+
+        /// <summary>
+        /// 既知の原 Texture を、そのプロジェクトに合う設定で包む（推奨の正方形 crop）。
+        /// design の mode:"cover"（セル・56 の枠など）を、再デコードせずに得るためのもの。
+        /// </summary>
+        public static Sprite SquareCrop(Texture2D texture, string name)
+        {
+            if (texture == null)
+            {
+                return null;
+            }
+
+            return Crop(texture, CoverCropRect(texture.width, texture.height), name);
         }
 
         // ------------------------------------------------------------------
@@ -294,12 +286,7 @@ namespace FlashBeat.UI.V6
                 return;
             }
 
-            RemoteEntry entry;
-            if (!remoteCache.TryGetValue(videoId, out entry))
-            {
-                entry = new RemoteEntry();
-                remoteCache[videoId] = entry;
-            }
+            RemoteEntry entry = GetOrEnqueueRemote(videoId);
 
             // 取得済み
             if (entry.Texture != null)
@@ -334,27 +321,59 @@ namespace FlashBeat.UI.V6
             });
         }
 
-        /// <summary>取得済みの遠隔 Sprite (無ければ null)。同期で分かる範囲だけ返す。</summary>
-        public static Sprite RemoteIfReady(string videoId)
+        /// <summary>
+        /// 同上。結果を Texture で直接受け取る (Result のバックドロップなど、
+        /// スプライトではなくテクスチャそのものが要る用途)。
+        ///
+        /// 同じ映像 ID で <see cref="RequestRemote"/> と同時に待てば、
+        /// HTTP は 1 本で済む。Texture は provider が所有し、呼び出し側は
+        /// Destroy しない (Dispose は provider だけ)。
+        /// </summary>
+        public static void RequestRemoteTexture(string videoId, Action<Texture2D> onReady)
         {
-            if (string.IsNullOrEmpty(videoId)) return null;
-            RemoteEntry entry;
-            if (!remoteCache.TryGetValue(videoId, out entry) || entry == null || entry.Texture == null)
+            if (string.IsNullOrEmpty(videoId) || onReady == null)
             {
-                return null;
+                if (onReady != null) onReady(null);
+                return;
             }
 
-            return SpriteFor(entry.Texture, videoId);
+            RemoteEntry entry = GetOrEnqueueRemote(videoId);
+
+            // 取得済み
+            if (entry.Texture != null)
+            {
+                onReady(entry.Texture);
+                return;
+            }
+
+            // 負キャッシュ (失敗直後)
+            if (entry.Failed && Time.unscaledTime - entry.FailedAt < NegativeCacheSeconds)
+            {
+                NegativeCacheHitCount++;
+                onReady(null);
+                return;
+            }
+
+            // 同じ映像 ID を既に取りに行っている: 結果を待つ列に並ぶだけ (HTTP は増えない)。
+            if (entry.InFlight)
+            {
+                RemoteDedupCount++;
+                entry.WaitingTexture.Add(onReady);
+                return;
+            }
+
+            entry.InFlight = true;
+            entry.WaitingTexture.Add(onReady);
+
+            EnqueueRemote(new RemoteRequest
+            {
+                VideoId = videoId,
+                Entry = entry,
+            });
         }
 
-        /// <summary>
-        /// 既に取得済みの Texture を provider に預ける (呼び出し側が自前で取った場合の
-        /// 移行用)。以後は同じ映像 ID で HTTP を起こさない。
-        /// </summary>
-        public static void AdoptRemoteTexture(string videoId, Texture2D texture)
+        private static RemoteEntry GetOrEnqueueRemote(string videoId)
         {
-            if (string.IsNullOrEmpty(videoId) || texture == null) return;
-
             RemoteEntry entry;
             if (!remoteCache.TryGetValue(videoId, out entry))
             {
@@ -362,11 +381,7 @@ namespace FlashBeat.UI.V6
                 remoteCache[videoId] = entry;
             }
 
-            if (entry.Texture == null)
-            {
-                entry.Texture = texture;
-                entry.Failed = false;
-            }
+            return entry;
         }
 
         private struct RemoteRequest
@@ -428,7 +443,9 @@ namespace FlashBeat.UI.V6
                 Sprite sprite = texture != null ? SpriteFor(texture, request.VideoId) : null;
 
                 var waiting = new List<Action<Sprite>>(entry.Waiting);
+                var waitingTextures = new List<Action<Texture2D>>(entry.WaitingTexture);
                 entry.Waiting.Clear();
+                entry.WaitingTexture.Clear();
                 for (int i = 0; i < waiting.Count; i++)
                 {
                     // 呼び出し側が破棄されている可能性があるので、例外は握りつぶさず
@@ -440,6 +457,18 @@ namespace FlashBeat.UI.V6
                     catch (Exception e)
                     {
                         Debug.LogWarning("[V6JacketProvider] onReady が例外を投げました: " + e.Message);
+                    }
+                }
+
+                for (int i = 0; i < waitingTextures.Count; i++)
+                {
+                    try
+                    {
+                        waitingTextures[i](texture);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning("[V6JacketProvider] onReadyTexture が例外を投げました: " + e.Message);
                     }
                 }
             }
@@ -456,7 +485,7 @@ namespace FlashBeat.UI.V6
         {
             var key = new SpriteKey
             {
-                TextureId = texture.GetEntityId().GetHashCode(),
+                Texture = texture,
                 CropX = 0,
                 CropY = 0,
                 CropW = texture.width,
@@ -483,12 +512,15 @@ namespace FlashBeat.UI.V6
         /// <summary>
         /// ローカル画像キャッシュを捨てる (Resources の中身が変わる操作の後)。
         /// <see cref="V6ContentCaches.InvalidateAll"/> から呼ばれる。
+        ///
+        /// 作った Sprite はここで確実に破棄する (Clear だけでは native が残る)。
+        /// 原Texture (Unity / Resources 所有) は破棄しない。
         /// </summary>
         public static void InvalidateLocal()
         {
-            localSpriteCache.Clear();
             localMissing.Clear();
-            cropCache.Clear();
+            DestroySprites(localSpriteCache);
+            DestroySprites(cropCache);
         }
 
         /// <summary>
@@ -497,18 +529,7 @@ namespace FlashBeat.UI.V6
         /// </summary>
         public static void DestroyAll()
         {
-            localSpriteCache.Clear();
-            localMissing.Clear();
-
-            foreach (var pair in cropCache)
-            {
-                if (pair.Value != null)
-                {
-                    V6AssetOwner.DestroyObject(pair.Value);
-                }
-            }
-
-            cropCache.Clear();
+            InvalidateLocal();
 
             foreach (var pair in remoteCache)
             {
@@ -521,6 +542,34 @@ namespace FlashBeat.UI.V6
             remoteCache.Clear();
             remoteQueue.Clear();
             remoteInFlight = 0;
+        }
+
+        /// <summary>辞書中の Sprite（この provider が生成したもの）を破棄して空にする。</summary>
+        private static void DestroySprites(Dictionary<int, Sprite> cache)
+        {
+            foreach (var pair in cache)
+            {
+                if (pair.Value != null)
+                {
+                    V6AssetOwner.DestroyObject(pair.Value);
+                }
+            }
+
+            cache.Clear();
+        }
+
+        /// <summary>辞書中の Sprite（この provider が生成したもの）を破棄して空にする。</summary>
+        private static void DestroySprites(Dictionary<SpriteKey, Sprite> cache)
+        {
+            foreach (var pair in cache)
+            {
+                if (pair.Value != null)
+                {
+                    V6AssetOwner.DestroyObject(pair.Value);
+                }
+            }
+
+            cache.Clear();
         }
 
         /// <summary>計測点を 0 に戻す (テスト用)。</summary>
