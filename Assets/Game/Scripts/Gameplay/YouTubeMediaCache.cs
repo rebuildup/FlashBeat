@@ -44,6 +44,27 @@ namespace FlashBeat.Gameplay
         public string Path = "";
         public string Detail = "";
         public bool FromCache;
+
+        /// <summary>A file that a previous run already downloaded and completed.</summary>
+        public static MediaFileResult FromCompletedCache(string path)
+        {
+            return new MediaFileResult { Ok = true, Path = path, FromCache = true, Detail = "cache" };
+        }
+    }
+
+    /// <summary>
+    /// The files of one video that are already on disk and completed. A run that
+    /// finds this set does not have to resolve the formats with yt-dlp.
+    /// </summary>
+    public sealed class ReadyMedia
+    {
+        public string VideoPath = "";
+        public string AudioPath = "";
+        public bool Combined;
+
+        public bool HasAudio => !Combined && !string.IsNullOrEmpty(AudioPath);
+
+        public string Summary => Combined ? "merged" : "video+audio";
     }
 
     // Downloads the YouTube media for a song into a local cache and hands back the
@@ -367,6 +388,45 @@ namespace FlashBeat.Gameplay
         public static string FindCompletedFile(string directory, string filePrefix)
         {
             return NewestProducedFile(directory, filePrefix, completedOnly: true);
+        }
+
+        /// <summary>
+        /// The files of <paramref name="videoId"/> that a previous run left in the
+        /// cache, if they are complete enough to play without asking YouTube again
+        /// (issue #377). The set is either one merged file or the video/audio pair;
+        /// a picture file without its sound file is a miss, because the plan that
+        /// would need the sound (ffmpeg present) can then only be known from the
+        /// format probe.
+        ///
+        /// This is the single place that decides what counts as a reusable cache
+        /// entry. The cache survives restarts on purpose (the media is large and
+        /// the same videoId always resolves to the same song), so the rule is
+        /// "completed marker still matches the file on disk" - a chart or catalogue
+        /// update does not invalidate media because the file is identified by the
+        /// YouTube video id, not by the chart version.
+        /// </summary>
+        public static bool TryGetReadyFiles(string videoId, out ReadyMedia media)
+        {
+            media = null;
+            if (string.IsNullOrEmpty(videoId)) return false;
+
+            string directory = CacheDirectoryFor(videoId);
+
+            string merged = FindCompletedFile(directory, MergedFilePrefix);
+            if (!string.IsNullOrEmpty(merged))
+            {
+                media = new ReadyMedia { VideoPath = merged, Combined = true };
+                return true;
+            }
+
+            string video = FindCompletedFile(directory, VideoFilePrefix);
+            if (string.IsNullOrEmpty(video)) return false;
+
+            string audio = FindCompletedFile(directory, AudioFilePrefix);
+            if (string.IsNullOrEmpty(audio)) return false;
+
+            media = new ReadyMedia { VideoPath = video, AudioPath = audio, Combined = false };
+            return true;
         }
 
         /// <summary>Path of the completion marker that belongs to a media file.</summary>

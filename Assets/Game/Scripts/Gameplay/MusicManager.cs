@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using Stopwatch = System.Diagnostics.Stopwatch;
 using System.IO;
 using System.Threading;
 using TMPro;
@@ -114,6 +115,10 @@ public class MusicManager : MonoBehaviour
     MediaFailure failure = MediaFailure.None;
     float mediaTime;
     float sceneStartTime;
+    /// <summary>実時間の経過 (Time.time は 1 フレームの停止を deltaTime の上限で丸めるため、準備の所要時間は Stopwatch で測る)。</summary>
+    readonly Stopwatch mediaStopwatch = new Stopwatch();
+    /// <summary>HUD の検索は 1 回だけ (無かった場合も覚える。毎フレームの FindObjectOfType を避ける)。</summary>
+    bool hudSearched;
     float lastStatusLogTime;
     float lastMediaTime;
     float stallSeconds;
@@ -238,6 +243,8 @@ public class MusicManager : MonoBehaviour
         }
 
         sceneStartTime = Time.time;
+        mediaStopwatch.Restart();
+        SongEndGate.Reset();
 
         // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
         // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
@@ -322,67 +329,93 @@ public class MusicManager : MonoBehaviour
             if (loading != null) { loading.Show("曲情報を取得中…"); }
         }
 
-        // 1. What does YouTube offer for this video?
-        stage = MediaStage.ResolvingStream;
-        var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId, mediaToken);
-        while (!formatsTask.IsCompleted) yield return null;
+        // 1-3. Resolve the formats and make sure the media is on disk.
+        //      A completed download from an earlier run makes all of it
+        //      unnecessary: the yt-dlp format probe costs seconds even when
+        //      nothing has to be fetched (issue #377).
+        bool streamResolved;
+        bool combined;
+        MediaFileResult videoFile;
+        MediaFileResult audioFile;
 
-        var formatsOut = formatsTask.Result;
-        var formats = YouTubeStreamResolver.ParseFormats(formatsOut.Ok ? formatsOut.Stdout : "");
-        bool streamResolved = formatsOut.Ok || formats.Count > 0;
-        Debug.Log($"[MusicManager] yt-dlp -F videoId={videoId} formats={formats.Count} {(formatsOut.Ok ? "ok" : formatsOut.ErrorSummary)}");
-        for (int i = 0; i < formats.Count; i++)
+        ReadyMedia ready;
+        if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready))
         {
-            Debug.Log($"[MusicManager]   format {formats[i]}");
+            streamResolved = true;
+            combined = ready.Combined;
+            videoFile = MediaFileResult.FromCompletedCache(ready.VideoPath);
+            audioFile = ready.HasAudio ? MediaFileResult.FromCompletedCache(ready.AudioPath) : null;
+            Debug.Log($"[MusicManager] media cache hit videoId={videoId} ({ready.Summary}) - skipped the yt-dlp format probe");
+            Debug.Log($"[Perf] media resolve {mediaStopwatch.ElapsedMilliseconds}ms (cache hit)");
+        }
+        else
+        {
+
+            // 1. What does YouTube offer for this video?
+            stage = MediaStage.ResolvingStream;
+            var formatsTask = YouTubeStreamResolver.ListFormatsAsync(videoId, mediaToken);
+            while (!formatsTask.IsCompleted) yield return null;
+
+            var formatsOut = formatsTask.Result;
+            var formats = YouTubeStreamResolver.ParseFormats(formatsOut.Ok ? formatsOut.Stdout : "");
+            streamResolved = formatsOut.Ok || formats.Count > 0;
+            Debug.Log($"[MusicManager] yt-dlp -F videoId={videoId} formats={formats.Count} {(formatsOut.Ok ? "ok" : formatsOut.ErrorSummary)}");
+            for (int i = 0; i < formats.Count; i++)
+            {
+                Debug.Log($"[MusicManager]   format {formats[i]}");
+            }
+
+            var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+            var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
+            Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary} (merge available: {canMerge})");
+            Debug.Log($"[Perf] media resolve {mediaStopwatch.ElapsedMilliseconds}ms (yt-dlp -F)");
+
+            // 2. Direct URL probe (once per video): documents why the URL cannot be
+            //    handed to Media Foundation.
+            if (ShouldProbeDirectUrl(videoId))
+            {
+                yield return ProbeDirectUrl(videoId, plan.VideoSelector);
+            }
+
+            // 3. Download the media into the local cache. The merged file has its own
+            //    prefix, so a picture-only file of an earlier revision is not reused.
+            //    The cache lives in the player environment (persistentDataPath), the
+            //    release build ships no third party media at all.
+            stage = MediaStage.DownloadingMedia;
+            var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
+            if (showLegacyMediaOverlay && loading != null) { loading.Show("動画をダウンロード中…"); }
+            var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
+            while (!videoTask.IsCompleted) yield return null;
+            videoFile = videoTask.Result;
+            Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
+            if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
+
+            // The merged file (video + YouTube sound in one mp4) is the wanted state.
+            // If the merge failed (no ffmpeg, download error) the picture still has to
+            // play, so the video-only stream is fetched as the fallback.
+            combined = plan.Combined;
+            if (!videoFile.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
+            {
+                Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
+                YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
+                var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
+                while (!fallbackTask.IsCompleted) yield return null;
+                videoFile = fallbackTask.Result;
+                combined = false;
+                Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
+            }
+
+            audioFile = null;
+            if (plan.HasAudioFile && !combined)
+            {
+                var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
+                while (!audioTask.IsCompleted) yield return null;
+                audioFile = audioTask.Result;
+                Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
+            }
         }
 
-        var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
-        var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
-        Debug.Log($"[MusicManager] media plan '{songName}': {plan.Summary} (merge available: {canMerge})");
-
-        // 2. Direct URL probe (once per video): documents why the URL cannot be
-        //    handed to Media Foundation.
-        if (ShouldProbeDirectUrl(videoId))
-        {
-            yield return ProbeDirectUrl(videoId, plan.VideoSelector);
-        }
-
-        // 3. Download the media into the local cache. The merged file has its own
-        //    prefix, so a picture-only file of an earlier revision is not reused.
-        //    The cache lives in the player environment (persistentDataPath), the
-        //    release build ships no third party media at all.
-        stage = MediaStage.DownloadingMedia;
-        var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
-        if (showLegacyMediaOverlay && loading != null) { loading.Show("動画をダウンロード中…"); }
-        var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
-        while (!videoTask.IsCompleted) yield return null;
-        var videoFile = videoTask.Result;
-        Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
-        if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
-
-        // The merged file (video + YouTube sound in one mp4) is the wanted state.
-        // If the merge failed (no ffmpeg, download error) the picture still has to
-        // play, so the video-only stream is fetched as the fallback.
-        bool combined = plan.Combined;
-        if (!videoFile.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
-        {
-            Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
-            YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
-            var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
-            while (!fallbackTask.IsCompleted) yield return null;
-            videoFile = fallbackTask.Result;
-            combined = false;
-            Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
-        }
-
-        MediaFileResult audioFile = null;
-        if (plan.HasAudioFile && !combined)
-        {
-            var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
-            while (!audioTask.IsCompleted) yield return null;
-            audioFile = audioTask.Result;
-            Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
-        }
+        Debug.Log($"[Perf] media files {mediaStopwatch.ElapsedMilliseconds}ms");
 
         // 4. Prepare the picture player.
         bool videoReady = false;
@@ -454,7 +487,7 @@ public class MusicManager : MonoBehaviour
         if (showLegacyMediaOverlay && loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
-        Debug.Log($"[Perf] media ready {(Time.time - sceneStartTime) * 1000f:F0}ms");
+        Debug.Log($"[Perf] media ready {mediaStopwatch.ElapsedMilliseconds}ms");
 
         // 7. Which stage broke? The most specific reason wins.
         if (!streamResolved)
@@ -1080,13 +1113,19 @@ public class MusicManager : MonoBehaviour
         // (b) メタデータより先に動画が終わると Result に進めなかった。
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         float songDuration = sessionSong != null ? sessionSong.duration : 0f;
+        // 曲長が分からない譜面は NotesManager が「最終ノート + fadeOut + 0.8 秒」を
+        // 代わりの曲長にしてあるので、実メディアの時計が無いときの終端にそれを使う
+        // (design 決定 2026-11-11 §6.2)。
+        float endDuration = MediaTimeline.IsUsableDuration(songDuration)
+            ? songDuration
+            : NotesManager.Timing.MediaDuration;
 
         if (!resultTriggered)
         {
             bool mediaClockIsReal = HasRealMediaClock();
             bool durationEnded = mediaClockIsReal
                 ? MediaTimeline.HasSongEnded(mediaTime, songDuration)
-                : mediaTime >= MediaTimeline.FallbackSongEnd(songDuration);
+                : mediaTime >= MediaTimeline.FallbackSongEnd(endDuration);
 
             int totalNotes = notesManager != null ? notesManager.noteNum : 0;
             // 確定したノーツ数は GManager.settledNoteCount が正 (Issue #182)。
@@ -1113,6 +1152,8 @@ public class MusicManager : MonoBehaviour
             if (songEnd.Update(in endTick))
             {
                 resultTriggered = true;
+                // フェードと「終了」の間は判定キーを受け付けない (design §6.2)。
+                SongEndGate.Enter();
                 if (songEnd.ForcedByDeadline)
                 {
                     Debug.LogWarning(
@@ -1134,7 +1175,25 @@ public class MusicManager : MonoBehaviour
             hud.ShowStartHold();
         }
 
-        yield return new WaitForSecondsRealtime(seconds);
+        // 待ち時間は「演奏中と同じ時計」で数える。ポーズ中は進めない — 進めて
+        // しまうと、待っている間に Esc でポーズした場合にポーズ画面の裏で
+        // StartPlayback が走り、映像と音が 1 フレームだけ動いてから止まる。
+        float remaining = seconds;
+        while (remaining > 0f)
+        {
+            if (!PauseGate.IsPaused)
+            {
+                remaining -= Time.unscaledDeltaTime;
+            }
+
+            yield return null;
+        }
+
+        // ポーズが解けるまで開始しない (StartPlayback は演奏状態を確定させる)。
+        while (PauseGate.IsPaused)
+        {
+            yield return null;
+        }
 
         if (hud != null)
         {
@@ -1147,8 +1206,9 @@ public class MusicManager : MonoBehaviour
 
     V6GameHudView ActiveHud()
     {
-        if (hudCache == null)
+        if (!hudSearched)
         {
+            hudSearched = true;
             hudCache = FindObjectOfType<V6GameHudView>();
         }
 
@@ -1220,7 +1280,7 @@ public class MusicManager : MonoBehaviour
             hud.SetEndFadeAlpha(1f);
         }
 
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return new WaitForSecondsRealtime(ChartTiming.ResultDelaySeconds);
         Initiate.Fade("ResultScene", Color.black, 1.0f);
     }
 

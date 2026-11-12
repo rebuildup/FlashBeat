@@ -72,6 +72,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         // --- 毎フレームの状態 ---
         private int lastJudged = -1;
         private int lastScore = -1;
+        /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
+        private int lastRenderedScore = int.MinValue;
+        private int lastRenderedCombo = int.MinValue;
         private float scorePulseStart = -1f;
         private float verdictScanUntil;
         private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
@@ -129,8 +132,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             int score = GManager.score;
-            gradeText.text = GameHudLogic.RankText(score);
-            scoreText.text = GameHudLogic.FormatScore(score);
+            // TextMeshPro の文字列設定は値が変わるまで呼ばない (issue #381:
+            // 毎フレームの書式化は GC を呼び、それがカクつきになる)。
+            if (score != lastRenderedScore)
+            {
+                gradeText.text = GameHudLogic.RankText(score);
+                scoreText.text = GameHudLogic.FormatScore(score);
+                lastRenderedScore = score;
+            }
+
             if (lastScore >= 0 && score != lastScore)
             {
                 scorePulseStart = Time.unscaledTime;
@@ -147,8 +157,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBest.anchoredPosition = new Vector2(
                 V6HudLogic.GaugeBestX(hi, m.GaugeFillMax), 0f);
 
-            // コンボ
-            comboText.text = GManager.combo.ToString();
+            // コンボ (表示は値が変わったときだけ更新する)
+            if (GManager.combo != lastRenderedCombo)
+            {
+                comboText.text = GManager.combo.ToString();
+                lastRenderedCombo = GManager.combo;
+            }
 
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);

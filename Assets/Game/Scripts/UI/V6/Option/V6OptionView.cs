@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -155,6 +155,11 @@ namespace FlashBeat.UI.V6.Option
 
         public void SetVisible(bool visible)
         {
+            if (!visible)
+            {
+                SavePendingVolumeNow();
+            }
+
             if (rootGo != null)
             {
                 rootGo.SetActive(visible);
@@ -164,6 +169,9 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
         public void Dispose()
         {
+            // 画面を離れるときに予約済みの音量保存を落とさない (0.5 秒の猶予中に
+            // 破棄されると、最後の調整だけが保存されない)。
+            SavePendingVolumeNow();
             KeyBindings.Changed -= OnBindingsChanged;
             if (rootGo != null)
             {
@@ -241,6 +249,8 @@ namespace FlashBeat.UI.V6.Option
                     }
                     else if (onBack != null)
                     {
+                        // 画面を離れる: 猶予中の音量保存を先に確定させる。
+                        SavePendingVolumeNow();
                         onBack();
                     }
                     return;
@@ -892,6 +902,17 @@ namespace FlashBeat.UI.V6.Option
         private void FlushPendingVolumeSave()
         {
             if (volumeSaveAt <= 0f || Time.unscaledTime < volumeSaveAt)
+            {
+                return;
+            }
+
+            SavePendingVolumeNow();
+        }
+
+        /// <summary>猶予を待たずに予約済みの音量保存を実行する (画面を離れるとき)。</summary>
+        private void SavePendingVolumeNow()
+        {
+            if (volumeSaveAt <= 0f)
             {
                 return;
             }

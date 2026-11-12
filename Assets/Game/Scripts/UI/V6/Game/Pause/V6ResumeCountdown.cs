@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Game.Hud;
 
@@ -47,6 +47,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private V6GameHudView hud;
         private float elapsed;
         private int shownNumber;
+        private bool firstFrameDone;
 
         /// <summary>ポーズ画面を閉じた直後に呼ぶ。数字の表示と再開をこの 1 個が担う。</summary>
         public static void Begin(V6PauseView pauseView)
@@ -85,10 +86,16 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         private void Update()
         {
+            // カウントダウンを作ったフレームでは Back を見ない。ポーズ画面を
+            // Esc で閉じた場合、そのキーの Down がこのフレームに残っていて、
+            // 表示された瞬間にポーズへ戻ってしまう。
+            bool ignoreBackThisFrame = !firstFrameDone;
+            firstFrameDone = true;
+
             elapsed += Time.unscaledDeltaTime;
             Show(V6ResumeCountdownLogic.NumberAt(elapsed));
 
-            if (KeyActions.IsDown(KeyActions.KeyAction.Back))
+            if (!ignoreBackThisFrame && KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 CancelBackToPause();
                 return;
@@ -98,6 +105,20 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 Finish();
             }
+        }
+
+        /// <summary>
+        /// シーン遷移などで外から破棄されたときも状態を残さない。残すと
+        /// 次のシーンで「カウントダウン中」のままポーズ入力が抑止される。
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (hud != null)
+            {
+                hud.HideResumeCountdown();
+            }
+
+            IsRunning = false;
         }
 
         private void Show(int number)

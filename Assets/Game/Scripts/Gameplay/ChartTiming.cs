@@ -1,3 +1,4 @@
+﻿using System.Globalization;
 using UnityEngine;
 
 namespace FlashBeat.Gameplay
@@ -19,6 +20,12 @@ namespace FlashBeat.Gameplay
         public const float MaxFadeOutSeconds = 10f;
         public const float MaxStartTimingSeconds = 10f;
         public const float MaxBeatOffsetSeconds = 2f;
+
+        /// <summary>
+        /// 最後のノートの後に「終了」を見せてから Result へ移るまでの秒数
+        /// (design 決定 2026-11-11 §6.2)。
+        /// </summary>
+        public const float ResultDelaySeconds = 0.8f;
 
         /// <summary>メディア終端の何秒前からフェードを始めるか。</summary>
         public float FadeOut { get; private set; }
@@ -43,15 +50,31 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
-        /// 生の値をクランプして返す。
+        /// 生の値を正規化して返す。
         /// - fadeOut: 0 以下は既定 2.0。0〜10 秒、かつ曲長が分かるときは曲長の 25% 以下。
-        /// - startTiming: 0〜10 秒。
-        /// - beatOffset: −2〜2 秒。
+        /// - startTiming: 0〜10 秒。範囲外は既定値 (0) へ戻す。
+        /// - beatOffset: −2〜2 秒。範囲外は既定値 (0) へ戻す。
+        ///
+        /// 範囲外を黙ってクランプすると、譜面作者は意図した値と実際の値のずれに
+        /// 気づけない (design 決定 2026-11-11 §6.1 「既定値へ戻して警告を出す」)。
+        /// 警告文は out 引数で返し、呼び出し側 (NotesManager) がログに出す —
+        /// この型は UnityEngine のログに触らない (テストから純粋に呼べる)。
         /// </summary>
         public static ChartTiming Normalize(float fadeOut, float startTiming, float beatOffset, float mediaDuration)
         {
+            string warning;
+            return Normalize(fadeOut, startTiming, beatOffset, mediaDuration, out warning);
+        }
+
+        /// <summary>
+        /// 範囲外の値を既定値へ戻したとき、その旨を <paramref name="warning"/> に入れる
+        /// (対象が無ければ null)。戻り値の意味はもう一方の <see cref="Normalize"/> と同じ。
+        /// </summary>
+        public static ChartTiming Normalize(float fadeOut, float startTiming, float beatOffset, float mediaDuration, out string warning)
+        {
             var timing = new ChartTiming();
             timing.MediaDuration = MediaTimeline.IsUsableDuration(mediaDuration) ? mediaDuration : 0f;
+            warning = null;
 
             float fade = float.IsNaN(fadeOut) || float.IsInfinity(fadeOut) ? 0f : fadeOut;
             if (fade <= 0f)
@@ -66,9 +89,62 @@ namespace FlashBeat.Gameplay
             }
 
             timing.FadeOut = fade;
-            timing.StartTiming = Mathf.Clamp(Sanitize(startTiming), 0f, MaxStartTimingSeconds);
-            timing.BeatOffset = Mathf.Clamp(Sanitize(beatOffset), -MaxBeatOffsetSeconds, MaxBeatOffsetSeconds);
+
+            string startWarning;
+            timing.StartTiming = InRangeOrZero(startTiming, 0f, MaxStartTimingSeconds, "startTiming", out startWarning);
+
+            string beatWarning;
+            timing.BeatOffset = InRangeOrZero(beatOffset, -MaxBeatOffsetSeconds, MaxBeatOffsetSeconds, "beatOffset", out beatWarning);
+
+            warning = JoinWarnings(startWarning, beatWarning);
             return timing;
+        }
+
+        /// <summary>範囲内ならその値、範囲外 (NaN / 無限も含む) なら 0 へ戻して警告文を返す。</summary>
+        private static float InRangeOrZero(float value, float min, float max, string field, out string warning)
+        {
+            warning = null;
+            if (float.IsNaN(value) || float.IsInfinity(value) || value < min || value > max)
+            {
+                warning = field + "=" + value.ToString(CultureInfo.InvariantCulture)
+                    + " is outside " + min.ToString(CultureInfo.InvariantCulture)
+                    + ".." + max.ToString(CultureInfo.InvariantCulture)
+                    + " - using the default 0";
+                return 0f;
+            }
+
+            return value;
+        }
+
+        private static string JoinWarnings(string first, string second)
+        {
+            if (string.IsNullOrEmpty(first)) return second;
+            if (string.IsNullOrEmpty(second)) return first;
+            return first + "; " + second;
+        }
+
+        /// <summary>
+        /// メディア長が取得できない譜面の代わりの曲長 (design 決定 2026-11-11 §6.2):
+        /// 最終ノート時刻 + <see cref="FadeOut"/> + <see cref="ResultDelaySeconds"/>。
+        ///
+        /// 曲長が分かっている譜面はそのまま返す。分からないままにすると
+        /// <see cref="FadeProgress"/> が常に 0 になり、フェードと「終了」の
+        /// 位置を決められない。
+        /// </summary>
+        /// <param name="lastNoteTime">譜面の最終ノート時刻 (HOLD はその終端)。</param>
+        public ChartTiming WithFallbackEnd(float lastNoteTime)
+        {
+            if (MediaDuration > 0f)
+            {
+                return this;
+            }
+
+            var copy = new ChartTiming();
+            copy.MediaDuration = Mathf.Max(0f, lastNoteTime) + FadeOut + ResultDelaySeconds;
+            copy.FadeOut = FadeOut;
+            copy.StartTiming = StartTiming;
+            copy.BeatOffset = BeatOffset;
+            return copy;
         }
 
         /// <summary>この曲のフェード開始位置 (メディア秒)。曲長不明なら 0。</summary>
@@ -96,16 +172,6 @@ namespace FlashBeat.Gameplay
             }
 
             return Mathf.Clamp01((mediaTime - FadeStartTime()) / FadeOut);
-        }
-
-        private static float Sanitize(float value)
-        {
-            if (float.IsNaN(value) || float.IsInfinity(value))
-            {
-                return 0f;
-            }
-
-            return value;
         }
     }
 }

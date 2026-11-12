@@ -657,16 +657,28 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>
-        /// 設定ボタン (フッター ローカル)。右端は Ready の 12 手前で固定し、
-        /// 幅はボタン規則 (§4: padding [0,24] / gap 12) から中身に合わせて決める。
+        /// 設定ボタン (フッター ローカル、閉じている状態)。右端は Ready の 12 手前で
+        /// 固定し、幅はボタン規則 (§4: padding [0,24] / gap 12) から中身に合わせて決める。
         /// 固定幅 197 に「閉じる + x アイコン + Esc キャップ」を詰めると、
         /// 中央寄せの結果アイコンと文字が左右の端に貼り付いていた (Issue #370)。
-        /// 「設定」と「閉じる」は同じ 3 全角なので同じ幅になる。
         /// </summary>
         public static V6Rect FooterSettings()
         {
+            return FooterSettings(false);
+        }
+
+        /// <summary>
+        /// 設定ボタン。開いている状態はラベルが「設定」(2 全角) から
+        /// 「閉じる」(3 全角) に変わるため、幅もその状態の中身から決める。
+        /// 閉じた状態の幅を使い回すと、開いたときだけ文字が右へはみ出す。
+        /// 右端はどちらの状態でも同じ (<see cref="FooterSettingsRight"/>)。
+        /// </summary>
+        public static V6Rect FooterSettings(bool open)
+        {
             float w = FlashBeat.UI.V6.Common.V6Controls.ButtonHugWidth(
-                FooterSettingsLabelText, FooterSettingsKeyText, FooterSettingsIconName);
+                open ? FooterSettingsOpenLabelText : FooterSettingsLabelText,
+                FooterSettingsKeyText,
+                open ? FooterSettingsOpenIconName : FooterSettingsIconName);
             return new V6Rect(FooterSettingsRight - w, 20f, w, 56f);
         }
 
@@ -689,34 +701,37 @@ namespace FlashBeat.UI.V6.Select.View
         public const string FooterSettingsOpenIconName = "x";
 
         /// <summary>設定ボタンのアイコン (設定ボタン ローカル)。</summary>
-        public static V6Rect FooterSettingsIcon()
+        public static V6Rect FooterSettingsIcon(bool open = false)
         {
-            return ButtonPart(V6SelectViewLogic.FooterSettings(), 0);
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 0, open);
         }
 
         /// <summary>設定ボタンのラベル (設定ボタン ローカル)。</summary>
-        public static V6Rect FooterSettingsLabel()
+        public static V6Rect FooterSettingsLabel(bool open = false)
         {
-            return ButtonPart(V6SelectViewLogic.FooterSettings(), 1);
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 1, open);
         }
 
         /// <summary>設定ボタンのキーキャップ (設定ボタン ローカル)。</summary>
-        public static V6Rect FooterSettingsCap()
+        public static V6Rect FooterSettingsCap(bool open = false)
         {
-            return ButtonPart(V6SelectViewLogic.FooterSettings(), 2);
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 2, open);
         }
 
         /// <summary>
         /// 設定ボタン内の icon (0) / Label (1) / Cap (2) の矩形 (設定ボタン ローカル)。
         /// <see cref="FlashBeat.UI.V6.Common.V6Controls.ButtonSlots"/> と同じ中央寄せ規則。
         /// </summary>
-        private static V6Rect ButtonPart(V6Rect button, int part)
+        private static V6Rect ButtonPart(V6Rect button, int part, bool open)
         {
             FlashBeat.UI.V6.Common.V6Controls.ButtonSlot icon;
             FlashBeat.UI.V6.Common.V6Controls.ButtonSlot label;
             FlashBeat.UI.V6.Common.V6Controls.ButtonSlot cap;
             FlashBeat.UI.V6.Common.V6Controls.ButtonSlots(new UnityEngine.Vector2(button.W, button.H),
-                FooterSettingsLabelText, FooterSettingsKeyText, FooterSettingsIconName, out icon, out label, out cap);
+                open ? FooterSettingsOpenLabelText : FooterSettingsLabelText,
+                FooterSettingsKeyText,
+                open ? FooterSettingsOpenIconName : FooterSettingsIconName,
+                out icon, out label, out cap);
 
             const float iconSize = FlashBeat.UI.V6.Common.V6Controls.ButtonIconSize;
             const float capH = FlashBeat.UI.V6.Common.V6Controls.ButtonKeyCapHeight;

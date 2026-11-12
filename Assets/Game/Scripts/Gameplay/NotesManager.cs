@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Debug = UnityEngine.Debug;
@@ -165,8 +165,15 @@ public class NotesManager : MonoBehaviour
             yield break;
         }
 
+        string timingWarning;
         Timing = ChartTiming.Normalize(
-            inputJson.fadeOut, inputJson.startTiming, inputJson.beatOffset, song.duration);
+            inputJson.fadeOut, inputJson.startTiming, inputJson.beatOffset, song.duration,
+            out timingWarning);
+        if (!string.IsNullOrEmpty(timingWarning))
+        {
+            // design 決定 2026-11-11 §6.1: 範囲外の値は既定値へ戻し、警告を出す。
+            Debug.LogWarning($"[NotesManager] chart '{song.title}' timing: {timingWarning}");
+        }
 
         int total = inputJson.notes.Length;
         noteNum = total;
@@ -221,6 +228,21 @@ public class NotesManager : MonoBehaviour
             {
                 endTimes.Add(0f);
             }
+        }
+
+        // design 決定 2026-11-11 §6.2: メディア長が取得できない譜面では、
+        // 最終ノート + fadeOut + 0.8 秒を終端とみなしてフェードと「終了」の
+        // 位置を決める。曲長が分かる譜面は何も変わらない。
+        if (!FlashBeat.Gameplay.MediaTimeline.IsUsableDuration(Timing.MediaDuration))
+        {
+            float lastNoteTime = 0f;
+            for (int i = 0; i < times.Count; i++)
+            {
+                lastNoteTime = Mathf.Max(lastNoteTime, times[i]);
+                lastNoteTime = Mathf.Max(lastNoteTime, endTimes[i]);
+            }
+
+            Timing = Timing.WithFallbackEnd(lastNoteTime);
         }
 
         Debug.Log($"[Perf] notes parse {parseMs}ms ({total} notes)");

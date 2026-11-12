@@ -122,6 +122,7 @@ namespace FlashBeat.UI.V6.Result
         private TextMeshProUGUI modalNameValue;
         private TextMeshProUGUI modalNamePlaceholder;
         private TMP_InputField modalNameInput;
+        private string submittedNickname = string.Empty;
         private TextMeshProUGUI modalNamePrompt;
         private GameObject modalChip;
         private CanvasGroup modalChipGroup;
@@ -1262,7 +1263,10 @@ namespace FlashBeat.UI.V6.Result
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(V6ResultLogic.SubmitOutcome.Pending, 0),
                 FromHex("#99E5FF"));
             SetRegisterInteractable(false);
-            RunCoroutine(SubmitCoroutine(modalNameInput.text.Trim()));
+            // 送った名前を控える。応答が返るまでに入力欄が編集されても、
+            // 保存するのは実際に送った名前 (送った後に書いた文字ではない)。
+            submittedNickname = modalNameInput.text.Trim();
+            RunCoroutine(SubmitCoroutine(submittedNickname));
         }
 
         private IEnumerator SubmitCoroutine(string nickname)
@@ -1380,7 +1384,7 @@ namespace FlashBeat.UI.V6.Result
                 && result.score != null && result.score.rank > 0)
             {
                 // 偽の成功を出さない: 順位はサーバ応答からのみ。
-                RankingClient.SaveNickname(modalNameInput.text.Trim());
+                RankingClient.SaveNickname(submittedNickname);
                 gate.Succeed();
                 myRank = result.score.rank;
                 SetRegisterInteractable(false);

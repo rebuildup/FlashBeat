@@ -503,7 +503,7 @@ namespace FlashBeat.UI.V6.Select.View
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。
             // 設定パネル展開中 (wSjAm) は「閉じる (Esc)」Secondary に差し替える。
             // 中身は正本 Prefab/Button Secondary と同じ中央揃え (共通部品に任せる)。
-            var settingsRect = V6SelectViewLogic.FooterSettings();
+            var settingsRect = V6SelectViewLogic.FooterSettings(settingsOpen);
             string settingsKey = FlashBeat.UI.V5.ActionKeyHint.Primary(settingsOpen
                 ? KeyActions.KeyAction.Back
                 : KeyActions.KeyAction.Option);
