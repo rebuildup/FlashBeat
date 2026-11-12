@@ -65,7 +65,7 @@ namespace FlashBeat.UI.V6.Game.Loading
         private float? progress;            // null = 不明 (不定インジケータ)
         private Texture2D jacketTexture;    // スプライトの生成元 (変化時だけ再生成)
         private Sprite jacketSprite;        // ApplySong で作ったスプライト (Dispose で破棄)
-        private RenderTexture videoTexture; // APIOnly 再生の出力先 (Dispose で破棄)
+        private RenderTexture videoTexture; // RenderTexture モードの出力先 (Dispose で破棄)
         private bool errorShown;
         private bool leaving;
         private GameSceneManager sceneManager;

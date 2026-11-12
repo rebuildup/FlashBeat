@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -31,6 +31,11 @@ using UnityEngine.SceneManagement;
 ///     Space で残りを打ち切る (スキップ)。
 ///   - #382 再開カウントダウン: 3 → 2 → 1 が出る / その間ポーズゲートは閉じた
 ///     まま / 3 秒で再開する / Esc でポーズへ戻る / 開始フレームの Esc は無視する。
+///   - #377 キャッシュ: Select を離れて戻ったとき Resources を読み直さない。
+///
+/// ポインタ操作は EventSystem のレイキャストで当たり先を確かめてから配る
+/// (手前に別の UI が被さっていれば当たらない)。OS のマウス注入は行わないため、
+/// ポインタの「移動そのもの」は再現していない。
 ///
 /// 結果は &lt;out&gt;/autotest-v6interact-result.txt と Player.log の
 /// [AutoTestV6Interact] 行。スクリーンショットも同じディレクトリへ書く。
@@ -69,13 +74,19 @@ public class AutoTestV6Interact : MonoBehaviour
             + " resolution=" + Screen.width + "x" + Screen.height
             + " fullscreen=" + Screen.fullScreen);
 
-        yield return RunVolumeSlider();
-        yield return RunResultReveal();
-        yield return RunResumeCountdown();
-        yield return RunContentCache();
-
-        WriteResult();
-        Application.Quit();
+        // どの検証で例外が出ても、結果を残して終了する。無人実行でハングしない。
+        try
+        {
+            yield return RunVolumeSlider();
+            yield return RunResultReveal();
+            yield return RunResumeCountdown();
+            yield return RunContentCache();
+        }
+        finally
+        {
+            WriteResult();
+            Application.Quit();
+        }
     }
 
     // ---------------------------------------------------------------- #375
@@ -106,24 +117,28 @@ public class AutoTestV6Interact : MonoBehaviour
         var readouts = new StringBuilder();
 
         // 押した瞬間 (20%) から 35 / 55 / 70% へドラッグし、80% で離す。
-        slider.OnPointerDown(Pointer(slider, 0.20f));
+        // 直接ハンドラを呼ばず、EventSystem のレイキャストで当たり先を確かめてから
+        // そのオブジェクトへ配る。手前に別の UI が被さっていれば当たらない。
+        bool routed = DispatchPointer(slider, 0.20f, ExecuteEvents.pointerDownHandler);
         yield return null;
         readouts.Append("down=").Append(Percent(slider.Value)).Append(' ');
 
         float[] dragTo = { 0.35f, 0.55f, 0.70f };
         for (int i = 0; i < dragTo.Length; i++)
         {
-            slider.OnDrag(Pointer(slider, dragTo[i]));
+            routed &= DispatchPointer(slider, dragTo[i], ExecuteEvents.dragHandler);
             yield return null;
             readouts.Append("drag=").Append(Percent(slider.Value)).Append(' ');
         }
 
         yield return Screenshot("375-slider-drag");
 
-        slider.OnPointerUp(Pointer(slider, 0.80f));
+        routed &= DispatchPointer(slider, 0.80f, ExecuteEvents.pointerUpHandler);
         yield return null;
         readouts.Append("up=").Append(Percent(slider.Value));
         Debug.Log(Tag + " slider " + readouts);
+
+        Check("the pointer events reach the slider through the event system", routed);
 
         Check("the drag changes the value to where the pointer is", Mathf.Abs(slider.Value - 0.80f) <= 0.02f);
         Check("the value owner follows the drag", Mathf.Abs(GManager.mainVolume - 0.80f) <= 0.02f);
@@ -135,7 +150,7 @@ public class AutoTestV6Interact : MonoBehaviour
         Check("releasing the pointer saves the volume", Mathf.Abs(saved - 0.80f) <= 0.02f);
 
         // 猶予 (0.5 秒) の途中で画面を離れる: 最後の値が保存されること。
-        slider.OnPointerDown(Pointer(slider, 0.30f));
+        DispatchPointer(slider, 0.30f, ExecuteEvents.pointerDownHandler);
         yield return null;
         Check("a drag without release is not saved immediately",
             Mathf.Abs(PlayerPrefs.GetFloat(OptionSettings.MainVolumeKey, -1f) - 0.30f) > 0.02f);
@@ -177,11 +192,14 @@ public class AutoTestV6Interact : MonoBehaviour
         bool sawBeforeComplete = false;
         bool sawTrophyFadeIn = false;
         bool autoRegisterOpened = false;
+        float modalOpenElapsed = -1f;
         float firstTrophyAlpha = -1f;
         float lastTrophyAlpha = -1f;
         bool completed = false;
 
-        while (view.RevealElapsedForAudit < 2.6f)
+        // 期限付き。登録欄が開かない退行でここが止まらないようにする。
+        float watchStart = Time.unscaledTime;
+        while (Time.unscaledTime - watchStart < 10f && view.RevealElapsedForAudit < 2.6f)
         {
             float elapsed = view.RevealElapsedForAudit;
             float alpha = view.TrophyAlphaForAudit;
@@ -193,7 +211,11 @@ public class AutoTestV6Interact : MonoBehaviour
             if (firstTrophyAlpha < 0f) { firstTrophyAlpha = alpha; }
             lastTrophyAlpha = alpha;
             if (alpha > 0f && alpha < 1f) { sawTrophyFadeIn = true; }
-            if (view.ModalOpenForAudit) { autoRegisterOpened = true; }
+            if (view.ModalOpenForAudit && !autoRegisterOpened)
+            {
+                autoRegisterOpened = true;
+                modalOpenElapsed = elapsed;
+            }
             if (view.RevealCompleteForAudit) { completed = true; }
 
             if (autoRegisterOpened && completed) { break; }
@@ -203,11 +225,15 @@ public class AutoTestV6Interact : MonoBehaviour
         Debug.Log(Tag + " reveal elapsed=" + view.RevealElapsedForAudit.ToString("F2")
             + " complete=" + view.RevealCompleteForAudit
             + " modal=" + view.ModalOpenForAudit
+            + " modalAt=" + modalOpenElapsed.ToString("F2")
             + " trophyAlpha=" + view.TrophyAlphaForAudit.ToString("F2"));
 
         Check("the reveal is staged (not everything at once)", sawBeforeComplete);
-        Check("the trophy fades in gradually", sawTrophyFadeIn || firstTrophyAlpha < lastTrophyAlpha);
-        Check("the register field opens automatically at 2s", autoRegisterOpened);
+        Check("the trophy fades in gradually",
+            lastTrophyAlpha >= 0.99f
+            && (sawTrophyFadeIn || (firstTrophyAlpha >= 0f && firstTrophyAlpha < lastTrophyAlpha)));
+        Check("the register field opens automatically at 2s",
+            autoRegisterOpened && modalOpenElapsed >= 1.9f && modalOpenElapsed <= 2.4f);
         Check("the reveal completes on its own", completed);
 
         yield return Screenshot("384-result-reveal");
@@ -225,8 +251,12 @@ public class AutoTestV6Interact : MonoBehaviour
 
         if (!Check("result view exists (skip run)", view != null)) { yield break; }
 
-        // 段階表示の途中 (1.0 秒未満) になるまで待ってから押す。
-        while (view.RevealElapsedForAudit < 0.8f) { yield return null; }
+        // 段階表示の途中 (1.0 秒未満) になるまで待ってから押す。期限付き。
+        float waitStarted = Time.unscaledTime;
+        while (view.RevealElapsedForAudit < 0.8f && Time.unscaledTime - waitStarted < 10f)
+        {
+            yield return null;
+        }
 
         bool skipped = false;
         for (int attempt = 0; attempt < 3 && !skipped; attempt++)
@@ -293,9 +323,8 @@ public class AutoTestV6Interact : MonoBehaviour
                 digits.Add(digit);
             }
 
-            if (V6ResumeCountdown.IsRunning && !PauseGate.IsPaused) { gateStayedClosed = false; }
-            // 判定ゲートも閉じたままであること (#382): ゲートはポーズ中だけでなく
-            // 曲終了の表示中も閉じるので、判定側の合成 (CanJudge) で確かめる。
+            // 判定キーが通らないこと (#382)。判定側の合成条件は
+            // 「ポーズ中でも曲終了表示中でもない」なので、カウントダウン中は閉じている。
             if (V6ResumeCountdown.IsRunning
                 && SongEndGate.CanJudge(PauseGate.IsPaused, SongEndGate.BlocksJudging))
             {
@@ -316,8 +345,8 @@ public class AutoTestV6Interact : MonoBehaviour
         Debug.Log(Tag + " countdown digits=" + sequence
             + " running=" + V6ResumeCountdown.IsRunning
             + " paused=" + PauseGate.IsPaused);
-        Check("the countdown shows 3-2-1", sequence.Contains("3") && sequence.Contains("2")
-            && sequence.Contains("1") && digits.Count >= 3);
+        // 順序まで見る (集合だけだと 1-2-3 でも通ってしまう)。
+        Check("the countdown shows 3-2-1", sequence == "3-2-1");
         Check("the gate stays closed for the whole countdown", gateStayedClosed);
         Check("the countdown ends", !V6ResumeCountdown.IsRunning);
         Check("the gate opens when the countdown ends", !PauseGate.IsPaused);
@@ -448,6 +477,42 @@ public class AutoTestV6Interact : MonoBehaviour
         {
             position = slider.ScreenPointForValue(value),
         };
+    }
+
+    /// <summary>
+    /// 実ポインタと同じ順序で配る。EventSystem のレイキャストで最前面の当たり先を取り、
+    /// スライダの内側ならそのオブジェクトから親へ向かってハンドラを実行する。
+    /// 手前に別の UI が被さっていれば当たり先がスライダの外になり、何も起きない。
+    /// </summary>
+    private static bool DispatchPointer<T>(V6VolumeSlider slider, float value,
+        ExecuteEvents.EventFunction<T> handler) where T : IEventSystemHandler
+    {
+        if (slider == null || EventSystem.current == null)
+        {
+            return false;
+        }
+
+        var pointer = Pointer(slider, value);
+        var results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointer, results);
+        if (results.Count == 0)
+        {
+            return false;
+        }
+
+        GameObject hit = results[0].gameObject;
+        if (hit == null)
+        {
+            return false;
+        }
+
+        if (hit != slider.gameObject && !hit.transform.IsChildOf(slider.transform))
+        {
+            return false;
+        }
+
+        ExecuteEvents.ExecuteHierarchy(hit, pointer, handler);
+        return true;
     }
 
     private static string Percent(float value)

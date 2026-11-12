@@ -120,6 +120,9 @@ public sealed class FrameTimeProbe : MonoBehaviour
         frames = 0;
         gc0AtIntervalStart = GC.CollectionCount(0);
         memoryAtIntervalStart = GC.GetTotalMemory(false);
+        // 区間ごとに最悪値を戻す。生涯の最大値と比べると、最初の大きな
+        // スパイク以降の引っかかりが記録されなくなる。
+        worstSeen = 0f;
     }
 
     void Report()

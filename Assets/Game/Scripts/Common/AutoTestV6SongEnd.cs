@@ -62,6 +62,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// </summary>
     const float HitWindowSeconds = 0.05f;
 
+    /// <summary>
+    /// ローディング画面が一度も見えないときに観測を打ち切る猶予 (秒)。
+    /// キャッシュ済みの曲は表示されないので、待ち続けても意味がない。
+    /// </summary>
+    const float NotVisibleGraceSeconds = 5f;
+
     /// <summary>v6 の Result Canvas の GameObject 名。</summary>
     const string ResultCanvasName = "V6 Result Canvas";
 
@@ -608,9 +614,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
         float lastProgress = -1f;
         bool firstSeenLogged = false;
         // 準備完了後も Preparing に戻ることは無いので、一度見えた後の
-        // 非表示を終了条件にする。見えないままなら 60 秒で打ち切る。
+        // 非表示を終了条件にする。見えないままなら猶予で打ち切る
+        // (メディアがキャッシュ済みだとローディングは一瞬も出ないため、
+        //  60 秒待つと実行時間だけが伸びる)。
         while (elapsed < 60f)
         {
+            if (!loadingObserved && elapsed >= NotVisibleGraceSeconds) { break; }
             V6LoadingView view = V6LoadingView.Current;
             bool visible = view != null && view.Root != null && view.Root.gameObject.activeInHierarchy;
             if (visible)
