@@ -60,6 +60,31 @@ namespace FlashBeat.UI.V6
         /// <summary>隠し対象の旧 v5 Ready プロンプト Canvas (キャッシュ)。</summary>
         private Canvas legacyReadyCanvas;
 
+        /// <summary>
+        /// 旧 v5 ローディング Canvas 配下の Graphic をキャッシュする (Issue #381)。
+        ///
+        /// 以前は LateUpdate のたびに <c>GetComponentsInChildren&lt;Graphic&gt;(true)</c>
+        /// を呼んでいた。GameScene の生存中は Canvas 配下の構成が変わらないので、
+        /// 初回だけ集めて使い回す (毎フレームの全走査をしない)。
+        /// </summary>
+        private Graphic[] legacyOverlayGraphics;
+
+        /// <summary>
+        /// 旧 v5 オブジェクトの検索を試みたフレーム数 (Issue #381)。
+        ///
+        /// 以前は <c>LateUpdate</c> が毎フレーム <c>FindObjectsOfType&lt;Canvas&gt;()</c>
+        /// を呼んでいた。これはシーン全体を走査する。v5 のオブジェクトは
+        /// GameHudController (実行順 100) の Start で作られるので数フレームで
+        /// 見つかる。見つからないまま探し続けるのは無駄なので上限を置く。
+        /// </summary>
+        private int legacyLookupFrames;
+
+        /// <summary>
+        /// 旧 v5 オブジェクトを探すフレーム数の上限。GameHudController は
+        /// Start (実行順 100) で作るので、1 秒あれば十分に足りる。
+        /// </summary>
+        private const int LegacyLookupFrameLimit = 60;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
@@ -128,7 +153,17 @@ namespace FlashBeat.UI.V6
         /// </summary>
         private void LateUpdate()
         {
-            if (legacyPause == null)
+            // 旧 v5 オブジェクトの**検索**には上限を置く (Issue #381)。
+            // 見つかった後の「隠し直し」は毎フレーム続ける: v5 の
+            // GameHudController は loading.SetVisible(true) などで出し直すため、
+            // 探索を止めても非表示は保つ必要がある。
+            bool mayLookUp = legacyLookupFrames < LegacyLookupFrameLimit;
+            if (mayLookUp)
+            {
+                legacyLookupFrames++;
+            }
+
+            if (legacyPause == null && mayLookUp)
             {
                 legacyPause = FindObjectOfType<FlashBeat.UI.V5.PauseMenuView>();
             }
@@ -139,7 +174,7 @@ namespace FlashBeat.UI.V6
                 legacyPause.gameObject.SetActive(false);
             }
 
-            if (legacyReadyCanvas == null)
+            if (legacyReadyCanvas == null && mayLookUp)
             {
                 // GameHudController (実行順 100) が Start で V5ReadyCanvas を作るので
                 // v6 より遅い。ここで見つけてから隠す (シーン再ロードで作り直し)。
@@ -157,7 +192,7 @@ namespace FlashBeat.UI.V6
                 legacyReadyCanvas.gameObject.SetActive(false);
             }
 
-            if (legacyOverlayCanvas == null)
+            if (legacyOverlayCanvas == null && mayLookUp)
             {
                 var canvases = FindObjectsOfType<Canvas>();
                 for (int i = 0; i < canvases.Length; i++)
@@ -172,15 +207,52 @@ namespace FlashBeat.UI.V6
 
             if (legacyOverlayCanvas != null)
             {
-                var graphics = legacyOverlayCanvas.GetComponentsInChildren<Graphic>(true);
-                for (int g = 0; g < graphics.Length; g++)
+                // 初回だけ集め、以後は同じ配列を使い回す (毎フレームの全走査をしない)。
+                // v5 の GameHudController は loading.SetVisible(true) で出し直すため、
+                // 毎フレーム「有効に戻っていないか」は見る必要がある。ただし
+                // GetComponentsInChildren は呼ばない。
+                if (legacyOverlayGraphics == null)
                 {
-                    if (graphics[g] != null && graphics[g].enabled)
-                    {
-                        graphics[g].enabled = false;
-                    }
+                    legacyOverlayGraphics = legacyOverlayCanvas.GetComponentsInChildren<Graphic>(true);
+                }
+
+                HideLegacyOverlayGraphics(legacyOverlayGraphics);
+            }
+        }
+
+        /// <summary>
+        /// キャッシュ済みの Graphic のうち、有効なものを無効化する。
+        /// すべて無効なら true を返す。配列は呼び出し側が持つので、ここでは
+        /// 新規確保しない (Issue #381: 毎フレームの再帰的な収集を無くす)。
+        /// </summary>
+        public static bool HideLegacyOverlayGraphics(Graphic[] graphics)
+        {
+            if (graphics == null)
+            {
+                return true;
+            }
+
+            bool allHidden = true;
+            for (int g = 0; g < graphics.Length; g++)
+            {
+                Graphic graphic = graphics[g];
+                if (graphic == null)
+                {
+                    continue; // 破棄された要素は数えない (MissingReference を避ける)
+                }
+
+                if (graphic.enabled)
+                {
+                    graphic.enabled = false;
+                }
+
+                if (graphic.enabled)
+                {
+                    allHidden = false;
                 }
             }
+
+            return allHidden;
         }
 
         private void Update()
