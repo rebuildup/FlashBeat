@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -53,8 +53,12 @@ namespace FlashBeat.UI.V6.Result
         private const float GradeBoxW = 280f, GradeBoxH = 280f;
         private const float ScoreColX = 336f;
 
-        // トロフィー (design zcSHh: Result Block の (337,1) 30×30, $text-dim)。
-        private const float TrophyX = 337f, TrophyY = 1f, TrophySize = 30f;
+        // トロフィーは結果ブロックの中ではなく、ヘッダー左上の空きスロット
+        // (design zcSHh/biox4、他画面の戻るボタンと同じ 56×56) に置く。
+        // メイン領域に置くとスコアの左に浮いて読み順を乱し、他画面では
+        // 戻るボタンが入る枠が Result だけ空白になっていた。
+        private const float TrophyBadgeX = 0f, TrophyBadgeY = 20f, TrophyBadgeSize = 56f;
+        private const float TrophyIconSize = 28f;
 
         // スコアゲージ (0,336) 840x100 → Gauge (0,16) 824x76。
         private const float GaugeZoneY = 336f;
@@ -596,8 +600,32 @@ namespace FlashBeat.UI.V6.Result
         {
             var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
 
-            // design (zcSHh/biox4) の戻るゾーンは中身が空のプレースホルダなので、
-            // ヘッダーに Esc ボタンは描かない (戻るはフッターの OK / Esc キー)。
+            // design zcSHh/biox4 の左上スロット (56×56) にトロフィーを置く。
+            // 他画面ではここが戻るボタン (Esc) で、Result だけ空いていた。
+            // 戻るはフッターの OK / Esc キーが担うので、ここは結果の記号に使う。
+            var badge = V5Ui.Panel(header.gameObject, "Trophy Badge",
+                new Vector2(TrophyBadgeSize, TrophyBadgeSize), V5Tokens.Key4, 8f);
+            At(badge, TrophyBadgeX, TrophyBadgeY);
+            var trophyNode = V5Ui.Node(badge, "Icon");
+            var nodeRt = trophyNode.GetComponent<RectTransform>();
+            nodeRt.anchorMin = Vector2.zero;
+            nodeRt.anchorMax = Vector2.one;
+            nodeRt.offsetMin = Vector2.zero;
+            nodeRt.offsetMax = Vector2.zero;
+            trophyIcon = V6Icons.Create(trophyNode, "trophy", TrophyIconSize, V5Tokens.Text, "Glyph");
+            if (trophyIcon != null)
+            {
+                var iconRt = trophyIcon.rectTransform;
+                iconRt.anchorMin = new Vector2(0.5f, 0.5f);
+                iconRt.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRt.pivot = new Vector2(0.5f, 0.5f);
+                iconRt.sizeDelta = new Vector2(TrophyIconSize, TrophyIconSize);
+                iconRt.anchoredPosition = Vector2.zero;
+            }
+
+            trophyGroup = FadeGroup(badge);
+            trophyRect = badge.GetComponent<RectTransform>();
+
             // design zcSHh/aqq3q の Title (72,20) 185x56 fs38: 文字列は "RESULT"
             // (全画面のヘッダーは画面名を出す。Title 画面だけ "FlashBeat")。
             var title = V5GameUi.Text(header.gameObject, "Title", "RESULT", 38f, V5Tokens.Text,
@@ -628,13 +656,7 @@ namespace FlashBeat.UI.V6.Result
 
             // design (B7Ko8) は fill なし (背景パネルを敷かない)。以前あった可読性目的の
             // スクリーンは設計に無く、デザインとの差分になっていたので描かない。
-            var trophyNode = At(V5Ui.Node(block, "Trophy"), TrophyX, TrophyY, TrophySize, TrophySize);
-            trophyIcon = V6Icons.Create(trophyNode, "trophy", TrophySize, V5Tokens.TextDim, "Icon");
-            if (trophyIcon != null)
-            {
-                Stretch(trophyIcon.rectTransform, TrophySize, TrophySize);
-            }
-
+            // トロフィーはヘッダーの左上スロットが持つ (BuildHeader)。
             var gradeBox = At(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
             gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);
@@ -654,7 +676,7 @@ namespace FlashBeat.UI.V6.Result
             At(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
 
             // 段階表示 (#384): 各要素は CanvasGroup のアルファで出す。
-            trophyGroup = FadeGroup(trophyNode);
+            // トロフィーのグループはヘッダー側で作る (BuildHeader)。
             gradeGroup = FadeGroup(gradeBox);
             gradeRect = gradeBox.GetComponent<RectTransform>();
             scoreLabelGroup = FadeGroup(scoreLabel.gameObject);

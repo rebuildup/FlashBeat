@@ -62,17 +62,54 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float LyricDesignWidth = 1120f;
         public const float LyricDesignHeight = 220f;
 
-        /// <summary>歌詞スロット上端の y (画面左上原点)。</summary>
+        /// <summary>
+        /// 歌詞スロット上端の y (画面左上原点)。
+        /// </summary>
         public static float LyricTopY(float screenHeight)
         {
             return LyricDesignY * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
         }
 
-        /// <summary>歌詞スロットの幅・高さ。</summary>
-        public static Vector2 LyricSize(float screenHeight)
+        /// <summary>
+        /// 歌詞スロットの幅・高さ。
+        ///
+        /// 幅は design の 1120 を実画面へ写す。**高さは design の 220 ではなく、
+        /// 実際の行構成の高さから求める** (2026-11-12 オーナー指摘)。
+        ///
+        /// design の 220 は 3 行 (振り仮名 22 / 歌詞 44 / ローマ字 20) + Start Prompt
+        /// を想定した値だが、実装のフォントは画面倍率に追従しない固定 px なので、
+        /// Mac (倍率 2.21) では文字が箱の 1 割しか埋めず、大きな空の板に見えていた。
+        /// 行の高さから箱を決めれば、文字に対して箱が大きくなりすぎない。
+        /// </summary>
+        /// <param name="screenHeight">画面の高さ (幅の写像に使う)。</param>
+        /// <param name="furiganaFs">実際に使う振り仮名のフォントサイズ (px)。</param>
+        /// <param name="lyricFs">実際に使う歌詞のフォントサイズ (px)。</param>
+        /// <param name="romajiFs">実際に使うローマ字のフォントサイズ (px)。</param>
+        public static Vector2 LyricSize(float screenHeight, float furiganaFs, float lyricFs, float romajiFs)
         {
             float scale = V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
-            return new Vector2(LyricDesignWidth * scale, LyricDesignHeight * scale);
+            float width = LyricDesignWidth * scale;
+            float height = LyricContentHeight(furiganaFs, lyricFs, romajiFs);
+            return new Vector2(width, height);
+        }
+
+        /// <summary>歌詞スロットの上下 padding (design 16)。</summary>
+        public const float LyricPaddingY = 16f;
+
+        /// <summary>歌詞スロットの行間 (design 6)。</summary>
+        public const float LyricRowGap = 6f;
+
+        /// <summary>
+        /// 3 行 (振り仮名 / 歌詞 / ローマ字) の高さ合計に padding と gap を足した、
+        /// 箱の最小の高さ。行のフォントサイズは呼び出し側 (HUD ビュー) の値を使う。
+        /// </summary>
+        public static float LyricContentHeight(float furiganaFs, float lyricFs, float romajiFs)
+        {
+            float furiganaLine = furiganaFs * 1.4f;
+            float lyricLine = lyricFs * 1.2f;
+            float romajiLine = romajiFs * 1.4f;
+            float rows = furiganaLine + lyricLine + romajiLine;
+            return rows + LyricRowGap * 2f + LyricPaddingY * 2f;
         }
 
         /// <summary>スコア値の 1 行固定の下限フォントサイズ。design は 38 (FHD)。</summary>
@@ -104,6 +141,56 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         public const float ScorePulseSeconds = 0.2f;
 
+        // --- 判定の出現アニメーション (2026-11-12 オーナー指摘) ---
+
+        /// <summary>判定が判定線から立ち上がる距離 (design px、上方向が正)。</summary>
+        public const float VerdictRiseDistance = 28f;
+
+        /// <summary>判定が立ち上がりきるまでの時間 (秒)。</summary>
+        public const float VerdictRiseSeconds = 0.14f;
+
+        /// <summary>判定が消えるまでの時間 (秒)。</summary>
+        public const float VerdictFadeSeconds = 0.22f;
+
+        /// <summary>
+        /// 判定テキストの出現位置 (design px、上方向が正の戻り値)。
+        ///
+        /// 判定線のすぐ上に出て、短い時間で所定の位置まで立ち上がる。
+        /// 「正しく叩けた」手応えを判定線の近くで返すため、出現は判定線に近い
+        /// 位置から始める (0 = 所定位置、正 = その分だけ下)。
+        /// </summary>
+        public static float VerdictRiseOffset(float elapsed)
+        {
+            if (elapsed <= 0f)
+            {
+                return VerdictRiseDistance;
+            }
+
+            if (elapsed >= VerdictRiseSeconds)
+            {
+                return 0f;
+            }
+
+            float t = elapsed / VerdictRiseSeconds;
+            // EaseOut: 素早く立ち上がり、ゆっくり止まる。
+            float eased = 1f - (1f - t) * (1f - t);
+            return Mathf.Lerp(VerdictRiseDistance, 0f, eased);
+        }
+
+        /// <summary>
+        /// 判定テキストの不透明度。出るときは素早く出て、寿命の最後に短く消える。
+        /// <paramref name="remaining"/> は表示が終わるまでの残り秒。
+        /// </summary>
+        public static float VerdictAlpha(float remaining)
+        {
+            if (remaining <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01(remaining / VerdictFadeSeconds);
+        }
+
         /// <summary>再開カウントダウンの数字サイズ (design 1728×972 基準)。</summary>
         public const float CountdownDesignFontSize = 132f;
 
@@ -111,6 +198,21 @@ namespace FlashBeat.UI.V6.Game.Hud
         public static float CountdownFontSize(float screenHeight)
         {
             return CountdownDesignFontSize * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
+        }
+
+        /// <summary>
+        /// 開始待ち (startTiming) の「START」ラベルの design フォントサイズ。
+        ///
+        /// カウントダウンの数字 (132px 中央) と同じ枠を使うが、数字ほど大きくすると
+        /// 画面の主役に見える。歌詞スロットに収まる行の大きさに合わせ、
+        /// 同じ枠の中で「状態の見出し」として読めるサイズにする
+        /// (2026-11-12 オーナー指摘: 体裁を保つ)。
+        /// </summary>
+        public const float StartHoldDesignFontSize = 64f;
+
+        public static float StartHoldFontSize(float screenHeight)
+        {
+            return StartHoldDesignFontSize * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
         }
 
         /// <summary>曲終了「終了」の design フォントサイズ (1728×972 基準)。</summary>

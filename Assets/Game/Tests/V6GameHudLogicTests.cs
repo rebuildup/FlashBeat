@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using UnityEngine;
 using FlashBeat.UI;
 using FlashBeat.UI.V5;
@@ -331,15 +331,25 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void LyricSize_ScalesWithHeight()
+        public void LyricWidthScalesWithHeight()
         {
-            Vector2 fhd = V6HudLogic.LyricSize(1080f);
+            // 幅は design の 1120 を高さ合わせで写す (変えない)。
+            Vector2 fhd = V6HudLogic.LyricSize(1080f, 18f, 36f, 16f);
             Assert.AreEqual(1244f, fhd.x, 1f);
-            Assert.AreEqual(244f, fhd.y, 1f);
 
-            Vector2 mac = V6HudLogic.LyricSize(1664f);
+            Vector2 mac = V6HudLogic.LyricSize(1664f, 24f, 48f, 22f);
             Assert.AreEqual(1917f, mac.x, 1f);
-            Assert.AreEqual(377f, mac.y, 1f);
+        }
+
+        [Test]
+        public void LyricHeightFollowsTheTextNotTheDesignBlanket()
+        {
+            // 2026-11-12 オーナー指摘: 高さを 220 × scale にすると、フォントが
+            // 画面倍率に追従しない分だけ「大きな空の板」になる。高さは行構成から
+            // 求めるので、design の 220 × scale より小さくなる。
+            Vector2 mac = V6HudLogic.LyricSize(1664f, 24f, 48f, 22f);
+            Assert.Less(mac.y, 377f, "design の 220 × scale をそのまま使わない");
+            Assert.Greater(mac.y, 48f, "歌詞 1 行は必ず入る");
         }
 
         // --- スコアのポップ (Issue #379) ---

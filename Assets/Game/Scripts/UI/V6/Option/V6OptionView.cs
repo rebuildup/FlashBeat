@@ -752,9 +752,15 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>Play タブ: JIS キーボード + 実際のレーン割当 (design の Key 1..Key _)。</summary>
+        /// <remarks>
+        /// キーキャップに出すのは **キー名** (1 / Q / A …) で、レーン番号ではない。
+        /// 以前は <see cref="V6OptionLogic.DisplayLaneOf"/> の結果を出していたため、
+        /// 同じレーンに属するキーが同じ数字になり「1 2 3 4 4 5 5 6 7 8 8 8」のような
+        /// 崩れた表示になっていた (2026-11-12 オーナー指摘)。
+        /// レーン番号はプレビュー側のレーンラベルが担う。
+        /// </remarks>
         private void BuildKeyGrid(GameObject panel)
         {
-            KeyCode[][] table = KeyBindings.Current;
             for (int r = 0; r < V6OptionLogic.JisGridKeys.Length; r++)
             {
                 KeyCode[] keys = V6OptionLogic.JisGridKeys[r];
@@ -766,8 +772,7 @@ namespace FlashBeat.UI.V6.Option
                         new Vector2(x0 + V6OptionLogic.GridKeyStepX * k, y),
                         new Vector2(V6OptionLogic.GridKeyW, V6OptionLogic.GridKeyH),
                         V6Tokens.Key4, V6Tokens.RadiusSmall);
-                    int lane = V6OptionLogic.DisplayLaneOf(keys[k], table);
-                    V6Controls.Text(cap, "Lane", lane > 0 ? lane.ToString() : "",
+                    V6Controls.Text(cap, "Label", V6OptionLogic.KeyDisplayName(keys[k]),
                         new Vector2(0f, 9f), new Vector2(V6OptionLogic.GridKeyW, 20f), 20f, V6Tokens.Text,
                         TextAlignmentOptions.Center);
                 }

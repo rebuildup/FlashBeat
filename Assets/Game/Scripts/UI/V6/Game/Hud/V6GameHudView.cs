@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Playfield;
 using UnityEngine;
@@ -33,6 +33,25 @@ namespace FlashBeat.UI.V6.Game.Hud
         private const float LyricFuriganaFs = 22f;
         private const float LyricFs = 44f;
         private const float LyricRomajiFs = 20f;
+
+        /// <summary>
+        /// design の歌詞フォント (1728×972 基準) に対する実画面での倍率。
+        ///
+        /// 歌詞スロットの箱は画面高に比例して大きくなるのに、フォントを design px の
+        /// まま固定すると、高解像度ほど「大きな空の板に小さい文字」になる
+        /// (2026-11-12 オーナー指摘)。HUD の他の要素 (スコア・コンボ) は m.* で
+        /// 画面に追従しているので、歌詞も同じ倍率で揃える。
+        /// </summary>
+        private float LyricFontScale()
+        {
+            float metricsFs = m != null ? m.LyricFs : LyricFs;
+            return LyricFs > 0f ? metricsFs / LyricFs : 1f;
+        }
+
+        /// <summary>実際に使う歌詞の行フォントサイズ (px)。</summary>
+        private float ScaledFuriganaFs { get { return LyricFuriganaFs * LyricFontScale(); } }
+        private float ScaledLyricFs { get { return LyricFs * LyricFontScale(); } }
+        private float ScaledRomajiFs { get { return LyricRomajiFs * LyricFontScale(); } }
         private static readonly Color LyricBoxColor = new Color(0f, 0f, 0f, 0x99 / 255f);
 
         /// <summary>上部シェードのグラデーション (上端の不透明度)。</summary>
@@ -75,11 +94,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
         private int lastRenderedScore = int.MinValue;
         private int lastRenderedCombo = int.MinValue;
+        /// <summary>前フレームのコンボ (増加を検出してポップさせる)。</summary>
+        private int lastCombo = -1;
         private float scorePulseStart = -1f;
+        /// <summary>コンボ値のポップ開始時刻 (-1 = 停止中)。</summary>
+        private float comboPulseStart = -1f;
         private float verdictScanUntil;
         private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
         private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
         private readonly float[] laneVerdictUntil = new float[V6LaneGeometry.LaneCount];
+        /// <summary>判定テキストを出した時刻 (出現アニメーションの基準)。</summary>
+        private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
 
         // --- 歌詞 ---
         private GameSceneManager lyricSource;
@@ -162,7 +187,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             {
                 comboText.text = GManager.combo.ToString();
                 lastRenderedCombo = GManager.combo;
+                // 加算でポップさせる (スコアと同じ手応えを出す)。
+                if (lastCombo >= 0 && GManager.combo != lastCombo)
+                {
+                    comboPulseStart = Time.unscaledTime;
+                }
             }
+
+            lastCombo = GManager.combo;
 
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
@@ -217,6 +249,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             Refresh();
             UpdateScorePulse();
+            UpdateComboPulse();
         }
 
         /// <summary>加算直後だけスコア値を拡大する。レイアウト (anchoredPosition) は変えない。</summary>
@@ -239,6 +272,34 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             scoreText.rectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        /// <summary>
+        /// コンボ値のポップ (2026-11-12 オーナー指摘)。
+        ///
+        /// スコアは加算で拡大するのにコンボだけ静止していたため、叩いた手応えが
+        /// 片方にしか出ていなかった。スコアと同じ時間割・同じ倍率で拡大し、
+        /// レイアウト (anchoredPosition) は動かさない。
+        /// </summary>
+        private void UpdateComboPulse()
+        {
+            if (comboText == null)
+            {
+                return;
+            }
+
+            float scale = 1f;
+            if (comboPulseStart >= 0f)
+            {
+                float elapsed = Time.unscaledTime - comboPulseStart;
+                scale = V6HudLogic.ScorePulseScale(elapsed);
+                if (elapsed >= V6HudLogic.ScorePulseSeconds)
+                {
+                    comboPulseStart = -1f;
+                }
+            }
+
+            comboText.rectTransform.localScale = new Vector3(scale, scale, 1f);
         }
 
         /// <summary>
@@ -349,6 +410,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             // スコア / コンボが次に増えるまで空のままになる。
             lastRenderedScore = int.MinValue;
             lastRenderedCombo = int.MinValue;
+            lastCombo = -1;
+            comboPulseStart = -1f;
 
             Build();
         }
@@ -474,7 +537,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // プレイフィールドと同じ高さ合わせ写像で置く。FHD y=278 / 2K y=370 / Mac y=428。
             // 内部の Furigana fs22 / Lyrics fs44 / Romaji fs20、gap 6、padding 24/16 は
             // design のまま (契約 §8)。
-            Vector2 lyricSize = V6HudLogic.LyricSize(CanvasSize().y);
+            Vector2 lyricSize = V6HudLogic.LyricSize(CanvasSize().y, ScaledFuriganaFs, ScaledLyricFs, ScaledRomajiFs);
             var box = V5Ui.Panel(gameObject, "Lyric Box", lyricSize, LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
             lyricBox = box;
@@ -497,14 +560,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // V5Ui.Text は rect 高さ 0 で作る。preferredHeight (fs × 行送り) を
             // LayoutElement で渡し、上の childControlHeight=true で行の高さを確保する。
-            lyricFuriganaText = V5Ui.Text(box, "Furigana", "", LyricFuriganaFs, V5Tokens.TextDim,
+            lyricFuriganaText = V5Ui.Text(box, "Furigana", "", ScaledFuriganaFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
-            SetLyricRowHeight(lyricFuriganaText, LyricFuriganaFs);
-            lyricText = V5Ui.Text(box, "Lyrics", "", LyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
-            SetLyricRowHeight(lyricText, LyricFs);
-            lyricRomajiText = V5Ui.Text(box, "Romaji", "", LyricRomajiFs, V5Tokens.TextDim,
+            SetLyricRowHeight(lyricFuriganaText, ScaledFuriganaFs);
+            lyricText = V5Ui.Text(box, "Lyrics", "", ScaledLyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            SetLyricRowHeight(lyricText, ScaledLyricFs);
+            lyricRomajiText = V5Ui.Text(box, "Romaji", "", ScaledRomajiFs, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
-            SetLyricRowHeight(lyricRomajiText, LyricRomajiFs);
+            SetLyricRowHeight(lyricRomajiText, ScaledRomajiFs);
 
             BuildLyricPrompt(box);
         }
@@ -526,7 +589,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y);
+            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y, ScaledFuriganaFs, ScaledLyricFs, ScaledRomajiFs);
             rt.anchoredPosition = new Vector2(0f, -m.LyricY);
 
             countdownText = V5Ui.Text(countdownOverlay, "Value", "3",
@@ -566,6 +629,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             countdownText.text = number.ToString();
+            // START 表示から戻ってきた場合に備え、数字のサイズへ戻す。
+            countdownText.fontSize = V6HudLogic.CountdownFontSize(CanvasSize().y);
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -580,7 +645,11 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
+            // START はカウントダウンと同じ枠を使うが、数字より小さい「見出し」の
+            // 体裁にする (2026-11-12 オーナー指摘)。132px の数字サイズのままだと
+            // 状態表示ではなく主役に見え、カウントダウンとも区別が付かない。
             countdownText.text = "START";
+            countdownText.fontSize = V6HudLogic.StartHoldFontSize(CanvasSize().y);
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -619,11 +688,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y);
+            rt.sizeDelta = V6HudLogic.LyricSize(CanvasSize().y, ScaledFuriganaFs, ScaledLyricFs, ScaledRomajiFs);
             rt.anchoredPosition = new Vector2(0f, -m.LyricY);
 
             float scale = V6LaneGeometry.ScreenScale(CanvasSize());
-            var box = V5Ui.Panel(endOverlay, "Panel", V6HudLogic.LyricSize(CanvasSize().y),
+            var box = V5Ui.Panel(endOverlay, "Panel", V6HudLogic.LyricSize(CanvasSize().y, ScaledFuriganaFs, ScaledLyricFs, ScaledRomajiFs),
                 LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
 
@@ -1229,7 +1298,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 lyricText.text = hasLine && lyricLines[index].HasText
                     ? lyricLines[index].Text
                     : "";
-                SetLyricTextFontSize(m.LyricFs); // Ready prompt の拡大 fs を戻す
+                SetLyricTextFontSize(ScaledLyricFs); // Ready prompt の拡大 fs を戻す
                 lyricFuriganaText.text = hasLine ? lyricLines[index].Furigana ?? "" : "";
                 lyricRomajiText.text = hasLine ? lyricLines[index].Romaji ?? "" : "";
             }
@@ -1309,6 +1378,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                     {
                         laneVerdicts[lane] = null;
                         laneVerdictUntil[lane] = 0f;
+                        laneVerdictStart[lane] = 0f;
                         SetAlpha(verdictTexts[lane], 0f);
                     }
                 }
@@ -1337,8 +1407,28 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                SetAlpha(verdictTexts[lane], Mathf.Clamp01(remain / JudgeShowSeconds));
+                // 出現は判定線の近くから立ち上がり、寿命の最後に短く消える
+                // (2026-11-12 オーナー指摘: 叩いた手応えを判定線の位置で返す)。
+                float elapsed = now - laneVerdictStart[lane];
+                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
+                ApplyVerdictRise(lane, V6HudLogic.VerdictRiseOffset(elapsed));
             }
+        }
+
+        /// <summary>
+        /// 判定テキストを基準位置から下へ <paramref name="offset"/> だけずらす
+        /// (design px)。レイアウトは触らず anchoredPosition だけを動かす。
+        /// </summary>
+        private void ApplyVerdictRise(int lane, float offset)
+        {
+            if (lane >= verdictTexts.Count)
+            {
+                return;
+            }
+
+            var rt = verdictTexts[lane].rectTransform;
+            var pos = rt.anchoredPosition;
+            rt.anchoredPosition = new Vector2(pos.x, -offset * Scale);
         }
 
         private void ScanJudgeClones()
@@ -1370,6 +1460,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 string label = V6HudLogic.VerdictLabel(n);
                 laneVerdicts[lane] = label;
                 laneVerdictUntil[lane] = Time.unscaledTime + JudgeShowSeconds;
+                laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;
                 verdictTexts[lane].color = V6HudLogic.VerdictColor(label);
                 // 判定行を使わない既定では、元の 3D 判定エフェクトをそのまま残す
