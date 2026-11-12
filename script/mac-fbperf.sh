@@ -45,17 +45,20 @@ echo "[fbperf] app=$app"
 echo "[fbperf] out=$outdir"
 echo "[fbperf] song=$song seconds=$seconds"
 
-# 実行ファイルを直叩きして pid を保持する (手元で起動した FlashBeat は殺さない)。
-# 曲の終端まで見たいので、曲長 + 余裕を上限にする (seconds が小さいときは
-# 演奏中の定常状態だけを見る)。
-"$app/Contents/MacOS/FlashBeat" \
+# 前面で起動する。バックグラウンド相当の起動 (素の exec) は macOS に
+# スロットルされ、これ以前の計測は全て 8〜9fps 相当に見えていた。
+open -n "$app" --args \
   -autotest v6songend \
   -autotest-out "$outdir" \
   -autotest-song "$song" \
-  -fbperf \
-  > "$outdir/stdout.log" 2>&1 &
-pid=$!
+  -fbperf
 
+# open はフォーク相当で即戻るので、実プロセスを pgrep で拾う。
+pid=$(pgrep -f "$app/Contents/MacOS/FlashBeat" | head -1)
+if [ -z "$pid" ]; then
+  echo "[fbperf] player did not start" >&2
+  exit 3
+fi
 # 指定秒数だけ走らせてから止める (曲終了より先に切り上げてよい:
 # 見たいのは演奏中の定常フレームタイム)。
 elapsed=0
