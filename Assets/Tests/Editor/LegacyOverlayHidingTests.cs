@@ -69,22 +69,6 @@ public class LegacyOverlayHidingTests
     }
 
     [Test]
-    public void ARedisplayedGraphicIsHiddenAgain()
-    {
-        // v5 の GameHudController は loading.SetVisible(true) で出し直す。
-        // キャッシュした配列でも、それを拾えなければ二重表示になる。
-        Image a = AddImage("A");
-        var graphics = new Graphic[] { a };
-
-        Assert.IsTrue(V6GameRuntime.HideLegacyOverlayGraphics(graphics));
-        a.enabled = true; // v5 が出し直した
-
-        Assert.IsTrue(V6GameRuntime.HideLegacyOverlayGraphics(graphics),
-            "出し直された Graphic を再度隠す");
-        Assert.IsFalse(a.enabled);
-    }
-
-    [Test]
     public void ADestroyedGraphicDoesNotThrow()
     {
         // 要素が破棄されていても MissingReferenceException にしない。
@@ -105,53 +89,49 @@ public class LegacyOverlayHidingTests
     [Test]
     public void LateUpdateDoesNotScanTheSceneEveryFrame()
     {
-        // 本題: LateUpdate が毎フレームシーン全体を探し直さないこと。
-        // 見つからないまま探し続けると、V5OverlayCanvas が無いシーンで
-        // 毎フレーム FindObjectsOfType<Canvas> (配列確保 + 全走査) が走る。
+        // Issue #400: v6 構成では v5 の Ready / Loading / Error をそもそも生成しない
+        // (GameHudController.Start)。したがって LateUpdate は
+        // 「v6 ポーズが無効なときの v5 ポーズ」だけを見ればよく、
+        // シーン全体の探索を毎フレーム行う必要が無い。
+        //
+        // ここでは「探索に上限があること」「全走査が LateUpdate に戻っていないこと」
+        // を構造で固定する。
         string src = File.ReadAllText(
             Path.Combine(Application.dataPath, "Game/Scripts/UI/V6/V6GameRuntime.cs"));
 
         string lateUpdate = LateUpdateSource(src);
 
-        // 探索は上限付きフラグで囲まれていること。
         Assert.IsTrue(lateUpdate.Contains("mayLookUp"),
             "探索に上限が無い (毎フレーム探し続ける)");
         Assert.IsTrue(src.Contains("LegacyLookupFrameLimit"),
             "探索の上限値が定義されていない");
+        Assert.IsTrue(lateUpdate.Contains("legacyPause == null && mayLookUp"),
+            "v5 ポーズの探索が上限で守られていない");
 
-        // 各探索が mayLookUp で守られていること (無条件の Find を残さない)。
-        Assert.IsTrue(lateUpdate.Contains("legacyPause == null && mayLookUp"));
-        Assert.IsTrue(lateUpdate.Contains("legacyReadyCanvas == null && mayLookUp"));
-        Assert.IsTrue(lateUpdate.Contains("legacyOverlayCanvas == null && mayLookUp"));
-
-        // 収集はキャッシュ変数への初回代入の 1 箇所だけ。
-        // 数えるのは実際の呼び出し (`= ... GetComponentsInChildren...`) で、
-        // 説明コメント中の同じ文字列は含めない。
-        int collects = CountOccurrences(src, "legacyOverlayGraphics = legacyOverlayCanvas.GetComponentsInChildren<Graphic>(true);");
-        Assert.AreEqual(1, collects,
-            "Graphic の収集は初回の 1 箇所だけにする (見つかった数: " + collects + ")");
-        Assert.IsTrue(src.Contains("if (legacyOverlayGraphics == null)"),
-            "キャッシュ済みなら収集しない条件が無い");
+        // Issue #400: v5 の Ready / Overlay Canvas は v6 構成で生成されないため、
+        // LateUpdate でそれらを探して隠す処理は持たない。
+        // 「探す」= 型/名前で検索するコード。コメント中の言及と区別する。
+        Assert.IsFalse(lateUpdate.Contains("FindObjectOfType<FlashBeat.UI.V5.GameReadyView>()"),
+            "生成されない GameReadyView を毎フレーム探している");
+        Assert.IsFalse(lateUpdate.Contains("FindObjectsOfType<Canvas>()"),
+            "Canvas の全走査が LateUpdate に残っている");
+        Assert.IsFalse(lateUpdate.Contains("== \"V5OverlayCanvas\""),
+            "生成されない V5OverlayCanvas を名前で探している");
     }
 
     [Test]
-    public void HidingKeepsRunningAfterTheLookupStops()
+    public void HidingHelperStaysSafeEvenThoughV6NoLongerCollectsIt()
     {
-        // 探索を止めても「隠し直し」は止めない: v5 の GameHudController は
-        // loading.SetVisible(true) で出し直すため、止めると二重表示になる。
-        string src = File.ReadAllText(
-            Path.Combine(Application.dataPath, "Game/Scripts/UI/V6/V6GameRuntime.cs"));
+        // HideLegacyOverlayGraphics は公開 API として残す (テスト・将来の
+        // レガシー対応)。毎フレーム呼ばれないことは上で固定した。
+        Image a = AddImage("A");
+        var graphics = new Graphic[] { a };
 
-        string lateUpdate = LateUpdateSource(src);
-        Assert.IsTrue(lateUpdate.Contains("HideLegacyOverlayGraphics(legacyOverlayGraphics);"),
-            "隠し直しが毎フレーム走らない (v5 の再表示を取り逃す)");
-
-        // 隠し直しは mayLookUp で囲まれていないこと (探索の上限に巻き込まない)。
-        int hide = lateUpdate.IndexOf("HideLegacyOverlayGraphics(legacyOverlayGraphics);");
-        int ifMayLookUp = lateUpdate.LastIndexOf("if (legacyOverlayCanvas == null && mayLookUp)", hide);
-        int ifCanvas = lateUpdate.LastIndexOf("if (legacyOverlayCanvas != null)", hide);
-        Assert.Greater(ifCanvas, ifMayLookUp,
-            "隠し直しが探索の上限の条件の中に入っている");
+        Assert.IsTrue(V6GameRuntime.HideLegacyOverlayGraphics(graphics));
+        a.enabled = true;
+        Assert.IsTrue(V6GameRuntime.HideLegacyOverlayGraphics(graphics),
+            "出し直された Graphic を再度隠す (冪等な隠し直し)");
+        Assert.IsFalse(a.enabled);
     }
 
     /// <summary>LateUpdate の本体を切り出す (次のメンバー宣言まで)。</summary>

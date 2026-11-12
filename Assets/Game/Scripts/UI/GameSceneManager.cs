@@ -228,18 +228,65 @@ public class GameSceneManager : MonoBehaviour
     /// <summary>
     /// v5 のポーズメニューが有効かどうか (Issue #167)。
     /// true のときは Esc を PauseMenuView だけが担う。
-    /// 見つかるまでは毎フレーム探すが、見つかった後は参照を保持する (毎フレームの全探索を避ける)。
+    ///
+    /// Issue #400: v6 のポーズが有効な GameScene では v5 の PauseMenuView を
+    /// **生成しない** (GameHudController.Start)。生成しないものを毎フレーム
+    /// シーン全体から探すのは無駄なので、その構成では探索せず false を返す。
+    /// それ以外では従来どおり「見つかるまで探し、見つかったら保持」する。
     /// </summary>
     private static FlashBeat.UI.V5.PauseMenuView cachedPauseMenu;
 
     private static bool HasV5PauseMenu()
     {
-        if (cachedPauseMenu == null)
+        if (cachedPauseMenu != null)
         {
-            cachedPauseMenu = FindFirstObjectByType<FlashBeat.UI.V5.PauseMenuView>();
+            return true;
         }
 
-        return cachedPauseMenu != null;
+        // v6 がゲーム UI とポーズを所有しているなら v5 ポーズは存在しない。
+        if (FlashBeat.UI.V6.V6UiMode.GameHud
+            && FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
+        {
+            return false;
+        }
+
+        if (!v5PauseLookupExhausted)
+        {
+            if (v5PauseLookupStartFrame < 0)
+            {
+                v5PauseLookupStartFrame = Time.frameCount;
+            }
+
+            cachedPauseMenu = FindFirstObjectByType<FlashBeat.UI.V5.PauseMenuView>();
+            if (cachedPauseMenu != null)
+            {
+                return true;
+            }
+
+            // GameHudController は [DefaultExecutionOrder(100)] の Start で作る。
+            // 1 秒見つからなければ、このシーンには存在しないと判断して探索を止める
+            // (毎フレームの全走査を続けない)。
+            if (Time.frameCount - v5PauseLookupStartFrame > V5PauseLookupFrames)
+            {
+                v5PauseLookupExhausted = true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>v5 ポーズの探索を打ち切るまでのフレーム数 (約 1 秒)。</summary>
+    private const int V5PauseLookupFrames = 60;
+
+    private static bool v5PauseLookupExhausted;
+    private static int v5PauseLookupStartFrame = -1;
+
+    /// <summary>テスト用: 探索状態を戻す (シーン再ロード相当)。</summary>
+    public static void ResetPauseLookupForAudit()
+    {
+        cachedPauseMenu = null;
+        v5PauseLookupExhausted = false;
+        v5PauseLookupStartFrame = -1;
     }
 
     /// <summary>
