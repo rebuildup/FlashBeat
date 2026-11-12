@@ -124,11 +124,19 @@ public class AutoTestV6Interact : MonoBehaviour
         readouts.Append("down=").Append(Percent(slider.Value)).Append(' ');
 
         float[] dragTo = { 0.35f, 0.55f, 0.70f };
+        bool valueFollowedEveryStep = true;
         for (int i = 0; i < dragTo.Length; i++)
         {
             routed &= DispatchPointer(slider, dragTo[i], ExecuteEvents.dragHandler);
             yield return null;
             readouts.Append("drag=").Append(Percent(slider.Value)).Append(' ');
+            // 途中の各位置で値とラベルが追従していること (離した後の値だけを
+            // 見ると、途中で別の値に飛んでいても気づけない)。
+            if (Mathf.Abs(slider.Value - dragTo[i]) > 0.02f
+                || slider.ValueLabelForAudit != Percent(dragTo[i]))
+            {
+                valueFollowedEveryStep = false;
+            }
         }
 
         yield return Screenshot("375-slider-drag");
@@ -139,6 +147,7 @@ public class AutoTestV6Interact : MonoBehaviour
         Debug.Log(Tag + " slider " + readouts);
 
         Check("the pointer events reach the slider through the event system", routed);
+        Check("the value and the label follow every drag step", valueFollowedEveryStep);
 
         Check("the drag changes the value to where the pointer is", Mathf.Abs(slider.Value - 0.80f) <= 0.02f);
         Check("the value owner follows the drag", Mathf.Abs(GManager.mainVolume - 0.80f) <= 0.02f);

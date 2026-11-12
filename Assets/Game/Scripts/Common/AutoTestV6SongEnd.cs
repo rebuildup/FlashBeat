@@ -607,7 +607,11 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// </summary>
     IEnumerator ObserveLoading()
     {
+        // 経過は時計で測る。このループは撮影のために最大 1.2 秒待つので、
+        // フレームの差分を積むと実時間より短く記録され、表示時間も猶予も狂う。
+        float startedAt = Time.unscaledTime;
         float elapsed = 0f;
+        float visibleSince = -1f;
         float nextShotAt = 0f;
         float nextProbeAt = 0f;
         int loadingShots = 0;
@@ -617,8 +621,10 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // 非表示を終了条件にする。見えないままなら猶予で打ち切る
         // (メディアがキャッシュ済みだとローディングは一瞬も出ないため、
         //  60 秒待つと実行時間だけが伸びる)。
-        while (elapsed < 60f)
+        while (true)
         {
+            elapsed = Time.unscaledTime - startedAt;
+            if (elapsed >= 60f) { break; }
             if (!loadingObserved && elapsed >= NotVisibleGraceSeconds) { break; }
             V6LoadingView view = V6LoadingView.Current;
             bool visible = view != null && view.Root != null && view.Root.gameObject.activeInHierarchy;
@@ -631,7 +637,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 }
 
                 loadingObserved = true;
-                loadingVisibleSeconds += Time.unscaledDeltaTime;
+                if (visibleSince < 0f) { visibleSince = elapsed; }
                 if (GameLoadingProgress.HasNotesProgress) { lastProgress = GameLoadingProgress.NotesProgress; }
 
                 if (elapsed >= nextProbeAt)
@@ -659,8 +665,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 break;
             }
 
-            elapsed += Time.unscaledDeltaTime;
             yield return null;
+        }
+
+        if (visibleSince >= 0f)
+        {
+            loadingVisibleSeconds = Mathf.Max(elapsed - visibleSince, 0f);
         }
 
         Debug.Log(Tag + " loading: observed=" + loadingObserved

@@ -32,7 +32,10 @@ public sealed class FrameTimeProbe : MonoBehaviour
     /// <summary>起動直後のシェーダ準備などを平均に混ぜないための捨てフレーム数。</summary>
     const int WarmupFrames = 90;
 
-    /// <summary>百分位の計算に使う区間のサンプル上限 (60fps × 5 秒 = 300)。</summary>
+    /// <summary>
+    /// サンプルの保持上限。区間ごとに捨てるので、60fps × 5 秒 = 300 に対して
+    /// 十分な余裕 (低 fps でも区間を溢れさせない) を取る。
+    /// </summary>
     const int Capacity = 2048;
 
     readonly List<float> samples = new List<float>(Capacity);
@@ -42,7 +45,6 @@ public sealed class FrameTimeProbe : MonoBehaviour
     long memoryAtIntervalStart;
     int framesSinceStart;
     bool finalReported;
-    float worstSeen;
 
     /// <summary>これを超えるフレームは「引っかかり」として即時に記録する (秒)。</summary>
     const float SpikeThresholdSeconds = 0.25f;
@@ -81,14 +83,21 @@ public sealed class FrameTimeProbe : MonoBehaviour
         framesSinceStart++;
         if (framesSinceStart <= WarmupFrames) return;
 
+        // ウォームアップ中に進んだ区間の時計・GC 基準を捨ててから計測を始める
+        // (そのままだと最初の窓の avgFps が実測より低く出る)。
+        if (framesSinceStart == WarmupFrames + 1)
+        {
+            ResetInterval();
+        }
+
         float dt = Time.unscaledDeltaTime;
 
         // 引っかかりは区間の集計を待たずに、起きた場所と時刻を残す。
         // 「どの画面の、どの処理で固まったか」を窓の平均から読み解くのは
-        // 不可能なので、しきい値を超えたフレームだけ即時に出す。
-        if (dt > SpikeThresholdSeconds && dt > worstSeen)
+        // 不可能なので、しきい値を超えたフレームは経過とともに一度きりに
+        // せず毎回出す (2 回目以降の停止を取り逃さない)。
+        if (dt > SpikeThresholdSeconds)
         {
-            worstSeen = dt;
             Debug.Log(Tag + " event=spike scene=" + SceneManager.GetActiveScene().name
                 + " frameMs=" + (dt * 1000f).ToString("F1", CultureInfo.InvariantCulture)
                 + " t=" + Time.unscaledTime.ToString("F2", CultureInfo.InvariantCulture));
@@ -120,9 +129,9 @@ public sealed class FrameTimeProbe : MonoBehaviour
         frames = 0;
         gc0AtIntervalStart = GC.CollectionCount(0);
         memoryAtIntervalStart = GC.GetTotalMemory(false);
-        // 区間ごとに最悪値を戻す。生涯の最大値と比べると、最初の大きな
-        // スパイク以降の引っかかりが記録されなくなる。
-        worstSeen = 0f;
+        // サンプルも区間ごとに捨てる。残すと百分位が前の区間と混ざり、
+        // 「この 5 秒で何 ms かかったか」を読めなくなる。
+        samples.Clear();
     }
 
     void Report()
