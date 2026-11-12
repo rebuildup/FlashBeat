@@ -12,11 +12,14 @@ Editor の再生ではない。
 1. -autotest v6interact (操作の受け入れ / #375 #382 #384)
 ================================================================
 
-結果: RESULT pass=45 fail=0 screenshots=4 resolution=3420x2148
+受入ビルド 0.1.23+af183bf4 での結果:
+  RESULT pass=47 fail=0 screenshots=4 resolution=3420x2148
 (ファイル: autotest-v6interact-result.txt)
 
 #375 音量スライダー (OptionScene / Sound タブ)
   PASS option view exists / the sound tab shows the volume slider
+  PASS the pointer events reach the slider through the event system
+  PASS the value and the label follow every drag step
   PASS the drag changes the value to where the pointer is
   PASS the value owner follows the drag            (GManager.mainVolume)
   PASS the value label follows the drag            (80%)
@@ -29,11 +32,11 @@ Editor の再生ではない。
 #384 Result の段階表示
   PASS the reveal is staged (not everything at once)
   PASS the trophy fades in gradually
-  PASS the register field opens automatically at 2s
+  PASS the register field opens automatically at 2s   (開いた時刻 2.00 秒)
   PASS the reveal completes on its own
   PASS Space skips the staged reveal
   PASS the skip does not open the register field
-  ログ: reveal elapsed=2.18 complete=True modal=True trophyAlpha=1.00
+  ログ: reveal elapsed=2.18 complete=True modal=True modalAt=2.00 trophyAlpha=1.00
         skip elapsed=2.18 complete=True modal=False
 
 #382 再開カウントダウン (GameScene / pause)
@@ -55,7 +58,7 @@ Editor の再生ではない。
   PASS the second visit reloads no chart existence
   PASS the second visit reloads no jacket
   PASS the jackets stay cached
-  ログ: cold=0.10〜0.12s warm=0.07〜0.10s (2 回測定)
+  ログ: cold=0.12s warm=0.08s (受入ビルド 0.1.23+af183bf4)
         first=chartMeta=26 chartExists=0 jacket=10/cached=9
         second=chartMeta=26 chartExists=0 jacket=10/cached=9
   (cold は V6ContentCaches.InvalidateAll でキャッシュを捨ててから開いた場合)

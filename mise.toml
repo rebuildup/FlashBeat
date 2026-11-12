@@ -30,6 +30,16 @@ run = "bunx skills update -p -y"
 [tasks."skills-check"]
 run = "bun evals/policy-evaluation/vendored-skills-contract.mts"
 
+# Build the v6 review evidence manifest (Issue #388) and check its tests.
+# `evidence-manifest` writes docs/evidence/.../manifest.json from the
+# hand-written claims; `evidence-manifest-test` runs the unit fixtures
+# (including the missing/wrong-OS/stale/design-mismatch negative cases).
+[tasks."evidence-manifest"]
+run = "bun evals/evidence-manifest/manifest.mts docs/evidence/368-review-2026-11-12/manifest-input.json --root . --out docs/evidence/368-review-2026-11-12/manifest.json"
+
+[tasks."evidence-manifest-test"]
+run = "bun test evals/evidence-manifest/"
+
 # One lifecycle for Worktrunk, plain git and IDE-created worktrees.
 # See scripts/worktree/setup.sh and docs/adr/ADR-0001-agent-environment.md.
 [tasks."worktree:setup"]

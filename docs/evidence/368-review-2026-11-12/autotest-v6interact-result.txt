@@ -2,6 +2,8 @@ PASS the scene OptionScene is loaded
 PASS option view exists
 PASS the sound tab shows the volume slider
 PASS the screenshot 375-slider-drag was written
+PASS the pointer events reach the slider through the event system
+PASS the value and the label follow every drag step
 PASS the drag changes the value to where the pointer is
 PASS the value owner follows the drag
 PASS the value label follows the drag
@@ -43,4 +45,4 @@ PASS the second visit reloads no chart meta
 PASS the second visit reloads no chart existence
 PASS the second visit reloads no jacket
 PASS the jackets stay cached
-[AutoTestV6Interact] RESULT pass=45 fail=0 screenshots=4 resolution=3420x2148
+[AutoTestV6Interact] RESULT pass=47 fail=0 screenshots=4 resolution=3420x2148
