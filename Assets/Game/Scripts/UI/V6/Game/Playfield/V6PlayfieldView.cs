@@ -164,10 +164,10 @@ namespace FlashBeat.UI.V6.Game.Playfield
                 {
                     alpha = Mathf.Max(0f, alpha - 3f * Time.deltaTime);
                 }
-                if (img.color.a != alpha)
-                {
-                    img.color = new Color(1f, 1f, 1f, alpha);
-                }
+
+                // Issue #402: 変化しないフレーム (待機中・減衰完了後) では
+                // Image.color を書き戻さない。押下と減衰は値が変わるので更新される。
+                V6LayoutWrites.AlphaIfChanged(img, alpha);
             }
         }
 
