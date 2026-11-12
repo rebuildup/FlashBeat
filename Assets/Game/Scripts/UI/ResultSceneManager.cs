@@ -107,7 +107,10 @@ public class ResultSceneManager : MonoBehaviour
         int hiIndex = GManager.songID;
         if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
         Hiscore.text = GManager.Hiscore[hiIndex].ToString();
-        StartCoroutine(FetchThumbnail(GManager.ActiveSongs[GManager.songID].videoId, 0));
+        // Issue #398: v6 有効時の二重取得経路を provider へ一本化。
+        // hqdefault (pause と同じ) に揃えるため、/0.jpg より解像度は下がる
+        // (v5 UI の背景用途ではカバー UV で同等に表示できる)。
+        FlashBeat.UI.V6.V6JacketProvider.RequestRemote(GManager.ActiveSongs[GManager.songID].videoId, SetRemoteSprite);
 
         // v6 Result (#217 / Issue #240)。V6ResultView.Enabled で切替える
         // (統合担当は V6UiMode からこのフラグを設定する)。既定は true。
@@ -255,25 +258,44 @@ public class ResultSceneManager : MonoBehaviour
         RetryT.fontSize = 50;
     }
 
-    IEnumerator FetchThumbnail(string songURL, int index)
+    /// <summary>provider から届いた遠隔スプライトを v5 Result の背景へ反映する。</summary>
+    void SetRemoteSprite(Sprite sprite)
     {
-        string url = "https://img.youtube.com/vi/" + songURL + "/0.jpg";
-        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
-        yield return request.SendWebRequest();
-        if (request.result == UnityWebRequest.Result.Success)
+        if (sprite == null)
         {
-            Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-            imageObjects[index].sprite = sprite;
-            if (view != null)
-            {
-                view.SetBackdrop(texture);
-            }
+            Debug.LogWarning("[ResultSceneManager] thumbnail 取得失敗 (V6JacketProvider)");
+            return;
         }
-        else
+
+        imageObjects[0].sprite = sprite;
+        var texture = sprite.texture as Texture2D;
+        if (texture != null && view != null)
         {
-            Debug.Log(request.error);
-        }
-    }
+            view.SetBackdrop(texture);
+        }    }
+
+    // Issue #398: provider 一本化で使われなくなった旧経路。v5/v6 共通化の完了まで
+    // 削除せずコメントアウトで残す (AGENTS.md: 削除時はコメントアウト)。
+    //
+    // IEnumerator FetchThumbnail(string songURL, int index)
+    // {
+    //     string url = "https://img.youtube.com/vi/" + songURL + "/0.jpg";
+    //     UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+    //     yield return request.SendWebRequest();
+    //     if (request.result == UnityWebRequest.Result.Success)
+    //     {
+    //         Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+    //         Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+    //         imageObjects[index].sprite = sprite;
+    //         if (view != null)
+    //         {
+    //             view.SetBackdrop(texture);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Debug.Log(request.error);
+    //     }
+    // }
 
 }
