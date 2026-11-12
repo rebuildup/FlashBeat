@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using FlashBeat.Gameplay;
+using FlashBeat.UI;
+using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Loading;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.View;
@@ -63,10 +65,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
     const float HitWindowSeconds = 0.05f;
 
     /// <summary>
-    /// ローディング画面が一度も見えないときに観測を打ち切る猶予 (秒)。
-    /// キャッシュ済みの曲は表示されないので、待ち続けても意味がない。
+    /// ローディング画面が一度も見えないときに、表示を待つ最小の観測時間 (秒)。
+    /// これだけ待ってメディアの準備も終わっていれば、キャッシュ済みで表示が
+    /// 無かったと判断して打ち切る。時間だけで切ってはいけない: 冷たいメディア
+    /// では resolve とダウンロードに 10 秒以上かかり、その後に表示が出る。
     /// </summary>
-    const float NotVisibleGraceSeconds = 5f;
+    const float NotVisibleMinWaitSeconds = 5f;
 
     /// <summary>v6 の Result Canvas の GameObject 名。</summary>
     const string ResultCanvasName = "V6 Result Canvas";
@@ -618,14 +622,21 @@ public class AutoTestV6SongEnd : MonoBehaviour
         float lastProgress = -1f;
         bool firstSeenLogged = false;
         // 準備完了後も Preparing に戻ることは無いので、一度見えた後の
-        // 非表示を終了条件にする。見えないままなら猶予で打ち切る
-        // (メディアがキャッシュ済みだとローディングは一瞬も出ないため、
-        //  60 秒待つと実行時間だけが伸びる)。
+        // 非表示を終了条件にする。一度も見えないなら、表示を駆動している
+        // 段階 (GameHudController.LastPhase) が準備中でなくなった時点で
+        // 打ち切る。時間だけで切ってはいけない: 冷たいメディアは resolve と
+        // ダウンロードに 10 秒以上かかり、表示はその後に出る。
         while (true)
         {
             elapsed = Time.unscaledTime - startedAt;
             if (elapsed >= 60f) { break; }
-            if (!loadingObserved && elapsed >= NotVisibleGraceSeconds) { break; }
+
+            if (!loadingObserved && elapsed >= NotVisibleMinWaitSeconds)
+            {
+                HudPlayPhase phase = GameHudController.LastPhase;
+                bool preparing = phase == HudPlayPhase.Preparing || phase == HudPlayPhase.Failed;
+                if (!preparing) { break; }
+            }
             V6LoadingView view = V6LoadingView.Current;
             bool visible = view != null && view.Root != null && view.Root.gameObject.activeInHierarchy;
             if (visible)
