@@ -55,7 +55,7 @@ Editor の再生ではない。
   PASS the second visit reloads no chart existence
   PASS the second visit reloads no jacket
   PASS the jackets stay cached
-  ログ: cold=0.10s warm=0.07s
+  ログ: cold=0.10〜0.12s warm=0.07〜0.10s (2 回測定)
         first=chartMeta=26 chartExists=0 jacket=10/cached=9
         second=chartMeta=26 chartExists=0 jacket=10/cached=9
   (cold は V6ContentCaches.InvalidateAll でキャッシュを捨ててから開いた場合)

@@ -7,13 +7,13 @@ Issue #368 の子 Issue (#369–#384) に対する、macOS 実機ビルドでの
 
 | 項目 | 値 |
 |---|---|
-| ビルド | macOS `FlashBeat.app`、`0.1.23+6472812e` (Unity 6000.5.6f1) |
-| ソース | branch `w/v6-368-impl`、HEAD `6472812e` |
+| ビルド | macOS `FlashBeat.app`、`0.1.23+b5b98a6e` (Unity 6000.5.6f1) |
+| ソース | branch `w/v6-368-impl`、HEAD `b5b98a6e` |
 | ディスプレイ | 3420×2224 px (1710×1112 pt)、メニューバー 38 pt、Dock は自動非表示 |
 | 起動方法 | `open Builds/macOS/FlashBeat.app`、ハーネスは `Contents/MacOS/FlashBeat <引数>` を直接実行 |
 | 入力 | `osascript` の `key code`、またはプレイヤー内ハーネス (下記 §4) |
 | 撮影 | `screencapture -x` (ディスプレイ全体、3420×2224 px)、ハーネスは `ScreenCapture` (3420×2148) |
-| EditMode | 全 1644 件 PASS / 失敗 0 (`TestResults.xml`) |
+| EditMode | 全 1648 件 PASS / 失敗 0 (`TestResults.xml`) |
 
 スクリーンショット内の座標・サイズはすべて実画面 px。UI の設計基準は `design/flashbeat-ui.pen`
 (1728×972) で、実装は高さ合わせ + 水平中央寄せ。
@@ -110,8 +110,8 @@ bounds = 0, 38, 1710, 1074 (pt)
 
 | 対象 | 実測 |
 |---|---|
-| Select を開くまで (キャッシュ空) | 0.10 秒 (譜面 26 曲を実読込) |
-| Select を開き直すまで (キャッシュ済み) | 0.07 秒 |
+| Select を開くまで (キャッシュ空) | 0.10〜0.12 秒 (譜面 26 曲を実読込) |
+| Select を開き直すまで (キャッシュ済み) | 0.07〜0.10 秒 |
 | 2 回目の譜面メタ読込 | 0 回 (26 回のまま増えない) |
 | 2 回目のジャケット読込 | 0 回 (10 回のまま増えない) |
 | メディア準備 (初回、未キャッシュ) | 春嵐 26.1 秒 / チュートリアル 27.3 秒 |
