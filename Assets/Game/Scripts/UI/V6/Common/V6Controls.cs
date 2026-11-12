@@ -47,7 +47,8 @@ namespace FlashBeat.UI.V6.Common
         public static readonly Vector2 BackButtonKeySize = new Vector2(26f, 23f);
         public const float BackButtonKeyFontSize = 16f;
 
-        private static readonly Dictionary<int, Sprite> SpriteCache = new Dictionary<int, Sprite>();
+        // 角丸スプライトの実体キャッシュは V6Sprites / V6AssetOwner (Issue #401) が
+        // 所有する。ここに辞書を戻すと、同じ半径のテクスチャが再び二重化する。
 
         /// <summary>
         /// 角丸背景パネル (9-slice)。スプライトは v6 版の実装をこのクラス内で
@@ -348,54 +349,17 @@ namespace FlashBeat.UI.V6.Common
             return go;
         }
 
-        /// <summary>角丸スプライト (v6 版)。半径ごとにキャッシュ。白で塗るので色は Image.color で変える。</summary>
+        /// <summary>
+        /// 角丸スプライト (v6 版)。白で塗るので色は Image.color で変える。
+        ///
+        /// Issue #401: 生成と実体の所有は <see cref="V6Sprites.Rounded"/> に統合した。
+        /// 以前はこのクラスと <c>V5Ui</c> が同じアルゴリズムを別々の辞書で
+        /// キャッシュしており、同じ半径のテクスチャが 2 枚存在し得た。
+        /// 半径は design px なので、デザイン上の見た目は変わらない。
+        /// </summary>
         public static Sprite RoundedSprite(int radiusPx)
         {
-            if (SpriteCache.TryGetValue(radiusPx, out var cached) && cached != null)
-            {
-                return cached;
-            }
-
-            const int pad = 2; // アンチエイリアス用の余白
-            int radius = Mathf.Max(1, radiusPx);
-            // +1: 9-slice の中央ストレッチ領域を最低 1px 確保する。
-            int size = radius * 2 + pad * 2 + 1;
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
-            {
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear
-            };
-            var pixels = new Color32[size * size];
-            var opaque = new Color32(255, 255, 255, 255);
-            var clear = new Color32(0, 0, 0, 0);
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float cx = Mathf.Min(x, size - 1 - x);
-                    float cy = Mathf.Min(y, size - 1 - y);
-                    float dx = Mathf.Max(0f, radius - 0.5f - cx);
-                    float dy = Mathf.Max(0f, radius - 0.5f - cy);
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    float alpha = Mathf.Clamp01(radius - dist);
-                    pixels[y * size + x] = alpha <= 0f ? clear : Color32.Lerp(clear, opaque, alpha);
-                }
-            }
-
-            tex.SetPixels32(pixels);
-            tex.Apply(false, true);
-            float border = radius + pad;
-            var sprite = Sprite.Create(
-                tex,
-                new Rect(0f, 0f, size, size),
-                new Vector2(0.5f, 0.5f),
-                100f,
-                0,
-                SpriteMeshType.FullRect,
-                new Vector4(border, border, border, border));
-            sprite.name = "V6Rounded" + radius;
-            SpriteCache[radiusPx] = sprite;
-            return sprite;
+            return V6Sprites.Rounded(radiusPx);
         }
 
         // --- 内部 ---

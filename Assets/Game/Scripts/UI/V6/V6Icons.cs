@@ -11,7 +11,11 @@ namespace FlashBeat.UI.V6
     /// </summary>
     public static class V6Icons
     {
-        private const string IconsPath = "Icons/";
+        /// <summary>
+        /// アイコンが置かれている Resources の接頭辞 (Issue #401)。
+        /// 解決自体は <see cref="V6Sprites.Icon"/> が行う。
+        /// </summary>
+        internal const string IconsPath = "Icons/";
 
         /// <summary>
         /// 指定親の下に新しい Image (Icon) を作り、指定アイコンを割り当てる。
@@ -112,13 +116,16 @@ namespace FlashBeat.UI.V6
             return image;
         }
 
-        private static Sprite LoadSprite(string iconName)
+        /// <summary>
+        /// アイコン Sprite を名前で解決する。
+        ///
+        /// Issue #401: 以前は呼ぶたびに <c>Resources.Load&lt;Sprite&gt;</c> を実行していた。
+        /// アイコンはビルドに焼き込まれた不変アセットなので、名前ごとに 1 回だけ
+        /// 解決して共有する (<see cref="V6Sprites.Icon"/>)。
+        /// </summary>
+        public static Sprite LoadSprite(string iconName)
         {
-            if (string.IsNullOrEmpty(iconName))
-            {
-                return null;
-            }
-            return Resources.Load<Sprite>(IconsPath + iconName);
+            return V6Sprites.Icon(iconName);
         }
     }
 }

@@ -222,7 +222,9 @@ namespace FlashBeat.UI.V5
         {
             var tex = Resources.Load<Texture2D>(resourcePath);
             if (tex == null) return null;
-            return Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            // Issue #401: 同じ Resources 画像から毎回 Sprite.Create していた。
+            // 原 Texture と生成条件が同じなら同じ実体を返す (所有者は V6Sprites)。
+            return FlashBeat.UI.V6.V6Sprites.FromTexture(tex, resourcePath);
         }
 
         /// <summary>Image にスプライトを設定する (スプライトが null のときは単色の角丸にフォールバック)。</summary>
