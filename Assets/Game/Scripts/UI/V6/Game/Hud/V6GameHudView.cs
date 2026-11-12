@@ -344,6 +344,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             lyricBox = null;
             lyricPrompt = null;
             MenuButton = null;
+            // 新しい TextMeshPro は空文字から始まる。前の部品に出していた値を
+            // 「表示済み」のまま残すと、値が変わらない限り Refresh が書き込まず
+            // スコア / コンボが次に増えるまで空のままになる。
+            lastRenderedScore = int.MinValue;
+            lastRenderedCombo = int.MinValue;
 
             Build();
         }
