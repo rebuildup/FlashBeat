@@ -42,6 +42,10 @@ public sealed class FrameTimeProbe : MonoBehaviour
     long memoryAtIntervalStart;
     int framesSinceStart;
     bool finalReported;
+    float worstSeen;
+
+    /// <summary>これを超えるフレームは「引っかかり」として即時に記録する (秒)。</summary>
+    const float SpikeThresholdSeconds = 0.25f;
 
     /// <summary>プレイヤー引数に <c>-fbperf</c> があるときだけ計測器を立てる。</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -78,6 +82,18 @@ public sealed class FrameTimeProbe : MonoBehaviour
         if (framesSinceStart <= WarmupFrames) return;
 
         float dt = Time.unscaledDeltaTime;
+
+        // 引っかかりは区間の集計を待たずに、起きた場所と時刻を残す。
+        // 「どの画面の、どの処理で固まったか」を窓の平均から読み解くのは
+        // 不可能なので、しきい値を超えたフレームだけ即時に出す。
+        if (dt > SpikeThresholdSeconds && dt > worstSeen)
+        {
+            worstSeen = dt;
+            Debug.Log(Tag + " event=spike scene=" + SceneManager.GetActiveScene().name
+                + " frameMs=" + (dt * 1000f).ToString("F1", CultureInfo.InvariantCulture)
+                + " t=" + Time.unscaledTime.ToString("F2", CultureInfo.InvariantCulture));
+        }
+
         if (samples.Count >= Capacity) samples.RemoveAt(0);
         samples.Add(dt);
         frames++;

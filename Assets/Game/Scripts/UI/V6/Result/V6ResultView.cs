@@ -291,6 +291,30 @@ namespace FlashBeat.UI.V6.Result
             }
         }
 
+        /// <summary>検証ハーネス用: 段階表示の経過秒。</summary>
+        internal float RevealElapsedForAudit
+        {
+            get { return revealElapsed; }
+        }
+
+        /// <summary>検証ハーネス用: 段階表示が終わったか。</summary>
+        internal bool RevealCompleteForAudit
+        {
+            get { return revealComplete; }
+        }
+
+        /// <summary>検証ハーネス用: 登録モーダルが開いているか。</summary>
+        internal bool ModalOpenForAudit
+        {
+            get { return modalOpen; }
+        }
+
+        /// <summary>検証ハーネス用: トロフィーの不透明度 (生成前は -1)。</summary>
+        internal float TrophyAlphaForAudit
+        {
+            get { return trophyGroup != null ? trophyGroup.alpha : -1f; }
+        }
+
         /// <summary>監査用: 登録モーダルを閉じる。</summary>
         internal void CloseRegisterModalForAudit()
         {

@@ -153,6 +153,12 @@ namespace FlashBeat.UI.V6.Option
             Rebuild();
         }
 
+        /// <summary>検証ハーネス用: 音量スライダ (Sound タブ以外では null)。</summary>
+        internal V6VolumeSlider VolumeSliderForAudit
+        {
+            get { return volumeSlider; }
+        }
+
         public void SetVisible(bool visible)
         {
             if (!visible)

@@ -131,6 +131,30 @@ namespace FlashBeat.UI.V6.Game.Loading
             }
         }
 
+        /// <summary>検証ハーネス用: ローディング映像が準備できたか。</summary>
+        internal bool VideoPreparedForAudit
+        {
+            get { return videoPlayer != null && videoPlayer.isPrepared; }
+        }
+
+        /// <summary>検証ハーネス用: 映像に使えるクリップがあるか。</summary>
+        internal bool VideoClipForAudit
+        {
+            get { return videoPlayer != null && videoPlayer.clip != null; }
+        }
+
+        /// <summary>検証ハーネス用: 映像面 (RawImage) が実際に表示されているか。</summary>
+        internal bool VideoVisibleForAudit
+        {
+            get { return videoRaw != null && videoRaw.enabled; }
+        }
+
+        /// <summary>検証ハーネス用: 直近に選んだ映像面の種類。</summary>
+        internal string VideoSurfaceForAudit
+        {
+            get { return lastSurface.HasValue ? lastSurface.Value.ToString() : "none"; }
+        }
+
         public void SetVisible(bool visible)
         {
             bool wasShown = shown;
@@ -418,9 +442,8 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             // ローディング映像 (design: ローディング画面は動画を再生するだけ。
             // Assets/Game/Resources/Videos/loading.mp4 = 自作素材、同梱する)。
-            // APIOnly のまま targetTexture を付けないとデコードだけされて
-            // 画面に何も出ない (Issue #224) ので、RenderTexture を割り当てて
-            // RawImage に出す。
+            // RenderTexture モードで 1920x1080 のテクスチャへ描き、同じテクスチャを
+            // RawImage に出す (Issue #224)。
             var videoBg = V5Ui.Node(rootGo, "Loading Video");
             V5Ui.Fill(videoBg.GetComponent<RectTransform>(), 0f);
             videoRaw = videoBg.AddComponent<RawImage>();
@@ -430,7 +453,10 @@ namespace FlashBeat.UI.V6.Game.Loading
             videoPlayer = videoBg.AddComponent<VideoPlayer>();
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = true;
-            videoPlayer.renderMode = VideoRenderMode.APIOnly;
+            // APIOnly + targetTexture は macOS プレイヤーで黒いテクスチャのまま
+            // 描画されなかった (2026-11-12 実機)。RenderTexture モードは
+            // テクスチャへの描画を VideoPlayer 側が受け持つ標準経路。
+            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
             videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
             videoPlayer.targetTexture = videoTexture;
             videoPlayer.clip = Resources.Load<VideoClip>("Videos/loading");

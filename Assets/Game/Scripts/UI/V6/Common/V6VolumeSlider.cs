@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -164,6 +164,36 @@ namespace FlashBeat.UI.V6.Common
             {
                 knob.anchoredPosition = new Vector2(Mathf.Round(KnobCenter(value) - KnobSize * 0.5f), -KnobY);
             }
+        }
+
+        // --- 検証ハーネス用 (プレイヤー操作では使わない) ---
+
+        /// <summary>
+        /// 値の位置に対応する画面上の点。検証ハーネスがこの点で
+        /// OnPointerDown / OnDrag / OnPointerUp を呼ぶと、実際のドラッグと同じ
+        /// 座標変換 (ScreenPointToLocalPointInRectangle) を通る。
+        /// </summary>
+        internal Vector2 ScreenPointForValue(float value)
+        {
+            if (track == null)
+            {
+                return Vector2.zero;
+            }
+
+            Vector3 world = track.TransformPoint(new Vector3(KnobCenter(value), -TrackH * 0.5f, 0f));
+            return RectTransformUtility.WorldToScreenPoint(null, world);
+        }
+
+        /// <summary>値ラベルの表示文字列 (検証用)。</summary>
+        internal string ValueLabelForAudit
+        {
+            get { return valueLabel != null ? valueLabel.text : string.Empty; }
+        }
+
+        /// <summary>ノブ中心の x (トラック左端 = 0、検証用)。未生成なら -1。</summary>
+        internal float KnobCenterForAudit
+        {
+            get { return knob != null ? knob.anchoredPosition.x + KnobSize * 0.5f : -1f; }
         }
 
         // --- ポインタ操作 ---

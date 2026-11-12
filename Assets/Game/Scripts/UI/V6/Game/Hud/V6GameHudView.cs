@@ -535,6 +535,23 @@ namespace FlashBeat.UI.V6.Game.Hud
             countdownOverlay.SetActive(false);
         }
 
+        /// <summary>
+        /// 検証ハーネス用: いま表示している再開カウントダウンの数字。
+        /// 非表示なら空文字。
+        /// </summary>
+        internal string CountdownTextForAudit
+        {
+            get
+            {
+                if (countdownOverlay == null || !countdownOverlay.activeSelf || countdownText == null)
+                {
+                    return string.Empty;
+                }
+
+                return countdownText.text;
+            }
+        }
+
         /// <summary>カウントダウンの数字を表示する (3 / 2 / 1)。</summary>
         public void ShowResumeCountdown(int number)
         {
