@@ -107,7 +107,8 @@ public class Judge : MonoBehaviour
         if (!GManager.Start) return;
 
         // Issue #224: ポーズ中は判定・スコア加算を行わない。
-        if (PauseGate.IsPaused) return;
+        // Issue #383 / design §6.2: 終端フェードと「終了」表示の間も受け付けない。
+        if (!SongEndGate.CanJudge(PauseGate.IsPaused, SongEndGate.BlocksJudging)) return;
 
         // 時刻の基準は既存方式を維持する: GManager.step_time は譜面上の
         // メディア時刻 (秒) なので、判定はすべてこの mediaTime で行う。

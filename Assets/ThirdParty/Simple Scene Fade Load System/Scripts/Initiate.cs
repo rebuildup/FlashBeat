@@ -22,6 +22,16 @@ public static class Initiate
     //Create Fader object and assing the fade scripts and assign all the variables
     public static void Fade(string scene, Color col, float multiplier)
     {
+        Fade(scene, col, multiplier, false);
+    }
+
+    /// <summary>
+    /// 暗転しながらシーンを読み込む。<paramref name="loadImmediately"/> が true なら
+    /// 暗転の完了を待たずに読み込みを始める (Issue #378: 押してから無反応の
+    /// 1 秒を作らない)。暗転が alpha 1 に達した時点でアクティベートする。
+    /// </summary>
+    public static void Fade(string scene, Color col, float multiplier, bool loadImmediately)
+    {
         if (areWeFading)
         {
             Debug.Log("Already Fading");
@@ -40,10 +50,11 @@ public static class Initiate
         scr.fadeDamp = multiplier;
         scr.fadeScene = scene;
         scr.fadeColor = col;
+        scr.loadImmediately = loadImmediately;
         scr.start = true;
         areWeFading = true;
         scr.InitiateFader();
-        
+
     }
 
     public static void DoneFading() {

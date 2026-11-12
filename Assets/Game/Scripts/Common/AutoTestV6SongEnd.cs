@@ -8,6 +8,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using FlashBeat.Gameplay;
+using FlashBeat.UI;
+using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Game.Loading;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.View;
 
@@ -61,6 +64,14 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// </summary>
     const float HitWindowSeconds = 0.05f;
 
+    /// <summary>
+    /// ローディング画面が一度も見えないときに、表示を待つ最小の観測時間 (秒)。
+    /// これだけ待ってメディアの準備も終わっていれば、キャッシュ済みで表示が
+    /// 無かったと判断して打ち切る。時間だけで切ってはいけない: 冷たいメディア
+    /// では resolve とダウンロードに 10 秒以上かかり、その後に表示が出る。
+    /// </summary>
+    const float NotVisibleMinWaitSeconds = 5f;
+
     /// <summary>v6 の Result Canvas の GameObject 名。</summary>
     const string ResultCanvasName = "V6 Result Canvas";
 
@@ -102,6 +113,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
     /// <summary>譜面 (Resources) から数えた全ノーツ数 (判定されたはずの総数)。</summary>
     int chartNoteCount;
+
+    /// <summary>ローディング画面を実際に観測したか (#378)。</summary>
+    bool loadingObserved;
+
+    /// <summary>ローディング画面が見えていた秒数 (#378 / #377 の待ち時間)。</summary>
+    float loadingVisibleSeconds;
 
     /// <summary>NotesManager が公開している総ノーツ数 (実行時)。</summary>
     int runtimeNoteCount;
@@ -246,6 +263,11 @@ public class AutoTestV6SongEnd : MonoBehaviour
         }
         Check("ready starts the game scene", SceneManager.GetActiveScene().name == "GameScene");
         Check("the started song is the picked one", GManager.songID == expectedSongId);
+
+        // 3b. ローディング画面 (#378): メディアが未キャッシュなら、準備の間
+        //     実際に出ているかを毎フレーム見て、見えている間を撮る。
+        yield return ObserveLoading();
+
         yield return new WaitForSecondsRealtime(3f);
         yield return new WaitForEndOfFrame();
         string gameShot = CaptureScreenshot("02-game");
@@ -580,6 +602,93 @@ public class AutoTestV6SongEnd : MonoBehaviour
         return path;
     }
 
+    /// <summary>
+    /// ローディング画面 (#378) の観測。GameScene に入った直後から、v6 の
+    /// ローディングが実際に表示されているかを毎フレーム見る。表示中は 0.8 秒
+    /// おきに最大 3 枚撮る。メディアがキャッシュ済みで準備が一瞬で終わる場合は
+    /// 見えないので、その場合は「観測できなかった」とログに残す (表示の
+    /// 有無を PASS に読み替えない)。
+    /// </summary>
+    IEnumerator ObserveLoading()
+    {
+        // 経過は時計で測る。このループは撮影のために最大 1.2 秒待つので、
+        // フレームの差分を積むと実時間より短く記録され、表示時間も猶予も狂う。
+        float startedAt = Time.unscaledTime;
+        float elapsed = 0f;
+        float visibleSince = -1f;
+        float nextShotAt = 0f;
+        float nextProbeAt = 0f;
+        int loadingShots = 0;
+        float lastProgress = -1f;
+        bool firstSeenLogged = false;
+        // 準備完了後も Preparing に戻ることは無いので、一度見えた後の
+        // 非表示を終了条件にする。一度も見えないなら、表示を駆動している
+        // 段階 (GameHudController.LastPhase) が準備中でなくなった時点で
+        // 打ち切る。時間だけで切ってはいけない: 冷たいメディアは resolve と
+        // ダウンロードに 10 秒以上かかり、表示はその後に出る。
+        while (true)
+        {
+            elapsed = Time.unscaledTime - startedAt;
+            if (elapsed >= 60f) { break; }
+
+            if (!loadingObserved && elapsed >= NotVisibleMinWaitSeconds)
+            {
+                HudPlayPhase phase = GameHudController.LastPhase;
+                bool preparing = phase == HudPlayPhase.Preparing || phase == HudPlayPhase.Failed;
+                if (!preparing) { break; }
+            }
+            V6LoadingView view = V6LoadingView.Current;
+            bool visible = view != null && view.Root != null && view.Root.gameObject.activeInHierarchy;
+            if (visible)
+            {
+                if (!firstSeenLogged)
+                {
+                    firstSeenLogged = true;
+                    Debug.Log(Tag + " loading visible after " + elapsed.ToString("F2") + "s");
+                }
+
+                loadingObserved = true;
+                if (visibleSince < 0f) { visibleSince = elapsed; }
+                if (GameLoadingProgress.HasNotesProgress) { lastProgress = GameLoadingProgress.NotesProgress; }
+
+                if (elapsed >= nextProbeAt)
+                {
+                    nextProbeAt = elapsed + 1f;
+                    Debug.Log(Tag + " loading probe t=" + elapsed.ToString("F1")
+                        + " clip=" + view.VideoClipForAudit
+                        + " prepared=" + view.VideoPreparedForAudit
+                        + " videoVisible=" + view.VideoVisibleForAudit
+                        + " surface=" + view.VideoSurfaceForAudit);
+                }
+
+                if (loadingShots < 3 && elapsed >= nextShotAt)
+                {
+                    yield return new WaitForEndOfFrame();
+                    loadingShots++;
+                    nextShotAt = elapsed + 0.8f;
+                    string path = CaptureScreenshot("00-loading-" + loadingShots);
+                    yield return new WaitForSecondsRealtime(0.4f);
+                    Check("the loading screenshot 00-loading-" + loadingShots + " was written", File.Exists(path));
+                }
+            }
+            else if (loadingObserved)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+
+        if (visibleSince >= 0f)
+        {
+            loadingVisibleSeconds = Mathf.Max(elapsed - visibleSince, 0f);
+        }
+
+        Debug.Log(Tag + " loading: observed=" + loadingObserved
+            + " seconds=" + loadingVisibleSeconds.ToString("F2")
+            + " chartProgress=" + lastProgress.ToString("F2"));
+    }
+
     private void Finish()
     {
         Debug.Log(Tag + " RESULT pass=" + pass + " fail=" + fail);
@@ -599,6 +708,8 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 "score=" + GManager.score + " combo=" + GManager.combo +
                 " maxCombo=" + GManager.maxCombo + " comboPeak=" + comboPeak + "\n" +
                 "rankingMode=" + rankingMode + "\n" +
+                "loadingObserved=" + loadingObserved + "\n" +
+                "loadingVisibleSeconds=" + loadingVisibleSeconds.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
                 "judgedMatchesChart=" + judgedMatchesChart + "\n");
         }
         catch (Exception e) { Debug.LogWarning(Tag + " could not write the result file: " + e.Message); }

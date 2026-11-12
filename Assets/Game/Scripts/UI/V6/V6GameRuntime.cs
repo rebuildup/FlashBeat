@@ -95,6 +95,27 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
+        /// シーンを離れるときに v6 のビューを破棄する。生成した GameObject はシーンと
+        /// 一緒に消えるが、<see cref="V6LoadingView"/> が持つ RenderTexture と
+        /// Sprite.Create の実体は GameObject に属さないため、Dispose を呼ばないと
+        /// 曲を 1 回遊ぶごとにネイティブ領域が残る (FHD の出力先で約 8 MB)。
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (loading != null)
+            {
+                loading.Dispose();
+                loading = null;
+            }
+
+            if (pause != null)
+            {
+                pause.Dispose();
+                pause = null;
+            }
+        }
+
+        /// <summary>
         /// 旧 v5 のポーズ / ローディング / エラー表示を毎フレーム隠す (表示の所有は v6)。
         /// v5 の GameHudController は [DefaultExecutionOrder(100)] の Start で
         /// PauseMenuView / V5OverlayCanvas (loading / error) を **作り**、Update で
@@ -197,12 +218,22 @@ namespace FlashBeat.UI.V6
         {
             if (pause == null) return;
 
+            // 再開カウントダウン中は V6ResumeCountdown だけが入力 (Esc = 取り消し) を扱う。
+            // ここで Back を読むと同じフレームにポーズが開き直すため、先に抜ける。
+            if (V6ResumeCountdown.IsRunning) return;
+
             // オーバーレイを開閉したフレームのキーは背面へ流さない (SceneInputGate の契約)。
             // KeyConfigUI.Update が先に走って Esc で閉じた場合、IsOpen が同じフレームで
             // false になり、ここが Back を拾ってポーズまで閉じてしまう。Update の実行順は
             // 保証されないため、フレーム単位のゲートをここでも見る。
             if (!FlashBeat.UI.SceneInputGate.InputAllowed)
             {
+                return;
+            }
+
+            if (FlashBeat.UI.V6.Common.V6KeyConfigModal.BlocksInput)
+            {
+                // v6 のキー設定モーダル (Issue #376) が Esc / Enter / 矢印を消費する。
                 return;
             }
 
@@ -236,7 +267,7 @@ namespace FlashBeat.UI.V6
             {
                 if (pause.IsOpen)
                 {
-                    pause.Close();
+                    pause.RequestResume();
                 }
                 else
                 {

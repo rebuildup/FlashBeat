@@ -42,8 +42,8 @@ namespace FlashBeat.UI.V6.Common
         // 中央寄せで積むとアイコンが下がり Key と重なる (Select で発生していた)。
         public const float BackButtonSize = 56f;
         public const float BackButtonIconSize = 24f;
-        public static readonly Vector2 BackButtonIconPos = new Vector2(16f, 4f);
-        public static readonly Vector2 BackButtonKeyPos = new Vector2(15f, 30f);
+        public static readonly Vector2 BackButtonIconPos = new Vector2(16f, 3.5f);
+        public static readonly Vector2 BackButtonKeyPos = new Vector2(15f, 29.5f);
         public static readonly Vector2 BackButtonKeySize = new Vector2(26f, 23f);
         public const float BackButtonKeyFontSize = 16f;
 
@@ -179,6 +179,105 @@ namespace FlashBeat.UI.V6.Common
                 Text(back, "Key", keyLabel, BackButtonKeyPos, BackButtonKeySize,
                     BackButtonKeyFontSize, V6Tokens.TextMuted, TextAlignmentOptions.Center);
             }
+        }
+
+        /// <summary>
+        /// ヘッダー左上の戻るボタン (56×56 / $k4 r8) を 1 か所で組み立てる。
+        /// 中身は <see cref="FillBackButton"/> と同じ正本 (arrow-left 24 + Key fs16)。
+        /// 画面ごとに Panel / Button の結線を書き分けると、Nav 設定や遷移の有無が
+        /// ばらつくため、全画面この部品から生成する (Issue #370)。
+        /// </summary>
+        public static GameObject BackButton(GameObject parent, string name, Vector2 designTopLeft,
+            string keyLabel, UnityEngine.Events.UnityAction onClick)
+        {
+            var go = Panel(parent, name, designTopLeft, new Vector2(BackButtonSize, BackButtonSize),
+                V6Tokens.Key4, V6Tokens.RadiusMedium);
+            var button = go.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            var nav = button.navigation;
+            nav.mode = Navigation.Mode.None;
+            button.navigation = nav;
+            if (onClick != null)
+            {
+                button.onClick.AddListener(onClick);
+            }
+
+            FillBackButton(go, keyLabel);
+            return go;
+        }
+
+        /// <summary>Button (icon / Label / Cap) の 1 要素分の横位置と幅 (design px)。</summary>
+        public struct ButtonSlot
+        {
+            public float X;
+            public float W;
+
+            public ButtonSlot(float x, float w)
+            {
+                X = x;
+                W = w;
+            }
+        }
+
+        /// <summary>
+        /// Button の内容幅 (icon + gap + Label + gap + Cap)。padding は含まない。
+        /// 実測 (<see cref="MeasureWidth"/>) ではなく字幅の概算なので、実ラベルが
+        /// 短いぶんには中央寄せの余白が広がるだけで、はみ出しはしない。
+        /// </summary>
+        public static float ButtonContentWidth(string label, string keyLabel, string iconName)
+        {
+            float w = Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * ButtonFontSize);
+            if (!string.IsNullOrEmpty(iconName))
+            {
+                w += ButtonIconSize + ButtonGap;
+            }
+
+            if (!string.IsNullOrEmpty(keyLabel))
+            {
+                w += ButtonGap + Mathf.Ceil(V6Ui.LabelAdvanceEm(keyLabel) * ButtonKeyFontSize)
+                    + ButtonKeyCapPaddingX * 2f;
+            }
+
+            return w;
+        }
+
+        /// <summary>
+        /// ボタン規則 (§4: padding [0,24] / gap 12) で決まる最小幅。
+        /// フッターの「設定 / 閉じる」のように中身が入れ替わるボタンを、
+        /// 中身が窮屈にならない幅で右詰めするために使う (Issue #370)。
+        /// </summary>
+        public static float ButtonHugWidth(string label, string keyLabel, string iconName)
+        {
+            return ButtonContentWidth(label, keyLabel, iconName) + ButtonPaddingX * 2f;
+        }
+
+        /// <summary>
+        /// 中央寄せ配置での icon / Label / Cap の横位置。y は各要素の高さから求める
+        /// (icon 32 / Cap 32 はボタン内で縦中央、Label はボタン全高)。
+        /// <see cref="MakeButton"/> と同じ規則を、生成前に寸法だけ知りたい呼び出し側へ公開する。
+        /// </summary>
+        public static void ButtonSlots(Vector2 size, string label, string keyLabel, string iconName,
+            out ButtonSlot icon, out ButtonSlot labelSlot, out ButtonSlot cap)
+        {
+            float iconW = string.IsNullOrEmpty(iconName) ? 0f : ButtonIconSize;
+            float labelW = Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * ButtonFontSize);
+            float capW = string.IsNullOrEmpty(keyLabel)
+                ? 0f
+                : Mathf.Ceil(V6Ui.LabelAdvanceEm(keyLabel) * ButtonKeyFontSize) + ButtonKeyCapPaddingX * 2f;
+
+            int parts = (iconW > 0f ? 1 : 0) + 1 + (capW > 0f ? 1 : 0);
+            float x = (size.x - (iconW + labelW + capW + ButtonGap * (parts - 1))) * 0.5f;
+
+            icon = new ButtonSlot(x, iconW);
+            x += iconW > 0f ? iconW + ButtonGap : 0f;
+            labelSlot = new ButtonSlot(x, labelW);
+            x += labelW;
+            if (capW > 0f)
+            {
+                x += ButtonGap;
+            }
+
+            cap = new ButtonSlot(x, capW);
         }
 
         /// <summary>

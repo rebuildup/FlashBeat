@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -78,6 +78,21 @@ namespace FlashBeat.UI.V6.Option
 
         private List<Row> currentRows = new List<Row>();
 
+        /// <summary>音量スライダ (Sound タブのみ。他タブでは null)。</summary>
+        private V6VolumeSlider volumeSlider;
+
+        /// <summary>選択行の値テキスト (スライダのドラッグ中に Rebuild せず書き換える)。</summary>
+        private TextMeshProUGUI selectedRowValueText;
+
+        /// <summary>キー操作後の保存予約時刻 (0 以下 = 予約なし。Issue #375 §3.2)。</summary>
+        private float volumeSaveAt;
+
+        /// <summary>キー操作を止めてから保存するまでの猶予 (秒)。</summary>
+        private const float VolumeSaveDelay = 0.5f;
+
+        /// <summary>キー設定モーダル (Issue #376、design vo4kB)。フレーム直下に 1 個だけ持つ。</summary>
+        private V6KeyConfigModal keyConfigModal;
+
         /// <summary>設定行の定義 (表示値と操作をデリゲートで持つ。V5 OptionView.Row と同じ形)。</summary>
         private sealed class Row
         {
@@ -89,9 +104,12 @@ namespace FlashBeat.UI.V6.Option
             public readonly string Desc;
             public readonly bool Danger;
             public readonly bool IsAction; // ステッパーを持たない行 (キー設定 / Data の 2 行)
+            /// <summary>音量行の対象 (0=Main / 1=Effect / 2=BGM、それ以外は -1)。</summary>
+            public readonly int VolumeIndex;
 
             public Row(string label, Func<string> value, Action<int> adjust, Action activate,
-                string descTitle, string desc, bool danger = false, bool isAction = false)
+                string descTitle, string desc, bool danger = false, bool isAction = false,
+                int volumeIndex = -1)
             {
                 Label = label;
                 Value = value;
@@ -101,6 +119,7 @@ namespace FlashBeat.UI.V6.Option
                 Desc = desc;
                 Danger = danger;
                 IsAction = isAction;
+                VolumeIndex = volumeIndex;
             }
         }
 
@@ -134,8 +153,19 @@ namespace FlashBeat.UI.V6.Option
             Rebuild();
         }
 
+        /// <summary>検証ハーネス用: 音量スライダ (Sound タブ以外では null)。</summary>
+        internal V6VolumeSlider VolumeSliderForAudit
+        {
+            get { return volumeSlider; }
+        }
+
         public void SetVisible(bool visible)
         {
+            if (!visible)
+            {
+                SavePendingVolumeNow();
+            }
+
             if (rootGo != null)
             {
                 rootGo.SetActive(visible);
@@ -145,6 +175,9 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
         public void Dispose()
         {
+            // 画面を離れるときに予約済みの音量保存を落とさない (0.5 秒の猶予中に
+            // 破棄されると、最後の調整だけが保存されない)。
+            SavePendingVolumeNow();
             KeyBindings.Changed -= OnBindingsChanged;
             if (rootGo != null)
             {
@@ -176,17 +209,10 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            // キー設定 (KeyConfigUI) が開いている間は背面の操作を止める
-            // (ドライバが suspend されない環境でも二重入力しない)。
-            // オーバーレイが消費しない F1 だけはここで受け取り、編集のキャンセルにする:
-            // 確定 = Esc / F2 で閉じる (= 保存)、キャンセル = F1 で保存値へ戻して閉じる。
-            if (KeyConfigUI.IsOpen)
+            // キー設定モーダルが前面のときは背後の操作を止める (Issue #376)。
+            // モーダル自身がキーを消費し、閉じたフレームも BlocksInput が塞ぐ。
+            if (V6KeyConfigModal.BlocksInput)
             {
-                if (Input.GetKeyDown(KeyCode.F1))
-                {
-                    CancelKeyConfigEdit();
-                }
-
                 return;
             }
 
@@ -196,6 +222,7 @@ namespace FlashBeat.UI.V6.Option
             }
 
             PlaceFrame();
+            FlushPendingVolumeSave();
 
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
@@ -219,12 +246,6 @@ namespace FlashBeat.UI.V6.Option
                 TabPrev = tab && shift,
             });
 
-            if (Input.GetKeyDown(KeyCode.F2))
-            {
-                OpenKeyConfig();
-                return;
-            }
-
             switch (action)
             {
                 case V6OptionAction.Cancel:
@@ -234,6 +255,8 @@ namespace FlashBeat.UI.V6.Option
                     }
                     else if (onBack != null)
                     {
+                        // 画面を離れる: 猶予中の音量保存を先に確定させる。
+                        SavePendingVolumeNow();
                         onBack();
                     }
                     return;
@@ -265,10 +288,10 @@ namespace FlashBeat.UI.V6.Option
                     Rebuild();
                     return;
                 case V6OptionAction.AdjustPrev:
-                    AdjustSelected(-1);
+                    AdjustSelected(-1, shift);
                     return;
                 case V6OptionAction.AdjustNext:
-                    AdjustSelected(1);
+                    AdjustSelected(1, shift);
                     return;
                 case V6OptionAction.NextTab:
                     SelectTab(selectedTab + 1);
@@ -279,7 +302,7 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        private void AdjustSelected(int delta)
+        private void AdjustSelected(int delta, bool shift = false)
         {
             if (currentRows.Count == 0)
             {
@@ -287,6 +310,17 @@ namespace FlashBeat.UI.V6.Option
             }
 
             var row = currentRows[selectedRow];
+
+            // 音量行はスライダーと同じ値モデルを編集する (Issue #375 §3.2)。
+            // Rebuild せずスライダーと値テキストだけを更新し、保存は 0.5 秒後にまとめる。
+            if (row.VolumeIndex >= 0)
+            {
+                SetVolume(row.VolumeIndex,
+                    V6OptionLogic.NudgeVolume(GetVolume(row.VolumeIndex), delta, shift), false);
+                UpdateVolumeVisuals();
+                return;
+            }
+
             if (row.Adjust != null)
             {
                 row.Adjust(delta);
@@ -356,6 +390,10 @@ namespace FlashBeat.UI.V6.Option
             // 共通フレーム (契約 §4): Header/Main/Footer ゾーン + モーダル層 + 外周 stroke。
             frame = V6Frame.Create(rootGo.transform, "V6 Option Frame 1728x972").GetComponent<RectTransform>();
 
+            // キー設定モーダル (design vo4kB)。フレーム直下に置き、開くとき最前面へ出す。
+            keyConfigModal = V6KeyConfigModal.Build(frame.gameObject);
+            keyConfigModal.Closed += OnKeyConfigClosed;
+
             var driver = rootGo.AddComponent<V6OptionViewDriver>();
             driver.View = this;
             PlaceFrame();
@@ -415,6 +453,10 @@ namespace FlashBeat.UI.V6.Option
                 selectedRow = 0;
             }
 
+            // 子を作り直すため、旧オブジェクトへの参照は捨てる (Build* が再設定する)。
+            volumeSlider = null;
+            selectedRowValueText = null;
+
             BuildHeader();
             BuildFooter();
             BuildTabs();
@@ -455,19 +497,12 @@ namespace FlashBeat.UI.V6.Option
         {
             var header = Zone("Header");
 
-            var back = V6Controls.Panel(header.gameObject, "Back button",
-                new Vector2(0f, 20f), new Vector2(56f, 56f), V6Tokens.Key4, V6Tokens.RadiusMedium);
-            var backButton = back.AddComponent<Button>();
-            backButton.transition = Selectable.Transition.None;
-            var nav = backButton.navigation;
-            nav.mode = Navigation.Mode.None;
-            backButton.navigation = nav;
-            backButton.onClick.AddListener(() =>
-            {
-                if (onBack != null) onBack();
-            });
-
-            V6Controls.FillBackButton(back, "Esc");
+            // 戻るボタンは共通部品 (Issue #370): 56×56 / $k4 r8 / arrow-left 24 + Key fs16。
+            V6Controls.BackButton(header.gameObject, "Back button", new Vector2(0f, 20f), "Esc",
+                () =>
+                {
+                    if (onBack != null) onBack();
+                });
 
             V6Controls.Text(header.gameObject, "Title", "OPTION",
                 new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,
@@ -591,6 +626,10 @@ namespace FlashBeat.UI.V6.Option
                 new Vector2(120f, SetRowH), 24f, V6Tokens.Text, TextAlignmentOptions.Right);
             value.textWrappingMode = TextWrappingModes.NoWrap;
             value.overflowMode = TextOverflowModes.Ellipsis;
+            if (selected)
+            {
+                selectedRowValueText = value;
+            }
 
             if (row.IsAction)
             {
@@ -776,47 +815,116 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// Sound タブ: 選択行の音量を Value (24,360) 106×58 fs40 と
-        /// Track (24,420) 464×20 r4 $k1 + Fill $k6 (音量比) で出す (design z7joSy)。
-        /// Fill 幅は実値 — design の 100% = 全幅をそのまま比例配分する。
+        /// Sound タブ: 選択行の音量を共通スライダ部品 (<see cref="V6VolumeSlider"/>、
+        /// design o0zh7 J7tBYP) で出す。値ラベル / トラック / フィル / ノブ / ヒントを
+        /// プレビューパネル内 (24,344) に置き、フォーカス行の音量と双方向に同期する。
+        /// ドラッグは押した位置へジャンプし、離した時点で保存する (Issue #375 §3.2)。
         /// </summary>
         private void BuildVolumePreview(GameObject panel)
         {
             Row row = SelectedRowDesc();
-            string value = row != null ? row.Value() : "";
-            V6Controls.Text(panel, "Volume Value", value,
-                new Vector2(V6OptionLogic.VolumeValueX, V6OptionLogic.VolumeValueY),
-                new Vector2(V6OptionLogic.VolumeValueW, V6OptionLogic.VolumeValueH), 40f, V5Tokens.Text,
-                TextAlignmentOptions.TopLeft, FontStyles.Normal);
-
-            var track = V6Controls.Panel(panel, "Volume Track",
-                new Vector2(V6OptionLogic.VolumeTrackX, V6OptionLogic.VolumeTrackY),
-                new Vector2(V6OptionLogic.VolumeTrackW, V6OptionLogic.VolumeTrackH),
-                V6Tokens.Key1, V6Tokens.RadiusSmall);
-
-            float fillW = V6OptionLogic.VolumeFillWidth(ParsePercent(value));
-            if (fillW <= 0f)
+            if (row == null || row.VolumeIndex < 0)
             {
                 return;
             }
 
-            var fill = Rect(track, "Fill", fillW, V6OptionLogic.VolumeTrackH, V6Tokens.Key6);
-            V6Layout.Place(fill.GetComponent<RectTransform>(), Vector2.zero,
-                new Vector2(fillW, V6OptionLogic.VolumeTrackH));
+            int index = row.VolumeIndex;
+            volumeSlider = V6VolumeSlider.Build(panel, "Volume Slider",
+                new Vector2(V6OptionLogic.VolumeSliderX, V6OptionLogic.VolumeSliderY),
+                () => GetVolume(index),
+                (value, final) =>
+                {
+                    SetVolume(index, value, final);
+                    UpdateVolumeVisuals();
+                });
         }
 
-        /// <summary>"100%" → 100。数値でなければ 0 (Fill を描かない)。</summary>
-        private static int ParsePercent(string text)
+        /// <summary>音量 (0..1)。対象 index は <see cref="Row.VolumeIndex"/>。</summary>
+        private static float GetVolume(int index)
         {
-            if (string.IsNullOrEmpty(text))
+            switch (index)
             {
-                return 0;
+                case 0: return GManager.mainVolume;
+                case 1: return GManager.effectVolume;
+                case 2: return GManager.BGMVolume;
+                default: return 0f;
+            }
+        }
+
+        /// <summary>
+        /// 音量を書き、即時に音へ反映する。保存は final (ドラッグ終了) のときだけ行い、
+        /// キー操作中は 0.5 秒後にまとめる (毎フレーム PlayerPrefs を書かない)。
+        /// </summary>
+        private void SetVolume(int index, float value, bool final)
+        {
+            float clamped = Mathf.Clamp01(value);
+            switch (index)
+            {
+                case 0:
+                    GManager.mainVolume = clamped;
+                    break;
+                case 1:
+                    GManager.effectVolume = clamped;
+                    break;
+                case 2:
+                    GManager.BGMVolume = clamped;
+                    break;
+                default:
+                    return;
             }
 
-            int end = text.IndexOf('%');
-            string digits = end >= 0 ? text.Substring(0, end) : text;
-            int value;
-            return int.TryParse(digits, out value) ? value : 0;
+            OptionSceneManager.ApplyVolumes();
+            if (final)
+            {
+                volumeSaveAt = 0f;
+                OptionSettings.Save();
+                return;
+            }
+
+            volumeSaveAt = Time.unscaledTime + VolumeSaveDelay;
+        }
+
+        /// <summary>スライダと選択行の値表示だけを更新する (レイアウトは作り直さない)。</summary>
+        private void UpdateVolumeVisuals()
+        {
+            if (volumeSlider != null)
+            {
+                volumeSlider.Refresh();
+            }
+
+            Row row = SelectedRowDesc();
+            if (row == null || row.VolumeIndex < 0)
+            {
+                return;
+            }
+
+            if (selectedRowValueText != null)
+            {
+                selectedRowValueText.text = V6OptionLogic.FormatVolume(GetVolume(row.VolumeIndex));
+            }
+        }
+
+        /// <summary>キー操作で予約された保存を、猶予が過ぎていれば実行する。</summary>
+        private void FlushPendingVolumeSave()
+        {
+            if (volumeSaveAt <= 0f || Time.unscaledTime < volumeSaveAt)
+            {
+                return;
+            }
+
+            SavePendingVolumeNow();
+        }
+
+        /// <summary>猶予を待たずに予約済みの音量保存を実行する (画面を離れるとき)。</summary>
+        private void SavePendingVolumeNow()
+        {
+            if (volumeSaveAt <= 0f)
+            {
+                return;
+            }
+
+            volumeSaveAt = 0f;
+            OptionSettings.Save();
         }
 
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
@@ -985,11 +1093,11 @@ namespace FlashBeat.UI.V6.Option
                     "Key Layout",
                     "キー配列を選びます。標準は既定の配列、カスタムはキー設定で編集します。← で標準に戻します (確認ダイアログが出ます)。"),
                 new Row("キー設定",
-                    () => "F2",
+                    () => "開く ›",
                     null,
                     OpenKeyConfig,
                     "キー設定",
-                    "キーの割り当てを編集します (F2)。Esc / F2 で確定 (保存)、F1 でキャンセル (元に戻して閉じます)。",
+                    "8 レーンの代表キーを変更します。行を選んで Enter を押し、次に押したキーが割り当てられます。",
                     isAction: true),
             };
         }
@@ -1045,26 +1153,31 @@ namespace FlashBeat.UI.V6.Option
 
         private List<Row> BuildSoundRows()
         {
+            // 音量行は VolumeIndex を持ち、←→ / ステッパー / スライダーが同じ値モデルを編集する
+            // (Issue #375)。Adjust は null — 調整は AdjustSelected が VolumeIndex 経由で行う。
             return new List<Row>
             {
                 new Row("Main Volume",
                     () => V6OptionLogic.FormatVolume(GManager.mainVolume),
-                    d => AdjustMainVolume(d),
+                    null,
                     null,
                     "Main Volume",
-                    "全体の音量。"),
+                    "全体の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
+                    volumeIndex: 0),
                 new Row("Effect Volume",
                     () => V6OptionLogic.FormatVolume(GManager.effectVolume),
-                    d => AdjustEffectVolume(d),
+                    null,
                     null,
                     "Effect Volume",
-                    "効果音の音量。"),
+                    "効果音の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
+                    volumeIndex: 1),
                 new Row("BGM Volume",
                     () => V6OptionLogic.FormatVolume(GManager.BGMVolume),
-                    d => AdjustBgmVolume(d),
+                    null,
                     null,
                     "BGM Volume",
-                    "BGM の音量。"),
+                    "BGM の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
+                    volumeIndex: 2),
             };
         }
 
@@ -1295,7 +1408,16 @@ namespace FlashBeat.UI.V6.Option
 
         private void OpenKeyConfig()
         {
-            KeyConfigUI.Open();
+            if (keyConfigModal != null)
+            {
+                keyConfigModal.Show();
+            }
+        }
+
+        /// <summary>モーダルが閉じたら、プレビューのキー割当表示を更新する。</summary>
+        private void OnKeyConfigClosed()
+        {
+            Rebuild();
         }
 
         /// <summary>

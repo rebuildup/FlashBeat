@@ -191,6 +191,68 @@ namespace FlashBeat.UI.V6.Select.View
             return new V6Rect(SettingsRowX, SettingsRowY0 + SettingsRowStep * row, SettingsRowW, SettingsRowH);
         }
 
+        // --- 設定行の列 (design wSjAm の auto-layout を固定列へ展開) ---
+        // 行は padding [0,12] / gap 12 の横並びで、右から
+        // Arrow · chevron-right (40) / Value (120, 中央揃え) / Arrow · chevron-left (40)
+        // の順に固定する (Issue #370)。Value の幅を値の文字数に合わせて縮めると
+        // 左矢印が行ごとに動き、値が左右の矢印の中央から外れる。
+        public const float SettingsRowPaddingX = 12f;
+        public const float SettingsRowArrowSize = 40f;
+        public const float SettingsRowValueW = 120f;
+        public const float SettingsRowIconSize = 24f;
+        public const float SettingsRowLabelX = 48f;
+
+        /// <summary>右矢印の x (行ローカル)。右端から padding 12。</summary>
+        public static float SettingsRowNextX
+        {
+            get { return SettingsRowW - SettingsRowPaddingX - SettingsRowArrowSize; }
+        }
+
+        /// <summary>値の x (行ローカル)。右矢印の左に gap 12。</summary>
+        public static float SettingsRowValueX
+        {
+            get { return SettingsRowNextX - 12f - SettingsRowValueW; }
+        }
+
+        /// <summary>左矢印の x (行ローカル)。値の左に gap 12。</summary>
+        public static float SettingsRowPrevX
+        {
+            get { return SettingsRowValueX - 12f - SettingsRowArrowSize; }
+        }
+
+        /// <summary>行アイコン (行ローカル)。</summary>
+        public static V6Rect SettingsRowIcon()
+        {
+            return new V6Rect(SettingsRowPaddingX,
+                (SettingsRowH - SettingsRowIconSize) * 0.5f, SettingsRowIconSize, SettingsRowIconSize);
+        }
+
+        /// <summary>行ラベル (行ローカル)。ラベルは伸縮し、列は左矢印で止まる。</summary>
+        public static V6Rect SettingsRowLabel()
+        {
+            return new V6Rect(SettingsRowLabelX, 0f, SettingsRowPrevX - 12f - SettingsRowLabelX, SettingsRowH);
+        }
+
+        /// <summary>値テキスト (行ローカル)。左右の矢印の間で中央揃え。</summary>
+        public static V6Rect SettingsRowValue()
+        {
+            return new V6Rect(SettingsRowValueX, 0f, SettingsRowValueW, SettingsRowH);
+        }
+
+        /// <summary>左矢印ボタン (行ローカル)。</summary>
+        public static V6Rect SettingsRowPrev()
+        {
+            return new V6Rect(SettingsRowPrevX, (SettingsRowH - SettingsRowArrowSize) * 0.5f,
+                SettingsRowArrowSize, SettingsRowArrowSize);
+        }
+
+        /// <summary>右矢印ボタン (行ローカル)。</summary>
+        public static V6Rect SettingsRowNext()
+        {
+            return new V6Rect(SettingsRowNextX, (SettingsRowH - SettingsRowArrowSize) * 0.5f,
+                SettingsRowArrowSize, SettingsRowArrowSize);
+        }
+
         /// <summary>アクティブ ドットの index (範囲外は端に留まる)。</summary>
         public static int DotActiveIndex(int selectedIndex, int dotCount)
         {
@@ -292,6 +354,16 @@ namespace FlashBeat.UI.V6.Select.View
         {
             return ClampScroll(CenterScroll(selectIndex, rowCount, ListVisibleRows),
                 rowCount, ListVisibleRows);
+        }
+
+        /// <summary>
+        /// 曲リストをスケルトンで描くか (Issue #374)。初回の読み込み中だけ出す。
+        /// 既に表示できている行がある状態でカタログ / ランキングを再取得しても
+        /// スケルトンへ戻さない (点滅させない)。
+        /// </summary>
+        public static bool ShouldShowSkeleton(bool isLoading, int visibleSongCount)
+        {
+            return isLoading && visibleSongCount == 0;
         }
 
         /// <summary>スコア表示。未プレイ (負値) は design どおり「–」。</summary>
@@ -584,22 +656,96 @@ namespace FlashBeat.UI.V6.Select.View
             return new V6Rect(x, 8f, w, 32f);
         }
 
-        /// <summary>設定ボタン (フッター ローカル)。</summary>
+        /// <summary>
+        /// 設定ボタン (フッター ローカル、閉じている状態)。右端は Ready の 12 手前で
+        /// 固定し、幅はボタン規則 (§4: padding [0,24] / gap 12) から中身に合わせて決める。
+        /// 固定幅 197 に「閉じる + x アイコン + Esc キャップ」を詰めると、
+        /// 中央寄せの結果アイコンと文字が左右の端に貼り付いていた (Issue #370)。
+        /// </summary>
         public static V6Rect FooterSettings()
         {
-            return new V6Rect(1198f, 20f, 197f, 56f);
+            return FooterSettings(false);
         }
 
-        /// <summary>設定ボタンのアイコン (設定ボタン ローカル)。</summary>
-        public static V6Rect FooterSettingsIcon()
+        /// <summary>
+        /// 設定ボタン。開いている状態はラベルが「設定」(2 全角) から
+        /// 「閉じる」(3 全角) に変わるため、幅もその状態の中身から決める。
+        /// 閉じた状態の幅を使い回すと、開いたときだけ文字が右へはみ出す。
+        /// 右端はどちらの状態でも同じ (<see cref="FooterSettingsRight"/>)。
+        /// </summary>
+        public static V6Rect FooterSettings(bool open)
         {
-            return new V6Rect(44f, 12f, 32f, 32f);
+            float w = FlashBeat.UI.V6.Common.V6Controls.ButtonHugWidth(
+                open ? FooterSettingsOpenLabelText : FooterSettingsLabelText,
+                FooterSettingsKeyText,
+                open ? FooterSettingsOpenIconName : FooterSettingsIconName);
+            return new V6Rect(FooterSettingsRight - w, 20f, w, 56f);
+        }
+
+        /// <summary>設定ボタンの右端 (フッター ローカル)。Ready の左 12。</summary>
+        public const float FooterSettingsRight = 1395f;
+
+        /// <summary>設定ボタンのラベル (閉じている状態)。</summary>
+        public const string FooterSettingsLabelText = "設定";
+
+        /// <summary>設定ボタンのラベル (パネルを開いている状態)。</summary>
+        public const string FooterSettingsOpenLabelText = "閉じる";
+
+        /// <summary>設定ボタンに出すキー (Esc)。幅の見積もりにも使う。</summary>
+        public const string FooterSettingsKeyText = "Esc";
+
+        /// <summary>閉じている状態のアイコン。</summary>
+        public const string FooterSettingsIconName = "settings";
+
+        /// <summary>開いている状態のアイコン。</summary>
+        public const string FooterSettingsOpenIconName = "x";
+
+        /// <summary>設定ボタンのアイコン (設定ボタン ローカル)。</summary>
+        public static V6Rect FooterSettingsIcon(bool open = false)
+        {
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 0, open);
         }
 
         /// <summary>設定ボタンのラベル (設定ボタン ローカル)。</summary>
-        public static V6Rect FooterSettingsLabel()
+        public static V6Rect FooterSettingsLabel(bool open = false)
         {
-            return new V6Rect(92f, 8f, 80f, 40f);
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 1, open);
+        }
+
+        /// <summary>設定ボタンのキーキャップ (設定ボタン ローカル)。</summary>
+        public static V6Rect FooterSettingsCap(bool open = false)
+        {
+            return ButtonPart(V6SelectViewLogic.FooterSettings(open), 2, open);
+        }
+
+        /// <summary>
+        /// 設定ボタン内の icon (0) / Label (1) / Cap (2) の矩形 (設定ボタン ローカル)。
+        /// <see cref="FlashBeat.UI.V6.Common.V6Controls.ButtonSlots"/> と同じ中央寄せ規則。
+        /// </summary>
+        private static V6Rect ButtonPart(V6Rect button, int part, bool open)
+        {
+            FlashBeat.UI.V6.Common.V6Controls.ButtonSlot icon;
+            FlashBeat.UI.V6.Common.V6Controls.ButtonSlot label;
+            FlashBeat.UI.V6.Common.V6Controls.ButtonSlot cap;
+            FlashBeat.UI.V6.Common.V6Controls.ButtonSlots(new UnityEngine.Vector2(button.W, button.H),
+                open ? FooterSettingsOpenLabelText : FooterSettingsLabelText,
+                FooterSettingsKeyText,
+                open ? FooterSettingsOpenIconName : FooterSettingsIconName,
+                out icon, out label, out cap);
+
+            const float iconSize = FlashBeat.UI.V6.Common.V6Controls.ButtonIconSize;
+            const float capH = FlashBeat.UI.V6.Common.V6Controls.ButtonKeyCapHeight;
+            if (part == 0)
+            {
+                return new V6Rect(icon.X, (button.H - iconSize) * 0.5f, icon.W, iconSize);
+            }
+
+            if (part == 2)
+            {
+                return new V6Rect(cap.X, (button.H - capH) * 0.5f, cap.W, capH);
+            }
+
+            return new V6Rect(label.X, 0f, label.W, button.H);
         }
 
         /// <summary>Ready ボタン (フッター ローカル)。</summary>

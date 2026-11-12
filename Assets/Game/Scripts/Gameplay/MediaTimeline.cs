@@ -275,6 +275,31 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
+        /// How far in front of the hit line the bottom edge of the frustum
+        /// still sees the plane at <paramref name="notePlaneY"/>, in world z
+        /// units (returned as a positive distance).
+        ///
+        /// The 3D playfield draws the lane guides on the plane below the judge
+        /// line too, and they have to leave the screen at its bottom edge
+        /// rather than stop at z = 0 (Issue #380). This is where the bottom
+        /// edge of the camera hits that plane; anything nearer is outside the
+        /// screen. Mirrors <see cref="VisibleDepth"/> for the top edge.
+        /// </summary>
+        public static float VisibleFrontDepth(Camera camera, float notePlaneY = NotePlaneY)
+        {
+            if (camera == null) return 0f;
+
+            Transform t = camera.transform;
+            float half = camera.fieldOfView * 0.5f * Mathf.Deg2Rad;
+            Vector3 bottom = t.forward * Mathf.Cos(half) - t.up * Mathf.Sin(half);
+            if (Mathf.Abs(bottom.y) < 1e-6f) return 0f;
+
+            float step = (notePlaneY - t.position.y) / bottom.y;
+            float z = t.position.z + bottom.z * step;
+            return Mathf.Max(0f, -z);
+        }
+
+        /// <summary>
         /// Half of the world width the camera shows at the judge line
         /// (x = +- this is on the screen, z = hitLineZ).
         ///

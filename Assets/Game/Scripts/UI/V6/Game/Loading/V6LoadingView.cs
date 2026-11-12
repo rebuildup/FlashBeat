@@ -65,7 +65,7 @@ namespace FlashBeat.UI.V6.Game.Loading
         private float? progress;            // null = 不明 (不定インジケータ)
         private Texture2D jacketTexture;    // スプライトの生成元 (変化時だけ再生成)
         private Sprite jacketSprite;        // ApplySong で作ったスプライト (Dispose で破棄)
-        private RenderTexture videoTexture; // APIOnly 再生の出力先 (Dispose で破棄)
+        private RenderTexture videoTexture; // RenderTexture モードの出力先 (Dispose で破棄)
         private bool errorShown;
         private bool leaving;
         private GameSceneManager sceneManager;
@@ -129,6 +129,30 @@ namespace FlashBeat.UI.V6.Game.Loading
             {
                 Current = null;
             }
+        }
+
+        /// <summary>検証ハーネス用: ローディング映像が準備できたか。</summary>
+        internal bool VideoPreparedForAudit
+        {
+            get { return videoPlayer != null && videoPlayer.isPrepared; }
+        }
+
+        /// <summary>検証ハーネス用: 映像に使えるクリップがあるか。</summary>
+        internal bool VideoClipForAudit
+        {
+            get { return videoPlayer != null && videoPlayer.clip != null; }
+        }
+
+        /// <summary>検証ハーネス用: 映像面 (RawImage) が実際に表示されているか。</summary>
+        internal bool VideoVisibleForAudit
+        {
+            get { return videoRaw != null && videoRaw.enabled; }
+        }
+
+        /// <summary>検証ハーネス用: 直近に選んだ映像面の種類。</summary>
+        internal string VideoSurfaceForAudit
+        {
+            get { return lastSurface.HasValue ? lastSurface.Value.ToString() : "none"; }
         }
 
         public void SetVisible(bool visible)
@@ -405,18 +429,21 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             // design: フレーム全面が背景 (ロード中はゲームの背後を隠す)。
             // 映像が使えない時はこの背景がそのまま見える (白い画面を出さない)。
+            // 上下グラデーションにするのは、映像の準備が終わるまでの数フレームを
+            // 単色ではなく設計された面として見せるため (Issue #378)。
             var bg = V5Ui.Node(rootGo, "Loading Background");
             V5Ui.Fill(bg.GetComponent<RectTransform>(), 0f);
             bgImage = bg.AddComponent<Image>();
-            bgImage.color = V5Tokens.Bg;
+            bgImage.sprite = GradientSprite();
+            bgImage.type = Image.Type.Simple;
+            bgImage.color = Color.white;
             bgImage.raycastTarget = true;
 
 
             // ローディング映像 (design: ローディング画面は動画を再生するだけ。
             // Assets/Game/Resources/Videos/loading.mp4 = 自作素材、同梱する)。
-            // APIOnly のまま targetTexture を付けないとデコードだけされて
-            // 画面に何も出ない (Issue #224) ので、RenderTexture を割り当てて
-            // RawImage に出す。
+            // RenderTexture モードで 1920x1080 のテクスチャへ描き、同じテクスチャを
+            // RawImage に出す (Issue #224)。
             var videoBg = V5Ui.Node(rootGo, "Loading Video");
             V5Ui.Fill(videoBg.GetComponent<RectTransform>(), 0f);
             videoRaw = videoBg.AddComponent<RawImage>();
@@ -426,7 +453,10 @@ namespace FlashBeat.UI.V6.Game.Loading
             videoPlayer = videoBg.AddComponent<VideoPlayer>();
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = true;
-            videoPlayer.renderMode = VideoRenderMode.APIOnly;
+            // APIOnly + targetTexture は macOS プレイヤーで黒いテクスチャのまま
+            // 描画されなかった (2026-11-12 実機)。RenderTexture モードは
+            // テクスチャへの描画を VideoPlayer 側が受け持つ標準経路。
+            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
             videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
             videoPlayer.targetTexture = videoTexture;
             videoPlayer.clip = Resources.Load<VideoClip>("Videos/loading");
@@ -452,28 +482,48 @@ namespace FlashBeat.UI.V6.Game.Loading
             UpdatePlacement();
         }
 
+        static Sprite loadingGradient;
+
+        /// <summary>
+        /// ローディング背景の上下グラデーション (上が #141414 / 下が #232323)。
+        /// 映像の準備が終わるまでの面を「単色の黒」ではなく設計された面にする。
+        /// 1×2 のテクスチャを伸ばすので、サイズに関係なく滑らかに出る。
+        /// </summary>
+        static Sprite GradientSprite()
+        {
+            if (loadingGradient != null)
+            {
+                return loadingGradient;
+            }
+
+            var tex = new Texture2D(1, 2, TextureFormat.RGBA32, false);
+            tex.name = "LoadingGradient";
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            tex.SetPixel(0, 0, V5Tokens.FromHex("#232323"));
+            tex.SetPixel(0, 1, V5Tokens.FromHex("#141414"));
+            tex.Apply(false, false);
+
+            loadingGradient = Sprite.Create(tex, new Rect(0f, 0f, 1f, 2f), new Vector2(0.5f, 0.5f), 1f);
+            loadingGradient.name = "LoadingGradient";
+            loadingGradient.hideFlags = HideFlags.HideAndDontSave;
+            return loadingGradient;
+        }
+
         private void BuildHeader()
         {
             var header = V5Ui.Node(frame.gameObject, "Header");
             PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
 
-            // design: 戻るボタン (zUcsi: (0,20) 56×56 $k4)。中身は共通部品の
-            // FillBackButton が正本どおりに入れる (arrow-left 24 @(16,4) +
-            // Key fs16 @(15,30) 26×23)。旧実装は chevron-left を
-            // VerticalLayoutGroup の中央寄せで 3px 下に置いていた。
-            var back = V5Ui.Panel(header, "Back", new Vector2(56f, 56f), V5Tokens.Key4, 8f);
-            PlaceAt(back, 0f, 20f);
-
+            // 戻るボタンは共通部品 (Issue #370)。design zUcsi: (0,20) 56×56 $k4。
             string backKeyText = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
             if (string.IsNullOrEmpty(backKeyText))
             {
                 backKeyText = "Esc";
             }
 
-            V6Controls.FillBackButton(back, backKeyText);
-            var backBtn = back.AddComponent<Button>();
-            backBtn.targetGraphic = back.GetComponent<Image>();
-            backBtn.onClick.AddListener(Back);
+            V6Controls.BackButton(header, "Back", new Vector2(0f, 20f), backKeyText, Back);
 
             // design: タイトル欄は空 (0×0)。
 

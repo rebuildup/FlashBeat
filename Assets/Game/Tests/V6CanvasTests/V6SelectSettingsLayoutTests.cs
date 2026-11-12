@@ -114,21 +114,25 @@ namespace FlashBeat.V6CanvasTests
                         labels[i] + " Label rect starts at the row top");
                     Assert.AreEqual(new Vector2(0f, 0.5f), label.pivot, labels[i] + " Label pivot (0,0.5)");
 
-                    // Value は右端 448 に右寄せ。幅は TMP 実測 (design hug 101/53/27)。
+                    // Value は固定列 (x328, w120) の中央。左の chevron は x276。
+                    // 行ごとに値の幅が変わっても矢印と値の中心は動かない (Issue #370)。
                     var value = (RectTransform)row.Find("Value");
+                    Assert.AreEqual(V6SelectViewLogic.SettingsRowValueX, DesignTopLeft(value).x, 0.5f,
+                        labels[i] + " Value x = 328");
+                    Assert.AreEqual(V6SelectViewLogic.SettingsRowValueW, value.sizeDelta.x, 0.5f,
+                        labels[i] + " Value w = 120");
                     Assert.AreEqual(448f, DesignTopLeft(value).x + value.sizeDelta.x, 0.5f,
                         labels[i] + " Value right edge = 448");
-                    Assert.Greater(value.sizeDelta.x, 0f, labels[i] + " Value width > 0");
                     var valueTmp = value.GetComponent<TextMeshProUGUI>();
-                    Assert.AreEqual(TextAlignmentOptions.Right, valueTmp.alignment,
-                        labels[i] + " Value right aligned");
+                    Assert.AreEqual(TextAlignmentOptions.Center, valueTmp.alignment,
+                        labels[i] + " Value centered in its column");
                     Assert.AreEqual(TextWrappingModes.NoWrap, valueTmp.textWrappingMode,
                         labels[i] + " Value must not wrap");
 
-                    // chevron-left は値の左 - 52 / chevron-right は (460,8)。
+                    // chevron-left は固定 (276,8) / chevron-right は (460,8)。
                     var prev = (RectTransform)row.Find("Prev");
-                    Assert.AreEqual(448f - value.sizeDelta.x - 52f, DesignTopLeft(prev).x, 0.5f,
-                        labels[i] + " Prev x = valueLeft - 52");
+                    Assert.AreEqual(V6SelectViewLogic.SettingsRowPrevX, DesignTopLeft(prev).x, 0.5f,
+                        labels[i] + " Prev x = 276");
                     Assert.AreEqual(8f, DesignTopLeft(prev).y, labels[i] + " Prev y8");
                     Assert.AreEqual(new Vector2(40f, 40f), prev.sizeDelta, labels[i] + " Prev 40×40");
 

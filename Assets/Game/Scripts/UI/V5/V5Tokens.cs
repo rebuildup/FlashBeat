@@ -75,7 +75,8 @@ namespace FlashBeat.UI.V5
         /// <summary>フォントの TMP アセットパス (JapaneseFontFixer と同じ)。</summary>
         public const string FontAssetPath = "Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset";
 
-        private static Color FromHex(string hex)
+        /// <summary>トークン表記 ("#RRGGBB" / "#RRGGBBAA") を Color にする。</summary>
+        public static Color FromHex(string hex)
         {
             ColorUtility.TryParseHtmlString(hex, out var c);
             return c;

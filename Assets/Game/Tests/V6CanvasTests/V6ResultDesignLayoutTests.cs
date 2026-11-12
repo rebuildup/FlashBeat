@@ -256,12 +256,19 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(dialog.Find("Name Field/Value"), 24f, 20f, 736f, 58f, "Name Field Value");
                 Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
                 // design lqHaN は未入力の Name Field に "YOU" を $text-dim で置く
-                // (v5 ResultView の Placeholder と同じ)。旧実装は空欄だった。
-                var nameValue = TextOf(dialog, "Name Field/Value");
-                Assert.AreEqual(V6ResultLogic.LocalNameDefault, nameValue.text,
+                // (v5 ResultView の Placeholder と同じ)。#384 で入力は TMP_InputField に
+                // 任せ、空欄時は Placeholder テキストが "YOU" を出す。
+                var placeholder = TextOf(dialog, "Name Field/Placeholder");
+                Assert.AreEqual(V6ResultLogic.LocalNameDefault, placeholder.text,
                     "Name Field placeholder YOU");
-                Assert.AreEqual(FlashBeat.UI.V5.V5Tokens.TextDim, nameValue.color,
+                Assert.AreEqual(FlashBeat.UI.V5.V5Tokens.TextDim, placeholder.color,
                     "Name Field placeholder is $text-dim");
+                var nameInput = dialog.Find("Name Field").GetComponent<TMP_InputField>();
+                Assert.IsNotNull(nameInput, "Name Field is a TMP_InputField");
+                Assert.AreSame(placeholder, nameInput.placeholder, "placeholder is wired");
+                Assert.AreEqual(2, nameInput.caretWidth, "caret width 2");
+                Assert.AreEqual(TMP_InputField.ContentType.Standard, nameInput.contentType,
+                    "IME input is allowed");
                 AssertRect(dialog.Find("Summary"), 28f, 264f, 784f, 140f, "Summary");
                 AssertRect(dialog.Find("Buttons"), 28f, 432f, 784f, 50f, "Buttons");
             }

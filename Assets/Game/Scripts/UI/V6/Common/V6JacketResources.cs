@@ -47,6 +47,18 @@ namespace FlashBeat.UI.V6
 
         private static readonly Dictionary<int, Sprite> SpriteCache = new Dictionary<int, Sprite>();
 
+        /// <summary>キャッシュに実際に載った枚数 (Issue #377 の上限見積り用)。</summary>
+        public static int CachedSpriteCount
+        {
+            get { return SpriteCache.Count; }
+        }
+
+        /// <summary>
+        /// <see cref="LoadSprite"/> が実際に Resources から読んだ回数。キャッシュに
+        /// 当たった回数は含まない (Issue #377 の再読込が無いことの確認用)。
+        /// </summary>
+        public static int TextureLoadCount { get; private set; }
+
         /// <summary>
         /// カタログ index → Resources パス (拡張子なし)。無い曲は空文字。
         /// V5 フォールバックは曲名が必要なので <see cref="PathOf(int, string)"/> を使う。
@@ -131,6 +143,7 @@ namespace FlashBeat.UI.V6
                 return null;
             }
 
+            TextureLoadCount++;
             var sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height),
                 new Vector2(0.5f, 0.5f), 100f);
             sprite.name = "V6Jacket-" + songId;

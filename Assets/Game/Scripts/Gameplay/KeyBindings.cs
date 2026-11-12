@@ -212,6 +212,43 @@ public static class KeyBindings
         return true;
     }
 
+    /// <summary>
+    /// 8 レーン分の割り当てをまとめて置き換える (キー設定モーダルの「適用」用)。
+    /// レーン単位で順に <see cref="SetLane"/> を呼ぶと、途中の状態で移動元が空になり
+    /// 正当な入れ替えが拒否されることがあるため、検証してから一度に確定する。
+    /// 予約キー・重複キーは取り除き、空のレーンが 1 つでもあれば拒否する (false)。
+    /// 保存はしない (呼び出し側が <see cref="Save"/> する)。
+    /// </summary>
+    public static bool SetAll(KeyCode[][] table)
+    {
+        if (table == null || table.Length != DefaultKeys.Length) return false;
+        EnsureLoaded(); // 未ロードのまま current を書くと、次の Current 参照で保存値に戻ってしまう
+
+        var copy = new KeyCode[table.Length][];
+        var seen = new HashSet<KeyCode>();
+        for (int lane = 0; lane < table.Length; lane++)
+        {
+            var keys = new List<KeyCode>();
+            KeyCode[] source = table[lane];
+            if (source != null)
+            {
+                for (int i = 0; i < source.Length; i++)
+                {
+                    KeyCode key = source[i];
+                    if (key == KeyCode.None || IsReserved(key) || !seen.Add(key)) continue;
+                    keys.Add(key);
+                }
+            }
+
+            if (keys.Count == 0) return false; // 空レーンは保存できない (Save と同じ規約)
+            copy[lane] = keys.ToArray();
+        }
+
+        current = copy;
+        RaiseChanged();
+        return true;
+    }
+
     /// <summary>キーをレーンに割り当てる/解除する。キーは最大 1 レーンにのみ属する (割り当てると移動になる)。
     /// レーンが空になる変更は拒否する (false)。予約キーは拒否する。</summary>
     public static bool ToggleKey(int lane, KeyCode key)

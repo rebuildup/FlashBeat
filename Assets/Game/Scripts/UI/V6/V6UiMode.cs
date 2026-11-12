@@ -38,9 +38,10 @@ namespace FlashBeat.UI.V6
         /// v6 HUD のレーン別判定行 (画面下の PERFECT/GREAT/MISS) を使うか。
         /// 有効時は 3D の判定エフェクト (Judge の判定プレハブ) を隠す。
         ///
-        /// **false** (2026-11-08): 判定フィードバックは元の 3D の判定表示に戻す。
+        /// **true** (2026-11-11): オーナーレビュー #379 で v6 の判定行を有効化した。
+        /// 3D 側の判定表示とは二重に出さない (UpdateLaneVerdicts がクローンを隠す)。
         /// </summary>
-        public static bool VerdictRow = false;
+        public static bool VerdictRow = true;
 
         /// <summary>
         /// Title 中段のタブ行 (▷ GameStart / History / Ranking / Option) を描くか。

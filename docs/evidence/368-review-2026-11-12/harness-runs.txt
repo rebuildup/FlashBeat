@@ -1,0 +1,138 @@
+自動ハーネスの実行記録 (2026-11-12, macOS 3420x2148 / 3420x2224 ディスプレイ)
+
+静的スクリーンショットでは確かめられない「操作・状態・永続化」を、プレイヤー内の
+ハーネスで実行した記録。すべて実ビルド (Builds/macOS/FlashBeat.app) の実行結果で、
+Editor の再生ではない。
+
+実行方法:
+  Builds/macOS/FlashBeat.app/Contents/MacOS/FlashBeat \
+      -autotest <モード> -autotest-out <出力先> [-fbperf] [-autotest-song <曲名>]
+
+================================================================
+1. -autotest v6interact (操作の受け入れ / #375 #382 #384)
+================================================================
+
+受入ビルド 0.1.23+af183bf4 での結果:
+  RESULT pass=47 fail=0 screenshots=4 resolution=3420x2148
+(ファイル: autotest-v6interact-result.txt)
+
+#375 音量スライダー (OptionScene / Sound タブ)
+  PASS option view exists / the sound tab shows the volume slider
+  PASS the pointer events reach the slider through the event system
+  PASS the value and the label follow every drag step
+  PASS the drag changes the value to where the pointer is
+  PASS the value owner follows the drag            (GManager.mainVolume)
+  PASS the value label follows the drag            (80%)
+  PASS the knob follows the drag
+  PASS releasing the pointer saves the volume      (PlayerPrefs)
+  PASS a drag without release is not saved immediately
+  PASS leaving the screen saves the pending volume
+  ログ: slider down=20% drag=35% drag=55% drag=70% up=80%
+
+#384 Result の段階表示
+  PASS the reveal is staged (not everything at once)
+  PASS the trophy fades in gradually
+  PASS the register field opens automatically at 2s   (開いた時刻 2.00 秒)
+  PASS the reveal completes on its own
+  PASS Space skips the staged reveal
+  PASS the skip does not open the register field
+  ログ: reveal elapsed=2.18 complete=True modal=True modalAt=2.00 trophyAlpha=1.00
+        skip elapsed=2.18 complete=True modal=False
+
+#382 再開カウントダウン (GameScene / pause)
+  PASS opening the pause closes the gate
+  PASS resume starts the countdown
+  PASS the countdown shows 3-2-1             (毎フレームの観測で 3-2-1)
+  PASS the gate stays closed for the whole countdown   (PauseGate + SongEndGate.CanJudge)
+  PASS the countdown ends
+  PASS the gate opens when the countdown ends
+  PASS Esc during the countdown cancels it
+  PASS Esc during the countdown returns to the pause menu
+  PASS the gate stays closed after the cancel
+  PASS Esc on the frame the countdown starts is ignored
+
+#377 キャッシュ (#377 の実測は README §5)
+  PASS the select scene is loaded (cold) / (warm)
+  PASS the first visit loads charts
+  PASS the second visit reloads no chart meta
+  PASS the second visit reloads no chart existence
+  PASS the second visit reloads no jacket
+  PASS the jackets stay cached
+  ログ: cold=0.12s warm=0.08s (受入ビルド 0.1.23+af183bf4)
+        first=chartMeta=26 chartExists=0 jacket=10/cached=9
+        second=chartMeta=26 chartExists=0 jacket=10/cached=9
+  (cold は V6ContentCaches.InvalidateAll でキャッシュを捨ててから開いた場合)
+
+================================================================
+2. -autotest v6songend (1 曲の実ループ / #378 #383)
+================================================================
+
+ 曲              ノーツ  判定    結果          強制終了  ローディング観測
+ 春嵐            315     315     ResultScene   False     24.80 秒
+ ビビビビ        184     184     ResultScene   False      8.85 秒
+ チュートリアル   53      53     ResultScene   False     17.28 秒
+
+すべて RESULT pass=34 fail=0、judgedMatchesChart=True、scoreMax=ノーツ数×5=100 万点。
+3 曲とも当該メディアが未キャッシュの状態から実行し、yt-dlp のダウンロードを
+含む実際の準備経路を通した。
+
+受入ビルド `0.1.23+6472812e` での再実行 (チュートリアル、メディア キャッシュ済み):
+  RESULT pass=31 fail=0 / judged=53 / chartNotes=53 / forcedByDeadline=False /
+  score=358490 (perfect=19, miss=34)
+  ループ自体は完走している。満点にならなかったのは、ハーネスが譜面時刻と
+  メディア時刻の差でキーを注入する方式で、開始直後に窓を過ぎたノーツを
+  打たずに飛ばすため (自動打鍵の追従遅れ)。曲終了とリザルト遷移の確認は
+  この run でも成立している。
+
+メディア準備の実測 (Player.log の [Perf]):
+  春嵐:          media resolve 5578ms / notes instantiate 315 notes in 8550ms /
+                 media files 26054ms / media ready 26110ms
+  チュートリアル: media resolve 5320ms / media files 27201ms / media ready 27256ms
+
+メディアがキャッシュ済みの 2 回目以降は同じ区間が短くなる (チュートリアル):
+  media resolve 22ms (cache hit) / media files 22ms / media ready 156ms /
+  notes instantiate 53 notes in 150ms / scene load GameScene 74ms
+
+ローディング画面は実際に表示され、その間の譜面進捗は 100% に達した
+(メディアの数値進捗は MusicManager が持たないため、残り時間は表示されない)。
+
+loading.mp4 の背景表示 (修正の前後):
+  ビルド前 (APIOnly): videoVisible=True prepared=True surface=Video なのに、
+                      撮影した画面は単色の背景だった (378-loading-before-video-fix.png)。
+  ビルド後 (RenderTexture): 同じ計測で背景に FlashBeat の映像が出る
+                      (378-loading-video.png, 378-loading-placeholder.png)。
+  計測値: t=0.0 prepared=False surface=Background / t=1.0 prepared=True surface=Video
+
+================================================================
+3. -fbperf (フレームタイム / #381 の Mac 参考値)
+================================================================
+
+  [PerfProbe] event=window scene=GameScene frames=298
+      avgFps=59.6 p50=16.7 p95=17.6 p99=33.3 worst=8433.1
+      gc0=5 gcKBPerFrame=2.3
+  [PerfProbe] event=window scene=GameScene frames=300
+      avgFps=60.0 p50=16.7 p95=17.6 p99=17.8 worst=16.7 gc0=4 gcKBPerFrame=-1.5
+  [PerfProbe] event=spike scene=GameScene frameMs=8416.7 t=20.04
+
+読み方:
+  - プレイ中は平均 59〜60 fps、p95 17.6ms。定常状態の引っかかりは無い。
+  - 1 フレームだけ 8.4 秒の停止がある。発生位置は GameScene で、
+    メディア準備が終わってローディングが消える時刻 (t=20.0) と一致する。
+    映像プレーンのマテリアル生成 / 最初の描画に伴うシェーダ準備が候補だが、
+    Profiler での特定はしていない (下記の未確認)。
+  - 起動直後の最初の窓は avgFps=0.2 (シェーダとシーンの準備)。比較対象外。
+
+制約:
+  この数値は Mac (Apple GPU) のもので、Win64 実機の値ではない。#381 の受け入れは
+  Win64 実機の計測を前提にしているため、この記録だけでは PASS にできない。
+
+================================================================
+4. この記録が示さないこと
+================================================================
+
+- Win64 実機での操作・計測 (展示端末と展示候補 b6860a80 には触れていない)。
+- FHD / 2K での表示。この記録は Mac の 1 解像度のみ。
+- 登録の実送信 (本番 API への書き込みは行っていない)。自動で開く登録欄の表示までを確認。
+- キーボードの矢印キーによる音量変更の実入力 (ハーネスはポインタ操作と
+  ビューの公開 API で駆動する。矢印キーは V6VolumeSliderLogic の単体テストで固定)。
+- 8.4 秒の停止の原因 (Profiler 未使用)。

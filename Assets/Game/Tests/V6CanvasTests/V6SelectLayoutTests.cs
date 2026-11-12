@@ -228,10 +228,28 @@ namespace FlashBeat.UI.V6.Select.View.Tests
             V6Rect settings = V6SelectViewLogic.FooterSettings();
             V6Rect icon = V6SelectViewLogic.Offset(settings, V6SelectViewLogic.FooterSettingsIcon());
             V6Rect label = V6SelectViewLogic.Offset(settings, V6SelectViewLogic.FooterSettingsLabel());
+            V6Rect cap = V6SelectViewLogic.Offset(settings, V6SelectViewLogic.FooterSettingsCap());
 
             Assert.IsTrue(settings.Contains(icon), "the settings icon stays inside the button");
             Assert.IsTrue(settings.Contains(label), "the settings label stays inside the button");
+            Assert.IsTrue(settings.Contains(cap), "the settings key cap stays inside the button");
             Assert.IsFalse(icon.Overlaps(label), "the settings icon and the settings label overlap");
+            Assert.IsFalse(label.Overlaps(cap), "the settings label and the key cap overlap");
+        }
+
+        [Test]
+        public void FooterSettings_LeavesTheRulePaddingOnBothSides()
+        {
+            // Issue #370: 中身の左右に 24 (Button 規則の padding) 以上の余白を残す。
+            // 固定幅 197 に詰めていた頃はアイコンとキャップが端に貼り付いていた。
+            V6Rect settings = V6SelectViewLogic.FooterSettings();
+            V6Rect icon = V6SelectViewLogic.Offset(settings, V6SelectViewLogic.FooterSettingsIcon());
+            V6Rect cap = V6SelectViewLogic.Offset(settings, V6SelectViewLogic.FooterSettingsCap());
+
+            Assert.GreaterOrEqual(icon.X - settings.X, 23.5f, "左の余白が padding 24 未満");
+            Assert.GreaterOrEqual(settings.Right - cap.Right, 23.5f, "右の余白が padding 24 未満");
+            Assert.AreEqual(V6SelectViewLogic.FooterSettingsRight, settings.Right, 0.001f,
+                "右端は Ready の 12 手前で固定");
         }
 
         // --- 曲リスト下端 ---

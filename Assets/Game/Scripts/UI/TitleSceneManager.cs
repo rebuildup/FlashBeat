@@ -42,6 +42,9 @@ public class TitleSceneManager : MonoBehaviour
         FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested = OnHistoryRequested;
         FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested = OnRankingRequested;
 
+        // 背景映像 (design QJtTv の bg-anim3) を出す (#372)。
+        EnsureTitleVideoRenders();
+
         // 保存済み設定 (音量 / ノーツ速度 / 判定幅) の復元 (Issue #167)。
         // 以前は GManager.noteTiming-- と OptionSceneManager.TimingUp() で
         // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
@@ -61,6 +64,65 @@ public class TitleSceneManager : MonoBehaviour
         {
             BuildLegacyTitle();
         }
+    }
+
+    /// <summary>
+    /// 背景映像を実際に描画させる (#372)。TitleScene の VideoPlayer は
+    /// MaterialOverride なのに targetMaterialRenderer が未指定のため、そのままでは
+    /// 映像がどこにも描画されず、旧 v5 の Background (ベージュ) が残る。
+    /// design QJtTv の背景は bg-anim3 (Resources/Videos/背景アニメーション3.mp4) なので、
+    /// OpeningSceneManager と同じく CameraFarPlane に切り替え、手前の旧背景メッシュを隠す。
+    /// </summary>
+    private void EnsureTitleVideoRenders()
+    {
+        var video = FindFirstObjectByType<VideoPlayer>();
+        if (video == null)
+        {
+            return;
+        }
+
+        // design QJtTv の背景は cover。16:9 の映像を 16:10 のディスプレイへ
+        // そのまま出すと上下に帯が残るので、はみ出し側を切って全面に描く。
+        video.aspectRatio = VideoAspectRatio.FitOutside;
+
+        bool unusable =
+            video.renderMode == VideoRenderMode.APIOnly ||
+            (video.renderMode == VideoRenderMode.MaterialOverride &&
+             video.targetMaterialRenderer == null) ||
+            (video.renderMode == VideoRenderMode.CameraFarPlane &&
+             video.targetCamera == null);
+        if (!unusable)
+        {
+            return;
+        }
+
+        var camera = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
+        if (camera == null)
+        {
+            return;
+        }
+
+        video.renderMode = VideoRenderMode.CameraFarPlane;
+        video.targetCamera = camera;
+
+        // 映像の手前に来る旧スクリーン メッシュと旧背景 (ベージュ) を隠す。
+        var screen = video.GetComponentInChildren<MeshRenderer>();
+        if (screen != null)
+        {
+            screen.enabled = false;
+        }
+
+        var backdrop = GameObject.Find("BackGround");
+        if (backdrop != null)
+        {
+            var renderer = backdrop.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.enabled = false;
+            }
+        }
+
+        Debug.Log("[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane");
     }
 
     /// <summary>

@@ -292,6 +292,61 @@ public class PlayfieldGeometryTests
     }
 
     /// <summary>
+    /// レーンは判定線 (z = 0) で途切れず、画面下端の外まで続く (Issue #380)。
+    ///
+    /// ガイドの手前端は、カメラの下端がレーン面を切る位置より手前にある。
+    /// そこは視錐台の外 = 画面下端より下なので、線は画面下端で切れる。
+    /// </summary>
+    [TestCase(DesignWidth, DesignHeight)]
+    [TestCase(ExhibitWidth, ExhibitHeight)]
+    public void TheLaneGuidesContinuePastTheBottomOfTheScreen(int width, int height)
+    {
+        CameraSetup setup = ReadMainCamera();
+        Camera camera = CreateCamera(setup);
+        PlayfieldCameraFit.Apply(camera, (float)width / height);
+
+        float front = PlayfieldLaneGuides.FrontDepth(camera);
+        Assert.Greater(front, 0f, "The guides do not extend in front of the hit line.");
+
+        float edge = MediaTimeline.VisibleFrontDepth(camera, PlayfieldLaneGuides.GuideY);
+        Assert.Greater(edge, 0f,
+            "The bottom edge of the camera does not reach the lane plane in front of the hit line.");
+        Assert.Less(-front, -edge,
+            "The guides stop at or above the bottom edge of the screen (" + width + "x" + height + ").");
+
+        for (int i = 0; i < PlayfieldLaneGuides.GuideCount; i++)
+        {
+            var nearEnd = new Vector3(PlayfieldLaneGuides.LaneBoundaryX(i), PlayfieldLaneGuides.GuideY, -front);
+            Assert.IsFalse(MediaTimeline.IsVisible(camera, nearEnd),
+                "Lane boundary " + i + " is still on screen at its near end (" + width + "x" + height + ").");
+        }
+    }
+
+    /// <summary>
+    /// レーンの境界は design のトーンの細い区切り線で、太い明るい縁取りに
+    /// しない (Issue #380)。design "Lane 0..7" は #FFFFFF2E / stroke 2。
+    /// </summary>
+    [Test]
+    public void TheLaneBoundaryIsASubtleDesignToneDivider()
+    {
+        CameraSetup setup = ReadMainCamera();
+        Camera camera = CreateCamera(setup);
+        PlayfieldCameraFit.Apply(camera, (float)DesignWidth / DesignHeight);
+
+        // 判定線 (z = 0) での 1 px あたりのワールド幅から、画面上の線幅を出す。
+        Vector3 onJudgeLine = new Vector3(0f, PlayfieldLaneGuides.GuideY, MediaTimeline.HitLineZ);
+        float depth = Vector3.Dot(onJudgeLine - camera.transform.position, camera.transform.forward);
+        float worldPerPixel = 2f * depth * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / DesignHeight;
+        float pixels = PlayfieldLaneGuides.GuideWidth / worldPerPixel;
+
+        Assert.LessOrEqual(pixels, 3f, "The lane boundary is a thick border (" + pixels.ToString("F2") + " px).");
+        Assert.GreaterOrEqual(pixels, 1.5f, "The lane boundary is too thin to tell the lanes apart.");
+
+        Assert.AreEqual(0x2E / 255f, PlayfieldLaneGuides.GuideAlpha, 0.001f,
+            "The lane boundary has to use the design tone (#FFFFFF2E).");
+    }
+
+    /// <summary>
     /// ノーツは幾何を導出したのと同じ面 (y = 0.55) に置かれる。
     /// (NotesManager の生成高さ.EXPECTED が変わったら幾何がずれる)
     /// </summary>

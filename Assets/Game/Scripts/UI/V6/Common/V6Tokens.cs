@@ -28,6 +28,10 @@ namespace FlashBeat.UI.V6.Common
         public static readonly Color Accent = FromHex("#3FA9F5");
         public static readonly Color AccentLight = FromHex("#9AD3FA");
         public static readonly Color WarnLight = FromHex("#F4D88A");
+        /// <summary>契約 §3 danger トークン (#FF6B6B)。</summary>
+        public static readonly Color Danger = FromHex("#FF6B6B");
+        /// <summary>契約 §3 danger-light トークン (#FFA8A8)。衝突表示などに使う。</summary>
+        public static readonly Color DangerLight = FromHex("#FFA8A8");
 
         // --- key ランプ k0..k6 (契約 §3) ---
         public static readonly Color Key0 = FromHex("#131313");

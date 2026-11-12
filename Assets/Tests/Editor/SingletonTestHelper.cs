@@ -64,6 +64,12 @@ namespace FlashBeat.Tests.Editor
                 .SetValue(instance, new ReactiveProperty<int>(120));
             typeof(EditData).GetField("offsetSamples_", InstanceNonPublic)
                 .SetValue(instance, new ReactiveProperty<int>(0));
+            typeof(EditData).GetField("fadeOut_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<float>(0f));
+            typeof(EditData).GetField("startTiming_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<float>(0f));
+            typeof(EditData).GetField("beatOffset_", InstanceNonPublic)
+                .SetValue(instance, new ReactiveProperty<float>(0f));
             typeof(EditData).GetField("videoId_", InstanceNonPublic)
                 .SetValue(instance, new ReactiveProperty<string>(""));
             typeof(EditData).GetField("isDirty_", InstanceNonPublic)

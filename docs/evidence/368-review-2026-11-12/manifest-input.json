@@ -1,0 +1,224 @@
+{
+  "manifestVersion": 1,
+  "note": "Issue #388: the claims the v6 real-device review (#368) makes, and the evidence that is meant to support each one. Values are copied from docs/evidence/368-review-2026-11-12/README.md. This file is input for evals/evidence-manifest/manifest.mts; it is not a verdict.",
+  "candidateBuild": "0.1.23+af183bf4",
+  "candidatePlatform": "macos",
+  "records": [
+    {
+      "claim": "369",
+      "state": "初回起動のウィンドウ位置とサイズ",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/369-launch-1.png",
+      "note": "fullScreen=True / FullScreenWindow。上部 76 px は被覆できない (未達)"
+    },
+    {
+      "claim": "369",
+      "state": "5 回連続起動の再現性",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/369-launch-5.png"
+    },
+    {
+      "claim": "370",
+      "state": "設定行の固定列",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/370-rows.png"
+    },
+    {
+      "claim": "370",
+      "state": "閉じるボタン (x + Esc)",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/370-close-button.png"
+    },
+    {
+      "claim": "370",
+      "state": "戻るボタン (hug 幅)",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/370-back-button.png"
+    },
+    {
+      "claim": "371",
+      "state": "Opening は映像のみ",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/371-opening.png"
+    },
+    {
+      "claim": "372",
+      "state": "Title の背景が全画面",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/372-title.png",
+      "note": "pen とのピクセル比較は未実施"
+    },
+    {
+      "claim": "373",
+      "state": "History の背景映像と右上の楽曲表示",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/373-history.png"
+    },
+    {
+      "claim": "373",
+      "state": "Title から入った Ranking の背景映像",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/373-ranking.png"
+    },
+    {
+      "claim": "373",
+      "state": "Ranking の右上ジャケット",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/373-ranking-top-right.png",
+      "designNode": "S1TZD"
+    },
+    {
+      "claim": "374",
+      "state": "Select の中央パネル組版",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/374-select.png",
+      "note": "スケルトン点滅は観測できず (未確認)"
+    },
+    {
+      "claim": "375",
+      "state": "Option のレーンプレビューとキー一覧",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/375-option.png"
+    },
+    {
+      "claim": "375",
+      "state": "音量スライダのドラッグ追従",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/375-slider-drag.png"
+    },
+    {
+      "claim": "376",
+      "state": "キー設定モーダル",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/376-keyconfig.png",
+      "note": "衝突・リセット操作は未確認"
+    },
+    {
+      "claim": "376",
+      "state": "Title で F2 を押した後 (何も起きない)",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/376-title-after-f2.png"
+    },
+    {
+      "claim": "378",
+      "state": "ローディング画面の映像背景",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/378-loading-video.png"
+    },
+    {
+      "claim": "378",
+      "state": "ローディング画面のプレースホルダ",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/378-loading-placeholder.png"
+    },
+    {
+      "claim": "379",
+      "state": "HUD 上部シェードと歌詞スロット",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/379-hud.png",
+      "note": "設計値とのピクセル比較・スコア折返し/ポップは未確認"
+    },
+    {
+      "claim": "380",
+      "state": "レーンガイドが画面下端まで延びる",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/380-playfield.png",
+      "note": "設計との線幅比較は目視のみ"
+    },
+    {
+      "claim": "382",
+      "state": "ポーズメニュー",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/382-pause.png"
+    },
+    {
+      "claim": "382",
+      "state": "再開カウントダウンの数字",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/382-countdown-1.png"
+    },
+    {
+      "claim": "383",
+      "state": "曲終了の表示",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/383-song-end-overlay.png"
+    },
+    {
+      "claim": "383",
+      "state": "終端の暗転フェード",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/383-end-fade.png"
+    },
+    {
+      "claim": "384",
+      "state": "Result の段階表示の途中",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/384-result-reveal.png"
+    },
+    {
+      "claim": "384",
+      "state": "Space スキップ後の Result",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/384-result-skip.png"
+    },
+    {
+      "claim": "384",
+      "state": "登録モーダル (名前入力)",
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "path": "docs/evidence/368-review-2026-11-12/384-result-register.png",
+      "note": "登録の実送信は未実施 (本番 API へ書き込まない)"
+    }
+  ]
+}

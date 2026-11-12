@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Debug = UnityEngine.Debug;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using UnityEngine;
+using FlashBeat.Gameplay;
 
 [Serializable]
 public class Data
@@ -11,7 +12,19 @@ public class Data
     public string name;
     public int maxBlock;
     public int BPM;
+    /// <summary>NoteEditor が書き出す音声アラインメント (サンプル単位)。
+    /// 実行時の判定には使わない。拍補正は beatOffset (Issue #383)。</summary>
     public int offset;
+
+    /// <summary>メディア終端の何秒前からフェードを始めるか。0/欠損は既定 2.0 秒。</summary>
+    public float fadeOut;
+
+    /// <summary>開始入力後、音声と譜面を始めるまでの待ち時間 (秒)。</summary>
+    public float startTiming;
+
+    /// <summary>BPM グリッドと音源のずれ補正 (秒)。全ノート時刻に加算する。</summary>
+    public float beatOffset;
+
     public Note[] notes;
 }
 
@@ -59,6 +72,22 @@ public class NotesManager : MonoBehaviour
     /// </summary>
     public bool IsReady { get; private set; }
 
+    /// <summary>
+    /// 読み込んだ譜面の時間設定 (Issue #383)。MusicManager が終端フェードと
+    /// 開始待ちに使う。譜面が無いとき・読み込み前は既定値。
+    /// </summary>
+    public static ChartTiming Timing { get; private set; } = ChartTiming.Default;
+
+    /// <summary>
+    /// 実メディアの長さが分かったときに譜面の曲長を置き換える (PR #387 レビュー指摘)。
+    /// 曲長が未登録で代わりの値を使っている譜面だけが対象。譜面が宣言した
+    /// 曲長は上書きしない (<see cref="ChartTiming.WithRealMediaDuration"/>)。
+    /// </summary>
+    public static void AdoptRealMediaDuration(float realDuration)
+    {
+        Timing = Timing.WithRealMediaDuration(realDuration);
+    }
+
     /// <summary>1 フレームあたりのノーツ生成の時間予算 (ミリ秒)。</summary>
     internal const double InstantiateBudgetMs = 8.0;
 
@@ -100,6 +129,8 @@ public class NotesManager : MonoBehaviour
         if (session != null) session.RestoreSongId();
         SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
         IsReady = false;
+        // 前の曲の時間設定を持ち越さない (Issue #383)。
+        Timing = ChartTiming.Default;
         // v6 ローディングの実進捗を「不明」に戻してから読み直す (Issue #224)。
         FlashBeat.UI.V6.Game.Loading.GameLoadingProgress.ResetNotes();
         if (song == null)
@@ -144,6 +175,16 @@ public class NotesManager : MonoBehaviour
             yield break;
         }
 
+        string timingWarning;
+        Timing = ChartTiming.Normalize(
+            inputJson.fadeOut, inputJson.startTiming, inputJson.beatOffset, song.duration,
+            out timingWarning);
+        if (!string.IsNullOrEmpty(timingWarning))
+        {
+            // design 決定 2026-11-11 §6.1: 範囲外の値は既定値へ戻し、警告を出す。
+            Debug.LogWarning($"[NotesManager] chart '{song.title}' timing: {timingWarning}");
+        }
+
         int total = inputJson.notes.Length;
         noteNum = total;
         // ロングノーツも 1 ノーツとして数える。配点がタップと同一なので
@@ -159,7 +200,8 @@ public class NotesManager : MonoBehaviour
         for (int i = 0; i < total; i++)
         {
             Note note = inputJson.notes[i];
-            float time = NoteTimeWithTiming(NoteTimeSeconds(inputJson.BPM, note), GManager.noteTiming);
+            float time = NoteTimeWithTiming(NoteTimeSeconds(inputJson.BPM, note), GManager.noteTiming)
+                + Timing.BeatOffset;
             times.Add(time);
             lanes.Add(note.block);
             types.Add(note.type);
@@ -182,7 +224,8 @@ public class NotesManager : MonoBehaviour
             // ロングノーツの終端 (Issue #164)。タップは 0 (終端なし)。
             if (note.type == FlashBeat.Gameplay.LongNote.TYPE_HOLD)
             {
-                float endTime = NoteTimeWithTiming(FlashBeat.Gameplay.LongNote.EndSeconds(inputJson.BPM, note), GManager.noteTiming);
+                float endTime = NoteTimeWithTiming(FlashBeat.Gameplay.LongNote.EndSeconds(inputJson.BPM, note), GManager.noteTiming)
+                    + Timing.BeatOffset;
                 // 終端は開始より後になければならない。壊れた譜面でも
                 // 判定が破綻しないように、最低 1 拍ぶんは最低長を保つ。
                 if (endTime <= time)
@@ -195,6 +238,21 @@ public class NotesManager : MonoBehaviour
             {
                 endTimes.Add(0f);
             }
+        }
+
+        // design 決定 2026-11-11 §6.2: メディア長が取得できない譜面では、
+        // 最終ノート + fadeOut + 0.8 秒を終端とみなしてフェードと「終了」の
+        // 位置を決める。曲長が分かる譜面は何も変わらない。
+        if (!FlashBeat.Gameplay.MediaTimeline.IsUsableDuration(Timing.MediaDuration))
+        {
+            float lastNoteTime = 0f;
+            for (int i = 0; i < times.Count; i++)
+            {
+                lastNoteTime = Mathf.Max(lastNoteTime, times[i]);
+                lastNoteTime = Mathf.Max(lastNoteTime, endTimes[i]);
+            }
+
+            Timing = Timing.WithFallbackEnd(lastNoteTime);
         }
 
         Debug.Log($"[Perf] notes parse {parseMs}ms ({total} notes)");

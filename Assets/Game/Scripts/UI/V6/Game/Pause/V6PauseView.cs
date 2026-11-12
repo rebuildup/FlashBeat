@@ -78,6 +78,22 @@ namespace FlashBeat.UI.V6.Game.Pause
         private TextMeshProUGUI previewHeadTitle;
         private Image thumbImage;
 
+        /// <summary>右パネルのキー一覧 (Play タブのみ表示)。</summary>
+        private GameObject keyListRoot;
+
+        /// <summary>Sound タブの共通音量スライダー (Issue #375)。</summary>
+        private V6VolumeSlider volumeSlider;
+
+        /// <summary>右パネル下部の説明 (タブごとに文言を差し替える)。</summary>
+        private TextMeshProUGUI previewDescTitle;
+        private TextMeshProUGUI previewDesc;
+
+        /// <summary>音量スライダーを出すタブ (Sound)。</summary>
+        private const int VolumePage = 2;
+
+        /// <summary>キー設定モーダル (Issue #376、design vo4kB)。フレーム直下に 1 個だけ持つ。</summary>
+        private V6KeyConfigModal keyConfigModal;
+
         private int selectedTab;
         private int selectedRow;
         private bool open;
@@ -156,6 +172,13 @@ namespace FlashBeat.UI.V6.Game.Pause
                 return;
             }
 
+            // 再開カウントダウン中は開かない。取り消しは V6ResumeCountdown が
+            // 自分で Esc を受けてから Open を呼ぶ (IsRunning を先に false にする)。
+            if (V6ResumeCountdown.IsRunning)
+            {
+                return;
+            }
+
             open = true;
             // Issue #224: ポーズ中はメディア時計・判定・譜面進行を止める。
             PauseGate.Enter();
@@ -167,8 +190,11 @@ namespace FlashBeat.UI.V6.Game.Pause
             UpdatePlacement();
         }
 
-        /// <summary>閉じる (再開)。</summary>
-        public void Close()
+        /// <summary>
+        /// 再開 (Issue #382)。ポーズ画面を閉じ、歌詞スロットの 3 → 2 → 1 を経てから
+        /// 演奏を再開する。PauseGate はカウントダウン終了まで閉じない。
+        /// </summary>
+        public void RequestResume()
         {
             if (!open)
             {
@@ -177,6 +203,34 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             open = false;
             CancelResetKeyLayout();
+            if (keyConfigModal != null)
+            {
+                keyConfigModal.Hide(); // 編集は破棄 (ポーズを閉じたらモーダルも残さない)
+            }
+            rootGo.SetActive(false);
+            V6ResumeCountdown.Begin(this);
+        }
+
+        /// <summary>閉じる (再開)。リトライ / 終了 / リタイアなど、演奏を続けない経路で使う。</summary>
+        public void Close()
+        {
+            bool wasCounting = V6ResumeCountdown.IsRunning;
+            if (wasCounting)
+            {
+                V6ResumeCountdown.Abort();
+            }
+
+            if (!open && !wasCounting)
+            {
+                return;
+            }
+
+            open = false;
+            CancelResetKeyLayout();
+            if (keyConfigModal != null)
+            {
+                keyConfigModal.Hide();
+            }
             // Issue #224: 再開時に判定基準時刻を壁時計へ再合わせする (ノーツが飛ばない)。
             PauseGate.Exit();
             rootGo.SetActive(false);
@@ -194,6 +248,45 @@ namespace FlashBeat.UI.V6.Game.Pause
             RefreshTabs();
             RefreshRows();
             RefreshKeyBindings();
+            RefreshPreviewForPage();
+        }
+
+        /// <summary>
+        /// 右パネルの出し分け (Issue #375): Play = キー一覧 / Sound = 音量スライダー。
+        /// 音量スライダーは選択行 (Main / SE) の値へ追従する。
+        /// </summary>
+        private void RefreshPreviewForPage()
+        {
+            bool sound = selectedTab == VolumePage;
+            if (keyListRoot != null)
+            {
+                keyListRoot.SetActive(!sound);
+            }
+
+            if (volumeSlider != null)
+            {
+                volumeSlider.gameObject.SetActive(sound);
+                volumeSlider.Refresh();
+            }
+
+            if (previewHeadTitle != null)
+            {
+                previewHeadTitle.text = sound
+                    ? "音量"
+                    : "キー割当 (JIS / " + V6PauseViewLogic.LayoutLabel(IsCustomLayout()) + ")";
+            }
+
+            if (previewDescTitle != null)
+            {
+                previewDescTitle.text = sound ? "音量" : "キー設定";
+            }
+
+            if (previewDesc != null)
+            {
+                previewDesc.text = sound
+                    ? "スライダーをドラッグするか ←→ で 1% (Shift で 10%) 調整します。変更は即時に音へ反映されます。"
+                    : "キーの割り当てを編集します。行を選んで Enter を押してください。";
+            }
         }
 
         // --- 統合担当がキー入力 (矢印 / Tab) から呼ぶ操作 API ---
@@ -203,6 +296,11 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
             selectedRow = V6PauseViewLogic.ClampIndex(selectedRow + delta, pageRows[selectedTab].Count);
             RefreshRowHighlight();
+            // 音量スライダーは選択行の値へ追従する (Issue #375)。
+            if (volumeSlider != null && selectedTab == VolumePage)
+            {
+                volumeSlider.Refresh();
+            }
         }
 
         /// <summary>
@@ -232,10 +330,13 @@ namespace FlashBeat.UI.V6.Game.Pause
             RefreshRows();
         }
 
-        /// <summary>キー設定 (KeyConfigUI) を開く。ポーズ中 (PauseGate) なので判定は止まっている。</summary>
+        /// <summary>キー設定モーダル (design vo4kB) を開く。ポーズ中 (PauseGate) なので判定は止まっている。</summary>
         public void OpenKeyConfig()
         {
-            KeyConfigUI.Open();
+            if (keyConfigModal != null)
+            {
+                keyConfigModal.Show();
+            }
         }
 
         /// <summary>Key Layout を標準へ戻す確認を出す (破壊的なので即実行しない)。</summary>
@@ -367,6 +468,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             BuildHeader();
             BuildMain();
             BuildFooter();
+
+            // キー設定モーダル (design vo4kB)。フレーム直下に置き、開くとき最前面へ出す。
+            keyConfigModal = V6KeyConfigModal.Build(frame.gameObject);
+            keyConfigModal.Closed += RefreshKeyBindings;
 
             driver = rootGo.AddComponent<V6PauseViewDriver>();
             driver.View = this;
@@ -527,11 +632,8 @@ namespace FlashBeat.UI.V6.Game.Pause
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
                         OptionSettings.Save();
                     });
-                // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定 (F2)。
-                // 2026-11-11 まで Key Layout と キー設定 の 2 行を「開けないから」と描いて
-                // いなかったが、正本に在る行を落とすのは移植の欠落。KeyConfigUI は
-                // ポーズ中 (PauseGate.IsPaused) の GameScene でも開けるようにしたので、
-                // 2 行とも実動作 (編集 / F2) に接続する。
+                // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定。
+                // どれも画面内の操作だけで開ける (F2 は表示しない、Issue #376 決定 §4.1)。
                 AddRow(rows, pageRoot, 2, "Key Layout",
                     () => IsCustomLayout() ? "カスタム" : "標準",
                     dir =>
@@ -546,7 +648,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                         }
                     },
                     OpenKeyConfig);
-                AddRow(rows, pageRoot, 3, "キー設定", () => "F2", null, OpenKeyConfig);
+                AddRow(rows, pageRoot, 3, "キー設定", () => "開く ›", null, OpenKeyConfig);
             }
             else if (page == 1)
             {
@@ -619,19 +721,57 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         private void AdjustVolume(int dir, VolumeTarget target)
         {
-            const float Step = 0.05f;
+            // Issue #375 §3.2: 1% 刻み、Shift 併用で 10%。Option と同じ値モデル。
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             switch (target)
             {
                 case VolumeTarget.Main:
-                    GManager.mainVolume = Mathf.Clamp01(GManager.mainVolume + dir * Step);
+                    GManager.mainVolume = V6VolumeSlider.Nudge(GManager.mainVolume, dir, shift);
                     break;
                 case VolumeTarget.Se:
-                    GManager.effectVolume = Mathf.Clamp01(GManager.effectVolume + dir * Step);
+                    GManager.effectVolume = V6VolumeSlider.Nudge(GManager.effectVolume, dir, shift);
                     break;
             }
 
             ApplyVolumes();
             OptionSettings.Save();
+            if (volumeSlider != null)
+            {
+                volumeSlider.Refresh();
+            }
+        }
+
+        /// <summary>選択行 (Sound の 0 = Main / 1 = SE) の音量。</summary>
+        private float SelectedPauseVolume()
+        {
+            return selectedRow == 1 ? GManager.effectVolume : GManager.mainVolume;
+        }
+
+        /// <summary>スライダーのドラッグ結果を GManager へ書き、即時反映する。
+        /// 保存はドラッグ終了時だけ (ドラッグ中は毎フレーム書かない)。</summary>
+        private void SetSelectedPauseVolume(float value, bool final)
+        {
+            float clamped = Mathf.Clamp01(value);
+            if (selectedRow == 1)
+            {
+                GManager.effectVolume = clamped;
+            }
+            else
+            {
+                GManager.mainVolume = clamped;
+            }
+
+            ApplyVolumes();
+            if (final)
+            {
+                OptionSettings.Save();
+            }
+
+            RefreshRows();
+            if (volumeSlider != null)
+            {
+                volumeSlider.Refresh();
+            }
         }
 
         /// <summary>音量は各所有者が起動時にしか読まないので、シーン内の AudioSource にも即時反映
@@ -805,7 +945,16 @@ namespace FlashBeat.UI.V6.Game.Pause
             PlaceAt(previewHeadTitle.gameObject, 8f, 20f, new Vector2(472f, 24f));
 
             BuildGamePreview(panel);
-            BuildKeyList(panel);
+            keyListRoot = BuildKeyList(panel);
+
+            // Issue #375: Sound タブはキー一覧の代わりに共通の音量スライダーを出す。
+            // 位置は Game Preview (60..340) の直下。部品は Option の Sound タブと同じ。
+            volumeSlider = V6VolumeSlider.Build(panel, "Volume Slider", new Vector2(24f, 344f),
+                () => SelectedPauseVolume(),
+                (value, final) =>
+                {
+                    SetSelectedPauseVolume(value, final);
+                });
 
             var divider = V5Ui.Panel(panel, "Divider", new Vector2(464f, 1f), new Color(1f, 1f, 1f, 0x1F / 255f), 0f);
             PlaceAt(divider, 24f, 544f);
@@ -813,10 +962,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             var descTitle = V5Ui.Text(panel, "Desc Title", "キー設定", 32f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
+            previewDescTitle = descTitle;
 
-            // design (uDNC0) の文言そのまま。ポーズ中 (PauseGate.IsPaused) は
-            // KeyConfigUI を GameScene からも開けるので F2 の案内は実動作と一致する。
-            var desc = V5Ui.Text(panel, "Desc", "キーの割り当てを編集します。F2 でも開けます。",
+            // design (uDNC0) の文言から F2 を外す (Issue #376 決定 §4.1: 入口は画面内の行だけ)。
+            var desc = V5Ui.Text(panel, "Desc", "キーの割り当てを編集します。行を選んで Enter を押してください。",
                 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
             var descRt = desc.rectTransform;
             descRt.anchorMin = new Vector2(0f, 1f);
@@ -830,6 +979,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             // 621→659 = 38px) より 2 行目が 11px 下がる (r24 実機)。0 で 34.75px。
             desc.textWrappingMode = TextWrappingModes.Normal;
             desc.lineSpacing = 0f;
+            previewDesc = desc;
         }
 
         /// <summary>design: 464×280 のゲームプレビュー (8 レーンの遠近線 + ノーツ + 判定線 + レーン番号)。</summary>
@@ -873,14 +1023,18 @@ namespace FlashBeat.UI.V6.Game.Pause
         }
 
         /// <summary>design: JIS 4 段のキー一覧 (34×40)。刻印は KeyBindings の実割当 (所属レーン番号)。</summary>
-        private void BuildKeyList(GameObject panel)
+        private GameObject BuildKeyList(GameObject panel)
         {
+            // タブごとに出し分けるため (Sound では音量スライダーに譲る) 1 個の入れ物にまとめる。
+            var root = V5Ui.Node(panel, "Key List");
+            PlaceAt(root, 0f, 0f, new Vector2(512f, 688f));
+
             for (int row = 0; row < V6PauseViewLogic.JisKeyRows.Length; row++)
             {
                 char[] keys = V6PauseViewLogic.JisKeyRows[row];
                 for (int i = 0; i < keys.Length; i++)
                 {
-                    var cap = V5Ui.Panel(panel, "Key " + keys[i], new Vector2(34f, 40f), V5Tokens.Key4, 4f);
+                    var cap = V5Ui.Panel(root, "Key " + keys[i], new Vector2(34f, 40f), V5Tokens.Key4, 4f);
                     PlaceAt(cap, V6PauseViewLogic.JisKeyRowX[row] + 36f * i, V6PauseViewLogic.JisKeyRowY[row]);
                     var label = V5Ui.Text(cap, "Lane", "", 20f, V5Tokens.Text, TextAlignmentOptions.Center);
                     Stretch(label.rectTransform);
@@ -888,6 +1042,8 @@ namespace FlashBeat.UI.V6.Game.Pause
                     keyLabels.Add(label);
                 }
             }
+
+            return root;
         }
 
         private void BuildFooter()
@@ -943,10 +1099,10 @@ namespace FlashBeat.UI.V6.Game.Pause
                         sceneManager.RetryGame();
                     }
                 });
-            BuildActionButton(footer, "再開", "play",
+            BuildActionButton(footer, "再開", "circle-stop",
                 KeyCap(KeyActions.KeyAction.Back), true,
                 V6PauseViewLogic.ResumeButtonX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
-                V6PauseViewLogic.ResumeButtonW, Close);
+                V6PauseViewLogic.ResumeButtonW, RequestResume);
         }
 
         /// <summary>
@@ -973,7 +1129,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// design: 選曲へ 280×56 / リトライ 220×56 ($k4) / 再開 266×56 (#EDEDED)。
         /// アイコン 32×32 とラベル・KeyCap は設計の絶対座標へ置く (レイアウトグループで
         /// 詰めると "Backspace" / "リトライ" が折り返して 2 行に潰れる)。
-        /// iconName は design の lucide 名そのまま (log-out / rotate-ccw / play、
+        /// iconName は design の lucide 名そのまま (log-out / rotate-ccw / circle-stop、
         /// Resources/Icons/ に PNG あり)。x / y は親ノード内の design 座標
         /// (フッター直下なら (1414,20)、Op グループ内なら (0,0) / (296,0))。
         /// </summary>
@@ -1163,16 +1319,16 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             selectedRow = V6PauseViewLogic.ClampIndex(index, pageRows[selectedTab].Count);
             RefreshRowHighlight();
+            if (volumeSlider != null && selectedTab == VolumePage)
+            {
+                volumeSlider.Refresh();
+            }
         }
 
         /// <summary>KeyBindings の変更 (キー設定 / レイアウト) をプレビューへ即時反映。</summary>
         private void RefreshKeyBindings()
         {
-            if (previewHeadTitle != null)
-            {
-                previewHeadTitle.text = "キー割当 (JIS / " + V6PauseViewLogic.LayoutLabel(IsCustomLayout()) + ")";
-            }
-
+            // 見出しは RefreshPreviewForPage がタブごとに決める (Sound では「音量」)。
             KeyCode[][] bindings = KeyBindings.Current;
             for (int i = 0; i < keyLabels.Count && i < keyCaps.Count; i++)
             {

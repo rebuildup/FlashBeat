@@ -150,24 +150,24 @@
 | 部位 | xy | wh | 内容 |
 |---|---|---|---|
 | Video Dim | (0,0) | 1920×1080 | `#00000080` |
-| Top Shade | (0,0) | 1920×260 | `#000000A6` |
+| Top Shade | (0,0) | 1920×260 | 縦グラデーション `#000000A6` (上) → `#00000000` (下) |
 | Progress Bar | (0,0) | 1920×8 | `#000000AA` + Fill 806×8 `#EDEDED` |
 | Grade | (48,48) | — | `$text` fs95 w700 lineHeight1 |
 | Score Gauge | (188,48) | 600×36 | → 下記ゲージ詳細 |
 | Score Label | (188,78) | — | fs22 `$text-muted` |
-| Score Value | (188,100) | — | fs38 w500 `$text` |
+| Score Value | (188,100) | — | fs38 w500 `$text` / 1 行固定・幅超過時は自動縮小 (下限 28) / 加算時にスケールポップ |
 | Menu | (1692,48) | 180×48 | `$k4` r8 gap10: Label fs22 `$text` + KeyCap `#00000040` r4 [0,10] (Key fs22 `$text-muted`) |
 | Combo | (48,430) | 600×220 | Label fs22 `$text-muted` 中央 / Value fs180 w700 `$text` 中央 (y24) |
 | Combo Status | (1512,460) | 360×160 | Row (0,96) 280×44: No Miss fs22 `$accent-light` (0,8) + FC チップ 150×40 `#3A3220` r4 (fs22 `$warn-light`)。Track (0,52) 280×8 `$k0` r4 + Fill 232×8 `$text` r4 |
 | Combo Bonus | (1512,460) | 360×90 | Label/Value fs22 (Value `$warn-light` 右寄せ) y0 / Next Bonus y44 — **Combo Status と同座標・排他** |
-| 判定行 | (0,963) | 1920×44 | レーン毎の判定テキスト fs30 `$text` 中央 (サンプル: レーン 3 x623 / レーン 6 x1155, w140) |
+| 判定行 | (0,963) | 1920×44 | レーン毎の判定テキスト fs30 `$text` 中央 (サンプル: レーン 3 x623 / レーン 6 x1155, w140)。v6 判定行を有効化し、旧 HUD の判定表示と二重に出さない |
 | Key Guide | (0,1011) | 1920×36 | 8 KeyCap 56×36 `#3A3A3A` r4 [0,10] (Key fs24 `$text-muted`) x = 310, 487, 665, 842, 1020, 1197, 1375, 1552 |
 
 ### 2K (`E51yo`, 2560×1440) と Mac (`QrSwA`, 2560×1664)
 
 | 部位 | 2K | Mac |
 |---|---|---|
-| Top Shade | 2560×347 | 2560×347 |
+| Top Shade | 2560×347 (縦グラデーション `#000000A6` → `#00000000`) | 同 2K |
 | Progress Bar | 2560×11, Fill 1075×11 | 同 2K |
 | Grade | (64,64) fs125 | 同 2K |
 | Score Gauge | (251,64) 800×48 (Track 800×24, Seg 160/53/93, Fill 699×14, Best 5×24 x737) | 同 2K |
@@ -186,6 +186,18 @@
 - レガシー 3D プレイフィールド時: レーン判定位置 (y=0.76, z=0.15) を `Camera.Main` で投影してローカル x へ写す。投影できない場合は design px のまま。
 - 実装: `Assets/Game/Scripts/UI/V6/Game/Hud/V6GameHudView.cs` (`UpdateLaneGrids`)。純ロジックは `V6HudLogic.ScreenXToTemplateX` / `V6HudMetrics.LaneCenterScreenX` (EditMode テスト可能)。
 
+### 歌詞スロットの位置 (2026-11-11 決定)
+
+歌詞枠は design のゲームフレーム (`i30vM4`, 1728×972 の (304,250)、1120×220) を、プレイフィールドと同じ高さ合わせ写像で実画面へ置く。
+
+```
+scale = 画面高さ / 972
+幅 = 1120 × scale / 高さ = 220 × scale
+x = 画面中央 / y = 250 × scale (上端)
+```
+
+FHD は y=278、2K は y=370、Mac は y=428。以前の固定値 (170 / 227 / 227) は使わない。カウントダウンと曲終了表示もこのスロットを使う。
+
 ### スコアゲージ (`PyPE1` / `cNEBa`, 600×36)
 
 Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,120) S(366,120) SS(488,40) +(530,70) `#3A3220`**、Fill 524×14 `$text` r2、Best マーカー (553,0) 4×18 `$warn`。ラベル (y18, fs16 `$text-muted` 中央): C/B/A/S/SS/+。
@@ -199,6 +211,8 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 - 設定 (304,68) 512×688 `$k2` r16: Head (8,8) 496×36 (Title fs18 `$text-dim`); 行 (8, 60+76k) 496×56 `$k1` r8 gap12 [0,12]: Label w200 fs24 `$text` / Value w120 fs24 右寄せ / Prev・Next 40×40 `$k4` r8 (icon 24 `$text-muted`) — NoteSpeed (y60) / NoteTiming (y136) / Key Layout (y212) / キー設定 (y288, `$k6` 行、Prev/Next 無し)
 - プレビュー (864,68) 512×688 `$k2` r16: Head (8,8) (Title fs18 `$text-dim`); Game Preview (24,60) 464×280 `$k0` r8: 8 レーンパス `#FFFFFF24` sw1 / ノート 8 個 / Judge Line (0,240) 464×3 `#EDEDED` / レーンラベル (6,246) 40 fs18 `$text-muted` 中央; キー一覧 (8,356) 34×40 `$k4` r4 (fs20 `$text` lineHeight1 中央): 1–0, -, ^ (y356) / \, Q–[ (y400) / A–; (y444) / ], Z–_ (y488); Divider (24,544) 464×1 `#FFFFFF1F` / Desc Title (24,564) fs32 w500 / Desc (24,614) 464 fs24 lineHeight1.4
 
+再開は即時ではなく、歌詞スロットに 3 → 2 → 1 を 1 秒ずつ表示してから行う。カウントダウン中 (3.0 秒) は判定入力と譜面進行を止め、Esc でポーズへ戻れる。終了時に判定基準時刻を再同期する。詳細は `docs/design/v6/review-2026-11-11-decisions.md` §5。
+
 ### 曲ローディング (`g4Q3F`)
 
 `rw7zx` + パッチ: タイトルゾーンを 0×0 へ、右上の曲情報を Jacket 56×56 r4 + Texts (縦 gap2: Song Title fs22 `$text` / Song Artist fs16 `$text-muted`) へ置換、フッターの決定/曲送りを 0×0 へ、補助・主操作を `enabled: false` へ。メインは共通のまま (空 6 列)。
@@ -208,6 +222,8 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 ## 10. 歌詞表示枠 (`HcP8N`, 1120×220) `#00000099` r8
 
 縦 gap6 padding[16,24] 中央: Furigana fs22 `$text-dim` / Lyrics fs44 `$text` 中央 / Romaji fs20 `$text-dim` / Start Prompt gap10 (KeyCap (fill,36) + Label fs22 `$text-muted`)。
+
+実画面への配置は §8「歌詞スロットの位置」の式を使う。カウントダウン数字 (fs132 w700 `$text` 中央) と曲終了表示は同じ枠の状態違いで、歌詞・Start Prompt とは排他。
 
 ## 11. スクリーンショット
 
@@ -287,3 +303,20 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 | `macbook/*.png` | 上記各ノード | MacBook Air M5 実画面 (2560×1664) 版 |
 
 機械可読なノード全量 (座標・変数・画像参照) は `docs/design/v6/flashbeat-v6-nodes.json` を参照。
+
+## 15. 実機レビュー (2026-11-11) の決定
+
+上部シェードのグラデーション、歌詞スロットの位置、音量スライダー、キー設定モーダル、再開カウントダウン、曲終了の扱い、Result の段階表示と自動登録の仕様は `docs/design/v6/review-2026-11-11-decisions.md` にまとめてある。静的配置は本契約、状態遷移とアニメーションは同書を参照する。
+
+追加ノード:
+
+| ノード ID | 用途 |
+|---|---|
+| `J7tBYP` (`o0zh7` 内 `Volume Slider`) | 共有音量スライダー (Option / Pause の Sound)。Option のプレビュー側は `B9EOfX` に `AnrE2` ノブと `OAM2f` ヒントを追加 |
+| `vo4kB` (`06b Key Config · v6`) | キー設定モーダル (8 レーン一覧 / 待受 / 衝突 / リセット) |
+| `F0UFKp` (`o0zh7` 内 `Component/キー設定 レーン行`) | キー設定モーダルのレーン行 (レーン名 / KeyCap / 状態 / 残りキー) |
+| `xuQnv` (`o0zh7` 内 `Countdown`) | 再開 3 → 2 → 1 |
+| `xXKic` (`o0zh7` 内 `Song End Overlay`) | 曲終了表示 |
+| `k3Rq6j` / `TYshI` | 名前入力カーソル / 登録成功チップ (Result モーダル上の状態ノード) |
+
+証拠画像: `design/exports/v6/review-2026-11-11/` の `components-review.png` / `key-config-modal.png` / `key-config-row.png` / `hud-top-shade-fhd.png` / `option-sound-volume-slider.png` / `pause-sound-volume-slider.png` / `result-register-modal.png` / `result-caret.png` / `result-success.png`。

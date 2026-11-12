@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
@@ -52,6 +53,9 @@ namespace FlashBeat.UI.V6.Result
         private const float GradeBoxW = 280f, GradeBoxH = 280f;
         private const float ScoreColX = 336f;
 
+        // トロフィー (design zcSHh: Result Block の (337,1) 30×30, $text-dim)。
+        private const float TrophyX = 337f, TrophyY = 1f, TrophySize = 30f;
+
         // スコアゲージ (0,336) 840x100 → Gauge (0,16) 824x76。
         private const float GaugeZoneY = 336f;
         private const float GaugeY = 16f;
@@ -95,9 +99,35 @@ namespace FlashBeat.UI.V6.Result
         private RectTransform songRankRows;
         private TextMeshProUGUI playerRankEmpty;
 
+        // 段階表示 (Issue #384)。要素は CanvasGroup のアルファで出し入れする
+        // (レイアウトは動かさない)。
+        private Image trophyIcon;
+        private RectTransform trophyRect;
+        private CanvasGroup trophyGroup;
+        private CanvasGroup gradeGroup;
+        private RectTransform gradeRect;
+        private CanvasGroup scoreLabelGroup;
+        private CanvasGroup scoreValueGroup;
+        private CanvasGroup bestLabelGroup;
+        private CanvasGroup bestValueGroup;
+        private CanvasGroup gaugeGroup;
+        private readonly CanvasGroup[] judgeGroups = new CanvasGroup[5];
+        private readonly List<CanvasGroup> lateGroups = new List<CanvasGroup>();
+        private float revealElapsed;
+        private bool revealComplete;
+        private bool registerShown;
+
         // 登録モーダル (Issue #240)。名前入力 + 送信 + 結果表示を実装する。
         private GameObject modal;
         private TextMeshProUGUI modalNameValue;
+        private TextMeshProUGUI modalNamePlaceholder;
+        private TMP_InputField modalNameInput;
+        private string submittedNickname = string.Empty;
+        private TextMeshProUGUI modalNamePrompt;
+        private GameObject modalChip;
+        private CanvasGroup modalChipGroup;
+        private TextMeshProUGUI modalChipLabel;
+        private Image modalChipBackground;
         private TextMeshProUGUI modalStatus;
         private TextMeshProUGUI modalHead;
         private TextMeshProUGUI modalNameHint;
@@ -115,15 +145,27 @@ namespace FlashBeat.UI.V6.Result
         private Image modalThumb;
         private bool modalOpen;
 
+        // チップ (登録しました / 登録できませんでした) の表示時刻と後処理。
+        private bool chipActive;
+        private float chipShownAt;
+        private bool chipClosesModal;
+
+        // モーダルを閉じる・開き直すときに onEndEdit (フォーカス喪失 = 確定) を
+        // 抑止する。閉じる操作が送信を誘発しないようにするため。
+        private bool suppressNameCommit;
+
         // 登録送信の状態 (loading / success / duplicate / offline / server error)。
         private V6ResultLogic.SubmitOutcome submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
+        private int lastSubmitHttpCode;
 
         // 登録の方式 (Issue #240)。モーダルを開いた時点で確定する。
         // Online = オンライン順位へ送信 / Local = 端末内だけに保存。
         private V6RegistrationMode registrationMode = V6RegistrationMode.Local;
-        private bool submitInFlight;
-        private bool submittedThisResult;
-        private readonly System.Text.StringBuilder nameBuffer = new System.Text.StringBuilder();
+
+        // 送信状態 (Idle → Submitting → Succeeded / Failed) と二重送信の抑止
+        // (Issue #384)。名前の確定は Enter / フォーカス喪失 / ボタンのどれでも
+        // 同じ gate を通る。
+        private readonly V6RegistrationGate gate = new V6RegistrationGate();
 
         // run snapshot (Issue #240): 表示前に GManager.ResetSession() が呼ばれて値が
         // 消えるなら、消える前に捕捉する。初回 Refresh で固定し、以後は確定値を使う。
@@ -235,6 +277,44 @@ namespace FlashBeat.UI.V6.Result
             OpenModal();
         }
 
+        /// <summary>
+        /// 画面監査用: 段階表示を最終状態にし、自動で開く登録モーダルを抑止する。
+        /// 撮影は「Result 本体」と「登録モーダル」の 2 枚を別々に撮るため、
+        /// 撮影前に本体だけの状態を用意する。
+        /// </summary>
+        internal void PrepareForAudit()
+        {
+            CompleteReveal(false);
+            if (modalOpen)
+            {
+                CloseModal();
+            }
+        }
+
+        /// <summary>検証ハーネス用: 段階表示の経過秒。</summary>
+        internal float RevealElapsedForAudit
+        {
+            get { return revealElapsed; }
+        }
+
+        /// <summary>検証ハーネス用: 段階表示が終わったか。</summary>
+        internal bool RevealCompleteForAudit
+        {
+            get { return revealComplete; }
+        }
+
+        /// <summary>検証ハーネス用: 登録モーダルが開いているか。</summary>
+        internal bool ModalOpenForAudit
+        {
+            get { return modalOpen; }
+        }
+
+        /// <summary>検証ハーネス用: トロフィーの不透明度 (生成前は -1)。</summary>
+        internal float TrophyAlphaForAudit
+        {
+            get { return trophyGroup != null ? trophyGroup.alpha : -1f; }
+        }
+
         /// <summary>監査用: 登録モーダルを閉じる。</summary>
         internal void CloseRegisterModalForAudit()
         {
@@ -259,9 +339,21 @@ namespace FlashBeat.UI.V6.Result
                 return;
             }
 
+            AdvanceReveal();
+
             if (modalOpen)
             {
+                UpdateSubmitChip();
                 HandleModalInput();
+                return;
+            }
+
+            // 段階表示中の Space (= 決定) は「スキップ」(Issue #384)。残りの段を
+            // すべて最終状態で表示する。スキップは登録モーダルを開かない
+            // (押した本人は結果を見たいので、登録欄は Enter / Register で開く)。
+            if (!revealComplete && KeyActions.IsDown(KeyActions.KeyAction.Confirm))
+            {
+                CompleteReveal(false);
                 return;
             }
 
@@ -282,7 +374,7 @@ namespace FlashBeat.UI.V6.Result
             // Enter = 登録モーダルを開く (design 凡例: Enter 登録)。登録済みなら再送しない。
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
-                if (!submittedThisResult)
+                if (!gate.Succeeded)
                 {
                     OpenModal();
                 }
@@ -302,6 +394,154 @@ namespace FlashBeat.UI.V6.Result
             if (callback != null)
             {
                 callback();
+            }
+        }
+
+        // --- 段階表示 (Issue #384) ---
+        // 時間割は V6ResultRevealLogic (design 決定 §7.1) が持つ。ここは
+        // その時刻を要素へ適用するだけにして、判定可能なロジックを純関数に保つ。
+
+        private void AdvanceReveal()
+        {
+            if (revealComplete)
+            {
+                return;
+            }
+
+            // 隠れている間は進めない (シーン非表示中に演出を消費しない)。
+            revealElapsed += Time.unscaledDeltaTime;
+            ApplyReveal(revealElapsed);
+
+            if (!registerShown && V6ResultRevealLogic.ShouldShowRegister(revealElapsed))
+            {
+                // 2000ms で登録欄 (05b モーダル) を出し、名前欄へフォーカスする
+                // (design 決定 §7.1 / §7.3)。
+                registerShown = true;
+                OpenModal();
+            }
+
+            if (V6ResultRevealLogic.IsComplete(revealElapsed))
+            {
+                revealComplete = true;
+            }
+        }
+
+        /// <summary>
+        /// 段階表示を打ち切って全要素を最終状態で表示する。openRegister が false の
+        /// ときは登録モーダルを自動で開かない (Space スキップ / 監査用)。
+        /// </summary>
+        private void CompleteReveal(bool openRegister)
+        {
+            revealElapsed = V6ResultRevealLogic.TotalSeconds;
+            revealComplete = true;
+            ApplyFinalRevealState();
+
+            if (openRegister && !registerShown)
+            {
+                registerShown = true;
+                OpenModal();
+            }
+            else if (!openRegister)
+            {
+                // スキップ後に自動で登録欄を開かない (以降の段はもう無い)。
+                registerShown = true;
+            }
+        }
+
+        private void ApplyReveal(float elapsed)
+        {
+            float trophyAlpha = V6ResultRevealLogic.Alpha(elapsed,
+                V6ResultRevealLogic.TrophyStart, V6ResultRevealLogic.TrophyDuration);
+            SetAlpha(trophyGroup, trophyAlpha);
+            SetScale(trophyRect, V6ResultRevealLogic.TrophyScale(elapsed));
+
+            SetAlpha(gradeGroup, V6ResultRevealLogic.Alpha(elapsed,
+                V6ResultRevealLogic.GradeStart, V6ResultRevealLogic.GradeDuration));
+            SetScale(gradeRect, V6ResultRevealLogic.GradeScale(elapsed));
+
+            float scoreAlpha = V6ResultRevealLogic.Alpha(elapsed,
+                V6ResultRevealLogic.ScoreLabelStart, V6ResultRevealLogic.ScoreLabelDuration);
+            SetAlpha(scoreLabelGroup, scoreAlpha);
+            SetAlpha(scoreValueGroup, scoreAlpha);
+            scoreValue.text = V6ResultLogic.FormatScore(
+                V6ResultRevealLogic.CountedScore(runScore, elapsed));
+
+            float bestAlpha = V6ResultRevealLogic.Alpha(elapsed,
+                V6ResultRevealLogic.BestStart, V6ResultRevealLogic.BestDuration);
+            SetAlpha(bestLabelGroup, bestAlpha);
+            SetAlpha(bestValueGroup, bestAlpha);
+
+            for (int i = 0; i < judgeGroups.Length; i++)
+            {
+                SetAlpha(judgeGroups[i], V6ResultRevealLogic.JudgementAlpha(elapsed, i));
+            }
+
+            float gauge = V6ResultRevealLogic.GaugeProgress(elapsed);
+            SetAlpha(gaugeGroup, gauge);
+            float fill = V6ResultLogic.GaugeFillWidth(runScore);
+            gaugeFill.rectTransform.sizeDelta = new Vector2(fill * gauge, GaugeTrackH);
+
+            float lateAlpha = V6ResultRevealLogic.Alpha(elapsed,
+                V6ResultRevealLogic.SongInfoStart, V6ResultRevealLogic.SongInfoDuration);
+            for (int i = 0; i < lateGroups.Count; i++)
+            {
+                SetAlpha(lateGroups[i], lateAlpha);
+            }
+        }
+
+        /// <summary>全要素を最終状態にする (演出の終点とスキップ後)。</summary>
+        private void ApplyFinalRevealState()
+        {
+            SetAlpha(trophyGroup, 1f);
+            SetScale(trophyRect, 1f);
+            SetAlpha(gradeGroup, 1f);
+            SetScale(gradeRect, 1f);
+            SetAlpha(scoreLabelGroup, 1f);
+            SetAlpha(scoreValueGroup, 1f);
+            SetAlpha(bestLabelGroup, 1f);
+            SetAlpha(bestValueGroup, 1f);
+            for (int i = 0; i < judgeGroups.Length; i++)
+            {
+                SetAlpha(judgeGroups[i], 1f);
+            }
+
+            SetAlpha(gaugeGroup, 1f);
+            gaugeFill.rectTransform.sizeDelta = new Vector2(V6ResultLogic.GaugeFillWidth(runScore), GaugeTrackH);
+            for (int i = 0; i < lateGroups.Count; i++)
+            {
+                SetAlpha(lateGroups[i], 1f);
+            }
+
+            // カウントアップ途中の値を残さない (RefreshResult と同じ最終表示)。
+            scoreValue.text = V6ResultLogic.FormatScore(runScore);
+        }
+
+        private static void SetAlpha(CanvasGroup group, float alpha)
+        {
+            if (group != null)
+            {
+                group.alpha = alpha;
+            }
+        }
+
+        /// <summary>段階表示の対象に CanvasGroup を付け、非表示 (alpha 0) で作る。</summary>
+        private static CanvasGroup FadeGroup(GameObject go)
+        {
+            var group = go.GetComponent<CanvasGroup>();
+            if (group == null)
+            {
+                group = go.AddComponent<CanvasGroup>();
+            }
+
+            group.alpha = 0f;
+            return group;
+        }
+
+        private static void SetScale(RectTransform rect, float scale)
+        {
+            if (rect != null)
+            {
+                rect.localScale = new Vector3(scale, scale, 1f);
             }
         }
 
@@ -388,6 +628,13 @@ namespace FlashBeat.UI.V6.Result
 
             // design (B7Ko8) は fill なし (背景パネルを敷かない)。以前あった可読性目的の
             // スクリーンは設計に無く、デザインとの差分になっていたので描かない。
+            var trophyNode = At(V5Ui.Node(block, "Trophy"), TrophyX, TrophyY, TrophySize, TrophySize);
+            trophyIcon = V6Icons.Create(trophyNode, "trophy", TrophySize, V5Tokens.TextDim, "Icon");
+            if (trophyIcon != null)
+            {
+                Stretch(trophyIcon.rectTransform, TrophySize, TrophySize);
+            }
+
             var gradeBox = At(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
             gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);
@@ -405,6 +652,15 @@ namespace FlashBeat.UI.V6.Result
 
             bestValue = V5GameUi.Text(block.gameObject, "Best Value", "–", 32f, V5Tokens.Text);
             At(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
+
+            // 段階表示 (#384): 各要素は CanvasGroup のアルファで出す。
+            trophyGroup = FadeGroup(trophyNode);
+            gradeGroup = FadeGroup(gradeBox);
+            gradeRect = gradeBox.GetComponent<RectTransform>();
+            scoreLabelGroup = FadeGroup(scoreLabel.gameObject);
+            scoreValueGroup = FadeGroup(scoreValue.gameObject);
+            bestLabelGroup = FadeGroup(bestLabel.gameObject);
+            bestValueGroup = FadeGroup(bestValue.gameObject);
         }
 
         // スコアゲージ (0,336) 840x100 → Gauge (0,16) 824x76。
@@ -436,6 +692,8 @@ namespace FlashBeat.UI.V6.Result
             var bestLabel = V5GameUi.Text(gauge.gameObject, "Best Label", "BEST", 14f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             At(bestLabel, 734f, 0f, 56f, 18f, new Vector2(0f, 0.5f));
+
+            gaugeGroup = FadeGroup(zone);
         }
 
         // 判定 (0,448) 840x140: Perfect / Great / Bad / Miss / Combo。
@@ -460,6 +718,7 @@ namespace FlashBeat.UI.V6.Result
                 judgeValues[i] = V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
                     TextAlignmentOptions.TopLeft, FontStyles.Normal);
                 At(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
+                judgeGroups[i] = FadeGroup(cell);
             }
         }
 
@@ -512,6 +771,8 @@ namespace FlashBeat.UI.V6.Result
                 At(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
             }
+
+            lateGroups.Add(FadeGroup(panel));
         }
 
         // 曲別ランキング (856,24) 528x412: Head + 曲名 + 6 行。
@@ -543,6 +804,8 @@ namespace FlashBeat.UI.V6.Result
 
             songRankRows = V5Ui.Node(panel.gameObject, "Rows").GetComponent<RectTransform>();
             At(songRankRows, 0f, 0f, 528f, SongRankH);
+
+            lateGroups.Add(FadeGroup(panel));
         }
 
         // 登録名ランキング (856,452) 528x304: Head (集計軸) + 4 行。
@@ -570,6 +833,8 @@ namespace FlashBeat.UI.V6.Result
 
             playerRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
             At(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+
+            lateGroups.Add(FadeGroup(panel));
         }
 
         private void BuildChevron(GameObject head, float x, string iconName)
@@ -673,16 +938,45 @@ namespace FlashBeat.UI.V6.Result
             var prompt = OneLine(V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力↓", 20f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right));
             At(prompt, 404f, 38f, 380f, 29f);
+            modalNamePrompt = prompt;
 
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
             var field = At(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
             // design lqHaN の Name Field は空のとき "YOU" を $text-dim で出す
             // (v5 ResultView の Placeholder と同じ既定名)。入力すると $text になる。
-            modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value",
+            modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
+                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
+            At(modalNameValue, 24f, 20f, 736f, 58f);
+            modalNamePlaceholder = OneLine(V5GameUi.Text(field.gameObject, "Placeholder",
                 V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalNameValue, 24f, 20f, 736f, 58f);
+            At(modalNamePlaceholder, 24f, 20f, 736f, 58f);
+
+            // 名前入力は TMP_InputField に任せる (Issue #384)。自前の Input.inputString
+            // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
+            // 入力できず、カーソルも描けなかった。TMP_InputField は IME 変換・点滅
+            // カーソル・フォーカス喪失 (確定) をまとめて持つ。
+            modalNameInput = field.AddComponent<TMP_InputField>();
+            modalNameInput.targetGraphic = field.GetComponent<Image>();
+            modalNameInput.textViewport = field.GetComponent<RectTransform>();
+            modalNameInput.textComponent = modalNameValue;
+            modalNameInput.placeholder = modalNamePlaceholder;
+            modalNameInput.lineType = TMP_InputField.LineType.SingleLine;
+            modalNameInput.contentType = TMP_InputField.ContentType.Standard; // IME 可
+            modalNameInput.caretWidth = 2;
+            // design は点滅の半周期 530ms。TMP は 1/rate 秒ごとに表示を反転する。
+            modalNameInput.caretBlinkRate = 1f / V6ResultRevealLogic.CaretHalfCycleSeconds;
+            modalNameInput.customCaretColor = true;
+            modalNameInput.caretColor = V5Tokens.Text;
+            modalNameInput.selectionColor = new Color(1f, 1f, 1f, 0.2f);
+            // 保存名が入っている欄は「全選択」ではなく文末カーソルで開く (design)。
+            // Esc で閉じたときに TMP が元の文字列へ戻すと、確定扱いの onEndEdit が
+            // 古い名前を送ってしまうため、復元も切る。
+            modalNameInput.onFocusSelectAll = false;
+            modalNameInput.restoreOriginalTextOnEscape = false;
+            modalNameInput.onValidateInput = ValidateNameChar;
+            modalNameInput.onEndEdit.AddListener(OnNameEditEnd);
 
             // Input Hints (28,208) 784×32:
             // Hint Cap (0,0) 104×32 (pad [0,12], Key fs20) / Hint Text (128,4.5) fs16 /
@@ -777,6 +1071,18 @@ namespace FlashBeat.UI.V6.Result
                 TextAlignmentOptions.Left));
             At(modalStatus, 220f, 74f, 592f, 26f);
 
+            // 登録チップ (design TYshI 272×32)。成功は $ok-tint / $ok-light、
+            // 失敗は $danger-tint / $danger-light。Head の右に出し、表示中は
+            // Name Prompt を隠す (同じ位置に重なるため)。
+            modalChip = At(V5Ui.Panel(dialog.gameObject, "Status Chip", new Vector2(272f, 32f),
+                V5Tokens.OkTint, 4f), 540f, 28f);
+            modalChipBackground = modalChip.GetComponent<Image>();
+            modalChipGroup = modalChip.AddComponent<CanvasGroup>();
+            modalChipLabel = V5GameUi.Text(modalChip, "Label", "", 16f, V5Tokens.OkLight,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            Stretch(modalChipLabel.GetComponent<RectTransform>(), 272f, 32f);
+            modalChip.SetActive(false);
+
             modal.SetActive(false);
         }
 
@@ -811,40 +1117,38 @@ namespace FlashBeat.UI.V6.Result
 
         private void OpenModal()
         {
-            if (modal == null)
+            if (modal == null || modalOpen)
             {
                 return;
             }
 
             modalOpen = true;
-            submitInFlight = false;
             submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
-            nameBuffer.Length = 0;
 
             // 登録の方式 (送信対象か) を確定する。曲情報はプレイ開始時に固定した
             // (pinned) 版を使う (GManager.GetSong が ResultScene では snapshot を優先)。
             registrationMode = CurrentRegistrationMode();
+            modalNameInput.characterLimit = NameMaxLength();
 
             // 初期値: オンラインはオンライン側の保存名、無ければ端末内の保存名。
             // ローカルは端末内の保存名 (v5 と同じ PlayerPrefs キー)。
             string saved = V6ResultLogic.InitialName(
                 registrationMode, RankingClient.LoadNickname(), V6LocalNameStore.Load());
-            if (!string.IsNullOrEmpty(saved))
-            {
-                nameBuffer.Append(saved);
-            }
+            modalNameInput.SetTextWithoutNotify(saved ?? string.Empty);
 
             ApplyRegistrationModeTexts();
+            HideSubmitChip();
 
             // 旧オーバーレイ (ResultRankingOverlay) は Result シーンで自動で
             // モーダルを開き、キーも処理する。二重モーダルと二重入力を防ぐため
             // v6 モーダル表示中は停止し、閉じたら戻す (ソースは編集しない)。
             SuspendLegacyOverlay();
 
-            RefreshModalName();
             RefreshModal();
-            SetModalStatus("", V5Tokens.TextMuted);
+            SetModalStatus(gate.Failed ? SubmitStatusText() : "",
+                gate.Failed ? FromHex("#FF9999") : V5Tokens.TextMuted);
             modal.SetActive(true);
+            FocusNameField();
         }
 
         private void CloseModal()
@@ -855,17 +1159,104 @@ namespace FlashBeat.UI.V6.Result
             }
 
             modalOpen = false;
-            if (submitInFlight)
-            {
-                // 応答待ちの送信は破棄しない (閉じてもコルーチンは完了させる)。
-                // 失敗しても 429/10 秒窓でサーバ側が重複を拒否するため二重登録にはならない。
-                submitInFlight = false;
-            }
 
+            // 閉じる操作で onEndEdit (フォーカス喪失 = 確定) が走り、意図しない
+            // 自動登録を誘発するのを防ぐ。
+            suppressNameCommit = true;
+            UnfocusNameField();
+            suppressNameCommit = false;
+
+            // 応答待ちの送信は破棄しない (閉じてもコルーチンは完了させる)。
+            // gate の送信中フラグも落とさない (落とすと再送できてしまう)。
             SetRegisterInteractable(true);
+            HideSubmitChip();
             modal.SetActive(false);
             ResumeLegacyOverlay();
             FlashBeat.UI.SceneInputGate.BlockThisFrame();
+        }
+
+        // --- 名前入力 (TMP_InputField) ---
+
+        private void FocusNameField()
+        {
+            if (modalNameInput == null)
+            {
+                return;
+            }
+
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(modalNameInput.gameObject);
+            }
+
+            modalNameInput.ActivateInputField();
+            modalNameInput.caretPosition = modalNameInput.text.Length;
+            modalNameInput.selectionAnchorPosition = modalNameInput.text.Length;
+            modalNameInput.selectionFocusPosition = modalNameInput.text.Length;
+        }
+
+        private void UnfocusNameField()
+        {
+            if (modalNameInput == null)
+            {
+                return;
+            }
+
+            if (modalNameInput.isFocused)
+            {
+                modalNameInput.DeactivateInputField();
+            }
+
+            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == modalNameInput.gameObject)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
+        }
+
+        /// <summary>
+        /// 入力 1 文字の検証。端末内保存は v5 と同じ A-Z 0-9 だけを受ける
+        /// (オンラインは日本語も含めて自由)。
+        /// </summary>
+        private char ValidateNameChar(string text, int charIndex, char addedChar)
+        {
+            if (registrationMode == V6RegistrationMode.Local && !IsLocalNameChar(addedChar))
+            {
+                return '\0';
+            }
+
+            return addedChar;
+        }
+
+        /// <summary>
+        /// Enter / フォーカス喪失で名前が確定した (Issue #384)。空でなければ
+        /// 自動で登録する。送信中・登録済みは gate が弾く。
+        /// </summary>
+        /// <remarks>
+        /// Esc で取り消した編集では送信しない (PR #387 レビュー指摘)。
+        /// TMP_InputField は Esc で <c>m_WasCanceled</c> を立ててから
+        /// <c>ReleaseSelection</c> 経由で <c>onEndEdit</c> を通知する。ここで
+        /// <c>wasCanceled</c> を見ないと、保存済みの名前が入力欄に戻った状態で
+        /// 自動登録が走ってしまう (「取り消したのに登録された」)。
+        /// </remarks>
+        private void OnNameEditEnd(string value)
+        {
+            if (suppressNameCommit || !modalOpen)
+            {
+                return;
+            }
+
+            if (modalNameInput != null && modalNameInput.wasCanceled)
+            {
+                return; // Esc で取り消した編集は確定しない
+            }
+
+            string name = (value ?? string.Empty).Trim();
+            if (name.Length == 0)
+            {
+                return; // 空は確定しない (プレースホルダのまま)
+            }
+
+            TrySubmit();
         }
 
         // --- 登録送信 (Issue #240) ---
@@ -873,17 +1264,12 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>ボタン経由の送信。送信中と登録済みは無視する (二重送信防止)。</summary>
         private void TrySubmitFromButton()
         {
-            if (submitInFlight || submittedThisResult)
-            {
-                return;
-            }
-
             TrySubmit();
         }
 
         private void TrySubmit()
         {
-            if (submitInFlight || submittedThisResult)
+            if (!gate.CanStart)
             {
                 return;
             }
@@ -897,19 +1283,26 @@ namespace FlashBeat.UI.V6.Result
             }
 
             V6ResultLogic.NicknameError error = V6ResultLogic.ValidateNicknameInput(
-                nameBuffer.ToString(), RankingClient.NicknameMaxLength);
+                modalNameInput.text, RankingClient.NicknameMaxLength);
             if (error != V6ResultLogic.NicknameError.None)
             {
                 SetModalStatus(NicknameErrorMessage(error), FromHex("#FFD64D"));
                 return;
             }
 
-            submitInFlight = true;
+            if (!gate.Begin())
+            {
+                return;
+            }
+
             submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(V6ResultLogic.SubmitOutcome.Pending, 0),
                 FromHex("#99E5FF"));
             SetRegisterInteractable(false);
-            RunCoroutine(SubmitCoroutine(nameBuffer.ToString().Trim()));
+            // 送った名前を控える。応答が返るまでに入力欄が編集されても、
+            // 保存するのは実際に送った名前 (送った後に書いた文字ではない)。
+            submittedNickname = modalNameInput.text.Trim();
+            RunCoroutine(SubmitCoroutine(submittedNickname));
         }
 
         private IEnumerator SubmitCoroutine(string nickname)
@@ -944,18 +1337,19 @@ namespace FlashBeat.UI.V6.Result
         /// </summary>
         private void SaveLocalName()
         {
-            string saved = V6ResultLogic.NormalizeLocalName(nameBuffer.ToString());
+            string saved = V6ResultLogic.NormalizeLocalName(modalNameInput.text);
             V6LocalNameStore.Save(saved);
-            submittedThisResult = true;
+            gate.Succeed();
 
-            // 入力欄を正規化済みの保存名にそろえる。
-            nameBuffer.Length = 0;
-            nameBuffer.Append(saved);
-            RefreshModalName();
+            // 入力欄を正規化済みの保存名にそろえる (onEndEdit は発火させない)。
+            suppressNameCommit = true;
+            modalNameInput.SetTextWithoutNotify(saved);
+            suppressNameCommit = false;
 
             // 保存済み。Register ボタンで二重保存しない (Esc / Skip で閉じる)。
             SetRegisterInteractable(false);
             SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), FromHex("#99E5FF"));
+            ShowSubmitChip("保存しました", true);
         }
 
         /// <summary>
@@ -1012,35 +1406,133 @@ namespace FlashBeat.UI.V6.Result
 
         private void OnSubmitResult(RankingClient.Result result)
         {
-            if (!submitInFlight)
+            if (!gate.InFlight)
             {
                 return; // 閉じたあとの応答は捨てる
             }
 
-            submitInFlight = false;
+            lastSubmitHttpCode = result != null ? result.httpCode : 0;
             submitOutcome = V6ResultLogic.ClassifySubmitResult(
-                result != null && result.ok, result != null ? result.httpCode : 0,
+                result != null && result.ok, lastSubmitHttpCode,
                 result != null ? result.error : null);
 
             if (submitOutcome == V6ResultLogic.SubmitOutcome.Success
                 && result.score != null && result.score.rank > 0)
             {
                 // 偽の成功を出さない: 順位はサーバ応答からのみ。
-                RankingClient.SaveNickname(nameBuffer.ToString().Trim());
-                submittedThisResult = true;
+                RankingClient.SaveNickname(submittedNickname);
+                gate.Succeed();
                 myRank = result.score.rank;
-                SetRegisterInteractable(true);
+                SetRegisterInteractable(false);
                 SetModalStatus("", V5Tokens.TextMuted);
-                CloseModal();
+                ShowSubmitChip("登録しました", true);
                 // 登録後の順位 (自分の行のハイライト) は再取得したランキングから。
                 StartRankingFetch();
                 return;
             }
 
+            if (submitOutcome == V6ResultLogic.SubmitOutcome.Duplicate)
+            {
+                // 同じ内容が既に届いている (429 の 10 秒窓)。登録済みとして扱い、
+                // 再送は許さない。
+                gate.Succeed();
+                SetRegisterInteractable(false);
+                SetModalStatus("", V5Tokens.TextMuted);
+                ShowSubmitChip("登録ずみです", true);
+                return;
+            }
+
             // 失敗: その事実を出して再送を許す (Esc = スキップ)。
+            gate.Fail();
             SetRegisterInteractable(true);
-            SetModalStatus(V6ResultLogic.SubmitStatusMessage(submitOutcome,
-                result != null ? result.httpCode : 0), FromHex("#FF9999"));
+            if (modalRegisterLabel != null)
+            {
+                modalRegisterLabel.text = "再試行";
+            }
+
+            SetModalStatus(V6ResultLogic.SubmitStatusMessage(submitOutcome, lastSubmitHttpCode),
+                FromHex("#FF9999"));
+            ShowSubmitChip("登録できませんでした", false);
+        }
+
+        private string SubmitStatusText()
+        {
+            return V6ResultLogic.SubmitStatusMessage(submitOutcome, lastSubmitHttpCode);
+        }
+
+        // --- 登録チップ (Issue #384) ---
+
+        private void ShowSubmitChip(string message, bool success)
+        {
+            if (modalChip == null)
+            {
+                return;
+            }
+
+            modalChipLabel.text = message;
+            modalChipLabel.color = success ? V5Tokens.OkLight : V5Tokens.DangerLight;
+            modalChipBackground.color = success ? V5Tokens.OkTint : V5Tokens.DangerTint;
+            modalChipGroup.alpha = 0f;
+            modalChip.SetActive(true);
+            if (modalNamePrompt != null)
+            {
+                modalNamePrompt.gameObject.SetActive(false);
+            }
+
+            chipActive = true;
+            chipShownAt = Time.unscaledTime;
+            // 成功はチップが消えたあとモーダルを閉じる (結果画面へ戻る)。
+            // 失敗は再試行できるようモーダルを残す。
+            chipClosesModal = success;
+        }
+
+        private void HideSubmitChip()
+        {
+            chipActive = false;
+            if (modalChip != null)
+            {
+                modalChip.SetActive(false);
+            }
+
+            if (modalNamePrompt != null)
+            {
+                modalNamePrompt.gameObject.SetActive(true);
+            }
+        }
+
+        private void UpdateSubmitChip()
+        {
+            if (!chipActive || modalChip == null)
+            {
+                return;
+            }
+
+            float elapsed = Time.unscaledTime - chipShownAt;
+            float fadeIn = V6ResultRevealLogic.ChipFadeInSeconds;
+            float hold = V6ResultRevealLogic.ChipHoldSeconds;
+            float fadeOut = V6ResultRevealLogic.ChipFadeOutSeconds;
+
+            if (elapsed < fadeIn)
+            {
+                modalChipGroup.alpha = Mathf.Clamp01(elapsed / fadeIn);
+            }
+            else if (elapsed < fadeIn + hold)
+            {
+                modalChipGroup.alpha = 1f;
+            }
+            else if (elapsed < fadeIn + hold + fadeOut)
+            {
+                modalChipGroup.alpha = Mathf.Clamp01(1f - (elapsed - fadeIn - hold) / fadeOut);
+            }
+            else
+            {
+                bool close = chipClosesModal;
+                HideSubmitChip();
+                if (close)
+                {
+                    CloseModal();
+                }
+            }
         }
 
         private static string NicknameErrorMessage(V6ResultLogic.NicknameError error)
@@ -1060,63 +1552,17 @@ namespace FlashBeat.UI.V6.Result
 
         private void HandleModalInput()
         {
-            if (submitInFlight)
+            if (gate.InFlight)
             {
                 return; // 応答待ち。Esc で中断はしない (二重送信を防ぐ)。
             }
 
+            // Esc だけを画面の操作として扱い、それ以外のキーは入力欄へ渡す
+            // (design 決定 §7.3: 入力欄がフォーカス中は Esc 以外を奪わない)。
+            // 文字入力・Backspace・Enter・矢印移動は TMP_InputField が処理する。
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 CloseModal();
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Backspace))
-            {
-                if (nameBuffer.Length > 0)
-                {
-                    nameBuffer.Length -= 1;
-                }
-
-                RefreshModalName();
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            {
-                TrySubmit();
-                return;
-            }
-
-            // Input.inputString から 1 文字ずつ受け取る (レイアウト非依存・IME 不要。
-            // ResultRankingOverlay と同じ方式)。
-            string input = Input.inputString;
-            for (int i = 0; i < input.Length; i++)
-            {
-                char c = input[i];
-                if (c < ' ')
-                {
-                    continue; // 制御文字 (\n, \b) は KeyCode 側で処理済み
-                }
-
-                if (nameBuffer.Length >= NameMaxLength())
-                {
-                    break;
-                }
-
-                // ローカル保存は v5 と同じ入力規則 (A-Z0-9 のみ)。
-                // 規則外の文字は捨てる (v5 は TMP_InputField の Alphanumeric 検証)。
-                if (registrationMode == V6RegistrationMode.Local && !IsLocalNameChar(c))
-                {
-                    continue;
-                }
-
-                nameBuffer.Append(c);
-            }
-
-            if (input.Length > 0)
-            {
-                RefreshModalName();
             }
         }
 
@@ -1132,24 +1578,6 @@ namespace FlashBeat.UI.V6.Result
             return registrationMode == V6RegistrationMode.Local
                 ? V6ResultLogic.LocalNameMaxLength
                 : RankingClient.NicknameMaxLength;
-        }
-
-        /// <summary>
-        /// Name Field の表示。未入力は design どおり Placeholder ("YOU") を $text-dim で、
-        /// 入力があれば入力値を $text で出す (design lqHaN の Value は $text-dim)。
-        /// </summary>
-        private void RefreshModalName()
-        {
-            if (modalNameValue == null)
-            {
-                return;
-            }
-
-            bool placeholder = nameBuffer.Length == 0;
-            modalNameValue.text = placeholder
-                ? V6ResultLogic.LocalNameDefault
-                : nameBuffer.ToString();
-            modalNameValue.color = placeholder ? V5Tokens.TextDim : V5Tokens.Text;
         }
 
         private void SetModalStatus(string message, Color color)
@@ -1321,7 +1749,6 @@ namespace FlashBeat.UI.V6.Result
 
         private void RefreshModal()
         {
-            RefreshModalName();
             int score = runScore;
             modalScoreValue.text = V6ResultLogic.FormatScore(score);
             modalGrade.text = V6ResultLogic.GradeOf(score);

@@ -14,6 +14,9 @@ namespace NoteEditor.Model
             dto.BPM = EditData.BPM.Value;
             dto.maxBlock = EditData.MaxBlock.Value;
             dto.offset = EditData.OffsetSamples.Value;
+            dto.fadeOut = EditData.FadeOut.Value;
+            dto.startTiming = EditData.StartTiming.Value;
+            dto.beatOffset = EditData.BeatOffset.Value;
             dto.name = SongName.Normalize(EditData.Name.Value);
             dto.videoId = EditData.VideoId.Value;
             dto.lyrics = new MusicDTO.LyricsDTO
@@ -175,6 +178,9 @@ namespace NoteEditor.Model
             EditData.BPM.Value = editData.BPM;
             EditData.MaxBlock.Value = editData.maxBlock;
             EditData.OffsetSamples.Value = editData.offset;
+            EditData.FadeOut.Value = editData.fadeOut;
+            EditData.StartTiming.Value = editData.startTiming;
+            EditData.BeatOffset.Value = editData.beatOffset;
             EditData.VideoId.Value = string.IsNullOrEmpty(editData.videoId) ? "" : editData.videoId;
 
             if (editData.lyrics != null)

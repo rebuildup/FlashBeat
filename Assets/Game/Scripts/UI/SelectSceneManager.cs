@@ -40,6 +40,10 @@ public class SelectSceneManager : MonoBehaviour
     private enum V6Mode { Select, History, Ranking }
     private V6Mode currentMode = V6Mode.Select;
 
+    /// <summary>Title から開いた画面 (History / Ranking)。「戻る」の行き先を決める。</summary>
+    private FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen entryScreen =
+        FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
+
     // Cloud Catalog (#17)
     Coroutine catalogRefresh;
     CloudCatalog.Config catalogConfig;
@@ -53,6 +57,9 @@ public class SelectSceneManager : MonoBehaviour
 
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
+
+        // 背景映像 (bg-anim3) は design の cover で全面に敷く (#373)。
+        EnsureBackgroundVideoCovers();
 
         if (V6UiMode.SelectScreen)
         {
@@ -113,6 +120,22 @@ public class SelectSceneManager : MonoBehaviour
         FlashBeat.UI.V5.V5GameUi.ApplySingleInputModel(canvas);
     }
 
+    /// <summary>
+    /// シーンの背景映像を design どおり cover で全面に描く (#373)。
+    /// bg-anim3 は 16:9、実機は 16:10 なので、そのまま出すと上下に帯が残る。
+    /// はみ出し側を切る FitOutside にすると、歪ませずに画面全体を覆える。
+    /// </summary>
+    private static void EnsureBackgroundVideoCovers()
+    {
+        var video = FindFirstObjectByType<UnityEngine.Video.VideoPlayer>();
+        if (video == null)
+        {
+            return;
+        }
+
+        video.aspectRatio = UnityEngine.Video.VideoAspectRatio.FitOutside;
+    }
+
     /// <summary>表示モードを切り替える (選曲 / 履歴 / ランキング)。</summary>
     private void SetMode(V6Mode mode)
     {
@@ -151,10 +174,27 @@ public class SelectSceneManager : MonoBehaviour
         TitleScene();
     }
 
-    /// <summary>履歴 / ランキング画面での「戻る」: 選曲画面に戻る。</summary>
+    /// <summary>
+    /// 履歴 / ランキング画面での「戻る」。Title から開いた場合は Title へ、
+    /// 選曲画面から開いた場合は選曲画面へ戻る (Issue #373)。
+    /// </summary>
     private void OnV6BackFromSub()
     {
+        bool fromTitle = ShouldReturnToTitle(entryScreen);
+        entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
+        if (fromTitle)
+        {
+            TitleScene();
+            return;
+        }
+
         SetMode(V6Mode.Select);
+    }
+
+    /// <summary>履歴 / ランキングから戻るとき Title へ行くか (Title 入口のときだけ)。</summary>
+    public static bool ShouldReturnToTitle(FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen entry)
+    {
+        return entry != FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
     }
 
     /// <summary>履歴 / ランキングの行から曲へ飛ぶ (選曲画面に戻って選択を合わせる)。</summary>
@@ -162,6 +202,8 @@ public class SelectSceneManager : MonoBehaviour
     {
         // 共有データソースの Selected が履歴/ランキング側の操作で既に更新されている。
         // 選曲画面に戻って中央パネルを更新するだけでよい。
+        // 曲を選んで選曲画面へ来たので、以降の「戻る」はタイトルへ。
+        entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
         SetMode(V6Mode.Select);
     }
 
@@ -197,6 +239,7 @@ public class SelectSceneManager : MonoBehaviour
             return; // v6 無効時は History / Ranking の表示先が無い
         }
 
+        entryScreen = entry;
         if (entry == FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.History)
         {
             SetMode(V6Mode.History);
@@ -260,10 +303,12 @@ public class SelectSceneManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.L))
             {
+                entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
                 SetMode(V6Mode.History);
             }
             else if (Input.GetKeyDown(KeyCode.R))
             {
+                entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
                 SetMode(V6Mode.Ranking);
             }
         }
@@ -407,6 +452,16 @@ public class SelectSceneManager : MonoBehaviour
         if (v6Data != null) v6Data.RefreshAsync();
     }
 
+    /// <summary>
+    /// シーン遷移の暗転速度 (alpha / 秒)。1.0 だと真っ暗になるまで 1 秒かかり、
+    /// Ready を押してからローディング画面が見えるまでの間が無反応に見えていた
+    /// (Issue #378)。6 なら約 0.17 秒で暗転し、その間に読み込みが進む。
+    /// </summary>
+    public const float TransitionFadeDamp = 6f;
+
+    /// <summary>リモート曲の譜面取得中に出すローディング表示の所有キー。</summary>
+    static readonly object RemoteStartOwner = new object();
+
     /// <summary>選択中の曲でプレイを開始する (リモート曲は譜面を確定してから)。</summary>
     public void GameScene()
     {
@@ -425,17 +480,22 @@ public class SelectSceneManager : MonoBehaviour
             return;
         }
         GManager.ResetSession();
-        Initiate.Fade("GameScene", Color.black, 1.0f);
+        Initiate.Fade("GameScene", Color.black, TransitionFadeDamp, true);
     }
 
     IEnumerator StartRemoteSong(SongData song)
     {
+        // 譜面の取得はネットワーク待ちで数秒かかりうる。Ready の直後に
+        // 何も出ない時間を作らない (Issue #378)。
+        LoadingOverlay.Show("譜面を準備しています", RemoteStartOwner);
+
         CloudCatalog.Config config = CloudCatalog.LoadConfig();
         if (config == null)
         {
             Debug.LogWarning("[SelectScene] remote song selected but no API is configured - staying on the select screen");
             v6Data?.ReportStartFailure("クラウドカタログが設定されていないため、この曲は開始できません");
             SelectSceneTransitionGuard.Reset(); // 開始できなかったので、次の操作を許す
+            LoadingOverlay.Hide(RemoteStartOwner);
             yield break;
         }
 
@@ -452,6 +512,7 @@ public class SelectSceneManager : MonoBehaviour
             Debug.LogWarning($"[SelectScene] chart for '{song.remoteId}' v{version} unavailable (status={status}) - start cancelled");
             v6Data?.ReportStartFailure("譜面を取得できなかったため開始できませんでした (HTTP " + status + ")");
             SelectSceneTransitionGuard.Reset(); // 開始できなかったので、次の操作を許す
+            LoadingOverlay.Hide(RemoteStartOwner);
             yield break;
         }
 
@@ -462,7 +523,7 @@ public class SelectSceneManager : MonoBehaviour
         song.chartVersion = version;
         CloudChartHolder.Hold(song.remoteId, version, body);
         GManager.ResetSession();
-        Initiate.Fade("GameScene", Color.black, 1.0f);
+        Initiate.Fade("GameScene", Color.black, TransitionFadeDamp, true);
     }
 
     public void playSound()

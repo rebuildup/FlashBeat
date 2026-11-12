@@ -318,5 +318,40 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(1, lines.Count);
             Assert.IsNull(lines[0].Romaji);
         }
+
+        // --- 歌詞スロットの写像 (Issue #379) ---
+
+        [Test]
+        public void LyricTopY_MatchesDesignMappingForThreeResolutions()
+        {
+            // 250 × (画面高さ / 972)。FHD 278 / 2K 370 / Mac 428。
+            Assert.AreEqual(278f, V6HudLogic.LyricTopY(1080f), 0.6f);
+            Assert.AreEqual(370f, V6HudLogic.LyricTopY(1440f), 0.6f);
+            Assert.AreEqual(428f, V6HudLogic.LyricTopY(1664f), 0.6f);
+        }
+
+        [Test]
+        public void LyricSize_ScalesWithHeight()
+        {
+            Vector2 fhd = V6HudLogic.LyricSize(1080f);
+            Assert.AreEqual(1244f, fhd.x, 1f);
+            Assert.AreEqual(244f, fhd.y, 1f);
+
+            Vector2 mac = V6HudLogic.LyricSize(1664f);
+            Assert.AreEqual(1917f, mac.x, 1f);
+            Assert.AreEqual(377f, mac.y, 1f);
+        }
+
+        // --- スコアのポップ (Issue #379) ---
+
+        [Test]
+        public void ScorePulseScale_RisesThenReturnsToOne()
+        {
+            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(0f), 1e-4f);
+            Assert.AreEqual(1.06f, V6HudLogic.ScorePulseScale(0.08f), 1e-4f);
+            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(0.2f), 1e-4f);
+            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(5f), 1e-4f);
+            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(-1f), 1e-4f);
+        }
     }
 }

@@ -167,12 +167,20 @@ public class AutoTestV6Screens : MonoBehaviour
 
         if (sceneName == "ResultScene")
         {
+            // 段階表示 (#384) は最終状態にし、2000ms で自動で開く登録モーダルは
+            // 抑止する (ResultScene 本体とモーダルの 2 枚を別々に撮るため)。
+            var driver = FindFirstObjectByType<FlashBeat.UI.V6.Result.V6ResultViewDriver>();
+            var resultView = driver != null ? driver.View : null;
+            if (resultView != null)
+            {
+                resultView.PrepareForAudit();
+                yield return new WaitForSecondsRealtime(0.2f);
+            }
+
             yield return CaptureAndAudit("ResultScene", reports);
 
             // design lqHaN (05b 登録モーダル): 実機ではフッターの Register で開く。
             // 自動撮影は入力できないため、監査用 API で開いて撮る。
-            var driver = FindFirstObjectByType<FlashBeat.UI.V6.Result.V6ResultViewDriver>();
-            var resultView = driver != null ? driver.View : null;
             if (resultView != null)
             {
                 resultView.OpenRegisterModalForAudit();
