@@ -225,10 +225,15 @@ GPU 時間と Canvas rebuild の内訳は Profiler (UI Details / Canvas.BuildBat
 - `V6ContentCaches.InvalidateAll`: provider の無効化も呼ぶ。**作った Sprite は
   ここで破棄する**（Resources 原Texture は Unity/Resources 所有なので破棄しない）。
 - `ResultSceneManager`: legacy の独自 `UnityWebRequestTexture` + `Sprite.Create`
-  (`/0.jpg`) を削除し、provider の backdrop 経路 (`RequestRemoteTexture`) へ統合。
-  ただし **URL が /0.jpg → hqdefault に変わる**（backdrop の解像度が下がる）。
-  これは「同じ遠隔画像を画面間で共有する」ためのトレードオフで、
-  backdrop の見た目再確認は未実施。
+  (`/0.jpg`) を削除し、provider 共通経路 (`RequestRemote`/`RequestRemoteTexture`) へ統合。
+  **検証済み**: 2026-11-13 Mac から直接 hqdefault.jpg と 0.jpg を同曲 6 件で HTTP
+  取得した結果、両 URL とも 480×360 JPEG・**byte-identical** の同じ画像を返す
+  (DeKLpgzh-qQ 16,792B / s-0HVBCEMZk 17,912B / 9O2VyUM5MlQ 17,306B /
+  3C5zNU2JCdc 13,252B / SiqjnFhLq2U 42,799B / MD2iO79MPp8 11,325B)。
+  よって URL 統一による「見た目の退化」は確認できなかった。実機 Player での
+  描画比較は #417 で証跡化する（画面差分は v6/v5 切替と合わせて確認）。
+  なお最大解像度 (maxresdefault.jpg) は確認した動画では 404 → 120×90 となった
+  ため、v6 Result の用途には使えない。
 
 検証 (EditMode):
 - `Assets/Tests/Editor/JacketProviderTests.cs` — 同一曲で同一実体 / 負キャッシュ /
