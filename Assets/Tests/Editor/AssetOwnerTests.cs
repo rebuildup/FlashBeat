@@ -15,27 +15,43 @@ namespace FlashBeat.Tests
     /// </summary>
     public class AssetOwnerTests
     {
+        /// <summary>テストで生成した native リソース。プロセスが shared 参照を追跡しないので自分で破棄する。</summary>
+        private readonly System.Collections.Generic.List<Object> created =
+            new System.Collections.Generic.List<Object>();
+
         [TearDown]
         public void TearDown()
         {
             V6AssetOwner.DestroyShared();
+            for (int i = 0; i < created.Count; i++)
+            {
+                Object.DestroyImmediate(created[i]);
+            }
+
+            created.Clear();
+        }
+
+        private Texture2D CreatedTexture(int size = 4)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            created.Add(tex);
+            return tex;
         }
 
         [Test]
         public void Shared_CreatesOnlyOnce()
         {
+            Texture2D sharedTexture = CreatedTexture(4);
             int created = 0;
             Sprite first = V6AssetOwner.Shared("test/sprite", () =>
             {
                 created++;
-                var tex = new Texture2D(4, 4);
-                return Sprite.Create(tex, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f), 100f);
+                return Sprite.Create(sharedTexture, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f), 100f);
             });
             Sprite second = V6AssetOwner.Shared("test/sprite", () =>
             {
                 created++;
-                var tex = new Texture2D(4, 4);
-                return Sprite.Create(tex, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f), 100f);
+                return Sprite.Create(sharedTexture, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f), 100f);
             });
 
             Assert.IsNotNull(first);
@@ -64,14 +80,14 @@ namespace FlashBeat.Tests
         public void Shared_ReportsWhetherItExists()
         {
             Assert.IsFalse(V6AssetOwner.HasShared("test/has"));
-            V6AssetOwner.Shared("test/has", () => new Texture2D(2, 2));
+            V6AssetOwner.Shared("test/has", () => CreatedTexture(2));
             Assert.IsTrue(V6AssetOwner.HasShared("test/has"));
         }
 
         [Test]
         public void Scope_DisposesOnlyWhatItOwns()
         {
-            var shared = V6AssetOwner.Shared("test/shared", () => new Texture2D(2, 2));
+            var shared = V6AssetOwner.Shared("test/shared", () => CreatedTexture(2));
             Assert.IsNotNull(shared);
 
             Sprite own;
@@ -92,7 +108,7 @@ namespace FlashBeat.Tests
             var scope = V6AssetOwner.OpenScope("closed view");
             scope.Dispose();
 
-            var texture = scope.Track(new Texture2D(2, 2));
+            var texture = scope.Track(CreatedTexture(2));
 
             Assert.IsNull(texture, "Dispose 後の Track は所有しない (破棄して返す)");
             Assert.AreEqual(0, scope.Count);
@@ -101,7 +117,7 @@ namespace FlashBeat.Tests
         [Test]
         public void Scope_ReleaseHandsOverOwnership()
         {
-            var texture = new Texture2D(2, 2);
+            var texture = CreatedTexture(2);
             var scope = V6AssetOwner.OpenScope("handover");
             scope.Track(texture);
             Assert.AreEqual(1, scope.Count);
@@ -118,7 +134,7 @@ namespace FlashBeat.Tests
         public void Scope_DisposeIsIdempotent()
         {
             var scope = V6AssetOwner.OpenScope("twice");
-            scope.Track(new Texture2D(2, 2));
+            scope.Track(CreatedTexture(2));
             scope.Dispose();
             Assert.DoesNotThrow(() => scope.Dispose());
             Assert.IsTrue(scope.IsDisposed);
