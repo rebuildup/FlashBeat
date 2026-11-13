@@ -164,23 +164,81 @@ judgedMatchesChart=True
   DISPLAY1 が (-1932,1422)、DISPLAY6 が (-2560,-178) に戻ったことを確認済み。
 - 展示機の FlashBeat プロセス・スケジュールタスクは残っていない。
 
-## 7. 受入判断の現状
+## 8. 追加実機検証 (2026-11-13 12:00〜12:15 JST, 同一候補・同一フォルダ)
+
+§6 の FHD 検証後、同じ展示フォルダ (`C:\Users\rebui\Desktop\FlashBeat-Exhibit`) で
+さらに 3 系統の検証を行った。候補・フォルダ・環境設定は変更していない
+(メディアキャッシュの一時退避を 1 件だけ行い、再ダウンロードで復元済み。§8.3)。
+
+### 8.1 全画面監査 `-autotest v6screens` (2K 主画面)
+
+| 項目 | 値 |
+|---|---|
+| 結果 | **pass=46 fail=0** / symbols=59 / screenshots=15 |
+| 解像度 | **2560×1440 ネイティブ** (`resolution=2560x1440`、PNG 実測 2560×1440) |
+| 証跡 | `v6screens-2k/` (15 枚 + `autotest-v6screens-result.txt`) |
+
+対象画面: Title / Select (3 タブ + Empty + Settings) / Option (4 タブ) /
+Result (+ RegisterModal) / Game (HUD / Pause / Loading)。
+v6 の機械チェック (フレーム収まり・レガシー混在・記号アイコン) は全画面 FAIL 0。
+
+### 8.2 全画面監査の途中経過 — 一時的な 1920×1080 描画 (記録)
+
+12:01 JST の初回 `v6screens` 実行では、**DISPLAY5 (2560×1440) 上で
+`rendering:1920x1080` の引き伸ばし描画**になる状態を 2 回観測した
+(`screen=1920x1080 / display0=system:2560x1440,rendering:1920x1080,active:True`)。
+ディスプレイ構成 (`query-displays3.ps1`) は退避前のバックアップと完全一致しており、
+原因はドライバ/セッション側の一時状態と判断。**その後の起動ではネイティブ
+2560×1440 に戻った** (12:05 JST の強制解像度起動 → 12:06 JST の引数なし起動で確認、
+§8.3 の楽曲完走も 2560×1440)。
+
+- 当該ランの証跡は `v6screens-1920x1080-transient/` に隔離 (PASS だが 1080p 座標系のため
+  2K の証拠としては使わない)。
+- **展示当日の注意**: 起動直後に画面が「にじんで」見える場合は、この状態の可能性がある。
+  その場合はアプリを再起動するか、解像度を一度変更→戻すとネイティブに戻る (実測)。
+
+### 8.3 未キャッシュ曲のメディア取得 → 完走 (`-autotest-song まにまに`)
+
+展示機のメディアキャッシュは全 28 曲分が既に存在したため、**キャッシュを 1 件だけ
+一時退避** (`9O2VyUM5MlQ` = まにまに, 48 秒 / 76 notes) して未キャッシュ経路を検証した。
+
+| 項目 | 値 |
+|---|---|
+| yt-dlp 解決 | `yt-dlp -F videoId=9O2VyUM5MlQ formats=38 ok` → itag=18 640x360 mp4 |
+| ダウンロード | `merged.mp4` を `FlashBeatMedia\9O2VyUM5MlQ\` へ取得 (約 9 MB) |
+| 音声 | `audioMode=StreamCombined`、STATUS 行の rms=0.08〜0.44 / peak≈0.54 (ストリーム音声が出ている) |
+| 結果 | **pass=31 fail=0** / songEndState=Completed / forcedByDeadline=False / judged=76==chartNotes / score=973,684 |
+| 所要 | 起動 12:06:57 → PLAYBACK_START 12:07:22 (約 25 秒、ダウンロード+準備+遷移を含む) |
+| 復元 | 検証後、新規ダウンロードで `9O2VyUM5MlQ` は復元済み。一時退避 `.bak` は削除済み |
+
+証跡: `songend-manimani-uncached/` (4 枚 + result.txt + `Player-manimani-uncached.log`)。
+
+**意味**: 展示で来場者が任意の曲を選んでも、キャッシュに無い曲は yt-dlp 経由で
+約 25 秒 (この回線・この曲) で取得→プレイ可能になることが Win64 実機で確認できた。
+ネットワーク不通時の挙動は未検証 (下記 §9)。
+
+## 9. 受入判断の現状 (更新)
 
 | # | 項目 | 状態 |
 |---|---|---|
 | 1 | 実 Win64 で候補が起動する | **PASS** (プレイ検証も含む) |
 | 2 | 主画面 (2560×1440) で全画面描画 | **PASS** (`FullscreenWindow` / safeArea 2560×1440) |
 | 3 | 選曲 → プレイ → Result 遷移 | **PASS** (ハーネス完走) |
-| 4 | 曲完走 (1 曲最後まで) | **PASS** (`mediaTime≈44.07s` で Result へ) |
-| 5 | 判定の計数が譜面ノード数と一致 | **PASS** (judged 130 == chartNotes 130, judgedMatchesChart=True) |
+| 4 | 曲完走 (1 曲最後まで) | **PASS** (`mediaTime≈44.07s` で Result へ)。追加で未キャッシュ曲 `まにまに` も完走 (§8.3) |
+| 5 | 判定の計数が譜面ノード数と一致 | **PASS** (judged 130 == chartNotes 130, judgedMatchesChart=True。まにまにも 76==76) |
+| 5b | 全画面の視覚監査 (v6screens) | **PASS** — 2K ネイティブで pass=46 fail=0 / 15 画面 (§8.1) |
+| 5c | 未キャッシュ時のメディア取得 | **PASS** — yt-dlp ダウンロード→完走 約 25 秒 (§8.3) |
 | 6 | FHD (1920×1080) 全画面描画 | **PASS** — **物理 DISPLAY1 を一時的に主画面へ移動した上で引数なし起動**し、`FullscreenWindow` / `display0=1920x1080,active:True` を確認。31 PASS / 0 FAIL。**BEST 数値の折返し表示あり** (09-fhdreal-select.png) |
-| 7 | オーナーによる人間の聴取 | **未実施** (cc は音を聞かない) |
+| 7 | オーナーによる人間の聴取 | **未実施** (cc は音を聞かない。信号 rms/peak は両曲で確認済み) |
 | 8 | オーナーの物理操作でのプレイ | **未実施** (autotest harness による自動操作) |
+| 8b | Result → Retry の実遷移 | **未実施** (ハーネスは Result で終了。オーナー実機で 1 回確認) |
+| 8c | Option 設定の保存方向 (画面→PlayerPrefs→再起動) | **未実施** (候補に v6interact ハーネス無し。オーナー実機で確認) |
 | 9 | オンライン登録 API の書き込み確認 | **未実施** (本番 API へ書き込まない) |
+| 10 | ネットワーク不通時のエラー復帰 | **未実施** (回線を切る検証は環境変更を伴うため未実施) |
 
 フォルダ `C:\Users\rebui\Desktop\FlashBeat-Exhibit` は展示機に残る（候補配布用）。事後の管理はオーナー判断に任せる。
 
-## 8. 後続作業
+## 10. 後続作業
 
 - 展示機の `FlashBeat` / `UnityCrashHandler64` プロセスは残っていないことを確認済み (`Get-Process FlashBeat` は空、scheduled task も削除済み)。
 - ディスプレイ配置は検証前の状態 (DISPLAY5 主画面) に復旧済み。

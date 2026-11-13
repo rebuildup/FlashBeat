@@ -24,7 +24,7 @@
 | ビルド手順 | `FLASHBEAT_UPDATE_CHANNEL=stable bash script/win64-build-mac.sh <sha> <outdir>` (基準版数は `VERSION` から自動。正規経路は `script/win64-build-mac.sh` → `tools/release/package-win64.ps1` のみ) |
 | 出力 | `<outdir>/FlashBeat-0.1.23-win64-<sha>.zip` と `.zip.sha256` の **2 点だけ** (`.build-info.txt` は作らない) |
 | 中身 (実測) | 224 entries / 138 managed DLL / FlashBeat.exe / updater (`tools/update/Update.ps1`) / `StreamingAssets/update-channel.txt` (**stable**) / `version.json` (ZIP ルート) / `flashbeat-media-policy.json` / **同梱音楽・動画なし** (第三者楽曲はビルド時に退避) |
-| **未検証** | **この候補 (`0.1.23+b6860a80`) の Windows 実機での実行・全画面・1 曲完走・ストリーム音声**。前候補 `0.1.22+7af9242d` は 2K 実機受入済み (`exhibit-evidence-2026-11-10/win-2k-operation.md`) だが、この候補は未実施 |
+| **未検証** | **人間による聴取・物理操作・Option 保存方向・Retry・ネットワーク不通時の復帰**。機械的受入 (起動・全画面・1 曲完走×2・未キャッシュ取得・v6screens) は 2026-11-13 に展示機で PASS (`docs/evidence/233-win64-exhibit-2026-11-13/`) |
 
 ### 現在の候補 (2026-11-11 再生成 / main `b6860a80`)
 
@@ -177,16 +177,22 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 
 ## 2.5 受入条件 (候補 `b6860a80` の管理表)
 
+> **2026-11-13 更新**: 展示機 (`device-windows`) での実機検証が完了し、機械的に確認できる
+> 項目はほぼ PASS しました。最新の状態は
+> [`docs/evidence/233-win64-exhibit-2026-11-13/README.md`](../evidence/233-win64-exhibit-2026-11-13/README.md)
+> が正本です。下表の「現状」列は 2026-11-13 時点に更新済み。
+
 前候補の実機成功は **この候補の合格として流用しない**。各行の「証跡」が揃って初めて合格。
 
-| # | 条件 | 現状 | 実施者 | 証跡 (この候補のもの) |
+| # | 条件 | 現状 (2026-11-13) | 実施者 | 証跡 (この候補のもの) |
 |---|---|---|---|---|
-| 1 | FHD 1920×1080 の実フルスクリーン | **未実施** (Mac に FHD モードが無い) | オーナー (FHD 実機) | `fullscreen.txt` (`result=PASS` / `checkResolution=PASS`) + `win-fhd-fullscreen.png` / `Player.log` |
-| 2 | 2K 2560×1440 の実フルスクリーン | **未実施** (前候補 0.1.22 では PASS) | オーナー (2K 実機) | `fullscreen.txt` (`result=PASS` / `checkResolution=PASS`) + `win-2k-fullscreen.png` / `Player.log` |
-| 3 | 同一 artifact で 1 曲完走 (#233) | **未実施** | オーナー | `operation-log.md` (§2 の 1 曲完走) / 場面スクショ / `Player.log` |
-| 4 | 人間による音声聴取 | **未実施** (信号レベルのみ) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
+| 1 | FHD 1920×1080 の実フルスクリーン | **PASS** — 物理 DISPLAY1 を一時的に主画面へ移動し引数なし起動。`display0=1920x1080,active:True` / `FullScreenWindow` / 31 PASS・0 FAIL。BEST 数値の折返し表示あり (#379) | cc (実機) | `docs/evidence/233-win64-exhibit-2026-11-13/` §6・09〜13 |
+| 2 | 2K 2560×1440 の実フルスクリーン | **PASS** — 主画面 DISPLAY5 で引数なし起動、ネイティブ 2560×1440。31 PASS・0 FAIL + v6screens pass=46 fail=0 | cc (実機) | 同上 §2〜§5・§8.1 (`v6screens-2k/`) |
+| 3 | 同一 artifact で 1 曲完走 (#233) | **PASS** — ツイッターランド (130 notes) と未キャッシュの まにまに (76 notes) の 2 曲で完走。judged==chartNotes、forcedByDeadline=False | cc (実機) | 同上 §3・§8.3 (`songend-manimani-uncached/`) |
+| 4 | 人間による音声聴取 | **未実施** (信号レベル rms/peak は両曲で確認済み) | オーナー | `operation-log.md` の音の欄 / `PLAYBACK_START` 行 |
 | 5 | Register のオンライン送信 (#134) | ローカル API での契約確認まで。**本番書き込みは未実施** | オーナー (承認後) | [`register-online-acceptance.md`](register-online-acceptance.md) の手順と記録 |
-| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** | オーナー | `operation-log.md` §3 (再表示 + **再起動後**の値) |
+| 6 | Option 設定の保存方向 (画面 → PlayerPrefs) | 復元方向は r28 で実機確認済み。**保存方向は未実施** (候補に v6interact ハーネス無し) | オーナー | `operation-log.md` §3 (再表示 + **再起動後**の値) |
+| 7 | Result → Retry の実遷移 | **未実施** (ハーネスは Result で終了) | オーナー | `operation-log.md` §2 の Retry 欄 |
 
 補足:
 - 1 / 2 は「その解像度の実ディスプレイ + 実フルスクリーン」でのみ有効 (ウィンドウリサイズは不可)。
@@ -219,8 +225,8 @@ Get-FileHash -Algorithm SHA256 "FlashBeat-0.1.23-win64-b6860a80.zip" | Select-Ob
 
 | ID | 解像度 | 入手方法 | 現候補での状態 |
 |---|---|---|---|
-| FHD | 1920×1080 | 実ディスプレイ (展示PC / FHD モニタ) | **未検証** (前候補でも未実施。Windows 機の FHD 面は inactive だった) |
-| 2K | 2560×1440 | 実ディスプレイ (2K モニタ) | 前候補 `0.1.22+7af9242d` で **実全画面 PASS** (`exhibit-evidence-2026-11-10/win-2k-operation.md`)。**現候補では未実施** |
+| FHD | 1920×1080 | 実ディスプレイ (展示PC / FHD モニタ) | **PASS** (2026-11-13、物理 DISPLAY1 を一時的に主画面へ移動して引数なし起動。31 PASS / 0 FAIL。BEST 数値の折返しあり #379) |
+| 2K | 2560×1440 | 実ディスプレイ (2K モニタ) | **PASS** (2026-11-13、DISPLAY5 主画面で引数なし起動。31 PASS / 0 FAIL + v6screens pass=46 fail=0) |
 | MAC | 2560×1664 | Mac 本機 (ネイティブ) | 現候補と同じ内容 (`b6860a80` のコード。Mac アプリの版数表記はビルド時の `0.1.23+b3f6e332`) で **PASS** (2026-11-11, `docs/ui/v6-repro-audit-2026-11-11.md` §9.19 r29) |
 
 
