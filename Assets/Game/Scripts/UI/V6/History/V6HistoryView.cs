@@ -75,6 +75,63 @@ namespace FlashBeat.UI.V6.History
         private V6HistoryLogic.HistorySort sort = V6HistoryLogic.HistorySort.Score;
         private int selectedSongId = -1;
 
+        // --- Issue #415: 骨格保持の差分更新用の参照 ---
+        // Rebuild() はゾーンの中身を破棄して作り直す (骨格変更・初回のみ)。
+        // 差分更新は以下の参照を使い回して、変わった部分だけを既存要素へ適用する。
+        private TextMeshProUGUI headerSortText;
+        private TextMeshProUGUI headerCountText;
+        private GameObject historyListGo;
+        private GameObject historyRowsGo;
+        private string listMode = ""; // "", "empty", "rows"
+        private readonly List<GameObject> historyRowObjects = new List<GameObject>();
+        private GameObject centerGo;
+        private bool? centerHasSong;
+        private GameObject centerHeroGo;
+        private TextMeshProUGUI centerTitleText;
+        private TextMeshProUGUI centerArtistText;
+        private TextMeshProUGUI centerTagText;
+        private readonly List<TextMeshProUGUI> centerStatValues = new List<TextMeshProUGUI>();
+        private GameObject rightGo;
+        private TextMeshProUGUI infoNicknameText;
+        private readonly List<TextMeshProUGUI> infoValueTexts = new List<TextMeshProUGUI>(); // 累計 / プレイ曲 / S以上 / 順位
+        private TextMeshProUGUI playScoreValueText;
+        private readonly List<TextMeshProUGUI> judgeValueTexts = new List<TextMeshProUGUI>(); // PERFECT GREAT BAD MISS HOLD MAX COMBO
+        private GameObject songRankPanelGo;
+        private bool? songRankHasSong;
+        private GameObject songRankThumbGo;
+        private TextMeshProUGUI songRankChipText;
+        private TextMeshProUGUI songRankNoDataText;
+        private readonly List<GameObject> songRankRowObjects = new List<GameObject>();
+
+        /// <summary>Rebuild() で全参照を破棄済みオブジェクトと切り離す。</summary>
+        private void ClearScaffoldRefs()
+        {
+            headerSortText = null;
+            headerCountText = null;
+            historyListGo = null;
+            historyRowsGo = null;
+            listMode = "";
+            historyRowObjects.Clear();
+            centerGo = null;
+            centerHasSong = null;
+            centerHeroGo = null;
+            centerTitleText = null;
+            centerArtistText = null;
+            centerTagText = null;
+            centerStatValues.Clear();
+            rightGo = null;
+            infoNicknameText = null;
+            infoValueTexts.Clear();
+            playScoreValueText = null;
+            judgeValueTexts.Clear();
+            songRankPanelGo = null;
+            songRankHasSong = null;
+            songRankThumbGo = null;
+            songRankChipText = null;
+            songRankNoDataText = null;
+            songRankRowObjects.Clear();
+        }
+
         private V6HistoryView(IV6SelectDataSource data, Action onBack, Action onOpenSettings, Action onGotoSong)
         {
             this.data = data;
@@ -110,10 +167,10 @@ namespace FlashBeat.UI.V6.History
             get { return frame; }
         }
 
-        /// <summary>実データから表示を更新する (統合担当 / data.Changed から呼ぶ)。</summary>
+        /// <summary>差分更新の起点 (data.Changed / 統合担当からの呼び出し)。骨格があれば再利用する。</summary>
         public void Refresh()
         {
-            Rebuild(true);
+            ApplyVolatile(true);
         }
 
         public void SetVisible(bool visible)
@@ -162,7 +219,7 @@ namespace FlashBeat.UI.V6.History
         public void ToggleSort()
         {
             sort = V6HistoryLogic.NextSort(sort);
-            Rebuild(false);
+            ApplyVolatile(false);
         }
 
         /// <summary>戻る (統合担当が onBack で遷移を決める)。</summary>
@@ -209,6 +266,12 @@ namespace FlashBeat.UI.V6.History
             get { return V6HistoryLogic.HistoryList(data.AllSongs, sort).Count; }
         }
 
+        /// <summary>検証・計測用: 画面全体を作り直した回数。</summary>
+        public int RebuildCountForAudit { get; private set; }
+
+        /// <summary>検証・計測用: 変動部分だけを更新した回数。</summary>
+        public int IncrementalUpdateCountForAudit { get; private set; }
+
         // --- 内部 ---
 
         private void OnDataChanged()
@@ -217,7 +280,7 @@ namespace FlashBeat.UI.V6.History
             {
                 return;
             }
-            Rebuild(true);
+            ApplyVolatile(true);
         }
 
         private void SelectSong(int songId)
@@ -229,7 +292,7 @@ namespace FlashBeat.UI.V6.History
             selectedSongId = songId;
             // オンラインランキングの取得 (cloud 曲) と Changed 通知はデータソース側。
             data.Select(songId);
-            Rebuild(false);
+            ApplyVolatile(false);
         }
 
         private void BuildRoot(RectTransform parent)
@@ -284,6 +347,32 @@ namespace FlashBeat.UI.V6.History
             }
         }
 
+        /// <summary>
+        /// Issue #415: 骨格 (Header / Footer / Main の子) が残っていれば保持したまま、
+        /// 変わった部分だけを既存要素へ適用する。骨格が無いときだけ全再構築する。
+        /// </summary>
+        private void ApplyVolatile(bool revealSelection)
+        {
+            if (rootGo == null)
+            {
+                return;
+            }
+
+            UpdatePlacement();
+
+            // Header/Footer/Main の中身が 1 度も作られていない (初回) ときは全再構築。
+            GameObject mainZone = Zone("Main");
+            if (mainZone.transform.childCount == 0)
+            {
+                Rebuild(revealSelection);
+                return;
+            }
+
+            Apply(revealSelection);
+            IncrementalUpdateCountForAudit++;
+        }
+
+        /// <summary>全再構築 (骨格変更・初回)。参照はすべて破棄したうえで作り直す。</summary>
         private void Rebuild(bool revealSelection)
         {
             if (rootGo == null)
@@ -298,7 +387,15 @@ namespace FlashBeat.UI.V6.History
             ClearChildren(Zone("Header"));
             ClearChildren(Zone("Footer"));
             ClearChildren(Zone("Main"));
+            ClearScaffoldRefs();
 
+            Apply(revealSelection);
+            RebuildCountForAudit++;
+        }
+
+        /// <summary>ゾーンの中身を (骨格ありなら差分で・なければ新規に) 構築する。</summary>
+        private void Apply(bool revealSelection)
+        {
             List<V6SongEntry> history = V6HistoryLogic.HistoryList(data.AllSongs, sort);
             int selectIndex = IndexOfSong(history, selectedSongId);
             if (selectIndex < 0 && history.Count > 0)
@@ -320,11 +417,11 @@ namespace FlashBeat.UI.V6.History
             GameObject headerZone = Zone("Header");
             GameObject footerZone = Zone("Footer");
             GameObject mainZone = Zone("Main");
-            BuildHeader(headerZone, history.Count);
-            BuildFooter(footerZone);
-            BuildList(mainZone, history, selectIndex);
-            BuildCenter(mainZone, selected);
-            BuildRight(mainZone, selected);
+            EnsureHeader(headerZone, history.Count);
+            EnsureFooter(footerZone);
+            EnsureList(mainZone, history, selectIndex);
+            EnsureCenter(mainZone, selected);
+            EnsureRight(mainZone, selected);
         }
 
         /// <summary>V6Frame が作った共通ゾーン (Header / Main / Footer)。</summary>
@@ -345,7 +442,29 @@ namespace FlashBeat.UI.V6.History
 
         // --- ヘッダー (共通フレームの Header ゾーン: design (24,0) 1680×96) ---
 
-        private void BuildHeader(GameObject headerZone, int playedCount)
+        /// <summary>
+        /// Issue #415: ヘッダーは骨格を保持し、並び順ラベルと件数だけを既存 TMP に適用する。
+        /// 骨格が無いときだけ作る (Header ゾーンは V6Frame が所有、中身はここが作る)。
+        /// </summary>
+        private void EnsureHeader(GameObject headerZone, int playedCount)
+        {
+            if (headerZone.transform.childCount == 0)
+            {
+                CreateHeaderScaffold(headerZone);
+            }
+
+            if (headerSortText != null)
+            {
+                headerSortText.text = V6HistoryLogic.SortLabel(sort);
+            }
+
+            if (headerCountText != null)
+            {
+                headerCountText.text = V6HistoryLogic.RecordedCountLabel(playedCount);
+            }
+        }
+
+        private void CreateHeaderScaffold(GameObject headerZone)
         {
             // 戻るボタンは共通部品 (Issue #370)。design q9JZcH: header (0,20) 56×56。
             // 確定キーはキー設定の正本から取る。
@@ -372,15 +491,31 @@ namespace FlashBeat.UI.V6.History
             sortText.enableAutoSizing = true;
             sortText.fontSizeMax = 20f;
             sortText.fontSizeMin = 16f;
+            headerSortText = sortText;
 
             // design: Count fs24、右端はヘッダー内 1656 (= ページ 1680、情報ゾーン右 padding 24 の内側)
-            var count = V5GameUi.Text(headerZone, "Count", V6HistoryLogic.RecordedCountLabel(playedCount), 24f,
+            var count = V5GameUi.Text(headerZone, "Count", V6HistoryLogic.RecordedCountLabel(0), 24f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right);
             At(count, V6HistoryLogic.HeaderCountX, V6HistoryLogic.HeaderCountY, V6HistoryLogic.HeaderCountW,
                 V6HistoryLogic.HeaderCountH, new Vector2(0f, 0.5f));
+            headerCountText = count;
         }
 
         // --- フッター (共通フレームの Footer ゾーン: design (24,876) 1680×96) ---
+
+        /// <summary>
+        /// Issue #415: フッターは状態で変わらないので、中身が無いときだけ作る
+        /// (既存なら何もしない)。
+        /// </summary>
+        private void EnsureFooter(GameObject footerZone)
+        {
+            if (footerZone.transform.childCount > 0)
+            {
+                return;
+            }
+
+            BuildFooter(footerZone);
+        }
 
         private void BuildFooter(GameObject footerZone)
         {
@@ -435,7 +570,22 @@ namespace FlashBeat.UI.V6.History
 
         // --- 左列: 履歴リスト (x0 w560 #131313CC r16) ---
 
-        private void BuildList(GameObject mainZone, List<V6SongEntry> history, int selectIndex)
+        /// <summary>
+        /// Issue #415: リストは骨格 (パネル・Rows コンテナ) を保持し、行はスロット単位で
+        /// 既存オブジェクトを更新する。空状態 ↔ 行表示のモード変化のときだけ Rows を作り直す。
+        /// </summary>
+        private void EnsureList(GameObject mainZone, List<V6SongEntry> history, int selectIndex)
+        {
+            GameObject list = historyListGo != null ? historyListGo : mainZone.transform.Find("History List")?.gameObject;
+            if (list == null)
+            {
+                list = CreateListScaffold(mainZone);
+            }
+
+            UpdateListRows(list, history, selectIndex);
+        }
+
+        private GameObject CreateListScaffold(GameObject mainZone)
         {
             var list = At(V5Ui.Panel(mainZone, "History List", new Vector2(ListW, ListH),
                 FromHex("#131313CC"), 16f), 0f, 0f);
@@ -443,37 +593,144 @@ namespace FlashBeat.UI.V6.History
 
             var rows = V5Ui.Node(list, "Rows");
             At(rows.GetComponent<RectTransform>(), 0f, 0f, ListW, ListH);
+            historyListGo = list;
+            historyRowsGo = rows;
 
-            if (history.Count == 0)
-            {
-                // 空状態: プレイ記録がまだ無い (design に History 空状態は無いので
-                // Select の空状態 (AqFtx) と同じ表現に合わせる)。
-                var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
-                var col = V5GameUi.Column(empty.gameObject, "Inner", 8f, TextAnchor.MiddleCenter);
-                Stretch(col.GetComponent<RectTransform>(), 448f, 140f);
-                var emptyIcon = V6Icons.Create(col.gameObject, "music", 32f, V5Tokens.TextDim, "Icon");
-                V5GameUi.Text(col.gameObject, "Title", "プレイ履歴がありません", 24f, V5Tokens.Text,
-                    TextAlignmentOptions.Center);
-                V5GameUi.Text(col.gameObject, "Hint", "曲をプレイすると記録がここに残ります", 20f,
-                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            }
-            else
-            {
-                int first = listScroll;
-                int last = Mathf.Min(history.Count, first + ListVisibleRows);
-                // design q9JZcH: 全行が収まるときはスタックを縦中央に置く (4 行 → 254)。
-                // 収まらない / スクロール中のときは上端 RowY0 基準を保つ。
-                float y0 = first == 0 ? V6HistoryLogic.HistoryFirstRowY(history.Count) : RowY0;
-                for (int i = first; i < last; i++)
-                {
-                    BuildHistoryRow(rows, history[i], i + 1, i == selectIndex, y0 + RowStep * (i - first));
-                }
-            }
             BuildScrollButton(list, "Scroll Up", 0f, "chevron-up", -1);
             BuildScrollButton(list, "Scroll Down", 732f, "chevron-down", 1);
+            return list;
         }
 
-        private void BuildHistoryRow(GameObject parent, V6SongEntry song, int pos, bool selected, float y)
+        private void UpdateListRows(GameObject list, List<V6SongEntry> history, int selectIndex)
+        {
+            GameObject rows = historyRowsGo != null ? historyRowsGo : list.transform.Find("Rows")?.gameObject;
+            if (rows == null)
+            {
+                rows = V5Ui.Node(list, "Rows");
+                At(rows.GetComponent<RectTransform>(), 0f, 0f, ListW, ListH);
+                historyRowsGo = rows;
+            }
+
+            string mode = history.Count == 0 ? "empty" : "rows";
+            if (mode != listMode)
+            {
+                // モード変化 (行表示 ↔ 空状態) は骨格変更扱い。Rows の中だけを作り直す。
+                ClearChildren(rows);
+                historyRowObjects.Clear();
+                listMode = mode;
+                if (mode == "empty")
+                {
+                    // 空状態: プレイ記録がまだ無い (design に History 空状態は無いので
+                    // Select の空状態 (AqFtx) と同じ表現に合わせる)。
+                    var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
+                    var col = V5GameUi.Column(empty.gameObject, "Inner", 8f, TextAnchor.MiddleCenter);
+                    Stretch(col.GetComponent<RectTransform>(), 448f, 140f);
+                    var emptyIcon = V6Icons.Create(col.gameObject, "music", 32f, V5Tokens.TextDim, "Icon");
+                    V5GameUi.Text(col.gameObject, "Title", "プレイ履歴がありません", 24f, V5Tokens.Text,
+                        TextAlignmentOptions.Center);
+                    V5GameUi.Text(col.gameObject, "Hint", "曲をプレイすると記録がここに残ります", 20f,
+                        V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                    return;
+                }
+            }
+
+            // mode == "rows": スロット単位の差分更新。
+            int first = listScroll;
+            // design q9JZcH: 全行が収まるときはスタックを縦中央に置く (4 行 → 254)。
+            // 収まらない / スクロール中のときは上端 RowY0 基準を保つ。
+            float y0 = first == 0 ? V6HistoryLogic.HistoryFirstRowY(history.Count) : RowY0;
+            for (int slot = 0; slot < ListVisibleRows; slot++)
+            {
+                int i = first + slot;
+                bool valid = i >= 0 && i < history.Count;
+                float y = y0 + RowStep * slot;
+                GameObject row = slot < historyRowObjects.Count ? historyRowObjects[slot] : null;
+                if (row == null)
+                {
+                    if (!valid)
+                    {
+                        if (slot < historyRowObjects.Count) historyRowObjects[slot] = null;
+                        continue;
+                    }
+
+                    row = CreateHistoryRow(rows, history[i], i + 1, i == selectIndex, y);
+                    if (slot < historyRowObjects.Count) historyRowObjects[slot] = row;
+                    else historyRowObjects.Add(row);
+                    continue;
+                }
+
+                if (!valid)
+                {
+                    FlashBeat.UI.V5.V5GameUi.DestroyNow(row);
+                    historyRowObjects[slot] = null;
+                    continue;
+                }
+
+                UpdateHistoryRow(row, history[i], i + 1, i == selectIndex, y);
+            }
+
+            while (historyRowObjects.Count > ListVisibleRows)
+            {
+                int last = historyRowObjects.Count - 1;
+                GameObject tail = historyRowObjects[last];
+                if (tail != null) FlashBeat.UI.V5.V5GameUi.DestroyNow(tail);
+                historyRowObjects.RemoveAt(last);
+            }
+        }
+
+        /// <summary>既存の履歴行を新しい曲データで書き換える (行オブジェクトは再利用)。</summary>
+        private void UpdateHistoryRow(GameObject row, V6SongEntry song, int pos, bool selected, float y)
+        {
+            var rt = row.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = new Vector2(RowX, -y);
+            }
+
+            var bg = row.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = selected ? V5Tokens.Key6 : V5Tokens.Recessed2;
+            }
+
+            SetChildText(row, "Pos/PosText", pos.ToString());
+            Transform posText = row.transform.Find("Pos/PosText");
+            var posTmp = posText != null ? posText.GetComponent<TextMeshProUGUI>() : null;
+            if (posTmp != null)
+            {
+                posTmp.color = pos == 1 ? V5Tokens.Text : V5Tokens.TextMuted;
+            }
+
+            SetChildText(row, "Title", song.Title);
+            SetChildText(row, "Score", song.BestScore.ToString());
+            SetChildText(row, "Grade/GradeText", string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade);
+            row.name = "History " + song.Title;
+
+            var button = row.GetComponent<Button>();
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                int songId = song.SongId;
+                button.onClick.AddListener(() => SelectSong(songId));
+            }
+        }
+
+        private static void SetChildText(GameObject root, string path, string value)
+        {
+            Transform t = root != null ? root.transform.Find(path) : null;
+            var tmp = t != null ? t.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp != null)
+            {
+                tmp.text = value;
+            }
+        }
+
+        private GameObject CreateHistoryRow(GameObject parent, V6SongEntry song, int pos, bool selected, float y)
+        {
+            return BuildHistoryRow(parent, song, pos, selected, y);
+        }
+
+        private GameObject BuildHistoryRow(GameObject parent, V6SongEntry song, int pos, bool selected, float y)
         {
             var row = At(V5Ui.Panel(parent, "History " + song.Title, new Vector2(496f, RowH),
                 selected ? V5Tokens.Key6 : V5Tokens.Recessed2, 8f), RowX, y);
@@ -515,6 +772,7 @@ namespace FlashBeat.UI.V6.History
                 string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade, 22f, V5Tokens.Text,
                 TextAlignmentOptions.Center);
             Stretch(gradeText.GetComponent<RectTransform>(), 56f, 36f);
+            return row;
         }
 
         private void BuildScrollButton(GameObject list, string name, float y, string iconSprite, int delta)
@@ -527,13 +785,58 @@ namespace FlashBeat.UI.V6.History
 
         // --- 中央列: 選択中の曲 (dRztp と同じ構造) ---
 
-        private void BuildCenter(GameObject mainZone, V6SongEntry song)
+        /// <summary>個別の子を階層から外して破棄を予約する (V6Hierarchy.ClearChildren と同じ流儀)。</summary>
+        private static void DetachAndDestroy(GameObject go)
         {
+            if (go == null)
+            {
+                return;
+            }
+
+            go.transform.SetParent(null, false);
+            FlashBeat.UI.V5.V5GameUi.DestroyNow(go);
+        }
+
+        /// <summary>
+        /// Issue #415: 中央パネルは骨格を保持する。曲の有無で Meta の構造が変わる
+        /// (タイトル+アーティスト行 ↔ スケルトンバー) ため、その切替時だけ作り直す。
+        /// </summary>
+        private void EnsureCenter(GameObject mainZone, V6SongEntry song)
+        {
+            bool hasSong = song != null;
+            GameObject panel = centerGo != null ? centerGo : mainZone.transform.Find("Selected Song Panel")?.gameObject;
+            if (panel == null)
+            {
+                CreateCenterScaffold(mainZone, song);
+                ApplyCenter(song);
+                return;
+            }
+
+            if (centerHasSong != hasSong)
+            {
+                DetachAndDestroy(panel);
+                centerGo = null;
+                centerHeroGo = null;
+                centerTitleText = null;
+                centerArtistText = null;
+                centerTagText = null;
+                centerStatValues.Clear();
+                CreateCenterScaffold(mainZone, song);
+            }
+
+            ApplyCenter(song);
+        }
+
+        private GameObject CreateCenterScaffold(GameObject mainZone, V6SongEntry song)
+        {
+            bool hasSong = song != null;
+            centerHasSong = hasSong;
             var panel = At(V5Ui.Panel(mainZone, "Selected Song Panel", new Vector2(CenterW, ListH),
                 V5Tokens.Key2, 16f), CenterX, 0f);
-            bool hasSong = song != null;
+            centerGo = panel;
 
             var hero = At(V5Ui.Panel(panel, "Hero", new Vector2(512f, 288f), V5Tokens.Key3, 8f), 12f, 24f);
+            centerHeroGo = hero;
             if (hasSong)
             {
                 SetJacket(hero, song);
@@ -549,13 +852,15 @@ namespace FlashBeat.UI.V6.History
                 // sizeDelta だけ変えると既定アンカー (中央) のままで 13px 下がり、
                 // Artist Row (y60) に食い込む (r4 実機で重なって見えた)。
                 At(title, 0f, 9f, 512f, 50f);
+                centerTitleText = title;
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
                 At(artistRow.GetComponent<RectTransform>(), 0f, 60f, 512f, 36f);
                 var tag = V5Ui.Panel(artistRow.gameObject, "Tag No", new Vector2(64f, 30f), V5Tokens.Key4, 4f);
                 var tagText = V5GameUi.Text(tag, "Text", "No." + song.SongId, 20f, V5Tokens.TextMuted,
                     TextAlignmentOptions.Center);
+                centerTagText = tagText;
                 Stretch(tagText.GetComponent<RectTransform>(), 64f, 30f);
-                V5GameUi.Text(artistRow.gameObject, "Artist", song.Artist, 26f, V5Tokens.TextMuted);
+                centerArtistText = V5GameUi.Text(artistRow.gameObject, "Artist", song.Artist, 26f, V5Tokens.TextMuted);
             }
             else
             {
@@ -564,14 +869,10 @@ namespace FlashBeat.UI.V6.History
             }
 
             var stats = At(V5Ui.Panel(panel, "Stats", new Vector2(512f, 196f), V5Tokens.Key1, 8f), 12f, 452f);
-            BuildStat(stats, 0f, 0f, "BPM", hasSong && song.Bpm > 0
-                ? Mathf.RoundToInt((float)song.Bpm).ToString() : "–");
-            BuildStat(stats, 256f, 0f, "NOTES", hasSong && song.NoteCount > 0
-                ? song.NoteCount.ToString() : "–");
-            BuildStat(stats, 0f, 98f, "LEVEL", hasSong && song.Level > 0
-                ? song.Level.ToString() : "–");
-            BuildStat(stats, 256f, 98f, "BEST", hasSong
-                ? V6SelectViewLogic.FormatScore(song.BestScore) : "–");
+            centerStatValues.Add(BuildStat(stats, 0f, 0f, "BPM", ""));
+            centerStatValues.Add(BuildStat(stats, 256f, 0f, "NOTES", ""));
+            centerStatValues.Add(BuildStat(stats, 0f, 98f, "LEVEL", ""));
+            centerStatValues.Add(BuildStat(stats, 256f, 98f, "BEST", ""));
             At(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), FromHex("#FFFFFF1F"), 0f), 256f, 0f);
             At(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), FromHex("#FFFFFF1F"), 0f), 0f, 98f);
 
@@ -585,13 +886,42 @@ namespace FlashBeat.UI.V6.History
             BuildControlButton(controls, "skip-back", 144f, 56f, 28f, 32f, () => MoveSelection(-1));
             BuildControlButton(controls, "play", 210f, 72f, 36f, 36f, TriggerGotoSong);
             BuildControlButton(controls, "skip-forward", 292f, 56f, 28f, 32f, () => MoveSelection(1));
+            return panel;
+        }
+
+        /// <summary>中央パネルの変動値を既存要素へ適用する。</summary>
+        private void ApplyCenter(V6SongEntry song)
+        {
+            bool hasSong = song != null;
+            if (hasSong)
+            {
+                if (centerHeroGo != null) SetJacket(centerHeroGo, song);
+                if (centerTitleText != null) centerTitleText.text = song.Title;
+                if (centerTagText != null) centerTagText.text = "No." + song.SongId;
+                if (centerArtistText != null) centerArtistText.text = song.Artist;
+
+                if (centerStatValues.Count == 4)
+                {
+                    centerStatValues[0].text = song.Bpm > 0 ? Mathf.RoundToInt((float)song.Bpm).ToString() : "–";
+                    centerStatValues[1].text = song.NoteCount > 0 ? song.NoteCount.ToString() : "–";
+                    centerStatValues[2].text = song.Level > 0 ? song.Level.ToString() : "–";
+                    centerStatValues[3].text = V6SelectViewLogic.FormatScore(song.BestScore);
+                }
+            }
+            else if (centerStatValues.Count == 4)
+            {
+                centerStatValues[0].text = "–";
+                centerStatValues[1].text = "–";
+                centerStatValues[2].text = "–";
+                centerStatValues[3].text = "–";
+            }
         }
 
         /// <summary>
         /// 統計セル (BPM / NOTES / LEVEL / BEST)。LayoutGroup ではなく絶対位置で置く
-        /// (V6SelectView.BuildStat と同じ実装)。
+        /// (V6SelectView.BuildStat と同じ実装)。値テキストを返す (差分更新で書き換えるため)。
         /// </summary>
-        private void BuildStat(GameObject stats, float x, float y, string label, string value)
+        private TextMeshProUGUI BuildStat(GameObject stats, float x, float y, string label, string value)
         {
             var cell = V5Ui.Node(stats, "Stat " + label);
             At(cell.GetComponent<RectTransform>(), x, y, 256f, 98f);
@@ -617,6 +947,7 @@ namespace FlashBeat.UI.V6.History
             valueRt.pivot = new Vector2(1f, 0.5f);
             valueRt.anchoredPosition = new Vector2(-16f, 0f);
             valueRt.sizeDelta = new Vector2(200f, 44f);
+            return valueText;
         }
 
         /// <summary>中央パネルの Controls 行のボタン 1 個分。実操作へ結線する (onClick null は作らない)。</summary>
@@ -635,20 +966,218 @@ namespace FlashBeat.UI.V6.History
 
         // --- 右列: プレイヤー情報 / プレイ情報 / 曲ランキング情報 ---
 
-        private void BuildRight(GameObject mainZone, V6SongEntry song)
+        /// <summary>
+        /// Issue #415: 右列 (プレイヤー情報 / プレイ情報 / 曲ランキング) は骨格を保持し、
+        /// 変動する値テキストとランキング行を差分更新する。
+        /// 曲ランキングの Song チップは曲の有無で構造が変わるため、その切替時だけパネルを作り直す。
+        /// </summary>
+        private void EnsureRight(GameObject mainZone, V6SongEntry song)
+        {
+            GameObject column = rightGo != null ? rightGo : mainZone.transform.Find("Record Column")?.gameObject;
+            if (column == null)
+            {
+                column = CreateRightScaffold(mainZone, song);
+            }
+
+            ApplyRight(column, song);
+        }
+
+        private GameObject CreateRightScaffold(GameObject mainZone, V6SongEntry song)
         {
             // Main ゾーン内 (design: 記録情報 (列5-6) = Main 内 (1120,0) 560×780)
             GameObject column = V5Ui.Node(mainZone, "Record Column");
             At(column, RightX, 0f, ListW, ListH);
+            rightGo = column;
 
             BuildPlayerInfo(column, song);
             BuildPlayInfo(column, song);
             BuildSongRanking(column, song);
+            return column;
+        }
+
+        private void ApplyRight(GameObject column, V6SongEntry song)
+        {
+            ApplyPlayerInfo(column, song);
+            ApplyPlayInfo(column, song);
+            ApplySongRanking(column, song);
+        }
+
+        private void ApplyPlayerInfo(GameObject column, V6SongEntry song)
+        {
+            List<V6SongEntry> history = V6HistoryLogic.HistoryList(data.AllSongs, sort);
+            if (infoNicknameText != null)
+            {
+                string nickname = RankingClient.LoadNickname();
+                infoNicknameText.text = string.IsNullOrEmpty(nickname) ? "YOU" : nickname;
+            }
+
+            if (infoValueTexts.Count == 4)
+            {
+                infoValueTexts[0].text = V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history));
+                infoValueTexts[1].text = history.Count + " / " + data.AllSongs.Count;
+                infoValueTexts[2].text = V6HistoryLogic.CountGradeAtLeastS(history).ToString();
+                // 順位セルは API 未実装のまま "–位 / –人" (design どおり・静的なので書き換え不要)
+            }
+        }
+
+        private void ApplyPlayInfo(GameObject column, V6SongEntry song)
+        {
+            bool valid = LastPlayValid(song);
+            if (playScoreValueText != null)
+            {
+                playScoreValueText.text = valid ? V6SelectViewLogic.FormatScore(GManager.score) : "–";
+            }
+
+            if (judgeValueTexts.Count == 6)
+            {
+                judgeValueTexts[0].text = valid ? GManager.perfect.ToString() : "–";
+                judgeValueTexts[1].text = valid ? GManager.great.ToString() : "–";
+                judgeValueTexts[2].text = valid ? GManager.bad.ToString() : "–";
+                judgeValueTexts[3].text = valid ? GManager.miss.ToString() : "–";
+                judgeValueTexts[4].text = valid ? "0" : "–";
+                judgeValueTexts[5].text = valid
+                    ? V6HistoryLogic.ComboLabel(GManager.maxCombo, song != null ? song.NoteCount : 0) : "–";
+            }
+        }
+
+        private void ApplySongRanking(GameObject column, V6SongEntry song)
+        {
+            bool hasSong = song != null;
+            GameObject panel = songRankPanelGo != null ? songRankPanelGo
+                : column.transform.Find("Song Ranking")?.gameObject;
+            if (panel == null)
+            {
+                BuildSongRanking(column, song);
+                return;
+            }
+
+            if (songRankHasSong != hasSong)
+            {
+                // 曲チップの有無で Head の構造が変わるので、曲ランキングパネルだけ作り直す。
+                DetachAndDestroy(panel);
+                songRankPanelGo = null;
+                songRankThumbGo = null;
+                songRankChipText = null;
+                songRankNoDataText = null;
+                songRankRowObjects.Clear();
+                BuildSongRanking(column, song);
+                return;
+            }
+
+            if (songRankChipText != null)
+            {
+                songRankChipText.text = song != null ? song.Title : "";
+            }
+
+            if (songRankThumbGo != null && song != null)
+            {
+                SetJacket(songRankThumbGo, song);
+            }
+
+            UpdateSongRankingRows(panel, song);
+        }
+
+        private void UpdateSongRankingRows(GameObject panel, V6SongEntry song)
+        {
+            List<V6RankingRow> rows = SongRankingRows(song);
+            bool hasRows = rows.Count > 0;
+            if (songRankNoDataText != null)
+            {
+                if (hasRows)
+                {
+                    songRankNoDataText.gameObject.SetActive(false);
+                }
+                else
+                {
+                    songRankNoDataText.text = V6RankingLogic.SongRankingEmptyMessage(
+                        song, data.IsLoading, data.HasError, data.StatusMessage);
+                    songRankNoDataText.gameObject.SetActive(true);
+                }
+            }
+
+            int first = songRankingScroll;
+            for (int slot = 0; slot < SongRankingVisibleRows; slot++)
+            {
+                int i = first + slot;
+                bool valid = hasRows && i < rows.Count;
+                GameObject row = slot < songRankRowObjects.Count ? songRankRowObjects[slot] : null;
+                float y = V6HistoryLogic.SongRankRowTop(slot);
+                if (!valid)
+                {
+                    if (row != null)
+                    {
+                        DetachAndDestroy(row);
+                        songRankRowObjects[slot] = null;
+                    }
+
+                    continue;
+                }
+
+                if (row == null)
+                {
+                    row = CreateSongRankRow(panel, rows[i], slot);
+                    if (slot < songRankRowObjects.Count) songRankRowObjects[slot] = row;
+                    else songRankRowObjects.Add(row);
+                }
+                else
+                {
+                    UpdateSongRankRow(row, rows[i], y);
+                }
+            }
+
+            while (songRankRowObjects.Count > SongRankingVisibleRows)
+            {
+                int last = songRankRowObjects.Count - 1;
+                DetachAndDestroy(songRankRowObjects[last]);
+                songRankRowObjects.RemoveAt(last);
+            }
+        }
+
+        private GameObject CreateSongRankRow(GameObject panel, V6RankingRow row, int visibleIndex)
+        {
+            return V6Lists.RankRow(
+                panel,
+                row.Position.ToString(),
+                row.IsYou ? "YOU" : row.PlayerName,
+                V6SelectViewLogic.FormatScore(row.Score),
+                string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
+                new Vector2(V6HistoryLogic.SongRankRowX, V6HistoryLogic.SongRankRowTop(visibleIndex)),
+                new Vector2(V6HistoryLogic.SongRankRowW, V6HistoryLogic.SongRankRowH),
+                row.IsYou);
+        }
+
+        /// <summary>既存の曲ランキング行を新しい行データで書き換える (行オブジェクトは再利用)。</summary>
+        private static void UpdateSongRankRow(GameObject row, V6RankingRow dataRow, float y)
+        {
+            var rt = row.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = new Vector2(V6HistoryLogic.SongRankRowX, -y);
+            }
+
+            var bg = row.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = dataRow.IsYou ? V5Tokens.Key6 : V5Tokens.Key1;
+            }
+
+            SetChildText(row, "Pos/Pos", dataRow.Position.ToString());
+            SetChildText(row, "Name", dataRow.IsYou ? "YOU" : dataRow.PlayerName);
+            SetChildText(row, "Value", V6SelectViewLogic.FormatScore(dataRow.Score));
+            SetChildText(row, "Grade/Grade", string.IsNullOrEmpty(dataRow.Grade) ? "–" : dataRow.Grade);
+
+            Transform posText = row.transform.Find("Pos/Pos");
+            var posTmp = posText != null ? posText.GetComponent<TextMeshProUGUI>() : null;
+            if (posTmp != null)
+            {
+                posTmp.color = dataRow.IsYou ? V5Tokens.Text : V5Tokens.TextMuted;
+            }
         }
 
         /// <summary>プレイヤー情報 (528x176 $k2): 累計 / プレイ済み / S以上 (Issue #239 で順位セルは削除)。</summary>
         private void BuildPlayerInfo(GameObject column, V6SongEntry song)
         {
+            infoValueTexts.Clear();
             List<V6SongEntry> history = V6HistoryLogic.HistoryList(data.AllSongs, sort);
             var panel = At(V5Ui.Panel(column, "Player Info", new Vector2(528f, 176f), V5Tokens.Key2, 8f), 16f, 24f);
 
@@ -663,23 +1192,24 @@ namespace FlashBeat.UI.V6.History
             spacerLe.flexibleWidth = 1f;
 
             string nickname = RankingClient.LoadNickname();
-            V5GameUi.Text(head.gameObject, "Name",
+            infoNicknameText = V5GameUi.Text(head.gameObject, "Name",
                 string.IsNullOrEmpty(nickname) ? "YOU" : nickname, 22f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
 
-            BuildInfoCell(panel, 8f, 52f, "累計", V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history)));
+            infoValueTexts.Add(BuildInfoCell(panel, 8f, 52f, "累計", V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history))));
             // design (YuQgv value "4 / 26") は「記録のある曲数 / 全曲数」。
-            BuildInfoCell(panel, 272f, 52f, "プレイ曲", history.Count + " / " + data.AllSongs.Count);
-            BuildInfoCell(panel, 8f, 116f, "S以上", V6HistoryLogic.CountGradeAtLeastS(history).ToString());
+            infoValueTexts.Add(BuildInfoCell(panel, 272f, 52f, "プレイ曲", history.Count + " / " + data.AllSongs.Count));
+            infoValueTexts.Add(BuildInfoCell(panel, 8f, 116f, "S以上", V6HistoryLogic.CountGradeAtLeastS(history).ToString()));
             // design (xnuYO) は 4 番目のセル「順位」("–位 / –人") を持つ。
             // 総合順位を返す API はまだ無いので、design と同じく未確定表示 "–位 / –人" を出す。
             // (以前はセルごと削除していたが、それは design 差分だったので戻した。)
-            BuildInfoCell(panel, 272f, 116f, "順位", "–位 / –人");
+            infoValueTexts.Add(BuildInfoCell(panel, 272f, 116f, "順位", "–位 / –人"));
         }
 
         /// <summary>プレイ情報 (528x220 $k2): 直前のプレイの SCORE と判定内訳。</summary>
         private void BuildPlayInfo(GameObject column, V6SongEntry song)
         {
+            judgeValueTexts.Clear();
             var panel = At(V5Ui.Panel(column, "Play Info", new Vector2(528f, 220f), V5Tokens.Key2, 8f), 16f, 216f);
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
@@ -691,24 +1221,24 @@ namespace FlashBeat.UI.V6.History
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
             V5GameUi.Text(head.gameObject, "Score Label", "SCORE", 18f, V5Tokens.TextDim, TextAlignmentOptions.Right);
-            var lastScore = V5GameUi.Text(head.gameObject, "Score Value", LastPlayValid(song)
+            playScoreValueText = V5GameUi.Text(head.gameObject, "Score Value", LastPlayValid(song)
                 ? V6SelectViewLogic.FormatScore(GManager.score) : "–", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Right, FontStyles.Bold);
-            lastScore.textWrappingMode = TextWrappingModes.NoWrap;
+            playScoreValueText.textWrappingMode = TextWrappingModes.NoWrap;
 
             bool valid = LastPlayValid(song);
-            BuildJudgeCell(panel, 20f, 52f, "PERFECT", valid ? GManager.perfect.ToString() : "–");
-            BuildJudgeCell(panel, 189f, 52f, "GREAT", valid ? GManager.great.ToString() : "–");
-            BuildJudgeCell(panel, 358f, 52f, "BAD", valid ? GManager.bad.ToString() : "–");
-            BuildJudgeCell(panel, 20f, 140f, "MISS", valid ? GManager.miss.ToString() : "–");
+            judgeValueTexts.Add(BuildJudgeCell(panel, 20f, 52f, "PERFECT", valid ? GManager.perfect.ToString() : "–"));
+            judgeValueTexts.Add(BuildJudgeCell(panel, 189f, 52f, "GREAT", valid ? GManager.great.ToString() : "–"));
+            judgeValueTexts.Add(BuildJudgeCell(panel, 358f, 52f, "BAD", valid ? GManager.bad.ToString() : "–"));
+            judgeValueTexts.Add(BuildJudgeCell(panel, 20f, 140f, "MISS", valid ? GManager.miss.ToString() : "–"));
             // design (d0bZbJ) は 5 番目のセル「HOLD」("0") を持つ。現行エンジンの譜面は
             // すべて通常ノーツ (chart の type は 1 のみ) で HOLD の集計は存在しないため、
             // プレイが有効なときの真の値は常に 0。design と同じ "0" を出す。
-            BuildJudgeCell(panel, 189f, 140f, "HOLD", valid ? "0" : "–");
+            judgeValueTexts.Add(BuildJudgeCell(panel, 189f, 140f, "HOLD", valid ? "0" : "–"));
             // design: MAX COMBO の value のみ fs24
-            BuildJudgeCell(panel, 358f, 140f, "MAX COMBO",
+            judgeValueTexts.Add(BuildJudgeCell(panel, 358f, 140f, "MAX COMBO",
                 valid ? V6HistoryLogic.ComboLabel(GManager.maxCombo, song != null ? song.NoteCount : 0) : "–",
-                24f);
+                24f));
         }
 
         /// <summary>
@@ -725,8 +1255,14 @@ namespace FlashBeat.UI.V6.History
         /// <summary>曲ランキング情報 (528x304 $k2): 選択中の曲のランキング 4 行。</summary>
         private void BuildSongRanking(GameObject column, V6SongEntry song)
         {
+            songRankRowObjects.Clear();
+            songRankNoDataText = null;
+            songRankThumbGo = null;
+            songRankChipText = null;
             var panel = At(V5Ui.Panel(column, "Song Ranking", new Vector2(528f, 304f), V5Tokens.Key2, 8f), 16f, 452f);
             AddScrollCatcher(panel, 1);
+            songRankPanelGo = panel;
+            songRankHasSong = song != null;
 
             var head = V5GameUi.Row(panel.gameObject, "Head", 8f, TextAnchor.MiddleLeft);
             At(head.GetComponent<RectTransform>(), 8f, 8f, 496f, 36f);
@@ -747,28 +1283,35 @@ namespace FlashBeat.UI.V6.History
                 var thumbLe = thumb.AddComponent<LayoutElement>();
                 thumbLe.preferredWidth = 40f;
                 thumbLe.preferredHeight = 24f;
+                songRankThumbGo = thumb;
                 SetJacket(thumb, song);
-                V5GameUi.Text(songChip.gameObject, "Text", song.Title, 18f, V5Tokens.Text);
+                songRankChipText = V5GameUi.Text(songChip.gameObject, "Text", song.Title, 18f, V5Tokens.Text);
             }
+
+            // 空状態テキストは常に作っておき、有無だけ setActive で切り替える
+            // (作成・破棄で骨格を揺らさない。取得状態に応じて文言は更新される)。
+            songRankNoDataText = V5GameUi.Text(panel.gameObject, "No Data", "",
+                24f, V5Tokens.TextDim, TextAlignmentOptions.Left);
+            At(songRankNoDataText, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
 
             List<V6RankingRow> rows = SongRankingRows(song);
             if (rows.Count == 0)
             {
                 // 空 / 取得中 / 失敗 / 対象外を区別して出す (Issue #239)。
                 // cloud 曲はデータソースの取得状態、ローカル曲は記録の有無のみ。
-                string message = V6RankingLogic.SongRankingEmptyMessage(
+                songRankNoDataText.text = V6RankingLogic.SongRankingEmptyMessage(
                     song, data.IsLoading, data.HasError, data.StatusMessage);
-                var empty = V5GameUi.Text(panel.gameObject, "No Data", message,
-                    24f, V5Tokens.TextDim, TextAlignmentOptions.Left);
-                At(empty, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+                songRankNoDataText.gameObject.SetActive(true);
                 return;
             }
+
+            songRankNoDataText.gameObject.SetActive(false);
 
             int first = songRankingScroll;
             int last = Mathf.Min(rows.Count, first + SongRankingVisibleRows);
             for (int i = first; i < last; i++)
             {
-                BuildRankingRow(panel, rows[i], i - first);
+                songRankRowObjects.Add(CreateSongRankRow(panel, rows[i], i - first));
             }
         }
 
@@ -786,27 +1329,8 @@ namespace FlashBeat.UI.V6.History
             return V6RankingLogic.LocalRows(song);
         }
 
-        /// <summary>
-        /// 選択中の曲のランキング行。行は共通部品 V6Lists.RankRow (design 実測:
-        /// Pos 36×36 / Name w160 / Value w180 右寄せ / Grade 56×36。正本 Hbxqf/T8C1Hu、
-        /// 契約 §5 の w140 は Select のランキング列の値) を使い回し、寸法は design
-        /// (曲ランキング情報: Score·k = (8, 60+60k) 496×52) をそのまま使う。
-        /// </summary>
-        private void BuildRankingRow(GameObject panel, V6RankingRow row, int visibleIndex)
-        {
-            V6Lists.RankRow(
-                panel,
-                row.Position.ToString(),
-                row.IsYou ? "YOU" : row.PlayerName,
-                V6SelectViewLogic.FormatScore(row.Score),
-                string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
-                new Vector2(V6HistoryLogic.SongRankRowX, V6HistoryLogic.SongRankRowTop(visibleIndex)),
-                new Vector2(V6HistoryLogic.SongRankRowW, V6HistoryLogic.SongRankRowH),
-                row.IsYou);
-        }
-
-        /// <summary>プレイヤー情報 / プレイ情報の小セル (label 左 / value 右)。</summary>
-        private void BuildInfoCell(GameObject panel, float x, float y, string label, string value)
+        /// <summary>プレイヤー情報 / プレイ情報の小セル (label 左 / value 右)。値テキストを返す (差分更新で書き換えるため)。</summary>
+        private TextMeshProUGUI BuildInfoCell(GameObject panel, float x, float y, string label, string value)
         {
             var cell = At(V5Ui.Panel(panel, "Stat " + label, new Vector2(248f, 60f), V5Tokens.Key1, 8f), x, y);
 
@@ -822,20 +1346,21 @@ namespace FlashBeat.UI.V6.History
             valueText.fontSizeMin = 16f;
             valueText.fontSizeMax = 24f;
             At(valueText, 116f, 0f, 120f, 60f, new Vector2(0f, 0.5f));
+            return valueText;
         }
 
         /// <summary>
         /// プレイ情報の判定セル (design: 150×80 $k1、label fs18 上 / value fs32 下。
-        /// MAX COMBO の value のみ fs24)。
+        /// MAX COMBO の value のみ fs24)。値テキストを返す (差分更新で書き換えるため)。
         /// </summary>
-        private void BuildJudgeCell(GameObject panel, float x, float y, string label, string value,
+        private TextMeshProUGUI BuildJudgeCell(GameObject panel, float x, float y, string label, string value,
             float valueFs = 32f)
         {
             var cell = At(V5Ui.Panel(panel, "Judge " + label, new Vector2(150f, 80f), V5Tokens.Key1, 8f), x, y);
             var col = V5GameUi.Column(cell, "Inner", 2f, TextAnchor.MiddleCenter);
             Stretch(col.GetComponent<RectTransform>(), 150f, 80f);
             V5GameUi.Text(col.gameObject, "Label", label, 18f, V5Tokens.TextDim, TextAlignmentOptions.Center);
-            V5GameUi.Text(col.gameObject, "Value", value, valueFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            return V5GameUi.Text(col.gameObject, "Value", value, valueFs, V5Tokens.Text, TextAlignmentOptions.Center);
         }
 
         // --- 入力ヘルパ (マウスのみ。キーは統合担当が結線する) ---
@@ -844,7 +1369,7 @@ namespace FlashBeat.UI.V6.History
         {
             int count = V6HistoryLogic.HistoryList(data.AllSongs, sort).Count;
             listScroll = V6SelectViewLogic.ClampScroll(listScroll + delta, count, ListVisibleRows);
-            Rebuild(false);
+            ApplyVolatile(false);
         }
 
         internal void OnScroll(int target, float delta)
@@ -858,7 +1383,7 @@ namespace FlashBeat.UI.V6.History
             V6SongEntry song = SongById(selectedSongId);
             int count = SongRankingRows(song).Count;
             songRankingScroll = V6SelectViewLogic.ClampScroll(songRankingScroll + step, count, SongRankingVisibleRows);
-            Rebuild(false);
+            ApplyVolatile(false);
         }
 
         private V6SongEntry SongById(int songId)
