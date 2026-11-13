@@ -319,49 +319,38 @@ namespace FlashBeat.V6HudTests
             Assert.IsNull(lines[0].Romaji);
         }
 
-        // --- 歌詞スロットの写像 (Issue #379) ---
+        // --- 歌詞スロットの写像 (Issue #433: 共有フレームの 1:1 写像へ) ---
 
         [Test]
-        public void LyricTopY_MatchesDesignMappingForThreeResolutions()
+        public void LyricSlotOrigin_MatchesFrameGridForThreeResolutions()
         {
-            // 250 × (画面高さ / 972)。FHD 278 / 2K 370 / Mac 428。
-            Assert.AreEqual(278f, V6HudLogic.LyricTopY(1080f), 0.6f);
-            Assert.AreEqual(370f, V6HudLogic.LyricTopY(1440f), 0.6f);
-            Assert.AreEqual(428f, V6HudLogic.LyricTopY(1664f), 0.6f);
+            // フレーム origin ((w-1728)/2, (h-972)/2 切捨て) + (304,250)。
+            // FHD (400,304) / 2K (720,484) / Mac (720,596)。
+            Assert.AreEqual(new Vector2(400f, 304f),
+                V6HudLogic.LyricSlotOrigin(1920f, 1080f));
+            Assert.AreEqual(new Vector2(720f, 484f),
+                V6HudLogic.LyricSlotOrigin(2560f, 1440f));
+            Assert.AreEqual(new Vector2(720f, 596f),
+                V6HudLogic.LyricSlotOrigin(2560f, 1664f));
         }
 
         [Test]
-        public void LyricWidthScalesWithHeight()
+        public void LyricWidthIsTheFrameColumnSpan()
         {
-            // 幅は design の 1120 を高さ合わせで写す (変えない)。
-            Vector2 fhd = V6HudLogic.LyricSize(1080f, 18f, 36f, 16f);
-            Assert.AreEqual(1244f, fhd.x, 1f);
-
-            Vector2 mac = V6HudLogic.LyricSize(1664f, 24f, 48f, 22f);
-            Assert.AreEqual(1917f, mac.x, 1f);
+            // 幅はメイン領域 6 列グリッドの中央 4 列 = 1120 を 1:1 で使う
+            // (高さ合わせで拡大しない)。
+            Assert.AreEqual(V6HudLogic.LyricDesignWidth, V6HudLogic.LyricSize(36f).x, 0.01f);
         }
 
         [Test]
         public void LyricHeightFollowsTheTextNotTheDesignBlanket()
         {
-            // 2026-11-12 オーナー指摘: 高さを 220 × scale にすると、フォントが
-            // 画面倍率に追従しない分だけ「大きな空の板」になる。高さは行構成から
-            // 求めるので、design の 220 × scale より小さくなる。
-            Vector2 mac = V6HudLogic.LyricSize(1664f, 24f, 48f, 22f);
-            Assert.Less(mac.y, 377f, "design の 220 × scale をそのまま使わない");
-            Assert.Greater(mac.y, 48f, "歌詞 1 行は必ず入る");
-        }
-
-        // --- スコアのポップ (Issue #379) ---
-
-        [Test]
-        public void ScorePulseScale_RisesThenReturnsToOne()
-        {
-            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(0f), 1e-4f);
-            Assert.AreEqual(1.06f, V6HudLogic.ScorePulseScale(0.08f), 1e-4f);
-            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(0.2f), 1e-4f);
-            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(5f), 1e-4f);
-            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(-1f), 1e-4f);
+            // design の 220 は 3 行構成の値。本文 1 行 + Start Prompt に
+            // 合わせた高さなので、design の 220 より小さい。
+            Vector2 size = V6HudLogic.LyricSize(48f);
+            Assert.Less(size.y, V6HudLogic.LyricDesignHeight);
+            Assert.Greater(size.y, V6HudLogic.ReadyPromptCapHeight,
+                "Start Prompt (KeyCap) が収まる");
         }
     }
 }

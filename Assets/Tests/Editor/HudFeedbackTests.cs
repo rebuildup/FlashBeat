@@ -14,34 +14,52 @@ namespace FlashBeat.Tests
     /// </summary>
     public class HudFeedbackTests
     {
-        // --- 判定の出現 ---
+        // --- 判定ポップアップ (Issue #432) ---
 
         [Test]
-        public void VerdictStartsAtTheJudgeLineAndRises()
+        public void VerdictPopupStartsAtTheJudgeLineAndBouncesUp()
         {
-            // 出た瞬間は最も下 (判定線の近く)。
-            Assert.AreEqual(V6HudLogic.VerdictRiseDistance, V6HudLogic.VerdictRiseOffset(0f), 0.001f);
+            const float drop = 72f;
+            // 出た瞬間は判定線の位置 (静止位置より drop だけ下)。
+            Assert.AreEqual(drop, V6HudLogic.VerdictPopupOffset(0f, drop), 0.001f);
 
-            // 時間とともに上へ移動する。
-            float mid = V6HudLogic.VerdictRiseOffset(V6HudLogic.VerdictRiseSeconds * 0.5f);
-            Assert.Less(mid, V6HudLogic.VerdictRiseDistance);
-            Assert.Greater(mid, 0f);
+            // 途中で静止位置 (0) を通過する。
+            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(V6HudLogic.VerdictPopupSeconds * 0.5f, drop), 0.05f);
 
-            // 立ち上がりきったら所定位置 (0)。
-            Assert.AreEqual(0f, V6HudLogic.VerdictRiseOffset(V6HudLogic.VerdictRiseSeconds), 0.001f);
-            Assert.AreEqual(0f, V6HudLogic.VerdictRiseOffset(1f), 0.001f);
+            // 行き過ぎて上 (負) へ出てから、最後は静止位置へ戻る。
+            float min = float.MaxValue;
+            for (float t = 0f; t <= V6HudLogic.VerdictPopupSeconds; t += 0.005f)
+            {
+                min = Mathf.Min(min, V6HudLogic.VerdictPopupOffset(t, drop));
+            }
+            Assert.Less(min, 0f, "静止位置を行き過ぎて上へ弾ける");
+
+            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(V6HudLogic.VerdictPopupSeconds, drop), 0.001f);
+            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(1f, drop), 0.001f);
+        }
+
+        // --- ポップ・パンチ (Issue #434) ---
+
+        [Test]
+        public void PunchScalePopsUpAndSettles()
+        {
+            Assert.AreEqual(1f, V6HudLogic.PunchScale(-1f, 1.1f, 0.05f, 0.2f), 0.001f);
+            Assert.Greater(V6HudLogic.PunchScale(0.02f, 1.1f, 0.05f, 0.2f), 1f, "立ち上がりで拡大する");
+            Assert.AreEqual(1f, V6HudLogic.PunchScale(0.2f, 1.1f, 0.05f, 0.2f), 0.001f,
+                "全体時間を過ぎたら等倍へ戻る");
+            Assert.AreEqual(1f, V6HudLogic.PunchScale(1f, 1.1f, 0.05f, 0.2f), 0.001f);
         }
 
         [Test]
-        public void VerdictRiseIsMonotonic()
+        public void ApproachConvergesToTarget()
         {
-            float previous = float.MaxValue;
-            for (float t = 0f; t <= V6HudLogic.VerdictRiseSeconds; t += 0.01f)
+            float v = 0f;
+            for (int i = 0; i < 120; i++)
             {
-                float offset = V6HudLogic.VerdictRiseOffset(t);
-                Assert.LessOrEqual(offset, previous + 0.0001f, "立ち上がりが逆戻りしない");
-                previous = offset;
+                v = V6HudLogic.Approach(v, 100f, 1f / 60f, 10f);
             }
+
+            Assert.AreEqual(100f, v, 0.5f, "指数 tween は目標へ収束する");
         }
 
         [Test]
@@ -53,58 +71,59 @@ namespace FlashBeat.Tests
             Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(-1f), 0.001f);
         }
 
-        // --- コンボのポップ ---
+        // --- コンボのポップ (Issue #434: attack を短くして遅れて見えないように) ---
 
         [Test]
-        public void ComboUsesTheSamePopAsTheScore()
+        public void ComboPopAttacksFasterThanScore()
         {
-            // コンボだけ静止していたのが指摘の本体。スコアと同じ時間割を使う。
-            Assert.AreEqual(V6HudLogic.ScorePulseScale(0f), V6HudLogic.ScorePulseScale(0f), 0.0001f);
-            Assert.Greater(V6HudLogic.ScorePulseScale(0.08f), 1f, "加算直後は拡大する");
-            Assert.AreEqual(1f, V6HudLogic.ScorePulseScale(V6HudLogic.ScorePulseSeconds), 0.001f,
-                "ポップは元の倍率へ戻る");
+            Assert.Less(V6HudLogic.ComboPopAttack, V6HudLogic.ScorePopAttack,
+                "コンボの立ち上がりはスコアより速い");
+            Assert.AreEqual(1f, V6HudLogic.PunchScale(V6HudLogic.ComboPopTotal,
+                V6HudLogic.ComboPopPeak, V6HudLogic.ComboPopAttack, V6HudLogic.ComboPopTotal), 0.001f);
         }
 
-        // --- 歌詞スロット ---
+        // --- 歌詞スロット (Issue #433) ---
 
         [Test]
         public void LyricBoxIsSizedToItsTextNotToADesignBlanket()
         {
-            // design の 220 を画面倍率で拡大しただけの箱は、文字に対して大きすぎる。
-            float boxHeight = V6HudLogic.LyricContentHeight(24f, 48f, 22f);
-            float designScaled = V6HudLogic.LyricDesignHeight
-                * V6LaneGeometry.ScreenScale(new Vector2(0f, 2148f));
+            // design の 220 (3 行構成) より、本文 1 行 + Start Prompt の高さが小さい。
+            float boxHeight = V6HudLogic.LyricContentHeight(48f);
 
-            Assert.Less(boxHeight, designScaled,
+            Assert.Less(boxHeight, V6HudLogic.LyricDesignHeight,
                 "箱は design の空白を含めた高さより小さく、文字に合わせる");
             Assert.Greater(boxHeight, 48f, "歌詞 1 行は必ず収まる");
         }
 
         [Test]
-        public void LyricBoxKeepsRoomForThreeRows()
+        public void LyricBoxKeepsRoomForTheLyricRowAndPrompt()
         {
-            // 振り仮名 / 歌詞 / ローマ字 の 3 行 + 行間 + padding。
-            float height = V6HudLogic.LyricContentHeight(24f, 48f, 22f);
-            float rows = 24f * 1.4f + 48f * 1.2f + 22f * 1.4f;
+            // Issue #433: 歌詞本文 1 行 + Start Prompt (KeyCap 36) が収まる高さ。
+            float height = V6HudLogic.LyricContentHeight(48f);
+            float lyricLine = 48f * 1.2f;
+            float expected = Mathf.Max(lyricLine, V6HudLogic.ReadyPromptCapHeight)
+                + V6HudLogic.LyricPaddingY * 2f;
 
-            Assert.Greater(height, rows, "3 行と行間・padding が入る");
+            Assert.AreEqual(expected, height, 0.001f);
+            Assert.GreaterOrEqual(height, V6HudLogic.ReadyPromptCapHeight + V6HudLogic.LyricPaddingY * 2f,
+                "Start Prompt (KeyCap) が収まる");
         }
 
         [Test]
-        public void LyricWidthStillFollowsTheDesign()
+        public void LyricWidthIsTheFrameColumnSpan()
         {
-            var size = V6HudLogic.LyricSize(2148f, 24f, 48f, 22f);
-            float expected = V6HudLogic.LyricDesignWidth
-                * V6LaneGeometry.ScreenScale(new Vector2(0f, 2148f));
+            // Issue #433: 幅は共有フレームのメイン領域 6 列グリッド中央 4 列
+            // = 1120 を 1:1 で使う (高さ合わせで拡大しない)。
+            var size = V6HudLogic.LyricSize(48f);
 
-            Assert.AreEqual(expected, size.x, 0.01f, "幅は design の 1120 を写す");
+            Assert.AreEqual(V6HudLogic.LyricDesignWidth, size.x, 0.01f);
         }
 
         [Test]
         public void LargerTextMakesABiggerBox()
         {
-            float small = V6HudLogic.LyricContentHeight(18f, 36f, 16f);
-            float large = V6HudLogic.LyricContentHeight(24f, 48f, 22f);
+            float small = V6HudLogic.LyricContentHeight(36f);
+            float large = V6HudLogic.LyricContentHeight(48f);
 
             Assert.Greater(large, small, "フォントが大きければ箱も大きくなる");
         }
