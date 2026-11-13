@@ -78,6 +78,54 @@ namespace FlashBeat.UI.V6.Option
 
         private List<Row> currentRows = new List<Row>();
 
+        // --- Issue #415: 骨格保持の差分更新用の参照 ---
+        // Rebuild() は状態変化に応じて、変わった部分だけを既存要素へ適用する。
+        // タブが変わったとき / 未構築のときだけ、Settings / Preview パネルを作り直す。
+        private bool scaffoldBuilt;
+        private int scaffoldTab = -1; // Settings/Preview を作ったときのタブ
+        private readonly List<GameObject> tabObjects = new List<GameObject>();
+        private readonly List<Image> tabBackgrounds = new List<Image>();
+        private readonly List<TextMeshProUGUI> tabLabels = new List<TextMeshProUGUI>();
+        private readonly List<GameObject> rowObjects = new List<GameObject>();
+        private readonly List<Image> rowBackgrounds = new List<Image>();
+        private readonly List<TextMeshProUGUI> rowValueTexts = new List<TextMeshProUGUI>();
+        private TextMeshProUGUI settingsHeadTitle;
+        private GameObject previewPanelGo;
+        private TextMeshProUGUI previewHeadTitle;
+        private TextMeshProUGUI descTitleText;
+        private TextMeshProUGUI descBodyText;
+        private int volumeSliderRowIndex = -1; // スライダーが結線されている VolumeIndex (-1 = 未構築)
+
+        /// <summary>個別の子を階層から外して破棄を予約する (V6Hierarchy.ClearChildren と同じ流儀)。</summary>
+        private static void DetachAndDestroy(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            go.transform.SetParent(null, false);
+            FlashBeat.UI.V5.V5GameUi.DestroyNow(go);
+        }
+
+        private void ClearScaffoldRefs()
+        {
+            scaffoldBuilt = false;
+            scaffoldTab = -1;
+            tabObjects.Clear();
+            tabBackgrounds.Clear();
+            tabLabels.Clear();
+            rowObjects.Clear();
+            rowBackgrounds.Clear();
+            rowValueTexts.Clear();
+            settingsHeadTitle = null;
+            previewPanelGo = null;
+            previewHeadTitle = null;
+            descTitleText = null;
+            descBodyText = null;
+            volumeSliderRowIndex = -1;
+        }
+
         /// <summary>音量スライダ (Sound タブのみ。他タブでは null)。</summary>
         private V6VolumeSlider volumeSlider;
 
@@ -158,6 +206,12 @@ namespace FlashBeat.UI.V6.Option
         {
             get { return volumeSlider; }
         }
+
+        /// <summary>検証・計測用: ゾーン全体を作り直した回数 (初回構築を含む)。</summary>
+        public int RebuildCountForAudit { get; private set; }
+
+        /// <summary>検証・計測用: 骨格を保持したまま変動部分だけを更新した回数。</summary>
+        public int IncrementalUpdateCountForAudit { get; private set; }
 
         public void SetVisible(bool visible)
         {
@@ -431,12 +485,52 @@ namespace FlashBeat.UI.V6.Option
 
             PlaceFrame();
 
-            // 共通フレームのゾーン (Header/Main/Footer) とモーダル Dialog の中身だけ作り直す。
-            // ゾーン自体 / 外周 stroke / モーダル層は V6Frame.Create が所有する
-            // (ゾーン名は V6Frame.Create の契約: Header / Main / Footer / Modal > Dialog)。
-            ClearChildren(Zone("Main"));
-            ClearChildren(Zone("Header"));
-            ClearChildren(Zone("Footer"));
+            // 共通フレームのゾーン (Header/Main/Footer) のうち、状態が変わるのは
+            // Main の中身 (タブ選択・行選択・値表示) だけ。Header/Footer は静的なので
+            // 初回だけ作る (Issue #415: 全再構築をやめる)。
+            bool tabChanged = scaffoldTab != selectedTab;
+            if (!scaffoldBuilt)
+            {
+                // 初回: ゾーンごと作り直す (従来と同じ)。
+                ClearChildren(Zone("Main"));
+                ClearChildren(Zone("Header"));
+                ClearChildren(Zone("Footer"));
+                ClearScaffoldRefs();
+                RebuildCountForAudit++;
+            }
+            else
+            {
+                IncrementalUpdateCountForAudit++;
+            }
+
+            if (scaffoldBuilt)
+            {
+                UpdateHeader();
+                UpdateTabs();
+            }
+            else
+            {
+                BuildHeader();
+                BuildFooter();
+                BuildTabs();
+            }
+
+            if (tabChanged)
+            {
+                RebuildMainPanels();
+            }
+            else if (scaffoldBuilt)
+            {
+                UpdateSettings();
+                UpdatePreview();
+            }
+            else
+            {
+                RebuildMainPanels();
+            }
+
+            scaffoldBuilt = true;
+
             var modal = V6Frame.GetModal(frame.gameObject);
             if (modal != null)
             {
@@ -447,6 +541,22 @@ namespace FlashBeat.UI.V6.Option
                 }
             }
 
+            if (confirmClearOpen)
+            {
+                BuildConfirmClearModal(modal);
+            }
+            else
+            {
+                V6Frame.HideModal(frame.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Settings / Preview だけを作り直す (タブ切替 = 行定義が丸ごと変わるタイミング)。
+        /// タブ帯 (Zone Tabs) は保持する。
+        /// </summary>
+        private void RebuildMainPanels()
+        {
             currentRows = RowsForTab(selectedTab);
             if (selectedRow >= currentRows.Count)
             {
@@ -456,20 +566,23 @@ namespace FlashBeat.UI.V6.Option
             // 子を作り直すため、旧オブジェクトへの参照は捨てる (Build* が再設定する)。
             volumeSlider = null;
             selectedRowValueText = null;
+            volumeSliderRowIndex = -1;
 
-            BuildHeader();
-            BuildFooter();
-            BuildTabs();
+            // Main のうち Tabs だけを残し、Settings / Preview だけを作り直す。
+            DetachAndDestroy(Zone("Main").Find("Settings")?.gameObject);
+            DetachAndDestroy(Zone("Main").Find("Preview")?.gameObject);
+            rowObjects.Clear();
+            rowBackgrounds.Clear();
+            rowValueTexts.Clear();
+            settingsHeadTitle = null;
+            previewPanelGo = null;
+            previewHeadTitle = null;
+            descTitleText = null;
+            descBodyText = null;
+
             BuildSettings();
             BuildPreview();
-            if (confirmClearOpen)
-            {
-                BuildConfirmClearModal(modal);
-            }
-            else
-            {
-                V6Frame.HideModal(frame.gameObject);
-            }
+            scaffoldTab = selectedTab;
         }
 
         private Transform Zone(string zoneName)
@@ -492,6 +605,15 @@ namespace FlashBeat.UI.V6.Option
         // Title はパッチ ci867 で「OPTION」に差し替え。右上情報ゾーン (840,0) は空
         // (パッチ sBFcr で子なしに差し替え)。戻るは base zUcsi/zCQBY (0,20) 56×56
         // #3A3A3A r8 + arrow-left 24 + Key "Esc" fs16。
+
+        /// <summary>ヘッダーは静的なので、中身が無いときだけ作る (Issue #415)。</summary>
+        private void UpdateHeader()
+        {
+            if (Zone("Header").childCount == 0)
+            {
+                BuildHeader();
+            }
+        }
 
         private void BuildHeader()
         {
@@ -533,8 +655,41 @@ namespace FlashBeat.UI.V6.Option
         // --- タブ (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
         // 選択タブ: fill $k6 / Label fs24 w500 $text。非選択: $k2 / fs24 $text-muted。
 
+        /// <summary>
+        /// Issue #415: タブ帯は骨格 (4 タブ) を保持し、選択状態の色・ラベルだけを
+        /// 既存 Image/TMP に適用する。参照が壊れているときだけ作り直す。
+        /// </summary>
+        private void UpdateTabs()
+        {
+            if (tabBackgrounds.Count != V6OptionLogic.TabCount)
+            {
+                // 参照が壊れている (タブ帯が消えた) ときだけ作り直す。
+                DetachAndDestroy(Zone("Main").Find("Zone Tabs")?.gameObject);
+                BuildTabs();
+                return;
+            }
+
+            for (int i = 0; i < V6OptionLogic.TabCount; i++)
+            {
+                bool selected = i == selectedTab;
+                if (tabBackgrounds[i] != null)
+                {
+                    tabBackgrounds[i].color = selected ? V6Tokens.Key6 : V6Tokens.Key2;
+                }
+
+                if (i < tabLabels.Count && tabLabels[i] != null)
+                {
+                    tabLabels[i].color = selected ? V6Tokens.Text : V6Tokens.TextMuted;
+                    tabLabels[i].fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
+                }
+            }
+        }
+
         private void BuildTabs()
         {
+            tabObjects.Clear();
+            tabBackgrounds.Clear();
+            tabLabels.Clear();
             var main = Zone("Main");
             var strip = V6Layout.Row(main.gameObject, "Zone Tabs",
                 new Vector2(TabsX, TabsY), new Vector2(TabsW, TabsH), TabGap);
@@ -564,6 +719,9 @@ namespace FlashBeat.UI.V6.Option
                 labelRt.offsetMin = Vector2.zero;
                 labelRt.offsetMax = Vector2.zero;
                 tabs[i] = tab.transform;
+                tabObjects.Add(tab);
+                tabBackgrounds.Add(tab.GetComponent<Image>());
+                tabLabels.Add(label);
             }
 
             V6Layout.StackHorizontal(strip.GetComponent<RectTransform>(), TabGap, tabs);
@@ -575,14 +733,54 @@ namespace FlashBeat.UI.V6.Option
         // Value w120 右寄せ fs24、Prev/Next 40x40 $k4 r8 (icon 24 $text-muted)。
         // 行の内側 padding [0,12] gap12 → Prev x=392 / Next x=444 / Value 右端 x=380。
 
+        /// <summary>
+        /// Issue #415: 設定パネルは骨格 (行の背景・ラベル・ステッパー) を保持し、
+        /// 選択行の背景色・値テキスト・selectedRowValueText だけを差分更新する。
+        /// </summary>
+        private void UpdateSettings()
+        {
+            if (rowValueTexts.Count != currentRows.Count)
+            {
+                // 行数が合わない (骨格破損) ときは Settings/Preview ごと作り直す。
+                RebuildMainPanels();
+                return;
+            }
+
+            if (settingsHeadTitle != null)
+            {
+                settingsHeadTitle.text = V6OptionLogic.TabLabels[selectedTab];
+            }
+
+            for (int i = 0; i < currentRows.Count; i++)
+            {
+                bool selected = i == selectedRow;
+                if (i < rowBackgrounds.Count && rowBackgrounds[i] != null)
+                {
+                    rowBackgrounds[i].color = selected ? V6Tokens.Key6 : V6Tokens.Key1;
+                }
+
+                if (rowValueTexts[i] != null)
+                {
+                    rowValueTexts[i].text = currentRows[i].Value();
+                }
+            }
+
+            selectedRowValueText = selectedRow >= 0 && selectedRow < rowValueTexts.Count
+                ? rowValueTexts[selectedRow]
+                : null;
+        }
+
         private void BuildSettings()
         {
+            rowObjects.Clear();
+            rowBackgrounds.Clear();
+            rowValueTexts.Clear();
             var main = Zone("Main");
             var panel = V6Controls.Panel(main.gameObject, "Settings",
                 new Vector2(SetX, SetY), new Vector2(SetW, SetH), V6Tokens.Key2, V6Tokens.RadiusLarge);
 
             var head = V6Layout.Row(panel, "Head", new Vector2(8f, 8f), new Vector2(SetRowW, 36f), 12f);
-            V6Controls.Text(head, "Title", V6OptionLogic.TabLabels[selectedTab],
+            settingsHeadTitle = V6Controls.Text(head, "Title", V6OptionLogic.TabLabels[selectedTab],
                 new Vector2(12f, 0f), new Vector2(200f, 36f), 18f, V6Tokens.TextDim);
 
             float step = V6OptionLogic.RowStep(currentRows.Count);
@@ -642,6 +840,9 @@ namespace FlashBeat.UI.V6.Option
                 value.fontSizeMax = 24f;
             }
 
+            rowObjects.Add(line);
+            rowBackgrounds.Add(line.GetComponent<Image>());
+            rowValueTexts.Add(value);
             if (selected)
             {
                 selectedRowValueText = value;
@@ -674,14 +875,59 @@ namespace FlashBeat.UI.V6.Option
         // Divider (24,544) 464x1 #FFFFFF1F / Desc Title (24,564) fs32 w500 /
         // Desc (24,614) w464 fs24 lineHeight1.4。Play のみキー一覧 (8,356〜) を追加。
 
+        /// <summary>
+        /// Issue #415: プレビューパネルは骨格を保持し、見出し (選択中のキー割当種別) と
+        /// Desc タイトル/本文、Sound タブのスライダー結線だけを差分更新する。
+        /// </summary>
+        private void UpdatePreview()
+        {
+            if (previewPanelGo == null)
+            {
+                // 骨格が壊れているときは Settings/Preview ごと作り直す。
+                RebuildMainPanels();
+                return;
+            }
+
+            if (previewHeadTitle != null)
+            {
+                previewHeadTitle.text = PreviewHeadTitle();
+            }
+
+            Row row = SelectedRowDesc();
+            if (descTitleText != null)
+            {
+                descTitleText.text = row != null ? row.DescTitle : "";
+            }
+
+            if (descBodyText != null)
+            {
+                descBodyText.text = row != null ? row.Desc : "";
+            }
+
+            // Sound タブ: スライダーが結線されている音量対象が変わったら、
+            // スライダーだけを作り直す (プレビュー全体は作り直さない)。
+            int vi = row != null ? row.VolumeIndex : -1;
+            if (vi != volumeSliderRowIndex)
+            {
+                DetachAndDestroy(previewPanelGo.transform.Find("Volume Slider")?.gameObject);
+                volumeSlider = null;
+                volumeSliderRowIndex = -1;
+                if (vi >= 0)
+                {
+                    BuildVolumePreview(previewPanelGo);
+                }
+            }
+        }
+
         private void BuildPreview()
         {
             var main = Zone("Main");
             var panel = V6Controls.Panel(main.gameObject, "Preview",
                 new Vector2(PrevX, PrevY), new Vector2(PrevW, PrevH), V6Tokens.Key2, V6Tokens.RadiusLarge);
+            previewPanelGo = panel;
 
             var head = V6Layout.Row(panel, "Head", new Vector2(8f, 8f), new Vector2(496f, 36f), 12f);
-            V6Controls.Text(head, "Title", PreviewHeadTitle(),
+            previewHeadTitle = V6Controls.Text(head, "Title", PreviewHeadTitle(),
                 new Vector2(12f, 0f), new Vector2(400f, 36f), 18f, V6Tokens.TextDim);
 
             BuildGamePreview(panel);
@@ -858,6 +1104,7 @@ namespace FlashBeat.UI.V6.Option
                     SetVolume(index, value, final);
                     UpdateVolumeVisuals();
                 });
+            volumeSliderRowIndex = index;
         }
 
         /// <summary>音量 (0..1)。対象 index は <see cref="Row.VolumeIndex"/>。</summary>
@@ -958,7 +1205,7 @@ namespace FlashBeat.UI.V6.Option
             // 下回り、TMP の Ellipsis が 1 行も描画しない (実行時に Title が丸ごと消えた原因)。
             // design と同じ h46 にし、Ellipsis は付けない (はみ出す場合も design は自動幅なので
             // 切り落とすより描く。値は短い固定文言のみ)。
-            var title = V6Controls.Text(panel, "Desc Title",
+            descTitleText = V6Controls.Text(panel, "Desc Title",
                 row != null ? row.DescTitle : "",
                 new Vector2(24f, dividerY + V6OptionLogic.DescTitleOffsetY),
                 new Vector2(464f, 46f), 32f, V6Tokens.Text, TextAlignmentOptions.Left);
@@ -970,6 +1217,7 @@ namespace FlashBeat.UI.V6.Option
                 new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
                 24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
                 TextWrappingModes.Normal);
+            descBodyText = desc;
             // design lineHeight 1.4 (fs24 → 33.6px)。TMP の lineSpacing は fs への追加率で、
             // 40 にすると行送りが 34.75 + 24×0.40 = 44.35px になり、design 実測 (Data タブの
             // 2 行目: 457→492 = 35px) より 9px 下へずれて 2 行目がパネル下端 (688) に
