@@ -1,0 +1,18 @@
+== all scenes ==
+GameScene: windows=9
+  avgFps  min=57.2  median=60.0  max=60.0
+  p95 ms  median=17.50  worst=17.60
+  p99 ms  median=17.70  worst=33.40
+  worst frame ms  max=183.7
+  gc0 total=75  gcKBPerFrame median=1.3
+
+== GameScene (steady state) ==
+GameScene: windows=9
+  avgFps  min=57.2  median=60.0  max=60.0
+  p95 ms  median=17.50  worst=17.60
+  p99 ms  median=17.70  worst=33.40
+  worst frame ms  max=183.7
+  gc0 total=75  gcKBPerFrame median=1.3
+
+== spikes (frame > 250ms) ==
+none
