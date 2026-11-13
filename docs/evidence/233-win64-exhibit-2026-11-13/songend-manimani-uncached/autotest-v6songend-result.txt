@@ -1,0 +1,12 @@
+[AutoTestV6SongEnd] RESULT pass=31 fail=0
+song=まにまに
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=74 great=0 bad=0 miss=2
+judged=76
+settled=76
+chartNotes=76 runtimeNotes=76
+score=973684 combo=74 maxCombo=74 comboPeak=74
+rankingMode=Online
+judgedMatchesChart=True
