@@ -1,6 +1,7 @@
 # open Issue 実装状況監査 (main 実測)
 
 - **対象**: `origin/main` = `36a3572` (PR #296 merge 直後) / **最新の追記は `7af9242` (PR #344 merge 直後)**
+- **更新 13 (2026-11-13 製品完成フェーズ)**: 展示中止 (#250 改訂) に伴い **Open Issue 51 件を 6 cluster に再分類**、保全 WIP 3 branch (#415/#416/#417) の意味的レビューで「棄却/選択的移植/選択的再実装」を確定、branch 63+local 45+worktree 7 を棚卸し。**現行の棚卸し正本は §8** (本ファイル §1〜§7 は 2026-11-10 時点の歴史的記録)。
 - **更新 11 (2026-11-10 受入フェーズ)**: **open 37 件を「実装完了 / 未検証 / 仕様判断待ち」に 1 件ずつ区分し、クローズは 0 件**。クローズ候補 5 件 (#221 / #224 / #239 / #240 / #241) はいずれも受入条件に **3 解像度の実画面** を含み、#242 の完了対象に集約済みのため、#242 と同時に閉じる。判断の全体は [`acceptance-phase-triage-2026-11-10.md`](acceptance-phase-triage-2026-11-10.md)
 - **更新 12 (2026-11-10 受入フェーズ / PR #348)**: **#222 を「仕様判断待ち」から「実装完了 (受入待ち)」へ**。「45 曲以上」は実曲数ではなく **選曲機能のスケーラビリティ要件** として採用し、60 件の合成カタログ回帰テスト (`SongCatalogScalabilityTests`) を追加 (EditMode 1419/1419)。**#30 の D1 は歌詞データ形式** (HOLD 判定ではない) と訂正し、D1 / D5 は決定まで実装しないと明記。クローズ可能な Issue は **0 件のまま** (残るのはすべて実機・3 解像度・本番 API の証拠)。
 - **更新 10 (2026-11-10 深夜)**: **issue-162 §8 の 41 項目を v6 UI に対して再照合し、到達可能な 7 件を実際に修正した** (PR #339)。判定は **fixed 34 / moot 6 / live 1** (live は D-1 のみ)。**Web E2E を実ブラウザの品質ゲートに置き換えた** (PR #341、CI `browser-e2e` 初回実行 success)。**本番 API 受け入れの条件を文書化** (PR #340、未実行)。**唯一 live だった D-1 も追加対応で解消 (fixed)**。→ §7.6
@@ -1876,3 +1877,73 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 4. **マージ済みリモートブランチの整理** — 削除可能と証明できた 77 本を `docs/operations/merged-remote-branches-2026-11-10.md` に列挙済みだが、**削除ガードを迂回しない**方針のため実削除は未実施。
 5. **#30 の D1〜D6** と **#278 の対策 (B)** はオーナー決定。
 6. **CI の役割分担** — Unity のワークフローには `pull_request` トリガーが無いため、**PR のチェック欄に Unity の項目は出ない**(設定どおりの挙動。ライセンス未登録による失敗とは別問題)。main への push ビルドは `license-precheck` で止まる。整理は `docs/operations/ci-pr-gate.md`、ライセンス手順は `docs/operations/unity-ci-license.md`。**ライセンス不要の PR 検証**として `verify` ワークフロー (リポジトリ整合性) を追加した。
+
+---
+
+## 8. 2026-11-13 製品完成フェーズ棚卸し (main = `a2b744c5`)
+
+展示対応は 2026-11-13 に中止 (#250 改訂)。以降の目標は **#250 に定義した製品完成と Issue・PR・branch の完全回収**。§1〜§7 の判定は 2026-11-10 時点のもので、多くがその後 merge/close されている。**本節が現行の棚卸し正本**であり、§1 の表は歴史的記録として残す。
+
+### 8.1 現在の在庫 (2026-11-13 実測)
+
+| 対象 | 値 |
+|---|---|
+| `origin/main` | `a2b744c5` (PR #449 merge、VERSION 0.1.26) |
+| Open Issue | **51 件** (下記 8.2) |
+| Open PR | **0 件** |
+| remote branch | **63 本** (fetch --prune 後) |
+| local branch | 45 本 (新規保全 `w/preserve-*-wt-20261114` 4 本を含む (branch 名の日付は命名ラベル。実作業日は 2026-11-13)) |
+| worktree | 7 件 (本 checkout + acc/diff/fix/native/v6/win64build) |
+| CI | `verify` success。`build-win64` / `build-macos` は main で継続 failure — **Unity license secrets (`UNITY_EMAIL`/`UNITY_PASSWORD`) 未登録**が原因でコード不具合ではない (手順: `docs/operations/unity-ci-license.md`、オーナー作業) |
+
+### 8.2 Open Issue 51 件の再分類
+
+| cluster | Issues | 状態の要約 | 主な残件 |
+|---|---|---|---|
+| A. 展示/API ゲート | #3 #4 #5 #6 #7 #19 #21 #22 | 展示中止でゲートの意味を再定義要。API/契約/Unity 側実装は概ね存在 | 本番 API への書き込み E2E (オーナー承認)、#19/#21 の実機送信確認、#22 の stage 記録更新 |
+| B. 仕様・検証 | #30 #58 #59 #73 #75 #96 #135 #162 | ほぼ実装済み・受入証跡待ち | #30 はオーナー決定 D1/D5 待ち (決定まで実装しない)。#73/#135 は本番書き込み E2E。#75 は機械ゲート PASS・人の画像レビューのみ。#162 は v6screens 証跡で close 判定可 |
+| C. v6 umbrella + 子 | #217 #219 #221 #222 #223 #224 #239 #240 #241 #242 | 実装済み・Win64 実機証跡あり (0.1.26: v6screens 46/0, v6songend 32/0) | 人間受入項目 (聴取・物理キー・Retry・設定保存) と #242 での一括 close 判定 |
+| D. ロードマップ・仕様判断 | #250 #360 | #250 = 本 Issue 群の進行管理。#360 = Pause タブキー (design "Tab" vs 実装 "T") のオーナー決定 | #360 の 3 択決定 |
+| E. v6 実機レビュー | #368(親) #369–#385 | #368 の子 17 件。大半は修正 merge 済 (PR #387/#424系/#445) で受入証跡待ち | #369 macOS メニューバー被覆 (D-1)、#373 ジャケット寸法 (D-3)、#376 キー設定実機、#378 進捗表示の仕様判断、#385 P2 リファクタ |
+| F. 証跡・性能 | #388 #389 #397 #415 #416 | #388/#389 は実装済み・レビュー会待ち。#397 は子 (#398–#403) merge 済で Win64/Profiler 数値が残る。#415/#416 は WIP トラック (8.3) | #415 選択的再実装、#416 移植、#397 の before/after 実測、#381 の Win64 `-fbperf` |
+
+### 8.3 保全 WIP branch のレビュー結論 (2026-11-13)
+
+前セッションで未コミット差分を `wip: 未コミット作業の保全` コミットとして各 worktree branch に保全済み。意味的レビューの結果:
+
+| branch | 対象 Issue | 結論 | 残作業 |
+|---|---|---|---|
+| `w/415-diff-update` (`ffb12ab4`) | #415 | **実装ソースとしては棄却・選択的に再実装**。機構は scaffold 保持 + スロット行再利用で方向は正しいが、(a) C# 構文エラー 2 件 (`V6HistoryView.cs:613` else-if 直後、`V6SelectView.cs:889-1003` の brace 不整合)、(b) main より古く #425/#426/#427/#429/ボタン feedback を退行させる、(c) Ranking に初回行未生成 bug。Select は main の #399 zone 級差分で既に改善済み | Result の `songRankRowObjects` スロット再利用 → History/Ranking の scaffold 保持 → Option。Select の更なる行再利用は計測で必要性を確認してから。監査カウンタを全 View に一般化 |
+| `w/416-native-lifetime` (`b518c700`) | #416 | **選択的に移植**。main に未存在の実リーク修正を含む: `V6JacketProvider` remote cache LRU cap (50) + eviction、`V6AssetOwner.IsSharedAsset` + scope による shared asset 拒否、`V6Sprites` の Rounded texture 所有権と FromTexture の Shared 経路化、`MusicManager` の `sharedMaterial` probe | 移植 + `NativeReentryStabilityTests`/`RemoteCacheCapacityTests` を main API に合わせて再実装。`GetCacheSizeBytesAsync` は本番呼出なし → 見送り |
+| `w/417-result-quality` (`7d2e3aa6`) | #417 (closed) | **選択的に移植**。破棄済み callback ガード (`933f2ef9`) は main 入り済み。固有の価値は `RequestRemote` の v6 skip (無駄な HTTP 抑制) + generation guard + `RemoteImageCallbackTests` + README 証跡 hunk | v6 skip と generation guard を現行 main へ手適用。`ProjectSettings.asset` と `Assets/Resources.meta` は Unity 再生成ノイズで破棄 |
+| `w/review-355-fixes` | — | main に完全 merge (固有コミット 0) | worktree `FlashBeat.v6` と共に解除可 |
+
+### 8.4 branch / worktree 棚卸し結果
+
+**worktree (7 件)**: 本 checkout (`w/395-perf-marks`、merge 済・解除可)、`FlashBeat.acc` (`main`、origin より 136 遅れ・SDF 差分は `w/preserve-acc-wt-20261114` に保全)、`FlashBeat.diff`/`FlashBeat.fix`/`FlashBeat.native` (#415/#417/#416 WIP、判断確定まで保持)、`FlashBeat.v6` (`w/review-355-fixes` merge 済・解除可)、`FlashBeat.win64build` (detached `fc1543fa`、Win64 ビルド用・差分は `w/preserve-win64build-wt-20261114` に保全)。
+
+**削除候補 — 内容が main に存在 (merge 済み相当)**:
+- local: `w/399-select-incremental` `w/400-phase-service` `w/401-sprite-provider` `w/402-steady-state` `w/403-cache-size` (PR #404–#412 で rebase 版が merge。固有ファイル 0)、`tmp/397-rebase` `w/backup-fixed-stack` `bisect/owner-perf` `w/exhibit-p0-351-352` `w/review-355-fixes` (固有コミット 0)、`w/compile-check-strict` `feature/flat-render-judge-effect` (main と tree diff 0)
+- remote: `origin/port/w182` (main の `JudgeQueue` がより新しい `LongNote.IsBroken` 版)、`origin/port/w113` `origin/verify/integration` `origin/verify/unity-batch1..5` (async loading/judge queue は main に別実装で存在)、`origin/fix/catalog-remote-identity` (`FindRemoteSong`/`claimed` が main に同一ロジックで存在)、`origin/feature/flat-render-judge-effect` `origin/w/compile-check-strict` `origin/w/w142` `origin/w/w233-loadingoverlay-preserve` (`GameUiExclusivity` は main に存在)、`origin/128` `origin/142` `origin/165` `origin/166` (対象 Issue 全て closed、機能は main に存在。`specs/134-result-registration-ranking/` と `ActionKeyHint*` も main に存在し `origin/134-patch` (`5067329`) に固有ファイルなし)、`origin/109` `origin/113` `origin/118` `origin/134-patch` `origin/135` `origin/216` `origin/56` 系および対応 local branch、`origin/feature/pencil-ui` (main の `.pen` が新しい)、`origin/recovery/codex-81-import` (Unity import 状態の保全のみ)
+- 旧 tree 配置 (`Assets/Resources/*.json` 等) を持つ 60+ 固有ファイル群は全て旧配置の名残で、内容は `Assets/Game/Resources/` 側に移行済み
+
+**保持**:
+- `release/*` `release-0-1-0` 系 (リリース系列ポリシー)
+- `evidence/*` `origin/w/w142` は削除候補に入れたが `docs/evidence/` 側に同一証跡があるものは削除可 (w142 は上記)
+- `origin/19` — **#19 が open** で `connectivity.ts`/`failure.ts` が main に無い。#19/#73 の作業時に要否を判断するまで保持
+- `origin/feature/p2-catalog-e2e` — `web/scripts/publish-catalog.mjs` (全曲 publish スクリプト) が main に無い。#135/#73 の E2E で再利用可能か判断するまで保持
+- `origin/148` — tip `9f23710d` が `specs/148-key-hint-consistency/` と `Assets/Tests/Editor/KeyHintConsistencyTests.cs` を **main 未収録で唯一保持**。port するか破棄するかの判断まで削除しない (Issue #148 は closed だが受入証跡の一部)
+- `w/415-diff-update` `w/416-native-lifetime` `w/417-result-quality` — 移植完了まで保持
+- `w/preserve-*-wt-20261114` ×4 — 保全記録として保持
+
+**要判断**:
+- `origin/109-patch` (21 commits、旧展示 patch line、merge base 複数) — #109 closed・内容は v6 で代替済みの見込み。削除前に `4d82e5e6` までの release 記録が `docs/operations/` に転記済みか確認
+- `integrate-20261110` `w/integration-verify` — 旧統合状態 (tree が大幅に旧い)。固有ファイルは .meta/harness のみ → 削除候補
+
+### 8.5 直近の実施順
+
+1. 本節の分類に基づき、削除候補 branch/worktree を PR・Issue 更新とセットで整理 (未回収コミットを消さない範囲で)
+2. #416 の選択的移植 → #417 の選択的移植 → #415 の選択的再実装 (Result から) を PR 化
+3. #75/#73/#135 の残りは本番 API 書き込み E2E — **オーナー承認が必要** (`docs/operations/production-api-acceptance.md`)。#75 の残件には **人による画像レビュー** (390×844 横溢れの実画面確認) も含まれ、E2E とは独立した作業
+4. #368 クラスタの受入証跡を揃えて close 判定、#360/#30 のオーナー決定を集約
+5. #397/#381 の Win64 `-fbperf` 実測 (Windows 実機の操作許可が前提)
