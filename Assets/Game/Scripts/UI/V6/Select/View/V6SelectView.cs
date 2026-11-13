@@ -948,14 +948,16 @@ namespace FlashBeat.UI.V6.Select.View
             var scoreText = V5GameUi.Text(scoreRow.gameObject, "Score",
                 song != null ? V6SelectViewLogic.FormatScore(song.BestScore) : "–", 56f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            // BEST の大きな数値も折り返さない (#379)。LayoutGroup 配下なので幅を明示して
-            // 自動縮小の判定を安定させる (Grade チップ 72 + gap 12 を除いた残り)。
+            // BEST の大きな数値も折り返さない (#379)。childControlWidth=false のため
+            // 幅は明示する: Score 400 + Spacer 0 + Grade 72 + gap 12x2 = 496 ≤ 528。
+            // 幅を超えた分は自動縮小で 1 行に収める。
             scoreText.textWrappingMode = TextWrappingModes.NoWrap;
             scoreText.enableAutoSizing = true;
             scoreText.fontSizeMin = 40f;
             scoreText.fontSizeMax = 56f;
-            scoreText.rectTransform.sizeDelta = new Vector2(430f, 72f);
+            scoreText.rectTransform.sizeDelta = new Vector2(400f, 72f);
             var spacer = V5Ui.Node(scoreRow.gameObject, "Spacer");
+            spacer.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
             var gradeChip = At(V5Ui.Panel(scoreRow.gameObject, "Grade", new Vector2(72f, 64f), V5Tokens.Key6, 8f),
