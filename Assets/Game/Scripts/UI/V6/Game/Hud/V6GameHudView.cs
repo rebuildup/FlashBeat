@@ -224,12 +224,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             lastScore = score;
 
             // スコアゲージ (塗りは + セグメントの手前まで, Best は保存スコア)
-            gaugeFill.sizeDelta = new Vector2(
+            // Issue #402: 変化しないフレームで sizeDelta / anchoredPosition を
+            // 書き戻さない (uGUI を不必要に dirty にしない)。
+            V6LayoutWrites.SizeDeltaIfChanged(gaugeFill,
                 V6HudLogic.GaugeFillWidth(score, m.GaugeFillMax), m.GaugeFillH);
             int hi = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
                 ? GManager.Hiscore[GManager.songID]
                 : GManager.BestScoreOf(GManager.songID); // 固定テーブル外は安定キー (issue-162 A-6)
-            gaugeBest.anchoredPosition = new Vector2(
+            V6LayoutWrites.AnchoredPositionIfChanged(gaugeBest,
                 V6HudLogic.GaugeBestX(hi, m.GaugeFillMax), 0f);
 
             // コンボ (表示は値が変わったときだけ更新する)
@@ -250,7 +252,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
             // 契約 §12: この座標 (FHD 1512,460) は Combo Status が使う
             // (旧 Combo Bonus block は廃止 — issue-162 B-4)。
-            comboStatusBlock.SetActive(showStatus);
+            // Issue #402: 表示状態が変わらないフレームで SetActive を呼ばない。
+            V6LayoutWrites.ActiveIfChanged(comboStatusBlock, showStatus);
 
             // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
             // 演奏中ずっと出しっぱなしにすると内容を反映しない表示になる (Issue #233)。
@@ -263,7 +266,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             int milestone = GameHudLogic.NextBonusMilestone(GManager.combo);
-            comboFill.sizeDelta = new Vector2(
+            // Issue #402: コンボが変わらないフレームでは塗り幅を書き戻さない。
+            V6LayoutWrites.SizeDeltaIfChanged(comboFill,
                 V6HudLogic.ComboFillFraction(GManager.combo, milestone) * m.StatusTrackW, m.StatusTrackH);
 
             // issue-162 B-4 再照合 (2026-11-11): 正本 Uc9v6 には Gx3kq "Combo Bonus" が
@@ -276,7 +280,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // 進捗バー + 歌詞 (メディアタイム = GManager.step_time)
             float duration = CurrentSongDuration();
-            progressFill.sizeDelta = new Vector2(
+            // Issue #402: 曲が進んでいない (ポーズ中・待機中) フレームでは
+            // 進捗バーを書き戻さない。時間が進めば値が変わるので更新される。
+            V6LayoutWrites.SizeDeltaIfChanged(progressFill,
                 V6HudLogic.ProgressFillWidth(GManager.step_time, duration, progressTrack.rect.width),
                 progressFill.rect.height);
 
@@ -433,6 +439,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             keyCaps.Clear();
             verdictTexts.Clear();
             seenJudgeIds.Clear();
+            // Issue #402: レーン格子のメモを捨てる (子を作り直したので、
+            // 前回の座標を「適用済み」と思い込むと位置が更新されない)。
+            lastLaneGridCanvas = new Vector2(float.NaN, float.NaN);
+            lastLaneGridScale = float.NaN;
+            lastLaneGridCamera = null;
+            lastLaneGridPlayfield = false;
             lastJudged = -1;
             songIdCached = int.MinValue;
             lyricData = null;
@@ -1218,11 +1230,23 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private void UpdateLaneGrids()
         {
-            Vector2 canvasSize = CanvasSize();
-            // HUD ルートは 1:1 (等倍) なのでローカル x = スクリーン x。
-            // lossyScale で割っておけば親フレームが何をしていても成立する。
+            // Issue #402: レーン格子は「解像度・曲・レガシーカメラの投影」でしか
+            // 変わらない。以前は毎フレーム anchoredPosition を書いていた。
+            // 入力 (どのキーが押されたか) や判定には影響しないので、
+            // 依存値が変わったときだけ計算する。
             float rootScale = transform.lossyScale.x;
             if (rootScale <= 0f) return;
+
+            Vector2 canvasSize = CanvasSize();
+            if (!LaneGridInputsChanged(canvasSize, rootScale))
+            {
+                return;
+            }
+
+            lastLaneGridCanvas = canvasSize;
+            lastLaneGridScale = rootScale;
+            lastLaneGridPlayfield = FlashBeat.UI.V6.V6UiMode.Playfield;
+            NoteLaneGridCamera();
 
             if (FlashBeat.UI.V6.V6UiMode.Playfield)
             {
@@ -1246,6 +1270,90 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// レーン格子の計算入力が前回から変わったか (Issue #402)。
+        ///
+        /// 変わらない限り <see cref="SetLaneGridX"/> を呼ばない。カメラの変換行列も
+        /// 入力の 1 つなので、カメラが動いた場合 (v5 プレイフィールドの揺れ等) は
+        /// 追従する。位置・回転の値を直接追跡する (Transform.hasChanged は
+        /// 読んでもリセットされないので使わない)。
+        /// </summary>
+        private bool LaneGridInputsChanged(Vector2 canvasSize, float rootScale)
+        {
+            bool playfield = FlashBeat.UI.V6.V6UiMode.Playfield;
+
+            if (!V6LayoutWrites.NearlyEqual(lastLaneGridCanvas.x, canvasSize.x, V6LayoutWrites.PositionEpsilon)
+                || !V6LayoutWrites.NearlyEqual(lastLaneGridCanvas.y, canvasSize.y, V6LayoutWrites.PositionEpsilon))
+            {
+                return true;
+            }
+
+            if (!V6LayoutWrites.NearlyEqual(lastLaneGridScale, rootScale, 0.0001f))
+            {
+                return true;
+            }
+
+            if (lastLaneGridPlayfield != playfield)
+            {
+                return true;
+            }
+
+            if (!playfield)
+            {
+                var cam = Camera.main;
+                if (cam == null)
+                {
+                    // カメラが無くなった場合だけ作り直す（記録が残っているかを見る）。
+                    return lastLaneGridCamera != null;
+                }
+
+                if (!ReferenceEquals(lastLaneGridCamera, cam)) return true;
+
+                var t = cam.transform;
+                if (!NearlyEqualVector(lastLaneGridCameraPosition, t.position)
+                    || !NearlyEqualRotation(lastLaneGridCameraRotation, t.rotation))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Tracked カメラの位置・回転を更新する (UpdateLaneGrids の適用後に呼ぶ)。</summary>
+        private void NoteLaneGridCamera()
+        {
+            if (FlashBeat.UI.V6.V6UiMode.Playfield)
+            {
+                lastLaneGridCamera = null;
+                return;
+            }
+
+            var cam = Camera.main;
+            lastLaneGridCamera = cam;
+            if (cam == null) return;
+
+            lastLaneGridCameraPosition = cam.transform.position;
+            lastLaneGridCameraRotation = cam.transform.rotation;
+        }
+
+        private static bool NearlyEqualVector(Vector3 a, Vector3 b)
+        {
+            return (a - b).sqrMagnitude <= 0.000001f; // 位置 0.001 単位の揺れ
+        }
+
+        private static bool NearlyEqualRotation(Quaternion a, Quaternion b)
+        {
+            return Quaternion.Angle(a, b) <= 0.01f;
+        }
+
+        private Vector2 lastLaneGridCanvas = new Vector2(float.NaN, float.NaN);
+        private float lastLaneGridScale = float.NaN;
+        private bool lastLaneGridPlayfield;
+        private Camera lastLaneGridCamera;
+        private Vector3 lastLaneGridCameraPosition;
+        private Quaternion lastLaneGridCameraRotation;
+
+        /// <summary>
         /// レーン格子の第 lane 列へキーキャップと判定テキストを載せる。
         /// x は canvas (root) 左原点。子は PinBottom された行の中に (0, 0.5) アンカーで
         /// 置かれているので anchoredPosition は行左端基準 → 行の inset (offsetMin.x) を
@@ -1257,12 +1365,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             if (lane < verdictTexts.Count)
             {
                 var rt = verdictTexts[lane].rectTransform;
-                rt.anchoredPosition = new Vector2(canvasX - ((RectTransform)rt.parent).offsetMin.x, rt.anchoredPosition.y);
+                // Issue #402: 同値代入をしない (判定行の固定位置)。
+                V6LayoutWrites.AnchoredPositionIfChanged(rt,
+                    canvasX - ((RectTransform)rt.parent).offsetMin.x, rt.anchoredPosition.y);
             }
             if (lane < keyCaps.Count)
             {
                 var cap = (RectTransform)keyCaps[lane].transform.parent;
-                cap.anchoredPosition = new Vector2(canvasX - ((RectTransform)cap.parent).offsetMin.x, cap.anchoredPosition.y);
+                V6LayoutWrites.AnchoredPositionIfChanged(cap,
+                    canvasX - ((RectTransform)cap.parent).offsetMin.x, cap.anchoredPosition.y);
             }
         }
 
@@ -1523,9 +1634,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private static void SetAlpha(TMP_Text text, float alpha)
         {
-            var c = text.color;
-            c.a = alpha;
-            text.color = c;
+            // Issue #402: フェード中は値が変わるので毎フレーム書く必要があるが、
+            // 同じアルファのフレーム (フェード開始前・終了後) は書かない。
+            V6LayoutWrites.AlphaIfChanged(text, alpha);
         }
 
         private static void PlaceTopLeft(RectTransform rt, float x, float y)
