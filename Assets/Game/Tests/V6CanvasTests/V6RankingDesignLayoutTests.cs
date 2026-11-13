@@ -478,7 +478,9 @@ namespace FlashBeat.V6CanvasTests
             {
                 Transform rail = view.Root.Find("Main/Song List/Dot indicator");
                 Assert.IsNotNull(rail, "Dot indicator");
-                AssertRect(rail, 536f, 136f, V6SelectViewLogic.DotActiveSize,
+                // Issue #427: レールは design の y=136 (上寄り) ではなく、
+                // リストパネル (ListH=780) の上下中央へ置く。
+                AssertRect(rail, 536f, 374f, V6SelectViewLogic.DotActiveSize,
                     V6SelectViewLogic.DotBottom(data.Songs.Count, 0f), "rail");
 
                 int activeIndex = 1; // data.Select(2) → 2 曲目 (index 1) が選択

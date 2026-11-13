@@ -253,7 +253,8 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(dialog.Find("Name Prompt"), 404f, 38f, 380f, 29f, "Name Prompt");
                 Assert.AreEqual(20f, TextOf(dialog, "Name Prompt").fontSize, 0.01f, "Prompt fs20");
                 AssertRect(dialog.Find("Name Field"), 28f, 112f, 784f, 84f, "Name Field");
-                AssertRect(dialog.Find("Name Field/Value"), 24f, 20f, 736f, 58f, "Name Field Value");
+                // Issue #425: 内側余白を 24→32 に広げ、Value/Placeholder は 728 幅。
+                AssertRect(dialog.Find("Name Field/Value"), 32f, 20f, 728f, 58f, "Name Field Value");
                 Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
                 // design lqHaN は未入力の Name Field に "YOU" を $text-dim で置く
                 // (v5 ResultView の Placeholder と同じ)。#384 で入力は TMP_InputField に
