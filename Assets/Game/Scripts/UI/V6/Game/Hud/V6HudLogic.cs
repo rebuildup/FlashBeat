@@ -54,131 +54,69 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 歌詞スロット (design i30vM4) の寸法。ゲームフレーム 1728×972 の
-        /// (304,250) 1120×220 を、プレイフィールドと同じ高さ合わせ写像で実画面へ置く
-        /// (契約 §8「歌詞スロットの位置」)。
+        /// 歌詞スロット (design i30vM4 / HcP8N) の寸法と位置 (Issue #433)。
+        ///
+        /// 共有 UI フレーム (1728×972 を 1:1 で画面中央へ置く) のメイン領域
+        /// 6 列グリッド (1680 幅・列 280) の中央 4 列 = フレーム内 (304,250)
+        /// 1120×220 と一致する。かつてはプレイフィールドと同じ高さ合わせ
+        /// (画面高さ / 972) で幅を拡大していたため、2K / Mac で design より
+        /// 大きな板になっていた。フレームと同じ 1:1 写像へ改める。
         /// </summary>
+        public const float LyricSlotDesignX = 304f;
         public const float LyricDesignY = 250f;
         public const float LyricDesignWidth = 1120f;
         public const float LyricDesignHeight = 220f;
 
         /// <summary>
-        /// 歌詞スロット上端の y (画面左上原点)。
+        /// 歌詞スロットの画面上の左上座標 (px、画面左上原点)。
+        /// 共有フレームの origin ((w-1728)/2, (h-972)/2 切り捨て) + (304,250)。
         /// </summary>
-        public static float LyricTopY(float screenHeight)
+        public static Vector2 LyricSlotOrigin(float screenWidth, float screenHeight)
         {
-            return LyricDesignY * V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
+            Vector2 frameOrigin = FlashBeat.UI.V6.Common.V6UiProfile.OriginFor(
+                Mathf.RoundToInt(screenWidth), Mathf.RoundToInt(screenHeight));
+            return new Vector2(frameOrigin.x + LyricSlotDesignX, frameOrigin.y + LyricDesignY);
         }
 
         /// <summary>
-        /// 歌詞スロットの幅・高さ。
-        ///
-        /// 幅は design の 1120 を実画面へ写す。**高さは design の 220 ではなく、
-        /// 実際の行構成の高さから求める** (2026-11-12 オーナー指摘)。
-        ///
-        /// design の 220 は 3 行 (振り仮名 22 / 歌詞 44 / ローマ字 20) + Start Prompt
-        /// を想定した値だが、実装のフォントは画面倍率に追従しない固定 px なので、
-        /// Mac (倍率 2.21) では文字が箱の 1 割しか埋めず、大きな空の板に見えていた。
-        /// 行の高さから箱を決めれば、文字に対して箱が大きくなりすぎない。
+        /// 歌詞スロットの幅・高さ。幅はフレームの 1:1 px (1120 固定)。
+        /// 高さは文字の行構成から求める (design の 220 は 3 行構成の値で、
+        /// 本文 1 行だけになった今は空白が大きすぎる)。
         /// </summary>
-        /// <param name="screenHeight">画面の高さ (幅の写像に使う)。</param>
-        /// <param name="furiganaFs">実際に使う振り仮名のフォントサイズ (px)。</param>
-        /// <param name="lyricFs">実際に使う歌詞のフォントサイズ (px)。</param>
-        /// <param name="romajiFs">実際に使うローマ字のフォントサイズ (px)。</param>
-        public static Vector2 LyricSize(float screenHeight, float furiganaFs, float lyricFs, float romajiFs)
+        public static Vector2 LyricSize(float lyricFs)
         {
-            float scale = V6LaneGeometry.ScreenScale(new Vector2(0f, screenHeight));
-            float width = LyricDesignWidth * scale;
-            float height = LyricContentHeight(furiganaFs, lyricFs, romajiFs);
-            return new Vector2(width, height);
+            return new Vector2(LyricDesignWidth, LyricContentHeight(lyricFs));
         }
 
         /// <summary>歌詞スロットの上下 padding (design 16)。</summary>
         public const float LyricPaddingY = 16f;
 
-        /// <summary>歌詞スロットの行間 (design 6)。</summary>
-        public const float LyricRowGap = 6f;
-
         /// <summary>
-        /// 3 行 (振り仮名 / 歌詞 / ローマ字) の高さ合計に padding と gap を足した、
-        /// 箱の最小の高さ。行のフォントサイズは呼び出し側 (HUD ビュー) の値を使う。
+        /// 歌詞本文 1 行と Start Prompt の高い方に padding を足した箱の高さ
+        /// (Issue #433: ルビ・ローマ字行は廃止し本文だけを出す)。
         /// </summary>
-        public static float LyricContentHeight(float furiganaFs, float lyricFs, float romajiFs)
+        public static float LyricContentHeight(float lyricFs)
         {
-            float furiganaLine = furiganaFs * 1.4f;
             float lyricLine = lyricFs * 1.2f;
-            float romajiLine = romajiFs * 1.4f;
-            float rows = furiganaLine + lyricLine + romajiLine;
-            return rows + LyricRowGap * 2f + LyricPaddingY * 2f;
+            float content = Mathf.Max(lyricLine, ReadyPromptCapHeight);
+            return content + LyricPaddingY * 2f;
         }
 
         /// <summary>スコア値の 1 行固定の下限フォントサイズ。design は 38 (FHD)。</summary>
         public const float ScoreAutoSizeMin = 28f;
 
-        /// <summary>
-        /// スコア加算時のポップ倍率。0〜80ms で 1→1.06、80〜200ms で 1.06→1。
-        /// 表示だけを変え、レイアウトは動かさない (契約 §8)。
-        /// </summary>
-        public static float ScorePulseScale(float elapsed)
-        {
-            if (elapsed < 0f)
-            {
-                return 1f;
-            }
+        // --- 判定ポップアップ (Issue #432) ---
 
-            if (elapsed < 0.08f)
-            {
-                return Mathf.Lerp(1f, 1.06f, elapsed / 0.08f);
-            }
+        /// <summary>判定が判定線から弾けて静止位置へ戻るまでの時間 (秒)。</summary>
+        public const float VerdictPopupSeconds = 0.26f;
 
-            if (elapsed < 0.2f)
-            {
-                return Mathf.Lerp(1.06f, 1f, (elapsed - 0.08f) / 0.12f);
-            }
+        /// <summary>判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。</summary>
+        public const float VerdictRestGapAboveLine = 72f;
 
-            return 1f;
-        }
-
-        public const float ScorePulseSeconds = 0.2f;
-
-        // --- 判定の出現アニメーション (2026-11-12 オーナー指摘) ---
-
-        /// <summary>判定が判定線から立ち上がる距離 (design px、上方向が正)。</summary>
-        public const float VerdictRiseDistance = 28f;
-
-        /// <summary>判定が立ち上がりきるまでの時間 (秒)。</summary>
-        public const float VerdictRiseSeconds = 0.14f;
-
-        /// <summary>判定が消えるまでの時間 (秒)。</summary>
+        /// <summary>判定が消えるまでの時間 (秒)。残り時間に比例してフェードする。</summary>
         public const float VerdictFadeSeconds = 0.22f;
 
-        /// <summary>
-        /// 判定テキストの出現位置 (design px、上方向が正の戻り値)。
-        ///
-        /// 判定線のすぐ上に出て、短い時間で所定の位置まで立ち上がる。
-        /// 「正しく叩けた」手応えを判定線の近くで返すため、出現は判定線に近い
-        /// 位置から始める (0 = 所定位置、正 = その分だけ下)。
-        /// </summary>
-        public static float VerdictRiseOffset(float elapsed)
-        {
-            if (elapsed <= 0f)
-            {
-                return VerdictRiseDistance;
-            }
-
-            if (elapsed >= VerdictRiseSeconds)
-            {
-                return 0f;
-            }
-
-            float t = elapsed / VerdictRiseSeconds;
-            // EaseOut: 素早く立ち上がり、ゆっくり止まる。
-            float eased = 1f - (1f - t) * (1f - t);
-            return Mathf.Lerp(VerdictRiseDistance, 0f, eased);
-        }
-
-        /// <summary>
-        /// 判定テキストの不透明度。出るときは素早く出て、寿命の最後に短く消える。
+        /// <summary>判定テキストの不透明度。出るときは素早く出て、寿命の最後に短く消える。
         /// <paramref name="remaining"/> は表示が終わるまでの残り秒。
         /// </summary>
         public static float VerdictAlpha(float remaining)
@@ -189,6 +127,103 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             return Mathf.Clamp01(remaining / VerdictFadeSeconds);
+        }
+
+        /// <summary>
+        /// 判定テキストの縦オフセット (px、正 = 静止位置より下)。
+        ///
+        /// Issue #432: 出現は判定線の位置 (下) から始まり、静止位置を行き過ぎる
+        /// ほど上へ弾けてから静止位置へ戻る。負の値は静止位置より上
+        /// (オーバーシュート)。「下から上へ跳ねて出る」表現にするため、
+        /// リニアなフェードではなく 1 回のバウンドになる曲線を使う。
+        /// </summary>
+        /// <param name="elapsed">出現からの秒。</param>
+        /// <param name="startDrop">静止位置から判定線までの距離 (px)。</param>
+        public static float VerdictPopupOffset(float elapsed, float startDrop)
+        {
+            if (elapsed <= 0f)
+            {
+                return startDrop;
+            }
+
+            if (elapsed >= VerdictPopupSeconds)
+            {
+                return 0f;
+            }
+
+            float t = elapsed / VerdictPopupSeconds;
+            // (1-t)·cos(πt): t=0 で startDrop (判定線)、途中で 0 (静止位置) を通過し、
+            // いったん負 (上 = オーバーシュート) になって t=1 で 0 に戻る。
+            return startDrop * (1f - t) * Mathf.Cos(Mathf.PI * t);
+        }
+
+        // --- ポップ・パンチ系の共通イージング (Issue #434) ---
+
+        /// <summary>スコア加算ポップの最大倍率・立ち上がり・全体時間。</summary>
+        public const float ScorePopPeak = 1.08f;
+        public const float ScorePopAttack = 0.05f;
+        public const float ScorePopTotal = 0.22f;
+
+        /// <summary>コンボ加算ポップ。スコアより attack を短くして「遅れて見える」を解消。</summary>
+        public const float ComboPopPeak = 1.12f;
+        public const float ComboPopAttack = 0.04f;
+        public const float ComboPopTotal = 0.16f;
+
+        /// <summary>判定テキストのポップ (弾ける出現と併用)。</summary>
+        public const float VerdictPopPeak = 1.18f;
+        public const float VerdictPopAttack = 0.05f;
+        public const float VerdictPopTotal = 0.20f;
+
+        /// <summary>コンボボーナスの塗り色が戻るまでの時間 (秒)。</summary>
+        public const float ComboBonusPulseSeconds = 0.3f;
+
+        /// <summary>EaseOutCubic: 速く立ち上がって滑らかに止まる。</summary>
+        public static float EaseOutCubic(float t)
+        {
+            t = Mathf.Clamp01(t);
+            float u = 1f - t;
+            return 1f - u * u * u;
+        }
+
+        /// <summary>EaseOutBack: 行き過ぎてから戻る (弾ける感じ)。戻り値は 1 を超え得る。</summary>
+        public static float EaseOutBack(float t)
+        {
+            t = Mathf.Clamp01(t);
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            float u = t - 1f;
+            return 1f + c3 * u * u * u + c1 * u * u;
+        }
+
+        /// <summary>
+        /// ポップ倍率。attack 時間で peak へ弾けさせ (EaseOutBack で行き過ぎ)、
+        /// 残りで滑らかに 1 へ戻す。経過が total を超えたら 1。
+        /// </summary>
+        public static float PunchScale(float elapsed, float peak, float attack, float total)
+        {
+            if (elapsed < 0f || elapsed >= total || attack <= 0f)
+            {
+                return 1f;
+            }
+
+            if (elapsed < attack)
+            {
+                return Mathf.Lerp(1f, peak, EaseOutBack(elapsed / attack));
+            }
+
+            float u = (elapsed - attack) / (total - attack);
+            // smoothstep でピークから静止へ減衰。
+            float s = u * u * (3f - 2f * u);
+            return Mathf.Lerp(peak, 1f, s);
+        }
+
+        /// <summary>
+        /// 目標値へ指数的に近づける (フレームレート非依存の tween)。
+        /// speed が大きいほど速く追従する。dt は秒。
+        /// </summary>
+        public static float Approach(float current, float target, float dt, float speed)
+        {
+            return Mathf.Lerp(current, target, 1f - Mathf.Exp(-speed * dt));
         }
 
         /// <summary>再開カウントダウンの数字サイズ (design 1728×972 基準)。</summary>
@@ -217,16 +252,10 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>曲終了「終了」の design フォントサイズ (1728×972 基準)。</summary>
         public const float SongEndTitleDesignFontSize = 64f;
-        public const float SongEndSubDesignFontSize = 22f;
 
         public static float SongEndTitleFontSize(float scale)
         {
             return SongEndTitleDesignFontSize * scale;
-        }
-
-        public static float SongEndSubFontSize(float scale)
-        {
-            return SongEndSubDesignFontSize * scale;
         }
 
         /// <summary>コンボステータス (NO MISS / FULL COMBO) を出すか。

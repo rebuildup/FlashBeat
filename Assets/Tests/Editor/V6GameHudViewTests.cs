@@ -171,8 +171,7 @@ namespace FlashBeat.Tests
                 GManager.step_time = 1f;
                 view.Refresh();
                 Assert.AreEqual("一", LyricTextOf(view).text, "1 行目の区間で 1 行目が出る");
-                Assert.AreEqual("いち", PrivateLyricField(view, "lyricFuriganaText").text);
-                Assert.AreEqual("ichi", PrivateLyricField(view, "lyricRomajiText").text);
+                // Issue #433: 振り仮名・ローマ字は表示しない (フィールド自体を持たない)。
 
                 GManager.step_time = 4f;
                 view.Refresh();
@@ -192,11 +191,11 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// 間奏と最終行の後は枠ごと隠す (空の黒い矩形を出さない)。
-        /// 最終行の EndTime をすぎたら、もう歌詞は出ない。
+        /// Issue #433: パネルは行間で消さない。譜面に歌詞データがある間は
+        /// 枠を出し続け、本文が無い区間は文字だけ空にする。
         /// </summary>
         [Test]
-        public void Lyrics_HideTheBoxBetweenLinesAndAfterTheLastLine()
+        public void Lyrics_KeepTheBoxWhileTheChartHasLyrics()
         {
             originalSongId = GManager.songID;
             originalPlayed = GManager.played;
@@ -210,18 +209,51 @@ namespace FlashBeat.Tests
                 GManager.step_time = 2.5f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text, "行の間は本文が出ない");
-                Assert.IsFalse(LyricBoxOf(view).activeSelf, "行の間は枠が隠れる");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf, "行の間でも枠は出す (Issue #433)");
 
                 GManager.step_time = 9f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text, "最終行の後は本文が出ない");
-                Assert.IsFalse(LyricBoxOf(view).activeSelf, "最終行の後は枠が隠れる");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf, "最終行の後も枠は出す");
 
-                // 再び区間に入れば出る (隠しっぱなしにならない)。
+                // 再び区間に入れば本文が出る。
                 GManager.step_time = 4f;
                 view.Refresh();
                 Assert.AreEqual("二", LyricTextOf(view).text);
                 Assert.IsTrue(LyricBoxOf(view).activeSelf);
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #433: 譜面に歌詞データが無いときはパネル自体を隠す。
+        /// </summary>
+        [Test]
+        public void Lyrics_HideTheBoxWhenTheChartHasNoLyrics()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                sourceGo = CreateLyricsSource(new TextData
+                {
+                    StartTime = new float[0],
+                    EndTime = new float[0],
+                    Mondai = new string[0],
+                });
+                GManager.played = true;
+
+                view.Refresh();
+
+                Assert.IsFalse(LyricBoxOf(view).activeSelf, "歌詞の無い譜面では枠を出さない");
             }
             finally
             {
@@ -270,12 +302,5 @@ namespace FlashBeat.Tests
             }
         }
 
-        private static TextMeshProUGUI PrivateLyricField(V6GameHudView target, string name)
-        {
-            var field = typeof(V6GameHudView).GetField(name,
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.IsNotNull(field, "V6GameHudView." + name + " が見つからない");
-            return (TextMeshProUGUI)field.GetValue(target);
-        }
     }
 }
