@@ -622,10 +622,24 @@ namespace FlashBeat.UI.V6.Option
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Ellipsis;
 
-            var value = V6Controls.Text(line, "Value", row.Value(), new Vector2(260f, 0f),
-                new Vector2(120f, SetRowH), 24f, V6Tokens.Text, TextAlignmentOptions.Right);
+            // Issue #429: 編集値は左右の矢印の「間」に中央揃えで置く
+            // (Prev 300-340 / Next 444-484 → 値は 344-440 の中央 392)。
+            // アクション行 (キー設定等) は従来どおり右寄せの値を残す。
+            bool centered = !row.IsAction;
+            var value = V6Controls.Text(line, "Value", row.Value(),
+                centered ? new Vector2(344f, 0f) : new Vector2(260f, 0f),
+                centered ? new Vector2(96f, SetRowH) : new Vector2(120f, SetRowH),
+                24f, V6Tokens.Text,
+                centered ? TextAlignmentOptions.Center : TextAlignmentOptions.Right);
             value.textWrappingMode = TextWrappingModes.NoWrap;
             value.overflowMode = TextOverflowModes.Ellipsis;
+            if (centered)
+            {
+                value.enableAutoSizing = true;
+                value.fontSizeMin = 16f;
+                value.fontSizeMax = 24f;
+            }
+
             if (selected)
             {
                 selectedRowValueText = value;
@@ -636,7 +650,7 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            var prev = V6Controls.IconButton(line, "chevron-left", new Vector2(392f, 8f),
+            var prev = V6Controls.IconButton(line, "chevron-left", new Vector2(300f, 8f),
                 new Vector2(40f, 40f), V6Tokens.Key4, V6Tokens.RadiusMedium, 24f, V6Tokens.TextMuted);
             prev.GetComponent<Button>().onClick.AddListener(() =>
             {

@@ -357,6 +357,16 @@ namespace FlashBeat.UI.V6.Common
             }
         }
 
+        /// <summary>
+        /// キーが現在の編集表のどのレーンに割り当てられているか
+        /// (Issue #428: キーボード表示のキーキャップをクリックしてレーン選択するため)。
+        /// 未割当なら -1。
+        /// </summary>
+        public int LaneOfKey(KeyCode key)
+        {
+            return LaneOf(key);
+        }
+
         private int LaneOf(KeyCode key)
         {
             for (int lane = 0; lane < LaneCount; lane++)
