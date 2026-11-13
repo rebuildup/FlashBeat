@@ -1,0 +1,14 @@
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-select-probe phaseSeconds=8 resolution=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=2.6 avgMs=0.043 managedDeltaKB=108
+[V6Churn] phase=history churn ops=471 wallMs=8013 opsPerSec=58.8
+[V6Churn] phase=history census objects=275 rebuild=1 incremental=1494 managedKB=8180
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=2.6 avgMs=0.043 managedDeltaKB=88
+[V6Churn] phase=ranking churn ops=473 wallMs=8010 opsPerSec=59.1
+[V6Churn] phase=ranking census objects=253 rebuild=1 incremental=1027 managedKB=10776
+[V6Churn] phase=select refreshBatch n=60 totalMs=273.0 avgMs=4.549 managedDeltaKB=49008
+[V6Churn] phase=select churn ops=476 wallMs=8014 opsPerSec=59.4
+[V6Churn] phase=select census objects=289 rebuild=1 incremental=1525 managedKB=12928
+[V6Churn] phase=option refreshBatch n=60 totalMs=0.9 avgMs=0.015 managedDeltaKB=224
+[V6Churn] phase=option churn ops=480 wallMs=8007 opsPerSec=59.9
+[V6Churn] phase=option census objects=730 rebuild=1 incremental=1030 managedKB=9192
+[V6Churn] done

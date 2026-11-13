@@ -90,6 +90,21 @@ public class AutoTestV6Churn : MonoBehaviour
         yield return RunPhase("ranking", rankingView, () => rankingView.MoveSelection(1),
             () => rankingView.MoveSelection(-1), () => rankingView.Refresh());
 
+        // Select フェーズ (#415 phase 4 の要否判断用): SelectView は
+        // RefreshVolatile で可変ゾーンを毎回破棄→再構築する (#399)。
+        // 行スロット再利用を入れるかはここの per-call コストで決める。
+        // 公開の行移動 API が無いため op は no-op、Refresh が主計測対象。
+        var selectView = FlashBeat.UI.V6.Select.View.V6SelectView.Current;
+        if (selectView == null)
+        {
+            Log("FAIL v6 select view did not appear");
+            Finish();
+            yield break;
+        }
+
+        yield return RunPhase("select", selectView, () => { }, () => { },
+            () => selectView.Refresh());
+
         // Option フェーズ: OptionScene を開き直して同じ計測を行う。
         // OptionView の監査 API は MoveSelectionForAudit / Refresh / SelectTabForAudit。
         SceneManager.LoadScene("OptionScene");
