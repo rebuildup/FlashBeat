@@ -210,6 +210,8 @@ namespace FlashBeat.UI.V6.Common
                         var nav = button.navigation;
                         nav.mode = Navigation.Mode.None;
                         button.navigation = nav;
+                        // Issue #426: キーキャップにも押下リングを付ける。
+                        V6ButtonPressFeedback.Attach(capGo);
                         button.onClick.AddListener(() => OnKeyCapClicked(cap));
                     }
                     else
