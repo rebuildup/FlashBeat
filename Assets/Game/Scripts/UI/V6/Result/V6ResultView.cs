@@ -969,11 +969,12 @@ namespace FlashBeat.UI.V6.Result
             // (v5 ResultView の Placeholder と同じ既定名)。入力すると $text になる。
             modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
                 V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalNameValue, 24f, 20f, 736f, 58f);
+            // Issue #425: 文字が枠の左端に張り付いて見えるため、内側余白を広げる。
+            At(modalNameValue, 32f, 20f, 728f, 58f);
             modalNamePlaceholder = OneLine(V5GameUi.Text(field.gameObject, "Placeholder",
                 V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalNamePlaceholder, 24f, 20f, 736f, 58f);
+            At(modalNamePlaceholder, 32f, 20f, 728f, 58f);
 
             // 名前入力は TMP_InputField に任せる (Issue #384)。自前の Input.inputString
             // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
@@ -992,7 +993,9 @@ namespace FlashBeat.UI.V6.Result
             modalNameInput.customCaretColor = true;
             modalNameInput.caretColor = V5Tokens.Text;
             modalNameInput.selectionColor = new Color(1f, 1f, 1f, 0.2f);
-            // 保存名が入っている欄は「全選択」ではなく文末カーソルで開く (design)。
+            // 保存名が入っている欄は「全選択」状態で開く (Issue #425)。
+            // 何も打たずに Enter なら保存名がそのまま確定し、何か入力すれば
+            // 選択範囲が置き換わって保存名の末尾へ追記される事故を防ぐ。
             // Esc で閉じたときに TMP が元の文字列へ戻すと、確定扱いの onEndEdit が
             // 古い名前を送ってしまうため、復元も切る。
             modalNameInput.onFocusSelectAll = false;
@@ -1212,8 +1215,11 @@ namespace FlashBeat.UI.V6.Result
             }
 
             modalNameInput.ActivateInputField();
+            // Issue #425: 文末カーソルではなく全選択で開く。入力すると保存名が
+            // 丸ごと置き換わり、未入力の Enter は保存名のまま確定する。
+            // caret を先に置き、選択範囲を最後に設定する (逆順だと選択が潰れる)。
             modalNameInput.caretPosition = modalNameInput.text.Length;
-            modalNameInput.selectionAnchorPosition = modalNameInput.text.Length;
+            modalNameInput.selectionAnchorPosition = 0;
             modalNameInput.selectionFocusPosition = modalNameInput.text.Length;
         }
 
