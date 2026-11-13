@@ -102,6 +102,8 @@ namespace FlashBeat.UI.V6.Result
         private TextMeshProUGUI songRankTitle;
         private RectTransform songRankRows;
         private TextMeshProUGUI playerRankEmpty;
+        // Issue #415: 曲別ランキング行の差分更新用スロット (行オブジェクトを再利用する)。
+        private readonly List<GameObject> songRankRowObjects = new List<GameObject>();
 
         // 段階表示 (Issue #384)。要素は CanvasGroup のアルファで出し入れする
         // (レイアウトは動かさない)。
@@ -1769,19 +1771,95 @@ namespace FlashBeat.UI.V6.Result
 
         private void RebuildSongRankingRows()
         {
-            Common.V6Hierarchy.ClearChildren(songRankRows.gameObject);
-
+            // Issue #415: 曲別ランキング行はスロット単位で既存オブジェクトを再利用し、
+            // 行データの差分だけを既存 Image/TMP に適用する (全行破棄再生成はやめる)。
             int rows = Mathf.Min(rankingRows.Count, SongRankVisibleRows);
-            for (int i = 0; i < rows; i++)
+            for (int slot = 0; slot < SongRankVisibleRows; slot++)
             {
-                BuildRankingRow(songRankRows.gameObject, rankingRows[i], 92f + RankRowStep * i);
+                bool valid = slot < rows;
+                float y = 92f + RankRowStep * slot;
+                GameObject row = slot < songRankRowObjects.Count ? songRankRowObjects[slot] : null;
+                if (!valid)
+                {
+                    if (row != null)
+                    {
+                        row.transform.SetParent(null, false);
+                        V5GameUi.DestroyNow(row);
+                        songRankRowObjects[slot] = null;
+                    }
+
+                    continue;
+                }
+
+                var rowData = rankingRows[slot];
+                if (row == null)
+                {
+                    row = BuildRankingRow(songRankRows.gameObject, rowData, y);
+                    if (slot < songRankRowObjects.Count) songRankRowObjects[slot] = row;
+                    else songRankRowObjects.Add(row);
+                }
+                else
+                {
+                    UpdateRankingRow(row, rowData, y);
+                }
+            }
+
+            while (songRankRowObjects.Count > SongRankVisibleRows)
+            {
+                int last = songRankRowObjects.Count - 1;
+                GameObject tail = songRankRowObjects[last];
+                if (tail != null)
+                {
+                    tail.transform.SetParent(null, false);
+                    V5GameUi.DestroyNow(tail);
+                }
+
+                songRankRowObjects.RemoveAt(last);
             }
         }
 
-        private void BuildRankingRow(GameObject parent, FlashBeat.UI.V6.Select.V6RankingRow row, float y)
+        /// <summary>既存のランキング行を新しい行データで書き換える (行オブジェクトは再利用)。</summary>
+        private static void UpdateRankingRow(GameObject row, FlashBeat.UI.V6.Select.V6RankingRow rowData, float y)
+        {
+            var rt = row.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = V6Layout.ToLocal(new Vector2(8f, y));
+            }
+
+            var bg = row.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = rowData.IsYou ? V6Tokens.Key6 : V6Tokens.Key1;
+            }
+
+            SetChildText(row, "Pos/PosText", rowData.Position.ToString());
+            SetChildText(row, "Name", rowData.IsYou ? "YOU" : rowData.PlayerName);
+            SetChildText(row, "Value", V6ResultLogic.FormatScore(rowData.Score));
+            SetChildText(row, "Grade/GradeText", string.IsNullOrEmpty(rowData.Grade) ? "–" : rowData.Grade);
+
+            Transform posText = row.transform.Find("Pos/PosText");
+            var posTmp = posText != null ? posText.GetComponent<TextMeshProUGUI>() : null;
+            if (posTmp != null)
+            {
+                posTmp.color = rowData.IsYou ? V6Tokens.Text : V6Tokens.TextMuted;
+            }
+        }
+
+        private static void SetChildText(GameObject root, string path, string value)
+        {
+            Transform t = root != null ? root.transform.Find(path) : null;
+            var tmp = t != null ? t.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp != null)
+            {
+                tmp.text = value;
+            }
+        }
+
+        private GameObject BuildRankingRow(GameObject parent, FlashBeat.UI.V6.Select.V6RankingRow row, float y)
         {
             // 行内部は共通部品 (design Chlqd 496×44) が持つ。行位置だけがパネル固有点。
-            V6Lists.CompactRankRow(parent, row.Position.ToString(),
+            return V6Lists.CompactRankRow(parent, row.Position.ToString(),
                 row.IsYou ? "YOU" : row.PlayerName, V6ResultLogic.FormatScore(row.Score),
                 row.Grade, new Vector2(8f, y), row.IsYou);
         }
