@@ -141,4 +141,97 @@ public class MediaCacheManagerTests
 
         Assert.IsNull(YouTubeMediaCache.FindProducedFile(Path.Combine(root, "songA"), "video"));
     }
+
+    // --- Issue #403: 容量取得のコスト ---
+
+    [Test]
+    public void SizeScanIsRememberedUntilItIsInvalidated()
+    {
+        MediaCacheManager.ResetSizeCacheForAudit();
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+        Assert.AreEqual(1, MediaCacheManager.SizeScanCount, "最初の取得で 1 回舐める");
+
+        // 2 回目はディスクを舐めない (Option を開き直すたびの同期 I/O を無くす)。
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+        Assert.AreEqual(1, MediaCacheManager.SizeScanCount);
+
+        // ファイルが増えても、明示的に無効化するまでは前の値 (契約)。
+        WriteFile(Path.Combine("songB", "video.mp4"), 2000);
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        MediaCacheManager.InvalidateSize(root);
+        Assert.AreEqual(3000L, MediaCacheManager.GetCacheSizeBytes(root));
+        Assert.AreEqual(2, MediaCacheManager.SizeScanCount);
+    }
+
+    [Test]
+    public void ClearInvalidatesTheRememberedSize()
+    {
+        MediaCacheManager.ResetSizeCacheForAudit();
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+        WriteFile(Path.Combine("songB", "video.mp4"), 2000);
+
+        Assert.AreEqual(3000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        Assert.IsTrue(MediaCacheManager.Clear("songA", root));
+        // Clear が無効化するので、次の取得は実際の 2000 を返す
+        // (古い 3000 を返さない)。
+        Assert.AreEqual(2000L, MediaCacheManager.GetCacheSizeBytes(root));
+    }
+
+    [Test]
+    public void ClearAllInvalidatesTheRememberedSize()
+    {
+        MediaCacheManager.ResetSizeCacheForAudit();
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+        Assert.AreEqual(1, MediaCacheManager.ClearAll(root));
+        Assert.AreEqual(0L, MediaCacheManager.GetCacheSizeBytes(root));
+    }
+
+    [Test]
+    public void ResetSizeCacheForAudit_DoesNotChangeTheValueItReports()
+    {
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        MediaCacheManager.ResetSizeCacheForAudit();
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root),
+            "キャッシュを捨てても実ファイルの合計は同じ");
+    }
+
+    [Test]
+    public void SnapshotExpiresAfterTheTtl()
+    {
+        MediaCacheManager.ResetSizeCacheForAudit();
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        // 外部（このクラスを経ない）でファイルが増えても、TTL 経過で再スキャンされる。
+        var field = typeof(MediaCacheManager).GetField("sizeSnapshot",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.IsNotNull(field);
+        var dict = (System.Collections.Generic.Dictionary<string, (long Bytes, float Stamp)>)field.GetValue(null);
+        var entry = dict[root];
+        dict[root] = (entry.Bytes, -1000f); // 強制的に期限切れにする
+
+        WriteFile(Path.Combine("songB", "video.mp4"), 500);
+        Assert.AreEqual(1500L, MediaCacheManager.GetCacheSizeBytes(root),
+            "TTL を過ぎても古い容量を返している");
+    }
+
+    [Test]
+    public void ScanSizeBytesAlwaysReadsTheDisk()
+    {
+        WriteFile(Path.Combine("songA", "video.mp4"), 1000);
+        Assert.AreEqual(1000L, MediaCacheManager.GetCacheSizeBytes(root));
+
+        WriteFile(Path.Combine("songB", "video.mp4"), 500);
+        Assert.AreEqual(1500L, MediaCacheManager.ScanSizeBytes(root),
+            "計測用の Scan はスナップショットを経由しない");
+    }
 }

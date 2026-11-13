@@ -497,6 +497,9 @@ namespace FlashBeat.Gameplay
                 var info = new FileInfo(mediaPath);
                 if (!info.Exists || info.Length <= 0) return;
                 File.WriteAllText(DoneMarkerPath(mediaPath), info.Length.ToString(CultureInfo.InvariantCulture));
+                // Issue #403: 容量のスナップショットを古くしない
+                // (Option のキャッシュ表示がダウンロード後も古いままになる)。
+                MediaCacheManager.InvalidateSize();
             }
             catch
             {

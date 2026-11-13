@@ -54,23 +54,136 @@ namespace FlashBeat.Gameplay
             return GetCachedVideoIds(root).Count;
         }
 
-        /// <summary>Total size of the cache in bytes.</summary>
+        /// <summary>
+        /// Total size of the cache in bytes.
+        ///
+        /// Issue #403: 以前は呼ぶたびに <see cref="Directory.GetFiles(string,string,SearchOption)"/>
+        /// で全ファイルを列挙し <see cref="FileInfo"/> を作っていた。Option を開くたびに
+        /// 同期 I/O + 一時配列 + GC が発生する。ここでは
+        ///
+        ///   - 同じ root に対する結果を **スナップショット** として覚える
+        ///   - 無効化は「このクラスが cache を書き換えたとき」に行う
+        ///     (<see cref="Clear"/> / <see cref="ClearAll"/> / <see cref="InvalidateSize"/>)
+        ///   - スナップショットは <see cref="SizeSnapshotSeconds"/> 秒で陳腐化する
+        ///
+        /// という形にして、表示のたびにディスクを舐めない。
+        /// 外部（yt-dlp のダウンロード完了）がファイルを増やしたときは
+        /// ダウンロードを完了した側が <see cref="InvalidateSize"/> を呼ぶ。
+        /// TTL は「外部の書き換えを永遠に見逃さない」ための保険であり、
+        /// 陳腐化しても最短でも TTL 秒に 1 回は舐め直す（それ以上古い値は返らない）。
+        /// </summary>
         public static long GetCacheSizeBytes(string root = null)
+        {
+            var directory = root ?? RootDirectory;
+            string snapshotKey = directory;
+            if (sizeSnapshot.TryGetValue(snapshotKey, out var snap)
+                && Time.unscaledTime - snap.Stamp < SizeSnapshotSeconds)
+            {
+                return snap.Bytes;
+            }
+
+            long total = ScanSizeBytes(directory);
+            sizeSnapshot[snapshotKey] = (total, Time.unscaledTime);
+            SizeScanCount++;
+            return total;
+        }
+
+        /// <summary>スナップショットの有効期間 (秒)。</summary>
+        public const float SizeSnapshotSeconds = 30f;
+
+        /// <summary>
+        /// ディスクを実際に舐めて合計を出す (キャッシュを経由しない)。
+        /// 計測・検証用。
+        /// </summary>
+        public static long ScanSizeBytes(string root = null)
         {
             long total = 0;
             var directory = root ?? RootDirectory;
             try
             {
                 if (!Directory.Exists(directory)) return 0;
-                foreach (var file in Directory.GetFiles(directory, "*", SearchOption.AllDirectories))
+
+                // Directory.GetFiles は全パスの配列を一度に確保する。
+                // ファイル数が多いキャッシュで大きな一時配列を作らないよう、
+                // ディレクトリを辿りながら 1 件ずつ数える。
+                total += SizeOfFilesIn(directory);
+                foreach (var sub in Directory.GetDirectories(directory))
                 {
-                    var info = new FileInfo(file);
-                    total += info.Length;
+                    total += SizeOfTree(sub);
                 }
             }
             catch { }
             return total;
         }
+
+        private static long SizeOfTree(string directory)
+        {
+            long total = SizeOfFilesIn(directory);
+            try
+            {
+                foreach (var sub in Directory.GetDirectories(directory))
+                {
+                    total += SizeOfTree(sub);
+                }
+            }
+            catch { }
+            return total;
+        }
+
+        private static long SizeOfFilesIn(string directory)
+        {
+            long total = 0;
+            try
+            {
+                foreach (var file in Directory.GetFiles(directory))
+                {
+                    total += SizeOf(file);
+                }
+            }
+            catch { }
+            return total;
+        }
+
+        /// <summary>1 ファイルのサイズ (読めないときは 0)。</summary>
+        private static long SizeOf(string path)
+        {
+            try
+            {
+                return new FileInfo(path).Length;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// 容量のスナップショットを捨てる。次回 <see cref="GetCacheSizeBytes"/> は
+        /// ディスクを舐め直す。キャッシュを書き換えた側 (ダウンロード完了・削除) が呼ぶ。
+        /// </summary>
+        public static void InvalidateSize(string root = null)
+        {
+            if (root == null)
+            {
+                sizeSnapshot.Clear();
+                return;
+            }
+
+            sizeSnapshot.Remove(root);
+        }
+
+        /// <summary>このプロセスで実際にディスクを舐めた回数 (キャッシュ ヒットは含まない)。</summary>
+        public static int SizeScanCount { get; private set; }
+
+        /// <summary>テスト用: スナップショットと計測点を戻す。</summary>
+        public static void ResetSizeCacheForAudit()
+        {
+            sizeSnapshot.Clear();
+            SizeScanCount = 0;
+        }
+
+        private static readonly Dictionary<string, (long Bytes, float Stamp)> sizeSnapshot =
+            new Dictionary<string, (long Bytes, float Stamp)>(StringComparer.Ordinal);
 
         /// <summary>Deletes the media of one song. Returns true when something was removed.</summary>
         public static bool Clear(string videoId, string root = null)
@@ -80,6 +193,9 @@ namespace FlashBeat.Gameplay
             var directory = root ?? RootDirectory;
             var songFolder = Path.Combine(directory, videoId.Replace('/', '_'));
             var removed = DeleteFolder(songFolder);
+
+            // Issue #403: 容量のスナップショットを古くしない。
+            if (removed) InvalidateSize(root);
 
             // Deleting the cache is the explicit refetch way out (issue #184
             // review B2): without the reset a spent refetch budget would keep
@@ -111,6 +227,9 @@ namespace FlashBeat.Gameplay
                 }
             }
             catch { }
+
+            // Issue #403: 削除したら容量のスナップショットを捨てる。
+            if (removed > 0) InvalidateSize(root);
             return removed;
         }
 
