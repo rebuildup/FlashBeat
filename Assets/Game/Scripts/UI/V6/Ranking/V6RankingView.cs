@@ -510,7 +510,8 @@ namespace FlashBeat.UI.V6.Ranking
             var dots = V5Ui.Node(list, "Dot indicator");
             int count = songs.Count;
             float total = V6SelectViewLogic.DotBottom(count, 0f);
-            At(dots.GetComponent<RectTransform>(), V6SelectViewLogic.DotX, V6SelectViewLogic.DotY,
+            // Issue #427: Select と同じくレールをリストパネルの上下中央に置く。
+            At(dots.GetComponent<RectTransform>(), V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(count),
                 V6SelectViewLogic.DotActiveSize, total);
 
             int active = V6SelectViewLogic.DotActiveIndex(selectIndex, count);
@@ -518,8 +519,9 @@ namespace FlashBeat.UI.V6.Ranking
             for (int i = 0; i < count; i++)
             {
                 float d = i == active ? V6SelectViewLogic.DotActiveSize : V6SelectViewLogic.DotSize;
+                // Issue #427: 選択中は v6 の選択色 (Key6)。
                 var dot = V5Ui.Panel(dots, "Dot " + (i + 1), new Vector2(d, d),
-                    i == active ? V5Tokens.Accent : FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
+                    i == active ? V6Tokens.Key6 : FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
                 At(dot, V6SelectViewLogic.DotRectX(d), offsets[i]);
             }
         }

@@ -546,10 +546,12 @@ namespace FlashBeat.UI.V6.Select.View
             var countRect = V6SelectViewLogic.HeaderCount();
             At(count, countRect.X, countRect.Y, countRect.W, countRect.H);
 
-            if (!string.IsNullOrEmpty(data.StatusMessage))
+            // Issue #427: ヘッダーにはエラーだけを出す。取得中の「ランキングを
+            // 取得しています」は SCORE RANKING パネル内に出す (空白地への浮き表示をやめる)。
+            if (data.HasError && !string.IsNullOrEmpty(data.StatusMessage))
             {
                 var status = V5GameUi.Text(header.gameObject, "Status", data.StatusMessage, 18f,
-                    data.HasError ? V5Tokens.DangerLight : V5Tokens.TextDim, TextAlignmentOptions.Left);
+                    V5Tokens.DangerLight, TextAlignmentOptions.Left);
                 At(status, 864f, 74f, 792f, 20f);
             }
 
@@ -772,7 +774,8 @@ namespace FlashBeat.UI.V6.Select.View
             int count = all == null ? 0 : all.Count;
             float total = V6SelectViewLogic.DotBottom(count, 0f);
             // レール幅は design どおり最大ドット幅 (10)。ドットはレール中央に置く。
-            At(dots.GetComponent<RectTransform>(), V6SelectViewLogic.DotX, V6SelectViewLogic.DotY,
+            // Issue #427: レールはリストパネルの上下中央 (design の DotY=136 は上寄りだった)。
+            At(dots.GetComponent<RectTransform>(), V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(count),
                 V6SelectViewLogic.DotActiveSize, total);
 
             int active = -1;
@@ -789,8 +792,10 @@ namespace FlashBeat.UI.V6.Select.View
             for (int i = 0; i < count; i++)
             {
                 float d = i == active ? V6SelectViewLogic.DotActiveSize : V6SelectViewLogic.DotSize;
+                // Issue #427: 選択中は v6 の選択色 (Key6)。design の水色 Accent は
+                // v6 の選択表現と一致しないため使わない。
                 var dot = V5Ui.Panel(dots, "Dot " + (i + 1), new Vector2(d, d),
-                    i == active ? V5Tokens.Accent : FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
+                    i == active ? V6Tokens.Key6 : FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
                 At(dot, V6SelectViewLogic.DotRectX(d), offsets[i]);
             }
         }
@@ -825,14 +830,23 @@ namespace FlashBeat.UI.V6.Select.View
                 title.fontSizeMin = 30f;
                 title.fontSizeMax = 48f;
                 At(title, 0f, 8.5f, 512f, 50f);
-                var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
-                At(artistRow.GetComponent<RectTransform>(), 0f, 62.5f, 512f, 29f);
-                var tag = V5Ui.Panel(artistRow.gameObject, "Tag No", new Vector2(63f, 29f), V5Tokens.Key4, 4f);
+                // Issue #427: Title と同じ 512 幅・中央揃えにして、曲名と作曲者名の
+                // 中心軸を構造的に一致させる。タグ (No.N) は左端に絶対配置し、
+                // アーティスト名はパネル全幅で中央寄せする (行グループの中央揃えだと
+                // タグ分だけ文字が右へずれて見えた)。
+                var tag = At(V5Ui.Panel(meta, "Tag No", new Vector2(63f, 29f), V5Tokens.Key4, 4f),
+                    0f, 62.5f);
                 var tagText = V5GameUi.Text(tag, "Text", "No." + song.SongId, 20f, V5Tokens.TextMuted,
                     TextAlignmentOptions.Center);
                 Stretch(tagText.GetComponent<RectTransform>(), 63f, 29f);
-                var artistText = V5GameUi.Text(artistRow.gameObject, "Artist", song.Artist, 26f, V5Tokens.TextMuted);
+                var artistText = V5GameUi.Text(meta, "Artist", song.Artist, 26f, V5Tokens.TextMuted,
+                    TextAlignmentOptions.Center);
                 artistText.textWrappingMode = TextWrappingModes.NoWrap;
+                artistText.overflowMode = TextOverflowModes.Ellipsis;
+                artistText.enableAutoSizing = true;
+                artistText.fontSizeMin = 18f;
+                artistText.fontSizeMax = 26f;
+                At(artistText, 0f, 62.5f, 512f, 29f);
             }
             else
             {
@@ -987,9 +1001,11 @@ namespace FlashBeat.UI.V6.Select.View
             var rows = data.Selected != null ? data.RankingFor(data.Selected) : null;
             if (rows == null || rows.Count == 0)
             {
-                // design xIoXm: 空状態は中央の "NO DATA" (24 / $text-dim / (8,155) 496×35)。
-                // 具体的な理由 (ローカル曲・通信失敗) はヘッダーの StatusMessage が既に出す。
-                var empty = V5GameUi.Text(ranking.gameObject, "No Data", "NO DATA", 24f,
+                // Issue #427: 取得中はテキストではなく控えめな「…」をパネル内に出す。
+                // 失敗時はヘッダーの StatusMessage (エラー) が理由を伝える。
+                bool loading = data.IsLoading;
+                var empty = V5GameUi.Text(ranking.gameObject, "No Data",
+                    loading ? "…" : "NO DATA", loading ? 40f : 24f,
                     V5Tokens.TextDim, TextAlignmentOptions.Center);
                 At(empty, 8f, 155f, 496f, 35f);
             }
