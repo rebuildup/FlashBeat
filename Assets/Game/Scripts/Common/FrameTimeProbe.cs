@@ -100,7 +100,9 @@ public sealed class FrameTimeProbe : MonoBehaviour
         {
             Debug.Log(Tag + " event=spike scene=" + SceneManager.GetActiveScene().name
                 + " frameMs=" + (dt * 1000f).ToString("F1", CultureInfo.InvariantCulture)
-                + " t=" + Time.unscaledTime.ToString("F2", CultureInfo.InvariantCulture));
+                + " t=" + Time.unscaledTime.ToString("F2", CultureInfo.InvariantCulture)
+                + " mark=" + PerfMarks.Describe()
+                + " gc0Total=" + GC.CollectionCount(0));
         }
 
         if (samples.Count >= Capacity) samples.RemoveAt(0);

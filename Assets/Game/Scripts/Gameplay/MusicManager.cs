@@ -81,6 +81,7 @@ public class MusicManager : MonoBehaviour
     /// </summary>
     bool startRequested;
     bool pictureStarted;
+    bool firstFrameMarked;
     bool resultTriggered;
 
     // --- song end (issue #226) -------------------------------------------------
@@ -254,6 +255,7 @@ public class MusicManager : MonoBehaviour
 
         sceneStartTime = Time.time;
         mediaStopwatch.Restart();
+        PerfMarks.Hit("media-prepare-start");
         SongEndGate.Reset();
 
         // Issue #383: 開始待ち・終端フェードは曲ごとに初期化する。Retry は
@@ -505,6 +507,7 @@ public class MusicManager : MonoBehaviour
         audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
 
         mediaReady = true;
+        PerfMarks.Hit("media-ready");
         if (showLegacyMediaOverlay && loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
@@ -704,6 +707,7 @@ public class MusicManager : MonoBehaviour
     IEnumerator PrepareLocalVideo(string path, bool combined)
     {
         videoPrepared = false;
+        firstFrameMarked = false;
         // Issue #13: URL の「形」だけを後でログに出すために控える (値は出さない)。
         lastVideoUrl = path;
         songVideo.errorReceived += OnVideoError;
@@ -712,7 +716,13 @@ public class MusicManager : MonoBehaviour
         songVideo.audioOutputMode = VideoAudioOutputMode.AudioSource;
         songVideo.SetTargetAudioSource(0, audioS);
         songVideo.url = path;
+        // #395: Prepare() は非同期だが、Windows/Media Foundation では呼び出し自体が
+        // メインスレッドを長時間ブロックすることがある。呼び出し時間を計測する。
+        var prepareCallWatch = Stopwatch.StartNew();
         songVideo.Prepare();
+        prepareCallWatch.Stop();
+        PerfMarks.Hit("video-prepare-call");
+        Debug.Log($"[Perf] video Prepare() call {prepareCallWatch.ElapsedMilliseconds}ms file={Path.GetFileName(path)}");
 
         float waited = 0f;
         while (!songVideo.isPrepared && waited < PrepareTimeout)
@@ -725,7 +735,11 @@ public class MusicManager : MonoBehaviour
         {
             // Some Unity versions insist on an explicit file:// URL.
             songVideo.url = "file://" + path.Replace('\\', '/');
+            var retryPrepareWatch = Stopwatch.StartNew();
             songVideo.Prepare();
+            retryPrepareWatch.Stop();
+            PerfMarks.Hit("video-prepare-retry");
+            Debug.Log($"[Perf] video Prepare() retry call {retryPrepareWatch.ElapsedMilliseconds}ms");
             waited = 0f;
             while (!songVideo.isPrepared && waited < 5f)
             {
@@ -743,10 +757,18 @@ public class MusicManager : MonoBehaviour
 
         if (songVideo.isPrepared)
         {
+            PerfMarks.Hit("video-wire-picture");
+            var wireWatch = Stopwatch.StartNew();
             WireVideoPicture();
+            wireWatch.Stop();
+            Debug.Log($"[Perf] video wire picture {wireWatch.ElapsedMilliseconds}ms");
+            PerfMarks.Hit("video-activate");
+            wireWatch.Restart();
             // Issue #233: 映像プレーンはシーンで非アクティブ (m_IsActive: 0)
             // なので、準備できたここで有効化する (シーンは編集しない)。
             picturePlaneActive = VideoPicture.Activate(songVideo);
+            wireWatch.Stop();
+            Debug.Log($"[Perf] video activate {wireWatch.ElapsedMilliseconds}ms");
         }
 
         Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
@@ -825,7 +847,11 @@ public class MusicManager : MonoBehaviour
         streamAudioPlayer.source = VideoSource.Url;
         streamAudioPlayer.errorReceived += OnVideoError;
         streamAudioPlayer.url = path;
+        var audioPrepareWatch = Stopwatch.StartNew();
         streamAudioPlayer.Prepare();
+        audioPrepareWatch.Stop();
+        PerfMarks.Hit("audio-prepare-call");
+        Debug.Log($"[Perf] audio Prepare() call {audioPrepareWatch.ElapsedMilliseconds}ms file={Path.GetFileName(path)}");
 
         float waited = 0f;
         while (!streamAudioPlayer.isPrepared && waited < PrepareTimeout)
@@ -1025,6 +1051,15 @@ public class MusicManager : MonoBehaviour
         if (picturePlaneActive && songVideo != null)
         {
             VideoPicture.ShowWhenFrameReady(songVideo, VideoPicture.HasRenderedFrame(songVideo));
+        }
+
+        // #395: 初回フレーム描画のタイミングを spike 帰属の目印にする。
+        if (!firstFrameMarked && pictureStarted && songVideo != null &&
+            VideoPicture.HasRenderedFrame(songVideo))
+        {
+            firstFrameMarked = true;
+            PerfMarks.Hit("video-first-frame");
+            Debug.Log($"[Perf] video first rendered frame at mediaTime={mediaTime:F2}");
         }
 
         if (!mediaEnded)
@@ -1333,6 +1368,7 @@ public class MusicManager : MonoBehaviour
         }
 
         playbackStarted = true;
+        PerfMarks.Hit("playback-start");
         // The player started the song anyway: the pending return is cancelled
         // (its coroutine yields break on playbackStarted) and the HUD goes
         // back to the play view.
@@ -1355,7 +1391,11 @@ public class MusicManager : MonoBehaviour
                 picturePlaneActive = VideoPicture.Activate(songVideo);
             }
 
+            var playWatch = Stopwatch.StartNew();
             songVideo.Play();
+            playWatch.Stop();
+            PerfMarks.Hit("video-play");
+            Debug.Log($"[Perf] video Play() call {playWatch.ElapsedMilliseconds}ms");
             pictureStarted = true;
         }
 

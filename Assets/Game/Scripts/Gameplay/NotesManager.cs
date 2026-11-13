@@ -155,6 +155,7 @@ public class NotesManager : MonoBehaviour
     /// </summary>
     IEnumerator LoadRoutine(SongData song)
     {
+        PerfMarks.Hit("notes-load-start");
         // セッションの z スケールを確定する (PR #263 レビュー S7)。
         // 生成・時刻復元・移動・HOLD の胴体長が同じ値を使うので、曲中に
         // 速度オプションが変わってもノーツが飛びも復元値もずれない。
@@ -165,7 +166,10 @@ public class NotesManager : MonoBehaviour
         GameSceneManager.SaveNotesTime.Clear();
 
         var parseStopwatch = Stopwatch.StartNew();
+        PerfMarks.Hit("notes-parse");
         Data inputJson = ParseChart(song);
+        parseStopwatch.Stop();
+        PerfMarks.Hit("notes-parsed");
         long parseMs = parseStopwatch.ElapsedMilliseconds;
 
         if (inputJson == null)
@@ -264,6 +268,9 @@ public class NotesManager : MonoBehaviour
         bool showLegacyOverlay = GameLoadingRoute.UsesLegacyOverlay;
         var batcher = new TimeBudgetBatcher(InstantiateBudgetMs);
         var instantiateStopwatch = Stopwatch.StartNew();
+        PerfMarks.Hit("notes-instantiate");
+        double slowestBatchMs = 0.0;
+        int slowestBatchStart = -1;
         if (showLegacyOverlay) LoadingOverlay.Show("譜面を準備中…", OverlayOwner);
         int done = 0;
         while (done < total)
@@ -294,6 +301,19 @@ public class NotesManager : MonoBehaviour
             }
             batchStopwatch.Stop();
             batcher.Report(batch, batchStopwatch.Elapsed.TotalSeconds);
+            // #395: 単一バッチが予算を大きく超えたらマーカーを残す。spike の
+            // 帰属が「譜面生成の Instantiate」なのかを切り分けるため。
+            double batchMs = batchStopwatch.Elapsed.TotalMilliseconds;
+            if (batchMs > InstantiateBudgetMs * 4.0)
+            {
+                PerfMarks.Hit("notes-slow-batch");
+                Debug.Log($"[Perf] notes slow batch {batch} notes in {batchMs:F1}ms at {done}-{done + batch - 1}");
+            }
+            if (batchMs > slowestBatchMs)
+            {
+                slowestBatchMs = batchMs;
+                slowestBatchStart = done;
+            }
             done += batch;
             FlashBeat.UI.V6.Game.Loading.GameLoadingProgress.ReportNotes((float)done / total);
             if (showLegacyOverlay)
@@ -313,7 +333,9 @@ public class NotesManager : MonoBehaviour
             GameSceneManager.SaveNotesTime.Add(1000000f);
         }
 
-        Debug.Log($"[Perf] notes instantiate {total} notes in {instantiateStopwatch.ElapsedMilliseconds}ms");
+        Debug.Log($"[Perf] notes instantiate {total} notes in {instantiateStopwatch.ElapsedMilliseconds}ms"
+            + $" slowestBatch={slowestBatchMs:F1}ms@{slowestBatchStart}");
+        PerfMarks.Hit("notes-ready");
         IsReady = true;
     }
 
