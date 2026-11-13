@@ -340,6 +340,63 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
+        public void RowClick_SelectsTheSongShownInThatSlot()
+        {
+            // スロット再利用で行クリックの結線が「スロット index」へ変わったので、
+            // 実際に表示されている曲が選ばれることを固定する (#415 受入:
+            // クリック先の回帰確認)。
+            data.Select(5);
+            var rows = SongRows();
+            Assert.Greater(rows.Count, 0);
+
+            // 選択中でない行を 1 つ選び、その行のタイトルから曲を引く。
+            GameObject target = null;
+            string targetTitle = null;
+            foreach (var row in rows)
+            {
+                var bg = row.GetComponent<UnityEngine.UI.Image>();
+                if (bg != null && bg.color != FlashBeat.UI.V5.V5Tokens.Key6)
+                {
+                    target = row;
+                    targetTitle = RowTitle(row);
+                    break;
+                }
+            }
+            Assert.IsNotNull(target, "非選択行が見つからない");
+            Assert.IsNotNull(targetTitle);
+
+            var expected = data.Songs.Find(s => s.Title == targetTitle);
+            Assert.IsNotNull(expected, "行タイトルに対応する曲がカタログに無い");
+
+            var button = target.GetComponent<UnityEngine.UI.Button>();
+            Assert.IsNotNull(button, "曲行に Button が無い");
+            button.onClick.Invoke();
+
+            Assert.AreSame(expected, data.Selected,
+                "行クリックでそのスロットに表示されている曲が選ばれていない");
+        }
+
+        [Test]
+        public void FocusSearch_ShowsCaretWithoutRebuild()
+        {
+            var headerBefore = Zone("Header");
+            var rebuildsBefore = view.RebuildCountForAudit;
+
+            view.FocusSearch();
+
+            Assert.AreSame(headerBefore, Zone("Header"),
+                "フォーカスでヘッダーが再生成されている");
+            Assert.AreEqual(rebuildsBefore, view.RebuildCountForAudit,
+                "フォーカスで画面全体を作り直している");
+
+            var queryText = Find(headerBefore.transform, "Search/Query")
+                ?.GetComponent<TMPro.TextMeshProUGUI>();
+            Assert.IsNotNull(queryText);
+            StringAssert.EndsWith("|", queryText.text,
+                "フォーカス中のキャレット表示が出ていない");
+        }
+
+        [Test]
         public void QuickSettings_TogglesRightColumn()
         {
             Assert.IsNotNull(Zone("Ranking Column"), "初期状態で Ranking Column が無い");

@@ -538,6 +538,12 @@ namespace FlashBeat.UI.V6.Select.View
             frameWidthAtBuild = Screen.width;
             frameHeightAtBuild = Screen.height;
 
+            // Issue #415 受入: 再生成が起きたときは理由をログへ残す
+            // (通常の選択・検索・スクロールでは出ない。設定開閉・解像度変更・
+            // 明示的な再構築でだけ出る)。
+            Debug.Log($"[V6SelectView] rebuild #{RebuildCountForAudit} " +
+                $"settingsOpen={settingsOpen} screen={Screen.width}x{Screen.height}");
+
             PlaceFrame();
 
             // frame の全子を作り直す (V5 SelectView.Rebuild と同じ方針)。
@@ -966,7 +972,11 @@ namespace FlashBeat.UI.V6.Select.View
                     continue;
                 }
 
-                UpdateSongRow(row, songs[i], i == selectIndex, RowY0 + RowStep * slot);
+                // SongId が変わったスロットだけ行名 ("SongRow <title>") を
+                // 付け直す。毎回連結すると Refresh ごとに文字列を確保する。
+                bool identityChanged = listRowSongIds[slot] != songs[i].SongId;
+                UpdateSongRow(row, songs[i], i == selectIndex, RowY0 + RowStep * slot,
+                    identityChanged);
                 listRowSongIds[slot] = songs[i].SongId;
             }
 
@@ -981,7 +991,8 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>既存の曲行を別の曲データで書き換える (行オブジェクトは再利用)。</summary>
-        private void UpdateSongRow(GameObject row, V6SongEntry song, bool selected, float y)
+        private void UpdateSongRow(GameObject row, V6SongEntry song, bool selected, float y,
+            bool rename)
         {
             var rt = row.GetComponent<RectTransform>();
             if (rt != null)
@@ -1002,7 +1013,10 @@ namespace FlashBeat.UI.V6.Select.View
             SetChildText(row, "Composer", song.Artist);
             SetChildText(row, "Grade/Grade",
                 string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade);
-            row.name = "SongRow " + song.Title;
+            if (rename)
+            {
+                row.name = "SongRow " + song.Title;
+            }
 
             SetJacket(V6Lists.Thumb(row), song, V6Tokens.Key2);
         }
@@ -1554,7 +1568,7 @@ namespace FlashBeat.UI.V6.Select.View
                     continue;
                 }
 
-                UpdateRankingRow(row, rows[i], slot);
+                UpdateRankingRow(row, rows[i], 92f + 52f * slot);
             }
 
             while (rankRowObjects.Count > RankingVisibleRows)
@@ -1567,9 +1581,8 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>既存のランキング行を別の行データで書き換える (行オブジェクトは再利用)。</summary>
-        private void UpdateRankingRow(GameObject row, V6RankingRow dataRow, int slot)
+        private void UpdateRankingRow(GameObject row, V6RankingRow dataRow, float y)
         {
-            float y = 92f + 52f * slot;
             var rt = row.GetComponent<RectTransform>();
             if (rt != null)
             {

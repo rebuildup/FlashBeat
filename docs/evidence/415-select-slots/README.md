@@ -39,6 +39,7 @@ before として使う。after 側は `RefreshVolatile` を scaffold 保持 +
 | | before | after |
 |---|---|---|
 | churn avgFps | 54.8 | 59.8–60.0 |
+| churn p95 | 17.7 ms | 17.6 ms |
 | churn p99 | 83.9 ms | 17.7–17.9 ms |
 | churn worst | 183.2 ms | 17.7–33.5 ms |
 | churn gcKBPerFrame | -15.5〜13.7 (変動大) | -1.7〜2.2 |
