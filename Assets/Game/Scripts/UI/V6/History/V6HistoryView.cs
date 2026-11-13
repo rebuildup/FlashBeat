@@ -606,6 +606,11 @@ namespace FlashBeat.UI.V6.History
 
             var valueText = V5GameUi.Text(cell.gameObject, "Value", value, 32f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
+            // スコアは桁数が増えても折り返さない (V6SelectView.BuildStat と同じ規約 #379)。
+            valueText.textWrappingMode = TextWrappingModes.NoWrap;
+            valueText.enableAutoSizing = true;
+            valueText.fontSizeMin = 24f;
+            valueText.fontSizeMax = 32f;
             var valueRt = valueText.GetComponent<RectTransform>();
             valueRt.anchorMin = new Vector2(1f, 0.5f);
             valueRt.anchorMax = new Vector2(1f, 0.5f);
@@ -686,9 +691,10 @@ namespace FlashBeat.UI.V6.History
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
             V5GameUi.Text(head.gameObject, "Score Label", "SCORE", 18f, V5Tokens.TextDim, TextAlignmentOptions.Right);
-            V5GameUi.Text(head.gameObject, "Score Value", LastPlayValid(song)
+            var lastScore = V5GameUi.Text(head.gameObject, "Score Value", LastPlayValid(song)
                 ? V6SelectViewLogic.FormatScore(GManager.score) : "–", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Right, FontStyles.Bold);
+            lastScore.textWrappingMode = TextWrappingModes.NoWrap;
 
             bool valid = LastPlayValid(song);
             BuildJudgeCell(panel, 20f, 52f, "PERFECT", valid ? GManager.perfect.ToString() : "–");
@@ -809,6 +815,12 @@ namespace FlashBeat.UI.V6.History
 
             var valueText = V5GameUi.Text(cell.gameObject, "Value", value, 24f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
+            // 累計スコアは全曲合計で 8 桁を超えうる。120px の値セルで折り返さないよう
+            // 1 行固定 + 自動縮小にする (#379 と同じ規約)。
+            valueText.textWrappingMode = TextWrappingModes.NoWrap;
+            valueText.enableAutoSizing = true;
+            valueText.fontSizeMin = 16f;
+            valueText.fontSizeMax = 24f;
             At(valueText, 116f, 0f, 120f, 60f, new Vector2(0f, 0.5f));
         }
 

@@ -819,6 +819,11 @@ namespace FlashBeat.UI.V6.Select.View
                     TextAlignmentOptions.Center, FontStyles.Bold);
                 // design dRztp: Meta は縦 gap4・中央揃え。Title (0,8.5) 512×50、
                 // Artist Row (0,62.5) 512×29 — 50 + 4 + 29 = 83 が 100 の中で中央。
+                // 長い曲名は折り返さず自動縮小で 1 行に収める (Artist 行との重なり防止)。
+                title.textWrappingMode = TextWrappingModes.NoWrap;
+                title.enableAutoSizing = true;
+                title.fontSizeMin = 30f;
+                title.fontSizeMax = 48f;
                 At(title, 0f, 8.5f, 512f, 50f);
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
                 At(artistRow.GetComponent<RectTransform>(), 0f, 62.5f, 512f, 29f);
@@ -826,7 +831,8 @@ namespace FlashBeat.UI.V6.Select.View
                 var tagText = V5GameUi.Text(tag, "Text", "No." + song.SongId, 20f, V5Tokens.TextMuted,
                     TextAlignmentOptions.Center);
                 Stretch(tagText.GetComponent<RectTransform>(), 63f, 29f);
-                V5GameUi.Text(artistRow.gameObject, "Artist", song.Artist, 26f, V5Tokens.TextMuted);
+                var artistText = V5GameUi.Text(artistRow.gameObject, "Artist", song.Artist, 26f, V5Tokens.TextMuted);
+                artistText.textWrappingMode = TextWrappingModes.NoWrap;
             }
             else
             {
@@ -879,6 +885,12 @@ namespace FlashBeat.UI.V6.Select.View
 
             var valueText = V5GameUi.Text(cell.gameObject, "Value", value, 32f, V5Tokens.Text,
                 TextAlignmentOptions.Right, FontStyles.Normal);
+            // スコアは桁数が増えても折り返さない (FHD で「992,30 / 7」と 2 行化した実機報告 #379)。
+            // 幅を超えた分は自動縮小で 1 行に収める。
+            valueText.textWrappingMode = TextWrappingModes.NoWrap;
+            valueText.enableAutoSizing = true;
+            valueText.fontSizeMin = 24f;
+            valueText.fontSizeMax = 32f;
             var valueRt = valueText.GetComponent<RectTransform>();
             valueRt.anchorMin = new Vector2(1f, 0.5f);
             valueRt.anchorMax = new Vector2(1f, 0.5f);
@@ -933,10 +945,19 @@ namespace FlashBeat.UI.V6.Select.View
             var scoreRow = V5GameUi.Row(best.gameObject, "Score Row", 12f, TextAnchor.MiddleLeft);
             At(scoreRow.GetComponent<RectTransform>(), 0f, 30f, 528f, 72f);
             var song = data.Selected;
-            V5GameUi.Text(scoreRow.gameObject, "Score",
+            var scoreText = V5GameUi.Text(scoreRow.gameObject, "Score",
                 song != null ? V6SelectViewLogic.FormatScore(song.BestScore) : "–", 56f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
+            // BEST の大きな数値も折り返さない (#379)。childControlWidth=false のため
+            // 幅は明示する: Score 400 + Spacer 0 + Grade 72 + gap 12x2 = 496 ≤ 528。
+            // 幅を超えた分は自動縮小で 1 行に収める。
+            scoreText.textWrappingMode = TextWrappingModes.NoWrap;
+            scoreText.enableAutoSizing = true;
+            scoreText.fontSizeMin = 40f;
+            scoreText.fontSizeMax = 56f;
+            scoreText.rectTransform.sizeDelta = new Vector2(400f, 72f);
             var spacer = V5Ui.Node(scoreRow.gameObject, "Spacer");
+            spacer.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
             var gradeChip = At(V5Ui.Panel(scoreRow.gameObject, "Grade", new Vector2(72f, 64f), V5Tokens.Key6, 8f),
