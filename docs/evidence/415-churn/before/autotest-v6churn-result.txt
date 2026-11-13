@@ -1,0 +1,8 @@
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-churn/before phaseSeconds=8 resolution=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=336.4 avgMs=5.607 managedDeltaKB=67164
+[V6Churn] phase=history churn ops=235 wallMs=8019 opsPerSec=29.3
+[V6Churn] phase=history census objects=274 rebuild=- incremental=- managedKB=12892
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=298.5 avgMs=4.974 managedDeltaKB=51300
+[V6Churn] phase=ranking churn ops=235 wallMs=8007 opsPerSec=29.3
+[V6Churn] phase=ranking census objects=244 rebuild=- incremental=- managedKB=14184
+[V6Churn] done
