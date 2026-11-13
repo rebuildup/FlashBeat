@@ -1,23 +1,30 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.Video;
 
 namespace FlashBeat.UI.V5
 {
     /// <summary>
     /// GameScene の v5 UI の起動と状態配線 (Issue #122)。
     ///
-    /// - GameScene がロードされたら <see cref="GameHudView"/>, <see cref="GameReadyView"/>,
-    ///   <see cref="GameLoadingView"/>, <see cref="GameErrorView"/>, <see cref="PauseMenuView"/>
-    ///   をコードから構築し、レガシーの同機能 UI を隠す。
-    /// - 再生パイプラインの状態は <see cref="HudPlayState"/> (Issue #93 の純ロジック) で判定し、
-    ///   Loading / Error / Ready の各ビューへ配る。
-    /// - ポーズは Esc で開閉 (PauseMenuView)、HUD 右下のボタンからも開ける。
+    /// Issue #400 で責務を 2 つに分けた:
+    ///   - **状態判定と旧 UI の後始末** … <see cref="GamePlayPhaseService"/>
+    ///     (v6 でも必要な部分。UI を生成しない)
+    ///   - **v5 の View の生成と表示** … このクラス (v6 有効時は生成しない)
     ///
-    /// MusicManager / Judge は所有外なので変更しない。観測は公開状態と
-    /// VideoPlayer.errorReceived の購読だけ。
+    /// 以前は v6 有効でも `V5ReadyCanvas` / `V5OverlayCanvas` / `V5PauseCanvas` を
+    /// 生成し、`V6GameRuntime` が毎フレーム隠していた。pixel を描かないだけで、
+    /// GameObject・Graphic・レイアウトの初期化コストは毎回払っていた。
+    ///
+    /// v6 有効時に **残す** もの:
+    ///   - 状態判定 (<see cref="GamePlayPhaseService.LastPhase"/>) … v6 のローディングが読む
+    ///   - 旧 HUD の非表示 / Raycaster 無効化 / 歌詞復帰 … v6 の表示を邪魔しないため
+    ///   - VideoPlayer のエラー購読 … 失敗検出は v6 も使う
+    /// v6 有効時に **作らない** もの:
+    ///   - <see cref="GameHudView"/> (HUD は v6 が描く)
+    ///   - <see cref="GameReadyView"/> (Start プロンプトは v6 HUD が出す)
+    ///   - <see cref="GameLoadingView"/> / <see cref="GameErrorView"/> (v6 Loading が出す)
+    ///   - <see cref="PauseMenuView"/> (v6 Pause が有効なとき)
     /// </summary>
     public static class GameHudRuntime
     {
@@ -58,29 +65,43 @@ namespace FlashBeat.UI.V5
         private GameErrorView error;
         private PauseMenuView pause;
 
-        /// <summary>直近のパイプライン状態。v6 のローディング表示 (V6GameRuntime) が読む。</summary>
-        public static HudPlayPhase LastPhase;
+        /// <summary>状態判定サービス (v6 でも必要)。</summary>
+        private GamePlayPhaseService phaseService;
 
-        private readonly HashSet<VideoPlayer> subscribedPlayers = new HashSet<VideoPlayer>();
-        private float nextVideoScan;
-        private float nextLegacyHide;
-        private bool videoError;
-        private float loadingSeconds;
-        private GameObject legacyMenuPanel;
-        private GameObject legacyLoadingIndicator;
+        /// <summary>
+        /// 直近のパイプライン状態。v6 のローディング表示 (V6GameRuntime) が読む。
+        ///
+        /// Issue #400: 実体は <see cref="GamePlayPhaseService.LastPhase"/>。
+        /// 既存の読み手 (V6GameRuntime) との互換のため転送する。
+        /// </summary>
+        public static HudPlayPhase LastPhase
+        {
+            get { return GamePlayPhaseService.LastPhase; }
+        }
 
         /// <summary>直近に適用した UI フェーズ (GameUiExclusivity の正本、観測用)。</summary>
         private GameUiPhase currentPhase;
 
-        /// <summary>旧 UI の再適用 (名前ベースの SetActive(false)) の間隔 (秒)。</summary>
-        private const float LegacyHideInterval = 0.5f;
+        /// <summary>v6 有効時に v5 の View を作らなかったか (監査用)。</summary>
+        public static bool SkipsV5ViewsForAudit { get; private set; }
 
         private void Start()
         {
-            // v6 のゲーム HUD が有効なときは、旧 HUD (GameHudView) を作らない
+            // v6 のゲーム HUD が有効なときは、旧 HUD を作らない
             // (同じ箇所に 2 枚の HUD が重なると崩れて見える)。
-            // 準備中 / 失敗 / ポーズは未移植 (P1) なので旧実装のまま使う。
             bool v6Hud = FlashBeat.UI.V6.V6UiMode.GameHud;
+            bool v6Pause = FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled;
+            SkipsV5ViewsForAudit = v6Hud;
+
+            // --- 状態判定サービス (v6 でも必要) ---
+            phaseService = gameObject.AddComponent<GamePlayPhaseService>();
+            phaseService.Controller = this;
+            GamePlayPhaseService.ResetForAudit();
+
+            // 旧 UI の非表示と Raycaster 無効化は、v5 View の生成より先に行う
+            // (生成した直後に自分で消す無駄を無くす)。
+            phaseService.HideLegacyHudOnce();
+            phaseService.DisableLegacyRaycaster();
 
             if (!v6Hud)
             {
@@ -88,26 +109,40 @@ namespace FlashBeat.UI.V5
                 hud.Build();
             }
 
-            // 550: v6 の dim (-1) / プレイフィールド (400) / HUD (450) より手前。
-            // Ready 中は v6 HUD を隠すので、この画面が Ready 専用表示になる (Issue #233)。
-            var readyCanvas = V5GameUi.NewCanvas("V5ReadyCanvas", 550);
-            ready = readyCanvas.gameObject.AddComponent<GameReadyView>();
-            ready.Build(readyCanvas);
-
-            var overlayCanvas = V5GameUi.NewCanvas("V5OverlayCanvas", 500);
-            loading = overlayCanvas.gameObject.AddComponent<GameLoadingView>();
-            loading.Build(overlayCanvas);
-            LoadingOverlayHook.Bind(loading);
-
-            error = overlayCanvas.gameObject.AddComponent<GameErrorView>();
-            error.Build(overlayCanvas);
-
-            var pauseCanvas = V5GameUi.NewCanvas("V5PauseCanvas", 600);
-            pause = pauseCanvas.gameObject.AddComponent<PauseMenuView>();
-            pause.Build(pauseCanvas);
-            if (hud != null && hud.PauseButton != null)
+            // Ready は v6 HUD が「Space to Start」を出すので、v6 有効時は作らない。
+            if (!v6Hud)
             {
-                hud.PauseButton.onClick.AddListener(pause.Open);
+                // 550: v6 の dim (-1) / プレイフィールド (400) / HUD (450) より手前。
+                // Ready 中は v6 HUD を隠すので、この画面が Ready 専用表示になる (Issue #233)。
+                var readyCanvas = V5GameUi.NewCanvas("V5ReadyCanvas", 550);
+                ready = readyCanvas.gameObject.AddComponent<GameReadyView>();
+                ready.Build(readyCanvas);
+            }
+
+            // Loading / Error は v6 の V6LoadingView が単独で表示する。
+            if (!v6Hud)
+            {
+                var overlayCanvas = V5GameUi.NewCanvas("V5OverlayCanvas", 500);
+                loading = overlayCanvas.gameObject.AddComponent<GameLoadingView>();
+                loading.Build(overlayCanvas);
+                LoadingOverlayHook.Bind(loading);
+
+                error = overlayCanvas.gameObject.AddComponent<GameErrorView>();
+                error.Build(overlayCanvas);
+            }
+
+            // Pause は v6 ポーズが有効なときは作らない (v6 が同じ操作を持つ)。
+            if (!v6Hud || !v6Pause)
+            {
+                var pauseCanvas = V5GameUi.NewCanvas("V5PauseCanvas", 600);
+                pause = pauseCanvas.gameObject.AddComponent<PauseMenuView>();
+                pause.Build(pauseCanvas);
+                if (hud != null && hud.PauseButton != null)
+                {
+                    hud.PauseButton.onClick.AddListener(pause.Open);
+                }
+
+                V5GameUi.ApplySingleInputModel(pauseCanvas);
             }
 
             // Issue #167: v5 のボタンは自身の矢印キー処理で選択するため、
@@ -116,10 +151,6 @@ namespace FlashBeat.UI.V5
             {
                 V5GameUi.ApplySingleInputModel(hud.Canvas);
             }
-            V5GameUi.ApplySingleInputModel(pauseCanvas);
-
-            HideLegacyHud();
-            DisableLegacyRaycaster();
 
             // 初期フェーズを決定して適用 (Ready 中は HUD を出さない — Issue #233)。
             currentPhase = GameUiExclusivity.ResolvePhase(
@@ -129,21 +160,9 @@ namespace FlashBeat.UI.V5
 
         private void Update()
         {
-            ScanForVideoPlayers();
-
-            // 旧 UI の非表示は 1 回きりだと後から再有効化されたオブジェクトが
-            // 残る (Issue #233 の原因)。状態から毎フレーム再適用する (負荷抑止で
-            // LegacyHideInterval 秒ごと)。
-            ReapplyLegacyHud();
-
-            // パイプラインの状態判定 (HudPlayState: Issue #93 の純ロジック)
-            bool mediaLoading = IsLegacyLoadingIndicatorActive();
-            if (mediaLoading && !GManager.played) loadingSeconds += Time.unscaledDeltaTime;
-
-            var play = HudPlayState.Evaluate(videoError, GManager.played, mediaLoading, loadingSeconds,
-                MusicManager.SelectReturnPending);
-            LastPhase = play; // v6 側 (V6GameRuntime) がローディング表示に使う
-            if (play != HudPlayPhase.Preparing) loadingSeconds = 0f;
+            // 状態判定 (Issue #400: UI 生成から分離したサービス)。
+            if (phaseService != null) phaseService.Tick();
+            var play = phaseService != null ? GamePlayPhaseService.LastPhase : HudPlayPhase.Hidden;
 
             // 表示の正本は GameUiExclusivity (Issue #233)。毎フレーム状態から再適用する。
             bool pauseOpen = pause != null && pause.IsOpen;
@@ -173,23 +192,7 @@ namespace FlashBeat.UI.V5
             // レガシーのポーズメニュー (Animator 付き) が開かないようにする。
             // GameSceneManager の Esc ハンドラが毎回 OpenMenu するため、
             // 開いた直後に閉じて、歌詞パネルの非表示フラグを元に戻す。
-            if (legacyMenuPanel == null)
-            {
-                legacyMenuPanel = FindFirstDeep("MenuPanel");
-                if (legacyMenuPanel == null) return;
-            }
-            if (legacyMenuPanel.activeSelf)
-            {
-                legacyMenuPanel.SetActive(false);
-                RestoreLyricsVisibility();
-            }
-        }
-
-        private bool IsLegacyLoadingIndicatorActive()
-        {
-            // MusicManager が準備中に active にする既存 UI (HudPlayStatus と同じ観測)。
-            // GameObject は active のまま (シグナル保持)、見た目だけ Start で無効化済み。
-            return legacyLoadingIndicator != null && legacyLoadingIndicator.activeInHierarchy;
+            if (phaseService != null) phaseService.KeepLegacyMenuClosed();
         }
 
         /// <summary>
@@ -219,147 +222,27 @@ namespace FlashBeat.UI.V5
             return disabled;
         }
 
-        private void DisableLegacyRaycaster()
+        internal void DisableLegacyRaycasterInScene()
         {
             DisableLegacyRaycastersIn(gameObject.scene);
         }
 
-        /// <summary>
-        /// レガシーの OpenMenu は歌詞パネルを消したままにする (menuVisible は private)。
-        /// ポーズを閉じたら歌詞表示を戻す。
-        /// </summary>
-        private void RestoreLyricsVisibility()
+        private void OnDestroy()
         {
-            var manager = legacyMenuPanel != null
-                ? legacyMenuPanel.GetComponentInParent<GameSceneManager>()
-                : null;
-            if (manager == null) manager = FindFirstObjectByType<GameSceneManager>();
-            if (manager == null) return;
-            var field = typeof(GameSceneManager).GetField("menuVisible",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null) field.SetValue(manager, false);
-            manager.TextPanelOn();
-        }
-
-        /// <summary>
-        /// v5 側が担うレガシー HUD を隠す。歌詞 (TextPanel) は残す。
-        /// 対象は Canvas 配下など階層のどこにあっても良い。
-        /// Start の 1 回きりではなく <see cref="ReapplyLegacyHud"/> から
-        /// 定期的に再適用する (後から再有効化された旧 UI を消し続ける — Issue #233)。
-        /// </summary>
-        private void HideLegacyHud()
-        {
-            var roots = gameObject.scene.GetRootGameObjects();
-            foreach (var name in LegacyHideNames)
+            if (phaseService != null)
             {
-                foreach (var go in FindAllDeep(roots, name))
-                {
-                    go.SetActive(false);
-                }
-            }
-
-            // loadingmovie は GameObject を active のまま (ロード中シグナル)、見た目だけ無効化
-            foreach (var name in LegacyLoadingNames)
-            {
-                foreach (var go in FindAllDeep(roots, name))
-                {
-                    DisableVisuals(go);
-                    if (legacyLoadingIndicator == null) legacyLoadingIndicator = go;
-                }
+                phaseService.ForgetVideoPlayers();
             }
         }
 
-        /// <summary>
-        /// 旧 UI 非表示の再適用。毎フレームは重い (シーン全体の走査) ので
-        /// <see cref="LegacyHideInterval"/> 秒ごとに実施する。冪等。
-        /// </summary>
-        private void ReapplyLegacyHud()
-        {
-            if (Time.unscaledTime < nextLegacyHide) return;
-            nextLegacyHide = Time.unscaledTime + LegacyHideInterval;
-            HideLegacyHud();
-        }
-
-        private static readonly string[] LegacyHideNames =
+        /// <summary>v5 側が担うレガシー HUD を隠す対象の名前 (Issue #233)。</summary>
+        internal static readonly string[] LegacyHideNames =
         {
             "SpacetoStart", "ScoreText", "comboText", "Score", "Gauge",
             "HudStatus", "HudBackToSelectButton", "MenuPanel", "MenuButton",
         };
 
-        private static readonly string[] LegacyLoadingNames = { "loadingmovie", "loadingmovie (1)" };
-
-        /// <summary>非アクティブも含めて名前が一致する全オブジェクトを返す (起動時の 1 回用)。</summary>
-        private static List<GameObject> FindAllDeep(GameObject[] roots, string name)
-        {
-            var found = new List<GameObject>();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                var children = roots[i].GetComponentsInChildren<Transform>(true);
-                for (int j = 0; j < children.Length; j++)
-                {
-                    if (children[j].name == name && !found.Contains(children[j].gameObject))
-                    {
-                        found.Add(children[j].gameObject);
-                    }
-                }
-            }
-            return found;
-        }
-
-        /// <summary>非アクティブも含めて名前で最初の 1 つを返す (LateUpdate の初回用)。</summary>
-        private GameObject FindFirstDeep(string name)
-        {
-            var roots = gameObject.scene.GetRootGameObjects();
-            var found = FindAllDeep(roots, name);
-            return found.Count > 0 ? found[0] : null;
-        }
-
-        private static void DisableVisuals(GameObject go)
-        {
-            // GameObject は active のまま (ロード中シグナル)、見た目 (RawImage) と
-            // 装飾用 VideoPlayer だけ無効化する。
-            foreach (var raw in go.GetComponentsInChildren<RawImage>(true))
-            {
-                raw.enabled = false;
-            }
-            foreach (var player in go.GetComponentsInChildren<VideoPlayer>(true))
-            {
-                player.enabled = false;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            foreach (var player in subscribedPlayers)
-            {
-                if (player != null) player.errorReceived -= OnVideoError;
-            }
-            subscribedPlayers.Clear();
-        }
-
-        /// <summary>VideoPlayer (実行時に生成される Cloud Catalog 用も含む) を購読する。</summary>
-        private void ScanForVideoPlayers()
-        {
-            if (Time.unscaledTime < nextVideoScan) return;
-            nextVideoScan = Time.unscaledTime + 1f;
-            foreach (var player in FindObjectsByType<VideoPlayer>(FindObjectsSortMode.None))
-            {
-                if (subscribedPlayers.Add(player))
-                {
-                    player.errorReceived += OnVideoError;
-                }
-            }
-        }
-
-        private void OnVideoError(VideoPlayer source, string message)
-        {
-            if (IsLegacyLoadingIndicatorActive())
-            {
-                // 準備中のエラーは direct URL probe の試行も含むので無視 (タイムアウトに任せる)。
-                return;
-            }
-            Debug.LogWarning($"[GameHudRuntime] VideoPlayer error: {message}");
-            videoError = true;
-        }
+        /// <summary>ロード中シグナルとして残す旧オブジェクトの名前。</summary>
+        internal static readonly string[] LegacyLoadingNames = { "loadingmovie", "loadingmovie (1)" };
     }
 }

@@ -141,22 +141,20 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// 旧 v5 のポーズ / ローディング / エラー表示を毎フレーム隠す (表示の所有は v6)。
-        /// v5 の GameHudController は [DefaultExecutionOrder(100)] の Start で
-        /// PauseMenuView / V5OverlayCanvas (loading / error) を **作り**、Update で
-        /// 毎フレーム出し直す (Preparing → loading.SetVisible(true) 等)。
-        /// かつて Start (実行順 0) の 1 回だけ隠していたため v5 の生成前に走って
-        /// 二重表示になっていた。全 Update の後に走る LateUpdate で隠す。
-        /// 破棄はしない: GameHudController が毎フレーム参照していて
-        /// (pause.InputEnabled / pause.Close)、破棄するとその経路で
-        /// MissingReferenceException になる。
+        /// 旧 v5 のポーズ / ローディング / エラー表示を隠す (表示の所有は v6)。
+        ///
+        /// Issue #400: 状態検出と v5 UI 生成を分けた結果、
+        /// **v6 構成では v5 の Ready / Loading / Error は生成されない**
+        /// (GameHudController.Start が v6Hud のとき作らない)。したがって
+        /// 以前の「毎フレーム隠し直す」処理は、v6 ポーズが無効なときの
+        /// v5 ポーズと、シーンに残るレガシー (シーン配置の旧 UI) だけを見ればよい。
+        ///
+        /// 探索には上限を置き、見つかった後の非表示は維持する
+        /// (v5 ポーズは Update で自分を開き直すことがあるため)。
         /// </summary>
         private void LateUpdate()
         {
             // 旧 v5 オブジェクトの**検索**には上限を置く (Issue #381)。
-            // 見つかった後の「隠し直し」は毎フレーム続ける: v5 の
-            // GameHudController は loading.SetVisible(true) などで出し直すため、
-            // 探索を止めても非表示は保つ必要がある。
             bool mayLookUp = legacyLookupFrames < LegacyLookupFrameLimit;
             if (mayLookUp)
             {
@@ -174,50 +172,9 @@ namespace FlashBeat.UI.V6
                 legacyPause.gameObject.SetActive(false);
             }
 
-            if (legacyReadyCanvas == null && mayLookUp)
-            {
-                // GameHudController (実行順 100) が Start で V5ReadyCanvas を作るので
-                // v6 より遅い。ここで見つけてから隠す (シーン再ロードで作り直し)。
-                var ready = FindObjectOfType<FlashBeat.UI.V5.GameReadyView>();
-                if (ready != null) legacyReadyCanvas = ready.GetComponent<Canvas>();
-            }
-
-            // v6 HUD が Ready 中の「Space to Start」を出す (V6GameHudView の歌詞位置)。
-            // v5 の Ready プロンプト ("Start (設定・表示・ランク)" + Space/Esc KeyCap) は
-            // 二重表示になるので、V6UiMode.GameHud が有効な間だけ隠す (v5 モードでは出る)。
-            // GameObject を止めると GameReadyView.Update も止まり再表示されない。
-            // 破棄はしない (GameHudController が ready 参照を持つ)。
-            if (legacyReadyCanvas != null && legacyReadyCanvas.gameObject.activeSelf)
-            {
-                legacyReadyCanvas.gameObject.SetActive(false);
-            }
-
-            if (legacyOverlayCanvas == null && mayLookUp)
-            {
-                var canvases = FindObjectsOfType<Canvas>();
-                for (int i = 0; i < canvases.Length; i++)
-                {
-                    if (canvases[i] != null && canvases[i].name == "V5OverlayCanvas")
-                    {
-                        legacyOverlayCanvas = canvases[i];
-                        break;
-                    }
-                }
-            }
-
-            if (legacyOverlayCanvas != null)
-            {
-                // 初回だけ集め、以後は同じ配列を使い回す (毎フレームの全走査をしない)。
-                // v5 の GameHudController は loading.SetVisible(true) で出し直すため、
-                // 毎フレーム「有効に戻っていないか」は見る必要がある。ただし
-                // GetComponentsInChildren は呼ばない。
-                if (legacyOverlayGraphics == null)
-                {
-                    legacyOverlayGraphics = legacyOverlayCanvas.GetComponentsInChildren<Graphic>(true);
-                }
-
-                HideLegacyOverlayGraphics(legacyOverlayGraphics);
-            }
+            // Issue #400: v6 構成では V5ReadyCanvas / V5OverlayCanvas を作らないので、
+            // それらを探して毎フレーム隠す必要は無い (GamePlayPhaseService が
+            // 生成前の旧 UI を 1 回掃除する)。v5 ポーズだけは上で維持する。
         }
 
         /// <summary>
