@@ -27,8 +27,8 @@ using UnityEngine.SceneManagement;
 ///
 ///   - #375 音量スライダ: ドラッグで値が変わる / ラベルとノブが追従する /
 ///     指を離すと保存される / 画面を離れると猶予中の保存が確定する。
-///   - #384 Result の段階表示: 表示が時間とともに進む / 2 秒で登録欄が自動で開く /
-///     Space で残りを打ち切る (スキップ)。
+///   - #384 Result の段階表示: 表示が時間とともに進む / 登録欄が自動で開く
+///     (時刻は V6ResultRevealLogic の正本に従う) / Space で残りを打ち切る (スキップ)。
 ///   - #382 再開カウントダウン: 3 → 2 → 1 が出る / その間ポーズゲートは閉じた
 ///     まま / 3 秒で再開する / Esc でポーズへ戻る / 開始フレームの Esc は無視する。
 ///   - #377 キャッシュ: Select を離れて戻ったとき Resources を読み直さない。
@@ -207,12 +207,15 @@ public class AutoTestV6Interact : MonoBehaviour
         bool completed = false;
 
         // 期限付き。登録欄が開かない退行でここが止まらないようにする。
+        // 登録欄は V6ResultRevealLogic.RegisterStart (3.0s) で開き、
+        // リビール全体は TotalSeconds (3.18s) で完了する (#425 で 2s→3s へ遅延)。
         float watchStart = Time.unscaledTime;
-        while (Time.unscaledTime - watchStart < 10f && view.RevealElapsedForAudit < 2.6f)
+        while (Time.unscaledTime - watchStart < 10f
+               && view.RevealElapsedForAudit < V6ResultRevealLogic.TotalSeconds + 0.3f)
         {
             float elapsed = view.RevealElapsedForAudit;
             float alpha = view.TrophyAlphaForAudit;
-            if (elapsed < 1.9f && !view.RevealCompleteForAudit)
+            if (elapsed < V6ResultRevealLogic.RegisterStart - 0.1f && !view.RevealCompleteForAudit)
             {
                 sawBeforeComplete = true;
             }
@@ -241,8 +244,10 @@ public class AutoTestV6Interact : MonoBehaviour
         Check("the trophy fades in gradually",
             lastTrophyAlpha >= 0.99f
             && (sawTrophyFadeIn || (firstTrophyAlpha >= 0f && firstTrophyAlpha < lastTrophyAlpha)));
-        Check("the register field opens automatically at 2s",
-            autoRegisterOpened && modalOpenElapsed >= 1.9f && modalOpenElapsed <= 2.4f);
+        Check("the register field opens automatically at the reveal register stage",
+            autoRegisterOpened
+            && modalOpenElapsed >= V6ResultRevealLogic.RegisterStart - 0.1f
+            && modalOpenElapsed <= V6ResultRevealLogic.RegisterStart + V6ResultRevealLogic.RegisterDuration + 0.3f);
         Check("the reveal completes on its own", completed);
 
         yield return Screenshot("384-result-reveal");

@@ -1,0 +1,16 @@
+[AutoTestV6Screens] SCREEN TitleScene pass=37 fail=0 symbols=2 shots=v6screen-TitleScene-1.png
+[AutoTestV6Screens] SCREEN SelectScene pass=178 fail=0 symbols=6 shots=v6screen-SelectScene-2.png
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=110 fail=0 symbols=2 shots=v6screen-SelectScene-Empty-3.png
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=190 fail=0 symbols=6 shots=v6screen-SelectScene-Settings-4.png
+[AutoTestV6Screens] SCREEN SelectScene-History pass=170 fail=0 symbols=11 shots=v6screen-SelectScene-History-5.png
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=155 fail=0 symbols=4 shots=v6screen-SelectScene-Ranking-6.png
+[AutoTestV6Screens] SCREEN OptionScene pass=182 fail=0 symbols=4 shots=v6screen-OptionScene-7.png
+[AutoTestV6Screens] SCREEN OptionScene-Display pass=109 fail=0 symbols=4 shots=v6screen-OptionScene-Display-8.png
+[AutoTestV6Screens] SCREEN OptionScene-Sound pass=88 fail=0 symbols=8 shots=v6screen-OptionScene-Sound-9.png
+[AutoTestV6Screens] SCREEN OptionScene-Data pass=68 fail=0 symbols=4 shots=v6screen-OptionScene-Data-10.png
+[AutoTestV6Screens] SCREEN ResultScene pass=84 fail=0 symbols=1 shots=v6screen-ResultScene-11.png
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=124 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-12.png
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=50 fail=0 symbols=0 shots=v6screen-GameScene-HUD-13.png
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=249 fail=0 symbols=4 shots=v6screen-GameScene-Pause-14.png
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=64 fail=0 symbols=2 shots=v6screen-GameScene-Loading-15.png
+[AutoTestV6Screens] RESULT pass=46 fail=0 symbols=63 screenshots=15 resolution=2560x1440
