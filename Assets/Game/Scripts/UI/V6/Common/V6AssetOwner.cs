@@ -5,7 +5,7 @@ namespace FlashBeat.UI.V6
 {
     /// <summary>
     /// 実行時に生成した native オブジェクト (Sprite / Texture2D / Material) の
-    /// **所有者**を 1 箇所に集める (Issue #398 / #401 / #403)。
+    /// **所有者**を 1 箇所に集める (Issue #398 / #401 / #403 / #416)。
     ///
     /// 何が問題だったか:
     ///   Resources.Load が返す Texture2D は Unity が所有する (破棄してはいけない)。
@@ -14,14 +14,18 @@ namespace FlashBeat.UI.V6
     ///   native メモリが積み上がる。各 View が思い思いに Sprite.Create し、
     ///   破棄は「実装した View」と「忘れた View」が混在していた (#398 の一次監査)。
     ///
-    /// 何をするか:
-    ///   - プロセス全体で共有する派生アセット (角丸 9-slice、アイコン、ロゴ等) は
-    ///     所有者を 1 つにし、キーで引く。同じ見た目のものを 2 度作らない。
-    ///   - View 固有の派生アセット (ローディングの正方形 crop 等) は
-    ///     スコープ (<see cref="V6AssetScope"/>) に預け、スコープの破棄でまとめて消す。
+    /// 所有権の契約 (Issue #416):
+    ///   - **provider が生成して共有する Sprite / Texture2D は provider が所有する**。
+    ///     View は受け取った参照を Destroy してはいけない
+    ///     (<see cref="IsSharedAsset"/> で判定できる)。View の GameObject を
+    ///     Destroy しても、共有アセットはここが保持するので消えない。
+    ///   - **View 固有の一時アセット** (ローディングの crop など) は
+    ///     <see cref="V6AssetScope"/> に預け、スコープの <c>Dispose</c> でまとめて消す。
+    ///     スコープは共有アセットを受け取るとエラーログを出して Track を拒否する
+    ///     (二重所有 = Dispose 時の誤破棄を防ぐ)。
+    ///   - **Resources.Load が返した Texture2D は登録しない** (Unity 所有なので破棄禁止)。
     ///
     /// 何をしないか:
-    ///   - Resources.Load が返した Texture2D は登録しない (Unity 所有なので破棄禁止)。
     ///   - 画面ごとに見た目・切り抜き・優先順位が違うものは統合しない
     ///     (crop の違いは「同じ原Texture + variant」で表現する)。
     /// </summary>
@@ -48,6 +52,9 @@ namespace FlashBeat.UI.V6
 
         // 共有アセットはプロセスの寿命。キーは「種類 + 生成条件」で作る。
         private static readonly Dictionary<string, Object> shared = new Dictionary<string, Object>();
+
+        /// <summary>共有アセットの実体集合。<see cref="IsSharedAsset"/> の判定に使う。</summary>
+        private static readonly HashSet<Object> sharedAssets = new HashSet<Object>();
 
         /// <summary>このプロセスで生成した共有アセットの数 (リーク監査用)。</summary>
         public static int SharedCount
@@ -76,6 +83,7 @@ namespace FlashBeat.UI.V6
                 }
 
                 shared.Remove(key);
+                sharedAssets.Remove(cached);
             }
 
             if (create == null)
@@ -90,8 +98,27 @@ namespace FlashBeat.UI.V6
             }
 
             shared[key] = created;
+            sharedAssets.Add(created);
             SharedCreateCount++;
             return created;
+        }
+
+        /// <summary>
+        /// このアセットが共有オーナー所有か (= View は Destroy してはいけない)。
+        ///
+        /// Issue #416: provider が生成して共有する Sprite / Texture2D と、
+        /// View 固有の一時アセットを呼び出し側が区別できるようにする API。
+        /// Resources.Load が返した Unity 所有アセットや、スコープに預けた
+        /// View 固有アセットは false を返す。
+        /// </summary>
+        public static bool IsSharedAsset(Object asset)
+        {
+            if (asset == null)
+            {
+                return false;
+            }
+
+            return sharedAssets.Contains(asset);
         }
 
         /// <summary>既に共有アセットがあるか (生成せずに確認する)。</summary>
@@ -111,8 +138,16 @@ namespace FlashBeat.UI.V6
         }
 
         /// <summary>
-        /// 共有アセットをすべて破棄する。**アプリ終了時と EditMode テストのみ**。
-        /// 実行中に呼ぶと、生きている Image のスプライトが消えて白くなる。
+        /// 共有アセットをすべて破棄する。
+        ///
+        /// **アプリ終了時と EditMode テスト専用** (Issue #416)。
+        /// ゲームプレイ中・画面遷移中に呼んではいけない:
+        /// 生きている Image / RawImage が参照しているスプライトとテクスチャが
+        /// 一斉に破棄され、表示が白く抜ける。View の破棄で共有アセットを
+        /// 消したくなったときは、それは設計ミスなのでこのメソッドを呼ばず、
+        /// 所有権の設計 (provider 共有 / スコープ一時所有) を見直すこと。
+        /// 起動中に全解放する正当な場面は、EditMode テストの SetUp/TearDown と、
+        /// アプリを畳む直前 (プロセス終了) の 2 つだけ。
         /// </summary>
         public static void DestroyShared()
         {
@@ -125,6 +160,7 @@ namespace FlashBeat.UI.V6
             }
 
             shared.Clear();
+            sharedAssets.Clear();
             SharedCreateCount = 0;
         }
 
@@ -190,6 +226,17 @@ namespace FlashBeat.UI.V6
             if (asset == null)
             {
                 return null;
+            }
+
+            // Issue #416: 共有オーナー所有のアセットをスコープに入れると、
+            // Dispose 時に生きた View が参照している実体を破棄してしまう。
+            // 呼び出し側のバグなので Track を拒否して表面化させる
+            // (アセット自体は共有なので、ここで破棄はしない)。
+            if (V6AssetOwner.IsSharedAsset(asset))
+            {
+                Debug.LogError("[V6AssetScope] " + owner + ": 共有オーナー所有のアセットをスコープに Track しようとしました。"
+                    + "共有アセットは provider が所有するので、View の Dispose では破棄されません: " + asset.name);
+                return asset;
             }
 
             if (IsDisposed)
