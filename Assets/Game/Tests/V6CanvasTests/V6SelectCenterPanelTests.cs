@@ -13,8 +13,9 @@ namespace FlashBeat.V6CanvasTests
     /// 02 Select · 中央パネル (design dRztp) の組版 (Issue #374)。
     ///
     /// Meta は「縦 gap4・中央揃え」の 512×100。Title (0,8.5) 512×50、
-    /// Artist Row (0,62.5) 512×29 — 50 + 4 + 29 = 83 が 100 の中央に来る。
-    /// Artist Row は No. タグと作曲者を水平中央に並べる。
+    /// Artist 行 (0,62.5) 512×29 — 50 + 4 + 29 = 83 が 100 の中央に来る。
+    /// Issue #427: 行コンテナは廃止し、No. タグは左端絶対配置・作曲者名は
+    /// 512 全幅の中央揃えで、両者の中心軸のずれを構造的に無くした。
     /// </summary>
     public sealed class V6SelectCenterPanelTests
     {
@@ -95,15 +96,21 @@ namespace FlashBeat.V6CanvasTests
                     "Title is centered");
                 Assert.AreEqual(48f, title.GetComponent<TextMeshProUGUI>().fontSize, 0.01f, "Title fs48");
 
-                RectTransform artistRow = Find(meta, "Artist Row");
-                Assert.AreEqual(new Vector2(0f, 62.5f), DesignTopLeft(artistRow), "Artist Row (0, 62.5)");
-                Assert.AreEqual(new Vector2(512f, 29f), artistRow.sizeDelta, "Artist Row 512×29");
+                RectTransform tag = Find(meta, "Tag No");
+                Assert.AreEqual(new Vector2(0f, 62.5f), DesignTopLeft(tag), "Tag No (0, 62.5)");
+                Assert.AreEqual(new Vector2(63f, 29f), tag.sizeDelta, "Tag No 63×29");
+
+                RectTransform artist = Find(meta, "Artist");
+                Assert.AreEqual(new Vector2(0f, 62.5f), DesignTopLeft(artist), "Artist (0, 62.5)");
+                Assert.AreEqual(new Vector2(512f, 29f), artist.sizeDelta, "Artist 512×29");
+                Assert.AreEqual(TextAlignmentOptions.Center,
+                    artist.GetComponent<TextMeshProUGUI>().alignment, "Artist is centered");
 
                 // 縦 gap4・全体 83 が 100 の中央。
                 float gap = 62.5f - (8.5f + 50f);
-                Assert.AreEqual(4f, gap, 0.01f, "Title と Artist Row の間は 4");
+                Assert.AreEqual(4f, gap, 0.01f, "Title と Artist 行の間は 4");
                 Assert.AreEqual((100f - (50f + gap + 29f)) * 0.5f, 8.5f, 0.01f,
-                    "Title と Artist Row の組は Meta の上下中央");
+                    "Title と Artist 行の組は Meta の上下中央");
             }
             finally
             {
@@ -112,23 +119,25 @@ namespace FlashBeat.V6CanvasTests
         }
 
         [Test]
-        public void ArtistRow_CentersTheTagAndTheComposer()
+        public void ArtistRow_TagAtLeft_AndComposerCentredAcrossFullWidth()
         {
             var view = V6SelectView.Create((RectTransform)canvasGo.transform, new OneSongSource(),
                 null, null, null);
             try
             {
-                RectTransform artistRow = Find(view.Root.transform, "Artist Row");
-                var layout = artistRow.GetComponent<HorizontalLayoutGroup>();
-                Assert.IsNotNull(layout, "Artist Row is a horizontal layout");
-                Assert.AreEqual(TextAnchor.MiddleCenter, layout.childAlignment,
-                    "No. タグと作曲者は水平中央に並ぶ");
-                Assert.AreEqual(10f, layout.spacing, 0.01f, "gap 10");
+                RectTransform meta = Find(view.Root.transform, "Meta");
 
-                RectTransform tag = Find(artistRow, "Tag No");
+                // No. タグは行の左端 (63×29)、作曲者名は 512 全幅で中央揃え。
+                RectTransform tag = Find(meta, "Tag No");
+                Assert.AreEqual(new Vector2(0f, 62.5f), DesignTopLeft(tag), "Tag No left edge");
                 Assert.AreEqual(new Vector2(63f, 29f), tag.sizeDelta, "Tag No 63×29");
-                RectTransform artist = Find(artistRow, "Artist");
+
+                RectTransform artist = Find(meta, "Artist");
                 Assert.AreEqual(26f, artist.GetComponent<TextMeshProUGUI>().fontSize, 0.01f, "Artist fs26");
+                Assert.AreEqual(TextAlignmentOptions.Center,
+                    artist.GetComponent<TextMeshProUGUI>().alignment,
+                    "作曲者名はタグ分の偏りなく中央");
+                Assert.AreEqual(new Vector2(512f, 29f), artist.sizeDelta, "Artist 512×29");
             }
             finally
             {

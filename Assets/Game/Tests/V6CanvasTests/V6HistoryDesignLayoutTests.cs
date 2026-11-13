@@ -338,12 +338,16 @@ namespace FlashBeat.V6CanvasTests
             {
                 // design dRztp: Meta は縦 gap4・中央揃え。Title (0,8.5) 512×50、
                 // Artist Row (0,62.5) 512×29。
+                // Issue #427: Artist Row コンテナは廃止。Artist テキストが
+                // (0,62.5) 512×29 で中央揃え、Tag No が左端 (0,62.5) 63×29。
                 var meta = Find(view.Root, "Meta");
                 var title = (RectTransform)meta.Find("Title");
                 Assert.AreEqual(new Vector2(0f, 8.5f), DesignTopLeft(title), "Title (0,8.5)");
                 Assert.AreEqual(new Vector2(512f, 50f), title.sizeDelta, "Title 512×50");
-                Assert.AreEqual(62.5f, DesignTopLeft((RectTransform)meta.Find("Artist Row")).y, 0.01f,
-                    "Artist Row は y62.5");
+                var artist = (RectTransform)meta.Find("Artist");
+                Assert.AreEqual(62.5f, DesignTopLeft(artist).y, 0.01f,
+                    "Artist は y62.5");
+                Assert.AreEqual(new Vector2(512f, 29f), artist.sizeDelta, "Artist 512×29");
             }
             finally
             {

@@ -79,11 +79,12 @@ namespace FlashBeat.Tests.Editor
             Assert.IsNotNull(scrim, "Scrim が無い");
             Assert.AreEqual(V6Frame.DesignW, scrim.GetComponent<RectTransform>().sizeDelta.x, 0.5f);
 
-            for (int lane = 1; lane <= 8; lane++)
-            {
-                Assert.IsNotNull(FindChild(modal.gameObject, "Lane Row " + lane),
-                    "8 レーンの行が揃っていない: " + lane);
-            }
+            // Issue #428: テキスト行ではなく JIS ビジュアルキーボード。
+            Assert.IsNotNull(FindChild(modal.gameObject, "Key 1"), "数字キーのキャップが無い");
+            Assert.IsNotNull(FindChild(modal.gameObject, "Key Q"), "QWERTY 行のキャップが無い");
+            Assert.IsNotNull(FindChild(modal.gameObject, "Key ;"), "記号キーのキャップが無い");
+            Assert.IsNotNull(FindChild(modal.gameObject, "Status"), "Status が無い");
+            Assert.IsNotNull(FindChild(modal.gameObject, "Hint"), "Hint が無い");
 
             Assert.IsNotNull(FindButton(modal.gameObject, "Op Reset Keys"));
             Assert.IsNotNull(FindButton(modal.gameObject, "Op Cancel Keys"));
@@ -91,40 +92,48 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void Rows_ShowTheRepresentativeKey_AndTheAlternates()
+        public void KeyCaps_ShowLaneBadges_ForAssignedKeys()
         {
             modal.Show();
 
-            GameObject row1 = FindChild(modal.gameObject, "Lane Row 1");
-            Assert.AreEqual("1", FindText(row1, "Key").text, "代表キーを KeyCap に出す");
-            Assert.AreEqual("他: Q / A / Z", FindText(row1, "Alternates").text,
-                "残りのキーを 1 行目に出す");
+            // レーン 1 の代表キー 1 と残りキー Q / A / Z はすべてバッジ "1"。
+            Assert.AreEqual("1", FindText(FindChild(modal.gameObject, "Key 1"), "Lane").text);
+            Assert.AreEqual("1", FindText(FindChild(modal.gameObject, "Key Q"), "Lane").text);
+            Assert.AreEqual("1", FindText(FindChild(modal.gameObject, "Key A"), "Lane").text);
+            Assert.AreEqual("1", FindText(FindChild(modal.gameObject, "Key Z"), "Lane").text);
 
-            GameObject row4 = FindChild(modal.gameObject, "Lane Row 4");
-            Assert.AreEqual("4", FindText(row4, "Key").text);
-            StringAssert.Contains("5", FindText(row4, "Alternates").text);
+            // レーン 4 は代表 4 と 5 を持つ。
+            Assert.AreEqual("4", FindText(FindChild(modal.gameObject, "Key 4"), "Lane").text);
+            Assert.AreEqual("4", FindText(FindChild(modal.gameObject, "Key 5"), "Lane").text);
         }
 
         [Test]
-        public void ClickingARow_StartsListening_AndApplySavesTheAssignment()
+        public void ClickingAKeyCap_SelectsTheLane_AndApplySavesTheAssignment()
         {
             modal.Show();
 
-            FindButton(modal.gameObject, "Lane Row 3").onClick.Invoke();
-            Assert.IsTrue(modal.Logic.Listening, "行のクリックで待受に入る");
-            Assert.AreEqual(2, modal.Logic.SelectedLane, "クリックした行が選択される");
+            // "3" はレーン 3 (index 2) の代表キー。クリックでそのレーンを選択する。
+            FindButton(modal.gameObject, "Key 3").onClick.Invoke();
+            Assert.AreEqual(2, modal.Logic.SelectedLane, "クリックしたキーのレーンが選択される");
+
+            // Enter 経路は EditMode で Input を回せないので、待受開始はモデル経由。
+            modal.Logic.BeginListen();
+            modal.Refresh();
+            Assert.IsTrue(modal.Logic.Listening, "待受に入る");
             Assert.AreEqual(V6KeyConfigLogic.ListeningText,
-                FindText(FindChild(modal.gameObject, "Lane Row 3"), "State").text,
+                FindText(FindChild(modal.gameObject, "Status"), "Status").text,
                 "待受中の文言を出す");
 
-            Assert.AreEqual(V6KeyAssignResult.Assigned, modal.Logic.Assign(KeyCode.PageUp));
+            // 未割当の割当可能キー (') を代表キーへ。
+            Assert.AreEqual(V6KeyAssignResult.Assigned, modal.Logic.Assign(KeyCode.Quote));
             modal.Refresh();
-            Assert.AreEqual("PageUp", FindText(FindChild(modal.gameObject, "Lane Row 3"), "Key").text);
+            Assert.AreEqual("3", FindText(FindChild(modal.gameObject, "Key '"), "Lane").text,
+                "割り当てたキーにレーンバッジが出る");
 
             FindButton(modal.gameObject, "Op Apply Keys").onClick.Invoke();
 
             Assert.IsFalse(modal.IsOpen, "適用で閉じる");
-            Assert.AreEqual(KeyCode.PageUp, KeyBindings.GetKeys(2)[0], "レーン 3 の代表キーが変わる");
+            Assert.AreEqual(KeyCode.Quote, KeyBindings.GetKeys(2)[0], "レーン 3 の代表キーが変わる");
             Assert.IsNotNull(storage.Raw, "適用で保存する");
         }
 
@@ -132,8 +141,9 @@ namespace FlashBeat.Tests.Editor
         public void CancelDiscardsTheEdit()
         {
             modal.Show();
-            FindButton(modal.gameObject, "Lane Row 3").onClick.Invoke();
-            modal.Logic.Assign(KeyCode.PageUp);
+            FindButton(modal.gameObject, "Key 3").onClick.Invoke();
+            modal.Logic.BeginListen();
+            modal.Logic.Assign(KeyCode.Quote);
             modal.Refresh();
 
             FindButton(modal.gameObject, "Op Cancel Keys").onClick.Invoke();
@@ -147,14 +157,18 @@ namespace FlashBeat.Tests.Editor
         public void ResetButton_RestoresTheDefaults_InTheModalOnly()
         {
             modal.Show();
-            FindButton(modal.gameObject, "Lane Row 3").onClick.Invoke();
-            modal.Logic.Assign(KeyCode.PageUp);
+            FindButton(modal.gameObject, "Key 3").onClick.Invoke();
+            modal.Logic.BeginListen();
+            modal.Logic.Assign(KeyCode.Quote);
             modal.Refresh();
 
             FindButton(modal.gameObject, "Op Reset Keys").onClick.Invoke();
 
-            Assert.AreEqual("3", FindText(FindChild(modal.gameObject, "Lane Row 3"), "Key").text,
+            Assert.AreEqual("3", FindText(FindChild(modal.gameObject, "Key 3"), "Lane").text,
                 "編集内容が既定へ戻る");
+            Assert.AreEqual(string.Empty,
+                FindText(FindChild(modal.gameObject, "Key '"), "Lane").text,
+                "割り当て直したキーのバッジは消える");
             Assert.AreEqual(KeyCode.Alpha3, KeyBindings.GetKeys(2)[0], "適用まで KeyBindings は変えない");
             Assert.IsNull(storage.Raw);
         }
