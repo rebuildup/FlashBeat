@@ -1943,7 +1943,18 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 ### 8.5 直近の実施順
 
 1. 本節の分類に基づき、削除候補 branch/worktree を PR・Issue 更新とセットで整理 (未回収コミットを消さない範囲で)
-2. #416 の選択的移植 → #417 の選択的移植 → #415 の選択的再実装 (Result から) を PR 化
+2. ~~#416 の選択的移植 → #417 の選択的移植 → #415 の選択的再実装 (Result から) を PR 化~~ → **2026-11-13 夜に実施済み** (下記 8.6)
 3. #75/#73/#135 の残りは本番 API 書き込み E2E — **オーナー承認が必要** (`docs/operations/production-api-acceptance.md`)。#75 の残件には **人による画像レビュー** (390×844 横溢れの実画面確認) も含まれ、E2E とは独立した作業
 4. #368 クラスタの受入証跡を揃えて close 判定、#360/#30 のオーナー決定を集約
 5. #397/#381 の Win64 `-fbperf` 実測 (Windows 実機の操作許可が前提)
+
+### 8.6 2026-11-13 夜の統合実績 (main = `391178a2`)
+
+- **PR #450 merge** (`7e415d23`): 本監査台帳 §8。CodeRabbit 指摘 3 件 (日付を実作業日 2026-11-13 に修正、`origin/148` の固有資産 `specs/148-key-hint-consistency/`+`KeyHintConsistencyTests.cs` を保持対象へ、#75 画像レビューを §8.5 に追記) を解消して統合。
+- **PR #451 merge** (`82c0194d`): #416 選択的移植 — remote cache LRU cap 50・`V6AssetOwner.IsSharedAsset`/scope Track 拒否・`V6Sprites` 所有権修正・`sharedMaterial` probe・テスト 12 件。
+- **PR #452 merge** (`96e3c883`): #417 選択的移植 — v6 Result の無駄な遠隔サムネイル HTTP 抑止 + 世代ガード + テスト 4 件 + 証跡 README 更新。
+- **PR #453 merge** (`391178a2`): #415 第1段階 — Result 曲別ランキング行のスロット再利用 (WIP からの選択的再実装) + `V6ResultRankingReuseTests` 3 件。
+- **EditMode 実測**: #451+#452 統合ブランチで Unity batchmode **1771 件全件 Passed**、#415 ブランチで **1758 件全件 Passed** (新規テスト全て含む)。tests-editor の compile-check エラーは Unity 実コンパイルでは再現しない toolchain 側の既知制限。
+- **branch 整理**: merge 済み remote 4 本 (`w/audit-2026-11-14` `w/416-cache-lifetime` `w/417-result-v6skip` `w/415-result-rank-reuse`) と local merge 済み 5 本 + 回収済み WIP 2 本 (`w/416-native-lifetime` `w/417-result-quality`) を削除。remote branch は 63→**40 本**、local は 45→**41 本**。
+- **Issue 状態**: #416/#417 は実測・実機確認が残るため open 継続 (各 Issue に証跡コメント済み)。#415 は第1段階のみで open。
+- **残る #415 作業**: 順序 2 (History/Ranking)、3 (Option)、4 (Select・計測後)、5 (監査カウンタ一般化)。`w/415-diff-update` と `w/preserve-*-wt-20261114` は継続保持。
