@@ -205,6 +205,16 @@ namespace FlashBeat.Tests.Editor
                 Assert.AreSame(first[i], second[i], "Refresh でランキング行 " + i + " が再生成されている");
             }
 
+            // 表示値も in-place 更新されていること (行同一性だけでは更新漏れを検出できない)。
+            var nameTmp = second[0].transform.Find("Name")?.GetComponent<TMPro.TextMeshProUGUI>();
+            var valueTmp = second[0].transform.Find("Value")?.GetComponent<TMPro.TextMeshProUGUI>();
+            Assert.IsNotNull(nameTmp, "RankRow に Name テキストが無い");
+            Assert.IsNotNull(valueTmp, "RankRow に Value テキストが無い");
+            Assert.AreEqual("alice2", nameTmp.text, "名前の表示値が更新されていない");
+            Assert.AreEqual(
+                FlashBeat.UI.V6.Select.View.V6SelectViewLogic.FormatScore(999999),
+                valueTmp.text, "スコアの表示値が更新されていない");
+
             Assert.AreEqual(1, view.RebuildCountForAudit);
         }
     }

@@ -158,6 +158,30 @@ namespace FlashBeat.Tests.Editor
                 "骨格が揃っているのに画面全体を作り直している");
             Assert.Greater(view.IncrementalUpdateCountForAudit, 0,
                 "差分更新が計測されていない");
+
+            // 選択状態の反映: 選択行だけが選択色で、中央パネルの曲名が
+            // 選択行のタイトルと一致すること (行同一性だけでは更新漏れを検出できない)。
+            GameObject selectedRow = null;
+            string selectedTitle = null;
+            foreach (var row in rowsAfter)
+            {
+                var bg = row.GetComponent<UnityEngine.UI.Image>();
+                var titleTmp = row.transform.Find("Title")?.GetComponent<TMPro.TextMeshProUGUI>();
+                if (bg != null && bg.color == FlashBeat.UI.V5.V5Tokens.Key6)
+                {
+                    Assert.IsNull(selectedRow, "選択色の行が複数ある");
+                    selectedRow = row;
+                    selectedTitle = titleTmp != null ? titleTmp.text : null;
+                }
+            }
+            Assert.IsNotNull(selectedRow, "選択行 (Key6 背景) が見つからない");
+            Assert.IsNotNull(selectedTitle, "選択行に Title テキストが無い");
+
+            var centerTitle = Find(Scaffold("Main/Selected Song Panel").transform, "Meta/Title")
+                ?.GetComponent<TMPro.TextMeshProUGUI>();
+            Assert.IsNotNull(centerTitle, "中央パネルに曲名テキストが無い");
+            Assert.AreEqual(selectedTitle, centerTitle.text,
+                "中央パネルの曲名が選択行のタイトルと一致しない");
         }
 
         [Test]
