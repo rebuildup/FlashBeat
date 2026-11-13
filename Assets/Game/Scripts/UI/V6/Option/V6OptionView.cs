@@ -414,6 +414,21 @@ namespace FlashBeat.UI.V6.Option
             SelectTab(index);
         }
 
+        /// <summary>
+        /// churn 計測 (Issue #415) が行選択を往復させるための操作 API。
+        /// ↑↓ キーと同じ WrapIndex + Rebuild 経路を呼ぶ。
+        /// </summary>
+        public void MoveSelectionForAudit(int delta)
+        {
+            if (currentRows.Count == 0)
+            {
+                return;
+            }
+
+            selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, delta);
+            Rebuild();
+        }
+
         // --- 構築 ---
 
         private void BuildRoot(RectTransform parent)
