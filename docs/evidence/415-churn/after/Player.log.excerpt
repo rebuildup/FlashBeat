@@ -1,0 +1,13 @@
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-churn/after phaseSeconds=8 resolution=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=2.2 avgMs=0.037 managedDeltaKB=64
+[PerfProbe] event=window scene=SelectScene frames=291 avgFps=58.2 p50=16.7 p95=17.6 p99=33.8 worst=50.9 gc0=74 gcKBPerFrame=9.5
+[PerfProbe] event=window scene=SelectScene frames=298 avgFps=59.4 p50=16.7 p95=17.5 p99=33.3 worst=33.3 gc0=176 gcKBPerFrame=-0.5
+[V6Churn] phase=history churn ops=472 wallMs=8010 opsPerSec=58.9
+[V6Churn] phase=history census objects=275 rebuild=1 incremental=1497 managedKB=8300
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=3.0 avgMs=0.051 managedDeltaKB=68
+[PerfProbe] event=window scene=SelectScene frames=294 avgFps=58.6 p50=16.7 p95=17.6 p99=33.4 worst=49.4 gc0=117 gcKBPerFrame=3.9
+[PerfProbe] event=window scene=SelectScene frames=293 avgFps=58.6 p50=16.7 p95=17.5 p99=33.4 worst=34.0 gc0=170 gcKBPerFrame=-4.3
+[V6Churn] phase=ranking churn ops=467 wallMs=8009 opsPerSec=58.3
+[V6Churn] phase=ranking census objects=260 rebuild=1 incremental=1015 managedKB=12620
+[V6Churn] done
+[PerfProbe] event=window scene=SelectScene frames=69 avgFps=60.0 p50=16.7 p95=17.4 p99=17.6 worst=17.6 gc0=21 gcKBPerFrame=55.7
