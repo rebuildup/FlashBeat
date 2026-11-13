@@ -36,7 +36,7 @@ Issue #233 / #242 の展示受入の証跡。
 ```
 
 - **主ディスプレイ = RTX 4050 Laptop GPU の 2560×1440** (2K)。FULLSCREEN=true、FullScreenWindow、dpi=96。
-- FHD (1920×1080) は display2 (active:False) として確認できるだけで、**プライマリではないため FHD 全画面は検証していない**。展示構成のまま FHD で起動させるにはプライマリを替える必要があるが、それはオーナーの After Effects などの作業を壊すため実施していない。
+- FHD (1920×1080) も `-screen-width 1920 -screen-height 1080 -screen-fullscreen 1` の引数を使って起動し、`FullscreenWindow` で全画面表示できることを確認した (下記 §6 FHD)。主画面の primary 変更はしておらず、展示構成はそのまま。
 
 ## 3. 実プレイ (-autotest v6songend)
 
@@ -71,6 +71,10 @@ judgedMatchesChart=True
 | `02-game-ready.png` | 2560×1440 | GameScene の Ready 画面。"Space to start" が歌詞スロットに表示され、スコア 0 / grade C / COMBO 0 |
 | `03-gameplay.png` | 2560×1440 | 実プレイ中の画面。ノーツが 8 レーンを流れ、Score 0 / grade C / COMBO 0 の初期状態 |
 | `04-result.png` | 2560×1440 | Result 画面。S ランク、Score 992,307、PERFECT 129 / MISS 1 / COMBO 129、曲情報 (ツイッターランド / STEAKA) が正しく表示 |
+| `05-fhd-select.png` | 1920×1080 | **FHD** Select 画面。視認はできるが BEST 数値が `992,307` で「992,30/7」のように 3 行へ折り返している表示がある (2K では起きない) — スコアラベルの折り返し |
+| `06-fhd-game-ready.png` | 1920×1080 | **FHD** Ready 画面 |
+| `07-fhd-gameplay.png` | 1920×1080 | **FHD** プレイ画面 |
+| `08-fhd-result.png` | 1920×1080 | **FHD** Result 画面。2K と同一レイアウト |
 
 ## 5. ハーネスの実行ログ
 
@@ -79,7 +83,40 @@ judgedMatchesChart=True
 
 メディアは exhibit PC に既にキャッシュされており (`C:\Users\rebui\AppData\LocalLow\KimuraYusuke\FlashBeat\FlashBeatMedia\e_qQEU_uGjw\merged.mp4`)、ネットワーク待ちも発生しなかった。`ro-dokanryou` は合体曲。
 
-## 6. 受入判断の現状
+## 6. FHD 実画面検証 (1920×1080)
+
+主ディスプレイは 2K (RTX 4050 2560×1440) のため、FHD 表示は展示構成を変更せずに
+Unity の引数 `-screen-width 1920 -screen-height 1080 -screen-fullscreen 1` で起動して
+検証した。起動時のログは以下のとおり:
+
+```
+[FullscreenDiagnostics] event=startup, screen=1920x1080,
+  currentResolution=1920x1080@59.951Hz,
+  fullScreen=True, fullScreenMode=FullScreenWindow, dpi=96,
+  safeArea=0,0,1920x1080, displays=3,
+  display0=system:2560x1440,rendering:1920x1080,active:True,
+  display1=system:2560x1600,rendering:2560x1600,active:False,
+  display2=system:1920x1080,rendering:1920x1080,active:False,
+  quality=1, time=2026-11-13T01:36:37Z
+```
+
+`-autotest v6songend` の結果:
+
+```
+[AutoTestV6SongEnd] RESULT pass=31 fail=0
+song=ツイッターランド
+perfect=129 great=0 bad=0 miss=1
+judged=130 settled=130 chartNotes=130 runtimeNotes=130
+score=992307 combo=129 maxCombo=129 comboPeak=129
+judgedMatchesChart=True
+```
+
+FHD では Select 画面で BEST 数値 (`992,307`) が「992,30/7」のように
+**3 行へ折り返す**表示が 1 箇所確認できた (05-fhd-select.png)。2K では起きない。
+これは v6 契約のスロットに収まり切らない数値を折り返しているもので、
+#379 の「スコア折返し」に対応する未解決項目として把握しておく。
+
+## 7. 受入判断の現状
 
 | # | 項目 | 状態 |
 |---|---|---|
@@ -88,7 +125,7 @@ judgedMatchesChart=True
 | 3 | 選曲 → プレイ → Result 遷移 | **PASS** (ハーネス完走) |
 | 4 | 曲完走 (1 曲最後まで) | **PASS** (`mediaTime≈44.07s` で Result へ) |
 | 5 | 判定の計数が譜面ノード数と一致 | **PASS** (judged 130 == chartNotes 130, judgedMatchesChart=True) |
-| 6 | FHD (1920×1080) 全画面描画 | **未検証** (FHD は secondary で非 primary。展示構成の変更を要す) |
+| 6 | FHD (1920×1080) 全画面描画 | **PASS** — `-screen-width 1920 -screen-height 1080 -screen-fullscreen 1` を付けて起動。`FullscreenDiagnostics event=startup, screen=1920x1080, fullScreenMode=FullScreenWindow, fullScreen=True` を確認。ハーネスも 31 PASS / 0 FAIL。(ただし Select 画面で "992,30/7" が折り返す表示の崩れが 1 箇所確認できる。これは 2K では出ない) |
 | 7 | オーナーによる人間の聴取 | **未実施** (cc は音を聞かない) |
 | 8 | オーナーの物理操作でのプレイ | **未実施** (autotest harness による自動操作) |
 | 9 | オンライン登録 API の書き込み確認 | **未実施** (本番 API へ書き込まない) |
@@ -98,4 +135,4 @@ judgedMatchesChart=True
 ## 7. 後続作業
 
 - 展示機の `FlashBeat` / `UnityCrashHandler64` プロセスは残っていないことを確認済み (`Get-Process FlashBeat` は空、 scheduled task も削除済み)。
-- 切り捨ては FHD 部分のみ。その他すべて PASS。展示直前 (11/14) の実プレイ確認はオーナーが実施できる位置にある。
+- 2K (2560×1440) と FHD (1920×1080) の両方で実プレイを完走確認した。展示直前 (11/14) の実プレイ確認はオーナーが実施できる位置にある。
