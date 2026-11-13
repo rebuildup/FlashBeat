@@ -200,7 +200,8 @@ namespace FlashBeat.UI.V6.Common
             button.navigation = nav;
             if (onClick != null)
             {
-                button.onClick.AddListener(onClick);
+                // Back は必ず画面遷移を伴うので、押下リングが見えるだけ遅らせる。
+                button.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(go, () => onClick()));
             }
 
             FillBackButton(go, keyLabel);
@@ -346,6 +347,7 @@ namespace FlashBeat.UI.V6.Common
             V6Icons.Create(go, iconName, iconSize, iconColor, "Icon");
             var button = go.AddComponent<Button>();
             button.targetGraphic = go.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(go);
             return go;
         }
 

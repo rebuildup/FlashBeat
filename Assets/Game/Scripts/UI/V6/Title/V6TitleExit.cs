@@ -44,6 +44,9 @@ namespace FlashBeat.UI.V6.Title
             var iconButton = V6Controls.Panel(group, "Icon Button", V6TitleLogic.BackIconButtonPos,
                 new Vector2(V6TitleLogic.BackIconButtonSize, V6TitleLogic.BackIconButtonSize),
                 V6Tokens.Key4, V6Tokens.RadiusMedium);
+            // 押下リングは見た目のボタン (アイコン) 側に出す。group 全体は
+            // 透明な当たり判定なので、そこに付けるとヘッダ全体に輪郭が出る。
+            V6ButtonPressFeedback.Attach(iconButton);
 
             var icon = V6Icons.Create(iconButton, "log-out", V6TitleLogic.BackIconSize,
                 V6Tokens.TextMuted, "Icon");

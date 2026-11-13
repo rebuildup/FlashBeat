@@ -624,7 +624,9 @@ namespace FlashBeat.UI.V6.Game.Loading
             LayoutItem(retryLabel.gameObject, 0f, 34f);
             var retryButton = retryBtn.AddComponent<Button>();
             retryButton.targetGraphic = retryBtn.GetComponent<Image>();
-            retryButton.onClick.AddListener(Retry);
+            V6ButtonPressFeedback.Attach(retryBtn);
+            // 再試行は GameScene への遷移なので、押下リングが見えるだけ遅らせる。
+            retryButton.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(retryBtn, Retry));
 
             var backBtn = V5Ui.Panel(error, "Back To Select", new Vector2(200f, 56f), V5Tokens.ButtonPrimaryBg, 8f);
             PlaceAt(backBtn, 232f, 120f);
@@ -640,7 +642,8 @@ namespace FlashBeat.UI.V6.Game.Loading
             LayoutItem(btnLabel.gameObject, 0f, 34f);
             var btnButton = backBtn.AddComponent<Button>();
             btnButton.targetGraphic = backBtn.GetComponent<Image>();
-            btnButton.onClick.AddListener(Back);
+            V6ButtonPressFeedback.Attach(backBtn);
+            btnButton.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(backBtn, Back));
 
             errorGroup.SetActive(false);
         }

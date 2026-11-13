@@ -926,7 +926,9 @@ namespace FlashBeat.UI.V6.Result
             button.navigation = nav;
             if (onClick != null)
             {
-                button.onClick.AddListener(() => onClick());
+                // フッタの各ボタンは画面遷移かモーダルを伴う。リングが
+                // 見えるだけ遅らせても操作感は損なわれないので一律で遅延する。
+                button.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(go, onClick));
             }
         }
 
@@ -2075,6 +2077,7 @@ namespace FlashBeat.UI.V6.Result
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
             button.navigation = nav;
+            V6ButtonPressFeedback.Attach(go);
             if (onClick != null)
             {
                 button.onClick.AddListener(() => onClick());

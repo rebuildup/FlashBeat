@@ -412,6 +412,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             Stretch(cancelLabel.rectTransform);
             var cancelButton = cancel.AddComponent<Button>();
             cancelButton.targetGraphic = cancel.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(cancel);
             cancelButton.onClick.AddListener(CancelResetKeyLayout);
 
             var confirm = V5Ui.Panel(dialog, "Op Reset", new Vector2(252f, 50f),
@@ -422,6 +423,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             Stretch(confirmLabel.rectTransform);
             var confirmButton = confirm.AddComponent<Button>();
             confirmButton.targetGraphic = confirm.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(confirm);
             confirmButton.onClick.AddListener(ApplyResetKeyLayout);
         }
 
@@ -586,6 +588,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                 Stretch(label.rectTransform);
                 var button = tab.AddComponent<Button>();
                 button.targetGraphic = tab.GetComponent<Image>();
+                V6ButtonPressFeedback.Attach(tab);
                 int captured = i;
                 button.onClick.AddListener(() => SelectTab(captured));
                 tabPanels.Add(tab);
@@ -903,6 +906,7 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             var button = panel.AddComponent<Button>();
             button.targetGraphic = panel.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(panel);
             int capturedIndex = rows.Count;
             button.onClick.AddListener(() =>
             {
@@ -932,6 +936,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
             var button = btn.AddComponent<Button>();
             button.targetGraphic = btn.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(btn);
             return button;
         }
 
@@ -1173,7 +1178,9 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = go.GetComponent<Image>();
-            button.onClick.AddListener(() => action());
+            V6ButtonPressFeedback.Attach(go);
+            // ポーズのアクション (再開 / リトライ / 終了) は画面遷移を伴うので遅延する。
+            button.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(go, () => action()));
         }
 
         /// <summary>2 点を結ぶ細長い Image (design の Lane path / stroke の代用)。</summary>

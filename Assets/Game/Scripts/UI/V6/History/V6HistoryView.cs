@@ -995,6 +995,7 @@ namespace FlashBeat.UI.V6.History
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
             button.navigation = nav;
+            V6ButtonPressFeedback.Attach(go);
             if (onClick != null)
             {
                 button.onClick.AddListener(() => onClick());
