@@ -1,0 +1,14 @@
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-select-slots/after phaseSeconds=8 resolution=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=2.5 avgMs=0.041 managedDeltaKB=228
+[V6Churn] phase=history churn ops=480 wallMs=8010 opsPerSec=59.9
+[V6Churn] phase=history census objects=275 rebuild=1 incremental=1519 managedKB=8532
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=2.6 avgMs=0.043 managedDeltaKB=72
+[V6Churn] phase=ranking churn ops=481 wallMs=8014 opsPerSec=60.0
+[V6Churn] phase=ranking census objects=253 rebuild=1 incremental=1043 managedKB=8828
+[V6Churn] phase=select refreshBatch n=60 totalMs=3.3 avgMs=0.054 managedDeltaKB=8
+[V6Churn] phase=select churn ops=480 wallMs=8001 opsPerSec=60.0
+[V6Churn] phase=select census objects=289 rebuild=1 incremental=1546 managedKB=7784
+[V6Churn] phase=option refreshBatch n=60 totalMs=0.9 avgMs=0.015 managedDeltaKB=292
+[V6Churn] phase=option churn ops=480 wallMs=8009 opsPerSec=59.9
+[V6Churn] phase=option census objects=730 rebuild=1 incremental=1030 managedKB=7560
+[V6Churn] done
