@@ -261,6 +261,13 @@ public class ResultSceneManager : MonoBehaviour
     /// <summary>provider から届いた遠隔スプライトを v5 Result の背景へ反映する。</summary>
     void SetRemoteSprite(Sprite sprite)
     {
+        // provider はシーンを知らない。Result 退出後 (Retry 等) に HTTP が返ると
+        // 破棄済み Image へ書き込んで MissingReferenceException になる (#417)。
+        if (this == null || imageObjects == null || imageObjects.Length == 0 || imageObjects[0] == null)
+        {
+            return;
+        }
+
         if (sprite == null)
         {
             Debug.LogWarning("[ResultSceneManager] thumbnail 取得失敗 (V6JacketProvider)");
