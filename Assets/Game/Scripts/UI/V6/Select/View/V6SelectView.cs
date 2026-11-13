@@ -58,6 +58,16 @@ namespace FlashBeat.UI.V6.Select.View
         private readonly Action onOpenSettings;
 
         private GameObject rootGo;
+
+        // --- Issue #399: 骨格を作ったときの状態 (差分更新の可否判定) ---
+        /// <summary>一度でも骨格を作ったか。</summary>
+        private bool scaffoldBuilt;
+        /// <summary>骨格を作ったときの設定パネル開閉。</summary>
+        private bool scaffoldSettingsOpen;
+        /// <summary>骨格を作ったときの画面幅 (解像度変更の検出)。</summary>
+        private int frameWidthAtBuild;
+        /// <summary>骨格を作ったときの画面高さ。</summary>
+        private int frameHeightAtBuild;
         private RectTransform frame;
         private int listScroll;
         private int rankingScroll;
@@ -112,7 +122,8 @@ namespace FlashBeat.UI.V6.Select.View
         private void OnDataChanged()
         {
             if (rootGo == null || !rootGo.activeInHierarchy) return;
-            Rebuild();
+            // Issue #399: 選択・検索・カタログ更新は「変わる部分だけ」を反映する。
+            RefreshVolatile();
         }
 
         /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
@@ -126,7 +137,69 @@ namespace FlashBeat.UI.V6.Select.View
         /// <summary>data.Changed の再描画起点。選択行が見えるようにスクロールを追従させる。</summary>
         public void Refresh()
         {
-            Rebuild();
+            RefreshVolatile();
+        }
+
+        /// <summary>検証・計測用: 画面全体を作り直した回数。</summary>
+        public int RebuildCountForAudit { get; private set; }
+
+        /// <summary>検証・計測用: 変動部分だけを更新した回数。</summary>
+        public int IncrementalUpdateCountForAudit { get; private set; }
+
+        /// <summary>
+        /// Issue #399: 変動部分 (ヘッダー・曲リスト・中央・右カラム) だけを作り直す。
+        ///
+        /// 骨格のうち **フッターは状態で変わらない** ので保持する。ヘッダーは
+        /// 検索語・件数・フィルター状態が変わるため作り直すが、画面全体
+        /// (中央・右・リスト) を巻き込む <see cref="Rebuild"/> より軽い。
+        ///
+        /// 骨格の意味が変わる操作 (クイック設定の開閉・解像度変更) だけ
+        /// <see cref="Rebuild"/> に落とす。
+        /// </summary>
+        private void RefreshVolatile()
+        {
+            if (rootGo == null || !rootGo.activeInHierarchy) return;
+
+            if (!scaffoldBuilt
+                || settingsOpen != scaffoldSettingsOpen
+                || frameWidthAtBuild != Screen.width
+                || frameHeightAtBuild != Screen.height)
+            {
+                Rebuild();
+                return;
+            }
+
+            var songs = DisplaySongs();
+            int selectIndex = SelectedIndex(songs);
+            listScroll = V6SelectViewLogic.ListScroll(selectIndex, songs.Count);
+            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
+                data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
+
+            // 変動するゾーンだけを外して作り直す。名前と親 (frame) は
+            // Build* が従来どおり作るので、既存の検索パスは変わらない。
+            DestroyZone("Header");
+            DestroyZone("Song List");
+            DestroyZone("Selected Song Panel");
+            DestroyZone("Ranking Column");
+            DestroyZone("Settings Column");
+
+            BuildHeader(songs.Count);
+            BuildList(songs, selectIndex);
+            BuildCenter();
+            if (settingsOpen) BuildSettings();
+            else BuildRight();
+
+            IncrementalUpdateCountForAudit++;
+        }
+
+        /// <summary>frame 直下の名前付きゾーンを階層から外して破棄を予約する。</summary>
+        private void DestroyZone(string name)
+        {
+            if (frame == null) return;
+            Transform child = frame.Find(name);
+            if (child == null) return;
+            child.SetParent(null, false);
+            FlashBeat.UI.V5.V5GameUi.DestroyNow(child.gameObject);
         }
 
         public void SetVisible(bool visible)
@@ -378,6 +451,12 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 return;
             }
+
+            RebuildCountForAudit++;
+            scaffoldBuilt = true;
+            scaffoldSettingsOpen = settingsOpen;
+            frameWidthAtBuild = Screen.width;
+            frameHeightAtBuild = Screen.height;
 
             PlaceFrame();
 
