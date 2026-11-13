@@ -87,10 +87,10 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void RegisterStage_OpensAtTwoSecondsAndCompletesAfter()
+        public void RegisterStage_OpensAtThreeSecondsAndCompletesAfter()
         {
-            Assert.IsFalse(V6ResultRevealLogic.ShouldShowRegister(1.99f));
-            Assert.IsTrue(V6ResultRevealLogic.ShouldShowRegister(2f));
+            Assert.IsFalse(V6ResultRevealLogic.ShouldShowRegister(2.99f));
+            Assert.IsTrue(V6ResultRevealLogic.ShouldShowRegister(3f));
             Assert.IsFalse(V6ResultRevealLogic.IsComplete(V6ResultRevealLogic.TotalSeconds - 0.01f));
             Assert.IsTrue(V6ResultRevealLogic.IsComplete(V6ResultRevealLogic.TotalSeconds));
         }

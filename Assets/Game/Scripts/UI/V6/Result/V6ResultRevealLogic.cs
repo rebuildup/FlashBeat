@@ -50,7 +50,7 @@ namespace FlashBeat.UI.V6.Result
         public const float SongInfoDuration = 0f;
 
         // 登録欄 (登録モーダル)。表示し終えた時点で名前欄へフォーカスする。
-        public const float RegisterStart = 2.00f;
+        public const float RegisterStart = 3.00f;
         public const float RegisterDuration = 0.18f;
 
         /// <summary>全段が表示し終わる時刻。Space スキップの判定にも使う。</summary>
