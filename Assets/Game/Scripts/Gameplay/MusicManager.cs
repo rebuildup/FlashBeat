@@ -793,13 +793,14 @@ public class MusicManager : MonoBehaviour
             return;
         }
 
-        // renderer.material creates an instance, the shared built-in material is
-        // not touched.
-        var material = renderer.material;
+        // 読み取り専用のプロパティ確認に per-renderer インスタンスを
+        // 先に作らないため、sharedMaterial を見る。共有マテリアルはここでは
+        // 一切書き換えない (Issue #416)。
+        var material = renderer.sharedMaterial;
         const string textureProperty = "_MainTex";
-        if (!material.HasProperty(textureProperty))
+        if (material == null || !material.HasProperty(textureProperty))
         {
-            Debug.LogWarning($"[MusicManager] material '{material.name}' has no {textureProperty} - the picture stays invisible");
+            Debug.LogWarning($"[MusicManager] material '{(material != null ? material.name : "<null>")}' has no {textureProperty} - the picture stays invisible");
             return;
         }
 

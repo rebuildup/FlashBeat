@@ -24,6 +24,9 @@ namespace FlashBeat.UI.V6
     ///   - **同時要求の dedupe**: 同じ映像 ID を 2 画面が同時に欲しがっても
     ///     HTTP は 1 回。結果は全員に配る。
     ///   - **負キャッシュ**: 取得失敗を一定時間覚え、失敗のたびに再試行しない。
+    ///   - **容量上限 (Issue #416)**: 保持は <see cref="RemoteCacheCapacity"/> 件まで。
+    ///     超えたら LastAccess が最も古い非 in-flight エントリを退避し、
+    ///     Texture と由来 crop Sprite を破棄する。in-flight は退避しない。
     ///   - **所有者の明示**: Texture / Sprite はここが所有する。呼び出し側は
     ///     Destroy しない (View の破棄で消えてよいのは View が作ったものだけ)。
     ///
@@ -49,12 +52,30 @@ namespace FlashBeat.UI.V6
         /// <summary>遠隔要求のタイムアウト (秒)。これを過ぎると失敗扱い。</summary>
         public const int RemoteRequestTimeoutSeconds = 30;
 
+        /// <summary>
+        /// 遠隔画像キャッシュの上限 (エントリ数)。Issue #416。
+        ///
+        /// 成功した Texture をプロセス寿命で無制限に保持すると、
+        /// 多曲を巡ったときに native メモリが単調増加する。
+        /// 上限を超えたら LastAccess が最も古いエントリを退避し、
+        /// Texture (とそこから作った crop Sprite) を破棄する。
+        /// 曲数 26 前後の通常運用ではまず溢れないが、ストレス条件での上限を保証する。
+        /// </summary>
+        public const int RemoteCacheCapacity = 50;
+
+        /// <summary>遠隔キャッシュから容量超過で退避した回数 (Issue #416)。</summary>
+        public static int RemoteFetchEvictedCount { get; private set; }
+
         private sealed class RemoteEntry
         {
             public Texture2D Texture;
             public bool Failed;
             public float FailedAt;
             public bool InFlight;
+
+            /// <summary>最後にアクセスした時刻 (unscaledTime)。LRU 退避の順序キー (Issue #416)。</summary>
+            public float LastAccess;
+
             public readonly List<Action<Sprite>> Waiting = new List<Action<Sprite>>();
             public readonly List<Action<Texture2D>> WaitingTexture = new List<Action<Texture2D>>();
         }
@@ -107,6 +128,9 @@ namespace FlashBeat.UI.V6
         private static readonly HashSet<string> localMissing = new HashSet<string>(StringComparer.Ordinal);
 
         // --- 遠隔 (YouTube) ---
+        // Issue #416: 上限は RemoteCacheCapacity 件。超えたら LastAccess が
+        // 最も古い非 in-flight エントリを退避し、Texture を破棄する。
+        // キーは映像 ID の ordinal 比較 (StringComparer.Ordinal)。
 
         private static readonly Dictionary<string, RemoteEntry> remoteCache =
             new Dictionary<string, RemoteEntry>(StringComparer.Ordinal);
@@ -146,6 +170,12 @@ namespace FlashBeat.UI.V6
         public static int CachedSpriteCount
         {
             get { return localSpriteCache.Count + localCropCache.Count; }
+        }
+
+        /// <summary>このプロセスが保持している遠隔エントリの枚数 (上限の検証用、Issue #416)。</summary>
+        public static int RemoteCacheEntryCount
+        {
+            get { return remoteCache.Count; }
         }
 
         /// <summary>このプロセスが保持している遠隔 Sprite の枚数。</summary>
@@ -429,11 +459,143 @@ namespace FlashBeat.UI.V6
             RemoteEntry entry;
             if (!remoteCache.TryGetValue(videoId, out entry))
             {
+                entry = new RemoteEntry { LastAccess = Time.unscaledTime };
+                remoteCache[videoId] = entry;
+            }
+            else
+            {
+                // LRU の順序キーを更新する (退避は「最後に触られていない」順)。
+                entry.LastAccess = Time.unscaledTime;
+            }
+
+            return entry;
+        }
+
+        /// <summary>
+        /// 容量超過を解消する (Issue #416)。エントリが <see cref="RemoteCacheCapacity"/> を
+        /// 超えていたら、LastAccess が最も古い非 in-flight エントリから退避する。
+        /// 退避したエントリの Texture と、そこから生成した crop Sprite を破棄する。
+        /// in-flight (HTTP 応答待ち) のエントリは退避しない
+        /// (待ちリストのコールバックを失わないため)。全員が in-flight の場合は
+        /// 一時的に上限を超えたままにする。
+        /// </summary>
+        private static void EnforceRemoteCacheCapacity()
+        {
+            while (remoteCache.Count > RemoteCacheCapacity)
+            {
+                string oldestKey = null;
+                float oldestAccess = float.MaxValue;
+                foreach (var pair in remoteCache)
+                {
+                    RemoteEntry entry = pair.Value;
+                    if (entry == null || entry.InFlight)
+                    {
+                        continue;
+                    }
+
+                    if (entry.LastAccess < oldestAccess)
+                    {
+                        oldestAccess = entry.LastAccess;
+                        oldestKey = pair.Key;
+                    }
+                }
+
+                if (oldestKey == null)
+                {
+                    // 退避できるエントリが無い (全部 in-flight)。これ以上は進めない。
+                    return;
+                }
+
+                EvictRemoteEntry(oldestKey);
+            }
+        }
+
+        /// <summary>1 エントリを退避する。Texture と、その Texture 由来の crop Sprite を破棄する。</summary>
+        private static void EvictRemoteEntry(string videoId)
+        {
+            RemoteEntry entry;
+            if (!remoteCache.TryGetValue(videoId, out entry))
+            {
+                return;
+            }
+
+            remoteCache.Remove(videoId);
+            RemoteFetchEvictedCount++;
+
+            Texture2D texture = entry.Texture;
+            if (texture != null)
+            {
+                // remoteCropCache から、この Texture 由来の Sprite を取り除く。
+                // ここを残すと、破棄済み Texture を参照する Sprite が返り続ける。
+                var doomed = new List<SpriteKey>();
+                foreach (var pair in remoteCropCache)
+                {
+                    if (ReferenceEquals(pair.Key.Texture, texture))
+                    {
+                        doomed.Add(pair.Key);
+                    }
+                }
+
+                for (int i = 0; i < doomed.Count; i++)
+                {
+                    Sprite sprite = remoteCropCache[doomed[i]];
+                    if (sprite != null)
+                    {
+                        V6AssetOwner.DestroyObject(sprite);
+                    }
+
+                    remoteCropCache.Remove(doomed[i]);
+                }
+
+                V6AssetOwner.DestroyObject(texture);
+                entry.Texture = null;
+            }
+        }
+
+        /// <summary>
+        /// 監査・テスト用 (Issue #416): HTTP を迂回して遠隔キャッシュにエントリを注入する。
+        /// 退避ロジックと上限の検証専用で、本番コードからは呼ばないこと。
+        /// <paramref name="lastAccess"/> は LRU 順の制御に使う (unscaledTime 相当の値)。
+        /// </summary>
+        public static RemoteEntryHandle SeedRemoteEntryForAudit(string videoId, Texture2D texture, float lastAccess)
+        {
+            if (string.IsNullOrEmpty(videoId))
+            {
+                return RemoteEntryHandle.Invalid;
+            }
+
+            RemoteEntry entry;
+            if (!remoteCache.TryGetValue(videoId, out entry))
+            {
                 entry = new RemoteEntry();
                 remoteCache[videoId] = entry;
             }
 
-            return entry;
+            entry.Texture = texture;
+            entry.Failed = false;
+            entry.InFlight = false;
+            entry.LastAccess = lastAccess;
+            EnforceRemoteCacheCapacity();
+            return new RemoteEntryHandle(remoteCache.ContainsKey(videoId));
+        }
+
+        /// <summary>SeedRemoteEntryForAudit の結果ハンドル。エントリが退避で消えたかを返す。</summary>
+        public readonly struct RemoteEntryHandle
+        {
+            public static readonly RemoteEntryHandle Invalid = new RemoteEntryHandle(false);
+
+            private readonly bool retained;
+
+            internal RemoteEntryHandle(bool retained)
+            {
+                this.retained = retained;
+            }
+
+            /// <summary>退避されずにキャッシュに残っているか。</summary>
+            public bool Retained
+            {
+                get { return retained; }
+            }
         }
 
         private struct RemoteRequest
@@ -482,6 +644,7 @@ namespace FlashBeat.UI.V6
 
                 RemoteEntry entry = request.Entry;
                 entry.InFlight = false;
+                entry.LastAccess = Time.unscaledTime;
 
                 if (texture != null)
                 {
@@ -496,6 +659,10 @@ namespace FlashBeat.UI.V6
                 }
 
                 Sprite sprite = texture != null ? SpriteFor(texture, request.VideoId) : null;
+
+                // Issue #416: 成功・失敗どちらの経路でも上限を強制する。
+                // 失敗エントリは Texture を持たないが、辞書自体の膨張も防ぐ。
+                EnforceRemoteCacheCapacity();
 
                 var waiting = new List<Action<Sprite>>(entry.Waiting);
                 var waitingTextures = new List<Action<Texture2D>>(entry.WaitingTexture);
@@ -616,6 +783,7 @@ namespace FlashBeat.UI.V6
             NegativeCacheHitCount = 0;
             RemoteFailureCount = 0;
             CropCreateCount = 0;
+            RemoteFetchEvictedCount = 0;
         }
     }
 
