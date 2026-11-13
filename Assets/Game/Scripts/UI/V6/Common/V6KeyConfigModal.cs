@@ -48,18 +48,20 @@ namespace FlashBeat.UI.V6.Common
         private GameObject dialogGo;
         private V6KeyConfigLogic logic;
         private bool isOpen;
-        private readonly List<LaneRow> rows = new List<LaneRow>();
+        private readonly List<KeyCap> keyCaps = new List<KeyCap>();
+        private TextMeshProUGUI statusText;
+        private TextMeshProUGUI hintText;
 
         /// <summary>閉じたあとに呼ばれる (適用・キャンセルどちらでも)。</summary>
         public Action Closed;
 
-        private sealed class LaneRow
+        /// <summary>キーボード上の 1 キーキャップ (Issue #428)。</summary>
+        private sealed class KeyCap
         {
+            public V6JisKeyboard.Key Def;
             public Image Background;
-            public TextMeshProUGUI LaneLabel;
-            public TextMeshProUGUI KeyLabel;
-            public TextMeshProUGUI State;
-            public TextMeshProUGUI Alternates;
+            public TextMeshProUGUI Label;
+            public TextMeshProUGUI LaneBadge;
         }
 
         /// <summary>開いているか。</summary>
@@ -157,59 +159,131 @@ namespace FlashBeat.UI.V6.Common
 
             V6Controls.Text(dialogGo, "Head", "キー設定", new Vector2(28f, 28f),
                 new Vector2(784f, 40f), 32f, V6Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
-            V6Controls.Text(dialogGo, "Description", "レーンごとに代表キーを変更します。",
+            V6Controls.Text(dialogGo, "Description", "キーをクリックしてレーンを選び、キーを押して割り当てます。",
                 new Vector2(28f, 72f), new Vector2(784f, 24f), 22f, V6Tokens.TextDim);
 
-            var list = V6Controls.Panel(dialogGo, "Lane List", new Vector2(LaneRowX, LaneRowY),
-                new Vector2(LaneRowW, 472f), new Color(0f, 0f, 0f, 0f), 0f);
-            list.GetComponent<Image>().raycastTarget = false;
+            // Issue #428: テキスト一覧ではなく JIS 配列のビジュアルキーボード。
+            // 割当済みキーにはレーン番号バッジを出し、クリックでレーン選択 /
+            // 待受中の割当に使う。
+            BuildKeyboard();
 
-            for (int lane = 0; lane < V6KeyConfigLogic.LaneCount; lane++)
-            {
-                rows.Add(BuildLaneRow(list, lane));
-            }
+            // 選択レーンの状態 (衝突・待受など) と操作ヒント。
+            statusText = V6Controls.Text(dialogGo, "Status", string.Empty,
+                new Vector2(28f, 420f), new Vector2(784f, 26f), 20f, V6Tokens.TextMuted);
+            hintText = V6Controls.Text(dialogGo, "Hint",
+                "クリック: レーン選択 / Enter: キー待受 / ←→: レーン移動 / Esc: 閉じる",
+                new Vector2(28f, 452f), new Vector2(784f, 22f), 18f, V6Tokens.TextDim);
 
             BuildFooter();
         }
 
-        private LaneRow BuildLaneRow(GameObject list, int lane)
+        /// <summary>JIS キーボードを構築する (Issue #428)。</summary>
+        private void BuildKeyboard()
         {
-            var rowGo = V6Controls.Panel(list, "Lane Row " + (lane + 1),
-                new Vector2(0f, LaneRowStep * lane), new Vector2(LaneRowW, LaneRowH),
-                V6Tokens.Key2, V6Tokens.RadiusMedium);
+            float keyboardX = 28f;
+            float keyboardY = 116f;
 
-            var row = new LaneRow();
-            row.Background = rowGo.GetComponent<Image>();
-            row.LaneLabel = V6Controls.Text(rowGo, "Lane", "Lane " + (lane + 1),
-                new Vector2(16f, 16f), new Vector2(120f, 32f), 22f, V6Tokens.TextDim);
-
-            // 代表キーの KeyCap (design: 120×40 r4 fs24)。
-            var cap = V6Controls.Panel(rowGo, "KeyCap", new Vector2(152f, 6f),
-                new Vector2(120f, 40f), V6Tokens.Key4, V6Tokens.RadiusSmall);
-            row.KeyLabel = V6Controls.Text(cap, "Key", string.Empty, Vector2.zero,
-                new Vector2(120f, 40f), 24f, V6Tokens.Text, TextAlignmentOptions.Center);
-
-            row.State = V6Controls.Text(rowGo, "State", string.Empty,
-                new Vector2(288f, 2f), new Vector2(464f, 26f), 20f, V6Tokens.TextMuted);
-            row.Alternates = V6Controls.Text(rowGo, "Alternates", string.Empty,
-                new Vector2(288f, 32f), new Vector2(480f, 20f), 16f, V6Tokens.TextMuted);
-
-            var button = rowGo.AddComponent<Button>();
-            button.targetGraphic = row.Background;
-            int captured = lane;
-            button.onClick.AddListener(() =>
+            for (int r = 0; r < V6JisKeyboard.Rows.Length; r++)
             {
-                if (logic == null || !isOpen)
+                V6JisKeyboard.Key[] row = V6JisKeyboard.Rows[r];
+                // 行ごとに中央揃え (JIS 配列の段差をそのまま見せる)。
+                float x = keyboardX + (LaneRowW - V6JisKeyboard.RowWidth(row)) * 0.5f;
+                for (int i = 0; i < row.Length; i++)
                 {
-                    return;
+                    V6JisKeyboard.Key def = row[i];
+                    float w = def.Width * V6JisKeyboard.KeyW;
+                    var capGo = V6Controls.Panel(dialogGo, "Key " + def.Label,
+                        new Vector2(x, keyboardY + r * (V6JisKeyboard.KeyH + V6JisKeyboard.RowGap)),
+                        new Vector2(w, V6JisKeyboard.KeyH), V6Tokens.Key3, V6Tokens.RadiusSmall);
+                    var cap = new KeyCap { Def = def };
+                    cap.Background = capGo.GetComponent<Image>();
+                    cap.Label = V6Controls.Text(capGo, "Label", def.Label, Vector2.zero,
+                        new Vector2(w, V6JisKeyboard.KeyH), 20f, V6Tokens.Text, TextAlignmentOptions.Center);
+                    cap.LaneBadge = V6Controls.Text(capGo, "Lane", string.Empty,
+                        new Vector2(w - 22f, 2f), new Vector2(20f, 16f), 14f, V6Tokens.TextMuted,
+                        TextAlignmentOptions.Right);
+
+                    if (def.Assignable)
+                    {
+                        var button = capGo.AddComponent<Button>();
+                        button.transition = Selectable.Transition.None;
+                        var nav = button.navigation;
+                        nav.mode = Navigation.Mode.None;
+                        button.navigation = nav;
+                        button.onClick.AddListener(() => OnKeyCapClicked(cap));
+                    }
+                    else
+                    {
+                        cap.Background.color = new Color(0f, 0f, 0f, 0.001f);
+                        cap.Label.color = V6Tokens.TextDim;
+                    }
+
+                    keyCaps.Add(cap);
+                    x += w + V6JisKeyboard.KeyGap;
                 }
+            }
+        }
 
-                logic.Select(captured);
-                logic.BeginListen();
+        /// <summary>
+        /// キーキャップのクリック (Issue #428)。
+        /// 待受中は物理キーと同じ検証経路 (<see cref="V6KeyConfigLogic.Assign"/>) で
+        /// 割り当てる。それ以外は割当済みキーからレーンを選択する。
+        /// </summary>
+        private void OnKeyCapClicked(KeyCap cap)
+        {
+            if (logic == null || !isOpen || cap == null || !cap.Def.Assignable)
+            {
+                return;
+            }
+
+            if (logic.Listening)
+            {
+                logic.Assign(cap.Def.Code);
+                Consume();
                 Refresh();
-            });
+                return;
+            }
 
-            return row;
+            int lane = LaneOfKeyCap(cap.Def.Code);
+            if (lane >= 0)
+            {
+                logic.Select(lane);
+                Consume();
+                Refresh();
+            }
+        }
+
+        /// <summary>
+        /// キーキャップのキーが属するレーン。Shift 付き記号 (Colon/Less など) も
+        /// 同じ物理キーとして拾うためエイリアスを併せて調べる。
+        /// </summary>
+        private int LaneOfKeyCap(KeyCode code)
+        {
+            int lane = logic.LaneOfKey(code);
+            if (lane >= 0)
+            {
+                return lane;
+            }
+
+            KeyCode alias = AliasOf(code);
+            return alias != KeyCode.None ? logic.LaneOfKey(alias) : -1;
+        }
+
+        /// <summary>同じ物理キーが出す別 KeyCode (Shift 記号)。</summary>
+        private static KeyCode AliasOf(KeyCode code)
+        {
+            switch (code)
+            {
+                case KeyCode.Semicolon: return KeyCode.Colon;
+                case KeyCode.Comma: return KeyCode.Less;
+                case KeyCode.Period: return KeyCode.Greater;
+                case KeyCode.Slash: return KeyCode.Question;
+                case KeyCode.Minus: return KeyCode.Underscore;
+                case KeyCode.Equals: return KeyCode.Plus;
+                case KeyCode.LeftBracket: return KeyCode.LeftCurlyBracket;
+                case KeyCode.RightBracket: return KeyCode.RightCurlyBracket;
+                default: return KeyCode.None;
+            }
         }
 
         private void BuildFooter()
@@ -263,7 +337,7 @@ namespace FlashBeat.UI.V6.Common
 
         // --- 表示の更新 ---
 
-        /// <summary>モデルの内容を全行へ反映する。</summary>
+        /// <summary>モデルの内容をキーボード全体へ反映する (Issue #428)。</summary>
         public void Refresh()
         {
             if (logic == null)
@@ -271,29 +345,43 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
-            for (int lane = 0; lane < rows.Count; lane++)
+            int selected = logic.SelectedLane;
+            bool listening = logic.Listening;
+            for (int i = 0; i < keyCaps.Count; i++)
             {
-                LaneRow row = rows[lane];
-                bool selected = lane == logic.SelectedLane;
-                bool listeningHere = selected && logic.Listening;
+                KeyCap cap = keyCaps[i];
+                if (!cap.Def.Assignable)
+                {
+                    continue;
+                }
 
-                row.Background.color = selected ? V6Tokens.Key6 : V6Tokens.Key2;
-                row.KeyLabel.text = V6KeyConfigLogic.KeyLabel(logic.Representative(lane));
-                row.Alternates.text = logic.AlternatesText(lane);
-                row.State.text = logic.StateText(lane);
-                row.State.color = (selected && logic.ConflictLane >= 0)
+                int lane = LaneOfKeyCap(cap.Def.Code);
+                bool bound = lane >= 0;
+                bool isSelectedLaneKey = bound && lane == selected;
+
+                // 選択レーンのキー > 他レーンのキー > 未割当 の順で見せる。
+                // 待受中は割当可能なキーを一段明るくして「押せる」ことを示す。
+                Color bg = isSelectedLaneKey ? V6Tokens.Key5
+                    : bound ? V6Tokens.Key4
+                    : listening ? V6Tokens.Key2
+                    : V6Tokens.Key3;
+                cap.Background.color = bg;
+                cap.Label.color = bound || listening ? V6Tokens.Text : V6Tokens.TextMuted;
+                cap.LaneBadge.text = bound ? (lane + 1).ToString() : string.Empty;
+                cap.LaneBadge.color = isSelectedLaneKey ? V6Tokens.Text : V6Tokens.TextMuted;
+            }
+
+            if (statusText != null)
+            {
+                statusText.text = logic.StateText(selected);
+                statusText.color = logic.ConflictLane >= 0
                     ? V6Tokens.DangerLight
-                    : selected ? V6Tokens.Text : V6Tokens.TextMuted;
-                row.LaneLabel.color = selected ? V6Tokens.Text : V6Tokens.TextDim;
+                    : V6Tokens.TextMuted;
+            }
 
-                if (listeningHere)
-                {
-                    row.State.fontStyle = FontStyles.Bold;
-                }
-                else
-                {
-                    row.State.fontStyle = FontStyles.Normal;
-                }
+            if (hintText != null)
+            {
+                hintText.fontStyle = listening ? FontStyles.Bold : FontStyles.Normal;
             }
         }
 
