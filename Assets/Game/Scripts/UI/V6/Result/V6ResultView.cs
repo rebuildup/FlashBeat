@@ -665,14 +665,14 @@ namespace FlashBeat.UI.V6.Result
             var scoreLabel = V5GameUi.Text(block.gameObject, "Score Label", "SCORE", 20f, V5Tokens.TextDim);
             At(scoreLabel, ScoreColX, 48f, 400f, 26f, new Vector2(0f, 0.5f));
 
-            scoreValue = V5GameUi.Text(block.gameObject, "Score Value", "0", 72f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Normal);
+            scoreValue = OneLine(V5GameUi.Text(block.gameObject, "Score Value", "0", 72f, V5Tokens.Text,
+                TextAlignmentOptions.Left, FontStyles.Normal));
             At(scoreValue, ScoreColX, 80f, 500f, 80f, new Vector2(0f, 0.5f));
 
             var bestLabel = V5GameUi.Text(block.gameObject, "Best Label", "前回最高", 20f, V5Tokens.TextDim);
             At(bestLabel, ScoreColX, 206f, 300f, 26f, new Vector2(0f, 0.5f));
 
-            bestValue = V5GameUi.Text(block.gameObject, "Best Value", "–", 32f, V5Tokens.Text);
+            bestValue = OneLine(V5GameUi.Text(block.gameObject, "Best Value", "–", 32f, V5Tokens.Text));
             At(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
 
             // 段階表示 (#384): 各要素は CanvasGroup のアルファで出す。
@@ -737,8 +737,8 @@ namespace FlashBeat.UI.V6.Result
                 var judgeLabel = V5GameUi.Text(cell.gameObject, "Label", labels[i], 20f,
                     V5Tokens.TextDim, TextAlignmentOptions.TopLeft);
                 At(judgeLabel, 0f, 0f, JudgeCellW, 29f, new Vector2(0f, 1f));
-                judgeValues[i] = V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
-                    TextAlignmentOptions.TopLeft, FontStyles.Normal);
+                judgeValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
+                    TextAlignmentOptions.TopLeft, FontStyles.Normal));
                 At(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
                 judgeGroups[i] = FadeGroup(cell);
             }
@@ -788,8 +788,8 @@ namespace FlashBeat.UI.V6.Result
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
                 var label = V5GameUi.Text(cell.gameObject, "Label", statLabels[i], 18f, V5Tokens.TextDim);
                 At(label, 0f, 0f, V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH);
-                songStatValues[i] = V5GameUi.Text(cell.gameObject, "Value", "–", 30f, V5Tokens.Text,
-                    TextAlignmentOptions.Left, FontStyles.Normal);
+                songStatValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "–", 30f, V5Tokens.Text,
+                    TextAlignmentOptions.Left, FontStyles.Normal));
                 At(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
             }
