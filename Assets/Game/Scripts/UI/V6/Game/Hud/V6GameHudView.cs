@@ -27,7 +27,6 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// </summary>
     public sealed class V6GameHudView : MonoBehaviour
     {
-        private const float JudgeShowSeconds = 0.8f;
         private const float VerdictScanSeconds = 1f;
 
         // --- 歌詞枠 (design i30vM4) ---
@@ -69,8 +68,10 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         // --- 生成した部品 ---
         private TextMeshProUGUI gradeText;
-        private TextMeshProUGUI scoreText;
-        private TextMeshProUGUI comboText;
+        /// <summary>スコア値の桁別ストリップ (Issue #445: 1 文字 = 1 スロット)。</summary>
+        private ValueStrip scoreStrip;
+        /// <summary>コンボ値の桁別ストリップ (0 のときは値自体を隠す)。</summary>
+        private ValueStrip comboStrip;
         private TextMeshProUGUI lyricText;
         private GameObject lyricBox;
         private RectTransform progressFill;
@@ -87,15 +88,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         // --- 毎フレームの状態 ---
         private int lastJudged = -1;
-        private int lastScore = -1;
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
         private int lastRenderedScore = int.MinValue;
         private int lastRenderedCombo = int.MinValue;
-        /// <summary>前フレームのコンボ (増加を検出してポップさせる)。</summary>
-        private int lastCombo = -1;
-        private float scorePulseStart = -1f;
-        /// <summary>コンボ値のポップ開始時刻 (-1 = 停止中)。</summary>
-        private float comboPulseStart = -1f;
 
         // --- Issue #434: フィードバック強化 ---
         /// <summary>コンボボーナス塗りの Image (変化時に色をワンショットで発光させる)。</summary>
@@ -189,6 +184,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return duplicateRefreshFrames; }
         }
 
+        /// <summary>
+        /// 検証ハーネス用: スコア値の表示文字列 (桁スロットの連結)。
+        /// コンボ 0 のとき <see cref="ComboTextForAudit"/> は空文字。
+        /// </summary>
+        public string ScoreTextForAudit
+        {
+            get { return scoreStrip != null ? scoreStrip.Text : null; }
+        }
+
+        /// <summary>検証ハーネス用: コンボ値の表示文字列 (0 なら空)。</summary>
+        public string ComboTextForAudit
+        {
+            get { return comboStrip != null ? comboStrip.Text : null; }
+        }
+
         /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
         public void SetVisible(bool visible)        {
             if (Root != null)
@@ -222,19 +232,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             int score = GManager.score;
             // TextMeshPro の文字列設定は値が変わるまで呼ばない (issue #381:
             // 毎フレームの書式化は GC を呼び、それがカクつきになる)。
+            // Issue #445: 値は桁別ストリップへ。文字が変わった桁だけがポップする。
             if (score != lastRenderedScore)
             {
                 gradeText.text = GameHudLogic.RankText(score);
-                scoreText.text = GameHudLogic.FormatScore(score);
+                scoreStrip.SetText(GameHudLogic.FormatScore(score), Time.unscaledTime);
                 lastRenderedScore = score;
             }
-
-            if (lastScore >= 0 && score != lastScore)
-            {
-                scorePulseStart = Time.unscaledTime;
-            }
-
-            lastScore = score;
 
             // スコアゲージ (塗りは + セグメントの手前まで, Best は保存スコア)
             // Issue #434: 値を瞬時に切り替えず、表示側を目標へ指数 tween させる。
@@ -263,18 +267,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             V6LayoutWrites.AnchoredPositionIfChanged(gaugeBest, gaugeBestShownX, 0f);
 
             // コンボ (表示は値が変わったときだけ更新する)
+            // Issue #445: 0 はコンボではないので値自体を隠す (ComboValueText が
+            // 空文字を返す → スロットが全て非表示になる)。復帰時は全桁が
+            // 「新しい文字」としてポップする。
             if (GManager.combo != lastRenderedCombo)
             {
-                comboText.text = GManager.combo.ToString();
+                comboStrip.SetText(V6HudLogic.ComboValueText(GManager.combo), Time.unscaledTime);
                 lastRenderedCombo = GManager.combo;
-                // 加算でポップさせる (スコアと同じ手応えを出す)。
-                if (lastCombo >= 0 && GManager.combo != lastCombo)
-                {
-                    comboPulseStart = Time.unscaledTime;
-                }
             }
-
-            lastCombo = GManager.combo;
 
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             bool showStatus = V6HudLogic.ShowComboStatus(GManager.miss, judged);
@@ -342,8 +342,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // データ反映の唯一の入口 (Issue #393)。統合側が先に RequestRefresh を
             // 呼んでいても、このフレームでは二重に走らない。
             RequestRefresh();
-            UpdateScorePulse();
-            UpdateComboPulse();
+            UpdateValueStrips();
             UpdateComboBonusPulse();
         }
 
@@ -376,73 +375,47 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 加算直後だけスコア値を弾けさせる (Issue #434)。
-        /// 立ち上がりは EaseOutBack で行き過ぎ、WarnLight へ一瞬発光して戻る。
-        /// レイアウト (anchoredPosition) は変えない。
+        /// 桁別ストリップのポップを進める (Issue #445)。
+        /// 文字が変わったスロットだけが拡縮 + 発光し、終わったスロットは
+        /// 以後一切書き込まない (静止した桁を dirty にしない)。
         /// </summary>
-        private void UpdateScorePulse()
+        private void UpdateValueStrips()
         {
-            if (scoreText == null)
-            {
-                return;
-            }
-
-            float scale = 1f;
-            if (scorePulseStart >= 0f)
-            {
-                float elapsed = Time.unscaledTime - scorePulseStart;
-                scale = V6HudLogic.PunchScale(elapsed,
-                    V6HudLogic.ScorePopPeak, V6HudLogic.ScorePopAttack, V6HudLogic.ScorePopTotal);
-                if (elapsed >= V6HudLogic.ScorePopTotal)
-                {
-                    scorePulseStart = -1f;
-                    scoreText.color = V5Tokens.Text;
-                }
-                else
-                {
-                    float t = V6HudLogic.EaseOutCubic(
-                        Mathf.Clamp01(elapsed / V6HudLogic.ScorePopTotal));
-                    scoreText.color = Color.Lerp(V5Tokens.WarnLight, V5Tokens.Text, t);
-                }
-            }
-
-            scoreText.rectTransform.localScale = new Vector3(scale, scale, 1f);
+            UpdateStripAnim(scoreStrip, Time.unscaledTime);
+            UpdateStripAnim(comboStrip, Time.unscaledTime);
         }
 
-        /// <summary>
-        /// コンボ値のポップ (2026-11-12 オーナー指摘 + Issue #434)。
-        ///
-        /// スコアは加算で拡大するのにコンボだけ静止していたため、叩いた手応えが
-        /// 片方にしか出ていなかった。attack をスコアより短くして「遅れて見える」
-        /// 印象を消し、AccentLight へ一瞬発光させる。レイアウトは動かさない。
-        /// </summary>
-        private void UpdateComboPulse()
+        private void UpdateStripAnim(ValueStrip strip, float now)
         {
-            if (comboText == null)
+            if (strip == null)
             {
                 return;
             }
 
-            float scale = 1f;
-            if (comboPulseStart >= 0f)
+            for (int i = 0; i < strip.Slots.Count; i++)
             {
-                float elapsed = Time.unscaledTime - comboPulseStart;
-                scale = V6HudLogic.PunchScale(elapsed,
-                    V6HudLogic.ComboPopPeak, V6HudLogic.ComboPopAttack, V6HudLogic.ComboPopTotal);
-                if (elapsed >= V6HudLogic.ComboPopTotal)
+                ValueStrip.Slot slot = strip.Slots[i];
+                if (slot.AnimStart < 0f || !slot.Go.activeSelf)
                 {
-                    comboPulseStart = -1f;
-                    comboText.color = V5Tokens.Text;
+                    continue;
                 }
-                else
-                {
-                    float t = V6HudLogic.EaseOutCubic(
-                        Mathf.Clamp01(elapsed / V6HudLogic.ComboPopTotal));
-                    comboText.color = Color.Lerp(V5Tokens.AccentLight, V5Tokens.Text, t);
-                }
-            }
 
-            comboText.rectTransform.localScale = new Vector3(scale, scale, 1f);
+                float elapsed = now - slot.AnimStart;
+                if (elapsed >= V6HudLogic.DigitPopTotal)
+                {
+                    slot.AnimStart = -1f;
+                    slot.Rt.localScale = Vector3.one;
+                    slot.Label.color = strip.BaseColor;
+                    continue;
+                }
+
+                float scale = V6HudLogic.PunchScale(elapsed,
+                    V6HudLogic.DigitPopPeak, V6HudLogic.DigitPopAttack, V6HudLogic.DigitPopTotal);
+                slot.Rt.localScale = new Vector3(scale, scale, 1f);
+                float t = V6HudLogic.EaseOutCubic(
+                    Mathf.Clamp01(elapsed / V6HudLogic.DigitPopTotal));
+                slot.Label.color = Color.Lerp(strip.FlashColor, strip.BaseColor, t);
+            }
         }
 
         /// <summary>
@@ -546,8 +519,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             fullComboChip = null;
             keyGuideRow = null;
             gradeText = null;
-            scoreText = null;
-            comboText = null;
+            scoreStrip = null;
+            comboStrip = null;
             lyricText = null;
             lyricBox = null;
             lyricPrompt = null;
@@ -567,9 +540,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             // スコア / コンボが次に増えるまで空のままになる。
             lastRenderedScore = int.MinValue;
             lastRenderedCombo = int.MinValue;
-            lastCombo = -1;
-            scorePulseStart = -1f;
-            comboPulseStart = -1f;
 
             Build();
         }
@@ -1059,16 +1029,16 @@ namespace FlashBeat.UI.V6.Game.Hud
                 TextAlignmentOptions.TopLeft);
             PlaceTopLeft(label.rectTransform, m.GaugeX, -m.ScoreLabelY);
 
-            scoreText = V5Ui.Text(gameObject, "Score Value", "0", m.ScoreFs, V5Tokens.Text,
-                TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            // 1 行固定。8 桁になっても折り返さず、幅を超えた分だけ自動縮小する
-            // (下限 28px、契約 §8)。rect 幅はゲージ幅に合わせる。
-            scoreText.textWrappingMode = TextWrappingModes.NoWrap;
-            scoreText.enableAutoSizing = true;
-            scoreText.fontSizeMin = V6HudLogic.ScoreAutoSizeMin;
-            scoreText.fontSizeMax = m.ScoreFs;
-            PlaceTopLeft(scoreText.rectTransform, m.GaugeX, -m.ScoreValueY);
-            scoreText.rectTransform.sizeDelta = new Vector2(m.GaugeW, m.ScoreFs * 1.4f);
+            // Issue #445: スコア値は 1 文字 = 1 スロットの桁別ストリップ。
+            // 文字が変わった桁だけがポップ + 発光し、変わらない桁は動かない。
+            // ',' (3 桁区切り) は静的な区切りとして表示だけする (アニメーション無し)。
+            // 旧来の全体 autosize は廃止: スロット幅をフォントの ASCII 送り幅
+            // (0.62em) で固定するので "1,000,000" (9 文字) でも
+            // FHD で約 213px / 2K で約 279px とゲージ幅に十分収まる。
+            scoreStrip = CreateValueStrip(gameObject, "Score Value",
+                new Vector2(m.GaugeX, -m.ScoreValueY),
+                new Vector2(m.GaugeW, m.ScoreFs * 1.4f),
+                m.ScoreFs, V5Tokens.Text, V5Tokens.WarnLight);
         }
 
         private void BuildMenuButton()
@@ -1145,10 +1115,12 @@ namespace FlashBeat.UI.V6.Game.Hud
                 TextAlignmentOptions.TopLeft);
             PlaceTopLeft(label.rectTransform, 0f, 0f);
 
-            comboText = V5Ui.Text(block, "Value", "0", m.ComboValueFs, V5Tokens.Text,
-                TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            comboText.textWrappingMode = TextWrappingModes.NoWrap;
-            PlaceTopLeft(comboText.rectTransform, 0f, -m.ComboValueY);
+            // Issue #445: コンボ値も桁別ストリップ。0 のときは値自体を隠し、
+            // 変わった桁だけがポップ + 発光する (全体ポップは廃止)。
+            comboStrip = CreateValueStrip(block, "Value",
+                new Vector2(0f, -m.ComboValueY),
+                new Vector2(m.ComboW, m.ComboValueFs * 1.4f),
+                m.ComboValueFs, V5Tokens.Text, V5Tokens.AccentLight);
         }
 
         private void BuildRightColumn()
@@ -1784,7 +1756,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 int lane = V6HudLogic.LaneFromEffectPositionX(t.position.x);
                 string label = V6HudLogic.VerdictLabel(n);
                 laneVerdicts[lane] = label;
-                laneVerdictUntil[lane] = Time.unscaledTime + JudgeShowSeconds;
+                // Issue #445: 判定の見え時間は VerdictTotalSeconds (0.20s)。
+                // かつては JudgeShowSeconds=0.8s 静止していたのを短命化した。
+                laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;
                 verdictTexts[lane].color = V6HudLogic.VerdictColor(label);
@@ -1816,6 +1790,141 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>
+        /// 桁別値ストリップを作る (Issue #445)。コンテナは左上アンカーで
+        /// <paramref name="pos"/> に置き、中に 1 文字 = 1 スロットを必要数だけ作る
+        /// (スロットは値の長さに合わせて遅延生成)。スロット幅はフォントの
+        /// ASCII 送り幅 (0.62em) で固定し、桁の位置が値の変化でずれないようにする。
+        /// </summary>
+        private ValueStrip CreateValueStrip(GameObject parent, string name, Vector2 pos, Vector2 size,
+            float fontSize, Color baseColor, Color flashColor)
+        {
+            var container = V5Ui.Node(parent, name);
+            var rt = container.GetComponent<RectTransform>();
+            PlaceTopLeft(rt, pos.x, pos.y);
+            rt.sizeDelta = size;
+
+            return new ValueStrip
+            {
+                Container = rt,
+                SlotWidth = fontSize * V6Ui.AsciiAdvanceEm,
+                FontSize = fontSize,
+                BaseColor = baseColor,
+                FlashColor = flashColor,
+            };
+        }
+
+        /// <summary>
+        /// 桁別表示ストリップ (Issue #445)。1 文字 = 1 スロット (固定幅・中央揃え)
+        /// で、値が変わったとき <b>文字が変わった桁だけ</b>をポップ + 発光させる。
+        /// 全体をまとめて拡縮・発光する旧方式は「安っぽい」との指摘で廃止した。
+        /// </summary>
+        private sealed class ValueStrip
+        {
+            /// <summary>1 桁スロット。</summary>
+            public sealed class Slot
+            {
+                public GameObject Go;
+                public RectTransform Rt;
+                public TextMeshProUGUI Label;
+                /// <summary>最後にスロットへ書いた文字 (同じ文字なら TMP を触らない)。</summary>
+                public char LastChar = '\0';
+                /// <summary>ポップ開始時刻 (-1 = 静止中。以後は一切書き込まない)。</summary>
+                public float AnimStart = -1f;
+            }
+
+            public RectTransform Container;
+            public readonly List<Slot> Slots = new List<Slot>(16);
+            /// <summary>1 スロットの幅 (px)。</summary>
+            public float SlotWidth;
+            public float FontSize;
+            public Color BaseColor;
+            /// <summary>ポップ中に発光させる色 (終わると BaseColor へ戻る)。</summary>
+            public Color FlashColor;
+            /// <summary>
+            /// 最後に表示した文字列 (差分の基準)。初期値は実文字列と一致しない番兵
+            /// なので、最初の SetText では全桁が「新しい文字」としてポップする。
+            /// </summary>
+            public string Text = "\u0001";
+
+            /// <summary>
+            /// 表示文字列を差し替える。文字が変わった桁だけポップを開始し、
+            /// はみ出たスロットは隠す。文字列が同じなら何もしない (issue #381 と同じ)。
+            /// </summary>
+            public void SetText(string value, float now)
+            {
+                value = value ?? string.Empty;
+                if (value == Text)
+                {
+                    return;
+                }
+
+                bool[] changed = V6HudLogic.ChangedCharFlags(Text, value);
+                Text = value;
+                EnsureSlots(value.Length);
+
+                for (int i = 0; i < Slots.Count; i++)
+                {
+                    Slot slot = Slots[i];
+                    bool used = i < value.Length;
+                    if (slot.Go.activeSelf != used)
+                    {
+                        slot.Go.SetActive(used);
+                    }
+
+                    if (!used)
+                    {
+                        slot.AnimStart = -1f;
+                        slot.LastChar = '\0';
+                        continue;
+                    }
+
+                    // 文字が変わった桁だけ TMP を更新する (変わらない桁は
+                    // text 代入も dirty にしない)。
+                    char c = value[i];
+                    if (slot.LastChar != c)
+                    {
+                        slot.Label.text = c.ToString();
+                        slot.LastChar = c;
+                    }
+
+                    if (i < changed.Length && changed[i])
+                    {
+                        slot.AnimStart = now;
+                    }
+                }
+            }
+
+            private void EnsureSlots(int count)
+            {
+                while (Slots.Count < count)
+                {
+                    Slots.Add(CreateSlot(Slots.Count));
+                }
+            }
+
+            private Slot CreateSlot(int index)
+            {
+                var go = V5Ui.Node(Container.gameObject, Container.name + " Digit " + index);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                float h = Container.rect.height;
+                rt.anchoredPosition = new Vector2((index + 0.5f) * SlotWidth, -h * 0.5f);
+                rt.sizeDelta = new Vector2(SlotWidth, h);
+
+                var label = V5Ui.Text(go, "Char", "", FontSize, BaseColor,
+                    TextAlignmentOptions.Center, FontStyles.Bold);
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                FillRect(label.rectTransform);
+
+                // 使うまで非表示 (空スロットの TMP を毎フレーム走らせない)。
+                go.SetActive(false);
+                return new Slot { Go = go, Rt = rt, Label = label };
+            }
         }
 
         /// <summary>

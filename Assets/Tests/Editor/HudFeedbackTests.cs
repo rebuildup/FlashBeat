@@ -71,15 +71,83 @@ namespace FlashBeat.Tests
             Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(-1f), 0.001f);
         }
 
-        // --- コンボのポップ (Issue #434: attack を短くして遅れて見えないように) ---
+        // --- 桁別ポップ (Issue #445) ---
 
         [Test]
-        public void ComboPopAttacksFasterThanScore()
+        public void DigitPopIsShortAndSettles()
         {
-            Assert.Less(V6HudLogic.ComboPopAttack, V6HudLogic.ScorePopAttack,
-                "コンボの立ち上がりはスコアより速い");
-            Assert.AreEqual(1f, V6HudLogic.PunchScale(V6HudLogic.ComboPopTotal,
-                V6HudLogic.ComboPopPeak, V6HudLogic.ComboPopAttack, V6HudLogic.ComboPopTotal), 0.001f);
+            // オーナー指摘「効果が出てから消えるまでが無駄に長い」への対応で、
+            // 桁ポップは 0.25 秒以内に必ず終わる。
+            Assert.LessOrEqual(V6HudLogic.DigitPopTotal, 0.25f);
+            Assert.Less(V6HudLogic.DigitPopAttack, V6HudLogic.DigitPopTotal);
+            Assert.AreEqual(1f, V6HudLogic.PunchScale(V6HudLogic.DigitPopTotal,
+                V6HudLogic.DigitPopPeak, V6HudLogic.DigitPopAttack, V6HudLogic.DigitPopTotal), 0.001f);
+            Assert.Greater(V6HudLogic.PunchScale(0.02f,
+                V6HudLogic.DigitPopPeak, V6HudLogic.DigitPopAttack, V6HudLogic.DigitPopTotal), 1f,
+                "立ち上がりで拡大する");
+        }
+
+        [Test]
+        public void VerdictLifeIsShort()
+        {
+            // Issue #445: 判定ポップアップは弾けてすぐ消える (全体 0.20s、
+            // フェードはその末尾 0.10s)。かつては 0.8s 静止していた。
+            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.22f);
+            Assert.LessOrEqual(V6HudLogic.VerdictFadeSeconds, 0.14f);
+            Assert.Greater(V6HudLogic.VerdictPopupSeconds, 0f);
+            Assert.Less(V6HudLogic.VerdictPopupSeconds, V6HudLogic.VerdictTotalSeconds,
+                "出現モーションは見え時間より短い");
+        }
+
+        // --- 桁別アニメーションの差分 (Issue #445) ---
+
+        [Test]
+        public void ChangedCharFlags_OnlyChangedDigitsAnimate()
+        {
+            // オーナー例: 138 → 140 なら下 2 桁だけが動く。
+            bool[] flags = V6HudLogic.ChangedCharFlags("138", "140");
+            Assert.AreEqual(3, flags.Length);
+            Assert.IsFalse(flags[0], "上の桁 (1) は変わらないので動かない");
+            Assert.IsTrue(flags[1], "十の位 3→4 は動く");
+            Assert.IsTrue(flags[2], "一の位 8→0 は動く");
+        }
+
+        [Test]
+        public void ChangedCharFlags_SeparatorNeverAnimates()
+        {
+            // "999" → "1,000": ',' が新しく現れる位置は静的なのでアニメーションしない。
+            bool[] flags = V6HudLogic.ChangedCharFlags("999", "1,000");
+            Assert.AreEqual(',', "1,000"[1]);
+            Assert.IsFalse(flags[1], "新しく現れた ',' はアニメーションしない");
+            Assert.IsTrue(flags[0], "1 が現れた桁は動く");
+        }
+
+        [Test]
+        public void ChangedCharFlags_RemovedCharsDoNotAnimate()
+        {
+            // 短くなった側 (消えた桁) はアニメーションしない。
+            bool[] flags = V6HudLogic.ChangedCharFlags("100", "99");
+            Assert.AreEqual(3, flags.Length);
+            Assert.IsTrue(flags[0]);
+            Assert.IsTrue(flags[1]);
+            Assert.IsFalse(flags[2], "消えた桁は動かない");
+        }
+
+        [Test]
+        public void ChangedCharFlags_SameString_HasNoChanges()
+        {
+            bool[] flags = V6HudLogic.ChangedCharFlags("123", "123");
+            Assert.IsFalse(flags[0] || flags[1] || flags[2]);
+        }
+
+        [Test]
+        public void ComboValueText_ZeroIsEmpty()
+        {
+            // Issue #445: コンボ 0 はコンボではないので表示自体を隠す。
+            Assert.AreEqual("", V6HudLogic.ComboValueText(0));
+            Assert.AreEqual("", V6HudLogic.ComboValueText(-1));
+            Assert.AreEqual("1", V6HudLogic.ComboValueText(1));
+            Assert.AreEqual("140", V6HudLogic.ComboValueText(140));
         }
 
         // --- 歌詞スロット (Issue #433) ---
