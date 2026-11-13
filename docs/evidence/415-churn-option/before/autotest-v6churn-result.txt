@@ -1,0 +1,11 @@
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-churn-option/before phaseSeconds=8 resolution=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=3.1 avgMs=0.052 managedDeltaKB=92
+[V6Churn] phase=history churn ops=476 wallMs=8005 opsPerSec=59.5
+[V6Churn] phase=history census objects=275 rebuild=1 incremental=1509 managedKB=8880
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=2.3 avgMs=0.039 managedDeltaKB=60
+[V6Churn] phase=ranking churn ops=475 wallMs=8011 opsPerSec=59.3
+[V6Churn] phase=ranking census objects=260 rebuild=1 incremental=1031 managedKB=8524
+[V6Churn] phase=option refreshBatch n=60 totalMs=462.6 avgMs=7.709 managedDeltaKB=63536
+[V6Churn] phase=option churn ops=445 wallMs=8002 opsPerSec=55.6
+[V6Churn] phase=option census objects=730 rebuild=- incremental=- managedKB=12052
+[V6Churn] done

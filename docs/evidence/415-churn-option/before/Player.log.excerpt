@@ -1,0 +1,92 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat.diff/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat.diff/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat.diff/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.013 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x106c7f650]: surface size 3420x2148
+UnloadTime: 0.722792 ms
+[FullscreenBootstrap] event=mode before=Windowed after=Windowed
+[FullscreenBootstrap] event=purge storedMode=3
+[FullscreenDiagnostics] event=startup, screen=3420x2148, currentResolution=3420x2148@60.0024000960038Hz, fullScreen=False, fullScreenMode=Windowed, dpi=299, safeArea=0,0,3420x2148, displays=1, display0=system:3420x2224,rendering:3420x2148,active:True, quality=1, time=2026-11-13T15:44:07Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_tHQDAy.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[V6Churn] start out=/Users/rebui/work/FlashBeat/docs/evidence/415-churn-option/before phaseSeconds=8 resolution=3420x2148
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.814375 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3501.
+Total: 1.204459 ms (FindLiveObjects: 0.053167 ms CreateObjectMapping: 0.108583 ms MarkObjects: 1.038000 ms  DeleteObjects: 0.004667 ms)
+
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.diff/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213754988 scene=SelectScene children=0
+ro-dokanryou
+[FullscreenBootstrap] event=first-frame, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=after-legacy-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-fullscreen-mode
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[FullscreenBootstrap] event=after-mode-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[UpdateChecker] 最新です (build=0.1.26+8720b905, latest=v0.1.14-macos-39f0c3c) — 現行版のまま続行します。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[FullscreenBootstrap] event=after-mode-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=still-uncovered, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[V6Churn] phase=history refreshBatch n=60 totalMs=3.1 avgMs=0.052 managedDeltaKB=92
+[PerfProbe] event=window scene=SelectScene frames=298 avgFps=59.4 p50=16.7 p95=16.8 p99=17.7 worst=49.9 gc0=103 gcKBPerFrame=9.0
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[PerfProbe] event=window scene=SelectScene frames=301 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=177 gcKBPerFrame=6.6
+[V6Churn] phase=history churn ops=476 wallMs=8005 opsPerSec=59.5
+[V6Churn] phase=history census objects=275 rebuild=1 incremental=1509 managedKB=8880
+[V6Churn] phase=ranking refreshBatch n=60 totalMs=2.3 avgMs=0.039 managedDeltaKB=60
+[PerfProbe] event=window scene=SelectScene frames=301 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=122 gcKBPerFrame=3.1
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Churn] phase=ranking churn ops=475 wallMs=8011 opsPerSec=59.3
+[V6Churn] phase=ranking census objects=260 rebuild=1 incremental=1031 managedKB=8524
+[PerfProbe] event=window scene=SelectScene frames=301 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=161 gcKBPerFrame=-11.0
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.385000 ms
+Unloading 63 unused Assets to reduce memory usage. Loaded Objects now: 3415.
+Total: 3.106875 ms (FindLiveObjects: 0.208417 ms CreateObjectMapping: 0.229042 ms MarkObjects: 2.595125 ms  DeleteObjects: 0.074250 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589211110148 scene=OptionScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat.diff/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V6Churn] phase=option refreshBatch n=60 totalMs=462.6 avgMs=7.709 managedDeltaKB=63536
+[PerfProbe] event=window scene=OptionScene frames=301 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=22 gcKBPerFrame=214.8
+[PerfProbe] event=window scene=OptionScene frames=301 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=312 gcKBPerFrame=-202.9
+[V6Churn] phase=option churn ops=445 wallMs=8002 opsPerSec=55.6
+[V6Churn] phase=option census objects=730 rebuild=- incremental=- managedKB=12052
+[V6Churn] done
+[PerfProbe] event=window scene=OptionScene frames=169 avgFps=60.0 p50=16.7 p95=16.7 p99=16.7 worst=16.7 gc0=145 gcKBPerFrame=-0.3
+Thread 0x16d42f000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16c033000 may have been prematurely finalized
+CodeReloadManager destroyed
