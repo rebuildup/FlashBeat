@@ -43,6 +43,17 @@ public class ResultSceneManager : MonoBehaviour
     public string[] songURLs;
     public Image[] imageObjects;
 
+    /// <summary>
+    /// この Result インスタンスが発行した遠隔画像取得要求の世代識別子。
+    /// 発火時に「この要求は自分が発行したものか」照合するために使う。
+    /// Retry 等でシーンが作り直された後に古いコールバックが返ってきても、
+    /// 古い世代を無視するための鍵 (Issue #417)。
+    /// </summary>
+    private int remoteSpriteRequestId = 0;
+
+    /// <summary>版を発行する直列実行用カウンタ (main スレッド前提)。</summary>
+    private static int remoteSpriteCounter;
+
     void Awake()
     {
         // Issue #167: ベストスコアの更新は Awake で行う。
@@ -107,10 +118,9 @@ public class ResultSceneManager : MonoBehaviour
         int hiIndex = GManager.songID;
         if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
         Hiscore.text = GManager.Hiscore[hiIndex].ToString();
-        // Issue #398: v6 有効時の二重取得経路を provider へ一本化。
-        // hqdefault (pause と同じ) に揃えるため、/0.jpg より解像度は下がる
-        // (v5 UI の背景用途ではカバー UV で同等に表示できる)。
-        FlashBeat.UI.V6.V6JacketProvider.RequestRemote(GManager.ActiveSongs[GManager.songID].videoId, SetRemoteSprite);
+        // 遠隔サムネイルは v5 経路の imageObjects[0] 専用なので、v6 では取得しない
+        // (#417: 不要な HTTP を発行しない。v6 ビューは V6JacketResources を使う)。
+        // 取得は BuildV5View() が担う。
 
         // v6 Result (#217 / Issue #240)。V6ResultView.Enabled で切替える
         // (統合担当は V6UiMode からこのフラグを設定する)。既定は true。
@@ -172,6 +182,20 @@ public class ResultSceneManager : MonoBehaviour
         // v5 経路では legacyCanvasV5 を隠さない (従来どおり v5 のシーン配置 Canvas を
         // 使う)。v6 用の旧 Canvas のみ隠す (v5 ResultView はコード生成)。
         HideLegacyCanvases(null, legacyCanvasV6);
+
+        // Issue #417 / #398: v5 Result の imageObjects[0] 用に遠隔サムネイルを
+        // provider から取得する。v6 では imageObjects[0] 自体を表示しない
+        // （v6 側は V6JacketResources を使う）ため、v6 では発行しない。
+        remoteSpriteRequestId = ++remoteSpriteCounter;
+        int capturedRequestId = remoteSpriteRequestId;
+        var songForThumb = GManager.ActiveSongs[GManager.songID];
+        FlashBeat.UI.V6.V6JacketProvider.RequestRemote(songForThumb.videoId, sprite =>
+        {
+            // シーン退場後 / Retry 以降、自分が発行した世代だけを有効とみなす。
+            if (this == null) return;
+            if (!CanApplyRemoteSprite(capturedRequestId, remoteSpriteRequestId)) return;
+            SetRemoteSprite(sprite);
+        });
 
         var song = GManager.ActiveSongs[GManager.songID];
         var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot
@@ -304,5 +328,16 @@ public class ResultSceneManager : MonoBehaviour
     //         Debug.Log(request.error);
     //     }
     // }
+
+    /// <summary>
+    /// 遠隔画像取得のコールバックが発火した時に、表示を更新してよいか決める純粋関数。
+    /// `this == null` 等のライフサイクル差異は呼び出し側で先に判定し、
+    /// ここでは「発行した要求と現在の要求が同じ世代か」だけを見る。
+    /// Issue #417: 単純な世代一致チェック。EditMode テストで挙動を固定する。
+    /// </summary>
+    public static bool CanApplyRemoteSprite(int capturedRequestId, int currentRequestId)
+    {
+        return capturedRequestId == currentRequestId;
+    }
 
 }
