@@ -508,11 +508,20 @@ namespace FlashBeat.Gameplay
                 var stdoutTask = proc.StandardOutput.ReadToEndAsync();
                 var stderrTask = proc.StandardError.ReadToEndAsync();
 
-                using (cancellationToken.Register(() => { try { if (!proc.HasExited) proc.Kill(); } catch { } }))
+                // Issue #430: WaitForExit は呼び出しスレッドをプロセス終了まで
+                // 止める。RunAsync は Unity メインスレッド (MusicManager の
+                // コルーチン) から呼ばれるため、yt-dlp -F (数秒) やダウンロード
+                // (最大 180 秒) の全時間がそのままゲームのフリーズになっていた。
+                // 待機だけをスレッドプールへ逃がして即座に制御を返す。
+                // (Process のハンドル操作のみ。Unity API は触らない)
+                await Task.Run(() =>
                 {
-                    try { proc.WaitForExit(timeoutMs); }
-                    catch { }
-                }
+                    using (cancellationToken.Register(() => { try { if (!proc.HasExited) proc.Kill(); } catch { } }))
+                    {
+                        try { proc.WaitForExit(timeoutMs); }
+                        catch { }
+                    }
+                }).ConfigureAwait(false);
 
                 if (!proc.HasExited)
                 {

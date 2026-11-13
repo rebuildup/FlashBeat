@@ -142,7 +142,20 @@ public class LoadingOverlay : MonoBehaviour
     {
         if (subscribedToFadeSystem) return;
         subscribedToFadeSystem = true;
-        Initiate.LoadingFeedback.Begin += sceneName => ShowImmediately(LoadingOverlayLogic.SceneLabel(sceneName));
+        Initiate.LoadingFeedback.Begin += sceneName =>
+        {
+            // Issue #431: v6 のゲームローディング (V6LoadingView) が表示を
+            // 所有する GameScene への遷移では、旧 LoadingOverlay
+            // (sortingOrder 30000 の背景 + スピナー + バー + 字幕) を出さない。
+            // v6 ローディングの上に無駄な要素が被って邪魔になる。
+            if (sceneName == "GameScene"
+                && GameLoadingRoute.Current == GameLoadingRoute.GameLoadingScreen.V6)
+            {
+                return;
+            }
+
+            ShowImmediately(LoadingOverlayLogic.SceneLabel(sceneName));
+        };
         Initiate.LoadingFeedback.Progress += progress => SetProgress(progress);
         Initiate.LoadingFeedback.End += () => Hide();
         SceneManager.sceneLoaded += OnSceneLoaded;
