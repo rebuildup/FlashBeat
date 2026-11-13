@@ -93,6 +93,14 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
+            // EditMode テストではコルーチンが回らないので即時実行する
+            // (リングは再生時だけの視覚効果で、テストの関心事ではない)。
+            if (!Application.isPlaying)
+            {
+                action();
+                return;
+            }
+
             actionPending = true;
             // 遷移でこのボタンが破棄されても動作が失われないよう、
             // コルーチンはシーンに依存しないホストで回す。
@@ -128,6 +136,11 @@ namespace FlashBeat.UI.V6.Common
             ring.offsetMin = Vector2.zero;
             ring.offsetMax = Vector2.zero;
             ring.pivot = new Vector2(0.5f, 0.5f);
+
+            // レイアウトグループの子になっているボタンでも、リングは
+            // レイアウト計算に参加させない (押下で子の間隔が動くのを防ぐ)。
+            var layout = go.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
 
             // 上 / 下 / 左 / 右 の 4 辺。中央は空ける (ボタンの中身を覆わない)。
             edges[0] = AddEdge("Top", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, EdgeThickness));

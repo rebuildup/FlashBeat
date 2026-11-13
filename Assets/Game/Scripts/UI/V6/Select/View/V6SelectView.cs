@@ -634,12 +634,17 @@ namespace FlashBeat.UI.V6.Select.View
                 if (readyEnabled)
                 {
                     // Select→Game は画面遷移なので、押下リングが見えるだけ遅らせる。
+                    // 遅延中に絞り込みで選択が隠れた場合に備え、実行直前に
+                    // ReadyAvailable を再確認する (CodeRabbit #438)。
                     readyButton.onClick.AddListener(() =>
                     {
-                        if (onReady != null)
+                        V6ButtonPressFeedback.RunAfterFeedback(ready, () =>
                         {
-                            V6ButtonPressFeedback.RunAfterFeedback(ready, onReady);
-                        }
+                            if (ReadyAvailable() && onReady != null)
+                            {
+                                onReady();
+                            }
+                        });
                     });
                 }
                 else

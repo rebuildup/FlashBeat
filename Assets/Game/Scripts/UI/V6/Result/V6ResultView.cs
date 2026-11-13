@@ -393,12 +393,20 @@ namespace FlashBeat.UI.V6.Result
             }
         }
 
-        private static void Fire(Action callback)
+        /// <summary>画面遷移は 1 回だけ受け付ける (Issue #426 レビュー指摘)。
+        /// フッタの遅延操作とキーボード (R / Space) が競合しても、
+        /// カウンタのリセットや Fade 要求が二重に走らないようにする。</summary>
+        private bool transitionFired;
+
+        private void Fire(Action callback)
         {
-            if (callback != null)
+            if (transitionFired || callback == null)
             {
-                callback();
+                return;
             }
+
+            transitionFired = true;
+            callback();
         }
 
         // --- 段階表示 (Issue #384) ---
@@ -897,9 +905,10 @@ namespace FlashBeat.UI.V6.Result
             };
             float[] xs = V6ResultLogic.FooterButtonXs(widths);
             // icon は design の lucide 名 (check / save / rotate-ccw)。
-            BuildFooterButton(footer, xs[0], "Op OK", "OK", "check", "Space", true, widths[0], onSelect);
+            // 画面遷移は Fire 経由にして、キーボード (R / Space) との二重発火を防ぐ。
+            BuildFooterButton(footer, xs[0], "Op OK", "OK", "check", "Space", true, widths[0], () => Fire(onSelect));
             BuildFooterButton(footer, xs[1], "Op Register", "Register", "save", "Enter", false, widths[1], OpenModal);
-            BuildFooterButton(footer, xs[2], "Op Retry", "Retry", "rotate-ccw", "R", false, widths[2], onRetry);
+            BuildFooterButton(footer, xs[2], "Op Retry", "Retry", "rotate-ccw", "R", false, widths[2], () => Fire(onRetry));
         }
 
         /// <summary>
