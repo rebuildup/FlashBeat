@@ -70,24 +70,59 @@ namespace FlashBeat.Tests
 
             Assert.DoesNotThrow(() => view.Refresh(), "Refresh が例外を投げた");
 
-            TextMeshProUGUI score = view.GetComponentsInChildren<TextMeshProUGUI>(true)
-                .FirstOrDefault(t => t.name == "Score Value");
-            Assert.IsNotNull(score, "スコアの値 Text が見つからない");
+            // Issue #445: 値は桁別ストリップ (1 文字 = 1 スロット) で表示する。
+            // 監査用に連結した表示文字列を検証する。
             Assert.AreEqual(
-                GameHudLogic.FormatScore(GManager.score), score.text,
+                GameHudLogic.FormatScore(GManager.score), view.ScoreTextForAudit,
                 "Refresh が早期 return してスコアの表示が更新されていない");
 
-            // コンボの値 Text も更新されている (=": 更新経路が最後まで通った")。
-            TextMeshProUGUI combo = comboTextOf(view);
-            Assert.IsNotNull(combo, "コンボの値 Text が見つからない");
-            Assert.AreEqual("7", combo.text);
+            // コンボの値も更新されている (= 更新経路が最後まで通った)。
+            Assert.AreEqual("7", view.ComboTextForAudit);
         }
 
-        private static TextMeshProUGUI comboTextOf(V6GameHudView target)
+        /// <summary>
+        /// Issue #445: コンボ 0 はコンボではないので値の表示自体を隠す
+        /// ("0" を出さない)。1 以上で再び表示される。
+        /// </summary>
+        [Test]
+        public void Combo_Zero_HidesTheValue()
         {
-            var field = typeof(V6GameHudView).GetField("comboText",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            return (TextMeshProUGUI)field.GetValue(target);
+            GManager.combo = 0;
+            view.Refresh();
+            Assert.AreEqual("", view.ComboTextForAudit, "コンボ 0 では値を表示しない");
+
+            GManager.combo = 3;
+            view.Refresh();
+            Assert.AreEqual("3", view.ComboTextForAudit, "コンボ 1 以上で値が戻る");
+
+            GManager.combo = 0;
+            view.Refresh();
+            Assert.AreEqual("", view.ComboTextForAudit, "ミスで 0 に戻ると再び隠れる");
+        }
+
+        /// <summary>
+        /// Issue #445: スコア値は 1 文字 = 1 スロットの桁別ストリップ。
+        /// 変わらない桁のスロットは文字もアニメーション状態も変えない。
+        /// </summary>
+        [Test]
+        public void ScoreValue_UsesPerDigitSlots()
+        {
+            GManager.score = 123456;
+            view.Refresh();
+
+            Transform strip = view.transform.Find("Score Value");
+            Assert.IsNotNull(strip, "桁別ストリップ 'Score Value' が無い");
+            // "123,456" は 7 スロット (',' を含む)。
+            int activeSlots = strip.Cast<Transform>()
+                .Count(t => t.gameObject.activeSelf);
+            Assert.AreEqual(7, activeSlots, "表示中の桁スロット数が表示文字数と一致しない");
+
+            // 値を変えてもスロット総数は使い回す (増えた分だけ追加生成)。
+            GManager.score = 123457;
+            view.Refresh();
+            Assert.AreEqual("123,457", view.ScoreTextForAudit);
+            activeSlots = strip.Cast<Transform>().Count(t => t.gameObject.activeSelf);
+            Assert.AreEqual(7, activeSlots);
         }
 
         /// <summary>

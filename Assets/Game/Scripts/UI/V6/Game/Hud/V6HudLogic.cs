@@ -102,19 +102,33 @@ namespace FlashBeat.UI.V6.Game.Hud
             return content + LyricPaddingY * 2f;
         }
 
-        /// <summary>スコア値の 1 行固定の下限フォントサイズ。design は 38 (FHD)。</summary>
-        public const float ScoreAutoSizeMin = 28f;
+        // --- 判定ポップアップ (Issue #432 / #445 で短命化) ---
 
-        // --- 判定ポップアップ (Issue #432) ---
-
-        /// <summary>判定が判定線から弾けて静止位置へ戻るまでの時間 (秒)。</summary>
-        public const float VerdictPopupSeconds = 0.26f;
+        /// <summary>
+        /// 判定が判定線から弾けて静止位置へ戻るまでの時間 (秒)。
+        /// Issue #445: オーナー指摘「効果が出てから消えるまでが無駄に長い」
+        /// への対応で 0.26 → 0.14。立ち上がりを速くして弾ける感じを残す。
+        /// </summary>
+        public const float VerdictPopupSeconds = 0.14f;
 
         /// <summary>判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。</summary>
         public const float VerdictRestGapAboveLine = 72f;
 
-        /// <summary>判定が消えるまでの時間 (秒)。残り時間に比例してフェードする。</summary>
-        public const float VerdictFadeSeconds = 0.22f;
+        /// <summary>
+        /// 判定が消えるまでの時間 (秒)。残り時間に比例してフェードする。
+        /// Issue #445: 0.22 → 0.10 に短縮 (全体の見え時間は
+        /// <see cref="VerdictTotalSeconds"/> が持つ)。
+        /// </summary>
+        public const float VerdictFadeSeconds = 0.10f;
+
+        /// <summary>
+        /// 判定テキストが見える全体時間 (秒)。出現モーション
+        /// (<see cref="VerdictPopupSeconds"/>) + 静止 + フェード
+        /// (<see cref="VerdictFadeSeconds"/>) を合わせた寿命。
+        /// Issue #445: かつては 0.8 秒ほど静止表示が続いていたのを
+        /// 「弾けてすぐ消える」0.20 秒へ短縮した。
+        /// </summary>
+        public const float VerdictTotalSeconds = 0.20f;
 
         /// <summary>判定テキストの不透明度。出るときは素早く出て、寿命の最後に短く消える。
         /// <paramref name="remaining"/> は表示が終わるまでの残り秒。
@@ -157,22 +171,22 @@ namespace FlashBeat.UI.V6.Game.Hud
             return startDrop * (1f - t) * Mathf.Cos(Mathf.PI * t);
         }
 
-        // --- ポップ・パンチ系の共通イージング (Issue #434) ---
+        // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
 
-        /// <summary>スコア加算ポップの最大倍率・立ち上がり・全体時間。</summary>
-        public const float ScorePopPeak = 1.08f;
-        public const float ScorePopAttack = 0.05f;
-        public const float ScorePopTotal = 0.22f;
-
-        /// <summary>コンボ加算ポップ。スコアより attack を短くして「遅れて見える」を解消。</summary>
-        public const float ComboPopPeak = 1.12f;
-        public const float ComboPopAttack = 0.04f;
-        public const float ComboPopTotal = 0.16f;
+        /// <summary>
+        /// 桁別ポップ (Issue #445): スコア / コンボの値を 1 文字 = 1 スロットに
+        /// 分け、<b>文字が変わった桁だけ</b>に掛けるポップの最大倍率・立ち上がり・
+        /// 全体時間。全体をまとめて拡縮・発光する旧方式 (ScorePop*/ComboPop*) は
+        /// 「安っぽい」との指摘で廃止した。
+        /// </summary>
+        public const float DigitPopPeak = 1.15f;
+        public const float DigitPopAttack = 0.05f;
+        public const float DigitPopTotal = 0.20f;
 
         /// <summary>判定テキストのポップ (弾ける出現と併用)。</summary>
-        public const float VerdictPopPeak = 1.18f;
-        public const float VerdictPopAttack = 0.05f;
-        public const float VerdictPopTotal = 0.20f;
+        public const float VerdictPopPeak = 1.15f;
+        public const float VerdictPopAttack = 0.04f;
+        public const float VerdictPopTotal = 0.16f;
 
         /// <summary>コンボボーナスの塗り色が戻るまでの時間 (秒)。</summary>
         public const float ComboBonusPulseSeconds = 0.3f;
@@ -321,6 +335,47 @@ namespace FlashBeat.UI.V6.Game.Hud
                 case "BAD": return V5Tokens.WarnLight;
                 default: return V5Tokens.DangerLight;
             }
+        }
+
+        // --- 桁別アニメーション (Issue #445) ---
+
+        /// <summary>
+        /// 前回と今回の表示文字列を先頭 (左) から比較し、表示が変わった桁の
+        /// フラグを返す。戻り値の長さは両者の長い方。
+        ///
+        /// - 文字が変わり、かつ新しい文字が可変文字 (数字など) のときだけ true。
+        /// - ',' などの区切り文字は静的なので、現れても消えてもアニメーション
+        ///   しない (新しい文字が ',' のスロットは false)。
+        /// - 文字が消えただけのスロット (新しい文字が無い) も false
+        ///   (スロットごと隠すので動かす必要がない)。
+        /// - 長さが変わるときは左詰めで比較する。桁数が増減する場面
+        ///   (例: コンボ 99→100) では同じ位置の文字が別の位を指すが、
+        ///   「その位置の字形が変わった」ことだけをアニメーションする。
+        /// </summary>
+        public static bool[] ChangedCharFlags(string previous, string current)
+        {
+            int prevLen = previous != null ? previous.Length : 0;
+            int currLen = current != null ? current.Length : 0;
+            int len = Mathf.Max(prevLen, currLen);
+            var flags = new bool[len];
+            for (int i = 0; i < len; i++)
+            {
+                char prev = i < prevLen ? previous[i] : '\0';
+                char curr = i < currLen ? current[i] : '\0';
+                flags[i] = prev != curr && curr != '\0' && curr != ',';
+            }
+
+            return flags;
+        }
+
+        /// <summary>
+        /// コンボ値の表示文字列。0 はコンボではないので空文字を返す
+        /// (値の表示自体を隠す。Issue #445 オーナー指摘「コンボは 0 の表示に
+        /// してはいけない」)。1 以上はそのままの数字列。
+        /// </summary>
+        public static string ComboValueText(int combo)
+        {
+            return combo > 0 ? combo.ToString() : string.Empty;
         }
 
         /// <summary>

@@ -134,7 +134,7 @@ namespace FlashBeat.Tests
 
             Assert.IsTrue(src.Contains("UpdateLyrics("), "歌詞の更新が消えている");
             Assert.IsTrue(src.Contains("UpdateLaneVerdicts("), "判定行の更新が消えている");
-            Assert.IsTrue(src.Contains("UpdateScorePulse("), "スコアのポップが消えている");
+            Assert.IsTrue(src.Contains("UpdateValueStrips("), "スコア/コンボの桁別ポップが消えている");
             Assert.IsTrue(src.Contains("GManager.step_time"), "メディア時計の参照が消えている");
         }
     }
