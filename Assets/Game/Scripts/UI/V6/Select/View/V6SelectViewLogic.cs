@@ -173,6 +173,18 @@ namespace FlashBeat.UI.V6.Select.View
             return startY + (DotSize + DotGap) * (count - 1) + DotSize;
         }
 
+        /// <summary>
+        /// ドットレールの上端 y (Issue #427): レール全体を曲リストパネル
+        /// (<see cref="ListH"/>) の上下中央に置く。design の開始位置
+        /// <see cref="DotY"/> は契約・テスト互換のため残し、配置にはこちらを使う。
+        /// </summary>
+        public static float DotRailTopY(int count)
+        {
+            float total = DotBottom(count, 0f);
+            float top = (ListH - total) * 0.5f;
+            return top > 0f ? top : 0f;
+        }
+
         // --- クイック設定 (契約 §5 右カラム / v5 OptionView 参照) ---
         // 右カラム (幅 560) に、ヘッダー「このプレイの設定」(24,8) fs26 w500 と
         // 行 512×56 (背景 #2D2D2D r8) を 68 間隔で 3 行 (Key Guide / Lyrics / NoteSpeed)。
