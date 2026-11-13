@@ -83,6 +83,37 @@ namespace FlashBeat.UI.V6.Select.View
         private bool unplayedOnly;
         private bool settingsOpen;
 
+        // --- Issue #415 phase 4: 可変ゾーンの scaffold 保持 + 差分更新 ---
+        // RefreshVolatile はゾーン (Header / Song List / Selected Song Panel /
+        // Ranking Column / Settings Column) を破棄せず、構造が変わる部分だけを
+        // 作り直し、変動値は既存の Image/TMP/行へ適用する。
+        /// <summary>DisplaySongs の使い回しバッファ (Refresh ごとの List 確保を避ける)。</summary>
+        private readonly List<V6SongEntry> displaySongs = new List<V6SongEntry>();
+        /// <summary>曲リスト Rows の表示モード ("" / "skeleton" / "empty" / "rows")。</summary>
+        private string listMode = "";
+        /// <summary>曲リストの可視行スロット (ListVisibleRows 個まで)。</summary>
+        private readonly List<GameObject> listRowObjects = new List<GameObject>();
+        /// <summary>listRowObjects と同じ並びの曲 ID (行クリックの結線先)。</summary>
+        private readonly List<int> listRowSongIds = new List<int>();
+        /// <summary>SCORE RANKING の表示モード ("" / "rows" / "empty")。</summary>
+        private string rankMode = "";
+        /// <summary>ランキングの可視行スロット (RankingVisibleRows 個まで)。</summary>
+        private readonly List<GameObject> rankRowObjects = new List<GameObject>();
+        /// <summary>ランキング空表示 ("No Data" テキスト)。行表示中は null。</summary>
+        private GameObject rankEmptyGo;
+        /// <summary>ドットインジケータの構築済み曲数 (-1 = 未構築)。</summary>
+        private int dotCount = -1;
+        /// <summary>ドット y 座標のキャッシュ (曲数が変わったときだけ再計算)。</summary>
+        private float[] dotOffsetsCache;
+        /// <summary>ドットの Image / RectTransform (選択色・サイズの差分更新用)。</summary>
+        private readonly List<Image> dotImages = new List<Image>();
+        private readonly List<RectTransform> dotRects = new List<RectTransform>();
+        /// <summary>選択曲パネルを作ったときの hasSong (Meta 構造モード)。</summary>
+        private bool centerHasSong;
+
+        /// <summary>フッターの Ready が最後に構築されたときの有効状態。</summary>
+        private bool footerReadyEnabled;
+
         private V6SelectView(IV6SelectDataSource data, Action onReady, Action onBack, Action onOpenSettings)
         {
             this.data = data;
@@ -147,14 +178,13 @@ namespace FlashBeat.UI.V6.Select.View
         public int IncrementalUpdateCountForAudit { get; private set; }
 
         /// <summary>
-        /// Issue #399: 変動部分 (ヘッダー・曲リスト・中央・右カラム) だけを作り直す。
+        /// Issue #399/#415: 変動部分 (ヘッダー・曲リスト・中央・右カラム) だけを更新する。
         ///
-        /// 骨格のうち **フッターは状態で変わらない** ので保持する。ヘッダーは
-        /// 検索語・件数・フィルター状態が変わるため作り直すが、画面全体
-        /// (中央・右・リスト) を巻き込む <see cref="Rebuild"/> より軽い。
-        ///
-        /// 骨格の意味が変わる操作 (クイック設定の開閉・解像度変更) だけ
-        /// <see cref="Rebuild"/> に落とす。
+        /// フッターは状態で変わらないので保持する。Issue #415 phase 4 で
+        /// ゾーン scaffold の保持 + 行スロット再利用へ移行し、選択・検索・
+        /// ランキング・設定値の変化は既存の Image/TMP/行へ適用する。
+        /// 構造が変わる操作 (クイック設定の開閉・解像度変更・選択曲 null↔非 null・
+        /// リスト/ランキングの表示モード変化) だけ該当部分を作り直す。
         /// </summary>
         private void RefreshVolatile()
         {
@@ -169,27 +199,64 @@ namespace FlashBeat.UI.V6.Select.View
                 return;
             }
 
+            ApplyVolatile();
+
+            IncrementalUpdateCountForAudit++;
+        }
+
+        /// <summary>
+        /// 骨格の意味が変わるときの全再構築。frame の全子を捨ててから
+        /// <see cref="ApplyVolatile"/> で各ゾーンの scaffold と可変値を作る
+        /// (RefreshVolatile と同じ経路なので、再構築直後も差分更新の状態が揃う)。
+        /// </summary>
+        private void ApplyVolatile()
+        {
             var songs = DisplaySongs();
             int selectIndex = SelectedIndex(songs);
+            // スクロール位置は design (OENRv) どおり上から 9 行を詰める。
+            // CenterScroll の負値をそのまま描くと空スロットが下側にずれて行が
+            // 下端へ寄る (r1実機 2026-11-11 の症状) ので ListScroll で 0 以上に
+            // 丸める。選択 index ≥ 4 では選択行は 5 行目 (上に 4 行) に来る。
             listScroll = V6SelectViewLogic.ListScroll(selectIndex, songs.Count);
             rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
                 data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
 
-            // 変動するゾーンだけを外して作り直す。名前と親 (frame) は
-            // Build* が従来どおり作るので、既存の検索パスは変わらない。
-            DestroyZone("Header");
-            DestroyZone("Song List");
-            DestroyZone("Selected Song Panel");
-            DestroyZone("Ranking Column");
-            DestroyZone("Settings Column");
+            EnsureHeader(songs.Count);
+            EnsureFooter();
+            EnsureList(songs, selectIndex);
+            EnsureCenter();
+            if (settingsOpen)
+            {
+                // wSjAm: 右カラム (Ranking) を「このプレイの設定」へ差し替える。
+                EnsureSettings();
+            }
+            else
+            {
+                EnsureRight();
+            }
+        }
 
-            BuildHeader(songs.Count);
-            BuildList(songs, selectIndex);
-            BuildCenter();
-            if (settingsOpen) BuildSettings();
-            else BuildRight();
+        /// <summary>frame 直下の名前付きゾーンを取る (無ければ null)。</summary>
+        private GameObject FindZone(string name)
+        {
+            Transform t = frame != null ? frame.Find(name) : null;
+            return t != null ? t.gameObject : null;
+        }
 
-            IncrementalUpdateCountForAudit++;
+        /// <summary>全子を消したあとに差分更新の参照状態をリセットする。</summary>
+        private void ResetVolatileState()
+        {
+            listMode = "";
+            rankMode = "";
+            rankEmptyGo = null;
+            centerHasSong = false;
+            listRowObjects.Clear();
+            listRowSongIds.Clear();
+            rankRowObjects.Clear();
+            dotCount = -1;
+            dotOffsetsCache = null;
+            dotImages.Clear();
+            dotRects.Clear();
         }
 
         /// <summary>frame 直下の名前付きゾーンを階層から外して破棄を予約する。</summary>
@@ -207,6 +274,13 @@ namespace FlashBeat.UI.V6.Select.View
             if (rootGo != null)
             {
                 rootGo.SetActive(visible);
+            }
+
+            // 非表示中 (履歴/ランキング画面) のデータ変更は OnDataChanged が
+            // 捨てるので、選曲画面へ戻った時点で差分更新して追いつかせる。
+            if (visible)
+            {
+                RefreshVolatile();
             }
         }
 
@@ -229,7 +303,8 @@ namespace FlashBeat.UI.V6.Select.View
         public void FocusSearch()
         {
             searchFocused = true;
-            Rebuild();
+            // フォーカス表示 (Query の "|" と色) は UpdateHeader が適用する。
+            RefreshVolatile();
         }
 
         /// <summary>
@@ -249,27 +324,32 @@ namespace FlashBeat.UI.V6.Select.View
             Rebuild();
         }
 
-        /// <summary>表示する曲リスト (実データ + 未プレイのみトグル)。</summary>
+        /// <summary>表示する曲リスト (実データ + 未プレイのみトグル)。使い回しバッファ。</summary>
         private List<V6SongEntry> DisplaySongs()
         {
+            displaySongs.Clear();
             IReadOnlyList<V6SongEntry> filtered = data.FilteredSongs;
-            var list = new List<V6SongEntry>();
-            if (filtered == null) return list;
-            for (int i = 0; i < filtered.Count; i++)
+            if (filtered != null)
             {
-                V6SongEntry song = filtered[i];
-                if (song == null) continue;
-                if (unplayedOnly && song.BestScore >= 0) continue; // プレイ済みの曲を除く
-                list.Add(song);
+                for (int i = 0; i < filtered.Count; i++)
+                {
+                    V6SongEntry song = filtered[i];
+                    if (song == null) continue;
+                    if (unplayedOnly && song.BestScore >= 0) continue; // プレイ済みの曲を除く
+                    displaySongs.Add(song);
+                }
             }
-            return list;
+
+            return displaySongs;
         }
 
         /// <summary>「未プレイのみ」絞り込みの切り替え。</summary>
         private void ToggleUnplayedFilter()
         {
             unplayedOnly = !unplayedOnly;
-            Rebuild();
+            // 表示曲・Ready 可否・フィルターボタン色は差分更新で追従する
+            // (Ready が反転したときだけ EnsureFooter がフッターを作り直す)。
+            RefreshVolatile();
         }
 
         /// <summary>
@@ -333,7 +413,7 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 case V6SelectAction.UnfocusSearch:
                     searchFocused = false;
-                    Rebuild();
+                    RefreshVolatile();
                     return;
                 case V6SelectAction.MoveUp:
                     data.MoveSelection(-1);
@@ -394,9 +474,9 @@ namespace FlashBeat.UI.V6.Select.View
                 if (data.Query == seeded)
                 {
                     // 検索語が変わらないときは Changed が発火しないため、フォーカス表示を
-                    // 反映する再描画をここで 1 回だけ行う。変わるときは SetQuery →
-                    // Changed → OnDataChanged が再描画するので、二重に呼ばない。
-                    Rebuild();
+                    // 反映する更新をここで 1 回だけ行う。変わるときは SetQuery →
+                    // Changed → OnDataChanged が更新するので、二重に呼ばない。
+                    RefreshVolatile();
                 }
                 else
                 {
@@ -461,32 +541,11 @@ namespace FlashBeat.UI.V6.Select.View
             PlaceFrame();
 
             // frame の全子を作り直す (V5 SelectView.Rebuild と同じ方針)。
+            // Issue #415: 破棄後は ApplyVolatile が各ゾーンの scaffold を
+            // 作り直して可変値を適用する (RefreshVolatile と同じ経路)。
             Common.V6Hierarchy.ClearChildren(frame.gameObject);
-
-            // 表示する曲: 実データの絞り込み結果 (+ 「未プレイのみ」トグル)。
-            var songs = DisplaySongs();
-            int selectIndex = SelectedIndex(songs);
-            // スクロール位置は design (OENRv) どおり上から 9 行を詰める。
-            // CenterScroll の負値をそのまま描くと空スロットが下側にずれて行が
-            // 下端へ寄る (r1実機 2026-11-11 の症状) ので ListScroll で 0 以上に
-            // 丸める。選択 index ≥ 4 では選択行は 5 行目 (上に 4 行) に来る。
-            listScroll = V6SelectViewLogic.ListScroll(selectIndex, songs.Count);
-            rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll,
-                data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
-
-            BuildHeader(songs.Count);
-            BuildFooter();
-            BuildList(songs, selectIndex);
-            BuildCenter();
-            if (settingsOpen)
-            {
-                // wSjAm: 右カラム (Ranking) を「このプレイの設定」へ差し替える。
-                BuildSettings();
-            }
-            else
-            {
-                BuildRight();
-            }
+            ResetVolatileState();
+            ApplyVolatile();
         }
 
         // --- ヘッダー (x24 y0 1680x96) ---
@@ -560,6 +619,74 @@ namespace FlashBeat.UI.V6.Select.View
             var filterRect = V6SelectViewLogic.HeaderFilter();
             At(filter, filterRect.X, filterRect.Y);
             V6Icons.Create(filter, "list-filter", 24f, V5Tokens.TextMuted);
+        }
+
+        /// <summary>
+        /// ヘッダー: scaffold が無ければ作り、可変値 (検索語・件数・状態メッセージ・
+        /// フィルターボタン色) を既存要素へ適用する。
+        /// </summary>
+        private void EnsureHeader(int filteredCount)
+        {
+            var header = FindZone("Header");
+            if (header == null)
+            {
+                BuildHeader(filteredCount);
+                return;
+            }
+
+            UpdateHeader(header, filteredCount);
+        }
+
+        private void UpdateHeader(GameObject header, int filteredCount)
+        {
+            var queryT = header.transform.Find("Search/Query");
+            var queryText = queryT != null ? queryT.GetComponent<TextMeshProUGUI>() : null;
+            if (queryText != null)
+            {
+                queryText.text = SearchDisplayText();
+                queryText.color = searchFocused ? V5Tokens.Text : V5Tokens.TextDim;
+            }
+
+            var countT = header.transform.Find("Count");
+            var countText = countT != null ? countT.GetComponent<TextMeshProUGUI>() : null;
+            if (countText != null)
+            {
+                countText.text = $"{filteredCount} / {data.AllSongs.Count}";
+            }
+
+            // Issue #427: ヘッダーの Status はエラー時だけ存在する可変要素。
+            // 必要になったら作り、不要になったら外す (毎回の再生成はしない)。
+            Transform statusT = header.transform.Find("Status");
+            bool needStatus = data.HasError && !string.IsNullOrEmpty(data.StatusMessage);
+            if (needStatus)
+            {
+                TextMeshProUGUI status;
+                if (statusT == null)
+                {
+                    status = V5GameUi.Text(header, "Status", data.StatusMessage, 18f,
+                        V5Tokens.DangerLight, TextAlignmentOptions.Left);
+                    At(status, 864f, 74f, 792f, 20f);
+                }
+                else
+                {
+                    status = statusT.GetComponent<TextMeshProUGUI>();
+                    if (status != null)
+                    {
+                        status.text = data.StatusMessage;
+                    }
+                }
+            }
+            else if (statusT != null)
+            {
+                FlashBeat.UI.V5.V5GameUi.DestroyNow(statusT.gameObject);
+            }
+
+            var filterT = header.transform.Find("Filter Button");
+            var filterImage = filterT != null ? filterT.GetComponent<Image>() : null;
+            if (filterImage != null)
+            {
+                filterImage.color = unplayedOnly ? V5Tokens.Key6 : V5Tokens.Key4;
+            }
         }
 
         // --- フッター (x24 y876 1680x96) ---
@@ -665,9 +792,45 @@ namespace FlashBeat.UI.V6.Select.View
             }
         }
 
+        /// <summary>
+        /// フッターは骨格として保持するが、Ready の有効/無効 (選択曲が絞り込みで
+        /// 隠れるか) は表示に出るので、状態が変わったときだけフッターを作り直す。
+        /// </summary>
+        private void EnsureFooter()
+        {
+            bool ready = ReadyAvailable();
+            if (FindZone("Footer") == null || ready != footerReadyEnabled)
+            {
+                DestroyZone("Footer");
+                BuildFooter();
+                footerReadyEnabled = ready;
+            }
+        }
+
         // --- 左列: 曲リスト (x0 w560 #131313CC r16) ---
 
-        private void BuildList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        /// <summary>
+        /// 曲リストゾーンが無いとき scaffold (パネル・Rows・スクロールボタン・
+        /// ドット容器) を作り、続けて <see cref="UpdateListContent"/> で中身を載せる。
+        /// </summary>
+        private void EnsureList(IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        {
+            var list = FindZone("Song List");
+            if (list == null)
+            {
+                BuildListScaffold();
+                list = FindZone("Song List");
+            }
+
+            if (list == null)
+            {
+                return;
+            }
+
+            UpdateListContent(list, songs, selectIndex);
+        }
+
+        private void BuildListScaffold()
         {
             // 位置も design 定数 (frame ローカル (24,96) 560x780 = ListPanelRect) から取る。
             var list = At(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
@@ -677,73 +840,203 @@ namespace FlashBeat.UI.V6.Select.View
             var rows = V5Ui.Node(list, "Rows");
             At(rows.GetComponent<RectTransform>(), 0f, 0f, ListW, ListH);
 
-            if (V6SelectViewLogic.ShouldShowSkeleton(data.IsLoading, songs.Count))
+            BuildScrollButton(list, "Scroll Up", false);
+            BuildScrollButton(list, "Scroll Down", true);
+            // ドット容器だけ先に作る。中身 (ドット個) は UpdateDots が曲数に合わせる。
+            V5Ui.Node(list, "Dot indicator");
+        }
+
+        /// <summary>
+        /// 曲リストの中身を現在の状態へ合わせる。skeleton / empty / rows の
+        /// モードが変わったときだけ Rows の中身を作り直し、rows では可視行を
+        /// スロット単位で再利用する。ドットは曲数が変わったときだけ再生成する。
+        /// </summary>
+        private void UpdateListContent(GameObject list, IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        {
+            var rowsT = list.transform.Find("Rows");
+            if (rowsT == null)
             {
-                // AqFtx のスケルトン行 (初回の読み込み中だけ)。再取得では出さない。
-                for (int i = 0; i < ListVisibleRows; i++)
+                return;
+            }
+
+            GameObject rows = rowsT.gameObject;
+            string mode = V6SelectViewLogic.ShouldShowSkeleton(data.IsLoading, songs.Count) ? "skeleton"
+                : songs.Count == 0 ? "empty" : "rows";
+            if (mode != listMode)
+            {
+                Common.V6Hierarchy.ClearChildren(rows);
+                listRowObjects.Clear();
+                listRowSongIds.Clear();
+                listMode = mode;
+                if (mode == "skeleton")
                 {
-                    // スケルトンも design 行 (mcCOI) と同じ x 配置 (Level 12 / Thumb 68 /
-                    // Texts 176 / Grade 436)。バーの寸法・y は AqFtx のプレースホルダのまま。
-                    var skeleton = At(V5Ui.Panel(rows, "Song Skeleton " + i, new Vector2(RowW, RowH),
-                        V5Tokens.Key1, 8f), RowX, RowY0 + RowStep * i);
-                    At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 12f, 14f);
-                    At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 68f, 9f);
-                    At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 176f, 14f);
-                    At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 176f, 44f);
-                    At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 436f, 18f);
+                    // AqFtx のスケルトン行 (初回の読み込み中だけ)。再取得では出さない。
+                    for (int i = 0; i < ListVisibleRows; i++)
+                    {
+                        // スケルトンも design 行 (mcCOI) と同じ x 配置 (Level 12 / Thumb 68 /
+                        // Texts 176 / Grade 436)。バーの寸法・y は AqFtx のプレースホルダのまま。
+                        var skeleton = At(V5Ui.Panel(rows, "Song Skeleton " + i, new Vector2(RowW, RowH),
+                            V5Tokens.Key1, 8f), RowX, RowY0 + RowStep * i);
+                        At(V5Ui.Panel(skeleton, "Level", new Vector2(44f, 44f), V5Tokens.Key3, 22f), 12f, 14f);
+                        At(V5Ui.Panel(skeleton, "Thumb", new Vector2(96f, 54f), V5Tokens.Key3, 4f), 68f, 9f);
+                        At(V5Ui.Panel(skeleton, "Texts", new Vector2(220f, 26f), V5Tokens.Key3, 4f), 176f, 14f);
+                        At(V5Ui.Panel(skeleton, "Artist", new Vector2(120f, 18f), V5Tokens.Key3, 4f), 176f, 44f);
+                        At(V5Ui.Panel(skeleton, "Grade", new Vector2(56f, 36f), V5Tokens.Key3, 4f), 436f, 18f);
+                    }
+                }
+                else if (mode == "empty")
+                {
+                    // AqFtx: 該当なしの空状態。3 要素は design の座標 (Icon 32 @y14 /
+                    // Title 24 @(0,54) h35 / Hint 20 @(0,97) h29) に置く。
+                    var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
+                    // design UIN4a は「検索して該当なし」の虫めがね + x。音楽アイコンではない。
+                    V6Icons.Create(empty, "search-x", 32f, V5Tokens.TextDim);
+                    var emptyIcon = empty.transform.Find("Icon")?.gameObject;
+                    if (emptyIcon != null)
+                    {
+                        var iconRt = emptyIcon.GetComponent<RectTransform>();
+                        iconRt.anchorMin = new Vector2(0.5f, 1f);
+                        iconRt.anchorMax = new Vector2(0.5f, 1f);
+                        iconRt.pivot = new Vector2(0.5f, 1f);
+                        iconRt.anchoredPosition = new Vector2(0f, -14f);
+                        iconRt.sizeDelta = new Vector2(32f, 32f);
+                    }
+                    var emptyTitle = V5GameUi.Text(empty.gameObject, "Title", "曲が見つかりません", 24f, V5Tokens.Text,
+                        TextAlignmentOptions.Center, FontStyles.Normal);
+                    At(emptyTitle, 0f, 54f, 448f, 35f);
+                    var emptyHint = V5GameUi.Text(empty.gameObject, "Hint", "検索語を変えるか フィルターを解除してください", 20f,
+                        V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                    SingleLine(emptyHint);
+                    At(emptyHint, 0f, 97f, 448f, 29f);
                 }
             }
-            else if (songs.Count == 0)
-            {
-                // AqFtx: 該当なしの空状態。3 要素は design の座標 (Icon 32 @y14 /
-                // Title 24 @(0,54) h35 / Hint 20 @(0,97) h29) に置く。
-                var empty = At(V5Ui.Panel(rows, "Empty Note", new Vector2(448f, 140f), V5Tokens.Key0, 8f), 56f, 300f);
-                // design UIN4a は「検索して該当なし」の虫めがね + x。音楽アイコンではない。
-                V6Icons.Create(empty, "search-x", 32f, V5Tokens.TextDim);
-                var emptyIcon = empty.transform.Find("Icon")?.gameObject;
-                if (emptyIcon != null)
-                {
-                    var iconRt = emptyIcon.GetComponent<RectTransform>();
-                    iconRt.anchorMin = new Vector2(0.5f, 1f);
-                    iconRt.anchorMax = new Vector2(0.5f, 1f);
-                    iconRt.pivot = new Vector2(0.5f, 1f);
-                    iconRt.anchoredPosition = new Vector2(0f, -14f);
-                    iconRt.sizeDelta = new Vector2(32f, 32f);
-                }
-                var emptyTitle = V5GameUi.Text(empty.gameObject, "Title", "曲が見つかりません", 24f, V5Tokens.Text,
-                    TextAlignmentOptions.Center, FontStyles.Normal);
-                At(emptyTitle, 0f, 54f, 448f, 35f);
-                var emptyHint = V5GameUi.Text(empty.gameObject, "Hint", "検索語を変えるか フィルターを解除してください", 20f,
-                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                SingleLine(emptyHint);
-                At(emptyHint, 0f, 97f, 448f, 29f);
-            }
-            else
+
+            if (mode == "rows")
             {
                 // 先頭スロットから連続で描く (ClampScroll 済み)。選択行はその中で
                 // ハイライトされるだけで、スロット位置は曲順どおり。
                 // 範囲外の index は描かない (空行にする)。
-                int first = listScroll;
-                int last = first + ListVisibleRows;
-                for (int i = first; i < last; i++)
+                UpdateListRows(rows, songs, selectIndex);
+            }
+
+            // 正本 OENRv のリスト下端はスクロールボタンとドットのみ。
+            // 「1 / 28」のような選択位置テキストは設計に無いので描かない。
+            UpdateDots(list);
+        }
+
+        /// <summary>
+        /// 可視行スロットを既存オブジェクトの再利用で更新する。
+        /// スロット s は常に i = listScroll + s の曲を表示し、y もスロット固定
+        /// (RowY0 + RowStep * s) なので、選択移動では中身の差し替えだけで済む。
+        /// </summary>
+        private void UpdateListRows(GameObject rows, IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        {
+            // スロット配列は常に ListVisibleRows 個に揃える
+            // (途中の空スロットで index がずれないようにする)。
+            while (listRowObjects.Count < ListVisibleRows)
+            {
+                listRowObjects.Add(null);
+                listRowSongIds.Add(-1);
+            }
+
+            int first = listScroll;
+            for (int slot = 0; slot < ListVisibleRows; slot++)
+            {
+                int i = first + slot;
+                bool valid = i >= 0 && i < songs.Count;
+                GameObject row = listRowObjects[slot];
+                if (row == null)
                 {
-                    if (i < 0 || i >= songs.Count)
+                    if (!valid)
                     {
                         continue;
                     }
 
-                    BuildSongRow(rows, songs[i], i, i == selectIndex, RowY0 + RowStep * (i - first));
+                    row = BuildSongRow(rows, songs[i], slot, i == selectIndex, RowY0 + RowStep * slot);
+                    listRowObjects[slot] = row;
+                    listRowSongIds[slot] = songs[i].SongId;
+                    continue;
                 }
+
+                if (!valid)
+                {
+                    FlashBeat.UI.V5.V5GameUi.DestroyNow(row);
+                    listRowObjects[slot] = null;
+                    listRowSongIds[slot] = -1;
+                    continue;
+                }
+
+                UpdateSongRow(row, songs[i], i == selectIndex, RowY0 + RowStep * slot);
+                listRowSongIds[slot] = songs[i].SongId;
             }
 
-            BuildScrollButton(list, "Scroll Up", false);
-            BuildScrollButton(list, "Scroll Down", true);
-            // 正本 OENRv のリスト下端はスクロールボタンとドットのみ。
-            // 「1 / 28」のような選択位置テキストは設計に無いので描かない。
-            BuildDots(list, songs, selectIndex);
+            while (listRowObjects.Count > ListVisibleRows)
+            {
+                int last = listRowObjects.Count - 1;
+                GameObject tail = listRowObjects[last];
+                if (tail != null) FlashBeat.UI.V5.V5GameUi.DestroyNow(tail);
+                listRowObjects.RemoveAt(last);
+                listRowSongIds.RemoveAt(listRowSongIds.Count - 1);
+            }
         }
 
-        private void BuildSongRow(GameObject parent, V6SongEntry song, int index, bool selected, float y)
+        /// <summary>既存の曲行を別の曲データで書き換える (行オブジェクトは再利用)。</summary>
+        private void UpdateSongRow(GameObject row, V6SongEntry song, bool selected, float y)
+        {
+            var rt = row.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = new Vector2(RowX, -y);
+            }
+
+            // 行の内部座標は共通部品 V6Lists.SongRow (design mcCOI) と同じ:
+            // 背景は非選択 $k1 / 選択 $k6。
+            var bg = row.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = selected ? V6Tokens.Key6 : V6Tokens.Key1;
+            }
+
+            SetChildText(row, "Level/Level", song.Level > 0 ? song.Level.ToString() : "–");
+            SetChildText(row, "Title", song.Title);
+            SetChildText(row, "Composer", song.Artist);
+            SetChildText(row, "Grade/Grade",
+                string.IsNullOrEmpty(song.BestGrade) ? "–" : song.BestGrade);
+            row.name = "SongRow " + song.Title;
+
+            SetJacket(V6Lists.Thumb(row), song, V6Tokens.Key2);
+        }
+
+        /// <summary>path で辿った子の TMP テキストを書き換える (無ければ何もしない)。</summary>
+        private static void SetChildText(GameObject root, string path, string value)
+        {
+            Transform t = root != null ? root.transform.Find(path) : null;
+            var tmp = t != null ? t.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp != null)
+            {
+                tmp.text = value;
+            }
+        }
+
+        /// <summary>
+        /// 行スロットのクリック結線。スロットが今表示している曲を選ぶ
+        /// (行オブジェクトを再利用するので、結線はスロット index に対して 1 回だけ張る)。
+        /// </summary>
+        private void SelectListSlot(int slot)
+        {
+            if (slot < 0 || slot >= listRowSongIds.Count)
+            {
+                return;
+            }
+
+            int songId = listRowSongIds[slot];
+            if (songId >= 0)
+            {
+                data.Select(songId);
+            }
+        }
+
+        private GameObject BuildSongRow(GameObject parent, V6SongEntry song, int slot, bool selected, float y)
         {
             // 行の内部座標は共通部品 V6Lists.SongRow に一本化 (design mcCOI/Odv71 実測値)。
             // この画面はクリック→選択・ジャケット・グレード文字の結線だけを行う。
@@ -756,10 +1049,10 @@ namespace FlashBeat.UI.V6.Select.View
             nav.mode = Navigation.Mode.None;
             button.navigation = nav;
             V6ButtonPressFeedback.Attach(row);
-            int songId = song.SongId;
-            button.onClick.AddListener(() => data.Select(songId));
+            button.onClick.AddListener(() => SelectListSlot(slot));
 
             SetJacket(V6Lists.Thumb(row), song, V6Tokens.Key2);
+            return row;
         }
 
         private void BuildScrollButton(GameObject list, string name, bool down)
@@ -776,17 +1069,21 @@ namespace FlashBeat.UI.V6.Select.View
         /// 絞り込みで曲数が減ってもドット数は変えない (ページ位置の案内)。
         /// 各ドットの y は <see cref="V6SelectViewLogic.DotOffsets"/> (純ロジック) の
         /// とおり size+gap 間隔で積む (親ローカル座標系を統一しないと全ドットが重なる)。
+        ///
+        /// Issue #415: ドット個は曲数が変わったときだけ作り直し、選択の移動では
+        /// 色とサイズだけを既存ドットへ適用する。
         /// </summary>
-        private void BuildDots(GameObject list, IReadOnlyList<V6SongEntry> songs, int selectIndex)
+        private void UpdateDots(GameObject list)
         {
-            var dots = V5Ui.Node(list, "Dot indicator");
+            var dotsT = list.transform.Find("Dot indicator");
+            if (dotsT == null)
+            {
+                return;
+            }
+
+            GameObject dots = dotsT.gameObject;
             IReadOnlyList<V6SongEntry> all = data.AllSongs;
             int count = all == null ? 0 : all.Count;
-            float total = V6SelectViewLogic.DotBottom(count, 0f);
-            // レール幅は design どおり最大ドット幅 (10)。ドットはレール中央に置く。
-            // Issue #427: レールはリストパネルの上下中央 (design の DotY=136 は上寄りだった)。
-            At(dots.GetComponent<RectTransform>(), V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(count),
-                V6SelectViewLogic.DotActiveSize, total);
 
             int active = -1;
             if (data.Selected != null && all != null)
@@ -798,15 +1095,52 @@ namespace FlashBeat.UI.V6.Select.View
             }
             active = V6SelectViewLogic.DotActiveIndex(active, count);
 
-            float[] offsets = V6SelectViewLogic.DotOffsets(count, 0f);
-            for (int i = 0; i < count; i++)
+            if (count != dotCount)
             {
-                float d = i == active ? V6SelectViewLogic.DotActiveSize : V6SelectViewLogic.DotSize;
+                // 曲数 (カタログ構造) が変わったときだけドットを作り直す。
+                Common.V6Hierarchy.ClearChildren(dots);
+                dotImages.Clear();
+                dotRects.Clear();
+                dotOffsetsCache = V6SelectViewLogic.DotOffsets(count, 0f);
+                float total = V6SelectViewLogic.DotBottom(count, 0f);
+                // レール幅は design どおり最大ドット幅 (10)。ドットはレール中央に置く。
+                // Issue #427: レールはリストパネルの上下中央 (design の DotY=136 は上寄りだった)。
+                At(dots, V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(count),
+                    V6SelectViewLogic.DotActiveSize, total);
+                for (int i = 0; i < count; i++)
+                {
+                    var dot = V5Ui.Panel(dots, "Dot " + (i + 1),
+                        new Vector2(V6SelectViewLogic.DotSize, V6SelectViewLogic.DotSize),
+                        FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
+                    dotImages.Add(dot.GetComponent<Image>());
+                    dotRects.Add(dot.GetComponent<RectTransform>());
+                    // anchor/pivot を (0,1) に揃える (サイズ・色・位置は下のループが確定する)。
+                    At(dot, V6SelectViewLogic.DotRectX(V6SelectViewLogic.DotSize),
+                        dotOffsetsCache[i], V6SelectViewLogic.DotSize, V6SelectViewLogic.DotSize);
+                }
+
+                dotCount = count;
+            }
+
+            float[] offsets = dotOffsetsCache ?? (dotOffsetsCache = V6SelectViewLogic.DotOffsets(count, 0f));
+            for (int i = 0; i < count && i < dotImages.Count; i++)
+            {
+                bool isActive = i == active;
+                float d = isActive ? V6SelectViewLogic.DotActiveSize : V6SelectViewLogic.DotSize;
                 // Issue #427: 選択中は v6 の選択色 (Key6)。design の水色 Accent は
                 // v6 の選択表現と一致しないため使わない。
-                var dot = V5Ui.Panel(dots, "Dot " + (i + 1), new Vector2(d, d),
-                    i == active ? V6Tokens.Key6 : FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
-                At(dot, V6SelectViewLogic.DotRectX(d), offsets[i]);
+                var img = dotImages[i];
+                if (img != null)
+                {
+                    img.color = isActive ? V6Tokens.Key6 : FromHex("#FFFFFF26");
+                }
+
+                var rt = dotRects[i];
+                if (rt != null)
+                {
+                    rt.sizeDelta = new Vector2(d, d);
+                    rt.anchoredPosition = new Vector2(V6SelectViewLogic.DotRectX(d), -offsets[i]);
+                }
             }
         }
 
@@ -887,6 +1221,71 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 BuildControlButton(controls, controlDefs[i]);
             }
+
+            centerHasSong = hasSong;
+        }
+
+        /// <summary>
+        /// 選択曲パネル: scaffold が無いか選択曲の有無 (Meta 構造) が変わったときだけ
+        /// 作り直し、それ以外は <see cref="UpdateCenter"/> で可変値を適用する。
+        /// </summary>
+        private void EnsureCenter()
+        {
+            bool hasSong = data.Selected != null;
+            var panel = FindZone("Selected Song Panel");
+            if (panel == null || hasSong != centerHasSong)
+            {
+                DestroyZone("Selected Song Panel");
+                BuildCenter();
+                return;
+            }
+
+            UpdateCenter(panel);
+        }
+
+        /// <summary>中央パネルの可変値 (ジャケット・曲名/作曲者・統計・Ready 結線) を適用する。</summary>
+        private void UpdateCenter(GameObject panel)
+        {
+            var song = data.Selected;
+            if (song == null)
+            {
+                // スケルトン (選択曲なし) は静的。null↔非 null の切替はゾーン再構築で処理する。
+                return;
+            }
+
+            var hero = panel.transform.Find("Hero");
+            if (hero != null)
+            {
+                SetJacket(hero.gameObject, song);
+            }
+
+            SetChildText(panel, "Meta/Title", song.Title);
+            SetChildText(panel, "Meta/Tag No/Text", "No." + song.SongId);
+            SetChildText(panel, "Meta/Artist", song.Artist);
+            SetChildText(panel, "Stats/Stat BPM/Value",
+                song.Bpm > 0 ? Mathf.RoundToInt((float)song.Bpm).ToString() : "–");
+            SetChildText(panel, "Stats/Stat NOTES/Value",
+                song.NoteCount > 0 ? song.NoteCount.ToString() : "–");
+            SetChildText(panel, "Stats/Stat LEVEL/Value",
+                song.Level > 0 ? song.Level.ToString() : "–");
+            SetChildText(panel, "Stats/Stat BEST/Value",
+                V6SelectViewLogic.FormatScore(song.BestScore));
+
+            // Controls の play (Ready) は絞り込みで選択が隠れると押せなくなる。
+            // 結線の有無を毎回張り直して表示と実動作を一致させる。
+            var play = panel.transform.Find("Controls/Btn play");
+            var playButton = play != null ? play.GetComponent<Button>() : null;
+            if (playButton != null)
+            {
+                playButton.onClick.RemoveAllListeners();
+                if (ReadyAvailable())
+                {
+                    playButton.onClick.AddListener(() =>
+                    {
+                        if (onReady != null) onReady();
+                    });
+                }
+            }
         }
 
         /// <summary>
@@ -957,7 +1356,29 @@ namespace FlashBeat.UI.V6.Select.View
 
         // --- 右列: BEST / SCORE RANKING / PLAYERS ---
 
-        private void BuildRight()
+        /// <summary>
+        /// 右カラム (Ranking): scaffold が無ければ作り、続けて
+        /// <see cref="UpdateRight"/> で可変値 (BEST・source・ランキング行) を適用する。
+        /// </summary>
+        private void EnsureRight()
+        {
+            var column = FindZone("Ranking Column");
+            if (column == null)
+            {
+                BuildRightScaffold();
+                column = FindZone("Ranking Column");
+            }
+
+            if (column == null)
+            {
+                return;
+            }
+
+            UpdateRight(column);
+        }
+
+        /// <summary>右カラムの骨格。可変値 (Score/Grade/Source/行) は UpdateRight が適用する。</summary>
+        private void BuildRightScaffold()
         {
             var column = V5Ui.Node(frame.gameObject, "Ranking Column");
             At(column.GetComponent<RectTransform>(), MainX + RightX, MainY, RightW, ListH);
@@ -968,9 +1389,7 @@ namespace FlashBeat.UI.V6.Select.View
 
             var scoreRow = V5GameUi.Row(best.gameObject, "Score Row", 12f, TextAnchor.MiddleLeft);
             At(scoreRow.GetComponent<RectTransform>(), 0f, 30f, 528f, 72f);
-            var song = data.Selected;
-            var scoreText = V5GameUi.Text(scoreRow.gameObject, "Score",
-                song != null ? V6SelectViewLogic.FormatScore(song.BestScore) : "–", 56f, V5Tokens.Text,
+            var scoreText = V5GameUi.Text(scoreRow.gameObject, "Score", "–", 56f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             // BEST の大きな数値も折り返さない (#379)。childControlWidth=false のため
             // 幅は明示する: Score 400 + Spacer 0 + Grade 72 + gap 12x2 = 496 ≤ 528。
@@ -986,8 +1405,7 @@ namespace FlashBeat.UI.V6.Select.View
             spacerLe.flexibleWidth = 1f;
             var gradeChip = At(V5Ui.Panel(scoreRow.gameObject, "Grade", new Vector2(72f, 64f), V5Tokens.Key6, 8f),
                 0f, 0f);
-            var gradeText = V5GameUi.Text(gradeChip.gameObject, "Text",
-                song != null && !string.IsNullOrEmpty(song.BestGrade) ? song.BestGrade : "–", 34f, V5Tokens.Text,
+            var gradeText = V5GameUi.Text(gradeChip.gameObject, "Text", "–", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Normal);
             Stretch(gradeText.GetComponent<RectTransform>(), 72f, 64f);
 
@@ -1004,30 +1422,9 @@ namespace FlashBeat.UI.V6.Select.View
             // ランキングの source タグは実データから決める (#221)。
             // ローカル曲に「オンライン」と表示するのは嘘なので、IsCloud をそのまま出す。
             var source = V5Ui.Panel(head.gameObject, "Source", new Vector2(96f, 28f), V5Tokens.Key4, 4f);
-            var sourceText = V5GameUi.Text(source, "Text", RankingSourceLabel(song), 18f, V5Tokens.TextMuted,
+            var sourceText = V5GameUi.Text(source, "Text", "–", 18f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             Stretch(sourceText.GetComponent<RectTransform>(), 96f, 28f);
-
-            var rows = data.Selected != null ? data.RankingFor(data.Selected) : null;
-            if (rows == null || rows.Count == 0)
-            {
-                // Issue #427: 取得中はテキストではなく控えめな「…」をパネル内に出す。
-                // 失敗時はヘッダーの StatusMessage (エラー) が理由を伝える。
-                bool loading = data.IsLoading;
-                var empty = V5GameUi.Text(ranking.gameObject, "No Data",
-                    loading ? "…" : "NO DATA", loading ? 40f : 24f,
-                    V5Tokens.TextDim, TextAlignmentOptions.Center);
-                At(empty, 8f, 155f, 496f, 35f);
-            }
-            else
-            {
-                int first = rankingScroll;
-                int last = Mathf.Min(rows.Count, first + RankingVisibleRows);
-                for (int i = first; i < last; i++)
-                {
-                    BuildRankingRow(ranking, rows[i], i, 92f + 52f * (i - first));
-                }
-            }
 
             // PLAYERS (528x288, $k2 r8): IV6SelectDataSource にプレイヤー集計の
             // データ源が無い。実データを出せないので「データ無し」と正直に言う
@@ -1047,6 +1444,160 @@ namespace FlashBeat.UI.V6.Select.View
             At(noPlayers, 8f, 149f, 496f, 35f);
         }
 
+        /// <summary>右カラムの可変値 (BEST・source タグ・ランキング行/空表示) を適用する。</summary>
+        private void UpdateRight(GameObject column)
+        {
+            var song = data.Selected;
+            SetChildText(column, "Best/Score Row/Score",
+                song != null ? V6SelectViewLogic.FormatScore(song.BestScore) : "–");
+            SetChildText(column, "Best/Score Row/Grade/Text",
+                song != null && !string.IsNullOrEmpty(song.BestGrade) ? song.BestGrade : "–");
+            SetChildText(column, "Score Ranking/Head/Source/Text", RankingSourceLabel(song));
+            UpdateRankingRows(column, song);
+        }
+
+        /// <summary>
+        /// SCORE RANKING の行スロットと空表示を現在のランキングへ合わせる。
+        /// rows ↔ empty のモード変化のときだけ表示を入れ替え、行はスロット再利用する。
+        /// </summary>
+        private void UpdateRankingRows(GameObject column, V6SongEntry song)
+        {
+            var rankingT = column.transform.Find("Score Ranking");
+            if (rankingT == null)
+            {
+                return;
+            }
+
+            GameObject ranking = rankingT.gameObject;
+            var rows = song != null ? data.RankingFor(song) : null;
+            bool hasRows = rows != null && rows.Count > 0;
+            string mode = hasRows ? "rows" : "empty";
+            if (mode != rankMode)
+            {
+                // モード変化: 旧モードの表示 (行スロット or 空テキスト) を片付ける。
+                for (int i = 0; i < rankRowObjects.Count; i++)
+                {
+                    if (rankRowObjects[i] != null)
+                    {
+                        FlashBeat.UI.V5.V5GameUi.DestroyNow(rankRowObjects[i]);
+                    }
+                }
+
+                rankRowObjects.Clear();
+                Transform oldEmpty = ranking.transform.Find("No Data");
+                if (oldEmpty != null)
+                {
+                    FlashBeat.UI.V5.V5GameUi.DestroyNow(oldEmpty.gameObject);
+                }
+
+                rankEmptyGo = null;
+                rankMode = mode;
+            }
+
+            if (mode == "empty")
+            {
+                // Issue #427: 取得中はテキストではなく控えめな「…」をパネル内に出す。
+                // 失敗時はヘッダーの StatusMessage (エラー) が理由を伝える。
+                if (rankEmptyGo == null)
+                {
+                    bool loading = data.IsLoading;
+                    var empty = V5GameUi.Text(ranking, "No Data",
+                        loading ? "…" : "NO DATA", loading ? 40f : 24f,
+                        V5Tokens.TextDim, TextAlignmentOptions.Center);
+                    At(empty, 8f, 155f, 496f, 35f);
+                    rankEmptyGo = empty.gameObject;
+                }
+                else
+                {
+                    // 取得中 ↔ 完了で文言とサイズが変わるので既存テキストへ適用する。
+                    var emptyText = rankEmptyGo.GetComponent<TextMeshProUGUI>();
+                    if (emptyText != null)
+                    {
+                        bool loading = data.IsLoading;
+                        emptyText.text = loading ? "…" : "NO DATA";
+                        emptyText.fontSize = loading ? 40f : 24f;
+                    }
+                }
+
+                return;
+            }
+
+            // 行スロット配列は常に RankingVisibleRows 個に揃える
+            // (曲リストと同じく、空スロットで index がずれないようにする)。
+            while (rankRowObjects.Count < RankingVisibleRows)
+            {
+                rankRowObjects.Add(null);
+            }
+
+            int first = rankingScroll;
+            for (int slot = 0; slot < RankingVisibleRows; slot++)
+            {
+                int i = first + slot;
+                bool valid = i >= 0 && i < rows.Count;
+                GameObject row = rankRowObjects[slot];
+                if (row == null)
+                {
+                    if (!valid)
+                    {
+                        continue;
+                    }
+
+                    row = BuildRankingRow(ranking, rows[i], 92f + 52f * slot);
+                    rankRowObjects[slot] = row;
+                    continue;
+                }
+
+                if (!valid)
+                {
+                    FlashBeat.UI.V5.V5GameUi.DestroyNow(row);
+                    rankRowObjects[slot] = null;
+                    continue;
+                }
+
+                UpdateRankingRow(row, rows[i], slot);
+            }
+
+            while (rankRowObjects.Count > RankingVisibleRows)
+            {
+                int last = rankRowObjects.Count - 1;
+                GameObject tail = rankRowObjects[last];
+                if (tail != null) FlashBeat.UI.V5.V5GameUi.DestroyNow(tail);
+                rankRowObjects.RemoveAt(last);
+            }
+        }
+
+        /// <summary>既存のランキング行を別の行データで書き換える (行オブジェクトは再利用)。</summary>
+        private void UpdateRankingRow(GameObject row, V6RankingRow dataRow, int slot)
+        {
+            float y = 92f + 52f * slot;
+            var rt = row.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = new Vector2(8f, -y);
+            }
+
+            // CompactRankRow (design jnIY9) と同じ配色: YOU 行は $k6、他は $k1。
+            var bg = row.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = dataRow.IsYou ? V6Tokens.Key6 : V6Tokens.Key1;
+            }
+
+            SetChildText(row, "Pos/PosText", dataRow.Position.ToString());
+            var posText = row.transform.Find("Pos/PosText");
+            var posTmp = posText != null ? posText.GetComponent<TextMeshProUGUI>() : null;
+            if (posTmp != null)
+            {
+                posTmp.color = dataRow.IsYou ? V6Tokens.Text : V6Tokens.TextMuted;
+            }
+
+            SetChildText(row, "Name", dataRow.IsYou ? "YOU" : dataRow.PlayerName);
+            SetChildText(row, "Value", V6SelectViewLogic.FormatScore(dataRow.Score));
+            SetChildText(row, "Grade/GradeText",
+                string.IsNullOrEmpty(dataRow.Grade) ? "–" : dataRow.Grade);
+            row.name = "Score " + dataRow.Position;
+        }
+
         /// <summary>ランキングの source タグ表示。実データ (クラウド配信か) から決める。</summary>
         private static string RankingSourceLabel(V6SongEntry song)
         {
@@ -1054,10 +1605,10 @@ namespace FlashBeat.UI.V6.Select.View
             return song.IsCloud ? "オンライン" : "ローカル";
         }
 
-        private void BuildRankingRow(GameObject ranking, V6RankingRow row, int index, float y)
+        private GameObject BuildRankingRow(GameObject ranking, V6RankingRow row, float y)
         {
             // 行内部は共通部品 (design jnIY9 496×44) が持つ。座標計算をここへ書き戻さない。
-            V6Lists.CompactRankRow(ranking, row.Position.ToString(),
+            return V6Lists.CompactRankRow(ranking, row.Position.ToString(),
                 row.IsYou ? "YOU" : row.PlayerName, V6SelectViewLogic.FormatScore(row.Score),
                 row.Grade, new Vector2(8f, y), row.IsYou);
         }
@@ -1112,6 +1663,27 @@ namespace FlashBeat.UI.V6.Select.View
                 });
         }
 
+        /// <summary>設定カラム: scaffold が無ければ作り、値表示だけを更新する。</summary>
+        private void EnsureSettings()
+        {
+            var column = FindZone("Settings Column");
+            if (column == null)
+            {
+                BuildSettings();
+                return;
+            }
+
+            UpdateSettings(column);
+        }
+
+        /// <summary>クイック設定の値表示を現在値へ合わせる (行オブジェクトは再利用)。</summary>
+        private void UpdateSettings(GameObject column)
+        {
+            SetChildText(column, "Set Key Guide/Value", PlaySession.KeyGuideLabel(PlaySession.KeyGuide));
+            SetChildText(column, "Set Lyrics/Value", PlaySession.LyricsLabel(PlaySession.LyricsEnabled));
+            SetChildText(column, "Set NoteSpeed/Value", Mathf.RoundToInt(GManager.noteSpeed).ToString());
+        }
+
         /// <summary>
         /// 設定行 1 個分 (design wSjAm)。列は 3 行で完全に共通 (Issue #370):
         /// Icon 24 @12 / Label @48 / Arrow · chevron-left @276 / Value 120 @328 /
@@ -1144,12 +1716,14 @@ namespace FlashBeat.UI.V6.Select.View
             At(valueText, valueRect.X, valueRect.Y, valueRect.W, valueRect.H, new Vector2(0f, 0.5f));
 
             var prevRect = V6SelectViewLogic.SettingsRowPrev();
-            var left = Button(row, "Prev", prevRect.W, prevRect.H, 8f, V5Tokens.Key4, () => adjust(-1));
+            var left = Button(row, "Prev", prevRect.W, prevRect.H, 8f, V5Tokens.Key4,
+                () => { adjust(-1); RefreshVolatile(); });
             At(left, prevRect.X, prevRect.Y);
             V6Icons.Create(left, "chevron-left", 24f, V5Tokens.TextMuted);
 
             var nextRect = V6SelectViewLogic.SettingsRowNext();
-            var right = Button(row, "Next", nextRect.W, nextRect.H, 8f, V5Tokens.Key4, () => adjust(1));
+            var right = Button(row, "Next", nextRect.W, nextRect.H, 8f, V5Tokens.Key4,
+                () => { adjust(1); RefreshVolatile(); });
             At(right, nextRect.X, nextRect.Y);
             V6Icons.Create(right, "chevron-right", 24f, V5Tokens.TextMuted);
         }
@@ -1159,9 +1733,9 @@ namespace FlashBeat.UI.V6.Select.View
         private void ScrollList(int delta)
         {
             // スクロール (ホイール / ボタン) は選択曲を delta だけ動かす操作。
-            // スクロール位置は Rebuild で選択曲から常に再計算される (中央固定)。
+            // スクロール位置は差分更新で選択曲から常に再計算される (中央固定)。
             data.MoveSelection(delta);
-            Rebuild();
+            RefreshVolatile();
         }
 
         internal void OnScroll(int target, float delta)
@@ -1175,7 +1749,7 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 rankingScroll = V6SelectViewLogic.ClampScroll(rankingScroll + step,
                     data.Selected != null ? data.RankingFor(data.Selected).Count : 0, RankingVisibleRows);
-                Rebuild();
+                RefreshVolatile();
             }
         }
 
