@@ -552,6 +552,7 @@ namespace FlashBeat.UI.V6.Option
                 var nav = button.navigation;
                 nav.mode = Navigation.Mode.None;
                 button.navigation = nav;
+                V6ButtonPressFeedback.Attach(tab);
                 button.onClick.AddListener(() => SelectTab(index));
                 var label = V6Controls.Text(tab, "Label", V6OptionLogic.TabLabels[i],
                     new Vector2(0f, 0f), new Vector2(TabW, TabsH), 24f,
@@ -602,6 +603,7 @@ namespace FlashBeat.UI.V6.Option
             var nav = rowButton.navigation;
             nav.mode = Navigation.Mode.None;
             rowButton.navigation = nav;
+            V6ButtonPressFeedback.Attach(line);
             rowButton.onClick.AddListener(() =>
             {
                 selectedRow = index;
@@ -1050,6 +1052,7 @@ namespace FlashBeat.UI.V6.Option
             var cancelNav = cancelButton.navigation;
             cancelNav.mode = Navigation.Mode.None;
             cancelButton.navigation = cancelNav;
+            V6ButtonPressFeedback.Attach(cancel);
             cancelButton.onClick.AddListener(CancelClearConfirm);
             V6Controls.Text(cancel, "Label", "キャンセル", Vector2.zero, new Vector2(198f, 50f),
                 26f, V6Tokens.Text, TextAlignmentOptions.Center);
@@ -1061,6 +1064,7 @@ namespace FlashBeat.UI.V6.Option
             var clearNav = clearButton.navigation;
             clearNav.mode = Navigation.Mode.None;
             clearButton.navigation = clearNav;
+            V6ButtonPressFeedback.Attach(clear);
             clearButton.onClick.AddListener(ConfirmCurrent);
             V6Controls.Text(clear, "Label", confirmLabelText, Vector2.zero, new Vector2(252f, 50f),
                 26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);

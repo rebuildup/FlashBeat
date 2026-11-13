@@ -675,9 +675,12 @@ namespace FlashBeat.UI.V6.Title
                 button.navigation = nav;
             }
 
+            V6ButtonPressFeedback.Attach(go);
             if (onClick != null)
             {
-                button.onClick.AddListener(() => onClick());
+                // Title のボタンはすべて画面遷移 (Select / Option / 終了) を
+                // 起こすので、押下リングが見えるだけ遅らせる。
+                button.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(go, onClick));
             }
 
             return go;

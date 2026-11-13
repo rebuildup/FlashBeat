@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FlashBeat.UI.V5;
+using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Game.Playfield;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1105,6 +1106,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             MenuButton = btn.AddComponent<Button>();
             MenuButton.targetGraphic = btn.GetComponent<Image>();
+            V6ButtonPressFeedback.Attach(btn);
             MenuButton.onClick.AddListener(OpenPauseMenu);
         }
 

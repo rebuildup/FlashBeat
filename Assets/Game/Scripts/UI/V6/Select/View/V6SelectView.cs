@@ -633,9 +633,18 @@ namespace FlashBeat.UI.V6.Select.View
                 readyButton.navigation = nav;
                 if (readyEnabled)
                 {
+                    // Select→Game は画面遷移なので、押下リングが見えるだけ遅らせる。
+                    // 遅延中に絞り込みで選択が隠れた場合に備え、実行直前に
+                    // ReadyAvailable を再確認する (CodeRabbit #438)。
                     readyButton.onClick.AddListener(() =>
                     {
-                        if (onReady != null) onReady();
+                        V6ButtonPressFeedback.RunAfterFeedback(ready, () =>
+                        {
+                            if (ReadyAvailable() && onReady != null)
+                            {
+                                onReady();
+                            }
+                        });
                     });
                 }
                 else
@@ -746,6 +755,7 @@ namespace FlashBeat.UI.V6.Select.View
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
             button.navigation = nav;
+            V6ButtonPressFeedback.Attach(row);
             int songId = song.SongId;
             button.onClick.AddListener(() => data.Select(songId));
 
@@ -1347,6 +1357,7 @@ namespace FlashBeat.UI.V6.Select.View
             var nav = button.navigation;
             nav.mode = Navigation.Mode.None;
             button.navigation = nav;
+            V6ButtonPressFeedback.Attach(go);
             if (onClick != null)
             {
                 button.onClick.AddListener(() => onClick());

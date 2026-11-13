@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -32,9 +33,15 @@ namespace FlashBeat.UI.V6.Common
         /// <summary>輪郭の線幅 (px)。</summary>
         private const float EdgeThickness = 2f;
 
+        /// <summary>
+        /// 遷移系アクションを遅らせる時間 (秒)。押下リングが見えきってから動く。
+        /// </summary>
+        public const float ActionDelaySeconds = 0.15f;
+
         private RectTransform ring;
         private readonly Image[] edges = new Image[4];
         private float startTime = -1f;
+        private bool actionPending;
 
         /// <summary>
         /// ボタンに効果を取り付ける。押下の検出は自分で行う (Button.onClick とは独立)。
@@ -55,6 +62,62 @@ namespace FlashBeat.UI.V6.Common
             button.AddComponent<V6ButtonPressFeedback>();
         }
 
+        /// <summary>
+        /// 画面遷移などを伴う操作を、押下リングが見えるだけ遅らせて実行する。
+        /// リングは押下 (OnPointerDown) で始まるので、クリック解放時点で
+        /// すでにアニメーション中。ここではその残り時間ぶんだけ待つ。
+        /// 連打で二重に動かないよう、実行待ちの間は後続を無視する。
+        /// 効果が付いていないボタンでは即時実行する。
+        /// </summary>
+        public static void RunAfterFeedback(GameObject button, Action action)
+        {
+            if (button == null || action == null)
+            {
+                return;
+            }
+
+            var feedback = button.GetComponent<V6ButtonPressFeedback>();
+            if (feedback == null)
+            {
+                action();
+                return;
+            }
+
+            feedback.RunAfterFeedback(action);
+        }
+
+        private void RunAfterFeedback(Action action)
+        {
+            if (actionPending)
+            {
+                return;
+            }
+
+            // EditMode テストではコルーチンが回らないので即時実行する
+            // (リングは再生時だけの視覚効果で、テストの関心事ではない)。
+            if (!Application.isPlaying)
+            {
+                action();
+                return;
+            }
+
+            actionPending = true;
+            // 遷移でこのボタンが破棄されても動作が失われないよう、
+            // コルーチンはシーンに依存しないホストで回す。
+            FeedbackHost.Instance.StartCoroutine(DelayThen(action, this));
+        }
+
+        private static System.Collections.IEnumerator DelayThen(Action action, V6ButtonPressFeedback feedback)
+        {
+            yield return new WaitForSecondsRealtime(ActionDelaySeconds);
+            if (feedback != null)
+            {
+                feedback.actionPending = false;
+            }
+
+            action();
+        }
+
         private void Awake()
         {
             BuildRing();
@@ -73,6 +136,11 @@ namespace FlashBeat.UI.V6.Common
             ring.offsetMin = Vector2.zero;
             ring.offsetMax = Vector2.zero;
             ring.pivot = new Vector2(0.5f, 0.5f);
+
+            // レイアウトグループの子になっているボタンでも、リングは
+            // レイアウト計算に参加させない (押下で子の間隔が動くのを防ぐ)。
+            var layout = go.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
 
             // 上 / 下 / 左 / 右 の 4 辺。中央は空ける (ボタンの中身を覆わない)。
             edges[0] = AddEdge("Top", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, EdgeThickness));
@@ -177,6 +245,43 @@ namespace FlashBeat.UI.V6.Common
         public float RingAlphaForAudit
         {
             get { return edges[0] != null ? edges[0].color.a : -1f; }
+        }
+    }
+
+    /// <summary>
+    /// 遅延アクションのコルーチンを回す、シーンに依存しないホスト
+    /// (V6JacketProvider.RemoteHost と同じパターン)。
+    /// </summary>
+    internal sealed class FeedbackHost : MonoBehaviour
+    {
+        private static FeedbackHost instance;
+
+        internal static FeedbackHost Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    var go = new GameObject("V6ButtonPressFeedbackHost");
+                    // EditMode テストでは DontDestroyOnLoad が使えないので再生中だけ永続化する。
+                    if (Application.isPlaying)
+                    {
+                        DontDestroyOnLoad(go);
+                    }
+
+                    instance = go.AddComponent<FeedbackHost>();
+                }
+
+                return instance;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (ReferenceEquals(instance, this))
+            {
+                instance = null;
+            }
         }
     }
 }
