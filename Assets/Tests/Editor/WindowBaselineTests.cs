@@ -8,8 +8,8 @@ using NUnit.Framework;
 /// - UISizeProfile の選択 (#169 が契約化した規則)
 /// - SelectView の design スケール (u) がプロファイル倍率と一致すること
 ///   (16:9 の 2 条件では 2 つのスケーリング系統が一致する契約)
-/// - TitleLayout がウィンドウに収まること
 /// をコード側で固定する。実機確認 (Mac 2560x1664 を含む) はオーナーゲート。
+/// (v5 TitleLayout は v6 固定フレーム化で不要になり削除済み — Issue #497)
 /// </summary>
 public class WindowBaselineTests
 {
@@ -53,18 +53,6 @@ public class WindowBaselineTests
     {
         Assert.AreEqual(1f, SelectView.DesignScale(0, 0));
         Assert.AreEqual(1f, SelectView.DesignScale(-1, 0));
-    }
-
-    [Test]
-    public void TitleLayoutFitsBothWin64WindowConditions()
-    {
-        foreach (var (w, h) in Win64WindowConditions)
-        {
-            var r = TitleLayout.Compute(w, h, visibleRows: 4);
-            Assert.LessOrEqual(r.Menu.yMax, h, "menu exceeds the window at " + w + "x" + h);
-            Assert.LessOrEqual(r.Logo.xMax, w, "logo exceeds the window at " + w + "x" + h);
-            Assert.LessOrEqual(r.BarV.xMax, w, "frame bar exceeds the window at " + w + "x" + h);
-        }
     }
 
     [Test]

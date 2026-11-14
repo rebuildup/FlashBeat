@@ -114,23 +114,15 @@ public class V5LegacyReferenceAuditTests
     // --- 生成サイトが無い = 削除候補 ---
 
     [Test]
-    public void TitleView_HasNoInstantiationSite()
+    public void TitleView_And_OptionView_AreDeleted()
     {
-        // v5 TitleView はどこからも作られていない (TitleSceneManager のコメントどおり)。
-        // 残っているのは名前文字列の照合とコメントだけ。
-        string[] files = FilesReferencing("TitleView");
-        Assert.IsFalse(System.Array.Exists(files, f => f.EndsWith("TitleSceneManager.cs")
-            && File.ReadAllText(Path.Combine(ScriptsRoot, f)).Contains("V5.TitleView.Create")),
-            "v5 TitleView の生成サイトが復活したら台帳を更新すること");
-    }
-
-    [Test]
-    public void OptionView_HasNoInstantiationSite()
-    {
-        // OptionSceneManager は V6OptionView のみを生成する。
-        string optionManager = File.ReadAllText(
-            Path.Combine(ScriptsRoot, "UI", "OptionSceneManager.cs"));
-        Assert.IsFalse(optionManager.Contains("V5.OptionView"),
-            "v5 OptionView の参照が復活したら台帳を更新すること");
+        // Issue #497: 生成経路ゼロだった v5 TitleView / OptionView / TitleLayout は削除済み。
+        // ファイルが復活したら台帳 (docs/architecture/v5-legacy-ui-references.md) を更新すること。
+        string v5Dir = Path.Combine(ScriptsRoot, "UI", "V5");
+        foreach (string name in new[] { "TitleView.cs", "OptionView.cs", "TitleLayout.cs" })
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(v5Dir, name)),
+                "v5 " + name + " が復活した。削除済みのはず (Issue #497)。");
+        }
     }
 }

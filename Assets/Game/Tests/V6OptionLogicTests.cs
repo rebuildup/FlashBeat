@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Threading;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -45,6 +47,24 @@ namespace FlashBeat.UI.V6.Option
             Assert.AreEqual("100%", V6OptionLogic.FormatVolume(1f));
             Assert.AreEqual("30%", V6OptionLogic.FormatVolume(0.3f), "0.3 * 100 の誤差で 29% にならない");
             Assert.AreEqual("0%", V6OptionLogic.FormatVolume(0f));
+        }
+
+        [Test]
+        public static void FormatSpeed_KeepsOneDecimal()
+        {
+            // 旧 v5 OptionView.FormatSpeed と同じ契約 (Issue #497 で v5 側は削除)。
+            // ToString("F1") はカルチャの小数区切りに従うため、不変カルチャで固定する。
+            var previous = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            try
+            {
+                Assert.AreEqual("10.0", V6OptionLogic.FormatSpeed(10f));
+                Assert.AreEqual("10.1", V6OptionLogic.FormatSpeed(10.1f));
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = previous;
+            }
         }
 
         [Test]
