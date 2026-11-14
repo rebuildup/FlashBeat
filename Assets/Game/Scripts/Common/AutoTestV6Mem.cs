@@ -327,6 +327,7 @@ public class AutoTestV6Mem : MonoBehaviour
 
         string objLine = ObjectCensus();
         string auditLine = AuditCounters();
+        string typeLine = TypeCensus();
 
         string line = string.Format(CultureInfo.InvariantCulture,
             "census label={0} scene={1} monoUsedMB={2:F1} monoHeapMB={3:F1} allocMB={4:F1} reservedMB={5:F1} | {6} | {7}",
@@ -335,6 +336,53 @@ public class AutoTestV6Mem : MonoBehaviour
             allocated / 1048576.0, reserved / 1048576.0,
             objLine, auditLine);
         Log(line);
+        Log("types label=" + label + " " + typeLine);
+    }
+
+    /// <summary>
+    /// ロード済み全 UnityEngine.Object を型名で集計する。
+    /// monoUsed が増え続けるのに個数系が頭打ちの場合、残る犯人は
+    /// この表 (ネイティブは破棄済みだがマネージド側だけ残る型) か、
+    /// 純粋な C# オブジェクト (文字列 / リスト / デリゲート) のどちらか。
+    /// </summary>
+    static string TypeCensus()
+    {
+        var all = Resources.FindObjectsOfTypeAll<UnityEngine.Object>();
+        var groups = new Dictionary<string, TypeStat>();
+        for (int i = 0; i < all.Length; i++)
+        {
+            UnityEngine.Object obj = all[i];
+            if (obj == null) { continue; }
+            string name = obj.GetType().Name;
+            TypeStat stat;
+            if (!groups.TryGetValue(name, out stat))
+            {
+                stat = new TypeStat();
+                groups[name] = stat;
+            }
+            stat.Count++;
+            stat.Bytes += Profiler.GetRuntimeMemorySizeLong(obj);
+        }
+
+        var sorted = new List<KeyValuePair<string, TypeStat>>(groups);
+        sorted.Sort((a, b) => b.Value.Bytes.CompareTo(a.Value.Bytes));
+        var sb = new StringBuilder();
+        int shown = 0;
+        for (int i = 0; i < sorted.Count && shown < 30; i++)
+        {
+            if (shown > 0) { sb.Append(" "); }
+            sb.Append(sorted[i].Key).Append("=").Append(sorted[i].Value.Count)
+              .Append("(").Append((sorted[i].Value.Bytes / 1048576.0)
+                  .ToString("F1", CultureInfo.InvariantCulture)).Append("MB)");
+            shown++;
+        }
+        return sb.ToString();
+    }
+
+    sealed class TypeStat
+    {
+        public int Count;
+        public long Bytes;
     }
 
     /// <summary>ロード済み UnityEngine.Object の個数とランタイムメモリ合計。</summary>

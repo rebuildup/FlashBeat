@@ -1,0 +1,503 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.013 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x10523d7d0]: surface size 3420x2148
+UnloadTime: 0.916542 ms
+[FullscreenBootstrap] event=purge-resolution stored=3420x2148, display=3420x2224
+[FullscreenDiagnostics] event=startup, screen=3420x2148, currentResolution=3420x2148@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,3420x2148, displays=1, display0=system:3420x2224,rendering:3420x2148,active:True, quality=1, time=2026-11-14T00:31:17Z
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_ReOQp4.mov
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[V6Mem] start out=docs/evidence/416-mem/1ead8dd9-rounds8 uiRounds=8 games=1 songs=ツイッターランド resolution=3420x2148
+[V6Mem] census label=boot scene=Opening monoUsedMB=2.4 monoHeapMB=2.4 allocMB=88.2 reservedMB=173.8 | tex2d=20(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=2(0.0MB){:0.0,V6Rounded4:0.0} mat=13(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=0(0.0MB) audio=0(0.0MB) mesh=77(0.0MB){Cube:0.0,:0.0,:0.0} go=192(0.0MB){Root:0.0,V5 Opening Canvas:0.0,FlashBeatUpdateNotice:0.0}  | jacket[local=0 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=0 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=2 sharedCreate=2] sprites[iconCache=0 shared=2 create=2] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.780209 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3089.
+Total: 1.023875 ms (FindLiveObjects: 0.049292 ms CreateObjectMapping: 0.169791 ms MarkObjects: 0.800209 ms  DeleteObjects: 0.004500 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213755046 scene=TitleScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[FullscreenBootstrap] event=first-frame, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[UpdateChecker] 最新です (build=0.1.26+1ead8dd9, latest=v0.1.14-macos-39f0c3c) — 現行版のまま続行します。
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=after-legacy-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[V6Mem] census label=title-0 scene=TitleScene scene=TitleScene monoUsedMB=3.1 monoHeapMB=3.1 allocMB=99.3 reservedMB=177.8 | tex2d=34(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=15(0.0MB){V6TitleLogo:0.0,V6Rounded8:0.0,V6Rounded1:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 2 3420x2148:182.2,TempBuffer 3 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=0 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=0 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=9 sharedCreate=9] sprites[iconCache=5 shared=9 create=9] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.604791 ms
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3516.
+Total: 3.067292 ms (FindLiveObjects: 0.208750 ms CreateObjectMapping: 0.243334 ms MarkObjects: 2.579375 ms  DeleteObjects: 0.035709 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213753030 scene=SelectScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[FullscreenBootstrap] event=after-mode-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=still-uncovered, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-0 scene=SelectScene scene=SelectScene monoUsedMB=6.2 monoHeapMB=6.2 allocMB=102.2 reservedMB=179.8 | tex2d=68(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=49(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 4 3420x2148:182.2,TempBuffer 5 1920x1080:7.9} audio=0(0.0MB) mesh=320(0.0MB){Cube:0.0,:0.0,:0.0} go=1047(0.0MB){V6SelectDataSourceHost:0.0,Dot 28:0.0,Dot 27:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=13 shared=19 create=19] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.188875 ms
+Unloading 63 unused Assets to reduce memory usage. Loaded Objects now: 3385.
+Total: 2.938292 ms (FindLiveObjects: 0.205208 ms CreateObjectMapping: 0.267458 ms MarkObjects: 2.366042 ms  DeleteObjects: 0.099125 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213744990 scene=OptionScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V6Mem] census label=option-0 scene=OptionScene scene=OptionScene monoUsedMB=6.6 monoHeapMB=6.6 allocMB=102.7 reservedMB=179.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 6 3420x2148:182.2,TempBuffer 7 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.282750 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 7.549583 ms (FindLiveObjects: 0.141375 ms CreateObjectMapping: 0.210125 ms MarkObjects: 7.162875 ms  DeleteObjects: 0.034958 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213737030 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-0 scene=SelectScene scene=SelectScene monoUsedMB=8.5 monoHeapMB=8.5 allocMB=102.6 reservedMB=179.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 8 3420x2148:182.2,TempBuffer 9 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=1]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.586416 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 7.771208 ms (FindLiveObjects: 0.297000 ms CreateObjectMapping: 0.289333 ms MarkObjects: 7.117583 ms  DeleteObjects: 0.067250 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213728274 scene=TitleScene children=0
+[V6Mem] census label=title-1 scene=TitleScene scene=TitleScene monoUsedMB=6.6 monoHeapMB=6.6 allocMB=100.6 reservedMB=179.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 10 3420x2148:182.2,TempBuffer 11 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.229292 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 8.663250 ms (FindLiveObjects: 0.420334 ms CreateObjectMapping: 0.306083 ms MarkObjects: 7.892333 ms  DeleteObjects: 0.043833 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213726960 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-1 scene=SelectScene scene=SelectScene monoUsedMB=8.6 monoHeapMB=8.6 allocMB=102.6 reservedMB=179.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 12 3420x2148:182.2,TempBuffer 13 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=1]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.567458 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 7.594000 ms (FindLiveObjects: 0.142500 ms CreateObjectMapping: 0.213666 ms MarkObjects: 7.163834 ms  DeleteObjects: 0.073917 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213718174 scene=OptionScene children=0
+[V6Mem] census label=option-1 scene=OptionScene scene=OptionScene monoUsedMB=8.4 monoHeapMB=8.4 allocMB=104.7 reservedMB=179.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 14 3420x2148:182.2,TempBuffer 15 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.651458 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 10.539625 ms (FindLiveObjects: 0.267667 ms CreateObjectMapping: 0.307708 ms MarkObjects: 9.943625 ms  DeleteObjects: 0.020375 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213710214 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-1 scene=SelectScene scene=SelectScene monoUsedMB=10.3 monoHeapMB=10.3 allocMB=104.8 reservedMB=179.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 16 3420x2148:182.2,TempBuffer 17 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 7.560583 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 14.744709 ms (FindLiveObjects: 0.425292 ms CreateObjectMapping: 0.358583 ms MarkObjects: 13.888500 ms  DeleteObjects: 0.072208 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213701458 scene=TitleScene children=0
+[V6Mem] census label=title-2 scene=TitleScene scene=TitleScene monoUsedMB=8.3 monoHeapMB=8.3 allocMB=101.0 reservedMB=179.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 18 3420x2148:182.2,TempBuffer 19 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.974000 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 14.424083 ms (FindLiveObjects: 0.499292 ms CreateObjectMapping: 0.415875 ms MarkObjects: 13.468708 ms  DeleteObjects: 0.040083 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213700144 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-2 scene=SelectScene scene=SelectScene monoUsedMB=10.4 monoHeapMB=10.4 allocMB=104.9 reservedMB=179.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 20 3420x2148:182.2,TempBuffer 21 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.520958 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 9.142583 ms (FindLiveObjects: 0.209750 ms CreateObjectMapping: 0.220375 ms MarkObjects: 8.667625 ms  DeleteObjects: 0.044583 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213691358 scene=OptionScene children=0
+[V6Mem] census label=option-2 scene=OptionScene scene=OptionScene monoUsedMB=10.2 monoHeapMB=10.2 allocMB=105.8 reservedMB=179.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 22 3420x2148:182.2,TempBuffer 23 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.636542 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 19.215583 ms (FindLiveObjects: 0.518708 ms CreateObjectMapping: 0.310542 ms MarkObjects: 18.313958 ms  DeleteObjects: 0.072375 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213683398 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-2 scene=SelectScene scene=SelectScene monoUsedMB=12.1 monoHeapMB=12.1 allocMB=103.8 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 24 3420x2148:182.2,TempBuffer 25 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.909208 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 15.704209 ms (FindLiveObjects: 0.167000 ms CreateObjectMapping: 0.170292 ms MarkObjects: 15.311250 ms  DeleteObjects: 0.055584 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213674642 scene=TitleScene children=0
+[V6Mem] census label=title-3 scene=TitleScene scene=TitleScene monoUsedMB=10.2 monoHeapMB=10.2 allocMB=100.7 reservedMB=195.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 26 3420x2148:182.2,TempBuffer 27 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.954709 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 17.399250 ms (FindLiveObjects: 0.268500 ms CreateObjectMapping: 0.210541 ms MarkObjects: 16.870542 ms  DeleteObjects: 0.049458 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213673328 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-3 scene=SelectScene scene=SelectScene monoUsedMB=12.1 monoHeapMB=12.1 allocMB=102.6 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 28 3420x2148:182.2,TempBuffer 29 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=2]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.618334 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 17.954541 ms (FindLiveObjects: 0.304667 ms CreateObjectMapping: 0.249917 ms MarkObjects: 17.302666 ms  DeleteObjects: 0.097125 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213664542 scene=OptionScene children=0
+[V6Mem] census label=option-3 scene=OptionScene scene=OptionScene monoUsedMB=12.0 monoHeapMB=12.0 allocMB=102.7 reservedMB=195.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 30 3420x2148:182.2,TempBuffer 31 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.205125 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 21.997458 ms (FindLiveObjects: 0.324833 ms CreateObjectMapping: 0.215167 ms MarkObjects: 21.426625 ms  DeleteObjects: 0.030750 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213656582 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-3 scene=SelectScene scene=SelectScene monoUsedMB=13.9 monoHeapMB=13.9 allocMB=102.6 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 32 3420x2148:182.2,TempBuffer 33 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.870458 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 22.070334 ms (FindLiveObjects: 0.325000 ms CreateObjectMapping: 0.264792 ms MarkObjects: 21.416542 ms  DeleteObjects: 0.063834 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213647826 scene=TitleScene children=0
+[V6Mem] census label=title-4 scene=TitleScene scene=TitleScene monoUsedMB=11.9 monoHeapMB=11.9 allocMB=100.6 reservedMB=195.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 34 3420x2148:182.2,TempBuffer 35 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.234958 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 24.721458 ms (FindLiveObjects: 0.371791 ms CreateObjectMapping: 0.320708 ms MarkObjects: 23.983625 ms  DeleteObjects: 0.045208 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213646512 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-4 scene=SelectScene scene=SelectScene monoUsedMB=14.1 monoHeapMB=14.1 allocMB=104.9 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 36 3420x2148:182.2,TempBuffer 37 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.638667 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 18.539834 ms (FindLiveObjects: 0.245500 ms CreateObjectMapping: 0.291750 ms MarkObjects: 17.962125 ms  DeleteObjects: 0.040209 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213637726 scene=OptionScene children=0
+[V6Mem] census label=option-4 scene=OptionScene scene=OptionScene monoUsedMB=13.8 monoHeapMB=13.8 allocMB=105.5 reservedMB=195.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 38 3420x2148:182.2,TempBuffer 39 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.773583 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 16.393250 ms (FindLiveObjects: 0.234916 ms CreateObjectMapping: 0.193625 ms MarkObjects: 15.933084 ms  DeleteObjects: 0.031583 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213629766 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-4 scene=SelectScene scene=SelectScene monoUsedMB=15.8 monoHeapMB=15.8 allocMB=103.4 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 40 3420x2148:182.2,TempBuffer 41 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 7.055750 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 26.596917 ms (FindLiveObjects: 0.305958 ms CreateObjectMapping: 0.250292 ms MarkObjects: 25.996625 ms  DeleteObjects: 0.043750 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213621010 scene=TitleScene children=0
+[V6Mem] census label=title-5 scene=TitleScene scene=TitleScene monoUsedMB=13.8 monoHeapMB=13.8 allocMB=100.8 reservedMB=195.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 42 3420x2148:182.2,TempBuffer 43 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.500458 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 28.680750 ms (FindLiveObjects: 0.563750 ms CreateObjectMapping: 0.299042 ms MarkObjects: 27.775416 ms  DeleteObjects: 0.042208 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213619696 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-5 scene=SelectScene scene=SelectScene monoUsedMB=15.8 monoHeapMB=15.8 allocMB=104.9 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 44 3420x2148:182.2,TempBuffer 45 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=3]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.278750 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 19.041291 ms (FindLiveObjects: 0.213250 ms CreateObjectMapping: 0.245417 ms MarkObjects: 18.545417 ms  DeleteObjects: 0.036917 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213610910 scene=OptionScene children=0
+[V6Mem] census label=option-5 scene=OptionScene scene=OptionScene monoUsedMB=15.6 monoHeapMB=15.6 allocMB=104.8 reservedMB=195.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 46 3420x2148:182.2,TempBuffer 47 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.623000 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 19.616792 ms (FindLiveObjects: 0.198209 ms CreateObjectMapping: 0.211208 ms MarkObjects: 19.189583 ms  DeleteObjects: 0.017541 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213602950 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-5 scene=SelectScene scene=SelectScene monoUsedMB=17.5 monoHeapMB=17.5 allocMB=102.9 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 48 3420x2148:182.2,TempBuffer 49 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.912167 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 18.070459 ms (FindLiveObjects: 0.185084 ms CreateObjectMapping: 0.205125 ms MarkObjects: 17.638375 ms  DeleteObjects: 0.041667 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213594194 scene=TitleScene children=0
+[V6Mem] census label=title-6 scene=TitleScene scene=TitleScene monoUsedMB=15.6 monoHeapMB=15.6 allocMB=100.6 reservedMB=195.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 50 3420x2148:182.2,TempBuffer 51 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.729042 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 30.095167 ms (FindLiveObjects: 0.159792 ms CreateObjectMapping: 0.240791 ms MarkObjects: 29.645750 ms  DeleteObjects: 0.048500 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213592880 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-6 scene=SelectScene scene=SelectScene monoUsedMB=17.5 monoHeapMB=17.5 allocMB=102.7 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 52 3420x2148:182.2,TempBuffer 53 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 7.172083 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 27.096333 ms (FindLiveObjects: 0.220166 ms CreateObjectMapping: 0.340584 ms MarkObjects: 26.468042 ms  DeleteObjects: 0.067208 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213584094 scene=OptionScene children=0
+[V6Mem] census label=option-6 scene=OptionScene scene=OptionScene monoUsedMB=17.4 monoHeapMB=17.4 allocMB=102.7 reservedMB=195.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 54 3420x2148:182.2,TempBuffer 55 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.297875 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 31.473500 ms (FindLiveObjects: 0.155791 ms CreateObjectMapping: 0.230709 ms MarkObjects: 31.056584 ms  DeleteObjects: 0.029875 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213576134 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-6 scene=SelectScene scene=SelectScene monoUsedMB=19.4 monoHeapMB=19.4 allocMB=102.7 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 56 3420x2148:182.2,TempBuffer 57 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.503791 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 30 unused Assets to reduce memory usage. Loaded Objects now: 3167.
+Total: 22.154750 ms (FindLiveObjects: 0.187417 ms CreateObjectMapping: 0.207667 ms MarkObjects: 21.719500 ms  DeleteObjects: 0.040125 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213567378 scene=TitleScene children=0
+[V6Mem] census label=title-7 scene=TitleScene scene=TitleScene monoUsedMB=17.4 monoHeapMB=17.4 allocMB=100.6 reservedMB=195.8 | tex2d=59(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=40(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 58 3420x2148:182.2,TempBuffer 59 1920x1080:7.9} audio=0(0.0MB) mesh=107(0.0MB){Cube:0.0,:0.0,:0.0} go=303(0.0MB){Legend Label 終了:0.0,Key:0.0,KeyCap E:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.004917 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 24.305250 ms (FindLiveObjects: 0.240208 ms CreateObjectMapping: 0.306625 ms MarkObjects: 23.723333 ms  DeleteObjects: 0.034958 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213566064 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-7 scene=SelectScene scene=SelectScene monoUsedMB=19.4 monoHeapMB=19.4 allocMB=104.9 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 60 3420x2148:182.2,TempBuffer 61 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=4]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.353458 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 37 unused Assets to reduce memory usage. Loaded Objects now: 3389.
+Total: 32.566541 ms (FindLiveObjects: 0.142417 ms CreateObjectMapping: 0.205083 ms MarkObjects: 32.127833 ms  DeleteObjects: 0.090791 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213557278 scene=OptionScene children=0
+[V6Mem] census label=option-7 scene=OptionScene scene=OptionScene monoUsedMB=19.2 monoHeapMB=19.2 allocMB=105.4 reservedMB=195.8 | tex2d=54(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=35(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=17(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 62 3420x2148:182.2,TempBuffer 63 1920x1080:7.9} audio=0(0.0MB) mesh=328(0.0MB){Cube:0.0,:0.0,:0.0} go=1023(0.0MB){Desc:0.0,Desc Title:0.0,Divider:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=5]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.529292 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 28.533625 ms (FindLiveObjects: 0.104375 ms CreateObjectMapping: 0.163042 ms MarkObjects: 28.247625 ms  DeleteObjects: 0.018500 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213549318 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=select-back-7 scene=SelectScene scene=SelectScene monoUsedMB=21.2 monoHeapMB=21.2 allocMB=103.4 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 64 3420x2148:182.2,TempBuffer 65 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=5]
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.414417 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 2 unused Assets to reduce memory usage. Loaded Objects now: 3574.
+Total: 33.197708 ms (FindLiveObjects: 0.125750 ms CreateObjectMapping: 0.191542 ms MarkObjects: 32.870792 ms  DeleteObjects: 0.009417 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213540510 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[V6Mem] census label=g0-ツイッターランド select scene=SelectScene monoUsedMB=21.2 monoHeapMB=21.2 allocMB=104.9 reservedMB=195.8 | tex2d=71(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=52(0.0MB){V6Rounded18:0.0,V6Rounded36:0.0,V6Rounded28:0.0} mat=18(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 66 3420x2148:182.2,TempBuffer 67 1920x1080:7.9} audio=0(0.0MB) mesh=349(0.0MB){Cube:0.0,:0.0,:0.0} go=1145(0.0MB){NoData:0.0,Metric:0.0,Title:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=0 cached=9 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=19 sharedCreate=19] sprites[iconCache=15 shared=19 create=19] mediaCache[bytes=151012052 scans=5]
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=local resources
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=snapshot
+[Perf] scene load start GameScene
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.177500 ms
+[Perf] notes parse 0ms (130 notes)
+[Perf] scene load end GameScene 86ms
+[MusicManager] InvidiousVideoPlayer removed for 'ツイッターランド' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[MusicManager] media cache hit videoId=e_qQEU_uGjw (merged) - skipped the yt-dlp format probe
+[Perf] media resolve 181ms (cache hit)
+[Perf] media files 181ms
+[Perf] video Prepare() call 0ms file=merged.mp4
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213531532 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213530650 scene=GameScene children=0
+Unloading 42 unused Assets to reduce memory usage. Loaded Objects now: 8234.
+Total: 21.274542 ms (FindLiveObjects: 0.434459 ms CreateObjectMapping: 0.260084 ms MarkObjects: 20.445166 ms  DeleteObjects: 0.134792 ms)
+
+[Perf] notes instantiate 130 notes in 318ms slowestBatch=0.7ms@8
+[MusicManager] picture wired to the renderer of '4' (_MainTex, renderMode=MaterialOverride)
+[Perf] video wire picture 0ms
+[Perf] video activate 0ms
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.0s
+[MusicManager] no bundled wav for 'ツイッターランド' - the YouTube media is the only sound source
+[Perf] media ready 308ms
+[MusicManager] media ready: song='ツイッターランド' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[V6Mem] census label=g0-ツイッターランド game-enter scene=GameScene monoUsedMB=22.1 monoHeapMB=22.1 allocMB=106.5 reservedMB=195.8 | tex2d=61(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=44(0.0MB){V6LoadingJacket:0.0,LoadingGradient:0.0,V6Rounded12:0.0} mat=33(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=4(183.0MB){TempBuffer 68 3420x2148:182.2,TempBuffer 69 640x360:0.9,:0.0} audio=0(0.0MB) mesh=402(0.0MB){Cube:0.0,LaneGuides:0.0,:0.0} go=1484(0.0MB){Note(Clone):0.0,Note(Clone):0.0,Note(Clone):0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=10 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=25 sharedCreate=25] sprites[iconCache=17 shared=25 create=25] mediaCache[bytes=151012052 scans=5]
+[V6Mem] g0-ツイッターランド media ready=True audioMode=StreamCombined videoPrepared=True failure=None
+[Perf] video Play() call 0ms
+[MusicManager] PLAYBACK_START song='ツイッターランド' videoId='e_qQEU_uGjw' source=StreamCombined mediaTime=0.000 wallClock=2026-11-14T09:33:36.269 gameTime=134.103
+[Perf] video first rendered frame at mediaTime=0.00
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+Miss
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.0000 peak=0.4363 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=1 failure=None
+Miss
+[MusicManager] STATUS mediaTime=4.03 audioMode=StreamCombined rms=0.1768 peak=0.4654 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
+[V6Mem] census label=g0-ツイッターランド gameplay scene=GameScene monoUsedMB=22.2 monoHeapMB=22.2 allocMB=96.2 reservedMB=199.8 | tex2d=62(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=44(0.0MB){V6LoadingJacket:0.0,LoadingGradient:0.0,V6Rounded12:0.0} mat=34(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=4(183.0MB){TempBuffer 68 3420x2148:182.2,TempBuffer 69 640x360:0.9,:0.0} audio=0(0.0MB) mesh=404(0.0MB){Cube:0.0,LaneGuides:0.0,:0.0} go=1486(0.0MB){Miss(Clone):0.0,Miss(Clone):0.0,Note(Clone):0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=10 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=25 sharedCreate=25] sprites[iconCache=17 shared=25 create=25] mediaCache[bytes=151012052 scans=5]
+[MusicManager] STATUS mediaTime=6.03 audioMode=StreamCombined rms=0.0000 peak=0.4654 video[playing=True frame=4158 prepared=True] perfect=1 great=0 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=8.07 audioMode=StreamCombined rms=0.0000 peak=0.4654 video[playing=True frame=4158 prepared=True] perfect=2 great=0 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=10.07 audioMode=StreamCombined rms=0.1276 peak=0.4724 video[playing=True frame=4158 prepared=True] perfect=3 great=3 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=12.10 audioMode=StreamCombined rms=0.0000 peak=0.4724 video[playing=True frame=4158 prepared=True] perfect=5 great=6 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=14.10 audioMode=StreamCombined rms=0.0741 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=6 great=11 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=16.13 audioMode=StreamCombined rms=0.2268 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=8 great=17 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=18.13 audioMode=StreamCombined rms=0.3200 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=11 great=26 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=20.17 audioMode=StreamCombined rms=0.1499 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=18 great=33 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=22.17 audioMode=StreamCombined rms=0.3951 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=27 great=35 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=24.20 audioMode=StreamCombined rms=0.0000 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=32 great=43 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=26.20 audioMode=StreamCombined rms=0.0000 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=34 great=54 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=28.20 audioMode=StreamCombined rms=0.2569 peak=0.5223 video[playing=True frame=4158 prepared=True] perfect=35 great=56 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=30.23 audioMode=StreamCombined rms=0.4874 peak=0.6203 video[playing=True frame=4158 prepared=True] perfect=36 great=59 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=32.23 audioMode=StreamCombined rms=0.2472 peak=0.6460 video[playing=True frame=4158 prepared=True] perfect=38 great=62 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=34.27 audioMode=StreamCombined rms=0.1164 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=39 great=66 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=36.27 audioMode=StreamCombined rms=0.2621 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=43 great=67 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=38.30 audioMode=StreamCombined rms=0.4645 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=47 great=70 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=40.30 audioMode=StreamCombined rms=0.4562 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=51 great=76 bad=0 miss=2 failure=None
+[MusicManager] STATUS mediaTime=42.33 audioMode=StreamCombined rms=0.0285 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=51 great=77 bad=0 miss=2 failure=None
+[MusicManager] song completed: judged 130/130, mediaEnded=False, state=Completed
+[MusicManager] STATUS mediaTime=44.33 audioMode=StreamCombined rms=0.0000 peak=0.6749 video[playing=True frame=4158 prepared=True] perfect=51 great=77 bad=0 miss=2 failure=None
+[Perf] scene load start ResultScene
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 15.606875 ms
+[Perf] scene load end ResultScene 225ms
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213516616 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[V6Mem] g0-ツイッターランド end state=Completed scene=ResultScene judged=130 hitsSent=128
+Unloading 51 unused Assets to reduce memory usage. Loaded Objects now: 4112.
+Total: 38.732541 ms (FindLiveObjects: 0.743333 ms CreateObjectMapping: 0.287417 ms MarkObjects: 37.509917 ms  DeleteObjects: 0.191833 ms)
+
+[V6Mem] census label=g0-ツイッターランド result scene=ResultScene scene=ResultScene monoUsedMB=21.1 monoHeapMB=21.1 allocMB=102.1 reservedMB=199.8 | tex2d=66(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=48(0.0MB){V6LoadingJacket:0.0,LoadingGradient:0.0,V6Rounded12:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 70 3420x2148:182.2,TempBuffer 71 1920x1080:7.9} audio=0(0.0MB) mesh=186(0.0MB){Cube:0.0,:0.0,:0.0} go=446(0.0MB){V6ResultCoroutineHost:0.0,Label:0.0,Status Chip:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=10 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=25 sharedCreate=25] sprites[iconCache=20 shared=25 create=25] mediaCache[bytes=151012052 scans=6]
+[V6Mem] census label=pre-seed scene=ResultScene monoUsedMB=21.1 monoHeapMB=21.1 allocMB=102.1 reservedMB=199.8 | tex2d=66(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=48(0.0MB){V6LoadingJacket:0.0,LoadingGradient:0.0,V6Rounded12:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 70 3420x2148:182.2,TempBuffer 71 1920x1080:7.9} audio=0(0.0MB) mesh=186(0.0MB){Cube:0.0,:0.0,:0.0} go=446(0.0MB){V6ResultCoroutineHost:0.0,Label:0.0,Status Chip:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=10 remoteEntries=0 remoteSprites=0 evicted=0] owner[shared=25 sharedCreate=25] sprites[iconCache=20 shared=25 create=25] mediaCache[bytes=151012052 scans=6]
+[V6Mem] seed capacity=50 seeded=60 evictedCounter=10 texturesDestroyed=10
+[V6Mem] census label=post-seed scene=ResultScene monoUsedMB=20.6 monoHeapMB=20.6 allocMB=102.1 reservedMB=199.8 | tex2d=116(16.1MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=48(0.0MB){V6LoadingJacket:0.0,LoadingGradient:0.0,V6Rounded12:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 70 3420x2148:182.2,TempBuffer 71 1920x1080:7.9} audio=0(0.0MB) mesh=186(0.0MB){Cube:0.0,:0.0,:0.0} go=446(0.0MB){V6ResultCoroutineHost:0.0,Label:0.0,Status Chip:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=10 remoteEntries=50 remoteSprites=0 evicted=10] owner[shared=25 sharedCreate=25] sprites[iconCache=20 shared=25 create=25] mediaCache[bytes=151012052 scans=6]
+[V6Mem] census label=post-destroyall scene=ResultScene monoUsedMB=20.6 monoHeapMB=20.6 allocMB=102.1 reservedMB=199.8 | tex2d=66(16.0MB){Noto Sans CJK JP - Medium Atlas:16.0,UnityNHxRoughness:0.0,UnityHalo:0.0} sprite=38(0.0MB){LoadingGradient:0.0,V6Rounded12:0.0,V6Rounded10:0.0} mat=19(0.0MB){Noto Sans CJK JP - Medium Material:0.0,Noto Sans CJK JP - Medium Material:0.0,Hidden/VideoDecode:0.0} rt=2(190.1MB){TempBuffer 70 3420x2148:182.2,TempBuffer 71 1920x1080:7.9} audio=0(0.0MB) mesh=186(0.0MB){Cube:0.0,:0.0,:0.0} go=446(0.0MB){V6ResultCoroutineHost:0.0,Label:0.0,Status Chip:0.0}  | jacket[local=9 remote=0 dedup=0 neg=0 fail=0 crop=1 cached=0 remoteEntries=0 remoteSprites=0 evicted=10] owner[shared=25 sharedCreate=25] sprites[iconCache=20 shared=25 create=25] mediaCache[bytes=151012052 scans=6]
+[V6Mem] done
+Thread 0x16ede7000 may have been prematurely finalized
+Thread 0x16e9c7000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16d9eb000 may have been prematurely finalized
+CodeReloadManager destroyed
