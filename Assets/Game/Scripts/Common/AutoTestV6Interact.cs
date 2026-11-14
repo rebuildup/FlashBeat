@@ -204,8 +204,9 @@ public class AutoTestV6Interact : MonoBehaviour
             if (value != null && value.Contains("F2")) { f2Shown = true; }
         }
         Debug.Log(Tag + " option play rows: " + string.Join(" / ", labels));
-        Check("the play tab has NoteSpeed / NoteTiming / キー設定",
-            labels.Contains("NoteSpeed") && labels.Contains("NoteTiming") && labels.Contains("キー設定"));
+        var expectedPlayRows = new[] { "NoteSpeed", "NoteTiming", "Key Layout", "キー設定" };
+        Check("the play tab has exactly the 4 expected rows in order",
+            RowsMatchExpected(labels, expectedPlayRows));
         Check("no row shows F2 as its value", !f2Shown);
 
         int keyRow = labels.IndexOf("キー設定");
@@ -233,7 +234,7 @@ public class AutoTestV6Interact : MonoBehaviour
             Check("NoteSpeed is saved to PlayerPrefs",
                 !float.IsNaN(saved) && Mathf.Abs(saved - GManager.noteSpeed) < 0.001f);
             Check("the NoteSpeed row shows the new value",
-                option.RowValueForAudit(speedRow) == V6OptionLogic.FormatSpeed(GManager.noteSpeed));
+                option.RenderedRowValueForAudit(speedRow) == V6OptionLogic.FormatSpeed(GManager.noteSpeed));
         }
         else
         {
@@ -253,7 +254,7 @@ public class AutoTestV6Interact : MonoBehaviour
             Check("NoteTiming changes from the option row", GManager.noteTiming != before);
             Check("NoteTiming is saved to PlayerPrefs", saved == GManager.noteTiming);
             Check("the NoteTiming row shows the new value",
-                option.RowValueForAudit(timingRow) == GManager.noteTiming.ToString());
+                option.RenderedRowValueForAudit(timingRow) == GManager.noteTiming.ToString());
         }
         else
         {
@@ -664,8 +665,14 @@ public class AutoTestV6Interact : MonoBehaviour
             else if (label == "NoteTiming") { pTiming = i; }
             else if (label == "キー設定") { pKey = i; }
         }
-        Check("the pause play tab has NoteSpeed / NoteTiming / キー設定",
-            pSpeed >= 0 && pTiming >= 0 && pKey >= 0);
+        var pausePlayLabels = new List<string>();
+        for (int i = 0; i < pause.RowCountForAudit(0); i++)
+        {
+            pausePlayLabels.Add(pause.RowLabelForAudit(0, i));
+        }
+        var expectedPausePlayRows = new[] { "NoteSpeed", "NoteTiming", "Key Layout", "キー設定" };
+        Check("the pause play tab has exactly the 4 expected rows in order",
+            RowsMatchExpected(pausePlayLabels, expectedPausePlayRows));
         Check("the pause key config row shows no F2",
             pKey >= 0 && (pause.RowValueForAudit(0, pKey) ?? string.Empty).IndexOf("F2") < 0);
 
@@ -681,7 +688,12 @@ public class AutoTestV6Interact : MonoBehaviour
             float saved = PlayerPrefs.GetFloat(OptionSettings.NoteSpeedKey, float.NaN);
             Debug.Log(Tag + " pause notespeed " + before.ToString("F2") + " -> "
                 + GManager.noteSpeed.ToString("F2") + " saved=" + saved.ToString("F2"));
-            Check("NoteSpeed changes from the pause menu", GManager.noteSpeed != before);
+            // Option と同じ 0.1 刻み (Issue #376: Pause/Option で同一の値モデル)。
+            Check("NoteSpeed changes from the pause menu",
+                Mathf.Abs(GManager.noteSpeed - (before + 0.1f)) < 0.001f);
+            Check("the pause NoteSpeed row shows the new value",
+                pause.RenderedRowValueForAudit(0, pSpeed)
+                    == V6PauseViewLogic.FormatNoteSpeed(GManager.noteSpeed));
             Check("NoteSpeed is saved from the pause menu",
                 !float.IsNaN(saved) && Mathf.Abs(saved - GManager.noteSpeed) < 0.001f);
         }
@@ -705,6 +717,20 @@ public class AutoTestV6Interact : MonoBehaviour
             var pauseModal = pause.KeyConfigModalForAudit;
             Check("the pause key config modal opens", pauseModal != null && pauseModal.IsOpen);
             Check("the pause modal blocks the background input", V6KeyConfigModal.BlocksInput);
+
+            // フラグだけでなく実際の入力経路で確かめる: モーダル表示中に
+            // メニュー切替キー (T = KeyAction.MenuSwitch) を注入しても
+            // 背後のタブが動かないこと。注入は KeyActions.IsDown 経由で
+            // UpdatePause の実コードを通る (監査 API は使わない)。
+            pause.SelectTab(2); // Sound
+            yield return null;
+            KeyBindings.InjectKeyDown(KeyCode.T);
+            yield return null;
+            yield return null;
+            Check("keys injected while the modal is open do not reach the pause menu",
+                pause.SelectedTabForAudit == 2);
+            pause.SelectTab(0); // Play へ戻す (後続の検証のため)
+            yield return null;
             yield return Screenshot("376-pause-keyconfig");
             if (pauseModal != null)
             {
@@ -739,28 +765,40 @@ public class AutoTestV6Interact : MonoBehaviour
     /// </summary>
     private IEnumerator RunContentCache()
     {
-        // 冷たい状態 (キャッシュ空) と温かい状態で同じ画面を開き、所要時間と
-        // Resources の実読込回数を比べる。
-        V6ContentCaches.InvalidateAll();
-        float cold = 0f;
-        yield return TimedSelect("cold", v => cold = v);
-        var before = CacheCounts();
+        // クラウドカタログの定期再取得が計測の合間に曲を差し替えると
+        // 「2 回目で読み直さない」の判定が揺れる (remote=28 曲が途中で
+        // 追加され chartMeta loads が +28 になった実例あり)。計測中は
+        // SelectSceneManager / V6SelectDataSource の両方の再取得を止める。
+        V6ContentCaches.SuspendCatalogRefresh = true;
+        try
+        {
+            // 冷たい状態 (キャッシュ空) と温かい状態で同じ画面を開き、所要時間と
+            // Resources の実読込回数を比べる。
+            V6ContentCaches.InvalidateAll();
+            float cold = 0f;
+            yield return TimedSelect("cold", v => cold = v);
+            var before = CacheCounts();
 
-        yield return LoadScene("TitleScene");
-        float warm = 0f;
-        yield return TimedSelect("warm", v => warm = v);
-        var after = CacheCounts();
+            yield return LoadScene("TitleScene");
+            float warm = 0f;
+            yield return TimedSelect("warm", v => warm = v);
+            var after = CacheCounts();
 
-        Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
-            + " first=" + before.Describe() + " second=" + after.Describe());
+            Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
+                + " first=" + before.Describe() + " second=" + after.Describe());
 
-        Check("the first visit loads charts", before.ChartMetaLoads + before.ChartExistsLoads > 0);
-        Check("the second visit reloads no chart meta",
-            after.ChartMetaLoads == before.ChartMetaLoads);
-        Check("the second visit reloads no chart existence",
-            after.ChartExistsLoads == before.ChartExistsLoads);
-        Check("the second visit reloads no jacket", after.JacketLoads == before.JacketLoads);
-        Check("the jackets stay cached", after.JacketCount > 0 && after.JacketCount >= before.JacketCount);
+            Check("the first visit loads charts", before.ChartMetaLoads + before.ChartExistsLoads > 0);
+            Check("the second visit reloads no chart meta",
+                after.ChartMetaLoads == before.ChartMetaLoads);
+            Check("the second visit reloads no chart existence",
+                after.ChartExistsLoads == before.ChartExistsLoads);
+            Check("the second visit reloads no jacket", after.JacketLoads == before.JacketLoads);
+            Check("the jackets stay cached", after.JacketCount > 0 && after.JacketCount >= before.JacketCount);
+        }
+        finally
+        {
+            V6ContentCaches.SuspendCatalogRefresh = false;
+        }
     }
 
     /// <summary>Select シーンを開き、シーンが有効になって 2 フレーム経つまでの秒数を返す。</summary>
@@ -868,6 +906,16 @@ public class AutoTestV6Interact : MonoBehaviour
         }
 
         ExecuteEvents.ExecuteHierarchy(hit, pointer, handler);
+        return true;
+    }
+
+    private static bool RowsMatchExpected(List<string> labels, string[] expected)
+    {
+        if (labels.Count != expected.Length) { return false; }
+        for (int i = 0; i < expected.Length; i++)
+        {
+            if (labels[i] != expected[i]) { return false; }
+        }
         return true;
     }
 

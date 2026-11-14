@@ -420,6 +420,13 @@ namespace FlashBeat.UI.V6.Game.Pause
             return read != null ? read() : null;
         }
 
+        /// <summary>タブ・行に実際に描画されている値テキスト。</summary>
+        public string RenderedRowValueForAudit(int tab, int row)
+        {
+            var value = pageRows[tab][row].Value;
+            return value != null ? value.text : null;
+        }
+
         /// <summary>タブと行を選択する (クリックと同じ SelectTab + SelectRow 経路)。</summary>
         public void SelectRowForAudit(int tab, int row)
         {
@@ -464,6 +471,12 @@ namespace FlashBeat.UI.V6.Game.Pause
         public void ActivateSelectedForAudit()
         {
             ActivateSelected();
+        }
+
+        /// <summary>選択中タブの番号。</summary>
+        public int SelectedTabForAudit
+        {
+            get { return selectedTab; }
         }
 
         /// <summary>キー設定モーダル (開いていなければ null)。</summary>
@@ -525,9 +538,9 @@ namespace FlashBeat.UI.V6.Game.Pause
                     () => V6PauseViewLogic.FormatNoteSpeed(GManager.noteSpeed),
                     dir =>
                     {
-                        // 範囲は Option 画面 / Select の Ready と同じ OptionSettings (1..50)。
-                        GManager.noteSpeed = PauseMenuView.NextNoteSpeed(GManager.noteSpeed, dir);
-                        OptionSettings.Save();
+                        // Option 画面と同じ 0.1 刻み・clamp・保存経路に揃える
+                        // (Issue #376: Pause と Option で同じ値モデルを使う)。
+                        OptionSceneManager.AdjustNoteSpeed(dir);
                     });
                 AddRow(rows, pageRoot, 1, "NoteTiming",
                     () => V6PauseViewLogic.FormatNoteTiming(GManager.noteTiming),

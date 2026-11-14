@@ -506,6 +506,7 @@ namespace FlashBeat.UI.V6.Select.Data
 
         void StartCatalogRefresh()
         {
+            if (V6ContentCaches.SuspendCatalogRefresh) return; // 監査計測中は再取得しない
             CloudCatalog.Config config = CloudCatalog.LoadConfig();
             if (config == null) return; // API 未設定: 固定カタログのまま (エラー扱いにしない)
             if (catalogFetchInFlight) return;
@@ -530,6 +531,12 @@ namespace FlashBeat.UI.V6.Select.Data
 
             SongData[] songs = status == 200 ? CloudCatalog.ParseCatalog(body) : null;
             catalogFetchInFlight = false;
+            if (V6ContentCaches.SuspendCatalogRefresh)
+            {
+                // 監査計測中に完了した取得は捨てる (曲構成を計測の合間に変えない)。
+                statusMessage = "";
+                yield break;
+            }
             if (songs != null)
             {
                 GManager.ApplyRemoteCatalog(songs);

@@ -12,20 +12,25 @@
 
 ## 結果
 
-`fhd/autotest-v6interact-result.txt`: **pass=82 fail=0** (1920x1080)。
+`fhd/autotest-v6interact-result.txt`: **pass=84 fail=0** (1920x1080)。
 
 #375 / #376 の新規チェック (全て PASS):
 
-- Option Play タブに NoteSpeed / NoteTiming / Key Layout / キー設定 の 4 行がある。
+- Option Play タブの行が `NoteSpeed / NoteTiming / Key Layout / キー設定`
+  の 4 行・この順序と完全一致する (部分一致ではなく全列を検証)。
+- Pause Play タブも同じ 4 行・同じ順序。
 - どの行の値にも `F2` を表示しない。キー設定行の値は `開く ›`。
 - NoteSpeed / NoteTiming は行の ←→ と同じ `AdjustSelected` 経路で変更でき、
   `GManager` の値・PlayerPrefs (`FlashBeat.NoteSpeed` / `FlashBeat.NoteTiming`)・
-  行の表示値が一致する。NoteTiming は曲ごとの offset 設定へも書き戻される
-  (検証後に元の値へ復元済み)。
+  **実際に描画されている TMP テキスト** (`RenderedRowValueForAudit`) が一致する。
+  NoteTiming は曲ごとの offset 設定へも書き戻される (検証後に元の値へ復元済み)。
+- Pause の NoteSpeed は Option と同じ 0.1 刻み (`OptionSceneManager.AdjustNoteSpeed`)
+  で、1 回の ←→ で +0.1 になることを値で検証する。
 - 「キー設定」行の決定 (Enter と同じ `ActivateRow` 経路) だけで
   `V6KeyConfigModal` が開き、背後の入力をブロックする。F2 は不要。
-- Pause の Play タブでも同じ 4 行に到達でき、NoteSpeed / NoteTiming の変更と
-  保存、キー設定モーダルの開閉を確認 (ポーズ中 = PauseGate 閉鎖下で実施)。
+- Pause のモーダル表示中にメニュー切替キー (T) を実際の入力経路
+  (`KeyBindings.InjectKeyDown` → `KeyActions.IsDown` → `UpdatePause`) で注入し、
+  背後のタブが動かないことを確認する (フラグだけでなく実入力で検証)。
 
 スクリーンショット:
 
@@ -46,6 +51,14 @@
   (b) Pause の NoteTiming は `GManager` / PlayerPrefs だけ更新し、
   Option が行う曲ごとの offset 書き戻し (`WriteNoteTimingToSongOffsets`)
   をしていなかった → 同じ呼び出しを追加し、画面間で保存先を一致させた。
+  (c) Pause の NoteSpeed は `PauseMenuView.NextNoteSpeed` による整数 ±1 刻みで、
+  Option の 0.1 刻み (`OptionSceneManager.AdjustNoteSpeed`) と異なっていた
+  → Pause 側も同じ `AdjustNoteSpeed` 経路に統一した。
   併せて「値欄に F2 だけが見える旧導線」も廃止済み (決定 §4.1)。
 - 直前の 640x480 実行ではポインタ系チェックが解像度起因で FAIL したため、
   本証跡はウィンドウモード 1920x1080 で取り直した。
+- #377 のキャッシュ計測は、クラウドカタログの定期再取得 (約 8 秒周期) が
+  計測の合間に remote 曲を追加すると `chartMeta loads` が増えて FAIL する
+  競合があった (実測 +28)。`V6ContentCaches.SuspendCatalogRefresh` で
+  計測中は `SelectSceneManager` / `V6SelectDataSource` の両経路の
+  カタログ再取得を止めるようにし、決定的にした。

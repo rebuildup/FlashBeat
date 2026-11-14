@@ -212,6 +212,14 @@ namespace FlashBeat.UI.V6.Option
             return index >= 0 && index < currentRows.Count ? currentRows[index].Value?.Invoke() : null;
         }
 
+        /// <summary>行に実際に描画されている値テキスト (描画が止まっても検出できる)。</summary>
+        public string RenderedRowValueForAudit(int index)
+        {
+            return index >= 0 && index < rowValueTexts.Count && rowValueTexts[index] != null
+                ? rowValueTexts[index].text
+                : null;
+        }
+
         /// <summary>行を選択する (↑↓ と同じ WrapIndex + Rebuild 経路)。</summary>
         public void SelectRowForAudit(int index)
         {
