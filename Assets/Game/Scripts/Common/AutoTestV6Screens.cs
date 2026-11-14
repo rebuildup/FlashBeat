@@ -141,6 +141,14 @@ public class AutoTestV6Screens : MonoBehaviour
                     string previous = select.Query;
 
                     // 取得中 + 表示行なし → スケルトン (初回の未取得状態に相当)。
+                    // 実フェッチが残っていると完了時に監査フラグを上書きするので、
+                    // 先に実フェッチの終了を待つ。
+                    float fetchWait = 0f;
+                    while (fetchWait < 5f && ds.IsLoading)
+                    {
+                        fetchWait += Time.unscaledDeltaTime;
+                        yield return null;
+                    }
                     select.SetQuery("__no_song_matches__");
                     ds.SetAuditCatalogFetching(true);
                     yield return new WaitForSecondsRealtime(0.3f);

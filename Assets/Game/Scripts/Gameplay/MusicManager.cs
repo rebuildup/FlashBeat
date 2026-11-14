@@ -1019,6 +1019,13 @@ public class MusicManager : MonoBehaviour
             {
                 Debug.Log($"[MusicManager] resume seek: video time {pictureTime:F3} -> frozen {PauseGate.FrozenMediaTime:F3}");
                 songVideo.time = PauseGate.FrozenMediaTime;
+                // BundledWave は音声が別プレイヤーなので同じ位置へ揃える
+                // (StreamSeparate は ShouldResync が毎フレーム追従する)。
+                if (audioMode == PlaybackSource.BundledWave && audioS != null)
+                {
+                    audioS.time = PauseGate.FrozenMediaTime;
+                }
+                lastResumeSyncSeekWall = Time.time;
             }
         }
 
