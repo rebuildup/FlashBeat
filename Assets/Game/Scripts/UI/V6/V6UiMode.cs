@@ -188,6 +188,9 @@ namespace FlashBeat.UI.V6
         {
             lastScannedGeneration = -1;
             lastScanFrame = int.MinValue;
+            lastV5CanvasGeneration = -1;
+            lastV5CanvasScanFrame = int.MinValue;
+            lastUpdateNoticeScanFrame = -1;
         }
 
         /// <summary>
@@ -236,10 +239,23 @@ namespace FlashBeat.UI.V6
         /// 無効化しない**: v6 の更新ボタンが UpdateNoticeUI.Trigger() を呼ぶため、
         /// 非表示にするのは見た目 (UpdateNoticeCanvas) だけ。
         /// UpdateNoticeUI は最初の Update でピルを生成するので、Start 時点では
-        /// まだ無い → 毎フレーム試して見つかり次第隠す (戻り値 true で完了)。
+        /// まだ無い → 見つかり次第隠す (戻り値 true で完了)。
+        ///
+        /// Issue #385 Phase 3: 走査は <see cref="UpdateNoticeScanIntervalFrames"/>
+        /// フレームに 1 回までに絞る。バナーは数フレーム遅れても実害が無く、
+        /// 見つかるまで毎フレーム <c>FindObjectsByType&lt;Canvas&gt;</c> を
+        /// 呼ぶ必要はない。
         /// </summary>
         public static bool HideLegacyUpdateNotice()
         {
+            int frame = UnityEngine.Time.frameCount;
+            if (lastUpdateNoticeScanFrame >= 0
+                && frame - lastUpdateNoticeScanFrame < UpdateNoticeScanIntervalFrames)
+            {
+                return false;
+            }
+            lastUpdateNoticeScanFrame = frame;
+
             var canvases = UnityEngine.Object.FindObjectsByType<UnityEngine.Canvas>(
                 UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
             bool found = false;
@@ -266,9 +282,26 @@ namespace FlashBeat.UI.V6
         /// 登録名は「v5 が作った名前」なので、v6 側の名前 ("V6...") には触らない。
         /// 破棄済みの Canvas は null として飛ばす (登録は名前だけなので残ってよい)。
         /// 冪等: 既に非アクティブなら何もしない。
+        ///
+        /// Issue #385 Phase 3: 呼び出し自体はドライバが毎フレーム行うが、
+        /// 実際の走査は **v5 の Canvas 生成番号が変わったとき** と
+        /// <see cref="SafetyScanIntervalFrames"/> ごとの保険だけに絞る
+        /// (<see cref="HideLegacyTitleUi"/> と同じ方式)。登録済み Canvas が
+        /// v5 側で再表示されても、最悪 2 秒程度で隠し直される。
         /// </summary>
         public static bool HideLegacyV5Canvases()
         {
+            int generation = FlashBeat.UI.V5.V5GameUi.CanvasGeneration;
+            bool shouldScan = generation != lastV5CanvasGeneration
+                || UnityEngine.Time.frameCount - lastV5CanvasScanFrame >= SafetyScanIntervalFrames;
+            if (!shouldScan)
+            {
+                return true;
+            }
+
+            lastV5CanvasGeneration = generation;
+            lastV5CanvasScanFrame = UnityEngine.Time.frameCount;
+
             // Issue #396: 生成時に登録された Canvas 参照だけを見る。毎フレームの
             // シーン全列挙 (FindObjectsByType) も配列確保も起きない。
             var canvases = FlashBeat.UI.V5.V5GameUi.CreatedCanvases;
@@ -282,6 +315,23 @@ namespace FlashBeat.UI.V6
             }
             return true;
         }
+
+        /// <summary>最後に V5 Canvas を走査したときの生成番号 (Issue #385 Phase 3)。</summary>
+        private static int lastV5CanvasGeneration = -1;
+
+        /// <summary>最後に V5 Canvas を走査したフレーム (保険の定期走査用)。</summary>
+        private static int lastV5CanvasScanFrame = int.MinValue;
+
+        /// <summary>
+        /// 更新通知バナーを探す走査の間隔 (フレーム)。バナーは急がないので
+        /// <see cref="SafetyScanIntervalFrames"/> より短い間隔で十分。
+        /// 見つかるまではこの間隔でだけ <c>FindObjectsByType</c> を呼ぶ
+        /// (Issue #385 Phase 3: 毎フレームのシーン走査をやめる)。
+        /// </summary>
+        public const int UpdateNoticeScanIntervalFrames = 30;
+
+        /// <summary>最後に更新通知バナーを走査したフレーム。</summary>
+        private static int lastUpdateNoticeScanFrame = -1;
 
         /// <summary>
         /// Issue #396: 全走査をやめた後の後始末。登録に無い旧 v5 ルート
