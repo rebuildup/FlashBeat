@@ -226,5 +226,27 @@ namespace FlashBeat.V5CanvasTests
             Assert.IsFalse(string.IsNullOrEmpty(source.StatusMessage));
             Assert.AreEqual(1, GManager.songID, "隠れた曲で開始しない (遷移の確定もしない)");
         }
+
+        // --- 監査フック (#374) -----------------------------------------------------
+
+        [Test]
+        public void SetAuditCatalogFetching_TogglesIsLoading_AndFiresChanged()
+        {
+            // 画面監査 (AutoTestV6Screens) がスケルトン/点滅なし経路を実機で
+            // 再現するための口。実通信は行わず IsLoading だけを操作する。
+            var source = new V6SelectDataSource();
+            int changes = 0;
+            source.Changed += () => changes++;
+
+            Assert.IsFalse(source.IsLoading);
+            source.SetAuditCatalogFetching(true);
+            Assert.IsTrue(source.IsLoading);
+            Assert.IsFalse(source.HasError);
+            Assert.AreEqual("カタログを取得しています…", source.StatusMessage);
+
+            source.SetAuditCatalogFetching(false);
+            Assert.IsFalse(source.IsLoading);
+            Assert.GreaterOrEqual(changes, 2, "取得中フラグの変化は Changed で通知する");
+        }
     }
 }

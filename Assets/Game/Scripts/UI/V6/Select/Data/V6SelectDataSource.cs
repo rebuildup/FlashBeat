@@ -190,6 +190,24 @@ namespace FlashBeat.UI.V6.Select.Data
             FireChanged();
         }
 
+        /// <summary>
+        /// 監査用 (#374): カタログ取得中フラグを直接立てる/下ろす。実通信は
+        /// 行わない。画面監査 (AutoTestV6Screens) が「取得中かつ表示行なし →
+        /// スケルトン」「取得中でも行があれば rows のまま (点滅しない)」の
+        /// 経路を実機で再現するための口。実フェッチが走っている最中に
+        /// false を書いても、その完了時に通常どおり false へ戻る。
+        /// </summary>
+        public void SetAuditCatalogFetching(bool fetching)
+        {
+            catalogFetchInFlight = fetching;
+            if (fetching)
+            {
+                hasError = false;
+                statusMessage = "カタログを取得しています…";
+            }
+            FireChanged();
+        }
+
         // --- カタログ -----------------------------------------------------------
 
         void RebuildSongs()

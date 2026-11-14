@@ -386,6 +386,16 @@ namespace FlashBeat.UI.V6.Select.View
             get { return data == null || data.FilteredSongs == null ? 0 : data.FilteredSongs.Count; }
         }
 
+        /// <summary>
+        /// 検証用 (#374): 曲リスト Rows の表示モード ("" / "skeleton" / "empty" / "rows")。
+        /// 画面監査 (AutoTestV6Screens) が再取得中にスケルトンへ戻らないことを
+        /// 機械的に確認するための口。
+        /// </summary>
+        public string ListModeForAudit
+        {
+            get { return listMode; }
+        }
+
         /// <summary>検証用: 画面が参照しているデータ供給。</summary>
         public IV6SelectDataSource Data
         {

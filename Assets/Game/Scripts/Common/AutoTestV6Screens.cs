@@ -118,6 +118,76 @@ public class AutoTestV6Screens : MonoBehaviour
             var history = FlashBeat.UI.V6.History.V6HistoryView.Current;
             var ranking = FlashBeat.UI.V6.Ranking.V6RankingView.Current;
 
+            // Issue #374 受入の自動再現:
+            //   (a) 再取得 3 連続でスケルトンへ戻らない (点滅しない)
+            //   (b) 取得中かつ表示行なし → スケルトン、取得中でも行あり → rows
+            //   (c) 空状態・エラー状態 (ヘッダー Status) が出る
+            if (select != null)
+            {
+                var refetch = new ScreenReport { Label = "SelectScene-Refetch" };
+                for (int r = 0; r < 3; r++)
+                {
+                    select.Data.RefreshAsync();
+                    yield return new WaitForSecondsRealtime(0.6f);
+                    Check(refetch, "refetch #" + (r + 1) + " keeps rows (no skeleton)",
+                        select.ListModeForAudit == "rows");
+                    yield return Screenshot(refetch, "SelectScene-Refetch" + (r + 1));
+                }
+                reports.Add(refetch);
+
+                var ds = select.Data as FlashBeat.UI.V6.Select.Data.V6SelectDataSource;
+                if (ds != null)
+                {
+                    string previous = select.Query;
+
+                    // 取得中 + 表示行なし → スケルトン (初回の未取得状態に相当)。
+                    select.SetQuery("__no_song_matches__");
+                    ds.SetAuditCatalogFetching(true);
+                    yield return new WaitForSecondsRealtime(0.3f);
+                    var skel = new ScreenReport { Label = "SelectScene-Skeleton" };
+                    Check(skel, "loading without visible rows shows the skeleton",
+                        select.ListModeForAudit == "skeleton");
+                    yield return Screenshot(skel, "SelectScene-Skeleton");
+                    reports.Add(skel);
+
+                    // 取得中でも表示行があればスケルトンへ戻らない (点滅しない)。
+                    select.SetQuery(previous);
+                    yield return new WaitForSecondsRealtime(0.2f);
+                    var keep = new ScreenReport { Label = "SelectScene-LoadingKeepsRows" };
+                    Check(keep, "loading with visible rows keeps the rows",
+                        select.ListModeForAudit == "rows");
+                    yield return Screenshot(keep, "SelectScene-LoadingKeepsRows");
+                    reports.Add(keep);
+
+                    ds.SetAuditCatalogFetching(false);
+                    yield return new WaitForSecondsRealtime(0.3f);
+                }
+
+                // エラー状態: 絞り込みで隠れた選択への CommitReady は理由を
+                // StatusMessage (ヘッダーの Status) に出す実経路。
+                string savedQuery = select.Query;
+                select.SetQuery("__no_song_matches__");
+                select.Data.CommitReady();
+                yield return new WaitForSecondsRealtime(0.3f);
+                var err = new ScreenReport { Label = "SelectScene-Error" };
+                Check(err, "a rejected ready surfaces the reason in the header",
+                    select.Data.HasError && !string.IsNullOrEmpty(select.Data.StatusMessage));
+                yield return Screenshot(err, "SelectScene-Error");
+                reports.Add(err);
+
+                select.SetQuery(savedQuery);
+                select.Data.RefreshAsync(); // hasError を解除する経路 (取得中表示へ)
+                // 取得の完了まで待つ。失敗時は HasError が正しく残る
+                // (エラー表示の維持そのものが仕様) ので、時間で打ち切る。
+                float clearWaited = 0f;
+                while (clearWaited < 8f && select.Data.HasError)
+                {
+                    clearWaited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+
             // design AqFtx (02b 該当なし): 検索ヒット 0 件の空状態を実機で撮る。
             if (select != null)
             {
