@@ -1,0 +1,4 @@
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=50 fail=0 symbols=0 shots=v6screen-GameScene-HUD-1.png
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=249 fail=0 symbols=4 shots=v6screen-GameScene-Pause-2.png
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=64 fail=0 symbols=2 shots=v6screen-GameScene-Loading-3.png
+[AutoTestV6Screens] RESULT pass=10 fail=0 symbols=6 screenshots=3 resolution=2560x1440

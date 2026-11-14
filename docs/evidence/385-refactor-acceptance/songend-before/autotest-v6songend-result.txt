@@ -1,0 +1,14 @@
+[AutoTestV6SongEnd] RESULT pass=32 fail=0
+song=ツイッターランド
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=127 great=2 bad=0 miss=1
+judged=130
+settled=130
+chartNotes=130 runtimeNotes=130
+score=986153 combo=129 maxCombo=129 comboPeak=129
+rankingMode=Online
+loadingObserved=True
+loadingVisibleSeconds=0.65
+judgedMatchesChart=True

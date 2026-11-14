@@ -1,0 +1,48 @@
+PASS the scene OptionScene is loaded
+PASS option view exists
+PASS the sound tab shows the volume slider
+PASS the screenshot 375-slider-drag was written
+PASS the pointer events reach the slider through the event system
+PASS the value and the label follow every drag step
+PASS the drag changes the value to where the pointer is
+PASS the value owner follows the drag
+PASS the value label follows the drag
+PASS the knob follows the drag
+PASS releasing the pointer saves the volume
+PASS a drag without release is not saved immediately
+PASS leaving the screen saves the pending volume
+PASS the scene ResultScene is loaded
+PASS result view exists
+PASS the reveal is staged (not everything at once)
+PASS the trophy fades in gradually
+PASS the register field opens automatically at the reveal register stage
+PASS the reveal completes on its own
+PASS the screenshot 384-result-reveal was written
+PASS the scene ResultScene is loaded
+PASS result view exists (skip run)
+PASS Space skips the staged reveal
+PASS the skip does not open the register field
+PASS the screenshot 384-result-skip was written
+PASS the scene GameScene is loaded
+PASS pause view exists
+PASS game hud exists
+PASS opening the pause closes the gate
+PASS resume starts the countdown
+PASS the screenshot 382-countdown-1 was written
+PASS the countdown shows 3-2-1
+PASS the gate stays closed for the whole countdown
+PASS the countdown ends
+PASS the gate opens when the countdown ends
+PASS Esc during the countdown cancels it
+PASS Esc during the countdown returns to the pause menu
+PASS the gate stays closed after the cancel
+PASS Esc on the frame the countdown starts is ignored
+PASS the select scene is loaded (cold)
+PASS the scene TitleScene is loaded
+PASS the select scene is loaded (warm)
+PASS the first visit loads charts
+FAIL the second visit reloads no chart meta
+PASS the second visit reloads no chart existence
+PASS the second visit reloads no jacket
+PASS the jackets stay cached
+[AutoTestV6Interact] RESULT pass=46 fail=1 screenshots=4 resolution=2560x1440
