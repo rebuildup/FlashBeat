@@ -30,12 +30,12 @@ Native 側のリージョン内訳を取得した。目的は「シーン巡回�
 | sample | footprint | IOAccelerator (graphics) resident | IOSurface resident | Untagged resident | Malloc Small resident |
 |---|---|---|---|---|---|
 | 1 | 1.0G | 168.6M | 113.3M | 77.4M | 81.8M |
-| 2 | 1.0G | ~168M | 113.3M | 84.3M | ~81M |
-| 3 | 998.3M | ~155M | 113.3M | 83.9M | ~27M |
+| 2 | 1.0G | 157.6M | 113.3M | 84.3M | 81.4M |
+| 3 | 998.3M | 155.4M | 113.3M | 83.9M | 44.8M |
 | 4 | 991.4M | 155.0M | 113.3M | 54.7M | 27.3M |
-| 5 | 1.0G | ~153M | 113.3M | 53.4M | ~20M |
-| 6 | 997.0M | ~153M | 113.3M | 49.5M | ~20M |
-| 7 | 995.0M | ~153M | 113.3M | 58.6M | ~20M |
+| 5 | 1.0G | 157.4M | 113.3M | 53.4M | 28.8M |
+| 6 | 997.0M | 152.8M | 113.3M | 49.5M | 27.7M |
+| 7 | 995.0M | 152.8M | 113.3M | 58.6M | 32.3M |
 | 8 | 996.1M | 153.2M | 113.3M | 38.7M | 20.2M |
 
 (カラムは vmmap -summary の SIZE 列のうち resident 相当。`Malloc Small` は圧縮・退避で
@@ -43,13 +43,13 @@ resident がサンプル間で変動するが、footprint 合計は安定。)
 
 ## 内訳の解釈
 
-- **IOAccelerator (graphics)**: 仮想 ~723-739MB、resident ~153-169MB — GPU/Metal 関連。
+- **IOAccelerator (graphics)**: 仮想 ~723-739MB、resident 152.8-168.6M — GPU/Metal 関連。
   動画再生パイプラインと RenderTexture (`TempBuffer 3420x2148` 等、census の rt=190MB と整合)
   が支配的。
 - **IOSurface**: resident 113.3M 一定 — デコード済みフレーム/テクスチャの共有メモリ。
 - **Untagged**: Unity ネイティブ (mono/エンジン) 領域。resident 38-84M で変動するが累積傾向なし。
   `Untagged (media)` は 10MB 固定。
-- **Malloc ゾーン**: Small resident は初期 81.8M → 20M 台へ低下 (起動直後の一時確保が
+- **Malloc ゾーン**: Small resident は初期 81.8M → 20-45M 台へ低下 (起動直後の一時確保が
   圧縮・解放されたもの)。Large は 2.3M 固定。
 - **__TEXT/__LINKEDIT**: コードマッピング主体で resident は実行ページ分のみ。
 
