@@ -314,6 +314,26 @@ public class AutoTestV6Screens : MonoBehaviour
             if (runtime != null)
             {
                 runtime.ShowLoadingForAudit(5, 0.42f);
+
+                // Issue #378: ローディング画面の背景は loading.mp4 の映像。
+                // VideoPlayer の prepare 完了を待ち、映像面 (RawImage) が
+                // 実際に有効になったことを確認してから撮る。
+                var loadingView = FlashBeat.UI.V6.Game.Loading.V6LoadingView.Current;
+                float videoWaited = 0f;
+                while (videoWaited < 15f
+                    && loadingView != null
+                    && !(loadingView.VideoPreparedForAudit && loadingView.VideoVisibleForAudit))
+                {
+                    videoWaited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                var videoReport = new ScreenReport { Label = "GameScene-LoadingVideo" };
+                Check(videoReport, "the loading video prepares and becomes visible",
+                    loadingView != null && loadingView.VideoPreparedForAudit && loadingView.VideoVisibleForAudit);
+                Check(videoReport, "the loading surface is the video (not the flat fallback)",
+                    loadingView != null && loadingView.VideoSurfaceForAudit == "Video");
+                reports.Add(videoReport);
+
                 yield return new WaitForSecondsRealtime(0.8f);
                 yield return CaptureAndAudit("GameScene-Loading", reports);
                 runtime.HideLoadingForAudit();
