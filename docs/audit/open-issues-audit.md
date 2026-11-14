@@ -2017,3 +2017,9 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **保持の確定**: remote = `main` / `release-0-1-0` `release/0-1-2-win64` `release/0.1.11` (リリース系列) / `19` (open #19 WIP) / `feature/p2-catalog-e2e` (`web/scripts/publish-catalog.mjs` 唯一コピー) / `w/385-acceptance-evidence` (PR #494) / `w/preserve-diff/fix-wt-20261114` (保全記録)。local = `main` `main-local` / `w/385-acceptance-evidence` / `w/415-diff-update` (discard-as-code 判定済みの記録) / `w/preserve-*-wt-20261114`×6。
 - **worktree**: `FlashBeat` (detached `548962f6`、main の祖先・ローカル差分は Unity 生成物のみ)、`FlashBeat.acc` (before ビルド `a98307d2` + 証跡出力先として保持価値あり)、`FlashBeat.ev385` (PR #494 の branch checkout)、`FlashBeat.win64build` (detached `fc1543fa`、Win64 ビルド用)。全て評価済み・現時点で削除対象なし。
 - **残る人間依存 (更新)**: PR #494 のレビュー・merge、Win64 実機計測、#368 残 12 件の実機/判断ゲート、本番 write E2E 承認、#30/#360/#75 のオーナー決定。
+
+### 8.12 2026-11-14 — PR #494 merge・#385 証跡の main 確定 (main = `2ec5f6eb`)
+
+- **PR #494 merge**: CodeRabbit 9 件を全件対応 (e550b8b) + 独立レビュー指摘を修正 (6394964f)。独立レビューで diff% 全値・領域検証値を再実行照合し APPROVE。review thread 全件 resolve 後に merge。`docs/evidence/385-refactor-acceptance/` が main 上で確定し、#385 (closed) の受入証跡参照が解決した。
+- **レビューで追加された検証**: 動的差分と固定UIの分離として、差分7画面の領域限定 diff と同一ビルド連続実行の比較を README に記録。Pause の差分2箇所は同一 before ビルド内の状態差・一時状態と画素レベルで確認済み。
+- **#368 残件**: 変更なし (12 件 open、§8.11 の未達条件一覧が正本)。
