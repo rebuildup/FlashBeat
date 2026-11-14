@@ -423,6 +423,49 @@ namespace FlashBeat.UI.V6.Game.Hud
                 }
             }
 
+            /// <summary>表示中 (activeSelf) のスロット数。</summary>
+            public int ActiveCount()
+            {
+                int n = 0;
+                for (int i = 0; i < Slots.Count; i++)
+                {
+                    if (Slots[i].Go.activeSelf) n++;
+                }
+                return n;
+            }
+
+            /// <summary>
+            /// 全スロットが同じ y に並んでいるか (Issue #379: 折り返し・2 行化が
+            /// 起きていないことの判定。桁スロットは固定幅なので理論上は常に 1 行)。
+            /// </summary>
+            public bool IsSingleLine()
+            {
+                float y = float.NaN;
+                for (int i = 0; i < Slots.Count; i++)
+                {
+                    Slot slot = Slots[i];
+                    if (!slot.Go.activeSelf) continue;
+                    if (float.IsNaN(y)) { y = slot.Rt.anchoredPosition.y; }
+                    else if (Mathf.Abs(slot.Rt.anchoredPosition.y - y) > 0.5f) { return false; }
+                }
+                return true;
+            }
+
+            /// <summary>ポップ再生中のスロットがあるか。</summary>
+            public bool AnyAnimating(float now)
+            {
+                for (int i = 0; i < Slots.Count; i++)
+                {
+                    Slot slot = Slots[i];
+                    if (slot.AnimStart >= 0f && slot.Go.activeSelf
+                        && now - slot.AnimStart < V6HudLogic.DigitPopTotal)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             private void EnsureSlots(int count)
             {
                 while (Slots.Count < count)

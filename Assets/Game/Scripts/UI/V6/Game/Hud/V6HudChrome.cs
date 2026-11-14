@@ -40,11 +40,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             img.raycastTarget = false;
         }
 
+        private Image topShadeImage;
+
         private void BuildTopShade()
         {
             var shade = V5Ui.Node(gameObject, "Top Shade");
             V5Ui.PinTop(V6Layout.RectOf(shade), m.TopShadeH, 0f);
             var img = shade.AddComponent<Image>();
+            topShadeImage = img;
             // 上端 #000000A6 → 下端 #00000000。一様な黒帯にすると下端の境界が見えるため、
             // 縦グラデーションにして動画の暗部へ溶かす (契約 §8)。
             img.sprite = TopShadeSprite();
