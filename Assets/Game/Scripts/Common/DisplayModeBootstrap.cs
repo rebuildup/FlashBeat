@@ -109,6 +109,12 @@ namespace FlashBeat.Common
             PurgeStaleStoredMode();
             PurgeStaleResolution();
 
+            // macOS 実機 (#369): ボーダーレス全画面でもメニューバー分が残る。
+            // Metal サーフェス確立後に Spaces へ遷移すると描画が停止するため、
+            // ウィンドウ生成直後 (初回フレーム前後) にネイティブ全画面を要求する。
+            // プラグイン側がウィンドウ出現を待ち、既に被覆済みなら何もしない。
+            NativeFullscreen.TryEnter();
+
             // macOS 実機 (#369): Screen.fullScreenMode が FullScreenWindow を返しても
             // 実ウィンドウはメニューバー分を除いた作業領域サイズのままで、メニューバーが
             // 見えることがある。モードの代入だけでは Unity 側の状態が変わらないため、
@@ -210,6 +216,17 @@ namespace FlashBeat.Common
                 LogReport("after-mode-0.5s");
                 yield return new WaitForSecondsRealtime(1.5f);
                 LogReport("after-mode-2s");
+            }
+
+            // macOS 実機 (#369): ボーダーレス全画面でもメニューバー分 (約 76px) が
+            // 描画面の外に残る。macOS ネイティブ全画面 (Spaces) へ入れて
+            // ディスプレイ全面を被覆させる。プラグイン不在・autotest 時は何もしない。
+            if (!Covered() && NativeFullscreen.TryEnter())
+            {
+                yield return new WaitForSecondsRealtime(1.5f);
+                LogReport("after-native-1.5s");
+                yield return new WaitForSecondsRealtime(1.5f);
+                LogReport("after-native-3s");
             }
 
             LogReport(Covered() ? "covered" : "still-uncovered");
