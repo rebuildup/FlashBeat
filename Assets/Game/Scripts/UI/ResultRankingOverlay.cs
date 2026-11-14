@@ -365,7 +365,7 @@ public class ResultRankingOverlay : MonoBehaviour
                 // Issue #167: v5 View の Update も止める。止めないとランキングの
                 // 名前入力中に ResultView が R / Space / Esc を処理して
                 // リトライや遷移が起きる (ResultSceneManager は v5 では入力を持たない)。
-                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView"
+                || typeName == "SelectView" || typeName == "ResultView"
                 // Tab のキーガイド / F3・F4 の更新通知もモーダル中は止める。
                 || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI"
                 // ボード / モーダル中の F2 でキー設定が重ねて開かないようにする。

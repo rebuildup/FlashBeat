@@ -15,77 +15,9 @@ namespace FlashBeat.UI.V5
     public static class V5UiWiringTests
     {
         // --- Canvas / Raycaster (Scenario 1: マウスで押せること) ---
-
-        [Test]
-        public static void ScreenCanvas_CarriesGraphicRaycaster()
-        {
-            // v5 の画面はコードで Canvas を組み立てるので、実際に画面を生成して確かめる。
-            bool started = false;
-            var view = TitleView.Build(() => started = true, () => { }, () => { }, () => { });
-            try
-            {
-                var canvas = view.GetComponentInParent<Canvas>();
-                Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
-                    "v5 の Canvas に GraphicRaycaster が無いとマウスクリックが Button に届かない。");
-                Assert.IsNotNull(canvas.GetComponent<CanvasScaler>(),
-                    "v5 の Canvas に CanvasScaler が無いと解像度追従しない。");
-            }
-            finally
-            {
-                Object.DestroyImmediate(view.GetComponentInParent<Canvas>().gameObject);
-            }
-        }
-
-        [Test]
-        public static void TitleCanvas_CarriesGraphicRaycaster_AndMenuButtonCallsRealHandler()
-        {
-            bool started = false;
-            bool exited = false;
-            var view = TitleView.Build(() => started = true, () => { }, () => exited = true, () => { });
-            try
-            {
-                var canvas = view.GetComponentInParent<Canvas>();
-                Assert.IsNotNull(canvas, "Title Canvas が生成されていない。");
-                Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
-                    "Title の Canvas に GraphicRaycaster が無い (クリックが効かない原因)。");
-
-                var startButton = FindButton(canvas.gameObject, "Menu GameStart");
-                Assert.IsNotNull(startButton, "Title の GameStart ボタンが見つからない。");
-                startButton.onClick.Invoke();
-                Assert.IsTrue(started, "GameStart ボタンを押しても実ハンドラが呼ばれていない。");
-
-                var exitButton = FindButton(canvas.gameObject, "Menu Exit");
-                Assert.IsNotNull(exitButton, "Title の Exit ボタンが見つからない。");
-                exitButton.onClick.Invoke();
-                Assert.IsTrue(exited, "Exit ボタンを押しても実ハンドラが呼ばれていない。");
-            }
-            finally
-            {
-                Object.DestroyImmediate(view.GetComponentInParent<Canvas>().gameObject);
-            }
-        }
-
-        [Test]
-        public static void OptionCanvas_CarriesGraphicRaycaster_AndBackButtonCallsRealHandler()
-        {
-            bool back = false;
-            var view = OptionView.Build(() => back = true, () => { }, () => { }, () => { }, () => { });
-            try
-            {
-                var canvas = view.GetComponentInParent<Canvas>();
-                Assert.IsNotNull(canvas.GetComponent<GraphicRaycaster>(),
-                    "Option の Canvas に GraphicRaycaster が無い (クリックが効かない原因)。");
-
-                var backButton = FindButton(canvas.gameObject, "Back");
-                Assert.IsNotNull(backButton, "Option の Back ボタンが見つからない。");
-                backButton.onClick.Invoke();
-                Assert.IsTrue(back, "Back ボタンを押しても実ハンドラが呼ばれていない。");
-            }
-            finally
-            {
-                Object.DestroyImmediate(view.GetComponentInParent<Canvas>().gameObject);
-            }
-        }
+        // Title / Option の v5 View は生成経路ゼロのため削除済み (Issue #497)。
+        // 同じ契約 (Canvas の Raycaster / 実ハンドラ) は残る v5 View
+        // (Result / Select / Pause 等) のテストが引き続き固定する。
 
         [Test]
         public static void ResultCanvas_CarriesGraphicRaycaster_AndRetryButtonCallsRealHandler()

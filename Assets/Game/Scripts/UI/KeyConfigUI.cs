@@ -315,8 +315,7 @@ public class KeyConfigUI : MonoBehaviour
                 // v5 の View (Issue #167): コード生成 UI 側の Update も止める。
                 // 止めないとキー設定中に裏の画面が同じキー (矢印 / Enter / Esc / Tab) を
                 // 二重に処理し、Esc で閉じた瞬間に遷移するなどの事故になる。
-                || typeName == "TitleView" || typeName == "SelectView" || typeName == "ResultView"
-                || typeName == "OptionView"
+                || typeName == "SelectView" || typeName == "ResultView"
                 // Tab で開くキーガイド / F3・F4 の更新通知もオーバーレイ中は止める。
                 || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI"
                 // キー設定中の F5 でランキングボードが重ねて開かないようにする。

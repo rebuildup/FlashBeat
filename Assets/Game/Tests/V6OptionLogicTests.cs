@@ -48,6 +48,14 @@ namespace FlashBeat.UI.V6.Option
         }
 
         [Test]
+        public static void FormatSpeed_KeepsOneDecimal()
+        {
+            // 旧 v5 OptionView.FormatSpeed と同じ契約 (Issue #497 で v5 側は削除)。
+            Assert.AreEqual("10.0", V6OptionLogic.FormatSpeed(10f));
+            Assert.AreEqual("10.1", V6OptionLogic.FormatSpeed(10.1f));
+        }
+
+        [Test]
         public static void CycleFlashSpeed_LoopsThroughPowersOfTwo()
         {
             Assert.AreEqual(2, V6OptionLogic.CycleFlashSpeed(1, 1));
