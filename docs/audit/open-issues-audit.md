@@ -2023,3 +2023,12 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **PR #494 merge**: CodeRabbit 9 件を全件対応 (e550b8b) + 独立レビュー指摘を修正 (6394964f)。独立レビューで diff% 全値・領域検証値を再実行照合し APPROVE。review thread 全件 resolve 後に merge。`docs/evidence/385-refactor-acceptance/` が main 上で確定し、#385 (closed) の受入証跡参照が解決した。
 - **レビューで追加された検証**: 動的差分と固定UIの分離として、差分7画面の領域限定 diff と同一ビルド連続実行の比較を README に記録。Pause の差分2箇所は同一 before ビルド内の状態差・一時状態と画素レベルで確認済み。
 - **#368 残件**: 変更なし (12 件 open、§8.11 の未達条件一覧が正本)。
+
+### 8.13 2026-11-15 — 受入 Issue 6 件 close・#378 修正・branch 再回収 (main = `37cdc93e`)
+
+- **PR merge / Issue close**: #500 (#374 Select 受入 + #382 Pause 受入) / #501 (#375/#376 Option・Pause 受入強化) / #502 (#379 HUD 受入) / #503 (#369 macOS native fullscreen) / #504 (#378 Ready 即時遷移)。close: #374 #382 #375 #376 #379 #378。#369 は scaling 2 構成の実機確認が残り open 継続。
+- **#378 の実装修正**: `LoadingOverlay.Show(owner:null)` が排他オーナーを登録せず遷移オーバーレイが一度も表示されていなかった潜在バグを修正 (`ExclusiveOwner`)。#431 の GameScene/v6 抑制を解除し、非同期ロード→`V6LoadingView` へ引き継ぐ。`V6GameRuntime.UpdateLoading` は `MusicManager.MediaReady`/`PlaybackStarted` でシーン活性化直後の隙間もローディング表示。実測 ready→overlay=0.446s / ready→loading=0.759s (before 1.392s)。
+- **#371 再確認**: 実装は PR #387 (`4e2d1627`) で main 済み (映像のみ + `ShowBackdropFallback`)。現行 main で起動直後の映像再生を再確認 (Opening 周辺コードは `4e2d1627` 以降不変)。残件は Win64 スクリーンショットとデコード失敗フォールバックの実機確認のみ。
+- **branch 再回収**: merge 済み local `w/369` `w/374` `w/376` `w/378` `w/379` `w/371` (空) `main-local` を削除。`w/preserve-*-wt-20261114`×5 と `w/415-diff-update` は §8.11 の評価 (obsolete / #415 PR #453-#459 で別系統採用済み / 保全記録) を再確認し保持継続。remote `w/preserve-diff-wt-20261114` も同判定。
+- **残る人間依存 (変わらず)**: Win64 実機計測 (#416/#381/#397/#242/#369 scaling/#371 Win 側)、本番 write E2E 承認、#30/#360/#75/#377/#384 のオーナー判断・pen 更新。
+- **次の実行可能候補**: #416 (Mac での Native/GC メモリ計測 — Mac 実行可)、#388/#389 (証跡 manifest/レビュー報告)、#397 横断監査。
