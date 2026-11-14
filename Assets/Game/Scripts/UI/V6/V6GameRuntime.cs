@@ -60,6 +60,10 @@ namespace FlashBeat.UI.V6
         /// <summary>隠し対象の旧 v5 Ready プロンプト Canvas (キャッシュ)。</summary>
         private Canvas legacyReadyCanvas;
 
+        /// <summary>ローディング表示の開始判定に使う MusicManager (シーン内で 1 つ、遅延取得)。</summary>
+        private MusicManager cachedMusicManager;
+        private bool musicManagerSearched;
+
         /// <summary>
         /// 旧 v5 ローディング Canvas 配下の Graphic をキャッシュする (Issue #381)。
         ///
@@ -362,7 +366,34 @@ namespace FlashBeat.UI.V6
             }
             else
             {
-                loading.SetVisible(false);
+                // Issue #378: シーンが立ち上がってから MusicManager の準備が
+                // Preparing に立つまでの隙間でも、黒いまま無反応にしない。
+                // メディア準備が始まる前 (MediaReady 前) はローディング画面を
+                // 出し続け、Ready 待ち (MediaReady 後) やプレイ中は隠す。
+                if (!musicManagerSearched)
+                {
+                    musicManagerSearched = true;
+                    cachedMusicManager = FindFirstObjectByType<MusicManager>();
+                }
+                var music = cachedMusicManager;
+                bool sessionStarting = music != null
+                    && !music.MediaReady
+                    && !music.PlaybackStarted
+                    && !GManager.played;
+                if (sessionStarting)
+                {
+                    var song = GManager.GetSong(GManager.songID);
+                    float? chartProgress = GameLoadingProgress.HasNotesProgress
+                        ? GameLoadingProgress.NotesProgress
+                        : (float?)null;
+                    loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "",
+                        LoadJacket(song), chartProgress);
+                    loading.SetVisible(true);
+                }
+                else
+                {
+                    loading.SetVisible(false);
+                }
             }
         }
 
