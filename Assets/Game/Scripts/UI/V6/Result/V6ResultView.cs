@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using FlashBeat.UI.V5;
@@ -1003,28 +1002,20 @@ namespace FlashBeat.UI.V6.Result
             // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
             // 入力できず、カーソルも描けなかった。TMP_InputField は IME 変換・点滅
             // カーソル・フォーカス喪失 (確定) をまとめて持つ。
-            modalNameInput = field.AddComponent<TMP_InputField>();
-            modalNameInput.targetGraphic = field.GetComponent<Image>();
-            modalNameInput.textViewport = field.GetComponent<RectTransform>();
-            modalNameInput.textComponent = modalNameValue;
-            modalNameInput.placeholder = modalNamePlaceholder;
-            modalNameInput.lineType = TMP_InputField.LineType.SingleLine;
-            modalNameInput.contentType = TMP_InputField.ContentType.Standard; // IME 可
-            modalNameInput.caretWidth = 2;
-            // design は点滅の半周期 530ms。TMP は 1/rate 秒ごとに表示を反転する。
-            modalNameInput.caretBlinkRate = 1f / V6ResultRevealLogic.CaretHalfCycleSeconds;
-            modalNameInput.customCaretColor = true;
-            modalNameInput.caretColor = V5Tokens.Text;
-            modalNameInput.selectionColor = new Color(1f, 1f, 1f, 0.2f);
+            // TMP の設定とフォーカス操作は V6 共通部品 (Issue #385 Phase 1.4)。
             // 保存名が入っている欄は「全選択」状態で開く (Issue #425)。
             // 何も打たずに Enter なら保存名がそのまま確定し、何か入力すれば
             // 選択範囲が置き換わって保存名の末尾へ追記される事故を防ぐ。
             // Esc で閉じたときに TMP が元の文字列へ戻すと、確定扱いの onEndEdit が
             // 古い名前を送ってしまうため、復元も切る。
-            modalNameInput.onFocusSelectAll = false;
-            modalNameInput.restoreOriginalTextOnEscape = false;
-            modalNameInput.onValidateInput = ValidateNameChar;
-            modalNameInput.onEndEdit.AddListener(OnNameEditEnd);
+            modalNameInput = V6CursorInput.Attach(field, new V6CursorInput.Spec
+            {
+                Value = modalNameValue,
+                Placeholder = modalNamePlaceholder,
+                CaretBlinkHalfCycleSeconds = V6ResultRevealLogic.CaretHalfCycleSeconds,
+                OnValidateInput = ValidateNameChar,
+                OnEndEdit = OnNameEditEnd,
+            });
 
             // Input Hints (28,208) 784×32:
             // Hint Cap (0,0) 104×32 (pad [0,12], Key fs20) / Hint Text (128,4.5) fs16 /
@@ -1239,41 +1230,13 @@ namespace FlashBeat.UI.V6.Result
 
         private void FocusNameField()
         {
-            if (modalNameInput == null)
-            {
-                return;
-            }
-
-            if (EventSystem.current != null)
-            {
-                EventSystem.current.SetSelectedGameObject(modalNameInput.gameObject);
-            }
-
-            modalNameInput.ActivateInputField();
-            // Issue #425: 文末カーソルではなく全選択で開く。入力すると保存名が
-            // 丸ごと置き換わり、未入力の Enter は保存名のまま確定する。
-            // caret を先に置き、選択範囲を最後に設定する (逆順だと選択が潰れる)。
-            modalNameInput.caretPosition = modalNameInput.text.Length;
-            modalNameInput.selectionAnchorPosition = 0;
-            modalNameInput.selectionFocusPosition = modalNameInput.text.Length;
+            // Issue #425: 文末カーソルではなく全選択で開く (V6CursorInput 側の契約)。
+            V6CursorInput.FocusSelectAll(modalNameInput);
         }
 
         private void UnfocusNameField()
         {
-            if (modalNameInput == null)
-            {
-                return;
-            }
-
-            if (modalNameInput.isFocused)
-            {
-                modalNameInput.DeactivateInputField();
-            }
-
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == modalNameInput.gameObject)
-            {
-                EventSystem.current.SetSelectedGameObject(null);
-            }
+            V6CursorInput.Unfocus(modalNameInput);
         }
 
         /// <summary>
