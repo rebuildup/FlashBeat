@@ -2008,3 +2008,18 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **Phase 3 (旧 UI 整理)**: #491 — HideLegacyV5Canvases を生成番号変化+120f 保険、HideLegacyUpdateNotice を 30f 間隔に限定し毎フレーム走査を解消。`docs/architecture/v5-legacy-ui-references.md` + `V5LegacyReferenceAuditTests` で v5 参照を固定。削除候補: V5.TitleView / V5.OptionView (生成サイトゼロ)。
 - **検証**: 最終 EditMode **1830/1830 Pass**。残る受入項目はスクリーンショット比較 (解像度行列ハーネスでの before/after) — #385 に記録済み。
 - branch/worktree: phase 用 worktree (w385b/c/d/e/f/g/h) は全て統合後に回収。local branch は merge 済み分を削除済み。
+
+### 8.11 2026-11-14 — #385 最終受入・#368 個別判定・branch 再回収 (main = `c7a5a04e`)
+
+- **#385 受入完了・Issue close**: before ビルド `a98307d2` (ローカル macOS) と CI artifact `flashbeat-macos-62c6d662…` の before/after で解像度行列 4 解像度 PASS、`v6screens` 15 状態・`v6interact`・`v6songend` を両ビルドで実行。安定状態 (Game HUD / Option) は全画素一致、動的差分 (Loading/Pause/Result/Title 等) は同一ビルド再撮影の分散で切り分け。証跡は `docs/evidence/385-refactor-acceptance/`、**PR #494 は open (レビュー・merge 待ち)** — Issue close は証跡 PR merge 前に実施したため、merge 完了をもって証跡が main 上で確定する。
+- **#368 子 Issue 個別判定**: 最新 main `c7a5a04e` の実機証跡 (行列 4 解像度 PASS / v6screens pass=46 / v6interact pass=47 / v6songend pass=32、judged=chartNotes) と 368-review 証跡を突合。**close: #370 #372 #373 #383**。open 継続 12 件の未達条件は #368 の集約コメントに一覧化 (Win64 実機・オーナー判断・観測困難の 3 系統が主因)。#380 は「変更前アプリのスクリーンショット」未添付のみが残件。
+- **branch 再回収**: merge 済み (origin/main の祖先確認済み) の local 5 本 (`w/385-cursorinput` `w/385-layout` `w/385-slider` `w/385-songbadge` `w/audit-385`) と remote 2 本 (`w/audit-2026-11-14b` `w/audit-415verdict`) を削除。`main-local` の独自 commit `b1b68fd0` (§8.8 草案) は main 側 §8.8〜8.10 に同等以上で収録済みと確認し `origin/main` へ fast-forward。local `main` も `c7a5a04e` へ更新。
+- **保持の確定**: remote = `main` / `release-0-1-0` `release/0-1-2-win64` `release/0.1.11` (リリース系列) / `19` (open #19 WIP) / `feature/p2-catalog-e2e` (`web/scripts/publish-catalog.mjs` 唯一コピー) / `w/385-acceptance-evidence` (PR #494) / `w/preserve-diff/fix-wt-20261114` (保全記録)。local = `main` `main-local` / `w/385-acceptance-evidence` / `w/415-diff-update` (discard-as-code 判定済みの記録) / `w/preserve-*-wt-20261114`×6。
+- **worktree**: `FlashBeat` (detached `548962f6`、main の祖先・ローカル差分は Unity 生成物のみ)、`FlashBeat.acc` (before ビルド `a98307d2` + 証跡出力先として保持価値あり)、`FlashBeat.ev385` (PR #494 の branch checkout)、`FlashBeat.win64build` (detached `fc1543fa`、Win64 ビルド用)。全て評価済み・現時点で削除対象なし。
+- **残る人間依存 (更新)**: PR #494 のレビュー・merge、Win64 実機計測、#368 残 12 件の実機/判断ゲート、本番 write E2E 承認、#30/#360/#75 のオーナー決定。
+
+### 8.12 2026-11-14 — PR #494 merge・#385 証跡の main 確定 (main = `2ec5f6eb`)
+
+- **PR #494 merge**: CodeRabbit 9 件を全件対応 (e550b8b) + 独立レビュー指摘を修正 (6394964f)。独立レビューで diff% 全値・領域検証値を再実行照合し APPROVE。review thread 全件 resolve 後に merge。`docs/evidence/385-refactor-acceptance/` が main 上で確定し、#385 (closed) の受入証跡参照が解決した。
+- **レビューで追加された検証**: 動的差分と固定UIの分離として、差分7画面の領域限定 diff と同一ビルド連続実行の比較を README に記録。Pause の差分2箇所は同一 before ビルド内の状態差・一時状態と画素レベルで確認済み。
+- **#368 残件**: 変更なし (12 件 open、§8.11 の未達条件一覧が正本)。
