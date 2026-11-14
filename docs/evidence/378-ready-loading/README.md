@@ -40,7 +40,8 @@ Ready 待ち (MediaReady 後) とプレイ中は従来どおり隠れる。
 - `AutoTestV6`: Ready 押下からフェード開始・オーバーレイ表示・GameScene 到達・
   ローディング画面表示をフレーム単位で実測し、Player.log に
   `ready->fade=… ready->overlay=… ready->game=… ready->loading=…` を出す。
-  「視覚変化 1 秒以内」「遷移中にローディング表示」「ローディング画面が出る」を assert。
+  「視覚変化 1 秒以内」「遷移中にローディング表示」「GameScene 活性化から
+  1 秒以内にローディング画面が出る」を assert。
 - `AutoTestV6Screens` (GameScene-Loading): `ShowLoadingForAudit` 後に
   `VideoPlayer.isPrepared` と映像面 (RawImage) の有効化を最大 15 秒待ち、
   `VideoSurfaceForAudit == "Video"` (フラットなフォールバック面ではない) を assert してから撮影。

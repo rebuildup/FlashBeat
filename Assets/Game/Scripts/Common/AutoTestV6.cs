@@ -141,7 +141,8 @@ public class AutoTestV6 : MonoBehaviour
             + "s ready->loading=" + loadingAt.ToString("F3") + "s");
         Check("ready shows a visual change quickly (fade starts)", fadeAt >= 0f && fadeAt < 1.0f);
         Check("a loading indicator covers the scene transition", overlayAt >= 0f && overlayAt < 1.0f);
-        Check("the loading view appears during scene entry", loadingAt >= 0f);
+        Check("the loading view appears promptly after the game scene activates",
+            loadingAt >= 0f && gameAt >= 0f && loadingAt - gameAt < 1.0f);
 
         float waited = 0f;
         while (waited < 12f && gameAt < 0f)
