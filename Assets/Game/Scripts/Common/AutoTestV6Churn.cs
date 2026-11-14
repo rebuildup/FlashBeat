@@ -90,6 +90,33 @@ public class AutoTestV6Churn : MonoBehaviour
         yield return RunPhase("ranking", rankingView, () => rankingView.MoveSelection(1),
             () => rankingView.MoveSelection(-1), () => rankingView.Refresh());
 
+        // Option フェーズ: OptionScene を開き直して同じ計測を行う。
+        // OptionView の監査 API は MoveSelectionForAudit / Refresh / SelectTabForAudit。
+        SceneManager.LoadScene("OptionScene");
+        yield return new WaitForSecondsRealtime(SettleSeconds);
+        yield return WaitForView<FlashBeat.UI.V6.Option.V6OptionView>(
+            () => FlashBeat.UI.V6.Option.V6OptionView.Current);
+        var optionView = FlashBeat.UI.V6.Option.V6OptionView.Current;
+        if (optionView == null)
+        {
+            Log("FAIL v6 option view did not appear");
+            Finish();
+            yield break;
+        }
+
+        // MoveSelectionForAudit は差分更新側にのみ存在する監査 API。
+        // 変更前ビルドではリフレクションで見つからず no-op になるが、
+        // churn ループは毎フレーム Refresh() を呼ぶため Refresh 経路の
+        // before/after 比較はそのまま有効 (選択移動 op のみ前後で差が出る)。
+        var moveMethod = optionView.GetType().GetMethod("MoveSelectionForAudit",
+            BindingFlags.Public | BindingFlags.Instance);
+        Action<int> move = moveMethod != null
+            ? d => moveMethod.Invoke(optionView, new object[] { d })
+            : d => { };
+
+        yield return RunPhase("option", optionView,
+            () => move(1), () => move(-1), () => optionView.Refresh());
+
         Log("done");
         Finish();
     }

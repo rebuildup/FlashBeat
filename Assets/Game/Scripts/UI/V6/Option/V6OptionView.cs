@@ -360,6 +360,19 @@ namespace FlashBeat.UI.V6.Option
             SelectTab(index);
         }
 
+        // 計測用 before ビルド: 差分更新側と同じ監査 API を生やし、
+        // 選択移動 op を対称にする (この Rebuild は全再構築経路)。
+        public void MoveSelectionForAudit(int delta)
+        {
+            if (currentRows.Count == 0)
+            {
+                return;
+            }
+
+            selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, delta);
+            Rebuild();
+        }
+
         // --- 構築 ---
 
         private void BuildRoot(RectTransform parent)
