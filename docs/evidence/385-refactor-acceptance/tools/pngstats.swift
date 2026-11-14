@@ -25,5 +25,7 @@ for y in max(0,y0)..<min(h,y1) { for x in max(0,x0)..<min(w,x1) {
     sr += r; sg += g; sb += b; sl += l; sl2 += l*l; n += 1
 }}
 let mean = Double(n)
-let lumMean = sl/mean, lumVar = sl2/mean - lumMean*lumMean
+let lumMean = sl/mean
+let rawLumVar = sl2/mean - lumMean*lumMean
+let lumVar = rawLumVar < 0 ? 0 : rawLumVar
 print(String(format: "meanRGB=(%.1f,%.1f,%.1f) lumMean=%.1f lumSD=%.1f n=%d", sr/mean, sg/mean, sb/mean, lumMean, lumVar.squareRoot(), n))

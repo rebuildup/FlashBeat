@@ -27,7 +27,22 @@
 比較は `tools/` の Swift 製ピクセル差分ツールで実施
 (`pngdiff.swift` = 全画面 diff 画素数、`pngdiffgrid.swift` / `pngdiffascii.swift` =
 差分の空間分布、`pngdiffregion.swift` / `pngstats.swift` / `pngcolprof.swift` /
-`pngshift.swift` = 領域別解析)。画素差は RGB 3ch 合計 > 30 を「差分画素」とした。
+`pngshift.swift` = 領域別解析)。
+
+**ツールごとの差分判定しきい値** (RGB 3ch 絶対差の合計に対する閾値):
+
+| ツール | しきい値 | 備考 |
+|---|---|---|
+| `pngdiff.swift` | 引数指定 (既定 0)。`compare.sh` は 0 を渡す | **本証跡の diff% は全てこの条件**: RGB 3ch 合計差 > 0 の画素を「差分画素」とした。つまり 1 チャネルでも 1 でも違えば差分 |
+| `pngdiffregion.swift` | 引数指定 (既定 30) | 領域限定の集計。領域検証では 0 を明示指定したものを記載 |
+| `pngdiffgrid.swift` | 固定 30 | 空間分布の可視化用 (セル内 diff%) |
+| `pngdiffascii.swift` | 固定 60 | ASCII ヒートマップ用 |
+| `pngdiffbbox.swift` | 引数指定 (既定 30) | 差分 bbox / row/col band |
+| `pngshift.swift` | 固定 90 | シフト頑健性チェック用 |
+| `pngstats.swift` / `pngcolprof.swift` | — | 統計量のみ (差分判定なし) |
+
+したがって「ピクセル完全一致 (diff=0)」は **RGB ピクセル値の完全一致**
+(PNG ファイルのバイト列一致ではない) を意味する。
 
 ## 結果サマリ
 
@@ -85,10 +100,11 @@ Opening / Option は全解像度でピクセル完全一致。Title / Select の
    一方 GameScene-HUD / Option 全タブ / Select 本体・Empty・Settings は
    同一ビルドでは 0 diff (完全に決定的)。
 
-2. **before == after-run2 がピクセル完全一致**:
+2. **before == after-run2 が RGB ピクセル値で完全一致**:
    SelectScene 本体 / Empty / Settings / GameScene-HUD / Option 全タブは
-   before (a98307d2) と after (c7a5a04e) の PNG が **バイトレベルで一致**
-   (diff=0/3,686,400)。リファクタリングが描画を変えていないことの直接証明。
+   before (a98307d2) と after (c7a5a04e) の画像が **閾値 0 で
+   RGB ピクセル値完全一致** (diff=0/3,686,400)。リファクタリングが
+   描画を変えていないことの直接証明。
 
 3. **GameScene-Loading の動画フレーム説を同一ビルド再現で確認**:
    `v6screens-game-only-before-run2` と `-run3` (同じ before ビルドで
@@ -118,11 +134,65 @@ Opening / Option は全解像度でピクセル完全一致。Title / Select の
    #385 の変更範囲外で、両 build とも `judged=130==chartNotes`・
    `songEndState=Completed`・pass=32 fail=0。
 
+### 動的領域と固定UIの分離検証 (@2560x1440、閾値0)
+
+差分のあった 7 画面について、`pngdiffregion.swift` (閾値0) と
+`pngdiffgrid.swift` (32×18 セル) で差分の空間分布を調べ、
+**同一ビルド連続実行 (after-run1 vs after-run2) の差分率**と比較した。
+固定UIがリファクタリングで変わっていれば、before↔after の差分は
+同一ビルド実行間のばらつきを超えて特定領域に集中するはずである。
+
+| 画面 | before↔after | 同一ビルド after1↔after2 | 判定 |
+|---|---|---|---|
+| TitleScene | 3.56% | **6.11%** | 同一ビルドの方が大きい。差分は下半分 (y≥800) に集中し上部はほぼ 0。背景動画 (`Screen` quad, CameraFarPlane) の再生位相が支配的 |
+| ResultScene | 6.65% | 6.42% | 同程度。差分は背景動画の露出マージン部。中央パネル内部は下記の通り微小 |
+| ResultScene-RegisterModal | 5.63% | 5.63% | 同一ビルドと完全に同じ差分率。モーダル背後の動画 + 微小差のみ |
+| SelectScene-History | 3.15% | 3.46% | 同一ビルドの方が大きい。リモート履歴データ行の更新が原因 |
+| SelectScene-Ranking | 2.09% | 2.35% | 同上 (リモートランキング) |
+| GameScene-Loading | 4.99% | 0% | 左側動画領域に集中 (下記)。after 2 回は動画フレームまで一致 |
+| GameScene-Pause | 0.43% | 0% | 2 箇所のみ (下記)。片方は before 同一ビルドでも 2 状態、もう片方は before-full の一時状態で before game-only/after と画素一致 |
+
+**領域限定 diff の実測値** (before ↔ after-run2、特記なき限り閾値0):
+
+- `ResultScene` パネル内部 (880,320)-(1840,880): diff=1,189/537,600 (**0.22%**)、
+  同一ビルド after1↔after2 でも 0.12% — 段階表示アニメーションの位相差と同程度。
+  閾値30では before↔after 0.09% / 同一ビルド 0.04%。
+- `ResultScene-RegisterModal` 中央 (640,240)-(1840,880): 閾値30で
+  **diff=0**。閾値0の 0.50% は全て微小な RGB 差 (mean=0.014) で、
+  同一ビルドでも同じ 0.50% が出る = 動画のかすかな透け/微差であり構造差ではない。
+- `SelectScene-History` 中段 (0,480)-(2560,960): 2.28%。同一ビルドでも 2.62%
+  — この領域自体が実行毎に変わるリスト内容であり、固定UIではない。
+- `SelectScene-Ranking` 中段 (0,400)-(2560,880): 1.02%。同一ビルドでも 1.19%。
+- `GameScene-Loading` 動画領域 (0,0)-(640,1120): **25.34%** と差分が集中。
+  残り (640,0)-(2560,1440) は 0.08% で、その殆どは (880,800)-(1200,880) と
+  (1280,720)-(1440,800) の進捗表示系の小領域。**この 2 領域は同一 before
+  ビルドの game-only run2/run3 間でも同じように変動する** (run2 vs run3 で
+  5.28% / 7.98%) ことを確認済み = 動画フレーム位相に連動する動的要素。
+- `GameScene-Pause` 全画面 diff=15,895 画素の内訳:
+  - x1280-1440, y160-320 の 1 要素 (2,299 画素): **同一 before ビルドでも
+    2 状態が観測される** — game-only run2 では meanRGB=16.0 (before-full と
+    同じ暗い状態)、run3 では meanRGB=22.6 (after と同じ明るい状態)。
+    アニメーション/表示タイミングの位相差。
+  - x1280-1600, y1080-1260 の広い領域 (13,544 画素、ただし mean=0.4 の
+    微小差): before-full だけがこの状態を撮っており、**同一 before ビルドの
+    game-only run2/run3、および after-run1/run2 とは全て一致する**
+    (game-only before run2 ↔ after-run2 でこの領域 diff=0)。
+    つまり before/after の描画はこの領域でピクセル一致しており、
+    before-full の撮影が一時的な途中状態を捉えただけ。
+
+**結論**: 全ての差分画面で、before↔after の差分率は同一ビルド連続実行の
+ばらつきと同程度かそれ以下であり、領域限定 diff でも固定UI領域
+(不透明パネル内部・モーダル中央・HUD) に構造的な差分は検出されなかった。
+差分は (a) 背景/ローディング動画の再生位相、(b) リモートデータ、
+(c) カウントダウン/進捗等のアニメーション位相、に帰着する。
+
 ### 結論
 
 - **UI クローム (レイアウト・文字・色・状態) はリファクタリングで
   1 ピクセルも変わっていない** — ジャケットなし画面・Option・HUD・
-  Select 各状態でピクセル完全一致を確認。
+  Select 各状態でピクセル完全一致を確認。差分のあった画面でも、
+  上記の領域限定検証により固定UI領域の差分が同一ビルド実行間の
+  ばらつきの範囲内であることを確認した。
 - 観測された全ての差分は、(a) 同梱背景/ローディング動画の再生位相、
   (b) リモートランキング/履歴データの実行間更新、(c) Result の段階表示
   アニメーション位相、のいずれかに帰着し、**同一ビルドの連続実行でも
@@ -143,8 +213,11 @@ Unity -batchmode -quit -projectPath <wt> -executeMethod BuildScript.BuildStandal
 # 解像度行列
 script/mac-resolution-matrix.sh <app> <out>
 
-# 操作検証 / 実プレイ完走
--autotest v6interact / -autotest v6songend (同じ画面引数)
+# 操作検証 / 実プレイ完走 (画面引数は v6screens と同じ)
+<app>/Contents/MacOS/FlashBeat -autotest v6interact \
+  -autotest-out <out> -screen-fullscreen 1 -screen-width 2560 -screen-height 1440
+<app>/Contents/MacOS/FlashBeat -autotest v6songend \
+  -autotest-out <out> -screen-fullscreen 1 -screen-width 2560 -screen-height 1440
 
 # ピクセル比較 (tools/ はこのディレクトリに同梱)
 swift tools/pngdiff.swift before.png after.png

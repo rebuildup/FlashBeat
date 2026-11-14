@@ -14,6 +14,9 @@ func load(_ path: String) -> CGImage? {
     return CGImageSourceCreateImageAtIndex(src, 0, nil)
 }
 guard let a = load(aPath), let b = load(bPath) else { print("LOAD_FAIL"); exit(2) }
+guard a.width == b.width, a.height == b.height else {
+    print("SIZE_MISMATCH \(a.width)x\(a.height) vs \(b.width)x\(b.height)"); exit(3)
+}
 let w = a.width, h = a.height
 func bytes(_ img: CGImage) -> [UInt8] {
     var data = [UInt8](repeating: 0, count: w*h*4)

@@ -21,7 +21,9 @@ while x < w {
         let l = 0.299*Double(data[o]) + 0.587*Double(data[o+1]) + 0.114*Double(data[o+2])
         sl += l; sl2 += l*l; n += 1
     }}
-    let m = sl/Double(n), sd = (sl2/Double(n) - m*m).squareRoot()
+    let m = sl/Double(n)
+    let rawVar = sl2/Double(n) - m*m
+    let sd = (rawVar < 0 ? 0 : rawVar).squareRoot()
     print(String(format: "%5d-%5d mean=%6.1f sd=%6.1f", x, min(w,x+step)-1, m, sd))
     x += step
 }
