@@ -13,6 +13,14 @@ name: build-macos
 #           Personal の .ulf は Unity 6000.5 の -manualLicenseFile が未サポートで、
 #           かつ発行元マシンに紐づくため GitHub-hosted runner では成立しない。
 #   - ライセンス未設定は blocker として失敗する。
+#
+# self-hosted runner 経路 (2026-11-14 追加):
+#   GitHub-hosted runner では UNITY_EMAIL / UNITY_PASSWORD が必須だが、
+#   オーナーの Mac (self-hosted runner `macbook-unity-6000.5`) には Unity Hub で
+#   認証済みのライセンスがあるため、secret 無しでビルドできる。
+#   - push (main): 常に self-hosted (GitHub-hosted では必ず license で落ちるため)
+#   - workflow_dispatch: `runner` input で self-hosted / github-hosted を選択
+#     (github-hosted を選ぶと従来どおり secret が必要)
 
 on:
   workflow_dispatch:
@@ -25,6 +33,14 @@ on:
         description: "更新チャンネル (stable | preview)。手動実行は preview を推奨"
         required: false
         default: "preview"
+      runner:
+        description: "実行ランナー (self-hosted = オーナー Mac / github-hosted = 要 Unity secrets)"
+        required: false
+        default: "self-hosted"
+        type: choice
+        options:
+          - self-hosted
+          - github-hosted
   push:
     branches:
       - main
@@ -56,7 +72,9 @@ jobs:
     # macos-14 の runner image は提供終了しており、job は 1 秒で cancelled
     # (steps: 0, annotation: "The configuration 'macos-14-arm64-us-default' is not supported")
     # になっていた。macos-15 (Apple Silicon / arm64) を使う。
-    runs-on: macos-15
+    # push は self-hosted (オーナー Mac、Unity 認証済み) 固定。workflow_dispatch は
+    # inputs.runner で github-hosted (要 UNITY_EMAIL/UNITY_PASSWORD) も選べる。
+    runs-on: ${{ github.event_name == 'push' && 'self-hosted' || (inputs.runner == 'github-hosted' && 'macos-15' || 'self-hosted') }}
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
@@ -68,6 +86,7 @@ jobs:
           lfs: true
 
       - name: Unity ライセンスの secret を確認
+        if: runner.environment != 'self-hosted'
         shell: bash
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -93,6 +112,7 @@ jobs:
           exit 1
 
       - name: Unity Editor をインストール (Hub 不使用)
+        if: runner.environment != 'self-hosted'
         shell: bash
         run: |
           # Hub の headless install は「Provided editor version does not match to any
@@ -135,9 +155,28 @@ jobs:
           # 5GB の pkg を残さない (後続 job のディスクを圧迫しない)
           rm -f "$pkg" || true
 
+      - name: Unity Editor を検出 (self-hosted)
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          # self-hosted (オーナー Mac) では Unity Hub 配下の認証済み Editor を使う。
+          # インストールもライセンス適用も不要 (Hub のライセンスがそのまま使える)。
+          editor="/Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity"
+          if [ ! -x "$editor" ]; then
+            found="$(find /Applications/Unity -maxdepth 5 -type d -name Unity.app -path "*$UNITY_VERSION*" -print -quit 2>/dev/null || true)"
+            [ -n "$found" ] && editor="$found/Contents/MacOS/Unity"
+          fi
+          if [ ! -x "$editor" ]; then
+            echo "::error::self-hosted に Unity $UNITY_VERSION が見つかりません: $editor"
+            exit 1
+          fi
+          echo "UNITY_EDITOR=$editor" >> "$GITHUB_ENV"
+          echo "self-hosted Unity: $editor"
+
       # game-ci/unity-activate は Docker 前提のため GitHub-hosted ランナーでは
       # そのまま使えない。Unity 公式のライセンス引数を直接使って認証する。
       - name: Unity ライセンスを適用
+        if: runner.environment != 'self-hosted'
         shell: bash
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
