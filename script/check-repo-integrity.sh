@@ -70,12 +70,16 @@ def is_vendored(path):
 
 
 for dirpath, dirnames, filenames in os.walk(assets):
-    dirnames[:] = sorted(d for d in dirnames if d != "Library" and not d.startswith("."))
+    all_dirs = sorted(d for d in dirnames if d != "Library" and not d.startswith("."))
 
-    for name in dirnames:
+    for name in all_dirs:
         path = os.path.join(dirpath, name)
         if not os.path.exists(path + ".meta"):
             missing_meta.append(path)
+
+    # .bundle は Unity が単一アセットとして扱うプラグイン束で、内部ファイルに
+    # .meta は存在しない (FlashBeatNative.bundle 等)。降りずにスキップする。
+    dirnames[:] = [d for d in all_dirs if not d.endswith(".bundle")]
 
     for name in filenames:
         if name.startswith("."):
