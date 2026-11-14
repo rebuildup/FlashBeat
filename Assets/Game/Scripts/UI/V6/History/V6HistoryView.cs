@@ -1421,28 +1421,12 @@ namespace FlashBeat.UI.V6.History
 
         private void SetJacket(GameObject thumbPanel, V6SongEntry song)
         {
-            var img = thumbPanel.GetComponent<Image>();
-            // Issue #398: ジャケットの Sprite は V6JacketProvider が所有する。
-            // ここで Sprite.Create して独自辞書に持つと、同じ画像が画面ごとに
-            // 何枚も実体化され、View を破棄しても解放されない。
-            Sprite sprite = song == null
-                ? null
-                : V6JacketProvider.Local(song.SongId, song.Title);
-
-            if (sprite != null)
-            {
-                img.type = Image.Type.Simple;
-                img.sprite = sprite;
-                img.color = Color.white;
-                img.preserveAspect = true;
-            }
-            else
-            {
-                // ジャケット無しは空枠 ($k3)。
-                img.type = Image.Type.Sliced;
-                img.sprite = V5Ui.RoundedSprite(4);
-                img.color = V5Tokens.Key3;
-            }
+            // Issue #398 / #385: ジャケットの Sprite は V6JacketProvider が所有し、
+            // 適用手順は V6SongBadge.ApplyJacket に一本化した
+            // (ここで Sprite.Create して独自辞書に持つと、同じ画像が画面ごとに
+            // 何枚も実体化され、View を破棄しても解放されない)。
+            V6SongBadge.ApplyJacket(thumbPanel,
+                song != null ? song.SongId : 0, song != null ? song.Title : null);
         }
 
         // --- uGUI ユーティリティ (design 空間・左上原点。変換は V6Layout に集約) ---

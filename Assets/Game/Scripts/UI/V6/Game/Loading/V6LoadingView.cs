@@ -536,10 +536,38 @@ namespace FlashBeat.UI.V6.Game.Loading
             infoLayout.childForceExpandWidth = false;
             infoLayout.childForceExpandHeight = false;
 
-            var jacket = V5Ui.Panel(info, "Jacket", new Vector2(56f, 56f), V5Tokens.Key2, 4f);
+            // 曲バッジ (Jacket + Texts 列) は共通部品 (Issue #385 Phase 1.2)。
+            // Song Info は HorizontalLayoutGroup 駆動なので LayoutDriven で作り、
+            // Jacket / Texts の配置はレイアウトに委ねる (design Frw5C:
+            // Texts (68,20) 113×57、Song Title (0,0) 111×32 fs22、
+            // Song Artist (0,34) 113×23 fs16 — どちらも左上揃え)。
+            var badge = V6SongBadge.Create(info, new V6SongBadge.Spec
+            {
+                LayoutDriven = true,
+                ThumbName = "Jacket",
+                ThumbSize = new Vector2(56f, 56f),
+                ThumbColor = V5Tokens.Key2,
+                ThumbRaycastTarget = false,
+                ColumnName = "Texts",
+                ColumnSize = new Vector2(113f, 56f),
+                Title = new V6SongBadge.Line
+                {
+                    Name = "Song Title", Pos = new Vector2(0f, 0f), Size = new Vector2(111f, 32f),
+                    FontSize = 22f, Color = V5Tokens.Text, Align = TextAlignmentOptions.TopLeft,
+                    // h32 は行送り (fs22 × 1.448 = 31.9) とほぼ同じ。Ellipsis の 0 行化を
+                    // 避けるため上下 margin を広げる (矩形とベースラインは変えない)。
+                    FitLineHeight = true, FitHeight = 32f,
+                },
+                Sub = new V6SongBadge.Line
+                {
+                    Name = "Song Artist", Pos = new Vector2(0f, 34f), Size = new Vector2(113f, 23f),
+                    FontSize = 16f, Color = V5Tokens.TextMuted, Align = TextAlignmentOptions.TopLeft,
+                    FitLineHeight = true, FitHeight = 23f,
+                },
+            });
+            var jacket = badge.Thumb;
             LayoutItem(jacket, 56f, 56f);
             jacketImage = jacket.GetComponent<Image>();
-            jacketImage.raycastTarget = false;
             // ジャケットが無い曲は「無し」を正直に表示する (空欄/壊れた画像にしない)。
             noJacketLabel = V5Ui.Text(jacket, "No Jacket", "無し", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
             noJacketLabel.rectTransform.anchorMin = Vector2.zero;
@@ -549,24 +577,12 @@ namespace FlashBeat.UI.V6.Game.Loading
             noJacketLabel.fontSize = 14f;
             noJacketLabel.gameObject.SetActive(false);
 
-            // design Frw5C: Texts (68,20) 113×57、Song Title (0,0) 111×32 fs22、
-            // Song Artist (0,34) 113×23 fs16 — どちらも左上揃え。
             // 旧実装は VerticalLayoutGroup の中央寄せで、2 行が design より
             // 数 px 上に寄っていた (設計の矩形をそのまま使う)。
-            var texts = V5Ui.Node(info, "Texts");
+            var texts = badge.Column;
             LayoutItem(texts, 113f, 56f);
-            songTitle = V5Ui.Text(texts, "Song Title", "", 22f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
-            songTitle.textWrappingMode = TextWrappingModes.NoWrap;
-            songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            PlaceAt(songTitle.gameObject, 0f, 0f, new Vector2(111f, 32f));
-            // h32 は行送り (fs22 × 1.448 = 31.9) とほぼ同じ。Ellipsis の 0 行化を
-            // 避けるため上下 margin を広げる (矩形とベースラインは変えない)。
-            V5Ui.FitEllipsisToLineHeight(songTitle, 32f);
-            songArtist = V5Ui.Text(texts, "Song Artist", "", 16f, V5Tokens.TextMuted, TextAlignmentOptions.TopLeft);
-            songArtist.textWrappingMode = TextWrappingModes.NoWrap;
-            songArtist.overflowMode = TextOverflowModes.Ellipsis;
-            PlaceAt(songArtist.gameObject, 0f, 34f, new Vector2(113f, 23f));
-            V5Ui.FitEllipsisToLineHeight(songArtist, 23f);
+            songTitle = badge.Title;
+            songArtist = badge.Sub;
         }
 
         /// <summary>design ではメイン空。進捗の表現はこの実装が決めた:

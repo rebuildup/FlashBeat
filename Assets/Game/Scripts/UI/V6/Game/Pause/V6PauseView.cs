@@ -510,27 +510,37 @@ namespace FlashBeat.UI.V6.Game.Pause
             infoRt.anchoredPosition = Vector2.zero;
             infoRt.sizeDelta = new Vector2(840f, V6Header.Height);
 
-            var thumb = V5Ui.Panel(info, "Thumb", new Vector2(64f, 36f), V5Tokens.Key2, 4f);
-            PlaceAt(thumb, 24f, 30f);
-            thumbImage = thumb.GetComponent<Image>();
-            thumbImage.raycastTarget = false;
-
-            var songCol = V5Ui.Node(info, "Song");
-            PlaceAt(songCol, 100f, 8f, new Vector2(320f, 80f));
-            songTitle = V5Ui.Text(songCol, "Title", "", 30f, V5Tokens.Text, TextAlignmentOptions.Left);
-            songTitle.textWrappingMode = TextWrappingModes.NoWrap;
-            songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            // design は h43。TMP は行の実高 (NotoSansJP: fs の約 1.448 倍 = 43.44px / fs30)
-            // より矩形が低いと Ellipsis で 1 行も描かないため、以前は 46px に逃げていた。
-            // いまは margin 補正 (V5Ui.FitEllipsisToLineHeight) で design の h43 を保てる。
-            PlaceAt(songTitle.gameObject, 0f, 1f, new Vector2(320f, 43f));
-            V5Ui.FitEllipsisToLineHeight(songTitle, 43f);
-            songSub = V5Ui.Text(songCol, "Sub", "", 22f, V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            songSub.textWrappingMode = TextWrappingModes.NoWrap;
-            songSub.overflowMode = TextOverflowModes.Ellipsis;
-            PlaceAt(songSub.gameObject, 0f, 48f, new Vector2(320f, 32f));
-            // fs22 の行送りは 31.86 で h32 との余裕が 0.14px しかないため確保する。
-            V5Ui.FitEllipsisToLineHeight(songSub, 32f);
+            // 曲バッジ (Thumb + Song 列) は共通部品 (Issue #385 Phase 1.2)。
+            // 2 行目は Artist ではなく「作家・BPM」の複合副題 (Sub)。
+            var badge = V6SongBadge.Create(info, new V6SongBadge.Spec
+            {
+                ThumbPos = new Vector2(24f, 30f),
+                ThumbSize = new Vector2(64f, 36f),
+                ThumbColor = V5Tokens.Key2,
+                ThumbRaycastTarget = false,
+                ColumnName = "Song",
+                ColumnPos = new Vector2(100f, 8f),
+                ColumnSize = new Vector2(320f, 80f),
+                Title = new V6SongBadge.Line
+                {
+                    Pos = new Vector2(0f, 1f), Size = new Vector2(320f, 43f), FontSize = 30f,
+                    Color = V5Tokens.Text,
+                    // design は h43。TMP は行の実高 (NotoSansJP: fs の約 1.448 倍 = 43.44px / fs30)
+                    // より矩形が低いと Ellipsis で 1 行も描かないため、以前は 46px に逃げていた。
+                    // いまは margin 補正 (V5Ui.FitEllipsisToLineHeight) で design の h43 を保てる。
+                    FitLineHeight = true, FitHeight = 43f,
+                },
+                Sub = new V6SongBadge.Line
+                {
+                    Name = "Sub", Pos = new Vector2(0f, 48f), Size = new Vector2(320f, 32f),
+                    FontSize = 22f, Color = V5Tokens.TextMuted,
+                    // fs22 の行送りは 31.86 で h32 との余裕が 0.14px しかないため確保する。
+                    FitLineHeight = true, FitHeight = 32f,
+                },
+            });
+            thumbImage = badge.Thumb.GetComponent<Image>();
+            songTitle = badge.Title;
+            songSub = badge.Sub;
 
             var divider = V5Ui.Panel(info, "Divider", new Vector2(1f, 44f), new Color(1f, 1f, 1f, 0x26 / 255f), 0f);
             PlaceAt(divider, 432f, 26f);
