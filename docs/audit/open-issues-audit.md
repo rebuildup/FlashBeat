@@ -1968,3 +1968,24 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **branch 整理 (2026-11-14)**: tip が main の祖先である remote 16 本を削除 (`118-patch` `129` `134-patch` `feature/expo-loading-guide` `feature/keyconfig-file` `feature/media-loading-ui` `feature/p1-playback-recovery` `integration/v6` `w-220-v6` `w/415-*`×5 `w/ledger-98fix` `w/w140fix`)。`release-0-1-0` はリリース系列ポリシーで保持。remote は 45→**29 本**。local merge 済み 7 本も削除。
 - **#250 再評価の現時点の結論**: §8.2 の 6 cluster 分類は有効。変化は (a) cluster F の #415/#417 が完了、#416 が計測フェーズ、(b) cluster C/D/E の close 判定は依然として **人間受入・オーナー決定・Win64/本番 API 証跡** がボトルネック。cc が自律的に閉じられる Issue は現時点で **0 件** (#162 も v6screens 証跡の最終判定レビュー待ち、#388/#389 は実装 merge 済みだがレビュー会待ち)。
 - **次の実行可能対象**: #416 残計測の完了 → #397/#381 の Mac `-fbperf` 計測 (Win64 は実機待ち) → #368 cluster の受入証跡レビュー → #250 のオーナー決定事項 (#30 D1/D5、#360、#75 画像レビュー、本番 API 承認) の集約。
+
+### 8.8 2026-11-14 後半 — branch 全回収・Native 内訳・CI self-hosted (main = `9ac2c136`)
+
+**branch/worktree 全評価完了** (未評価・未回収ゼロ):
+
+- remote 29→**9 本**。全 28 本の unique commit を精査し、内容が main に同等以上で存在することをファイル単位で確認した上で **20 本削除** (`109-patch` `128` `142` `148` `165` `166` `verify/*`×6 `port/w113` `port/w182` `feature/flat-render-judge-effect` `feature/pencil-ui` `fix/catalog-remote-identity` `recovery/codex-81-import` `w/compile-check-strict` `w/w142` `w/w233-loadingoverlay-preserve`)。`evidence/win-699b461` は証跡 5 件を main へ移植後 (PR #466) に削除。
+- **保持 (remote)**: `main`、`release-0-1-0`/`release/0-1-2-win64`/`release/0.1.11` (リリース系列ポリシー・保護)、`19` (#19 open の WIP、port は再実装扱い)、`feature/p2-catalog-e2e` (`web/scripts/publish-catalog.mjs` の唯一のコピー + カタログ publish 記録。README は main へ移植済み)、`w/preserve-diff/fix-wt-20261114` (保全記録)。
+- local 42→**9 本**。35 本を削除 (全て main に同等実装があることを確認)。保持: `main`、`bisect/owner-perf` (bisect 保存点)、`w/415-diff-update` (**未採用の別系 V6 diff-update 実装 +2274 行。採用/破棄の判断が未了のため保持 — 唯一の未回収コード**)、`w/preserve-*-wt-20261114`×6 (未コミット WIP スナップショット)。
+- worktree 3 件評価済み: `FlashBeat.acc`=main 作業用、`FlashBeat`/`FlashBeat.win64build` は detached HEAD が共に main の祖先・汚れは Unity 生成物のみ。削除せず用途別に保持 (Library 計 ~9.8GB、ディスク逼迫時は再評価)。
+
+**#416 追加計測**: Memory Profiler パッケージ未導入の代替として `vmmap -summary` で Native リージョン内訳を実測 (`docs/evidence/416-mem/vmmap/`、PR #466)。UI 巡回・History/Ranking サブモード往復・Option/Title 再入場を通じ physical footprint は **991MB〜1.0GB で安定・単調増加なし**。支配領域は IOAccelerator (graphics) ~153-169MB resident・IOSurface 113MB・Untagged (Unity native) 38-84MB。**限界**: リージョン粒度まででオブジェクト単位の帰属は不可 — Memory Profiler 導入は引き続き未実施 (導入する場合は manifest 追加 + 開発ビルドでの TakeSnapshot)。Win64 は引き続き未検証。
+
+**#360**: MenuSwitch (既定 T) vs design キャップ "Tab" の調査を実施し、Tab が Select/Option/KeyGuide/KeyConfig を含む UI 全体の「切替」規約であること・再割当互換性を確認。**選択肢 1 (既定を Tab) を推奨するコメントを投稿**。オーナー承認のみ残る。
+
+**Unity CI 復旧 (secrets 不要経路を実施)**: オーナー Mac に self-hosted runner `macbook-unity-6000.5` (labels: self-hosted/macOS/ARM64/unity) を登録・launchd 常駐化。`build-macos.yml` に self-hosted 経路を追加 (PR #467): push は self-hosted 固定、workflow_dispatch は `runner` input で github-hosted も選択可。self-hosted 時は license precheck/install/apply を skip し `/Applications/Unity/Hub/Editor/6000.5.6f1` を使用。初回ビルドは LFS checkout 中。**Win64 CI は未対応** — windows runner では license が同様に必要。macOS からの Win64 クロスビルドは `script/win64-build-mac.sh` で可能だが packaging gate が pwsh 依存のため別途検討。
+
+**Web/API**: `npm test` 実施 — node --test **73/73 pass** (read API + publish API + scores + leaderboards + archive の local D1 E2E を含む)、vitest **433/436 pass**。失敗 3 件 (`song-publish-flow.test.tsx`) は Unity CI ビルドによる CPU 逼迫下の 5s タイムアウトで、単独再実行では **4/4 pass**。本物のリグレッションではないが、高負荷時のフレークとして記録。残る #73/#135 の未実施分は本番書き込み E2E のみ (`docs/operations/production-api-acceptance.md`、要オーナー承認)。
+
+**#368 cluster**: #388 (証跡マニフェスト) / #389 (レビュー報告) は main 統合済み (`docs/evidence/368-review-2026-11-12/` + `docs/ui/v6-review-report-2026-11-12.md`)。子 Issue #369-#382 の修正コミットは main に存在。残るのはオーナー実機での再確認と close 判定 — エージェント側で追加できる検証は現時点で尽きた (新規 main での再撮影は build 変更がない限り同一結果の見込み)。
+
+**残る人間依存 (変わらず)**: Win64 実機計測 (#416/#381/#397/#242/#96 の Windows 側)、本番 API 書き込み承認 (#73/#135/#75 の E2E 部分)、#75 の画像レビュー、#30 D1/D5 等の製品判断、#360 の承認、self-hosted runner がオーナー Mac 依存であることの了承 (Mac 停止時は CI も停止)。
