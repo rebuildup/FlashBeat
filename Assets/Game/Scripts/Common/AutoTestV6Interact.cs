@@ -303,11 +303,13 @@ public class AutoTestV6Interact : MonoBehaviour
 
         V6PauseView pause = null;
         V6GameHudView hud = null;
+        MusicManager music = null;
         float waited = 0f;
         while (waited < 15f && (pause == null || hud == null))
         {
             pause = V6PauseView.Current;
             hud = FindFirstObjectByType<V6GameHudView>();
+            music = music != null ? music : FindFirstObjectByType<MusicManager>();
             waited += Time.unscaledDeltaTime;
             yield return null;
         }
@@ -315,17 +317,80 @@ public class AutoTestV6Interact : MonoBehaviour
         if (!Check("pause view exists", pause != null)) { yield break; }
         if (!Check("game hud exists", hud != null)) { yield break; }
 
+        // #382: 静止・判定ゲートの確認は「演奏が実際に始まっている」状態で行う。
+        // メディア準備を待って Space を注入する (AutoTestV6SongEnd と同じ経路)。
+        // 開始できない環境では開始前ポーズの縮退経路だけを検証する。
+        bool playbackStarted = false;
+        if (music != null)
+        {
+            float readyWaited = 0f;
+            // AutoTestV6SongEnd と同じ余裕 (YouTube 解決は遅いことがある)。
+            while (readyWaited < 180f && !music.MediaReady)
+            {
+                readyWaited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            if (music.MediaReady)
+            {
+                KeyBindings.InjectKeyDown(KeyCode.Space);
+                float startWaited = 0f;
+                while (startWaited < 10f && !music.PlaybackStarted)
+                {
+                    startWaited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+            playbackStarted = music.PlaybackStarted;
+        }
+        Debug.Log(Tag + " playback started=" + playbackStarted);
+        Check("playback started for the pause checks", playbackStarted);
+
         // 1. 通常の再開: 3 → 2 → 1 の後にゲートが開く。
         pause.Open();
         yield return null;
         Check("opening the pause closes the gate", PauseGate.IsPaused);
+
+        // ポーズ中の基準値: 譜面時計 (ノーツ・判定の基準) と判定カウンタ。
+        float frozenStep = GManager.step_time;
+        int frozenPerfect = GManager.perfect, frozenGreat = GManager.great;
+        int frozenBad = GManager.bad, frozenMiss = GManager.miss, frozenScore = GManager.score;
+
+        // ポーズ中の判定キー入力は判定に影響しない (#382)。
+        KeyBindings.InjectKeyDown(KeyBindings.GetKeys(0)[0]);
+        yield return null;
+        KeyBindings.InjectKeyDown(KeyBindings.GetKeys(3)[0]);
+        yield return null;
+
+        // ポーズ中は譜面時計が止まったまま (ノーツが動かない)。
+        bool stepFrozeDuringPause = true;
+        float pauseWaited = 0f;
+        while (pauseWaited < 0.6f)
+        {
+            if (!Mathf.Approximately(GManager.step_time, frozenStep)) { stepFrozeDuringPause = false; }
+            pauseWaited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        Check("the chart clock is frozen while paused", stepFrozeDuringPause);
+        Check("judgement keys during pause change nothing",
+            GManager.perfect == frozenPerfect && GManager.great == frozenGreat
+            && GManager.bad == frozenBad && GManager.miss == frozenMiss
+            && GManager.score == frozenScore);
 
         pause.RequestResume();
         Check("resume starts the countdown", V6ResumeCountdown.IsRunning);
 
         var digits = new List<string>();
         bool gateStayedClosed = true;
+        bool stepFrozeDuringCountdown = true;
         bool shotTaken = false;
+        bool injectedOn3 = false;
+        bool injectedOn2 = false;
+        // カウントダウン中 (ゲートが閉じている間) の判定カウンタ。
+        // ループの各フレームで「まだ実行中」の値を取り直すので、
+        // ループを抜けた時点の値は必ずゲート閉鎖中のものになる
+        // (再開後の正当な判定を誤って FAIL にしない)。
+        int lastPerfect = frozenPerfect, lastGreat = frozenGreat;
+        int lastBad = frozenBad, lastMiss = frozenMiss, lastScore = frozenScore;
         // 0.25 秒間隔だと、カウントダウン開始直後の重いフレームで 1 つ飛ばす
         // ことがある (3 を観測できず 2 から始まった)。毎フレーム見る。
         float sinceStart = 0f;
@@ -345,6 +410,32 @@ public class AutoTestV6Interact : MonoBehaviour
                 gateStayedClosed = false;
             }
 
+            if (V6ResumeCountdown.IsRunning)
+            {
+                // カウントダウン中も譜面時計は固定値のまま (ノーツが動かない)。
+                if (!Mathf.Approximately(GManager.step_time, frozenStep))
+                {
+                    stepFrozeDuringCountdown = false;
+                }
+
+                lastPerfect = GManager.perfect; lastGreat = GManager.great;
+                lastBad = GManager.bad; lastMiss = GManager.miss; lastScore = GManager.score;
+
+                // カウントダウン中の判定キー入力 (3 と 2 の表示中に 1 回ずつ)。
+                // 注入は 1 フレーム有効なので、必ずゲート閉鎖中に失効する。
+                if (digit == "3" && !injectedOn3)
+                {
+                    injectedOn3 = true;
+                    KeyBindings.InjectKeyDown(KeyBindings.GetKeys(1)[0]);
+                    KeyBindings.InjectKeyDown(KeyBindings.GetKeys(6)[0]);
+                }
+                else if (digit == "2" && !injectedOn2)
+                {
+                    injectedOn2 = true;
+                    KeyBindings.InjectKeyDown(KeyBindings.GetKeys(4)[0]);
+                }
+            }
+
             if (digit == "1" && !shotTaken)
             {
                 shotTaken = true;
@@ -362,8 +453,72 @@ public class AutoTestV6Interact : MonoBehaviour
         // 順序まで見る (集合だけだと 1-2-3 でも通ってしまう)。
         Check("the countdown shows 3-2-1", sequence == "3-2-1");
         Check("the gate stays closed for the whole countdown", gateStayedClosed);
+        Check("the chart clock is frozen during the countdown", stepFrozeDuringCountdown);
+        Check("judgement keys during the countdown change nothing",
+            lastPerfect == frozenPerfect && lastGreat == frozenGreat
+            && lastBad == frozenBad && lastMiss == frozenMiss && lastScore == frozenScore);
         Check("the countdown ends", !V6ResumeCountdown.IsRunning);
         Check("the gate opens when the countdown ends", !PauseGate.IsPaused);
+
+        // 再開の連続性: 譜面時計は固定値から跳ねずに再開する
+        // (ResumeMediaFromGate が FrozenMediaTime から時計簿記をやり直す)。
+        // 再開直後は映像プレイヤーの起動過渡で時刻が不連続に跳ぶことがある
+        // (開始 ~0.3 秒でのポーズという端境期。定常状態の連続性は下の
+        // steady-state チェックで厳密に確認する)。ここでは壊滅的な跳躍が
+        // ないことだけを見る。
+        float resumeStep = GManager.step_time;
+        Debug.Log(Tag + " resume continuity frozen=" + frozenStep.ToString("F3")
+            + " resumed=" + resumeStep.ToString("F3")
+            + " mediaNow=" + (music != null ? music.MediaTimeNow.ToString("F3") : "n/a"));
+        Check("the chart clock resumes near the frozen position",
+            Mathf.Abs(resumeStep - frozenStep) < 1.5f);
+        yield return new WaitForSecondsRealtime(0.4f);
+        Check("the chart clock advances after the resume",
+            GManager.step_time > frozenStep + 0.05f);
+        // 追いつき矯正 (ResumeSyncSeconds) の効いたあとの定常状態:
+        // 譜面時計は「固定時刻 + 再開からの経過」へ収束しているはず。
+        // 起動過渡の残りを見込んで広めに取る (厳密な連続性は steady-state)。
+        float settledStep = GManager.step_time;
+        float expectedStep = frozenStep + 0.4f;
+        Debug.Log(Tag + " resume settled step=" + settledStep.ToString("F3")
+            + " expected~" + expectedStep.ToString("F3"));
+        Check("the chart clock settles after the resume",
+            Mathf.Abs(settledStep - expectedStep) < 1.5f);
+
+        // 1.5 定常状態でのポーズ → 再開: 再生が安定してから (mediaTime > 2s)
+        // ポーズして再開の連続性を確認する。開始直後のポーズは映像プレイヤーの
+        // 起動過渡で時計が不連続になるため、#382 の受け入れは定常状態で行う。
+        float steadyWait = 0f;
+        while (steadyWait < 20f && (music == null || music.MediaTimeNow < 2f))
+        {
+            steadyWait += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        if (music != null && music.MediaTimeNow >= 2f)
+        {
+            pause.Open();
+            yield return null;
+            float steadyFrozen = GManager.step_time;
+            pause.RequestResume();
+            float steadyCdWait = 0f;
+            while (steadyCdWait < 6f && (V6ResumeCountdown.IsRunning || PauseGate.IsPaused))
+            {
+                steadyCdWait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Check("the steady-state resume completes the countdown",
+                !V6ResumeCountdown.IsRunning && !PauseGate.IsPaused);
+            yield return null;
+            float steadyResumed = GManager.step_time;
+            Debug.Log(Tag + " steady resume frozen=" + steadyFrozen.ToString("F3")
+                + " resumed=" + steadyResumed.ToString("F3"));
+            Check("the chart clock resumes continuously in steady state",
+                Mathf.Abs(steadyResumed - steadyFrozen) < 0.5f);
+        }
+        else
+        {
+            Check("media reached steady state for the second pause check", false);
+        }
 
         // 2. Esc でポーズへ戻る (カウントダウンは取り消される)。
         pause.Open();
