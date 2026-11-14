@@ -608,12 +608,15 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildHeader()
         {
-            var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
+            // 帯 + タイトルは共通部品 (Issue #385)。帯は Image 付きの透明パネル
+            // (従来実装どおり panel=true)。design の戻るゾーンは空なので
+            // 戻るボタンは置かない (戻るはフッターの OK / Esc キーが担う)。
+            var header = V6Header.Create(frame.gameObject, true);
 
             // design zcSHh/biox4 の左上スロット (56×56) にトロフィーを置く。
             // 他画面ではここが戻るボタン (Esc) で、Result だけ空いていた。
             // 戻るはフッターの OK / Esc キーが担うので、ここは結果の記号に使う。
-            var badge = V5Ui.Panel(header.gameObject, "Trophy Badge",
+            var badge = V5Ui.Panel(header, "Trophy Badge",
                 new Vector2(TrophyBadgeSize, TrophyBadgeSize), V5Tokens.Key4, 8f);
             At(badge, TrophyBadgeX, TrophyBadgeY);
             var trophyNode = V5Ui.Node(badge, "Icon");
@@ -636,11 +639,11 @@ namespace FlashBeat.UI.V6.Result
             trophyGroup = FadeGroup(badge);
             trophyRect = badge.GetComponent<RectTransform>();
 
-            // design zcSHh/aqq3q の Title (72,20) 185x56 fs38: 文字列は "RESULT"
+            // design zcSHh/aqq3q の Title (72,20) 400x56 fs38: 文字列は "RESULT"
             // (全画面のヘッダーは画面名を出す。Title 画面だけ "FlashBeat")。
-            var title = V5GameUi.Text(header.gameObject, "Title", "RESULT", 38f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            At(title, 72f, 20f, 400f, 56f, new Vector2(0f, 0.5f));
+            // 旧実装は pivot (0,0.5) で置いていたが、補正済み anchoredPosition の
+            // 結果として矩形は (72,20) 400×56 で同一 — 共通部品の既定配置と一致する。
+            V6Header.Title(header, "RESULT");
         }
 
         // --- メイン (共有フレーム Main: x24 y96 1680x780, 契約 §4) ---

@@ -634,16 +634,15 @@ namespace FlashBeat.UI.V6.Option
         {
             var header = Zone("Header");
 
-            // 戻るボタンは共通部品 (Issue #370): 56×56 / $k4 r8 / arrow-left 24 + Key fs16。
-            V6Controls.BackButton(header.gameObject, "Back button", new Vector2(0f, 20f), "Esc",
+            // 戻るボタン + タイトルは共通部品 (Issue #385)。
+            // 戻る: 56×56 / $k4 r8 / arrow-left 24 + Key fs16 (design zUcsi/zCQBY)。
+            V6Header.BackButton(header.gameObject, "Back button", "Esc",
                 () =>
                 {
                     if (onBack != null) onBack();
                 });
 
-            V6Controls.Text(header.gameObject, "Title", "OPTION",
-                new Vector2(72f, 20f), new Vector2(400f, 56f), 38f, V6Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
+            V6Header.Title(header.gameObject, "OPTION");
         }
 
         // --- フッター (契約 §4 + design B6If6Z パッチ: (24,876) 1680x96) ---

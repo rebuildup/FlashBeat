@@ -464,14 +464,12 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void CreateHeaderScaffold(GameObject headerZone, V6SongEntry song)
         {
-            // 戻るボタンは共通部品 (Issue #370)。design S1TZD: header (0,20) 56×56。
+            // 戻るボタン + タイトルは共通部品 (Issue #385)。design S1TZD:
+            // header (0,20) 56×56 / Title (72,20) 400×56 fs38。
             // 確定キーはキー設定の正本から取る。
-            V6Controls.BackButton(headerZone, "Back Button", new Vector2(0f, 20f),
+            V6Header.BackButton(headerZone, "Back Button",
                 ActionKeyHint.Primary(KeyActions.KeyAction.Back), () => TriggerBack());
-
-            var title = V5GameUi.Text(headerZone, "Title", "RANKING", 38f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            At(title, 72f, 20f, 400f, 56f);
+            V6Header.Title(headerZone, "RANKING");
 
             // 右上: 曲情報 (ジャケット + 曲名/作家 + LEVEL / BPM / NOTES)。
             // design (S1TZD 情報ゾーン w4siL): header 内 x840 / w840 / padding [0,24] /
