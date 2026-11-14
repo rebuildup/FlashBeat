@@ -365,16 +365,12 @@ public class AutoTestV6Mem : MonoBehaviour
         }
 
         var sorted = new List<KeyValuePair<string, TypeStat>>(groups);
-        sorted.Sort((a, b) => b.Value.Bytes.CompareTo(a.Value.Bytes));
+        sorted.Sort((a, b) => b.Value.Count.CompareTo(a.Value.Count));
         var sb = new StringBuilder();
-        int shown = 0;
-        for (int i = 0; i < sorted.Count && shown < 30; i++)
+        for (int i = 0; i < sorted.Count; i++)
         {
-            if (shown > 0) { sb.Append(" "); }
-            sb.Append(sorted[i].Key).Append("=").Append(sorted[i].Value.Count)
-              .Append("(").Append((sorted[i].Value.Bytes / 1048576.0)
-                  .ToString("F1", CultureInfo.InvariantCulture)).Append("MB)");
-            shown++;
+            if (i > 0) { sb.Append(" "); }
+            sb.Append(sorted[i].Key).Append("=").Append(sorted[i].Value.Count);
         }
         return sb.ToString();
     }
