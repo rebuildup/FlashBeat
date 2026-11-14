@@ -80,13 +80,21 @@ public class LoadingOverlay : MonoBehaviour
     float progressValue = -1f;       // -1 = 不定 (スウィープ表示)
     bool fadingOut;
 
+    /// <summary>owner == null (排他的なシーン遷移) を表すオーナー。</summary>
+    static readonly object ExclusiveOwner = new object();
+
     /// <summary>読み込みを開始する。owner == null は排他的 (他のオーナーをリセット)。</summary>
     public static void Show(string label, object owner = null)
     {
         var overlay = EnsureInstance();
         if (owner == null)
         {
+            // 排他オーナーを登録しないと activeOwners が空になり、
+            // Update が「全オーナー解除」と見なして一度も表示されない
+            // (Issue #378 で発覚: シーン遷移のオーバーレイが実際には
+            // 出ていなかった)。
             activeOwners.Clear();
+            activeOwners.Add(ExclusiveOwner);
         }
         else if (!activeOwners.Contains(owner))
         {
@@ -136,6 +144,17 @@ public class LoadingOverlay : MonoBehaviour
         // 最短表示時間は Update 側で判定する (ここでは要求を記録するだけ)。
     }
 
+    /// <summary>検証ハーネス用: オーバーレイが実際に表示されているか (フェードイン中を含む)。</summary>
+    internal static bool IsVisibleForAudit
+    {
+        get
+        {
+            return instance != null
+                && instance.canvasGroup != null
+                && instance.canvasGroup.alpha > 0.01f;
+        }
+    }
+
     /// <summary>SimpleFadeSystem (Fader) からの進捗フックを受け取る。</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void SubscribeToFadeSystem()
@@ -144,16 +163,13 @@ public class LoadingOverlay : MonoBehaviour
         subscribedToFadeSystem = true;
         Initiate.LoadingFeedback.Begin += sceneName =>
         {
-            // Issue #431: v6 のゲームローディング (V6LoadingView) が表示を
-            // 所有する GameScene への遷移では、旧 LoadingOverlay
-            // (sortingOrder 30000 の背景 + スピナー + バー + 字幕) を出さない。
-            // v6 ローディングの上に無駄な要素が被って邪魔になる。
-            if (sceneName == "GameScene"
-                && GameLoadingRoute.Current == GameLoadingRoute.GameLoadingScreen.V6)
-            {
-                return;
-            }
-
+            // Issue #378: GameScene への遷移でもオーバーレイを出す。非同期
+            // シーンロードの間 (ローカル曲では LoadingOverlay.Show を呼ぶ
+            // 経路が無い) に画面が黒いままにならないようにする。シーンが
+            // 活性化した時点で End → Hide され、v6 の V6LoadingView
+            // (セッション開始後は MediaReady 前まで表示) に引き継がれる。
+            // メディア / 譠面の準備中オーバーレイは GameLoadingRoute.
+            // UsesLegacyOverlay が別途止めるので、v6 と二重表示にならない。
             ShowImmediately(LoadingOverlayLogic.SceneLabel(sceneName));
         };
         Initiate.LoadingFeedback.Progress += progress => SetProgress(progress);
