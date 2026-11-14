@@ -438,6 +438,10 @@ public class AutoTestV6Interact : MonoBehaviour
         if (!Check("pause view exists", pause != null)) { yield break; }
         if (!Check("game hud exists", hud != null)) { yield break; }
 
+        // #379: HUD の静的検証 (歌詞位置・シェード・スコア・判定行)。
+        // ポーズ操作の前に、プレイ中 HUD が出ている状態で行う。
+        yield return RunHudAudit(hud);
+
         // #382: 静止・判定ゲートの確認は「演奏が実際に始まっている」状態で行う。
         // メディア準備を待って Space を注入する (AutoTestV6SongEnd と同じ経路)。
         // 開始できない環境では開始前ポーズの縮退経路だけを検証する。
@@ -799,6 +803,94 @@ public class AutoTestV6Interact : MonoBehaviour
         {
             V6ContentCaches.SuspendCatalogRefresh = false;
         }
+    }
+
+    // ---------------------------------------------------------------- #379
+
+    /// <summary>
+    /// Game HUD の静的検証 (Issue #379)。黒帯は design D-379 の縦グラデーション
+    /// (一様な帯ではない) であること、歌詞スロットが design 座標 (i30vM4) に
+    /// あること、スコアが 7/8 桁でも 1 行で桁ポップすること、判定行が design の
+    /// フォントサイズを使うことを、実行中のビューから確かめる。
+    /// </summary>
+    private IEnumerator RunHudAudit(V6GameHudView hud)
+    {
+        yield return null;
+        yield return null;
+
+        // 1. 上部シェード: 存在し、下端が透明・上端が不透明のグラデーション。
+        var shade = hud.TopShadeForAudit;
+        Check("the top shade exists", shade != null);
+        if (shade != null)
+        {
+            var sprite = shade.sprite;
+            Check("the top shade uses a sprite", sprite != null);
+            var tex = sprite != null ? sprite.texture : null;
+            Check("the top shade texture is readable", tex != null && tex.isReadable);
+            if (tex != null && tex.isReadable)
+            {
+                // TopShadeSprite は 1×2 px: (0,0)=下端 透明 / (0,1)=上端 #000000A6。
+                Check("the top shade fades to transparent at the bottom",
+                    tex.GetPixel(0, 0).a < 0.01f && tex.GetPixel(0, tex.height - 1).a > 0.3f);
+            }
+            float shadeH = ((RectTransform)shade.transform).rect.height;
+            Check("the top shade height matches the design metric",
+                Mathf.Abs(shadeH - hud.TopShadeHeightForAudit) <= 1.5f);
+        }
+
+        // 2. 歌詞スロット: design i30vM4 (304,250) 1120 幅 → LyricSlotOrigin。
+        var lyricBox = hud.LyricBoxForAudit;
+        Check("the lyric box exists", lyricBox != null);
+        if (lyricBox != null)
+        {
+            Vector2 canvas = hud.CanvasSizeForAudit;
+            Vector2 expected = V6HudLogic.LyricSlotOrigin(canvas.x, canvas.y);
+            var corners = new Vector3[4];
+            lyricBox.GetWorldCorners(corners);
+            // ScreenSpaceOverlay ではワールド座標 = 画面 px (y は下原点)。
+            Vector2 topLeftScreen = new Vector2(corners[1].x, Screen.height - corners[1].y);
+            Debug.Log(Tag + " lyric origin actual=" + topLeftScreen + " expected=" + expected
+                + " fontSize=" + hud.LyricFontSizeForAudit);
+            Check("the lyric slot matches the design origin",
+                Vector2.Distance(topLeftScreen, expected) <= 2f);
+        }
+
+        // 3. スコア: 7/8 桁でも 1 行 (桁スロットは折り返さない) + 変化時にポップ。
+        int savedScore = GManager.score;
+        GManager.score = 1234567;
+        yield return null;
+        yield return null;
+        Check("the 7-digit score shows on one line",
+            hud.ScoreTextForAudit == "1,234,567"
+            && hud.ScoreActiveDigitsForAudit == 9
+            && hud.ScoreSingleLineForAudit);
+
+        GManager.score = 98765432;
+        yield return null;
+        yield return null;
+        Check("the 8-digit score shows on one line",
+            hud.ScoreTextForAudit == "98,765,432"
+            && hud.ScoreActiveDigitsForAudit == 10
+            && hud.ScoreSingleLineForAudit);
+
+        GManager.score = 11111111;
+        yield return null;
+        Check("the score pop plays when the value changes", hud.ScorePopActiveForAudit);
+
+        float popWaited = 0f;
+        while (hud.ScorePopActiveForAudit && popWaited < 1f)
+        {
+            popWaited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        Check("the score pop settles", !hud.ScorePopActiveForAudit);
+        GManager.score = savedScore;
+        yield return null;
+
+        // 4. 判定行: v6 の判定行が有効で、design のフォントサイズを使う。
+        Check("the v6 verdict row is enabled", V6UiMode.VerdictRow);
+        Check("the verdict text uses the design font size", hud.VerdictUsesDesignFontSizeForAudit);
+        Debug.Log(Tag + " verdict fontSize=" + hud.VerdictFontSizeForAudit);
     }
 
     /// <summary>Select シーンを開き、シーンが有効になって 2 フレーム経つまでの秒数を返す。</summary>

@@ -106,6 +106,83 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return comboStrip != null ? comboStrip.Text : null; }
         }
 
+        // --- Issue #379: HUD 受入ハーネス用 ---
+
+        /// <summary>上部シェード (design D-379: 一様な帯ではなく縦グラデーション)。</summary>
+        public Image TopShadeForAudit
+        {
+            get { return topShadeImage; }
+        }
+
+        /// <summary>上部シェードの design 高さ (m.TopShadeH)。</summary>
+        public int TopShadeHeightForAudit
+        {
+            get { return m != null ? m.TopShadeH : -1; }
+        }
+
+        /// <summary>歌詞スロットの RectTransform (design i30vM4 の位置検証用)。</summary>
+        public RectTransform LyricBoxForAudit
+        {
+            get { return lyricBox != null ? lyricBox.GetComponent<RectTransform>() : null; }
+        }
+
+        /// <summary>歌詞本文に実際に適用されているフォントサイズ。</summary>
+        public float LyricFontSizeForAudit
+        {
+            get { return lyricText != null ? lyricText.fontSize : -1f; }
+        }
+
+        /// <summary>HUD canvas の実ピクセル寸法。</summary>
+        public Vector2 CanvasSizeForAudit
+        {
+            get { return CanvasSize(); }
+        }
+
+        /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
+        public int ScoreActiveDigitsForAudit
+        {
+            get { return scoreStrip == null ? -1 : scoreStrip.ActiveCount(); }
+        }
+
+        /// <summary>スコアが 1 行に収まっているか (使用中の全スロットが同じ y)。</summary>
+        public bool ScoreSingleLineForAudit
+        {
+            get { return scoreStrip != null && scoreStrip.IsSingleLine(); }
+        }
+
+        /// <summary>スコアの桁ポップが再生中か。</summary>
+        public bool ScorePopActiveForAudit
+        {
+            get { return scoreStrip != null && scoreStrip.AnyAnimating(Time.unscaledTime); }
+        }
+
+        /// <summary>判定行テキストに適用されているフォントサイズ。</summary>
+        public float VerdictFontSizeForAudit
+        {
+            get
+            {
+                return verdictTexts.Count > 0 && verdictTexts[0] != null
+                    ? verdictTexts[0].fontSize : -1f;
+            }
+        }
+
+        /// <summary>判定行が design のフォントサイズ (m.VerdictFs) を使っているか。</summary>
+        public bool VerdictUsesDesignFontSizeForAudit
+        {
+            get
+            {
+                return m != null && verdictTexts.Count > 0 && verdictTexts[0] != null
+                    && Mathf.Approximately(verdictTexts[0].fontSize, m.VerdictFs);
+            }
+        }
+
+        /// <summary>判定行 lane の表示文字列 (非表示なら空)。</summary>
+        public string VerdictTextForAudit(int lane)
+        {
+            return lane >= 0 && lane < verdictTexts.Count && verdictTexts[lane] != null
+                ? verdictTexts[lane].text : null;
+        }
+
         /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
         public void SetVisible(bool visible)        {
             if (Root != null)
