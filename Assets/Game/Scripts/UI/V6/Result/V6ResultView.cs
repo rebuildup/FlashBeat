@@ -766,29 +766,36 @@ namespace FlashBeat.UI.V6.Result
                     new Vector2(V6ResultLogic.SongInfoW, V6ResultLogic.SongInfoH), V5Tokens.Key2, 16f),
                 0f, V6ResultLogic.SongInfoY);
 
-            songThumb = At(V5Ui.Panel(panel.gameObject, "Thumb",
-                    new Vector2(V6ResultLogic.SongThumbW, V6ResultLogic.SongThumbH), V5Tokens.Key3, 4f),
-                V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY).GetComponent<Image>();
-
-            // 曲名 / 作曲者はサムネイルの右 (x144) に左揃えで縦積み (design zcSHh:
-            // Title (144,16) fs34 / Artist (144,66) fs23)。幅は Stat 列の左端 x348 まで (204)。
-            // 実データは design のサンプルより長いので 1 行固定 + ellipsis。
-            songTitle = V5GameUi.Text(panel.gameObject, "Title", "", 34f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Normal);
-            At(songTitle, V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY,
-                V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH, new Vector2(0f, 0.5f));
-            songTitle.textWrappingMode = TextWrappingModes.NoWrap;
-            songTitle.overflowMode = TextOverflowModes.Ellipsis;
-            // design h36 < NotoSansJP の行送り (fs34 × 1.448 = 49.2) のため、
-            // 何もしないと Ellipsis が 0 行になり曲名が消える (r3 実機で発生)。
-            V5Ui.FitEllipsisToLineHeight(songTitle);
-
-            songArtist = V5GameUi.Text(panel.gameObject, "Artist", "", 23f, V5Tokens.TextMuted);
-            At(songArtist, V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY,
-                V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH, new Vector2(0f, 0.5f));
-            songArtist.textWrappingMode = TextWrappingModes.NoWrap;
-            songArtist.overflowMode = TextOverflowModes.Ellipsis;
-            V5Ui.FitEllipsisToLineHeight(songArtist);
+            // 曲バッジ (Thumb + Title/Artist、列ノード無し) は共通部品
+            // (Issue #385 Phase 1.2)。寸法は V6ResultLogic.SongInfo* / SongThumb*。
+            var badge = V6SongBadge.Create(panel.gameObject, new V6SongBadge.Spec
+            {
+                ThumbPos = new Vector2(V6ResultLogic.SongThumbX, V6ResultLogic.SongThumbY),
+                ThumbSize = new Vector2(V6ResultLogic.SongThumbW, V6ResultLogic.SongThumbH),
+                ThumbColor = V5Tokens.Key3,
+                Title = new V6SongBadge.Line
+                {
+                    Pos = new Vector2(V6ResultLogic.SongTitleX, V6ResultLogic.SongTitleY),
+                    Size = new Vector2(V6ResultLogic.SongTitleW, V6ResultLogic.SongTitleH),
+                    FontSize = 34f, Color = V5Tokens.Text,
+                    // design は pivot (0,0.5) で配置 (At の pivot 引数と同じ式)。
+                    Pivot = new Vector2(0f, 0.5f),
+                    // 実データは design のサンプルより長いので 1 行固定 + ellipsis。
+                    FitLineHeight = true,
+                },
+                Sub = new V6SongBadge.Line
+                {
+                    Name = "Artist",
+                    Pos = new Vector2(V6ResultLogic.SongArtistX, V6ResultLogic.SongArtistY),
+                    Size = new Vector2(V6ResultLogic.SongArtistW, V6ResultLogic.SongArtistH),
+                    FontSize = 23f, Color = V5Tokens.TextMuted,
+                    Pivot = new Vector2(0f, 0.5f),
+                    FitLineHeight = true,
+                },
+            });
+            songThumb = badge.Thumb.GetComponent<Image>();
+            songTitle = badge.Title;
+            songArtist = badge.Sub;
 
             // Stat (BPM/NOTES/LEVEL/曲長) は Label + Value を明示矩形で縦積みする
             // (旧実装は Column レイアウトで TMP の既定サイズにレイアウトが追従できず、
@@ -1037,20 +1044,32 @@ namespace FlashBeat.UI.V6.Result
             // Summary (28,264) 784×140 $k2 r8。
             var summary = At(V5Ui.Panel(dialog.gameObject, "Summary", new Vector2(784f, 140f), V5Tokens.Key2, 8f),
                 28f, 264f);
-            modalThumb = At(V5Ui.Panel(summary, "Thumb", new Vector2(88f, 50f), V5Tokens.Key3, 4f),
-                16f, 20f).GetComponent<Image>();
+            // 曲バッジ (Thumb + Title/Artist) は共通部品 (Issue #385 Phase 1.2)。
             // Title (120,18) h38 fs26 / Artist (120,52) h26 fs18。design の hug 幅
             // (131 / 126) はサンプル曲名の幅なので、実データが長くても Grade (x704)
             // に届かない幅 568 まで広げ、1 行固定にする。
-            modalSongTitle = OneLine(V5GameUi.Text(summary, "Title", "", 26f, V5Tokens.Text));
-            At(modalSongTitle, 120f, 18f, 568f, 38f);
-            modalSongTitle.overflowMode = TextOverflowModes.Ellipsis;
-            modalSongArtist = OneLine(V5GameUi.Text(summary, "Artist", "", 18f, V5Tokens.TextMuted));
-            At(modalSongArtist, 120f, 52f, 568f, 26f);
-            modalSongArtist.overflowMode = TextOverflowModes.Ellipsis;
-            // fs18×h26 は行送り 26.06 を 0.06px 下回るので、Ellipsis が 0 行に
-            // ならないよう実効高を広げる (TMP Ellipsis の共通契約 #354)。
-            V5Ui.FitEllipsisToLineHeight(modalSongArtist, 26f);
+            var songBadge = V6SongBadge.Create(summary, new V6SongBadge.Spec
+            {
+                ThumbPos = new Vector2(16f, 20f),
+                ThumbSize = new Vector2(88f, 50f),
+                ThumbColor = V5Tokens.Key3,
+                Title = new V6SongBadge.Line
+                {
+                    Pos = new Vector2(120f, 18f), Size = new Vector2(568f, 38f), FontSize = 26f,
+                    Color = V5Tokens.Text,
+                },
+                Sub = new V6SongBadge.Line
+                {
+                    Name = "Artist", Pos = new Vector2(120f, 52f), Size = new Vector2(568f, 26f),
+                    FontSize = 18f, Color = V5Tokens.TextMuted,
+                    // fs18×h26 は行送り 26.06 を 0.06px 下回るので、Ellipsis が 0 行に
+                    // ならないよう実効高を広げる (TMP Ellipsis の共通契約 #354)。
+                    FitLineHeight = true, FitHeight = 26f,
+                },
+            });
+            modalThumb = songBadge.Thumb.GetComponent<Image>();
+            modalSongTitle = songBadge.Title;
+            modalSongArtist = songBadge.Sub;
             // Grade (704,38) 64×40 $k4 r4 / GradeText fs24 centered。
             var gradeChip = At(V5Ui.Panel(summary, "Grade", new Vector2(64f, 40f), V5Tokens.Key4, 4f),
                 704f, 38f);
@@ -2064,30 +2083,11 @@ namespace FlashBeat.UI.V6.Result
             return lengths[idx];
         }
 
-        // --- ジャケット (解決は V6JacketResources に一本化) ---
+        // --- ジャケット (解決は V6JacketProvider / 適用は V6SongBadge に一本化) ---
 
         private static void SetThumb(Image thumb, SongData song)
         {
-            if (thumb == null)
-            {
-                return;
-            }
-
-            Sprite sprite = V6JacketResources.LoadSprite(song.id, song.title);
-            if (sprite != null)
-            {
-                thumb.type = Image.Type.Simple;
-                thumb.sprite = sprite;
-                thumb.color = Color.white;
-                thumb.preserveAspect = true;
-            }
-            else
-            {
-                // ジャケット無しは空枠 (Select v6 の Thumb と同じ $k3)。
-                thumb.type = Image.Type.Sliced;
-                thumb.sprite = V5Ui.RoundedSprite(4);
-                thumb.color = V5Tokens.Key3;
-            }
+            V6SongBadge.ApplyJacket(thumb, song.id, song.title);
         }
 
         // --- uGUI ユーティリティ (design px 左上原点, V6SelectView と同じ方式) ---

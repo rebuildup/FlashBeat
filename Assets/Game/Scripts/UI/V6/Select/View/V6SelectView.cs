@@ -1800,23 +1800,10 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void SetJacket(GameObject thumbPanel, V6SongEntry song, Color? fallback = null)
         {
-            var img = thumbPanel.GetComponent<Image>();
-            Sprite sprite = song == null ? null : V6JacketResources.LoadSprite(song.SongId, song.Title);
-
-            if (sprite != null)
-            {
-                img.type = Image.Type.Simple;
-                img.sprite = sprite;
-                img.color = Color.white;
-                img.preserveAspect = true;
-            }
-            else
-            {
-                // ジャケット無しは空枠。曲行 (design mcCOI) は $k2、Hero は $k3 (AqFtx)。
-                img.type = Image.Type.Sliced;
-                img.sprite = V5Ui.RoundedSprite(4);
-                img.color = fallback ?? V5Tokens.Key3;
-            }
+            // Issue #385: ジャケットの適用手順は V6SongBadge.ApplyJacket に一本化
+            // (V6JacketResources.LoadSprite は V6JacketProvider.Local と同一実体)。
+            V6SongBadge.ApplyJacket(thumbPanel,
+                song != null ? song.SongId : 0, song != null ? song.Title : null, fallback);
         }
 
         // --- uGUI ユーティリティ (design px 左上原点) ---

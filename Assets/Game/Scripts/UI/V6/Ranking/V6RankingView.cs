@@ -475,33 +475,41 @@ namespace FlashBeat.UI.V6.Ranking
             // design (S1TZD 情報ゾーン w4siL): header 内 x840 / w840 / padding [0,24] /
             // gap16 の横並び。Thumb 64×36 → Song 320×76 → Divider 1×44 →
             // Stat 100×62 ×3 がこの順で並ぶ (x は gap16 を挟んだ実測値)。
+            // 曲バッジ部 (Thumb + Song 列) は共通部品 (Issue #385 Phase 1.2)。
             bool hasSong = song != null;
-            headerThumbGo = At(V5Ui.Panel(headerZone, "Thumb", new Vector2(64f, 36f), V5Tokens.Key3, 4f),
-                864f, 30f);
+            var badge = V6SongBadge.Create(headerZone, new V6SongBadge.Spec
+            {
+                ThumbPos = new Vector2(864f, 30f),
+                ThumbSize = new Vector2(64f, 36f),
+                ThumbColor = V5Tokens.Key3,
+                ColumnName = "Song",
+                ColumnPos = new Vector2(944f, 10f),
+                ColumnSize = new Vector2(320f, 76f),
+                // design w4siL/Song: Title (0,1) 320×43 fs30 / Artist (0,46) 320×29 fs20。
+                // 旧実装は Title に Rect を与えておらず、既定の 100×100 中央寄せで
+                // design より右下へずれていた (1 行固定 + ellipsis で列内に収める)。
+                Title = new V6SongBadge.Line
+                {
+                    Pos = new Vector2(0f, 1f), Size = new Vector2(320f, 43f), FontSize = 30f,
+                    Color = V5Tokens.Text, Text = hasSong ? song.Title : "–",
+                    // design h43 < 行送り (fs30 × 1.448 = 43.44) のため、Ellipsis が 0 行に
+                    // なって曲名が消える (r3 実機で発生)。margin 補正で実効高を確保する。
+                    FitLineHeight = true,
+                },
+                Sub = new V6SongBadge.Line
+                {
+                    Name = "Artist", Pos = new Vector2(0f, 46f), Size = new Vector2(320f, 29f),
+                    FontSize = 20f, Color = V5Tokens.TextMuted, Text = hasSong ? song.Artist : "",
+                    FitLineHeight = true,
+                },
+            });
+            headerThumbGo = badge.Thumb;
+            headerTitleText = badge.Title;
+            headerArtistText = badge.Sub;
             if (hasSong)
             {
                 SetJacket(headerThumbGo, song);
             }
-
-            var songZone = V5Ui.Node(headerZone, "Song");
-            At(songZone.GetComponent<RectTransform>(), 944f, 10f, 320f, 76f);
-            // design w4siL/Song: Title (0,1) 320×43 fs30 / Artist (0,46) 320×29 fs20。
-            // 旧実装は Title に Rect を与えておらず、既定の 100×100 中央寄せで
-            // design より右下へずれていた (1 行固定 + ellipsis で列内に収める)。
-            headerTitleText = V5GameUi.Text(songZone, "Title", hasSong ? song.Title : "–", 30f, V5Tokens.Text,
-                TextAlignmentOptions.Left);
-            At(headerTitleText, 0f, 1f, 320f, 43f);
-            headerTitleText.textWrappingMode = TextWrappingModes.NoWrap;
-            headerTitleText.overflowMode = TextOverflowModes.Ellipsis;
-            // design h43 < 行送り (fs30 × 1.448 = 43.44) のため、Ellipsis が 0 行に
-            // なって曲名が消える (r3 実機で発生)。margin 補正で実効高を確保する。
-            V5Ui.FitEllipsisToLineHeight(headerTitleText);
-            headerArtistText = V5GameUi.Text(songZone, "Artist", hasSong ? song.Artist : "", 20f,
-                V5Tokens.TextMuted, TextAlignmentOptions.Left);
-            At(headerArtistText, 0f, 46f, 320f, 29f);
-            headerArtistText.textWrappingMode = TextWrappingModes.NoWrap;
-            headerArtistText.overflowMode = TextOverflowModes.Ellipsis;
-            V5Ui.FitEllipsisToLineHeight(headerArtistText);
 
             At(V5Ui.Panel(headerZone, "Divider", new Vector2(1f, 44f), FromHex("#FFFFFF26"), 0f), 1280f, 26f);
 
@@ -895,17 +903,23 @@ namespace FlashBeat.UI.V6.Ranking
             {
                 // design (wIE4t): Song チップ (159,4) 159×32 =
                 // Thumb (0,4) 40×24 r4 + Text (48,0) 111×32 fs22 1 行固定 ellipsis。
+                // 曲バッジ (タイトルのみ) は共通部品 (Issue #385 Phase 1.2)。
                 var songChip = V5Ui.Node(head.gameObject, "Song");
                 At(songChip.GetComponent<RectTransform>(), 159f, 4f, 159f, 32f);
-                var thumb = At(V5Ui.Panel(songChip, "Thumb", new Vector2(40f, 24f), V5Tokens.Key3, 4f), 0f, 4f);
-                songChipThumbGo = thumb;
-                SetJacket(thumb, song);
-                var songText = V5GameUi.Text(songChip, "Text", song.Title, 22f, V5Tokens.Text);
-                songText.textWrappingMode = TextWrappingModes.NoWrap;
-                songText.overflowMode = TextOverflowModes.Ellipsis;
-                At(songText, 48f, 0f, 111f, 32f);
-                V5Ui.FitEllipsisToLineHeight(songText);
-                songChipText = songText;
+                var chipBadge = V6SongBadge.Create(songChip, new V6SongBadge.Spec
+                {
+                    ThumbPos = new Vector2(0f, 4f),
+                    ThumbSize = new Vector2(40f, 24f),
+                    ThumbColor = V5Tokens.Key3,
+                    Title = new V6SongBadge.Line
+                    {
+                        Name = "Text", Pos = new Vector2(48f, 0f), Size = new Vector2(111f, 32f),
+                        FontSize = 22f, Color = V5Tokens.Text, Text = song.Title,
+                        FitLineHeight = true,
+                    },
+                });
+                songChipThumbGo = chipBadge.Thumb;
+                songChipText = chipBadge.Title;
             }
 
             // Online セグメントは cloud 曲だけ (spec 167: ローカル曲では非表示)。
@@ -1198,28 +1212,11 @@ namespace FlashBeat.UI.V6.Ranking
 
         private void SetJacket(GameObject thumbPanel, V6SongEntry song, Color? fallback = null)
         {
-            var img = thumbPanel.GetComponent<Image>();
-            // Issue #398: ジャケットの Sprite は V6JacketProvider が所有する。
-            // History と同じ画像をここで別実体にしない (画面ごとに Sprite.Create すると
-            // native が積み上がり、View を捨てても解放されない)。
-            Sprite sprite = song == null
-                ? null
-                : V6JacketProvider.Local(song.SongId, song.Title);
-
-            if (sprite != null)
-            {
-                img.type = Image.Type.Simple;
-                img.sprite = sprite;
-                img.color = Color.white;
-                img.preserveAspect = true;
-            }
-            else
-            {
-                // ジャケット無しは空枠。曲行 (design mcCOI) は $k2、それ以外は $k3。
-                img.type = Image.Type.Sliced;
-                img.sprite = V5Ui.RoundedSprite(4);
-                img.color = fallback ?? V5Tokens.Key3;
-            }
+            // Issue #398 / #385: ジャケットの Sprite は V6JacketProvider が所有し、
+            // 適用手順は V6SongBadge.ApplyJacket に一本化 (History と同じ画像を
+            // ここで別実体にしない)。
+            V6SongBadge.ApplyJacket(thumbPanel,
+                song != null ? song.SongId : 0, song != null ? song.Title : null, fallback);
         }
 
         // --- uGUI ユーティリティ (design 空間・左上原点。変換は V6Layout に集約) ---
