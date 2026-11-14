@@ -72,6 +72,7 @@ public class AutoTestV6Mem : MonoBehaviour
     int uiRounds = 3;
     int gameCount = 2;
     string[] songTitles = { "ツイッターランド", "まにまに" };
+    string[] uiScenes = { "TitleScene", "SelectScene", "OptionScene", "SelectScene" };
 
     // AutoHit 用 (AutoTestV6SongEnd と同じ方式: 実時計に合わせてキー注入)。
     readonly HashSet<int> hitSent = new HashSet<int>();
@@ -86,16 +87,22 @@ public class AutoTestV6Mem : MonoBehaviour
         int parsed;
         if (!string.IsNullOrEmpty(rounds) && int.TryParse(rounds, out parsed) && parsed > 0) { uiRounds = parsed; }
         string games = V6ScreenAudit.GetArg("-autotest-games");
-        if (!string.IsNullOrEmpty(games) && int.TryParse(games, out parsed) && parsed > 0) { gameCount = parsed; }
+        if (!string.IsNullOrEmpty(games) && int.TryParse(games, out parsed) && parsed >= 0) { gameCount = parsed; }
         string songs = V6ScreenAudit.GetArg("-autotest-songs");
         if (!string.IsNullOrEmpty(songs))
         {
             songTitles = songs.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
         }
+        string ui = V6ScreenAudit.GetArg("-autotest-ui");
+        if (!string.IsNullOrEmpty(ui))
+        {
+            uiScenes = ui.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        }
         try { Directory.CreateDirectory(outDir); }
         catch (Exception) { }
 
         Log("start out=" + outDir + " uiRounds=" + uiRounds + " games=" + gameCount
+            + " ui=" + string.Join(">", uiScenes)
             + " songs=" + string.Join("|", songTitles)
             + " resolution=" + Screen.width + "x" + Screen.height);
 
@@ -106,13 +113,15 @@ public class AutoTestV6Mem : MonoBehaviour
     {
         Census("boot");
 
-        // --- 1. UI 巡回 (シーン再入場) ---
+        // --- 1. UI 巡回 (シーン再入場)。-autotest-ui で対象を絞れる
+        //     (リークするシーンの切り分け用)。既定は Title→Select→Option→Select。
         for (int r = 0; r < uiRounds; r++)
         {
-            yield return LoadAndSettle("TitleScene", "title-" + r);
-            yield return LoadAndSettle("SelectScene", "select-" + r);
-            yield return LoadAndSettle("OptionScene", "option-" + r);
-            yield return LoadAndSettle("SelectScene", "select-back-" + r);
+            for (int s = 0; s < uiScenes.Length; s++)
+            {
+                string scene = uiScenes[s];
+                yield return LoadAndSettle(scene, scene.ToLowerInvariant() + "-" + r);
+            }
         }
 
         // --- 2. プレイ再入場 (多曲アクセスを兼ねる) ---

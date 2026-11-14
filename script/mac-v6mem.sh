@@ -23,6 +23,7 @@ outdir="${2:-$root/docs/evidence/416-mem/$(git -C "$root" rev-parse --short HEAD
 rounds="${3:-3}"
 games="${4:-2}"
 songs="${5:-ツイッターランド,まにまに}"
+ui="${V6MEM_UI:-TitleScene,SelectScene,OptionScene,SelectScene}"
 timeout="${V6MEM_TIMEOUT:-2400}"
 
 mkdir -p "$outdir"
@@ -34,14 +35,15 @@ log="$outdir/Player.log"
 
 echo "[v6mem] app=$app"
 echo "[v6mem] out=$outdir"
-echo "[v6mem] rounds=$rounds games=$games songs=$songs timeout=${timeout}s"
+echo "[v6mem] rounds=$rounds games=$games songs=$songs ui=$ui timeout=${timeout}s"
 
 open -n "$app" --args \
   -autotest v6mem \
   -autotest-out "$outdir" \
   -autotest-rounds "$rounds" \
   -autotest-games "$games" \
-  -autotest-songs "$songs"
+  -autotest-songs "$songs" \
+  -autotest-ui "$ui"
 
 pid=$(pgrep -f "$app/Contents/MacOS/FlashBeat" | head -1)
 if [ -z "$pid" ]; then
