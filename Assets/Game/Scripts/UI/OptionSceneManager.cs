@@ -235,6 +235,19 @@ public class OptionSceneManager : MonoBehaviour
         }
     }
 
+    void OnDestroy()
+    {
+        // V6OptionView は静的イベント KeyBindings.Changed を購読する。
+        // Dispose を呼ばないとシーンを抜けても購読が残り、破棄済みビューの
+        // マネージド側 (UI グラフ全体) がプロセス寿命まで保持される
+        // (#416 実機計測: OptionScene 1 ロードあたり約 1.8MB の単調増加)。
+        if (optionView != null)
+        {
+            optionView.Dispose();
+            optionView = null;
+        }
+    }
+
     /// <summary>
     /// 音量を実際の出力へ即時反映する (Issue #167)。
     /// 各所有者は起動時にしか音量を読まないため、値を変えた瞬間に反映する。
