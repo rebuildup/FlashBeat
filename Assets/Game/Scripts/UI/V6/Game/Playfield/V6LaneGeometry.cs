@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using FlashBeat.UI.V5;
 
 namespace FlashBeat.UI.V6.Game.Playfield
 {
@@ -84,16 +85,16 @@ namespace FlashBeat.UI.V6.Game.Playfield
         public const float ExitT01 = (JudgeLineY - DesignHeight) / JudgeLineY;
 
         /// <summary>レーン分離線の色 (design: #FFFFFF2E)。</summary>
-        public static readonly Color SeparatorColor = FromHex("#FFFFFF2E");
+        public static readonly Color SeparatorColor = V5Tokens.FromHex("#FFFFFF2E");
 
         /// <summary>判定ラインの色 (design: #EDEDED)。</summary>
-        public static readonly Color JudgeLineColor = FromHex("#EDEDED");
+        public static readonly Color JudgeLineColor = V5Tokens.FromHex("#EDEDED");
 
         /// <summary>判定グロウの色 (design: #FFFFFF4D)。</summary>
-        public static readonly Color JudgeGlowColor = FromHex("#FFFFFF4D");
+        public static readonly Color JudgeGlowColor = V5Tokens.FromHex("#FFFFFF4D");
 
         /// <summary>ノーツの色 (design: #EDEDED)。</summary>
-        public static readonly Color NoteColor = FromHex("#EDEDED");
+        public static readonly Color NoteColor = V5Tokens.FromHex("#EDEDED");
 
         /// <summary>
         /// 動画減光の色 (design §8: Video Dim #00000080 全画面)。
@@ -161,12 +162,6 @@ namespace FlashBeat.UI.V6.Game.Playfield
             float s = ScreenScale(screenSize);
             float offsetX = (screenSize.x - DesignWidth * s) * 0.5f;
             return new Vector2(design.x * s + offsetX, design.y * s);
-        }
-
-        private static Color FromHex(string hex)
-        {
-            ColorUtility.TryParseHtmlString(hex, out var c);
-            return c;
         }
     }
 }

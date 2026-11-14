@@ -465,7 +465,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
-            var rt = GetRect(gameObject);
+            var rt = V6Layout.RectOf(gameObject);
             if (rt.anchorMin == new Vector2(0f, 1f) && rt.anchorMax == new Vector2(0f, 1f)
                 && rt.pivot == new Vector2(0f, 1f) && rt.anchoredPosition == Vector2.zero
                 && rt.sizeDelta == size && rt.localScale == Vector3.one)
@@ -565,7 +565,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             m = V6HudMetrics.ForResolution(canvasSize.x, canvasSize.y);
             // Root は自分自身。未代入だと Refresh のガードが常に早期 return し、
             // スコア / コンボ / 歌詞 / 判定行 / レーン格子の更新が一切走らない。
-            Root = GetRect(gameObject);
+            Root = V6Layout.RectOf(gameObject);
             ApplyRootTransform();
 
             BuildDim();
@@ -587,7 +587,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildDim()
         {
             var dim = V5Ui.Node(gameObject, "Video Dim");
-            var rt = GetRect(dim);
+            var rt = V6Layout.RectOf(dim);
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
@@ -600,7 +600,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildTopShade()
         {
             var shade = V5Ui.Node(gameObject, "Top Shade");
-            V5Ui.PinTop(GetRect(shade), m.TopShadeH, 0f);
+            V5Ui.PinTop(V6Layout.RectOf(shade), m.TopShadeH, 0f);
             var img = shade.AddComponent<Image>();
             // 上端 #000000A6 → 下端 #00000000。一様な黒帯にすると下端の境界が見えるため、
             // 縦グラデーションにして動画の暗部へ溶かす (契約 §8)。
@@ -640,14 +640,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildProgressBar()
         {
             var bar = V5Ui.Node(gameObject, "Progress Bar");
-            var rt = V5Ui.PinTop(GetRect(bar), m.ProgressH, 0f);
+            var rt = V5Ui.PinTop(V6Layout.RectOf(bar), m.ProgressH, 0f);
             var img = bar.AddComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0xAA / 255f);
             img.raycastTarget = false;
             progressTrack = rt;
 
             var fill = V5Ui.Node(bar, "Fill");
-            var fillRt = GetRect(fill);
+            var fillRt = V6Layout.RectOf(fill);
             fillRt.anchorMin = new Vector2(0f, 0.5f);
             fillRt.anchorMax = new Vector2(0f, 0.5f);
             fillRt.pivot = new Vector2(0f, 0.5f);
@@ -672,7 +672,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             var box = V5Ui.Panel(gameObject, "Lyric Box", lyricSize, LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
             lyricBox = box;
-            var boxRt = GetRect(box);
+            var boxRt = V6Layout.RectOf(box);
             boxRt.anchorMin = new Vector2(0.5f, 1f);
             boxRt.anchorMax = new Vector2(0.5f, 1f);
             boxRt.pivot = new Vector2(0.5f, 1f);
@@ -711,7 +711,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildCountdown()
         {
             countdownOverlay = V5Ui.Node(gameObject, "Resume Countdown");
-            var rt = GetRect(countdownOverlay);
+            var rt = V6Layout.RectOf(countdownOverlay);
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
@@ -803,7 +803,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildEndOverlay()
         {
             var fadeGo = V5Ui.Node(gameObject, "Song End Fade");
-            var fadeRt = GetRect(fadeGo);
+            var fadeRt = V6Layout.RectOf(fadeGo);
             fadeRt.anchorMin = Vector2.zero;
             fadeRt.anchorMax = Vector2.one;
             fadeRt.offsetMin = Vector2.zero;
@@ -814,7 +814,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             fadeGo.SetActive(false);
 
             endOverlay = V5Ui.Node(gameObject, "Song End Overlay");
-            var rt = GetRect(endOverlay);
+            var rt = V6Layout.RectOf(endOverlay);
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
@@ -901,15 +901,15 @@ namespace FlashBeat.UI.V6.Game.Hud
                 new Vector2(0f, V6HudLogic.ReadyPromptCapHeight), V5Tokens.Key4, 4f);
             var capKey = V5Ui.Text(cap, "Key", "Space", V6HudLogic.ReadyPromptFontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            FillRect(capKey.rectTransform);
+            V6Layout.StretchFill(capKey.rectTransform);
             float capW = MeasureTextWidth(capKey, "Space", V6HudLogic.ReadyPromptFontSize)
                 + V6Ui.KeyCapPaddingX * 2f;
-            GetRect(cap).sizeDelta = new Vector2(capW, V6HudLogic.ReadyPromptCapHeight);
+            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, V6HudLogic.ReadyPromptCapHeight);
 
             var label = V5Ui.Text(lyricPrompt, "Label", "to start", V6HudLogic.ReadyPromptFontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
             float labelW = MeasureTextWidth(label, "to start", V6HudLogic.ReadyPromptFontSize);
-            GetRect(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
+            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
 
             lyricPrompt.SetActive(false);
         }
@@ -962,13 +962,13 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildScoreGauge()
         {
             var gauge = V5Ui.Node(gameObject, "Score Gauge");
-            V5Ui.Place(GetRect(gauge), new Vector2(0f, 1f), new Vector2(0f, 1f),
+            V5Ui.Place(V6Layout.RectOf(gauge), new Vector2(0f, 1f), new Vector2(0f, 1f),
                 new Vector2(m.GaugeX, -m.GaugeY), new Vector2(m.GaugeW, m.GaugeH));
 
             // Track (k0, 角丸 2)
             var track = V5Ui.Panel(gauge, "Track", new Vector2(m.GaugeW, m.GaugeTrackH),
                 V5Tokens.Key0, 2f);
-            var trackRt = GetRect(track);
+            var trackRt = V6Layout.RectOf(track);
             trackRt.anchorMin = new Vector2(0f, 1f);
             trackRt.anchorMax = new Vector2(0f, 1f);
             trackRt.pivot = new Vector2(0f, 1f);
@@ -980,7 +980,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 var seg = V5Ui.Panel(track, "Seg " + i,
                     new Vector2(m.GaugeSegW[i], m.GaugeSegH),
                     i == m.GaugeSegX.Length - 1 ? V6HudLogic.AccentBase : V5Tokens.Key0, 2f);
-                var segRt = GetRect(seg);
+                var segRt = V6Layout.RectOf(seg);
                 segRt.anchorMin = new Vector2(0f, 0f);
                 segRt.anchorMax = new Vector2(0f, 0f);
                 segRt.pivot = new Vector2(0f, 0.5f);
@@ -990,7 +990,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 塗り (Fill)
             var fill = V5Ui.Panel(track, "Fill",
                 new Vector2(0f, m.GaugeFillH), V5Tokens.Text, 2f);
-            var fillRt = GetRect(fill);
+            var fillRt = V6Layout.RectOf(fill);
             fillRt.anchorMin = new Vector2(0f, 1f);
             fillRt.anchorMax = new Vector2(0f, 1f);
             fillRt.pivot = new Vector2(0f, 1f);
@@ -1000,7 +1000,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Best マーカー
             var best = V5Ui.Panel(track, "Best",
                 new Vector2(m.GaugeBestW, m.GaugeBestH), V5Tokens.Warn, 2f);
-            var bestRt = GetRect(best);
+            var bestRt = V6Layout.RectOf(best);
             bestRt.anchorMin = new Vector2(0f, 0.5f);
             bestRt.anchorMax = new Vector2(0f, 0.5f);
             bestRt.pivot = new Vector2(0f, 0.5f);
@@ -1045,7 +1045,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             var btn = V5Ui.Panel(gameObject, "Menu Button",
                 new Vector2(m.MenuW, m.MenuH), V5Tokens.Key4, 8f);
-            var rt = GetRect(btn);
+            var rt = V6Layout.RectOf(btn);
             rt.anchorMin = new Vector2(1f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 1f);
@@ -1063,16 +1063,16 @@ namespace FlashBeat.UI.V6.Game.Hud
                 new Vector2(0f, m.MenuCapH), new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
             var capKey = V5Ui.Text(cap, "Key", "Esc", m.MenuFs, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
-            FillRect(capKey.rectTransform);
+            V6Layout.StretchFill(capKey.rectTransform);
             float capW = MeasureTextWidth(capKey, "Esc", m.MenuFs) + V6Ui.KeyCapPaddingX * 2f;
-            GetRect(cap).sizeDelta = new Vector2(capW, m.MenuCapH);
+            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, m.MenuCapH);
 
             float total = labelW + m.MenuGap + capW;
             float rowX = Mathf.Round((m.MenuW - total) * 0.5f);
             float rowY = Mathf.Round((m.MenuH - m.MenuCapH) * 0.5f);
             PlaceTopLeft(label.rectTransform, rowX, -rowY);
-            GetRect(label).sizeDelta = new Vector2(labelW, m.MenuCapH);
-            PlaceTopLeft(GetRect(cap), rowX + labelW + m.MenuGap, -rowY);
+            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, m.MenuCapH);
+            PlaceTopLeft(V6Layout.RectOf(cap), rowX + labelW + m.MenuGap, -rowY);
 
             MenuButton = btn.AddComponent<Button>();
             MenuButton.targetGraphic = btn.GetComponent<Image>();
@@ -1104,7 +1104,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 契約 §8: Combo 左上は design px 絶対座標 (FHD (48,430) / 2K (64,573) / Mac (64,685))。
             // 1:1 固定配置なので中央アンカー + オフセット計算は不要 (左上アンカーでそのまま置く)。
             var block = V5Ui.Node(gameObject, "Combo Block");
-            var rt = GetRect(block);
+            var rt = V6Layout.RectOf(block);
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0f, 1f);
@@ -1131,7 +1131,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 未知解像度でプロファイルを流用したときも画面外へはみ出さない。
             float columnH = m.StatusBlockH;
             var column = V5Ui.Node(gameObject, "Right Column");
-            var rt = GetRect(column);
+            var rt = V6Layout.RectOf(column);
             rt.anchorMin = new Vector2(1f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 1f);
@@ -1143,7 +1143,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 2 行は実在しない加点の表示 (近似値 / 仮の式) なので廃止した。
             // 契約 §12: Combo Status はこの座標 (FHD 1512,460) を使う。
             var status = V5Ui.Node(column, "Combo Status");
-            var statusRt = GetRect(status);
+            var statusRt = V6Layout.RectOf(status);
             statusRt.anchorMin = new Vector2(1f, 1f);
             statusRt.anchorMax = new Vector2(1f, 1f);
             statusRt.pivot = new Vector2(1f, 1f);
@@ -1153,7 +1153,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var track = V5Ui.Panel(status, "Track",
                 new Vector2(m.StatusTrackW, m.StatusTrackH), V5Tokens.Key0, 4f);
-            var trackRt = GetRect(track);
+            var trackRt = V6Layout.RectOf(track);
             trackRt.anchorMin = new Vector2(0f, 1f);
             trackRt.anchorMax = new Vector2(0f, 1f);
             trackRt.pivot = new Vector2(0f, 1f);
@@ -1161,7 +1161,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var fill = V5Ui.Panel(track, "Fill",
                 new Vector2(0f, m.StatusTrackH), V5Tokens.Text, 4f);
-            var fillRt = GetRect(fill);
+            var fillRt = V6Layout.RectOf(fill);
             fillRt.anchorMin = new Vector2(0f, 0.5f);
             fillRt.anchorMax = new Vector2(0f, 0.5f);
             fillRt.pivot = new Vector2(0f, 0.5f);
@@ -1170,7 +1170,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboFillImage = fill.GetComponent<Image>();
 
             comboStatusRow = V5Ui.Node(status, "Status Row");
-            var rowRt = GetRect(comboStatusRow);
+            var rowRt = V6Layout.RectOf(comboStatusRow);
             rowRt.anchorMin = new Vector2(0f, 1f);
             rowRt.anchorMax = new Vector2(0f, 1f);
             rowRt.pivot = new Vector2(0f, 1f);
@@ -1214,7 +1214,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             if (!VerdictRowEnabled) return;
 
             var row = V5Ui.Node(gameObject, "Verdict Row");
-            V5Ui.PinBottom(GetRect(row), m.VerdictH, m.VerdictBottom);
+            V5Ui.PinBottom(V6Layout.RectOf(row), m.VerdictH, m.VerdictBottom);
 
             for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
@@ -1240,7 +1240,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             keyGuideRow = V5Ui.Node(gameObject, "Key Guide");
-            V5Ui.PinBottom(GetRect(keyGuideRow), m.KeyGuideH, m.KeyGuideBottom);
+            V5Ui.PinBottom(V6Layout.RectOf(keyGuideRow), m.KeyGuideH, m.KeyGuideBottom);
 
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
@@ -1248,7 +1248,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 var cap = V6Ui.KeyCap(keyGuideRow, V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
                     new Vector2(m.KeyCapW, m.KeyCapH), m.KeyCapLabelFs);
                 var label = cap.GetComponentInChildren<TextMeshProUGUI>();
-                var rt = GetRect(cap);
+                var rt = V6Layout.RectOf(cap);
                 rt.anchorMin = new Vector2(0f, 0.5f);
                 rt.anchorMax = new Vector2(0f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0.5f);
@@ -1783,15 +1783,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = new Vector2(x, y);
         }
 
-        /// <summary>親いっぱいに広げる (KeyCap 内のラベルなど)。</summary>
-        private static void FillRect(RectTransform rt)
-        {
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-        }
-
         /// <summary>
         /// 桁別値ストリップを作る (Issue #445)。コンテナは左上アンカーで
         /// <paramref name="pos"/> に置き、中に 1 文字 = 1 スロットを必要数だけ作る
@@ -1919,7 +1910,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 var label = V5Ui.Text(go, "Char", "", FontSize, BaseColor,
                     TextAlignmentOptions.Center, FontStyles.Bold);
                 label.textWrappingMode = TextWrappingModes.NoWrap;
-                FillRect(label.rectTransform);
+                V6Layout.StretchFill(label.rectTransform);
 
                 // 使うまで非表示 (空スロットの TMP を毎フレーム走らせない)。
                 go.SetActive(false);
@@ -1950,16 +1941,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         private float Scale
         {
             get { return m == null ? 1f : m.Scale; }
-        }
-
-        private static RectTransform GetRect(Component component)
-        {
-            return component.GetComponent<RectTransform>();
-        }
-
-        private static RectTransform GetRect(GameObject go)
-        {
-            return go.GetComponent<RectTransform>();
         }
     }
 }

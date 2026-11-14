@@ -311,19 +311,14 @@ namespace FlashBeat.UI.V6.Title
             UpdateFlowModel model = UpdateModel();
 
             // 各ゾーンの中身を作り直す (ゾーン自体 / Modal / 外周は V6Frame が所有)。
-            ClearChildren(headerZone);
-            ClearChildren(mainZone);
-            ClearChildren(footerZone);
+            V6Hierarchy.ClearChildren(headerZone);
+            V6Hierarchy.ClearChildren(mainZone);
+            V6Hierarchy.ClearChildren(footerZone);
 
             BuildHeader(model);
             BuildTabList();
             BuildMain(model);
             BuildFooter();
-        }
-
-        private static void ClearChildren(Transform zone)
-        {
-            Common.V6Hierarchy.ClearChildren(zone);
         }
 
         // --- ヘッダー (24,0) 1680x96 (V6Frame の Header ゾーン内) ---
@@ -379,7 +374,7 @@ namespace FlashBeat.UI.V6.Title
             // 正本の要素は [現行版] [→] [新版] の 3 つだけで、曲情報 / カタログ状態 /
             // 自己ベストは設計に無い (v6 移植時に足していた非設計要素) ため描かない。
             var versionZone = V6Controls.Panel(header, "Version", V6TitleLogic.VersionZonePos,
-                V6TitleLogic.VersionZoneSize, Clear(), 0f);
+                V6TitleLogic.VersionZoneSize, Color.clear, 0f);
             bool showNewVersion = model != null &&
                 V6TitleLogic.ShowNewVersion(model.Phase, model.LatestVersion);
             string currentVersion = V6TitleLogic.VersionLabel(Application.version);
@@ -574,7 +569,7 @@ namespace FlashBeat.UI.V6.Title
             bool selected = index == selectedTab;
             var tabGo = V6Controls.Panel(tabs, tab.Name,
                 new Vector2(V6TitleLogic.TabSize.x * index, 0f), V6TitleLogic.TabSize,
-                selected ? V6Tokens.Key6 : Clear(), 0f);
+                selected ? V6Tokens.Key6 : Color.clear, 0f);
             MakeButton(tabGo, tab.Action);
 
             // アイコン (design 24×24、縦中央)。
@@ -690,11 +685,6 @@ namespace FlashBeat.UI.V6.Title
         private static void WireClick(GameObject go, Action onClick)
         {
             MakeButton(go, onClick);
-        }
-
-        private static Color Clear()
-        {
-            return new Color(0f, 0f, 0f, 0f);
         }
     }
 }

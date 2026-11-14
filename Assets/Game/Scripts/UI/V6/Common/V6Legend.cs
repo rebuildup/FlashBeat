@@ -70,5 +70,19 @@ namespace FlashBeat.UI.V6.Common
 
             return labelX + labelW + itemGap;
         }
+
+        /// <summary>
+        /// キー凡例をまとめて置く (items = {キー, 説明} の並び)。
+        /// x=0・y=<see cref="Y"/> から <see cref="ItemGap"/> 間隔で左から並べる
+        /// (Ranking / History の private BuildKeyLegend と同じ仕様)。
+        /// </summary>
+        public static void KeyLegend(GameObject parent, string[][] items)
+        {
+            float x = 0f;
+            for (int i = 0; i < items.Length; i++)
+            {
+                x = Item(parent, x, Y, items[i][0], items[i][1]);
+            }
+        }
     }
 }

@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Option;
@@ -57,6 +58,48 @@ public class V6HierarchyTests
         var parent = new GameObject("V6HierarchyTestParent", typeof(RectTransform));
         Assert.DoesNotThrow(() => V6Hierarchy.ClearChildren(parent));
         Assert.AreEqual(0, parent.transform.childCount);
+    }
+
+    [Test]
+    public void DetachAndDestroy_RemovesSingleChildFromTheHierarchy()
+    {
+        var parent = new GameObject("V6HierarchyTestParent", typeof(RectTransform));
+        var child = new GameObject("V6HierarchyTestChild", typeof(RectTransform));
+        child.transform.SetParent(parent.transform, false);
+        var sibling = new GameObject("V6HierarchyTestSibling", typeof(RectTransform));
+        sibling.transform.SetParent(parent.transform, false);
+
+        V6Hierarchy.DetachAndDestroy(child);
+
+        Assert.AreEqual(1, parent.transform.childCount, "対象の子だけが階層から外れる");
+        Assert.AreSame(sibling.transform, parent.transform.GetChild(0));
+        // DestroyNow は edit mode では DestroyImmediate (play ではフレーム末 Destroy)
+        // なので、ここでは Unity の null 判定で破棄済みを確認する
+        // (破棄済み object の transform へは触れない — MissingReference になる)。
+        Assert.IsTrue(child == null, "外した子は破棄される");
+    }
+
+    [Test]
+    public void DetachAndDestroy_NullIsSafe()
+    {
+        Assert.DoesNotThrow(() => V6Hierarchy.DetachAndDestroy(null));
+    }
+
+    [Test]
+    public void SetChildText_WritesFoundTmp_AndIgnoresMissingPath()
+    {
+        var root = new GameObject("V6HierarchyTestParent", typeof(RectTransform));
+        var child = new GameObject("Row", typeof(RectTransform));
+        child.transform.SetParent(root.transform, false);
+        var tmpGo = new GameObject("Title", typeof(RectTransform));
+        tmpGo.transform.SetParent(child.transform, false);
+        var tmp = tmpGo.AddComponent<TextMeshProUGUI>();
+
+        V6Hierarchy.SetChildText(root, "Row/Title", "hello");
+        Assert.AreEqual("hello", tmp.text);
+
+        Assert.DoesNotThrow(() => V6Hierarchy.SetChildText(root, "Row/Missing", "x"));
+        Assert.DoesNotThrow(() => V6Hierarchy.SetChildText(null, "Row/Title", "x"));
     }
 
     [Test]

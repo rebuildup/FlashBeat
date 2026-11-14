@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace FlashBeat.UI.V6.Common
 {
@@ -180,6 +181,165 @@ namespace FlashBeat.UI.V6.Common
         public static void StackHorizontal(RectTransform container, float gap, params Component[] children)
         {
             Stack(container, gap, children, false);
+        }
+
+        // --- GameObject を返す配置 (各 View に重複していた private At / PlaceTopLeft を集約) ---
+        // 引数は design 座標 (左上原点・y_down)。戻り値は配置した GameObject で、
+        // V5Ui.Panel / V5GameUi.Text の親にそのまま渡せる。
+        // size を省略する版は sizeDelta を書き換えない (既存サイズを維持する)。
+
+        /// <summary>design (x,y) の左上へ、現在の sizeDelta のまま配置する。</summary>
+        public static GameObject Place(GameObject go, float x, float y)
+        {
+            return Place(go.GetComponent<RectTransform>(), x, y);
+        }
+
+        /// <summary>design (x,y) の左上・size で配置する。</summary>
+        public static GameObject Place(GameObject go, float x, float y, float w, float h)
+        {
+            return Place(go.GetComponent<RectTransform>(), x, y, w, h);
+        }
+
+        /// <summary>
+        /// pivot 指定版。design 上の左上 (x,y) を維持したまま pivot を変える
+        /// (anchoredPosition は pivot の位置を指すため pivot 分を補正する)。
+        /// </summary>
+        public static GameObject Place(GameObject go, float x, float y, float w, float h, Vector2 pivot)
+        {
+            return Place(go.GetComponent<RectTransform>(), x, y, w, h, pivot);
+        }
+
+        /// <summary><see cref="Place(GameObject, float, float)"/> の Component 版。</summary>
+        public static GameObject Place(Component node, float x, float y)
+        {
+            return Place(node.GetComponent<RectTransform>(), x, y);
+        }
+
+        /// <summary><see cref="Place(GameObject, float, float, float, float)"/> の Component 版。</summary>
+        public static GameObject Place(Component node, float x, float y, float w, float h)
+        {
+            return Place(node.GetComponent<RectTransform>(), x, y, w, h);
+        }
+
+        /// <summary><see cref="Place(GameObject, float, float, float, float, Vector2)"/> の Component 版。</summary>
+        public static GameObject Place(Component node, float x, float y, float w, float h, Vector2 pivot)
+        {
+            return Place(node.GetComponent<RectTransform>(), x, y, w, h, pivot);
+        }
+
+        /// <summary>RectTransform 版。sizeDelta を維持して design (x,y) の左上へ配置する。</summary>
+        public static GameObject Place(RectTransform rt, float x, float y)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = ToLocal(new Vector2(x, y));
+            return rt.gameObject;
+        }
+
+        /// <summary>RectTransform 版。design (x,y) の左上・size で配置する。</summary>
+        public static GameObject Place(RectTransform rt, float x, float y, float w, float h)
+        {
+            Place(rt, new Vector2(x, y), new Vector2(w, h));
+            return rt.gameObject;
+        }
+
+        /// <summary>size を Vector2 で取る版 (Row/Column 子の配置など)。</summary>
+        public static GameObject Place(RectTransform rt, float x, float y, Vector2 size)
+        {
+            Place(rt, new Vector2(x, y), size);
+            return rt.gameObject;
+        }
+
+        /// <summary>RectTransform 版の pivot 指定。design 上の左上 (x,y) を維持する。</summary>
+        public static GameObject Place(RectTransform rt, float x, float y, float w, float h, Vector2 pivot)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = pivot;
+            rt.sizeDelta = new Vector2(w, h);
+            // anchoredPosition は pivot の位置を指す。design 上の左上 (x,y) を
+            // 維持するため pivot 分を補正する (各 View の private At と同じ式)。
+            rt.anchoredPosition = ToLocal(new Vector2(
+                x + pivot.x * w,
+                y + (1f - pivot.y) * h));
+            return rt.gameObject;
+        }
+
+        /// <summary>
+        /// design 座標 (左上原点) で配置し、RectTransform を返す。
+        /// size を省略すると sizeDelta を触らない (Game/Pause・Game/Loading の
+        /// private PlaceAt と同じ仕様)。
+        /// </summary>
+        public static RectTransform PlaceAt(Component node, float x, float y, Vector2? size = null)
+        {
+            return PlaceAt(node.gameObject, x, y, size);
+        }
+
+        /// <summary><see cref="PlaceAt(Component, float, float, Vector2?)"/> の GameObject 版。</summary>
+        public static RectTransform PlaceAt(GameObject node, float x, float y, Vector2? size = null)
+        {
+            var rt = node.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = ToLocal(new Vector2(x, y));
+            if (size.HasValue)
+            {
+                rt.sizeDelta = size.Value;
+            }
+
+            return rt;
+        }
+
+        /// <summary>
+        /// Row/Column の中央セルなど、親の中央 (anchor/pivot 0.5) に size で置く
+        /// (各 View で重複していた private Stretch(rt, w, h))。
+        /// </summary>
+        public static void StretchCenter(RectTransform rt, float w, float h)
+        {
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(w, h);
+        }
+
+        /// <summary>親いっぱいに広げる (anchor 0..1 / offset 0)。</summary>
+        public static void StretchFill(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>
+        /// レイアウトグループの子にする (minWidth 0 = 内容に合わせる)。
+        /// (Game/Pause・Game/Loading の private LayoutItem と同じ仕様)。
+        /// </summary>
+        public static void LayoutItem(GameObject go, float minWidth, float height)
+        {
+            var le = go.AddComponent<LayoutElement>();
+            if (minWidth > 0f)
+            {
+                le.minWidth = minWidth;
+                le.preferredWidth = minWidth;
+            }
+
+            le.preferredHeight = height;
+        }
+
+        /// <summary>Component に付いている RectTransform を取る (各 View の private GetRect)。</summary>
+        public static RectTransform RectOf(Component component)
+        {
+            return component.GetComponent<RectTransform>();
+        }
+
+        /// <summary>GameObject に付いている RectTransform を取る。</summary>
+        public static RectTransform RectOf(GameObject go)
+        {
+            return go.GetComponent<RectTransform>();
         }
 
         private static void Stack(RectTransform container, float gap, Component[] children, bool vertical)

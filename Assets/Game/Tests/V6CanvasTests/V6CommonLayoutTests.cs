@@ -258,6 +258,91 @@ namespace FlashBeat.UI.V6.Common.Tests
             AssertColor(new Color(0xED / 255f, 0xED / 255f, 0xED / 255f, 0x33 / 255f), V6Tokens.Border);
         }
 
+        // --- GameObject を返す配置プリミティブ (Issue #385 phase 1.5 で各 View の
+        //     private At / PlaceAt / Stretch から集約したもの) ---
+
+        [Test]
+        public void Place_KeepsSizeDelta_WhenSizeOmitted()
+        {
+            var go = new GameObject("V6LayoutTestNode", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(100f, 40f);
+
+            var result = V6Layout.Place(go, 24f, 96f);
+
+            Assert.AreSame(go, result);
+            Assert.AreEqual(new Vector2(24f, -96f), rt.anchoredPosition);
+            Assert.AreEqual(new Vector2(100f, 40f), rt.sizeDelta, "size 省略時は sizeDelta を触らない");
+            Assert.AreEqual(new Vector2(0f, 1f), rt.pivot);
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void Place_Pivot_KeepsDesignTopLeft()
+        {
+            var go = new GameObject("V6LayoutTestNode", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+            var pivot = new Vector2(0.5f, 0.5f);
+
+            V6Layout.Place(go, 100f, 200f, 80f, 40f, pivot);
+
+            Assert.AreEqual(pivot, rt.pivot);
+            Assert.AreEqual(new Vector2(80f, 40f), rt.sizeDelta);
+            // anchoredPosition は pivot の位置を指す。design 上の左上 (100,200) を
+            // 維持するため pivot 分を補正した値になる:
+            //   x + p.x*w = 140, y + (1-p.y)*h = 220 → ToLocal = (140, -220)
+            Assert.AreEqual(new Vector2(140f, -220f), rt.anchoredPosition);
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void PlaceAt_OmitsSizeDelta_WhenSizeOmitted_AndSetsItOtherwise()
+        {
+            var go = new GameObject("V6LayoutTestNode", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(50f, 50f);
+
+            var placed = V6Layout.PlaceAt(go, 10f, 20f);
+            Assert.AreSame(rt, placed);
+            Assert.AreEqual(new Vector2(10f, -20f), rt.anchoredPosition);
+            Assert.AreEqual(new Vector2(50f, 50f), rt.sizeDelta);
+
+            V6Layout.PlaceAt(go, 30f, 40f, new Vector2(70f, 60f));
+            Assert.AreEqual(new Vector2(30f, -40f), rt.anchoredPosition);
+            Assert.AreEqual(new Vector2(70f, 60f), rt.sizeDelta);
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void StretchCenter_CentersWithGivenSize()
+        {
+            var go = new GameObject("V6LayoutTestNode", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+
+            V6Layout.StretchCenter(rt, 160f, 48f);
+
+            Assert.AreEqual(new Vector2(0.5f, 0.5f), rt.anchorMin);
+            Assert.AreEqual(new Vector2(0.5f, 0.5f), rt.anchorMax);
+            Assert.AreEqual(Vector2.zero, rt.anchoredPosition);
+            Assert.AreEqual(new Vector2(160f, 48f), rt.sizeDelta);
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void StretchFill_FillsParent()
+        {
+            var go = new GameObject("V6LayoutTestNode", typeof(RectTransform));
+            var rt = go.GetComponent<RectTransform>();
+
+            V6Layout.StretchFill(rt);
+
+            Assert.AreEqual(Vector2.zero, rt.anchorMin);
+            Assert.AreEqual(Vector2.one, rt.anchorMax);
+            Assert.AreEqual(Vector2.zero, rt.offsetMin);
+            Assert.AreEqual(Vector2.zero, rt.offsetMax);
+            Object.DestroyImmediate(go);
+        }
+
         private static void AssertColor(Color expected, Color actual)
         {
             Assert.AreEqual(expected.r, actual.r, 1f / 255f, "r");

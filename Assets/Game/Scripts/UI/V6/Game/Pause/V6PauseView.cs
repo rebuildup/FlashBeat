@@ -382,34 +382,34 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildResetConfirm()
         {
             confirmRoot = V5Ui.Node(frame.gameObject, "V6 Pause Confirm");
-            var rootRt = GetRect(confirmRoot);
-            Stretch(rootRt);
+            var rootRt = V6Layout.RectOf(confirmRoot);
+            V6Layout.StretchFill(rootRt);
             rootRt.SetAsLastSibling();
 
             var scrim = V5Ui.Node(confirmRoot, "Scrim");
-            V5Ui.Fill(GetRect(scrim), 0f);
+            V5Ui.Fill(V6Layout.RectOf(scrim), 0f);
             var scrimImg = scrim.AddComponent<Image>();
             scrimImg.color = new Color(0f, 0f, 0f, 0xCC / 255f);
             scrimImg.raycastTarget = true;
 
             var dialog = V5Ui.Panel(confirmRoot, "Dialog", new Vector2(840f, 510f), V5Tokens.Key1, 16f);
-            PlaceAt(dialog, 444f, 231f, new Vector2(840f, 510f));
+            V6Layout.PlaceAt(dialog, 444f, 231f, new Vector2(840f, 510f));
 
             var head = V5Ui.Text(dialog, "Head", "Key Layout", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            PlaceAt(head.gameObject, 28f, 28f, new Vector2(784f, 40f));
+            V6Layout.PlaceAt(head.gameObject, 28f, 28f, new Vector2(784f, 40f));
 
             var desc = V5Ui.Text(dialog, "Desc",
                 "すべてのレーンのキー割り当てを標準に戻します。\n現在のカスタム割り当ては消去されます (元に戻せません)。",
                 24f, V5Tokens.Text, TextAlignmentOptions.TopLeft);
-            PlaceAt(desc.gameObject, 28f, 100f, new Vector2(784f, 120f));
+            V6Layout.PlaceAt(desc.gameObject, 28f, 100f, new Vector2(784f, 120f));
             desc.lineSpacing = 40f;
 
             var cancel = V5Ui.Panel(dialog, "Op Cancel", new Vector2(198f, 50f), V5Tokens.Key4, 8f);
-            PlaceAt(cancel, 28f, 432f, new Vector2(198f, 50f));
+            V6Layout.PlaceAt(cancel, 28f, 432f, new Vector2(198f, 50f));
             var cancelLabel = V5Ui.Text(cancel, "Label", "キャンセル", 26f, V5Tokens.Text,
                 TextAlignmentOptions.Center);
-            Stretch(cancelLabel.rectTransform);
+            V6Layout.StretchFill(cancelLabel.rectTransform);
             var cancelButton = cancel.AddComponent<Button>();
             cancelButton.targetGraphic = cancel.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(cancel);
@@ -417,10 +417,10 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             var confirm = V5Ui.Panel(dialog, "Op Reset", new Vector2(252f, 50f),
                 new Color(0xE5 / 255f, 0x3E / 255f, 0x3E / 255f), 8f);
-            PlaceAt(confirm, 560f, 432f, new Vector2(252f, 50f));
+            V6Layout.PlaceAt(confirm, 560f, 432f, new Vector2(252f, 50f));
             var confirmLabel = V5Ui.Text(confirm, "Label", "戻す", 26f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center);
-            Stretch(confirmLabel.rectTransform);
+            V6Layout.StretchFill(confirmLabel.rectTransform);
             var confirmButton = confirm.AddComponent<Button>();
             confirmButton.targetGraphic = confirm.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(confirm);
@@ -503,7 +503,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             // 詰めると設計の x (Thumb 24 / Song 100 / Divider 432 / Stat 445・557・669) から
             // ずれて曲名がタブ行に潜り込むため、1 個ずつ設計座標へ置く。
             var info = V5Ui.Node(header, "Song Info");
-            var infoRt = GetRect(info);
+            var infoRt = V6Layout.RectOf(info);
             infoRt.anchorMin = new Vector2(1f, 1f);
             infoRt.anchorMax = new Vector2(1f, 1f);
             infoRt.pivot = new Vector2(1f, 1f);
@@ -543,7 +543,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             songSub = badge.Sub;
 
             var divider = V5Ui.Panel(info, "Divider", new Vector2(1f, 44f), new Color(1f, 1f, 1f, 0x26 / 255f), 0f);
-            PlaceAt(divider, 432f, 26f);
+            V6Layout.PlaceAt(divider, 432f, 26f);
 
             levelValue = BuildStat(info, "LEVEL", 445f);
             notesValue = BuildStat(info, "NOTES", 557f);
@@ -554,20 +554,20 @@ namespace FlashBeat.UI.V6.Game.Pause
         private TextMeshProUGUI BuildStat(GameObject parent, string label, float x)
         {
             var col = V5Ui.Node(parent, "Stat " + label);
-            PlaceAt(col, x, 8f, new Vector2(100f, 80f));
+            V6Layout.PlaceAt(col, x, 8f, new Vector2(100f, 80f));
             var labelTmp = V5Ui.Text(col, "Label", label, 18f, V5Tokens.TextDim, TextAlignmentOptions.Left);
-            PlaceAt(labelTmp.gameObject, 0f, 0f, new Vector2(100f, 26f));
+            V6Layout.PlaceAt(labelTmp.gameObject, 0f, 0f, new Vector2(100f, 26f));
             var value = V5Ui.Text(col, "Value", "", 30f, V5Tokens.Text, TextAlignmentOptions.Left,
                 FontStyles.Bold);
             value.textWrappingMode = TextWrappingModes.NoWrap;
-            PlaceAt(value.gameObject, 0f, 28f, new Vector2(100f, 43f));
+            V6Layout.PlaceAt(value.gameObject, 0f, 28f, new Vector2(100f, 43f));
             return value;
         }
 
         private void BuildMain()
         {
             var main = V5Ui.Node(frame.gameObject, "Main");
-            PlaceAt(main, MainX, MainY, new Vector2(1680f, 780f));
+            V6Layout.PlaceAt(main, MainX, MainY, new Vector2(1680f, 780f));
 
             BuildTabs(main);
             BuildSettingsPanel(main);
@@ -577,7 +577,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildTabs(GameObject main)
         {
             var tabs = V5Ui.Node(main, "Tabs");
-            PlaceAt(tabs, 438f, 0f, new Vector2(824f, 48f));
+            V6Layout.PlaceAt(tabs, 438f, 0f, new Vector2(824f, 48f));
             var layout = tabs.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 8f;
             layout.childControlWidth = true;
@@ -588,10 +588,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             for (int i = 0; i < V6PauseViewLogic.TabCount; i++)
             {
                 var tab = V5Ui.Panel(tabs, "Tab " + TabNames[i], new Vector2(200f, 48f), V5Tokens.Key2, 8f);
-                LayoutItem(tab, 200f, 48f);
+                V6Layout.LayoutItem(tab, 200f, 48f);
                 var label = V5Ui.Text(tab, "Label", TabNames[i], 24f, V5Tokens.TextMuted,
                     TextAlignmentOptions.Center);
-                Stretch(label.rectTransform);
+                V6Layout.StretchFill(label.rectTransform);
                 var button = tab.AddComponent<Button>();
                 button.targetGraphic = tab.GetComponent<Image>();
                 V6ButtonPressFeedback.Attach(tab);
@@ -605,16 +605,16 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildSettingsPanel(GameObject main)
         {
             var panel = V5Ui.Panel(main, "Settings", new Vector2(512f, 688f), V5Tokens.Key2, 16f);
-            PlaceAt(panel, 304f, 68f);
+            V6Layout.PlaceAt(panel, 304f, 68f);
 
             settingsTitle = V5Ui.Text(panel, "Head Title", TabNames[0], 18f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left);
-            PlaceAt(settingsTitle.gameObject, 8f, 20f, new Vector2(472f, 24f));
+            V6Layout.PlaceAt(settingsTitle.gameObject, 8f, 20f, new Vector2(472f, 24f));
 
             for (int page = 0; page < V6PauseViewLogic.TabCount; page++)
             {
                 var pageRoot = V5Ui.Node(panel, "Page " + TabNames[page]);
-                PlaceAt(pageRoot, 8f, 60f, new Vector2(496f, 620f));
+                V6Layout.PlaceAt(pageRoot, 8f, 60f, new Vector2(496f, 620f));
                 pages.Add(pageRoot);
                 pageRows.Add(BuildPage(pageRoot, page));
             }
@@ -859,7 +859,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             Func<string> read, Action<int> adjust, Action click = null)
         {
             var panel = V5Ui.Panel(pageRoot, "Row " + label, new Vector2(496f, 56f), V5Tokens.Key1, 8f);
-            PlaceAt(panel, 0f, 76f * row, new Vector2(496f, 56f));
+            V6Layout.PlaceAt(panel, 0f, 76f * row, new Vector2(496f, 56f));
 
             var layout = panel.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 12f;
@@ -871,7 +871,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             layout.childForceExpandHeight = false;
 
             var labelTmp = V5Ui.Text(panel, "Label", label, 24f, V5Tokens.Text, TextAlignmentOptions.Left);
-            LayoutItem(labelTmp.gameObject, 200f, 30f);
+            V6Layout.LayoutItem(labelTmp.gameObject, 200f, 30f);
 
             // Spacer (design: fill_container)
             var spacer = V5Ui.Node(panel, "Spacer");
@@ -882,7 +882,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             var value = V5Ui.Text(panel, "Value", read != null ? read() : "", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
             value.textWrappingMode = TextWrappingModes.NoWrap;
-            LayoutItem(value.gameObject, 120f, 30f);
+            V6Layout.LayoutItem(value.gameObject, 120f, 30f);
 
             if (adjust != null)
             {
@@ -930,7 +930,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private Button MakeStepper(GameObject parent, string name, string iconName)
         {
             var btn = V5Ui.Panel(parent, name, new Vector2(40f, 40f), V5Tokens.Key4, 8f);
-            LayoutItem(btn, 40f, 40f);
+            V6Layout.LayoutItem(btn, 40f, 40f);
             var icon = V6Icons.Create(btn, iconName, 24f, V5Tokens.TextMuted, "Icon");
             if (icon != null)
             {
@@ -949,11 +949,11 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildPreviewPanel(GameObject main)
         {
             var panel = V5Ui.Panel(main, "Preview", new Vector2(512f, 688f), V5Tokens.Key2, 16f);
-            PlaceAt(panel, 864f, 68f);
+            V6Layout.PlaceAt(panel, 864f, 68f);
 
             previewHeadTitle = V5Ui.Text(panel, "Head Title", "", 18f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left);
-            PlaceAt(previewHeadTitle.gameObject, 8f, 20f, new Vector2(472f, 24f));
+            V6Layout.PlaceAt(previewHeadTitle.gameObject, 8f, 20f, new Vector2(472f, 24f));
 
             BuildGamePreview(panel);
             keyListRoot = BuildKeyList(panel);
@@ -968,11 +968,11 @@ namespace FlashBeat.UI.V6.Game.Pause
                 });
 
             var divider = V5Ui.Panel(panel, "Divider", new Vector2(464f, 1f), new Color(1f, 1f, 1f, 0x1F / 255f), 0f);
-            PlaceAt(divider, 24f, 544f);
+            V6Layout.PlaceAt(divider, 24f, 544f);
 
             var descTitle = V5Ui.Text(panel, "Desc Title", "キー設定", 32f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
-            PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
+            V6Layout.PlaceAt(descTitle.gameObject, 24f, 564f, new Vector2(464f, 40f));
             previewDescTitle = descTitle;
 
             // design (uDNC0) の文言から F2 を外す (Issue #376 決定 §4.1: 入口は画面内の行だけ)。
@@ -997,7 +997,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildGamePreview(GameObject panel)
         {
             var preview = V5Ui.Panel(panel, "Game Preview", new Vector2(464f, 280f), V5Tokens.Key0, 8f);
-            PlaceAt(preview, 24f, 60f);
+            V6Layout.PlaceAt(preview, 24f, 60f);
 
             // design の Lane パス (M26 234l174.5-234 など) の両端点。y は design 上端基準。
             for (int lane = 0; lane < 8; lane++)
@@ -1019,17 +1019,17 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 var note = V5Ui.Panel(preview, "Note " + i,
                     new Vector2(notes[i, 2], 10f), V5Tokens.ButtonPrimaryBg, 0f);
-                PlaceAt(note, notes[i, 0], notes[i, 1]);
+                V6Layout.PlaceAt(note, notes[i, 0], notes[i, 1]);
             }
 
             var judgeLine = V5Ui.Panel(preview, "Judge Line", new Vector2(464f, 3f), V5Tokens.ButtonPrimaryBg, 0f);
-            PlaceAt(judgeLine, 0f, 240f);
+            V6Layout.PlaceAt(judgeLine, 0f, 240f);
 
             for (int lane = 0; lane < 8; lane++)
             {
                 var label = V5Ui.Text(preview, "Lane Label " + lane, (lane + 1).ToString(), 18f,
                     V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                PlaceAt(label.gameObject, 6f + 58f * lane, 246f, new Vector2(40f, 22f));
+                V6Layout.PlaceAt(label.gameObject, 6f + 58f * lane, 246f, new Vector2(40f, 22f));
             }
         }
 
@@ -1038,7 +1038,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
             // タブごとに出し分けるため (Sound では音量スライダーに譲る) 1 個の入れ物にまとめる。
             var root = V5Ui.Node(panel, "Key List");
-            PlaceAt(root, 0f, 0f, new Vector2(512f, 688f));
+            V6Layout.PlaceAt(root, 0f, 0f, new Vector2(512f, 688f));
 
             for (int row = 0; row < V6PauseViewLogic.JisKeyRows.Length; row++)
             {
@@ -1046,9 +1046,9 @@ namespace FlashBeat.UI.V6.Game.Pause
                 for (int i = 0; i < keys.Length; i++)
                 {
                     var cap = V5Ui.Panel(root, "Key " + keys[i], new Vector2(34f, 40f), V5Tokens.Key4, 4f);
-                    PlaceAt(cap, V6PauseViewLogic.JisKeyRowX[row] + 36f * i, V6PauseViewLogic.JisKeyRowY[row]);
+                    V6Layout.PlaceAt(cap, V6PauseViewLogic.JisKeyRowX[row] + 36f * i, V6PauseViewLogic.JisKeyRowY[row]);
                     var label = V5Ui.Text(cap, "Lane", "", 20f, V5Tokens.Text, TextAlignmentOptions.Center);
-                    Stretch(label.rectTransform);
+                    V6Layout.StretchFill(label.rectTransform);
                     keyCaps.Add(cap.GetComponent<Image>());
                     keyLabels.Add(label);
                 }
@@ -1060,7 +1060,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private void BuildFooter()
         {
             var footer = V5Ui.Node(frame.gameObject, "Footer");
-            PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
+            V6Layout.PlaceAt(footer, FooterX, FooterY, new Vector2(FooterW, FooterH));
 
             // 左下: キー凡例 4 個 (正本 uDNC0 Zone · キー操作: ↑↓ 選択 / ←→ 変更 /
             // タブ切替 / 再開)。起点は design (フッター内 (0,30)) =
@@ -1086,7 +1086,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             // リトライは独立ボタンのまま左ボタンへ統合しない) + Op · 再開 266。
             // 座標は design ページ座標 (V6PauseViewLogic)。
             var opGroup = V5Ui.Node(footer, "Op · 選曲・リトライ");
-            PlaceAt(opGroup, V6PauseViewLogic.OpGroupX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
+            V6Layout.PlaceAt(opGroup, V6PauseViewLogic.OpGroupX - FooterX, V6PauseViewLogic.OpButtonsY - FooterY,
                 new Vector2(V6PauseViewLogic.OpGroupW, V6PauseViewLogic.OpButtonH));
 
             BuildActionButton(opGroup, "選曲へ", "log-out",
@@ -1149,7 +1149,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
             var go = V5Ui.Panel(parent, "Button " + label, new Vector2(width, V6PauseViewLogic.OpButtonH),
                 primary ? V5Tokens.ButtonPrimaryBg : V5Tokens.Key4, 8f);
-            PlaceAt(go, x, y, new Vector2(width, V6PauseViewLogic.OpButtonH));
+            V6Layout.PlaceAt(go, x, y, new Vector2(width, V6PauseViewLogic.OpButtonH));
 
             Color labelColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.Text;
             Color iconColor = primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted;
@@ -1166,21 +1166,21 @@ namespace FlashBeat.UI.V6.Game.Pause
             var icon = V6Icons.Create(go, iconName, 32f, iconColor, "Icon");
             if (icon != null)
             {
-                PlaceAt(icon, startX, 12f, new Vector2(32f, 32f));
+                V6Layout.PlaceAt(icon, startX, 12f, new Vector2(32f, 32f));
             }
 
             var labelTmp = V5Ui.Text(go, "Label", label, 30f, labelColor, TextAlignmentOptions.Left,
                 primary ? FontStyles.Bold : FontStyles.Normal);
             labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
-            PlaceAt(labelTmp.gameObject, labelX, 6.5f, new Vector2(labelW + 2f, 43f));
+            V6Layout.PlaceAt(labelTmp.gameObject, labelX, 6.5f, new Vector2(labelW + 2f, 43f));
 
             var cap = V5Ui.Panel(go, "KeyCap " + key, new Vector2(capW, 32f),
                 primary ? new Color(0f, 0f, 0f, 0x26 / 255f) : new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
-            PlaceAt(cap, capX, 12f, new Vector2(capW, 32f));
+            V6Layout.PlaceAt(cap, capX, 12f, new Vector2(capW, 32f));
             var keyTmp = V5Ui.Text(cap, "Key", key, 22f,
                 primary ? V5Tokens.ButtonPrimaryLabel : V5Tokens.TextMuted, TextAlignmentOptions.Center);
             keyTmp.textWrappingMode = TextWrappingModes.NoWrap;
-            Stretch(keyTmp.rectTransform);
+            V6Layout.StretchFill(keyTmp.rectTransform);
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = go.GetComponent<Image>();
@@ -1193,7 +1193,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private static void Line(GameObject parent, string name, Vector2 from, Vector2 to, float width, Color color)
         {
             var go = V5Ui.Panel(parent, name, new Vector2(1f, 1f), color, 0f);
-            var rt = GetRect(go);
+            var rt = V6Layout.RectOf(go);
             Vector2 delta = to - from;
             float length = delta.magnitude;
             rt.anchorMin = new Vector2(0f, 1f);
@@ -1418,59 +1418,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
         }
 
-        // --- ユーティリティ ---
-
-        /// <summary>design 座標 (上端基準 y) で配置する (anchor は親の左上)。</summary>
-        private static RectTransform PlaceAt(Component node, float x, float y, Vector2? size = null)
-        {
-            return PlaceAt(node.gameObject, x, y, size);
-        }
-
-        private static RectTransform PlaceAt(GameObject node, float x, float y, Vector2? size = null)
-        {
-            var rt = node.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            if (size.HasValue)
-            {
-                rt.sizeDelta = size.Value;
-            }
-
-            return rt;
-        }
-
-        /// <summary>レイアウトグループの子にする (minWidth 0 = 内容に合わせる)。</summary>
-        private static void LayoutItem(GameObject go, float minWidth, float height)
-        {
-            var le = go.AddComponent<LayoutElement>();
-            if (minWidth > 0f)
-            {
-                le.minWidth = minWidth;
-                le.preferredWidth = minWidth;
-            }
-
-            le.preferredHeight = height;
-        }
-
-        private static void Stretch(RectTransform rt)
-        {
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-        }
-
-        private static RectTransform GetRect(Component component)
-        {
-            return component.GetComponent<RectTransform>();
-        }
-
-        private static RectTransform GetRect(GameObject go)
-        {
-            return go.GetComponent<RectTransform>();
-        }
+        // --- ユーティリティは V6Layout に集約 (Issue #385) ---
     }
 
     /// <summary>V6PauseView の毎フレーム処理 (1:1 配置 + 実データの再描画)。</summary>
