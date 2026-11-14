@@ -46,8 +46,9 @@ description: "FlashBeat lean tasks — Issue 096"
   `docs/evidence/233-hud-nre/*.png` = **2560×1664** (Mac 実機) /
   `docs/evidence/mac-verify-run-2026-11-08/` = **2560×1664** (Title のみ)。
   **不足: 1024×768 と 1920×1080 の撮影が無い。**
-  また **Issue 本文が挙げる `08_retry.png` は `docs/evidence/` に実在しない**
-  (最後は `07-result-run2-rostoreamblera.png`)。
+  また Issue 本文が挙げる `08_retry.png` は旧 `win64-2026-11-06` 一式には
+  存在しなかったが、後続の展示証跡 `docs/evidence/win64-2026-11-07-699b461/08_retry.png`
+  (PR #466 で `evidence/win-699b461` から移植済み) に実在する。
 
 - [ ] **T4** macOS 実機 (2560×1664) で Title / Result / Option / Opening を撮影する。
   — **done when**: 4 画面分の実全画面スクリーンショットが残り、
@@ -87,10 +88,11 @@ description: "FlashBeat lean tasks — Issue 096"
   — **備考**: **`docs/evidence/index.md` は他 Worker が所有**しているため、cc は
   **cc 側の統合 PR で** 適用する (本 spec の所有範囲は `specs/096-*/` のみ)。
 
-- [ ] **T9** Issue 本文が挙げる `08_retry.png` の参照が実在しない点の扱いを cc に報告する。
+- [x] **T9** Issue 本文が挙げる `08_retry.png` の参照が実在しない点の扱いを cc に報告する。
   — **done when**: Issue 本文のファイル名と `docs/evidence/` の実ファイル名の差が報告されていること
   — **備考**: 実在最後は `docs/evidence/win64-2026-11-06/07-result-run2-rostoreamblera.png`。
-  **Issue の更新は cc が行う** (本 spec は Issue を変更しない)。
+  `08_retry.png` は `docs/evidence/win64-2026-11-07-699b461/08_retry.png` として
+  main に移植済み (PR #466)。**Issue の更新は cc が行う** (本 spec は Issue を変更しない)。
 
 - [ ] **T10** v5 / v6 の排他描画 (#233) の状態を確認し、スクリーンショットが
   どちらのスタックかを区別できる形で記録する。
