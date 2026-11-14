@@ -29,6 +29,11 @@ namespace FlashBeat.UI.V6.Select.Data
     /// CommitReady は遷移をしない (統合担当との契約)。やるのは選択状態の確定だけ:
     /// 遷移・ResetSession・フェード・リモート譜面の取得 (CloudChartHolder.Hold) は
     /// 既存の SelectSceneManager.GameScene → StartRemoteSong 経路が行う。
+    ///
+    /// Issue #385: 600 行目安をわずかに超える (約 620 行) が、分割しない。
+    /// カタログ構築・フィルタ・譜面メタキャッシュ・ランキング取得・コルーチン
+    /// ホストが 1 つのデータ供給契約 (IV6SelectDataSource) を構成しており、
+    /// 領域ごとの private 状態を共有する密結合のため partial 分割の効果が薄い。
     /// </summary>
     public sealed class V6SelectDataSource : IV6SelectDataSource
     {
