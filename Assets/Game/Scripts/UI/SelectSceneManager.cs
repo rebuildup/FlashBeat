@@ -301,12 +301,12 @@ public class SelectSceneManager : MonoBehaviour
         // V6SelectViewLogic.IsScreenSwitchKey)。
         if (currentMode == V6Mode.Select && v6View != null && !v6View.SearchFocused)
         {
-            if (Input.GetKeyDown(KeyCode.L))
+            if (KeyBindings.GetKeyDownOrInjected(KeyCode.L))
             {
                 entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
                 SetMode(V6Mode.History);
             }
-            else if (Input.GetKeyDown(KeyCode.R))
+            else if (KeyBindings.GetKeyDownOrInjected(KeyCode.R))
             {
                 entryScreen = FlashBeat.UI.V6.Title.V6TitleLinks.EntryScreen.None;
                 SetMode(V6Mode.Ranking);
@@ -317,15 +317,15 @@ public class SelectSceneManager : MonoBehaviour
 
     private void HandleHistoryInput()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (KeyBindings.GetKeyDownOrInjected(KeyCode.UpArrow))
         {
             historyView.MoveSelection(-1);
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (KeyBindings.GetKeyDownOrInjected(KeyCode.DownArrow))
         {
             historyView.MoveSelection(1);
         }
-        else if (Input.GetKeyDown(KeyCode.S)) // Sort 切替 (ビュー固有の固定ショートカット)
+        else if (KeyBindings.GetKeyDownOrInjected(KeyCode.S)) // Sort 切替 (ビュー固有の固定ショートカット)
         {
             historyView.ToggleSort();
         }
@@ -338,8 +338,8 @@ public class SelectSceneManager : MonoBehaviour
             historyView.TriggerOpenSettings();
         }
         else if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)
-            || Input.GetKeyDown(KeyCode.Return)
-            || Input.GetKeyDown(KeyCode.KeypadEnter))
+            || KeyBindings.GetKeyDownOrInjected(KeyCode.Return)
+            || KeyBindings.GetKeyDownOrInjected(KeyCode.KeypadEnter))
         {
             historyView.TriggerGotoSong();
         }
@@ -347,15 +347,15 @@ public class SelectSceneManager : MonoBehaviour
 
     private void HandleRankingInput()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (KeyBindings.GetKeyDownOrInjected(KeyCode.UpArrow))
         {
             rankingView.MoveSelection(-1);
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (KeyBindings.GetKeyDownOrInjected(KeyCode.DownArrow))
         {
             rankingView.MoveSelection(1);
         }
-        else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.S)) // Source 切替 (Local/Online)。design (S1TZD) の凡例は Tab、S は既存の固定ショートカットとして残す
+        else if (KeyBindings.GetKeyDownOrInjected(KeyCode.Tab) || KeyBindings.GetKeyDownOrInjected(KeyCode.S)) // Source 切替 (Local/Online)。design (S1TZD) の凡例は Tab、S は既存の固定ショートカットとして残す
         {
             rankingView.ToggleSource();
         }
@@ -368,12 +368,12 @@ public class SelectSceneManager : MonoBehaviour
             rankingView.TriggerOpenSettings();
         }
         else if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)
-            || Input.GetKeyDown(KeyCode.Return)
-            || Input.GetKeyDown(KeyCode.KeypadEnter))
+            || KeyBindings.GetKeyDownOrInjected(KeyCode.Return)
+            || KeyBindings.GetKeyDownOrInjected(KeyCode.KeypadEnter))
         {
             rankingView.TriggerGotoSong();
         }
-        else if (Input.GetKeyDown(KeyCode.F5)) // Retry fetch (再試行、ビュー固有の固定ショートカット)
+        else if (KeyBindings.GetKeyDownOrInjected(KeyCode.F5)) // Retry fetch (再試行、ビュー固有の固定ショートカット)
         {
             rankingView.RetryFetch();
         }

@@ -27,10 +27,16 @@ using FlashBeat.UI.V6.Select.View;
 ///   2. プレイ再入場: games 回、選曲 → Ready → GameScene → 再生 →
 ///      ResultScene を通し、Game 突入直後 / 演奏中 / Result の各点で
 ///      センサスを取る (VideoPlayer / RenderTexture / AudioClip の寿命)。
-///   3. 遠隔ジャケットキャッシュ: SeedRemoteEntryForAudit で
+///   3. SelectScene 内の History/Ranking モード切替 (キー注入で L/R/Esc を
+///      往復) と Result→Retry の再入場を rounds 回まわす。
+///   4. 遠隔ジャケットキャッシュ: SeedRemoteEntryForAudit で
 ///      RemoteCacheCapacity を超えるエントリを注入し、LRU 退避で
 ///      Texture2D が実際に解放されるか、DestroyAll で全解放できるかを
-///      センサスの前後差で確かめる。
+///      センサスの前後差で確かめる。あわせて失敗・重複要求・
+///      シーン退出をまたぐコールバックを実 HTTP で確認する。
+///   5. MediaCacheManager.GetCacheSizeBytes を 10/100/1000 ファイルの
+///      一時ディレクトリでコールド/ウォーム計測する (TTL 失効の再スキャンは
+///      EditMode テスト側で保証)。
 ///
 /// センサス項目:
 ///   - GC.GetTotalMemory / Profiler.GetMonoUsedSizeLong (マネージド)
@@ -124,6 +130,14 @@ public class AutoTestV6Mem : MonoBehaviour
             }
         }
 
+        // --- 1b. SelectScene 内の History/Ranking モード切替 ---
+        //     L/R キー注入でモードを往復し、ビューの表示切替を繰り返す。
+        //     uiScenes に SelectScene が無い (bisect 用) ときは飛ばす。
+        if (Array.IndexOf(uiScenes, "SelectScene") >= 0)
+        {
+            yield return SubModeTour();
+        }
+
         // --- 2. プレイ再入場 (多曲アクセスを兼ねる) ---
         for (int g = 0; g < gameCount; g++)
         {
@@ -131,8 +145,20 @@ public class AutoTestV6Mem : MonoBehaviour
             yield return PlayOnce(g, title);
         }
 
+        // --- 2b. Result → Retry の再入場 ---
+        if (gameCount > 0)
+        {
+            yield return RetryProbe();
+        }
+
         // --- 3. 遠隔ジャケットキャッシュの上限・退避・全解放 ---
         yield return CacheEvictionTest();
+
+        // --- 4. メディアキャッシュ容量スキャンのコールド/ウォーム計測 ---
+        yield return MediaCacheProbe();
+
+        // --- 5. 遠隔画像の失敗・重複要求・シーン退出をまたぐコールバック ---
+        yield return RemoteLifecycleProbe();
 
         Log("done");
         Finish();
@@ -233,6 +259,206 @@ public class AutoTestV6Mem : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(2f);
         Census(p + " result scene=" + SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>
+    /// SelectScene 内で History / Ranking モードをキー注入で往復する。
+    /// シーンを跨がない表示切替なので、資源がモード往復で増えないかを見る
+    /// (#415 の差分更新と #416 の資源寿命の両方に関係)。
+    /// </summary>
+    IEnumerator SubModeTour()
+    {
+        SceneManager.LoadScene("SelectScene");
+        yield return new WaitForSecondsRealtime(SelectSceneWait);
+        Census("submode select-entry scene=" + SceneManager.GetActiveScene().name);
+
+        for (int r = 0; r < uiRounds; r++)
+        {
+            // L → History
+            InjectKey(KeyCode.L);
+            yield return new WaitForSecondsRealtime(SettleSeconds);
+            Census("submode history-" + r);
+
+            // Esc (Back) → Select に戻る
+            InjectAction(KeyActions.KeyAction.Back);
+            yield return new WaitForSecondsRealtime(SettleSeconds);
+            Census("submode selectback-" + r);
+
+            // R → Ranking
+            InjectKey(KeyCode.R);
+            yield return new WaitForSecondsRealtime(SettleSeconds);
+            Census("submode ranking-" + r);
+
+            InjectAction(KeyActions.KeyAction.Back);
+            yield return new WaitForSecondsRealtime(SettleSeconds);
+            Census("submode selectback2-" + r);
+        }
+    }
+
+    /// <summary>
+    /// ResultScene から Retry で GameScene へ再入場する計測。
+    /// RetryGame 経路 (GManager.ResetSession + シーン再読込) の資源寿命を見る。
+    /// </summary>
+    IEnumerator RetryProbe()
+    {
+        var mgr = FindFirstObjectByType<ResultSceneManager>();
+        if (mgr == null)
+        {
+            Log("FAIL retry: ResultSceneManager missing scene=" + SceneManager.GetActiveScene().name);
+            yield break;
+        }
+
+        // Initiate.Fade は前のフェードが終わるまで "Already Fading" で拒否する。
+        // Result 突入直後は fade-in が残っていることがあるので、
+        // GameScene に着くまで Retry() を繰り返し呼ぶ (拒否されるだけで副作用なし)。
+        bool reached = false;
+        for (int attempt = 0; attempt < 20 && !reached; attempt++)
+        {
+            mgr.Retry();
+            float waited = 0f;
+            while (waited < 3f && SceneManager.GetActiveScene().name != "GameScene")
+            {
+                waited += 0.25f;
+                yield return new WaitForSecondsRealtime(0.25f);
+            }
+            reached = SceneManager.GetActiveScene().name == "GameScene";
+        }
+        if (!reached)
+        {
+            Log("FAIL retry: GameScene not reached");
+            yield break;
+        }
+
+        yield return new WaitForSecondsRealtime(3f);
+        Census("retry game-enter");
+
+        MusicManager music = FindFirstObjectByType<MusicManager>();
+        float mediaWaited = 0f;
+        while (music != null && mediaWaited < MediaReadyTimeout && !music.MediaReady)
+        {
+            mediaWaited += 1f;
+            yield return new WaitForSecondsRealtime(1f);
+        }
+        Log("retry media ready=" + (music != null && music.MediaReady)
+            + " videoPrepared=" + (music != null && music.VideoPrepared));
+
+        yield return new WaitForSecondsRealtime(10f);
+        Census("retry gameplay");
+
+        // 演奏を打ち切って SelectScene へ戻り、後続プローブのセンサスを
+        // ゲーム中オブジェクトで汚さない。
+        SceneManager.LoadScene("SelectScene");
+        yield return new WaitForSecondsRealtime(SelectSceneWait);
+        Census("post-retry select scene=" + SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>
+    /// MediaCacheManager.GetCacheSizeBytes のコールド/ウォームを
+    /// 10 / 100 / 1000 ファイルで計測する。TTL 失効後の再スキャンは
+    /// EditMode (MediaCacheManagerTests.SnapshotExpiresAfterTheTtl) で
+    /// 保証済みなので、ここでは実ディスク I/O の壁時計だけを見る。
+    /// </summary>
+    IEnumerator MediaCacheProbe()
+    {
+        int[] counts = { 10, 100, 1000 };
+        string baseDir = Path.Combine(Path.GetTempPath(), "v6mem-mediacache");
+        try { if (Directory.Exists(baseDir)) { Directory.Delete(baseDir, true); } }
+        catch (Exception) { }
+        Directory.CreateDirectory(baseDir);
+
+        var payload = new byte[64 * 1024];
+        new System.Random(1).NextBytes(payload);
+
+        foreach (int n in counts)
+        {
+            string dir = Path.Combine(baseDir, "case-" + n);
+            Directory.CreateDirectory(dir);
+            for (int i = 0; i < n; i++)
+            {
+                File.WriteAllBytes(Path.Combine(dir, "f" + i + ".bin"), payload);
+            }
+
+            int scansBefore = MediaCacheManager.SizeScanCount;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            long bytes = MediaCacheManager.GetCacheSizeBytes(dir);
+            sw.Stop();
+            long coldMs = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            long bytesWarm = MediaCacheManager.GetCacheSizeBytes(dir);
+            sw.Stop();
+            long warmMs = sw.ElapsedMilliseconds;
+
+            int scansDelta = MediaCacheManager.SizeScanCount - scansBefore;
+            Log(string.Format(CultureInfo.InvariantCulture,
+                "mediacache files={0} bytes={1} coldMs={2} warmMs={3} scansDelta={4} warmSame={5}",
+                n, bytes, coldMs, warmMs, scansDelta, bytes == bytesWarm));
+
+            try { Directory.Delete(dir, true); } catch (Exception) { }
+        }
+
+        try { Directory.Delete(baseDir, true); } catch (Exception) { }
+        yield break;
+    }
+
+    /// <summary>
+    /// 遠隔画像取得の失敗系を実機で確認する:
+    ///   - 同一 videoId の連続要求は HTTP を増やさない (dedup)
+    ///   - 失敗は負キャッシュされ、即時の再要求は HTTP を出さない
+    ///   - in-flight の要求はシーンを跨いでも生存し、コールバックが届く
+    ///     (呼び出し側の生存確認は各 View の this==null ガードが担う)
+    /// </summary>
+    IEnumerator RemoteLifecycleProbe()
+    {
+        int fetch0 = V6JacketProvider.RemoteFetchCount;
+        int dedup0 = V6JacketProvider.RemoteDedupCount;
+        int fail0 = V6JacketProvider.RemoteFailureCount;
+        int neg0 = V6JacketProvider.NegativeCacheHitCount;
+        int deliveredSprites = 0;
+        int deliveredTextures = 0;
+
+        string bogus = "v6mem-no-such-video-000";
+        V6JacketProvider.RequestRemote(bogus, s => { deliveredSprites++; });
+        V6JacketProvider.RequestRemote(bogus, s => { deliveredSprites++; });
+
+        // 失敗 (404) を待つ。timeout は provider 側 30 秒が上限。
+        float waited = 0f;
+        float limit = V6JacketProvider.RemoteRequestTimeoutSeconds + 10f;
+        while (waited < limit && V6JacketProvider.RemoteFailureCount == fail0)
+        {
+            waited += 0.5f;
+            yield return new WaitForSecondsRealtime(0.5f);
+        }
+        Log(string.Format(CultureInfo.InvariantCulture,
+            "remoteprobe failwait={0:F0}s fetch={1} dedup={2} fail={3} delivered={4}",
+            waited,
+            V6JacketProvider.RemoteFetchCount - fetch0,
+            V6JacketProvider.RemoteDedupCount - dedup0,
+            V6JacketProvider.RemoteFailureCount - fail0,
+            deliveredSprites));
+
+        // 負キャッシュ中の再要求: HTTP は増えず null が返る。
+        V6JacketProvider.RequestRemote(bogus, s => { deliveredSprites++; });
+        yield return new WaitForSecondsRealtime(0.5f);
+        Log(string.Format(CultureInfo.InvariantCulture,
+            "remoteprobe neg={0} fetchTotal={1} delivered={2}",
+            V6JacketProvider.NegativeCacheHitCount - neg0,
+            V6JacketProvider.RemoteFetchCount - fetch0,
+            deliveredSprites));
+
+        // in-flight の要求を残したままシーンを抜ける。RemoteHost は
+        // DontDestroyOnLoad なので取得は継続し、応答時にコールバックが届く。
+        V6JacketProvider.RequestRemoteTexture("v6mem-no-such-video-001",
+            t => { deliveredTextures++; });
+        SceneManager.LoadScene("TitleScene");
+        yield return new WaitForSecondsRealtime(SettleSeconds + V6JacketProvider.RemoteRequestTimeoutSeconds + 5f);
+
+        Log(string.Format(CultureInfo.InvariantCulture,
+            "remoteprobe postexit scene={0} fetchTotal={1} deliveredTex={2} inFlightEntries(census)",
+            SceneManager.GetActiveScene().name,
+            V6JacketProvider.RemoteFetchCount - fetch0,
+            deliveredTextures));
+        Census("remote-exit scene=" + SceneManager.GetActiveScene().name);
     }
 
     /// <summary>遠隔キャッシュ上限・LRU 退避・DestroyAll の実機確認。</summary>
@@ -463,6 +689,22 @@ public class AutoTestV6Mem : MonoBehaviour
         sb.Append(" mediaCache[bytes=").Append(MediaCacheManager.GetCacheSizeBytes())
           .Append(" scans=").Append(MediaCacheManager.SizeScanCount).Append("]");
         return sb.ToString();
+    }
+
+    /// <summary>キーを 1 フレームだけ注入する (次フレームの GetKeyDownOrInjected で見える)。</summary>
+    static void InjectKey(KeyCode key)
+    {
+        KeyBindings.InjectKeyDown(key);
+    }
+
+    /// <summary>KeyActions の操作に現在割り当てられている全キーを注入する。</summary>
+    static void InjectAction(KeyActions.KeyAction action)
+    {
+        KeyCode[] keys = KeyActions.Get(action);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            KeyBindings.InjectKeyDown(keys[i]);
+        }
     }
 
     void Log(string line)
