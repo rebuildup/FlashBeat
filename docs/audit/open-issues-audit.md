@@ -1989,3 +1989,13 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 **#368 cluster**: #388 (証跡マニフェスト) / #389 (レビュー報告) は main 統合済み (`docs/evidence/368-review-2026-11-12/` + `docs/ui/v6-review-report-2026-11-12.md`)。子 Issue #369-#382 の修正コミットは main に存在。残るのはオーナー実機での再確認と close 判定 — エージェント側で追加できる検証は現時点で尽きた (新規 main での再撮影は build 変更がない限り同一結果の見込み)。
 
 **残る人間依存 (変わらず)**: Win64 実機計測 (#416/#381/#397/#242/#96 の Windows 側)、本番 API 書き込み承認 (#73/#135/#75 の E2E 部分)、#75 の画像レビュー、#30 D1/D5 等の製品判断、#360 の承認、self-hosted runner がオーナー Mac 依存であることの了承 (Mac 停止時は CI も停止)。
+
+### 8.9 2026-11-14 深夜 — V6Header 集約・096 訂正・本番 read E2E (main = `baf4d2a6`)
+
+- **PR #470 merge** (`baf4d2a6`): #385 Phase 1.1 — 8 画面の戻るボタン+タイトルを `V6Header` 共通部品へ集約 (挙動不変リファクタ)。EditMode **1796/1796 Pass** (新規 `V6HeaderTests` 5 件含む)、独立レビュー APPROVE (8 画面の矩形・panel・階層パス同一性を確認)。
+- **PR #471 merge** (`f9048b61`): specs/096 の `08_retry.png` 所在訂正 (T9 完了 — `docs/evidence/win64-2026-11-07-699b461/08_retry.png` に実在)。
+- **local branch 最終評価**: `w/audit-2026-11-14b` (0 固有) と `bisect/owner-perf` (bisect 両 commit が main の祖先と確認) を削除。残りは `main`・`w/385-v6header` (merge 済)・`w/preserve-*-wt-20261114`×6・`w/415-diff-update` (discard-as-code 判定済みの記録) のみ。**未評価 local branch = 0**。
+- **Web/API 本番 read E2E**: `web/tests/e2e/run.ts` を `https://flashbeat.rebuildup.dev` へ read-only 実行し **14/14 stage pass** (catalog/catalogVersion/songIds・chart songId/chartVersion/noteCount/youtubeId・chart schema 適合・leaderboard status/shape/order)。#73/#135 に証跡コメント投稿済み。残る write ステージ (`--write`) は `docs/operations/production-api-acceptance.md` の明示承認待ち。
+- **#3–#7 棚卸しコメント投稿**: 展示ゲート各 Issue に現状証跡と残件 (Win64 実機・本番 write 承認) を記録。close 判定は実機照合後。
+- **残る人間側アクション (変わらず)**: Win64 実機検証、#75 画像レビュー、本番 write E2E 承認、#30/#360 のオーナー決定、self-hosted runner (オーナー Mac 依存) の了承。
+
