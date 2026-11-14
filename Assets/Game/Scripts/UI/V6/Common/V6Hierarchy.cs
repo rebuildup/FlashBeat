@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using FlashBeat.UI.V5;
 
@@ -46,8 +47,37 @@ namespace FlashBeat.UI.V6.Common
 
             for (int i = 0; i < children.Count; i++)
             {
-                children[i].transform.SetParent(null, false);
-                V5GameUi.DestroyNow(children[i]);
+                DetachAndDestroy(children[i]);
+            }
+        }
+
+        /// <summary>
+        /// 個別の子を階層から外して破棄を予約する
+        /// (<see cref="ClearChildren"/> の 1 要素版。各 View に重複していた
+        /// private DetachAndDestroy と同じ仕様)。
+        /// </summary>
+        public static void DetachAndDestroy(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            go.transform.SetParent(null, false);
+            V5GameUi.DestroyNow(go);
+        }
+
+        /// <summary>
+        /// path で辿った子の TMP テキストを書き換える (無ければ何もしない)。
+        /// (Select / Ranking / History / Result に重複していた private SetChildText)。
+        /// </summary>
+        public static void SetChildText(GameObject root, string path, string value)
+        {
+            Transform t = root != null ? root.transform.Find(path) : null;
+            var tmp = t != null ? t.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp != null)
+            {
+                tmp.text = value;
             }
         }
     }

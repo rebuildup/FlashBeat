@@ -617,7 +617,7 @@ namespace FlashBeat.UI.V6.Result
             // 戻るはフッターの OK / Esc キーが担うので、ここは結果の記号に使う。
             var badge = V5Ui.Panel(header, "Trophy Badge",
                 new Vector2(TrophyBadgeSize, TrophyBadgeSize), V5Tokens.Key4, 8f);
-            At(badge, TrophyBadgeX, TrophyBadgeY);
+            V6Layout.Place(badge, TrophyBadgeX, TrophyBadgeY);
             var trophyNode = V5Ui.Node(badge, "Icon");
             var nodeRt = trophyNode.GetComponent<RectTransform>();
             nodeRt.anchorMin = Vector2.zero;
@@ -649,8 +649,8 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildMain()
         {
-            var main = At(V5Ui.Panel(frame.gameObject, "Main",
-                    new Vector2(V6ResultLogic.MainW, V6ResultLogic.MainH), Clear(), 0f),
+            var main = V6Layout.Place(V5Ui.Panel(frame.gameObject, "Main",
+                    new Vector2(V6ResultLogic.MainW, V6ResultLogic.MainH), Color.clear, 0f),
                 V6ResultLogic.MainX, V6ResultLogic.MainY);
             BuildResultBlock(main);
             BuildGauge(main);
@@ -664,28 +664,28 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildResultBlock(GameObject main)
         {
-            var block = At(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, GradeBoxH);
+            var block = V6Layout.Place(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, GradeBoxH);
 
             // design (B7Ko8) は fill なし (背景パネルを敷かない)。以前あった可読性目的の
             // スクリーンは設計に無く、デザインとの差分になっていたので描かない。
             // トロフィーはヘッダーの左上スロットが持つ (BuildHeader)。
-            var gradeBox = At(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
+            var gradeBox = V6Layout.Place(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
             gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);
-            Stretch(gradeLetter.GetComponent<RectTransform>(), GradeBoxW, GradeBoxH);
+            V6Layout.StretchCenter(gradeLetter.GetComponent<RectTransform>(), GradeBoxW, GradeBoxH);
 
             var scoreLabel = V5GameUi.Text(block.gameObject, "Score Label", "SCORE", 20f, V5Tokens.TextDim);
-            At(scoreLabel, ScoreColX, 48f, 400f, 26f, new Vector2(0f, 0.5f));
+            V6Layout.Place(scoreLabel, ScoreColX, 48f, 400f, 26f, new Vector2(0f, 0.5f));
 
             scoreValue = OneLine(V5GameUi.Text(block.gameObject, "Score Value", "0", 72f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Normal));
-            At(scoreValue, ScoreColX, 80f, 500f, 80f, new Vector2(0f, 0.5f));
+            V6Layout.Place(scoreValue, ScoreColX, 80f, 500f, 80f, new Vector2(0f, 0.5f));
 
             var bestLabel = V5GameUi.Text(block.gameObject, "Best Label", "前回最高", 20f, V5Tokens.TextDim);
-            At(bestLabel, ScoreColX, 206f, 300f, 26f, new Vector2(0f, 0.5f));
+            V6Layout.Place(bestLabel, ScoreColX, 206f, 300f, 26f, new Vector2(0f, 0.5f));
 
             bestValue = OneLine(V5GameUi.Text(block.gameObject, "Best Value", "–", 32f, V5Tokens.Text));
-            At(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
+            V6Layout.Place(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
 
             // 段階表示 (#384): 各要素は CanvasGroup のアルファで出す。
             // トロフィーのグループはヘッダー側で作る (BuildHeader)。
@@ -701,8 +701,8 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildGauge(GameObject main)
         {
-            var zone = At(V5Ui.Node(main, "Score Gauge Zone"), 0f, GaugeZoneY, 840f, 100f);
-            var gauge = At(V5Ui.Node(zone, "Score Gauge"), 0f, GaugeY, V6ResultLogic.GaugeW, 76f);
+            var zone = V6Layout.Place(V5Ui.Node(main, "Score Gauge Zone"), 0f, GaugeZoneY, 840f, 100f);
+            var gauge = V6Layout.Place(V5Ui.Node(zone, "Score Gauge"), 0f, GaugeY, V6ResultLogic.GaugeW, 76f);
 
             // セグメント (y24 h16): C(0,165) B(168,164) A(335,165) S(503,164) SS(670,55) +(728,96)。
             float[] segX = { 0f, 168f, 335f, 503f, 670f, 728f };
@@ -710,22 +710,22 @@ namespace FlashBeat.UI.V6.Result
             string[] segNames = { "C", "B", "A", "S", "SS", "+" };
             for (int i = 0; i < segX.Length; i++)
             {
-                Color fill = i == 5 ? FromHex("#3A3220") : V5Tokens.Key0;
-                At(V5Ui.Panel(gauge.gameObject, "Seg " + segNames[i], new Vector2(segW[i], GaugeTrackH), fill, 2f),
+                Color fill = i == 5 ? V5Tokens.FromHex("#3A3220") : V5Tokens.Key0;
+                V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + segNames[i], new Vector2(segW[i], GaugeTrackH), fill, 2f),
                     segX[i], GaugeTrackY);
                 var label = V5GameUi.Text(gauge.gameObject, "Label " + segNames[i], segNames[i], 16f,
                     V5Tokens.TextDim, TextAlignmentOptions.Center);
-                At(label, segX[i], 46f, segW[i], 20f, new Vector2(0f, 0.5f));
+                V6Layout.Place(label, segX[i], 46f, segW[i], 20f, new Vector2(0f, 0.5f));
             }
 
-            gaugeFill = At(V5Ui.Panel(gauge.gameObject, "Fill",
-                new Vector2(0f, GaugeTrackH), FromHex("#EDEDED"), 2f), 0f, GaugeTrackY).GetComponent<Image>();
+            gaugeFill = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Fill",
+                new Vector2(0f, GaugeTrackH), V5Tokens.FromHex("#EDEDED"), 2f), 0f, GaugeTrackY).GetComponent<Image>();
 
-            gaugeBestMarker = At(V5Ui.Panel(gauge.gameObject, "Best Marker", new Vector2(4f, 24f),
+            gaugeBestMarker = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Best Marker", new Vector2(4f, 24f),
                 V5Tokens.Text, 0f), 0f, 20f).GetComponent<Image>();
             var bestLabel = V5GameUi.Text(gauge.gameObject, "Best Label", "BEST", 14f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
-            At(bestLabel, 734f, 0f, 56f, 18f, new Vector2(0f, 0.5f));
+            V6Layout.Place(bestLabel, 734f, 0f, 56f, 18f, new Vector2(0f, 0.5f));
 
             gaugeGroup = FadeGroup(zone);
         }
@@ -734,13 +734,13 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildJudgements(GameObject main)
         {
-            var block = At(V5Ui.Node(main, "Judgements"), 0f, JudgeY, 840f, JudgeCellH);
+            var block = V6Layout.Place(V5Ui.Node(main, "Judgements"), 0f, JudgeY, 840f, JudgeCellH);
 
             // design (EpX3e) は fill なし。可読性目的のスクリーンは設計に無いため描かない。
             string[] labels = { "Perfect", "Great", "Bad", "Miss", "Combo" };
             for (int i = 0; i < labels.Length; i++)
             {
-                var cell = At(V5Ui.Node(block, "J " + labels[i]), JudgeX[i], 0f, JudgeCellW, JudgeCellH);
+                var cell = V6Layout.Place(V5Ui.Node(block, "J " + labels[i]), JudgeX[i], 0f, JudgeCellW, JudgeCellH);
 
                 // design S5n3P: Label (0,0) 66×29 fs20 / Value (0,43) 83×70 fs48、
                 // どちらも左上揃え。以前は VerticalLayoutGroup に任せていたため、
@@ -748,10 +748,10 @@ namespace FlashBeat.UI.V6.Result
                 // 混ざり、判定行だけ design より約 11px 下に描かれていた (r13 実機)。
                 var judgeLabel = V5GameUi.Text(cell.gameObject, "Label", labels[i], 20f,
                     V5Tokens.TextDim, TextAlignmentOptions.TopLeft);
-                At(judgeLabel, 0f, 0f, JudgeCellW, 29f, new Vector2(0f, 1f));
+                V6Layout.Place(judgeLabel, 0f, 0f, JudgeCellW, 29f, new Vector2(0f, 1f));
                 judgeValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
                     TextAlignmentOptions.TopLeft, FontStyles.Normal));
-                At(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
+                V6Layout.Place(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
                 judgeGroups[i] = FadeGroup(cell);
             }
         }
@@ -761,7 +761,7 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildSongInfo(GameObject main)
         {
-            var panel = At(V5Ui.Panel(main.gameObject, "Song Info",
+            var panel = V6Layout.Place(V5Ui.Panel(main.gameObject, "Song Info",
                     new Vector2(V6ResultLogic.SongInfoW, V6ResultLogic.SongInfoH), V5Tokens.Key2, 16f),
                 0f, V6ResultLogic.SongInfoY);
 
@@ -802,14 +802,14 @@ namespace FlashBeat.UI.V6.Result
             string[] statLabels = { "BPM", "NOTES", "LEVEL", "曲長" };
             for (int i = 0; i < statLabels.Length; i++)
             {
-                var cell = At(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]),
+                var cell = V6Layout.Place(V5Ui.Node(panel.gameObject, "Stat " + statLabels[i]),
                     V6ResultLogic.SongStatX[i], V6ResultLogic.SongStatY,
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatH);
                 var label = V5GameUi.Text(cell.gameObject, "Label", statLabels[i], 18f, V5Tokens.TextDim);
-                At(label, 0f, 0f, V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH);
+                V6Layout.Place(label, 0f, 0f, V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH);
                 songStatValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "–", 30f, V5Tokens.Text,
                     TextAlignmentOptions.Left, FontStyles.Normal));
-                At(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
+                V6Layout.Place(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
             }
 
@@ -820,19 +820,19 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildSongRanking(GameObject main)
         {
-            var panel = At(V5Ui.Panel(main.gameObject, "Song Ranking", new Vector2(528f, SongRankH),
+            var panel = V6Layout.Place(V5Ui.Panel(main.gameObject, "Song Ranking", new Vector2(528f, SongRankH),
                 V5Tokens.Key2, 8f), V6ResultLogic.RankX, SongRankY);
 
-            var head = At(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
+            var head = V6Layout.Place(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
                 V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "曲別ランキング", 18f, V5Tokens.TextDim);
             // design d6Noy (12,5) 126×26。Spacer (150,17.5) 350×1 は fill 無しのレイアウト用で描かない。
-            At(headTitle, 12f, 5f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadTitleH);
+            V6Layout.Place(headTitle, 12f, 5f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadTitleH);
 
             // design Lo2pD「終焉逃避行」(20,52) 150×43 fs30。150 は 5 文字サンプルの hug 幅なので、
             // 実データ (最長 12 文字) は行幅いっぱいの 484 まで使い、はみ出す分だけ … で省略する。
             songRankTitle = V5GameUi.Text(panel.gameObject, "Song", "", 30f, V5Tokens.Text);
-            At(songRankTitle, V6ResultLogic.SongRankTitleX, V6ResultLogic.SongRankTitleY,
+            V6Layout.Place(songRankTitle, V6ResultLogic.SongRankTitleX, V6ResultLogic.SongRankTitleY,
                 V6ResultLogic.SongRankTitleW, V6ResultLogic.SongRankTitleH);
             songRankTitle.textWrappingMode = TextWrappingModes.NoWrap;
             songRankTitle.overflowMode = TextOverflowModes.Ellipsis;
@@ -841,10 +841,10 @@ namespace FlashBeat.UI.V6.Result
             // 空状態は design に無い実装固有の表示。Song 見出し (y52..95) と重ならないよう
             // 行領域 (y92..404) の縦中央に置く。
             songRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "", 24f, V5Tokens.TextDim);
-            At(songRankEmpty, 20f, 226f, 496f, 44f, new Vector2(0f, 0.5f));
+            V6Layout.Place(songRankEmpty, 20f, 226f, 496f, 44f, new Vector2(0f, 0.5f));
 
             songRankRows = V5Ui.Node(panel.gameObject, "Rows").GetComponent<RectTransform>();
-            At(songRankRows, 0f, 0f, 528f, SongRankH);
+            V6Layout.Place(songRankRows, 0f, 0f, 528f, SongRankH);
 
             lateGroups.Add(FadeGroup(panel));
         }
@@ -855,36 +855,36 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildPlayerRanking(GameObject main)
         {
-            var panel = At(V5Ui.Panel(main.gameObject, "Player Ranking", new Vector2(528f, PlayerRankH),
+            var panel = V6Layout.Place(V5Ui.Panel(main.gameObject, "Player Ranking", new Vector2(528f, PlayerRankH),
                 V5Tokens.Key2, 8f), V6ResultLogic.RankX, PlayerRankY);
 
-            var head = At(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
+            var head = V6Layout.Place(V5Ui.Node(panel.gameObject, "Head"), V6ResultLogic.RankHeadX, V6ResultLogic.RankHeadY,
                 V6ResultLogic.RankHeadW, V6ResultLogic.RankHeadH);
             var headTitle = V5GameUi.Text(head.gameObject, "Title", "登録名ごとのランキング", 18f, V5Tokens.TextDim);
-            At(headTitle, 12f, 0f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH, new Vector2(0f, 0.5f));
+            V6Layout.Place(headTitle, 12f, 0f, V6ResultLogic.RankHeadTitleW, V6ResultLogic.RankHeadH, new Vector2(0f, 0.5f));
             BuildChevron(head, V6ResultLogic.RankHeadChevronL, "chevron-left");
             var metric = V5GameUi.Text(head.gameObject, "Metric", "累計スコア", 18f, V5Tokens.Text,
                 TextAlignmentOptions.Center);
             // 累計スコア (5 文字 x 18 = 90) が幅 92 に収まるよう折り返さない
             // (旧実装は幅 68 で折り返し、2 行目が矢印と重なった)。
             metric.textWrappingMode = TextWrappingModes.NoWrap;
-            At(metric, V6ResultLogic.RankHeadMetricX, 0f, V6ResultLogic.RankHeadMetricW, V6ResultLogic.RankHeadH,
+            V6Layout.Place(metric, V6ResultLogic.RankHeadMetricX, 0f, V6ResultLogic.RankHeadMetricW, V6ResultLogic.RankHeadH,
                 new Vector2(0f, 0.5f));
             BuildChevron(head, V6ResultLogic.RankHeadChevronR, "chevron-right");
 
             playerRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
-            At(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            V6Layout.Place(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
 
             lateGroups.Add(FadeGroup(panel));
         }
 
         private void BuildChevron(GameObject head, float x, string iconName)
         {
-            var chevron = At(V5Ui.Panel(head.gameObject, "Arrow", new Vector2(32f, 32f), V5Tokens.Key4, 8f), x, 2f);
+            var chevron = V6Layout.Place(V5Ui.Panel(head.gameObject, "Arrow", new Vector2(32f, 32f), V5Tokens.Key4, 8f), x, 2f);
             var icon = V6Icons.Create(chevron.gameObject, iconName, 24f, V5Tokens.TextMuted, "Icon");
             if (icon != null)
             {
-                Stretch(icon.rectTransform, 32f, 32f);
+                V6Layout.StretchCenter(icon.rectTransform, 32f, 32f);
             }
         }
 
@@ -892,7 +892,7 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildFooter()
         {
-            var footer = At(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Clear(), 0f), 24f, 876f);
+            var footer = V6Layout.Place(V5Ui.Panel(frame.gameObject, "Footer", new Vector2(1680f, 96f), Color.clear, 0f), 24f, 876f);
 
             // キー凡例 (左下, design zcSHh Zone · キー操作: y30 / 項目間 gap24 /
             // 項内 gap8 / KeyCap h32 pad[0,8])。共通部品 V6Legend が TMP 実測で幅を詰める
@@ -959,8 +959,8 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildModal()
         {
-            modal = At(V5Ui.Panel(frame.gameObject, "Modal 05b", new Vector2(FrameW, FrameH),
-                FromHex("#00000099"), 0f), 0f, 0f);
+            modal = V6Layout.Place(V5Ui.Panel(frame.gameObject, "Modal 05b", new Vector2(FrameW, FrameH),
+                V5Tokens.FromHex("#00000099"), 0f), 0f, 0f);
             var scrimButton = modal.AddComponent<Button>();
             scrimButton.transition = Selectable.Transition.None;
             var nav = scrimButton.navigation;
@@ -968,35 +968,35 @@ namespace FlashBeat.UI.V6.Result
             scrimButton.navigation = nav;
             scrimButton.onClick.AddListener(CloseModal);
 
-            var dialog = At(V5Ui.Panel(modal.gameObject, "Dialog",
+            var dialog = V6Layout.Place(V5Ui.Panel(modal.gameObject, "Dialog",
                     new Vector2(V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH), V5Tokens.Key1, 16f),
                 V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY);
 
-            // design YwPw9 の全寸法を Dialog 左上基準で写す。At(...) の既定 pivot (0,1)
+            // design YwPw9 の全寸法を Dialog 左上基準で写す。V6Layout.Place(...) の既定 pivot (0,1)
             // で矩形の左上が design 座標に来る (pivot 付き版は使わない)。
             // Head (28,28) 180×43 fs30 / Name Prompt (404,38) 380×29 fs20 (右寄せ)。
             modalHead = OneLine(V5GameUi.Text(dialog.gameObject, "Head", "スコアを登録", 30f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalHead, 28f, 28f, 180f, 43f);
+            V6Layout.Place(modalHead, 28f, 28f, 180f, 43f);
 
             var prompt = OneLine(V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力↓", 20f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right));
-            At(prompt, 404f, 38f, 380f, 29f);
+            V6Layout.Place(prompt, 404f, 38f, 380f, 29f);
             modalNamePrompt = prompt;
 
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
-            var field = At(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
+            var field = V6Layout.Place(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
             // design lqHaN の Name Field は空のとき "YOU" を $text-dim で出す
             // (v5 ResultView の Placeholder と同じ既定名)。入力すると $text になる。
             modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
                 V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
             // Issue #425: 文字が枠の左端に張り付いて見えるため、内側余白を広げる。
-            At(modalNameValue, 32f, 20f, 728f, 58f);
+            V6Layout.Place(modalNameValue, 32f, 20f, 728f, 58f);
             modalNamePlaceholder = OneLine(V5GameUi.Text(field.gameObject, "Placeholder",
                 V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalNamePlaceholder, 32f, 20f, 728f, 58f);
+            V6Layout.Place(modalNamePlaceholder, 32f, 20f, 728f, 58f);
 
             // 名前入力は TMP_InputField に任せる (Issue #384)。自前の Input.inputString
             // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
@@ -1021,19 +1021,19 @@ namespace FlashBeat.UI.V6.Result
             // Hint Cap (0,0) 104×32 (pad [0,12], Key fs20) / Hint Text (128,4.5) fs16 /
             // Legend · 移動 (509,3) = KeyCap 57×26 + Label fs18 (65,0) /
             // Legend · 削除 (634,3) = KeyCap 106×26 + Label fs18 (114,0)。
-            var hints = At(V5Ui.Node(dialog.gameObject, "Input Hints"), 28f, 208f, 784f, 32f);
-            var cap = At(V5Ui.Panel(hints, "Hint Cap", new Vector2(104f, 32f), V5Tokens.Key4, 4f), 0f, 0f);
+            var hints = V6Layout.Place(V5Ui.Node(dialog.gameObject, "Input Hints"), 28f, 208f, 784f, 32f);
+            var cap = V6Layout.Place(V5Ui.Panel(hints, "Hint Cap", new Vector2(104f, 32f), V5Tokens.Key4, 4f), 0f, 0f);
             var capText = OneLine(V5GameUi.Text(cap, "Key", "A-Z 0-9", 20f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
-            At(capText, 12f, 1.5f, 80f, 29f);
+            V6Layout.Place(capText, 12f, 1.5f, 80f, 29f);
             modalNameHint = OneLine(V5GameUi.Text(hints, "Hint Text",
                 "最大" + RankingClient.NicknameMaxLength + "文字", 16f, V5Tokens.TextMuted));
-            At(modalNameHint, 128f, 4.5f, 200f, 23f);
+            V6Layout.Place(modalNameHint, 128f, 4.5f, 200f, 23f);
             BuildHintLegend(hints, 509f, 57f, "← →", "移動");
             BuildHintLegend(hints, 634f, 106f, "Backspace", "削除");
 
             // Summary (28,264) 784×140 $k2 r8。
-            var summary = At(V5Ui.Panel(dialog.gameObject, "Summary", new Vector2(784f, 140f), V5Tokens.Key2, 8f),
+            var summary = V6Layout.Place(V5Ui.Panel(dialog.gameObject, "Summary", new Vector2(784f, 140f), V5Tokens.Key2, 8f),
                 28f, 264f);
             // 曲バッジ (Thumb + Title/Artist) は共通部品 (Issue #385 Phase 1.2)。
             // Title (120,18) h38 fs26 / Artist (120,52) h26 fs18。design の hug 幅
@@ -1062,21 +1062,21 @@ namespace FlashBeat.UI.V6.Result
             modalSongTitle = songBadge.Title;
             modalSongArtist = songBadge.Sub;
             // Grade (704,38) 64×40 $k4 r4 / GradeText fs24 centered。
-            var gradeChip = At(V5Ui.Panel(summary, "Grade", new Vector2(64f, 40f), V5Tokens.Key4, 4f),
+            var gradeChip = V6Layout.Place(V5Ui.Panel(summary, "Grade", new Vector2(64f, 40f), V5Tokens.Key4, 4f),
                 704f, 38f);
             modalGrade = V5GameUi.Text(gradeChip, "GradeText", "–", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Normal);
-            Stretch(modalGrade.GetComponent<RectTransform>(), 64f, 40f);
-            At(V5Ui.Panel(summary, "Divider", new Vector2(752f, 1f), FromHex("#FFFFFF1F"), 0f), 16f, 94f);
+            V6Layout.StretchCenter(modalGrade.GetComponent<RectTransform>(), 64f, 40f);
+            V6Layout.Place(V5Ui.Panel(summary, "Divider", new Vector2(752f, 1f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 16f, 94f);
             // Record Label (16,104) h23 fs16 $text-dim / Record Value (440,102)
             // 180×29 fs20 右寄せ / Record Note (640,104) 113×23 fs16 $text-dim。
             modalRecordLabel = OneLine(V5GameUi.Text(summary, "Record Label", "", 16f, V5Tokens.TextDim));
-            At(modalRecordLabel, 16f, 104f, 300f, 23f);
+            V6Layout.Place(modalRecordLabel, 16f, 104f, 300f, 23f);
             modalRecordValue = OneLine(V5GameUi.Text(summary, "Record Value", "", 20f, V5Tokens.Text,
                 TextAlignmentOptions.Right));
-            At(modalRecordValue, 440f, 102f, 180f, 29f);
+            V6Layout.Place(modalRecordValue, 440f, 102f, 180f, 29f);
             modalRecordNote = OneLine(V5GameUi.Text(summary, "Record Note", "", 16f, V5Tokens.TextDim));
-            At(modalRecordNote, 640f, 104f, 113f, 23f);
+            V6Layout.Place(modalRecordNote, 640f, 104f, 113f, 23f);
             // Score Group (400,26) 288×52:
             // Score Label (91,14.5) 51×23 fs16 / Score Value (156,1.5) 132×49 fs34。
             // 正本の text ノードは alignment 未指定 = 既定 (左)。design 画像の実測でも
@@ -1084,35 +1084,36 @@ namespace FlashBeat.UI.V6.Result
             // SCORE から離れて Grade の手前へ寄るため、design どおり左にする。
             // 横並びの相対配置ではなく design の実座標に置く (旧 Row 実装では
             // 子の矩形幅が 0 のまま詰められ、SCORE と数値が design と違う位置に出た)。
-            var scoreGroup = At(V5Ui.Node(summary, "Score Group"), 400f, 26f, 288f, 52f);
+            var scoreGroup = V6Layout.Place(V5Ui.Node(summary, "Score Group"), 400f, 26f, 288f, 52f);
             OneLine(V5GameUi.Text(scoreGroup, "Score Label", "SCORE", 16f, V5Tokens.TextDim));
-            At(scoreGroup.transform.Find("Score Label"), 91f, 14.5f, 51f, 23f);
+            V6Layout.Place(scoreGroup.transform.Find("Score Label"), 91f, 14.5f, 51f, 23f);
             modalScoreValue = OneLine(V5GameUi.Text(scoreGroup, "Score Value", "0", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            At(modalScoreValue, 156f, 1.5f, 132f, 49f);
+            V6Layout.Place(modalScoreValue, 156f, 1.5f, 132f, 49f);
 
             // Buttons (28,432) 784×50:
             // Skip (318,0) 198×50 / Register (532,0) 252×50。旧 Row は左詰めに
             // していたため design より 318px 左に寄っていた。
-            var buttons = At(V5Ui.Node(dialog.gameObject, "Buttons"), 28f, 432f, 784f, 50f);
-            var skip = At(Button(buttons, "Button Skip", 198f, 50f, 8f, V5Tokens.Key4, CloseModal), 318f, 0f);
+            var buttons = V6Layout.Place(V5Ui.Node(dialog.gameObject, "Buttons"), 28f, 432f, 784f, 50f);
+            var skip = V6Layout.Place(V6Button.Panel(buttons, "Button Skip", new Vector2(198f, 50f),
+                V5Tokens.Key4, 8f, CloseModal), 318f, 0f);
             // Button · Skip: Icon (24,13) 24 / Label (60,6) 54×38 fs26 /
             // KeyCap (126,10.5) 48×29 pad [0,8] Key fs20。
             var skipIcon = V6Icons.Create(skip, "x", 24f, V5Tokens.TextMuted, "Icon");
-            PlaceTopLeft(skipIcon.gameObject, 24f, 13f, 24f, 24f);
+            V6Layout.Place(skipIcon.gameObject, 24f, 13f, 24f, 24f);
             OneLine(V5GameUi.Text(skip, "Label", "Skip", 26f, V5Tokens.Text, TextAlignmentOptions.Left));
-            At(skip.transform.Find("Label"), 60f, 6f, 54f, 38f);
-            BuildModalKeyCap(skip, 126f, 10.5f, 48f, "Esc", FromHex("#00000040"), V5Tokens.TextMuted, 20f);
-            var register = At(Button(buttons, "Button Register", 252f, 50f, 8f, V5Tokens.ButtonPrimaryBg,
-                TrySubmitFromButton), 532f, 0f);
+            V6Layout.Place(skip.transform.Find("Label"), 60f, 6f, 54f, 38f);
+            BuildModalKeyCap(skip, 126f, 10.5f, 48f, "Esc", V5Tokens.FromHex("#00000040"), V5Tokens.TextMuted, 20f);
+            var register = V6Layout.Place(V6Button.Panel(buttons, "Button Register", new Vector2(252f, 50f),
+                V5Tokens.ButtonPrimaryBg, 8f, TrySubmitFromButton), 532f, 0f);
             // Button · Register: Icon (18.5,13) 24#1B1B1B / Label (54.5,6) 101×38 fs26 /
             // KeyCap (167.5,10.5) 66×29 #00000026 Key fs20 #1B1B1B。
             var registerIcon = V6Icons.Create(register, "check", 24f, V5Tokens.ButtonPrimaryLabel, "Icon");
-            PlaceTopLeft(registerIcon.gameObject, 18.5f, 13f, 24f, 24f);
+            V6Layout.Place(registerIcon.gameObject, 18.5f, 13f, 24f, 24f);
             modalRegisterLabel = OneLine(V5GameUi.Text(register, "Label", "Register", 26f,
                 V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Left, FontStyles.Normal));
-            At(modalRegisterLabel, 54.5f, 6f, 101f, 38f);
-            BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", FromHex("#00000026"),
+            V6Layout.Place(modalRegisterLabel, 54.5f, 6f, 101f, 38f);
+            BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", V5Tokens.FromHex("#00000026"),
                 V5Tokens.ButtonPrimaryLabel, 20f);
             modalRegisterButton = register.GetComponent<Button>();
 
@@ -1120,18 +1121,18 @@ namespace FlashBeat.UI.V6.Result
             // design に無い実装都合の行なので Head/Prompt と重ならない位置 (右側 y74) に置く。
             modalStatus = OneLine(V5GameUi.Text(dialog.gameObject, "Status", "", 17f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
-            At(modalStatus, 220f, 74f, 592f, 26f);
+            V6Layout.Place(modalStatus, 220f, 74f, 592f, 26f);
 
             // 登録チップ (design TYshI 272×32)。成功は $ok-tint / $ok-light、
             // 失敗は $danger-tint / $danger-light。Head の右に出し、表示中は
             // Name Prompt を隠す (同じ位置に重なるため)。
-            modalChip = At(V5Ui.Panel(dialog.gameObject, "Status Chip", new Vector2(272f, 32f),
+            modalChip = V6Layout.Place(V5Ui.Panel(dialog.gameObject, "Status Chip", new Vector2(272f, 32f),
                 V5Tokens.OkTint, 4f), 540f, 28f);
             modalChipBackground = modalChip.GetComponent<Image>();
             modalChipGroup = modalChip.AddComponent<CanvasGroup>();
             modalChipLabel = V5GameUi.Text(modalChip, "Label", "", 16f, V5Tokens.OkLight,
                 TextAlignmentOptions.Center, FontStyles.Bold);
-            Stretch(modalChipLabel.GetComponent<RectTransform>(), 272f, 32f);
+            V6Layout.StretchCenter(modalChipLabel.GetComponent<RectTransform>(), 272f, 32f);
             modalChip.SetActive(false);
 
             modal.SetActive(false);
@@ -1143,14 +1144,14 @@ namespace FlashBeat.UI.V6.Result
         /// </summary>
         private void BuildHintLegend(GameObject parent, float x, float capW, string key, string label)
         {
-            var item = At(V5Ui.Node(parent, "Legend " + label), x, 3f, capW + 8f + 36f, 26f);
-            var cap = At(V5Ui.Panel(item, "KeyCap", new Vector2(capW, 26f), V5Tokens.Key4, 4f), 0f, 0f);
+            var item = V6Layout.Place(V5Ui.Node(parent, "Legend " + label), x, 3f, capW + 8f + 36f, 26f);
+            var cap = V6Layout.Place(V5Ui.Panel(item, "KeyCap", new Vector2(capW, 26f), V5Tokens.Key4, 4f), 0f, 0f);
             var keyText = OneLine(V5GameUi.Text(cap, "Key", key, 18f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
-            At(keyText, 8f, 0f, capW - 16f, 26f);
+            V6Layout.Place(keyText, 8f, 0f, capW - 16f, 26f);
             var labelText = OneLine(V5GameUi.Text(item, "Label", label, 18f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
-            At(labelText, capW + 8f, 0f, 36f, 26f);
+            V6Layout.Place(labelText, capW + 8f, 0f, 36f, 26f);
         }
 
         /// <summary>
@@ -1160,10 +1161,10 @@ namespace FlashBeat.UI.V6.Result
         private void BuildModalKeyCap(GameObject parent, float x, float y, float w, string key,
             Color fill, Color keyColor, float fontSize)
         {
-            var cap = At(V5Ui.Panel(parent, "KeyCap", new Vector2(w, 29f), fill, 4f), x, y);
+            var cap = V6Layout.Place(V5Ui.Panel(parent, "KeyCap", new Vector2(w, 29f), fill, 4f), x, y);
             var capText = OneLine(V5GameUi.Text(cap, "Key", key, fontSize, keyColor,
                 TextAlignmentOptions.Center));
-            Stretch(capText.GetComponent<RectTransform>(), w, 29f);
+            V6Layout.StretchCenter(capText.GetComponent<RectTransform>(), w, 29f);
         }
 
         private void OpenModal()
@@ -1197,7 +1198,7 @@ namespace FlashBeat.UI.V6.Result
 
             RefreshModal();
             SetModalStatus(gate.Failed ? SubmitStatusText() : "",
-                gate.Failed ? FromHex("#FF9999") : V5Tokens.TextMuted);
+                gate.Failed ? V5Tokens.FromHex("#FF9999") : V5Tokens.TextMuted);
             modal.SetActive(true);
             FocusNameField();
         }
@@ -1312,7 +1313,7 @@ namespace FlashBeat.UI.V6.Result
                 modalNameInput.text, RankingClient.NicknameMaxLength);
             if (error != V6ResultLogic.NicknameError.None)
             {
-                SetModalStatus(NicknameErrorMessage(error), FromHex("#FFD64D"));
+                SetModalStatus(NicknameErrorMessage(error), V5Tokens.FromHex("#FFD64D"));
                 return;
             }
 
@@ -1323,7 +1324,7 @@ namespace FlashBeat.UI.V6.Result
 
             submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(V6ResultLogic.SubmitOutcome.Pending, 0),
-                FromHex("#99E5FF"));
+                V5Tokens.FromHex("#99E5FF"));
             SetRegisterInteractable(false);
             // 送った名前を控える。応答が返るまでに入力欄が編集されても、
             // 保存するのは実際に送った名前 (送った後に書いた文字ではない)。
@@ -1374,7 +1375,7 @@ namespace FlashBeat.UI.V6.Result
 
             // 保存済み。Register ボタンで二重保存しない (Esc / Skip で閉じる)。
             SetRegisterInteractable(false);
-            SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), FromHex("#99E5FF"));
+            SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), V5Tokens.FromHex("#99E5FF"));
             ShowSubmitChip("保存しました", true);
         }
 
@@ -1477,7 +1478,7 @@ namespace FlashBeat.UI.V6.Result
             }
 
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(submitOutcome, lastSubmitHttpCode),
-                FromHex("#FF9999"));
+                V5Tokens.FromHex("#FF9999"));
             ShowSubmitChip("登録できませんでした", false);
         }
 
@@ -1818,26 +1819,16 @@ namespace FlashBeat.UI.V6.Result
                 bg.color = rowData.IsYou ? V6Tokens.Key6 : V6Tokens.Key1;
             }
 
-            SetChildText(row, "Pos/PosText", rowData.Position.ToString());
-            SetChildText(row, "Name", rowData.IsYou ? "YOU" : rowData.PlayerName);
-            SetChildText(row, "Value", V6ResultLogic.FormatScore(rowData.Score));
-            SetChildText(row, "Grade/GradeText", string.IsNullOrEmpty(rowData.Grade) ? "–" : rowData.Grade);
+            V6Hierarchy.SetChildText(row, "Pos/PosText", rowData.Position.ToString());
+            V6Hierarchy.SetChildText(row, "Name", rowData.IsYou ? "YOU" : rowData.PlayerName);
+            V6Hierarchy.SetChildText(row, "Value", V6ResultLogic.FormatScore(rowData.Score));
+            V6Hierarchy.SetChildText(row, "Grade/GradeText", string.IsNullOrEmpty(rowData.Grade) ? "–" : rowData.Grade);
 
             Transform posText = row.transform.Find("Pos/PosText");
             var posTmp = posText != null ? posText.GetComponent<TextMeshProUGUI>() : null;
             if (posTmp != null)
             {
                 posTmp.color = rowData.IsYou ? V6Tokens.Text : V6Tokens.TextMuted;
-            }
-        }
-
-        private static void SetChildText(GameObject root, string path, string value)
-        {
-            Transform t = root != null ? root.transform.Find(path) : null;
-            var tmp = t != null ? t.GetComponent<TextMeshProUGUI>() : null;
-            if (tmp != null)
-            {
-                tmp.text = value;
             }
         }
 
@@ -2053,62 +2044,7 @@ namespace FlashBeat.UI.V6.Result
             V6SongBadge.ApplyJacket(thumb, song.id, song.title);
         }
 
-        // --- uGUI ユーティリティ (design px 左上原点, V6SelectView と同じ方式) ---
-
-        private static GameObject At(GameObject go, float x, float y)
-        {
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            return go;
-        }
-
-        private static GameObject At(GameObject go, float x, float y, float w, float h)
-        {
-            At(go, x, y);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(w, h);
-            return go;
-        }
-
-        private static GameObject At(Component node, float x, float y, float w, float h)
-        {
-            return At(node.gameObject, x, y, w, h);
-        }
-
-        private static GameObject At(Component node, float x, float y, float w, float h, Vector2 pivot)
-        {
-            At(node.gameObject, x, y, w, h);
-            var rt = node.GetComponent<RectTransform>();
-            rt.pivot = pivot;
-            // anchoredPosition は pivot の位置を指す。pivot を (0,1) から変えたときも
-            // 矩形の左上が (x, -y) に来るよう pivot 分を補正する (旧実装は補正が無く、
-            // 矩形全体が (1 - pivot.y) * h だけ上へずれ、パネル見出しや「累計スコア」が
-            // パネル上端の枠線に乗っていた)。
-            rt.anchoredPosition = new Vector2(x + pivot.x * w, -(y + (1f - pivot.y) * h));
-            return node.gameObject;
-        }
-
-        private static void Stretch(RectTransform rt, float w, float h)
-        {
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(w, h);
-        }
-
-        /// <summary>中央寄せで作られたアイコンを design の左上座標へ置き直す。</summary>
-        private static void PlaceTopLeft(GameObject go, float x, float y, float w, float h)
-        {
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            rt.sizeDelta = new Vector2(w, h);
-        }
+        // --- uGUI ユーティリティは V6Layout / V6Button / V6Hierarchy に集約 (Issue #385) ---
 
         /// <summary>
         /// design のテキスト矩形は hug 幅 (実測値) なので、フォント差で数 px 足りないと
@@ -2119,35 +2055,6 @@ namespace FlashBeat.UI.V6.Result
         {
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             return tmp;
-        }
-
-        private static GameObject Button(GameObject parent, string name, float w, float h, float radius, Color bg,
-            Action onClick)
-        {
-            var go = V5Ui.Panel(parent, name, new Vector2(w, h), bg, radius);
-            var button = go.AddComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            var nav = button.navigation;
-            nav.mode = Navigation.Mode.None;
-            button.navigation = nav;
-            V6ButtonPressFeedback.Attach(go);
-            if (onClick != null)
-            {
-                button.onClick.AddListener(() => onClick());
-            }
-
-            return go;
-        }
-
-        private static Color Clear()
-        {
-            return new Color(0f, 0f, 0f, 0f);
-        }
-
-        private static Color FromHex(string hex)
-        {
-            ColorUtility.TryParseHtmlString(hex, out var c);
-            return c;
         }
     }
 }

@@ -527,7 +527,7 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             // 右上 (JJwdM): ジャケット 56×56 + 曲名 fs22 / 作家 fs16。
             var info = V5Ui.Node(header, "Song Info");
-            PlaceAt(info, 1080f, 0f, new Vector2(300f, V6Header.Height));
+            V6Layout.PlaceAt(info, 1080f, 0f, new Vector2(300f, V6Header.Height));
             var infoLayout = info.AddComponent<HorizontalLayoutGroup>();
             infoLayout.spacing = 12f;
             infoLayout.childAlignment = TextAnchor.MiddleLeft;
@@ -566,7 +566,7 @@ namespace FlashBeat.UI.V6.Game.Loading
                 },
             });
             var jacket = badge.Thumb;
-            LayoutItem(jacket, 56f, 56f);
+            V6Layout.LayoutItem(jacket, 56f, 56f);
             jacketImage = jacket.GetComponent<Image>();
             // ジャケットが無い曲は「無し」を正直に表示する (空欄/壊れた画像にしない)。
             noJacketLabel = V5Ui.Text(jacket, "No Jacket", "無し", 16f, V5Tokens.TextMuted, TextAlignmentOptions.Center);
@@ -580,7 +580,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             // 旧実装は VerticalLayoutGroup の中央寄せで、2 行が design より
             // 数 px 上に寄っていた (設計の矩形をそのまま使う)。
             var texts = badge.Column;
-            LayoutItem(texts, 113f, 56f);
+            V6Layout.LayoutItem(texts, 113f, 56f);
             songTitle = badge.Title;
             songArtist = badge.Sub;
         }
@@ -590,22 +590,22 @@ namespace FlashBeat.UI.V6.Game.Loading
         private void BuildMain()
         {
             var main = V5Ui.Node(frame.gameObject, "Main");
-            PlaceAt(main, 24f, 96f, new Vector2(1680f, 780f));
+            V6Layout.PlaceAt(main, 24f, 96f, new Vector2(1680f, 780f));
 
             var center = V5Ui.Node(main, "Progress");
-            PlaceAt(center, 608f, 240f, new Vector2(464f, 300f));
+            V6Layout.PlaceAt(center, 608f, 240f, new Vector2(464f, 300f));
             progressGroup = center;
 
             headline = V5Ui.Text(center, "Headline", V6LoadingViewLogic.LoadingHeadline(), 30f,
                 V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
-            PlaceAt(headline.gameObject, 0f, 0f, new Vector2(464f, 40f));
+            V6Layout.PlaceAt(headline.gameObject, 0f, 0f, new Vector2(464f, 40f));
 
             detail = V5Ui.Text(center, "Detail", V6LoadingViewLogic.LoadingDetail(), 18f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            PlaceAt(detail.gameObject, 0f, 52f, new Vector2(464f, 24f));
+            V6Layout.PlaceAt(detail.gameObject, 0f, 52f, new Vector2(464f, 24f));
 
             var track = V5Ui.Panel(center, "Track", new Vector2(TrackW, TrackH), V5Tokens.Key0, 4f);
-            PlaceAt(track, 0f, 108f);
+            V6Layout.PlaceAt(track, 0f, 108f);
             fill = V5Ui.Panel(track, "Fill", new Vector2(FillW, TrackH), V5Tokens.Text, 4f)
                 .GetComponent<RectTransform>();
             fill.anchorMin = new Vector2(0f, 0.5f);
@@ -615,19 +615,19 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             // 失敗時: メッセージ + 「再試行」(実遷移: RetryGame) + 「選曲にもどる」(実遷移)。
             var error = V5Ui.Node(main, "Error");
-            PlaceAt(error, 608f, 240f, new Vector2(464f, 300f));
+            V6Layout.PlaceAt(error, 608f, 240f, new Vector2(464f, 300f));
             errorGroup = error;
 
             var errorHeadline = V5Ui.Text(error, "Headline", "読み込み / 再生に失敗しました", 30f,
                 V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
-            PlaceAt(errorHeadline.gameObject, 0f, 0f, new Vector2(464f, 40f));
+            V6Layout.PlaceAt(errorHeadline.gameObject, 0f, 0f, new Vector2(464f, 40f));
 
             var errorDetail = V5Ui.Text(error, "Detail", "", 18f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            PlaceAt(errorDetail.gameObject, 0f, 52f, new Vector2(464f, 24f));
+            V6Layout.PlaceAt(errorDetail.gameObject, 0f, 52f, new Vector2(464f, 24f));
 
             var retryBtn = V5Ui.Panel(error, "Retry", new Vector2(200f, 56f), V5Tokens.ButtonPrimaryBg, 8f);
-            PlaceAt(retryBtn, 32f, 120f);
+            V6Layout.PlaceAt(retryBtn, 32f, 120f);
             var retryLayout = retryBtn.AddComponent<HorizontalLayoutGroup>();
             retryLayout.spacing = 12f;
             retryLayout.childAlignment = TextAnchor.MiddleCenter;
@@ -637,7 +637,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             retryLayout.childForceExpandHeight = false;
             var retryLabel = V5Ui.Text(retryBtn, "Label", "再試行", 30f,
                 V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Bold);
-            LayoutItem(retryLabel.gameObject, 0f, 34f);
+            V6Layout.LayoutItem(retryLabel.gameObject, 0f, 34f);
             var retryButton = retryBtn.AddComponent<Button>();
             retryButton.targetGraphic = retryBtn.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(retryBtn);
@@ -645,7 +645,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             retryButton.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(retryBtn, Retry));
 
             var backBtn = V5Ui.Panel(error, "Back To Select", new Vector2(200f, 56f), V5Tokens.ButtonPrimaryBg, 8f);
-            PlaceAt(backBtn, 232f, 120f);
+            V6Layout.PlaceAt(backBtn, 232f, 120f);
             var btnLayout = backBtn.AddComponent<HorizontalLayoutGroup>();
             btnLayout.spacing = 12f;
             btnLayout.childAlignment = TextAnchor.MiddleCenter;
@@ -655,7 +655,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             btnLayout.childForceExpandHeight = false;
             var btnLabel = V5Ui.Text(backBtn, "Label", "選曲にもどる", 26f,
                 V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Bold);
-            LayoutItem(btnLabel.gameObject, 0f, 34f);
+            V6Layout.LayoutItem(btnLabel.gameObject, 0f, 34f);
             var btnButton = backBtn.AddComponent<Button>();
             btnButton.targetGraphic = backBtn.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(backBtn);
@@ -667,7 +667,7 @@ namespace FlashBeat.UI.V6.Game.Loading
         private void BuildFooter()
         {
             var footer = V5Ui.Node(frame.gameObject, "Footer");
-            PlaceAt(footer, FooterX, FooterY, new Vector2(1680f, 96f));
+            V6Layout.PlaceAt(footer, FooterX, FooterY, new Vector2(1680f, 96f));
 
             // design: 凡例は Esc「戻る」だけ (決定 / 曲送りは 0×0、補助 / 主操作は非表示)。
             // 位置はフレーム x56 — 正本は 0×0 の 決定 / 曲送り を据え置き、項目間 gap16 で
@@ -783,39 +783,7 @@ namespace FlashBeat.UI.V6.Game.Loading
             }
         }
 
-        // --- ユーティリティ ---
-
-        private static RectTransform PlaceAt(Component node, float x, float y, Vector2? size = null)
-        {
-            return PlaceAt(node.gameObject, x, y, size);
-        }
-
-        private static RectTransform PlaceAt(GameObject node, float x, float y, Vector2? size = null)
-        {
-            var rt = node.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            if (size.HasValue)
-            {
-                rt.sizeDelta = size.Value;
-            }
-
-            return rt;
-        }
-
-        private static void LayoutItem(GameObject go, float minWidth, float height)
-        {
-            var le = go.AddComponent<LayoutElement>();
-            if (minWidth > 0f)
-            {
-                le.minWidth = minWidth;
-                le.preferredWidth = minWidth;
-            }
-
-            le.preferredHeight = height;
-        }
+        // --- ユーティリティは V6Layout に集約 (Issue #385) ---
     }
 
     /// <summary>V6LoadingView の毎フレーム処理 (1:1 配置 + 不定インジケータ)。</summary>

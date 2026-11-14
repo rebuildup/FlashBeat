@@ -55,7 +55,7 @@ namespace FlashBeat.UI.V6.Option
         private const float GamePrevW = V6OptionLogic.GamePrevW, GamePrevH = V6OptionLogic.GamePrevH;
 
         /// <summary>契約 §3 danger トークン (#FF6B6B)。V6Tokens に未定義のため design 値を直接持つ。</summary>
-        private static readonly Color DangerLabel = FromHex("#FF6B6B");
+        private static readonly Color DangerLabel = V5Tokens.FromHex("#FF6B6B");
 
         private readonly Action onBack;
 
@@ -95,18 +95,6 @@ namespace FlashBeat.UI.V6.Option
         private TextMeshProUGUI descTitleText;
         private TextMeshProUGUI descBodyText;
         private int volumeSliderRowIndex = -1; // スライダーが結線されている VolumeIndex (-1 = 未構築)
-
-        /// <summary>個別の子を階層から外して破棄を予約する (V6Hierarchy.ClearChildren と同じ流儀)。</summary>
-        private static void DetachAndDestroy(GameObject go)
-        {
-            if (go == null)
-            {
-                return;
-            }
-
-            go.transform.SetParent(null, false);
-            FlashBeat.UI.V5.V5GameUi.DestroyNow(go);
-        }
 
         private void ClearScaffoldRefs()
         {
@@ -507,9 +495,9 @@ namespace FlashBeat.UI.V6.Option
             if (!scaffoldBuilt)
             {
                 // 初回: ゾーンごと作り直す (従来と同じ)。
-                ClearChildren(Zone("Main"));
-                ClearChildren(Zone("Header"));
-                ClearChildren(Zone("Footer"));
+                V6Hierarchy.ClearChildren(Zone("Main"));
+                V6Hierarchy.ClearChildren(Zone("Header"));
+                V6Hierarchy.ClearChildren(Zone("Footer"));
                 ClearScaffoldRefs();
                 RebuildCountForAudit++;
             }
@@ -552,7 +540,7 @@ namespace FlashBeat.UI.V6.Option
                 var dialog = modal.transform.Find("Dialog");
                 if (dialog != null)
                 {
-                    ClearChildren(dialog);
+                    V6Hierarchy.ClearChildren(dialog);
                 }
             }
 
@@ -584,8 +572,8 @@ namespace FlashBeat.UI.V6.Option
             volumeSliderRowIndex = -1;
 
             // Main のうち Tabs だけを残し、Settings / Preview だけを作り直す。
-            DetachAndDestroy(Zone("Main").Find("Settings")?.gameObject);
-            DetachAndDestroy(Zone("Main").Find("Preview")?.gameObject);
+            V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Settings")?.gameObject);
+            V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Preview")?.gameObject);
             rowObjects.Clear();
             rowBackgrounds.Clear();
             rowValueTexts.Clear();
@@ -609,11 +597,6 @@ namespace FlashBeat.UI.V6.Option
             }
 
             return zone;
-        }
-
-        private static void ClearChildren(Transform parent)
-        {
-            Common.V6Hierarchy.ClearChildren(parent);
         }
 
         // --- ヘッダー (契約 §4 + design B6If6Z パッチ: (24,0) 1680x96) ---
@@ -678,7 +661,7 @@ namespace FlashBeat.UI.V6.Option
             if (tabBackgrounds.Count != V6OptionLogic.TabCount)
             {
                 // 参照が壊れている (タブ帯が消えた) ときだけ作り直す。
-                DetachAndDestroy(Zone("Main").Find("Zone Tabs")?.gameObject);
+                V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Zone Tabs")?.gameObject);
                 BuildTabs();
                 return;
             }
@@ -923,7 +906,7 @@ namespace FlashBeat.UI.V6.Option
             int vi = row != null ? row.VolumeIndex : -1;
             if (vi != volumeSliderRowIndex)
             {
-                DetachAndDestroy(previewPanelGo.transform.Find("Volume Slider")?.gameObject);
+                V6Hierarchy.DetachAndDestroy(previewPanelGo.transform.Find("Volume Slider")?.gameObject);
                 volumeSlider = null;
                 volumeSliderRowIndex = -1;
                 if (vi >= 0)
@@ -997,7 +980,7 @@ namespace FlashBeat.UI.V6.Option
                 float bottomX = bottomCenterX + bottomSpacing * i;
                 float hub = GamePrevW * 0.5f;
                 float topX = hub + (bottomX - hub) * topSpacingRatio;
-                DrawLine(well, "Lane " + i, bottomX, judgeY, topX, 0f, 1.5f, FromHex("#FFFFFF24"));
+                DrawLine(well, "Lane " + i, bottomX, judgeY, topX, 0f, 1.5f, V5Tokens.FromHex("#FFFFFF24"));
             }
 
             // サンプルノート (design の Note 0..5)。プレビュー装飾 (実データではない)。
@@ -1008,12 +991,12 @@ namespace FlashBeat.UI.V6.Option
             };
             for (int i = 0; i < notes.GetLength(0); i++)
             {
-                var note = Rect(well, "Note " + i, notes[i, 2], 10f, FromHex("#EDEDED"));
+                var note = Rect(well, "Note " + i, notes[i, 2], 10f, V5Tokens.FromHex("#EDEDED"));
                 V6Layout.Place(note.GetComponent<RectTransform>(), new Vector2(notes[i, 0], notes[i, 1]),
                     new Vector2(notes[i, 2], 10f));
             }
 
-            var judgeLine = Rect(well, "Judge Line", GamePrevW, 3f, FromHex("#EDEDED"));
+            var judgeLine = Rect(well, "Judge Line", GamePrevW, 3f, V5Tokens.FromHex("#EDEDED"));
             V6Layout.Place(judgeLine.GetComponent<RectTransform>(), new Vector2(0f, judgeY),
                 new Vector2(GamePrevW, 3f));
 
@@ -1212,7 +1195,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, Row row)
         {
-            var divider = Rect(panel, "Divider", 464f, 1f, FromHex("#FFFFFF1F"));
+            var divider = Rect(panel, "Divider", 464f, 1f, V5Tokens.FromHex("#FFFFFF1F"));
             V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
             // draw shape は「Title y564 h46」— 高さ 40 だと NotoSansJP の行送り (fs32 で約 46px) を
@@ -1756,12 +1739,6 @@ namespace FlashBeat.UI.V6.Option
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2((lx1 + lx2) * 0.5f, (ly1 + ly2) * 0.5f);
             rt.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg - 90f);
-        }
-
-        private static Color FromHex(string hex)
-        {
-            ColorUtility.TryParseHtmlString(hex, out var c);
-            return c;
         }
     }
 }
