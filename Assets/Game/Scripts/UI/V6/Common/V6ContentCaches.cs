@@ -49,6 +49,13 @@ namespace FlashBeat.UI.V6
             get { return V6JacketResources.CachedSpriteCount; }
         }
 
+        /// <summary>
+        /// 計測中にクラウドカタログの再取得を止める監査スイッチ。
+        /// カタログが計測の合間に適用されると曲が増減し、キャッシュの
+        /// 実読込回数の比較が揺れる (AutoTest 専用。通常時は false)。
+        /// </summary>
+        public static bool SuspendCatalogRefresh;
+
         /// <summary>すべてのキャッシュを捨てる。次の読み込みで実ファイルから引き直す。</summary>
         public static void InvalidateAll()
         {

@@ -402,6 +402,7 @@ public class SelectSceneManager : MonoBehaviour
     // keeps the built-in fixed catalog, so the game never stops here.
     void StartCatalogRefresh()
     {
+        if (V6ContentCaches.SuspendCatalogRefresh) return; // 監査計測中は再取得しない
         CloudCatalog.Config config = CloudCatalog.LoadConfig();
         if (config == null) return; // no API configured: stay on the fixed catalog
         if (catalogRefresh != null) StopCoroutine(catalogRefresh);
@@ -426,6 +427,7 @@ public class SelectSceneManager : MonoBehaviour
         yield return CloudCatalog.GetText(CloudCatalog.CatalogUrl(config.baseUrl), (code, text) => { status = code; body = text; });
 
         SongData[] songs = status == 200 ? CloudCatalog.ParseCatalog(body) : null;
+        if (V6ContentCaches.SuspendCatalogRefresh) yield break; // 監査計測中は結果を捨てる
         if (songs != null)
         {
             catalogWarned = false;

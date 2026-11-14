@@ -191,5 +191,69 @@ namespace FlashBeat.UI.V6.Option
             selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, delta);
             Rebuild();
         }
+
+        // --- 検証ハーネス用の読み取り API (製品動作は変えない) ---
+
+        /// <summary>選択中タブの行数。</summary>
+        public int RowCountForAudit
+        {
+            get { return currentRows.Count; }
+        }
+
+        /// <summary>行のラベル (例: "キー設定")。</summary>
+        public string RowLabelForAudit(int index)
+        {
+            return index >= 0 && index < currentRows.Count ? currentRows[index].Label : null;
+        }
+
+        /// <summary>行の現在値 (Value をその場で評価)。</summary>
+        public string RowValueForAudit(int index)
+        {
+            return index >= 0 && index < currentRows.Count ? currentRows[index].Value?.Invoke() : null;
+        }
+
+        /// <summary>行に実際に描画されている値テキスト (描画が止まっても検出できる)。</summary>
+        public string RenderedRowValueForAudit(int index)
+        {
+            return index >= 0 && index < rowValueTexts.Count && rowValueTexts[index] != null
+                ? rowValueTexts[index].text
+                : null;
+        }
+
+        /// <summary>行を選択する (↑↓ と同じ WrapIndex + Rebuild 経路)。</summary>
+        public void SelectRowForAudit(int index)
+        {
+            if (currentRows.Count == 0)
+            {
+                return;
+            }
+
+            selectedRow = V6OptionLogic.WrapIndex(index, currentRows.Count, 0);
+            Rebuild();
+        }
+
+        /// <summary>選択中の行を値変更する (←→ と同じ AdjustSelected 経路)。</summary>
+        public void AdjustSelectedRowForAudit(int delta, bool shift = false)
+        {
+            AdjustSelected(delta, shift);
+        }
+
+        /// <summary>選択中の行を決定する (Enter と同じ ActivateRow 経路)。</summary>
+        public void ActivateSelectedRowForAudit()
+        {
+            ActivateRow();
+        }
+
+        /// <summary>選択中タブの番号 (Play=0)。</summary>
+        public int SelectedTabForAudit
+        {
+            get { return selectedTab; }
+        }
+
+        /// <summary>キー設定モーダル (開いていなければ IsOpen=false)。</summary>
+        public V6KeyConfigModal KeyConfigModalForAudit
+        {
+            get { return keyConfigModal; }
+        }
     }
 }

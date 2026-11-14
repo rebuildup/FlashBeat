@@ -60,9 +60,12 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>設定行の定義。値の読み書きはすべて実データへの委譲。</summary>
         private sealed class Row
         {
+            public string Label;
             public TextMeshProUGUI Value;
             public Func<string> Read;
             public Action<int> Adjust;
+            /// <summary>行クリック時の動作 (キー設定を開く等)。null なら決定しても何も起きない。</summary>
+            public Action Click;
         }
 
         private GameObject rootGo;
@@ -396,6 +399,92 @@ namespace FlashBeat.UI.V6.Game.Pause
             Refresh();
         }
 
+        // --- 検証ハーネス用の読み取り API (製品動作は変えない) ---
+
+        /// <summary>タブの設定行数。</summary>
+        public int RowCountForAudit(int tab)
+        {
+            return pageRows[tab].Count;
+        }
+
+        /// <summary>タブ・行のラベル (例: "NoteSpeed")。</summary>
+        public string RowLabelForAudit(int tab, int row)
+        {
+            return pageRows[tab][row].Label;
+        }
+
+        /// <summary>タブ・行の現在値 (Read をその場で評価)。</summary>
+        public string RowValueForAudit(int tab, int row)
+        {
+            var read = pageRows[tab][row].Read;
+            return read != null ? read() : null;
+        }
+
+        /// <summary>タブ・行に実際に描画されている値テキスト。</summary>
+        public string RenderedRowValueForAudit(int tab, int row)
+        {
+            var value = pageRows[tab][row].Value;
+            return value != null ? value.text : null;
+        }
+
+        /// <summary>タブと行を選択する (クリックと同じ SelectTab + SelectRow 経路)。</summary>
+        public void SelectRowForAudit(int tab, int row)
+        {
+            SelectTab(tab);
+            SelectRow(tab, row);
+        }
+
+        /// <summary>選択中の行を値変更する (←→ と同じ AdjustSelected 経路)。</summary>
+        public void AdjustSelectedForAudit(int delta)
+        {
+            AdjustSelected(delta);
+        }
+
+        /// <summary>
+        /// 選択中の行を決定する (Enter / Space の Confirm と同じ経路)。
+        /// 行の Click (キー設定を開く等) を実行する。マウスクリックと同じ効果。
+        /// </summary>
+        public void ActivateSelected()
+        {
+            if (!open)
+            {
+                return;
+            }
+
+            var rows = pageRows[selectedTab];
+            if (selectedRow < 0 || selectedRow >= rows.Count)
+            {
+                return;
+            }
+
+            Row row = rows[selectedRow];
+            if (row.Click == null)
+            {
+                return;
+            }
+
+            row.Click();
+            RefreshRows();
+        }
+
+        /// <summary>選択中の行を決定する (ActivateSelected と同じ経路)。</summary>
+        public void ActivateSelectedForAudit()
+        {
+            ActivateSelected();
+        }
+
+        /// <summary>選択中タブの番号。</summary>
+        public int SelectedTabForAudit
+        {
+            get { return selectedTab; }
+        }
+
+        /// <summary>キー設定モーダル (開いていなければ null)。</summary>
+        public V6KeyConfigModal KeyConfigModalForAudit
+        {
+            get { return keyConfigModal; }
+        }
+
         // --- 構築 ---
 
         private void Build(RectTransform parent)
@@ -449,15 +538,18 @@ namespace FlashBeat.UI.V6.Game.Pause
                     () => V6PauseViewLogic.FormatNoteSpeed(GManager.noteSpeed),
                     dir =>
                     {
-                        // 範囲は Option 画面 / Select の Ready と同じ OptionSettings (1..50)。
-                        GManager.noteSpeed = PauseMenuView.NextNoteSpeed(GManager.noteSpeed, dir);
-                        OptionSettings.Save();
+                        // Option 画面と同じ 0.1 刻み・clamp・保存経路に揃える
+                        // (Issue #376: Pause と Option で同じ値モデルを使う)。
+                        OptionSceneManager.AdjustNoteSpeed(dir);
                     });
                 AddRow(rows, pageRoot, 1, "NoteTiming",
                     () => V6PauseViewLogic.FormatNoteTiming(GManager.noteTiming),
                     dir =>
                     {
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
+                        // Option と同じく曲ごとの offset 設定へも書き戻す
+                        // (保存先の値モデルを画面間で一致させる)。
+                        OptionSceneManager.WriteNoteTimingToSongOffsets();
                         OptionSettings.Save();
                     });
                 // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定。
