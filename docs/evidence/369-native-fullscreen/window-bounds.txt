@@ -1,0 +1,12 @@
+FlashBeat  {
+    Height = 32;
+    Width = 1710;
+    X = 0;
+    Y = 38;
+} layer 0
+FlashBeat FlashBeat {
+    Height = 1112;
+    Width = 1710;
+    X = 0;
+    Y = 38;
+} layer 0

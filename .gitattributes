@@ -58,4 +58,5 @@
 # 大型SDFアセットのみ、テキスト規則よりLFSを優先する
 "Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset" filter=lfs diff=lfs merge=lfs -text
 "Assets/Game/Fonts/Japanese/YuGothB SDF.asset" filter=lfs diff=lfs merge=lfs -text
+"Assets/Plugins/macOS/FlashBeatNative.bundle/Contents/MacOS/FlashBeatNative" filter=lfs diff=lfs merge=lfs -text
 "Assets/TextAssetsYuigo.asset" filter=lfs diff=lfs merge=lfs -text
