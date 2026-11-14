@@ -205,6 +205,7 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             var record = new Row
             {
+                Label = label,
                 Value = value,
                 Read = read,
                 Adjust = adjust,

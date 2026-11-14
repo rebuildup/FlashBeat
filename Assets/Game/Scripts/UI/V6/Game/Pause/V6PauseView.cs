@@ -60,6 +60,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>設定行の定義。値の読み書きはすべて実データへの委譲。</summary>
         private sealed class Row
         {
+            public string Label;
             public TextMeshProUGUI Value;
             public Func<string> Read;
             public Action<int> Adjust;
@@ -394,6 +395,46 @@ namespace FlashBeat.UI.V6.Game.Pause
             selectedTab = V6PauseViewLogic.ClampIndex(index, V6PauseViewLogic.TabCount);
             selectedRow = 0;
             Refresh();
+        }
+
+        // --- 検証ハーネス用の読み取り API (製品動作は変えない) ---
+
+        /// <summary>タブの設定行数。</summary>
+        public int RowCountForAudit(int tab)
+        {
+            return pageRows[tab].Count;
+        }
+
+        /// <summary>タブ・行のラベル (例: "NoteSpeed")。</summary>
+        public string RowLabelForAudit(int tab, int row)
+        {
+            return pageRows[tab][row].Label;
+        }
+
+        /// <summary>タブ・行の現在値 (Read をその場で評価)。</summary>
+        public string RowValueForAudit(int tab, int row)
+        {
+            var read = pageRows[tab][row].Read;
+            return read != null ? read() : null;
+        }
+
+        /// <summary>タブと行を選択する (クリックと同じ SelectTab + SelectRow 経路)。</summary>
+        public void SelectRowForAudit(int tab, int row)
+        {
+            SelectTab(tab);
+            SelectRow(tab, row);
+        }
+
+        /// <summary>選択中の行を値変更する (←→ と同じ AdjustSelected 経路)。</summary>
+        public void AdjustSelectedForAudit(int delta)
+        {
+            AdjustSelected(delta);
+        }
+
+        /// <summary>キー設定モーダル (開いていなければ null)。</summary>
+        public V6KeyConfigModal KeyConfigModalForAudit
+        {
+            get { return keyConfigModal; }
         }
 
         // --- 構築 ---
