@@ -136,6 +136,12 @@ namespace FlashBeat.UI.V6.Game.Loading
             }
         }
 
+        /// <summary>検証ハーネス用: ローディング画面が表示状態か。</summary>
+        internal bool IsShownForAudit
+        {
+            get { return shown; }
+        }
+
         /// <summary>検証ハーネス用: ローディング映像が準備できたか。</summary>
         internal bool VideoPreparedForAudit
         {

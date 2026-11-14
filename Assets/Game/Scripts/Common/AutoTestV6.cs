@@ -94,8 +94,58 @@ public class AutoTestV6 : MonoBehaviour
         int expectedSongId = data.Selected == null ? -1 : data.Selected.SongId;
         view.TriggerReady();
 
+        // Issue #378: Ready → 最初の視覚変化 (フェード開始) / GameScene 到達 /
+        // ローディング画面の表示までの実測。フレーム単位で追う。
+        float readyAt = Time.unscaledTime;
+        float fadeAt = -1f, gameAt = -1f, loadingAt = -1f, overlayAt = -1f;
+        float measureWaited = 0f;
+        while (measureWaited < 15f)
+        {
+            if (fadeAt < 0f)
+            {
+                var faderGo = GameObject.Find("Fader");
+                var faderGroup = faderGo != null ? faderGo.GetComponent<CanvasGroup>() : null;
+                if (faderGroup != null && faderGroup.alpha > 0.001f)
+                {
+                    fadeAt = Time.unscaledTime - readyAt;
+                }
+            }
+
+            if (overlayAt < 0f && LoadingOverlay.IsVisibleForAudit)
+            {
+                overlayAt = Time.unscaledTime - readyAt;
+            }
+
+            if (gameAt < 0f && SceneManager.GetActiveScene().name == "GameScene")
+            {
+                gameAt = Time.unscaledTime - readyAt;
+            }
+
+            if (loadingAt < 0f)
+            {
+                var loadingView = FlashBeat.UI.V6.Game.Loading.V6LoadingView.Current;
+                if (loadingView != null && loadingView.IsShownForAudit)
+                {
+                    loadingAt = Time.unscaledTime - readyAt;
+                }
+            }
+
+            if (gameAt >= 0f && loadingAt >= 0f) break;
+            measureWaited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        Debug.Log("[AutoTestV6] ready->fade=" + fadeAt.ToString("F3")
+            + "s ready->overlay=" + overlayAt.ToString("F3")
+            + "s ready->game=" + gameAt.ToString("F3")
+            + "s ready->loading=" + loadingAt.ToString("F3") + "s");
+        Check("ready shows a visual change quickly (fade starts)", fadeAt >= 0f && fadeAt < 1.0f);
+        Check("a loading indicator covers the scene transition", overlayAt >= 0f && overlayAt < 1.0f);
+        Check("the loading view appears promptly after the game scene activates",
+            loadingAt >= 0f && gameAt >= 0f && loadingAt - gameAt < 1.0f);
+
         float waited = 0f;
-        while (waited < 12f)
+        while (waited < 12f && gameAt < 0f)
         {
             if (SceneManager.GetActiveScene().name == "GameScene") { break; }
             waited += 0.5f;
