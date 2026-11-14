@@ -12,7 +12,7 @@ description: "FlashBeat lean spec — Issue 096"
 
 Issue #96 は「Title / Result / Option / Opening の 4 画面が 1024×768〜2560×1440 の範囲で
 崩れないようにする」ことを求める。実機証拠として
-`branch evidence/win-699b461` の `01_title.png` / `07_result.png` / `08_retry.png` を挙げている。
+`docs/evidence/win64-2026-11-07-699b461/` の `01_title.png` / `07_result.png` / `08_retry.png` を挙げている（旧 branch `evidence/win-699b461` から main へ移植済み）。
 
 `main` には **v5 の `UISizeProfile` 体系 (FHD / 2K / Mac / FhdScaled)** と
 **v6 の `V6UiProfile` (1920×1080 / 2560×1440 / 2560×1664)** が既に実装され、
