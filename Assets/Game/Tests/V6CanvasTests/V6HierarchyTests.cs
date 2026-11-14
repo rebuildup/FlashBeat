@@ -73,13 +73,10 @@ public class V6HierarchyTests
 
         Assert.AreEqual(1, parent.transform.childCount, "対象の子だけが階層から外れる");
         Assert.AreSame(sibling.transform, parent.transform.GetChild(0));
-        Assert.IsNull(child.transform.parent, "外した子は root へ戻る (Destroy はフレーム末)");
-
-        // TearDown の名前一致で拾えないよう、外れた子はここで明示的に片付ける。
-        if (child != null)
-        {
-            Object.DestroyImmediate(child);
-        }
+        // DestroyNow は edit mode では DestroyImmediate (play ではフレーム末 Destroy)
+        // なので、ここでは Unity の null 判定で破棄済みを確認する
+        // (破棄済み object の transform へは触れない — MissingReference になる)。
+        Assert.IsTrue(child == null, "外した子は破棄される");
     }
 
     [Test]
