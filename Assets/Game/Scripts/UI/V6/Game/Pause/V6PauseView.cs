@@ -43,7 +43,7 @@ namespace FlashBeat.UI.V6.Game.Pause
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
-        private const float HeaderX = 24f, HeaderY = 0f, HeaderW = 1680f, HeaderH = 96f;
+        // ヘッダー帯の寸法は V6Header (Width/Height/FramePos) が正本。
         private const float MainX = 24f, MainY = 96f;
         private const float FooterX = 24f, FooterY = 876f, FooterW = 1680f, FooterH = 96f;
 
@@ -486,21 +486,17 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         private void BuildHeader()
         {
-            var header = V5Ui.Node(frame.gameObject, "Header");
-            PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
+            // 帯 + タイトルは共通部品 (Issue #385)。帯は素の RectTransform
+            // (従来実装どおり panel=false)。
+            var header = V6Header.Create(frame.gameObject, false);
 
             // design uDNC0/SUD2i: 左上はタイトル "PAUSE" のみ。戻るゾーン (b7VqL) は
             // design の実ノードが中身ゼロ (子・fill 無し) の空プレースホルダで、
             // 正本の描画 uDNC0-pause にも戻るボタンは出ない。よって Esc ボタンは描かない
             // (Esc = 再開は凡例と「再開」ボタンの KeyCap が示す)。
             // 正本 uDNC0/ci867 は Title ゾーン (72,20) 185×56 に "PAUSE" (fs38 w700)。
-
-            // design uDNC0/ci867: Title ゾーン (ヘッダー内 (72,20) 185×56 → ページ (96,20))
-            // に "PAUSE" (fs38 w700)。
-            var title = V5Ui.Text(header, "Title", "PAUSE", 38f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            title.textWrappingMode = TextWrappingModes.NoWrap;
-            PlaceAt(title.gameObject, 72f, 20f, new Vector2(185f, 56f));
+            // 185×56 は正本の矩形 — 共通部品の既定 400×56 ではなく明示する。
+            V6Header.Title(header, "PAUSE", new Vector2(72f, 20f), new Vector2(185f, 56f));
 
             // 右上: ジャケット + 曲情報 + 区切り + LEVEL / NOTES / 曲長 (実データ)。
             // 座標は正本 PRqZF (ヘッダー右 840×96) の子の実値 — レイアウトグループで
@@ -512,7 +508,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             infoRt.anchorMax = new Vector2(1f, 1f);
             infoRt.pivot = new Vector2(1f, 1f);
             infoRt.anchoredPosition = Vector2.zero;
-            infoRt.sizeDelta = new Vector2(840f, HeaderH);
+            infoRt.sizeDelta = new Vector2(840f, V6Header.Height);
 
             var thumb = V5Ui.Panel(info, "Thumb", new Vector2(64f, 36f), V5Tokens.Key2, 4f);
             PlaceAt(thumb, 24f, 30f);

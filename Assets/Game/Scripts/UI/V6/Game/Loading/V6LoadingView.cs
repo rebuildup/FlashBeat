@@ -36,7 +36,7 @@ namespace FlashBeat.UI.V6.Game.Loading
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
 
-        private const float HeaderX = 24f, HeaderY = 0f, HeaderW = 1680f, HeaderH = 96f;
+        // ヘッダー帯の寸法は V6Header (Width/Height/FramePos) が正本。
         private const float FooterX = 24f, FooterY = 876f;
 
         private const float TrackW = 464f;
@@ -511,23 +511,23 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         private void BuildHeader()
         {
-            var header = V5Ui.Node(frame.gameObject, "Header");
-            PlaceAt(header, HeaderX, HeaderY, new Vector2(HeaderW, HeaderH));
+            // 帯 + 戻るボタンは共通部品 (Issue #385)。帯は素の RectTransform
+            // (従来実装どおり panel=false)。design zUcsi: (0,20) 56×56 $k4。
+            var header = V6Header.Create(frame.gameObject, false);
 
-            // 戻るボタンは共通部品 (Issue #370)。design zUcsi: (0,20) 56×56 $k4。
             string backKeyText = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Back);
             if (string.IsNullOrEmpty(backKeyText))
             {
                 backKeyText = "Esc";
             }
 
-            V6Controls.BackButton(header, "Back", new Vector2(0f, 20f), backKeyText, Back);
+            V6Header.BackButton(header, "Back", backKeyText, Back);
 
             // design: タイトル欄は空 (0×0)。
 
             // 右上 (JJwdM): ジャケット 56×56 + 曲名 fs22 / 作家 fs16。
             var info = V5Ui.Node(header, "Song Info");
-            PlaceAt(info, 1080f, 0f, new Vector2(300f, HeaderH));
+            PlaceAt(info, 1080f, 0f, new Vector2(300f, V6Header.Height));
             var infoLayout = info.AddComponent<HorizontalLayoutGroup>();
             infoLayout.spacing = 12f;
             infoLayout.childAlignment = TextAnchor.MiddleLeft;

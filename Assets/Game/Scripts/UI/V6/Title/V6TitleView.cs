@@ -339,11 +339,11 @@ namespace FlashBeat.UI.V6.Title
 
             // タイトル文字 (design aqq3q/ci867) は正本で `enabled: false`
             // (Exit ボタン 162×56 と重なるため非表示)。既定では描かない。
+            // 左上は戻るではなく Exit (V6TitleExit) なので戻るボタンは置かない。
             if (V6UiMode.TitleHeaderTitle)
             {
-                V6Controls.Text(header, "Title", "FlashBeat", V6TitleLogic.HeaderTitlePos,
-                    V6TitleLogic.HeaderTitleSize, V6TitleLogic.HeaderTitleFontSize, V6Tokens.Text,
-                    TextAlignmentOptions.Left, FontStyles.Bold);
+                V6Header.Title(header, "FlashBeat", V6TitleLogic.HeaderTitlePos,
+                    V6TitleLogic.HeaderTitleSize, V6TitleLogic.HeaderTitleFontSize);
             }
 
             // 更新ボタン (更新があるときだけ)。design の右上には無いが、更新の導線は

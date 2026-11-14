@@ -466,14 +466,12 @@ namespace FlashBeat.UI.V6.History
 
         private void CreateHeaderScaffold(GameObject headerZone)
         {
-            // 戻るボタンは共通部品 (Issue #370)。design q9JZcH: header (0,20) 56×56。
+            // 戻るボタン + タイトルは共通部品 (Issue #385)。design q9JZcH:
+            // header (0,20) 56×56 / Title (72,20) 400×56 fs38。
             // 確定キーはキー設定の正本から取る。
-            V6Controls.BackButton(headerZone, "Back Button", new Vector2(0f, 20f),
+            V6Header.BackButton(headerZone, "Back Button",
                 ActionKeyHint.Primary(KeyActions.KeyAction.Back), () => TriggerBack());
-
-            var title = V5GameUi.Text(headerZone, "Title", "HISTORY", 38f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
-            At(title, 72f, 20f, 400f, 56f);
+            V6Header.Title(headerZone, "HISTORY");
 
             // 右上: 並び替えチップ (design q9JZcH/Y8lcc: ヘッダー内 (864,33.5) 104×29 r8) + 件数
             var sortChip = MakeButton(V5Ui.Panel(headerZone, "Sort",

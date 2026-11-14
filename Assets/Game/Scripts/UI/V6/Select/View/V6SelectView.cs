@@ -562,21 +562,23 @@ namespace FlashBeat.UI.V6.Select.View
 
         private void BuildHeader(int filteredCount)
         {
-            var header = At(V5Ui.Panel(frame.gameObject, "Header", new Vector2(1680f, 96f), Clear(), 0f), 24f, 0f);
+            // 帯 + 戻るボタン + タイトルは共通部品 (Issue #385)。
+            // 帯は Image 付きの透明パネル (従来実装どおり panel=true)。
+            var header = V6Header.Create(frame.gameObject, true);
 
-            // 戻るボタンは共通部品 (Issue #370)。設計 OENRv: ヘッダー左端 (フレーム (24,20))。
+            // 戻るボタン。設計 OENRv: ヘッダー左端 (フレーム (24,20))。
+            // 位置の正本は V6SelectViewLogic.HeaderBackButton() (design (0,20) 56×56)。
             var backRect = V6SelectViewLogic.HeaderBackButton();
-            V6Controls.BackButton(header, "Back Button", new Vector2(backRect.X, backRect.Y),
+            V6Header.BackButton(header, "Back Button",
                 FlashBeat.UI.V5.ActionKeyHint.Primary(KeyActions.KeyAction.Back),
                 () =>
                 {
                     if (onBack != null) onBack();
-                });
+                }, new Vector2(backRect.X, backRect.Y));
 
-            var title = V5GameUi.Text(header.gameObject, "Title", "選曲", 38f, V5Tokens.Text,
-                TextAlignmentOptions.Left, FontStyles.Bold);
             var titleRect = V6SelectViewLogic.HeaderTitle();
-            At(title, titleRect.X, titleRect.Y, titleRect.W, titleRect.H);
+            V6Header.Title(header, "選曲",
+                new Vector2(titleRect.X, titleRect.Y), new Vector2(titleRect.W, titleRect.H));
 
             // 右上: 検索欄 / 件数 / 状態メッセージ / フィルターボタン
             // 右上情報ゾーンは header-local x=840..1680 (padding 24 / gap 12)。
