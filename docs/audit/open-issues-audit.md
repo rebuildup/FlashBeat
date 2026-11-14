@@ -1958,3 +1958,13 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **branch 整理**: merge 済み remote 4 本 (`w/audit-2026-11-14` `w/416-cache-lifetime` `w/417-result-v6skip` `w/415-result-rank-reuse`) と local merge 済み 5 本 + 回収済み WIP 2 本 (`w/416-native-lifetime` `w/417-result-quality`) を削除。remote branch は 63→**40 本**、local は 45→**41 本**。
 - **Issue 状態**: #416/#417 は実測・実機確認が残るため open 継続 (各 Issue に証跡コメント済み)。#415 は第1段階のみで open。
 - **残る #415 作業**: 順序 2 (History/Ranking)、3 (Option)、4 (Select・計測後)、5 (監査カウンタ一般化)。`w/415-diff-update` と `w/preserve-*-wt-20261114` は継続保持。
+
+### 8.7 2026-11-14 進捗 (main = `c0d3a1e3`)
+
+- **#415 Closed**: Phase 1〜5 すべて main 統合 (PR #453/#455/#456/#457/#458/#459)。各画面の macOS before/after 計測証跡 (`docs/evidence/415-*`) を対応表にして最終受入コメントを投稿し close。
+- **#417 Closed** (既報)。
+- **#416 前進**: `v6mem` 計測ハーネス (PR #461) で macOS 実機計測を開始。**OptionScene のマネージドリーク (~1.8MB/ロード、線形) を発見・修正** (PR #460: `OptionSceneManager.OnDestroy` で `V6OptionView.Dispose()` — 静的 `KeyBindings.Changed` 購読の根絶)。bisect と before/after 証跡は `docs/evidence/416-mem/`。EditMode 1791/1791 Pass、統合後 main 回帰も頭打ち確認 (PR #462)。
+- **#416 残件** (Issue コメントのチェックリストが正本): History/Ranking タブ遷移・Retry・メディアキャッシュ TTL・遠隔失敗/重複/退出コールバック・Native 内訳 (Memory Profiler)・Win64。→ 拡張ハーネスで Mac 側を計測中 (branch `w/416-memprobe2`)。
+- **branch 整理 (2026-11-14)**: tip が main の祖先である remote 16 本を削除 (`118-patch` `129` `134-patch` `feature/expo-loading-guide` `feature/keyconfig-file` `feature/media-loading-ui` `feature/p1-playback-recovery` `integration/v6` `w-220-v6` `w/415-*`×5 `w/ledger-98fix` `w/w140fix`)。`release-0-1-0` はリリース系列ポリシーで保持。remote は 45→**29 本**。local merge 済み 7 本も削除。
+- **#250 再評価の現時点の結論**: §8.2 の 6 cluster 分類は有効。変化は (a) cluster F の #415/#417 が完了、#416 が計測フェーズ、(b) cluster C/D/E の close 判定は依然として **人間受入・オーナー決定・Win64/本番 API 証跡** がボトルネック。cc が自律的に閉じられる Issue は現時点で **0 件** (#162 も v6screens 証跡の最終判定レビュー待ち、#388/#389 は実装 merge 済みだがレビュー会待ち)。
+- **次の実行可能対象**: #416 残計測の完了 → #397/#381 の Mac `-fbperf` 計測 (Win64 は実機待ち) → #368 cluster の受入証跡レビュー → #250 のオーナー決定事項 (#30 D1/D5、#360、#75 画像レビュー、本番 API 承認) の集約。
