@@ -4,6 +4,7 @@ import ImageIO
 // usage: pngcolprof.swift img.png y0 y1 xstep — per-column-band luminance SD profile
 let args = CommandLine.arguments
 let path = args[1]; let y0 = Int(args[2])!, y1 = Int(args[3])!, step = Int(args[4])!
+guard step > 0 else { print("BAD_STEP"); exit(4) }
 func load(_ p: String) -> CGImage? {
     guard let s = CGImageSourceCreateWithURL(URL(fileURLWithPath: p) as CFURL, nil) else { return nil }
     return CGImageSourceCreateImageAtIndex(s, 0, nil)

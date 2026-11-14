@@ -25,8 +25,10 @@ func bytes(_ img: CGImage) -> [UInt8] {
     return data
 }
 let ba = bytes(a), bb = bytes(b)
+let rx0 = max(0, x0), ry0 = max(0, y0), rx1 = min(w, x1), ry1 = min(h, y1)
+guard rx0 < rx1, ry0 < ry1 else { print("EMPTY_REGION"); exit(4) }
 var diff = 0, tot = 0, sum = 0
-for y in max(0,y0)..<min(h,y1) { for x in max(0,x0)..<min(w,x1) {
+for y in ry0..<ry1 { for x in rx0..<rx1 {
     let o = (y*w+x)*4
     let d = abs(Int(ba[o])-Int(bb[o])) + abs(Int(ba[o+1])-Int(bb[o+1])) + abs(Int(ba[o+2])-Int(bb[o+2]))
     if d > thresh { diff += 1 }; sum += d; tot += 1
