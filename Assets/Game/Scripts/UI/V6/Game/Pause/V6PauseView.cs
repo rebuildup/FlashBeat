@@ -64,6 +64,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             public TextMeshProUGUI Value;
             public Func<string> Read;
             public Action<int> Adjust;
+            /// <summary>行クリック時の動作 (キー設定を開く等)。null なら決定しても何も起きない。</summary>
+            public Action Click;
         }
 
         private GameObject rootGo;
@@ -431,6 +433,39 @@ namespace FlashBeat.UI.V6.Game.Pause
             AdjustSelected(delta);
         }
 
+        /// <summary>
+        /// 選択中の行を決定する (Enter / Space の Confirm と同じ経路)。
+        /// 行の Click (キー設定を開く等) を実行する。マウスクリックと同じ効果。
+        /// </summary>
+        public void ActivateSelected()
+        {
+            if (!open)
+            {
+                return;
+            }
+
+            var rows = pageRows[selectedTab];
+            if (selectedRow < 0 || selectedRow >= rows.Count)
+            {
+                return;
+            }
+
+            Row row = rows[selectedRow];
+            if (row.Click == null)
+            {
+                return;
+            }
+
+            row.Click();
+            RefreshRows();
+        }
+
+        /// <summary>選択中の行を決定する (ActivateSelected と同じ経路)。</summary>
+        public void ActivateSelectedForAudit()
+        {
+            ActivateSelected();
+        }
+
         /// <summary>キー設定モーダル (開いていなければ null)。</summary>
         public V6KeyConfigModal KeyConfigModalForAudit
         {
@@ -499,6 +534,9 @@ namespace FlashBeat.UI.V6.Game.Pause
                     dir =>
                     {
                         GManager.noteTiming = Mathf.Clamp(GManager.noteTiming + dir, -10, 10);
+                        // Option と同じく曲ごとの offset 設定へも書き戻す
+                        // (保存先の値モデルを画面間で一致させる)。
+                        OptionSceneManager.WriteNoteTimingToSongOffsets();
                         OptionSettings.Save();
                     });
                 // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定。

@@ -209,6 +209,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                 Value = value,
                 Read = read,
                 Adjust = adjust,
+                Click = click,
             };
 
             var button = panel.AddComponent<Button>();

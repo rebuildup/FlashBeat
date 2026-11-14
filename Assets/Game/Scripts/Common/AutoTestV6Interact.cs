@@ -698,7 +698,9 @@ public class AutoTestV6Interact : MonoBehaviour
         }
         if (pKey >= 0)
         {
-            pause.OpenKeyConfig();
+            // 行の決定 (Enter/Space の Confirm と同じ ActivateSelected 経路) で開く。
+            pause.SelectRowForAudit(0, pKey);
+            pause.ActivateSelectedForAudit();
             yield return null;
             var pauseModal = pause.KeyConfigModalForAudit;
             Check("the pause key config modal opens", pauseModal != null && pauseModal.IsOpen);

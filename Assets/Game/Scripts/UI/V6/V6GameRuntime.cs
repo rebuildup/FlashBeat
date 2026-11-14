@@ -317,6 +317,9 @@ namespace FlashBeat.UI.V6
             if (Input.GetKeyDown(KeyCode.DownArrow)) pause.MoveSelection(1);
             if (Input.GetKeyDown(KeyCode.LeftArrow)) pause.AdjustSelected(-1);
             if (Input.GetKeyDown(KeyCode.RightArrow)) pause.AdjustSelected(1);
+            // 決定 (Space): キー設定を開く等、行の Click を持つ行をキーボードでも
+            // 実行できるようにする (Issue #376 — マウス専用だった行動経路の補完)。
+            if (KeyActions.IsDown(KeyActions.KeyAction.Confirm)) pause.ActivateSelected();
             // ポーズ中は毎フレーム来るため、シーン全体検索を繰り返さず 1 度だけ解決する。
             if (cachedSceneManager == null) cachedSceneManager = FindAnyObjectByType<GameSceneManager>();
             var manager = cachedSceneManager;

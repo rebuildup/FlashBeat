@@ -39,10 +39,13 @@
   EditMode 側 (`V6KeyConfigLogicTests` / `V6KeyConfigModalTests` /
   `KeyConfigLayoutTests`) が固定済み。ランタイムでは「画面内の行から開ける」
   ことと背後入力のブロックを確認した。
-- 「調整できない」の原因 (#376 受け入れ条件): コード上の値モデルは
-  Option / Pause で共通 (`GManager` + `OptionSettings.Save`) であり、
-  行への到達性の問題ではなく、旧 UI (`KeyConfigUI`) と v6 モーダルの
-  混在期に「F2 という表示だけの導線」へ辿り着けなかったことが実機での
-  体感原因と判断。F2 表示の廃止と行からの直接起動で解消した。
+- 「調整できない」の原因 (#376 受け入れ条件): レビューで 2 件の実差分を
+  確認し修正した。(a) Pause の「キー設定」行はマウスクリック専用で、
+  キーボード (決定キー) では開けなかった → `KeyAction.Confirm` (Space)
+  で選択行の Click を実行する `ActivateSelected` を追加。
+  (b) Pause の NoteTiming は `GManager` / PlayerPrefs だけ更新し、
+  Option が行う曲ごとの offset 書き戻し (`WriteNoteTimingToSongOffsets`)
+  をしていなかった → 同じ呼び出しを追加し、画面間で保存先を一致させた。
+  併せて「値欄に F2 だけが見える旧導線」も廃止済み (決定 §4.1)。
 - 直前の 640x480 実行ではポインタ系チェックが解像度起因で FAIL したため、
   本証跡はウィンドウモード 1920x1080 で取り直した。
