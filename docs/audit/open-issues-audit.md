@@ -1999,3 +1999,12 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **#3–#7 棚卸しコメント投稿**: 展示ゲート各 Issue に現状証跡と残件 (Win64 実機・本番 write 承認) を記録。close 判定は実機照合後。
 - **残る人間側アクション (変わらず)**: Win64 実機検証、#75 画像レビュー、本番 write E2E 承認、#30/#360 のオーナー決定、self-hosted runner (オーナー Mac 依存) の了承。
 
+
+### 8.10 2026-11-14 深夜② — #385 全 Phase 統合完了 (main = `62c6d662`)
+
+- **Phase 1 (共通部品)**: #470 V6Header / #473 V6SongBadge / #474+#476 V6Slider+V6CursorInput / #478+#479 V6Layout・V6Hierarchy・V6Legend・V6Button。戻るボタン・曲バッジ・スライダー・入力欄は各 1 箇所に集約済み。
+- **Phase 2 (View 分割、全て partial class で挙動不変)**: #480 Result(1600→6) / #481 GameHud(1946→5) / #482 Pause(1437→6) / #483 Select(1843→8) / #484 Option(1744→7) / #485 History(1416→7) / #486 Ranking(1203→8) / #487 Loading(846→6) / #488 Title(690→4) / #489 SelectViewLogic(1080→3) / #490 JacketProvider(828→5)。各 PR で EditMode フルスイート + 独立レビュー APPROVE (メンバ parity・生成順・更新タイミング照合)。
+- **600 行超の例外 (doc comment 記録)**: V6ResultModal 812 / V6SelectDataSource ~620 (#492)。
+- **Phase 3 (旧 UI 整理)**: #491 — HideLegacyV5Canvases を生成番号変化+120f 保険、HideLegacyUpdateNotice を 30f 間隔に限定し毎フレーム走査を解消。`docs/architecture/v5-legacy-ui-references.md` + `V5LegacyReferenceAuditTests` で v5 参照を固定。削除候補: V5.TitleView / V5.OptionView (生成サイトゼロ)。
+- **検証**: 最終 EditMode **1830/1830 Pass**。残る受入項目はスクリーンショット比較 (解像度行列ハーネスでの before/after) — #385 に記録済み。
+- branch/worktree: phase 用 worktree (w385b/c/d/e/f/g/h) は全て統合後に回収。local branch は merge 済み分を削除済み。
