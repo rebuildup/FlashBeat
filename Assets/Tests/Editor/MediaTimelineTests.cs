@@ -218,4 +218,16 @@ sb3 mhtml 48x27        0    |                 mhtml | images                    
         Assert.AreEqual(YouTubeMediaCache.VideoFilePrefix, YouTubeMediaCache.PrefixForPlan(split));
         Assert.AreNotEqual(YouTubeMediaCache.PrefixForPlan(merged), YouTubeMediaCache.PrefixForPlan(split));
     }
+
+    [Test]
+    public void ResumeReSeekOnlyWhenThePictureClockDriftedFromTheFrozenTime()
+    {
+        // Issue #382: ポーズ中にメディア時計が固定位置からずれたら再開時に
+        // シークし直す。閾値内の誤差 (シーク往復の丸めなど) では動かさない。
+        Assert.IsTrue(MediaTimeline.ShouldReSeekMedia(1.0f, 0.0f));
+        Assert.IsTrue(MediaTimeline.ShouldReSeekMedia(0.0f, 0.5f));
+        Assert.IsFalse(MediaTimeline.ShouldReSeekMedia(0.05f, 0.0f));
+        Assert.IsFalse(MediaTimeline.ShouldReSeekMedia(10.0f, 10.05f));
+        Assert.IsFalse(MediaTimeline.ShouldReSeekMedia(3.0f, 3.0f));
+    }
 }

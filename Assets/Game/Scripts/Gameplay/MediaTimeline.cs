@@ -133,6 +133,17 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
+        /// True when the picture clock drifted away from the frozen chart time
+        /// during a pause often enough to need a re-seek on resume (Issue #382).
+        /// 再生開始直後のポーズなど Pause が間に合わない経路で、メディア時計が
+        /// 固定位置から進んでしまうことがある。
+        /// </summary>
+        public static bool ShouldReSeekMedia(float pictureTime, float frozenTime, float threshold = 0.1f)
+        {
+            return Mathf.Abs(pictureTime - frozenTime) > threshold;
+        }
+
+        /// <summary>
         /// Position of a note on the lane, derived from the media clock: the note
         /// reaches the hit line exactly when the media reaches its time. A
         /// buffering stall therefore holds the notes instead of letting them run

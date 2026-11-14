@@ -570,8 +570,16 @@ public class AutoTestV6Screens : MonoBehaviour
         shot++;
         string path = Path.Combine(outDir, "v6screen-" + label + "-" + shot + ".png");
         ScreenCapture.CaptureScreenshot(path);
-        yield return new WaitForSecondsRealtime(0.6f);
-        bool ok = File.Exists(path);
+        // 書き込みは非同期。負荷の高い実機では 0.6 秒を超えることがあるので
+        // 上限付きで存在を待つ (Issue #374: 連続撮影で FAIL しないように)。
+        float waited = 0f;
+        bool ok = false;
+        while (waited < 5f)
+        {
+            yield return new WaitForSecondsRealtime(0.2f);
+            waited += 0.2f;
+            if (File.Exists(path)) { ok = true; break; }
+        }
         Check(report, "the screenshot " + label + " was written", ok);
         if (ok) { report.Shots.Add(Path.GetFileName(path)); }
     }

@@ -940,6 +940,21 @@ public class MusicManager : MonoBehaviour
     /// <summary>ポーズゲート側でメディアを止めた (再開待ち)。</summary>
     bool pausedByGate;
 
+    // --- Issue #382: 再開直後のメディア時計の追いつき矯正 -------------------------
+    // 再生開始直後のポーズなどで、映像プレイヤーが報告する時刻が実際の再生位置より
+    // 先へ跳ぶことがある (起動直後のデコード立ち上がりで Pause が間に合わない)。
+    // ResumeMediaFromGate から ResumeSyncSeconds の間だけ「固定時刻 + 再開からの
+    // 壁時計経過」を期待位置とし、映像がそれを大きく超えたときだけシークし直す。
+    // ポーズ中にバッファへ溜まった分が再開後にまとめて再生されるため、
+    // ずれは 1 秒前後かけて収束する。後退 (バッファ待ち) はストール判定の
+    // 領域なのでここでは触らない。
+    const float ResumeSyncSeconds = 2.0f;
+    const float ResumeSyncAheadThreshold = 0.15f;
+    const float ResumeSyncMinInterval = 0.3f;
+    float resumeSyncUntil;
+    float resumeSyncWallStart;
+    float lastResumeSyncSeekWall = -10f;
+
     /// <summary>
     /// ポーズ中にメディア (映像 / 音声) を止める。毎フレーム呼ばれて冪等。
     /// 実メンバー名はこのクラスの所有するもの (songVideo / streamAudioPlayer /
@@ -992,11 +1007,28 @@ public class MusicManager : MonoBehaviour
             if (audioMode == PlaybackSource.BundledWave && audioS != null) audioS.UnPause();
         }
 
+        // Issue #382: ポーズ中にメディア時計が固定位置からずれた場合
+        // (再生開始直後のポーズなど、Pause が間に合わない経路) は、
+        // 映像を固定位置へシークし直して譜面時計の連続性を保証する。
+        // 映像は計時の主なので、ここを合わせれば音声 (StreamCombined は
+        // 同一ファイル / StreamSeparate は ShouldResync の追従) も揃う。
+        if (songVideo != null && songVideo.isPrepared && playbackStarted && !mediaEnded)
+        {
+            float pictureTime = (float)songVideo.time;
+            if (MediaTimeline.ShouldReSeekMedia(pictureTime, PauseGate.FrozenMediaTime))
+            {
+                Debug.Log($"[MusicManager] resume seek: video time {pictureTime:F3} -> frozen {PauseGate.FrozenMediaTime:F3}");
+                songVideo.time = PauseGate.FrozenMediaTime;
+            }
+        }
+
         // ストール誤検出の防止: メディアはポーズ中の間止まっていたので、
         // 直前の進行時刻はもう意味を持たない。固定中の譜面時刻からやり直す。
         lastMediaTime = PauseGate.FrozenMediaTime;
         mediaTime = PauseGate.FrozenMediaTime;
         stallSeconds = 0f;
+        resumeSyncWallStart = Time.time;
+        resumeSyncUntil = Time.time + ResumeSyncSeconds;
         lastMediaProgressWallTime = Time.time;
         // 終端検出も同じ理由でやり直す: ポーズ前の「停止」秒数を持ち越すと、
         // 再開直後のわずかな停止で終端と誤認する。
@@ -1125,6 +1157,23 @@ public class MusicManager : MonoBehaviour
             {
                 streamAudioPlayer.time = pictureTime;
                 Debug.LogWarning($"[MusicManager] A/V drift {Mathf.Abs(pictureTime - soundTime):F3}s - the sound was re-seeked to the picture");
+            }
+        }
+
+        // Issue #382: 再開直後の追いつき矯正。映像が「固定時刻 + 再開からの壁時計
+        // 経過」を大きく超えて先へ跳んだときだけ、期待位置へシークし直す
+        // (間隔を空けて連続シークを防ぐ)。フィールド定義のコメント参照。
+        if (Time.time < resumeSyncUntil && playbackStarted && !mediaEnded &&
+            songVideo != null && songVideo.isPrepared &&
+            Time.time - lastResumeSyncSeekWall > ResumeSyncMinInterval)
+        {
+            float expected = PauseGate.FrozenMediaTime + (Time.time - resumeSyncWallStart);
+            float pictureNow = (float)songVideo.time;
+            if (pictureNow > expected + ResumeSyncAheadThreshold)
+            {
+                lastResumeSyncSeekWall = Time.time;
+                Debug.Log($"[MusicManager] resume sync seek: video time {pictureNow:F3} -> expected {expected:F3}");
+                songVideo.time = expected;
             }
         }
 
