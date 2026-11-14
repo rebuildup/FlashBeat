@@ -362,3 +362,22 @@ Recorded as a finding, not fixed here (the file belongs to #27).
 
 > **Windows 実機でのノーツ・動画の視認は引き続き未検証** (#233 の未解決問題)。
 > テスト緑も macOS 実機も **Windows の合格を保証しない**。
+
+## 8. 2026-11-07 Win64 展示証跡の main 移植（branch 回収）
+
+旧 branch `evidence/win-699b461` が唯一の保管場所だった 2026-11-07 の Win64 実機証跡 5 件を
+`docs/evidence/` へ移植した（`specs/088-fullscreen-ui` / `specs/096-ui-resolution-stability` が
+参照していた実機画像を main 上で参照可能にするため）。
+
+| ディレクトリ | 内容 |
+|---|---|
+| [`win64-2026-11-07-699b461/`](win64-2026-11-07-699b461/) | trunk run（displayCoverage 0.9706、判定 76 ノーツ）。`01_title.png`〜`08_retry.png` |
+| [`win64-2026-11-07-v012-exhibit/`](win64-2026-11-07-v012-exhibit/) | v0.1.2 展示ビルドの Title→Select→Game→Result |
+| [`win64-2026-11-07-v013-cand/`](win64-2026-11-07-v013-cand/) | v0.1.3 候補。fullscreen 100% + key-config overlay の実機画像 |
+| [`win64-2026-11-07-v014-exhibit/`](win64-2026-11-07-v014-exhibit/) | v0.1.4 展示。旧 Option + 更新失敗ログ (`update-e2e-v012-failure.log`) |
+| [`win64-2026-11-07-v016-update/`](win64-2026-11-07-v016-update/) | アプリ内更新 0.1.5→0.1.6 の実機 run |
+
+また、旧 branch `feature/p2-catalog-e2e` が唯一の保管場所だった
+[`catalog-publish-2026-11-07/`](catalog-publish-2026-11-07/)（本番 D1 への全曲カタログ publish 記録）と、
+旧 branch `109-patch`（= `release/0.1.11`）にのみ存在した 0.1.11 一括リリースの承認記録行を
+[`../operations/release-approval-checklist.md`](../operations/release-approval-checklist.md) §F へ移植した。
