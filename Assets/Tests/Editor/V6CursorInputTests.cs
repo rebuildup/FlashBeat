@@ -138,20 +138,19 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void FocusSelectAll_RunsOnAttachedInput()
+        public void FocusSelectAll_SelectsWholeTextByStringPositions()
         {
-            // caret/selection 位置は TMP_InputField.ClampCaretPos が
-            // textComponent.textInfo.characterCount でクランプする。EditMode の
-            // batch 実行では TMP のテキスト処理 (textInfo 生成) が走らず
-            // characterCount=0 になるため、位置の直接検証はここではできない。
-            // 「caret を文末 → anchor=0 → focus=文末」の順序契約は実装コメントと
-            // コードレビューで担保し、ここでは実配線済み input への適用が
-            // 例外なく行えることだけを固定する (実機の全選択表示は
-            // AutoTestV6Interact / 実機確認の領域)。
+            // caret 位置は TMP の textInfo 生成前だと 0 へクランプされて選択が
+            // 潰れる (実機で保存名の先頭へ挿入される不具合を確認)。編集判定が
+            // 使う string index 側で全選択する契約をここで固定する。
             TMP_InputField input = V6CursorInput.Attach(host, DefaultSpec());
             input.SetTextWithoutNotify("abc");
 
             Assert.DoesNotThrow(() => V6CursorInput.FocusSelectAll(input));
+            Assert.AreEqual(0, input.selectionStringAnchorPosition);
+            Assert.AreEqual(3, input.selectionStringFocusPosition,
+                "文末まで選択される (入力で全置換される)");
+
             Assert.DoesNotThrow(() => V6CursorInput.Unfocus(input));
         }
 
