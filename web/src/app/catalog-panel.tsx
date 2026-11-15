@@ -543,7 +543,9 @@ export function CatalogPanel({
 
         {status === "ready" && songs.length > 0 ? (
           <>
-            <div className={cardContainer}>
+            {/* カード表示の帯 (xl 未満) でも ↑/↓ の行移動を効かせる。
+                ハンドラは data-row-link を拾うので両レイアウトで共通。 */}
+            <div className={cardContainer} onKeyDown={onListKeyDown}>
               {songs.map((song) => (
                 <div key={song.id} className={card}>
                   <div className={cardHeader}>
