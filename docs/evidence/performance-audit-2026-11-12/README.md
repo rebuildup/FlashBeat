@@ -2,6 +2,13 @@
 
 親 Issue: **#397**。子 Issue: **#398〜#403**。関連: #377 / #381 / #385 / #393〜#396。
 
+> **2026-11-15 更新**: 子 Issue #398〜#403 と後続の #415 (差分更新の完遂) は
+> すべて main 統合・Close 済み。§2.3 / §3.3 / §6.6 / §7 は統合後の状態に
+> 合わせて更新した。初出時 (main `571bd357`) の記述で現状と異なるものは
+> 「過去の発見」として残し、現在の構造を優先して読むこと。
+> 未達として残るのは **Win64 実機の計測** と **Profiler 接続での
+> Canvas rebuild / GC の before/after**、および #381 系のフレーム時間である。
+
 この文書は **何が分かっていて、何がまだ分かっていないか** を分けて残すための正本。
 Issue 本文の一次監査 (main `571bd357`) を出発点に、今回の作業で
 コードを読み直して確認・更新した結果をここへ集約する。
@@ -23,7 +30,7 @@ Issue 本文の一次監査 (main `571bd357`) を出発点に、今回の作業�
 | #403 キャッシュ容量走査 | **実装・EditMode 検証済み** (§6) |
 | #402 定常フレームの書戻し抑止 | **実装・EditMode 検証済み** (§6)。Profiler での rebuild 回数は未測定 |
 | #400 v5/v6 二重生成の分離 | **実装・EditMode 検証済み** (§6) |
-| #399 全面 Rebuild → 差分更新 | **Select のみ実装・検証済み** (§6)。History/Ranking/Option/Result は継続 |
+| #399 全面 Rebuild → 差分更新 | **全対象で実装・検証済み** (#415、PR #453/#455/#456/#459) |
 
 「#397 完了」はこの表の全行が実装・検証・統合まで終わったときだけ宣言する。
 
@@ -71,14 +78,14 @@ History / Ranking / Option → 再プレイ の全経路。
 | 画面 | 毎フレーム更新 | 全再構築の契機 | 備考 |
 | --- | --- | --- | --- |
 | Title | `V6TitleViewDriver.Update` → 旧 UI 隠し | なし | #396 で全走査を削減済み |
-| Select | `V6SelectViewDriver.Update` | 変動ゾーンだけ差分更新（#399 済み、フッター保持） | #399 |
-| History / Ranking | `V6…View.Update` | **`Refresh` / `Rebuild` で全子破棄** | #399 |
-| Option | なし | **`Refresh` で全ゾーン再構築** | #399 |
+| Select | `V6SelectViewDriver.Update` | scaffold 保持 + 可視行スロット再利用（#399 + #415） | #399 / #415 |
+| History / Ranking | `V6…View.Update` | scaffold 保持 + 可視行スロット再利用（#415） | #399 / #415 |
+| Option | なし | scaffold 保持 + 差分更新（#415） | #399 / #415 |
 | Game HUD | `V6GameHudView.Update` → `Refresh` | 解像度変更で `Rebuild` | #393 / #402 |
 | Playfield | `V6PlayfieldView.Update` | サイズ変更で `ApplyLayout` | フラッシュのみ時間依存 |
 | Pause | `V6PauseView.Update` | 開くたび `RefreshHeader` | ジャケットは provider 経由 |
 | Loading | `V6LoadingView.Update` | `ApplySong` | crop は provider 共有 |
-| Result | ドライバ `Update` | `RefreshRanking` で全行再生成 | #399（未着手） |
+| Result | ドライバ `Update` | 曲別ランキング行はスロット再利用（#415） | #399 / #415 |
 
 ---
 
@@ -104,15 +111,17 @@ History / Ranking / Option → 再プレイ の全経路。
 | F | `V5GameUi.LoadSprite` / `V5Decor.LoadSprite` / `V6TitleView.BuildMain` が個別 `Sprite.Create` | 画面再入場で実体増加 | #401 |
 | G | `MediaCacheManager.GetCacheSizeBytes` が毎回 `GetFiles(..., AllDirectories)` | Option を開くたび同期 I/O + 配列確保 | #403 |
 
-### 3.3 確定しているが「まだ直していない」もの
+### 3.3 確定していたが「当時は直していなかった」もの → **すべて解消済み**
 
-- **Select の全再構築**: `OnDataChanged` が毎回 `Rebuild()`。カーソル移動 1 回で
-  ツリー全体を作り直す (#399)。
-- **v5 Canvas の二重生成**: `GameHudController.Start` が v6 有効でも
-  `V5ReadyCanvas` / `V5OverlayCanvas` / `V5PauseCanvas` を作り、
-  `V6GameRuntime` が LateUpdate で隠す (#400)。
-- **定常フレームの同値書戻し**: `V6GameHudView.UpdateLaneGrids` が固定配置の
-  `anchoredPosition` を毎フレーム設定。`SetAlpha` も変化なしで代入 (#402)。
+以下は初出時点 (main `571bd357`) の未修正リスト。**現在はいずれも統合済み**で、
+ここには「何が問題だったか」の記録として残す。現状の構造は §2.3 と §6 を見ること。
+
+- **Select の全再構築** → #399 + #415 で scaffold 保持 + 行スロット再利用に移行済み。
+- **History / Ranking / Option / Result の全再構築** → #415 (PR #455/#456/#459/#453) で解消。
+  Refresh 5.6/5.0ms → 0.04/0.05ms、managed delta 52〜67MB → ~64KB (History/Ranking)。
+- **v5 Canvas の二重生成** → #400 で `GamePlayPhaseService` へ分離済み (§6.5)。
+- **定常フレームの同値書戻し** → #402 で `V6LayoutWrites` 経由に変更済み (§6.4)。
+  Canvas rebuild 回数の Profiler 実測は依然として未実施。
 
 ### 3.4 監査で新たに気づいた点
 
@@ -321,7 +330,7 @@ Ready / Loading / Error を作らない。v6 ポーズが無効なときだけ v
 計測点: `RebuildCountForAudit` (画面全体) と `IncrementalUpdateCountForAudit`
 (差分)。EditMode テストが「選択変更で全体 Rebuild が 0 回」を固定する。
 
-**History / Ranking / Option / Result は未移行** (§7)。
+**History / Ranking / Option / Result も #415 で移行済み** (§7)。
 
 ---
 
@@ -329,29 +338,23 @@ Ready / Loading / Error を作らない。v6 ポーズが無効なときだけ v
 
 | Issue | 状態 | 次にやること |
 | --- | --- | --- |
-| **#399** Select/History/Ranking/Option/Result の差分更新 | **Select 完了 / 他は未着手** | History / Ranking の `Refresh` は `Rebuild` のままだが、ゾーン単位で外しているので次の一段は「状態で変わらないゾーン (Header/Footer) を保持」。Option は設定変更で全ゾーン再構築。Result は `RefreshRanking` が全行再生成 |
-| **#400** v5 Canvas の二重生成 | **実装済み** | v6 無効 (v5) 経路の回帰確認。Ready→Loading→Play→Pause→Resume→Result/Retry の実機確認は未実施 |
-| **#402** 定常フレームの書戻し | **実装済み / 未計測** | Profiler (UI Details / Canvas.BuildBatch) で rebuild 回数の before/after を取る。効果が無ければそのまま記録する |
-| **#403** 容量走査・Native 寿命 | **容量は実装済み / Native 寿命は未着手** | `renderer.material` のインスタンス化、VideoPlayer / RT / AudioClip の寿命を再入場で実測する |
+| **#399** Select/History/Ranking/Option/Result の差分更新 | **Close 済み (#415 で完遂)** | — |
+| **#400** v5 Canvas の二重生成 | **Close 済み** | v6 無効 (v5) 経路の回帰確認は Win64 実機受入に含める |
+| **#402** 定常フレームの書戻し | **Close 済み / Profiler 未計測** | Profiler (UI Details / Canvas.BuildBatch) で rebuild 回数の before/after を取る。効果が無ければそのまま記録する |
+| **#403** 容量走査・Native 寿命 | **Close 済み** | Native 寿命の実機再入場計測は #416 で実施済み (`docs/evidence/416-mem/`)。残りは Win64 |
 
-### 7.1 #399 の残り (History / Ranking / Option / Result)
+### 7.1 #399 の残り → #415 で解消済み
 
-`V6HistoryView.Refresh` / `V6RankingView.Refresh` は `Rebuild` で
-Header / Main / Footer の子を作り直す。Select と同じ「変動ゾーンだけ外す」形へ
-段階的に寄せられるが、**画面往復のたびに作り直す操作が無い**ため
-Select ほど頻度は高くない。優先度は Select より下。
-
-`V6OptionView.Refresh` は設定変更で全ゾーンを構築し直す。設定変更は
-ユーザー操作のたびなので、値の差分反映に寄せる余地がある。
-
-`V6ResultView.RefreshRanking` は行の全子を再生成する。Result は 1 回の
-プレイに 1 回なので、頻度は低い。
+初出時の記述 (History/Ranking の `Refresh` が `Rebuild`、Option の全ゾーン再構築、
+Result の全行再生成) は **#415 の Phase 1〜4 ですべて解消**した。
+scaffold を保持し、可視行・変動テキストだけをスロット再利用する構造へ移行済み。
+実測: History/Ranking Refresh 5.6/5.0ms → 0.04/0.05ms、managed delta
+52〜67MB → ~64KB (PR #455 の証跡 `docs/evidence/415-churn/`)。
 
 ### 7.2 未計測のまま残っていること
 
 - Canvas rebuild / layout の実回数 (Profiler 未接続)
-- 8.4 秒停止の再現と内訳 (#395)
-- Win64 実機のすべての数値
+- Win64 実機のすべての数値 (#416 の vmmap 計測は macOS のみ)
 
 ---
 
