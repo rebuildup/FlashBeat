@@ -143,3 +143,18 @@ origin は負になる** (はみ出し前提の配置になる)。これは仕�
 **この画像はその代替にはならない** (擬似的な解像度再現でしかない)。
 実ディスプレイ分は展示 PC / オーナー実機での受入項目として残る。
 
+
+## Result / Game / Pause の補完 (2026-11-16)
+
+上記ハーネスの対象外だった **Result / Game (HUD・Pause・Loading)** を、
+`script/mac-resolution-matrix-v6screens.sh` (`AutoTestV6Screens`) で
+同じ解像度セット (1024x768〜2560x1664) に追加撮影した。
+
+- 証跡: `docs/evidence/96-241-resolution-matrix-v6-2026-11-16/`
+- Player: main `8402f33a` の macOS ビルド
+- 結果: 全 5 解像度 PASS、機械チェック fail=0 (各 5 枚:
+  ResultScene / ResultScene-RegisterModal / GameScene-HUD /
+  GameScene-Pause / GameScene-Loading)
+- 注意: Result は監査 API による最終状態の再現、Game は静止 HUD であり、
+  実プレイ中の画ではない。崩れの最終判定は引き続き人の目視項目。
+  Win64 側の同等撮影 (T5)・1024x768 profile 判断 (T6) は未実施のまま。

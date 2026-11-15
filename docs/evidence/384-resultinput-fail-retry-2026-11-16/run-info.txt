@@ -1,0 +1,5 @@
+player pid=17463
+leaderboard_after_fail={"songId":"who","chartVersion":1,"entries":[]}
+click=1710,973
+leaderboard_after_success={"songId":"who","chartVersion":1,"entries":[]}
+player exit=0

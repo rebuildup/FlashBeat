@@ -1,0 +1,5 @@
+[res-v6] 1024x768 PASS
+[res-v6] 1280x720 PASS
+[res-v6] 1920x1080 PASS
+[res-v6] 2560x1440 PASS
+[res-v6] 2560x1664 PASS

@@ -1,0 +1,220 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.012 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x10517d750]: surface size 3420x2148
+UnloadTime: 0.504917 ms
+[FullscreenBootstrap] event=purge-resolution stored=3420x2148, display=3420x2224
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_IKvinT.mov
+[FullscreenDiagnostics] event=startup, screen=3420x2148, currentResolution=3420x2148@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,3420x2148, displays=1, display0=system:3420x2224,rendering:3420x2148,active:True, quality=1, time=2026-11-15T16:34:18Z
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[PlaySession] session fixed: songId=1 title='Who' remoteId='who' chartVersion=1 chart=local resources
+Unloading 8 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.894292 ms
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 3298.
+Total: 1.667917 ms (FindLiveObjects: 0.084917 ms CreateObjectMapping: 0.123750 ms MarkObjects: 1.453875 ms  DeleteObjects: 0.005333 ms)
+
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213755006 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[FullscreenBootstrap] event=first-frame, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[UpdateChecker] 最新です (build=0.1.26+8402f33a, latest=v0.1.14-macos-39f0c3c) — 現行版のまま続行します。
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=after-legacy-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[AutoTestResultInput] modal open - type real keys now
+[AutoTestResultInput] name="テストABC123"
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[FullscreenBootstrap] event=after-mode-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=still-uncovered, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[AutoTestResultInput] name="テストABC123" (unchanged)
+[AutoTestResultInput] name=""
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="" (unchanged)
+[AutoTestResultInput] name="Q"
+[AutoTestResultInput] name="Q" (unchanged)
+[AutoTestResultInput] name="Q" (unchanged)
+[AutoTestResultInput] name="Q" (unchanged)
+[AutoTestResultInput] name="QF"
+[AutoTestResultInput] name="QFAILNAME12345"
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="QFAILNAME12345" (unchanged)
+[AutoTestResultInput] name="RE"
+[AutoTestResultInput] name="RETRYOK"
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] name="RETRYOK" (unchanged)
+[AutoTestResultInput] final name="RETRYOK"
+Thread 0x16efdb000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16dbdf000 may have been prematurely finalized
+CodeReloadManager destroyed
