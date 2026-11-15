@@ -330,10 +330,24 @@ public class AutoTestV6Interact : MonoBehaviour
         // 期限付き。登録欄が開かない退行でここが止まらないようにする。
         // 登録欄は V6ResultRevealLogic.RegisterStart (3.0s) で開き、
         // リビール全体は TotalSeconds (3.18s) で完了する (#425 で 2s→3s へ遅延)。
-        float watchStart = Time.unscaledTime;
-        while (Time.unscaledTime - watchStart < 10f
-               && view.RevealElapsedForAudit < V6ResultRevealLogic.TotalSeconds + 0.3f)
+        // 壁時計ではなく「経過秒が進んでいるか」で打ち切る。シェーダ初回
+        // コンパイル等のフレーム飛びで壁時計だけが進んでも、段階表示が
+        // 進んでいる限り遷移を観測し続ける (Issue #384 受入で観測)。
+        float lastAdvanceAt = Time.unscaledTime;
+        float previousElapsed = -1f;
+        while (view.RevealElapsedForAudit < V6ResultRevealLogic.TotalSeconds + 0.3f)
         {
+            float now = view.RevealElapsedForAudit;
+            if (now > previousElapsed + 0.0001f)
+            {
+                lastAdvanceAt = Time.unscaledTime;
+                previousElapsed = now;
+            }
+            else if (Time.unscaledTime - lastAdvanceAt > 10f)
+            {
+                break;
+            }
+
             float elapsed = view.RevealElapsedForAudit;
             float alpha = view.TrophyAlphaForAudit;
             if (elapsed < V6ResultRevealLogic.RegisterStart - 0.1f && !view.RevealCompleteForAudit)
@@ -470,6 +484,20 @@ public class AutoTestV6Interact : MonoBehaviour
         Debug.Log(Tag + " playback started=" + playbackStarted);
         Check("playback started for the pause checks", playbackStarted);
 
+        // メディア時計 (step_time) が実際に進み始めてからポーズする。
+        // PlaybackStarted 直後はまだ 0 のことがあり、その状態でポーズすると
+        // 「凍結位置からの連続性」を検証できない (再開時にメディア時刻へ
+        // 同期されて 0→現在値へ跳ぶ)。
+        if (playbackStarted)
+        {
+            float clockWaited = 0f;
+            while (clockWaited < 10f && GManager.step_time < 0.5f)
+            {
+                clockWaited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
         // 1. 通常の再開: 3 → 2 → 1 の後にゲートが開く。
         pause.Open();
         yield return null;
@@ -518,8 +546,12 @@ public class AutoTestV6Interact : MonoBehaviour
         int lastBad = frozenBad, lastMiss = frozenMiss, lastScore = frozenScore;
         // 0.25 秒間隔だと、カウントダウン開始直後の重いフレームで 1 つ飛ばす
         // ことがある (3 を観測できず 2 から始まった)。毎フレーム見る。
+        // フレーム飛びで壁時計だけが進んでも、カウントダウンが終わるまでは
+        // 見続ける (Issue #382 受入で観測)。フレーム数の上限で退行を打ち切る。
         float sinceStart = 0f;
-        while (sinceStart < 3.6f)
+        int countdownFrames = 0;
+        while (countdownFrames++ < 1200
+               && (sinceStart < 3.6f || V6ResumeCountdown.IsRunning))
         {
             string digit = hud.CountdownTextForAudit;
             if (digit.Length > 0 && (digits.Count == 0 || digits[digits.Count - 1] != digit))

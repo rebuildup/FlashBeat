@@ -132,6 +132,22 @@ namespace FlashBeat.UI.V6.Result
         {
             return elapsed >= TotalSeconds;
         }
+
+        /// <summary>
+        /// 1 フレームで進める上限 (秒)。シェーダ初回コンパイルや OS の
+        /// 負荷で数秒のフレーム飛びが起きても、段階表示が途中の段を
+        /// 飛ばして一気に終わらないようにする (Issue #384 受入で観測)。
+        /// 最短の段 (トロフィー 0.18 秒) を必ず途中で観測できるよう、
+        /// その半分以下に抑える。
+        /// </summary>
+        public const float MaxFrameAdvanceSeconds = 0.1f;
+
+        /// <summary>経過秒へ 1 フレーム分の delta を足す。上限超過と負値は丸める。</summary>
+        public static float AdvanceElapsed(float elapsed, float deltaSeconds)
+        {
+            float step = Mathf.Min(Mathf.Max(deltaSeconds, 0f), MaxFrameAdvanceSeconds);
+            return elapsed + step;
+        }
     }
 
     /// <summary>

@@ -1,0 +1,3 @@
+[PlaySession] session fixed: songId=1 title='Who' remoteId='who' chartVersion=1 chart=local resources
+[AutoTestResultInput] modal open - type real keys now
+[AutoTestResultInput] name="テストABC123"

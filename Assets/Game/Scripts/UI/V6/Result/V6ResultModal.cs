@@ -347,6 +347,12 @@ namespace FlashBeat.UI.V6.Result
             FlashBeat.UI.SceneInputGate.BlockThisFrame();
         }
 
+        /// <summary>検証ハーネス用: 名前入力欄の現在の文字列。</summary>
+        internal string NameInputTextForAudit
+        {
+            get { return modalNameInput != null ? modalNameInput.text : null; }
+        }
+
         // --- 名前入力 (TMP_InputField) ---
 
         private void FocusNameField()

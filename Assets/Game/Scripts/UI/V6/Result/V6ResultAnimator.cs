@@ -49,7 +49,8 @@ namespace FlashBeat.UI.V6.Result
             }
 
             // 隠れている間は進めない (シーン非表示中に演出を消費しない)。
-            revealElapsed += Time.unscaledDeltaTime;
+            // フレーム飛びは上限で丸め、長い停止で段を飛ばさない。
+            revealElapsed = V6ResultRevealLogic.AdvanceElapsed(revealElapsed, Time.unscaledDeltaTime);
             ApplyReveal(revealElapsed);
 
             if (!registerShown && V6ResultRevealLogic.ShouldShowRegister(revealElapsed))

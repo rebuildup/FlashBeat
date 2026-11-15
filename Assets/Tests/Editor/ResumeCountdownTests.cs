@@ -35,5 +35,27 @@ namespace FlashBeat.Tests
             Assert.IsTrue(V6ResumeCountdownLogic.IsFinished(3f));
             Assert.IsTrue(V6ResumeCountdownLogic.IsFinished(3.001f));
         }
+
+        [Test]
+        public void AdvanceElapsed_PassesNormalDeltasThrough()
+        {
+            Assert.AreEqual(0.016f, V6ResumeCountdownLogic.AdvanceElapsed(0f, 0.016f), 1e-4f);
+        }
+
+        [Test]
+        public void AdvanceElapsed_ClampsLongFrameSpikes()
+        {
+            // 数秒のフレーム飛びで 3 → 2 → 1 の数字を飛ばさないこと (Issue #382)。
+            Assert.AreEqual(V6ResumeCountdownLogic.MaxFrameAdvanceSeconds,
+                V6ResumeCountdownLogic.AdvanceElapsed(0f, 6f), 1e-4f);
+            Assert.AreEqual(0.5f + V6ResumeCountdownLogic.MaxFrameAdvanceSeconds,
+                V6ResumeCountdownLogic.AdvanceElapsed(0.5f, 6f), 1e-4f);
+        }
+
+        [Test]
+        public void AdvanceElapsed_IgnoresNegativeDelta()
+        {
+            Assert.AreEqual(1f, V6ResumeCountdownLogic.AdvanceElapsed(1f, -0.5f), 1e-4f);
+        }
     }
 }
