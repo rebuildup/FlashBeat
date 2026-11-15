@@ -63,7 +63,7 @@ public class KeyActionsTests
         Assert.AreEqual(new KeyCode[] { KeyCode.R }, KeyActions.Get(KeyActions.KeyAction.MenuRetry));
         Assert.AreEqual(new KeyCode[] { KeyCode.E }, KeyActions.Get(KeyActions.KeyAction.MenuEnd));
         Assert.AreEqual(new KeyCode[] { KeyCode.Backspace }, KeyActions.Get(KeyActions.KeyAction.MenuRetire));
-        Assert.AreEqual(new KeyCode[] { KeyCode.T }, KeyActions.Get(KeyActions.KeyAction.MenuSwitch));
+        Assert.AreEqual(new KeyCode[] { KeyCode.Tab }, KeyActions.Get(KeyActions.KeyAction.MenuSwitch));
         // タイトルのスタートだけは利便性のため Enter 系を追加 (Space は従来どおり)
         Assert.AreEqual(new KeyCode[] { KeyCode.Space, KeyCode.Return, KeyCode.KeypadEnter }, KeyActions.Get(KeyActions.KeyAction.Start));
         Assert.AreEqual(new KeyCode[] { KeyCode.Space }, KeyActions.Get(KeyActions.KeyAction.Play));
@@ -208,6 +208,13 @@ public class KeyActionsTests
         {
             KeyActions.Changed -= handler;
         }
+    }
+
+    [Test]
+    public void TestMenuSwitchRebindingIsHonored()
+    {
+        Assert.IsTrue(KeyActions.Set(KeyActions.KeyAction.MenuSwitch, new KeyCode[] { KeyCode.Keypad7 }));
+        Assert.AreEqual(new KeyCode[] { KeyCode.Keypad7 }, KeyActions.Get(KeyActions.KeyAction.MenuSwitch));
     }
 
     [Test]

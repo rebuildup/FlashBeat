@@ -723,12 +723,12 @@ public class AutoTestV6Interact : MonoBehaviour
             Check("the pause modal blocks the background input", V6KeyConfigModal.BlocksInput);
 
             // フラグだけでなく実際の入力経路で確かめる: モーダル表示中に
-            // メニュー切替キー (T = KeyAction.MenuSwitch) を注入しても
+            // メニュー切替キー (既定 Tab = KeyAction.MenuSwitch) を注入しても
             // 背後のタブが動かないこと。注入は KeyActions.IsDown 経由で
             // UpdatePause の実コードを通る (監査 API は使わない)。
             pause.SelectTab(2); // Sound
             yield return null;
-            KeyBindings.InjectKeyDown(KeyCode.T);
+            KeyBindings.InjectKeyDown(KeyCode.Tab);
             yield return null;
             yield return null;
             Check("keys injected while the modal is open do not reach the pause menu",

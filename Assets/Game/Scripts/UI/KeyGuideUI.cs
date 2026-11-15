@@ -62,12 +62,21 @@ public class KeyGuideUI : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         // キー設定オーバーレイの開いた・閉じたフレームは Tab を捨てる (Issue #167)。
         // 開いている間の停止自体は KeyConfigUI.SuspendScene が担う。
-        if (!FlashBeat.UI.SceneInputGate.InputAllowed) { return; }
+        // ポーズゲートが閉じている間は背面のガイドを開かない。v6 Pause は
+        // MenuSwitch=Tab を所有するため、同じ Tab でガイドも開閉すると二重処理になる (Issue #360)。
+        if (!CanHandleTabInput()) { return; }
         if (Input.GetKeyDown(KeyCode.Tab)) Toggle();
+    }
+
+    /// <summary>Tab による開閉をこのフレーム処理してよいか (オーバーレイ境界とポーズ相を含む)。</summary>
+    public static bool CanHandleTabInput()
+    {
+        return FlashBeat.UI.SceneInputGate.InputAllowed
+            && !FlashBeat.Gameplay.PauseGate.IsPaused;
     }
 
     /// <summary>ガイドを表示中かどうか (テスト・状態表示用)。</summary>

@@ -36,7 +36,8 @@ Issue: #224 ([P1/v6] Game Pause・楽曲ローディングをPencilデザイン�
    `wallClock - frozenMediaTime` へ補正する。ポーズ前後でノーツ位置が飛ばない。
 6. **キー凡例の真実化** (`V6PauseView` フッタ): 凡例は実際に動くキーと一致させる。
    - ←→ は `V6GameRuntime.UpdatePause` が `MoveSelection` (行選択) に配線済み → 凡例「選択」
-   - タブ切替の実キーは `KeyActions.MenuSwitch` (既定 **T**) → 凡例「Tab」を「T」へ
+   - タブ切替の実キーは `KeyActions.MenuSwitch` (既定 **Tab**) → 凡例は実キーを動的表示。
+     保存済みの割当 (旧既定 T を含む) はカスタマイズとして維持し、凡例は実キーを表示する
    - 値の変更は行のステッパー / クリック (マウス) のみ。呼び出し元ゼロの
      `AdjustSelected(int)` はマウス操作の公開 API として維持し、←→ には配線しない
      (配線先の未使用キーがなく、`V6GameRuntime` は他担当所有のため)。

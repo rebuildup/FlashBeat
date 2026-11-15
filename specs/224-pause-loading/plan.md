@@ -49,7 +49,7 @@ V6PauseView / PauseMenuView         Open / Close から Enter / Exit
 ### キー凡例 (`V6PauseView.BuildFooter`)
 
 実キー (`V6GameRuntime.UpdatePause` + `KeyActions` 既定):
-`←→ = NavPrev/NavNext = 行選択`、`T = MenuSwitch = タブ切替`、`Esc = Back = 再開`。
+`←→ = NavPrev/NavNext = 行選択`、`Tab = MenuSwitch = タブ切替`、`Esc = Back = 再開`。
 凡例をこれに一致させ、実在しない ↑↓ と「←→ 変更」を削除。
 `AdjustSelected(int)` はマウス操作と同居する公開 API として維持
 (呼び出し元がないことを凡例が主張しなくなる)。
