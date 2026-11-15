@@ -87,7 +87,7 @@ const ctaWrap = css({
 
 export function WelcomeHero() {
   const start = useCallback(() => {
-    // The catalog renders cards (base) and a table (md+); only one is
+    // The catalog renders cards (below xl) and a table (xl+); only one is
     // visible. Focus the first *visible* row link — focus() on a hidden
     // element is a no-op and would leave the guest with nothing.
     const rows = Array.from(

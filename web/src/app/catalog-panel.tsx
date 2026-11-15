@@ -36,7 +36,12 @@ const COLUMNS = {
 const card = css({
   borderBottomColor: "border",
   borderBottomWidth: "1px",
-  display: { base: "flex", md: "none" },
+  /**
+   * Issue #515: the table's fixed tracks need ~832px plus padding, so below
+   * `xl` (1280px) it cannot fit next to the 13rem rail — the card layout is
+   * the readable form for the whole md–lg band, not just phones.
+   */
+  display: { base: "flex", xl: "none" },
   flexDirection: "column",
   gap: "2",
   minHeight: "0",
@@ -109,12 +114,12 @@ const cardActions = css({
 });
 
 const cardContainer = css({
-  display: { base: "flex", md: "none" },
+  display: { base: "flex", xl: "none" },
   flexDirection: "column",
 });
 
 const tableContainer = css({
-  display: { base: "none", md: "block" },
+  display: { base: "none", xl: "block" },
 });
 
 const header = css({
@@ -122,7 +127,7 @@ const header = css({
   borderBottomWidth: "1px",
   color: "fg.subtle",
   columnGap: "4",
-  display: { base: "none", md: "grid" },
+  display: { base: "none", xl: "grid" },
   fontSize: "xs",
   gridColumn: "1 / -1",
   gridTemplateColumns: COLUMNS,
@@ -383,7 +388,7 @@ const legend = css({
   borderTopColor: "border",
   borderTopWidth: "1px",
   color: "fg.subtle",
-  display: { base: "none", md: "flex" },
+  display: { base: "none", xl: "flex" },
   flexWrap: "wrap",
   fontSize: "xs",
   gap: "3",
@@ -538,7 +543,9 @@ export function CatalogPanel({
 
         {status === "ready" && songs.length > 0 ? (
           <>
-            <div className={cardContainer}>
+            {/* カード表示の帯 (xl 未満) でも ↑/↓ の行移動を効かせる。
+                ハンドラは data-row-link を拾うので両レイアウトで共通。 */}
+            <div className={cardContainer} onKeyDown={onListKeyDown}>
               {songs.map((song) => (
                 <div key={song.id} className={card}>
                   <div className={cardHeader}>

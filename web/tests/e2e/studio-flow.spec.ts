@@ -51,7 +51,7 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   await page.goto("/");
 
   // The seeded song is listed; its row links into the editor.
-  // (md+ ではテーブル、base ではカード。可視側の行リンクだけを見る。)
+  // (xl+ ではテーブル、それ未満ではカード。可視側の行リンクだけを見る。)
   const row = page
     .getByTestId("catalog-list")
     .locator("a[data-row-link]", { hasText: "Who" })

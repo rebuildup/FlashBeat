@@ -197,7 +197,7 @@ for (const viewport of VIEWPORTS) {
         await expect(search).toBeFocused();
         record(vp, rt, "keyboard: / focuses search");
 
-        // 行リンク → editor へ (md+ はテーブル、base はカード。可視側のみ)
+        // 行リンク → editor へ (xl+ はテーブル、それ未満はカード。可視側のみ)
         const row = page.getByTestId("catalog-list").locator("a[data-row-link]").first();
         await expect(row).toBeVisible();
         record(vp, rt, "row link: visible and navigable");
