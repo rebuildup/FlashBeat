@@ -23,7 +23,7 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// - 表示値はすべて実データ: GManager (曲情報 / noteSpeed / noteTiming / Hiscore)、
     ///   KeyBindings (Key Layout / プレビューのキー割当、Changed で即時更新)、
     ///   PlaySession (Key Guide / Lyrics)。
-    /// - キー入力は持たない (統合担当が Esc / 矢印 / T (MenuSwitch) を既存キー処理に接続する)。
+    /// - キー入力は持たない (統合担当が Esc / 矢印 / MenuSwitch を既存キー処理に接続する)。
     ///   このビューは状態 (IsOpen) とマウス操作、統合側から呼べる操作 API だけを持つ。
     /// - 選曲へ / リトライ は既存 GameSceneManager.RetireGame / RetryGame に直結 (実遷移)。
     ///

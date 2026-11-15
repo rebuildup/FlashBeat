@@ -36,8 +36,7 @@ public static class KeyActions
         void SaveRaw(string json);
     }
 
-    /// <summary>既定表: 各操作の既定キー。今日の挙動を exactly 再現する
-    /// (Start だけはタイトルの利便性のため Return/KeypadEnter を追加)。順序は表示順。</summary>
+    /// <summary>既定表: 各操作の既定キー。未カスタマイズ時に使う値。順序は表示順。</summary>
     private static readonly Dictionary<KeyAction, KeyCode[]> Defaults = new Dictionary<KeyAction, KeyCode[]>
     {
         { KeyAction.Confirm, new KeyCode[] { KeyCode.Space } },
@@ -48,7 +47,7 @@ public static class KeyActions
         { KeyAction.MenuRetry, new KeyCode[] { KeyCode.R } },
         { KeyAction.MenuEnd, new KeyCode[] { KeyCode.E } },
         { KeyAction.MenuRetire, new KeyCode[] { KeyCode.Backspace } },
-        { KeyAction.MenuSwitch, new KeyCode[] { KeyCode.T } },
+        { KeyAction.MenuSwitch, new KeyCode[] { KeyCode.Tab } },
         { KeyAction.Start, new KeyCode[] { KeyCode.Space, KeyCode.Return, KeyCode.KeypadEnter } },
         { KeyAction.Play, new KeyCode[] { KeyCode.Space } },
         { KeyAction.NavPrev, new KeyCode[] { KeyCode.LeftArrow } },

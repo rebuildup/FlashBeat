@@ -370,8 +370,8 @@ namespace FlashBeat.UI.V6.Game.Pause
             // V6Legend.Item に座標を渡すだけ (Common は編集しない)。
             // 実際のキーは V6GameRuntime.UpdatePause と一致させる:
             // ↑↓ = 行選択 (MoveSelection) / ←→ = 値の変更 (AdjustSelected) /
-            // タブ切替 = KeyAction.MenuSwitch (既定 T。design のキャップは "Tab" だが、
-            // 実際に動くキーを表示する) / 再開 = KeyAction.Back。
+            // タブ切替 = KeyAction.MenuSwitch (既定 Tab。design のキャップと一致。
+            // 再割当時は実際に動くキーを表示する) / 再開 = KeyAction.Back。
             // キャップはキー設定 (KeyActions) から取る。固定文字列にすると再割当後に
             // 画面が嘘をつく (Title Exit / Select の決定キーと同じ扱い)。
             // 矢印は KeyActions に ↑↓ の割当が無いため固定キー (Title の H/R と同じ扱い)。
