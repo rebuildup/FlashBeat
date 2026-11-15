@@ -61,6 +61,7 @@ public class AutoTestV6Screens : MonoBehaviour
         public int Fail;
         public int Symbols;
         public readonly List<string> Shots = new List<string>();
+        public readonly List<string> Notes = new List<string>();
     }
 
     private IEnumerator Start()
@@ -401,6 +402,7 @@ public class AutoTestV6Screens : MonoBehaviour
         AuditFrameContainment(report);
         AuditLegacy(report);
         AuditUnicodeSymbols(report);
+        AuditScreenClip(report);
     }
 
     /// <summary>
@@ -592,6 +594,86 @@ public class AutoTestV6Screens : MonoBehaviour
         return count;
     }
 
+    /// <summary>
+    /// 画面端で切れる要素の列挙 (情報のみ、pass/fail にしない)。
+    /// 固定フレーム契約 (1728×972 を 1:1、origin は中央寄せ) では、
+    /// フレームより小さい解像度 (1024×768 / 1280×720 など) で
+    /// 画面外に出る操作・情報が発生しうる。#96 の「画面外に失われる
+    /// 情報・操作がないか」の判定材料として、表示中の Selectable
+    /// (押せる面) と Text を実画面矩形と照合し、はみ出しを記録する。
+    /// Scroll / Mask 内のクリップは画面内に収まる限り対象外
+    /// (スクロールで到達できるため)。
+    /// </summary>
+    private void AuditScreenClip(ScreenReport report)
+    {
+        var screen = new Rect(0f, 0f, Screen.width, Screen.height);
+        var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        int selPartial = 0;
+        int selOutside = 0;
+        int textPartial = 0;
+        int textOutside = 0;
+        int lines = 0;
+        const int MaxLines = 80;
+
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (!V6ScreenAudit.IsV6Canvas(canvas) || !canvas.gameObject.activeInHierarchy) { continue; }
+
+            var selectables = canvas.GetComponentsInChildren<Selectable>(false);
+            for (int s = 0; s < selectables.Length; s++)
+            {
+                var sel = selectables[s];
+                if (sel == null) { continue; }
+                var rt = sel.transform as RectTransform;
+                if (rt == null) { continue; }
+                var rect = V6ScreenAudit.WorldRect(rt);
+                var clip = V6ScreenAudit.ClassifyScreenClip(rect, screen);
+                if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
+                if (clip == V6ScreenAudit.ScreenClip.Outside) { selOutside++; } else { selPartial++; }
+                if (lines < MaxLines)
+                {
+                    lines++;
+                    report.Notes.Add("[clip] selectable " + clip.ToString().ToLowerInvariant()
+                        + " " + V6ScreenAudit.Path(sel.transform)
+                        + " rect=" + rect.ToString("F0")
+                        + " interactable=" + sel.IsInteractable());
+                }
+            }
+
+            var texts = canvas.GetComponentsInChildren<TMP_Text>(false);
+            for (int t = 0; t < texts.Length; t++)
+            {
+                var tmp = texts[t];
+                if (tmp == null) { continue; }
+                var rt = tmp.transform as RectTransform;
+                if (rt == null) { continue; }
+                var rect = V6ScreenAudit.WorldRect(rt);
+                var clip = V6ScreenAudit.ClassifyScreenClip(rect, screen);
+                if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
+                if (clip == V6ScreenAudit.ScreenClip.Outside) { textOutside++; } else { textPartial++; }
+                if (lines < MaxLines)
+                {
+                    lines++;
+                    var snippet = tmp.text ?? string.Empty;
+                    if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
+                    report.Notes.Add("[clip] text " + clip.ToString().ToLowerInvariant()
+                        + " " + V6ScreenAudit.Path(tmp.transform)
+                        + " rect=" + rect.ToString("F0")
+                        + " \"" + snippet + "\"");
+                }
+            }
+        }
+
+        report.Notes.Add("[clip] summary screen=" + Screen.width + "x" + Screen.height
+            + " selectables partial=" + selPartial + " outside=" + selOutside
+            + " texts partial=" + textPartial + " outside=" + textOutside
+            + (lines >= MaxLines ? " (list truncated at " + MaxLines + " lines)" : string.Empty));
+        Debug.Log("[AutoTestV6Screens] CLIP " + report.Label
+            + " selectables partial=" + selPartial + " outside=" + selOutside
+            + " texts partial=" + textPartial + " outside=" + textOutside);
+    }
+
     private IEnumerator Screenshot(ScreenReport report, string label)
     {
         yield return new WaitForEndOfFrame();
@@ -640,6 +722,10 @@ public class AutoTestV6Screens : MonoBehaviour
                 + " shots=" + string.Join(",", r.Shots);
             sb.AppendLine(line);
             Debug.Log(line);
+            for (int n = 0; n < r.Notes.Count; n++)
+            {
+                sb.AppendLine(r.Notes[n]);
+            }
         }
 
         string result = "[AutoTestV6Screens] RESULT pass=" + totalPass + " fail=" + totalFail
@@ -673,6 +759,32 @@ public static class V6ScreenAudit
 
     /// <summary>フレーム収まり判定の許容誤差 (px)。</summary>
     public const float TolerancePx = 1f;
+
+    /// <summary>実画面に対する要素の収まり分類 (情報記録用、fail にはしない)。</summary>
+    public enum ScreenClip
+    {
+        /// <summary>画面内に完全に収まる。</summary>
+        Inside,
+        /// <summary>画面端で一部が切れる (残りは見えて押せる可能性がある)。</summary>
+        Partial,
+        /// <summary>画面外に完全に出ている (見えず押せない)。</summary>
+        Outside,
+    }
+
+    /// <summary>
+    /// 要素矩形が実画面矩形に対して Inside / Partial / Outside のどれか。
+    /// 画面より大きい要素 (全面 Dim 等) は Inside 扱いになる
+    /// (Contains が許容誤差込みで真を返すため)。
+    /// </summary>
+    public static ScreenClip ClassifyScreenClip(Rect element, Rect screen)
+    {
+        if (Contains(screen, element, TolerancePx)) { return ScreenClip.Inside; }
+        bool outside = element.xMax <= screen.xMin + TolerancePx
+            || element.xMin >= screen.xMax - TolerancePx
+            || element.yMax <= screen.yMin + TolerancePx
+            || element.yMin >= screen.yMax - TolerancePx;
+        return outside ? ScreenClip.Outside : ScreenClip.Partial;
+    }
 
     /// <summary>-autotest-scenes を省略したときの既定シーン一覧。</summary>
     public const string DefaultScenes = "TitleScene,SelectScene,OptionScene,ResultScene,GameScene";
