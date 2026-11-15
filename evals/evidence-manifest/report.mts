@@ -35,10 +35,19 @@ export interface HumanDecision {
   context: string;
 }
 
+/** A decision that was open and is now settled; kept for the audit trail. */
+export interface ResolvedDecision {
+  id: string;
+  claim: string;
+  question: string;
+  resolution: string;
+}
+
 export interface ReviewInput {
   manifest: Manifest;
   notes?: ReviewNote[];
   decisions?: HumanDecision[];
+  resolutions?: ResolvedDecision[];
 }
 
 export interface DeterministicFinding {
@@ -59,6 +68,7 @@ export interface ReviewReport {
   findings: DeterministicFinding[];
   notes: ReviewNote[];
   decisions: HumanDecision[];
+  resolutions: ResolvedDecision[];
   /** True when nothing is left for a human to decide or verify. */
   complete: boolean;
 }
@@ -96,6 +106,7 @@ export function buildReport(input: ReviewInput): ReviewReport {
   const findings = deterministicFindings(manifest);
   const notes = input.notes ?? [];
   const decisions = input.decisions ?? [];
+  const resolutions = input.resolutions ?? [];
 
   const creditable = manifest.counts.creditable ?? 0;
 
@@ -111,6 +122,7 @@ export function buildReport(input: ReviewInput): ReviewReport {
     findings,
     notes,
     decisions,
+    resolutions,
     complete: findings.length === 0 && allDesignNodes && decisions.length === 0,
   };
 }
@@ -133,6 +145,7 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
   lines.push('');
   if (report.decisions.length === 0) {
     lines.push('なし。');
+    lines.push('');
   } else {
     for (const d of report.decisions) {
       lines.push(`### D-${d.id}: ${d.question}`);
@@ -140,6 +153,16 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
       lines.push(d.context);
       lines.push('');
     }
+  }
+
+  const resolutions = report.resolutions;
+  if (resolutions.length > 0) {
+    lines.push('### 解消済みの判断 (監査用)');
+    lines.push('');
+    for (const r of resolutions) {
+      lines.push(`- **D-${r.id}** (#${r.claim}) ${r.question} → ${r.resolution}`);
+    }
+    lines.push('');
   }
 
   lines.push('## 2. 証跡の状態 (機械判定)');
@@ -213,9 +236,25 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
 
 // --- CLI --------------------------------------------------------------------
 
+/** Positional args: everything that is not a `--flag` or a flag's value. */
+function positionalArgs(args: string[], valueFlags: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      if (valueFlags.includes(arg)) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
+const VALUE_FLAGS = ['--notes', '--out'];
+
 function main(argv: string[]): number {
   const args = argv.slice(2);
-  const manifestPath = args.find((a) => !a.startsWith('--'));
+  const manifestPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!manifestPath) {
     console.error('usage: report.mts <manifest.json> [--notes <notes.json>] [--out <file>]');
     return 2;
@@ -228,7 +267,12 @@ function main(argv: string[]): number {
     ? (JSON.parse(readFileSync(resolve(args[notesFlag + 1]), 'utf8')) as ReviewInput)
     : {};
 
-  const report = buildReport({ manifest, notes: notes.notes, decisions: notes.decisions });
+  const report = buildReport({
+    manifest,
+    notes: notes.notes,
+    decisions: notes.decisions,
+    resolutions: notes.resolutions,
+  });
   const markdown = renderMarkdown(report, manifest);
 
   const outFlag = args.indexOf('--out');

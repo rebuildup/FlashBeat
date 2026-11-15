@@ -33,9 +33,9 @@
 //   * Nothing is inferred: an absent field makes the record `unverified`,
 //     never `creditable`.
 //
-// This tool does not open the design file itself (Pencil owns that format);
-// it takes the node list as an input so the caller can hand it the design's
-// real node ids.
+// This tool does not open the design file itself when the caller already has
+// the node list; `--pen` reads the ids straight out of the `.pen` document,
+// which is plain JSON (version 2.22), so no Pencil connection is needed.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -137,6 +137,42 @@ export function platformMatches(
   if (candidate === 'win64' && capture === 'macos') return false;
   if (candidate === 'wsl' && capture === 'win64') return false;
   return false;
+}
+
+/**
+ * Collect every node id a `.pen` document contains. The file is plain JSON:
+ * nodes live under `children` arrays, `ref` nodes carry `descendants` patches
+ * (keyed by child id, valued by property overlays or full node replacements),
+ * and either shape may nest further. Every `id` string and every
+ * `descendants` key is a node the design can legitimately contain, so both are
+ * collected. Over-collecting only ever *weakens* a `mismatch` verdict, never
+ * invents one.
+ */
+export function collectDesignNodeIds(pen: unknown): string[] {
+  const ids = new Set<string>();
+
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (value === null || typeof value !== 'object') return;
+
+    const node = value as Record<string, unknown>;
+    if (typeof node.id === 'string' && node.id.length > 0) ids.add(node.id);
+
+    const descendants = node.descendants;
+    if (descendants !== null && typeof descendants === 'object' && !Array.isArray(descendants)) {
+      for (const key of Object.keys(descendants)) {
+        if (key.length > 0) ids.add(key);
+      }
+    }
+
+    for (const child of Object.values(node)) visit(child);
+  };
+
+  visit(pen);
+  return [...ids];
 }
 
 function hashFile(path: string): string {
@@ -267,16 +303,35 @@ export function diffManifests(before: Manifest, after: Manifest): ManifestDiff {
 // --- CLI --------------------------------------------------------------------
 //
 // Usage:
-//   bun evals/evidence-manifest/manifest.mts <records.json> [--root <dir>] [--out <file>]
+//   bun evals/evidence-manifest/manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]
 //
 // The records file carries the claims; the candidate build and platform come
 // from the same file so a manifest can never be generated for an unnamed build.
+// `--pen` reads the design's node ids from the `.pen` document itself, so the
+// design-node check always runs against the design that is actually in the
+// repository instead of a hand-copied list that can go stale.
+
+/** Positional args: everything that is not a `--flag` or a flag's value. */
+function positionalArgs(args: string[], valueFlags: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      if (valueFlags.includes(arg)) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
+const VALUE_FLAGS = ['--root', '--out', '--pen'];
 
 function main(argv: string[]): number {
   const args = argv.slice(2);
-  const inputPath = args.find((a) => !a.startsWith('--'));
+  const inputPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!inputPath) {
-    console.error('usage: manifest.mts <records.json> [--root <dir>] [--out <file>]');
+    console.error('usage: manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]');
     return 2;
   }
 
@@ -284,8 +339,14 @@ function main(argv: string[]): number {
   const root = rootFlag >= 0 ? args[rootFlag + 1] : '.';
   const outFlag = args.indexOf('--out');
   const out = outFlag >= 0 ? args[outFlag + 1] : undefined;
+  const penFlag = args.indexOf('--pen');
+  const penPath = penFlag >= 0 ? args[penFlag + 1] : undefined;
 
   const input = JSON.parse(readFileSync(resolve(inputPath), 'utf8')) as ManifestInput;
+  if (penPath) {
+    const pen = JSON.parse(readFileSync(resolve(penPath), 'utf8')) as unknown;
+    input.designNodes = collectDesignNodeIds(pen);
+  }
   const manifest = buildManifest(input, root);
   const text = JSON.stringify(manifest, null, 2) + '\n';
 

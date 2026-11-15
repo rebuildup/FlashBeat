@@ -12,6 +12,7 @@ import {
   deterministicFindings,
   renderMarkdown,
   type HumanDecision,
+  type ResolvedDecision,
   type ReviewNote,
 } from './report.mts';
 
@@ -113,6 +114,22 @@ describe('report completeness', () => {
     const manifest = manifestOf([record({ buildSha: '0.1.23+b5b98a6e' })]);
     expect(buildReport({ manifest }).complete).toBe(false);
   });
+
+  test('resolved decisions are kept for the audit trail but do not block', () => {
+    const resolution: ResolvedDecision = {
+      id: '4',
+      claim: '233',
+      question: '凍結候補を維持するか',
+      resolution: '展示中止で判断自体が消滅。',
+    };
+    const report = buildReport({
+      manifest: manifestOf([record()]),
+      resolutions: [resolution],
+    });
+    expect(report.complete).toBe(true);
+    expect(report.resolutions).toHaveLength(1);
+    expect(report.decisions).toHaveLength(0);
+  });
 });
 
 describe('markdown', () => {
@@ -178,5 +195,23 @@ describe('markdown', () => {
     const md = renderMarkdown(buildReport({ manifest }), manifest);
     expect(md).toContain('なし。');
     expect(md).toContain('未確認なし');
+  });
+
+  test('renders resolved decisions in the audit section, not as open questions', () => {
+    const resolution: ResolvedDecision = {
+      id: '4',
+      claim: '233',
+      question: '凍結候補を維持するか',
+      resolution: '展示中止で判断自体が消滅。',
+    };
+    const manifest = manifestOf([record()]);
+    const md = renderMarkdown(
+      buildReport({ manifest, resolutions: [resolution] }),
+      manifest,
+    );
+    expect(md).toContain('解消済みの判断');
+    expect(md).toContain('凍結候補を維持するか');
+    // An open question would render as "### D-4:"; a resolution must not.
+    expect(md).not.toContain('### D-4:');
   });
 });

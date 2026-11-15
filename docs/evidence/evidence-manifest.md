@@ -42,7 +42,8 @@ mise run evidence-manifest-test   # 単体テスト (負例を含む)
 
 1. `claim` か `state` が空 → `unverified`
 2. 画像が無い → `missing`
-3. `designNode` が design のノード一覧に無い → `mismatch`
+3. `designNode` が design のノード一覧に無い → `mismatch` (一覧は `--pen` で
+   `.pen` から直接読む。後述 §6)
 4. `buildSha` が無い → `unverified`
 5. `buildSha` が候補と違う → `stale`
 6. `platform` が無い → `unverified`
@@ -72,14 +73,21 @@ mise run evidence-manifest-test   # 単体テスト (負例を含む)
 | `mismatch` | 0 |
 
 26 件はすべて macOS 3420×2224・ビルド `0.1.23+af183bf4` の撮影で、候補と一致する。
+`designNode` は 25/26 件に割り当て済み (残る 1 件は #371 Opening で、
+v6 design に Opening 画面のノードが存在しないため意図的に未設定)。
 **これは「26 件の画面が設計どおり」を意味しない。** visual acceptance は #389 の仕事で、
 現時点で未達の項目 (メニューバー 76 px、スケルトン点滅、ピクセル比較、登録の実送信) は
 README と各 Issue に未達として残っている。
 
 ## 6. 制約
 
-- **design ファイルは読まない。** `.pen` は暗号化されており Pencil が正本なので、
-  ノード一覧は呼び出し側が渡す (`designNodes`)。
+- **design ノード一覧は `--pen` で `.pen` から直接読む。** このリポジトリの
+  `design/flashbeat-ui.pen` は plain JSON (version 2.22) なので、Pencil への
+  接続なしに全ノード id を収集できる (`collectDesignNodeIds`)。手で写した
+  一覧は design 更新で陳腐化するため、`mise run evidence-manifest` は
+  `--pen design/flashbeat-ui.pen` を渡す。`.pen` が暗号化形式に変わった場合は
+  呼び出し側が `designNodes` を input JSON へ書く経路が残る。
 - **凍結済み展示候補を変更しない。** 生成物は `docs/evidence/` の下だけ。
+  (展示対応自体は #250 で中止。ここでの「凍結候補」は証跡セットの候補ビルドを指す)
 - **未確認を PASS にしない。** 出力の終了コードは「全件 `creditable`」のときだけ 0。
   1 件でも他状態があれば 1 を返すので、CI は部分的なマニフェストを緑にできない。
