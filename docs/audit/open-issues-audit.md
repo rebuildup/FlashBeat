@@ -2032,3 +2032,14 @@ cc 指定の優先順位 (**P0 動作基盤 → v6 UI 完全統合 → ゲーム
 - **branch 再回収**: merge 済み local `w/369` `w/374` `w/376` `w/378` `w/379` `w/371` (空) `main-local` を削除。`w/preserve-*-wt-20261114`×5 と `w/415-diff-update` は §8.11 の評価 (obsolete / #415 PR #453-#459 で別系統採用済み / 保全記録) を再確認し保持継続。remote `w/preserve-diff-wt-20261114` も同判定。
 - **残る人間依存 (変わらず)**: Win64 実機計測 (#416/#381/#397/#242/#369 scaling/#371 Win 側)、本番 write E2E 承認、#30/#360/#75/#377/#384 のオーナー判断・pen 更新。
 - **次の実行可能候補**: #416 (Mac での Native/GC メモリ計測 — Mac 実行可)、#388/#389 (証跡 manifest/レビュー報告)、#397 横断監査。
+
+### 8.14 2026-11-15 — #388/#389 受入完了・cold review・branch 最終整理 (main = `9cb82c94`)
+
+- **#388 Closed / #389 Closed (PR #506)**: evidence manifest 生成器 (`evals/evidence-manifest/`) を main へ統合。`.pen` (plain JSON v2.22) から `collectDesignNodeIds` で全ノード id を直接収集し `--pen` で照合。manifest は 33 record 全件 `creditable`、designNode 32/33 + #371 は `designNotApplicable` (v6 design に Opening 画面が存在しないため理由付き exempt)。report は deterministic / interpretation / human decision を分離し、PASS/APPROVED 文言を `verdictLanguageViolations` で拒否、creditable 全 claim に証跡 path を列挙。**`unproven` を `complete` と CLI 終了コードに反映** — 未確認 18 件が残る限り report は incomplete (exit 1)。
+- **#389 独立 cold review**: `docs/evidence/368-review-2026-11-12/cold-review-389.md`。初回 FAIL (証跡リンク欠落・unproven 未反映の major 2 件) → 全指摘対応済み。design node id 18 種の実在・画面対応を pen 内で確認。
+- **#397 監査文書更新 (PR #507)**: `docs/evidence/performance-audit-2026-11-12/README.md` を #415 統合後の状態へ再構成。統合済み項目と未計測項目 (Win64・before/after Profiler) を区別。
+- **publish-catalog 移植 (PR #508)**: `feature/p2-catalog-e2e` にのみ存在した `web/scripts/publish-catalog.mjs` を main へ移植 (証跡は既に main)。
+- **branch 最終整理**: merge 済み remote `w/388-389-acceptance` `w/397-audit-doc-refresh` `w/port-publish-catalog` と、内容が main へ完全移植済みの `feature/p2-catalog-e2e` を削除。さらに merge 済み remote 6 本 (`w/369-native-fullscreen` `w/378-ready-loading` `w/379-hud-acceptance` `w/audit-ledger-815` `w/preserve-diff-wt-20261114` `w/preserve-fix-wt-20261114`) を削除。**remote は `main` / `release-0-1-0` `release/0-1-2-win64` `release/0.1.11` (リリース系列) / `19` (#19 open WIP) の 5 本のみ**。local は `main` `w/415-diff-update` (discard-as-code 判定済み記録) `w/preserve-*-wt-20261114`×6 のみ。
+- **#360/#377/#384 棚卸し**: 3 件とも最新コメント (2026-11-15) で現行実装との照合済み。#360 は Tab 既定化が GameScene の KeyGuideUI と衝突する技術的制約が判明し、選択肢の再検討材料を記録。残るのはオーナー判断 (#360)・Win64/本番 API の実機・書き込み承認 (#377/#384) で、エージェント側の実装可能作業は尽きた。
+- **#397/#416/#381 残受入**: Mac 側計測は完了 (fbperf 回帰・v6mem/vmmap・churn before/after)。残る受入は **Win64 実機計測・画面受入・本番 write E2E** のみで、Windows 実機へのアクセスが前提。Memory Profiler は vmmap の領域粒度で代替計測済みのため、オブジェクト単位の帰属が必要になった時点で別タスク化する判断を維持。
+- **残る人間依存 (更新)**: Win64 実機検証全般、#360 のオーナー決定、本番 write E2E 承認、#75 画像レビュー、#30 製品判断、self-hosted runner (オーナー Mac 依存) の了承。
