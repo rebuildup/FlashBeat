@@ -30,6 +30,20 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
             return elapsed >= DurationSeconds;
         }
+
+        /// <summary>
+        /// 1 フレームで進める上限 (秒)。シェーダ初回コンパイル等の長い
+        /// フレーム飛びで数字 (3 → 2 → 1) を飛ばさないようにする (Issue #382)。
+        /// 各数字は 1 秒表示なので、その十分の一に抑える。
+        /// </summary>
+        public const float MaxFrameAdvanceSeconds = 0.1f;
+
+        /// <summary>経過秒へ 1 フレーム分の delta を足す。上限超過と負値は丸める。</summary>
+        public static float AdvanceElapsed(float elapsed, float deltaSeconds)
+        {
+            float step = Mathf.Min(Mathf.Max(deltaSeconds, 0f), MaxFrameAdvanceSeconds);
+            return elapsed + step;
+        }
     }
 
     /// <summary>
@@ -92,7 +106,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             bool ignoreBackThisFrame = !firstFrameDone;
             firstFrameDone = true;
 
-            elapsed += Time.unscaledDeltaTime;
+            elapsed = V6ResumeCountdownLogic.AdvanceElapsed(elapsed, Time.unscaledDeltaTime);
             Show(V6ResumeCountdownLogic.NumberAt(elapsed));
 
             if (!ignoreBackThisFrame && KeyActions.IsDown(KeyActions.KeyAction.Back))

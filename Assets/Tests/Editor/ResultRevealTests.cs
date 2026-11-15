@@ -94,6 +94,29 @@ namespace FlashBeat.Tests
             Assert.IsFalse(V6ResultRevealLogic.IsComplete(V6ResultRevealLogic.TotalSeconds - 0.01f));
             Assert.IsTrue(V6ResultRevealLogic.IsComplete(V6ResultRevealLogic.TotalSeconds));
         }
+
+        [Test]
+        public void AdvanceElapsed_PassesNormalDeltasThrough()
+        {
+            Assert.AreEqual(0.016f, V6ResultRevealLogic.AdvanceElapsed(0f, 0.016f), 1e-4f);
+            Assert.AreEqual(0.032f, V6ResultRevealLogic.AdvanceElapsed(0.016f, 0.016f), 1e-4f);
+        }
+
+        [Test]
+        public void AdvanceElapsed_ClampsLongFrameSpikes()
+        {
+            // 数秒のフレーム飛びで段階表示が飛ばないこと (Issue #384 受入)。
+            Assert.AreEqual(V6ResultRevealLogic.MaxFrameAdvanceSeconds,
+                V6ResultRevealLogic.AdvanceElapsed(0f, 6f), 1e-4f);
+            Assert.AreEqual(2.9f + V6ResultRevealLogic.MaxFrameAdvanceSeconds,
+                V6ResultRevealLogic.AdvanceElapsed(2.9f, 6f), 1e-4f);
+        }
+
+        [Test]
+        public void AdvanceElapsed_IgnoresNegativeDelta()
+        {
+            Assert.AreEqual(1f, V6ResultRevealLogic.AdvanceElapsed(1f, -0.5f), 1e-4f);
+        }
     }
 
     /// <summary>登録送信の二重送信防止 (Issue #384)。</summary>
