@@ -1,0 +1,3 @@
+[AutoTestResultInput] modal open - type real keys now
+[AutoTestResultInput] name="テストABC123"
+[AutoTestResultInput] name="テストABC123" (unchanged)
