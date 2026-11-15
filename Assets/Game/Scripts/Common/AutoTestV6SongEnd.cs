@@ -380,8 +380,18 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
         if (SceneManager.GetActiveScene().name == "ResultScene")
         {
-            yield return new WaitForSecondsRealtime(2f);
-            ResultScreenInfo info = InspectResultScreen();
+            // スコアは段階表示 (V6ResultRevealLogic) で後から現れるので、
+            // 固定 2 秒ではなく ScoreFound が立つまでポーリングする
+            // (フレーム飛びや低 FPS で表示が遅れても誤 FAIL にしない)。
+            ResultScreenInfo info = default;
+            float scoreWaited = 0f;
+            while (scoreWaited < 10f)
+            {
+                yield return new WaitForSecondsRealtime(0.5f);
+                scoreWaited += 0.5f;
+                info = InspectResultScreen();
+                if (info.ScoreFound) { break; }
+            }
             Debug.Log(Tag + " result screen: " + info.Detail);
             Check("the v6 result canvas exists", info.CanvasFound);
             Check("the v6 result canvas has non-empty text", info.TextFound);
@@ -390,7 +400,13 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
             yield return new WaitForEndOfFrame();
             string resultShot = CaptureScreenshot("04-result");
-            yield return new WaitForSecondsRealtime(0.8f);
+            // ScreenCapture.CaptureScreenshot は非同期。ファイルが出来るまで待つ。
+            float shotWaited = 0f;
+            while (!File.Exists(resultShot) && shotWaited < 5f)
+            {
+                shotWaited += 0.2f;
+                yield return new WaitForSecondsRealtime(0.2f);
+            }
             Check("the screenshot 04-result was written", File.Exists(resultShot));
         }
 
