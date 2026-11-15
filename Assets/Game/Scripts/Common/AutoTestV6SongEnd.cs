@@ -11,6 +11,7 @@ using FlashBeat.Gameplay;
 using FlashBeat.UI;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Loading;
+using FlashBeat.UI.V6.Result;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.View;
 
@@ -22,7 +23,8 @@ using FlashBeat.UI.V6.Select.View;
 /// 使い方:
 ///   プレイヤー引数に "-autotest v6songend" と "-autotest-out &lt;dir&gt;" を渡す。
 ///   任意で "-autotest-song &lt;曲名&gt;" (既定: ツイッターランド = カタログ内で
-///   一番短い曲) を渡すと、その曲を鳴らす。
+///   一番短い曲) を渡すと、その曲を鳴らす。"-playfield 1" を渡すと v6 の
+///   遠近法プレイフィールドを有効にしたまま完走する (Issue #219)。
 ///
 /// 既存.AutoTestV6 (Issue #223) とは別のスイッチで動く独立ハーネス。既存ファイルは
 /// 編集していない (他の作業と並行するため)。
@@ -270,6 +272,18 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("ready starts the game scene", SceneManager.GetActiveScene().name == "GameScene");
         Check("the started song is the picked one", GManager.songID == expectedSongId);
 
+        // -playfield 1 のとき、実際に v6 プレイフィールドが立っているかを確かめる
+        // (AutoTestV6 と同じ確認。フラグだけ立って描画経路が死んでいても
+        //  緑にならないようにする)。
+        if (FlashBeat.UI.V6.V6UiMode.Playfield)
+        {
+            Check("the v6 playfield exists", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current != null);
+        }
+        else
+        {
+            Check("the original 3D lanes are kept", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current == null);
+        }
+
         // 3b. ローディング画面 (#378): メディアが未キャッシュなら、準備の間
         //     実際に出ているかを毎フレーム見て、見えている間を撮る。
         yield return ObserveLoading();
@@ -380,8 +394,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
         if (SceneManager.GetActiveScene().name == "ResultScene")
         {
-            // スコアは段階表示 (V6ResultRevealLogic) で後から現れるので、
-            // 固定 2 秒ではなく ScoreFound が立つまでポーリングする
+            // スコアは段階表示 (V6ResultRevealLogic) で後から現れる。
+            // テキストは不可視のまま先に最終値を持つことがあるので、
+            // ScoreFound だけでなく段階表示の完了も待つ
             // (フレーム飛びや低 FPS で表示が遅れても誤 FAIL にしない)。
             ResultScreenInfo info = default;
             float scoreWaited = 0f;
@@ -390,7 +405,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 yield return new WaitForSecondsRealtime(0.5f);
                 scoreWaited += 0.5f;
                 info = InspectResultScreen();
-                if (info.ScoreFound) { break; }
+                if (!info.ScoreFound) { continue; }
+                var driver = FindFirstObjectByType<V6ResultViewDriver>();
+                if (driver != null && driver.View != null && driver.View.RevealCompleteForAudit) { break; }
             }
             Debug.Log(Tag + " result screen: " + info.Detail);
             Check("the v6 result canvas exists", info.CanvasFound);
@@ -641,7 +658,8 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// </summary>
     IEnumerator ObserveLoading()
     {
-        // 経過は時計で測る。このループは撮影のために最大 1.2 秒待つので、
+        // 経過は時計で測る。このループは撮影ファイルの出現待ち
+        // (WaitForFile, 最大 5 秒) を挟むので、
         // フレームの差分を積むと実時間より短く記録され、表示時間も猶予も狂う。
         float startedAt = Time.unscaledTime;
         float elapsed = 0f;
