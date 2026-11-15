@@ -155,10 +155,16 @@ public class AutoTestV6SongEnd : MonoBehaviour
         songTitle = GetArg("-autotest-song");
         if (string.IsNullOrEmpty(songTitle)) { songTitle = DefaultSongTitle; }
 
+        // Issue #219: v6 遠近法プレイフィールドでの完走判定も取れるようにする。
+        // AutoTestV6 と同じ引数 (-playfield 1) を読む。GameScene のシーン読み込み
+        // より前 (Start) に立てる必要があるため、ここで設定する。
+        FlashBeat.UI.V6.V6UiMode.Playfield = GetArg("-playfield") == "1";
+
         try { Directory.CreateDirectory(outDir); }
         catch (Exception) { }
 
-        Debug.Log(Tag + " start: song='" + songTitle + "' outDir='" + outDir + "'");
+        Debug.Log(Tag + " start: song='" + songTitle + "' outDir='" + outDir
+            + "' playfield=" + (FlashBeat.UI.V6.V6UiMode.Playfield ? "1" : "0") + "'");
 
         IEnumerator body = RunBody();
         while (true)
