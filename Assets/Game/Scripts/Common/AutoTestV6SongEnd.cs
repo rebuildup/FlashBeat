@@ -645,6 +645,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
     {
         shot++;
         string path = Path.Combine(outDir, string.Format("autotest-v6songend-{0:00}-{1}.png", shot, name));
+        // 同じ outDir での再実行では前回の PNG が残る。先に消しておかないと
+        // WaitForFile が「前回のファイルがある」だけで即座に成功してしまう。
+        try { File.Delete(path); } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
         return path;
     }
