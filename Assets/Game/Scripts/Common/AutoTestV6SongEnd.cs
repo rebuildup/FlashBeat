@@ -11,6 +11,7 @@ using FlashBeat.Gameplay;
 using FlashBeat.UI;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Loading;
+using FlashBeat.UI.V6.Result;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.View;
 
@@ -22,7 +23,8 @@ using FlashBeat.UI.V6.Select.View;
 /// 使い方:
 ///   プレイヤー引数に "-autotest v6songend" と "-autotest-out &lt;dir&gt;" を渡す。
 ///   任意で "-autotest-song &lt;曲名&gt;" (既定: ツイッターランド = カタログ内で
-///   一番短い曲) を渡すと、その曲を鳴らす。
+///   一番短い曲) を渡すと、その曲を鳴らす。"-playfield 1" を渡すと v6 の
+///   遠近法プレイフィールドを有効にしたまま完走する (Issue #219)。
 ///
 /// 既存.AutoTestV6 (Issue #223) とは別のスイッチで動く独立ハーネス。既存ファイルは
 /// 編集していない (他の作業と並行するため)。
@@ -155,10 +157,16 @@ public class AutoTestV6SongEnd : MonoBehaviour
         songTitle = GetArg("-autotest-song");
         if (string.IsNullOrEmpty(songTitle)) { songTitle = DefaultSongTitle; }
 
+        // Issue #219: v6 遠近法プレイフィールドでの完走判定も取れるようにする。
+        // AutoTestV6 と同じ引数 (-playfield 1) を読む。GameScene のシーン読み込み
+        // より前 (Start) に立てる必要があるため、ここで設定する。
+        FlashBeat.UI.V6.V6UiMode.Playfield = GetArg("-playfield") == "1";
+
         try { Directory.CreateDirectory(outDir); }
         catch (Exception) { }
 
-        Debug.Log(Tag + " start: song='" + songTitle + "' outDir='" + outDir + "'");
+        Debug.Log(Tag + " start: song='" + songTitle + "' outDir='" + outDir
+            + "' playfield=" + (FlashBeat.UI.V6.V6UiMode.Playfield ? "1" : "0") + "'");
 
         IEnumerator body = RunBody();
         while (true)
@@ -227,7 +235,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
         yield return new WaitForEndOfFrame();
         string selectShot = CaptureScreenshot("01-select");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(selectShot, 5f);
         Check("the screenshot 01-select was written", File.Exists(selectShot));
 
         // 3. Ready → ゲーム画面 (実セッションとして遷移する)。
@@ -264,6 +272,18 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("ready starts the game scene", SceneManager.GetActiveScene().name == "GameScene");
         Check("the started song is the picked one", GManager.songID == expectedSongId);
 
+        // -playfield 1 のとき、実際に v6 プレイフィールドが立っているかを確かめる
+        // (AutoTestV6 と同じ確認。フラグだけ立って描画経路が死んでいても
+        //  緑にならないようにする)。
+        if (FlashBeat.UI.V6.V6UiMode.Playfield)
+        {
+            Check("the v6 playfield exists", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current != null);
+        }
+        else
+        {
+            Check("the original 3D lanes are kept", FlashBeat.UI.V6.Game.Playfield.V6PlayfieldView.Current == null);
+        }
+
         // 3b. ローディング画面 (#378): メディアが未キャッシュなら、準備の間
         //     実際に出ているかを毎フレーム見て、見えている間を撮る。
         yield return ObserveLoading();
@@ -271,7 +291,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return new WaitForEndOfFrame();
         string gameShot = CaptureScreenshot("02-game");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(gameShot, 5f);
         Check("the screenshot 02-game was written", File.Exists(gameShot));
 
         // 4. メディアの準備 (実機の yt-dlp ダウンロード) を待つ。
@@ -300,7 +320,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("the playback started", music.PlaybackStarted);
         yield return new WaitForEndOfFrame();
         string playShot = CaptureScreenshot("03-gameplay");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(playShot, 5f);
         Check("the screenshot 03-gameplay was written", File.Exists(playShot));
 
         // 6. 再生 → 判定 → 曲終了 → Result まで待つ。
@@ -374,8 +394,21 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
         if (SceneManager.GetActiveScene().name == "ResultScene")
         {
-            yield return new WaitForSecondsRealtime(2f);
-            ResultScreenInfo info = InspectResultScreen();
+            // スコアは段階表示 (V6ResultRevealLogic) で後から現れる。
+            // テキストは不可視のまま先に最終値を持つことがあるので、
+            // ScoreFound だけでなく段階表示の完了も待つ
+            // (フレーム飛びや低 FPS で表示が遅れても誤 FAIL にしない)。
+            ResultScreenInfo info = default;
+            float scoreWaited = 0f;
+            while (scoreWaited < 10f)
+            {
+                yield return new WaitForSecondsRealtime(0.5f);
+                scoreWaited += 0.5f;
+                info = InspectResultScreen();
+                if (!info.ScoreFound) { continue; }
+                var driver = FindFirstObjectByType<V6ResultViewDriver>();
+                if (driver != null && driver.View != null && driver.View.RevealCompleteForAudit) { break; }
+            }
             Debug.Log(Tag + " result screen: " + info.Detail);
             Check("the v6 result canvas exists", info.CanvasFound);
             Check("the v6 result canvas has non-empty text", info.TextFound);
@@ -384,7 +417,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
             yield return new WaitForEndOfFrame();
             string resultShot = CaptureScreenshot("04-result");
-            yield return new WaitForSecondsRealtime(0.8f);
+            yield return WaitForFile(resultShot, 5f);
             Check("the screenshot 04-result was written", File.Exists(resultShot));
         }
 
@@ -593,11 +626,28 @@ public class AutoTestV6SongEnd : MonoBehaviour
         return GManager.score.ToString("N0", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// ScreenCapture.CaptureScreenshot は非同期。ファイルが出来るまで待つ
+    /// (固定の短い待機では低 FPS / フレーム飛びで誤 FAIL になる)。
+    /// </summary>
+    IEnumerator WaitForFile(string path, float timeoutSeconds)
+    {
+        float waited = 0f;
+        while (!File.Exists(path) && waited < timeoutSeconds)
+        {
+            waited += 0.2f;
+            yield return new WaitForSecondsRealtime(0.2f);
+        }
+    }
+
     /// <summary>スクリーンショットのファイル名を返す (撮影自体は同期)。</summary>
     string CaptureScreenshot(string name)
     {
         shot++;
         string path = Path.Combine(outDir, string.Format("autotest-v6songend-{0:00}-{1}.png", shot, name));
+        // 同じ outDir での再実行では前回の PNG が残る。先に消しておかないと
+        // WaitForFile が「前回のファイルがある」だけで即座に成功してしまう。
+        try { File.Delete(path); } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
         return path;
     }
@@ -611,7 +661,8 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// </summary>
     IEnumerator ObserveLoading()
     {
-        // 経過は時計で測る。このループは撮影のために最大 1.2 秒待つので、
+        // 経過は時計で測る。このループは撮影ファイルの出現待ち
+        // (WaitForFile, 最大 5 秒) を挟むので、
         // フレームの差分を積むと実時間より短く記録され、表示時間も猶予も狂う。
         float startedAt = Time.unscaledTime;
         float elapsed = 0f;
@@ -667,7 +718,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
                     loadingShots++;
                     nextShotAt = elapsed + 0.8f;
                     string path = CaptureScreenshot("00-loading-" + loadingShots);
-                    yield return new WaitForSecondsRealtime(0.4f);
+                    yield return WaitForFile(path, 5f);
                     Check("the loading screenshot 00-loading-" + loadingShots + " was written", File.Exists(path));
                 }
             }
