@@ -10,6 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   buildManifest,
   classifyRecord,
+  collectDesignNodeIds,
   diffManifests,
   platformMatches,
   sameBuild,
@@ -56,6 +57,10 @@ describe('build identity', () => {
     expect(sameBuild('0.1.23+af183bf4', '0.1.23+af183bf4')).toBe(true);
     expect(sameBuild('0.1.23+af183bf4', '0.1.23+b5b98a6e')).toBe(false);
     expect(sameBuild('0.1.23', '0.1.23+af183bf4')).toBe(false);
+  });
+
+  test('the same sha under a different version is a different build', () => {
+    expect(sameBuild('0.1.23+af183bf4', '9.9.9+af183bf4')).toBe(false);
   });
 });
 
@@ -188,6 +193,54 @@ describe('manifest', () => {
     );
     expect(manifest.entries[0].status).toBe('missing');
     expect(manifest.entries[0].sha256).toBeUndefined();
+  });
+});
+
+describe('pen node extraction', () => {
+  // A .pen document is plain JSON: nodes nest under `children`, and `ref`
+  // nodes carry `descendants` patches keyed by child id. Both shapes must be
+  // walked or a real node would be reported as a mismatch.
+  const pen = {
+    version: '2.22',
+    children: [
+      {
+        type: 'frame',
+        id: 'scene',
+        name: 'Scenes',
+        children: [
+          { type: 'ref', id: 'screen', ref: 'base', descendants: { childA: { content: 'x' } } },
+          { type: 'frame', id: 'nested', children: [{ type: 'text', id: 'leaf' }] },
+        ],
+      },
+    ],
+  };
+
+  test('collects ids from children, descendants keys and nested nodes', () => {
+    const ids = collectDesignNodeIds(pen);
+    expect(ids).toContain('scene');
+    expect(ids).toContain('screen');
+    expect(ids).toContain('childA');
+    expect(ids).toContain('nested');
+    expect(ids).toContain('leaf');
+    expect(ids).not.toContain('base');
+  });
+
+  test('a node id found in the pen is not a mismatch', () => {
+    const result = classifyRecord(
+      validRecord({ designNode: 'screen' }),
+      input([], { designNodes: collectDesignNodeIds(pen) }),
+      exists,
+    );
+    expect(result.status).toBe('creditable');
+  });
+
+  test('an id the pen does not contain is still a mismatch', () => {
+    const result = classifyRecord(
+      validRecord({ designNode: 'nope' }),
+      input([], { designNodes: collectDesignNodeIds(pen) }),
+      exists,
+    );
+    expect(result.status).toBe('mismatch');
   });
 });
 

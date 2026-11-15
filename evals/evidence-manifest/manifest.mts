@@ -33,9 +33,9 @@
 //   * Nothing is inferred: an absent field makes the record `unverified`,
 //     never `creditable`.
 //
-// This tool does not open the design file itself (Pencil owns that format);
-// it takes the node list as an input so the caller can hand it the design's
-// real node ids.
+// This tool does not open the design file itself when the caller already has
+// the node list; `--pen` reads the ids straight out of the `.pen` document,
+// which is plain JSON (version 2.22), so no Pencil connection is needed.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -64,6 +64,13 @@ export interface EvidenceRecord {
   path: string;
   /** design/flashbeat-ui.pen node the capture is compared against. */
   designNode?: string;
+  /**
+   * Reason the claim has no design node by design (e.g. a screen the v6
+   * design does not cover). Only meaningful without `designNode`; it marks
+   * the claim as intentionally exempt from design comparison rather than
+   * silently missing a reference.
+   */
+  designNotApplicable?: string;
   /** Free-form note; never affects the status. */
   note?: string;
 }
@@ -115,28 +122,66 @@ export function shortSha(build: string | undefined): string | undefined {
 }
 
 /**
- * Two builds are the same artefact when their short shas agree. The version
- * prefix alone is never enough: 0.1.23 was built from several commits.
+ * Two builds are the same artefact when their version prefix *and* short sha
+ * agree. The sha alone is not enough (a version bump can share it), and the
+ * version alone is never enough: 0.1.23 was built from several commits.
  */
 export function sameBuild(a: string | undefined, b: string | undefined): boolean {
   const shaA = shortSha(a);
   const shaB = shortSha(b);
-  if (!shaA || !shaB) return false;
-  return shaA.toLowerCase() === shaB.toLowerCase();
+  if (!shaA || !shaB || shaA.toLowerCase() !== shaB.toLowerCase()) return false;
+  const verA = a?.slice(0, a.lastIndexOf('+')).trim().toLowerCase();
+  const verB = b?.slice(0, b.lastIndexOf('+')).trim().toLowerCase();
+  return verA === verB;
 }
 
-/** Platforms that may be credited to the candidate platform. */
+/**
+ * Platforms that may be credited to the candidate platform. Evidence is
+ * platform-exact: a macOS capture never satisfies a Win64 candidate, WSL is a
+ * Linux guest and is never Windows-native, and `editor` captures are not a
+ * built player at all.
+ */
 export function platformMatches(
   capture: EvidencePlatform | undefined,
   candidate: EvidencePlatform,
 ): boolean {
-  if (!capture) return false;
-  if (capture === candidate) return true;
-  // WSL is a Linux guest: it is never Windows-native evidence.
-  if (candidate === 'win64' && capture === 'wsl') return false;
-  if (candidate === 'win64' && capture === 'macos') return false;
-  if (candidate === 'wsl' && capture === 'win64') return false;
-  return false;
+  return capture !== undefined && capture === candidate;
+}
+
+/**
+ * Collect every node id a `.pen` document contains. The file is plain JSON:
+ * nodes live under `children` arrays, `ref` nodes carry `descendants` patches
+ * (keyed by child id, valued by property overlays or full node replacements),
+ * and either shape may nest further. Every `id` string and every
+ * `descendants` key is a node the design can legitimately contain, so both are
+ * collected. Over-collecting only ever *weakens* a `mismatch` verdict, never
+ * invents one.
+ */
+export function collectDesignNodeIds(pen: unknown): string[] {
+  const ids = new Set<string>();
+
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (value === null || typeof value !== 'object') return;
+
+    const node = value as Record<string, unknown>;
+    if (typeof node.id === 'string' && node.id.length > 0) ids.add(node.id);
+
+    const descendants = node.descendants;
+    if (descendants !== null && typeof descendants === 'object' && !Array.isArray(descendants)) {
+      for (const key of Object.keys(descendants)) {
+        if (key.length > 0) ids.add(key);
+      }
+    }
+
+    for (const child of Object.values(node)) visit(child);
+  };
+
+  visit(pen);
+  return [...ids];
 }
 
 function hashFile(path: string): string {
@@ -267,25 +312,65 @@ export function diffManifests(before: Manifest, after: Manifest): ManifestDiff {
 // --- CLI --------------------------------------------------------------------
 //
 // Usage:
-//   bun evals/evidence-manifest/manifest.mts <records.json> [--root <dir>] [--out <file>]
+//   bun evals/evidence-manifest/manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]
 //
 // The records file carries the claims; the candidate build and platform come
 // from the same file so a manifest can never be generated for an unnamed build.
+// `--pen` reads the design's node ids from the `.pen` document itself, so the
+// design-node check always runs against the design that is actually in the
+// repository instead of a hand-copied list that can go stale.
+
+/** Positional args: everything that is not a `--flag` or a flag's value. */
+function positionalArgs(args: string[], valueFlags: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      if (valueFlags.includes(arg)) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
+const VALUE_FLAGS = ['--root', '--out', '--pen'];
+
+const USAGE =
+  'usage: manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]';
 
 function main(argv: string[]): number {
   const args = argv.slice(2);
-  const inputPath = args.find((a) => !a.startsWith('--'));
+  const inputPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!inputPath) {
-    console.error('usage: manifest.mts <records.json> [--root <dir>] [--out <file>]');
+    console.error(USAGE);
     return 2;
+  }
+  for (const flag of VALUE_FLAGS) {
+    const i = args.indexOf(flag);
+    if (i >= 0 && (!args[i + 1] || args[i + 1].startsWith('--'))) {
+      console.error(`${flag} requires a value\n${USAGE}`);
+      return 2;
+    }
   }
 
   const rootFlag = args.indexOf('--root');
   const root = rootFlag >= 0 ? args[rootFlag + 1] : '.';
   const outFlag = args.indexOf('--out');
   const out = outFlag >= 0 ? args[outFlag + 1] : undefined;
+  const penFlag = args.indexOf('--pen');
+  const penPath = penFlag >= 0 ? args[penFlag + 1] : undefined;
 
   const input = JSON.parse(readFileSync(resolve(inputPath), 'utf8')) as ManifestInput;
+  if (penPath) {
+    const pen = JSON.parse(readFileSync(resolve(penPath), 'utf8')) as unknown;
+    input.designNodes = collectDesignNodeIds(pen);
+  } else if (input.records.some((r) => r.designNode)) {
+    console.error(
+      'warning: records carry designNode but --pen was not given; ' +
+        'the design-node check is skipped for this run',
+    );
+  }
   const manifest = buildManifest(input, root);
   const text = JSON.stringify(manifest, null, 2) + '\n';
 

@@ -35,10 +35,19 @@ export interface HumanDecision {
   context: string;
 }
 
+/** A decision that was open and is now settled; kept for the audit trail. */
+export interface ResolvedDecision {
+  id: string;
+  claim: string;
+  question: string;
+  resolution: string;
+}
+
 export interface ReviewInput {
   manifest: Manifest;
   notes?: ReviewNote[];
   decisions?: HumanDecision[];
+  resolutions?: ResolvedDecision[];
 }
 
 export interface DeterministicFinding {
@@ -59,7 +68,15 @@ export interface ReviewReport {
   findings: DeterministicFinding[];
   notes: ReviewNote[];
   decisions: HumanDecision[];
-  /** True when nothing is left for a human to decide or verify. */
+  resolutions: ResolvedDecision[];
+  /** Reviewer-listed items that remain unproven across all notes. */
+  unproven: number;
+  /**
+   * True when nothing is left for a human to decide *or verify*: no
+   * deterministic findings, every claim carries a design reference (or a
+   * recorded exemption), no open decision, and no unproven item. Unverified
+   * states therefore keep the report incomplete — they are never green.
+   */
   complete: boolean;
 }
 
@@ -88,7 +105,54 @@ export function deterministicFindings(manifest: Manifest): DeterministicFinding[
  * compare against the design, so it is reported rather than hidden.
  */
 export function claimsWithoutDesignNode(manifest: Manifest): ManifestEntry[] {
-  return manifest.entries.filter((e) => e.status === 'creditable' && !e.designNode);
+  return manifest.entries.filter(
+    (e) => e.status === 'creditable' && !e.designNode && !e.designNotApplicable,
+  );
+}
+
+/**
+ * Verdict words the report must never carry. A reviewer note is interpretation,
+ * not a judgement, so `APPROVED`/`PASS` in any human-supplied text is rejected
+ * before it can reach the rendered report.
+ */
+const VERDICT_WORD = /\b(?:APPROVED|PASSED|PASS)\b/i;
+
+/**
+ * Scan every human-supplied string for verdict language. Returns one message
+ * per violation so the CLI can refuse to render a report that would smuggle a
+ * pass/fail verdict past the "never declares a UI PASS" rule.
+ */
+export function verdictLanguageViolations(input: {
+  notes?: ReviewNote[];
+  decisions?: HumanDecision[];
+  resolutions?: ResolvedDecision[];
+}): string[] {
+  const violations: string[] = [];
+  const check = (where: string, text: string | undefined) => {
+    if (text && VERDICT_WORD.test(text)) violations.push(`${where}: ${text}`);
+  };
+  for (const n of input.notes ?? []) {
+    check(`#${n.claim} observation`, n.observation);
+    n.unproven.forEach((u, i) => check(`#${n.claim} unproven[${i}]`, u));
+  }
+  for (const d of input.decisions ?? []) {
+    check(`D-${d.id} question`, d.question);
+    check(`D-${d.id} context`, d.context);
+  }
+  for (const r of input.resolutions ?? []) {
+    check(`D-${r.id} question`, r.question);
+    check(`D-${r.id} resolution`, r.resolution);
+  }
+  return violations;
+}
+
+/**
+ * Claims that carry no design node on purpose (`designNotApplicable`), e.g. a
+ * screen the v6 design does not cover. They are listed so the exemption stays
+ * auditable instead of invisible.
+ */
+export function claimsDesignNotApplicable(manifest: Manifest): ManifestEntry[] {
+  return manifest.entries.filter((e) => e.status === 'creditable' && !e.designNode && !!e.designNotApplicable);
 }
 
 export function buildReport(input: ReviewInput): ReviewReport {
@@ -96,11 +160,14 @@ export function buildReport(input: ReviewInput): ReviewReport {
   const findings = deterministicFindings(manifest);
   const notes = input.notes ?? [];
   const decisions = input.decisions ?? [];
+  const resolutions = input.resolutions ?? [];
 
   const creditable = manifest.counts.creditable ?? 0;
+  const unproven = notes.reduce((n, note) => n + note.unproven.length, 0);
 
-  // The report is only complete when the evidence is all creditable *and*
-  // every claim carries a design reference *and* no human decision is open.
+  // The report is only complete when the evidence is all creditable, every
+  // claim carries a design reference (or a recorded exemption), no human
+  // decision is open, and the reviewer has no unproven items left.
   const allDesignNodes = claimsWithoutDesignNode(manifest).length === 0;
 
   return {
@@ -111,7 +178,10 @@ export function buildReport(input: ReviewInput): ReviewReport {
     findings,
     notes,
     decisions,
-    complete: findings.length === 0 && allDesignNodes && decisions.length === 0,
+    resolutions,
+    unproven,
+    complete:
+      findings.length === 0 && allDesignNodes && decisions.length === 0 && unproven === 0,
   };
 }
 
@@ -133,6 +203,7 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
   lines.push('');
   if (report.decisions.length === 0) {
     lines.push('なし。');
+    lines.push('');
   } else {
     for (const d of report.decisions) {
       lines.push(`### D-${d.id}: ${d.question}`);
@@ -140,6 +211,16 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
       lines.push(d.context);
       lines.push('');
     }
+  }
+
+  const resolutions = report.resolutions;
+  if (resolutions.length > 0) {
+    lines.push('### 解消済みの判断 (監査用)');
+    lines.push('');
+    for (const r of resolutions) {
+      lines.push(`- **D-${r.id}** (#${r.claim}) ${r.question} → ${r.resolution}`);
+    }
+    lines.push('');
   }
 
   lines.push('## 2. 証跡の状態 (機械判定)');
@@ -179,6 +260,35 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
   }
   lines.push('');
 
+  // Every creditable claim keeps a direct path to its source evidence so the
+  // owner never has to open the manifest to find a screenshot.
+  const creditableEntries = manifest.entries.filter((e) => e.status === 'creditable');
+  if (creditableEntries.length > 0) {
+    lines.push('### 証跡一覧 (creditable)');
+    lines.push('');
+    lines.push('| Issue | 状態 | 証跡 | design 参照 |');
+    lines.push('|---|---|---|---|');
+    for (const e of creditableEntries) {
+      const node = e.designNode
+        ? `\`${e.designNode}\``
+        : e.designNotApplicable
+          ? '対象外'
+          : 'なし';
+      lines.push(`| #${e.claim} | ${e.state} | \`${e.path}\` | ${node} |`);
+    }
+    lines.push('');
+  }
+
+  const exempt = claimsDesignNotApplicable(manifest);
+  if (exempt.length > 0) {
+    lines.push('### design 対象外の主張 (designNotApplicable)');
+    lines.push('');
+    lines.push('| Issue | 状態 | 理由 |');
+    lines.push('|---|---|---|');
+    for (const e of exempt) lines.push(`| #${e.claim} | ${e.state} | ${e.designNotApplicable} |`);
+    lines.push('');
+  }
+
   lines.push('## 3. レビューの読み (人の解釈)');
   lines.push('');
   lines.push('> ここは機械判定ではありません。**合格の主張ではありません。**');
@@ -202,10 +312,22 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
   lines.push('## 4. この報告で言えないこと');
   lines.push('');
   lines.push('- 画面が設計どおりに正しいか (design とのピクセル比較は未実施)。');
-  lines.push('- 実 Win64 での動作 (この報告の evidence はすべて macOS かどうかで決まる)。');
+  const platforms = [
+    ...new Set(
+      manifest.entries.filter((e) => e.status === 'creditable').map((e) => e.platform),
+    ),
+  ]
+    .filter((p): p is string => !!p)
+    .sort();
+  lines.push(
+    `- creditable evidence の platform は ${platforms.length ? platforms.join(', ') : 'なし'} のみ。` +
+      '含まれない platform (例: Win64) での動作はこの報告では言えない。',
+  );
   lines.push('- 未確認の操作が実機で成立するか。');
   lines.push('');
-  lines.push(`報告時点の完全性: **${report.complete ? '未確認なし' : '未確認あり'}**`);
+  lines.push(
+    `報告時点の完全性: **${report.complete ? '未確認なし' : `未確認あり (unproven ${report.unproven} 件)`}**`,
+  );
   lines.push('');
 
   return lines.join('\n');
@@ -213,12 +335,37 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
 
 // --- CLI --------------------------------------------------------------------
 
+/** Positional args: everything that is not a `--flag` or a flag's value. */
+function positionalArgs(args: string[], valueFlags: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      if (valueFlags.includes(arg)) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
+const VALUE_FLAGS = ['--notes', '--out'];
+
+const USAGE = 'usage: report.mts <manifest.json> [--notes <notes.json>] [--out <file>]';
+
 function main(argv: string[]): number {
   const args = argv.slice(2);
-  const manifestPath = args.find((a) => !a.startsWith('--'));
+  const manifestPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!manifestPath) {
-    console.error('usage: report.mts <manifest.json> [--notes <notes.json>] [--out <file>]');
+    console.error(USAGE);
     return 2;
+  }
+  for (const flag of VALUE_FLAGS) {
+    const i = args.indexOf(flag);
+    if (i >= 0 && (!args[i + 1] || args[i + 1].startsWith('--'))) {
+      console.error(`${flag} requires a value\n${USAGE}`);
+      return 2;
+    }
   }
 
   const manifest = JSON.parse(readFileSync(resolve(manifestPath), 'utf8')) as Manifest;
@@ -228,7 +375,19 @@ function main(argv: string[]): number {
     ? (JSON.parse(readFileSync(resolve(args[notesFlag + 1]), 'utf8')) as ReviewInput)
     : {};
 
-  const report = buildReport({ manifest, notes: notes.notes, decisions: notes.decisions });
+  const violations = verdictLanguageViolations(notes);
+  if (violations.length > 0) {
+    console.error('refusing to render: verdict language in review notes');
+    for (const v of violations) console.error(`  ${v}`);
+    return 2;
+  }
+
+  const report = buildReport({
+    manifest,
+    notes: notes.notes,
+    decisions: notes.decisions,
+    resolutions: notes.resolutions,
+  });
   const markdown = renderMarkdown(report, manifest);
 
   const outFlag = args.indexOf('--out');

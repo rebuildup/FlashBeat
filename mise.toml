@@ -35,7 +35,7 @@ run = "bun evals/policy-evaluation/vendored-skills-contract.mts"
 # hand-written claims; `evidence-manifest-test` runs the unit fixtures
 # (including the missing/wrong-OS/stale/design-mismatch negative cases).
 [tasks."evidence-manifest"]
-run = "bun evals/evidence-manifest/manifest.mts docs/evidence/368-review-2026-11-12/manifest-input.json --root . --out docs/evidence/368-review-2026-11-12/manifest.json"
+run = "bun evals/evidence-manifest/manifest.mts docs/evidence/368-review-2026-11-12/manifest-input.json --root . --pen design/flashbeat-ui.pen --out docs/evidence/368-review-2026-11-12/manifest.json"
 
 [tasks."evidence-manifest-test"]
 run = "bun test evals/evidence-manifest/"

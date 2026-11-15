@@ -8,10 +8,13 @@ import { describe, expect, test } from 'bun:test';
 import { buildManifest, type EvidenceRecord, type ManifestInput } from '../evidence-manifest/manifest.mts';
 import {
   buildReport,
+  claimsDesignNotApplicable,
   claimsWithoutDesignNode,
   deterministicFindings,
   renderMarkdown,
+  verdictLanguageViolations,
   type HumanDecision,
+  type ResolvedDecision,
   type ReviewNote,
 } from './report.mts';
 
@@ -84,6 +87,14 @@ describe('deterministic findings', () => {
     expect(noNode).toHaveLength(1);
     expect(noNode[0].claim).toBe('371');
   });
+
+  test('designNotApplicable exempts a claim that has no design by design', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    expect(claimsWithoutDesignNode(manifest)).toEqual([]);
+    expect(claimsDesignNotApplicable(manifest)).toHaveLength(1);
+  });
 });
 
 describe('report completeness', () => {
@@ -109,9 +120,32 @@ describe('report completeness', () => {
     expect(buildReport({ manifest }).complete).toBe(false);
   });
 
+  test('is complete when the only node-less claim is designNotApplicable', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    expect(buildReport({ manifest }).complete).toBe(true);
+  });
+
   test('is incomplete when any evidence is not creditable', () => {
     const manifest = manifestOf([record({ buildSha: '0.1.23+b5b98a6e' })]);
     expect(buildReport({ manifest }).complete).toBe(false);
+  });
+
+  test('resolved decisions are kept for the audit trail but do not block', () => {
+    const resolution: ResolvedDecision = {
+      id: '4',
+      claim: '233',
+      question: '凍結候補を維持するか',
+      resolution: '展示中止で判断自体が消滅。',
+    };
+    const report = buildReport({
+      manifest: manifestOf([record()]),
+      resolutions: [resolution],
+    });
+    expect(report.complete).toBe(true);
+    expect(report.resolutions).toHaveLength(1);
+    expect(report.decisions).toHaveLength(0);
   });
 });
 
@@ -155,6 +189,17 @@ describe('markdown', () => {
     expect(md).toContain('#371');
   });
 
+  test('lists designNotApplicable claims under their own heading with the reason', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    const md = renderMarkdown(buildReport({ manifest }), manifest);
+    expect(md).toContain('design 対象外の主張');
+    expect(md).toContain('v6 design に Opening 画面は無い');
+    // And it must not also appear as a missing reference.
+    expect(md).toContain('design ノード参照が無い主張\n\nなし。');
+  });
+
   test('separates the reviewer reading from the machine findings', () => {
     const manifest = manifestOf([record()]);
     const md = renderMarkdown(buildReport({ manifest, notes: [note] }), manifest);
@@ -170,7 +215,44 @@ describe('markdown', () => {
     const manifest = manifestOf([record()]);
     const md = renderMarkdown(buildReport({ manifest }), manifest);
     expect(md).toContain('## 4. この報告で言えないこと');
-    expect(md).toContain('実 Win64 での動作');
+    expect(md).toContain('Win64');
+    expect(md).toContain('macos');
+  });
+
+  test('unproven reviewer items keep the report incomplete and are counted', () => {
+    const manifest = manifestOf([record()]);
+    const report = buildReport({ manifest, notes: [note] });
+    expect(report.unproven).toBe(1);
+    expect(report.complete).toBe(false);
+    const md = renderMarkdown(report, manifest);
+    expect(md).toContain('未確認あり (unproven 1 件)');
+    expect(md).not.toContain('未確認なし');
+  });
+
+  test('every creditable claim links to its source evidence', () => {
+    const manifest = manifestOf([record()]);
+    const md = renderMarkdown(buildReport({ manifest }), manifest);
+    expect(md).toContain('### 証跡一覧 (creditable)');
+    expect(md).toContain('`docs/evidence/368-review-2026-11-12/369-launch-1.png`');
+    expect(md).toContain('`QJtTv`');
+  });
+
+  test('verdict language in notes is rejected', () => {
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: 'looks APPROVED to me', unproven: [] }],
+      }),
+    ).toHaveLength(1);
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: '映像のみ', unproven: ['PASS 未確認'] }],
+      }),
+    ).toHaveLength(1);
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: '映像のみ', unproven: [] }],
+      }),
+    ).toEqual([]);
   });
 
   test('says so plainly when there is nothing to decide', () => {
@@ -178,5 +260,23 @@ describe('markdown', () => {
     const md = renderMarkdown(buildReport({ manifest }), manifest);
     expect(md).toContain('なし。');
     expect(md).toContain('未確認なし');
+  });
+
+  test('renders resolved decisions in the audit section, not as open questions', () => {
+    const resolution: ResolvedDecision = {
+      id: '4',
+      claim: '233',
+      question: '凍結候補を維持するか',
+      resolution: '展示中止で判断自体が消滅。',
+    };
+    const manifest = manifestOf([record()]);
+    const md = renderMarkdown(
+      buildReport({ manifest, resolutions: [resolution] }),
+      manifest,
+    );
+    expect(md).toContain('解消済みの判断');
+    expect(md).toContain('凍結候補を維持するか');
+    // An open question would render as "### D-4:"; a resolution must not.
+    expect(md).not.toContain('### D-4:');
   });
 });

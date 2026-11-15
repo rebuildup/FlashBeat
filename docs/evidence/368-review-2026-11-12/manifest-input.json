@@ -11,6 +11,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/369-launch-1.png",
+      "designNode": "QJtTv",
       "note": "fullScreen=True / FullScreenWindow。上部 76 px は被覆できない (未達)"
     },
     {
@@ -19,7 +20,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/369-launch-5.png"
+      "path": "docs/evidence/368-review-2026-11-12/369-launch-5.png",
+      "designNode": "QJtTv"
     },
     {
       "claim": "370",
@@ -27,7 +29,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/370-rows.png"
+      "path": "docs/evidence/368-review-2026-11-12/370-rows.png",
+      "designNode": "wSjAm"
     },
     {
       "claim": "370",
@@ -35,7 +38,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/370-close-button.png"
+      "path": "docs/evidence/368-review-2026-11-12/370-close-button.png",
+      "designNode": "wSjAm"
     },
     {
       "claim": "370",
@@ -43,7 +47,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/370-back-button.png"
+      "path": "docs/evidence/368-review-2026-11-12/370-back-button.png",
+      "designNode": "rw7zx"
     },
     {
       "claim": "371",
@@ -51,7 +56,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/371-opening.png"
+      "path": "docs/evidence/368-review-2026-11-12/371-opening.png",
+      "designNotApplicable": "v6 design の Scenes v6 (TFEKR) に Opening 画面は存在しない。Opening は映像のみで比較対象の design node が無い"
     },
     {
       "claim": "372",
@@ -60,6 +66,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/372-title.png",
+      "designNode": "QJtTv",
       "note": "pen とのピクセル比較は未実施"
     },
     {
@@ -68,7 +75,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/373-history.png"
+      "path": "docs/evidence/368-review-2026-11-12/373-history.png",
+      "designNode": "q9JZcH"
     },
     {
       "claim": "373",
@@ -76,7 +84,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/373-ranking.png"
+      "path": "docs/evidence/368-review-2026-11-12/373-ranking.png",
+      "designNode": "S1TZD"
     },
     {
       "claim": "373",
@@ -94,6 +103,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/374-select.png",
+      "designNode": "OENRv",
       "note": "スケルトン点滅は観測できず (未確認)"
     },
     {
@@ -102,7 +112,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/375-option.png"
+      "path": "docs/evidence/368-review-2026-11-12/375-option.png",
+      "designNode": "B6If6Z"
     },
     {
       "claim": "375",
@@ -110,7 +121,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/375-slider-drag.png"
+      "path": "docs/evidence/368-review-2026-11-12/375-slider-drag.png",
+      "designNode": "z7joSy"
     },
     {
       "claim": "376",
@@ -119,7 +131,17 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/376-keyconfig.png",
+      "designNode": "vo4kB",
       "note": "衝突・リセット操作は未確認"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "376",
+      "state": "Title の F2 前 (キーガイド未表示)",
+      "path": "docs/evidence/368-review-2026-11-12/376-title-before-f2.png",
+      "designNode": "QJtTv"
     },
     {
       "claim": "376",
@@ -127,7 +149,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/376-title-after-f2.png"
+      "path": "docs/evidence/368-review-2026-11-12/376-title-after-f2.png",
+      "designNode": "QJtTv"
     },
     {
       "claim": "378",
@@ -135,7 +158,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/378-loading-video.png"
+      "path": "docs/evidence/368-review-2026-11-12/378-loading-video.png",
+      "designNode": "g4Q3F"
     },
     {
       "claim": "378",
@@ -143,7 +167,53 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/378-loading-placeholder.png"
+      "path": "docs/evidence/368-review-2026-11-12/378-loading-placeholder.png",
+      "designNode": "g4Q3F"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "378",
+      "state": "Ready から GameScene までの連続キャプチャ 01",
+      "path": "docs/evidence/368-review-2026-11-12/378-transition-01.png",
+      "designNode": "g4Q3F"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "378",
+      "state": "Ready から GameScene までの連続キャプチャ 05",
+      "path": "docs/evidence/368-review-2026-11-12/378-transition-05.png",
+      "designNode": "g4Q3F"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "378",
+      "state": "Ready から GameScene までの連続キャプチャ 09",
+      "path": "docs/evidence/368-review-2026-11-12/378-transition-09.png",
+      "designNode": "g4Q3F"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "378",
+      "state": "Ready から GameScene までの連続キャプチャ 13",
+      "path": "docs/evidence/368-review-2026-11-12/378-transition-13.png",
+      "designNode": "g4Q3F"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "378",
+      "state": "Ready から GameScene までの連続キャプチャ 16",
+      "path": "docs/evidence/368-review-2026-11-12/378-transition-16.png",
+      "designNode": "g4Q3F"
     },
     {
       "claim": "379",
@@ -152,6 +222,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/379-hud.png",
+      "designNode": "QrSwA",
       "note": "設計値とのピクセル比較・スコア折返し/ポップは未確認"
     },
     {
@@ -161,6 +232,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/380-playfield.png",
+      "designNode": "nrfw8",
       "note": "設計との線幅比較は目視のみ"
     },
     {
@@ -169,7 +241,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/382-pause.png"
+      "path": "docs/evidence/368-review-2026-11-12/382-pause.png",
+      "designNode": "uDNC0"
     },
     {
       "claim": "382",
@@ -177,7 +250,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/382-countdown-1.png"
+      "path": "docs/evidence/368-review-2026-11-12/382-countdown-1.png",
+      "designNode": "xuQnv"
     },
     {
       "claim": "383",
@@ -185,7 +259,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/383-song-end-overlay.png"
+      "path": "docs/evidence/368-review-2026-11-12/383-song-end-overlay.png",
+      "designNode": "xXKic"
     },
     {
       "claim": "383",
@@ -193,7 +268,17 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/383-end-fade.png"
+      "path": "docs/evidence/368-review-2026-11-12/383-end-fade.png",
+      "designNode": "xXKic"
+    },
+    {
+      "buildSha": "0.1.23+af183bf4",
+      "platform": "macos",
+      "resolution": "3420x2224",
+      "claim": "383",
+      "state": "曲終了から Result へ入った画面",
+      "path": "docs/evidence/368-review-2026-11-12/383-result-from-songend.png",
+      "designNode": "zcSHh"
     },
     {
       "claim": "384",
@@ -201,7 +286,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/384-result-reveal.png"
+      "path": "docs/evidence/368-review-2026-11-12/384-result-reveal.png",
+      "designNode": "zcSHh"
     },
     {
       "claim": "384",
@@ -209,7 +295,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/384-result-skip.png"
+      "path": "docs/evidence/368-review-2026-11-12/384-result-skip.png",
+      "designNode": "zcSHh"
     },
     {
       "claim": "384",
@@ -218,6 +305,7 @@
       "platform": "macos",
       "resolution": "3420x2224",
       "path": "docs/evidence/368-review-2026-11-12/384-result-register.png",
+      "designNode": "lqHaN",
       "note": "登録の実送信は未実施 (本番 API へ書き込まない)"
     }
   ]
