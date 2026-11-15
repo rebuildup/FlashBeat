@@ -114,9 +114,21 @@ public class AutoTestResultInput : MonoBehaviour
     /// 登録モーダルをオンライン方式にする。曲メタデータはカタログの
     /// 実値 (who) を使うが、送信先は CloudCatalogConfig.json の baseUrl
     /// 次第なので、テストではローカル API を指すビルドで使うこと。
+    /// 本番 API への誤送信を防ぐため、解決先が localhost 系でない場合は
+    /// セッション固定を行わずローカル方式のままにする。
     /// </summary>
-    private static void SetupRemoteSession(string remoteId)
+    /// <returns>リモートセッションを固定したら true。</returns>
+    private static bool SetupRemoteSession(string remoteId)
     {
+        string origin = RankingClient.Origin();
+        if (origin.IndexOf("localhost", StringComparison.OrdinalIgnoreCase) < 0
+            && origin.IndexOf("127.0.0.1", StringComparison.OrdinalIgnoreCase) < 0)
+        {
+            Debug.LogError(Tag + " -autotest-remote requires a test API origin " +
+                "(localhost); resolved origin: " + origin);
+            return false;
+        }
+
         int chartVersion = IntArg("-autotest-chart-version", 1);
         int songId = GManager.songID;
         if (songId < 0 || songId >= GManager.ActiveSongs.Length)
@@ -140,6 +152,7 @@ public class AutoTestResultInput : MonoBehaviour
         GManager.miss = IntArg("-autotest-miss", 0);
         GManager.maxCombo = IntArg("-autotest-combo", 0);
         GManager.score = IntArg("-autotest-score", 0);
+        return true;
     }
 
     private static int IntArg(string name, int fallback)
