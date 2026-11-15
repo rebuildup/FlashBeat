@@ -1,0 +1,214 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.460 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x1068bf6d0]: surface size 3420x2148
+UnloadTime: 11.768500 ms
+[FullscreenBootstrap] event=purge-resolution stored=3420x2148, display=3420x2224
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_0nxT4z.mov
+[FullscreenDiagnostics] event=startup, screen=3420x2148, currentResolution=3420x2148@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,3420x2148, displays=1, display0=system:3420x2224,rendering:3420x2148,active:True, quality=1, time=2026-11-15T11:58:17Z
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6SongEnd] start: song='ツイッターランド' outDir='/Users/rebui/work/FlashBeat/docs/evidence/219-playfield-v6playthrough/v6playfield-1-r4' playfield=1'
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 73.848208 ms
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 3550.
+Total: 4.324208 ms (FindLiveObjects: 0.787250 ms CreateObjectMapping: 0.365458 ms MarkObjects: 3.138458 ms  DeleteObjects: 0.032375 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213754994 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=3420x2148
+ro-dokanryou
+[FullscreenBootstrap] event=first-frame, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[UpdateChecker] 最新です (build=0.1.26+b6648930, latest=v0.1.14-macos-39f0c3c) — 現行版のまま続行します。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[AutoTestV6SongEnd] PASS the select scene is loaded
+[AutoTestV6SongEnd] PASS the v6 select view exists
+[AutoTestV6SongEnd] PASS the data source is present
+[AutoTestV6SongEnd] PASS the catalog has more than one song
+[AutoTestV6SongEnd] PASS the song 'ツイッターランド' is in the catalog
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[AutoTestV6SongEnd] PASS the selection follows the picked song
+[AutoTestV6SongEnd] chart: title='ツイッターランド' notes=130
+[FullscreenBootstrap] event=after-legacy-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=after-mode-2s, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[FullscreenBootstrap] event=still-uncovered, screen=3420x2148, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=3420x2148
+[AutoTestV6SongEnd] PASS the screenshot 01-select was written
+[AutoTestV6SongEnd] resetting the session before the play (stale judged=0 stale score=0)
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=local resources
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+[PlaySession] session fixed: songId=4 title='ツイッターランド' remoteId='twitterland' chartVersion=1 chart=snapshot
+[Perf] scene load start GameScene
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 114.961334 ms
+[Perf] notes parse 3ms (130 notes)
+[Perf] notes slow batch 8 notes in 107.7ms at 0-7
+[Perf] scene load end GameScene 1353ms
+[MusicManager] InvidiousVideoPlayer removed for 'ツイッターランド' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[MusicManager] media cache hit videoId=e_qQEU_uGjw (merged) - skipped the yt-dlp format probe
+[Perf] media resolve 2088ms (cache hit)
+[Perf] media files 2089ms
+[Perf] video Prepare() call 26ms file=merged.mp4
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: EditData.notes
+Serialization depth limit 10 exceeded at 'Note.notes'. There may be an object composition cycle in one or more of your serialized classes. Consider rearranging data or use `[SerializeReference]`. 
+
+Serialization hierarchy:
+11: Note.notes
+10: Note.notes
+9: Note.notes
+8: Note.notes
+7: Note.notes
+6: Note.notes
+5: Note.notes
+4: Note.notes
+3: Note.notes
+2: Note.notes
+1: Note.notes
+0: Note.notes
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213746412 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213745530 scene=GameScene children=0
+[AutoTestV6SongEnd] PASS ready starts the game scene
+[AutoTestV6SongEnd] PASS the started song is the picked one
+[AutoTestV6SongEnd] PASS the v6 playfield exists
+[AutoTestV6SongEnd] loading visible after 0.00s
+[AutoTestV6SongEnd] loading probe t=0.0 clip=True prepared=False videoVisible=False surface=Background
+Unloading 67 unused Assets to reduce memory usage. Loaded Objects now: 8356.
+Total: 238.151625 ms (FindLiveObjects: 5.017750 ms CreateObjectMapping: 1.329792 ms MarkObjects: 201.504625 ms  DeleteObjects: 30.298291 ms)
+
+[MusicManager] picture wired to the renderer of '4' (_MainTex, renderMode=MaterialOverride)
+[Perf] video wire picture 20ms
+[Perf] video activate 0ms
+[MusicManager] VideoPlayer prepared=True file=merged.mp4 after 0.1s
+[MusicManager] no bundled wav for 'ツイッターランド' - the YouTube media is the only sound source
+[Perf] media ready 8091ms
+[MusicManager] media ready: song='ツイッターランド' audioMode=StreamCombined video=ok (bundled wav missing) - press Space to start
+[Perf] notes instantiate 130 notes in 8751ms slowestBatch=107.7ms@0
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6SongEnd] PASS the loading screenshot 00-loading-1 was written
+[AutoTestV6SongEnd] loading: observed=True seconds=12.58 chartProgress=0.06
+[AutoTestV6SongEnd] PASS the screenshot 02-game was written
+[AutoTestV6SongEnd] PASS the music manager exists
+[AutoTestV6SongEnd] PASS the media pipeline finished
+[AutoTestV6SongEnd] media: ready=True audioMode=StreamCombined videoPrepared=True failure=None
+[Perf] video Play() call 0ms
+[MusicManager] PLAYBACK_START song='ツイッターランド' videoId='e_qQEU_uGjw' source=StreamCombined mediaTime=0.000 wallClock=2026-11-15T20:58:59.012 gameTime=19.790
+[Perf] video first rendered frame at mediaTime=0.20
+[MusicManager] STATUS mediaTime=0.20 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] PASS the playback started
+Miss
+[MusicManager] STATUS mediaTime=2.30 audioMode=StreamCombined rms=0.3583 peak=0.4992 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=1 failure=None
+Miss
+[MusicManager] STATUS mediaTime=4.63 audioMode=StreamCombined rms=0.1286 peak=0.4992 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=2 failure=None
+Miss
+[MusicManager] STATUS mediaTime=6.63 audioMode=StreamCombined rms=0.2048 peak=0.5082 video[playing=True frame=4158 prepared=True] perfect=0 great=0 bad=0 miss=3 failure=None
+Miss
+[AutoTestV6SongEnd] PASS the screenshot 03-gameplay was written
+[MusicManager] STATUS mediaTime=8.63 audioMode=StreamCombined rms=0.4554 peak=0.5082 video[playing=True frame=4158 prepared=True] perfect=1 great=0 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=10.73 audioMode=StreamCombined rms=0.4206 peak=0.5213 video[playing=True frame=4158 prepared=True] perfect=4 great=1 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=12.93 audioMode=StreamCombined rms=0.1671 peak=0.5213 video[playing=True frame=4158 prepared=True] perfect=9 great=2 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=15.00 audioMode=StreamCombined rms=0.1533 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=13 great=2 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=17.20 audioMode=StreamCombined rms=0.2800 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=25 great=3 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=19.23 audioMode=StreamCombined rms=0.3263 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=37 great=5 bad=0 miss=4 failure=None
+[MusicManager] STATUS mediaTime=21.40 audioMode=StreamCombined rms=0.3380 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=48 great=6 bad=1 miss=4 failure=None
+[MusicManager] STATUS mediaTime=23.47 audioMode=StreamCombined rms=0.3050 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=59 great=8 bad=1 miss=4 failure=None
+Miss
+[MusicManager] STATUS mediaTime=25.57 audioMode=StreamCombined rms=0.3010 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=68 great=9 bad=1 miss=5 failure=None
+[MusicManager] STATUS mediaTime=27.60 audioMode=StreamCombined rms=0.3851 peak=0.5700 video[playing=True frame=4158 prepared=True] perfect=77 great=9 bad=2 miss=5 failure=None
+[MusicManager] STATUS mediaTime=29.80 audioMode=StreamCombined rms=0.3506 peak=0.6582 video[playing=True frame=4158 prepared=True] perfect=78 great=9 bad=3 miss=5 failure=None
+Miss
+[MusicManager] STATUS mediaTime=32.13 audioMode=StreamCombined rms=0.2385 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=79 great=10 bad=4 miss=6 failure=None
+Miss
+Miss
+[MusicManager] STATUS mediaTime=34.23 audioMode=StreamCombined rms=0.2464 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=82 great=12 bad=4 miss=8 failure=None
+[MusicManager] STATUS mediaTime=36.67 audioMode=StreamCombined rms=0.4820 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=88 great=12 bad=5 miss=8 failure=None
+[MusicManager] STATUS mediaTime=38.63 audioMode=StreamCombined rms=0.4728 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=94 great=12 bad=5 miss=8 failure=None
+[MusicManager] STATUS mediaTime=40.93 audioMode=StreamCombined rms=0.4385 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=103 great=14 bad=5 miss=8 failure=None
+[MusicManager] STATUS mediaTime=43.27 audioMode=StreamCombined rms=0.1233 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=103 great=14 bad=5 miss=8 failure=None
+[MusicManager] song completed: judged 130/130, mediaEnded=False, state=Completed
+[MusicManager] STATUS mediaTime=45.50 audioMode=StreamCombined rms=0.0000 peak=0.6957 video[playing=True frame=4158 prepared=True] perfect=103 great=14 bad=5 miss=8 failure=None
+[Perf] scene load start ResultScene
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 334.560750 ms
+[Perf] scene load end ResultScene 1601ms
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213730232 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6SongEnd] playback summary: songEndState=Completed mediaTime=47.37 hitsSent=123 perfect=103 great=14 bad=5 miss=8 score=864615 combo=28 maxCombo=73 comboPeak=71 judged=130 settled=130 chartNotes=130 runtimeNotes=130 forcedByDeadline=False
+[AutoTestV6SongEnd] PASS the media clock advances
+[AutoTestV6SongEnd] PASS the chart note count is known
+[AutoTestV6SongEnd] PASS the runtime note count matches the chart (runtimeNotes == chartNotes)
+[AutoTestV6SongEnd] PASS every chart note is settled (settled == chart notes)
+[AutoTestV6SongEnd] PASS the score is greater than zero
+[AutoTestV6SongEnd] PASS the combo rises above zero during the playback (GManager.combo peaked above zero)
+[AutoTestV6SongEnd] PASS the peak combo is recorded (GManager.maxCombo > 0)
+[AutoTestV6SongEnd] PASS the song end state machine completes
+[AutoTestV6SongEnd] PASS the song end is not a forced deadline completion
+[AutoTestV6SongEnd] PASS the result scene is loaded
+Unloading 45 unused Assets to reduce memory usage. Loaded Objects now: 4188.
+Total: 108.289292 ms (FindLiveObjects: 3.746916 ms CreateObjectMapping: 0.368292 ms MarkObjects: 102.888666 ms  DeleteObjects: 1.285292 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6SongEnd] result screen: v6ResultCanvas=True nonEmptyTextUnderCanvas=True titleFound=True scoreFound=True textsUnderCanvas=73 texts=184 scene=ResultScene
+[AutoTestV6SongEnd] PASS the v6 result canvas exists
+[AutoTestV6SongEnd] PASS the v6 result canvas has non-empty text
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the song title
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the final score
+[AutoTestV6SongEnd] PASS the screenshot 04-result was written
+[AutoTestV6SongEnd] PASS the judgement total equals the chart note count (the ranking acceptance condition)
+[AutoTestV6SongEnd] PASS the ranking registration mode is resolved
+[AutoTestV6SongEnd] ranking: judged=130 chartNotes=130 registrationMode=Online
+[AutoTestV6SongEnd] RESULT pass=33 fail=0
+Thread 0x16d3db000 may have been prematurely finalized
+Thread 0x16d34f000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16c373000 may have been prematurely finalized
+CodeReloadManager destroyed
