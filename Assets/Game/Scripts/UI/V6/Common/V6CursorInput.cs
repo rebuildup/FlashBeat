@@ -133,9 +133,10 @@ namespace FlashBeat.UI.V6.Common
 
         /// <summary>
         /// 入力欄へフォーカスし、全選択状態で開く (Issue #425)。
-        /// caret を先に文末へ置き、選択範囲を最後に設定する (逆順だと選択が潰れる)。
-        /// 何も打たずに Enter なら現在の文字列がそのまま確定し、何か入力すれば
-        /// 選択範囲が置き換わる。
+        /// 文字列位置で選択する (caret 位置は TMP の textInfo 生成前だと
+        /// 0 へクランプされて選択が潰れるため、編集判定が使う string index
+        /// 側を直接置く)。何も打たずに Enter なら現在の文字列がそのまま
+        /// 確定し、何か入力すれば選択範囲が置き換わる。
         /// </summary>
         public static void FocusSelectAll(TMP_InputField input)
         {
@@ -150,9 +151,8 @@ namespace FlashBeat.UI.V6.Common
             }
 
             input.ActivateInputField();
-            input.caretPosition = input.text.Length;
-            input.selectionAnchorPosition = 0;
-            input.selectionFocusPosition = input.text.Length;
+            input.selectionStringAnchorPosition = 0;
+            input.selectionStringFocusPosition = input.text.Length;
         }
 
         /// <summary>
