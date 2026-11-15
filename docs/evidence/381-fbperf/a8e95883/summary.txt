@@ -1,0 +1,30 @@
+== all scenes ==
+GameScene: windows=8
+  avgFps  min=60.0  median=60.0  max=60.0
+  p95 ms  median=16.70  worst=16.70
+  p99 ms  median=16.70  worst=16.70
+  worst frame ms  max=16.7
+  gc0 total=59  gcKBPerFrame median=0.4
+ResultScene: windows=1
+  avgFps  min=60.0  median=60.0  max=60.0
+  p95 ms  median=16.70  worst=16.70
+  p99 ms  median=16.70  worst=16.70
+  worst frame ms  max=16.7
+  gc0 total=0  gcKBPerFrame median=1.1
+SelectScene: windows=1
+  avgFps  min=60.2  median=60.2  max=60.2
+  p95 ms  median=16.70  worst=16.70
+  p99 ms  median=16.70  worst=16.70
+  worst frame ms  max=16.7
+  gc0 total=0  gcKBPerFrame median=0.4
+
+== GameScene (steady state) ==
+GameScene: windows=8
+  avgFps  min=60.0  median=60.0  max=60.0
+  p95 ms  median=16.70  worst=16.70
+  p99 ms  median=16.70  worst=16.70
+  worst frame ms  max=16.7
+  gc0 total=59  gcKBPerFrame median=0.4
+
+== spikes (frame > 250ms) ==
+none
