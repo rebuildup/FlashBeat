@@ -351,12 +351,21 @@ function positionalArgs(args: string[], valueFlags: string[]): string[] {
 
 const VALUE_FLAGS = ['--notes', '--out'];
 
+const USAGE = 'usage: report.mts <manifest.json> [--notes <notes.json>] [--out <file>]';
+
 function main(argv: string[]): number {
   const args = argv.slice(2);
   const manifestPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!manifestPath) {
-    console.error('usage: report.mts <manifest.json> [--notes <notes.json>] [--out <file>]');
+    console.error(USAGE);
     return 2;
+  }
+  for (const flag of VALUE_FLAGS) {
+    const i = args.indexOf(flag);
+    if (i >= 0 && (!args[i + 1] || args[i + 1].startsWith('--'))) {
+      console.error(`${flag} requires a value\n${USAGE}`);
+      return 2;
+    }
   }
 
   const manifest = JSON.parse(readFileSync(resolve(manifestPath), 'utf8')) as Manifest;

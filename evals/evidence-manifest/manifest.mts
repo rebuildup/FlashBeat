@@ -336,12 +336,22 @@ function positionalArgs(args: string[], valueFlags: string[]): string[] {
 
 const VALUE_FLAGS = ['--root', '--out', '--pen'];
 
+const USAGE =
+  'usage: manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]';
+
 function main(argv: string[]): number {
   const args = argv.slice(2);
   const inputPath = positionalArgs(args, VALUE_FLAGS)[0];
   if (!inputPath) {
-    console.error('usage: manifest.mts <records.json> [--root <dir>] [--out <file>] [--pen <file.pen>]');
+    console.error(USAGE);
     return 2;
+  }
+  for (const flag of VALUE_FLAGS) {
+    const i = args.indexOf(flag);
+    if (i >= 0 && (!args[i + 1] || args[i + 1].startsWith('--'))) {
+      console.error(`${flag} requires a value\n${USAGE}`);
+      return 2;
+    }
   }
 
   const rootFlag = args.indexOf('--root');
