@@ -29,6 +29,44 @@
 
 なし。
 
+### 証跡一覧 (creditable)
+
+| Issue | 状態 | 証跡 | design 参照 |
+|---|---|---|---|
+| #369 | 初回起動のウィンドウ位置とサイズ | `docs/evidence/368-review-2026-11-12/369-launch-1.png` | `QJtTv` |
+| #369 | 5 回連続起動の再現性 | `docs/evidence/368-review-2026-11-12/369-launch-5.png` | `QJtTv` |
+| #370 | 設定行の固定列 | `docs/evidence/368-review-2026-11-12/370-rows.png` | `wSjAm` |
+| #370 | 閉じるボタン (x + Esc) | `docs/evidence/368-review-2026-11-12/370-close-button.png` | `wSjAm` |
+| #370 | 戻るボタン (hug 幅) | `docs/evidence/368-review-2026-11-12/370-back-button.png` | `rw7zx` |
+| #371 | Opening は映像のみ | `docs/evidence/368-review-2026-11-12/371-opening.png` | 対象外 |
+| #372 | Title の背景が全画面 | `docs/evidence/368-review-2026-11-12/372-title.png` | `QJtTv` |
+| #373 | History の背景映像と右上の楽曲表示 | `docs/evidence/368-review-2026-11-12/373-history.png` | `q9JZcH` |
+| #373 | Title から入った Ranking の背景映像 | `docs/evidence/368-review-2026-11-12/373-ranking.png` | `S1TZD` |
+| #373 | Ranking の右上ジャケット | `docs/evidence/368-review-2026-11-12/373-ranking-top-right.png` | `S1TZD` |
+| #374 | Select の中央パネル組版 | `docs/evidence/368-review-2026-11-12/374-select.png` | `OENRv` |
+| #375 | Option のレーンプレビューとキー一覧 | `docs/evidence/368-review-2026-11-12/375-option.png` | `B6If6Z` |
+| #375 | 音量スライダのドラッグ追従 | `docs/evidence/368-review-2026-11-12/375-slider-drag.png` | `z7joSy` |
+| #376 | キー設定モーダル | `docs/evidence/368-review-2026-11-12/376-keyconfig.png` | `vo4kB` |
+| #376 | Title の F2 前 (キーガイド未表示) | `docs/evidence/368-review-2026-11-12/376-title-before-f2.png` | `QJtTv` |
+| #376 | Title で F2 を押した後 (何も起きない) | `docs/evidence/368-review-2026-11-12/376-title-after-f2.png` | `QJtTv` |
+| #378 | ローディング画面の映像背景 | `docs/evidence/368-review-2026-11-12/378-loading-video.png` | `g4Q3F` |
+| #378 | ローディング画面のプレースホルダ | `docs/evidence/368-review-2026-11-12/378-loading-placeholder.png` | `g4Q3F` |
+| #378 | Ready から GameScene までの連続キャプチャ 01 | `docs/evidence/368-review-2026-11-12/378-transition-01.png` | `g4Q3F` |
+| #378 | Ready から GameScene までの連続キャプチャ 05 | `docs/evidence/368-review-2026-11-12/378-transition-05.png` | `g4Q3F` |
+| #378 | Ready から GameScene までの連続キャプチャ 09 | `docs/evidence/368-review-2026-11-12/378-transition-09.png` | `g4Q3F` |
+| #378 | Ready から GameScene までの連続キャプチャ 13 | `docs/evidence/368-review-2026-11-12/378-transition-13.png` | `g4Q3F` |
+| #378 | Ready から GameScene までの連続キャプチャ 16 | `docs/evidence/368-review-2026-11-12/378-transition-16.png` | `g4Q3F` |
+| #379 | HUD 上部シェードと歌詞スロット | `docs/evidence/368-review-2026-11-12/379-hud.png` | `QrSwA` |
+| #380 | レーンガイドが画面下端まで延びる | `docs/evidence/368-review-2026-11-12/380-playfield.png` | `nrfw8` |
+| #382 | ポーズメニュー | `docs/evidence/368-review-2026-11-12/382-pause.png` | `uDNC0` |
+| #382 | 再開カウントダウンの数字 | `docs/evidence/368-review-2026-11-12/382-countdown-1.png` | `xuQnv` |
+| #383 | 曲終了の表示 | `docs/evidence/368-review-2026-11-12/383-song-end-overlay.png` | `xXKic` |
+| #383 | 終端の暗転フェード | `docs/evidence/368-review-2026-11-12/383-end-fade.png` | `xXKic` |
+| #383 | 曲終了から Result へ入った画面 | `docs/evidence/368-review-2026-11-12/383-result-from-songend.png` | `zcSHh` |
+| #384 | Result の段階表示の途中 | `docs/evidence/368-review-2026-11-12/384-result-reveal.png` | `zcSHh` |
+| #384 | Space スキップ後の Result | `docs/evidence/368-review-2026-11-12/384-result-skip.png` | `zcSHh` |
+| #384 | 登録モーダル (名前入力) | `docs/evidence/368-review-2026-11-12/384-result-register.png` | `lqHaN` |
+
 ### design 対象外の主張 (designNotApplicable)
 
 | Issue | 状態 | 理由 |
@@ -38,6 +76,10 @@
 ## 3. レビューの読み (人の解釈)
 
 > ここは機械判定ではありません。**合格の主張ではありません。**
+
+### #370
+
+Option 設定の行が「アイコン + ラベル + 前矢印 + 値 + 次矢印」の固定列で揃い、閉じる / 戻るボタンは hug 幅で x アイコン + Esc / 戻るアイコン + Esc を表示する (370-settings.png / 370-rows.png / 370-settings-button.png / 370-close-button.png / 370-back-button.png)。
 
 ### #371
 
@@ -142,7 +184,7 @@ Select を離れて戻ったとき、譜面メタとジャケットを Resources
 ## 4. この報告で言えないこと
 
 - 画面が設計どおりに正しいか (design とのピクセル比較は未実施)。
-- 実 Win64 での動作 (この報告の evidence はすべて macOS かどうかで決まる)。
+- creditable evidence の platform は macos のみ。含まれない platform (例: Win64) での動作はこの報告では言えない。
 - 未確認の操作が実機で成立するか。
 
-報告時点の完全性: **未確認なし**
+報告時点の完全性: **未確認あり (unproven 18 件)**

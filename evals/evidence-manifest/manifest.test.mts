@@ -58,6 +58,10 @@ describe('build identity', () => {
     expect(sameBuild('0.1.23+af183bf4', '0.1.23+b5b98a6e')).toBe(false);
     expect(sameBuild('0.1.23', '0.1.23+af183bf4')).toBe(false);
   });
+
+  test('the same sha under a different version is a different build', () => {
+    expect(sameBuild('0.1.23+af183bf4', '9.9.9+af183bf4')).toBe(false);
+  });
 });
 
 describe('platform rules', () => {

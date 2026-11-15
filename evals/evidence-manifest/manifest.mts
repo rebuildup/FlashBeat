@@ -122,28 +122,30 @@ export function shortSha(build: string | undefined): string | undefined {
 }
 
 /**
- * Two builds are the same artefact when their short shas agree. The version
- * prefix alone is never enough: 0.1.23 was built from several commits.
+ * Two builds are the same artefact when their version prefix *and* short sha
+ * agree. The sha alone is not enough (a version bump can share it), and the
+ * version alone is never enough: 0.1.23 was built from several commits.
  */
 export function sameBuild(a: string | undefined, b: string | undefined): boolean {
   const shaA = shortSha(a);
   const shaB = shortSha(b);
-  if (!shaA || !shaB) return false;
-  return shaA.toLowerCase() === shaB.toLowerCase();
+  if (!shaA || !shaB || shaA.toLowerCase() !== shaB.toLowerCase()) return false;
+  const verA = a?.slice(0, a.lastIndexOf('+')).trim().toLowerCase();
+  const verB = b?.slice(0, b.lastIndexOf('+')).trim().toLowerCase();
+  return verA === verB;
 }
 
-/** Platforms that may be credited to the candidate platform. */
+/**
+ * Platforms that may be credited to the candidate platform. Evidence is
+ * platform-exact: a macOS capture never satisfies a Win64 candidate, WSL is a
+ * Linux guest and is never Windows-native, and `editor` captures are not a
+ * built player at all.
+ */
 export function platformMatches(
   capture: EvidencePlatform | undefined,
   candidate: EvidencePlatform,
 ): boolean {
-  if (!capture) return false;
-  if (capture === candidate) return true;
-  // WSL is a Linux guest: it is never Windows-native evidence.
-  if (candidate === 'win64' && capture === 'wsl') return false;
-  if (candidate === 'win64' && capture === 'macos') return false;
-  if (candidate === 'wsl' && capture === 'win64') return false;
-  return false;
+  return capture !== undefined && capture === candidate;
 }
 
 /**
@@ -353,6 +355,11 @@ function main(argv: string[]): number {
   if (penPath) {
     const pen = JSON.parse(readFileSync(resolve(penPath), 'utf8')) as unknown;
     input.designNodes = collectDesignNodeIds(pen);
+  } else if (input.records.some((r) => r.designNode)) {
+    console.error(
+      'warning: records carry designNode but --pen was not given; ' +
+        'the design-node check is skipped for this run',
+    );
   }
   const manifest = buildManifest(input, root);
   const text = JSON.stringify(manifest, null, 2) + '\n';

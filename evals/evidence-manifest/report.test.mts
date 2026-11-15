@@ -12,6 +12,7 @@ import {
   claimsWithoutDesignNode,
   deterministicFindings,
   renderMarkdown,
+  verdictLanguageViolations,
   type HumanDecision,
   type ResolvedDecision,
   type ReviewNote,
@@ -214,7 +215,44 @@ describe('markdown', () => {
     const manifest = manifestOf([record()]);
     const md = renderMarkdown(buildReport({ manifest }), manifest);
     expect(md).toContain('## 4. この報告で言えないこと');
-    expect(md).toContain('実 Win64 での動作');
+    expect(md).toContain('Win64');
+    expect(md).toContain('macos');
+  });
+
+  test('unproven reviewer items keep the report incomplete and are counted', () => {
+    const manifest = manifestOf([record()]);
+    const report = buildReport({ manifest, notes: [note] });
+    expect(report.unproven).toBe(1);
+    expect(report.complete).toBe(false);
+    const md = renderMarkdown(report, manifest);
+    expect(md).toContain('未確認あり (unproven 1 件)');
+    expect(md).not.toContain('未確認なし');
+  });
+
+  test('every creditable claim links to its source evidence', () => {
+    const manifest = manifestOf([record()]);
+    const md = renderMarkdown(buildReport({ manifest }), manifest);
+    expect(md).toContain('### 証跡一覧 (creditable)');
+    expect(md).toContain('`docs/evidence/368-review-2026-11-12/369-launch-1.png`');
+    expect(md).toContain('`QJtTv`');
+  });
+
+  test('verdict language in notes is rejected', () => {
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: 'looks APPROVED to me', unproven: [] }],
+      }),
+    ).toHaveLength(1);
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: '映像のみ', unproven: ['PASS 未確認'] }],
+      }),
+    ).toHaveLength(1);
+    expect(
+      verdictLanguageViolations({
+        notes: [{ claim: '371', observation: '映像のみ', unproven: [] }],
+      }),
+    ).toEqual([]);
   });
 
   test('says so plainly when there is nothing to decide', () => {

@@ -66,16 +66,19 @@ mise run evidence-manifest-test   # 単体テスト (負例を含む)
 
 | 状態 | 件数 |
 |---|---|
-| `creditable` | 26 |
+| `creditable` | 33 |
 | `unverified` | 0 |
 | `stale` | 0 |
 | `missing` | 0 |
 | `mismatch` | 0 |
 
-26 件はすべて macOS 3420×2224・ビルド `0.1.23+af183bf4` の撮影で、候補と一致する。
-`designNode` は 25/26 件に割り当て済み (残る 1 件は #371 Opening で、
-v6 design に Opening 画面のノードが存在しないため意図的に未設定)。
-**これは「26 件の画面が設計どおり」を意味しない。** visual acceptance は #389 の仕事で、
+33 件はすべて macOS 3420×2224・ビルド `0.1.23+af183bf4` の撮影で、候補と一致する。
+`designNode` は 32/33 件に割り当て済み。残る 1 件は #371 Opening で、
+v6 design の Scenes v6 に Opening 画面のノードが存在しないため
+`designNotApplicable` (理由付きの exempt) として記録している。
+`--pen` を付けずに designNode 付きのレコードを生成すると、design 照合が
+スキップされた旨の warning が stderr に出る。
+**これは「33 件の画面が設計どおり」を意味しない。** visual acceptance は #389 の仕事で、
 現時点で未達の項目 (メニューバー 76 px、スケルトン点滅、ピクセル比較、登録の実送信) は
 README と各 Issue に未達として残っている。
 
