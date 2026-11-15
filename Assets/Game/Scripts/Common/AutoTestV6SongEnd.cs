@@ -233,7 +233,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
         yield return new WaitForEndOfFrame();
         string selectShot = CaptureScreenshot("01-select");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(selectShot, 5f);
         Check("the screenshot 01-select was written", File.Exists(selectShot));
 
         // 3. Ready → ゲーム画面 (実セッションとして遷移する)。
@@ -277,7 +277,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return new WaitForEndOfFrame();
         string gameShot = CaptureScreenshot("02-game");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(gameShot, 5f);
         Check("the screenshot 02-game was written", File.Exists(gameShot));
 
         // 4. メディアの準備 (実機の yt-dlp ダウンロード) を待つ。
@@ -306,7 +306,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("the playback started", music.PlaybackStarted);
         yield return new WaitForEndOfFrame();
         string playShot = CaptureScreenshot("03-gameplay");
-        yield return new WaitForSecondsRealtime(0.8f);
+        yield return WaitForFile(playShot, 5f);
         Check("the screenshot 03-gameplay was written", File.Exists(playShot));
 
         // 6. 再生 → 判定 → 曲終了 → Result まで待つ。
@@ -400,13 +400,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
             yield return new WaitForEndOfFrame();
             string resultShot = CaptureScreenshot("04-result");
-            // ScreenCapture.CaptureScreenshot は非同期。ファイルが出来るまで待つ。
-            float shotWaited = 0f;
-            while (!File.Exists(resultShot) && shotWaited < 5f)
-            {
-                shotWaited += 0.2f;
-                yield return new WaitForSecondsRealtime(0.2f);
-            }
+            yield return WaitForFile(resultShot, 5f);
             Check("the screenshot 04-result was written", File.Exists(resultShot));
         }
 
@@ -615,6 +609,20 @@ public class AutoTestV6SongEnd : MonoBehaviour
         return GManager.score.ToString("N0", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// ScreenCapture.CaptureScreenshot は非同期。ファイルが出来るまで待つ
+    /// (固定の短い待機では低 FPS / フレーム飛びで誤 FAIL になる)。
+    /// </summary>
+    IEnumerator WaitForFile(string path, float timeoutSeconds)
+    {
+        float waited = 0f;
+        while (!File.Exists(path) && waited < timeoutSeconds)
+        {
+            waited += 0.2f;
+            yield return new WaitForSecondsRealtime(0.2f);
+        }
+    }
+
     /// <summary>スクリーンショットのファイル名を返す (撮影自体は同期)。</summary>
     string CaptureScreenshot(string name)
     {
@@ -689,7 +697,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
                     loadingShots++;
                     nextShotAt = elapsed + 0.8f;
                     string path = CaptureScreenshot("00-loading-" + loadingShots);
-                    yield return new WaitForSecondsRealtime(0.4f);
+                    yield return WaitForFile(path, 5f);
                     Check("the loading screenshot 00-loading-" + loadingShots + " was written", File.Exists(path));
                 }
             }
