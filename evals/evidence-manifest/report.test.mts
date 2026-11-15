@@ -8,6 +8,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildManifest, type EvidenceRecord, type ManifestInput } from '../evidence-manifest/manifest.mts';
 import {
   buildReport,
+  claimsDesignNotApplicable,
   claimsWithoutDesignNode,
   deterministicFindings,
   renderMarkdown,
@@ -85,6 +86,14 @@ describe('deterministic findings', () => {
     expect(noNode).toHaveLength(1);
     expect(noNode[0].claim).toBe('371');
   });
+
+  test('designNotApplicable exempts a claim that has no design by design', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    expect(claimsWithoutDesignNode(manifest)).toEqual([]);
+    expect(claimsDesignNotApplicable(manifest)).toHaveLength(1);
+  });
 });
 
 describe('report completeness', () => {
@@ -108,6 +117,13 @@ describe('report completeness', () => {
   test('is incomplete when a claim has no design node', () => {
     const manifest = manifestOf([record({ designNode: undefined })]);
     expect(buildReport({ manifest }).complete).toBe(false);
+  });
+
+  test('is complete when the only node-less claim is designNotApplicable', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    expect(buildReport({ manifest }).complete).toBe(true);
   });
 
   test('is incomplete when any evidence is not creditable', () => {
@@ -170,6 +186,17 @@ describe('markdown', () => {
     const md = renderMarkdown(buildReport({ manifest }), manifest);
     expect(md).toContain('design ノード参照が無い主張');
     expect(md).toContain('#371');
+  });
+
+  test('lists designNotApplicable claims under their own heading with the reason', () => {
+    const manifest = manifestOf([
+      record({ designNode: undefined, designNotApplicable: 'v6 design に Opening 画面は無い' }),
+    ]);
+    const md = renderMarkdown(buildReport({ manifest }), manifest);
+    expect(md).toContain('design 対象外の主張');
+    expect(md).toContain('v6 design に Opening 画面は無い');
+    // And it must not also appear as a missing reference.
+    expect(md).toContain('design ノード参照が無い主張\n\nなし。');
   });
 
   test('separates the reviewer reading from the machine findings', () => {

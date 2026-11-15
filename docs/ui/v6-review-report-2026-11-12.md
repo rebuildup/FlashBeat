@@ -27,11 +27,13 @@
 
 ### design ノード参照が無い主張
 
-1 件。design との照合ができないため、視覚的な妥当性は未確認です。
+なし。
 
-| Issue | 状態 |
-|---|---|
-| #371 | Opening は映像のみ |
+### design 対象外の主張 (designNotApplicable)
+
+| Issue | 状態 | 理由 |
+|---|---|---|
+| #371 | Opening は映像のみ | v6 design の Scenes v6 (TFEKR) に Opening 画面は存在しない。Opening は映像のみで比較対象の design node が無い |
 
 ## 3. レビューの読み (人の解釈)
 
@@ -143,4 +145,4 @@ Select を離れて戻ったとき、譜面メタとジャケットを Resources
 - 実 Win64 での動作 (この報告の evidence はすべて macOS かどうかで決まる)。
 - 未確認の操作が実機で成立するか。
 
-報告時点の完全性: **未確認あり**
+報告時点の完全性: **未確認なし**

@@ -64,6 +64,13 @@ export interface EvidenceRecord {
   path: string;
   /** design/flashbeat-ui.pen node the capture is compared against. */
   designNode?: string;
+  /**
+   * Reason the claim has no design node by design (e.g. a screen the v6
+   * design does not cover). Only meaningful without `designNode`; it marks
+   * the claim as intentionally exempt from design comparison rather than
+   * silently missing a reference.
+   */
+  designNotApplicable?: string;
   /** Free-form note; never affects the status. */
   note?: string;
 }

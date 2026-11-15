@@ -56,7 +56,8 @@
       "buildSha": "0.1.23+af183bf4",
       "platform": "macos",
       "resolution": "3420x2224",
-      "path": "docs/evidence/368-review-2026-11-12/371-opening.png"
+      "path": "docs/evidence/368-review-2026-11-12/371-opening.png",
+      "designNotApplicable": "v6 design の Scenes v6 (TFEKR) に Opening 画面は存在しない。Opening は映像のみで比較対象の design node が無い"
     },
     {
       "claim": "372",

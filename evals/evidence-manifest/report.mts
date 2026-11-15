@@ -98,7 +98,18 @@ export function deterministicFindings(manifest: Manifest): DeterministicFinding[
  * compare against the design, so it is reported rather than hidden.
  */
 export function claimsWithoutDesignNode(manifest: Manifest): ManifestEntry[] {
-  return manifest.entries.filter((e) => e.status === 'creditable' && !e.designNode);
+  return manifest.entries.filter(
+    (e) => e.status === 'creditable' && !e.designNode && !e.designNotApplicable,
+  );
+}
+
+/**
+ * Claims that carry no design node on purpose (`designNotApplicable`), e.g. a
+ * screen the v6 design does not cover. They are listed so the exemption stays
+ * auditable instead of invisible.
+ */
+export function claimsDesignNotApplicable(manifest: Manifest): ManifestEntry[] {
+  return manifest.entries.filter((e) => e.status === 'creditable' && !e.designNode && !!e.designNotApplicable);
 }
 
 export function buildReport(input: ReviewInput): ReviewReport {
@@ -201,6 +212,16 @@ export function renderMarkdown(report: ReviewReport, manifest: Manifest): string
     for (const e of noNode) lines.push(`| #${e.claim} | ${e.state} |`);
   }
   lines.push('');
+
+  const exempt = claimsDesignNotApplicable(manifest);
+  if (exempt.length > 0) {
+    lines.push('### design 対象外の主張 (designNotApplicable)');
+    lines.push('');
+    lines.push('| Issue | 状態 | 理由 |');
+    lines.push('|---|---|---|');
+    for (const e of exempt) lines.push(`| #${e.claim} | ${e.state} | ${e.designNotApplicable} |`);
+    lines.push('');
+  }
 
   lines.push('## 3. レビューの読み (人の解釈)');
   lines.push('');
