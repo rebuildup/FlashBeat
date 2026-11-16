@@ -231,6 +231,58 @@ public sealed class V6FrameContainmentTests
         }
     }
 
+    // --- 画面クリップ分類 (情報記録用、fail にはしない) ---
+
+    [Test]
+    public void ClassifyScreenClip_InsideElement_IsInside()
+    {
+        var screen = new Rect(0f, 0f, 1920f, 1080f);
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Inside,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(96f, 54f, 200f, 80f), screen));
+    }
+
+    [Test]
+    public void ClassifyScreenClip_EdgeOverlap_IsPartial()
+    {
+        var screen = new Rect(0f, 0f, 1024f, 768f);
+        // 左端からはみ出すボタン (見える部分が残る)。
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Partial,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(-100f, 300f, 200f, 60f), screen));
+        // 右端をわずかに越える。
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Partial,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(1000f, 300f, 60f, 60f), screen));
+    }
+
+    [Test]
+    public void ClassifyScreenClip_FullyBeyondEdge_IsOutside()
+    {
+        var screen = new Rect(0f, 0f, 1024f, 768f);
+        // フッター相当: 画面下端より完全に下。
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Outside,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(100f, 800f, 300f, 96f), screen));
+        // 画面左端より完全に左。
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Outside,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(-400f, 300f, 200f, 60f), screen));
+    }
+
+    [Test]
+    public void ClassifyScreenClip_ScreenSizedElement_IsInside()
+    {
+        var screen = new Rect(0f, 0f, 1024f, 768f);
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Inside,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(0f, 0f, 1024f, 768f), screen));
+    }
+
+    [Test]
+    public void ClassifyScreenClip_OversizedElement_IsPartial()
+    {
+        // 画面を全方向にはみ出す要素 (Dim 等) は Outside ではなく Partial。
+        // Selectable / Text の走査対象には通常出ないが、分類の退化ケースを固定する。
+        var screen = new Rect(0f, 0f, 1024f, 768f);
+        Assert.AreEqual(V6ScreenAudit.ScreenClip.Partial,
+            V6ScreenAudit.ClassifyScreenClip(new Rect(-50f, -50f, 1124f, 868f), screen));
+    }
+
     // --- Unicode 記号アイコン検出 ---
 
     [Test]

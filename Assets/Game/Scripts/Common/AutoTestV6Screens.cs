@@ -61,6 +61,7 @@ public class AutoTestV6Screens : MonoBehaviour
         public int Fail;
         public int Symbols;
         public readonly List<string> Shots = new List<string>();
+        public readonly List<string> Notes = new List<string>();
     }
 
     private IEnumerator Start()
@@ -401,6 +402,7 @@ public class AutoTestV6Screens : MonoBehaviour
         AuditFrameContainment(report);
         AuditLegacy(report);
         AuditUnicodeSymbols(report);
+        AuditScreenClip(report);
     }
 
     /// <summary>
@@ -592,6 +594,131 @@ public class AutoTestV6Screens : MonoBehaviour
         return count;
     }
 
+    /// <summary>
+    /// 画面端で切れる要素の列挙 (情報のみ、pass/fail にしない)。
+    /// 固定フレーム契約 (1728×972 を 1:1、origin は中央寄せ) では、
+    /// フレームより小さい解像度 (1024×768 / 1280×720 など) で
+    /// 画面外に出る操作・情報が発生しうる。#96 の「画面外に失われる
+    /// 情報・操作がないか」の判定材料として、表示中の Selectable
+    /// (押せる面) と Text を実画面矩形と照合し、はみ出しを記録する。
+    /// Scroll / Mask 内の要素は「スクロール親の矩形 ∩ 実画面」の内側に
+    /// 収まる限り対象外 (スクロールで到達できるため)。スクロール親が
+    /// 画面外にはみ出す場合は、その交差領域を基準に判定するので、
+    /// 縦スクロールリストの左右クリップは引き続き検出される。
+    /// </summary>
+    private void AuditScreenClip(ScreenReport report)
+    {
+        var screen = new Rect(0f, 0f, Screen.width, Screen.height);
+        var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        int selPartial = 0;
+        int selOutside = 0;
+        int textPartial = 0;
+        int textOutside = 0;
+        int lines = 0;
+        const int MaxLines = 80;
+
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (!V6ScreenAudit.IsV6Canvas(canvas) || !canvas.gameObject.activeInHierarchy) { continue; }
+
+            var selectables = canvas.GetComponentsInChildren<Selectable>(false);
+            for (int s = 0; s < selectables.Length; s++)
+            {
+                var sel = selectables[s];
+                if (sel == null || !sel.IsInteractable()) { continue; }
+                var rt = sel.transform as RectTransform;
+                if (rt == null) { continue; }
+                var clip = ClassifyElementClip(sel.transform, canvas.transform, rt, screen);
+                if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
+                if (clip == V6ScreenAudit.ScreenClip.Outside) { selOutside++; } else { selPartial++; }
+                if (lines < MaxLines)
+                {
+                    lines++;
+                    report.Notes.Add("[clip] selectable " + clip.ToString().ToLowerInvariant()
+                        + " " + V6ScreenAudit.Path(sel.transform)
+                        + " rect=" + V6ScreenAudit.WorldRect(rt).ToString("F0"));
+                }
+            }
+
+            AuditClipTexts(canvas, report, screen, ref textPartial, ref textOutside, ref lines, MaxLines);
+        }
+
+        report.Notes.Add("[clip] summary screen=" + Screen.width + "x" + Screen.height
+            + " selectables partial=" + selPartial + " outside=" + selOutside
+            + " texts partial=" + textPartial + " outside=" + textOutside
+            + (lines >= MaxLines ? " (list truncated at " + MaxLines + " lines)" : string.Empty));
+        Debug.Log("[AutoTestV6Screens] CLIP " + report.Label
+            + " selectables partial=" + selPartial + " outside=" + selOutside
+            + " texts partial=" + textPartial + " outside=" + textOutside);
+    }
+
+    /// <summary>
+    /// 1 要素の画面クリップ種別。スクロール親がある場合は
+    /// 「スクロール親のワールド矩形 ∩ 実画面」を基準矩形にする
+    /// (スクロールで画面内へ到達できる範囲を到達可能とみなす)。
+    /// </summary>
+    private static V6ScreenAudit.ScreenClip ClassifyElementClip(
+        Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
+    {
+        var basis = screen;
+        var scroll = V6ScreenAudit.FindScrollAncestor(node, canvasRoot) as RectTransform;
+        if (scroll != null)
+        {
+            var sr = V6ScreenAudit.WorldRect(scroll);
+            float x0 = Mathf.Max(sr.xMin, screen.xMin);
+            float y0 = Mathf.Max(sr.yMin, screen.yMin);
+            float x1 = Mathf.Min(sr.xMax, screen.xMax);
+            float y1 = Mathf.Min(sr.yMax, screen.yMax);
+            if (x1 > x0 && y1 > y0)
+            {
+                basis = Rect.MinMaxRect(x0, y0, x1, y1);
+            }
+        }
+
+        return V6ScreenAudit.ClassifyScreenClip(V6ScreenAudit.WorldRect(rt), basis);
+    }
+
+    /// <summary>TMP_Text とレガシー Text の両方を走査してクリップを記録する。</summary>
+    private void AuditClipTexts(Canvas canvas, ScreenReport report, Rect screen,
+        ref int textPartial, ref int textOutside, ref int lines, int maxLines)
+    {
+        var tmpTexts = canvas.GetComponentsInChildren<TMP_Text>(false);
+        for (int t = 0; t < tmpTexts.Length; t++)
+        {
+            var tmp = tmpTexts[t];
+            NoteClippedText(tmp == null ? null : tmp.transform, tmp == null ? null : tmp.text,
+                canvas.transform, screen, report, ref textPartial, ref textOutside, ref lines, maxLines);
+        }
+
+        var legacyTexts = canvas.GetComponentsInChildren<Text>(false);
+        for (int t = 0; t < legacyTexts.Length; t++)
+        {
+            var legacy = legacyTexts[t];
+            NoteClippedText(legacy == null ? null : legacy.transform, legacy == null ? null : legacy.text,
+                canvas.transform, screen, report, ref textPartial, ref textOutside, ref lines, maxLines);
+        }
+    }
+
+    private void NoteClippedText(Transform node, string text, Transform canvasRoot, Rect screen,
+        ScreenReport report, ref int textPartial, ref int textOutside, ref int lines, int maxLines)
+    {
+        if (node == null) { return; }
+        var rt = node as RectTransform;
+        if (rt == null) { return; }
+        var clip = ClassifyElementClip(node, canvasRoot, rt, screen);
+        if (clip == V6ScreenAudit.ScreenClip.Inside) { return; }
+        if (clip == V6ScreenAudit.ScreenClip.Outside) { textOutside++; } else { textPartial++; }
+        if (lines >= maxLines) { return; }
+        lines++;
+        var snippet = text ?? string.Empty;
+        if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
+        report.Notes.Add("[clip] text " + clip.ToString().ToLowerInvariant()
+            + " " + V6ScreenAudit.Path(node)
+            + " rect=" + V6ScreenAudit.WorldRect(rt).ToString("F0")
+            + " \"" + snippet + "\"");
+    }
+
     private IEnumerator Screenshot(ScreenReport report, string label)
     {
         yield return new WaitForEndOfFrame();
@@ -640,6 +767,10 @@ public class AutoTestV6Screens : MonoBehaviour
                 + " shots=" + string.Join(",", r.Shots);
             sb.AppendLine(line);
             Debug.Log(line);
+            for (int n = 0; n < r.Notes.Count; n++)
+            {
+                sb.AppendLine("[AutoTestV6Screens] " + r.Notes[n]);
+            }
         }
 
         string result = "[AutoTestV6Screens] RESULT pass=" + totalPass + " fail=" + totalFail
@@ -673,6 +804,32 @@ public static class V6ScreenAudit
 
     /// <summary>フレーム収まり判定の許容誤差 (px)。</summary>
     public const float TolerancePx = 1f;
+
+    /// <summary>実画面に対する要素の収まり分類 (情報記録用、fail にはしない)。</summary>
+    public enum ScreenClip
+    {
+        /// <summary>画面内に完全に収まる。</summary>
+        Inside,
+        /// <summary>画面端で一部が切れる (残りは見えて押せる可能性がある)。</summary>
+        Partial,
+        /// <summary>画面外に完全に出ている (見えず押せない)。</summary>
+        Outside,
+    }
+
+    /// <summary>
+    /// 要素矩形が基準矩形 (通常は実画面、スクロール親がある要素は
+    /// スクロール親 ∩ 実画面) に対して Inside / Partial / Outside のどれか。
+    /// 基準矩形をはみ出して囲むだけの要素 (Dim 等) は Partial になる。
+    /// </summary>
+    public static ScreenClip ClassifyScreenClip(Rect element, Rect bounds)
+    {
+        if (Contains(bounds, element, TolerancePx)) { return ScreenClip.Inside; }
+        bool outside = element.xMax <= bounds.xMin + TolerancePx
+            || element.xMin >= bounds.xMax - TolerancePx
+            || element.yMax <= bounds.yMin + TolerancePx
+            || element.yMin >= bounds.yMax - TolerancePx;
+        return outside ? ScreenClip.Outside : ScreenClip.Partial;
+    }
 
     /// <summary>-autotest-scenes を省略したときの既定シーン一覧。</summary>
     public const string DefaultScenes = "TitleScene,SelectScene,OptionScene,ResultScene,GameScene";
