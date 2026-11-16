@@ -61,6 +61,64 @@
             return top > 0f ? top : 0f;
         }
 
+        /// <summary>
+        /// レールに同時表示できるドット数の上限 (Issue #222)。
+        /// 下端 = (n-1)*(DotSize+DotGap) + DotSize が <see cref="ListH"/> に
+        /// 収まる最大の n。実配置 (上下中央寄せ) では 65 曲。
+        /// </summary>
+        public static int DotRailCapacity()
+        {
+            return (int)((ListH - DotSize) / (DotSize + DotGap)) + 1;
+        }
+
+        /// <summary>実際にドットを描く数。曲数が容量を超えるときは容量で頭打ち。</summary>
+        public static int DotRailVisibleCount(int count)
+        {
+            int capacity = DotRailCapacity();
+            return count < capacity ? (count > 0 ? count : 0) : capacity;
+        }
+
+        /// <summary>
+        /// 曲数がレール容量を超えるときの表示窓の先頭 index (Issue #222)。
+        /// 選択曲が窓の中央に来るように窓をずらし、端では 0 / count-capacity に
+        /// 留まる。容量以内なら常に 0 (従来どおり全ドット表示)。
+        /// 選択が無い (-1) ときは先頭側の窓を出す。
+        /// </summary>
+        public static int DotRailWindowStart(int count, int activeIndex)
+        {
+            int capacity = DotRailCapacity();
+            if (count <= capacity)
+            {
+                return 0;
+            }
+
+            int maxStart = count - capacity;
+            if (activeIndex < 0)
+            {
+                return 0;
+            }
+
+            int start = activeIndex - capacity / 2;
+            if (start < 0) { start = 0; }
+            if (start > maxStart) { start = maxStart; }
+            return start;
+        }
+
+        /// <summary>
+        /// 表示窓内でのアクティブなドットのローカル index。
+        /// 選択曲のカタログ index から窓の先頭を引く。範囲外は端に留まる
+        /// (<see cref="DotActiveIndex"/> と同じ規約)。
+        /// </summary>
+        public static int DotRailActiveLocal(int activeIndex, int windowStart, int visibleCount)
+        {
+            if (visibleCount <= 0)
+            {
+                return -1;
+            }
+
+            return DotActiveIndex(activeIndex - windowStart, visibleCount);
+        }
+
         // --- クイック設定 (契約 §5 右カラム / v5 OptionView 参照) ---
         // 右カラム (幅 560) に、ヘッダー「このプレイの設定」(24,8) fs26 w500 と
         // 行 512×56 (背景 #2D2D2D r8) を 68 間隔で 3 行 (Key Guide / Lyrics / NoteSpeed)。

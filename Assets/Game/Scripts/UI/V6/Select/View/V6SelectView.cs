@@ -109,8 +109,11 @@ namespace FlashBeat.UI.V6.Select.View
         private readonly List<GameObject> rankRowObjects = new List<GameObject>();
         /// <summary>ランキング空表示 ("No Data" テキスト)。行表示中は null。</summary>
         private GameObject rankEmptyGo;
-        /// <summary>ドットインジケータの構築済み曲数 (-1 = 未構築)。</summary>
+        /// <summary>ドットインジケータの構築済みドット数 (-1 = 未構築)。
+        /// Issue #222: 曲数がレール容量を超えるときは表示窓の大きさ (=容量) になる。</summary>
         private int dotCount = -1;
+        /// <summary>ドット表示窓の先頭カタログ index (Issue #222 の窓付きレール)。</summary>
+        private int dotWindowStart = -1;
         /// <summary>ドット y 座標のキャッシュ (曲数が変わったときだけ再計算)。</summary>
         private float[] dotOffsetsCache;
         /// <summary>ドットの Image / RectTransform (選択色・サイズの差分更新用)。</summary>
@@ -262,6 +265,7 @@ namespace FlashBeat.UI.V6.Select.View
             listRowSongIds.Clear();
             rankRowObjects.Clear();
             dotCount = -1;
+            dotWindowStart = -1;
             dotOffsetsCache = null;
             dotImages.Clear();
             dotRects.Clear();

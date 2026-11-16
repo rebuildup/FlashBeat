@@ -19,14 +19,16 @@ using FlashBeat.UI.V6.Select.View;
 ///   2. スクロール計算 (ClampScroll / ScrollToReveal / CenterScroll) が
 ///      先頭から末尾まで全行を到達可能にする (どの行も「見えないまま」にならない)
 ///   3. 9 行の可視窓と行矩形が、60 件でもリストパネル内に収まる
-///   4. ドットレール (1 曲 1 ドット) が **要件の 45 曲** までパネル内に収まること、
-///      および実配置 (y = DotY 起点) での上限が **54 曲** であること
+///   4. ドットレールが **要件の 45 曲** までパネル内に収まり、
+///      レール容量を超える曲数では **表示窓** で頭打ちになって
+///      選択曲が常に見えること (Issue #222 の窓付きレール)
 ///   5. ReadyAvailable が絞り込み後リストに対して判定される
 ///
-/// **60 曲ではドットレールがパネルからはみ出す** (54 曲が上限)。実カタログは
-/// 29 エントリ / 選曲可 26 なので現状の欠陥ではないが、ドットを縮める・間引くといった
-/// 設計判断が必要なので、テストで上限を固定して可視化している
-/// (勝手に UI を変えない。#222 の残課題として報告済み)。
+/// ドットレールは 1 曲 1 ドットの design (AqFtx / OENRv) を保ちつつ、
+/// 曲数がレール容量を超えるときは選択曲を中心とする表示窓で対応する
+/// (`V6SelectViewLogic.DotRailCapacity` / `DotRailWindowStart`)。
+/// 容量以内の曲数では従来どおり全ドットを表示する (実カタログ 29 曲の
+/// 外観は変わらない)。
 ///
 /// 少数件での同じ関数の挙動 (ClampScroll / ScrollToReveal / DotActiveIndex /
 /// ReadyAvailable / Filter) は `Assets/Game/Tests/V6SelectViewLogicTests.cs` と
@@ -273,46 +275,119 @@ public class SongCatalogScalabilityTests
     }
 
     /// <summary>
-    /// ドットレールの実配置での下端。`V6SelectView.BuildDots` はリストパネル内の
-    /// y = `DotY` に、高さ `DotBottom(count, 0f)` のコンテナを置く。
+    /// ドットレールの実配置での下端。`V6SelectView.UpdateDots` はリストパネル内の
+    /// `DotRailTopY(visible)` に、高さ `DotBottom(visible, 0f)` のコンテナを置く
+    /// (Issue #427 の上下中央寄せ + Issue #222 の表示窓)。
     /// </summary>
     private static float DotRailBottom(int count)
     {
-        return V6SelectViewLogic.DotY + V6SelectViewLogic.DotBottom(count, 0f);
+        int visible = V6SelectViewLogic.DotRailVisibleCount(count);
+        return V6SelectViewLogic.DotRailTopY(visible) + V6SelectViewLogic.DotBottom(visible, 0f);
     }
 
     [Test]
     public void DotRail_FitsInsideListPanel_ForRequired45Songs()
     {
-        // #222 の要件は 45 曲。実配置 (y = DotY 起点) でパネル内に収まること
+        // #222 の要件は 45 曲。実配置 (上下中央寄せ) でパネル内に収まること
         Assert.LessOrEqual(DotRailBottom(45), V6SelectViewLogic.ListH,
             "45 曲のドットレール (" + DotRailBottom(45) + ") がリストパネル ("
             + V6SelectViewLogic.ListH + ") からはみ出す");
     }
 
     [Test]
-    public void DotRail_DesignGeometry_HoldsUpTo54Songs()
+    public void DotRail_FitsInsideListPanel_ForAnyCatalogSize()
     {
-        // 1 曲 1 ドット (design AqFtx / OENRv) のまま積める上限を固定する。
-        // 60 曲 (SyntheticSongCount) ではレール下端がパネルを超えるため、
-        // それ以上のカタログを使うならドットを縮める / 間引く設計判断が要る。
-        int maxFit = 0;
-        for (int count = 1; count <= 200; count++)
+        // Issue #222: 窓付きレール導入後は、曲数がレール容量を超えても
+        // 表示ドット数が容量で頭打ちになるため、任意の曲数でパネル内に収まる。
+        int[] counts = { 0, 1, 9, 54, 55, 60, 65, 66, 100, 200 };
+        foreach (int count in counts)
         {
-            if (DotRailBottom(count) > V6SelectViewLogic.ListH)
-            {
-                break;
-            }
-
-            maxFit = count;
+            Assert.LessOrEqual(DotRailBottom(count), V6SelectViewLogic.ListH,
+                count + " 曲のドットレールがリストパネルからはみ出す");
         }
+    }
 
-        Assert.AreEqual(54, maxFit,
-            "ドットレールの上限曲数が変わった (実配置で " + maxFit + " 曲)");
+    [Test]
+    public void DotRail_Capacity_IsTheMaxDotsThatFitThePanel()
+    {
+        int capacity = V6SelectViewLogic.DotRailCapacity();
 
-        // 60 曲では収まらないことを明示する (沈黙して通さない)
-        Assert.Greater(DotRailBottom(SyntheticSongCount), V6SelectViewLogic.ListH,
-            "60 曲がパネルに収まるようになったら、上限のテストを更新すること");
+        // 容量ちょうどは収まり、1 個多いと収まらない (実配置で検証)。
+        Assert.LessOrEqual(V6SelectViewLogic.DotBottom(capacity, 0f), V6SelectViewLogic.ListH);
+        Assert.Greater(V6SelectViewLogic.DotBottom(capacity + 1, 0f), V6SelectViewLogic.ListH);
+        Assert.GreaterOrEqual(capacity, 45, "要件の 45 曲は全ドット表示できること");
+    }
+
+    [Test]
+    public void DotRailWindow_WithinCapacity_ShowsAllDots()
+    {
+        int capacity = V6SelectViewLogic.DotRailCapacity();
+
+        foreach (int count in new[] { 0, 1, 9, 54, capacity })
+        {
+            Assert.AreEqual(0, V6SelectViewLogic.DotRailWindowStart(count, 0),
+                count + " 曲 (容量以内) で窓が動いた");
+            Assert.AreEqual(count < capacity ? count : capacity,
+                V6SelectViewLogic.DotRailVisibleCount(count), count + " 曲の表示数");
+        }
+    }
+
+    [Test]
+    public void DotRailWindow_ActiveSongStaysVisible_AtBoundaries()
+    {
+        int capacity = V6SelectViewLogic.DotRailCapacity();
+        foreach (int count in new[] { 66, 100, 200 })
+        {
+            // 先頭 / 中央 / 末尾の選択で、アクティブなドットが必ず窓内にある。
+            foreach (int active in new[] { 0, count / 2, count - 1 })
+            {
+                int start = V6SelectViewLogic.DotRailWindowStart(count, active);
+                int visible = V6SelectViewLogic.DotRailVisibleCount(count);
+                int local = V6SelectViewLogic.DotRailActiveLocal(active, start, visible);
+
+                Assert.GreaterOrEqual(start, 0, "窓先頭が負");
+                Assert.LessOrEqual(start, count - visible, "窓先頭が末尾を超える");
+                Assert.GreaterOrEqual(local, 0, "アクティブ " + active + " が窓の上で見えない");
+                Assert.Less(local, visible, "アクティブ " + active + " が窓の下で見えない");
+            }
+        }
+    }
+
+    [Test]
+    public void DotRailWindow_CentersSelection_AndClampsAtEdges()
+    {
+        int capacity = V6SelectViewLogic.DotRailCapacity();
+        const int count = 100;
+
+        // 中央の選択は窓の中央に来る
+        int mid = V6SelectViewLogic.DotRailWindowStart(count, 50);
+        Assert.AreEqual(50 - capacity / 2, mid);
+
+        // 先頭 / 末尾では窓が端に留まる
+        Assert.AreEqual(0, V6SelectViewLogic.DotRailWindowStart(count, 0));
+        Assert.AreEqual(count - capacity, V6SelectViewLogic.DotRailWindowStart(count, count - 1));
+
+        // 選択が無いときは先頭側の窓
+        Assert.AreEqual(0, V6SelectViewLogic.DotRailWindowStart(count, -1));
+    }
+
+    [Test]
+    public void DotRailWindow_ScrollsWithSelection_WithoutRebuildNeed()
+    {
+        // 選択を 1 曲ずつ末尾まで動かしても、表示ドット数は容量で一定、
+        // アクティブなドットは常に窓内 (連続したスクロール追従)。
+        const int count = 100;
+        int capacity = V6SelectViewLogic.DotRailCapacity();
+        int visible = V6SelectViewLogic.DotRailVisibleCount(count);
+        Assert.AreEqual(capacity, visible);
+
+        for (int active = 0; active < count; active++)
+        {
+            int start = V6SelectViewLogic.DotRailWindowStart(count, active);
+            int local = V6SelectViewLogic.DotRailActiveLocal(active, start, visible);
+            Assert.GreaterOrEqual(local, 0);
+            Assert.Less(local, visible);
+        }
     }
 
     [Test]
