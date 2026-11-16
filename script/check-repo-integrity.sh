@@ -159,6 +159,37 @@ if company_name:
                                 )
 
 
+
+# --- Fast dev gate: keep heavy release jobs out of PR/main push -------------
+ci_gate_errors = []
+workflow_root = os.path.join(root, ".github", "workflows")
+if os.path.isdir(workflow_root):
+    for name in ("build-win64.yml", "build-macos.yml"):
+        path = os.path.join(workflow_root, name)
+        if not os.path.isfile(path):
+            ci_gate_errors.append("%s: required workflow missing" % name)
+            continue
+        with open(path, encoding="utf-8") as source:
+            workflow = source.read()
+        if re.search(r"(?m)^  push:\s*$", workflow):
+            ci_gate_errors.append("%s: heavyweight build must not run on push" % name)
+        if not re.search(r"(?m)^  workflow_dispatch:\s*$", workflow):
+            ci_gate_errors.append("%s: candidate trigger is missing" % name)
+
+    web_path = os.path.join(workflow_root, "web.yml")
+    if os.path.isfile(web_path):
+        with open(web_path, encoding="utf-8") as source:
+            workflow = source.read()
+        if not re.search(r"(?m)^  workflow_dispatch:\s*$", workflow):
+            ci_gate_errors.append("web.yml: candidate E2E dispatch missing")
+        if not re.search(
+            r"(?m)^  browser-e2e:\s*\n    if: github\.event_name == 'workflow_dispatch'\s*$",
+            workflow,
+        ):
+            ci_gate_errors.append("web.yml: browser E2E must be dispatch-only")
+    else:
+        ci_gate_errors.append("web.yml: required workflow missing")
+
 def report(title, paths):
     if not paths:
         return 0
@@ -183,6 +214,7 @@ failures += report("unparsable .asmdef / Resources .json", bad_json)
 failures += report("CRLF line ending in .cs", crlf)
 failures += report("tab indentation in .cs", tabs)
 failures += report("Player.log path does not use ProjectSettings companyName", log_path_scan)
+failures += report("heavy CI gate accidentally enabled", ci_gate_errors)
 
 if failures:
     print("")

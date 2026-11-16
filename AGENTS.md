@@ -6,6 +6,10 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 FlashBeat is a Unity 6 (6000.5.6f1) self-made rhythm game (`音ゲー`) that plays music from YouTube videos and judges 8-lane keyboard input against falling notes. Japanese-language project; comments and many identifiers are in Japanese.
 
+## Development convergence
+
+See [`docs/operations/development-convergence.md`](docs/operations/development-convergence.md) for the active implementation/CI/release quality contract. **Do not require real-device/manual visual acceptance for implementation Issue closure.** Use deterministic regression tests and relevant EditMode compile checks; batch full builds, Playwright browser E2E, and artifact generation at a coherent release-candidate boundary. Do not call a source-only CI green a Unity compile PASS. Previously written issue acceptance steps demanding Win64 hardware are release observations, not development blockers; actual correctness defects remain actionable. Do not gate ordinary code merges on owner decisions. Keep product decisions in their canonical specs, and preserve non-destructive compatibility where unsettled.
+
 ## Build, Test, Run
 
 This is a Unity project — there is no CLI build/lint toolchain. Use the Unity Editor or Unity batch mode.

@@ -3,10 +3,11 @@ name: web
 # Web Studio (`web/`) の品質ゲート:
 #
 # - `check`: typecheck → unit tests → production build。
-# - `browser-e2e`: Playwright による実ブラウザ E2E。ローカル D1 を seed し、
+# - `browser-e2e`: release-candidate workflow_dispatch only; Playwright による実ブラウザ E2E。ローカル D1 を seed し、
 #   dev server を起動して `npm run test:e2e` を回す。本番への通信は発生しない
 #   (ローカル D1 のみ、admin token はローカル専用の literal `local-dev-only`)。
 #
+# PR/main push は lightweight check のみ。実ブラウザ E2E は release 候補時に 1 回。
 # シークレットは不要。
 
 on:
@@ -20,6 +21,8 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/web.yml"
+  # E2E is batched at the release-candidate boundary, not every PR.
+  workflow_dispatch:
 
 defaults:
   run:
@@ -51,6 +54,7 @@ jobs:
         run: npm run build
 
   browser-e2e:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

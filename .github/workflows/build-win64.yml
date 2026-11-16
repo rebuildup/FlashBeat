@@ -1,5 +1,7 @@
 name: build-win64
 
+# Unity ビルドは release 候補を確定した際の workflow_dispatch のみ。PR / main push
+# では実行しない (docs/operations/development-convergence.md)。
 # 展示中も Unity 本体のビルドを展示 PC 以外で行い、展示ビルドの ZIP と
 # SHA-256 を GitHub Releases の材料として出すための経路 (issue #35 / P3)。
 #
@@ -30,14 +32,6 @@ on:
         description: "EditMode テストを先に実行するか (true | false)"
         required: false
         default: "true"
-  push:
-    branches:
-      - main
-    paths:
-      - "Assets/**"
-      - "Packages/**"
-      - "ProjectSettings/**"
-      - ".github/workflows/build-win64.yml"
 
 concurrency:
   group: build-win64-${{ github.ref }}
@@ -47,10 +41,10 @@ permissions:
   contents: read
 
 # 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
-#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - 通常の実行は workflow_dispatch: preview を既定とする。
 #   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
 env:
-  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+  RELEASE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
 
 jobs:
   # ライセンス未設定を数分で検出するため、Unity を導入する前に落とす。
@@ -95,7 +89,7 @@ jobs:
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
-      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+      FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4

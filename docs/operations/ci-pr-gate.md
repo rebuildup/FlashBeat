@@ -1,70 +1,25 @@
 # CI / PR 検証の責任範囲
 
-**緑の PR は「Unity が検証済み」を意味しません。** どの検証がどこで走るのかを
-1 か所にまとめ、PR のチェック欄を誤読しないための文書です。
+現行規約: [開発収束・品質ゲート](development-convergence.md)（2026-11-16）。PR が green でも、実行されていない検証を合格したことにはならない。
 
-最終更新: 2026-11-10 (main `7ccd636` 時点の実測)
+| 段階 | 実行タイミング | 作業 | 成功が証明すること |
+|---|---|---|---|
+| L0 | 変更単位 | 仕様・差分レビュー、関連する deterministic test | 対象のロジック契約を満たす。Unity compile とは区別 |
+| L1 / `verify` | 全 PR、関連 main push | `script/check-repo-integrity.sh`、`tools/acceptance/fullscreen-report.test.ps1` | Meta/JSON/改行/受入ツールと CI の低コスト契約。**Unity compile は検証しない** |
+| L1 / `web/check` | Web の PR と main push | TypeScript typecheck、Web unit、production build | Web の型・ロジック・バンドル。**Playwright E2E ではない** |
+| L2 | 関連 C# 修正をまとめた時 | 単一 Unity Editor/Library 所有者で compile、関連 EditMode tests | Unity バイナリの C# compile と該当テスト。変更 SHA と TestResults.xml / results を記録 |
+| L3 / `web/browser-e2e` | 候補 release cut で `workflow_dispatch` | ローカル D1 seed + Chromium Playwright | 対象 Web flow が隔離環境で成立。**本番 API 書き込みの証明ではない** |
+| L3 / `build-win64` | 候補 release cut で `workflow_dispatch` | Unity build/package。`run_tests=true` のときだけ EditMode を実行 | ソース SHA の成果物生成。`run_tests=false` の green は EditMode 合格を証明しない | 
+| L3 / `build-macos` | 候補 release cut で `workflow_dispatch` | Unity build/package。**EditMode テストは含まない** | 対象 SHA の macOS 成果物生成。EditMode や実機プレイの成功ではない |
 
----
+## 必須境界
 
-## 1. よくある誤読 (実際に起きたもの)
+- `verify.yml`: PR なら対象パスに関わらず必ず軽量 gate を出す。`check-repo-integrity.sh` は重い main push/PR CI を戻してしまう事故も検出する。
+- `web.yml`: PR/main では `check` のみ、`browser-e2e` は `workflow_dispatch` の場合だけ実行。
+- `build-win64.yml` / `build-macos.yml`: main push に反応させない。候補統合の一区切りで明示起動する。毎 Issue や毎 PR の新規 build は不要。
+- Unity の hosted runner はライセンスの制約がある。ライセンス起因の失敗を C# コードの失敗とも成功とも扱わない。**Unity を変更した PR のコード品質は、L2 の実際の compile と tests で保証する**。L2 が未実行なら `compile-unverified` と明記して統合の証明を保留する（ただし実機撮影待ちはしない）。
+- tests の 0 件収集 / 全 skipped / fixture だけの成功 / スクリーンショット取得完了を機能合格と呼ばない。
+- 実 Win64/macOS 端末、目視デザイン最終評価、実 GPU performance 計測は**Issue close / PR merge の必須条件ではない**。必要に応じ release 候補で観測を追加し、観測できていなければ未測定と書く。新たな欠陥はコード側の再現ケースに変換する。
+- リリース公開/本番書き込みの権限と出荷物契約: [update-release.md](update-release.md)、[production-api-acceptance.md](production-api-acceptance.md)。公開承認境界と開発マージを混同しない。
 
-> 「PR #343 はチェックが 0 件だった。Unity ライセンスの secret が未登録で
-> ビルドが失敗したからだ」
-
-**これは誤り。原因は別。**
-
-| 事実 | 根拠 |
-|---|---|
-| Unity のワークフロー (`build-win64.yml` / `build-macos.yml`) には **`pull_request` トリガーが無い**。あるのは `workflow_dispatch` と **main への push** だけ | 各ファイルの `on:` |
-| したがって PR では Unity のジョブが 1 つも起動せず、**チェック欄は空になる** | `gh pr checks <n>` が `no checks reported` |
-| ライセンス未登録は**別の問題**で、**main へ push したとき**に `license-precheck` ジョブが落ちる原因 | `gh run view <id> --log-failed` → `UNITY_EMAIL と UNITY_PASSWORD を Actions Secrets に登録してください` |
-
-つまり「PR に Unity のチェックが出ない」のは**設定どおりの挙動**であり、
-「PR が Unity CI を通過した」ことを表しません。
-
----
-
-## 2. 何がどこで走るか
-
-| Tier | トリガー | 走るもの | ライセンス | 緑が意味すること |
-|---|---|---|---|---|
-| **1. PR / main push (Web)** | `web/**` を触る PR と main push | `web`: `tsc --noEmit` → `npm test` (73 + 436) → `npm run build` / **`browser-e2e`**: Chromium 導入 → ローカル D1 seed → `npm run test:e2e` (Playwright 12) | 不要 | Web Studio が型・単体・実ブラウザ E2E で通った |
-| **1. PR / main push (C# 整合性 + 受入ツール)** | **すべての PR** と main push (`Assets/**` / `script/**` / `tools/acceptance/**` を触ったとき) | `verify`: `script/check-repo-integrity.sh` → `tools/acceptance/fullscreen-report.test.ps1` (pwsh) | 不要 | `.meta` の対応 / `.asmdef`・譜面 JSON の妥当性 / LF・タブ が揃っている (**コンパイルは見ていない**)。受入ツールの判定式が自己テスト 43 ケースで固定されている。受入文書・受入ツールの `Player.log` パスが ProjectSettings の `companyName` と一致している。PR 側でパスを絞らないのは、ドキュメントだけの PR でも **チェック欄を空にしない** ため |
-| **2. main push (Unity ビルド)** | `Assets/**` などの main push、または手動 | `build-win64` / `build-macos`: `license-precheck` → Unity 認証 → EditMode (任意) → ビルド | **必須** | 現状は secret 未登録のため **precheck で fail**。**コードの失敗ではない** |
-| **3. 手動 / オーナー** | — | Unity EditMode (メンテナの手元、実測)、Windows 実機の受入、本番 API の受入 | — | それぞれの記録 (`TestResults.xml` / `docs/evidence/` / `docs/operations/`) が唯一の証拠 |
-
-### なぜ Unity を PR で走らせないのか
-
-1. Unity は **ライセンスが無いと起動しない** (batchmode でも同じ)。
-2. **fork からの PR は repository secret を読めない** (GitHub の仕様)。
-3. GitHub-hosted runner では `.ulf` (Personal) の **マシン紐付けが一致しない**。
-4. 以上から、PR に Unity を載せると **常に赤** になり、ゲートとして機能しない。
-
-詳細は [`unity-ci-license.md`](unity-ci-license.md)。
-
----
-
-## 3. 責任範囲
-
-| 対象 | 責任を持つ人 | 何を残すか |
-|---|---|---|
-| Web の品質 | CI (`web` ワークフロー) | ジョブ結果。ローカル再現は `cd web && npm run test:e2e` |
-| C# の**コンパイル**と**テスト** | **メンテナ** (手元 Unity EditMode) | `TestResults.xml` の総数と失敗数、`Scripts have compiler errors` が無いこと |
-| C# の**整合性** (meta / JSON / 改行) | CI (`verify` ワークフロー) | ジョブ結果 |
-| Windows 実機の受入 | **オーナー** | `docs/operations/win64-candidate-acceptance-*.md` の記録 |
-| 本番 API の受入 | **オーナー承認後**にメンテナが実行 | `docs/operations/production-api-acceptance.md` の記録様式 |
-| Unity ビルドを CI で緑にする | **オーナー** (`UNITY_EMAIL` / `UNITY_PASSWORD` の登録) | secret 名のみ記録する。値はどこにも書かない |
-
----
-
-## 4. PR を出す人・レビューする人が守ること
-
-- PR 本文には **「どの Tier の検証を実測したか」** を書く。Unity を触ったなら
-  EditMode の実測 (総数 / 失敗数) を書く。**CI が緑でも Unity 未検証と書く。**
-- `verify` / `web` が緑でも、**コンパイルが通るとは限らない**。コンパイルの証拠は
-  EditMode 実行ログだけ。
-- Windows 実機の受入が無い状態では、**Release を公開しない**
-  ([`update-release.md`](update-release.md) / [`release-approval-checklist.md`](release-approval-checklist.md))。
-- ライセンス secret の値 (パスワード / シリアル / `.ulf` の中身) は、ログ・Issue・PR・
-  この文書のどこにも書かない。
+過去の状況 (2026-11-10): Unity ビルドは main push ごとに自動実行され、Web の Playwright も PR ごとに実行されていた。これは **PR #522 で停止**した旧運用であり、以下の current gate 表にその条件を戻さない。
