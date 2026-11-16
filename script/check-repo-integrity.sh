@@ -176,6 +176,23 @@ if os.path.isdir(workflow_root):
         if not re.search(r"(?m)^  workflow_dispatch:\s*$", workflow):
             ci_gate_errors.append("%s: candidate trigger is missing" % name)
 
+    mac_path = os.path.join(workflow_root, "build-macos.yml")
+    if os.path.isfile(mac_path):
+        with open(mac_path, encoding="utf-8") as source:
+            mac_workflow = source.read()
+        test_step = mac_workflow.find("- name: EditMode テスト（release candidate）")
+        build_step = mac_workflow.find("- name: macOS ビルド")
+        if test_step < 0 or build_step < 0 or test_step >= build_step:
+            ci_gate_errors.append("build-macos.yml: full EditMode must precede candidate build")
+        if "TestResults.xml" not in mac_workflow or "xmllint --nonet --xpath" not in mac_workflow:
+            ci_gate_errors.append("build-macos.yml: missing machine-readable EditMode verdict")
+    win_path = os.path.join(workflow_root, "build-win64.yml")
+    if os.path.isfile(win_path):
+        with open(win_path, encoding="utf-8") as source:
+            win_workflow = source.read()
+        if "EditMode テストが完全に合格していません" not in win_workflow:
+            ci_gate_errors.append("build-win64.yml: missing nonempty/full-pass EditMode verdict")
+
     web_path = os.path.join(workflow_root, "web.yml")
     if os.path.isfile(web_path):
         with open(web_path, encoding="utf-8") as source:
