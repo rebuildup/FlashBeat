@@ -146,7 +146,8 @@ namespace FlashBeat.UI.V6.Ranking
                 "ランキングは非公式・未検証です (casual / unverified)", 16f, V5Tokens.TextDim,
                 TextAlignmentOptions.Center);
             casualNote.textWrappingMode = TextWrappingModes.NoWrap;
-            V6Layout.Place(casualNote, 8f, 700f, 496f, 26f);
+            V6Layout.Place(casualNote, V6RankingLogic.CasualNoteX, V6RankingLogic.CasualNoteY,
+                V6RankingLogic.CasualNoteW, V6RankingLogic.CasualNoteH);
             return panel;
         }
 

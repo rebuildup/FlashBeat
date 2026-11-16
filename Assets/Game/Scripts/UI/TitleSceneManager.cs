@@ -50,9 +50,9 @@ public class TitleSceneManager : MonoBehaviour
         // 判定幅を既定値へ戻していたため、Option 画面での変更が失われていた。
         OptionSettings.Load();
         // Display 設定 (Key Guide / Lyrics) はセッション設定 (Issue #241)。
-        // Title 進入は来場者の交代境界なので既定値へ戻す。同じ人の
-        // Retry / 選曲変更 / Option 変更は Title を通らないので保持される。
-        FlashBeat.UI.V5.PlaySession.Reset();
+        // リセットは来場者交代の導線 (Result → Title) だけが行う
+        // (ResultSceneManager.TitleScene)。Title への通常進入
+        // (Option → Title / Select → Title の戻る操作) は同じ人なので保持する。
         AudioListener.volume = GManager.mainVolume;
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;

@@ -98,8 +98,9 @@ namespace FlashBeat.UI.V5
 
         /// <summary>
         /// セッション開始時の既定値へ戻す (既定 = Compact + 歌詞あり)。
-        /// Title 進入 (来場者の交代境界) で呼ぶ。同じ人の Retry・選曲変更・
-        /// Option 変更では Title を通らないので値は保持される (Issue #241)。
+        /// 来場者交代の導線 (Result → Title, ResultSceneManager.TitleScene)
+        /// で呼ぶ。Title への通常進入 (Option → Title / Select → Title の
+        /// 戻る操作) は同じ人なので呼ばず、値は保持される (Issue #241)。
         /// </summary>
         public static void Reset()
         {

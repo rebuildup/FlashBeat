@@ -273,7 +273,26 @@ namespace FlashBeat.UI.V6.Select.Data
             if (!Application.isPlaying) return;
             SongData row = GManager.GetSong(songId);
             if (row == null || row.unplayable) return;
-            FlashBeat.Gameplay.MediaPrefetcher.Request(row.videoId);
+            string videoId = row.videoId;
+            // MediaPrefetcher.Request の同期 prefix はツール探索
+            // (ffmpeg/yt-dlp/deno の PATH 走査と --version プローブ、初回は
+            // 各最大 20 秒) を含む。選択ハンドラ (メインスレッド) で直接
+            // 呼ぶと初回選択で UI が固まるので、次フレームへ逃がす (#547)。
+            // prefetch の失敗が選択フローを壊さないよう例外もここで閉じ込める。
+            RunCoroutine(DeferredPrefetch(videoId));
+        }
+
+        static IEnumerator DeferredPrefetch(string videoId)
+        {
+            yield return null;
+            try
+            {
+                FlashBeat.Gameplay.MediaPrefetcher.Request(videoId);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[V6SelectDataSource] media prefetch failed to start: " + e.Message);
+            }
         }
 
         static int IndexOfSong(List<V6SongEntry> songs, int songId)
