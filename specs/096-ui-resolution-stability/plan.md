@@ -21,3 +21,7 @@ Spec: [spec.md](spec.md). Source observation: PR #521, `docs/evidence/96-screen-
 ## Verification
 
 `verify.yml` checks repo integrity only. Existing EditMode tests (`V6ScreenAudit`, `V6UiProfileTests`, transition tests) provide geometry/functional evidence once augmented. A screenshot is an optional diagnostic, not proof of clickability; actual Windows panel is not required for development acceptance. Release candidate full EditMode and builds follow `docs/operations/development-convergence.md`.
+
+## Rollback
+
+共通 profile と #96 固有 UI は別 PR/commit に分離して revert 可能にする。#96 の変更を戻す前に #523 の shared helper 呼出箇所を列挙し、旧 API 互換がない場合は #523 owner と共通契約を調整する。revert 後に Title/Result/Option と Select/Game/Pause の到達性 regression を回し、再発する既知低解像度 defect は未完了として残す。手動の Windows ゲートへ差し戻さない。
