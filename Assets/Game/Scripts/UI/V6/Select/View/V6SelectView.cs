@@ -432,12 +432,7 @@ namespace FlashBeat.UI.V6.Select.View
         /// </summary>
         private void PlaceFrame()
         {
-            V6SelectViewLogic.FrameOrigin(Screen.width, Screen.height, out int x, out int y);
-            frame.anchorMin = new Vector2(0f, 1f);
-            frame.anchorMax = new Vector2(0f, 1f);
-            frame.pivot = new Vector2(0f, 1f);
-            frame.anchoredPosition = new Vector2(x, -y);
-            frame.sizeDelta = new Vector2(FrameW, FrameH);
+            V6CompactScreen.Place(frame, Screen.width, Screen.height);
         }
 
         private void Rebuild()

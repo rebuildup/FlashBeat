@@ -33,10 +33,7 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             int w = Screen.width;
             int h = Screen.height;
-            Vector2 origin = V6LoadingViewLogic.FrameOrigin(w, h);
-            frame.localScale = Vector3.one;
-            // anchor/pivot (0,0) = 親 (全画面 root) の左下基準。design 原点は左上。
-            frame.anchoredPosition = new Vector2(origin.x, h - origin.y - FrameH);
+            V6CompactScreen.Place(frame, w, h);
         }
 
         internal void Tick()
