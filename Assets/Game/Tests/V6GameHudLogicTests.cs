@@ -343,6 +343,17 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
+        public void LyricSlotWidthClampsToScreenOnCompactScreens()
+        {
+            // #96/#523: design 幅 1120 が画面幅を超える小画面では画面幅に収める。
+            // 通常解像度では design 幅のまま。
+            Assert.AreEqual(V6HudLogic.LyricDesignWidth,
+                V6HudLogic.LyricSlotWidth(1920f), 0.01f);
+            Assert.AreEqual(1024f, V6HudLogic.LyricSlotWidth(1024f), 0.01f);
+            Assert.AreEqual(0f, V6HudLogic.LyricSlotWidth(0f), 0.01f);
+        }
+
+        [Test]
         public void LyricHeightFollowsTheTextNotTheDesignBlanket()
         {
             // design の 220 は 3 行構成の値。本文 1 行 + Start Prompt に

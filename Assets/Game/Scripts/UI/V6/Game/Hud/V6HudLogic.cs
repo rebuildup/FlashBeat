@@ -88,6 +88,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             return new Vector2(LyricDesignWidth, LyricContentHeight(lyricFs));
         }
 
+        /// <summary>
+        /// 歌詞スロットの実幅 (#96/#523)。design 幅 1120 が画面幅を超える
+        /// 小画面 (1024×768 等) では画面幅に収める。スロットは水平中央
+        /// アンカーなので、幅を詰めても見た目の中心は変わらない。
+        /// </summary>
+        public static float LyricSlotWidth(float screenWidth)
+        {
+            return Mathf.Min(LyricDesignWidth, Mathf.Max(0f, screenWidth));
+        }
+
         /// <summary>歌詞スロットの上下 padding (design 16)。</summary>
         public const float LyricPaddingY = 16f;
 
