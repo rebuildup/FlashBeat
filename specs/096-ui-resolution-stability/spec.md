@@ -9,14 +9,14 @@ PR #521 (main 138f35b2) の `AutoTestV6Screens.AuditScreenClip` で実測。1920
 ## Product contract
 
 - 対応範囲: 1024×768, 1280×720, 1366×768, 1600×900, 1920×1080, 2560×1440, 2560×1664。ユーザーの解像度選択を要求しない。
-- 主導線: 各画面の実操作 (Title/Option/Result/Open; 関連 #88 は Select/Game/Pause) を keyboard と pointer の両経路で到達可能にする。決定/戻る/リトライ/選曲/登録、検索・フィルタの情報と文字列の可読性を残す。キー代替があるだけでは隠れた pointer 操作や情報の欠落を許容しない。
+- 主導線: 各画面の実操作 (Title/Option/Result/Open; 関連 #523 は Select/Game/Pause) を keyboard と pointer の両経路で到達可能にする。決定/戻る/リトライ/選曲/登録、検索・フィルタの情報と文字列の可読性を残す。キー代替があるだけでは隠れた pointer 操作や情報の欠落を許容しない。
 - 大解像度: design 座標の 1728×972、scale=1、Pencil v6 の見た目と動作を維持する。
 - 小解像度: scale=1 の視覚資産を原則とし、**レスポンシブな再配置・スクロール導線等のレイアウト設計で画面外喪失を解消**する。縮尺による全画面押し込みは初期解としない。最終方式は画面ごとに実装テストと UI 契約へ反映する。全ての frame をそのまま表示し切る必要はないが、主要操作と情報は失われてはいけない。
 - Opening は V5/ConstantPixelSize の別系統。v6 固定フレームの欠陥を Opening に機械的に当てはめない。
 
 ## Ownership / no overlap
 
-#96 は Title/Result/Option/Opening と共通幾何学・テストの調整を所有。Select/Game/Pause 固有の UI は #88 / 該当実装 Issue へ帰属させ、共通 API の変更を排他調整する。既存の判定、メディア、HOLD、スコアや API は変更しない。
+#96 は Title/Result/Option/Opening と共通幾何学・テストの調整を所有。Select/Game/Pause 固有の UI は #523 へ帰属させ、共通 API の変更を排他調整する。既存の判定、メディア、HOLD、スコアや API は変更しない。
 
 ## Scenarios / acceptance
 
