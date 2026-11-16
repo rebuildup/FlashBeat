@@ -1,5 +1,32 @@
-# Flashbeat プロジェクトファイル
+# FlashBeat
 
-#### 自作音ゲー FlashBeat のプロジェクトファイルです
+YouTube 動画の楽曲に合わせて 8 レーンのキーボード入力を判定する、自作リズムゲーム（音ゲー）。Unity 6 製のゲーム本体と、フェスティバル向けの Web スタジオ（`web/`）で構成される。
 
-#### 一部ファイルはアップロードできてないので動くかは分かりません
+## リポジトリ構成
+
+| パス | 内容 |
+|---|---|
+| `Assets/` | Unity プロジェクト本体（C#。asmdef 構成と runtime 構造は `docs/architecture/game-runtime.md`） |
+| `web/` | フェスティバル Web アプリ（Void / React / Cloudflare Workers）。ルールは `web/AGENTS.md` |
+| `contracts/` | Web と Unity の間で凍結された API / 譜面契約（OpenAPI・JSON Schema） |
+| `docs/` | architecture / operations / ADR などのドキュメント |
+| `script/` `tools/` | ビルド・検証・受入ツール |
+
+## 開発の入口
+
+- 作業契約（AI エージェント・自動化ともに最初に読む）: [`AGENTS.md`](AGENTS.md)
+- 運用・リリース・展示ドキュメントの一覧: [`docs/operations/README.md`](docs/operations/README.md)
+- ゲーム runtime・譜面データ形式・テスト: [`docs/architecture/game-runtime.md`](docs/architecture/game-runtime.md)
+
+## 前提と bootstrap
+
+- Unity 6000.5.6f1（Unity Hub 経由）。clone 後は `git lfs pull` で LFS アセットを取得する
+- 補助ツール（Bun・dotnet・`cf`・`void` など）は `mise install` で project-local に導入する（`mise.toml` / `mise.lock` で版を固定）
+- agent 環境（vendored Skills と `skills-lock.json`）の整合性: `mise run skills-check`
+
+## 検証
+
+- C# 型チェック（Unity 不要）: `script/compile-check.sh`
+- EditMode テスト（Unity batch mode）: `Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml`
+- リポジトリ整合性（PR の `verify` CI と同じ検査）: `bash script/check-repo-integrity.sh`
+- `web/` 側のセットアップとテスト: `web/AGENTS.md` のコマンド群

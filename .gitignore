@@ -106,3 +106,12 @@ node_modules/
 !.mise/locks/
 # scripts/worktree/setup.sh が worktree ごとに作る環境変数ファイル
 .worktree.env
+
+# onboarding contract: 実値の dotenv と外部参照 clone は commit しない。
+# schema/example (.env*.example) は追跡する。
+.reference/
+.env
+.env.*
+!.env.example
+!.env.development.example
+!.env.production.example
