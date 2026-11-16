@@ -9,7 +9,8 @@
 | L1 / `web/check` | Web の PR と main push | TypeScript typecheck、Web unit、production build | Web の型・ロジック・バンドル。**Playwright E2E ではない** |
 | L2 | 関連 C# 修正をまとめた時 | 単一 Unity Editor/Library 所有者で compile、関連 EditMode tests | Unity バイナリの C# compile と該当テスト。変更 SHA と TestResults.xml / results を記録 |
 | L3 / `web/browser-e2e` | 候補 release cut で `workflow_dispatch` | ローカル D1 seed + Chromium Playwright | 対象 Web flow が隔離環境で成立。**本番 API 書き込みの証明ではない** |
-| L3 / `build-win64`, `build-macos` | 候補 release cut で `workflow_dispatch` | Unity ライセンス/必要環境の上で full EditMode + build/package | 対象ソース SHA の build と artifact。**物理 Windows でのプレイを証明しない** |
+| L3 / `build-win64` | 候補 release cut で `workflow_dispatch` | Unity build/package。`run_tests=true` のときだけ EditMode を実行 | ソース SHA の成果物生成。`run_tests=false` の green は EditMode 合格を証明しない | 
+| L3 / `build-macos` | 候補 release cut で `workflow_dispatch` | Unity build/package。**EditMode テストは含まない** | 対象 SHA の macOS 成果物生成。EditMode や実機プレイの成功ではない |
 
 ## 必須境界
 
