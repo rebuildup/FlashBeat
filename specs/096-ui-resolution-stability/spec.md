@@ -9,7 +9,7 @@ PR #521 (main 138f35b2) の `AutoTestV6Screens.AuditScreenClip` で実測。1920
 ## Product contract
 
 - 対応範囲: 1024×768, 1280×720, 1366×768, 1600×900, 1920×1080, 2560×1440, 2560×1664。ユーザーの解像度選択を要求しない。
-- 主導線: 各画面の実操作 (Title/Option/Result/Open; 関連 #523 は Select/Game/Pause) を keyboard と pointer の両経路で到達可能にする。決定/戻る/リトライ/選曲/登録、検索・フィルタの情報と文字列の可読性を残す。キー代替があるだけでは隠れた pointer 操作や情報の欠落を許容しない。
+- 主導線: 各画面の実操作 (Title/Option/Result/Opening; 関連 #523 は Select/Game/Pause) を keyboard と pointer の両経路で到達可能にする。決定/戻る/リトライ/選曲/登録、検索・フィルタの情報と文字列の可読性を残す。キー代替があるだけでは隠れた pointer 操作や情報の欠落を許容しない。
 - 大解像度: design 座標の 1728×972、scale=1、Pencil v6 の見た目と動作を維持する。
 - 小解像度: scale=1 の視覚資産を原則とし、**レスポンシブな再配置・スクロール導線等のレイアウト設計で画面外喪失を解消**する。縮尺による全画面押し込みは初期解としない。最終方式は画面ごとに実装テストと UI 契約へ反映する。全ての frame をそのまま表示し切る必要はないが、主要操作と情報は失われてはいけない。
 - Opening は V5/ConstantPixelSize の別系統。v6 固定フレームの欠陥を Opening に機械的に当てはめない。
@@ -20,12 +20,14 @@ PR #521 (main 138f35b2) の `AutoTestV6Screens.AuditScreenClip` で実測。1920
 
 ## Scenarios / acceptance
 
-1. Given 各 supported viewport, When 各 v6 画面を開いて Header/Footer の主要コントロール・文字情報を監査, Then 必要な操作と情報は viewport 内に表示またはスクロール等で操作可能に到達できる（`Outside` の必須要素 0）。clip の report-only 総数 0 だけで誤って PASS しない。
-2. Given 1024×768 / 1280×720, When pointer で Ready/Retry/OK/Back/検索等の主導線を操作, Then input→handler→state→feedback→exit が有効で、キーボードでも同等動作することをテストで確認。
-3. Given FHD/2K/Mac, When 旧デザインを再描画, Then frame origin, design metrics, hit targets, 既存テキストは回帰しない。
-4. Given scrolling/masking and modal states, When screen clipping を分類, Then スクロールで到達できる要素は誤検知せず、完全に外の致命的な要素は fail する。Mask/Scroll/Canvas の親子順にテストを置く。
-5. Existing C# compile + relevant EditMode regression は成功し、現在の省力的 CI gate も PASS。スクリーンショット・実物 Windows 操作・Mac 擬似解像度による物理実機判定は**実装完了要件にしない**。未実機観測は release 時の補足記録としてのみ区別する。
+1. **Viewport / reachability** — Given 1024×768 / 1280×720 / 1366×768 / 1600×900 と FHD/2K/Mac、When Title/Result/Option/Opening と関連 #523 の各状態（モーダルを含む）を描画・監査、Then **#96 所有画面**の主要 pointer targets / 必須情報は viewport 内または可視スクロール導線で到達できる。#523 所有画面は同 Issue の自動テストで独立に判定する。スクロール可能な ScrollRect/Mask 内は正当な到達範囲を計算し、必須要素の全画面外・遮蔽を FAIL にする。単なる report-only 集計や PNG 撮影を PASS としない。
+2. **Interaction / design regression** — Given 低解像度と大画面、When keyboard/pointer で決定/戻る/リトライ/選曲/登録/検索等を動かす、Then input→handler→state→feedback→exit が双方で成立し、大画面の 1728×972 frame origin / scale=1 / design metrics / hit targets / テキストを退化させない。
+3. **Automated verification / isolation** — Given 上記を検証する変更 SHA、When 関連 C# を Unity compile + EditMode 回帰（0 tests / skip だけなら失敗）・独立レビュー・軽量 CI に通す、Then 全て green であること。物理 Windows 操作、Mac 擬似解像度、手動の目視はこの実装の完了条件ではなく release 観測に分離する。
 
 ## Non-goals
 
 最小解像度を引き上げて当初の 1024×768 対応要求を削除すること、キーボード専用への縮退、全 Unity Player を各 Issue で起動して撮影すること、大規模 UI 再設計、スコア判定変更、本番 API 書き込み。
+
+## Rollback
+
+#96 の共有 viewport/helper 変更が regression を発生させたら当該実装 PR を単独 revert し、#523 の固有 Select/Game/Pause 差分へ暗黙に巻き戻しを伝播させない。共通 API の互換を保てない場合は #523 の変更を一時的に無効化・再調整してから、#96 の既知の旧低解像度欠陥を再度 open defect として追跡する。revert 後は FHD/2K/Mac の関連 EditMode と #523 の caller contract を再テストする。判定/メディア/HOLD/スコア/API は変更しない。
