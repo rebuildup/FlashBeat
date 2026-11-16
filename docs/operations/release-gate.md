@@ -9,6 +9,16 @@
 
 ---
 
+## 現行の Release 候補品質契約（2026-11-16、展示時の実機必須条件に優先）
+
+開発品質の正本: [development-convergence.md](development-convergence.md)。**物理 Windows/macOS プレイヤーの起動、全画面写真、手動プレイ、オーナー目視を候補作成・Issue 完了・Release 公開の必須ゲートにしない。** 代わりに、出荷対象 SHA の自動検証によって品質を判定する。観測していない OS/GPU 固有挙動を「実機 PASS」と主張しない。見つかった欠陥は再現可能なコード/契約テストとして直す。
+
+**候補の必須機械チェック:** (1) `verify` と対象 Web `check` success、(2) **出荷 SHA と一致する full Unity EditMode** が収集数>0、失敗0、skip/inconclusive 0 で green、(3) 対象プラットフォームの Unity build success、(4) プラットフォーム対象 ZIP + SHA-256 / version.json / tag/channel / update互換 / third-party media exclusion と秘密情報の確認、(5) Web を同梱/公開する場合は隔離 D1 の Playwright E2E が対象 SHA で green。出荷バイナリが未生成/コード未コンパイルなら Release 準備完了とはしない。
+
+`build-macos.yml` は `workflow_dispatch` 時の EditMode と macOS build を一つの候補にまとめる。`build-win64.yml` の `run_tests=false` はデバッグ・ビルド単体用途のみで、出荷候補の full EditMode PASS の根拠にはならない。Win64 hosted Unity のライセンス制約時は Mac self-hosted での同一 SHA Unity EditMode + Windows cross-build + `tools/release/package-win64.ps1` の既存経路を用い、出荷 OS 向けランタイムの未観測リスクを Release notes に記載する。**一方、出荷 artifact の作成/sha/media gate は省略不可**。
+
+実機の任意観測はリリース後の利用者フィードバック・必要時の診断として残すが、証跡を収集するためだけに同じテストを何度も実行しない。配布や本番の外部公開・本番データ書き込みに権限上必要な承認は従来通り保持し、通常 PR / release ブランチへの統合承認とは分離する。
+
 ## 1. Release 公開のルール
 
 ### 1.1 タグ命名規則
@@ -123,7 +133,7 @@ v<version>-win64-<sha>
   - 証跡: [`docs/evidence/win64-build-from-macos.md`](../evidence/win64-build-from-macos.md) /
     [`docs/evidence/index.md`](../evidence/index.md) §1.8 (fingerprint / exe SHA-256 / ファイル数を実測値つきで記載)
   - 同じ入力なら **ZIP の SHA-256 は一致します** (`version.json` の `createdAt` は commit の日時から作る)。
-  - **Windows 実機での起動・プレイは未証明**。展示 PC で確認するまで Release 化しません。
+  - **Windows 実機での起動・プレイは未証明**。現行 2026-11-16 の候補品質契約により、対応する code/build/artifact の自動ゲートを満たすなら Release を妨げない（物理実機 PASS は主張しない）。
 
 ---
 
