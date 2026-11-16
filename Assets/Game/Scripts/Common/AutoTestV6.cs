@@ -407,7 +407,16 @@ public class AutoTestV6 : MonoBehaviour
         shot++;
         string path = Path.Combine(outDir, string.Format("autotest-v6-{0}.png", shot));
         ScreenCapture.CaptureScreenshot(path);
-        yield return new WaitForSecondsRealtime(0.6f);
+        // CaptureScreenshot の書き込みは非同期。動画再生中など負荷が高いと
+        // 0.6 秒では間に合わず File.Exists が偽になる (実測: v6playfield で
+        // 3 件 FAIL)。ファイルが現れるまで待ち、上限を超えたら FAIL にする。
+        float waited = 0f;
+        while (!File.Exists(path) && waited < 10f)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
         Check("the screenshot " + name + " was written", File.Exists(path));
     }
 
