@@ -55,7 +55,7 @@ Lane 3: 4 5 R T F G V B  Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 - chart: `Assets/Game/Resources/<SongName>.json`。`name`, `maxBlock`, `BPM`, `offset`, `notes[]` (`type/num/block/LPB`)、任意の `lyrics`
 - lyrics: chart 内の `lyrics` が正。`GameSceneManager.LoadTextData` は merged chart を優先し、legacy の `<SongName>_text.json` があっても chart 側を使う
 - 音源: `Assets/Game/Resources/Musics/<SongName>.wav`
-- `Assets/Resources/` にも旧 chart 群が残る。新しい曲は `Assets/Game/Resources/` だけを更新する
+- chart JSON は Resources folder に 1 つだけ置く。同名 chart が 2 つの Resources folder にあると `Resources.Load` がどちらか一方を恣意的に返す。`Assets/Tests/Editor/ResourceChartUniquenessTests.cs` がこれを検査する
 
 ### 曲の追加
 
@@ -76,15 +76,17 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 
 ## Tests
 
-`Assets/Tests/Editor/` に 44 ファイル、447 個の `[Test]` / `[TestCase]` 属性がある。GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker を対象にする。Play Mode / 実機 integration suite はない。
+`Assets/Tests/Editor/` に 139 の test file があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。Play Mode / 実機 integration suite はない。
 
 `SingletonTestHelper.TeardownSingletons` で static state を test 間に戻す。`EditData.Lyrics` の配列を使う test では必須。
 
-CLI 実行では `-quit` を付けない。
+CLI 実行では `-quit` を付けない（test runner 起動前に editor が終了し、test が 1 件も走らず `TestResults.xml` も書かれない）。
 
 ```sh
 Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults TestResults.xml
 ```
+
+Unity を起動せずに C# の型検査だけ行う補助として `script/compile-check.sh` がある（dotnet、`mise.toml` で pin）。複数 worker が並行で Unity C# を編集する時の競合回避用で、最終的な正本は Unity Editor / batch の結果。
 
 ## NoteEditor
 
@@ -98,7 +100,12 @@ Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults Te
 - `GManager` は DI ではなく static field を使う。削除時は variable を消さず comment out する方針が `MakeFileSceneManager` にある。
 - `GManager.Songs[0]` は `id=0`, `title="noSong"` の placeholder。実曲は `id=1` から。
 - 7 つの parallel array と chart は positional に結び付く。曲を消す時は全 array と chart を同じ位置で扱う。
-- `GManager.SongName[27]` / `[28]` はどちらも `ニセモノ` で、`Musics/ニセモノ.wav` が無い。`MusicManager` は `Resources.Load` の null を返さないため、この 2 つは選択しない。
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/`, `TestResults.xml` は生成物。手で編集しない。
-- 日本語 font は `NotoSansJP-Medium SDF.asset`。新しい漢字を含む曲・歌詞を足したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` を実行する。atlas は静的で、古い asset は 620 glyph しか持っていなかった。
+- `GManager.SongName[27]` / `[28]` はどちらも `ニセモノ` で、cloud catalog の placeholder（chart / wav 無し）。index をずらさないため配列には残し、`GManager.UnplayableTitles`（`noSong` も含む）で選択不可にしている。
+- `GManager` の 7 つの parallel array は 29 entry で lockstep。かつて 30 番目の数値 entry は comment out されており、`ChartDataIntegrityTests` がこの対応を検査する。
+- `MusicManager` は bundled wav を `Resources.LoadAsync<AudioClip>` で非同期に読み、clip が無くても throw せず YouTube media へ fallback する（`PlaybackRecovery.DecideAudioSource`）。
+- `NoteEditor.Editor` の callback（YouTube import 登録、deferred editor actions）は `[InitializeOnLoad]` の static registrar pattern。cross-asmdef の callback 配線は `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` を参照。
+- プレイフィールドは unlit / 影なしの flat rendering。`docs/architecture/flat-rendering.md` を参照。lit shader に戻すと動画 quad がほぼ黒くなる。
+- 日本語 font は `NotoSansJP-Medium SDF.asset`。HUD への適用は `JapaneseFontFixer.ApplyJapaneseFontToProject`（Editor menu `Tools → FlashBeat → Apply Japanese Font To Scenes And Prefabs`）。新しい漢字を含む曲・歌詞を足したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` を実行する。atlas は静的で、古い asset は 620 glyph しか持っていなかった。
+- Windows baseline (issue #11): batch build と select → play → result → retry の 1 曲 loop は実機で確認済み（`docs/superpowers/plans/baseline-win64.md`）。Windows Media Foundation の URL reader は解決済み `googlevideo.com` stream で失敗する（`0x80070005` / `MFCreateSourceReaderFromURL`）ため、`MusicManager` は yt-dlp で media を `persistentDataPath/FlashBeatMedia/<videoId>/` に download し local file を再生する（`PrepareLocalVideo`）。direct URL の試行は video ごと 1 回の診断 probe（`ProbeDirectUrl`）として残るので、`Player.log` の `0x80070005` は missing picture の原因ではない。Windows での download 済み file 再生と audible output は未検証（同 § 2026-11-10 追記、issue #13）。
 - 大きい font asset (`NotoSansJP-Medium SDF.asset`, `YuGothB SDF.asset`) は `.gitattributes` で個別に LFS 対象。
