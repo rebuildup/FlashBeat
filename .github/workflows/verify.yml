@@ -23,7 +23,7 @@ on:
       - "Assets/**"
       - "script/**"
       - "tools/acceptance/**"
-      - ".github/workflows/verify.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 jobs:
