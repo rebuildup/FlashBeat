@@ -6,7 +6,9 @@ dist
 .void-wrangler.jsonc
 .env
 .env.*
+.dev.vars
 !.env.example
+!.env.*.example
 *.tsbuildinfo
 .DS_Store
 test-results/
