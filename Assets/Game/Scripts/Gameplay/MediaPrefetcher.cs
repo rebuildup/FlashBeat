@@ -107,10 +107,13 @@ namespace FlashBeat.Gameplay
                 // 別の曲が選ばれた: 進行中の先読みは中断する。
                 // EnsureGame 内の DownloadGate が同一動画の処理を直列化するので、
                 // 中断と新規開始が同じキャッシュを壊し合うことはない。
+                // CTS は Dispose しない: 実行中の run が token.Register を
+                // 非同期に呼ぶ経路 (YouTubeStreamResolver.RunAsync) があり、
+                // 破棄済み source への Register は ObjectDisposedException で
+                // yt-dlp の kill 自体を失う (MusicManager と同じ約束)。
                 if (current != null)
                 {
                     current.Cancel();
-                    current.Dispose();
                     current = null;
                 }
 
@@ -144,9 +147,20 @@ namespace FlashBeat.Gameplay
                     formats = YouTubeStreamResolver.ParseFormats(formatsOut.Ok ? formatsOut.Stdout : "");
                 }
 
+                // 本番の形式プローブはキャンセルを例外ではなく非 0 終了で返す
+                // (YouTubeStreamResolver.RunAsync が yt-dlp を kill して
+                // Ok=false を返し、ParseFormats は空リストになる)。「別曲への
+                // 切替」は失敗に数えない契約なので、空リストでも token を見る。
                 if (formats == null || formats.Count == 0)
                 {
-                    MarkFailed(videoId);
+                    if (token.IsCancellationRequested)
+                    {
+                        CountCancelled();
+                    }
+                    else
+                    {
+                        MarkFailed(videoId);
+                    }
                     return;
                 }
 
@@ -161,8 +175,11 @@ namespace FlashBeat.Gameplay
                 bool combined = plan.Combined;
                 if (!video.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
                 {
-                    YouTubeMediaCache.RemoveProducedFiles(
-                        YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
+                    // ゲート外の一括削除は使わない: 再生側 (MusicManager) が
+                    // 同じ videoId を並行取得していると、完成直後の結合ファイルを
+                    // 消しうる。完了済みファイルを残すゲート付き削除にする。
+                    await YouTubeMediaCache
+                        .RemoveIncompleteProducedFilesAsync(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix, token);
                     video = await YouTubeMediaCache
                         .EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, token);
                     combined = false;
@@ -183,6 +200,12 @@ namespace FlashBeat.Gameplay
                         CompletedCount++;
                     }
                 }
+                else if (token.IsCancellationRequested)
+                {
+                    // ダウンロード中のキャンセルも「失敗」にしない
+                    // (EnsureFileAsync は中断を !Ok で返しうる)。
+                    CountCancelled();
+                }
                 else
                 {
                     MarkFailed(videoId);
@@ -190,26 +213,32 @@ namespace FlashBeat.Gameplay
             }
             catch (OperationCanceledException)
             {
-                CancelledCount++;
+                CountCancelled();
             }
             catch (Exception e)
             {
-                MarkFailed(videoId);
-                Debug.LogWarning("[MediaPrefetcher] prefetch failed for " + videoId + ": " + e.Message);
+                if (token.IsCancellationRequested)
+                {
+                    CountCancelled();
+                }
+                else
+                {
+                    MarkFailed(videoId);
+                    Debug.LogWarning("[MediaPrefetcher] prefetch failed for " + videoId + ": " + e.Message);
+                }
             }
             finally
             {
                 lock (gate)
                 {
+                    // 自分が現行 run の時だけ状態を畳む。A→B→A の切替では
+                    // 古い run の finally が新しい run の InFlightVideoId を
+                    // 消してはいけない (videoId 比較では区別できない)。
                     if (ReferenceEquals(current, cts))
                     {
                         current = null;
                         currentRun = Task.CompletedTask;
                         cts.Dispose();
-                    }
-
-                    if (InFlightVideoId == videoId)
-                    {
                         InFlightVideoId = null;
                     }
                 }
@@ -225,6 +254,16 @@ namespace FlashBeat.Gameplay
             }
         }
 
+        static void CountCancelled()
+        {
+            // 他のカウンタと同じく gate 内で更新する (継続スレッドから
+            // Request と並行して呼ばれうる)。
+            lock (gate)
+            {
+                CancelledCount++;
+            }
+        }
+
         /// <summary>監査・テスト用: warm 集合とカウンタを初期状態へ戻す。</summary>
         public static void ResetForAudit()
         {
@@ -233,7 +272,6 @@ namespace FlashBeat.Gameplay
                 if (current != null)
                 {
                     current.Cancel();
-                    current.Dispose();
                     current = null;
                 }
 
@@ -241,6 +279,8 @@ namespace FlashBeat.Gameplay
                 warm.Clear();
                 failedOnce.Clear();
                 InFlightVideoId = null;
+                // 実行中 run の CTS は Dispose しない (Request と同じ理由:
+                // token.Register が ObjectDisposedException になりうる)。
                 RequestCount = 0;
                 CacheHitCount = 0;
                 StartedCount = 0;
