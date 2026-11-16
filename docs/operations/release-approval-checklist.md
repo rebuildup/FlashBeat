@@ -6,6 +6,14 @@
 このチェックリストは **「そのビルドを展示にreleased してよいか」** を判断するためのものです。
 **1 項目でも確認できていないものは「未証明」と書き、green にしません。**
 
+## 現行候補の自動品質判定 (2026-11-16)
+
+従来の展示機・人手中心の項目（下記 C/D）を**2026-11-16 以降の Release の必須条件にしない**。出荷対象 SHA に対して、(A) source integrity / Web test、(B) 全 Unity EditMode (total>0/pass=total/failed=0/skip=0)、(C) Win64/macOS の必要な対象 build が実際に成功、(D) ZIP + SHA-256 / tag / version/channel / media exclusion / 秘密情報、(E) Web を出すなら隔離 D1 と Playwright E2E を一度の候補ゲートで判定。詳細は [release-gate.md](release-gate.md)。`build-win64.yml run_tests=false` の green は EditMode 検証の根拠にしない。
+
+**物理 Win64 の起動・実プレイ、1280×720 の目視、複数解像度の PNG 撮影は任意の補助観測**。テスト済みと記録できるのは実行した項目だけ。未観測の hardware 固有リスクは release notes で明示し、見つかれば回帰テスト化する。出荷の対外公開承認・第三者メディア禁止など従来の権限/安全ゲートは維持する。
+
+下記の旧展示用チェックリストは履歴・任意の追加観測として残す。
+
 ## A. 前提と権限の境界
 
 - [ ] 承認対象は **PR 単位**で特定されている（branch / commit SHA / PR 番号）。
