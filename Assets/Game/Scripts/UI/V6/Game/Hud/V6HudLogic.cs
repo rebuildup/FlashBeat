@@ -70,12 +70,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>
         /// 歌詞スロットの画面上の左上座標 (px、画面左上原点)。
         /// 共有フレームの origin ((w-1728)/2, (h-972)/2 切り捨て) + (304,250)。
+        /// 幅が画面幅にクランプされた場合 (<see cref="LyricSlotWidth"/>) は
+        /// 中央寄せのまま左右に等分のインセットを足した実際の左端を返す
+        /// (監査・レイアウト契約が描画結果と一致するための値)。
         /// </summary>
         public static Vector2 LyricSlotOrigin(float screenWidth, float screenHeight)
         {
             Vector2 frameOrigin = FlashBeat.UI.V6.Common.V6UiProfile.OriginFor(
                 Mathf.RoundToInt(screenWidth), Mathf.RoundToInt(screenHeight));
-            return new Vector2(frameOrigin.x + LyricSlotDesignX, frameOrigin.y + LyricDesignY);
+            float inset = (LyricDesignWidth - LyricSlotWidth(screenWidth)) * 0.5f;
+            return new Vector2(frameOrigin.x + LyricSlotDesignX + inset, frameOrigin.y + LyricDesignY);
         }
 
         /// <summary>

@@ -328,9 +328,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         private Vector2 LyricSlotAnchoredPosition()
         {
             Vector2 canvasSize = CanvasSize();
+            // LyricSlotOrigin はクランプ後の実左端。実幅の半分を足すと
+            // デザインスロット中心 (クランプで変わらない) に一致する。
             Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(canvasSize.x, canvasSize.y);
             return new Vector2(
-                slotOrigin.x + V6HudLogic.LyricDesignWidth * 0.5f - canvasSize.x * 0.5f,
+                slotOrigin.x + LyricBoxWidth() * 0.5f - canvasSize.x * 0.5f,
                 -slotOrigin.y);
         }
 

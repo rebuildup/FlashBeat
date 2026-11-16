@@ -39,6 +39,10 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         private V6HudMetrics m;
 
+        /// <summary>直近の Rebuild 時の歌詞スロット実幅。プロファイル内の
+        /// 解像度変更でクランプ幅が変わった時だけ作り直すための比較値。</summary>
+        private float lastLyricSlotWidth = -1f;
+
         // --- 毎フレームの状態 ---
         /// <summary>このビューが Refresh を実行した総回数。</summary>
         private int refreshCount;
@@ -317,9 +321,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // 解像度変更 (プロファイル境界をまたぐ) で HUD を作り直す。
             // 寸法は design px を実ピクセルで使うので、アンカー追従だけでは対応できない。
+            // プロファイル名が同じでも、歌詞スロット幅のように実ピクセル幅へ
+            // 直接依存する要素があるため、クランプ幅の変化でも作り直す (#551)。
             Vector2 canvasSize = CanvasSize();
-            if (m == null || !m.MatchesResolution(canvasSize.x, canvasSize.y))
+            float lyricSlotWidth = V6HudLogic.LyricSlotWidth(canvasSize.x);
+            if (m == null || !m.MatchesResolution(canvasSize.x, canvasSize.y)
+                || !Mathf.Approximately(lyricSlotWidth, lastLyricSlotWidth))
             {
+                lastLyricSlotWidth = lyricSlotWidth;
                 Rebuild();
             }
 

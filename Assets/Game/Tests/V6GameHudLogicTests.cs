@@ -335,6 +335,21 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
+        public void LyricSlotOrigin_NarrowScreen_ReportsClampedLeftEdge()
+        {
+            // 1024×768: 幅が 1120 → 1024 にクランプされ、中央寄せのまま
+            // 左右に (1120-1024)/2 = 48 のインセットが付く。監査が比較する
+            // のはこの実左端であり、design 原点 (-48) ではない (#551)。
+            Vector2 origin = V6HudLogic.LyricSlotOrigin(1024f, 768f);
+            Assert.AreEqual(0f, origin.x, 0.01f);
+            Assert.AreEqual(148f, origin.y, 0.01f);
+
+            // クランプ後もスロット中心は design 中心 (frameOrigin.x + 304 + 560)。
+            float centerX = origin.x + V6HudLogic.LyricSlotWidth(1024f) * 0.5f;
+            Assert.AreEqual(512f, centerX, 0.01f);
+        }
+
+        [Test]
         public void LyricWidthIsTheFrameColumnSpan()
         {
             // 幅はメイン領域 6 列グリッドの中央 4 列 = 1120 を 1:1 で使う
