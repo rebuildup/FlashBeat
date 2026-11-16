@@ -823,18 +823,19 @@ public static class V6ScreenAudit
     public static ScreenClip ClassifyElementClip(
         Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
     {
+        // パンビューポートは最も外側の到達機構なので、内側のスクロール名を持つ
+        // 節 ("Song List" / "Key List" 等) より先に判定する。v6 フレーム配下に
+        // 内側マスクは無く、コンテンツ (フレーム) 全域がパンで到達可能。
+        var pan = FindPanAncestor(node, canvasRoot);
+        if (pan != null && pan.Content != null)
+        {
+            return ClassifyScreenClip(WorldRect(rt), WorldRect(pan.Content));
+        }
+
         var basis = screen;
         var scroll = FindScrollAncestor(node, canvasRoot) as RectTransform;
         if (scroll != null)
         {
-            var pan = scroll.GetComponent<FlashBeat.UI.V6.Common.V6FramePan>();
-            var content = pan != null ? pan.Content : null;
-            if (pan != null && content != null)
-            {
-                // パンビューポート: コンテンツ矩形全体が到達可能領域。
-                return ClassifyScreenClip(WorldRect(rt), WorldRect(content));
-            }
-
             var sr = WorldRect(scroll);
             float x0 = Mathf.Max(sr.xMin, screen.xMin);
             float y0 = Mathf.Max(sr.yMin, screen.yMin);
@@ -847,6 +848,20 @@ public static class V6ScreenAudit
         }
 
         return ClassifyScreenClip(WorldRect(rt), basis);
+    }
+
+    /// <summary>root に至る親鎖からパンビューポート (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) を探す。無ければ null。</summary>
+    public static FlashBeat.UI.V6.Common.V6FramePan FindPanAncestor(Transform node, Transform root)
+    {
+        var t = node == null ? null : node.parent;
+        while (t != null && t != root)
+        {
+            var pan = t.GetComponent<FlashBeat.UI.V6.Common.V6FramePan>();
+            if (pan != null) { return pan; }
+            t = t.parent;
+        }
+
+        return null;
     }
 
     /// <summary>-autotest-scenes を省略したときの既定シーン一覧。</summary>
