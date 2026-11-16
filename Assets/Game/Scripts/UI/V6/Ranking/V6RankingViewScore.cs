@@ -138,6 +138,15 @@ namespace FlashBeat.UI.V6.Ranking
             V6Icons.Create(retryRow.gameObject, "skip-back", 22f, V5Tokens.TextMuted, "Icon");
             V5GameUi.Text(retryRow.gameObject, "Label", "再試行", 24f, V5Tokens.Text, TextAlignmentOptions.Center);
             retryGo = retry;
+
+            // Issue #7: ランキングは casual / unverified であることを常設表示する。
+            // 行エリア (RankRowY0=60, 10 行 × 64px → 最下端 692) と Head (〜48) の
+            // 間には空きが無いため、パネル下端の空き (y≈700-726) に小さく置く。
+            var casualNote = V5GameUi.Text(panel.gameObject, "CasualNote",
+                "ランキングは非公式・未検証です (casual / unverified)", 16f, V5Tokens.TextDim,
+                TextAlignmentOptions.Center);
+            casualNote.textWrappingMode = TextWrappingModes.NoWrap;
+            V6Layout.Place(casualNote, 8f, 700f, 496f, 26f);
             return panel;
         }
 

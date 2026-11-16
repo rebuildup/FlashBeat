@@ -378,7 +378,7 @@ export function DashboardPanel() {
               <Heading
                 icon={Trophy}
                 title="Ranking"
-                subtitle="Best score of the published chart."
+                subtitle="Best score of the published chart. Scores are casual and unverified."
               />
             </div>
             <div className={panelBodyAuto}>
