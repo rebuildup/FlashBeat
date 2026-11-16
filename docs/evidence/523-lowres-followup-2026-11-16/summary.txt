@@ -1,0 +1,15 @@
+#523 low-resolution follow-up verification (macOS player, all v6 scenes)
+
+app: Builds/macOS/FlashBeat.app @ w/523-lowres-followup (fc3288a + release-0-1-27 a2b612f1)
+scenes: TitleScene,SelectScene,OptionScene,ResultScene,GameScene
+command: RESOLUTIONS="<res>" V6SCENES="TitleScene,SelectScene,OptionScene,ResultScene,GameScene" script/mac-resolution-matrix-v6screens.sh
+
+1024x768   PASS  RESULT pass=90 fail=0  png 21/21
+1280x720   PASS  RESULT pass=90 fail=0  png 21/21
+1366x768   PASS  RESULT pass=90 fail=0  png 21/21
+1600x900   PASS  RESULT pass=90 fail=0  png 21/21
+1920x1080  PASS  RESULT pass=90 fail=0  png 21/21
+2560x1440  PASS  RESULT pass=90 fail=0  png 21/21 (initial run had 1 flaky SelectScene-Error fail; rerun green)
+2560x1664  PASS  RESULT pass=90 fail=0  png 21/21
+
+PNGs are not committed (regenerate with the command above).
