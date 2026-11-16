@@ -48,7 +48,10 @@ const flag = (name) => args.includes(name);
 
 const apiOrigin = option("--api", "https://flashbeat.rebuildup.dev").replace(/\/+$/, "");
 const resourcesDir = resolve(repoRoot, option("--resources", "Assets/Game/Resources"));
-const gmanagerPath = resolve(repoRoot, option("--gmanager", "Assets/Game/Scripts/Songs/GManager.cs"));
+const gmanagerPath = resolve(
+  repoRoot,
+  option("--gmanager", "Assets/Game/Scripts/Songs/GManager.cs"),
+);
 const dryRun = flag("--dry-run");
 const attemptBlocked = flag("--attempt-blocked") || flag("--include-empty");
 const token = process.env.FLASHBEAT_ADMIN_TOKEN ?? "";
@@ -82,7 +85,7 @@ const SONG_IDS = {
   混沌ブギ: "konton-bugi",
   春嵐: "shunran",
   ビビビビ: "bibibibi",
-  "灰Φ倶楽部": "hai-kurakubu",
+  灰Φ倶楽部: "hai-kurakubu",
   オーバーライド: "override",
   イガク: "igaku",
   テレキャスタービーボーイ: "tele-caster-boy",
@@ -187,7 +190,9 @@ function planSong(file, metadata) {
 
   if ((meta?.durationSec ?? 0) <= 0) problems.push("no song length");
   else if (lastNoteSec > meta.durationSec) {
-    problems.push(`the last note lands at ${lastNoteSec.toFixed(1)}s, the song is ${meta.durationSec}s`);
+    problems.push(
+      `the last note lands at ${lastNoteSec.toFixed(1)}s, the song is ${meta.durationSec}s`,
+    );
   }
 
   return {
@@ -342,7 +347,9 @@ console.log("|---|---|---|---|---|---|---|---|---|---|");
 for (const { song, result } of results) {
   const listed = after.songs.find((entry) => entry.id === song.id);
   const previous = beforeById.get(song.id);
-  const snapshot = listed ? await fetchChart(song.id, listed.chartVersion) : { status: 0, body: null };
+  const snapshot = listed
+    ? await fetchChart(song.id, listed.chartVersion)
+    : { status: 0, body: null };
   const differences =
     snapshot.status === 200 ? compareCharts(song.chart, snapshot.body.chart) : ["no snapshot"];
   if (differences.length > 0) {
