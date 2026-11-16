@@ -1,5 +1,20 @@
 # CI / PR 検証の責任範囲
 
+**現行運用 (2026-11-16):** [開発収束・品質ゲート](development-convergence.md) が品質レーンの正本。PR/main push 時の重い実機・Unity build・Playwright は必須にしない。すべての緑判定は**実行された検証の範囲だけ**を意味する。
+
+| トリガー | ワークフロー | 何が検証できるか |
+|---|---|---|
+| 全 PR / main の関連変更 | `verify.yml` | asset/meta, asmdef/chart JSON, 改行, 受入ツール（コンパイル検証ではない） |
+| `web/**` PR/main push | `web.yml: check` | Web typecheck, unit, production build（ブラウザ E2E ではない） |
+| Release 候補で明示実行 | `web.yml: browser-e2e` | ローカル D1 + Playwright（本番 API の代用ではない） |
+| Release 候補で明示実行 | `build-win64.yml`, `build-macos.yml` | ライセンス/環境が使える場合のみ Unity EditMode + build + 成果物。実機プレイの代用ではない |
+| 関連コード束の統合時 / 候補 | Unity Editor 所有者 | Unity compile + 影響テスト。候補では全 EditMode、source SHA と TestResults.xml を記録 |
+
+**禁止:** CI を green と呼ぶためだけに Unity ビルドを増やすこと。日常の main push で自動 Unity build を要求すること。デバイス/人間の目視不足のみで実装を blocked とすること。コード未コンパイルを PASS とすること。
+
+## 歴史的記録 (2026-11-10、以下は当時の挙動で現在のトリガーではない)
+
+
 **緑の PR は「Unity が検証済み」を意味しません。** どの検証がどこで走るのかを
 1 か所にまとめ、PR のチェック欄を誤読しないための文書です。
 
