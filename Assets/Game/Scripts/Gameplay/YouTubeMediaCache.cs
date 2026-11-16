@@ -548,6 +548,48 @@ namespace FlashBeat.Gameplay
             }
         }
 
+        /// <summary>
+        /// <see cref="RemoveProducedFiles"/> のゲート付き版: 同一動画の
+        /// ダウンロードパイプライン (EnsureFileAsync) と直列化した上で、
+        /// 完了マーカーが有効なファイルだけを残して未完了の生成物を消す。
+        /// EnsureFileAsync の外側 (MediaPrefetcher のフォールバック等) から
+        /// 呼ぶためのもので、実行中のダウンロードや再生側が完成させた
+        /// キャッシュを消さない。
+        /// </summary>
+        public static async Task RemoveIncompleteProducedFilesAsync(string directory, string filePrefix, CancellationToken cancellationToken = default)
+        {
+            var gate = DownloadGates.GetOrAdd(directory, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (!Directory.Exists(directory)) return;
+                foreach (var path in Directory.GetFiles(directory))
+                {
+                    var name = Path.GetFileName(path);
+                    if (!name.StartsWith(filePrefix, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    if (name.EndsWith(DoneMarkerSuffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // マーカーは対応するメディアが完了済みの時だけ残す。
+                        var media = path.Substring(0, path.Length - DoneMarkerSuffix.Length);
+                        if (!File.Exists(media) || !IsCompletedCacheFile(media))
+                        {
+                            try { File.Delete(path); } catch { }
+                        }
+                        continue;
+                    }
+
+                    // 完了済みファイルは別パイプライン (再生側など) の成果物。
+                    if (IsCompletedCacheFile(path)) continue;
+                    try { File.Delete(path); } catch { }
+                }
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
+
         /// <summary>Deletes every cached file of the given prefix (a failed download leaves nothing behind).</summary>
         public static void RemoveProducedFiles(string directory, string filePrefix)
         {

@@ -172,16 +172,20 @@ public class MediaPrefetcherTests
         string second = NewVideoId();
         InstallFakeDownload();
 
+        // 本番の形式プローブはキャンセルで例外を投げない:
+        // YouTubeStreamResolver.RunAsync が yt-dlp を kill して非 0 終了を返し、
+        // ParseFormats("") は空リストになる。テストもその形に合わせる
+        // (OCE を投げる fake だと「キャンセルを失敗扱いする」退行を検出できない)。
         MediaPrefetcher.FormatsOverride = (id, token) =>
         {
             if (id == first)
             {
-                // キャンセルを token 経由で観測する (Task.Delay のキャンセルで OCE)。
                 return Task.Run(async () =>
                 {
-                    await Task.Delay(Timeout.Infinite, token);
+                    try { await Task.Delay(Timeout.Infinite, token); }
+                    catch (OperationCanceledException) { }
                     return new List<YtDlpFormat>();
-                }, token);
+                });
             }
             return Task.FromResult(CombinedFormats());
         };
@@ -194,8 +198,62 @@ public class MediaPrefetcherTests
         await secondRun;
 
         Assert.AreEqual(1, MediaPrefetcher.CancelledCount, "切替で前の先読みはキャンセルされる");
+        Assert.AreEqual(0, MediaPrefetcher.FailedCount, "キャンセルは失敗に数えない");
         Assert.AreEqual(1, MediaPrefetcher.CompletedCount, "新しい曲の先読みは完了する");
         Assert.IsNull(MediaPrefetcher.InFlightVideoId);
+
+        // キャンセルされた曲は failedOnce に入らないので、同じ曲へ戻れば再試行する。
+        int restartCount = 0;
+        MediaPrefetcher.FormatsOverride = (id, token) =>
+        {
+            restartCount++;
+            return Task.FromResult(CombinedFormats());
+        };
+        await MediaPrefetcher.Request(first);
+        Assert.AreEqual(1, restartCount, "キャンセル済みの曲は再要求で再試行される");
+    }
+
+    [Test]
+    public async Task Request_SwitchAwayAndBack_StaleRunKeepsInFlightMarker()
+    {
+        // A→B→A: 最初の A run が後から畳まれても、2 本目の A run の
+        // InFlightVideoId を消してはいけない (run 同一性で判定する)。
+        string a = NewVideoId();
+        string b = NewVideoId();
+        InstallFakeDownload();
+
+        var firstA = new TaskCompletionSource<List<YtDlpFormat>>();
+        var secondA = new TaskCompletionSource<List<YtDlpFormat>>();
+        int aCalls = 0;
+        MediaPrefetcher.FormatsOverride = (id, token) =>
+        {
+            if (id == a)
+            {
+                aCalls++;
+                return aCalls == 1 ? firstA.Task : secondA.Task;
+            }
+            return Task.FromResult(CombinedFormats());
+        };
+
+        Task runA1 = MediaPrefetcher.Request(a);
+        Task runB = MediaPrefetcher.Request(b);
+        await runB; // B はすぐ完了し、A1 はキャンセル済みだが firstA 未解決で残る
+
+        Task runA2 = MediaPrefetcher.Request(a);
+        Assert.AreEqual(a, MediaPrefetcher.InFlightVideoId);
+
+        // A1 を今になって畳ませる。古い run の finally が走っても
+        // InFlightVideoId は A2 のもの ("a") のまま残ること。
+        firstA.SetResult(new List<YtDlpFormat>());
+        await runA1;
+        Assert.AreEqual(a, MediaPrefetcher.InFlightVideoId,
+            "畳まれた旧 run が新しい run の InFlightVideoId を消してはいけない");
+
+        secondA.SetResult(CombinedFormats());
+        await runA2;
+        Assert.IsNull(MediaPrefetcher.InFlightVideoId);
+        Assert.AreEqual(0, MediaPrefetcher.FailedCount, "キャンセルは失敗に数えない");
+        Assert.AreEqual(1, MediaPrefetcher.CancelledCount);
     }
 
     [Test]
