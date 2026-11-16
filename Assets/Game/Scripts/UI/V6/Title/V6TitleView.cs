@@ -288,9 +288,10 @@ namespace FlashBeat.UI.V6.Title
         }
 
         /// <summary>
-        /// フレームを 1:1 (等倍) で中央配置する (引き伸ばしはしない)。
-        /// origin = ((w−1728)/2, (h−972)/2) 切り捨て (V6TitleLogic.FrameOrigin、
-        /// design POJwG "Resolution Check · Title" の実配置)。
+        /// フレームを画面解像度に合わせて配置する (引き伸ばしはしない)。
+        /// 通常解像度は 1:1 中央 (origin = ((w−1728)/2, (h−972)/2) 切り捨て)。
+        /// フレームより小さい画面では <see cref="V6CompactScreen"/> のパン
+        /// ビューポートで全要素を到達可能にする (#96/#523)。
         /// </summary>
         private void PlaceFrame()
         {
@@ -299,8 +300,7 @@ namespace FlashBeat.UI.V6.Title
                 return;
             }
 
-            V6Layout.Place(frame, V6TitleLogic.FrameOrigin(Screen.width, Screen.height),
-                new Vector2(V6TitleLogic.FrameW, V6TitleLogic.FrameH));
+            V6CompactScreen.Place(frame, Screen.width, Screen.height);
         }
 
         private void Rebuild()

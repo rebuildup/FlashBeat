@@ -313,10 +313,7 @@ namespace FlashBeat.UI.V6.Ranking
             lastHeight = h;
             if (frame != null)
             {
-                frame.localScale = Vector3.one; // 1:1 (引き伸ばしは行わない)
-                frame.anchoredPosition = new Vector2(
-                    V6RankingLogic.FrameOriginX(w),
-                    V6RankingLogic.FrameOriginY(h));
+                V6CompactScreen.Place(frame, w, h);
             }
         }
 

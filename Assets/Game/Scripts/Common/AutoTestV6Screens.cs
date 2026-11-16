@@ -629,7 +629,7 @@ public class AutoTestV6Screens : MonoBehaviour
                 if (sel == null || !sel.IsInteractable()) { continue; }
                 var rt = sel.transform as RectTransform;
                 if (rt == null) { continue; }
-                var clip = ClassifyElementClip(sel.transform, canvas.transform, rt, screen);
+                var clip = V6ScreenAudit.ClassifyElementClip(sel.transform, canvas.transform, rt, screen);
                 if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
                 if (clip == V6ScreenAudit.ScreenClip.Outside) { selOutside++; } else { selPartial++; }
                 if (lines < MaxLines)
@@ -651,32 +651,12 @@ public class AutoTestV6Screens : MonoBehaviour
         Debug.Log("[AutoTestV6Screens] CLIP " + report.Label
             + " selectables partial=" + selPartial + " outside=" + selOutside
             + " texts partial=" + textPartial + " outside=" + textOutside);
-    }
 
-    /// <summary>
-    /// 1 要素の画面クリップ種別。スクロール親がある場合は
-    /// 「スクロール親のワールド矩形 ∩ 実画面」を基準矩形にする
-    /// (スクロールで画面内へ到達できる範囲を到達可能とみなす)。
-    /// </summary>
-    private static V6ScreenAudit.ScreenClip ClassifyElementClip(
-        Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
-    {
-        var basis = screen;
-        var scroll = V6ScreenAudit.FindScrollAncestor(node, canvasRoot) as RectTransform;
-        if (scroll != null)
-        {
-            var sr = V6ScreenAudit.WorldRect(scroll);
-            float x0 = Mathf.Max(sr.xMin, screen.xMin);
-            float y0 = Mathf.Max(sr.yMin, screen.yMin);
-            float x1 = Mathf.Min(sr.xMax, screen.xMax);
-            float y1 = Mathf.Min(sr.yMax, screen.yMax);
-            if (x1 > x0 && y1 > y0)
-            {
-                basis = Rect.MinMaxRect(x0, y0, x1, y1);
-            }
-        }
-
-        return V6ScreenAudit.ClassifyScreenClip(V6ScreenAudit.WorldRect(rt), basis);
+        // #523 受入: 画面外に完全に出て押せない/読めない要素は機械的 FAIL。
+        // パン/スクロールで到達できる要素は ClassifyElementClip が Inside に分類するので、
+        // ここに残る Outside は「どの経路でも到達できない」実欠陥だけ。
+        Check(report, "no unreachable selectables on " + report.Label, selOutside == 0);
+        Check(report, "no unreachable info texts on " + report.Label, textOutside == 0);
     }
 
     /// <summary>TMP_Text とレガシー Text の両方を走査してクリップを記録する。</summary>
@@ -706,7 +686,7 @@ public class AutoTestV6Screens : MonoBehaviour
         if (node == null) { return; }
         var rt = node as RectTransform;
         if (rt == null) { return; }
-        var clip = ClassifyElementClip(node, canvasRoot, rt, screen);
+        var clip = V6ScreenAudit.ClassifyElementClip(node, canvasRoot, rt, screen);
         if (clip == V6ScreenAudit.ScreenClip.Inside) { return; }
         if (clip == V6ScreenAudit.ScreenClip.Outside) { textOutside++; } else { textPartial++; }
         if (lines >= maxLines) { return; }
@@ -829,6 +809,44 @@ public static class V6ScreenAudit
             || element.yMax <= bounds.yMin + TolerancePx
             || element.yMin >= bounds.yMax - TolerancePx;
         return outside ? ScreenClip.Outside : ScreenClip.Partial;
+    }
+
+    /// <summary>
+    /// 1 要素の画面クリップ種別。スクロール親がある場合は
+    /// 「スクロール親のワールド矩形 ∩ 実画面」を基準矩形にする
+    /// (スクロールで画面内へ到達できる範囲を到達可能とみなす)。
+    /// コンパクト画面のパンビューポート
+    /// (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) 配下の要素は、
+    /// コンテンツ (フレーム) 全域がドラッグ/ホイールで到達可能なので
+    /// 基準をコンテンツ矩形とし、画面外にあっても Inside (到達可能) とする (#96/#523)。
+    /// </summary>
+    public static ScreenClip ClassifyElementClip(
+        Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
+    {
+        var basis = screen;
+        var scroll = FindScrollAncestor(node, canvasRoot) as RectTransform;
+        if (scroll != null)
+        {
+            var pan = scroll.GetComponent<FlashBeat.UI.V6.Common.V6FramePan>();
+            var content = pan != null ? pan.Content : null;
+            if (pan != null && content != null)
+            {
+                // パンビューポート: コンテンツ矩形全体が到達可能領域。
+                return ClassifyScreenClip(WorldRect(rt), WorldRect(content));
+            }
+
+            var sr = WorldRect(scroll);
+            float x0 = Mathf.Max(sr.xMin, screen.xMin);
+            float y0 = Mathf.Max(sr.yMin, screen.yMin);
+            float x1 = Mathf.Min(sr.xMax, screen.xMax);
+            float y1 = Mathf.Min(sr.yMax, screen.yMax);
+            if (x1 > x0 && y1 > y0)
+            {
+                basis = Rect.MinMaxRect(x0, y0, x1, y1);
+            }
+        }
+
+        return ClassifyScreenClip(WorldRect(rt), basis);
     }
 
     /// <summary>-autotest-scenes を省略したときの既定シーン一覧。</summary>

@@ -320,8 +320,7 @@ namespace FlashBeat.UI.V6.Result
             lastHeight = h;
             if (frame != null)
             {
-                Common.V6Layout.Place(frame, V6ResultLogic.FrameOrigin(w, h),
-                    new Vector2(FrameW, FrameH));
+                V6CompactScreen.Place(frame, w, h);
             }
         }
 

@@ -74,8 +74,7 @@ namespace FlashBeat.UI.V6.Option
             lastHeight = h;
             if (frame != null)
             {
-                Common.V6Layout.Place(frame, V6OptionLogic.FrameOrigin(w, h),
-                    new Vector2(FrameW, FrameH));
+                V6CompactScreen.Place(frame, w, h);
             }
         }
 
