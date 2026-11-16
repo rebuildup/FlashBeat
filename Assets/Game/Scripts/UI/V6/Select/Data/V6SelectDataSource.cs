@@ -259,6 +259,21 @@ namespace FlashBeat.UI.V6.Select.Data
             selectedSongId = songId;
             StartRankingFetch(Selected, false);
             FireChanged();
+            PrefetchSelectedMedia(songId);
+        }
+
+        /// <summary>
+        /// 選択が変わるたびに、その曲のメディアを裏でキャッシュへ落とす
+        /// (Issue #377)。Ready 時に MusicManager の形式解決+ダウンロードが
+        /// キャッシュヒットでスキップできるようにする。EditMode では
+        /// 通信も yt-dlp も走らせない (RefreshAsync と同じガード)。
+        /// </summary>
+        static void PrefetchSelectedMedia(int songId)
+        {
+            if (!Application.isPlaying) return;
+            SongData row = GManager.GetSong(songId);
+            if (row == null || row.unplayable) return;
+            FlashBeat.Gameplay.MediaPrefetcher.Request(row.videoId);
         }
 
         static int IndexOfSong(List<V6SongEntry> songs, int songId)
