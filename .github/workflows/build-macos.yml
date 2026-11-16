@@ -1,5 +1,7 @@
 name: build-macos
 
+# Unity ビルドは workflow_dispatch のみ。PR / main push では実行しない。
+# See docs/operations/development-convergence.md.
 # macOS 版の配布物 (FlashBeat.app の ZIP + SHA-256) を GitHub Actions で作る。
 # Windows 版 (build-win64.yml) と同じく、成果物は Release の材料として artifact に残す。
 # Release の公開/tag 作成はオーナー承認後に行う (docs/operations/update-release.md)。
@@ -18,7 +20,7 @@ name: build-macos
 #   GitHub-hosted runner では UNITY_EMAIL / UNITY_PASSWORD が必須だが、
 #   オーナーの Mac (self-hosted runner `macbook-unity-6000.5`) には Unity Hub で
 #   認証済みのライセンスがあるため、secret 無しでビルドできる。
-#   - push (main): 常に self-hosted (GitHub-hosted では必ず license で落ちるため)
+#   - 通常候補は workflow_dispatch (既定 self-hosted)
 #   - workflow_dispatch: `runner` input で self-hosted / github-hosted を選択
 #     (github-hosted を選ぶと従来どおり secret が必要)
 
@@ -41,16 +43,6 @@ on:
         options:
           - self-hosted
           - github-hosted
-  push:
-    branches:
-      - main
-    paths:
-      - "Assets/**"
-      - "Packages/**"
-      - "ProjectSettings/**"
-      - "tools/release/package-macos.sh"
-      - "tools/update/update-macos.sh"
-      - ".github/workflows/build-macos.yml"
 
 concurrency:
   group: build-macos-${{ github.ref }}
@@ -60,11 +52,11 @@ permissions:
   contents: read
 
 # 更新チャンネル (成果物に書き込まれる StreamingAssets/update-channel.txt)。
-#   - push (main): 展示用候補なので **stable** 固定。preview にはしない。
+#   - workflow_dispatch: update_channel を明示 (既定 preview)。
 #   - workflow_dispatch: input で選択可 (既定 preview = 検証用ビルド)。
-# push と手動実行で同じ式を使わず、push は必ず stable になるよう固定する。
+# 検証候補は preview を既定とし、stable は明示入力のみ。
 env:
-  RELEASE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+  RELEASE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
 
 jobs:
   build:
@@ -72,13 +64,13 @@ jobs:
     # macos-14 の runner image は提供終了しており、job は 1 秒で cancelled
     # (steps: 0, annotation: "The configuration 'macos-14-arm64-us-default' is not supported")
     # になっていた。macos-15 (Apple Silicon / arm64) を使う。
-    # push は self-hosted (オーナー Mac、Unity 認証済み) 固定。workflow_dispatch は
+    # workflow_dispatch のみ。
     # inputs.runner で github-hosted (要 UNITY_EMAIL/UNITY_PASSWORD) も選べる。
-    runs-on: ${{ github.event_name == 'push' && 'self-hosted' || (inputs.runner == 'github-hosted' && 'macos-15' || 'self-hosted') }}
+    runs-on: ${{ inputs.runner == 'github-hosted' && 'macos-15' || 'self-hosted' }}
     timeout-minutes: 120
     env:
       UNITY_VERSION: 6000.5.6f1
-      FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+      FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
     steps:
       - name: ソースを取得 (LFS 込み)
         uses: actions/checkout@v4
