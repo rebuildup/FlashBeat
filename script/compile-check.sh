@@ -104,9 +104,18 @@ if assembly in ("tests", "tests-editor"):
     # Editor 専用テストは UnityEngine.TestRunner (UnityTest) と
     # NoteEditor.Editor (MigrateLegacyTextJson / SongSwitchPrompt) も使う。
     dll_ref_names += ["FlashBeat", "UnityEngine.TestRunner", "NoteEditor.Editor"]
+if assembly == "tests-editor":
+    # FlashBeat.Tests.asmdef は FlashBeat.Editor (BuildScript /
+    # GManagerParallelArrayUpdater 等) を参照する。ScriptAssemblies の
+    # Unity ビルド済み DLL を使う (editor 用の fresh DLL は Temp/bin の
+    # 出力名が flashbeat と同じで区別できないため)。
+    dll_ref_names += ["FlashBeat.Editor"]
+if assembly == "editor":
+    # FlashBeat.Editor.asmdef は FlashBeat 本体を参照する。
+    dll_ref_names += ["FlashBeat"]
 for name in dll_ref_names:
     path = os.path.join(sa, name + ".dll")
-    if assembly in ("tests", "tests-editor") and name == "FlashBeat":
+    if assembly in ("tests", "tests-editor", "editor") and name == "FlashBeat":
         fresh = os.path.join(project_dir, "Temp", "bin", "Debug", "FlashBeat.dll")
         if os.path.exists(fresh):
             path = fresh
@@ -133,6 +142,18 @@ items = "\n".join(f'    <Compile Include="{s}" />' for s in sources)
 extra = ""
 if dll_refs:
     extra = "  <ItemGroup>\n%s\n  </ItemGroup>\n" % "\n".join(dll_refs)
+# tests-editor は Unity 上のアセンブリ名が FlashBeat.Tests で、NoteEditor の
+# InternalsVisibleTo("FlashBeat.Tests") が効く。compilecheck 用 csproj の
+# 既定名 (FlashBeat) のままだと internal 参照が CS0122/CS1501 で落ちるので、
+# tests-editor のときだけ本物のアセンブリ名に合わせる。
+if assembly == "tests-editor":
+    text = text.replace("<AssemblyName>FlashBeat</AssemblyName>",
+                        "<AssemblyName>FlashBeat.Tests</AssemblyName>")
+if assembly == "editor":
+    # Unity 上のアセンブリ名に合わせる (FlashBeat.Editor)。出力名が
+    # flashbeat ビルドの FlashBeat.dll を上書きしないよう別名にする。
+    text = text.replace("<AssemblyName>FlashBeat</AssemblyName>",
+                        "<AssemblyName>FlashBeat.Editor</AssemblyName>")
 text = text.replace("</Project>", "  <ItemGroup>\n%s\n  </ItemGroup>\n%s</Project>" % (items, extra))
 open(out, "w", encoding="utf-8").write(text)
 print(f"compile-check: {len(sources)} sources -> {out}")
@@ -153,13 +174,15 @@ cd "$PROJECT_DIR"
 # BuildProjectReferences=false: Unity が生成した関連 csproj (NoteEditor / UniRx) を
 # 再ビルドしない。参照 DLL は既に Library/ScriptAssemblies にある。
 # ここでは対象アセンブリの型エラーだけを見たい。
-# tests ビルドは AssemblyName が FlashBeat のままなので、そのまま出すと
-# flashbeat ビルドの Temp/bin/Debug/FlashBeat.dll を上書きしてしまう
-# (次回の tests ビルドの「新しめの FlashBeat.dll」参照が壊れる)。
-# そこで tests だけ別の OutputPath に出す。
+# tests / editor / tests-editor は Unity 上のアセンブリ名 (FlashBeat.Tests /
+# FlashBeat.Editor) に合わせてあり、flashbeat ビルドの
+# Temp/bin/Debug/FlashBeat.dll を上書きしないよう別の OutputPath に出す。
 OUT_PATH="Temp/bin/Debug"
 if [ "$ASSEMBLY" = "tests" ]; then
   OUT_PATH="Temp/bin/tests"
+fi
+if [ "$ASSEMBLY" = "editor" ]; then
+  OUT_PATH="Temp/bin/editor"
 fi
 if [ "$ASSEMBLY" = "tests-editor" ]; then
   OUT_PATH="Temp/bin/tests-editor"
