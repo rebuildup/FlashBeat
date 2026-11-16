@@ -24,6 +24,9 @@
 #      FlashBeat\Player.log`). A wrong segment sends the owner's evidence run to
 #      "Player.log not found" and silently produces NO-DATA. Historical evidence
 #      records (`docs/operations/exhibit-evidence-*/`) are exempt.
+#   6. `.github/workflows/*.yml` parses as YAML (Issue #545: a corrupted
+#      build-win64.yml survived because nothing validated the syntax; every
+#      push then recorded a phantom failure and dispatch could not run).
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -41,6 +44,27 @@ while [ $# -gt 0 ]; do
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+# Workflow YAML syntax check (Issue #545). Ruby's psych is used because it is
+# preinstalled on macOS and GitHub-hosted runners; when ruby is absent the
+# check is skipped with a warning rather than failing the whole gate.
+workflow_yaml_fail=0
+workflow_yaml_checked=0
+if command -v ruby >/dev/null 2>&1; then
+  for wf in "$ROOT"/.github/workflows/*.yml; do
+    [ -f "$wf" ] || continue
+    workflow_yaml_checked=$((workflow_yaml_checked + 1))
+    if ! ruby -ryaml -e 'YAML.load_file(ARGV[0])' "$wf" >/dev/null 2>&1; then
+      echo "FAIL unparsable workflow YAML: ${wf#"$ROOT"/}"
+      workflow_yaml_fail=1
+    fi
+  done
+else
+  echo "WARN ruby not found; skipping workflow YAML parse check"
+fi
+if [ "$workflow_yaml_fail" -ne 0 ]; then
+  exit 1
+fi
 
 exec python3 -I - "$ROOT" <<'PY'
 import json
