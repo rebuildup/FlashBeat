@@ -1,0 +1,100 @@
+[AutoTestV6Screens] SCREEN TitleScene pass=39 fail=0 symbols=2 shots=v6screen-TitleScene-1.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene pass=178 fail=2 symbols=7 shots=v6screen-SelectScene-2.png
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:40, y:-56, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:234, y:-104, width:140, height:44)
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:52, y:-42, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:216, y:-24, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:216, y:-55, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Grade/Grade rect=(x:476, y:-38, width:56, height:36) "S"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=1 outside=1 texts partial=2 outside=2
+[AutoTestV6Screens] SCREEN SelectScene-Refetch pass=6 fail=0 symbols=0 shots=v6screen-SelectScene-Refetch1-3.png,v6screen-SelectScene-Refetch2-4.png,v6screen-SelectScene-Refetch3-5.png
+[AutoTestV6Screens] SCREEN SelectScene-Skeleton pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Skeleton-6.png
+[AutoTestV6Screens] SCREEN SelectScene-LoadingKeepsRows pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-LoadingKeepsRows-7.png
+[AutoTestV6Screens] SCREEN SelectScene-Error pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Error-8.png
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=111 fail=1 symbols=2 shots=v6screen-SelectScene-Empty-9.png
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:234, y:-104, width:140, height:44)
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=1 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=190 fail=2 symbols=7 shots=v6screen-SelectScene-Settings-10.png
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:40, y:-56, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:234, y:-104, width:140, height:44)
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:52, y:-42, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:216, y:-24, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:216, y:-55, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6CompactViewport/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Grade/Grade rect=(x:476, y:-38, width:56, height:36) "S"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=1 outside=1 texts partial=2 outside=2
+[AutoTestV6Screens] SCREEN SelectScene-History pass=122 fail=1 symbols=11 shots=v6screen-SelectScene-History-11.png
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 History View/V6CompactViewport/V6 History Frame 1728x972/Main/History List/IconButton chevron-down rect=(x:234, y:-104, width:140, height:44)
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=1 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=155 fail=2 symbols=8 shots=v6screen-SelectScene-Ranking-12.png
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite rect=(x:40, y:-56, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/IconButton chevron-down rect=(x:234, y:-104, width:140, height:44)
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:52, y:-42, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Title rect=(x:216, y:-24, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Composer rect=(x:216, y:-55, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6CompactViewport/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Grade/Grade rect=(x:476, y:-38, width:56, height:36) "–"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=1 outside=1 texts partial=2 outside=2
+[AutoTestV6Screens] SCREEN OptionScene pass=184 fail=0 symbols=4 shots=v6screen-OptionScene-13.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Display pass=111 fail=0 symbols=4 shots=v6screen-OptionScene-Display-14.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Sound pass=90 fail=0 symbols=8 shots=v6screen-OptionScene-Sound-15.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Data pass=70 fail=0 symbols=4 shots=v6screen-OptionScene-Data-16.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN ResultScene pass=86 fail=0 symbols=1 shots=v6screen-ResultScene-17.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=126 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-18.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=51 fail=1 symbols=0 shots=v6screen-GameScene-HUD-19.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=2 outside=0
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=249 fail=2 symbols=4 shots=v6screen-GameScene-Pause-20.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 4/Lane rect=(x:1004, y:208, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 5/Lane rect=(x:1040, y:208, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 6/Lane rect=(x:1076, y:208, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 7/Lane rect=(x:1112, y:208, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 8/Lane rect=(x:1148, y:208, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 9/Lane rect=(x:1184, y:208, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 0/Lane rect=(x:1220, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key -/Lane rect=(x:1256, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ^/Lane rect=(x:1292, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key \/Lane rect=(x:1328, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key R/Lane rect=(x:1021, y:164, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key T/Lane rect=(x:1057, y:164, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key Y/Lane rect=(x:1093, y:164, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key U/Lane rect=(x:1129, y:164, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key I/Lane rect=(x:1165, y:164, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key O/Lane rect=(x:1201, y:164, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key P/Lane rect=(x:1237, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key @/Lane rect=(x:1273, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key [/Lane rect=(x:1309, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key D/Lane rect=(x:1002, y:120, width:34, height:40) "3"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key F/Lane rect=(x:1038, y:120, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key G/Lane rect=(x:1074, y:120, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key H/Lane rect=(x:1110, y:120, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key J/Lane rect=(x:1146, y:120, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key K/Lane rect=(x:1182, y:120, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key L/Lane rect=(x:1218, y:120, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ;/Lane rect=(x:1254, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key :/Lane rect=(x:1290, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ]/Lane rect=(x:1326, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key C/Lane rect=(x:1019, y:76, width:34, height:40) "3"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key V/Lane rect=(x:1055, y:76, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key B/Lane rect=(x:1091, y:76, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key N/Lane rect=(x:1127, y:76, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key M/Lane rect=(x:1163, y:76, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ,/Lane rect=(x:1199, y:76, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ./Lane rect=(x:1235, y:76, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key //Lane rect=(x:1271, y:76, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key List/Key _/Lane rect=(x:1307, y:76, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=6 outside=34
+[AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=65 fail=1 symbols=2 shots=v6screen-GameScene-Loading-21.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=2 outside=0
+[AutoTestV6Screens] RESULT pass=81 fail=9 symbols=69 screenshots=21 resolution=1024x768

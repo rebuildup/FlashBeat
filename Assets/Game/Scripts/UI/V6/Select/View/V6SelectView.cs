@@ -16,8 +16,9 @@ namespace FlashBeat.UI.V6.Select.View
     /// - データは IV6SelectDataSource 経由のみ (#222 が実装)。実カタログ/実保存スコア/実ランキングを
     ///   表示し、デザイン例の固定値 (サンプル曲名・"988,513" 等) は決して出さない。
     /// - 構築はコードのみ (シーン YAML / .meta は触らない)。Refresh で frame の全子を作り直す。
-    /// - 寸法は design px (1728x972 基準)。frame は **1:1 (等倍) で中央配置** し、
-    ///   引き伸ばし (等比スケール) は行わない (原点は <see cref="V6SelectViewLogic.FrameOrigin"/>)。
+    /// - 寸法は design px (1728x972 基準)。frame は **1:1 (等倍)** で配置し、
+    ///   引き伸ばし (等比スケール) は行わない。通常解像度は中央、
+    ///   コンパクト解像度はビューポート + パン (<see cref="V6CompactScreen"/>)。
     ///   色は V5Tokens を流用する (v6 は新しい色トークンを追加していない)。
     /// - キー: ↑↓ 選択 / Enter・Space Ready (data.CommitReady) / Esc 戻る (onBack) /
     ///   Tab 検索フォーカス (フォーカス中は Input.inputString を SetQuery へ) / O 設定。
@@ -39,10 +40,6 @@ namespace FlashBeat.UI.V6.Select.View
         /// 検証 (AutoTest) や統合コードから参照するための参照点。
         /// </summary>
         public static V6SelectView Current { get; private set; }
-
-        // --- design px 定数 (PEN-EXTRACT.md §5) ---
-        private const float FrameW = 1728f;
-        private const float FrameH = 972f;
 
         // design Frame (1728x972) の Main ゾーンは (24, 96)。列はそのローカル座標。
         private const float MainX = 24f, MainY = 96f;
@@ -109,8 +106,11 @@ namespace FlashBeat.UI.V6.Select.View
         private readonly List<GameObject> rankRowObjects = new List<GameObject>();
         /// <summary>ランキング空表示 ("No Data" テキスト)。行表示中は null。</summary>
         private GameObject rankEmptyGo;
-        /// <summary>ドットインジケータの構築済み曲数 (-1 = 未構築)。</summary>
+        /// <summary>ドットインジケータの構築済みドット数 (-1 = 未構築)。
+        /// Issue #222: 曲数がレール容量を超えるときは表示窓の大きさ (=容量) になる。</summary>
         private int dotCount = -1;
+        /// <summary>ドット表示窓の先頭カタログ index (Issue #222 の窓付きレール)。</summary>
+        private int dotWindowStart = -1;
         /// <summary>ドット y 座標のキャッシュ (曲数が変わったときだけ再計算)。</summary>
         private float[] dotOffsetsCache;
         /// <summary>ドットの Image / RectTransform (選択色・サイズの差分更新用)。</summary>
@@ -262,6 +262,7 @@ namespace FlashBeat.UI.V6.Select.View
             listRowSongIds.Clear();
             rankRowObjects.Clear();
             dotCount = -1;
+            dotWindowStart = -1;
             dotOffsetsCache = null;
             dotImages.Clear();
             dotRects.Clear();
@@ -427,17 +428,12 @@ namespace FlashBeat.UI.V6.Select.View
         }
 
         /// <summary>
-        /// frame を実画面中央へ 1:1 で置く。原点は
-        /// <see cref="V6SelectViewLogic.FrameOrigin"/> ((w-1728)/2, (h-972)/2 の床切り)。
+        /// frame を実画面へ配置する。通常解像度は中央 1:1、コンパクト解像度は
+        /// 画面全体を覆うビューポート + パン (<see cref="V6CompactScreen.Place"/>)。
         /// </summary>
         private void PlaceFrame()
         {
-            V6SelectViewLogic.FrameOrigin(Screen.width, Screen.height, out int x, out int y);
-            frame.anchorMin = new Vector2(0f, 1f);
-            frame.anchorMax = new Vector2(0f, 1f);
-            frame.pivot = new Vector2(0f, 1f);
-            frame.anchoredPosition = new Vector2(x, -y);
-            frame.sizeDelta = new Vector2(FrameW, FrameH);
+            V6CompactScreen.Place(frame, Screen.width, Screen.height);
         }
 
         private void Rebuild()

@@ -292,6 +292,7 @@ namespace FlashBeat.UI.V6.Select.View
             IReadOnlyList<V6SongEntry> all = data.AllSongs;
             int count = all == null ? 0 : all.Count;
 
+            // 選択曲のカタログ index (ドットは絞り込みに関係なく全曲の位置を示す)。
             int active = -1;
             if (data.Selected != null && all != null)
             {
@@ -300,23 +301,28 @@ namespace FlashBeat.UI.V6.Select.View
                     if (all[i] != null && all[i].SongId == data.Selected.SongId) { active = i; break; }
                 }
             }
-            active = V6SelectViewLogic.DotActiveIndex(active, count);
 
-            if (count != dotCount)
+            // Issue #222: 曲数がレール容量を超えるときは表示窓で頭打ちにし、
+            // 選択曲が見える位置へ窓をずらす (パネルからのはみ出しを防ぐ)。
+            int visible = V6SelectViewLogic.DotRailVisibleCount(count);
+            int windowStart = V6SelectViewLogic.DotRailWindowStart(count, active);
+            int activeLocal = V6SelectViewLogic.DotRailActiveLocal(active, windowStart, visible);
+
+            if (visible != dotCount)
             {
-                // 曲数 (カタログ構造) が変わったときだけドットを作り直す。
+                // 表示ドット数 (カタログ構造) が変わったときだけドットを作り直す。
                 Common.V6Hierarchy.ClearChildren(dots);
                 dotImages.Clear();
                 dotRects.Clear();
-                dotOffsetsCache = V6SelectViewLogic.DotOffsets(count, 0f);
-                float total = V6SelectViewLogic.DotBottom(count, 0f);
+                dotOffsetsCache = V6SelectViewLogic.DotOffsets(visible, 0f);
+                float total = V6SelectViewLogic.DotBottom(visible, 0f);
                 // レール幅は design どおり最大ドット幅 (10)。ドットはレール中央に置く。
                 // Issue #427: レールはリストパネルの上下中央 (design の DotY=136 は上寄りだった)。
-                V6Layout.Place(dots, V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(count),
+                V6Layout.Place(dots, V6SelectViewLogic.DotX, V6SelectViewLogic.DotRailTopY(visible),
                     V6SelectViewLogic.DotActiveSize, total);
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < visible; i++)
                 {
-                    var dot = V5Ui.Panel(dots, "Dot " + (i + 1),
+                    var dot = V5Ui.Panel(dots, "Dot " + (windowStart + i + 1),
                         new Vector2(V6SelectViewLogic.DotSize, V6SelectViewLogic.DotSize),
                         V5Tokens.FromHex("#FFFFFF26"), V6SelectViewLogic.DotRadius);
                     dotImages.Add(dot.GetComponent<Image>());
@@ -326,13 +332,27 @@ namespace FlashBeat.UI.V6.Select.View
                         dotOffsetsCache[i], V6SelectViewLogic.DotSize, V6SelectViewLogic.DotSize);
                 }
 
-                dotCount = count;
+                dotCount = visible;
+                dotWindowStart = windowStart;
+            }
+            else if (windowStart != dotWindowStart)
+            {
+                // 窓だけが動いた (選択の移動)。ドット自体は同じものを使い回し、
+                // 名前だけをカタログ index に合わせ直す。
+                dotWindowStart = windowStart;
+                for (int i = 0; i < dotRects.Count; i++)
+                {
+                    if (dotRects[i] != null)
+                    {
+                        dotRects[i].name = "Dot " + (windowStart + i + 1);
+                    }
+                }
             }
 
-            float[] offsets = dotOffsetsCache ?? (dotOffsetsCache = V6SelectViewLogic.DotOffsets(count, 0f));
-            for (int i = 0; i < count && i < dotImages.Count; i++)
+            float[] offsets = dotOffsetsCache ?? (dotOffsetsCache = V6SelectViewLogic.DotOffsets(visible, 0f));
+            for (int i = 0; i < visible && i < dotImages.Count; i++)
             {
-                bool isActive = i == active;
+                bool isActive = i == activeLocal;
                 float d = isActive ? V6SelectViewLogic.DotActiveSize : V6SelectViewLogic.DotSize;
                 // Issue #427: 選択中は v6 の選択色 (Key6)。design の水色 Accent は
                 // v6 の選択表現と一致しないため使わない。

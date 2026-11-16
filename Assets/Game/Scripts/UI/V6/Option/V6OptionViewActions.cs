@@ -122,6 +122,9 @@ namespace FlashBeat.UI.V6.Option
         ///   旧 PlayerPrefs の Hiscore だけ消すと、安定した保存先から記録が復活する
         ///   ので、既存の ScorePersistence.ResetAll() でまとめて消す。
         /// - キー設定 (レーン = KeyBindings / メニュー操作 = KeyActions)。
+        /// - 旧表示設定キー (FlashBeat.KeyGuide / FlashBeat.Lyrics)。
+        ///   #241 でセッション設定へ戻したため現在は読まれないが、
+        ///   過去バージョンが書いた残骸を残さないよう消去対象に含める。
         ///
         /// 既存の API (ScorePersistence.ResetAll / KeyBindings.ResetToDefaults /
         /// KeyActions.ResetToDefaults) をそのまま使うので、新しい保存経路は増えない。
@@ -137,6 +140,12 @@ namespace FlashBeat.UI.V6.Option
 
             KeyBindings.ResetToDefaults();
             KeyActions.ResetToDefaults();
+            PlayerPrefs.DeleteKey(PlaySession.KeyGuideKey);
+            PlayerPrefs.DeleteKey(PlaySession.LyricsKey);
+            // DeleteKey はメモリ上の変更にすぎない。他の消去経路
+            // (ScorePersistence.ResetAll 等) は内部で保存済みだが、
+            // ここだけ未フラッシュだと強制終了時に残骸が残る (#547)。
+            PlayerPrefs.Save();
         }
 
         /// <summary>キー割当が既定と同じか (正本は KeyBindings.DefaultKeys)。</summary>

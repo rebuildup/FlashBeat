@@ -224,6 +224,16 @@ namespace FlashBeat.UI.V6.History.Tests
                 + V6RankingLogic.SongRowH;
             Assert.LessOrEqual(songLastBottom, V6RankingLogic.ListPanelH,
                 "the last visible song row fits the song list panel height");
+
+            // casual / unverified 注記 (#7, #547): 最終行の下端より下、
+            // パネル下端 (ScorePanelH) より上に収まること。
+            Assert.GreaterOrEqual(V6RankingLogic.CasualNoteY, lastBottom,
+                "casual note starts below the last ranking row");
+            Assert.LessOrEqual(V6RankingLogic.CasualNoteY + V6RankingLogic.CasualNoteH,
+                V6RankingLogic.ScorePanelH,
+                "casual note fits inside the score ranking panel");
+            Assert.LessOrEqual(V6RankingLogic.CasualNoteX + V6RankingLogic.CasualNoteW,
+                V6RankingLogic.ScorePanelW, "casual note width fits the score ranking panel width");
         }
 
         // --- 共通部品の寸法 (design 実測値) が design どおり ---

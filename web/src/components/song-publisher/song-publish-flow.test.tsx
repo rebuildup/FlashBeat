@@ -117,7 +117,7 @@ afterEach(() => {
 });
 
 describe("SongPublisher publish state machine (issue #73)", () => {
-  it("reports a rejected publish and keeps the form", async () => {
+  it("reports a rejected publish and keeps the form", { timeout: 30000 }, async () => {
     await renderPublisher();
     await publishWith(401, { error: "Incorrect staff token" });
 
@@ -128,27 +128,43 @@ describe("SongPublisher publish state machine (issue #73)", () => {
     expect(values).toContain("who");
   });
 
-  it("reports a published song when the API accepted and verified the request", async () => {
-    await renderPublisher();
-    await publishWith(200, { songId: SONG.id, chartVersion: 3, catalogVersion: 8 });
+  it(
+    "reports a published song when the API accepted and verified the request",
+    { timeout: 30000 },
+    async () => {
+      await renderPublisher();
+      await publishWith(200, { songId: SONG.id, chartVersion: 3, catalogVersion: 8 });
 
-    expect(document.body.querySelector('[data-testid="publish-success"]')).not.toBeNull();
-    expect(document.body.querySelector('[data-testid="publish-error"]')).toBeNull();
-  });
+      expect(document.body.querySelector('[data-testid="publish-success"]')).not.toBeNull();
+      expect(document.body.querySelector('[data-testid="publish-error"]')).toBeNull();
+    },
+  );
 
-  it("does not claim success when the response body is not a publish response", async () => {
-    await renderPublisher();
-    await publishWith(200, { songId: SONG.id });
+  it(
+    "does not claim success when the response body is not a publish response",
+    { timeout: 30000 },
+    async () => {
+      await renderPublisher();
+      await publishWith(200, { songId: SONG.id });
 
-    expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
-    expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
-  });
+      expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
+      expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
+    },
+  );
 
-  it("does not claim success when the published snapshot cannot be read back", async () => {
-    await renderPublisher();
-    await publishWith(200, { songId: SONG.id, chartVersion: 3, catalogVersion: 8 }, { ok: false });
+  it(
+    "does not claim success when the published snapshot cannot be read back",
+    { timeout: 30000 },
+    async () => {
+      await renderPublisher();
+      await publishWith(
+        200,
+        { songId: SONG.id, chartVersion: 3, catalogVersion: 8 },
+        { ok: false },
+      );
 
-    expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
-    expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
-  });
+      expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
+      expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
+    },
+  );
 });

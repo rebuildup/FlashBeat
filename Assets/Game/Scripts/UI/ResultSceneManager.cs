@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Networking;
@@ -255,9 +254,12 @@ public class ResultSceneManager : MonoBehaviour
 
     }
 
-    /// <summary>v6 Result の「タイトルへ」(T キー / design 凡例) 用の遷移。</summary>
+    /// <summary>v6 Result の「タイトルへ」(T キー / design 凡例) 用の遷移。
+    /// 来場者の交代境界なので、Title へ戻る前にセッション設定
+    /// (Key Guide / Lyrics, Issue #241) を既定値へ戻す。</summary>
     public void TitleScene()
     {
+        FlashBeat.UI.V5.PlaySession.Reset();
         Initiate.Fade("TitleScene", Color.black, 1.0f);
     }
     public void playSound()

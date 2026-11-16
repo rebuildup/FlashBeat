@@ -649,11 +649,7 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             lastWidth = w;
             lastHeight = h;
-            Vector2 origin = V6PauseViewLogic.FrameOrigin(w, h);
-            frame.localScale = Vector3.one;
-            // anchor/pivot (0,0) = 親 (全画面 root) の左下基準。design 原点は左上なので
-            // y は下端から: h - origin.y - 972 (= (h-972)/2 の切り上げ側)。
-            frame.anchoredPosition = new Vector2(origin.x, h - origin.y - FrameH);
+            V6CompactScreen.Place(frame, w, h);
         }
 
         internal void Tick()

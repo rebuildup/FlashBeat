@@ -24,6 +24,10 @@
 #      FlashBeat\Player.log`). A wrong segment sends the owner's evidence run to
 #      "Player.log not found" and silently produces NO-DATA. Historical evidence
 #      records (`docs/operations/exhibit-evidence-*/`) are exempt.
+#   6. `.github/workflows/*.{yml,yaml}` parses as YAML and has no duplicate
+#      mapping keys (Issue #545: a corrupted build-win64.yml survived because
+#      nothing validated the syntax; every push then recorded a phantom
+#      failure and dispatch could not run).
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -37,15 +41,84 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) ROOT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n "2,$(( $(grep -n '^set -euo pipefail' "$0" | head -1 | cut -d: -f1) - 1 ))p" "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
 
-exec python3 -I - "$ROOT" <<'PY'
+# Workflow YAML check (Issue #545 / #552). Psych's AST parser
+# (YAML.parse_file) is used instead of load_file/safe_load: it is a pure
+# syntax parse with no object instantiation, behaves identically on
+# Psych 3/4/5 (macOS system Ruby vs CI Ruby), and never rejects legal
+# workflow scalars (aliases, dates). Duplicate mapping keys are reported
+# separately because Psych's loader silently keeps the last value while
+# GitHub rejects the workflow. When ruby is absent the check degrades to
+# a warning; the WARN line makes the skipped gate visible.
+workflow_yaml_fail=0
+workflow_yaml_checked=0
+if command -v ruby >/dev/null 2>&1; then
+  yaml_report="$(ruby -ryaml - "$ROOT" <<'RUBY'
+root = ARGV[0]
+Dir.glob(File.join(root, ".github", "workflows", "*.{yml,yaml}")).sort.each do |path|
+  rel = path.sub(root + "/", "")
+  begin
+    doc = YAML.parse_file(path)
+    dups = []
+    walk = lambda do |node|
+      case node
+      when Psych::Nodes::Mapping
+        seen = {}
+        node.children.each_slice(2) do |key_node, value_node|
+          if key_node.is_a?(Psych::Nodes::Scalar)
+            dups << key_node.value if seen[key_node.value]
+            seen[key_node.value] = true
+          end
+          walk.call(value_node)
+        end
+      when Psych::Nodes::Sequence
+        node.children.each { |child| walk.call(child) }
+      end
+    end
+    doc.children.each { |child| walk.call(child) }
+    if dups.empty?
+      puts "OK\t#{rel}"
+    else
+      puts "DUP\t#{rel}\t#{dups.uniq.join(',')}"
+    end
+  rescue Psych::Exception => e
+    detail = e.message.to_s.lines.first.to_s.strip
+    puts "FAIL\t#{rel}\t#{detail}"
+  end
+end
+RUBY
+)"
+  while IFS=$'\t' read -r status rel detail; do
+    [ -n "$status" ] || continue
+    case "$status" in
+      OK) workflow_yaml_checked=$((workflow_yaml_checked + 1)) ;;
+      DUP)
+        echo "FAIL duplicate mapping key(s) in workflow YAML: $rel ($detail)"
+        workflow_yaml_fail=1
+        ;;
+      FAIL)
+        echo "FAIL unparsable workflow YAML: $rel ($detail)"
+        workflow_yaml_fail=1
+        ;;
+    esac
+  done <<< "$yaml_report"
+  echo "workflow YAML: $workflow_yaml_checked file(s) parsed OK"
+else
+  echo "WARN ruby not found; workflow YAML parse check SKIPPED (gate degraded)"
+fi
+
+# python3 の結果と YAML チェックの結果を集約するため exec は使わない
+# (片方の FAIL がもう片方の検査結果を隠さないようにする。#552)。
+python_status=0
+if ! python3 -I - "$ROOT" <<'PY'
 import json
 import os
 import re
+import subprocess
 import sys
 
 root = sys.argv[1]
@@ -217,6 +290,22 @@ def report(title, paths):
     return 1
 
 
+# --- Tracked secret-looking files (.env* / .dev.vars, #552) -----------------
+# .gitignore alone does not stop `git add -f` or an already-tracked file, so
+# the gate itself rejects secret-named paths in the index. `.example` files
+# are the documented schema and stay allowed.
+secret_looking = []
+try:
+    tracked = subprocess.run(
+        ["git", "-C", root, "ls-files"], capture_output=True, text=True, check=False
+    ).stdout.splitlines()
+except OSError:
+    tracked = []
+for rel in tracked:
+    base = rel.rsplit("/", 1)[-1]
+    if base == ".dev.vars" or (base.startswith(".env") and not base.endswith(".example")):
+        secret_looking.append(rel)
+
 failures = 0
 failures += report("asset without .meta", missing_meta)
 # Orphan metas are a **warning**, not a failure: `Assets/Packages` and
@@ -232,6 +321,7 @@ failures += report("CRLF line ending in .cs", crlf)
 failures += report("tab indentation in .cs", tabs)
 failures += report("Player.log path does not use ProjectSettings companyName", log_path_scan)
 failures += report("heavy CI gate accidentally enabled", ci_gate_errors)
+failures += report("tracked secret-looking file (.env*/.dev.vars)", secret_looking)
 
 if failures:
     print("")
@@ -243,3 +333,10 @@ print(
     " Player.log path uses companyName=%s)." % (company_name or "unknown (ProjectSettings not found)")
 )
 PY
+then
+  python_status=1
+fi
+
+if [ "$workflow_yaml_fail" -ne 0 ] || [ "$python_status" -ne 0 ]; then
+  exit 1
+fi

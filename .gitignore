@@ -69,6 +69,8 @@ desktop.ini
 # Unity のバッチモード実行ログ (絶対パスを含む環境固有情報なので追跡しない)
 /unity-*.log
 /unity-*.out
+# Unity batch が -logFile で root に落とす実行ログ (Issue #541)
+/*.log
 
 # ─────── メディアキャッシュ (yt-dlp が取得した YouTube 動画/音声) ───────
 # キャッシュは persistentDataPath/FlashBeatMedia のみに置く。
@@ -106,3 +108,12 @@ node_modules/
 !.mise/locks/
 # scripts/worktree/setup.sh が worktree ごとに作る環境変数ファイル
 .worktree.env
+
+# onboarding contract: 実値の dotenv と外部参照 clone は commit しない。
+# schema/example (.env*.example) は追跡する。
+.reference/
+.env
+.env.*
+!.env.example
+!.env.*.example
+.dev.vars
