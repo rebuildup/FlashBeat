@@ -1,5 +1,7 @@
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
+using UnityEngine;
 using FlashBeat.UI.V5;
 
 namespace FlashBeat.Tests.Editor
@@ -8,9 +10,10 @@ namespace FlashBeat.Tests.Editor
     /// PlaySession (Key Guide / Lyrics) の寿命契約 (Issue #241)。
     ///
     /// これらは「このプレイの設定」= セッション設定であり、PlayerPrefs へは
-    /// 保存しない。Title 進入 (来場者の交代境界) で <see cref="PlaySession.Reset"/>
-    /// が既定値へ戻し、同じ人の Retry・選曲変更・Option 変更 (Title を通らない
-    /// 遷移) では値が保持される。
+    /// 保存しない。来場者交代の導線 (Result → Title) で
+    /// <see cref="PlaySession.Reset"/> が既定値へ戻し、同じ人の
+    /// Retry・選曲変更・Option 変更・Title への戻る操作
+    /// (Option → Title / Select → Title) では値が保持される。
     ///
     /// 設計の対応表は docs/operations/issue-241-session-lifetime-design.md。
     /// </summary>
@@ -53,8 +56,9 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void Values_SurviveUntilReset_SameUserFlow()
         {
-            // 同じ人の操作 (Option → Select → Game → Retry → Result → Select)
-            // は Title を通らないので、Reset が呼ばれない限り値は保持される。
+            // 同じ人の操作 (Option → Select → Game → Retry → Result → Select、
+            // および Option → Title / Select → Title の戻る) は Reset が
+            // 呼ばれない限り値は保持される。
             PlaySession.SetKeyGuide(KeyGuideMode.Full);
             PlaySession.SetLyricsEnabled(false);
 
@@ -67,10 +71,18 @@ namespace FlashBeat.Tests.Editor
         public void SessionSettings_AreNotPersistedToPlayerPrefs()
         {
             // 永続化 API (Storage / Save / Load) は #241 で除去した。
-            // Set* が PlayerPrefs へ書かないことを、旧キーが増えないことで確認する
-            // (開発者環境に残る既存キーの有無には依存しない)。
+            // Set* が PlayerPrefs へ書かないことを、旧キーの有無が
+            // 前後で変わらないことで直接確認する (キーの事前存在に依存しない)。
+            bool hadKeyGuide = PlayerPrefs.HasKey(PlaySession.KeyGuideKey);
+            bool hadLyrics = PlayerPrefs.HasKey(PlaySession.LyricsKey);
+
             PlaySession.SetKeyGuide(KeyGuideMode.Full);
             PlaySession.SetLyricsEnabled(false);
+
+            Assert.AreEqual(hadKeyGuide, PlayerPrefs.HasKey(PlaySession.KeyGuideKey),
+                "Key Guide は PlayerPrefs に保存しない (セッション設定)");
+            Assert.AreEqual(hadLyrics, PlayerPrefs.HasKey(PlaySession.LyricsKey),
+                "Lyrics は PlayerPrefs に保存しない (セッション設定)");
 
             var type = typeof(PlaySession);
             Assert.IsNull(type.GetMethod("Save"), "PlaySession.Save は存在しない");
@@ -79,20 +91,39 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void TitleEntry_ResetsSessionSettings()
+        public void HandoverEntry_ResetsSessionSettings()
         {
-            // 来場者境界: TitleSceneManager.Start が PlaySession.Load() ではなく
-            // PlaySession.Reset() を呼ぶことをソースで固定する
-            // (Title 進入 = セッション開始。Load による旧保存値の復元は #241 で廃止)。
+            // 来場者境界: ResultSceneManager.TitleScene (Result → Title) が
+            // PlaySession.Reset() を呼ぶことをソースで固定する。
+            // TitleSceneManager は通常進入 (Option/Select の戻る) も担うため、
+            // そこで Reset すると同じ人の Option 設定変更が捨てられる (#547)。
             string path = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "Assets", "Game", "Scripts", "UI", "TitleSceneManager.cs");
+                Application.dataPath,
+                "Game", "Scripts", "UI", "ResultSceneManager.cs");
             string src = File.ReadAllText(path);
 
             StringAssert.Contains("PlaySession.Reset()", src,
-                "Title 進入でセッション設定を既定値へ戻すこと");
+                "来場者交代の導線でセッション設定を既定値へ戻すこと");
             Assert.IsFalse(src.Contains("PlaySession.Load()"),
                 "旧永続化の復元呼び出しは残さない");
+        }
+
+        [Test]
+        public void Reset_IsOnlyCalledOnTheHandoverPath()
+        {
+            // 契約は「来場者交代 (Result → Title) だけが境界」。他の画面で
+            // Reset() が足されると、同じ人が Title へ戻っただけで
+            // Ready / Option で選んだ設定が消える回帰を検出する。
+            string scriptsRoot = Path.Combine(
+                Application.dataPath, "Game", "Scripts");
+            string[] callers = Directory.GetFiles(scriptsRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(f => File.ReadAllText(f).Contains("PlaySession.Reset()"))
+                .Select(Path.GetFileName)
+                .OrderBy(n => n, System.StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.AreEqual(new[] { "ResultSceneManager.cs" }, callers,
+                "PlaySession.Reset() の呼び出しは来場者交代の導線だけのはず");
         }
 
         [Test]
@@ -101,7 +132,7 @@ namespace FlashBeat.Tests.Editor
             // issue-162 D-1 の PlayerPrefs 永続化は #241 で廃止。
             // IDisplaySettingsStorage / DisplaySettingsStorage の実装ファイルは残さない。
             string dir = Path.Combine(
-                Directory.GetCurrentDirectory(), "Assets", "Game", "Scripts", "Persistence");
+                Application.dataPath, "Game", "Scripts", "Persistence");
             Assert.IsFalse(File.Exists(Path.Combine(dir, "DisplaySettingsStorage.cs")),
                 "DisplaySettingsStorage.cs は削除済みであること");
         }

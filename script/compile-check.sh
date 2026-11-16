@@ -106,9 +106,9 @@ if assembly in ("tests", "tests-editor"):
     dll_ref_names += ["FlashBeat", "UnityEngine.TestRunner", "NoteEditor.Editor"]
 if assembly == "tests-editor":
     # FlashBeat.Tests.asmdef は FlashBeat.Editor (BuildScript /
-    # GManagerParallelArrayUpdater 等) を参照する。ScriptAssemblies の
-    # Unity ビルド済み DLL を使う (editor 用の fresh DLL は Temp/bin の
-    # 出力名が flashbeat と同じで区別できないため)。
+    # GManagerParallelArrayUpdater 等) を参照する。先に --assembly editor で
+    # ビルドした新しい DLL (Temp/bin/editor/FlashBeat.Editor.dll) を優先し、
+    # 無ければ ScriptAssemblies の Unity ビルド済み DLL を使う。
     dll_ref_names += ["FlashBeat.Editor"]
 if assembly == "editor":
     # FlashBeat.Editor.asmdef は FlashBeat 本体を参照する。
@@ -119,6 +119,12 @@ for name in dll_ref_names:
         fresh = os.path.join(project_dir, "Temp", "bin", "Debug", "FlashBeat.dll")
         if os.path.exists(fresh):
             path = fresh
+    if assembly == "tests-editor" and name == "FlashBeat.Editor":
+        # editor モードの出力は Temp/bin/editor/FlashBeat.Editor.dll。
+        # あれば ScriptAssemblies の stale な DLL より優先する (#547)。
+        fresh_editor = os.path.join(project_dir, "Temp", "bin", "editor", "FlashBeat.Editor.dll")
+        if os.path.exists(fresh_editor):
+            path = fresh_editor
     if os.path.exists(path):
         hint = os.path.relpath(path, project_dir).replace(os.sep, "/")
         dll_refs.append(
@@ -131,6 +137,15 @@ for name in dll_ref_names:
 sources = []
 for dirpath, dirnames, filenames in os.walk(os.path.join(project_dir, src_root)):
     dirnames[:] = [d for d in dirnames if d not in ("obj", "bin")]
+    # editor モードは FlashBeat.Editor 単体を検査する。配下の別 asmdef
+    # (Assets/Editor/NoteEditor.Editor) は Unity 上は別アセンブリなので
+    # 混ぜると internal 公開・CS0433 の誤判定になる (#547)。
+    # tests モードは V5/V6CanvasTests の 2 アセンブリを意図的に併合するため
+    # この刈り込みは editor だけに適用する。
+    if assembly == "editor":
+        dirnames[:] = [d for d in dirnames
+                       if not any(f.endswith(".asmdef")
+                                  for f in os.listdir(os.path.join(dirpath, d)))]
     for name in filenames:
         if name.endswith(".cs"):
             full = os.path.join(dirpath, name)
@@ -163,7 +178,7 @@ PY
 # 場合は Library/ScriptAssemblies のもの (= Unity が最後に import した時点) を使うので、
 # 新しく足した型が「無い」と誤って言われることがある。先に --assembly flashbeat を
 # 実行するのが正しい順序だと分かるように明示する。
-if { [ "$ASSEMBLY" = "tests" ] || [ "$ASSEMBLY" = "tests-editor" ]; } &&
+if { [ "$ASSEMBLY" = "tests" ] || [ "$ASSEMBLY" = "tests-editor" ] || [ "$ASSEMBLY" = "editor" ]; } &&
    [ ! -f "$PROJECT_DIR/Temp/bin/Debug/FlashBeat.dll" ]; then
   echo "compile-check: 注意 — Temp/bin/Debug/FlashBeat.dll がありません。" >&2
   echo "  Library/ScriptAssemblies/FlashBeat.dll (Unity の最終 import 時点) で型を解決します。" >&2
@@ -177,12 +192,27 @@ cd "$PROJECT_DIR"
 # tests / editor / tests-editor は Unity 上のアセンブリ名 (FlashBeat.Tests /
 # FlashBeat.Editor) に合わせてあり、flashbeat ビルドの
 # Temp/bin/Debug/FlashBeat.dll を上書きしないよう別の OutputPath に出す。
+# tests は V5CanvasTests と V6CanvasTests の 2 アセンブリを併合して検査する
+# (asmdef 単位の分割はしていない。個別の型エラー検出には支障ない)。
 OUT_PATH="Temp/bin/Debug"
 if [ "$ASSEMBLY" = "tests" ]; then
   OUT_PATH="Temp/bin/tests"
 fi
 if [ "$ASSEMBLY" = "editor" ]; then
   OUT_PATH="Temp/bin/editor"
+  # FlashBeat.Editor は FlashBeat 本体と NoteEditor に依存する。どちらも
+  # fresh DLL か ScriptAssemblies の Unity ビルド済み DLL が必要。
+  if [ ! -f "$PROJECT_DIR/Temp/bin/Debug/FlashBeat.dll" ] &&
+     [ ! -f "$PROJECT_DIR/Library/ScriptAssemblies/FlashBeat.dll" ]; then
+    echo "compile-check: 実行できません (editor) — FlashBeat.dll がありません。" >&2
+    echo "  先に --assembly flashbeat を実行するか、Unity でプロジェクトを開いてください。" >&2
+    exit 2
+  fi
+  if [ ! -f "$PROJECT_DIR/Library/ScriptAssemblies/NoteEditor.dll" ]; then
+    echo "compile-check: 実行できません (editor) — Library/ScriptAssemblies/NoteEditor.dll がありません。" >&2
+    echo "  Editor 用アセンブリは Unity でプロジェクトを開いた時に生成されます。" >&2
+    exit 2
+  fi
 fi
 if [ "$ASSEMBLY" = "tests-editor" ]; then
   OUT_PATH="Temp/bin/tests-editor"
@@ -193,6 +223,14 @@ if [ "$ASSEMBLY" = "tests-editor" ]; then
     echo "compile-check: 実行できません (tests-editor) — Library/ScriptAssemblies/NoteEditor.Editor.dll がありません。" >&2
     echo "  Editor 用アセンブリは Unity でプロジェクトを開いた時に生成されます。" >&2
     echo "  この worktree で一度 Unity (batchmode 可) を実行してから再試行してください。" >&2
+    exit 2
+  fi
+  # FlashBeat.Editor 参照は fresh (Temp/bin/editor) か ScriptAssemblies の
+  # どちらかが必要。両方無いと全テストが CS0246 で落ちて原因が分からない。
+  if [ ! -f "$PROJECT_DIR/Temp/bin/editor/FlashBeat.Editor.dll" ] &&
+     [ ! -f "$PROJECT_DIR/Library/ScriptAssemblies/FlashBeat.Editor.dll" ]; then
+    echo "compile-check: 実行できません (tests-editor) — FlashBeat.Editor.dll がありません。" >&2
+    echo "  先に --assembly editor を実行するか、Unity でプロジェクトを開いてください。" >&2
     exit 2
   fi
 fi

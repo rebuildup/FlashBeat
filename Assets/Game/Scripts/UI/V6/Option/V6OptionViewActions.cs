@@ -142,6 +142,10 @@ namespace FlashBeat.UI.V6.Option
             KeyActions.ResetToDefaults();
             PlayerPrefs.DeleteKey(PlaySession.KeyGuideKey);
             PlayerPrefs.DeleteKey(PlaySession.LyricsKey);
+            // DeleteKey はメモリ上の変更にすぎない。他の消去経路
+            // (ScorePersistence.ResetAll 等) は内部で保存済みだが、
+            // ここだけ未フラッシュだと強制終了時に残骸が残る (#547)。
+            PlayerPrefs.Save();
         }
 
         /// <summary>キー割当が既定と同じか (正本は KeyBindings.DefaultKeys)。</summary>

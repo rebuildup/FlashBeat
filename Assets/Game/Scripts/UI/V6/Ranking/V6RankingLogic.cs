@@ -109,6 +109,17 @@ namespace FlashBeat.UI.V6.Ranking
             return RankRowY0 + RankRowStep * visibleIndex;
         }
 
+        /// <summary>
+        /// casual / unverified 注記 (Issue #7) のパネル内部 design 座標。
+        /// 行エリアと Head の間に空きが無いため、パネル下端の空きに置く。
+        /// RankRowY0 + step*(rows-1) + RankRowH (最終行の下端) より下、
+        /// ScorePanelH (パネル下端) より上に収まることをレイアウト契約テストで固定する。
+        /// </summary>
+        public const float CasualNoteY = 700f;
+        public const float CasualNoteH = 26f;
+        public const float CasualNoteW = 496f;
+        public const float CasualNoteX = 8f;
+
         /// <summary>曲リスト行 k (可視 index) のリスト内部 design y (y_down)。</summary>
         public static float SongRowTop(int visibleIndex)
         {
