@@ -192,7 +192,7 @@ public class RankingPanel : MonoBehaviour
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        var header = AddLabel(content, "RankingHeader", "ランキング Top 10", HeaderFontSize, TextAlignmentOptions.Center);
+        var header = AddLabel(content, "RankingHeader", "ランキング Top 10 (非公式)", HeaderFontSize, TextAlignmentOptions.Center);
         header.rectTransform.gameObject.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 48f;
 
         yourRankLabel = AddLabel(content, "YourRank", string.Empty, MessageFontSize, TextAlignmentOptions.Center);
