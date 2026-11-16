@@ -244,11 +244,66 @@ jobs:
             exit 1
           fi
 
+      # Candidate-only full EditMode. This workflow runs on explicit dispatch,
+      # never on normal PR/main pushes. TestResults.xml is the proof of execution.
+      - name: EditMode テスト（release candidate）
+        shell: bash
+        run: |
+          set -euo pipefail
+          results="$RUNNER_TEMP/TestResults.xml"
+          log="$RUNNER_TEMP/editmode.log"
+          # Unity Test Runner は -quit を付けると開始前に終了しうる。
+          "$UNITY_EDITOR" -batchmode -nographics \
+            -projectPath "$GITHUB_WORKSPACE" \
+            -runTests -testPlatform editmode -testResults "$results" -logFile "$log" || {
+              rc=$?
+              [ ! -f "$log" ] || tail -100 "$log"
+              echo "::error::Unity EditMode invocation failed (exit $rc)"
+              exit "$rc"
+            }
+          if [ ! -s "$results" ]; then
+            [ ! -f "$log" ] || tail -100 "$log"
+            echo "::error::EditMode XML missing/empty; never claim green on zero discovery"
+            exit 1
+          fi
+          for attr in total passed failed skipped inconclusive; do
+            value="$(xmllint --nonet --xpath "string(/test-run/@$attr)" "$results")"
+            case "$value" in
+              ""|*[!0-9]*) echo "::error::Invalid EditMode $attr: '$value'"; exit 1 ;;
+            esac
+            printf '%s=%s\n' "$attr" "$value" >> "$RUNNER_TEMP/editmode-metrics"
+          done
+          total="$(xmllint --nonet --xpath 'string(/test-run/@total)' "$results")"
+          passed="$(xmllint --nonet --xpath 'string(/test-run/@passed)' "$results")"
+          failed="$(xmllint --nonet --xpath 'string(/test-run/@failed)' "$results")"
+          skipped="$(xmllint --nonet --xpath 'string(/test-run/@skipped)' "$results")"
+          inconclusive="$(xmllint --nonet --xpath 'string(/test-run/@inconclusive)' "$results")"
+          echo "EditMode total=$total passed=$passed failed=$failed skipped=$skipped inconclusive=$inconclusive"
+          printf '### macOS Unity EditMode (source %s)\n\ntotal=%s passed=%s failed=%s skipped=%s inconclusive=%s\n' \
+            "$GITHUB_SHA" "$total" "$passed" "$failed" "$skipped" "$inconclusive" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ] || [ "$passed" -eq 0 ] ||
+             [ "$failed" -ne 0 ] || [ "$skipped" -ne 0 ] ||
+             [ "$inconclusive" -ne 0 ] || [ "$total" -ne "$passed" ]; then
+            echo "::error::EditMode is not fully green"
+            exit 1
+          fi
+
+      - name: EditMode 証跡を保存
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashbeat-macos-editmode-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/TestResults.xml
+            ${{ runner.temp }}/editmode.log
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: macOS ビルド
         shell: bash
         env:
           VERSION_BASE_INPUT: ${{ inputs.version_base }}
-          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ inputs.update_channel || 'preview' }}
         run: |
           # 基準バージョン: 入力 → リポジトリ直下の VERSION。暗黙の既定値は持たない。
           base="$VERSION_BASE_INPUT"

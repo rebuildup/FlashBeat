@@ -274,7 +274,105 @@ jobs:
             }
           }
           $summary >> $env:GITHUB_STEP_SUMMARY
-          if ([int]$failed -gt 0) { throw "EditMode テストが $failed 件失敗しました" }
+          $skipped = $xml."test-run".skipped
+          $inconclusive = $xml."test-run".inconclusive
+          foreach ($metric in @($total, $passed, $failed, $skipped, $inconclusive)) {
+            if ($metric -notmatch '^\d+
+
+      - name: テスト結果と Unity ログを保存
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashbeat-editmode-tests-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/TestResults.xml
+            ${{ runner.temp }}/test.log
+            ${{ runner.temp }}/activate.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Win64 ビルド
+        shell: pwsh
+        env:
+          VERSION_BASE_INPUT: ${{ inputs.version_base }}
+          FLASHBEAT_UPDATE_CHANNEL: ${{ github.event_name == 'push' && 'stable' || inputs.update_channel || 'preview' }}
+        run: |
+          # 基準バージョン: 入力 → リポジトリ直下の VERSION。暗黙の既定値は持たない。
+          $base = $env:VERSION_BASE_INPUT
+          if (-not $base) { $base = (Get-Content VERSION -Raw).Trim() }
+          if ($base -notmatch '^\d+\.\d+\.\d+$') {
+            throw "基準バージョンを解決できません (VERSION / version_base): '$base'"
+          }
+          $env:FLASHBEAT_VERSION_BASE = $base
+          $log = "$env:RUNNER_TEMP\build.log"
+          & $env:UNITY_EDITOR -batchmode -nographics -quit `
+              -projectPath "$env:GITHUB_WORKSPACE" `
+              -executeMethod BuildScript.BuildStandaloneWindows64 `
+              -logFile $log
+          $buildExit = $LASTEXITCODE
+          if (Test-Path $log) { Get-Content $log -Tail 200 }
+          if ($buildExit -ne 0) { throw "Unity build failed (exit $buildExit)" }
+          if (-not (Test-Path "$env:GITHUB_WORKSPACE\Builds\Windows\FlashBeat.exe")) {
+            throw "ビルド成果物がありません (Builds\Windows\FlashBeat.exe)"
+          }
+
+      - name: パッケージ (ZIP + SHA-256)
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse --short HEAD).Trim()
+          $full = (git rev-parse HEAD).Trim()
+          $base = "${{ inputs.version_base }}"
+          if (-not $base) { $base = (Get-Content VERSION -Raw).Trim() }
+          if ($base -notmatch '^\d+\.\d+\.\d+$') {
+            throw "基準バージョンを解決できません (VERSION / version_base): '$base'"
+          }
+          # 焼き込まれた版数を実物で確認する (ZIP 名だけを信じない)。
+          $line = (Select-String -Path ProjectSettings\ProjectSettings.asset -Pattern '^\s*bundleVersion:' | Select-Object -First 1).Line
+          $baked = ($line -split '\s+')[-1]
+          if ($baked -ne "$base+$sha") { throw "埋込版数が一致しません: expected $base+$sha, actual $baked" }
+          $out = "$env:RUNNER_TEMP\dist"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          # createdAt はビルド元 commit の日時から作る (実行時刻を使うと ZIP が再現しない)。
+          # 空のまま渡すとパッケージ側でも git から導出する。
+          $commitDate = ''
+          $raw = @(git show -s --format=%cI $full)
+          if ($LASTEXITCODE -eq 0 -and $raw.Count -gt 0) { $commitDate = $raw[0].Trim() }
+          & pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\package-win64.ps1 `
+              -SourceDir "$env:GITHUB_WORKSPACE\Builds\Windows" `
+              -OutDir $out `
+              -Version "$base-win64-$sha" `
+              -CommitSha $full `
+              -CommitDate $commitDate `
+              -MediaPolicy song-free
+          if ($LASTEXITCODE -ne 0) { throw "Packaging failed (exit $LASTEXITCODE)" }
+          $zips = @(Get-ChildItem $out -Filter *.zip -File)
+          if ($zips.Count -ne 1 -or $zips[0].Length -eq 0) { throw "Expected one nonempty Win64 ZIP" }
+          $checksum = "$($zips[0].FullName).sha256"
+          if (-not (Test-Path $checksum)) { throw "ZIP SHA-256 file is missing" }
+          $expected = ((Get-Content $checksum -Raw).Trim() -split '\s+')[0]
+          $actual = (Get-FileHash $zips[0].FullName -Algorithm SHA256).Hash
+          if ($expected -ne $actual) { throw "ZIP SHA-256 mismatch" }
+          Get-ChildItem $out | Select-Object Name, Length
+          "## Win64 ビルド成果物`n`n- 対象 SHA: $full`n- バージョン: $base-win64-$sha`n- 更新チャンネル: $env:FLASHBEAT_UPDATE_CHANNEL`n- SHA-256: $actual" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: 成果物をアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashbeat-win64-${{ github.sha }}
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+          retention-days: 30
+) {
+              throw "EditMode テスト結果が不正です: total=$total passed=$passed failed=$failed skipped=$skipped inconclusive=$inconclusive"
+            }
+          }
+          # Exit=0 や failed=0 でも、収集ゼロ/全skip/未確定を PASS にしない。
+          if ([int]$total -le 0 -or [int]$passed -le 0 -or
+              [int]$total -ne [int]$passed -or [int]$failed -ne 0 -or
+              [int]$skipped -ne 0 -or [int]$inconclusive -ne 0 -or
+              $failedCases.Count -gt 0) {
+            throw "EditMode テストが完全に合格していません: total=$total passed=$passed failed=$failed skipped=$skipped inconclusive=$inconclusive"
+          }
 
       - name: テスト結果と Unity ログを保存
         if: ${{ always() }}

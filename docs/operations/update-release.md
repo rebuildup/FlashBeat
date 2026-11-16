@@ -5,6 +5,16 @@
 本ドキュメントは **配布物の仕様 = #36 の UpdateChecker / アップデータが消費する契約** を固定する。
 常設ランチャー・独自更新サーバーは作らない。更新元は GitHub Releases のみ。
 
+## 現行の Release 候補品質契約（2026-11-16、展示時の実機必須条件に優先）
+
+開発品質の正本: [development-convergence.md](development-convergence.md)。**物理 Windows/macOS プレイヤーの起動、全画面写真、手動プレイ、オーナー目視を候補作成・Issue 完了・Release 公開の必須ゲートにしない。** 代わりに、出荷対象 SHA の自動検証によって品質を判定する。観測していない OS/GPU 固有挙動を「実機 PASS」と主張しない。見つかった欠陥は再現可能なコード/契約テストとして直す。
+
+**候補の必須機械チェック:** (1) `verify` と対象 Web `check` success、(2) **出荷 SHA と一致する full Unity EditMode** が収集数>0、失敗0、skip/inconclusive 0 で green、(3) 対象プラットフォームの Unity build success、(4) プラットフォーム対象 ZIP + SHA-256 / version.json / tag/channel / update互換 / third-party media exclusion と秘密情報の確認、(5) Web を同梱/公開する場合は隔離 D1 の Playwright E2E が対象 SHA で green。出荷バイナリが未生成/コード未コンパイルなら Release 準備完了とはしない。
+
+`build-macos.yml` は `workflow_dispatch` 時の EditMode と macOS build を一つの候補にまとめる。`build-win64.yml` の `run_tests=false` はデバッグ・ビルド単体用途のみで、出荷候補の full EditMode PASS の根拠にはならない。Win64 hosted Unity のライセンス制約時は Mac self-hosted での同一 SHA Unity EditMode + Windows cross-build + `tools/release/package-win64.ps1` の既存経路を用い、出荷 OS 向けランタイムの未観測リスクを Release notes に記載する。**一方、出荷 artifact の作成/sha/media gate は省略不可**。
+
+実機の任意観測はリリース後の利用者フィードバック・必要時の診断として残すが、証跡を収集するためだけに同じテストを何度も実行しない。配布や本番の外部公開・本番データ書き込みに権限上必要な承認は従来通り保持し、通常 PR / release ブランチへの統合承認とは分離する。
+
 ## 対応プラットフォーム
 
 | プラットフォーム | ビルド入口 | 配布アセット | 適用スクリプト |
@@ -250,7 +260,7 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
    テスト用 prerelease を取り込む。公開前に Player.log の
    `[UpdateChecker] 更新チャンネル: stable ... / プラットフォーム: win64|macos` を確認して証跡に残す。
    macOS の Deployment Target は `ProjectSettings` の `macOSTargetOSVersion` (12.0)。
-2. 実機 smoke (起動→曲選択→プレイ→リザルト) を確認。**実機証拠がなければリリース完了としない** (Issue #22 がゲート)。
+2. **同一 source SHA の full EditMode、対象 platform の Unity build/ZIP・SHA/media policy、必要なら Web E2E を一括で検証する。** 実機 smoke (起動→選曲→プレイ→リザルト) は任意の診断に留め、実機証拠なしを理由に Release を停止しない (#22 現行)。
    macOS は `docs/operations/mac-verify.md` の手順で確認する。
 3. パッケージ化 (ZIP + `.sha256` sidecar と内容検査):
 
