@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using FlashBeat.UI.V6.Common;
 
@@ -294,6 +295,101 @@ public sealed class V6CompactScreenTests
         finally
         {
             Object.DestroyImmediate(elGo);
+        }
+    }
+
+    // --- V6FramePan 入力 (#550) ---
+
+    private V6FramePan NewPan()
+    {
+        var go = new GameObject("pan", typeof(RectTransform), typeof(V6FramePan));
+        var pan = go.GetComponent<V6FramePan>();
+        pan.ViewportSize = new Vector2(1024f, 768f);
+        return pan;
+    }
+
+    [Test]
+    public void OnScroll_WheelUp_MovesTowardContentStart()
+    {
+        // pan.y は content 上端の y_down 位置 (0=先頭)。ホイール上
+        // (scrollDelta.y>0) はリストと同じく先頭方向 = pan.y 増加。
+        var pan = NewPan();
+        try
+        {
+            pan.Pan = new Vector2(0f, -120f);
+            pan.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(0f, 1f) });
+            Assert.AreEqual(0f, pan.Pan.y, 0.01f, "wheel up pans toward the top of the content");
+
+            pan.Pan = new Vector2(0f, -120f);
+            pan.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(0f, -1f) });
+            Assert.AreEqual(-204f, pan.Pan.y, 0.01f,
+                "wheel down pans toward the bottom of the content (clamped at view-content)");
+        }
+        finally
+        {
+            Object.DestroyImmediate(pan.gameObject);
+        }
+    }
+
+    [Test]
+    public void OnScroll_HorizontalDelta_MovesRightContentIntoView()
+    {
+        var pan = NewPan();
+        try
+        {
+            pan.Pan = Vector2.zero;
+            pan.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(1f, 0f) });
+            Assert.AreEqual(-120f, pan.Pan.x, 0.01f,
+                "scroll right reveals the right side of the content");
+        }
+        finally
+        {
+            Object.DestroyImmediate(pan.gameObject);
+        }
+    }
+
+    [Test]
+    public void OnBeginDrag_OnInputField_DoesNotStartPanning()
+    {
+        // テキスト入力上のドラッグは文字選択が優先。パンを始めてはいけない。
+        var pan = NewPan();
+        var inputGo = new GameObject("input", typeof(RectTransform), typeof(InputField));
+        try
+        {
+            var e = new PointerEventData(null)
+            {
+                button = PointerEventData.InputButton.Left,
+                pointerPress = inputGo,
+            };
+            pan.OnBeginDrag(e);
+            pan.OnDrag(e);
+            Assert.AreEqual(Vector2.zero, pan.Pan, "drag on an InputField must not pan the frame");
+        }
+        finally
+        {
+            Object.DestroyImmediate(inputGo);
+            Object.DestroyImmediate(pan.gameObject);
+        }
+    }
+
+    [Test]
+    public void OnBeginDrag_NonLeftButton_DoesNotStartPanning()
+    {
+        var pan = NewPan();
+        try
+        {
+            var e = new PointerEventData(null)
+            {
+                button = PointerEventData.InputButton.Right,
+                pointerPress = pan.gameObject,
+            };
+            pan.OnBeginDrag(e);
+            pan.OnDrag(e);
+            Assert.AreEqual(Vector2.zero, pan.Pan);
+        }
+        finally
+        {
+            Object.DestroyImmediate(pan.gameObject);
         }
     }
 }

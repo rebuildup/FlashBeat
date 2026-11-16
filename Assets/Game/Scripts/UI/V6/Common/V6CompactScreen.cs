@@ -264,13 +264,27 @@ namespace FlashBeat.UI.V6.Common
         {
             var size = ViewSize;
             float step = size.y * PageStepRatio;
-            if (Input.GetKeyDown(KeyCode.PageUp)) { Pan = pan + new Vector2(0f, -step); }
-            else if (Input.GetKeyDown(KeyCode.PageDown)) { Pan = pan + new Vector2(0f, step); }
+            // PageUp = 表示範囲の先頭へ (pan.y 増加)、PageDown = 末尾へ。
+            // pan.y は content 上端の y_down 位置で 0 が先頭。
+            if (Input.GetKeyDown(KeyCode.PageUp)) { Pan = pan + new Vector2(0f, step); }
+            else if (Input.GetKeyDown(KeyCode.PageDown)) { Pan = pan + new Vector2(0f, -step); }
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+
+            // テキスト入力上のドラッグは文字選択が優先。ここでパンを
+            // 始めると選択操作がフレーム移動に化ける。Button 等の
+            // Selectable は対象外: スクロール容器の上でドラッグすると
+            // クリックがドラッグ扱いになるのは ScrollRect と同じ慣習。
+            var press = eventData.pointerPress;
+            if (press != null
+                && (press.GetComponentInParent<InputField>() != null
+                    || press.GetComponentInParent<TMPro.TMP_InputField>() != null))
             {
                 return;
             }
@@ -297,14 +311,18 @@ namespace FlashBeat.UI.V6.Common
         public void OnScroll(PointerEventData eventData)
         {
             var delta = eventData.scrollDelta;
+            // pan は content 左上のビューポート内 y_down 位置 (0=先頭、
+            // 負=末尾側)。ホイール上 (delta.y>0) は先頭方向、
+            // ホイール右 (delta.x>0) は右方向。リスト側 OnScroll
+            // (delta>0 → 先頭へ) と同じ慣習に合わせる (#550)。
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
                 // Shift+ホイールは横パン (一般的な慣習)。
-                Pan = pan + new Vector2(-delta.y * ScrollSensitivity, 0f);
+                Pan = pan + new Vector2(delta.y * ScrollSensitivity, 0f);
                 return;
             }
 
-            Pan = pan - new Vector2(delta.x, delta.y) * ScrollSensitivity;
+            Pan = pan + new Vector2(-delta.x, delta.y) * ScrollSensitivity;
         }
 
         /// <summary>
