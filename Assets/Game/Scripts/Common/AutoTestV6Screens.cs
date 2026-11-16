@@ -601,8 +601,10 @@ public class AutoTestV6Screens : MonoBehaviour
     /// 画面外に出る操作・情報が発生しうる。#96 の「画面外に失われる
     /// 情報・操作がないか」の判定材料として、表示中の Selectable
     /// (押せる面) と Text を実画面矩形と照合し、はみ出しを記録する。
-    /// Scroll / Mask 内のクリップは画面内に収まる限り対象外
-    /// (スクロールで到達できるため)。
+    /// Scroll / Mask 内の要素は「スクロール親の矩形 ∩ 実画面」の内側に
+    /// 収まる限り対象外 (スクロールで到達できるため)。スクロール親が
+    /// 画面外にはみ出す場合は、その交差領域を基準に判定するので、
+    /// 縦スクロールリストの左右クリップは引き続き検出される。
     /// </summary>
     private void AuditScreenClip(ScreenReport report)
     {
@@ -624,11 +626,10 @@ public class AutoTestV6Screens : MonoBehaviour
             for (int s = 0; s < selectables.Length; s++)
             {
                 var sel = selectables[s];
-                if (sel == null) { continue; }
+                if (sel == null || !sel.IsInteractable()) { continue; }
                 var rt = sel.transform as RectTransform;
                 if (rt == null) { continue; }
-                var rect = V6ScreenAudit.WorldRect(rt);
-                var clip = V6ScreenAudit.ClassifyScreenClip(rect, screen);
+                var clip = ClassifyElementClip(sel.transform, canvas.transform, rt, screen);
                 if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
                 if (clip == V6ScreenAudit.ScreenClip.Outside) { selOutside++; } else { selPartial++; }
                 if (lines < MaxLines)
@@ -636,33 +637,11 @@ public class AutoTestV6Screens : MonoBehaviour
                     lines++;
                     report.Notes.Add("[clip] selectable " + clip.ToString().ToLowerInvariant()
                         + " " + V6ScreenAudit.Path(sel.transform)
-                        + " rect=" + rect.ToString("F0")
-                        + " interactable=" + sel.IsInteractable());
+                        + " rect=" + V6ScreenAudit.WorldRect(rt).ToString("F0"));
                 }
             }
 
-            var texts = canvas.GetComponentsInChildren<TMP_Text>(false);
-            for (int t = 0; t < texts.Length; t++)
-            {
-                var tmp = texts[t];
-                if (tmp == null) { continue; }
-                var rt = tmp.transform as RectTransform;
-                if (rt == null) { continue; }
-                var rect = V6ScreenAudit.WorldRect(rt);
-                var clip = V6ScreenAudit.ClassifyScreenClip(rect, screen);
-                if (clip == V6ScreenAudit.ScreenClip.Inside) { continue; }
-                if (clip == V6ScreenAudit.ScreenClip.Outside) { textOutside++; } else { textPartial++; }
-                if (lines < MaxLines)
-                {
-                    lines++;
-                    var snippet = tmp.text ?? string.Empty;
-                    if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
-                    report.Notes.Add("[clip] text " + clip.ToString().ToLowerInvariant()
-                        + " " + V6ScreenAudit.Path(tmp.transform)
-                        + " rect=" + rect.ToString("F0")
-                        + " \"" + snippet + "\"");
-                }
-            }
+            AuditClipTexts(canvas, report, screen, ref textPartial, ref textOutside, ref lines, MaxLines);
         }
 
         report.Notes.Add("[clip] summary screen=" + Screen.width + "x" + Screen.height
@@ -672,6 +651,72 @@ public class AutoTestV6Screens : MonoBehaviour
         Debug.Log("[AutoTestV6Screens] CLIP " + report.Label
             + " selectables partial=" + selPartial + " outside=" + selOutside
             + " texts partial=" + textPartial + " outside=" + textOutside);
+    }
+
+    /// <summary>
+    /// 1 要素の画面クリップ種別。スクロール親がある場合は
+    /// 「スクロール親のワールド矩形 ∩ 実画面」を基準矩形にする
+    /// (スクロールで画面内へ到達できる範囲を到達可能とみなす)。
+    /// </summary>
+    private static V6ScreenAudit.ScreenClip ClassifyElementClip(
+        Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
+    {
+        var basis = screen;
+        var scroll = V6ScreenAudit.FindScrollAncestor(node, canvasRoot) as RectTransform;
+        if (scroll != null)
+        {
+            var sr = V6ScreenAudit.WorldRect(scroll);
+            float x0 = Mathf.Max(sr.xMin, screen.xMin);
+            float y0 = Mathf.Max(sr.yMin, screen.yMin);
+            float x1 = Mathf.Min(sr.xMax, screen.xMax);
+            float y1 = Mathf.Min(sr.yMax, screen.yMax);
+            if (x1 > x0 && y1 > y0)
+            {
+                basis = Rect.MinMaxRect(x0, y0, x1, y1);
+            }
+        }
+
+        return V6ScreenAudit.ClassifyScreenClip(V6ScreenAudit.WorldRect(rt), basis);
+    }
+
+    /// <summary>TMP_Text とレガシー Text の両方を走査してクリップを記録する。</summary>
+    private void AuditClipTexts(Canvas canvas, ScreenReport report, Rect screen,
+        ref int textPartial, ref int textOutside, ref int lines, int maxLines)
+    {
+        var tmpTexts = canvas.GetComponentsInChildren<TMP_Text>(false);
+        for (int t = 0; t < tmpTexts.Length; t++)
+        {
+            var tmp = tmpTexts[t];
+            NoteClippedText(tmp == null ? null : tmp.transform, tmp == null ? null : tmp.text,
+                canvas.transform, screen, report, ref textPartial, ref textOutside, ref lines, maxLines);
+        }
+
+        var legacyTexts = canvas.GetComponentsInChildren<Text>(false);
+        for (int t = 0; t < legacyTexts.Length; t++)
+        {
+            var legacy = legacyTexts[t];
+            NoteClippedText(legacy == null ? null : legacy.transform, legacy == null ? null : legacy.text,
+                canvas.transform, screen, report, ref textPartial, ref textOutside, ref lines, maxLines);
+        }
+    }
+
+    private void NoteClippedText(Transform node, string text, Transform canvasRoot, Rect screen,
+        ScreenReport report, ref int textPartial, ref int textOutside, ref int lines, int maxLines)
+    {
+        if (node == null) { return; }
+        var rt = node as RectTransform;
+        if (rt == null) { return; }
+        var clip = ClassifyElementClip(node, canvasRoot, rt, screen);
+        if (clip == V6ScreenAudit.ScreenClip.Inside) { return; }
+        if (clip == V6ScreenAudit.ScreenClip.Outside) { textOutside++; } else { textPartial++; }
+        if (lines >= maxLines) { return; }
+        lines++;
+        var snippet = text ?? string.Empty;
+        if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
+        report.Notes.Add("[clip] text " + clip.ToString().ToLowerInvariant()
+            + " " + V6ScreenAudit.Path(node)
+            + " rect=" + V6ScreenAudit.WorldRect(rt).ToString("F0")
+            + " \"" + snippet + "\"");
     }
 
     private IEnumerator Screenshot(ScreenReport report, string label)
@@ -724,7 +769,7 @@ public class AutoTestV6Screens : MonoBehaviour
             Debug.Log(line);
             for (int n = 0; n < r.Notes.Count; n++)
             {
-                sb.AppendLine(r.Notes[n]);
+                sb.AppendLine("[AutoTestV6Screens] " + r.Notes[n]);
             }
         }
 
@@ -772,17 +817,17 @@ public static class V6ScreenAudit
     }
 
     /// <summary>
-    /// 要素矩形が実画面矩形に対して Inside / Partial / Outside のどれか。
-    /// 画面より大きい要素 (全面 Dim 等) は Inside 扱いになる
-    /// (Contains が許容誤差込みで真を返すため)。
+    /// 要素矩形が基準矩形 (通常は実画面、スクロール親がある要素は
+    /// スクロール親 ∩ 実画面) に対して Inside / Partial / Outside のどれか。
+    /// 基準矩形をはみ出して囲むだけの要素 (Dim 等) は Partial になる。
     /// </summary>
-    public static ScreenClip ClassifyScreenClip(Rect element, Rect screen)
+    public static ScreenClip ClassifyScreenClip(Rect element, Rect bounds)
     {
-        if (Contains(screen, element, TolerancePx)) { return ScreenClip.Inside; }
-        bool outside = element.xMax <= screen.xMin + TolerancePx
-            || element.xMin >= screen.xMax - TolerancePx
-            || element.yMax <= screen.yMin + TolerancePx
-            || element.yMin >= screen.yMax - TolerancePx;
+        if (Contains(bounds, element, TolerancePx)) { return ScreenClip.Inside; }
+        bool outside = element.xMax <= bounds.xMin + TolerancePx
+            || element.xMin >= bounds.xMax - TolerancePx
+            || element.yMax <= bounds.yMin + TolerancePx
+            || element.yMin >= bounds.yMax - TolerancePx;
         return outside ? ScreenClip.Outside : ScreenClip.Partial;
     }
 

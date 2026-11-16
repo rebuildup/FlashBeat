@@ -1,598 +1,603 @@
 [AutoTestV6Screens] SCREEN TitleScene pass=37 fail=0 symbols=2 shots=v6screen-TitleScene-1.png
-[clip] selectable outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit rect=(x:-328, y:794, width:162, height:56) interactable=True
-[clip] selectable partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab GameStart rect=(x:-48, y:174, width:280, height:48) interactable=True
-[clip] selectable partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab Option rect=(x:792, y:174, width:280, height:48) interactable=True
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit/KeyCap E/Key rect=(x:-252, y:806, width:14, height:32) "E"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit/Label rect=(x:-219, y:801, width:53, height:43) "Exit"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Version/Version Current rect=(x:1072, y:806, width:256, height:32) "v0.1.26+4ab4122f"
-[clip] text partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab GameStart/Label rect=(x:-6, y:179, width:160, height:38) "GameStart"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab Option/KeyCap O/Key rect=(x:1040, y:182, width:14, height:32) "O"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-318, y:-72, width:64, height:36) "Space"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 決定 rect=(x:-234, y:-72, width:45, height:36) "決定"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-72, width:45, height:36) "↑↓"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 選択 rect=(x:-98, y:-72, width:45, height:36) "選択"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap E/Key rect=(x:-27, y:-72, width:14, height:36) "E"
-[clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 終了 rect=(x:7, y:-72, width:45, height:36) "終了"
-[clip] summary screen=1024x768 selectables partial=2 outside=1 texts partial=1 outside=10
+[AutoTestV6Screens] [clip] selectable outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit rect=(x:-328, y:794, width:162, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab GameStart rect=(x:-48, y:174, width:280, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab Option rect=(x:792, y:174, width:280, height:48)
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit/KeyCap E/Key rect=(x:-252, y:806, width:14, height:32) "E"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit/Label rect=(x:-219, y:801, width:53, height:43) "Exit"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Version/Version Current rect=(x:1072, y:806, width:256, height:32) "v0.1.26+e0db5d67"
+[AutoTestV6Screens] [clip] text partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab GameStart/Label rect=(x:-6, y:179, width:160, height:38) "GameStart"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Main/Tabs/Tab Option/KeyCap O/Key rect=(x:1040, y:182, width:14, height:32) "O"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-318, y:-72, width:64, height:36) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 決定 rect=(x:-234, y:-72, width:45, height:36) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-72, width:45, height:36) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 選択 rect=(x:-98, y:-72, width:45, height:36) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/KeyCap E/Key rect=(x:-27, y:-72, width:14, height:36) "E"
+[AutoTestV6Screens] [clip] text outside V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Footer/Legend Label 終了 rect=(x:7, y:-72, width:45, height:36) "終了"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=2 outside=1 texts partial=1 outside=10
 [AutoTestV6Screens] SCREEN SelectScene pass=178 fail=0 symbols=7 shots=v6screen-SelectScene-2.png
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings rect=(x:846, y:-82, width:221, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44) interactable=True
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "タイプして検索"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "28 / 28"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/Label rect=(x:926, y:-82, width:61, height:56) "設定"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/KeyCap O/Key rect=(x:1007, y:-70, width:17, height:32) "O"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Label rect=(x:808, y:728, width:528, height:22) "BEST"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Score rect=(x:808, y:648, width:400, height:72) "74,626"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Grade/Text rect=(x:1232, y:652, width:72, height:64) "C"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/Head/Source/Text rect=(x:1132, y:582, width:96, height:28) "オンライン"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/No Data rect=(x:816, y:432, width:496, height:35) "NO DATA"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/Head/Mode rect=(x:1132, y:255, width:200, height:50) "累計スコア"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/No Data rect=(x:816, y:122, width:496, height:35) "NO DATA"
-[clip] summary screen=1024x768 selectables partial=11 outside=5 texts partial=22 outside=29
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings rect=(x:846, y:-82, width:221, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44)
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "タイプして検索"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "28 / 28"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/Label rect=(x:926, y:-82, width:61, height:56) "設定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/KeyCap O/Key rect=(x:1007, y:-70, width:17, height:32) "O"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Label rect=(x:808, y:728, width:528, height:22) "BEST"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Score rect=(x:808, y:648, width:400, height:72) "74,626"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Grade/Text rect=(x:1232, y:652, width:72, height:64) "C"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/Head/Source/Text rect=(x:1132, y:582, width:96, height:28) "オンライン"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/No Data rect=(x:816, y:432, width:496, height:35) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/Head/Mode rect=(x:1132, y:255, width:200, height:50) "累計スコア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/No Data rect=(x:816, y:122, width:496, height:35) "NO DATA"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=11 outside=5 texts partial=22 outside=29
 [AutoTestV6Screens] SCREEN SelectScene-Refetch pass=6 fail=0 symbols=0 shots=v6screen-SelectScene-Refetch1-3.png,v6screen-SelectScene-Refetch2-4.png,v6screen-SelectScene-Refetch3-5.png
 [AutoTestV6Screens] SCREEN SelectScene-Skeleton pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Skeleton-6.png
 [AutoTestV6Screens] SCREEN SelectScene-LoadingKeepsRows pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-LoadingKeepsRows-7.png
 [AutoTestV6Screens] SCREEN SelectScene-Error pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Error-8.png
 [AutoTestV6Screens] SCREEN SelectScene-Empty pass=110 fail=0 symbols=2 shots=v6screen-SelectScene-Empty-9.png
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings rect=(x:846, y:-82, width:221, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready rect=(x:1079, y:-82, width:273, height:56) interactable=False
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "__no_song_matches__"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "0 / 28"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/Empty Note/Title rect=(x:-272, y:385, width:448, height:35) "曲が見つかりません"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/Empty Note/Hint rect=(x:-272, y:348, width:448, height:29) "検索語を変えるか フィルターを解除してください"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Label rect=(x:808, y:728, width:528, height:22) "BEST"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Score rect=(x:808, y:648, width:400, height:72) "74,626"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Grade/Text rect=(x:1232, y:652, width:72, height:64) "C"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/Head/Source/Text rect=(x:1132, y:582, width:96, height:28) "オンライン"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/No Data rect=(x:816, y:432, width:496, height:35) "NO DATA"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/Head/Mode rect=(x:1132, y:255, width:200, height:50) "累計スコア"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/No Data rect=(x:816, y:122, width:496, height:35) "NO DATA"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/Label rect=(x:926, y:-82, width:61, height:56) "設定"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/KeyCap O/Key rect=(x:1007, y:-70, width:17, height:32) "O"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
-[clip] summary screen=1024x768 selectables partial=2 outside=5 texts partial=6 outside=20
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings rect=(x:846, y:-82, width:221, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "__no_song_matches__"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "0 / 28"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/Empty Note/Title rect=(x:-272, y:385, width:448, height:35) "曲が見つかりません"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/Empty Note/Hint rect=(x:-272, y:348, width:448, height:29) "検索語を変えるか フィルターを解除してください"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Label rect=(x:808, y:728, width:528, height:22) "BEST"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Score rect=(x:808, y:648, width:400, height:72) "74,626"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Best/Score Row/Grade/Text rect=(x:1232, y:652, width:72, height:64) "C"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/Head/Source/Text rect=(x:1132, y:582, width:96, height:28) "オンライン"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Score Ranking/No Data rect=(x:816, y:432, width:496, height:35) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/Head/Mode rect=(x:1132, y:255, width:200, height:50) "累計スコア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Ranking Column/Players/No Data rect=(x:816, y:122, width:496, height:35) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/Label rect=(x:926, y:-82, width:61, height:56) "設定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Button Settings/KeyCap O/Key rect=(x:1007, y:-70, width:17, height:32) "O"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=2 outside=4 texts partial=6 outside=20
 [AutoTestV6Screens] SCREEN SelectScene-Settings pass=190 fail=0 symbols=7 shots=v6screen-SelectScene-Settings-10.png
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close rect=(x:816, y:-82, width:251, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Prev rect=(x:1092, y:662, width:40, height:40) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Next rect=(x:1276, y:662, width:40, height:40) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Prev rect=(x:1092, y:594, width:40, height:40) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Next rect=(x:1276, y:594, width:40, height:40) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Prev rect=(x:1092, y:526, width:40, height:40) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Next rect=(x:1276, y:526, width:40, height:40) interactable=True
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "タイプして検索"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "28 / 28"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close/Label rect=(x:886, y:-82, width:91, height:56) "閉じる"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close/KeyCap Esc/Key rect=(x:997, y:-70, width:36, height:32) "Esc"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Head rect=(x:816, y:730, width:240, height:36) "このプレイの設定"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Label rect=(x:864, y:654, width:216, height:56) "Key Guide"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Value rect=(x:1144, y:654, width:120, height:56) "Compact"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Label rect=(x:864, y:586, width:216, height:56) "Lyrics"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Value rect=(x:1144, y:586, width:120, height:56) "Off"
-[clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Label rect=(x:864, y:518, width:216, height:56) "NoteSpeed"
-[clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Value rect=(x:1144, y:518, width:120, height:56) "10"
-[clip] summary screen=1024x768 selectables partial=11 outside=11 texts partial=22 outside=29
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search rect=(x:536, y:798, width:580, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Filter Button rect=(x:1280, y:798, width:48, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close rect=(x:816, y:-82, width:251, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Up rect=(x:-118, y:730, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Scroll Down rect=(x:-118, y:-2, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Prev rect=(x:1092, y:662, width:40, height:40)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Next rect=(x:1276, y:662, width:40, height:40)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Prev rect=(x:1092, y:594, width:40, height:40)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Next rect=(x:1276, y:594, width:40, height:40)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Prev rect=(x:1092, y:526, width:40, height:40)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Next rect=(x:1276, y:526, width:40, height:40)
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Title rect=(x:-248, y:794, width:300, height:56) "選曲"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/Query rect=(x:576, y:806, width:460, height:32) "タイプして検索"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Search/KeyCap A-Z/Key rect=(x:1044, y:806, width:60, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Header/Count rect=(x:1128, y:798, width:140, height:48) "28 / 28"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-320, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 決定 rect=(x:-240, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-163, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-102, y:-68, width:67, height:32) "曲送り"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap A-Z/Key rect=(x:-3, y:-68, width:35, height:32) "A-Z"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 検索 rect=(x:48, y:-68, width:45, height:32) "検索"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:125, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Legend Label 絞り込み rect=(x:181, y:-68, width:89, height:32) "絞り込み"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close/Label rect=(x:886, y:-82, width:91, height:56) "閉じる"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Close/KeyCap Esc/Key rect=(x:997, y:-70, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/Label rect=(x:1147, y:-82, width:90, height:56) "Ready"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Footer/Op Ready/KeyCap Space/Key rect=(x:1257, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Head rect=(x:816, y:730, width:240, height:36) "このプレイの設定"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Label rect=(x:864, y:654, width:216, height:56) "Key Guide"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Key Guide/Value rect=(x:1144, y:654, width:120, height:56) "Compact"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Label rect=(x:864, y:586, width:216, height:56) "Lyrics"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set Lyrics/Value rect=(x:1144, y:586, width:120, height:56) "Off"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Label rect=(x:864, y:518, width:216, height:56) "NoteSpeed"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Select View/V6 Select Frame 1728x972/Settings Column/Set NoteSpeed/Value rect=(x:1144, y:518, width:120, height:56) "10"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=11 outside=11 texts partial=22 outside=29
 [AutoTestV6Screens] SCREEN SelectScene-History pass=121 fail=0 symbols=11 shots=v6screen-SelectScene-History-11.png
-[clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Sort rect=(x:536, y:808, width:104, height:29) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ rect=(x:-312, y:420, width:496, height:64) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド rect=(x:-312, y:348, width:496, height:64) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに rect=(x:-312, y:276, width:496, height:64) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/IconButton chevron-up rect=(x:-118, y:730, width:140, height:44) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/IconButton chevron-down rect=(x:-118, y:-2, width:140, height:44) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "HISTORY"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Sort/Text rect=(x:548, y:808, width:80, height:29) "スコア順"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Count rect=(x:1048, y:798, width:280, height:48) "記録 3曲"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Pos/PosText rect=(x:-300, y:434, width:36, height:36) "1"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Title rect=(x:-252, y:434, width:220, height:35) "ロストアンブレラ"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Score rect=(x:-20, y:434, width:120, height:35) "1000000"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Pos/PosText rect=(x:-300, y:362, width:36, height:36) "2"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Title rect=(x:-252, y:362, width:220, height:35) "ツイッターランド"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Score rect=(x:-20, y:362, width:120, height:35) "630769"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Pos/PosText rect=(x:-300, y:290, width:36, height:36) "3"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Title rect=(x:-252, y:290, width:220, height:35) "まにまに"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Score rect=(x:-20, y:290, width:120, height:35) "55263"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Head/Name rect=(x:1213, y:699, width:99, height:50) "RETRYOK"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 累計/Value rect=(x:932, y:638, width:120, height:60) "1,686,032"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat プレイ曲/Label rect=(x:1092, y:638, width:100, height:60) "プレイ曲"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat プレイ曲/Value rect=(x:1196, y:638, width:120, height:60) "3 / 26"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat S以上/Value rect=(x:932, y:574, width:120, height:60) "1"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 順位/Label rect=(x:1092, y:574, width:100, height:60) "順位"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 順位/Value rect=(x:1196, y:574, width:120, height:60) "–位 / –人"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Head/Score Label rect=(x:1232, y:507, width:59, height:50) "SCORE"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Head/Score Value rect=(x:1299, y:507, width:13, height:50) "–"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge GREAT/Inner/Label rect=(x:972, y:456, width:200, height:50) "GREAT"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge GREAT/Inner/Value rect=(x:972, y:404, width:200, height:50) "–"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge BAD/Inner/Label rect=(x:1141, y:456, width:200, height:50) "BAD"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge BAD/Inner/Value rect=(x:1141, y:404, width:200, height:50) "–"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge HOLD/Inner/Label rect=(x:972, y:368, width:200, height:50) "HOLD"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge HOLD/Inner/Value rect=(x:972, y:316, width:200, height:50) "–"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MAX COMBO/Inner/Label rect=(x:1141, y:368, width:200, height:50) "MAX COMBO"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MAX COMBO/Inner/Value rect=(x:1141, y:316, width:200, height:50) "–"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/Head/Song/Text rect=(x:1168, y:271, width:144, height:50) "ロストアンブレラ"
-[clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Name rect=(x:876, y:220, width:160, height:32) "YOU"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Value rect=(x:1048, y:220, width:180, height:32) "1,000,000"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Grade/Grade rect=(x:1240, y:218, width:56, height:36) "SS"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-182, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 決定 rect=(x:-102, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:-25, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 戻る rect=(x:27, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ/Label rect=(x:1131, y:-82, width:121, height:56) "この曲へ"
-[clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ/KeyCap Space/Key rect=(x:1272, y:-70, width:64, height:32) "Space"
-[clip] summary screen=1024x768 selectables partial=5 outside=3 texts partial=10 outside=32
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Sort rect=(x:536, y:808, width:104, height:29)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ rect=(x:-312, y:420, width:496, height:64)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド rect=(x:-312, y:348, width:496, height:64)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに rect=(x:-312, y:276, width:496, height:64)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/IconButton chevron-up rect=(x:-118, y:730, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/IconButton chevron-down rect=(x:-118, y:-2, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "HISTORY"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Sort/Text rect=(x:548, y:808, width:80, height:29) "スコア順"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Header/Count rect=(x:1048, y:798, width:280, height:48) "記録 3曲"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Pos/PosText rect=(x:-300, y:434, width:36, height:36) "1"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Title rect=(x:-252, y:434, width:220, height:35) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ロストアンブレラ/Score rect=(x:-20, y:434, width:120, height:35) "1000000"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Pos/PosText rect=(x:-300, y:362, width:36, height:36) "2"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Title rect=(x:-252, y:362, width:220, height:35) "ツイッターランド"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History ツイッターランド/Score rect=(x:-20, y:362, width:120, height:35) "630769"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Pos/PosText rect=(x:-300, y:290, width:36, height:36) "3"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Title rect=(x:-252, y:290, width:220, height:35) "まにまに"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/History List/Rows/History まにまに/Score rect=(x:-20, y:290, width:120, height:35) "55263"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Head/Name rect=(x:1213, y:699, width:99, height:50) "RETRYOK"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 累計/Value rect=(x:932, y:638, width:120, height:60) "1,686,032"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat プレイ曲/Label rect=(x:1092, y:638, width:100, height:60) "プレイ曲"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat プレイ曲/Value rect=(x:1196, y:638, width:120, height:60) "3 / 26"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat S以上/Value rect=(x:932, y:574, width:120, height:60) "1"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 順位/Label rect=(x:1092, y:574, width:100, height:60) "順位"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Player Info/Stat 順位/Value rect=(x:1196, y:574, width:120, height:60) "–位 / –人"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Head/Score Label rect=(x:1232, y:507, width:59, height:50) "SCORE"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Head/Score Value rect=(x:1299, y:507, width:13, height:50) "–"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge GREAT/Inner/Label rect=(x:972, y:456, width:200, height:50) "GREAT"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge GREAT/Inner/Value rect=(x:972, y:404, width:200, height:50) "–"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge BAD/Inner/Label rect=(x:1141, y:456, width:200, height:50) "BAD"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge BAD/Inner/Value rect=(x:1141, y:404, width:200, height:50) "–"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge HOLD/Inner/Label rect=(x:972, y:368, width:200, height:50) "HOLD"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge HOLD/Inner/Value rect=(x:972, y:316, width:200, height:50) "–"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MAX COMBO/Inner/Label rect=(x:1141, y:368, width:200, height:50) "MAX COMBO"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Play Info/Judge MAX COMBO/Inner/Value rect=(x:1141, y:316, width:200, height:50) "–"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/Head/Song/Text rect=(x:1168, y:271, width:144, height:50) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Name rect=(x:876, y:220, width:160, height:32) "YOU"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Value rect=(x:1048, y:220, width:180, height:32) "1,000,000"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Main/Record Column/Song Ranking/RankRow 1/Grade/Grade rect=(x:1240, y:218, width:56, height:36) "SS"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-182, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 決定 rect=(x:-102, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:-25, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Legend Label 戻る rect=(x:27, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ/Label rect=(x:1131, y:-82, width:121, height:56) "この曲へ"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 History View/V6 History Frame 1728x972/Footer/Button この曲へ/KeyCap Space/Key rect=(x:1272, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=5 outside=3 texts partial=10 outside=32
 [AutoTestV6Screens] SCREEN SelectScene-Ranking pass=155 fail=0 symbols=8 shots=v6screen-SelectScene-Ranking-12.png
-[clip] selectable outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/IconButton chevron-up rect=(x:-118, y:730, width:140, height:44) interactable=True
-[clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/IconButton chevron-down rect=(x:-118, y:-2, width:140, height:44) interactable=True
-[clip] selectable outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RANKING"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Song/Title rect=(x:616, y:816, width:320, height:43) "ロストアンブレラ"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Song/Artist rect=(x:616, y:785, width:320, height:29) "稲葉曇"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat LEVEL/Inner/Label rect=(x:969, y:803, width:47, height:50) "LEVEL"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat LEVEL/Inner/Value rect=(x:969, y:751, width:14, height:50) "8"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat BPM/Inner/Label rect=(x:1085, y:803, width:34, height:50) "BPM"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat BPM/Inner/Value rect=(x:1085, y:751, width:44, height:50) "274"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat NOTES/Inner/Label rect=(x:1201, y:803, width:53, height:50) "NOTES"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat NOTES/Inner/Value rect=(x:1201, y:751, width:44, height:50) "268"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Players/Head/Metric rect=(x:1178, y:709, width:90, height:26) "累計スコア"
-[clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Players/NoData rect=(x:824, y:406, width:496, height:44) "データがありません"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-259, y:-68, width:67, height:32) "曲送り"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-160, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 決定 rect=(x:-80, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-3, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 切替 rect=(x:53, y:-68, width:45, height:32) "切替"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:130, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 戻る rect=(x:182, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ/Label rect=(x:1131, y:-82, width:121, height:56) "この曲へ"
-[clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ/KeyCap Space/Key rect=(x:1272, y:-70, width:64, height:32) "Space"
-[clip] summary screen=1024x768 selectables partial=11 outside=2 texts partial=20 outside=29
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Back Button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ rect=(x:-312, y:654, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに rect=(x:-312, y:578, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who rect=(x:-312, y:502, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド rect=(x:-312, y:426, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行 rect=(x:-312, y:350, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア rect=(x:-312, y:274, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse rect=(x:-312, y:198, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched rect=(x:-312, y:122, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite rect=(x:-312, y:46, width:504, height:72)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/IconButton chevron-up rect=(x:-118, y:730, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/IconButton chevron-down rect=(x:-118, y:-2, width:140, height:44)
+[AutoTestV6Screens] [clip] selectable outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Back Button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RANKING"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Song/Title rect=(x:616, y:816, width:320, height:43) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Song/Artist rect=(x:616, y:785, width:320, height:29) "稲葉曇"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat LEVEL/Inner/Label rect=(x:969, y:803, width:47, height:50) "LEVEL"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat LEVEL/Inner/Value rect=(x:969, y:751, width:14, height:50) "8"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat BPM/Inner/Label rect=(x:1085, y:803, width:34, height:50) "BPM"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat BPM/Inner/Value rect=(x:1085, y:751, width:44, height:50) "274"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat NOTES/Inner/Label rect=(x:1201, y:803, width:53, height:50) "NOTES"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Header/Stat NOTES/Inner/Value rect=(x:1201, y:751, width:44, height:50) "268"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Level/Level rect=(x:-300, y:668, width:44, height:44) "8"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Title rect=(x:-136, y:686, width:248, height:38) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ロストアンブレラ/Composer rect=(x:-136, y:655, width:248, height:29) "稲葉曇"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Level/Level rect=(x:-300, y:592, width:44, height:44) "13"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Title rect=(x:-136, y:610, width:248, height:38) "まにまに"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow まにまに/Composer rect=(x:-136, y:579, width:248, height:29) "r-906"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Level/Level rect=(x:-300, y:516, width:44, height:44) "5"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Title rect=(x:-136, y:534, width:248, height:38) "Who"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Who/Composer rect=(x:-136, y:503, width:248, height:29) "Azari"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Level/Level rect=(x:-300, y:440, width:44, height:44) "15"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Title rect=(x:-136, y:458, width:248, height:38) "ツイッターランド"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow ツイッターランド/Composer rect=(x:-136, y:427, width:248, height:29) "STEAKA"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Level/Level rect=(x:-300, y:364, width:44, height:44) "14"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Title rect=(x:-136, y:382, width:248, height:38) "終焉逃避行"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow 終焉逃避行/Composer rect=(x:-136, y:351, width:248, height:29) "柊マグネタイト"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Level/Level rect=(x:-300, y:288, width:44, height:44) "18"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Title rect=(x:-136, y:306, width:248, height:38) "エウタナシア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow エウタナシア/Composer rect=(x:-136, y:275, width:248, height:29) "ど～ぱみん"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Level/Level rect=(x:-300, y:212, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Title rect=(x:-136, y:230, width:248, height:38) "Chartreuse"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Chartreuse/Composer rect=(x:-136, y:199, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Level/Level rect=(x:-300, y:136, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Title rect=(x:-136, y:154, width:248, height:38) "Psyched"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Psyched/Composer rect=(x:-136, y:123, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Level/Level rect=(x:-300, y:60, width:44, height:44) "19"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Title rect=(x:-136, y:78, width:248, height:38) "Dogbite"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Song List/Rows/SongRow Dogbite/Composer rect=(x:-136, y:47, width:248, height:29) "t+pazolite"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Players/Head/Metric rect=(x:1178, y:709, width:90, height:26) "累計スコア"
+[AutoTestV6Screens] [clip] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Players/NoData rect=(x:824, y:406, width:496, height:44) "データがありません"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 曲送り rect=(x:-259, y:-68, width:67, height:32) "曲送り"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-160, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 決定 rect=(x:-80, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-3, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 切替 rect=(x:53, y:-68, width:45, height:32) "切替"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:130, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Legend Label 戻る rect=(x:182, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ/Label rect=(x:1131, y:-82, width:121, height:56) "この曲へ"
+[AutoTestV6Screens] [clip] text outside V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Footer/Button この曲へ/KeyCap Space/Key rect=(x:1272, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=11 outside=2 texts partial=20 outside=29
 [AutoTestV6Screens] SCREEN OptionScene pass=182 fail=0 symbols=4 shots=v6screen-OptionScene-13.png
-[clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteSpeed rect=(x:-16, y:590, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteTiming rect=(x:-16, y:514, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Layout rect=(x:-16, y:438, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set キー設定 rect=(x:-16, y:362, width:496, height:56) interactable=True
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Play"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteSpeed/Label rect=(x:-4, y:590, width:200, height:56) "NoteSpeed"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteTiming/Label rect=(x:-4, y:514, width:200, height:56) "NoteTiming"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Layout/Label rect=(x:-4, y:438, width:200, height:56) "Key Layout"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set キー設定/Label rect=(x:-4, y:362, width:200, height:56) "キー設定"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
-[clip] summary screen=1024x768 selectables partial=8 outside=1 texts partial=9 outside=12
+[AutoTestV6Screens] [clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteSpeed rect=(x:-16, y:590, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteTiming rect=(x:-16, y:514, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Layout rect=(x:-16, y:438, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set キー設定 rect=(x:-16, y:362, width:496, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Play"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteSpeed/Label rect=(x:-4, y:590, width:200, height:56) "NoteSpeed"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set NoteTiming/Label rect=(x:-4, y:514, width:200, height:56) "NoteTiming"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Layout/Label rect=(x:-4, y:438, width:200, height:56) "Key Layout"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set キー設定/Label rect=(x:-4, y:362, width:200, height:56) "キー設定"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=8 outside=1 texts partial=9 outside=12
 [AutoTestV6Screens] SCREEN OptionScene-Display pass=109 fail=0 symbols=4 shots=v6screen-OptionScene-Display-14.png
-[clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Flash rect=(x:-16, y:590, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashTiming rect=(x:-16, y:514, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashSpeed rect=(x:-16, y:438, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Guide rect=(x:-16, y:362, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Lyrics rect=(x:-16, y:286, width:496, height:56) interactable=True
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Display"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Flash/Label rect=(x:-4, y:590, width:200, height:56) "Flash"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashTiming/Label rect=(x:-4, y:514, width:200, height:56) "FlashTiming"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashSpeed/Label rect=(x:-4, y:438, width:200, height:56) "FlashSpeed"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Guide/Label rect=(x:-4, y:362, width:200, height:56) "Key Guide"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Lyrics/Label rect=(x:-4, y:286, width:200, height:56) "Lyrics"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
-[clip] summary screen=1024x768 selectables partial=9 outside=1 texts partial=10 outside=12
+[AutoTestV6Screens] [clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Flash rect=(x:-16, y:590, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashTiming rect=(x:-16, y:514, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashSpeed rect=(x:-16, y:438, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Guide rect=(x:-16, y:362, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Lyrics rect=(x:-16, y:286, width:496, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Display"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Flash/Label rect=(x:-4, y:590, width:200, height:56) "Flash"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashTiming/Label rect=(x:-4, y:514, width:200, height:56) "FlashTiming"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set FlashSpeed/Label rect=(x:-4, y:438, width:200, height:56) "FlashSpeed"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Key Guide/Label rect=(x:-4, y:362, width:200, height:56) "Key Guide"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Lyrics/Label rect=(x:-4, y:286, width:200, height:56) "Lyrics"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=9 outside=1 texts partial=10 outside=12
 [AutoTestV6Screens] SCREEN OptionScene-Sound pass=88 fail=0 symbols=8 shots=v6screen-OptionScene-Sound-15.png
-[clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Main Volume rect=(x:-16, y:590, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Effect Volume rect=(x:-16, y:514, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set BGM Volume rect=(x:-16, y:438, width:496, height:56) interactable=True
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Sound"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Main Volume/Label rect=(x:-4, y:590, width:200, height:56) "Main Volume"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Effect Volume/Label rect=(x:-4, y:514, width:200, height:56) "Effect Volume"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set BGM Volume/Label rect=(x:-4, y:438, width:200, height:56) "BGM Volume"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
-[clip] summary screen=1024x768 selectables partial=7 outside=1 texts partial=8 outside=12
+[AutoTestV6Screens] [clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Main Volume rect=(x:-16, y:590, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Effect Volume rect=(x:-16, y:514, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set BGM Volume rect=(x:-16, y:438, width:496, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Sound"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Main Volume/Label rect=(x:-4, y:590, width:200, height:56) "Main Volume"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Effect Volume/Label rect=(x:-4, y:514, width:200, height:56) "Effect Volume"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set BGM Volume/Label rect=(x:-4, y:438, width:200, height:56) "BGM Volume"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=7 outside=1 texts partial=8 outside=12
 [AutoTestV6Screens] SCREEN OptionScene-Data pass=68 fail=0 symbols=4 shots=v6screen-OptionScene-Data-16.png
-[clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Media cache rect=(x:-16, y:590, width:496, height:56) interactable=True
-[clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Clear save data rect=(x:-16, y:514, width:496, height:56) interactable=True
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Data"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Media cache/Label rect=(x:-4, y:590, width:200, height:56) "Media cache"
-[clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Clear save data/Label rect=(x:-4, y:514, width:200, height:56) "Clear save data"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
-[clip] summary screen=1024x768 selectables partial=6 outside=1 texts partial=7 outside=12
+[AutoTestV6Screens] [clip] selectable outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button rect=(x:-328, y:794, width:56, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play rect=(x:110, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display rect=(x:318, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound rect=(x:526, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data rect=(x:734, y:726, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Media cache rect=(x:-16, y:590, width:496, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Clear save data rect=(x:-16, y:514, width:496, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Back button/Key rect=(x:-313, y:798, width:26, height:23) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "OPTION"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Play/Label rect=(x:110, y:726, width:200, height:48) "Play"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Display/Label rect=(x:318, y:726, width:200, height:48) "Display"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Sound/Label rect=(x:526, y:726, width:200, height:48) "Sound"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Zone Tabs/Tab Data/Label rect=(x:734, y:726, width:200, height:48) "Data"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Head/Title rect=(x:-4, y:662, width:200, height:36) "Data"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Media cache/Label rect=(x:-4, y:590, width:200, height:56) "Media cache"
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Settings/Set Clear save data/Label rect=(x:-4, y:514, width:200, height:56) "Clear save data"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:-320, y:-68, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 選択 rect=(x:-259, y:-68, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:-182, y:-68, width:45, height:32) "←→"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 変更 rect=(x:-121, y:-68, width:45, height:32) "変更"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Tab/Key rect=(x:-44, y:-68, width:40, height:32) "Tab"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:12, y:-68, width:89, height:32) "タブ切替"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:133, y:-68, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 戻る rect=(x:185, y:-68, width:45, height:32) "戻る"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:262, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Footer/Legend Label 決定 rect=(x:336, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=6 outside=1 texts partial=7 outside=12
 [AutoTestV6Screens] SCREEN ResultScene pass=84 fail=0 symbols=1 shots=v6screen-ResultScene-17.png
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register rect=(x:790, y:-82, width:273, height:56) interactable=True
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry rect=(x:554, y:-82, width:220, height:56) interactable=True
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RESULT"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter rect=(x:-188, y:470, width:280, height:280) "–"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label C rect=(x:-188, y:356, width:165, height:20) "C"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label B rect=(x:-20, y:356, width:164, height:20) "B"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Label rect=(x:-188, y:297, width:160, height:29) "Perfect"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Value rect=(x:-188, y:213, width:160, height:70) "0"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Label rect=(x:-20, y:297, width:160, height:29) "Great"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Value rect=(x:-20, y:213, width:160, height:70) "0"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Title rect=(x:-44, y:86, width:204, height:36) "ロストアンブレラ"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Artist rect=(x:-44, y:39, width:204, height:33) "稲葉曇"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/Song rect=(x:688, y:655, width:484, height:43) "ロストアンブレラ"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/No Data rect=(x:688, y:480, width:496, height:44) "NO DATA"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/Head/Metric rect=(x:1045, y:278, width:92, height:36) "累計スコア"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/No Data rect=(x:688, y:218, width:496, height:44) "NO DATA"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap R/Key rect=(x:-320, y:-68, width:15, height:32) "R"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label リトライ rect=(x:-289, y:-68, width:89, height:32) "リトライ"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:-168, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 登録 rect=(x:-94, y:-68, width:45, height:32) "登録"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-17, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 決定 rect=(x:63, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/Label rect=(x:1170, y:-82, width:43, height:56) "OK"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/KeyCap Space/Key rect=(x:1233, y:-70, width:64, height:32) "Space"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/Label rect=(x:846, y:-82, width:119, height:56) "Register"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/KeyCap Enter/Key rect=(x:985, y:-70, width:58, height:32) "Enter"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/Label rect=(x:626, y:-82, width:78, height:56) "Retry"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/KeyCap R/Key rect=(x:724, y:-70, width:15, height:32) "R"
-[clip] summary screen=1024x768 selectables partial=0 outside=3 texts partial=9 outside=17
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register rect=(x:790, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry rect=(x:554, y:-82, width:220, height:56)
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RESULT"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter rect=(x:-188, y:470, width:280, height:280) "–"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label C rect=(x:-188, y:356, width:165, height:20) "C"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label B rect=(x:-20, y:356, width:164, height:20) "B"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Label rect=(x:-188, y:297, width:160, height:29) "Perfect"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Value rect=(x:-188, y:213, width:160, height:70) "0"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Label rect=(x:-20, y:297, width:160, height:29) "Great"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Value rect=(x:-20, y:213, width:160, height:70) "0"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Title rect=(x:-44, y:86, width:204, height:36) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Artist rect=(x:-44, y:39, width:204, height:33) "稲葉曇"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/Song rect=(x:688, y:655, width:484, height:43) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/No Data rect=(x:688, y:480, width:496, height:44) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/Head/Metric rect=(x:1045, y:278, width:92, height:36) "累計スコア"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/No Data rect=(x:688, y:218, width:496, height:44) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap R/Key rect=(x:-320, y:-68, width:15, height:32) "R"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label リトライ rect=(x:-289, y:-68, width:89, height:32) "リトライ"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:-168, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 登録 rect=(x:-94, y:-68, width:45, height:32) "登録"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-17, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 決定 rect=(x:63, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/Label rect=(x:1170, y:-82, width:43, height:56) "OK"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/KeyCap Space/Key rect=(x:1233, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/Label rect=(x:846, y:-82, width:119, height:56) "Register"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/KeyCap Enter/Key rect=(x:985, y:-70, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/Label rect=(x:626, y:-82, width:78, height:56) "Retry"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/KeyCap R/Key rect=(x:724, y:-70, width:15, height:32) "R"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=3 texts partial=9 outside=17
 [AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=124 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-18.png
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK rect=(x:1079, y:-82, width:273, height:56) interactable=True
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register rect=(x:790, y:-82, width:273, height:56) interactable=True
-[clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry rect=(x:554, y:-82, width:220, height:56) interactable=True
-[clip] selectable partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b rect=(x:-352, y:-102, width:1728, height:972) interactable=True
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RESULT"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter rect=(x:-188, y:470, width:280, height:280) "–"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label C rect=(x:-188, y:356, width:165, height:20) "C"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label B rect=(x:-20, y:356, width:164, height:20) "B"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Label rect=(x:-188, y:297, width:160, height:29) "Perfect"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Value rect=(x:-188, y:213, width:160, height:70) "0"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Label rect=(x:-20, y:297, width:160, height:29) "Great"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Value rect=(x:-20, y:213, width:160, height:70) "0"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Title rect=(x:-44, y:86, width:204, height:36) "ロストアンブレラ"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Artist rect=(x:-44, y:39, width:204, height:33) "稲葉曇"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/Song rect=(x:688, y:655, width:484, height:43) "ロストアンブレラ"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/No Data rect=(x:688, y:480, width:496, height:44) "NO DATA"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/Head/Metric rect=(x:1045, y:278, width:92, height:36) "累計スコア"
-[clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/No Data rect=(x:688, y:218, width:496, height:44) "NO DATA"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap R/Key rect=(x:-320, y:-68, width:15, height:32) "R"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label リトライ rect=(x:-289, y:-68, width:89, height:32) "リトライ"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:-168, y:-68, width:58, height:32) "Enter"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 登録 rect=(x:-94, y:-68, width:45, height:32) "登録"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-17, y:-68, width:64, height:32) "Space"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 決定 rect=(x:63, y:-68, width:45, height:32) "決定"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/Label rect=(x:1170, y:-82, width:43, height:56) "OK"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/KeyCap Space/Key rect=(x:1233, y:-70, width:64, height:32) "Space"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/Label rect=(x:846, y:-82, width:119, height:56) "Register"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/KeyCap Enter/Key rect=(x:985, y:-70, width:58, height:32) "Enter"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/Label rect=(x:626, y:-82, width:78, height:56) "Retry"
-[clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/KeyCap R/Key rect=(x:724, y:-70, width:15, height:32) "R"
-[clip] summary screen=1024x768 selectables partial=1 outside=3 texts partial=9 outside=17
-[AutoTestV6Screens] SCREEN GameScene-HUD pass=49 fail=1 symbols=0 shots=v6screen-GameScene-HUD-19.png
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
-[clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=2 outside=0
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK rect=(x:1079, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register rect=(x:790, y:-82, width:273, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry rect=(x:554, y:-82, width:220, height:56)
+[AutoTestV6Screens] [clip] selectable partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b rect=(x:-352, y:-102, width:1728, height:972)
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Header/Title rect=(x:-256, y:794, width:400, height:56) "RESULT"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter rect=(x:-188, y:470, width:280, height:280) "–"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label C rect=(x:-188, y:356, width:165, height:20) "C"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Score Gauge Zone/Score Gauge/Label B rect=(x:-20, y:356, width:164, height:20) "B"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Label rect=(x:-188, y:297, width:160, height:29) "Perfect"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Perfect/Value rect=(x:-188, y:213, width:160, height:70) "0"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Label rect=(x:-20, y:297, width:160, height:29) "Great"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Judgements/J Great/Value rect=(x:-20, y:213, width:160, height:70) "0"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Title rect=(x:-44, y:86, width:204, height:36) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Info/Artist rect=(x:-44, y:39, width:204, height:33) "稲葉曇"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/Song rect=(x:688, y:655, width:484, height:43) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Song Ranking/No Data rect=(x:688, y:480, width:496, height:44) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/Head/Metric rect=(x:1045, y:278, width:92, height:36) "累計スコア"
+[AutoTestV6Screens] [clip] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Player Ranking/No Data rect=(x:688, y:218, width:496, height:44) "NO DATA"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap R/Key rect=(x:-320, y:-68, width:15, height:32) "R"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label リトライ rect=(x:-289, y:-68, width:89, height:32) "リトライ"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Enter/Key rect=(x:-168, y:-68, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 登録 rect=(x:-94, y:-68, width:45, height:32) "登録"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/KeyCap Space/Key rect=(x:-17, y:-68, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Legend Label 決定 rect=(x:63, y:-68, width:45, height:32) "決定"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/Label rect=(x:1170, y:-82, width:43, height:56) "OK"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op OK/KeyCap Space/Key rect=(x:1233, y:-70, width:64, height:32) "Space"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/Label rect=(x:846, y:-82, width:119, height:56) "Register"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Register/KeyCap Enter/Key rect=(x:985, y:-70, width:58, height:32) "Enter"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/Label rect=(x:626, y:-82, width:78, height:56) "Retry"
+[AutoTestV6Screens] [clip] text outside V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Footer/Op Retry/KeyCap R/Key rect=(x:724, y:-70, width:15, height:32) "R"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=1 outside=3 texts partial=9 outside=17
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=64 fail=1 symbols=2 shots=v6screen-GameScene-HUD-19.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Title rect=(x:1172, y:716, width:111, height:32) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Artist rect=(x:1172, y:691, width:113, height:23) "稲葉曇"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Headline rect=(x:632, y:392, width:464, height:40) "準備中…"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Detail rect=(x:632, y:356, width:464, height:24) "譜面を準備中… 29%"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:66, y:-174, width:36, height:36) "Esc"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/Legend Label 戻る rect=(x:122, y:-174, width:45, height:36) "戻る"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=4 outside=4
 [AutoTestV6Screens] SCREEN GameScene-Pause pass=248 fail=1 symbols=4 shots=v6screen-GameScene-Pause-20.png
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
-[clip] selectable partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Sound rect=(x:878, y:624, width:200, height:48) interactable=True
-[clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Data rect=(x:1086, y:624, width:200, height:48) interactable=True
-[clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ rect=(x:906, y:-184, width:280, height:56) interactable=True
-[clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ rect=(x:1202, y:-184, width:220, height:56) interactable=True
-[clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開 rect=(x:1438, y:-184, width:266, height:56) interactable=True
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Song/Title rect=(x:964, y:716, width:320, height:43) "ロストアンブレラ"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Song/Sub rect=(x:964, y:680, width:320, height:32) "稲葉曇・BPM 274"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat LEVEL/Label rect=(x:1309, y:734, width:100, height:26) "LEVEL"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat LEVEL/Value rect=(x:1309, y:689, width:100, height:43) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat NOTES/Label rect=(x:1421, y:734, width:100, height:26) "NOTES"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat NOTES/Value rect=(x:1421, y:689, width:100, height:43) "268"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat 曲長/Label rect=(x:1533, y:734, width:100, height:26) "曲長"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat 曲長/Value rect=(x:1533, y:689, width:100, height:43) "1:29"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Sound/Label rect=(x:878, y:624, width:200, height:48) "Sound"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Data/Label rect=(x:1086, y:624, width:200, height:48) "Data"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Head Title rect=(x:896, y:560, width:472, height:24) "キー割当 (JIS / 標準)"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 2 rect=(x:1034, y:276, width:40, height:22) "3"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 3 rect=(x:1092, y:276, width:40, height:22) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 4 rect=(x:1150, y:276, width:40, height:22) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 5 rect=(x:1208, y:276, width:40, height:22) "6"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 6 rect=(x:1266, y:276, width:40, height:22) "7"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 7 rect=(x:1324, y:276, width:40, height:22) "8"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 4/Lane rect=(x:1004, y:208, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 5/Lane rect=(x:1040, y:208, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 6/Lane rect=(x:1076, y:208, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 7/Lane rect=(x:1112, y:208, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 8/Lane rect=(x:1148, y:208, width:34, height:40) "6"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 9/Lane rect=(x:1184, y:208, width:34, height:40) "7"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 0/Lane rect=(x:1220, y:208, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key -/Lane rect=(x:1256, y:208, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ^/Lane rect=(x:1292, y:208, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key \/Lane rect=(x:1328, y:208, width:34, height:40) "8"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key R/Lane rect=(x:1021, y:164, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key T/Lane rect=(x:1057, y:164, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key Y/Lane rect=(x:1093, y:164, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key U/Lane rect=(x:1129, y:164, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key I/Lane rect=(x:1165, y:164, width:34, height:40) "6"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key O/Lane rect=(x:1201, y:164, width:34, height:40) "7"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key P/Lane rect=(x:1237, y:164, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key @/Lane rect=(x:1273, y:164, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key [/Lane rect=(x:1309, y:164, width:34, height:40) "8"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key D/Lane rect=(x:1002, y:120, width:34, height:40) "3"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key F/Lane rect=(x:1038, y:120, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key G/Lane rect=(x:1074, y:120, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key H/Lane rect=(x:1110, y:120, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key J/Lane rect=(x:1146, y:120, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key K/Lane rect=(x:1182, y:120, width:34, height:40) "6"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key L/Lane rect=(x:1218, y:120, width:34, height:40) "7"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ;/Lane rect=(x:1254, y:120, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key :/Lane rect=(x:1290, y:120, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ]/Lane rect=(x:1326, y:120, width:34, height:40) "8"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key C/Lane rect=(x:1019, y:76, width:34, height:40) "3"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key V/Lane rect=(x:1055, y:76, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key B/Lane rect=(x:1091, y:76, width:34, height:40) "4"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key N/Lane rect=(x:1127, y:76, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key M/Lane rect=(x:1163, y:76, width:34, height:40) "5"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ,/Lane rect=(x:1199, y:76, width:34, height:40) "6"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ./Lane rect=(x:1235, y:76, width:34, height:40) "7"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key //Lane rect=(x:1271, y:76, width:34, height:40) "8"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key _/Lane rect=(x:1307, y:76, width:34, height:40) "8"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc Title rect=(x:912, y:0, width:464, height:40) "キー設定"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc rect=(x:912, y:-78, width:464, height:68) "キーの割り当てを編集します。行を選んで Ente"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:32, y:-170, width:45, height:32) "↑↓"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 選択 rect=(x:93, y:-170, width:45, height:32) "選択"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:170, y:-170, width:45, height:32) "←→"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 変更 rect=(x:231, y:-170, width:45, height:32) "変更"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap T/Key rect=(x:308, y:-170, width:14, height:32) "T"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:338, y:-170, width:89, height:32) "タブ切替"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:459, y:-170, width:36, height:32) "Esc"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 再開 rect=(x:511, y:-170, width:45, height:32) "再開"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ/Label rect=(x:950, y:-178, width:92, height:43) "選曲へ"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ/KeyCap Backspace/Key rect=(x:1052, y:-172, width:139, height:32) "Backspace"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ/Label rect=(x:1253, y:-178, width:122, height:43) "リトライ"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ/KeyCap R/Key rect=(x:1385, y:-172, width:30, height:32) "R"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開/Label rect=(x:1529, y:-178, width:62, height:43) "再開"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開/KeyCap Esc/Key rect=(x:1601, y:-172, width:57, height:32) "Esc"
-[clip] summary screen=1024x768 selectables partial=1 outside=4 texts partial=11 outside=62
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] selectable partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Sound rect=(x:878, y:624, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Data rect=(x:1086, y:624, width:200, height:48)
+[AutoTestV6Screens] [clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ rect=(x:906, y:-184, width:280, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ rect=(x:1202, y:-184, width:220, height:56)
+[AutoTestV6Screens] [clip] selectable outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開 rect=(x:1438, y:-184, width:266, height:56)
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Song/Title rect=(x:964, y:716, width:320, height:43) "ロストアンブレラ"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Song/Sub rect=(x:964, y:680, width:320, height:32) "稲葉曇・BPM 274"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat LEVEL/Label rect=(x:1309, y:734, width:100, height:26) "LEVEL"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat LEVEL/Value rect=(x:1309, y:689, width:100, height:43) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat NOTES/Label rect=(x:1421, y:734, width:100, height:26) "NOTES"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat NOTES/Value rect=(x:1421, y:689, width:100, height:43) "268"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat 曲長/Label rect=(x:1533, y:734, width:100, height:26) "曲長"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Header/Song Info/Stat 曲長/Value rect=(x:1533, y:689, width:100, height:43) "1:29"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Sound/Label rect=(x:878, y:624, width:200, height:48) "Sound"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Tabs/Tab Data/Label rect=(x:1086, y:624, width:200, height:48) "Data"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Head Title rect=(x:896, y:560, width:472, height:24) "キー割当 (JIS / 標準)"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 2 rect=(x:1034, y:276, width:40, height:22) "3"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 3 rect=(x:1092, y:276, width:40, height:22) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 4 rect=(x:1150, y:276, width:40, height:22) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 5 rect=(x:1208, y:276, width:40, height:22) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 6 rect=(x:1266, y:276, width:40, height:22) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Game Preview/Lane Label 7 rect=(x:1324, y:276, width:40, height:22) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 4/Lane rect=(x:1004, y:208, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 5/Lane rect=(x:1040, y:208, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 6/Lane rect=(x:1076, y:208, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 7/Lane rect=(x:1112, y:208, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 8/Lane rect=(x:1148, y:208, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 9/Lane rect=(x:1184, y:208, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key 0/Lane rect=(x:1220, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key -/Lane rect=(x:1256, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ^/Lane rect=(x:1292, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key \/Lane rect=(x:1328, y:208, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key R/Lane rect=(x:1021, y:164, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key T/Lane rect=(x:1057, y:164, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key Y/Lane rect=(x:1093, y:164, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key U/Lane rect=(x:1129, y:164, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key I/Lane rect=(x:1165, y:164, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key O/Lane rect=(x:1201, y:164, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key P/Lane rect=(x:1237, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key @/Lane rect=(x:1273, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key [/Lane rect=(x:1309, y:164, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key D/Lane rect=(x:1002, y:120, width:34, height:40) "3"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key F/Lane rect=(x:1038, y:120, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key G/Lane rect=(x:1074, y:120, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key H/Lane rect=(x:1110, y:120, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key J/Lane rect=(x:1146, y:120, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key K/Lane rect=(x:1182, y:120, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key L/Lane rect=(x:1218, y:120, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ;/Lane rect=(x:1254, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key :/Lane rect=(x:1290, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ]/Lane rect=(x:1326, y:120, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key C/Lane rect=(x:1019, y:76, width:34, height:40) "3"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key V/Lane rect=(x:1055, y:76, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key B/Lane rect=(x:1091, y:76, width:34, height:40) "4"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key N/Lane rect=(x:1127, y:76, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key M/Lane rect=(x:1163, y:76, width:34, height:40) "5"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ,/Lane rect=(x:1199, y:76, width:34, height:40) "6"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key ./Lane rect=(x:1235, y:76, width:34, height:40) "7"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key //Lane rect=(x:1271, y:76, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key List/Key _/Lane rect=(x:1307, y:76, width:34, height:40) "8"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc Title rect=(x:912, y:0, width:464, height:40) "キー設定"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc rect=(x:912, y:-78, width:464, height:68) "キーの割り当てを編集します。行を選んで Ente"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ↑↓/Key rect=(x:32, y:-170, width:45, height:32) "↑↓"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 選択 rect=(x:93, y:-170, width:45, height:32) "選択"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap ←→/Key rect=(x:170, y:-170, width:45, height:32) "←→"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 変更 rect=(x:231, y:-170, width:45, height:32) "変更"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap T/Key rect=(x:308, y:-170, width:14, height:32) "T"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label タブ切替 rect=(x:338, y:-170, width:89, height:32) "タブ切替"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:459, y:-170, width:36, height:32) "Esc"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Legend Label 再開 rect=(x:511, y:-170, width:45, height:32) "再開"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ/Label rect=(x:950, y:-178, width:92, height:43) "選曲へ"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button 選曲へ/KeyCap Backspace/Key rect=(x:1052, y:-172, width:139, height:32) "Backspace"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ/Label rect=(x:1253, y:-178, width:122, height:43) "リトライ"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Op · 選曲・リトライ/Button リトライ/KeyCap R/Key rect=(x:1385, y:-172, width:30, height:32) "R"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開/Label rect=(x:1529, y:-178, width:62, height:43) "再開"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Footer/Button 再開/KeyCap Esc/Key rect=(x:1601, y:-172, width:57, height:32) "Esc"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=1 outside=4 texts partial=11 outside=62
 [AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
 [AutoTestV6Screens] SCREEN GameScene-Loading pass=63 fail=1 symbols=2 shots=v6screen-GameScene-Loading-21.png
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
-[clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Title rect=(x:1172, y:716, width:111, height:32) "終焉逃避行"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Artist rect=(x:1172, y:691, width:113, height:23) "柊マグネタイト"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Headline rect=(x:632, y:392, width:464, height:40) "準備中…"
-[clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Detail rect=(x:632, y:356, width:464, height:24) "譜面を準備中… 42%"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:66, y:-174, width:36, height:36) "Esc"
-[clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/Legend Label 戻る rect=(x:122, y:-174, width:45, height:36) "戻る"
-[clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=4 outside=4
-[AutoTestV6Screens] RESULT pass=60 fail=0 symbols=69 screenshots=21 resolution=1024x768
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 0 rect=(x:-2, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GameHudCanvas/V6 HUD Frame/V6GameHud/Verdict Row/Verdict 7 rect=(x:886, y:73, width:140, height:44) ""
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Title rect=(x:1172, y:716, width:111, height:32) "終焉逃避行"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Header/Song Info/Texts/Song Artist rect=(x:1172, y:691, width:113, height:23) "柊マグネタイト"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Headline rect=(x:632, y:392, width:464, height:40) "準備中…"
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Main/Progress/Detail rect=(x:632, y:356, width:464, height:24) "譜面を準備中… 42%"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/KeyCap Esc/Key rect=(x:66, y:-174, width:36, height:36) "Esc"
+[AutoTestV6Screens] [clip] text outside V6GameUi/V6GamePauseCanvas/V6 Loading View/V6 Loading Frame 1728x972/Footer/Legend Label 戻る rect=(x:122, y:-174, width:45, height:36) "戻る"
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=4 outside=4
+[AutoTestV6Screens] RESULT pass=60 fail=0 symbols=71 screenshots=21 resolution=1024x768
