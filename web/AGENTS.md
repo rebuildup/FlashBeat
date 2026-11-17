@@ -256,11 +256,20 @@ publishes both in one request.
   is `ratioScore = 5P+3G+B`, `maxScore = noteCount * 5`; `2` adds
   `comboBonus = maxCombo * 5` and `noMissBonus = (miss == 0) ? (P+G+B) * 5 : 0`
   with `maxScore = noteCount * 15`; `3` (ADR-0029) keeps the v2 components and
-  adds `milestoneBonus = comboMilestones * 25` (bound-checked against
-  `floor((P+G+B)/50)`, the server prices the count itself) and
-  `finalBonus = (miss == 0) ? 100 : 0`, with
+  adds `milestoneBonus = comboMilestones * 25` and
+  `finalBonus = (miss == 0) ? 100 : 0` (a submission requires
+  `perfect+great+bad+miss == noteCount`, so `miss == 0` already means the
+  play completed — the same condition the Unity client vests the bonus on,
+  Issue #618), with
   `maxRatio = noteCount * 15 + floor(noteCount / 50) * 25 + 100`. All end in
   `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
+- For `scoringVersion` 3 the server also verifies `maxCombo <= hits`
+  (perfect+great+bad) and `comboMilestones`: exactly `floor(hits/50)` when
+  `miss == 0` (one unbroken run), and at most
+  `min(floor(hits/50), (miss + 1) * floor(maxCombo / 50))` when `miss > 0`
+  (the exact crossing history is not reconstructible from the totals — the
+  count stays a bound-checked client claim, ADR-0029). The server prices
+  the count itself.
 - `scores.scoringVersion` (integer, default 1, existing rows backfilled to 1)
   keeps the formulas apart: a submission is recomputed, ranked and
   aggregated only inside its own version. A `scoringVersion` the server cannot
