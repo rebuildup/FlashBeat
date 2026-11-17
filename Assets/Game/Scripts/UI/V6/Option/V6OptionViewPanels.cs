@@ -289,6 +289,10 @@ namespace FlashBeat.UI.V6.Option
             var raw = rawGo.GetComponent<RawImage>();
             raw.texture = previewRig.Texture;
             raw.raycastTarget = false;
+
+            // Issue #607: 歌詞行と判定ポップを well の手前に重ねる。
+            // RawImage の後に追加するので描画順は手前になる。
+            BuildPreviewOverlay(well);
         }
 
         /// <summary>
