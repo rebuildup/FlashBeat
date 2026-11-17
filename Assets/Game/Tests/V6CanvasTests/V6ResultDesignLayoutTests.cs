@@ -408,5 +408,109 @@ namespace FlashBeat.V6CanvasTests
                 Object.DestroyImmediate(view.Root.gameObject);
             }
         }
+
+        // --- 登録モーダルのコンパクト画面配置 (Issue #609) ---
+
+        /// <summary>
+        /// Dialog (444,231) 840×510 の中心 (864,486) をビューポート中心へ
+        /// 合わせるパン。1024×768 では (-352,-102)、1280×720 では (-224,-126)。
+        /// パン可能範囲 (view-content..0) へクランプされる。
+        /// </summary>
+        [Test]
+        public void ModalPanForViewport_CentersDialog_WithinPanRange()
+        {
+            Assert.AreEqual(new Vector2(-352f, -102f),
+                V6ResultLogic.ModalPanForViewport(1024f, 768f));
+            Assert.AreEqual(new Vector2(-224f, -126f),
+                V6ResultLogic.ModalPanForViewport(1280f, 720f));
+            // Dialog がビューポートより大きい極小画面でも範囲内に収まる。
+            Vector2 tiny = V6ResultLogic.ModalPanForViewport(800f, 600f);
+            Assert.GreaterOrEqual(tiny.x, 800f - 1728f);
+            Assert.LessOrEqual(tiny.x, 0f);
+            Assert.GreaterOrEqual(tiny.y, 600f - 972f);
+            Assert.LessOrEqual(tiny.y, 0f);
+            // 不正値は (0,0)。
+            Assert.AreEqual(Vector2.zero, V6ResultLogic.ModalPanForViewport(0f, 768f));
+            Assert.AreEqual(Vector2.zero, V6ResultLogic.ModalPanForViewport(1024f, -1f));
+        }
+
+        /// <summary>
+        /// 実レイアウト: コンパクト解像度でモーダルを開くと、Dialog 全体が
+        /// ビューポート内に収まるパンへ合わせ、閉じると元のパンへ戻る。
+        /// 修正前は初期パン (0,0) のまま Dialog 右側 (Name Field 右端・
+        /// Register ボタン) がビューポート外にはみ出していた。
+        /// </summary>
+        [Test]
+        public void RegisterModal_CompactScreen_AlignsDialogIntoViewport_AndRestoresPan()
+        {
+            var view = CreateView();
+            try
+            {
+                int[][] sizes = { new[] { 1024, 768 }, new[] { 1280, 720 } };
+                foreach (var s in sizes)
+                {
+                    int w = s[0];
+                    int h = s[1];
+                    V6CompactScreen.Place(view.Root, w, h);
+                    var viewport = V6CompactScreen.FindViewport(view.Root);
+                    Assert.IsNotNull(viewport, "compact viewport @ " + w + "x" + h);
+                    var pan = viewport.GetComponent<V6FramePan>();
+                    Assert.IsNotNull(pan);
+
+                    // ユーザーが末尾側へパンした状態を再現 (Dialog が見えない位置)。
+                    pan.Pan = new Vector2(w - 1728f, h - 972f);
+                    Vector2 before = pan.Pan;
+
+                    view.AlignModalPanForViewport();
+                    Vector2 expected = V6ResultLogic.ModalPanForViewport(w, h);
+                    Assert.AreEqual(expected.x, pan.Pan.x, 0.01f, "pan.x @ " + w + "x" + h);
+                    Assert.AreEqual(expected.y, pan.Pan.y, 0.01f, "pan.y @ " + w + "x" + h);
+                    Assert.IsTrue(pan.PanSuspended, "pan suspended while modal open");
+
+                    // Dialog のビューポート内座標 (パン適用後) が画面内に収まる。
+                    var dialogTopLeft = new Vector2(
+                        pan.Pan.x + V6ResultLogic.ModalDialogX,
+                        pan.Pan.y + V6ResultLogic.ModalDialogY);
+                    Assert.IsTrue(V6Layout.FitsIn(Vector2.zero, new Vector2(w, h),
+                        dialogTopLeft,
+                        new Vector2(V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH)),
+                        "Dialog must be fully inside the viewport @ " + w + "x" + h);
+
+                    view.RestoreModalPan();
+                    Assert.AreEqual(before.x, pan.Pan.x, 0.01f, "pan.x restored @ " + w + "x" + h);
+                    Assert.AreEqual(before.y, pan.Pan.y, 0.01f, "pan.y restored @ " + w + "x" + h);
+                    Assert.IsFalse(pan.PanSuspended, "pan resumed after modal close");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 通常解像度 (ビューポート無し) ではパン調整は何もしない
+        /// (FHD/2K/Mac は従来どおり 1:1 中央配置で Dialog は常に可視)。
+        /// </summary>
+        [Test]
+        public void RegisterModal_NormalResolution_PanAlignIsNoOp()
+        {
+            var view = CreateView();
+            try
+            {
+                V6CompactScreen.Place(view.Root, 1920, 1080);
+                Assert.IsNull(V6CompactScreen.FindViewport(view.Root));
+
+                view.AlignModalPanForViewport();
+                Assert.IsNull(V6CompactScreen.FindViewport(view.Root),
+                    "no viewport must be created on normal resolutions");
+                // 例外なく戻る (modalPan 未設定なので Restore も no-op)。
+                view.RestoreModalPan();
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.Root.gameObject);
+            }
+        }
     }
 }

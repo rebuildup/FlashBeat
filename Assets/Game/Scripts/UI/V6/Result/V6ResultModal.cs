@@ -50,6 +50,11 @@ namespace FlashBeat.UI.V6.Result
         private Image modalThumb;
         private bool modalOpen;
 
+        // コンパクト画面でモーダルを開いたときのパン退避 (Issue #609)。
+        // 開くとき Dialog 中心へパンを合わせ、閉じるとき元へ戻す。
+        private V6FramePan modalPan;
+        private Vector2 modalSavedPan;
+
         // チップ (登録しました / 登録できませんでした) の表示時刻と後処理。
         private bool chipActive;
         private float chipShownAt;
@@ -328,6 +333,7 @@ namespace FlashBeat.UI.V6.Result
             SetModalStatus(gate.Failed ? SubmitStatusText() : "",
                 gate.Failed ? V5Tokens.FromHex("#FF9999") : V5Tokens.TextMuted);
             modal.SetActive(true);
+            AlignModalPanForViewport();
             FocusNameField();
         }
 
@@ -351,8 +357,64 @@ namespace FlashBeat.UI.V6.Result
             SetRegisterInteractable(true);
             HideSubmitChip();
             modal.SetActive(false);
+            RestoreModalPan();
             ResumeLegacyOverlay();
             FlashBeat.UI.SceneInputGate.BlockThisFrame();
+        }
+
+        // --- コンパクト画面でのモーダル配置 (Issue #609) ---
+
+        /// <summary>
+        /// コンパクト画面 (フレームがパンビューポート内) でモーダルを開いた
+        /// とき、Dialog 中心がビューポート中心に来るパンへ合わせる。
+        /// モーダルはフレームの子なので、開いた時点のパン次第で Dialog が
+        /// 画面外・一部クリップになる (例: 1024×768 では初期パン (0,0) の
+        /// ままだと Dialog 右側 260px = Name Field 右端と Register ボタンが
+        /// ビューポート外)。パン自体もモーダル表示中は止める
+        /// (<see cref="V6FramePan.PanSuspended"/>)。通常解像度
+        /// (ビューポート無し) では何もしない。
+        /// </summary>
+        public void AlignModalPanForViewport()
+        {
+            modalPan = null;
+            var viewport = V6CompactScreen.FindViewport(frame);
+            if (viewport == null)
+            {
+                return;
+            }
+
+            var pan = viewport.GetComponent<V6FramePan>();
+            if (pan == null)
+            {
+                return;
+            }
+
+            modalPan = pan;
+            modalSavedPan = pan.Pan;
+            pan.PanSuspended = true;
+
+            Vector2 view = pan.ViewportSize;
+            if (view.x <= 0f || view.y <= 0f)
+            {
+                view = new Vector2(Screen.width, Screen.height);
+            }
+
+            pan.Pan = V6ResultLogic.ModalPanForViewport(view.x, view.y);
+        }
+
+        /// <summary>
+        /// <see cref="AlignModalPanForViewport"/> で合わせたパンを元へ戻し、
+        /// パン入力を再開する。コンパクトでなかった・ビューポートが既に
+        /// 破棄されている場合は何もしない。
+        /// </summary>
+        public void RestoreModalPan()
+        {
+            if (modalPan != null)
+            {
+                modalPan.PanSuspended = false;
+                modalPan.Pan = modalSavedPan;
+                modalPan = null;
+            }
         }
 
         /// <summary>検証ハーネス用: 名前入力欄の現在の文字列。</summary>
