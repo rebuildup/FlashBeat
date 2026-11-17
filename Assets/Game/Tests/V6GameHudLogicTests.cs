@@ -175,7 +175,7 @@ namespace FlashBeat.V6HudTests
         public void Metrics_TwoK_MatchesDesign()
         {
             // 契約 §8 の 2K (E51yo 2560×1440) design 実測値
-            // (docs/design/v6/flashbeat-v6-contract.md)。FHD の 4/3 倍と一致しない項目
+            // (docs/ui/v6-screen-contract.md)。FHD の 4/3 倍と一致しない項目
             // (デザイナーの丸め: Grade fs 95→125 等) があるため、V6HudMetrics.TwoK は
             // 契約値をそのまま保持する。
             var m = V6HudMetrics.TwoK();

@@ -1,7 +1,9 @@
 # FlashBeat v6 デザイン契約 (Issue #218)
 
 > **正本 (canonical)**: 本ファイル `docs/ui/v6-screen-contract.md`。
-> `docs/design/v6/flashbeat-v6-contract.md` は旧配置のミラーであり、参照は本ファイルを優先する。
+> 旧配置のミラー `docs/design/v6/flashbeat-v6-contract.md` と画像の複製
+> `docs/design/v6/screens/` は Issue #614 で削除した (正本は本ファイルと
+> `design/exports/v6/screens/`)。
 > スクリーンショットの実体は `design/exports/v6/screens/` に公開済み (§14)。
 
 他ワーカーがそのままコードへ落とせるデザイン契約。正本は
@@ -241,7 +243,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 ## 11. スクリーンショット
 
-`docs/design/v6/screens/` 配下 (ノード ID + 名前):
+`design/exports/v6/screens/` 配下 (ノード ID + 名前):
 
 | ファイル | ノード |
 |---|---|
@@ -264,6 +266,14 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 - 判定行のサンプルはレーン 3 と 6 のみ (実装は 8 レーン全て)。
 - `nrfw8` はヘッダー / フッター `enabled: false` (ゲーム中は描画しない)。
 - `g4Q3F` はローディング進捗の表現が無い (メイン空)。実装も専用表示を持たず、映像のみ (Issue #606)。
+- Option 画面の Game Preview は #607 でゲーム体験プレビューへ拡張済み: design の静止図
+  (レーン・ノーツ・判定線) に加え、本編と同じ幾何の 3D プレビュー
+  (`V6OptionPreviewRig`) がレーンフラッシュ・判定ポップ・歌詞同期を再現し、
+  2D オーバーレイ (`V6OptionViewPreviewOverlay`) が判定ポップと歌詞行を重ねる。
+  判定ポップの時系列は本編と同じ `V6HudLogic` の共有定数。
+- Result の登録モーダルはコンパクト画面 (フレーム 1728×972 未満) では
+  Dialog 中心へビューポートをパンして中央に合わせ、閉じると元へ戻す (Issue #609、
+  `V6CompactScreen` / `V6FramePan.PanSuspended`)。
 - Key Guide は **ASDFJKL;** 表記 (Key Layout 設定の既定値。実装は `KeyBindings` 設定に追従)。
 - 選択行のハイライトは `$k6` (`#525252`) — 曲リスト 4 行目 / ランキング 2 行目 / プレイヤー 4 行目。
 
@@ -299,7 +309,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 ## 14. スクリーンショット (公開先)
 
 本契約の正本画像は **`design/exports/v6/screens/`** に公開済み (Issue #218 の Owned Path)。
-`docs/design/v6/screens/` は抽出元 (旧配置) で、実体の正本は `design/exports/v6/` 側。
+`docs/design/v6/screens/` にあった抽出時の複製は Issue #614 で削除した。
 
 | ファイル | ノード ID | 画面 / 寸法 |
 |---|---|---|

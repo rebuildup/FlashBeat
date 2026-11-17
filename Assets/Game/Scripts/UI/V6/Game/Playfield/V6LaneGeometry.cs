@@ -24,7 +24,7 @@ namespace FlashBeat.UI.V6.Game.Playfield
     /// 1920×1080 と 2560×1440 は 16:9 なので設計通りそのまま、
     /// 2560×1664 でもプレイフィールド (下端幅 1200 設計px) は画面内に収まる。
     ///
-    /// 契約照合 (2026-11-08 / docs/design/v6/flashbeat-v6-contract.md §6):
+    /// 契約照合 (2026-11-08 / docs/ui/v6-screen-contract.md §6):
     /// 下列の定数はすべて **契約値 = 実装値** であることを項目ごとに確認済み。
     ///   判定線 y=792 → JudgeLineY / 判定線 h=4 → JudgeLineHeightDesignPx
     ///   判定グロウ y=796 h=2 → JudgeGlowY / JudgeGlowHeightDesignPx
