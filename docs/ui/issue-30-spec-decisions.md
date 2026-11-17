@@ -95,7 +95,7 @@ Unity 側 (`LongNote.cs`) の両方に実装とテストがある。
 - **推奨**: `chartVersion` に加えて `scoringVersion` を scoring 側で持つ (ただし HOLD は同一配点なので影響は小さく、Tap のみ譜面との混在回避が目的)
 - **波及**: #21 / #22 (ランキングと release gate) / #59 の HOLD 行の記録部分
 - **代替既定値**: 現状の recording 方式 (HOLD が Tap と同点なのでTap のみ譜面との区別は理屈上不要)
-- **決定 (2026-11-17, Issue #576 / ADR-0028)**: **確定済み — `scoringVersion` を導入する。** 採点 v2 (コンボ継続・ノーミス加点) の導入に伴い、整数バージョンで記録を分離する。v1 = 旧式、v2 = 新式。新クライアントは常に 2 を送信し、`ScoreSubmission.scoringVersion` は省略時 1 として旧クライアントを後方互換で受理する。ローカル `ScoreKey` は v2 を `songId@chartVersion@2` 形式で区別し、D1 `scores` に `scoringVersion` カラムを追加 (既存行は 1 でバックフィル)。leaderboard / rankings は `scoringVersion` クエリで絞り、未指定時は最新版 (2) を既定とする。stats は最新版のみ集計する。式・互換ルールの正本は `docs/adr/ADR-0028.md`。
+- **決定 (2026-11-17, Issue #576 / ADR-0028)**: **確定済み — `scoringVersion` を導入する。** 採点 v2 (コンボ継続・ノーミス加点) の導入に伴い、整数バージョンで記録を分離する。v1 = 旧式、v2 = 新式。新クライアントは常に 2 を送信し、`ScoreSubmission.scoringVersion` は省略時 1 として旧クライアントを後方互換で受理する。ローカル `ScoreKey` は v2 を `songId@chartVersion@2` 形式で区別し、D1 `scores` に `scoringVersion` カラムを追加 (既存行は 1 でバックフィル)。leaderboard / rankings は `scoringVersion` クエリで絞り、未指定時は最新版 (2) を既定とする。stats は最新版のみ集計する。式・互換ルールの正本は `docs/adr/ADR-0028.md`。採点 v3 (コンボ節目・フルコンボボーナス、`scoringVersion = 3`) は ADR-0029 で追加確定 (2026-11-17, Issue #601)。
 
 ### D6 — ふりがな / ローマ字の既存データ
 

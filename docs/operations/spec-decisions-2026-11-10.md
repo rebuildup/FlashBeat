@@ -48,7 +48,7 @@ D1 を「HOLD 判定」と書いていたが、これは誤記 (台帳の #30 �
 
 **現段階でやらないこと (オーナー明示)**: 新しい歌詞形式への **破壊的移行**。
 既存 `lyrics` ブロックを正本のまま使い続ける。
-(`scoringVersion` の追加は 2026-11-17 に Issue #576 / ADR-0028 で確定し、上の保留は解除された)
+(`scoringVersion` の追加は 2026-11-17 に Issue #576 / ADR-0028 で確定し、上の保留は解除された。採点 v3 は ADR-0029 で `scoringVersion = 3` として追加確定)
 
 根拠: [#30](https://github.com/rebuildup/FlashBeat/issues/30) / #164 / `docs/ui/issue-30-spec-decisions.md`
 
