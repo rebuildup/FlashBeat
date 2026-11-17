@@ -237,7 +237,7 @@ namespace FlashBeat.UI.V6.Select.View
                 rt.anchoredPosition = new Vector2(8f, -y);
             }
 
-            // CompactRankRow (design jnIY9) と同じ配色: YOU 行は $k6、他は $k1。
+            // CompactRankRow (design jnIY9) と同じ配色: 自分の行は $k6、他は $k1。
             var bg = row.GetComponent<Image>();
             if (bg != null)
             {
@@ -252,7 +252,7 @@ namespace FlashBeat.UI.V6.Select.View
                 posTmp.color = dataRow.IsYou ? V6Tokens.Text : V6Tokens.TextMuted;
             }
 
-            V6Hierarchy.SetChildText(row, "Name", dataRow.IsYou ? "YOU" : dataRow.PlayerName);
+            V6Hierarchy.SetChildText(row, "Name", dataRow.DisplayName);
             V6Hierarchy.SetChildText(row, "Value", V6SelectViewLogic.FormatScore(dataRow.Score));
             V6Hierarchy.SetChildText(row, "Grade/GradeText",
                 string.IsNullOrEmpty(dataRow.Grade) ? "–" : dataRow.Grade);
@@ -270,7 +270,7 @@ namespace FlashBeat.UI.V6.Select.View
         {
             // 行内部は共通部品 (design jnIY9 496×44) が持つ。座標計算をここへ書き戻さない。
             return V6Lists.CompactRankRow(ranking, row.Position.ToString(),
-                row.IsYou ? "YOU" : row.PlayerName, V6SelectViewLogic.FormatScore(row.Score),
+                row.DisplayName, V6SelectViewLogic.FormatScore(row.Score),
                 row.Grade, new Vector2(8f, y), row.IsYou);
         }
     }

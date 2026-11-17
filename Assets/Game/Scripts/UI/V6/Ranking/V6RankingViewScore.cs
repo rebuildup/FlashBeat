@@ -7,6 +7,7 @@ using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
+using FlashBeat.UI.V6.Result;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 using FlashBeat.UI.V6.Select.View;
@@ -262,7 +263,7 @@ namespace FlashBeat.UI.V6.Ranking
             return V6Lists.RankRow(
                 panel,
                 row.Position.ToString(),
-                row.IsYou ? "YOU" : row.PlayerName,
+                row.DisplayName,
                 V6SelectViewLogic.FormatScore(row.Score),
                 string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
                 new Vector2(V6RankingLogic.RankRowX, V6RankingLogic.RankRowTop(visibleIndex)),
@@ -286,7 +287,7 @@ namespace FlashBeat.UI.V6.Ranking
             }
 
             V6Hierarchy.SetChildText(row, "Pos/Pos", dataRow.Position.ToString());
-            V6Hierarchy.SetChildText(row, "Name", dataRow.IsYou ? "YOU" : dataRow.PlayerName);
+            V6Hierarchy.SetChildText(row, "Name", dataRow.DisplayName);
             V6Hierarchy.SetChildText(row, "Value", V6SelectViewLogic.FormatScore(dataRow.Score));
             V6Hierarchy.SetChildText(row, "Grade/Grade", string.IsNullOrEmpty(dataRow.Grade) ? "–" : dataRow.Grade);
 
@@ -334,7 +335,7 @@ namespace FlashBeat.UI.V6.Ranking
             V6SongEntry song = data.Selected;
             if (rankingSource == V6RankingLogic.RankingSource.Local)
             {
-                return V6RankingLogic.LocalRows(song);
+                return V6RankingLogic.LocalRows(song, V6ResultLogic.CurrentPlayerName());
             }
             return data.RankingFor(song);
         }

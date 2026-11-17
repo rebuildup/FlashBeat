@@ -212,10 +212,10 @@ namespace FlashBeat.V6CanvasTests
                 Assert.AreEqual(TextAlignmentOptions.Right, TextOf(t, "Value").alignment, "Value right aligned");
                 Assert.AreEqual(22f, TextOf(t, "Name").fontSize, 0.01f, "Name fs");
 
-                // 選択行 (YOU) は背景 $k6 + Pos 数字 $text、非選択は $k1 + $text-muted。
+                // 選択行 (自分) は背景 $k6 + Pos 数字 $text、非選択は $k1 + $text-muted。
                 Assert.AreEqual(V6Tokens.Key1, row.GetComponent<Image>().color, "unselected bg");
                 Assert.AreEqual(V6Tokens.TextMuted, TextOf(t, "Pos/PosText").color, "unselected Pos");
-                var selected = V6Lists.CompactRankRow(parent, "2", "YOU", "988,513", "S",
+                var selected = V6Lists.CompactRankRow(parent, "2", "PLAYER1", "988,513", "S",
                     new Vector2(8f, 144f), selected: true);
                 Assert.AreEqual(V6Tokens.Key6, selected.GetComponent<Image>().color, "selected bg");
                 Assert.AreEqual(V6Tokens.Text, TextOf(selected.transform, "Pos/PosText").color, "selected Pos");
@@ -256,12 +256,13 @@ namespace FlashBeat.V6CanvasTests
                 // Issue #425: 内側余白を 24→32 に広げ、Value/Placeholder は 728 幅。
                 AssertRect(dialog.Find("Name Field/Value"), 32f, 20f, 728f, 58f, "Name Field Value");
                 Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
-                // design lqHaN は未入力の Name Field に "YOU" を $text-dim で置く
+                // design lqHaN は未入力の Name Field に既定名を $text-dim で置く
                 // (v5 ResultView の Placeholder と同じ)。#384 で入力は TMP_InputField に
-                // 任せ、空欄時は Placeholder テキストが "YOU" を出す。
+                // 任せ、空欄時は Placeholder テキストが既定名を出す。
+                // Issue #584: 既定名は "YOU" から "PLAYER" (LocalNameDefault) に変更。
                 var placeholder = TextOf(dialog, "Name Field/Placeholder");
                 Assert.AreEqual(V6ResultLogic.LocalNameDefault, placeholder.text,
-                    "Name Field placeholder YOU");
+                    "Name Field placeholder shows LocalNameDefault");
                 Assert.AreEqual(FlashBeat.UI.V5.V5Tokens.TextDim, placeholder.color,
                     "Name Field placeholder is $text-dim");
                 var nameInput = dialog.Find("Name Field").GetComponent<TMP_InputField>();

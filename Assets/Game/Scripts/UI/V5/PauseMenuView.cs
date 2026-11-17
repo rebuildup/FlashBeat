@@ -442,7 +442,7 @@ namespace FlashBeat.UI.V5
             V5GameUi.Text(left.gameObject, "Header", "この曲のベスト (ローカル)・" + (song != null ? song.title : ""),
                 p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
             int hiIndex = GManager.songID < GManager.Hiscore.Length ? GManager.songID : 0;
-            V5Ui.RankRow(left.gameObject, "1", "YOU", GameHudLogic.FormatScore(GManager.Hiscore[hiIndex]));
+            V5Ui.RankRow(left.gameObject, "1", SelfRecordName(), GameHudLogic.FormatScore(GManager.Hiscore[hiIndex]));
 
             // 右: 累計 (ハイスコアが記録されている曲数のみ集計できる)
             var right = V5GameUi.Column(rankingPage, "Cumulative", 8f * s, TextAnchor.UpperLeft);
@@ -464,8 +464,18 @@ namespace FlashBeat.UI.V5
                 }
             }
             V5GameUi.Text(right.gameObject, "Header", "この端末の合計 (ローカル)", p.FsM, V5Tokens.Text, TextAlignmentOptions.Left);
-            V5Ui.RankRow(right.gameObject, "1", "YOU", GameHudLogic.FormatScore((int)total));
+            V5Ui.RankRow(right.gameObject, "1", SelfRecordName(), GameHudLogic.FormatScore((int)total));
             V5GameUi.Text(right.gameObject, "Songs", played + "曲", p.FsS, V5Tokens.TextMuted, TextAlignmentOptions.Left);
+        }
+
+        /// <summary>
+        /// ランキング行に出す自分の名前 (Issue #584)。登録名 (V5PlayerName) が
+        /// 無ければ匿名表記 "未登録"。
+        /// </summary>
+        private static string SelfRecordName()
+        {
+            string saved = ResultView.SavedName();
+            return string.IsNullOrEmpty(saved) ? "未登録" : saved;
         }
 
         // --- Keys タブ ---

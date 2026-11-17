@@ -1111,7 +1111,7 @@ namespace FlashBeat.UI.V5
             WellHead(rankingWell, "SONG RANKING");
             if (hiscore > 0)
             {
-                RankRow(rankingWell, 8f, 42f, 544f, "1", "YOU", hiscore, true);
+                RankRow(rankingWell, 8f, 42f, 544f, "1", SelfRecordName(), hiscore, true);
             }
             else
             {
@@ -1596,7 +1596,7 @@ namespace FlashBeat.UI.V5
             }
             else if (hiscore > 0)
             {
-                RankRow(songWell, 8f, 8f, 576f, "1", "YOU", hiscore, true);
+                RankRow(songWell, 8f, 8f, 576f, "1", SelfRecordName(), hiscore, true);
             }
             else
             {
@@ -1627,13 +1627,13 @@ namespace FlashBeat.UI.V5
             // 下: プレイヤーサマリ (Hiscore から計算できる値のみ)。左右に伸縮。
             var profileRt = Stretch(canvas.gameObject, "Player Profile", 520f, 48f, 832f, 184f);
             var profile = Panel(profileRt, V5Tokens.Base, V5Tokens.RadiusMedium);
-            var youTmp = Text(profile, "Name", "YOU", U(44), V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
-            var youRt = youTmp.rectTransform;
-            youRt.anchorMin = new Vector2(0f, 1f);
-            youRt.anchorMax = new Vector2(0f, 1f);
-            youRt.pivot = new Vector2(0f, 1f);
-            youRt.anchoredPosition = new Vector2(U(32), -U(24));
-            youRt.sizeDelta = new Vector2(U(200), U(56));
+            var nameTmp = Text(profile, "Name", SelfRecordName(), U(44), V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold);
+            var nameRt = nameTmp.rectTransform;
+            nameRt.anchorMin = new Vector2(0f, 1f);
+            nameRt.anchorMax = new Vector2(0f, 1f);
+            nameRt.pivot = new Vector2(0f, 1f);
+            nameRt.anchoredPosition = new Vector2(U(32), -U(24));
+            nameRt.sizeDelta = new Vector2(U(200), U(56));
 
             var rankTmp = Text(profile, "Rank", "–位 / –人", U(18), V5Tokens.TextMuted);
             var rankRt = rankTmp.rectTransform;
@@ -1658,6 +1658,16 @@ namespace FlashBeat.UI.V5
             BuildProfileStat(profile, "累計", SelectViewLogic.ScoreText(sum), 0);
             BuildProfileStat(profile, "プレイ曲", played + " / " + total, 1);
             BuildProfileStat(profile, "S 以上", sPlus.ToString(), 2);
+        }
+
+        /// <summary>
+        /// 自分の記録行・プロフィールに出す名前 (Issue #584)。登録名
+        /// (V5PlayerName) が無ければ匿名表記 "未登録"。
+        /// </summary>
+        private static string SelfRecordName()
+        {
+            string saved = ResultView.SavedName();
+            return string.IsNullOrEmpty(saved) ? "未登録" : saved;
         }
 
         /// <summary>
@@ -1747,7 +1757,7 @@ namespace FlashBeat.UI.V5
                 var entry = onlineEntries[i];
                 if (entry == null) { continue; }
                 RankRow(songWell, 8f, y, 576f, entry.rank.ToString(),
-                    string.IsNullOrEmpty(entry.nickname) ? "YOU" : entry.nickname, entry.score, false);
+                    string.IsNullOrEmpty(entry.nickname) ? "未登録" : entry.nickname, entry.score, false);
                 y += 64f;
             }
         }

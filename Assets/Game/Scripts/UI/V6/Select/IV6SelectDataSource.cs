@@ -44,13 +44,22 @@ namespace FlashBeat.UI.V6.Select
     /// <summary>ランキング 1 行 (実 API / 実保存値から作る)。</summary>
     public sealed class V6RankingRow
     {
+        /// <summary>名前未設定・匿名の表示名 (Issue #584: "YOU" 表記の撤廃)。</summary>
+        public const string AnonymousName = "未登録";
+
         public int Position { get; set; }
         public string PlayerName { get; set; } = "";
         public int Score { get; set; }
         public string Grade { get; set; } = "";
 
-        /// <summary>自分の記録か (表示は "YOU")。</summary>
+        /// <summary>自分の記録か (表示は登録名。未設定なら <see cref="AnonymousName"/>)。</summary>
         public bool IsYou { get; set; }
+
+        /// <summary>画面に出すプレイヤー名。PlayerName が空なら匿名表記。</summary>
+        public string DisplayName
+        {
+            get { return string.IsNullOrEmpty(PlayerName) ? AnonymousName : PlayerName; }
+        }
     }
 
     /// <summary>

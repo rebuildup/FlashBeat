@@ -107,8 +107,9 @@ namespace FlashBeat.UI.V6.Result
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
             var field = V6Layout.Place(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
-            // design lqHaN の Name Field は空のとき "YOU" を $text-dim で出す
-            // (v5 ResultView の Placeholder と同じ既定名)。入力すると $text になる。
+            // design lqHaN の Name Field は空のとき既定名を $text-dim で出す
+            // (v5 ResultView の Placeholder と同じ既定名)。Issue #584 で "YOU" を
+            // 撤廃し、既定名 LocalNameDefault ("PLAYER") を出す。入力すると $text になる。
             modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
                 V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
             // Issue #425: 文字が枠の左端に張り付いて見えるため、内側余白を広げる。
