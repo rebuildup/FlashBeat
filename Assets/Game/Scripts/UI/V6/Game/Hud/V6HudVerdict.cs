@@ -33,8 +33,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
         /// <summary>判定テキストの静止位置 (行ローカル anchoredPosition.y、px)。</summary>
         private float verdictBaseY;
-        /// <summary>静止位置から判定線までの距離 (px)。</summary>
-        private float verdictStartDrop = V6HudLogic.VerdictRestGapAboveLine;
 
         /// <summary>v6 のレーン別判定行を使うか (既定は false = 元の 3D 判定エフェクト)。</summary>
         private static bool VerdictRowEnabled
@@ -168,9 +166,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
             // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
+            // Issue #581: 位置は静止位置に固定する (跳ね・パンチは廃止)。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
-            verdictStartDrop = V6HudLogic.VerdictRestGapAboveLine;
+            for (int i = 0; i < verdictTexts.Count; i++)
+            {
+                var rt = verdictTexts[i].rectTransform;
+                rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, verdictBaseY);
+            }
         }
 
         /// <summary>
@@ -329,35 +332,11 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #432: 判定線の位置から弾けて静止位置 (判定線の上) へ戻る。
-                // 静止位置は UpdateLaneGrids が判定線の実位置から毎回求める。
+                // Issue #581: 滞在型。位置・スケールは静止のまま、
+                // フェードイン → 静止 → フェードアウトだけを時間で変える。
                 float elapsed = now - laneVerdictStart[lane];
-                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
-                ApplyVerdictRise(lane, V6HudLogic.VerdictPopupOffset(elapsed, verdictStartDrop));
-                // Issue #434: 出現と同じ時間で scale punch (弾ける感じを強める)。
-                var verdictRt = verdictTexts[lane].rectTransform;
-                verdictRt.localScale = Vector3.one * V6HudLogic.PunchScale(elapsed,
-                    V6HudLogic.VerdictPopPeak, V6HudLogic.VerdictPopAttack, V6HudLogic.VerdictPopTotal);
+                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(elapsed, remain));
             }
-        }
-
-        /// <summary>
-        /// 判定テキストを静止位置から <paramref name="offset"/> だけ下へずらす
-        /// (px、正 = 下)。Issue #432: offset は判定線側 (下) が正で、
-        /// 静止位置は判定線の <see cref="V6HudLogic.VerdictRestGapAboveLine"/> 上。
-        /// verdictBaseY は UpdateLaneGrids が判定線の実位置から求めた静止位置。
-        /// レイアウトは触らず anchoredPosition だけを動かす。
-        /// </summary>
-        private void ApplyVerdictRise(int lane, float offset)
-        {
-            if (lane >= verdictTexts.Count)
-            {
-                return;
-            }
-
-            var rt = verdictTexts[lane].rectTransform;
-            var pos = rt.anchoredPosition;
-            rt.anchoredPosition = new Vector2(pos.x, verdictBaseY - offset);
         }
 
         private void ScanJudgeClones()
@@ -388,8 +367,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 int lane = V6HudLogic.LaneFromEffectPositionX(t.position.x);
                 string label = V6HudLogic.VerdictLabel(n);
                 laneVerdicts[lane] = label;
-                // Issue #445: 判定の見え時間は VerdictTotalSeconds (0.20s)。
-                // かつては JudgeShowSeconds=0.8s 静止していたのを短命化した。
+                // Issue #581: 判定の見え時間は VerdictTotalSeconds (0.80s)。
+                // フェードイン → 静止 → フェードアウトの滞在型。
                 laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;
