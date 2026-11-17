@@ -92,6 +92,23 @@ Test-Path .\flashbeat-media-policy.json
 | `v0.1.13-win64-5ee86a9` | no | 265,312,613 | 196,446,346 | 0 | ✓ | ✓ | ✓ | song-free |
 | `v0.1.14-win64-617c2b6` | no (latest) | 265,292,377 | 196,446,346 | 0 | ✓ | ✓ | ✓ | song-free |
 
+## 3.1 追記 (2026-11-17): スナップショット以降の Release
+
+上表は 2026-11-08 時点の 17 件。以降に公開された Release も同じスクリプト
+(`tools/release/audit-release-media.py`) で再監査した。いずれも **song-free**
+(ルーズなメディア 0 件、`version.json` / `update-channel.txt` 同梱)。
+
+| Release タグ | prerelease | ZIP size (bytes) | resources.resource | ルーズなメディア | version.json | media manifest | update-channel | 判定 |
+|---|---|---|---|---|---|---|---|---|
+| `v0.1.28-win64-8ce00d0f` | no | 274,559,019 | 205,189,098 | 0 | ✓ | ✓ | ✓ | song-free |
+| `v0.1.28-macos-8ce00d0f` | no | 274,407,036 | (macOS .app 内) | 0 | ✓ | ✓ (`.app/Contents/Resources/`) | ✓ | song-free |
+
+- 0.1.15〜0.1.27 の公開 Release も同スクリプトで song-free を確認済み
+  (第三者楽曲同梱は `v0.1.0-win64-743c88d` の 1 件のみ、変わらず)。
+- macOS ZIP の `resources.resource` は `.app` 内にあるため ZIP ルートの
+  サイズ列は「(なし)」と表示される。`flashbeat-media-policy.json` は
+  `FlashBeat.app/Contents/Resources/` に同梱される。
+
 補足:
 
 - `v0.1.1-win64-6fb6810` (テスト用 prerelease) だけ `version.json` /

@@ -166,27 +166,26 @@ CI のライセンス未設定時の扱い・展示 PC への適用手順・監�
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
-- 現行版: [`v0.1.14-win64-617c2b6`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.14-win64-617c2b6)
-  - `FlashBeat-0.1.14-win64-617c2b6.zip`
-  - SHA-256: `3ecf9d8ea65a435b4e99b70a0ed8691859968bc2c06da6e56b4366750e124171`
-  - ビルド元 commit: `617c2b6ad2da6b6735f511f50f85ba7597036329`
-    (Issue #168: プレイフィールドのフラット描画化 (unlit + シャドウ無効) + 判定エフェクトを踏んだレーンへ表示)
+- 現行版 (Win64): [`v0.1.28-win64-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-win64-8ce00d0f)
+  - `FlashBeat-0.1.28-win64-8ce00d0f.zip`
+  - SHA-256: `96159d36dc5a7cf933d007991cb8324407115098b35f8bb0d243645951802c21`
+  - ビルド元 commit: `8ce00d0f13b4f8d5a560d0f49eaf079b877e55c0`
+    (VERSION 0.1.28 bump + #560–#564 の安定化修正 + #561 テスト追従)
   - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
   - チャンネル: `stable`
-  - 実機検証: **未証明** (Windows 展示機での実プレイは未実施。
-    EditMode 407/407 成功 + `FlatRenderCheck` `audit: lights=0 casters=0 receivers=0` / `failures 0` のみ)。
-    Issue #22 の承認チェックリスト上は「部分承認」相当で記録。
-- 前版 (参考): [`v0.1.13-win64-5ee86a9`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.13-win64-5ee86a9)
-  - `FlashBeat-0.1.13-win64-5ee86a9.zip`
-  - SHA-256: `8bcfafcf7cbde66cad977d164cdefdece709f989266948d4a5eb52c309f21548`
-  - ビルド元 commit: `5ee86a95efc5d2b3dd022506aa4c180e9ee50e6a`
-    (v5 UI / キーガイド / 読み込み画面 / Issue #148 キーキャップ / 初期解像度修正 / Update.ps1 の BOM 修正)
-  - 実機検証: Windows 展示機相当で ZIP 展開 → 起動 → Title まで到達 / overlay 5/5 / keyconfig 30/30 を確認。
-- macOS 現行版: GitHub Release は未発行。`~/Desktop/FlashBeat-Mac` の
-  ブートストラップ `0.1.14+716a25f` (commit `716a25f`) が起点で、以降の macOS 版は
-  `v<semver>-macos-<sha>` Release とアプリ内更新で配布する
-  (手動ビルドした `.app` を Desktop へ置く運用は廃止。旧 `v0.1.5+8e712b3` は同フォルダに
-  `FlashBeat-backup-*.app` として退避)。
+  - 実機検証: **未実施** (物理 Windows での起動・プレイは未実施。
+    EditMode 1886/1886 成功 + ZIP/SHA-256/mediaPolicy 検証済み)。
+- 現行版 (macOS): [`v0.1.28-macos-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-macos-8ce00d0f)
+  - `FlashBeat-0.1.28-macos-8ce00d0f.zip`
+  - SHA-256: `96038a0e979d383317c5ca32242dc26401d3c2f3189f253e404bea5a8497f5e2`
+  - ビルド元 commit: `8ce00d0f13b4f8d5a560d0f49eaf079b877e55c0` (`CFBundleShortVersionString=0.1.28+8ce00d0f`)
+  - メディア方針: `song-free` / チャンネル: `stable`
+  - 実機検証: **未実施** (同上)
+- 前版 (参考): [`v0.1.27-win64-b30cb1e7`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.27-win64-b30cb1e7) /
+  [`v0.1.27-macos-b30cb1e7`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.27-macos-b30cb1e7)
+  - Win64 ZIP SHA-256: `12a82c24358b9c696371e75734d49cdeb63eaf9e6472b5f100026b7e7a453a77`
+  - macOS ZIP SHA-256: `4f92db6c0fc3ad85ba376544f1439c5edebf10a3c02b14465e84c5d48b188b2f`
+  - ビルド元 commit: `b30cb1e794b3499e5c5f3abbe82a43d794272de7`
 - 前々版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
   - Web Studio 併入版。`v0.1.11-win64-98137a5` は同じ 0.1.11 の別ビルド (prerelease)。
     展示機には **0.1.13 が適用済み** (2026-11-07)。
