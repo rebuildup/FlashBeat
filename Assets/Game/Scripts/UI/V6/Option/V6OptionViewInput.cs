@@ -26,6 +26,14 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
+            // Game Preview の疑似メディア時計を進める (Issue #579)。
+            // モーダル表示中・入力ゲート中でもアニメーションは止めない
+            // (設定の見え方を確認する画面なので、背後の流れは生かす)。
+            if (previewRig != null)
+            {
+                previewRig.Tick();
+            }
+
             // キー設定モーダルが前面のときは背後の操作を止める (Issue #376)。
             // モーダル自身がキーを消費し、閉じたフレームも BlocksInput が塞ぐ。
             if (V6KeyConfigModal.BlocksInput)

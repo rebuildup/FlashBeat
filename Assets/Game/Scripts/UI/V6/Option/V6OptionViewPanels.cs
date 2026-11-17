@@ -257,53 +257,38 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        /// <summary>8 レーンの遠近法プレビュー (design 共通: 464x280 / 判定線 y240 / レーン番号)。</summary>
+        /// <summary>
+        /// Game Preview well (design 共通: 464x280 $k0 r8)。
+        ///
+        /// Issue #579: 静止した 2D 図形ではなく、本編と同じ 3D レーン・
+        /// ノーツを専用カメラの RenderTexture 経由で描く。
+        /// <see cref="V6OptionPreviewRig"/> が疑似メディア時刻で
+        /// ノーツを流し続け、NoteSpeed / NoteTiming の変更は
+        /// <see cref="V6OptionView.Tick"/> → rig.Tick() が毎フレーム
+        /// GManager の値を読んで即座に反映する (Rebuild 不要)。
+        /// </summary>
         private void BuildGamePreview(GameObject panel)
         {
             var well = V6Controls.Panel(panel, "Game Preview", new Vector2(GamePrevX, GamePrevY),
                 new Vector2(GamePrevW, GamePrevH), V6Tokens.Key0, V6Tokens.RadiusMedium);
 
-            // レーン中心線: 下端 (判定線 y240) で 58px 間隔、上端 (y0) で約 7px 間隔
-            // (design プレイフィールドの 150 → 18 px の縮約)。
-            // design のレーン番号は (6 + 58i, 246) 40x26 の中心、つまり判定線上の中心は
-            // 26 + 58i (中心 229)。464 幅の中央 232 から -3 ずれるが design 実測に合わせる。
-            const float judgeY = 240f;
-            const float bottomSpacing = 58f;
-            const float bottomCenterX = 26f;
-            const float topSpacingRatio = 7f / 58f;
-            for (int i = 0; i < 8; i++)
+            // リグはビューの寿命と同じ (タブ切替で Preview パネルが
+            // 作り直されても RawImage が張り替わるだけで 3D シーンは残る)。
+            if (previewRig == null)
             {
-                float bottomX = bottomCenterX + bottomSpacing * i;
-                float hub = GamePrevW * 0.5f;
-                float topX = hub + (bottomX - hub) * topSpacingRatio;
-                DrawLine(well, "Lane " + i, bottomX, judgeY, topX, 0f, 1.5f, V5Tokens.FromHex("#FFFFFF24"));
+                previewRig = new V6OptionPreviewRig();
             }
 
-            // サンプルノート (design の Note 0..5)。プレビュー装飾 (実データではない)。
-            float[,] notes =
-            {
-                { 62f, 70f, 33f }, { 205f, 130f, 21f }, { 273f, 96f, 27f },
-                { 291f, 186f, 14f }, { 204f, 210f, 14f }, { 327f, 58f, 35f },
-            };
-            for (int i = 0; i < notes.GetLength(0); i++)
-            {
-                var note = Rect(well, "Note " + i, notes[i, 2], 10f, V5Tokens.FromHex("#EDEDED"));
-                V6Layout.Place(note.GetComponent<RectTransform>(), new Vector2(notes[i, 0], notes[i, 1]),
-                    new Vector2(notes[i, 2], 10f));
-            }
-
-            var judgeLine = Rect(well, "Judge Line", GamePrevW, 3f, V5Tokens.FromHex("#EDEDED"));
-            V6Layout.Place(judgeLine.GetComponent<RectTransform>(), new Vector2(0f, judgeY),
-                new Vector2(GamePrevW, 3f));
-
-            for (int i = 0; i < 8; i++)
-            {
-                // 番号はレーン中心線の真下 (design: (6 + 58i, 246) 40x26 fs18)。
-                float bottomX = bottomCenterX + bottomSpacing * i;
-                V6Controls.Text(well, "Lane Label " + i, (i + 1).ToString(),
-                    new Vector2(bottomX - 20f, 246f), new Vector2(40f, 26f), 18f, V6Tokens.TextMuted,
-                    TextAlignmentOptions.Center);
-            }
+            var rawGo = new GameObject("Game Preview 3D", typeof(RectTransform), typeof(RawImage));
+            rawGo.transform.SetParent(well.transform, false);
+            var rawRt = rawGo.GetComponent<RectTransform>();
+            rawRt.anchorMin = Vector2.zero;
+            rawRt.anchorMax = Vector2.one;
+            rawRt.offsetMin = Vector2.zero;
+            rawRt.offsetMax = Vector2.zero;
+            var raw = rawGo.GetComponent<RawImage>();
+            raw.texture = previewRig.Texture;
+            raw.raycastTarget = false;
         }
 
         /// <summary>
