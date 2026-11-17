@@ -50,7 +50,7 @@ export function createMockPublishFetch(options: MockPublishOptions = {}): MockPu
     const url = new URL(input, "http://fixture.local");
     const match = PUBLISH_PATH.exec(url.pathname);
     if (!match) {
-      return jsonResponse(404, { error: `No publish route for ${url.pathname}` });
+      return jsonResponse(404, { error: `公開ルートが見つかりません: ${url.pathname}` });
     }
 
     const songId = decodeURIComponent(match[1] ?? "");
