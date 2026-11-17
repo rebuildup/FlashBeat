@@ -110,7 +110,7 @@ public class PlayfieldLaneGuidesTests
         var guides = host.AddComponent<PlayfieldLaneGuides>();
 
         Material material = null;
-        Assert.DoesNotThrow(() => material = (Material)InvokePrivate(guides, "CreateMaterial"),
+        Assert.DoesNotThrow(() => material = (Material)InvokePrivate(guides, "CreateGuideMaterial"),
             "The material creation must not throw.");
 
         if (material != null)
