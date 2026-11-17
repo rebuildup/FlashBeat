@@ -169,29 +169,32 @@ CI のライセンス未設定時の扱い・展示 PC への適用手順・監�
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
-- 現行版 (Win64): [`v0.1.28-win64-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-win64-8ce00d0f)
-  - `FlashBeat-0.1.28-win64-8ce00d0f.zip`
-  - SHA-256: `96159d36dc5a7cf933d007991cb8324407115098b35f8bb0d243645951802c21`
-  - ビルド元 commit: `8ce00d0f13b4f8d5a560d0f49eaf079b877e55c0`
-    (VERSION 0.1.28 bump + #560–#564 の安定化修正 + #561 テスト追従)
+- 現行版 (Win64): [`v0.1.29-win64-b5199ede`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.29-win64-b5199ede)
+  - `FlashBeat-0.1.29-win64-b5199ede.zip`
+  - SHA-256: `f0666a23f50d10eb9de0afc03081e32704fa2a0a50d35efc1021188d43fe6ebc`
+  - ビルド元 commit: `b5199edee5f3b086256bf508125aa0aaf60a91dc`
+    (VERSION 0.1.29 bump + 採点 v2 (#577)・Option Game Preview の 3D 化 (#579)・
+    歌詞エリア拡大 (#582)・更新結果パス修正 (#574)・EditMode 修復 (#596/#597) など)
   - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
   - チャンネル: `stable`
   - 実機検証: **未実施** (物理 Windows での起動・プレイは未実施。
-    EditMode 1886/1886 成功 + ZIP/SHA-256/mediaPolicy 検証済み)。
-- 現行版 (macOS): [`v0.1.28-macos-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-macos-8ce00d0f)
-  - `FlashBeat-0.1.28-macos-8ce00d0f.zip`
-  - SHA-256: `96038a0e979d383317c5ca32242dc26401d3c2f3189f253e404bea5a8497f5e2`
-  - ビルド元 commit: `8ce00d0f13b4f8d5a560d0f49eaf079b877e55c0` (`CFBundleShortVersionString=0.1.28+8ce00d0f`)
+    EditMode 1926/1926 成功 + ZIP/SHA-256/mediaPolicy 検証済み)。
+- 現行版 (macOS): [`v0.1.29-macos-b5199ede`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.29-macos-b5199ede)
+  - `FlashBeat-0.1.29-macos-b5199ede.zip`
+  - SHA-256: `5b0fd963478361bc8c4429ccbedc084199f88b5abce13214d46432c19c22dd63`
+  - ビルド元 commit: `b5199edee5f3b086256bf508125aa0aaf60a91dc` (`CFBundleShortVersionString=0.1.29+b5199ede`)
   - メディア方針: `song-free` / チャンネル: `stable`
   - 実機検証: **未実施** (同上)
-- 前版 (参考): [`v0.1.27-win64-b30cb1e7`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.27-win64-b30cb1e7) /
+- 前版 (参考): [`v0.1.28-win64-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-win64-8ce00d0f) /
+  [`v0.1.28-macos-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-macos-8ce00d0f)
+  - Win64 ZIP SHA-256: `96159d36dc5a7cf933d007991cb8324407115098b35f8bb0d243645951802c21`
+  - macOS ZIP SHA-256: `96038a0e979d383317c5ca32242dc26401d3c2f3189f253e404bea5a8497f5e2`
+  - ビルド元 commit: `8ce00d0f13b4f8d5a560d0f49eaf079b877e55c0`
+- 前々版 (参考): [`v0.1.27-win64-b30cb1e7`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.27-win64-b30cb1e7) /
   [`v0.1.27-macos-b30cb1e7`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.27-macos-b30cb1e7)
   - Win64 ZIP SHA-256: `12a82c24358b9c696371e75734d49cdeb63eaf9e6472b5f100026b7e7a453a77`
   - macOS ZIP SHA-256: `4f92db6c0fc3ad85ba376544f1439c5edebf10a3c02b14465e84c5d48b188b2f`
   - ビルド元 commit: `b30cb1e794b3499e5c5f3abbe82a43d794272de7`
-- 前々版 (参考): [`v0.1.11-win64-5f94d12`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.11-win64-5f94d12)
-  - Web Studio 併入版。`v0.1.11-win64-98137a5` は同じ 0.1.11 の別ビルド (prerelease)。
-    展示機には **0.1.13 が適用済み** (2026-11-07)。
 - 旧版 (参考): [`v0.1.0-win64-743c88d`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.0-win64-743c88d)
   - `FlashBeat-0.1.0-win64-743c88d.zip`
   - SHA-256: `3dbdfecbdb91d916178666045d0c62e1fae717f7df0b77e4f9ddc2af1c036a45`

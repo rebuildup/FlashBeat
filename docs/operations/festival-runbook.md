@@ -56,10 +56,10 @@ D:\4_apps\Unity\Build\FlashBeatExhibit_s2\
 |---|---|---|
 | Opening | 自動でタイトルへ | — |
 | Title | 選曲へ / オプション / 終了 | `Space` / `O` / `E` |
-| Select | 決定 / 次の曲 / 前の曲 / タイトルへ | `Space` / `J` `K` `L` `;` `→` / `F` `D` `S` `A` `←` / `Esc` |
+| Select | 曲を動かす / 曲を送る / Ready / 絞り込み / 検索 / 設定 / 戻る | `↑` `↓` / `←` `→` / `Space` または `Enter` / `Tab` / `A`–`Z` / `O` / `Esc` |
 | Game | **メディア準備完了後に開始**（下記） | `Space` |
 | Game | ノーツ叩き | 下表 |
-| Result | 選曲へ / リトライ | `Space` / `R` |
+| Result | スキップ / 選曲へ / リトライ | `Space` / `Esc` / `R` |
 
 > **第 2 世代の注意**: 選曲後の `Space`（開始）は **メディアの準備が終わった後** に押します。
 > 準備中は画面が「press Space to start」を出すところまで来ません（ログに

@@ -38,7 +38,7 @@ play session の間は `GManager.ResetSession()` で combo / score を戻す（`
 1. `MusicManager` は `Space` を待ち、`VideoPlayer` と `AudioSource` を開始する。
 2. `NotesManager.OnEnable` が chart JSON を読み、BPM / LPB から各 note の時刻を計算し、8 lane に prefab を置く。
 3. `Notes` が `GManager.noteSpeed` で note を判定線へ動かす。
-4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。
+4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。同じフレームで `Judge.PlayLaneClickSound` がレーンキー押下 (空押しを含む) に 1 フレーム 1 回だけ `clickSound` を鳴らす (Issue #604)。入力の受付可否は判定とクリック音で共有の `GameplayInputGate.CanAcceptInput` (`GManager.Start` かつ非ポーズ・曲終了シーケンス前) が決める。クリック音は `audioHit` (音量 = `GManager.effectVolume`、Effect mixer) を使うが `hitSound` とは別クリップ。
 5. 終了時に `MusicManager` が fade し、`Initiate.Fade("ResultScene", ...)` へ進む。
 
 ### 採点 (scoring)
@@ -72,7 +72,7 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 1. `Assets/Game/Resources/<SongName>.json` を置く。
 2. `GManager` の 7 つの parallel array と `Hiscore` の長さ、`totalSong` を揃える。
 3. `GameScene.unity` の `YoutubePlayer` と `MusicManager.YPlayer` / `VPlayer` を配線する（通常は Editor tool が行う）。
-4. lyrics が無い場合は stub の `_text.json` を作る。
+4. lyrics は chart JSON 内の `lyrics` が正。別ファイル (`*_text.json`) はもう置かない — 旧形式が残っていても chart 側が優先される (上記「楽曲データ」参照)。
 
 ## YouTube 再生
 
@@ -82,7 +82,7 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 
 ## Tests
 
-`Assets/Tests/Editor/` に 139 の test file があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。Play Mode / 実機 integration suite はない。
+`Assets/Tests/Editor/` に 146 の test file (2026-11-18 時点) があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。v6 UI の純ロジックは `Assets/Game/Tests/` (60 file、EditMode で同じく実行) にある。Play Mode / 実機 integration suite はない。
 
 `SingletonTestHelper.TeardownSingletons` で static state を test 間に戻す。`EditData.Lyrics` の配列を使う test では必須。
 
@@ -111,6 +111,7 @@ Unity を起動せずに C# の型検査だけ行う補助として `script/comp
 - `GManager` の 7 つの parallel array は 29 entry で lockstep。かつて 30 番目の数値 entry は comment out されており、`ChartDataIntegrityTests` がこの対応を検査する。
 - `MusicManager` は bundled wav を `Resources.LoadAsync<AudioClip>` で非同期に読み、clip が無くても throw せず YouTube media へ fallback する（`PlaybackRecovery.DecideAudioSource`）。
 - `NoteEditor.Editor` の callback（YouTube import 登録、deferred editor actions）は `[InitializeOnLoad]` の static registrar pattern。cross-asmdef の callback 配線は `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` を参照。
+- 例外を握りつぶして degraded fallback へ進む経路は、原因が分かる警告ログを残す (Issue #613): `MusicManager` (音声トラック有効化失敗)、`MediaCacheManager` / `YouTubeMediaCache` (キャッシュ走査・削除・ダウンロード中断)、`YouTubeStreamResolver` (yt-dlp の exit / stdout 読み取り失敗)、`UpdateChecker` / `OptionSceneManager` / `RankingClient` (fallback の裏にある本当の原因)。
 - プレイフィールドは unlit / 影なしの flat rendering。`docs/architecture/flat-rendering.md` を参照。lit shader に戻すと動画 quad がほぼ黒くなる。
 - 日本語 font は `NotoSansJP-Medium SDF.asset`。HUD への適用は `JapaneseFontFixer.ApplyJapaneseFontToProject`（Editor menu `Tools → FlashBeat → Apply Japanese Font To Scenes And Prefabs`）。新しい漢字を含む曲・歌詞を足したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` を実行する。atlas は静的で、古い asset は 620 glyph しか持っていなかった。
 - Windows baseline (issue #11): batch build と select → play → result → retry の 1 曲 loop は実機で確認済み（`docs/superpowers/plans/baseline-win64.md`）。Windows Media Foundation の URL reader は解決済み `googlevideo.com` stream で失敗する（`0x80070005` / `MFCreateSourceReaderFromURL`）ため、`MusicManager` は yt-dlp で media を `persistentDataPath/FlashBeatMedia/<videoId>/` に download し local file を再生する（`PrepareLocalVideo`）。direct URL の試行は video ごと 1 回の診断 probe（`ProbeDirectUrl`）として残るので、`Player.log` の `0x80070005` は missing picture の原因ではない。Windows での download 済み file 再生と audible output は未検証（同 § 2026-11-10 追記、issue #13）。
