@@ -1,3 +1,4 @@
+using FlashBeat.Gameplay;
 using FlashBeat.Persistence;
 using NUnit.Framework;
 
@@ -108,7 +109,8 @@ namespace FlashBeat.Tests.Editor
 
             Assert.AreEqual(222222, ScorePersistence.BestOf(zzzAfter),
                 "`zzz` must keep its record when another song disappears");
-            Assert.AreEqual(111111, ScorePersistence.Current.Get(new ScoreKey("aaa", 1)),
+            Assert.AreEqual(111111,
+                ScorePersistence.Current.Get(new ScoreKey("aaa", 1, Scoring.LatestVersion)),
                 "the record of the removed song must not move to another song");
             Assert.AreNotEqual(111111, ScorePersistence.BestOf(zzzAfter),
                 "`zzz` must not show the record of the removed song");
@@ -128,7 +130,7 @@ namespace FlashBeat.Tests.Editor
             Assert.AreEqual(0, ScorePersistence.BestOf(indexAfter),
                 "a new chart version is a new chart: its best score starts at 0");
             Assert.AreEqual(800000,
-                ScorePersistence.Current.Get(new ScoreKey("who", 1)),
+                ScorePersistence.Current.Get(new ScoreKey("who", 1, Scoring.LatestVersion)),
                 "the record of the old chart version stays as history");
         }
 

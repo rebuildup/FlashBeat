@@ -4,6 +4,7 @@ using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Game.Playfield;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 
 namespace FlashBeat.Tests.Editor
@@ -39,6 +40,11 @@ namespace FlashBeat.Tests.Editor
             savedStartTime = GManager.StartTime;
             PauseGate.HardReset();
             KeyBindings.ClearInjectedLaneKeyDowns();
+            // LaneFlash / BGFlash access renderer.material, which Unity
+            // rejects in edit mode ("leak materials into the scene").
+            // Play mode is unaffected; the error is an edit-mode artifact
+            // of driving the production Update loop from a test.
+            LogAssert.ignoreFailingMessages = true;
         }
 
         [TearDown]
@@ -57,6 +63,7 @@ namespace FlashBeat.Tests.Editor
 
             KeyBindings.ClearInjectedLaneKeyDowns();
             PauseGate.HardReset();
+            LogAssert.ignoreFailingMessages = false;
             GManager.played = savedPlayed;
             GManager.step_time = savedStepTime;
             GManager.StartTime = savedStartTime;

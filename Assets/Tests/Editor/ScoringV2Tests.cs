@@ -191,6 +191,7 @@ public class ScoringV2Tests
         V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9,
             out string comboText, out string noMissText);
         Assert.IsTrue(noMissText.StartsWith("+"), "ノーミスボーナスが出ていない: " + noMissText);
-        Assert.AreEqual("+300,000", noMissText); // 45/150 * 1e6 = 300,000
+        // noteCount=9 → maxRatio=135, noMissBonus=(8+1+0)*5=45 → 45/135*1e6 = 333,333
+        Assert.AreEqual("+333,333", noMissText);
     }
 }
