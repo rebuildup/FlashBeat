@@ -146,5 +146,64 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(delta * zScale,
                 MediaTimeline.NotePositionZ(11.25f, 10f, zScale), 0.0001f);
         }
+
+        // --- 実描画: RenderTexture に実際の画素が出る ---
+
+        /// <summary>
+        /// well の RawImage が貼る RT を専用カメラで 1 フレーム描き、
+        /// 背景 (透明黒) 以外の画素が十分にあることを確認する。
+        /// 「RT が存在する」だけでは表示成功とみなさない (Issue #579)。
+        /// ガイド線・判定線は疑似時計に依らず常に描かれるので、
+        /// ノーツの位相に関係なく画素が出るはず。
+        /// </summary>
+        [Test]
+        public void GamePreview_RendersActualPixels()
+        {
+            var view = CreateView();
+
+            var raw = (RectTransform)view.Root.Find("Main/Preview/Game Preview/Game Preview 3D");
+            Assert.IsNotNull(raw, "Game Preview 3D が無い");
+            var rt = raw.GetComponent<RawImage>().texture as RenderTexture;
+            Assert.IsNotNull(rt, "RawImage が RenderTexture を持たない");
+
+            var rigRoot = GameObject.Find("V6 Option Preview Rig");
+            Assert.IsNotNull(rigRoot, "プレビュー rig が生成されていない");
+            var cam = rigRoot.transform.Find("Preview Camera")?.GetComponent<Camera>();
+            Assert.IsNotNull(cam, "プレビュー専用カメラが無い");
+
+            // EditMode にはプレイヤーループが無いので明示的に 1 フレーム描く。
+            cam.Render();
+
+            RenderTexture previous = RenderTexture.active;
+            Texture2D shot = null;
+            try
+            {
+                RenderTexture.active = rt;
+                shot = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+                shot.ReadPixels(new Rect(0f, 0f, rt.width, rt.height), 0, 0);
+                shot.Apply();
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+            }
+
+            Assert.IsNotNull(shot, "RenderTexture から画素を読めない");
+            var pixels = shot.GetPixels32();
+            int lit = 0;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                // 透明黒クリア (0,0,0,0) 以外 = 何かが描かれた画素。
+                var p = pixels[i];
+                if (p.r > 8 || p.g > 8 || p.b > 8 || p.a > 8)
+                {
+                    lit++;
+                }
+            }
+            Assert.Greater(lit, 500,
+                "プレビュー RT がほぼ空 (lit=" + lit + "/" + pixels.Length + ") - 3D シーンが描画されていない");
+
+            Object.DestroyImmediate(shot);
+        }
     }
 }
