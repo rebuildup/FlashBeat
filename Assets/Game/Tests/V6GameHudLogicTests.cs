@@ -78,11 +78,14 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void ComboFillFraction_ClampsAndHandlesZeroMilestone()
+        public void ComboFillFraction_TracksNextMilestoneProgress()
         {
-            Assert.AreEqual(0.82f, V6HudLogic.ComboFillFraction(246, 300), 1e-4f);
-            Assert.AreEqual(1f, V6HudLogic.ComboFillFraction(500, 300), 1e-4f);
-            Assert.AreEqual(0f, V6HudLogic.ComboFillFraction(10, 0), 1e-4f);
+            // scoring v3 (ADR-0029): 節目 50 コンボごとの進捗 0..1。
+            // 節目に達した瞬間は 0 に戻る。
+            Assert.AreEqual(0.98f, V6HudLogic.ComboFillFraction(49), 1e-4f);
+            Assert.AreEqual(0f, V6HudLogic.ComboFillFraction(50), 1e-4f);
+            Assert.AreEqual(0.4f, V6HudLogic.ComboFillFraction(120), 1e-4f);
+            Assert.AreEqual(0f, V6HudLogic.ComboFillFraction(0), 1e-4f);
         }
 
         // --- レーン別判定 ---

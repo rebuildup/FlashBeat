@@ -27,6 +27,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         private GameObject comboStatusBlock;
         private GameObject comboStatusRow;
         private GameObject fullComboChip;
+        /// <summary>節目ボーナスの一時表示 (scoring v3, ADR-0029 / Issue #602)。</summary>
+        private TextMeshProUGUI milestoneBonusText;
+        /// <summary>節目ボーナス表示の開始時刻 (-1 = 非表示)。</summary>
+        private float milestoneBonusShowStart = -1f;
+        /// <summary>最後に観測した節目到達回数 (増分検出用)。</summary>
+        private int lastComboMilestones;
 
         // --- 毎フレームの状態 (スコア系) ---
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
@@ -244,6 +250,19 @@ namespace FlashBeat.UI.V6.Game.Hud
             chipLe.preferredHeight = m.FcChipH;
             V5Ui.Text(chip, "Text", "FULL COMBO", m.StatusFs, V5Tokens.WarnLight,
                 TextAlignmentOptions.Center);
+
+            // 節目ボーナスの一時表示 (scoring v3)。ステータス行の直下、
+            // ブロック下端の余白に収まる 1 行。達成のたびに "+獲得点" を出して
+            // フェードアウトする (加点量をプレイ中に見せる契約)。
+            milestoneBonusText = V5GameUi.Text(status, "Milestone Bonus", "", 16f,
+                V5Tokens.WarnLight, TextAlignmentOptions.Left, FontStyles.Bold);
+            var mbRt = milestoneBonusText.rectTransform;
+            mbRt.anchorMin = new Vector2(0f, 1f);
+            mbRt.anchorMax = new Vector2(0f, 1f);
+            mbRt.pivot = new Vector2(0f, 1f);
+            mbRt.anchoredPosition = new Vector2(0f, -(m.StatusRowY + m.StatusRowH + 2f));
+            mbRt.sizeDelta = new Vector2(m.StatusTrackW, 18f);
+            milestoneBonusText.gameObject.SetActive(false);
         }
 
         /// <summary>
@@ -272,6 +291,29 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             float t = V6HudLogic.EaseOutCubic(elapsed / V6HudLogic.ComboBonusPulseSeconds);
             comboFillImage.color = Color.Lerp(V5Tokens.WarnLight, V5Tokens.Text, t);
+        }
+
+        /// <summary>
+        /// 節目ボーナス表示のフェードアウト (scoring v3 / Issue #602)。
+        /// 表示時間の終盤で alpha を落として消す。
+        /// </summary>
+        private void UpdateMilestoneBonus()
+        {
+            if (milestoneBonusShowStart < 0f || milestoneBonusText == null)
+            {
+                return;
+            }
+
+            float elapsed = Time.unscaledTime - milestoneBonusShowStart;
+            if (elapsed >= V6HudLogic.MilestoneBonusSeconds)
+            {
+                milestoneBonusShowStart = -1f;
+                milestoneBonusText.gameObject.SetActive(false);
+                return;
+            }
+
+            milestoneBonusText.alpha = 1f - V6HudLogic.EaseOutCubic(
+                elapsed / V6HudLogic.MilestoneBonusSeconds);
         }
 
         /// <summary>

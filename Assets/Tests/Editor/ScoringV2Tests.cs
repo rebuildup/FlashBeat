@@ -160,14 +160,15 @@ public class ScoringV2Tests
     // --- 送信ペイロード -----------------------------------------------------
 
     [Test]
-    public void Submission_AlwaysCarriesScoringVersion2()
+    public void Submission_AlwaysCarriesLatestScoringVersion()
     {
         string json = RankingClient.BuildScoreRequestJson(
-            "test-song", 2, "なまえ", 800000, 8, 1, 0, 1, 8);
+            "test-song", 2, "なまえ", 800000, 8, 1, 0, 1, 8, 2);
         Assert.IsNotNull(json);
         var payload = UnityEngine.JsonUtility.FromJson<RankingClient.ScoreRequest>(json);
         Assert.AreEqual(Scoring.LatestVersion, payload.scoringVersion);
         Assert.AreEqual(RankingClient.ScoringVersion, payload.scoringVersion);
+        Assert.AreEqual(2, payload.comboMilestones);
     }
 
     // --- 結果画面の内訳 -----------------------------------------------------
@@ -175,23 +176,30 @@ public class ScoringV2Tests
     [Test]
     public void ResultBreakdown_ShowsRealBonusValues()
     {
-        // P=8 G=1 B=0 M=1, maxCombo=8, N=10:
-        // comboBonus = 40 ratio → ComponentScoreV2(40,10) = round(1e6*40/150)=266,667
-        // noMissBonus = 0 (miss>0) → "–"
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8,
-            out string comboText, out string noMissText);
-        Assert.AreEqual("+266,667", comboText);
+        // P=8 G=1 B=0 M=1, maxCombo=8, milestones=0, N=10 (v3):
+        // comboBonus = 40 ratio → ComponentScoreV3(40,10) = round(1e6*40/250)=160,000
+        // (MaxRatioV3(10) = 150 + 0 + 100 = 250)
+        // noMissBonus / milestoneBonus / finalBonus = 0 (miss>0, milestones=0) → "–"
+        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8, 0, 10,
+            out string comboText, out string milestoneText, out string noMissText, out string finalText);
+        Assert.AreEqual("+160,000", comboText);
+        Assert.AreEqual("–", milestoneText);
         Assert.AreEqual("–", noMissText);
+        Assert.AreEqual("–", finalText);
     }
 
     [Test]
     public void ResultBreakdown_NoMissBonusShownOnlyWhenEarned()
     {
-        // miss=0 なら noMissBonus = (P+G+B)*5 が出る。
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9,
-            out string comboText, out string noMissText);
+        // miss=0 なら noMissBonus = (P+G+B)*5 と finalBonus = 100 が出る (v3)。
+        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9,
+            out string comboText, out string milestoneText, out string noMissText, out string finalText);
         Assert.IsTrue(noMissText.StartsWith("+"), "ノーミスボーナスが出ていない: " + noMissText);
-        // noteCount=9 → maxRatio=135, noMissBonus=(8+1+0)*5=45 → 45/135*1e6 = 333,333
-        Assert.AreEqual("+333,333", noMissText);
+        // noteCount=9 → MaxRatioV3(9)=135+0+100=235,
+        // noMissBonus=(8+1+0)*5=45 → 45/235*1e6 = 191,489
+        Assert.AreEqual("+191,489", noMissText);
+        // finalBonus=100 → 100/235*1e6 = 425,532
+        Assert.AreEqual("+425,532", finalText);
+        Assert.AreEqual("–", milestoneText);
     }
 }

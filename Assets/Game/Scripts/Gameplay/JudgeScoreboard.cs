@@ -27,6 +27,14 @@ namespace FlashBeat.Gameplay
         public int MaxCombo;
 
         /// <summary>
+        /// scoring v3 (ADR-0029 / Issue #602) の節目 (milestone) 到達回数。
+        /// コンボが <see cref="Scoring.MilestoneInterval"/> の倍数に達するたびに
+        /// 1 増える。コンボが切れても回数は保持されるので、以降のコンボでも
+        /// 節目に達すれば再び加点される (maxCombo からは導出できない累積状態)。
+        /// </summary>
+        public int MilestoneCrossings;
+
+        /// <summary>
         /// 確定したノーツ数 (Issue #182)。
         ///
         /// 判定の内訳 (Perfect / Great / Bad / Miss) から**算出する**ので、
@@ -58,6 +66,7 @@ namespace FlashBeat.Gameplay
 
             Combo++;
             if (Combo > MaxCombo) MaxCombo = Combo;
+            if (Combo % Scoring.MilestoneInterval == 0) MilestoneCrossings++;
         }
 
         /// <summary>

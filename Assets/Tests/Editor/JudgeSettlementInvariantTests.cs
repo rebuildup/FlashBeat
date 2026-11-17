@@ -364,17 +364,22 @@ public class JudgeSettlementInvariantTests
         int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
         Assert.AreEqual(MixedChartNoteCount, judged);
 
-        // v2 の内訳: 判定 + コンボ継続 (maxCombo*5) + ノーミス
-        // (miss==0 なら命中数*5)。このプレイは Miss があるのでノーミスは 0。
-        Scoring.V2Breakdown expected = Scoring.BreakdownV2(
+        // v3 の内訳: 判定 + コンボ継続 (maxCombo*5) + ノーミス (miss==0
+        // なら命中数*5) + 節目 (到達回数*25) + フルコンボ終了 (miss==0 なら 100)。
+        // このプレイは Miss があるのでノーミスと終了ボーナスは 0。
+        Scoring.V3Breakdown expected = Scoring.BreakdownV3(
             GManager.perfect, GManager.great, GManager.bad, GManager.miss,
-            GManager.maxCombo, MixedChartNoteCount);
+            GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount);
         Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
-            "ratioScore が v2 の内訳と食い違う");
+            "ratioScore が v3 の内訳と食い違う");
         Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
         Assert.AreEqual(expected.NoMissBonus, GManager.noMissBonus, "noMissBonus が違う");
-        Assert.AreEqual(MixedChartNoteCount * Scoring.MaxRatioPerNoteV2, GManager.maxScore, 0.0001f,
-            "maxScore != noteCount x 15");
+        Assert.AreEqual(expected.MilestoneBonus, GManager.milestoneBonus, "milestoneBonus が違う");
+        Assert.AreEqual(expected.FinalBonus, GManager.finalBonus, "finalBonus が違う");
+        Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneBonusPoints, GManager.milestoneBonus,
+            "節目到達回数と節目ボーナスが一致しない");
+        Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.maxScore, 0.0001f,
+            "maxScore != MaxRatioV3(noteCount)");
         Assert.LessOrEqual(GManager.ratioScore, GManager.maxScore, "ratioScore が maxScore を超えた");
 
         // スコアは ComputeScore の式と一致する。
@@ -409,8 +414,9 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 4f, 0.05f));
 
         Assert.AreEqual(MixedChartNoteCount, GManager.perfect);
-        // v2: 判定 5N + コンボ 5N + ノーミス 5N = 15N。
-        Assert.AreEqual(MixedChartNoteCount * Scoring.MaxRatioPerNoteV2, GManager.ratioScore, 0.0001f);
+        // v3: 判定 5N + コンボ 5N + ノーミス 5N + 節目 floor(N/50)*25
+        // + フルコンボ 100 = MaxRatioV3(N)。全 Perfect なら分子=分母。
+        Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.ratioScore, 0.0001f);
         Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
     }
 

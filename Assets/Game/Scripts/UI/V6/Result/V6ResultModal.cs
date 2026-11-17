@@ -487,7 +487,8 @@ namespace FlashBeat.UI.V6.Result
 
             RankingClient.Result result = null;
             yield return RankingClient.PostScore(song.remoteId, chartVersion, nickname,
-                runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo, r => { result = r; });
+                runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones,
+                r => { result = r; });
             OnSubmitResult(result);
         }
 

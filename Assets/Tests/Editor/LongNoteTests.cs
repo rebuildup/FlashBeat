@@ -205,15 +205,17 @@ public class LongNoteTests
     [Test]
     public void TheMaximumScoreStillCountsEveryNoteOnce()
     {
-        // scoring v2 (ADR-0028): ノーツ 1 個あたりの配点上限は判定 5 +
-        // コンボ 5 + ノーミス 5 = 15。ロングノーツも 1 ノーツとして数えるので、
-        // 100 万点の算出が壊れない。ここの 5 は「判定」要素だけの上限。
+        // scoring v3 (ADR-0029): 分母は判定 5N + コンボ 5N + ノーミス 5N
+        // + 節目 floor(N/50)*25 + フルコンボ 100。ロングノーツも 1 ノーツ
+        // として数えるので、100 万点の算出が壊れない。
+        // ここの 5 は「判定」要素だけの上限。
         int noteCount = 100;
         int judgmentCap = noteCount * 5;
 
         Assert.AreEqual(500, judgmentCap);
         Assert.AreEqual(judgmentCap, 100 * LongNote.SCORE_PERFECT);
-        Assert.AreEqual(noteCount * (int)Scoring.MaxRatioPerNoteV2, noteCount * 15);
+        Assert.AreEqual(noteCount * 15 + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints
+            + Scoring.FullComboBonusPoints, (int)Scoring.MaxRatioV3(noteCount));
     }
 
     // ---- 既存 tap 譜面の回帰 -------------------------------------------
