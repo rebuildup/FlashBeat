@@ -406,14 +406,19 @@ public class AutoTestV6 : MonoBehaviour
         yield return new WaitForEndOfFrame();
         shot++;
         string path = Path.Combine(outDir, string.Format("autotest-v6-{0}.png", shot));
+        // ファイル名は決定的なので、出力 dir を再利用すると前回実行の残りが
+        // File.Exists を先に満たし、撮影失敗を PASS と誤認しうる (#563)。
+        // 撮影前に消して、今回の書き込みだけを見る。
+        try { if (File.Exists(path)) { File.Delete(path); } } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
         // CaptureScreenshot の書き込みは非同期。動画再生中など負荷が高いと
         // 0.6 秒では間に合わず File.Exists が偽になる (実測: v6playfield で
         // 3 件 FAIL)。ファイルが現れるまで待ち、上限を超えたら FAIL にする。
-        float waited = 0f;
-        while (!File.Exists(path) && waited < 10f)
+        // 予算は実時間 (unscaledTime) で測る: unscaledDeltaTime のフレーム累積は
+        // 低 fps 環境で実時間より短く打ち切られる (#563)。
+        float deadline = Time.unscaledTime + 10f;
+        while (!File.Exists(path) && Time.unscaledTime < deadline)
         {
-            waited += Time.unscaledDeltaTime;
             yield return null;
         }
 

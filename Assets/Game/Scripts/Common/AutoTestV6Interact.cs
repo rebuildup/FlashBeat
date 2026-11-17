@@ -1053,14 +1053,18 @@ public class AutoTestV6Interact : MonoBehaviour
         yield return new WaitForEndOfFrame();
         shot++;
         string path = Path.Combine(outDir, "v6interact-" + label + ".png");
+        // 決定的ファイル名なので、出力 dir の再利用で前回の残りを
+        // 撮影成功と誤認しうる。撮影前に消す (#563)。
+        try { if (File.Exists(path)) { File.Delete(path); } } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
 
         // 書き出しは非同期。0.6 秒の固定待ちだと、直後にシーンを切り替えたときに
         // ファイルが現れる前に判定してしまうことがある (実測で 1 回)。
-        float waited = 0f;
-        while (!File.Exists(path) && waited < 5f)
+        // 予算は実時間 (unscaledTime) で測る: unscaledDeltaTime のフレーム累積は
+        // 低 fps 環境で実時間より短く打ち切られる (#563)。
+        float deadline = Time.unscaledTime + 5f;
+        while (!File.Exists(path) && Time.unscaledTime < deadline)
         {
-            waited += Time.unscaledDeltaTime;
             yield return null;
         }
 
@@ -1069,10 +1073,9 @@ public class AutoTestV6Interact : MonoBehaviour
             // 1 度だけ撮り直す (フレーム境界をまたいだ取りこぼし対策)。
             ScreenCapture.CaptureScreenshot(path);
             yield return new WaitForEndOfFrame();
-            waited = 0f;
-            while (!File.Exists(path) && waited < 5f)
+            deadline = Time.unscaledTime + 5f;
+            while (!File.Exists(path) && Time.unscaledTime < deadline)
             {
-                waited += Time.unscaledDeltaTime;
                 yield return null;
             }
         }

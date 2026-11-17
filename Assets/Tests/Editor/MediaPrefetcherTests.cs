@@ -256,6 +256,79 @@ public class MediaPrefetcherTests
         Assert.AreEqual(1, MediaPrefetcher.CancelledCount);
     }
 
+    /// <summary>完了マーカー付きの結合/分離ファイルをキャッシュへ置く。</summary>
+    void InstallCompletedCache(string videoId)
+    {
+        string dir = YouTubeMediaCache.CacheDirectoryFor(videoId);
+        Directory.CreateDirectory(dir);
+        foreach (string prefix in new[] { YouTubeMediaCache.MergedFilePrefix, YouTubeMediaCache.VideoFilePrefix, YouTubeMediaCache.AudioFilePrefix })
+        {
+            string path = Path.Combine(dir, prefix + ".mp4");
+            File.WriteAllBytes(path, new byte[32]);
+            File.WriteAllText(YouTubeMediaCache.DoneMarkerPath(path), "32");
+        }
+    }
+
+    /// <summary>
+    /// #561: キャッシュ済みの別曲への切替 (早期 return) でも、走っている
+    /// 先読みは中断される。「同時に走る先読みは 1 本」の契約を
+    /// 早期 return 経路でも守る。
+    /// </summary>
+    [Test]
+    public async Task Request_CachedVideoId_WhileAnotherInFlight_CancelsIt()
+    {
+        string inflight = NewVideoId();
+        string cached = NewVideoId();
+        InstallFakeDownload();
+        InstallCompletedCache(cached);
+
+        var gate = new TaskCompletionSource<List<YtDlpFormat>>();
+        MediaPrefetcher.FormatsOverride = (id, token) => gate.Task;
+
+        Task runA = MediaPrefetcher.Request(inflight);
+        Assert.AreEqual(inflight, MediaPrefetcher.InFlightVideoId);
+
+        // キャッシュ済みの曲への切替は即完了するが、in-flight の方は畳まれる。
+        await MediaPrefetcher.Request(cached);
+        Assert.IsNull(MediaPrefetcher.InFlightVideoId,
+            "cache hit の早期 return でも in-flight は畳まれる");
+
+        gate.SetResult(new List<YtDlpFormat>());
+        await runA;
+        Assert.AreEqual(1, MediaPrefetcher.CancelledCount);
+        Assert.AreEqual(0, MediaPrefetcher.FailedCount, "キャンセルは失敗に数えない");
+    }
+
+    /// <summary>
+    /// #561: failedOnce の曲への切替 (早期 return) でも in-flight は中断される。
+    /// </summary>
+    [Test]
+    public async Task Request_FailedOnceVideoId_WhileAnotherInFlight_CancelsIt()
+    {
+        string failed = NewVideoId();
+        string inflight = NewVideoId();
+        InstallFakeDownload();
+
+        // failed を一度失敗させて failedOnce に入れる (空の形式リスト = 失敗)。
+        MediaPrefetcher.FormatsOverride = (id, token) => Task.FromResult(new List<YtDlpFormat>());
+        await MediaPrefetcher.Request(failed);
+        Assert.AreEqual(1, MediaPrefetcher.FailedCount);
+
+        var gate = new TaskCompletionSource<List<YtDlpFormat>>();
+        MediaPrefetcher.FormatsOverride = (id, token) => gate.Task;
+        Task runA = MediaPrefetcher.Request(inflight);
+        Assert.AreEqual(inflight, MediaPrefetcher.InFlightVideoId);
+
+        await MediaPrefetcher.Request(failed);
+        Assert.IsNull(MediaPrefetcher.InFlightVideoId,
+            "failedOnce の早期 return でも in-flight は畳まれる");
+
+        gate.SetResult(new List<YtDlpFormat>());
+        await runA;
+        Assert.AreEqual(1, MediaPrefetcher.CancelledCount);
+        Assert.AreEqual(1, MediaPrefetcher.FailedCount, "キャンセルは失敗に数えない");
+    }
+
     [Test]
     public async Task Request_NoFormats_CountsFailure_AndDoesNotRetry()
     {

@@ -419,4 +419,65 @@ public class MediaCacheCompletionTests
         Assert.IsTrue(secondResult.FromCache, "the second request reuses the file the first one finalized");
         Assert.AreEqual(1, downloadCalls, "the completed cache prevents a second download");
     }
+
+    // --- #562: ゲート付きクリーンアップ (MusicManager フォールバック前削除) ----
+
+    /// <summary>
+    /// RemoveIncompleteProducedFilesAsync keeps completed files (with a valid
+    /// marker) and removes only the incomplete produced files of the prefix.
+    /// This is the contract MusicManager's merged-fallback cleanup relies on:
+    /// the old ungated RemoveProducedFiles could delete a file a concurrent
+    /// prefetch just completed.
+    /// </summary>
+    [Test]
+    public void GatedCleanup_KeepsCompleted_DeletesIncomplete()
+    {
+        WriteCacheFile("merged.mp4", 100, marked: true);
+        WriteCacheFile("merged.webm", 50, marked: false);   // 中断残り
+        WriteCacheFile("merged.mkv.done", 0, marked: false); // 孤立マーカー
+        WriteCacheFile("video.mp4", 200, marked: true);      // 別 prefix
+
+        YouTubeMediaCache.RemoveIncompleteProducedFilesAsync(dir, "merged").GetAwaiter().GetResult();
+
+        Assert.IsTrue(File.Exists(Path.Combine(dir, "merged.mp4")), "completed file survives");
+        Assert.IsTrue(File.Exists(YouTubeMediaCache.DoneMarkerPath(Path.Combine(dir, "merged.mp4"))));
+        Assert.IsFalse(File.Exists(Path.Combine(dir, "merged.webm")), "incomplete file is removed");
+        Assert.IsFalse(File.Exists(Path.Combine(dir, "merged.mkv.done")), "orphan marker is removed");
+        Assert.IsTrue(File.Exists(Path.Combine(dir, "video.mp4")), "other prefixes are untouched");
+    }
+
+    /// <summary>
+    /// The gated cleanup waits behind an in-flight download of the same video
+    /// and then sees the file that download finalized - it cannot delete it.
+    /// </summary>
+    [Test]
+    public void GatedCleanup_WaitsForInFlightDownload_AndKeepsItsFile()
+    {
+        var started = new ManualResetEventSlim(false);
+        var release = new TaskCompletionSource<YtDlpOutput>();
+        YouTubeMediaCache.DownloadOverride = (id, selector, template, token) =>
+        {
+            downloadCalls++;
+            File.WriteAllBytes(template.Replace("%(ext)s", "mp4"), new byte[100]);
+            started.Set();
+            return release.Task;
+        };
+
+        var download = YouTubeMediaCache.EnsureFileAsync(videoId, "18", "merged");
+        Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(10)));
+
+        var cleanup = YouTubeMediaCache.RemoveIncompleteProducedFilesAsync(dir, "merged");
+        // Give the cleanup a chance to (wrongly) run: it must still be waiting
+        // on the gate while the download is in-flight.
+        Assert.IsFalse(cleanup.Wait(TimeSpan.FromMilliseconds(200)),
+            "cleanup must wait behind the in-flight download");
+
+        release.TrySetResult(new YtDlpOutput { ExitCode = 0 });
+        download.GetAwaiter().GetResult();
+        cleanup.GetAwaiter().GetResult();
+
+        Assert.IsTrue(File.Exists(Path.Combine(dir, "merged.mp4")),
+            "the file the in-flight download finalized is kept");
+        Assert.IsTrue(YouTubeMediaCache.IsCompletedCacheFile(Path.Combine(dir, "merged.mp4")));
+    }
 }
