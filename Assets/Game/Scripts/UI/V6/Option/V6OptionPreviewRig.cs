@@ -55,10 +55,11 @@ namespace FlashBeat.UI.V6.Option
         private static readonly Quaternion CameraRotation = new Quaternion(0.46019977f, 0f, 0f, 0.8878155f);
         private const float CameraFov = 60f;
 
-        // GameScene の Directional Light と同じ向き・色 (Standard シェーダの
-        // Note.mat を本編と同じ明るさで見せるため)。
-        private static readonly Vector3 LightEuler = new Vector3(50f, -30f, 0f);
-        private static readonly Color LightColor = new Color(1f, 0.95686275f, 0.8392157f, 1f);
+        // flat rendering (docs/architecture/flat-rendering.md): the playfield
+        // is unlit, so the preview deliberately has NO light. Every material
+        // used here (Note.mat, the runtime guide material) is FlashBeat/FlatUnlit
+        // and ignores lighting anyway; a Directional Light would be dead weight
+        // and could silently relight anything lit added later.
 
         private readonly List<PreviewNote> notes = new List<PreviewNote>();
         private readonly float frontZ;
@@ -98,7 +99,6 @@ namespace FlashBeat.UI.V6.Option
             root = new GameObject("V6 Option Preview Rig");
 
             BuildCamera();
-            BuildLight();
             frontZ = -PlayfieldLaneGuides.FrontDepth(previewCamera);
             BuildGuides();
             BuildJudgeLine();
@@ -130,18 +130,6 @@ namespace FlashBeat.UI.V6.Option
             // 縦長なので、DesignAspect (16:9) にピンされ本編の
             // 縦長画面と同じ横圧縮になる。
             PlayfieldCameraFit.Apply(previewCamera, (float)TextureWidth / TextureHeight);
-        }
-
-        private void BuildLight()
-        {
-            var go = new GameObject("Preview Light");
-            go.transform.SetParent(root.transform, false);
-            go.transform.localEulerAngles = LightEuler;
-            var light = go.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.color = LightColor;
-            light.intensity = 1f;
-            light.shadows = LightShadows.None;
         }
 
         /// <summary>本編と同じガイドメッシュ (PlayfieldLaneGuides.BuildGuideMesh)。</summary>

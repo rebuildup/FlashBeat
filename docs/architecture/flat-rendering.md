@@ -24,15 +24,41 @@ Standard シェーダー (ライティングあり) と平行光源の組み合�
 | 8 つのプレイフィールド素材 | `Standard` → `FlashBeat/FlatUnlit` (新規シェーダー) |
 | 動画 quad (VideoPlayer を持つ MeshRenderer) | 新規 `VideoPicture.mat` |
 
+`GameBackground.mat` (黒・不透明扱いの半透明マテリアル) はどこからも
+参照されていなかったため削除した (Issue #608)。有効化されると
+queue 3000 でノーツより後に描かれ、プレイフィールドを黒く沈める
+危険な素材だった。
+
 `FlashBeat/FlatUnlit` (`Assets/Game/Art/Shaders/FlatUnlit.shader`) は
 `_MainTex` と `_Color` を持つ unlit シェーダーで、ブレンド状態と ZWrite は
 マテリアル側のプロパティで決まる。`LaneFlash` / `BGFlash` が実行時に
 `material.color` を操作する挙動もそのまま有効。
 
-- 不透明 (Note / JudgeLine / Background / Particle): queue Geometry, ZWrite On
-- 半透明 (Lane / LaneLight / BlackSemiTransparent / GameBackground): queue 3000, ZWrite Off
+- 不透明 (Note / JudgeLine / Background / Particle / VideoPicture): queue Geometry (2000), ZWrite On
+- 半透明 (Lane / LaneLight / BlackSemiTransparent / 実行時ガイド線): queue 3000, ZWrite Off
 - 動画 (`VideoPicture.mat`): queue Geometry, ZWrite On。`VideoPlayer` が
   `targetMaterialProperty` (`_MainTex`) に書き込む動画テクスチャをそのまま表示する
+
+### 描画順 (Issue #608 で明文化)
+
+ノーツがレーン・ガイド・フラッシュ・動画の「上」に常に描かれることを、
+キューと深度の 2 段で保証する。
+
+1. **不透明パス (queue 2000)**: 動画 quad・ノーツ・判定線が ZWrite On で
+   先に描かれ、深度バッファに自分の位置を書く。
+2. **透過パス (queue 3000)**: レーン・レーンライトのフラッシュ・
+   ガイド線・動画減光 (`kuro`) が ZWrite Off・深度テストありで後から
+   描かれる。ノーツより奥にあるフラグメントは深度テストで捨てられるので、
+   ノーツの上に重なって減光することはない。逆にノーツより手前にある
+   透過物だけがノーツに重なる (現状そのような配置は無い)。
+3. 透過同士はカメラからの距離で奥→手前にソートされる
+   (遠い動画減光 → 近いレーンフラッシュの順)。
+
+設定画面の Game Preview (`V6OptionPreviewRig`) も同じ規則に従う:
+ノーツは本編と同じ `Note.prefab` / `Note.mat` (queue 2000 不透明)、
+ガイド線・判定線は `PlayfieldLaneGuides.CreateGuideMaterial()`
+(queue 3000 透過) を使う。flat rendering ではライティングを使わない
+ため、プレビューリグは Directional Light を持たない (Issue #608 で削除)。
 
 ## 検証
 
