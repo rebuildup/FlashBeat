@@ -110,8 +110,11 @@ public static class RankingClient
             {
                 config = JsonUtility.FromJson<Config>(asset.text);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                // The ranking origin falls back to the default below; the parse
+                // failure must not stay invisible (issue #613).
+                Debug.LogWarning("[RankingClient] ranking config parse failed: " + e.Message);
                 config = null;
             }
         }

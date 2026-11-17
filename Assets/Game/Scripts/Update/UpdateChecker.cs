@@ -376,8 +376,12 @@ namespace FlashBeat.Update
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath));
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                // The caller reports the missing file as a download failure;
+                // the warning keeps the real cause (permissions, full disk)
+                // visible instead of a bare "download failed" (issue #613).
+                Debug.LogWarning("[UpdateChecker] cannot create download directory for '" + destPath + "': " + e.Message);
                 yield break;
             }
             var req = new UnityWebRequest(url);

@@ -314,6 +314,17 @@ namespace FlashBeat.Gameplay
                         ? await DownloadOverride(videoId, selector, template, cancellationToken).ConfigureAwait(false)
                         : await YouTubeStreamResolver.DownloadAsync(videoId, selector, template, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Issue #613: cancellation is not an error. The half written
+                    // file is still removed and the result says "cancelled" so
+                    // callers can tell it apart from a real download failure
+                    // (they also check the token themselves - MediaPrefetcher,
+                    // MusicManager).
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = "download cancelled";
+                    return result;
+                }
                 catch (Exception e)
                 {
                     // A cancelled or crashed download (the cancellation token of
@@ -331,7 +342,11 @@ namespace FlashBeat.Gameplay
                 {
                     // A half downloaded file must not be reused as a cache hit later.
                     RemoveProducedFiles(dir, filePrefix);
-                    result.Detail = $"yt-dlp download failed ({run.ErrorSummary})";
+                    // Issue #613: when the token cancelled the run, yt-dlp was
+                    // killed - that is a cancellation, not a download failure.
+                    result.Detail = cancellationToken.IsCancellationRequested
+                        ? "download cancelled"
+                        : $"yt-dlp download failed ({run.ErrorSummary})";
                     return result;
                 }
 
@@ -345,8 +360,16 @@ namespace FlashBeat.Gameplay
 
                 // An empty file cannot be opened by the VideoPlayer and would poison
                 // the cache: reject it here so the next attempt downloads again.
-                long producedBytes = 0;
-                try { producedBytes = new FileInfo(produced).Length; } catch { }
+                // A file that cannot even be stat'ed is reported as such - calling
+                // it "empty" would hide the real I/O failure (issue #613).
+                long producedBytes;
+                try { producedBytes = new FileInfo(produced).Length; }
+                catch (Exception e)
+                {
+                    RemoveProducedFiles(dir, filePrefix);
+                    result.Detail = "cannot inspect the downloaded file: " + e.Message;
+                    return result;
+                }
                 if (producedBytes <= 0)
                 {
                     RemoveProducedFiles(dir, filePrefix);
@@ -501,10 +524,32 @@ namespace FlashBeat.Gameplay
                 // (Option のキャッシュ表示がダウンロード後も古いままになる)。
                 MediaCacheManager.InvalidateSize();
             }
-            catch
+            catch (Exception e)
             {
                 // Without a marker the file simply is not a cache hit - the next
-                // call fetches the media again, nothing breaks.
+                // call fetches the media again, nothing breaks. The warning keeps
+                // a persistent write failure (read-only dir, full disk) visible
+                // instead of silently disabling the cache (issue #613).
+                Debug.LogWarning($"[YouTubeMediaCache] cannot write completion marker for '{mediaPath}': {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Deletes one cache file, ignoring the failure on purpose: cache cleanup
+        /// is best-effort - a file that cannot be deleted (locked by the player,
+        /// read-only) is retried by the next cleanup pass and never blocks the
+        /// caller. The name makes the intent explicit (issue #613); the warning
+        /// keeps a persistent failure visible.
+        /// </summary>
+        static void DeleteBestEffort(string path)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[YouTubeMediaCache] cannot delete '{path}': {e.Message}");
             }
         }
 
@@ -515,8 +560,8 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public static void InvalidateProducedFile(string mediaPath)
         {
-            try { if (File.Exists(mediaPath)) File.Delete(mediaPath); } catch { }
-            try { if (File.Exists(DoneMarkerPath(mediaPath))) File.Delete(DoneMarkerPath(mediaPath)); } catch { }
+            DeleteBestEffort(mediaPath);
+            DeleteBestEffort(DoneMarkerPath(mediaPath));
         }
 
         static string NewestProducedFile(string directory, string filePrefix, bool completedOnly)
@@ -574,14 +619,14 @@ namespace FlashBeat.Gameplay
                         var media = path.Substring(0, path.Length - DoneMarkerSuffix.Length);
                         if (!File.Exists(media) || !IsCompletedCacheFile(media))
                         {
-                            try { File.Delete(path); } catch { }
+                            DeleteBestEffort(path);
                         }
                         continue;
                     }
 
                     // 完了済みファイルは別パイプライン (再生側など) の成果物。
                     if (IsCompletedCacheFile(path)) continue;
-                    try { File.Delete(path); } catch { }
+                    DeleteBestEffort(path);
                 }
             }
             finally
@@ -600,10 +645,15 @@ namespace FlashBeat.Gameplay
                 {
                     var name = Path.GetFileName(path);
                     if (!name.StartsWith(filePrefix, StringComparison.OrdinalIgnoreCase)) continue;
-                    try { File.Delete(path); } catch { }
+                    DeleteBestEffort(path);
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                // The enumeration itself failed - the leftover files are retried
+                // by the next cleanup, but the failure is not silent (issue #613).
+                Debug.LogWarning($"[YouTubeMediaCache] cleanup of '{directory}' aborted: {e.Message}");
+            }
         }
 
         static readonly HashSet<string> MediaExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
