@@ -151,7 +151,11 @@ describe("scoreSemanticsDiagnostics", () => {
   it("accepts scoring versions 1, 2, 3 and an omitted version", () => {
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 1 }, 139), []);
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 2 }, 139), []);
-    assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 3 }, 139), []);
+    // v3 on a no-miss play must report the exact crossing count (Issue #618).
+    assert.deepEqual(
+      scoreSemanticsDiagnostics({ ...request, scoringVersion: 3, comboMilestones: 2 }, 139),
+      [],
+    );
     assert.deepEqual(scoreSemanticsDiagnostics(request, 139), []);
   });
 
@@ -163,19 +167,27 @@ describe("scoreSemanticsDiagnostics", () => {
     }
   });
 
-  it("bound-checks comboMilestones only for scoring version 3 (ADR-0029)", () => {
-    // 139 notes, 139 hits: the bound is floor(139 / 50) = 2.
+  it("verifies comboMilestones exactly when miss is 0 (ADR-0029, Issue #618)", () => {
+    // 139 notes, 139 hits, no miss: the whole play is one unbroken run, so
+    // the crossing count is exactly floor(139 / 50) = 2 — over- and
+    // under-claims are both inconsistent.
     const base = { ...request, maxCombo: 139 };
     assert.deepEqual(
       scoreSemanticsDiagnostics({ ...base, scoringVersion: 3, comboMilestones: 2 }, 139),
       [],
     );
-    // Omitted means 0.
-    assert.deepEqual(scoreSemanticsDiagnostics({ ...base, scoringVersion: 3 }, 139), []);
-
-    const over = scoreSemanticsDiagnostics({ ...base, scoringVersion: 3, comboMilestones: 3 }, 139);
-    assert.equal(over.length, 1);
-    assert.equal(over[0]?.path, "/comboMilestones");
+    for (const comboMilestones of [1, 3]) {
+      const diagnostics = scoreSemanticsDiagnostics(
+        { ...base, scoringVersion: 3, comboMilestones },
+        139,
+      );
+      assert.equal(diagnostics.length, 1, `expected one diagnostic for ${comboMilestones}`);
+      assert.equal(diagnostics[0]?.path, "/comboMilestones");
+    }
+    // Omitted is treated as 0 — also wrong for a no-miss play with hits >= 50.
+    const omitted = scoreSemanticsDiagnostics({ ...base, scoringVersion: 3 }, 139);
+    assert.equal(omitted.length, 1);
+    assert.equal(omitted[0]?.path, "/comboMilestones");
 
     // Versions 1 and 2 ignore the field entirely, however large it is.
     for (const scoringVersion of [1, 2, undefined]) {
@@ -184,6 +196,52 @@ describe("scoreSemanticsDiagnostics", () => {
         [],
       );
     }
+  });
+
+  it("bound-checks comboMilestones against the runs a missed play allows", () => {
+    // 139 notes: 100P + 30G + 8B + 1M (hits 138), maxCombo 60, miss 1.
+    // At most miss + 1 = 2 runs of at most floor(60/50) = 1 crossing each,
+    // and at most floor(138/50) = 2 overall → bound 2.
+    const missed = { ...request, bad: 8, miss: 1, maxCombo: 60 };
+    assert.deepEqual(
+      scoreSemanticsDiagnostics({ ...missed, scoringVersion: 3, comboMilestones: 2 }, 139),
+      [],
+    );
+    const over = scoreSemanticsDiagnostics(
+      { ...missed, scoringVersion: 3, comboMilestones: 3 },
+      139,
+    );
+    assert.equal(over.length, 1);
+    assert.equal(over[0]?.path, "/comboMilestones");
+  });
+
+  it("rejects milestone claims that need longer runs than maxCombo allows", () => {
+    // The reported exploit shape (Issue #618): hits split by a miss so no
+    // run reaches 50 combo, yet a crossing is claimed. With maxCombo 30
+    // and 1 miss, at most (1 + 1) * floor(30/50) = 0 crossings are
+    // possible; the old floor(hits/50) = 2 bound accepted the claim.
+    // (The aggregates still cannot prove the run structure — this is the
+    // tightest bound they allow, see ADR-0029.)
+    const missed = { ...request, bad: 8, miss: 1, maxCombo: 30 };
+    const diagnostics = scoreSemanticsDiagnostics(
+      { ...missed, scoringVersion: 3, comboMilestones: 1 },
+      139,
+    );
+    assert.equal(diagnostics.length, 1);
+    assert.equal(diagnostics[0]?.path, "/comboMilestones");
+  });
+
+  it("rejects a v3 maxCombo above the hit count", () => {
+    // Combo only grows on head hits: 138 hits can never reach maxCombo 139
+    // (the note-count bound of 139 still passes, so this is the tighter
+    // scoringVersion-3 check).
+    const missed = { ...request, bad: 8, miss: 1, maxCombo: 139 };
+    const diagnostics = scoreSemanticsDiagnostics({ ...missed, scoringVersion: 3 }, 139);
+    assert.equal(diagnostics.length, 1);
+    assert.equal(diagnostics[0]?.path, "/maxCombo");
+
+    // Versions 1 and 2 keep the note-count bound only.
+    assert.deepEqual(scoreSemanticsDiagnostics({ ...missed, scoringVersion: 2 }, 139), []);
   });
 });
 

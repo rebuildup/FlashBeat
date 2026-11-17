@@ -68,13 +68,16 @@ namespace FlashBeat.UI.V6.Result
         /// 各ボーナスは常に "+値"、未達のものは "–" を返す。値は ratio points
         /// をスコア点へ換算した目安で、送信フィールドではない (サーバは内訳を
         /// 信用せず再計算する)。
+        /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
+        /// the full-combo end bonus only shows once every chart note was
+        /// judged (Issue #618).
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
-            int comboMilestones, int noteCount,
+            int comboMilestones, int noteCount, bool judgmentsComplete,
             out string comboBonus, out string milestoneBonus, out string noMissBonus, out string finalBonus)
         {
             Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
-                perfect, great, bad, miss, maxCombo, comboMilestones, noteCount);
+                perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
             comboBonus = "+" + FormatScore(Scoring.ComponentScoreV3(v3.ComboBonus, noteCount));
             milestoneBonus = v3.MilestoneBonus > 0
                 ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.MilestoneBonus, noteCount))

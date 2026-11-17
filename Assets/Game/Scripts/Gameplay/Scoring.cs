@@ -25,7 +25,11 @@ namespace FlashBeat.Gameplay
     ///   milestoneBonus = comboMilestones * 25     (one crossing per
     ///                                            MilestoneInterval combo;
     ///                                            crossings recur after a break)
-    ///   finalBonus     = miss == 0 ? 100 : 0      (awarded at song end)
+    ///   finalBonus     = judgmentsComplete && miss == 0 ? 100 : 0
+    ///                    (vests once every chart note has been judged —
+    ///                    the end-of-play condition the server can verify
+    ///                    via perfect+great+bad+miss == noteCount; it is
+    ///                    never part of the live in-progress projection)
     ///   maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
     ///
     /// The float order mirrors the server recomputation in
@@ -151,7 +155,10 @@ namespace FlashBeat.Gameplay
             public int NoMissBonus;
             /// <summary>comboMilestones * 25. Crossings recur after a combo break.</summary>
             public int MilestoneBonus;
-            /// <summary>100 while miss == 0, else 0 (awarded at song end).</summary>
+            /// <summary>
+            /// 100 while judgmentsComplete && miss == 0, else 0. Vests only
+            /// once every chart note has been judged (Issue #618).
+            /// </summary>
             public int FinalBonus;
             /// <summary>judgment + all bonuses (single-precision).</summary>
             public float RatioScore;
@@ -162,17 +169,20 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// The v3 components of a play. `noteCount` is the chart's note
         /// count; `comboMilestones` is the number of milestone crossings the
-        /// session recorded (see JudgeScoreboard.MilestoneCrossings).
+        /// session recorded (see JudgeScoreboard.MilestoneCrossings);
+        /// `judgmentsComplete` tells whether every chart note has been
+        /// judged (perfect + great + bad + miss == noteCount) — the end-of-
+        /// play condition the full-combo bonus vests on (Issue #618).
         /// </summary>
         public static V3Breakdown BreakdownV3(int perfect, int great, int bad, int miss,
-            int maxCombo, int comboMilestones, int noteCount)
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
         {
             float judgment = perfect * 5f + great * 3f + bad;
             int comboBonus = maxCombo * 5;
             int hits = perfect + great + bad;
             int noMissBonus = miss == 0 ? hits * 5 : 0;
             int milestoneBonus = comboMilestones * MilestoneBonusPoints;
-            int finalBonus = miss == 0 ? FullComboBonusPoints : 0;
+            int finalBonus = judgmentsComplete && miss == 0 ? FullComboBonusPoints : 0;
             // Sum in double and round once: identical to the server's
             // Math.fround(judgment + comboBonus + noMissBonus + milestoneBonus + finalBonus).
             float ratio = (float)((double)judgment + comboBonus + noMissBonus
@@ -189,11 +199,15 @@ namespace FlashBeat.Gameplay
             };
         }
 
-        /// <summary>The v3 score (0..1,000,000) of a play, via Judge.ComputeScore.</summary>
+        /// <summary>
+        /// The v3 score (0..1,000,000) of a play, via Judge.ComputeScore.
+        /// `judgmentsComplete` has the same meaning as in
+        /// <see cref="BreakdownV3"/>.
+        /// </summary>
         public static int ScoreV3(int perfect, int great, int bad, int miss,
-            int maxCombo, int comboMilestones, int noteCount)
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
         {
-            V3Breakdown b = BreakdownV3(perfect, great, bad, miss, maxCombo, comboMilestones, noteCount);
+            V3Breakdown b = BreakdownV3(perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
             return Judge.ComputeScore(b.RatioScore, b.MaxRatio);
         }
 

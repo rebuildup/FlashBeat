@@ -878,6 +878,25 @@ describe("POST /api/v1/scores", () => {
     assert.equal(rejected.diagnostics[0]?.path, "/comboMilestones");
   });
 
+  it("answers 422 when milestone crossings exceed what the missed runs allow", async () => {
+    // Issue #618: 139-note Who chart, 100P + 30G + 8B + 1M (hits 138),
+    // maxCombo 30, 1 miss. At most (1 + 1) * floor(30/50) = 0 crossings
+    // are possible, so the claim is rejected — the old floor(hits/50) = 2
+    // bound accepted it.
+    const response = await submit(
+      submission(
+        "who",
+        1,
+        "MS Runs",
+        { perfect: 100, great: 30, bad: 8, miss: 1 },
+        { maxCombo: 30, comboMilestones: 1, scoringVersion: 3 },
+      ),
+    );
+    assert.equal(response.status, 422);
+    const rejected = (await response.json()) as { diagnostics: { path: string }[] };
+    assert.equal(rejected.diagnostics[0]?.path, "/comboMilestones");
+  });
+
   it("ignores comboMilestones for scoring versions 1 and 2", async () => {
     // zz-second-song v1 has 1 note; the v1 formula cannot use the field, so
     // an absurd count is accepted and the score is the plain v1 one.

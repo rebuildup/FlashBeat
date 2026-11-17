@@ -430,8 +430,19 @@ public class GManager : MonoBehaviour
     public static int comboMilestones;
     /// <summary>節目ボーナス合計 (ratio points = comboMilestones * 25)。</summary>
     public static int milestoneBonus;
-    /// <summary>フルコンボ終了ボーナス (miss == 0 のとき 100、ratio points)。</summary>
+    /// <summary>
+    /// フルコンボ終了ボーナス (miss == 0 かつ全ノーツ判定確定のとき 100、
+    /// ratio points)。確定は曲終了時に一度だけ (Issue #618)。
+    /// </summary>
     public static int finalBonus;
+
+    /// <summary>
+    /// 全ノーツの判定が確定したか (perfect + great + bad + miss == 譜面
+    /// ノーツ数)。Judge が FlushScore のたびに書く。scoring v3 の
+    /// フルコンボ終了ボーナスの確定条件で、結果画面の内訳表示もこれを読む
+    /// (Issue #618)。
+    /// </summary>
+    public static bool judgmentsComplete;
 
     public static float MainSound;
     public static float EffectSound;
@@ -495,6 +506,7 @@ public class GManager : MonoBehaviour
         comboMilestones = 0;
         milestoneBonus = 0;
         finalBonus = 0;
+        judgmentsComplete = false;
         settledNoteCount = 0;
         BeginPlaySession();
     }

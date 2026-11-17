@@ -256,6 +256,7 @@ namespace FlashBeat.UI.V6.Result
             int noteCount = runPerfect + runGreat + runBad + runMiss;
             V6ResultLogic.BonusBreakdownTexts(
                 runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones, noteCount,
+                GManager.judgmentsComplete,
                 out string comboBonusText, out string milestoneBonusText,
                 out string noMissBonusText, out string finalBonusText);
             bonusValues[0].text = comboBonusText;

@@ -180,7 +180,7 @@ public class ScoringV2Tests
         // comboBonus = 40 ratio → ComponentScoreV3(40,10) = round(1e6*40/250)=160,000
         // (MaxRatioV3(10) = 150 + 0 + 100 = 250)
         // noMissBonus / milestoneBonus / finalBonus = 0 (miss>0, milestones=0) → "–"
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8, 0, 10,
+        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8, 0, 10, true,
             out string comboText, out string milestoneText, out string noMissText, out string finalText);
         Assert.AreEqual("+160,000", comboText);
         Assert.AreEqual("–", milestoneText);
@@ -192,7 +192,7 @@ public class ScoringV2Tests
     public void ResultBreakdown_NoMissBonusShownOnlyWhenEarned()
     {
         // miss=0 なら noMissBonus = (P+G+B)*5 と finalBonus = 100 が出る (v3)。
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9,
+        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9, true,
             out string comboText, out string milestoneText, out string noMissText, out string finalText);
         Assert.IsTrue(noMissText.StartsWith("+"), "ノーミスボーナスが出ていない: " + noMissText);
         // noteCount=9 → MaxRatioV3(9)=135+0+100=235,
