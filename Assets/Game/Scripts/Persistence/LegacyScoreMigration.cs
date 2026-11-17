@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FlashBeat.Gameplay;
 
 namespace FlashBeat.Persistence
 {
@@ -86,7 +87,9 @@ namespace FlashBeat.Persistence
                 {
                     // A built-in song: the order of the built-in table is a
                     // constant of the game, so the slot is known.
-                    var key = new ScoreKey(ScoreKey.BuiltInSongKey(slot), 0);
+                    // ADR-0028: 移行される記録は v1 のスコアなので、
+                    // scoringVersion=1 (bare key) として保存する。
+                    var key = new ScoreKey(ScoreKey.BuiltInSongKey(slot), 0, Scoring.Version1);
                     int current = store.Get(key);
                     if (score > current) store.Submit(key, score);
                     continue;

@@ -43,7 +43,9 @@ public class GManager : MonoBehaviour
 {
     public static GManager instance = null;
 
+    /// <summary>v2 の満点 ratio (= noteCount * 15, ADR-0028)。NotesManager が譜面読込時に書く。</summary>
     public static float maxScore;
+    /// <summary>v2 の現在 ratio (判定 + コンボ + ノーミス)。Judge が毎フレーム書く。</summary>
     public static float ratioScore;
 
     public static int songID = 1;
@@ -414,6 +416,14 @@ public class GManager : MonoBehaviour
     public static int bad;
     public static int miss;
 
+    /// <summary>
+    /// scoring v2 (ADR-0028 / Issue #577) の加点内訳 (ratio points)。
+    /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
+    /// 送信フィールドには含めない (サーバは P/G/B/M/maxCombo から再計算する)。
+    /// </summary>
+    public static int comboBonus;
+    public static int noMissBonus;
+
     public static float MainSound;
     public static float EffectSound;
 
@@ -471,6 +481,8 @@ public class GManager : MonoBehaviour
         maxCombo = 0;
         maxScore = 0;
         ratioScore = 0;
+        comboBonus = 0;
+        noMissBonus = 0;
         settledNoteCount = 0;
         BeginPlaySession();
     }

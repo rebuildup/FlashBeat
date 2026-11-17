@@ -34,7 +34,7 @@ using FlashBeat.UI.V6.Select.View;
 ///   b. HOLD のノーツ実体が存在し、胴体 (holdSeconds) が伸びている。
 ///   c. HOLD の先頭が判定され、終端フェーズ (保持の終了) まで到達している。
 ///   d. スコア / コンボがタップだけの譜面 (−) と **違う** 値になる
-///      (maxScore = 7 x 5 = 35, スコア > 0, コンボ > 0)。
+///      (maxScore = 7 x 15 = 105, スコア > 0, コンボ > 0)。
 ///   e. HOLD の胴体が描画されている (レンダラーが見えている / 長さが伸びている)。
 ///      保持中のスクリーンショットも撮る。
 ///   f. 曲終了 → ResultScene まで到達する。
@@ -332,8 +332,8 @@ public class AutoTestV6Hold : MonoBehaviour
               probeHoldCount == HoldProbeChart.HoldCount);
         Check("the probe chart has " + HoldProbeChart.TapCount + " tap notes",
               probeTapCount == HoldProbeChart.TapCount);
-        Check("the score ceiling follows the probe chart (maxScore == notes x 5)",
-              GManager.maxScore == HoldProbeChart.TotalNotes * 5);
+        Check("the score ceiling follows the probe chart (maxScore == notes x 15)",
+              GManager.maxScore == HoldProbeChart.TotalNotes * Scoring.MaxRatioPerNoteV2);
 
         // b. HOLD のノーツ実体と胴体 (holdSeconds)。
         InspectHoldInstances(notes);
@@ -437,8 +437,8 @@ public class AutoTestV6Hold : MonoBehaviour
         Check("the score is greater than zero", GManager.score > 0);
         Check("the combo rises above zero during the playback", comboPeak > 0);
         Check("the peak combo is recorded", GManager.maxCombo > 0);
-        Check("the score is not the tap-only score (maxScore == 35, not the catalog chart)",
-              GManager.maxScore == HoldProbeChart.TotalNotes * 5);
+        Check("the score is not the tap-only score (maxScore == 105, not the catalog chart)",
+              GManager.maxScore == HoldProbeChart.TotalNotes * Scoring.MaxRatioPerNoteV2);
 
         // c. HOLD の判定: 先頭が当たり、終端フェーズまで到達している。
         Check("all HOLD notes reached their end phase", holdEndedCount == HoldProbeChart.HoldCount);

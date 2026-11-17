@@ -42,6 +42,8 @@ namespace FlashBeat.UI.V6.Result
         private readonly TextMeshProUGUI[] judgeValues = new TextMeshProUGUI[5];
         private Image gaugeFill;
         private Image gaugeBestMarker;
+        private TextMeshProUGUI bonusComboValue;
+        private TextMeshProUGUI bonusNoMissValue;
         private TextMeshProUGUI songTitle;
         private TextMeshProUGUI songArtist;
         private readonly TextMeshProUGUI[] songStatValues = new TextMeshProUGUI[4];
@@ -143,6 +145,40 @@ namespace FlashBeat.UI.V6.Result
             }
         }
 
+        // ボーナス内訳 (ADR-0028 / Issue #577): 判定行 (0,448 h140 → 588 終了)
+        // と楽曲情報 (SongInfoY=636) の隙間に置く 1 行。
+        private const float BonusLineY = 592f;
+        private const float BonusLineH = 40f;
+
+        /// <summary>
+        /// scoring v2 のボーナス内訳行。コンボ継続ボーナスとノーミスボーナスの
+        /// スコア点換算を出す (実際の加点であり、近似表示ではない)。
+        /// </summary>
+        private void BuildBonusLine(GameObject main)
+        {
+            var row = V6Layout.Place(V5Ui.Node(main, "Bonus Line"), 0f, BonusLineY, 840f, BonusLineH);
+
+            var label = V5GameUi.Text(row.gameObject, "Label", "BONUS", 18f, V5Tokens.TextDim,
+                TextAlignmentOptions.Left);
+            V6Layout.Place(label, 0f, 8f, 110f, 28f, new Vector2(0f, 0.5f));
+
+            var comboLabel = V5GameUi.Text(row.gameObject, "Combo Bonus Label", "COMBO BONUS", 16f,
+                V5Tokens.TextDim, TextAlignmentOptions.Left);
+            V6Layout.Place(comboLabel, 120f, 10f, 180f, 24f, new Vector2(0f, 0.5f));
+            bonusComboValue = OneLine(V5GameUi.Text(row.gameObject, "Combo Bonus Value", "+0", 26f,
+                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
+            V6Layout.Place(bonusComboValue, 300f, 2f, 200f, 36f, new Vector2(0f, 0.5f));
+
+            var noMissLabel = V5GameUi.Text(row.gameObject, "No Miss Bonus Label", "NO-MISS BONUS", 16f,
+                V5Tokens.TextDim, TextAlignmentOptions.Left);
+            V6Layout.Place(noMissLabel, 510f, 10f, 190f, 24f, new Vector2(0f, 0.5f));
+            bonusNoMissValue = OneLine(V5GameUi.Text(row.gameObject, "No Miss Bonus Value", "–", 26f,
+                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
+            V6Layout.Place(bonusNoMissValue, 700f, 2f, 140f, 36f, new Vector2(0f, 0.5f));
+
+            lateGroups.Add(FadeGroup(row));
+        }
+
         // 楽曲情報 (0,636) 840x120: Thumb + Title/Artist + BPM/NOTES/LEVEL/曲長。
         // 寸法は V6ResultLogic.SongInfo* (テストと共有)。
 
@@ -213,6 +249,14 @@ namespace FlashBeat.UI.V6.Result
             judgeValues[2].text = runBad.ToString();
             judgeValues[3].text = runMiss.ToString();
             judgeValues[4].text = runMaxCombo.ToString();
+
+            // scoring v2 のボーナス内訳 (ADR-0028)。ノーツ数は確定済みの
+            // 判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
+            V6ResultLogic.BonusBreakdownTexts(
+                runPerfect, runGreat, runBad, runMiss, runMaxCombo,
+                out string comboBonusText, out string noMissBonusText);
+            bonusComboValue.text = comboBonusText;
+            bonusNoMissValue.text = noMissBonusText;
 
             float fill = V6ResultLogic.GaugeFillWidth(score);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);

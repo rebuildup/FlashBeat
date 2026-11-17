@@ -32,10 +32,19 @@ namespace FlashBeat.Persistence
         /// <summary>The chart version the score belongs to (0 = unknown).</summary>
         public readonly int chartVersion;
 
-        public ScoreKey(string songId, int chartVersion)
+        /// <summary>
+        /// The scoring formula version the score was computed with
+        /// (ADR-0028, Issue #577). 1 = the legacy formula, 2 = the v2 formula
+        /// (combo continuation + no-miss bonus). v1 and v2 records are never
+        /// overwritten or ranked together.
+        /// </summary>
+        public readonly int scoringVersion;
+
+        public ScoreKey(string songId, int chartVersion, int scoringVersion = 1)
         {
             this.songId = songId ?? string.Empty;
             this.chartVersion = chartVersion;
+            this.scoringVersion = scoringVersion;
         }
 
         /// <summary>
@@ -54,13 +63,21 @@ namespace FlashBeat.Persistence
         /// <summary>
         /// The text form of the key, as it is written to the save file.
         ///
-        /// The format is `<songId>@<chartVersion>`. The separator `@` cannot
-        /// appear in a cloud song id (the API only accepts `^[a-z0-9-]{3,64}$`)
-        /// nor in a built-in key, so the form is unambiguous.
+        /// The format is `<songId>@<chartVersion>` for a v1 record and
+        /// `<songId>@<chartVersion>@<scoringVersion>` for any other version
+        /// (ADR-0028). The separator `@` cannot appear in a cloud song id
+        /// (the API only accepts `^[a-z0-9-]{3,64}$`) nor in a built-in key,
+        /// so the form is unambiguous. A bare two-part key reads as v1, which
+        /// is what every record written before scoring v2 meant.
         /// </summary>
         public string ToStorageString()
         {
-            return songId + "@" + chartVersion.ToString(CultureInfo.InvariantCulture);
+            string text = songId + "@" + chartVersion.ToString(CultureInfo.InvariantCulture);
+            if (scoringVersion != 1)
+            {
+                text += "@" + scoringVersion.ToString(CultureInfo.InvariantCulture);
+            }
+            return text;
         }
 
         /// <summary>
@@ -74,11 +91,22 @@ namespace FlashBeat.Persistence
             key = new ScoreKey(string.Empty, 0);
             if (string.IsNullOrEmpty(text)) return false;
 
-            int separator = text.LastIndexOf('@');
-            if (separator <= 0 || separator >= text.Length - 1) return false;
+            // songId は '@' を含まないので、最初の '@' が songId と
+            // バージョン部の境界。残りは "<chartVersion>" か
+            // "<chartVersion>@<scoringVersion>"。
+            int firstSeparator = text.IndexOf('@');
+            if (firstSeparator <= 0 || firstSeparator >= text.Length - 1) return false;
 
-            string songId = text.Substring(0, separator);
-            string versionText = text.Substring(separator + 1);
+            string songId = text.Substring(0, firstSeparator);
+            string rest = text.Substring(firstSeparator + 1);
+
+            int secondSeparator = rest.IndexOf('@');
+            string versionText = secondSeparator < 0 ? rest : rest.Substring(0, secondSeparator);
+            string scoringText = secondSeparator < 0 ? null : rest.Substring(secondSeparator + 1);
+            if (versionText.Length == 0 || (scoringText != null && scoringText.Length == 0))
+            {
+                return false;
+            }
 
             int version;
             if (!int.TryParse(versionText, NumberStyles.Integer, CultureInfo.InvariantCulture, out version))
@@ -87,14 +115,24 @@ namespace FlashBeat.Persistence
             }
             if (version < 0) return false;
 
-            key = new ScoreKey(songId, version);
+            // 省略時は v1 (ADR-0028: 旧クライアント互換と同じ規則)。
+            int scoringVersion = 1;
+            if (scoringText != null
+                && !int.TryParse(scoringText, NumberStyles.Integer, CultureInfo.InvariantCulture, out scoringVersion))
+            {
+                return false;
+            }
+            if (scoringVersion < 1) return false;
+
+            key = new ScoreKey(songId, version, scoringVersion);
             return true;
         }
 
         public bool Equals(ScoreKey other)
         {
             return string.Equals(songId, other.songId, StringComparison.Ordinal)
-                && chartVersion == other.chartVersion;
+                && chartVersion == other.chartVersion
+                && scoringVersion == other.scoringVersion;
         }
 
         public override bool Equals(object obj)
@@ -107,7 +145,8 @@ namespace FlashBeat.Persistence
             unchecked
             {
                 int hash = songId != null ? songId.GetHashCode() : 0;
-                return (hash * 397) ^ chartVersion;
+                hash = (hash * 397) ^ chartVersion;
+                return (hash * 397) ^ scoringVersion;
             }
         }
 

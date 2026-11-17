@@ -354,6 +354,7 @@ namespace FlashBeat.UI.V6.Result
             BuildResultBlock(main);
             BuildGauge(main);
             BuildJudgements(main);
+            BuildBonusLine(main);
             BuildSongInfo(main);
             BuildSongRanking(main);
             BuildPlayerRanking(main);

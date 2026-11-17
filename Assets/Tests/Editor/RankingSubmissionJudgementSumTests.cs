@@ -116,8 +116,12 @@ public class RankingSubmissionJudgementSumTests
         int sum = payload.perfect + payload.great + payload.bad + payload.miss;
         Assert.AreEqual(NoteCount, sum, "送信する判定数の合計が noteCount と一致しない");
 
-        // API は score も再計算して照合する。単精度の式なのでクライアントの値と一致する。
-        Assert.AreEqual(ApiRecomputedScore(payload.perfect, payload.great, payload.bad, NoteCount),
+        // API は score も scoringVersion の式で再計算して照合する
+        // (ADR-0028: payload.scoringVersion=2 なので v2 の式)。
+        Assert.AreEqual(Scoring.LatestVersion, payload.scoringVersion,
+            "送信する scoringVersion が最新 (v2) でない");
+        Assert.AreEqual(ApiRecomputedScore(payload.perfect, payload.great, payload.bad,
+                payload.miss, payload.maxCombo, NoteCount),
             payload.score, "送信する score が API の再計算と一致しない");
 
         // サーバが 201 を返したときは「登録成功」。
@@ -206,13 +210,18 @@ public class RankingSubmissionJudgementSumTests
 
     /// <summary>
     /// API が再計算するスコア (web/routes/api/v1/_score-model.ts の
-    /// <c>computeUnityScore</c> と同じ単精度の式)。
+    /// <c>computeUnityScoreV2</c>、ADR-0028 の v2 式)。クライアント側の
+    /// <see cref="Scoring.ScoreV2"/> と同じ単精度の手順で独立に計算する。
     /// </summary>
-    private static int ApiRecomputedScore(int perfect, int great, int bad, int noteCount)
+    private static int ApiRecomputedScore(int perfect, int great, int bad, int miss,
+        int maxCombo, int noteCount)
     {
-        if (noteCount * 5 <= 0) return 0;
-        float maxScore = noteCount * 5f;
-        float ratioScore = perfect * 5f + great * 3f + bad;
+        if (noteCount * 15 <= 0) return 0;
+        float maxScore = noteCount * 15f;
+        float judgment = perfect * 5f + great * 3f + bad;
+        float comboBonus = maxCombo * 5f;
+        float noMissBonus = miss == 0 ? (perfect + great + bad) * 5f : 0f;
+        float ratioScore = (float)((double)judgment + comboBonus + noMissBonus);
         float ratio = ratioScore / maxScore;
         float scaled = ratio * 1000000f;
         float floored = Mathf.Floor(scaled);

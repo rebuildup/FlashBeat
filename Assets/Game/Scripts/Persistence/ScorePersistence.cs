@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using FlashBeat.Gameplay;
 
 namespace FlashBeat.Persistence
 {
@@ -92,15 +93,20 @@ namespace FlashBeat.Persistence
         /// by its slot in the fixed built-in table. `catalogIndex` is only
         /// used for the last-resort fallback of a song that has no identity
         /// at all; it never becomes the key of a real song.
+        ///
+        /// `scoringVersion` separates the records of the scoring formulas
+        /// (ADR-0028): new plays use <see cref="Scoring.LatestVersion"/>; the
+        /// legacy migration passes <see cref="Scoring.Version1"/> explicitly
+        /// so migrated records keep their v1 meaning.
         /// </summary>
-        public static ScoreKey KeyOf(SongData song, int catalogIndex)
+        public static ScoreKey KeyOf(SongData song, int catalogIndex, int scoringVersion = Scoring.LatestVersion)
         {
             // A cloud song is its cloud song id (with the chart version, so
             // a new chart version is a new key, R4).
             if (song != null && !string.IsNullOrEmpty(song.remoteId))
             {
                 int version = song.isRemote ? song.chartVersion : 0;
-                return new ScoreKey(song.remoteId, version);
+                return new ScoreKey(song.remoteId, version, scoringVersion);
             }
 
             // A built-in song is its slot in the fixed built-in table (a
@@ -109,7 +115,7 @@ namespace FlashBeat.Persistence
             int builtInSlot = BuiltInSlotOf(song);
             if (builtInSlot >= 0)
             {
-                return new ScoreKey(ScoreKey.BuiltInSongKey(builtInSlot), 0);
+                return new ScoreKey(ScoreKey.BuiltInSongKey(builtInSlot), 0, scoringVersion);
             }
 
             // A song with no cloud id that is not in the built-in table: the
@@ -118,7 +124,7 @@ namespace FlashBeat.Persistence
             // exists (R1).
             if (song != null && !string.IsNullOrEmpty(song.videoId))
             {
-                return new ScoreKey(VideoSongKey(song.videoId), 0);
+                return new ScoreKey(VideoSongKey(song.videoId), 0, scoringVersion);
             }
 
             // No identity at all (a null song, an out of range index): the
@@ -126,7 +132,7 @@ namespace FlashBeat.Persistence
             // deterministic. No legacy slot is ever mapped this way — the
             // migration only maps the slots of the built-in table — so
             // nothing is guessed about a real song (R5).
-            return new ScoreKey(UnknownSongKey(catalogIndex), 0);
+            return new ScoreKey(UnknownSongKey(catalogIndex), 0, scoringVersion);
         }
 
         /// <summary>The songId of a song that is only known by its video id.</summary>
@@ -148,10 +154,10 @@ namespace FlashBeat.Persistence
         /// <summary>
         /// The stable key of the song at the given position of the catalog.
         /// </summary>
-        public static ScoreKey KeyOfCatalogIndex(int catalogIndex)
+        public static ScoreKey KeyOfCatalogIndex(int catalogIndex, int scoringVersion = Scoring.LatestVersion)
         {
             SongData song = CatalogSongAt(catalogIndex);
-            return KeyOf(song, catalogIndex);
+            return KeyOf(song, catalogIndex, scoringVersion);
         }
 
         /// <summary>
@@ -297,10 +303,10 @@ namespace FlashBeat.Persistence
         /// <summary>
         /// The best score of a song of the catalog.
         /// </summary>
-        public static int BestOf(int catalogIndex)
+        public static int BestOf(int catalogIndex, int scoringVersion = Scoring.LatestVersion)
         {
             if (current == null) Load();
-            return current.Get(KeyOfCatalogIndex(catalogIndex));
+            return current.Get(KeyOfCatalogIndex(catalogIndex, scoringVersion));
         }
 
         /// <summary>
@@ -308,10 +314,10 @@ namespace FlashBeat.Persistence
         ///
         /// Returns true when the record was beaten.
         /// </summary>
-        public static bool SubmitForCatalogIndex(int catalogIndex, int score)
+        public static bool SubmitForCatalogIndex(int catalogIndex, int score, int scoringVersion = Scoring.LatestVersion)
         {
             if (current == null) Load();
-            bool beaten = current.Submit(KeyOfCatalogIndex(catalogIndex), score);
+            bool beaten = current.Submit(KeyOfCatalogIndex(catalogIndex, scoringVersion), score);
             if (beaten) Save();
             return beaten;
         }
