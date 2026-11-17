@@ -889,6 +889,9 @@ public class AutoTestV6Hold : MonoBehaviour
     {
         shot++;
         string path = Path.Combine(outDir, string.Format("autotest-v6hold-{0:00}-{1}.png", shot, name));
+        // 決定的ファイル名なので、出力 dir の再利用で前回の残りを
+        // 撮影成功と誤認しうる。撮影前に消す (#563)。
+        try { if (File.Exists(path)) { File.Delete(path); } } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
         return path;
     }

@@ -704,6 +704,9 @@ public class AutoTestV6Screens : MonoBehaviour
         yield return new WaitForEndOfFrame();
         shot++;
         string path = Path.Combine(outDir, "v6screen-" + label + "-" + shot + ".png");
+        // 決定的ファイル名なので、出力 dir の再利用で前回の残りを
+        // 撮影成功と誤認しうる。撮影前に消す (#563)。
+        try { if (File.Exists(path)) { File.Delete(path); } } catch (Exception) { }
         ScreenCapture.CaptureScreenshot(path);
         // 書き込みは非同期。負荷の高い実機では 0.6 秒を超えることがあるので
         // 上限付きで存在を待つ (Issue #374: 連続撮影で FAIL しないように)。
