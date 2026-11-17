@@ -26,7 +26,9 @@ param(
     [Parameter(Mandatory = $true)][string]$TargetInstallDir,
     [Parameter(Mandatory = $true)][string]$TargetZipPath,
     [Parameter(Mandatory = $true)][string]$TargetSha256,
-    [Parameter(Mandatory = $true)][string]$TargetLogPath
+    [Parameter(Mandatory = $true)][string]$TargetLogPath,
+    [string]$TargetResultDir = '',
+    [string]$TargetLogDir = ''
 )
 
 $ErrorActionPreference = 'Continue'
@@ -42,6 +44,14 @@ function Get-Process {
 }
 
 # Update.ps1 の関数とパラメータを取り込む (本体は dot-source 時には走らない)。
-. $UpdateScript -InstallDir $TargetInstallDir -ZipPath $TargetZipPath -ExpectedSha256 $TargetSha256 -LogPath $TargetLogPath
+$dotSourceArgs = @{
+    InstallDir   = $TargetInstallDir
+    ZipPath      = $TargetZipPath
+    ExpectedSha256 = $TargetSha256
+    LogPath      = $TargetLogPath
+}
+if ($TargetResultDir) { $dotSourceArgs['ResultDir'] = $TargetResultDir }
+if ($TargetLogDir) { $dotSourceArgs['LogDir'] = $TargetLogDir }
+. $UpdateScript @dotSourceArgs
 
 Invoke-FlashBeatUpdateMain

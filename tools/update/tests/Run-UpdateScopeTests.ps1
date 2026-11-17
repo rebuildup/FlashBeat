@@ -96,13 +96,16 @@ try {
     Assert-True 'T17 manifest が無い退避は所有ではない' ($ownerNone.Owned -eq $false)
 
     # ── T18-T25: 同じ親フォルダに 2 つのインストール (回帰テスト) ──────
+    # issue #574: 退避の置き場所は <parent>\.flashbeat-update\backup\ に集約された。
+    $backupRoot = Join-Path $tempRoot '.flashbeat-update\backup'
+    New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
     $runA1 = '20261108-010101-1111-aaaaaa'
     $runA2 = '20261108-020202-2222-bbbbbb'
     $runB1 = '20261108-030303-3333-cccccc'
-    $backupA1 = Join-Path $tempRoot (New-FlashBeatBackupName -InstallKey $identityA.InstallKey -RunId $runA1)
-    $backupA2 = Join-Path $tempRoot (New-FlashBeatBackupName -InstallKey $identityA.InstallKey -RunId $runA2)
-    $backupB1 = Join-Path $tempRoot (New-FlashBeatBackupName -InstallKey $identityB.InstallKey -RunId $runB1)
-    $legacyBackup = Join-Path $tempRoot 'FlashBeat-backup-20261107-013942'
+    $backupA1 = Join-Path $backupRoot (New-FlashBeatBackupName -InstallKey $identityA.InstallKey -RunId $runA1)
+    $backupA2 = Join-Path $backupRoot (New-FlashBeatBackupName -InstallKey $identityA.InstallKey -RunId $runA2)
+    $backupB1 = Join-Path $backupRoot (New-FlashBeatBackupName -InstallKey $identityB.InstallKey -RunId $runB1)
+    $legacyBackup = Join-Path $backupRoot 'FlashBeat-backup-20261107-013942'
     foreach ($dir in @($backupA1, $backupA2, $backupB1, $legacyBackup)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
@@ -110,8 +113,8 @@ try {
     Write-FlashBeatOwnerManifest -BackupDir $backupA2 -Identity $identityA -RunId $runA2 -Version '0.1.14' | Out-Null
     Write-FlashBeatOwnerManifest -BackupDir $backupB1 -Identity $identityB -RunId $runB1 -Version '0.1.14' | Out-Null
 
-    $candidates = Get-FlashBeatBackupCandidates -ParentDir $tempRoot
-    Assert-Equal 'T18 退避候補を親フォルダから集める' 4 @($candidates).Count
+    $candidates = Get-FlashBeatBackupCandidates -ParentDir $backupRoot
+    Assert-Equal 'T18 退避候補を backup 領域から集める' 4 @($candidates).Count
 
     # A の更新 (今回の退避は A2) としてクリーンアップ対象を決める。
     $selectionA = Select-FlashBeatStaleBackups -Candidates $candidates -Identity $identityA -CurrentBackupPath $backupA2
@@ -129,10 +132,58 @@ try {
     Assert-True 'T25 旧形式の退避は残る' (Test-Path -LiteralPath $legacyBackup)
 
     # B の更新 (今回の退避は B1) では、A の退避にも触れない。
-    $selectionB = Select-FlashBeatStaleBackups -Candidates (Get-FlashBeatBackupCandidates -ParentDir $tempRoot) -Identity $identityB -CurrentBackupPath $backupB1
+    $selectionB = Select-FlashBeatStaleBackups -Candidates (Get-FlashBeatBackupCandidates -ParentDir $backupRoot) -Identity $identityB -CurrentBackupPath $backupB1
     Assert-True 'T26 副次インストールのクリーンアップは何も削除しない' (@($selectionB.Deletable).Count -eq 0)
     Assert-True 'T27 副次インストールの退避は残る' (Test-Path -LiteralPath $backupB1)
     Assert-True 'T28 副次インストールの退避は「他名前空間」として保持される' (@($selectionB.Kept | Where-Object { $_.Path -eq $backupA2 }).Count -eq 1)
+
+    # ── T29-T31: 作業フォルダ名の名前空間 (issue #574) ────────────────
+    $workOwn = 'FlashBeat-update-work-flashbeat-20260101-000000-1234-aaaaaa'
+    $workOther = 'FlashBeat-update-work-flashbeat-0.1.14-20260101-000000-1234-bbbbbb'
+    $workLegacy = 'FlashBeat-update-work-20260101-000000'
+    Assert-True 'T29 自分の作業フォルダ名は自名前空間内' (Test-FlashBeatScopedWorkName -Name $workOwn -InstallKey 'flashbeat')
+    Assert-True 'T30 他インストールの作業フォルダ名は自名前空間外' (-not (Test-FlashBeatScopedWorkName -Name $workOther -InstallKey 'flashbeat'))
+    Assert-True 'T31 旧形式の作業フォルダ名は自名前空間外' (-not (Test-FlashBeatScopedWorkName -Name $workLegacy -InstallKey 'flashbeat'))
+
+    # ── T32-T40: 旧レイアウト残骸の整理 (issue #574) ─────────────────
+    # 所有が確認できるものだけ移動/削除し、無関係・所有不明は触らない。
+    $legacyParent = Join-Path $tempRoot 'legacy-parent'
+    New-Item -ItemType Directory -Path $legacyParent -Force | Out-Null
+    $legacyUpdateRoot = Join-Path $legacyParent '.flashbeat-update'
+    $legacyLogDir = Join-Path $legacyParent 'logs'
+    $legacyBackupRoot = Join-Path $legacyUpdateRoot 'backup'
+
+    [System.IO.File]::WriteAllText((Join-Path $legacyParent 'FlashBeat-update.log'), 'old log')
+    [System.IO.File]::WriteAllText((Join-Path $legacyParent 'readme.txt'), 'unrelated')
+    foreach ($name in @($workOwn, $workOther, $workLegacy)) {
+        New-Item -ItemType Directory -Path (Join-Path $legacyParent $name) -Force | Out-Null
+    }
+    $legacyBackupOwned = Join-Path $legacyParent (New-FlashBeatBackupName -InstallKey 'flashbeat' -RunId '20260101-000000-1234-aaaaaa')
+    $legacyBackupNoManifest = Join-Path $legacyParent 'FlashBeat-backup-20261107-013942'
+    New-Item -ItemType Directory -Path $legacyBackupOwned -Force | Out-Null
+    New-Item -ItemType Directory -Path $legacyBackupNoManifest -Force | Out-Null
+    Write-FlashBeatOwnerManifest -BackupDir $legacyBackupOwned -Identity $identityA -RunId '20260101-000000-1234-aaaaaa' -Version '0.1.13' | Out-Null
+
+    Move-FlashBeatLegacyArtifacts -ParentDir $legacyParent -Identity $identityA -UpdateRoot $legacyUpdateRoot -LogDir $legacyLogDir
+
+    Assert-True 'T32 旧ログはログ領域へ移動される' (Test-Path -LiteralPath (Join-Path $legacyLogDir 'FlashBeat-update-legacy.log'))
+    Assert-True 'T33 旧ログは親フォルダから消える' (-not (Test-Path -LiteralPath (Join-Path $legacyParent 'FlashBeat-update.log')))
+    Assert-True 'T34 自名前空間の旧作業フォルダは削除される' (-not (Test-Path -LiteralPath (Join-Path $legacyParent $workOwn)))
+    Assert-True 'T35 他名前空間の旧作業フォルダは残る' (Test-Path -LiteralPath (Join-Path $legacyParent $workOther))
+    Assert-True 'T36 旧形式の作業フォルダは残る' (Test-Path -LiteralPath (Join-Path $legacyParent $workLegacy))
+    Assert-True 'T37 manifest 付き旧退避は backup 領域へ移動される' (Test-Path -LiteralPath (Join-Path $legacyBackupRoot (Split-Path -Leaf $legacyBackupOwned)))
+    Assert-True 'T38 manifest 無し旧退避は親フォルダに残る' (Test-Path -LiteralPath $legacyBackupNoManifest)
+    Assert-True 'T39 無関係ファイルは触られない' (Test-Path -LiteralPath (Join-Path $legacyParent 'readme.txt'))
+
+    # ── T40: ログ世代管理 ────────────────────────────────────────────
+    $logDir2 = Join-Path $tempRoot 'loggen'
+    New-Item -ItemType Directory -Path $logDir2 -Force | Out-Null
+    foreach ($i in 1..25) {
+        [System.IO.File]::WriteAllText((Join-Path $logDir2 ('FlashBeat-update-20260101-0000{0:d2}-1-aaaaaa.log' -f $i)), 'x')
+    }
+    Limit-FlashBeatUpdateLogs -LogDir $logDir2 -Keep 20
+    $remaining = @(Get-ChildItem -LiteralPath $logDir2 -File -Filter 'FlashBeat-update-*.log').Count
+    Assert-Equal 'T40 ログは最新 20 世代だけ残る' 20 $remaining
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

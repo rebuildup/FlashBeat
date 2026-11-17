@@ -55,8 +55,10 @@ FlashBeat.app をダブルクリック。
 
 ■ ログ
 - Unity: ~/Library/Logs/KimuraYusuke/FlashBeat/Player.log
-- 更新スクリプト: $desktop/FlashBeat-update.log
-- 更新結果: ~/Library/Application Support/FlashBeat/update/last-result.json
+- 更新スクリプト: <persistentDataPath>/update/logs/FlashBeat-update-<runId>.log
+  (既定 ~/Library/Application Support/KimuraYusuke/FlashBeat/update/logs/)
+- 更新結果: <persistentDataPath>/update/results/last-result.json
+  (既定 ~/Library/Application Support/KimuraYusuke/FlashBeat/update/results/)
 
 ■ 注意
 - 曲の映像・音声は yt-dlp で YouTube から取得します (brew install yt-dlp)。
