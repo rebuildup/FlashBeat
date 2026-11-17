@@ -11,12 +11,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
-const NAV_LINKS = [
-  "曲を選ぶ Pick a song",
-  "新曲を登録 New song",
-  "譜面を編集 Edit chart",
-  "公開する Publish 要トークン",
-];
+const NAV_LINKS = ["曲を選ぶ", "新曲を登録", "譜面を編集", "公開する"];
 
 test("all screens share the studio shell", async ({ page }) => {
   for (const path of ["/", "/chart", "/publish", "/new-song"]) {
@@ -66,15 +61,15 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   // Play control and the staff publish path is demoted (issue #215 review).
   await expect(page.getByTestId("publish-token-hint")).toContainText("adminトークン");
   await expect(page.getByTestId("try-song-button")).toBeVisible();
-  const review = page.getByRole("button", { name: "公開に進む / Review & Publish" });
+  const review = page.getByRole("button", { name: "公開に進む" });
   await expect(review).toBeVisible();
   await review.click();
   await expect(page).toHaveURL(/\/publish\?/);
-  await expect(page.getByRole("heading", { name: "Publish a song" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "曲を公開" })).toBeVisible();
 
   // The way back (the publish screen's own link, song-publisher) reloads the
   // catalog (AppShell refetches on mount).
-  await page.getByRole("link", { name: "← Web Studio" }).click();
+  await page.getByRole("link", { name: "← 曲を選ぶ" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("chart-identity")).toHaveCount(0);
   await expect(
@@ -85,9 +80,9 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
 test("forced catalog states render inside the shared shell", async ({ page }) => {
   await page.goto("/?state=empty");
   await expect(page.getByRole("navigation", { name: "Studio" })).toBeVisible();
-  await expect(page.getByText("No songs published yet")).toBeVisible();
+  await expect(page.getByText("まだ公開された曲がありません")).toBeVisible();
 
   await page.goto("/?state=error");
   await expect(page.getByRole("navigation", { name: "Studio" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "再試行" })).toBeVisible();
 });

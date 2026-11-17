@@ -29,21 +29,21 @@ export async function loadSongSession(
     !Number.isSafeInteger(Number(version))
   ) {
     throw new Error(
-      "Invalid song or chart version. Return to Catalog and select a published chart.",
+      "曲または譜面バージョンが不正です。カタログに戻り、公開済みの譜面を選んでください。",
     );
   }
   const catalogResponse = await request("/api/v1/catalog", { cache: "no-store" });
-  if (!catalogResponse.ok) throw new Error(`Catalog unavailable (${catalogResponse.status})`);
+  if (!catalogResponse.ok) throw new Error(`カタログを取得できません（${catalogResponse.status}）`);
   const catalog = (await catalogResponse.json()) as { songs: SongSummary[] };
   const song = catalog.songs.find((entry) => entry.id === songId);
-  if (!song) throw new Error("Song no longer available in Catalog.");
+  if (!song) throw new Error("この曲はカタログにありません。");
   const response = await request(
     `/api/v1/charts/${encodeURIComponent(songId)}?version=${version}`,
     { cache: "no-store" },
   );
   if (!response.ok)
     throw new Error(
-      `Chart v${version} unavailable (${response.status}). Return to Catalog or retry.`,
+      `譜面 v${version} を取得できません（${response.status}）。カタログに戻るか再試行してください。`,
     );
   const snapshot = (await response.json()) as {
     songId?: string;
@@ -51,9 +51,9 @@ export async function loadSongSession(
     chart?: unknown;
   };
   if (snapshot.songId !== songId || snapshot.chartVersion !== Number(version))
-    throw new Error("Chart identity mismatch.");
+    throw new Error("譜面の識別情報が一致しません。");
   const imported = importChartLenient(JSON.stringify(snapshot.chart));
-  if (!imported.ok) throw new Error("Published chart failed validation.");
+  if (!imported.ok) throw new Error("公開済みの譜面が検証に失敗しました。");
   return {
     song,
     chart: imported.chart,

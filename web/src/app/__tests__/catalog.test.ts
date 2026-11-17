@@ -77,13 +77,13 @@ describe("loadCatalog", () => {
   it("サーバーがエラーを返したら例外になる", async () => {
     stubJsonResponse({ error: "boom" }, { ok: false, status: 500 });
 
-    await expect(loadCatalog("loading")).rejects.toThrow(/answered 500/);
+    await expect(loadCatalog("loading")).rejects.toThrow(/カタログAPIが500を返しました/);
   });
 
   it("見つからない答え (404) でも例外になる", async () => {
     stubJsonResponse({ error: "not found" }, { ok: false, status: 404 });
 
-    await expect(loadCatalog("loading")).rejects.toThrow(/answered 404/);
+    await expect(loadCatalog("loading")).rejects.toThrow(/カタログAPIが404を返しました/);
   });
 
   it("ネットワークの失敗はそのまま例外になる", async () => {
@@ -115,13 +115,13 @@ describe("loadCatalog", () => {
   it("契約に無い本文は例外になる", async () => {
     stubJsonResponse({ catalogVersion: 1 });
 
-    await expect(loadCatalog("loading")).rejects.toThrow(/no song list/);
+    await expect(loadCatalog("loading")).rejects.toThrow(/曲リストがありません/);
   });
 
   it("壊れた曲を含む答えでも例外になる", async () => {
     stubJsonResponse({ catalogVersion: 1, songs: [{ ...contractSong, level: "五" }] });
 
-    await expect(loadCatalog("loading")).rejects.toThrow(/broken song/);
+    await expect(loadCatalog("loading")).rejects.toThrow(/曲情報の応答が不正/);
   });
 
   it("シグナルを渡すと fetch に引き回される", async () => {
@@ -175,17 +175,17 @@ describe("parseSongs", () => {
   });
 
   it("曲リストが配列でないときは例外になる", () => {
-    expect(() => parseSongs({ songs: "who" })).toThrow(/no song list/);
-    expect(() => parseSongs({ songs: { id: "who" } })).toThrow(/no song list/);
-    expect(() => parseSongs(null)).toThrow(/no song list/);
-    expect(() => parseSongs([])).toThrow(/no song list/);
+    expect(() => parseSongs({ songs: "who" })).toThrow(/曲リストがありません/);
+    expect(() => parseSongs({ songs: { id: "who" } })).toThrow(/曲リストがありません/);
+    expect(() => parseSongs(null)).toThrow(/曲リストがありません/);
+    expect(() => parseSongs([])).toThrow(/曲リストがありません/);
   });
 
   it("フィールドが足りない曲があるときは例外になる", () => {
     const missing = { ...contractSong } as Partial<typeof contractSong>;
     delete missing.noteCount;
 
-    expect(() => parseSongs({ catalogVersion: 1, songs: [missing] })).toThrow(/broken song/);
+    expect(() => parseSongs({ catalogVersion: 1, songs: [missing] })).toThrow(/曲情報の応答が不正/);
   });
 
   it("型が違うフィールドがあるときは例外になる", () => {
@@ -203,12 +203,14 @@ describe("parseSongs", () => {
 
     for (const [key, value] of wrongTypes) {
       const broken = { ...contractSong, [key]: value };
-      expect(() => parseSongs({ catalogVersion: 1, songs: [broken] })).toThrow(/broken song/);
+      expect(() => parseSongs({ catalogVersion: 1, songs: [broken] })).toThrow(
+        /曲情報の応答が不正/,
+      );
     }
   });
 
   it("曲そのものがオブジェクトでないときは例外になる", () => {
-    expect(() => parseSongs({ catalogVersion: 1, songs: ["who"] })).toThrow(/broken song/);
-    expect(() => parseSongs({ catalogVersion: 1, songs: [null] })).toThrow(/broken song/);
+    expect(() => parseSongs({ catalogVersion: 1, songs: ["who"] })).toThrow(/曲情報の応答が不正/);
+    expect(() => parseSongs({ catalogVersion: 1, songs: [null] })).toThrow(/曲情報の応答が不正/);
   });
 });

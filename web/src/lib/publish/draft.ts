@@ -27,14 +27,15 @@ export function savePublishDraft(
   return `/${target === "editor" ? "chart" : "publish"}?${query}`;
 }
 export function readPublishDraft(id: string, songId: string | null, version: string | null): Chart {
-  if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid local draft identifier.");
+  if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("ローカル下書きの識別子が不正です。");
   const raw = sessionStorage.getItem(DRAFT_PREFIX + id);
   if (!raw)
-    throw new Error("This local draft is unavailable. Return to the editor in the same tab.");
+    throw new Error("このローカル下書きは利用できません。同じタブでエディタに戻ってください。");
   const value = JSON.parse(raw) as PublishDraft;
   if (value.songId !== songId || value.version !== version)
-    throw new Error("Local draft belongs to another song or version.");
+    throw new Error("ローカル下書きは別の曲またはバージョンのものです。");
   const imported = importChartJson(JSON.stringify(value.chart));
-  if (!imported.ok) throw new Error("Local draft failed chart validation. Return to the editor.");
+  if (!imported.ok)
+    throw new Error("ローカル下書きの譜面が検証に失敗しました。エディタに戻ってください。");
   return imported.chart;
 }

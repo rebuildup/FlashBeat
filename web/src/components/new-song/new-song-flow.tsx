@@ -259,7 +259,7 @@ export function NewSongFlow({ apiOrigin }: NewSongFlowProps) {
             chart={draft.chart}
             chartIssues={chartIssues}
             videoId={videoId}
-            fallbackChartName={draft.info.title.trim() || "Untitled draft"}
+            fallbackChartName={draft.info.title.trim() || "無題の譜面"}
             onChange={handleChartChange}
             onIssuesChange={setChartIssues}
             onBack={() => goTo(1)}
@@ -292,9 +292,9 @@ function Header({ transport }: { transport: PublishTransport }) {
       <div className={headerTitles}>
         <a className={backLink} href="/">
           <ArrowLeft className={backIcon} size={14} aria-hidden="true" />
-          曲を選ぶ / Back to songs
+          曲を選ぶ
         </a>
-        <h1 className={title}>新曲を登録 / New song</h1>
+        <h1 className={title}>新曲を登録</h1>
         {/* Issue #215: the goal and the permission boundary are stated up
             front, before the operator reaches the publish step. */}
         <p className={goal} data-testid="new-song-goal">
@@ -303,10 +303,10 @@ function Header({ transport }: { transport: PublishTransport }) {
       </div>
       <span className={badge} data-testid="new-song-transport">
         {transport.mode === "fixture"
-          ? "Fixture API"
+          ? "Fixture API（テスト用）"
           : transport.baseUrl
             ? `Live API ${transport.baseUrl}`
-            : "Live API (this origin)"}
+            : "Live API（このサイト）"}
       </span>
     </header>
   );

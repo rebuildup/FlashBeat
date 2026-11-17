@@ -65,15 +65,15 @@ describe("parseRankings", () => {
   });
 
   it("rejects an answer without a song list", () => {
-    expect(() => parseRankings({ catalogVersion: 1 })).toThrow(/rankings/);
-    expect(() => parseRankings({ songs: [] })).toThrow(/rankings/);
-    expect(() => parseRankings(null)).toThrow(/rankings/);
+    expect(() => parseRankings({ catalogVersion: 1 })).toThrow(/ランキング/);
+    expect(() => parseRankings({ songs: [] })).toThrow(/ランキング/);
+    expect(() => parseRankings(null)).toThrow(/ランキング/);
   });
 
   it("rejects a song with a broken field", () => {
     const broken = structuredClone(rankingsAnswer) as typeof rankingsAnswer;
     broken.songs[0]!.level = "five" as unknown as number;
-    expect(() => parseRankings(broken)).toThrow(/rankings/);
+    expect(() => parseRankings(broken)).toThrow(/ランキング/);
   });
 });
 
@@ -103,8 +103,8 @@ describe("parseStats", () => {
   });
 
   it("rejects a broken summary", () => {
-    expect(() => parseStats({ generatedAt: "now" })).toThrow(/stats/);
-    expect(() => parseStats({ ...statsAnswer, totals: { songs: 1 } })).toThrow(/stats/);
+    expect(() => parseStats({ generatedAt: "now" })).toThrow(/統計/);
+    expect(() => parseStats({ ...statsAnswer, totals: { songs: 1 } })).toThrow(/統計/);
   });
 });
 
@@ -139,7 +139,7 @@ describe("parseAdminSongs", () => {
         catalogVersion: 1,
         songs: [{ id: "who", title: "Who", archived: "yes" }],
       }),
-    ).toThrow(/admin\/songs/);
+    ).toThrow(/楽曲情報/);
   });
 });
 
@@ -156,6 +156,6 @@ describe("parseArchiveResponse", () => {
   });
 
   it("rejects an answer without the flag", () => {
-    expect(() => parseArchiveResponse({ songId: "who", catalogVersion: 1 })).toThrow(/archive/);
+    expect(() => parseArchiveResponse({ songId: "who", catalogVersion: 1 })).toThrow(/アーカイブ/);
   });
 });

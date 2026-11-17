@@ -155,7 +155,7 @@ export function SongsPanel() {
       setSongs(answer.songs);
       setStatus("ready");
     } catch (error: unknown) {
-      setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+      setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
       setStatus("error");
     }
   }, []);
@@ -168,11 +168,13 @@ export function SongsPanel() {
       try {
         await setSongArchived(token, song.id, archived);
         setNoticeText(
-          archived ? `${song.title} archived. Its scores are kept.` : `${song.title} restored.`,
+          archived
+            ? `${song.title} をアーカイブしました。スコアは保持されています。`
+            : `${song.title} を復元しました。`,
         );
         await load(token);
       } catch (error: unknown) {
-        setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+        setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
       } finally {
         setBusySongId(null);
       }
@@ -185,26 +187,25 @@ export function SongsPanel() {
       <p className={notice}>
         <Info className={noticeIcon} size={16} aria-hidden="true" />
         <span>
-          Archiving hides a song from the catalog and from the game. Its chart, scores and ranking
-          stay. Restore puts it back.
+          曲をアーカイブするとカタログとゲームから非表示になります。譜面、スコア、ランキングは保持されます。復元すると元に戻ります。
         </span>
       </p>
 
       <div className={panelFrame}>
         <div className={panelHeader}>
           <div>
-            <h2 className={panelTitle}>Song list</h2>
-            <p className={panelSubtitle}>Published and archived songs.</p>
+            <h2 className={panelTitle}>曲一覧</h2>
+            <p className={panelSubtitle}>公開中・アーカイブ済みの曲。</p>
           </div>
         </div>
         <div className={panelBody}>
           <div className={tokenRow}>
             <Field.Root className={tokenField}>
-              <Field.Label>Staff token</Field.Label>
+              <Field.Label>スタッフトークン</Field.Label>
               <Input
                 type="password"
                 value={token}
-                placeholder="The token of the event operator"
+                placeholder="イベント運営のトークン"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setToken(event.target.value)
                 }
@@ -218,7 +219,7 @@ export function SongsPanel() {
               disabled={token.trim().length === 0}
             >
               <RefreshCw className={buttonIcon} size={14} aria-hidden="true" />
-              List the songs
+              曲を一覧する
             </Button>
           </div>
 
@@ -238,7 +239,7 @@ export function SongsPanel() {
                     <span className={songMeta}>
                       {song.artist} · Lv.{song.level} · {song.id}
                       {song.archived && song.archivedAt !== null
-                        ? ` · archived ${new Date(song.archivedAt).toLocaleString("ja-JP")}`
+                        ? ` · アーカイブ ${new Date(song.archivedAt).toLocaleString("ja-JP")}`
                         : ""}
                     </span>
                   </div>
@@ -250,7 +251,7 @@ export function SongsPanel() {
                   <div className={actions}>
                     {song.archived ? (
                       <>
-                        <span className={archivedTag}>archived</span>
+                        <span className={archivedTag}>アーカイブ</span>
                         <Button
                           size="sm"
                           variant="outline"
@@ -260,7 +261,7 @@ export function SongsPanel() {
                           }}
                         >
                           <ArchiveRestore className={buttonIcon} size={14} aria-hidden="true" />
-                          Restore
+                          復元
                         </Button>
                       </>
                     ) : (
@@ -273,7 +274,7 @@ export function SongsPanel() {
                         }}
                       >
                         <Archive className={buttonIcon} size={14} aria-hidden="true" />
-                        Archive
+                        アーカイブ
                       </Button>
                     )}
                   </div>
@@ -281,11 +282,11 @@ export function SongsPanel() {
               ))}
             </div>
           ) : status === "error" ? null : status === "loading" ? (
-            <StateBlock title="Loading the songs" description="Reading the database." />
+            <StateBlock title="曲を読み込み中" description="データベースを読み込んでいます。" />
           ) : (
             <StateBlock
-              title="No songs loaded"
-              description="Enter the staff token to list the songs."
+              title="曲が読み込まれていません"
+              description="スタッフトークンを入力して曲を一覧してください。"
             />
           )}
         </div>

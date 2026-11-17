@@ -112,36 +112,32 @@ export function PublishSuccessView({
     <section className={panel} data-testid="new-song-success">
       <p className={headline}>
         <CircleCheckIcon size={18} aria-hidden="true" />
-        公開しました / Published
+        公開しました
       </p>
 
       <dl className={facts}>
-        <dt className={factKey}>曲ID / Song id</dt>
+        <dt className={factKey}>曲ID</dt>
         <dd className={factValue}>{response.songId}</dd>
 
-        <dt className={factKey}>譜面バージョン / Chart version</dt>
+        <dt className={factKey}>譜面バージョン</dt>
         <dd className={factValue}>v{response.chartVersion}</dd>
 
-        <dt className={factKey}>ノート数 / Note count</dt>
+        <dt className={factKey}>ノート数</dt>
         <dd className={factValue}>{noteCount}</dd>
 
-        <dt className={factKey}>カタログバージョン / Catalog version</dt>
+        <dt className={factKey}>カタログバージョン</dt>
         <dd className={factValue}>{response.catalogVersion}</dd>
       </dl>
 
       <div>
         <p style={{ fontSize: "2xs", fontWeight: "semibold", margin: "0 0 1" }}>
-          ゲームで見つかるまで / Until it appears in the game
+          ゲームで見つかるまで
         </p>
         <ol className={checklist}>
           <li>
             UnityはSelect画面でクラウドカタログを再取得します。ゲームをSelect画面まで進めるか、開き直してください。
-            / Unity refreshes the cloud catalog at the Select screen — open or reopen it.
           </li>
-          <li>
-            反映まで数秒かかります（ゲームは5〜10秒ごとにポーリングします）。 / It takes a few
-            seconds; the game polls every 5–10 s.
-          </li>
+          <li>反映まで数秒かかります（ゲームは5〜10秒ごとにポーリングします）。</li>
           <li>
             カタログAPIで公開を確認できます: <span className={catalogUrl}>{catalogHref}</span>
           </li>
@@ -152,18 +148,18 @@ export function PublishSuccessView({
         <a href={catalogHref} target="_blank" rel="noreferrer">
           <Button className={raisedButton} size="md">
             <ExternalLink className={buttonIcon} size={14} aria-hidden="true" />
-            カタログで確認 / Check the catalog
+            カタログで確認
           </Button>
         </a>
         <a href="/">
           <Button className={raisedButton} size="md">
             <ListMusic className={buttonIcon} size={14} aria-hidden="true" />
-            Studioのカタログ / Studio catalog
+            Studioのカタログ
           </Button>
         </a>
         <Button className={accent} size="md" onClick={onRegisterAnother}>
           <ListPlus className={buttonIcon} size={14} aria-hidden="true" />
-          新しい曲を登録 / Register another song
+          新しい曲を登録
         </Button>
       </div>
     </section>

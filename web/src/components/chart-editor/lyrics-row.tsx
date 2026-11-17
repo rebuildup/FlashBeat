@@ -231,7 +231,7 @@ export function LyricsRow({
     if (parsed === undefined) {
       setParseErrors((current) => ({
         ...current,
-        [field]: "Use seconds (12.5) or a timecode (0:12.5)",
+        [field]: "秒数（12.5）またはタイムコード（0:12.5）で入力してください",
       }));
       return;
     }
@@ -287,13 +287,13 @@ export function LyricsRow({
         <span className={lineNumber} id={headingId}>
           {String(index + 1).padStart(2, "0")}
         </span>
-        {active ? <span className={`${badge} ${nowBadge}`}>Now</span> : null}
+        {active ? <span className={`${badge} ${nowBadge}`}>現在</span> : null}
         {interval.derived && row.endTime !== null ? (
           <span
             className={`${badge} ${legacyBadge}`}
-            title="The stored end is not after the start; Unity uses the next line start or +4s."
+            title="保存された終了が開始より後ではありません。Unityは次の行の開始または+4秒を使います。"
           >
-            legacy end
+            従来の終了
           </span>
         ) : null}
         <span className={range}>{rangeLabel}</span>
@@ -308,25 +308,25 @@ export function LyricsRow({
               }
             }}
             disabled={readOnly || !canSeek || interval.start === null}
-            aria-label={`Seek to line ${index + 1}`}
+            aria-label={`${index + 1}行目の位置へ移動`}
           >
-            Seek
+            再生位置へ
           </button>
           <button
             type="button"
             className={action}
             onClick={() => onSetStartAtPlayhead(row.id, playheadSec)}
             disabled={readOnly}
-            aria-label={`Set line ${index + 1} start to the playhead`}
+            aria-label={`${index + 1}行目の開始をプレイヘッドに設定`}
           >
-            @ Head
+            @ 再生位置
           </button>
           <button
             type="button"
             className={action}
             onClick={() => onMove(row.id, -1)}
             disabled={readOnly || index === 0}
-            aria-label={`Move line ${index + 1} text up`}
+            aria-label={`${index + 1}行目を上へ`}
           >
             ↑
           </button>
@@ -335,7 +335,7 @@ export function LyricsRow({
             className={action}
             onClick={() => onMove(row.id, 1)}
             disabled={readOnly || index === total - 1}
-            aria-label={`Move line ${index + 1} text down`}
+            aria-label={`${index + 1}行目を下へ`}
           >
             ↓
           </button>
@@ -344,7 +344,7 @@ export function LyricsRow({
             className={`${action} ${actionDanger}`}
             onClick={() => onRemove(row.id)}
             disabled={readOnly}
-            aria-label={`Delete line ${index + 1}`}
+            aria-label={`${index + 1}行目を削除`}
           >
             ✕
           </button>
@@ -353,7 +353,7 @@ export function LyricsRow({
 
       <div className={timeGrid}>
         <label className={field}>
-          <span className={label}>Start (s)</span>
+          <span className={label}>開始（秒）</span>
           <input
             className={`${input} ${timeInput} ${startError ? inputInvalid : ""}`}
             value={startDraft}
@@ -361,7 +361,7 @@ export function LyricsRow({
             autoComplete="off"
             spellCheck={false}
             disabled={readOnly}
-            aria-label={`Line ${index + 1} start time`}
+            aria-label={`${index + 1}行目の開始時刻`}
             aria-invalid={startError ? true : undefined}
             data-testid={`lyrics-start-${index}`}
             onFocus={() => {
@@ -378,7 +378,7 @@ export function LyricsRow({
         </label>
 
         <label className={field}>
-          <span className={label}>End (s)</span>
+          <span className={label}>終了（秒）</span>
           <input
             className={`${input} ${timeInput} ${endError ? inputInvalid : ""}`}
             value={endDraft}
@@ -386,8 +386,8 @@ export function LyricsRow({
             autoComplete="off"
             spellCheck={false}
             disabled={readOnly}
-            placeholder="auto"
-            aria-label={`Line ${index + 1} end time`}
+            placeholder="自動"
+            aria-label={`${index + 1}行目の終了時刻`}
             aria-invalid={endError ? true : undefined}
             data-testid={`lyrics-end-${index}`}
             onFocus={() => {
@@ -402,50 +402,50 @@ export function LyricsRow({
           />
           {endError ? <span className={errorText}>{endError}</span> : null}
           {!endError && interval.derived && row.endTime === null ? (
-            <span className={derivedNote}>Ends at the next line or +4s</span>
+            <span className={derivedNote}>終了は次の行または+4秒</span>
           ) : null}
         </label>
       </div>
 
       <div className={textGrid}>
         <label className={field}>
-          <span className={label}>Text</span>
+          <span className={label}>本文</span>
           <input
             className={input}
             value={row.mondai}
             lang="ja"
             autoComplete="off"
             disabled={readOnly}
-            placeholder="Lyric line (empty line hides the panel)"
-            aria-label={`Line ${index + 1} text`}
+            placeholder="歌詞行（空にするとパネルが非表示）"
+            aria-label={`${index + 1}行目の本文`}
             data-testid={`lyrics-text-${index}`}
             onChange={(event) => onPatch(row.id, { mondai: event.currentTarget.value })}
           />
         </label>
 
         <label className={field}>
-          <span className={label}>Furigana</span>
+          <span className={label}>フリガナ</span>
           <input
             className={input}
             value={row.furigana}
             lang="ja"
             autoComplete="off"
             disabled={readOnly}
-            aria-label={`Line ${index + 1} furigana`}
+            aria-label={`${index + 1}行目のフリガナ`}
             data-testid={`lyrics-furigana-${index}`}
             onChange={(event) => onPatch(row.id, { furigana: event.currentTarget.value })}
           />
         </label>
 
         <label className={field}>
-          <span className={label}>Romaji</span>
+          <span className={label}>ローマ字</span>
           <input
             className={input}
             value={row.romaji}
             autoComplete="off"
             spellCheck={false}
             disabled={readOnly}
-            aria-label={`Line ${index + 1} romaji`}
+            aria-label={`${index + 1}行目のローマ字`}
             data-testid={`lyrics-romaji-${index}`}
             onChange={(event) => onPatch(row.id, { romaji: event.currentTarget.value })}
           />

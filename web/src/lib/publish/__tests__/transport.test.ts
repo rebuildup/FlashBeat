@@ -50,5 +50,5 @@ describe("resolvePublishTransport", () => {
 });
 
 it("rejects fixture mode unless explicitly enabled for a test", () => {
-  expect(() => resolvePublishTransport("fixture")).toThrow("disabled");
+  expect(() => resolvePublishTransport("fixture")).toThrow("Fixture公開は無効");
 });

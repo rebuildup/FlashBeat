@@ -278,11 +278,6 @@ const labelGrid = css({
   textAlign: "left",
 });
 
-const labelEn = css({
-  fontSize: "2xs",
-  opacity: "0.7",
-});
-
 /** Visible admin-token badge on Publish: the boundary shows before the click. */
 const adminBadge = css({
   bg: "gray.subtle.bg",
@@ -334,7 +329,6 @@ export function Sidebar({ active }: { active?: string }) {
             <ListMusic className={navIcon} size={16} aria-hidden="true" />
             <span className={labelGrid}>
               <span>{NAV_VISITOR.ja}</span>
-              <span className={labelEn}>{NAV_VISITOR.en}</span>
             </span>
           </a>
 
@@ -348,7 +342,6 @@ export function Sidebar({ active }: { active?: string }) {
           >
             <span className={labelGrid}>
               <span>スタッフ操作</span>
-              <span className={labelEn}>Staff</span>
             </span>
             <ChevronDown className={staffToggleIcon} size={16} aria-hidden="true" />
           </button>
@@ -361,7 +354,7 @@ export function Sidebar({ active }: { active?: string }) {
           className={staffGroup}
         >
           <div className={staffDivider} aria-hidden="true" />
-          <p className={groupLabel}>スタッフ操作 / Staff</p>
+          <p className={groupLabel}>スタッフ操作</p>
 
           {NAV_STAFF_ITEMS.map((item) => (
             <a
@@ -374,7 +367,6 @@ export function Sidebar({ active }: { active?: string }) {
               <item.icon className={navIcon} size={16} aria-hidden="true" />
               <span className={labelGrid}>
                 <span>{item.ja}</span>
-                <span className={labelEn}>{item.en}</span>
               </span>
               {"admin" in item && item.admin ? (
                 <span className={adminBadge} data-testid="nav-publish-admin-badge">

@@ -170,7 +170,7 @@ describe("SongMetadataForm text fields (issue #163)", () => {
     const onChange = vi.fn();
     renderForm({ onChange });
 
-    const songId = inputByLabel("Song id");
+    const songId = inputByLabel("曲ID");
     type(songId, "my-song");
     expect(onChange).toHaveBeenLastCalledWith({ songId: "my-song" });
     expect(songId.value).toBe("my-song");
@@ -180,15 +180,15 @@ describe("SongMetadataForm text fields (issue #163)", () => {
     expect(onChange).toHaveBeenLastCalledWith({ songId: "" });
     expect(songId.value).toBe("");
 
-    const title = inputByLabel("Title");
+    const title = inputByLabel("曲名");
     type(title, "星降る夜に");
     expect(onChange).toHaveBeenLastCalledWith({ title: "星降る夜に" });
 
-    const artist = inputByLabel("Artist");
+    const artist = inputByLabel("アーティスト");
     type(artist, "");
     expect(onChange).toHaveBeenLastCalledWith({ artist: "" });
 
-    const youtube = inputByLabel("YouTube video");
+    const youtube = inputByLabel("YouTube動画");
     type(youtube, "https://youtu.be/abcdefghijk");
     expect(onChange).toHaveBeenLastCalledWith({ youtube: "https://youtu.be/abcdefghijk" });
   });
@@ -199,7 +199,7 @@ describe("SongMetadataForm text fields (issue #163)", () => {
     () => {
       const onChange = vi.fn();
       renderForm({ onChange });
-      const title = inputByLabel("Title");
+      const title = inputByLabel("曲名");
 
       act(() => {
         title.focus();
@@ -290,7 +290,7 @@ describe("SongMetadataForm duration draft (issue #163)", () => {
     focusAndBlur(duration);
 
     expect(onFieldBlur).toHaveBeenCalledWith("durationSec");
-    expect(document.body.textContent).toContain("Enter the duration in seconds.");
+    expect(document.body.textContent).toContain("再生時間（秒）を入力してください。");
   });
 });
 
@@ -302,11 +302,13 @@ describe("SongMetadataForm level select (issue #163)", () => {
       const onChange = vi.fn();
       renderForm({ onChange });
 
-      await selectOption("Level", "Level 12");
+      await selectOption("レベル", "レベル 12");
       expect(onChange).toHaveBeenLastCalledWith({ level: 12 });
 
       const triggers = document.body.querySelectorAll('button[role="combobox"]');
-      expect(Array.from(triggers).some((element) => element.textContent === "Level 12")).toBe(true);
+      expect(Array.from(triggers).some((element) => element.textContent === "レベル 12")).toBe(
+        true,
+      );
     },
   );
 
@@ -340,7 +342,7 @@ describe("SongMetadataForm level select (issue #163)", () => {
 describe("SongMetadataForm baseline", () => {
   it("renders the sample chart metadata without issues", () => {
     renderForm();
-    expect(document.body.textContent).toContain("Song id");
+    expect(document.body.textContent).toContain("曲ID");
     expect(SAMPLE_CHART.BPM).toBeGreaterThan(0);
   });
 });

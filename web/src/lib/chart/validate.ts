@@ -125,7 +125,7 @@ function validateNote(
   if (note.endNum === undefined) {
     issues.push({
       path: `${notePath(index)}/endNum`,
-      message: "must have required property 'endNum'",
+      message: `必須プロパティ 'endNum' がありません`,
       keyword: "required",
     });
     return issues;
@@ -142,7 +142,7 @@ function validateNote(
   if (endLine <= note.num) {
     issues.push({
       path: `${notePath(index)}/endNum`,
-      message: `must be after the start of the hold (num ${note.num}), got ${endLine}`,
+      message: `ホールドの開始（num ${note.num}）より後である必要があります（現在 ${endLine}）`,
       keyword: "minimum",
     });
     return issues;
@@ -151,7 +151,7 @@ function validateNote(
   if (beats < MIN_HOLD_BEATS) {
     issues.push({
       path: `${notePath(index)}/endNum`,
-      message: `a hold must last at least ${MIN_HOLD_BEATS} beats, got ${beats}`,
+      message: `ホールドは最低${MIN_HOLD_BEATS}拍必要です（現在 ${beats}）`,
       keyword: "minimum",
     });
   }
@@ -165,7 +165,7 @@ function validateNote(
     if (endSec > durationSec) {
       issues.push({
         path: `${notePath(index)}/endNum`,
-        message: `the hold ends at ${endSec.toFixed(3)}s, beyond the ${durationSec}s chart length`,
+        message: `ホールドは${endSec.toFixed(3)}秒で終了しますが、譜面の長さは${durationSec}秒です`,
         keyword: "maximum",
       });
       return issues;
@@ -175,7 +175,7 @@ function validateNote(
   if (beats > MAX_HOLD_BEATS) {
     issues.push({
       path: `${notePath(index)}/endNum`,
-      message: `a hold must not last longer than ${MAX_HOLD_BEATS} beats, got ${beats}`,
+      message: `ホールドは${MAX_HOLD_BEATS}拍を超えてはいけません（現在 ${beats}）`,
       keyword: "maximum",
     });
   }
@@ -231,7 +231,7 @@ export function validateChartSemantics(
       }
       issues.push({
         path: `${notePath(other.index)}/num`,
-        message: `overlaps another hold on lane ${other.note.block} (beats ${holdStart}-${holdEnd} and ${otherStart}-${otherEnd})`,
+        message: `レーン${other.note.block}の別のホールドと重なっています（拍 ${holdStart}-${holdEnd} と ${otherStart}-${otherEnd}）`,
         keyword: "overlap",
       });
     }

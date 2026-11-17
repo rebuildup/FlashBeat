@@ -25,7 +25,7 @@ import {
  * The operator pastes a YouTube URL; the video id is validated, the title and
  * the artist come from YouTube oEmbed (manual fields stay authoritative) and
  * the song id is suggested as an ascii kebab-case slug that is checked
- * against the live catalog. Every error is shown in Japanese and English.
+ * against the live catalog. Every error is shown in Japanese.
  */
 
 const form = css({
@@ -166,7 +166,7 @@ export function SongInfoStep({
   const issueByField = useMemo(() => {
     const map = new Map<NewSongField, string>();
     for (const issue of issues) {
-      map.set(issue.field, `${issue.message.ja} / ${issue.message.en}`);
+      map.set(issue.field, issue.message.ja);
     }
     return map;
   }, [issues]);
@@ -181,7 +181,7 @@ export function SongInfoStep({
   const visibleError = useCallback(
     (field: NewSongField): string | undefined => {
       if (songIdTaken && field === "songId") {
-        return `${SONG_ID_TAKEN.ja} / ${SONG_ID_TAKEN.en}`;
+        return SONG_ID_TAKEN.ja;
       }
       return touched[field] || attempted ? issueByField.get(field) : undefined;
     },
@@ -279,7 +279,7 @@ export function SongInfoStep({
   return (
     <div className={form}>
       <Field.Root invalid={visibleError("youtube") !== undefined}>
-        <Field.Label>YouTubeのURL / YouTube URL</Field.Label>
+        <Field.Label>YouTubeのURL</Field.Label>
         <Input
           value={info.youtube}
           placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -289,51 +289,47 @@ export function SongInfoStep({
         {visibleError("youtube") ? (
           <Field.ErrorText>{visibleError("youtube")}</Field.ErrorText>
         ) : (
-          <Field.HelperText>
-            youtu.be / watch?v= / shorts どれでもOK。 / Any YouTube URL form works.
-          </Field.HelperText>
+          <Field.HelperText>youtu.be / watch?v= / shorts どの形式でもOK。</Field.HelperText>
         )}
       </Field.Root>
 
       {videoId.length > 0 ? (
         <p className={`${note} ${noteOk}`} data-testid="video-id-readout">
-          動画ID: {videoId} / Video id: {videoId}
+          動画ID: {videoId}
         </p>
       ) : null}
 
       {oembed?.state === "loading" ? (
         <p className={`${note} ${noteMuted}`} role="status">
-          曲名を取得中… / Fetching the title…
+          曲名を取得中…
         </p>
       ) : null}
       {oembed?.state === "failed" && oembed.reason ? (
         <p className={`${note} ${noteError}`} role="alert">
-          {OEMBED_FAILURE_TEXT[oembed.reason].ja} / {OEMBED_FAILURE_TEXT[oembed.reason].en}
+          {OEMBED_FAILURE_TEXT[oembed.reason].ja}
         </p>
       ) : null}
 
       <Field.Root invalid={visibleError("title") !== undefined}>
-        <Field.Label>曲名 / Title</Field.Label>
+        <Field.Label>曲名</Field.Label>
         <Input
           value={info.title}
-          placeholder="曲名 / Song title"
+          placeholder="曲名"
           onChange={(event) => handleChange({ title: event.currentTarget.value })}
           onBlur={() => handleBlur("title")}
         />
         {visibleError("title") ? (
           <Field.ErrorText>{visibleError("title")}</Field.ErrorText>
         ) : (
-          <Field.HelperText>
-            YouTubeから自動取得できます。 / Filled from YouTube when possible.
-          </Field.HelperText>
+          <Field.HelperText>YouTubeから自動取得できます。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={visibleError("artist") !== undefined}>
-        <Field.Label>アーティスト / Artist</Field.Label>
+        <Field.Label>アーティスト</Field.Label>
         <Input
           value={info.artist}
-          placeholder="アーティスト名 / Artist"
+          placeholder="アーティスト名"
           onChange={(event) => handleChange({ artist: event.currentTarget.value })}
           onBlur={() => handleBlur("artist")}
         />
@@ -343,7 +339,7 @@ export function SongInfoStep({
       </Field.Root>
 
       <Field.Root invalid={visibleError("songId") !== undefined}>
-        <Field.Label>曲ID / Song id</Field.Label>
+        <Field.Label>曲ID</Field.Label>
         <Input
           value={info.songId}
           placeholder="my-song"
@@ -354,8 +350,7 @@ export function SongInfoStep({
           <Field.ErrorText>{visibleError("songId")}</Field.ErrorText>
         ) : (
           <Field.HelperText>
-            英小文字・数字・ハイフン。ゲーム内の曲のIDになります。 / Lowercase letters, digits,
-            dashes. This is the id in the game.
+            英小文字・数字・ハイフン。ゲーム内の曲のIDになります。
           </Field.HelperText>
         )}
         {songIdTaken && alternatives.length > 0 ? (
@@ -376,7 +371,7 @@ export function SongInfoStep({
 
       <div className={row}>
         <Field.Root invalid={visibleError("level") !== undefined}>
-          <Field.Label>レベル / Level（1–99）</Field.Label>
+          <Field.Label>レベル（1–99）</Field.Label>
           <Input
             type="number"
             min={1}
@@ -397,7 +392,7 @@ export function SongInfoStep({
         </Field.Root>
 
         <Field.Root invalid={visibleError("durationSec") !== undefined}>
-          <Field.Label>再生時間（秒） / Duration (seconds)</Field.Label>
+          <Field.Label>再生時間（秒）</Field.Label>
           <Input
             type="number"
             min={1}
@@ -419,8 +414,7 @@ export function SongInfoStep({
       </div>
 
       <p className={`${note} ${noteMuted}`}>
-        再生時間はoEmbedに含まれないため、埋め込みプレイヤーまたは手動入力で指定します。 / The
-        duration is not in oEmbed: take it from the embedded player or type it.
+        再生時間はoEmbedに含まれないため、埋め込みプレイヤーまたは手動入力で指定します。
       </p>
 
       {videoId.length > 0 ? (
@@ -437,15 +431,14 @@ export function SongInfoStep({
             }}
           >
             <SquarePlay className={buttonIcon} size={14} aria-hidden="true" />
-            プレイヤーから自動取得 / Auto from player
+            プレイヤーから自動取得
           </Button>
         </div>
       ) : null}
 
       {catalogError !== null ? (
         <p className={`${note} ${noteError}`} role="alert">
-          カタログを取得できないためIDの重複確認ができません（{catalogError}）。 / The catalog is
-          unavailable ({catalogError}); the ID uniqueness check is skipped.
+          カタログを取得できないためIDの重複確認ができません（{catalogError}）。
         </p>
       ) : null}
 
@@ -455,7 +448,7 @@ export function SongInfoStep({
         </span>
         <Button className={accent} size="md" onClick={handleAdvance}>
           <ArrowRight className={buttonIcon} size={14} aria-hidden="true" />
-          次へ：譜面 / Next: Chart
+          次へ：譜面
         </Button>
       </div>
     </div>

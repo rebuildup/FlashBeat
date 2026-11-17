@@ -303,7 +303,7 @@ describe("EditorToolbar rest", () => {
     async () => {
       const onResolutionChange = vi.fn();
       renderToolbar({ onResolutionChange });
-      await selectOption("Resolution", "1/16");
+      await selectOption("解像度", "1/16");
       expect(onResolutionChange).toHaveBeenLastCalledWith(16);
       // 選択した実値がトリガーに表示される。
       const triggers = document.body.querySelectorAll('button[role="combobox"]');
@@ -314,7 +314,7 @@ describe("EditorToolbar rest", () => {
   it("opens the zoom select from the control and commits it", { timeout: 20000 }, async () => {
     const onZoomChange = vi.fn();
     renderToolbar({ onZoomChange });
-    await selectOption("Zoom", "2×");
+    await selectOption("ズーム", "2×");
     expect(onZoomChange).toHaveBeenLastCalledWith(2);
   });
 });
@@ -341,7 +341,7 @@ describe("EditorToolbar snap division (issue #180)", () => {
   it("commits the division the operator picks", { timeout: 20000 }, async () => {
     const onSnapDivisionChange = vi.fn();
     renderToolbar({ onSnapDivisionChange });
-    await selectOption("Snap", "1/8");
+    await selectOption("スナップ", "1/8");
     expect(onSnapDivisionChange).toHaveBeenLastCalledWith(8);
     // The grid reads the same store, so the division is shared.
     expect(getSnapDivision()).toBe(8);
@@ -354,19 +354,19 @@ describe("EditorToolbar snap division (issue #180)", () => {
     // The grid is on when the operator turns it off.
     setSnapDivision(8);
     renderToolbar({ onSnapDivisionChange });
-    await selectOption("Snap", "off");
+    await selectOption("スナップ", "off");
     expect(onSnapDivisionChange).toHaveBeenLastCalledWith("off");
     expect(getSnapDivision()).toBe("off");
   });
 
   it("offers every division of the grid", { timeout: 20000 }, async () => {
     renderToolbar();
-    await selectOption("Snap", "1/16");
+    await selectOption("スナップ", "1/16");
     const triggers = document.body.querySelectorAll('button[role="combobox"]');
     const snap = Array.from(triggers).find((element): element is HTMLElement => {
       const labelId = element.getAttribute("aria-labelledby");
       const labelElement = labelId !== null ? document.getElementById(labelId) : null;
-      return labelElement?.textContent === "Snap";
+      return labelElement?.textContent === "スナップ";
     });
     expect(snap).not.toBeUndefined();
     await act(async () => {
@@ -390,7 +390,7 @@ describe("EditorToolbar transport (issue #216)", () => {
   it("shows the playhead readout and starts with an empty edit history", { timeout: 20000 }, () => {
     renderToolbar();
     expect(document.body.querySelector('[data-testid="transport-time"]')?.textContent).toContain(
-      "0.00s",
+      "0.00秒",
     );
     expect(
       (document.body.querySelector('[data-testid="undo-button"]') as HTMLButtonElement).disabled,

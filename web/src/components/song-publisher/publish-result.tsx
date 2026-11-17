@@ -85,11 +85,11 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
       <section className={`${frame} ${success}`} data-testid="publish-success">
         <p className={headline}>
           <CircleCheckIcon width={14} height={14} aria-hidden="true" />
-          Published
+          公開しました
         </p>
         <p className={detail}>
-          {result.response.songId} is now chart version {result.response.chartVersion}. The catalog
-          is at version {result.response.catalogVersion}.
+          {result.response.songId} は譜面バージョン {result.response.chartVersion}{" "}
+          になりました。カタログはバージョン {result.response.catalogVersion} です。
         </p>
       </section>
     );
@@ -99,7 +99,7 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
     <section className={`${frame} ${failure}`} data-testid="publish-error">
       <p className={headline}>
         <CircleXIcon width={14} height={14} aria-hidden="true" />
-        Not published
+        公開されませんでした
       </p>
       <p className={detail}>{result.failure.message}</p>
       {result.failure.details && result.failure.details.length > 0 ? (
@@ -109,18 +109,18 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
           ))}
         </ul>
       ) : null}
-      <p className={detail}>Nothing was published. Your inputs and the chart draft are kept.</p>
+      <p className={detail}>公開は行われませんでした。入力内容と譜面の下書きは保持されています。</p>
       <div className={actions}>
         {onRetry ? (
           <Button size="xs" onClick={onRetry}>
             <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
-            Retry
+            再試行
           </Button>
         ) : null}
         {onBackToEditor ? (
           <Button size="xs" variant="outline" onClick={onBackToEditor}>
             <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
-            Back to editor
+            エディタに戻る
           </Button>
         ) : null}
       </div>

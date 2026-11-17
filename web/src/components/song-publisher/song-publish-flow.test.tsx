@@ -102,9 +102,9 @@ async function publishWith(
   });
   vi.stubGlobal("fetch", vi.fn(request));
 
-  await press("Review publish");
+  await press("公開内容を確認");
   typeToken();
-  await press("Publish");
+  await press("公開する");
   await act(async () => {});
 }
 

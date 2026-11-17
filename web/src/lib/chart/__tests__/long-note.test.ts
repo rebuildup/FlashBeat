@@ -195,7 +195,7 @@ describe("validating holds", () => {
 
     expect(issues.length).toBeGreaterThanOrEqual(1);
     expect(issues[0].path).toBe("/notes/0/endNum");
-    expect(issues[0].message).toContain("after the start");
+    expect(issues[0].message).toContain("より後");
   });
 
   it("refuses two holds that fight over the same lane", () => {
@@ -209,7 +209,7 @@ describe("validating holds", () => {
 
     expect(issues.length).toBeGreaterThanOrEqual(1);
     expect(issues[0].path).toBe("/notes/1/num");
-    expect(issues[0].message).toContain("overlaps");
+    expect(issues[0].message).toContain("重なっています");
   });
 
   it("accepts two holds of different lanes that overlap in time", () => {
@@ -235,7 +235,7 @@ describe("validating holds", () => {
 
     expect(issues.length).toBeGreaterThanOrEqual(1);
     expect(issues[0].path).toBe("/notes/0/endNum");
-    expect(issues[0].message).toContain("beyond");
+    expect(issues[0].message).toContain("譜面の長さ");
   });
 
   it("still accepts the tap charts of the Unity project", () => {

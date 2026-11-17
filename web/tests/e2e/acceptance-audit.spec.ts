@@ -98,7 +98,7 @@ async function waitReady(page: Page, route: string): Promise<void> {
   } else if (route === "publish") {
     // 公開画面は lg 以上でサイドバーが常設列になり、トグルボタンは表示されない。
     // 判定は常時表示のヘッダー題名で行う。
-    await page.getByRole("heading", { name: "Publish a song" }).waitFor({
+    await page.getByRole("heading", { name: "曲を公開" }).waitFor({
       state: "visible",
       timeout: 15_000,
     });
@@ -153,7 +153,7 @@ for (const viewport of VIEWPORTS) {
 
       // --- シェル: ナビリンクが実在する ---
       const nav = page.getByRole("navigation", { name: "Studio" });
-      for (const label of ["Catalog", "New song", "New chart", "Publish"]) {
+      for (const label of ["曲を選ぶ", "新曲を登録", "譜面を編集", "公開する"]) {
         await expect(nav.getByRole("link", { name: label })).toBeVisible();
       }
       record(vp, rt, "shell: 4 nav links visible");
@@ -163,32 +163,32 @@ for (const viewport of VIEWPORTS) {
         // 検索: 入力すると行が絞り込まれる
         const search = page.locator("#catalog-search");
         await search.fill("存在しない曲名xyz");
-        await expect(page.getByText("No song matches the filters")).toBeVisible();
+        await expect(page.getByText("条件に一致する曲がありません")).toBeVisible();
         record(vp, rt, "search: no-match state");
         await shot(page, vp, rt, "search-no-match");
-        await page.getByRole("button", { name: "Clear filters" }).click();
-        await expect(page.getByRole("button", { name: "Clear filters" })).toHaveCount(0);
+        await page.getByRole("button", { name: "フィルタを解除" }).click();
+        await expect(page.getByRole("button", { name: "フィルタを解除" })).toHaveCount(0);
         record(vp, rt, "button: Clear filters restores list");
 
         // レベルフィルタ (ark-ui select: button[role=combobox] が trigger)。
         // 1 番目が Sort、2 番目が Level。
         const levelTrigger = page.locator('button[role="combobox"]').nth(1);
         await levelTrigger.click();
-        await page.getByRole("option", { name: "Level 10 – 19" }).click();
-        await expect(page.getByText("No song matches the filters")).toBeVisible();
+        await page.getByRole("option", { name: "レベル 10–19" }).click();
+        await expect(page.getByText("条件に一致する曲がありません")).toBeVisible();
         record(vp, rt, "level filter: no-match for Lv 10–19 (seeded song is Lv 5)");
-        await page.getByRole("button", { name: "Clear filters" }).click();
+        await page.getByRole("button", { name: "フィルタを解除" }).click();
 
         // ソート
         const sortTrigger = page.locator('button[role="combobox"]').nth(0);
         await sortTrigger.click();
-        await page.getByRole("option", { name: "Level", exact: true }).click();
+        await page.getByRole("option", { name: "レベル", exact: true }).click();
         record(vp, rt, "sort: Level applied without error");
         await sortTrigger.click();
-        await page.getByRole("option", { name: "Catalog" }).click();
+        await page.getByRole("option", { name: "カタログ" }).click();
 
         // Refresh
-        await page.getByRole("button", { name: "Refresh" }).click();
+        await page.getByRole("button", { name: "更新" }).click();
         await expect(page.getByTestId("catalog-list")).toBeVisible();
         record(vp, rt, "button: Refresh reloads catalog");
 
@@ -231,45 +231,45 @@ for (const viewport of VIEWPORTS) {
         // なるのが仕様。ボタンがハンドラを持ち、クラッシュせず状態が再描画されること。
         await page.goto("/?state=error");
         await page.waitForLoadState("networkidle");
-        await expect(page.getByText("Catalog unavailable")).toBeVisible();
-        await page.getByRole("button", { name: "Try again" }).click();
-        await expect(page.getByText("Catalog unavailable")).toBeVisible();
+        await expect(page.getByText("カタログを取得できません")).toBeVisible();
+        await page.getByRole("button", { name: "再試行" }).click();
+        await expect(page.getByText("カタログを取得できません")).toBeVisible();
         record(vp, rt, "button: Try again re-enters the error cycle (forced state)");
         await shot(page, vp, rt, "error-state");
       }
 
       if (rt === "publish") {
         // メタデータフォームが入力できる (lg 以上ではサイドバーが常設列)
-        const titleInput = page.getByLabel("Title", { exact: true });
+        const titleInput = page.getByLabel("曲名", { exact: true });
         await titleInput.fill("Who (audit)");
         await expect(titleInput).toHaveValue("Who (audit)");
         record(vp, rt, "form: Title editable");
         await titleInput.fill("Who");
 
         // Review publish → ダイアログ → Cancel (送信はしない)
-        await page.getByRole("button", { name: "Review publish" }).click();
+        await page.getByRole("button", { name: "公開内容を確認" }).click();
         await expect(page.getByRole("dialog")).toBeVisible();
         record(vp, rt, "button: Review publish opens dialog");
         await shot(page, vp, rt, "publish-dialog");
-        await page.getByRole("button", { name: "Cancel" }).click();
+        await page.getByRole("button", { name: "キャンセル" }).click();
         await expect(page.getByRole("dialog")).toHaveCount(0);
         record(vp, rt, "button: Cancel closes dialog without publishing");
 
         // サイドバーは lg 未満でドロワーになる。狭幅にして開閉を実操作する。
         await page.setViewportSize({ width: 900, height: 800 });
-        const toggle = page.getByRole("button", { name: "Open the publish sidebar" });
+        const toggle = page.getByRole("button", { name: "公開サイドバーを開く" });
         await toggle.waitFor({ state: "visible", timeout: 15_000 });
         await toggle.click();
         // 開いたドロワー (aside[role=dialog]) の中の ✕ を使う。ヘッダーのトグルも
         // 同時に "Close the publish sidebar" へ切り替わるため、対象を絞る。
-        const drawer = page.getByRole("dialog", { name: "Publish sidebar" });
+        const drawer = page.getByRole("dialog", { name: "公開サイドバー" });
         await expect(drawer).toBeVisible();
         record(vp, rt, "button: publish sidebar opens");
         await shot(page, vp, rt, "sidebar-open");
 
         // サイドバーを閉じて元に戻す
-        await drawer.getByRole("button", { name: "Close the publish sidebar" }).click();
-        await expect(page.getByRole("button", { name: "Open the publish sidebar" })).toBeVisible();
+        await drawer.getByRole("button", { name: "公開サイドバーを閉じる" }).click();
+        await expect(page.getByRole("button", { name: "公開サイドバーを開く" })).toBeVisible();
         record(vp, rt, "button: publish sidebar closes");
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
       }
@@ -285,7 +285,7 @@ for (const viewport of VIEWPORTS) {
       if (rt === "chart") {
         await expect(page.getByTestId("chart-identity")).toContainText("Who");
         record(vp, rt, "editor: identity shows the selected song");
-        await expect(page.getByRole("button", { name: "Review & Publish" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "公開に進む" })).toBeVisible();
         record(vp, rt, "button: Review & Publish visible");
       }
 

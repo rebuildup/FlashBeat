@@ -134,20 +134,17 @@ export function ChartStep({
           }`}
           data-testid="note-count-verdict"
         >
-          {verdict
-            ? `${verdict.message.ja} / ${verdict.message.en}`
-            : `ノート ${noteCount} 個 / ${noteCount} notes — OK`}
+          {verdict ? verdict.message.ja : `ノート ${noteCount} 個`}
         </p>
         {chartIssues.length > 0 ? (
           <p className={`${verdict} ${verdictError}`}>
-            譜面に問題が{chartIssues.length}件あります。修正するまで次へ進めません。 / The chart has{" "}
-            {chartIssues.length} problems. Fix them to continue.
+            譜面に問題が{chartIssues.length}件あります。修正するまで次へ進めません。
           </p>
         ) : null}
         <div className={buttons}>
           <Button className={raisedButton} size="md" onClick={onBack}>
             <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
-            戻る / Back
+            戻る
           </Button>
           <Button
             className={accent}
@@ -160,7 +157,7 @@ export function ChartStep({
             }}
           >
             <ArrowRight className={buttonIcon} size={14} aria-hidden="true" />
-            次へ：公開 / Next: Publish
+            次へ：公開
           </Button>
         </div>
       </div>

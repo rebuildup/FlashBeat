@@ -111,7 +111,7 @@ describe("ChartEditor imperative handle", () => {
         handle.seekTo(5);
       });
       expect(preview.seekTo).toHaveBeenCalledWith(5);
-      expect(container.textContent).toContain("5.00s");
+      expect(container.textContent).toContain("5.00秒");
     },
     mountTimeout,
   );

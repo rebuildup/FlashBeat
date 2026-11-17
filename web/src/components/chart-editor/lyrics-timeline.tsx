@@ -79,8 +79,8 @@ export function LyricsTimeline({
   if (views.length === 0) {
     return (
       <div className={empty} data-testid="lyrics-empty">
-        <span className={emptyStrong}>No lyric lines yet</span>
-        Add the first line, then set its start and end from the video timeline.
+        <span className={emptyStrong}>まだ歌詞行がありません</span>
+        最初の行を追加し、動画のタイムラインから開始と終了を設定してください。
         <div>
           <button
             type="button"
@@ -89,7 +89,7 @@ export function LyricsTimeline({
             disabled={readOnly}
             data-testid="lyrics-add-empty"
           >
-            Add line
+            行を追加
           </button>
         </div>
       </div>
@@ -97,7 +97,7 @@ export function LyricsTimeline({
   }
 
   return (
-    <ol className={list} aria-label="Lyric lines" data-testid="lyrics-list">
+    <ol className={list} aria-label="歌詞行" data-testid="lyrics-list">
       {views.map((view) => (
         <LyricsRow
           key={view.row.id}

@@ -15,12 +15,12 @@ it("retains edited chart through publish handoff without credentials", () => {
   );
   const id = url.searchParams.get("draft")!;
   expect(readPublishDraft(id, "who", "2").BPM).toBe(157);
-  expect(() => readPublishDraft(id, "other", "2")).toThrow("another song");
+  expect(() => readPublishDraft(id, "other", "2")).toThrow("別の曲");
   expect(readPublishDraft(id, "who", "2").BPM).toBe(157);
 });
 it("does not replace missing drafts with sample data", () => {
   expect(() => readPublishDraft("00000000-0000-0000-0000-000000000000", "who", "2")).toThrow(
-    "unavailable",
+    "利用できません",
   );
 });
 it("hands a failed publish back to the editor with the chart draft kept", () => {

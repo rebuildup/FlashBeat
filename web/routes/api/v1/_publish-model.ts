@@ -169,16 +169,22 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
   const bpm = chart.BPM as number;
 
   if (bpm < 1 || bpm > 600) {
-    diagnostics.push({ path: "/chart/BPM", message: `must be between 1 and 600, got ${bpm}` });
+    diagnostics.push({
+      path: "/chart/BPM",
+      message: `BPMは1〜600の範囲である必要があります（現在 ${bpm}）`,
+    });
   }
   if (notes.length === 0) {
     diagnostics.push({
       path: "/chart/notes",
-      message: "must contain at least one note; an empty chart cannot be played",
+      message: "ノートを1つ以上含める必要があります。空の譜面は再生できません",
     });
   }
   if (request.level < 1 || request.level > 99) {
-    diagnostics.push({ path: "/level", message: `must be between 1 and 99, got ${request.level}` });
+    diagnostics.push({
+      path: "/level",
+      message: `levelは1〜99の範囲である必要があります（現在 ${request.level}）`,
+    });
   }
 
   let lastNoteSec = -1;
@@ -188,25 +194,25 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
     if (note.type !== NOTE_TYPE_TAP && note.type !== NOTE_TYPE_HOLD) {
       diagnostics.push({
         path: `${path}/type`,
-        message: `must be a Tap (type ${NOTE_TYPE_TAP}) or a Hold (type ${NOTE_TYPE_HOLD}), got type ${note.type}`,
+        message: `タップ（type ${NOTE_TYPE_TAP}）またはホールド（type ${NOTE_TYPE_HOLD}）である必要があります（現在 type ${note.type}）`,
       });
     }
     if (note.block < 0 || note.block > 7) {
       diagnostics.push({
         path: `${path}/block`,
-        message: `must be a lane between 0 and 7 (8 lanes), got ${note.block}`,
+        message: `レーンは0〜7の範囲である必要があります（8レーン。現在 ${note.block}）`,
       });
     }
     if (note.LPB < 1) {
       diagnostics.push({
         path: `${path}/LPB`,
-        message: `must be a positive beat subdivision, got ${note.LPB}`,
+        message: `LPBは1以上の拍分割である必要があります（現在 ${note.LPB}）`,
       });
     }
     if (note.num < 0) {
       diagnostics.push({
         path: `${path}/num`,
-        message: `must be a non-negative beat position, got ${note.num}`,
+        message: `拍位置は0以上である必要があります（現在 ${note.num}）`,
       });
     }
 
@@ -229,7 +235,7 @@ export function semanticDiagnostics(request: SongPublishRequest): PublishDiagnos
   if (lastNoteSec > request.durationSec) {
     diagnostics.push({
       path: lastNotePath,
-      message: `note lands at ${lastNoteSec.toFixed(3)}s, beyond the ${request.durationSec}s chart length; shorten the chart or raise durationSec`,
+      message: `ノートは${lastNoteSec.toFixed(3)}秒に到達しますが、譜面の長さは${request.durationSec}秒です。durationSecを上げるか譜面を短くしてください`,
     });
   }
 

@@ -57,8 +57,8 @@ async function openPublishedChart(page: Page): Promise<void> {
   await page.goto("/chart?songId=who&version=1");
   await expect(page.getByTestId("chart-identity")).toContainText("Who");
   await expect(page.getByTestId("chart-identity")).toContainText("v1");
-  await expect(page.getByTestId("chart-identity")).toContainText("139 notes");
-  await expect(page.getByTestId("note-count")).toContainText("139 notes");
+  await expect(page.getByTestId("chart-identity")).toContainText("139ノート");
+  await expect(page.getByTestId("note-count")).toContainText("139ノート");
   await expect(page.getByTestId("note-grid")).toBeVisible();
   await expect(page.getByTestId("editor-inspector")).toBeVisible();
   await expect(page.getByTestId("editor-preview-panel")).toBeVisible();
@@ -85,7 +85,7 @@ for (const viewport of VIEWPORTS) {
       const laneWidth = Math.max(56, Math.floor(box!.width / 8));
       await page.mouse.click(box!.x + laneWidth / 2, box!.y + 22);
 
-      await expect(page.getByTestId("note-count")).toContainText("140 notes");
+      await expect(page.getByTestId("note-count")).toContainText("140ノート");
       await expect(page.getByTestId("selection-lane")).toHaveText("1");
       await expect(page.getByTestId("selection-beat")).toHaveText("0.50");
       await page.screenshot({
@@ -94,7 +94,7 @@ for (const viewport of VIEWPORTS) {
 
       // The just-placed note is selected; the inspector deletes it.
       await page.getByTestId("selection-delete").click();
-      await expect(page.getByTestId("note-count")).toContainText("139 notes");
+      await expect(page.getByTestId("note-count")).toContainText("139ノート");
       await expect(page.getByTestId("selection-empty")).toBeVisible();
       await page.screenshot({
         path: `${EVIDENCE_DIR}/${viewport.name}-02-deleted.png`,
@@ -102,12 +102,12 @@ for (const viewport of VIEWPORTS) {
 
       // Undo restores the note and its selection.
       await page.getByTestId("undo-button").click();
-      await expect(page.getByTestId("note-count")).toContainText("140 notes");
+      await expect(page.getByTestId("note-count")).toContainText("140ノート");
       await expect(page.getByTestId("selection-lane")).toHaveText("1");
       await page.getByTestId("redo-button").click();
-      await expect(page.getByTestId("note-count")).toContainText("139 notes");
+      await expect(page.getByTestId("note-count")).toContainText("139ノート");
       await page.getByTestId("undo-button").click();
-      await expect(page.getByTestId("note-count")).toContainText("140 notes");
+      await expect(page.getByTestId("note-count")).toContainText("140ノート");
       await page.screenshot({
         path: `${EVIDENCE_DIR}/${viewport.name}-03-restored.png`,
       });
@@ -120,8 +120,8 @@ for (const viewport of VIEWPORTS) {
         setter.call(element, String(value));
         element.dispatchEvent(new Event("input", { bubbles: true }));
       }, 5);
-      await expect(page.getByTestId("transport-time")).toContainText("5.00s");
-      await expect(page.getByTestId("playhead-readout")).toContainText("5.00s");
+      await expect(page.getByTestId("transport-time")).toContainText("5.00秒");
+      await expect(page.getByTestId("playhead-readout")).toContainText("5.00秒");
       await page.screenshot({
         path: `${EVIDENCE_DIR}/${viewport.name}-04-playhead.png`,
       });

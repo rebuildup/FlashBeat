@@ -52,11 +52,11 @@ function asNullableNumber(value: unknown): number | null {
 export function parseRankings(body: unknown): RankingsResponse {
   const answer = asObject(body);
   if (answer === null) {
-    throw new Error("GET /api/v1/rankings answered no object");
+    throw new Error("ランキングAPIの応答が不正です");
   }
   const catalogVersion = asNumber(answer.catalogVersion);
   if (catalogVersion === null || !Array.isArray(answer.songs)) {
-    throw new Error("GET /api/v1/rankings answered a broken board");
+    throw new Error("ランキングボードの応答が不正です");
   }
 
   return {
@@ -68,7 +68,7 @@ export function parseRankings(body: unknown): RankingsResponse {
 function parseRankingSong(value: unknown): RankingSong {
   const entry = asObject(value);
   if (entry === null) {
-    throw new Error("GET /api/v1/rankings answered a broken song");
+    throw new Error("ランキングの曲情報の応答が不正です");
   }
   const songId = asString(entry.songId);
   const title = asString(entry.title);
@@ -85,7 +85,7 @@ function parseRankingSong(value: unknown): RankingSong {
     plays === null ||
     !Array.isArray(entry.entries)
   ) {
-    throw new Error("GET /api/v1/rankings answered a broken song");
+    throw new Error("ランキングの曲情報の応答が不正です");
   }
 
   return {
@@ -102,12 +102,12 @@ function parseRankingSong(value: unknown): RankingSong {
 function parseRankingEntry(value: unknown): RankingEntry {
   const entry = asObject(value);
   if (entry === null) {
-    throw new Error("GET /api/v1/rankings answered a broken entry");
+    throw new Error("ランキングエントリの応答が不正です");
   }
   const nickname = asString(entry.nickname);
   const score = asNumber(entry.score);
   if (nickname === null || score === null) {
-    throw new Error("GET /api/v1/rankings answered a broken entry");
+    throw new Error("ランキングエントリの応答が不正です");
   }
   return { nickname, score };
 }
@@ -116,18 +116,18 @@ function parseRankingEntry(value: unknown): RankingEntry {
 export function parseStats(body: unknown): StatsResponse {
   const answer = asObject(body);
   if (answer === null) {
-    throw new Error("GET /api/v1/stats answered no object");
+    throw new Error("統計APIの応答が不正です");
   }
   const generatedAt = asString(answer.generatedAt);
   const totals = asObject(answer.totals);
   if (generatedAt === null || totals === null) {
-    throw new Error("GET /api/v1/stats answered a broken summary");
+    throw new Error("統計サマリーの応答が不正です");
   }
   if (!Array.isArray(answer.perSong) || !Array.isArray(answer.levelDistribution)) {
-    throw new Error("GET /api/v1/stats answered a broken summary");
+    throw new Error("統計サマリーの応答が不正です");
   }
   if (!Array.isArray(answer.topPlayers)) {
-    throw new Error("GET /api/v1/stats answered a broken summary");
+    throw new Error("統計サマリーの応答が不正です");
   }
 
   return {
@@ -139,7 +139,7 @@ export function parseStats(body: unknown): StatsResponse {
       const level = entry === null ? null : asNumber(entry.level);
       const songs = entry === null ? null : asNumber(entry.songs);
       if (level === null || songs === null) {
-        throw new Error("GET /api/v1/stats answered a broken level distribution");
+        throw new Error("レベル分布の応答が不正です");
       }
       return { level, songs };
     }),
@@ -159,7 +159,7 @@ function parseTotals(totals: Record<string, unknown>): StatsTotals {
   ];
   const broken = numbers.filter(([, value]) => value === null);
   if (broken.length > 0) {
-    throw new Error("GET /api/v1/stats answered a broken summary");
+    throw new Error("統計サマリーの応答が不正です");
   }
   return Object.fromEntries(numbers) as unknown as StatsTotals;
 }
@@ -167,7 +167,7 @@ function parseTotals(totals: Record<string, unknown>): StatsTotals {
 function parseSongStats(value: unknown): SongStats {
   const entry = asObject(value);
   if (entry === null) {
-    throw new Error("GET /api/v1/stats answered a broken song");
+    throw new Error("統計の曲情報の応答が不正です");
   }
   const songId = asString(entry.songId);
   const title = asString(entry.title);
@@ -190,7 +190,7 @@ function parseSongStats(value: unknown): SongStats {
     distinctPlayers === null ||
     typeof entry.archived !== "boolean"
   ) {
-    throw new Error("GET /api/v1/stats answered a broken song");
+    throw new Error("統計の曲情報の応答が不正です");
   }
 
   return {
@@ -213,14 +213,14 @@ function parseSongStats(value: unknown): SongStats {
 function parsePlayerStats(value: unknown): PlayerStats {
   const entry = asObject(value);
   if (entry === null) {
-    throw new Error("GET /api/v1/stats answered a broken player");
+    throw new Error("統計のプレイヤー情報の応答が不正です");
   }
   const nickname = asString(entry.nickname);
   const plays = asNumber(entry.plays);
   const totalScore = asNumber(entry.totalScore);
   const bestScore = asNumber(entry.bestScore);
   if (nickname === null || plays === null || totalScore === null || bestScore === null) {
-    throw new Error("GET /api/v1/stats answered a broken player");
+    throw new Error("統計のプレイヤー情報の応答が不正です");
   }
   return { nickname, plays, totalScore, bestScore };
 }
@@ -229,11 +229,11 @@ function parsePlayerStats(value: unknown): PlayerStats {
 export function parseAdminSongs(body: unknown): AdminSongsResponse {
   const answer = asObject(body);
   if (answer === null) {
-    throw new Error("GET /api/v1/admin/songs answered no object");
+    throw new Error("楽曲一覧APIの応答が不正です");
   }
   const catalogVersion = asNumber(answer.catalogVersion);
   if (catalogVersion === null || !Array.isArray(answer.songs)) {
-    throw new Error("GET /api/v1/admin/songs answered a broken list");
+    throw new Error("楽曲一覧の応答が不正です");
   }
   return {
     catalogVersion,
@@ -244,7 +244,7 @@ export function parseAdminSongs(body: unknown): AdminSongsResponse {
 function parseAdminSong(value: unknown): AdminSong {
   const entry = asObject(value);
   if (entry === null) {
-    throw new Error("GET /api/v1/admin/songs answered a broken song");
+    throw new Error("楽曲情報の応答が不正です");
   }
   const id = asString(entry.id);
   const title = asString(entry.title);
@@ -267,7 +267,7 @@ function parseAdminSong(value: unknown): AdminSong {
     plays === null ||
     typeof entry.archived !== "boolean"
   ) {
-    throw new Error("GET /api/v1/admin/songs answered a broken song");
+    throw new Error("楽曲情報の応答が不正です");
   }
   return {
     id,
@@ -289,12 +289,12 @@ function parseAdminSong(value: unknown): AdminSong {
 export function parseArchiveResponse(body: unknown): ArchiveResponse {
   const answer = asObject(body);
   if (answer === null) {
-    throw new Error("the archive request answered no object");
+    throw new Error("アーカイブAPIの応答が不正です");
   }
   const songId = asString(answer.songId);
   const catalogVersion = asNumber(answer.catalogVersion);
   if (songId === null || catalogVersion === null || typeof answer.archived !== "boolean") {
-    throw new Error("the archive request answered a broken answer");
+    throw new Error("アーカイブAPIの応答が不正です");
   }
   return {
     songId,
@@ -311,7 +311,7 @@ export async function loadRankings(limit?: number): Promise<RankingsResponse> {
     headers: { accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(`GET /api/v1/rankings answered ${response.status}`);
+    throw new Error(`ランキングAPIが${response.status}を返しました`);
   }
   return parseRankings(await response.json());
 }
@@ -320,7 +320,7 @@ export async function loadRankings(limit?: number): Promise<RankingsResponse> {
 export async function loadStats(): Promise<StatsResponse> {
   const response = await fetch("/api/v1/stats", { headers: { accept: "application/json" } });
   if (!response.ok) {
-    throw new Error(`GET /api/v1/stats answered ${response.status}`);
+    throw new Error(`統計APIが${response.status}を返しました`);
   }
   return parseStats(await response.json());
 }
@@ -331,7 +331,7 @@ export async function loadAdminSongs(token: string): Promise<AdminSongsResponse>
     headers: { accept: "application/json", authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    throw new Error(`GET /api/v1/admin/songs answered ${response.status}`);
+    throw new Error(`楽曲一覧APIが${response.status}を返しました`);
   }
   return parseAdminSongs(await response.json());
 }
@@ -365,10 +365,10 @@ export async function setSongArchived(
 /** The reason of a rejected archive request. */
 async function readArchiveFailure(response: Response): Promise<string> {
   if (response.status === 401) {
-    return "The staff token was rejected.";
+    return "スタッフトークンが拒否されました。";
   }
   if (response.status === 404) {
-    return "The song does not exist.";
+    return "その曲は存在しません。";
   }
   try {
     const body = (await response.json()) as { error?: string };
@@ -378,5 +378,5 @@ async function readArchiveFailure(response: Response): Promise<string> {
   } catch {
     // The answer was not JSON; the status is all we have.
   }
-  return `The archive request answered ${response.status}.`;
+  return `アーカイブAPIが${response.status}を返しました。`;
 }

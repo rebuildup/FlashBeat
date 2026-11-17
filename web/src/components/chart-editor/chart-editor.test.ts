@@ -21,17 +21,17 @@ describe("ChartEditor", () => {
   );
 
   it("renders the inspector once", () => {
-    expect(html.match(/aria-label="Editor inspector"/g) ?? []).toHaveLength(1);
+    expect(html.match(/aria-label="エディタインスペクタ"/g) ?? []).toHaveLength(1);
   });
 
   it("renders the preview once", () => {
     expect(html.match(/data-testid="editor-preview-panel"/g) ?? []).toHaveLength(1);
-    expect(html.match(/YouTube video/g) ?? []).toHaveLength(1);
+    expect(html.match(/YouTube動画/g) ?? []).toHaveLength(1);
   });
 
   it("keeps the preview and the validation out of a collapsed drawer", () => {
-    expect(html).not.toContain("Open the editor sidebar");
-    expect(html).toContain("Song preview");
+    expect(html).not.toContain("エディタのサイドバーを開く");
+    expect(html).toContain("曲のプレビュー");
     expect(html).toContain('data-testid="validation-panel"');
   });
 
@@ -78,7 +78,7 @@ describe("ChartEditor note kinds", () => {
   );
 
   it("offers a switch between tap and hold", () => {
-    expect(html).toContain('aria-label="Note kind"');
+    expect(html).toContain('aria-label="ノートの種類"');
     expect(html).toContain('data-testid="kind-tap"');
     expect(html).toContain('data-testid="kind-hold"');
   });
@@ -91,11 +91,11 @@ describe("ChartEditor note kinds", () => {
   it("shows how many holds the chart has", () => {
     // The sample chart of the repository carries no hold.
     expect(html).toContain('data-testid="hold-count"');
-    expect(html).toContain("0 holds");
+    expect(html).toContain("0件のホールド");
   });
 
   it("tells the operator how to change the length of a hold", () => {
-    expect(html).toContain("Drag the blue handle at its end to change the length");
+    expect(html).toContain("青いハンドルをドラッグすると長さを変えられます");
   });
 });
 
@@ -118,8 +118,8 @@ describe("ChartEditor with a chart that was read leniently", () => {
 
   it("shows the problem of the loaded chart as a warning", () => {
     expect(html).toContain('data-testid="validation-warning-summary"');
-    expect(html).toContain("1 warning");
-    expect(html).toContain("overlaps another hold on lane 0");
+    expect(html).toContain("警告1件");
+    expect(html).toContain("別のホールドと重なっています");
   });
 
   it("does not report the problem as an error", () => {

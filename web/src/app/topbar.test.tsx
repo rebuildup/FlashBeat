@@ -158,7 +158,7 @@ describe("Topbar selects (issue #163)", () => {
   it("opens the sort select by click and commits the chosen key", async () => {
     const onSortChange = vi.fn();
     renderTopbar({ onSortChange });
-    const trigger = triggerByLabel("Sort");
+    const trigger = triggerByLabel("並び替え");
 
     await clickTrigger(trigger);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
@@ -183,7 +183,7 @@ describe("Topbar selects (issue #163)", () => {
   it("selects a level filter with the keyboard (ArrowDown + Enter) and closes on Escape", async () => {
     const onLevelChange = vi.fn();
     renderTopbar({ onLevelChange });
-    const trigger = triggerByLabel("Level");
+    const trigger = triggerByLabel("レベル");
 
     await act(async () => {
       trigger.focus();

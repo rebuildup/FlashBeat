@@ -13,12 +13,12 @@ export type LevelFilter = "all" | "low" | "mid" | "high";
 export type SortKey = "catalog" | "title" | "level" | "bpm" | "notes" | "length";
 
 export const SORT_OPTIONS: ReadonlyArray<{ label: string; value: SortKey }> = [
-  { label: "Catalog", value: "catalog" },
-  { label: "Title A–Z", value: "title" },
-  { label: "Level", value: "level" },
+  { label: "カタログ", value: "catalog" },
+  { label: "タイトル順", value: "title" },
+  { label: "レベル", value: "level" },
   { label: "BPM", value: "bpm" },
-  { label: "Notes", value: "notes" },
-  { label: "Length", value: "length" },
+  { label: "ノート数", value: "notes" },
+  { label: "長さ", value: "length" },
 ];
 
 export function isSortKey(value: string | null): value is SortKey {

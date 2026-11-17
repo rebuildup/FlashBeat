@@ -35,7 +35,7 @@ function toIssue(error: ErrorObject): ValidationIssue {
     const missing = String(error.params["missingProperty"]);
     return {
       path: `${error.instancePath}/${missing}`,
-      message: `must have required property '${missing}'`,
+      message: `必須プロパティ '${missing}' がありません`,
       keyword: error.keyword,
     };
   }
@@ -44,14 +44,14 @@ function toIssue(error: ErrorObject): ValidationIssue {
     const extra = String(error.params["additionalProperty"]);
     return {
       path: `${error.instancePath}/${extra}`,
-      message: `unexpected field '${extra}'`,
+      message: `不明なフィールド '${extra}' です`,
       keyword: error.keyword,
     };
   }
 
   return {
     path: error.instancePath,
-    message: error.message ?? "invalid value",
+    message: error.message ?? "値が不正です",
     keyword: error.keyword,
   };
 }
