@@ -722,6 +722,13 @@ function Invoke-FlashBeatUpdateMain {
 try {
     $scriptPath = $script:UpdateScriptPath
 
+    # issue #574: 結果ファイル・ログの既定位置は install 解決より先に確定させる。
+    # WaitPid 待機の中止など早い終了経路でも last-result.json を書けるようにするため。
+    $dataDir = Get-FlashBeatUpdateDataDir
+    if (-not $ResultDir -and $dataDir) {
+        $ResultDir = Join-Path $dataDir 'results'
+    }
+
     Write-OpLog -Level 'STEP' -Message 'FlashBeat 単発パッチ適用を開始します。'
 
     # ── 0. アプリ終了待ち (-WaitPid、自動適用フロー用) ─────────────
@@ -768,12 +775,8 @@ try {
     $workRootParent = Join-Path $updateRoot 'work'
     $backupRoot = Join-Path $updateRoot 'backup'
 
-    # 永続データの既定位置 (アプリの persistentDataPath 相当)。
-    # 解決できない環境では $null のままにし、LogDir は .flashbeat-update\logs に退避する。
-    $dataDir = Get-FlashBeatUpdateDataDir
-    if (-not $ResultDir -and $dataDir) {
-        $ResultDir = Join-Path $dataDir 'results'
-    }
+    # 永続データの既定位置 (アプリの persistentDataPath 相当) は関数冒頭で解決済み。
+    # 解決できない環境では $dataDir が $null のままになり、LogDir は .flashbeat-update\logs に退避する。
     if (-not $LogDir) {
         if ($dataDir) {
             $LogDir = Join-Path $dataDir 'logs'
