@@ -19,7 +19,7 @@ Standard シェーダー (ライティングあり) と平行光源の組み合�
 
 | 対象 | 変更 |
 |---|---|
-| 平行光源 (全シーン / `DirectionalLight.prefab`) | `Light.shadows = None` |
+| 平行光源 (全シーン) | `Light.shadows = None` |
 | 全 Renderer (全シーン / 全プレハブ) | `shadowCastingMode = Off` / `receiveShadows = false` |
 | 8 つのプレイフィールド素材 | `Standard` → `FlashBeat/FlatUnlit` (新規シェーダー) |
 | 動画 quad (VideoPlayer を持つ MeshRenderer) | 新規 `VideoPicture.mat` |
