@@ -79,8 +79,12 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var layout = box.AddComponent<VerticalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.spacing = 6f;
-            layout.padding = new RectOffset(24, 24, 16, 16);
+            layout.spacing = 8f;
+            // Issue #582: design の padding [16,24] / gap 6 は窮屈だったため、
+            // 上下 24 / 左右 32 / gap 8 へ拡大 (寸法の正本は V6HudLogic)。
+            layout.padding = new RectOffset(
+                Mathf.RoundToInt(V6HudLogic.LyricPaddingX), Mathf.RoundToInt(V6HudLogic.LyricPaddingX),
+                Mathf.RoundToInt(V6HudLogic.LyricPaddingY), Mathf.RoundToInt(V6HudLogic.LyricPaddingY));
             layout.childControlWidth = true;
             // true でないと LayoutElement.preferredHeight が無視され、行は V5Ui.Text の
             // rect 高さ 0 のままになる → TMP は 1 行も描画されない (歌詞消失の根本原因)。
@@ -341,7 +345,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             var le = text.GetComponent<LayoutElement>();
             if (le == null) le = text.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = fontSize * 1.25f;
+            le.preferredHeight = fontSize * V6HudLogic.LyricLineHeightFactor;
         }
 
         /// <summary>

@@ -87,7 +87,8 @@ namespace FlashBeat.Tests
             // Issue #581: 判定は滞在型。0.5〜0.8 秒の表示時間を確保し、
             // フェードイン + 静止 + フェードアウトの合計が総寿命と一致する。
             Assert.GreaterOrEqual(V6HudLogic.VerdictTotalSeconds, 0.5f);
-            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.8f);
+            // float 加算 (0.10+0.55+0.15) は 0.80000007 になるため微小な許容差を持たせる。
+            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.8f + 0.0001f);
             Assert.AreEqual(
                 V6HudLogic.VerdictFadeInSeconds + V6HudLogic.VerdictHoldSeconds
                     + V6HudLogic.VerdictFadeOutSeconds,
@@ -163,8 +164,9 @@ namespace FlashBeat.Tests
         public void LyricBoxKeepsRoomForTheLyricRowAndPrompt()
         {
             // Issue #433: 歌詞本文 1 行 + Start Prompt (KeyCap 36) が収まる高さ。
+            // Issue #582: 行高係数・padding の正本は V6HudLogic の定数。
             float height = V6HudLogic.LyricContentHeight(48f);
-            float lyricLine = 48f * 1.2f;
+            float lyricLine = 48f * V6HudLogic.LyricLineHeightFactor;
             float expected = Mathf.Max(lyricLine, V6HudLogic.ReadyPromptCapHeight)
                 + V6HudLogic.LyricPaddingY * 2f;
 

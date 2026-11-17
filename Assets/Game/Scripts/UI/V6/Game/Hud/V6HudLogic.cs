@@ -102,16 +102,30 @@ namespace FlashBeat.UI.V6.Game.Hud
             return Mathf.Min(LyricDesignWidth, Mathf.Max(0f, screenWidth));
         }
 
-        /// <summary>歌詞スロットの上下 padding (design 16)。</summary>
-        public const float LyricPaddingY = 16f;
+        /// <summary>
+        /// 歌詞スロットの上下 padding。Issue #582: design の 16 では行が窮屈だった
+        /// ため 24 へ拡大 (左右は <see cref="LyricPaddingX"/>)。
+        /// </summary>
+        public const float LyricPaddingY = 24f;
+
+        /// <summary>歌詞スロットの左右 padding (design 24 → Issue #582 で 32)。</summary>
+        public const float LyricPaddingX = 32f;
+
+        /// <summary>
+        /// 歌詞行の行高係数 (fontSize 倍)。Issue #582: 従来の暗黙の 1.2 / 1.25 では
+        /// 文字が行に対して窮屈だったため 1.5 へ拡大する。NotoSansJP の行送りは
+        /// fs × 約 1.448 なので、行高がこれを下回ると TMP は行を描画しない。
+        /// </summary>
+        public const float LyricLineHeightFactor = 1.5f;
 
         /// <summary>
         /// 歌詞本文 1 行と Start Prompt の高い方に padding を足した箱の高さ
-        /// (Issue #433: ルビ・ローマ字行は廃止し本文だけを出す)。
+        /// (Issue #433: ルビ・ローマ字行は廃止し本文だけを出す。
+        /// Issue #582: 行高係数と padding を拡大し、読みやすい縦幅にした)。
         /// </summary>
         public static float LyricContentHeight(float lyricFs)
         {
-            float lyricLine = lyricFs * 1.2f;
+            float lyricLine = lyricFs * LyricLineHeightFactor;
             float content = Mathf.Max(lyricLine, ReadyPromptCapHeight);
             return content + LyricPaddingY * 2f;
         }
