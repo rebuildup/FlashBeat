@@ -325,7 +325,7 @@ public class MediaPrefetcherTests
 
         gate.SetResult(new List<YtDlpFormat>());
         await runA;
-        Assert.AreEqual(2, MediaPrefetcher.CancelledCount);
+        Assert.AreEqual(1, MediaPrefetcher.CancelledCount);
         Assert.AreEqual(1, MediaPrefetcher.FailedCount, "キャンセルは失敗に数えない");
     }
 
