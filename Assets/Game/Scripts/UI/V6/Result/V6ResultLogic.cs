@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using UnityEngine;
+using FlashBeat.Gameplay;
 
 namespace FlashBeat.UI.V6.Result
 {
@@ -60,6 +61,23 @@ namespace FlashBeat.UI.V6.Result
         public static string FormatScore(int value)
         {
             return value.ToString("N0", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// scoring v2 (ADR-0028 / Issue #577) のボーナス内訳の表示文字列。
+        /// コンボ継続ボーナスは常に "+値"、ノーミスボーナスは未達 (miss &gt; 0)
+        /// のとき "–" を返す。値は ratio points をスコア点へ換算した目安で、
+        /// 送信フィールドではない (サーバは内訳を信用せず再計算する)。
+        /// </summary>
+        public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
+            out string comboBonus, out string noMissBonus)
+        {
+            int noteCount = perfect + great + bad + miss;
+            Scoring.V2Breakdown v2 = Scoring.BreakdownV2(perfect, great, bad, miss, maxCombo, noteCount);
+            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV2(v2.ComboBonus, noteCount));
+            noMissBonus = v2.NoMissBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV2(v2.NoMissBonus, noteCount))
+                : "–";
         }
 
         /// <summary>ハイスコア差分。更新時は "+66,633"、それ以外は空文字 (V5 と同じ)。</summary>

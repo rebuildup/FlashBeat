@@ -43,7 +43,7 @@ play session の間は `GManager.ResetSession()` で combo / score を戻す（`
 
 ### 採点 (scoring)
 
-- 判定配点は `LongNote.ScoreFor` = Perfect 5 / Great 3 / Bad 1。`JudgeScoreboard` が `RatioScore` に加算し、`Judge.ComputeScore` が `round(1e6 * ratio / maxScore)` (`maxScore = noteCount * 5`) で 0..1,000,000 の score を出す。Miss は加点なしでコンボのみ切断し、Bad はコンボを切らない。
+- 判定配点は `LongNote.ScoreFor` = Perfect 5 / Great 3 / Bad 1。現在の採点は scoring v2 (ADR-0028): `Scoring.BreakdownV2` が `judgment + maxCombo*5 + (miss==0 ? hits*5 : 0)` を ratio として出し、`Judge.ComputeScore` が `round(1e6 * ratio / maxScore)` (`maxScore = noteCount * 15`) で 0..1,000,000 の score を出す。Miss は加点なしでコンボのみ切断し、Bad はコンボを切らない (v2 のコンボボーナスも Bad 継続を数える)。
 - 採点 v2 (コンボ継続・ノーミス加点、`scoringVersion = 2`) の式・バージョン互換・記録分離の正本は `docs/adr/ADR-0028.md`。ローカル記録は `ScoreKey` の `songId@chartVersion@scoringVersion` 形式で版を区別する。
 
 ### 8 lane keymap

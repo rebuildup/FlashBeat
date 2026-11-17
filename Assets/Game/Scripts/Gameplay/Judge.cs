@@ -309,7 +309,6 @@ public class Judge : MonoBehaviour
     /// </summary>
     private void FlushScore()
     {
-        GManager.ratioScore = board.RatioScore;
         GManager.perfect = board.Perfect;
         GManager.great = board.Great;
         GManager.bad = board.Bad;
@@ -329,6 +328,16 @@ public class Judge : MonoBehaviour
         // nextNotes は旧 API の互換値として「1 + 確定数」を保つ。
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
+
+        // scoring v2 (ADR-0028 / Issue #577): 表示・送信する ratioScore は
+        // 判定 + コンボ継続 + ノーミスの合計。途中の Miss でノーミス分が
+        // 0 になるため、スコアは Miss 以降に下がりうる (契約どおり)。
+        int noteCount = notesManager != null ? notesManager.noteNum : 0;
+        Scoring.V2Breakdown v2 = Scoring.BreakdownV2(
+            board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo, noteCount);
+        GManager.ratioScore = v2.RatioScore;
+        GManager.comboBonus = v2.ComboBonus;
+        GManager.noMissBonus = v2.NoMissBonus;
 
         UpdateScore();
     }
