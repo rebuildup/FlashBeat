@@ -144,7 +144,7 @@ namespace FlashBeat.UI.V6.Common
         /// ランキング行 (design Hbxqf 496×56 / T8C1Hu 496×52、高さは size):
         /// Pos (12,中央) 36×36 r18 (fs22、選択行 $text / 非選択 $text-muted) /
         /// Name (60,中央) 160×32 fs22 / Value (232,中央) 180×32 fs22 右寄せ /
-        /// Grade (424,中央) 56×36 r4 (fs22 中央)。背景は非選択 $k1 / 選択 (YOU) $k6。
+        /// Grade (424,中央) 56×36 r4 (fs22 中央)。背景は非選択 $k1 / 選択 (自分) $k6。
         /// </summary>
         public static GameObject RankRow(GameObject parent, string pos, string name, string value, string grade,
             Vector2 designTopLeft, Vector2 size, bool selected = false)
@@ -193,7 +193,7 @@ namespace FlashBeat.UI.V6.Common
         /// zcSHh の Chlqd = Result の曲別ランキング。両者は同寸・同内部座標 496×44 r8):
         /// Pos (12,4) 36×36 r18 (fs22、選択行 $text / 非選択 $text-muted) /
         /// Name (60,6) 140×32 fs22 / Value (212,6) 180×32 fs22 右寄せ /
-        /// Grade (404,4) 56×36 r4 (fs22 中央)。背景は非選択 $k1 / 選択 (YOU) $k6。
+        /// Grade (404,4) 56×36 r4 (fs22 中央)。背景は非選択 $k1 / 選択 (自分) $k6。
         /// Ranking/History の <see cref="RankRow"/> (496×56/52、Name w160) とは別 design なので
         /// 共有しないこと (旧実装は両方を 32px 右へずらした座標で写経していた)。
         /// </summary>

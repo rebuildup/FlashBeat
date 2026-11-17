@@ -7,6 +7,7 @@ using TMPro;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Ranking;
+using FlashBeat.UI.V6.Result;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 using FlashBeat.UI.V6.Select.View;
@@ -65,8 +66,7 @@ namespace FlashBeat.UI.V6.History
             List<V6SongEntry> history = V6HistoryLogic.HistoryList(data.AllSongs, sort);
             if (infoNicknameText != null)
             {
-                string nickname = RankingClient.LoadNickname();
-                infoNicknameText.text = string.IsNullOrEmpty(nickname) ? "YOU" : nickname;
+                infoNicknameText.text = PlayerDisplayName();
             }
 
             if (infoValueTexts.Count == 4)
@@ -196,7 +196,7 @@ namespace FlashBeat.UI.V6.History
             return V6Lists.RankRow(
                 panel,
                 row.Position.ToString(),
-                row.IsYou ? "YOU" : row.PlayerName,
+                row.DisplayName,
                 V6SelectViewLogic.FormatScore(row.Score),
                 string.IsNullOrEmpty(row.Grade) ? "–" : row.Grade,
                 new Vector2(V6HistoryLogic.SongRankRowX, V6HistoryLogic.SongRankRowTop(visibleIndex)),
@@ -220,7 +220,7 @@ namespace FlashBeat.UI.V6.History
             }
 
             V6Hierarchy.SetChildText(row, "Pos/Pos", dataRow.Position.ToString());
-            V6Hierarchy.SetChildText(row, "Name", dataRow.IsYou ? "YOU" : dataRow.PlayerName);
+            V6Hierarchy.SetChildText(row, "Name", dataRow.DisplayName);
             V6Hierarchy.SetChildText(row, "Value", V6SelectViewLogic.FormatScore(dataRow.Score));
             V6Hierarchy.SetChildText(row, "Grade/Grade", string.IsNullOrEmpty(dataRow.Grade) ? "–" : dataRow.Grade);
 
@@ -249,9 +249,8 @@ namespace FlashBeat.UI.V6.History
             var spacerLe = spacer.AddComponent<LayoutElement>();
             spacerLe.flexibleWidth = 1f;
 
-            string nickname = RankingClient.LoadNickname();
             infoNicknameText = V5GameUi.Text(head.gameObject, "Name",
-                string.IsNullOrEmpty(nickname) ? "YOU" : nickname, 22f, V5Tokens.Text,
+                PlayerDisplayName(), 22f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
 
             infoValueTexts.Add(BuildInfoCell(panel, 8f, 52f, "累計", V6SelectViewLogic.FormatScore(V6HistoryLogic.TotalScore(history))));
@@ -384,7 +383,17 @@ namespace FlashBeat.UI.V6.History
             {
                 return new List<V6RankingRow>(fetched);
             }
-            return V6RankingLogic.LocalRows(song);
+            return V6RankingLogic.LocalRows(song, V6ResultLogic.CurrentPlayerName());
+        }
+
+        /// <summary>
+        /// プレイヤー情報ヘッダーの名前 (Issue #584)。登録名 (オンライン優先・
+        /// 端末内) が無ければ匿名表記 "未登録"。
+        /// </summary>
+        private static string PlayerDisplayName()
+        {
+            string name = V6ResultLogic.CurrentPlayerName();
+            return string.IsNullOrEmpty(name) ? V6RankingRow.AnonymousName : name;
         }
 
         /// <summary>プレイヤー情報 / プレイ情報の小セル (label 左 / value 右)。値テキストを返す (差分更新で書き換えるため)。</summary>

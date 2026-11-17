@@ -201,7 +201,7 @@ namespace FlashBeat.UI.V6.Result
             }
 
             V6Hierarchy.SetChildText(row, "Pos/PosText", rowData.Position.ToString());
-            V6Hierarchy.SetChildText(row, "Name", rowData.IsYou ? "YOU" : rowData.PlayerName);
+            V6Hierarchy.SetChildText(row, "Name", rowData.DisplayName);
             V6Hierarchy.SetChildText(row, "Value", V6ResultLogic.FormatScore(rowData.Score));
             V6Hierarchy.SetChildText(row, "Grade/GradeText", string.IsNullOrEmpty(rowData.Grade) ? "–" : rowData.Grade);
 
@@ -217,7 +217,7 @@ namespace FlashBeat.UI.V6.Result
         {
             // 行内部は共通部品 (design Chlqd 496×44) が持つ。行位置だけがパネル固有点。
             return V6Lists.CompactRankRow(parent, row.Position.ToString(),
-                row.IsYou ? "YOU" : row.PlayerName, V6ResultLogic.FormatScore(row.Score),
+                row.DisplayName, V6ResultLogic.FormatScore(row.Score),
                 row.Grade, new Vector2(8f, y), row.IsYou);
         }
 
@@ -278,14 +278,23 @@ namespace FlashBeat.UI.V6.Result
                         continue;
                     }
 
+                    bool isYou = (!string.IsNullOrEmpty(nickname) && entry.nickname == nickname)
+                        || (myRank > 0 && entry.rank == myRank);
+                    string playerName = entry.nickname ?? "";
+                    if (isYou && string.IsNullOrEmpty(playerName))
+                    {
+                        // myRank 一致でニックネームを持たない自分の行も、
+                        // 登録名 (オンライン優先・端末内) があればそれを出す (Issue #584)。
+                        playerName = V6ResultLogic.CurrentPlayerName();
+                    }
+
                     rankingRows.Add(new FlashBeat.UI.V6.Select.V6RankingRow
                     {
                         Position = entry.rank,
-                        PlayerName = entry.nickname ?? "",
+                        PlayerName = playerName,
                         Score = entry.score,
                         Grade = FlashBeat.UI.V6.Select.Data.V6SelectDataLogic.GradeOf(entry.score),
-                        IsYou = (!string.IsNullOrEmpty(nickname) && entry.nickname == nickname)
-                            || (myRank > 0 && entry.rank == myRank),
+                        IsYou = isYou,
                     });
                 }
             }

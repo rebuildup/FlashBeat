@@ -150,9 +150,10 @@ namespace FlashBeat.UI.V6.Ranking
 
         /// <summary>
         /// Local セグメントの行を作る。ローカル保存は「自分のベスト」しか
-        /// 持っていないので、記録があれば YOU 1 行、無ければ空リスト (空状態表示)。
+        /// 持っていないので、記録があれば自分の 1 行 (IsYou)、無ければ空リスト
+        /// (空状態表示)。playerName は登録名 (無ければ空文字で匿名表記)。
         /// </summary>
-        public static List<V6RankingRow> LocalRows(V6SongEntry song)
+        public static List<V6RankingRow> LocalRows(V6SongEntry song, string playerName = null)
         {
             var rows = new List<V6RankingRow>();
             if (song == null || song.BestScore <= 0)
@@ -162,7 +163,7 @@ namespace FlashBeat.UI.V6.Ranking
             rows.Add(new V6RankingRow
             {
                 Position = 1,
-                PlayerName = "YOU",
+                PlayerName = string.IsNullOrEmpty(playerName) ? string.Empty : playerName,
                 Score = song.BestScore,
                 Grade = song.BestGrade,
                 IsYou = true

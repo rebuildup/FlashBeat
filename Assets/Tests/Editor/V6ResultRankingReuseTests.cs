@@ -125,9 +125,8 @@ namespace FlashBeat.Tests.Editor
             }
 
             Assert.AreEqual("alice2", RowText(second[0], "Name"));
-            Assert.AreEqual("YOU", RowText(second[1], "Name"), "IsYou の行が YOU 表示に更新されていない");
-            // IsYou=true の行は Name が "YOU" になるので、元の名前ではなく
-            // スコア側でデータ反映を確認する。
+            Assert.AreEqual("bob", RowText(second[1], "Name"), "IsYou の行が登録名表示に更新されていない");
+            // IsYou=true の行は登録名 (PlayerName) を表示する (Issue #584: "YOU" 表記の撤廃)。
             Assert.AreEqual(FlashBeat.UI.V6.Result.V6ResultLogic.FormatScore(90000),
                 RowText(second[1], "Value"));
         }

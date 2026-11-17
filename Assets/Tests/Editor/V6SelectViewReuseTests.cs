@@ -309,8 +309,8 @@ namespace FlashBeat.Tests.Editor
             var nameText = rankRowsAfter[0].transform.Find("Name")
                 ?.GetComponent<TMPro.TextMeshProUGUI>();
             Assert.IsNotNull(nameText, "ランキング行に Name テキストが無い");
-            Assert.AreEqual("YOU", nameText.text,
-                "IsYou 行の表示名が更新されていない");
+            Assert.AreEqual("Alice", nameText.text,
+                "IsYou 行は登録名 (PlayerName) を表示する (Issue #584)");
         }
 
         [Test]

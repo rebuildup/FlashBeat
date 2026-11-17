@@ -111,8 +111,18 @@ namespace FlashBeat.UI.V6.Result.Tests
             Assert.AreEqual("ABC", V6ResultLogic.NormalizeLocalName("abc"));
             Assert.AreEqual("ABC123", V6ResultLogic.NormalizeLocalName("abc-123"));
             Assert.AreEqual("ABCDEFGH", V6ResultLogic.NormalizeLocalName("abcdefghij"));
-            Assert.AreEqual("YOU", V6ResultLogic.NormalizeLocalName(""));
-            Assert.AreEqual("YOU", V6ResultLogic.NormalizeLocalName(null));
+            Assert.AreEqual("PLAYER", V6ResultLogic.NormalizeLocalName(""));
+            Assert.AreEqual("PLAYER", V6ResultLogic.NormalizeLocalName(null));
+        }
+
+        [Test]
+        public void LocalSave_LegacyYouValue_LoadsAsUnregistered()
+        {
+            // Issue #584: 旧既定値 "YOU" が PlayerPrefs に残っていても未登録として扱う。
+            PlayerPrefs.SetString(LocalKey, "YOU");
+            PlayerPrefs.Save();
+
+            Assert.AreEqual(string.Empty, V6LocalNameStore.Load());
         }
 
         [Test]
@@ -138,7 +148,7 @@ namespace FlashBeat.UI.V6.Result.Tests
         public void LocalMessage_DefaultNameIsUsedWhenMissing()
         {
             string message = V6ResultLogic.LocalSaveMessage(null);
-            Assert.IsTrue(message.Contains("YOU"), message);
+            Assert.IsTrue(message.Contains("PLAYER"), message);
             Assert.IsFalse(message.Contains("オフライン"), message);
         }
 
