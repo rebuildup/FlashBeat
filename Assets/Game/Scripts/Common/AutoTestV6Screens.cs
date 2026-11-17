@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -684,6 +685,11 @@ public class AutoTestV6Screens : MonoBehaviour
         ScreenReport report, ref int textPartial, ref int textOutside, ref int lines, int maxLines)
     {
         if (node == null) { return; }
+        // #553: 非表示 (alpha 0 / 無効) と空テキストは「読めない情報」ではないので
+        // textOutside の hard FAIL 対象にしない (AuditFrameContainment と同じ除外)。
+        var graphic = node.GetComponent<Graphic>();
+        if (graphic == null || graphic.color.a <= 0.001f || !graphic.isActiveAndEnabled) { return; }
+        if (string.IsNullOrWhiteSpace(text)) { return; }
         var rt = node as RectTransform;
         if (rt == null) { return; }
         var clip = V6ScreenAudit.ClassifyElementClip(node, canvasRoot, rt, screen);
@@ -822,6 +828,13 @@ public static class V6ScreenAudit
     /// (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) 配下の要素は、
     /// コンテンツ (フレーム) 全域がドラッグ/ホイールで到達可能なので
     /// 基準をコンテンツ矩形とし、画面外にあっても Inside (到達可能) とする (#96/#523)。
+    ///
+    /// #564: 名前一致だけのスクロール容器 (v6 の "Rows" / "Song List" 等) は
+    /// Mask / RectMask2D / ScrollRect を持たず何もクリップしない。クリップしない
+    /// 容器の矩形を基準にすると、パネル外でも画面内に見えている要素を
+    /// Outside (到達不能) と誤判定する。実際にクリップする容器だけを基準にし、
+    /// クリップ容器の外は「スクロール可能な軸に沿ったはみ出し」だけを
+    /// 到達可能 (Inside) とみなす (v6 のカスタムスクロールは縦のみ)。
     /// </summary>
     public static ScreenClip ClassifyElementClip(
         Transform node, Transform canvasRoot, RectTransform rt, Rect screen)
@@ -835,22 +848,111 @@ public static class V6ScreenAudit
             return ClassifyScreenClip(WorldRect(rt), WorldRect(pan.Content));
         }
 
-        var basis = screen;
+        var element = WorldRect(rt);
         var scroll = FindScrollAncestor(node, canvasRoot) as RectTransform;
-        if (scroll != null)
+        if (scroll == null || !HasClipComponent(scroll))
         {
-            var sr = WorldRect(scroll);
-            float x0 = Mathf.Max(sr.xMin, screen.xMin);
-            float y0 = Mathf.Max(sr.yMin, screen.yMin);
-            float x1 = Mathf.Min(sr.xMax, screen.xMax);
-            float y1 = Mathf.Min(sr.yMax, screen.yMax);
-            if (x1 > x0 && y1 > y0)
+            // スクロール親が無い、またはクリップしない容器: 見える範囲は実画面。
+            return ClassifyScreenClip(element, screen);
+        }
+
+        var sr = WorldRect(scroll);
+        float x0 = Mathf.Max(sr.xMin, screen.xMin);
+        float y0 = Mathf.Max(sr.yMin, screen.yMin);
+        float x1 = Mathf.Min(sr.xMax, screen.xMax);
+        float y1 = Mathf.Min(sr.yMax, screen.yMax);
+        var basis = x1 > x0 && y1 > y0
+            ? Rect.MinMaxRect(x0, y0, x1, y1)
+            : screen;
+
+        var clip = ClassifyScreenClip(element, basis);
+        if (clip != ScreenClip.Outside)
+        {
+            return clip;
+        }
+
+        // クリップ容器の完全な外: スクロールで到達できる軸のはみ出しだけを
+        // 到達可能とみなす。スクロール不能な軸のはみ出しは Outside のまま。
+        return IsScrollReachable(scroll, node, canvasRoot, element, basis)
+            ? ScreenClip.Inside
+            : ScreenClip.Outside;
+    }
+
+    /// <summary>スクロール容器が実際に子をクリップするか (Mask / RectMask2D / ScrollRect)。</summary>
+    public static bool HasClipComponent(Transform node)
+    {
+        return node != null
+            && (node.GetComponent<Mask>() != null
+                || node.GetComponent<RectMask2D>() != null
+                || node.GetComponent<ScrollRect>() != null);
+    }
+
+    /// <summary>
+    /// クリップ容器の外にある要素がスクロールで到達可能か。
+    /// 完全に外れている軸がすべてスクロール可能で、かつ ScrollRect の場合は
+    /// スクロールコンテンツの範囲内にあること。v6 のカスタムスクロール
+    /// (IScrollHandler のキャッチャ、ホイール/ボタン送り) は縦のみ。
+    /// </summary>
+    public static bool IsScrollReachable(
+        RectTransform scroll, Transform node, Transform canvasRoot, Rect element, Rect basis)
+    {
+        var scrollRect = scroll.GetComponent<ScrollRect>();
+        bool canX;
+        bool canY;
+        if (scrollRect != null)
+        {
+            canX = scrollRect.horizontal;
+            canY = scrollRect.vertical;
+        }
+        else
+        {
+            canX = false;
+            canY = HasScrollHandlerInChain(node, canvasRoot);
+        }
+
+        bool outX = element.xMax <= basis.xMin + TolerancePx
+            || element.xMin >= basis.xMax - TolerancePx;
+        bool outY = element.yMax <= basis.yMin + TolerancePx
+            || element.yMin >= basis.yMax - TolerancePx;
+        if ((!outX && !outY) || (outX && !canX) || (outY && !canY))
+        {
+            return false;
+        }
+
+        // ScrollRect はコンテンツ範囲の外まではスクロールで届かない。
+        if (scrollRect != null && scrollRect.content != null)
+        {
+            var content = WorldRect(scrollRect.content);
+            if (outY && (element.yMax <= content.yMin + TolerancePx
+                || element.yMin >= content.yMax - TolerancePx))
             {
-                basis = Rect.MinMaxRect(x0, y0, x1, y1);
+                return false;
+            }
+            if (outX && (element.xMax <= content.xMin + TolerancePx
+                || element.xMin >= content.xMax - TolerancePx))
+            {
+                return false;
             }
         }
 
-        return ClassifyScreenClip(WorldRect(rt), basis);
+        return true;
+    }
+
+    /// <summary>node から canvasRoot までの親鎖に IScrollHandler 実装があるか。</summary>
+    public static bool HasScrollHandlerInChain(Transform node, Transform root)
+    {
+        var t = node == null ? null : node.parent;
+        while (t != null && t != root)
+        {
+            var behaviours = t.GetComponents<MonoBehaviour>();
+            for (int i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IScrollHandler) { return true; }
+            }
+            t = t.parent;
+        }
+
+        return false;
     }
 
     /// <summary>root に至る親鎖からパンビューポート (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) を探す。無ければ null。</summary>
