@@ -70,13 +70,20 @@ function New-FakeReleaseZip {
     [System.IO.Compression.ZipFile]::CreateFromDirectory($staging, $ZipPath)
 }
 
+function Get-UpdateBackupRoot {
+    # issue #574: 退避は <parent>\.flashbeat-update\backup\ に集約される。
+    param([Parameter(Mandatory = $true)][string]$ParentDir)
+    return (Join-Path (Join-Path $ParentDir '.flashbeat-update') 'backup')
+}
+
 function Get-ScopedBackups {
     # 特定のインストール (名前空間) に属する退避フォルダだけを列挙する。
     param(
         [Parameter(Mandatory = $true)][string]$ParentDir,
         [Parameter(Mandatory = $true)][string]$InstallKey
     )
-    return @(Get-ChildItem -LiteralPath $ParentDir -Directory -ErrorAction SilentlyContinue |
+    $backupRoot = Get-UpdateBackupRoot -ParentDir $ParentDir
+    return @(Get-ChildItem -LiteralPath $backupRoot -Directory -ErrorAction SilentlyContinue |
         Where-Object { Test-FlashBeatScopedName -Name $_.Name -InstallKey $InstallKey })
 }
 
@@ -104,13 +111,21 @@ function Invoke-Update {
         [Parameter(Mandatory = $true)][string]$InstallDir,
         [Parameter(Mandatory = $true)][string]$ZipPath,
         [Parameter(Mandatory = $true)][string]$Sha256,
-        [Parameter(Mandatory = $true)][string]$LogPath
+        [Parameter(Mandatory = $true)][string]$LogPath,
+        [string]$ResultDir = '',
+        [string]$LogDir = ''
     )
     $wrapper = Join-Path (Join-Path (Join-Path $repoRoot 'tools') 'update') 'tests/Invoke-UpdateForTest.ps1'
-    $output = & pwsh -NoProfile -ExecutionPolicy Bypass -File $wrapper `
-        -UpdateScript $updateScript `
-        -TargetInstallDir $InstallDir -TargetZipPath $ZipPath `
-        -TargetSha256 $Sha256 -TargetLogPath $LogPath 2>&1
+    $wrapperArgs = @{
+        UpdateScript       = $updateScript
+        TargetInstallDir   = $InstallDir
+        TargetZipPath      = $ZipPath
+        TargetSha256       = $Sha256
+        TargetLogPath      = $LogPath
+    }
+    if ($ResultDir) { $wrapperArgs['TargetResultDir'] = $ResultDir }
+    if ($LogDir) { $wrapperArgs['TargetLogDir'] = $LogDir }
+    $output = & pwsh -NoProfile -ExecutionPolicy Bypass -File $wrapper @wrapperArgs 2>&1
     return [pscustomobject]@{
         ExitCode = $LASTEXITCODE
         Output   = ($output | Out-String)
@@ -131,14 +146,18 @@ try {
     New-FakeInstall -Dir $installB -Marker 'B-untouched'
     $identityA = Get-FlashBeatInstallIdentity -InstallDir $installA
 
-    # 副次インストールが更新で作った退避 (復旧データ) を置いておく。
+    # 副次インストールが更新で作った退避 (復旧データ) を親フォルダ直下に置いておく。
+    # manifest 付きなので、A の更新時に .flashbeat-update\backup へ移動される (issue #574)。
     $identityB = Get-FlashBeatInstallIdentity -InstallDir $installB
-    $backupB = Join-Path $tempRoot (New-FlashBeatBackupName -InstallKey $identityB.InstallKey -RunId '20261108-000000-9999-bbbbbb')
+    $backupBName = New-FlashBeatBackupName -InstallKey $identityB.InstallKey -RunId '20261108-000000-9999-bbbbbb'
+    $backupB = Join-Path $tempRoot $backupBName
     New-Item -ItemType Directory -Path $backupB -Force | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $backupB 'old-payload.txt'), 'recovery-data-of-B')
     Write-FlashBeatOwnerManifest -BackupDir $backupB -Identity $identityB -RunId '20261108-000000-9999-bbbbbb' -Version '0.1.14' | Out-Null
+    $backupBNew = Join-Path (Get-UpdateBackupRoot -ParentDir $tempRoot) $backupBName
 
-    # 旧形式 (所有不明) の退避も置いておく (旧スクリプトで作られたもの)。
+    # 旧形式 (所有不明) の退避も親フォルダ直下に置いておく (旧スクリプトで作られたもの)。
+    # manifest が無いので移動も削除もされず、親フォルダに残る。
     $legacyBackup = Join-Path $tempRoot 'FlashBeat-backup-20261107-013942'
     New-Item -ItemType Directory -Path $legacyBackup -Force | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $legacyBackup 'old-payload.txt'), 'unknown-owner-data')
@@ -147,14 +166,29 @@ try {
     New-FakeReleaseZip -Dir $tempRoot -ZipPath $zipPath -Marker 'new-A'
     $sha = Get-Sha256Hex -Path $zipPath
 
+    # last-result.json の出力先 (issue #574: update\results 相当の責務別ディレクトリ)。
+    $resultDir = Join-Path (Join-Path $tempRoot 'update-data') 'results'
+
     # ── 1 回目の更新 ───────────────────────────────────────────────
     $logPath = Join-Path $tempRoot 'update.log'
-    $run1 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $sha -LogPath $logPath
+    $run1 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $sha -LogPath $logPath -ResultDir $resultDir
     Assert-Equal 'T1 1 回目の更新は終了コード 0' 0 $run1.ExitCode
     Assert-True 'T2 更新後の配置が新しい内容に置き換わる' ((Get-Content -LiteralPath (Join-Path (Join-Path $installA 'FlashBeat_Data') 'marker.txt') -Raw).Trim() -eq 'new-A')
-    Assert-True 'T3 副次インストールの退避 (復旧データ) が消えない' (Test-Path -LiteralPath (Join-Path $backupB 'old-payload.txt'))
+    Assert-True 'T3 副次インストールの退避 (復旧データ) が backup 領域に残る' (Test-Path -LiteralPath (Join-Path $backupBNew 'old-payload.txt'))
     Assert-True 'T4 旧形式 (所有不明) の退避が消えない' (Test-Path -LiteralPath (Join-Path $legacyBackup 'old-payload.txt'))
     Assert-True 'T5 副次インストールの中身は更新されない' ((Get-Content -LiteralPath (Join-Path (Join-Path $installB 'FlashBeat_Data') 'marker.txt') -Raw).Trim() -eq 'B-untouched')
+    Assert-True 'T5b last-result.json が results ディレクトリに書かれる' (Test-Path -LiteralPath (Join-Path $resultDir 'last-result.json'))
+    $resultJson = Get-Content -LiteralPath (Join-Path $resultDir 'last-result.json') -Raw | ConvertFrom-Json
+    Assert-Equal 'T5c last-result.json の result は success' 'success' $resultJson.result
+
+    # issue #574: インストール先の親フォルダに FlashBeat-* の残骸を残さない
+    Assert-True 'T5d .flashbeat-update 領域が作られる' (Test-Path -LiteralPath (Join-Path $tempRoot '.flashbeat-update'))
+    Assert-True 'T5e 作業フォルダは実行後に残らない' (@(Get-ChildItem -LiteralPath (Join-Path (Join-Path $tempRoot '.flashbeat-update') 'work') -ErrorAction SilentlyContinue).Count -eq 0)
+    Assert-True 'T5f 親フォルダに FlashBeat-update-work-* が残らない' (@(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'FlashBeat-update-work-*' -ErrorAction SilentlyContinue).Count -eq 0)
+    Assert-True 'T5g 親フォルダに FlashBeat-update.log が残らない' (-not (Test-Path -LiteralPath (Join-Path $tempRoot 'FlashBeat-update.log')))
+    $parentBackups = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'FlashBeat-backup-*' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -ne $legacyBackup })
+    Assert-Equal 'T5h 親フォルダに manifest 無し以外の退避が残らない' 0 $parentBackups.Count
 
     $backupsA = @(Get-ScopedBackups -ParentDir $tempRoot -InstallKey $identityA.InstallKey)
     Assert-Equal 'T6 自インストールの退避が 1 世代できる' 1 $backupsA.Count
@@ -162,21 +196,24 @@ try {
     Assert-True 'T8 退避に旧版の中身が退避されている' (Test-Path -LiteralPath (Join-Path (Join-Path $backupsA[0].FullName 'FlashBeat_Data') 'marker.txt'))
 
     # ── 2 回目の更新 (自インストールの旧世代は消える / 他は残る) ──
-    $run2 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $sha -LogPath $logPath
+    $run2 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $sha -LogPath $logPath -ResultDir $resultDir
     Assert-Equal 'T9 2 回目の更新は終了コード 0' 0 $run2.ExitCode
 
     $backupsA2 = @(Get-ScopedBackups -ParentDir $tempRoot -InstallKey $identityA.InstallKey)
     Assert-Equal 'T10 自インストールの退避は 1 世代だけ残る' 1 $backupsA2.Count
     Assert-True 'T11 2 回目の退避は前回と違う' ($backupsA2[0].FullName -ne $backupsA[0].FullName)
-    Assert-True 'T12 副次インストールの退避は 2 回目の更新後も残る' (Test-Path -LiteralPath (Join-Path $backupB 'old-payload.txt'))
+    Assert-True 'T12 副次インストールの退避は 2 回目の更新後も残る' (Test-Path -LiteralPath (Join-Path $backupBNew 'old-payload.txt'))
     Assert-True 'T13 旧形式の退避は 2 回目の更新後も残る' (Test-Path -LiteralPath (Join-Path $legacyBackup 'old-payload.txt'))
 
     # ── 失敗時は黙って成功にしない ───────────────────────────────
     $badSha = ('0' * 64)
-    $run3 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $badSha -LogPath $logPath
+    $run3 = Invoke-Update -InstallDir $installA -ZipPath $zipPath -Sha256 $badSha -LogPath $logPath -ResultDir $resultDir
     Assert-Equal 'T14 ダイジェスト不一致は終了コード 3' 3 $run3.ExitCode
     Assert-True 'T15 ダイジェスト不一致でも配置は変わらない' ((Get-Content -LiteralPath (Join-Path (Join-Path $installA 'FlashBeat_Data') 'marker.txt') -Raw).Trim() -eq 'new-A')
     Assert-Equal 'T16 ダイジェスト不一致でも退避は増えない' 1 @(Get-ScopedBackups -ParentDir $tempRoot -InstallKey $identityA.InstallKey).Count
+    $resultJson3 = Get-Content -LiteralPath (Join-Path $resultDir 'last-result.json') -Raw | ConvertFrom-Json
+    Assert-Equal 'T17 ダイジェスト不一致の結果が failed で記録される' 'failed' $resultJson3.result
+    Assert-Equal 'T18 ダイジェスト不一致の終了コードが記録される' 3 $resultJson3.exitCode
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

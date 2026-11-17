@@ -109,8 +109,10 @@ GITHUB_TOKEN=$(gh auth token) python3 tools/release/audit-release-media.py
 2. 新版があるとき、**Title シーン (ホーム) にだけ**『アップデートあり vX.Y.Z』の通知を出す
    (コード構築 overlay。F3 キー / 通知クリックでダウンロード開始、F4 / × でこのセッションは非表示)
 3. **ユーザーがトリガーしたときだけ** ZIP + `.sha256` を staging へ取得し SHA-256 検証 (進捗 % を通知内に表示)
-   - Windows: `%LOCALAPPDATA%\FlashBeat\update\staging`
-   - macOS: `~/Library/Application Support/FlashBeat/update/staging`
+   - Windows / macOS とも `<persistentDataPath>/update/staging`
+     (Windows: `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging`、
+     macOS: `~/Library/Application Support/KimuraYusuke/FlashBeat/update/staging`。
+     いずれも Unity が実際に使う persistentDataPath 配下)
 4. staging 完了後、通知は『更新の準備ができました。終了して適用 [F3]』に変わる。
    ユーザーが F3 / クリック (または Option の適用ボタン) で**確認したときだけ**、配布物内の
    アップデータを分離プロセスで起動する:
@@ -127,8 +129,9 @@ GITHUB_TOKEN=$(gh auth token) python3 tools/release/audit-release-media.py
 `tools\update\Update.ps1` / `update-macos.sh` は**すべての終了経路**で
 `<update dir>\last-result.json` に機械可読な結果を書く
 (アプリからの自動適用でも手実行でも。書けない場合も更新処理自体は失敗させない)。
-`<update dir>` は Windows: `%LOCALAPPDATA%\FlashBeat\update`、
-macOS: `~/Library/Application Support/FlashBeat/update`。
+`<update dir>` は `<persistentDataPath>/update/results` (issue #574 で責務別ディレクトリ化。
+Windows: `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\results`、
+macOS: `~/Library/Application Support/KimuraYusuke/FlashBeat/update/results`)。
 
 ```json
 {
@@ -146,7 +149,7 @@ macOS: `~/Library/Application Support/FlashBeat/update`。
   6 FlashBeat 実行中)。`failed` = 適用を試みて失敗 (2 通信 / 3 ダイジェスト / 4 ZIP / 5 内容 /
   7 切替、想定外エラー)。`success` は切替と配置後検査が**完了したあとにだけ**書く
   (再起動の成否には依存しない)。
-- `message` は `FlashBeat-update.log` と同じ日本語の理由。
+- `message` は updater ログ (`<persistentDataPath>/update/logs/FlashBeat-update-<runId>.log`) と同じ日本語の理由。
 - アプリは次回起動時にこのファイルを読み、**Title シーンで 1 回だけ**通知する:
   - `failed` / `aborted`: 『前回の更新に失敗しました: \<message\> - 現在の版 vX を使用中 / F3 で再試行』
   - `success`: 『更新しました vX』
@@ -154,7 +157,7 @@ macOS: `~/Library/Application Support/FlashBeat/update`。
   (ゲームをブロックしない。F3 での再試行は新版がまだ見つかっているときだけ効く)。
 - したがってスクリプト起動時のアプリのログは
   `update script started (result unknown until next start)` であり、**成否はこの時点では確定しない**。
-  確認は結果ファイル (または `FlashBeat-update.log`) で行う。
+  確認は結果ファイル (または updater ログ) で行う。
 - staging / 適用の直前に、対象 ZIP の版が現行ビルドより新しいことを再確認する
   (`UpdateChecker.IsStagedTagNewerThanCurrent`)。旧版・同一バージョンの別ビルドは
   staging も適用もしない (ダウングレード防止)。

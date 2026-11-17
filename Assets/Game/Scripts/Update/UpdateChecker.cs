@@ -116,7 +116,13 @@ namespace FlashBeat.Update
             Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
 
-            // ── -1. 前回の更新結果を反映 (issue #125) ──────────────────
+            // ── -1. 旧レイアウトの更新データを新領域へ引き継ぐ (issue #574) ──
+            // %LOCALAPPDATA%\FlashBeat\update / ~/Library/Application Support/FlashBeat/update
+            // に残る staging / last-result を persistentDataPath 配下へ移す。
+            // 既知の名前のものだけを移し、失敗しても更新確認は続行する。
+            UpdatePaths.MigrateLegacyData();
+
+            // ── -1.5 前回の更新結果を反映 (issue #125) ──────────────────
             // Update.ps1 がすべての終了経路で書く last-result.json を読み、Title 通知の文言を
             // Model に渡す。表示と mark-as-shown (リネーム) は UpdateNoticeUI が Title で行う。
             // ここではブロックしない (ファイル読み取りのみ・失敗しても静かに続行)。
@@ -713,7 +719,9 @@ namespace FlashBeat.Update
                        " -InstallDir \"" + installDir + "\"" +
                        " -Apply -Relaunch" +
                        " -ZipPath \"" + Path.Combine(UpdateStaging.StagingDir, staged.zipName) + "\"" +
-                       " -ExpectedSha256 " + staged.sha256;
+                       " -ExpectedSha256 " + staged.sha256 +
+                       " -ResultDir \"" + UpdatePaths.ResultDir + "\"" +
+                       " -LogDir \"" + UpdatePaths.LogsDir + "\"";
             if (waitForThisProcess)
             {
                 args += " -WaitPid " + Process.GetCurrentProcess().Id;
@@ -750,11 +758,35 @@ namespace FlashBeat.Update
                 return false;
             }
 
+            // 一時コピーは persistentDataPath 配下 (UpdatePaths.UpdaterTmpDir) に置く (issue #574)。
+            // 前回の起動で残った残骸 (FlashBeat-update-*) はここで掃除する — このディレクトリは
+            // 「スクリプトをコピーして即 Application.Quit する」ためにだけ使われるので、
+            // 起動時に存在するものはすべて前回の残骸であり安全に消せる。
+            // コピー先のディレクトリ自体は updater (update-macos.sh) が終了時に自分で消す。
             string tempScript;
             try
             {
-                var tempDir = Path.Combine(Path.GetTempPath(),
-                    "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
+                var updaterTmp = UpdatePaths.UpdaterTmpDir;
+                string tempDir;
+                if (string.IsNullOrEmpty(updaterTmp))
+                {
+                    // persistentDataPath が解決できない環境では従来どおり Temp を使う
+                    // (この場合 updater 側の自分で消す処理は効かないが、起動自体は優先する)。
+                    tempDir = Path.Combine(Path.GetTempPath(),
+                        "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
+                }
+                else
+                {
+                    if (Directory.Exists(updaterTmp))
+                    {
+                        foreach (var stale in Directory.GetDirectories(updaterTmp, "FlashBeat-update-*"))
+                        {
+                            try { Directory.Delete(stale, true); } catch (Exception) { }
+                        }
+                    }
+                    tempDir = Path.Combine(updaterTmp,
+                        "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
+                }
                 Directory.CreateDirectory(tempDir);
                 tempScript = Path.Combine(tempDir, "update-macos.sh");
                 File.Copy(scriptInBundle, tempScript, true);
@@ -770,7 +802,8 @@ namespace FlashBeat.Update
                        " -Apply -Relaunch" +
                        " -ZipPath \"" + Path.Combine(UpdateStaging.StagingDir, staged.zipName) + "\"" +
                        " -ExpectedSha256 " + staged.sha256 +
-                       " -ResultDir \"" + UpdatePaths.BaseDir + "\"";
+                       " -ResultDir \"" + UpdatePaths.ResultDir + "\"" +
+                       " -LogDir \"" + UpdatePaths.LogsDir + "\"";
             if (waitForThisProcess)
             {
                 args += " -WaitPid " + Process.GetCurrentProcess().Id;

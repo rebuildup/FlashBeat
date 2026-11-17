@@ -7,7 +7,7 @@
 # What it does:
 #   1. waits for the running FlashBeat process (the app that launched it) to exit
 #   2. obtains the release ZIP (local path or GitHub Release tag) and verifies SHA-256
-#   3. extracts to a temporary directory on the same volume as the install
+#   3. extracts to a work directory on the same volume as the install
 #   4. replaces FlashBeat.app, keeping one backup generation
 #   5. relaunches the new app (only with -Relaunch)
 #
@@ -17,6 +17,16 @@
 #
 # The result is always written to last-result.json for the next app start
 # (issue #125), even when the update fails.
+#
+# Layout (issue #574 — インストール先の親フォルダを散らかさない):
+#   <install の親>/.flashbeat-update/
+#       work/    … ダウンロード・展開の一時作業フォルダ (実行ごとに削除)
+#       backup/  … 旧版 .app の退避 (所有 manifest 付き・1 世代)
+#   <persistentDataPath>/update/
+#       results/ … last-result.json
+#       logs/    … 実行ログ (FlashBeat-update-<runId>.log・最新 20 世代)
+#   退避の削除は Windows 版 (Update.ps1, issue #185) と同じく
+#   「名前が自インストールの名前空間内」+「所有 manifest が一致」の二重チェック。
 
 set -u
 
@@ -36,6 +46,7 @@ TAG=""
 REPO="rebuildup/FlashBeat"
 ASSET_NAME=""
 RESULT_DIR=""
+LOG_DIR=""
 LOG_PATH=""
 WAIT_PID=""
 APPLY=0
@@ -52,8 +63,11 @@ Usage: update-macos.sh -InstallDir <FlashBeat.app> [options]
   -ExpectedSha256 <hex>    Expected ZIP SHA-256 (default: read the .sha256 sidecar)
   -Repo <owner/repo>       GitHub repository for -Tag (default: rebuildup/FlashBeat)
   -ResultDir <path>        Where to write last-result.json
-                           (default: ~/Library/Application Support/FlashBeat/update)
-  -LogPath <path>          Log file (default: <parent of InstallDir>/FlashBeat-update.log)
+                           (default: <persistentDataPath>/update/results;
+                            ~/Library/Application Support/KimuraYusuke/FlashBeat/update/results)
+  -LogDir <path>           Directory for per-run logs (default: <persistentDataPath>/update/logs;
+                           keeps the newest 20 FlashBeat-update-*.log files)
+  -LogPath <path>          Log file (default: <LogDir>/FlashBeat-update-<runId>.log)
   -WaitPid <pid>           Wait for this PID to exit before switching (max 300 s)
   -Apply                   Assert this is a user-confirmed apply (app passes this)
   -Relaunch                Start the new FlashBeat.app after a successful switch
@@ -97,9 +111,193 @@ write_result() {
     } >"$tmp_file" 2>/dev/null && mv "$tmp_file" "$result_file" 2>/dev/null
 }
 
+# ── install scope helpers (issue #185 parity with Update.ps1, issue #574) ──
+
+flashbeat_install_key() {
+    # インストール単位の安定 ID (小文字・英数字と . _ - のみ・連続区切りは畳む)。
+    # Update.ps1 の ConvertTo-FlashBeatInstallKey と同じ規則。.app 接尾辞は除く。
+    local name="${1##*/}"
+    name="${name%.app}"
+    name="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+    name="$(printf '%s' "$name" | sed -e 's/[^a-z0-9._-]\+/-/g' -e 's/-\{2,\}/-/g' -e 's/^[-._]*//' -e 's/[-._]*$//')"
+    [ -n "$name" ] || name="flashbeat"
+    printf '%s' "$name"
+}
+
+new_run_id() {
+    # Update.ps1 の New-FlashBeatRunId と同じ形式: <yyyyMMdd-HHmmss>-<pid>-<hex4-8>
+    local rand6
+    rand6="$(od -An -N 3 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n')"
+    rand6="${rand6:-$(printf '%x' "$$")}"
+    printf '%s-%s-%s' "$(date +%Y%m%d-%H%M%S)" "$$" "${rand6:0:6}"
+}
+
+scoped_backup_name() {
+    # 自インストール専用の退避ディレクトリ名 (名前空間 = インストール単位)。
+    printf 'FlashBeat-backup-%s-%s' "$1" "$2"
+}
+
+test_scoped_backup_name() {
+    # $1 = 候補名, $2 = InstallKey。自分の名前空間内の退避名なら 0。
+    # 旧形式 'FlashBeat-backup-<yyyyMMdd-HHmmss>' は所有不明なので 1 (対象外)。
+    local prefix="FlashBeat-backup-$2-"
+    case "$1" in
+        "$prefix"*) ;;
+        *) return 1 ;;
+    esac
+    local rest="${1#"$prefix"}"
+    [[ "$rest" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+-[0-9a-f]{4,8}$ ]]
+}
+
+normalize_path() {
+    # 比較用の正規化パス (絶対化・末尾 / 除去・実在ディレクトリは symlink 解決)。
+    local p="$1"
+    case "$p" in
+        /*) ;;
+        *) p="$PWD/$p" ;;
+    esac
+    p="${p%/}"
+    if [ -d "$p" ]; then
+        (CDPATH= cd -- "$p" 2>/dev/null && pwd) || printf '%s\n' "$p"
+    else
+        printf '%s\n' "$p"
+    fi
+}
+
+norm_cmp() {
+    normalize_path "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+write_owner_manifest() {
+    # 退避ディレクトリに所有 manifest を書く (これが無い退避は自動削除しない)。
+    # 引数: <backup dir> <installKey> <installPath> <installName> <isCanonical> <runId> <version>
+    local dir="$1" key="$2" ipath="$3" iname="$4" canonical="$5" runid="$6" version="${7:-}"
+    local parent
+    parent="$(dirname "$ipath")"
+    cat >"$dir/flashbeat-backup-owner.json" <<EOF
+{"schema":"flashbeat-backup-owner/1","installPath":"$(json_escape "$ipath")","installName":"$(json_escape "$iname")","installKey":"$key","isCanonical":$canonical,"parentPath":"$(json_escape "$(norm_cmp "$parent")")","runId":"$runid","version":"$(json_escape "$version")","createdAtUtc":"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"}
+EOF
+}
+
+manifest_field() {
+    # manifest JSON から単純な "field": "value" を取り出す (自分で書いた形式専用)。
+    sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$1" | head -1
+}
+
+backup_owner_matches() {
+    # $1 = 退避ディレクトリ, $2 = InstallKey, $3 = 正規化 installPath。
+    # 所有 manifest が「今回のインストール」と一致するときだけ 0。
+    local mf="$1/flashbeat-backup-owner.json"
+    [ -f "$mf" ] || return 1
+    local mkey mpath
+    mkey="$(manifest_field "$mf" installKey)"
+    mpath="$(manifest_field "$mf" installPath)"
+    [ -n "$mkey" ] && [ -n "$mpath" ] || return 1
+    [ "$mkey" = "$2" ] || return 1
+    [ "$(norm_cmp "$mpath")" = "$(norm_cmp "$3")" ]
+}
+
+backup_is_deletable() {
+    # 旧世代削除の判定 (Update.ps1 Select-FlashBeatStaleBackups と同じ規則):
+    #   $1 = 退避ディレクトリ, $2 = 今回の退避 (current), $3 = InstallKey, $4 = 正規化 installPath
+    # 名前が自名前空間内 + 所有 manifest 一致のときだけ 0 (削除してよい)。
+    local dir="$1" current="$2" key="$3" ipath="$4"
+    [ "$dir" = "$current" ] && return 1
+    local name="${dir##*/}"
+    test_scoped_backup_name "$name" "$key" || return 1
+    backup_owner_matches "$dir" "$key" "$ipath"
+}
+
+prune_update_logs() {
+    # 実行ログの世代管理: FlashBeat-update-*.log を新しい順に最新 20 件だけ残す。
+    # ファイル名に実行時刻が入るため名前の降順 = 時系列の降順。
+    [ -d "$LOG_DIR" ] || return 0
+    local f count=0
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        count=$((count + 1))
+        if [ "$count" -gt 20 ]; then
+            rm -f "$f" 2>/dev/null || true
+        fi
+    done <<EOF
+$(ls -1 "$LOG_DIR"/FlashBeat-update-*.log 2>/dev/null | sort -r)
+EOF
+}
+
+mac_persistent_root() {
+    # Unity スタンドアロンの persistentDataPath 候補 (issue #574)。
+    # macOS Player は company/product を優先し、無ければ旧 bundle-id 形式を使うため、
+    # 「既に存在するもの」を優先して選ぶ。どれも無ければ company/product を既定にする。
+    #   ProjectSettings.asset: companyName=KimuraYusuke / productName=FlashBeat
+    local company="KimuraYusuke" product="FlashBeat"
+    local candidates=()
+    candidates+=("$HOME/Library/Application Support/$company/$product")
+    candidates+=("$HOME/Library/Application Support/unity.$company.$product")
+    local bid=""
+    if [ -n "${INSTALL_DIR:-}" ] && [ -f "$INSTALL_DIR/Contents/Info.plist" ]; then
+        bid="$(defaults read "$INSTALL_DIR/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || true)"
+    fi
+    if [ -n "$bid" ]; then
+        candidates+=("$HOME/Library/Application Support/$bid")
+    fi
+    local c
+    for c in "${candidates[@]}"; do
+        if [ -d "$c" ]; then
+            printf '%s\n' "$c"
+            return 0
+        fi
+    done
+    printf '%s\n' "${candidates[0]}"
+}
+
+cleanup_legacy_layout() {
+    # 旧レイアウト (issue #574 より前) の残骸を「所有が確認できるものだけ」整理する。
+    #   - <parent>/FlashBeat-update.log        → <LOG_DIR>/FlashBeat-update-legacy.log
+    #   - <parent>/.flashbeat-update.<pid>     → PID が死んでいるものだけ削除
+    #     (旧 WORK_DIR。生きている PID のものは実行中の別 updater なので触らない)
+    #   - <parent>/FlashBeat-backup-*.app      → 所有 manifest が無く確認できないため残す
+    # すべて best-effort。
+    local d pid dest n=0
+    if [ -f "$APP_PARENT/FlashBeat-update.log" ]; then
+        mkdir -p "$LOG_DIR" 2>/dev/null || true
+        dest="$LOG_DIR/FlashBeat-update-legacy.log"
+        if [ ! -e "$dest" ]; then
+            if mv "$APP_PARENT/FlashBeat-update.log" "$dest" 2>/dev/null; then
+                log "moved legacy log: $APP_PARENT/FlashBeat-update.log -> $dest"
+            fi
+        fi
+    fi
+    for d in "$APP_PARENT"/.flashbeat-update.*; do
+        [ -d "$d" ] || continue
+        pid="${d##*.}"
+        case "$pid" in
+            ''|*[!0-9]*) continue ;;
+        esac
+        if kill -0 "$pid" 2>/dev/null; then
+            continue
+        fi
+        if rm -rf "$d" 2>/dev/null; then
+            log "removed stale temp dir: $d"
+        fi
+    done
+    for d in "$APP_PARENT"/FlashBeat-backup-*.app; do
+        [ -d "$d" ] || continue
+        n=$((n + 1))
+    done
+    if [ "$n" -gt 0 ]; then
+        log "note: $n legacy backup(s) without owner manifest left untouched in $APP_PARENT"
+    fi
+}
+
 cleanup() {
     if [ -n "${WORK_DIR:-}" ] && [ -d "$WORK_DIR" ]; then
         rm -rf "$WORK_DIR"
+    fi
+    # UpdateChecker が persistentDataPath/update/updater/FlashBeat-update-*/ に
+    # コピーした自分自身のスクリプトを置いた一時ディレクトリを消す (issue #574)。
+    # 手動実行など一致しない場所からの起動では UPDATER_TMP_DIR は空のまま。
+    if [ -n "${UPDATER_TMP_DIR:-}" ] && [ -d "$UPDATER_TMP_DIR" ]; then
+        rm -rf "$UPDATER_TMP_DIR" 2>/dev/null || true
     fi
 }
 
@@ -122,6 +320,12 @@ abort() {
     exit "$exit_code"
 }
 
+# テスト用: tools/update/tests/ から関数定義だけを取り込むときに使う
+# (UPDATE_MACOS_FUNCTIONS_ONLY=1 で source)。引数解析・本体は走らない。
+if [ "${UPDATE_MACOS_FUNCTIONS_ONLY:-0}" = "1" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
 # --- arguments -------------------------------------------------------------
 
 while [ $# -gt 0 ]; do
@@ -133,6 +337,7 @@ while [ $# -gt 0 ]; do
         -AssetName) ASSET_NAME="${2:-}"; shift 2 ;;
         -Repo) REPO="${2:-}"; shift 2 ;;
         -ResultDir) RESULT_DIR="${2:-}"; shift 2 ;;
+        -LogDir) LOG_DIR="${2:-}"; shift 2 ;;
         -LogPath) LOG_PATH="${2:-}"; shift 2 ;;
         -WaitPid) WAIT_PID="${2:-}"; shift 2 ;;
         -Apply) APPLY=1; shift ;;
@@ -153,14 +358,51 @@ if [ -d "$INSTALL_DIR/FlashBeat.app" ]; then
     INSTALL_DIR="$INSTALL_DIR/FlashBeat.app"
 fi
 INSTALL_DIR="${INSTALL_DIR%/}"
+# 絶対パスに正規化する (所有 manifest の installPath と退避の比較に使う)。
+case "$INSTALL_DIR" in
+    /*) ;;
+    *) INSTALL_DIR="$PWD/$INSTALL_DIR" ;;
+esac
+if [ -d "$INSTALL_DIR" ]; then
+    INSTALL_DIR="$(CDPATH= cd -- "$INSTALL_DIR" 2>/dev/null && pwd || printf '%s' "$INSTALL_DIR")"
+fi
+INSTALL_DIR="${INSTALL_DIR%/}"
 APP_PARENT="$(dirname "$INSTALL_DIR")"
+INSTALL_NAME="$(basename "$INSTALL_DIR")"
+INSTALL_KEY="$(flashbeat_install_key "$INSTALL_NAME")"
+INSTALL_DIR_NORM="$(norm_cmp "$INSTALL_DIR")"
+IS_CANONICAL=0
+[ "$INSTALL_NAME" = "FlashBeat.app" ] && IS_CANONICAL=1
+RUN_ID="$(new_run_id)"
+
+# UpdateChecker はスクリプトを <persistentDataPath>/update/updater/FlashBeat-update-*/ に
+# コピーして起動する。終了時にその一時ディレクトリを自分で消すため場所を記録する (issue #574)。
+UPDATER_TMP_DIR=""
+SELF_DIR="$(CDPATH= cd -- "$(dirname "$0")" 2>/dev/null && pwd || true)"
+case "$SELF_DIR" in
+    */updater/FlashBeat-update-*) UPDATER_TMP_DIR="$SELF_DIR" ;;
+esac
+
+# 永続データの既定位置 (アプリの persistentDataPath 相当)。
+PERSIST_ROOT="$(mac_persistent_root)"
+DATA_DIR="$PERSIST_ROOT/update"
 if [ -z "$RESULT_DIR" ]; then
-    RESULT_DIR="$HOME/Library/Application Support/FlashBeat/update"
+    RESULT_DIR="$DATA_DIR/results"
+fi
+if [ -z "$LOG_DIR" ]; then
+    LOG_DIR="$DATA_DIR/logs"
 fi
 if [ -z "$LOG_PATH" ]; then
-    LOG_PATH="$APP_PARENT/FlashBeat-update.log"
+    # 1 実行 = 1 ログファイル (実行時刻入りの名前で世代管理する。issue #574)
+    LOG_PATH="$LOG_DIR/FlashBeat-update-$RUN_ID.log"
 fi
 mkdir -p "$(dirname "$LOG_PATH")" 2>/dev/null || true
+prune_update_logs
+
+# インストール先と同一ボリューム内のアプリ専用領域 (issue #574)。
+UPDATE_ROOT="$APP_PARENT/.flashbeat-update"
+WORK_ROOT="$UPDATE_ROOT/work"
+BACKUP_ROOT="$UPDATE_ROOT/backup"
 
 if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/Contents/Info.plist" ]; then
     FROM_VERSION="$(defaults read "$INSTALL_DIR/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || true)"
@@ -170,6 +412,10 @@ else
 fi
 
 log "start: install=$INSTALL_DIR zip=${ZIP_PATH:-${TAG:-<none>}} apply=$APPLY relaunch=$RELAUNCH"
+log "layout: update-root=$UPDATE_ROOT data-dir=$DATA_DIR install-key=$INSTALL_KEY run-id=$RUN_ID"
+
+# 旧レイアウトの残骸を所有確認付きで整理する (best-effort)。
+cleanup_legacy_layout
 
 if [ "$APPLY" -ne 1 ] && [ -z "${FLASHBEAT_UPDATE_ALLOW_MANUAL:-}" ] && [ -f "$INSTALL_DIR/Contents/MacOS/FlashBeat" ]; then
     # The in-app flow always passes -Apply. A manual operator can opt in explicitly.
@@ -217,7 +463,7 @@ fi
 
 # --- obtain the ZIP --------------------------------------------------------
 
-WORK_DIR="$APP_PARENT/.flashbeat-update.$$"
+WORK_DIR="$WORK_ROOT/$RUN_ID"
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR" || abort "$EXIT_PARAM" "作業フォルダを作成できません: $WORK_DIR"
 trap cleanup EXIT
@@ -302,37 +548,58 @@ fi
 xattr -dr com.apple.quarantine "$NEW_APP" 2>/dev/null || true
 
 # --- switch ----------------------------------------------------------------
+# 退避は <parent>/.flashbeat-update/backup/FlashBeat-backup-<key>-<runId>/ に
+# 旧 .app (FlashBeat.app) と所有 manifest (flashbeat-backup-owner.json) を入れる。
+# Windows 版 (Update.ps1, issue #185) と同じ「名前空間 + 所有 manifest」の契約。
 
-backup="$APP_PARENT/FlashBeat-backup-$(date +%Y%m%d%H%M%S).app"
+backup="$BACKUP_ROOT/$(scoped_backup_name "$INSTALL_KEY" "$RUN_ID")"
+APP_IN_BACKUP="$backup/FlashBeat.app"
 if [ -d "$INSTALL_DIR" ]; then
-    if ! mv "$INSTALL_DIR" "$backup"; then
+    if ! mkdir -p "$backup"; then
+        fail "$EXIT_SWITCH" "退避フォルダを作成できませんでした: $backup"
+    fi
+    # 所有 manifest を先に書いてから退避する (manifest が無い退避は自動削除しない)。
+    canonical_json="false"
+    [ "$IS_CANONICAL" -eq 1 ] && canonical_json="true"
+    write_owner_manifest "$backup" "$INSTALL_KEY" "$INSTALL_DIR_NORM" "$INSTALL_NAME" "$canonical_json" "$RUN_ID" "$FROM_VERSION"
+    if ! mv "$INSTALL_DIR" "$APP_IN_BACKUP"; then
+        # manifest のみの退避が残るが、次回成功時の旧世代削除で回収される。
         fail "$EXIT_SWITCH" "現在の FlashBeat.app を退避できませんでした"
     fi
-    log "backup: $backup"
+    log "backup: $APP_IN_BACKUP"
 fi
 
 if ! mv "$NEW_APP" "$INSTALL_DIR"; then
-    if [ -d "$backup" ] && [ ! -d "$INSTALL_DIR" ]; then
-        mv "$backup" "$INSTALL_DIR" 2>/dev/null || true
+    if [ -d "$APP_IN_BACKUP" ] && [ ! -d "$INSTALL_DIR" ]; then
+        mv "$APP_IN_BACKUP" "$INSTALL_DIR" 2>/dev/null || true
     fi
     fail "$EXIT_SWITCH" "新しい FlashBeat.app を配置できませんでした (退避から復元しました)"
 fi
 
-# Keep only the newest backup generation.
+# Keep only the newest backup generation — but only backups this install owns
+# (name namespace + owner manifest, same rule as Update.ps1 / issue #185).
 if [ -d "$backup" ]; then
-    for old in "$APP_PARENT"/FlashBeat-backup-*.app; do
-        [ -e "$old" ] || continue
+    for old in "$BACKUP_ROOT"/FlashBeat-backup-*; do
+        [ -d "$old" ] || continue
         [ "$old" = "$backup" ] && continue
-        rm -rf "$old" 2>/dev/null || true
+        if backup_is_deletable "$old" "$backup" "$INSTALL_KEY" "$INSTALL_DIR_NORM"; then
+            if rm -rf "$old" 2>/dev/null; then
+                log "removed old backup (owned): $old"
+            else
+                log "WARNING: 旧世代の退避の削除に失敗しました (手動で削除してください): $old"
+            fi
+        else
+            log "keeping backup (not owned by this install): $old"
+        fi
     done
 fi
 
 if [ ! -f "$INSTALL_DIR/Contents/MacOS/FlashBeat" ] || [ ! -d "$INSTALL_DIR/Contents/Resources/Data" ]; then
     rm -rf "$INSTALL_DIR" 2>/dev/null || true
-    if [ -d "$backup" ]; then
-        mv "$backup" "$INSTALL_DIR" 2>/dev/null || true
+    if [ -d "$APP_IN_BACKUP" ]; then
+        mv "$APP_IN_BACKUP" "$INSTALL_DIR" 2>/dev/null || true
     fi
-    fail "$EXIT_SWITCH" "切替後の配置検査に失敗しました (退避から復元しました: $backup)" "$to_version"
+    fail "$EXIT_SWITCH" "切替後の配置検査に失敗しました (退避から復元しました: $APP_IN_BACKUP)" "$to_version"
 fi
 
 log "switch ok: $INSTALL_DIR (to $to_version)"
