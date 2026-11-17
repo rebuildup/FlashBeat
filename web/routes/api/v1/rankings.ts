@@ -6,6 +6,11 @@
  * the whole festival in one request, so this endpoint joins the live songs
  * with the best scores of their currently published chart version.
  *
+ * The optional `scoringVersion` query parameter selects the scoring formula
+ * version of the ranked scores; it defaults to the latest version the server
+ * supports. Scores of different scoring versions are never mixed in one
+ * board (ADR-0028).
+ *
  * Only songs that are in the public catalog are listed: an archived song
  * keeps its scores, but it is not part of the festival any more.
  *
@@ -15,6 +20,7 @@
 import { defineHandler } from "void";
 import { and, asc, count, db, desc, eq } from "void/db";
 import { chartVersions, scores, songs } from "@schema";
+import { parseScoringVersionQuery } from "./_score-model";
 
 /** Largest number of entries per song the endpoint serves. */
 const MAX_ENTRIES_PER_SONG = 10;
@@ -24,6 +30,10 @@ const DEFAULT_ENTRIES_PER_SONG = 10;
 
 export const GET = defineHandler(async (c) => {
   const limit = parseLimit(c.req.query("limit"));
+  const scoringVersion = parseScoringVersionQuery(c.req.query("scoringVersion"));
+  if (scoringVersion === null) {
+    return c.json({ error: "scoringVersion must be an integer greater than or equal to 1" }, 400);
+  }
 
   const songRows = await db
     .select({
@@ -55,7 +65,7 @@ export const GET = defineHandler(async (c) => {
       chartVersions,
       and(eq(chartVersions.songId, scores.songId), eq(chartVersions.version, scores.version)),
     )
-    .where(eq(songs.archived, 0))
+    .where(and(eq(songs.archived, 0), eq(scores.scoringVersion, scoringVersion)))
     .orderBy(asc(scores.songId), desc(scores.score), asc(scores.createdAt), asc(scores.id));
 
   const playsBySong = new Map<string, number>();

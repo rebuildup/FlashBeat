@@ -8,10 +8,11 @@
  *     chart version (`chart_versions.noteCount`), and the version must be an
  *     existing snapshot of a published song (the current one or an older
  *     one — old snapshots stay submittable, unknown ones are 422).
- *   - The score is recomputed server-side with the exact Unity formula
- *     (`computeUnityScore` in `_score-model.ts`). A client-sent `score` that
- *     disagrees is a 422 with the expected and received values as
- *     diagnostics; nothing is stored.
+ *   - The score is recomputed server-side with the exact Unity formula of
+ *     the declared `scoringVersion` (`computeScoreForVersion` in
+ *     `_score-model.ts`; omitted means version 1, ADR-0028). A
+ *     client-sent `score` that disagrees is a 422 with the expected and
+ *     received values as diagnostics; nothing is stored.
  *   - The nickname is trimmed to 1-12 characters without control characters.
  *   - A duplicate identical submission (same songId + nickname + score)
  *     within 10 seconds is a 429 with `Retry-After` — a light abuse limit
@@ -21,13 +22,14 @@
  *
  * A successful submission answers `201` with the stored score and its
  * leaderboard rank (1 + number of strictly better scores of the same chart
- * version; ties share the rank, earliest first).
+ * version and scoring version; ties share the rank, earliest first).
  */
 import { defineHandler } from "void";
 import { and, count, db, desc, eq, gt } from "void/db";
 import { chartVersions, scores } from "@schema";
 import {
-  computeUnityScore,
+  SCORING_VERSION_V1,
+  computeScoreForVersion,
   nicknameDiagnostics,
   scoreSemanticsDiagnostics,
   validateScoreRequest,
@@ -112,7 +114,10 @@ export const POST = defineHandler(async (c) => {
     );
   }
 
-  const score = computeUnityScore(request.perfect, request.great, request.bad, chart.noteCount);
+  // An omitted scoringVersion is version 1 (ADR-0028); versions the server
+  // cannot recompute were already rejected by scoreSemanticsDiagnostics.
+  const scoringVersion = request.scoringVersion ?? SCORING_VERSION_V1;
+  const score = computeScoreForVersion(request, chart.noteCount);
   if (score === null) {
     return c.json(
       {
@@ -134,7 +139,7 @@ export const POST = defineHandler(async (c) => {
         diagnostics: [
           {
             path: "/score",
-            message: `the judgment counts score ${score} with the Unity formula, the client sent ${request.score}`,
+            message: `the judgment counts score ${score} with the scoring version ${scoringVersion} formula, the client sent ${request.score}`,
           } satisfies ScoreDiagnostic,
         ],
       },
@@ -153,6 +158,7 @@ export const POST = defineHandler(async (c) => {
         eq(scores.songId, request.songId),
         eq(scores.nickname, nickname),
         eq(scores.score, score),
+        eq(scores.scoringVersion, scoringVersion),
       ),
     )
     .orderBy(desc(scores.id))
@@ -186,11 +192,13 @@ export const POST = defineHandler(async (c) => {
     b: request.bad,
     m: request.miss,
     score,
+    scoringVersion,
   });
 
   // Competition rank: one plus the number of strictly better scores of the
-  // same chart version. Ties share the rank; the leaderboard breaks them by
-  // earliest submission.
+  // same chart version and scoring version. Ties share the rank; the
+  // leaderboard breaks them by earliest submission. Scores of different
+  // scoring versions are never ranked together (ADR-0028).
   const [better] = await db
     .select({ value: count() })
     .from(scores)
@@ -198,6 +206,7 @@ export const POST = defineHandler(async (c) => {
       and(
         eq(scores.songId, request.songId),
         eq(scores.version, request.chartVersion),
+        eq(scores.scoringVersion, scoringVersion),
         gt(scores.score, score),
       ),
     );
