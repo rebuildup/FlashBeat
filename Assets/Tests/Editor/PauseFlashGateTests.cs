@@ -40,11 +40,6 @@ namespace FlashBeat.Tests.Editor
             savedStartTime = GManager.StartTime;
             PauseGate.HardReset();
             KeyBindings.ClearInjectedLaneKeyDowns();
-            // LaneFlash / BGFlash access renderer.material, which Unity
-            // rejects in edit mode ("leak materials into the scene").
-            // Play mode is unaffected; the error is an edit-mode artifact
-            // of driving the production Update loop from a test.
-            LogAssert.ignoreFailingMessages = true;
         }
 
         [TearDown]
@@ -63,7 +58,6 @@ namespace FlashBeat.Tests.Editor
 
             KeyBindings.ClearInjectedLaneKeyDowns();
             PauseGate.HardReset();
-            LogAssert.ignoreFailingMessages = false;
             GManager.played = savedPlayed;
             GManager.step_time = savedStepTime;
             GManager.StartTime = savedStartTime;
@@ -158,11 +152,22 @@ namespace FlashBeat.Tests.Editor
             return child.GetComponent<Image>();
         }
 
+        // LaneFlash / BGFlash read renderer.material, which Unity rejects in
+        // edit mode ("leak materials into the scene"). Play mode is
+        // unaffected; the error is an edit-mode artifact of driving the
+        // production Update loop from a test. LogAssert scopes are per
+        // command, so the flag must be set inside each test method.
+        private static void IgnoreMaterialEditModeError()
+        {
+            LogAssert.ignoreFailingMessages = true;
+        }
+
         // --- LaneFlash ---
 
         [Test]
         public void LaneFlash_LightsOnLaneKey_WhenNotPaused()
         {
+            IgnoreMaterialEditModeError();
             LaneFlash flash = CreateLaneFlash(laneNumber: 1);
             KeyBindings.InjectLaneKeyDown(0);
 
@@ -175,6 +180,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void LaneFlash_Paused_DoesNotFire_AndExtinguishes_ThenResumes()
         {
+            IgnoreMaterialEditModeError();
             LaneFlash flash = CreateLaneFlash(laneNumber: 1);
             KeyBindings.InjectLaneKeyDown(0);
 
@@ -198,6 +204,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void LaneFlash_PausedWithoutPriorLight_DoesNotLightOnKeyDown()
         {
+            IgnoreMaterialEditModeError();
             LaneFlash flash = CreateLaneFlash(laneNumber: 1);
 
             PauseGate.Enter();
@@ -213,6 +220,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void BGFlash_BeatFlashFires_WhenPlayedAndNotPaused()
         {
+            IgnoreMaterialEditModeError();
             BGFlash flash = CreateBGFlash();
 
             InvokeUpdate(flash);
@@ -224,6 +232,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void BGFlash_Paused_BeatDoesNotFire_AndExtinguishes_ThenResumes()
         {
+            IgnoreMaterialEditModeError();
             BGFlash flash = CreateBGFlash();
 
             // まず拍フラッシュを点ける (Beat=0 なので毎 Update 発火する)。
