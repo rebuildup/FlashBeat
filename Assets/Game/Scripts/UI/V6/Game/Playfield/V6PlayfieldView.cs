@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using FlashBeat.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -152,11 +153,18 @@ namespace FlashBeat.UI.V6.Game.Playfield
             }
 
             // レーンフラッシュ (旧 LaneFlash と同一の挙動: 押下で alpha 0.3、3/s で減衰)。
+            // Issue #580: ポーズ中は新規発火せず、点灯中の α は 0 に戻す
+            // (LaneFlash / BGFlash と同じく PauseGate でゲートする)。
+            bool paused = PauseGate.IsPaused;
             for (int lane = 0; lane < laneFlashes.Count; lane++)
             {
                 var img = laneFlashes[lane];
                 float alpha = img.color.a;
-                if (KeyBindings.IsLaneKeyDown(lane))
+                if (paused)
+                {
+                    alpha = 0f;
+                }
+                else if (KeyBindings.IsLaneKeyDown(lane))
                 {
                     alpha = 0.3f;
                 }

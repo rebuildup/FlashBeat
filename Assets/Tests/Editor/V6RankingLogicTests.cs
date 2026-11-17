@@ -38,11 +38,11 @@ namespace FlashBeat.UI.V6.Ranking.Tests
                 BestGrade = "S"
             };
 
-            List<V6RankingRow> rows = V6RankingLogic.LocalRows(song);
+            List<V6RankingRow> rows = V6RankingLogic.LocalRows(song, "PLAYER1");
 
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(1, rows[0].Position);
-            Assert.AreEqual("YOU", rows[0].PlayerName);
+            Assert.AreEqual("PLAYER1", rows[0].PlayerName);
             Assert.AreEqual(988513, rows[0].Score);
             Assert.AreEqual("S", rows[0].Grade);
             Assert.IsTrue(rows[0].IsYou);

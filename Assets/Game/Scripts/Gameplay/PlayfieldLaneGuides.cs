@@ -185,7 +185,31 @@ namespace FlashBeat.Gameplay
 
             // 判定線 (z = 0) より手前にも伸ばし、画面下端まで続ける (Issue #380)。
             float front = -FrontDepth(fittedCamera != null ? fittedCamera : Camera.main);
+            guideMesh = BuildGuideMesh(front);
 
+            var filter = go.AddComponent<MeshFilter>();
+            filter.sharedMesh = guideMesh;
+
+            guideRenderer = go.AddComponent<MeshRenderer>();
+            guideMaterial = CreateGuideMaterial();
+            if (guideMaterial != null)
+            {
+                guideRenderer.sharedMaterial = guideMaterial;
+            }
+            guideRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            guideRenderer.receiveShadows = false;
+        }
+
+        /// <summary>
+        /// レーン境界 <see cref="GuideCount"/> 本のガイド線メッシュを生成する
+        /// (Issue #579: Option 画面の 3D プレビューも同じ形を使うため公開)。
+        ///
+        /// <paramref name="frontZ"/> は判定線より手前 (負の z) の端。
+        /// 本編は <see cref="FrontDepth"/> の符号反転、プレビューは自分の
+        /// カメラで同じ関数を呼んで渡す。
+        /// </summary>
+        public static Mesh BuildGuideMesh(float frontZ)
+        {
             var vertices = new Vector3[GuideCount * 4];
             var triangles = new int[GuideCount * 6];
             var uv = new Vector2[GuideCount * 4];
@@ -194,8 +218,8 @@ namespace FlashBeat.Gameplay
                 float x = LaneBoundaryX(i);
                 float half = GuideWidth * 0.5f;
                 int v = i * 4;
-                vertices[v + 0] = new Vector3(x - half, GuideY, front);
-                vertices[v + 1] = new Vector3(x + half, GuideY, front);
+                vertices[v + 0] = new Vector3(x - half, GuideY, frontZ);
+                vertices[v + 1] = new Vector3(x + half, GuideY, frontZ);
                 vertices[v + 2] = new Vector3(x - half, GuideY, GuideDepth);
                 vertices[v + 3] = new Vector3(x + half, GuideY, GuideDepth);
 
@@ -221,19 +245,7 @@ namespace FlashBeat.Gameplay
             mesh.uv = uv;
             mesh.triangles = triangles;
             mesh.RecalculateBounds();
-            guideMesh = mesh;
-
-            var filter = go.AddComponent<MeshFilter>();
-            filter.sharedMesh = mesh;
-
-            guideRenderer = go.AddComponent<MeshRenderer>();
-            guideMaterial = CreateMaterial();
-            if (guideMaterial != null)
-            {
-                guideRenderer.sharedMaterial = guideMaterial;
-            }
-            guideRenderer.shadowCastingMode = ShadowCastingMode.Off;
-            guideRenderer.receiveShadows = false;
+            return mesh;
         }
 
         /// <summary>
@@ -280,8 +292,11 @@ namespace FlashBeat.Gameplay
         /// シェーダが見つからない場合は例外を投げずに null を返す
         /// (PR #263 レビュー S3: `new Material(null)` は
         /// ArgumentNullException を投げる)。
+        ///
+        /// public なのは Option 画面の 3D プレビュー (Issue #579) が
+        /// 本編と同じ見た目のガイド線を生成するため。
         /// </summary>
-        private static Material CreateMaterial()
+        public static Material CreateGuideMaterial()
         {
             Shader shader = Shader.Find("FlashBeat/FlatUnlit");
             if (shader == null) shader = Shader.Find("Unlit/Transparent");

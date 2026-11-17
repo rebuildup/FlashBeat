@@ -10,7 +10,7 @@ using FlashBeat.Gameplay;
 ///   - **先頭 1 判定 + 終端での離し** (2 判定方式)
 ///   - 保持中に離すと即 BAD、押し直しは救済しない
 ///   - 配点はタップと同一 (Perfect 5 / Great 3 / Bad 1)
-///   - 終端の離しで追加の加点はない (maxScore = note数 x 5 の定義を守る)
+///   - 終端の離しで追加の加点はない (scoring v2 では maxScore = note数 x 15、ADR-0028)
 ///
 /// ここでは純関数だけを検証する。Editor を起動しないため、実際の入力
 /// (キー入力) を含む統合テストは実機検証 (Supervisor) の担当。
@@ -205,13 +205,15 @@ public class LongNoteTests
     [Test]
     public void TheMaximumScoreStillCountsEveryNoteOnce()
     {
-        // maxScore = note数 x 5。ロングノーツも 1 ノーツとして数えるので、
-        // 100 万点の算出が壊れない。
+        // scoring v2 (ADR-0028): ノーツ 1 個あたりの配点上限は判定 5 +
+        // コンボ 5 + ノーミス 5 = 15。ロングノーツも 1 ノーツとして数えるので、
+        // 100 万点の算出が壊れない。ここの 5 は「判定」要素だけの上限。
         int noteCount = 100;
-        int maximumScore = noteCount * 5;
+        int judgmentCap = noteCount * 5;
 
-        Assert.AreEqual(500, maximumScore);
-        Assert.AreEqual(maximumScore, 100 * LongNote.SCORE_PERFECT);
+        Assert.AreEqual(500, judgmentCap);
+        Assert.AreEqual(judgmentCap, 100 * LongNote.SCORE_PERFECT);
+        Assert.AreEqual(noteCount * (int)Scoring.MaxRatioPerNoteV2, noteCount * 15);
     }
 
     // ---- 既存 tap 譜面の回帰 -------------------------------------------

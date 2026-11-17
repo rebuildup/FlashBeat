@@ -925,7 +925,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -4145,7 +4145,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -4759,7 +4759,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -4872,7 +4872,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -7783,7 +7783,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -11068,7 +11068,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -13024,7 +13024,7 @@
              "id": "J6YjpA",
              "name": "Name",
              "fill": "$text",
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "500"
@@ -13732,7 +13732,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 160,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -14035,7 +14035,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -16867,7 +16867,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 160,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"
@@ -18021,7 +18021,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 160,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"
@@ -18612,7 +18612,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -19952,7 +19952,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -23703,7 +23703,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -24862,7 +24862,7 @@
            "y": 20,
            "name": "Value",
            "fill": "$text-dim",
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 40,
            "fontWeight": "700"
@@ -29019,7 +29019,7 @@
              "y": 20,
              "name": "Value",
              "fill": "$text-dim",
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 40,
              "fontWeight": "700"
@@ -29950,7 +29950,7 @@
          "y": 20,
          "name": "Value",
          "fill": "$text-dim",
-         "content": "YOU",
+         "content": "PLAYER",
          "fontFamily": "$font-ui",
          "fontSize": 40,
          "fontWeight": "700"
@@ -35009,7 +35009,7 @@
                "fill": "$text",
                "textGrowth": "fixed-width",
                "width": 140,
-               "content": "YOU",
+               "content": "PLAYER",
                "fontFamily": "$font-ui",
                "fontSize": 22,
                "fontWeight": "normal"
@@ -35623,7 +35623,7 @@
                "fill": "$text",
                "textGrowth": "fixed-width",
                "width": 140,
-               "content": "YOU",
+               "content": "PLAYER",
                "fontFamily": "$font-ui",
                "fontSize": 22,
                "fontWeight": "normal"
@@ -40931,7 +40931,7 @@
                "id": "J6YjpA",
                "name": "Name",
                "fill": "$text",
-               "content": "YOU",
+               "content": "PLAYER",
                "fontFamily": "$font-ui",
                "fontSize": 22,
                "fontWeight": "500"
@@ -41639,7 +41639,7 @@
                "fill": "$text",
                "textGrowth": "fixed-width",
                "width": 160,
-               "content": "YOU",
+               "content": "PLAYER",
                "fontFamily": "$font-ui",
                "fontSize": 22,
                "fontWeight": "normal"
@@ -44021,7 +44021,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 160,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -45175,7 +45175,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 160,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -47781,7 +47781,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -48575,7 +48575,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -49942,7 +49942,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -50736,7 +50736,7 @@
              "fill": "$text",
              "textGrowth": "fixed-width",
              "width": 140,
-             "content": "YOU",
+             "content": "PLAYER",
              "fontFamily": "$font-ui",
              "fontSize": 22,
              "fontWeight": "normal"
@@ -52324,7 +52324,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 140,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"
@@ -53118,7 +53118,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 140,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"
@@ -54419,7 +54419,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 140,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"
@@ -55213,7 +55213,7 @@
            "fill": "$text",
            "textGrowth": "fixed-width",
            "width": 140,
-           "content": "YOU",
+           "content": "PLAYER",
            "fontFamily": "$font-ui",
            "fontSize": 22,
            "fontWeight": "normal"

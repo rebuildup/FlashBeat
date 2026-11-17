@@ -130,6 +130,12 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>選択行の値テキスト (スライダのドラッグ中に Rebuild せず書き換える)。</summary>
         private TextMeshProUGUI selectedRowValueText;
 
+        /// <summary>
+        /// Game Preview の 3D リグ (Issue #579)。Game Preview well を最初に
+        /// 構築したときに生成し、Dispose まで保持する (タブ切替では作り直さない)。
+        /// </summary>
+        private V6OptionPreviewRig previewRig;
+
         /// <summary>キー操作後の保存予約時刻 (0 以下 = 予約なし。Issue #375 §3.2)。</summary>
         private float volumeSaveAt;
 
@@ -222,6 +228,13 @@ namespace FlashBeat.UI.V6.Option
             {
                 rootGo.SetActive(visible);
             }
+
+            // 画面を離れている間はプレビューカメラの RT 描画を止める
+            // (疑似時計は Time.time ベースなので、戻ったとき位相は連続する)。
+            if (previewRig != null)
+            {
+                previewRig.SetRenderingEnabled(visible);
+            }
         }
 
         /// <summary>生成したビューを破棄するとき購読を解除する。</summary>
@@ -231,6 +244,11 @@ namespace FlashBeat.UI.V6.Option
             // 破棄されると、最後の調整だけが保存されない)。
             SavePendingVolumeNow();
             KeyBindings.Changed -= OnBindingsChanged;
+            if (previewRig != null)
+            {
+                previewRig.Dispose();
+                previewRig = null;
+            }
             if (rootGo != null)
             {
                 V5GameUi.DestroyNow(rootGo);

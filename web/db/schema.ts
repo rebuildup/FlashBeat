@@ -97,6 +97,14 @@ export const scores = sqliteTable(
     b: integer("b").notNull().default(0),
     m: integer("m").notNull().default(0),
     score: integer("score").notNull(),
+    /**
+     * Scoring formula version the score was computed with (ADR-0028):
+     * 1 = the original formula, 2 = the v2 formula with the combo
+     * continuation and no-miss bonuses. Rows written before the column
+     * existed are backfilled to 1 by the follow-up migration. v1 and v2
+     * records are never ranked together.
+     */
+    scoringVersion: integer("scoringVersion").notNull().default(1),
     createdAt: text("createdAt")
       .notNull()
       .default(sql`(datetime('now'))`),
@@ -109,8 +117,18 @@ export const scores = sqliteTable(
       sql`${table.p} >= 0 AND ${table.g} >= 0 AND ${table.b} >= 0 AND ${table.m} >= 0`,
     ),
     check("scores_score_range", sql`${table.score} BETWEEN 0 AND 1000000`),
-    // Leaderboard reads one (song, version) window ordered by score desc.
-    index("scores_leaderboard_idx").on(table.songId, table.version, table.score),
+    // SQLite cannot add a CHECK constraint to an existing table, so the
+    // scoringVersion >= 1 invariant lives in the API (the submission schema
+    // enforces `minimum: 1`), not in the table — same precedent as the
+    // `songs.archived` flag (issue #151).
+    // Leaderboard reads one (song, version, scoringVersion) window ordered
+    // by score desc; the versions are never mixed (ADR-0028).
+    index("scores_leaderboard_idx").on(
+      table.songId,
+      table.version,
+      table.scoringVersion,
+      table.score,
+    ),
   ],
 );
 

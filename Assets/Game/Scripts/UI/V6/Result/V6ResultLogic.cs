@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using UnityEngine;
+using FlashBeat.Gameplay;
 
 namespace FlashBeat.UI.V6.Result
 {
@@ -60,6 +61,23 @@ namespace FlashBeat.UI.V6.Result
         public static string FormatScore(int value)
         {
             return value.ToString("N0", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// scoring v2 (ADR-0028 / Issue #577) のボーナス内訳の表示文字列。
+        /// コンボ継続ボーナスは常に "+値"、ノーミスボーナスは未達 (miss &gt; 0)
+        /// のとき "–" を返す。値は ratio points をスコア点へ換算した目安で、
+        /// 送信フィールドではない (サーバは内訳を信用せず再計算する)。
+        /// </summary>
+        public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
+            out string comboBonus, out string noMissBonus)
+        {
+            int noteCount = perfect + great + bad + miss;
+            Scoring.V2Breakdown v2 = Scoring.BreakdownV2(perfect, great, bad, miss, maxCombo, noteCount);
+            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV2(v2.ComboBonus, noteCount));
+            noMissBonus = v2.NoMissBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV2(v2.NoMissBonus, noteCount))
+                : "–";
         }
 
         /// <summary>ハイスコア差分。更新時は "+66,633"、それ以外は空文字 (V5 と同じ)。</summary>
@@ -337,8 +355,17 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>ローカル名の最大文字数 (v5 と同じ)。</summary>
         public const int LocalNameMaxLength = 8;
 
-        /// <summary>ローカル名の未入力時の既定値 (v5 と同じ)。</summary>
-        public const string LocalNameDefault = "YOU";
+        /// <summary>
+        /// ローカル名の未入力時の既定値。Issue #584 で "YOU" を撤廃し、
+        /// 中立な登録名 "PLAYER" に変更した (A-Z0-9・最大 8 文字の規則に収まる)。
+        /// </summary>
+        public const string LocalNameDefault = "PLAYER";
+
+        /// <summary>
+        /// 旧既定値 (Issue #584 以前の "YOU")。PlayerPrefs に残った保存値を
+        /// 「未登録」として読み替えるためだけに使う。新規の保存・表示には使わない。
+        /// </summary>
+        public const string LegacyLocalNameDefault = "YOU";
 
         /// <summary>
         /// オンライン順位へ送信する対象か。リモート曲で、songId が妥当で、譜面版が
@@ -370,7 +397,8 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>
         /// ローカル名の正規化。v5 の
         /// <see cref="FlashBeat.UI.V5.ResultView.NormalizeName"/> と同じ規則
-        /// (大文字化 + A-Z0-9 のみ + 最大 8 文字)。空入力は "YOU"。
+        /// (大文字化 + A-Z0-9 のみ + 最大 8 文字)。空入力は既定値
+        /// (<see cref="LocalNameDefault"/>)。
         /// オンラインの入力規則 (RankingClient) とは別物なので混ぜない。
         /// </summary>
         public static string NormalizeLocalName(string raw)
@@ -385,6 +413,22 @@ namespace FlashBeat.UI.V6.Result
         public static string LocalSaveMessage(string savedName)
         {
             return "この端末に「" + (savedName ?? LocalNameDefault) + "」を保存しました";
+        }
+
+        /// <summary>
+        /// 画面に出す自分の登録名 (Issue #584)。オンライン登録名
+        /// (<see cref="RankingClient.LoadNickname"/>) を優先し、無ければ端末内の
+        /// 保存名 (<see cref="V6LocalNameStore.Load"/>) を使う。どちらも無ければ空文字。
+        /// </summary>
+        public static string CurrentPlayerName()
+        {
+            string online = RankingClient.LoadNickname();
+            if (!string.IsNullOrEmpty(online))
+            {
+                return online;
+            }
+
+            return V6LocalNameStore.Load();
         }
 
         /// <summary>

@@ -223,14 +223,27 @@ namespace FlashBeat.V6Tests
         {
             var song = MakeSong(1, "Test", 123456, "S");
 
-            var rows = V6RankingLogic.LocalRows(song);
+            var rows = V6RankingLogic.LocalRows(song, "PLAYER1");
 
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(1, rows[0].Position);
-            Assert.AreEqual("YOU", rows[0].PlayerName);
+            Assert.AreEqual("PLAYER1", rows[0].PlayerName);
             Assert.AreEqual(123456, rows[0].Score);
             Assert.AreEqual("S", rows[0].Grade);
             Assert.IsTrue(rows[0].IsYou);
+        }
+
+        [Test]
+        public void LocalRows_NoPlayerName_DisplaysAnonymous()
+        {
+            // Issue #584: 登録名が無い自分の行は "YOU" ではなく匿名表記 "未登録"。
+            var song = MakeSong(1, "Test", 123456, "S");
+
+            var rows = V6RankingLogic.LocalRows(song);
+
+            Assert.AreEqual(string.Empty, rows[0].PlayerName);
+            Assert.AreEqual(V6RankingRow.AnonymousName, rows[0].DisplayName);
+            Assert.AreEqual("未登録", rows[0].DisplayName);
         }
 
         [Test]

@@ -192,8 +192,10 @@ public class NotesManager : MonoBehaviour
         int total = inputJson.notes.Length;
         noteNum = total;
         // ロングノーツも 1 ノーツとして数える。配点がタップと同一なので
-        // (Issue #164) 100万点の算出は notes x 5 のままで正しい。
-        GManager.maxScore = total * 5;
+        // (Issue #164) 100万点の算出は notes x 15 のままで正しい。
+        // scoring v2 (ADR-0028 / Issue #577): 分母は判定 5 + コンボ 5 +
+        // ノーミス 5 = 15 点/ノーツ。
+        GManager.maxScore = total * Scoring.MaxRatioPerNoteV2;
 
         // 時刻計算は純粋な数値処理なので一括で行う (生成は後続のバッチで)。
         var times = new List<float>(total);

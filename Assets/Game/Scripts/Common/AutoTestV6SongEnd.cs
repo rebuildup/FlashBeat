@@ -248,7 +248,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // この位置が安全な理由:
         //   - ResetSession() は GManager.maxScore を 0 にするが、譜面の
         //     maxScore は GameScene の NotesManager.LoadRoutine が
-        //     「ノーツ数 x 5」で設定し直すので (この後)、判定は壊れない。
+        //     「ノーツ数 x 15」で設定し直すので (この後)、判定は壊れない。
         //   - ResetSession() は BeginPlaySession() を含む。曲の identity を
         //     先に GManager.songID へ入れておくので、ここで固定されるのも
         //     目的曲そのもの (CommitReady と同じ動き)。

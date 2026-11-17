@@ -102,87 +102,79 @@ namespace FlashBeat.UI.V6.Game.Hud
             return Mathf.Min(LyricDesignWidth, Mathf.Max(0f, screenWidth));
         }
 
-        /// <summary>歌詞スロットの上下 padding (design 16)。</summary>
-        public const float LyricPaddingY = 16f;
+        /// <summary>
+        /// 歌詞スロットの上下 padding。Issue #582: design の 16 では行が窮屈だった
+        /// ため 24 へ拡大 (左右は <see cref="LyricPaddingX"/>)。
+        /// </summary>
+        public const float LyricPaddingY = 24f;
+
+        /// <summary>歌詞スロットの左右 padding (design 24 → Issue #582 で 32)。</summary>
+        public const float LyricPaddingX = 32f;
+
+        /// <summary>
+        /// 歌詞行の行高係数 (fontSize 倍)。Issue #582: 従来の暗黙の 1.2 / 1.25 では
+        /// 文字が行に対して窮屈だったため 1.5 へ拡大する。NotoSansJP の行送りは
+        /// fs × 約 1.448 なので、行高がこれを下回ると TMP は行を描画しない。
+        /// </summary>
+        public const float LyricLineHeightFactor = 1.5f;
 
         /// <summary>
         /// 歌詞本文 1 行と Start Prompt の高い方に padding を足した箱の高さ
-        /// (Issue #433: ルビ・ローマ字行は廃止し本文だけを出す)。
+        /// (Issue #433: ルビ・ローマ字行は廃止し本文だけを出す。
+        /// Issue #582: 行高係数と padding を拡大し、読みやすい縦幅にした)。
         /// </summary>
         public static float LyricContentHeight(float lyricFs)
         {
-            float lyricLine = lyricFs * 1.2f;
+            float lyricLine = lyricFs * LyricLineHeightFactor;
             float content = Mathf.Max(lyricLine, ReadyPromptCapHeight);
             return content + LyricPaddingY * 2f;
         }
 
-        // --- 判定ポップアップ (Issue #432 / #445 で短命化) ---
+        // --- 判定ポップアップ (Issue #581: 滞在型で読み取り可能な演出) ---
 
         /// <summary>
-        /// 判定が判定線から弾けて静止位置へ戻るまでの時間 (秒)。
-        /// Issue #445: オーナー指摘「効果が出てから消えるまでが無駄に長い」
-        /// への対応で 0.26 → 0.14。立ち上がりを速くして弾ける感じを残す。
+        /// 判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。
+        /// Issue #581: 跳ね・スケールパンチを廃止し、判定位置に固定して
+        /// フェードイン → 静止 → フェードアウトで見せる。
         /// </summary>
-        public const float VerdictPopupSeconds = 0.14f;
-
-        /// <summary>判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。</summary>
         public const float VerdictRestGapAboveLine = 72f;
 
-        /// <summary>
-        /// 判定が消えるまでの時間 (秒)。残り時間に比例してフェードする。
-        /// Issue #445: 0.22 → 0.10 に短縮 (全体の見え時間は
-        /// <see cref="VerdictTotalSeconds"/> が持つ)。
-        /// </summary>
-        public const float VerdictFadeSeconds = 0.10f;
+        /// <summary>判定が現れるまでのフェードイン時間 (秒)。</summary>
+        public const float VerdictFadeInSeconds = 0.10f;
+
+        /// <summary>判定が不透明のまま留まる時間 (秒)。読み取りの主時間。</summary>
+        public const float VerdictHoldSeconds = 0.55f;
+
+        /// <summary>判定が消えるまでのフェードアウト時間 (秒)。</summary>
+        public const float VerdictFadeOutSeconds = 0.15f;
 
         /// <summary>
-        /// 判定テキストが見える全体時間 (秒)。出現モーション
-        /// (<see cref="VerdictPopupSeconds"/>) + 静止 + フェード
-        /// (<see cref="VerdictFadeSeconds"/>) を合わせた寿命。
-        /// Issue #445: かつては 0.8 秒ほど静止表示が続いていたのを
-        /// 「弾けてすぐ消える」0.20 秒へ短縮した。
+        /// 判定テキストが見える全体時間 (秒) =
+        /// フェードイン (<see cref="VerdictFadeInSeconds"/>) + 静止
+        /// (<see cref="VerdictHoldSeconds"/>) + フェードアウト
+        /// (<see cref="VerdictFadeOutSeconds"/>)。Issue #581: かつての
+        /// 0.20 秒 (Issue #445) では読み取りきれなかったため 0.80 秒へ延長。
         /// </summary>
-        public const float VerdictTotalSeconds = 0.20f;
+        public const float VerdictTotalSeconds =
+            VerdictFadeInSeconds + VerdictHoldSeconds + VerdictFadeOutSeconds;
 
-        /// <summary>判定テキストの不透明度。出るときは素早く出て、寿命の最後に短く消える。
-        /// <paramref name="remaining"/> は表示が終わるまでの残り秒。
+        /// <summary>
+        /// 判定テキストの不透明度。出現時は <see cref="VerdictFadeInSeconds"/>
+        /// で 0→1、寿命の最後は <see cref="VerdictFadeOutSeconds"/> で 1→0。
+        /// 位置とスケールは動かさない (Issue #581: 跳ね・パンチ廃止)。
         /// </summary>
-        public static float VerdictAlpha(float remaining)
+        /// <param name="elapsed">表示開始からの秒。</param>
+        /// <param name="remaining">表示が終わるまでの残り秒。</param>
+        public static float VerdictAlpha(float elapsed, float remaining)
         {
-            if (remaining <= 0f)
+            if (elapsed < 0f || remaining <= 0f)
             {
                 return 0f;
             }
 
-            return Mathf.Clamp01(remaining / VerdictFadeSeconds);
-        }
-
-        /// <summary>
-        /// 判定テキストの縦オフセット (px、正 = 静止位置より下)。
-        ///
-        /// Issue #432: 出現は判定線の位置 (下) から始まり、静止位置を行き過ぎる
-        /// ほど上へ弾けてから静止位置へ戻る。負の値は静止位置より上
-        /// (オーバーシュート)。「下から上へ跳ねて出る」表現にするため、
-        /// リニアなフェードではなく 1 回のバウンドになる曲線を使う。
-        /// </summary>
-        /// <param name="elapsed">出現からの秒。</param>
-        /// <param name="startDrop">静止位置から判定線までの距離 (px)。</param>
-        public static float VerdictPopupOffset(float elapsed, float startDrop)
-        {
-            if (elapsed <= 0f)
-            {
-                return startDrop;
-            }
-
-            if (elapsed >= VerdictPopupSeconds)
-            {
-                return 0f;
-            }
-
-            float t = elapsed / VerdictPopupSeconds;
-            // (1-t)·cos(πt): t=0 で startDrop (判定線)、途中で 0 (静止位置) を通過し、
-            // いったん負 (上 = オーバーシュート) になって t=1 で 0 に戻る。
-            return startDrop * (1f - t) * Mathf.Cos(Mathf.PI * t);
+            float fadeIn = Mathf.Clamp01(elapsed / VerdictFadeInSeconds);
+            float fadeOut = Mathf.Clamp01(remaining / VerdictFadeOutSeconds);
+            return Mathf.Min(fadeIn, fadeOut);
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
@@ -196,11 +188,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float DigitPopPeak = 1.15f;
         public const float DigitPopAttack = 0.05f;
         public const float DigitPopTotal = 0.20f;
-
-        /// <summary>判定テキストのポップ (弾ける出現と併用)。</summary>
-        public const float VerdictPopPeak = 1.15f;
-        public const float VerdictPopAttack = 0.04f;
-        public const float VerdictPopTotal = 0.16f;
 
         /// <summary>コンボボーナスの塗り色が戻るまでの時間 (秒)。</summary>
         public const float ComboBonusPulseSeconds = 0.3f;

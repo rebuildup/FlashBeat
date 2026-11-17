@@ -241,17 +241,27 @@ publishes both in one request.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
   because the chart editor draws into a canvas.
 
-### Score API (issue #133)
+### Score API (issues #133, #578; ADR-0028)
 
-| Route                                         | File                                     | Behaviour                                                                                                                |
-| --------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `POST /api/v1/scores`                         | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client. |
-| `GET /api/v1/leaderboards/{songId}?version=N` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version, score descending, the earliest submission wins a tie.                           |
+| Route                                                          | File                                     | Behaviour                                                                                                                  |
+| -------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/scores`                                          | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client.   |
+| `GET /api/v1/leaderboards/{songId}?version=N&scoringVersion=V` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version **and one scoring version**, score descending, the earliest submission wins a tie. |
+| `GET /api/v1/rankings?scoringVersion=V`                        | `routes/api/v1/rankings.ts`              | The ranking board within one scoring version (default: the latest the server supports).                                    |
+| `GET /api/v1/stats`                                            | `routes/api/v1/stats.ts`                 | Festival statistics aggregated over the **latest** scoring version only — v1 and v2 scores are never mixed (ADR-0028).     |
 
 - The score is computed in **single precision** (`Math.fround`), like the Unity
   player does, so the client and the server cannot drift apart.
-- `ratioScore = 5 * perfect + 3 * great + 1 * bad`, `maxScore = noteCount * 5`,
+- `scoringVersion` selects the formula: `1` (or an omitted field — old clients)
+  is `ratioScore = 5P+3G+B`, `maxScore = noteCount * 5`; `2` adds
+  `comboBonus = maxCombo * 5` and `noMissBonus = (miss == 0) ? (P+G+B) * 5 : 0`
+  with `maxScore = noteCount * 15`. Both end in
   `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
+- `scores.scoringVersion` (integer, default 1, existing rows backfilled to 1)
+  keeps the two formulas apart: a submission is recomputed, ranked and
+  aggregated only inside its own version. A `scoringVersion` the server cannot
+  recompute is a 422; the leaderboard/rankings query parameter defaults to the
+  latest version (currently 2).
 
 ### Dashboard, statistics and the song archive (issue #151)
 

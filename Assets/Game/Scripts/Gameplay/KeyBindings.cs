@@ -91,6 +91,26 @@ public static class KeyBindings
         injectedHolds.Clear();
     }
 
+    // ---- 検証ハーネス用の「レーン押下」注入状態 -----------------------------
+    // EditMode テストは Update を手動で駆動するため、フレーム番号に依存する
+    // InjectKeyDown は使えない (injectedDown は次フレームでしか見えない)。
+    // レーン単位の押下を持続注入できるようにする。injectedHolds と同じく
+    // 製品ビルドでは誰も注入しない。
+    private static readonly HashSet<int> injectedLaneDowns = new HashSet<int>();
+
+    /// <summary>レーン (0-based) を「押した」状態にする (検証ハーネス専用)。</summary>
+    public static void InjectLaneKeyDown(int lane)
+    {
+        if (lane < 0 || lane >= LaneCount) { return; }
+        injectedLaneDowns.Add(lane);
+    }
+
+    /// <summary>注入したレーン押下を全部解除する (検証ハーネス専用)。</summary>
+    public static void ClearInjectedLaneKeyDowns()
+    {
+        injectedLaneDowns.Clear();
+    }
+
     /// <summary>キーが押されているか (実キー + 注入された保持)。</summary>
     public static bool IsKeyHeld(KeyCode key)
     {
@@ -113,6 +133,7 @@ public static class KeyBindings
     /// <summary>True when any key bound to the lane (0-based) went down this frame.</summary>
     public static bool IsLaneKeyDown(int lane)
     {
+        if (injectedLaneDowns.Contains(lane)) { return true; }
         KeyCode[] keys = GetKeys(lane);
         for (int i = 0; i < keys.Length; i++)
         {

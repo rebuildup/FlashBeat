@@ -22,6 +22,11 @@ public static class RankingClient
     public const int NicknameMinLength = 1;
     public const int NicknameMaxLength = 16;
     public const string NicknamePrefsKey = "RankingNickname";
+    /// <summary>
+    /// scoringVersion sent with every submission (ADR-0028): 2 = the v2
+    /// formula. The server treats an omitted field as 1 for old clients.
+    /// </summary>
+    public const int ScoringVersion = 2;
     /// <summary>error set on transport failure (offline, DNS, timeout).</summary>
     public const string UnavailableError = "unavailable";
 
@@ -37,6 +42,7 @@ public static class RankingClient
         public int bad;
         public int miss;
         public int maxCombo;
+        public int scoringVersion;
     }
 
     [Serializable]
@@ -142,7 +148,8 @@ public static class RankingClient
 
     /// <summary>Builds the POST /api/v1/scores body. Returns null when the nickname is invalid.</summary>
     public static string BuildScoreRequestJson(string songId, int chartVersion, string nickname,
-        int score, int perfect, int great, int bad, int miss, int maxCombo)
+        int score, int perfect, int great, int bad, int miss, int maxCombo,
+        int scoringVersion = ScoringVersion)
     {
         string name = ValidateNickname(nickname);
         if (name == null || !IsValidSongId(songId)) return null;
@@ -157,6 +164,7 @@ public static class RankingClient
             bad = bad,
             miss = miss,
             maxCombo = maxCombo,
+            scoringVersion = scoringVersion,
         };
         return JsonUtility.ToJson(request);
     }
@@ -241,13 +249,14 @@ public static class RankingClient
     /// the server rank. Never throws.
     /// </summary>
     public static IEnumerator PostScore(string songId, int chartVersion, string nickname,
-        int score, int perfect, int great, int bad, int miss, int maxCombo, Action<Result> onDone)
+        int score, int perfect, int great, int bad, int miss, int maxCombo, Action<Result> onDone,
+        int scoringVersion = ScoringVersion)
     {
         Result result = new Result();
         string body = null;
         try
         {
-            body = BuildScoreRequestJson(songId, chartVersion, nickname, score, perfect, great, bad, miss, maxCombo);
+            body = BuildScoreRequestJson(songId, chartVersion, nickname, score, perfect, great, bad, miss, maxCombo, scoringVersion);
         }
         catch (Exception e)
         {

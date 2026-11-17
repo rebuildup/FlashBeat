@@ -18,6 +18,11 @@
  *   - **live** songs are the songs that are in the public catalog (not
  *     archived and with a published chart version). Archived songs are
  *     counted separately — the festival never deletes a song.
+ *   - **scoring version**: every aggregate counts only the latest scoring
+ *     version the server supports (ADR-0028). v1 and v2 scores live on
+ *     different scales, so mixing them in `plays`, `averageScore`,
+ *     `bestScore` or `topPlayers` would silently compare incomparable
+ *     numbers; v1 rows stay readable through the versioned leaderboard.
  *
  * The response is never cached (`Cache-Control: no-store`): a score submitted
  * a second ago has to show up.
@@ -25,6 +30,7 @@
 import { defineHandler } from "void";
 import { and, count, db, desc, eq, sql } from "void/db";
 import { chartVersions, scores, songs } from "@schema";
+import { LATEST_SCORING_VERSION } from "./_score-model";
 
 /** How many songs the "most played" and "best players" lists carry. */
 const TOP_LIST_SIZE = 10;
@@ -66,6 +72,7 @@ export const GET = defineHandler(async (c) => {
       chartVersions,
       and(eq(chartVersions.songId, scores.songId), eq(chartVersions.version, scores.version)),
     )
+    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION))
     .groupBy(scores.songId);
 
   const playsBySong = new Map(playRows.map((row) => [row.songId, row]));
@@ -95,12 +102,18 @@ export const GET = defineHandler(async (c) => {
       scores: count(),
       players: sql<number>`count(distinct ${scores.nickname})`,
     })
-    .from(scores);
+    .from(scores)
+    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION));
 
   const [lastDay] = await db
     .select({ value: count() })
     .from(scores)
-    .where(sql`${scores.createdAt} >= datetime('now', '-1 day')`);
+    .where(
+      and(
+        eq(scores.scoringVersion, LATEST_SCORING_VERSION),
+        sql`${scores.createdAt} >= datetime('now', '-1 day')`,
+      ),
+    );
 
   const [chartCount] = await db.select({ value: count() }).from(chartVersions);
 
@@ -128,6 +141,7 @@ export const GET = defineHandler(async (c) => {
       bestScore: sql<number>`max(${scores.score})`,
     })
     .from(scores)
+    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION))
     .groupBy(scores.nickname)
     .orderBy(desc(sql`sum(${scores.score})`), desc(sql`max(${scores.score})`))
     .limit(TOP_LIST_SIZE);

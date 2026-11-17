@@ -134,14 +134,22 @@ paths:
       operationId: getRankings
       description: >-
         Public ranking board of every live song: the best scores of the
-        currently published chart version of each song. One request for the
-        whole dashboard.
+        currently published chart version of each song, within one scoring
+        version. One request for the whole dashboard.
       parameters:
         - in: query
           name: limit
           required: false
           description: Number of entries per song (1–10). Defaults to 10.
           schema: { type: integer, minimum: 1, maximum: 10 }
+        - in: query
+          name: scoringVersion
+          required: false
+          description: >-
+            Scoring formula version of the scores to rank. Defaults to the
+            latest version the server supports. Versions are never mixed in
+            one board.
+          schema: { type: integer, minimum: 1 }
       responses:
         '200':
           description: Ranking board. Cache-Control no-store.
@@ -160,7 +168,8 @@ paths:
       operationId: getStats
       description: >-
         Public festival statistics: totals, the plays of every song, the level
-        distribution and the best players.
+        distribution and the best players. Aggregates only the latest scoring
+        version; earlier scoring versions never mix into the totals.
       responses:
         '200':
           description: Statistics. Cache-Control no-store.
@@ -172,7 +181,10 @@ paths:
       operationId: submitScore
       description: >-
         Public festival score submission. No login. Server validates judgment
-        sum against published version and recalculates score; not anti-cheat.
+        sum against published version and recalculates score with the formula
+        of the declared scoringVersion; not anti-cheat. An omitted
+        scoringVersion is treated as 1 (the original formula), so older
+        clients stay valid.
       requestBody:
         required: true
         content:
@@ -182,9 +194,10 @@ paths:
         '201':
           description: >-
             Saved score. The server recomputes the score with the Unity
-            formula and returns it together with the leaderboard rank of the
-            stored row (1 + number of strictly better scores of the same
-            chart version; ties share the rank).
+            formula of the declared scoringVersion and returns it together
+            with the leaderboard rank of the stored row (1 + number of
+            strictly better scores of the same chart version and scoring
+            version; ties share the rank).
           content:
             application/json:
               schema:
@@ -202,12 +215,22 @@ paths:
   /api/v1/leaderboards/{songId}:
     get:
       operationId: getLeaderboard
-      description: Public casual leaderboard; top results within one chart version.
+      description: >-
+        Public casual leaderboard; top results within one chart version and
+        one scoring version. Scores of different scoring versions are never
+        ranked together.
       parameters:
         - { $ref: '#/components/parameters/SongId' }
         - in: query
           name: version
           required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: scoringVersion
+          required: false
+          description: >-
+            Scoring formula version of the scores to rank. Defaults to the
+            latest version the server supports.
           schema: { type: integer, minimum: 1 }
       responses:
         '200':
@@ -293,6 +316,15 @@ components:
             server recomputes it from the judgment counts and rejects a
             mismatch (422), so a broken or manipulated client score is never
             stored.
+        scoringVersion:
+          type: integer
+          minimum: 1
+          description: >-
+            Optional. Scoring formula version the score was computed with:
+            1 is the original formula (5P+3G+B over 5*N), 2 adds the combo
+            continuation and no-miss bonuses (see ADR-0028). Omitted means 1,
+            so clients that predate scoring versions are still accepted. New
+            clients send 2.
     SongArchiveRequest:
       type: object
       additionalProperties: false

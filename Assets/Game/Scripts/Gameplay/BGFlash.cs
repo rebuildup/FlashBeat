@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using FlashBeat.Gameplay;
 
 public class BGFlash : MonoBehaviour
 {
@@ -49,6 +50,18 @@ public class BGFlash : MonoBehaviour
     {
         if (GManager.played)
         {
+            // Issue #580: ポーズ中は拍フラッシュを発火させず、点灯中の α を消す。
+            // BPMCount (壁時計) も進めないので、再開後はポーズ前の拍位相から続く。
+            if (PauseGate.IsPaused)
+            {
+                alfa = 0f;
+                if (!(rend.material.color.a <= 0))
+                {
+                    rend.material.color = new Color(rend.material.color.r, rend.material.color.g, rend.material.color.b, 0f);
+                }
+                return;
+            }
+
             if (!(rend.material.color.a <= 0))
             {
                 rend.material.color = new Color(rend.material.color.r, rend.material.color.g, rend.material.color.b, alfa);

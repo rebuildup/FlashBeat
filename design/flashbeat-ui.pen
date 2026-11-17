@@ -2255,7 +2255,7 @@
                                   "content": "3"
                                 },
                                 "HzQSv": {
-                                  "content": "YOU"
+                                  "content": "PLAYER"
                                 },
                                 "e6jmeg": {
                                   "content": "903,550"
@@ -2715,7 +2715,7 @@
                   "fill": "$text-muted",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "どちらも常に同じ表現。自分(YOU)は青みのトーンで1行だけ目立たせる。",
+                  "content": "どちらも常に同じ表現。自分(登録名)は青みのトーンで1行だけ目立たせる。",
                   "lineHeight": 1.5,
                   "fontFamily": "$font-ui",
                   "fontSize": 22,
@@ -6854,7 +6854,7 @@
                                   "fill": "$text",
                                   "textGrowth": "fixed-width",
                                   "width": 140,
-                                  "content": "YOU",
+                                  "content": "PLAYER",
                                   "fontFamily": "$font-ui",
                                   "fontSize": 22,
                                   "fontWeight": "normal"
@@ -7468,7 +7468,7 @@
                                   "fill": "$text",
                                   "textGrowth": "fixed-width",
                                   "width": 140,
-                                  "content": "YOU",
+                                  "content": "PLAYER",
                                   "fontFamily": "$font-ui",
                                   "fontSize": 22,
                                   "fontWeight": "normal"
@@ -12785,7 +12785,7 @@
                                   "id": "J6YjpA",
                                   "name": "Name",
                                   "fill": "$text",
-                                  "content": "YOU",
+                                  "content": "PLAYER",
                                   "fontFamily": "$font-ui",
                                   "fontSize": 22,
                                   "fontWeight": "500"
@@ -13493,7 +13493,7 @@
                                   "fill": "$text",
                                   "textGrowth": "fixed-width",
                                   "width": 160,
-                                  "content": "YOU",
+                                  "content": "PLAYER",
                                   "fontFamily": "$font-ui",
                                   "fontSize": 22,
                                   "fontWeight": "normal"
@@ -15875,7 +15875,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 160,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -17029,7 +17029,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 160,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -19291,7 +19291,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 140,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -20085,7 +20085,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 140,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -21464,7 +21464,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 140,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -22258,7 +22258,7 @@
                               "fill": "$text",
                               "textGrowth": "fixed-width",
                               "width": 140,
-                              "content": "YOU",
+                              "content": "PLAYER",
                               "fontFamily": "$font-ui",
                               "fontSize": 22,
                               "fontWeight": "normal"
@@ -38381,7 +38381,7 @@
                   "y": 20,
                   "name": "Value",
                   "fill": "$text-dim",
-                  "content": "YOU",
+                  "content": "PLAYER",
                   "fontFamily": "$font-ui",
                   "fontSize": 40,
                   "fontWeight": "700"

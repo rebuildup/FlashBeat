@@ -231,7 +231,7 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(t52.Find("Grade"), 424f, 8f, 56f, 36f, "Grade@52");
 
                 // Pos の数字色: 選択行 $text / 非選択 $text-muted。
-                var selected = V6Lists.RankRow(parent, "1", "YOU", "1", "S",
+                var selected = V6Lists.RankRow(parent, "1", "PLAYER1", "1", "S",
                     new Vector2(8f, 124f), new Vector2(496f, 56f), selected: true);
                 Assert.AreEqual(V6Tokens.TextMuted, TextOf(t56, "Pos/Pos").color, "unselected Pos");
                 Assert.AreEqual(V6Tokens.Text, TextOf(selected.transform, "Pos/Pos").color, "selected Pos");

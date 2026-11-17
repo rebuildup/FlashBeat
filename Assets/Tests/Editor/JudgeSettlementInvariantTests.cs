@@ -22,9 +22,9 @@ using FlashBeat.Gameplay;
 ///      <c>Perfect + Great + Bad + Miss == 譜面のノーツ数</c>。
 ///      さらに「押下で確定した数 == 押下了回数」「Miss == 押されなかった数」
 ///      も見て、同一ノーツの二重判定や取りこぼしがないことを確認する。
-///   2. **スコア API との整合**:
-///      <c>GManager.maxScore == noteCount x 5</c>、
-///      <c>GManager.ratioScore == 5*perfect + 3*great + 1*bad</c>、
+///   2. **スコア API との整合** (scoring v2, ADR-0028 / Issue #577):
+///      <c>GManager.maxScore == noteCount x 15</c>、
+///      <c>GManager.ratioScore == 判定 + maxCombo*5 + (miss==0 ? hits*5 : 0)</c>、
 ///      <c>GManager.score == Judge.ComputeScore(ratioScore, maxScore)</c>、
 ///      さらに曲終了判定に使う <c>GManager.settledNoteCount</c> が
 ///      「確定したノーツ数」と一致すること (HOLD 中断の差し替えで二重に
@@ -102,6 +102,8 @@ public class JudgeSettlementInvariantTests
         GManager.maxCombo = 0;
         GManager.ratioScore = 0f;
         GManager.maxScore = 0f;
+        GManager.comboBonus = 0;
+        GManager.noMissBonus = 0;
         // MusicManager は曲開始時に nextNotes = 1 にする (MusicManager.cs:172)。
         //  Judge は「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
         GManager.nextNotes = 1;
@@ -144,6 +146,8 @@ public class JudgeSettlementInvariantTests
         GManager.maxCombo = 0;
         GManager.ratioScore = 0f;
         GManager.maxScore = 0f;
+        GManager.comboBonus = 0;
+        GManager.noMissBonus = 0;
         GManager.nextNotes = 0;
         GManager.settledNoteCount = 0;
         GManager.noteTiming = 5;
@@ -330,10 +334,11 @@ public class JudgeSettlementInvariantTests
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// GManager のスコア API が判定内容と矛盾しないこと:
-    /// maxScore = noteCount x 5、ratioScore = 判定の配点合計、
-    /// score = ComputeScore(ratioScore, maxScore)、そして結果画面が読む
-    /// perfect/great/bad/miss/combo がスコアボードと一致すること。
+    /// GManager のスコア API が判定内容と矛盾しないこと (scoring v2):
+    /// maxScore = noteCount x 15、ratioScore = 判定 + コンボ + ノーミスの
+    /// 合計 (ADR-0028)、score = ComputeScore(ratioScore, maxScore)、
+    /// そして結果画面が読む perfect/great/bad/miss/combo がスコアボードと
+    /// 一致すること。
     /// </summary>
     [Test]
     public void ScoreApi_MatchesJudgements_AndResultScreenFields()
@@ -359,13 +364,18 @@ public class JudgeSettlementInvariantTests
         int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
         Assert.AreEqual(MixedChartNoteCount, judged);
 
-        // 配点合計は判定の内訳と一致 (1 ノーツ最大 5)。
-        float expectedRatio = GManager.perfect * LongNote.SCORE_PERFECT
-            + GManager.great * LongNote.SCORE_GREAT
-            + GManager.bad * LongNote.SCORE_BAD;
-        Assert.AreEqual(expectedRatio, GManager.ratioScore, 0.0001f, "ratioScore が判定と食い違う");
-        Assert.AreEqual(MixedChartNoteCount * 5f, GManager.maxScore, 0.0001f, "maxScore != noteCount x 5");
-        Assert.LessOrEqual(GManager.ratioScore, GManager.maxScore, "ratioScore が maxScore を超えた (二重加点)");
+        // v2 の内訳: 判定 + コンボ継続 (maxCombo*5) + ノーミス
+        // (miss==0 なら命中数*5)。このプレイは Miss があるのでノーミスは 0。
+        Scoring.V2Breakdown expected = Scoring.BreakdownV2(
+            GManager.perfect, GManager.great, GManager.bad, GManager.miss,
+            GManager.maxCombo, MixedChartNoteCount);
+        Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
+            "ratioScore が v2 の内訳と食い違う");
+        Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
+        Assert.AreEqual(expected.NoMissBonus, GManager.noMissBonus, "noMissBonus が違う");
+        Assert.AreEqual(MixedChartNoteCount * Scoring.MaxRatioPerNoteV2, GManager.maxScore, 0.0001f,
+            "maxScore != noteCount x 15");
+        Assert.LessOrEqual(GManager.ratioScore, GManager.maxScore, "ratioScore が maxScore を超えた");
 
         // スコアは ComputeScore の式と一致する。
         Assert.AreEqual(Judge.ComputeScore(GManager.ratioScore, GManager.maxScore), GManager.score);
@@ -399,7 +409,8 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 4f, 0.05f));
 
         Assert.AreEqual(MixedChartNoteCount, GManager.perfect);
-        Assert.AreEqual(MixedChartNoteCount * 5f, GManager.ratioScore, 0.0001f);
+        // v2: 判定 5N + コンボ 5N + ノーミス 5N = 15N。
+        Assert.AreEqual(MixedChartNoteCount * Scoring.MaxRatioPerNoteV2, GManager.ratioScore, 0.0001f);
         Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
     }
 
@@ -423,7 +434,7 @@ public class JudgeSettlementInvariantTests
     /// 譜面の読み込みは **本番と同じ経路**
     /// (<c>NotesManager.LoadRoutine</c>) を通す。テスト側で
     /// GManager.maxScore などを代入しないので、
-    /// 「配点上限 = ノーツ数 x 5」の書き込み (NotesManager) も
+    /// 「配点上限 = ノーツ数 x 15」の書き込み (NotesManager) も
     /// 本番のコードが設定した値であることを検証できる。
     /// </summary>
     private Rig BuildRig(string chartJson, int expectedNoteCount)
@@ -488,7 +499,7 @@ public class JudgeSettlementInvariantTests
     ///
     /// rigRoot は非アクティブなので <c>NotesManager.OnEnable</c> は走らない。
     /// そのため private な LoadRoutine を直接呼んで、コルーチンを
-    /// 最後まで進める。こうすれば「GManager.maxScore = ノーツ数 x 5」の
+    /// 最後まで進める。こうすれば「GManager.maxScore = ノーツ数 x 15」の
     /// 書き込みは **テスト側の代入ではなく** 本番のコードが行う。
     /// </summary>
     private void LoadChartThroughProduction(NotesManager target, string chartJson)

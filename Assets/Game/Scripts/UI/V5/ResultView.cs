@@ -38,6 +38,9 @@ namespace FlashBeat.UI.V5
         private const string PlayerNameKey = "V5PlayerName";
         private const int PlayerNameMax = 8;
 
+        /// <summary>未入力時の既定名 (Issue #584: "YOU" を撤廃し中立な "PLAYER" に)。</summary>
+        private const string PlayerNameDefault = "PLAYER";
+
         private Snapshot snap;
         private Action onRetry;
         private Action onSelect;
@@ -126,10 +129,11 @@ namespace FlashBeat.UI.V5
             return sb.ToString();
         }
 
-        /// <summary>保存済み登録名 (未登録は空文字)。</summary>
+        /// <summary>保存済み登録名 (未登録は空文字)。旧既定値 "YOU" (Issue #584 で撤廃) は未登録として読み替える。</summary>
         public static string SavedName()
         {
-            return PlayerPrefs.GetString(PlayerNameKey, string.Empty);
+            var name = PlayerPrefs.GetString(PlayerNameKey, string.Empty);
+            return name == "YOU" ? string.Empty : name;
         }
 
         /// <summary>
@@ -857,7 +861,7 @@ namespace FlashBeat.UI.V5
             valueRt.offsetMax = new Vector2(-S(24f), -S(8f));
             valueTmp.textWrappingMode = TextWrappingModes.NoWrap;
 
-            var placeholder = V5Ui.Text(field, "Placeholder", "YOU", S(52f), V5Tokens.TextDim,
+            var placeholder = V5Ui.Text(field, "Placeholder", PlayerNameDefault, S(52f), V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             var phRt = placeholder.rectTransform;
             phRt.anchorMin = new Vector2(0f, 0f);
@@ -868,7 +872,10 @@ namespace FlashBeat.UI.V5
 
             nameInput.textComponent = valueTmp;
             nameInput.placeholder = placeholder;
-            nameInput.textViewport = fieldRt;
+            // Issue #583: textViewport をテキスト rect (左右 24px の内側余白) と
+            // 一致させる。host 全体を viewport にするとキャレット/選択の
+            // クリップ境界がテキスト矩形とずれる。
+            nameInput.textViewport = valueRt;
 
             var hintCap = V5Ui.KeyCap(dialog, "A-Z 0-9", new Vector2(S(120f), S(36f)));
             var hintCapRt = hintCap.GetComponent<RectTransform>();
@@ -953,7 +960,7 @@ namespace FlashBeat.UI.V5
             var name = NormalizeName(nameInput.text);
             if (string.IsNullOrEmpty(name))
             {
-                name = "YOU";
+                name = PlayerNameDefault;
             }
 
             PlayerPrefs.SetString(PlayerNameKey, name);
@@ -991,7 +998,7 @@ namespace FlashBeat.UI.V5
         private static string DisplayName()
         {
             var saved = SavedName();
-            return string.IsNullOrEmpty(saved) ? "YOU" : saved;
+            return string.IsNullOrEmpty(saved) ? "未登録" : saved;
         }
     }
 }

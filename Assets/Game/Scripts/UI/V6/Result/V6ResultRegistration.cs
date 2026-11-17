@@ -37,7 +37,9 @@ namespace FlashBeat.UI.V6.Result
         {
             try
             {
-                return PlayerPrefs.GetString(V6ResultLogic.LocalPlayerNamePrefsKey, string.Empty);
+                string name = PlayerPrefs.GetString(V6ResultLogic.LocalPlayerNamePrefsKey, string.Empty);
+                // 旧既定値 "YOU" (Issue #584 で撤廃) が残っている環境では未登録として扱う。
+                return name == V6ResultLogic.LegacyLocalNameDefault ? string.Empty : name;
             }
             catch (System.Exception)
             {

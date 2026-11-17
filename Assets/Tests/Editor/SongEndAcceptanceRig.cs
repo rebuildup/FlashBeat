@@ -11,7 +11,7 @@ using FlashBeat.Gameplay;
 /// 作り方は <see cref="JudgeSettlementInvariantTests"/> と同じ:
 ///
 ///   1. 譜面 JSON を **本番と同じ読み込み経路** (<c>NotesManager.LoadRoutine</c>)
-///      で作る (GManager.maxScore = ノーツ数 x 5 の書き込みも本番のコードが行う)。
+///      で作る (GManager.maxScore = ノーツ数 x 15 の書き込みも本番のコードが行う)。
 ///   2. <see cref="Judge.JudgeStep"/> を直接叩いて判定させる
 ///      (テスト側で判定を再現しない = false green を避ける)。
 ///   3. 曲終了の期限 (<c>SettleDeadline</c>) は **本番の計算**
@@ -308,6 +308,8 @@ public static class SongEndAcceptanceTests
         GManager.maxCombo = 0;
         GManager.ratioScore = 0f;
         GManager.maxScore = 0f;
+        GManager.comboBonus = 0;
+        GManager.noMissBonus = 0;
         // MusicManager は曲開始時に nextNotes = 1 にする。Judge は
         // 「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
         GManager.nextNotes = 1;

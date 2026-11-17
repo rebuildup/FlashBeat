@@ -101,7 +101,30 @@ test("the committed migrations create exactly the three contract tables", () => 
     "m",
     "score",
     "createdAt",
+    // Added by the follow-up migration of issue #578 (ALTER TABLE appends
+    // the column after the columns the table was created with).
+    "scoringVersion",
   ]);
+});
+
+test("the scoringVersion migration backfills existing rows as version 1", () => {
+  const sqlite = createMigratedDatabase();
+  sqlite
+    .prepare(
+      `INSERT INTO songs (id, title, artist, youtubeId, bpm, level, durationSec, currentVersion)
+       VALUES ('who', 'Who', 'Azari', '8JXiXt0D6tw', 128, 8, 200, 1)`,
+    )
+    .run();
+  // A row written without naming the column takes the DEFAULT 1, like the
+  // rows that existed before the column was added (ADR-0028).
+  sqlite
+    .prepare(
+      `INSERT INTO scores (songId, version, nickname, p, g, b, m, score)
+       VALUES ('who', 1, 'legacy', 10, 2, 1, 0, 900000)`,
+    )
+    .run();
+  const row = sqlite.prepare("SELECT scoringVersion FROM scores").get();
+  assert.equal(row.scoringVersion, 1);
 });
 
 test("the seed publishes the chart file verbatim", async () => {
