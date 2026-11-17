@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
+using FlashBeat.Gameplay;
 
 public class LaneFlash : MonoBehaviour
 {
@@ -26,6 +27,19 @@ public class LaneFlash : MonoBehaviour
 
     void Update()
     {
+
+        // Issue #580: ポーズ中は発光を消灯し、キー入力と減衰を止める。
+        // 点灯中にポーズへ入った場合もここで α を 0 に戻す。
+        // 再開 (PauseGate.Exit) 後は通常どおり発光・減衰する。
+        if (PauseGate.IsPaused)
+        {
+            alpha = 0f;
+            if (!(rend.material.color.a <= 0))
+            {
+                rend.material.color = new Color(rend.material.color.r, rend.material.color.g, rend.material.color.b, 0f);
+            }
+            return;
+        }
 
         if(!(rend.material.color.a <= 0))
         {
