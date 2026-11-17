@@ -142,8 +142,8 @@ public class ScoringV3Tests
         for (int i = 0; i < 120; i++) board.ApplyHead(LongNote.Judgement.Great);
         board.ApplyMiss();
         for (int i = 0; i < 80; i++) board.ApplyHead(LongNote.Judgement.Great);
-        // hits=200 → floor(200/50)=4。実際: 50,100, 50(再),100(再) = 4 回。
-        Assert.AreEqual(4, board.MilestoneCrossings);
+        // hits=200 → floor(200/50)=4 が上限。実際: 50,100 (120 中) + 50 (80 中) = 3 回。
+        Assert.AreEqual(3, board.MilestoneCrossings);
         Assert.LessOrEqual(board.MilestoneCrossings,
             (board.Perfect + board.Great + board.Bad) / Scoring.MilestoneInterval);
     }
