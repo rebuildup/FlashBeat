@@ -372,6 +372,38 @@ public sealed class V6CompactScreenTests
         }
     }
 
+    /// <summary>
+    /// #560: uGUI は <see cref="IEndDragHandler"/> 経由でしか OnEndDrag を
+    /// 呼ばない。interface が無いとドラッグ終了後も dragging が true のまま
+    /// 残り、PageUp/PageDown パンが恒久的に無効化される。
+    /// </summary>
+    [Test]
+    public void DragLifecycle_EndDragReleasesPanning()
+    {
+        var pan = NewPan();
+        try
+        {
+            Assert.IsInstanceOf<IEndDragHandler>(pan,
+                "V6FramePan must implement IEndDragHandler or OnEndDrag is never called");
+
+            var e = new PointerEventData(null)
+            {
+                button = PointerEventData.InputButton.Left,
+                pointerPress = pan.gameObject,
+            };
+            pan.OnBeginDrag(e);
+            Assert.IsTrue(pan.DraggingForAudit);
+
+            ((IEndDragHandler)pan).OnEndDrag(e);
+            Assert.IsFalse(pan.DraggingForAudit,
+                "dragging must be released on drag end so PageUp/PageDown work again");
+        }
+        finally
+        {
+            Object.DestroyImmediate(pan.gameObject);
+        }
+    }
+
     [Test]
     public void OnBeginDrag_NonLeftButton_DoesNotStartPanning()
     {
