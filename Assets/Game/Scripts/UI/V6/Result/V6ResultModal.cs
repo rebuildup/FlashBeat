@@ -113,11 +113,14 @@ namespace FlashBeat.UI.V6.Result
             modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
                 V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
             // Issue #425: 文字が枠の左端に張り付いて見えるため、内側余白を広げる。
-            V6Layout.Place(modalNameValue, 32f, 20f, 728f, 58f);
+            // Issue #583: 左右の内側余白を 32px に揃える (784 - 32*2 = 720)。
+            // Value/Placeholder/キャレット/選択ハイライト/IME 変換中文字が
+            // 同じ左端・右端の内側余白で揃うようにするため。
+            V6Layout.Place(modalNameValue, 32f, 20f, 720f, 58f);
             modalNamePlaceholder = OneLine(V5GameUi.Text(field.gameObject, "Placeholder",
                 V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            V6Layout.Place(modalNamePlaceholder, 32f, 20f, 728f, 58f);
+            V6Layout.Place(modalNamePlaceholder, 32f, 20f, 720f, 58f);
 
             // 名前入力は TMP_InputField に任せる (Issue #384)。自前の Input.inputString
             // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
@@ -133,6 +136,10 @@ namespace FlashBeat.UI.V6.Result
             {
                 Value = modalNameValue,
                 Placeholder = modalNamePlaceholder,
+                // Issue #583: textViewport をテキスト rect と一致させる。
+                // 既定 (host 全体) だとクリップ/スクロール境界がテキスト矩形と
+                // ずれ、横スクロールや選択ハイライトの端が内側余白をはみ出す。
+                TextViewport = modalNameValue.rectTransform,
                 CaretBlinkHalfCycleSeconds = V6ResultRevealLogic.CaretHalfCycleSeconds,
                 OnValidateInput = ValidateNameChar,
                 OnEndEdit = OnNameEditEnd,

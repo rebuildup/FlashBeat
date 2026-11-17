@@ -872,7 +872,10 @@ namespace FlashBeat.UI.V5
 
             nameInput.textComponent = valueTmp;
             nameInput.placeholder = placeholder;
-            nameInput.textViewport = fieldRt;
+            // Issue #583: textViewport をテキスト rect (左右 24px の内側余白) と
+            // 一致させる。host 全体を viewport にするとキャレット/選択の
+            // クリップ境界がテキスト矩形とずれる。
+            nameInput.textViewport = valueRt;
 
             var hintCap = V5Ui.KeyCap(dialog, "A-Z 0-9", new Vector2(S(120f), S(36f)));
             var hintCapRt = hintCap.GetComponent<RectTransform>();
