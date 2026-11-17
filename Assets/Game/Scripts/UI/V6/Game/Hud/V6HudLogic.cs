@@ -130,51 +130,86 @@ namespace FlashBeat.UI.V6.Game.Hud
             return content + LyricPaddingY * 2f;
         }
 
-        // --- 判定ポップアップ (Issue #581: 滞在型で読み取り可能な演出) ---
+        // --- 判定ポップアップ (Issue #605: 判定線からの立ち上がり + 滞在表示) ---
 
         /// <summary>
         /// 判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。
-        /// Issue #581: 跳ね・スケールパンチを廃止し、判定位置に固定して
-        /// フェードイン → 静止 → フェードアウトで見せる。
+        /// §10.3 の「所定位置」。立ち上がりの終点であり、滞在中の表示位置。
         /// </summary>
         public const float VerdictRestGapAboveLine = 72f;
 
-        /// <summary>判定が現れるまでのフェードイン時間 (秒)。</summary>
-        public const float VerdictFadeInSeconds = 0.10f;
+        /// <summary>
+        /// 判定が現れてから静止位置へ立ち上がるまでの時間 (秒)。
+        /// design §10.3: 140ms。
+        /// </summary>
+        public const float VerdictRiseSeconds = 0.14f;
+
+        /// <summary>
+        /// 立ち上がりの移動量 (px)。静止位置よりこの距離だけ判定線側 (下) に
+        /// 出て、<see cref="VerdictRiseSeconds"/> かけて静止位置へ上がる。
+        /// design §10.3: 28px。静止位置は判定線の 72px 上なので、出現点は
+        /// 判定線の約 44px 上 = 「判定線のすぐ上」に相当する。
+        /// </summary>
+        public const float VerdictRiseDistance = 28f;
 
         /// <summary>判定が不透明のまま留まる時間 (秒)。読み取りの主時間。</summary>
-        public const float VerdictHoldSeconds = 0.55f;
+        public const float VerdictHoldSeconds = 0.58f;
 
-        /// <summary>判定が消えるまでのフェードアウト時間 (秒)。</summary>
-        public const float VerdictFadeOutSeconds = 0.15f;
+        /// <summary>
+        /// 判定が消えるまでのフェードアウト時間 (秒)。
+        /// design §10.3: 寿命の最後の 220ms。
+        /// </summary>
+        public const float VerdictFadeOutSeconds = 0.22f;
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// フェードイン (<see cref="VerdictFadeInSeconds"/>) + 静止
-        /// (<see cref="VerdictHoldSeconds"/>) + フェードアウト
-        /// (<see cref="VerdictFadeOutSeconds"/>)。Issue #581: かつての
-        /// 0.20 秒 (Issue #445) では読み取りきれなかったため 0.80 秒へ延長。
+        /// 静止保持 (<see cref="VerdictHoldSeconds"/>) + フェードアウト
+        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.80 秒。
+        /// Issue #581 の滞在時間 (0.5〜0.8 秒) を維持しつつ、
+        /// §10.3 のフェードアウト 220ms に合わせて配分した。
+        /// 立ち上がり (<see cref="VerdictRiseSeconds"/>) は保持時間の
+        /// 冒頭に重なり、総寿命には別途加算しない。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictFadeInSeconds + VerdictHoldSeconds + VerdictFadeOutSeconds;
+            VerdictHoldSeconds + VerdictFadeOutSeconds;
 
         /// <summary>
-        /// 判定テキストの不透明度。出現時は <see cref="VerdictFadeInSeconds"/>
-        /// で 0→1、寿命の最後は <see cref="VerdictFadeOutSeconds"/> で 1→0。
-        /// 位置とスケールは動かさない (Issue #581: 跳ね・パンチ廃止)。
+        /// 判定テキストの不透明度。出現は即時 (§10.3: フェードインしない。
+        /// Issue #605 の設計判断。立ち上がりの動きが出現の合図を担うため、
+        /// #581 のフェードインは廃止した)。寿命の最後は
+        /// <see cref="VerdictFadeOutSeconds"/> で 1→0。
         /// </summary>
-        /// <param name="elapsed">表示開始からの秒。</param>
         /// <param name="remaining">表示が終わるまでの残り秒。</param>
-        public static float VerdictAlpha(float elapsed, float remaining)
+        public static float VerdictAlpha(float remaining)
         {
-            if (elapsed < 0f || remaining <= 0f)
+            if (remaining <= 0f)
             {
                 return 0f;
             }
 
-            float fadeIn = Mathf.Clamp01(elapsed / VerdictFadeInSeconds);
-            float fadeOut = Mathf.Clamp01(remaining / VerdictFadeOutSeconds);
-            return Mathf.Min(fadeIn, fadeOut);
+            return Mathf.Clamp01(remaining / VerdictFadeOutSeconds);
+        }
+
+        /// <summary>
+        /// 静止位置より判定線側 (下) へのオフセット (px、正 = 下)。
+        /// design §10.3: 出現時は <see cref="VerdictRiseDistance"/> (28px) だけ
+        /// 下にあり、<see cref="VerdictRiseSeconds"/> で EaseOut に従って
+        /// 静止位置 (0) へ立ち上がる。立ち上がり完了後は 0。
+        /// </summary>
+        /// <param name="elapsed">表示開始からの秒。</param>
+        public static float VerdictRiseOffset(float elapsed)
+        {
+            if (elapsed <= 0f)
+            {
+                return VerdictRiseDistance;
+            }
+
+            if (elapsed >= VerdictRiseSeconds)
+            {
+                return 0f;
+            }
+
+            return VerdictRiseDistance * (1f - EaseOutCubic(elapsed / VerdictRiseSeconds));
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
