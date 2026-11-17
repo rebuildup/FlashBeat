@@ -101,13 +101,21 @@ Test-Path .\flashbeat-media-policy.json
 | Release タグ | prerelease | ZIP size (bytes) | resources.resource | ルーズなメディア | version.json | media manifest | update-channel | 判定 |
 |---|---|---|---|---|---|---|---|---|
 | `v0.1.28-win64-8ce00d0f` | no | 274,559,019 | 205,189,098 | 0 | ✓ | ✓ | ✓ | song-free |
-| `v0.1.28-macos-8ce00d0f` | no | 274,407,036 | (macOS .app 内) | 0 | ✓ | ✓ (`.app/Contents/Resources/`) | ✓ | song-free |
+| `v0.1.28-macos-8ce00d0f` | no | 274,407,036 | 205,189,098 (`FlashBeat.app/Contents/Resources/Data/` 内、実測) | 0 | ✓ | ✓ (`.app/Contents/Resources/` 内) | ✓ | song-free |
 
-- 0.1.15〜0.1.27 の公開 Release も同スクリプトで song-free を確認済み
-  (第三者楽曲同梱は `v0.1.0-win64-743c88d` の 1 件のみ、変わらず)。
-- macOS ZIP の `resources.resource` は `.app` 内にあるため ZIP ルートの
-  サイズ列は「(なし)」と表示される。`flashbeat-media-policy.json` は
-  `FlashBeat.app/Contents/Resources/` に同梱される。
+- 0.1.15〜0.1.26 の win64 Release と `v0.1.27-win64-b30cb1e7` も同スクリプトで
+  song-free を確認済み (第三者楽曲同梱は `v0.1.0-win64-743c88d` の
+  1 件のみ、変わらず)。macOS Release は 0.1.27 以降のみ存在し、
+  スクリプトの判定には次項の盲点がある (`v0.1.27-macos-b30cb1e7` を含む)。
+- **macOS の注意点**: `audit-release-media.py` の `resources.resource` /
+  media manifest 判定は ZIP ルート直下のパス (`FlashBeat_Data/...`) を前提にしており、
+  macOS ZIP (`.app` バンドル構造) では `baked` / manifest を検出しない
+  (スクリプト出力では macOS の manifest が「なし」と表示される)。
+  macOS 行はスクリプト出力ではなく **公開 ZIP のエントリ一覧を直接確認** した
+  実測に基づく: `FlashBeat.app/Contents/Resources/Data/resources.resource` =
+  205,189,098 bytes (win64 と同一サイズ、300MB 閾値以下)、
+  `flashbeat-media-policy.json` は `FlashBeat.app/Contents/Resources/` に同梱、
+  ルーズなメディア 0 件。スクリプトの macOS 対応は別途の改善課題とする。
 
 補足:
 
