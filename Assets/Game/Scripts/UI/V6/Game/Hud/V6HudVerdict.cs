@@ -166,7 +166,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
             // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
-            // Issue #581: 位置は静止位置に固定する (跳ね・パンチは廃止)。
+            // Issue #605 / design §10.3: verdictBaseY は立ち上がりの終点
+            // (静止位置)。出現時は VerdictRiseOffset 分だけ判定線側へずらし、
+            // 時間でここへ戻す。レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
             for (int i = 0; i < verdictTexts.Count; i++)
@@ -332,10 +334,18 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #581: 滞在型。位置・スケールは静止のまま、
-                // フェードイン → 静止 → フェードアウトだけを時間で変える。
+                // Issue #605 / design §10.3: 判定線のすぐ上に即時出現
+                // (フェードインなし) し、140ms / 28px の EaseOut で静止位置へ
+                // 立ち上がる。寿命の最後 220ms でフェードアウト。
+                // Issue #581 の滞在時間 (0.80s) は維持する。
                 float elapsed = now - laneVerdictStart[lane];
-                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(elapsed, remain));
+                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
+
+                var rt = verdictTexts[lane].rectTransform;
+                // レイアウトは触らず anchoredPosition.y だけを時間で変える。
+                // offset は正 = 判定線側 (下) なので verdictBaseY から引く。
+                V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
+                    verdictBaseY - V6HudLogic.VerdictRiseOffset(elapsed));
             }
         }
 
@@ -367,8 +377,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 int lane = V6HudLogic.LaneFromEffectPositionX(t.position.x);
                 string label = V6HudLogic.VerdictLabel(n);
                 laneVerdicts[lane] = label;
-                // Issue #581: 判定の見え時間は VerdictTotalSeconds (0.80s)。
-                // フェードイン → 静止 → フェードアウトの滞在型。
+                // Issue #605: 判定の見え時間は VerdictTotalSeconds (0.80s)。
+                // 即時出現 → 立ち上がり → 静止 → フェードアウト (§10.3)。
                 laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;
