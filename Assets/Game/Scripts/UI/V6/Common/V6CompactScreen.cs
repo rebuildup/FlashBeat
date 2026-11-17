@@ -191,7 +191,7 @@ namespace FlashBeat.UI.V6.Common
     /// コンテンツ (フレーム) を動かす。範囲は <see cref="V6CompactScreen.ClampPan"/>。
     /// </summary>
     public sealed class V6FramePan : MonoBehaviour,
-        IBeginDragHandler, IDragHandler, IScrollHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler
     {
         /// <summary>ビューポートの RectTransform (自身)。EditMode では Awake が
         /// 呼ばれないことがあるので遅延初期化する。</summary>
@@ -237,6 +237,11 @@ namespace FlashBeat.UI.V6.Common
 
         /// <summary>PageUp/PageDown 1 回あたりのパン量 (ビューポート高さに対する比率)。</summary>
         public float PageStepRatio = 0.8f;
+
+        /// <summary>Whether a drag pan is in progress (audit/test hook). Without
+        /// IEndDragHandler this stays true after mouse release and PageUp/PageDown
+        /// pan stays disabled forever (#560).</summary>
+        public bool DraggingForAudit => dragging;
 
         private Vector2 pan;
         private Vector2 viewportSize;
