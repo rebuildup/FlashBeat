@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
@@ -304,5 +305,157 @@ public sealed class V6FrameContainmentTests
         Assert.IsFalse(V6ScreenAudit.IsUnicodeSymbolChar('あ'));
         Assert.IsFalse(V6ScreenAudit.IsUnicodeSymbolChar('漢'));
         Assert.IsFalse(V6ScreenAudit.IsUnicodeSymbolChar('、'));
+    }
+
+    // --- ClassifyElementClip のスクロール到達性 (#564) ---
+
+    /// <summary>テスト用の縦スクロールキャッチャ (v6 の IScrollHandler と同じ形)。</summary>
+    private sealed class TestScrollCatcher : MonoBehaviour, IScrollHandler
+    {
+        public void OnScroll(PointerEventData eventData) { }
+    }
+
+    /// <summary>
+    /// anchor/pivot (0,1) の RectTransform をワールド座標 (x, yDown)・サイズで置く。
+    /// ルートは原点・サイズ 0 なので、ワールド矩形は
+    /// x ∈ [x, x+w], y ∈ [-y-h, -y] (y は上端からの design px)。
+    /// </summary>
+    private static RectTransform Place(Transform parent, string name, float x, float y, float w, float h)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(x, -y);
+        rt.sizeDelta = new Vector2(w, h);
+        return rt;
+    }
+
+    /// <summary>テスト用の実画面相当矩形 (ワールド y は負側)。</summary>
+    private static Rect TestScreen()
+    {
+        return Rect.MinMaxRect(0f, -768f, 1024f, 0f);
+    }
+
+    /// <summary>
+    /// #564: 名前一致だけでクリップしない容器 ("Song List" / "Rows" 等) の
+    /// 外でも、実画面内に見えている要素は Outside にしない。
+    /// </summary>
+    [Test]
+    public void ClassifyElementClip_UnclippedNamedContainer_FallsBackToScreen()
+    {
+        var rootGo = new GameObject("root", typeof(RectTransform));
+        try
+        {
+            // "Song List" は名前でスクロール容器と判定されるが Mask を持たない。
+            var list = Place(rootGo.transform, "Song List", 24f, 96f, 560f, 780f);
+            // パネルの右外・画面内の要素。旧実装は容器∩画面を基準に Outside とした。
+            var el = Place(list, "Row", 600f, 100f, 200f, 60f);
+
+            var clip = V6ScreenAudit.ClassifyElementClip(
+                el, rootGo.transform, el, TestScreen());
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Inside, clip,
+                "unclipped containers hide nothing: an on-screen element is reachable");
+        }
+        finally
+        {
+            Object.DestroyImmediate(rootGo);
+        }
+    }
+
+    /// <summary>
+    /// #564: 実際にクリップする縦スクロール容器では、スクロール方向
+    /// (下) のはみ出しは到達可能 (Inside)、スクロール不能な方向
+    /// (左) のはみ出しは Outside のまま。
+    /// </summary>
+    [Test]
+    public void ClassifyElementClip_ClippedVerticalScroll_AxisAware()
+    {
+        var rootGo = new GameObject("root", typeof(RectTransform));
+        try
+        {
+            var viewport = Place(rootGo.transform, "List Viewport", 24f, 96f, 560f, 400f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            viewport.gameObject.AddComponent<TestScrollCatcher>();
+
+            // ビューポート下端 (y=496) より下・画面内: 縦スクロールで到達可能。
+            var below = Place(viewport, "Row Below", 40f, 560f, 200f, 60f);
+            // ビューポート左端 (ワールド x=24) より左・画面内: 横スクロール不可 → Outside。
+            // Place の x はビューポート左端からの相対なので -20 でワールド x ∈ [4,24]。
+            var left = Place(viewport, "Row Left", -20f, 120f, 20f, 60f);
+
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Inside,
+                V6ScreenAudit.ClassifyElementClip(below, rootGo.transform, below, TestScreen()),
+                "below the vertical scroll viewport is reachable by scrolling");
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Outside,
+                V6ScreenAudit.ClassifyElementClip(left, rootGo.transform, left, TestScreen()),
+                "left of a vertical-only scroll viewport stays unreachable");
+        }
+        finally
+        {
+            Object.DestroyImmediate(rootGo);
+        }
+    }
+
+    /// <summary>
+    /// #564: クリップ容器にスクロール機構が無ければ、外側は従来どおり Outside。
+    /// </summary>
+    [Test]
+    public void ClassifyElementClip_ClippedWithoutScroll_StaysOutside()
+    {
+        var rootGo = new GameObject("root", typeof(RectTransform));
+        try
+        {
+            var viewport = Place(rootGo.transform, "Clip Panel", 24f, 96f, 560f, 400f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            // "Clip Panel" は名前一致でも Mask があるのでクリップ容器。
+            // スクロールハンドラは無い → ビューポート外は到達不能。
+            var below = Place(viewport, "Row Below", 40f, 560f, 200f, 60f);
+
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Outside,
+                V6ScreenAudit.ClassifyElementClip(below, rootGo.transform, below, TestScreen()));
+        }
+        finally
+        {
+            Object.DestroyImmediate(rootGo);
+        }
+    }
+
+    /// <summary>
+    /// #564: ScrollRect の場合はコンテンツ範囲内のはみ出しだけが到達可能。
+    /// コンテンツの外 (さらに下) は Outside。
+    /// </summary>
+    [Test]
+    public void ClassifyElementClip_ScrollRect_RespectsContentBounds()
+    {
+        var rootGo = new GameObject("root", typeof(RectTransform));
+        try
+        {
+            var viewport = Place(rootGo.transform, "Scroll Viewport", 24f, 96f, 560f, 400f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var scrollRect = viewport.gameObject.AddComponent<ScrollRect>();
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+
+            var content = Place(viewport, "Content", 0f, 0f, 560f, 1200f);
+            scrollRect.content = content;
+
+            // ビューポート下端より下だがコンテンツ内 (y=-700 < content 下端 -1200 の内側)。
+            var reachable = Place(content, "Row Reachable", 40f, 700f, 200f, 60f);
+            // コンテンツ下端 (-1200) よりさらに下: スクロールしても届かない。
+            var beyond = Place(content, "Row Beyond", 40f, 1300f, 200f, 60f);
+
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Inside,
+                V6ScreenAudit.ClassifyElementClip(reachable, rootGo.transform, reachable, TestScreen()));
+            Assert.AreEqual(V6ScreenAudit.ScreenClip.Outside,
+                V6ScreenAudit.ClassifyElementClip(beyond, rootGo.transform, beyond, TestScreen()),
+                "beyond the scroll content is unreachable even on the scroll axis");
+        }
+        finally
+        {
+            Object.DestroyImmediate(rootGo);
+        }
     }
 }
