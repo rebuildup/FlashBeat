@@ -420,7 +420,13 @@ public class MusicManager : MonoBehaviour
             if (!videoFile.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
             {
                 Debug.LogWarning($"[MusicManager] merged download failed ({videoFile.Detail}) - falling back to the video-only stream");
-                YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix);
+                // Gate-serialized, incomplete-only cleanup (same contract as
+                // MediaPrefetcher): the ungated RemoveProducedFiles could
+                // delete a file a concurrent prefetch/playback run for the
+                // same video just completed (#562).
+                var cleanupTask = YouTubeMediaCache.RemoveIncompleteProducedFilesAsync(
+                    YouTubeMediaCache.CacheDirectoryFor(videoId), YouTubeMediaCache.MergedFilePrefix, mediaToken);
+                while (!cleanupTask.IsCompleted) yield return null;
                 var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
                 while (!fallbackTask.IsCompleted) yield return null;
                 videoFile = fallbackTask.Result;
