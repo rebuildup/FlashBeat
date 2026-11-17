@@ -284,6 +284,29 @@ namespace FlashBeat.UI.V6.Result
             return new Vector2(origin.x + ModalDialogX, origin.y + ModalDialogY);
         }
 
+        /// <summary>
+        /// コンパクト画面で登録モーダルを開いたときのパン位置 (design px, Issue #609)。
+        /// モーダルはフレーム (1728×972) の子なので、コンパクト表示のパン次第で
+        /// Dialog がビューポートの外・一部クリップになる。Dialog の中心
+        /// ((444+420, 231+255) = (864,486)) をビューポートの中心へ合わせるパンを返し、
+        /// 結果は <see cref="Common.V6CompactScreen.ClampPan"/> の範囲へクランプする。
+        /// viewW/viewH が 0 以下のときは (0,0)。
+        /// </summary>
+        public static Vector2 ModalPanForViewport(float viewW, float viewH)
+        {
+            if (viewW <= 0f || viewH <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            const float dialogCenterX = ModalDialogX + ModalDialogW * 0.5f;
+            const float dialogCenterY = ModalDialogY + ModalDialogH * 0.5f;
+            return Common.V6CompactScreen.ClampPan(
+                viewW * 0.5f - dialogCenterX,
+                viewH * 0.5f - dialogCenterY,
+                viewW, viewH);
+        }
+
         /// <summary>送信結果の区分 (loading / success / duplicate / offline / server error)。</summary>
         public enum SubmitOutcome
         {
