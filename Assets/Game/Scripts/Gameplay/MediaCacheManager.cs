@@ -43,7 +43,12 @@ namespace FlashBeat.Gameplay
                     ids.Add(Path.GetFileName(dir));
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                // The listing is partial at best - say so instead of reporting
+                // a silently truncated cache (issue #613).
+                Debug.LogWarning($"[MediaCacheManager] cannot list cache dir '{directory}': {e.Message}");
+            }
             ids.Sort(StringComparer.Ordinal);
             return ids;
         }
@@ -112,7 +117,12 @@ namespace FlashBeat.Gameplay
                     total += SizeOfTree(sub);
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                // A partial total would underreport the cache size; the caller
+                // still gets the bytes that could be read (issue #613).
+                Debug.LogWarning($"[MediaCacheManager] cache size scan of '{directory}' failed: {e.Message}");
+            }
             return total;
         }
 
@@ -126,7 +136,10 @@ namespace FlashBeat.Gameplay
                     total += SizeOfTree(sub);
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[MediaCacheManager] cannot enumerate '{directory}': {e.Message}");
+            }
             return total;
         }
 
@@ -140,7 +153,10 @@ namespace FlashBeat.Gameplay
                     total += SizeOf(file);
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[MediaCacheManager] cannot list files in '{directory}': {e.Message}");
+            }
             return total;
         }
 
@@ -151,8 +167,11 @@ namespace FlashBeat.Gameplay
             {
                 return new FileInfo(path).Length;
             }
-            catch
+            catch (Exception e)
             {
+                // A file that vanishes or turns unreadable mid-scan counts as 0;
+                // the warning keeps the underreport visible (issue #613).
+                Debug.LogWarning($"[MediaCacheManager] cannot stat '{path}': {e.Message}");
                 return 0;
             }
         }
@@ -226,7 +245,12 @@ namespace FlashBeat.Gameplay
                     }
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                // Song folders that were already deleted stay deleted; the rest
+                // are reported instead of vanishing silently (issue #613).
+                Debug.LogWarning($"[MediaCacheManager] ClearAll of '{directory}' aborted: {e.Message}");
+            }
 
             // Issue #403: 削除したら容量のスナップショットを捨てる。
             if (removed > 0) InvalidateSize(root);

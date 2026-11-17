@@ -410,6 +410,10 @@ public class MusicManager : MonoBehaviour
             var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
             while (!videoTask.IsCompleted) yield return null;
             videoFile = videoTask.Result;
+            // Issue #613: a cancelled download comes back as !Ok - that is not a
+            // media failure, so bail out before the failure classification below
+            // (the scene teardown that cancelled the token is already unloading).
+            if (mediaToken.IsCancellationRequested) { yield break; }
             Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
             if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
@@ -440,6 +444,7 @@ public class MusicManager : MonoBehaviour
                 var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
                 while (!audioTask.IsCompleted) yield return null;
                 audioFile = audioTask.Result;
+                if (mediaToken.IsCancellationRequested) { yield break; }
                 Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
             }
         }
@@ -757,8 +762,10 @@ public class MusicManager : MonoBehaviour
         if (songVideo.isPrepared && combined)
         {
             // The scene already enables audio track 0; make sure the sound of a
-            // progressive file really reaches the mixer.
-            try { songVideo.EnableAudioTrack(0, true); } catch { }
+            // progressive file really reaches the mixer. A failure here means
+            // the song plays silently, so it must not stay invisible (issue #613).
+            try { songVideo.EnableAudioTrack(0, true); }
+            catch (Exception e) { Debug.LogWarning("[MusicManager] failed to enable audio track 0: " + e.Message); }
         }
 
         if (songVideo.isPrepared)

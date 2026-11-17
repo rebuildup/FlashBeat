@@ -195,6 +195,61 @@ public class MediaCacheCompletionTests
         Assert.AreEqual(0, Directory.GetFiles(dir).Length);
     }
 
+    // --- issue #613: 失敗の意味が結果に残ること -------------------------------
+
+    [Test]
+    public void ThrowingDownloadIsReportedAsFailureAndLeavesNothing()
+    {
+        // A download that faults (not a yt-dlp exit code - an actual exception)
+        // must surface as a failure result with the cause, not as success and
+        // not as a silent empty cache.
+        YouTubeMediaCache.DownloadOverride = (id, selector, template, token) =>
+            throw new InvalidOperationException("boom");
+
+        var result = YouTubeMediaCache.EnsureFileAsync(videoId, "18", "video").GetAwaiter().GetResult();
+
+        Assert.IsFalse(result.Ok);
+        StringAssert.Contains("download did not finish", result.Detail);
+        StringAssert.Contains("boom", result.Detail);
+        Assert.AreEqual(0, Directory.GetFiles(dir).Length);
+    }
+
+    [Test]
+    public void CancelledDownloadIsReportedAsCancelledNotAsFailure()
+    {
+        // Issue #613: cancellation must not be reported as a download failure -
+        // the callers classify !Ok results through the token, and the Detail
+        // has to say what actually happened.
+        YouTubeMediaCache.DownloadOverride = (id, selector, template, token) =>
+            throw new OperationCanceledException();
+
+        var result = YouTubeMediaCache.EnsureFileAsync(videoId, "18", "video").GetAwaiter().GetResult();
+
+        Assert.IsFalse(result.Ok);
+        StringAssert.Contains("cancelled", result.Detail);
+        Assert.AreEqual(0, Directory.GetFiles(dir).Length);
+    }
+
+    [Test]
+    public void KilledDownloadOnCancellationIsReportedAsCancelled()
+    {
+        // The real yt-dlp path never throws: the token kills the process and
+        // yt-dlp exits nonzero. That exit must be labelled "cancelled", not
+        // "yt-dlp download failed" (issue #613).
+        var cts = new CancellationTokenSource();
+        YouTubeMediaCache.DownloadOverride = (id, selector, template, token) =>
+        {
+            cts.Cancel();
+            return Task.FromResult(new YtDlpOutput { ExitCode = -1, Stderr = "killed" });
+        };
+
+        var result = YouTubeMediaCache.EnsureFileAsync(videoId, "18", "video", cts.Token).GetAwaiter().GetResult();
+
+        Assert.IsFalse(result.Ok);
+        StringAssert.Contains("cancelled", result.Detail);
+        Assert.AreEqual(0, Directory.GetFiles(dir).Length);
+    }
+
     // --- 再生失敗時の無効化 (Retry で再取得が走る) ----------------------------
 
     [Test]

@@ -296,7 +296,13 @@ public class OptionSceneManager : MonoBehaviour
                 string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
                 return Path.Combine(projectRoot, "UserSettings", "song-settings");
             }
-            catch (Exception) { }
+            catch (Exception e)
+            {
+                // Best-effort degradation (issue #613): if the project root cannot
+                // be resolved, settings fall back to the user directory below -
+                // losing them would be worse than storing them elsewhere.
+                Debug.LogWarning("[OptionSceneManager] cannot resolve the project root, using the user settings dir: " + e.Message);
+            }
         }
         return Path.Combine(Application.persistentDataPath, "settings");
     }
