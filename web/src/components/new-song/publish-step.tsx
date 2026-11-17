@@ -141,13 +141,13 @@ export function PublishStep({
 
   const youtubeId = parseYouTubeId(info.youtube) ?? "";
   const summary = [
-    { key: "曲ID / Song id", value: info.songId.trim() },
-    { key: "曲名 / Title", value: info.title.trim() },
-    { key: "アーティスト / Artist", value: info.artist.trim() || "—" },
-    { key: "動画 / Video", value: youtubeId },
-    { key: "レベル / Level", value: String(info.level) },
-    { key: "再生時間 / Duration", value: `${info.durationSec} 秒 / s` },
-    { key: "譜面 / Chart", value: `${chart.notes.length} ノート / notes · ${chart.BPM} BPM` },
+    { key: "曲ID", value: info.songId.trim() },
+    { key: "曲名", value: info.title.trim() },
+    { key: "アーティスト", value: info.artist.trim() || "—" },
+    { key: "動画", value: youtubeId },
+    { key: "レベル", value: String(info.level) },
+    { key: "再生時間", value: `${info.durationSec} 秒` },
+    { key: "譜面", value: `${chart.notes.length} ノート · ${chart.BPM} BPM` },
   ];
 
   const handlePublish = useCallback(async () => {
@@ -159,8 +159,7 @@ export function PublishStep({
         ok: false,
         failure: {
           code: "invalid",
-          message:
-            "曲情報に不備があります。以下の項目を修正してください。 / The song info has problems. Fix the fields below.",
+          message: "曲情報に不備があります。以下の項目を修正してください。",
           details: built.issues.map((issue) => `${issue.field}: ${issue.message}`),
         },
       });
@@ -190,7 +189,7 @@ export function PublishStep({
   return (
     <div className={layout}>
       <section className={card}>
-        <h2 className={cardTitle}>公開内容の確認 / Review what will be published</h2>
+        <h2 className={cardTitle}>公開内容の確認</h2>
         <dl className={summaryList}>
           {summary.map((row) => (
             <SummaryRow key={row.key} k={row.key} v={row.value} />
@@ -198,16 +197,15 @@ export function PublishStep({
         </dl>
         {chartIssues.length > 0 ? (
           <p className={`${failureList}`} style={{ color: "#ff6b6b" }}>
-            譜面に問題が{chartIssues.length}件あります。戻って修正してください。 / The chart has{" "}
-            {chartIssues.length} problems. Go back and fix them.
+            譜面に問題が{chartIssues.length}件あります。戻って修正してください。
           </p>
         ) : null}
       </section>
 
       <section className={card}>
-        <h2 className={cardTitle}>公開 / Publish</h2>
+        <h2 className={cardTitle}>公開</h2>
         <Field.Root>
-          <Field.Label>スタッフトークン / Staff token</Field.Label>
+          <Field.Label>スタッフトークン</Field.Label>
           <Input
             type="password"
             autoComplete="off"
@@ -216,24 +214,23 @@ export function PublishStep({
             onChange={(event) => onTokenChange(event.currentTarget.value)}
           />
           <Field.HelperText>
-            実行時だけ入力します。URLや保存領域には書き込まれません。 / Typed at runtime only; never
-            written to the URL or any storage.
+            実行時だけ入力します。URLや保存領域には書き込まれません。
           </Field.HelperText>
         </Field.Root>
 
         <p className={`${summaryKey}`} data-testid="transport-mode">
           {transport.mode === "fixture"
-            ? "テスト用API（fixture）に送信します。 / Sending to the fixture API."
+            ? "テスト用API（fixture）に送信します。"
             : transport.baseUrl
               ? `API: ${transport.baseUrl}`
-              : "このサイトのAPIに送信します。 / Sending to this site's API."}
+              : "このサイトのAPIに送信します。"}
         </p>
 
         {result !== null && !result.ok ? (
           <section className={failure} data-testid="publish-error">
             <p style={{ fontWeight: "semibold", margin: "0" }}>
               <CircleX className={buttonIcon} size={14} aria-hidden="true" />
-              公開できませんでした / Not published
+              公開できませんでした
             </p>
             <p style={{ fontSize: "2xs", margin: "0" }}>{result.failure.message}</p>
             {result.failure.details && result.failure.details.length > 0 ? (
@@ -243,27 +240,25 @@ export function PublishStep({
                 ))}
               </ul>
             ) : null}
-            <p style={{ fontSize: "2xs", margin: "0" }}>
-              入力と譜面はすべて保持されています。 / Everything you entered is kept.
-            </p>
+            <p style={{ fontSize: "2xs", margin: "0" }}>入力と譜面はすべて保持されています。</p>
           </section>
         ) : null}
 
         <div className={actions}>
           <Button className={raisedButton} size="md" disabled={publishing} onClick={onBack}>
             <ArrowLeft className={buttonIcon} size={14} aria-hidden="true" />
-            戻る / Back
+            戻る
           </Button>
           <Button className={accent} size="md" disabled={publishing} onClick={handlePublish}>
             {publishing ? (
               <>
                 <LoaderCircle className={buttonIcon} size={14} aria-hidden="true" />
-                公開中… / Publishing…
+                公開中…
               </>
             ) : (
               <>
                 <CloudUpload className={buttonIcon} size={14} aria-hidden="true" />
-                公開する / Publish
+                公開する
               </>
             )}
           </Button>

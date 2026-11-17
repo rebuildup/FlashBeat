@@ -9,8 +9,8 @@ import "@/styles/app.css";
 export default function DashboardPage() {
   return (
     <StudioLayout
-      title="Dashboard"
-      subtitle="Best scores, play counts and song counts."
+      title="ダッシュボード"
+      subtitle="ベストスコア、プレイ数、曲数。"
       active="dashboard"
     >
       <DashboardPanel />

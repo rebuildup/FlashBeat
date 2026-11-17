@@ -372,7 +372,7 @@ export function SongPublisher({
     if (chart === null) {
       setResult({
         ok: false,
-        failure: { code: "invalid", message: "There is no chart to publish." },
+        failure: { code: "invalid", message: "公開する譜面がありません。" },
       });
       return;
     }
@@ -384,7 +384,7 @@ export function SongPublisher({
         ok: false,
         failure: {
           code: "invalid",
-          message: "The song is not ready to publish.",
+          message: "この曲は公開できる状態ではありません。",
           details: built.issues.map((issue) => `${issue.field}: ${issue.message}`),
         },
       });
@@ -411,15 +411,15 @@ export function SongPublisher({
 
     if (outcome.ok) {
       toaster.create({
-        title: "Published",
-        description: `${outcome.response.songId} is chart version ${outcome.response.chartVersion}, the catalog is at version ${outcome.response.catalogVersion}.`,
+        title: "公開しました",
+        description: `${outcome.response.songId} は譜面バージョン ${outcome.response.chartVersion}、カタログはバージョン ${outcome.response.catalogVersion} です。`,
         type: "success",
       });
       return;
     }
 
     toaster.create({
-      title: "Not published",
+      title: "公開されませんでした",
       description: outcome.failure.message,
       type: "error",
     });
@@ -442,13 +442,13 @@ export function SongPublisher({
       <header className={header}>
         <div className={headerTitles}>
           <a className={backLink} href="/">
-            ← Web Studio
+            ← 曲を選ぶ
           </a>
-          <h1 className={title}>Publish a song</h1>
+          <h1 className={title}>曲を公開</h1>
           <p className={subtitle}>
             {initialVersion
-              ? `Editing published v${initialVersion} · draft preserved on failure`
-              : "New unpublished draft"}
+              ? `公開済み v${initialVersion} を編集中 · 失敗時は下書きを保持`
+              : "新しい未公開の下書き"}
           </p>
         </div>
 
@@ -457,15 +457,15 @@ export function SongPublisher({
             {transport.mode === "fixture"
               ? "Fixture API"
               : transport.baseUrl
-                ? `Live API ${transport.baseUrl}`
-                : "Live API (this origin)"}
+                ? `ライブAPI ${transport.baseUrl}`
+                : "ライブAPI（このオリジン）"}
           </span>
           <Button
             className={`${buttonSecondary} ${sidebarToggle}`}
             size="sm"
             variant="outline"
             onClick={() => setIsSideOpen((current) => !current)}
-            aria-label={isSideOpen ? "Close the publish sidebar" : "Open the publish sidebar"}
+            aria-label={isSideOpen ? "公開サイドバーを閉じる" : "公開サイドバーを開く"}
             aria-expanded={isSideOpen}
           >
             <svg
@@ -501,15 +501,15 @@ export function SongPublisher({
           ref={sideRef}
           role={isSideOpen ? "dialog" : undefined}
           aria-modal={isSideOpen ? true : undefined}
-          aria-label="Publish sidebar"
+          aria-label="公開サイドバー"
         >
           <div className={sideHeader}>
-            <h2 className={sideTitle}>Publish tools</h2>
+            <h2 className={sideTitle}>公開ツール</h2>
             <button
               type="button"
               className={sideClose}
               onClick={() => setIsSideOpen(false)}
-              aria-label="Close the publish sidebar"
+              aria-label="公開サイドバーを閉じる"
             >
               <span aria-hidden="true">✕</span>
             </button>
@@ -517,7 +517,7 @@ export function SongPublisher({
 
           <div className={sideScroll}>
             <section className={card}>
-              <h2 className={cardTitle}>Song metadata</h2>
+              <h2 className={cardTitle}>曲のメタデータ</h2>
               <SongMetadataForm
                 draft={effectiveDraft}
                 onChange={handleChange}
@@ -527,27 +527,28 @@ export function SongPublisher({
             </section>
 
             <section className={card}>
-              <h2 className={cardTitle}>Publish</h2>
+              <h2 className={cardTitle}>公開</h2>
 
               <dl className={facts}>
-                <dt className={factKey}>Chart</dt>
+                <dt className={factKey}>譜面</dt>
                 <dd className={factValue}>
-                  {summary.noteCount} notes at {summary.bpm} BPM
+                  {summary.noteCount}ノート · {summary.bpm} BPM
                 </dd>
 
-                <dt className={factKey}>Song id</dt>
+                <dt className={factKey}>曲ID</dt>
                 <dd className={factValue}>{summary.songId || "—"}</dd>
               </dl>
 
               {chartIssues.length > 0 ? (
                 <p className={warning}>
-                  The chart has {chartIssues.length} contract problems. Fix them before publishing.
+                  譜面に契約上の問題が{chartIssues.length}
+                  件あります。公開する前に修正してください。
                 </p>
               ) : null}
 
               <Button className={accent} size="md" disabled={publishing} onClick={handleReview}>
                 <CloudUpload className={buttonIcon} size={16} aria-hidden="true" />
-                Review publish
+                公開内容を確認
               </Button>
             </section>
 

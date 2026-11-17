@@ -25,7 +25,7 @@ describe("published song session", () => {
     expect(result.chart).toEqual(chart);
   });
   it("rejects malformed version before requesting", async () => {
-    await expect(loadSongSession("b", "2x")).rejects.toThrow("Invalid");
+    await expect(loadSongSession("b", "2x")).rejects.toThrow("曲または譜面バージョンが不正");
   });
   it("does not silently substitute an empty chart for missing version", async () => {
     const request = (async (url: string) =>
@@ -41,7 +41,7 @@ describe("published song session", () => {
           ? { songs: [{ id: "b" }] }
           : { songId: "a", chartVersion: 2, chart },
       )) as typeof fetch;
-    await expect(loadSongSession("b", "2", request)).rejects.toThrow("identity mismatch");
+    await expect(loadSongSession("b", "2", request)).rejects.toThrow("識別情報が一致しません");
   });
   it("reads a published chart whose relations are broken, with a warning", async () => {
     // Issue #208: the chart was published before the semantic rules were

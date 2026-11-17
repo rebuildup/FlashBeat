@@ -103,7 +103,7 @@ describe("the hold length bounds", () => {
     expect(issues).toHaveLength(1);
     expect(issues[0]?.path).toBe("/notes/0/endNum");
     expect(issues[0]?.keyword).toBe("minimum");
-    expect(issues[0]?.message).toContain(`${MIN_HOLD_BEATS} beats`);
+    expect(issues[0]?.message).toContain(`${MIN_HOLD_BEATS}拍`);
   });
 
   it("accepts a hold of exactly the maximum length", () => {
@@ -123,6 +123,6 @@ describe("the hold length bounds", () => {
     expect(issues).toHaveLength(1);
     expect(issues[0]?.path).toBe("/notes/0/endNum");
     expect(issues[0]?.keyword).toBe("maximum");
-    expect(issues[0]?.message).toContain(`${MAX_HOLD_BEATS} beats`);
+    expect(issues[0]?.message).toContain(`${MAX_HOLD_BEATS}拍`);
   });
 });

@@ -43,7 +43,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       ok: false,
       failure: {
         code: "unauthorized",
-        message: "Enter the staff token before publishing.",
+        message: "公開する前にスタッフトークンを入力してください。",
       },
     };
   }
@@ -67,7 +67,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       ok: false,
       failure: {
         code: "network",
-        message: `The publish request did not reach the API: ${errorMessage(error)}`,
+        message: `公開リクエストがAPIに届きませんでした: ${errorMessage(error)}`,
       },
     };
   }
@@ -84,7 +84,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       failure: {
         code: "unauthorized",
         status: response.status,
-        message: "The staff token was rejected. Check the token of the operator.",
+        message: "スタッフトークンが拒否されました。運営のトークンを確認してください。",
         details,
       },
     };
@@ -96,7 +96,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       failure: {
         code: "not-found",
         status: response.status,
-        message: "The publish endpoint answered 404. Check the API origin of the studio.",
+        message: "公開APIが404を返しました。StudioのAPI接続先を確認してください。",
         details,
       },
     };
@@ -108,7 +108,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
       failure: {
         code: "invalid",
         status: response.status,
-        message: "The API rejected the song. Fix the listed problems and publish again.",
+        message: "APIが曲を拒否しました。表示された問題を修正してから再度公開してください。",
         details,
       },
     };
@@ -119,7 +119,7 @@ export async function publishSong(options: PublishSongOptions): Promise<PublishR
     failure: {
       code: "server",
       status: response.status,
-      message: `The publish endpoint answered ${response.status}.`,
+      message: `公開APIが${response.status}を返しました。`,
       details,
     },
   };
@@ -135,7 +135,7 @@ async function readSuccess(response: Response): Promise<PublishResult> {
       failure: {
         code: "malformed",
         status: response.status,
-        message: "The publish endpoint answered without a readable body.",
+        message: "公開APIの応答を読み取れませんでした。",
       },
     };
   }
@@ -147,7 +147,7 @@ async function readSuccess(response: Response): Promise<PublishResult> {
       failure: {
         code: "malformed",
         status: response.status,
-        message: "The publish endpoint answered with an unexpected body.",
+        message: "公開APIの応答の形式が想定と異なります。",
       },
     };
   }
@@ -250,7 +250,7 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
   const base = options.baseUrl.replace(/\/+$/, "");
   try {
     if (result.response.songId !== options.songId)
-      throw new Error("Published song identity differs from this draft.");
+      throw new Error("公開された曲の識別情報がこの下書きと一致しません。");
     const [catalogResponse, chartResponse] = await Promise.all([
       request(`${base}/api/v1/catalog`, { cache: "no-store", signal: options.signal }),
       request(
@@ -259,7 +259,7 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
       ),
     ]);
     if (!catalogResponse.ok || !chartResponse.ok)
-      throw new Error("Published data could not be read back.");
+      throw new Error("公開データを読み戻せませんでした。");
     const catalog = (await catalogResponse.json()) as {
       catalogVersion: number;
       songs?: Array<{
@@ -288,7 +288,7 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
       song.youtubeId !== options.request.youtubeId ||
       song.noteCount !== options.request.chart.notes.length
     )
-      throw new Error("Published data does not match this draft.");
+      throw new Error("公開データがこの下書きと一致しません。");
     return result;
   } catch {
     return {
@@ -296,7 +296,7 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
       failure: {
         code: "server",
         message:
-          "The write may have succeeded, but persisted verification failed. Your draft is preserved. Check Catalog before publishing again.",
+          "書き込みは成功した可能性がありますが、保存結果の確認に失敗しました。下書きは保持されています。再度公開する前にカタログを確認してください。",
       },
     };
   }

@@ -17,7 +17,13 @@ import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./publish.server";
 import "@/styles/app.css";
 
-const emptyChart: Chart = { name: "Untitled draft", maxBlock: 8, BPM: 120, offset: 0, notes: [] };
+const emptyChart: Chart = {
+  name: "無題の下書き",
+  maxBlock: 8,
+  BPM: 120,
+  offset: 0,
+  notes: [],
+};
 
 /** The publisher fills the work area; it owns its header and inner scroll. */
 const publisherPane = css({
@@ -95,7 +101,7 @@ function PublishState({
             <h1 className={panelTitle}>
               {failed ? "譜面を読み込めませんでした" : "譜面を読み込み中"}
             </h1>
-            <span className={overline}>Publish</span>
+            <span className={overline}>公開</span>
           </header>
           <div className={stateBlock}>
             <p className={stateTitle}>
@@ -114,7 +120,7 @@ function PublishState({
               </Button>
             ) : null}
             <a className={pageBackLink} href="/">
-              ← Catalog に戻る
+              ← 曲を選ぶ
             </a>
           </div>
         </section>

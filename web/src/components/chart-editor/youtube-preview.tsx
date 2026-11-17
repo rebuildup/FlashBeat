@@ -60,7 +60,7 @@ let apiPromise: Promise<YTNamespace> | null = null;
  */
 function loadYouTubeApi(): Promise<YTNamespace> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("The YouTube API needs a browser."));
+    return Promise.reject(new Error("YouTube APIにはブラウザが必要です。"));
   }
 
   if (window.YT?.Player) {
@@ -77,7 +77,7 @@ function loadYouTubeApi(): Promise<YTNamespace> {
       if (window.YT?.Player) {
         resolve(window.YT);
       } else {
-        reject(new Error("The YouTube API loaded without a player."));
+        reject(new Error("YouTube APIは読み込まれましたがプレイヤーがありません。"));
       }
     };
 
@@ -86,7 +86,7 @@ function loadYouTubeApi(): Promise<YTNamespace> {
     script.async = true;
     script.onerror = () => {
       apiPromise = null;
-      reject(new Error("The YouTube IFrame API could not be loaded."));
+      reject(new Error("YouTube IFrame APIを読み込めませんでした。"));
     };
     document.head.appendChild(script);
   }
@@ -308,11 +308,13 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
       <div>
         <div className={frame}>
           <div ref={hostRef} className={playerBox} data-testid="youtube-player" />
-          {status === "loading" ? <p className={statusText}>Loading the YouTube player…</p> : null}
+          {status === "loading" ? (
+            <p className={statusText}>YouTubeプレイヤーを読み込み中…</p>
+          ) : null}
           {status === "error" ? (
             <p className={errorText} data-testid="youtube-error">
-              {errorMessage} The preview needs a network connection to YouTube; editing works
-              without it.
+              {errorMessage}{" "}
+              プレビューにはYouTubeへのネットワーク接続が必要です。接続なしでも編集はできます。
             </p>
           ) : null}
         </div>
@@ -321,14 +323,14 @@ export const YouTubePreview = forwardRef<YouTubePreviewHandle, YouTubePreviewPro
           <div className={controls}>
             <Button className={raisedButton} size="sm" onClick={startPlay}>
               <Play className={buttonIcon} size={14} aria-hidden="true" />
-              Play
+              再生
             </Button>
             <Button className={raisedButton} size="sm" onClick={startPause}>
               <Pause className={buttonIcon} size={14} aria-hidden="true" />
-              Pause
+              一時停止
             </Button>
             <span className={time} data-testid="youtube-time">
-              {position.toFixed(1)}s
+              {position.toFixed(1)}秒
             </span>
           </div>
         ) : null}

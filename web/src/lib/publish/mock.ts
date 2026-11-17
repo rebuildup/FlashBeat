@@ -56,25 +56,25 @@ export function createMockPublishFetch(options: MockPublishOptions = {}): MockPu
     const songId = decodeURIComponent(match[1] ?? "");
     const method = (init?.method ?? "GET").toUpperCase();
     if (method !== "PUT") {
-      return jsonResponse(405, { error: `The publish route does not answer ${method}` });
+      return jsonResponse(405, { error: `公開ルートは${method}に応答しません` });
     }
 
     const headers = new Headers(init?.headers);
     const authorization = headers.get("authorization");
     if (authorization !== `Bearer ${expectedToken}`) {
-      return jsonResponse(401, { error: "Incorrect staff token" });
+      return jsonResponse(401, { error: "スタッフトークンが正しくありません" });
     }
 
     let body: unknown;
     try {
       body = JSON.parse(typeof init?.body === "string" ? init.body : "");
     } catch {
-      return jsonResponse(422, { error: "The request body is not valid JSON" });
+      return jsonResponse(422, { error: "リクエストボディが有効なJSONではありません" });
     }
 
     const issues = validatePublishBody(body);
     if (issues.length > 0) {
-      return jsonResponse(422, { error: "Invalid song", issues });
+      return jsonResponse(422, { error: "曲が無効です", issues });
     }
 
     chartVersion += 1;
@@ -99,7 +99,7 @@ export function createMockPublishFetch(options: MockPublishOptions = {}): MockPu
  */
 export function validatePublishBody(body: unknown): string[] {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
-    return ["The request body must be a JSON object"];
+    return ["リクエストボディはJSONオブジェクトである必要があります"];
   }
 
   const record = body as Record<string, unknown>;
@@ -107,32 +107,32 @@ export function validatePublishBody(body: unknown): string[] {
 
   for (const key of Object.keys(record)) {
     if (ALLOWED_FIELDS[key] === undefined) {
-      issues.push(`Unexpected field '${key}'`);
+      issues.push(`不明なフィールド '${key}'`);
     }
   }
 
   const title = record["title"];
   if (typeof title !== "string" || title.length === 0) {
-    issues.push("'title' must be a string with at least one character");
+    issues.push("'title'は1文字以上の文字列である必要があります");
   } else if (title.length > 160) {
-    issues.push("'title' must be 160 characters or fewer");
+    issues.push("'title'は160文字以内である必要があります");
   }
 
   const artist = record["artist"];
   if (typeof artist !== "string") {
-    issues.push("'artist' must be a string");
+    issues.push("'artist'は文字列である必要があります");
   } else if (artist.length > 160) {
-    issues.push("'artist' must be 160 characters or fewer");
+    issues.push("'artist'は160文字以内である必要があります");
   }
 
   const youtubeId = record["youtubeId"];
   if (typeof youtubeId !== "string" || !/^[A-Za-z0-9_-]{11}$/.test(youtubeId)) {
-    issues.push("'youtubeId' must be an 11 character video id");
+    issues.push("'youtubeId'は11文字の動画IDである必要があります");
   }
 
   const level = record["level"];
   if (typeof level !== "number" || !Number.isInteger(level) || level < 1 || level > 99) {
-    issues.push("'level' must be a whole number between 1 and 99");
+    issues.push("'level'は1〜99の整数である必要があります");
   }
 
   const durationSec = record["durationSec"];
@@ -142,7 +142,7 @@ export function validatePublishBody(body: unknown): string[] {
     durationSec <= 0 ||
     durationSec > 1800
   ) {
-    issues.push("'durationSec' must be a number between 0 and 1800");
+    issues.push("'durationSec'は0〜1800の数値である必要があります");
   }
 
   for (const issue of validateChart(record["chart"])) {

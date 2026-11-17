@@ -69,12 +69,14 @@ export function createFixtureStudioFetch(options: FixtureStudioOptions = {}): Fi
       const version = Number(url.searchParams.get("version") ?? "");
       const song = songs.get(songId);
       if (!song || !Number.isInteger(version) || version !== song.chartVersion) {
-        return jsonResponse(404, { error: "No such chart version" });
+        return jsonResponse(404, { error: "その譜面バージョンは存在しません" });
       }
       return jsonResponse(200, { songId, chartVersion: song.chartVersion, chart: song.chart });
     }
 
-    return jsonResponse(404, { error: `No fixture route for ${method} ${url.pathname}` });
+    return jsonResponse(404, {
+      error: `${method} ${url.pathname} に対応するfixtureルートがありません`,
+    });
   }) as FixtureStudioFetch;
 
   Object.defineProperty(fetchImpl, "songs", {
@@ -93,24 +95,24 @@ function handlePublish(
   songs: Map<string, FixtureSong>,
 ): Response {
   if (method !== "PUT") {
-    return jsonResponse(405, { error: `The publish route does not answer ${method}` });
+    return jsonResponse(405, { error: `公開ルートは${method}に応答しません` });
   }
 
   const headers = new Headers(init?.headers);
   if (headers.get("authorization") !== `Bearer ${expectedToken}`) {
-    return jsonResponse(401, { error: "Incorrect staff token" });
+    return jsonResponse(401, { error: "スタッフトークンが正しくありません" });
   }
 
   let body: unknown;
   try {
     body = JSON.parse(typeof init?.body === "string" ? init.body : "");
   } catch {
-    return jsonResponse(422, { error: "The request body is not valid JSON" });
+    return jsonResponse(422, { error: "リクエストボディが有効なJSONではありません" });
   }
 
   const issues = validatePublishBody(body);
   if (issues.length > 0) {
-    return jsonResponse(422, { error: "Invalid song", issues });
+    return jsonResponse(422, { error: "曲が無効です", issues });
   }
 
   // validatePublishBody has checked every field below; the cast only names

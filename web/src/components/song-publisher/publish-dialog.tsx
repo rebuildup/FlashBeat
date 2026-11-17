@@ -84,37 +84,37 @@ export function PublishDialog({
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>Publish “{summary.title}”</Dialog.Title>
+              <Dialog.Title>「{summary.title}」を公開</Dialog.Title>
               <Dialog.Description>
-                Metadata and chart snapshot are written in one request.
+                メタデータと譜面スナップショットを1つのリクエストで書き込みます。
               </Dialog.Description>
             </Dialog.Header>
 
             <Dialog.Body>
               <dl className={summaryList}>
-                <dt className={summaryKey}>Song id</dt>
+                <dt className={summaryKey}>曲ID</dt>
                 <dd className={summaryValue}>{summary.songId}</dd>
 
-                <dt className={summaryKey}>Artist</dt>
+                <dt className={summaryKey}>アーティスト</dt>
                 <dd className={summaryValue}>{summary.artist || "—"}</dd>
 
-                <dt className={summaryKey}>Video</dt>
+                <dt className={summaryKey}>動画</dt>
                 <dd className={summaryValue}>{summary.youtubeId}</dd>
 
-                <dt className={summaryKey}>Level</dt>
+                <dt className={summaryKey}>レベル</dt>
                 <dd className={summaryValue}>{summary.level}</dd>
 
-                <dt className={summaryKey}>Duration</dt>
-                <dd className={summaryValue}>{summary.durationSec} seconds</dd>
+                <dt className={summaryKey}>再生時間</dt>
+                <dd className={summaryValue}>{summary.durationSec}秒</dd>
 
-                <dt className={summaryKey}>Chart</dt>
+                <dt className={summaryKey}>譜面</dt>
                 <dd className={summaryValue}>
-                  {summary.noteCount} notes at {summary.bpm} BPM
+                  {summary.noteCount}ノート · {summary.bpm} BPM
                 </dd>
               </dl>
 
               <Field.Root>
-                <Field.Label>Staff token</Field.Label>
+                <Field.Label>スタッフトークン</Field.Label>
                 <Input
                   type="password"
                   autoComplete="off"
@@ -123,7 +123,7 @@ export function PublishDialog({
                   onChange={(event) => onTokenChange(event.currentTarget.value)}
                 />
                 <Field.HelperText>
-                  It is held in this browser tab only and is never written to disk or to the bundle.
+                  このブラウザタブ内にのみ保持され、ディスクやバンドルには書き込まれません。
                 </Field.HelperText>
               </Field.Root>
             </Dialog.Body>
@@ -132,19 +132,19 @@ export function PublishDialog({
               <Dialog.ActionTrigger asChild>
                 <Button variant="outline" size="md" disabled={publishing}>
                   <X className={buttonIcon} size={14} aria-hidden="true" />
-                  Cancel
+                  キャンセル
                 </Button>
               </Dialog.ActionTrigger>
               <Button
                 className={accent}
                 size="md"
                 loading={publishing}
-                loadingText="Publishing"
+                loadingText="公開中"
                 disabled={token.trim().length === 0}
                 onClick={onPublish}
               >
                 <CloudUpload className={buttonIcon} size={14} aria-hidden="true" />
-                Publish
+                公開する
               </Button>
             </Dialog.Footer>
           </Dialog.Content>

@@ -30,7 +30,7 @@ export async function loadCatalog(
   options: LoadCatalogOptions = {},
 ): Promise<SongSummary[]> {
   if (mode === "error") {
-    throw new Error("GET /api/v1/catalog failed");
+    throw new Error("カタログAPIの取得に失敗しました");
   }
 
   if (mode === "empty") {
@@ -45,7 +45,7 @@ export async function loadCatalog(
     signal: options.signal,
   });
   if (!response.ok) {
-    throw new Error(`GET /api/v1/catalog answered ${response.status}`);
+    throw new Error(`カタログAPIが${response.status}を返しました`);
   }
 
   const body: unknown = await response.json();
@@ -88,13 +88,13 @@ function asObject(value: unknown): Record<string, unknown> | null {
 export function parseSongs(body: unknown): SongSummary[] {
   const catalog = asObject(body);
   if (catalog === null || !Array.isArray(catalog.songs)) {
-    throw new Error("GET /api/v1/catalog answered no song list");
+    throw new Error("カタログAPIの応答に曲リストがありません");
   }
 
   return catalog.songs.map((song) => {
     const entry = asObject(song);
     if (entry === null) {
-      throw new Error("GET /api/v1/catalog answered a broken song");
+      throw new Error("カタログAPIの曲情報の応答が不正です");
     }
 
     const { id, title, artist, youtubeId, level, bpm, durationSec, chartVersion, noteCount } =
@@ -110,7 +110,7 @@ export function parseSongs(body: unknown): SongSummary[] {
       typeof chartVersion !== "number" ||
       typeof noteCount !== "number"
     ) {
-      throw new Error("GET /api/v1/catalog answered a broken song");
+      throw new Error("カタログAPIの曲情報の応答が不正です");
     }
 
     return {

@@ -159,8 +159,8 @@ describe("AppShell のカタログ読み込み (issue #68)", () => {
       await Promise.resolve();
     });
 
-    expect(text(view)).not.toContain("Catalog unavailable");
-    expect(text(view)).toContain("Loading catalog");
+    expect(text(view)).not.toContain("カタログを取得できません");
+    expect(text(view)).toContain("カタログを読み込み中");
   });
 
   it("次の読み込みで中断された要求はエラー表示にしない", async () => {
@@ -174,15 +174,15 @@ describe("AppShell のカタログ読み込み (issue #68)", () => {
       window.dispatchEvent(new Event("online"));
     });
 
-    expect(text(view)).not.toContain("Catalog unavailable");
-    expect(text(view)).toContain("Loading catalog");
+    expect(text(view)).not.toContain("カタログを取得できません");
+    expect(text(view)).toContain("カタログを読み込み中");
 
     // 新しい要求が成功すれば、その結果だけが残る。
     await act(async () => {
       pending[1]?.resolve({ catalogVersion: 2, songs: [songB] });
     });
     expect(text(view)).toContain(songB.title);
-    expect(text(view)).not.toContain("Catalog unavailable");
+    expect(text(view)).not.toContain("カタログを取得できません");
   });
 
   it("本当に失敗した要求はエラー表示のまま", async () => {
@@ -200,6 +200,6 @@ describe("AppShell のカタログ読み込み (issue #68)", () => {
       await Promise.resolve();
     });
 
-    expect(text(view)).toContain("Catalog unavailable");
+    expect(text(view)).toContain("カタログを取得できません");
   });
 });

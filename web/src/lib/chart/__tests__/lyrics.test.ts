@@ -233,8 +233,8 @@ describe("editing a real chart", () => {
     const edited = setLyricEnd(document, row.id, (row.startTime ?? 0) - 0.5);
     const summary = summarizeLyrics(edited);
     expect(summary.repairedIntervals).toBe(1);
-    expect(rowIssues(edited, 0).endTime).toBe("End must be after start");
-    expect(lyricsIssues(edited).some((issue) => issue.message.includes("repaired"))).toBe(true);
+    expect(rowIssues(edited, 0).endTime).toBe("終了は開始より後にしてください");
+    expect(lyricsIssues(edited).some((issue) => issue.message.includes("修復"))).toBe(true);
 
     const lyrics = buildLyricsArrays(edited);
     expect(lyrics.endTime![0]).toBeGreaterThan(lyrics.startTime![0]!);
@@ -368,11 +368,11 @@ describe("summary", () => {
   it("reports a missing start as a blocking error", () => {
     const document = readLyrics({ startTime: [], endTime: [], mondai: ["a"] });
 
-    expect(rowIssues(document, 0).startTime).toBe("Start time is required");
+    expect(rowIssues(document, 0).startTime).toBe("開始時刻は必須です");
     expect(canSaveLyrics(document)).toBe(false);
     expect(lyricsIssues(document)).toContainEqual({
       severity: "error",
-      message: "1 line(s) have no start time. Set a start before exporting the chart.",
+      message: "開始時刻のない歌詞行が1件あります。譜面を書き出す前に開始時刻を設定してください。",
     });
   });
 });

@@ -278,11 +278,6 @@ const notice = css({
   fontSize: "sm",
 });
 
-/** `1 play` / `3 plays`. */
-function plural(count: number, word: string): string {
-  return `${count} ${count === 1 ? word : `${word}s`}`;
-}
-
 /** `887769` → `887,769`. */
 function formatScore(score: number): string {
   return score.toLocaleString("en-US");
@@ -311,7 +306,7 @@ export function DashboardPanel() {
         setStatus("ready");
       })
       .catch((error: unknown) => {
-        setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+        setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
         setStatus("error");
       });
   }, []);
@@ -339,11 +334,11 @@ export function DashboardPanel() {
     return (
       <div className={panelFrame}>
         <StateBlock
-          title="The dashboard could not be loaded"
-          description="The API answered something the dashboard could not read."
+          title="ダッシュボードを読み込めませんでした"
+          description="APIの応答をダッシュボードが読み取れませんでした。"
           action={
             <Button onClick={refresh} variant="outline">
-              Retry
+              再試行
             </Button>
           }
         />
@@ -355,7 +350,10 @@ export function DashboardPanel() {
   if (status === "loading" || stats === null) {
     return (
       <div className={panelFrame}>
-        <StateBlock title="Loading the dashboard" description="Reading the scores and the songs." />
+        <StateBlock
+          title="ダッシュボードを読み込み中"
+          description="スコアと曲を読み込んでいます。"
+        />
       </div>
     );
   }
@@ -363,12 +361,12 @@ export function DashboardPanel() {
   return (
     <div className={page}>
       <section className={tiles}>
-        <Tile icon={Music} label="Live songs" value={stats.totals.liveSongs} />
-        <Tile icon={Archive} label="Archived" value={stats.totals.archivedSongs} />
-        <Tile icon={FileClock} label="Chart versions" value={stats.totals.charts} />
-        <Tile icon={Trophy} label="Plays" value={stats.totals.scores} />
-        <Tile icon={Users} label="Players" value={stats.totals.players} />
-        <Tile icon={Clock} label="Plays (24h)" value={stats.totals.playsLast24h} />
+        <Tile icon={Music} label="公開中の曲" value={stats.totals.liveSongs} />
+        <Tile icon={Archive} label="アーカイブ" value={stats.totals.archivedSongs} />
+        <Tile icon={FileClock} label="譜面バージョン" value={stats.totals.charts} />
+        <Tile icon={Trophy} label="プレイ数" value={stats.totals.scores} />
+        <Tile icon={Users} label="プレイヤー" value={stats.totals.players} />
+        <Tile icon={Clock} label="プレイ数（24時間）" value={stats.totals.playsLast24h} />
       </section>
 
       <div className={columns}>
@@ -377,13 +375,13 @@ export function DashboardPanel() {
             <div className={panelHeader}>
               <Heading
                 icon={Trophy}
-                title="Ranking"
-                subtitle="Best score of the published chart. Scores are casual and unverified."
+                title="ランキング"
+                subtitle="公開済み譜面のベストスコア。スコアはカジュアルで未検証です。"
               />
             </div>
             <div className={panelBodyAuto}>
               {orderedSongs.length === 0 ? (
-                <p className={notice}>No song is published yet.</p>
+                <p className={notice}>まだ公開された曲がありません。</p>
               ) : (
                 <div className={rows}>
                   {orderedSongs.map((song) => (
@@ -398,16 +396,16 @@ export function DashboardPanel() {
             <div className={panelHeader}>
               <Heading
                 icon={ListMusic}
-                title="Songs in detail"
-                subtitle="Plays, players and the average accuracy."
+                title="曲の詳細"
+                subtitle="プレイ数、プレイヤー数、平均精度。"
               />
             </div>
             <div className={panelBodyAuto}>
               <div className={rowHeader}>
-                <span>Song</span>
-                <span className={num}>Plays</span>
-                <span className={num}>Best</span>
-                <span className={num}>Accuracy</span>
+                <span>曲</span>
+                <span className={num}>プレイ</span>
+                <span className={num}>ベスト</span>
+                <span className={num}>精度</span>
               </div>
               <div className={rows}>
                 {stats.perSong.map((song) => (
@@ -415,11 +413,11 @@ export function DashboardPanel() {
                     <div className={songCell}>
                       <span className={songTitle}>
                         {song.title}
-                        {song.archived ? " (archived)" : ""}
+                        {song.archived ? "（アーカイブ）" : ""}
                       </span>
                       <span className={songMeta}>
-                        Lv.{song.level} · {song.artist} · {plural(song.plays, "play")} ·{" "}
-                        {plural(song.distinctPlayers, "player")}
+                        Lv.{song.level} · {song.artist} · {song.plays}プレイ ·{" "}
+                        {song.distinctPlayers}人
                       </span>
                     </div>
                     <span className={num}>{song.plays}</span>
@@ -437,18 +435,22 @@ export function DashboardPanel() {
         <section className={section}>
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={Users} title="Best players" subtitle="Total score of every player." />
+              <Heading
+                icon={Users}
+                title="上位プレイヤー"
+                subtitle="プレイヤーごとの合計スコア。"
+              />
             </div>
             <div className={panelBodyAuto}>
               {stats.topPlayers.length === 0 ? (
-                <p className={notice}>Nobody has played yet.</p>
+                <p className={notice}>まだプレイした人がいません。</p>
               ) : (
                 <>
                   <div className={rowHeader}>
-                    <span>Player</span>
-                    <span className={num}>Plays</span>
-                    <span className={num}>Total</span>
-                    <span className={num}>Best</span>
+                    <span>プレイヤー</span>
+                    <span className={num}>プレイ</span>
+                    <span className={num}>合計</span>
+                    <span className={num}>ベスト</span>
                   </div>
                   <div className={rows}>
                     {stats.topPlayers.map((player, index) => (
@@ -460,7 +462,7 @@ export function DashboardPanel() {
                             </span>{" "}
                             {player.nickname}
                           </span>
-                          <span className={songMeta}>{plural(player.plays, "play")}</span>
+                          <span className={songMeta}>{player.plays}プレイ</span>
                         </div>
                         <span className={num}>{player.plays}</span>
                         <span className={num}>{formatScore(player.totalScore)}</span>
@@ -475,11 +477,11 @@ export function DashboardPanel() {
 
           <div className={panelFrame}>
             <div className={panelHeader}>
-              <Heading icon={ChartColumnBig} title="Difficulty" subtitle="Songs per level." />
+              <Heading icon={ChartColumnBig} title="難易度" subtitle="レベルごとの曲数。" />
             </div>
             <div className={panelBodyAuto}>
               {levelBars.distribution.length === 0 ? (
-                <p className={notice}>No song is published yet.</p>
+                <p className={notice}>まだ公開された曲がありません。</p>
               ) : (
                 <div className={rows}>
                   {levelBars.distribution.map((entry) => (
@@ -552,12 +554,12 @@ function SongRanking({ song }: { song: RankingSong }) {
       <div className={songCell}>
         <span className={songTitle}>{song.title}</span>
         <span className={songMeta}>
-          Lv.{song.level} · {song.artist} · {plural(song.plays, "play")}
+          Lv.{song.level} · {song.artist} · {song.plays}プレイ
         </span>
       </div>
       <div className={songCell}>
         {song.entries.length === 0 ? (
-          <span className={songMeta}>Nobody played it yet.</span>
+          <span className={songMeta}>まだプレイした人がいません。</span>
         ) : (
           song.entries.slice(0, ENTRIES_PER_SONG).map((entry, index) => (
             <span key={`${entry.nickname}:${index}`} className={entryRow}>

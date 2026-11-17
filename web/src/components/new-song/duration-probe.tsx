@@ -103,14 +103,13 @@ export function DurationProbe({ videoId, onDuration }: DurationProbeProps) {
       {state === "loading" ? (
         <p className={status}>
           <LoaderCircle className={statusIcon} size={12} aria-hidden="true" />
-          プレイヤーを読み込み中… / Loading the player…
+          プレイヤーを読み込み中…
         </p>
       ) : null}
       {state === "error" ? (
         <p className={`${status} ${errorStatus}`} data-testid="duration-probe-error">
           <CircleX className={statusIcon} size={12} aria-hidden="true" />
-          プレイヤーを読み込めませんでした（オフライン）。再生時間は手動で入力してください。 / The
-          player could not load (offline). Enter the duration manually.
+          プレイヤーを読み込めませんでした（オフライン）。再生時間は手動で入力してください。
         </p>
       ) : null}
     </div>

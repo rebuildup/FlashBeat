@@ -494,7 +494,7 @@ export function EditorToolbar({
 
   return (
     <header className={bar}>
-      <div className={transport} role="group" aria-label="Playback">
+      <div className={transport} role="group" aria-label="再生">
         <Button
           className={transportButton}
           size="sm"
@@ -503,7 +503,7 @@ export function EditorToolbar({
           aria-pressed={playing}
           data-testid="transport-toggle"
         >
-          {playing ? "Pause" : "Play"}
+          {playing ? "一時停止" : "再生"}
         </Button>
         <Button
           className={buttonSecondary}
@@ -512,7 +512,7 @@ export function EditorToolbar({
           disabled={!onRestart}
           data-testid="transport-restart"
         >
-          Restart
+          最初から
         </Button>
         <input
           className={seek}
@@ -523,50 +523,50 @@ export function EditorToolbar({
           value={Math.min(playheadSec, maxSec)}
           onChange={(event) => onSeek?.(Number.parseFloat(event.currentTarget.value))}
           disabled={!onSeek}
-          aria-label="Playhead"
+          aria-label="プレイヘッド"
           data-testid="playhead-slider"
         />
         <span className={readout} data-testid="transport-time">
-          <span className={readoutTime}>{playheadSec.toFixed(2)}s</span>
-          <span className={readoutBeat}>· beat {beat.toFixed(2)}</span>
+          <span className={readoutTime}>{playheadSec.toFixed(2)}秒</span>
+          <span className={readoutBeat}>· 拍{beat.toFixed(2)}</span>
         </span>
       </div>
 
       <div className={divider} aria-hidden="true" />
 
-      <div className={group} role="group" aria-label="Edit history">
+      <div className={group} role="group" aria-label="編集履歴">
         <Button
           className={buttonSecondary}
           size="sm"
           onClick={onUndo}
           disabled={!canUndo}
-          title="Undo (Ctrl/Cmd+Z)"
+          title="元に戻す（Ctrl/Cmd+Z）"
           data-testid="undo-button"
         >
           <Undo2 className={buttonIcon} size={14} aria-hidden="true" />
-          Undo
+          元に戻す
         </Button>
         <Button
           className={buttonSecondary}
           size="sm"
           onClick={onRedo}
           disabled={!canRedo}
-          title="Redo (Ctrl/Cmd+Shift+Z)"
+          title="やり直す（Ctrl/Cmd+Shift+Z）"
           data-testid="redo-button"
         >
           <Redo2 className={buttonIcon} size={14} aria-hidden="true" />
-          Redo
+          やり直す
         </Button>
         <Button
           className={buttonSecondary}
           size="sm"
           onClick={onDeleteSelected}
           disabled={!canDelete}
-          title="Delete the selected note (Del)"
+          title="選択したノートを削除（Del）"
           data-testid="delete-button"
         >
           <Trash2 className={buttonIcon} size={14} aria-hidden="true" />
-          Delete
+          削除
           <kbd className={keycap} aria-hidden="true">
             Del
           </kbd>
@@ -576,26 +576,26 @@ export function EditorToolbar({
       <span className={spacer} />
 
       <span className={counter} data-testid="note-count">
-        {noteCount} {noteCount === 1 ? "note" : "notes"}
+        {noteCount}ノート
       </span>
 
       <details ref={detailsRef} className={details} data-testid="chart-settings">
         <summary className={summary} data-testid="chart-settings-summary">
-          Chart setup
+          譜面設定
           <span className={summaryMeta}>
-            {chart ? `${chart.BPM} BPM · 1/${resolution}` : "no chart"}
+            {chart ? `${chart.BPM} BPM · 1/${resolution}` : "譜面なし"}
           </span>
         </summary>
 
         <div className={popover}>
-          <h3 className={popoverTitle}>Chart setup</h3>
+          <h3 className={popoverTitle}>譜面設定</h3>
           <p className={settingsHint}>
-            Song, grid and file tools. Placing and editing notes never needs this panel.
+            曲・グリッド・ファイルの設定。ノートの配置と編集にはこのパネルは不要です。
           </p>
 
           <div className={settingsGrid}>
             <Field.Root className={wideCell}>
-              <Field.Label className={fieldLabel}>Song name</Field.Label>
+              <Field.Label className={fieldLabel}>曲名</Field.Label>
               <Input
                 className={inputBox}
                 data-testid="song-name-input"
@@ -636,7 +636,7 @@ export function EditorToolbar({
                   }
                 }}
               >
-                <Select.Label className={fieldLabel}>Resolution</Select.Label>
+                <Select.Label className={fieldLabel}>解像度</Select.Label>
                 <Select.Control className={selectControl}>
                   <Select.ValueText placeholder="1/4" />
                   <Select.Indicator />
@@ -656,7 +656,7 @@ export function EditorToolbar({
                   </Select.Positioner>
                 </Portal>
               </Select.Root>
-              <p className={settingsHint}>How finely notes are written.</p>
+              <p className={settingsHint}>ノートをどの細かさで記述するか。</p>
             </div>
 
             <div className={field}>
@@ -672,7 +672,7 @@ export function EditorToolbar({
                 }}
                 data-testid="snap-select"
               >
-                <Select.Label className={fieldLabel}>Snap</Select.Label>
+                <Select.Label className={fieldLabel}>スナップ</Select.Label>
                 <Select.Control className={selectControl}>
                   <Select.ValueText placeholder="off" />
                   <Select.Indicator />
@@ -692,7 +692,7 @@ export function EditorToolbar({
                   </Select.Positioner>
                 </Portal>
               </Select.Root>
-              <p className={settingsHint}>Where a click lands on the beat.</p>
+              <p className={settingsHint}>クリック位置が拍のどこに吸着するか。</p>
             </div>
 
             <div className={field}>
@@ -707,7 +707,7 @@ export function EditorToolbar({
                   }
                 }}
               >
-                <Select.Label className={fieldLabel}>Zoom</Select.Label>
+                <Select.Label className={fieldLabel}>ズーム</Select.Label>
                 <Select.Control className={selectControl}>
                   <Select.ValueText placeholder="1×" />
                   <Select.Indicator />
@@ -727,7 +727,7 @@ export function EditorToolbar({
                   </Select.Positioner>
                 </Portal>
               </Select.Root>
-              <p className={settingsHint}>Height of the timeline.</p>
+              <p className={settingsHint}>タイムラインの高さ。</p>
             </div>
           </div>
 
@@ -753,7 +753,7 @@ export function EditorToolbar({
               onClick={() => fileInputRef.current?.click()}
               data-testid="import-button"
             >
-              Import
+              読み込み
             </Button>
             <Button
               className={buttonPrimary}
@@ -762,14 +762,14 @@ export function EditorToolbar({
               disabled={!chart}
               data-testid="export-button"
             >
-              Export
+              書き出し
             </Button>
-            <span className={settingsHint}>JSON stays byte-compatible with the Unity charts.</span>
+            <span className={settingsHint}>JSONはUnityの譜面とバイト互換を保ちます。</span>
           </div>
 
           <p className={settingsHint} style={{ margin: 0 }}>
-            Keyboard: arrows nudge · Shift+←/→ resizes a hold · Del deletes · Esc deselects ·
-            Ctrl/Cmd+Z undoes.
+            キーボード: 矢印で微調整 · Shift+←/→でホールドの長さを変更 · Delで削除 · Escで選択解除 ·
+            Ctrl/Cmd+Zで元に戻す。
           </p>
         </div>
       </details>

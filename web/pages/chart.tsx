@@ -18,7 +18,13 @@ import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./chart.server";
 import "@/styles/app.css";
 
-const emptyChart: Chart = { name: "Untitled draft", maxBlock: 8, BPM: 120, offset: 0, notes: [] };
+const emptyChart: Chart = {
+  name: "無題の下書き",
+  maxBlock: 8,
+  BPM: 120,
+  offset: 0,
+  notes: [],
+};
 
 const banner = css({
   alignItems: "center",
@@ -160,21 +166,21 @@ export default function ChartPage({ songId, version, draftId }: Props) {
     <StudioShell scroll={false}>
       <header className={pageHeader}>
         <a className={pageBackLink} href="/">
-          ← 曲を選ぶ / Back to songs
+          ← 曲を選ぶ
         </a>
         <div className={pageHeaderIdentity}>
           <h1 className={pageTitle}>{selected ? "譜面を見る・試す" : "新しい譜面"}</h1>
           <p className={pageSubtitle} data-testid="chart-identity">
             {session
-              ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length} notes`
+              ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length}ノート`
               : selected
-                ? "Published chart"
-                : "New local draft · not published"}
+                ? "公開済みの譜面"
+                : "新しいローカル下書き · 未公開"}
           </p>
           <p className={pageSubtitle} data-testid="chart-guidance">
             {selected
-              ? "再生して試してみてください。左のリンクで曲選びに戻れます / Play it; the link on the left goes back to the songs."
-              : "編集して「公開に進む」へ。戻っても入力は消えません / Edit, then continue; going back keeps your input."}
+              ? "再生して試してみてください。左のリンクで曲選びに戻れます。"
+              : "編集して「公開に進む」へ。戻っても入力は消えません。"}
           </p>
         </div>
         <div className={pageActions}>
@@ -190,7 +196,7 @@ export default function ChartPage({ songId, version, draftId }: Props) {
                 data-testid="try-song-button"
                 onClick={() => tryPreview(editorRef.current)}
               >
-                再生して試す / Try it
+                再生して試す
               </Button>
               <a
                 className={youtubeLink}
@@ -218,20 +224,22 @@ export default function ChartPage({ songId, version, draftId }: Props) {
                   }),
                 );
               } catch {
-                setError("The local draft could not be saved. Keep this editor open and retry.");
+                setError(
+                  "ローカル下書きを保存できませんでした。このエディタを開いたまま再試行してください。",
+                );
               }
             }}
           >
-            公開に進む / Review &amp; Publish
+            公開に進む
           </Button>
           <span className={tokenHint} data-testid="publish-token-hint">
-            公開にはスタッフのadminトークンが必要です / Staff admin token required
+            公開にはスタッフのadminトークンが必要です
           </span>
         </div>
       </header>
       {draft ? (
         <section className={draftBanner} role="status" data-testid="draft-restored">
-          公開画面の下書きを復元しました / The draft from the publish screen is restored.
+          公開画面の下書きを復元しました
         </section>
       ) : null}
       {draftError ? (
@@ -243,7 +251,7 @@ export default function ChartPage({ songId, version, draftId }: Props) {
         <section className={banner} role="alert">
           {error}
           <Button size="sm" variant="outline" onClick={() => setAttempt(attempt + 1)}>
-            Retry
+            再試行
           </Button>
         </section>
       ) : null}
@@ -251,7 +259,7 @@ export default function ChartPage({ songId, version, draftId }: Props) {
           session failed to load: the operator's own chart is the point. */}
       {error && !draft ? null : selected && !session && !error ? (
         <p className={statusLine} role="status">
-          Loading selected chart…
+          選択した譜面を読み込み中…
         </p>
       ) : (
         <div className={editorPane}>

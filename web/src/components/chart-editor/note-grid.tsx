@@ -371,7 +371,7 @@ export function NoteGrid({
 
   return (
     <div
-      aria-label="Note grid"
+      aria-label="ノートグリッド"
       className={scrollArea}
       ref={panelRef}
       role="group"

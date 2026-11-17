@@ -31,7 +31,7 @@ describe("SelectionPanel", () => {
 
   it("tells the operator how to select a note", () => {
     expect(empty).toContain('data-testid="selection-empty"');
-    expect(empty).toContain("Click a note on the lanes");
+    expect(empty).toContain("レーン上のノートをクリック");
   });
 
   const selected = renderToStaticMarkup(
@@ -50,7 +50,7 @@ describe("SelectionPanel", () => {
     expect(selected).toContain("12.00");
     // 12 beats at 95 BPM = 7.58 s.
     expect(selected).toContain('data-testid="selection-time"');
-    expect(selected).toContain("7.58s");
+    expect(selected).toContain("7.58秒");
   });
 
   it("offers the mouse-only edits", () => {
@@ -78,9 +78,9 @@ describe("SelectionPanel", () => {
       }),
     );
 
-    expect(hold).toContain(">Hold<");
+    expect(hold).toContain(">ホールド<");
     expect(hold).toContain('data-testid="selection-length-inc"');
     expect(hold).toContain('data-testid="selection-length-dec"');
-    expect(hold).toContain("2.00 beats");
+    expect(hold).toContain("2.00拍");
   });
 });

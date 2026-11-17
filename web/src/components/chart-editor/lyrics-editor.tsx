@@ -270,15 +270,15 @@ export function LyricsEditor({
   );
 
   return (
-    <section className={`${root} ${className ?? ""}`} aria-label="Lyrics editor">
+    <section className={`${root} ${className ?? ""}`} aria-label="歌詞エディタ">
       <div className={header}>
         <div className={titleRow}>
           <div>
-            <h3 className={title}>Lyrics</h3>
+            <h3 className={title}>歌詞</h3>
             {chart ? <p className={subtitle}>{chart.name}</p> : null}
           </div>
           <span className={count} data-testid="lyrics-count">
-            {summary.lines} {summary.lines === 1 ? "line" : "lines"}
+            {summary.lines}行
           </span>
         </div>
 
@@ -290,7 +290,7 @@ export function LyricsEditor({
             disabled={readOnly || !chart}
             data-testid="lyrics-add"
           >
-            Add line
+            行を追加
           </button>
           <button
             type="button"
@@ -299,16 +299,16 @@ export function LyricsEditor({
             disabled={readOnly || summary.lines < 2}
             data-testid="lyrics-sort"
           >
-            Sort by time
+            時刻で並べ替え
           </button>
           {activeIndex !== null ? (
             <span className={playhead} data-testid="lyrics-now">
-              Line {activeIndex + 1} at{" "}
+              {activeIndex + 1}行目 ·{" "}
               <span className={playheadValue}>{formatTimecode(playheadSec)}</span>
             </span>
           ) : (
             <span className={playhead}>
-              Preview <span className={playheadValue}>{formatTimecode(playheadSec)}</span>
+              プレビュー <span className={playheadValue}>{formatTimecode(playheadSec)}</span>
             </span>
           )}
         </div>
@@ -342,7 +342,7 @@ export function LyricsEditor({
         />
       ) : (
         <p className={placeholder} data-testid="lyrics-no-chart">
-          Open a chart to edit its lyrics.
+          譜面を開くと歌詞を編集できます。
         </p>
       )}
     </section>

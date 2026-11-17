@@ -90,7 +90,7 @@ describe("semanticDiagnostics", () => {
     );
 
     assert.deepEqual(paths(diagnostics), ["/chart/notes/0/endNum"]);
-    assert.match(diagnostics[0]?.message ?? "", /after the start of the hold/);
+    assert.match(diagnostics[0]?.message ?? "", /より後/);
   });
 
   it("rejects a Hold whose end is before its start", () => {
@@ -107,7 +107,7 @@ describe("semanticDiagnostics", () => {
     );
 
     assert.deepEqual(paths(diagnostics), ["/chart/notes/0/type"]);
-    assert.match(diagnostics[0]?.message ?? "", /Tap \(type 1\) or a Hold \(type 2\)/);
+    assert.match(diagnostics[0]?.message ?? "", /タップ（type 1）/);
   });
 
   it("counts the end of a Hold against the chart length", () => {
@@ -121,7 +121,7 @@ describe("semanticDiagnostics", () => {
 
     assert.deepEqual(paths(diagnostics), ["/chart/notes/0", "/chart/notes/0/endNum"]);
     assert.match(diagnostics[0]?.message ?? "", /durationSec/);
-    assert.match(diagnostics[1]?.message ?? "", /chart length/);
+    assert.match(diagnostics[1]?.message ?? "", /譜面の長さ/);
   });
 
   it("ignores an end line on a Tap", () => {

@@ -116,7 +116,7 @@ describe("LyricsEditor", () => {
     const ui = render();
     const legacy = byTestId(ui, "lyrics-row-1");
 
-    expect(legacy.textContent).toContain("legacy end");
+    expect(legacy.textContent).toContain("従来の終了");
     // end 4 < start 5, so the rendered range uses the +4s fallback.
     expect(legacy.textContent).toContain("0:05.00 - 0:09.00");
   });
@@ -126,7 +126,7 @@ describe("LyricsEditor", () => {
 
     expect(byTestId(ui, "lyrics-row-0").getAttribute("data-active")).toBe("true");
     expect(byTestId(ui, "lyrics-row-1").getAttribute("data-active")).toBe("false");
-    expect(byTestId(ui, "lyrics-now").textContent).toContain("Line 1");
+    expect(byTestId(ui, "lyrics-now").textContent).toContain("1行目");
   });
 
   it("writes a text edit without touching the stored times", () => {
@@ -194,18 +194,18 @@ describe("LyricsEditor", () => {
     expect(lyrics?.furigana).toHaveLength(3);
     expect(lyrics?.mondai).toHaveLength(3);
     expect(lyrics?.romaji).toHaveLength(3);
-    expect(byTestId(ui, "lyrics-count").textContent).toContain("3 lines");
+    expect(byTestId(ui, "lyrics-count").textContent).toContain("3行");
   });
 
   it("deletes a line", () => {
     const ui = render();
 
     act(() => {
-      ui.querySelector<HTMLButtonElement>('[aria-label="Delete line 1"]')?.click();
+      ui.querySelector<HTMLButtonElement>('[aria-label="1行目を削除"]')?.click();
     });
 
     expect(emitted?.lyrics?.mondai).toEqual(["二行目"]);
-    expect(byTestId(ui, "lyrics-count").textContent).toContain("1 line");
+    expect(byTestId(ui, "lyrics-count").textContent).toContain("1行");
   });
 
   it("seeks the preview to the start of a line", () => {
@@ -213,7 +213,7 @@ describe("LyricsEditor", () => {
     const ui = render(0, onSeek);
 
     act(() => {
-      ui.querySelector<HTMLButtonElement>('[aria-label="Seek to line 2"]')?.click();
+      ui.querySelector<HTMLButtonElement>('[aria-label="2行目の位置へ移動"]')?.click();
     });
 
     expect(onSeek).toHaveBeenCalledWith(5);
@@ -224,7 +224,7 @@ describe("LyricsEditor", () => {
 
     act(() => {
       ui.querySelector<HTMLButtonElement>(
-        '[aria-label="Set line 2 start to the playhead"]',
+        '[aria-label="2行目の開始をプレイヘッドに設定"]',
       )?.click();
     });
 
