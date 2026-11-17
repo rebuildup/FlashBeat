@@ -363,6 +363,24 @@ namespace FlashBeat.UI.V6.Game.Hud
             return cloneName.ToUpperInvariant();
         }
 
+        /// <summary>
+        /// 判定結果 (<see cref="FlashBeat.Gameplay.LongNote.Judgement"/>) を
+        /// 判定ラベルへ。Judge の MessageObj (Perfect/Great/Bad/Miss.prefab)
+        /// の表示名と同じ綴り。Option 画面の Game Preview (Issue #607) が
+        /// JudgeQueue の判定結果を HUD と同じラベルで出すために使う。
+        /// </summary>
+        public static string VerdictLabel(FlashBeat.Gameplay.LongNote.Judgement judgement)
+        {
+            switch (judgement)
+            {
+                case FlashBeat.Gameplay.LongNote.Judgement.Perfect: return "PERFECT";
+                case FlashBeat.Gameplay.LongNote.Judgement.Great: return "GREAT";
+                case FlashBeat.Gameplay.LongNote.Judgement.Bad: return "BAD";
+                case FlashBeat.Gameplay.LongNote.Judgement.Miss: return "MISS";
+                default: return string.Empty;
+            }
+        }
+
         /// <summary>判定ラベルの表示色 (v5 GameHudView.JudgeColor と同じ割り当て)。</summary>
         public static Color VerdictColor(string label)
         {

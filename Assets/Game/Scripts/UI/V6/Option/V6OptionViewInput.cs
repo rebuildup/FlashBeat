@@ -32,6 +32,7 @@ namespace FlashBeat.UI.V6.Option
             if (previewRig != null)
             {
                 previewRig.Tick();
+                UpdatePreviewOverlay();
             }
 
             // キー設定モーダルが前面のときは背後の操作を止める (Issue #376)。
