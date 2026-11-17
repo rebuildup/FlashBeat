@@ -106,6 +106,8 @@ namespace FlashBeat.Tests
             spec.LineType = TMP_InputField.LineType.MultiLineNewline;
             spec.OnFocusSelectAll = true;
             spec.RestoreOriginalTextOnEscape = true;
+            // Issue #583: textViewport をテキスト rect と一致させる指定が効くこと。
+            spec.TextViewport = valueGo.GetComponent<RectTransform>();
 
             TMP_InputField input = V6CursorInput.Attach(host, spec);
 
@@ -117,6 +119,8 @@ namespace FlashBeat.Tests
             Assert.AreEqual(TMP_InputField.LineType.MultiLineNewline, input.lineType);
             Assert.IsTrue(input.onFocusSelectAll);
             Assert.IsTrue(input.restoreOriginalTextOnEscape);
+            Assert.AreSame(valueGo.GetComponent<RectTransform>(), input.textViewport,
+                "TextViewport 指定が効く (host 全体ではなくテキスト rect)");
         }
 
         [Test]

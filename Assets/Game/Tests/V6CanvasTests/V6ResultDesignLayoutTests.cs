@@ -253,9 +253,20 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(dialog.Find("Name Prompt"), 404f, 38f, 380f, 29f, "Name Prompt");
                 Assert.AreEqual(20f, TextOf(dialog, "Name Prompt").fontSize, 0.01f, "Prompt fs20");
                 AssertRect(dialog.Find("Name Field"), 28f, 112f, 784f, 84f, "Name Field");
-                // Issue #425: 内側余白を 24→32 に広げ、Value/Placeholder は 728 幅。
-                AssertRect(dialog.Find("Name Field/Value"), 32f, 20f, 728f, 58f, "Name Field Value");
+                // Issue #425: 内側余白を 24→32 に広げた。
+                // Issue #583: 左右の内側余白を 32px に揃え、Value/Placeholder は 720 幅。
+                // キャレット/選択ハイライト/IME 変換中文字も同じ内側余白に揃う。
+                AssertRect(dialog.Find("Name Field/Value"), 32f, 20f, 720f, 58f, "Name Field Value");
                 Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
+                var valueRect = dialog.Find("Name Field/Value").GetComponent<RectTransform>();
+                var placeholderRect = dialog.Find("Name Field/Placeholder").GetComponent<RectTransform>();
+                Assert.AreEqual(valueRect.anchoredPosition, placeholderRect.anchoredPosition,
+                    "Value/Placeholder の左上が一致");
+                Assert.AreEqual(valueRect.sizeDelta, placeholderRect.sizeDelta,
+                    "Value/Placeholder のサイズが一致");
+                // Name Field (784) の内側余白は左右とも 32px で対称。
+                Assert.AreEqual(32f, DesignPos(valueRect).x, 0.01f, "left inner margin");
+                Assert.AreEqual(784f - (32f + 720f), 32f, 0.01f, "right inner margin is symmetric");
                 // design lqHaN は未入力の Name Field に既定名を $text-dim で置く
                 // (v5 ResultView の Placeholder と同じ)。#384 で入力は TMP_InputField に
                 // 任せ、空欄時は Placeholder テキストが既定名を出す。
@@ -268,6 +279,10 @@ namespace FlashBeat.V6CanvasTests
                 var nameInput = dialog.Find("Name Field").GetComponent<TMP_InputField>();
                 Assert.IsNotNull(nameInput, "Name Field is a TMP_InputField");
                 Assert.AreSame(placeholder, nameInput.placeholder, "placeholder is wired");
+                // Issue #583: textViewport はテキスト rect と一致させる
+                // (host 全体だとクリップ/スクロール境界が内側余白とずれる)。
+                Assert.AreSame(valueRect, nameInput.textViewport,
+                    "textViewport はテキスト rect (Value) と一致");
                 Assert.AreEqual(2, nameInput.caretWidth, "caret width 2");
                 Assert.AreEqual(TMP_InputField.ContentType.Standard, nameInput.contentType,
                     "IME input is allowed");
