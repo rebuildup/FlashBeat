@@ -7,9 +7,9 @@
  *      schema (`contracts/openapi.v1.yaml` → `ScoreSubmission`), because a
  *      Worker has no filesystem to read the contract from at runtime. This
  *      test reads the real contract file and fails when the copy drifts.
- *   2. `computeUnityScore` / `computeUnityScoreV2` reproduce the Unity score
- *      formulas exactly (v1 and v2 of ADR-0028). The reference values are
- *      hand-computed:
+ *   2. `computeUnityScore` / `computeUnityScoreV2` / `computeUnityScoreV3`
+ *      reproduce the Unity score formulas exactly (v1 of ADR-0028, v2 of
+ *      ADR-0028, v3 of ADR-0029). The reference values are hand-computed:
  *
  *        v1: maxScore   = noteCount * 5
  *            ratioScore = 5 * perfect + 3 * great + 1 * bad
@@ -21,6 +21,16 @@
  *            ratioScore  = judgment + comboBonus + noMissBonus
  *            maxScore    = noteCount * 15
  *            score       = same ComputeScore rounding as v1
+ *
+ *        v3: judgment       = 5 * perfect + 3 * great + 1 * bad
+ *            comboBonus     = maxCombo * 5
+ *            noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0
+ *            milestoneBonus = comboMilestones * 25
+ *            finalBonus     = miss == 0 ? 100 : 0
+ *            totalRatio     = judgment + comboBonus + noMissBonus
+ *                             + milestoneBonus + finalBonus
+ *            maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
+ *            score          = same ComputeScore rounding as v1/v2
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -32,6 +42,7 @@ import {
   computeScoreForVersion,
   computeUnityScore,
   computeUnityScoreV2,
+  computeUnityScoreV3,
   nicknameDiagnostics,
   parseScoringVersionQuery,
   scoreSemanticsDiagnostics,
@@ -137,16 +148,42 @@ describe("scoreSemanticsDiagnostics", () => {
     assert.equal(diagnostics[0]?.path, "/maxCombo");
   });
 
-  it("accepts scoring versions 1 and 2 and an omitted version", () => {
+  it("accepts scoring versions 1, 2, 3 and an omitted version", () => {
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 1 }, 139), []);
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 2 }, 139), []);
+    assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 3 }, 139), []);
     assert.deepEqual(scoreSemanticsDiagnostics(request, 139), []);
   });
 
   it("rejects a scoring version the server cannot recompute", () => {
-    const diagnostics = scoreSemanticsDiagnostics({ ...request, scoringVersion: 3 }, 139);
-    assert.equal(diagnostics.length, 1);
-    assert.equal(diagnostics[0]?.path, "/scoringVersion");
+    for (const scoringVersion of [0, 4]) {
+      const diagnostics = scoreSemanticsDiagnostics({ ...request, scoringVersion }, 139);
+      assert.equal(diagnostics.length, 1);
+      assert.equal(diagnostics[0]?.path, "/scoringVersion");
+    }
+  });
+
+  it("bound-checks comboMilestones only for scoring version 3 (ADR-0029)", () => {
+    // 139 notes, 139 hits: the bound is floor(139 / 50) = 2.
+    const base = { ...request, maxCombo: 139 };
+    assert.deepEqual(
+      scoreSemanticsDiagnostics({ ...base, scoringVersion: 3, comboMilestones: 2 }, 139),
+      [],
+    );
+    // Omitted means 0.
+    assert.deepEqual(scoreSemanticsDiagnostics({ ...base, scoringVersion: 3 }, 139), []);
+
+    const over = scoreSemanticsDiagnostics({ ...base, scoringVersion: 3, comboMilestones: 3 }, 139);
+    assert.equal(over.length, 1);
+    assert.equal(over[0]?.path, "/comboMilestones");
+
+    // Versions 1 and 2 ignore the field entirely, however large it is.
+    for (const scoringVersion of [1, 2, undefined]) {
+      assert.deepEqual(
+        scoreSemanticsDiagnostics({ ...base, scoringVersion, comboMilestones: 999 }, 139),
+        [],
+      );
+    }
   });
 });
 
@@ -200,6 +237,42 @@ describe("computeUnityScoreV2 (ADR-0028)", () => {
   });
 });
 
+describe("computeUnityScoreV3 (ADR-0029)", () => {
+  it("a perfect run with full combo, milestones and no miss scores 1000000", () => {
+    // 139 notes, all perfect, maxCombo 139, 2 milestone crossings (bound
+    // floor(139/50) = 2):
+    //   judgment 695 + comboBonus 695 + noMissBonus 695 + milestoneBonus 50
+    //   + finalBonus 100 = 2235, maxRatio = 15*139 + 2*25 + 100 = 2235.
+    assert.equal(computeUnityScoreV3(139, 0, 0, 0, 139, 2, 139), 1000000);
+  });
+
+  it("adds the milestone and full-combo bonuses to the v2 components", () => {
+    // 139 notes: 100 perfect + 30 great + 9 bad, maxCombo 139, 2 milestones,
+    // no miss.
+    //   judgment 599 + comboBonus 695 + noMissBonus 695 + milestoneBonus 50
+    //   + finalBonus 100 = 2139, maxRatio 2235 -> 957047
+    assert.equal(computeUnityScoreV3(100, 30, 9, 0, 139, 2, 139), 957047);
+  });
+
+  it("awards no final bonus and no no-miss bonus when a note was missed", () => {
+    // Same play with one miss instead of a bad: 100P + 30G + 8B + 1M.
+    //   judgment 598 + comboBonus 695 + noMissBonus 0 + milestoneBonus 50
+    //   + finalBonus 0 = 1343, maxRatio 2235 -> 600894
+    assert.equal(computeUnityScoreV3(100, 30, 8, 1, 139, 2, 139), 600894);
+  });
+
+  it("treats omitted maxCombo and comboMilestones as zero bonuses", () => {
+    // 10 notes, 9 perfect + 1 great, no miss:
+    //   judgment 48 + comboBonus 0 + noMissBonus 50 + milestoneBonus 0
+    //   + finalBonus 100 = 198, maxRatio = 15*10 + 0 + 100 = 250 -> 792000
+    assert.equal(computeUnityScoreV3(9, 1, 0, 0, undefined, undefined, 10), 792000);
+  });
+
+  it("a chart without notes cannot be scored", () => {
+    assert.equal(computeUnityScoreV3(0, 0, 0, 0, 0, 0, 0), null);
+  });
+});
+
 describe("computeScoreForVersion", () => {
   const base = {
     songId: "who",
@@ -221,17 +294,25 @@ describe("computeScoreForVersion", () => {
   it("uses the v2 formula when scoringVersion is 2", () => {
     assert.equal(computeScoreForVersion({ ...base, scoringVersion: 2 }, 10), 986666);
   });
+
+  it("uses the v3 formula when scoringVersion is 3", () => {
+    // Same 10-note play plus the v3 bonuses: maxCombo 10, 0 milestones
+    // (bound floor(10/50) = 0), no miss -> finalBonus 100.
+    //   totalRatio 148 + 0 + 100 = 248, maxRatio 250 -> 992000
+    assert.equal(computeScoreForVersion({ ...base, scoringVersion: 3 }, 10), 992000);
+  });
 });
 
 describe("parseScoringVersionQuery", () => {
   it("defaults to the latest scoring version", () => {
-    assert.equal(LATEST_SCORING_VERSION, 2);
-    assert.equal(parseScoringVersionQuery(undefined), 2);
+    assert.equal(LATEST_SCORING_VERSION, 3);
+    assert.equal(parseScoringVersionQuery(undefined), 3);
   });
 
   it("accepts positive integers", () => {
     assert.equal(parseScoringVersionQuery("1"), 1);
     assert.equal(parseScoringVersionQuery("2"), 2);
+    assert.equal(parseScoringVersionQuery("3"), 3);
   });
 
   it("rejects missing, non-numeric and non-positive values", () => {
