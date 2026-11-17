@@ -192,6 +192,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>コンボボーナスの塗り色が戻るまでの時間 (秒)。</summary>
         public const float ComboBonusPulseSeconds = 0.3f;
 
+        /// <summary>節目ボーナス獲得表示が消えるまでの時間 (秒)。</summary>
+        public const float MilestoneBonusSeconds = 1.2f;
+
         /// <summary>EaseOutCubic: 速く立ち上がって滑らかに止まる。</summary>
         public static float EaseOutCubic(float t)
         {
@@ -296,15 +299,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float ReadyPromptFontSize = 22f;
         public const float ReadyPromptGap = 10f;
 
-        /// <summary>コンボトラックの塗り比率 (0..1)。milestone 無効は 0。</summary>
-        public static float ComboFillFraction(int combo, int milestone)
+        /// <summary>
+        /// 次の節目ボーナス (scoring v3, ADR-0029) までの進捗 0..1。
+        /// 節目に達した瞬間は 0 に戻り、次の節目へ向けて再び満ちる。
+        /// </summary>
+        public static float ComboFillFraction(int combo)
         {
-            if (milestone <= 0)
-            {
-                return 0f;
-            }
-
-            return Mathf.Clamp01(combo / (float)milestone);
+            int interval = FlashBeat.Gameplay.Scoring.MilestoneInterval;
+            return (combo % interval) / (float)interval;
         }
 
         /// <summary>

@@ -56,7 +56,7 @@ namespace FlashBeat.UI.V6.Result
         private V6ResultViewDriver driver;
         // run snapshot (Issue #240): 表示前に GManager.ResetSession() が呼ばれて値が
         // 消えるなら、消える前に捕捉する。初回 Refresh で固定し、以後は確定値を使う。
-        private int runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo;
+        private int runScore, runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones;
         private bool runCaptured;
         // 前回最高 (リザルト確定時の値)。統合担当が SetPrevHiscore で渡す
         // (未指定なら差分表示は "–")。
@@ -438,6 +438,7 @@ namespace FlashBeat.UI.V6.Result
             runBad = GManager.bad;
             runMiss = GManager.miss;
             runMaxCombo = GManager.maxCombo;
+            runComboMilestones = GManager.comboMilestones;
             runCaptured = true;
         }
 

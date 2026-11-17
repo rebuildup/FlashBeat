@@ -64,19 +64,26 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// scoring v2 (ADR-0028 / Issue #577) のボーナス内訳の表示文字列。
-        /// コンボ継続ボーナスは常に "+値"、ノーミスボーナスは未達 (miss &gt; 0)
-        /// のとき "–" を返す。値は ratio points をスコア点へ換算した目安で、
-        /// 送信フィールドではない (サーバは内訳を信用せず再計算する)。
+        /// scoring v3 (ADR-0029 / Issue #602) のボーナス内訳の表示文字列。
+        /// 各ボーナスは常に "+値"、未達のものは "–" を返す。値は ratio points
+        /// をスコア点へ換算した目安で、送信フィールドではない (サーバは内訳を
+        /// 信用せず再計算する)。
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
-            out string comboBonus, out string noMissBonus)
+            int comboMilestones, int noteCount,
+            out string comboBonus, out string milestoneBonus, out string noMissBonus, out string finalBonus)
         {
-            int noteCount = perfect + great + bad + miss;
-            Scoring.V2Breakdown v2 = Scoring.BreakdownV2(perfect, great, bad, miss, maxCombo, noteCount);
-            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV2(v2.ComboBonus, noteCount));
-            noMissBonus = v2.NoMissBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV2(v2.NoMissBonus, noteCount))
+            Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+                perfect, great, bad, miss, maxCombo, comboMilestones, noteCount);
+            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV3(v3.ComboBonus, noteCount));
+            milestoneBonus = v3.MilestoneBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.MilestoneBonus, noteCount))
+                : "–";
+            noMissBonus = v3.NoMissBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.NoMissBonus, noteCount))
+                : "–";
+            finalBonus = v3.FinalBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.FinalBonus, noteCount))
                 : "–";
         }
 

@@ -315,6 +315,7 @@ public class Judge : MonoBehaviour
         GManager.miss = board.Miss;
         GManager.combo = board.Combo;
         GManager.maxCombo = board.MaxCombo;
+        GManager.comboMilestones = board.MilestoneCrossings;
 
         // 「確定したノーツ数」を GManager へ書く (Issue #182)。
         //
@@ -329,15 +330,19 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v2 (ADR-0028 / Issue #577): 表示・送信する ratioScore は
-        // 判定 + コンボ継続 + ノーミスの合計。途中の Miss でノーミス分が
-        // 0 になるため、スコアは Miss 以降に下がりうる (契約どおり)。
+        // scoring v3 (ADR-0029 / Issue #602): 表示・送信する ratioScore は
+        // 判定 + コンボ継続 + ノーミス + 節目 + フルコンボ終了の合計。
+        // 途中の Miss でノーミス分と終了ボーナスが 0 になるため、スコアは
+        // Miss 以降に下がりうる (契約どおり)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
-        Scoring.V2Breakdown v2 = Scoring.BreakdownV2(
-            board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo, noteCount);
-        GManager.ratioScore = v2.RatioScore;
-        GManager.comboBonus = v2.ComboBonus;
-        GManager.noMissBonus = v2.NoMissBonus;
+        Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+            board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
+            board.MilestoneCrossings, noteCount);
+        GManager.ratioScore = v3.RatioScore;
+        GManager.comboBonus = v3.ComboBonus;
+        GManager.noMissBonus = v3.NoMissBonus;
+        GManager.milestoneBonus = v3.MilestoneBonus;
+        GManager.finalBonus = v3.FinalBonus;
 
         UpdateScore();
     }

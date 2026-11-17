@@ -23,10 +23,12 @@ public static class RankingClient
     public const int NicknameMaxLength = 16;
     public const string NicknamePrefsKey = "RankingNickname";
     /// <summary>
-    /// scoringVersion sent with every submission (ADR-0028): 2 = the v2
-    /// formula. The server treats an omitted field as 1 for old clients.
+    /// scoringVersion sent with every submission (ADR-0028 / ADR-0029):
+    /// tracks <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/> (3 = the
+    /// v3 formula with combo milestones and the full-combo bonus). The
+    /// server treats an omitted field as 1 for old clients.
     /// </summary>
-    public const int ScoringVersion = 2;
+    public const int ScoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion;
     /// <summary>error set on transport failure (offline, DNS, timeout).</summary>
     public const string UnavailableError = "unavailable";
 
@@ -42,6 +44,8 @@ public static class RankingClient
         public int bad;
         public int miss;
         public int maxCombo;
+        /// <summary>節目到達回数 (scoring v3, ADR-0029)。v1/v2 では送らない。</summary>
+        public int comboMilestones;
         public int scoringVersion;
     }
 
@@ -148,7 +152,7 @@ public static class RankingClient
 
     /// <summary>Builds the POST /api/v1/scores body. Returns null when the nickname is invalid.</summary>
     public static string BuildScoreRequestJson(string songId, int chartVersion, string nickname,
-        int score, int perfect, int great, int bad, int miss, int maxCombo,
+        int score, int perfect, int great, int bad, int miss, int maxCombo, int comboMilestones,
         int scoringVersion = ScoringVersion)
     {
         string name = ValidateNickname(nickname);
@@ -164,6 +168,7 @@ public static class RankingClient
             bad = bad,
             miss = miss,
             maxCombo = maxCombo,
+            comboMilestones = comboMilestones,
             scoringVersion = scoringVersion,
         };
         return JsonUtility.ToJson(request);
@@ -249,14 +254,14 @@ public static class RankingClient
     /// the server rank. Never throws.
     /// </summary>
     public static IEnumerator PostScore(string songId, int chartVersion, string nickname,
-        int score, int perfect, int great, int bad, int miss, int maxCombo, Action<Result> onDone,
-        int scoringVersion = ScoringVersion)
+        int score, int perfect, int great, int bad, int miss, int maxCombo, int comboMilestones,
+        Action<Result> onDone, int scoringVersion = ScoringVersion)
     {
         Result result = new Result();
         string body = null;
         try
         {
-            body = BuildScoreRequestJson(songId, chartVersion, nickname, score, perfect, great, bad, miss, maxCombo, scoringVersion);
+            body = BuildScoreRequestJson(songId, chartVersion, nickname, score, perfect, great, bad, miss, maxCombo, comboMilestones, scoringVersion);
         }
         catch (Exception e)
         {
