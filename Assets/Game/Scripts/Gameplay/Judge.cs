@@ -35,6 +35,16 @@ public class Judge : MonoBehaviour
     private AudioSource audioHit;
     [SerializeField] private AudioClip hitSound;
 
+    /// <summary>
+    /// Lane-key click sound (Issue #604). Played once per input frame on any
+    /// valid lane-key press — including presses that hit no note — so the
+    /// player gets audible feedback for every key press. It shares
+    /// <see cref="audioHit"/> (volume = GManager.effectVolume, routed through
+    /// the Effect mixer) but uses a different clip so it stays distinguishable
+    /// from the judgement hit sound.
+    /// </summary>
+    [SerializeField] private AudioClip clickSound;
+
     private int fSize;
     private int Fsize;
 
@@ -108,7 +118,12 @@ public class Judge : MonoBehaviour
 
         // Issue #224: ポーズ中は判定・スコア加算を行わない。
         // Issue #383 / design §6.2: 終端フェードと「終了」表示の間も受け付けない。
-        if (!SongEndGate.CanJudge(PauseGate.IsPaused, SongEndGate.BlocksJudging)) return;
+        // Issue #604: クリック音も同じゲート (GameplayInputGate) を使う。
+        if (!GameplayInputGate.CanAcceptInput(GManager.Start, PauseGate.IsPaused, SongEndGate.BlocksJudging)) return;
+
+        // クリック音 (Issue #604): 有効なレーンキー押下 (空押しを含む) に
+        // 1 フレーム 1 回だけ鳴らす。判定音 (hitSound) とは別クリップ。
+        PlayLaneClickSound();
 
         // 時刻の基準は既存方式を維持する: GManager.step_time は譜面上の
         // メディア時刻 (秒) なので、判定はすべてこの mediaTime で行う。
@@ -199,6 +214,30 @@ public class Judge : MonoBehaviour
                 board.ApplyMiss();
                 message(3, missed.SourceIndex);
                 FlushScore();
+            }
+        }
+    }
+
+    /// <summary>
+    /// レーンキーがこのフレームで押されていればクリック音を 1 回鳴らす
+    /// (Issue #604)。
+    ///
+    /// 押下の検出は判定と同じ <see cref="LanePressedPredicate"/>
+    /// (GetKeyDownOrInjected のフレームエッジ) を使うので、HOLD の押しっぱなし
+    /// では 1 回しか鳴らず、ポーズや曲終了後には鳴らない (Update のゲート済み)。
+    /// 同時押し (複数レーン) でも 1 フレーム 1 回にまとめる: レーンごとに
+    /// PlayOneShot すると和音押しで音が重なって割れるため。
+    /// </summary>
+    private void PlayLaneClickSound()
+    {
+        if (audioHit == null || clickSound == null) return;
+
+        for (int lane = 0; lane < LaneKeys.Length; lane++)
+        {
+            if (LanePressedPredicate(lane))
+            {
+                audioHit.PlayOneShot(clickSound);
+                return;
             }
         }
     }
