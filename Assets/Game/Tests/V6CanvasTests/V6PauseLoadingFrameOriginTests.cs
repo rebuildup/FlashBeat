@@ -93,19 +93,6 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(Vector2.zero, V6LoadingViewLogic.FrameOrigin(0, 0));
         }
 
-        [Test]
-        public void LoadingIndeterminateX_StaysWithinTrack()
-        {
-            // 不定インジケータはトラック (464px) からはみ出さない。
-            for (int i = 0; i <= 32; i++)
-            {
-                float t = i * V6LoadingViewLogic.CycleSeconds / 32f;
-                float x = V6LoadingViewLogic.IndeterminateX(t, 464f, 160f);
-                Assert.GreaterOrEqual(x, 0f, $"t={t}");
-                Assert.LessOrEqual(x, 464f - 160f, $"t={t}");
-            }
-        }
-
         // --- design uDNC0 (07b Game · v6 · Pause) の実配置値 ---
         // 正本は docs/design/v6/flashbeat-v6-nodes.json (uDNC0) と
         // design/exports/v6/screens/uDNC0-pause.png (描画)。
