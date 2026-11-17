@@ -6,7 +6,7 @@ namespace FlashBeat.UI.V6.Game.Hud
 {
     /// <summary>
     /// v6 Game HUD の寸法テーブル。契約 §8
-    /// (docs/design/v6/flashbeat-v6-contract.md「ゲーム HUD — 3 解像度」) の design 実測値を
+    /// (docs/ui/v6-screen-contract.md「ゲーム HUD — 3 解像度」) の design 実測値を
     /// <b>design px = 実ピクセル</b> で保持する (2026-11-08 Owner 指示: HUD は解像度ごとに
     /// 固有フレームを持ち、等比拡大 / 引き伸ばしは一切しない。1:1 で中央配置)。
     ///

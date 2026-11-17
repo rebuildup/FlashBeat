@@ -6,9 +6,10 @@ Issue #217 (親) / #218–#223 (子) の成果。ゲーム画面・選曲画面�
 
 ## 参照
 
-- デザイン契約 (正本の抽出): [`docs/design/v6/flashbeat-v6-contract.md`](../design/v6/flashbeat-v6-contract.md)
+- デザイン契約 (正本): [`docs/ui/v6-screen-contract.md`](../ui/v6-screen-contract.md)
+  (旧配置のミラー `docs/design/v6/flashbeat-v6-contract.md` は Issue #614 で削除)
 - 機械可読なノード仕様: [`docs/design/v6/flashbeat-v6-nodes.json`](../design/v6/flashbeat-v6-nodes.json)
-- 参照スクリーンショット: `docs/design/v6/screens/*.png` (Pencil からの書き出し)
+- 参照スクリーンショット: `design/exports/v6/screens/*.png`
 
 ## コード配置
 
@@ -80,11 +81,39 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 
 固定データ (サンプル曲名・"988,513" 等の仮スコア) は表示しない。
 
+## 判定ポップと直近の画面変更 (2026-11-18 時点)
+
+- **判定ポップの動き** (Issue #605): レーン判定テキストは判定線のすぐ上に即時出現
+  (フェードインなし) し、28px を 0.14 秒で EaseOut cubic に立ち上がり、
+  0.58 秒保持、最後の 0.22 秒でフェードアウトする (合計 0.80 秒)。
+  `anchoredPosition.y` だけを動かしレイアウトは変えない。時系列の正本は
+  `V6HudLogic` の `VerdictRise*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
+  設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
+- **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
+  3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、
+  レーンフラッシュ・判定ポップ・歌詞同期を再現する。判定ポップのラベル・色・
+  寿命は `V6HudLogic` の共有関数を使い、2D オーバーレイは
+  `V6OptionViewPreviewOverlay` / `V6OptionPreviewLyrics` が担う。
+  `GManager` のスコア・コンボ・セッション状態には書き戻さない。
+- **ローディング画面** (Issue #606): 進捗バー・エラー表示・リトライ UI は
+  design に無い要素として撤去済み。残るのは全画面 `loading.mp4`、フォールバック
+  背景、ヘッダーの戻る、Esc フッター凡例だけ。進捗値とエラー状態の管理
+  (`SetLoading` / `SetError`) は維持する。契約は `docs/ui/v6-screen-contract.md` §9。
+- **コンパクト画面** (Issue #609): フレーム (1728×972) に収まらない解像度では
+  `V6CompactScreen` がビューポート (`V6CompactViewport`) を作り `V6FramePan` で
+  1:1 のままパンする。Result の登録モーダルは開くと Dialog 中心へパンを合わせ
+  (`V6FramePan.PanSuspended`)、閉じると元の位置へ戻す。
+- **レーンキーのクリック音** (Issue #604): 判定とは別に、プレイ中のレーンキー
+  押下へ 1 フレーム 1 回 `clickSound` が鳴る (詳細は `docs/architecture/game-runtime.md`)。
+
 ## design からの意図的な差異
 
 - **歌詞枠の位置**: design (`HcP8N`) は画面中央に置くが、v6 プレイフィールドが画面中央を
-  使うため中央寄りではなく上端寄りに置く (進捗バーの直下)。寸法・書体は design どおり
-  (1120×220 / r8 / Furigana fs22 / Lyrics fs44 / Romaji fs20 / 縦 gap 6 / padding [16,24])。
+  使うため中央寄りではなく上端寄りに置く (進捗バーの直下)。幅・上端 y は design どおり
+  高さ合わせ写像 (1120×scale / y=250×scale) だが、**高さは 220×scale に固定しない** —
+  文字の行構成から求める (`V6HudLogic.LyricSize` / `LyricContentHeight`、
+  `docs/ui/v6-screen-contract.md` §8「歌詞スロットの位置」)。内部は design どおり
+  (Furigana fs22 / Lyrics fs44 / Romaji fs20 / 縦 gap 6 / padding [16,24])。
 - **判定行の列位置**: design の判定サンプル (Uc9v6: x=623/1155) はキーガイドの列より
   1 レーン左にずれており、キー入力との対応が読めない。レーンと判定の対応を読めることを
   優先し、実装はキーガイドの列 (`V6HudMetrics.KeyColumnCenter`) に揃えている。

@@ -5,7 +5,7 @@ using FlashBeat.UI.V6.Game.Hud;
 namespace FlashBeat.V6CanvasTests
 {
     /// <summary>
-    /// v6 Game HUD の契約 (docs/design/v6/flashbeat-v6-contract.md §8 / §12) の
+    /// v6 Game HUD の契約 (docs/ui/v6-screen-contract.md §8 / §12) の
     /// 純ロジック検証。ランタイムの uGUI 生成は含まない。
     /// </summary>
     public class V6GameHudContractTests

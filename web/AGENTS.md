@@ -313,17 +313,16 @@ for every session; it stays in the memory of the tab and is never stored.
 
 ### Copy and UI text
 
-Every user-facing string of the studio (headings, button labels, loading, error and
-empty states) follows the **unslop** copy contract, vendored at
-`.claude/skills/unslop/` (see its `IMPORT.md`):
+All user-facing strings of the studio — headings, button labels, loading, error
+and empty states — are **Japanese** (unified in issue #611; the e2e and visual
+selectors were updated to match). Copy quality follows the vendored
+`natural-japanese` / `writing-discipline` skills (`.agents/skills/`,
+`.claude/skills/`):
 
 1. Audit the strings before writing; rewrite only the confirmed findings.
 2. Smallest repair — the facts, the quantities and the register of the original stay.
 3. No formulaic framing, no empty abstraction, no unsupported certainty, no repetition.
 4. An error or a warning names the cause **and** the next action.
-
-The preset is `presets/crisp-human.md` (direct, economical, concrete). The skill covers
-text only: layout, class names, `data-testid` and the API surface are untouched by it.
 
 ### Scope
 
