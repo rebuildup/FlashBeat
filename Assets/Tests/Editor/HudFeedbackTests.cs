@@ -8,34 +8,36 @@ namespace FlashBeat.Tests
     /// <summary>
     /// 2026-11-12 のオーナー指摘に対応する表示ロジックのテスト。
     ///
-    /// - 判定は判定線の近くから立ち上がる (叩いた手応えを判定線の位置で返す)。
+    /// - 判定は判定位置に現れて十分な時間表示され自然に消える (Issue #581 の滞在型)。
     /// - コンボもスコアと同じ時間割でポップする。
     /// - 歌詞スロットは文字に合わせて大きさが決まる (箱だけ大きくしない)。
     /// </summary>
     public class HudFeedbackTests
     {
-        // --- 判定ポップアップ (Issue #432) ---
+        // --- 判定ポップアップ (Issue #581: 滞在型) ---
 
         [Test]
-        public void VerdictPopupStartsAtTheJudgeLineAndBouncesUp()
+        public void VerdictFadesInHoldsThenFadesOut()
         {
-            const float drop = 72f;
-            // 出た瞬間は判定線の位置 (静止位置より drop だけ下)。
-            Assert.AreEqual(drop, V6HudLogic.VerdictPopupOffset(0f, drop), 0.001f);
+            const float total = V6HudLogic.VerdictTotalSeconds;
 
-            // 途中で静止位置 (0) を通過する。
-            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(V6HudLogic.VerdictPopupSeconds * 0.5f, drop), 0.05f);
+            // 出現直後は透明、フェードインで 1 へ。
+            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(0f, total), 0.001f);
+            Assert.AreEqual(0.5f,
+                V6HudLogic.VerdictAlpha(V6HudLogic.VerdictFadeInSeconds * 0.5f, total), 0.01f);
 
-            // 行き過ぎて上 (負) へ出てから、最後は静止位置へ戻る。
-            float min = float.MaxValue;
-            for (float t = 0f; t <= V6HudLogic.VerdictPopupSeconds; t += 0.005f)
-            {
-                min = Mathf.Min(min, V6HudLogic.VerdictPopupOffset(t, drop));
-            }
-            Assert.Less(min, 0f, "静止位置を行き過ぎて上へ弾ける");
+            // 静止期間は不透明のまま (読み取りの主時間)。
+            float holdMid = V6HudLogic.VerdictFadeInSeconds + V6HudLogic.VerdictHoldSeconds * 0.5f;
+            Assert.AreEqual(1f, V6HudLogic.VerdictAlpha(holdMid, total - holdMid), 0.001f);
 
-            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(V6HudLogic.VerdictPopupSeconds, drop), 0.001f);
-            Assert.AreEqual(0f, V6HudLogic.VerdictPopupOffset(1f, drop), 0.001f);
+            // フェードアウト: 残り半分で 0.5、寿命末で 0。
+            float fadeMid = total - V6HudLogic.VerdictFadeOutSeconds * 0.5f;
+            Assert.AreEqual(0.5f, V6HudLogic.VerdictAlpha(fadeMid, total - fadeMid), 0.01f);
+            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(total, 0f), 0.001f);
+
+            // 負の経過・残り 0 は常に透明。
+            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(-1f, total), 0.001f);
+            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(0.05f, 0f), 0.001f);
         }
 
         // --- ポップ・パンチ (Issue #434) ---
@@ -62,14 +64,6 @@ namespace FlashBeat.Tests
             Assert.AreEqual(100f, v, 0.5f, "指数 tween は目標へ収束する");
         }
 
-        [Test]
-        public void VerdictFadesOutAtTheEndOfItsLife()
-        {
-            Assert.AreEqual(1f, V6HudLogic.VerdictAlpha(10f), 0.001f, "寿命の前半は不透明");
-            Assert.AreEqual(0.5f, V6HudLogic.VerdictAlpha(V6HudLogic.VerdictFadeSeconds * 0.5f), 0.01f);
-            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(0f), 0.001f);
-            Assert.AreEqual(0f, V6HudLogic.VerdictAlpha(-1f), 0.001f);
-        }
 
         // --- 桁別ポップ (Issue #445) ---
 
@@ -88,15 +82,17 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void VerdictLifeIsShort()
+        public void VerdictLifeIsLongEnoughToRead()
         {
-            // Issue #445: 判定ポップアップは弾けてすぐ消える (全体 0.20s、
-            // フェードはその末尾 0.10s)。かつては 0.8s 静止していた。
-            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.22f);
-            Assert.LessOrEqual(V6HudLogic.VerdictFadeSeconds, 0.14f);
-            Assert.Greater(V6HudLogic.VerdictPopupSeconds, 0f);
-            Assert.Less(V6HudLogic.VerdictPopupSeconds, V6HudLogic.VerdictTotalSeconds,
-                "出現モーションは見え時間より短い");
+            // Issue #581: 判定は滞在型。0.5〜0.8 秒の表示時間を確保し、
+            // フェードイン + 静止 + フェードアウトの合計が総寿命と一致する。
+            Assert.GreaterOrEqual(V6HudLogic.VerdictTotalSeconds, 0.5f);
+            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.8f);
+            Assert.AreEqual(
+                V6HudLogic.VerdictFadeInSeconds + V6HudLogic.VerdictHoldSeconds
+                    + V6HudLogic.VerdictFadeOutSeconds,
+                V6HudLogic.VerdictTotalSeconds, 0.001f);
+            Assert.Greater(V6HudLogic.VerdictHoldSeconds, 0f, "読み取りのための静止時間がある");
         }
 
         // --- 桁別アニメーションの差分 (Issue #445) ---

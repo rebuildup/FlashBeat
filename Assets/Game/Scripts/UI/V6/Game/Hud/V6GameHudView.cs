@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Game.Playfield;
@@ -455,7 +455,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             lastComboFillWidth = -1f;
             comboBonusPulseStart = -1f;
             verdictBaseY = 0f;
-            verdictStartDrop = V6HudLogic.VerdictRestGapAboveLine;
             // 新しい TextMeshPro は空文字から始まる。前の部品に出していた値を
             // 「表示済み」のまま残すと、値が変わらない限り Refresh が書き込まず
             // スコア / コンボが次に増えるまで空のままになる。
