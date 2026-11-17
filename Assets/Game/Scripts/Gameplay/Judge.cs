@@ -330,14 +330,19 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v3 (ADR-0029 / Issue #602): 表示・送信する ratioScore は
+        // scoring v3 (ADR-0029 / Issue #602, #618): 表示・送信する ratioScore は
         // 判定 + コンボ継続 + ノーミス + 節目 + フルコンボ終了の合計。
         // 途中の Miss でノーミス分と終了ボーナスが 0 になるため、スコアは
         // Miss 以降に下がりうる (契約どおり)。
+        // フルコンボ終了ボーナスは全ノーツの判定が確定した時点 (曲終了の
+        // 判定条件と同じ settled >= noteCount) でのみ乗る。途中経過の
+        // HUD スコアには含めない (Issue #618)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
+        bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
+        GManager.judgmentsComplete = judgmentsComplete;
         Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
             board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
-            board.MilestoneCrossings, noteCount);
+            board.MilestoneCrossings, noteCount, judgmentsComplete);
         GManager.ratioScore = v3.RatioScore;
         GManager.comboBonus = v3.ComboBonus;
         GManager.noMissBonus = v3.NoMissBonus;

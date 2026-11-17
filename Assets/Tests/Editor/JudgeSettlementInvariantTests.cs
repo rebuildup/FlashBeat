@@ -104,6 +104,10 @@ public class JudgeSettlementInvariantTests
         GManager.maxScore = 0f;
         GManager.comboBonus = 0;
         GManager.noMissBonus = 0;
+        GManager.comboMilestones = 0;
+        GManager.milestoneBonus = 0;
+        GManager.finalBonus = 0;
+        GManager.judgmentsComplete = false;
         // MusicManager は曲開始時に nextNotes = 1 にする (MusicManager.cs:172)。
         //  Judge は「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
         GManager.nextNotes = 1;
@@ -148,6 +152,10 @@ public class JudgeSettlementInvariantTests
         GManager.maxScore = 0f;
         GManager.comboBonus = 0;
         GManager.noMissBonus = 0;
+        GManager.comboMilestones = 0;
+        GManager.milestoneBonus = 0;
+        GManager.finalBonus = 0;
+        GManager.judgmentsComplete = false;
         GManager.nextNotes = 0;
         GManager.settledNoteCount = 0;
         GManager.noteTiming = 5;
@@ -369,7 +377,7 @@ public class JudgeSettlementInvariantTests
         // このプレイは Miss があるのでノーミスと終了ボーナスは 0。
         Scoring.V3Breakdown expected = Scoring.BreakdownV3(
             GManager.perfect, GManager.great, GManager.bad, GManager.miss,
-            GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount);
+            GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true);
         Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
             "ratioScore が v3 の内訳と食い違う");
         Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
@@ -418,6 +426,77 @@ public class JudgeSettlementInvariantTests
         // + フルコンボ 100 = MaxRatioV3(N)。全 Perfect なら分子=分母。
         Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.ratioScore, 0.0001f);
         Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
+    }
+
+    /// <summary>
+    /// 全ノーツを正しく判定するプレイで、フルコンボ終了ボーナスは
+    /// **全ノーツの判定が確定したフレームで初めて**乗る (Issue #618)。
+    /// 途中経過の HUD スコア (GManager.score / finalBonus) には
+    /// 含まれず、確定後に一度だけ加算される。
+    /// </summary>
+    [Test]
+    public void FinalComboBonus_VestsOnlyAfterLastNoteSettles()
+    {
+        Rig rig = BuildRig(MixedChartJson, MixedChartNoteCount);
+        Player player = new Player(rig);
+
+        foreach (int index in rig.NoteIndices)
+        {
+            player.SchedulePress(rig.NoteTime[index], rig.NoteLane[index]);
+            if (rig.NoteType[index] == LongNote.TYPE_HOLD)
+            {
+                player.ScheduleRelease(rig.NoteEndTime[index], rig.NoteLane[index]);
+            }
+        }
+
+        bool sawIncomplete = false;
+        bool sawComplete = false;
+        float scoreAtLastIncompleteFrame = -1f;
+        player.Run(Frames(0f, 4f, 0.05f), frameTime =>
+        {
+            if (GManager.settledNoteCount < MixedChartNoteCount)
+            {
+                sawIncomplete = true;
+                Assert.AreEqual(0, GManager.finalBonus,
+                    $"frame {frameTime}: 未確定ノーツが残るのに終了ボーナスが乗った");
+                Assert.IsFalse(GManager.judgmentsComplete,
+                    $"frame {frameTime}: 未確定ノーツが残るのに judgmentsComplete が立った");
+                scoreAtLastIncompleteFrame = GManager.score;
+            }
+            else
+            {
+                sawComplete = true;
+                Assert.AreEqual(Scoring.FullComboBonusPoints, GManager.finalBonus,
+                    $"frame {frameTime}: 全ノーツ確定後に終了ボーナスが乗っていない");
+                Assert.IsTrue(GManager.judgmentsComplete);
+            }
+        });
+
+        Assert.IsTrue(sawIncomplete, "途中経過のフレームが観測できていない");
+        Assert.IsTrue(sawComplete, "全ノーツ確定のフレームが観測できていない");
+        Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
+        Assert.Less(scoreAtLastIncompleteFrame, GManager.score,
+            "確定フレームで終了ボーナス分のスコアが加算されていない");
+    }
+
+    /// <summary>
+    /// Miss を含む完走では、全ノーツ確定 (judgmentsComplete) でも
+    /// フルコンボ終了ボーナスは付かない (Issue #618)。
+    /// </summary>
+    [Test]
+    public void FinalComboBonus_NeverVestsWhenMissed()
+    {
+        Rig rig = BuildRig(MixedChartJson, MixedChartNoteCount);
+        Player player = new Player(rig);
+
+        // 先頭の 1 本だけ押し、残りは時刻切れで Miss にする。
+        player.SchedulePress(rig.NoteTime[rig.NoteIndices[0]], rig.NoteLane[rig.NoteIndices[0]]);
+        player.Run(Frames(0f, 4f, 0.05f));
+
+        Assert.AreEqual(MixedChartNoteCount, GManager.settledNoteCount, "全ノーツが確定していない");
+        Assert.Greater(GManager.miss, 0, "Miss が発生していない");
+        Assert.IsTrue(GManager.judgmentsComplete, "全ノーツ確定なのに judgmentsComplete が立っていない");
+        Assert.AreEqual(0, GManager.finalBonus, "Miss があるのに終了ボーナスが乗った");
     }
 
     // ------------------------------------------------------------------
@@ -835,7 +914,11 @@ public class JudgeSettlementInvariantTests
             events.Add(new Event { Time = time, Lane = lane, Down = false });
         }
 
-        public void Run(List<float> frames)
+        /// <summary>
+        /// frames を順に回し、各 JudgeStep の直後に <paramref name="afterStep"/>
+        /// を呼ぶ (途中経過の GManager を観測するため。Issue #618)。
+        /// </summary>
+        public void Run(List<float> frames, System.Action<float> afterStep = null)
         {
             events.Sort((a, b) => a.Time.CompareTo(b.Time));
             int next = 0;
@@ -859,6 +942,7 @@ public class JudgeSettlementInvariantTests
                 }
 
                 rig.Judge.JudgeStep(frameTime, lane => pressedThisFrame[lane], lane => keyDown[lane]);
+                afterStep?.Invoke(frameTime);
 
                 for (int lane = 0; lane < Lanes; lane++)
                 {

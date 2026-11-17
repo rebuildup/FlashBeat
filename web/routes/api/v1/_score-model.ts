@@ -34,9 +34,19 @@
  *     comboBonus     = maxCombo * 5                       (unchanged)
  *     noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
  *     milestoneBonus = comboMilestones * 25               (NEW; the client
- *                      reports only the crossing count, bound-checked
- *                      against floor(hits / 50), the server prices it)
- *     finalBonus     = miss == 0 ? 100 : 0                (NEW)
+ *                      reports only the crossing count. With miss == 0 the
+ *                      count is verified exactly — a single unbroken run
+ *                      crosses floor(hits / 50) times. With misses the
+ *                      exact history is not reconstructible from the
+ *                      aggregates, so the server applies the tightest
+ *                      verifiable bound: at most miss + 1 runs of at most
+ *                      maxCombo combo each, i.e. crossings <=
+ *                      min(floor(hits / 50), (miss + 1) * floor(maxCombo / 50)))
+ *     finalBonus     = miss == 0 ? 100 : 0                (NEW; a submission
+ *                      requires perfect+great+bad+miss == noteCount, so
+ *                      miss == 0 already means the play was completed —
+ *                      the same condition the Unity client vests the bonus
+ *                      on, see Issue #618)
  *     totalRatio     = judgment + comboBonus + noMissBonus
  *                      + milestoneBonus + finalBonus
  *     maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
@@ -127,13 +137,13 @@ export const SCORE_SUBMISSION_SCHEMA = {
       type: "integer",
       minimum: 0,
       description:
-        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version.",
+        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version and, for scoringVersion 3, above the hit count (perfect + great + bad), which the combo can never exceed.",
     },
     comboMilestones: {
       type: "integer",
       minimum: 0,
       description:
-        "Optional. Number of combo milestone crossings (every 50 combo) during the play; only meaningful for scoringVersion 3, where the server bound-checks it against floor((perfect+great+bad)/50) and prices each crossing itself (see ADR-0029). Omitted means 0.",
+        "Optional. Number of combo milestone crossings (every 50 combo) during the play; only meaningful for scoringVersion 3. When miss is 0 the server verifies the count exactly against floor((perfect+great+bad)/50); when misses occurred it applies the tightest bound the aggregate fields allow — at most miss + 1 runs of maxCombo — because the exact crossing history cannot be reconstructed from the totals (see ADR-0029). Omitted is treated as 0.",
     },
     score: {
       type: "integer",
@@ -247,20 +257,50 @@ export function scoreSemanticsDiagnostics(
       message: `scoring version ${scoringVersion} is not supported by this server (latest is ${LATEST_SCORING_VERSION})`,
     });
   }
-  // Scoring v3 (ADR-0029): the client reports only the number of combo
-  // milestone crossings; the server prices each at 25 ratio points itself.
-  // Each crossing consumes 50 combo increments and the combo only grows on
-  // head hits, so floor(hits / 50) is the tightest bound the aggregate
-  // fields allow — the same trust model as the maxCombo cap. The field is
-  // ignored for versions 1 and 2, whose formulas cannot use it.
+  // Scoring v3 (ADR-0029, Issue #618): the client reports only the number
+  // of combo milestone crossings; the server prices each at 25 ratio
+  // points itself. What the aggregate fields can verify:
+  //
+  //   - maxCombo only grows on head hits, so it can never exceed hits.
+  //   - miss == 0: the whole play is one unbroken run, so the crossing
+  //     count is exactly floor(hits / 50) — verified by equality.
+  //   - miss > 0: the exact crossing history cannot be reconstructed
+  //     from the totals (49 hits + Miss + 49 hits and 50 + Miss + 48 are
+  //     indistinguishable). The tightest verifiable bound is at most
+  //     miss + 1 runs of at most maxCombo combo each:
+  //     crossings <= (miss + 1) * floor(maxCombo / 50), and never more
+  //     than floor(hits / 50). A claim inside this bound is still a
+  //     client-declared value the server cannot disprove — the same
+  //     trust model as the maxCombo cap, documented in ADR-0029.
+  //
+  // The field is ignored for versions 1 and 2, whose formulas cannot
+  // use it.
   if (scoringVersion === SCORING_VERSION_V3) {
     const hits = request.perfect + request.great + request.bad;
-    const bound = Math.floor(hits / 50);
-    if ((request.comboMilestones ?? 0) > bound) {
+    const milestones = request.comboMilestones ?? 0;
+    if (request.maxCombo !== undefined && request.maxCombo > hits) {
       diagnostics.push({
-        path: "/comboMilestones",
-        message: `must not exceed floor((perfect + great + bad) / 50) = ${bound} for ${hits} hits, got ${request.comboMilestones}`,
+        path: "/maxCombo",
+        message: `must not exceed the ${hits} hits (perfect + great + bad), got ${request.maxCombo}`,
       });
+    }
+    if (request.miss === 0) {
+      const expected = Math.floor(hits / 50);
+      if (milestones !== expected) {
+        diagnostics.push({
+          path: "/comboMilestones",
+          message: `must equal floor((perfect + great + bad) / 50) = ${expected} when miss is 0, got ${milestones}`,
+        });
+      }
+    } else {
+      const maxCombo = request.maxCombo ?? 0;
+      const bound = Math.min(Math.floor(hits / 50), (request.miss + 1) * Math.floor(maxCombo / 50));
+      if (milestones > bound) {
+        diagnostics.push({
+          path: "/comboMilestones",
+          message: `must not exceed ${bound} milestone crossings for ${request.miss} misses and maxCombo ${maxCombo}, got ${milestones}`,
+        });
+      }
     }
   }
   return diagnostics;
