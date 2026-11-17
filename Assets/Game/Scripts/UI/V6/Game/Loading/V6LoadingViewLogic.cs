@@ -4,8 +4,10 @@ namespace FlashBeat.UI.V6.Game.Loading
 {
     /// <summary>
     /// v6 曲ローディング画面 (Issue #224, design `g4Q3F`) の純ロジック (EditMode テスト対象)。
-    /// design に進捗表現が無い (メイン空) ので、進捗の表現 (確定/不定バー、文言、
-    /// ジャケットの対応表) をここに置く。
+    /// design のメインゾーンは空で進捗・エラーの可視表現を持たない (Issue #606)。
+    /// ここに残るのはフレーム配置・フッター凡例の寸法・ジャケット対応だけ。
+    /// 進捗値そのものの管理は <see cref="GameLoadingProgress"/> と
+    /// <see cref="V6LoadingView.SetLoading"/> が担う (表示はしない)。
     /// </summary>
     public static class V6LoadingViewLogic
     {
@@ -52,71 +54,6 @@ namespace FlashBeat.UI.V6.Game.Loading
 
         /// <summary>凡例の文字サイズ。design fs22。</summary>
         public const float FooterLegendFontSize = 22f;
-
-        /// <summary>不定インジケータの往復周期 (秒)。v5 GameLoadingView と同じ。</summary>
-        public const float CycleSeconds = 1.6f;
-
-        /// <summary>
-        /// 不定インジケータの塗りの x (0..trackW-fillW)。往復 (0 → 端 → 0)。
-        /// </summary>
-        public static float IndeterminateX(float time, float trackW, float fillW)
-        {
-            if (trackW <= 0f || fillW <= 0f)
-            {
-                return 0f;
-            }
-
-            float range = trackW - fillW;
-            if (range <= 0f)
-            {
-                return 0f;
-            }
-
-            float phase = (time % CycleSeconds) / CycleSeconds;
-            float tri = phase < 0.5f ? phase * 2f : 2f - phase * 2f;
-            return tri * range;
-        }
-
-        /// <summary>ロード中の見出し。</summary>
-        public static string LoadingHeadline()
-        {
-            return "準備中…";
-        }
-
-        /// <summary>ロード中の補足 (進捗不明)。メディア準備は段階名しか持たない。</summary>
-        public static string LoadingDetail()
-        {
-            return "動画と音声を読み込んでいます";
-        }
-
-        // --- 実進捗 (Issue #224) ---
-
-        /// <summary>
-        /// 進捗値が「既知」か。null は不明 (不定インジケータにフォールバック)。
-        /// 0 は既知 (準備が始まったばかり) — 不明扱いにしない。
-        /// </summary>
-        public static bool HasProgress(float? progress)
-        {
-            return progress.HasValue;
-        }
-
-        /// <summary>確定バーの塗り幅 (0..trackW)。進捗は 0..1 にクランプ。</summary>
-        public static float DeterminateFillWidth(float progress, float trackW)
-        {
-            return Mathf.Clamp01(progress) * trackW;
-        }
-
-        /// <summary>進捗のパーセント表記 (0 → "0%", 0.42 → "42%", 1 → "100%")。</summary>
-        public static string ProgressPercentText(float progress)
-        {
-            return Mathf.RoundToInt(Mathf.Clamp01(progress) * 100f) + "%";
-        }
-
-        /// <summary>進捗が既知のときの補足テキスト。数値の正体 (譜面準備) も示す。</summary>
-        public static string ProgressDetail(float progress)
-        {
-            return "譜面を準備中… " + ProgressPercentText(progress);
-        }
 
         // --- ジャケット (Issue #224) ---
 

@@ -12,7 +12,8 @@ namespace FlashBeat.UI.V6.Game.Loading
     /// <summary>
     /// V6LoadingView の uGUI 構築部分 (Issue #385 Phase 2.8 で分割)。
     /// 背景 / ローディング映像 / 共通フレーム / ヘッダー (曲バッジ) /
-    /// メイン (進捗・失敗) / フッター (凡例) の生成を持つ。
+    /// フッター (凡例) の生成を持つ。メインゾーンは design どおり空
+    /// (進捗・エラーの専用表示は置かない — Issue #606)。
     /// partial class のためフィールド・メソッドは V6LoadingView 本体と共有する。
     /// </summary>
     public sealed partial class V6LoadingView
@@ -75,7 +76,6 @@ namespace FlashBeat.UI.V6.Game.Loading
             frame.sizeDelta = new Vector2(FrameW, FrameH);
 
             BuildHeader();
-            BuildMain();
             BuildFooter();
 
             driver = rootGo.AddComponent<V6LoadingViewDriver>();
@@ -188,85 +188,6 @@ namespace FlashBeat.UI.V6.Game.Loading
             V6Layout.LayoutItem(texts, 113f, 56f);
             songTitle = badge.Title;
             songArtist = badge.Sub;
-        }
-
-        /// <summary>design ではメイン空。進捗の表現はこの実装が決めた:
-        /// 中央に見出し + 補足 + 不定バー (ロード中) / 失敗メッセージ + 「選曲にもどる」。</summary>
-        private void BuildMain()
-        {
-            var main = V5Ui.Node(frame.gameObject, "Main");
-            V6Layout.PlaceAt(main, 24f, 96f, new Vector2(1680f, 780f));
-
-            var center = V5Ui.Node(main, "Progress");
-            V6Layout.PlaceAt(center, 608f, 240f, new Vector2(464f, 300f));
-            progressGroup = center;
-
-            headline = V5Ui.Text(center, "Headline", V6LoadingViewLogic.LoadingHeadline(), 30f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
-            V6Layout.PlaceAt(headline.gameObject, 0f, 0f, new Vector2(464f, 40f));
-
-            detail = V5Ui.Text(center, "Detail", V6LoadingViewLogic.LoadingDetail(), 18f,
-                V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            V6Layout.PlaceAt(detail.gameObject, 0f, 52f, new Vector2(464f, 24f));
-
-            var track = V5Ui.Panel(center, "Track", new Vector2(TrackW, TrackH), V5Tokens.Key0, 4f);
-            V6Layout.PlaceAt(track, 0f, 108f);
-            fill = V5Ui.Panel(track, "Fill", new Vector2(FillW, TrackH), V5Tokens.Text, 4f)
-                .GetComponent<RectTransform>();
-            fill.anchorMin = new Vector2(0f, 0.5f);
-            fill.anchorMax = new Vector2(0f, 0.5f);
-            fill.pivot = new Vector2(0f, 0.5f);
-            fill.anchoredPosition = Vector2.zero;
-
-            // 失敗時: メッセージ + 「再試行」(実遷移: RetryGame) + 「選曲にもどる」(実遷移)。
-            var error = V5Ui.Node(main, "Error");
-            V6Layout.PlaceAt(error, 608f, 240f, new Vector2(464f, 300f));
-            errorGroup = error;
-
-            var errorHeadline = V5Ui.Text(error, "Headline", "読み込み / 再生に失敗しました", 30f,
-                V5Tokens.Text, TextAlignmentOptions.Center, FontStyles.Bold);
-            V6Layout.PlaceAt(errorHeadline.gameObject, 0f, 0f, new Vector2(464f, 40f));
-
-            var errorDetail = V5Ui.Text(error, "Detail", "", 18f,
-                V5Tokens.TextMuted, TextAlignmentOptions.Center);
-            V6Layout.PlaceAt(errorDetail.gameObject, 0f, 52f, new Vector2(464f, 24f));
-
-            var retryBtn = V5Ui.Panel(error, "Retry", new Vector2(200f, 56f), V5Tokens.ButtonPrimaryBg, 8f);
-            V6Layout.PlaceAt(retryBtn, 32f, 120f);
-            var retryLayout = retryBtn.AddComponent<HorizontalLayoutGroup>();
-            retryLayout.spacing = 12f;
-            retryLayout.childAlignment = TextAnchor.MiddleCenter;
-            retryLayout.childControlWidth = true;
-            retryLayout.childControlHeight = true;
-            retryLayout.childForceExpandWidth = false;
-            retryLayout.childForceExpandHeight = false;
-            var retryLabel = V5Ui.Text(retryBtn, "Label", "再試行", 30f,
-                V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Bold);
-            V6Layout.LayoutItem(retryLabel.gameObject, 0f, 34f);
-            var retryButton = retryBtn.AddComponent<Button>();
-            retryButton.targetGraphic = retryBtn.GetComponent<Image>();
-            V6ButtonPressFeedback.Attach(retryBtn);
-            // 再試行は GameScene への遷移なので、押下リングが見えるだけ遅らせる。
-            retryButton.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(retryBtn, Retry));
-
-            var backBtn = V5Ui.Panel(error, "Back To Select", new Vector2(200f, 56f), V5Tokens.ButtonPrimaryBg, 8f);
-            V6Layout.PlaceAt(backBtn, 232f, 120f);
-            var btnLayout = backBtn.AddComponent<HorizontalLayoutGroup>();
-            btnLayout.spacing = 12f;
-            btnLayout.childAlignment = TextAnchor.MiddleCenter;
-            btnLayout.childControlWidth = true;
-            btnLayout.childControlHeight = true;
-            btnLayout.childForceExpandWidth = false;
-            btnLayout.childForceExpandHeight = false;
-            var btnLabel = V5Ui.Text(backBtn, "Label", "選曲にもどる", 26f,
-                V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center, FontStyles.Bold);
-            V6Layout.LayoutItem(btnLabel.gameObject, 0f, 34f);
-            var btnButton = backBtn.AddComponent<Button>();
-            btnButton.targetGraphic = backBtn.GetComponent<Image>();
-            V6ButtonPressFeedback.Attach(backBtn);
-            btnButton.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(backBtn, Back));
-
-            errorGroup.SetActive(false);
         }
 
         private void BuildFooter()

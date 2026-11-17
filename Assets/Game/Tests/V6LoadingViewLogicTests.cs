@@ -5,75 +5,11 @@ namespace FlashBeat.V6HudTests
 {
     /// <summary>
     /// v6 曲ローディング画面 (Issue #224) の純ロジックの EditMode テスト。
-    /// design に進捗表現が無いので、不定インジケータの往復計算だけを検証する。
+    /// design のメインゾーンは空で進捗・エラーの可視表現を持たない (Issue #606)。
+    /// 検証対象はフレーム配置・フッター凡例の寸法・ジャケット対応だけ。
     /// </summary>
     public class V6LoadingViewLogicTests
     {
-        [Test]
-        public void IndeterminateX_PingPongsBetweenEnds()
-        {
-            float track = 464f;
-            float fill = 160f;
-            float range = track - fill;
-
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(0f, track, fill), 1e-4f);
-            // 半周期 (phase 0.5) で反対端、1 周期で戻る。
-            Assert.AreEqual(range, V6LoadingViewLogic.IndeterminateX(
-                V6LoadingViewLogic.CycleSeconds * 0.5f, track, fill), 1e-3f);
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(
-                V6LoadingViewLogic.CycleSeconds, track, fill), 1e-4f);
-        }
-
-        [Test]
-        public void IndeterminateX_DegenerateSizes_StaysAtZero()
-        {
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(1f, 0f, 160f));
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(1f, 160f, 160f));
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(1f, 100f, 160f));
-            Assert.AreEqual(0f, V6LoadingViewLogic.IndeterminateX(1f, 464f, 0f));
-        }
-
-        // --- 実進捗 (Issue #224) ---
-
-        [Test]
-        public void HasProgress_NullIsUnknown_ZeroIsKnown()
-        {
-            // 進捗不明 (null) だけが不定インジケータの条件。0 は既知。
-            Assert.IsFalse(V6LoadingViewLogic.HasProgress(null));
-            Assert.IsTrue(V6LoadingViewLogic.HasProgress(0f));
-            Assert.IsTrue(V6LoadingViewLogic.HasProgress(1f));
-        }
-
-        [Test]
-        public void DeterminateFillWidth_ProportionalAndClamped()
-        {
-            float track = 464f;
-            Assert.AreEqual(0f, V6LoadingViewLogic.DeterminateFillWidth(0f, track), 1e-4f);
-            Assert.AreEqual(232f, V6LoadingViewLogic.DeterminateFillWidth(0.5f, track), 1e-4f);
-            Assert.AreEqual(track, V6LoadingViewLogic.DeterminateFillWidth(1f, track), 1e-4f);
-            // 範囲外はクランプ (負値 / 1 超え)。
-            Assert.AreEqual(0f, V6LoadingViewLogic.DeterminateFillWidth(-0.2f, track), 1e-4f);
-            Assert.AreEqual(track, V6LoadingViewLogic.DeterminateFillWidth(1.5f, track), 1e-4f);
-        }
-
-        [Test]
-        public void ProgressPercentText_RoundsToWholePercent()
-        {
-            Assert.AreEqual("0%", V6LoadingViewLogic.ProgressPercentText(0f));
-            Assert.AreEqual("42%", V6LoadingViewLogic.ProgressPercentText(0.42f));
-            Assert.AreEqual("100%", V6LoadingViewLogic.ProgressPercentText(1f));
-            Assert.AreEqual("100%", V6LoadingViewLogic.ProgressPercentText(0.999f));
-            Assert.AreEqual("0%", V6LoadingViewLogic.ProgressPercentText(-0.5f));
-        }
-
-        [Test]
-        public void ProgressDetail_IncludesStageAndPercent()
-        {
-            string text = V6LoadingViewLogic.ProgressDetail(0.42f);
-            Assert.IsTrue(text.Contains("譜面"));
-            Assert.IsTrue(text.Contains("42%"));
-        }
-
         // --- ジャケット (Issue #224) ---
 
         [Test]

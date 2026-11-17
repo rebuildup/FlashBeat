@@ -11,9 +11,9 @@ namespace FlashBeat.UI.V6.Game.Loading
 {
     /// <summary>
     /// V6LoadingView の 1:1 配置と毎フレーム更新 (Issue #385 Phase 2.8 で分割)。
-    /// フレーム原点の再配置 (<see cref="UpdatePlacement"/>) と進捗バーの更新
-    /// (<see cref="Tick"/>) を持つ。partial class のためフィールド・メソッドは
-    /// V6LoadingView 本体と共有する。
+    /// フレーム原点の再配置 (<see cref="UpdatePlacement"/>) と映像面の
+    /// 状態見直し (<see cref="Tick"/>) を持つ。partial class のため
+    /// フィールド・メソッドは V6LoadingView 本体と共有する。
     /// </summary>
     public sealed partial class V6LoadingView
     {
@@ -41,24 +41,8 @@ namespace FlashBeat.UI.V6.Game.Loading
             UpdatePlacement();
             // VideoPlayer の準備完了は非同期なので、準備できた瞬間に映像面が
             // 動画に切り替わるよう毎フレーム状態を見直す。
+            // 進捗・エラーの専用表示は design に無い (Issue #606) — 更新対象は映像面だけ。
             ApplyVideoSurface();
-            if (fill != null && !errorShown && progressGroup != null && progressGroup.activeSelf)
-            {
-                if (V6LoadingViewLogic.HasProgress(progress))
-                {
-                    // 実進捗: 塗り幅が割合に比例 (0 でも 0 幅で「既知」を出す)。
-                    fill.anchoredPosition = Vector2.zero;
-                    fill.sizeDelta = new Vector2(
-                        V6LoadingViewLogic.DeterminateFillWidth(progress.Value, TrackW), TrackH);
-                }
-                else
-                {
-                    // 進捗不明: 不定インジケータ (往復)。
-                    fill.sizeDelta = new Vector2(FillW, TrackH);
-                    float x = V6LoadingViewLogic.IndeterminateX(Time.unscaledTime, TrackW, FillW);
-                    fill.anchoredPosition = new Vector2(x, 0f);
-                }
-            }
         }
     }
 }

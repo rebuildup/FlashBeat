@@ -18,64 +18,25 @@ namespace FlashBeat.UI.V6.Game.Loading
     {
         /// <summary>ロード中の表示 (実データ: 曲情報は統合担当が渡す)。</summary>
         /// <param name="chartProgress">
-        /// 譜面準備の実進捗 (0..1)。null は進捗不明 → 不定インジケータにフォールバック。
-        /// 0 は既知 (準備が始まったばかり) として確定バーで出す。
+        /// 譜面準備の実進捗 (0..1)。null は進捗不明。design に進捗の可視表現は
+        /// 無い (Issue #606) ので値は状態として保持するだけで、専用 UI は出さない。
         /// </param>
         public void SetLoading(string songTitle, string artist, Texture2D jacket, float? chartProgress)
         {
             errorShown = false;
             leaving = false;
             progress = chartProgress;
-            if (headline != null)
-            {
-                headline.text = V6LoadingViewLogic.LoadingHeadline();
-            }
-
-            if (detail != null)
-            {
-                // 進捗が既知なら実割合、不明なら従来の補足テキスト。
-                detail.text = chartProgress.HasValue
-                    ? V6LoadingViewLogic.ProgressDetail(chartProgress.Value)
-                    : V6LoadingViewLogic.LoadingDetail();
-            }
-
-            if (progressGroup != null)
-            {
-                progressGroup.SetActive(true);
-            }
-
-            if (errorGroup != null)
-            {
-                errorGroup.SetActive(false);
-            }
-
             ApplySong(songTitle, artist, jacket);
         }
 
-        /// <summary>失敗の表示 + 「選曲にもどる」の導線 (message は実状態から)。</summary>
-        public void SetError(string message)
+        /// <summary>
+        /// 失敗状態を記録する。design にエラー専用の表示は無い (Issue #606)
+        /// ため画面はローディングのまま (映像 + ヘッダーの戻る導線)。
+        /// </summary>
+        public void SetError()
         {
             errorShown = true;
             leaving = false;
-            if (headline != null)
-            {
-                headline.text = "読み込み / 再生に失敗しました";
-            }
-
-            if (detail != null)
-            {
-                detail.text = message != null && message.Length > 0 ? message : "選曲画面へ戻れます";
-            }
-
-            if (progressGroup != null)
-            {
-                progressGroup.SetActive(false);
-            }
-
-            if (errorGroup != null)
-            {
-                errorGroup.SetActive(true);
-            }
         }
 
         /// <summary>選曲画面へ戻る (既存 HudPlayStatus.BackToSelect と同じ遷移)。</summary>
@@ -94,31 +55,6 @@ namespace FlashBeat.UI.V6.Game.Loading
             else
             {
                 Initiate.Fade("SelectScene", Color.black, 1.0f);
-            }
-        }
-
-        /// <summary>
-        /// 同じ曲を再試行する (Issue #224)。実在する操作だけを割り当てる:
-        /// GameSceneManager.RetryGame (GManager.ResetSession + GameScene を読み込み直す)。
-        /// シーン読み込み直しで NotesManager/MusicManager が最初から準備し直す。
-        /// シーンマネージャが無い場合は同じ遷移を直接行う。
-        /// </summary>
-        public void Retry()
-        {
-            if (leaving)
-            {
-                return;
-            }
-
-            leaving = true;
-            if (sceneManager != null)
-            {
-                sceneManager.RetryGame();
-            }
-            else
-            {
-                GManager.ResetSession();
-                Initiate.Fade("GameScene", Color.black, 1.0f);
             }
         }
 

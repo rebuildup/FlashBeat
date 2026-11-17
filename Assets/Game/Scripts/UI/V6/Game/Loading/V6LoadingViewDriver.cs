@@ -10,7 +10,7 @@ using FlashBeat.UI.V6.Common;
 namespace FlashBeat.UI.V6.Game.Loading
 {
 
-    /// <summary>V6LoadingView の毎フレーム処理 (1:1 配置 + 不定インジケータ)。</summary>
+    /// <summary>V6LoadingView の毎フレーム処理 (1:1 配置 + 映像面の状態見直し)。</summary>
     internal sealed class V6LoadingViewDriver : MonoBehaviour
     {
         internal V6LoadingView View;
