@@ -19,10 +19,10 @@
  *     archived and with a published chart version). Archived songs are
  *     counted separately — the festival never deletes a song.
  *   - **scoring version**: every aggregate counts only the latest scoring
- *     version the server supports (ADR-0028). v1 and v2 scores live on
- *     different scales, so mixing them in `plays`, `averageScore`,
+ *     version the server supports (ADR-0028, ADR-0029). v1, v2 and v3 scores
+ *     live on different scales, so mixing them in `plays`, `averageScore`,
  *     `bestScore` or `topPlayers` would silently compare incomparable
- *     numbers; v1 rows stay readable through the versioned leaderboard.
+ *     numbers; older rows stay readable through the versioned leaderboard.
  *
  * The response is never cached (`Cache-Control: no-store`): a score submitted
  * a second ago has to show up.

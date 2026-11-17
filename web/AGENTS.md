@@ -255,13 +255,18 @@ publishes both in one request.
 - `scoringVersion` selects the formula: `1` (or an omitted field — old clients)
   is `ratioScore = 5P+3G+B`, `maxScore = noteCount * 5`; `2` adds
   `comboBonus = maxCombo * 5` and `noMissBonus = (miss == 0) ? (P+G+B) * 5 : 0`
-  with `maxScore = noteCount * 15`. Both end in
+  with `maxScore = noteCount * 15`; `3` (ADR-0029) keeps the v2 components and
+  adds `milestoneBonus = comboMilestones * 25` (bound-checked against
+  `floor((P+G+B)/50)`, the server prices the count itself) and
+  `finalBonus = (miss == 0) ? 100 : 0`, with
+  `maxRatio = noteCount * 15 + floor(noteCount / 50) * 25 + 100`. All end in
   `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
 - `scores.scoringVersion` (integer, default 1, existing rows backfilled to 1)
-  keeps the two formulas apart: a submission is recomputed, ranked and
+  keeps the formulas apart: a submission is recomputed, ranked and
   aggregated only inside its own version. A `scoringVersion` the server cannot
   recompute is a 422; the leaderboard/rankings query parameter defaults to the
-  latest version (currently 2).
+  latest version (currently 3). `comboMilestones` is ignored by versions 1
+  and 2.
 
 ### Dashboard, statistics and the song archive (issue #151)
 
