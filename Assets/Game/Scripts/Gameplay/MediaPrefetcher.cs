@@ -90,11 +90,13 @@ namespace FlashBeat.Gameplay
                 {
                     warm.Add(videoId);
                     CacheHitCount++;
+                    CancelInFlightIfOther(videoId);
                     return Task.CompletedTask;
                 }
 
                 if (warm.Contains(videoId) || failedOnce.Contains(videoId))
                 {
+                    CancelInFlightIfOther(videoId);
                     return Task.CompletedTask;
                 }
 
@@ -124,6 +126,25 @@ namespace FlashBeat.Gameplay
                 currentRun = RunAsync(videoId, cts);
                 return currentRun;
             }
+        }
+
+        /// <summary>
+        /// 早期 return 経路用: 要求 videoId と異なる先読みが残っていれば中断する。
+        /// cache hit / warm / failedOnce で即 return する場合でも
+        /// 「同時に走る先読みは 1 本」の契約を守る (#561)。
+        /// InFlightVideoId も畳む: 旧 run の finally は current != cts で
+        /// 状態をクリアしないので、残すと stale な videoId が残り続ける。
+        /// </summary>
+        static void CancelInFlightIfOther(string videoId)
+        {
+            if (current == null || InFlightVideoId == videoId)
+            {
+                return;
+            }
+
+            current.Cancel();
+            current = null;
+            InFlightVideoId = null;
         }
 
         static async Task RunAsync(string videoId, CancellationTokenSource cts)
