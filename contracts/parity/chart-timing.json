@@ -1,0 +1,16 @@
+{
+  "format": "flashbeat-chart-timing-parity/1",
+  "description": "Shared chart-timing vectors for the Unity <-> Web parity contract (Issue #612). Each case is one note of a chart with the given BPM: seconds is the float32 result of Unity NotesManager.NoteTimeSeconds (kankaku = 60/(BPM*LPB); beatSec = kankaku*LPB; time = beatSec*num/LPB, every step single precision). When endNum is present the case is a hold and endSeconds is the float32 result of Unity LongNote.EndSeconds (kankaku*endNum — a different operation order than the start time, pinned on purpose). The Web side reproduces both with the same Math.fround step order in web/tests/parity-timing.test.ts; noteTimeSec/holdEndSec of src/lib/chart are the double-precision equivalents and must agree within float32 rounding.",
+  "cases": [
+    { "name": "tutorial-120-4-4", "bpm": 120, "num": 4, "lpb": 4, "seconds": 0.5 },
+    { "name": "who-174-8-4", "bpm": 174, "num": 8, "lpb": 4, "seconds": 0.6896551847457886 },
+    { "name": "odd-bpm-137", "bpm": 137, "num": 3, "lpb": 4, "seconds": 0.32846716046333313 },
+    { "name": "bpm-60", "bpm": 60, "num": 1, "lpb": 1, "seconds": 1 },
+    { "name": "bpm-200-lpb16", "bpm": 200, "num": 17, "lpb": 16, "seconds": 0.3187500238418579 },
+    { "name": "large-num", "bpm": 128, "num": 999, "lpb": 4, "seconds": 117.0703125 },
+    { "name": "lpb1", "bpm": 90, "num": 5, "lpb": 1, "seconds": 3.3333334922790527 },
+    { "name": "hold-end", "bpm": 120, "num": 4, "lpb": 4, "endNum": 12, "seconds": 0.5, "endSeconds": 1.5 },
+    { "name": "hold-end-lpb16", "bpm": 150, "num": 8, "lpb": 16, "endNum": 40, "seconds": 0.20000000298023224, "endSeconds": 1 },
+    { "name": "hold-end-odd", "bpm": 137, "num": 3, "lpb": 4, "endNum": 11, "seconds": 0.32846716046333313, "endSeconds": 1.2043795585632324 }
+  ]
+}
