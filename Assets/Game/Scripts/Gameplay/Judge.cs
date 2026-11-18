@@ -253,7 +253,9 @@ public class Judge : MonoBehaviour
         LongNote.Judgement judgement = LongNote.JudgeHead(lag);
         if (judgement == LongNote.Judgement.None) return;
 
-        if (audioHit != null && hitSound != null)
+        // hitSound と clickSound が同一クリップのときは PlayLaneClickSound が
+        // 同じフレームで既に鳴らしているため、ここでは重ねて鳴らさない (issue #672)。
+        if (audioHit != null && hitSound != null && hitSound != clickSound)
         {
             audioHit.PlayOneShot(hitSound);
         }
