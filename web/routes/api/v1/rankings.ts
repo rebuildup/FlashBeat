@@ -18,9 +18,10 @@
  * second ago has to show up.
  */
 import { defineHandler } from "void";
-import { and, asc, count, db, desc, eq } from "void/db";
+import { and, asc, db, desc, eq } from "void/db";
 import { chartVersions, scores, songs } from "@schema";
 import { parseScoringVersionQuery } from "./_score-model";
+import { readCatalogVersion } from "./_catalog-version";
 
 /** Largest number of entries per song the endpoint serves. */
 const MAX_ENTRIES_PER_SONG = 10;
@@ -89,11 +90,11 @@ export const GET = defineHandler(async (c) => {
     }
   }
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
 
   c.header("Cache-Control", "no-store");
   return c.json({
-    catalogVersion: total.value,
+    catalogVersion,
     songs: songRows.map((song) => ({
       songId: song.id,
       title: song.title,

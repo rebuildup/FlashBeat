@@ -139,3 +139,21 @@ export type ChartVersion = typeof chartVersions.$inferSelect;
 export type NewChartVersion = typeof chartVersions.$inferInsert;
 export type Score = typeof scores.$inferSelect;
 export type NewScore = typeof scores.$inferInsert;
+
+/**
+ * Single-row catalog epoch (issue #656).
+ *
+ * `catalogVersion` used to be `COUNT(chart_versions)`, which cannot see
+ * archive/unarchive: those flip `songs.archived` without touching
+ * `chart_versions`, so the published catalog changed while the counter
+ * stayed still. The epoch is bumped by every catalog-visible mutation
+ * (publish, archive, unarchive) inside the same transaction, so the value
+ * is a monotonic "catalog changed" token for polling clients.
+ */
+export const catalogMeta = sqliteTable("catalog_meta", {
+  /** Always 1: the table holds exactly one row. */
+  id: integer("id").primaryKey(),
+  epoch: integer("epoch").notNull(),
+});
+
+export type CatalogMeta = typeof catalogMeta.$inferSelect;

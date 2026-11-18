@@ -10,10 +10,10 @@
  * song "published", and it also guarantees that every entry carries the note
  * count the contract requires.
  *
- * `catalogVersion` is the number of published chart snapshots
- * (`COUNT(chart_versions)`). It is a simple, monotonic counter: every publish
- * adds a chart version, so the number changes whenever the published charts
- * change. The publish endpoint (#16) returns the same value.
+ * `catalogVersion` is the catalog epoch of `catalog_meta` (issue #656):
+ * every catalog-visible mutation — publish, archive, unarchive — bumps it
+ * inside the same transaction, so polling clients see a change whenever the
+ * published catalog changes.
  *
  * Archived songs (issue #151) are not listed. The festival never deletes a
  * song: "removing" one archives it, so the row, its chart snapshots and its
@@ -21,9 +21,10 @@
  * The staff list (`GET /api/v1/admin/songs`) still shows archived songs.
  */
 import { defineHandler } from "void";
-import { and, asc, count, db, eq } from "void/db";
+import { and, asc, db, eq } from "void/db";
 import { chartVersions, songs } from "@schema";
 import { buildCatalogResponse, type CatalogRow } from "./_read-model";
+import { readCatalogVersion } from "./_catalog-version";
 
 export const GET = defineHandler(async (c) => {
   const rows = (await db
@@ -46,8 +47,8 @@ export const GET = defineHandler(async (c) => {
     .where(eq(songs.archived, 0))
     .orderBy(asc(songs.id))) as CatalogRow[];
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
 
   c.header("Cache-Control", "no-store");
-  return c.json(buildCatalogResponse(rows, total.value));
+  return c.json(buildCatalogResponse(rows, catalogVersion));
 });

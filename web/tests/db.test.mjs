@@ -68,9 +68,17 @@ test("the chart fixture satisfies the frozen contract schema", () => {
   assert.ok(validate(chart), ajv.errorsText(validate.errors));
 });
 
-test("the committed migrations create exactly the three contract tables", () => {
+test("the committed migrations create the contract tables plus the catalog epoch", () => {
   const sqlite = createMigratedDatabase();
-  assert.deepEqual(tableNames(sqlite), ["chart_versions", "scores", "songs"]);
+  assert.deepEqual(tableNames(sqlite), [
+    // catalog_meta is the internal catalogVersion epoch (issue #656),
+    // not a contract table.
+    "catalog_meta",
+    "chart_versions",
+    "scores",
+    "songs",
+  ]);
+  assert.deepEqual(columnNames(sqlite, "catalog_meta"), ["id", "epoch"]);
   assert.deepEqual(columnNames(sqlite, "songs"), [
     "id",
     "title",

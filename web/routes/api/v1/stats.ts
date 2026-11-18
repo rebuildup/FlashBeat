@@ -83,6 +83,9 @@ export const GET = defineHandler(async (c) => {
     )
     .where(
       and(
+        // Issue #656: archived songs leave every aggregate, matching the
+        // rankings scope — their history stays, it just stops counting.
+        eq(songs.archived, 0),
         eq(scores.scoringVersion, LATEST_SCORING_VERSION),
         eq(scores.version, songs.currentVersion),
       ),
@@ -121,6 +124,7 @@ export const GET = defineHandler(async (c) => {
     .innerJoin(songs, eq(songs.id, scores.songId))
     .where(
       and(
+        eq(songs.archived, 0),
         eq(scores.scoringVersion, LATEST_SCORING_VERSION),
         eq(scores.version, songs.currentVersion),
       ),
@@ -132,6 +136,7 @@ export const GET = defineHandler(async (c) => {
     .innerJoin(songs, eq(songs.id, scores.songId))
     .where(
       and(
+        eq(songs.archived, 0),
         eq(scores.scoringVersion, LATEST_SCORING_VERSION),
         eq(scores.version, songs.currentVersion),
         sql`${scores.createdAt} >= datetime('now', '-1 day')`,
@@ -167,6 +172,7 @@ export const GET = defineHandler(async (c) => {
     .innerJoin(songs, eq(songs.id, scores.songId))
     .where(
       and(
+        eq(songs.archived, 0),
         eq(scores.scoringVersion, LATEST_SCORING_VERSION),
         eq(scores.version, songs.currentVersion),
       ),

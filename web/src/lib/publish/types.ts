@@ -23,6 +23,10 @@ export interface SongPublishResponse {
   songId: string;
   chartVersion: number;
   catalogVersion: number;
+  /** Issue #656: the song stays archived after this publish (republish of an
+   * archived song succeeds but remains out of the public catalog). */
+  archived?: boolean;
+  archivedAt?: string | null;
 }
 
 /** Why a publish did not succeed. */

@@ -5,9 +5,9 @@
  * Contract: `contracts/openapi.v1.yaml` (`publishSong`, `archiveSong`). One
  * atomic upsert: the song metadata is written, the chart text is appended to
  * `chart_versions` as a new immutable snapshot, and `songs.currentVersion`
- * moves to it. `catalogVersion` is `COUNT(chart_versions)` (see the read
- * API), so every successful publish bumps it by one and the response reports
- * the same value `GET /api/v1/catalog` serves.
+ * moves to it. `catalogVersion` is the `catalog_meta` epoch (issue
+ * #656): every catalog-visible mutation bumps it in the same transaction,
+ * and the response reports the same value `GET /api/v1/catalog` serves.
  *
  * Behaviour:
  *   - 401 — bearer token does not match the `FLASHBEAT_ADMIN_TOKEN` runtime
@@ -24,7 +24,7 @@
  */
 import { defineHandler } from "void";
 import { env } from "void/env";
-import { count, db, eq } from "void/db";
+import { db, eq } from "void/db";
 import { chartVersions, songs } from "@schema";
 import {
   adminTokenMatches,
@@ -33,6 +33,7 @@ import {
   type PublishDiagnostic,
 } from "../../_publish-model";
 import { SONG_ID_PATTERN } from "../../_read-model";
+import { bumpCatalogVersion, readCatalogVersion } from "../../_catalog-version";
 import {
   buildArchiveResponse,
   validateArchiveRequest,
@@ -135,6 +136,9 @@ export const PUT = defineHandler(async (c) => {
       db
         .insert(chartVersions)
         .values({ songId, version: chartVersion, json: chartJson, noteCount }),
+      // Issue #656: the epoch moves with the catalog, not with the chart
+      // count — archive/unarchive change the catalog without a new version.
+      bumpCatalogVersion(),
     ]);
   } catch {
     // Two concurrent publishes of the same song can compute the same version;
@@ -153,9 +157,23 @@ export const PUT = defineHandler(async (c) => {
     );
   }
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
+  // Issue #656: a republish of an archived song succeeds but stays out of
+  // the catalog; the response reports the archive state so the client can
+  // tell "published but hidden" apart from a plain failure.
+  const state = await db
+    .select({ archived: songs.archived, archivedAt: songs.archivedAt })
+    .from(songs)
+    .where(eq(songs.id, songId))
+    .get();
 
-  return c.json({ songId, chartVersion, catalogVersion: total.value });
+  return c.json({
+    songId,
+    chartVersion,
+    catalogVersion,
+    archived: state?.archived === 1,
+    archivedAt: state?.archivedAt ?? null,
+  });
 });
 
 /**
@@ -233,12 +251,17 @@ export const POST = defineHandler(async (c) => {
 
   // The archive moment is written by the server; the client never chooses it.
   const archivedAt = archived ? new Date().toISOString() : null;
-  await db
-    .update(songs)
-    .set({ archived: archived ? 1 : 0, archivedAt })
-    .where(eq(songs.id, songId));
+  // Issue #656: archive/unarchive is a catalog-visible change, so the epoch
+  // bumps in the same transaction as the flag flip.
+  await db.batch([
+    db
+      .update(songs)
+      .set({ archived: archived ? 1 : 0, archivedAt })
+      .where(eq(songs.id, songId)),
+    bumpCatalogVersion(),
+  ]);
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
 
-  return c.json(buildArchiveResponse(songId, archived, archivedAt, total.value));
+  return c.json(buildArchiveResponse(songId, archived, archivedAt, catalogVersion));
 });
