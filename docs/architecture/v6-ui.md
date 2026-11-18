@@ -113,7 +113,9 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   使うため中央寄りではなく上端寄りに置く (進捗バーの直下)。幅・上端 y は design どおり
   高さ合わせ写像 (1120×scale / y=250×scale) だが、**高さは 220×scale に固定しない** —
   文字の行構成から求める (`V6HudLogic.LyricSize` / `LyricContentHeight`、
-  `docs/ui/v6-screen-contract.md` §8「歌詞スロットの位置」)。内部は design どおり
+  `docs/ui/v6-screen-contract.md` §8「歌詞スロットの位置」)。高さは
+  歌詞・Start Prompt・カウントダウン・曲終了の全状態で不変の共有値
+  (`V6HudLogic.LyricSlotHeight` = 3 状態の最大必要高、Issue #674)。内部は design どおり
   (Furigana fs22 / Lyrics fs44 / Romaji fs20 / 縦 gap 6 / padding [16,24])。
 - **判定行の列位置**: design の判定サンプル (Uc9v6: x=623/1155) はキーガイドの列より
   1 レーン左にずれており、キー入力との対応が読めない。レーンと判定の対応を読めることを
