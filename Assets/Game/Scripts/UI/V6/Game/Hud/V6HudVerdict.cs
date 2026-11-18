@@ -33,6 +33,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
         /// <summary>判定テキストの静止位置 (行ローカル anchoredPosition.y、px)。</summary>
         private float verdictBaseY;
+        /// <summary>判定テキストの落下距離 (px)。出現時は静止位置よりこの分だけ上。</summary>
+        private float verdictFallDistance;
 
         /// <summary>v6 のレーン別判定行を使うか (既定は false = 元の 3D 判定エフェクト)。</summary>
         private static bool VerdictRowEnabled
@@ -166,11 +168,15 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
             // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
-            // Issue #605 / design §10.3: verdictBaseY は立ち上がりの終点
-            // (静止位置)。出現時は VerdictRiseOffset 分だけ判定線側へずらし、
-            // 時間でここへ戻す。レイアウトは動かさず y だけを時間で変える。
+            // Issue #671: verdictBaseY は落下の終点 (静止位置)。出現時は
+            // verdictFallDistance だけ上 (画面上端側) に置き、時間でここへ
+            // 落ちてくる。レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
+            // 落下距離 = 静止位置から画面上端 (ノーツの出現位置) まで。
+            // edgeMargin は出現フレームで文字が見切れないための半分の高さ。
+            verdictFallDistance = V6HudLogic.VerdictFallDistance(
+                judgeLineFromBottom, canvasSize.y, m.VerdictH * 0.5f);
             for (int i = 0; i < verdictTexts.Count; i++)
             {
                 var rt = verdictTexts[i].rectTransform;
@@ -334,18 +340,18 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #605 / design §10.3: 判定線のすぐ上に即時出現
-                // (フェードインなし) し、140ms / 28px の EaseOut で静止位置へ
-                // 立ち上がる。寿命の最後 220ms でフェードアウト。
-                // Issue #581 の滞在時間 (0.80s) は維持する。
+                // Issue #671: 判定は画面上端 (ノーツの出現位置) に即時出現
+                // (フェードインなし) し、VerdictFallSeconds で静止位置へ
+                // 落ちてくる。その後 VerdictHoldSeconds 静止し、寿命の最後
+                // VerdictFadeOutSeconds でフェードアウト。
                 float elapsed = now - laneVerdictStart[lane];
                 SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
 
                 var rt = verdictTexts[lane].rectTransform;
                 // レイアウトは触らず anchoredPosition.y だけを時間で変える。
-                // offset は正 = 判定線側 (下) なので verdictBaseY から引く。
+                // offset は正 = 静止位置より上なので verdictBaseY に足す。
                 V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
-                    verdictBaseY - V6HudLogic.VerdictRiseOffset(elapsed));
+                    verdictBaseY + V6HudLogic.VerdictFallOffset(elapsed, verdictFallDistance));
             }
         }
 
@@ -377,8 +383,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 int lane = V6HudLogic.LaneFromEffectPositionX(t.position.x);
                 string label = V6HudLogic.VerdictLabel(n);
                 laneVerdicts[lane] = label;
-                // Issue #605: 判定の見え時間は VerdictTotalSeconds (0.80s)。
-                // 即時出現 → 立ち上がり → 静止 → フェードアウト (§10.3)。
+                // Issue #671: 判定の見え時間は VerdictTotalSeconds (0.97s)。
+                // 即時出現 → 上方からの落下 → 静止保持 → フェードアウト (§10.3)。
                 laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;

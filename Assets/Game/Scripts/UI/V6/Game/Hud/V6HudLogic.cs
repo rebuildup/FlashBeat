@@ -130,30 +130,24 @@ namespace FlashBeat.UI.V6.Game.Hud
             return content + LyricPaddingY * 2f;
         }
 
-        // --- 判定ポップアップ (Issue #605: 判定線からの立ち上がり + 滞在表示) ---
+        // --- 判定ポップアップ (Issue #671: 上方からの落下 + 静止保持 + フェード) ---
 
         /// <summary>
         /// 判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。
-        /// §10.3 の「所定位置」。立ち上がりの終点であり、滞在中の表示位置。
+        /// §10.3 の「所定位置」。落下の終点であり、滞在中の表示位置。
         /// </summary>
         public const float VerdictRestGapAboveLine = 72f;
 
         /// <summary>
-        /// 判定が現れてから静止位置へ立ち上がるまでの時間 (秒)。
-        /// design §10.3: 140ms。
+        /// 判定が現れてから静止位置へ落ちきるまでの時間 (秒)。
+        /// Issue #671: ノーツと同じく上方から判定線へ向かって落ちる移動
+        /// フェーズ。出現位置は画面上端 (ノーツが現れる位置) で、
+        /// 距離は <see cref="VerdictFallDistance"/> が画面形状から求める。
         /// </summary>
-        public const float VerdictRiseSeconds = 0.14f;
+        public const float VerdictFallSeconds = 0.30f;
 
-        /// <summary>
-        /// 立ち上がりの移動量 (px)。静止位置よりこの距離だけ判定線側 (下) に
-        /// 出て、<see cref="VerdictRiseSeconds"/> かけて静止位置へ上がる。
-        /// design §10.3: 28px。静止位置は判定線の 72px 上なので、出現点は
-        /// 判定線の約 44px 上 = 「判定線のすぐ上」に相当する。
-        /// </summary>
-        public const float VerdictRiseDistance = 28f;
-
-        /// <summary>判定が不透明のまま留まる時間 (秒)。読み取りの主時間。</summary>
-        public const float VerdictHoldSeconds = 0.58f;
+        /// <summary>判定が静止位置で留まる時間 (秒)。読み取りの主時間。</summary>
+        public const float VerdictHoldSeconds = 0.45f;
 
         /// <summary>
         /// 判定が消えるまでのフェードアウト時間 (秒)。
@@ -163,19 +157,19 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// 静止保持 (<see cref="VerdictHoldSeconds"/>) + フェードアウト
-        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.80 秒。
-        /// Issue #581 の滞在時間 (0.5〜0.8 秒) を維持しつつ、
-        /// §10.3 のフェードアウト 220ms に合わせて配分した。
-        /// 立ち上がり (<see cref="VerdictRiseSeconds"/>) は保持時間の
-        /// 冒頭に重なり、総寿命には別途加算しない。
+        /// 落下 (<see cref="VerdictFallSeconds"/>) + 静止保持
+        /// (<see cref="VerdictHoldSeconds"/>) + フェードアウト
+        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.97 秒。
+        /// Issue #671: 落下フェーズを独立した時間として足したため、
+        /// #605 の 0.80 秒から延びる。静止保持は読み取りに必要な
+        /// 0.4 秒以上を確保する。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictHoldSeconds + VerdictFadeOutSeconds;
+            VerdictFallSeconds + VerdictHoldSeconds + VerdictFadeOutSeconds;
 
         /// <summary>
         /// 判定テキストの不透明度。出現は即時 (§10.3: フェードインしない。
-        /// Issue #605 の設計判断。立ち上がりの動きが出現の合図を担うため、
+        /// Issue #605 の設計判断。落下の動きが出現の合図を担うため、
         /// #581 のフェードインは廃止した)。寿命の最後は
         /// <see cref="VerdictFadeOutSeconds"/> で 1→0。
         /// </summary>
@@ -191,25 +185,46 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 静止位置より判定線側 (下) へのオフセット (px、正 = 下)。
-        /// design §10.3: 出現時は <see cref="VerdictRiseDistance"/> (28px) だけ
-        /// 下にあり、<see cref="VerdictRiseSeconds"/> で EaseOut に従って
-        /// 静止位置 (0) へ立ち上がる。立ち上がり完了後は 0。
+        /// 判定テキストの落下距離 (px、画面下原点)。静止位置
+        /// (判定線 + <see cref="VerdictRestGapAboveLine"/>) から画面上端までの
+        /// 距離から、出現フレームで文字が見切れないよう
+        /// <paramref name="edgeMargin"/> を引く。ノーツが現れる位置
+        /// (設計 y=0 = 画面上端) から落ちてくるので、判定がノーツと
+        /// 一緒に落下して見える (Issue #671)。
+        /// </summary>
+        /// <param name="judgeLineFromBottom">判定線の画面下端からの高さ (px)。</param>
+        /// <param name="canvasHeight">HUD キャンバスの高さ (px)。</param>
+        /// <param name="edgeMargin">出現位置を画面上端から内側へ下げる余白 (px)。</param>
+        public static float VerdictFallDistance(float judgeLineFromBottom, float canvasHeight, float edgeMargin)
+        {
+            float restFromBottom = judgeLineFromBottom + VerdictRestGapAboveLine;
+            return Mathf.Max(0f, canvasHeight - restFromBottom - edgeMargin);
+        }
+
+        /// <summary>
+        /// 静止位置より上へのオフセット (px、正 = 上)。
+        /// Issue #671: 出現時は <paramref name="fallDistance"/> だけ上にあり、
+        /// <see cref="VerdictFallSeconds"/> かけて EaseOutCubic に従って
+        /// 静止位置 (0) へ落ちる。落下完了後は 0。
+        /// 到達を減速させる EaseOut にするのは、ノーツの等速落下に合わせつつ
+        /// 静止位置への着地を滑らかに見せるため。
         /// </summary>
         /// <param name="elapsed">表示開始からの秒。</param>
-        public static float VerdictRiseOffset(float elapsed)
+        /// <param name="fallDistance">出現時の静止位置からの距離 (px)。
+        /// <see cref="VerdictFallDistance"/> で求める。</param>
+        public static float VerdictFallOffset(float elapsed, float fallDistance)
         {
             if (elapsed <= 0f)
             {
-                return VerdictRiseDistance;
+                return fallDistance;
             }
 
-            if (elapsed >= VerdictRiseSeconds)
+            if (elapsed >= VerdictFallSeconds)
             {
                 return 0f;
             }
 
-            return VerdictRiseDistance * (1f - EaseOutCubic(elapsed / VerdictRiseSeconds));
+            return fallDistance * (1f - EaseOutCubic(elapsed / VerdictFallSeconds));
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
