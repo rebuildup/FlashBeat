@@ -323,16 +323,10 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        /// <summary>判定色 (HUD の VerdictColor と同じ割り当て。design の $text/$ok/$warn/$danger)。</summary>
+        /// <summary>判定色。HUD の判定表示と同じ割り当てを <see cref="Game.Hud.V6HudLogic.VerdictColor"/> から取得する (Issue #679)。独自テーブルを持つと凡例と実際の判定色がずれる。</summary>
         private static Color JudgeColor(string label)
         {
-            switch (label)
-            {
-                case "PERFECT": return V5Tokens.Text;
-                case "GREAT": return V5Tokens.Ok;
-                case "BAD": return V5Tokens.Warn;
-                default: return V5Tokens.Danger;
-            }
+            return Game.Hud.V6HudLogic.VerdictColor(label);
         }
 
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
