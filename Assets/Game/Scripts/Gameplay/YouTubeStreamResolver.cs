@@ -108,7 +108,103 @@ namespace FlashBeat.Gameplay
         static string cachedFfmpegPath;
         static bool ffmpegPathResolved;
 
-        public static string ResolveYtDlpPath()
+        /// <summary>
+        /// Serializes the lazy tool resolution: the first caller starts the
+        /// background probe and every later caller shares the same Task, so
+        /// the candidate list is probed exactly once per process (issue #642).
+        /// </summary>
+        static readonly object resolutionGate = new object();
+        static Task<string> ytDlpPathTask;
+        static Task<string> denoPathTask;
+        static Task<string> ffmpegPathTask;
+
+        /// <summary>
+        /// Timeout of the per-candidate "--version" probe. A binary that does
+        /// not answer within this window is killed and skipped.
+        /// </summary>
+        public const int ProbeTimeoutMs = 20000;
+
+        /// <summary>
+        /// Test seam (EditMode): when > 0 it replaces <see cref="ProbeTimeoutMs"/>
+        /// so the timeout-kill path can be verified without waiting 20 s.
+        /// The game never sets it - a test restores 0 in its TearDown.
+        /// </summary>
+        public static int ProbeTimeoutMsOverride;
+
+        /// <summary>
+        /// Test seam for the EditMode tests: when set, it replaces the
+        /// per-candidate version probe so tool discovery can be verified
+        /// without real binaries (same contract as
+        /// <see cref="YouTubeMediaCache.DownloadOverride"/> - the game never
+        /// sets it, a test restores null in its TearDown, issue #642).
+        /// </summary>
+        public static Func<string, string, bool> CandidateProbeOverride;
+
+        /// <summary>
+        /// Runs <paramref name="probe"/> on the thread pool. The probe bodies
+        /// only use System.IO / environment variables / Process - no Unity API -
+        /// so they are safe off the main thread (issue #642 / #570).
+        /// </summary>
+        static Task<string> RunResolution(Func<string> probe)
+        {
+            return Task.Run(() =>
+            {
+                try { return probe(); }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[YouTubeStreamResolver] tool resolution failed: " + e.Message);
+                    return null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Test seam (EditMode): clears the cached tool resolution so a test
+        /// can re-resolve with a different PATH / FLASHBEAT_* environment.
+        /// The game never calls it.
+        /// </summary>
+        public static void ResetToolResolutionForTests()
+        {
+            lock (resolutionGate)
+            {
+                ytDlpPathTask = null;
+                denoPathTask = null;
+                ffmpegPathTask = null;
+                ytDlpPathResolved = false;
+                cachedYtDlpPath = null;
+                denoPathResolved = false;
+                cachedDenoPath = null;
+                ffmpegPathResolved = false;
+                cachedFfmpegPath = null;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the yt-dlp binary off the calling thread (issue #642).
+        ///
+        /// The discovery probes spawn `yt-dlp --version`-style processes; run
+        /// synchronously on the Unity main thread they froze the game for up
+        /// to <see cref="ProbeTimeoutMs"/> per candidate on machines without
+        /// the tools (#570). The result is cached process-wide and concurrent
+        /// callers share one probe. Only the Unity-API reads
+        /// (Application.streamingAssetsPath / dataPath) stay on the calling
+        /// thread - they are captured before the work moves to the pool.
+        /// </summary>
+        public static Task<string> ResolveYtDlpPathAsync()
+        {
+            lock (resolutionGate)
+            {
+                if (ytDlpPathTask == null)
+                {
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    ytDlpPathTask = RunResolution(() => ResolveYtDlpPathCore(streamingAssetsPath, dataPath));
+                }
+                return ytDlpPathTask;
+            }
+        }
+
+        static string ResolveYtDlpPathCore(string streamingAssetsPath, string dataPath)
         {
             if (ytDlpPathResolved) return cachedYtDlpPath;
             ytDlpPathResolved = true;
@@ -149,8 +245,8 @@ namespace FlashBeat.Gameplay
                 candidates.Add(Path.Combine(localAppData, "Programs", "Python", "Python" + ver, "Scripts", "yt-dlp.exe"));
                 candidates.Add(@"C:\Python" + ver + @"\Scripts\yt-dlp.exe");
             }
-            candidates.Add(Path.Combine(Application.streamingAssetsPath, "yt-dlp", "yt-dlp.exe"));
-            candidates.Add(Path.Combine(Application.dataPath, "StreamingAssets", "yt-dlp", "yt-dlp.exe"));
+            candidates.Add(Path.Combine(streamingAssetsPath, "yt-dlp", "yt-dlp.exe"));
+            candidates.Add(Path.Combine(dataPath, "StreamingAssets", "yt-dlp", "yt-dlp.exe"));
 
             // 5. Linux/macOS fallbacks
             string[] unixCandidates = { "/usr/local/bin/yt-dlp", "/usr/bin/yt-dlp", "/opt/homebrew/bin/yt-dlp" };
@@ -163,7 +259,23 @@ namespace FlashBeat.Gameplay
             return cachedYtDlpPath;
         }
 
-        public static string ResolveDenoPath()
+        /// <summary>
+        /// Resolves the deno binary off the calling thread (issue #642) - same
+        /// background-probe contract as <see cref="ResolveYtDlpPathAsync"/>.
+        /// </summary>
+        public static Task<string> ResolveDenoPathAsync()
+        {
+            lock (resolutionGate)
+            {
+                if (denoPathTask == null)
+                {
+                    denoPathTask = RunResolution(ResolveDenoPathCore);
+                }
+                return denoPathTask;
+            }
+        }
+
+        static string ResolveDenoPathCore()
         {
             if (denoPathResolved) return cachedDenoPath;
             denoPathResolved = true;
@@ -272,7 +384,19 @@ namespace FlashBeat.Gameplay
         /// audio-only m4a is refused: "Failed to recognize video file format").
         /// Override with FLASHBEAT_FFMPEG_PATH.
         /// </summary>
-        public static string ResolveFfmpegPath()
+        public static Task<string> ResolveFfmpegPathAsync()
+        {
+            lock (resolutionGate)
+            {
+                if (ffmpegPathTask == null)
+                {
+                    ffmpegPathTask = RunResolution(ResolveFfmpegPathCore);
+                }
+                return ffmpegPathTask;
+            }
+        }
+
+        static string ResolveFfmpegPathCore()
         {
             if (ffmpegPathResolved) return cachedFfmpegPath;
             ffmpegPathResolved = true;
@@ -332,7 +456,7 @@ namespace FlashBeat.Gameplay
                 if (string.IsNullOrEmpty(candidate)) continue;
                 try { if (!File.Exists(candidate)) continue; } catch { continue; }
                 if (IsShim(candidate)) continue;
-                if (RunsSuccessfully(candidate, versionArgs)) return candidate;
+                if (ProbeCandidate(candidate, versionArgs)) return candidate;
             }
             return null;
         }
@@ -347,8 +471,29 @@ namespace FlashBeat.Gameplay
             return normalized.Contains("/mise/shims/") || normalized.Contains("/.mise/shims/");
         }
 
-        static bool RunsSuccessfully(string executable, string arguments)
+        /// <summary>
+        /// The per-candidate version probe. The EditMode tests replace it via
+        /// <see cref="CandidateProbeOverride"/> so discovery can be verified
+        /// without real binaries; the game always uses <see cref="RunsSuccessfully"/>.
+        /// </summary>
+        static bool ProbeCandidate(string executable, string arguments)
         {
+            var probe = CandidateProbeOverride;
+            if (probe != null) return probe(executable, arguments);
+            return RunsSuccessfully(executable, arguments);
+        }
+
+        /// <summary>
+        /// The per-candidate version probe: runs <paramref name="executable"/>
+        /// with <paramref name="arguments"/>, drains its output asynchronously
+        /// and returns true only on exit code 0 within the probe timeout. A
+        /// candidate that does not answer in time is killed so no orphaned
+        /// child is left behind (issue #642). Public so the EditMode tests can
+        /// verify the timeout-kill contract with a real process.
+        /// </summary>
+        public static bool RunsSuccessfully(string executable, string arguments)
+        {
+            int timeoutMs = ProbeTimeoutMsOverride > 0 ? ProbeTimeoutMsOverride : ProbeTimeoutMs;
             try
             {
                 var psi = new ProcessStartInfo
@@ -364,9 +509,26 @@ namespace FlashBeat.Gameplay
                 using (var proc = Process.Start(psi))
                 {
                     if (proc == null) return false;
-                    proc.StandardOutput.ReadToEnd();
-                    proc.StandardError.ReadToEnd();
-                    if (!proc.WaitForExit(20000)) return false;
+                    // Drain asynchronously: a synchronous ReadToEnd here would
+                    // block until the child exits, so the timeout below could
+                    // never fire for a hung candidate (and a child filling the
+                    // pipe buffer would deadlock before it ever exits).
+                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                    var stderrTask = proc.StandardError.ReadToEndAsync();
+                    if (!proc.WaitForExit(timeoutMs))
+                    {
+                        // Issue #642: a candidate that does not answer in time
+                        // used to be abandoned still running (the mise shim
+                        // hang was the motivating case). Kill it so the probe
+                        // leaves no orphaned child behind.
+                        try { proc.Kill(); } catch { }
+                        Debug.LogWarning($"[YouTubeStreamResolver] probe timed out after {timeoutMs} ms, killed: {executable}");
+                        return false;
+                    }
+                    // The probe only needs the exit code; bound the drain so a
+                    // grandchild holding the pipes open cannot hang us either.
+                    try { Task.WhenAll(stdoutTask, stderrTask).Wait(3000); }
+                    catch { }
                     return proc.ExitCode == 0;
                 }
             }
@@ -463,7 +625,9 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public static async Task<YtDlpOutput> RunAsync(string arguments, int timeoutMs = 120000, CancellationToken cancellationToken = default)
         {
-            var exePath = ResolveYtDlpPath();
+            // Issue #642: tool discovery runs on the thread pool; awaiting it
+            // here keeps the probe off the Unity main thread.
+            var exePath = await ResolveYtDlpPathAsync().ConfigureAwait(false);
             if (exePath == null)
             {
                 return new YtDlpOutput
@@ -485,7 +649,7 @@ namespace FlashBeat.Gameplay
                 StandardErrorEncoding = Encoding.UTF8,
             };
 
-            var deno = ResolveDenoPath();
+            var deno = await ResolveDenoPathAsync().ConfigureAwait(false);
             if (!string.IsNullOrEmpty(deno))
             {
                 // yt-dlp needs a JS runtime for YouTube's challenge solver.
@@ -568,11 +732,11 @@ namespace FlashBeat.Gameplay
             return "";
         }
 
-        static string CommonArguments()
+        static async Task<string> CommonArgumentsAsync()
         {
             var args = new StringBuilder();
             args.Append("--no-warnings --no-playlist --no-progress --newline --ignore-config ");
-            var deno = ResolveDenoPath();
+            var deno = await ResolveDenoPathAsync().ConfigureAwait(false);
             if (!string.IsNullOrEmpty(deno))
             {
                 args.Append("--js-runtimes ");
@@ -587,17 +751,17 @@ namespace FlashBeat.Gameplay
         // ---------------------------------------------------------------
 
         /// <summary>Lists the formats YouTube exposes for the video (evidence + format selection).</summary>
-        public static Task<YtDlpOutput> ListFormatsAsync(string videoId, CancellationToken cancellationToken = default)
+        public static async Task<YtDlpOutput> ListFormatsAsync(string videoId, CancellationToken cancellationToken = default)
         {
-            var args = CommonArguments() + "-F " + Quote(string.Format(WatchUrlFormat, videoId));
-            return RunAsync(args, 60000, cancellationToken);
+            var args = await CommonArgumentsAsync().ConfigureAwait(false) + "-F " + Quote(string.Format(WatchUrlFormat, videoId));
+            return await RunAsync(args, 60000, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Resolves the direct googlevideo.com URL for a format selector.</summary>
-        public static Task<YtDlpOutput> GetStreamUrlAsync(string videoId, string formatSelector, CancellationToken cancellationToken = default)
+        public static async Task<YtDlpOutput> GetStreamUrlAsync(string videoId, string formatSelector, CancellationToken cancellationToken = default)
         {
-            var args = CommonArguments() + "-f " + Quote(formatSelector) + " -g " + Quote(string.Format(WatchUrlFormat, videoId));
-            return RunAsync(args, 60000, cancellationToken);
+            var args = await CommonArgumentsAsync().ConfigureAwait(false) + "-f " + Quote(formatSelector) + " -g " + Quote(string.Format(WatchUrlFormat, videoId));
+            return await RunAsync(args, 60000, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -607,20 +771,20 @@ namespace FlashBeat.Gameplay
         /// A selector with "+" (video itag + audio itag) makes yt-dlp mux both
         /// streams into one mp4; that needs ffmpeg, so it is passed explicitly.
         /// </summary>
-        public static Task<YtDlpOutput> DownloadAsync(string videoId, string formatSelector, string outputTemplate, CancellationToken cancellationToken = default)
+        public static async Task<YtDlpOutput> DownloadAsync(string videoId, string formatSelector, string outputTemplate, CancellationToken cancellationToken = default)
         {
-            var args = CommonArguments() + "--no-part -f " + Quote(formatSelector);
+            var args = await CommonArgumentsAsync().ConfigureAwait(false) + "--no-part -f " + Quote(formatSelector);
             if (formatSelector != null && formatSelector.Contains("+"))
             {
                 args += " --merge-output-format mp4";
-                var ffmpeg = ResolveFfmpegPath();
+                var ffmpeg = await ResolveFfmpegPathAsync().ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(ffmpeg))
                 {
                     args += " --ffmpeg-location " + Quote(ffmpeg);
                 }
             }
             args += " -o " + Quote(outputTemplate) + " " + Quote(string.Format(WatchUrlFormat, videoId));
-            return RunAsync(args, 180000, cancellationToken);
+            return await RunAsync(args, 180000, cancellationToken).ConfigureAwait(false);
         }
 
         // ---------------------------------------------------------------

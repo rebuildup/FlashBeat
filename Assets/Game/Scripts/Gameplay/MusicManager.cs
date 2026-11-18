@@ -363,7 +363,11 @@ public class MusicManager : MonoBehaviour
         ReadyMedia ready;
         // ffmpeg が使える環境では分離ペアを再利用しない (結合 mp4 を作り直す)。
         // ここで一度だけ PATH を引き、SelectPlan と同じ判断を使う。
-        bool ffmpegAvailable = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+        // Issue #642: ツール探索はスレッドプール側で走る。結果を coroutine で
+        // 待つだけなので、プローブ中もメインスレッドは止まらない。
+        var ffmpegTask = YouTubeStreamResolver.ResolveFfmpegPathAsync();
+        while (!ffmpegTask.IsCompleted) yield return null;
+        bool ffmpegAvailable = !string.IsNullOrEmpty(ffmpegTask.Result);
         if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: ffmpegAvailable))
         {
             streamResolved = true;
@@ -437,7 +441,17 @@ public class MusicManager : MonoBehaviour
                 while (!fallbackTask.IsCompleted) yield return null;
                 videoFile = fallbackTask.Result;
                 combined = false;
-                Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
+                // Issue #642: the merged plan carries no separate audio
+                // selector (Combined => HasAudioFile == false), so the audio
+                // branch below used to be skipped and the song played
+                // silently. Re-derive the split plan from the same format
+                // list: it selects the same video-only stream
+                // (FallbackVideoSelector) plus the audio track, so the
+                // fallback keeps its sound. The video-only file stays under
+                // the video prefix, so a later run can still retry the merge.
+                plan = YouTubeMediaCache.PlanAfterMergedFallback(formats);
+                Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}" +
+                          $" - split plan '{plan.Summary}'");
             }
 
             audioFile = null;

@@ -71,9 +71,10 @@ public static class MediaCacheTools
                 // runtime (MusicManager): a merged file (picture + YouTube sound
                 // in one mp4) is stored under its own prefix, so a picture-only
                 // file is never reused as if it carried the sound.
-                var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+                var canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPathAsync().GetAwaiter().GetResult());
                 var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
                 var video = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.VideoSelector, YouTubeMediaCache.PrefixForPlan(plan)).GetAwaiter().GetResult();
+                bool combined = plan.Combined;
                 if (!video.Ok && plan.Combined && !string.IsNullOrEmpty(plan.FallbackVideoSelector))
                 {
                     // The merge failed (no ffmpeg, download error): the
@@ -82,6 +83,11 @@ public static class MediaCacheTools
                     Debug.LogWarning($"[FlashBeat] pre-cache '{song.title}': merged download failed ({video.Detail}) - using the video-only stream");
                     YouTubeMediaCache.RemoveProducedFiles(YouTubeMediaCache.CacheDirectoryFor(song.videoId), YouTubeMediaCache.MergedFilePrefix);
                     video = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix).GetAwaiter().GetResult();
+                    combined = false;
+                    // Issue #642: same silent-audio fix as MusicManager - the
+                    // merged plan has no audio selector, so re-derive the split
+                    // plan and fetch the audio track as well.
+                    plan = YouTubeMediaCache.PlanAfterMergedFallback(formats);
                 }
                 if (!video.Ok)
                 {
@@ -91,7 +97,7 @@ public static class MediaCacheTools
                 }
 
                 var detail = video.Detail;
-                if (plan.HasAudioFile)
+                if (!combined && plan.HasAudioFile)
                 {
                     var audio = YouTubeMediaCache.EnsureFileAsync(song.videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix).GetAwaiter().GetResult();
                     detail += audio.Ok ? $" + {audio.Detail}" : $" (audio failed: {audio.Detail})";
