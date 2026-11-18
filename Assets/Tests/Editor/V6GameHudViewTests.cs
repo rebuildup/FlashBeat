@@ -21,12 +21,16 @@ namespace FlashBeat.Tests
         private V6GameHudView view;
         private int originalScore;
         private int originalCombo;
+        private int originalMiss;
+        private int originalComboMilestones;
 
         [SetUp]
         public void SetUp()
         {
             originalScore = GManager.score;
             originalCombo = GManager.combo;
+            originalMiss = GManager.miss;
+            originalComboMilestones = GManager.comboMilestones;
 
             canvasGo = new GameObject("V6GameHudViewTests Canvas", typeof(Canvas));
             var canvasRect = (RectTransform)canvasGo.transform;
@@ -42,6 +46,8 @@ namespace FlashBeat.Tests
         {
             GManager.score = originalScore;
             GManager.combo = originalCombo;
+            GManager.miss = originalMiss;
+            GManager.comboMilestones = originalComboMilestones;
 
             if (canvasGo != null)
             {
@@ -123,6 +129,33 @@ namespace FlashBeat.Tests
             Assert.AreEqual("123,457", view.ScoreTextForAudit);
             activeSlots = strip.Cast<Transform>().Count(t => t.gameObject.activeSelf);
             Assert.AreEqual(7, activeSlots);
+        }
+
+        /// <summary>
+        /// Issue #673: miss > 0 で Combo Status ブロックが非表示になっても、
+        /// 節目ボーナスの獲得ポップアップは右コラムに表示され続ける。
+        /// milestoneBonusText の親が comboStatusBlock ではないことも固定する。
+        /// </summary>
+        [Test]
+        public void MilestoneBonus_StaysVisibleAfterAMiss()
+        {
+            GManager.miss = 1; // ShowComboStatus は miss>0 で false → ブロック非表示
+            GManager.comboMilestones = 1; // ビュー初期値 (0) からの増分で表示を起こす
+
+            view.Refresh();
+
+            var status = view.ComboStatusBlockForAudit;
+            Assert.IsNotNull(status, "Combo Status ブロックが無い");
+            Assert.IsFalse(status.activeSelf, "miss > 0 では Combo Status は非表示");
+
+            var bonus = view.MilestoneBonusForAudit;
+            Assert.IsNotNull(bonus, "節目ボーナス表示が無い");
+            Assert.IsTrue(bonus.activeInHierarchy,
+                "miss > 0 でも節目ボーナスは表示される (Issue #673)");
+            Assert.AreNotSame(status.transform, bonus.transform.parent,
+                "節目ボーナスの親は Combo Status ブロックではない");
+            Assert.AreEqual("Right Column", bonus.transform.parent.name,
+                "節目ボーナスは常時アクティブな Right Column の子");
         }
 
         /// <summary>
