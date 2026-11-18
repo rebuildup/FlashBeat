@@ -44,27 +44,28 @@ namespace FlashBeat.Tests
             // 真上 VerdictFallDistancePx に即時出現し、VerdictFallSeconds で
             // 静止位置へ落ちる。距離は画面高さに比例しない固定値 — ノーツの
             // 全画面落下と判定フィードバックを区別する (実機レビュー指摘)。
-            const float dist = V6HudLogic.VerdictFallDistancePx;
+            // 落下距離は判定ボックス高さ (design メトリクス由来)。FHD で評価する。
+            float dist = V6HudLogic.VerdictFallDistancePx(V6HudMetrics.Fhd(1f));
             Assert.AreEqual(0.30f, V6HudLogic.VerdictFallSeconds, 0.0001f);
 
-            Assert.AreEqual(dist, V6HudLogic.VerdictFallOffset(0f), 0.001f,
-                "出現時は静止位置より VerdictFallDistancePx だけ上");
-            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds), 0.001f,
+            Assert.AreEqual(dist, V6HudLogic.VerdictFallOffset(0f, dist), 0.001f,
+                "出現時は静止位置より fallDistance だけ上");
+            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds, dist), 0.001f,
                 "VerdictFallSeconds で静止位置へ到達する");
-            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(1f), 0.001f,
+            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(1f, dist), 0.001f,
                 "落下完了後は静止位置に留まる");
 
             // 落下中は単調減少 (上 → 静止位置の一方向)。
             float prev = dist;
             for (int i = 1; i <= 15; i++)
             {
-                float off = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * i / 15f);
+                float off = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * i / 15f, dist);
                 Assert.Less(off, prev, "落下は一方向に進む");
                 prev = off;
             }
 
             // EaseOut 到達: 時間の中間で残り距離は半分より小さい (序盤に大きく進む)。
-            float half = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * 0.5f);
+            float half = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * 0.5f, dist);
             Assert.Less(half, dist * 0.5f,
                 "EaseOut は序盤に大きく進み終盤で減速する");
         }
@@ -76,14 +77,25 @@ namespace FlashBeat.Tests
             // 落ちる実装への再導入を拒否する。落下距離は判定線付近の
             // ローカル距離でなければならず、画面高さ (FHD 1080px) に対して
             // 十分小さいこと。
-            Assert.Greater(V6HudLogic.VerdictFallDistancePx, 0f);
-            Assert.Less(V6HudLogic.VerdictFallDistancePx, 200f,
-                "落下距離は判定線付近に局所化する (画面上端からの全距離落下は誤り)");
+            // 落下距離は判定ボックス高さそのもの — 文字1個分の drop-in。
+            // 本番と同じ ForResolution 経路で全プロファイルを確認し、
+            // 画面高さやノーツ経路に由来しないことを固定する。
+            foreach (var res in new[] {
+                new Vector2(1920f, 1080f), new Vector2(2560f, 1440f), new Vector2(2560f, 1664f) })
+            {
+                var mm = V6HudMetrics.ForResolution(res.x, res.y);
+                Assert.AreEqual(mm.VerdictH,
+                    V6HudLogic.VerdictFallDistancePx(mm), 0.001f,
+                    "落下距離は判定ボックス高さに一致する (実装導出値ではなく design メトリクス)");
+                Assert.Greater(mm.VerdictH, 0f);
+                Assert.Less(mm.VerdictH, 200f,
+                    "落下距離は判定線付近に局所化する (画面上端からの全距離落下は誤り)");
+            }
 
-            // 出現位置 = 静止位置 + VerdictFallDistancePx は、判定線から
-            // 見て十分近い (判定線 + RestGap + FallDistance ≪ 画面高)。
+            // 出現位置 = 静止位置 + VerdictH は、判定線から見て十分近い。
+            var fhd = V6HudMetrics.ForResolution(1920f, 1080f);
             float appearFromBottom =
-                V6HudLogic.VerdictRestGapAboveLine + V6HudLogic.VerdictFallDistancePx;
+                V6HudLogic.VerdictRestGapAboveLine + fhd.VerdictH;
             Assert.Less(appearFromBottom, 400f,
                 "出現位置は判定線のすぐ上の領域に留まる");
         }

@@ -216,6 +216,9 @@ namespace FlashBeat.UI.V6.Option
                 ? cam.WorldToViewportPoint(new Vector3(0f, 0.76f, 0.15f))
                 : Vector3.zero;
             float screenH = Mathf.Max(1f, Screen.height);
+            // 落下距離は本編と同じ判定ボックス高さ (実スクリーン px)。
+            float verdictFallDistance =
+                V6HudLogic.VerdictFallDistancePx(PreviewHudMetrics());
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 var tmp = previewVerdictTexts[lane];
@@ -251,7 +254,8 @@ namespace FlashBeat.UI.V6.Option
                 // VerdictFallSeconds かけて落下する (画面上端ではない)。
                 // 定数は実スクリーン px なので Screen.height でビューポート比へ写す。
                 float restFrac = judgeScreen.y + V6HudLogic.VerdictRestGapAboveLine / screenH;
-                float fallFrac = V6HudLogic.VerdictFallOffset(elapsed) / screenH;
+                float fallFrac =
+                    V6HudLogic.VerdictFallOffset(elapsed, verdictFallDistance) / screenH;
                 float posFrac = restFrac + fallFrac;
 
                 var rt = tmp.rectTransform;
