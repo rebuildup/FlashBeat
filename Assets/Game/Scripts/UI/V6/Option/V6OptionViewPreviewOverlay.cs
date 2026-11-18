@@ -247,15 +247,11 @@ namespace FlashBeat.UI.V6.Option
 
                 // 本編 verdictBaseY の net 効果: 判定テキスト中心の
                 // 画面下原点 y = 判定線 + VerdictRestGapAboveLine + VerdictFallOffset。
-                // Issue #671: 出現時は画面上端から VerdictFallSeconds かけて落下する。
+                // Issue #671: 出現時は静止位置の真上 VerdictFallDistancePx から
+                // VerdictFallSeconds かけて落下する (画面上端ではない)。
                 // 定数は実スクリーン px なので Screen.height でビューポート比へ写す。
-                // 落下距離も本編と同じく「静止位置→画面上端 − VerdictH/2」で求める。
-                V6HudMetrics vm = PreviewHudMetrics();
-                float judgeFromBottomPx = judgeScreen.y * screenH;
-                float fallDistance = V6HudLogic.VerdictFallDistance(
-                    judgeFromBottomPx, screenH, vm.VerdictH * 0.5f);
                 float restFrac = judgeScreen.y + V6HudLogic.VerdictRestGapAboveLine / screenH;
-                float fallFrac = V6HudLogic.VerdictFallOffset(elapsed, fallDistance) / screenH;
+                float fallFrac = V6HudLogic.VerdictFallOffset(elapsed) / screenH;
                 float posFrac = restFrac + fallFrac;
 
                 var rt = tmp.rectTransform;
