@@ -102,6 +102,45 @@ namespace FlashBeat.UI.V6.Game.Hud
             return Mathf.Min(LyricDesignWidth, Mathf.Max(0f, screenWidth));
         }
 
+        // --- 歌詞スロットの共有寸法 (Issue #674) ---
+        // 歌詞本文・Start Prompt・カウントダウン数字・終了タイトルが同じ
+        // スロットを使う。状態ごとに高さを変えるとパネルが伸縮して見えるため、
+        // 全状態がここの 1 つの高さを共有する。
+
+        /// <summary>カウントダウン数字 1 行が必要とする高さ係数 (fontSize 倍)。</summary>
+        public const float CountdownLineFit = 1.3f;
+
+        /// <summary>終了タイトル 1 行が必要とする高さ係数 (fontSize 倍)。</summary>
+        public const float SongEndTitleLineFit = 1.6f;
+
+        /// <summary>
+        /// 歌詞スロットの共有高さ (px)。歌詞本文 + Start Prompt
+        /// (<see cref="LyricContentHeight"/>)・カウントダウン数字
+        /// (<see cref="CountdownFontSize"/>)・終了タイトル
+        /// (<see cref="SongEndTitleFontSize"/>) の最大必要高を取る。
+        /// Issue #674: 歌詞 / 準備 / カウントダウン / 曲終了の全状態で
+        /// パネルの RectTransform サイズ・位置を不変にするための正本。
+        /// </summary>
+        /// <param name="lyricFs">歌詞本文の実フォントサイズ (px)。</param>
+        /// <param name="screenHeight">HUD キャンバスの高さ (px)。</param>
+        public static float LyricSlotHeight(float lyricFs, float screenHeight)
+        {
+            float lyric = LyricContentHeight(lyricFs);
+            float countdown = CountdownFontSize(screenHeight) * CountdownLineFit;
+            float endTitle = SongEndTitleFontSize(
+                screenHeight / V6LaneGeometry.DesignHeight) * SongEndTitleLineFit;
+            return Mathf.Max(lyric, Mathf.Max(countdown, endTitle));
+        }
+
+        /// <summary>
+        /// 歌詞スロットの共有寸法 (幅・高さ)。全状態で同一の (width, height) を返す。
+        /// 幅は <see cref="LyricSlotWidth"/>、高さは <see cref="LyricSlotHeight"/>。
+        /// </summary>
+        public static Vector2 LyricSlotSize(float lyricFs, float screenWidth, float screenHeight)
+        {
+            return new Vector2(LyricSlotWidth(screenWidth), LyricSlotHeight(lyricFs, screenHeight));
+        }
+
         /// <summary>
         /// 歌詞スロットの上下 padding。Issue #582: design の 16 では行が窮屈だった
         /// ため 24 へ拡大 (左右は <see cref="LyricPaddingX"/>)。

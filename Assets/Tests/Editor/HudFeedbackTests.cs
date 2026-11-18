@@ -221,6 +221,52 @@ namespace FlashBeat.Tests
             Assert.Greater(large, small, "フォントが大きければ箱も大きくなる");
         }
 
+        // --- 歌詞スロットの共有寸法 (Issue #674) ---
+
+        [Test]
+        public void LyricSlotHeight_IsTheMaxNeededAcrossAllStates()
+        {
+            // Issue #674: 歌詞・準備 (Start Prompt)・カウントダウン・曲終了の
+            // 全状態でパネルの高さが変わらないよう、共有スロット高は
+            // 3 状態の最大必要高。各解像度プロファイルの実高で検証する
+            // (lyricFs はプロファイルの LyricFs: fhd=36 / 2k・mac=48)。
+            var cases = new (float height, float lyricFs)[]
+            {
+                (1080f, 36f),
+                (1440f, 48f),
+                (1664f, 48f),
+            };
+
+            foreach (var (h, fs) in cases)
+            {
+                float slot = V6HudLogic.LyricSlotHeight(fs, h);
+                float lyricNeed = V6HudLogic.LyricContentHeight(fs);
+                float countdownNeed =
+                    V6HudLogic.CountdownFontSize(h) * V6HudLogic.CountdownLineFit;
+                float endNeed = V6HudLogic.SongEndTitleFontSize(h / V6LaneGeometry.DesignHeight)
+                    * V6HudLogic.SongEndTitleLineFit;
+
+                Assert.AreEqual(
+                    Mathf.Max(lyricNeed, Mathf.Max(countdownNeed, endNeed)), slot, 0.001f,
+                    $"height {h}: 共有スロット高は最大必要高");
+                Assert.GreaterOrEqual(slot, lyricNeed, $"height {h}: 歌詞本文が収まる");
+                Assert.GreaterOrEqual(slot, countdownNeed, $"height {h}: カウントダウン数字が収まる");
+                Assert.GreaterOrEqual(slot, endNeed, $"height {h}: 終了タイトルが収まる");
+            }
+        }
+
+        [Test]
+        public void LyricSlotSize_IsSharedByEveryState()
+        {
+            // 幅は LyricSlotWidth、高さは LyricSlotHeight の 1 系統だけ。
+            // 状態ごとの分岐が無いことを、同じ入力で常に同じ (width,height)
+            // が返ることで固定する。
+            var size = V6HudLogic.LyricSlotSize(36f, 1920f, 1080f);
+            Assert.AreEqual(V6HudLogic.LyricSlotWidth(1920f), size.x, 0.001f);
+            Assert.AreEqual(V6HudLogic.LyricSlotHeight(36f, 1080f), size.y, 0.001f);
+            Assert.AreEqual(size, V6HudLogic.LyricSlotSize(36f, 1920f, 1080f));
+        }
+
         // --- キーガイド Full モード (Issue #658) ---
 
         [Test]

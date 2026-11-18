@@ -212,6 +212,13 @@ x = 画面中央 / y = 250 × scale (上端)
 `LyricContentHeight`)。3 行は常に確保する (行が空でも高さを保ち、行数が変わって
 箱が伸縮しない)。
 
+**高さは状態間で不変 (Issue #674)。** 歌詞・Start Prompt・カウントダウン・
+曲終了表示は同じスロットの状態違いなので、パネルの RectTransform サイズ・位置は
+全状態で同一にする。共有スロット高は `V6HudLogic.LyricSlotHeight` が
+歌詞本文+Start Prompt・カウントダウン数字・終了タイトルの最大必要高として
+1 系統で返し、状態ごとの高さ分岐は持たない (カウントダウン数字 fs132 が
+最大必要高を決める)。
+
 FHD は y=278、2K は y=370、Mac は y=428。以前の固定値 (170 / 227 / 227) は使わない。カウントダウンと曲終了表示もこのスロットを使う。
 
 ### スコアゲージ (`PyPE1` / `cNEBa`, 600×36)
@@ -239,7 +246,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 縦 gap6 padding[16,24] 中央: Furigana fs22 `$text-dim` / Lyrics fs44 `$text` 中央 / Romaji fs20 `$text-dim` / Start Prompt gap10 (KeyCap (fill,36) + Label fs22 `$text-muted`)。
 
-実画面への配置は §8「歌詞スロットの位置」の式を使う。カウントダウン数字 (fs132 w700 `$text` 中央) と曲終了表示は同じ枠の状態違いで、歌詞・Start Prompt とは排他。
+実画面への配置は §8「歌詞スロットの位置」の式を使う。カウントダウン数字 (fs132 w700 `$text` 中央) と曲終了表示は同じ枠の状態違いで、歌詞・Start Prompt とは排他。Issue #674 により 3 状態のスロット RectTransform はサイズ・位置とも同一 (`V6HudLogic.LyricSlotHeight` の共有高さ)。
 
 ## 11. スクリーンショット
 

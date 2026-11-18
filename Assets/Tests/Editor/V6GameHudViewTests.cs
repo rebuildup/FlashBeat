@@ -187,6 +187,14 @@ namespace FlashBeat.Tests
             return (GameObject)field.GetValue(target);
         }
 
+        private static GameObject HudFieldOf(V6GameHudView target, string name)
+        {
+            var field = typeof(V6GameHudView).GetField(name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.IsNotNull(field, $"V6GameHudView.{name} が見つからない");
+            return (GameObject)field.GetValue(target);
+        }
+
         /// <summary>
         /// 共有クロック (GManager.step_time = メディア時刻) が指す行だけが出る。
         /// 行の切れ目は歌詞データ側で管理されており、HUD は今の行を出すだけ。
@@ -296,6 +304,57 @@ namespace FlashBeat.Tests
                 GManager.songID = originalSongId;
                 GManager.played = originalPlayed;
                 GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #674: 歌詞・準備 (Start Prompt)・カウントダウン・曲終了の
+        /// 全状態で歌詞スロットの RectTransform サイズ・位置が同一であること。
+        /// 各解像度プロファイル (FHD / 2K / Mac) で実構築して検証する。
+        /// </summary>
+        [Test]
+        public void Lyrics_SlotRect_IsIdenticalAcrossAllStates()
+        {
+            var cases = new (float w, float h)[]
+            {
+                (1920f, 1080f),
+                (2560f, 1440f),
+                (2560f, 1664f),
+            };
+
+            foreach (var (w, h) in cases)
+            {
+                var canvas = new GameObject($"V6GameHudViewTests Canvas {w}x{h}", typeof(Canvas));
+                var canvasRect = (RectTransform)canvas.transform;
+                canvasRect.sizeDelta = new Vector2(w, h);
+                V6GameHudView stateView = null;
+                try
+                {
+                    stateView = V6GameHudView.Create(canvasRect);
+                    Assert.AreEqual(w, stateView.CanvasSizeForAudit.x, 1f,
+                        $"{w}x{h}: Canvas サイズがプロファイルに反映されていない");
+                    Assert.AreEqual(h, stateView.CanvasSizeForAudit.y, 1f);
+
+                    // 歌詞ボックス / 再開カウントダウン / 曲終了オーバーレイの
+                    // 3 状態は同じスロット RectTransform を共有する。
+                    var lyricRt = HudFieldOf(stateView, "lyricBox").GetComponent<RectTransform>();
+                    var countdownRt = HudFieldOf(stateView, "countdownOverlay").GetComponent<RectTransform>();
+                    var endRt = HudFieldOf(stateView, "endOverlay").GetComponent<RectTransform>();
+
+                    Assert.AreEqual(lyricRt.sizeDelta, countdownRt.sizeDelta,
+                        $"{w}x{h}: カウントダウンのスロットサイズが歌詞と違う");
+                    Assert.AreEqual(lyricRt.sizeDelta, endRt.sizeDelta,
+                        $"{w}x{h}: 曲終了のスロットサイズが歌詞と違う");
+                    Assert.AreEqual(lyricRt.anchoredPosition, countdownRt.anchoredPosition,
+                        $"{w}x{h}: カウントダウンのスロット位置が歌詞と違う");
+                    Assert.AreEqual(lyricRt.anchoredPosition, endRt.anchoredPosition,
+                        $"{w}x{h}: 曲終了のスロット位置が歌詞と違う");
+                }
+                finally
+                {
+                    if (stateView != null) Object.DestroyImmediate(stateView.gameObject);
+                    Object.DestroyImmediate(canvas);
+                }
             }
         }
 

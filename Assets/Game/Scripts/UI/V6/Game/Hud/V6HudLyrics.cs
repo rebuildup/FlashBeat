@@ -64,11 +64,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             // design のまま (契約 §8)。
             // Issue #433: 歌詞スロットは共有フレームのメイン領域 6 列グリッドの
             // 中央 4 列 (フレーム内 (304,250) 1120 幅) を 1:1 で置く。
-            // 幅は 1120 固定、高さは本文 1 行 (と Start Prompt) に合わせる。
-            Vector2 lyricSize = V6HudLogic.LyricSize(ScaledLyricFs);
+            // Issue #674: 高さは歌詞本文だけでなくカウントダウン・終了タイトルも
+            // 収まる共有スロット高 (V6HudLogic.LyricSlotHeight) を使い、
+            // 状態遷移でパネルが伸縮しないようにする。
+            float slotHeight = V6HudLogic.LyricSlotHeight(ScaledLyricFs, CanvasSize().y);
             // #96/#523: 画面幅を超える design 幅は画面幅に収める (中央配置は不変)。
             var box = V5Ui.Panel(gameObject, "Lyric Box",
-                new Vector2(LyricBoxWidth(), lyricSize.y), LyricBoxColor, 8f);
+                new Vector2(LyricBoxWidth(), slotHeight), LyricBoxColor, 8f);
             box.GetComponent<Image>().raycastTarget = false;
             lyricBox = box;
             var boxRt = V6Layout.RectOf(box);
@@ -118,12 +120,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchorMin = new Vector2(0.5f, 1f);
             rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            // Issue #433: 歌詞行だけになって箱が薄くなったので、カウントダウンの
-            // 大きな数字が収まる高さは文字サイズから確保する。
-            float countdownFs = V6HudLogic.CountdownFontSize(CanvasSize().y);
-            Vector2 lyricSize = V6HudLogic.LyricSize(ScaledLyricFs);
-            rt.sizeDelta = new Vector2(LyricBoxWidth(),
-                Mathf.Max(lyricSize.y, countdownFs * 1.3f));
+            // Issue #674: 歌詞ボックスと同一の共有スロット寸法を使う
+            // (状態ごとの高さ分岐は持たない)。カウントダウンの大きな数字も
+            // 共有スロット高に収まる。
+            float slotHeight = V6HudLogic.LyricSlotHeight(ScaledLyricFs, CanvasSize().y);
+            rt.sizeDelta = new Vector2(LyricBoxWidth(), slotHeight);
             rt.anchoredPosition = LyricSlotAnchoredPosition();
 
             countdownText = V5Ui.Text(countdownOverlay, "Value", "3",
@@ -224,10 +225,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.pivot = new Vector2(0.5f, 1f);
             float scale = V6LaneGeometry.ScreenScale(CanvasSize());
             float endTitleFs = V6HudLogic.SongEndTitleFontSize(scale);
-            Vector2 lyricSize = V6HudLogic.LyricSize(ScaledLyricFs);
-            // Issue #433: 「終了」だけを大きく出すので、タイトルが収まる高さを確保する。
-            rt.sizeDelta = new Vector2(LyricBoxWidth(),
-                Mathf.Max(lyricSize.y, endTitleFs * 1.6f));
+            // Issue #674: 歌詞ボックス・カウントダウンと同一の共有スロット寸法。
+            // 「終了」タイトルも共有スロット高に収まる。
+            float slotHeight = V6HudLogic.LyricSlotHeight(ScaledLyricFs, CanvasSize().y);
+            rt.sizeDelta = new Vector2(LyricBoxWidth(), slotHeight);
             rt.anchoredPosition = LyricSlotAnchoredPosition();
 
             var box = V5Ui.Panel(endOverlay, "Panel", rt.sizeDelta,
