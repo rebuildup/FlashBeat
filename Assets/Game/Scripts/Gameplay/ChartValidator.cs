@@ -21,7 +21,7 @@
 public static class ChartValidator
 {
     /// <summary>Lane count of the playfield (same as Judge.LaneCount).</summary>
-    public const int LaneCount = FlashBeat.Gameplay.Judge.LaneCount;
+    public const int LaneCount = Judge.LaneCount;
 
     /// <summary>Largest chart the contract accepts (schema maxItems).</summary>
     public const int MaxNotes = 10000;
