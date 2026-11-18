@@ -724,8 +724,9 @@ export function parseTimeInput(text: string): number | null | undefined {
       return undefined;
     }
     const value = Number.parseInt(part, 10);
-    if (parts.length === 3 && value >= 60) {
-      // `h:mm:ss`: minutes must look like minutes.
+    // `h:mm:ss`: only the minutes part (the one right before the seconds)
+    // must stay below 60; the hours part is unbounded.
+    if (parts.length === 3 && index === parts.length - 2 && value >= 60) {
       return undefined;
     }
     total = total * 60 + value;

@@ -55,6 +55,15 @@ describe("time input", () => {
     expect(parseTimeInput("90:00")).toBe(5400);
   });
 
+  it("bounds only the minutes part of h:mm:ss, never the hours", () => {
+    // 60 hours is a long song, not an invalid time.
+    expect(parseTimeInput("60:00:00")).toBe(216000);
+    expect(parseTimeInput("100:00:00")).toBe(360000);
+    // The minutes slot still must stay below 60.
+    expect(parseTimeInput("1:60:00")).toBeUndefined();
+    expect(parseTimeInput("0:75:30")).toBeUndefined();
+  });
+
   it("accepts full-width digits, colons and periods from a Japanese IME", () => {
     expect(parseTimeInput("３．５")).toBe(3.5);
     expect(parseTimeInput("１：０３．２５")).toBe(63.25);

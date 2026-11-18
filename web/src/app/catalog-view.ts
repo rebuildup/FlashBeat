@@ -76,7 +76,10 @@ export function filterAndSort(
 
 /** `durationSec` as `m:ss` (`69` → `1:09`); never shows a 0-padded hour. */
 export function formatDuration(durationSec: number): string {
-  const minutes = Math.floor(durationSec / 60);
-  const seconds = durationSec % 60;
+  // The catalog can carry a fractional duration (69.5); round first so the
+  // seconds part never renders as "9.5".
+  const total = Math.max(0, Math.round(durationSec));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

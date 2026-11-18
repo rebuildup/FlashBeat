@@ -1,3 +1,4 @@
+import { importChartLenient } from "../chart/import";
 import type { Chart } from "../chart/types";
 
 /**
@@ -49,15 +50,30 @@ export function emptyNewSongDraft(): NewSongDraft {
   return { step: 1, maxStep: 1, info: { ...EMPTY_NEW_SONG_INFO }, chart: null, savedAt: "" };
 }
 
-/** Store the draft. Called after every change of the flow. */
+/**
+ * Store the draft. Called after every change of the flow.
+ *
+ * `sessionStorage` can throw (`QuotaExceededError`, `SecurityError` in
+ * private mode). Persistence is best-effort: the flow keeps working on the
+ * in-memory draft, so a storage failure must never reach React.
+ */
 export function saveNewSongDraft(draft: NewSongDraft): void {
   const recordable: NewSongDraft = { ...draft, savedAt: new Date().toISOString() };
-  sessionStorage.setItem(NEW_SONG_DRAFT_KEY, JSON.stringify(recordable));
+  try {
+    sessionStorage.setItem(NEW_SONG_DRAFT_KEY, JSON.stringify(recordable));
+  } catch {
+    // The draft stays in memory for the rest of the session.
+  }
 }
 
 /** Read the draft, or `null` when there is none or it is unusable. */
 export function loadNewSongDraft(): NewSongDraft | null {
-  const raw = sessionStorage.getItem(NEW_SONG_DRAFT_KEY);
+  let raw: string | null;
+  try {
+    raw = sessionStorage.getItem(NEW_SONG_DRAFT_KEY);
+  } catch {
+    return null;
+  }
   if (raw === null) {
     return null;
   }
@@ -73,7 +89,11 @@ export function loadNewSongDraft(): NewSongDraft | null {
 
 /** Drop the draft. Called after a successful publish. */
 export function clearNewSongDraft(): void {
-  sessionStorage.removeItem(NEW_SONG_DRAFT_KEY);
+  try {
+    sessionStorage.removeItem(NEW_SONG_DRAFT_KEY);
+  } catch {
+    // Nothing to clean up when storage is unavailable.
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -94,12 +114,31 @@ function asNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : Number.NaN;
 }
 
+/**
+ * Re-validate a stored chart before it reaches the Konva editor.
+ *
+ * The draft only checked that `notes` was an array, so a structurally broken
+ * document (`null` entries, missing `num`/`LPB`/`type`, a non-numeric `BPM`)
+ * could crash the editor with NaN coordinates. The lenient import keeps a
+ * chart whose relations are broken — the operator may be mid-edit — but
+ * refuses a document that does not match the contract at all. On failure the
+ * chart is dropped and the rest of the draft (the info) is kept.
+ */
 function sanitizeChart(value: unknown): Chart | null {
-  const chart = asRecord(value);
-  if (chart === null || !Array.isArray(chart["notes"])) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
-  return value as Chart;
+  const imported = importChartLenient(JSON.stringify(value));
+  if (!imported.ok) {
+    return null;
+  }
+  // The lenient import keeps semantic violations as `warning.*` issues —
+  // a chart mid-edit may legitimately have them. Anything else is a
+  // structural problem the editor cannot repair, so the chart is dropped.
+  const structurallyBroken = (imported.issues ?? []).some(
+    (issue) => !issue.keyword.startsWith("warning."),
+  );
+  return structurallyBroken ? null : imported.chart;
 }
 
 function sanitizeDraft(value: unknown): NewSongDraft | null {
