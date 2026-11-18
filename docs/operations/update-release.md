@@ -112,15 +112,16 @@ GITHUB_TOKEN=$(gh auth token) python3 tools/release/audit-release-media.py
 2. 新版があるとき、**Title シーン (ホーム) にだけ**『アップデートあり vX.Y.Z』の通知を出す
    (コード構築 overlay。F3 キー / 通知クリックでダウンロード開始、F4 / × でこのセッションは非表示)
 3. **ユーザーがトリガーしたときだけ** ZIP + `.sha256` を staging へ取得し SHA-256 検証 (進捗 % を通知内に表示)
-   - Windows / macOS とも `<persistentDataPath>/update/staging`
-     (Windows: `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging`、
-     macOS: `~/Library/Application Support/KimuraYusuke/FlashBeat/update/staging`。
-     いずれも Unity が実際に使う persistentDataPath 配下)
+   - Windows: `<install>\.flashbeat-update\staging`
+     (issue #670: 更新関連アーティファクトはすべてインストール先フォルダ内。
+     macOS の `.app` は署名済みバンドル内へ安全に書き込めないため更新対象外
+     — `UpdatePaths` がインストール先を解決できず staging 自体を行わない)
 4. staging 完了後、通知は『更新の準備ができました。終了して適用 [F3]』に変わる。
    ユーザーが F3 / クリック (または Option の適用ボタン) で**確認したときだけ**、配布物内の
    アップデータを分離プロセスで起動する:
    - Windows: `tools\update\Update.ps1` (アプリ PID の終了待機 → 別ディレクトリへ展開 → 検証 → 一括切替 → 新 exe 再起動)
-   - macOS: `Contents/Resources/tools/update/update-macos.sh` (アプリ PID の終了待機 → 一時ディレクトリへ展開 → 検証 → `FlashBeat.app` を退避して切替 → 新 app 再起動)
+   - macOS: `Contents/Resources/tools/update/update-macos.sh` (非 `.app` レイアウト専用。
+     `.app` は issue #670 で安全側拒否 — macOS の更新は手動手順を使う)
 5. **押さなければ更新しない**: 確認なしで普通に終了した場合は何も適用されない
    (staging 済み ZIP は残り、次回起動時にまた通知が出る)。`OnApplicationQuit` からの自動適用は存在しない
 6. 旧版は 1 世代残す (切戻し用)
@@ -132,9 +133,14 @@ GITHUB_TOKEN=$(gh auth token) python3 tools/release/audit-release-media.py
 `tools\update\Update.ps1` / `update-macos.sh` は**すべての終了経路**で
 `<update dir>\last-result.json` に機械可読な結果を書く
 (アプリからの自動適用でも手実行でも。書けない場合も更新処理自体は失敗させない)。
-`<update dir>` は `<persistentDataPath>/update/results` (issue #574 で責務別ディレクトリ化。
-Windows: `%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\results`、
-macOS: `~/Library/Application Support/KimuraYusuke/FlashBeat/update/results`)。
+`<update dir>` は `<install>/.flashbeat-update/results` (issue #574 で責務別ディレクトリ化、
+issue #670 でインストール先内へ移動。
+Windows: `<install>\.flashbeat-update\results`、
+macOS 非 `.app` レイアウト: `<install>/.flashbeat-update/results`)。
+**境界外 (`persistentDataPath` / AppData / Application Support / システム temp /
+インストール先の親・兄弟フォルダ) には書き込まない** — updater は境界外の
+`-ResultDir` / `-LogDir` / `-WorkDir` を拒否し、境界外に書けない場合は
+結果ファイルを書かずに終了する (issue #670)。
 
 ```json
 {
@@ -152,7 +158,7 @@ macOS: `~/Library/Application Support/KimuraYusuke/FlashBeat/update/results`)。
   6 FlashBeat 実行中)。`failed` = 適用を試みて失敗 (2 通信 / 3 ダイジェスト / 4 ZIP / 5 内容 /
   7 切替、想定外エラー)。`success` は切替と配置後検査が**完了したあとにだけ**書く
   (再起動の成否には依存しない)。
-- `message` は updater ログ (`<persistentDataPath>/update/logs/FlashBeat-update-<runId>.log`) と同じ日本語の理由。
+- `message` は updater ログ (`<install>/.flashbeat-update/logs/FlashBeat-update-<runId>.log`) と同じ日本語の理由。
 - アプリは次回起動時にこのファイルを読み、**Title シーンで 1 回だけ**通知する:
   - `failed` / `aborted`: 『前回の更新に失敗しました: \<message\> - 現在の版 vX を使用中 / F3 で再試行』
   - `success`: 『更新しました vX』

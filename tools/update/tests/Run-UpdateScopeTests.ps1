@@ -137,45 +137,75 @@ try {
     Assert-True 'T27 副次インストールの退避は残る' (Test-Path -LiteralPath $backupB1)
     Assert-True 'T28 副次インストールの退避は「他名前空間」として保持される' (@($selectionB.Kept | Where-Object { $_.Path -eq $backupA2 }).Count -eq 1)
 
-    # ── T29-T31: 作業フォルダ名の名前空間 (issue #574) ────────────────
-    $workOwn = 'FlashBeat-update-work-flashbeat-20260101-000000-1234-aaaaaa'
-    $workOther = 'FlashBeat-update-work-flashbeat-0.1.14-20260101-000000-1234-bbbbbb'
-    $workLegacy = 'FlashBeat-update-work-20260101-000000'
-    Assert-True 'T29 自分の作業フォルダ名は自名前空間内' (Test-FlashBeatScopedWorkName -Name $workOwn -InstallKey 'flashbeat')
-    Assert-True 'T30 他インストールの作業フォルダ名は自名前空間外' (-not (Test-FlashBeatScopedWorkName -Name $workOther -InstallKey 'flashbeat'))
-    Assert-True 'T31 旧形式の作業フォルダ名は自名前空間外' (-not (Test-FlashBeatScopedWorkName -Name $workLegacy -InstallKey 'flashbeat'))
+    # ── T29-T36: パス境界 (issue #670) ─────────────────────────────
+    # すべての派生パスがインストール先フォルダ内に収まること、境界外指定が
+    # 拒否されること、reparse point 経由の脱出が検出されることを検証する。
+    $installRoot = Join-Path $tempRoot 'FlashBeat'
+    $insidePath = Join-Path $installRoot '.flashbeat-update\backup\x'
+    $outsidePath = Join-Path $tempRoot 'outside\x'
+    $siblingPath = ($installRoot + '-evil') + '\x'
 
-    # ── T32-T40: 旧レイアウト残骸の整理 (issue #574) ─────────────────
-    # 所有が確認できるものだけ移動/削除し、無関係・所有不明は触らない。
+    Assert-True 'T29 インストール先内のパスは内部と判定' (Test-PathInside -Path $insidePath -Root $installRoot)
+    Assert-True 'T30 インストール先と一致するパスは内部と判定' (Test-PathInside -Path $installRoot -Root $installRoot)
+    Assert-True 'T31 インストール先外のパスは内部ではない' (-not (Test-PathInside -Path $outsidePath -Root $installRoot))
+    Assert-True 'T32 兄弟フォルダ (名前が前方一致するだけ) は内部ではない' (-not (Test-PathInside -Path $siblingPath -Root $installRoot))
+    Assert-True 'T33 Test-FlashBeatInsideInstallRoot: 内部パスは true' (Test-FlashBeatInsideInstallRoot -Path $insidePath -InstallRoot $installRoot)
+    Assert-True 'T34 Test-FlashBeatInsideInstallRoot: 外部パスは false' (-not (Test-FlashBeatInsideInstallRoot -Path $outsidePath -InstallRoot $installRoot))
+    Assert-Equal 'T35 更新領域ルートは <install>\.flashbeat-update' (Join-Path $installRoot '.flashbeat-update') (Get-FlashBeatUpdateRootPath -InstallDir $installRoot)
+
+    # reparse point (symlink) 経由の脱出検出。symlink を作れない環境ではスキップ。
+    $linkParent = Join-Path $tempRoot 'linktest'
+    New-Item -ItemType Directory -Path $linkParent -Force | Out-Null
+    $linkTarget = Join-Path $tempRoot 'real-target'
+    New-Item -ItemType Directory -Path $linkTarget -Force | Out-Null
+    $linkPath = Join-Path $linkParent 'escape'
+    $linkMade = $false
+    try {
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $linkTarget -ErrorAction Stop | Out-Null
+        $linkMade = $true
+    } catch {
+        try {
+            New-Item -ItemType Junction -Path $linkPath -Target $linkTarget -ErrorAction Stop | Out-Null
+            $linkMade = $true
+        } catch { }
+    }
+    if ($linkMade) {
+        Assert-True 'T36 reparse point 配下は境界外と判定' (Test-FlashBeatPathHasReparsePoint -Path (Join-Path $linkPath 'sub') -Root $linkParent)
+        Assert-True 'T37 reparse point 経由のパスは InsideInstallRoot=false' (-not (Test-FlashBeatInsideInstallRoot -Path (Join-Path $linkPath 'sub') -InstallRoot $linkParent))
+        Assert-True 'T38 通常フォルダは reparse point ではない' (-not (Test-FlashBeatPathHasReparsePoint -Path (Join-Path $linkTarget 'sub') -Root $linkTarget))
+    } else {
+        Write-Host '[SKIP] T36-T38 symlink/junction を作成できない環境のため reparse point 検査をスキップ'
+    }
+
+    # ── T39-T47: 旧レイアウト残骸は「検出して警告のみ」(issue #670) ──
+    # 境界外のファイルを移動・削除しないことを実ファイルシステムで検証する。
     $legacyParent = Join-Path $tempRoot 'legacy-parent'
     New-Item -ItemType Directory -Path $legacyParent -Force | Out-Null
     $legacyUpdateRoot = Join-Path $legacyParent '.flashbeat-update'
-    $legacyLogDir = Join-Path $legacyParent 'logs'
     $legacyBackupRoot = Join-Path $legacyUpdateRoot 'backup'
 
     [System.IO.File]::WriteAllText((Join-Path $legacyParent 'FlashBeat-update.log'), 'old log')
     [System.IO.File]::WriteAllText((Join-Path $legacyParent 'readme.txt'), 'unrelated')
-    foreach ($name in @($workOwn, $workOther, $workLegacy)) {
-        New-Item -ItemType Directory -Path (Join-Path $legacyParent $name) -Force | Out-Null
-    }
+    New-Item -ItemType Directory -Path $legacyUpdateRoot -Force | Out-Null
+    $legacyWorkDir = Join-Path $legacyParent 'FlashBeat-update-work-flashbeat-20260101-000000-1234-aaaaaa'
     $legacyBackupOwned = Join-Path $legacyParent (New-FlashBeatBackupName -InstallKey 'flashbeat' -RunId '20260101-000000-1234-aaaaaa')
-    $legacyBackupNoManifest = Join-Path $legacyParent 'FlashBeat-backup-20261107-013942'
+    New-Item -ItemType Directory -Path $legacyWorkDir -Force | Out-Null
     New-Item -ItemType Directory -Path $legacyBackupOwned -Force | Out-Null
-    New-Item -ItemType Directory -Path $legacyBackupNoManifest -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $legacyBackupOwned 'old-payload.txt'), 'recovery')
     Write-FlashBeatOwnerManifest -BackupDir $legacyBackupOwned -Identity $identityA -RunId '20260101-000000-1234-aaaaaa' -Version '0.1.13' | Out-Null
 
-    Move-FlashBeatLegacyArtifacts -ParentDir $legacyParent -Identity $identityA -UpdateRoot $legacyUpdateRoot -LogDir $legacyLogDir
+    # 検出のみ: すべての旧ファイルがそのまま残ること (移動・削除されない)。
+    Write-FlashBeatLegacyArtifactNotice -ParentDir $legacyParent
 
-    Assert-True 'T32 旧ログはログ領域へ移動される' (Test-Path -LiteralPath (Join-Path $legacyLogDir 'FlashBeat-update-legacy.log'))
-    Assert-True 'T33 旧ログは親フォルダから消える' (-not (Test-Path -LiteralPath (Join-Path $legacyParent 'FlashBeat-update.log')))
-    Assert-True 'T34 自名前空間の旧作業フォルダは削除される' (-not (Test-Path -LiteralPath (Join-Path $legacyParent $workOwn)))
-    Assert-True 'T35 他名前空間の旧作業フォルダは残る' (Test-Path -LiteralPath (Join-Path $legacyParent $workOther))
-    Assert-True 'T36 旧形式の作業フォルダは残る' (Test-Path -LiteralPath (Join-Path $legacyParent $workLegacy))
-    Assert-True 'T37 manifest 付き旧退避は backup 領域へ移動される' (Test-Path -LiteralPath (Join-Path $legacyBackupRoot (Split-Path -Leaf $legacyBackupOwned)))
-    Assert-True 'T38 manifest 無し旧退避は親フォルダに残る' (Test-Path -LiteralPath $legacyBackupNoManifest)
-    Assert-True 'T39 無関係ファイルは触られない' (Test-Path -LiteralPath (Join-Path $legacyParent 'readme.txt'))
+    Assert-True 'T39 旧 .flashbeat-update 領域は残る (移動も削除もしない)' (Test-Path -LiteralPath $legacyUpdateRoot)
+    Assert-True 'T40 旧ログは親フォルダに残る' (Test-Path -LiteralPath (Join-Path $legacyParent 'FlashBeat-update.log'))
+    Assert-True 'T41 旧作業フォルダは残る' (Test-Path -LiteralPath $legacyWorkDir)
+    Assert-True 'T42 manifest 付き旧退避は親フォルダに残る (backup 領域へ移動しない)' (Test-Path -LiteralPath $legacyBackupOwned)
+    Assert-True 'T43 旧退避の中身もそのまま' (Test-Path -LiteralPath (Join-Path $legacyBackupOwned 'old-payload.txt'))
+    Assert-True 'T44 無関係ファイルは触られない' (Test-Path -LiteralPath (Join-Path $legacyParent 'readme.txt'))
+    Assert-True 'T45 親フォルダに新しい backup 領域は作られない' (-not (Test-Path -LiteralPath $legacyBackupRoot))
 
-    # ── T40: ログ世代管理 ────────────────────────────────────────────
+    # ── T46: ログ世代管理 ────────────────────────────────────────────
     $logDir2 = Join-Path $tempRoot 'loggen'
     New-Item -ItemType Directory -Path $logDir2 -Force | Out-Null
     foreach ($i in 1..25) {
@@ -183,7 +213,7 @@ try {
     }
     Limit-FlashBeatUpdateLogs -LogDir $logDir2 -Keep 20
     $remaining = @(Get-ChildItem -LiteralPath $logDir2 -File -Filter 'FlashBeat-update-*.log').Count
-    Assert-Equal 'T40 ログは最新 20 世代だけ残る' 20 $remaining
+    Assert-Equal 'T46 ログは最新 20 世代だけ残る' 20 $remaining
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
