@@ -5,9 +5,11 @@ using FlashBeat.Update;
 using UnityEngine;
 
 /// <summary>
-/// issue #574: 更新データ (staging / last-result / ログ) が persistentDataPath 配下の
-/// 責務別ディレクトリに集約されること、および旧レイアウトからの引き継ぎ
-/// (所有が確認できる既知ファイルだけを移し、無関係ファイルは触らない) を固定する。
+/// issue #670: 更新データ (staging / last-result / ログ / updater 一時領域) が
+/// <b>インストール先フォルダ内</b> の &lt;install&gt;/.flashbeat-update/ 配下に
+/// 限定されること、persistentDataPath / AppData / Application Support を
+/// 更新関連アーティファクトの置き場にしないこと、および旧レイアウトからの
+/// 引き継ぎが「コピーのみ (旧側は移動・削除しない)」であることを固定する。
 /// </summary>
 public class UpdatePathsTests
 {
@@ -29,25 +31,63 @@ public class UpdatePathsTests
     // ── パス契約 ─────────────────────────────────────────────────
 
     [Test]
-    public void BaseDir_IsUnderPersistentDataPath()
+    public void InstallRoot_WindowsPlayer_IsDataPathParent()
     {
-        Assert.IsNotNull(UpdatePaths.PersistentDataRoot);
-        Assert.IsNotNull(UpdatePaths.BaseDir);
-        Assert.AreEqual(Path.Combine(UpdatePaths.PersistentDataRoot, "update"), UpdatePaths.BaseDir);
+        var install = Path.Combine(tempRoot, "FlashBeat");
+        var dataPath = Path.Combine(install, "FlashBeat_Data");
+        Assert.AreEqual(install, UpdatePaths.GetInstallRoot(RuntimePlatform.WindowsPlayer, dataPath));
     }
 
     [Test]
-    public void ResponsibilityDirs_AreSeparatedUnderBaseDir()
+    public void InstallRoot_MacPlayer_IsNull()
     {
-        var baseDir = UpdatePaths.BaseDir;
-        Assert.IsNotNull(baseDir);
-        Assert.AreEqual(Path.Combine(baseDir, "staging"), UpdatePaths.StagingDir);
-        Assert.AreEqual(Path.Combine(baseDir, "results"), UpdatePaths.ResultDir);
-        Assert.AreEqual(Path.Combine(baseDir, "logs"), UpdatePaths.LogsDir);
-        Assert.AreEqual(Path.Combine(baseDir, "updater"), UpdatePaths.UpdaterTmpDir);
+        // .app バンドル内には安全に書き込めないため更新領域を持たない (issue #670)。
+        var dataPath = "/Applications/FlashBeat.app/Contents/Resources/Data";
+        Assert.IsNull(UpdatePaths.GetInstallRoot(RuntimePlatform.OSXPlayer, dataPath));
+    }
 
-        // 責務別: すべて別ディレクトリ
-        var dirs = new[] { UpdatePaths.StagingDir, UpdatePaths.ResultDir, UpdatePaths.LogsDir, UpdatePaths.UpdaterTmpDir };
+    [Test]
+    public void InstallRoot_Editor_IsNull()
+    {
+        // Editor の dataPath はプロジェクトフォルダを指すため更新領域を持たない。
+        Assert.IsNull(UpdatePaths.GetInstallRoot(RuntimePlatform.WindowsEditor,
+            Path.Combine(tempRoot, "Assets")));
+        Assert.IsNull(UpdatePaths.GetInstallRoot(RuntimePlatform.OSXEditor,
+            Path.Combine(tempRoot, "Assets")));
+    }
+
+    [Test]
+    public void InstallRoot_WindowsPlayer_EmptyDataPath_IsNull()
+    {
+        Assert.IsNull(UpdatePaths.GetInstallRoot(RuntimePlatform.WindowsPlayer, null));
+        Assert.IsNull(UpdatePaths.GetInstallRoot(RuntimePlatform.WindowsPlayer, ""));
+    }
+
+    [Test]
+    public void ResponsibilityDirs_AreUnderInstallUpdateRoot()
+    {
+        var install = Path.Combine(tempRoot, "FlashBeat");
+        var baseDir = UpdatePaths.GetBaseDir(install);
+        Assert.AreEqual(Path.Combine(install, ".flashbeat-update"), baseDir);
+        Assert.AreEqual(Path.Combine(baseDir, "staging"), UpdatePaths.GetStagingDir(install));
+        Assert.AreEqual(Path.Combine(baseDir, "results"), UpdatePaths.GetResultDir(install));
+        Assert.AreEqual(Path.Combine(baseDir, "logs"), UpdatePaths.GetLogsDir(install));
+        Assert.AreEqual(Path.Combine(baseDir, "updater"), UpdatePaths.GetUpdaterTmpDir(install));
+
+        // すべての責務別ディレクトリがインストール先の内側にあること (境界検証)。
+        var dirs = new[]
+        {
+            UpdatePaths.GetStagingDir(install),
+            UpdatePaths.GetResultDir(install),
+            UpdatePaths.GetLogsDir(install),
+            UpdatePaths.GetUpdaterTmpDir(install),
+        };
+        foreach (var dir in dirs)
+        {
+            Assert.IsTrue(dir.StartsWith(install + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase),
+                "更新ディレクトリがインストール先外です: " + dir);
+        }
         for (int i = 0; i < dirs.Length; i++)
         {
             for (int j = i + 1; j < dirs.Length; j++)
@@ -55,6 +95,18 @@ public class UpdatePathsTests
                 Assert.AreNotEqual(dirs[i], dirs[j], "責務別ディレクトリが重複しています");
             }
         }
+    }
+
+    [Test]
+    public void UpdateDirs_NullInstallRoot_ReturnNull()
+    {
+        // インストール先を解決できない環境 (macOS .app / Editor) では
+        // 更新領域のパスを一切提供しない → 書き込み自体が起きない。
+        Assert.IsNull(UpdatePaths.GetBaseDir(null));
+        Assert.IsNull(UpdatePaths.GetStagingDir(null));
+        Assert.IsNull(UpdatePaths.GetResultDir(null));
+        Assert.IsNull(UpdatePaths.GetLogsDir(null));
+        Assert.IsNull(UpdatePaths.GetUpdaterTmpDir(null));
     }
 
     [Test]
@@ -69,7 +121,6 @@ public class UpdatePathsTests
     {
         var legacy = UpdatePaths.LegacyBaseDir;
         Assert.IsNotNull(legacy);
-        Assert.AreNotEqual(UpdatePaths.BaseDir, legacy);
         StringAssert.EndsWith("update", legacy);
         // 旧レイアウトは persistentDataPath の外 (LOCALAPPDATA / Application Support 直下の FlashBeat)。
         Assert.IsFalse(legacy.StartsWith(UpdatePaths.PersistentDataRoot + Path.DirectorySeparatorChar,
@@ -93,10 +144,10 @@ public class UpdatePathsTests
         StringAssert.Contains("FlashBeat", legacy);
     }
 
-    // ── 旧レイアウトからの引き継ぎ ────────────────────────────────
+    // ── 旧レイアウトからの引き継ぎ (コピーのみ・旧側は保全) ─────────
 
     [Test]
-    public void MigrateLegacyData_MovesKnownEntriesOnly()
+    public void MigrateLegacyData_CopiesKnownEntriesAndKeepsLegacy()
     {
         var legacy = Path.Combine(tempRoot, "legacy");
         var current = Path.Combine(tempRoot, "current");
@@ -109,18 +160,21 @@ public class UpdatePathsTests
 
         UpdatePaths.MigrateLegacyData(legacy, current);
 
-        // 既知エントリは新しい責務別ディレクトリへ
+        // 既知エントリは新しい責務別ディレクトリへコピーされる
         Assert.IsTrue(File.Exists(Path.Combine(current, "staging", "pack.zip")));
         Assert.IsTrue(File.Exists(Path.Combine(current, "results", "last-result.json")));
         Assert.IsTrue(File.Exists(Path.Combine(current, "results", "last-result-shown.json")));
-        // 未知ファイルは触らない → 旧ルートは残る
+        // issue #670: 旧側は移動も削除もされず、そのまま残る
+        Assert.IsTrue(File.Exists(Path.Combine(legacy, "staging", "pack.zip")));
+        Assert.IsTrue(File.Exists(Path.Combine(legacy, "last-result.json")));
+        Assert.IsTrue(File.Exists(Path.Combine(legacy, "last-result-shown.json")));
         Assert.IsTrue(File.Exists(Path.Combine(legacy, "unknown.bin")));
         Assert.IsTrue(Directory.Exists(legacy));
-        Assert.IsFalse(Directory.Exists(legacyStaging));
+        Assert.IsTrue(Directory.Exists(legacyStaging));
     }
 
     [Test]
-    public void MigrateLegacyData_RemovesLegacyRootWhenFullyMigrated()
+    public void MigrateLegacyData_KeepsLegacyRootEvenWhenFullyCopied()
     {
         var legacy = Path.Combine(tempRoot, "legacy");
         var current = Path.Combine(tempRoot, "current");
@@ -129,7 +183,9 @@ public class UpdatePathsTests
 
         UpdatePaths.MigrateLegacyData(legacy, current);
 
-        Assert.IsFalse(Directory.Exists(legacy), "既知エントリだけなら旧ルートは削除される");
+        // issue #670: 旧ルートは削除されない (境界外ファイルの保全)
+        Assert.IsTrue(Directory.Exists(legacy), "旧ルートは残る");
+        Assert.IsTrue(File.Exists(Path.Combine(legacy, "last-result.json")));
         Assert.IsTrue(File.Exists(Path.Combine(current, "results", "last-result.json")));
     }
 

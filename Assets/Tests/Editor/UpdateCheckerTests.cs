@@ -290,6 +290,53 @@ public class UpdateStagingTests
             sha256 = "",
         }, tempDir, out problem));
     }
+
+    // ── issue #670: manifest / アセット名の境界検証 ────────────────
+
+    [Test]
+    public void IsPlainFileName_AcceptsSimpleNames()
+    {
+        Assert.IsTrue(UpdateStaging.IsPlainFileName("FlashBeat-0.1.1-win64-abc1234.zip"));
+        Assert.IsTrue(UpdateStaging.IsPlainFileName("a.b.c"));
+    }
+
+    [TestCase("../escape.zip")]
+    [TestCase("..\\escape.zip")]
+    [TestCase("sub/dir.zip")]
+    [TestCase("sub\\dir.zip")]
+    [TestCase("C:/abs/path.zip")]
+    [TestCase("..")]
+    [TestCase(".")]
+    [TestCase("")]
+    public void IsPlainFileName_RejectsTraversalAndPaths(string name)
+    {
+        Assert.IsFalse(UpdateStaging.IsPlainFileName(name), "境界外を指しうる名前を許可しています: " + name);
+    }
+
+    [Test]
+    public void VerifyStaged_ZipNameTraversal_IsRejectedBeforeFileAccess()
+    {
+        // 境界外のファイルが実在しても開かない (検証はファイル名検査で先に失敗する)。
+        var outside = Path.Combine(Path.GetDirectoryName(tempDir),
+            "FlashBeatUpdateStagingTests-outside-" + Guid.NewGuid().ToString("N") + ".zip");
+        File.WriteAllText(outside, "payload");
+        try
+        {
+            var staged = new UpdateStaging.StagedUpdate
+            {
+                tag = "v0.1.1-win64-abc1234",
+                zipName = "../" + Path.GetFileName(outside),
+                sha256 = UpdateStaging.ComputeSha256(outside),
+            };
+            string problem;
+            Assert.IsFalse(UpdateStaging.VerifyStaged(staged, tempDir, out problem));
+            Assert.IsTrue(problem.Contains("zipName"));
+        }
+        finally
+        {
+            if (File.Exists(outside)) { File.Delete(outside); }
+        }
+    }
 }
 
 public class UpdateReleaseSelectionTests

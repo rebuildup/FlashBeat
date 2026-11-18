@@ -27,8 +27,7 @@ param(
     [Parameter(Mandatory = $true)][string]$TargetZipPath,
     [Parameter(Mandatory = $true)][string]$TargetSha256,
     [Parameter(Mandatory = $true)][string]$TargetLogPath,
-    [string]$TargetResultDir = '',
-    [string]$TargetLogDir = ''
+    [string]$TargetWorkDir = ''
 )
 
 $ErrorActionPreference = 'Continue'
@@ -50,8 +49,10 @@ $dotSourceArgs = @{
     ExpectedSha256 = $TargetSha256
     LogPath      = $TargetLogPath
 }
-if ($TargetResultDir) { $dotSourceArgs['ResultDir'] = $TargetResultDir }
-if ($TargetLogDir) { $dotSourceArgs['LogDir'] = $TargetLogDir }
+# issue #670: ResultDir / LogDir はインストール先内に限定されるため、
+# テストでは既定値 (<install>\.flashbeat-update\{results,logs}) を使う。
+# -WorkDir だけは境界内の別場所を検証するために渡せる。
+if ($TargetWorkDir) { $dotSourceArgs['WorkDir'] = $TargetWorkDir }
 . $UpdateScript @dotSourceArgs
 
 Invoke-FlashBeatUpdateMain

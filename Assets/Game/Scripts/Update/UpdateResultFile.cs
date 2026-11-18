@@ -54,7 +54,7 @@ namespace FlashBeat.Update
         public const string FileName = "last-result.json";
         public const string ShownFileName = "last-result-shown.json";
 
-        /// <summary>結果ディレクトリ (<see cref="UpdatePaths.ResultDir"/> = &lt;persistentDataPath&gt;/update/results)。不明なら null。</summary>
+        /// <summary>結果ディレクトリ (<see cref="UpdatePaths.ResultDir"/> = &lt;install&gt;/.flashbeat-update/results)。不明なら null。</summary>
         public static string ResultDir
         {
             get { return UpdatePaths.ResultDir; }
