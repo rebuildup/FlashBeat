@@ -304,11 +304,20 @@ export function parseArchiveResponse(body: unknown): ArchiveResponse {
   };
 }
 
+/** Options shared by the dashboard reads; `signal` aborts the request. */
+export interface DashboardRequestOptions {
+  signal?: AbortSignal;
+}
+
 /** Load the ranking board of every live song. */
-export async function loadRankings(limit?: number): Promise<RankingsResponse> {
+export async function loadRankings(
+  limit?: number,
+  options: DashboardRequestOptions = {},
+): Promise<RankingsResponse> {
   const query = limit === undefined ? "" : `?limit=${encodeURIComponent(String(limit))}`;
   const response = await fetch(`/api/v1/rankings${query}`, {
     headers: { accept: "application/json" },
+    signal: options.signal,
   });
   if (!response.ok) {
     throw new Error(`ランキングAPIが${response.status}を返しました`);
@@ -317,8 +326,11 @@ export async function loadRankings(limit?: number): Promise<RankingsResponse> {
 }
 
 /** Load the festival statistics. */
-export async function loadStats(): Promise<StatsResponse> {
-  const response = await fetch("/api/v1/stats", { headers: { accept: "application/json" } });
+export async function loadStats(options: DashboardRequestOptions = {}): Promise<StatsResponse> {
+  const response = await fetch("/api/v1/stats", {
+    headers: { accept: "application/json" },
+    signal: options.signal,
+  });
   if (!response.ok) {
     throw new Error(`統計APIが${response.status}を返しました`);
   }

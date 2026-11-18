@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "styled-system/css";
 import { Button } from "@/components/ui";
 import {
@@ -15,6 +15,7 @@ import {
 import { loadRankings, loadStats } from "@/lib/dashboard/client";
 import type { RankingSong, StatsResponse } from "@/lib/dashboard/types";
 import { StateBlock, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
+import { isAbortError } from "./catalog";
 
 /**
  * The festival dashboard (issue #151).
@@ -295,17 +296,40 @@ export function DashboardPanel() {
   const [rankings, setRankings] = useState<RankingSong[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
+  /**
+   * 最新の要求だけを反映するための状態（`app-shell.tsx` と同じ方式）。
+   *
+   * - `requestIdRef` は要求番号。番号が最新でない応答は捨てる。
+   * - `abortRef` は今走っている要求の `AbortController`。新しい読み込みや
+   *   アンマウントで前の要求を中断する。
+   */
+  const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
   const refresh = useCallback(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     setStatus("loading");
     setErrorMessage(undefined);
 
-    Promise.all([loadRankings(), loadStats()])
+    Promise.all([
+      loadRankings(undefined, { signal: controller.signal }),
+      loadStats({ signal: controller.signal }),
+    ])
       .then(([board, statistics]) => {
+        if (requestId !== requestIdRef.current) return;
         setRankings(board.songs);
         setStats(statistics);
         setStatus("ready");
       })
       .catch((error: unknown) => {
+        // 中断は失敗ではない。次に始まる読み込みの結果を待つだけ。
+        if (isAbortError(error)) return;
+        if (requestId !== requestIdRef.current) return;
         setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
         setStatus("error");
       });
@@ -313,6 +337,10 @@ export function DashboardPanel() {
 
   useEffect(() => {
     refresh();
+    return () => {
+      // 画面を離れるときに未完了の要求を中断する。
+      abortRef.current?.abort();
+    };
   }, [refresh]);
 
   /** The songs of the ranking board, best score first. */

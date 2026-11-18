@@ -111,23 +111,11 @@ const NO_TOUCHED: Record<NewSongField, boolean> = {
   durationSec: false,
 };
 
-const OEMBED_FAILURE_TEXT: Record<OembedFailureReason, { ja: string; en: string }> = {
-  "invalid-id": {
-    ja: "動画IDを確認してください。",
-    en: "Check the video id.",
-  },
-  offline: {
-    ja: "オフラインのため曲名を自動取得できません。手動で入力してください。",
-    en: "Offline — the title could not be fetched. Enter it manually.",
-  },
-  "not-found": {
-    ja: "動画が見つかりません（非公開または削除済み）。",
-    en: "The video was not found (private or deleted).",
-  },
-  malformed: {
-    ja: "動画情報を取得できませんでした。手動で入力してください。",
-    en: "The video metadata could not be read. Enter it manually.",
-  },
+const OEMBED_FAILURE_TEXT: Record<OembedFailureReason, string> = {
+  "invalid-id": "動画IDを確認してください。",
+  offline: "オフラインのため曲名を自動取得できません。手動で入力してください。",
+  "not-found": "動画が見つかりません（非公開または削除済み）。",
+  malformed: "動画情報を取得できませんでした。手動で入力してください。",
 };
 
 export interface SongInfoStepProps {
@@ -162,11 +150,17 @@ export function SongInfoStep({
 
   const videoId = useMemo(() => parseYouTubeId(info.youtube) ?? "", [info.youtube]);
 
+  // A new video id means a new duration probe: the measurement of the
+  // previous video is stale and must not fill the duration field.
+  useEffect(() => {
+    setProbeDuration(null);
+  }, [videoId]);
+
   const issues = useMemo(() => validateNewSongInfo(info), [info]);
   const issueByField = useMemo(() => {
     const map = new Map<NewSongField, string>();
     for (const issue of issues) {
-      map.set(issue.field, issue.message.ja);
+      map.set(issue.field, issue.message);
     }
     return map;
   }, [issues]);
@@ -181,7 +175,7 @@ export function SongInfoStep({
   const visibleError = useCallback(
     (field: NewSongField): string | undefined => {
       if (songIdTaken && field === "songId") {
-        return SONG_ID_TAKEN.ja;
+        return SONG_ID_TAKEN;
       }
       return touched[field] || attempted ? issueByField.get(field) : undefined;
     },
@@ -306,7 +300,7 @@ export function SongInfoStep({
       ) : null}
       {oembed?.state === "failed" && oembed.reason ? (
         <p className={`${note} ${noteError}`} role="alert">
-          {OEMBED_FAILURE_TEXT[oembed.reason].ja}
+          {OEMBED_FAILURE_TEXT[oembed.reason]}
         </p>
       ) : null}
 

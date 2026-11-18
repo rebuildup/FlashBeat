@@ -16,7 +16,7 @@ it("accepts a complete info without issues", () => {
   expect(validateNewSongInfo(VALID_INFO)).toEqual([]);
 });
 
-it("reports every broken field at once, in Japanese and English", () => {
+it("reports every broken field at once, in Japanese", () => {
   const issues = validateNewSongInfo({
     youtube: "not a url",
     title: "",
@@ -28,15 +28,14 @@ it("reports every broken field at once, in Japanese and English", () => {
   const byField = new Map(issues.map((issue) => [issue.field, issue.message]));
   expect(issues).toHaveLength(6);
   for (const message of byField.values()) {
-    expect(message.ja.length).toBeGreaterThan(0);
-    expect(message.en.length).toBeGreaterThan(0);
+    expect(message.length).toBeGreaterThan(0);
   }
-  expect(byField.get("youtube")?.en).toContain("11 character");
-  expect(byField.get("songId")?.en).toContain("3 to 64");
-  expect(byField.get("level")?.en).toContain("between 1 and 99");
-  expect(byField.get("durationSec")?.ja).toContain("0より長く");
-  expect(byField.get("title")?.ja).toContain("曲名");
-  expect(byField.get("artist")?.en).toContain("160");
+  expect(byField.get("youtube")).toContain("11文字");
+  expect(byField.get("songId")).toContain("3〜64文字");
+  expect(byField.get("level")).toContain("1〜99");
+  expect(byField.get("durationSec")).toContain("0より長く");
+  expect(byField.get("title")).toContain("曲名");
+  expect(byField.get("artist")).toContain("160");
 });
 
 it("parses every YouTube URL form the booth produces, with extra params", () => {
@@ -58,16 +57,15 @@ it("rejects a URL whose id is not 11 characters", () => {
   expect(validateNewSongInfo({ ...VALID_INFO, youtube: "https://youtu.be/short" })).toHaveLength(1);
 });
 
-it("flags a taken song id with the fixed bilingual message", () => {
-  expect(SONG_ID_TAKEN.ja).toBe("このIDは使用済みです。別のIDを選んでください。");
-  expect(SONG_ID_TAKEN.en).toBe("This ID is already in use. Choose another one.");
+it("flags a taken song id with the fixed message", () => {
+  expect(SONG_ID_TAKEN).toBe("このIDは使用済みです。別のIDを選んでください。");
 });
 
 it("blocks zero notes and warns below twenty", () => {
   expect(judgeNoteCount(0)?.level).toBe("error");
-  expect(judgeNoteCount(0)?.message.en).toContain("at least one note");
+  expect(judgeNoteCount(0)?.message).toContain("1つ以上");
   expect(judgeNoteCount(19)?.level).toBe("warn");
-  expect(judgeNoteCount(19)?.message.ja).toContain("19個");
+  expect(judgeNoteCount(19)?.message).toContain("19個");
   expect(judgeNoteCount(20)).toBeNull();
   expect(judgeNoteCount(SAMPLE_CHART.notes.length)).toBeNull();
 });

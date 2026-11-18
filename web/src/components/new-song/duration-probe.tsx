@@ -76,6 +76,13 @@ export function DurationProbe({ videoId, onDuration }: DurationProbeProps) {
                 durationRef.current(duration);
               }
             },
+            // A video that cannot be played (private, embed-disabled, …)
+            // reports an error instead of staying "loading" forever.
+            onError: () => {
+              if (!disposed) {
+                setState("error");
+              }
+            },
           },
         });
         playerRef.current = player;

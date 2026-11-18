@@ -106,3 +106,46 @@ it("clear removes the draft", () => {
   clearNewSongDraft();
   expect(loadNewSongDraft()).toBeNull();
 });
+
+it("drops a structurally broken chart but keeps the info", () => {
+  values.set(
+    NEW_SONG_DRAFT_KEY,
+    JSON.stringify({
+      step: 2,
+      maxStep: 2,
+      info: { title: "Who", songId: "who" },
+      // `notes` is an array, but its entries are not notes — the old
+      // sanitizer accepted this and the Konva editor could crash on it.
+      chart: { name: "Who", maxBlock: 8, BPM: "fast", offset: 0, notes: [null, {}] },
+      savedAt: "",
+    }),
+  );
+  const loaded = loadNewSongDraft();
+  expect(loaded?.info.title).toBe("Who");
+  expect(loaded?.chart).toBeNull();
+});
+
+it("never throws when sessionStorage itself fails", () => {
+  vi.stubGlobal("sessionStorage", {
+    setItem: () => {
+      throw new DOMException("quota", "QuotaExceededError");
+    },
+    getItem: () => {
+      throw new DOMException("denied", "SecurityError");
+    },
+    removeItem: () => {
+      throw new DOMException("denied", "SecurityError");
+    },
+  });
+
+  expect(() => saveNewSongDraft(emptyNewSongDraft())).not.toThrow();
+  expect(loadNewSongDraft()).toBeNull();
+  expect(() => clearNewSongDraft()).not.toThrow();
+
+  // Restore the in-memory stub for any test appended after this one.
+  vi.stubGlobal("sessionStorage", {
+    setItem: (key: string, value: string) => values.set(key, value),
+    getItem: (key: string) => values.get(key) ?? null,
+    removeItem: (key: string) => values.delete(key),
+  });
+});

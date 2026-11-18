@@ -134,7 +134,7 @@ export function ChartStep({
           }`}
           data-testid="note-count-verdict"
         >
-          {verdict ? verdict.message.ja : `ノート ${noteCount} 個`}
+          {verdict ? verdict.message : `ノート ${noteCount} 個`}
         </p>
         {chartIssues.length > 0 ? (
           <p className={`${verdict} ${verdictError}`}>
