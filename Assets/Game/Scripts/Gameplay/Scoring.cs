@@ -231,11 +231,6 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public static int ScoreV3(V3Breakdown b)
         {
-            if (b.MaxRatio <= 0f)
-            {
-                return 0;
-            }
-
             // The breakdown fields are integer-valued floats by construction
             // (every component is a whole number of ratio points and the
             // sums stay far below 2^24), so the long casts are exact.
