@@ -177,7 +177,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>
         /// 判定が現れてから静止位置へ落ちきるまでの時間 (秒)。
         /// Issue #671: 判定線付近での短い落下フェーズ (出現位置は静止位置の
-        /// <see cref="VerdictFallDistancePx"/> 上。画面上端ではない —
+        /// 真上 <see cref="VerdictFallDistancePx(V6HudMetrics)"/>。画面上端ではない —
         /// ノーツの接近と判定フィードバックを区別するため)。
         /// </summary>
         public const float VerdictFallSeconds = 0.30f;
@@ -225,26 +225,31 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// (判定線 + <see cref="VerdictRestGapAboveLine"/>) の真上この距離に
         /// 即時出現し、<see cref="VerdictFallSeconds"/> かけて静止位置へ落ちる。
         ///
-        /// 距離は画面高さに比例させない固定値。ノーツは画面上端から判定線まで
-        /// 全画面を落下するが、判定テキストが同じ経路を下ると「ノーツの接近」
-        /// と「判定後のフィードバック」が区別できない (実機レビュー指摘)。
-        /// フィードバックは判定線付近に局所化し、短い落下で着地させる。
+        /// 距離は判定ボックス (<see cref="V6HudMetrics.VerdictH"/>) 1 個分の
+        /// 高さ。文字がちょうど一文字分の距離を落ちて着地する最小の
+        /// drop-in であり、画面上端からの全距離落下 (= ノーツの接近と
+        /// 判定フィードバックの混同、実機レビュー指摘) とは区別できる。
+        /// メトリクスは解像度別テーブルなので FHD/2K で適切にスケールする。
         /// </summary>
-        public const float VerdictFallDistancePx = 96f;
+        public static float VerdictFallDistancePx(V6HudMetrics m)
+        {
+            return m.VerdictH;
+        }
 
         /// <summary>
         /// 静止位置より上へのオフセット (px、正 = 上)。
-        /// Issue #671: 出現時は <see cref="VerdictFallDistancePx"/> だけ上にあり、
+        /// Issue #671: 出現時は <paramref name="fallDistance"/> だけ上にあり、
         /// <see cref="VerdictFallSeconds"/> かけて EaseOutCubic に従って
         /// 静止位置 (0) へ落ちる。落下完了後は 0。
         /// 到達を減速させる EaseOut にするのは、着地を滑らかに見せるため。
         /// </summary>
         /// <param name="elapsed">表示開始からの秒。</param>
-        public static float VerdictFallOffset(float elapsed)
+        /// <param name="fallDistance">落下距離 (px)。<see cref="VerdictFallDistancePx"/> を使う。</param>
+        public static float VerdictFallOffset(float elapsed, float fallDistance)
         {
             if (elapsed <= 0f)
             {
-                return VerdictFallDistancePx;
+                return fallDistance;
             }
 
             if (elapsed >= VerdictFallSeconds)
@@ -252,7 +257,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return 0f;
             }
 
-            return VerdictFallDistancePx * (1f - EaseOutCubic(elapsed / VerdictFallSeconds));
+            return fallDistance * (1f - EaseOutCubic(elapsed / VerdictFallSeconds));
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---

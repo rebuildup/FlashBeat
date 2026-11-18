@@ -162,7 +162,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
             // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
             // Issue #671: verdictBaseY は落下の終点 (静止位置)。出現時は
-            // VerdictFallDistancePx だけ上に置き、時間でここへ落ちてくる。
+            // VerdictFallDistancePx(m) だけ上に置き、時間でここへ落ちてくる。
             // レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
@@ -338,7 +338,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #671: 判定は静止位置の真上 VerdictFallDistancePx に
+                // Issue #671: 判定は静止位置の真上 VerdictFallDistancePx(m) に
                 // 即時出現 (フェードインなし) し、VerdictFallSeconds で
                 // 静止位置へ落ちてくる。その後 VerdictHoldSeconds 静止し、
                 // 寿命の最後 VerdictFadeOutSeconds でフェードアウト。
@@ -349,7 +349,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 // レイアウトは触らず anchoredPosition.y だけを時間で変える。
                 // offset は正 = 静止位置より上なので verdictBaseY に足す。
                 V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
-                    verdictBaseY + V6HudLogic.VerdictFallOffset(elapsed));
+                    verdictBaseY + V6HudLogic.VerdictFallOffset(elapsed,
+                        V6HudLogic.VerdictFallDistancePx(m)));
             }
         }
 
