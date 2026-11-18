@@ -236,9 +236,24 @@ public class Judge : MonoBehaviour
         {
             if (LanePressedPredicate(lane))
             {
-                audioHit.PlayOneShot(clickSound);
+                PlayOneShotClip(clickSound);
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// <see cref="AudioSource.PlayOneShot"/> の呼び出し点 (Issue #682)。
+    /// EditMode テストはサブクラスで差し替え、鳴らしたクリップと回数を
+    /// 観測する (<see cref="JudgeStep"/> が判定ステップを引数で受け取るのと
+    /// 同じ「テストシーム」の方針)。実機では audioHit へそのまま流し、
+    /// audioHit が無いときは何もしない (呼び出し側のガードと同じ)。
+    /// </summary>
+    protected virtual void PlayOneShotClip(AudioClip clip)
+    {
+        if (audioHit != null)
+        {
+            audioHit.PlayOneShot(clip);
         }
     }
 
@@ -257,7 +272,7 @@ public class Judge : MonoBehaviour
         // 同じフレームで既に鳴らしているため、ここでは重ねて鳴らさない (issue #672)。
         if (audioHit != null && hitSound != null && hitSound != clickSound)
         {
-            audioHit.PlayOneShot(hitSound);
+            PlayOneShotClip(hitSound);
         }
 
         // 先頭の押下で 1 回だけ加点する (Issue #164)。
@@ -328,15 +343,12 @@ public class Judge : MonoBehaviour
     {
         if (lane < 0 || lane >= LaneKeys.Length) return false;
 
-        KeyCode[] keys = KeyBindings.GetKeys(lane);
-        for (int i = 0; i < keys.Length; i++)
-        {
-            // GetKeyDownOrInjected は「そのキーが押された (Input)」と「検証ハーネス
-            // が注入した (KeyBindings.InjectKeyDown)」の両方を見る。製品ビルドでは
-            // 注入されないので、結果は従来と同じ Input.GetKeyDown と同じになる。
-            if (KeyBindings.GetKeyDownOrInjected(keys[i])) return true;
-        }
-        return false;
+        // KeyBindings.IsLaneKeyDown は実キーのフレームエッジ
+        // (GetKeyDownOrInjected) に加えて、EditMode テスト専用の
+        // InjectLaneKeyDown (injectedLaneDowns) も見る。
+        // 製品ビルドでは injectedLaneDowns は常に空なので、
+        // 結果は従来の GetKeyDownOrInjected 走査と同じになる (Issue #682)。
+        return KeyBindings.IsLaneKeyDown(lane);
     }
 
     /// <summary>そのレーンのキーが押されているか (保持判定用)。</summary>
