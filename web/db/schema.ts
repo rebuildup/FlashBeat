@@ -98,11 +98,12 @@ export const scores = sqliteTable(
     m: integer("m").notNull().default(0),
     score: integer("score").notNull(),
     /**
-     * Scoring formula version the score was computed with (ADR-0028):
-     * 1 = the original formula, 2 = the v2 formula with the combo
-     * continuation and no-miss bonuses. Rows written before the column
-     * existed are backfilled to 1 by the follow-up migration. v1 and v2
-     * records are never ranked together.
+     * Scoring formula version the score was computed with (ADR-0028,
+     * ADR-0029): 1 = the original formula, 2 = the v2 formula with the
+     * combo continuation and no-miss bonuses, 3 = the v3 formula that adds
+     * the combo-milestone and final bonuses. Rows written before the column
+     * existed are backfilled to 1 by the follow-up migration. Different
+     * versions are never ranked together.
      */
     scoringVersion: integer("scoringVersion").notNull().default(1),
     createdAt: text("createdAt")

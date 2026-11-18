@@ -6,7 +6,7 @@
 #   project's canonical version: it rewrites Packages/ and ProjectSettings/, never commit those).
 # - Canonical results for release decisions come from the Windows machine (Unity 6000.5.6f1).
 set -euo pipefail
-cmd="${1:-status}"; ref="${2:-origin/release-0-1-3}"
+cmd="${1:-status}"; ref="${2:-origin/main}"
 root="$(git rev-parse --show-toplevel)"
 wt="${FB_MAC_WORKTREE:-$(dirname "$root")/FlashBeat.macverify}"
 hub=/Applications/Unity/Hub/Editor

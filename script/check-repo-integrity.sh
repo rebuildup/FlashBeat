@@ -13,7 +13,9 @@
 #   1. every asset (file and folder) has its sibling `.meta`      (Unity would
 #      generate one, and a second run would then differ from the commit);
 #   2. no orphan `.meta` whose asset is gone                      (a leftover of
-#      a deletion made outside the Editor);
+#      a deletion made outside the Editor; the gitignored
+#      `Assets/Packages` / `Assets/StreamingAssets` folders are exempt --
+#      they are tracked only by their `.meta`);
 #   3. every `.asmdef` and every Resources chart `.json` parses   (a broken
 #      assembly definition takes the whole project down);
 #   4. `.cs` files use LF and no tabs in our own code              (`.editorconfig`
@@ -311,14 +313,29 @@ for rel in tracked:
 
 failures = 0
 failures += report("asset without .meta", missing_meta)
-# Orphan metas are a **warning**, not a failure: `Assets/Packages` and
-# `Assets/StreamingAssets` are tracked only by their `.meta` (their contents
-# are gitignored), so a fresh CI checkout has the `.meta` without the folder
-# and looks exactly like a leftover of a deletion.
-if orphan_meta:
-    print("WARN orphan .meta (asset is gone, or an empty ignored folder):")
-    for path in sorted(orphan_meta):
+# Orphan metas FAIL, except under `Assets/Packages` and
+# `Assets/StreamingAssets`: those folders are gitignored, so a fresh CI
+# checkout has the `.meta` without the folder and looks exactly like a
+# leftover of a deletion. Anything else is a real orphan and fails the gate.
+ORPHAN_META_IGNORE = ("Assets/Packages", "Assets/StreamingAssets")
+
+
+def orphan_meta_ignored(path):
+    rel = os.path.relpath(path, root)
+    asset = rel[:-5] if rel.endswith(".meta") else rel
+    return any(
+        asset == ignored or asset.startswith(ignored + os.sep)
+        for ignored in ORPHAN_META_IGNORE
+    )
+
+
+real_orphan_meta = [p for p in orphan_meta if not orphan_meta_ignored(p)]
+ignored_orphan_meta = [p for p in orphan_meta if orphan_meta_ignored(p)]
+if ignored_orphan_meta:
+    print("INFO orphan .meta under gitignored folders (expected on a fresh checkout):")
+    for path in sorted(ignored_orphan_meta):
         print("  " + os.path.relpath(path, root))
+failures += report("orphan .meta (asset is gone)", real_orphan_meta)
 failures += report("unparsable .asmdef / Resources .json", bad_json)
 failures += report("CRLF line ending in .cs", crlf)
 failures += report("tab indentation in .cs", tabs)

@@ -16,10 +16,12 @@ on:
       - main
     paths:
       - "web/**"
+      - "contracts/**"
       - ".github/workflows/web.yml"
   pull_request:
     paths:
       - "web/**"
+      - "contracts/**"
       - ".github/workflows/web.yml"
   # E2E is batched at the release-candidate boundary, not every PR.
   workflow_dispatch:

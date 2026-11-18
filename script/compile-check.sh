@@ -27,8 +27,24 @@ set -euo pipefail
 
 PROJECT_DIR="$PWD"
 ASSEMBLY="flashbeat"
-TEMPLATE_CSPROJ="${TEMPLATE_CSPROJ:-/Users/rebui/work/FlashBeat/FlashBeat.csproj}"
-CANON_LIB="${CANON_LIB:-/Users/rebui/work/FlashBeat/Library}"
+
+# Defaults resolve against this repository, not a hardcoded checkout path.
+# Unity generates FlashBeat.csproj and owns Library/ only in the **main**
+# worktree, so both defaults point there: `git rev-parse --git-common-dir`
+# returns the shared .git directory, whose parent is the main checkout
+# (for the main worktree itself it is just `.git`). Env overrides still win.
+SCRIPT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CANON_ROOT="$SCRIPT_ROOT"
+common_dir="$(git -C "$SCRIPT_ROOT" rev-parse --git-common-dir 2>/dev/null || true)"
+if [ -n "$common_dir" ]; then
+  case "$common_dir" in
+    /*) ;;
+    *) common_dir="$SCRIPT_ROOT/$common_dir" ;;
+  esac
+  CANON_ROOT="$(cd "$common_dir/.." && pwd)"
+fi
+TEMPLATE_CSPROJ="${TEMPLATE_CSPROJ:-$CANON_ROOT/FlashBeat.csproj}"
+CANON_LIB="${CANON_LIB:-$CANON_ROOT/Library}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -50,7 +66,15 @@ fi
 # canonical one read-only; nothing here writes into it.
 mkdir -p "$PROJECT_DIR/Library"
 # PackageCache は読み取り専用で参照できる (Unity が書き込まない)。
+# canonical 側に PackageCache が無いと csproj のパッケージ参照が全て
+# 解決できないので、リンクを張る前に明示的に止める。
 if [ ! -e "$PROJECT_DIR/Library/PackageCache" ]; then
+  if [ ! -d "$CANON_LIB/PackageCache" ]; then
+    echo "compile-check: 実行できません — $CANON_LIB/PackageCache がありません。" >&2
+    echo "  canonical Library は main worktree の Unity Library です (CANON_LIB で上書き可)。" >&2
+    echo "  main worktree で Unity を一度開いて PackageCache を生成してください。" >&2
+    exit 2
+  fi
   ln -s "$CANON_LIB/PackageCache" "$PROJECT_DIR/Library/PackageCache"
 fi
 # ScriptAssemblies は Unity が書き込む場所なので、symlink にして共有すると

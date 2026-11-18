@@ -277,7 +277,7 @@ public static class BuildScript
             MovePath(ProjectPath(rel), Path.Combine(excludeRoot, Path.GetFileName(rel.TrimEnd('/'))));
         }
         AssetDatabase.Refresh();
-        Debug.Log("[BuildScript] 第三者楽曲の音声・動画をビルド対象から除外しました (Musics / Videos/UnityYoutube / loading.mp4)");
+        Debug.Log("[BuildScript] 第三者楽曲の音声・動画をビルド対象から除外しました (Musics / Videos/UnityYoutube)");
     }
 
     /// <summary>退避したメディアを元の位置へ戻す。退避フォルダが無い/空なら何もしない。</summary>

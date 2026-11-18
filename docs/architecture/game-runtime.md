@@ -11,8 +11,12 @@
 | `NoteEditor` | `Assets/NoteEditor/NoteEditor.asmdef` | 全 platform | vendored setchi/NoteEditor。build scenes に含まれないため player には入らない |
 | `NoteEditor.Editor` | `Assets/Editor/NoteEditor.Editor/NoteEditor.Editor.asmdef` | Editor のみ | `MigrateLegacyTextJson`, YouTube import |
 | `FlashBeat.Tests` | `Assets/Tests/Editor/FlashBeat.Tests.asmdef` | Editor のみ | EditMode tests |
+| `FlashBeat.V5CanvasTests` | `Assets/Game/Tests/FlashBeat.V5CanvasTests.asmdef` | Editor のみ | v5 UI canvas tests |
+| `FlashBeat.V6CanvasTests` | `Assets/Game/Tests/V6CanvasTests/FlashBeat.V6CanvasTests.asmdef` | Editor のみ | v6 UI canvas tests |
+| `UniRx` | `Assets/NoteEditor/Plugins/UniRx/Scripts/UniRx.asmdef` | 全 platform | vendored UniRx。NoteEditor 系だけが参照する |
+| `SimpleFadeSystem` | `Assets/ThirdParty/Simple Scene Fade Load System/SimpleFadeSystem.asmdef` | 全 platform | vendored scene fade |
 
-`SimpleFadeSystem` は `Assets/ThirdParty/` の vendored assembly。FlashBeat 本体は UniRx を参照しない。NoteEditor だけが参照する。
+`SimpleFadeSystem` と `UniRx` は vendored assembly。FlashBeat 本体は UniRx を参照しない。NoteEditor だけが参照する。
 
 ## Scene と manager
 
@@ -83,7 +87,7 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 
 ## Tests
 
-`Assets/Tests/Editor/` に 146 の test file (2026-11-18 時点) があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。v6 UI の純ロジックは `Assets/Game/Tests/` (60 file、EditMode で同じく実行) にある。Play Mode / 実機 integration suite はない。
+`Assets/Tests/Editor/` に 151 の test file (2026-11-18 時点) があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。UI canvas tests (V5/V6) は `Assets/Game/Tests/` (60 file、EditMode で同じく実行) にある。Play Mode / 実機 integration suite はない。
 
 `SingletonTestHelper.TeardownSingletons` で static state を test 間に戻す。`EditData.Lyrics` の配列を使う test では必須。
 
