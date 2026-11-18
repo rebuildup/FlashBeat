@@ -41,23 +41,48 @@ public class AutoTestPlay : MonoBehaviour
         Check("the title screen has a canvas", FindObjectOfType<Canvas>() != null);
         yield return Screenshot("01-title");
 
-        // 2. The key guide opens on the title screen.
-        KeyGuideUI guide = FindFirstObjectByType<KeyGuideUI>();
-        Check("the key guide exists on the title screen", guide != null);
-        if (guide != null)
+        // 2. The title screen shows its key legend. v6 draws a static footer
+        // legend (V6UiMode.TitleLegend); the toggleable KeyGuideUI panel is a
+        // V5-only surface and must not exist on the v6 title.
+        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
         {
-            guide.SetVisible(true);
-            yield return new WaitForSecondsRealtime(0.4f);
-            Check("the key guide opens", guide.IsVisible);
-            yield return Screenshot("02-keyguide");
-            guide.SetVisible(false);
+            Check("the v6 title view exists",
+                FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
+            if (FlashBeat.UI.V6.V6UiMode.TitleLegend)
+            {
+                Check("the title screen shows its key legend", CountLegendLabels() > 0);
+                yield return Screenshot("02-keylegend");
+            }
+        }
+        else
+        {
+            KeyGuideUI guide = FindFirstObjectByType<KeyGuideUI>();
+            Check("the key guide exists on the title screen", guide != null);
+            if (guide != null)
+            {
+                guide.SetVisible(true);
+                yield return new WaitForSecondsRealtime(0.4f);
+                Check("the key guide opens", guide.IsVisible);
+                yield return Screenshot("02-keyguide");
+                guide.SetVisible(false);
+            }
         }
 
         // 3. Song select: the guide must exist there too.
         SceneManager.LoadScene("SelectScene");
         yield return new WaitForSecondsRealtime(4f);
         Check("the select screen is shown", SceneManager.GetActiveScene().name == "SelectScene");
-        Check("the key guide exists on the select screen", FindFirstObjectByType<KeyGuideUI>() != null);
+        // v6 select has a footer key legend instead of the legacy guide panel.
+        if (FlashBeat.UI.V6.V6UiMode.SelectScreen)
+        {
+            Check("the v6 select view exists",
+                FindFirstObjectByType<FlashBeat.UI.V6.Select.View.V6SelectViewDriver>() != null);
+            Check("the select screen shows its key legend", CountLegendLabels() > 0);
+        }
+        else
+        {
+            Check("the key guide exists on the select screen", FindFirstObjectByType<KeyGuideUI>() != null);
+        }
         yield return Screenshot("03-select");
 
         // 4. Game scene: the media is downloaded and prepared.
@@ -70,20 +95,27 @@ public class AutoTestPlay : MonoBehaviour
         MusicManager music = FindFirstObjectByType<MusicManager>();
         Check("the music manager exists", music != null);
 
-        // The download of a YouTube video takes a while; the loading screen has to
-        // be on screen while it happens.
+        // The download of a YouTube video takes a while; a loading screen has to
+        // be on screen while it happens. v6 uses V6LoadingView instead of the
+        // legacy MediaLoadingOverlay, and a fully cached media can be ready
+        // before the first probe - in that case no loading screen is correct.
+        bool instantReady = music != null && music.MediaReady;
         bool sawLoading = false;
         float waited = 0f;
         while (waited < 240f)
         {
             var overlay = FindFirstObjectByType<MediaLoadingOverlay>();
             if (overlay != null && overlay.IsVisible) { sawLoading = true; }
+            var v6Loading = FlashBeat.UI.V6.Game.Loading.V6LoadingView.Current;
+            if (v6Loading != null && v6Loading.Root != null
+                && v6Loading.Root.gameObject.activeInHierarchy) { sawLoading = true; }
             if (music != null && music.MediaReady) { break; }
-            waited += 1f;
-            yield return new WaitForSecondsRealtime(1f);
+            waited += 0.25f;
+            yield return new WaitForSecondsRealtime(0.25f);
         }
         if (sawLoading) { yield return Screenshot("04-loading"); }
-        Check("the loading screen was shown while the media was prepared", sawLoading);
+        Check("the loading screen was shown while the media was prepared",
+            sawLoading || instantReady);
         Check("the media is ready", music != null && music.MediaReady);
         Check("the video player is prepared", music != null && music.VideoPrepared);
         yield return Screenshot("05-med ready");
@@ -122,6 +154,18 @@ public class AutoTestPlay : MonoBehaviour
         ScreenCapture.CaptureScreenshot(path);
         yield return new WaitForSecondsRealtime(0.6f);
         Check("the screenshot " + name + " was written", File.Exists(path));
+    }
+
+    /// <summary>v6 凡例 (V6Legend.Item) が作る "Legend Label ..." TMP の数を数える。</summary>
+    private static int CountLegendLabels()
+    {
+        int count = 0;
+        foreach (var tmp in FindObjectsByType<TMPro.TextMeshProUGUI>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (tmp.name.StartsWith("Legend Label", StringComparison.Ordinal)) { count++; }
+        }
+        return count;
     }
 
     private void Check(string label, bool ok)
