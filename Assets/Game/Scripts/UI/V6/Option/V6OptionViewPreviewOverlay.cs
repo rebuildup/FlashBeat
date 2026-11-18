@@ -19,7 +19,7 @@ namespace FlashBeat.UI.V6.Option
     ///   well 上部に表示 (歌詞 OFF・データ無しでは出さない)。
     /// - 判定ポップ: <see cref="V6OptionPreviewRig"/> の JudgeQueue が
     ///   出した判定を、レーン位置の上・判定線の直上へ表示する。
-    ///   ラベル・色・寿命・立ち上がりは <see cref="V6HudLogic"/>
+    ///   ラベル・色・寿命・落下アニメーションは <see cref="V6HudLogic"/>
     ///   (本編 V6HudVerdict と同じ共有関数) で、ここでは配置だけを行う。
     ///
     /// すべて well の子なので、Preview パネルの再構築で一緒に消える。
@@ -201,13 +201,17 @@ namespace FlashBeat.UI.V6.Option
                     continue;
                 }
 
-                // 静止位置 = 判定線の VerdictRestGapAboveLine 上、出現時は
-                // VerdictRiseOffset だけ判定線側 (下) から立ち上がる。
+                // 静止位置 = 判定線の VerdictRestGapAboveLine 上。Issue #671:
+                // 出現時は画面上端 (ノーツの出現位置 = 設計 y=0) から
+                // VerdictFallOffset で落ちてくる。
                 // design px → 画面比はデザイン高さ 972 で揃える
                 // (V6HudLogic の px 定数をそのまま比率化して使う)。
                 float restVp = V6HudLogic.VerdictRestGapAboveLine / V6LaneGeometry.DesignHeight;
-                float riseVp = V6HudLogic.VerdictRiseOffset(elapsed) / V6LaneGeometry.DesignHeight;
-                float vpY = vp.y + restVp - riseVp;
+                float fallDesign = V6HudLogic.VerdictFallDistance(
+                    V6LaneGeometry.DesignHeight - V6LaneGeometry.JudgeLineY,
+                    V6LaneGeometry.DesignHeight, 0f);
+                float fallVp = V6HudLogic.VerdictFallOffset(elapsed, fallDesign) / V6LaneGeometry.DesignHeight;
+                float vpY = vp.y + restVp + fallVp;
 
                 var rt = tmp.rectTransform;
                 V6LayoutWrites.AnchoredPositionIfChanged(rt,

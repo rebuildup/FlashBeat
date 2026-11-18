@@ -83,11 +83,12 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 
 ## 判定ポップと直近の画面変更 (2026-11-18 時点)
 
-- **判定ポップの動き** (Issue #605): レーン判定テキストは判定線のすぐ上に即時出現
-  (フェードインなし) し、28px を 0.14 秒で EaseOut cubic に立ち上がり、
-  0.58 秒保持、最後の 0.22 秒でフェードアウトする (合計 0.80 秒)。
+- **判定ポップの動き** (Issue #671 / design §10.3): レーン判定テキストは画面上端
+  (ノーツの出現位置) に即時出現 (フェードインなし) し、0.30 秒かけて
+  判定線のすぐ上の静止位置へ落ちてくる。0.45 秒静止保持し、
+  最後の 0.22 秒でフェードアウトする (合計 0.97 秒)。
   `anchoredPosition.y` だけを動かしレイアウトは変えない。時系列の正本は
-  `V6HudLogic` の `VerdictRise*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
+  `V6HudLogic` の `VerdictFall*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
   設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
 - **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
   3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、

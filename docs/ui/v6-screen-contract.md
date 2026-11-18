@@ -271,6 +271,11 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
   (`V6OptionPreviewRig`) がレーンフラッシュ・判定ポップ・歌詞同期を再現し、
   2D オーバーレイ (`V6OptionViewPreviewOverlay`) が判定ポップと歌詞行を重ねる。
   判定ポップの時系列は本編と同じ `V6HudLogic` の共有定数。
+- 判定ポップの時系列 (Issue #671): 出現 (画面上端 = ノーツの出現位置、即時)
+  → 上方から判定線直上の静止位置へ落下 (`VerdictFallSeconds` 0.30s)
+  → 静止保持 (`VerdictHoldSeconds` 0.45s) → フェードアウト
+  (`VerdictFadeOutSeconds` 0.22s)、総寿命 `VerdictTotalSeconds` 0.97s。
+  設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
 - Result の登録モーダルはコンパクト画面 (フレーム 1728×972 未満) では
   Dialog 中心へビューポートをパンして中央に合わせ、閉じると元へ戻す (Issue #609、
   `V6CompactScreen` / `V6FramePan.PanSuspended`)。
