@@ -140,6 +140,8 @@ public class NotesManager : MonoBehaviour
         if (session != null) session.RestoreSongId();
         SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
         IsReady = false;
+        ChartRejected = false;
+        ChartRejectionReason = null;
         // 前の曲の時間設定を持ち越さない (Issue #383)。
         Timing = ChartTiming.Default;
         // v6 ローディングの実進捗を「不明」に戻してから読み直す (Issue #224)。

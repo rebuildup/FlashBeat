@@ -9,16 +9,19 @@
 /// while <c>noteNum</c> still counted it, so the play could never reach
 /// judgmentsComplete (no full-combo bonus, and a 422 on submission).
 ///
-/// The rules mirror the publish contract
-/// (<c>contracts/schemas/chart.v1.schema.json</c> plus the semantic checks
-/// of <c>web/routes/api/v1/_publish-model.ts</c>) restricted to the fields
-/// gameplay actually consumes. An empty note list stays valid — the
+/// The rules mirror the structural bounds of the publish contract
+/// (<c>contracts/schemas/chart.v1.schema.json</c>) restricted to the fields
+/// gameplay actually consumes. Publish-only semantic rules (hold length
+/// limits, same-lane hold overlap, notes inside `durationSec`) stay on the
+/// publish side (<c>web/src/lib/chart/validate.ts</c>): remote charts already
+/// passed them, and the bundled charts are pinned by
+/// <c>ChartDataIntegrityTests</c>. An empty note list stays valid — the
 /// contract explicitly allows chartless songs.
 /// </summary>
 public static class ChartValidator
 {
     /// <summary>Lane count of the playfield (same as Judge.LaneCount).</summary>
-    public const int LaneCount = 8;
+    public const int LaneCount = FlashBeat.Gameplay.Judge.LaneCount;
 
     /// <summary>Largest chart the contract accepts (schema maxItems).</summary>
     public const int MaxNotes = 10000;
