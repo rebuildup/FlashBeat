@@ -43,6 +43,12 @@ namespace FlashBeat.UI.V6.Common
             public Graphic TargetGraphic;
             /// <summary>
             /// テキストの表示領域。null なら host の RectTransform を使う。
+            /// textComponent の rect とは別の固定ノードを渡すこと —
+            /// TMP は textComponent の anchoredPosition をスクロールでずらす
+            /// 前提なので、viewport==text rect だとスクロール量が二重計上
+            /// されて文字・キャレット・選択・IME 変換文字が内側余白から
+            /// ドリフトする (Issue #676)。実際のクリップには viewport 側へ
+            /// RectMask2D を付け、textComponent はその子に置く。
             /// </summary>
             public RectTransform TextViewport;
             /// <summary>入力方式。既定 Standard = IME 変換可 (日本語名を入れるため)。</summary>
