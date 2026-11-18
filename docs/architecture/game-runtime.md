@@ -59,6 +59,7 @@ Lane 3: 4 5 R T F G V B  Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 ## 楽曲データ
 
 - chart: `Assets/Game/Resources/<SongName>.json`。`name`, `maxBlock`, `BPM`, `offset`, `notes[]` (`type/num/block/LPB`)、任意の `lyrics`
+- chart の入力境界検証 (Issue #632): `ChartValidator.Validate` が `type ∈ {1,2}`・`num >= 0`・`block ∈ [0,7]`・`LPB ∈ [1,192]`・HOLD の `endNum > num`・`BPM ∈ [1,600]`・`notes <= 10000` を公開スキーマ (`contracts/schemas/chart.v1.schema.json`) と同じ範囲で検査する。ローカル曲は `NotesManager.LoadRoutine` が、リモート曲は `SelectSceneManager` の譜面取得直後が検証点で、違反した譜面はゲーム進行へ流さず拒否する (リモートは開始キャンセル、ローカルは開始不可メッセージのあと選曲へ戻る)。範囲外レーンを含む譜面が「読み込めるが判定が永久に完了しない」状態になることを防ぐ。
 - lyrics: chart 内の `lyrics` が正。`GameSceneManager.LoadTextData` は merged chart を優先し、legacy の `<SongName>_text.json` があっても chart 側を使う
 - 音源: `Assets/Game/Resources/Musics/<SongName>.wav`
 - chart JSON は Resources folder に 1 つだけ置く。同名 chart が 2 つの Resources folder にあると `Resources.Load` がどちらか一方を恣意的に返す。`Assets/Tests/Editor/ResourceChartUniquenessTests.cs` がこれを検査する

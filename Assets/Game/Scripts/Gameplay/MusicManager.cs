@@ -134,6 +134,8 @@ public class MusicManager : MonoBehaviour
     float lastMediaTime;
     float stallSeconds;
     NotesManager notesManager;
+    /// <summary>Issue #632: 不正譜面の拒否処理は 1 回だけ。</summary>
+    bool chartRejectionHandled;
     ResourceRequest musicRequest;
 
     /// <summary>
@@ -599,6 +601,18 @@ public class MusicManager : MonoBehaviour
 
         SetStartMessage(PlaybackRecovery.StartHint(reason));
 
+        StartCoroutine(ReturnToSelectScene());
+    }
+
+    /// <summary>
+    /// Issue #632: 拒否された譜面の曲は開始できない。開始メッセージを
+    /// 差し替え、メディア失敗と同じ経路で選曲画面へ戻す。
+    /// </summary>
+    void HandleChartRejection()
+    {
+        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - returning to the select screen");
+        SetStartMessage("譜面データが不正なため、この曲は開始できません");
+        SelectReturnPending = true;
         StartCoroutine(ReturnToSelectScene());
     }
 
@@ -1077,6 +1091,19 @@ public class MusicManager : MonoBehaviour
         {
             // Nothing may play before the player starts the song.
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
+
+            // Issue #632: 契約を満たさない譜面は開始させない。
+            // NotesManager が読み込み境界で拒否した曲は、メッセージを出して
+            // 選曲画面へ戻す (判定未完了のまま進行させない)。
+            if (notesManager != null && notesManager.ChartRejected)
+            {
+                if (!chartRejectionHandled)
+                {
+                    chartRejectionHandled = true;
+                    HandleChartRejection();
+                }
+                return;
+            }
 
             // Space may only start the song when the media is ready AND the
             // chart (notes) finished loading - otherwise the judge would miss
