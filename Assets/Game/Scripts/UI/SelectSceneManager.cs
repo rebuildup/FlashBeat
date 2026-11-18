@@ -551,12 +551,31 @@ public class SelectSceneManager : MonoBehaviour
             yield break;
         }
 
+        // Issue #657: 譜面取得の待機中にカタログ更新
+        // (RefreshCatalogOnce → ApplyRemoteCatalog) や選択変更が入ると、
+        // キャプチャした song と現在の選択行がずれうる。そのまま
+        // ResetSession すると、ユーザーが選んだ曲と違う譜面でプレイが
+        // 始まる。確定直前に現在行を再解決し、同一曲・同一版でなければ
+        // 開始を中止する。
+        SongData current = GManager.GetSong(GManager.songID);
+        if (current == null || !current.isRemote || current.remoteId != song.remoteId
+            || (current.chartVersion > 0 && current.chartVersion != version))
+        {
+            Debug.LogWarning($"[SelectScene] selection changed during chart fetch for '{song.remoteId}' v{version} - start cancelled");
+            v6Data?.ReportStartFailure("選曲が変更されたため開始を中止しました");
+            SelectSceneTransitionGuard.Reset();
+            LoadingOverlay.Hide(RemoteStartOwner);
+            yield break;
+        }
+
         // The song entry carries the version the snapshot was taken with, so
         // that the game scene finds exactly this snapshot (NotesManager looks
         // it up by song.chartVersion) even when the catalog entry itself did
-        // not carry a version.
-        song.chartVersion = version;
-        CloudChartHolder.Hold(song.remoteId, version, body);
+        // not carry a version. Issue #657: 書き込むのは現在行 (current)。
+        // 取得前にキャプチャした song はカタログ更新で切り離されている
+        // ことがあり、そちらへ書いてもスナップショットに載らない。
+        current.chartVersion = version;
+        CloudChartHolder.Hold(current.remoteId, version, body);
         GManager.ResetSession();
         Initiate.Fade("GameScene", Color.black, TransitionFadeDamp, true);
     }
