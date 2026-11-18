@@ -14,13 +14,14 @@ namespace FlashBeat.UI.V6.Game.Loading
     ///
     /// - design: タイトル欄は空、右上にジャケット 56×56 + 曲名 fs22 / 作家 fs16、
     ///   フッターの凡例は Esc「戻る」のみ、補助 / 主操作は非表示、メインは空。
-    /// - 進捗の表現は design に無い → この実装が決める: 中央に「準備中…」+ バー。
-    ///   実進捗 (譜面準備, Issue #224) が渡されたら確定バー + 割合表示、
-    ///   不明のときだけ不定バーへフォールバックする。
-    /// - 失敗時はメッセージ + 「再試行」(RetryGame) + 「選曲にもどる」(実遷移)。
+    /// - 進捗・エラーの専用表示は design に無い (Issue #606): メインゾーンには
+    ///   何も置かず、ローディング中の表現は全画面の loading.mp4 映像だけにする。
+    ///   進捗値 (GameLoadingProgress → SetLoading) とエラー状態 (SetError) の
+    ///   管理は維持するが、専用の可視要素 (見出し・補足・バー・失敗ボタン) は出さない。
+    /// - 失敗時も専用 UI は出さない。戻る導線はヘッダーの戻るボタンと
+    ///   フッター凡例 (Esc、実処理は HudPlayStatus) が担う。
     /// - 状態は SetLoading / SetError で受け取る (統合担当が MusicManager /
-    ///   HudPlayState の状態から呼ぶ)。キー入力は持たない (Esc は既存の
-    ///   HudPlayStatus が「戻る」を担う)。
+    ///   HudPlayState の状態から呼ぶ)。キー入力は持たない。
     /// - すべてコードから uGUI を生成。寸法は design px (1728x972)。
     ///   共通フレームを 1:1 (等倍) で画面中央に置く
     ///   (<see cref="V6LoadingViewLogic.FrameOrigin"/>、ポーズと同じ規約)。
@@ -46,10 +47,6 @@ namespace FlashBeat.UI.V6.Game.Loading
         // ヘッダー帯の寸法は V6Header (Width/Height/FramePos) が正本。
         private const float FooterX = 24f, FooterY = 876f;
 
-        private const float TrackW = 464f;
-        private const float TrackH = 8f;
-        private const float FillW = 160f;
-
         private GameObject rootGo;
         private VideoPlayer videoPlayer;
         private RawImage videoRaw;
@@ -60,16 +57,11 @@ namespace FlashBeat.UI.V6.Game.Loading
         private V6LoadingVideoSurface? lastSurface;
         private RectTransform frame;
         private V6LoadingViewDriver driver;
-        private TextMeshProUGUI headline;
-        private TextMeshProUGUI detail;
-        private RectTransform fill;
-        private GameObject progressGroup;
-        private GameObject errorGroup;
         private TextMeshProUGUI songTitle;
         private TextMeshProUGUI songArtist;
         private Image jacketImage;
         private TextMeshProUGUI noJacketLabel;
-        private float? progress;            // null = 不明 (不定インジケータ)
+        private float? progress;            // 最後に報告された譜面準備の進捗 (表示はしない)
         private Texture2D jacketTexture;    // スプライトの生成元 (変化時だけ再生成)
         private Sprite jacketSprite;        // ApplySong で作ったスプライト (Dispose で破棄)
         private RenderTexture videoTexture; // RenderTexture モードの出力先 (Dispose で破棄)
@@ -164,6 +156,18 @@ namespace FlashBeat.UI.V6.Game.Loading
         internal string VideoSurfaceForAudit
         {
             get { return lastSurface.HasValue ? lastSurface.Value.ToString() : "none"; }
+        }
+
+        /// <summary>検証ハーネス用: 失敗状態が記録されているか (専用 UI は無い)。</summary>
+        internal bool ErrorShownForAudit
+        {
+            get { return errorShown; }
+        }
+
+        /// <summary>検証ハーネス用: 最後に報告された進捗 (null = 不明)。</summary>
+        internal float? ProgressForAudit
+        {
+            get { return progress; }
         }
 
         public void SetVisible(bool visible)

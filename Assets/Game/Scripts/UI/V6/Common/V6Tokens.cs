@@ -4,7 +4,7 @@ using UnityEngine;
 namespace FlashBeat.UI.V6.Common
 {
     /// <summary>
-    /// v6 デザイントークン (docs/design/v6/flashbeat-v6-contract.md §3/§4)。
+    /// v6 デザイントークン (docs/ui/v6-screen-contract.md §3/§4)。
     /// 値は契約の variables 写し。実行時の変更はしない。
     /// v5 (<see cref="FlashBeat.UI.V5.V5Tokens"/>) には依存しない独立実装
     /// (v5 の値を v6 契約の範囲で流用)。

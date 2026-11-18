@@ -309,7 +309,7 @@ public class ResultRankingOverlay : MonoBehaviour
         panel.SetModalMessage("送信中...", new Color(0.6f, 0.9f, 1f));
         StartCoroutine(RankingClient.PostScore(songId, chartVersion, nickname,
             GManager.score, GManager.perfect, GManager.great, GManager.bad, GManager.miss, GManager.maxCombo,
-            OnSubmitResult));
+            GManager.comboMilestones, OnSubmitResult));
     }
 
     private void OnSubmitResult(RankingClient.Result result)

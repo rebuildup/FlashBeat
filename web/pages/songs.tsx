@@ -9,8 +9,8 @@ import "@/styles/app.css";
 export default function SongsPage() {
   return (
     <StudioLayout
-      title="Songs"
-      subtitle="Archive a song. Its chart, scores and ranking stay."
+      title="楽曲アーカイブ"
+      subtitle="曲をアーカイブします。譜面、スコア、ランキングは保持されます。"
       active="songs"
     >
       <SongsPanel />

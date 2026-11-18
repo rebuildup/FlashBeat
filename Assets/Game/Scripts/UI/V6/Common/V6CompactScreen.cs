@@ -243,6 +243,14 @@ namespace FlashBeat.UI.V6.Common
         /// pan stays disabled forever (#560).</summary>
         public bool DraggingForAudit => dragging;
 
+        /// <summary>
+        /// モーダル表示中など、コンテンツのパンを止めるとき true (Issue #609)。
+        /// ドラッグ / ホイール / PageUp・PageDown のすべてを無効化する。
+        /// モーダルはフレームの子なので、パンを許すと Dialog ごと画面外へ
+        /// 動いてしまう。既定 false で従来どおり。
+        /// </summary>
+        public bool PanSuspended { get; set; }
+
         private Vector2 pan;
         private Vector2 viewportSize;
         private RectTransform viewport;
@@ -259,7 +267,8 @@ namespace FlashBeat.UI.V6.Common
 
             // Home/End は入力欄 (Result のニックネーム等) のキャレット操作と
             // 競合するので扱わない。PageUp/PageDown のみ。
-            if (!dragging && (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.PageDown)))
+            if (!dragging && !PanSuspended
+                && (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.PageDown)))
             {
                 HandleKeys();
             }
@@ -277,7 +286,7 @@ namespace FlashBeat.UI.V6.Common
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (eventData.button != PointerEventData.InputButton.Left)
+            if (PanSuspended || eventData.button != PointerEventData.InputButton.Left)
             {
                 return;
             }
@@ -300,7 +309,7 @@ namespace FlashBeat.UI.V6.Common
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (!dragging)
+            if (PanSuspended || !dragging)
             {
                 return;
             }
@@ -315,6 +324,11 @@ namespace FlashBeat.UI.V6.Common
 
         public void OnScroll(PointerEventData eventData)
         {
+            if (PanSuspended)
+            {
+                return;
+            }
+
             var delta = eventData.scrollDelta;
             // pan は content 左上のビューポート内 y_down 位置 (0=先頭、
             // 負=末尾側)。ホイール上 (delta.y>0) は先頭方向、

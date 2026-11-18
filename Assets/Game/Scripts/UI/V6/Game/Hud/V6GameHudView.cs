@@ -281,10 +281,12 @@ namespace FlashBeat.UI.V6.Game.Hud
                 fullComboChip.SetActive(songComplete && GManager.miss == 0);
             }
 
-            int milestone = GameHudLogic.NextBonusMilestone(GManager.combo);
+            // 節目ボーナス (scoring v3 / ADR-0029): 実際の加点は
+            // JudgeScoreboard.MilestoneCrossings が数える。ここでは次の節目
+            // までの進捗を塗りで示す。
             // Issue #434: 塗りが伸びた瞬間に色をワンショットで発光させ、
             // 「いま増えた」が分かるようにする (色は Update で戻す)。
-            float comboFillW = V6HudLogic.ComboFillFraction(GManager.combo, milestone) * m.StatusTrackW;
+            float comboFillW = V6HudLogic.ComboFillFraction(GManager.combo) * m.StatusTrackW;
             if (!Mathf.Approximately(comboFillW, lastComboFillWidth))
             {
                 lastComboFillWidth = comboFillW;
@@ -293,6 +295,21 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // Issue #402: コンボが変わらないフレームでは塗り幅を書き戻さない。
             V6LayoutWrites.SizeDeltaIfChanged(comboFill, comboFillW, m.StatusTrackH);
+
+            // 節目ボーナスの獲得表示 (scoring v3 / Issue #602): 到達回数が
+            // 増えたフレームで獲得スコア点を一時表示する。
+            if (milestoneBonusText != null && GManager.comboMilestones != lastComboMilestones)
+            {
+                int gained = GManager.comboMilestones - lastComboMilestones;
+                lastComboMilestones = GManager.comboMilestones;
+                int points = FlashBeat.Gameplay.Scoring.ComponentScoreV3(
+                    gained * FlashBeat.Gameplay.Scoring.MilestoneBonusPoints, GManager.maxScore);
+                milestoneBonusText.text = "MILESTONE  +" + points.ToString("N0",
+                    System.Globalization.CultureInfo.InvariantCulture);
+                milestoneBonusText.alpha = 1f;
+                milestoneBonusShowStart = Time.unscaledTime;
+                milestoneBonusText.gameObject.SetActive(true);
+            }
 
             // issue-162 B-4 再照合 (2026-11-11): 正本 Uc9v6 には Gx3kq "Combo Bonus" が
             // BIKrJ "Combo Status" と同じ (1512,460) に重ねて置かれている (design 側の
@@ -337,6 +354,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             RequestRefresh();
             UpdateValueStrips();
             UpdateComboBonusPulse();
+            UpdateMilestoneBonus();
         }
 
         /// <summary>
@@ -447,6 +465,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             lyricPrompt = null;
             MenuButton = null;
             comboFillImage = null;
+            milestoneBonusText = null;
+            milestoneBonusShowStart = -1f;
             // Issue #434: tween / パルスの状態もリセット (別曲・別解像度で
             // 前回の途中経過が残らないように)。
             gaugeShownInit = false;
@@ -454,6 +474,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBestShownX = 0f;
             lastComboFillWidth = -1f;
             comboBonusPulseStart = -1f;
+            // 節目回数は現在値に合わせる (リビルド直後に獲得ポップを
+            // 誤発火させない)。
+            lastComboMilestones = GManager.comboMilestones;
             verdictBaseY = 0f;
             // 新しい TextMeshPro は空文字から始まる。前の部品に出していた値を
             // 「表示済み」のまま残すと、値が変わらない限り Refresh が書き込まず

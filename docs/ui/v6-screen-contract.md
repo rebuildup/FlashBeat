@@ -1,7 +1,9 @@
 # FlashBeat v6 デザイン契約 (Issue #218)
 
 > **正本 (canonical)**: 本ファイル `docs/ui/v6-screen-contract.md`。
-> `docs/design/v6/flashbeat-v6-contract.md` は旧配置のミラーであり、参照は本ファイルを優先する。
+> 旧配置のミラー `docs/design/v6/flashbeat-v6-contract.md` と画像の複製
+> `docs/design/v6/screens/` は Issue #614 で削除した (正本は本ファイルと
+> `design/exports/v6/screens/`)。
 > スクリーンショットの実体は `design/exports/v6/screens/` に公開済み (§14)。
 
 他ワーカーがそのままコードへ落とせるデザイン契約。正本は
@@ -231,7 +233,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 `rw7zx` + パッチ: タイトルゾーンを 0×0 へ、右上の曲情報を Jacket 56×56 r4 + Texts (縦 gap2: Song Title fs22 `$text` / Song Artist fs16 `$text-muted`) へ置換、フッターの決定/曲送りを 0×0 へ、補助・主操作を `enabled: false` へ。メインは共通のまま (空 6 列)。
 
-⚠ **未確認 (デザイン側に要確認)**: ローディング進捗の表現 (バー / スピナ / テキスト) がデザインに無い。メインゾーンは空。実装者は進捗表現を決める必要がある (既存 `MusicManager` のロード状態表示に合わせるのが妥)。
+⚠ **進捗・エラーの可視表現 (Issue #606 で確定)**: ローディング中の表現は全画面の `loading.mp4` 映像のみ。メインゾーンは空のまま — 中央の進捗ブロック (見出し・補足・バー) と失敗時のメッセージ + ボタン群は design に無い表示要素として実装から撤去した。進捗値 (`GameLoadingProgress` → `V6LoadingView.SetLoading`) とエラー状態 (`SetError`) の管理は維持するが専用 UI は出さない。失敗時の戻る導線はヘッダーの戻るボタンとフッター凡例 (Esc → `HudPlayStatus`) が担う。
 
 ## 10. 歌詞表示枠 (`HcP8N`, 1120×220) `#00000099` r8
 
@@ -241,7 +243,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 ## 11. スクリーンショット
 
-`docs/design/v6/screens/` 配下 (ノード ID + 名前):
+`design/exports/v6/screens/` 配下 (ノード ID + 名前):
 
 | ファイル | ノード |
 |---|---|
@@ -263,7 +265,15 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 - Combo Bonus と Combo Status は**同座標 (1512,460)・排他**。
 - 判定行のサンプルはレーン 3 と 6 のみ (実装は 8 レーン全て)。
 - `nrfw8` はヘッダー / フッター `enabled: false` (ゲーム中は描画しない)。
-- `g4Q3F` はローディング進捗の表現が無い (メイン空)。
+- `g4Q3F` はローディング進捗の表現が無い (メイン空)。実装も専用表示を持たず、映像のみ (Issue #606)。
+- Option 画面の Game Preview は #607 でゲーム体験プレビューへ拡張済み: design の静止図
+  (レーン・ノーツ・判定線) に加え、本編と同じ幾何の 3D プレビュー
+  (`V6OptionPreviewRig`) がレーンフラッシュ・判定ポップ・歌詞同期を再現し、
+  2D オーバーレイ (`V6OptionViewPreviewOverlay`) が判定ポップと歌詞行を重ねる。
+  判定ポップの時系列は本編と同じ `V6HudLogic` の共有定数。
+- Result の登録モーダルはコンパクト画面 (フレーム 1728×972 未満) では
+  Dialog 中心へビューポートをパンして中央に合わせ、閉じると元へ戻す (Issue #609、
+  `V6CompactScreen` / `V6FramePan.PanSuspended`)。
 - Key Guide は **ASDFJKL;** 表記 (Key Layout 設定の既定値。実装は `KeyBindings` 設定に追従)。
 - 選択行のハイライトは `$k6` (`#525252`) — 曲リスト 4 行目 / ランキング 2 行目 / プレイヤー 4 行目。
 
@@ -299,7 +309,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 ## 14. スクリーンショット (公開先)
 
 本契約の正本画像は **`design/exports/v6/screens/`** に公開済み (Issue #218 の Owned Path)。
-`docs/design/v6/screens/` は抽出元 (旧配置) で、実体の正本は `design/exports/v6/` 側。
+`docs/design/v6/screens/` にあった抽出時の複製は Issue #614 で削除した。
 
 | ファイル | ノード ID | 画面 / 寸法 |
 |---|---|---|

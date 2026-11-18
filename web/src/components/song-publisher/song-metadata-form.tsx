@@ -62,17 +62,17 @@ interface LevelItem {
 
 /** Level bands of the contract range `1` to `99`. */
 const LEVEL_GROUPS: { label: string; from: number; to: number }[] = [
-  { label: "Easy", from: 1, to: 9 },
-  { label: "Normal", from: 10, to: 19 },
-  { label: "Hard", from: 20, to: 29 },
-  { label: "Expert", from: 30, to: 49 },
-  { label: "Master", from: 50, to: 99 },
+  { label: "イージー", from: 1, to: 9 },
+  { label: "ノーマル", from: 10, to: 19 },
+  { label: "ハード", from: 20, to: 29 },
+  { label: "エキスパート", from: 30, to: 49 },
+  { label: "マスター", from: 50, to: 99 },
 ];
 
 const LEVEL_ITEMS: LevelItem[] = LEVEL_GROUPS.flatMap((group) =>
   Array.from({ length: group.to - group.from + 1 }, (_, index) => {
     const level = group.from + index;
-    return { label: `Level ${level}`, value: String(level), group: group.label };
+    return { label: `レベル ${level}`, value: String(level), group: group.label };
   }),
 );
 
@@ -108,7 +108,7 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
       <Field.Root invalid={errorByField.songId !== undefined}>
         <Field.Label>
           <Hash className={labelIcon} size={14} aria-hidden="true" />
-          Song id
+          曲ID
         </Field.Label>
         <Input
           value={draft.songId}
@@ -119,14 +119,14 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.songId ? (
           <Field.ErrorText>{errorByField.songId}</Field.ErrorText>
         ) : (
-          <Field.HelperText>Lowercase letters, digits and dashes.</Field.HelperText>
+          <Field.HelperText>英小文字・数字・ハイフン。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={errorByField.title !== undefined}>
         <Field.Label>
           <Music className={labelIcon} size={14} aria-hidden="true" />
-          Title
+          曲名
         </Field.Label>
         <Input
           value={draft.title}
@@ -137,14 +137,14 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.title ? (
           <Field.ErrorText>{errorByField.title}</Field.ErrorText>
         ) : (
-          <Field.HelperText>Shown in the catalog and in the game.</Field.HelperText>
+          <Field.HelperText>カタログとゲームに表示されます。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={errorByField.artist !== undefined}>
         <Field.Label>
           <User className={labelIcon} size={14} aria-hidden="true" />
-          Artist
+          アーティスト
         </Field.Label>
         <Input
           value={draft.artist}
@@ -155,14 +155,14 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.artist ? (
           <Field.ErrorText>{errorByField.artist}</Field.ErrorText>
         ) : (
-          <Field.HelperText>May be empty.</Field.HelperText>
+          <Field.HelperText>空欄でも構いません。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={errorByField.youtube !== undefined}>
         <Field.Label>
           <CirclePlay className={labelIcon} size={14} aria-hidden="true" />
-          YouTube video
+          YouTube動画
         </Field.Label>
         <Input
           value={draft.youtube}
@@ -173,14 +173,14 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.youtube ? (
           <Field.ErrorText>{errorByField.youtube}</Field.ErrorText>
         ) : (
-          <Field.HelperText>A YouTube URL or an 11 character video id.</Field.HelperText>
+          <Field.HelperText>YouTubeのURLまたは11文字の動画ID。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={errorByField.level !== undefined}>
         <Field.Label>
           <Gauge className={labelIcon} size={14} aria-hidden="true" />
-          Level
+          レベル
         </Field.Label>
         <Select.Root
           className={selectRoot}
@@ -195,7 +195,7 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
           }}
         >
           <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="Level" />
+            <Select.ValueText placeholder="レベル" />
             <Select.Indicator />
           </Select.Control>
           <Portal>
@@ -221,14 +221,14 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.level ? (
           <Field.ErrorText>{errorByField.level}</Field.ErrorText>
         ) : (
-          <Field.HelperText>Difficulty of the song, 1 to 99.</Field.HelperText>
+          <Field.HelperText>曲の難易度。1〜99。</Field.HelperText>
         )}
       </Field.Root>
 
       <Field.Root invalid={errorByField.durationSec !== undefined}>
         <Field.Label>
           <Timer className={labelIcon} size={14} aria-hidden="true" />
-          Duration
+          再生時間
         </Field.Label>
         {/*
           Duration は draft 入力 (issue #163): 空文字は `Number("")` で 0 に
@@ -254,7 +254,7 @@ export function SongMetadataForm({ draft, onChange, onFieldBlur, issues }: SongM
         {errorByField.durationSec ? (
           <Field.ErrorText>{errorByField.durationSec}</Field.ErrorText>
         ) : (
-          <Field.HelperText>Length of the song in seconds.</Field.HelperText>
+          <Field.HelperText>曲の長さ（秒）。</Field.HelperText>
         )}
       </Field.Root>
     </div>

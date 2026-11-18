@@ -306,7 +306,21 @@ components:
           minimum: 0
           description: >-
             Optional. Largest combo reached; the server rejects values above
-            the note count of the submitted chart version.
+            the note count of the submitted chart version and, for
+            scoringVersion 3, above the hit count (perfect + great + bad),
+            which the combo can never exceed.
+        comboMilestones:
+          type: integer
+          minimum: 0
+          description: >-
+            Optional. Number of combo milestone crossings (every 50 combo)
+            during the play; only meaningful for scoringVersion 3. When
+            miss is 0 the server verifies the count exactly against
+            floor((perfect+great+bad)/50); when misses occurred it applies
+            the tightest bound the aggregate fields allow — at most
+            miss + 1 runs of maxCombo — because the exact crossing history
+            cannot be reconstructed from the totals (see ADR-0029).
+            Omitted is treated as 0.
         score:
           type: integer
           minimum: 0
@@ -322,9 +336,10 @@ components:
           description: >-
             Optional. Scoring formula version the score was computed with:
             1 is the original formula (5P+3G+B over 5*N), 2 adds the combo
-            continuation and no-miss bonuses (see ADR-0028). Omitted means 1,
+            continuation and no-miss bonuses (see ADR-0028), 3 adds combo
+            milestone and full-combo bonuses (see ADR-0029). Omitted means 1,
             so clients that predate scoring versions are still accepted. New
-            clients send 2.
+            clients send 3.
     SongArchiveRequest:
       type: object
       additionalProperties: false

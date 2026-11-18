@@ -514,14 +514,26 @@ namespace FlashBeat.Gameplay
                 // (最大 180 秒) の全時間がそのままゲームのフリーズになっていた。
                 // 待機だけをスレッドプールへ逃がして即座に制御を返す。
                 // (Process のハンドル操作のみ。Unity API は触らない)
+                // Issue #613: WaitForExit の失敗を「タイムアウト」と誤分類しない。
+                // 例外を保持し、プロセスが既に終了していれば結果は読めるが、
+                // 生きていれば kill して実際の原因を Stderr に残す。
+                Exception waitError = null;
                 await Task.Run(() =>
                 {
                     using (cancellationToken.Register(() => { try { if (!proc.HasExited) proc.Kill(); } catch { } }))
                     {
                         try { proc.WaitForExit(timeoutMs); }
-                        catch { }
+                        catch (Exception e) { waitError = e; }
                     }
                 }).ConfigureAwait(false);
+
+                if (waitError != null && !proc.HasExited)
+                {
+                    try { proc.Kill(); } catch { }
+                    result.ExitCode = -3;
+                    result.Stderr = $"yt-dlp wait failed after {timeoutMs} ms: {waitError.Message}";
+                    return result;
+                }
 
                 if (!proc.HasExited)
                 {
@@ -544,7 +556,14 @@ namespace FlashBeat.Gameplay
             var finished = await Task.WhenAny(reader, Task.Delay(3000)).ConfigureAwait(false);
             if (finished == reader)
             {
-                try { return reader.Result; } catch { return ""; }
+                try { return reader.Result; }
+                catch (Exception e)
+                {
+                    // stderr/stdout の読み取り失敗で診断情報を失わないよう記録する
+                    // (issue #613)。戻り値の "" は「出力なし」の意味を保つ。
+                    Debug.LogWarning($"[YouTubeStreamResolver] output read failed: {e.Message}");
+                    return "";
+                }
             }
             return "";
         }

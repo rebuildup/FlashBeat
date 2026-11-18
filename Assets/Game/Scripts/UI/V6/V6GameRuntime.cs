@@ -352,8 +352,10 @@ namespace FlashBeat.UI.V6
             else if (phase == HudPlayPhase.Failed)
             {
                 // v5 と同じ: 失敗時はポーズを閉じ、選曲への導線を優先する。
+                // v6 ローディング画面にエラー専用 UI は無い (Issue #606) —
+                // 戻る導線はヘッダーの戻るボタンと Esc (HudPlayStatus) が担う。
                 if (pause != null && pause.IsOpen) pause.Close();
-                loading.SetError("Esc キーか下のボタンで選曲画面へ戻れます");
+                loading.SetError();
                 loading.SetVisible(true);
             }
             else

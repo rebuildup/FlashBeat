@@ -59,7 +59,7 @@ let apiPromise: Promise<YTNamespace> | null = null;
  */
 export function loadYouTubeIframeApi(): Promise<YTNamespace> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("The YouTube API needs a browser."));
+    return Promise.reject(new Error("YouTube APIにはブラウザが必要です。"));
   }
 
   if (window.YT?.Player) {
@@ -76,7 +76,7 @@ export function loadYouTubeIframeApi(): Promise<YTNamespace> {
       if (window.YT?.Player) {
         resolve(window.YT);
       } else {
-        reject(new Error("The YouTube API loaded without a player."));
+        reject(new Error("YouTube APIは読み込まれましたがプレイヤーがありません。"));
       }
     };
 
@@ -85,7 +85,7 @@ export function loadYouTubeIframeApi(): Promise<YTNamespace> {
     script.async = true;
     script.onerror = () => {
       apiPromise = null;
-      reject(new Error("The YouTube IFrame API could not be loaded."));
+      reject(new Error("YouTube IFrame APIを読み込めませんでした。"));
     };
     document.head.appendChild(script);
   }

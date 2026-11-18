@@ -128,7 +128,7 @@ export function AppShell({
         // 中断は失敗ではない。次に始まる読み込みの結果を待つだけ。
         if (isAbortError(error)) return;
         if (requestId !== requestIdRef.current) return;
-        setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+        setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
         setStatus("error");
       });
   }, [mode]);
@@ -209,7 +209,7 @@ export function AppShell({
           path (曲を選ぶ → 譜面を試す) with a single primary CTA. */}
       <WelcomeHero />
       <Topbar
-        title="曲を選ぶ / Pick a song"
+        title="曲を選ぶ"
         subtitle="リストから曲を選ぶと、その譜面が開きます。再生して試せます。"
         query={query}
         onQueryChange={setQuery}

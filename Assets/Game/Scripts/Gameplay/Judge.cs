@@ -35,6 +35,16 @@ public class Judge : MonoBehaviour
     private AudioSource audioHit;
     [SerializeField] private AudioClip hitSound;
 
+    /// <summary>
+    /// Lane-key click sound (Issue #604). Played once per input frame on any
+    /// valid lane-key press — including presses that hit no note — so the
+    /// player gets audible feedback for every key press. It shares
+    /// <see cref="audioHit"/> (volume = GManager.effectVolume, routed through
+    /// the Effect mixer) but uses a different clip so it stays distinguishable
+    /// from the judgement hit sound.
+    /// </summary>
+    [SerializeField] private AudioClip clickSound;
+
     private int fSize;
     private int Fsize;
 
@@ -108,7 +118,12 @@ public class Judge : MonoBehaviour
 
         // Issue #224: ポーズ中は判定・スコア加算を行わない。
         // Issue #383 / design §6.2: 終端フェードと「終了」表示の間も受け付けない。
-        if (!SongEndGate.CanJudge(PauseGate.IsPaused, SongEndGate.BlocksJudging)) return;
+        // Issue #604: クリック音も同じゲート (GameplayInputGate) を使う。
+        if (!GameplayInputGate.CanAcceptInput(GManager.Start, PauseGate.IsPaused, SongEndGate.BlocksJudging)) return;
+
+        // クリック音 (Issue #604): 有効なレーンキー押下 (空押しを含む) に
+        // 1 フレーム 1 回だけ鳴らす。判定音 (hitSound) とは別クリップ。
+        PlayLaneClickSound();
 
         // 時刻の基準は既存方式を維持する: GManager.step_time は譜面上の
         // メディア時刻 (秒) なので、判定はすべてこの mediaTime で行う。
@@ -199,6 +214,30 @@ public class Judge : MonoBehaviour
                 board.ApplyMiss();
                 message(3, missed.SourceIndex);
                 FlushScore();
+            }
+        }
+    }
+
+    /// <summary>
+    /// レーンキーがこのフレームで押されていればクリック音を 1 回鳴らす
+    /// (Issue #604)。
+    ///
+    /// 押下の検出は判定と同じ <see cref="LanePressedPredicate"/>
+    /// (GetKeyDownOrInjected のフレームエッジ) を使うので、HOLD の押しっぱなし
+    /// では 1 回しか鳴らず、ポーズや曲終了後には鳴らない (Update のゲート済み)。
+    /// 同時押し (複数レーン) でも 1 フレーム 1 回にまとめる: レーンごとに
+    /// PlayOneShot すると和音押しで音が重なって割れるため。
+    /// </summary>
+    private void PlayLaneClickSound()
+    {
+        if (audioHit == null || clickSound == null) return;
+
+        for (int lane = 0; lane < LaneKeys.Length; lane++)
+        {
+            if (LanePressedPredicate(lane))
+            {
+                audioHit.PlayOneShot(clickSound);
+                return;
             }
         }
     }
@@ -315,6 +354,7 @@ public class Judge : MonoBehaviour
         GManager.miss = board.Miss;
         GManager.combo = board.Combo;
         GManager.maxCombo = board.MaxCombo;
+        GManager.comboMilestones = board.MilestoneCrossings;
 
         // 「確定したノーツ数」を GManager へ書く (Issue #182)。
         //
@@ -329,17 +369,29 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v2 (ADR-0028 / Issue #577): 表示・送信する ratioScore は
-        // 判定 + コンボ継続 + ノーミスの合計。途中の Miss でノーミス分が
-        // 0 になるため、スコアは Miss 以降に下がりうる (契約どおり)。
+        // scoring v3 (ADR-0029 / Issue #602, #618): 表示・送信する ratioScore は
+        // 判定 + コンボ継続 + ノーミス + 節目 + フルコンボ終了の合計。
+        // 途中の Miss でノーミス分と終了ボーナスが 0 になるため、スコアは
+        // Miss 以降に下がりうる (契約どおり)。
+        // フルコンボ終了ボーナスは全ノーツの判定が確定した時点 (曲終了の
+        // 判定条件と同じ settled >= noteCount) でのみ乗る。途中経過の
+        // HUD スコアには含めない (Issue #618)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
-        Scoring.V2Breakdown v2 = Scoring.BreakdownV2(
-            board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo, noteCount);
-        GManager.ratioScore = v2.RatioScore;
-        GManager.comboBonus = v2.ComboBonus;
-        GManager.noMissBonus = v2.NoMissBonus;
+        bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
+        GManager.judgmentsComplete = judgmentsComplete;
+        Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+            board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
+            board.MilestoneCrossings, noteCount, judgmentsComplete);
+        GManager.ratioScore = v3.RatioScore;
+        GManager.comboBonus = v3.ComboBonus;
+        GManager.noMissBonus = v3.NoMissBonus;
+        GManager.milestoneBonus = v3.MilestoneBonus;
+        GManager.finalBonus = v3.FinalBonus;
 
-        UpdateScore();
+        // scoring v3 のスコアは整数の厳密な割り算で求める (Issue #631)。
+        // GManager.score はこの値が HUD 表示とスコア投稿の両方に使われ、
+        // サーバの再計算 (computeUnityScoreV3) と全プラットフォームで一致する。
+        UpdateScore(Scoring.ScoreV3(v3));
     }
 
     /// <summary>
@@ -358,10 +410,17 @@ public class Judge : MonoBehaviour
         return (int)Math.Round(1000000 * Math.Floor(ratioScore / maxScore * 1000000) / 1000000);
     }
 
-    /// <summary>スコア表示と内部スコアの更新。</summary>
-    private void UpdateScore()
+    /// <summary>
+    /// スコア表示と内部スコアの更新。
+    ///
+    /// <paramref name="score"/> は呼び出し側が確定した値
+    /// (<see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/> の整数演算、
+    /// Issue #631)。ここで float の ratioScore / maxScore から再計算すると
+    /// プラットフォームごとの丸め差が再び入るため、受け取った値をそのまま使う。
+    /// </summary>
+    private void UpdateScore(int score)
     {
-        GManager.score = ComputeScore(GManager.ratioScore, GManager.maxScore);
+        GManager.score = score;
         fSize = 220;
         Fsize = 67;
 

@@ -20,13 +20,11 @@
     "@cfworker/json-schema": "^4.1.6",
     "@fontsource-variable/noto-sans-jp": "^5.3.1",
     "ajv": "^8.20.0",
-    "hono": "^4.11.9",
     "konva": "^10.9.1",
     "lucide-react": "1.70.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-konva": "^19.3.2",
-    "zod": "^4.6.7"
+    "react-konva": "^19.3.2"
   },
   "devDependencies": {
     "@pandacss/dev": "2.5.0",

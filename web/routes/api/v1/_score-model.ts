@@ -14,7 +14,7 @@
  *      against the note count of the submitted chart version, the combo cap
  *      and the server-side score recomputation.
  *
- * Scoring versions (ADR-0028):
+ * Scoring versions (ADR-0028, ADR-0029):
  *
  *   v1 (scoringVersion 1, the default when the field is omitted):
  *     maxScore   = noteCount * 5                       (NotesManager.OnEnable)
@@ -29,9 +29,38 @@
  *     maxScore    = noteCount * 15                     (theoretical max)
  *     score       = same ComputeScore rounding as v1
  *
- * The server reproduces the formulas — the same IEEE-754 operations in the
- * same order, emulated with `Math.fround` because the Unity accumulators are
- * C# `float` — and rejects a client score that disagrees.
+ *   v3 (scoringVersion 3, ADR-0029, deterministic since Issue #631):
+ *     judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged)
+ *     comboBonus     = maxCombo * 5                       (unchanged)
+ *     noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
+ *     milestoneBonus = comboMilestones * 25               (NEW; the client
+ *                      reports only the crossing count. With miss == 0 the
+ *                      count is verified exactly — a single unbroken run
+ *                      crosses floor(hits / 50) times. With misses the
+ *                      exact history is not reconstructible from the
+ *                      aggregates, so the server applies the tightest
+ *                      verifiable bound: at most miss + 1 runs of at most
+ *                      maxCombo combo each, i.e. crossings <=
+ *                      min(floor(hits / 50), (miss + 1) * floor(maxCombo / 50)))
+ *     finalBonus     = miss == 0 ? 100 : 0                (NEW; a submission
+ *                      requires perfect+great+bad+miss == noteCount, so
+ *                      miss == 0 already means the play was completed —
+ *                      the same condition the Unity client vests the bonus
+ *                      on, see Issue #618)
+ *     totalRatio     = judgment + comboBonus + noMissBonus
+ *                      + milestoneBonus + finalBonus
+ *     maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
+ *     score          = floor(totalRatio * 1e6 / maxRatio) — exact integer
+ *                      arithmetic (Issue #631), identical on every Unity
+ *                      backend and this Worker
+ *
+ * v1 and v2 keep the single-precision emulation below: their stored records
+ * were produced by the float formula and must keep their meaning. v3 moved
+ * to integer arithmetic because float32 evaluation order differs between
+ * the Editor Mono JIT, IL2CPP and this `Math.fround` emulation, which could
+ * reject a legitimate score with 422 over a one-ulp difference (Issue #631).
+ * Clients built before the change still send the legacy float-path score;
+ * the submission endpoint accepts that value as well (see scores.ts).
  */
 import { Validator, type Schema } from "@cfworker/json-schema";
 
@@ -49,15 +78,17 @@ export type ScoreValidation =
   | { ok: false; diagnostics: ScoreDiagnostic[] };
 
 /**
- * Scoring formula versions the server can recompute (ADR-0028).
+ * Scoring formula versions the server can recompute (ADR-0028, ADR-0029).
  * `1` is the original formula, `2` adds the combo-continuation and
- * no-miss bonuses. A submission without `scoringVersion` is version 1.
+ * no-miss bonuses, `3` adds the combo-milestone and full-combo bonuses.
+ * A submission without `scoringVersion` is version 1.
  */
 export const SCORING_VERSION_V1 = 1;
 export const SCORING_VERSION_V2 = 2;
+export const SCORING_VERSION_V3 = 3;
 
 /** The newest scoring version this server supports. */
-export const LATEST_SCORING_VERSION = SCORING_VERSION_V2;
+export const LATEST_SCORING_VERSION = SCORING_VERSION_V3;
 
 /** Body of `POST /api/v1/scores` (`ScoreSubmission` in the contract). */
 export interface ScoreSubmission {
@@ -69,6 +100,7 @@ export interface ScoreSubmission {
   bad: number;
   miss: number;
   maxCombo?: number;
+  comboMilestones?: number;
   score?: number;
   scoringVersion?: number;
 }
@@ -111,7 +143,13 @@ export const SCORE_SUBMISSION_SCHEMA = {
       type: "integer",
       minimum: 0,
       description:
-        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version.",
+        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version and, for scoringVersion 3, above the hit count (perfect + great + bad), which the combo can never exceed.",
+    },
+    comboMilestones: {
+      type: "integer",
+      minimum: 0,
+      description:
+        "Optional. Number of combo milestone crossings (every 50 combo) during the play; only meaningful for scoringVersion 3. When miss is 0 the server verifies the count exactly against floor((perfect+great+bad)/50); when misses occurred it applies the tightest bound the aggregate fields allow — at most miss + 1 runs of maxCombo — because the exact crossing history cannot be reconstructed from the totals (see ADR-0029). Omitted is treated as 0.",
     },
     score: {
       type: "integer",
@@ -124,7 +162,7 @@ export const SCORE_SUBMISSION_SCHEMA = {
       type: "integer",
       minimum: 1,
       description:
-        "Optional. Scoring formula version the score was computed with: 1 is the original formula (5P+3G+B over 5*N), 2 adds the combo continuation and no-miss bonuses (see ADR-0028). Omitted means 1, so clients that predate scoring versions are still accepted. New clients send 2.",
+        "Optional. Scoring formula version the score was computed with: 1 is the original formula (5P+3G+B over 5*N), 2 adds the combo continuation and no-miss bonuses (see ADR-0028), 3 adds combo milestone and full-combo bonuses (see ADR-0029). Omitted means 1, so clients that predate scoring versions are still accepted. New clients send 3.",
     },
   },
 } as const;
@@ -215,11 +253,61 @@ export function scoreSemanticsDiagnostics(
   // the server does not know cannot be verified, so it is rejected instead
   // of being stored unchecked (ADR-0028).
   const scoringVersion = request.scoringVersion ?? SCORING_VERSION_V1;
-  if (scoringVersion !== SCORING_VERSION_V1 && scoringVersion !== SCORING_VERSION_V2) {
+  if (
+    scoringVersion !== SCORING_VERSION_V1 &&
+    scoringVersion !== SCORING_VERSION_V2 &&
+    scoringVersion !== SCORING_VERSION_V3
+  ) {
     diagnostics.push({
       path: "/scoringVersion",
       message: `scoring version ${scoringVersion} is not supported by this server (latest is ${LATEST_SCORING_VERSION})`,
     });
+  }
+  // Scoring v3 (ADR-0029, Issue #618): the client reports only the number
+  // of combo milestone crossings; the server prices each at 25 ratio
+  // points itself. What the aggregate fields can verify:
+  //
+  //   - maxCombo only grows on head hits, so it can never exceed hits.
+  //   - miss == 0: the whole play is one unbroken run, so the crossing
+  //     count is exactly floor(hits / 50) — verified by equality.
+  //   - miss > 0: the exact crossing history cannot be reconstructed
+  //     from the totals (49 hits + Miss + 49 hits and 50 + Miss + 48 are
+  //     indistinguishable). The tightest verifiable bound is at most
+  //     miss + 1 runs of at most maxCombo combo each:
+  //     crossings <= (miss + 1) * floor(maxCombo / 50), and never more
+  //     than floor(hits / 50). A claim inside this bound is still a
+  //     client-declared value the server cannot disprove — the same
+  //     trust model as the maxCombo cap, documented in ADR-0029.
+  //
+  // The field is ignored for versions 1 and 2, whose formulas cannot
+  // use it.
+  if (scoringVersion === SCORING_VERSION_V3) {
+    const hits = request.perfect + request.great + request.bad;
+    const milestones = request.comboMilestones ?? 0;
+    if (request.maxCombo !== undefined && request.maxCombo > hits) {
+      diagnostics.push({
+        path: "/maxCombo",
+        message: `must not exceed the ${hits} hits (perfect + great + bad), got ${request.maxCombo}`,
+      });
+    }
+    if (request.miss === 0) {
+      const expected = Math.floor(hits / 50);
+      if (milestones !== expected) {
+        diagnostics.push({
+          path: "/comboMilestones",
+          message: `must equal floor((perfect + great + bad) / 50) = ${expected} when miss is 0, got ${milestones}`,
+        });
+      }
+    } else {
+      const maxCombo = request.maxCombo ?? 0;
+      const bound = Math.min(Math.floor(hits / 50), (request.miss + 1) * Math.floor(maxCombo / 50));
+      if (milestones > bound) {
+        diagnostics.push({
+          path: "/comboMilestones",
+          message: `must not exceed ${bound} milestone crossings for ${request.miss} misses and maxCombo ${maxCombo}, got ${milestones}`,
+        });
+      }
+    }
   }
   return diagnostics;
 }
@@ -295,12 +383,109 @@ export function computeUnityScoreV2(
 }
 
 /**
+ * The scoring v3 score of a play (ADR-0029), computed with the deterministic
+ * integer arithmetic the Unity client uses since Issue #631:
+ *
+ *   judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged from v2)
+ *   comboBonus     = maxCombo * 5                       (unchanged from v2)
+ *   noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
+ *   milestoneBonus = comboMilestones * 25               (NEW; the count was
+ *                    already bound-checked against floor(hits / 50) by
+ *                    scoreSemanticsDiagnostics, omitted means 0)
+ *   finalBonus     = miss == 0 ? 100 : 0                (NEW)
+ *   totalRatio     = judgment + comboBonus + noMissBonus
+ *                    + milestoneBonus + finalBonus
+ *   maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
+ *   score          = floor(totalRatio * 1e6 / maxRatio)
+ *
+ * Every term is an integer, so the result is the exact floor of the rational
+ * — no floating-point rounding exists on either side (C# `long` division on
+ * Unity, IEEE-754 doubles here; both operands stay far below 2^53). Returns
+ * `null` when the chart has no notes, like `computeUnityScoreV2`.
+ */
+export function computeUnityScoreV3(
+  perfect: number,
+  great: number,
+  bad: number,
+  miss: number,
+  maxCombo: number | undefined,
+  comboMilestones: number | undefined,
+  noteCount: number,
+): number | null {
+  if (noteCount <= 0) {
+    return null;
+  }
+  const maxScore = noteCount * 15 + Math.floor(noteCount / 50) * 25 + 100;
+  const judgment = perfect * 5 + great * 3 + bad;
+  const hits = perfect + great + bad;
+  const ratioScore =
+    judgment +
+    (maxCombo ?? 0) * 5 +
+    (miss === 0 ? hits * 5 : 0) +
+    (comboMilestones ?? 0) * 25 +
+    (miss === 0 ? 100 : 0);
+  if (maxScore <= 0) {
+    return null;
+  }
+  return Math.floor((ratioScore * 1_000_000) / maxScore);
+}
+
+/**
+ * The v3 score as computed by Unity clients built before Issue #631: the
+ * single-precision `Math.fround` emulation of the legacy `ComputeScore`
+ * path. Fielded builds still send this value; the submission endpoint
+ * accepts it as an alternative to the deterministic score so their plays
+ * are not rejected with 422 (the stored score is always the deterministic
+ * one). Not used for new contract vectors.
+ */
+export function computeUnityScoreV3Legacy(
+  perfect: number,
+  great: number,
+  bad: number,
+  miss: number,
+  maxCombo: number | undefined,
+  comboMilestones: number | undefined,
+  noteCount: number,
+): number | null {
+  if (noteCount <= 0) {
+    return null;
+  }
+  // Same single-precision emulation as the v1/v2 formulas: every accumulator
+  // the pre-#631 Unity side held as a C# `float` is rounded with Math.fround,
+  // in the same order (see computeUnityScore).
+  const maxScore = Math.fround(noteCount * 15 + Math.floor(noteCount / 50) * 25 + 100);
+  const judgment = Math.fround(perfect * 5 + great * 3 + bad);
+  const comboBonus = Math.fround((maxCombo ?? 0) * 5);
+  const hits = perfect + great + bad;
+  const noMissBonus = miss === 0 ? Math.fround(hits * 5) : 0;
+  const milestoneBonus = Math.fround((comboMilestones ?? 0) * 25);
+  const finalBonus = miss === 0 ? 100 : 0;
+  const ratioScore = Math.fround(judgment + comboBonus + noMissBonus + milestoneBonus + finalBonus);
+  const ratio = Math.fround(ratioScore / maxScore);
+  const scaled = Math.fround(ratio * 1000000);
+  const floored = Math.floor(scaled);
+  return Math.round((1000000 * floored) / 1000000);
+}
+
+/**
  * Recompute the score of a submission with the formula of its declared
  * scoring version. `scoringVersion` omitted means 1 (backward compatibility,
  * ADR-0028). Returns `null` when the chart has no notes.
  */
 export function computeScoreForVersion(request: ScoreSubmission, noteCount: number): number | null {
-  if ((request.scoringVersion ?? SCORING_VERSION_V1) === SCORING_VERSION_V2) {
+  const scoringVersion = request.scoringVersion ?? SCORING_VERSION_V1;
+  if (scoringVersion === SCORING_VERSION_V3) {
+    return computeUnityScoreV3(
+      request.perfect,
+      request.great,
+      request.bad,
+      request.miss,
+      request.maxCombo,
+      request.comboMilestones,
+      noteCount,
+    );
+  }
+  if (scoringVersion === SCORING_VERSION_V2) {
     return computeUnityScoreV2(
       request.perfect,
       request.great,

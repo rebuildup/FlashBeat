@@ -102,7 +102,8 @@ public class RankingSubmissionJudgementSumTests
 
         // 実際に送られる本文 (本番の RankingClient が作るもの)。
         string json = RankingClient.BuildScoreRequestJson(SongId, ChartVersion, "player",
-            GManager.score, GManager.perfect, GManager.great, GManager.bad, GManager.miss, GManager.maxCombo);
+            GManager.score, GManager.perfect, GManager.great, GManager.bad, GManager.miss, GManager.maxCombo,
+            GManager.comboMilestones);
         Assert.IsNotNull(json, "ランキング送信の本文が作れない");
 
         var payload = JsonUtility.FromJson<RankingClient.ScoreRequest>(json);
@@ -111,17 +112,19 @@ public class RankingSubmissionJudgementSumTests
         Assert.AreEqual(GManager.bad, payload.bad);
         Assert.AreEqual(GManager.miss, payload.miss);
         Assert.AreEqual(GManager.maxCombo, payload.maxCombo);
+        Assert.AreEqual(GManager.comboMilestones, payload.comboMilestones,
+            "節目到達回数が送信本文に載っていない");
 
         // API の受理条件: 判定数の合計 = 譜面のノーツ数。
         int sum = payload.perfect + payload.great + payload.bad + payload.miss;
         Assert.AreEqual(NoteCount, sum, "送信する判定数の合計が noteCount と一致しない");
 
         // API は score も scoringVersion の式で再計算して照合する
-        // (ADR-0028: payload.scoringVersion=2 なので v2 の式)。
+        // (ADR-0029: payload.scoringVersion=3 なので v3 の式)。
         Assert.AreEqual(Scoring.LatestVersion, payload.scoringVersion,
-            "送信する scoringVersion が最新 (v2) でない");
+            "送信する scoringVersion が最新 (v3) でない");
         Assert.AreEqual(ApiRecomputedScore(payload.perfect, payload.great, payload.bad,
-                payload.miss, payload.maxCombo, NoteCount),
+                payload.miss, payload.maxCombo, payload.comboMilestones, NoteCount),
             payload.score, "送信する score が API の再計算と一致しない");
 
         // サーバが 201 を返したときは「登録成功」。
@@ -154,7 +157,8 @@ public class RankingSubmissionJudgementSumTests
             "判定数が noteCount に達している (未判定のはず)");
 
         string json = RankingClient.BuildScoreRequestJson(SongId, ChartVersion, "player",
-            GManager.score, GManager.perfect, GManager.great, GManager.bad, GManager.miss, GManager.maxCombo);
+            GManager.score, GManager.perfect, GManager.great, GManager.bad, GManager.miss, GManager.maxCombo,
+            GManager.comboMilestones);
         Assert.IsNotNull(json, "ランキング送信の本文が作れない");
 
         var payload = JsonUtility.FromJson<RankingClient.ScoreRequest>(json);
@@ -210,21 +214,23 @@ public class RankingSubmissionJudgementSumTests
 
     /// <summary>
     /// API が再計算するスコア (web/routes/api/v1/_score-model.ts の
-    /// <c>computeUnityScoreV2</c>、ADR-0028 の v2 式)。クライアント側の
-    /// <see cref="Scoring.ScoreV2"/> と同じ単精度の手順で独立に計算する。
+    /// <c>computeUnityScoreV3</c>、ADR-0029 + Issue #631 の v3 式)。
+    /// クライアント側の <see cref="Scoring.ScoreV3"/> と同じ決定的な
+    /// 整数演算で独立に計算する (float を介さないため全プラットフォームで一致)。
     /// </summary>
     private static int ApiRecomputedScore(int perfect, int great, int bad, int miss,
-        int maxCombo, int noteCount)
+        int maxCombo, int comboMilestones, int noteCount)
     {
-        if (noteCount * 15 <= 0) return 0;
-        float maxScore = noteCount * 15f;
-        float judgment = perfect * 5f + great * 3f + bad;
-        float comboBonus = maxCombo * 5f;
-        float noMissBonus = miss == 0 ? (perfect + great + bad) * 5f : 0f;
-        float ratioScore = (float)((double)judgment + comboBonus + noMissBonus);
-        float ratio = ratioScore / maxScore;
-        float scaled = ratio * 1000000f;
-        float floored = Mathf.Floor(scaled);
-        return (int)System.Math.Round(1000000 * floored / 1000000);
+        if (noteCount <= 0) return 0;
+        long maxScore = noteCount * 15L
+            + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints + 100L;
+        long judgment = perfect * 5L + great * 3L + bad;
+        long comboBonus = maxCombo * 5L;
+        long hits = perfect + great + bad;
+        long noMissBonus = miss == 0 ? hits * 5L : 0L;
+        long milestoneBonus = comboMilestones * (long)Scoring.MilestoneBonusPoints;
+        long finalBonus = miss == 0 ? Scoring.FullComboBonusPoints : 0L;
+        long ratioScore = judgment + comboBonus + noMissBonus + milestoneBonus + finalBonus;
+        return (int)(ratioScore * 1000000L / maxScore);
     }
 }

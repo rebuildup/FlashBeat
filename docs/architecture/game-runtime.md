@@ -38,13 +38,14 @@ play session の間は `GManager.ResetSession()` で combo / score を戻す（`
 1. `MusicManager` は `Space` を待ち、`VideoPlayer` と `AudioSource` を開始する。
 2. `NotesManager.OnEnable` が chart JSON を読み、BPM / LPB から各 note の時刻を計算し、8 lane に prefab を置く。
 3. `Notes` が `GManager.noteSpeed` で note を判定線へ動かす。
-4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。
+4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。同じフレームで `Judge.PlayLaneClickSound` がレーンキー押下 (空押しを含む) に 1 フレーム 1 回だけ `clickSound` を鳴らす (Issue #604)。入力の受付可否は判定とクリック音で共有の `GameplayInputGate.CanAcceptInput` (`GManager.Start` かつ非ポーズ・曲終了シーケンス前) が決める。クリック音は `audioHit` (音量 = `GManager.effectVolume`、Effect mixer) を使うが `hitSound` とは別クリップ。
 5. 終了時に `MusicManager` が fade し、`Initiate.Fade("ResultScene", ...)` へ進む。
 
 ### 採点 (scoring)
 
-- 判定配点は `LongNote.ScoreFor` = Perfect 5 / Great 3 / Bad 1。現在の採点は scoring v2 (ADR-0028): `Scoring.BreakdownV2` が `judgment + maxCombo*5 + (miss==0 ? hits*5 : 0)` を ratio として出し、`Judge.ComputeScore` が `round(1e6 * ratio / maxScore)` (`maxScore = noteCount * 15`) で 0..1,000,000 の score を出す。Miss は加点なしでコンボのみ切断し、Bad はコンボを切らない (v2 のコンボボーナスも Bad 継続を数える)。
-- 採点 v2 (コンボ継続・ノーミス加点、`scoringVersion = 2`) の式・バージョン互換・記録分離の正本は `docs/adr/ADR-0028.md`。ローカル記録は `ScoreKey` の `songId@chartVersion@scoringVersion` 形式で版を区別する。
+- 判定配点は `LongNote.ScoreFor` = Perfect 5 / Great 3 / Bad 1。現在の採点は scoring v3 (ADR-0029): `Scoring.BreakdownV3` が `judgment + maxCombo*5 + (miss==0 ? hits*5 : 0) + comboMilestones*25 + (judgmentsComplete && miss==0 ? 100 : 0)` を ratio として出し、`Scoring.ScoreV3` が `floor(ratio * 1_000_000 / maxScore)` (`maxScore = Scoring.MaxRatioV3(noteCount)` = `15*N + floor(N/50)*25 + 100`) を **整数演算**で計算する (Issue #631: float を介さないため全プラットフォームで一致。v1/v2 は従来どおり float 経路)。`judgmentsComplete` は全ノーツの判定確定 (P+G+B+M == noteCount、`GManager.judgmentsComplete`) で、フルコンボ終了ボーナスはこの条件でのみ曲終了時に一度だけ乗る (Issue #618)。Miss は加点なしでコンボのみ切断し、Bad はコンボを切らない。節目 (50 コンボごと) の到達回数は `JudgeScoreboard.MilestoneCrossings` が数え、コンボ切断後も累積する。
+- 採点 v2 (コンボ継続・ノーミス加点、`scoringVersion = 2`) の式・バージョン互換・記録分離の正本は `docs/adr/ADR-0028.md`。ローカル記録は `ScoreKey` の `songId@chartVersion@scoringVersion` 形式で版を区別する (v1/v2 の旧記録はそのまま残る)。
+- 採点 v3 (コンボ節目ボーナス・フルコンボ最終ボーナス、`scoringVersion = 3`) は ADR-0029 が正本。節目は 50 コンボごとに 25 ratio 点、フルコンボ (miss==0 かつ全ノーツ判定確定) で終了時に 100 ratio 点。節目回数はパス依存のため `comboMilestones` フィールドで申告し、サーバは miss==0 で `floor((P+G+B)/50)` との等値、miss>0 で `min(floor(hits/50), (miss+1)*floor(maxCombo/50))` の上限と `maxCombo <= hits` を検査する (Issue #618)。
 
 ### 8 lane keymap
 
@@ -58,6 +59,7 @@ Lane 3: 4 5 R T F G V B  Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 ## 楽曲データ
 
 - chart: `Assets/Game/Resources/<SongName>.json`。`name`, `maxBlock`, `BPM`, `offset`, `notes[]` (`type/num/block/LPB`)、任意の `lyrics`
+- chart の入力境界検証 (Issue #632): `ChartValidator.Validate` が `type ∈ {1,2}`・`num >= 0`・`block ∈ [0,7]`・`LPB ∈ [1,192]`・HOLD の `endNum > num`・`BPM ∈ [1,600]`・`notes <= 10000` を公開スキーマ (`contracts/schemas/chart.v1.schema.json`) と同じ範囲で検査する。ローカル曲は `NotesManager.LoadRoutine` が、リモート曲は `SelectSceneManager` の譜面取得直後が検証点で、違反した譜面はゲーム進行へ流さず拒否する (リモートは開始キャンセル、ローカルは開始不可メッセージのあと選曲へ戻る)。範囲外レーンを含む譜面が「読み込めるが判定が永久に完了しない」状態になることを防ぐ。
 - lyrics: chart 内の `lyrics` が正。`GameSceneManager.LoadTextData` は merged chart を優先し、legacy の `<SongName>_text.json` があっても chart 側を使う
 - 音源: `Assets/Game/Resources/Musics/<SongName>.wav`
 - chart JSON は Resources folder に 1 つだけ置く。同名 chart が 2 つの Resources folder にあると `Resources.Load` がどちらか一方を恣意的に返す。`Assets/Tests/Editor/ResourceChartUniquenessTests.cs` がこれを検査する
@@ -71,7 +73,7 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 1. `Assets/Game/Resources/<SongName>.json` を置く。
 2. `GManager` の 7 つの parallel array と `Hiscore` の長さ、`totalSong` を揃える。
 3. `GameScene.unity` の `YoutubePlayer` と `MusicManager.YPlayer` / `VPlayer` を配線する（通常は Editor tool が行う）。
-4. lyrics が無い場合は stub の `_text.json` を作る。
+4. lyrics は chart JSON 内の `lyrics` が正。別ファイル (`*_text.json`) はもう置かない — 旧形式が残っていても chart 側が優先される (上記「楽曲データ」参照)。
 
 ## YouTube 再生
 
@@ -81,7 +83,7 @@ Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDia
 
 ## Tests
 
-`Assets/Tests/Editor/` に 139 の test file があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。Play Mode / 実機 integration suite はない。
+`Assets/Tests/Editor/` に 146 の test file (2026-11-18 時点) があり、GManager の song lookup、`ResetSession`、lane wrap-around、判定時刻、NoteEditor の lyric roundtrip、`LyricsTabPresenter`、`FlashBeatSongLoader`、legacy migration、YouTube import、media cache、update checker、chart 整合性を対象にする。v6 UI の純ロジックは `Assets/Game/Tests/` (60 file、EditMode で同じく実行) にある。Play Mode / 実機 integration suite はない。
 
 `SingletonTestHelper.TeardownSingletons` で static state を test 間に戻す。`EditData.Lyrics` の配列を使う test では必須。
 
@@ -110,7 +112,8 @@ Unity を起動せずに C# の型検査だけ行う補助として `script/comp
 - `GManager` の 7 つの parallel array は 29 entry で lockstep。かつて 30 番目の数値 entry は comment out されており、`ChartDataIntegrityTests` がこの対応を検査する。
 - `MusicManager` は bundled wav を `Resources.LoadAsync<AudioClip>` で非同期に読み、clip が無くても throw せず YouTube media へ fallback する（`PlaybackRecovery.DecideAudioSource`）。
 - `NoteEditor.Editor` の callback（YouTube import 登録、deferred editor actions）は `[InitializeOnLoad]` の static registrar pattern。cross-asmdef の callback 配線は `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` を参照。
+- 例外を握りつぶして degraded fallback へ進む経路は、原因が分かる警告ログを残す (Issue #613): `MusicManager` (音声トラック有効化失敗)、`MediaCacheManager` / `YouTubeMediaCache` (キャッシュ走査・削除・ダウンロード中断)、`YouTubeStreamResolver` (yt-dlp の exit / stdout 読み取り失敗)、`UpdateChecker` / `OptionSceneManager` / `RankingClient` (fallback の裏にある本当の原因)。
 - プレイフィールドは unlit / 影なしの flat rendering。`docs/architecture/flat-rendering.md` を参照。lit shader に戻すと動画 quad がほぼ黒くなる。
 - 日本語 font は `NotoSansJP-Medium SDF.asset`。HUD への適用は `JapaneseFontFixer.ApplyJapaneseFontToProject`（Editor menu `Tools → FlashBeat → Apply Japanese Font To Scenes And Prefabs`）。新しい漢字を含む曲・歌詞を足したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` を実行する。atlas は静的で、古い asset は 620 glyph しか持っていなかった。
 - Windows baseline (issue #11): batch build と select → play → result → retry の 1 曲 loop は実機で確認済み（`docs/superpowers/plans/baseline-win64.md`）。Windows Media Foundation の URL reader は解決済み `googlevideo.com` stream で失敗する（`0x80070005` / `MFCreateSourceReaderFromURL`）ため、`MusicManager` は yt-dlp で media を `persistentDataPath/FlashBeatMedia/<videoId>/` に download し local file を再生する（`PrepareLocalVideo`）。direct URL の試行は video ごと 1 回の診断 probe（`ProbeDirectUrl`）として残るので、`Player.log` の `0x80070005` は missing picture の原因ではない。Windows での download 済み file 再生と audible output は未検証（同 § 2026-11-10 追記、issue #13）。
-- 大きい font asset (`NotoSansJP-Medium SDF.asset`, `YuGothB SDF.asset`) は `.gitattributes` で個別に LFS 対象。
+- 大きい font asset (`NotoSansJP-Medium SDF.asset`) は `.gitattributes` で個別に LFS 対象。

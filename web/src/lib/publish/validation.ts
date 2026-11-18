@@ -54,10 +54,10 @@ export interface SongMetadataIssue {
 export function validateSongId(value: string): string | undefined {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return "Enter the song id.";
+    return "曲IDを入力してください。";
   }
   if (!SONG_ID_PATTERN.test(trimmed)) {
-    return "Use 3 to 64 lowercase letters, digits or dashes.";
+    return "英小文字・数字・ハイフンで3〜64文字にしてください。";
   }
   return undefined;
 }
@@ -65,50 +65,50 @@ export function validateSongId(value: string): string | undefined {
 export function validateTitle(value: string): string | undefined {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return "Enter the title.";
+    return "曲名を入力してください。";
   }
   if (trimmed.length > MAX_TITLE_LENGTH) {
-    return `The title must be ${MAX_TITLE_LENGTH} characters or fewer.`;
+    return `曲名は${MAX_TITLE_LENGTH}文字以内にしてください。`;
   }
   return undefined;
 }
 
 export function validateArtist(value: string): string | undefined {
   if (value.trim().length > MAX_ARTIST_LENGTH) {
-    return `The artist must be ${MAX_ARTIST_LENGTH} characters or fewer.`;
+    return `アーティスト名は${MAX_ARTIST_LENGTH}文字以内にしてください。`;
   }
   return undefined;
 }
 
 export function validateYoutube(value: string): string | undefined {
   if (value.trim().length === 0) {
-    return "Enter the YouTube video.";
+    return "YouTubeのURLを入力してください。";
   }
   if (parseYouTubeId(value) === null) {
-    return "Enter a YouTube URL or an 11 character video id.";
+    return "YouTubeのURL、または11文字の動画IDを入力してください。";
   }
   return undefined;
 }
 
 export function validateLevel(value: number): string | undefined {
   if (!Number.isInteger(value)) {
-    return "The level must be a whole number.";
+    return "レベルは整数で入力してください。";
   }
   if (value < MIN_LEVEL || value > MAX_LEVEL) {
-    return `The level must be between ${MIN_LEVEL} and ${MAX_LEVEL}.`;
+    return `レベルは${MIN_LEVEL}〜${MAX_LEVEL}にしてください。`;
   }
   return undefined;
 }
 
 export function validateDuration(value: number): string | undefined {
   if (!Number.isFinite(value)) {
-    return "Enter the duration in seconds.";
+    return "再生時間（秒）を入力してください。";
   }
   if (value <= 0) {
-    return "The duration must be longer than zero.";
+    return "再生時間は0より長くしてください。";
   }
   if (value > MAX_DURATION_SEC) {
-    return `The duration must be ${MAX_DURATION_SEC} seconds or fewer.`;
+    return `再生時間は${MAX_DURATION_SEC}秒以内にしてください。`;
   }
   return undefined;
 }
@@ -174,7 +174,9 @@ export function buildPublishRequest(
   if (youtubeId === null) {
     return {
       ok: false,
-      issues: [{ field: "youtube", message: "Enter a YouTube URL or an 11 character video id." }],
+      issues: [
+        { field: "youtube", message: "YouTubeのURL、または11文字の動画IDを入力してください。" },
+      ],
     };
   }
 

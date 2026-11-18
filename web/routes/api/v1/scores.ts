@@ -29,7 +29,9 @@ import { and, count, db, desc, eq, gt } from "void/db";
 import { chartVersions, scores } from "@schema";
 import {
   SCORING_VERSION_V1,
+  SCORING_VERSION_V3,
   computeScoreForVersion,
+  computeUnityScoreV3Legacy,
   nicknameDiagnostics,
   scoreSemanticsDiagnostics,
   validateScoreRequest,
@@ -133,18 +135,37 @@ export const POST = defineHandler(async (c) => {
     );
   }
   if (request.score !== undefined && request.score !== score) {
-    return c.json(
-      {
-        error: "score mismatch",
-        diagnostics: [
-          {
-            path: "/score",
-            message: `the judgment counts score ${score} with the scoring version ${scoringVersion} formula, the client sent ${request.score}`,
-          } satisfies ScoreDiagnostic,
-        ],
-      },
-      422,
-    );
+    // Issue #631: clients built before the deterministic v3 scoring still
+    // send the legacy single-precision score, which can differ from the
+    // canonical value by one point on float boundary cases. Accept that
+    // value too so fielded builds are not rejected with 422; the stored
+    // score is always the deterministic recomputation.
+    const legacyScore =
+      scoringVersion === SCORING_VERSION_V3
+        ? computeUnityScoreV3Legacy(
+            request.perfect,
+            request.great,
+            request.bad,
+            request.miss,
+            request.maxCombo,
+            request.comboMilestones,
+            chart.noteCount,
+          )
+        : null;
+    if (request.score !== legacyScore) {
+      return c.json(
+        {
+          error: "score mismatch",
+          diagnostics: [
+            {
+              path: "/score",
+              message: `the judgment counts score ${score} with the scoring version ${scoringVersion} formula, the client sent ${request.score}`,
+            } satisfies ScoreDiagnostic,
+          ],
+        },
+        422,
+      );
+    }
   }
 
   // Light abuse limit: the identical submission (same song, nickname and

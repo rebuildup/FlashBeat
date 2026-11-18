@@ -162,7 +162,7 @@ for (const viewport of VIEWPORTS) {
     await shot(page, viewport.name, "2-chart");
 
     // 4. 戻る: back to the song list, then やり直し: pick again.
-    await page.getByRole("link", { name: "← 曲を選ぶ / Back to songs" }).click();
+    await page.getByRole("link", { name: "← 曲を選ぶ" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId("welcome-hero")).toBeVisible();
     await shot(page, viewport.name, "3-back-home");

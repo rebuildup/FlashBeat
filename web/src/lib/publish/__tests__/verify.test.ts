@@ -59,6 +59,6 @@ describe("persisted publish verification", () => {
           : new Response("offline", { status: 503 }),
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.failure.message).toContain("may have succeeded");
+    if (!result.ok) expect(result.failure.message).toContain("成功した可能性");
   });
 });

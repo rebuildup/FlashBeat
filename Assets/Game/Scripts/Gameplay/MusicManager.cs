@@ -134,6 +134,8 @@ public class MusicManager : MonoBehaviour
     float lastMediaTime;
     float stallSeconds;
     NotesManager notesManager;
+    /// <summary>Issue #632: 不正譜面の拒否処理は 1 回だけ。</summary>
+    bool chartRejectionHandled;
     ResourceRequest musicRequest;
 
     /// <summary>
@@ -410,6 +412,10 @@ public class MusicManager : MonoBehaviour
             var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
             while (!videoTask.IsCompleted) yield return null;
             videoFile = videoTask.Result;
+            // Issue #613: a cancelled download comes back as !Ok - that is not a
+            // media failure, so bail out before the failure classification below
+            // (the scene teardown that cancelled the token is already unloading).
+            if (mediaToken.IsCancellationRequested) { yield break; }
             Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
             if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
@@ -440,6 +446,7 @@ public class MusicManager : MonoBehaviour
                 var audioTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, mediaToken);
                 while (!audioTask.IsCompleted) yield return null;
                 audioFile = audioTask.Result;
+                if (mediaToken.IsCancellationRequested) { yield break; }
                 Debug.Log($"[MusicManager] audio file: {(audioFile.Ok ? audioFile.Path + (audioFile.FromCache ? " (cache)" : " (downloaded)") : audioFile.Detail)}");
             }
         }
@@ -594,6 +601,18 @@ public class MusicManager : MonoBehaviour
 
         SetStartMessage(PlaybackRecovery.StartHint(reason));
 
+        StartCoroutine(ReturnToSelectScene());
+    }
+
+    /// <summary>
+    /// Issue #632: 拒否された譜面の曲は開始できない。開始メッセージを
+    /// 差し替え、メディア失敗と同じ経路で選曲画面へ戻す。
+    /// </summary>
+    void HandleChartRejection()
+    {
+        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - returning to the select screen");
+        SetStartMessage("譜面データが不正なため、この曲は開始できません");
+        SelectReturnPending = true;
         StartCoroutine(ReturnToSelectScene());
     }
 
@@ -757,8 +776,10 @@ public class MusicManager : MonoBehaviour
         if (songVideo.isPrepared && combined)
         {
             // The scene already enables audio track 0; make sure the sound of a
-            // progressive file really reaches the mixer.
-            try { songVideo.EnableAudioTrack(0, true); } catch { }
+            // progressive file really reaches the mixer. A failure here means
+            // the song plays silently, so it must not stay invisible (issue #613).
+            try { songVideo.EnableAudioTrack(0, true); }
+            catch (Exception e) { Debug.LogWarning("[MusicManager] failed to enable audio track 0: " + e.Message); }
         }
 
         if (songVideo.isPrepared)
@@ -1070,6 +1091,19 @@ public class MusicManager : MonoBehaviour
         {
             // Nothing may play before the player starts the song.
             if (songVideo != null && songVideo.isPlaying) songVideo.Pause();
+
+            // Issue #632: 契約を満たさない譜面は開始させない。
+            // NotesManager が読み込み境界で拒否した曲は、メッセージを出して
+            // 選曲画面へ戻す (判定未完了のまま進行させない)。
+            if (notesManager != null && notesManager.ChartRejected)
+            {
+                if (!chartRejectionHandled)
+                {
+                    chartRejectionHandled = true;
+                    HandleChartRejection();
+                }
+                return;
+            }
 
             // Space may only start the song when the media is ready AND the
             // chart (notes) finished loading - otherwise the judge would miss

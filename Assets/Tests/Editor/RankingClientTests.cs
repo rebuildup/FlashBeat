@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using UnityEngine;
+using FlashBeat.Gameplay;
 
 namespace FlashBeat.Tests.Editor
 {
@@ -49,7 +50,7 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void BuildScoreRequestJson_ContainsSubmissionFields()
         {
-            string json = RankingClient.BuildScoreRequestJson("test-song", 2, "なまえ", 123456, 100, 50, 10, 5, 77);
+            string json = RankingClient.BuildScoreRequestJson("test-song", 2, "なまえ", 123456, 100, 50, 10, 5, 77, 3);
 
             var parsed = JsonUtility.FromJson<RankingClient.ScoreRequest>(json);
             Assert.AreEqual("test-song", parsed.songId);
@@ -61,20 +62,22 @@ namespace FlashBeat.Tests.Editor
             Assert.AreEqual(10, parsed.bad);
             Assert.AreEqual(5, parsed.miss);
             Assert.AreEqual(77, parsed.maxCombo);
+            Assert.AreEqual(3, parsed.comboMilestones);
+            Assert.AreEqual(Scoring.LatestVersion, parsed.scoringVersion);
         }
 
         [Test]
         public void BuildScoreRequestJson_RejectsInvalidNicknameOrSongId()
         {
-            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, "", 1, 0, 0, 0, 0, 0));
+            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, "", 1, 0, 0, 0, 0, 0, 0));
             // 17 文字は契約上限 (contracts/openapi.v1.yaml ScoreSubmission.nickname
             // maxLength: 16) を超えるので拒否、16 文字は通る。
-            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 17), 1, 0, 0, 0, 0, 0));
-            string atLimit = RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 16), 1, 0, 0, 0, 0, 0);
+            Assert.IsNull(RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 17), 1, 0, 0, 0, 0, 0, 0));
+            string atLimit = RankingClient.BuildScoreRequestJson("test-song", 1, new string('a', 16), 1, 0, 0, 0, 0, 0, 0);
             Assert.IsNotNull(atLimit, "16 文字 (契約上限) のニックネームは受理される");
             Assert.AreEqual(new string('a', 16),
                 JsonUtility.FromJson<RankingClient.ScoreRequest>(atLimit).nickname);
-            Assert.IsNull(RankingClient.BuildScoreRequestJson("Bad_Song", 1, "abc", 1, 0, 0, 0, 0, 0));
+            Assert.IsNull(RankingClient.BuildScoreRequestJson("Bad_Song", 1, "abc", 1, 0, 0, 0, 0, 0, 0));
         }
 
         // --- response parsing ---

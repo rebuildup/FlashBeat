@@ -463,23 +463,23 @@ export function CatalogPanel({
   const showLegend = status === "ready" && songs.length > 0;
   const subtitle =
     status === "loading"
-      ? "Loading songs…"
+      ? "曲を読み込み中…"
       : status === "offline"
-        ? "Offline"
+        ? "オフライン"
         : hasFilters
-          ? `${total} song${total === 1 ? "" : "s"} published · ${songs.length} shown`
-          : `${total} song${total === 1 ? "" : "s"} published`;
+          ? `${total}曲が公開中 · ${songs.length}件を表示`
+          : `${total}曲が公開中`;
 
   return (
     <section className={panelFrame}>
       <header className={panelHeader}>
         <div>
-          <h2 className={panelTitle}>Catalog</h2>
+          <h2 className={panelTitle}>カタログ</h2>
           <p className={panelSubtitle}>{subtitle}</p>
         </div>
         <Button variant="outline" size="sm" onClick={onRetry} disabled={status === "loading"}>
           <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
-          Refresh
+          更新
         </Button>
       </header>
 
@@ -488,19 +488,19 @@ export function CatalogPanel({
           <div className={stateWrap}>
             {status === "loading" ? (
               <StateBlock
-                title="Loading catalog"
-                description="Reading the published catalog from the FlashBeat API."
+                title="カタログを読み込み中"
+                description="FlashBeat APIから公開済みカタログを読み込んでいます。"
               />
             ) : null}
 
             {status === "offline" ? (
               <StateBlock
-                title="You are offline"
-                description="The catalog is read from the FlashBeat API on this site. Reconnect, then retry."
+                title="オフラインです"
+                description="カタログはこのサイトのFlashBeat APIから読み込まれます。再接続してから再試行してください。"
                 action={
                   <Button variant="outline" size="sm" onClick={onRetry}>
                     <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
-                    Retry
+                    再試行
                   </Button>
                 }
               />
@@ -508,12 +508,12 @@ export function CatalogPanel({
 
             {status === "error" ? (
               <StateBlock
-                title="Catalog unavailable"
-                description={errorMessage ?? "The catalog request failed."}
+                title="カタログを取得できません"
+                description={errorMessage ?? "カタログの取得に失敗しました。"}
                 action={
                   <Button className={accent} size="sm" onClick={onRetry}>
                     <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
-                    Try again
+                    再試行
                   </Button>
                 }
               />
@@ -521,19 +521,19 @@ export function CatalogPanel({
 
             {status === "empty" ? (
               <StateBlock
-                title="No songs published yet"
-                description="Publish a chart to the FlashBeat API and it shows up here immediately."
+                title="まだ公開された曲がありません"
+                description="譜面をFlashBeat APIに公開すると、ここにすぐ表示されます。"
               />
             ) : null}
 
             {noFilterMatch ? (
               <StateBlock
-                title="No song matches the filters"
-                description="Clear the search query or level filter to see the published songs."
+                title="条件に一致する曲がありません"
+                description="検索クエリまたはレベルフィルタを解除すると、公開済みの曲が表示されます。"
                 action={
                   <Button variant="outline" size="sm" onClick={onClearFilters}>
                     <X className={buttonIcon} size={14} aria-hidden="true" />
-                    Clear filters
+                    フィルタを解除
                   </Button>
                 }
               />
@@ -565,12 +565,12 @@ export function CatalogPanel({
                     <span>{song.artist}</span>
                     <span>{song.bpm} BPM</span>
                     <span>{formatDuration(song.durationSec)}</span>
-                    <span>{song.noteCount} notes</span>
+                    <span>{song.noteCount}ノート</span>
                     <span>v{song.chartVersion}</span>
                   </div>
                   <div className={cardActions}>
                     <a className={actionLink} href={chartHref(song)}>
-                      譜面を開く / Open chart
+                      譜面を開く
                     </a>
                     {/*
                       Issue #215 review: the per-song publish path starts at
@@ -581,12 +581,12 @@ export function CatalogPanel({
                     <span
                       className={publishBadge}
                       data-testid="publish-requirement"
-                      title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
+                      title="公開にはスタッフのadminトークンが必要です"
                     >
                       公開はスタッフ（要トークン）
                     </span>
                     <a
-                      aria-label={`${song.title} on YouTube`}
+                      aria-label={`${song.title} をYouTubeで開く`}
                       className={`${actionLink} ${youtubeAction}`}
                       href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
                       rel="noreferrer"
@@ -601,11 +601,11 @@ export function CatalogPanel({
             <div className={tableContainer}>
               <div className={list} data-testid="catalog-list" onKeyDown={onListKeyDown}>
                 <div className={header} aria-hidden="true">
-                  <span>Song</span>
+                  <span>曲</span>
                   <span>Lv</span>
                   <span className={headerNum}>BPM</span>
-                  <span className={`${headerNum} ${headerTime}`}>Time</span>
-                  <span className={headerNum}>Notes</span>
+                  <span className={`${headerNum} ${headerTime}`}>時間</span>
+                  <span className={headerNum}>ノート</span>
                   <span>Ver</span>
                   <span />
                 </div>
@@ -613,7 +613,7 @@ export function CatalogPanel({
                   <div key={song.id} className={`row ${row}`}>
                     <a className={rowLink} href={chartHref(song)} data-row-link>
                       <span className={visuallyHidden}>
-                        {`譜面を開く: ${song.title} — ${song.artist}, level ${song.level}, version ${song.chartVersion}`}
+                        {`譜面を開く: ${song.title} — ${song.artist}、レベル${song.level}、バージョン${song.chartVersion}`}
                       </span>
                     </a>
 
@@ -629,7 +629,7 @@ export function CatalogPanel({
                           <span>·</span>
                           <span>{formatDuration(song.durationSec)}</span>
                           <span>·</span>
-                          <span>{song.noteCount} notes</span>
+                          <span>{song.noteCount}ノート</span>
                           <span>·</span>
                           <span>v{song.chartVersion}</span>
                         </span>
@@ -653,12 +653,12 @@ export function CatalogPanel({
                       <span
                         className={publishBadge}
                         data-testid="publish-requirement"
-                        title="公開にはスタッフのadminトークンが必要です / Staff admin token required"
+                        title="公開にはスタッフのadminトークンが必要です"
                       >
                         公開はスタッフ（要トークン）
                       </span>
                       <a
-                        aria-label={`${song.title} on YouTube`}
+                        aria-label={`${song.title} をYouTubeで開く`}
                         className={`${actionLink} ${youtubeAction}`}
                         href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
                         rel="noreferrer"
@@ -678,11 +678,11 @@ export function CatalogPanel({
       {showLegend ? (
         <footer className={legend} aria-hidden="true">
           <span>
-            <kbd className={keyCap}>/</kbd> Search
+            <kbd className={keyCap}>/</kbd> 検索
           </span>
           <span>
             <kbd className={keyCap}>↑</kbd>
-            <kbd className={keyCap}>↓</kbd> Move
+            <kbd className={keyCap}>↓</kbd> 移動
           </span>
           <span>
             <kbd className={keyCap}>Enter</kbd> 譜面を開く

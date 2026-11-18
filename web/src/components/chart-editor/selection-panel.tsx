@@ -208,15 +208,15 @@ export function SelectionPanel({
   const note = chart && selectedIndex !== null ? chart.notes[selectedIndex] : undefined;
 
   return (
-    <section className={frame} data-testid="selection-panel" aria-label="Selected note">
+    <section className={frame} data-testid="selection-panel" aria-label="選択中のノート">
       <div className={header}>
-        <h3 className={title}>Selected note</h3>
+        <h3 className={title}>選択中のノート</h3>
         {note ? (
           <button
             type="button"
             className={clearButton}
             onClick={onDeselect}
-            aria-label="Clear the note selection"
+            aria-label="ノートの選択を解除"
             data-testid="selection-clear"
           >
             <span aria-hidden="true">✕</span>
@@ -226,67 +226,66 @@ export function SelectionPanel({
 
       {!note ? (
         <p className={empty} data-testid="selection-empty">
-          Click a note on the lanes to read its lane, beat and time here. Every edit keeps an Undo
-          step.
+          レーン上のノートをクリックすると、レーン・拍・時刻がここに表示されます。すべての編集は元に戻せます。
         </p>
       ) : (
         <>
           <div className={readouts}>
             <div className={readout}>
-              <span className={readoutLabel}>Lane</span>
+              <span className={readoutLabel}>レーン</span>
               <strong className={readoutValue} data-testid="selection-lane">
                 {note.block + 1}
               </strong>
             </div>
             <div className={readout}>
-              <span className={readoutLabel}>Beat</span>
+              <span className={readoutLabel}>拍</span>
               <strong className={readoutValue} data-testid="selection-beat">
                 {noteBeat(note).toFixed(2)}
               </strong>
             </div>
             <div className={readout}>
-              <span className={readoutLabel}>Time</span>
+              <span className={readoutLabel}>時間</span>
               <strong className={readoutValue} data-testid="selection-time">
-                {noteTimeSec(note, chart?.BPM ?? 0).toFixed(2)}s
+                {noteTimeSec(note, chart?.BPM ?? 0).toFixed(2)}秒
               </strong>
             </div>
           </div>
 
           <div className={kindRow}>
             <span className={kindBadge} data-testid="selection-kind">
-              {isHold(note) ? "Hold" : "Tap"}
+              {isHold(note) ? "ホールド" : "タップ"}
             </span>
             {isHold(note) ? (
               <span className={kindDetail} data-testid="selection-length">
-                {holdLengthBeats(note).toFixed(2)} beats ·{" "}
-                {(chart && chart.BPM > 0 ? holdLengthSec(note, chart.BPM) : 0).toFixed(2)}s · ends
-                at beat {holdEndBeat(note).toFixed(2)}
+                {holdLengthBeats(note).toFixed(2)}拍 ·{" "}
+                {(chart && chart.BPM > 0 ? holdLengthSec(note, chart.BPM) : 0).toFixed(2)}秒 ·
+                終了は拍{holdEndBeat(note).toFixed(2)}
               </span>
             ) : (
-              <span className={kindDetail}>press once</span>
+              <span className={kindDetail}>1回押す</span>
             )}
           </div>
 
           <div className={row}>
-            <span className={rowLabel}>Kind</span>
+            <span className={rowLabel}>種類</span>
             <button
               type="button"
               className={action}
               onClick={() => onSetKind(isHold(note) ? "tap" : "hold")}
               data-testid="selection-kind-toggle"
             >
-              {isHold(note) ? "Make Tap" : "Make Hold"}
+              {isHold(note) ? "タップにする" : "ホールドにする"}
             </button>
           </div>
 
           {isHold(note) ? (
             <div className={row}>
-              <span className={rowLabel}>Length</span>
+              <span className={rowLabel}>長さ</span>
               <button
                 type="button"
                 className={stepButton}
                 onClick={() => onResizeHold(-1 / note.LPB)}
-                aria-label="Shorten the hold by one step"
+                aria-label="ホールドを1ステップ短く"
                 data-testid="selection-length-dec"
               >
                 −
@@ -295,7 +294,7 @@ export function SelectionPanel({
                 type="button"
                 className={stepButton}
                 onClick={() => onResizeHold(1 / note.LPB)}
-                aria-label="Lengthen the hold by one step"
+                aria-label="ホールドを1ステップ長く"
                 data-testid="selection-length-inc"
               >
                 +
@@ -304,14 +303,14 @@ export function SelectionPanel({
           ) : null}
 
           <div className={row}>
-            <span className={rowLabel}>Move by one step</span>
-            <div className={nudgeGrid} role="group" aria-label="Move the selected note">
+            <span className={rowLabel}>1ステップ移動</span>
+            <div className={nudgeGrid} role="group" aria-label="選択したノートを移動">
               <span />
               <button
                 type="button"
                 className={stepButton}
                 onClick={() => onNudge(0, -1)}
-                aria-label="Move the note one lane up"
+                aria-label="ノートを1レーン上へ"
                 data-testid="selection-nudge-up"
               >
                 ↑
@@ -321,7 +320,7 @@ export function SelectionPanel({
                 type="button"
                 className={stepButton}
                 onClick={() => onNudge(-1 / note.LPB, 0)}
-                aria-label="Move the note one step earlier"
+                aria-label="ノートを1ステップ前へ"
                 data-testid="selection-nudge-left"
               >
                 ←
@@ -330,7 +329,7 @@ export function SelectionPanel({
                 type="button"
                 className={stepButton}
                 onClick={() => onNudge(0, 1)}
-                aria-label="Move the note one lane down"
+                aria-label="ノートを1レーン下へ"
                 data-testid="selection-nudge-down"
               >
                 ↓
@@ -339,7 +338,7 @@ export function SelectionPanel({
                 type="button"
                 className={stepButton}
                 onClick={() => onNudge(1 / note.LPB, 0)}
-                aria-label="Move the note one step later"
+                aria-label="ノートを1ステップ後へ"
                 data-testid="selection-nudge-right"
               >
                 →
@@ -353,9 +352,9 @@ export function SelectionPanel({
             onClick={onDelete}
             data-testid="selection-delete"
           >
-            Delete note
+            ノートを削除
           </button>
-          <p className={hint}>Deleted by mistake? Undo is at the top left of the toolbar.</p>
+          <p className={hint}>間違えて削除しましたか？ツールバー左上の元に戻すで復帰できます。</p>
         </>
       )}
     </section>

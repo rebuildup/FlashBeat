@@ -29,7 +29,7 @@ export function resolvePublishTransport(
   const origin = (apiOrigin ?? "").trim();
 
   if (origin === "fixture" && !allowFixture) {
-    throw new Error("Fixture publishing is disabled. Use the live API.");
+    throw new Error("Fixture公開は無効です。ライブAPIを使用してください。");
   }
 
   if (origin === "fixture") {

@@ -7,7 +7,7 @@ namespace FlashBeat.V6PlayfieldTests
     /// <summary>
     /// v6 プレイフィールドの幾何 (design 契約 §6) の EditMode テスト。
     ///
-    /// 契約値と実装値の照合 (2026-11-08 / docs/design/v6/flashbeat-v6-contract.md §6):
+    /// 契約値と実装値の照合 (2026-11-08 / docs/ui/v6-screen-contract.md §6):
     /// 下列は **契約値 = 実装値** であることを項目ごとに確認済み。
     ///   判定線 y=792 h=4      → JudgeLineY / JudgeLineHeightDesignPx
     ///   判定グロウ y=796 h=2   → JudgeGlowY / JudgeGlowHeightDesignPx

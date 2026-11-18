@@ -12,7 +12,7 @@ namespace FlashBeat.V5CanvasTests
     /// 正本: docs/design/v6/flashbeat-v6-nodes.json の
     /// - Option · v6 (55605) 配下の 06 Play · v6 (B6If6Z) / 06 Display (EzLfb) /
     ///   06 Sound (z7joSy) / 06 Data (DQHHp) の descendants パッチ
-    /// - 契約 docs/design/v6/flashbeat-v6-contract.md §4 (共通フレーム / ゾーン)
+    /// - 契約 docs/ui/v6-screen-contract.md §4 (共通フレーム / ゾーン)
     ///
     /// すべての要素が Main ゾーン (24,96) 1680×780 / フレーム 1728×972 に収まることを
     /// V6Layout.FitsIn で検証する (実機でのはみ出し — 旧実装のタブ右寄り・KeyCap フレーム外 —

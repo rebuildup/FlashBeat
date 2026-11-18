@@ -904,8 +904,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
       return null;
     }
     return youtubeInput.trim().length === 0
-      ? "Enter a YouTube URL or a video id."
-      : "That is not a YouTube video id.";
+      ? "YouTubeのURLまたは動画IDを入力してください。"
+      : "YouTubeの動画IDではありません。";
   }, [youtubeInput]);
 
   return (
@@ -940,12 +940,12 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
           <section
             className={previewPanel}
             data-testid="editor-preview-panel"
-            aria-label="Song preview"
+            aria-label="曲のプレビュー"
           >
             <div className={panelHeader}>
-              <h3 className={panelTitle}>Song preview</h3>
+              <h3 className={panelTitle}>曲のプレビュー</h3>
               <span className={playState} data-testid="preview-state">
-                {playing ? "Playing" : "Paused"}
+                {playing ? "再生中" : "一時停止"}
               </span>
             </div>
 
@@ -964,8 +964,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                     <span className={swatchTap} aria-hidden="true" />
                   </span>
                   <p className={guideText}>
-                    <span className={guideStrong}>Tap</span> — press the key once. The note is the
-                    short white bar.
+                    <span className={guideStrong}>タップ</span> —
+                    キーを1回押します。ノートは短い白いバーです。
                   </p>
                 </li>
                 <li className={guideRow}>
@@ -973,8 +973,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                     <span className={swatchHold} aria-hidden="true" />
                   </span>
                   <p className={guideText}>
-                    <span className={guideStrong}>Hold</span> — keep it pressed. Drag the blue
-                    handle at its end to change the length.
+                    <span className={guideStrong}>ホールド</span> —
+                    押し続けます。終わりの青いハンドルをドラッグすると長さを変えられます。
                   </p>
                 </li>
                 <li className={guideRow}>
@@ -982,8 +982,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                     <span className={swatchPlayhead} aria-hidden="true" />
                   </span>
                   <p className={guideText}>
-                    <span className={guideStrong}>Playhead</span> — the blue line follows the video
-                    and the slider above.
+                    <span className={guideStrong}>プレイヘッド</span> —
+                    青い線が動画と上のスライダーに追従します。
                   </p>
                 </li>
               </ul>
@@ -991,7 +991,7 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
 
             <div className={previewFooter}>
               <Field.Root>
-                <Field.Label className={fieldLabel}>YouTube video</Field.Label>
+                <Field.Label className={fieldLabel}>YouTube動画</Field.Label>
                 <Input
                   className={inputBox}
                   data-testid="youtube-input"
@@ -1009,8 +1009,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
               </Field.Root>
 
               <p className={previewSummary}>
-                {noteCount} {noteCount === 1 ? "note" : "notes"} · {chart ? holdCount(chart) : 0}{" "}
-                holds · {chart?.BPM ?? 0} BPM
+                {noteCount}ノート · {chart ? holdCount(chart) : 0}件のホールド · {chart?.BPM ?? 0}{" "}
+                BPM
               </p>
             </div>
 
@@ -1021,15 +1021,15 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
               data-testid="rewind-button"
             >
               <Rewind className={buttonIcon} size={14} aria-hidden="true" />
-              Back to start
+              最初に戻る
             </Button>
           </section>
 
-          <section className={gridPanel} aria-label="Note editor">
+          <section className={gridPanel} aria-label="ノートエディタ">
             <div className={gridHeader}>
               <div className={gridHeaderTop}>
-                <span className={sectionLabel}>Add note</span>
-                <div className={kindSwitch} role="group" aria-label="Note kind">
+                <span className={sectionLabel}>ノートを追加</span>
+                <div className={kindSwitch} role="group" aria-label="ノートの種類">
                   <button
                     type="button"
                     className={noteKind === "tap" ? kindButtonActive : kindButton}
@@ -1037,8 +1037,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                     onClick={() => setNoteKind("tap")}
                     data-testid="kind-tap"
                   >
-                    <span className={kindName}>Tap</span>
-                    <span className={kindHint}>press once</span>
+                    <span className={kindName}>タップ</span>
+                    <span className={kindHint}>1回押す</span>
                   </button>
                   <button
                     type="button"
@@ -1047,8 +1047,8 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                     onClick={() => setNoteKind("hold")}
                     data-testid="kind-hold"
                   >
-                    <span className={kindName}>Hold</span>
-                    <span className={kindHint}>press and hold</span>
+                    <span className={kindName}>ホールド</span>
+                    <span className={kindHint}>押し続ける</span>
                   </button>
                 </div>
 
@@ -1057,31 +1057,32 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
                   data-testid="grid-selection"
                 >
                   {selectedNote
-                    ? `Lane ${selectedNote.block + 1} · beat ${noteBeat(selectedNote).toFixed(2)}`
-                    : "No note selected"}
+                    ? `レーン${selectedNote.block + 1} · 拍${noteBeat(selectedNote).toFixed(2)}`
+                    : "ノート未選択"}
                 </span>
 
                 <span className={playheadChip} data-testid="playhead-readout">
-                  {playheadSec.toFixed(2)}s · beat {playheadBeat.toFixed(2)}
+                  {playheadSec.toFixed(2)}秒 · 拍{playheadBeat.toFixed(2)}
                 </span>
               </div>
 
               <div className={gridHint}>
                 <span className={holdReadout} data-testid="hold-count">
-                  {chart ? holdCount(chart) : 0} holds
+                  {chart ? holdCount(chart) : 0}件のホールド
                 </span>
                 <span className={hintText}>
-                  Click an empty cell to place a {noteKind === "hold" ? "Hold" : "Tap"}. Drag a note
-                  to move it.
+                  空のマスをクリックすると
+                  {noteKind === "hold" ? "ホールド" : "タップ"}
+                  を置けます。ノートをドラッグすると移動します。
                   {noteKind === "hold"
-                    ? " Drag the blue handle at its end to change the length."
-                    : " Hold makes a long note with a draggable end."}
+                    ? " 終わりの青いハンドルをドラッグすると長さを変えられます。"
+                    : " ホールドは押し続ける長いノートです。"}
                 </span>
               </div>
             </div>
 
             {chart ? (
-              <Suspense fallback={<p className={placeholder}>Loading the grid…</p>}>
+              <Suspense fallback={<p className={placeholder}>グリッドを読み込み中…</p>}>
                 <NoteGrid
                   chart={chart}
                   resolution={resolution}
@@ -1096,13 +1097,13 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
               </Suspense>
             ) : (
               <p className={placeholder}>
-                No chart loaded. Import a chart file or fix the problems listed in the inspector.
+                譜面が読み込まれていません。譜面ファイルを読み込むか、インスペクタに表示された問題を修正してください。
               </p>
             )}
 
             {chart && chart.notes.length === 0 ? (
               <div className={emptyOverlay} aria-hidden="true">
-                <span className={emptyCard}>Tap a lane to place the first note</span>
+                <span className={emptyCard}>レーンをクリックして最初のノートを置く</span>
               </div>
             ) : null}
           </section>
@@ -1116,7 +1117,7 @@ export const ChartEditor = forwardRef<ChartEditorHandle, ChartEditorProps>(funct
           onSeek={handleLyricsSeek}
         />
 
-        <aside className={side} aria-label="Editor inspector" data-testid="editor-inspector">
+        <aside className={side} aria-label="エディタインスペクタ" data-testid="editor-inspector">
           <SelectionPanel
             chart={chart}
             selectedIndex={selectedIndex}

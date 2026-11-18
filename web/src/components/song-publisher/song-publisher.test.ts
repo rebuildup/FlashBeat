@@ -18,14 +18,14 @@ describe("SongPublisher", () => {
   );
 
   it("renders the metadata form once", () => {
-    expect(html.match(/Song metadata/g) ?? []).toHaveLength(1);
+    expect(html.match(/曲のメタデータ/g) ?? []).toHaveLength(1);
   });
 
   it("renders the inspector once", () => {
-    expect(html.match(/aria-label="Publish sidebar"/g) ?? []).toHaveLength(1);
+    expect(html.match(/aria-label="公開サイドバー"/g) ?? []).toHaveLength(1);
   });
 
   it("keeps the drawer toggle for the narrow viewports", () => {
-    expect(html).toContain("Open the publish sidebar");
+    expect(html).toContain("公開サイドバーを開く");
   });
 });

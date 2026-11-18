@@ -424,4 +424,40 @@ public sealed class V6CompactScreenTests
             Object.DestroyImmediate(pan.gameObject);
         }
     }
+
+    /// <summary>
+    /// #609: モーダル表示中はパンを止める (Dialog がフレームの子なので、
+    /// パンを許すとモーダルごと画面外へ動く)。PanSuspended=true の間は
+    /// ホイール / ドラッグ / キーのすべてが無効。
+    /// </summary>
+    [Test]
+    public void PanSuspended_BlocksScrollDragAndKeyPan()
+    {
+        var pan = NewPan();
+        try
+        {
+            pan.Pan = new Vector2(-352f, -102f);
+            Vector2 before = pan.Pan;
+            pan.PanSuspended = true;
+
+            pan.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(0f, 1f) });
+            Assert.AreEqual(before, pan.Pan, "scroll must be ignored while suspended");
+
+            var e = new PointerEventData(null)
+            {
+                button = PointerEventData.InputButton.Left,
+                pointerPress = pan.gameObject,
+            };
+            pan.OnBeginDrag(e);
+            Assert.IsFalse(pan.DraggingForAudit, "drag must not start while suspended");
+
+            pan.PanSuspended = false;
+            pan.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(0f, 1f) });
+            Assert.AreNotEqual(before, pan.Pan, "scroll works again after resume");
+        }
+        finally
+        {
+            Object.DestroyImmediate(pan.gameObject);
+        }
+    }
 }

@@ -14,7 +14,7 @@ namespace FlashBeat.UI.V6
     /// (例: 2560×1664 で 76×32 キャップに fs36 → 実描画 53px、"Space" が 2 行)。
     /// v6 からは本クラス経由で作り、fs をキャップ高さと同一座標空間で決める。
     ///
-    /// 契約 (docs/design/v6/flashbeat-v6-contract.md):
+    /// 契約 (docs/ui/v6-screen-contract.md):
     /// - 汎用 KeyCap: 高さ 36, Key fs22 → 比 22/36 = 0.611
     /// - Mac Key Guide: KeyCap 75×48, Key fs32 → 比 32/48 = 0.667
     /// </summary>

@@ -98,28 +98,27 @@ export function ValidationPanel({ issues }: { issues: ValidationIssue[] }) {
 
   return (
     <section className={frame} data-testid="validation-panel">
-      <h3 className={title}>Contract check</h3>
+      <h3 className={title}>契約チェック</h3>
 
       {issues.length === 0 ? (
-        <p className={clean}>The chart satisfies the chart contract.</p>
+        <p className={clean}>譜面はチャート契約を満たしています。</p>
       ) : (
         <>
           {warnings > 0 ? (
             <p className={summary} data-testid="validation-warning-summary">
-              {warnings} warning{warnings === 1 ? "" : "s"} — the chart was read leniently and still
-              has to be repaired before it can be published.
+              警告{warnings}件 — 譜面は寛容に読み込まれましたが、公開前に修復が必要です。
             </p>
           ) : null}
           {errors > 0 ? (
             <p className={summary} data-testid="validation-error-summary">
-              {errors} error{errors === 1 ? "" : "s"} — the publish API refuses this chart.
+              エラー{errors}件 — この譜面は公開APIに拒否されます。
             </p>
           ) : null}
           <ul className={list}>
             {issues.map((issue, index) => (
               <li key={`${issue.path}-${issue.keyword}-${index}`} className={item}>
                 <span className={path}>{issue.path || "chart"}</span>
-                {isWarning(issue) ? <span className={warningTag}>warning</span> : null}
+                {isWarning(issue) ? <span className={warningTag}>警告</span> : null}
                 <span className={isWarning(issue) ? warning : message}>{issue.message}</span>
               </li>
             ))}

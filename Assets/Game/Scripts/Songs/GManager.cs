@@ -417,12 +417,32 @@ public class GManager : MonoBehaviour
     public static int miss;
 
     /// <summary>
-    /// scoring v2 (ADR-0028 / Issue #577) の加点内訳 (ratio points)。
+    /// scoring v2/v3 (ADR-0028 / ADR-0029) の加点内訳 (ratio points)。
     /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
-    /// 送信フィールドには含めない (サーバは P/G/B/M/maxCombo から再計算する)。
+    /// comboBonus / noMissBonus / milestoneBonus / finalBonus は送信
+    /// フィールドには含めない (サーバは P/G/B/M/maxCombo/comboMilestones
+    /// から再計算する)。comboMilestones は節目到達回数で、送信フィールド
+    /// comboMilestones と同じ値。
     /// </summary>
     public static int comboBonus;
     public static int noMissBonus;
+    /// <summary>節目到達回数 (scoring v3)。ランキング送信の comboMilestones。</summary>
+    public static int comboMilestones;
+    /// <summary>節目ボーナス合計 (ratio points = comboMilestones * 25)。</summary>
+    public static int milestoneBonus;
+    /// <summary>
+    /// フルコンボ終了ボーナス (miss == 0 かつ全ノーツ判定確定のとき 100、
+    /// ratio points)。確定は曲終了時に一度だけ (Issue #618)。
+    /// </summary>
+    public static int finalBonus;
+
+    /// <summary>
+    /// 全ノーツの判定が確定したか (perfect + great + bad + miss == 譜面
+    /// ノーツ数)。Judge が FlushScore のたびに書く。scoring v3 の
+    /// フルコンボ終了ボーナスの確定条件で、結果画面の内訳表示もこれを読む
+    /// (Issue #618)。
+    /// </summary>
+    public static bool judgmentsComplete;
 
     public static float MainSound;
     public static float EffectSound;
@@ -483,6 +503,10 @@ public class GManager : MonoBehaviour
         ratioScore = 0;
         comboBonus = 0;
         noMissBonus = 0;
+        comboMilestones = 0;
+        milestoneBonus = 0;
+        finalBonus = 0;
+        judgmentsComplete = false;
         settledNoteCount = 0;
         BeginPlaySession();
     }

@@ -169,7 +169,7 @@ describe("the chart page", () => {
 
     expect(container!.querySelector('[data-testid="draft-restored"]')).toBeNull();
     expect(container!.querySelector('[data-testid="draft-error"]')?.textContent).toContain(
-      "belongs to another song or version",
+      "別の曲またはバージョン",
     );
     expect(editorChartName()).toBe("Published chart");
   });
@@ -179,7 +179,7 @@ describe("the chart page", () => {
     await renderPage(await propsFor("songId=who&version=2&draft=../../etc/passwd"));
 
     expect(container!.querySelector('[data-testid="draft-error"]')?.textContent).toContain(
-      "Invalid local draft identifier",
+      "ローカル下書きの識別子が不正",
     );
     expect(editorChartName()).toBe("Published chart");
   });
@@ -195,7 +195,7 @@ describe("the chart page", () => {
     );
 
     expect(container!.querySelector('[data-testid="draft-error"]')?.textContent).toContain(
-      "This local draft is unavailable",
+      "このローカル下書きは利用できません",
     );
     expect(editorChartName()).toBe("Published chart");
   });
@@ -209,7 +209,7 @@ describe("the chart page", () => {
     await renderPage(await propsFor(query));
 
     expect(container!.querySelector('[data-testid="draft-restored"]')).not.toBeNull();
-    expect(container!.textContent).toContain("Chart v2 unavailable (503)");
+    expect(container!.textContent).toContain("譜面 v2 を取得できません（503）");
     expect(editorChartName()).toBe("Partly edited");
   });
 

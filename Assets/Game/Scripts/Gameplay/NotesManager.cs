@@ -73,6 +73,17 @@ public class NotesManager : MonoBehaviour
     public bool IsReady { get; private set; }
 
     /// <summary>
+    /// 読み込んだ譜面が契約を満たさず拒否されたか (Issue #632)。
+    /// true のとき MusicManager は開始を許可せず選曲画面へ戻す。
+    /// 「譜面が無い」(null) とは区別する: 無い譜面は従来どおり
+    /// ノーツ無しで進行できるが、不正な譜面はゲーム進行へ流さない。
+    /// </summary>
+    public bool ChartRejected { get; private set; }
+
+    /// <summary>拒否理由 (<see cref="ChartRejected"/> が true のとき)。</summary>
+    public string ChartRejectionReason { get; private set; }
+
+    /// <summary>
     /// 読み込んだ譜面の時間設定 (Issue #383)。MusicManager が終端フェードと
     /// 開始待ちに使う。譜面が無いとき・読み込み前は既定値。
     /// </summary>
@@ -129,6 +140,8 @@ public class NotesManager : MonoBehaviour
         if (session != null) session.RestoreSongId();
         SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
         IsReady = false;
+        ChartRejected = false;
+        ChartRejectionReason = null;
         // 前の曲の時間設定を持ち越さない (Issue #383)。
         Timing = ChartTiming.Default;
         // v6 ローディングの実進捗を「不明」に戻してから読み直す (Issue #224)。
@@ -179,6 +192,19 @@ public class NotesManager : MonoBehaviour
             yield break;
         }
 
+        // Issue #632: 契約を満たさない譜面 (範囲外レーン・未知の type・
+        // LPB<=0・endNum<=num など) は入力境界で明確に拒否し、
+        // 部分的に受理して判定未完了のまま進行させない。
+        // MusicManager が ChartRejected を見て選曲画面へ戻す。
+        string chartError = ChartValidator.Validate(inputJson);
+        if (chartError != null)
+        {
+            ChartRejected = true;
+            ChartRejectionReason = chartError;
+            Debug.LogError($"[NotesManager] chart '{song.title}' rejected: {chartError}");
+            yield break;
+        }
+
         string timingWarning;
         Timing = ChartTiming.Normalize(
             inputJson.fadeOut, inputJson.startTiming, inputJson.beatOffset, song.duration,
@@ -193,9 +219,9 @@ public class NotesManager : MonoBehaviour
         noteNum = total;
         // ロングノーツも 1 ノーツとして数える。配点がタップと同一なので
         // (Issue #164) 100万点の算出は notes x 15 のままで正しい。
-        // scoring v2 (ADR-0028 / Issue #577): 分母は判定 5 + コンボ 5 +
-        // ノーミス 5 = 15 点/ノーツ。
-        GManager.maxScore = total * Scoring.MaxRatioPerNoteV2;
+        // scoring v3 (ADR-0029 / Issue #602): 分母は判定 5 + コンボ 5 +
+        // ノーミス 5 + 節目ボーナス上限 floor(N/50)*25 + フルコンボ 100。
+        GManager.maxScore = Scoring.MaxRatioV3(total);
 
         // 時刻計算は純粋な数値処理なので一括で行う (生成は後続のバッチで)。
         var times = new List<float>(total);

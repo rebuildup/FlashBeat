@@ -80,9 +80,9 @@ test("catalog → editor → publish → catalog reflects the publish", async ({
   await expect(page.getByTestId("chart-identity")).toContainText("Who");
 
   // Editor → publish screen; the draft handoff carries the chart on screen.
-  await page.getByRole("button", { name: "公開に進む / Review & Publish" }).click();
+  await page.getByRole("button", { name: "公開に進む" }).click();
   await expect(page).toHaveURL(/\/publish\?/);
-  await expect(page.getByRole("heading", { name: "Publish a song" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "曲を公開" })).toBeVisible();
 
   // Retarget the publish to the isolated test song id and rename it.
   const songIdInput = page.getByPlaceholder("who", { exact: true });
@@ -91,23 +91,23 @@ test("catalog → editor → publish → catalog reflects the publish", async ({
   await page.getByPlaceholder("Who", { exact: true }).fill(TEST_TITLE);
 
   // Review → dialog → the staff token → the one request that publishes.
-  await page.getByRole("button", { name: "Review publish" }).click();
+  await page.getByRole("button", { name: "公開内容を確認" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByPlaceholder("FLASHBEAT_ADMIN_TOKEN").fill(TOKEN);
-  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await page.getByRole("button", { name: "公開する", exact: true }).click();
 
   // The success panel reports the versions the API answered.
   const success = page.getByTestId("publish-success");
   await expect(success).toBeVisible();
   const detail = await success.innerText();
-  const chartVersion = Number(/chart version (\d+)/.exec(detail)?.[1]);
-  const catalogVersion = Number(/catalog is at version (\d+)/.exec(detail)?.[1]);
+  const chartVersion = Number(/譜面バージョン (\d+)/.exec(detail)?.[1]);
+  const catalogVersion = Number(/カタログはバージョン (\d+)/.exec(detail)?.[1]);
   expect(chartVersion).toBeGreaterThanOrEqual(1);
   expect(catalogVersion).toBe(before.catalogVersion + 1);
   await expect(success).toContainText(TEST_SONG_ID);
 
   // Back to the catalog: the test song is listed with its new version.
-  await page.getByRole("link", { name: "← Web Studio" }).click();
+  await page.getByRole("link", { name: "← 曲を選ぶ" }).click();
   await expect(page).toHaveURL(/\/$/);
   // The version text (`v${n}`) sits in the row's meta line, next to the link.
   const publishedRow = page

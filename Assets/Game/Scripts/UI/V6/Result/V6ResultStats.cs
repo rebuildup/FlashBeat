@@ -42,8 +42,7 @@ namespace FlashBeat.UI.V6.Result
         private readonly TextMeshProUGUI[] judgeValues = new TextMeshProUGUI[5];
         private Image gaugeFill;
         private Image gaugeBestMarker;
-        private TextMeshProUGUI bonusComboValue;
-        private TextMeshProUGUI bonusNoMissValue;
+        private readonly TextMeshProUGUI[] bonusValues = new TextMeshProUGUI[4];
         private TextMeshProUGUI songTitle;
         private TextMeshProUGUI songArtist;
         private readonly TextMeshProUGUI[] songStatValues = new TextMeshProUGUI[4];
@@ -151,8 +150,9 @@ namespace FlashBeat.UI.V6.Result
         private const float BonusLineH = 40f;
 
         /// <summary>
-        /// scoring v2 のボーナス内訳行。コンボ継続ボーナスとノーミスボーナスの
-        /// スコア点換算を出す (実際の加点であり、近似表示ではない)。
+        /// scoring v3 (ADR-0029 / Issue #602) のボーナス内訳行。コンボ継続・
+        /// 節目・ノーミス・フルコンボ終了の 4 成分をスコア点換算で出す
+        /// (実際の加点であり、近似表示ではない)。
         /// </summary>
         private void BuildBonusLine(GameObject main)
         {
@@ -160,21 +160,22 @@ namespace FlashBeat.UI.V6.Result
 
             var label = V5GameUi.Text(row.gameObject, "Label", "BONUS", 18f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left);
-            V6Layout.Place(label, 0f, 8f, 110f, 28f, new Vector2(0f, 0.5f));
+            V6Layout.Place(label, 0f, 8f, 100f, 28f, new Vector2(0f, 0.5f));
 
-            var comboLabel = V5GameUi.Text(row.gameObject, "Combo Bonus Label", "COMBO BONUS", 16f,
-                V5Tokens.TextDim, TextAlignmentOptions.Left);
-            V6Layout.Place(comboLabel, 120f, 10f, 180f, 24f, new Vector2(0f, 0.5f));
-            bonusComboValue = OneLine(V5GameUi.Text(row.gameObject, "Combo Bonus Value", "+0", 26f,
-                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
-            V6Layout.Place(bonusComboValue, 300f, 2f, 200f, 36f, new Vector2(0f, 0.5f));
-
-            var noMissLabel = V5GameUi.Text(row.gameObject, "No Miss Bonus Label", "NO-MISS BONUS", 16f,
-                V5Tokens.TextDim, TextAlignmentOptions.Left);
-            V6Layout.Place(noMissLabel, 510f, 10f, 190f, 24f, new Vector2(0f, 0.5f));
-            bonusNoMissValue = OneLine(V5GameUi.Text(row.gameObject, "No Miss Bonus Value", "–", 26f,
-                V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
-            V6Layout.Place(bonusNoMissValue, 700f, 2f, 140f, 36f, new Vector2(0f, 0.5f));
+            string[] names = { "COMBO", "MILESTONE", "NO-MISS", "FULL COMBO" };
+            string[] keys = { "Combo Bonus", "Milestone Bonus", "No Miss Bonus", "Full Combo Bonus" };
+            const float colX = 110f;
+            const float colW = (840f - colX) / 4f;
+            for (int i = 0; i < 4; i++)
+            {
+                float x = colX + i * colW;
+                var colLabel = V5GameUi.Text(row.gameObject, keys[i] + " Label", names[i], 13f,
+                    V5Tokens.TextDim, TextAlignmentOptions.Left);
+                V6Layout.Place(colLabel, x, 6f, colW, 14f, new Vector2(0f, 1f));
+                bonusValues[i] = OneLine(V5GameUi.Text(row.gameObject, keys[i] + " Value", "–", 24f,
+                    V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
+                V6Layout.Place(bonusValues[i], x, 18f, colW, 22f, new Vector2(0f, 1f));
+            }
 
             lateGroups.Add(FadeGroup(row));
         }
@@ -250,13 +251,18 @@ namespace FlashBeat.UI.V6.Result
             judgeValues[3].text = runMiss.ToString();
             judgeValues[4].text = runMaxCombo.ToString();
 
-            // scoring v2 のボーナス内訳 (ADR-0028)。ノーツ数は確定済みの
-            // 判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
+            // scoring v3 のボーナス内訳 (ADR-0029 / Issue #602)。ノーツ数は
+            // 確定済みの判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
+            int noteCount = runPerfect + runGreat + runBad + runMiss;
             V6ResultLogic.BonusBreakdownTexts(
-                runPerfect, runGreat, runBad, runMiss, runMaxCombo,
-                out string comboBonusText, out string noMissBonusText);
-            bonusComboValue.text = comboBonusText;
-            bonusNoMissValue.text = noMissBonusText;
+                runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones, noteCount,
+                GManager.judgmentsComplete,
+                out string comboBonusText, out string milestoneBonusText,
+                out string noMissBonusText, out string finalBonusText);
+            bonusValues[0].text = comboBonusText;
+            bonusValues[1].text = milestoneBonusText;
+            bonusValues[2].text = noMissBonusText;
+            bonusValues[3].text = finalBonusText;
 
             float fill = V6ResultLogic.GaugeFillWidth(score);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);

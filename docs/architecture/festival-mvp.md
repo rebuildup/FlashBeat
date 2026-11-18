@@ -47,7 +47,7 @@ Five endpoints, not more:
 - POST score (nickname + judge counts); GET leaderboard top ten
 One active chart per song, versioned snapshots; exact version pinned during gameplay. Existing `name,maxBlock,BPM,offset,notes[{type,num,block,LPB}],lyrics?` unchanged.
 D1 stores `songs`, `chart_versions`, `scores`; no separate session, auth, draft, score-owner, or push infrastructure.
-Server recalculates score per `scoringVersion` (ADR-0028): v1 = floor(1_000_000*(5P+3G+B)/(5*N)), v2 = round(1_000_000*(judgment + 5*maxCombo + (miss==0 ? 5*(P+G+B) : 0))/(15*N)) where judgment = 5P+3G+B; requires P+G+B+M == N; omitted scoringVersion means v1. Rankings/stats separate versions. Labels ranking casual/client-unverified.
+Server recalculates score per `scoringVersion` (ADR-0028 / ADR-0029): v1 = floor(1_000_000*(5P+3G+B)/(5*N)), v2 = round(1_000_000*(judgment + 5*maxCombo + (miss==0 ? 5*(P+G+B) : 0))/(15*N)) where judgment = 5P+3G+B; v3 adds comboMilestones*25 and a full-combo final bonus of 100 (vested only when all chart notes are judged and miss==0, Issue #618); requires P+G+B+M == N; omitted scoringVersion means v1. Rankings/stats separate versions. Labels ranking casual/client-unverified.
 Unity only refreshes catalog on selection screen; no WebSocket.
 
 ## Release stages and stop conditions

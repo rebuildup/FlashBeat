@@ -530,20 +530,20 @@ export function rowIssues(document: LyricsDocument, index: number): LyricRowIssu
   const issues: LyricRowIssues = {};
 
   if (row.startTime === null) {
-    issues.startTime = "Start time is required";
+    issues.startTime = "開始時刻は必須です";
   } else if (row.startTime < 0) {
-    issues.startTime = "Start must be 0 or more";
+    issues.startTime = "開始は0以上にしてください";
   }
 
   if (row.endTime !== null && row.endTime < 0) {
-    issues.endTime = "End must be 0 or more";
+    issues.endTime = "終了は0以上にしてください";
   } else if (
     row.timesDirty &&
     row.endTime !== null &&
     row.startTime !== null &&
     row.endTime <= row.startTime + TIME_EPSILON
   ) {
-    issues.endTime = "End must be after start";
+    issues.endTime = "終了は開始より後にしてください";
   }
 
   return issues;
@@ -620,8 +620,8 @@ export function lyricsIssues(document: LyricsDocument): LyricsIssue[] {
     issues.push({
       severity: "error",
       message:
-        `${summary.missingStart} line(s) have no start time. ` +
-        "Set a start before exporting the chart.",
+        `開始時刻のない歌詞行が${summary.missingStart}件あります。` +
+        "譜面を書き出す前に開始時刻を設定してください。",
     });
   }
 
@@ -629,8 +629,8 @@ export function lyricsIssues(document: LyricsDocument): LyricsIssue[] {
     issues.push({
       severity: "warning",
       message:
-        `${summary.repairedIntervals} edited line(s) have end <= start and are repaired on save. ` +
-        "Saving writes the next line's start (or start + 4s) as the end.",
+        `編集した歌詞行${summary.repairedIntervals}件は終了が開始以下のため、保存時に修復されます。` +
+        "終了には次の行の開始（または開始+4秒）が使われます。",
     });
   }
 
@@ -638,8 +638,8 @@ export function lyricsIssues(document: LyricsDocument): LyricsIssue[] {
     issues.push({
       severity: "warning",
       message:
-        `${summary.legacyIntervals} legacy line(s) end at or before they start. ` +
-        "Unity derives their end from the next line; the raw values are kept unless you edit the times.",
+        `従来形式の歌詞行${summary.legacyIntervals}件は終了が開始以前です。` +
+        "Unityでは終了は次の行から求められます。時刻を編集しない限り元の値が保持されます。",
     });
   }
 
@@ -651,8 +651,8 @@ export function lyricsIssues(document: LyricsDocument): LyricsIssue[] {
     issues.push({
       severity: "warning",
       message:
-        `The lyrics arrays have different lengths (${detail}). ` +
-        `Editing the lyrics writes ${summary.lines} entries into every array.`,
+        `歌詞配列の長さが異なります（${detail}）。` +
+        `歌詞を編集すると全配列に${summary.lines}件ずつ書き込まれます。`,
     });
   }
 
@@ -660,8 +660,8 @@ export function lyricsIssues(document: LyricsDocument): LyricsIssue[] {
     issues.push({
       severity: "warning",
       message:
-        `${summary.overlaps} line(s) overlap the previous line. ` +
-        "Unity shows the line that starts last.",
+        `前の行と重なる歌詞行が${summary.overlaps}件あります。` +
+        "Unityでは後に開始する行が表示されます。",
     });
   }
 

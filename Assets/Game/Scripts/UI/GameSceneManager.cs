@@ -116,7 +116,14 @@ public class GameSceneManager : MonoBehaviour
             inputJson.Furigana);
     }
 
-    TextData LoadTextData(string songName)
+    /// <summary>
+    /// 曲名から歌詞データ (TextData) を読む。マージ済み譜面 JSON
+    /// (NoteEditor DTO) を優先し、無ければ旧形式 *_text.json にフォールバックする。
+    ///
+    /// Issue #607: Option 画面の Game Preview も同じ経路で歌詞を読むため
+    /// internal static にした (読み取りのみ・状態は持たない)。
+    /// </summary>
+    internal static TextData LoadTextData(string songName)
     {
         var mergedAsset = Resources.Load<TextAsset>(songName);
         if (mergedAsset != null)

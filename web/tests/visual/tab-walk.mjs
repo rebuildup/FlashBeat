@@ -85,7 +85,7 @@ function describeActiveElement() {
 /** Whether the element sits inside the publish drawer panel. Runs in the browser. */
 function insideDrawerPanel() {
   const el = document.activeElement;
-  const panel = document.querySelector('aside[aria-label="Publish sidebar"]');
+  const panel = document.querySelector('aside[aria-label="公開サイドバー"]');
   return panel !== null && el !== null && panel.contains(el);
 }
 
@@ -170,7 +170,7 @@ async function drawerTrapCheck(page) {
 
   // Focus the toggle via Tab walk (it is the header control) — click would not
   // prove keyboard reachability.
-  const toggleSelector = 'button[aria-label="Open the publish sidebar"]';
+  const toggleSelector = 'button[aria-label="公開サイドバーを開く"]';
   await page.evaluate((sel) => {
     const btn = document.querySelector(sel);
     if (!btn) throw new Error(`toggle not found: ${sel}`);
@@ -206,15 +206,15 @@ async function drawerTrapCheck(page) {
   result.afterEscape = {
     activeElement: await page.evaluate(describeActiveElement),
     drawerStillInDom: await page.evaluate(
-      () => document.querySelector('aside[aria-label="Publish sidebar"]') !== null,
+      () => document.querySelector('aside[aria-label="公開サイドバー"]') !== null,
     ),
     drawerClosed: await page.evaluate(
-      () => document.querySelector('aside[aria-label="Publish sidebar"][role="dialog"]') === null,
+      () => document.querySelector('aside[aria-label="公開サイドバー"][role="dialog"]') === null,
     ),
   };
   result.focusRestoredToTrigger =
     result.afterEscape.activeElement.focused &&
-    result.afterEscape.activeElement.ariaLabel === "Open the publish sidebar";
+    result.afterEscape.activeElement.ariaLabel === "公開サイドバーを開く";
 
   await page.screenshot({ path: "tabwalk_publish_390x844_after_escape.png" });
   return result;

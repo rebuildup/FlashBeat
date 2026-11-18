@@ -518,6 +518,18 @@ public class SelectSceneManager : MonoBehaviour
             yield break;
         }
 
+        // Issue #632: 契約を満たさない譜面はここで拒否し、ゲーム画面へ
+        // 流さない (ローカル譜面も NotesManager が同じ検証を行う)。
+        string chartError = ChartValidator.Validate(chart);
+        if (chartError != null)
+        {
+            Debug.LogError($"[SelectScene] chart for '{song.remoteId}' v{version} rejected: {chartError} - start cancelled");
+            v6Data?.ReportStartFailure("譜面データが不正なため開始できません");
+            SelectSceneTransitionGuard.Reset();
+            LoadingOverlay.Hide(RemoteStartOwner);
+            yield break;
+        }
+
         // The song entry carries the version the snapshot was taken with, so
         // that the game scene finds exactly this snapshot (NotesManager looks
         // it up by song.chartVersion) even when the catalog entry itself did

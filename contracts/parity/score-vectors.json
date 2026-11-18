@@ -1,0 +1,190 @@
+{
+  "format": "flashbeat-score-parity/1",
+  "description": "Shared scoring vectors for the Unity <-> Web parity contract (Issue #612, ADR-0028, ADR-0029). Each case is one play of a chart with noteCount notes. scoreV1/scoreV2/scoreV3 are the scores the Unity client computes (Scoring.ScoreV1-equivalent via Judge.ComputeScore, Scoring.ScoreV2, Scoring.ScoreV3 with the case's judgmentsComplete flag). scoreV3Settled is the same play evaluated as a completed submission — identical to the Web computeUnityScoreV3 result, because a submission always implies judgmentsComplete (perfect+great+bad+miss == noteCount). judgmentsComplete=false cases pin the Issue #618 rule that the full-combo bonus never enters the live in-progress projection. scoreV1/scoreV2 are single-precision emulated exactly like web/routes/api/v1/_score-model.ts (Math.fround); scoreV3/scoreV3Settled use the deterministic integer arithmetic of Issue #631 (exact floor of ratio*1e6/maxRatio, identical on every platform). v3SubmissionChecks are consumed by the Web suite only: they pin the server-side comboMilestones bound checks of scoreSemanticsDiagnostics (no Unity counterpart exists — the client only produces the count).",
+  "cases": [
+    {
+      "name": "v1-float-edge-5",
+      "perfect": 2, "great": 1, "bad": 0, "miss": 2,
+      "maxCombo": 3, "comboMilestones": 0, "noteCount": 5,
+      "judgmentsComplete": true,
+      "scoreV1": 519999, "scoreV2": 373333,
+      "scoreV3": 160000, "scoreV3Settled": 160000
+    },
+    {
+      "name": "v1-float-edge-16",
+      "perfect": 8, "great": 0, "bad": 1, "miss": 7,
+      "maxCombo": 9, "comboMilestones": 0, "noteCount": 16,
+      "judgmentsComplete": true,
+      "scoreV1": 512500, "scoreV2": 358333,
+      "scoreV3": 252941, "scoreV3Settled": 252941
+    },
+    {
+      "name": "v1-float-edge-19",
+      "perfect": 15, "great": 1, "bad": 1, "miss": 2,
+      "maxCombo": 17, "comboMilestones": 0, "noteCount": 19,
+      "judgmentsComplete": true,
+      "scoreV1": 831579, "scoreV2": 575438,
+      "scoreV3": 425974, "scoreV3Settled": 425974
+    },
+    {
+      "name": "v1-mixed-139",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
+      "judgmentsComplete": true,
+      "scoreV1": 861870, "scoreV2": 953956,
+      "scoreV3": 957046, "scoreV3Settled": 957046
+    },
+    {
+      "name": "v2-perfect-139",
+      "perfect": 139, "great": 0, "bad": 0, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 0, "noteCount": 139,
+      "judgmentsComplete": true,
+      "scoreV1": 1000000, "scoreV2": 1000000,
+      "scoreV3": 977628, "scoreV3Settled": 977628
+    },
+    {
+      "name": "v2-mixed-10",
+      "perfect": 9, "great": 1, "bad": 0, "miss": 0,
+      "maxCombo": 10, "comboMilestones": 0, "noteCount": 10,
+      "judgmentsComplete": true,
+      "scoreV1": 960000, "scoreV2": 986666,
+      "scoreV3": 992000, "scoreV3Settled": 992000
+    },
+    {
+      "name": "v2-with-miss-10",
+      "perfect": 8, "great": 1, "bad": 0, "miss": 1,
+      "maxCombo": 9, "comboMilestones": 0, "noteCount": 10,
+      "judgmentsComplete": true,
+      "scoreV1": 860000, "scoreV2": 586666,
+      "scoreV3": 352000, "scoreV3Settled": 352000
+    },
+    {
+      "name": "v3-perfect-139",
+      "perfect": 139, "great": 0, "bad": 0, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
+      "judgmentsComplete": true,
+      "scoreV1": 1000000, "scoreV2": 1000000,
+      "scoreV3": 1000000, "scoreV3Settled": 1000000
+    },
+    {
+      "name": "v3-mixed-nomiss-139",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
+      "judgmentsComplete": true,
+      "scoreV1": 861870, "scoreV2": 953956,
+      "scoreV3": 957046, "scoreV3Settled": 957046
+    },
+    {
+      "name": "v3-with-miss-139",
+      "perfect": 100, "great": 30, "bad": 8, "miss": 1,
+      "maxCombo": 60, "comboMilestones": 1, "noteCount": 139,
+      "judgmentsComplete": true,
+      "scoreV1": 860431, "scoreV2": 430695,
+      "scoreV3": 412975, "scoreV3Settled": 412975
+    },
+    {
+      "name": "v3-small-10",
+      "perfect": 9, "great": 1, "bad": 0, "miss": 0,
+      "maxCombo": 10, "comboMilestones": 0, "noteCount": 10,
+      "judgmentsComplete": true,
+      "scoreV1": 960000, "scoreV2": 986666,
+      "scoreV3": 992000, "scoreV3Settled": 992000
+    },
+    {
+      "name": "v3-boundary-49",
+      "perfect": 49, "great": 0, "bad": 0, "miss": 0,
+      "maxCombo": 49, "comboMilestones": 0, "noteCount": 49,
+      "judgmentsComplete": true,
+      "scoreV1": 1000000, "scoreV2": 1000000,
+      "scoreV3": 1000000, "scoreV3Settled": 1000000
+    },
+    {
+      "name": "v3-boundary-50",
+      "perfect": 50, "great": 0, "bad": 0, "miss": 0,
+      "maxCombo": 50, "comboMilestones": 1, "noteCount": 50,
+      "judgmentsComplete": true,
+      "scoreV1": 1000000, "scoreV2": 1000000,
+      "scoreV3": 1000000, "scoreV3Settled": 1000000
+    },
+    {
+      "name": "v3-boundary-51",
+      "perfect": 51, "great": 0, "bad": 0, "miss": 0,
+      "maxCombo": 51, "comboMilestones": 1, "noteCount": 51,
+      "judgmentsComplete": true,
+      "scoreV1": 1000000, "scoreV2": 1000000,
+      "scoreV3": 1000000, "scoreV3Settled": 1000000
+    },
+    {
+      "name": "v3-live-incomplete-nomiss",
+      "perfect": 40, "great": 10, "bad": 0, "miss": 0,
+      "maxCombo": 50, "comboMilestones": 1, "noteCount": 100,
+      "judgmentsComplete": false,
+      "scoreV1": 460000, "scoreV2": 486666,
+      "scoreV3": 457575, "scoreV3Settled": 518181
+    },
+    {
+      "name": "v3-live-incomplete-miss",
+      "perfect": 40, "great": 10, "bad": 0, "miss": 5,
+      "maxCombo": 50, "comboMilestones": 1, "noteCount": 100,
+      "judgmentsComplete": false,
+      "scoreV1": 460000, "scoreV2": 320000,
+      "scoreV3": 306060, "scoreV3Settled": 306060
+    }
+  ],
+  "v3SubmissionChecks": [
+    {
+      "name": "nomiss-exact-milestones",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
+      "expectValid": true
+    },
+    {
+      "name": "nomiss-underclaimed-milestones",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 1, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "nomiss-overclaimed-milestones",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "comboMilestones": 3, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "nomiss-omitted-milestones",
+      "perfect": 100, "great": 30, "bad": 9, "miss": 0,
+      "maxCombo": 139, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "miss-within-run-bound",
+      "perfect": 100, "great": 30, "bad": 8, "miss": 1,
+      "maxCombo": 60, "comboMilestones": 2, "noteCount": 139,
+      "expectValid": true
+    },
+    {
+      "name": "miss-over-run-bound",
+      "perfect": 100, "great": 30, "bad": 8, "miss": 1,
+      "maxCombo": 60, "comboMilestones": 3, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "miss-short-runs-claim",
+      "perfect": 100, "great": 30, "bad": 8, "miss": 1,
+      "maxCombo": 30, "comboMilestones": 1, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "miss-maxcombo-above-hits",
+      "perfect": 100, "great": 30, "bad": 8, "miss": 1,
+      "maxCombo": 139, "comboMilestones": 0, "noteCount": 139,
+      "expectValid": false
+    },
+    {
+      "name": "small-chart-omitted-milestones",
+      "perfect": 9, "great": 1, "bad": 0, "miss": 0,
+      "maxCombo": 10, "noteCount": 10,
+      "expectValid": true
+    }
+  ]
+}

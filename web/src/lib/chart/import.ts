@@ -41,7 +41,7 @@ export function importChartJson(
     const message = error instanceof Error ? error.message : String(error);
     return {
       ok: false,
-      issues: [{ path: "", message: `Invalid JSON: ${message}`, keyword: "parse" }],
+      issues: [{ path: "", message: `JSONの解析に失敗しました: ${message}`, keyword: "parse" }],
     };
   }
 

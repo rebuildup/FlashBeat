@@ -93,10 +93,10 @@ export interface LevelFilterItem {
 }
 
 export const LEVEL_FILTERS: LevelFilterItem[] = [
-  { label: "All levels", value: "all" },
-  { label: "Level 1 – 9", value: "low" },
-  { label: "Level 10 – 19", value: "mid" },
-  { label: "Level 20+", value: "high" },
+  { label: "すべてのレベル", value: "all" },
+  { label: "レベル 1–9", value: "low" },
+  { label: "レベル 10–19", value: "mid" },
+  { label: "レベル 20+", value: "high" },
 ];
 
 const levelCollection = createListCollection<LevelFilterItem>({ items: LEVEL_FILTERS });
@@ -129,10 +129,10 @@ export function Topbar({
 
       <div className={tools}>
         <Field.Root className={toolField}>
-          <Field.Label>Search</Field.Label>
+          <Field.Label>検索</Field.Label>
           <Input
             id={SEARCH_INPUT_ID}
-            placeholder="Song title or artist"
+            placeholder="曲名またはアーティスト"
             value={query}
             onChange={(event) => onQueryChange(event.currentTarget.value)}
           />
@@ -147,9 +147,9 @@ export function Topbar({
             if (next) onSortChange(next as SortKey);
           }}
         >
-          <Select.Label>Sort</Select.Label>
+          <Select.Label>並び替え</Select.Label>
           <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="Catalog" />
+            <Select.ValueText placeholder="カタログ" />
             <Select.Indicator />
           </Select.Control>
           <Portal>
@@ -177,9 +177,9 @@ export function Topbar({
             if (next) onLevelChange(next as LevelFilter);
           }}
         >
-          <Select.Label>Level</Select.Label>
+          <Select.Label>レベル</Select.Label>
           <Select.Control className={selectControl}>
-            <Select.ValueText placeholder="All levels" />
+            <Select.ValueText placeholder="すべてのレベル" />
             <Select.Indicator />
           </Select.Control>
           <Portal>

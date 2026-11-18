@@ -255,13 +255,27 @@ publishes both in one request.
 - `scoringVersion` selects the formula: `1` (or an omitted field — old clients)
   is `ratioScore = 5P+3G+B`, `maxScore = noteCount * 5`; `2` adds
   `comboBonus = maxCombo * 5` and `noMissBonus = (miss == 0) ? (P+G+B) * 5 : 0`
-  with `maxScore = noteCount * 15`. Both end in
+  with `maxScore = noteCount * 15`; `3` (ADR-0029) keeps the v2 components and
+  adds `milestoneBonus = comboMilestones * 25` and
+  `finalBonus = (miss == 0) ? 100 : 0` (a submission requires
+  `perfect+great+bad+miss == noteCount`, so `miss == 0` already means the
+  play completed — the same condition the Unity client vests the bonus on,
+  Issue #618), with
+  `maxRatio = noteCount * 15 + floor(noteCount / 50) * 25 + 100`. All end in
   `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
+- For `scoringVersion` 3 the server also verifies `maxCombo <= hits`
+  (perfect+great+bad) and `comboMilestones`: exactly `floor(hits/50)` when
+  `miss == 0` (one unbroken run), and at most
+  `min(floor(hits/50), (miss + 1) * floor(maxCombo / 50))` when `miss > 0`
+  (the exact crossing history is not reconstructible from the totals — the
+  count stays a bound-checked client claim, ADR-0029). The server prices
+  the count itself.
 - `scores.scoringVersion` (integer, default 1, existing rows backfilled to 1)
-  keeps the two formulas apart: a submission is recomputed, ranked and
+  keeps the formulas apart: a submission is recomputed, ranked and
   aggregated only inside its own version. A `scoringVersion` the server cannot
   recompute is a 422; the leaderboard/rankings query parameter defaults to the
-  latest version (currently 2).
+  latest version (currently 3). `comboMilestones` is ignored by versions 1
+  and 2.
 
 ### Dashboard, statistics and the song archive (issue #151)
 
@@ -299,17 +313,16 @@ for every session; it stays in the memory of the tab and is never stored.
 
 ### Copy and UI text
 
-Every user-facing string of the studio (headings, button labels, loading, error and
-empty states) follows the **unslop** copy contract, vendored at
-`.claude/skills/unslop/` (see its `IMPORT.md`):
+All user-facing strings of the studio — headings, button labels, loading, error
+and empty states — are **Japanese** (unified in issue #611; the e2e and visual
+selectors were updated to match). Copy quality follows the vendored
+`natural-japanese` / `writing-discipline` skills (`.agents/skills/`,
+`.claude/skills/`):
 
 1. Audit the strings before writing; rewrite only the confirmed findings.
 2. Smallest repair — the facts, the quantities and the register of the original stay.
 3. No formulaic framing, no empty abstraction, no unsupported certainty, no repetition.
 4. An error or a warning names the cause **and** the next action.
-
-The preset is `presets/crisp-human.md` (direct, economical, concrete). The skill covers
-text only: layout, class names, `data-testid` and the API surface are untouched by it.
 
 ### Scope
 
