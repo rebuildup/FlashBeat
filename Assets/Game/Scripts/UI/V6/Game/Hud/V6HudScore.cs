@@ -254,7 +254,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 節目ボーナスの一時表示 (scoring v3)。ステータス行の直下、
             // ブロック下端の余白に収まる 1 行。達成のたびに "+獲得点" を出して
             // フェードアウトする (加点量をプレイ中に見せる契約)。
-            milestoneBonusText = V5GameUi.Text(status, "Milestone Bonus", "", 16f,
+            // Issue #673: 親は comboStatusBlock (Combo Status) ではなく常時
+            // アクティブな Right Column。miss > 0 でステータスブロック全体が
+            // 非表示になっても、節目到達の加点ポップアップは右コラムに出続ける。
+            // status と column は同じ矩形 (同座標・同サイズ) なので、
+            // 契約上の表示位置は変わらない。
+            milestoneBonusText = V5GameUi.Text(column, "Milestone Bonus", "", 16f,
                 V5Tokens.WarnLight, TextAlignmentOptions.Left, FontStyles.Bold);
             var mbRt = milestoneBonusText.rectTransform;
             mbRt.anchorMin = new Vector2(0f, 1f);

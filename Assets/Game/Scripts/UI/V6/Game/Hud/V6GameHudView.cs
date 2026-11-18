@@ -142,6 +142,22 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return CanvasSize(); }
         }
 
+        /// <summary>
+        /// 検証ハーネス用: 節目ボーナスの一時表示 (Issue #673)。
+        /// miss > 0 で Combo Status ブロックが隠れても activeInHierarchy に
+        /// なること (親は常時アクティブな Right Column) を検証する。
+        /// </summary>
+        public GameObject MilestoneBonusForAudit
+        {
+            get { return milestoneBonusText != null ? milestoneBonusText.gameObject : null; }
+        }
+
+        /// <summary>検証ハーネス用: コンボステータスブロック (NO MISS / FULL COMBO)。</summary>
+        public GameObject ComboStatusBlockForAudit
+        {
+            get { return comboStatusBlock; }
+        }
+
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
         public int ScoreActiveDigitsForAudit
         {
