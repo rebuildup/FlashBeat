@@ -112,8 +112,20 @@ public class UpdatePathsTests
     [Test]
     public void ResultFile_UsesResultDir()
     {
+        // Editor では InstallRoot を解決できない (Windows Player 以外は null)
+        // ため ResultDir/ResultPath は null。契約は「UpdateResultFile が
+        // UpdatePaths.ResultDir をそのまま使う」ことで、null もそのまま伝播する。
         Assert.AreEqual(UpdatePaths.ResultDir, UpdateResultFile.ResultDir);
-        Assert.AreEqual(Path.Combine(UpdatePaths.ResultDir, UpdateResultFile.FileName), UpdateResultFile.ResultPath);
+        Assert.AreEqual(UpdatePaths.ResultDir == null ? null
+            : Path.Combine(UpdatePaths.ResultDir, UpdateResultFile.FileName),
+            UpdateResultFile.ResultPath);
+
+        // 明示したインストールルートでは .flashbeat-update/results に解決される。
+        var install = Path.Combine(Path.GetTempPath(), "fb-update-paths-test");
+        var resultDir = UpdatePaths.GetResultDir(install);
+        Assert.AreEqual(Path.Combine(UpdatePaths.GetBaseDir(install), "results"), resultDir);
+        Assert.IsTrue(resultDir.StartsWith(install + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase));
     }
 
     [Test]
