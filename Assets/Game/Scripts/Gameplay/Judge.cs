@@ -259,7 +259,7 @@ public class Judge : MonoBehaviour
         //    中断の差し替えだけを行う。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, laneDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
+            JudgeQueue.HoldResult result = UpdateHoldStep(queue, lane, mediaTime, laneDown(lane), out JudgeQueue.NoteEntry holdEnd);
             if (result == JudgeQueue.HoldResult.Broken)
             {
                 // 途中で離した: 先頭判定を BAD に差し替える (追加加点しない)。
@@ -280,9 +280,8 @@ public class Judge : MonoBehaviour
         //    邪魔にならない (Issue #182)。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            if (queue.TryPeekMiss(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry missed))
+            if (TryJudgeMiss(queue, lane, mediaTime, out JudgeQueue.NoteEntry missed))
             {
-                queue.Remove(missed);
                 Debug.Log("Miss");
                 board.ApplyMiss();
                 message(3, missed.SourceIndex);
@@ -336,10 +335,9 @@ public class Judge : MonoBehaviour
     /// </summary>
     private void PressLane(int lane, float mediaTime)
     {
-        if (!queue.TryPress(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry hit, out float lag)) return;
-
-        LongNote.Judgement judgement = LongNote.JudgeHead(lag);
-        if (judgement == LongNote.Judgement.None) return;
+        // 押下 → JudgeHead → BeginHold/ConsumeTap の判定手順は
+        // TryJudgePress に集約し、Option プレビュー (Issue #695) と共有する。
+        if (!TryJudgePress(queue, lane, mediaTime, out JudgeQueue.NoteEntry hit, out LongNote.Judgement judgement)) return;
 
         // hitSound と clickSound が同一クリップのときは PlayLaneClickSound が
         // 同じフレームで既に鳴らしているため、ここでは重ねて鳴らさない (issue #672)。
@@ -357,11 +355,6 @@ public class Judge : MonoBehaviour
             // ロングノーツはここでは消さない: 保持が始まり、終端で離したか
             // 途中で離したかが UpdateHold で決まる。
             holdHead[lane] = judgement;
-            queue.BeginHold(hit);
-        }
-        else
-        {
-            queue.ConsumeTap(hit);
         }
 
         FlushScore();
@@ -434,6 +427,76 @@ public class Judge : MonoBehaviour
         // **両方** を見る。製品ビルドでは注入されないので、
         // 結果は従来と同じ Input.GetKey と同じになる。
         return KeyBindings.IsLaneKeyHeld(lane);
+    }
+
+    // --- 判定ステップの共有ロジック (Issue #695) ---
+    //
+    // JudgeStep (実機) と V6 Option 画面のゲームプレビュー
+    // (V6OptionPreviewRig) が同じ「どのノーツを・タップか保持か・
+    // ミスか」の決定手順を通るよう、キュー操作だけを行う純粋な
+    // static ヘルパーに切り出した。スコア・コンボ・エフェクト・
+    // GManager への書き戻しは呼び出し側の責務のまま (プレビューは
+    // それらを持たない)。
+
+    /// <summary>
+    /// 1 レーンの押下を判定キューへ適用する共通経路。
+    /// TryPress (BAD_WINDOW) → JudgeHead → HOLD なら BeginHold /
+    /// タップなら ConsumeTap、までを行う。判定が確定しなかった
+    /// (窓外・<see cref="LongNote.Judgement.None"/>) ときは false を返し、
+    /// キューは変えない。
+    /// </summary>
+    public static bool TryJudgePress(JudgeQueue queue, int lane, float mediaTime,
+        out JudgeQueue.NoteEntry entry, out LongNote.Judgement judgement)
+    {
+        entry = default;
+        judgement = LongNote.Judgement.None;
+        if (queue == null) return false;
+        if (!queue.TryPress(lane, mediaTime, LongNote.BAD_WINDOW, out entry, out float lag)) return false;
+
+        judgement = LongNote.JudgeHead(lag);
+        if (judgement == LongNote.Judgement.None) return false;
+
+        if (entry.Type == LongNote.TYPE_HOLD)
+        {
+            // ロングノーツはここでは消さない: 保持が始まり、終端で離したか
+            // 途中で離したかが UpdateHold で決まる。
+            queue.BeginHold(entry);
+        }
+        else
+        {
+            queue.ConsumeTap(entry);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 保持中ロングノーツの状態を 1 ステップ進める共通経路
+    /// (許容幅は <see cref="LongNote.GREAT_WINDOW"/> で固定)。
+    /// </summary>
+    public static JudgeQueue.HoldResult UpdateHoldStep(JudgeQueue queue, int lane,
+        float mediaTime, bool keyDown, out JudgeQueue.NoteEntry entry)
+    {
+        if (queue == null)
+        {
+            entry = default;
+            return JudgeQueue.HoldResult.None;
+        }
+        return queue.UpdateHold(lane, mediaTime, keyDown, LongNote.GREAT_WINDOW, out entry);
+    }
+
+    /// <summary>
+    /// 時刻切れ (Miss) の検出とキューからの除去を行う共通経路。
+    /// Miss が確定したときだけ true を返す。
+    /// </summary>
+    public static bool TryJudgeMiss(JudgeQueue queue, int lane, float mediaTime,
+        out JudgeQueue.NoteEntry entry)
+    {
+        entry = default;
+        if (queue == null) return false;
+        if (!queue.TryPeekMiss(lane, mediaTime, LongNote.BAD_WINDOW, out entry)) return false;
+
+        queue.Remove(entry);
+        return true;
     }
 
     /// <summary>
@@ -577,7 +640,16 @@ public class Judge : MonoBehaviour
     /// </summary>
     private int JudgedLane(int noteIndex)
     {
-        var laneNum = notesManager != null ? notesManager.LaneNum : null;
+        return LaneOfNote(notesManager != null ? notesManager.LaneNum : null, noteIndex);
+    }
+
+    /// <summary>
+    /// noteIndex のノーツが属するレーン。<see cref="JudgedLane"/> と
+    /// <see cref="EffectPosition"/> が共有する解決規則
+    /// (laneNum が取れなければレーン 0)。
+    /// </summary>
+    public static int LaneOfNote(IList<int> laneNum, int noteIndex)
+    {
         if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
         {
             return laneNum[noteIndex];
@@ -596,11 +668,7 @@ public class Judge : MonoBehaviour
     /// </summary>
     public static Vector3 EffectPosition(IList<int> laneNum, int noteIndex)
     {
-        int lane = 0;
-        if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
-        {
-            lane = laneNum[noteIndex];
-        }
+        int lane = LaneOfNote(laneNum, noteIndex);
 
         // the notes use the same mapping, see NotesManager.Load
         return new Vector3(LaneWorldX(lane), 0.76f, 0.15f);
