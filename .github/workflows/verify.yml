@@ -22,7 +22,13 @@ on:
     paths:
       - "Assets/**"
       - "script/**"
-      - "tools/acceptance/**"
+      - "scripts/**"
+      - "tools/**"
+      - "contracts/**"
+      - "config/**"
+      - "ProjectSettings/**"
+      - "Packages/**"
+      - "VERSION"
       - ".github/workflows/**"
   workflow_dispatch:
 

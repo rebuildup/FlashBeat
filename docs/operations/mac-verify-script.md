@@ -7,7 +7,7 @@ macOS 版は同じビルド入口 (`BuildScript.BuildStandaloneMacOS`) の成果
 (`docs/operations/update-release.md`)。
 
 ```sh
-script/mac-verify test  [<ref>]   # EditMode テスト (既定 ref: origin/release-0-1-3)
+script/mac-verify test  [<ref>]   # EditMode テスト (既定 ref: origin/main)
 script/mac-verify build [<ref>]   # macOS ビルド → Builds/macOS/FlashBeat.app
 script/mac-verify status
 ```
