@@ -116,6 +116,34 @@ describe("publishSong", () => {
     expect(result.failure.details).toEqual(["Invalid song", "level must be between 1 and 99"]);
   });
 
+  it("surfaces the paths of 422 diagnostics", async () => {
+    const result = await publishSong({
+      baseUrl: "",
+      songId: "who",
+      token: "secret",
+      request: REQUEST,
+      fetchImpl: async () =>
+        jsonResponse(422, {
+          error: "Invalid song",
+          diagnostics: [
+            { path: "chart.notes[3].block", message: "block must be between 0 and 7" },
+            { path: "level", message: "level must be between 1 and 99" },
+          ],
+        }),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.failure.code).toBe("invalid");
+    expect(result.failure.details).toEqual([
+      "Invalid song",
+      "chart.notes[3].block: block must be between 0 and 7",
+      "level: level must be between 1 and 99",
+    ]);
+  });
+
   it("reports a missing endpoint", async () => {
     const result = await publishSong({
       baseUrl: "",

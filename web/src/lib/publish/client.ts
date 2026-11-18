@@ -220,9 +220,17 @@ function collectMessages(value: unknown): string[] {
 
   if (value !== null && typeof value === "object") {
     const record = value as Record<string, unknown>;
+
+    // A diagnostic names the offending value: `chart.notes[3].block`.
+    const path = record["path"];
+    const message = record["message"];
+    if (typeof path === "string" && path.length > 0 && typeof message === "string") {
+      return [`${path}: ${message}`];
+    }
+
     const messages: string[] = [];
 
-    for (const key of ["error", "message", "detail", "issues", "errors"]) {
+    for (const key of ["error", "message", "detail", "issues", "errors", "diagnostics"]) {
       const found = record[key];
       if (found !== undefined) {
         messages.push(...collectMessages(found));

@@ -153,6 +153,19 @@ export function PublishStep({
   const handlePublish = useCallback(async () => {
     if (inFlight.current) return;
 
+    // Defense in depth: step 2 refuses to advance while the chart has
+    // contract issues, but the publish execution checks them again.
+    if (chartIssues.length > 0) {
+      setResult({
+        ok: false,
+        failure: {
+          code: "invalid",
+          message: "譜面に問題があります。戻って修正してから公開してください。",
+        },
+      });
+      return;
+    }
+
     const built = buildPublishRequest(info, chart);
     if (!built.ok) {
       setResult({
@@ -169,22 +182,36 @@ export function PublishStep({
     inFlight.current = true;
     setPublishing(true);
 
-    const outcome = await publishAndVerify({
-      baseUrl: transport.baseUrl,
-      songId: info.songId.trim(),
-      token,
-      request: built.request,
-      fetchImpl: transport.fetch,
-    });
+    let outcome: PublishResult;
+    try {
+      outcome = await publishAndVerify({
+        baseUrl: transport.baseUrl,
+        songId: info.songId.trim(),
+        token,
+        request: built.request,
+        fetchImpl: transport.fetch,
+      });
+    } catch (error) {
+      // publishAndVerify reports failures as values; an exception here is a
+      // contract violation, but the operator still gets a readable result.
+      outcome = {
+        ok: false,
+        failure: {
+          code: "server",
+          message: `公開処理が予期せず失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      };
+    } finally {
+      inFlight.current = false;
+      setPublishing(false);
+    }
 
-    inFlight.current = false;
-    setPublishing(false);
     setResult(outcome);
 
     if (outcome.ok) {
       onPublished(outcome.response);
     }
-  }, [chart, info, onPublished, token, transport]);
+  }, [chart, chartIssues, info, onPublished, token, transport]);
 
   return (
     <div className={layout}>

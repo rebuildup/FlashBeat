@@ -123,6 +123,10 @@ describe("SongPublisher publish state machine (issue #73)", () => {
 
     expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
     expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
+    // A pre-write rejection may claim that nothing was published.
+    expect(document.body.querySelector('[data-testid="publish-error"]')?.textContent).toContain(
+      "公開は行われませんでした",
+    );
     // The form keeps the draft: the operator can fix and retry without retyping.
     const values = Array.from(document.body.querySelectorAll("input")).map((input) => input.value);
     expect(values).toContain("who");
@@ -165,6 +169,11 @@ describe("SongPublisher publish state machine (issue #73)", () => {
 
       expect(document.body.querySelector('[data-testid="publish-error"]')).not.toBeNull();
       expect(document.body.querySelector('[data-testid="publish-success"]')).toBeNull();
+      // The write may have landed: the panel must not claim it did not, it
+      // only keeps the draft-retention note next to the verify message.
+      const panel = document.body.querySelector('[data-testid="publish-error"]');
+      expect(panel?.textContent).not.toContain("公開は行われませんでした");
+      expect(panel?.textContent).toContain("下書きは保持");
     },
   );
 });
