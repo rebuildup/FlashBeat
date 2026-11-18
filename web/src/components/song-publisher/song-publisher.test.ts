@@ -28,4 +28,28 @@ describe("SongPublisher", () => {
   it("keeps the drawer toggle for the narrow viewports", () => {
     expect(html).toContain("公開サイドバーを開く");
   });
+
+  it("publishes against the configured API origin", () => {
+    const rendered = renderToStaticMarkup(
+      createElement(SongPublisher, {
+        initialChart: SAMPLE_CHART,
+        initialYouTubeId: "dQw4w9WgXcQ",
+        apiOrigin: "https://api.example.com",
+      }),
+    );
+
+    expect(rendered).toContain("ライブAPI https://api.example.com");
+  });
+
+  it("selects the fixture transport for the dev-only fixture value", () => {
+    const rendered = renderToStaticMarkup(
+      createElement(SongPublisher, {
+        initialChart: SAMPLE_CHART,
+        initialYouTubeId: "dQw4w9WgXcQ",
+        apiOrigin: "fixture",
+      }),
+    );
+
+    expect(rendered).toContain("Fixture API");
+  });
 });
