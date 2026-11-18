@@ -412,17 +412,42 @@ namespace FlashBeat.UI.V6.Option
         /// (本編の step_time / SessionZScale 経路を通らない)。
         /// Issue #677: チャートは選択曲の実譜面 (<see cref="V6OptionPreviewChart.BuildForCurrentSong"/>)
         /// で、無い曲だけ疑似チャートへフォールバックする。
+        /// 実際の組み立ては <see cref="RebuildNotePool"/> (Issue #695: 曲変更時の
+        /// 組み直しと同じ経路)。
         /// </summary>
         private void BuildNotes()
         {
+            RebuildNotePool();
+        }
+
+        /// <summary>
+        /// ノーツプールを組み直す (Issue #695: 初回構築と曲変更で共有する
+        /// 唯一の経路)。既存ノーツ実体を破棄し、選択曲のチャート分の
+        /// Note.prefab を生成する。prefab が無いときは <see cref="chartNotes"/>
+        /// を null にして songID だけ記録する (Tick ごとの Resources.Load
+        /// 再試行を防ぐ)。
+        /// </summary>
+        private void RebuildNotePool()
+        {
+            // 既存のノーツ実体を破棄してから組み直す (プールの作り直し)。
+            for (int i = 0; i < notes.Count; i++)
+            {
+                if (notes[i].Go != null)
+                {
+                    DestroyObject(notes[i].Go);
+                }
+            }
+            notes.Clear();
+
+            chartSongId = GManager.songID;
             GameObject prefab = Resources.Load<GameObject>("Prefabs/Note");
             if (prefab == null)
             {
+                chartNotes = null;
                 Debug.LogWarning("[V6OptionPreviewRig] Resources/Prefabs/Note が見つからない - ノーツ無しでガイド線だけ描く。");
                 return;
             }
 
-            chartSongId = GManager.songID;
             chartNotes = V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
             for (int i = 0; i < chartNotes.Length; i++)
             {
@@ -486,6 +511,9 @@ namespace FlashBeat.UI.V6.Option
         /// 選択曲が変わっていたらチャートを組み直す (Issue #677)。
         /// Option 画面を開いたまま別の曲が選ばれる経路は通常無いが、
         /// 曲 ID の読み取りだけで判定するので副作用は無い。
+        /// 組み直しは初回構築と同じ <see cref="RebuildNotePool"/> を通る
+        /// (Issue #695)。prefab 不在でチャートが無いときは判定キューも
+        /// 空のままにする (前の曲のノーツを判定し続けない)。
         /// </summary>
         private void EnsureChartForCurrentSong()
         {
@@ -494,48 +522,11 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            // 既存のノーツ実体を破棄してから組み直す (プールの作り直し)。
-            for (int i = 0; i < notes.Count; i++)
+            RebuildNotePool();
+            if (chartNotes != null)
             {
-                if (notes[i].Go != null)
-                {
-                    DestroyObject(notes[i].Go);
-                }
+                RebuildJudgement();
             }
-            notes.Clear();
-
-            // prefab 不在でも songID を記録して毎フレームの再試行を防ぐ
-            // (Resources.Load を Tick ごとに呼ばない)。
-            chartSongId = GManager.songID;
-            GameObject prefab = Resources.Load<GameObject>("Prefabs/Note");
-            if (prefab == null)
-            {
-                chartNotes = null;
-                return;
-            }
-
-            chartNotes = V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
-            for (int i = 0; i < chartNotes.Length; i++)
-            {
-                var go = Object.Instantiate(prefab, root.transform, false);
-                go.name = "Preview Note";
-                var notesComponent = go.GetComponent<Notes>();
-                if (notesComponent != null)
-                {
-                    notesComponent.enabled = false;
-                }
-                go.SetActive(false);
-                notes.Add(new PreviewNote
-                {
-                    Go = go,
-                    Lane = chartNotes[i].Lane,
-                    Time = chartNotes[i].Time,
-                    HoldSeconds = chartNotes[i].HoldSeconds,
-                    BaseScaleZ = go.transform.localScale.z,
-                });
-            }
-
-            RebuildJudgement();
         }
 
         /// <summary>
@@ -685,16 +676,9 @@ namespace FlashBeat.UI.V6.Option
                 if (bpm > 0f)
                 {
                     // BGFlash.Start と同じ拍間隔: 60/BPM に FlashBG の倍率
-                    // (1→×8, 2→×4, 4→×2, 8→×1, その他→×1)。
-                    float divisor = 1f;
-                    switch (GManager.FlashBG)
-                    {
-                        case 1: divisor = 8f; break;
-                        case 2: divisor = 4f; break;
-                        case 4: divisor = 2f; break;
-                        default: divisor = 1f; break;
-                    }
-                    float beat = 60f / bpm * divisor;
+                    // (写像は BGFlash.BeatIntervalMultiplier が単一の出所。
+                    // Issue #695 でローカル再実装をやめた)。
+                    float beat = 60f / bpm * BGFlash.BeatIntervalMultiplier(GManager.FlashBG);
 
                     // BPMCount = FlashT/100 からの経過で拍を数えるのと同じ位相。
                     int beatIndex = Mathf.FloorToInt(
@@ -724,9 +708,11 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// 疑似チャートに対する判定 (Issue #607)。本編 Judge.JudgeStep と
-        /// 同じ JudgeQueue / LongNote の判定窓・同じ処理順
-        /// (押下 → HOLD 保持 → 時刻切れ Miss) を回すが、スコア・
-        /// コンボ・GManager への書き戻しは一切行わない。
+        /// 同じ処理順 (押下 → HOLD 保持 → 時刻切れ Miss) を回すが、
+        /// 「どのノーツが・タップか保持か・ミスか」の決定手順は
+        /// <see cref="Judge.TryJudgePress"/> / <see cref="Judge.UpdateHoldStep"/> /
+        /// <see cref="Judge.TryJudgeMiss"/> の共有経路を通る (Issue #695)。
+        /// スコア・コンボ・GManager への書き戻しは一切行わない。
         /// 判定結果は <see cref="ShowVerdict"/> でレーン別ポップへ流す。
         /// </summary>
         private void UpdateJudgement()
@@ -748,7 +734,7 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            // 1) 押下判定: レーンごとに独立 (Judge.JudgeStep と同じ順序)。
+            // 1) 押下判定: レーンごとに独立 (Judge.JudgeStep と同じ共通経路)。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 if (!KeyBindings.IsLaneKeyDown(lane))
@@ -756,26 +742,12 @@ namespace FlashBeat.UI.V6.Option
                     continue;
                 }
 
-                if (!judgementQueue.TryPress(lane, previewTime, LongNote.BAD_WINDOW,
-                        out JudgeQueue.NoteEntry hit, out float lag))
+                if (!Judge.TryJudgePress(judgementQueue, lane, previewTime,
+                        out _, out LongNote.Judgement judgement))
                 {
                     continue;
                 }
 
-                LongNote.Judgement judgement = LongNote.JudgeHead(lag);
-                if (judgement == LongNote.Judgement.None)
-                {
-                    continue;
-                }
-
-                if (hit.Type == LongNote.TYPE_HOLD)
-                {
-                    judgementQueue.BeginHold(hit);
-                }
-                else
-                {
-                    judgementQueue.ConsumeTap(hit);
-                }
                 ShowVerdict(lane, judgement);
             }
 
@@ -783,9 +755,9 @@ namespace FlashBeat.UI.V6.Option
             //    差し替える (Judge.message(2) = Bad と同じ見た目)。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
-                JudgeQueue.HoldResult result = judgementQueue.UpdateHold(
-                    lane, previewTime, KeyBindings.IsLaneKeyHeld(lane),
-                    LongNote.GREAT_WINDOW, out _);
+                JudgeQueue.HoldResult result = Judge.UpdateHoldStep(
+                    judgementQueue, lane, previewTime, KeyBindings.IsLaneKeyHeld(lane),
+                    out _);
                 if (result == JudgeQueue.HoldResult.Broken)
                 {
                     ShowVerdict(lane, LongNote.Judgement.Bad);
@@ -795,10 +767,8 @@ namespace FlashBeat.UI.V6.Option
             // 3) 時刻切れ (Miss)。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
-                if (judgementQueue.TryPeekMiss(lane, previewTime, LongNote.BAD_WINDOW,
-                        out JudgeQueue.NoteEntry missed))
+                if (Judge.TryJudgeMiss(judgementQueue, lane, previewTime, out _))
                 {
-                    judgementQueue.Remove(missed);
                     ShowVerdict(lane, LongNote.Judgement.Miss);
                 }
             }

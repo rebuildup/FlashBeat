@@ -23,26 +23,26 @@ public class BGFlash : MonoBehaviour
         // Issue #183: 選択中の行ではなく、プレイセッションで固定した曲の BPM を使う。
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         Beat = sessionSong != null ? (60f / sessionSong.bpm) : float.MaxValue;
-        switch (GManager.FlashBG)
-        {
-            case 1:
-                Beat = Beat * 8;
-                break;
-            case 2:
-                Beat = Beat * 4;
-                break;
-            case 4:
-                Beat = Beat * 2;
-                break;
-            case 8:
-                //何もしない
-                break;
-            default:
-                //何もしない
-                break;
-        }
+        Beat *= BeatIntervalMultiplier(GManager.FlashBG);
         BPMCount = (float)(GManager.FlashT/100);
-        
+
+    }
+
+    /// <summary>
+    /// FlashBG 設定値から拍間隔の倍率を返す (60/BPM に掛ける係数:
+    /// 1→×8, 2→×4, 4→×2, 8・その他→×1)。
+    /// Option 画面のゲームプレビュー (V6OptionPreviewRig) も同じ写像を
+    /// 使うため static にしている (Issue #695)。
+    /// </summary>
+    public static float BeatIntervalMultiplier(int flashBG)
+    {
+        switch (flashBG)
+        {
+            case 1: return 8f;
+            case 2: return 4f;
+            case 4: return 2f;
+            default: return 1f;
+        }
     }
 
 
