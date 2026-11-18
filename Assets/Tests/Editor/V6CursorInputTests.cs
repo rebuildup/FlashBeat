@@ -106,21 +106,35 @@ namespace FlashBeat.Tests
             spec.LineType = TMP_InputField.LineType.MultiLineNewline;
             spec.OnFocusSelectAll = true;
             spec.RestoreOriginalTextOnEscape = true;
-            // Issue #583: textViewport をテキスト rect と一致させる指定が効くこと。
-            spec.TextViewport = valueGo.GetComponent<RectTransform>();
+            // Issue #676: textViewport は text rect とは別の固定ノードを
+            // 指定する (viewport==text rect だと TMP のスクロール量が二重計上
+            // され、文字・キャレット・選択・IME 変換文字が内側余白から
+            // ドリフトする)。ここでは host でも text rect でもない専用
+            // viewport を渡して、指定がそのまま効くことを固定する。
+            var viewportGo = new GameObject("Text Viewport", typeof(RectTransform));
+            try
+            {
+                spec.TextViewport = viewportGo.GetComponent<RectTransform>();
 
-            TMP_InputField input = V6CursorInput.Attach(host, spec);
+                TMP_InputField input = V6CursorInput.Attach(host, spec);
 
-            Assert.AreEqual(0.25f, 1f / input.caretBlinkRate, 1e-4f, "半周期の指定が効く");
-            Assert.AreEqual(3, input.caretWidth);
-            Assert.AreEqual(V6Tokens.Accent, input.caretColor);
-            Assert.AreEqual(V6Tokens.Danger, input.selectionColor);
-            Assert.AreEqual(TMP_InputField.ContentType.Custom, input.contentType);
-            Assert.AreEqual(TMP_InputField.LineType.MultiLineNewline, input.lineType);
-            Assert.IsTrue(input.onFocusSelectAll);
-            Assert.IsTrue(input.restoreOriginalTextOnEscape);
-            Assert.AreSame(valueGo.GetComponent<RectTransform>(), input.textViewport,
-                "TextViewport 指定が効く (host 全体ではなくテキスト rect)");
+                Assert.AreEqual(0.25f, 1f / input.caretBlinkRate, 1e-4f, "半周期の指定が効く");
+                Assert.AreEqual(3, input.caretWidth);
+                Assert.AreEqual(V6Tokens.Accent, input.caretColor);
+                Assert.AreEqual(V6Tokens.Danger, input.selectionColor);
+                Assert.AreEqual(TMP_InputField.ContentType.Custom, input.contentType);
+                Assert.AreEqual(TMP_InputField.LineType.MultiLineNewline, input.lineType);
+                Assert.IsTrue(input.onFocusSelectAll);
+                Assert.IsTrue(input.restoreOriginalTextOnEscape);
+                Assert.AreSame(viewportGo.GetComponent<RectTransform>(), input.textViewport,
+                    "TextViewport 指定が効く (host 全体でも text rect でもなく専用 viewport)");
+                Assert.AreNotSame(valueGo.GetComponent<RectTransform>(), input.textViewport,
+                    "textViewport は text rect とは別ノードでなければならない (#676)");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(viewportGo);
+            }
         }
 
         [Test]
