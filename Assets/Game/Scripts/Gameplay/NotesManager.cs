@@ -367,7 +367,13 @@ public class NotesManager : MonoBehaviour
         IsReady = true;
     }
 
-    Data ParseChart(SongData song)
+    /// <summary>
+    /// 譜面 JSON の読み込み経路 (Issue #677: Option 画面の Game Preview も
+    /// 同じ経路で実チャートを読むため internal static にした。読み取りのみ)。
+    /// 優先順は プレイセッション固定スナップショット → Cloud Chart ホルダー
+    /// → Resources のローカル JSON。
+    /// </summary>
+    internal static Data ParseChart(SongData song)
     {
         // Issue #183: 遷移開始時に固定した譜面スナップショットを最優先で使う。
         if (PlaySessionSnapshot.TryGetChartJson(song, out string pinned))
