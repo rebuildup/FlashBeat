@@ -988,14 +988,25 @@ describe("POST /api/v1/scores", () => {
 
   it("enforces the nickname rules", async () => {
     for (const [label, nickname] of [
-      ["13 characters", "abcdefghijklm"],
+      ["17 characters", "abcdefghijklmnopq"],
       ["empty after trim", "   "],
       ["control character", "a\u0000b"],
     ] as const) {
       const response = await submit(submission("zz-second-song", 1, nickname, { perfect: 1 }));
       assert.equal(response.status, 422, `expected 422 for ${label}`);
       const rejected = (await response.json()) as { diagnostics: { path: string }[] };
-      assert.equal(rejected.diagnostics[0]?.path, "/nickname", label);
+      // Over-length nicknames are rejected by the schema layer (`#/nickname`),
+      // the semantic rules by the model layer (`/nickname`).
+      assert.match(rejected.diagnostics[0]?.path ?? "", /nickname$/, label);
+    }
+  });
+
+  it("accepts nicknames up to the contract limit of 16 characters", async () => {
+    // Issue #655: the server used to enforce 12 while the contract, the
+    // database CHECK and the Unity client all allow 16.
+    for (const nickname of ["abcdefghijklm", "abcdefghijklmnop"]) {
+      const response = await submit(submission("zz-second-song", 1, nickname, { perfect: 1 }));
+      assert.equal(response.status, 201, `expected 201 for ${nickname.length} characters`);
     }
   });
 
@@ -1025,6 +1036,47 @@ describe("POST /api/v1/scores", () => {
     // A different nickname or score is not a duplicate.
     const otherNickname = await submit(submission("who", 2, "RateLimit", { perfect: 1 }));
     assert.equal(otherNickname.status, 201);
+  });
+
+  it("does not treat the same score on a different chart version as a duplicate", async () => {
+    // Issue #655: the dedupe window used to ignore chartVersion, so a
+    // legitimate replay on a newly published version was rejected as 429.
+    const songId = "zz-dedupe-versions";
+    const notes = Array.from({ length: 10 }, (_, index) => ({
+      type: 1,
+      num: index + 1,
+      block: index % 8,
+      LPB: 4,
+    }));
+    const publish = () =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: `Dedupe ${songId}`,
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: { name: songId, maxBlock: 8, BPM: 120, offset: 0, notes },
+        }),
+      });
+    assert.equal((await publish()).status, 200); // chart version 1
+    assert.equal((await publish()).status, 200); // chart version 2
+
+    // All-perfect plays score 1000000 on both versions: identical totals,
+    // different plays.
+    const v1 = await submit(submission(songId, 1, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v1.status, 201);
+    const v2 = await submit(submission(songId, 2, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v2.status, 201);
+
+    // The same version replayed inside the window is still a duplicate.
+    const v2Again = await submit(submission(songId, 2, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v2Again.status, 429);
   });
 });
 
