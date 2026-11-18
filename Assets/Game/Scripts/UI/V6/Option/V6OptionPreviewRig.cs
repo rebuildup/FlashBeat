@@ -80,10 +80,13 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// 判定スケジューリングの先読み量 (秒)。
-        /// ノーツのアプローチ時間 (最遅速度で約 16 秒) より十分長い
-        /// ループ 1 周分を先にキューへ積む。
+        /// 現在のループ長 (<see cref="loopSeconds"/>) と同じだけ先に
+        /// キューへ積む (1 ループ分を常に先読みする)。
         /// </summary>
-        private const float JudgementScheduleAhead = V6OptionPreviewChart.LoopSeconds;
+        private float JudgementScheduleAhead
+        {
+            get { return loopSeconds; }
+        }
 
         // GameScene / OptionScene の Main Camera と同じ姿勢
         // (位置 (0, 4.9, -0.8)、pitch 54.8°、FOV 60)。
@@ -113,6 +116,27 @@ namespace FlashBeat.UI.V6.Option
         private readonly bool[] laneFlashHasColor = new bool[Judge.LaneCount];
 
         private V6OptionPreviewChart.Note[] chartNotes;
+
+        /// <summary>
+        /// 疑似メディア時計のループ長 (秒)。実チャートでは
+        /// 「最後のノーツ/歌詞 + 2 秒」、フォールバックの疑似チャートでは
+        /// <see cref="V6OptionPreviewChart.LoopSeconds"/> (Issue #677)。
+        /// </summary>
+        private float loopSeconds = V6OptionPreviewChart.LoopSeconds;
+
+        /// <summary>チャートを組んだときの曲 ID (選択曲の変更で組み直す)。</summary>
+        private int chartSongId = int.MinValue;
+
+        // --- BGFlash (拍フラッシュ) の疑似再現 (Issue #677) ---
+
+        /// <summary>拍フラッシュの点灯アルファと減衰速度 (BGFlash.lightSpeed = 3)。</summary>
+        private const float BeatFlashPeakAlpha = 0.3f;
+        private const float BeatFlashDecayPerSecond = 3f;
+
+        private Mesh bgFlashMesh;
+        private Material bgFlashMaterial;
+        private float bgFlashAlpha;
+        private int bgFlashBeatIndex = int.MinValue;
 
         // --- ゲーム体験プレビュー (Issue #607) ---
 
@@ -166,6 +190,7 @@ namespace FlashBeat.UI.V6.Option
             BuildGuides();
             BuildJudgeLine();
             BuildLaneFlashes();
+            BuildBeatFlash();
             BuildNotes();
             RebuildJudgement();
 
@@ -335,9 +360,58 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
+        /// BGFlash (拍フラッシュ) の背景 quad (Issue #677)。
+        /// 本編の BGFlash は選択曲の BPM から拍間隔を求め、拍ごとに
+        /// α=0.3 へ点灯して 3/秒で減衰させる。プレビューでは同じ規則を
+        /// 疑似メディア時計へ適用し、ガイド線より奥 (奥行き方向の奥)
+        /// に敷く半透明 quad で再現する。描画順は queue 3000 の透過で、
+        /// 距離ソートによりガイド・レーンフラッシュより先 (奥) に描かれる。
+        /// </summary>
+        private void BuildBeatFlash()
+        {
+            // ガイドの最奥 (GuideDepth) よりさらに奥。視界を十分に覆う大きさ。
+            const float z = PlayfieldLaneGuides.GuideDepth + 1.5f;
+            var vertices = new[]
+            {
+                new Vector3(-6f, -1f, z),
+                new Vector3(6f, -1f, z),
+                new Vector3(-6f, 4f, z),
+                new Vector3(6f, 4f, z),
+            };
+            var triangles = new[] { 0, 2, 1, 1, 2, 3 };
+            var uv = new[]
+            {
+                new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(0f, 1f), new Vector2(1f, 1f),
+            };
+
+            bgFlashMesh = new Mesh { name = "Preview Beat Flash" };
+            bgFlashMesh.vertices = vertices;
+            bgFlashMesh.uv = uv;
+            bgFlashMesh.triangles = triangles;
+            bgFlashMesh.RecalculateBounds();
+
+            var go = new GameObject("Beat Flash");
+            go.transform.SetParent(root.transform, false);
+            go.AddComponent<MeshFilter>().sharedMesh = bgFlashMesh;
+
+            var renderer = go.AddComponent<MeshRenderer>();
+            bgFlashMaterial = PlayfieldLaneGuides.CreateGuideMaterial();
+            if (bgFlashMaterial != null && bgFlashMaterial.HasProperty("_Color"))
+            {
+                bgFlashMaterial.SetColor("_Color", new Color(1f, 1f, 1f, 0f));
+                renderer.sharedMaterial = bgFlashMaterial;
+            }
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        /// <summary>
         /// 疑似チャート全ノーツ分の Note.prefab 実体をプールとして生成する。
         /// <see cref="Notes"/> は無効化し、移動は <see cref="TickSimulated"/> が担う
         /// (本編の step_time / SessionZScale 経路を通らない)。
+        /// Issue #677: チャートは選択曲の実譜面 (<see cref="V6OptionPreviewChart.BuildForCurrentSong"/>)
+        /// で、無い曲だけ疑似チャートへフォールバックする。
         /// </summary>
         private void BuildNotes()
         {
@@ -348,7 +422,8 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            chartNotes = V6OptionPreviewChart.Build();
+            chartSongId = GManager.songID;
+            chartNotes = V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
             for (int i = 0; i < chartNotes.Length; i++)
             {
                 var go = Object.Instantiate(prefab, root.transform, false);
@@ -384,7 +459,7 @@ namespace FlashBeat.UI.V6.Option
         /// </summary>
         public void Tick()
         {
-            TickSimulated(Mathf.Repeat(Time.time, V6OptionPreviewChart.LoopSeconds), Time.deltaTime);
+            TickSimulated(Mathf.Repeat(Time.time, loopSeconds), Time.deltaTime);
         }
 
         /// <summary>
@@ -398,11 +473,69 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
+            EnsureChartForCurrentSong();
             AdvanceClock(mediaTime);
             UpdateNotes(mediaTime);
             UpdateLaneFlashes(deltaTime);
+            UpdateBeatFlash(deltaTime);
             UpdateJudgement();
             currentLyric = V6OptionPreviewLyrics.CurrentLine(mediaTime);
+        }
+
+        /// <summary>
+        /// 選択曲が変わっていたらチャートを組み直す (Issue #677)。
+        /// Option 画面を開いたまま別の曲が選ばれる経路は通常無いが、
+        /// 曲 ID の読み取りだけで判定するので副作用は無い。
+        /// </summary>
+        private void EnsureChartForCurrentSong()
+        {
+            if (GManager.songID == chartSongId)
+            {
+                return;
+            }
+
+            // 既存のノーツ実体を破棄してから組み直す (プールの作り直し)。
+            for (int i = 0; i < notes.Count; i++)
+            {
+                if (notes[i].Go != null)
+                {
+                    DestroyObject(notes[i].Go);
+                }
+            }
+            notes.Clear();
+
+            // prefab 不在でも songID を記録して毎フレームの再試行を防ぐ
+            // (Resources.Load を Tick ごとに呼ばない)。
+            chartSongId = GManager.songID;
+            GameObject prefab = Resources.Load<GameObject>("Prefabs/Note");
+            if (prefab == null)
+            {
+                chartNotes = null;
+                return;
+            }
+
+            chartNotes = V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
+            for (int i = 0; i < chartNotes.Length; i++)
+            {
+                var go = Object.Instantiate(prefab, root.transform, false);
+                go.name = "Preview Note";
+                var notesComponent = go.GetComponent<Notes>();
+                if (notesComponent != null)
+                {
+                    notesComponent.enabled = false;
+                }
+                go.SetActive(false);
+                notes.Add(new PreviewNote
+                {
+                    Go = go,
+                    Lane = chartNotes[i].Lane,
+                    Time = chartNotes[i].Time,
+                    HoldSeconds = chartNotes[i].HoldSeconds,
+                    BaseScaleZ = go.transform.localScale.z,
+                });
+            }
+
+            RebuildJudgement();
         }
 
         /// <summary>
@@ -422,9 +555,9 @@ namespace FlashBeat.UI.V6.Option
             }
 
             float delta = mediaTime - previousMediaTime;
-            if (delta < -V6OptionPreviewChart.LoopSeconds * 0.5f)
+            if (delta < -loopSeconds * 0.5f)
             {
-                delta += V6OptionPreviewChart.LoopSeconds;
+                delta += loopSeconds;
             }
             previewTime += delta;
             previousMediaTime = mediaTime;
@@ -453,8 +586,10 @@ namespace FlashBeat.UI.V6.Option
                 }
 
                 // 本編の NoteTimeWithTiming + NotePositionZ と同じ式。
-                // ループなので最も近い出現へ畳んだ時刻差を使う。
-                float delta = V6OptionPreviewChart.DeltaWithTiming(note.Time, GManager.noteTiming, mediaTime);
+                // ループなので最も近い出現へ畳んだ時刻差を使う
+                // (ループ長は実チャートでは可変。Issue #677)。
+                float delta = V6OptionPreviewChart.DeltaWithTiming(
+                    note.Time, GManager.noteTiming, mediaTime, loopSeconds);
                 float z = delta * zScale;
 
                 bool show = z <= PlayfieldLaneGuides.GuideDepth + ShowMargin
@@ -522,6 +657,66 @@ namespace FlashBeat.UI.V6.Option
                 {
                     material.SetColor("_Color", new Color(1f, 1f, 1f, alpha));
                 }
+            }
+        }
+
+        /// <summary>
+        /// BGFlash (拍フラッシュ) の疑似再現 (Issue #677)。本編 BGFlash と
+        /// 同じ規則: 選択曲の BPM から拍間隔 (60/BPM × FlashBG の倍率) を求め、
+        /// 拍ごとに α=0.3 へ点灯、lightSpeed=3 で減衰。位相は
+        /// <see cref="GManager.FlashT"/> / 100 秒の初期オフセット +
+        /// 疑似メディア時計。GManager.Flash (表示 On/Off) が Off または
+        /// BPM が取れない曲では何も描かない。GManager / BGFlash の
+        /// 実オブジェクトには触れない (読み取りのみ)。
+        /// </summary>
+        private void UpdateBeatFlash(float deltaTime)
+        {
+            float alpha = bgFlashAlpha;
+            if (PauseGate.IsPaused || !GManager.Flash || bgFlashMaterial == null)
+            {
+                alpha = 0f;
+            }
+            else
+            {
+                SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+                float bpm = song != null ? song.bpm : 0f;
+                if (bpm > 0f)
+                {
+                    // BGFlash.Start と同じ拍間隔: 60/BPM に FlashBG の倍率
+                    // (1→×8, 2→×4, 4→×2, 8→×1, その他→×1)。
+                    float divisor = 1f;
+                    switch (GManager.FlashBG)
+                    {
+                        case 1: divisor = 8f; break;
+                        case 2: divisor = 4f; break;
+                        case 4: divisor = 2f; break;
+                        default: divisor = 1f; break;
+                    }
+                    float beat = 60f / bpm * divisor;
+
+                    // BPMCount = FlashT/100 からの経過で拍を数えるのと同じ位相。
+                    int beatIndex = Mathf.FloorToInt(
+                        (previewTime + GManager.FlashT / 100f) / beat);
+                    if (bgFlashBeatIndex == int.MinValue)
+                    {
+                        bgFlashBeatIndex = beatIndex;
+                    }
+                    else if (beatIndex != bgFlashBeatIndex)
+                    {
+                        bgFlashBeatIndex = beatIndex;
+                        alpha = BeatFlashPeakAlpha;
+                    }
+                    else if (alpha > 0f)
+                    {
+                        alpha = Mathf.Max(0f, alpha - BeatFlashDecayPerSecond * deltaTime);
+                    }
+                }
+            }
+
+            bgFlashAlpha = alpha;
+            if (bgFlashMaterial != null && bgFlashMaterial.HasProperty("_Color"))
+            {
+                bgFlashMaterial.SetColor("_Color", new Color(1f, 1f, 1f, alpha));
             }
         }
 
@@ -643,13 +838,13 @@ namespace FlashBeat.UI.V6.Option
                 // 現在時刻を含むループの 1 つ前から積み始める
                 // (直前ループの末尾ノーツがまだ判定待ちのことがあるため)。
                 scheduledLoop = Mathf.FloorToInt(
-                    (previewTime - JudgementScheduleAhead) / V6OptionPreviewChart.LoopSeconds);
+                    (previewTime - JudgementScheduleAhead) / loopSeconds);
             }
 
             float horizon = previewTime + JudgementScheduleAhead;
-            while (scheduledLoop * V6OptionPreviewChart.LoopSeconds <= horizon)
+            while (scheduledLoop * loopSeconds <= horizon)
             {
-                float loopBase = scheduledLoop * V6OptionPreviewChart.LoopSeconds;
+                float loopBase = scheduledLoop * loopSeconds;
                 for (int i = 0; i < chartNotes.Length; i++)
                 {
                     float start = timedStart[i] + loopBase;
@@ -741,6 +936,12 @@ namespace FlashBeat.UI.V6.Option
             return lane >= 0 && lane < Judge.LaneCount ? laneFlashAlpha[lane] : 0f;
         }
 
+        /// <summary>拍フラッシュ quad の現在 α (BGFlash.alfa 相当。検証用)。</summary>
+        internal float BeatFlashAlphaForAudit
+        {
+            get { return bgFlashAlpha; }
+        }
+
         /// <summary>プレビューカメラ (判定ポップのワールド→ビューポート写像用)。</summary>
         internal Camera PreviewCamera
         {
@@ -786,8 +987,10 @@ namespace FlashBeat.UI.V6.Option
             guideMesh = DestroyAsset(guideMesh);
             judgeMesh = DestroyAsset(judgeMesh);
             laneFlashMesh = DestroyAsset(laneFlashMesh);
+            bgFlashMesh = DestroyAsset(bgFlashMesh);
             guideMaterial = DestroyAsset(guideMaterial);
             judgeMaterial = DestroyAsset(judgeMaterial);
+            bgFlashMaterial = DestroyAsset(bgFlashMaterial);
             for (int i = 0; i < laneFlashMaterials.Length; i++)
             {
                 laneFlashMaterials[i] = DestroyAsset(laneFlashMaterials[i]);

@@ -10,17 +10,25 @@ using FlashBeat.UI.V6.Game.Playfield;
 namespace FlashBeat.UI.V6.Option
 {
     /// <summary>
-    /// V6OptionView の Game Preview オーバーレイ部分 (Issue #607)。
+    /// V6OptionView の Game Preview オーバーレイ部分 (Issue #607 / 再構築 #677)。
     ///
     /// well (464x280) の RawImage (3D シーン) の手前に、ゲーム体験の
     /// 2D 要素を重ねる:
     ///
     /// - 歌詞行: <see cref="V6OptionPreviewLyrics"/> が返す現在行を
-    ///   well 上部に表示 (歌詞 OFF・データ無しでは出さない)。
+    ///   本編と同じスロット位置・寸法で表示する (歌詞 OFF・データ無しでは出さない)。
     /// - 判定ポップ: <see cref="V6OptionPreviewRig"/> の JudgeQueue が
-    ///   出した判定を、レーン位置の上・判定線の直上へ表示する。
+    ///   出した判定を、本編 <see cref="V6HudVerdict"/> と同じ規則で表示する。
     ///   ラベル・色・寿命・落下アニメーションは <see cref="V6HudLogic"/>
-    ///   (本編 V6HudVerdict と同じ共有関数) で、ここでは配置だけを行う。
+    ///   (Issue #671 の VerdictFallOffset を含む共有関数)、フォントサイズと
+    ///   レーン x は <see cref="V6HudMetrics"/> と判定エフェクト投影から求める。
+    ///   独自の固定 px 定数は使わない。
+    ///
+    /// 座標系: 本編 HUD の px 定数 (VerdictRestGapAboveLine / LyricSlotOrigin
+    /// など) は実スクリーン px。プレビューの RT はカメラの縦 FOV をそのまま
+    /// 見せるので、画面 px → well px は well/Screen の比で線形に写る
+    /// (垂直方向は射影が一致、水平方向はカメラ aspect 固定の横圧縮が
+    /// ビューポート比としてそのまま効く)。
     ///
     /// すべて well の子なので、Preview パネルの再構築で一緒に消える。
     /// 3D 側の状態 (疑似時計・判定キュー・歌詞行) は rig が持ち、
@@ -28,19 +36,16 @@ namespace FlashBeat.UI.V6.Option
     /// </summary>
     public sealed partial class V6OptionView
     {
-        /// <summary>判定ポップのフォントサイズ (well 280px 高の中で読める大きさ)。</summary>
-        private const float PreviewVerdictFontSize = 15f;
-
-        /// <summary>歌詞行のフォントサイズ (design fs44 を well 高さへ厳密に
-        /// 写すと約 13px で同期確認に小さすぎるため、判読性を優先して 16px)。</summary>
-        private const float PreviewLyricFontSize = 16f;
-
         private RectTransform previewOverlayRt;
         private GameObject previewLyricBox;
         private TextMeshProUGUI previewLyricText;
         private string previewLastLyric = string.Empty;
         private readonly TextMeshProUGUI[] previewVerdictTexts = new TextMeshProUGUI[Judge.LaneCount];
         private readonly string[] previewVerdictShown = new string[Judge.LaneCount];
+
+        /// <summary>最後に適用したスケール (Screen 解像度・well サイズの変化検知用)。</summary>
+        private Vector2 previewLastScreenSize = Vector2.negativeInfinity;
+        private Vector2 previewLastWellSize = Vector2.negativeInfinity;
 
         /// <summary>
         /// well の RawImage の後ろにオーバーレイを構築する
@@ -52,6 +57,8 @@ namespace FlashBeat.UI.V6.Option
             previewLyricBox = null;
             previewLyricText = null;
             previewLastLyric = string.Empty;
+            previewLastScreenSize = Vector2.negativeInfinity;
+            previewLastWellSize = Vector2.negativeInfinity;
             for (int i = 0; i < previewVerdictTexts.Length; i++)
             {
                 previewVerdictTexts[i] = null;
@@ -70,22 +77,25 @@ namespace FlashBeat.UI.V6.Option
             BuildPreviewLyric(overlay);
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
-                previewVerdictTexts[lane] = MakePreviewText(overlay, "Verdict " + lane,
-                    PreviewVerdictFontSize, V5Tokens.Text);
+                previewVerdictTexts[lane] = MakePreviewText(overlay, "Verdict " + lane);
             }
         }
 
-        /// <summary>歌詞行: well 上端の帯 (本編の歌詞スロットに相当する位置)。</summary>
+        /// <summary>
+        /// 歌詞行: 本編 <see cref="V6HudLyrics"/> と同じスロット
+        /// (<see cref="V6HudLogic.LyricSlotOrigin"/> / <see cref="V6HudLogic.LyricSize"/>)
+        /// を well 座標へ写して置く。実際の配置は
+        /// <see cref="UpdatePreviewOverlay"/> が解像度変化に追従して行う。
+        /// </summary>
         private void BuildPreviewLyric(GameObject overlay)
         {
             var boxGo = new GameObject("Preview Lyric Box", typeof(RectTransform), typeof(Image));
             boxGo.transform.SetParent(overlay.transform, false);
             var brt = boxGo.GetComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.06f, 1f);
-            brt.anchorMax = new Vector2(0.94f, 1f);
+            // 本編と同じ上中央アンカー (V6HudLyrics.LyricSlotAnchoredPosition と同型)。
+            brt.anchorMin = new Vector2(0.5f, 1f);
+            brt.anchorMax = new Vector2(0.5f, 1f);
             brt.pivot = new Vector2(0.5f, 1f);
-            brt.offsetMin = new Vector2(0f, -36f);
-            brt.offsetMax = new Vector2(0f, -4f);
             var image = boxGo.GetComponent<Image>();
             // 本編の歌詞ボックスと同系の半透明黒 (V6HudLyrics.LyricBoxColor)。
             image.color = new Color(0f, 0f, 0f, 0x99 / 255f);
@@ -98,11 +108,8 @@ namespace FlashBeat.UI.V6.Option
             var trt = textGo.GetComponent<RectTransform>();
             trt.anchorMin = Vector2.zero;
             trt.anchorMax = Vector2.one;
-            trt.offsetMin = new Vector2(8f, 0f);
-            trt.offsetMax = new Vector2(-8f, 0f);
             previewLyricText = textGo.AddComponent<TextMeshProUGUI>();
             previewLyricText.font = PreviewFont();
-            previewLyricText.fontSize = PreviewLyricFontSize;
             previewLyricText.color = V5Tokens.Text;
             previewLyricText.alignment = TextAlignmentOptions.Center;
             previewLyricText.textWrappingMode = TextWrappingModes.NoWrap;
@@ -110,9 +117,8 @@ namespace FlashBeat.UI.V6.Option
             previewLyricText.raycastTarget = false;
         }
 
-        /// <summary>well 中央基準の TMP テキスト (判定ポップ用)。</summary>
-        private static TextMeshProUGUI MakePreviewText(GameObject parent, string name,
-            float fontSize, Color color)
+        /// <summary>well 中央基準の TMP テキスト (判定ポップ用)。寸法・fs は毎フレーム本編写像で設定。</summary>
+        private static TextMeshProUGUI MakePreviewText(GameObject parent, string name)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent.transform, false);
@@ -120,12 +126,10 @@ namespace FlashBeat.UI.V6.Option
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(120f, 34f);
 
             var tmp = go.AddComponent<TextMeshProUGUI>();
             tmp.font = PreviewFont();
-            tmp.fontSize = fontSize;
-            tmp.color = color;
+            tmp.color = V5Tokens.Text;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.raycastTarget = false;
@@ -142,6 +146,25 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
+        /// 本編 HUD px → well px の換算係数。
+        /// well は画面全体 (縦 FOV 全域) を見せるので、画面 px を
+        /// well/Screen の比で線形に縮める。x はビューポート比、
+        /// y は画面高比でそれぞれ独立に換算する。
+        /// </summary>
+        private static Vector2 PreviewScale(Vector2 wellSize)
+        {
+            float screenW = Mathf.Max(1f, Screen.width);
+            float screenH = Mathf.Max(1f, Screen.height);
+            return new Vector2(wellSize.x / screenW, wellSize.y / screenH);
+        }
+
+        /// <summary>本編 HUD と同じプロファイル解決 (V6HudVerdict / V6HudLyrics と同じ入力)。</summary>
+        private static V6HudMetrics PreviewHudMetrics()
+        {
+            return V6HudMetrics.ForResolution(Screen.width, Screen.height);
+        }
+
+        /// <summary>
         /// オーバーレイの毎フレーム更新。<see cref="V6OptionView.Tick"/> から
         /// <see cref="V6OptionPreviewRig.Tick"/> の直後に呼ぶ。
         /// rig が持つ状態 (歌詞行・判定ポップ) を読んで表示へ写すだけで、
@@ -152,6 +175,21 @@ namespace FlashBeat.UI.V6.Option
             if (previewRig == null || previewOverlayRt == null)
             {
                 return;
+            }
+
+            Vector2 wellSize = previewOverlayRt.rect.size;
+            Vector2 screenSize = new Vector2(Screen.width, Screen.height);
+            Vector2 scale = PreviewScale(wellSize);
+            bool layoutDirty =
+                !V6LayoutWrites.NearlyEqual(previewLastWellSize.x, wellSize.x, V6LayoutWrites.PositionEpsilon)
+                || !V6LayoutWrites.NearlyEqual(previewLastWellSize.y, wellSize.y, V6LayoutWrites.PositionEpsilon)
+                || !V6LayoutWrites.NearlyEqual(previewLastScreenSize.x, screenSize.x, V6LayoutWrites.PositionEpsilon)
+                || !V6LayoutWrites.NearlyEqual(previewLastScreenSize.y, screenSize.y, V6LayoutWrites.PositionEpsilon);
+            if (layoutDirty)
+            {
+                previewLastWellSize = wellSize;
+                previewLastScreenSize = screenSize;
+                ApplyPreviewLayout(wellSize, scale);
             }
 
             // 歌詞: 行が変わったときだけ書き換える (毎フレームの dirty を避ける)。
@@ -170,9 +208,14 @@ namespace FlashBeat.UI.V6.Option
                 }
             }
 
-            // 判定ポップ: rig の JudgeQueue が出した判定をレーン位置へ配置する。
-            Vector2 wellSize = previewOverlayRt.rect.size;
+            // 判定ポップ: rig の JudgeQueue が出した判定を、本編 V6HudVerdict と
+            // 同じ写像 (レーン x = 判定エフェクト投影、y = 判定線投影 +
+            // VerdictRestGapAboveLine、fs = m.VerdictFs) で well へ配置する。
             Camera cam = previewRig.PreviewCamera;
+            Vector3 judgeScreen = cam != null
+                ? cam.WorldToViewportPoint(new Vector3(0f, 0.76f, 0.15f))
+                : Vector3.zero;
+            float screenH = Mathf.Max(1f, Screen.height);
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 var tmp = previewVerdictTexts[lane];
@@ -181,7 +224,18 @@ namespace FlashBeat.UI.V6.Option
                     continue;
                 }
 
-                if (!previewRig.TryGetVerdict(lane, out string label, out float startTime))
+                if (cam == null || judgeScreen.z <= 0f
+                    || !previewRig.TryGetVerdict(lane, out string label, out float startTime))
+                {
+                    V6LayoutWrites.ActiveIfChanged(tmp.gameObject, false);
+                    continue;
+                }
+
+                // 本編 UpdateLaneGrids と同じ点 (Judge.EffectPosition 相当
+                // (LaneWorldX, 0.76, 0.15)) をプレビューカメラでビューポートへ写す。
+                Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
+                Vector3 vp = cam.WorldToViewportPoint(world);
+                if (vp.z <= 0f)
                 {
                     V6LayoutWrites.ActiveIfChanged(tmp.gameObject, false);
                     continue;
@@ -191,31 +245,22 @@ namespace FlashBeat.UI.V6.Option
                 float remaining = V6HudLogic.VerdictTotalSeconds - elapsed;
                 float alpha = V6HudLogic.VerdictAlpha(remaining);
 
-                // 本編 Judge.EffectPosition (x = lane - 3.5, y = 0.76, z = 0.15)
-                // と同じ点をプレビューカメラでビューポートへ写す。
-                Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
-                Vector3 vp = cam != null ? cam.WorldToViewportPoint(world) : Vector3.zero;
-                if (vp.z <= 0f)
-                {
-                    V6LayoutWrites.ActiveIfChanged(tmp.gameObject, false);
-                    continue;
-                }
-
-                // 静止位置 = 判定線の VerdictRestGapAboveLine 上。Issue #671:
-                // 出現時は画面上端 (ノーツの出現位置 = 設計 y=0) から
-                // VerdictFallOffset で落ちてくる。
-                // design px → 画面比はデザイン高さ 972 で揃える
-                // (V6HudLogic の px 定数をそのまま比率化して使う)。
-                float restVp = V6HudLogic.VerdictRestGapAboveLine / V6LaneGeometry.DesignHeight;
-                float fallDesign = V6HudLogic.VerdictFallDistance(
-                    V6LaneGeometry.DesignHeight - V6LaneGeometry.JudgeLineY,
-                    V6LaneGeometry.DesignHeight, 0f);
-                float fallVp = V6HudLogic.VerdictFallOffset(elapsed, fallDesign) / V6LaneGeometry.DesignHeight;
-                float vpY = vp.y + restVp + fallVp;
+                // 本編 verdictBaseY の net 効果: 判定テキスト中心の
+                // 画面下原点 y = 判定線 + VerdictRestGapAboveLine + VerdictFallOffset。
+                // Issue #671: 出現時は画面上端から VerdictFallSeconds かけて落下する。
+                // 定数は実スクリーン px なので Screen.height でビューポート比へ写す。
+                // 落下距離も本編と同じく「静止位置→画面上端 − VerdictH/2」で求める。
+                V6HudMetrics vm = PreviewHudMetrics();
+                float judgeFromBottomPx = judgeScreen.y * screenH;
+                float fallDistance = V6HudLogic.VerdictFallDistance(
+                    judgeFromBottomPx, screenH, vm.VerdictH * 0.5f);
+                float restFrac = judgeScreen.y + V6HudLogic.VerdictRestGapAboveLine / screenH;
+                float fallFrac = V6HudLogic.VerdictFallOffset(elapsed, fallDistance) / screenH;
+                float posFrac = restFrac + fallFrac;
 
                 var rt = tmp.rectTransform;
                 V6LayoutWrites.AnchoredPositionIfChanged(rt,
-                    (vp.x - 0.5f) * wellSize.x, (vpY - 0.5f) * wellSize.y);
+                    (vp.x - 0.5f) * wellSize.x, (posFrac - 0.5f) * wellSize.y);
 
                 // ラベルが変わったときだけ文字と色を更新し、
                 // アルファは共有のフェード規則で毎フレーム追従する。
@@ -227,6 +272,59 @@ namespace FlashBeat.UI.V6.Option
                 }
                 V6LayoutWrites.AlphaIfChanged(tmp, alpha);
                 V6LayoutWrites.ActiveIfChanged(tmp.gameObject, true);
+            }
+        }
+
+        /// <summary>
+        /// 歌詞ボックスと判定テキストの寸法・フォントサイズを本編写像で設定する
+        /// (解像度・well サイズが変わったときだけ呼ぶ)。
+        /// </summary>
+        private void ApplyPreviewLayout(Vector2 wellSize, Vector2 scale)
+        {
+            V6HudMetrics m = PreviewHudMetrics();
+            float screenW = Mathf.Max(1f, Screen.width);
+            float screenH = Mathf.Max(1f, Screen.height);
+
+            // 歌詞スロット: 本編 V6HudLyrics.BuildLyric / LyricSlotAnchoredPosition
+            // と同じ原点・幅・高さを well 座標へ写す。
+            if (previewLyricBox != null)
+            {
+                var brt = (RectTransform)previewLyricBox.transform;
+                Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(screenW, screenH);
+                float slotWidth = V6HudLogic.LyricSlotWidth(screenW);
+                Vector2 slotSize = V6HudLogic.LyricSize(m.LyricFs);
+                brt.sizeDelta = new Vector2(slotWidth * scale.x, slotSize.y * scale.y);
+                // 上中央アンカー: x = スロット中心 − well 中央、y = −スロット上端。
+                brt.anchoredPosition = new Vector2(
+                    (slotOrigin.x + slotWidth * 0.5f) * scale.x - wellSize.x * 0.5f,
+                    -slotOrigin.y * scale.y);
+            }
+
+            if (previewLyricText != null)
+            {
+                var trt = previewLyricText.rectTransform;
+                // 本編 VerticalLayoutGroup の padding (LyricPaddingX/Y) を well へ写す。
+                trt.offsetMin = new Vector2(V6HudLogic.LyricPaddingX * scale.x,
+                    V6HudLogic.LyricPaddingY * scale.y);
+                trt.offsetMax = new Vector2(-V6HudLogic.LyricPaddingX * scale.x,
+                    -V6HudLogic.LyricPaddingY * scale.y);
+                // 本編 ScaledLyricFs = m.LyricFs (LyricFs 基準 fs44 への比)。
+                previewLyricText.fontSize = m.LyricFs * scale.y;
+            }
+
+            // 判定ポップ: 本編 V6HudVerdict と同じ m.VerdictW/H/Fs を well へ写す。
+            float verdictW = m.VerdictW * scale.x;
+            float verdictH = m.VerdictH * scale.y;
+            float verdictFs = m.VerdictFs * scale.y;
+            for (int lane = 0; lane < previewVerdictTexts.Length; lane++)
+            {
+                var tmp = previewVerdictTexts[lane];
+                if (tmp == null)
+                {
+                    continue;
+                }
+                tmp.rectTransform.sizeDelta = new Vector2(verdictW, verdictH);
+                tmp.fontSize = verdictFs;
             }
         }
 
@@ -253,6 +351,12 @@ namespace FlashBeat.UI.V6.Option
             return previewRig == null ? 0f : previewRig.LaneFlashAlphaForAudit(lane);
         }
 
+        /// <summary>拍フラッシュ (BGFlash 相当) の現在 α。</summary>
+        public float PreviewBeatFlashAlphaForAudit
+        {
+            get { return previewRig == null ? 0f : previewRig.BeatFlashAlphaForAudit; }
+        }
+
         /// <summary>レーンに表示中の判定ラベル (PERFECT 等)。無ければ null。</summary>
         public string PreviewVerdictForAudit(int lane)
         {
@@ -274,6 +378,36 @@ namespace FlashBeat.UI.V6.Option
         public int PreviewJudgementCountForAudit
         {
             get { return previewRig == null ? 0 : previewRig.JudgementCount; }
+        }
+
+        /// <summary>歌詞ボックスの RectTransform (配置検証用)。無ければ null。</summary>
+        public RectTransform PreviewLyricBoxRectForAudit
+        {
+            get
+            {
+                return previewLyricBox == null ? null
+                    : previewLyricBox.GetComponent<RectTransform>();
+            }
+        }
+
+        /// <summary>歌詞テキストの TMP (フォントサイズ検証用)。無ければ null。</summary>
+        public TextMeshProUGUI PreviewLyricTextForAudit
+        {
+            get { return previewLyricText; }
+        }
+
+        /// <summary>判定ポップの RectTransform (配置検証用)。無ければ null。</summary>
+        public RectTransform PreviewVerdictRectForAudit(int lane)
+        {
+            return lane >= 0 && lane < previewVerdictTexts.Length && previewVerdictTexts[lane] != null
+                ? previewVerdictTexts[lane].rectTransform
+                : null;
+        }
+
+        /// <summary>判定ポップの TMP (フォントサイズ検証用)。無ければ null。</summary>
+        public TextMeshProUGUI PreviewVerdictTextForAudit(int lane)
+        {
+            return lane >= 0 && lane < previewVerdictTexts.Length ? previewVerdictTexts[lane] : null;
         }
     }
 }
