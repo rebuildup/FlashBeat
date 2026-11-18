@@ -13,8 +13,14 @@
  *
  *   - **accuracy** of a play = `(perfect + 0.6 * great + 0.3 * bad) / notes`,
  *     with the note count of the played chart version. A miss counts as zero.
- *     The average of a song is the average of its plays.
+ *     The average of a song is the average of its plays — a plain mean over
+ *     plays, not a note-count-weighted one.
  *   - **plays** are the score submissions; a player is a distinct nickname.
+ *     Like the ranking board, every aggregate counts only plays of the
+ *     *currently published* chart version of each song: the response labels
+ *     a song with `songs.currentVersion`, so a play of a superseded snapshot
+ *     must not leak into `plays`, `averageScore`, `bestScore` or
+ *     `averageAccuracy`.
  *   - **live** songs are the songs that are in the public catalog (not
  *     archived and with a published chart version). Archived songs are
  *     counted separately — the festival never deletes a song.
@@ -56,8 +62,10 @@ export const GET = defineHandler(async (c) => {
     )
     .orderBy(songs.id);
 
-  // 2. The plays per song, with the accuracy computed from the note count of
-  //    the played chart version.
+  // 2. The plays per song, with the accuracy of each play computed from the
+  //    note count of the chart version it was played on and averaged per
+  //    play (the contract: "this is the average of the plays"). Only plays of
+  //    the currently published chart version count, like the rankings.
   const playRows = await db
     .select({
       songId: scores.songId,
@@ -65,14 +73,20 @@ export const GET = defineHandler(async (c) => {
       distinctPlayers: sql<number>`count(distinct ${scores.nickname})`,
       averageScore: sql<number>`avg(${scores.score})`,
       bestScore: sql<number>`max(${scores.score})`,
-      averageAccuracy: sql<number>`sum(${scores.p} + 0.6 * ${scores.g} + 0.3 * ${scores.b}) / sum(${chartVersions.noteCount})`,
+      averageAccuracy: sql<number>`avg((${scores.p} + 0.6 * ${scores.g} + 0.3 * ${scores.b}) / ${chartVersions.noteCount})`,
     })
     .from(scores)
+    .innerJoin(songs, eq(songs.id, scores.songId))
     .innerJoin(
       chartVersions,
       and(eq(chartVersions.songId, scores.songId), eq(chartVersions.version, scores.version)),
     )
-    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION))
+    .where(
+      and(
+        eq(scores.scoringVersion, LATEST_SCORING_VERSION),
+        eq(scores.version, songs.currentVersion),
+      ),
+    )
     .groupBy(scores.songId);
 
   const playsBySong = new Map(playRows.map((row) => [row.songId, row]));
@@ -96,21 +110,30 @@ export const GET = defineHandler(async (c) => {
     };
   });
 
-  // 3. The totals.
+  // 3. The totals — the same scope as the per-song rows: the latest scoring
+  //    version and the currently published chart version of each song.
   const [scoreTotals] = await db
     .select({
       scores: count(),
       players: sql<number>`count(distinct ${scores.nickname})`,
     })
     .from(scores)
-    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION));
+    .innerJoin(songs, eq(songs.id, scores.songId))
+    .where(
+      and(
+        eq(scores.scoringVersion, LATEST_SCORING_VERSION),
+        eq(scores.version, songs.currentVersion),
+      ),
+    );
 
   const [lastDay] = await db
     .select({ value: count() })
     .from(scores)
+    .innerJoin(songs, eq(songs.id, scores.songId))
     .where(
       and(
         eq(scores.scoringVersion, LATEST_SCORING_VERSION),
+        eq(scores.version, songs.currentVersion),
         sql`${scores.createdAt} >= datetime('now', '-1 day')`,
       ),
     );
@@ -141,7 +164,13 @@ export const GET = defineHandler(async (c) => {
       bestScore: sql<number>`max(${scores.score})`,
     })
     .from(scores)
-    .where(eq(scores.scoringVersion, LATEST_SCORING_VERSION))
+    .innerJoin(songs, eq(songs.id, scores.songId))
+    .where(
+      and(
+        eq(scores.scoringVersion, LATEST_SCORING_VERSION),
+        eq(scores.version, songs.currentVersion),
+      ),
+    )
     .groupBy(scores.nickname)
     .orderBy(desc(sql`sum(${scores.score})`), desc(sql`max(${scores.score})`))
     .limit(TOP_LIST_SIZE);

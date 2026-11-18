@@ -169,7 +169,9 @@ paths:
       description: >-
         Public festival statistics: totals, the plays of every song, the level
         distribution and the best players. Aggregates only the latest scoring
-        version; earlier scoring versions never mix into the totals.
+        version and only plays of the currently published chart version of
+        each song; earlier scoring versions and superseded chart versions
+        never mix into the totals.
       responses:
         '200':
           description: Statistics. Cache-Control no-store.

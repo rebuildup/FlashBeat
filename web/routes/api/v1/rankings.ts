@@ -65,7 +65,16 @@ export const GET = defineHandler(async (c) => {
       chartVersions,
       and(eq(chartVersions.songId, scores.songId), eq(chartVersions.version, scores.version)),
     )
-    .where(and(eq(songs.archived, 0), eq(scores.scoringVersion, scoringVersion)))
+    // Only the scores of the currently published chart version count: the
+    // response labels every song with `songs.currentVersion`, so a play of a
+    // superseded snapshot must not leak into `plays` or `entries`.
+    .where(
+      and(
+        eq(songs.archived, 0),
+        eq(scores.scoringVersion, scoringVersion),
+        eq(scores.version, songs.currentVersion),
+      ),
+    )
     .orderBy(asc(scores.songId), desc(scores.score), asc(scores.createdAt), asc(scores.id));
 
   const playsBySong = new Map<string, number>();

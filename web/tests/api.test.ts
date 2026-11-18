@@ -1349,6 +1349,141 @@ describe("GET /api/v1/rankings and GET /api/v1/stats", () => {
     });
     assert.equal(restore.status, 200);
   });
+
+  it("scopes the ranking board to the currently published chart version", async () => {
+    // `who` v1 is the published version (139 notes); v2 is a superseded
+    // snapshot (1 note). Scores are accepted on both, but the board labels
+    // the song with the current version, so only v1 plays may show up in
+    // `plays` and `entries` (issue #638). The submissions use scoring
+    // version 1 and the board is read with the same version, so the
+    // assertion is independent of the default (latest) scoring version.
+    const submit = (
+      chartVersion: number,
+      nickname: string,
+      counts: { perfect?: number; great?: number; bad?: number; miss?: number },
+    ): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/scores`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          songId: "who",
+          chartVersion,
+          nickname,
+          perfect: 0,
+          great: 0,
+          bad: 0,
+          miss: 0,
+          scoringVersion: 1,
+          ...counts,
+        }),
+      });
+
+    // A play of the current version (139 notes, all great) and a perfect
+    // play of the superseded version (1 note).
+    const current = await submit(1, "RankNew", { great: 139 });
+    assert.equal(current.status, 201);
+    const currentScore = ((await current.json()) as { score: number }).score;
+    const oldVersion = await submit(2, "RankOld", { perfect: 1 });
+    assert.equal(oldVersion.status, 201);
+
+    const response = await fetch(`${baseUrl}/api/v1/rankings?scoringVersion=1`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      songs: {
+        songId: string;
+        chartVersion: number;
+        plays: number;
+        entries: { nickname: string; score: number }[];
+      }[];
+    };
+    validateRankings(body);
+
+    const who = body.songs.find((song) => song.songId === "who");
+    assert.equal(who?.chartVersion, 1);
+    // Only the current-version play counts: the superseded-version play is
+    // stored but invisible to the board.
+    assert.equal(who?.plays, 1);
+    assert.deepEqual(who?.entries, [{ nickname: "RankNew", score: currentScore }]);
+  });
+
+  it("averages accuracy per play and counts only the current chart version", async () => {
+    // A fresh song published twice: v1 has 10 notes, v2 (the current
+    // version) has 4. The plays span both versions with different note
+    // counts, so a note-count-weighted mean and a per-play mean would
+    // differ — and plays of the superseded version must not count at all
+    // (issue #638).
+    const publish = (notes: unknown[]): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/stats-acc-song`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: "Stats Accuracy Song",
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: { name: "stats-acc-song", maxBlock: 8, BPM: 120, offset: 0, notes },
+        }),
+      });
+    const notes = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        type: 1,
+        num: index + 1,
+        block: index % 8,
+        LPB: 4,
+      }));
+    assert.equal((await publish(notes(10))).status, 200); // v1
+    assert.equal((await publish(notes(4))).status, 200); // v2, now current
+
+    const submit = (
+      chartVersion: number,
+      nickname: string,
+      counts: { perfect?: number; great?: number; bad?: number; miss?: number },
+    ): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/scores`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          songId: "stats-acc-song",
+          chartVersion,
+          nickname,
+          perfect: 0,
+          great: 0,
+          bad: 0,
+          miss: 0,
+          scoringVersion: 3,
+          ...counts,
+        }),
+      });
+
+    // Superseded version (10 notes), accuracy 1.0 — must not count.
+    assert.equal((await submit(1, "OldPerfect", { perfect: 10 })).status, 201);
+    // Current version (4 notes): all miss -> accuracy 0, and 2 perfect +
+    // 2 great -> accuracy (2 + 0.6 * 2) / 4 = 0.8.
+    assert.equal((await submit(2, "AllMiss", { miss: 4 })).status, 201);
+    assert.equal((await submit(2, "Mixed", { perfect: 2, great: 2 })).status, 201);
+
+    const response = await fetch(`${baseUrl}/api/v1/stats`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      perSong: { songId: string; plays: number; averageAccuracy: number | null }[];
+    };
+    validateStats(body);
+
+    const song = body.perSong.find((row) => row.songId === "stats-acc-song");
+    // Only the two current-version plays count, and the average is the
+    // plain mean of the per-play accuracies: (0 + 0.8) / 2 = 0.4.
+    assert.equal(song?.plays, 2);
+    assert.ok(
+      song?.averageAccuracy !== null &&
+        song?.averageAccuracy !== undefined &&
+        Math.abs(song.averageAccuracy - 0.4) < 1e-9,
+      `expected averageAccuracy 0.4, got ${String(song?.averageAccuracy)}`,
+    );
+  });
 });
 
 describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
