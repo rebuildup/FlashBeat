@@ -243,11 +243,11 @@ publishes both in one request.
 
 ### Score API (issues #133, #578; ADR-0028)
 
-| Route                                                          | File                                     | Behaviour                                                                                                                  |
-| -------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/scores`                                          | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client.   |
-| `GET /api/v1/leaderboards/{songId}?version=N&scoringVersion=V` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version **and one scoring version**, score descending, the earliest submission wins a tie. |
-| `GET /api/v1/rankings?scoringVersion=V`                        | `routes/api/v1/rankings.ts`              | The ranking board within one scoring version (default: the latest the server supports).                                    |
+| Route                                                          | File                                     | Behaviour                                                                                                                                       |
+| -------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/scores`                                          | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client.                        |
+| `GET /api/v1/leaderboards/{songId}?version=N&scoringVersion=V` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version **and one scoring version**, score descending, the earliest submission wins a tie.                      |
+| `GET /api/v1/rankings?scoringVersion=V`                        | `routes/api/v1/rankings.ts`              | The ranking board within one scoring version (default: the latest the server supports).                                                         |
 | `GET /api/v1/stats`                                            | `routes/api/v1/stats.ts`                 | Festival statistics aggregated over the **latest** scoring version only — scores of different formula versions are never mixed (ADR-0028/0029). |
 
 - `scoringVersion` selects the formula: `1` (or an omitted field — old clients)
