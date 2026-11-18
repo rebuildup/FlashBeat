@@ -43,9 +43,9 @@ public class GManager : MonoBehaviour
 {
     public static GManager instance = null;
 
-    /// <summary>v2 の満点 ratio (= noteCount * 15, ADR-0028)。NotesManager が譜面読込時に書く。</summary>
+    /// <summary>scoring v3 の満点 ratio (= MaxRatioV3(noteCount), ADR-0029)。NotesManager が譜面読込時に書く。</summary>
     public static float maxScore;
-    /// <summary>v2 の現在 ratio (判定 + コンボ + ノーミス)。Judge が毎フレーム書く。</summary>
+    /// <summary>scoring v3 の現在 ratio (判定 + コンボ + ノーミス + 節目 + フルコンボ)。Judge が毎フレーム書く。</summary>
     public static float ratioScore;
 
     public static int songID = 1;

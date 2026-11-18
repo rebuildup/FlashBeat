@@ -291,6 +291,12 @@ public class Judge : MonoBehaviour
         if (notesManager.NoteType.Count == 0) return;
 
         queue = new JudgeQueue(LaneKeys.Length);
+
+        // Issue #641: Add() は挿入位置を毎回線形スキャンするため、編集順が
+        // 時刻順と一致しない譜面では全ノーツ追加で O(n²) のフレームスパイクに
+        // なる。一旦リストへ集めて AddRange で一括追加・一括ソートする
+        // (並び順は Add の繰り返しと同一: 時刻順・同時刻は追加順)。
+        var entries = new List<JudgeQueue.NoteEntry>(notesManager.noteNum);
         for (int i = 0; i < notesManager.NoteType.Count; i++)
         {
             // 末尾の番兵 (時刻 10000) は判定の対象にしない。
@@ -303,7 +309,7 @@ public class Judge : MonoBehaviour
                 continue;
             }
 
-            queue.Add(new JudgeQueue.NoteEntry
+            entries.Add(new JudgeQueue.NoteEntry
             {
                 Time = notesManager.NotesTime[i],
                 EndTime = i < notesManager.NotesEndTime.Count ? notesManager.NotesEndTime[i] : 0f,
@@ -312,6 +318,7 @@ public class Judge : MonoBehaviour
                 SourceIndex = i,
             });
         }
+        queue.AddRange(entries);
     }
 
     /// <summary>そのレーンのキーがこのフレームで押されたか。</summary>
@@ -396,6 +403,16 @@ public class Judge : MonoBehaviour
 
     /// <summary>
     /// スコアの計算 (純ロジック)。
+    ///
+    /// <para>
+    /// TEST / PARITY ONLY (Issue #641): production scoring is
+    /// <see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/>, which uses exact
+    /// integer arithmetic (Issue #631). This float path remains because the
+    /// v1/v2 parity fixtures and the v2 scoring tests
+    /// (<c>ParityFixtureTests</c>, <c>ScoringV2Tests</c>,
+    /// <c>JudgeLogicTests</c>) pin the legacy rounding against the server
+    /// recomputation. Do not call it from gameplay code.
+    /// </para>
     ///
     /// maxScore が 0 (譜面が無いセッション) のときは 0 で割って NaN になり、
     /// (int) キャストすると不定の値 (int.MinValue) になるため、0 を返す。
