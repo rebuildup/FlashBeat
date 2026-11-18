@@ -58,3 +58,24 @@
 # 大型SDFアセットのみ、テキスト規則よりLFSを優先する
 "Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset" filter=lfs diff=lfs merge=lfs -text
 "Assets/Plugins/macOS/FlashBeatNative.bundle/Contents/MacOS/FlashBeatNative" filter=lfs diff=lfs merge=lfs -text
+
+# ─────── GitHub Linguist: vendored 分類 ───────
+# GitHub の言語統計から第三者コードを除外する。対象は upstream と照合して
+# 未改変と確認できた範囲に限定する（Issue #636）。
+# `Assets/ThirdParty/` は Linguist 内蔵の vendor 規約で既に除外済み。
+#
+# UniRx 5.5.0 (neuecc/UniRx, MIT) — upstream tag 5.5.0 と内容一致
+Assets/NoteEditor/Plugins/UniRx/** linguist-vendored
+
+# NoteEditor fork (setchi/NoteEditor, MIT) のうち upstream と未改変の subtree。
+# fork 本体（Scripts/Presenter 等）は FlashBeat 側の改変を含むため対象外。
+Assets/NoteEditor/Scripts/GLDrawing/** linguist-vendored
+Assets/NoteEditor/Scripts/Notes/** linguist-vendored
+Assets/NoteEditor/Scripts/Common/** linguist-vendored
+Assets/NoteEditor/Scripts/SoundEffect/** linguist-vendored
+Assets/NoteEditor/Shaders/** linguist-vendored
+
+# vendored Skills（skills-lock.json が upstream commit で pin。整合性は
+# `mise run skills-check` が担保するため manifest 対象外）
+.agents/skills/** linguist-vendored
+.claude/skills/** linguist-vendored
