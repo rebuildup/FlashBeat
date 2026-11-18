@@ -132,6 +132,22 @@ public class AutoTestPlay : MonoBehaviour
             Check("the media clock advances", music.MediaTimeNow > before);
             Check("the video plays", music.VideoPlaying);
             yield return Screenshot("06-gameplay");
+
+            // 6. Lane click sound (issues #672/#682): a lane key press must play
+            // the click clip on the judge AudioSource, once per frame even for
+            // simultaneous presses. This observes the real AudioSource, not a
+            // mocked PlayOneShot.
+            Judge judge = FindFirstObjectByType<Judge>();
+            AudioSource judgeAudio = judge != null ? judge.GetComponent<AudioSource>() : null;
+            Check("the judge audio source exists", judgeAudio != null);
+            if (judgeAudio != null)
+            {
+                judgeAudio.Stop();
+                KeyBindings.InjectKeyDown(Judge.LaneKeys[0][0]);
+                yield return null;
+                yield return null;
+                Check("the lane click sound plays on key press", judgeAudio.isPlaying);
+            }
         }
 
         Debug.Log("[AutoTest] RESULT play pass=" + pass + " fail=" + fail);
