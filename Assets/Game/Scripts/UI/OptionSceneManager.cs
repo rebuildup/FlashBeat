@@ -410,7 +410,10 @@ public class OptionSceneManager : MonoBehaviour
         WriteNoteTimingToSongOffsets();
     }
 
-    /// <summary>判定幅を各曲の offset へ書き戻す (既存の保存先 = ユーザー領域の設定 JSON)。</summary>
+    /// <summary>判定幅を各曲の offset へ書き戻す (既存の保存先 = ユーザー領域の設定 JSON)。
+    /// Known cost (issue #651, accepted): this rewrites every song's
+    /// .setting.json on each change, including songs never played. A
+    /// per-song-dirty or single shared-offset design is a separate change.</summary>
     public static void WriteNoteTimingToSongOffsets()
     {
         for (int i = 1; i <= GManager.totalSong; i++)

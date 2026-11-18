@@ -473,6 +473,10 @@ public class GManager : MonoBehaviour
 
     public static float mainVolume = 1.0f;
     public static float effectVolume = 1.0f;
+    /// <summary>Non-gameplay BGM volume (Title/Select/Option background
+    /// video audio). GameScene video audio follows <see cref="mainVolume"/>
+    /// instead — the Option slider labeled BGM therefore does not affect
+    /// in-game audio (accepted semantics, issue #651).</summary>
     public static float BGMVolume = 0.3f;
     public static float BGMtime = 0f;
 

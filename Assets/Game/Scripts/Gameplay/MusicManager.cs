@@ -224,7 +224,14 @@ public class MusicManager : MonoBehaviour
         audioS = GetComponent<AudioSource>();
         // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
         // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
-        musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        // Issue #651: songName は SongData.title 由来 (リモート曲は API の
+        // メタデータ)。'/' 等を含むと Resources path が別階層を指して
+        // 必ず見つからないため、path 区切りを含む名前は load 自体を省く
+        // (Music == null の既存経路 = YouTube 音声のみ、へそのまま流れる)。
+        if (songName.IndexOfAny(new[] { '/', '\\' }) < 0)
+        {
+            musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        }
         notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;

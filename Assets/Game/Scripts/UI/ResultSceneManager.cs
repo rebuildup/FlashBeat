@@ -61,6 +61,14 @@ public class ResultSceneManager : MonoBehaviour
         // 新記録が保存されないことがあった。Awake は全ての Start より先に走る。
         // 更新処理は EditMode テストから直接検証できるよう純粋関数に抽出した。
         prevHiscore = ApplyBestScore(GManager.songID, GManager.score);
+
+        // Issue #651: BGMtime の頭出しも Awake で行う。
+        // VideoTime.Start は GManager.BGMtime を読んで背景動画の再生位置を
+        // 決めるが、Start の実行順は未定義。Start で 0 に戻すと、VideoTime
+        // が先に走った場合に旧値で seek したあと Update が BGMtime を旧値へ
+        // 書き戻し、Result の背景動画が途中から再開される。Awake は全ての
+        // Start より先に走るため、ここで確定させれば順序に依存しない。
+        GManager.BGMtime = 0f;
     }
 
     /// <summary>
@@ -94,7 +102,6 @@ public class ResultSceneManager : MonoBehaviour
 
     void Start()
     {
-        GManager.BGMtime = 0f;   
         SongName.text = GManager.ActiveSongs[GManager.songID].title;
         Musician.text = GManager.ActiveSongs[GManager.songID].musician;
         BPM.text = GManager.ActiveSongs[GManager.songID].bpm.ToString();
