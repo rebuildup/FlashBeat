@@ -175,9 +175,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
+                // Issue #658: KeyGuideMode.Full ではレーンの全有効キーを出す
+                // (v5 GuideKeyText と同じ規約)。キー表は KeyBindings だけを見る。
+                string keyText = V6HudLogic.GuideKeyText(lane);
+                float keyFs = V6HudLogic.GuideKeyFontSize(
+                    m.KeyCapW, m.KeyCapLabelFs, keyText, V6Ui.KeyCapPaddingX);
                 // contract json: bg #3A3A3A r4 + ラベル $text-muted (Key fs24, design 空間)
-                var cap = V6Ui.KeyCap(keyGuideRow, V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
-                    new Vector2(m.KeyCapW, m.KeyCapH), m.KeyCapLabelFs);
+                var cap = V6Ui.KeyCap(keyGuideRow, keyText,
+                    new Vector2(m.KeyCapW, m.KeyCapH), keyFs);
                 var label = cap.GetComponentInChildren<TextMeshProUGUI>();
                 var rt = V6Layout.RectOf(cap);
                 rt.anchorMin = new Vector2(0f, 0.5f);
@@ -225,7 +230,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             for (int lane = 0; lane < keyCaps.Count; lane++)
             {
-                keyCaps[lane].text = V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane));
+                string keyText = V6HudLogic.GuideKeyText(lane);
+                keyCaps[lane].text = keyText;
+                // フル表示で縮んだ fs をキー数の変化に追従させる。
+                keyCaps[lane].fontSize = V6HudLogic.GuideKeyFontSize(
+                    m.KeyCapW, m.KeyCapLabelFs, keyText, V6Ui.KeyCapPaddingX);
             }
         }
     }
