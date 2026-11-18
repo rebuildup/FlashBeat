@@ -388,7 +388,10 @@ public class Judge : MonoBehaviour
         GManager.milestoneBonus = v3.MilestoneBonus;
         GManager.finalBonus = v3.FinalBonus;
 
-        UpdateScore();
+        // scoring v3 のスコアは整数の厳密な割り算で求める (Issue #631)。
+        // GManager.score はこの値が HUD 表示とスコア投稿の両方に使われ、
+        // サーバの再計算 (computeUnityScoreV3) と全プラットフォームで一致する。
+        UpdateScore(Scoring.ScoreV3(v3));
     }
 
     /// <summary>
@@ -407,10 +410,17 @@ public class Judge : MonoBehaviour
         return (int)Math.Round(1000000 * Math.Floor(ratioScore / maxScore * 1000000) / 1000000);
     }
 
-    /// <summary>スコア表示と内部スコアの更新。</summary>
-    private void UpdateScore()
+    /// <summary>
+    /// スコア表示と内部スコアの更新。
+    ///
+    /// <paramref name="score"/> は呼び出し側が確定した値
+    /// (<see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/> の整数演算、
+    /// Issue #631)。ここで float の ratioScore / maxScore から再計算すると
+    /// プラットフォームごとの丸め差が再び入るため、受け取った値をそのまま使う。
+    /// </summary>
+    private void UpdateScore(int score)
     {
-        GManager.score = ComputeScore(GManager.ratioScore, GManager.maxScore);
+        GManager.score = score;
         fSize = 220;
         Fsize = 67;
 

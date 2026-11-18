@@ -308,8 +308,9 @@ describe("computeUnityScoreV3 (ADR-0029)", () => {
     // 139 notes: 100 perfect + 30 great + 9 bad, maxCombo 139, 2 milestones,
     // no miss.
     //   judgment 599 + comboBonus 695 + noMissBonus 695 + milestoneBonus 50
-    //   + finalBonus 100 = 2139, maxRatio 2235 -> 957047
-    assert.equal(computeUnityScoreV3(100, 30, 9, 0, 139, 2, 139), 957047);
+    //   + finalBonus 100 = 2139, maxRatio 2235 -> 957046 (deterministic
+    //   integer floor since Issue #631; the legacy float path gave 957047)
+    assert.equal(computeUnityScoreV3(100, 30, 9, 0, 139, 2, 139), 957046);
   });
 
   it("awards no final bonus and no no-miss bonus when a note was missed", () => {

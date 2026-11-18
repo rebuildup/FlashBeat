@@ -813,18 +813,43 @@ describe("POST /api/v1/scores", () => {
     assert.equal(rejected.error, "score mismatch");
   });
 
-  it("recomputes a v3 submission with the scoring v3 formula (ADR-0029)", async () => {
+  it("recomputes a v3 submission with the deterministic v3 formula (ADR-0029, Issue #631)", async () => {
     // The seeded Who chart v1 has 139 notes. scoringVersion 3,
     // 100 perfect + 30 great + 9 bad, maxCombo 139, 2 milestone crossings
     // (bound floor(139/50) = 2), no miss:
     //   judgment 599 + comboBonus 695 + noMissBonus 695 + milestoneBonus 50
     //   + finalBonus 100 = 2139, maxRatio = 15*139 + 2*25 + 100 = 2235
-    //   -> floor(2139/2235 * 1e6) = 957047.
+    //   -> floor(2139/2235 * 1e6) = 957046 (exact integer arithmetic).
     const response = await submit(
       submission(
         "who",
         1,
         "V3 Player",
+        { perfect: 100, great: 30, bad: 9, miss: 0 },
+        {
+          maxCombo: 139,
+          comboMilestones: 2,
+          score: 957046,
+          scoringVersion: 3,
+        },
+      ),
+    );
+    assert.equal(response.status, 201);
+    const body = (await response.json()) as { score: number; rank: number };
+    validateScoreResponse(body);
+    assert.equal(body.score, 957046);
+    assert.equal(body.rank, 1);
+  });
+
+  it("accepts the legacy float-path v3 score from pre-#631 clients", async () => {
+    // The same play was 957047 under the single-precision ComputeScore path
+    // (Issue #631). A fielded client still sends that value; the server
+    // accepts it and stores the deterministic 957046.
+    const response = await submit(
+      submission(
+        "who",
+        1,
+        "V3 Legacy",
         { perfect: 100, great: 30, bad: 9, miss: 0 },
         {
           maxCombo: 139,
@@ -835,14 +860,14 @@ describe("POST /api/v1/scores", () => {
       ),
     );
     assert.equal(response.status, 201);
-    const body = (await response.json()) as { score: number; rank: number };
+    const body = (await response.json()) as { score: number };
     validateScoreResponse(body);
-    assert.equal(body.score, 957047);
-    assert.equal(body.rank, 1);
+    assert.equal(body.score, 957046);
   });
 
   it("answers 422 when a v3 client score disagrees with the v3 formula", async () => {
-    // The same play scores 957047; the client claims one point less.
+    // The same play scores 957046 (deterministic) / 957047 (legacy); the
+    // client claims one point less than both.
     const response = await submit(
       submission(
         "who",
@@ -852,7 +877,7 @@ describe("POST /api/v1/scores", () => {
         {
           maxCombo: 139,
           comboMilestones: 2,
-          score: 957046,
+          score: 957045,
           scoringVersion: 3,
         },
       ),

@@ -214,26 +214,23 @@ public class RankingSubmissionJudgementSumTests
 
     /// <summary>
     /// API が再計算するスコア (web/routes/api/v1/_score-model.ts の
-    /// <c>computeUnityScoreV3</c>、ADR-0029 の v3 式)。クライアント側の
-    /// <see cref="Scoring.ScoreV3"/> と同じ単精度の手順で独立に計算する。
+    /// <c>computeUnityScoreV3</c>、ADR-0029 + Issue #631 の v3 式)。
+    /// クライアント側の <see cref="Scoring.ScoreV3"/> と同じ決定的な
+    /// 整数演算で独立に計算する (float を介さないため全プラットフォームで一致)。
     /// </summary>
     private static int ApiRecomputedScore(int perfect, int great, int bad, int miss,
         int maxCombo, int comboMilestones, int noteCount)
     {
         if (noteCount <= 0) return 0;
-        float maxScore = noteCount * 15f
-            + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints + 100f;
-        float judgment = perfect * 5f + great * 3f + bad;
-        float comboBonus = maxCombo * 5f;
-        float hits = perfect + great + bad;
-        float noMissBonus = miss == 0 ? hits * 5f : 0f;
-        float milestoneBonus = comboMilestones * Scoring.MilestoneBonusPoints;
-        float finalBonus = miss == 0 ? Scoring.FullComboBonusPoints : 0f;
-        float ratioScore = (float)((double)judgment + comboBonus + noMissBonus
-            + milestoneBonus + finalBonus);
-        float ratio = ratioScore / maxScore;
-        float scaled = ratio * 1000000f;
-        float floored = Mathf.Floor(scaled);
-        return (int)System.Math.Round(1000000 * floored / 1000000);
+        long maxScore = noteCount * 15L
+            + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints + 100L;
+        long judgment = perfect * 5L + great * 3L + bad;
+        long comboBonus = maxCombo * 5L;
+        long hits = perfect + great + bad;
+        long noMissBonus = miss == 0 ? hits * 5L : 0L;
+        long milestoneBonus = comboMilestones * (long)Scoring.MilestoneBonusPoints;
+        long finalBonus = miss == 0 ? Scoring.FullComboBonusPoints : 0L;
+        long ratioScore = judgment + comboBonus + noMissBonus + milestoneBonus + finalBonus;
+        return (int)(ratioScore * 1000000L / maxScore);
     }
 }

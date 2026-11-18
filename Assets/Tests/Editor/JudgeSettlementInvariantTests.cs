@@ -390,8 +390,11 @@ public class JudgeSettlementInvariantTests
             "maxScore != MaxRatioV3(noteCount)");
         Assert.LessOrEqual(GManager.ratioScore, GManager.maxScore, "ratioScore が maxScore を超えた");
 
-        // スコアは ComputeScore の式と一致する。
-        Assert.AreEqual(Judge.ComputeScore(GManager.ratioScore, GManager.maxScore), GManager.score);
+        // スコアは v3 の決定的な整数演算と一致する (Issue #631)。
+        Assert.AreEqual(
+            Scoring.ScoreV3(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
+                GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true),
+            GManager.score);
         Assert.GreaterOrEqual(GManager.score, 0);
         Assert.LessOrEqual(GManager.score, 1000000);
 

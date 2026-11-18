@@ -29,7 +29,7 @@
  *     maxScore    = noteCount * 15                     (theoretical max)
  *     score       = same ComputeScore rounding as v1
  *
- *   v3 (scoringVersion 3, ADR-0029):
+ *   v3 (scoringVersion 3, ADR-0029, deterministic since Issue #631):
  *     judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged)
  *     comboBonus     = maxCombo * 5                       (unchanged)
  *     noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
@@ -50,11 +50,17 @@
  *     totalRatio     = judgment + comboBonus + noMissBonus
  *                      + milestoneBonus + finalBonus
  *     maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
- *     score          = same ComputeScore rounding as v1/v2
+ *     score          = floor(totalRatio * 1e6 / maxRatio) — exact integer
+ *                      arithmetic (Issue #631), identical on every Unity
+ *                      backend and this Worker
  *
- * The server reproduces the formulas — the same IEEE-754 operations in the
- * same order, emulated with `Math.fround` because the Unity accumulators are
- * C# `float` — and rejects a client score that disagrees.
+ * v1 and v2 keep the single-precision emulation below: their stored records
+ * were produced by the float formula and must keep their meaning. v3 moved
+ * to integer arithmetic because float32 evaluation order differs between
+ * the Editor Mono JIT, IL2CPP and this `Math.fround` emulation, which could
+ * reject a legitimate score with 422 over a one-ulp difference (Issue #631).
+ * Clients built before the change still send the legacy float-path score;
+ * the submission endpoint accepts that value as well (see scores.ts).
  */
 import { Validator, type Schema } from "@cfworker/json-schema";
 
@@ -377,7 +383,8 @@ export function computeUnityScoreV2(
 }
 
 /**
- * The scoring v3 score of a play (ADR-0029), computed exactly like Unity:
+ * The scoring v3 score of a play (ADR-0029), computed with the deterministic
+ * integer arithmetic the Unity client uses since Issue #631:
  *
  *   judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged from v2)
  *   comboBonus     = maxCombo * 5                       (unchanged from v2)
@@ -389,9 +396,12 @@ export function computeUnityScoreV2(
  *   totalRatio     = judgment + comboBonus + noMissBonus
  *                    + milestoneBonus + finalBonus
  *   maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
- *   score          = ComputeScore(totalRatio, maxRatio) — same rounding as v1/v2
+ *   score          = floor(totalRatio * 1e6 / maxRatio)
  *
- * Returns `null` when the chart has no notes, like `computeUnityScoreV2`.
+ * Every term is an integer, so the result is the exact floor of the rational
+ * — no floating-point rounding exists on either side (C# `long` division on
+ * Unity, IEEE-754 doubles here; both operands stay far below 2^53). Returns
+ * `null` when the chart has no notes, like `computeUnityScoreV2`.
  */
 export function computeUnityScoreV3(
   perfect: number,
@@ -405,9 +415,44 @@ export function computeUnityScoreV3(
   if (noteCount <= 0) {
     return null;
   }
+  const maxScore = noteCount * 15 + Math.floor(noteCount / 50) * 25 + 100;
+  const judgment = perfect * 5 + great * 3 + bad;
+  const hits = perfect + great + bad;
+  const ratioScore =
+    judgment +
+    (maxCombo ?? 0) * 5 +
+    (miss === 0 ? hits * 5 : 0) +
+    (comboMilestones ?? 0) * 25 +
+    (miss === 0 ? 100 : 0);
+  if (maxScore <= 0) {
+    return null;
+  }
+  return Math.floor((ratioScore * 1_000_000) / maxScore);
+}
+
+/**
+ * The v3 score as computed by Unity clients built before Issue #631: the
+ * single-precision `Math.fround` emulation of the legacy `ComputeScore`
+ * path. Fielded builds still send this value; the submission endpoint
+ * accepts it as an alternative to the deterministic score so their plays
+ * are not rejected with 422 (the stored score is always the deterministic
+ * one). Not used for new contract vectors.
+ */
+export function computeUnityScoreV3Legacy(
+  perfect: number,
+  great: number,
+  bad: number,
+  miss: number,
+  maxCombo: number | undefined,
+  comboMilestones: number | undefined,
+  noteCount: number,
+): number | null {
+  if (noteCount <= 0) {
+    return null;
+  }
   // Same single-precision emulation as the v1/v2 formulas: every accumulator
-  // the Unity side holds as a C# `float` is rounded with Math.fround, in the
-  // same order (see computeUnityScore).
+  // the pre-#631 Unity side held as a C# `float` is rounded with Math.fround,
+  // in the same order (see computeUnityScore).
   const maxScore = Math.fround(noteCount * 15 + Math.floor(noteCount / 50) * 25 + 100);
   const judgment = Math.fround(perfect * 5 + great * 3 + bad);
   const comboBonus = Math.fround((maxCombo ?? 0) * 5);
