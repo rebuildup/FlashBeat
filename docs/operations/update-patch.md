@@ -285,6 +285,7 @@ FLASHBEAT_UPDATE_ALLOW_MANUAL=1 /bin/bash ./update-macos.sh \
 
 ## 関連
 
+- アプリ全体の書き込み境界の監査 (更新以外の書き込み先の分類と保証範囲): [`app-write-boundary-audit.md`](app-write-boundary-audit.md)
 - Release ZIP と SHA-256 の配布仕様: Issue #35
 - 実機プレイ / 再起動 / API 疎通の証拠ゲート: Issue #22
 - 実装: `Assets/Game/Scripts/Update/UpdateChecker.cs` (起動時確認・ユーザー起点のダウンロード/適用) と `Assets/Game/Scripts/UI/UpdateNoticeUI.cs` (Title の通知)、`Assets/Editor/BuildScript.cs` (版識別子の埋め込み・メディア除外・スクリプト同梱)、`tools/update/update-macos.sh` (macOS の適用)
