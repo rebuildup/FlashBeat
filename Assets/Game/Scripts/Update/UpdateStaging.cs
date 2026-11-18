@@ -64,6 +64,13 @@ namespace FlashBeat.Update
         {
             try
             {
+                // issue #670 review: staging (またはその親 = .flashbeat-update)
+                // が reparse point なら書き込み先が境界外へ出るため拒否する。
+                if (UpdatePaths.IsReparsePoint(stagingDir)
+                    || UpdatePaths.IsReparsePoint(Path.GetDirectoryName(stagingDir)))
+                {
+                    return false;
+                }
                 Directory.CreateDirectory(stagingDir);
                 File.WriteAllText(Path.Combine(stagingDir, ManifestFileName), JsonUtility.ToJson(staged));
                 return true;
@@ -168,7 +175,9 @@ namespace FlashBeat.Update
         {
             try
             {
-                if (Directory.Exists(StagingDir))
+                // issue #670 review: staging が reparse point の場合、
+                // recursive delete がリンク先の中身まで消し得るため削除しない。
+                if (Directory.Exists(StagingDir) && !UpdatePaths.IsReparsePoint(StagingDir))
                 {
                     Directory.Delete(StagingDir, true);
                 }

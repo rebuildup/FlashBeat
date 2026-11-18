@@ -219,6 +219,40 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0f, GManager.mainVolume, 0.0001f, "下限は 0 にクランプ");
         }
 
+        /// <summary>
+        /// Issue #681 review: StreamSeparate 経路の演奏音源
+        /// (MusicManager.streamAudioSource) も mainVolume に追従する。
+        /// 以前は AudioSource を 1 つだけ書き換えていたため、
+        /// streamAudioSource が残って音量が変わらなかった。
+        /// </summary>
+        [Test]
+        public void AdjustMainVolume_ReachesStreamAudioSource()
+        {
+            var streamGo = new GameObject("V6PauseSettingsTests StreamAudio");
+            var streamSource = streamGo.AddComponent<AudioSource>();
+            streamSource.volume = 0.5f;
+
+            var musicManager = musicGo.GetComponent<MusicManager>();
+            FieldInfo streamField = typeof(MusicManager).GetField("streamAudioSource",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(streamField, "MusicManager.streamAudioSource が見つからない");
+            streamField.SetValue(musicManager, streamSource);
+            try
+            {
+                view.Open();
+                view.SelectRowForAudit(2, 0); // Sound タブ / MainVolume 行
+                view.AdjustSelectedForAudit(1);
+
+                Assert.AreEqual(GManager.mainVolume, streamSource.volume, 0.0001f,
+                    "StreamSeparate の AudioSource も mainVolume に追従する");
+            }
+            finally
+            {
+                streamField.SetValue(musicManager, null);
+                Object.DestroyImmediate(streamGo);
+            }
+        }
+
         // ------------------------------------------------------------------
         // Open → RequestResume → V6ResumeCountdown → PauseGate.Exit
         // ------------------------------------------------------------------

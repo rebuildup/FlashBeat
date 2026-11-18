@@ -678,7 +678,9 @@ namespace FlashBeat.UI.V6.Option
             }
             else
             {
-                SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+                // Issue #677 review: プレビューは現在の選択曲を読む。
+                // ResolveSong は pinned song を優先し得るため GetSong を使う。
+                SongData song = GManager.GetSong(GManager.songID);
                 float bpm = song != null ? song.bpm : 0f;
                 if (bpm > 0f)
                 {

@@ -213,6 +213,14 @@ public class VerdictEventPathTests
         Object.DestroyImmediate(canvasGo);
         canvasGo = null;
 
+        // EditMode の DestroyImmediate では OnDestroy が呼ばれない
+        // (Play モードでは必ず呼ばれる)。リセット処理そのものを
+        // 直接呼んで、HUD 破棄時に抑制が戻ることを検証する。
+        var onDestroy = typeof(V6GameHudView).GetMethod("OnDestroy",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(onDestroy, "V6GameHudView.OnDestroy が見つからない");
+        onDestroy.Invoke(view, null);
+
         Assert.IsFalse(Judge.SuppressJudgementEffects,
             "HUD 破棄後はエフェクト抑制が残らない");
     }

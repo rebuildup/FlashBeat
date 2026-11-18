@@ -5,14 +5,21 @@ using UnityEngine;
 namespace FlashBeat.UI.V6.Option
 {
     /// <summary>
-    /// Option 画面 Game Preview (Issue #579) が流す疑似チャート。
+    /// Option 画面 Game Preview (Issue #579 / #677) が流すチャート。
     ///
-    /// 実際の譜面は読まない (設定画面に曲の文脈は無い)。8 レーンへ
-    /// 決定的な間隔でタップ / ロングノーツを並べ、<see cref="LoopSeconds"/>
-    /// 秒周期で折り返す。時刻は本編と同じ式
-    /// (<see cref="NotesManager.NoteTimeWithTiming"/>) で NoteTiming を
-    /// 反映し、z への換算は <see cref="MediaTimeline.NotePositionZ"/> と
-    /// 同じ (noteTime - mediaTime) * zUnitsPerSecond。
+    /// <see cref="BuildForCurrentSong"/> は選択中の曲
+    /// (<see cref="GManager.songID"/>) の実チャートを本編と同じ経路
+    /// (<see cref="NotesManager.ParseChart"/>) で読み、時刻系も本編と同じ式
+    /// (<see cref="NotesManager.NoteTimeSeconds"/> →
+    /// <see cref="NotesManager.NoteTimeWithTiming"/> →
+    /// <see cref="ChartTiming.BeatOffset"/>) で揃える。実チャートが無い・
+    /// 読めない・<see cref="ChartValidator"/> を通らない場合は、従来の
+    /// 決定的な疑似チャート (<see cref="Build"/>) へフォールバックする。
+    ///
+    /// 疑似チャートは 8 レーンへ決定的な間隔でタップ / ロングノーツを並べ、
+    /// <see cref="LoopSeconds"/> 秒周期で折り返す。z への換算は
+    /// <see cref="MediaTimeline.NotePositionZ"/> と同じ
+    /// (noteTime - mediaTime) * zUnitsPerSecond。
     ///
     /// ループ長は「最も遅いノーツ速度 (1.0) でのアプローチ時間の 2 倍」
     /// より十分長く取る。短いと、折り返しの反対側にある未来のノーツが
@@ -70,7 +77,10 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// 選択中の曲 (<see cref="GManager.songID"/> / ActiveSongs) の実チャートを
-        /// プレビュー用ノーツ列へ変換する (Issue #677)。読み込み経路は本編
+        /// プレビュー用ノーツ列へ変換する (Issue #677)。曲の解決は
+        /// <see cref="GManager.GetSong"/> (Option では現在の選択曲。
+        /// <see cref="PlaySessionSnapshot.ResolveSong"/> は前プレイの
+        /// pinned song を優先し得るため使わない)。読み込み経路は本編
         /// <see cref="NotesManager.ParseChart"/> と同一 (セッション固定
         /// スナップショット → Cloud Chart → Resources)。時刻系も本編と同じ:
         /// <see cref="NotesManager.NoteTimeSeconds"/> →
@@ -86,14 +96,19 @@ namespace FlashBeat.UI.V6.Option
         public static Note[] BuildForCurrentSong(out float loopSeconds)
         {
             loopSeconds = LoopSeconds;
-            SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+            // Issue #677 review: Option 画面では「現在の選択曲」を読む。
+            // PlaySessionSnapshot.ResolveSong は前プレイの pinned song を
+            // 優先し得るため、Game/Result 以外では使わない。
+            // GManager.GetSong はシーンに応じて pin を解決する正規経路。
+            SongData song = GManager.GetSong(GManager.songID);
             if (song == null)
             {
                 return Build();
             }
 
             Data data = NotesManager.ParseChart(song);
-            if (data == null || data.notes == null || data.notes.Length == 0)
+            // ChartValidator を通らない不正譜面は疑似チャートへフォールバック。
+            if (data == null || ChartValidator.Validate(data) != null)
             {
                 return Build();
             }

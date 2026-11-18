@@ -12,9 +12,6 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// </summary>
     public static class V6HudLogic
     {
-        /// <summary>ランク/判定クローンの接尾辞。</summary>
-        private const string CloneSuffix = "(Clone)";
-
         /// <summary>
         /// 進捗バーの塗り比率 (0..1)。duration 無効 (0 以下) は 0。
         /// mediaTime はメディア (動画) タイムライン上の秒 (GManager.step_time)。
@@ -399,25 +396,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 判定エフェクトのクローン名 ("Perfect(Clone)" 等) を判定ラベルへ。
-        /// Judge (所有者外) がレーン上に Instantiate する MessageObj の名前を観測する。
-        /// </summary>
-        public static string VerdictLabel(string cloneName)
-        {
-            if (string.IsNullOrEmpty(cloneName))
-            {
-                return string.Empty;
-            }
-
-            if (cloneName.EndsWith(CloneSuffix, System.StringComparison.Ordinal))
-            {
-                cloneName = cloneName.Substring(0, cloneName.Length - CloneSuffix.Length);
-            }
-
-            return cloneName.ToUpperInvariant();
-        }
-
-        /// <summary>
         /// 判定結果 (<see cref="FlashBeat.Gameplay.LongNote.Judgement"/>) を
         /// 判定ラベルへ。Judge の MessageObj (Perfect/Great/Bad/Miss.prefab)
         /// の表示名と同じ綴り。Option 画面の Game Preview (Issue #607) が
@@ -600,17 +578,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             return screenX / frameScale;
-        }
-
-        /// <summary>
-        /// 判定クローンのワールド x からレーン番号 (0..7)。
-        /// Judge.EffectPosition は x = lane - 3.5 に置く (Judge.cs 実装)。
-        /// 範囲外は 0 / 7 に丸める。
-        /// </summary>
-        public static int LaneFromEffectPositionX(float effectX)
-        {
-            int lane = Mathf.RoundToInt(effectX - Judge.LaneFirstCenterX);
-            return Mathf.Clamp(lane, 0, 7);
         }
     }
 }

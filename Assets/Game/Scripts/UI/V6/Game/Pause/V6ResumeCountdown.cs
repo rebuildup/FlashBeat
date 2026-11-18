@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FlashBeat.Gameplay;
+using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Game.Hud;
 
 namespace FlashBeat.UI.V6.Game.Pause
@@ -94,7 +95,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                     existing.hud.HideResumeCountdown();
                 }
 
-                Destroy(existing.gameObject);
+                V5GameUi.DestroyNow(existing.gameObject);
             }
         }
 
@@ -158,7 +159,7 @@ namespace FlashBeat.UI.V6.Game.Pause
                 hud.HideResumeCountdown();
             }
 
-            Destroy(gameObject);
+            V5GameUi.DestroyNow(gameObject);
             if (pause != null)
             {
                 pause.Open();
@@ -175,7 +176,7 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
 
             PauseGate.Exit();
-            Destroy(gameObject);
+            V5GameUi.DestroyNow(gameObject);
         }
     }
 }
