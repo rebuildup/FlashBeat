@@ -14,7 +14,12 @@
 #     --out dist \
 #     --version 0.1.14-macos-abc1234 \
 #     --commit-sha abc1234... \
-#     --media-policy song-free
+#     --media-policy song-free \
+#     [--commit-date 2026-11-18T09:26:15+09:00]
+#
+# version.json の createdAt は package-win64.ps1 と同じく「ビルド元 commit の
+# 日時」に pin する (既定は git show -s --format=%cI、--commit-date で明示可)。
+# 実行時刻を使うと同一 SHA から ZIP が再現しない (issue #651)。
 
 set -euo pipefail
 
@@ -23,6 +28,7 @@ OUT_DIR=""
 VERSION=""
 COMMIT_SHA=""
 MEDIA_POLICY="song-free"
+COMMIT_DATE=""
 MAX_RESOURCES_BYTES=$((300 * 1024 * 1024))
 
 usage() {
@@ -34,6 +40,8 @@ Usage: package-macos.sh --source <FlashBeat.app> --out <dir> --version <semver-m
   --version       <semver>-macos-<shortsha> (GitHub Release tag = v<version>)
   --commit-sha    Full 40-character commit SHA of the build source
   --media-policy  bundled (default), free, or song-free
+  --commit-date   ISO 8601 commit date for version.json createdAt
+                  (default: resolved from --commit-sha via git)
 EOF
 }
 
@@ -44,6 +52,7 @@ while [ $# -gt 0 ]; do
         --version) VERSION="${2:-}"; shift 2 ;;
         --commit-sha) COMMIT_SHA="${2:-}"; shift 2 ;;
         --media-policy) MEDIA_POLICY="${2:-}"; shift 2 ;;
+        --commit-date) COMMIT_DATE="${2:-}"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) usage; echo "error: unknown argument: $1" >&2; exit 1 ;;
     esac
@@ -76,6 +85,21 @@ case "$COMMIT_SHA" in
     "$short_sha"*) ;;
     *) fail "--version SHA ($short_sha) is not a prefix of --commit-sha ($COMMIT_SHA)" ;;
 esac
+
+# version.json の createdAt は「パッケージ実行時刻」ではなく「ビルド元 commit の
+# 日時」にする (package-win64.ps1 -CommitDate と同じ再現性契約、issue #651)。
+# 既定は git show で commit の committer date (%cI, ISO 8601) を引き、
+# --commit-date で明示もできる。UTC の "...Z" 表記へ揃える。
+if [ -z "$COMMIT_DATE" ]; then
+    repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    COMMIT_DATE="$(git -C "$repo_root" show -s --format=%cI "$COMMIT_SHA" 2>/dev/null || true)"
+fi
+[ -n "$COMMIT_DATE" ] || fail "commit date for $COMMIT_SHA could not be resolved; pass --commit-date (ISO 8601)"
+# %cI は "2026-11-18T09:26:15+09:00" 形式。BSD date の %z はコロン無し offset
+# を要求するので、offset のコロンを除いてから UTC へ変換する。
+commit_date_norm="$(printf '%s' "$COMMIT_DATE" | sed -E 's/Z$/+0000/; s/([+-][0-9]{2}):([0-9]{2})$/\1\2/')"
+CREATED_AT="$(date -u -j -f "%Y-%m-%dT%H:%M:%S%z" "$commit_date_norm" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || true)"
+[ -n "$CREATED_AT" ] || fail "--commit-date is not parseable ISO 8601: $COMMIT_DATE"
 
 if [ -d "$SOURCE_DIR/FlashBeat.app" ]; then
     APP_PATH="$SOURCE_DIR/FlashBeat.app"
@@ -151,7 +175,7 @@ cat >"$version_json" <<EOF
   "tag": "v$VERSION",
   "platform": "macos",
   "mediaPolicy": "$MEDIA_POLICY",
-  "createdAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  "createdAt": "$CREATED_AT"
 }
 EOF
 
