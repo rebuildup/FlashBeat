@@ -65,6 +65,74 @@ public class Judge : MonoBehaviour
     private readonly JudgeScoreboard board = new JudgeScoreboard();
 
     /// <summary>
+    /// 判定確定イベント (Issue #680)。<see cref="message"/> が呼ばれるたびに
+    /// (判定, レーン) を積む。v6 HUD のレーン別判定行はこのキューを
+    /// ドレインして表示する — シーンルートの判定クローン走査にも
+    /// クローン名の規約にも依存しない。
+    /// </summary>
+    public struct VerdictEvent
+    {
+        /// <summary>判定種別 (<see cref="LongNote.Judgement"/> の int 値 = MessageObj の index)。</summary>
+        public readonly int Judgement;
+
+        /// <summary>判定されたノーツのレーン (0..LaneCount-1)。</summary>
+        public readonly int Lane;
+
+        public VerdictEvent(int judgement, int lane)
+        {
+            Judgement = judgement;
+            Lane = lane;
+        }
+    }
+
+    /// <summary>未消費の判定イベント。HUD が 1 フレームに 1 回ドレインする。</summary>
+    private static readonly Queue<VerdictEvent> pendingVerdicts = new Queue<VerdictEvent>();
+
+    /// <summary>未消費の判定イベント数 (テスト・計測用)。</summary>
+    public static int PendingVerdictCount
+    {
+        get { return pendingVerdicts.Count; }
+    }
+
+    /// <summary>
+    /// 判定イベントを 1 件取り出す。HUD の判定行が毎フレーム呼ぶ。
+    /// イベントが無ければ false。
+    /// </summary>
+    public static bool TryDequeueVerdict(out int judgement, out int lane)
+    {
+        if (pendingVerdicts.Count == 0)
+        {
+            judgement = 0;
+            lane = 0;
+            return false;
+        }
+
+        VerdictEvent e = pendingVerdicts.Dequeue();
+        judgement = e.Judgement;
+        lane = e.Lane;
+        return true;
+    }
+
+    /// <summary>
+    /// 未消費の判定イベントを捨てる。曲のリトライ・シーン遷移・HUD 再構築で
+    /// 前のプレイの残りを次の表示へ持ち越さないために使う。
+    /// </summary>
+    public static void ClearPendingVerdicts()
+    {
+        pendingVerdicts.Clear();
+    }
+
+    /// <summary>
+    /// 3D 判定エフェクト (<see cref="MessageObj"/> の Instantiate) を抑制するか。
+    ///
+    /// v6 HUD のレーン別判定行 (<c>V6UiMode.VerdictRow</c>) が有効な間は
+    /// HUD 側が true を書き、判定イベントだけをキューへ積んで見た目の
+    /// クローンは作らない (3D フィールドに判定を二重表示しない)。
+    /// 既定 false = 従来どおり 3D エフェクトを出す。
+    /// </summary>
+    public static bool SuppressJudgementEffects;
+
+    /// <summary>
     /// 直近の <see cref="JudgeStep"/> に渡されたメディア時刻 (Issue #182)。
     ///
     /// 実機 (Update) は「GManager.step_time」を渡す。EditMode テストは
@@ -105,6 +173,11 @@ public class Judge : MonoBehaviour
         if (comboText != null) comboText.text = "0";
         if (scoreText != null) scoreText.text = "0";
         if (audioHit != null) audioHit.volume = GManager.effectVolume;
+
+        // シーンをまたいだ未消費イベントと、前のプレイのエフェクト抑制を
+        // 引き継がない (HUD が無い経路では従来どおり 3D エフェクトを出す)。
+        ClearPendingVerdicts();
+        SuppressJudgementEffects = false;
 
         // 保持中のロングノーツの先頭判定は「まだ無い」状態で始める。
         // 既定値 (0 = Perfect) だと、HOLD を持たないレーンが
@@ -456,10 +529,49 @@ public class Judge : MonoBehaviour
     /// </summary>
     private void message(int judge, int noteIndex)
     {
+        // Issue #680: HUD の判定行はシーンルートのクローン走査ではなく
+        // このイベントキューから (判定, レーン) を受け取る。
+        // エフェクトの Instantiate より先に積むので、
+        // SuppressJudgementEffects で見た目を止めている間も届く。
+        EnqueueVerdict(judge, JudgedLane(noteIndex));
+
+        if (SuppressJudgementEffects) return;
+
         if (judge >= 0 && judge < MessageObj.Length && MessageObj[judge] != null)
         {
             Instantiate(MessageObj[judge], EffectPosition(notesManager.LaneNum, noteIndex), Quaternion.Euler(45, 0, 0));
         }
+    }
+
+    /// <summary>
+    /// 判定イベントをキューへ積む。HUD 未配線の経路やテストで
+    /// message だけが走り続けてもキューが無制限に育たないよう上限を設ける
+    /// (通常は 1 フレームの判定数は数件なので、古い方から捨てる)。
+    /// </summary>
+    private static void EnqueueVerdict(int judge, int lane)
+    {
+        const int MaxPendingVerdicts = 256;
+        while (pendingVerdicts.Count >= MaxPendingVerdicts)
+        {
+            pendingVerdicts.Dequeue();
+        }
+
+        pendingVerdicts.Enqueue(new VerdictEvent(judge, lane));
+    }
+
+    /// <summary>
+    /// 判定したノーツのレーン。<see cref="EffectPosition"/> と同じ解決規則
+    /// (laneNum が取れなければレーン 0)。
+    /// </summary>
+    private int JudgedLane(int noteIndex)
+    {
+        var laneNum = notesManager != null ? notesManager.LaneNum : null;
+        if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
+        {
+            return laneNum[noteIndex];
+        }
+
+        return 0;
     }
 
     /// <summary>

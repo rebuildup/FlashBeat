@@ -70,7 +70,7 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 |---|---|
 | グレード / スコア / コンボ / 判定 | `GManager.score` / `combo` / `perfect` / `great` / `bad` / `miss` |
 | ゲージ / 進捗バー | `GManager.score` と `GManager.step_time` (メディア時刻) |
-| レーン別判定行 | `Judge` が Instantiate した判定プレハブを走査してレーンと表示を対応付け |
+| レーン別判定行 | `Judge` の判定イベントキュー (`Judge.TryDequeueVerdict`、Issue #680) を毎フレームドレイン。(判定, レーン) が確定順に届く。シーンルートの判定クローン走査・クローン名規約には依存しない |
 | キーガイド (8連) | `KeyBindings.GetKeys(lane)`。`KeyBindings.Changed` を購読するのでキー設定に即追従 |
 | 歌詞 | `LyricsTimeline.Build(...)` + `GManager.step_time` (動画と同じタイムライン) |
 | 曲リスト / 選択中の曲 | `V6SelectDataSource` (GManager の実カタログ + CloudCatalog + 実譜面 JSON) |
@@ -83,6 +83,17 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 
 ## 判定ポップと直近の画面変更 (2026-11-18 時点)
 
+- **判定イベント経路** (Issue #680): 判定確定時に `Judge.message` が
+  (判定, レーン) を静的キュー (`Judge.pendingVerdicts` →
+  `TryDequeueVerdict`) へ積み、`V6GameHudView.UpdateLaneVerdicts` が
+  毎フレームドレインしてレーン別判定行へ出す。レーンは
+  `notesManager.LaneNum` から `EffectPosition` と同じ規則で解決する。
+  以前はシーンルートを走査して "Perfect(Clone)" 等のクローン名で
+  検出していたが、prefab 構成・命名への暗黙依存だったため廃止した。
+  判定行が有効な間は `Judge.SuppressJudgementEffects` で 3D 判定
+  エフェクト自体の Instantiate を止める (イベントは止めない)。
+  リセットは `Judge.Start` / GManager 判定カウンタ減少 (リトライ) /
+  `VerdictRow=false` の各経路。
 - **判定ポップの動き** (Issue #671 / design §10.3): レーン判定テキストは画面上端
   (ノーツの出現位置) に即時出現 (フェードインなし) し、0.30 秒かけて
   判定線のすぐ上の静止位置へ落ちてくる。0.45 秒静止保持し、

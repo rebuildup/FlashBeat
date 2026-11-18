@@ -42,7 +42,7 @@ play session の間は `GManager.ResetSession()` で combo / score を戻す（`
 1. `MusicManager` は `Space` を待ち、`VideoPlayer` と `AudioSource` を開始する。
 2. `NotesManager.OnEnable` が chart JSON を読み、BPM / LPB から各 note の時刻を計算し、8 lane に prefab を置く。
 3. `Notes` が `GManager.noteSpeed` で note を判定線へ動かす。
-4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。同じフレームで `Judge.PlayLaneClickSound` がレーンキー押下 (空押しを含む) に 1 フレーム 1 回だけ `clickSound` を鳴らす (Issue #604)。入力の受付可否は判定とクリック音で共有の `GameplayInputGate.CanAcceptInput` (`GManager.Start` かつ非ポーズ・曲終了シーケンス前) が決める。クリック音は `audioHit` (音量 = `GManager.effectVolume`、Effect mixer) を使うが `hitSound` とは別クリップ。
+4. `Judge.Update` が `Input.GetKeyDown` を lane の key に照合し、`GManager.StartTime` との差で `Perfect` (≤0.10s) / `Great` (≤0.15s) / `Bad` (≤0.20s) / `Miss` を付ける。判定確定のたびに `Judge.message` が (判定, レーン) を静的キュー (`Judge.TryDequeueVerdict`) へ積み、v6 HUD のレーン別判定行がこれをドレインする (Issue #680。シーンルートの判定クローン走査には依存しない)。判定行が有効な間は `Judge.SuppressJudgementEffects` で 3D 判定エフェクトの Instantiate を止める。同じフレームで `Judge.PlayLaneClickSound` がレーンキー押下 (空押しを含む) に 1 フレーム 1 回だけ `clickSound` を鳴らす (Issue #604)。入力の受付可否は判定とクリック音で共有の `GameplayInputGate.CanAcceptInput` (`GManager.Start` かつ非ポーズ・曲終了シーケンス前) が決める。クリック音は `audioHit` (音量 = `GManager.effectVolume`、Effect mixer) を使うが `hitSound` とは別クリップ。
 5. 終了時に `MusicManager` が fade し、`Initiate.Fade("ResultScene", ...)` へ進む。
 
 ### 採点 (scoring)
