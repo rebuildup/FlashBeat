@@ -75,6 +75,9 @@ INSERT INTO chart_versions (songId, version, json, noteCount)
 VALUES ('zz-second-song', 1, '${SECOND_CHART}', 1);
 INSERT INTO chart_versions (songId, version, json, noteCount)
 VALUES ('who', 2, '${SECOND_WHO_CHART}', 1);
+-- Issue #656: fixture rows bypass the API, so realign the catalog epoch
+-- with the chart count the fixture just created.
+UPDATE catalog_meta SET epoch = (SELECT COUNT(*) FROM chart_versions);
 `;
 
 let server: ChildProcess | undefined;
@@ -1644,6 +1647,159 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
       body: JSON.stringify({ archived: true }),
     });
     assert.equal(response.status, 404);
+  });
+
+  it("bumps catalogVersion on archive and unarchive (issue #656)", async () => {
+    const readVersion = async (): Promise<number> => {
+      const body = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+        catalogVersion: number;
+      };
+      return body.catalogVersion;
+    };
+    const post = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+
+    const before = await readVersion();
+    const archived = await post(true);
+    assert.equal(archived.status, 200);
+    assert.equal(
+      ((await archived.json()) as { catalogVersion: number }).catalogVersion,
+      before + 1,
+    );
+    assert.equal(await readVersion(), before + 1);
+
+    const restored = await post(false);
+    assert.equal(restored.status, 200);
+    assert.equal(
+      ((await restored.json()) as { catalogVersion: number }).catalogVersion,
+      before + 2,
+    );
+    assert.equal(await readVersion(), before + 2);
+  });
+
+  it("reports archived state when an archived song is republished (issue #656)", async () => {
+    const songId = "republish-archived";
+    const post = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+    const put = (): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: "Republish Archived",
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: {
+            name: "Republish Archived",
+            maxBlock: 8,
+            BPM: 120,
+            offset: 0,
+            notes: [{ type: 1, num: 4, block: 3, LPB: 4 }],
+          },
+        }),
+      });
+
+    // Publish v1, archive it, then republish: the second publish must
+    // succeed but report the song as still archived.
+    assert.equal((await put()).status, 200);
+    assert.equal((await post(true)).status, 200);
+    try {
+      const republished = await put();
+      assert.equal(republished.status, 200);
+      const body = (await republished.json()) as {
+        chartVersion: number;
+        archived?: boolean;
+        archivedAt?: string | null;
+      };
+      assert.equal(body.archived, true);
+      assert.ok(typeof body.archivedAt === "string");
+
+      // The publish succeeded but the song stays out of the public catalog.
+      const catalog = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+        songs: { id: string }[];
+      };
+      assert.equal(
+        catalog.songs.find((song) => song.id === songId),
+        undefined,
+      );
+    } finally {
+      await post(false);
+    }
+  });
+
+  it("leaves archived songs out of the score aggregates (issue #656)", async () => {
+    type Stats = {
+      totals: { scores: number; playsLast24h: number };
+      perSong: { songId: string; plays: number }[];
+    };
+    const stats = async (): Promise<Stats> =>
+      (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as Stats;
+    const archive = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/zz-second-song`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+
+    // One counted play: scoring version 3 (the stats scope) on the current
+    // chart version of zz-second-song (1 note).
+    const submit = await fetch(`${baseUrl}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        songId: "zz-second-song",
+        chartVersion: 1,
+        nickname: "Archive Probe",
+        perfect: 1,
+        great: 0,
+        bad: 0,
+        miss: 0,
+        maxCombo: 1,
+        score: 1000000,
+        scoringVersion: 3,
+      }),
+    });
+    assert.equal(submit.status, 201);
+
+    const before = await stats();
+    const playsBefore = before.perSong.find((song) => song.songId === "zz-second-song")?.plays ?? 0;
+    assert.ok(playsBefore >= 1, "the probe play must be counted before archiving");
+
+    assert.equal((await archive(true)).status, 200);
+    try {
+      const during = await stats();
+      assert.equal(
+        during.perSong.find((song) => song.songId === "zz-second-song")?.plays ?? 0,
+        0,
+        "an archived song reports zero plays",
+      );
+      assert.equal(during.totals.scores, before.totals.scores - playsBefore);
+      assert.equal(during.totals.playsLast24h, before.totals.playsLast24h - playsBefore);
+    } finally {
+      assert.equal((await archive(false)).status, 200);
+    }
   });
 });
 

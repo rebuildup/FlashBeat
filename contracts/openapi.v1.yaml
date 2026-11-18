@@ -74,6 +74,15 @@ paths:
                   songId: { type: string }
                   chartVersion: { type: integer }
                   catalogVersion: { type: integer }
+                  archived:
+                    type: boolean
+                    description: >-
+                      Issue #656: true when the song stays archived after this
+                      publish — a republish of an archived song succeeds but
+                      remains out of the public catalog.
+                  archivedAt:
+                    type: [string, 'null']
+                    description: ISO timestamp of the archive moment, null for a live song.
         '401': { description: Incorrect staff token }
         '422': { description: Invalid song/chart }
     post:

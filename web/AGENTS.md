@@ -153,10 +153,12 @@ Rules that the endpoints follow:
 - **Published only.** A song is listed when `chart_versions` holds a row for
   `(songId, songs.currentVersion)`. A song row without a chart is not listed.
 - **Stable order.** The catalog is ordered by song id.
-- **`catalogVersion`** is the number of published chart snapshots
-  (`COUNT(chart_versions)`). Every publish adds a chart version, so the number
-  changes whenever the published charts change. The publish endpoint (#16)
-  must return the same value.
+- **`catalogVersion`** is the `catalog_meta` epoch (issue #656): every
+  catalog-visible mutation — publish, archive, unarchive — bumps it inside
+  the same transaction, so the value changes whenever the published catalog
+  changes (archiving alone no longer leaves it still). Every producer —
+  catalog, rankings, admin songs, publish and archive responses — serves
+  the same value.
 - **Exact versions.** `GET /api/v1/charts/{songId}` never falls back to the
   current version; an unknown version or song is 404.
 - **`version` is required.** A missing, non-numeric or `< 1` version is 400.
@@ -195,9 +197,11 @@ the Void dev server, and validates the responses against the frozen contract
      naming each offending item; nothing is written.
 - **Publication.** One `db.batch` (a D1 implicit transaction) writes the song
   metadata upsert with `currentVersion + 1` (first publish = 1) and appends
-  the immutable `chart_versions` row. The response is
-  `{ songId, chartVersion, catalogVersion }` where `catalogVersion` is
-  `COUNT(chart_versions)` — the same definition the read API serves.
+  the immutable `chart_versions` row and bumps the `catalog_meta` epoch in
+  the same batch. The response is
+  `{ songId, chartVersion, catalogVersion, archived?, archivedAt? }` where
+  `catalogVersion` is the epoch the read API serves, and the archive fields
+  report that a republish of an archived song stays out of the catalog.
 - **Local development.** Put a dev token in `.env` (gitignored) or export
   `FLASHBEAT_ADMIN_TOKEN` before `vp dev`; without it the Worker fails env
   validation at boot and every route returns 500.

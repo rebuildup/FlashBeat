@@ -13,6 +13,7 @@
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
 import { defineSeed } from "void/seed";
+import { count } from "void/db";
 import type * as schemaModule from "./schema";
 
 const chartSchemaUrl = new URL("../../contracts/schemas/chart.v1.schema.json", import.meta.url);
@@ -92,4 +93,13 @@ export default defineSeed<typeof schemaModule>(async ({ db, schema, dialect }) =
     json: chartText,
     noteCount,
   });
+
+  // Issue #656: the catalog epoch starts at the seeded chart count so a
+  // fresh local D1 reports the same catalogVersion range the read API
+  // served before the epoch existed.
+  const [chartTotal] = await db.select({ value: count() }).from(schema.chartVersions);
+  await db
+    .insert(schema.catalogMeta)
+    .values({ id: 1, epoch: chartTotal.value })
+    .onConflictDoUpdate({ target: schema.catalogMeta.id, set: { epoch: chartTotal.value } });
 });
