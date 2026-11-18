@@ -250,6 +250,15 @@ namespace FlashBeat.Update
                 yield break;
             }
 
+            // issue #670 review: 更新領域のいずれかが reparse point (リンク) なら
+            // 書き込みがインストール先の外へ出るため、ダウンロード自体を行わない。
+            if (!UpdatePaths.UpdateAreaIsSafe())
+            {
+                Debug.LogWarning("[UpdateChecker] 更新領域にリンクが検出されました — 更新を中止し、現行版を維持します。");
+                Model.DownloadFailed("更新領域が不正です。現行のまま使えます");
+                yield break;
+            }
+
             // 現行より新しくない ZIP は staging しない (issue #125: 新旧判定できないものは適用しない)。
             if (!IsStagedTagNewerThanCurrent(Model.LatestTag, Application.version))
             {
@@ -405,6 +414,17 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] cannot create download directory for '" + destPath + "': " + e.Message);
                 yield break;
             }
+            // issue #670 review: 既存の destPath がリンクなら DownloadHandlerFile が
+            // リンク先 (境界外) へ書き込むため、リンク自体を消してから書く
+            // (リンクの削除はリンク先に触れない)。
+            try
+            {
+                if (File.Exists(destPath) && UpdatePaths.IsReparsePoint(destPath))
+                {
+                    File.Delete(destPath);
+                }
+            }
+            catch (Exception) { }
             var req = new UnityWebRequest(url);
             req.downloadHandler = new DownloadHandlerFile(destPath);
             req.timeout = 0; // 大きい ZIP のためタイムアウトなし (失敗は result で判定)

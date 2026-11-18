@@ -114,6 +114,9 @@ public class MusicManager : MonoBehaviour
     bool startTimingSatisfied;
     bool endOverlayShown;
     bool endFadeApplied;
+    /// <summary>終端フェードで掛けている音量係数。ポーズ中の音量変更で
+    /// フェード進行を壊さないよう <see cref="ApplyMainVolume"/> が参照する。</summary>
+    float endFadeFactor = 1f;
     V6GameHudView hudCache;
 
     bool fallbackChecked;
@@ -274,6 +277,7 @@ public class MusicManager : MonoBehaviour
         startTimingSatisfied = false;
         endOverlayShown = false;
         endFadeApplied = false;
+        endFadeFactor = 1f;
 
         // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
         // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
@@ -1410,6 +1414,29 @@ public class MusicManager : MonoBehaviour
     }
 
     /// <summary>
+    /// <see cref="GManager.mainVolume"/> の即時反映 (ポーズ画面の音量変更など)。
+    /// 演奏中の音源は <see cref="audioS"/> と <see cref="streamAudioSource"/>
+    /// (StreamSeparate 経路) の 2 系統あるため、AudioSource を 1 つだけ
+    /// 探して書き換える呼び出し側では片方が取り残される。
+    /// 終端フェード中は最後に適用した係数を維持する。
+    /// </summary>
+    public void ApplyMainVolume()
+    {
+        float factor = endFadeApplied ? endFadeFactor : 1f;
+        // audioS は Start で解決される。Start 前 (ポーズ画面が先に開く経路や
+        // EditMode テスト) でも同じ AudioSource を指すよう遅延解決する。
+        var source = audioS != null ? audioS : GetComponent<AudioSource>();
+        if (source != null)
+        {
+            source.volume = GManager.mainVolume * factor;
+        }
+        if (streamAudioSource != null)
+        {
+            streamAudioSource.volume = GManager.mainVolume * factor;
+        }
+    }
+
+    /// <summary>
     /// 終端フェード (Issue #383)。曲長が分かる場合、残り fadeOut 秒から
     /// 音量と映像を落とし、同時に「終了」を出す。メディアが先に終わった場合も
     /// そこで「終了」を出し、以降のフェードは完了扱いにする。
@@ -1449,6 +1476,7 @@ public class MusicManager : MonoBehaviour
 
         endFadeApplied = true;
         float factor = 1f - Mathf.Clamp01(progress);
+        endFadeFactor = factor;
         if (audioS != null)
         {
             audioS.volume = GManager.mainVolume * factor;

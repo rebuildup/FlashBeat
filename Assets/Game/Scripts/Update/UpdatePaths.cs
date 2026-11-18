@@ -166,6 +166,42 @@ namespace FlashBeat.Update
         }
 
         /// <summary>
+        /// path がシンボリックリンク / ジャンクション等の reparse point か
+        /// (issue #670 review)。存在しないパスは false。属性を読めない場合は
+        /// リンクの可能性を排除できないため安全側で true を返す。
+        /// updater スクリプト側の reparse 検査と同じ防御をアプリ側にも適用する:
+        /// .flashbeat-update 自体がリンクだと、パス上は境界内に見えて実際の
+        /// 書き込み先がインストール先の外へ出る。
+        /// </summary>
+        public static bool IsReparsePoint(string path)
+        {
+            if (string.IsNullOrEmpty(path)) { return false; }
+            try
+            {
+                if (!File.Exists(path) && !Directory.Exists(path)) { return false; }
+                return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 更新領域 (BaseDir とその配下ディレクトリ) のいずれかが reparse point
+        /// なら false。true のときだけ更新関連の書き込みを行ってよい。
+        /// 存在しないディレクトリは検査対象外 (作成時にリンクにはならない)。
+        /// </summary>
+        public static bool UpdateAreaIsSafe()
+        {
+            foreach (var dir in new[] { BaseDir, StagingDir, ResultDir, LogsDir, UpdaterTmpDir })
+            {
+                if (!string.IsNullOrEmpty(dir) && IsReparsePoint(dir)) { return false; }
+            }
+            return true;
+        }
+
+        /// <summary>
         /// 旧レイアウトから新レイアウトへ既知のファイルだけを引き継ぐ (issue #574)。
         /// 対象は staging/・last-result.json・last-result-shown.json のみで、
         /// 所有が確認できないその他のファイルには触れない。失敗しても例外にしない
@@ -179,6 +215,9 @@ namespace FlashBeat.Update
             var legacy = LegacyBaseDir;
             var current = BaseDir;
             if (string.IsNullOrEmpty(legacy) || string.IsNullOrEmpty(current)) { return; }
+            // issue #670 review: 移行先が reparse point (リンク) なら書き込みが
+            // 境界外へ出るため、コピー自体を行わない。
+            if (IsReparsePoint(current)) { return; }
             MigrateLegacyData(legacy, current);
         }
 
