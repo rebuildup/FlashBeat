@@ -203,26 +203,25 @@ mise exec -- void db seed      # resets, re-applies all migrations, runs db/seed
 The seed fixture `db/fixtures/who.song.json` carries `"archived": 0` and
 `"archivedAt": null` so the seed row matches the column layout.
 
-### 8.3 Remote D1 — **not applied yet**
+### 8.3 Remote D1 — **applied and verified (2026-11-18)**
 
-The remote database still has the issue #14 layout. When the owner approves the
-release, the migration is applied as a **follow-up migration** — the remote
-database is never reset, because a reset drops `d1_migrations` and the published
-catalog with it:
+The archive-columns migration is applied on the remote database. Verified via
+`cf d1 query` against `7de6fd23-dd7b-4e21-bddd-b28b33ee0462`:
+
+| Check | Result |
+|---|---|
+| `pragma_table_info('songs')` | `archived` and `archivedAt` exist |
+| `sqlite_master` indexes | `songs_archived_idx` exists |
+| `d1_migrations` | all three migration files listed as applied (`20261106124714`, `20261107042653`, `20261117035336`) |
+
+If a future migration needs the same procedure, the remote database is never
+reset — a reset drops `d1_migrations` and the published catalog with it. Apply
+follow-up migrations instead:
 
 ```sh
 ./script/with-secrets bash -c \
   'mise exec -- cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462 --dir web/db/migrations'
 ```
-
-Checks after the apply:
-
-| Check | Expected |
-|---|---|
-| `PRAGMA table_info(songs)` | `archived` (integer, notnull 1, default 0) and `archivedAt` (text, nullable) exist |
-| `sqlite_master` indexes | `songs_archived_idx` exists |
-| `d1_migrations` | the new migration file is listed as applied |
-| `SELECT COUNT(*) FROM songs WHERE archived <> 0` | `0` — the existing songs stay live |
 
 ### 8.4 Tests
 
