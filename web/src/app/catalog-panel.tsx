@@ -379,10 +379,6 @@ const metaLine = css({
   lineHeight: "1.3",
 });
 
-const metaValue = css({
-  color: "fg.muted",
-});
-
 const legend = css({
   alignItems: "center",
   borderTopColor: "border",

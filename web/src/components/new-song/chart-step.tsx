@@ -42,7 +42,7 @@ const footer = css({
   px: "4",
 });
 
-const verdict = css({
+const verdictBase = css({
   fontSize: "2xs",
   margin: "0",
 });
@@ -125,7 +125,7 @@ export function ChartStep({
 
       <div className={footer}>
         <p
-          className={`${verdict} ${
+          className={`${verdictBase} ${
             verdict?.level === "error"
               ? verdictError
               : verdict?.level === "warn"
@@ -137,7 +137,7 @@ export function ChartStep({
           {verdict ? verdict.message : `ノート ${noteCount} 個`}
         </p>
         {chartIssues.length > 0 ? (
-          <p className={`${verdict} ${verdictError}`}>
+          <p className={`${verdictBase} ${verdictError}`}>
             譜面に問題が{chartIssues.length}件あります。修正するまで次へ進めません。
           </p>
         ) : null}

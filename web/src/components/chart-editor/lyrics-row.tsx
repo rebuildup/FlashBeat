@@ -25,7 +25,7 @@ import {
  * focus colour and controls are #3A3A3A raised buttons.
  */
 
-const row = css({
+const rowBox = css({
   bg: "#1b1b1b",
   borderColor: "#2d2d2d",
   borderWidth: "1px",
@@ -277,7 +277,7 @@ export function LyricsRow({
 
   return (
     <li
-      className={`${row} ${active ? rowActive : ""}`}
+      className={`${rowBox} ${active ? rowActive : ""}`}
       aria-current={active ? "true" : undefined}
       aria-labelledby={headingId}
       data-testid={`lyrics-row-${index}`}

@@ -344,7 +344,7 @@ console.log(
   "| id | title | notes | BPM | offset | maxBlock | lyrics | chartVersion | noteCount | state |",
 );
 console.log("|---|---|---|---|---|---|---|---|---|---|");
-for (const { song, result } of results) {
+for (const { song } of results) {
   const listed = after.songs.find((entry) => entry.id === song.id);
   const previous = beforeById.get(song.id);
   const snapshot = listed

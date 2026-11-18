@@ -12,7 +12,7 @@
  */
 import { defineHandler } from "void";
 import { env } from "void/env";
-import { asc, count, db, eq, max } from "void/db";
+import { asc, count, db, max } from "void/db";
 import { chartVersions, scores, songs } from "@schema";
 import { adminTokenMatches } from "../_publish-model";
 import type { AdminSong } from "../_archive-model";

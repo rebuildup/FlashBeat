@@ -216,6 +216,7 @@ export function nicknameDiagnostics(nickname: string): ScoreDiagnostic[] {
       message: `must be at most 16 characters after trimming, got ${trimmed.length}`,
     });
   }
+  // oxlint-disable-next-line no-control-regex -- nickname must reject control characters
   if (/[\u0000-\u001F\u007F]/.test(trimmed)) {
     diagnostics.push({
       path: "/nickname",

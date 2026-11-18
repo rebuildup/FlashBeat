@@ -10,7 +10,9 @@ import type { PublishFetch } from "./types";
  * lands in the D1 of that deployment. `VITE_FLASHBEAT_API_ORIGIN` moves it to
  * another origin; the value is a public URL, the staff token is never part of
  * it. The explicit value `fixture` selects the bundled fixture, which answers
- * locally and writes nothing.
+ * locally and writes nothing. That branch is test-only: the studio
+ * components pick the fixture themselves through `createFixtureStudioFetch`
+ * in dev builds, so `allowFixture` exists solely for unit tests.
  */
 export type PublishTransportMode = "fixture" | "live";
 
