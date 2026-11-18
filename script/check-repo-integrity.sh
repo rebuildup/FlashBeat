@@ -28,6 +28,9 @@
 #      mapping keys (Issue #545: a corrupted build-win64.yml survived because
 #      nothing validated the syntax; every push then recorded a phantom
 #      failure and dispatch could not run).
+#   7. files under `.gitattributes` `linguist-vendored` paths still match
+#      config/linguist-vendored.sha256 (Issue #636: vendored marking is only
+#      honest while the marked tree stays identical to upstream).
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -337,6 +340,15 @@ then
   python_status=1
 fi
 
-if [ "$workflow_yaml_fail" -ne 0 ] || [ "$python_status" -ne 0 ]; then
+# linguist-vendored manifest check (Issue #636). Runs against the repository
+# root, not only Assets/, so it is a separate step rather than part of the
+# Assets-scoped Python block above.
+if ! bash "$ROOT/script/linguist-vendored.sh" --root "$ROOT"; then
+  vendored_status=1
+else
+  vendored_status=0
+fi
+
+if [ "$workflow_yaml_fail" -ne 0 ] || [ "$python_status" -ne 0 ] || [ "$vendored_status" -ne 0 ]; then
   exit 1
 fi
