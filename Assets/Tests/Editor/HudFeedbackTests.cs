@@ -220,5 +220,57 @@ namespace FlashBeat.Tests
 
             Assert.Greater(large, small, "フォントが大きければ箱も大きくなる");
         }
+
+        // --- キーガイド Full モード (Issue #658) ---
+
+        [Test]
+        public void GuideKeyText_FullListsEveryBoundKey()
+        {
+            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Full);
+            try
+            {
+                for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
+                {
+                    var keys = KeyBindings.GetKeys(lane);
+                    var expected = string.Join(" ", System.Array.ConvertAll(keys, KeyGuideUI.GetKeyDisplayName));
+                    Assert.AreEqual(expected, V6HudLogic.GuideKeyText(lane),
+                        $"lane {lane}: Full は全有効キーを空白区切りで出す");
+                }
+            }
+            finally
+            {
+                FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+            }
+        }
+
+        [Test]
+        public void GuideKeyText_CompactKeepsRepresentativeKey()
+        {
+            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+            for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
+            {
+                Assert.AreEqual(V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
+                    V6HudLogic.GuideKeyText(lane), $"lane {lane}: Compact は代表キーのみ");
+            }
+        }
+
+        [Test]
+        public void GuideKeyFontSize_ShrinksOnlyWhenLabelOverflows()
+        {
+            const float designFs = 32f;
+            const float capW = 75f;
+            const float padding = 10f;
+
+            // 代表キー 1 個は design fs のまま。
+            Assert.AreEqual(designFs,
+                V6HudLogic.GuideKeyFontSize(capW, designFs, "A", padding));
+
+            // 全キー列挙は幅に収まるよう縮むが 1 未満にはならない。
+            string full = string.Join(" ", System.Array.ConvertAll(
+                KeyBindings.GetKeys(7), KeyGuideUI.GetKeyDisplayName));
+            float shrunk = V6HudLogic.GuideKeyFontSize(capW, designFs, full, padding);
+            Assert.Less(shrunk, designFs, "長いラベルは design fs より小さくなる");
+            Assert.GreaterOrEqual(shrunk, 1f);
+        }
     }
 }

@@ -477,6 +477,62 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// Key Guide モードに応じたレーンのキー文字列。
+        /// Full = レーンの全有効キーを空白区切り (v5 GuideKeyText と同じ規約)、
+        /// それ以外 = <see cref="RepresentativeKeyText"/>。Issue #658: V6 が
+        /// Full を無視して代表キー 1 個しか出さなかったため、全キー確認の
+        /// 手段がゲーム内に無かった。
+        /// </summary>
+        public static string GuideKeyText(int lane)
+        {
+            KeyCode[] keys = KeyBindings.GetKeys(lane);
+            if (PlaySession.KeyGuide == KeyGuideMode.Full)
+            {
+                if (keys == null || keys.Length == 0)
+                {
+                    return string.Empty;
+                }
+
+                var sb = new System.Text.StringBuilder();
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(' ');
+                    }
+
+                    sb.Append(KeyGuideUI.GetKeyDisplayName(keys[i]));
+                }
+
+                return sb.ToString();
+            }
+
+            return RepresentativeKeyText(keys);
+        }
+
+        /// <summary>
+        /// キーガイドのキャップに収まるフォントサイズ。design の fs を上限に、
+        /// ラベル推定送り幅が利用幅 (幅 - 左右パディング) を超えるときだけ
+        /// 縮める。Compact の代表キー 1 個では design fs がそのまま返る。
+        /// </summary>
+        public static float GuideKeyFontSize(float capWidth, float designFs, string label, float paddingX)
+        {
+            if (designFs <= 0f)
+            {
+                return designFs;
+            }
+
+            float em = V6Ui.LabelAdvanceEm(label);
+            float available = capWidth - paddingX * 2f;
+            if (em <= 0f || available <= 0f)
+            {
+                return designFs;
+            }
+
+            return Mathf.Max(1f, Mathf.Min(designFs, Mathf.Floor(available / em)));
+        }
+
+        /// <summary>
         /// スクリーン x (左原点 px) を HUD フレーム内のテンプレート x (左原点) へ写す。
         /// フレームは frameScale 倍の等比拡大で画面全体を覆う
         /// (V6HudMetrics.LogicalViewportSize) ので、テンプレート x = screen x / frameScale。
