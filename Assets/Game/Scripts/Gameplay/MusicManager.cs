@@ -436,6 +436,10 @@ public class MusicManager : MonoBehaviour
                 var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
                 while (!fallbackTask.IsCompleted) yield return null;
                 videoFile = fallbackTask.Result;
+                // Issue #641: the fallback download can also be cancelled while
+                // it runs — bail out before the failure classification below,
+                // symmetric with the videoTask check (Issue #613).
+                if (mediaToken.IsCancellationRequested) { yield break; }
                 combined = false;
                 Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
             }
@@ -735,6 +739,11 @@ public class MusicManager : MonoBehaviour
         firstFrameMarked = false;
         // Issue #13: URL の「形」だけを後でログに出すために控える (値は出さない)。
         lastVideoUrl = path;
+        // Issue #641: prepare は現状 Start から 1 回しか走らないが、再試行経路が
+        // 増えたときに同じハンドラが二重登録されないよう、購読の前に必ず外す
+        // (ProbeDirectUrl と同じ冪等化)。
+        songVideo.errorReceived -= OnVideoError;
+        songVideo.loopPointReached -= OnSongVideoLoopReached;
         songVideo.errorReceived += OnVideoError;
         songVideo.loopPointReached += OnSongVideoLoopReached;
         songVideo.source = VideoSource.Url;
@@ -873,6 +882,9 @@ public class MusicManager : MonoBehaviour
         streamAudioPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
         streamAudioPlayer.SetTargetAudioSource(0, streamAudioSource);
         streamAudioPlayer.source = VideoSource.Url;
+        // Issue #641: PrepareLocalVideo と同じく、再 prepare で二重発火しないよう
+        // 購読前に外す (冪等化)。
+        streamAudioPlayer.errorReceived -= OnVideoError;
         streamAudioPlayer.errorReceived += OnVideoError;
         streamAudioPlayer.url = path;
         var audioPrepareWatch = Stopwatch.StartNew();

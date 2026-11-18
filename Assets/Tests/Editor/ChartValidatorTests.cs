@@ -34,11 +34,16 @@ public class ChartValidatorTests
     }
 
     [Test]
-    public void AnEmptyNoteListIsAValidChartlessSong()
+    public void AnEmptyNoteListIsRejected()
     {
+        // Issue #641: a chartless song has no chart asset at all (null). An
+        // empty notes array used to pass and produced noteNum = 0 — a
+        // playable state whose judgmentsComplete can never become true.
         var chart = ValidChart();
         chart.notes = new Note[0];
-        Assert.IsNull(ChartValidator.Validate(chart));
+        string reason = ChartValidator.Validate(chart);
+        Assert.IsNotNull(reason);
+        StringAssert.Contains("empty", reason);
     }
 
     [Test]
@@ -107,6 +112,87 @@ public class ChartValidatorTests
     }
 
     [Test]
+    public void ATapInsideAHoldOnTheSameLaneIsRejected()
+    {
+        // Issue #641: while a hold is held, TryPress rejects the lane, so a
+        // same-lane note inside the hold's span is unhittable.
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 16, block = 2, LPB = 4 },   // beats 0-4
+            new Note { type = 1, num = 8, block = 2, LPB = 4 },              // beat 2: inside
+        };
+        string reason = ChartValidator.Validate(chart);
+        Assert.IsNotNull(reason);
+        StringAssert.Contains("inside the hold", reason);
+    }
+
+    [Test]
+    public void AHeldNoteInsideAnotherHoldOnTheSameLaneIsRejected()
+    {
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 16, block = 2, LPB = 4 },  // beats 0-4
+            new Note { type = 2, num = 8, endNum = 20, block = 2, LPB = 4 }, // beats 2-5: overlaps
+        };
+        Assert.IsNotNull(ChartValidator.Validate(chart));
+    }
+
+    [Test]
+    public void ANoteInsideAHoldOnADifferentLaneIsAccepted()
+    {
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 16, block = 2, LPB = 4 },  // beats 0-4 on lane 2
+            new Note { type = 1, num = 8, block = 5, LPB = 4 },              // beat 2 on lane 5
+        };
+        Assert.IsNull(ChartValidator.Validate(chart));
+    }
+
+    [Test]
+    public void ANoteStartingExactlyAtTheHoldEndIsAccepted()
+    {
+        // Touching is playable: the player releases and presses again at the
+        // same moment (same rule as the publish-side beat check).
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 16, block = 2, LPB = 4 },  // beats 0-4
+            new Note { type = 1, num = 16, block = 2, LPB = 4 },             // beat 4: touches the end
+        };
+        Assert.IsNull(ChartValidator.Validate(chart));
+    }
+
+    [Test]
+    public void OverlapIsDetectedAcrossDifferentLpbResolutions()
+    {
+        // The publish-side check compares beats, not raw line numbers: a note
+        // written at LPB 8 inside a hold written at LPB 4 still overlaps.
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 32, block = 2, LPB = 8 },  // beats 0-4
+            new Note { type = 1, num = 20, block = 2, LPB = 8 },             // beat 2.5: inside
+        };
+        Assert.IsNotNull(ChartValidator.Validate(chart));
+    }
+
+    [Test]
+    public void SequentialHoldsOnTheSameLaneAreAccepted()
+    {
+        var chart = ValidChart();
+        chart.notes = new[]
+        {
+            new Note { type = 2, num = 0, endNum = 16, block = 2, LPB = 4 },  // beats 0-4
+            new Note { type = 2, num = 16, endNum = 32, block = 2, LPB = 4 }, // beats 4-8: touches
+            new Note { type = 1, num = 40, block = 2, LPB = 4 },             // beat 10: after
+        };
+        Assert.IsNull(ChartValidator.Validate(chart));
+    }
+
+    [Test]
     public void AnOutOfRangeBpmIsRejected()
     {
         var chart = ValidChart();
@@ -128,6 +214,11 @@ public class ChartValidatorTests
         foreach (var song in GManager.SongName)
         {
             if (!seen.Add(song) || song == "noSong") continue;
+            // ニセモノ is the unplayable cloud-catalog placeholder (#95): its
+            // chart exists but carries zero notes, and Issue #641 makes an
+            // empty notes array a rejection. It is never selectable, so it
+            // is outside the "shipping charts" contract of this test.
+            if (song == "ニセモノ") continue;
             var asset = Resources.Load<TextAsset>(song);
             if (asset == null) continue;
             var chart = JsonUtility.FromJson<Data>(asset.text);
