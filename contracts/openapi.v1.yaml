@@ -210,9 +210,9 @@ paths:
                   rank: { type: integer, minimum: 1 }
         '429':
           description: >-
-            Duplicate submission: the same songId + nickname + score was
-            already accepted within the last 10 seconds. Retry-After carries
-            the remaining seconds.
+            Duplicate submission: the same songId + chartVersion + nickname +
+            score was already accepted within the last 10 seconds.
+            Retry-After carries the remaining seconds.
         '422': { description: Invalid counts or chart version }
   /api/v1/leaderboards/{songId}:
     get:

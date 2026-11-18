@@ -10,7 +10,7 @@
  *      validator is `@cfworker/json-schema` because Ajv compiles validators
  *      with `new Function`, which the Workers runtime forbids.
  *   2. Semantics — what the JSON schema cannot express: the nickname rules
- *      (1-12 characters after trim, no control characters), the judgment sum
+ *      (1-16 characters after trim, no control characters), the judgment sum
  *      against the note count of the submitted chart version, the combo cap
  *      and the server-side score recomputation.
  *
@@ -197,10 +197,10 @@ export function validateScoreRequest(body: unknown): ScoreValidation {
 }
 
 /**
- * The nickname rules of the festival: 1-12 characters after trimming
- * surrounding whitespace, no control characters (C0 plus DEL). The database
- * CHECK allows up to 16 characters; this check is the tighter product rule,
- * so both hold for every stored row.
+ * The nickname rules of the festival: 1-16 characters after trimming
+ * surrounding whitespace, no control characters (C0 plus DEL). The limit
+ * matches the frozen contract (`nickname.maxLength: 16`), the database CHECK
+ * and the Unity client (`RankingClient.NicknameMaxLength`).
  */
 export function nicknameDiagnostics(nickname: string): ScoreDiagnostic[] {
   const trimmed = nickname.trim();
@@ -210,10 +210,10 @@ export function nicknameDiagnostics(nickname: string): ScoreDiagnostic[] {
       path: "/nickname",
       message: "must contain at least 1 character besides whitespace",
     });
-  } else if (trimmed.length > 12) {
+  } else if (trimmed.length > 16) {
     diagnostics.push({
       path: "/nickname",
-      message: `must be at most 12 characters after trimming, got ${trimmed.length}`,
+      message: `must be at most 16 characters after trimming, got ${trimmed.length}`,
     });
   }
   if (/[\u0000-\u001F\u007F]/.test(trimmed)) {
