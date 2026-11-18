@@ -395,6 +395,27 @@ public class SelectSceneManager : MonoBehaviour
         catalogRefresh = null;
     }
 
+    void OnDestroy()
+    {
+        DisposeV6Views();
+    }
+
+    /// <summary>
+    /// Issue #642: 選曲画面を離れるとき v6 の 3 ビューを破棄する。
+    ///
+    /// V6SelectView / V6HistoryView / V6RankingView は生成時に共有
+    /// データソースの Changed を購読し、static な Current に自分を登録する。
+    /// 破棄しないとシーンを出た後も購読が残り、データ更新のたびに破棄済み
+    /// ビューへコールバックが飛ぶ (OptionSceneManager.OnDestroy と同じ契約)。
+    /// Dispose は冪等なのでシーン破棄と EditMode テストの両方から呼べる。
+    /// </summary>
+    public void DisposeV6Views()
+    {
+        if (v6View != null) { v6View.Dispose(); v6View = null; }
+        if (historyView != null) { historyView.Dispose(); historyView = null; }
+        if (rankingView != null) { rankingView.Dispose(); rankingView = null; }
+    }
+
     // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it
     // while the player is idle on the select screen. A usable response
     // switches the shown songs over (GManager.ActiveSongs); any failure -
