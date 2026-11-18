@@ -21,7 +21,7 @@ on:
       - ".agents/skills/**"
       - ".claude/skills/**"
       - "skills-lock.json"
-      - "evals/policy-evaluation/**"
+      - "evals/**"
       - "mise.toml"
       - "mise.lock"
       - ".github/workflows/agent-config.yml"
@@ -30,7 +30,7 @@ on:
       - ".agents/skills/**"
       - ".claude/skills/**"
       - "skills-lock.json"
-      - "evals/policy-evaluation/**"
+      - "evals/**"
       - "mise.toml"
       - "mise.lock"
       - ".github/workflows/agent-config.yml"
@@ -65,3 +65,7 @@ jobs:
 
       - name: vendored Skill と lock の hash を比較
         run: mise run skills-check
+
+      # evidence-manifest の単体 fixture (Issue #660: CI 未カバーだった分)。
+      - name: evidence-manifest の単体テスト
+        run: mise run evidence-manifest-test

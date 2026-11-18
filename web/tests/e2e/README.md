@@ -12,9 +12,9 @@ This directory holds two different things:
 
 | Command                    | Suite                                                              | Where                       | Tests             |
 | -------------------------- | ------------------------------------------------------------------ | --------------------------- | ----------------- |
-| `npm test`                 | Unit: read-API integration (`node --test`) + app unit (Vitest)     | `tests/*.test.*`, `src/**`  | 73 + 436          |
+| `npm test`                 | Unit: read-API integration (`node --test`) + app unit (Vitest)     | `tests/*.test.*`, `src/**`  | 153 + 453         |
 | `npm run test:e2e:harness` | Vitest unit tests of the production harness comparison logic       | `tests/e2e/harness.test.ts` | 22                |
-| `npm run test:e2e`         | **Playwright browser E2E** (Chromium, seeded local D1, dev server) | `tests/e2e/*.spec.ts`       | 12                |
+| `npm run test:e2e`         | **Playwright browser E2E** (Chromium, seeded local D1, dev server) | `tests/e2e/*.spec.ts`       | 6 spec ファイル（viewport パラメタ化） |
 | `npm run e2e`              | Production harness (real HTTP against the deployed worker)         | `tests/e2e/run.ts`          | stages, not tests |
 
 `test:e2e` used to be the name of the Vitest harness suite (misleading: no

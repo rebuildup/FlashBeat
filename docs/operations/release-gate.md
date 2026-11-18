@@ -196,4 +196,4 @@ v<version>-win64-<sha>
 - 承認チェックリスト (F: 承認記録): [`release-approval-checklist.md`](release-approval-checklist.md)
 - 展示 runbook: `festival-runbook.md` / `exhibit-runbook.md` (PR #51 側)
 - 成果物インデックス: `release/check/stage-manifest.json`
-- リリース記録例: `release-0-1-2-record.md`
+- リリース記録例: `docs/archive/legacy-release-0-1-2-record.md`

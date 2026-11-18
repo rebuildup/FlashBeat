@@ -3,7 +3,7 @@
 Status: current default practice for Issue #10 and later issues.
 Authority: [`constitution/CONSTITUTION.md`](../../constitution/CONSTITUTION.md),
 [`organization/profiles/release-driven-solo.md`](../../organization/profiles/release-driven-solo.md).
-Release plan: `docs/architecture/stacked-pr-plan.md` (lives on branch `3`, PR #8).
+Release plan: `docs/architecture/stacked-pr-plan.md`.
 
 This document describes **practice**. It refines the Constitution and never
 replaces it.
