@@ -465,15 +465,27 @@ export function SongPublisher({
   }, [chart, chartIssues, effectiveDraft, token, transport]);
 
   const handleBackToEditor = useCallback(() => {
-    const url = savePublishDraft(
-      {
-        songId: initialSong?.id ?? null,
-        version: initialVersion !== undefined ? String(initialVersion) : null,
-        chart: chart ?? initialChart,
-      },
-      "editor",
-    );
-    window.location.assign(url);
+    // Issue #659: sessionStorage.setItem can throw (QuotaExceededError /
+    // SecurityError). Match pages/chart.tsx: report and stay instead of
+    // letting the navigation die silently.
+    try {
+      const url = savePublishDraft(
+        {
+          songId: initialSong?.id ?? null,
+          version: initialVersion !== undefined ? String(initialVersion) : null,
+          chart: chart ?? initialChart,
+        },
+        "editor",
+      );
+      window.location.assign(url);
+    } catch {
+      toaster.create({
+        title: "下書きを保存できませんでした",
+        description:
+          "ブラウザの保存容量が不足している可能性があります。この画面を開いたまま再試行してください。",
+        type: "error",
+      });
+    }
   }, [chart, initialChart, initialSong, initialVersion]);
 
   return (

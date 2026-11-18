@@ -2,12 +2,12 @@ import { validateChart } from "@/lib/chart/schema";
 import type { PublishFetch } from "./types";
 
 /**
- * Fixture implementation of the publish route.
+ * Fixture implementation of the publish route, for tests and the dev-only
+ * `fixture` transport.
  *
- * The API of issue #16 does not exist yet, so the studio publishes against
- * this transport. It answers like the contract does: the same path, the same
- * bearer token, the same 401 / 422 / 200 answers. The screen code is the
- * same in both modes, only the transport changes.
+ * It answers like the deployed contract does: the same path, the same
+ * bearer token, the same 401 / 422 / 200 answers. It writes nothing; the
+ * live `PUT /api/v1/admin/songs/{songId}` of issue #16 is the real thing.
  */
 
 const PUBLISH_PATH = /^\/api\/v1\/admin\/songs\/([^/]+)$/;

@@ -77,7 +77,7 @@ async function publishWith(
   putBody: unknown,
   readBack: { ok: boolean } = { ok: true },
 ): Promise<void> {
-  const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+  const request = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/api/v1/admin/songs/")) {
       return new Response(JSON.stringify(putBody), {

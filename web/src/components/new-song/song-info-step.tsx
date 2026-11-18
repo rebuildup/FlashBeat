@@ -9,13 +9,8 @@ import { fetchOembedMetadata, type OembedFailureReason } from "@/lib/new-song/oe
 import { suggestSongSlug } from "@/lib/new-song/slug";
 import {
   SONG_ID_TAKEN,
-  validateArtistField,
-  validateDurationField,
-  validateLevelField,
   validateNewSongInfo,
   validateSongIdField,
-  validateTitleField,
-  validateYoutubeField,
   type NewSongField,
 } from "@/lib/new-song/validation";
 
@@ -76,12 +71,6 @@ const footer = css({
   display: "flex",
   gap: "3",
   justifyContent: "space-between",
-});
-
-const catalogNote = css({
-  color: "#8c8c8c",
-  fontSize: "2xs",
-  margin: "0",
 });
 
 const accent = css({ colorPalette: "blue" });
