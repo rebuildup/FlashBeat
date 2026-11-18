@@ -273,9 +273,11 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
             // 演奏中ずっと出しっぱなしにすると内容を反映しない表示になる (Issue #233)。
-            var currentSong = GManager.GetSong(GManager.songID);
-            bool songComplete = GManager.played && currentSong != null && currentSong.totalHits > 0
-                && judged >= currentSong.totalHits;
+            // Issue #657: 完了判定は GManager.judgmentsComplete (Judge.FlushScore
+            // が確定する settled >= noteCount) を使う。ローカル曲の totalHits
+            // (Shit) は実譜面とずれるため、早すぎる/遅すぎる FULL COMBO 表示に
+            // なっていた。
+            bool songComplete = GManager.played && GManager.judgmentsComplete;
             if (fullComboChip != null && fullComboChip.activeSelf != (songComplete && GManager.miss == 0))
             {
                 fullComboChip.SetActive(songComplete && GManager.miss == 0);

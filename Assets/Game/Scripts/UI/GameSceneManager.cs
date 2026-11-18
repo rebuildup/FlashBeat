@@ -101,7 +101,8 @@ public class GameSceneManager : MonoBehaviour
         ClearLyricText();
         ApplyTextPanelVisibility();
         Flash.SetActive(false);
-        songName = GManager.ActiveSongs[GManager.songID].title;
+        // Issue #657: GetSong はプレイセッション固定の曲を優先する。
+        songName = GManager.GetSong(GManager.songID).title;
         Load(songName);
 
     }
@@ -150,7 +151,7 @@ public class GameSceneManager : MonoBehaviour
 
         // Cloud Catalog songs (#17) have no local lyrics resource; that is
         // expected, so only a warning. Fixed-catalog songs keep the error.
-        SongData currentSong = GManager.ActiveSongs[GManager.songID];
+        SongData currentSong = GManager.GetSong(GManager.songID);
         if (currentSong != null && currentSong.isRemote)
         {
             Debug.LogWarning($"[GameSceneManager] no text data for remote song '{currentSong.remoteId}' - lyrics are empty");
