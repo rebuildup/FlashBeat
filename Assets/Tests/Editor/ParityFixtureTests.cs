@@ -22,13 +22,14 @@ using UnityEngine;
 /// The fixtures are the single source of truth — nothing is generated or
 /// copied — so a change on either side that breaks parity fails here.
 ///
-/// Float note: the fixture values are the strict single-precision results
-/// (`Math.fround` emulation, the contract the Web suite pins exactly). The
-/// EditMode suite runs on the Unity Editor Mono JIT, which is observed to
-/// keep double intermediates in some float expressions (a last-ulp
-/// difference versus strict float32). Scores therefore allow a ±1 point
-/// tolerance and times a ~1e-6 relative tolerance — both far below any real
-/// formula drift, which the Web suite still rejects exactly.
+/// Float note: the v1/v2 fixture values are the strict single-precision
+/// results (`Math.fround` emulation, the contract the Web suite pins
+/// exactly). The EditMode suite runs on the Unity Editor Mono JIT, which is
+/// observed to keep double intermediates in some float expressions (a
+/// last-ulp difference versus strict float32), so v1/v2 scores allow a ±1
+/// point tolerance. The v3 scores are asserted **exactly**: since Issue
+/// #631 both sides compute them in integer arithmetic, which has no
+/// platform-dependent rounding (see contracts/parity/README.md).
 /// </summary>
 public class ParityFixtureTests
 {
@@ -108,17 +109,19 @@ public class ParityFixtureTests
         foreach (ScoreCase c in fixture.cases)
         {
             string label = "case '" + c.name + "'";
-            // ±1: a last-ulp float difference can flip the final Floor() by
-            // one point (see the class comment); anything larger is drift.
+            // v1/v2: ±1 — a last-ulp float difference can flip the final
+            // Floor() by one point (see the class comment); anything larger
+            // is drift. v3 is exact integer arithmetic on both sides (Issue
+            // #631), so it must match the fixture bit-for-bit.
             AssertScoreWithin(c.scoreV1, ScoreV1(c.perfect, c.great, c.bad, c.noteCount), label + " v1");
             AssertScoreWithin(c.scoreV2,
                 Scoring.ScoreV2(c.perfect, c.great, c.bad, c.miss, c.maxCombo, c.noteCount),
                 label + " v2");
-            AssertScoreWithin(c.scoreV3,
+            Assert.AreEqual(c.scoreV3,
                 Scoring.ScoreV3(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
                     c.comboMilestones, c.noteCount, c.judgmentsComplete),
                 label + " v3 (judgmentsComplete=" + c.judgmentsComplete + ")");
-            AssertScoreWithin(c.scoreV3Settled,
+            Assert.AreEqual(c.scoreV3Settled,
                 Scoring.ScoreV3(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
                     c.comboMilestones, c.noteCount, true),
                 label + " v3 settled");

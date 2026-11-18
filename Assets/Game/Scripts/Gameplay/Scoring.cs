@@ -32,12 +32,17 @@ namespace FlashBeat.Gameplay
     ///                    never part of the live in-progress projection)
     ///   maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
     ///
-    /// The float order mirrors the server recomputation in
-    /// `web/routes/api/v1/_score-model.ts` (`computeUnityScoreV2` /
-    /// `computeUnityScoreV3`): every component is a single-precision value
-    /// and the components are summed in double precision and rounded once,
-    /// so a legitimate client score is never rejected with 422 by one-ulp
-    /// differences.
+    /// The v1/v2 float order mirrors the server recomputation in
+    /// `web/routes/api/v1/_score-model.ts` (`computeUnityScoreV2`): every
+    /// component is a single-precision value and the components are summed
+    /// in double precision and rounded once.
+    ///
+    /// The v3 score itself is platform-independent (Issue #631): every v3
+    /// component is an integer, so <see cref="ScoreV3(V3Breakdown)"/> uses
+    /// exact integer floor division instead of single-precision division.
+    /// Mono JIT, IL2CPP and the Web worker therefore produce the identical
+    /// score on every platform, and a legitimate submission can never be
+    /// rejected with 422 by a last-ulp float difference.
     /// </summary>
     public static class Scoring
     {
@@ -200,15 +205,49 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
-        /// The v3 score (0..1,000,000) of a play, via Judge.ComputeScore.
+        /// The v3 score (0..1,000,000) of a play, via the deterministic
+        /// integer computation of <see cref="ScoreV3(V3Breakdown)"/>.
         /// `judgmentsComplete` has the same meaning as in
         /// <see cref="BreakdownV3"/>.
         /// </summary>
         public static int ScoreV3(int perfect, int great, int bad, int miss,
             int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
         {
-            V3Breakdown b = BreakdownV3(perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
-            return Judge.ComputeScore(b.RatioScore, b.MaxRatio);
+            return ScoreV3(BreakdownV3(perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete));
+        }
+
+        /// <summary>
+        /// The v3 score of a computed breakdown (Issue #631).
+        ///
+        /// Every v3 component is an integer (the judgment total, the bonus
+        /// amounts and the MaxRatioV3 denominator are all whole ratio
+        /// points), so the score is the exact floor of
+        /// `ratio * 1_000_000 / maxRatio` computed in 64-bit integers. This
+        /// is deliberately NOT the legacy `Judge.ComputeScore` float path:
+        /// single-precision division rounds differently on the Editor Mono
+        /// JIT, on IL2CPP and under the Web `Math.fround` emulation, which
+        /// could reject a legitimate score with 422 over a one-ulp
+        /// difference. Integer arithmetic has no such platform dependence.
+        /// </summary>
+        public static int ScoreV3(V3Breakdown b)
+        {
+            if (b.MaxRatio <= 0f)
+            {
+                return 0;
+            }
+
+            // The breakdown fields are integer-valued floats by construction
+            // (every component is a whole number of ratio points and the
+            // sums stay far below 2^24), so the long casts are exact.
+            long ratio = (long)b.Judgment + b.ComboBonus + b.NoMissBonus
+                + b.MilestoneBonus + b.FinalBonus;
+            long max = (long)b.MaxRatio;
+            if (max <= 0)
+            {
+                return 0;
+            }
+
+            return (int)(ratio * 1000000L / max);
         }
 
         /// <summary>

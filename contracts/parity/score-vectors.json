@@ -1,6 +1,6 @@
 {
   "format": "flashbeat-score-parity/1",
-  "description": "Shared scoring vectors for the Unity <-> Web parity contract (Issue #612, ADR-0028, ADR-0029). Each case is one play of a chart with noteCount notes. scoreV1/scoreV2/scoreV3 are the scores the Unity client computes (Scoring.ScoreV1-equivalent via Judge.ComputeScore, Scoring.ScoreV2, Scoring.ScoreV3 with the case's judgmentsComplete flag). scoreV3Settled is the same play evaluated as a completed submission — identical to the Web computeUnityScoreV3 result, because a submission always implies judgmentsComplete (perfect+great+bad+miss == noteCount). judgmentsComplete=false cases pin the Issue #618 rule that the full-combo bonus never enters the live in-progress projection. All scores are single-precision emulated exactly like web/routes/api/v1/_score-model.ts (Math.fround). v3SubmissionChecks are consumed by the Web suite only: they pin the server-side comboMilestones bound checks of scoreSemanticsDiagnostics (no Unity counterpart exists — the client only produces the count).",
+  "description": "Shared scoring vectors for the Unity <-> Web parity contract (Issue #612, ADR-0028, ADR-0029). Each case is one play of a chart with noteCount notes. scoreV1/scoreV2/scoreV3 are the scores the Unity client computes (Scoring.ScoreV1-equivalent via Judge.ComputeScore, Scoring.ScoreV2, Scoring.ScoreV3 with the case's judgmentsComplete flag). scoreV3Settled is the same play evaluated as a completed submission — identical to the Web computeUnityScoreV3 result, because a submission always implies judgmentsComplete (perfect+great+bad+miss == noteCount). judgmentsComplete=false cases pin the Issue #618 rule that the full-combo bonus never enters the live in-progress projection. scoreV1/scoreV2 are single-precision emulated exactly like web/routes/api/v1/_score-model.ts (Math.fround); scoreV3/scoreV3Settled use the deterministic integer arithmetic of Issue #631 (exact floor of ratio*1e6/maxRatio, identical on every platform). v3SubmissionChecks are consumed by the Web suite only: they pin the server-side comboMilestones bound checks of scoreSemanticsDiagnostics (no Unity counterpart exists — the client only produces the count).",
   "cases": [
     {
       "name": "v1-float-edge-5",
@@ -32,7 +32,7 @@
       "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
       "judgmentsComplete": true,
       "scoreV1": 861870, "scoreV2": 953956,
-      "scoreV3": 957047, "scoreV3Settled": 957047
+      "scoreV3": 957046, "scoreV3Settled": 957046
     },
     {
       "name": "v2-perfect-139",
@@ -72,7 +72,7 @@
       "maxCombo": 139, "comboMilestones": 2, "noteCount": 139,
       "judgmentsComplete": true,
       "scoreV1": 861870, "scoreV2": 953956,
-      "scoreV3": 957047, "scoreV3Settled": 957047
+      "scoreV3": 957046, "scoreV3Settled": 957046
     },
     {
       "name": "v3-with-miss-139",
