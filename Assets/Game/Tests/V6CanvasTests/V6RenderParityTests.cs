@@ -495,6 +495,10 @@ namespace FlashBeat.V6CanvasTests
             scaler.scaleFactor = 1f;
 
             optionView = V6OptionView.Create(canvasGo.GetComponent<RectTransform>(), () => { });
+            // Issue #732: オートプレイの自動押下がレーンフラッシュや
+            // 判定ポップへ混ざるとパリティ計測が濁るので、
+            // このハーネスでは実キー注入だけを使う。
+            optionView.PreviewAutoPlayForAudit = false;
             Canvas.ForceUpdateCanvases();
 
             // rig / プレビューカメラ / ノーツプールを名前で取得
@@ -1038,10 +1042,11 @@ namespace FlashBeat.V6CanvasTests
 
         /// <summary>
         /// 判定ポップ: 本編 Judge キュー経由の判定と、プレビューのキー判定が
-        /// 同じレーン・同じ「判定線の少し上」の位置に出ること。
+        /// 同じレーン・同じ「判定線上の出発点」(Issue #731: 判定確定直後は
+        /// オフセット 0 = 描画判定線の位置) に出ること。
         /// </summary>
         [Test]
-        public void Verdict_RendersSameLaneAboveJudgeLine()
+        public void Verdict_RendersSameLaneAtJudgeLineStart()
         {
             int lane = 3;
             const int judgement = (int)LongNote.Judgement.Great;
@@ -1126,14 +1131,19 @@ namespace FlashBeat.V6CanvasTests
             float edgeP7 = pv.PreviewCam.WorldToViewportPoint(
                 pv.RigRoot.transform.TransformPoint(AnchorAt(Judge.LaneCount - 1))).x;
 
-            // 判定テキストの中心は「判定線投影 + VerdictRestGapAboveLine + 落下分」。
-            // 落下分は出現直後 ≈ VerdictFallDistancePx(m)。m は両側とも
-            // ForResolution(640,480) で同一。
-            var m = V6HudMetrics.ForResolution(Screen.width, Screen.height);
-            float fallPx = V6HudLogic.VerdictFallDistancePx(m);
-            float gapFrac = (V6HudLogic.VerdictRestGapAboveLine + fallPx) / RtH;
-            float expectY_G = vpG.y + gapFrac;
-            float expectY_P = vpP.y + gapFrac;
+            // 判定テキストの中心は「描画判定線の投影 + VerdictPoseAt の
+            // オフセット」。Issue #731: 判定確定直後 (elapsed≈0) は
+            // オフセット 0 = 判定線上が出発点 (旧 #671 の「静止位置の上から
+            // 落下」は廃止)。アンカーは本編・プレビューとも
+            // V6HudLogic.LegacyJudgeLineAnchor (Issue #715)。
+            // プレビュー側は rig ローカル→ワールド変換が必須 (rig は z=-3000)。
+            Vector3 lineVpG = gp.Cam.WorldToViewportPoint(V6HudLogic.LegacyJudgeLineAnchor());
+            Vector3 lineVpP = pv.PreviewCam.WorldToViewportPoint(
+                pv.RigRoot.transform.TransformPoint(V6HudLogic.LegacyJudgeLineAnchor()));
+            Assert.Greater(lineVpG.z, 0f, "判定線アンカーが本編カメラの前方に無い");
+            Assert.Greater(lineVpP.z, 0f, "判定線アンカーがプレビューカメラの前方に無い");
+            float expectY_G = lineVpG.y;
+            float expectY_P = lineVpP.y;
 
             Rect regionG = new Rect(vpG.x - 0.09f, expectY_G - 0.16f, 0.18f, 0.30f);
             Rect regionP = new Rect(vpP.x - 0.09f, expectY_P - 0.16f, 0.18f, 0.30f);
@@ -1177,8 +1187,9 @@ namespace FlashBeat.V6CanvasTests
                 $"プレビュー判定ポップのレーン位置が期待とずれている ({fracP:F3} vs {expectFrac:F3})");
             Assert.Less(Mathf.Abs(fracG - fracP), 0.06f,
                 $"判定ポップのレーン位置が本編とプレビューで違う ({fracG:F3} vs {fracP:F3})");
-            // y は「判定線 + 固定ギャップ + 落下距離」の式で両側一致するはず。
-            // 落下アニメの位相差 (unscaledTime の差) を考慮して ±0.08 許容。
+            // y は「描画判定線 + タイムラインのオフセット」の式で両側一致するはず。
+            // 出現直後はオフセット≈0。上昇の位相差 (unscaledTime の差) を
+            // 考慮して ±0.08 許容。
             Assert.Less(Mathf.Abs(cG.y - expectY_G), 0.08f,
                 $"本編判定ポップの y が期待位置とずれている ({cG.y:F3} vs {expectY_G:F3})");
             Assert.Less(Mathf.Abs(cP.y - expectY_P), 0.08f,

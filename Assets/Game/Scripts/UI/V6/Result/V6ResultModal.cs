@@ -213,6 +213,8 @@ namespace FlashBeat.UI.V6.Result
                 704f, 38f);
             modalGrade = V5GameUi.Text(gradeChip, "GradeText", "–", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Normal);
+            // "SS" など複数グリフでも Grade チップ (64×40) からはみ出さないよう縮小を許す。
+            AutoFit(modalGrade, 16f);
             V6Layout.StretchCenter(modalGrade.GetComponent<RectTransform>(), 64f, 40f);
             V6Layout.Place(V5Ui.Panel(summary, "Divider", new Vector2(752f, 1f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 16f, 94f);
             // Record Label (16,104) h23 fs16 $text-dim / Record Value (440,102)
@@ -221,6 +223,7 @@ namespace FlashBeat.UI.V6.Result
             V6Layout.Place(modalRecordLabel, 16f, 104f, 300f, 23f);
             modalRecordValue = OneLine(V5GameUi.Text(summary, "Record Value", "", 20f, V5Tokens.Text,
                 TextAlignmentOptions.Right));
+            AutoFit(modalRecordValue, 14f);
             V6Layout.Place(modalRecordValue, 440f, 102f, 180f, 29f);
             modalRecordNote = OneLine(V5GameUi.Text(summary, "Record Note", "", 16f, V5Tokens.TextDim));
             V6Layout.Place(modalRecordNote, 640f, 104f, 113f, 23f);
@@ -236,6 +239,9 @@ namespace FlashBeat.UI.V6.Result
             V6Layout.Place(scoreGroup.transform.Find("Score Label"), 91f, 14.5f, 51f, 23f);
             modalScoreValue = OneLine(V5GameUi.Text(scoreGroup, "Score Value", "0", 34f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold));
+            // 100 万点超 (scoring v4) の桁増しでも Score Group (132 幅) から
+            // はみ出して Grade チップへ重ならないよう縮小を許す。
+            AutoFit(modalScoreValue, 22f);
             V6Layout.Place(modalScoreValue, 156f, 1.5f, 132f, 49f);
 
             // Buttons (28,432) 784×50:

@@ -94,14 +94,19 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   エフェクト自体の Instantiate を止める (イベントは止めない)。
   リセットは `Judge.Start` / GManager 判定カウンタ減少 (リトライ) /
   `VerdictRow=false` の各経路。
-- **判定ポップの動き** (Issue #671 / design §10.3): レーン判定テキストは静止位置
-  (判定線の 72px 上) の真上 `VerdictFallDistancePx(m)` (= 判定ボックス高さ
-  `VerdictH` 1 個分、解像度別メトリクス由来) に即時出現 (フェードインなし) し、0.30 秒かけて
-  静止位置へ落ちて着地する。0.45 秒静止保持し、
-  最後の 0.22 秒でフェードアウトする (合計 0.97 秒)。
-  `anchoredPosition.y` だけを動かしレイアウトは変えない。時系列の正本は
-  `V6HudLogic` の `VerdictFall*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
-  設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
+- **判定ポップの動き** (Issue #731 / design §10.3): レーン判定テキストは
+  判定確定 (t=0) に**判定線の位置**へ即時出現 (フェードインなし) し、
+  0.18 秒かけて EaseOutCubic で頂点 (判定線の `VerdictPeakGapAboveLine`
+  = 72px 上) まで**上昇**する。0.50 秒頂点で静止保持して読み取り、
+  最後の 0.32 秒は EaseInCubic で**加速しながら判定線を越えて下へ
+  落下**し、同じ時間で不透明度を 1→0 にする (合計 1.00 秒)。
+  退場終端は判定線より `VerdictExitDropPx(m)` (= 判定ボックス高さ
+  `VerdictH` 1 個分) 下。`anchoredPosition.y` だけを動かしレイアウトは
+  変えない。時系列の正本は `V6HudLogic` の純粋関数 `VerdictPoseAt`
+  (判定線からのオフセット px と不透明度を返す)。本編 HUD
+  (`V6HudVerdict`) と Option プレビュー (`V6OptionViewPreviewOverlay`)
+  は同じ関数・同じ定数を使う。旧 #671 の「静止位置の上から落下して
+  着地 → 静止 → フェード」はオーナー要求に反するため廃止した。
 - **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
   3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、
   レーンフラッシュ・判定ポップ・歌詞同期を再現する。判定ポップのラベル・色・

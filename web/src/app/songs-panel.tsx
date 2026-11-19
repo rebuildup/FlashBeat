@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { css } from "styled-system/css";
 import { Button, Field, Input } from "@/components/ui";
 import { Archive, ArchiveRestore, Info, RefreshCw } from "lucide-react";
 import { loadAdminSongs, setSongArchived } from "@/lib/dashboard/client";
 import type { AdminSong } from "@/lib/dashboard/types";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
+import { isAbortError, useLatestRequest } from "./request-guard";
 
 /**
  * Song management of the studio (issue #151).
@@ -148,23 +149,31 @@ export function SongsPanel() {
   const [busySongId, setBusySongId] = useState<string | null>(null);
 
   // Issue #659: 連打で複数の load が並走すると古い応答が後勝ちしうる。
-  // 最新の要求だけが state を更新する (DashboardPanel と同じ request guard)。
-  const loadSeq = useRef(0);
-  const load = useCallback(async (staffToken: string) => {
-    const seq = ++loadSeq.current;
-    setStatus("loading");
-    setErrorMessage(undefined);
-    try {
-      const answer = await loadAdminSongs(staffToken);
-      if (seq !== loadSeq.current) return;
-      setSongs(answer.songs);
-      setStatus("ready");
-    } catch (error: unknown) {
-      if (seq !== loadSeq.current) return;
-      setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
-      setStatus("error");
-    }
-  }, []);
+  // 最新の要求だけが state を更新する。issue #741 で他画面と同じ
+  // `useLatestRequest` ガードへ揃え、未完了の要求はアンマウント時にも abort する。
+  const { begin, cancel } = useLatestRequest();
+  const load = useCallback(
+    async (staffToken: string) => {
+      const request = begin();
+      setStatus("loading");
+      setErrorMessage(undefined);
+      try {
+        const answer = await loadAdminSongs(staffToken, { signal: request.signal });
+        if (!request.isCurrent()) return;
+        setSongs(answer.songs);
+        setStatus("ready");
+      } catch (error: unknown) {
+        // 中断は失敗ではない。次に始まる読み込みの結果を待つだけ。
+        if (isAbortError(error)) return;
+        if (!request.isCurrent()) return;
+        setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
+        setStatus("error");
+      }
+    },
+    [begin],
+  );
+
+  useEffect(() => cancel, [cancel]);
 
   const archive = useCallback(
     async (song: AdminSong, archived: boolean) => {

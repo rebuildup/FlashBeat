@@ -265,7 +265,11 @@ public class ResultSceneManager : MonoBehaviour
     }
     public void SelectScene()
     {
-
+        // Issue #738: Result → Select は同じ人の続きの操作なので、直前に
+        // プレイした曲と選曲時の検索語を次の選曲画面へ引き継ぐ。
+        // Title へ戻る導線 (TitleScene) ではコンテキストを捨てるので、
+        // 新規セッション相当の Title → Select では従来の初期選択のまま。
+        FlashBeat.UI.V6.Select.SelectReturnContext.RequestRestore();
         Initiate.Fade("SelectScene", Color.black, 1.0f);
 
     }
@@ -276,6 +280,9 @@ public class ResultSceneManager : MonoBehaviour
     public void TitleScene()
     {
         FlashBeat.UI.V5.PlaySession.Reset();
+        // Issue #738: 来場者交代の境界。選曲復帰コンテキストも捨て、
+        // 次の選曲画面 (Title → Select) は初期状態から始める。
+        FlashBeat.UI.V6.Select.SelectReturnContext.Clear();
         Initiate.Fade("TitleScene", Color.black, 1.0f);
     }
     public void playSound()

@@ -19,12 +19,13 @@ namespace FlashBeat.UI.V6.Option
     ///   本編と同じスロット位置・寸法で表示する (歌詞 OFF・データ無しでは出さない)。
     /// - 判定ポップ: <see cref="V6OptionPreviewRig"/> の JudgeQueue が
     ///   出した判定を、本編 <see cref="V6HudVerdict"/> と同じ規則で表示する。
-    ///   ラベル・色・寿命・落下アニメーションは <see cref="V6HudLogic"/>
-    ///   (Issue #671 の VerdictFallOffset を含む共有関数)、フォントサイズと
-    ///   レーン x は <see cref="V6HudMetrics"/> と判定エフェクト投影から求める。
-    ///   独自の固定 px 定数は使わない。
+    ///   ラベル・色・寿命・位置/透明度のタイムラインは
+    ///   <see cref="V6HudLogic.VerdictPoseAt"/> (Issue #731: 判定線起点の
+    ///   上昇 → 保持 → 下方退場。本編と同一関数・同一定数)、
+    ///   フォントサイズとレーン x は <see cref="V6HudMetrics"/> と
+    ///   判定エフェクト投影から求める。独自の固定 px 定数は使わない。
     ///
-    /// 座標系: 本編 HUD の px 定数 (VerdictRestGapAboveLine / LyricSlotOrigin
+    /// 座標系: 本編 HUD の px 定数 (VerdictPeakGapAboveLine / LyricSlotOrigin
     /// など) は実スクリーン px。プレビューの RT はカメラの縦 FOV をそのまま
     /// 見せるので、画面 px → well px は well/Screen の比で線形に写る。
     /// 位置は軸別のビューポート比 (<see cref="PreviewScale"/>) で画面
@@ -229,7 +230,7 @@ namespace FlashBeat.UI.V6.Option
 
             // 判定ポップ: rig の JudgeQueue が出した判定を、本編 V6HudVerdict と
             // 同じ写像 (レーン x = 判定エフェクト投影、y = 判定線投影 +
-            // VerdictRestGapAboveLine、fs = m.VerdictFs) で well へ配置する。
+            // VerdictPoseAt のオフセット、fs = m.VerdictFs) で well へ配置する。
             Camera cam = previewRig.PreviewCamera;
             // 「判定線」の画面位置は本編 V6HudVerdict.UpdateVerdictAnchor と
             // 同じ投影点 <see cref="V6HudLogic.LegacyJudgeLineAnchor"/> =
@@ -244,9 +245,7 @@ namespace FlashBeat.UI.V6.Option
                 ? cam.WorldToViewportPoint(previewRig.RigLocalToWorld(V6HudLogic.LegacyJudgeLineAnchor()))
                 : Vector3.zero;
             float screenH = Mathf.Max(1f, Screen.height);
-            // 落下距離は本編と同じ判定ボックス高さ (実スクリーン px)。
-            float verdictFallDistance =
-                V6HudLogic.VerdictFallDistancePx(PreviewHudMetrics());
+            V6HudMetrics hudMetrics = PreviewHudMetrics();
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 var tmp = previewVerdictTexts[lane];
@@ -277,19 +276,15 @@ namespace FlashBeat.UI.V6.Option
                     continue;
                 }
 
-                float elapsed = Time.unscaledTime - startTime;
-                float remaining = V6HudLogic.VerdictTotalSeconds - elapsed;
-                float alpha = V6HudLogic.VerdictAlpha(remaining);
-
-                // 本編 verdictBaseY の net 効果: 判定テキスト中心の
-                // 画面下原点 y = 判定線 + VerdictRestGapAboveLine + VerdictFallOffset。
-                // Issue #671: 出現時は静止位置の真上 VerdictFallDistancePx から
-                // VerdictFallSeconds かけて落下する (画面上端ではない)。
+                // Issue #731: 本編 V6HudVerdict と同じ純粋タイムライン
+                // (V6HudLogic.VerdictPoseAt) を使う。判定線の位置 (オフセット 0)
+                // に出現 → 上昇 → 保持 → 下方退場 + フェード。
                 // 定数は実スクリーン px なので Screen.height でビューポート比へ写す。
-                float restFrac = judgeScreen.y + V6HudLogic.VerdictRestGapAboveLine / screenH;
-                float fallFrac =
-                    V6HudLogic.VerdictFallOffset(elapsed, verdictFallDistance) / screenH;
-                float posFrac = restFrac + fallFrac;
+                float elapsed = Time.unscaledTime - startTime;
+                V6HudLogic.VerdictPose pose =
+                    V6HudLogic.VerdictPoseAt(elapsed, hudMetrics);
+                float posFrac = judgeScreen.y + pose.OffsetPx / screenH;
+                float alpha = pose.Alpha;
 
                 var rt = tmp.rectTransform;
                 V6LayoutWrites.AnchoredPositionIfChanged(rt,
@@ -445,6 +440,28 @@ namespace FlashBeat.UI.V6.Option
         public TextMeshProUGUI PreviewVerdictTextForAudit(int lane)
         {
             return lane >= 0 && lane < previewVerdictTexts.Length ? previewVerdictTexts[lane] : null;
+        }
+
+        /// <summary>
+        /// プレビューのオートプレイ (Issue #732 のデモ用自動入力) の有効フラグ。
+        /// 既定 true。実キー注入で判定を制御する検証ハーネスは false にする。
+        /// </summary>
+        public bool PreviewAutoPlayForAudit
+        {
+            get { return previewRig != null && previewRig.AutoPlayEnabled; }
+            set { if (previewRig != null) previewRig.AutoPlayEnabled = value; }
+        }
+
+        /// <summary>単調増加の疑似プレビュー時刻 (時計リベース検証用)。</summary>
+        public float PreviewTimeForAudit
+        {
+            get { return previewRig == null ? 0f : previewRig.PreviewTimeForAudit; }
+        }
+
+        /// <summary>判定種別ごとの累計ポップ数 (オートプレイ網羅性の検証用)。</summary>
+        public int PreviewVerdictCountForAudit(LongNote.Judgement judgement)
+        {
+            return previewRig == null ? 0 : previewRig.VerdictCountForAudit(judgement);
         }
     }
 }

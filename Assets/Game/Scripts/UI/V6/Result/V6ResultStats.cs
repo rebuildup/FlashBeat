@@ -19,9 +19,9 @@ namespace FlashBeat.UI.V6.Result
     /// </summary>
     public sealed partial class V6ResultView
     {
-        // 結果 (列1-3) (0,24) 840x280。
+        // 結果 (列1-3) (0,24) 840x280。グレード矩形の寸法は
+        // V6ResultLogic.GradeBoxW/H (テストと共有)。
         private const float ResultBlockY = 24f;
-        private const float GradeBoxW = 280f, GradeBoxH = 280f;
         private const float ScoreColX = 336f;
         // スコアゲージ (0,336) 840x100 → Gauge (0,16) 824x76。
         private const float GaugeZoneY = 336f;
@@ -52,27 +52,38 @@ namespace FlashBeat.UI.V6.Result
 
         private void BuildResultBlock(GameObject main)
         {
-            var block = V6Layout.Place(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, GradeBoxH);
+            var block = V6Layout.Place(V5Ui.Node(main, "Result Block"), 0f, ResultBlockY, 840f, V6ResultLogic.GradeBoxH);
 
             // design (B7Ko8) は fill なし (背景パネルを敷かない)。以前あった可読性目的の
             // スクリーンは設計に無く、デザインとの差分になっていたので描かない。
             // トロフィーはヘッダーの左上スロットが持つ (BuildHeader)。
-            var gradeBox = V6Layout.Place(V5Ui.Node(block, "Grade"), 0f, 0f, GradeBoxW, GradeBoxH);
-            gradeLetter = V5GameUi.Text(gradeBox.gameObject, "Letter", "–", 240f, V5Tokens.Text,
-                TextAlignmentOptions.Center, FontStyles.Bold);
-            V6Layout.StretchCenter(gradeLetter.GetComponent<RectTransform>(), GradeBoxW, GradeBoxH);
+            var gradeBox = V6Layout.Place(V5Ui.Node(block, "Grade"), 0f, 0f,
+                V6ResultLogic.GradeBoxW, V6ResultLogic.GradeBoxH);
+            // "SS" のような複数グリフは fs240 では矩形幅を超えて折り返し・
+            // SCORE 列へのはみ出しを起こす (Issue #737)。1 行固定にし、
+            // 実際のフォントサイズは RefreshResult の FitGradeFont が
+            // インク実測で収まる値へ決める。
+            gradeLetter = OneLine(V5GameUi.Text(gradeBox.gameObject, "Letter", "–",
+                V6ResultLogic.GradeMaxFontSize, V5Tokens.Text,
+                TextAlignmentOptions.Center, FontStyles.Bold));
+            V6Layout.StretchCenter(gradeLetter.GetComponent<RectTransform>(),
+                V6ResultLogic.GradeBoxW, V6ResultLogic.GradeBoxH);
 
             var scoreLabel = V5GameUi.Text(block.gameObject, "Score Label", "SCORE", 20f, V5Tokens.TextDim);
             V6Layout.Place(scoreLabel, ScoreColX, 48f, 400f, 26f, new Vector2(0f, 0.5f));
 
             scoreValue = OneLine(V5GameUi.Text(block.gameObject, "Score Value", "0", 72f, V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Normal));
+            // 100 万点超 (scoring v4) やカンマ区切りの桁増しでも矩形から
+            // はみ出さないよう、TMP の auto-size で縮小を許す。
+            AutoFit(scoreValue, 44f);
             V6Layout.Place(scoreValue, ScoreColX, 80f, 500f, 80f, new Vector2(0f, 0.5f));
 
             var bestLabel = V5GameUi.Text(block.gameObject, "Best Label", "前回最高", 20f, V5Tokens.TextDim);
             V6Layout.Place(bestLabel, ScoreColX, 206f, 300f, 26f, new Vector2(0f, 0.5f));
 
             bestValue = OneLine(V5GameUi.Text(block.gameObject, "Best Value", "–", 32f, V5Tokens.Text));
+            AutoFit(bestValue, 20f);
             V6Layout.Place(bestValue, ScoreColX, 232f, 400f, 40f, new Vector2(0f, 0.5f));
 
             // 段階表示 (#384): 各要素は CanvasGroup のアルファで出す。
@@ -139,6 +150,8 @@ namespace FlashBeat.UI.V6.Result
                 V6Layout.Place(judgeLabel, 0f, 0f, JudgeCellW, 29f, new Vector2(0f, 1f));
                 judgeValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "0", 48f, V5Tokens.Text,
                     TextAlignmentOptions.TopLeft, FontStyles.Normal));
+                // 判定数・最大コンボは譜面によって桁が増えるため auto-size で縮小を許す。
+                AutoFit(judgeValues[i], 30f);
                 V6Layout.Place(judgeValues[i], 0f, 43f, JudgeCellW, 70f, new Vector2(0f, 1f));
                 judgeGroups[i] = FadeGroup(cell);
             }
@@ -176,6 +189,7 @@ namespace FlashBeat.UI.V6.Result
                 V6Layout.Place(colLabel, x, 6f, colW, 14f, new Vector2(0f, 1f));
                 bonusValues[i] = OneLine(V5GameUi.Text(row.gameObject, keys[i] + " Value", "–", 24f,
                     V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
+                AutoFit(bonusValues[i], 16f);
                 V6Layout.Place(bonusValues[i], x, 18f, colW, 22f, new Vector2(0f, 1f));
             }
 
@@ -235,6 +249,8 @@ namespace FlashBeat.UI.V6.Result
                 V6Layout.Place(label, 0f, 0f, V6ResultLogic.SongStatW, V6ResultLogic.SongStatLabelH);
                 songStatValues[i] = OneLine(V5GameUi.Text(cell.gameObject, "Value", "–", 30f, V5Tokens.Text,
                     TextAlignmentOptions.Left, FontStyles.Normal));
+                // NOTES など桁の大きい値でも Stat セル (116 幅) からはみ出さないよう縮小を許す。
+                AutoFit(songStatValues[i], 20f);
                 V6Layout.Place(songStatValues[i], 0f, V6ResultLogic.SongStatValueY,
                     V6ResultLogic.SongStatW, V6ResultLogic.SongStatValueH);
             }
@@ -246,6 +262,7 @@ namespace FlashBeat.UI.V6.Result
         {
             int score = runScore;
             gradeLetter.text = V6ResultLogic.GradeOf(score);
+            FitGradeFont();
             scoreValue.text = V6ResultLogic.FormatScore(score);
             judgeValues[0].text = runPerfect.ToString();
             judgeValues[1].text = runGreat.ToString();
@@ -281,6 +298,95 @@ namespace FlashBeat.UI.V6.Result
             {
                 bestValue.text = "–";
             }
+        }
+
+        // --- テキストの収まり (Issue #737) ---
+
+        /// <summary>
+        /// 数値・短い動的テキストに TMP の auto-size を付ける。桁数が増えても
+        /// (100 万点超のスコア、判定・コンボの大きな値) 矩形からはみ出さないよう、
+        /// fontSizeMin..fontSizeMax (現在の fontSize が上限) の範囲へ縮める。
+        /// min は可読性の下限で、これを下回る値は設計上あり得ない想定。
+        /// </summary>
+        private static void AutoFit(TextMeshProUGUI tmp, float minFontSize)
+        {
+            float max = tmp.fontSize;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = minFontSize;
+            tmp.fontSizeMax = max;
+            tmp.fontSize = max;
+        }
+
+        /// <summary>
+        /// グレード文字を Grade 箱 (V6ResultLogic.GradeBoxW×GradeBoxH) に収める
+        /// フォントサイズへ調整する。"SS" のような複数グリフは design の fs240 では
+        /// 箱の幅を超えて SCORE 列へはみ出す (Issue #737) ため、TMP のインク実測
+        /// (textInfo のメッシュ頂点の外接矩形) が内側余白に収まる最大 fs へ縮める。
+        /// 単一グリフ (S/A/B/C/–) は fs240 のまま変わらない。
+        /// </summary>
+        private void FitGradeFont()
+        {
+            gradeLetter.fontSize = V6ResultLogic.GradeMaxFontSize;
+            // TMP の文字サイズはレイアウト時にしか確定しないため、収まり判定は
+            // 最大 fs で一度組んだ textInfo の頂点を実測して行う
+            // (フォントサイズにほぼ比例するので倍率で縮められる)。
+            gradeLetter.ForceMeshUpdate(true, true);
+            float scale = InkScale(gradeLetter,
+                V6ResultLogic.GradeBoxW - V6ResultLogic.GradePadX * 2f,
+                V6ResultLogic.GradeBoxH - V6ResultLogic.GradePadY * 2f);
+            gradeLetter.fontSize = Mathf.Clamp(
+                V6ResultLogic.GradeMaxFontSize * scale,
+                V6ResultLogic.GradeMinFontSize, V6ResultLogic.GradeMaxFontSize);
+        }
+
+        /// <summary>
+        /// TMP textInfo のメッシュ頂点からインクの外接矩形を取り、availW/availH に
+        /// 収まる倍率 (最大 1) を返す。実測できないとき (フォント未解決など) は
+        /// <see cref="V6Ui.LabelAdvanceEm"/> の推定送り幅で幅だけ縮める。
+        /// </summary>
+        private static float InkScale(TextMeshProUGUI tmp, float availW, float availH)
+        {
+            float minX = float.MaxValue, maxX = float.MinValue;
+            float minY = float.MaxValue, maxY = float.MinValue;
+            TMP_TextInfo info = tmp.textInfo;
+            if (info != null && info.meshInfo != null)
+            {
+                // vertices 配列は容量分まで確保されることがあるため、
+                // 実文字数 (4 頂点/文字) までに限定して未使用の退化 quad を除く。
+                int quadLimit = info.characterCount * 4;
+                for (int m = 0; m < info.meshInfo.Length; m++)
+                {
+                    Vector3[] verts = info.meshInfo[m].vertices;
+                    if (verts == null)
+                    {
+                        continue;
+                    }
+
+                    int limit = Mathf.Min(verts.Length, quadLimit);
+                    for (int i = 0; i + 3 < limit; i += 4)
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            Vector3 v = verts[i + k];
+                            if (v.x < minX) { minX = v.x; }
+                            if (v.x > maxX) { maxX = v.x; }
+                            if (v.y < minY) { minY = v.y; }
+                            if (v.y > maxY) { maxY = v.y; }
+                        }
+                    }
+                }
+            }
+
+            float inkW = maxX - minX;
+            float inkH = maxY - minY;
+            if (inkW <= 0f || inkH <= 0f)
+            {
+                // 実測できないときのフォールバック: 推定送り幅 (em) で幅だけ縮める。
+                float estW = V6Ui.LabelAdvanceEm(tmp.text) * tmp.fontSize;
+                return estW > availW && estW > 0f ? availW / estW : 1f;
+            }
+
+            return Mathf.Min(1f, Mathf.Min(availW / inkW, availH / inkH));
         }
 
         private void RefreshSongInfo()

@@ -36,9 +36,9 @@ public class Judge : MonoBehaviour
     /// の「判定線 z = 0」と同じ面)。判定エフェクトの出現点
     /// (<see cref="EffectPosition"/> = y 0.76 / z 0.15) とは別物 —
     /// あちらは 3D 判定エフェクトが浮かぶ位置で、投影は描画判定線より
-    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行の静止位置は
-    /// この線の直上 (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictRestGapAboveLine"/>)
-    /// に置く (design §10.3)。
+    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行のタイムラインは
+    /// この線を原点に動く (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictPoseAt"/>、
+    /// Issue #731: 判定線上に出現 → 上昇 → 保持 → 下方退場)。
     /// </summary>
     public const float JudgeLineWorldY = 0.48f;
     public const float JudgeLineWorldZ = 0f;

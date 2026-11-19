@@ -40,6 +40,11 @@ namespace FlashBeat.UI.V6.Option
     ///   スコア・コンボ・GManager への書き戻しは行わない (Judge.FlushScore
     ///   相当の処理は持たない)。ポップのラベル・色・寿命・立ち上がりは
     ///   <see cref="V6HudLogic"/> の共有関数を使う。
+    /// - Issue #732: 入力が無いと全ノーツが時刻切れで MISS になるだけなので、
+    ///   デモ契約として決定的なオートプレイ (<see cref="AutoPlayScript"/>) が
+    ///   譜面に沿って押下を注入し、PERFECT/GREAT/BAD/MISS がすべて観察できる
+    ///   ようにする。実キー入力も同じ <see cref="Judge.TryJudgePress"/> 経路で
+    ///   判定される (オートプレイと実入力は同じキューを共有する)。
     /// - 歌詞は <see cref="V6OptionPreviewLyrics"/> が本編と同じ
     ///   読み込み経路・同じタイムライン判定で返す。
     /// </summary>
@@ -153,6 +158,45 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>次にキューへ積むループ番号 k (出現時刻 = timed + k * LoopSeconds)。</summary>
         private int scheduledLoop = int.MinValue;
         private int judgementCount;
+
+        // --- デモ用オートプレイ (Issue #732) ---
+        //
+        // Option 画面には「プレイする人」がいないため、入力が無いと
+        // 全ノーツが時刻切れで MISS になり、判定表示のデモとして機能しない
+        // (オーナー報告の全 MISS の直接原因)。そこで譜面に沿った決定的な
+        // 押下スクリプトを注入し、PERFECT/GREAT/BAD/MISS と
+        // HOLD の Released/Broken/Expired がすべて観察できるようにする。
+        // 押下は実キーと同じ Judge.TryJudgePress / UpdateHoldStep /
+        // TryJudgeMiss の共有経路を通り、スコア・GManager には書き戻さない。
+        // 実キー入力も同じ経路で毎フレーム評価されるので、ユーザーが
+        // 演奏すれば実入力どおりの判定が出る (オートプレイと実入力は
+        // 同じ JudgeQueue を共有し、先に確定した方がノーツを消費する)。
+
+        /// <summary>オートプレイの有効フラグ。既定 true (デモ本番)。検証ハーネスが false にする。</summary>
+        internal bool AutoPlayEnabled = true;
+
+        /// <summary>オートプレイの予定押下 1 件 (時刻は previewTime ドメイン)。</summary>
+        private struct AutoPress
+        {
+            /// <summary>押下の理想時刻。TryJudgePress へはこの値を渡すので、
+            /// フレーム刻みのずれに関係なく決定的なラグになる。</summary>
+            public float Time;
+            public int Lane;
+            public bool IsHold;
+            /// <summary>HOLD の解放予定時刻 (endTime + オフセット)。</summary>
+            public float ReleaseTime;
+        }
+
+        private readonly List<AutoPress> autoPresses = new List<AutoPress>();
+
+        /// <summary>レーンごとのオート HOLD 解放予定時刻 (previewTime ドメイン)。</summary>
+        private readonly float[] autoHoldUntil = new float[Judge.LaneCount];
+
+        /// <summary>このフレームにオートプレイが押したレーン (レーンフラッシュ用)。</summary>
+        private readonly bool[] autoKeyDown = new bool[Judge.LaneCount];
+
+        /// <summary>判定種別ごとの累計数 (LongNote.Judgement の int 値で引く。検証用)。</summary>
+        private readonly int[] verdictKindCounts = new int[4];
 
         private readonly string[] verdictLabels = new string[Judge.LaneCount];
         private readonly float[] verdictStarts = new float[Judge.LaneCount];
@@ -513,6 +557,12 @@ namespace FlashBeat.UI.V6.Option
         /// </summary>
         public void Tick()
         {
+            // Issue #732: 曲変更でループ長 (loopSeconds) が変わり得るので、
+            // Repeat の畳み込みはチャート確保の「後」に行う。旧ループ長で
+            // 畳んだ mediaTime を AdvanceClock へ渡すと、位相の違う値どうしの
+            // 差分が previewTime へ混入し、キュー済みノーツが一斉に時刻切れ
+            // (MISS バースト) になる。
+            EnsureChartForCurrentSong();
             TickSimulated(Mathf.Repeat(Time.time, loopSeconds), Time.deltaTime);
         }
 
@@ -529,6 +579,9 @@ namespace FlashBeat.UI.V6.Option
 
             EnsureChartForCurrentSong();
             AdvanceClock(mediaTime);
+            // 判定キューの先読みとオートプレイ注入は時計確定の直後に行う
+            // (オートプレイの押下がこのフレームのレーンフラッシュにも効く)。
+            PrepareJudgement();
             UpdateNotes(mediaTime);
             UpdateLaneFlashes(deltaTime);
             UpdateBeatFlash(deltaTime);
@@ -552,10 +605,30 @@ namespace FlashBeat.UI.V6.Option
             }
 
             RebuildNotePool();
+            // Issue #732: ループ長・チャート時刻系が変わったので疑似時計を
+            // リベースする。旧ループ長の位相を持つ previousMediaTime のまま
+            // AdvanceClock を回すと、ドメインの違う mediaTime との差分が
+            // そのまま previewTime へ加算され、判定キューが一斉に時刻切れに
+            // なる (全 MISS の一因)。キュー側は RebuildJudgement が
+            // scheduledLoop を振り直すので、時計もここで揃える。
+            ResetPreviewClock();
             if (chartNotes != null)
             {
                 RebuildJudgement();
             }
+        }
+
+        /// <summary>
+        /// 疑似時計を初期化直前の状態へ戻す (チャート/ループ長の変更時)。
+        /// 次の <see cref="AdvanceClock"/> が現在の mediaTime をそのまま
+        /// previewTime の原点にするので、ドメインの違う時刻どうしの差分が
+        /// 混入しない。
+        /// </summary>
+        private void ResetPreviewClock()
+        {
+            clockInitialized = false;
+            previewTime = 0f;
+            previousMediaTime = -1f;
         }
 
         /// <summary>
@@ -657,7 +730,7 @@ namespace FlashBeat.UI.V6.Option
                 {
                     alpha = 0f;
                 }
-                else if (KeyBindings.IsLaneKeyDown(lane))
+                else if (KeyBindings.IsLaneKeyDown(lane) || autoKeyDown[lane])
                 {
                     alpha = LaneFlashPeakAlpha;
                 }
@@ -746,18 +819,18 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// 疑似チャートに対する判定 (Issue #607)。本編 Judge.JudgeStep と
-        /// 同じ処理順 (押下 → HOLD 保持 → 時刻切れ Miss) を回すが、
-        /// 「どのノーツが・タップか保持か・ミスか」の決定手順は
-        /// <see cref="Judge.TryJudgePress"/> / <see cref="Judge.UpdateHoldStep"/> /
-        /// <see cref="Judge.TryJudgeMiss"/> の共有経路を通る (Issue #695)。
-        /// スコア・コンボ・GManager への書き戻しは一切行わない。
-        /// 判定結果は <see cref="ShowVerdict"/> でレーン別ポップへ流す。
+        /// 判定キューの組み立て・先読み・オートプレイ注入
+        /// (<see cref="TickSimulated"/> から毎フレーム、時計確定の直後に呼ぶ)。
+        /// 実キーの押下・保持・時刻切れの評価は <see cref="UpdateJudgement"/>。
         /// </summary>
-        private void UpdateJudgement()
+        private void PrepareJudgement()
         {
             if (chartNotes == null || chartNotes.Length == 0)
             {
+                for (int lane = 0; lane < Judge.LaneCount; lane++)
+                {
+                    autoKeyDown[lane] = false;
+                }
                 return;
             }
 
@@ -766,6 +839,138 @@ namespace FlashBeat.UI.V6.Option
                 RebuildJudgement();
             }
             ScheduleJudgement();
+            FireAutoPlay();
+        }
+
+        /// <summary>
+        /// オートプレイの予定押下のうち時刻が来たものを発火する (Issue #732)。
+        /// 押下は <see cref="Judge.TryJudgePress"/> を「イベントの理想時刻」
+        /// で呼ぶので、フレーム刻みやモニタのリフレッシュに関係なく
+        /// <see cref="AutoPlayScript"/> のラグがそのまま判定幅へ乗る。
+        /// HOLD は押下が成立したときだけ解放予定時刻を記録し、
+        /// <see cref="UpdateJudgement"/> の保持判定がそれを「キー保持」と
+        /// して読む。オートプレイ OFF・ポーズ中は発火せず予定だけ捨てる
+        /// (再開時に過去時刻の押下がまとめて走るのを防ぐ)。
+        /// </summary>
+        private void FireAutoPlay()
+        {
+            for (int lane = 0; lane < Judge.LaneCount; lane++)
+            {
+                autoKeyDown[lane] = false;
+            }
+            if (autoPresses.Count == 0)
+            {
+                return;
+            }
+
+            float now = previewTime;
+            bool accept = AutoPlayEnabled && !PauseGate.IsPaused;
+            int write = 0;
+            for (int i = 0; i < autoPresses.Count; i++)
+            {
+                AutoPress press = autoPresses[i];
+                // 未来の予定は残す。1 ループ以上過去の予定は押しても
+                // 判定窓に入らないので捨てる (滞留防止)。
+                if (press.Time > now || press.Time < now - loopSeconds)
+                {
+                    if (press.Time > now)
+                    {
+                        autoPresses[write++] = press;
+                    }
+                    continue;
+                }
+
+                if (!accept)
+                {
+                    continue;
+                }
+
+                // オートプレイの押下もレーンフラッシュを点ける
+                // (実キー押下と同じ見え方。UpdateLaneFlashes が読む)。
+                autoKeyDown[press.Lane] = true;
+                if (Judge.TryJudgePress(judgementQueue, press.Lane, press.Time,
+                        out JudgeQueue.NoteEntry entry, out LongNote.Judgement judgement))
+                {
+                    ShowVerdict(press.Lane, judgement);
+                    if (press.IsHold && entry.Type == LongNote.TYPE_HOLD)
+                    {
+                        autoHoldUntil[press.Lane] = press.ReleaseTime;
+                    }
+                }
+            }
+            autoPresses.RemoveRange(write, autoPresses.Count - write);
+        }
+
+        /// <summary>
+        /// ノーツ index のオートプレイ・スクリプト (Issue #732)。
+        /// index % 8 で判定種別を決定的に割り当て、PERFECT/GREAT/BAD/MISS と
+        /// HOLD の Released/Broken/Expired が 1 ループの中ですべて出る。
+        ///
+        ///   - pressOffset: 押下時刻 = 判定時刻 + pressOffset (秒)。
+        ///     TryJudgePress へ理想時刻を渡すので |pressOffset| がそのまま
+        ///     判定ラグになる (0.10 以下 PERFECT / 0.15 以下 GREAT /
+        ///     0.20 以下 BAD)。
+        ///   - skip: 押さない → 時刻切れで MISS。
+        ///   - releaseOffset: HOLD の解放時刻 = 終端 + releaseOffset。
+        ///     +0.05 は GREAT_WINDOW 内 (Released)、-0.30 は早すぎる離し
+        ///     (Broken → BAD ポップ)、+0.50 は終端を押し続けて Expired。
+        /// </summary>
+        private static void AutoPlayScript(int index, bool isHold,
+            out float pressOffset, out bool skip, out float releaseOffset)
+        {
+            skip = false;
+            pressOffset = 0f;
+            releaseOffset = 0.05f;
+            switch (index % 8)
+            {
+                case 0:
+                case 4:
+                    // PERFECT / HOLD は Released。
+                    break;
+                case 1:
+                case 5:
+                    // GREAT。
+                    pressOffset = 0.12f;
+                    break;
+                case 2:
+                    // BAD。HOLD は途中で離して Broken → BAD ポップ。
+                    pressOffset = -0.18f;
+                    releaseOffset = -0.30f;
+                    break;
+                case 3:
+                    // 押さない → MISS。
+                    skip = true;
+                    break;
+                case 6:
+                    // PERFECT。HOLD は解放せず Expired (押し続け = 成功扱い)。
+                    releaseOffset = 0.50f;
+                    break;
+                default:
+                    // GREAT。HOLD は途中で離して Broken → BAD ポップ。
+                    pressOffset = 0.12f;
+                    releaseOffset = -0.30f;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 疑似チャートに対する判定 (Issue #607)。本編 Judge.JudgeStep と
+        /// 同じ処理順 (押下 → HOLD 保持 → 時刻切れ Miss) を回すが、
+        /// 「どのノーツが・タップか保持か・ミスか」の決定手順は
+        /// <see cref="Judge.TryJudgePress"/> / <see cref="Judge.UpdateHoldStep"/> /
+        /// <see cref="Judge.TryJudgeMiss"/> の共有経路を通る (Issue #695)。
+        /// スコア・コンボ・GManager への書き戻しは一切行わない。
+        /// 判定結果は <see cref="ShowVerdict"/> でレーン別ポップへ流す。
+        /// オートプレイの押下自体は <see cref="PrepareJudgement"/> が済ませて
+        /// いる (キューの先読みと同じ場所)。ここでは実キー入力と
+        /// オート HOLD の保持状態・時刻切れだけを見る。
+        /// </summary>
+        private void UpdateJudgement()
+        {
+            if (chartNotes == null || chartNotes.Length == 0 || judgementQueue == null)
+            {
+                return;
+            }
 
             // Issue #224 / #383 と同じゲート: ポーズ中は判定しない。
             if (PauseGate.IsPaused)
@@ -774,6 +979,8 @@ namespace FlashBeat.UI.V6.Option
             }
 
             // 1) 押下判定: レーンごとに独立 (Judge.JudgeStep と同じ共通経路)。
+            //    実キーの押下は実時間 (previewTime) で判定するので、
+            //    ユーザーが演奏すれば実入力どおりの判定が出る (Issue #732)。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 if (!KeyBindings.IsLaneKeyDown(lane))
@@ -790,12 +997,15 @@ namespace FlashBeat.UI.V6.Option
                 ShowVerdict(lane, judgement);
             }
 
-            // 2) ロングノーツの保持。途中で離したら先頭判定を BAD へ
+            // 2) ロングノーツの保持。キー保持は実キー + オートプレイの
+            //    解放予定時刻の OR。途中で離したら先頭判定を BAD へ
             //    差し替える (Judge.message(2) = Bad と同じ見た目)。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
+                bool held = KeyBindings.IsLaneKeyHeld(lane)
+                    || previewTime < autoHoldUntil[lane];
                 JudgeQueue.HoldResult result = Judge.UpdateHoldStep(
-                    judgementQueue, lane, previewTime, KeyBindings.IsLaneKeyHeld(lane),
+                    judgementQueue, lane, previewTime, held,
                     out _);
                 if (result == JudgeQueue.HoldResult.Broken)
                 {
@@ -803,7 +1013,8 @@ namespace FlashBeat.UI.V6.Option
                 }
             }
 
-            // 3) 時刻切れ (Miss)。
+            // 3) 時刻切れ (Miss)。オートプレイが押さなかったノーツと、
+            //    実入力でもオートプレイでも拾われなかったノーツがここに来る。
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 if (Judge.TryJudgeMiss(judgementQueue, lane, previewTime, out _))
@@ -834,6 +1045,16 @@ namespace FlashBeat.UI.V6.Option
 
             judgementQueue = new JudgeQueue(Judge.LaneCount);
             scheduledLoop = int.MinValue;
+
+            // オートプレイ状態もリセット (Issue #732): 予定押下は旧チャートの
+            // 時刻系で作られているので、新しい timedStart/timedEnd で
+            // ScheduleJudgement が積み直す。HOLD の解放予定も同じ。
+            autoPresses.Clear();
+            for (int lane = 0; lane < Judge.LaneCount; lane++)
+            {
+                autoHoldUntil[lane] = float.NegativeInfinity;
+                autoKeyDown[lane] = false;
+            }
         }
 
         /// <summary>
@@ -864,16 +1085,30 @@ namespace FlashBeat.UI.V6.Option
                         continue; // 判定窓を過ぎた出現は Miss 済みと同じなので積まない
                     }
 
+                    bool isHold = chartNotes[i].HoldSeconds > 0f;
                     judgementQueue.Add(new JudgeQueue.NoteEntry
                     {
                         Time = start,
                         EndTime = timedEnd[i] + loopBase,
-                        Type = chartNotes[i].HoldSeconds > 0f
-                            ? LongNote.TYPE_HOLD
-                            : LongNote.TYPE_TAP,
+                        Type = isHold ? LongNote.TYPE_HOLD : LongNote.TYPE_TAP,
                         Lane = chartNotes[i].Lane,
                         SourceIndex = i,
                     });
+
+                    // Issue #732: オートプレイの予定押下も同じ出現に紐付けて積む。
+                    // skip (MISS 役) のノーツは押下を作らず、時刻切れに任せる。
+                    AutoPlayScript(i, isHold, out float pressOffset, out bool skip,
+                        out float releaseOffset);
+                    if (!skip)
+                    {
+                        autoPresses.Add(new AutoPress
+                        {
+                            Time = start + pressOffset,
+                            Lane = chartNotes[i].Lane,
+                            IsHold = isHold,
+                            ReleaseTime = timedEnd[i] + loopBase + releaseOffset,
+                        });
+                    }
                 }
                 scheduledLoop++;
             }
@@ -902,6 +1137,11 @@ namespace FlashBeat.UI.V6.Option
             verdictStarts[lane] = Time.unscaledTime;
             verdictActive[lane] = true;
             judgementCount++;
+            int kind = (int)judgement;
+            if (kind >= 0 && kind < verdictKindCounts.Length)
+            {
+                verdictKindCounts[kind]++;
+            }
         }
 
         // --- 検証ハーネス用 (V6OptionView の ForAudit API 経由で公開) ---
@@ -939,6 +1179,23 @@ namespace FlashBeat.UI.V6.Option
         internal int JudgementCount
         {
             get { return judgementCount; }
+        }
+
+        /// <summary>
+        /// 単調増加の疑似プレビュー時刻 (previewTime ドメイン、秒)。
+        /// ループ折り返し・チャート変更時のリベースを検証するための観測点
+        /// (Issue #732)。
+        /// </summary>
+        internal float PreviewTimeForAudit
+        {
+            get { return previewTime; }
+        }
+
+        /// <summary>判定種別ごとの累計ポップ数 (オートプレイの網羅性検証用)。</summary>
+        internal int VerdictCountForAudit(LongNote.Judgement judgement)
+        {
+            int kind = (int)judgement;
+            return kind >= 0 && kind < verdictKindCounts.Length ? verdictKindCounts[kind] : 0;
         }
 
         /// <summary>レーンフラッシュの現在 α (検証用)。</summary>
