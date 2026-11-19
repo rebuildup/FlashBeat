@@ -182,6 +182,9 @@ namespace FlashBeat.UI.V6.Game.Pause
             var value = V5Ui.Text(panel, "Value", read != null ? read() : "", 24f, V5Tokens.Text,
                 TextAlignmentOptions.Right);
             value.textWrappingMode = TextWrappingModes.NoWrap;
+            // 値は "P1234 G123 B12 M8" や "9,999,999" のように 120px を超え得るため
+            // 1 行 auto-size で矩形内へ収める (#749)。全文を読ませたいので省略しない。
+            V6TextFit.AutoFit(value, 14f);
             V6Layout.LayoutItem(value.gameObject, 120f, 30f);
 
             if (adjust != null)

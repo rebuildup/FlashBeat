@@ -130,6 +130,9 @@ namespace FlashBeat.UI.V6.Ranking
             noDataText = V5GameUi.Text(panel.gameObject, "No Data", "", 24f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left);
             V6Layout.Place(noDataText, 24f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            // 空状態 / 取得エラーの長文が Normal 折返しで 2 行化して下へはみ出さないよう
+            // 1 行 auto-size にする (#749。V6ResultEntry の No Data と同じ規約)。
+            V6TextFit.AutoFit(noDataText, 16f);
 
             var retry = V6Button.Make(V5Ui.Panel(panel, "Retry", new Vector2(160f, 48f), V5Tokens.Key4, 8f),
                 RetryFetch);
