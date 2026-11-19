@@ -164,7 +164,8 @@ namespace FlashBeat.V6CanvasTests
             Assert.AreEqual(0.5625f, m.Scale, 1e-4f);
             Assert.Less(m.Scale, 1f);
             Assert.AreEqual(1080f, 1920f * m.Scale, 0.5f); // 幅いっぱい
-            Assert.LessOrEqual(1920f, 1080f * m.Scale + 0.5f); // 高さは収まる
+            // design 高さ 1080 を scale した実高さ (≈608) が画面高 1920 に収まる。
+            Assert.LessOrEqual(1080f * m.Scale, 1920f + 0.5f);
         }
 
         [Test]
