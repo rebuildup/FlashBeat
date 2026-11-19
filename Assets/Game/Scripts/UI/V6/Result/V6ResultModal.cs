@@ -50,10 +50,9 @@ namespace FlashBeat.UI.V6.Result
         private Image modalThumb;
         private bool modalOpen;
 
-        // コンパクト画面でモーダルを開いたときのパン退避 (Issue #609)。
+        // コンパクト画面でモーダルを開いたときのパン退避 (Issue #609 / #748)。
         // 開くとき Dialog 中心へパンを合わせ、閉じるとき元へ戻す。
-        private V6FramePan modalPan;
-        private Vector2 modalSavedPan;
+        // 実処理は共通機構 V6ModalPan / V6FramePan.SuspendForModal に委譲する。
 
         // チップ (登録しました / 登録できませんでした) の表示時刻と後処理。
         private bool chipActive;
@@ -399,33 +398,13 @@ namespace FlashBeat.UI.V6.Result
         /// ビューポート外)。パン自体もモーダル表示中は止める
         /// (<see cref="V6FramePan.PanSuspended"/>)。通常解像度
         /// (ビューポート無し) では何もしない。
+        /// issue #748 で共通機構 (<see cref="V6ModalPan"/>) へ移管。
         /// </summary>
         public void AlignModalPanForViewport()
         {
-            modalPan = null;
-            var viewport = V6CompactScreen.FindViewport(frame);
-            if (viewport == null)
-            {
-                return;
-            }
-
-            var pan = viewport.GetComponent<V6FramePan>();
-            if (pan == null)
-            {
-                return;
-            }
-
-            modalPan = pan;
-            modalSavedPan = pan.Pan;
-            pan.PanSuspended = true;
-
-            Vector2 view = pan.ViewportSize;
-            if (view.x <= 0f || view.y <= 0f)
-            {
-                view = new Vector2(Screen.width, Screen.height);
-            }
-
-            pan.Pan = V6ResultLogic.ModalPanForViewport(view.x, view.y);
+            V6ModalPan.Suspend(frame, new Rect(
+                V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY,
+                V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH));
         }
 
         /// <summary>
@@ -435,12 +414,7 @@ namespace FlashBeat.UI.V6.Result
         /// </summary>
         public void RestoreModalPan()
         {
-            if (modalPan != null)
-            {
-                modalPan.PanSuspended = false;
-                modalPan.Pan = modalSavedPan;
-                modalPan = null;
-            }
+            V6ModalPan.Resume(frame);
         }
 
         /// <summary>検証ハーネス用: 名前入力欄の現在の文字列。</summary>

@@ -112,6 +112,9 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>Key Layout リセットの確認ダイアログ (開いていないとき null)。</summary>
         private GameObject confirmRoot;
 
+        /// <summary>確認ダイアログ表示中のコンパクト用パン退避が有効か (issue #748)。</summary>
+        private bool confirmPanActive;
+
         private int lastWidth;
         private int lastHeight;
 
@@ -164,6 +167,13 @@ namespace FlashBeat.UI.V6.Game.Pause
         public void Dispose()
         {
             KeyBindings.Changed -= RefreshKeyBindings;
+            // 破棄時にモーダル用パン退避が残っていれば元へ戻す (issue #748)。
+            if (confirmPanActive)
+            {
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
+            }
+
             if (rootGo != null)
             {
                 V5GameUi.DestroyNow(rootGo);
@@ -368,6 +378,13 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 V5GameUi.DestroyNow(confirmRoot);
                 confirmRoot = null;
+            }
+
+            // コンパクト用パン退避を戻す (issue #748)。
+            if (confirmPanActive)
+            {
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
             }
         }
 
