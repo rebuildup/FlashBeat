@@ -38,10 +38,9 @@ namespace FlashBeat.UI.V6.Option
             // キーが別の意味を持つ仕様上の競合であり、メニュー側の
             // ナビゲーション割当 (↑↓/WASD) を変えると本編の操作感と
             // ずれるため、ここでは意図的に両方を許容する (文書化のみ)。
-            if (previewRig != null)
+            if (gamePreview != null)
             {
-                previewRig.Tick();
-                UpdatePreviewOverlay();
+                gamePreview.Tick();
             }
 
             // キー設定モーダルが前面のときは背後の操作を止める (Issue #376)。
@@ -57,7 +56,7 @@ namespace FlashBeat.UI.V6.Option
             }
 
             PlaceFrame();
-            FlushPendingVolumeSave();
+            volumeSettings.Tick();
 
             bool up = Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W);
             bool down = Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S);
@@ -91,7 +90,7 @@ namespace FlashBeat.UI.V6.Option
                     else if (onBack != null)
                     {
                         // 画面を離れる: 猶予中の音量保存を先に確定させる。
-                        SavePendingVolumeNow();
+                        volumeSettings.FlushNow();
                         onBack();
                     }
                     return;
@@ -148,17 +147,17 @@ namespace FlashBeat.UI.V6.Option
 
             // 音量行はスライダーと同じ値モデルを編集する (Issue #375 §3.2)。
             // Rebuild せずスライダーと値テキストだけを更新し、保存は 0.5 秒後にまとめる。
+            // Issue #733: 値モデルは Pause と同じ <see cref="V6VolumeSettings"/>。
             if (row.VolumeIndex >= 0)
             {
-                SetVolume(row.VolumeIndex,
-                    V6OptionLogic.NudgeVolume(GetVolume(row.VolumeIndex), delta, shift), false);
+                volumeSettings.Nudge(row.VolumeIndex, delta, shift);
                 UpdateVolumeVisuals();
                 return;
             }
 
             if (row.Adjust != null)
             {
-                row.Adjust(delta);
+                row.Adjust(delta, shift);
             }
 
             Rebuild();

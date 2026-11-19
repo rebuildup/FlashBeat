@@ -36,34 +36,36 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0f, V6HudLogic.ProgressFillWidth(50f, 0f, 1000f), 1e-3f);
         }
 
-        // --- スコアゲージ (design 実測: FHD 塗り最大 530, 988,513 → 524) ---
+        // --- スコアゲージ (scoring v4 の満点 2,000,000 への正規化。Issue #758) ---
 
         [Test]
-        public void GaugeFillWidth_MatchesDesignSample()
+        public void GaugeFillWidth_MapsV4ScoreSpace()
         {
-            Assert.AreEqual(524f, V6HudLogic.GaugeFillWidth(988513, 530f), 0.5f);
-            Assert.AreEqual(530f, V6HudLogic.GaugeFillWidth(1000000, 530f), 0.5f);
+            // v4: 988,513 → 530 * 988513/2000000 = 261.75。
+            // 1,000,000 (v3 満点) はレールの中間に留まり、2,000,000 で全長。
+            Assert.AreEqual(530f * 988513f / 2000000f, V6HudLogic.GaugeFillWidth(988513, 530f), 0.5f);
+            Assert.AreEqual(530f * 0.5f, V6HudLogic.GaugeFillWidth(1000000, 530f), 0.5f);
+            Assert.AreEqual(530f, V6HudLogic.GaugeFillWidth(2000000, 530f), 0.5f);
             Assert.AreEqual(0f, V6HudLogic.GaugeFillWidth(0, 530f), 1e-3f);
         }
 
         [Test]
         public void GaugeBestX_ProportionalWithinScoreSpace()
         {
-            // 点数空間は 0..1,000,000 (既存 gauge.fillAmount = score/1000000f と同じ)。
+            // 点数空間は 0..2,000,000 (scoring v4 の満点)。
             // 得点に比例し、Best マーカーは自分のスコア位置に置かれる。
             Assert.AreEqual(0f, V6HudLogic.GaugeBestX(0, 530f), 1e-3f);
-            Assert.AreEqual(265f, V6HudLogic.GaugeBestX(500000, 530f), 0.5f);
-            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(1000000, 530f), 0.5f);
+            Assert.AreEqual(132.5f, V6HudLogic.GaugeBestX(500000, 530f), 0.5f);
+            Assert.AreEqual(265f, V6HudLogic.GaugeBestX(1000000, 530f), 0.5f);
+            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(2000000, 530f), 0.5f);
         }
 
         [Test]
         public void GaugeBestX_StaysOnTrackBeyondScoreSpace()
         {
-            // design (docs/design/v6/flashbeat-v6-nodes.json) の Best x=553 は
-            // hiscore 1,043,396 をクランプせず 530 で割った点数空間外のサンプル。
-            // ゲームの点数は空間外に出ないが、保存スコアが空間上限を超える
-            // データが来てもマーカーがトラック外に出ないこと (クランプ) を決定的に検証する。
-            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(1043396, 530f), 0.5f);
+            // 保存スコアが空間上限 (2,000,000) を超えるデータが来ても
+            // マーカーがトラック外に出ないこと (クランプ) を決定的に検証する。
+            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(3000000, 530f), 0.5f);
             Assert.AreEqual(530f, V6HudLogic.GaugeBestX(int.MaxValue, 530f), 0.5f);
         }
 

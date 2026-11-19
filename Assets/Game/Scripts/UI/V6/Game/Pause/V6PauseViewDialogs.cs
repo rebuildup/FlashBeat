@@ -69,6 +69,15 @@ namespace FlashBeat.UI.V6.Game.Pause
             confirmButton.targetGraphic = confirm.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(confirm);
             confirmButton.onClick.AddListener(ApplyResetKeyLayout);
+
+            // コンパクト画面: Dialog がビューポートに収まるようパンを合わせ、
+            // パン入力を止める (issue #748)。通常解像度では no-op。
+            if (!confirmPanActive)
+            {
+                V6ModalPan.Suspend(frame,
+                    new Rect(V6Frame.DialogPos, V6Frame.DialogSize));
+                confirmPanActive = true;
+            }
         }
     }
 }

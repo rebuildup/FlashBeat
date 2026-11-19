@@ -50,10 +50,9 @@ namespace FlashBeat.UI.V6.Result
         private Image modalThumb;
         private bool modalOpen;
 
-        // コンパクト画面でモーダルを開いたときのパン退避 (Issue #609)。
+        // コンパクト画面でモーダルを開いたときのパン退避 (Issue #609 / #748)。
         // 開くとき Dialog 中心へパンを合わせ、閉じるとき元へ戻す。
-        private V6FramePan modalPan;
-        private Vector2 modalSavedPan;
+        // 実処理は共通機構 V6ModalPan / V6FramePan.SuspendForModal に委譲する。
 
         // チップ (登録しました / 登録できませんでした) の表示時刻と後処理。
         private bool chipActive;
@@ -265,6 +264,9 @@ namespace FlashBeat.UI.V6.Result
             V6Layout.Place(registerIcon.gameObject, 18.5f, 13f, 24f, 24f);
             modalRegisterLabel = OneLine(V5GameUi.Text(register, "Label", "Register", 26f,
                 V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Left, FontStyles.Normal));
+            // "Register" (fs26) は design の 101px を数 px 超えるため auto-size で収める
+            // ("Save" / "再試行" への差し替え後も同じ矩形)。#749。
+            V6TextFit.AutoFit(modalRegisterLabel, 20f);
             V6Layout.Place(modalRegisterLabel, 54.5f, 6f, 101f, 38f);
             BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", V5Tokens.FromHex("#00000026"),
                 V5Tokens.ButtonPrimaryLabel, 20f);
@@ -274,6 +276,9 @@ namespace FlashBeat.UI.V6.Result
             // design に無い実装都合の行なので Head/Prompt と重ならない位置 (右側 y74) に置く。
             modalStatus = OneLine(V5GameUi.Text(dialog.gameObject, "Status", "", 17f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
+            // 送信結果 / サーバエラーの長文が 592px を超えても 1 行に収める (#749)。
+            // スコア値と同じく全文を読ませたいので省略ではなく auto-size。
+            V6TextFit.AutoFit(modalStatus, 12f);
             V6Layout.Place(modalStatus, 220f, 74f, 592f, 26f);
 
             // 登録チップ (design TYshI 272×32)。成功は $ok-tint / $ok-light、
@@ -393,33 +398,13 @@ namespace FlashBeat.UI.V6.Result
         /// ビューポート外)。パン自体もモーダル表示中は止める
         /// (<see cref="V6FramePan.PanSuspended"/>)。通常解像度
         /// (ビューポート無し) では何もしない。
+        /// issue #748 で共通機構 (<see cref="V6ModalPan"/>) へ移管。
         /// </summary>
         public void AlignModalPanForViewport()
         {
-            modalPan = null;
-            var viewport = V6CompactScreen.FindViewport(frame);
-            if (viewport == null)
-            {
-                return;
-            }
-
-            var pan = viewport.GetComponent<V6FramePan>();
-            if (pan == null)
-            {
-                return;
-            }
-
-            modalPan = pan;
-            modalSavedPan = pan.Pan;
-            pan.PanSuspended = true;
-
-            Vector2 view = pan.ViewportSize;
-            if (view.x <= 0f || view.y <= 0f)
-            {
-                view = new Vector2(Screen.width, Screen.height);
-            }
-
-            pan.Pan = V6ResultLogic.ModalPanForViewport(view.x, view.y);
+            V6ModalPan.Suspend(frame, new Rect(
+                V6ResultLogic.ModalDialogX, V6ResultLogic.ModalDialogY,
+                V6ResultLogic.ModalDialogW, V6ResultLogic.ModalDialogH));
         }
 
         /// <summary>
@@ -429,12 +414,7 @@ namespace FlashBeat.UI.V6.Result
         /// </summary>
         public void RestoreModalPan()
         {
-            if (modalPan != null)
-            {
-                modalPan.PanSuspended = false;
-                modalPan.Pan = modalSavedPan;
-                modalPan = null;
-            }
+            V6ModalPan.Resume(frame);
         }
 
         /// <summary>検証ハーネス用: 名前入力欄の現在の文字列。</summary>

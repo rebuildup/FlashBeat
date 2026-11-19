@@ -34,12 +34,15 @@ namespace FlashBeat.UI.V6.Option
     /// 設定/プレビュー パネル = V6OptionViewPanels.cs、音量スライダ = V6OptionViewVolume.cs、
     /// 確認モーダル = V6OptionViewDialogs.cs、データ操作 API・uGUI ユーティリティ =
     /// V6OptionViewActions.cs)。このファイルは状態フィールド・ライフサイクル
-    /// (Create/Dispose/Refresh/SetVisible)・行定義 (RowsForTab/Build*Rows) を持つ。
+    /// (Create/Dispose/Refresh/SetVisible)・行定義 (RowsForTab/BuildDataRows) を持つ。
+    /// Issue #733: 設定行のスキーマ (Play/Display/Sound) は
+    /// <see cref="V6SettingsCatalog"/> が単一ソースとして持ち、Pause と共有する。
+    /// このファイルに残すのは Option 固有の Data タブ行だけ。
     /// 行定義とキー一覧 BuildKeyGrid は OptionKeyGridAndPressFeedbackTests /
     /// V6UiWiringTests がこのファイルをソース走査して検証するため、ここに残す
     /// (移すとテストが落ちる)。
     /// </summary>
-    public sealed partial class V6OptionView
+    public sealed partial class V6OptionView : IV6SettingsHost
     {
         /// <summary>現在生成されている v6 Option 画面 (シーンに 1 個だけ)。</summary>
         public static V6OptionView Current { get; private set; }
@@ -64,9 +67,6 @@ namespace FlashBeat.UI.V6.Option
         private const float GamePrevX = V6OptionLogic.GamePrevX, GamePrevY = V6OptionLogic.GamePrevY;
         private const float GamePrevW = V6OptionLogic.GamePrevW, GamePrevH = V6OptionLogic.GamePrevH;
 
-        /// <summary>契約 §3 danger トークン (#FF6B6B)。V6Tokens に未定義のため design 値を直接持つ。</summary>
-        private static readonly Color DangerLabel = V5Tokens.FromHex("#FF6B6B");
-
         private readonly Action onBack;
 
         private GameObject rootGo;
@@ -77,6 +77,8 @@ namespace FlashBeat.UI.V6.Option
         private int selectedTab;
         private int selectedRow;
         private bool confirmClearOpen;
+        /// <summary>確認モーダル表示中のコンパクト用パン退避が有効か (issue #748)。</summary>
+        private bool confirmPanActive;
 
         /// <summary>確認モーダルの種類 (issue-162 C-6: Key Layout のリセットも確認する)。</summary>
         private enum ConfirmKind { ClearSaveData, ResetKeyLayout, MediaCache }
@@ -86,7 +88,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>Clear save data の実行結果 (消去完了の文言。空なら未実行)。</summary>
         private string clearResult = "";
 
-        private List<Row> currentRows = new List<Row>();
+        private List<V6SettingRow> currentRows = new List<V6SettingRow>();
 
         // --- Issue #415: 骨格保持の差分更新用の参照 ---
         // Rebuild() は状態変化に応じて、変わった部分だけを既存要素へ適用する。
@@ -131,49 +133,17 @@ namespace FlashBeat.UI.V6.Option
         private TextMeshProUGUI selectedRowValueText;
 
         /// <summary>
-        /// Game Preview の 3D リグ (Issue #579)。Game Preview well を最初に
+        /// ゲームプレビューの共有ホスト (Issue #733)。Game Preview well を最初に
         /// 構築したときに生成し、Dispose まで保持する (タブ切替では作り直さない)。
+        /// 中身は <see cref="V6OptionPreviewRig"/> で、Pause の設定画面とも同じ。
         /// </summary>
-        private V6OptionPreviewRig previewRig;
+        private V6GamePreview gamePreview;
 
-        /// <summary>キー操作後の保存予約時刻 (0 以下 = 予約なし。Issue #375 §3.2)。</summary>
-        private float volumeSaveAt;
-
-        /// <summary>キー操作を止めてから保存するまでの猶予 (秒)。</summary>
-        private const float VolumeSaveDelay = 0.5f;
+        /// <summary>音量設定の値モデル (Issue #733)。Pause と同じ <see cref="V6VolumeSettings"/>。</summary>
+        private readonly V6VolumeSettings volumeSettings = new V6VolumeSettings();
 
         /// <summary>キー設定モーダル (Issue #376、design vo4kB)。フレーム直下に 1 個だけ持つ。</summary>
         private V6KeyConfigModal keyConfigModal;
-
-        /// <summary>設定行の定義 (表示値と操作をデリゲートで持つ。V5 OptionView.Row と同じ形)。</summary>
-        private sealed class Row
-        {
-            public readonly string Label;
-            public readonly Func<string> Value;
-            public readonly Action<int> Adjust;
-            public readonly Action Activate;
-            public readonly string DescTitle;
-            public readonly string Desc;
-            public readonly bool Danger;
-            public readonly bool IsAction; // ステッパーを持たない行 (キー設定 / Data の 2 行)
-            /// <summary>音量行の対象 (0=Main / 1=Effect / 2=BGM、それ以外は -1)。</summary>
-            public readonly int VolumeIndex;
-
-            public Row(string label, Func<string> value, Action<int> adjust, Action activate,
-                string descTitle, string desc, bool danger = false, bool isAction = false,
-                int volumeIndex = -1)
-            {
-                Label = label;
-                Value = value;
-                Adjust = adjust;
-                Activate = activate;
-                DescTitle = descTitle;
-                Desc = desc;
-                Danger = danger;
-                IsAction = isAction;
-                VolumeIndex = volumeIndex;
-            }
-        }
 
         private V6OptionView(Action onBack)
         {
@@ -221,7 +191,7 @@ namespace FlashBeat.UI.V6.Option
         {
             if (!visible)
             {
-                SavePendingVolumeNow();
+                volumeSettings.FlushNow();
             }
 
             if (rootGo != null)
@@ -231,9 +201,9 @@ namespace FlashBeat.UI.V6.Option
 
             // 画面を離れている間はプレビューカメラの RT 描画を止める
             // (疑似時計は Time.time ベースなので、戻ったとき位相は連続する)。
-            if (previewRig != null)
+            if (gamePreview != null)
             {
-                previewRig.SetRenderingEnabled(visible);
+                gamePreview.SetRenderingEnabled(visible);
             }
         }
 
@@ -242,12 +212,18 @@ namespace FlashBeat.UI.V6.Option
         {
             // 画面を離れるときに予約済みの音量保存を落とさない (0.5 秒の猶予中に
             // 破棄されると、最後の調整だけが保存されない)。
-            SavePendingVolumeNow();
+            volumeSettings.FlushNow();
             KeyBindings.Changed -= OnBindingsChanged;
-            if (previewRig != null)
+            // 破棄時にモーダル用パン退避が残っていれば元へ戻す (issue #748)。
+            if (confirmPanActive)
             {
-                previewRig.Dispose();
-                previewRig = null;
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
+            }
+            if (gamePreview != null)
+            {
+                gamePreview.Dispose();
+                gamePreview = null;
             }
             if (rootGo != null)
             {
@@ -299,144 +275,27 @@ namespace FlashBeat.UI.V6.Option
         }
 
         // --- 行定義 (実データに結線) ---
+        //
+        // Issue #733: Play / Display / Sound の行スキーマは
+        // <see cref="V6SettingsCatalog"/> が単一ソースとして持ち、
+        // Pause の設定画面と同じ行・同じ順序・同じ値書式・同じ保存経路を共有する。
+        // ここに残るのは Option 固有の Data タブ (キャッシュ / セーブデータ操作) だけ。
 
-        private List<Row> RowsForTab(int tab)
+        private List<V6SettingRow> RowsForTab(int tab)
         {
-            switch (tab)
+            if (tab < 3)
             {
-                case 0: return BuildPlayRows();
-                case 1: return BuildDisplayRows();
-                case 2: return BuildSoundRows();
-                default: return BuildDataRows();
+                return V6SettingsCatalog.RowsForTab(tab, this);
             }
+
+            return BuildDataRows();
         }
 
-        private List<Row> BuildPlayRows()
+        private List<V6SettingRow> BuildDataRows()
         {
-            return new List<Row>
+            return new List<V6SettingRow>
             {
-                new Row("NoteSpeed",
-                    () => V6OptionLogic.FormatSpeed(GManager.noteSpeed),
-                    AdjustNoteSpeed,
-                    null,
-                    "NoteSpeed",
-                    "ノーツが出現してから判定線に届くまでの時間。数値が大きいほど速く落ちます。"),
-                new Row("NoteTiming",
-                    () => GManager.noteTiming.ToString(),
-                    AdjustNoteTiming,
-                    null,
-                    "NoteTiming",
-                    "判定タイミングのずれを調整します。変更は全曲の譜面設定 (offset) に書き込まれます。"),
-                new Row("Key Layout",
-                    () => IsDefaultKeyLayout() ? "標準" : "カスタム",
-                    d =>
-                    {
-                        if (d > 0)
-                        {
-                            OpenKeyConfig(); // カスタムはキー設定で編集する
-                        }
-                        else if (!IsDefaultKeyLayout())
-                        {
-                            OpenResetKeyLayoutConfirm(); // 破壊的なリセットは確認してから (issue-162 C-6)
-                        }
-                    },
-                    OpenKeyConfig,
-                    "Key Layout",
-                    "キー配列を選びます。標準は既定の配列、カスタムはキー設定で編集します。← で標準に戻します (確認ダイアログが出ます)。"),
-                new Row("キー設定",
-                    () => "開く ›",
-                    null,
-                    OpenKeyConfig,
-                    "キー設定",
-                    "8 レーンの代表キーを変更します。行を選んで Enter を押し、次に押したキーが割り当てられます。",
-                    isAction: true),
-            };
-        }
-
-        private List<Row> BuildDisplayRows()
-        {
-            return new List<Row>
-            {
-                new Row("Flash",
-                    () => GManager.Flash ? "On" : "Off",
-                    d =>
-                    {
-                        if (d != 0)
-                        {
-                            ToggleFlash();
-                        }
-                    },
-                    ToggleFlash,
-                    "Flash",
-                    "ノーツ判定時の背景フラッシュの On/Off。"),
-                new Row("FlashTiming",
-                    () => GManager.FlashT.ToString(),
-                    AdjustFlashTiming,
-                    null,
-                    "FlashTiming",
-                    "フラッシュのタイミングを調整します。"),
-                new Row("FlashSpeed",
-                    () => GManager.FlashBG.ToString(),
-                    AdjustFlashSpeed,
-                    null,
-                    "FlashSpeed",
-                    "フラッシュの速さ。1 が最も速く、8 が最も遅い。"),
-                new Row("Key Guide",
-                    () => PlaySession.KeyGuideLabel(PlaySession.KeyGuide),
-                    SetKeyGuide,
-                    () => SetKeyGuide(1),
-                    "Key Guide",
-                    "プレイ中の下部キーガイドの表示形式。"),
-                new Row("Lyrics",
-                    () => PlaySession.LyricsLabel(PlaySession.LyricsEnabled),
-                    d =>
-                    {
-                        if (d != 0)
-                        {
-                            ToggleLyrics();
-                        }
-                    },
-                    ToggleLyrics,
-                    "Lyrics",
-                    "プレイ中の歌詞表示の On/Off。"),
-            };
-        }
-
-        private List<Row> BuildSoundRows()
-        {
-            // 音量行は VolumeIndex を持ち、←→ / ステッパー / スライダーが同じ値モデルを編集する
-            // (Issue #375)。Adjust は null — 調整は AdjustSelected が VolumeIndex 経由で行う。
-            return new List<Row>
-            {
-                new Row("Main Volume",
-                    () => V6OptionLogic.FormatVolume(GManager.mainVolume),
-                    null,
-                    null,
-                    "Main Volume",
-                    "全体の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
-                    volumeIndex: 0),
-                new Row("Effect Volume",
-                    () => V6OptionLogic.FormatVolume(GManager.effectVolume),
-                    null,
-                    null,
-                    "Effect Volume",
-                    "効果音の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
-                    volumeIndex: 1),
-                new Row("BGM Volume",
-                    () => V6OptionLogic.FormatVolume(GManager.BGMVolume),
-                    null,
-                    null,
-                    "BGM Volume",
-                    "BGM の音量。スライダーをドラッグするか ←→ で調整します (Shift で 10% 刻み)。",
-                    volumeIndex: 2),
-            };
-        }
-
-        private List<Row> BuildDataRows()
-        {
-            return new List<Row>
-            {
-                new Row("Media cache",
+                new V6SettingRow("Media cache",
                     () => MediaCacheSizeLabel(),
                     null,
                     OpenMediaCacheConfirm,
@@ -444,7 +303,7 @@ namespace FlashBeat.UI.V6.Option
                     "ダウンロードした楽曲映像のキャッシュ。消すと次回プレイ時に再ダウンロードします。",
                     danger: true,
                     isAction: true),
-                new Row("Clear save data",
+                new V6SettingRow("Clear save data",
                     () => clearResult,
                     null,
                     OpenClearConfirm,
@@ -453,6 +312,22 @@ namespace FlashBeat.UI.V6.Option
                     danger: true,
                     isAction: true),
             };
+        }
+
+        // --- IV6SettingsHost (Issue #733: Pause と共有する設定ホスト契約) ---
+
+        /// <summary>Option はゲーム外の画面なので BGM Volume 行も出す。</summary>
+        bool IV6SettingsHost.IsGameplayHost => false;
+
+        V6VolumeSettings IV6SettingsHost.Volumes => volumeSettings;
+
+        void IV6SettingsHost.OpenKeyConfig() => OpenKeyConfig();
+
+        void IV6SettingsHost.RequestResetKeyLayout() => OpenResetKeyLayoutConfirm();
+
+        /// <summary>セッション設定の変更はゲーム外なので追加の反映は不要。</summary>
+        void IV6SettingsHost.OnDisplaySettingChanged()
+        {
         }
     }
 }

@@ -46,11 +46,16 @@ namespace FlashBeat.UI.V6.Common
 
         private GameObject rootGo;
         private GameObject dialogGo;
+        private RectTransform frameRect;
         private V6KeyConfigLogic logic;
         private bool isOpen;
+        // コンパクト画面のモーダル用パン退避 (issue #748)。Show/Hide と
+        // 対応させて V6ModalPan.Suspend/Resume を呼ぶ。
+        private bool modalPanActive;
         private readonly List<KeyCap> keyCaps = new List<KeyCap>();
         private TextMeshProUGUI statusText;
         private TextMeshProUGUI hintText;
+        private TextMeshProUGUI hintKeysText;
 
         /// <summary>閉じたあとに呼ばれる (適用・キャンセルどちらでも)。</summary>
         public Action Closed;
@@ -94,6 +99,7 @@ namespace FlashBeat.UI.V6.Common
             rt.sizeDelta = V6Frame.ModalSize;
 
             var modal = go.AddComponent<V6KeyConfigModal>();
+            modal.frameRect = parent.GetComponent<RectTransform>();
             modal.BuildContent();
             go.SetActive(false);
             return modal;
@@ -112,6 +118,14 @@ namespace FlashBeat.UI.V6.Common
             active = this;
             rootGo.SetActive(true);
             rootGo.transform.SetAsLastSibling();
+            // コンパクト画面では Dialog がビューポートに収まるようパンを
+            // 合わせ、パン入力を止める (issue #748)。通常解像度では no-op。
+            if (!modalPanActive)
+            {
+                V6ModalPan.Suspend(frameRect, new Rect(DialogX, DialogY, DialogW, DialogH));
+                modalPanActive = true;
+            }
+
             Refresh();
         }
 
@@ -123,6 +137,12 @@ namespace FlashBeat.UI.V6.Common
             if (ReferenceEquals(active, this))
             {
                 active = null;
+            }
+
+            if (modalPanActive)
+            {
+                V6ModalPan.Resume(frameRect);
+                modalPanActive = false;
             }
 
             if (rootGo != null)
@@ -138,6 +158,12 @@ namespace FlashBeat.UI.V6.Common
 
         private void OnDestroy()
         {
+            if (modalPanActive)
+            {
+                V6ModalPan.Resume(frameRect);
+                modalPanActive = false;
+            }
+
             if (ReferenceEquals(active, this))
             {
                 active = null;
@@ -168,11 +194,42 @@ namespace FlashBeat.UI.V6.Common
             BuildKeyboard();
 
             // 選択レーンの状態 (衝突・待受など) と操作ヒント。
+            // 「他: A / B / …」の使用中キー一覧は 784px を超え得るため 1 行省略にする
+            // (#749: NoWrap + Overflow では右へはみ出していた)。
             statusText = V6Controls.Text(dialogGo, "Status", string.Empty,
                 new Vector2(28f, 420f), new Vector2(784f, 26f), 20f, V6Tokens.TextMuted);
+            // Issue #733: 「←→」の文字グリフはアイコン (chevron-left/right) に置き換える。
+            // ヒントは「前半テキスト + アイコン 2 個 + 後半テキスト」の合成。
+            V6TextFit.Ellipsis(statusText);
             hintText = V6Controls.Text(dialogGo, "Hint",
-                "クリック: レーン選択 / Enter: キー待受 / ←→: レーン移動 / Esc: 閉じる",
+                "クリック: レーン選択 / Enter: キー待受 / ",
                 new Vector2(28f, 452f), new Vector2(784f, 22f), 18f, V6Tokens.TextDim);
+            float hintX = 28f + V6Controls.MeasureWidth(hintText,
+                "クリック: レーン選択 / Enter: キー待受 / ", 784f);
+            const float HintIconSize = 18f;
+            for (int i = 0; i < 2; i++)
+            {
+                var icon = V6Icons.Create(dialogGo, i == 0 ? "chevron-left" : "chevron-right",
+                    HintIconSize, V6Tokens.TextDim, "Hint Icon " + i);
+                if (icon == null)
+                {
+                    continue;
+                }
+
+                var rt = icon.rectTransform;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(
+                    hintX + i * (HintIconSize + 2f), -(452f + (22f - HintIconSize) * 0.5f));
+                rt.sizeDelta = new Vector2(HintIconSize, HintIconSize);
+            }
+
+            float tailX = hintX + 2f * (HintIconSize + 2f);
+            hintKeysText = V6Controls.Text(dialogGo, "Hint Keys",
+                ": レーン移動 / Esc: 閉じる",
+                new Vector2(tailX, 452f), new Vector2(784f - (tailX - 28f), 22f),
+                18f, V6Tokens.TextDim);
 
             BuildFooter();
         }
@@ -384,6 +441,11 @@ namespace FlashBeat.UI.V6.Common
             if (hintText != null)
             {
                 hintText.fontStyle = listening ? FontStyles.Bold : FontStyles.Normal;
+            }
+
+            if (hintKeysText != null)
+            {
+                hintKeysText.fontStyle = listening ? FontStyles.Bold : FontStyles.Normal;
             }
         }
 
