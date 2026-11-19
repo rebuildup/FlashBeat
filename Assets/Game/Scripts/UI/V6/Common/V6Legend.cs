@@ -72,6 +72,56 @@ namespace FlashBeat.UI.V6.Common
         }
 
         /// <summary>
+        /// 凡例 1 項目をアイコン (Resources/Icons のスプライト) で置く版 (Issue #733)。
+        /// 「↑↓ 選択」「←→ 変更」のような方向キーの説明を、文字グリフではなく
+        /// chevron/arrow アイコンで示す。戻り値は次の項目の x (Item と同じ規則)。
+        /// </summary>
+        public static float IconItem(GameObject parent, float x, float y, string[] iconNames, string label)
+        {
+            if (iconNames == null || iconNames.Length == 0)
+            {
+                return x;
+            }
+
+            const float IconSize = 20f;
+            const float IconGap = 4f;
+            const float IconPadY = (Height - IconSize) * 0.5f;
+            float capW = CapPadX * 2f + iconNames.Length * IconSize
+                + (iconNames.Length - 1) * IconGap;
+
+            var cap = V6Controls.Panel(parent, "Legend Icons " + label,
+                new Vector2(x, y), new Vector2(capW, Height), V6Tokens.Key4, V6Tokens.RadiusSmall);
+
+            for (int i = 0; i < iconNames.Length; i++)
+            {
+                var icon = V6Icons.Create(cap, iconNames[i], IconSize, V6Tokens.TextMuted,
+                    "Icon " + iconNames[i]);
+                if (icon == null)
+                {
+                    continue;
+                }
+
+                var rt = icon.rectTransform;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(
+                    CapPadX + i * (IconSize + IconGap), -IconPadY);
+                rt.sizeDelta = new Vector2(IconSize, IconSize);
+            }
+
+            float labelEstimate = Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * FontSize);
+            float labelX = x + capW + InnerGap;
+            var labelTmp = V6Controls.Text(parent, "Legend Label " + label, label,
+                new Vector2(labelX, y), new Vector2(labelEstimate, Height), FontSize,
+                V6Tokens.TextMuted, TextAlignmentOptions.Left);
+            float labelW = V6Controls.MeasureWidth(labelTmp, label, labelEstimate);
+            labelTmp.rectTransform.sizeDelta = new Vector2(labelW, Height);
+
+            return labelX + labelW + ItemGap;
+        }
+
+        /// <summary>
         /// キー凡例をまとめて置く (items = {キー, 説明} の並び)。
         /// x=0・y=<see cref="Y"/> から <see cref="ItemGap"/> 間隔で左から並べる
         /// (Ranking / History の private BuildKeyLegend と同じ仕様)。
