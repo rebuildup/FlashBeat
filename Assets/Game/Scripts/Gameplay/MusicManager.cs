@@ -197,6 +197,12 @@ public class MusicManager : MonoBehaviour
     /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
     public float MediaTimeNow { get { return CurrentMediaTime(); } }
 
+    /// <summary>
+    /// 計測器 (NoteMotionProbe, -fbnoteprobe) が映像時計の粒度を読むための参照。
+    /// 判定・譜面時計には使わない (MediaTimeNow / GManager.step_time が正本)。
+    /// </summary>
+    public VideoPlayer SongVideoForAudit { get { return songVideo; } }
+
     /// <summary>音声の供給元の説明 (デバッグ表示・検証用)。</summary>
     public string AudioModeName { get { return audioMode.ToString(); } }
 
@@ -218,6 +224,9 @@ public class MusicManager : MonoBehaviour
         GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
+        // Issue #739: 描画専用の補間時計も新しい曲ごとに初期化する
+        // (前の曲の外挿状態を引き継がない)。
+        MediaRenderClock.Reset();
         // Issue #183: 遷移の待ち時間に動いたかもしれない選択を、固定した
         // プレイセッションへ戻してから曲情報を読む。
         PlaySessionSnapshot session = PlaySessionSnapshot.Current;
@@ -1198,6 +1207,12 @@ public class MusicManager : MonoBehaviour
             GManager.StartTime = MediaTimeline.JudgeStartTime(Time.time, mediaTime);
             GManager.step_time = mediaTime;
         }
+
+        // Issue #739: ノーツ描画専用の補間時計へ同じメディア時刻を渡す。
+        // 判定は上の GManager.step_time が正本のままで、こちらは見た目の
+        // 滑らかさだけに使う (VideoPlayer.time が動画フレーム単位に
+        // 量子化されても、レンダーフレームごとに補間される)。
+        MediaRenderClock.Observe(GManager.step_time, Time.unscaledTime);
 
         if (mediaEnded)
         {

@@ -223,8 +223,12 @@ public class PlaybackClockTests
         // 2. 時刻復元 (Notes.Start) と 3. 移動 (Notes.Update)
         StringAssert.Contains("MediaTimeline.NoteTimeFromPositionZ(transform.position.z, ZScale)", notes,
             "The note time recovery must use the shared z scale.");
-        StringAssert.Contains("MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale)", notes,
+        // Issue #739: 移動に使う時間は MediaRenderClock (step_time をキーに
+        // フレームごとに補間した描画専用の値) 経由。z スケールの共有は不変。
+        StringAssert.Contains("MediaTimeline.NotePositionZ(noteTime, mediaTime, ZScale)", notes,
             "The note movement must use the shared z scale.");
+        StringAssert.Contains("MediaRenderClock.RenderTimeOrFallback(GManager.step_time", notes,
+            "The note movement must derive its time from the media clock via MediaRenderClock.");
 
         // どれか 1 箇所でも生の noteSpeed を z スケールを渡してはいけない。
         Assert.IsFalse(Regex.IsMatch(notes, @"Note(PositionZ|TimeFromPositionZ)\([^)]*GManager\.noteSpeed"),
