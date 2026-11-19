@@ -23,9 +23,10 @@ public static class RankingClient
     public const int NicknameMaxLength = 16;
     public const string NicknamePrefsKey = "RankingNickname";
     /// <summary>
-    /// scoringVersion sent with every submission (ADR-0028 / ADR-0029):
-    /// tracks <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/> (3 = the
-    /// v3 formula with combo milestones and the full-combo bonus). The
+    /// scoringVersion sent with every submission (ADR-0028 / ADR-0029 /
+    /// ADR-0033): tracks <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/>
+    /// (4 = the v4 formula: judgment-derived base capped at 1,000,000 plus
+    /// additive combo/milestone bonuses, full combo exceeds 1,000,000). The
     /// server treats an omitted field as 1 for old clients.
     /// </summary>
     public const int ScoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion;

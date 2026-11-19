@@ -120,9 +120,9 @@ public class RankingSubmissionJudgementSumTests
         Assert.AreEqual(NoteCount, sum, "送信する判定数の合計が noteCount と一致しない");
 
         // API は score も scoringVersion の式で再計算して照合する
-        // (ADR-0029: payload.scoringVersion=3 なので v3 の式)。
+        // (ADR-0033: payload.scoringVersion=4 なので v4 の式)。
         Assert.AreEqual(Scoring.LatestVersion, payload.scoringVersion,
-            "送信する scoringVersion が最新 (v3) でない");
+            "送信する scoringVersion が最新 (v4) でない");
         Assert.AreEqual(ApiRecomputedScore(payload.perfect, payload.great, payload.bad,
                 payload.miss, payload.maxCombo, payload.comboMilestones, NoteCount),
             payload.score, "送信する score が API の再計算と一致しない");
@@ -214,23 +214,24 @@ public class RankingSubmissionJudgementSumTests
 
     /// <summary>
     /// API が再計算するスコア (web/routes/api/v1/_score-model.ts の
-    /// <c>computeUnityScoreV3</c>、ADR-0029 + Issue #631 の v3 式)。
-    /// クライアント側の <see cref="Scoring.ScoreV3"/> と同じ決定的な
-    /// 整数演算で独立に計算する (float を介さないため全プラットフォームで一致)。
+    /// <c>computeUnityScoreV4</c>、ADR-0033 の v4 式)。クライアント側の
+    /// <see cref="Scoring.ScoreV4"/> と同じ決定的な整数演算で独立に計算する
+    /// (float を介さないため全プラットフォームで一致)。
     /// </summary>
     private static int ApiRecomputedScore(int perfect, int great, int bad, int miss,
         int maxCombo, int comboMilestones, int noteCount)
     {
         if (noteCount <= 0) return 0;
-        long maxScore = noteCount * 15L
-            + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints + 100L;
         long judgment = perfect * 5L + great * 3L + bad;
-        long comboBonus = maxCombo * 5L;
         long hits = perfect + great + bad;
-        long noMissBonus = miss == 0 ? hits * 5L : 0L;
-        long milestoneBonus = comboMilestones * (long)Scoring.MilestoneBonusPoints;
-        long finalBonus = miss == 0 ? Scoring.FullComboBonusPoints : 0L;
-        long ratioScore = judgment + comboBonus + noMissBonus + milestoneBonus + finalBonus;
-        return (int)(ratioScore * 1000000L / maxScore);
+        long bonusRatio = maxCombo * 5L
+            + (miss == 0 ? hits * 5L : 0L)
+            + comboMilestones * (long)Scoring.MilestoneBonusPoints
+            + (miss == 0 ? Scoring.FullComboBonusPoints : 0L);
+        long maxBonusRatio = noteCount * 10L
+            + (noteCount / Scoring.MilestoneInterval) * Scoring.MilestoneBonusPoints + 100L;
+        long baseScore = judgment * 1000000L / (noteCount * 5L);
+        long bonusScore = bonusRatio * 1000000L / maxBonusRatio;
+        return (int)(baseScore + bonusScore);
     }
 }

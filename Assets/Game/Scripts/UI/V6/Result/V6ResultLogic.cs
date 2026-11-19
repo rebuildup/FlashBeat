@@ -46,6 +46,11 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>
         /// スコアからグレード文字列を返す。既存の Assessment 判定
         /// (V5 ResultView.RankFor) と同じ閾値 (1:1 維持)。スコアが無い (0 以下) ときは "–"。
+        ///
+        /// scoring v4 (ADR-0033) で満点は 2,000,000 になったが、グレード
+        /// 閾値の再設計はこの Issue の範囲外 (フォローアップ課題)。現状は
+        /// 1,000,000 以上が SS になるため、v4 の高得点は全て上位
+        /// グレードに写る。
         /// </summary>
         public static string GradeOf(int score)
         {
@@ -64,29 +69,32 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// scoring v3 (ADR-0029 / Issue #602) のボーナス内訳の表示文字列。
-        /// 各ボーナスは常に "+値"、未達のものは "–" を返す。値は ratio points
-        /// をスコア点へ換算した目安で、送信フィールドではない (サーバは内訳を
-        /// 信用せず再計算する)。
+        /// scoring v4 (ADR-0033 / Issue #736) の基礎スコア + ボーナス内訳の
+        /// 表示文字列。基礎スコアは判定由来のみで上限 1,000,000、ボーナスは
+        /// コンボ継続・節目・クリア (ノーミス + フルコンボ終了) の 3 群で、
+        /// それぞれ実際に加算されるスコア点を "+値" で返す (未達は "–")。
+        /// 値は ratio points をスコア点へ換算した目安で、送信フィールド
+        /// ではない (サーバは内訳を信用せず再計算する)。
         /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
         /// the full-combo end bonus only shows once every chart note was
         /// judged (Issue #618).
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
             int comboMilestones, int noteCount, bool judgmentsComplete,
-            out string comboBonus, out string milestoneBonus, out string noMissBonus, out string finalBonus)
+            out string baseScore, out string comboBonus, out string milestoneBonus, out string clearBonus)
         {
-            Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+            Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
                 perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
-            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV3(v3.ComboBonus, noteCount));
-            milestoneBonus = v3.MilestoneBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.MilestoneBonus, noteCount))
+            baseScore = FormatScore(v4.BaseScore);
+            comboBonus = v4.ComboBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(v4.ComboBonus, noteCount))
                 : "–";
-            noMissBonus = v3.NoMissBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.NoMissBonus, noteCount))
+            milestoneBonus = v4.MilestoneBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(v4.MilestoneBonus, noteCount))
                 : "–";
-            finalBonus = v3.FinalBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.FinalBonus, noteCount))
+            int clearRatio = v4.NoMissBonus + v4.FinalBonus;
+            clearBonus = clearRatio > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(clearRatio, noteCount))
                 : "–";
         }
 

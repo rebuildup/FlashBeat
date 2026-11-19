@@ -150,20 +150,22 @@ namespace FlashBeat.UI.V6.Result
         private const float BonusLineH = 40f;
 
         /// <summary>
-        /// scoring v3 (ADR-0029 / Issue #602) のボーナス内訳行。コンボ継続・
-        /// 節目・ノーミス・フルコンボ終了の 4 成分をスコア点換算で出す
-        /// (実際の加点であり、近似表示ではない)。
+        /// scoring v4 (ADR-0033 / Issue #736) の基礎スコア + ボーナス内訳行。
+        /// 判定由来の基礎スコア (上限 1,000,000) と、コンボ継続・節目・
+        /// クリア (ノーミス + フルコンボ終了) のボーナス群を、実際に
+        /// 加算されるスコア点で出す。合計が表示スコア (最大 2,000,000)
+        /// に対応する。
         /// </summary>
         private void BuildBonusLine(GameObject main)
         {
             var row = V6Layout.Place(V5Ui.Node(main, "Bonus Line"), 0f, BonusLineY, 840f, BonusLineH);
 
-            var label = V5GameUi.Text(row.gameObject, "Label", "BONUS", 18f, V5Tokens.TextDim,
+            var label = V5GameUi.Text(row.gameObject, "Label", "BASE + BONUS", 18f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left);
             V6Layout.Place(label, 0f, 8f, 100f, 28f, new Vector2(0f, 0.5f));
 
-            string[] names = { "COMBO", "MILESTONE", "NO-MISS", "FULL COMBO" };
-            string[] keys = { "Combo Bonus", "Milestone Bonus", "No Miss Bonus", "Full Combo Bonus" };
+            string[] names = { "BASE", "COMBO", "MILESTONE", "CLEAR" };
+            string[] keys = { "Base Score", "Combo Bonus", "Milestone Bonus", "Clear Bonus" };
             const float colX = 110f;
             const float colW = (840f - colX) / 4f;
             for (int i = 0; i < 4; i++)
@@ -251,18 +253,18 @@ namespace FlashBeat.UI.V6.Result
             judgeValues[3].text = runMiss.ToString();
             judgeValues[4].text = runMaxCombo.ToString();
 
-            // scoring v3 のボーナス内訳 (ADR-0029 / Issue #602)。ノーツ数は
-            // 確定済みの判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
+            // scoring v4 の基礎スコア + ボーナス内訳 (ADR-0033 / Issue #736)。
+            // ノーツ数は確定済みの判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
             int noteCount = runPerfect + runGreat + runBad + runMiss;
             V6ResultLogic.BonusBreakdownTexts(
                 runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones, noteCount,
                 GManager.judgmentsComplete,
-                out string comboBonusText, out string milestoneBonusText,
-                out string noMissBonusText, out string finalBonusText);
-            bonusValues[0].text = comboBonusText;
-            bonusValues[1].text = milestoneBonusText;
-            bonusValues[2].text = noMissBonusText;
-            bonusValues[3].text = finalBonusText;
+                out string baseScoreText, out string comboBonusText,
+                out string milestoneBonusText, out string clearBonusText);
+            bonusValues[0].text = baseScoreText;
+            bonusValues[1].text = comboBonusText;
+            bonusValues[2].text = milestoneBonusText;
+            bonusValues[3].text = clearBonusText;
 
             float fill = V6ResultLogic.GaugeFillWidth(score);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);
