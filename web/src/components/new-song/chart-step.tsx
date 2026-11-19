@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { Chart, ValidationIssue } from "@/lib/chart/types";
+import { createEmptyChart } from "@/lib/chart/empty";
 import { judgeNoteCount } from "@/lib/new-song/validation";
 
 /**
@@ -113,9 +114,7 @@ export function ChartStep({
         <Suspense fallback={<div className={editorArea} />}>
           <ChartEditor
             key={videoId || "no-video"}
-            initialChart={
-              chart ?? { name: fallbackChartName, maxBlock: 8, BPM: 120, offset: 0, notes: [] }
-            }
+            initialChart={chart ?? createEmptyChart(fallbackChartName)}
             initialYouTubeId={videoId}
             onChartChange={onChange}
             onValidationChange={onIssuesChange}

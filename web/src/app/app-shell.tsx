@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { cx, css } from "styled-system/css";
 import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
 import { Sidebar } from "./sidebar";
 import { WelcomeHero } from "@/components/welcome/welcome-hero";
-import { isAbortError, loadCatalog, type CatalogMode } from "./catalog";
+import { loadCatalog, type CatalogMode } from "./catalog";
+import { isAbortError, useLatestRequest } from "./request-guard";
 import type { SongSummary } from "./types";
 
 /**
@@ -98,48 +99,39 @@ export function AppShell({
   const [online, setOnline] = useState(() => navigator.onLine);
 
   /**
-   * 最新の要求だけを反映するための状態。
-   *
-   * - `requestIdRef` は要求番号。番号が最新でない応答は捨てる（古い応答が
-   *   新しい応答を上書きしないため）。
-   * - `abortRef` は今走っている要求の `AbortController`。新しい読み込みが
-   *   始まれば前の要求を中断する。
+   * 最新の要求だけを反映するガード（`request-guard.ts`、issue #741）。
+   * 新しい読み込みが始まれば前の要求を中断し、古い応答は捨てる。
    */
-  const requestIdRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const { begin, cancel } = useLatestRequest();
 
   const refresh = useCallback(() => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+    const request = begin();
 
     setStatus("loading");
     setErrorMessage(undefined);
 
-    loadCatalog(mode, { signal: controller.signal })
+    loadCatalog(mode, { signal: request.signal })
       .then((loaded) => {
-        if (requestId !== requestIdRef.current) return;
+        if (!request.isCurrent()) return;
         setSongs(loaded);
         setStatus(loaded.length === 0 ? "empty" : "ready");
       })
       .catch((error: unknown) => {
         // 中断は失敗ではない。次に始まる読み込みの結果を待つだけ。
         if (isAbortError(error)) return;
-        if (requestId !== requestIdRef.current) return;
+        if (!request.isCurrent()) return;
         setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
         setStatus("error");
       });
-  }, [mode]);
+  }, [mode, begin]);
 
   useEffect(() => {
     refresh();
     return () => {
       // 画面を離れるときに未完了の要求を中断する。
-      abortRef.current?.abort();
+      cancel();
     };
-  }, [refresh]);
+  }, [refresh, cancel]);
 
   useEffect(() => {
     const goOnline = () => {
