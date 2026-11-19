@@ -310,6 +310,9 @@ public static class SongEndAcceptanceTests
         GManager.maxScore = 0f;
         GManager.comboBonus = 0;
         GManager.noMissBonus = 0;
+        GManager.baseScore = 0;
+        GManager.bonusScore = 0;
+        GManager.maxBonusRatio = 0f;
         // MusicManager は曲開始時に nextNotes = 1 にする。Judge は
         // 「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
         GManager.nextNotes = 1;

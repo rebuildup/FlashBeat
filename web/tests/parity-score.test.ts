@@ -5,14 +5,15 @@
  * `contracts/parity/score-vectors.json`:
  *
  *   - `cases[]` — one play each. The Web `computeUnityScore` /
- *     `computeUnityScoreV2` / `computeUnityScoreV3` must reproduce
- *     `scoreV1` / `scoreV2` / `scoreV3Settled`. `scoreV3Settled` is the
- *     submission view of the play: a submission always implies
- *     judgmentsComplete (perfect+great+bad+miss == noteCount), which is
- *     exactly what `computeUnityScoreV3` computes. The Unity EditMode suite
- *     (`Assets/Tests/Editor/ParityFixtureTests.cs`) checks `scoreV3` — the
- *     live in-progress score that excludes the full-combo bonus until every
- *     note is judged (Issue #618).
+ *     `computeUnityScoreV2` / `computeUnityScoreV3` / `computeUnityScoreV4`
+ *     must reproduce `scoreV1` / `scoreV2` / `scoreV3Settled` /
+ *     `scoreV4Settled`. The `Settled` variants are the submission view of
+ *     the play: a submission always implies judgmentsComplete
+ *     (perfect+great+bad+miss == noteCount), which is exactly what the
+ *     compute functions compute. The Unity EditMode suite
+ *     (`Assets/Tests/Editor/ParityFixtureTests.cs`) checks `scoreV3` /
+ *     `scoreV4` — the live in-progress scores that exclude the full-combo
+ *     bonus until every note is judged (Issue #618, ADR-0033).
  *   - `v3SubmissionChecks[]` — the server-side `comboMilestones` bound
  *     checks of `scoreSemanticsDiagnostics` (ADR-0029). Only the Web side
  *     consumes them: the Unity client produces the count, it does not
@@ -26,6 +27,7 @@ import {
   computeUnityScore,
   computeUnityScoreV2,
   computeUnityScoreV3,
+  computeUnityScoreV4,
   scoreSemanticsDiagnostics,
   type ScoreSubmission,
 } from "../routes/api/v1/_score-model.ts";
@@ -44,6 +46,8 @@ interface ScoreCase {
   scoreV2: number;
   scoreV3: number;
   scoreV3Settled: number;
+  scoreV4: number;
+  scoreV4Settled: number;
 }
 
 interface V3SubmissionCheck {
@@ -69,7 +73,7 @@ describe("score parity vectors (contracts/parity/score-vectors.json)", () => {
   });
 
   for (const c of fixture.cases) {
-    it(`${c.name}: v1/v2/v3 settled scores match the Unity contract`, () => {
+    it(`${c.name}: v1/v2/v3/v4 settled scores match the Unity contract`, () => {
       assert.equal(computeUnityScore(c.perfect, c.great, c.bad, c.noteCount), c.scoreV1);
       assert.equal(
         computeUnityScoreV2(c.perfect, c.great, c.bad, c.miss, c.maxCombo, c.noteCount),
@@ -97,6 +101,28 @@ describe("score parity vectors (contracts/parity/score-vectors.json)", () => {
       } else {
         assert.ok(c.scoreV3 < c.scoreV3Settled, "live score must exclude the final bonus");
       }
+      // v4 (ADR-0033) splits the score into a judgment base plus additive
+      // bonuses; the settled submission view is what the Web recompute
+      // produces.
+      assert.equal(
+        computeUnityScoreV4(
+          c.perfect,
+          c.great,
+          c.bad,
+          c.miss,
+          c.maxCombo,
+          c.comboMilestones,
+          c.noteCount,
+        ),
+        c.scoreV4Settled,
+      );
+      if (c.judgmentsComplete || c.miss !== 0) {
+        assert.equal(c.scoreV4, c.scoreV4Settled);
+      } else {
+        // The unvested final bonus can floor to zero bonus points, so the
+        // live score may legitimately equal the settled one.
+        assert.ok(c.scoreV4 <= c.scoreV4Settled, "live score must not exceed settled");
+      }
     });
   }
 });
@@ -117,11 +143,18 @@ describe("v3 comboMilestones submission bounds (contracts/parity)", () => {
       if (check.maxCombo !== undefined) request.maxCombo = check.maxCombo;
       if (check.comboMilestones !== undefined) request.comboMilestones = check.comboMilestones;
 
-      const diagnostics = scoreSemanticsDiagnostics(request, check.noteCount);
-      if (check.expectValid) {
-        assert.deepEqual(diagnostics, []);
-      } else {
-        assert.ok(diagnostics.length > 0, "expected at least one diagnostic");
+      // ADR-0033: scoringVersion 4 applies the identical comboMilestones
+      // bounds — the milestone term is unchanged, only the normalization is.
+      for (const scoringVersion of [3, 4] as const) {
+        const diagnostics = scoreSemanticsDiagnostics(
+          { ...request, scoringVersion },
+          check.noteCount,
+        );
+        if (check.expectValid) {
+          assert.deepEqual(diagnostics, []);
+        } else {
+          assert.ok(diagnostics.length > 0, "expected at least one diagnostic");
+        }
       }
     });
   }

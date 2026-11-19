@@ -966,8 +966,104 @@ describe("POST /api/v1/scores", () => {
     assert.equal(body.rank, 1);
   });
 
+  it("recomputes a v4 submission with the base-plus-bonus v4 formula (ADR-0033)", async () => {
+    // The seeded Who chart v1 has 139 notes. scoringVersion 4,
+    // 100 perfect + 30 great + 9 bad, maxCombo 139, 2 milestone crossings,
+    // no miss:
+    //   judgment 599 -> baseScore floor(599*1e6/695) = 861870
+    //   bonusRatio 695 + 695 + 50 + 100 = 1540 = maxBonusRatio
+    //     -> bonusScore 1000000
+    //   score 1861870 — above the v1-v3 ceiling, stored on the v4 board.
+    const response = await submit(
+      submission(
+        "who",
+        1,
+        "V4 Player",
+        { perfect: 100, great: 30, bad: 9, miss: 0 },
+        {
+          maxCombo: 139,
+          comboMilestones: 2,
+          score: 1861870,
+          scoringVersion: 4,
+        },
+      ),
+    );
+    assert.equal(response.status, 201);
+    const body = (await response.json()) as { score: number; rank: number };
+    validateScoreResponse(body);
+    assert.equal(body.score, 1861870);
+    assert.equal(body.rank, 1);
+  });
+
+  it("accepts a v4 full-combo score above 1000000", async () => {
+    // zz-second-song v1 has 1 note. scoringVersion 4, all perfect, maxCombo 1:
+    //   judgment 5 -> baseScore 1000000; bonusRatio 5 + 5 + 0 + 100 = 110
+    //   = maxBonusRatio 10 + 0 + 100 -> bonusScore 1000000 -> score 2000000.
+    const response = await submit(
+      submission(
+        "zz-second-song",
+        1,
+        "V4 Perfect",
+        { perfect: 1 },
+        {
+          maxCombo: 1,
+          score: 2000000,
+          scoringVersion: 4,
+        },
+      ),
+    );
+    assert.equal(response.status, 201);
+    const body = (await response.json()) as { score: number; rank: number };
+    validateScoreResponse(body);
+    assert.equal(body.score, 2000000);
+    // The v4 board is separate: earlier v1/v2 1000000 rows do not count.
+    assert.equal(body.rank, 1);
+  });
+
+  it("answers 422 when the v4 client score disagrees with the v4 formula", async () => {
+    const response = await submit(
+      submission(
+        "who",
+        1,
+        "V4 Cheater",
+        { perfect: 100, great: 30, bad: 9, miss: 0 },
+        {
+          maxCombo: 139,
+          comboMilestones: 2,
+          score: 1861869,
+          scoringVersion: 4,
+        },
+      ),
+    );
+    assert.equal(response.status, 422);
+    const rejected = (await response.json()) as { error: string };
+    assert.equal(rejected.error, "score mismatch");
+  });
+
+  it("answers 422 for a v1-v3 score above the legacy 1000000 ceiling", async () => {
+    // v3 normalizes the whole play into 1000000, so a claimed 1500000 can
+    // never match the recomputation (ADR-0033 per-version cap).
+    const response = await submit(
+      submission(
+        "who",
+        1,
+        "V3 Over",
+        { perfect: 100, great: 30, bad: 9, miss: 0 },
+        {
+          maxCombo: 139,
+          comboMilestones: 2,
+          score: 1500000,
+          scoringVersion: 3,
+        },
+      ),
+    );
+    assert.equal(response.status, 422);
+    const rejected = (await response.json()) as { diagnostics: { path: string }[] };
+    assert.equal(rejected.diagnostics[0]?.path, "/score");
+  });
+
   it("answers 422 for a scoring version the server cannot recompute", async () => {
-    for (const scoringVersion of [0, 4]) {
+    for (const scoringVersion of [0, 5]) {
       const body = submission(
         "zz-second-song",
         1,
@@ -1151,7 +1247,7 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     // 10 notes: maxScore 50 under the v1 formula. Perfect play = 1000000,
     // 9 perfect + 1 great = 48/50 = 960000, 9 perfect + 1 bad = 46/50 = 920000,
     // all miss = 0. These are v1 scores, so the board is read with
-    // scoringVersion=1 (the default is the latest version, 3).
+    // scoringVersion=1 (the default is the latest version, 4).
     await submitScore(
       "lb-order-song",
       "Late Perfect",
@@ -1219,10 +1315,10 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     );
   });
 
-  it("never mixes scoring versions on one board (ADR-0028, ADR-0029)", async () => {
+  it("never mixes scoring versions on one board (ADR-0028, ADR-0029, ADR-0033)", async () => {
     await publishLeaderboardSong("lb-version-song");
-    // 10 notes. The same perfect play scores 1000000 under every formula,
-    // but lives in three different version buckets.
+    // 10 notes. The same perfect play scores 1000000 under v1-v3 and
+    // 2000000 under v4, but lives in four different version buckets.
     await submitScore(
       "lb-version-song",
       "V1 Perfect",
@@ -1261,8 +1357,24 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
       }),
     });
     assert.equal(v3.status, 201);
+    const v4 = await fetch(`${baseUrl}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        songId: "lb-version-song",
+        chartVersion: 1,
+        nickname: "V4 Perfect",
+        perfect: 10,
+        great: 0,
+        bad: 0,
+        miss: 0,
+        maxCombo: 10,
+        scoringVersion: 4,
+      }),
+    });
+    assert.equal(v4.status, 201);
 
-    // The default board is the latest scoring version (3): only the v3 row.
+    // The default board is the latest scoring version (4): only the v4 row.
     const latest = await fetch(`${baseUrl}/api/v1/leaderboards/lb-version-song?version=1`);
     assert.equal(latest.status, 200);
     const latestBody = (await latest.json()) as {
@@ -1271,6 +1383,18 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     validateLeaderboard(latestBody);
     assert.deepEqual(
       latestBody.entries.map((entry) => entry.nickname),
+      ["V4 Perfect"],
+    );
+    assert.equal(latestBody.entries[0]?.score, 2000000);
+
+    // Asking for version 3 shows only the v3 row.
+    const v3Board = await fetch(
+      `${baseUrl}/api/v1/leaderboards/lb-version-song?version=1&scoringVersion=3`,
+    );
+    assert.equal(v3Board.status, 200);
+    const v3Body = (await v3Board.json()) as { entries: { nickname: string }[] };
+    assert.deepEqual(
+      v3Body.entries.map((entry) => entry.nickname),
       ["V3 Perfect"],
     );
 
@@ -1297,13 +1421,13 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     );
 
     // The statistics aggregate only the latest scoring version: this song
-    // has three plays stored but counts one.
+    // has four plays stored but counts one.
     const stats = (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as {
       perSong: { songId: string; plays: number; bestScore: number | null }[];
     };
     const song = stats.perSong.find((row) => row.songId === "lb-version-song");
     assert.equal(song?.plays, 1);
-    assert.equal(song?.bestScore, 1000000);
+    assert.equal(song?.bestScore, 2000000);
   });
 
   it("answers 404 for an unknown song or version and 400 for a bad version", async () => {
@@ -1509,7 +1633,7 @@ describe("GET /api/v1/rankings and GET /api/v1/stats", () => {
           great: 0,
           bad: 0,
           miss: 0,
-          scoringVersion: 3,
+          scoringVersion: 4,
           ...counts,
         }),
       });
@@ -1763,8 +1887,9 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
         body: JSON.stringify({ archived }),
       });
 
-    // One counted play: scoring version 3 (the stats scope) on the current
-    // chart version of zz-second-song (1 note).
+    // One counted play: scoring version 4 (the stats scope) on the current
+    // chart version of zz-second-song (1 note). v4: base 1000000 + bonus
+    // 1000000 = 2000000.
     const submit = await fetch(`${baseUrl}/api/v1/scores`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1777,8 +1902,8 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
         bad: 0,
         miss: 0,
         maxCombo: 1,
-        score: 1000000,
-        scoringVersion: 3,
+        score: 2000000,
+        scoringVersion: 4,
       }),
     });
     assert.equal(submit.status, 201);

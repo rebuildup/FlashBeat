@@ -10,11 +10,12 @@ using UnityEngine;
 /// Both implementations are verified against the same shared vectors in
 /// `contracts/parity/`:
 ///
-///   - score-vectors.json: the v1/v2/v3 formulas of `Scoring` /
-///     `Judge.ComputeScore`, including the Issue #618 rule that the v3
-///     full-combo bonus vests only when judgmentsComplete. The Web suite
-///     (`web/tests/parity-score.test.ts`) checks the same file against
-///     `computeUnityScore` / `computeUnityScoreV2` / `computeUnityScoreV3`.
+///   - score-vectors.json: the v1/v2/v3/v4 formulas of `Scoring` /
+///     `Judge.ComputeScore`, including the Issue #618 rule that the
+///     full-combo bonus vests only when judgmentsComplete (v4: ADR-0033).
+///     The Web suite (`web/tests/parity-score.test.ts`) checks the same
+///     file against `computeUnityScore` / `computeUnityScoreV2` /
+///     `computeUnityScoreV3` / `computeUnityScoreV4`.
 ///   - chart-timing.json: `NotesManager.NoteTimeSeconds` and
 ///     `LongNote.EndSeconds` against the float32 values the Web suite
 ///     reproduces with the same Math.fround operation order.
@@ -60,6 +61,8 @@ public class ParityFixtureTests
         public int scoreV2;
         public int scoreV3;
         public int scoreV3Settled;
+        public int scoreV4;
+        public int scoreV4Settled;
     }
 
     [Serializable]
@@ -125,6 +128,17 @@ public class ParityFixtureTests
                 Scoring.ScoreV3(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
                     c.comboMilestones, c.noteCount, true),
                 label + " v3 settled");
+            // v4 (ADR-0033) is the same deterministic integer arithmetic:
+            // base floor(judgment*1e6/(5N)) + bonus floor(bonusRatio*1e6/
+            // maxBonusRatio), each half capped at 1,000,000.
+            Assert.AreEqual(c.scoreV4,
+                Scoring.ScoreV4(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, c.judgmentsComplete),
+                label + " v4 (judgmentsComplete=" + c.judgmentsComplete + ")");
+            Assert.AreEqual(c.scoreV4Settled,
+                Scoring.ScoreV4(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, true),
+                label + " v4 settled");
         }
     }
 
@@ -146,6 +160,11 @@ public class ParityFixtureTests
 
             Assert.Less(c.scoreV3, c.scoreV3Settled,
                 "case '" + c.name + "': live in-progress score must exclude the final bonus");
+            // v4: the unvested final bonus is only 100 of the bonus ratio
+            // points, so the floored bonus half can legitimately be equal —
+            // the live score must never exceed the settled one.
+            Assert.LessOrEqual(c.scoreV4, c.scoreV4Settled,
+                "case '" + c.name + "': live v4 score must not exceed the settled one");
         }
     }
 
