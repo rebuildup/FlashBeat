@@ -358,7 +358,7 @@ describe("computeUnityScoreV4 (ADR-0033)", () => {
     //   bonusRatio 695 + 695 + 50 + 100 = 1540 = maxBonusRatio
     //     139*10 + 2*25 + 100 = 1540 -> bonusScore 1000000
     //   score 2000000, above the v1-v3 ceiling (Issue #736).
-    assert.equal(computeUnityScoreV4(139, 0, 0, 0, 139, 2, 139), 2000000);
+    assert.equal(computeUnityScoreV4(139, 0, 0, 0, 139, 2, 139, true), 2000000);
   });
 
   it("splits a mixed no-miss play into a capped base plus additive bonus", () => {
@@ -366,7 +366,7 @@ describe("computeUnityScoreV4 (ADR-0033)", () => {
     //   judgment 599 -> baseScore floor(599*1e6/695) = 861870
     //   bonusRatio 695 + 695 + 50 + 100 = 1540 -> bonusScore 1000000
     //   score 1861870.
-    assert.equal(computeUnityScoreV4(100, 30, 9, 0, 139, 2, 139), 1861870);
+    assert.equal(computeUnityScoreV4(100, 30, 9, 0, 139, 2, 139, true), 1861870);
   });
 
   it("a missed play forfeits the no-miss and final bonuses but keeps combo and milestone", () => {
@@ -375,7 +375,18 @@ describe("computeUnityScoreV4 (ADR-0033)", () => {
     //   bonusRatio 695 + 0 + 50 + 0 = 745 -> bonusScore floor(745*1e6/1540)
     //     = 483766
     //   score 1344197.
-    assert.equal(computeUnityScoreV4(100, 30, 8, 1, 139, 2, 139), 1344197);
+    assert.equal(computeUnityScoreV4(100, 30, 8, 1, 139, 2, 139, true), 1344197);
+  });
+
+  it("withholds the final bonus while judgments are incomplete (Issue #618, ADR-0033)", () => {
+    // The parity vector 'v3-live-incomplete-nomiss': 40P + 10G of a 100-note
+    // chart mid-play (judgmentsComplete=false), maxCombo 50, 1 milestone.
+    //   judgment 230 -> baseScore 460000
+    //   live bonusRatio 250 + 250 + 25 = 525 -> bonusScore floor(525*1e6/1150)
+    //     = 456521 -> score 916521 (the 100-point final bonus is not vested)
+    //   settled bonusRatio +100 = 625 -> bonusScore 543478 -> score 1003478
+    assert.equal(computeUnityScoreV4(40, 10, 0, 0, 50, 1, 100, false), 916521);
+    assert.equal(computeUnityScoreV4(40, 10, 0, 0, 50, 1, 100, true), 1003478);
   });
 
   it("treats omitted maxCombo and comboMilestones as zero bonuses", () => {
@@ -384,21 +395,21 @@ describe("computeUnityScoreV4 (ADR-0033)", () => {
     //   bonusRatio 0 + 50 + 0 + 100 = 150 -> bonusScore floor(150*1e6/200)
     //     = 750000
     //   score 1710000.
-    assert.equal(computeUnityScoreV4(9, 1, 0, 0, undefined, undefined, 10), 1710000);
+    assert.equal(computeUnityScoreV4(9, 1, 0, 0, undefined, undefined, 10, true), 1710000);
   });
 
   it("keeps the base at or below 1000000 and the total at or below 2000000", () => {
     // The base derives from the judgment only: even an all-perfect run of a
     // huge chart cannot exceed 1000000 there; the bonus part is bounded by
     // its own 1000000 ceiling.
-    assert.equal(computeUnityScoreV4(999, 0, 0, 0, 999, 19, 999), 2000000);
-    assert.equal(computeUnityScoreV4(1, 0, 0, 0, 1, 0, 1), 2000000);
-    const partial = computeUnityScoreV4(50, 50, 0, 0, 100, 2, 100);
+    assert.equal(computeUnityScoreV4(999, 0, 0, 0, 999, 19, 999, true), 2000000);
+    assert.equal(computeUnityScoreV4(1, 0, 0, 0, 1, 0, 1, true), 2000000);
+    const partial = computeUnityScoreV4(50, 50, 0, 0, 100, 2, 100, true);
     assert.ok(partial !== null && partial > 1000000 && partial <= 2000000);
   });
 
   it("a chart without notes cannot be scored", () => {
-    assert.equal(computeUnityScoreV4(0, 0, 0, 0, 0, 0, 0), null);
+    assert.equal(computeUnityScoreV4(0, 0, 0, 0, 0, 0, 0, true), null);
   });
 });
 
