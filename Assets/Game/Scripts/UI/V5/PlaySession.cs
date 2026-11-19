@@ -51,7 +51,13 @@ namespace FlashBeat.UI.V5
             get { return keyGuide; }
         }
 
-        /// <summary>歌詞パネルを出してよいか (Ready の Lyrics = Off で false)。</summary>
+        /// <summary>
+        /// 歌詞パネルを出してよいか (Ready の Lyrics = Off で false)。
+        /// Issue #734: これは「曲中のパネル枠を出すか」の固定スイッチ。
+        /// ON なら歌詞データの有無・行間・間奏に関わらず枠を出しっぱなしにし、
+        /// OFF なら曲中を通して隠す。かつての「歌詞がある行のときだけ出す
+        /// (Auto)」意味論は廃止した — 枠の可視性は本文データから独立する。
+        /// </summary>
         public static bool LyricsEnabled
         {
             get { return lyricsEnabled; }
@@ -63,7 +69,9 @@ namespace FlashBeat.UI.V5
             keyGuide = mode;
         }
 
-        /// <summary>歌詞パネルの表示可否を設定する (セッション内のみ)。</summary>
+        /// <summary>歌詞パネルの表示可否を設定する (セッション内のみ)。
+        /// Issue #734: 設定値はパネル枠の可視性を固定する (本文データには
+        /// 依存しない)。Pause / Option の Display 設定からも同じ値を書く。</summary>
         public static void SetLyricsEnabled(bool enabled)
         {
             lyricsEnabled = enabled;
@@ -90,7 +98,11 @@ namespace FlashBeat.UI.V5
             return modes[next];
         }
 
-        /// <summary>歌詞の表示文字列 (Ready 画面 / Pause の Display タブ用)。</summary>
+        /// <summary>
+        /// 歌詞パネルの表示文字列 (Ready 画面 / Pause の Display タブ用)。
+        /// "Auto" は旧来の表示名の名残 (Issue #734 以降は ON = 枠を常時表示)。
+        /// v5 SelectView が "Auto" リテラルでトグルするため文字列は変えない。
+        /// </summary>
         public static string LyricsLabel(bool enabled)
         {
             return enabled ? "Auto" : "Off";
