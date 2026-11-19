@@ -231,6 +231,13 @@ namespace FlashBeat.UI.V6.Option
             // 同じ写像 (レーン x = 判定エフェクト投影、y = 判定線投影 +
             // VerdictRestGapAboveLine、fs = m.VerdictFs) で well へ配置する。
             Camera cam = previewRig.PreviewCamera;
+            // 「判定線」の画面位置は本編 V6HudVerdict.UpdateVerdictAnchor と
+            // 同じ投影点 (0, 0.76, 0.15) = Judge.EffectPosition 相当を使う。
+            // 描画される判定線 quad (y=0.5, z=0) の投影ではない — 本編の
+            // レガシー 3D 経路 (V6UiMode.Playfield=false、出荷モード) が
+            // この点を判定アンカーとして使っており、プレビューは本編の
+            // 見え方を再現するのが契約なので、真の判定線へ「修正」すると
+            // 本編と約 1 文字分ずれる (Issue #706 横断監査で確認)。
             Vector3 judgeScreen = cam != null
                 ? cam.WorldToViewportPoint(new Vector3(0f, 0.76f, 0.15f))
                 : Vector3.zero;
@@ -253,8 +260,10 @@ namespace FlashBeat.UI.V6.Option
                     continue;
                 }
 
-                // 本編 UpdateLaneGrids と同じ点 (Judge.EffectPosition 相当
-                // (LaneWorldX, 0.76, 0.15)) をプレビューカメラでビューポートへ写す。
+                // 本編 UpdateLaneGrids (レガシー 3D 経路) と同じ点
+                // (Judge.EffectPosition 相当 (LaneWorldX, 0.76, 0.15)) を
+                // プレビューカメラでビューポートへ写す。上の judgeScreen と
+                // 同じアンカー系なので、レーン x と判定 y は本編と一致する。
                 Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
                 Vector3 vp = cam.WorldToViewportPoint(world);
                 if (vp.z <= 0f)

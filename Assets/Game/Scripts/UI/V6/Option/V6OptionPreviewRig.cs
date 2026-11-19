@@ -247,6 +247,11 @@ namespace FlashBeat.UI.V6.Option
         /// 位置・視覚的な重さの平面 quad (Issue #706: 半透明 alpha 0.55
         /// では本編より薄かったため不透明へ合わせる)。
         /// マテリアルはガイドと同じ unlit を、不透明で使う。
+        ///
+        /// 注意: 判定ポップのオーバーレイはこの quad の投影を基準に
+        /// しない。本編 V6HudVerdict が判定アンカーに使う投影点
+        /// ((0, 0.76, 0.15) = 判定エフェクト位置、レガシー 3D 経路) と
+        /// 同じ点を使うのが契約 (Issue #706 横断監査)。
         /// </summary>
         private void BuildJudgeLine()
         {
