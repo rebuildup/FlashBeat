@@ -22,6 +22,29 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>スコアゲージの全長 (design px, zcSHh の Score Gauge)。</summary>
         public const float GaugeW = 824f;
 
+        // --- 結果ブロックのグレード表示 (design zcSHh の Grade (0,0) 280×280, fs240) ---
+        //     "SS" のような複数グリフは fs240 では箱の幅を超えて SCORE 列へ
+        //     はみ出すため、V6ResultView はインク実測で収まる fs へ縮める
+        //     (Issue #737)。寸法はテストと共有する。
+
+        /// <summary>グレード矩形の幅 (design px, Result Block 内左上基準)。</summary>
+        public const float GradeBoxW = 280f;
+
+        /// <summary>グレード矩形の高さ (design px)。Result Block 全体の高さでもある。</summary>
+        public const float GradeBoxH = 280f;
+
+        /// <summary>グレード文字の最大フォントサイズ (design fs240。単一グリフの design 値)。</summary>
+        public const float GradeMaxFontSize = 240f;
+
+        /// <summary>グレード文字が縮小しても下回らないフォントサイズの下限。</summary>
+        public const float GradeMinFontSize = 96f;
+
+        /// <summary>グレード文字の左右の内側余白 (隣の SCORE 列 x336 へのはみ出し防止を含む)。</summary>
+        public const float GradePadX = 16f;
+
+        /// <summary>グレード文字の上下の内側余白。</summary>
+        public const float GradePadY = 8f;
+
         /// <summary>
         /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
         /// 左上 origin = ((w−1728)/2, (h−972)/2) (整数切り捨て)。
