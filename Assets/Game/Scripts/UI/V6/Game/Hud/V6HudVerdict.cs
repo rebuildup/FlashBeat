@@ -142,11 +142,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
             else
             {
-                // レガシー 3D: レーン x と同じ投影で判定線の画面 y (下原点) を取る。
+                // レガシー 3D: 描画される判定線 (JudgeLineWorldY/Z = 0.48/0、
+                // GameScene JudgeLine の実ワールド位置) を投影して画面 y
+                // (下原点) を取る。判定エフェクト出現点 (0.76/0.15) ではない
+                // — design §10.3 の「判定線」は描画される線を指す (Issue #715)。
                 var cam = Camera.main;
                 if (cam != null)
                 {
-                    Vector3 sp = cam.WorldToScreenPoint(new Vector3(0f, 0.76f, 0.15f));
+                    Vector3 sp = cam.WorldToScreenPoint(V6HudLogic.LegacyJudgeLineAnchor());
                     if (sp.z > 0f)
                     {
                         judgeLineFromBottom = sp.y;

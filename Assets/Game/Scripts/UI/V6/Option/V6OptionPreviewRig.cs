@@ -242,22 +242,23 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// 判定線 (z = 0) の帯。GameScene の JudgeLine (LineRenderer、
-        /// (-4, 0.5, 0) → (4, 0.5, 0)、不透明白 JudgeLine.mat) と同じ
-        /// 位置・視覚的な重さの平面 quad (Issue #706: 半透明 alpha 0.55
-        /// では本編より薄かったため不透明へ合わせる)。
-        /// マテリアルはガイドと同じ unlit を、不透明で使う。
+        /// 判定線 (z = 0) の帯。GameScene の JudgeLine (LineRenderer の
+        /// ローカル座標 (-4, 0.5, 0) → (4, 0.5, 0)、Transform y=-0.02 なので
+        /// ワールド y = <see cref="Judge.JudgeLineWorldY"/> = 0.48、不透明白
+        /// JudgeLine.mat) と同じ位置・視覚的な重さの平面 quad
+        /// (Issue #706: 半透明 alpha 0.55 では本編より薄かったため
+        /// 不透明へ合わせる)。マテリアルはガイドと同じ unlit を、不透明で使う。
         ///
-        /// 注意: 判定ポップのオーバーレイはこの quad の投影を基準に
-        /// しない。本編 V6HudVerdict が判定アンカーに使う投影点
-        /// ((0, 0.76, 0.15) = 判定エフェクト位置、レガシー 3D 経路) と
-        /// 同じ点を使うのが契約 (Issue #706 横断監査)。
+        /// 注意: 判定ポップのオーバーレイもこの線を基準にする。
+        /// 本編 V6HudVerdict / V6HudLogic.LegacyJudgeLineAnchor が使う
+        /// 投影点はこの quad と同じワールド座標 (Issue #715 で
+        /// エフェクト位置 0.76/0.15 から描画判定線へ修正)。
         /// </summary>
         private void BuildJudgeLine()
         {
             float left = PlayfieldLaneGuides.LaneBoundaryX(0);
             float right = PlayfieldLaneGuides.LaneBoundaryX(PlayfieldLaneGuides.GuideCount - 1);
-            const float y = 0.5f;
+            float y = Judge.JudgeLineWorldY;
             // Issue #706: 本編 LineRenderer のリボン幅は widthMultiplier 0.2237
             // × widthCurve 0.116 ≈ 0.026 world。水平 quad の奥行きに直すと
             // 投影厚がほぼ一致する halfDepth ≈ 0.015 (旧 0.03 は約 2 倍太かった)。

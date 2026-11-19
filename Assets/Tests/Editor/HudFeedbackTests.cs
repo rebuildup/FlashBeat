@@ -1,3 +1,4 @@
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Game.Hud;
 using FlashBeat.UI.V6.Game.Playfield;
 using NUnit.Framework;
@@ -355,5 +356,80 @@ namespace FlashBeat.Tests
             Assert.Less(shrunk, designFs, "長いラベルは design fs より小さくなる");
             Assert.GreaterOrEqual(shrunk, 1f);
         }
+        // --- 判定アンカー (Issue #715: 「判定線」は描画される線が正本) ---
+
+        [Test]
+        public void LegacyJudgeLineAnchor_IsTheDrawnJudgeLine_NotTheEffectPoint()
+        {
+            // design §10.3 / v6-screen-contract §8 の「判定線」は描画される線。
+            // GameScene の JudgeLine は LineRenderer ローカル座標
+            // (-4, 0.5, 0) → (4, 0.5, 0) だが、GameObject の Transform が
+            // (0, -0.02, 0)・scale (8, 1, 40) なのでワールドでは
+            // y = 0.48 / z = 0 に描かれる (x は scale 8 で画面全幅)。
+            Assert.AreEqual(0.48f, Judge.JudgeLineWorldY, 0.0001f,
+                "GameScene JudgeLine の実ワールド y (local 0.5 + transform -0.02)");
+            Assert.AreEqual(0f, Judge.JudgeLineWorldZ, 0.0001f);
+
+            Vector3 anchor = V6HudLogic.LegacyJudgeLineAnchor();
+            Assert.AreEqual(0f, anchor.x, 0.0001f);
+            Assert.AreEqual(Judge.JudgeLineWorldY, anchor.y, 0.0001f);
+            Assert.AreEqual(Judge.JudgeLineWorldZ, anchor.z, 0.0001f);
+
+            // 反例ガード: 判定エフェクト出現点 (y 0.76 / z 0.15 =
+            // Judge.EffectPosition) への回帰を拒否する。旧アンカーは
+            // 描画判定線より画面上で約 50px (FHD) 上にずれていた (Issue #715)。
+            Assert.IsTrue(anchor.y < 0.76f || anchor.z < 0.15f,
+                "verdict anchor must be the drawn judge line, not Judge.EffectPosition");
+
+            // v6 プレイフィールド経路の判定線も描画値 (design y=792) を使う。
+            Assert.AreEqual(792f, V6LaneGeometry.JudgeLineY, 0.001f);
+        }
+
+        [Test]
+        public void LegacyVerdictRest_SitsAboveDrawnLine_UnderGameCamera()
+        {
+            // GameScene Main Camera と同じ姿勢・画角
+            // (V6TopShadeHoleTests.CreateLegacyCamera と同じ値)。
+            var camGo = new GameObject("HudFeedbackTests Camera");
+            camGo.tag = "MainCamera";
+            try
+            {
+                var cam = camGo.AddComponent<Camera>();
+                cam.transform.SetPositionAndRotation(
+                    new Vector3(0f, 4.9f, -0.8f), Quaternion.Euler(54.8f, 0f, 0f));
+                cam.fieldOfView = 60f;
+                cam.nearClipPlane = 0.3f;
+                cam.farClipPlane = 1000f;
+
+                Vector3 lineVp = cam.WorldToViewportPoint(V6HudLogic.LegacyJudgeLineAnchor());
+                Vector3 effectVp = cam.WorldToViewportPoint(
+                    new Vector3(Judge.LaneWorldX(0), 0.76f, 0.15f));
+                Assert.Greater(lineVp.z, 0f, "judge line anchor must be in front of the camera");
+                Assert.Greater(effectVp.z, 0f);
+
+                // エフェクト点は描画判定線より画面上 (viewport y 大) に投影される。
+                // Issue #715 の「約 50px (FHD) ≒ viewport 0.046」のずれを固定し、
+                // 旧アンカーへの回帰 (ずれの消失 or 逆転) を検出する。
+                Assert.Greater(effectVp.y - lineVp.y, 0.02f,
+                    "effect point must project visibly above the drawn judge line " +
+                    "(Issue #715: it is ~50px too high at FHD)");
+
+                // 静止位置 = 描画判定線の投影 + VerdictRestGapAboveLine (72px、
+                // 画面下原点)。アンカーが描画線そのものなので、静止位置は
+                // 常に線の真上 72px — design §10.3 の契約そのもの。
+                Assert.AreEqual(72f, V6HudLogic.VerdictRestGapAboveLine, 0.001f);
+                float screenH = Mathf.Max(1f, Screen.height);
+                float lineFromBottom = lineVp.y * screenH;
+                float restFromBottom = lineFromBottom + V6HudLogic.VerdictRestGapAboveLine;
+                Assert.Greater(restFromBottom, lineFromBottom);
+                Assert.Less(restFromBottom, screenH,
+                    "verdict rest position must stay on screen");
+            }
+            finally
+            {
+                Object.DestroyImmediate(camGo);
+            }
+        }
+
     }
 }

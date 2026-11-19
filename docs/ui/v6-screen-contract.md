@@ -296,6 +296,15 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
   `VerdictTotalSeconds` 0.97s。落下距離は判定ボックス高さ 1 個分で、
   ノーツの全画面落下と判定フィードバックを区別する。
   設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
+- 「判定線」の意味 (Issue #715 で確定): 描画される線そのもの。
+  v6 プレイフィールド経路は design の Judge Line (y=792)、
+  レガシー 3D 経路は GameScene JudgeLine の実ワールド位置
+  (LineRenderer ローカル y=0.5 + Transform y=-0.02 → y=0.48 / z=0、
+  `Judge.JudgeLineWorldY` / `JudgeLineWorldZ` →
+  `V6HudLogic.LegacyJudgeLineAnchor`) を投影して使う。
+  判定エフェクトの出現点 (y=0.76 / z=0.15) はアンカーではない
+  (投影が描画線より約 50px 上にずれる)。Option Game Preview の
+  判定ポップも同じアンカーを共有する。
 - Result の登録モーダルはコンパクト画面 (フレーム 1728×972 未満) では
   Dialog 中心へビューポートをパンして中央に合わせ、閉じると元へ戻す (Issue #609、
   `V6CompactScreen` / `V6FramePan.PanSuspended`)。
