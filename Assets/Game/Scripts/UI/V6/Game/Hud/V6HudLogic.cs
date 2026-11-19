@@ -313,8 +313,15 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>コンボボーナスの塗り色が戻るまでの時間 (秒)。</summary>
         public const float ComboBonusPulseSeconds = 0.3f;
 
-        /// <summary>節目ボーナス獲得表示が消えるまでの時間 (秒)。</summary>
-        public const float MilestoneBonusSeconds = 1.2f;
+        /// <summary>
+        /// 節目ボーナス獲得表示が消えるまでの時間 (秒)。
+        /// scoring v4 (ADR-0033 / Issue #736): 「+12,345 TOTAL +48,699」の
+        /// ようなカンマ区切りの加点をプレイ中に読み取れるよう、視認に必要な
+        /// 滞在時間から決める。HUD トーストの一般的な下限 (~1.5s) に、
+        /// 数字 2 組の注視と周辺コンテキストの把握を足して 2.5s とする。
+        /// 節目は最短でも ~50 コンボ間隔なので、通常は重ならない。
+        /// </summary>
+        public const float MilestoneBonusSeconds = 2.5f;
 
         /// <summary>EaseOutCubic: 速く立ち上がって滑らかに止まる。</summary>
         public static float EaseOutCubic(float t)
