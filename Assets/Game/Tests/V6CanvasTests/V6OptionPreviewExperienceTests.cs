@@ -132,6 +132,9 @@ namespace FlashBeat.V6CanvasTests
         public void LaneFlash_LightsOnLaneKey_AndDecaysLikeTheGame()
         {
             var view = CreateView();
+            // Issue #732: オートプレイの押下もレーンを点けるので、
+            // 実キー注入だけを見るこのテストでは切る。
+            view.PreviewAutoPlayForAudit = false;
 
             // 押下フレーム: 本編と同じ α = 0.3。
             KeyBindings.InjectLaneKeyDown(3);
@@ -154,6 +157,9 @@ namespace FlashBeat.V6CanvasTests
         public void Judgement_KeyPressWithinWindow_ShowsGreatVerdict()
         {
             var view = CreateView();
+            // Issue #732: オートプレイが同じキューを消費するので、
+            // 実キー注入の判定だけを見るこのテストでは切る。
+            view.PreviewAutoPlayForAudit = false;
             int lane = 2;
             float timed = FirstTapTimeInLane(lane);
 
@@ -174,6 +180,9 @@ namespace FlashBeat.V6CanvasTests
         public void Judgement_UnpressedNote_ShowsMissVerdict()
         {
             var view = CreateView();
+            // Issue #732: オートプレイ OFF なら「押さない」= 全て MISS の
+            // 従来契約を検証できる (ON の網羅性は別テスト)。
+            view.PreviewAutoPlayForAudit = false;
             int lane = 4;
             float timed = FirstTapTimeInLane(lane);
 
