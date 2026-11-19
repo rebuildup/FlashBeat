@@ -185,8 +185,7 @@ public class TitleSceneManager : MonoBehaviour
     private void RefreshPanelHandlers()
     {
         bool history = FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested != null;
-        bool ranking = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested != null
-            || FlashBeat.UI.V5.TitleLinks.RankingRequested != null;
+        bool ranking = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested != null;
         if (history == historyAvailable && ranking == rankingAvailable)
         {
             return;
@@ -216,13 +215,6 @@ public class TitleSceneManager : MonoBehaviour
         if (hook != null)
         {
             hook();
-            return;
-        }
-
-        var legacyHook = FlashBeat.UI.V5.TitleLinks.RankingRequested;
-        if (legacyHook != null)
-        {
-            legacyHook();
         }
     }
 

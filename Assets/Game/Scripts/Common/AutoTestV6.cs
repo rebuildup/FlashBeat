@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.View;
 
@@ -156,8 +157,9 @@ public class AutoTestV6 : MonoBehaviour
         yield return new WaitForSecondsRealtime(3f);
         yield return Screenshot("03-game");
 
-        // 4. 旧 UI が残っていないか。v6 モードでは表示の正本 (GameUiExclusivity,
-        //    Issue #233) が全フェーズで v5 の Canvas を隠す。Ready 中 (再生前) の
+        // 4. 旧 UI が残っていないか。v6 モードでは表示の正本
+        //    (GamePlayPhaseService / GameHudController, Issue #233/#740) が
+        //    全フェーズで旧 Canvas を隠す。Ready 中 (再生前) の
         //    V5ReadyCanvas も正当な表示ではない (Ready 案内は v6 HUD が出す)。
         //
         //    「残っている」の判定は **実際に描かれているか** で見る。
@@ -188,7 +190,7 @@ public class AutoTestV6 : MonoBehaviour
         {
             var t = transforms[i];
             if (t == null) continue;
-            if (!FlashBeat.UI.V5.GameUiExclusivity.IsLegacyLyricObjectName(t.name)) continue;
+            if (!GameHudController.IsLegacyLyricObjectName(t.name)) continue;
             if (!t.gameObject.activeInHierarchy) continue;
             legacyLyricActive++;
             Debug.Log("[AutoTestV6] LEGACY LYRIC ACTIVE: " + t.name);
@@ -202,7 +204,7 @@ public class AutoTestV6 : MonoBehaviour
         //     統一する (PR #263 レビュー N5/N6: CanvasGroup を 1 段だけ見る
         //     実装だと、親の alpha と子の alpha の積や、無効な Canvas を
         //     見落とす)。
-        var legacyOverlay = GameObject.Find(FlashBeat.UI.V5.GameUiExclusivity.LegacyLoadingOverlayName);
+        var legacyOverlay = GameObject.Find(GameHudController.LegacyLoadingOverlayName);
         bool legacyOverlayDrawn = false;
         if (legacyOverlay != null)
         {

@@ -186,10 +186,11 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             LayoutMenuButton();
 
+            // ポーズの開閉は V6PauseRuntime がこのボタンへ接線する
+            // (Issue #740: 旧 v5 PauseMenuView のフォールバックは撤去済み)。
             MenuButton = btn.AddComponent<Button>();
             MenuButton.targetGraphic = btn.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(btn);
-            MenuButton.onClick.AddListener(OpenPauseMenu);
         }
 
         /// <summary>
@@ -251,24 +252,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             LayoutMenuButton();
         }
 
-        /// <summary>
-        /// HUD のメニューボタンの既定リスナー。v6 ポーズが有効なときは何もしない —
-        /// V6PauseRuntime が同じボタンを v6 ポーズへ接線する。ここで v5 PauseMenuView を
-        /// 開くと (非表示のまま活性化して) v6 ポーズと二重表示・二重入力になる。
-        /// </summary>
-        private void OpenPauseMenu()
-        {
-            if (FlashBeat.UI.V6.V6UiMode.GameHud && FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
-            {
-                return;
-            }
-
-            var pause = FindFirstObjectByType<PauseMenuView>();
-            if (pause != null)
-            {
-                pause.Open();
-            }
-        }
 
         private void BuildKeyGuide()
         {

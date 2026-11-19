@@ -68,7 +68,7 @@ namespace FlashBeat.UI.V6.Common
                 return GradeOfV4(score);
             }
 
-            return FlashBeat.UI.V5.ResultView.RankFor(score);
+            return FlashBeat.UI.V6.Result.V6ResultRules.RankFor(score);
         }
 
         /// <summary>
