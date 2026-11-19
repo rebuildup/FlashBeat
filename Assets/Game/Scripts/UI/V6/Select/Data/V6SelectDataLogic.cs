@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace FlashBeat.UI.V6.Select.Data
@@ -6,16 +6,16 @@ namespace FlashBeat.UI.V6.Select.Data
     /// <summary>
     /// v6 選曲画面の純ロジック (Issue #222)。検索フィルタとグレード判定。
     /// Unity エンジンに依存しないので EditMode テストから直接検証できる。
-    /// グレードの閾値は V5 と共通 (FlashBeat.UI.V5.SelectViewLogic.GradeOf)。
+    /// グレードの閾値は <see cref="SongScoreLogic.GradeOf"/> と共通。
     /// </summary>
     public static class V6SelectDataLogic
     {
-        /// <summary>スコア満点 (V5 の SelectViewLogic.ScoreMax と同じ基準)。</summary>
-        public const int ScoreMax = FlashBeat.UI.V5.SelectViewLogic.ScoreMax;
+        /// <summary>スコア満点 (SongScoreLogic.ScoreMax と同じ基準)。</summary>
+        public const int ScoreMax = SongScoreLogic.ScoreMax;
 
         /// <summary>
         /// 曲名/作家名の部分一致 (大文字小文字を無視、空クエリなら常に true)。
-        /// V5 の SelectViewLogic.MatchesFilter と同じ挙動。
+        /// 旧 V5 SelectViewLogic.MatchesFilter と同じ挙動。
         /// </summary>
         public static bool MatchesQuery(string title, string artist, string query)
         {
@@ -41,7 +41,7 @@ namespace FlashBeat.UI.V6.Select.Data
         public static string GradeOf(int score)
         {
             if (score <= 0) return "";
-            return FlashBeat.UI.V5.SelectViewLogic.GradeOf(score) ?? "";
+            return SongScoreLogic.GradeOf(score) ?? "";
         }
     }
 }

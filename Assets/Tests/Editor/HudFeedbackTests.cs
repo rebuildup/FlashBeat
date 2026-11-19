@@ -377,7 +377,7 @@ namespace FlashBeat.Tests
         [Test]
         public void GuideKeyText_FullListsEveryBoundKey()
         {
-            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Full);
+            PlaySession.SetKeyGuide(KeyGuideMode.Full);
             try
             {
                 for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
@@ -390,14 +390,14 @@ namespace FlashBeat.Tests
             }
             finally
             {
-                FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+                PlaySession.SetKeyGuide(KeyGuideMode.Compact);
             }
         }
 
         [Test]
         public void GuideKeyText_CompactKeepsRepresentativeKey()
         {
-            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+            PlaySession.SetKeyGuide(KeyGuideMode.Compact);
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
                 Assert.AreEqual(V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),

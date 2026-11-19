@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 
 public class ResultSceneManager : MonoBehaviour
@@ -14,7 +11,6 @@ public class ResultSceneManager : MonoBehaviour
     [SerializeField] private Canvas legacyCanvasV5;
     [SerializeField] private Canvas legacyCanvasV6;
 
-    private FlashBeat.UI.V5.ResultView view;
     private FlashBeat.UI.V6.Result.V6ResultView v6View;
     private int prevHiscore;
 
@@ -41,17 +37,6 @@ public class ResultSceneManager : MonoBehaviour
     
     public string[] songURLs;
     public Image[] imageObjects;
-
-    /// <summary>
-    /// この Result インスタンスが発行した遠隔画像取得要求の世代識別子。
-    /// 発火時に「この要求は自分が発行したものか」照合するために使う。
-    /// Retry 等でシーンが作り直された後に古いコールバックが返ってきても、
-    /// 古い世代を無視するための鍵 (Issue #417)。
-    /// </summary>
-    private int remoteSpriteRequestId = 0;
-
-    /// <summary>版を発行する直列実行用カウンタ (main スレッド前提)。</summary>
-    private static int remoteSpriteCounter;
 
     void Awake()
     {
@@ -124,27 +109,17 @@ public class ResultSceneManager : MonoBehaviour
         greatText.text = GManager.great.ToString();
         badText.text = GManager.bad.ToString();
         missText.text = GManager.miss.ToString();
-        Assessment.text = FlashBeat.UI.V5.ResultView.RankFor(GManager.score);
+        Assessment.text = FlashBeat.UI.V6.Result.V6ResultRules.RankFor(GManager.score);
         // Issue #657: 固定テーブル外の曲 (cloud カタログ) は slot 0 を表示せず、
         // ScorePersistence の安定キー側のベストを出す (slot 0 は別曲の記録)。
         int displayedHiscore = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
             ? GManager.Hiscore[GManager.songID]
             : FlashBeat.Persistence.ScorePersistence.BestOf(GManager.songID);
         Hiscore.text = displayedHiscore.ToString();
-        // 遠隔サムネイルは v5 経路の imageObjects[0] 専用なので、v6 では取得しない
-        // (#417: 不要な HTTP を発行しない。v6 ビューは V6JacketResources を使う)。
-        // 取得は BuildV5View() が担う。
 
-        // v6 Result (#217 / Issue #240)。V6ResultView.Enabled で切替える
-        // (統合担当は V6UiMode からこのフラグを設定する)。既定は true。
-        if (FlashBeat.UI.V6.Result.V6ResultView.Enabled)
-        {
-            BuildV6View();
-        }
-        else
-        {
-            BuildV5View();
-        }
+        // Issue #740: 旧 v5 ResultView のフォールバック経路は撤去。
+        // v6 Result が唯一の実装 (V6ResultView.Enabled の分岐も撤去)。
+        BuildV6View();
     }
 
     /// <summary>
@@ -181,8 +156,7 @@ public class ResultSceneManager : MonoBehaviour
 
     /// <summary>
     /// 旧シーン配置 Canvas (v5 用 / v6 用の両方) を非表示にする。
-    /// どちらかがシーンに無くても例外を出さない。フラグ分岐は呼び出し側
-    /// (BuildV6View / BuildV5View) が担うので、ここでは常に非表示にするだけ。
+    /// どちらかがシーンに無くても例外を出さない。
     /// </summary>
     public static void HideLegacyCanvases(Canvas canvasA, Canvas canvasB)
     {
@@ -190,53 +164,11 @@ public class ResultSceneManager : MonoBehaviour
         if (canvasB != null) canvasB.gameObject.SetActive(false);
     }
 
-    private void BuildV5View()
-    {
-        // v5 経路では legacyCanvasV5 を隠さない (従来どおり v5 のシーン配置 Canvas を
-        // 使う)。v6 用の旧 Canvas のみ隠す (v5 ResultView はコード生成)。
-        HideLegacyCanvases(null, legacyCanvasV6);
-
-        // Issue #417 / #398: v5 Result の imageObjects[0] 用に遠隔サムネイルを
-        // provider から取得する。v6 では imageObjects[0] 自体を表示しない
-        // （v6 側は V6JacketResources を使う）ため、v6 では発行しない。
-        remoteSpriteRequestId = ++remoteSpriteCounter;
-        int capturedRequestId = remoteSpriteRequestId;
-        var songForThumb = GManager.GetSong(GManager.songID);
-        FlashBeat.UI.V6.V6JacketProvider.RequestRemote(songForThumb.videoId, sprite =>
-        {
-            // シーン退場後 / Retry 以降、自分が発行した世代だけを有効とみなす。
-            if (this == null) return;
-            if (!CanApplyRemoteSprite(capturedRequestId, remoteSpriteRequestId)) return;
-            SetRemoteSprite(sprite);
-        });
-
-        var song = GManager.GetSong(GManager.songID);
-        var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot
-        {
-            Score = GManager.score,
-            Perfect = GManager.perfect,
-            Great = GManager.great,
-            Bad = GManager.bad,
-            Miss = GManager.miss,
-            Combo = GManager.combo,
-            PrevHiscore = prevHiscore,
-            Hiscore = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
-                ? GManager.Hiscore[GManager.songID]
-                : FlashBeat.Persistence.ScorePersistence.BestOf(GManager.songID),
-            SongTitle = song.title,
-            Musician = song.musician,
-            Bpm = song.bpm,
-            Level = song.level,
-            TotalHits = song.totalHits
-        };
-        view = FlashBeat.UI.V5.ResultView.Build(snapshot, Retry, SelectScene);
-    }
-
     void Update()
     {
-        if (view != null || v6View != null)
+        if (v6View != null)
         {
-            return; // 入力は v5 ResultView / v6 ResultView が処理する (二重処理防止)
+            return; // 入力は v6 ResultView が処理する
         }
         if (KeyActions.IsDown(KeyActions.KeyAction.Confirm))
         {
@@ -279,7 +211,7 @@ public class ResultSceneManager : MonoBehaviour
     /// (Key Guide / Lyrics, Issue #241) を既定値へ戻す。</summary>
     public void TitleScene()
     {
-        FlashBeat.UI.V5.PlaySession.Reset();
+        PlaySession.Reset();
         // Issue #738: 来場者交代の境界。選曲復帰コンテキストも捨て、
         // 次の選曲画面 (Title → Select) は初期状態から始める。
         FlashBeat.UI.V6.Select.SelectReturnContext.Clear();
@@ -307,62 +239,5 @@ public class ResultSceneManager : MonoBehaviour
         RetryT.fontSize = 50;
     }
 
-    /// <summary>provider から届いた遠隔スプライトを v5 Result の背景へ反映する。</summary>
-    void SetRemoteSprite(Sprite sprite)
-    {
-        // provider はシーンを知らない。Result 退出後 (Retry 等) に HTTP が返ると
-        // 破棄済み Image へ書き込んで MissingReferenceException になる (#417)。
-        if (this == null || imageObjects == null || imageObjects.Length == 0 || imageObjects[0] == null)
-        {
-            return;
-        }
-
-        if (sprite == null)
-        {
-            Debug.LogWarning("[ResultSceneManager] thumbnail 取得失敗 (V6JacketProvider)");
-            return;
-        }
-
-        imageObjects[0].sprite = sprite;
-        var texture = sprite.texture as Texture2D;
-        if (texture != null && view != null)
-        {
-            view.SetBackdrop(texture);
-        }    }
-
-    // Issue #398: provider 一本化で使われなくなった旧経路。v5/v6 共通化の完了まで
-    // 削除せずコメントアウトで残す (AGENTS.md: 削除時はコメントアウト)。
-    //
-    // IEnumerator FetchThumbnail(string songURL, int index)
-    // {
-    //     string url = "https://img.youtube.com/vi/" + songURL + "/0.jpg";
-    //     UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
-    //     yield return request.SendWebRequest();
-    //     if (request.result == UnityWebRequest.Result.Success)
-    //     {
-    //         Texture2D texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-    //         Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-    //         imageObjects[index].sprite = sprite;
-    //         if (view != null)
-    //         {
-    //             view.SetBackdrop(texture);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         Debug.Log(request.error);
-    //     }
-    // }
-
-    /// <summary>
-    /// 遠隔画像取得のコールバックが発火した時に、表示を更新してよいか決める純粋関数。
-    /// `this == null` 等のライフサイクル差異は呼び出し側で先に判定し、
-    /// ここでは「発行した要求と現在の要求が同じ世代か」だけを見る。
-    /// Issue #417: 単純な世代一致チェック。EditMode テストで挙動を固定する。
-    /// </summary>
-    public static bool CanApplyRemoteSprite(int capturedRequestId, int currentRequestId)
-    {
-        return capturedRequestId == currentRequestId;
-    }
 
 }

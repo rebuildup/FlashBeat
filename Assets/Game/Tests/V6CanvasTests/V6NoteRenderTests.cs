@@ -83,7 +83,7 @@ namespace FlashBeat.V6CanvasTests
             savedVideoDim = V6UiMode.VideoDim;
             savedStart = GManager.Start;
             savedPlayed = GManager.played;
-            savedLyricsEnabled = FlashBeat.UI.V5.PlaySession.LyricsEnabled;
+            savedLyricsEnabled = PlaySession.LyricsEnabled;
             savedStepTime = GManager.step_time;
             savedNoteSpeed = GManager.noteSpeed;
 
@@ -129,7 +129,7 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.VideoDim = savedVideoDim;
             GManager.Start = savedStart;
             GManager.played = savedPlayed;
-            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(savedLyricsEnabled);
+            PlaySession.SetLyricsEnabled(savedLyricsEnabled);
             GManager.step_time = savedStepTime;
             GManager.noteSpeed = savedNoteSpeed;
             MediaTimeline.ResetSession();
@@ -751,7 +751,7 @@ namespace FlashBeat.V6CanvasTests
         /// フレーム上のノーツは検証対象外だった。ここでは背景輝度で除外せず、
         /// 差分画素すべての輝度・コントラスト・「暗くならない」を計測する。
         ///
-        /// 歌詞パネルは <see cref="FlashBeat.UI.V5.PlaySession.LyricsEnabled"/>
+        /// 歌詞パネルは <see cref="PlaySession.LyricsEnabled"/>
         /// = false で隠す:
         /// パネル (黒 α0.6) はレーン帯の抜きを持たず、パネル被りのノーツを
         /// 暗くする既知の残件 (Issue #735 で別途対応が必要 — V6HudLyrics は
@@ -767,7 +767,7 @@ namespace FlashBeat.V6CanvasTests
             // 演奏中の出荷状態を再現する (played=false だと Start Prompt と
             // 歌詞枠が出てパネル被りの計測が本筋から外れる)。
             GManager.played = true;
-            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(false);
+            PlaySession.SetLyricsEnabled(false);
 
             Camera cam = CreateCamera();
 
@@ -820,7 +820,7 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.Playfield = false;
             V6UiMode.VideoDim = false;
             GManager.played = true;
-            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(true);
+            PlaySession.SetLyricsEnabled(true);
 
             Camera cam = CreateCamera();
 

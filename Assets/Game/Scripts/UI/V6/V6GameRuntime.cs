@@ -51,42 +51,8 @@ namespace FlashBeat.UI.V6
         /// <summary>検証用の固定表示中か (<see cref="ShowLoadingForAudit"/>)。</summary>
         private bool loadingAudit;
 
-        /// <summary>隠し対象の旧 v5 ポーズ (キャッシュ。シーン再ロードで作り直す)。</summary>
-        private FlashBeat.UI.V5.PauseMenuView legacyPause;
-
-        /// <summary>隠し対象の旧 v5 ローディング / エラー Canvas (キャッシュ)。</summary>
-        private Canvas legacyOverlayCanvas;
-
-        /// <summary>隠し対象の旧 v5 Ready プロンプト Canvas (キャッシュ)。</summary>
-        private Canvas legacyReadyCanvas;
-
         /// <summary>ローディング表示の開始判定に使う MusicManager (シーン内で 1 つ、見つかるまで再検索)。</summary>
         private MusicManager cachedMusicManager;
-
-        /// <summary>
-        /// 旧 v5 ローディング Canvas 配下の Graphic をキャッシュする (Issue #381)。
-        ///
-        /// 以前は LateUpdate のたびに <c>GetComponentsInChildren&lt;Graphic&gt;(true)</c>
-        /// を呼んでいた。GameScene の生存中は Canvas 配下の構成が変わらないので、
-        /// 初回だけ集めて使い回す (毎フレームの全走査をしない)。
-        /// </summary>
-        private Graphic[] legacyOverlayGraphics;
-
-        /// <summary>
-        /// 旧 v5 オブジェクトの検索を試みたフレーム数 (Issue #381)。
-        ///
-        /// 以前は <c>LateUpdate</c> が毎フレーム <c>FindObjectsOfType&lt;Canvas&gt;()</c>
-        /// を呼んでいた。これはシーン全体を走査する。v5 のオブジェクトは
-        /// GameHudController (実行順 100) の Start で作られるので数フレームで
-        /// 見つかる。見つからないまま探し続けるのは無駄なので上限を置く。
-        /// </summary>
-        private int legacyLookupFrames;
-
-        /// <summary>
-        /// 旧 v5 オブジェクトを探すフレーム数の上限。GameHudController は
-        /// Start (実行順 100) で作るので、1 秒あれば十分に足りる。
-        /// </summary>
-        private const int LegacyLookupFrameLimit = 60;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -141,43 +107,6 @@ namespace FlashBeat.UI.V6
                 pause.Dispose();
                 pause = null;
             }
-        }
-
-        /// <summary>
-        /// 旧 v5 のポーズ / ローディング / エラー表示を隠す (表示の所有は v6)。
-        ///
-        /// Issue #400: 状態検出と v5 UI 生成を分けた結果、
-        /// **v6 構成では v5 の Ready / Loading / Error は生成されない**
-        /// (GameHudController.Start が v6Hud のとき作らない)。したがって
-        /// 以前の「毎フレーム隠し直す」処理は、v6 ポーズが無効なときの
-        /// v5 ポーズと、シーンに残るレガシー (シーン配置の旧 UI) だけを見ればよい。
-        ///
-        /// 探索には上限を置き、見つかった後の非表示は維持する
-        /// (v5 ポーズは Update で自分を開き直すことがあるため)。
-        /// </summary>
-        private void LateUpdate()
-        {
-            // 旧 v5 オブジェクトの**検索**には上限を置く (Issue #381)。
-            bool mayLookUp = legacyLookupFrames < LegacyLookupFrameLimit;
-            if (mayLookUp)
-            {
-                legacyLookupFrames++;
-            }
-
-            if (legacyPause == null && mayLookUp)
-            {
-                legacyPause = FindObjectOfType<FlashBeat.UI.V5.PauseMenuView>();
-            }
-
-            // v6 ポーズが無効 (V6PauseView.Enabled = false) のときは v5 ポーズが役割を持つ。
-            if (legacyPause != null && V6PauseView.Enabled && legacyPause.gameObject.activeSelf)
-            {
-                legacyPause.gameObject.SetActive(false);
-            }
-
-            // Issue #400: v6 構成では V5ReadyCanvas / V5OverlayCanvas を作らないので、
-            // それらを探して毎フレーム隠す必要は無い (GamePlayPhaseService が
-            // 生成前の旧 UI を 1 回掃除する)。v5 ポーズだけは上で維持する。
         }
 
         /// <summary>

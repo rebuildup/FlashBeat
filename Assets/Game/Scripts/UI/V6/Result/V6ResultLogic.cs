@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using UnityEngine;
 using FlashBeat.Gameplay;
 
@@ -7,7 +7,7 @@ namespace FlashBeat.UI.V6.Result
     /// <summary>
     /// v6 リザルト画面 (Issue #217) の純ロジック。Unity API への依存は Mathf のみ
     /// (EditMode テストから直接検証できる)。グレード算出は既存の Assessment 判定
-    /// (<see cref="FlashBeat.UI.V5.ResultView.RankFor"/>) と同一の閾値を使い、
+    /// (<see cref="V6ResultRules.RankFor"/>) と同一の閾値を使い、
     /// v5 リザルトの表示と 1:1 に保つ。寸法は design v6 の 1728x972 基準。
     /// </summary>
     public static class V6ResultLogic
@@ -16,8 +16,8 @@ namespace FlashBeat.UI.V6.Result
         public const float DesignW = 1728f;
         public const float DesignH = 972f;
 
-        /// <summary>スコア満点 (V5 SelectViewLogic.ScoreMax と同じ基準)。</summary>
-        public const int ScoreMax = FlashBeat.UI.V5.SelectViewLogic.ScoreMax;
+        /// <summary>スコア満点 (SongScoreLogic.ScoreMax と同じ基準)。</summary>
+        public const int ScoreMax = SongScoreLogic.ScoreMax;
 
         /// <summary>スコアゲージの全長 (design px, zcSHh の Score Gauge)。</summary>
         public const float GaugeW = 824f;
@@ -68,7 +68,7 @@ namespace FlashBeat.UI.V6.Result
 
         /// <summary>
         /// スコアからグレード文字列を返す。既存の Assessment 判定
-        /// (V5 ResultView.RankFor) と同じ閾値 (1:1 維持)。スコアが無い (0 以下) ときは "–"。
+        /// (V6ResultRules.RankFor) と同じ閾値 (1:1 維持)。スコアが無い (0 以下) ときは "–"。
         ///
         /// scoring v4 (ADR-0033) で満点は 2,000,000 になったが、グレード
         /// 閾値の再設計はこの Issue の範囲外 (フォローアップ課題)。現状は
@@ -82,7 +82,7 @@ namespace FlashBeat.UI.V6.Result
                 return "–";
             }
 
-            return FlashBeat.UI.V5.ResultView.RankFor(score);
+            return V6ResultRules.RankFor(score);
         }
 
         /// <summary>スコア表示。3桁カンマ区切り (デザイン表記 988,513)。</summary>
@@ -153,7 +153,7 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>曲長表示 (秒 → "m:ss")。無効値は "–"。</summary>
         public static string DurationText(float seconds)
         {
-            string text = FlashBeat.UI.V5.SelectViewLogic.DurationText(seconds);
+            string text = SongScoreLogic.DurationText(seconds);
             return string.IsNullOrEmpty(text) ? "–" : text;
         }
 
@@ -403,10 +403,10 @@ namespace FlashBeat.UI.V6.Result
         // v6 Result には 2 つの別々の契約がある:
         //   - オンライン順位への送信 (RankingClient)。対象はリモート曲だけで、
         //     応答は 201 / 429 / オフライン / その他の HTTP に区分される。
-        //   - ローカル保存 (端末内の名前)。v5 は
-        //     <see cref="FlashBeat.UI.V5.ResultView"/> が PlayerPrefs キー
-        //     "V5PlayerName" に名前を書いていた。v6 Result は v5 の ResultView を
-        //     使わないため、この経路が到達不能になっていた (Issue #240)。
+        //   - ローカル保存 (端末内の名前)。旧 v5 ResultView は
+        //     PlayerPrefs キー "V5PlayerName" に名前を書いていた。
+        //     v6 Result は v5 の ResultView を使わないため、この経路が
+        //     到達不能になっていた (Issue #240)。
         //
         // 送信対象でない (ローカル) 曲にオンラインの失敗表示 (「オフライン」
         // 「送信失敗」) を出さないため、方式の判定と表示の語彙をここに純ロジック
@@ -459,15 +459,14 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// ローカル名の正規化。v5 の
-        /// <see cref="FlashBeat.UI.V5.ResultView.NormalizeName"/> と同じ規則
+        /// ローカル名の正規化。<see cref="V6ResultRules.NormalizeName"/> と同じ規則
         /// (大文字化 + A-Z0-9 のみ + 最大 8 文字)。空入力は既定値
         /// (<see cref="LocalNameDefault"/>)。
         /// オンラインの入力規則 (RankingClient) とは別物なので混ぜない。
         /// </summary>
         public static string NormalizeLocalName(string raw)
         {
-            string normalized = FlashBeat.UI.V5.ResultView.NormalizeName(raw);
+            string normalized = V6ResultRules.NormalizeName(raw);
             return string.IsNullOrEmpty(normalized) ? LocalNameDefault : normalized;
         }
 
