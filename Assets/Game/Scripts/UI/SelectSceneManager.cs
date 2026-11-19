@@ -395,6 +395,27 @@ public class SelectSceneManager : MonoBehaviour
         catalogRefresh = null;
     }
 
+    void OnDestroy()
+    {
+        DisposeV6Views();
+    }
+
+    /// <summary>
+    /// Issue #642: 選曲画面を離れるとき v6 の 3 ビューを破棄する。
+    ///
+    /// V6SelectView / V6HistoryView / V6RankingView は生成時に共有
+    /// データソースの Changed を購読し、static な Current に自分を登録する。
+    /// 破棄しないとシーンを出た後も購読が残り、データ更新のたびに破棄済み
+    /// ビューへコールバックが飛ぶ (OptionSceneManager.OnDestroy と同じ契約)。
+    /// Dispose は冪等なのでシーン破棄と EditMode テストの両方から呼べる。
+    /// </summary>
+    public void DisposeV6Views()
+    {
+        if (v6View != null) { v6View.Dispose(); v6View = null; }
+        if (historyView != null) { historyView.Dispose(); historyView = null; }
+        if (rankingView != null) { rankingView.Dispose(); rankingView = null; }
+    }
+
     // Cloud Catalog (#17): fetch GET /api/v1/catalog on entry and refresh it
     // while the player is idle on the select screen. A usable response
     // switches the shown songs over (GManager.ActiveSongs); any failure -
@@ -530,12 +551,31 @@ public class SelectSceneManager : MonoBehaviour
             yield break;
         }
 
+        // Issue #657: 譜面取得の待機中にカタログ更新
+        // (RefreshCatalogOnce → ApplyRemoteCatalog) や選択変更が入ると、
+        // キャプチャした song と現在の選択行がずれうる。そのまま
+        // ResetSession すると、ユーザーが選んだ曲と違う譜面でプレイが
+        // 始まる。確定直前に現在行を再解決し、同一曲・同一版でなければ
+        // 開始を中止する。
+        SongData current = GManager.GetSong(GManager.songID);
+        if (current == null || !current.isRemote || current.remoteId != song.remoteId
+            || (current.chartVersion > 0 && current.chartVersion != version))
+        {
+            Debug.LogWarning($"[SelectScene] selection changed during chart fetch for '{song.remoteId}' v{version} - start cancelled");
+            v6Data?.ReportStartFailure("選曲が変更されたため開始を中止しました");
+            SelectSceneTransitionGuard.Reset();
+            LoadingOverlay.Hide(RemoteStartOwner);
+            yield break;
+        }
+
         // The song entry carries the version the snapshot was taken with, so
         // that the game scene finds exactly this snapshot (NotesManager looks
         // it up by song.chartVersion) even when the catalog entry itself did
-        // not carry a version.
-        song.chartVersion = version;
-        CloudChartHolder.Hold(song.remoteId, version, body);
+        // not carry a version. Issue #657: 書き込むのは現在行 (current)。
+        // 取得前にキャプチャした song はカタログ更新で切り離されている
+        // ことがあり、そちらへ書いてもスナップショットに載らない。
+        current.chartVersion = version;
+        CloudChartHolder.Hold(current.remoteId, version, body);
         GManager.ResetSession();
         Initiate.Fade("GameScene", Color.black, TransitionFadeDamp, true);
     }

@@ -75,6 +75,9 @@ INSERT INTO chart_versions (songId, version, json, noteCount)
 VALUES ('zz-second-song', 1, '${SECOND_CHART}', 1);
 INSERT INTO chart_versions (songId, version, json, noteCount)
 VALUES ('who', 2, '${SECOND_WHO_CHART}', 1);
+-- Issue #656: fixture rows bypass the API, so realign the catalog epoch
+-- with the chart count the fixture just created.
+UPDATE catalog_meta SET epoch = (SELECT COUNT(*) FROM chart_versions);
 `;
 
 let server: ChildProcess | undefined;
@@ -988,14 +991,25 @@ describe("POST /api/v1/scores", () => {
 
   it("enforces the nickname rules", async () => {
     for (const [label, nickname] of [
-      ["13 characters", "abcdefghijklm"],
+      ["17 characters", "abcdefghijklmnopq"],
       ["empty after trim", "   "],
       ["control character", "a\u0000b"],
     ] as const) {
       const response = await submit(submission("zz-second-song", 1, nickname, { perfect: 1 }));
       assert.equal(response.status, 422, `expected 422 for ${label}`);
       const rejected = (await response.json()) as { diagnostics: { path: string }[] };
-      assert.equal(rejected.diagnostics[0]?.path, "/nickname", label);
+      // Over-length nicknames are rejected by the schema layer (`#/nickname`),
+      // the semantic rules by the model layer (`/nickname`).
+      assert.match(rejected.diagnostics[0]?.path ?? "", /nickname$/, label);
+    }
+  });
+
+  it("accepts nicknames up to the contract limit of 16 characters", async () => {
+    // Issue #655: the server used to enforce 12 while the contract, the
+    // database CHECK and the Unity client all allow 16.
+    for (const nickname of ["abcdefghijklm", "abcdefghijklmnop"]) {
+      const response = await submit(submission("zz-second-song", 1, nickname, { perfect: 1 }));
+      assert.equal(response.status, 201, `expected 201 for ${nickname.length} characters`);
     }
   });
 
@@ -1025,6 +1039,47 @@ describe("POST /api/v1/scores", () => {
     // A different nickname or score is not a duplicate.
     const otherNickname = await submit(submission("who", 2, "RateLimit", { perfect: 1 }));
     assert.equal(otherNickname.status, 201);
+  });
+
+  it("does not treat the same score on a different chart version as a duplicate", async () => {
+    // Issue #655: the dedupe window used to ignore chartVersion, so a
+    // legitimate replay on a newly published version was rejected as 429.
+    const songId = "zz-dedupe-versions";
+    const notes = Array.from({ length: 10 }, (_, index) => ({
+      type: 1,
+      num: index + 1,
+      block: index % 8,
+      LPB: 4,
+    }));
+    const publish = () =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: `Dedupe ${songId}`,
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: { name: songId, maxBlock: 8, BPM: 120, offset: 0, notes },
+        }),
+      });
+    assert.equal((await publish()).status, 200); // chart version 1
+    assert.equal((await publish()).status, 200); // chart version 2
+
+    // All-perfect plays score 1000000 on both versions: identical totals,
+    // different plays.
+    const v1 = await submit(submission(songId, 1, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v1.status, 201);
+    const v2 = await submit(submission(songId, 2, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v2.status, 201);
+
+    // The same version replayed inside the window is still a duplicate.
+    const v2Again = await submit(submission(songId, 2, "VersionPlayer", { perfect: 10 }));
+    assert.equal(v2Again.status, 429);
   });
 });
 
@@ -1349,6 +1404,141 @@ describe("GET /api/v1/rankings and GET /api/v1/stats", () => {
     });
     assert.equal(restore.status, 200);
   });
+
+  it("scopes the ranking board to the currently published chart version", async () => {
+    // `who` v1 is the published version (139 notes); v2 is a superseded
+    // snapshot (1 note). Scores are accepted on both, but the board labels
+    // the song with the current version, so only v1 plays may show up in
+    // `plays` and `entries` (issue #638). The submissions use scoring
+    // version 1 and the board is read with the same version, so the
+    // assertion is independent of the default (latest) scoring version.
+    const submit = (
+      chartVersion: number,
+      nickname: string,
+      counts: { perfect?: number; great?: number; bad?: number; miss?: number },
+    ): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/scores`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          songId: "who",
+          chartVersion,
+          nickname,
+          perfect: 0,
+          great: 0,
+          bad: 0,
+          miss: 0,
+          scoringVersion: 1,
+          ...counts,
+        }),
+      });
+
+    // A play of the current version (139 notes, all great) and a perfect
+    // play of the superseded version (1 note).
+    const current = await submit(1, "RankNew", { great: 139 });
+    assert.equal(current.status, 201);
+    const currentScore = ((await current.json()) as { score: number }).score;
+    const oldVersion = await submit(2, "RankOld", { perfect: 1 });
+    assert.equal(oldVersion.status, 201);
+
+    const response = await fetch(`${baseUrl}/api/v1/rankings?scoringVersion=1`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      songs: {
+        songId: string;
+        chartVersion: number;
+        plays: number;
+        entries: { nickname: string; score: number }[];
+      }[];
+    };
+    validateRankings(body);
+
+    const who = body.songs.find((song) => song.songId === "who");
+    assert.equal(who?.chartVersion, 1);
+    // Only the current-version play counts: the superseded-version play is
+    // stored but invisible to the board.
+    assert.equal(who?.plays, 1);
+    assert.deepEqual(who?.entries, [{ nickname: "RankNew", score: currentScore }]);
+  });
+
+  it("averages accuracy per play and counts only the current chart version", async () => {
+    // A fresh song published twice: v1 has 10 notes, v2 (the current
+    // version) has 4. The plays span both versions with different note
+    // counts, so a note-count-weighted mean and a per-play mean would
+    // differ — and plays of the superseded version must not count at all
+    // (issue #638).
+    const publish = (notes: unknown[]): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/stats-acc-song`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: "Stats Accuracy Song",
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: { name: "stats-acc-song", maxBlock: 8, BPM: 120, offset: 0, notes },
+        }),
+      });
+    const notes = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        type: 1,
+        num: index + 1,
+        block: index % 8,
+        LPB: 4,
+      }));
+    assert.equal((await publish(notes(10))).status, 200); // v1
+    assert.equal((await publish(notes(4))).status, 200); // v2, now current
+
+    const submit = (
+      chartVersion: number,
+      nickname: string,
+      counts: { perfect?: number; great?: number; bad?: number; miss?: number },
+    ): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/scores`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          songId: "stats-acc-song",
+          chartVersion,
+          nickname,
+          perfect: 0,
+          great: 0,
+          bad: 0,
+          miss: 0,
+          scoringVersion: 3,
+          ...counts,
+        }),
+      });
+
+    // Superseded version (10 notes), accuracy 1.0 — must not count.
+    assert.equal((await submit(1, "OldPerfect", { perfect: 10 })).status, 201);
+    // Current version (4 notes): all miss -> accuracy 0, and 2 perfect +
+    // 2 great -> accuracy (2 + 0.6 * 2) / 4 = 0.8.
+    assert.equal((await submit(2, "AllMiss", { miss: 4 })).status, 201);
+    assert.equal((await submit(2, "Mixed", { perfect: 2, great: 2 })).status, 201);
+
+    const response = await fetch(`${baseUrl}/api/v1/stats`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      perSong: { songId: string; plays: number; averageAccuracy: number | null }[];
+    };
+    validateStats(body);
+
+    const song = body.perSong.find((row) => row.songId === "stats-acc-song");
+    // Only the two current-version plays count, and the average is the
+    // plain mean of the per-play accuracies: (0 + 0.8) / 2 = 0.4.
+    assert.equal(song?.plays, 2);
+    assert.ok(
+      song?.averageAccuracy !== null &&
+        song?.averageAccuracy !== undefined &&
+        Math.abs(song.averageAccuracy - 0.4) < 1e-9,
+      `expected averageAccuracy 0.4, got ${String(song?.averageAccuracy)}`,
+    );
+  });
 });
 
 describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
@@ -1457,6 +1647,159 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
       body: JSON.stringify({ archived: true }),
     });
     assert.equal(response.status, 404);
+  });
+
+  it("bumps catalogVersion on archive and unarchive (issue #656)", async () => {
+    const readVersion = async (): Promise<number> => {
+      const body = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+        catalogVersion: number;
+      };
+      return body.catalogVersion;
+    };
+    const post = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/who`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+
+    const before = await readVersion();
+    const archived = await post(true);
+    assert.equal(archived.status, 200);
+    assert.equal(
+      ((await archived.json()) as { catalogVersion: number }).catalogVersion,
+      before + 1,
+    );
+    assert.equal(await readVersion(), before + 1);
+
+    const restored = await post(false);
+    assert.equal(restored.status, 200);
+    assert.equal(
+      ((await restored.json()) as { catalogVersion: number }).catalogVersion,
+      before + 2,
+    );
+    assert.equal(await readVersion(), before + 2);
+  });
+
+  it("reports archived state when an archived song is republished (issue #656)", async () => {
+    const songId = "republish-archived";
+    const post = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+    const put = (): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/${songId}`, {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({
+          title: "Republish Archived",
+          artist: "Tester",
+          youtubeId: "8JXiXt0D6tw",
+          level: 5,
+          durationSec: 90,
+          chart: {
+            name: "Republish Archived",
+            maxBlock: 8,
+            BPM: 120,
+            offset: 0,
+            notes: [{ type: 1, num: 4, block: 3, LPB: 4 }],
+          },
+        }),
+      });
+
+    // Publish v1, archive it, then republish: the second publish must
+    // succeed but report the song as still archived.
+    assert.equal((await put()).status, 200);
+    assert.equal((await post(true)).status, 200);
+    try {
+      const republished = await put();
+      assert.equal(republished.status, 200);
+      const body = (await republished.json()) as {
+        chartVersion: number;
+        archived?: boolean;
+        archivedAt?: string | null;
+      };
+      assert.equal(body.archived, true);
+      assert.ok(typeof body.archivedAt === "string");
+
+      // The publish succeeded but the song stays out of the public catalog.
+      const catalog = (await (await fetch(`${baseUrl}/api/v1/catalog`)).json()) as {
+        songs: { id: string }[];
+      };
+      assert.equal(
+        catalog.songs.find((song) => song.id === songId),
+        undefined,
+      );
+    } finally {
+      await post(false);
+    }
+  });
+
+  it("leaves archived songs out of the score aggregates (issue #656)", async () => {
+    type Stats = {
+      totals: { scores: number; playsLast24h: number };
+      perSong: { songId: string; plays: number }[];
+    };
+    const stats = async (): Promise<Stats> =>
+      (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as Stats;
+    const archive = (archived: boolean): Promise<Response> =>
+      fetch(`${baseUrl}/api/v1/admin/songs/zz-second-song`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ archived }),
+      });
+
+    // One counted play: scoring version 3 (the stats scope) on the current
+    // chart version of zz-second-song (1 note).
+    const submit = await fetch(`${baseUrl}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        songId: "zz-second-song",
+        chartVersion: 1,
+        nickname: "Archive Probe",
+        perfect: 1,
+        great: 0,
+        bad: 0,
+        miss: 0,
+        maxCombo: 1,
+        score: 1000000,
+        scoringVersion: 3,
+      }),
+    });
+    assert.equal(submit.status, 201);
+
+    const before = await stats();
+    const playsBefore = before.perSong.find((song) => song.songId === "zz-second-song")?.plays ?? 0;
+    assert.ok(playsBefore >= 1, "the probe play must be counted before archiving");
+
+    assert.equal((await archive(true)).status, 200);
+    try {
+      const during = await stats();
+      assert.equal(
+        during.perSong.find((song) => song.songId === "zz-second-song")?.plays ?? 0,
+        0,
+        "an archived song reports zero plays",
+      );
+      assert.equal(during.totals.scores, before.totals.scores - playsBefore);
+      assert.equal(during.totals.playsLast24h, before.totals.playsLast24h - playsBefore);
+    } finally {
+      assert.equal((await archive(false)).status, 200);
+    }
   });
 });
 

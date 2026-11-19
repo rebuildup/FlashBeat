@@ -31,10 +31,13 @@ public static class BuildScript
     // ビルド後に元へ戻す。GameScene の VideoPlayer は yt-dlp で解決したストリーム URL を
     // 再生するため、プレイヤーではローカルの音声・動画を使わない。
     // loading.mp4 は自作素材 (8.7MB) でローディング画面の本体なので同梱する (Issue #233)。
+    // 背景アニメーションタイトル.mp4 は build scenes 外の TypingScene の prefab だけが
+    // 参照する自作素材で、プレイヤーには TypingScene が無いため同梱しない (Issue #653)。
     private static readonly string[] MediaExcludePaths =
     {
         "Assets/Game/Resources/Musics",
         "Assets/Game/Resources/Videos/UnityYoutube",
+        "Assets/Game/Resources/Videos/背景アニメーションタイトル.mp4",
     };
     private const string MediaExcludeRoot = "Builds/.media-excluded";
 
@@ -277,7 +280,7 @@ public static class BuildScript
             MovePath(ProjectPath(rel), Path.Combine(excludeRoot, Path.GetFileName(rel.TrimEnd('/'))));
         }
         AssetDatabase.Refresh();
-        Debug.Log("[BuildScript] 第三者楽曲の音声・動画をビルド対象から除外しました (Musics / Videos/UnityYoutube / loading.mp4)");
+        Debug.Log("[BuildScript] メディアをビルド対象から除外しました (Musics / Videos/UnityYoutube / 未使用背景動画)");
     }
 
     /// <summary>退避したメディアを元の位置へ戻す。退避フォルダが無い/空なら何もしない。</summary>

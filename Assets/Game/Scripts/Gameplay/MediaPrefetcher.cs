@@ -82,11 +82,14 @@ namespace FlashBeat.Gameplay
             {
                 RequestCount++;
 
-                // ffmpeg の有無は MusicManager と同じ判断 (TryGetReadyFiles の
-                // canMerge) を使う。PATH の解決はプロセス内で繰り返しても軽い。
-                bool canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+                // Issue #642: ツール探索 (ffmpeg/yt-dlp/deno) は非同期化され、
+                // この同期 prefix では結果を待てない。ここでは「結合ファイルが
+                // 完了済み」の場合だけを即時ヒットにする (canMerge:true は分離
+                // ペアを採用しない最も厳しい判定)。分離ペアだけがある曲は run を
+                // 開始し、RunAsync が実際の canMerge で再判定する - ffmpeg の
+                // 無い環境なら形式プローブ無しで温め済みになる。
                 ReadyMedia ready;
-                if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: canMerge))
+                if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: true))
                 {
                     warm.Add(videoId);
                     CacheHitCount++;
@@ -156,6 +159,33 @@ namespace FlashBeat.Gameplay
             // Unity の同期コンテキストで再開させる。
             try
             {
+                // ffmpeg の有無は再生側 (MusicManager) と同じ非同期解決を使う。
+                // 探索プロセスはスレッドプール側で走り、ここでは完了を待つだけ
+                // なのでメインスレッドを止めない (issue #642)。
+                bool canMerge = !string.IsNullOrEmpty(await YouTubeStreamResolver.ResolveFfmpegPathAsync());
+
+                // Request の同期 prefix は canMerge を知らず「結合ファイル」のみを
+                // ヒット扱いにする。ここで実際の canMerge で再判定すれば、
+                // ffmpeg の無い環境に残った分離ペアも yt-dlp -F 無しで
+                // 温め済みにできる。
+                ReadyMedia readyNow;
+                if (YouTubeMediaCache.TryGetReadyFiles(videoId, out readyNow, canMerge: canMerge))
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        CountCancelled();
+                    }
+                    else
+                    {
+                        lock (gate)
+                        {
+                            warm.Add(videoId);
+                            CompletedCount++;
+                        }
+                    }
+                    return;
+                }
+
                 List<YtDlpFormat> formats;
                 if (FormatsOverride != null)
                 {
@@ -185,7 +215,6 @@ namespace FlashBeat.Gameplay
                     return;
                 }
 
-                bool canMerge = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
                 var plan = YouTubeMediaCache.SelectPlan(formats, canMerge);
 
                 // MusicManager.PrepareMediaCoroutine と同じ取得順:
@@ -204,6 +233,11 @@ namespace FlashBeat.Gameplay
                     video = await YouTubeMediaCache
                         .EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, token);
                     combined = false;
+                    // Issue #642: the merged plan has no audio selector, so
+                    // re-derive the split plan (same contract as
+                    // MusicManager) - otherwise the fallback warms a
+                    // video-only cache entry and the song stays silent.
+                    plan = YouTubeMediaCache.PlanAfterMergedFallback(formats);
                 }
 
                 if (plan.HasAudioFile && !combined)
@@ -212,8 +246,13 @@ namespace FlashBeat.Gameplay
                         .EnsureFileAsync(videoId, plan.AudioSelector, YouTubeMediaCache.AudioFilePrefix, token);
                 }
 
+                // 「再生可能なセットが残ったか」の判定なので canMerge:false で見る:
+                // 結合ファイルは canMerge に関係なく先に採用され、分離ペアは
+                // フォールバック経路で実際に使える形 (issue #642)。canMerge:true
+                // のままだと、結合失敗→分離フォールバックで温めきった曲を
+                // 「失敗」と誤カウントして failedOnce に入れてしまう。
                 ReadyMedia ready;
-                if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: canMerge))
+                if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: false))
                 {
                     lock (gate)
                     {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Game.Playfield;
@@ -16,23 +17,17 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// </summary>
     public sealed partial class V6GameHudView
     {
-        private const float VerdictScanSeconds = 1f;
-
-        /// <summary>Judge がレーンに置く判定エフェクトのクローン名 (Judge.MessageObj 順)。</summary>
-        private static readonly string[] JudgeCloneNames = { "Perfect(Clone)", "Great(Clone)", "Bad(Clone)", "Miss(Clone)" };
-
         private readonly List<TextMeshProUGUI> verdictTexts = new List<TextMeshProUGUI>();
 
         // --- 毎フレームの状態 (判定行) ---
         private int lastJudged = -1;
-        private float verdictScanUntil;
-        private readonly HashSet<Object> seenJudgeIds = new HashSet<Object>();
         private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
         private readonly float[] laneVerdictUntil = new float[V6LaneGeometry.LaneCount];
         /// <summary>判定テキストを出した時刻 (出現アニメーションの基準)。</summary>
         private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
         /// <summary>判定テキストの静止位置 (行ローカル anchoredPosition.y、px)。</summary>
         private float verdictBaseY;
+
 
         /// <summary>v6 のレーン別判定行を使うか (既定は false = 元の 3D 判定エフェクト)。</summary>
         private static bool VerdictRowEnabled
@@ -147,11 +142,14 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
             else
             {
-                // レガシー 3D: レーン x と同じ投影で判定線の画面 y (下原点) を取る。
+                // レガシー 3D: 描画される判定線 (JudgeLineWorldY/Z = 0.48/0、
+                // GameScene JudgeLine の実ワールド位置) を投影して画面 y
+                // (下原点) を取る。判定エフェクト出現点 (0.76/0.15) ではない
+                // — design §10.3 の「判定線」は描画される線を指す (Issue #715)。
                 var cam = Camera.main;
                 if (cam != null)
                 {
-                    Vector3 sp = cam.WorldToScreenPoint(new Vector3(0f, 0.76f, 0.15f));
+                    Vector3 sp = cam.WorldToScreenPoint(V6HudLogic.LegacyJudgeLineAnchor());
                     if (sp.z > 0f)
                     {
                         judgeLineFromBottom = sp.y;
@@ -166,9 +164,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
             // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
-            // Issue #605 / design §10.3: verdictBaseY は立ち上がりの終点
-            // (静止位置)。出現時は VerdictRiseOffset 分だけ判定線側へずらし、
-            // 時間でここへ戻す。レイアウトは動かさず y だけを時間で変える。
+            // Issue #671: verdictBaseY は落下の終点 (静止位置)。出現時は
+            // VerdictFallDistancePx(m) だけ上に置き、時間でここへ落ちてくる。
+            // レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
             for (int i = 0; i < verdictTexts.Count; i++)
@@ -287,12 +285,19 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// レーン別判定行。Judge がレーンに Instantiate する判定クローン
-        /// (Perfect/Great/Bad/Miss.prefab) を観測して、どのレーンで何が出たかを表示する。
-        /// クローンは表示後に非表示化 (3D フィールドには判定を出さない)。
+        /// レーン別判定行。判定の検出は Judge が確定時に積むイベントキュー
+        /// (<see cref="Judge.TryDequeueVerdict"/>, Issue #680) をドレインする。
+        /// シーンルートの判定クローン走査・クローン名の規約には依存しない。
+        /// 判定行が有効な間は 3D 判定エフェクトの Instantiate を
+        /// <see cref="Judge.SuppressJudgementEffects"/> で止める
+        /// (キューへのイベントは止めない)。
         /// </summary>
         private void UpdateLaneVerdicts()
         {
+            // 判定行の有無に合わせて 3D エフェクトの抑制を同期する。
+            // モードが実行中に切り替わっても毎フレーム追従する。
+            Judge.SuppressJudgementEffects = VerdictRowEnabled;
+
             int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
             if (judged != lastJudged)
             {
@@ -304,19 +309,21 @@ namespace FlashBeat.UI.V6.Game.Hud
                         laneVerdicts[lane] = null;
                         laneVerdictUntil[lane] = 0f;
                         laneVerdictStart[lane] = 0f;
-                        SetAlpha(verdictTexts[lane], 0f);
-                        verdictTexts[lane].rectTransform.localScale = Vector3.one;
+                        if (lane < verdictTexts.Count)
+                        {
+                            SetAlpha(verdictTexts[lane], 0f);
+                            verdictTexts[lane].rectTransform.localScale = Vector3.one;
+                        }
                     }
+
+                    // 前のプレイで積まれた未消費イベントも捨てる。
+                    Judge.ClearPendingVerdicts();
                 }
 
                 lastJudged = judged;
-                verdictScanUntil = Time.unscaledTime + VerdictScanSeconds;
             }
 
-            if (Time.unscaledTime < verdictScanUntil)
-            {
-                ScanJudgeClones();
-            }
+            DrainPendingVerdicts();
 
             float now = Time.unscaledTime;
             for (int lane = 0; lane < verdictTexts.Count; lane++)
@@ -334,58 +341,50 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #605 / design §10.3: 判定線のすぐ上に即時出現
-                // (フェードインなし) し、140ms / 28px の EaseOut で静止位置へ
-                // 立ち上がる。寿命の最後 220ms でフェードアウト。
-                // Issue #581 の滞在時間 (0.80s) は維持する。
+                // Issue #671: 判定は静止位置の真上 VerdictFallDistancePx(m) に
+                // 即時出現 (フェードインなし) し、VerdictFallSeconds で
+                // 静止位置へ落ちてくる。その後 VerdictHoldSeconds 静止し、
+                // 寿命の最後 VerdictFadeOutSeconds でフェードアウト。
                 float elapsed = now - laneVerdictStart[lane];
                 SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
 
                 var rt = verdictTexts[lane].rectTransform;
                 // レイアウトは触らず anchoredPosition.y だけを時間で変える。
-                // offset は正 = 判定線側 (下) なので verdictBaseY から引く。
+                // offset は正 = 静止位置より上なので verdictBaseY に足す。
                 V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
-                    verdictBaseY - V6HudLogic.VerdictRiseOffset(elapsed));
+                    verdictBaseY + V6HudLogic.VerdictFallOffset(elapsed,
+                        V6HudLogic.VerdictFallDistancePx(m)));
             }
         }
 
-        private void ScanJudgeClones()
+        /// <summary>
+        /// Judge が判定確定時に積んだイベントをすべて取り出してレーン別判定行へ
+        /// 反映する (Issue #680)。キューは確定順なので、同じレーンに同フレームで
+        /// 複数イベント (同時押し・HOLD 中断など) があれば後のものが残る。
+        /// </summary>
+        private void DrainPendingVerdicts()
         {
-            // 判定行が無い (VerdictRow=false) ときは表示先が無いので走査しない。
-            if (verdictTexts.Count != V6LaneGeometry.LaneCount) return;
-
-            var roots = gameObject.scene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length; i++)
+            // 判定行が無い (VerdictRow=false) ときは表示先が無いので溜めない。
+            if (verdictTexts.Count != V6LaneGeometry.LaneCount)
             {
-                var t = roots[i].transform;
-                string n = t.name;
-                bool isJudge = false;
-                for (int j = 0; j < JudgeCloneNames.Length; j++)
-                {
-                    if (n == JudgeCloneNames[j])
-                    {
-                        isJudge = true;
-                        break;
-                    }
-                }
+                Judge.ClearPendingVerdicts();
+                return;
+            }
 
-                if (!isJudge || !seenJudgeIds.Add(t.gameObject))
-                {
-                    continue;
-                }
+            while (Judge.TryDequeueVerdict(out int judgement, out int lane))
+            {
+                if (lane < 0 || lane >= laneVerdicts.Length) continue;
 
-                int lane = V6HudLogic.LaneFromEffectPositionX(t.position.x);
-                string label = V6HudLogic.VerdictLabel(n);
+                string label = V6HudLogic.VerdictLabel((LongNote.Judgement)judgement);
+                if (label.Length == 0) continue;
+
                 laneVerdicts[lane] = label;
-                // Issue #605: 判定の見え時間は VerdictTotalSeconds (0.80s)。
-                // 即時出現 → 立ち上がり → 静止 → フェードアウト (§10.3)。
+                // Issue #671: 判定の見え時間は VerdictTotalSeconds (0.97s)。
+                // 即時出現 → 上方からの落下 → 静止保持 → フェードアウト (§10.3)。
                 laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;
                 verdictTexts[lane].color = V6HudLogic.VerdictColor(label);
-                // 判定行を使わない既定では、元の 3D 判定エフェクトをそのまま残す
-                // (Judge の挙動を変えない)。
-                if (VerdictRowEnabled) t.gameObject.SetActive(false);
             }
         }
 

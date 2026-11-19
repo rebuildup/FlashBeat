@@ -54,7 +54,7 @@ namespace FlashBeat.Update
         public const string FileName = "last-result.json";
         public const string ShownFileName = "last-result-shown.json";
 
-        /// <summary>結果ディレクトリ (<see cref="UpdatePaths.ResultDir"/> = &lt;persistentDataPath&gt;/update/results)。不明なら null。</summary>
+        /// <summary>結果ディレクトリ (<see cref="UpdatePaths.ResultDir"/> = &lt;install&gt;/.flashbeat-update/results)。不明なら null。</summary>
         public static string ResultDir
         {
             get { return UpdatePaths.ResultDir; }
@@ -123,6 +123,10 @@ namespace FlashBeat.Update
         public static void MarkShown(string path)
         {
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) { return; }
+            // issue #670 review: 結果ディレクトリが reparse point なら、
+            // リネーム/削除の対象が境界外のファイルになり得るため触れない。
+            var dirForCheck = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dirForCheck) && UpdatePaths.IsReparsePoint(dirForCheck)) { return; }
             try
             {
                 var dir = Path.GetDirectoryName(path);

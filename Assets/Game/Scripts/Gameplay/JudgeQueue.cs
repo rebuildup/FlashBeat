@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace FlashBeat.Gameplay
@@ -111,6 +112,35 @@ namespace FlashBeat.Gameplay
                 }
             }
             laneQueue.Insert(insertAt, entry);
+        }
+
+        /// <summary>
+        /// ノーツをまとめてキューに追加する (Issue #641)。
+        ///
+        /// <see cref="Add"/> は挿入位置を毎回線形スキャンするため、編集順が
+        /// 時刻順と一致しない譜面では EnsureQueue 全体で O(n²) になる。
+        /// こちらはレーン別リストへ末尾追加してから一括で時刻順に並べ替える
+        /// ので O(n log n)。並び順は <see cref="Add"/> の繰り返しと同じ:
+        /// 時刻順、同一時刻は追加順 (安定ソート)。
+        /// </summary>
+        public void AddRange(IEnumerable<NoteEntry> entries)
+        {
+            if (entries == null) return;
+
+            foreach (NoteEntry entry in entries)
+            {
+                if (IsValidLane(entry.Lane)) pending[entry.Lane].Add(entry);
+            }
+
+            for (int lane = 0; lane < pending.Length; lane++)
+            {
+                List<NoteEntry> laneQueue = pending[lane];
+                if (laneQueue.Count < 2) continue;
+                // OrderBy is a stable sort, so entries with equal Time keep
+                // their insertion order — the same order repeated Add() calls
+                // produced.
+                pending[lane] = laneQueue.OrderBy(e => e.Time).ToList();
+            }
         }
 
         /// <summary>

@@ -88,37 +88,6 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0f, V6HudLogic.ComboFillFraction(0), 1e-4f);
         }
 
-        // --- レーン別判定 ---
-
-        [Test]
-        public void LaneFromEffectPositionX_MapsJudgeEffectPositions()
-        {
-            // Judge.EffectPosition: x = lane - 3.5
-            Assert.AreEqual(0, V6HudLogic.LaneFromEffectPositionX(-3.5f));
-            Assert.AreEqual(1, V6HudLogic.LaneFromEffectPositionX(-2.5f));
-            Assert.AreEqual(4, V6HudLogic.LaneFromEffectPositionX(0.5f));
-            Assert.AreEqual(7, V6HudLogic.LaneFromEffectPositionX(3.5f));
-        }
-
-        [Test]
-        public void LaneFromEffectPositionX_ClampsOutOfRange()
-        {
-            Assert.AreEqual(0, V6HudLogic.LaneFromEffectPositionX(-99f));
-            Assert.AreEqual(7, V6HudLogic.LaneFromEffectPositionX(99f));
-        }
-
-        [Test]
-        public void VerdictLabel_StripsCloneSuffixAndUppercases()
-        {
-            Assert.AreEqual("PERFECT", V6HudLogic.VerdictLabel("Perfect(Clone)"));
-            Assert.AreEqual("GREAT", V6HudLogic.VerdictLabel("Great(Clone)"));
-            Assert.AreEqual("BAD", V6HudLogic.VerdictLabel("Bad(Clone)"));
-            Assert.AreEqual("MISS", V6HudLogic.VerdictLabel("Miss(Clone)"));
-            Assert.AreEqual("PERFECT", V6HudLogic.VerdictLabel("Perfect"));
-            Assert.AreEqual(string.Empty, V6HudLogic.VerdictLabel(null));
-            Assert.AreEqual(string.Empty, V6HudLogic.VerdictLabel(""));
-        }
-
         [Test]
         public void VerdictColor_MapsJudgements()
         {

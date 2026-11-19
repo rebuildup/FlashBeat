@@ -861,7 +861,8 @@ public class AutoTestV6Interact : MonoBehaviour
             Check("the top shade texture is readable", tex != null && tex.isReadable);
             if (tex != null && tex.isReadable)
             {
-                // TopShadeSprite は 1×2 px: (0,0)=下端 透明 / (0,1)=上端 #000000A6。
+                // TopShadeSprite は縦グラデーション + レーン帯の抜き (Issue #675):
+                // (0,0)=下端 透明 / (0,height-1)=上端 #000000A6 (帯の外側なので不透明のまま)。
                 Check("the top shade fades to transparent at the bottom",
                     tex.GetPixel(0, 0).a < 0.01f && tex.GetPixel(0, tex.height - 1).a > 0.3f);
             }

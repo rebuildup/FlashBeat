@@ -26,6 +26,23 @@ public class Judge : MonoBehaviour
         return LaneFirstCenterX + lane * LaneSpacing;
     }
 
+    /// <summary>
+    /// 描画される判定線 (GameScene "JudgeLine" LineRenderer) のワールド y / z。
+    /// シーンの線はローカル座標 (-4, 0.5, 0) → (4, 0.5, 0) の水平線で、
+    /// GameObject の Transform が (0, -0.02, 0)・scale (8, 1, 40) なので
+    /// ワールドでは y = 0.5 - 0.02 = 0.48 / z = 0 に描かれる
+    /// (x 方向は scale 8 で画面全幅へ伸びる)。ノーツが判定時刻に到達する
+    /// 面 (z = 0) 上にある (Notes.cs / PlayfieldLaneGuides
+    /// の「判定線 z = 0」と同じ面)。判定エフェクトの出現点
+    /// (<see cref="EffectPosition"/> = y 0.76 / z 0.15) とは別物 —
+    /// あちらは 3D 判定エフェクトが浮かぶ位置で、投影は描画判定線より
+    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行の静止位置は
+    /// この線の直上 (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictRestGapAboveLine"/>)
+    /// に置く (design §10.3)。
+    /// </summary>
+    public const float JudgeLineWorldY = 0.48f;
+    public const float JudgeLineWorldZ = 0f;
+
     [SerializeField] private GameObject[] MessageObj;
     [SerializeField] private GameObject[] ParticleObj;
     [SerializeField] private NotesManager notesManager;
@@ -63,6 +80,74 @@ public class Judge : MonoBehaviour
 
     /// <summary>スコアの集計 (1 ノーツ = 1 判定を保証する, Issue #164)。</summary>
     private readonly JudgeScoreboard board = new JudgeScoreboard();
+
+    /// <summary>
+    /// 判定確定イベント (Issue #680)。<see cref="message"/> が呼ばれるたびに
+    /// (判定, レーン) を積む。v6 HUD のレーン別判定行はこのキューを
+    /// ドレインして表示する — シーンルートの判定クローン走査にも
+    /// クローン名の規約にも依存しない。
+    /// </summary>
+    public struct VerdictEvent
+    {
+        /// <summary>判定種別 (<see cref="LongNote.Judgement"/> の int 値 = MessageObj の index)。</summary>
+        public readonly int Judgement;
+
+        /// <summary>判定されたノーツのレーン (0..LaneCount-1)。</summary>
+        public readonly int Lane;
+
+        public VerdictEvent(int judgement, int lane)
+        {
+            Judgement = judgement;
+            Lane = lane;
+        }
+    }
+
+    /// <summary>未消費の判定イベント。HUD が 1 フレームに 1 回ドレインする。</summary>
+    private static readonly Queue<VerdictEvent> pendingVerdicts = new Queue<VerdictEvent>();
+
+    /// <summary>未消費の判定イベント数 (テスト・計測用)。</summary>
+    public static int PendingVerdictCount
+    {
+        get { return pendingVerdicts.Count; }
+    }
+
+    /// <summary>
+    /// 判定イベントを 1 件取り出す。HUD の判定行が毎フレーム呼ぶ。
+    /// イベントが無ければ false。
+    /// </summary>
+    public static bool TryDequeueVerdict(out int judgement, out int lane)
+    {
+        if (pendingVerdicts.Count == 0)
+        {
+            judgement = 0;
+            lane = 0;
+            return false;
+        }
+
+        VerdictEvent e = pendingVerdicts.Dequeue();
+        judgement = e.Judgement;
+        lane = e.Lane;
+        return true;
+    }
+
+    /// <summary>
+    /// 未消費の判定イベントを捨てる。曲のリトライ・シーン遷移・HUD 再構築で
+    /// 前のプレイの残りを次の表示へ持ち越さないために使う。
+    /// </summary>
+    public static void ClearPendingVerdicts()
+    {
+        pendingVerdicts.Clear();
+    }
+
+    /// <summary>
+    /// 3D 判定エフェクト (<see cref="MessageObj"/> の Instantiate) を抑制するか。
+    ///
+    /// v6 HUD のレーン別判定行 (<c>V6UiMode.VerdictRow</c>) が有効な間は
+    /// HUD 側が true を書き、判定イベントだけをキューへ積んで見た目の
+    /// クローンは作らない (3D フィールドに判定を二重表示しない)。
+    /// 既定 false = 従来どおり 3D エフェクトを出す。
+    /// </summary>
+    public static bool SuppressJudgementEffects;
 
     /// <summary>
     /// 直近の <see cref="JudgeStep"/> に渡されたメディア時刻 (Issue #182)。
@@ -105,6 +190,11 @@ public class Judge : MonoBehaviour
         if (comboText != null) comboText.text = "0";
         if (scoreText != null) scoreText.text = "0";
         if (audioHit != null) audioHit.volume = GManager.effectVolume;
+
+        // シーンをまたいだ未消費イベントと、前のプレイのエフェクト抑制を
+        // 引き継がない (HUD が無い経路では従来どおり 3D エフェクトを出す)。
+        ClearPendingVerdicts();
+        SuppressJudgementEffects = false;
 
         // 保持中のロングノーツの先頭判定は「まだ無い」状態で始める。
         // 既定値 (0 = Perfect) だと、HOLD を持たないレーンが
@@ -186,7 +276,7 @@ public class Judge : MonoBehaviour
         //    中断の差し替えだけを行う。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            JudgeQueue.HoldResult result = queue.UpdateHold(lane, mediaTime, laneDown(lane), LongNote.GREAT_WINDOW, out JudgeQueue.NoteEntry holdEnd);
+            JudgeQueue.HoldResult result = UpdateHoldStep(queue, lane, mediaTime, laneDown(lane), out JudgeQueue.NoteEntry holdEnd);
             if (result == JudgeQueue.HoldResult.Broken)
             {
                 // 途中で離した: 先頭判定を BAD に差し替える (追加加点しない)。
@@ -207,9 +297,8 @@ public class Judge : MonoBehaviour
         //    邪魔にならない (Issue #182)。
         for (int lane = 0; lane < LaneKeys.Length; lane++)
         {
-            if (queue.TryPeekMiss(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry missed))
+            if (TryJudgeMiss(queue, lane, mediaTime, out JudgeQueue.NoteEntry missed))
             {
-                queue.Remove(missed);
                 Debug.Log("Miss");
                 board.ApplyMiss();
                 message(3, missed.SourceIndex);
@@ -236,9 +325,24 @@ public class Judge : MonoBehaviour
         {
             if (LanePressedPredicate(lane))
             {
-                audioHit.PlayOneShot(clickSound);
+                PlayOneShotClip(clickSound);
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// <see cref="AudioSource.PlayOneShot"/> の呼び出し点 (Issue #682)。
+    /// EditMode テストはサブクラスで差し替え、鳴らしたクリップと回数を
+    /// 観測する (<see cref="JudgeStep"/> が判定ステップを引数で受け取るのと
+    /// 同じ「テストシーム」の方針)。実機では audioHit へそのまま流し、
+    /// audioHit が無いときは何もしない (呼び出し側のガードと同じ)。
+    /// </summary>
+    protected virtual void PlayOneShotClip(AudioClip clip)
+    {
+        if (audioHit != null)
+        {
+            audioHit.PlayOneShot(clip);
         }
     }
 
@@ -248,14 +352,15 @@ public class Judge : MonoBehaviour
     /// </summary>
     private void PressLane(int lane, float mediaTime)
     {
-        if (!queue.TryPress(lane, mediaTime, LongNote.BAD_WINDOW, out JudgeQueue.NoteEntry hit, out float lag)) return;
+        // 押下 → JudgeHead → BeginHold/ConsumeTap の判定手順は
+        // TryJudgePress に集約し、Option プレビュー (Issue #695) と共有する。
+        if (!TryJudgePress(queue, lane, mediaTime, out JudgeQueue.NoteEntry hit, out LongNote.Judgement judgement)) return;
 
-        LongNote.Judgement judgement = LongNote.JudgeHead(lag);
-        if (judgement == LongNote.Judgement.None) return;
-
-        if (audioHit != null && hitSound != null)
+        // hitSound と clickSound が同一クリップのときは PlayLaneClickSound が
+        // 同じフレームで既に鳴らしているため、ここでは重ねて鳴らさない (issue #672)。
+        if (audioHit != null && hitSound != null && hitSound != clickSound)
         {
-            audioHit.PlayOneShot(hitSound);
+            PlayOneShotClip(hitSound);
         }
 
         // 先頭の押下で 1 回だけ加点する (Issue #164)。
@@ -267,11 +372,6 @@ public class Judge : MonoBehaviour
             // ロングノーツはここでは消さない: 保持が始まり、終端で離したか
             // 途中で離したかが UpdateHold で決まる。
             holdHead[lane] = judgement;
-            queue.BeginHold(hit);
-        }
-        else
-        {
-            queue.ConsumeTap(hit);
         }
 
         FlushScore();
@@ -291,6 +391,12 @@ public class Judge : MonoBehaviour
         if (notesManager.NoteType.Count == 0) return;
 
         queue = new JudgeQueue(LaneKeys.Length);
+
+        // Issue #641: Add() は挿入位置を毎回線形スキャンするため、編集順が
+        // 時刻順と一致しない譜面では全ノーツ追加で O(n²) のフレームスパイクに
+        // なる。一旦リストへ集めて AddRange で一括追加・一括ソートする
+        // (並び順は Add の繰り返しと同一: 時刻順・同時刻は追加順)。
+        var entries = new List<JudgeQueue.NoteEntry>(notesManager.noteNum);
         for (int i = 0; i < notesManager.NoteType.Count; i++)
         {
             // 末尾の番兵 (時刻 10000) は判定の対象にしない。
@@ -303,7 +409,7 @@ public class Judge : MonoBehaviour
                 continue;
             }
 
-            queue.Add(new JudgeQueue.NoteEntry
+            entries.Add(new JudgeQueue.NoteEntry
             {
                 Time = notesManager.NotesTime[i],
                 EndTime = i < notesManager.NotesEndTime.Count ? notesManager.NotesEndTime[i] : 0f,
@@ -312,6 +418,7 @@ public class Judge : MonoBehaviour
                 SourceIndex = i,
             });
         }
+        queue.AddRange(entries);
     }
 
     /// <summary>そのレーンのキーがこのフレームで押されたか。</summary>
@@ -319,15 +426,12 @@ public class Judge : MonoBehaviour
     {
         if (lane < 0 || lane >= LaneKeys.Length) return false;
 
-        KeyCode[] keys = KeyBindings.GetKeys(lane);
-        for (int i = 0; i < keys.Length; i++)
-        {
-            // GetKeyDownOrInjected は「そのキーが押された (Input)」と「検証ハーネス
-            // が注入した (KeyBindings.InjectKeyDown)」の両方を見る。製品ビルドでは
-            // 注入されないので、結果は従来と同じ Input.GetKeyDown と同じになる。
-            if (KeyBindings.GetKeyDownOrInjected(keys[i])) return true;
-        }
-        return false;
+        // KeyBindings.IsLaneKeyDown は実キーのフレームエッジ
+        // (GetKeyDownOrInjected) に加えて、EditMode テスト専用の
+        // InjectLaneKeyDown (injectedLaneDowns) も見る。
+        // 製品ビルドでは injectedLaneDowns は常に空なので、
+        // 結果は従来の GetKeyDownOrInjected 走査と同じになる (Issue #682)。
+        return KeyBindings.IsLaneKeyDown(lane);
     }
 
     /// <summary>そのレーンのキーが押されているか (保持判定用)。</summary>
@@ -340,6 +444,76 @@ public class Judge : MonoBehaviour
         // **両方** を見る。製品ビルドでは注入されないので、
         // 結果は従来と同じ Input.GetKey と同じになる。
         return KeyBindings.IsLaneKeyHeld(lane);
+    }
+
+    // --- 判定ステップの共有ロジック (Issue #695) ---
+    //
+    // JudgeStep (実機) と V6 Option 画面のゲームプレビュー
+    // (V6OptionPreviewRig) が同じ「どのノーツを・タップか保持か・
+    // ミスか」の決定手順を通るよう、キュー操作だけを行う純粋な
+    // static ヘルパーに切り出した。スコア・コンボ・エフェクト・
+    // GManager への書き戻しは呼び出し側の責務のまま (プレビューは
+    // それらを持たない)。
+
+    /// <summary>
+    /// 1 レーンの押下を判定キューへ適用する共通経路。
+    /// TryPress (BAD_WINDOW) → JudgeHead → HOLD なら BeginHold /
+    /// タップなら ConsumeTap、までを行う。判定が確定しなかった
+    /// (窓外・<see cref="LongNote.Judgement.None"/>) ときは false を返し、
+    /// キューは変えない。
+    /// </summary>
+    public static bool TryJudgePress(JudgeQueue queue, int lane, float mediaTime,
+        out JudgeQueue.NoteEntry entry, out LongNote.Judgement judgement)
+    {
+        entry = default;
+        judgement = LongNote.Judgement.None;
+        if (queue == null) return false;
+        if (!queue.TryPress(lane, mediaTime, LongNote.BAD_WINDOW, out entry, out float lag)) return false;
+
+        judgement = LongNote.JudgeHead(lag);
+        if (judgement == LongNote.Judgement.None) return false;
+
+        if (entry.Type == LongNote.TYPE_HOLD)
+        {
+            // ロングノーツはここでは消さない: 保持が始まり、終端で離したか
+            // 途中で離したかが UpdateHold で決まる。
+            queue.BeginHold(entry);
+        }
+        else
+        {
+            queue.ConsumeTap(entry);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 保持中ロングノーツの状態を 1 ステップ進める共通経路
+    /// (許容幅は <see cref="LongNote.GREAT_WINDOW"/> で固定)。
+    /// </summary>
+    public static JudgeQueue.HoldResult UpdateHoldStep(JudgeQueue queue, int lane,
+        float mediaTime, bool keyDown, out JudgeQueue.NoteEntry entry)
+    {
+        if (queue == null)
+        {
+            entry = default;
+            return JudgeQueue.HoldResult.None;
+        }
+        return queue.UpdateHold(lane, mediaTime, keyDown, LongNote.GREAT_WINDOW, out entry);
+    }
+
+    /// <summary>
+    /// 時刻切れ (Miss) の検出とキューからの除去を行う共通経路。
+    /// Miss が確定したときだけ true を返す。
+    /// </summary>
+    public static bool TryJudgeMiss(JudgeQueue queue, int lane, float mediaTime,
+        out JudgeQueue.NoteEntry entry)
+    {
+        entry = default;
+        if (queue == null) return false;
+        if (!queue.TryPeekMiss(lane, mediaTime, LongNote.BAD_WINDOW, out entry)) return false;
+
+        queue.Remove(entry);
+        return true;
     }
 
     /// <summary>
@@ -397,6 +571,16 @@ public class Judge : MonoBehaviour
     /// <summary>
     /// スコアの計算 (純ロジック)。
     ///
+    /// <para>
+    /// TEST / PARITY ONLY (Issue #641): production scoring is
+    /// <see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/>, which uses exact
+    /// integer arithmetic (Issue #631). This float path remains because the
+    /// v1/v2 parity fixtures and the v2 scoring tests
+    /// (<c>ParityFixtureTests</c>, <c>ScoringV2Tests</c>,
+    /// <c>JudgeLogicTests</c>) pin the legacy rounding against the server
+    /// recomputation. Do not call it from gameplay code.
+    /// </para>
+    ///
     /// maxScore が 0 (譜面が無いセッション) のときは 0 で割って NaN になり、
     /// (int) キャストすると不定の値 (int.MinValue) になるため、0 を返す。
     /// </summary>
@@ -437,10 +621,58 @@ public class Judge : MonoBehaviour
     /// </summary>
     private void message(int judge, int noteIndex)
     {
+        // Issue #680: HUD の判定行はシーンルートのクローン走査ではなく
+        // このイベントキューから (判定, レーン) を受け取る。
+        // エフェクトの Instantiate より先に積むので、
+        // SuppressJudgementEffects で見た目を止めている間も届く。
+        EnqueueVerdict(judge, JudgedLane(noteIndex));
+
+        if (SuppressJudgementEffects) return;
+
         if (judge >= 0 && judge < MessageObj.Length && MessageObj[judge] != null)
         {
             Instantiate(MessageObj[judge], EffectPosition(notesManager.LaneNum, noteIndex), Quaternion.Euler(45, 0, 0));
         }
+    }
+
+    /// <summary>
+    /// 判定イベントをキューへ積む。HUD 未配線の経路やテストで
+    /// message だけが走り続けてもキューが無制限に育たないよう上限を設ける
+    /// (通常は 1 フレームの判定数は数件なので、古い方から捨てる)。
+    /// </summary>
+    private static void EnqueueVerdict(int judge, int lane)
+    {
+        const int MaxPendingVerdicts = 256;
+        while (pendingVerdicts.Count >= MaxPendingVerdicts)
+        {
+            pendingVerdicts.Dequeue();
+        }
+
+        pendingVerdicts.Enqueue(new VerdictEvent(judge, lane));
+    }
+
+    /// <summary>
+    /// 判定したノーツのレーン。<see cref="EffectPosition"/> と同じ解決規則
+    /// (laneNum が取れなければレーン 0)。
+    /// </summary>
+    private int JudgedLane(int noteIndex)
+    {
+        return LaneOfNote(notesManager != null ? notesManager.LaneNum : null, noteIndex);
+    }
+
+    /// <summary>
+    /// noteIndex のノーツが属するレーン。<see cref="JudgedLane"/> と
+    /// <see cref="EffectPosition"/> が共有する解決規則
+    /// (laneNum が取れなければレーン 0)。
+    /// </summary>
+    public static int LaneOfNote(IList<int> laneNum, int noteIndex)
+    {
+        if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
+        {
+            return laneNum[noteIndex];
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -453,11 +685,7 @@ public class Judge : MonoBehaviour
     /// </summary>
     public static Vector3 EffectPosition(IList<int> laneNum, int noteIndex)
     {
-        int lane = 0;
-        if (laneNum != null && noteIndex >= 0 && noteIndex < laneNum.Count)
-        {
-            lane = laneNum[noteIndex];
-        }
+        int lane = LaneOfNote(laneNum, noteIndex);
 
         // the notes use the same mapping, see NotesManager.Load
         return new Vector3(LaneWorldX(lane), 0.76f, 0.15f);

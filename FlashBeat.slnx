@@ -8,4 +8,5 @@
   <Project Path="FlashBeat.Editor.csproj" />
   <Project Path="SimpleFadeSystem.csproj" />
   <Project Path="NoteEditor.Editor.csproj" />
+  <Project Path="FlashBeat.PlayModeTests.csproj" />
 </Solution>

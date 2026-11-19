@@ -116,10 +116,11 @@ namespace FlashBeat.Update
             Model.StartCheck();
             var current = UpdateVersion.ParseBuildId(Application.version);
 
-            // ── -1. 旧レイアウトの更新データを新領域へ引き継ぐ (issue #574) ──
+            // ── -1. 旧レイアウトの更新データを新領域へ引き継ぐ (issue #574 / #670) ──
             // %LOCALAPPDATA%\FlashBeat\update / ~/Library/Application Support/FlashBeat/update
-            // に残る staging / last-result を persistentDataPath 配下へ移す。
-            // 既知の名前のものだけを移し、失敗しても更新確認は続行する。
+            // に残る staging / last-result を <install>/.flashbeat-update 配下へコピーする。
+            // issue #670: 旧側は移動・削除せずコピーのみ (境界外ファイルの保全)。
+            // 既知の名前のものだけを対象とし、失敗しても更新確認は続行する。
             UpdatePaths.MigrateLegacyData();
 
             // ── -1.5 前回の更新結果を反映 (issue #125) ──────────────────
@@ -238,6 +239,26 @@ namespace FlashBeat.Update
         /// 進捗は Model 経由で通知 UI に見せる。失敗時は Available に戻り現行版を維持する。</summary>
         private IEnumerator DownloadAndStage(ReleaseAsset zip)
         {
+            // issue #670: staging はインストール先内の .flashbeat-update/staging。
+            // 解決できない環境 (macOS .app / Editor) では null → ダウンロード自体を行わない
+            // (境界外の場所に書くフォールバックはしない)。
+            if (string.IsNullOrEmpty(UpdateStaging.StagingDir))
+            {
+                Debug.LogWarning("[UpdateChecker] この環境では更新ファイルを配置できません " +
+                                 "(インストール先フォルダ内の更新領域を解決できません) — 更新を中止し、現行版を維持します。");
+                Model.DownloadFailed("この環境では更新を適用できません。現行のまま使えます");
+                yield break;
+            }
+
+            // issue #670 review: 更新領域のいずれかが reparse point (リンク) なら
+            // 書き込みがインストール先の外へ出るため、ダウンロード自体を行わない。
+            if (!UpdatePaths.UpdateAreaIsSafe())
+            {
+                Debug.LogWarning("[UpdateChecker] 更新領域にリンクが検出されました — 更新を中止し、現行版を維持します。");
+                Model.DownloadFailed("更新領域が不正です。現行のまま使えます");
+                yield break;
+            }
+
             // 現行より新しくない ZIP は staging しない (issue #125: 新旧判定できないものは適用しない)。
             if (!IsStagedTagNewerThanCurrent(Model.LatestTag, Application.version))
             {
@@ -248,6 +269,15 @@ namespace FlashBeat.Update
             }
 
             UpdateStaging.ClearStaging();
+            // issue #670: アセット名も staging 内のファイル名に限定する
+            // (パス区切りを含む名前は境界外を指しうるため拒否)。
+            if (!UpdateStaging.IsPlainFileName(zip.name))
+            {
+                Debug.LogWarning("[UpdateChecker] アセット名が不正です: " + zip.name +
+                                 " — ダウンロードを中止し、現行版を維持します。");
+                Model.DownloadFailed("更新ファイル名が不正です。現行のまま使えます");
+                yield break;
+            }
             var zipPath = Path.Combine(UpdateStaging.StagingDir, zip.name);
 
             yield return DownloadToFile(zip.browser_download_url, zipPath,
@@ -384,6 +414,17 @@ namespace FlashBeat.Update
                 Debug.LogWarning("[UpdateChecker] cannot create download directory for '" + destPath + "': " + e.Message);
                 yield break;
             }
+            // issue #670 review: 既存の destPath がリンクなら DownloadHandlerFile が
+            // リンク先 (境界外) へ書き込むため、リンク自体を消してから書く
+            // (リンクの削除はリンク先に触れない)。
+            try
+            {
+                if (File.Exists(destPath) && UpdatePaths.IsReparsePoint(destPath))
+                {
+                    File.Delete(destPath);
+                }
+            }
+            catch (Exception) { }
             var req = new UnityWebRequest(url);
             req.downloadHandler = new DownloadHandlerFile(destPath);
             req.timeout = 0; // 大きい ZIP のためタイムアウトなし (失敗は result で判定)
@@ -711,6 +752,14 @@ namespace FlashBeat.Update
         /// <summary>Windows: 配布物内 tools\update\Update.ps1 を PowerShell で起動する。</summary>
         private bool TryLaunchWindowsUpdater(bool waitForThisProcess)
         {
+            // issue #670: 結果/ログ/staging の置き場が解決できない環境では起動しない
+            // (updater に境界外の既定値を推測させない)。
+            if (string.IsNullOrEmpty(UpdatePaths.ResultDir) || string.IsNullOrEmpty(UpdatePaths.LogsDir) ||
+                string.IsNullOrEmpty(UpdateStaging.StagingDir))
+            {
+                Debug.LogError("[UpdateChecker] 更新領域 (staging/results/logs) を解決できません — 更新を中止します。");
+                return false;
+            }
             var installDir = Path.GetDirectoryName(Application.dataPath);
             var scriptPath = Path.Combine(installDir, WindowsUpdaterScriptRelPath);
             if (!File.Exists(scriptPath))
@@ -762,35 +811,32 @@ namespace FlashBeat.Update
                 return false;
             }
 
-            // 一時コピーは persistentDataPath 配下 (UpdatePaths.UpdaterTmpDir) に置く (issue #574)。
+            // 一時コピーは <install>/.flashbeat-update/updater/ (UpdatePaths.UpdaterTmpDir) に置く。
+            // issue #670: system temp や persistentDataPath など境界外へのフォールバックはしない。
+            // 解決できない環境では起動しない (macOS .app は UpdatePaths が null を返すため、
+            // そもそも staging もできずここには通常到達しない)。
             // 前回の起動で残った残骸 (FlashBeat-update-*) はここで掃除する — このディレクトリは
             // 「スクリプトをコピーして即 Application.Quit する」ためにだけ使われるので、
             // 起動時に存在するものはすべて前回の残骸であり安全に消せる。
             // コピー先のディレクトリ自体は updater (update-macos.sh) が終了時に自分で消す。
             string tempScript;
+            var updaterTmp = UpdatePaths.UpdaterTmpDir;
+            if (string.IsNullOrEmpty(updaterTmp))
+            {
+                Debug.LogError("[UpdateChecker] updater の一時コピー先を解決できません (インストール先フォルダ内の更新領域がありません)。");
+                return false;
+            }
             try
             {
-                var updaterTmp = UpdatePaths.UpdaterTmpDir;
-                string tempDir;
-                if (string.IsNullOrEmpty(updaterTmp))
+                if (Directory.Exists(updaterTmp))
                 {
-                    // persistentDataPath が解決できない環境では従来どおり Temp を使う
-                    // (この場合 updater 側の自分で消す処理は効かないが、起動自体は優先する)。
-                    tempDir = Path.Combine(Path.GetTempPath(),
-                        "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
-                }
-                else
-                {
-                    if (Directory.Exists(updaterTmp))
+                    foreach (var stale in Directory.GetDirectories(updaterTmp, "FlashBeat-update-*"))
                     {
-                        foreach (var stale in Directory.GetDirectories(updaterTmp, "FlashBeat-update-*"))
-                        {
-                            try { Directory.Delete(stale, true); } catch (Exception) { }
-                        }
+                        try { Directory.Delete(stale, true); } catch (Exception) { }
                     }
-                    tempDir = Path.Combine(updaterTmp,
-                        "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
                 }
+                var tempDir = Path.Combine(updaterTmp,
+                    "FlashBeat-update-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(tempDir);
                 tempScript = Path.Combine(tempDir, "update-macos.sh");
                 File.Copy(scriptInBundle, tempScript, true);

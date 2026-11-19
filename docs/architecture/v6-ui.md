@@ -70,7 +70,7 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 |---|---|
 | グレード / スコア / コンボ / 判定 | `GManager.score` / `combo` / `perfect` / `great` / `bad` / `miss` |
 | ゲージ / 進捗バー | `GManager.score` と `GManager.step_time` (メディア時刻) |
-| レーン別判定行 | `Judge` が Instantiate した判定プレハブを走査してレーンと表示を対応付け |
+| レーン別判定行 | `Judge` の判定イベントキュー (`Judge.TryDequeueVerdict`、Issue #680) を毎フレームドレイン。(判定, レーン) が確定順に届く。シーンルートの判定クローン走査・クローン名規約には依存しない |
 | キーガイド (8連) | `KeyBindings.GetKeys(lane)`。`KeyBindings.Changed` を購読するのでキー設定に即追従 |
 | 歌詞 | `LyricsTimeline.Build(...)` + `GManager.step_time` (動画と同じタイムライン) |
 | 曲リスト / 選択中の曲 | `V6SelectDataSource` (GManager の実カタログ + CloudCatalog + 実譜面 JSON) |
@@ -83,11 +83,24 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 
 ## 判定ポップと直近の画面変更 (2026-11-18 時点)
 
-- **判定ポップの動き** (Issue #605): レーン判定テキストは判定線のすぐ上に即時出現
-  (フェードインなし) し、28px を 0.14 秒で EaseOut cubic に立ち上がり、
-  0.58 秒保持、最後の 0.22 秒でフェードアウトする (合計 0.80 秒)。
+- **判定イベント経路** (Issue #680): 判定確定時に `Judge.message` が
+  (判定, レーン) を静的キュー (`Judge.pendingVerdicts` →
+  `TryDequeueVerdict`) へ積み、`V6GameHudView.UpdateLaneVerdicts` が
+  毎フレームドレインしてレーン別判定行へ出す。レーンは
+  `notesManager.LaneNum` から `EffectPosition` と同じ規則で解決する。
+  以前はシーンルートを走査して "Perfect(Clone)" 等のクローン名で
+  検出していたが、prefab 構成・命名への暗黙依存だったため廃止した。
+  判定行が有効な間は `Judge.SuppressJudgementEffects` で 3D 判定
+  エフェクト自体の Instantiate を止める (イベントは止めない)。
+  リセットは `Judge.Start` / GManager 判定カウンタ減少 (リトライ) /
+  `VerdictRow=false` の各経路。
+- **判定ポップの動き** (Issue #671 / design §10.3): レーン判定テキストは静止位置
+  (判定線の 72px 上) の真上 `VerdictFallDistancePx(m)` (= 判定ボックス高さ
+  `VerdictH` 1 個分、解像度別メトリクス由来) に即時出現 (フェードインなし) し、0.30 秒かけて
+  静止位置へ落ちて着地する。0.45 秒静止保持し、
+  最後の 0.22 秒でフェードアウトする (合計 0.97 秒)。
   `anchoredPosition.y` だけを動かしレイアウトは変えない。時系列の正本は
-  `V6HudLogic` の `VerdictRise*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
+  `V6HudLogic` の `VerdictFall*` / `VerdictHoldSeconds` / `VerdictFadeOutSeconds`、
   設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
 - **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
   3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、
@@ -112,7 +125,9 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   使うため中央寄りではなく上端寄りに置く (進捗バーの直下)。幅・上端 y は design どおり
   高さ合わせ写像 (1120×scale / y=250×scale) だが、**高さは 220×scale に固定しない** —
   文字の行構成から求める (`V6HudLogic.LyricSize` / `LyricContentHeight`、
-  `docs/ui/v6-screen-contract.md` §8「歌詞スロットの位置」)。内部は design どおり
+  `docs/ui/v6-screen-contract.md` §8「歌詞スロットの位置」)。高さは
+  歌詞・Start Prompt・カウントダウン・曲終了の全状態で不変の共有値
+  (`V6HudLogic.LyricSlotHeight` = 3 状態の最大必要高、Issue #674)。内部は design どおり
   (Furigana fs22 / Lyrics fs44 / Romaji fs20 / 縦 gap 6 / padding [16,24])。
 - **判定行の列位置**: design の判定サンプル (Uc9v6: x=623/1155) はキーガイドの列より
   1 レーン左にずれており、キー入力との対応が読めない。レーンと判定の対応を読めることを

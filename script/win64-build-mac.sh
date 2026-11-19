@@ -137,11 +137,15 @@ CHANNEL_FILE="$WORKTREE/Builds/Windows/FlashBeat_Data/StreamingAssets/update-cha
   echo "更新チャンネルが一致しません: expected $UPDATE_CHANNEL, actual $(cat "$CHANNEL_FILE")" >&2; exit 1; }
 
 # media policy: ビルドが除外マニフェストを残した (= 第三者楽曲を除外した) ときだけ song-free。
+# マニフェストが無いのは異常 (BuildScript は distributionExtras 時に必ず書く)。
+# bundled へ degrade すると manifest 検査と resources.resource の容量上限を両方
+# skip した第三者メディア同梱ビルドができてしまうので、ここで fail する。
 if [ -f "$WORKTREE/Builds/Windows/flashbeat-media-policy.json" ]; then
   MEDIA_POLICY="song-free"
 else
-  MEDIA_POLICY="bundled"
-  echo "警告: flashbeat-media-policy.json がありません (mediaPolicy=bundled で処理します)" >&2
+  echo "flashbeat-media-policy.json がありません: $WORKTREE/Builds/Windows/flashbeat-media-policy.json" >&2
+  echo "media policy を判定できないためパッケージングを中止します (bundled への degrade はしません)" >&2
+  exit 1
 fi
 
 # 正規スクリプトは既存の ZIP を上書きしない (release 手順の誤 publish を避けるため)。

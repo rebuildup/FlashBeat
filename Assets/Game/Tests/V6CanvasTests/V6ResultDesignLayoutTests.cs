@@ -255,23 +255,41 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(dialog.Find("Name Field"), 28f, 112f, 784f, 84f, "Name Field");
                 // Issue #425: 内側余白を 24→32 に広げた。
                 // Issue #583: 左右の内側余白を 32px に揃え、Value/Placeholder は 720 幅。
-                // キャレット/選択ハイライト/IME 変換中文字も同じ内側余白に揃う。
-                AssertRect(dialog.Find("Name Field/Value"), 32f, 20f, 720f, 58f, "Name Field Value");
-                Assert.AreEqual(40f, TextOf(dialog, "Name Field/Value").fontSize, 0.01f, "Value fs40");
-                var valueRect = dialog.Find("Name Field/Value").GetComponent<RectTransform>();
-                var placeholderRect = dialog.Find("Name Field/Placeholder").GetComponent<RectTransform>();
+                // Issue #676: TMP_InputField の textViewport は text rect とは別の
+                // 固定ノード (Text Viewport) にする。viewport==text rect だと
+                // TMP のスクロール量が二重計上され、文字・キャレット・選択・
+                // IME 変換文字が内側余白からドリフトする。Text Viewport は
+                // design の Value 矩形と同じ (32,20) 720×58 に固定し、
+                // RectMask2D でその矩形にクリップする。
+                var viewport = dialog.Find("Name Field/Text Viewport");
+                AssertRect(viewport, 32f, 20f, 720f, 58f, "Name Field Text Viewport");
+                Assert.IsNotNull(viewport.GetComponent<RectMask2D>(),
+                    "Text Viewport must clip with RectMask2D");
+                AssertRect(viewport.Find("Value"), 0f, 0f, 720f, 58f, "Name Field Value");
+                Assert.AreEqual(40f, TextOf(viewport, "Value").fontSize, 0.01f, "Value fs40");
+                var valueRect = viewport.Find("Value").GetComponent<RectTransform>();
+                var placeholderRect = viewport.Find("Placeholder").GetComponent<RectTransform>();
                 Assert.AreEqual(valueRect.anchoredPosition, placeholderRect.anchoredPosition,
                     "Value/Placeholder の左上が一致");
                 Assert.AreEqual(valueRect.sizeDelta, placeholderRect.sizeDelta,
                     "Value/Placeholder のサイズが一致");
-                // Name Field (784) の内側余白は左右とも 32px で対称。
-                Assert.AreEqual(32f, DesignPos(valueRect).x, 0.01f, "left inner margin");
+                // textComponent は viewport の子で、viewport と同じ矩形に置く
+                // (anchor/pivot は (0,1)/(0,0,1) の design 規約)。
+                Assert.AreEqual(new Vector2(0f, 1f), valueRect.anchorMin, "Value anchorMin");
+                Assert.AreEqual(new Vector2(0f, 1f), valueRect.anchorMax, "Value anchorMax");
+                Assert.AreEqual(new Vector2(0f, 1f), valueRect.pivot, "Value pivot");
+                Assert.IsTrue(valueRect.parent == viewport,
+                    "Value must be a child of Text Viewport (RectMask2D のクリップ対象)");
+                // Name Field (784) の内側余白は左右とも 32px で対称
+                // (viewport が (32,20) 720×58 に固定されていること)。
+                var viewportRect = viewport.GetComponent<RectTransform>();
+                Assert.AreEqual(32f, DesignPos(viewportRect).x, 0.01f, "left inner margin");
                 Assert.AreEqual(784f - (32f + 720f), 32f, 0.01f, "right inner margin is symmetric");
                 // design lqHaN は未入力の Name Field に既定名を $text-dim で置く
                 // (v5 ResultView の Placeholder と同じ)。#384 で入力は TMP_InputField に
                 // 任せ、空欄時は Placeholder テキストが既定名を出す。
                 // Issue #584: 既定名は "YOU" から "PLAYER" (LocalNameDefault) に変更。
-                var placeholder = TextOf(dialog, "Name Field/Placeholder");
+                var placeholder = TextOf(viewport, "Placeholder");
                 Assert.AreEqual(V6ResultLogic.LocalNameDefault, placeholder.text,
                     "Name Field placeholder shows LocalNameDefault");
                 Assert.AreEqual(FlashBeat.UI.V5.V5Tokens.TextDim, placeholder.color,
@@ -279,10 +297,16 @@ namespace FlashBeat.V6CanvasTests
                 var nameInput = dialog.Find("Name Field").GetComponent<TMP_InputField>();
                 Assert.IsNotNull(nameInput, "Name Field is a TMP_InputField");
                 Assert.AreSame(placeholder, nameInput.placeholder, "placeholder is wired");
-                // Issue #583: textViewport はテキスト rect と一致させる
-                // (host 全体だとクリップ/スクロール境界が内側余白とずれる)。
-                Assert.AreSame(valueRect, nameInput.textViewport,
-                    "textViewport はテキスト rect (Value) と一致");
+                // Issue #676: textViewport は text rect とは別の固定ノード。
+                // text rect 自身を viewport にすると TMP のスクロール量が
+                // 二重計上され、文字・キャレット・選択・IME 変換文字が
+                // 内側余白からドリフトする (Issue #583 の指定は誤り)。
+                Assert.AreNotSame(valueRect, nameInput.textViewport,
+                    "textViewport は text rect とは別ノード");
+                Assert.AreSame(viewportRect, nameInput.textViewport,
+                    "textViewport は Text Viewport ノード");
+                Assert.AreEqual(valueRect.sizeDelta, nameInput.textViewport.sizeDelta,
+                    "textViewport は Value と同じ 720×58");
                 Assert.AreEqual(2, nameInput.caretWidth, "caret width 2");
                 Assert.AreEqual(TMP_InputField.ContentType.Standard, nameInput.contentType,
                     "IME input is allowed");

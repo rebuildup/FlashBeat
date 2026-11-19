@@ -61,6 +61,14 @@ public class ResultSceneManager : MonoBehaviour
         // 新記録が保存されないことがあった。Awake は全ての Start より先に走る。
         // 更新処理は EditMode テストから直接検証できるよう純粋関数に抽出した。
         prevHiscore = ApplyBestScore(GManager.songID, GManager.score);
+
+        // Issue #651: BGMtime の頭出しも Awake で行う。
+        // VideoTime.Start は GManager.BGMtime を読んで背景動画の再生位置を
+        // 決めるが、Start の実行順は未定義。Start で 0 に戻すと、VideoTime
+        // が先に走った場合に旧値で seek したあと Update が BGMtime を旧値へ
+        // 書き戻し、Result の背景動画が途中から再開される。Awake は全ての
+        // Start より先に走るため、ここで確定させれば順序に依存しない。
+        GManager.BGMtime = 0f;
     }
 
     /// <summary>
@@ -94,14 +102,17 @@ public class ResultSceneManager : MonoBehaviour
 
     void Start()
     {
-        GManager.BGMtime = 0f;   
-        SongName.text = GManager.ActiveSongs[GManager.songID].title;
-        Musician.text = GManager.ActiveSongs[GManager.songID].musician;
-        BPM.text = GManager.ActiveSongs[GManager.songID].bpm.ToString();
-        
-       
-        TotalHit.text = GManager.ActiveSongs[GManager.songID].totalHits.ToString();
-        Songlevel.text = GManager.ActiveSongs[GManager.songID].level.ToString();
+        // Issue #657: 曲情報はプレイセッションの固定値を優先する
+        // (GetSong は PlaySessionSnapshot.PinnedSongFor を先に見る)。
+        // ActiveSongs[songID] の直接参照はカタログ更新で別曲にずれうる。
+        var playedSong = GManager.GetSong(GManager.songID);
+        SongName.text = playedSong.title;
+        Musician.text = playedSong.musician;
+        BPM.text = playedSong.bpm.ToString();
+
+
+        TotalHit.text = playedSong.totalHits.ToString();
+        Songlevel.text = playedSong.level.ToString();
         SongN.text=GManager.songID.ToString();
         
         
@@ -114,9 +125,12 @@ public class ResultSceneManager : MonoBehaviour
         badText.text = GManager.bad.ToString();
         missText.text = GManager.miss.ToString();
         Assessment.text = FlashBeat.UI.V5.ResultView.RankFor(GManager.score);
-        int hiIndex = GManager.songID;
-        if (hiIndex >= GManager.Hiscore.Length) hiIndex = 0; // remote songs beyond the fixed table keep slot 0 unused
-        Hiscore.text = GManager.Hiscore[hiIndex].ToString();
+        // Issue #657: 固定テーブル外の曲 (cloud カタログ) は slot 0 を表示せず、
+        // ScorePersistence の安定キー側のベストを出す (slot 0 は別曲の記録)。
+        int displayedHiscore = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
+            ? GManager.Hiscore[GManager.songID]
+            : FlashBeat.Persistence.ScorePersistence.BestOf(GManager.songID);
+        Hiscore.text = displayedHiscore.ToString();
         // 遠隔サムネイルは v5 経路の imageObjects[0] 専用なので、v6 では取得しない
         // (#417: 不要な HTTP を発行しない。v6 ビューは V6JacketResources を使う)。
         // 取得は BuildV5View() が担う。
@@ -187,7 +201,7 @@ public class ResultSceneManager : MonoBehaviour
         // （v6 側は V6JacketResources を使う）ため、v6 では発行しない。
         remoteSpriteRequestId = ++remoteSpriteCounter;
         int capturedRequestId = remoteSpriteRequestId;
-        var songForThumb = GManager.ActiveSongs[GManager.songID];
+        var songForThumb = GManager.GetSong(GManager.songID);
         FlashBeat.UI.V6.V6JacketProvider.RequestRemote(songForThumb.videoId, sprite =>
         {
             // シーン退場後 / Retry 以降、自分が発行した世代だけを有効とみなす。
@@ -196,7 +210,7 @@ public class ResultSceneManager : MonoBehaviour
             SetRemoteSprite(sprite);
         });
 
-        var song = GManager.ActiveSongs[GManager.songID];
+        var song = GManager.GetSong(GManager.songID);
         var snapshot = new FlashBeat.UI.V5.ResultView.Snapshot
         {
             Score = GManager.score,
@@ -206,7 +220,9 @@ public class ResultSceneManager : MonoBehaviour
             Miss = GManager.miss,
             Combo = GManager.combo,
             PrevHiscore = prevHiscore,
-            Hiscore = GManager.Hiscore[GManager.songID < GManager.Hiscore.Length ? GManager.songID : 0],
+            Hiscore = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
+                ? GManager.Hiscore[GManager.songID]
+                : FlashBeat.Persistence.ScorePersistence.BestOf(GManager.songID),
             SongTitle = song.title,
             Musician = song.musician,
             Bpm = song.bpm,

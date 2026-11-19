@@ -74,6 +74,15 @@ paths:
                   songId: { type: string }
                   chartVersion: { type: integer }
                   catalogVersion: { type: integer }
+                  archived:
+                    type: boolean
+                    description: >-
+                      Issue #656: true when the song stays archived after this
+                      publish — a republish of an archived song succeeds but
+                      remains out of the public catalog.
+                  archivedAt:
+                    type: [string, 'null']
+                    description: ISO timestamp of the archive moment, null for a live song.
         '401': { description: Incorrect staff token }
         '422': { description: Invalid song/chart }
     post:
@@ -169,7 +178,9 @@ paths:
       description: >-
         Public festival statistics: totals, the plays of every song, the level
         distribution and the best players. Aggregates only the latest scoring
-        version; earlier scoring versions never mix into the totals.
+        version and only plays of the currently published chart version of
+        each song; earlier scoring versions and superseded chart versions
+        never mix into the totals.
       responses:
         '200':
           description: Statistics. Cache-Control no-store.
@@ -208,9 +219,9 @@ paths:
                   rank: { type: integer, minimum: 1 }
         '429':
           description: >-
-            Duplicate submission: the same songId + nickname + score was
-            already accepted within the last 10 seconds. Retry-After carries
-            the remaining seconds.
+            Duplicate submission: the same songId + chartVersion + nickname +
+            score was already accepted within the last 10 seconds.
+            Retry-After carries the remaining seconds.
         '422': { description: Invalid counts or chart version }
   /api/v1/leaderboards/{songId}:
     get:

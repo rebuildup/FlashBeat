@@ -852,30 +852,44 @@ namespace FlashBeat.UI.V5
             nameInput.characterValidation = TMP_InputField.CharacterValidation.Alphanumeric;
             nameInput.targetGraphic = field.GetComponent<Image>();
 
-            var valueTmp = V5Ui.Text(field, "Value", string.Empty, S(52f), V5Tokens.Text,
+            // Issue #676: textViewport は text rect とは別の固定ノードにする。
+            // viewport==text rect (Issue #583) だと TMP のスクロール量が
+            // 二重計上され、文字・キャレット・選択・IME 変換文字が内側余白
+            // からドリフトする。Text Viewport は Value と同じ内側矩形
+            // (左右 24px / 上下 8px) に固定し、RectMask2D でクリップする。
+            var viewport = V5Ui.Node(field, "Text Viewport");
+            var viewportRt = viewport.GetComponent<RectTransform>();
+            viewportRt.anchorMin = new Vector2(0f, 0f);
+            viewportRt.anchorMax = new Vector2(1f, 1f);
+            viewportRt.offsetMin = new Vector2(S(24f), S(8f));
+            viewportRt.offsetMax = new Vector2(-S(24f), -S(8f));
+            var viewportMask = viewport.AddComponent<RectMask2D>();
+            viewportMask.softness = Vector2Int.zero;
+
+            var valueTmp = V5Ui.Text(viewport, "Value", string.Empty, S(52f), V5Tokens.Text,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             var valueRt = valueTmp.rectTransform;
             valueRt.anchorMin = new Vector2(0f, 0f);
             valueRt.anchorMax = new Vector2(1f, 1f);
-            valueRt.offsetMin = new Vector2(S(24f), S(8f));
-            valueRt.offsetMax = new Vector2(-S(24f), -S(8f));
+            valueRt.offsetMin = Vector2.zero;
+            valueRt.offsetMax = Vector2.zero;
             valueTmp.textWrappingMode = TextWrappingModes.NoWrap;
 
-            var placeholder = V5Ui.Text(field, "Placeholder", PlayerNameDefault, S(52f), V5Tokens.TextDim,
+            var placeholder = V5Ui.Text(viewport, "Placeholder", PlayerNameDefault, S(52f), V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold);
             var phRt = placeholder.rectTransform;
             phRt.anchorMin = new Vector2(0f, 0f);
             phRt.anchorMax = new Vector2(1f, 1f);
-            phRt.offsetMin = new Vector2(S(24f), S(8f));
-            phRt.offsetMax = new Vector2(-S(24f), -S(8f));
+            phRt.offsetMin = Vector2.zero;
+            phRt.offsetMax = Vector2.zero;
             placeholder.textWrappingMode = TextWrappingModes.NoWrap;
 
             nameInput.textComponent = valueTmp;
             nameInput.placeholder = placeholder;
-            // Issue #583: textViewport をテキスト rect (左右 24px の内側余白) と
-            // 一致させる。host 全体を viewport にするとキャレット/選択の
-            // クリップ境界がテキスト矩形とずれる。
-            nameInput.textViewport = valueRt;
+            // Issue #676: textViewport は専用の固定ノード (Text Viewport)。
+            // TMP のスクロールで textComponent の anchoredPosition が動いても、
+            // 固定 viewport が左右 24px / 上下 8px の内側余白でクリップする。
+            nameInput.textViewport = viewportRt;
 
             var hintCap = V5Ui.KeyCap(dialog, "A-Z 0-9", new Vector2(S(120f), S(36f)));
             var hintCapRt = hintCap.GetComponent<RectTransform>();

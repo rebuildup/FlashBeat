@@ -147,6 +147,13 @@ describe("formatDuration", () => {
     expect(formatDuration(69)).toBe("1:09");
     expect(formatDuration(604)).toBe("10:04");
   });
+
+  it("rounds a fractional duration instead of leaking decimals", () => {
+    expect(formatDuration(69.5)).toBe("1:10");
+    expect(formatDuration(59.4)).toBe("0:59");
+    expect(formatDuration(59.5)).toBe("1:00");
+    expect(formatDuration(3600.2)).toBe("60:00");
+  });
 });
 
 describe("isSortKey", () => {

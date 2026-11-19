@@ -31,7 +31,12 @@ namespace FlashBeat.Update
 
         public static string ManifestPath
         {
-            get { return Path.Combine(StagingDir, ManifestFileName); }
+            get
+            {
+                // issue #670: staging を解決できない環境 (macOS .app / Editor) では null。
+                var dir = StagingDir;
+                return string.IsNullOrEmpty(dir) ? null : Path.Combine(dir, ManifestFileName);
+            }
         }
 
         /// <summary>ファイルの SHA-256 (64 桁 hex)。ファイルが無い場合や読めない場合は例外。</summary>
@@ -59,6 +64,13 @@ namespace FlashBeat.Update
         {
             try
             {
+                // issue #670 review: staging (またはその親 = .flashbeat-update)
+                // が reparse point なら書き込み先が境界外へ出るため拒否する。
+                if (UpdatePaths.IsReparsePoint(stagingDir)
+                    || UpdatePaths.IsReparsePoint(Path.GetDirectoryName(stagingDir)))
+                {
+                    return false;
+                }
                 Directory.CreateDirectory(stagingDir);
                 File.WriteAllText(Path.Combine(stagingDir, ManifestFileName), JsonUtility.ToJson(staged));
                 return true;
@@ -102,9 +114,22 @@ namespace FlashBeat.Update
         public static bool VerifyStaged(StagedUpdate staged, string stagingDir, out string problem)
         {
             problem = null;
+            if (string.IsNullOrEmpty(stagingDir))
+            {
+                problem = "staging ディレクトリを解決できません (インストール先フォルダ内の更新領域がありません)";
+                return false;
+            }
             if (staged == null || string.IsNullOrEmpty(staged.zipName) || string.IsNullOrEmpty(staged.sha256))
             {
                 problem = "manifest が不正です";
+                return false;
+            }
+            // issue #670: manifest は staging 内の「ファイル名」だけを指せる。
+            // パス区切り・親参照・絶対パスを含む zipName は境界外を指しうるため拒否する
+            // (検証前にファイルを開かない = 読み取りも境界外へ出さない)。
+            if (!IsPlainFileName(staged.zipName))
+            {
+                problem = "manifest の zipName が不正です (パスを含められません): " + staged.zipName;
                 return false;
             }
             var zipPath = Path.Combine(stagingDir, staged.zipName);
@@ -132,12 +157,27 @@ namespace FlashBeat.Update
             return true;
         }
 
+        /// <summary>
+        /// staging 内の相対「ファイル名」として安全か (issue #670)。
+        /// ディレクトリ区切り・ドライブ修飾・".." を含む名前は拒否する。
+        /// </summary>
+        public static bool IsPlainFileName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) { return false; }
+            if (name.IndexOfAny(new[] { '/', '\\' }) >= 0) { return false; }
+            if (name.IndexOf(':') >= 0) { return false; }
+            if (name == "." || name == "..") { return false; }
+            return true;
+        }
+
         /// <summary>staging ディレクトリごと消す (部分ダウンロードの掃除)。失敗しても例外にしない。</summary>
         public static void ClearStaging()
         {
             try
             {
-                if (Directory.Exists(StagingDir))
+                // issue #670 review: staging が reparse point の場合、
+                // recursive delete がリンク先の中身まで消し得るため削除しない。
+                if (Directory.Exists(StagingDir) && !UpdatePaths.IsReparsePoint(StagingDir))
                 {
                     Directory.Delete(StagingDir, true);
                 }

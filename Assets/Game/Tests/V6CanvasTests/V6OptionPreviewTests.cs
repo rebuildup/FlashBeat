@@ -147,6 +147,32 @@ namespace FlashBeat.V6CanvasTests
                 MediaTimeline.NotePositionZ(11.25f, 10f, zScale), 0.0001f);
         }
 
+        // --- 実チャート優先 (Issue #677) ---
+
+        /// <summary>
+        /// <see cref="V6OptionPreviewChart.BuildForCurrentSong"/> が
+        /// 選択曲の実チャート (無ければ疑似チャート) を返し、
+        /// 全ノーツ時刻がループ長に収まること (時刻畳み込みの前提)。
+        /// </summary>
+        [Test]
+        public void PreviewChart_ForCurrentSong_KeepsNotesInsideTheLoop()
+        {
+            float loopSeconds;
+            var notes = V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
+            Assert.Greater(notes.Length, 0, "チャートが空");
+            Assert.Greater(loopSeconds, 0f);
+            foreach (var note in notes)
+            {
+                Assert.GreaterOrEqual(note.Lane, 0);
+                Assert.Less(note.Lane, Judge.LaneCount);
+                // beatOffset で僅かに負になり得るので下限は課さない
+                // (時刻畳み込みは負時刻も扱える)。
+                Assert.Less(note.Time, loopSeconds,
+                    "ノーツ時刻がループ長を超えている (畳み込みが破綻する)");
+                Assert.GreaterOrEqual(note.HoldSeconds, 0f);
+            }
+        }
+
         // --- 実描画: RenderTexture に実際の画素が出る ---
 
         /// <summary>

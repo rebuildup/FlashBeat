@@ -104,6 +104,14 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// The v2 components of a play. `noteCount` is the chart's note count
         /// (the denominator only; it does not enter the ratio itself).
+        ///
+        /// <para>
+        /// TEST / PARITY ONLY (Issue #641): no production caller remains —
+        /// plays score through <see cref="BreakdownV3"/>/<see cref="ScoreV3"/>.
+        /// Kept because the v2 parity fixtures (<c>ParityFixtureTests</c>,
+        /// <c>ScoringV2Tests</c>) pin the legacy formula against the server
+        /// recomputation (<c>computeUnityScoreV2</c>).
+        /// </para>
         /// </summary>
         public static V2Breakdown BreakdownV2(int perfect, int great, int bad, int miss,
             int maxCombo, int noteCount)
@@ -124,7 +132,12 @@ namespace FlashBeat.Gameplay
             };
         }
 
-        /// <summary>The v2 score (0..1,000,000) of a play, via Judge.ComputeScore.</summary>
+        /// <summary>
+        /// The v2 score (0..1,000,000) of a play, via Judge.ComputeScore.
+        ///
+        /// TEST / PARITY ONLY (Issue #641): production scoring is
+        /// <see cref="ScoreV3"/>; this stays for the v2 parity fixtures.
+        /// </summary>
         public static int ScoreV2(int perfect, int great, int bad, int miss,
             int maxCombo, int noteCount)
         {
@@ -137,6 +150,10 @@ namespace FlashBeat.Gameplay
         /// breakdown display. The components do not have to add up to the
         /// total exactly (the total is floored once); this is a display
         /// estimate of each component's share, not a submission field.
+        ///
+        /// TEST / PARITY ONLY (Issue #641): kept for the v2 fixtures; the
+        /// result screen displays v3 components via
+        /// <see cref="ComponentScoreV3"/>.
         /// </summary>
         public static int ComponentScoreV2(float componentRatio, int noteCount)
         {

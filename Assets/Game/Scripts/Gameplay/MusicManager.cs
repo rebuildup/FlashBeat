@@ -114,6 +114,9 @@ public class MusicManager : MonoBehaviour
     bool startTimingSatisfied;
     bool endOverlayShown;
     bool endFadeApplied;
+    /// <summary>終端フェードで掛けている音量係数。ポーズ中の音量変更で
+    /// フェード進行を壊さないよう <see cref="ApplyMainVolume"/> が参照する。</summary>
+    float endFadeFactor = 1f;
     V6GameHudView hudCache;
 
     bool fallbackChecked;
@@ -224,7 +227,14 @@ public class MusicManager : MonoBehaviour
         audioS = GetComponent<AudioSource>();
         // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
         // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
-        musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        // Issue #651: songName は SongData.title 由来 (リモート曲は API の
+        // メタデータ)。'/' 等を含むと Resources path が別階層を指して
+        // 必ず見つからないため、path 区切りを含む名前は load 自体を省く
+        // (Music == null の既存経路 = YouTube 音声のみ、へそのまま流れる)。
+        if (songName.IndexOfAny(new[] { '/', '\\' }) < 0)
+        {
+            musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
+        }
         notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
@@ -267,6 +277,7 @@ public class MusicManager : MonoBehaviour
         startTimingSatisfied = false;
         endOverlayShown = false;
         endFadeApplied = false;
+        endFadeFactor = 1f;
 
         // Issue #233 (レビュー B1): 映像プレーンの板 (白い 28.7 x 15.84 の quad) は
         // **prepare 完了を待たずに** 隠す。prepare が成功しない環境 (Issue #13:
@@ -363,7 +374,11 @@ public class MusicManager : MonoBehaviour
         ReadyMedia ready;
         // ffmpeg が使える環境では分離ペアを再利用しない (結合 mp4 を作り直す)。
         // ここで一度だけ PATH を引き、SelectPlan と同じ判断を使う。
-        bool ffmpegAvailable = !string.IsNullOrEmpty(YouTubeStreamResolver.ResolveFfmpegPath());
+        // Issue #642: ツール探索はスレッドプール側で走る。結果を coroutine で
+        // 待つだけなので、プローブ中もメインスレッドは止まらない。
+        var ffmpegTask = YouTubeStreamResolver.ResolveFfmpegPathAsync();
+        while (!ffmpegTask.IsCompleted) yield return null;
+        bool ffmpegAvailable = !string.IsNullOrEmpty(ffmpegTask.Result);
         if (YouTubeMediaCache.TryGetReadyFiles(videoId, out ready, canMerge: ffmpegAvailable))
         {
             streamResolved = true;
@@ -436,8 +451,22 @@ public class MusicManager : MonoBehaviour
                 var fallbackTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.FallbackVideoSelector, YouTubeMediaCache.VideoFilePrefix, mediaToken);
                 while (!fallbackTask.IsCompleted) yield return null;
                 videoFile = fallbackTask.Result;
+                // Issue #641: the fallback download can also be cancelled while
+                // it runs — bail out before the failure classification below,
+                // symmetric with the videoTask check (Issue #613).
+                if (mediaToken.IsCancellationRequested) { yield break; }
                 combined = false;
-                Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}");
+                // Issue #642: the merged plan carries no separate audio
+                // selector (Combined => HasAudioFile == false), so the audio
+                // branch below used to be skipped and the song played
+                // silently. Re-derive the split plan from the same format
+                // list: it selects the same video-only stream
+                // (FallbackVideoSelector) plus the audio track, so the
+                // fallback keeps its sound. The video-only file stays under
+                // the video prefix, so a later run can still retry the merge.
+                plan = YouTubeMediaCache.PlanAfterMergedFallback(formats);
+                Debug.Log($"[MusicManager] fallback video file: {(videoFile.Ok ? videoFile.Path : videoFile.Detail)}" +
+                          $" - split plan '{plan.Summary}'");
             }
 
             audioFile = null;
@@ -735,6 +764,11 @@ public class MusicManager : MonoBehaviour
         firstFrameMarked = false;
         // Issue #13: URL の「形」だけを後でログに出すために控える (値は出さない)。
         lastVideoUrl = path;
+        // Issue #641: prepare は現状 Start から 1 回しか走らないが、再試行経路が
+        // 増えたときに同じハンドラが二重登録されないよう、購読の前に必ず外す
+        // (ProbeDirectUrl と同じ冪等化)。
+        songVideo.errorReceived -= OnVideoError;
+        songVideo.loopPointReached -= OnSongVideoLoopReached;
         songVideo.errorReceived += OnVideoError;
         songVideo.loopPointReached += OnSongVideoLoopReached;
         songVideo.source = VideoSource.Url;
@@ -873,6 +907,9 @@ public class MusicManager : MonoBehaviour
         streamAudioPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
         streamAudioPlayer.SetTargetAudioSource(0, streamAudioSource);
         streamAudioPlayer.source = VideoSource.Url;
+        // Issue #641: PrepareLocalVideo と同じく、再 prepare で二重発火しないよう
+        // 購読前に外す (冪等化)。
+        streamAudioPlayer.errorReceived -= OnVideoError;
         streamAudioPlayer.errorReceived += OnVideoError;
         streamAudioPlayer.url = path;
         var audioPrepareWatch = Stopwatch.StartNew();
@@ -1377,6 +1414,29 @@ public class MusicManager : MonoBehaviour
     }
 
     /// <summary>
+    /// <see cref="GManager.mainVolume"/> の即時反映 (ポーズ画面の音量変更など)。
+    /// 演奏中の音源は <see cref="audioS"/> と <see cref="streamAudioSource"/>
+    /// (StreamSeparate 経路) の 2 系統あるため、AudioSource を 1 つだけ
+    /// 探して書き換える呼び出し側では片方が取り残される。
+    /// 終端フェード中は最後に適用した係数を維持する。
+    /// </summary>
+    public void ApplyMainVolume()
+    {
+        float factor = endFadeApplied ? endFadeFactor : 1f;
+        // audioS は Start で解決される。Start 前 (ポーズ画面が先に開く経路や
+        // EditMode テスト) でも同じ AudioSource を指すよう遅延解決する。
+        var source = audioS != null ? audioS : GetComponent<AudioSource>();
+        if (source != null)
+        {
+            source.volume = GManager.mainVolume * factor;
+        }
+        if (streamAudioSource != null)
+        {
+            streamAudioSource.volume = GManager.mainVolume * factor;
+        }
+    }
+
+    /// <summary>
     /// 終端フェード (Issue #383)。曲長が分かる場合、残り fadeOut 秒から
     /// 音量と映像を落とし、同時に「終了」を出す。メディアが先に終わった場合も
     /// そこで「終了」を出し、以降のフェードは完了扱いにする。
@@ -1416,6 +1476,7 @@ public class MusicManager : MonoBehaviour
 
         endFadeApplied = true;
         float factor = 1f - Mathf.Clamp01(progress);
+        endFadeFactor = factor;
         if (audioS != null)
         {
             audioS.volume = GManager.mainVolume * factor;

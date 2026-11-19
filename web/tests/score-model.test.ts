@@ -90,10 +90,11 @@ describe("computeUnityScore", () => {
 });
 
 describe("nicknameDiagnostics", () => {
-  it("accepts 1 to 12 characters after trimming", () => {
+  it("accepts 1 to 16 characters after trimming", () => {
     assert.deepEqual(nicknameDiagnostics("abc"), []);
     assert.deepEqual(nicknameDiagnostics("  ok  "), []);
     assert.deepEqual(nicknameDiagnostics("abcdefghijkl"), []);
+    assert.deepEqual(nicknameDiagnostics("abcdefghijklmnop"), []);
     assert.deepEqual(nicknameDiagnostics("あいうえおかきくけこ"), []);
   });
 
@@ -103,10 +104,10 @@ describe("nicknameDiagnostics", () => {
     assert.equal(diagnostics[0]?.path, "/nickname");
   });
 
-  it("rejects more than 12 characters after trimming", () => {
-    const diagnostics = nicknameDiagnostics("abcdefghijklm");
+  it("rejects more than 16 characters after trimming", () => {
+    const diagnostics = nicknameDiagnostics("abcdefghijklmnopq");
     assert.equal(diagnostics.length, 1);
-    assert.match(diagnostics[0]?.message ?? "", /12/);
+    assert.match(diagnostics[0]?.message ?? "", /16/);
   });
 
   it("rejects control characters", () => {

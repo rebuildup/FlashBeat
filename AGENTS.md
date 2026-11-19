@@ -36,9 +36,9 @@ FlashBeat is a Unity 6 (6000.5.6f1) self-made rhythm game (`音ゲー`) that pla
 
 ## House rules
 
-- source code (identifiers, comments, developer-facing logs) and commit messages are English; internal documentation, Issues, PRs and review discussion are Japanese. Localization resources are the exception.
+- commit messages are English; source code comments, identifiers and developer-facing logs follow the surrounding file's language — this repository is predominantly Japanese, so new code matches the file-local convention (Japanese comments/logs are the norm, not a violation). Localization resources are the exception.
 - commit message format: `<work-prefix>: <short title>` (e.g. `fix(#96): ...`, `docs: ...`)
-- JS/TS package manager is Bun — except `web/`, which currently uses npm (`package-lock.json`); the Bun migration is tracked separately (ADR-0001 consequences)
+- JS/TS package manager is Bun — except `web/` and `design/`, which currently use npm (`package-lock.json`); the Bun migration is tracked separately (ADR-0001 consequences)
 - text search: `rg` / `rg --files`
 - do not add new `.py` scripts — use the project language or shell (existing `script/*.py` are grandfathered)
 - new container definitions are `Containerfile`

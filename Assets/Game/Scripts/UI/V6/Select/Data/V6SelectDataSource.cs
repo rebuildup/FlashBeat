@@ -274,10 +274,10 @@ namespace FlashBeat.UI.V6.Select.Data
             SongData row = GManager.GetSong(songId);
             if (row == null || row.unplayable) return;
             string videoId = row.videoId;
-            // MediaPrefetcher.Request の同期 prefix はツール探索
-            // (ffmpeg/yt-dlp/deno の PATH 走査と --version プローブ、初回は
-            // 各最大 20 秒) を含む。選択ハンドラ (メインスレッド) で直接
-            // 呼ぶと初回選択で UI が固まるので、次フレームへ逃がす (#547)。
+            // MediaPrefetcher.Request の同期 prefix はキャッシュ走査
+            // (TryGetReadyFiles) を含む。選択ハンドラ (メインスレッド) で直接
+            // 呼ぶとディスク I/O で UI が削られるので、次フレームへ逃がす。
+            // ツール探索自体は issue #642 で非同期化済み (Request は待たない)。
             // prefetch の失敗が選択フローを壊さないよう例外もここで閉じ込める。
             RunCoroutine(DeferredPrefetch(videoId));
         }

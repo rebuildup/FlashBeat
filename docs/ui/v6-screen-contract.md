@@ -212,6 +212,13 @@ x = 画面中央 / y = 250 × scale (上端)
 `LyricContentHeight`)。3 行は常に確保する (行が空でも高さを保ち、行数が変わって
 箱が伸縮しない)。
 
+**高さは状態間で不変 (Issue #674)。** 歌詞・Start Prompt・カウントダウン・
+曲終了表示は同じスロットの状態違いなので、パネルの RectTransform サイズ・位置は
+全状態で同一にする。共有スロット高は `V6HudLogic.LyricSlotHeight` が
+歌詞本文+Start Prompt・カウントダウン数字・終了タイトルの最大必要高として
+1 系統で返し、状態ごとの高さ分岐は持たない (カウントダウン数字 fs132 が
+最大必要高を決める)。
+
 FHD は y=278、2K は y=370、Mac は y=428。以前の固定値 (170 / 227 / 227) は使わない。カウントダウンと曲終了表示もこのスロットを使う。
 
 ### スコアゲージ (`PyPE1` / `cNEBa`, 600×36)
@@ -239,7 +246,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 縦 gap6 padding[16,24] 中央: Furigana fs22 `$text-dim` / Lyrics fs44 `$text` 中央 / Romaji fs20 `$text-dim` / Start Prompt gap10 (KeyCap (fill,36) + Label fs22 `$text-muted`)。
 
-実画面への配置は §8「歌詞スロットの位置」の式を使う。カウントダウン数字 (fs132 w700 `$text` 中央) と曲終了表示は同じ枠の状態違いで、歌詞・Start Prompt とは排他。
+実画面への配置は §8「歌詞スロットの位置」の式を使う。カウントダウン数字 (fs132 w700 `$text` 中央) と曲終了表示は同じ枠の状態違いで、歌詞・Start Prompt とは排他。Issue #674 により 3 状態のスロット RectTransform はサイズ・位置とも同一 (`V6HudLogic.LyricSlotHeight` の共有高さ)。
 
 ## 11. スクリーンショット
 
@@ -263,6 +270,10 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 - スコアゲージは**セグメント式** (C/B/A/S/SS/+ + Best マーカー)。一次抽出では「(ref cNEBa)」のみだった。
 - Combo Bonus と Combo Status は**同座標 (1512,460)・排他**。
+- 節目ボーナスの獲得表示 (scoring v3 / Issue #602) は Combo Status 行の直下に
+  "+獲得点" を一時表示する。Issue #673 で親を Combo Status ブロックから
+  常時アクティブな Right Column へ移し、miss > 0 でステータスが隠れても
+  表示され続ける (表示位置は契約どおり同じ)。
 - 判定行のサンプルはレーン 3 と 6 のみ (実装は 8 レーン全て)。
 - `nrfw8` はヘッダー / フッター `enabled: false` (ゲーム中は描画しない)。
 - `g4Q3F` はローディング進捗の表現が無い (メイン空)。実装も専用表示を持たず、映像のみ (Issue #606)。
@@ -271,6 +282,29 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
   (`V6OptionPreviewRig`) がレーンフラッシュ・判定ポップ・歌詞同期を再現し、
   2D オーバーレイ (`V6OptionViewPreviewOverlay`) が判定ポップと歌詞行を重ねる。
   判定ポップの時系列は本編と同じ `V6HudLogic` の共有定数。
+- Game Preview の本編一致規則 (Issue #706): 歌詞ボックスは本編と同じ共有
+  スロット (`LyricSlotOrigin` / `LyricSlotSize` = `LyricSlotHeight`、
+  Issue #674) を使い、オーバーレイは位置を画面フラグメント写像・
+  寸法 (箱・文字・padding) を well/Screen 高比の uniform scale で
+  本編アスペクト比のまま写す。判定線は本編 JudgeLine (不透明白
+  LineRenderer) と同じ不透明・同程度の太さ。スコア・コンボ・ゲージ等の
+  他 HUD 要素は契約上プレビューの対象外なので追加しない。
+- 判定ポップの時系列 (Issue #671): 出現 (静止位置の真上 `VerdictFallDistancePx(m)`
+  = 判定ボックス高さ `VerdictH`、即時) → 短い落下で判定線直上の静止位置へ着地
+  (`VerdictFallSeconds` 0.30s) → 静止保持 (`VerdictHoldSeconds` 0.45s)
+  → フェードアウト (`VerdictFadeOutSeconds` 0.22s)、総寿命
+  `VerdictTotalSeconds` 0.97s。落下距離は判定ボックス高さ 1 個分で、
+  ノーツの全画面落下と判定フィードバックを区別する。
+  設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
+- 「判定線」の意味 (Issue #715 で確定): 描画される線そのもの。
+  v6 プレイフィールド経路は design の Judge Line (y=792)、
+  レガシー 3D 経路は GameScene JudgeLine の実ワールド位置
+  (LineRenderer ローカル y=0.5 + Transform y=-0.02 → y=0.48 / z=0、
+  `Judge.JudgeLineWorldY` / `JudgeLineWorldZ` →
+  `V6HudLogic.LegacyJudgeLineAnchor`) を投影して使う。
+  判定エフェクトの出現点 (y=0.76 / z=0.15) はアンカーではない
+  (投影が描画線より約 50px 上にずれる)。Option Game Preview の
+  判定ポップも同じアンカーを共有する。
 - Result の登録モーダルはコンパクト画面 (フレーム 1728×972 未満) では
   Dialog 中心へビューポートをパンして中央に合わせ、閉じると元へ戻す (Issue #609、
   `V6CompactScreen` / `V6FramePan.PanSuspended`)。
@@ -288,7 +322,7 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 | ジャケット (26 枚) | `Assets/Game/Resources/V6/select/jacket/<index>-<slug>.jpg` | ✅ (`*.jpg` は全件 LFS) | 出版社・権利者からの許諾済み Ramen 素材 | `Resources.Load("V6/select/jacket/<file>")`。index は `GManager.SongName` の並びと一致 (`V6SelectDataSource.V6JacketFileOf`)。**画像が無い部署は空文字を返し、固定画像で代用しない** |
 | 旧ジャケット (v5) | `Assets/Game/Resources/V5/select/jacket/` | ✅ | 同上 | `V6SelectDataSource.JacketResourceNames` によるフォールバック。v6 用が無い曲だけが使う |
 | 曲ローディング動画 | `Assets/Game/Resources/Videos/loading.mp4` (8,742,742 bytes / MP4 v2 `ftypmp42`) | ✅ | 自社制作 | `VideoPlayer` で実再生する。**静止画像で実動画再生の代わりにしない** (Task 5 の明示要求) |
-| 背景アニメーション | `Assets/Game/Resources/Videos/背景アニメーション*.mp4`, `オープニング.mp4` | ✅ | 自社制作 | `Resources.Load("Videos/<file>")` → `VideoPlayer.clip` |
+| 背景アニメーション | `Assets/Game/Resources/Videos/背景アニメーション3.mp4` (Title/Select/Option/Result の背景)・`opening1.mp4` (Opening シーン) | ✅ | 自社制作 | シーンの `VideoPlayer.clip` / `Resources.Load("Videos/<file>")`。`背景アニメーションタイトル.mp4` は build scenes 外の TypingScene 専用で `BuildScript.MediaExcludePaths` によりビルド同梱から除外 (Issue #653) |
 | UI フォント | `Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset` (+ `NotoSansJP-Dynamic SDF.asset`) | ✅ (`.asset` は個別 LFS 規則) | Noto Sans JP (SIL OFL 1.1) | TMP の SDF アセットとして直接割当。**静的アトラス** (620 glyphs) のため、新しい漢字・かなを含む歌詞を追加したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` で再生成する (`JapaneseFontAssetBuilder.RebuildNotoSansJpSdf`) |
 
 ### 13.2 Pencil 正本だけが参照する素材 (Unity には取り込まない)

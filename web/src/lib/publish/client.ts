@@ -181,7 +181,15 @@ export function parsePublishResponse(body: unknown): SongPublishResponse | null 
     return null;
   }
 
-  return { songId, chartVersion, catalogVersion };
+  // Issue #656: archived state is optional in the contract; parse it only
+  // when the server sends it so older deployments stay compatible.
+  const archived = record["archived"];
+  const archivedAt = record["archivedAt"];
+  const response: SongPublishResponse = { songId, chartVersion, catalogVersion };
+  if (typeof archived === "boolean") response.archived = archived;
+  if (archivedAt === null || typeof archivedAt === "string") response.archivedAt = archivedAt;
+
+  return response;
 }
 
 async function readFailureDetails(response: Response): Promise<string[]> {
@@ -220,9 +228,17 @@ function collectMessages(value: unknown): string[] {
 
   if (value !== null && typeof value === "object") {
     const record = value as Record<string, unknown>;
+
+    // A diagnostic names the offending value: `chart.notes[3].block`.
+    const path = record["path"];
+    const message = record["message"];
+    if (typeof path === "string" && path.length > 0 && typeof message === "string") {
+      return [`${path}: ${message}`];
+    }
+
     const messages: string[] = [];
 
-    for (const key of ["error", "message", "detail", "issues", "errors"]) {
+    for (const key of ["error", "message", "detail", "issues", "errors", "diagnostics"]) {
       const found = record[key];
       if (found !== undefined) {
         messages.push(...collectMessages(found));
@@ -277,16 +293,25 @@ export async function publishAndVerify(options: PublishSongOptions): Promise<Pub
       chart: unknown;
     };
     const song = catalog.songs?.find((entry: { id: string }) => entry.id === options.songId);
+    // Issue #656: a republish of an archived song stays out of the catalog
+    // on purpose, so the read-back cannot find it there. The epoch still
+    // moved and the chart snapshot still verifies; only the catalog-entry
+    // checks are skipped.
+    const archived = result.response.archived === true;
+    const songMatches =
+      archived ||
+      (song !== undefined &&
+        song.chartVersion === result.response.chartVersion &&
+        song.title === options.request.title &&
+        song.artist === options.request.artist &&
+        song.youtubeId === options.request.youtubeId &&
+        song.noteCount === options.request.chart.notes.length);
     if (
       catalog.catalogVersion !== result.response.catalogVersion ||
-      song?.chartVersion !== result.response.chartVersion ||
+      !songMatches ||
       snapshot.songId !== options.songId ||
       snapshot.chartVersion !== result.response.chartVersion ||
-      !sameJson(snapshot.chart, options.request.chart) ||
-      song.title !== options.request.title ||
-      song.artist !== options.request.artist ||
-      song.youtubeId !== options.request.youtubeId ||
-      song.noteCount !== options.request.chart.notes.length
+      !sameJson(snapshot.chart, options.request.chart)
     )
       throw new Error("公開データがこの下書きと一致しません。");
     return result;

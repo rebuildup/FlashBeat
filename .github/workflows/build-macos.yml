@@ -346,6 +346,16 @@ jobs:
             echo "::error title=version mismatch::埋込版数が一致しません: expected $base+$short, actual $baked"
             exit 1
           fi
+          # 焼き込まれた更新チャンネルを実物で確認する (win64 側と同じ検査)。
+          channel_file="Builds/macOS/FlashBeat.app/Contents/Resources/Data/StreamingAssets/update-channel.txt"
+          if [ ! -f "$channel_file" ]; then
+            echo "::error title=update channel::update-channel.txt がありません: $channel_file"
+            exit 1
+          fi
+          if [ "$(tr -d '[:space:]' < "$channel_file")" != "$FLASHBEAT_UPDATE_CHANNEL" ]; then
+            echo "::error title=update channel::更新チャンネルが一致しません: expected $FLASHBEAT_UPDATE_CHANNEL, actual $(cat "$channel_file")"
+            exit 1
+          fi
           out="$RUNNER_TEMP/dist"
           mkdir -p "$out"
           bash tools/release/package-macos.sh \

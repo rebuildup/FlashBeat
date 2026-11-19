@@ -12,10 +12,11 @@
  */
 import { defineHandler } from "void";
 import { env } from "void/env";
-import { asc, count, db, eq, max } from "void/db";
-import { chartVersions, scores, songs } from "@schema";
+import { asc, count, db, max } from "void/db";
+import { scores, songs } from "@schema";
 import { adminTokenMatches } from "../_publish-model";
 import type { AdminSong } from "../_archive-model";
+import { readCatalogVersion } from "../_catalog-version";
 
 export const GET = defineHandler(async (c) => {
   const authorized = await adminTokenMatches(
@@ -74,8 +75,8 @@ export const GET = defineHandler(async (c) => {
     };
   });
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
 
   c.header("Cache-Control", "no-store");
-  return c.json({ catalogVersion: total.value, songs: list });
+  return c.json({ catalogVersion, songs: list });
 });

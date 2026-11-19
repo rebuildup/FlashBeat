@@ -1,3 +1,4 @@
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Game.Hud;
 using FlashBeat.UI.V6.Game.Playfield;
 using NUnit.Framework;
@@ -8,14 +9,15 @@ namespace FlashBeat.Tests
     /// <summary>
     /// 2026-11-12 のオーナー指摘に対応する表示ロジックのテスト。
     ///
-    /// - 判定は判定線のすぐ上に出て立ち上がり、十分な時間表示され自然に消える
-    ///   (Issue #605 / design §10.3。#581 の滞在時間は維持)。
+    /// - 判定は画面上端 (ノーツの出現位置) から判定線のすぐ上へ落ちてきて、
+    ///   十分な時間静止表示され自然に消える
+    ///   (Issue #671 / design §10.3。#605 の滞在時間は維持)。
     /// - コンボもスコアと同じ時間割でポップする。
     /// - 歌詞スロットは文字に合わせて大きさが決まる (箱だけ大きくしない)。
     /// </summary>
     public class HudFeedbackTests
     {
-        // --- 判定ポップアップ (Issue #605 / design §10.3: 立ち上がり + 滞在) ---
+        // --- 判定ポップアップ (Issue #671 / design §10.3: 落下 + 静止保持 + フェード) ---
 
         [Test]
         public void VerdictAppearsImmediatelyThenFadesOut()
@@ -37,32 +39,66 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void VerdictRiseStartsNearJudgeLineAndSettles()
+        public void VerdictFallsLocallyAboveRestAndSettles()
         {
-            // §10.3: 判定線のすぐ上に出て、140ms / 28px を EaseOut で静止位置へ。
-            Assert.AreEqual(0.14f, V6HudLogic.VerdictRiseSeconds, 0.0001f);
-            Assert.AreEqual(28f, V6HudLogic.VerdictRiseDistance, 0.001f);
+            // Issue #671: 判定は静止位置 (判定線 + VerdictRestGapAboveLine の直上) の
+            // 真上 VerdictFallDistancePx に即時出現し、VerdictFallSeconds で
+            // 静止位置へ落ちる。距離は画面高さに比例しない固定値 — ノーツの
+            // 全画面落下と判定フィードバックを区別する (実機レビュー指摘)。
+            // 落下距離は判定ボックス高さ (design メトリクス由来)。FHD で評価する。
+            float dist = V6HudLogic.VerdictFallDistancePx(V6HudMetrics.Fhd(1f));
+            Assert.AreEqual(0.30f, V6HudLogic.VerdictFallSeconds, 0.0001f);
 
-            Assert.AreEqual(V6HudLogic.VerdictRiseDistance, V6HudLogic.VerdictRiseOffset(0f), 0.001f,
-                "出現時は静止位置より 28px 判定線側 (下)");
-            Assert.AreEqual(0f, V6HudLogic.VerdictRiseOffset(V6HudLogic.VerdictRiseSeconds), 0.001f,
-                "140ms で静止位置へ到達する");
-            Assert.AreEqual(0f, V6HudLogic.VerdictRiseOffset(1f), 0.001f,
-                "立ち上がり完了後は静止位置に留まる");
+            Assert.AreEqual(dist, V6HudLogic.VerdictFallOffset(0f, dist), 0.001f,
+                "出現時は静止位置より fallDistance だけ上");
+            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds, dist), 0.001f,
+                "VerdictFallSeconds で静止位置へ到達する");
+            Assert.AreEqual(0f, V6HudLogic.VerdictFallOffset(1f, dist), 0.001f,
+                "落下完了後は静止位置に留まる");
 
-            // 立ち上がり中は単調減少 (判定線側 → 静止位置の一方向)。
-            float prev = V6HudLogic.VerdictRiseOffset(0f);
-            for (int i = 1; i <= 14; i++)
+            // 落下中は単調減少 (上 → 静止位置の一方向)。
+            float prev = dist;
+            for (int i = 1; i <= 15; i++)
             {
-                float off = V6HudLogic.VerdictRiseOffset(V6HudLogic.VerdictRiseSeconds * i / 14f);
-                Assert.Less(off, prev, "立ち上がりは一方向に進む");
+                float off = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * i / 15f, dist);
+                Assert.Less(off, prev, "落下は一方向に進む");
                 prev = off;
             }
 
-            // EaseOut: 時間の中間で距離の半分より先へ進んでいる。
-            float half = V6HudLogic.VerdictRiseOffset(V6HudLogic.VerdictRiseSeconds * 0.5f);
-            Assert.Less(half, V6HudLogic.VerdictRiseDistance * 0.5f,
+            // EaseOut 到達: 時間の中間で残り距離は半分より小さい (序盤に大きく進む)。
+            float half = V6HudLogic.VerdictFallOffset(V6HudLogic.VerdictFallSeconds * 0.5f, dist);
+            Assert.Less(half, dist * 0.5f,
                 "EaseOut は序盤に大きく進み終盤で減速する");
+        }
+
+        [Test]
+        public void VerdictFallDistanceStaysLocalToJudgeLine()
+        {
+            // 反例ガード: 判定テキストが画面上端 (ノーツの出現位置) から
+            // 落ちる実装への再導入を拒否する。落下距離は判定線付近の
+            // ローカル距離でなければならず、画面高さ (FHD 1080px) に対して
+            // 十分小さいこと。
+            // 落下距離は判定ボックス高さそのもの — 文字1個分の drop-in。
+            // 本番と同じ ForResolution 経路で全プロファイルを確認し、
+            // 画面高さやノーツ経路に由来しないことを固定する。
+            foreach (var res in new[] {
+                new Vector2(1920f, 1080f), new Vector2(2560f, 1440f), new Vector2(2560f, 1664f) })
+            {
+                var mm = V6HudMetrics.ForResolution(res.x, res.y);
+                Assert.AreEqual(mm.VerdictH,
+                    V6HudLogic.VerdictFallDistancePx(mm), 0.001f,
+                    "落下距離は判定ボックス高さに一致する (実装導出値ではなく design メトリクス)");
+                Assert.Greater(mm.VerdictH, 0f);
+                Assert.Less(mm.VerdictH, 200f,
+                    "落下距離は判定線付近に局所化する (画面上端からの全距離落下は誤り)");
+            }
+
+            // 出現位置 = 静止位置 + VerdictH は、判定線から見て十分近い。
+            var fhd = V6HudMetrics.ForResolution(1920f, 1080f);
+            float appearFromBottom =
+                V6HudLogic.VerdictRestGapAboveLine + fhd.VerdictH;
+            Assert.Less(appearFromBottom, 400f,
+                "出現位置は判定線のすぐ上の領域に留まる");
         }
 
         // --- ポップ・パンチ (Issue #434) ---
@@ -109,18 +145,20 @@ namespace FlashBeat.Tests
         [Test]
         public void VerdictLifeIsLongEnoughToRead()
         {
-            // Issue #605: #581 の滞在時間 (0.5〜0.8 秒) を維持する。
+            // Issue #671: 落下を独立フェーズとして足したため総寿命は延びるが、
+            // 静止保持は読み取りに必要な 0.4 秒以上を確保する。
             Assert.GreaterOrEqual(V6HudLogic.VerdictTotalSeconds, 0.5f);
-            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 0.8f + 0.0001f);
+            Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 1.0f + 0.0001f);
             Assert.AreEqual(
-                V6HudLogic.VerdictHoldSeconds + V6HudLogic.VerdictFadeOutSeconds,
+                V6HudLogic.VerdictFallSeconds + V6HudLogic.VerdictHoldSeconds + V6HudLogic.VerdictFadeOutSeconds,
                 V6HudLogic.VerdictTotalSeconds, 0.001f);
-            Assert.Greater(V6HudLogic.VerdictHoldSeconds, 0f, "読み取りのための静止時間がある");
+            Assert.GreaterOrEqual(V6HudLogic.VerdictHoldSeconds, 0.4f,
+                "静止位置での読み取り時間は 0.4 秒以上");
 
             // §10.3: フェードアウトは寿命の最後 220ms。
             Assert.AreEqual(0.22f, V6HudLogic.VerdictFadeOutSeconds, 0.0001f);
-            // 立ち上がりは保持時間の中で完了し、フェードアウトと重ならない。
-            Assert.LessOrEqual(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictHoldSeconds);
+            // 落下は保持時間より短く、フェードアウトと重ならない。
+            Assert.LessOrEqual(V6HudLogic.VerdictFallSeconds, V6HudLogic.VerdictHoldSeconds);
         }
 
         // --- 桁別アニメーションの差分 (Issue #445) ---
@@ -220,5 +258,178 @@ namespace FlashBeat.Tests
 
             Assert.Greater(large, small, "フォントが大きければ箱も大きくなる");
         }
+
+        // --- 歌詞スロットの共有寸法 (Issue #674) ---
+
+        [Test]
+        public void LyricSlotHeight_IsTheMaxNeededAcrossAllStates()
+        {
+            // Issue #674: 歌詞・準備 (Start Prompt)・カウントダウン・曲終了の
+            // 全状態でパネルの高さが変わらないよう、共有スロット高は
+            // 3 状態の最大必要高。各解像度プロファイルの実高で検証する
+            // (lyricFs はプロファイルの LyricFs: fhd=36 / 2k・mac=48)。
+            var cases = new (float height, float lyricFs)[]
+            {
+                (1080f, 36f),
+                (1440f, 48f),
+                (1664f, 48f),
+            };
+
+            foreach (var (h, fs) in cases)
+            {
+                float slot = V6HudLogic.LyricSlotHeight(fs, h);
+                float lyricNeed = V6HudLogic.LyricContentHeight(fs);
+                float countdownNeed =
+                    V6HudLogic.CountdownFontSize(h) * V6HudLogic.CountdownLineFit;
+                float endNeed = V6HudLogic.SongEndTitleFontSize(h / V6LaneGeometry.DesignHeight)
+                    * V6HudLogic.SongEndTitleLineFit;
+
+                Assert.AreEqual(
+                    Mathf.Max(lyricNeed, Mathf.Max(countdownNeed, endNeed)), slot, 0.001f,
+                    $"height {h}: 共有スロット高は最大必要高");
+                Assert.GreaterOrEqual(slot, lyricNeed, $"height {h}: 歌詞本文が収まる");
+                Assert.GreaterOrEqual(slot, countdownNeed, $"height {h}: カウントダウン数字が収まる");
+                Assert.GreaterOrEqual(slot, endNeed, $"height {h}: 終了タイトルが収まる");
+            }
+        }
+
+        [Test]
+        public void LyricSlotSize_IsSharedByEveryState()
+        {
+            // 幅は LyricSlotWidth、高さは LyricSlotHeight の 1 系統だけ。
+            // 状態ごとの分岐が無いことを、同じ入力で常に同じ (width,height)
+            // が返ることで固定する。
+            var size = V6HudLogic.LyricSlotSize(36f, 1920f, 1080f);
+            Assert.AreEqual(V6HudLogic.LyricSlotWidth(1920f), size.x, 0.001f);
+            Assert.AreEqual(V6HudLogic.LyricSlotHeight(36f, 1080f), size.y, 0.001f);
+            Assert.AreEqual(size, V6HudLogic.LyricSlotSize(36f, 1920f, 1080f));
+        }
+
+        // --- キーガイド Full モード (Issue #658) ---
+
+        [Test]
+        public void GuideKeyText_FullListsEveryBoundKey()
+        {
+            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Full);
+            try
+            {
+                for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
+                {
+                    var keys = KeyBindings.GetKeys(lane);
+                    var expected = string.Join(" ", System.Array.ConvertAll(keys, KeyGuideUI.GetKeyDisplayName));
+                    Assert.AreEqual(expected, V6HudLogic.GuideKeyText(lane),
+                        $"lane {lane}: Full は全有効キーを空白区切りで出す");
+                }
+            }
+            finally
+            {
+                FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+            }
+        }
+
+        [Test]
+        public void GuideKeyText_CompactKeepsRepresentativeKey()
+        {
+            FlashBeat.UI.V5.PlaySession.SetKeyGuide(FlashBeat.UI.V5.KeyGuideMode.Compact);
+            for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
+            {
+                Assert.AreEqual(V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
+                    V6HudLogic.GuideKeyText(lane), $"lane {lane}: Compact は代表キーのみ");
+            }
+        }
+
+        [Test]
+        public void GuideKeyFontSize_ShrinksOnlyWhenLabelOverflows()
+        {
+            const float designFs = 32f;
+            const float capW = 75f;
+            const float padding = 10f;
+
+            // 代表キー 1 個は design fs のまま。
+            Assert.AreEqual(designFs,
+                V6HudLogic.GuideKeyFontSize(capW, designFs, "A", padding));
+
+            // 全キー列挙は幅に収まるよう縮むが 1 未満にはならない。
+            string full = string.Join(" ", System.Array.ConvertAll(
+                KeyBindings.GetKeys(7), KeyGuideUI.GetKeyDisplayName));
+            float shrunk = V6HudLogic.GuideKeyFontSize(capW, designFs, full, padding);
+            Assert.Less(shrunk, designFs, "長いラベルは design fs より小さくなる");
+            Assert.GreaterOrEqual(shrunk, 1f);
+        }
+        // --- 判定アンカー (Issue #715: 「判定線」は描画される線が正本) ---
+
+        [Test]
+        public void LegacyJudgeLineAnchor_IsTheDrawnJudgeLine_NotTheEffectPoint()
+        {
+            // design §10.3 / v6-screen-contract §8 の「判定線」は描画される線。
+            // GameScene の JudgeLine は LineRenderer ローカル座標
+            // (-4, 0.5, 0) → (4, 0.5, 0) だが、GameObject の Transform が
+            // (0, -0.02, 0)・scale (8, 1, 40) なのでワールドでは
+            // y = 0.48 / z = 0 に描かれる (x は scale 8 で画面全幅)。
+            Assert.AreEqual(0.48f, Judge.JudgeLineWorldY, 0.0001f,
+                "GameScene JudgeLine の実ワールド y (local 0.5 + transform -0.02)");
+            Assert.AreEqual(0f, Judge.JudgeLineWorldZ, 0.0001f);
+
+            Vector3 anchor = V6HudLogic.LegacyJudgeLineAnchor();
+            Assert.AreEqual(0f, anchor.x, 0.0001f);
+            Assert.AreEqual(Judge.JudgeLineWorldY, anchor.y, 0.0001f);
+            Assert.AreEqual(Judge.JudgeLineWorldZ, anchor.z, 0.0001f);
+
+            // 反例ガード: 判定エフェクト出現点 (y 0.76 / z 0.15 =
+            // Judge.EffectPosition) への回帰を拒否する。旧アンカーは
+            // 描画判定線より画面上で約 50px (FHD) 上にずれていた (Issue #715)。
+            Assert.IsTrue(anchor.y < 0.76f || anchor.z < 0.15f,
+                "verdict anchor must be the drawn judge line, not Judge.EffectPosition");
+
+            // v6 プレイフィールド経路の判定線も描画値 (design y=792) を使う。
+            Assert.AreEqual(792f, V6LaneGeometry.JudgeLineY, 0.001f);
+        }
+
+        [Test]
+        public void LegacyVerdictRest_SitsAboveDrawnLine_UnderGameCamera()
+        {
+            // GameScene Main Camera と同じ姿勢・画角
+            // (V6TopShadeHoleTests.CreateLegacyCamera と同じ値)。
+            var camGo = new GameObject("HudFeedbackTests Camera");
+            camGo.tag = "MainCamera";
+            try
+            {
+                var cam = camGo.AddComponent<Camera>();
+                cam.transform.SetPositionAndRotation(
+                    new Vector3(0f, 4.9f, -0.8f), Quaternion.Euler(54.8f, 0f, 0f));
+                cam.fieldOfView = 60f;
+                cam.nearClipPlane = 0.3f;
+                cam.farClipPlane = 1000f;
+
+                Vector3 lineVp = cam.WorldToViewportPoint(V6HudLogic.LegacyJudgeLineAnchor());
+                Vector3 effectVp = cam.WorldToViewportPoint(
+                    new Vector3(Judge.LaneWorldX(0), 0.76f, 0.15f));
+                Assert.Greater(lineVp.z, 0f, "judge line anchor must be in front of the camera");
+                Assert.Greater(effectVp.z, 0f);
+
+                // エフェクト点は描画判定線より画面上 (viewport y 大) に投影される。
+                // Issue #715 の「約 50px (FHD) ≒ viewport 0.046」のずれを固定し、
+                // 旧アンカーへの回帰 (ずれの消失 or 逆転) を検出する。
+                Assert.Greater(effectVp.y - lineVp.y, 0.02f,
+                    "effect point must project visibly above the drawn judge line " +
+                    "(Issue #715: it is ~50px too high at FHD)");
+
+                // 静止位置 = 描画判定線の投影 + VerdictRestGapAboveLine (72px、
+                // 画面下原点)。アンカーが描画線そのものなので、静止位置は
+                // 常に線の真上 72px — design §10.3 の契約そのもの。
+                Assert.AreEqual(72f, V6HudLogic.VerdictRestGapAboveLine, 0.001f);
+                float screenH = Mathf.Max(1f, Screen.height);
+                float lineFromBottom = lineVp.y * screenH;
+                float restFromBottom = lineFromBottom + V6HudLogic.VerdictRestGapAboveLine;
+                Assert.Greater(restFromBottom, lineFromBottom);
+                Assert.Less(restFromBottom, screenH,
+                    "verdict rest position must stay on screen");
+            }
+            finally
+            {
+                Object.DestroyImmediate(camGo);
+            }
+        }
+
     }
 }

@@ -806,8 +806,9 @@ namespace FlashBeat.UI.V5
             var music = FindFirstObjectByType<MusicManager>();
             if (music != null)
             {
-                var src = music.GetComponent<AudioSource>();
-                if (src != null) src.volume = GManager.mainVolume;
+                // Issue #681 review: 演奏音源は audioS と streamAudioSource
+                // (StreamSeparate) の 2 系統。MusicManager 側で両方を更新する。
+                music.ApplyMainVolume();
             }
             var judge = FindFirstObjectByType<Judge>();
             if (judge != null)

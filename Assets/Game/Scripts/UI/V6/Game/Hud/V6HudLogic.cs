@@ -12,9 +12,6 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// </summary>
     public static class V6HudLogic
     {
-        /// <summary>ランク/判定クローンの接尾辞。</summary>
-        private const string CloneSuffix = "(Clone)";
-
         /// <summary>
         /// 進捗バーの塗り比率 (0..1)。duration 無効 (0 以下) は 0。
         /// mediaTime はメディア (動画) タイムライン上の秒 (GManager.step_time)。
@@ -102,6 +99,45 @@ namespace FlashBeat.UI.V6.Game.Hud
             return Mathf.Min(LyricDesignWidth, Mathf.Max(0f, screenWidth));
         }
 
+        // --- 歌詞スロットの共有寸法 (Issue #674) ---
+        // 歌詞本文・Start Prompt・カウントダウン数字・終了タイトルが同じ
+        // スロットを使う。状態ごとに高さを変えるとパネルが伸縮して見えるため、
+        // 全状態がここの 1 つの高さを共有する。
+
+        /// <summary>カウントダウン数字 1 行が必要とする高さ係数 (fontSize 倍)。</summary>
+        public const float CountdownLineFit = 1.3f;
+
+        /// <summary>終了タイトル 1 行が必要とする高さ係数 (fontSize 倍)。</summary>
+        public const float SongEndTitleLineFit = 1.6f;
+
+        /// <summary>
+        /// 歌詞スロットの共有高さ (px)。歌詞本文 + Start Prompt
+        /// (<see cref="LyricContentHeight"/>)・カウントダウン数字
+        /// (<see cref="CountdownFontSize"/>)・終了タイトル
+        /// (<see cref="SongEndTitleFontSize"/>) の最大必要高を取る。
+        /// Issue #674: 歌詞 / 準備 / カウントダウン / 曲終了の全状態で
+        /// パネルの RectTransform サイズ・位置を不変にするための正本。
+        /// </summary>
+        /// <param name="lyricFs">歌詞本文の実フォントサイズ (px)。</param>
+        /// <param name="screenHeight">HUD キャンバスの高さ (px)。</param>
+        public static float LyricSlotHeight(float lyricFs, float screenHeight)
+        {
+            float lyric = LyricContentHeight(lyricFs);
+            float countdown = CountdownFontSize(screenHeight) * CountdownLineFit;
+            float endTitle = SongEndTitleFontSize(
+                screenHeight / V6LaneGeometry.DesignHeight) * SongEndTitleLineFit;
+            return Mathf.Max(lyric, Mathf.Max(countdown, endTitle));
+        }
+
+        /// <summary>
+        /// 歌詞スロットの共有寸法 (幅・高さ)。全状態で同一の (width, height) を返す。
+        /// 幅は <see cref="LyricSlotWidth"/>、高さは <see cref="LyricSlotHeight"/>。
+        /// </summary>
+        public static Vector2 LyricSlotSize(float lyricFs, float screenWidth, float screenHeight)
+        {
+            return new Vector2(LyricSlotWidth(screenWidth), LyricSlotHeight(lyricFs, screenHeight));
+        }
+
         /// <summary>
         /// 歌詞スロットの上下 padding。Issue #582: design の 16 では行が窮屈だった
         /// ため 24 へ拡大 (左右は <see cref="LyricPaddingX"/>)。
@@ -130,30 +166,42 @@ namespace FlashBeat.UI.V6.Game.Hud
             return content + LyricPaddingY * 2f;
         }
 
-        // --- 判定ポップアップ (Issue #605: 判定線からの立ち上がり + 滞在表示) ---
+        // --- 判定ポップアップ (Issue #671: 上方からの落下 + 静止保持 + フェード) ---
 
         /// <summary>
         /// 判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。
-        /// §10.3 の「所定位置」。立ち上がりの終点であり、滞在中の表示位置。
+        /// §10.3 の「所定位置」。落下の終点であり、滞在中の表示位置。
         /// </summary>
         public const float VerdictRestGapAboveLine = 72f;
 
         /// <summary>
-        /// 判定が現れてから静止位置へ立ち上がるまでの時間 (秒)。
-        /// design §10.3: 140ms。
+        /// レガシー 3D プレイフィールド経路 (V6UiMode.Playfield=false) の
+        /// 判定アンカーとなるワールド座標。描画される判定線
+        /// (GameScene "JudgeLine" LineRenderer = y 0.5 / z 0 の水平線、
+        /// ノーツが判定時刻に到達する面) の中央。
+        ///
+        /// 判定エフェクトの出現点 <c>Judge.EffectPosition</c> (y 0.76 /
+        /// z 0.15) ではない — あちらは 3D 判定エフェクトが浮かぶ位置で、
+        /// カメラ投影が描画判定線より縦に約 50px (FHD) ずれる。
+        /// design §10.3 の「判定線」は描画される線を指す
+        /// (v6 プレイフィールド経路は design y=792 の描画線を
+        /// アンカーに使っており、両経路で同じ意味に揃える。Issue #715)。
         /// </summary>
-        public const float VerdictRiseSeconds = 0.14f;
+        public static Vector3 LegacyJudgeLineAnchor()
+        {
+            return new Vector3(0f, Judge.JudgeLineWorldY, Judge.JudgeLineWorldZ);
+        }
 
         /// <summary>
-        /// 立ち上がりの移動量 (px)。静止位置よりこの距離だけ判定線側 (下) に
-        /// 出て、<see cref="VerdictRiseSeconds"/> かけて静止位置へ上がる。
-        /// design §10.3: 28px。静止位置は判定線の 72px 上なので、出現点は
-        /// 判定線の約 44px 上 = 「判定線のすぐ上」に相当する。
+        /// 判定が現れてから静止位置へ落ちきるまでの時間 (秒)。
+        /// Issue #671: 判定線付近での短い落下フェーズ (出現位置は静止位置の
+        /// 真上 <see cref="VerdictFallDistancePx(V6HudMetrics)"/>。画面上端ではない —
+        /// ノーツの接近と判定フィードバックを区別するため)。
         /// </summary>
-        public const float VerdictRiseDistance = 28f;
+        public const float VerdictFallSeconds = 0.30f;
 
-        /// <summary>判定が不透明のまま留まる時間 (秒)。読み取りの主時間。</summary>
-        public const float VerdictHoldSeconds = 0.58f;
+        /// <summary>判定が静止位置で留まる時間 (秒)。読み取りの主時間。</summary>
+        public const float VerdictHoldSeconds = 0.45f;
 
         /// <summary>
         /// 判定が消えるまでのフェードアウト時間 (秒)。
@@ -163,19 +211,19 @@ namespace FlashBeat.UI.V6.Game.Hud
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// 静止保持 (<see cref="VerdictHoldSeconds"/>) + フェードアウト
-        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.80 秒。
-        /// Issue #581 の滞在時間 (0.5〜0.8 秒) を維持しつつ、
-        /// §10.3 のフェードアウト 220ms に合わせて配分した。
-        /// 立ち上がり (<see cref="VerdictRiseSeconds"/>) は保持時間の
-        /// 冒頭に重なり、総寿命には別途加算しない。
+        /// 落下 (<see cref="VerdictFallSeconds"/>) + 静止保持
+        /// (<see cref="VerdictHoldSeconds"/>) + フェードアウト
+        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.97 秒。
+        /// Issue #671: 落下フェーズを独立した時間として足したため、
+        /// #605 の 0.80 秒から延びる。静止保持は読み取りに必要な
+        /// 0.4 秒以上を確保する。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictHoldSeconds + VerdictFadeOutSeconds;
+            VerdictFallSeconds + VerdictHoldSeconds + VerdictFadeOutSeconds;
 
         /// <summary>
         /// 判定テキストの不透明度。出現は即時 (§10.3: フェードインしない。
-        /// Issue #605 の設計判断。立ち上がりの動きが出現の合図を担うため、
+        /// Issue #605 の設計判断。落下の動きが出現の合図を担うため、
         /// #581 のフェードインは廃止した)。寿命の最後は
         /// <see cref="VerdictFadeOutSeconds"/> で 1→0。
         /// </summary>
@@ -191,25 +239,43 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 静止位置より判定線側 (下) へのオフセット (px、正 = 下)。
-        /// design §10.3: 出現時は <see cref="VerdictRiseDistance"/> (28px) だけ
-        /// 下にあり、<see cref="VerdictRiseSeconds"/> で EaseOut に従って
-        /// 静止位置 (0) へ立ち上がる。立ち上がり完了後は 0。
+        /// 判定テキストの落下距離 (px、画面下原点)。静止位置
+        /// (判定線 + <see cref="VerdictRestGapAboveLine"/>) の真上この距離に
+        /// 即時出現し、<see cref="VerdictFallSeconds"/> かけて静止位置へ落ちる。
+        ///
+        /// 距離は判定ボックス (<see cref="V6HudMetrics.VerdictH"/>) 1 個分の
+        /// 高さ。文字がちょうど一文字分の距離を落ちて着地する最小の
+        /// drop-in であり、画面上端からの全距離落下 (= ノーツの接近と
+        /// 判定フィードバックの混同、実機レビュー指摘) とは区別できる。
+        /// メトリクスは解像度別テーブルなので FHD/2K で適切にスケールする。
+        /// </summary>
+        public static float VerdictFallDistancePx(V6HudMetrics m)
+        {
+            return m.VerdictH;
+        }
+
+        /// <summary>
+        /// 静止位置より上へのオフセット (px、正 = 上)。
+        /// Issue #671: 出現時は <paramref name="fallDistance"/> だけ上にあり、
+        /// <see cref="VerdictFallSeconds"/> かけて EaseOutCubic に従って
+        /// 静止位置 (0) へ落ちる。落下完了後は 0。
+        /// 到達を減速させる EaseOut にするのは、着地を滑らかに見せるため。
         /// </summary>
         /// <param name="elapsed">表示開始からの秒。</param>
-        public static float VerdictRiseOffset(float elapsed)
+        /// <param name="fallDistance">落下距離 (px)。<see cref="VerdictFallDistancePx"/> を使う。</param>
+        public static float VerdictFallOffset(float elapsed, float fallDistance)
         {
             if (elapsed <= 0f)
             {
-                return VerdictRiseDistance;
+                return fallDistance;
             }
 
-            if (elapsed >= VerdictRiseSeconds)
+            if (elapsed >= VerdictFallSeconds)
             {
                 return 0f;
             }
 
-            return VerdictRiseDistance * (1f - EaseOutCubic(elapsed / VerdictRiseSeconds));
+            return fallDistance * (1f - EaseOutCubic(elapsed / VerdictFallSeconds));
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
@@ -345,25 +411,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 判定エフェクトのクローン名 ("Perfect(Clone)" 等) を判定ラベルへ。
-        /// Judge (所有者外) がレーン上に Instantiate する MessageObj の名前を観測する。
-        /// </summary>
-        public static string VerdictLabel(string cloneName)
-        {
-            if (string.IsNullOrEmpty(cloneName))
-            {
-                return string.Empty;
-            }
-
-            if (cloneName.EndsWith(CloneSuffix, System.StringComparison.Ordinal))
-            {
-                cloneName = cloneName.Substring(0, cloneName.Length - CloneSuffix.Length);
-            }
-
-            return cloneName.ToUpperInvariant();
-        }
-
-        /// <summary>
         /// 判定結果 (<see cref="FlashBeat.Gameplay.LongNote.Judgement"/>) を
         /// 判定ラベルへ。Judge の MessageObj (Perfect/Great/Bad/Miss.prefab)
         /// の表示名と同じ綴り。Option 画面の Game Preview (Issue #607) が
@@ -477,6 +524,62 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// Key Guide モードに応じたレーンのキー文字列。
+        /// Full = レーンの全有効キーを空白区切り (v5 GuideKeyText と同じ規約)、
+        /// それ以外 = <see cref="RepresentativeKeyText"/>。Issue #658: V6 が
+        /// Full を無視して代表キー 1 個しか出さなかったため、全キー確認の
+        /// 手段がゲーム内に無かった。
+        /// </summary>
+        public static string GuideKeyText(int lane)
+        {
+            KeyCode[] keys = KeyBindings.GetKeys(lane);
+            if (PlaySession.KeyGuide == KeyGuideMode.Full)
+            {
+                if (keys == null || keys.Length == 0)
+                {
+                    return string.Empty;
+                }
+
+                var sb = new System.Text.StringBuilder();
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(' ');
+                    }
+
+                    sb.Append(KeyGuideUI.GetKeyDisplayName(keys[i]));
+                }
+
+                return sb.ToString();
+            }
+
+            return RepresentativeKeyText(keys);
+        }
+
+        /// <summary>
+        /// キーガイドのキャップに収まるフォントサイズ。design の fs を上限に、
+        /// ラベル推定送り幅が利用幅 (幅 - 左右パディング) を超えるときだけ
+        /// 縮める。Compact の代表キー 1 個では design fs がそのまま返る。
+        /// </summary>
+        public static float GuideKeyFontSize(float capWidth, float designFs, string label, float paddingX)
+        {
+            if (designFs <= 0f)
+            {
+                return designFs;
+            }
+
+            float em = V6Ui.LabelAdvanceEm(label);
+            float available = capWidth - paddingX * 2f;
+            if (em <= 0f || available <= 0f)
+            {
+                return designFs;
+            }
+
+            return Mathf.Max(1f, Mathf.Min(designFs, Mathf.Floor(available / em)));
+        }
+
+        /// <summary>
         /// スクリーン x (左原点 px) を HUD フレーム内のテンプレート x (左原点) へ写す。
         /// フレームは frameScale 倍の等比拡大で画面全体を覆う
         /// (V6HudMetrics.LogicalViewportSize) ので、テンプレート x = screen x / frameScale。
@@ -490,17 +593,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             return screenX / frameScale;
-        }
-
-        /// <summary>
-        /// 判定クローンのワールド x からレーン番号 (0..7)。
-        /// Judge.EffectPosition は x = lane - 3.5 に置く (Judge.cs 実装)。
-        /// 範囲外は 0 / 7 に丸める。
-        /// </summary>
-        public static int LaneFromEffectPositionX(float effectX)
-        {
-            int lane = Mathf.RoundToInt(effectX - Judge.LaneFirstCenterX);
-            return Mathf.Clamp(lane, 0, 7);
         }
     }
 }

@@ -18,8 +18,13 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>上部シェードのグラデーション (上端の不透明度)。</summary>
         private const byte TopShadeAlpha = 0xA6;
 
-        /// <summary>上部シェード用の縦グラデーションスプライト (全 HUD で共有)。</summary>
-        private static Sprite topShadeSprite;
+        /// <summary>
+        /// 上部シェード用スプライトのキャッシュ (解像度ごと)。
+        /// Issue #675: ノーツが通るレーン帯を抜いたグラデーションなので、
+        /// キーは (画面幅, 画面高さ, シェード高さ) で分ける。
+        /// </summary>
+        private static readonly Dictionary<string, Sprite> topShadeSprites =
+            new Dictionary<string, Sprite>();
 
         // --- 生成した部品 (枠まわり) ---
         private RectTransform progressFill;
@@ -50,37 +55,77 @@ namespace FlashBeat.UI.V6.Game.Hud
             topShadeImage = img;
             // 上端 #000000A6 → 下端 #00000000。一様な黒帯にすると下端の境界が見えるため、
             // 縦グラデーションにして動画の暗部へ溶かす (契約 §8)。
-            img.sprite = TopShadeSprite();
+            // Issue #675: レーン帯 (ノーツが通る領域) は抜く。シェードは uGUI overlay で
+            // 3D の深度テストを通らず、グラデーションがアプローチ中のノーツを暗くしていた。
+            img.sprite = TopShadeSprite(CanvasSize(), m.TopShadeH);
             img.type = Image.Type.Simple;
             img.color = Color.white;
             img.raycastTarget = false;
         }
 
         /// <summary>
-        /// 1×2 px の縦グラデーション。下が透明、上が TopShadeAlpha。
-        /// バイリニア補間で高さ方向に滑らかに伸ばすため、解像度ごとに作り直さない。
+        /// 縦グラデーション (下が透明、上が TopShadeAlpha) に、レーン帯の抜きを
+        /// 焼き込んだスプライト。高さはシェード高さと同じ px 数なので、行ごとの
+        /// アルファがそのまま画面のグラデーションになる (バイリニア補間の
+        /// 縦方向のにじみは無い)。横方向だけ <see cref="V6TopShadeHole.TextureWidth"/>
+        /// texel を画面幅へ引き伸ばす (帯の縁が数 px ぼけるが、シェードは元々
+        /// 滑らかなグラデーションなので目立たない)。
         /// </summary>
-        private static Sprite TopShadeSprite()
+        private static Sprite TopShadeSprite(Vector2 screenSize, int shadeH)
         {
-            if (topShadeSprite != null)
+            string key = screenSize.x.ToString("0") + "x" + screenSize.y.ToString("0")
+                + "x" + shadeH;
+            if (topShadeSprites.TryGetValue(key, out var cached) && cached != null)
             {
-                return topShadeSprite;
+                return cached;
             }
 
-            var tex = new Texture2D(1, 2, TextureFormat.RGBA32, false);
+            int w = V6TopShadeHole.TextureWidth;
+            int h = Mathf.Max(2, shadeH);
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             tex.name = "TopShadeGradient";
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Clamp;
             tex.hideFlags = HideFlags.HideAndDontSave;
-            tex.SetPixel(0, 0, new Color(0f, 0f, 0f, 0f));
-            tex.SetPixel(0, 1, new Color(0f, 0f, 0f, TopShadeAlpha / 255f));
+
+            float[] corridorLeft = new float[h];
+            float[] corridorRight = new float[h];
+            V6TopShadeHole.CorridorRows(screenSize.x, screenSize.y, shadeH, h,
+                corridorLeft, corridorRight);
+
+            float topAlpha = TopShadeAlpha / 255f;
+            var clear = new Color(0f, 0f, 0f, 0f);
+            for (int y = 0; y < h; y++)
+            {
+                // テクスチャ行 0 = 下端。下端は透明、上端が TopShadeAlpha の線形グラデーション。
+                float gradient = topAlpha * (y / (float)(h - 1));
+                var shaded = new Color(0f, 0f, 0f, gradient);
+                float left = corridorLeft[y];
+                float right = corridorRight[y];
+                for (int x = 0; x < w; x++)
+                {
+                    float sx = x / (float)(w - 1) * screenSize.x;
+                    float a = V6TopShadeHole.ShadeAlpha(sx, left, right, gradient);
+                    tex.SetPixel(x, y, a <= 0f ? clear : shaded);
+                }
+            }
+
             tex.Apply(false, false);
 
-            topShadeSprite = Sprite.Create(tex, new Rect(0f, 0f, 1f, 2f),
+            var sprite = Sprite.Create(tex, new Rect(0f, 0f, w, h),
                 new Vector2(0.5f, 0.5f), 1f);
-            topShadeSprite.name = "TopShadeGradient";
-            topShadeSprite.hideFlags = HideFlags.HideAndDontSave;
-            return topShadeSprite;
+            sprite.name = "TopShadeGradient";
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+
+            // 解像度プロファイルは 3 種類しかないが、EditMode テスト等で
+            // 任意サイズの HUD が作られ得るのでキャッシュは頭打ちにする。
+            if (topShadeSprites.Count >= 16)
+            {
+                topShadeSprites.Clear();
+            }
+
+            topShadeSprites[key] = sprite;
+            return sprite;
         }
 
         private void BuildProgressBar()
@@ -175,9 +220,14 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             for (int lane = 0; lane < KeyBindings.LaneCount; lane++)
             {
+                // Issue #658: KeyGuideMode.Full ではレーンの全有効キーを出す
+                // (v5 GuideKeyText と同じ規約)。キー表は KeyBindings だけを見る。
+                string keyText = V6HudLogic.GuideKeyText(lane);
+                float keyFs = V6HudLogic.GuideKeyFontSize(
+                    m.KeyCapW, m.KeyCapLabelFs, keyText, V6Ui.KeyCapPaddingX);
                 // contract json: bg #3A3A3A r4 + ラベル $text-muted (Key fs24, design 空間)
-                var cap = V6Ui.KeyCap(keyGuideRow, V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane)),
-                    new Vector2(m.KeyCapW, m.KeyCapH), m.KeyCapLabelFs);
+                var cap = V6Ui.KeyCap(keyGuideRow, keyText,
+                    new Vector2(m.KeyCapW, m.KeyCapH), keyFs);
                 var label = cap.GetComponentInChildren<TextMeshProUGUI>();
                 var rt = V6Layout.RectOf(cap);
                 rt.anchorMin = new Vector2(0f, 0.5f);
@@ -225,7 +275,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             for (int lane = 0; lane < keyCaps.Count; lane++)
             {
-                keyCaps[lane].text = V6HudLogic.RepresentativeKeyText(KeyBindings.GetKeys(lane));
+                string keyText = V6HudLogic.GuideKeyText(lane);
+                keyCaps[lane].text = keyText;
+                // フル表示で縮んだ fs をキー数の変化に追従させる。
+                keyCaps[lane].fontSize = V6HudLogic.GuideKeyFontSize(
+                    m.KeyCapW, m.KeyCapLabelFs, keyText, V6Ui.KeyCapPaddingX);
             }
         }
     }

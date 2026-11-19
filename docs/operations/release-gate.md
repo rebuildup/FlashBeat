@@ -83,10 +83,12 @@ v<version>-win64-<sha>
 - Release は `draft=false` / `prerelease=false` (= **stable**) で公開します。
   検証用の Release は `prerelease=true` として公開し、展示用 stable ビルドの
   自動更新候補から外します。
-- **パッケージングの実装は 1 本** — `tools/release/package-win64.ps1` だけが ZIP を作ります
-  (Windows / macOS 共通、`pwsh` で実行)。
-  macOS 側の `script/win64-build-mac.sh` は **ビルドを駆動するだけ** で、
-  ZIP は上のスクリプトに作らせます (macOS に別のパッケージング経路を残さないため)。
+- **パッケージングの実装は OS ごとに 1 本** — Windows は
+  `tools/release/package-win64.ps1` (`pwsh`)、macOS は
+  `tools/release/package-macos.sh` (bash) が ZIP + SHA-256 を作ります。
+  `script/win64-build-mac.sh` と `build-macos.yml` のパッケージ step は
+  **ビルドを駆動するだけ** で、ZIP は上のスクリプトに作らせます
+  (OS ごとにパッケージング経路を増やさないため)。
 
 ### 1.5 第三者楽曲のメディアを同梱しない
 
@@ -94,7 +96,8 @@ v<version>-win64-<sha>
   (`Assets/Game/Resources/Musics`, `Assets/Game/Resources/Videos/UnityYoutube`)。
 - 実装: ビルド (`BuildScript.ExcludeMediaFromBuild`) が該当フォルダをビルド中だけ退避し、
   配布物には `flashbeat-media-policy.json` (除外パスの記録) を同梱します。
-- パッケージング (`tools/release/package-win64.ps1`) は `-MediaPolicy song-free` で
+- パッケージング (`tools/release/package-win64.ps1` / `tools/release/package-macos.sh`) は
+  `song-free` media policy で
   (a) manifest に `Assets/Game/Resources/Musics` と
   `Assets/Game/Resources/Videos/UnityYoutube` が含まれること
   (b) `resources.resource` が `MaxResourcesBytes` (既定 300MB) 以下のこと
@@ -193,4 +196,4 @@ v<version>-win64-<sha>
 - 承認チェックリスト (F: 承認記録): [`release-approval-checklist.md`](release-approval-checklist.md)
 - 展示 runbook: `festival-runbook.md` / `exhibit-runbook.md` (PR #51 側)
 - 成果物インデックス: `release/check/stage-manifest.json`
-- リリース記録例: `release-0-1-2-record.md`
+- リリース記録例: `docs/archive/legacy-release-0-1-2-record.md`

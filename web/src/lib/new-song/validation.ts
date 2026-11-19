@@ -9,115 +9,83 @@ import {
 } from "../publish/validation";
 
 /**
- * Field rules of the new-song flow, in Japanese and English.
+ * Field rules of the new-song flow, in Japanese.
  *
  * The rules mirror `contracts/openapi.v1.yaml` (`SongPublishRequest`) and
  * `src/lib/publish/validation.ts`, which the publish request builder reuses.
- * The flow shows both languages because the booth operator and the visitor
- * do not necessarily read the same one.
+ * The studio copy was unified to Japanese in issue #611, so the messages are
+ * plain strings — there is no English variant left to keep in sync.
  */
 
 export type NewSongField = "youtube" | "title" | "artist" | "songId" | "level" | "durationSec";
 
-export interface Bilingual {
-  ja: string;
-  en: string;
-}
-
 export interface NewSongFieldIssue {
   field: NewSongField;
-  message: Bilingual;
+  message: string;
 }
 
 /** The id is already published — the field must change. */
-export const SONG_ID_TAKEN: Bilingual = {
-  ja: "このIDは使用済みです。別のIDを選んでください。",
-  en: "This ID is already in use. Choose another one.",
-};
+export const SONG_ID_TAKEN = "このIDは使用済みです。別のIDを選んでください。";
 
-export function validateYoutubeField(value: string): Bilingual | undefined {
+export function validateYoutubeField(value: string): string | undefined {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return { ja: "YouTubeのURLを貼り付けてください。", en: "Paste the YouTube URL." };
+    return "YouTubeのURLを貼り付けてください。";
   }
   if (parseYouTubeId(trimmed) === null) {
-    return {
-      ja: "YouTubeのURL、または11文字の動画IDを入力してください。",
-      en: "Enter a YouTube URL or an 11 character video id.",
-    };
+    return "YouTubeのURL、または11文字の動画IDを入力してください。";
   }
   return undefined;
 }
 
-export function validateTitleField(value: string): Bilingual | undefined {
+export function validateTitleField(value: string): string | undefined {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return { ja: "曲名を入力してください。", en: "Enter the title." };
+    return "曲名を入力してください。";
   }
   if (trimmed.length > MAX_TITLE_LENGTH) {
-    return {
-      ja: `曲名は${MAX_TITLE_LENGTH}文字以内にしてください。`,
-      en: `The title must be ${MAX_TITLE_LENGTH} characters or fewer.`,
-    };
+    return `曲名は${MAX_TITLE_LENGTH}文字以内にしてください。`;
   }
   return undefined;
 }
 
-export function validateArtistField(value: string): Bilingual | undefined {
+export function validateArtistField(value: string): string | undefined {
   if (value.trim().length > MAX_ARTIST_LENGTH) {
-    return {
-      ja: `アーティスト名は${MAX_ARTIST_LENGTH}文字以内にしてください。`,
-      en: `The artist must be ${MAX_ARTIST_LENGTH} characters or fewer.`,
-    };
+    return `アーティスト名は${MAX_ARTIST_LENGTH}文字以内にしてください。`;
   }
   return undefined;
 }
 
-export function validateSongIdField(value: string): Bilingual | undefined {
+export function validateSongIdField(value: string): string | undefined {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return { ja: "曲IDを入力してください。", en: "Enter the song id." };
+    return "曲IDを入力してください。";
   }
   if (!SONG_ID_PATTERN.test(trimmed)) {
-    return {
-      ja: "英小文字・数字・ハイフンで3〜64文字にしてください。",
-      en: "Use 3 to 64 lowercase letters, digits or dashes.",
-    };
+    return "英小文字・数字・ハイフンで3〜64文字にしてください。";
   }
   return undefined;
 }
 
-export function validateLevelField(value: number): Bilingual | undefined {
+export function validateLevelField(value: number): string | undefined {
   if (!Number.isInteger(value)) {
-    return { ja: "レベルは整数で入力してください。", en: "The level must be a whole number." };
+    return "レベルは整数で入力してください。";
   }
   if (value < MIN_LEVEL || value > MAX_LEVEL) {
-    return {
-      ja: `レベルは${MIN_LEVEL}〜${MAX_LEVEL}にしてください。`,
-      en: `The level must be between ${MIN_LEVEL} and ${MAX_LEVEL}.`,
-    };
+    return `レベルは${MIN_LEVEL}〜${MAX_LEVEL}にしてください。`;
   }
   return undefined;
 }
 
-export function validateDurationField(value: number): Bilingual | undefined {
+export function validateDurationField(value: number): string | undefined {
   if (!Number.isFinite(value)) {
-    return {
-      ja: "再生時間（秒）を入力してください。",
-      en: "Enter the duration in seconds.",
-    };
+    return "再生時間（秒）を入力してください。";
   }
   if (value <= 0) {
-    return {
-      ja: "再生時間は0より長くしてください。",
-      en: "The duration must be longer than zero.",
-    };
+    return "再生時間は0より長くしてください。";
   }
   if (value > MAX_DURATION_SEC) {
-    return {
-      ja: `再生時間は${MAX_DURATION_SEC}秒以内にしてください。`,
-      en: `The duration must be ${MAX_DURATION_SEC} seconds or fewer.`,
-    };
+    return `再生時間は${MAX_DURATION_SEC}秒以内にしてください。`;
   }
   return undefined;
 }
@@ -132,7 +100,7 @@ export function validateNewSongInfo(info: {
   durationSec: number;
 }): NewSongFieldIssue[] {
   const issues: NewSongFieldIssue[] = [];
-  const push = (field: NewSongField, message: Bilingual | undefined) => {
+  const push = (field: NewSongField, message: string | undefined) => {
     if (message !== undefined) {
       issues.push({ field, message });
     }
@@ -150,7 +118,7 @@ export function validateNewSongInfo(info: {
 
 export interface NoteCountVerdict {
   level: "error" | "warn";
-  message: Bilingual;
+  message: string;
 }
 
 /**
@@ -163,19 +131,13 @@ export function judgeNoteCount(count: number): NoteCountVerdict | null {
   if (count <= 0) {
     return {
       level: "error",
-      message: {
-        ja: "ノートを1つ以上置いてください。",
-        en: "Add at least one note.",
-      },
+      message: "ノートを1つ以上置いてください。",
     };
   }
   if (count < 20) {
     return {
       level: "warn",
-      message: {
-        ja: `ノートが${count}個です。20未満は間延びしやすいので確認してください。`,
-        en: `Only ${count} notes. Fewer than 20 plays sparse; double-check before publishing.`,
-      },
+      message: `ノートが${count}個です。20未満は間延びしやすいので確認してください。`,
     };
   }
   return null;

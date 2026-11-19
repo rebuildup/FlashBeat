@@ -35,6 +35,44 @@ public class AutoTestKeyGuide : MonoBehaviour
         yield return new WaitForSecondsRealtime(4f);
         Check("on TitleScene", SceneManager.GetActiveScene().name == "TitleScene");
 
+        // v6 title: キー案内はフッター凡例 (静的な Legend Label) が担う。
+        // 旧 KeyGuideUI パネル (レーン別キー行) は V5 専用で、v6 では作られない。
+        // レーン別キー行の正しさはゲーム HUD 側 (KeyGuideMode) と EditMode テストが担保する。
+        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
+        {
+            Check("the v6 title view exists",
+                FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
+
+            int legendCount = 0;
+            bool hasJapaneseFont = false;
+            bool hasJapaneseText = false;
+            foreach (var label in FindObjectsByType<TMPro.TextMeshProUGUI>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (label == null || !label.name.StartsWith("Legend Label", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                legendCount++;
+                if (label.font != null && label.font.name != null &&
+                    (label.font.name.Contains("Noto") || label.font.name.Contains("YuGoth")))
+                {
+                    hasJapaneseFont = true;
+                }
+                if (!string.IsNullOrEmpty(label.text) && ContainsJapanese(label.text))
+                {
+                    hasJapaneseText = true;
+                }
+            }
+            Check("the title footer legend exists", legendCount >= 3);
+            Check("the legend uses a Japanese font", hasJapaneseFont);
+            Check("the legend shows Japanese text", hasJapaneseText);
+
+            ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-keyguide.png"));
+            yield return new WaitForSecondsRealtime(0.5f);
+        }
+        else
+        {
         KeyGuideUI guide = UnityEngine.Object.FindFirstObjectByType<KeyGuideUI>();
         Check("the key guide was created on the title screen", guide != null);
 
@@ -80,6 +118,7 @@ public class AutoTestKeyGuide : MonoBehaviour
             ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-keyguide.png"));
             yield return new WaitForSecondsRealtime(0.5f);
         }
+        }
 
         Debug.Log("[AutoTest] RESULT keyguide pass=" + pass + " fail=" + fail);
         try
@@ -91,6 +130,15 @@ public class AutoTestKeyGuide : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(0.5f);
         Application.Quit();
+    }
+
+    private static bool ContainsJapanese(string text)
+    {
+        foreach (char c in text)
+        {
+            if ((c >= 0x3040 && c <= 0x30FF) || (c >= 0x4E00 && c <= 0x9FFF)) { return true; }
+        }
+        return false;
     }
 
     private void Check(string label, bool ok)

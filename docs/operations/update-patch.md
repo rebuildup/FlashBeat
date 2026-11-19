@@ -17,11 +17,17 @@
   - macOS: `FlashBeat.app/Contents/Resources/tools/update/update-macos.sh`
 - **押さなければ更新しない**: F4 / × でこのセッションは通知を隠せます。確認せずに普通終了した場合は何も適用されず、staging 済み ZIP は残ります (次回起動時にまた通知が出ます)。**`OnApplicationQuit` からの自動適用は存在しません** (issue #118 で廃止)。
 - **失敗時は現行版を残します**。SHA 不一致 / ネットワーク失敗 / 二重起動では既存配置を一切変更せず、ゲームは止めません。
-- **旧版は 1 世代だけ残します** (`FlashBeat-backup-<installKey>-<runId>`、最新のもの)。それより古い世代は次回適用時に削除します。
+- **旧版は 1 世代だけ残します** (`<install>\.flashbeat-update\backup\FlashBeat-backup-<installKey>-<runId>`、最新のもの)。それより古い世代は次回適用時に削除します。
   削除対象は **更新対象のインストール自身が所有すると確認できた退避だけ** です
-  (同じ親フォルダに別のインストールがあっても互相に消しません。Issue #185 参照)。
+  (同じインストールフォルダ内の別名領域や、所有不明の退避は消しません。Issue #185 参照)。
 - **配布 ZIP に第三者楽曲の音声・動画を含めません** (`Assets/Game/Resources/Musics`、`Assets/Game/Resources/Videos/UnityYoutube`、`loading.mp4` はビルド時に退避して除外。ゲーム内の音声は yt-dlp で解決した YouTube ストリームから再生します)。
-- 管理者権限は不要です (インストール先の親フォルダに書き込み権限があることのみ必要)。
+- 管理者権限は不要です (インストール先フォルダ内への書き込み権限があることのみ必要)。
+- **更新関連のファイルはすべてインストール先フォルダの内側に置きます** (issue #670)。
+  `%APPDATA%` / `AppData\LocalLow` / `~/Library/Application Support` / システム temp /
+  インストール先の親・兄弟フォルダには、更新処理は一切書き込みません。
+  旧レイアウト (親フォルダの `.flashbeat-update`、`FlashBeat-backup-*`、
+  `persistentDataPath` 配下の `update/`) に残るファイルは**移動も削除もせず**、
+  ログに「手動削除を推奨」と出すだけです (データ保全)。
 
 ## ビルド版識別子と Release タグ
 
@@ -60,17 +66,20 @@
 |staging 完了後|通知が『更新の準備ができました。終了して適用 [F3]』に変わり、**F3 / クリックで確認したときだけ**適用+再起動|
 |Option|staging 済みの新版があるとき「更新を適用して再起動 (<タグ>)」ボタンが出る (押すと適用+再起動)|
 |終了|**確認していない場合は何も適用されない** (staging は残り、次回また通知)。確認済み (F3 押下) のときは終了後に更新が走り、**新 exe が自動で再起動**される|
-|再起動|新版になっている。旧版は `FlashBeat-backup-*` として 1 世代残る|
+|再起動|新版になっている。旧版は `<install>\.flashbeat-update\backup\FlashBeat-backup-*` として 1 世代残る|
 
-更新の進行と結果は、アプリの永続データ領域 `persistentDataPath/update/` 配下の責務別ディレクトリに記録されます (issue #574)。
+更新の進行と結果は、**インストール先フォルダ内** の `.flashbeat-update/` 配下の責務別ディレクトリに記録されます (issue #574 / #670)。
 
 |内容|Windows|macOS|
 |---|---|---|
-|staging (ZIP + manifest)|`%USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging\`|`~/Library/Application Support/KimuraYusuke/FlashBeat/update/staging/` (persistentDataPath が旧形式の場合は `unity.KimuraYusuke.FlashBeat` 等、Unity が実際に使う場所)|
-|last-result.json|`...\update\results\last-result.json`|`.../update/results/last-result.json`|
-|updater ログ|`...\update\logs\FlashBeat-update-<runId>.log` (最新 20 世代)|同左|
+|staging (ZIP + manifest)|`<install>\.flashbeat-update\staging\`|同左 (`.app` は更新対象外のため通常は使われない)|
+|last-result.json|`<install>\.flashbeat-update\results\last-result.json`|同左|
+|updater ログ|`<install>\.flashbeat-update\logs\FlashBeat-update-<runId>.log` (最新 20 世代)|同左|
+|作業 / 退避 / updater 一時領域|`<install>\.flashbeat-update\{work,backup,updater}\`|同左|
 
-updater の作業フォルダと退避は、インストール先と同一ボリューム内のアプリ専用領域 `<インストール先の親>\.flashbeat-update\{work,backup}\` に閉じ込められ、親フォルダ直下に `FlashBeat-update.log` / `FlashBeat-update-work-*` / `FlashBeat-backup-*` は新規生成されません。旧レイアウトの残骸は、所有が確認できるものだけが新領域へ移動・削除されます。
+`persistentDataPath` (`%USERPROFILE%\AppData\LocalLow\...` / `~/Library/Application Support/...`) は
+スコア・設定など更新と無関係のデータ用であり、**更新関連アーティファクトはもう置きません** (issue #670)。
+旧レイアウトの残骸は検出して警告ログを出すだけで、移動・削除はしません。
 
 ## Update.ps1
 
@@ -84,7 +93,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\update\Update.ps1 `
 # アプリからの適用 (ユーザーが通知/Option で確認した後に UpdateChecker が起動する形)
 powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\Update.ps1" `
     -InstallDir "C:\FlashBeat" -Apply -Relaunch -WaitPid 12345 `
-    -ZipPath "$env:USERPROFILE\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging\FlashBeat-0.1.1-win64-abc1234.zip" `
+    -ZipPath "C:\FlashBeat\.flashbeat-update\staging\FlashBeat-0.1.1-win64-abc1234.zip" `
     -ExpectedSha256 1a2b3c...
 ```
 
@@ -97,7 +106,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 |`-AssetName`|`-Tag` / `-ReleaseUrl` で取得するアセット名。|
 |`-ExpectedSha256`|期待する SHA-256 (64 桁 hex)。未指定なら ZIP と同名の `.sha256` を参照。|
 |`-Repo`|GitHub リポジトリ (`owner/repo`)。未指定なら git remote から自動判定。|
-|`-WorkDir` / `-LogPath` / `-LogDir` / `-ResultDir`|作業フォルダ / ログ出力先 (ファイル or ディレクトリ) / last-result.json の出力先。未指定時は `persistentDataPath` 相当の `update\{logs,results}` と `<親>\.flashbeat-update\work\` を使う。|
+|`-WorkDir` / `-LogPath` / `-LogDir` / `-ResultDir`|作業フォルダ / ログ出力先 (ファイル or ディレクトリ) / last-result.json の出力先。**すべてインストール先フォルダ内でなければ拒否されます** (issue #670)。未指定時は `<install>\.flashbeat-update\{work,logs,results}` を使います。|
 |`-Apply`|アプリからの自動適用モード。スクリプトが配布物内 (インストール先) から起動されることを許可する。|
 |`-WaitPid <PID>`|指定 PID の FlashBeat 終了を待ってから更新 (最大 300 秒)。待機後に他の FlashBeat が実行中 (二重起動) なら中止。|
 |`-Relaunch`|更新成功後に `FlashBeat.exe` を再起動する。|
@@ -115,15 +124,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 
 ### 退避 (バックアップ) の所有権 (Issue #185)
 
-同じ親フォルダ (例: `C:\Users\rebui\Desktop`) に複数の FlashBeat インストールを
+同じインストールフォルダ内に複数の FlashBeat 配置を
 置いておくと、1 つの更新で **別のインストールの退避 (復旧データ) まで消してしまう**
 問題がありました (Issue #185)。現在の `Update.ps1` は、退避を **インストール単位** で管理します。
 
 |要素|内容|
 |---|---|
 |identity|正規化インストールパス + フォルダ名から作る安定 ID (`installKey`) + 正規名 (`FlashBeat`) と一致するか (`isCanonical`)|
-|退避フォルダ|`<親>\.flashbeat-update\backup\FlashBeat-backup-<installKey>-<runId>` (`runId` = `yyyyMMdd-HHmmss-<pid>-<乱数>`)。旧レイアウト (親フォルダ直下) の退避は所有 manifest 付きのものだけ backup 領域へ移動される|
-|作業フォルダ|`<親>\.flashbeat-update\work\FlashBeat-update-work-<installKey>-<runId>`|
+|退避フォルダ|`<install>\.flashbeat-update\backup\FlashBeat-backup-<installKey>-<runId>` (`runId` = `yyyyMMdd-HHmmss-<pid>-<乱数>`)。旧レイアウト (インストール先の親フォルダ直下) の退避は**移動も削除もされず残る** (issue #670、警告ログのみ)|
+|作業フォルダ|`<install>\.flashbeat-update\work\FlashBeat-update-work-<installKey>-<runId>`|
 |所有 manifest|退避フォルダ内の `flashbeat-backup-owner.json` (インストールのパス・安定 ID・退避した版・作成日時)|
 
 削除対象は **次の両方を満たす退避だけ** です。
@@ -141,22 +150,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\U
 - 同じインストールについては **1 世代だけ残す** 契約は変わりません
   (今回の退避 1 世代 + 自インストールの旧世代は削除)。
 
-保持・削除の判定はログ (`update\logs\FlashBeat-update-<runId>.log`) に理由付きで出ます。
+保持・削除の判定はログ (`<install>\.flashbeat-update\logs\FlashBeat-update-<runId>.log`) に理由付きで出ます。
 
 ```text
-[INFO] 退避を削除せず残します: C:\Users\rebui\Desktop\.flashbeat-update\backup\FlashBeat-backup-flashbeat-0.1.14-20261108-010101-1111-aaaaaa (理由: other-namespace)
-[INFO] 自インストールの旧世代の退避を削除しました: C:\Users\rebui\Desktop\.flashbeat-update\backup\FlashBeat-backup-flashbeat-20261108-010101-1111-aaaaaa
+[INFO] 退避を削除せず残します: C:\FlashBeat\.flashbeat-update\backup\FlashBeat-backup-flashbeat-0.1.14-20261108-010101-1111-aaaaaa (理由: other-namespace)
+[INFO] 自インストールの旧世代の退避を削除しました: C:\FlashBeat\.flashbeat-update\backup\FlashBeat-backup-flashbeat-20261108-010101-1111-aaaaaa
 ```
 
-> **注意 (初回更新だけ旧スクリプトで動く)**: アプリが起動する更新スクリプトは
-> **インストール先にある配布物内の `tools\update\Update.ps1`** です。したがって
-> **この修正が入る前のビルドから新ビルドへ更新する 1 回だけ** は旧仕様で動き、
-> その 1 回だけ旧形式の退避 (`FlashBeat-backup-<stamp>`、親フォルダ直下) が作られます。
-> 次回の更新 (新スクリプト) が、所有 manifest 付きの旧退避を `.flashbeat-update\backup\`
-> へ移動します (manifest 無しの旧形式は所有不明として親フォルダに残ります)。
-> 2 回目以降の更新は新仕様 (インストール単位のスコープ) です。
-> 展示機では初回更新の前に、隣のインストールの退避があれば手動で退避させて
-> ください (旧形式の退避は新仕様でも自動削除されません)。
+> **注意 (旧レイアウトの残骸)**: issue #670 以降、更新処理はインストール先の
+> **親フォルダには一切書き込みません**。以前のバージョンが作った
+> `<親>\.flashbeat-update\` / `<親>\FlashBeat-backup-*` / `<親>\FlashBeat-update*.log` は
+> 検出して「手動削除を推奨」の警告をログに出すだけで、**移動も削除もしません**。
+> 不要であれば運営者が手動で消してください (中身は旧版の復旧データなので、
+> 消す前に必要か確認してください)。
 
 ### 検証 (自動テスト)
 
@@ -191,20 +197,25 @@ bash tools/update/tests/test-update-macos.sh
 ## update-macos.sh
 
 `tools/update/update-macos.sh` は macOS 版のアップデータです。配布 ZIP では
-`FlashBeat.app/Contents/Resources/tools/update/update-macos.sh` に同梱され、
-アプリの適用フローは配布物内のスクリプトを `/bin/bash` で起動します
-(バンドル置換で実行中スクリプトが消えないよう、UpdateChecker が `persistentDataPath/update/updater/` 配下へコピーしてから実行。コピーした一時ディレクトリは updater が終了時に自分で消します)。
+`FlashBeat.app/Contents/Resources/tools/update/update-macos.sh` に同梱されます。
+
+> **重要 (issue #670)**: `.app` バンドルは署名済みで、バンドル内への書き込みは
+> 署名を壊すうえ境界モデル (「更新ファイルはインストール先フォルダ内」) とも
+> 両立しないため、**`update-macos.sh` は `.app` を `-InstallDir` に受け取ると
+> 安全側で拒否します** (非ゼロ終了・結果ファイルも境界外には書きません)。
+> macOS 版のアプリ内更新フローも `UpdatePaths` がインストール先を解決できない
+> (null) ため staging 自体を行いません。**macOS の更新は手動手順
+> (「自動更新が不調なときの手動手順 > macOS」) を使ってください。**
+> `.app` 以外の macOS レイアウトが必要になった場合は、署名・境界の両面から
+> 別途設計が必要です。
+
+以下はスクリプトの仕様 (非 `.app` レイアウト / テスト用途) です。
 
 ```sh
-# アプリからの適用 (ユーザーが通知 / Option で確認した後に UpdateChecker が起動する形)
-/bin/bash "$HOME/Desktop/FlashBeat.app/Contents/Resources/tools/update/update-macos.sh" \
-    -InstallDir "$HOME/Desktop/FlashBeat.app" -Apply -Relaunch -WaitPid 12345 \
-    -ZipPath "$HOME/Library/Application Support/KimuraYusuke/FlashBeat/update/staging/FlashBeat-0.1.14-macos-abc1234.zip" \
-    -ExpectedSha256 1a2b3c...
-
 # 運営者が手動で適用 (タグ指定。手動実行は明示的に許可する)
+# ※ -InstallDir に .app を渡すと拒否されます。非 .app レイアウト専用です。
 FLASHBEAT_UPDATE_ALLOW_MANUAL=1 /bin/bash ./update-macos.sh \
-    -InstallDir "$HOME/Desktop/FlashBeat.app" -Tag v0.1.14-macos-abc1234
+    -InstallDir "$HOME/Desktop/FlashBeat" -Tag v0.1.14-macos-abc1234
 ```
 
 ### パラメータ
@@ -216,28 +227,36 @@ FLASHBEAT_UPDATE_ALLOW_MANUAL=1 /bin/bash ./update-macos.sh \
 |`-AssetName`|`-Tag` で取得するアセット名 (既定 `FlashBeat-<tag>.zip`)。|
 |`-ExpectedSha256`|期待する SHA-256 (64 桁 hex)。未指定なら ZIP と同名の `.sha256` を参照。|
 |`-Repo`|GitHub リポジトリ (`owner/repo`)。既定 `rebuildup/FlashBeat`。|
-|`-ResultDir`|`last-result.json` の出力先 (既定 `<persistentDataPath>/update/results`)。|
-|`-LogDir` / `-LogPath`|ログ出力先ディレクトリ / ファイル (既定 `<persistentDataPath>/update/logs/FlashBeat-update-<runId>.log`、最新 20 世代を保持)。|
+|`-ResultDir`|`last-result.json` の出力先 (既定 `<install>/.flashbeat-update/results`)。**インストール先フォルダ内でなければ拒否**。|
+|`-LogDir` / `-LogPath`|ログ出力先ディレクトリ / ファイル (既定 `<install>/.flashbeat-update/logs/FlashBeat-update-<runId>.log`、最新 20 世代を保持)。**インストール先フォルダ内でなければ拒否**。|
 |`-Apply`|アプリからの適用であることを示す。アプリは常に付ける。|
 |`-WaitPid <PID>`|指定 PID の FlashBeat 終了を待ってから更新 (最大 300 秒)。待機後に他の FlashBeat が実行中なら中止。|
-|`-Relaunch`|更新成功後に新しい `FlashBeat.app` を `open -n` で起動する。|
+|`-Relaunch`|更新成功後に新しい配置を起動する。|
 
 ### 動作
 
+0. `.app` を `-InstallDir` に受け取った場合は**ここで拒否**します (終了コード 1、
+   境界外への書き込みは一切行いません)。
 1. `-WaitPid` 指定時はそのプロセスの終了を待ちます (二重起動なら終了コード 6 で中止)。
 2. ZIP を取得し、SHA-256 を検証します (不一致なら終了コード 3 で中止)。
-3. `ditto -x -k` で一時ディレクトリに展開し、`FlashBeat.app/Contents/MacOS/FlashBeat` と
-   `Contents/Resources/Data` を検査します。
-4. `FlashBeat.app` を `<親>/.flashbeat-update/backup/FlashBeat-backup-<installKey>-<runId>/FlashBeat.app`
-   に退避してから新しい `.app` を配置します (失敗時は退避から復元)。
+   展開物にシンボリックリンク等のエントリがあれば拒否します (終了コード 4)。
+3. `ditto -x -k` で `<install>/.flashbeat-update/work/` 配下の一時ディレクトリに展開し、
+   実行ファイルとデータフォルダを検査します。
+4. インストール先の中身を `<install>/.flashbeat-update/backup/FlashBeat-backup-<installKey>-<runId>/`
+   へ退避してから新しい配置を置きます (失敗時は退避から復元)。
+   切替時に `.flashbeat-update` 自身は退避対象から**除外**します
+   (退避先がその内側にあるため、これを含めると backup が自身の中に移動して失敗します)。
    退避には所有 manifest (`flashbeat-backup-owner.json`、installKey + installPath) が付き、
    古い退避は Windows 版と同じ「名前空間 + manifest 一致」の判定で 1 世代だけ残します
-   (他インストールの退避・所有不明のものは保持)。作業フォルダは `<親>/.flashbeat-update/work/`、
-   実行ログは `<persistentDataPath>/update/logs/` に置かれ、親フォルダ直下に `FlashBeat-*` は残りません。
-5. `-Relaunch` 指定時は新しい `FlashBeat.app` を起動します。
+   (他インストールの退避・所有不明のものは保持)。
+   実行ログは `<install>/.flashbeat-update/logs/` に置かれ、
+   インストール先の**外**に `FlashBeat-*` や `.flashbeat-update` は新規生成されません
+   (旧レイアウトの残骸は検出して警告ログのみ、移動・削除はしません)。
+5. `-Relaunch` 指定時は新しい配置を起動します。
 
 終了コードは `Update.ps1` と同じ (0 成功 / 1 パラメータ / 2 通信 / 3 SHA / 4 ZIP / 5 内容 / 6 実行中 / 7 切替)。
-結果は成功・失敗にかかわらず `last-result.json` に書かれ、次回起動時の Title 通知に使われます。
+結果は成功・失敗にかかわらず `last-result.json` に書かれますが、**インストール先フォルダ内にのみ**
+書き込みます (境界外の `-ResultDir` は拒否)。
 
 ## 自動更新が不調なときの手動手順
 
@@ -254,18 +273,19 @@ FLASHBEAT_UPDATE_ALLOW_MANUAL=1 /bin/bash ./update-macos.sh \
 2. `shasum -a 256 -c FlashBeat-<タグ>.zip.sha256` で照合する。
 3. アプリを終了 → 現在の `FlashBeat.app` を退避 → ZIP を展開し、中の `FlashBeat.app` を置く。
 4. `open FlashBeat.app` で起動して題名画面まで進むことを確認。
-   自動更新を使う場合は `update-macos.sh -InstallDir <FlashBeat.app> -Tag <タグ>` でもよい。
+   (`update-macos.sh` は `.app` を更新対象として受け付けないため、自動更新は使えません。issue #670)
 
 ## 運用上の注意
 
 - ゲームフォルダ内に運営者が別途置いたファイルは、更新後に残りません (フォルダ全体 / `.app` 全体を置換するため)。設定・スコアの保存先は Windows: `%USERPROFILE%\AppData\LocalLow\...`、macOS: `~/Library/Application Support/...` 側なので失われません。
 - 更新の適用はユーザーが通知 (F3 / クリック) や Option ボタンで確認したときだけ行われる。終了の仕方 (通常終了 / タスクマネージャー / 強制終了) は適用の可否に影響しない。
 - 配布 ZIP に `FlashBeat_BurstDebugInformation_DoNotShip/` は含めません (Unity の指示による ship 対象外)。
-- macOS の旧版は `<.app の親>/.flashbeat-update/backup/FlashBeat-backup-<installKey>-<runId>/FlashBeat.app` として 1 世代残ります (所有 manifest 付き)。所有が確認できない旧形式の退避 (`FlashBeat-backup-*.app`、親フォルダ直下) は自動削除されず残ります。
+- macOS の旧版は `<install>/.flashbeat-update/backup/FlashBeat-backup-<installKey>-<runId>/` として 1 世代残ります (所有 manifest 付き、非 `.app` レイアウトの場合)。所有が確認できない旧形式の退避は自動削除されず残ります。`.app` の更新自体は issue #670 で拒否されるため、macOS は手動手順で更新します。
 - テスト用 Release (prerelease) は、**stable チャンネル (展示用) の更新候補にはなりません**。検証したいときだけ preview チャンネルでビルドするか、運営者が `Update.ps1 -Tag` / `update-macos.sh -Tag` を手動実行します。
 
 ## 関連
 
+- アプリ全体の書き込み境界の監査 (更新以外の書き込み先の分類と保証範囲): [`app-write-boundary-audit.md`](app-write-boundary-audit.md)
 - Release ZIP と SHA-256 の配布仕様: Issue #35
 - 実機プレイ / 再起動 / API 疎通の証拠ゲート: Issue #22
 - 実装: `Assets/Game/Scripts/Update/UpdateChecker.cs` (起動時確認・ユーザー起点のダウンロード/適用) と `Assets/Game/Scripts/UI/UpdateNoticeUI.cs` (Title の通知)、`Assets/Editor/BuildScript.cs` (版識別子の埋め込み・メディア除外・スクリプト同梱)、`tools/update/update-macos.sh` (macOS の適用)

@@ -97,11 +97,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             var music = UnityEngine.Object.FindFirstObjectByType<MusicManager>();
             if (music != null)
             {
-                var src = music.GetComponent<AudioSource>();
-                if (src != null)
-                {
-                    src.volume = GManager.mainVolume;
-                }
+                // Issue #681 review: 演奏音源は audioS と streamAudioSource
+                // (StreamSeparate) の 2 系統。片方だけ書き換えると
+                // StreamSeparate 再生中に音量が追従しない。
+                music.ApplyMainVolume();
             }
 
             var judge = UnityEngine.Object.FindFirstObjectByType<Judge>();

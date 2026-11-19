@@ -21,12 +21,16 @@ namespace FlashBeat.Tests
         private V6GameHudView view;
         private int originalScore;
         private int originalCombo;
+        private int originalMiss;
+        private int originalComboMilestones;
 
         [SetUp]
         public void SetUp()
         {
             originalScore = GManager.score;
             originalCombo = GManager.combo;
+            originalMiss = GManager.miss;
+            originalComboMilestones = GManager.comboMilestones;
 
             canvasGo = new GameObject("V6GameHudViewTests Canvas", typeof(Canvas));
             var canvasRect = (RectTransform)canvasGo.transform;
@@ -42,6 +46,8 @@ namespace FlashBeat.Tests
         {
             GManager.score = originalScore;
             GManager.combo = originalCombo;
+            GManager.miss = originalMiss;
+            GManager.comboMilestones = originalComboMilestones;
 
             if (canvasGo != null)
             {
@@ -126,6 +132,33 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// Issue #673: miss > 0 で Combo Status ブロックが非表示になっても、
+        /// 節目ボーナスの獲得ポップアップは右コラムに表示され続ける。
+        /// milestoneBonusText の親が comboStatusBlock ではないことも固定する。
+        /// </summary>
+        [Test]
+        public void MilestoneBonus_StaysVisibleAfterAMiss()
+        {
+            GManager.miss = 1; // ShowComboStatus は miss>0 で false → ブロック非表示
+            GManager.comboMilestones = 1; // ビュー初期値 (0) からの増分で表示を起こす
+
+            view.Refresh();
+
+            var status = view.ComboStatusBlockForAudit;
+            Assert.IsNotNull(status, "Combo Status ブロックが無い");
+            Assert.IsFalse(status.activeSelf, "miss > 0 では Combo Status は非表示");
+
+            var bonus = view.MilestoneBonusForAudit;
+            Assert.IsNotNull(bonus, "節目ボーナス表示が無い");
+            Assert.IsTrue(bonus.activeInHierarchy,
+                "miss > 0 でも節目ボーナスは表示される (Issue #673)");
+            Assert.AreNotSame(status.transform, bonus.transform.parent,
+                "節目ボーナスの親は Combo Status ブロックではない");
+            Assert.AreEqual("Right Column", bonus.transform.parent.name,
+                "節目ボーナスは常時アクティブな Right Column の子");
+        }
+
+        /// <summary>
         /// 「+ COMBO BONUS」「次のボーナス」の block は構築しない (issue-162 B-4 再照合)。
         /// 表示値 (BonusTotal = combo*50 の近似 / NextBonusReward = milestone*10 の仮式)
         /// は JudgeScoreboard の配点に存在しない加点で、実スコアと異なる偽値だった。
@@ -184,6 +217,14 @@ namespace FlashBeat.Tests
             var field = typeof(V6GameHudView).GetField("lyricBox",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Assert.IsNotNull(field, "V6GameHudView.lyricBox が見つからない");
+            return (GameObject)field.GetValue(target);
+        }
+
+        private static GameObject HudFieldOf(V6GameHudView target, string name)
+        {
+            var field = typeof(V6GameHudView).GetField(name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.IsNotNull(field, $"V6GameHudView.{name} が見つからない");
             return (GameObject)field.GetValue(target);
         }
 
@@ -296,6 +337,57 @@ namespace FlashBeat.Tests
                 GManager.songID = originalSongId;
                 GManager.played = originalPlayed;
                 GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #674: 歌詞・準備 (Start Prompt)・カウントダウン・曲終了の
+        /// 全状態で歌詞スロットの RectTransform サイズ・位置が同一であること。
+        /// 各解像度プロファイル (FHD / 2K / Mac) で実構築して検証する。
+        /// </summary>
+        [Test]
+        public void Lyrics_SlotRect_IsIdenticalAcrossAllStates()
+        {
+            var cases = new (float w, float h)[]
+            {
+                (1920f, 1080f),
+                (2560f, 1440f),
+                (2560f, 1664f),
+            };
+
+            foreach (var (w, h) in cases)
+            {
+                var canvas = new GameObject($"V6GameHudViewTests Canvas {w}x{h}", typeof(Canvas));
+                var canvasRect = (RectTransform)canvas.transform;
+                canvasRect.sizeDelta = new Vector2(w, h);
+                V6GameHudView stateView = null;
+                try
+                {
+                    stateView = V6GameHudView.Create(canvasRect);
+                    Assert.AreEqual(w, stateView.CanvasSizeForAudit.x, 1f,
+                        $"{w}x{h}: Canvas サイズがプロファイルに反映されていない");
+                    Assert.AreEqual(h, stateView.CanvasSizeForAudit.y, 1f);
+
+                    // 歌詞ボックス / 再開カウントダウン / 曲終了オーバーレイの
+                    // 3 状態は同じスロット RectTransform を共有する。
+                    var lyricRt = HudFieldOf(stateView, "lyricBox").GetComponent<RectTransform>();
+                    var countdownRt = HudFieldOf(stateView, "countdownOverlay").GetComponent<RectTransform>();
+                    var endRt = HudFieldOf(stateView, "endOverlay").GetComponent<RectTransform>();
+
+                    Assert.AreEqual(lyricRt.sizeDelta, countdownRt.sizeDelta,
+                        $"{w}x{h}: カウントダウンのスロットサイズが歌詞と違う");
+                    Assert.AreEqual(lyricRt.sizeDelta, endRt.sizeDelta,
+                        $"{w}x{h}: 曲終了のスロットサイズが歌詞と違う");
+                    Assert.AreEqual(lyricRt.anchoredPosition, countdownRt.anchoredPosition,
+                        $"{w}x{h}: カウントダウンのスロット位置が歌詞と違う");
+                    Assert.AreEqual(lyricRt.anchoredPosition, endRt.anchoredPosition,
+                        $"{w}x{h}: 曲終了のスロット位置が歌詞と違う");
+                }
+                finally
+                {
+                    if (stateView != null) Object.DestroyImmediate(stateView.gameObject);
+                    Object.DestroyImmediate(canvas);
+                }
             }
         }
 

@@ -371,4 +371,103 @@ public class JudgeQueueTests
         Assert.AreEqual(LongNote.TYPE_HOLD, missed.Type);
         Assert.IsFalse(queue.IsHolding(3));
     }
+
+    // ------------------------------------------------------------------
+    // Issue #641: AddRange (batch add + stable sort, EnsureQueue の O(n²) 解消)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// AddRange の結果が Add の繰り返しと一致すること (降順・同時刻の混在を含む)。
+    /// 同一時刻は追加順 (安定) を保つ。
+    /// </summary>
+    [Test]
+    public void AddRange_MatchesRepeatedAdd_IncludingEqualTimes()
+    {
+        // 降順 + 同時刻タイ + 複数レーンの編集順。
+        var entries = new[]
+        {
+            Tap(4, 9.0f, 0),
+            Tap(4, 1.0f, 1),
+            Tap(4, 9.0f, 2),   // 9.0 の 2 件目: 追加順で後
+            Tap(4, 5.0f, 3),
+            Tap(4, 1.0f, 4),   // 1.0 の 2 件目
+            Tap(2, 3.0f, 5),
+            Hold(4, 7.0f, 8.0f, 6),
+        };
+
+        JudgeQueue byAdd = new JudgeQueue(Lanes);
+        foreach (var e in entries) byAdd.Add(e);
+
+        JudgeQueue byRange = new JudgeQueue(Lanes);
+        byRange.AddRange(entries);
+
+        // レーン 4 の時刻順: 1.0(idx1), 1.0(idx4), 5.0(idx3), 7.0(idx6),
+        // 9.0(idx0), 9.0(idx2)。同時刻は追加順。
+        float[] expectedTimes = { 1.0f, 1.0f, 5.0f, 7.0f, 9.0f, 9.0f };
+        int[] expectedSources = { 1, 4, 3, 6, 0, 2 };
+
+        // TryPress は「押した時刻に最も近い未判定」を返すので、先頭から
+        // 順に消費して並びを確認する。HOLD は保持に入るとレーンが塞がるので、
+        // すぐ終端で解放して次の押下を通す。Add の繰り返し版とも同じ順で
+        // なければならない。
+        for (int i = 0; i < expectedTimes.Length; i++)
+        {
+            Assert.IsTrue(byRange.TryPress(4, expectedTimes[i], LongNote.BAD_WINDOW,
+                out JudgeQueue.NoteEntry hit, out _), $"press {i}");
+            Assert.AreEqual(expectedSources[i], hit.SourceIndex, $"order {i}");
+            Assert.IsTrue(byAdd.TryPress(4, expectedTimes[i], LongNote.BAD_WINDOW,
+                out JudgeQueue.NoteEntry hitAdd, out _), $"add press {i}");
+            Assert.AreEqual(hit.SourceIndex, hitAdd.SourceIndex, $"add order {i}");
+
+            if (hit.Type == LongNote.TYPE_HOLD)
+            {
+                byRange.BeginHold(hit);
+                byAdd.BeginHold(hitAdd);
+                byRange.UpdateHold(4, hit.EndTime + LongNote.GREAT_WINDOW + 0.1f, false, LongNote.GREAT_WINDOW, out _);
+                byAdd.UpdateHold(4, hitAdd.EndTime + LongNote.GREAT_WINDOW + 0.1f, false, LongNote.GREAT_WINDOW, out _);
+            }
+            else
+            {
+                byRange.ConsumeTap(hit);
+                byAdd.ConsumeTap(hitAdd);
+            }
+        }
+        Assert.AreEqual(0, byRange.PendingCount(4));
+        Assert.AreEqual(byAdd.TotalPendingCount, byRange.TotalPendingCount);
+        Assert.AreEqual(1, byRange.PendingCount(2));
+    }
+
+    /// <summary>
+    /// 大規模・降順譜面でも AddRange が全ノーツを時刻順に保持すること
+    /// (EnsureQueue の二乗コスト解消の回帰固定。結果は Add と同一でなければ
+    /// ならない)。
+    /// </summary>
+    [Test]
+    public void AddRange_LargeDescendingChart_KeepsTimeOrder()
+    {
+        const int count = 5000;
+        var entries = new JudgeQueue.NoteEntry[count];
+        for (int i = 0; i < count; i++)
+        {
+            // 降順 (時刻が減っていく編集順) + 同一レーン集中。
+            entries[i] = Tap(0, count - i, i);
+        }
+
+        JudgeQueue queue = new JudgeQueue(Lanes);
+        queue.AddRange(entries);
+
+        Assert.AreEqual(count, queue.PendingCount(0));
+        // 先頭 (最小時刻 = SourceIndex count-1) から順に Miss 判定で取り出す。
+        // step 回取り出した後の先頭の時刻は step + 1 なので、その Bad 窓を
+        // ほんの少し越えた時刻で Miss を確認する。
+        for (int step = 0; step < count; step++)
+        {
+            float mediaTime = step + 1f + LongNote.BAD_WINDOW + 0.01f;
+            Assert.IsTrue(queue.TryPeekMiss(0, mediaTime, LongNote.BAD_WINDOW,
+                out JudgeQueue.NoteEntry missed), $"miss {step}");
+            Assert.AreEqual(count - 1 - step, missed.SourceIndex, $"order {step}");
+            queue.Remove(missed);
+        }
+        Assert.AreEqual(0, queue.TotalPendingCount);
+    }
 }

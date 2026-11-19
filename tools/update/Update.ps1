@@ -11,9 +11,8 @@
         適用後の起動確認は運営者が FlashBeat.exe を直接実行します。
 
     (2) アプリからの自動適用 (-Apply): アプリが起動時に Releases latest を確認し、
-        新版があれば <persistentDataPath>\update\staging (既定
-        %USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging) に
-        ZIP + .sha256 を取得済み。
+        新版があれば <install>\.flashbeat-update\staging (issue #670 で
+        インストール先内に集約) に ZIP + .sha256 を取得済み。
         アプリ終了時に本スクリプトが -Apply -WaitPid <PID> -Relaunch で分離プロセス起動され、
         「アプリ終了待ち → 別ディレクトリ展開 → 検証 → 一括切替 → 新 exe 再起動」を行います。
         運営者は exe を直接起動するだけで、再起動後には新版になっています。
@@ -21,10 +20,16 @@
     共通の保証:
       - 通信失敗 / ZIP 破損 / ダイジェスト不一致 / 内容不足 / 二重起動のいずれかでは
         既存配置を一切変更せず現行版を残します (ゲームは止めません)。
-      - すべての終了経路で <update>\results\last-result.json に結果を書きます
+      - すべての終了経路で <install>\.flashbeat-update\results\last-result.json に結果を書きます
         (result: success / failed / aborted + 終了コード + 日本語の理由。アプリが次回起動時に
         読んで Title 画面で利用者へ通知します。issue #125)。
-      - 適用成功後、旧版は 1 世代だけ残し (FlashBeat-backup-*)、それより古い世代は削除します。
+      - 適用成功後、旧版は 1 世代だけ残し (backup 領域の FlashBeat-backup-*)、それより古い世代は削除します。
+      - issue #670: アプリが制御するファイル操作 (ダウンロード・展開・退避・ログ・結果・
+        復旧・一時ファイル) はすべてインストール先フォルダ内の .flashbeat-update\ に限定します。
+        AppData / persistentDataPath / system temp / インストール先の親・兄弟フォルダへの
+        書き込みは行いません。パス境界は実行時に検証し、外を指す指定は拒否します。
+        旧レイアウト (<親>\.flashbeat-update や FlashBeat-backup-* 等) の残骸は
+        移動も削除もせず、ログで手動削除を推奨するだけにします (データ保全)。
     ロールバック UI・常設ランチャー・独自更新サーバーは実装していません。
 
     運用手順: docs/operations/update-patch.md
@@ -51,20 +56,22 @@
     GitHub リポジトリ (owner/repo)。未指定時は本スクリプトのリポジトリから自動判定します。
 
 .PARAMETER WorkDir
-    ダウンロード・展開に使う作業フォルダ。未指定時はインストール先と同一ボリューム内の
-    アプリ専用領域 <install の親>\.flashbeat-update\work\ 配下を生成します (issue #574)。
+    ダウンロード・展開に使う作業フォルダ。未指定時は <install>\.flashbeat-update\work\
+    配下に実行ごとのフォルダを生成します (issue #574 / #670)。
+    インストール先フォルダ外を指す指定は拒否します (境界はインストール先内のみ)。
 
 .PARAMETER LogPath
     運営者向けログの出力先。未指定時は -LogDir 配下に実行ごとのログを作ります
-    (既定の LogDir は persistentDataPath 相当の update\logs。世代管理あり)。
+    (既定の LogDir は <install>\.flashbeat-update\logs。世代管理あり)。
 
 .PARAMETER ResultDir
-    last-result.json の出力先ディレクトリ。未指定時は persistentDataPath 相当の
-    update\results (Windows: %USERPROFILE%\AppData\LocalLow\KimuraYusuke\FlashBeat\update\results)。
+    last-result.json の出力先ディレクトリ。未指定時は <install>\.flashbeat-update\results。
     アプリ (UpdateChecker) は常にこの値を明示して起動します。
+    インストール先フォルダ外を指す指定は拒否します。
 
 .PARAMETER LogDir
-    updater ログの出力先ディレクトリ。未指定時は ResultDir と同じ update 領域の logs。
+    updater ログの出力先ディレクトリ。未指定時は ResultDir と同じ update 領域の logs
+    (<install>\.flashbeat-update\logs)。
     1 実行 = 1 ファイル (FlashBeat-update-<runId>.log) で、最新 20 世代だけ残します。
 
 .PARAMETER Apply
@@ -92,7 +99,7 @@
     # アプリからの自動適用 (UpdateChecker が終了時に起動する形)
     powershell -NoProfile -ExecutionPolicy Bypass -File "C:\FlashBeat\tools\update\Update.ps1" `
         -InstallDir "C:\FlashBeat" -Apply -Relaunch -WaitPid 12345 `
-        -ZipPath "$env:USERPROFILE\AppData\LocalLow\KimuraYusuke\FlashBeat\update\staging\FlashBeat-0.1.1-win64-abc1234.zip"
+        -ZipPath "C:\FlashBeat\.flashbeat-update\staging\FlashBeat-0.1.1-win64-abc1234.zip"
 #>
 [CmdletBinding()]
 param(
@@ -133,6 +140,11 @@ $ExitSwap     = 7   # 切替 / ファイル操作の失敗
 
 $script:LogFile = $null
 $script:WorkRoot = $null
+# issue #670 の境界: アプリが制御する全ファイル操作はインストール先フォルダ内の
+# .flashbeat-update\ に限定する。InstallRootLexical は関数冒頭で InstallDir から
+# 早期に確定させ、結果ファイルの境界検証 (Write-UpdateResult) に使う。
+$script:InstallRootLexical = $null
+$script:FlashBeatUpdateDirName = '.flashbeat-update'
 # 結果ファイル (last-result.json) 用の記録 (issue #125)。把握できた時点で埋める。
 $script:ResultFromVersion = ''
 $script:ResultToVersion = ''
@@ -165,8 +177,10 @@ function Get-UpdateVersionFromText {
 
 function Write-UpdateResult {
     # アプリが次回起動時に読む結果ファイル (issue #125):
-    # <persistentDataPath>/update/results/last-result.json (issue #574 で責務別ディレクトリ化)
+    # <install>\.flashbeat-update\results\last-result.json (issue #574 / #670)
     # すべての終了経路から一度だけ呼ぶ。書けない場合も更新処理自体は失敗させない (best-effort)。
+    # issue #670: 出力先がインストール先フォルダの外 (または reparse point 経由で外に
+    # 出る) 場合は書き込まない — 境界外への書き込みは「更新処理の失敗」より優先して拒否する。
     param(
         [Parameter(Mandatory = $true)][ValidateSet('success', 'failed', 'aborted')][string]$Result,
         [Parameter(Mandatory = $true)][int]$Code,
@@ -174,9 +188,19 @@ function Write-UpdateResult {
     )
     try {
         # $ResultDir はスクリプトのパラメータ (Invoke-FlashBeatUpdateMain 内で参照できる)。
-        # 未指定かつ既定も解決できない環境 (USERPROFILE 無し等) では書かない。
+        # 未指定かつ既定も解決できない環境 (InstallDir が空等) では書かない。
         if ([string]::IsNullOrWhiteSpace($ResultDir)) { return }
-        $dir = $ResultDir
+        $dir = [System.IO.Path]::GetFullPath($ResultDir)
+        if ($script:InstallRootLexical) {
+            if (-not (Test-PathInside -Path $dir -Root $script:InstallRootLexical)) {
+                Write-OpLog -Level 'WARN' -Message ('結果ファイルの出力先がインストール先フォルダ外のため書き込みを省略しました: {0}' -f $dir)
+                return
+            }
+            if (Test-FlashBeatPathHasReparsePoint -Path $dir -Root $script:InstallRootLexical) {
+                Write-OpLog -Level 'WARN' -Message ('結果ファイルの出力先が reparse point を含むため書き込みを省略しました: {0}' -f $dir)
+                return
+            }
+        }
         $path = Join-Path $dir 'last-result.json'
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
         $payload = [ordered]@{
@@ -203,11 +227,62 @@ function Test-PathInside {
     # True only when $Path is the same as, or below, $Root. A plain StartsWith() is wrong: 'C:\x\FlashBeat-update-work'
     # starts with 'C:\x\FlashBeat' although it is a sibling folder, which aborted every update of an install
     # folder named FlashBeat (found on the exhibit machine, v0.1.2 -> v0.1.3).
+    # 注意: これは「字句上」の包含判定。シンボリックリンク / junction 経由の脱出は
+    # Test-FlashBeatPathHasReparsePoint で別途検査する (issue #670)。
     param([string]$Path, [string]$Root)
     if (-not $Path -or -not $Root) { return $false }
-    $p = ([System.IO.Path]::GetFullPath($Path)).TrimEnd('\', '/') + '\'
-    $r = ([System.IO.Path]::GetFullPath($Root)).TrimEnd('\', '/') + '\'
+    $sep = [System.IO.Path]::DirectorySeparatorChar
+    $p = ([System.IO.Path]::GetFullPath($Path)).TrimEnd('\', '/') + $sep
+    $r = ([System.IO.Path]::GetFullPath($Root)).TrimEnd('\', '/') + $sep
     return $p.StartsWith($r, [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Test-FlashBeatPathHasReparsePoint {
+    # $Path の既存の祖先 (インストール先ルート直下から $Path まで) に reparse point
+    # (シンボリックリンク / junction / マウントポイント) が含まれるか。
+    # 含まれる場合、字句上インストール先内に見えるパスが実際には外を指しうるため、
+    # 境界検証 (issue #670) では「内部とはみなさない」= 書き込みを拒否する。
+    # 存在しない末尾要素は検査しない (これから作るものは reparse point になりえない)。
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Root
+    )
+    $full = [System.IO.Path]::GetFullPath($Path)
+    $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+    $sep = [System.IO.Path]::DirectorySeparatorChar
+    if ($full -ne $rootFull -and -not $full.StartsWith($rootFull + $sep, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+    $rel = $full.Substring($rootFull.Length).TrimStart('\', '/')
+    if ([string]::IsNullOrEmpty($rel)) { return $false }
+    $current = $rootFull
+    foreach ($seg in ($rel -split '[\\/]')) {
+        if ([string]::IsNullOrEmpty($seg)) { continue }
+        $current = Join-Path $current $seg
+        if (-not (Test-Path -LiteralPath $current)) { break }
+        $item = Get-Item -LiteralPath $current -Force -ErrorAction SilentlyContinue
+        if ($null -ne $item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-FlashBeatInsideInstallRoot {
+    # issue #670 の境界判定: $Path がインストール先フォルダ内であり、
+    # かつ reparse point 経由で外に出ないこと。「内部に書いてよい」パスだけ true。
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$InstallRoot
+    )
+    if (-not (Test-PathInside -Path $Path -Root $InstallRoot)) { return $false }
+    if (Test-FlashBeatPathHasReparsePoint -Path $Path -Root $InstallRoot) { return $false }
+    return $true
+}
+
+function Get-FlashBeatUpdateRootPath {
+    # issue #670: アプリが制御する更新データのルートはインストール先フォルダ内の
+    # .flashbeat-update\ (work / backup / logs / results / staging を内包する)。
+    param([Parameter(Mandatory = $true)][string]$InstallDir)
+    return (Join-Path ([System.IO.Path]::GetFullPath($InstallDir)) $script:FlashBeatUpdateDirName)
 }
 
 # ============================================================
@@ -440,92 +515,34 @@ function Write-FlashBeatOwnerManifest {
     return $path
 }
 
-function Get-FlashBeatUpdateDataDir {
-    # Unity スタンドアロンの persistentDataPath 相当の更新データルート (issue #574)。
-    # Windows: %USERPROFILE%\AppData\LocalLow\<companyName>\<productName>\update
-    #   (ProjectSettings.asset: companyName=KimuraYusuke / productName=FlashBeat)
-    # このスクリプトは Windows インストール向けなので、Windows 以外 (pwsh on macOS 等の
-    # テスト環境) では $null を返し、呼び出し側は別の既定値にフォールバックする。
-    if ($IsWindows -eq $false) { return $null }
-    $profile = $env:USERPROFILE
-    if ([string]::IsNullOrWhiteSpace($profile)) { return $null }
-    $root = Join-Path (Join-Path (Join-Path $profile 'AppData') 'LocalLow') 'KimuraYusuke\FlashBeat'
-    return (Join-Path $root 'update')
-}
-
-function Test-FlashBeatScopedWorkName {
-    # 自分 (InstallKey) の名前空間内の作業フォルダ名かどうか。
-    # 旧形式・他インストールの作業フォルダは false (所有不明として触らない)。
+function Write-FlashBeatLegacyArtifactNotice {
+    # issue #670: 旧レイアウト (issue #574 の <install の親>\.flashbeat-update\ と、
+    # さらに古い <親> 直下の FlashBeat-update.log / FlashBeat-update-work-* /
+    # FlashBeat-backup-*) はすべて「アプリの境界外」にある。
+    # 境界外のファイルをアプリが移動・削除することはデータ保全の観点で許容しないため、
+    # ここでは検出と「手動削除を推奨する」旨の WARN ログだけを行い、一切触らない。
+    #   検出対象: <親>\.flashbeat-update\ / <親>\FlashBeat-update.log /
+    #             <親>\FlashBeat-update-work-* / <親>\FlashBeat-backup-*
+    # 失敗しても更新処理は続行する (best-effort)。
     param(
-        [Parameter(Mandatory = $true)][string]$Name,
-        [Parameter(Mandatory = $true)][string]$InstallKey
-    )
-    $prefix = 'FlashBeat-update-work-' + $InstallKey + '-'
-    if (-not $Name.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { return $false }
-    $rest = $Name.Substring($prefix.Length)
-    return [regex]::IsMatch($rest, '^\d{8}-\d{6}-\d+-[0-9a-f]{4,8}$')
-}
-
-function Move-FlashBeatLegacyArtifacts {
-    # 旧レイアウト (issue #574 より前: <install の親> 直下の FlashBeat-update.log /
-    # FlashBeat-update-work-* / FlashBeat-backup-*) の残骸を、新しいアプリ専用領域へ
-    # 「所有が確認できるものだけ」移す/消す。無関係・所有不明のものは触らない。
-    #   - FlashBeat-update.log            → <LogDir>\FlashBeat-update-legacy.log
-    #   - FlashBeat-update-work-<自key>-* → 削除 (作業フォルダは一時物・自名前空間のみ)
-    #   - FlashBeat-backup-* (manifest 有) → <UpdateRoot>\backup\ へ移動
-    #     (manifest 無しの旧形式退避は所有不明なので親フォルダに残す)
-    # すべて best-effort: 失敗しても更新処理は続行する。
-    param(
-        [Parameter(Mandatory = $true)][string]$ParentDir,
-        [Parameter(Mandatory = $true)]$Identity,
-        [Parameter(Mandatory = $true)][string]$UpdateRoot,
-        [string]$LogDir = ''
+        [Parameter(Mandatory = $true)][string]$ParentDir
     )
     try {
-        # 旧ログ → ログ領域 (名前で所有が確認できるものだけ。既にあれば上書きしない)
-        if (-not [string]::IsNullOrWhiteSpace($LogDir)) {
-            $legacyLog = Join-Path $ParentDir 'FlashBeat-update.log'
-            if (Test-Path -LiteralPath $legacyLog -PathType Leaf) {
-                $destLog = Join-Path $LogDir 'FlashBeat-update-legacy.log'
-                if (-not (Test-Path -LiteralPath $destLog -PathType Leaf)) {
-                    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-                    Move-Item -LiteralPath $legacyLog -Destination $destLog -Force -ErrorAction Stop
-                    Write-OpLog -Level 'INFO' -Message ('旧レイアウトのログを移動しました: {0} -> {1}' -f $legacyLog, $destLog)
-                }
+        $found = @()
+        $legacyRoot = Join-Path $ParentDir '.flashbeat-update'
+        if (Test-Path -LiteralPath $legacyRoot) { $found += $legacyRoot }
+        foreach ($item in @(Get-ChildItem -LiteralPath $ParentDir -Force -ErrorAction SilentlyContinue)) {
+            if ($item.Name -like 'FlashBeat-update.log' -or
+                $item.Name -like 'FlashBeat-update-work-*' -or
+                $item.Name -like 'FlashBeat-backup-*') {
+                $found += $item.FullName
             }
         }
-
-        # 旧作業フォルダ: 自インストールの名前空間に一致するものだけ削除する
-        # (作業フォルダの中身はダウンロード・展開の一時物であり復旧データではない)。
-        foreach ($dir in @(Get-ChildItem -LiteralPath $ParentDir -Directory -Filter 'FlashBeat-update-work-*' -ErrorAction SilentlyContinue)) {
-            if (Test-FlashBeatScopedWorkName -Name $dir.Name -InstallKey $Identity.InstallKey) {
-                try {
-                    Remove-Item -LiteralPath $dir.FullName -Recurse -Force -ErrorAction Stop
-                    Write-OpLog -Level 'INFO' -Message ('旧レイアウトの作業フォルダを削除しました: {0}' -f $dir.FullName)
-                } catch {
-                    Write-OpLog -Level 'WARN' -Message ('旧作業フォルダの削除に失敗しました (残します): {0}' -f $dir.FullName)
-                }
-            }
-        }
-
-        # 旧退避フォルダ: 所有 manifest を持つものだけ backup 領域へ移す。
-        # manifest が無いもの (旧形式 = 所有不明) と、移動先に同名があるものは触らない。
-        $backupRoot = Join-Path $UpdateRoot 'backup'
-        foreach ($dir in @(Get-ChildItem -LiteralPath $ParentDir -Directory -Filter 'FlashBeat-backup-*' -ErrorAction SilentlyContinue)) {
-            $manifest = Join-Path $dir.FullName 'flashbeat-backup-owner.json'
-            if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { continue }
-            $dest = Join-Path $backupRoot $dir.Name
-            if (Test-Path -LiteralPath $dest) { continue }
-            try {
-                New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
-                Move-Item -LiteralPath $dir.FullName -Destination $dest -Force -ErrorAction Stop
-                Write-OpLog -Level 'INFO' -Message ('旧レイアウトの退避を移動しました: {0} -> {1}' -f $dir.FullName, $dest)
-            } catch {
-                Write-OpLog -Level 'WARN' -Message ('旧退避の移動に失敗しました (残します): {0}' -f $dir.FullName)
-            }
+        if ($found.Count -gt 0) {
+            Write-OpLog -Level 'WARN' -Message ('境界外 (インストール先の親フォルダ) に旧更新ファイルが残っています。アプリはこれらを移動・削除しません。不要であれば手動で削除してください: {0}' -f ($found -join ', '))
         }
     } catch {
-        Write-OpLog -Level 'WARN' -Message ('旧レイアウト残骸の整理に失敗しました (更新処理には影響しません): {0}' -f $_.Exception.Message)
+        Write-OpLog -Level 'WARN' -Message ('旧更新ファイルの検出に失敗しました (更新処理には影響しません): {0}' -f $_.Exception.Message)
     }
 }
 
@@ -722,11 +739,29 @@ function Invoke-FlashBeatUpdateMain {
 try {
     $scriptPath = $script:UpdateScriptPath
 
-    # issue #574: 結果ファイル・ログの既定位置は install 解決より先に確定させる。
-    # WaitPid 待機の中止など早い終了経路でも last-result.json を書けるようにするため。
-    $dataDir = Get-FlashBeatUpdateDataDir
-    if (-not $ResultDir -and $dataDir) {
-        $ResultDir = Join-Path $dataDir 'results'
+    # issue #670: 境界ルートを InstallDir から早期に確定させる。
+    # WaitPid 待機の中止など早い終了経路でも、結果ファイルを
+    # <install>\.flashbeat-update\results\ に書けるようにするため
+    # (フォルダが未作成でも GetFullPath は字句解決だけで動く)。
+    try {
+        $script:InstallRootLexical = [System.IO.Path]::GetFullPath($InstallDir)
+    } catch {
+        $script:InstallRootLexical = $null
+    }
+    $ResultDirWasDefault = $false
+    if (-not $ResultDir) {
+        # 既定値は InstallDir の字句パスで仮置きする。Resolve-Path 後に
+        # 解決済みの installFull 基準で計算し直す (symlink を含むパス対策)。
+        $ResultDir = Join-Path (Get-FlashBeatUpdateRootPath -InstallDir $InstallDir) 'results'
+        $ResultDirWasDefault = $true
+    }
+    # 明示された -ResultDir が境界外なら、結果ファイルを書ける場所が無いので
+    # ここで拒否する (Write-UpdateResult 側のガードと二重の防御)。
+    if ($script:InstallRootLexical -and
+        -not (Test-FlashBeatInsideInstallRoot -Path ([System.IO.Path]::GetFullPath($ResultDir)) -InstallRoot $script:InstallRootLexical)) {
+        Write-OpLog -Level 'ERROR' -Message ('-ResultDir がインストール先フォルダ外です: {0}' -f $ResultDir)
+        Write-OpLog -Level 'INFO' -Message ('結果ファイルはインストール先フォルダ内にのみ書き込めます (issue #670)。')
+        exit $ExitUsage
     }
 
     Write-OpLog -Level 'STEP' -Message 'FlashBeat 単発パッチ適用を開始します。'
@@ -764,41 +799,66 @@ try {
 
     $parentDir = Split-Path -Parent $installFull
 
-    # インストール identity と実行 ID (issue #185 / #574)。
-    #   - 退避 / 作業フォルダは「インストール単位の名前空間」に入れて、隣のインストールのものに触らない。
+    # インストール identity と実行 ID (issue #185 / #574 / #670)。
+    #   - 退避 / 作業 / ログ / 結果はすべて <install>\.flashbeat-update\{backup,work,logs,results}
+    #     に閉じ込める (issue #670: アプリが制御するファイル操作はインストール先内のみ)。
+    #   - 退避・作業フォルダは「インストール単位の名前空間」に入れて、隣のインストールのものに触らない。
     #   - 実行 ID に PID と乱数を含めるので、同時刻の複数実行が同じフォルダを共有しない。
-    #   - issue #574: 退避・作業フォルダは <parent>\.flashbeat-update\{backup,work} に閉じ込め、
-    #     ログ・結果ファイルは persistentDataPath 相当の update\{logs,results} に置く。
     $identity = Get-FlashBeatInstallIdentity -InstallDir $installFull
     $runId = New-FlashBeatRunId
-    $updateRoot = Join-Path $parentDir '.flashbeat-update'
+    $updateRoot = Join-Path $installFull $script:FlashBeatUpdateDirName
     $workRootParent = Join-Path $updateRoot 'work'
     $backupRoot = Join-Path $updateRoot 'backup'
+    $logsRoot = Join-Path $updateRoot 'logs'
 
-    # 永続データの既定位置 (アプリの persistentDataPath 相当) は関数冒頭で解決済み。
-    # 解決できない環境では $dataDir が $null のままになり、LogDir は .flashbeat-update\logs に退避する。
-    if (-not $LogDir) {
-        if ($dataDir) {
-            $LogDir = Join-Path $dataDir 'logs'
-        } else {
-            $LogDir = Join-Path $updateRoot 'logs'
+    # 境界の再検証 (issue #670): Resolve-Path 後の正規形で、導出した全パスが
+    # インストール先フォルダ内にあり、reparse point 経由で外に出ないことを確認する。
+    # .flashbeat-update が既存の junction/symlink ならここで拒否する (安全側)。
+    foreach ($check in @($updateRoot, $workRootParent, $backupRoot, $logsRoot)) {
+        if (-not (Test-FlashBeatInsideInstallRoot -Path $check -InstallRoot $installFull)) {
+            Stop-WithError $ExitUsage ('更新領域がインストール先フォルダの境界を外れています: {0}' -f $check) 'インストール先フォルダ内に .flashbeat-update という名前の通常フォルダを用意してください (junction / symlink は使えません)。'
         }
+    }
+
+    # issue #670: 結果ファイル・ログの既定位置はインストール先内の .flashbeat-update。
+    # 明示指定 (-ResultDir / -LogDir / -LogPath / -WorkDir) もすべて境界内を要求する。
+    # 境界ルートは Resolve-Path 済みの installFull に更新する (symlink 正規化のため)。
+    $script:InstallRootLexical = $installFull
+    if ($ResultDirWasDefault) {
+        $ResultDir = Join-Path (Join-Path $installFull $script:FlashBeatUpdateDirName) 'results'
+    } elseif (-not (Test-FlashBeatInsideInstallRoot -Path ([System.IO.Path]::GetFullPath($ResultDir)) -InstallRoot $installFull)) {
+        Stop-WithError $ExitUsage ('-ResultDir がインストール先フォルダ外です: {0}' -f $ResultDir) '結果ファイルはインストール先フォルダ内にのみ書き込めます (issue #670)。'
+    }
+    if (-not $LogDir) {
+        $LogDir = $logsRoot
+    } elseif (-not (Test-FlashBeatInsideInstallRoot -Path ([System.IO.Path]::GetFullPath($LogDir)) -InstallRoot $installFull)) {
+        Stop-WithError $ExitUsage ('-LogDir がインストール先フォルダ外です: {0}' -f $LogDir) 'ログはインストール先フォルダ内にのみ書き込めます (issue #670)。'
     }
     if (-not $LogPath) {
         # 1 実行 = 1 ログファイル (実行時刻入りの名前で世代管理する。issue #574)
         $LogPath = Join-Path $LogDir ('FlashBeat-update-' + $runId + '.log')
+    } else {
+        $logPathParent = Split-Path -Parent $LogPath
+        if ([string]::IsNullOrWhiteSpace($logPathParent)) { $logPathParent = '.' }
+        if (-not (Test-FlashBeatInsideInstallRoot -Path ([System.IO.Path]::GetFullPath($logPathParent)) -InstallRoot $installFull)) {
+            Stop-WithError $ExitUsage ('-LogPath がインストール先フォルダ外を指しています: {0}' -f $LogPath) 'ログはインストール先フォルダ内にのみ書き込めます (issue #670)。'
+        }
     }
     try {
-        $script:LogFile = $LogPath
-        Write-OpLog -Level 'INFO' -Message ('ログ出力先: {0}' -f $LogPath)
-        Limit-FlashBeatUpdateLogs -LogDir (Split-Path -Parent $LogPath) -Keep 20
+        $logPathFull = [System.IO.Path]::GetFullPath($LogPath)
+        $logDirFull = Split-Path -Parent $logPathFull
+        if ([string]::IsNullOrWhiteSpace($logDirFull)) { $logDirFull = '.' }
+        New-Item -ItemType Directory -Path $logDirFull -Force | Out-Null
+        $script:LogFile = $logPathFull
+        Write-OpLog -Level 'INFO' -Message ('ログ出力先: {0}' -f $script:LogFile)
+        Limit-FlashBeatUpdateLogs -LogDir (Split-Path -Parent $script:LogFile) -Keep 20
     } catch {
         $script:LogFile = $null
     }
 
-    # 旧レイアウト (<parent> 直下の FlashBeat-update.log / FlashBeat-update-work-* /
-    # FlashBeat-backup-*) の残骸を、所有が確認できるものだけ新領域へ移す (issue #574)。
-    Move-FlashBeatLegacyArtifacts -ParentDir $parentDir -Identity $identity -UpdateRoot $updateRoot -LogDir $LogDir
+    # 境界外 (インストール先の親フォルダ) に残る旧レイアウトの更新ファイルは
+    # 移動も削除もせず、手動削除を推奨する WARN ログだけを残す (issue #670)。
+    Write-FlashBeatLegacyArtifactNotice -ParentDir $parentDir
 
     Write-OpLog -Level 'INFO' -Message ('更新対象: {0}' -f $installFull)
 
@@ -847,19 +907,26 @@ try {
     } else {
         $workRoot = Join-Path $workRootParent (New-FlashBeatWorkDirName -InstallKey $identity.InstallKey -RunId $runId)
     }
-    if (Test-PathInside $workRoot $installFull) {
-        Stop-WithError $ExitUsage ('作業フォルダがインストール先フォルダ内にあります: {0}' -f $workRoot) '-WorkDir にはインストール先外のフォルダを指定してください。'
+    # issue #670: 作業フォルダはインストール先フォルダ「内」でなければならない
+    # (従来は逆に「外」を要求していた。境界が親→インストール先内に変わったため反転)。
+    if (-not (Test-FlashBeatInsideInstallRoot -Path $workRoot -InstallRoot $installFull)) {
+        Stop-WithError $ExitUsage ('作業フォルダがインストール先フォルダ外、または境界を外れるパスです: {0}' -f $workRoot) '-WorkDir にはインストール先フォルダ内のパスを指定してください (既定は <install>\.flashbeat-update\work\... 配下)。'
     }
     $downloadDir = Join-Path $workRoot 'download'
     $stagingDir = Join-Path $workRoot 'staging'
     $backupDir = Join-Path $backupRoot (New-FlashBeatBackupName -InstallKey $identity.InstallKey -RunId $runId)
+    foreach ($check in @($downloadDir, $stagingDir, $backupDir)) {
+        if (-not (Test-FlashBeatInsideInstallRoot -Path $check -InstallRoot $installFull)) {
+            Stop-WithError $ExitUsage ('更新領域がインストール先フォルダの境界を外れています: {0}' -f $check)
+        }
+    }
 
     try {
         New-Item -ItemType Directory -Path $workRoot -Force | Out-Null
         New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
         New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
     } catch {
-        Stop-WithError $ExitSwap ('作業フォルダを作成できません: {0} ({1})' -f $workRoot, $_.Exception.Message) 'インストール先の親フォルダに書き込み権限があるか確認してください。既存配置は変更していません。'
+        Stop-WithError $ExitSwap ('作業フォルダを作成できません: {0} ({1})' -f $workRoot, $_.Exception.Message) 'インストール先フォルダ内の .flashbeat-update への書き込み権限を確認してください。既存配置は変更していません。'
     }
     $script:WorkRoot = $workRoot
     Write-OpLog -Level 'INFO' -Message ('作業フォルダ: {0}' -f $workRoot)
@@ -966,9 +1033,45 @@ try {
     Write-OpLog -Level 'INFO' -Message 'SHA-256 検証に成功しました。'
 
     # ── 7. 別ディレクトリへ展開 + 内容検査 ───────────────────────
+    # issue #670: エントリごとに展開先を検証する。ExtractToDirectory 一括だと
+    # "../" を含む悪意あるエントリ名の扱いがランタイム依存になるため、
+    # 各エントリの最終パスが stagingDir 内に収まることを確認してから書き出す
+    # (パストラバーサル / 絶対パス / ドライブレター付きエントリは拒否)。
     try {
+        Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
         Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFile, $stagingDir)
+        $stagingFull = [System.IO.Path]::GetFullPath($stagingDir)
+        $archive = [System.IO.Compression.ZipFile]::OpenRead($zipFile)
+        try {
+            foreach ($entry in $archive.Entries) {
+                $entryName = [string]$entry.FullName
+                if ([string]::IsNullOrEmpty($entryName)) { continue }
+                # '..' セグメント・絶対パス・ドライブレター・Windows で無効な文字を拒否。
+                if ($entryName -match '(^|[\\/])\.\.([\\/]|$)' -or
+                    $entryName -match '(^|[\\/])\.([\\/]|$)' -or
+                    $entryName -match '^[\\/]' -or
+                    $entryName -match '^[A-Za-z]:' -or
+                    $entryName -match '[<>|?*"]') {
+                    throw ('アーカイブに不正なエントリ名があります: ' + $entryName)
+                }
+                $relPath = $entryName -replace '/', [System.IO.Path]::DirectorySeparatorChar
+                $destPath = [System.IO.Path]::GetFullPath((Join-Path $stagingFull $relPath))
+                if (-not (Test-PathInside -Path $destPath -Root $stagingFull)) {
+                    throw ('アーカイブエントリが展開先の外を指しています: ' + $entryName)
+                }
+                if ($entryName.EndsWith('/') -or $entryName.EndsWith('\')) {
+                    New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                    continue
+                }
+                $destDir = Split-Path -Parent $destPath
+                if (-not [string]::IsNullOrWhiteSpace($destDir)) {
+                    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                }
+                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destPath, $true)
+            }
+        } finally {
+            $archive.Dispose()
+        }
     } catch {
         Stop-WithError $ExitArchive ('ZIP の展開に失敗しました: {0} ({1})' -f $zipFile, $_.Exception.Message) '既存配置は一切変更していません。'
     }
@@ -988,6 +1091,12 @@ try {
     }
     if (-not $payloadRoot) {
         Stop-WithError $ExitContent '展開物に FlashBeat.exe が見つかりません。' '既存配置は一切変更していません。'
+    }
+
+    # issue #670: 配布物が予約名 .flashbeat-update を含む場合は拒否する。
+    # 配置時に既存の更新領域 (backup を含む) と衝突・混入するのを防ぐ。
+    if (Test-Path -LiteralPath (Join-Path $payloadRoot $script:FlashBeatUpdateDirName)) {
+        Stop-WithError $ExitContent ('展開物に予約名 {0} が含まれています。' -f $script:FlashBeatUpdateDirName) '既存配置は一切変更していません。'
     }
 
     $missing = @()
@@ -1014,7 +1123,7 @@ try {
         try {
             New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
         } catch {
-            Stop-WithError $ExitSwap ('退避フォルダを作成できません: {0} ({1})' -f $backupDir, $_.Exception.Message) 'インストール先の親フォルダの書き込み権限を確認してください。既存配置は変更していません。'
+            Stop-WithError $ExitSwap ('退避フォルダを作成できません: {0} ({1})' -f $backupDir, $_.Exception.Message) 'インストール先フォルダ内の .flashbeat-update への書き込み権限を確認してください。既存配置は変更していません。'
         }
 
         # 所有 manifest を先に書いてから退避する (issue #185)。
@@ -1026,8 +1135,12 @@ try {
             Stop-WithError $ExitSwap ('退避の所有 manifest を書けません: {0} ({1})' -f $backupDir, $_.Exception.Message) '既存配置は変更していません。'
         }
 
-        $oldItems = @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction Stop)
-        Write-OpLog -Level 'STEP' -Message ('既存配置を退避します ({0} 項目): {1}' -f $oldItems.Count, $backupDir)
+        # issue #670: .flashbeat-update (backup / work / logs / results の親) 自身は
+        # 退避対象から必ず除外する。backupDir は .flashbeat-update\backup の内側にあるため、
+        # .flashbeat-update を backupDir へ Move すると「backup が自身の中に移動」して失敗する。
+        $oldItems = @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction Stop |
+            Where-Object { $_.Name -ne $script:FlashBeatUpdateDirName })
+        Write-OpLog -Level 'STEP' -Message ('既存配置を退避します ({0} 項目、{1} は除外): {2}' -f $oldItems.Count, $script:FlashBeatUpdateDirName, $backupDir)
         try {
             foreach ($item in $oldItems) {
                 Move-Item -LiteralPath $item.FullName -Destination $backupDir -Force -ErrorAction Stop
@@ -1055,7 +1168,9 @@ try {
     } catch {
         $failed = $_.Exception.Message
         if (-not $freshInstall) {
-            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
+            # issue #670: .flashbeat-update は退避・復元の対象外 (stagingDir 自体がその内側にある)。
+            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -ne $script:FlashBeatUpdateDirName })) {
                 try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
             }
             foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {
@@ -1071,7 +1186,9 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $installFull 'FlashBeat_Data') -PathType Container)) { $postMissing += 'FlashBeat_Data' }
     if ($postMissing.Count -gt 0) {
         if (-not $freshInstall) {
-            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue)) {
+            # issue #670: .flashbeat-update は退避・復元の対象外 (stagingDir 自体がその内側にある)。
+            foreach ($item in @(Get-ChildItem -LiteralPath $installFull -Force -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -ne $script:FlashBeatUpdateDirName })) {
                 try { Move-Item -LiteralPath $item.FullName -Destination $stagingDir -Force -ErrorAction SilentlyContinue } catch { }
             }
             foreach ($item in @(Get-ChildItem -LiteralPath $backupDir -Force -ErrorAction SilentlyContinue)) {

@@ -180,6 +180,7 @@ export default function PublishPage({ songId, version, draftId }: Props) {
       <div className={publisherPane}>
         <SongPublisher
           key={`${songId}:${version}:${attempt}`}
+          apiOrigin={import.meta.env.VITE_FLASHBEAT_API_ORIGIN}
           initialChart={localChart ?? session?.chart ?? emptyChart}
           initialYouTubeId={session?.song.youtubeId ?? ""}
           initialSong={session?.song}

@@ -91,6 +91,11 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
           {result.response.songId} は譜面バージョン {result.response.chartVersion}{" "}
           になりました。カタログはバージョン {result.response.catalogVersion} です。
         </p>
+        {result.response.archived === true ? (
+          <p className={detail} data-testid="publish-archived-note">
+            この曲はアーカイブ状態のため、公開されてもカタログには表示されません。曲一覧から復元できます。
+          </p>
+        ) : null}
       </section>
     );
   }
@@ -109,7 +114,17 @@ export function PublishResultPanel({ result, onRetry, onBackToEditor }: PublishR
           ))}
         </ul>
       ) : null}
-      <p className={detail}>公開は行われませんでした。入力内容と譜面の下書きは保持されています。</p>
+      {/* `server` also covers the post-write read-back failure of
+          publishAndVerify, where the write may already have landed — the
+          "not published" claim would invite a blind republish. Only the
+          codes that prove nothing was written get that line. */}
+      {result.failure.code === "server" ? (
+        <p className={detail}>入力内容と譜面の下書きは保持されています。</p>
+      ) : (
+        <p className={detail}>
+          公開は行われませんでした。入力内容と譜面の下書きは保持されています。
+        </p>
+      )}
       <div className={actions}>
         {onRetry ? (
           <Button size="xs" onClick={onRetry}>

@@ -24,6 +24,16 @@ YouTube 動画の楽曲に合わせて 8 レーンのキーボード入力を判
 - 補助ツール（Bun・dotnet・`cf`・`void` など）は `mise install` で project-local に導入する（`mise.toml` / `mise.lock` で版を固定）
 - agent 環境（vendored Skills と `skills-lock.json`）の整合性: `mise run skills-check`
 
+## ゲームの起動
+
+- 対象プラットフォーム: Windows 64 / macOS のスタンドアロンビルド
+- ビルド: Unity Editor のメニュー `Build → Build Windows 64` / `Build → Build macOS`、または batch `-executeMethod BuildScript.BuildStandaloneWindows64` / `BuildStandaloneMacOS`（詳細は `docs/operations/update-release.md`）
+- Editor からの動作確認: `Assets/Game/Scenes/TitleScene.unity` を開いて Play（楽曲は `Assets/Game/Resources/` 同梱分とリモートカタログから選択）
+
+## 中断からの再開（開発者・エージェント向け）
+
+- セッション中断・クラッシュ後の作業再開は会話履歴ではなく Issue / PR / branch / checkpoint を正本とする。手順は `agent-recovery` Skill（`.agents/skills/agent-recovery/SKILL.md`）を参照
+
 ## 検証
 
 - C# 型チェック（Unity 不要）: `script/compile-check.sh`

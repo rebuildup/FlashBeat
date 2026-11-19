@@ -5,14 +5,21 @@ using UnityEngine;
 namespace FlashBeat.UI.V6.Option
 {
     /// <summary>
-    /// Option 画面 Game Preview (Issue #579) が流す疑似チャート。
+    /// Option 画面 Game Preview (Issue #579 / #677) が流すチャート。
     ///
-    /// 実際の譜面は読まない (設定画面に曲の文脈は無い)。8 レーンへ
-    /// 決定的な間隔でタップ / ロングノーツを並べ、<see cref="LoopSeconds"/>
-    /// 秒周期で折り返す。時刻は本編と同じ式
-    /// (<see cref="NotesManager.NoteTimeWithTiming"/>) で NoteTiming を
-    /// 反映し、z への換算は <see cref="MediaTimeline.NotePositionZ"/> と
-    /// 同じ (noteTime - mediaTime) * zUnitsPerSecond。
+    /// <see cref="BuildForCurrentSong"/> は選択中の曲
+    /// (<see cref="GManager.songID"/>) の実チャートを本編と同じ経路
+    /// (<see cref="NotesManager.ParseChart"/>) で読み、時刻系も本編と同じ式
+    /// (<see cref="NotesManager.NoteTimeSeconds"/> →
+    /// <see cref="NotesManager.NoteTimeWithTiming"/> →
+    /// <see cref="ChartTiming.BeatOffset"/>) で揃える。実チャートが無い・
+    /// 読めない・<see cref="ChartValidator"/> を通らない場合は、従来の
+    /// 決定的な疑似チャート (<see cref="Build"/>) へフォールバックする。
+    ///
+    /// 疑似チャートは 8 レーンへ決定的な間隔でタップ / ロングノーツを並べ、
+    /// <see cref="LoopSeconds"/> 秒周期で折り返す。z への換算は
+    /// <see cref="MediaTimeline.NotePositionZ"/> と同じ
+    /// (noteTime - mediaTime) * zUnitsPerSecond。
     ///
     /// ループ長は「最も遅いノーツ速度 (1.0) でのアプローチ時間の 2 倍」
     /// より十分長く取る。短いと、折り返しの反対側にある未来のノーツが
@@ -69,6 +76,104 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
+        /// 選択中の曲 (<see cref="GManager.songID"/> / ActiveSongs) の実チャートを
+        /// プレビュー用ノーツ列へ変換する (Issue #677)。曲の解決は
+        /// <see cref="GManager.GetSong"/> (Option では現在の選択曲。
+        /// <see cref="PlaySessionSnapshot.ResolveSong"/> は前プレイの
+        /// pinned song を優先し得るため使わない)。読み込み経路は本編
+        /// <see cref="NotesManager.ParseChart"/> と同一 (セッション固定
+        /// スナップショット → Cloud Chart → Resources)。時刻系も本編と同じ:
+        /// <see cref="NotesManager.NoteTimeSeconds"/> →
+        /// <see cref="NotesManager.NoteTimeWithTiming"/> (GManager.noteTiming)
+        /// → <see cref="ChartTiming.BeatOffset"/>、HOLD 終端は
+        /// <see cref="LongNote.EndSeconds"/>。
+        ///
+        /// ループ長は「最後のノーツ/歌詞の終端 + 2 秒」。実チャートが無い曲・
+        /// 読み込めない曲では従来の疑似チャート (<see cref="LoopSeconds"/>)
+        /// へフォールバックする。戻り値の loopSeconds は必ず全ノーツ時刻より
+        /// 大きい (時刻畳み込みの前提)。
+        /// </summary>
+        public static Note[] BuildForCurrentSong(out float loopSeconds)
+        {
+            loopSeconds = LoopSeconds;
+            // Issue #677 review: Option 画面では「現在の選択曲」を読む。
+            // PlaySessionSnapshot.ResolveSong は前プレイの pinned song を
+            // 優先し得るため、Game/Result 以外では使わない。
+            // GManager.GetSong はシーンに応じて pin を解決する正規経路。
+            SongData song = GManager.GetSong(GManager.songID);
+            if (song == null)
+            {
+                return Build();
+            }
+
+            Data data = NotesManager.ParseChart(song);
+            // ChartValidator を通らない不正譜面は疑似チャートへフォールバック。
+            if (data == null || ChartValidator.Validate(data) != null)
+            {
+                return Build();
+            }
+
+            // 本編 NotesManager.LoadRoutine と同じ時間設定の正規化
+            // (beatOffset を全ノーツ時刻へ加算する)。
+            ChartTiming timing = ChartTiming.Normalize(
+                data.fadeOut, data.startTiming, data.beatOffset, song.duration, out _);
+
+            var notes = new List<Note>(data.notes.Length);
+            float lastEnd = 0f;
+            for (int i = 0; i < data.notes.Length; i++)
+            {
+                // Data.notes の要素型はグローバル Note (NoteEditor 譜面)。
+                // 同名のプレビュー用 struct を避けるため修飾する。
+                global::Note source = data.notes[i];
+                if (source.block < 0 || source.block >= Judge.LaneCount)
+                {
+                    continue; // ChartValidator を通らない壊れた譜面はレーン外を描かない
+                }
+
+                // Note.Time は「タイミング未適用」の生時刻で保持する。
+                // rig 側の DeltaWithTiming / RebuildJudgement が本編と同じ
+                // NoteTimeWithTiming を一度だけ適用する (疑似チャート経路と同じ)。
+                // BeatOffset だけは譜面データ由来の定数なのでここで畳む。
+                float start = NotesManager.NoteTimeSeconds(data.BPM, source) + timing.BeatOffset;
+                float hold = 0f;
+                if (source.type == LongNote.TYPE_HOLD)
+                {
+                    float end = LongNote.EndSeconds(data.BPM, source) + timing.BeatOffset;
+                    // 本編と同じガード: 終端が開始以前なら 1 拍ぶん伸ばす。
+                    if (end <= start)
+                    {
+                        end = start + (60f / data.BPM);
+                    }
+                    hold = end - start;
+                }
+
+                notes.Add(new Note
+                {
+                    Lane = source.block,
+                    Time = start,
+                    HoldSeconds = hold,
+                });
+                lastEnd = Mathf.Max(lastEnd, start + hold);
+            }
+
+            if (notes.Count == 0)
+            {
+                return Build();
+            }
+
+            // ループ末尾の余白: 最後の音が完全に抜けるまで + 歌詞の終端まで。
+            float lyricEnd = 0f;
+            var lines = V6OptionPreviewLyrics.LinesForCurrentSong();
+            for (int i = 0; i < lines.Count; i++)
+            {
+                lyricEnd = Mathf.Max(lyricEnd, lines[i].End);
+            }
+
+            loopSeconds = Mathf.Max(lastEnd, lyricEnd) + 2f;
+            return notes.ToArray();
+        }
+
+        /// <summary>
         /// メディア時刻 <paramref name="mediaTime"/> に対する、ノーツの
         /// 「最も近い出現」のチャート時刻差 (秒)。
         ///
@@ -78,8 +183,14 @@ namespace FlashBeat.UI.V6.Option
         /// </summary>
         public static float DeltaToNearest(float chartTime, float mediaTime)
         {
+            return DeltaToNearest(chartTime, mediaTime, LoopSeconds);
+        }
+
+        /// <summary><see cref="DeltaToNearest(float, float)"/> のループ長指定版。</summary>
+        public static float DeltaToNearest(float chartTime, float mediaTime, float loopSeconds)
+        {
             float delta = chartTime - mediaTime;
-            return delta - LoopSeconds * Mathf.Floor((delta + LoopSeconds * 0.5f) / LoopSeconds);
+            return delta - loopSeconds * Mathf.Floor((delta + loopSeconds * 0.5f) / loopSeconds);
         }
 
         /// <summary>
@@ -89,8 +200,14 @@ namespace FlashBeat.UI.V6.Option
         /// </summary>
         public static float DeltaWithTiming(float chartTime, int noteTiming, float mediaTime)
         {
+            return DeltaWithTiming(chartTime, noteTiming, mediaTime, LoopSeconds);
+        }
+
+        /// <summary><see cref="DeltaWithTiming(float, int, float)"/> のループ長指定版。</summary>
+        public static float DeltaWithTiming(float chartTime, int noteTiming, float mediaTime, float loopSeconds)
+        {
             float timed = NotesManager.NoteTimeWithTiming(chartTime, noteTiming);
-            return DeltaToNearest(timed, mediaTime);
+            return DeltaToNearest(timed, mediaTime, loopSeconds);
         }
     }
 }

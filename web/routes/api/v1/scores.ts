@@ -13,12 +13,12 @@
  *     `_score-model.ts`; omitted means version 1, ADR-0028). A
  *     client-sent `score` that disagrees is a 422 with the expected and
  *     received values as diagnostics; nothing is stored.
- *   - The nickname is trimmed to 1-12 characters without control characters.
- *   - A duplicate identical submission (same songId + nickname + score)
- *     within 10 seconds is a 429 with `Retry-After` — a light abuse limit
- *     that needs no extra infrastructure. Time is only ever read from the
- *     server clock (`scores.createdAt` is written by SQLite itself), never
- *     from the client.
+ *   - The nickname is trimmed to 1-16 characters without control characters.
+ *   - A duplicate identical submission (same songId + chartVersion +
+ *     nickname + score) within 10 seconds is a 429 with `Retry-After` — a
+ *     light abuse limit that needs no extra infrastructure. Time is only
+ *     ever read from the server clock (`scores.createdAt` is written by
+ *     SQLite itself), never from the client.
  *
  * A successful submission answers `201` with the stored score and its
  * leaderboard rank (1 + number of strictly better scores of the same chart
@@ -168,15 +168,19 @@ export const POST = defineHandler(async (c) => {
     }
   }
 
-  // Light abuse limit: the identical submission (same song, nickname and
-  // score) inside the window is rejected. The timestamp comes from the
-  // database clock only (`createdAt` defaults to `datetime('now')`).
+  // Light abuse limit: the identical submission (same song, chart version,
+  // nickname and score) inside the window is rejected. The chart version is
+  // part of the identity: replaying the same song on a newly published
+  // version is a different play, not a duplicate (Issue #655). The timestamp
+  // comes from the database clock only (`createdAt` defaults to
+  // `datetime('now')`).
   const previous = await db
     .select({ createdAt: scores.createdAt })
     .from(scores)
     .where(
       and(
         eq(scores.songId, request.songId),
+        eq(scores.version, request.chartVersion),
         eq(scores.nickname, nickname),
         eq(scores.score, score),
         eq(scores.scoringVersion, scoringVersion),

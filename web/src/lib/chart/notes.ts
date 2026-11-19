@@ -1,5 +1,4 @@
 import { snapLine, type SnapSetting } from "./snap";
-import { noteBeat } from "./timing";
 import { NOTE_TYPE_HOLD, NOTE_TYPE_TAP, type Chart, type ChartNote } from "./types";
 
 /**
@@ -127,24 +126,6 @@ export function setNoteKind(chart: Chart, index: number, kind: number): Chart {
 
   const { endNum: _endNum, ...withoutEnd } = note;
   return updateNote(chart, index, { ...withoutEnd, type: kind });
-}
-
-/** First and last beat covered by the notes. */
-export function chartBeatRange(chart: Chart): { first: number; last: number } {
-  if (chart.notes.length === 0) {
-    return { first: 0, last: 0 };
-  }
-
-  let first = Number.POSITIVE_INFINITY;
-  let last = Number.NEGATIVE_INFINITY;
-
-  for (const note of chart.notes) {
-    const beat = noteBeat(note);
-    first = Math.min(first, beat);
-    last = Math.max(last, beat);
-  }
-
-  return { first, last };
 }
 
 /**

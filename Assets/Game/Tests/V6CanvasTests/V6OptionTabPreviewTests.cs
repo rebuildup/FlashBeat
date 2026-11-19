@@ -133,11 +133,13 @@ namespace FlashBeat.V6CanvasTests
                 Assert.AreEqual(new Vector2(32f, 4f), marker.sizeDelta, "Marker 32×4");
             }
 
-            // 判定色は design の $text / $ok / $warn / $danger。
-            Assert.AreEqual(V5Tokens.Text, MarkerColor(view, "PERFECT"));
-            Assert.AreEqual(V5Tokens.Ok, MarkerColor(view, "GREAT"));
-            Assert.AreEqual(V5Tokens.Warn, MarkerColor(view, "BAD"));
-            Assert.AreEqual(V5Tokens.Danger, MarkerColor(view, "MISS"));
+            // Issue #679: 判定色は HUD の判定表示 (V6HudLogic.VerdictColor) と
+            // 同じ割り当て。凡例だけ別テーブルを持つと実際の判定色とずれる。
+            foreach (string label in V6OptionLogic.JudgeLabels)
+            {
+                Assert.AreEqual(FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictColor(label), MarkerColor(view, label),
+                    "Marker " + label + " は HUD の判定色と一致");
+            }
         }
 
         private static Color MarkerColor(V6OptionView view, string label)

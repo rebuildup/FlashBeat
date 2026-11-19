@@ -6,7 +6,7 @@
     "dev": "vp dev",
     "build": "vp build",
     "preview": "vp preview",
-    "test": "node --test tests/*.test.ts tests/*.test.mjs && vitest run",
+    "test": "node --test tests/*.test.ts tests/*.test.mjs && vitest run && npm run test:e2e:harness",
     "test:e2e:harness": "vitest run --config tests/e2e/vitest.config.ts",
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
     "test:studio": "playwright test --config tests/e2e/playwright.config.ts",

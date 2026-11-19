@@ -3,6 +3,9 @@
 `flashbeat-ui.pen` が UI のベース (Issue #30、オーナー指示 2026-11-07)。
 pen.dev CLI をプロジェクトローカルに導入済み (`@pen.dev/cli`)。
 
+パッケージ管理は **npm** (`package-lock.json`)。`web/` と同じ例外で、
+`@pen.dev/cli` の配布形態に合わせる (Issue #660)。
+
 ## 使い方
 
 認証は `PEN_CLI_KEY` (Infisical FlashBeat プロジェクト) 経由。必ず `script/with-secrets` を使う:

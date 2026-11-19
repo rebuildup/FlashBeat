@@ -15,9 +15,11 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// - 表示値はすべて実データ: GManager (score/combo/perfect/great/bad/miss/step_time)、
     ///   KeyBindings (キーガイド, Changed 購読で即時更新)、
     ///   PlaySessionSnapshot (曲の長さ = 進捗バー)、GameSceneManager.InputJson (歌詞)、
-    ///   Judge がレーンに Instantiate する判定クローン (レーン別判定行)。
-    /// - 判定クローンは v5 と同じく読み取った後に非表示にする (3D プレイフィールドには
-    ///   判定ポップアップを出さず、画面最下部の判定行に一本化)。
+    ///   Judge の判定イベントキュー (<see cref="Judge.TryDequeueVerdict"/>,
+    ///   Issue #680 — レーン別判定行)。
+    /// - 判定行が有効な間は Judge の 3D 判定エフェクト (判定プレハブの
+    ///   Instantiate) を <see cref="Judge.SuppressJudgementEffects"/> で止め、
+    ///   画面最下部の判定行に一本化する。
     /// - 「準備中 / 失敗」の表示は既存 HudPlayStatus (v5) の責務。二重に出さない。
     /// - 寸法は <see cref="V6HudMetrics"/> の解像度プロファイル (契約 §8)。
     ///   design px を実ピクセルのまま使い、等比拡大 (引き伸ばし) はしない
@@ -140,6 +142,22 @@ namespace FlashBeat.UI.V6.Game.Hud
         public Vector2 CanvasSizeForAudit
         {
             get { return CanvasSize(); }
+        }
+
+        /// <summary>
+        /// 検証ハーネス用: 節目ボーナスの一時表示 (Issue #673)。
+        /// miss > 0 で Combo Status ブロックが隠れても activeInHierarchy に
+        /// なること (親は常時アクティブな Right Column) を検証する。
+        /// </summary>
+        public GameObject MilestoneBonusForAudit
+        {
+            get { return milestoneBonusText != null ? milestoneBonusText.gameObject : null; }
+        }
+
+        /// <summary>検証ハーネス用: コンボステータスブロック (NO MISS / FULL COMBO)。</summary>
+        public GameObject ComboStatusBlockForAudit
+        {
+            get { return comboStatusBlock; }
         }
 
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
@@ -273,9 +291,11 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // FULL COMBO は曲完走 (全ノーツ判定済み) かつノーミスのときだけ出す。
             // 演奏中ずっと出しっぱなしにすると内容を反映しない表示になる (Issue #233)。
-            var currentSong = GManager.GetSong(GManager.songID);
-            bool songComplete = GManager.played && currentSong != null && currentSong.totalHits > 0
-                && judged >= currentSong.totalHits;
+            // Issue #657: 完了判定は GManager.judgmentsComplete (Judge.FlushScore
+            // が確定する settled >= noteCount) を使う。ローカル曲の totalHits
+            // (Shit) は実譜面とずれるため、早すぎる/遅すぎる FULL COMBO 表示に
+            // なっていた。
+            bool songComplete = GManager.played && GManager.judgmentsComplete;
             if (fullComboChip != null && fullComboChip.activeSelf != (songComplete && GManager.miss == 0))
             {
                 fullComboChip.SetActive(songComplete && GManager.miss == 0);
@@ -435,7 +455,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             keyCaps.Clear();
             verdictTexts.Clear();
-            seenJudgeIds.Clear();
+            // Issue #680: 判定イベントのキューはここでは消さない。
+            // 未消費分は次の Refresh で新しい判定行へそのまま出る
+            // (リセットは Judge.Start / カウンタ減少時 / VerdictRow=false 時)。
             // Issue #402: レーン格子のメモを捨てる (子を作り直したので、
             // 前回の座標を「適用済み」と思い込むと位置が更新されない)。
             lastLaneGridCanvas = new Vector2(float.NaN, float.NaN);
@@ -495,6 +517,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void OnDestroy()
         {
             KeyBindings.Changed -= RebuildKeyGuide;
+            // Issue #680: このビューが書いた 3D エフェクト抑制を残さない
+            // (次のシーン・別経路では従来どおりエフェクトを出す)。
+            Judge.SuppressJudgementEffects = false;
         }
 
         // --- 構築 ---

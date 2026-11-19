@@ -204,14 +204,18 @@ export function NewSongFlow({ apiOrigin }: NewSongFlowProps) {
     (response: SongPublishResponse) => {
       setPublished({ response, noteCount: draft.chart?.notes.length ?? 0 });
       clearNewSongDraft();
+      // Issue #659: 公開直後に「別の曲を登録」へ進むと、takenIds が mount 時の
+      // ままでは直前に公開した songId が空きに見える。カタログを取り直す。
+      void refreshCatalog();
     },
-    [draft.chart],
+    [draft.chart, refreshCatalog],
   );
 
   const handleRegisterAnother = useCallback(() => {
     setPublished(null);
     setDraft(emptyNewSongDraft());
-  }, []);
+    void refreshCatalog();
+  }, [refreshCatalog]);
 
   const videoId = useMemo(() => parseYouTubeId(draft.info.youtube) ?? "", [draft.info.youtube]);
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# integration/v6-followup の HEAD が変わるたびに Mac 実機レビュー用 app を
+# 追跡ブランチ (既定 origin/main) の HEAD が変わるたびに Mac 実機レビュー用 app を
 # 再ビルドして ~/Desktop/FlashBeat-Mac/FlashBeat.app を更新する常駐ループ。
 #
 #   script/auto-deploy-loop.sh [branch] [interval_sec]
@@ -10,7 +10,7 @@
 set -uo pipefail
 
 root="$(git rev-parse --show-toplevel)"
-branch="${1:-integration/v6-followup}"
+branch="${1:-origin/main}"
 interval="${2:-60}"
 desktop="${FLASHBEAT_DESKTOP_DIR:-$HOME/Desktop/FlashBeat-Mac}"
 log="${TMPDIR:-/tmp}/fb-auto-deploy.log"

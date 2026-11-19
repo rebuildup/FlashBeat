@@ -18,9 +18,10 @@
  * second ago has to show up.
  */
 import { defineHandler } from "void";
-import { and, asc, count, db, desc, eq } from "void/db";
+import { and, asc, db, desc, eq } from "void/db";
 import { chartVersions, scores, songs } from "@schema";
 import { parseScoringVersionQuery } from "./_score-model";
+import { readCatalogVersion } from "./_catalog-version";
 
 /** Largest number of entries per song the endpoint serves. */
 const MAX_ENTRIES_PER_SONG = 10;
@@ -65,7 +66,16 @@ export const GET = defineHandler(async (c) => {
       chartVersions,
       and(eq(chartVersions.songId, scores.songId), eq(chartVersions.version, scores.version)),
     )
-    .where(and(eq(songs.archived, 0), eq(scores.scoringVersion, scoringVersion)))
+    // Only the scores of the currently published chart version count: the
+    // response labels every song with `songs.currentVersion`, so a play of a
+    // superseded snapshot must not leak into `plays` or `entries`.
+    .where(
+      and(
+        eq(songs.archived, 0),
+        eq(scores.scoringVersion, scoringVersion),
+        eq(scores.version, songs.currentVersion),
+      ),
+    )
     .orderBy(asc(scores.songId), desc(scores.score), asc(scores.createdAt), asc(scores.id));
 
   const playsBySong = new Map<string, number>();
@@ -80,11 +90,11 @@ export const GET = defineHandler(async (c) => {
     }
   }
 
-  const [total] = await db.select({ value: count() }).from(chartVersions);
+  const catalogVersion = await readCatalogVersion();
 
   c.header("Cache-Control", "no-store");
   return c.json({
-    catalogVersion: total.value,
+    catalogVersion,
     songs: songRows.map((song) => ({
       songId: song.id,
       title: song.title,

@@ -9,7 +9,8 @@ import type { Chart, ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
 import { publishAndVerify } from "@/lib/publish/client";
 import { savePublishDraft } from "@/lib/publish/draft";
-import { resolvePublishTransport } from "@/lib/publish/transport";
+import { resolvePublishTransport, type PublishTransport } from "@/lib/publish/transport";
+import { createFixtureStudioFetch } from "@/lib/new-song/fixture-api";
 import type { PublishResult } from "@/lib/publish/types";
 import {
   buildPublishRequest,
@@ -293,7 +294,18 @@ export function SongPublisher({
   const [result, setResult] = useState<PublishResult | null>(null);
 
   const inFlight = useRef(false);
-  const transport = useMemo(() => resolvePublishTransport(apiOrigin), [apiOrigin]);
+  // The fixture transport is a review aid: it only exists in development and
+  // serves the read side too, so publishAndVerify can read its own write.
+  const transport = useMemo<PublishTransport>(() => {
+    if (import.meta.env.DEV && (apiOrigin ?? "").trim() === "fixture") {
+      return { mode: "fixture", baseUrl: "", fetch: createFixtureStudioFetch() };
+    }
+    try {
+      return resolvePublishTransport(apiOrigin);
+    } catch {
+      return resolvePublishTransport("");
+    }
+  }, [apiOrigin]);
 
   const sideRef = useRef<HTMLElement | null>(null);
   // The metadata and publish panels are a drawer below the `lg` breakpoint:
@@ -377,6 +389,19 @@ export function SongPublisher({
       return;
     }
 
+    // Defense in depth: the review button already refuses a chart with
+    // contract issues, but the publish execution checks them again.
+    if (chartIssues.length > 0) {
+      setResult({
+        ok: false,
+        failure: {
+          code: "invalid",
+          message: "譜面に契約上の問題があります。修正してから再度公開してください。",
+        },
+      });
+      return;
+    }
+
     const built = buildPublishRequest(effectiveDraft, chart);
     if (!built.ok) {
       setAttempted(true);
@@ -394,16 +419,30 @@ export function SongPublisher({
     inFlight.current = true;
     setPublishing(true);
 
-    const outcome = await publishAndVerify({
-      baseUrl: transport.baseUrl,
-      songId: effectiveDraft.songId.trim(),
-      token,
-      request: built.request,
-      fetchImpl: transport.fetch,
-    });
+    let outcome: PublishResult;
+    try {
+      outcome = await publishAndVerify({
+        baseUrl: transport.baseUrl,
+        songId: effectiveDraft.songId.trim(),
+        token,
+        request: built.request,
+        fetchImpl: transport.fetch,
+      });
+    } catch (error) {
+      // publishAndVerify reports failures as values; an exception here is a
+      // contract violation, but the operator still gets a readable result.
+      outcome = {
+        ok: false,
+        failure: {
+          code: "server",
+          message: `公開処理が予期せず失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      };
+    } finally {
+      inFlight.current = false;
+      setPublishing(false);
+    }
 
-    inFlight.current = false;
-    setPublishing(false);
     setResult(outcome);
     // The failure panel in the aside carries the actions; the modal must not
     // cover it.
@@ -423,18 +462,30 @@ export function SongPublisher({
       description: outcome.failure.message,
       type: "error",
     });
-  }, [chart, effectiveDraft, token, transport]);
+  }, [chart, chartIssues, effectiveDraft, token, transport]);
 
   const handleBackToEditor = useCallback(() => {
-    const url = savePublishDraft(
-      {
-        songId: initialSong?.id ?? null,
-        version: initialVersion !== undefined ? String(initialVersion) : null,
-        chart: chart ?? initialChart,
-      },
-      "editor",
-    );
-    window.location.assign(url);
+    // Issue #659: sessionStorage.setItem can throw (QuotaExceededError /
+    // SecurityError). Match pages/chart.tsx: report and stay instead of
+    // letting the navigation die silently.
+    try {
+      const url = savePublishDraft(
+        {
+          songId: initialSong?.id ?? null,
+          version: initialVersion !== undefined ? String(initialVersion) : null,
+          chart: chart ?? initialChart,
+        },
+        "editor",
+      );
+      window.location.assign(url);
+    } catch {
+      toaster.create({
+        title: "下書きを保存できませんでした",
+        description:
+          "ブラウザの保存容量が不足している可能性があります。この画面を開いたまま再試行してください。",
+        type: "error",
+      });
+    }
   }, [chart, initialChart, initialSong, initialVersion]);
 
   return (

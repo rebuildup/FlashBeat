@@ -29,11 +29,7 @@ import { describe, it } from "node:test";
 import { publishSong } from "../src/lib/publish/client.ts";
 import type { SongPublishRequest } from "../src/lib/publish/types.ts";
 import { FLASHBEAT_D1_DATABASE_ID, countChartVersions } from "./helpers/d1.ts";
-import {
-  chartFixture,
-  operationResponseValidator,
-  publishRequestFixture,
-} from "./helpers/frozen.ts";
+import { operationResponseValidator, publishRequestFixture } from "./helpers/frozen.ts";
 
 const readEnabled = process.env.FLASHBEAT_E2E === "1";
 const publishEnabled = readEnabled && process.env.FLASHBEAT_E2E_PUBLISH === "1";
@@ -49,7 +45,6 @@ const SONG_ID = process.env.FLASHBEAT_E2E_SONG_ID ?? "who";
 
 const validateCatalog = operationResponseValidator("getCatalog", "200");
 const validateChart = operationResponseValidator("getChart", "200");
-const validatePublish = operationResponseValidator("publishSong", "200");
 
 interface CatalogSong {
   id: string;

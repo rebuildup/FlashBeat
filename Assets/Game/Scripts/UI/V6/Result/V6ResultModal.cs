@@ -112,20 +112,32 @@ namespace FlashBeat.UI.V6.Result
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
             var field = V6Layout.Place(V5Ui.Panel(dialog.gameObject, "Name Field", new Vector2(784f, 84f), V5Tokens.Key0, 8f),
                 28f, 112f);
+            // Issue #676: TMP_InputField の横スクロールは textComponent の
+            // anchoredPosition をずらす前提なので、viewport は text rect とは
+            // 別の固定ノードにする。viewport==text rect (Issue #583) だと
+            // スクロール量が二重計上され、文字・キャレット・選択・IME 変換
+            // 文字が内側余白からドリフトする。Text Viewport は design の
+            // Value 矩形と同じ (32,20) 720×58 に固定し、RectMask2D で
+            // その矩形にクリップする (Value/Placeholder は viewport の子)。
+            var textViewport = V6Layout.Place(V5Ui.Node(field.gameObject, "Text Viewport"),
+                32f, 20f, 720f, 58f);
+            var viewportMask = textViewport.AddComponent<RectMask2D>();
+            viewportMask.softness = Vector2Int.zero;
             // design lqHaN の Name Field は空のとき既定名を $text-dim で出す
             // (v5 ResultView の Placeholder と同じ既定名)。Issue #584 で "YOU" を
             // 撤廃し、既定名 LocalNameDefault ("PLAYER") を出す。入力すると $text になる。
-            modalNameValue = OneLine(V5GameUi.Text(field.gameObject, "Value", string.Empty, 40f,
+            modalNameValue = OneLine(V5GameUi.Text(textViewport, "Value", string.Empty, 40f,
                 V5Tokens.Text, TextAlignmentOptions.Left, FontStyles.Bold));
             // Issue #425: 文字が枠の左端に張り付いて見えるため、内側余白を広げる。
             // Issue #583: 左右の内側余白を 32px に揃える (784 - 32*2 = 720)。
-            // Value/Placeholder/キャレット/選択ハイライト/IME 変換中文字が
-            // 同じ左端・右端の内側余白で揃うようにするため。
-            V6Layout.Place(modalNameValue, 32f, 20f, 720f, 58f);
-            modalNamePlaceholder = OneLine(V5GameUi.Text(field.gameObject, "Placeholder",
+            // Value/Placeholder は viewport (32,20 720×58) と同じ矩形に置く。
+            // TMP のスクロールで anchoredPosition が動いても、固定 viewport が
+            // 32px の内側余白でクリップする。
+            V6Layout.Place(modalNameValue, 0f, 0f, 720f, 58f);
+            modalNamePlaceholder = OneLine(V5GameUi.Text(textViewport, "Placeholder",
                 V6ResultLogic.LocalNameDefault, 40f, V5Tokens.TextDim,
                 TextAlignmentOptions.Left, FontStyles.Bold));
-            V6Layout.Place(modalNamePlaceholder, 32f, 20f, 720f, 58f);
+            V6Layout.Place(modalNamePlaceholder, 0f, 0f, 720f, 58f);
 
             // 名前入力は TMP_InputField に任せる (Issue #384)。自前の Input.inputString
             // 読み取りはレガシー Input に IME の確定文字が来ないため、日本語の名前を
@@ -141,10 +153,12 @@ namespace FlashBeat.UI.V6.Result
             {
                 Value = modalNameValue,
                 Placeholder = modalNamePlaceholder,
-                // Issue #583: textViewport をテキスト rect と一致させる。
-                // 既定 (host 全体) だとクリップ/スクロール境界がテキスト矩形と
-                // ずれ、横スクロールや選択ハイライトの端が内側余白をはみ出す。
-                TextViewport = modalNameValue.rectTransform,
+                // Issue #676: textViewport は専用の固定ノード (Text Viewport、
+                // design の Value 矩形と同じ (32,20) 720×58 + RectMask2D)。
+                // text rect 自身を viewport にすると TMP のスクロール量が
+                // 二重計上され、文字・キャレット・選択・IME 変換文字が
+                // 内側余白からドリフトする (Issue #583 の指定は誤り)。
+                TextViewport = textViewport.GetComponent<RectTransform>(),
                 CaretBlinkHalfCycleSeconds = V6ResultRevealLogic.CaretHalfCycleSeconds,
                 OnValidateInput = ValidateNameChar,
                 OnEndEdit = OnNameEditEnd,

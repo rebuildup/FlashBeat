@@ -153,10 +153,12 @@ Rules that the endpoints follow:
 - **Published only.** A song is listed when `chart_versions` holds a row for
   `(songId, songs.currentVersion)`. A song row without a chart is not listed.
 - **Stable order.** The catalog is ordered by song id.
-- **`catalogVersion`** is the number of published chart snapshots
-  (`COUNT(chart_versions)`). Every publish adds a chart version, so the number
-  changes whenever the published charts change. The publish endpoint (#16)
-  must return the same value.
+- **`catalogVersion`** is the `catalog_meta` epoch (issue #656): every
+  catalog-visible mutation — publish, archive, unarchive — bumps it inside
+  the same transaction, so the value changes whenever the published catalog
+  changes (archiving alone no longer leaves it still). Every producer —
+  catalog, rankings, admin songs, publish and archive responses — serves
+  the same value.
 - **Exact versions.** `GET /api/v1/charts/{songId}` never falls back to the
   current version; an unknown version or song is 404.
 - **`version` is required.** A missing, non-numeric or `< 1` version is 400.
@@ -195,9 +197,11 @@ the Void dev server, and validates the responses against the frozen contract
      naming each offending item; nothing is written.
 - **Publication.** One `db.batch` (a D1 implicit transaction) writes the song
   metadata upsert with `currentVersion + 1` (first publish = 1) and appends
-  the immutable `chart_versions` row. The response is
-  `{ songId, chartVersion, catalogVersion }` where `catalogVersion` is
-  `COUNT(chart_versions)` — the same definition the read API serves.
+  the immutable `chart_versions` row and bumps the `catalog_meta` epoch in
+  the same batch. The response is
+  `{ songId, chartVersion, catalogVersion, archived?, archivedAt? }` where
+  `catalogVersion` is the epoch the read API serves, and the archive fields
+  report that a republish of an archived song stays out of the catalog.
 - **Local development.** Put a dev token in `.env` (gitignored) or export
   `FLASHBEAT_ADMIN_TOKEN` before `vp dev`; without it the Worker fails env
   validation at boot and every route returns 500.
@@ -243,15 +247,13 @@ publishes both in one request.
 
 ### Score API (issues #133, #578; ADR-0028)
 
-| Route                                                          | File                                     | Behaviour                                                                                                                  |
-| -------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/scores`                                          | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client.   |
-| `GET /api/v1/leaderboards/{songId}?version=N&scoringVersion=V` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version **and one scoring version**, score descending, the earliest submission wins a tie. |
-| `GET /api/v1/rankings?scoringVersion=V`                        | `routes/api/v1/rankings.ts`              | The ranking board within one scoring version (default: the latest the server supports).                                    |
-| `GET /api/v1/stats`                                            | `routes/api/v1/stats.ts`                 | Festival statistics aggregated over the **latest** scoring version only — v1 and v2 scores are never mixed (ADR-0028).     |
+| Route                                                          | File                                     | Behaviour                                                                                                                                       |
+| -------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/scores`                                          | `routes/api/v1/scores.ts`                | Public score submission. The server **recomputes** the score from the submitted note counts, it never trusts the client.                        |
+| `GET /api/v1/leaderboards/{songId}?version=N&scoringVersion=V` | `routes/api/v1/leaderboards/[songId].ts` | The best 10 scores of one chart version **and one scoring version**, score descending, the earliest submission wins a tie.                      |
+| `GET /api/v1/rankings?scoringVersion=V`                        | `routes/api/v1/rankings.ts`              | The ranking board within one scoring version (default: the latest the server supports).                                                         |
+| `GET /api/v1/stats`                                            | `routes/api/v1/stats.ts`                 | Festival statistics aggregated over the **latest** scoring version only — scores of different formula versions are never mixed (ADR-0028/0029). |
 
-- The score is computed in **single precision** (`Math.fround`), like the Unity
-  player does, so the client and the server cannot drift apart.
 - `scoringVersion` selects the formula: `1` (or an omitted field — old clients)
   is `ratioScore = 5P+3G+B`, `maxScore = noteCount * 5`; `2` adds
   `comboBonus = maxCombo * 5` and `noMissBonus = (miss == 0) ? (P+G+B) * 5 : 0`
@@ -261,8 +263,14 @@ publishes both in one request.
   `perfect+great+bad+miss == noteCount`, so `miss == 0` already means the
   play completed — the same condition the Unity client vests the bonus on,
   Issue #618), with
-  `maxRatio = noteCount * 15 + floor(noteCount / 50) * 25 + 100`. All end in
-  `score = round(1e6 * floor(ratioScore / maxScore * 1e6) / 1e6)`.
+  `maxRatio = noteCount * 15 + floor(noteCount / 50) * 25 + 100`.
+- Since Issue #631 the score is **deterministic integer arithmetic**: every
+  term is an integer and v3 ends in
+  `score = floor(ratioScore * 1e6 / maxRatio)` (C# `long` division on Unity,
+  IEEE-754 doubles here — identical because the operands stay far below
+  2^53). Clients built before #631 still send the legacy single-precision
+  (`Math.fround`) value; the server accepts it as an alternative but always
+  stores the deterministic recomputation (`computeUnityScoreV3Legacy`).
 - For `scoringVersion` 3 the server also verifies `maxCombo <= hits`
   (perfect+great+bad) and `comboMilestones`: exactly `floor(hits/50)` when
   `miss == 0` (one unbroken run), and at most

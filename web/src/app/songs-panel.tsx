@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { css } from "styled-system/css";
 import { Button, Field, Input } from "@/components/ui";
 import { Archive, ArchiveRestore, Info, RefreshCw } from "lucide-react";
@@ -62,7 +62,7 @@ const message = css({
   fontSize: "xs",
 });
 
-const errorMessage = css({
+const errorNote = css({
   color: "red.11",
   fontSize: "xs",
 });
@@ -147,14 +147,20 @@ export function SongsPanel() {
   const [songs, setSongs] = useState<AdminSong[]>([]);
   const [busySongId, setBusySongId] = useState<string | null>(null);
 
+  // Issue #659: 連打で複数の load が並走すると古い応答が後勝ちしうる。
+  // 最新の要求だけが state を更新する (DashboardPanel と同じ request guard)。
+  const loadSeq = useRef(0);
   const load = useCallback(async (staffToken: string) => {
+    const seq = ++loadSeq.current;
     setStatus("loading");
     setErrorMessage(undefined);
     try {
       const answer = await loadAdminSongs(staffToken);
+      if (seq !== loadSeq.current) return;
       setSongs(answer.songs);
       setStatus("ready");
     } catch (error: unknown) {
+      if (seq !== loadSeq.current) return;
       setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
       setStatus("error");
     }
@@ -224,7 +230,7 @@ export function SongsPanel() {
           </div>
 
           {errorMessage === undefined ? null : (
-            <p className={errorMessage} role="alert">
+            <p className={errorNote} role="alert">
               {errorMessage}
             </p>
           )}

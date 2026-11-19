@@ -232,6 +232,24 @@ namespace FlashBeat.Gameplay
             return plan;
         }
 
+        /// <summary>
+        /// The plan to continue with after a merged download fell back to the
+        /// video-only stream (issue #642).
+        ///
+        /// A merged plan carries no separate audio selector
+        /// (<see cref="MediaFormatPlan.Combined"/> => <see cref="MediaFormatPlan.HasAudioFile"/>
+        /// is false), so a caller that only flips `combined` to false would skip
+        /// the audio fetch entirely and the song would play silently. The split
+        /// plan re-derived from the same format list selects the same
+        /// video-only stream (<see cref="MediaFormatPlan.FallbackVideoSelector"/>)
+        /// plus the audio track. The video-only file stays under the video
+        /// prefix, so a later run can still retry the merged download.
+        /// </summary>
+        public static MediaFormatPlan PlanAfterMergedFallback(IList<YtDlpFormat> formats)
+        {
+            return SelectPlan(formats, canMerge: false);
+        }
+
         /// <summary>Numeric itag, used to prefer the higher bitrate audio track.</summary>
         static int FormatRank(YtDlpFormat format)
         {
