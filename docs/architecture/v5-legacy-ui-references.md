@@ -13,12 +13,12 @@ v6 への移植が済んだ画面では旧 v5 View は「フォールバック�
 | `V5.SelectView` | V6SelectView | `SelectSceneManager` (`V6UiMode.SelectScreen == false` の退避先) | フォールバックとして存続 |
 | ~~`V5.OptionView`~~ | V6OptionView | **削除済み** (Issue #497)。`AdjustVolume`/`FormatVolume`/`FormatSpeed`/`CycleFlashSpeed`/`WrapIndex`/`KeyLayoutLabel` の契約は `V6OptionLogic` + `KeyConfigUI.IsDefaultLayout` が継承し `V6OptionLogicTests`/`KeyConfigLayoutTests` が固定 | 削除済み |
 | ~~`V5.TitleLayout`~~ | なし (v6 は固定 1728×972 フレーム) | **削除済み** (Issue #497)。v5 の可変レイアウト計算で、v6 側に相当物なし | 削除済み |
-| `V5.ResultView` | V6ResultView | `ResultSceneManager` (`V5.ResultView.Build` + `RankFor`/`NormalizeName`/`Snapshot`) | フォールバック + 純関数の借用 |
+| `V5.ResultView` | V6ResultView | `ResultSceneManager` (`V5.ResultView.Build` + `RankFor`/`NormalizeName`/`Snapshot`) + `V6GradeLogic` (scoringVersion 1–3 のグレード判定を `RankFor` へ dispatch、#736) | フォールバック + 純関数の借用 |
 | `V5.GameHudView` | V6GameHudView | `V5.GameHudRuntime` 内部 (`V6UiMode.GameHud == false` のときだけ生成) | フォールバックとして存続 |
 | `V5.GameLoadingView` | V6LoadingView | `V5.GameHudRuntime` 内部 (同上) | フォールバックとして存続 |
 | `V5.GameReadyView` | v6 HUD Start プロンプト | `V5.GameHudRuntime` 内部 + `AutoTestV6Screens` (コメント/監査) | フォールバックとして存続 |
 | `V5.GameErrorView` | v6 Loading エラー表示 | `V5.GameHudRuntime` 内部 + `MusicManager`/`SongEndStateMachine` (コメント) | フォールバックとして存続 |
-| `V5.PauseMenuView` | V6PauseView | `V5.GameHudRuntime` 内部 + `V6GameRuntime` (legacyPause 検索) + `GameSceneManager` (cachedPauseMenu) + `PauseGate` | フォールバックとして存続 |
+| `V5.PauseMenuView` | V6PauseView | `V5.GameHudRuntime` 内部 + `V6GameRuntime` (legacyPause 検索) + `GameSceneManager` (cachedPauseMenu) + `PauseGate` + `V6VolumeSettings` (v5 `ApplyVolumes` と同じ即時反映の挙動をコメントで固定、#733) | フォールバックとして存続 |
 | `V5.OpeningView` | なし (未移植) | `OpeningSceneManager` (`OpeningView.Build`) | **現役** (v6 化は別 Issue) |
 
 ## 補助型 (View ではないが v5 UI 基盤)

@@ -80,6 +80,7 @@ public class V5LegacyReferenceAuditTests
     {
         AssertReferencingFiles("ResultView",
             "UI/V6/Common/V6CursorInput.cs",
+            "UI/V6/Common/V6GradeLogic.cs",
             "UI/V6/Result/V6ResultLogic.cs",
             "UI/V6/Result/V6ResultModal.cs",
             "UI/V6/Result/V6ResultRegistration.cs",
@@ -96,11 +97,11 @@ public class V5LegacyReferenceAuditTests
         AssertReferencingFiles("PauseMenuView",
             "Gameplay/PauseGate.cs",
             "UI/GameSceneManager.cs",
+            "UI/V6/Common/V6VolumeSettings.cs",
             "UI/V6/Game/Hud/V6GameHudView.cs",
             "UI/V6/Game/Hud/V6HudChrome.cs",
             "UI/V6/Game/Pause/V6PauseRuntime.cs",
             "UI/V6/Game/Pause/V6PauseView.cs",
-            "UI/V6/Game/Pause/V6PauseViewSettings.cs",
             "UI/V6/V6GameRuntime.cs");
     }
 

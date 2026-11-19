@@ -393,23 +393,39 @@ namespace FlashBeat.V6CanvasTests
             try
             {
                 Canvas.ForceUpdateCanvases();
+                // Issue #733: 設定行は V6SettingRowView (ルート名 "Set <label>")
+                // + 共有カタログ (V6SettingsCatalog) 構成。値テキストは行ルート直下の
+                // "Value" で、編集可能な行 (IsAction でない行) は中央揃え +
+                // TMP auto-size (fontSizeMin 16 / max 24)。アクション行
+                // (キー設定の「開く」等) は値列ではないので対象外。
                 var values = new List<TextMeshProUGUI>();
                 foreach (var tmp in view.Root.GetComponentsInChildren<TextMeshProUGUI>(true))
                 {
                     if (tmp.name == "Value" && tmp.transform.parent != null
-                        && tmp.transform.parent.name.StartsWith("Row "))
+                        && tmp.transform.parent.name.StartsWith("Set "))
                     {
                         values.Add(tmp);
                     }
                 }
 
                 Assert.Greater(values.Count, 0, "Pause の設定行 Value が見つかる");
+                int autoFitCount = 0;
                 foreach (var value in values)
                 {
                     string label = value.transform.parent.name + "/Value";
-                    Assert.AreEqual(120f, value.rectTransform.rect.width, 1f,
-                        label + " は design の 120px 列");
-                    Assert.IsTrue(value.enableAutoSizing, label + " must use TMP auto-size");
+                    if (!value.enableAutoSizing)
+                    {
+                        // アクション行の固定ラベル (「開く」等) は値列ではない。
+                        Assert.AreEqual(TextWrappingModes.NoWrap, value.textWrappingMode,
+                            label + " must not wrap");
+                        continue;
+                    }
+
+                    autoFitCount++;
+                    Assert.AreEqual(16f, value.fontSizeMin, 0.01f,
+                        label + " auto-size の下限は共通規約の 16");
+                    Assert.AreEqual(24f, value.fontSizeMax, 0.01f,
+                        label + " auto-size の上限は design の 24");
 
                     foreach (string text in new[] { "P1234 G123 B12 M8", "9,999,999" })
                     {
@@ -418,6 +434,9 @@ namespace FlashBeat.V6CanvasTests
                             value.rectTransform.rect.height, label + " '" + text + "'");
                     }
                 }
+
+                Assert.Greater(autoFitCount, 0,
+                    "auto-size 付きの編集可能な値列が 1 つ以上ある");
             }
             finally
             {

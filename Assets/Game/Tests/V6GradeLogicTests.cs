@@ -47,7 +47,10 @@ namespace FlashBeat.V5CanvasTests
             // RankFor 系の帯: v4 以降は 2M 帯、v1–v3 は RankFor 閾値。
             Assert.AreEqual("SS", V6GradeLogic.GradeOf(2000000, Scoring.Version4));
             Assert.AreEqual("B", V6GradeLogic.GradeOf(1600000, Scoring.LatestVersion));
-            Assert.AreEqual("C", V6GradeLogic.GradeOf(1600000, Scoring.Version3));
+            // 同じスコアでも scoringVersion で帯が変わる: 950,000 は v4 帯では
+            // C (B 境界 1,600,000 未満)、v1–v3 の RankFor では S (≥950,000)。
+            Assert.AreEqual("C", V6GradeLogic.GradeOf(950000, Scoring.LatestVersion));
+            Assert.AreEqual("S", V6GradeLogic.GradeOf(950000, Scoring.Version3));
             Assert.AreEqual("SS", V6GradeLogic.GradeOf(1000000, Scoring.Version3));
             Assert.AreEqual("B", V6GradeLogic.GradeOf(700000, Scoring.Version1));
         }

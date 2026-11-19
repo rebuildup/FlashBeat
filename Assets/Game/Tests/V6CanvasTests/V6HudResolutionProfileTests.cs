@@ -156,11 +156,15 @@ namespace FlashBeat.V6CanvasTests
             Assert.Less(m.Scale, 1f);
             Assert.AreEqual(1080f / m.Scale, 1440f, 0.5f);
 
-            // 縦長 (1080×1920): 高さ基準で縮小。HUD がはみ出さない。
+            // 縦長 (1080×1920): 幅が制約になるので scale = 1080/1920 = 0.5625。
+            // contain なので design 空間 (1920×1080) は画面に収まり、
+            // 横幅いっぱいまで広がる (design 幅 1920 × scale = 画面幅 1080)。
             m = V6HudMetrics.ForResolution(1080f, 1920f);
             Assert.AreEqual("fhd", m.Name);
+            Assert.AreEqual(0.5625f, m.Scale, 1e-4f);
             Assert.Less(m.Scale, 1f);
-            Assert.AreEqual(1920f / m.Scale, 1080f, 0.5f);
+            Assert.AreEqual(1080f, 1920f * m.Scale, 0.5f); // 幅いっぱい
+            Assert.LessOrEqual(1920f, 1080f * m.Scale + 0.5f); // 高さは収まる
         }
 
         [Test]

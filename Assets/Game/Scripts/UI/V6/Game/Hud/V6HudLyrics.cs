@@ -383,6 +383,15 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private static void ApplyLyricTextOutline(TextMeshProUGUI text)
         {
+            // TMP は font マテリアル未解決の間 outlineWidth setter が
+            // m_sharedMaterial を触って NRE になる (EditMode では Awake が
+            // 走らずマテリアルが遅延解決される)。製品経路では構築時に
+            // 解決済みだが、未解決の環境では縁取りを諦めて構築を止めない。
+            if (text.fontSharedMaterial == null)
+            {
+                return;
+            }
+
             text.outlineWidth = LyricTextOutlineWidth;
             text.outlineColor = LyricTextOutlineColor;
         }
