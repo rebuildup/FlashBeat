@@ -166,13 +166,17 @@ namespace FlashBeat.UI.V6.Game.Hud
             return content + LyricPaddingY * 2f;
         }
 
-        // --- 判定ポップアップ (Issue #671: 上方からの落下 + 静止保持 + フェード) ---
+        // --- 判定ポップアップ (Issue #731: 判定線起点の上昇 → 保持 → 下方退場) ---
 
         /// <summary>
-        /// 判定テキストの静止位置 = 判定線のこの距離だけ上 (px)。
-        /// §10.3 の「所定位置」。落下の終点であり、滞在中の表示位置。
+        /// 判定テキストが読み取りのために留まる頂点の高さ = 判定線のこの距離だけ上 (px)。
+        /// 判定確定 (t=0) に判定線の位置へ出現し、<see cref="VerdictRiseSeconds"/>
+        /// かけてこの高さまで上昇する。Issue #731 で旧「静止位置」(Issue #671) から
+        /// 「上昇の頂点」へ役割が変わった。72px は判定ボックス
+        /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の高さとほぼ同じで、
+        /// テキスト下端が判定線・レーンフラッシュと重ならない最小の読み取り高さ。
         /// </summary>
-        public const float VerdictRestGapAboveLine = 72f;
+        public const float VerdictPeakGapAboveLine = 72f;
 
         /// <summary>
         /// レガシー 3D プレイフィールド経路 (V6UiMode.Playfield=false) の
@@ -186,6 +190,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// design §10.3 の「判定線」は描画される線を指す
         /// (v6 プレイフィールド経路は design y=792 の描画線を
         /// アンカーに使っており、両経路で同じ意味に揃える。Issue #715)。
+        /// Issue #731 のタイムラインの原点 (オフセット 0) はこの線の位置。
         /// </summary>
         public static Vector3 LegacyJudgeLineAnchor()
         {
@@ -193,89 +198,104 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 判定が現れてから静止位置へ落ちきるまでの時間 (秒)。
-        /// Issue #671: 判定線付近での短い落下フェーズ (出現位置は静止位置の
-        /// 真上 <see cref="VerdictFallDistancePx(V6HudMetrics)"/>。画面上端ではない —
-        /// ノーツの接近と判定フィードバックを区別するため)。
+        /// 判定線上の出現点から読み取りの頂点まで上昇する時間 (秒)。
+        /// 「叩いた」位置 (判定線) から文字が立ち上がる動きを
+        /// EaseOutCubic で素早く見せる。長すぎると判定の瞬間性が薄れる。
         /// </summary>
-        public const float VerdictFallSeconds = 0.30f;
+        public const float VerdictRiseSeconds = 0.18f;
 
-        /// <summary>判定が静止位置で留まる時間 (秒)。読み取りの主時間。</summary>
-        public const float VerdictHoldSeconds = 0.45f;
+        /// <summary>頂点で読み取りのために留まる時間 (秒)。0.4 秒以上を確保する。</summary>
+        public const float VerdictHoldSeconds = 0.50f;
 
         /// <summary>
-        /// 判定が消えるまでのフェードアウト時間 (秒)。
-        /// design §10.3: 寿命の最後の 220ms。
+        /// 頂点から判定線を越えて下へ加速落下しながら消える時間 (秒)。
+        /// 落下とフェードアウトはこの 1 フェーズに統合する
+        /// (旧来の「静止保持 → フェードのみ」の 2 段階は廃止)。
         /// </summary>
-        public const float VerdictFadeOutSeconds = 0.22f;
+        public const float VerdictFallSeconds = 0.32f;
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// 落下 (<see cref="VerdictFallSeconds"/>) + 静止保持
-        /// (<see cref="VerdictHoldSeconds"/>) + フェードアウト
-        /// (<see cref="VerdictFadeOutSeconds"/>) = 0.97 秒。
-        /// Issue #671: 落下フェーズを独立した時間として足したため、
-        /// #605 の 0.80 秒から延びる。静止保持は読み取りに必要な
-        /// 0.4 秒以上を確保する。
+        /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 保持
+        /// (<see cref="VerdictHoldSeconds"/>) + 下方退場
+        /// (<see cref="VerdictFallSeconds"/>) = 1.00 秒。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictFallSeconds + VerdictHoldSeconds + VerdictFadeOutSeconds;
+            VerdictRiseSeconds + VerdictHoldSeconds + VerdictFallSeconds;
 
         /// <summary>
-        /// 判定テキストの不透明度。出現は即時 (§10.3: フェードインしない。
-        /// Issue #605 の設計判断。落下の動きが出現の合図を担うため、
-        /// #581 のフェードインは廃止した)。寿命の最後は
-        /// <see cref="VerdictFadeOutSeconds"/> で 1→0。
+        /// 下方退場の終端 = 判定線のこの距離だけ下 (px、正の値)。
+        /// 判定ボックス (<see cref="V6HudMetrics.VerdictH"/>) 1 個分 —
+        /// 文字 1 行分の高さだけ判定線を割って落ちれば「下へ抜ける」動きとして
+        /// 十分に読め、さらに先のキーガイド行には届かない。
+        /// 解像度別メトリクス由来なので FHD/2K/Mac で適切にスケールする。
         /// </summary>
-        /// <param name="remaining">表示が終わるまでの残り秒。</param>
-        public static float VerdictAlpha(float remaining)
-        {
-            if (remaining <= 0f)
-            {
-                return 0f;
-            }
-
-            return Mathf.Clamp01(remaining / VerdictFadeOutSeconds);
-        }
-
-        /// <summary>
-        /// 判定テキストの落下距離 (px、画面下原点)。静止位置
-        /// (判定線 + <see cref="VerdictRestGapAboveLine"/>) の真上この距離に
-        /// 即時出現し、<see cref="VerdictFallSeconds"/> かけて静止位置へ落ちる。
-        ///
-        /// 距離は判定ボックス (<see cref="V6HudMetrics.VerdictH"/>) 1 個分の
-        /// 高さ。文字がちょうど一文字分の距離を落ちて着地する最小の
-        /// drop-in であり、画面上端からの全距離落下 (= ノーツの接近と
-        /// 判定フィードバックの混同、実機レビュー指摘) とは区別できる。
-        /// メトリクスは解像度別テーブルなので FHD/2K で適切にスケールする。
-        /// </summary>
-        public static float VerdictFallDistancePx(V6HudMetrics m)
+        public static float VerdictExitDropPx(V6HudMetrics m)
         {
             return m.VerdictH;
         }
 
         /// <summary>
-        /// 静止位置より上へのオフセット (px、正 = 上)。
-        /// Issue #671: 出現時は <paramref name="fallDistance"/> だけ上にあり、
-        /// <see cref="VerdictFallSeconds"/> かけて EaseOutCubic に従って
-        /// 静止位置 (0) へ落ちる。落下完了後は 0。
-        /// 到達を減速させる EaseOut にするのは、着地を滑らかに見せるため。
+        /// 判定ポップのある時刻の姿勢。<see cref="OffsetPx"/> は判定線からの
+        /// 垂直オフセット (px、画面下原点で正 = 上。負は判定線より下)、
+        /// <see cref="Alpha"/> は不透明度 (0..1)。
         /// </summary>
-        /// <param name="elapsed">表示開始からの秒。</param>
-        /// <param name="fallDistance">落下距離 (px)。<see cref="VerdictFallDistancePx"/> を使う。</param>
-        public static float VerdictFallOffset(float elapsed, float fallDistance)
+        public struct VerdictPose
         {
-            if (elapsed <= 0f)
+            public readonly float OffsetPx;
+            public readonly float Alpha;
+
+            public VerdictPose(float offsetPx, float alpha)
             {
-                return fallDistance;
+                OffsetPx = offsetPx;
+                Alpha = alpha;
+            }
+        }
+
+        /// <summary>
+        /// 判定ポップの純粋タイムライン (Issue #731)。本編 HUD
+        /// (V6HudVerdict) と Option プレビュー (V6OptionViewPreviewOverlay) が
+        /// 同じ関数・同じ定数で動かす。時刻の正本は判定確定時刻 t=0。
+        ///
+        /// - t=0: 判定線の位置に即時出現 (オフセット 0、α=1。フェードインなし)。
+        /// - 0〜<see cref="VerdictRiseSeconds"/>: EaseOutCubic で頂点
+        ///   (判定線 + <see cref="VerdictPeakGapAboveLine"/>) まで上昇。
+        /// - 〜+<see cref="VerdictHoldSeconds"/>: 頂点で静止 (読み取り時間)。
+        /// - 〜+<see cref="VerdictFallSeconds"/>: EaseInCubic で加速しながら
+        ///   判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで落下。
+        ///   同じ時間で α を 1→0 にフェードする。
+        /// - 総寿命 <see cref="VerdictTotalSeconds"/> を過ぎると α=0。
+        ///
+        /// 旧軌道 (Issue #671: 静止位置の真上から落下して着地 → 静止 → フェード)
+        /// はオーナー要求に反するため廃止した (#728 観測 3 / #731)。
+        /// </summary>
+        /// <param name="elapsed">判定確定からの経過秒 (負は 0 として扱う)。</param>
+        /// <param name="m">解像度別 HUD メトリクス (退場距離の算出に使う)。</param>
+        public static VerdictPose VerdictPoseAt(float elapsed, V6HudMetrics m)
+        {
+            float t = Mathf.Max(0f, elapsed);
+
+            // 上昇: 判定線 (0) → 頂点 (peak)。EaseOut で立ち上がりを減速させる。
+            if (t < VerdictRiseSeconds)
+            {
+                return new VerdictPose(
+                    VerdictPeakGapAboveLine * EaseOutCubic(t / VerdictRiseSeconds), 1f);
             }
 
-            if (elapsed >= VerdictFallSeconds)
+            // 保持: 頂点で静止。
+            if (t < VerdictRiseSeconds + VerdictHoldSeconds)
             {
-                return 0f;
+                return new VerdictPose(VerdictPeakGapAboveLine, 1f);
             }
 
-            return fallDistance * (1f - EaseOutCubic(elapsed / VerdictFallSeconds));
+            // 下方退場: 頂点 → 判定線を越えて exitDrop 分だけ下。
+            // EaseIn で加速し、同じ時間で α を 1→0 にする。
+            float u = Mathf.Clamp01(
+                (t - VerdictRiseSeconds - VerdictHoldSeconds) / VerdictFallSeconds);
+            float travel = VerdictPeakGapAboveLine + VerdictExitDropPx(m);
+            return new VerdictPose(
+                VerdictPeakGapAboveLine - travel * EaseInCubic(u),
+                1f - u);
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
@@ -302,6 +322,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             t = Mathf.Clamp01(t);
             float u = 1f - t;
             return 1f - u * u * u;
+        }
+
+        /// <summary>EaseInCubic: 徐々に加速する (判定ポップの下方退場用)。</summary>
+        public static float EaseInCubic(float t)
+        {
+            t = Mathf.Clamp01(t);
+            return t * t * t;
         }
 
         /// <summary>EaseOutBack: 行き過ぎてから戻る (弾ける感じ)。戻り値は 1 を超え得る。</summary>

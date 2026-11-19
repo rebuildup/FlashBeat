@@ -25,7 +25,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         private readonly float[] laneVerdictUntil = new float[V6LaneGeometry.LaneCount];
         /// <summary>判定テキストを出した時刻 (出現アニメーションの基準)。</summary>
         private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
-        /// <summary>判定テキストの静止位置 (行ローカル anchoredPosition.y、px)。</summary>
+        /// <summary>
+        /// 判定テキストの行ローカル基準 y (anchoredPosition.y)。
+        /// Issue #731: タイムラインの原点 = 判定線の位置。実際の表示位置は
+        /// 毎フレーム <see cref="V6HudLogic.VerdictPoseAt"/> の OffsetPx を
+        /// 足した値 (判定線 → 上昇 → 保持 → 下方退場)。
+        /// </summary>
         private float verdictBaseY;
 
 
@@ -121,8 +126,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 判定テキストの静止位置を判定線の実位置から求める (Issue #432)。
-        /// 静止位置 = 判定線の <see cref="V6HudLogic.VerdictRestGapAboveLine"/> 上。
+        /// 判定ポップのタイムライン原点 = 判定線の実位置から行ローカル y を求める
+        /// (Issue #432 / #731)。原点は判定線そのもの (オフセット 0)。
         /// レーン格子と同じ入力 (解像度・カメラ) が変わったときだけ呼ばれる。
         /// </summary>
         private void UpdateVerdictAnchor(Vector2 canvasSize)
@@ -163,12 +168,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             // テキストは PinBottom された行の中に (0, 0.5) アンカーで置かれている。
-            // anchoredPosition.y = 静止位置 (画面下原点) − 行中心 (画面下原点)。
-            // Issue #671: verdictBaseY は落下の終点 (静止位置)。出現時は
-            // VerdictFallDistancePx(m) だけ上に置き、時間でここへ落ちてくる。
+            // anchoredPosition.y = 原点 (判定線、画面下原点) − 行中心 (画面下原点)。
+            // Issue #731: verdictBaseY は判定線上の原点。実際の表示位置は
+            // 毎フレーム VerdictPoseAt(elapsed).OffsetPx を足した値で、
+            // 上昇 → 保持 → 下方退場のタイムラインに従う。
             // レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
-            verdictBaseY = judgeLineFromBottom + V6HudLogic.VerdictRestGapAboveLine - rowCenterFromBottom;
+            verdictBaseY = judgeLineFromBottom - rowCenterFromBottom;
             for (int i = 0; i < verdictTexts.Count; i++)
             {
                 var rt = verdictTexts[i].rectTransform;
@@ -341,19 +347,20 @@ namespace FlashBeat.UI.V6.Game.Hud
                     continue;
                 }
 
-                // Issue #671: 判定は静止位置の真上 VerdictFallDistancePx(m) に
-                // 即時出現 (フェードインなし) し、VerdictFallSeconds で
-                // 静止位置へ落ちてくる。その後 VerdictHoldSeconds 静止し、
-                // 寿命の最後 VerdictFadeOutSeconds でフェードアウト。
+                // Issue #731: 判定は判定線の位置 (オフセット 0) に即時出現し、
+                // VerdictPoseAt の純粋タイムラインに従って上昇 → 頂点で保持 →
+                // 判定線を越えて下へ加速落下しながらフェードアウトする。
+                // 本編と Option プレビューは同じ関数・同じ定数を使う。
                 float elapsed = now - laneVerdictStart[lane];
-                SetAlpha(verdictTexts[lane], V6HudLogic.VerdictAlpha(remain));
+                V6HudLogic.VerdictPose pose = V6HudLogic.VerdictPoseAt(elapsed, m);
+                SetAlpha(verdictTexts[lane], pose.Alpha);
 
                 var rt = verdictTexts[lane].rectTransform;
                 // レイアウトは触らず anchoredPosition.y だけを時間で変える。
-                // offset は正 = 静止位置より上なので verdictBaseY に足す。
+                // verdictBaseY は判定線上の原点なので、pose.OffsetPx
+                // (正 = 判定線より上) をそのまま足す。
                 V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
-                    verdictBaseY + V6HudLogic.VerdictFallOffset(elapsed,
-                        V6HudLogic.VerdictFallDistancePx(m)));
+                    verdictBaseY + pose.OffsetPx);
             }
         }
 
@@ -379,8 +386,11 @@ namespace FlashBeat.UI.V6.Game.Hud
                 if (label.Length == 0) continue;
 
                 laneVerdicts[lane] = label;
-                // Issue #671: 判定の見え時間は VerdictTotalSeconds (0.97s)。
-                // 即時出現 → 上方からの落下 → 静止保持 → フェードアウト (§10.3)。
+                // Issue #731: 判定の見え時間は VerdictTotalSeconds (1.00s)。
+                // 判定線上に出現 → 上昇 → 保持 → 下方退場 (§10.3)。
+                // レーンごとに独立した start/until を持つので、同時押しや
+                // 高速連打で他レーン・同レーンの再判定がタイミングを
+                // 壊さない (同レーンの再判定は新しいイベントで上書き)。
                 laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
                 laneVerdictStart[lane] = Time.unscaledTime;
                 verdictTexts[lane].text = label;

@@ -289,12 +289,15 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
   本編アスペクト比のまま写す。判定線は本編 JudgeLine (不透明白
   LineRenderer) と同じ不透明・同程度の太さ。スコア・コンボ・ゲージ等の
   他 HUD 要素は契約上プレビューの対象外なので追加しない。
-- 判定ポップの時系列 (Issue #671): 出現 (静止位置の真上 `VerdictFallDistancePx(m)`
-  = 判定ボックス高さ `VerdictH`、即時) → 短い落下で判定線直上の静止位置へ着地
-  (`VerdictFallSeconds` 0.30s) → 静止保持 (`VerdictHoldSeconds` 0.45s)
-  → フェードアウト (`VerdictFadeOutSeconds` 0.22s)、総寿命
-  `VerdictTotalSeconds` 0.97s。落下距離は判定ボックス高さ 1 個分で、
-  ノーツの全画面落下と判定フィードバックを区別する。
+- 判定ポップの時系列 (Issue #731。旧 #671 の「上方から落下して着地」は廃止):
+  判定確定 (t=0) に判定線の位置へ即時出現 → 上昇
+  (`VerdictRiseSeconds` 0.18s、EaseOutCubic、頂点 = 判定線 +
+  `VerdictPeakGapAboveLine` 72px) → 頂点で静止保持
+  (`VerdictHoldSeconds` 0.50s) → 下方退場 (`VerdictFallSeconds` 0.32s、
+  EaseInCubic で加速しながら判定線を越えて `VerdictExitDropPx(m)` =
+  判定ボックス高さ `VerdictH` 1 個分下まで落下、同時に α 1→0)、
+  総寿命 `VerdictTotalSeconds` 1.00s。軌道の正本は
+  `V6HudLogic.VerdictPoseAt` で、本編とプレビューが共有する。
   設計判断は `docs/design/v6/review-2026-11-11-decisions.md` §10.3。
 - 「判定線」の意味 (Issue #715 で確定): 描画される線そのもの。
   v6 プレイフィールド経路は design の Judge Line (y=792)、
