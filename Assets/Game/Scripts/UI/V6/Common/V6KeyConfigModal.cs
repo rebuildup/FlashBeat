@@ -168,8 +168,11 @@ namespace FlashBeat.UI.V6.Common
             BuildKeyboard();
 
             // 選択レーンの状態 (衝突・待受など) と操作ヒント。
+            // 「他: A / B / …」の使用中キー一覧は 784px を超え得るため 1 行省略にする
+            // (#749: NoWrap + Overflow では右へはみ出していた)。
             statusText = V6Controls.Text(dialogGo, "Status", string.Empty,
                 new Vector2(28f, 420f), new Vector2(784f, 26f), 20f, V6Tokens.TextMuted);
+            V6TextFit.Ellipsis(statusText);
             hintText = V6Controls.Text(dialogGo, "Hint",
                 "クリック: レーン選択 / Enter: キー待受 / ←→: レーン移動 / Esc: 閉じる",
                 new Vector2(28f, 452f), new Vector2(784f, 22f), 18f, V6Tokens.TextDim);

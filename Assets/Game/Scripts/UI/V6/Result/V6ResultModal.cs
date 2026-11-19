@@ -265,6 +265,9 @@ namespace FlashBeat.UI.V6.Result
             V6Layout.Place(registerIcon.gameObject, 18.5f, 13f, 24f, 24f);
             modalRegisterLabel = OneLine(V5GameUi.Text(register, "Label", "Register", 26f,
                 V5Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Left, FontStyles.Normal));
+            // "Register" (fs26) は design の 101px を数 px 超えるため auto-size で収める
+            // ("Save" / "再試行" への差し替え後も同じ矩形)。#749。
+            V6TextFit.AutoFit(modalRegisterLabel, 20f);
             V6Layout.Place(modalRegisterLabel, 54.5f, 6f, 101f, 38f);
             BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", V5Tokens.FromHex("#00000026"),
                 V5Tokens.ButtonPrimaryLabel, 20f);
@@ -274,6 +277,9 @@ namespace FlashBeat.UI.V6.Result
             // design に無い実装都合の行なので Head/Prompt と重ならない位置 (右側 y74) に置く。
             modalStatus = OneLine(V5GameUi.Text(dialog.gameObject, "Status", "", 17f, V5Tokens.TextMuted,
                 TextAlignmentOptions.Left));
+            // 送信結果 / サーバエラーの長文が 592px を超えても 1 行に収める (#749)。
+            // スコア値と同じく全文を読ませたいので省略ではなく auto-size。
+            V6TextFit.AutoFit(modalStatus, 12f);
             V6Layout.Place(modalStatus, 220f, 74f, 592f, 26f);
 
             // 登録チップ (design TYshI 272×32)。成功は $ok-tint / $ok-light、

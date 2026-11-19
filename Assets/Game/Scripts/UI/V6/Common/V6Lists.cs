@@ -157,8 +157,11 @@ namespace FlashBeat.UI.V6.Common
                 new Vector2(RankPosSize, RankPosSize), V6Tokens.Key4, RankPosSize * 0.5f);
             StretchText(posGo, "Pos", pos, RankFs, selected ? V6Tokens.Text : V6Tokens.TextMuted);
 
-            V6Controls.Text(go, "Name", name, new Vector2(RankNameX, (h - RankTextH) * 0.5f),
+            // Name はニックネーム最長 16 文字が固定幅を超えるため 1 行省略にする
+            // (はみ出すと Value / Grade 列へ重なる。共通規約 V6TextFit.Ellipsis)。
+            var rankName = V6Controls.Text(go, "Name", name, new Vector2(RankNameX, (h - RankTextH) * 0.5f),
                 new Vector2(RankNameW, RankTextH), RankFs, V6Tokens.Text);
+            V6TextFit.Ellipsis(rankName);
 
             V6Controls.Text(go, "Value", value, new Vector2(RankValueX, (h - RankTextH) * 0.5f),
                 new Vector2(RankValueW, RankTextH), RankFs, V6Tokens.Text, TextAlignmentOptions.Right);
@@ -208,8 +211,9 @@ namespace FlashBeat.UI.V6.Common
                 new Vector2(RankPosSize, RankPosSize), V6Tokens.Key4, RankPosSize * 0.5f);
             StretchText(posGo, "PosText", pos, RankFs, selected ? V6Tokens.Text : V6Tokens.TextMuted);
 
-            V6Controls.Text(go, "Name", name, new Vector2(CompactRankNameX, CompactRankTextY),
+            var compactName = V6Controls.Text(go, "Name", name, new Vector2(CompactRankNameX, CompactRankTextY),
                 new Vector2(CompactRankNameW, CompactRankTextH), RankFs, V6Tokens.Text);
+            V6TextFit.Ellipsis(compactName);
 
             V6Controls.Text(go, "Value", value, new Vector2(CompactRankValueX, CompactRankTextY),
                 new Vector2(CompactRankValueW, CompactRankTextH), RankFs, V6Tokens.Text,
@@ -236,8 +240,9 @@ namespace FlashBeat.UI.V6.Common
                 new Vector2(RankPosSize, RankPosSize), V6Tokens.Key4, RankPosSize * 0.5f);
             StretchText(posGo, "Pos", pos, RankFs, selected ? V6Tokens.Text : V6Tokens.TextMuted);
 
-            V6Controls.Text(go, "Name", name, new Vector2(RankNameX, (h - RankTextH) * 0.5f),
+            var playerName = V6Controls.Text(go, "Name", name, new Vector2(RankNameX, (h - RankTextH) * 0.5f),
                 new Vector2(RankNameW, RankTextH), RankFs, V6Tokens.Text);
+            V6TextFit.Ellipsis(playerName);
 
             V6Controls.Text(go, "Value", value, new Vector2(RankValueX, (h - RankTextH) * 0.5f),
                 new Vector2(RankValueW, RankTextH), RankFs, V6Tokens.Text, TextAlignmentOptions.Right);

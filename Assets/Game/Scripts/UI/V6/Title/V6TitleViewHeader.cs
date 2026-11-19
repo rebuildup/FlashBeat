@@ -49,6 +49,10 @@ namespace FlashBeat.UI.V6.Title
                     V6TitleLogic.UpdateButtonLabel(model.Phase, model.DownloadProgress),
                     V6TitleLogic.UpdateButtonPos, V6TitleLogic.UpdateButtonSize, "refresh-cw",
                     V6TitleLogic.UpdateButtonKey);
+                // 「更新を準備中... 100%」は fs30 ではボタン内容幅を超えるため、
+                // design 座標を変えずに Label 矩形を利用可能幅へ詰めて auto-size で収める
+                // (#749: Button の Label は hug 幅なので auto-size だけでは縮まない)。
+                FitButtonLabel(update, V6TitleLogic.UpdateButtonSize, 18f);
                 TintChild(update, "Icon", V6Tokens.AccentLight);
                 TintChild(update, "KeyCap " + V6TitleLogic.UpdateButtonKey, new Color32(0, 0, 0, 0x40));
 
@@ -97,6 +101,53 @@ namespace FlashBeat.UI.V6.Title
                     V6TitleLogic.VersionNewSize, V6TitleLogic.VersionFontSize,
                     V6Tokens.AccentLight, TextAlignmentOptions.Left, FontStyles.Bold);
             }
+        }
+
+        /// <summary>
+        /// Button 内 Label が利用可能幅を超えるとき、Label 矩形を残り幅へ詰めて
+        /// TMP auto-size (下限 minFontSize) を有効にする。インクの中心は変えない
+        /// (矩形を縮めた分だけ右へ寄せる) ので、ボタン全体の中央揃えは保たれる。
+        /// 収まる通常ラベルでは何もしない (Issue #749)。
+        /// </summary>
+        private static void FitButtonLabel(GameObject button, Vector2 buttonSize, float minFontSize)
+        {
+            var labelT = button.transform.Find("Label");
+            var tmp = labelT != null ? labelT.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp == null || !(labelT is RectTransform))
+            {
+                return;
+            }
+
+            var rt = (RectTransform)labelT;
+            float labelW = rt.sizeDelta.x;
+            float iconW = 0f;
+            float capW = 0f;
+            int gaps = 0;
+            foreach (Transform child in button.transform)
+            {
+                if (child.name == "Icon")
+                {
+                    iconW = ((RectTransform)child).sizeDelta.x;
+                    gaps++;
+                }
+                else if (child.name.StartsWith("KeyCap"))
+                {
+                    capW = ((RectTransform)child).sizeDelta.x;
+                    gaps++;
+                }
+            }
+
+            // Button 規則 (padding [0,24] / gap 12) の内容幅から Label 以外を引いた残り。
+            float available = buttonSize.x - V6Controls.ButtonPaddingX * 2f
+                - iconW - capW - V6Controls.ButtonGap * gaps;
+            if (labelW <= available || available <= 0f)
+            {
+                return;
+            }
+
+            rt.sizeDelta = new Vector2(available, rt.sizeDelta.y);
+            rt.anchoredPosition += new Vector2((labelW - available) * 0.5f, 0f);
+            V6TextFit.AutoFit(tmp, minFontSize);
         }
 
         /// <summary>

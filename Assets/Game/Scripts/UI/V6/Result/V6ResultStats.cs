@@ -307,14 +307,11 @@ namespace FlashBeat.UI.V6.Result
         /// (100 万点超のスコア、判定・コンボの大きな値) 矩形からはみ出さないよう、
         /// fontSizeMin..fontSizeMax (現在の fontSize が上限) の範囲へ縮める。
         /// min は可読性の下限で、これを下回る値は設計上あり得ない想定。
+        /// 実装は V6 共通規約 <see cref="V6TextFit.AutoFit"/> (Issue #749 で集約)。
         /// </summary>
         private static void AutoFit(TextMeshProUGUI tmp, float minFontSize)
         {
-            float max = tmp.fontSize;
-            tmp.enableAutoSizing = true;
-            tmp.fontSizeMin = minFontSize;
-            tmp.fontSizeMax = max;
-            tmp.fontSize = max;
+            V6TextFit.AutoFit(tmp, minFontSize);
         }
 
         /// <summary>
