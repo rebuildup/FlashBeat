@@ -35,7 +35,14 @@ namespace FlashBeat.UI.V6.Title
                 float x = 0f;
                 string startKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Start);
                 x = AddLegendItem(footer, x, startKey, "決定");
-                x = AddLegendItem(footer, x, "↑↓", "選択");
+                // Issue #750: 「↑↓ 選択」は文字グリフではなく chevron アイコン
+                // (Option / Pause / Select / History / Ranking と同じ V6Legend.IconItem。
+                // Title 凡例は別設計 (h36 / pad10 / gap10) なので寸法を明示する)。
+                x = V6Legend.IconItem(footer, x, V6TitleLogic.LegendPos.y,
+                    new[] { "chevron-up", "chevron-down" }, "選択",
+                    V6Tokens.KeyCapHeight, V6Controls.KeyCapPaddingX, V6TitleLogic.LegendInnerGap,
+                    V6TitleLogic.LegendGap, V6TitleLogic.LegendFontSize,
+                    V6Tokens.Key4, V6Tokens.TextMuted);
                 string exitKey = ShortcutKeyCap.PrimaryText(KeyActions.KeyAction.Exit);
                 AddLegendItem(footer, x, exitKey, "終了");
             }

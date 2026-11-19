@@ -31,8 +31,13 @@ namespace FlashBeat.UI.V6.Select.View
             float legendX = 0f;
             for (int i = 0; i < legendItems.Length; i++)
             {
-                legendX = V6Legend.Item(footer, legendX, V6Legend.Y,
-                    legendItems[i].Key, legendItems[i].Label);
+                // Issue #750: Icons を持つ項目 (曲送りの ↑↓) は文字グリフではなく
+                // chevron スプライトの凡例 (Option / Pause と同じ IconItem) で描く。
+                legendX = legendItems[i].Icons != null
+                    ? V6Legend.IconItem(footer, legendX, V6Legend.Y,
+                        legendItems[i].Icons, legendItems[i].Label)
+                    : V6Legend.Item(footer, legendX, V6Legend.Y,
+                        legendItems[i].Key, legendItems[i].Label);
             }
 
             // 右下: 設定 (secondary) + Ready (primary)。design 座標のまま右詰め。

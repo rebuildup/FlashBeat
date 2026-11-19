@@ -43,7 +43,7 @@ namespace FlashBeat.UI.V6.Select.View
         {
             // 位置も design 定数 (frame ローカル (24,96) 560x780 = ListPanelRect) から取る。
             var list = V6Layout.Place(V5Ui.Panel(frame.gameObject, "Song List", new Vector2(ListW, ListH),
-                V5Tokens.FromHex("#131313CC"), 16f), V6SelectViewLogic.ListX, V6SelectViewLogic.ListY);
+                V6Tokens.ListBg, 16f), V6SelectViewLogic.ListX, V6SelectViewLogic.ListY);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");

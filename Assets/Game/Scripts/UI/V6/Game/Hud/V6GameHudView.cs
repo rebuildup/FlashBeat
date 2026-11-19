@@ -522,11 +522,15 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void OnEnable()
         {
             KeyBindings.Changed += RebuildKeyGuide;
+            // Issue #750: メニューボタンのキーキャップは KeyActions (メニュー操作)
+            // の実バインドを映すので、レーンキー (KeyBindings) とは別に購読する。
+            KeyActions.Changed += RefreshMenuKeyCap;
         }
 
         private void OnDestroy()
         {
             KeyBindings.Changed -= RebuildKeyGuide;
+            KeyActions.Changed -= RefreshMenuKeyCap;
             // Issue #680: このビューが書いた 3D エフェクト抑制を残さない
             // (次のシーン・別経路では従来どおりエフェクトを出す)。
             Judge.SuppressJudgementEffects = false;

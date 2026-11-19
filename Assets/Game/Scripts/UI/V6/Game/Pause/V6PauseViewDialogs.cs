@@ -59,8 +59,10 @@ namespace FlashBeat.UI.V6.Game.Pause
             V6ButtonPressFeedback.Attach(cancel);
             cancelButton.onClick.AddListener(CancelResetKeyLayout);
 
+            // Issue #750: 破壊的操作の確認色は Option (V6OptionViewDialogs) と同じ
+            // V6Tokens.Danger に統一する (旧 #E53E3E はトークン外の別色だった)。
             var confirm = V5Ui.Panel(dialog, "Op Reset", new Vector2(252f, 50f),
-                new Color(0xE5 / 255f, 0x3E / 255f, 0x3E / 255f), 8f);
+                V6Tokens.Danger, 8f);
             V6Layout.PlaceAt(confirm, 560f, 432f, new Vector2(252f, 50f));
             var confirmLabel = V5Ui.Text(confirm, "Label", "戻す", 26f, V5Tokens.ButtonPrimaryLabel,
                 TextAlignmentOptions.Center);

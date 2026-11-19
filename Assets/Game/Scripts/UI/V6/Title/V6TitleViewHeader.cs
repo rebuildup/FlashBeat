@@ -93,9 +93,16 @@ namespace FlashBeat.UI.V6.Title
 
             if (showNewVersion)
             {
-                V6Controls.Text(versionZone, "Version Arrow", "→", V6TitleLogic.VersionArrowPos,
-                    V6TitleLogic.VersionArrowSize, V6TitleLogic.VersionArrowFontSize,
-                    V6Tokens.TextDim, TextAlignmentOptions.Left);
+                // Issue #750: 「→」の文字グリフは arrow-right スプライトに置き換える
+                // (versionZone ローカルの design 矩形 (162,2) 20×29 に収める)。
+                var arrow = V6Icons.Create(versionZone, "arrow-right", 20f,
+                    V6Tokens.TextDim, "Version Arrow");
+                if (arrow != null)
+                {
+                    V6Layout.Place(arrow.gameObject, V6TitleLogic.VersionArrowPos.x,
+                        V6TitleLogic.VersionArrowPos.y,
+                        V6TitleLogic.VersionArrowSize.x, V6TitleLogic.VersionArrowSize.y);
+                }
                 V6Controls.Text(versionZone, "Version New",
                     V6TitleLogic.VersionLabel(model.LatestVersion), V6TitleLogic.VersionNewPos,
                     V6TitleLogic.VersionNewSize, V6TitleLogic.VersionFontSize,

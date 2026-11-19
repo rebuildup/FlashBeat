@@ -509,25 +509,30 @@
         /// <param name="confirmKey">決定のキーキャップ表示 (ActionKeyHint.Primary(Confirm))。</param>
         public static V6LegendItem[] FooterLegend(string confirmKey)
         {
-            var defs = new string[][]
+            // Issue #750: 「曲送り」の ↑↓ は文字グリフではなく chevron アイコンで示す
+            // (Option / Pause / History / Ranking と同じ V6Legend.IconItem 経路)。
+            var defs = new V6LegendDef[]
             {
-                new[] { string.IsNullOrEmpty(confirmKey) ? "Space" : confirmKey, "決定" },
-                new[] { "↑↓", "曲送り" },
-                new[] { "A-Z", "検索" },
-                new[] { "Tab", "絞り込み" },
+                new V6LegendDef { Key = string.IsNullOrEmpty(confirmKey) ? "Space" : confirmKey, Label = "決定" },
+                new V6LegendDef { Label = "曲送り", Icons = new[] { "chevron-up", "chevron-down" } },
+                new V6LegendDef { Key = "A-Z", Label = "検索" },
+                new V6LegendDef { Key = "Tab", Label = "絞り込み" },
             };
 
             var items = new V6LegendItem[defs.Length];
             float x = 0f;
             for (int i = 0; i < defs.Length; i++)
             {
-                float capW = KeyCapWidth(defs[i][0], CapFontSize);
-                float labelW = EstimateTextWidth(defs[i][1], LabelFontSize);
+                float capW = defs[i].Icons != null
+                    ? Common.V6Legend.IconItemCapWidth(defs[i].Icons.Length)
+                    : KeyCapWidth(defs[i].Key, CapFontSize);
+                float labelW = EstimateTextWidth(defs[i].Label, LabelFontSize);
                 float width = capW + LegendLabelGap + labelW;
                 items[i] = new V6LegendItem
                 {
-                    Key = defs[i][0],
-                    Label = defs[i][1],
+                    Key = defs[i].Key,
+                    Icons = defs[i].Icons,
+                    Label = defs[i].Label,
                     CapWidth = capW,
                     LabelWidth = labelW,
                     X = x,
@@ -537,6 +542,14 @@
             }
 
             return items;
+        }
+
+        /// <summary>FooterLegend の定義行 (キー文字またはアイコン名のどちらか一方)。</summary>
+        private struct V6LegendDef
+        {
+            public string Key;
+            public string Label;
+            public string[] Icons;
         }
 
         /// <summary>凡例全体の幅 (フッター ローカル)。最後の項目の右端。</summary>
