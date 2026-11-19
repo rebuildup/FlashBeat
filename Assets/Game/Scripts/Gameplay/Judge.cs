@@ -26,6 +26,23 @@ public class Judge : MonoBehaviour
         return LaneFirstCenterX + lane * LaneSpacing;
     }
 
+    /// <summary>
+    /// 描画される判定線 (GameScene "JudgeLine" LineRenderer) のワールド y / z。
+    /// シーンの線はローカル座標 (-4, 0.5, 0) → (4, 0.5, 0) の水平線で、
+    /// GameObject の Transform が (0, -0.02, 0)・scale (8, 1, 40) なので
+    /// ワールドでは y = 0.5 - 0.02 = 0.48 / z = 0 に描かれる
+    /// (x 方向は scale 8 で画面全幅へ伸びる)。ノーツが判定時刻に到達する
+    /// 面 (z = 0) 上にある (Notes.cs / PlayfieldLaneGuides
+    /// の「判定線 z = 0」と同じ面)。判定エフェクトの出現点
+    /// (<see cref="EffectPosition"/> = y 0.76 / z 0.15) とは別物 —
+    /// あちらは 3D 判定エフェクトが浮かぶ位置で、投影は描画判定線より
+    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行の静止位置は
+    /// この線の直上 (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictRestGapAboveLine"/>)
+    /// に置く (design §10.3)。
+    /// </summary>
+    public const float JudgeLineWorldY = 0.48f;
+    public const float JudgeLineWorldZ = 0f;
+
     [SerializeField] private GameObject[] MessageObj;
     [SerializeField] private GameObject[] ParticleObj;
     [SerializeField] private NotesManager notesManager;
