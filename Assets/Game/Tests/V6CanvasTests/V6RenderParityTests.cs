@@ -495,6 +495,10 @@ namespace FlashBeat.V6CanvasTests
             scaler.scaleFactor = 1f;
 
             optionView = V6OptionView.Create(canvasGo.GetComponent<RectTransform>(), () => { });
+            // Issue #732: オートプレイの自動押下がレーンフラッシュや
+            // 判定ポップへ混ざるとパリティ計測が濁るので、
+            // このハーネスでは実キー注入だけを使う。
+            optionView.PreviewAutoPlayForAudit = false;
             Canvas.ForceUpdateCanvases();
 
             // rig / プレビューカメラ / ノーツプールを名前で取得

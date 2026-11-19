@@ -446,5 +446,27 @@ namespace FlashBeat.UI.V6.Option
         {
             return lane >= 0 && lane < previewVerdictTexts.Length ? previewVerdictTexts[lane] : null;
         }
+
+        /// <summary>
+        /// プレビューのオートプレイ (Issue #732 のデモ用自動入力) の有効フラグ。
+        /// 既定 true。実キー注入で判定を制御する検証ハーネスは false にする。
+        /// </summary>
+        public bool PreviewAutoPlayForAudit
+        {
+            get { return previewRig != null && previewRig.AutoPlayEnabled; }
+            set { if (previewRig != null) previewRig.AutoPlayEnabled = value; }
+        }
+
+        /// <summary>単調増加の疑似プレビュー時刻 (時計リベース検証用)。</summary>
+        public float PreviewTimeForAudit
+        {
+            get { return previewRig == null ? 0f : previewRig.PreviewTimeForAudit; }
+        }
+
+        /// <summary>判定種別ごとの累計ポップ数 (オートプレイ網羅性の検証用)。</summary>
+        public int PreviewVerdictCountForAudit(LongNote.Judgement judgement)
+        {
+            return previewRig == null ? 0 : previewRig.VerdictCountForAudit(judgement);
+        }
     }
 }
