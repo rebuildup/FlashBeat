@@ -26,6 +26,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private static readonly Dictionary<string, Sprite> topShadeSprites =
             new Dictionary<string, Sprite>();
 
+        /// <summary>
+        /// テスト用: Top Shade スプライトのキャッシュを空にする。
+        /// レーンコリドー抜きは構築時のカメラで焼き込まれるため、カメラの
+        /// 居ない EditMode テストが先に同じ解像度キーのスプライトを作ると、
+        /// 後続の描画テストが誤ったコリドーを掴む。テスト側で明示的に切る。
+        /// </summary>
+        public static void ClearTopShadeSpriteCacheForTests()
+        {
+            topShadeSprites.Clear();
+        }
+
         // --- 生成した部品 (枠まわり) ---
         private RectTransform progressFill;
         private RectTransform progressTrack;

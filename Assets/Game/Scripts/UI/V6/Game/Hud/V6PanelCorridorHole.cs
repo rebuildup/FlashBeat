@@ -39,6 +39,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private const int CacheLimit = 8;
 
         /// <summary>
+        /// テスト用: パネル用スプライトのキャッシュを空にする。
+        /// レーンコリドー抜きは構築時のカメラで焼き込まれるため、カメラの
+        /// 居ない EditMode テストが先に同じキーのスプライトを作ると、
+        /// 後続の描画テストが誤ったコリドーを掴む。テスト側で明示的に切る。
+        /// </summary>
+        public static void ClearSpriteCacheForTests()
+        {
+            sprites.Clear();
+        }
+
+        /// <summary>
         /// 画面上の矩形 (<paramref name="leftPx"/>, <paramref name="topPx"/> は
         /// 画面左上原点 px、<paramref name="widthPx"/> × <paramref name="heightPx"/>)
         /// に置く角丸パネルのスプライトを返す。テクスチャは実寸 px で、

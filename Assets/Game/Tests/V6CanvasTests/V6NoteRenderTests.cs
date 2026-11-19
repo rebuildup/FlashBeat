@@ -92,6 +92,13 @@ namespace FlashBeat.V6CanvasTests
             PauseGate.HardReset();
             GManager.noteSpeed = 10f;
 
+            // シェード/パネルのコリドー抜きスプライトは静的キャッシュで、
+            // 焼き込み時のカメラに依存する。先行テストがカメラ無しで
+            // 同じ解像度キーのスプライトを作ると、ここの描画とずれるので
+            // 毎回空にして自分のカメラで焼き直させる。
+            V6GameHudView.ClearTopShadeSpriteCacheForTests();
+            V6PanelCorridorHole.ClearSpriteCacheForTests();
+
             // EditMode ではテスト間でシーンが共有され、前のテストが破棄し忘れた
             // 全画面 quad 等の Renderer が残りうる。フルスイートではそれが
             // カメラとノーツの間に入って「背景が全部暗い」誤検出になる
@@ -134,6 +141,9 @@ namespace FlashBeat.V6CanvasTests
             GManager.noteSpeed = savedNoteSpeed;
             MediaTimeline.ResetSession();
             PauseGate.HardReset();
+            // 自分のカメラで焼いたスプライトを後続テストへ残さない。
+            V6GameHudView.ClearTopShadeSpriteCacheForTests();
+            V6PanelCorridorHole.ClearSpriteCacheForTests();
         }
 
         private GameObject Track(GameObject go)
@@ -200,6 +210,17 @@ namespace FlashBeat.V6CanvasTests
         /// </summary>
         private V6GameHudView CreateHud(Camera cam)
         {
+            // HUD のメトリクス (TopShadeH 等) とシェードのレーンコリドー抜きは
+            // 構築時の Canvas 寸法で決まる。batchmode の Screen 寸法は RT の
+            // 1920×1080 と一致しないため、構築前に targetTexture を合わせて
+            // Canvas を RT 寸法でレイアウトさせる。さもないとコリドーが
+            // 実際のノーツ位置からずれ、シェードがノーツを暗くする誤検出になる
+            // (出荷では Screen = 描画解像度なのでこのずれは起きない)。
+            var sizingRt = new RenderTexture(RtWidth, RtHeight, 0);
+            var previousTarget = cam.targetTexture;
+            cam.targetTexture = sizingRt;
+            Canvas.ForceUpdateCanvases();
+
             var hudCanvas = CreateCanvas(cam, "V6GameHudCanvas", -1);
             var frame = new GameObject("V6 HUD Frame", typeof(RectTransform));
             frame.transform.SetParent(hudCanvas.transform, false);
@@ -220,6 +241,10 @@ namespace FlashBeat.V6CanvasTests
             Canvas.ForceUpdateCanvases();
             hud.RequestRefresh();
             Canvas.ForceUpdateCanvases();
+
+            cam.targetTexture = previousTarget;
+            sizingRt.Release();
+            Object.DestroyImmediate(sizingRt);
             return hud;
         }
 
@@ -567,7 +592,26 @@ namespace FlashBeat.V6CanvasTests
             int w = withNotes.Tex.width;
             int h = withNotes.Tex.height;
 
+            // ノーツ差分マスク (exclude/include 適用前の全画面)。
+            // シルエット縁の判定に全画面のマスクが要るため先に作る。
+            var mask = new bool[w * h];
             int maskCount = 0;
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    Color32 a = withNotes.Px[i];
+                    Color32 b = withoutNotes.Px[i];
+                    float d = (Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b)) / 255f;
+                    if (d < 0.08f) continue; // ノーツの寄与が無い画素
+                    mask[i] = true;
+                    maskCount++;
+                }
+            }
+
+            int regionCount = 0;
+            int interiorCount = 0;
             int whiteCount = 0;
             int darkCount = 0;
             int darkerCount = 0;
@@ -577,6 +621,9 @@ namespace FlashBeat.V6CanvasTests
             {
                 for (int x = 0; x < w; x++)
                 {
+                    int i = y * w + x;
+                    if (!mask[i]) continue;
+
                     var p = new Vector2(x + 0.5f, y + 0.5f);
                     if (exclude.HasValue && exclude.Value.Contains(p))
                     {
@@ -587,15 +634,21 @@ namespace FlashBeat.V6CanvasTests
                         continue;
                     }
 
-                    int i = y * w + x;
+                    regionCount++;
+                    // ノーツ輪郭の縁 (ラスタライズ/フィルタで背景と中間色に
+                    // なる画素) は「暗い背景上で白い」の対象外。暗い映像の
+                    // 上では縁が必ず中間輝度 (~0.5) になるのが正常な描画で、
+                    // ここを数えると実装の良し悪しと無関係に必ず失敗する。
+                    // 4 近傍すべてがノーツ画素の「内部」だけを評価する。
+                    if (x == 0 || y == 0 || x == w - 1 || y == h - 1
+                        || !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w])
+                    {
+                        continue;
+                    }
+                    interiorCount++;
+
                     Color32 a = withNotes.Px[i];
                     Color32 b = withoutNotes.Px[i];
-                    float dr = Mathf.Abs(a.r - b.r) / 255f;
-                    float dg = Mathf.Abs(a.g - b.g) / 255f;
-                    float db = Mathf.Abs(a.b - b.b) / 255f;
-                    if (dr + dg + db < 0.08f) continue; // ノーツの寄与が無い画素
-
-                    maskCount++;
                     float lum = Luminance(a);
                     float bgLum = Luminance(b);
                     liftSum += lum - bgLum;
@@ -606,14 +659,15 @@ namespace FlashBeat.V6CanvasTests
                 }
             }
 
-            float whiteRatio = maskCount > 0 ? (float)whiteCount / maskCount : 0f;
-            float darkBgRatio = maskCount > 0 ? (float)darkBgCount / maskCount : 0f;
-            float meanLift = maskCount > 0 ? liftSum / maskCount : 0f;
+            float whiteRatio = interiorCount > 0 ? (float)whiteCount / interiorCount : 0f;
+            float darkBgRatio = interiorCount > 0 ? (float)darkBgCount / interiorCount : 0f;
+            float meanLift = interiorCount > 0 ? liftSum / interiorCount : 0f;
             Debug.Log($"[V6NoteRender] {label} (dark bg): note pixels={maskCount} " +
+                $"region={regionCount} interior={interiorCount} " +
                 $"white={whiteCount} ({whiteRatio:F2}) dark={darkCount} darker={darkerCount} " +
                 $"darkBg={darkBgCount} ({darkBgRatio:F2}) meanLift={meanLift:F3}");
 
-            Assert.Greater(maskCount, 200,
+            Assert.Greater(regionCount, 200,
                 label + ": ノーツ差分画素が少なすぎる (描画経路が繋がっていない?)");
             // 背景が本当に暗いこと: 差分画素の 8 割以上が暗い背景上にあること。
             // これが崩れると「暗い背景での白さ」の検証が空振りする。
@@ -621,7 +675,7 @@ namespace FlashBeat.V6CanvasTests
                 label + ": 差分画素の大半が暗い背景上に無い (darkBg=" +
                 darkBgRatio.ToString("F2") + ") — 暗背景検証が空振りしている");
             Assert.AreEqual(0, darkCount,
-                label + ": 暗い背景上のノーツ画素が白くない (" + darkCount +
+                label + ": 暗い背景上のノーツ内部画素が白くない (" + darkCount +
                 " 画素) — シェード/パネル/マテリアルのどれかがノーツを暗くしている");
             Assert.AreEqual(0, darkerCount,
                 label + ": ノーツが背景より暗い画素を作っている (" + darkerCount + " 画素)");
