@@ -62,7 +62,9 @@
  *     noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
  *     milestoneBonus = comboMilestones * 25               (unchanged; the same
  *                      bound checks as v3 apply — see scoreSemanticsDiagnostics)
- *     finalBonus     = miss == 0 ? 100 : 0                (unchanged)
+ *     finalBonus     = judgmentsComplete && miss == 0 ? 100 : 0
+ *                      (ADR-0033: submissions are always settled, so the
+ *                      server recompute vests it exactly when miss == 0)
  *     baseScore      = floor(judgment * 1e6 / (5 * noteCount))        ≤ 1,000,000
  *     bonusRatio     = comboBonus + noMissBonus + milestoneBonus + finalBonus
  *     maxBonusRatio  = noteCount * 10 + floor(noteCount / 50) * 25 + 100
@@ -484,7 +486,10 @@ export function computeUnityScoreV3(
  *   noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
  *   milestoneBonus = comboMilestones * 25               (unchanged; bound-checked
  *                    by scoreSemanticsDiagnostics, omitted means 0)
- *   finalBonus     = miss == 0 ? 100 : 0                (unchanged)
+ *   finalBonus     = judgmentsComplete && miss == 0 ? 100 : 0
+ *                    (ADR-0033 / Issue #618: vests only once every chart
+ *                    note has been judged — the live in-progress
+ *                    projection excludes it)
  *   baseScore      = floor(judgment * 1e6 / (5 * noteCount))        ≤ 1,000,000
  *   bonusRatio     = comboBonus + noMissBonus + milestoneBonus + finalBonus
  *   maxBonusRatio  = noteCount * 10 + floor(noteCount / 50) * 25 + 100
@@ -493,10 +498,13 @@ export function computeUnityScoreV3(
  *
  * Unlike v3 nothing is normalized into a single ceiling: the judgment part
  * keeps the 1,000,000 cap and the bonuses are added on top, so a full-combo
- * run scores up to 2,000,000. A submission always implies
- * judgmentsComplete (perfect+great+bad+miss == noteCount is enforced), so
- * `finalBonus` vests exactly when `miss == 0`, like the v3 server recompute.
- * Returns `null` when the chart has no notes, like `computeUnityScoreV3`.
+ * run scores up to 2,000,000. `judgmentsComplete` mirrors the Unity
+ * `Scoring.ScoreV4` parameter: a submission always implies it
+ * (perfect+great+bad+miss == noteCount is enforced by
+ * scoreSemanticsDiagnostics), so the server recompute passes `true` — the
+ * settled view — while the parity vectors pin both the live and the
+ * settled values. Returns `null` when the chart has no notes, like
+ * `computeUnityScoreV3`.
  */
 export function computeUnityScoreV4(
   perfect: number,
@@ -506,6 +514,7 @@ export function computeUnityScoreV4(
   maxCombo: number | undefined,
   comboMilestones: number | undefined,
   noteCount: number,
+  judgmentsComplete: boolean,
 ): number | null {
   if (noteCount <= 0) {
     return null;
@@ -516,7 +525,7 @@ export function computeUnityScoreV4(
     (maxCombo ?? 0) * 5 +
     (miss === 0 ? hits * 5 : 0) +
     (comboMilestones ?? 0) * 25 +
-    (miss === 0 ? 100 : 0);
+    (judgmentsComplete && miss === 0 ? 100 : 0);
   const baseScore = Math.floor((judgment * 1_000_000) / (noteCount * 5));
   const maxBonusRatio = noteCount * 10 + Math.floor(noteCount / 50) * 25 + 100;
   const bonusScore = Math.floor((bonusRatio * 1_000_000) / maxBonusRatio);
@@ -576,6 +585,10 @@ export function computeScoreForVersion(request: ScoreSubmission, noteCount: numb
       request.maxCombo,
       request.comboMilestones,
       noteCount,
+      // A submission is always a completed play: the judgment sum must equal
+      // the note count (scoreSemanticsDiagnostics), so the full-combo bonus
+      // vests exactly like the settled Unity evaluation.
+      true,
     );
   }
   if (scoringVersion === SCORING_VERSION_V3) {

@@ -150,16 +150,33 @@ public class V6HierarchyTests
         var footer = view.Root.Find("Footer");
         Assert.IsNotNull(footer, "共通フレームの Footer ゾーンが存在する");
 
-        int arrows = 0;
+        // Issue #733/#750: 「↑↓」「←→」の文字 KeyCap は chevron アイコンの
+        // Legend Icons ("Legend Icons 選択" / "Legend Icons 変更") に置き換わった。
+        // 再構築で凡例が重複しないことを、新しい契約の名前で固定する。
+        int selectIcons = 0;
+        int changeIcons = 0;
+        int arrowKeyCaps = 0;
         foreach (Transform child in footer)
         {
-            if (child.name == "KeyCap ↑↓")
+            if (child.name == "Legend Icons 選択")
             {
-                arrows++;
+                selectIcons++;
+            }
+            else if (child.name == "Legend Icons 変更")
+            {
+                changeIcons++;
+            }
+            else if (child.name == "KeyCap ↑↓")
+            {
+                arrowKeyCaps++;
             }
         }
 
-        Assert.AreEqual(1, arrows,
-            "Footer の KeyCap ↑↓ は 1 個だけ (作り直しで古い世代が残らない)");
+        Assert.AreEqual(1, selectIcons,
+            "Footer の選択凡例 (chevron アイコン) は 1 個だけ (作り直しで古い世代が残らない)");
+        Assert.AreEqual(1, changeIcons,
+            "Footer の変更凡例 (chevron アイコン) は 1 個だけ");
+        Assert.AreEqual(0, arrowKeyCaps,
+            "文字グリフの KeyCap ↑↓ はアイコン凡例へ置き換え済み (Issue #733)");
     }
 }

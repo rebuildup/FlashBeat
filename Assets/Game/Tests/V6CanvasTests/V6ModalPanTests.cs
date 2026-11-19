@@ -187,6 +187,10 @@ namespace FlashBeat.V6CanvasTests
             {
                 var frame = frameGo.GetComponent<RectTransform>();
                 frame.SetParent(canvasGo.transform, false);
+                // SetUp がコンパクト画面を強制しているので、このテストだけ
+                // 差し替えを解除して通常解像度の Place を検証する
+                // (TearDown が zero に戻す)。
+                V6CompactScreen.ScreenSizeOverrideForTests = Vector2Int.zero;
                 V6CompactScreen.Place(frame, 1920, 1080);
                 Assert.IsNull(V6CompactScreen.FindViewport(frame));
 

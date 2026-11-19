@@ -268,9 +268,12 @@ namespace FlashBeat.V6CanvasTests
                         view, 160f, 70f);
                 }
 
+                // Issue #736 (scoring v4): ボーナス内訳の表示名は
+                // BASE / COMBO / MILESTONE / CLEAR の 4 列
+                // (V6ResultStats.BuildBonusLine の keys と同一)。
                 string[] bonusKeys =
                 {
-                    "Combo Bonus", "Milestone Bonus", "No Miss Bonus", "Full Combo Bonus",
+                    "Base Score", "Combo Bonus", "Milestone Bonus", "Clear Bonus",
                 };
                 for (int i = 0; i < bonusKeys.Length; i++)
                 {

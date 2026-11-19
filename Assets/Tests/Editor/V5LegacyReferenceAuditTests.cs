@@ -105,6 +105,7 @@ public class V5LegacyReferenceAuditTests
             "UI/ResultSceneManager.cs",
             "UI/SceneInputGate.cs",
             "UI/V6/Common/V6CursorInput.cs",
+            "UI/V6/Common/V6GradeLogic.cs",
             "UI/V6/Result/V6ResultLogic.cs",
             "UI/V6/Result/V6ResultModal.cs",
             "UI/V6/Result/V6ResultRegistration.cs",

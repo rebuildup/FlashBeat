@@ -102,8 +102,10 @@ describe("score parity vectors (contracts/parity/score-vectors.json)", () => {
         assert.ok(c.scoreV3 < c.scoreV3Settled, "live score must exclude the final bonus");
       }
       // v4 (ADR-0033) splits the score into a judgment base plus additive
-      // bonuses; the settled submission view is what the Web recompute
-      // produces.
+      // bonuses. The Web function mirrors Scoring.ScoreV4's
+      // judgmentsComplete flag, so it can reproduce both the live
+      // in-progress score (c.judgmentsComplete) and the settled
+      // submission view (always true).
       assert.equal(
         computeUnityScoreV4(
           c.perfect,
@@ -113,6 +115,20 @@ describe("score parity vectors (contracts/parity/score-vectors.json)", () => {
           c.maxCombo,
           c.comboMilestones,
           c.noteCount,
+          c.judgmentsComplete,
+        ),
+        c.scoreV4,
+      );
+      assert.equal(
+        computeUnityScoreV4(
+          c.perfect,
+          c.great,
+          c.bad,
+          c.miss,
+          c.maxCombo,
+          c.comboMilestones,
+          c.noteCount,
+          true,
         ),
         c.scoreV4Settled,
       );

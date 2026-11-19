@@ -82,6 +82,9 @@ namespace FlashBeat.UI.V6.History
                 // (Select 側 V6SelectViewCenter と同じ規約。#749: fs48×h50 は
                 // Normal 折返しだと 2 行になり Artist/Stats に重なっていた)。
                 V6TextFit.AutoFit(title, 30f);
+                // 極端に長い曲名は min サイズでも 512 に収まらないため、
+                // auto-size の下限に達した分は Ellipsis で切る (Artist 行と同じ規約)。
+                title.overflowMode = TextOverflowModes.Ellipsis;
                 V6Layout.Place(title, 0f, 9f, 512f, 50f);
                 centerTitleText = title;
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);

@@ -89,34 +89,33 @@ public class LegacyOverlayHidingTests
     [Test]
     public void LateUpdateDoesNotScanTheSceneEveryFrame()
     {
-        // Issue #400: v6 構成では v5 の Ready / Loading / Error をそもそも生成しない
-        // (GameHudController.Start)。したがって LateUpdate は
-        // 「v6 ポーズが無効なときの v5 ポーズ」だけを見ればよく、
-        // シーン全体の探索を毎フレーム行う必要が無い。
+        // Issue #400/#740: v6 構成では v5 の Ready / Loading / Error / Pause を
+        // そもそも生成しないため、V6GameRuntime のフレームごとのレガシー探索
+        // (LateUpdate) 自体が削除された。旧 UI の一括非表示は Start の
+        // HideLegacyUi 1 回きり。
         //
-        // ここでは「探索に上限があること」「全走査が LateUpdate に戻っていないこと」
-        // を構造で固定する。
+        // 「毎フレーム・シーン走査しない」不変条件は、LateUpdate が存在しない
+        // こと、Update 系メソッド内に探索呼び出しが無いこと、HideLegacyUi が
+        // 1 箇所から 1 回だけ呼ばれることで固定する。
         string src = File.ReadAllText(
             Path.Combine(Application.dataPath, "Game/Scripts/UI/V6/V6GameRuntime.cs"));
 
-        string lateUpdate = LateUpdateSource(src);
+        Assert.IsFalse(src.Contains("private void LateUpdate()"),
+            "V6GameRuntime に LateUpdate が復活した (毎フレームのレガシー探索経路)");
 
-        Assert.IsTrue(lateUpdate.Contains("mayLookUp"),
-            "探索に上限が無い (毎フレーム探し続ける)");
-        Assert.IsTrue(src.Contains("LegacyLookupFrameLimit"),
-            "探索の上限値が定義されていない");
-        Assert.IsTrue(lateUpdate.Contains("legacyPause == null && mayLookUp"),
-            "v5 ポーズの探索が上限で守られていない");
+        int updateStart = src.IndexOf("private void Update()");
+        Assert.GreaterOrEqual(updateStart, 0, "Update が見つからない");
+        int updateEnd = src.IndexOf("private void UpdatePause()", updateStart);
+        Assert.Greater(updateEnd, updateStart, "Update の終端が取れない");
+        string update = src.Substring(updateStart, updateEnd - updateStart);
+        Assert.IsFalse(update.Contains("FindObjectOfType")
+            || update.Contains("FindObjectsOfType")
+            || update.Contains("GameObject.Find")
+            || update.Contains("Resources.FindObjectsOfTypeAll"),
+            "Update がシーン走査を毎フレーム行っている");
 
-        // Issue #400: v5 の Ready / Overlay Canvas は v6 構成で生成されないため、
-        // LateUpdate でそれらを探して隠す処理は持たない。
-        // 「探す」= 型/名前で検索するコード。コメント中の言及と区別する。
-        Assert.IsFalse(lateUpdate.Contains("FindObjectOfType<FlashBeat.UI.V5.GameReadyView>()"),
-            "生成されない GameReadyView を毎フレーム探している");
-        Assert.IsFalse(lateUpdate.Contains("FindObjectsOfType<Canvas>()"),
-            "Canvas の全走査が LateUpdate に残っている");
-        Assert.IsFalse(lateUpdate.Contains("== \"V5OverlayCanvas\""),
-            "生成されない V5OverlayCanvas を名前で探している");
+        Assert.AreEqual(1, CountOccurrences(src, "HideLegacyUi();"),
+            "HideLegacyUi は Start から 1 回だけ呼ばれる (毎フレーム呼ばない)");
     }
 
     [Test]
@@ -132,16 +131,6 @@ public class LegacyOverlayHidingTests
         Assert.IsTrue(V6GameRuntime.HideLegacyOverlayGraphics(graphics),
             "出し直された Graphic を再度隠す (冪等な隠し直し)");
         Assert.IsFalse(a.enabled);
-    }
-
-    /// <summary>LateUpdate の本体を切り出す (次のメンバー宣言まで)。</summary>
-    private static string LateUpdateSource(string src)
-    {
-        int late = src.IndexOf("private void LateUpdate()");
-        Assert.GreaterOrEqual(late, 0, "LateUpdate が見つからない");
-        int boundary = src.IndexOf("public static bool HideLegacyOverlayGraphics", late);
-        Assert.Greater(boundary, late, "LateUpdate の終端 (ヘルパー宣言) が取れない");
-        return src.Substring(late, boundary - late);
     }
 
     private static int CountOccurrences(string haystack, string needle)

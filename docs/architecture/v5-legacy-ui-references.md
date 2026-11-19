@@ -33,6 +33,10 @@ v6 への移植が済んだ画面では旧 v5 View は「フォールバック�
   v6 側 (`V6SelectDataLogic` / `V6SelectViewLogic`) が担うため撤去 (#740)。
 - `ResultView` の静的関数 → `V6ResultRules` (`RankFor`/`NormalizeName`) と
   `V6ResultLogic` (`FormatScore`/`DeltaLabel`) へ移設 (#740)。
+  scoringVersion 1–3 のグレード帯 dispatch は `V6GradeLogic` が `RankFor` を
+  経由して担う (#736)。
+- `V6VolumeSettings` は v5 `PauseMenuView.ApplyVolumes` と同じ即時反映の
+  挙動をコメントで固定しており、監査テストのピン留め対象 (#733)。
 - `GameHudLogic` → `FlashBeat.UI.V6.Game.Hud.GameHudLogic` へ移設 (#740)。
   v5 HUD 専用のレール幅/コンボボーナス近似式は v6 HUD (`V6HudScore`/`V6HudLogic`)
   が担うため撤去。残るのは `RankText` / `FormatScore` のみ。
@@ -51,6 +55,7 @@ v6 への移植が済んだ画面では旧 v5 View は「フォールバック�
 
 | フラグ | 既定 | 分岐の実態 | 判定 |
 |---|---|---|---|
+
 | `GameHud` | true | `GameSceneManager.Start` (KeyGuideUI 生成の else)、`ApplyTextPanelVisibility` (`!GameHud` で旧歌詞パネル抑止)、`GameLoadingRoute.Current/UsesLegacyOverlay`、`V6GameRuntime.Ensure`、`V6PauseRuntime.Start`、テスト 2 件が代入 | **常に true の製品フラグ。else 側は全て到達不能** → Stage B で畳む |
 | `SelectScreen` | true | `AutoTestPlay` の確認分岐のみ (製品コードの分岐は #740 で撤去済み) | **常に true** → Stage B で畳む |
 | `Playfield` | false | `Notes.cs` / `PlayfieldLaneGuides.cs` / `V6GameRuntime` / AutoTest `-playfield` / V6PlayfieldNotesTests・V6NoteRenderTests が両値を検証 | **生きたレンダラ選択** (出荷は 3D)。UI 重複ではない → 残す |
@@ -62,6 +67,7 @@ v6 への移植が済んだ画面では旧 v5 View は「フォールバック�
 | `V6PauseView.Enabled` | true | `V6PauseRuntime.Start`、`GameSceneManager` Esc 契約、`V6PauseRuntimeTests` | 常に true → Stage B |
 | `V6TitleView.Enabled` | true | `TitleSceneManager.Start` (`BuildLegacyTitle` else 残存)、`KeyConfigUI`、AutoTest 2 件 | 常に true。**else の BuildLegacyTitle は旧タイトルの死に経路** → Stage B |
 | `V6ResultView.Enabled` | true | `ResultRankingOverlay.Update` 早期 return | 常に true → Stage B |
+
 
 ### Stage B 移行計画 (未実施 — Unity 実機検証が必要なため分離)
 
