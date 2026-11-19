@@ -625,6 +625,25 @@ namespace FlashBeat.V6CanvasTests
             return ReadCameraTarget(stage.Cam);
         }
 
+        /// <summary>
+        /// HUD canvas を合成しない 3D のみの shot (Issue #706)。
+        ///
+        /// レーン/拍フラッシュの比較で使う。プレビュー側は rig の RT
+        /// (uGUI オーバーレイ無し) を直接読むのに対し、HUD 付きの shot では
+        /// Top Shade 等の半透明 uGUI が 3D の on/off 差分を (1-α) に減衰
+        /// させる — 同じ点灯でも coverage が過小に出て、実際には一致して
+        /// いるのに閾値差が残る (レーンフラッシュ gp≈0.77 vs pv≈1.0、
+        /// 拍フラッシュ gp≈0.69 vs pv≈0.79 の残差はこれが原因)。
+        /// シェードは画面クロームでありプレビューの well には存在しない
+        /// ので、3D 内容の意味比較は両側とも「オーバーレイ無し」で揃える。
+        /// </summary>
+        private Shot RenderGameplay3D(GameplayStage stage)
+        {
+            stage.Cam.Render(); // SolidColor clear なので前回の HUD 合成は残らない
+            Canvas.ForceUpdateCanvases();
+            return ReadCameraTarget(stage.Cam);
+        }
+
         /// <summary>現在のプレビュー状態をそのまま well で描く (追加 tick 無し)。</summary>
         private Shot RenderPreviewRaw(PreviewStage stage)
         {
@@ -939,8 +958,10 @@ namespace FlashBeat.V6CanvasTests
             Shot pvOff = RenderPreview3D(pv, mediaTime, 0.016f, true);
             spawned.Add(pvOff.Tex);
 
-            // 本編: 消灯 → 押下して LaneFlash.Update を回す
-            Shot gpOff = RenderGameplay(gp);
+            // 本編: 消灯 → 押下して LaneFlash.Update を回す。
+            // 3D のみの shot を使う (HUD の Top Shade が差分を減衰させる
+            // ため — RenderGameplay3D 参照)。
+            Shot gpOff = RenderGameplay3D(gp);
             spawned.Add(gpOff.Tex);
             foreach (int lane in pressed) KeyBindings.InjectLaneKeyDown(lane);
             // LaneFlash.Update は rend.material (初回は実体化) で色を書く。
@@ -959,7 +980,7 @@ namespace FlashBeat.V6CanvasTests
             {
                 LogAssert.ignoreFailingMessages = prevIgnore;
             }
-            Shot gpOn = RenderGameplay(gp);
+            Shot gpOn = RenderGameplay3D(gp);
             spawned.Add(gpOn.Tex);
 
             // プレビュー: 同じキーで点灯 (注入はまだ生きている)
@@ -1002,10 +1023,13 @@ namespace FlashBeat.V6CanvasTests
                     $"プレビュー lane {lane} のフラッシュ点灯が期待と違う ({report})");
                 if (pressedLane)
                 {
+                    // like-for-like (両側 3D のみ) では gp/pv ≈ 0.99。
+                    // 旧 0.3..3.0 は HUD 減衰を含む計測で甘かったため、
+                    // 実測比 ±50% に締める (面積 2 倍の乖離は検出できる)。
                     float ratio = covP / Mathf.Max(1e-5f, covG);
-                    Assert.Greater(ratio, 0.3f,
+                    Assert.Greater(ratio, 0.5f,
                         $"lane {lane} フラッシュ面積比が小さすぎる pv/gp={ratio:F2} ({report})");
-                    Assert.Less(ratio, 3.0f,
+                    Assert.Less(ratio, 2.0f,
                         $"lane {lane} フラッシュ面積比が大きすぎる pv/gp={ratio:F2} ({report})");
                 }
             }
@@ -1288,6 +1312,23 @@ namespace FlashBeat.V6CanvasTests
                 $"プレビュー判定線の行が期待とずれている ({rowP:F4} vs {expectedP:F4})");
             Assert.Less(Mathf.Abs(rowG - rowP), 0.015f,
                 $"判定線の行が本編とプレビューで違う ({rowG:F4} vs {rowP:F4})");
+
+            // サブピクセル補正: ワールド y の 0.02 差 (JudgeLineWorldY 0.48 vs
+            // 旧実装の 0.5 — #719 で実際に起きた退行) は 928x560 の RT では
+            // 約 0.5px しか動かず、DetectBrightRow の行分解能と ±0.012 の
+            // 許容差の両方を下回って検出できない (実測: y=0.5 でも PASS)。
+            // そのため幾何そのものをプレビューの judge メッシュ頂点で検証する。
+            var judgeLineT = pv.RigRoot.transform.Find("Judge Line");
+            Assert.IsNotNull(judgeLineT, "プレビューの Judge Line が見つからない");
+            var judgeMesh = judgeLineT.GetComponent<MeshFilter>().sharedMesh;
+            Assert.IsNotNull(judgeMesh, "Judge Line のメッシュが無い");
+            var jverts = judgeMesh.vertices;
+            Assert.Greater(jverts.Length, 0);
+            for (int i = 0; i < jverts.Length; i++)
+            {
+                Assert.AreEqual(Judge.JudgeLineWorldY, jverts[i].y, 0.001f,
+                    $"プレビュー判定線メッシュの y が JudgeLineWorldY と違う (v{i}.y={jverts[i].y:F4})");
+            }
         }
 
         /// <summary>
@@ -1336,7 +1377,8 @@ namespace FlashBeat.V6CanvasTests
             var pv = BuildPreview();
 
             // --- 本編: 消灯 shot → 拍境界で点火 → 点灯 shot ---
-            Shot gpOff = RenderGameplay(gp);
+            // 3D のみ (HUD の Top Shade が差分を減衰させるため — RenderGameplay3D)。
+            Shot gpOff = RenderGameplay3D(gp);
             spawned.Add(gpOff.Tex);
             float beatG = GetField<float>(gp.BeatFlash, "Beat");
             Assert.Greater(beatG, 0f, "BGFlash.Beat が解決できない (song bpm)");
@@ -1352,7 +1394,7 @@ namespace FlashBeat.V6CanvasTests
             {
                 LogAssert.ignoreFailingMessages = prevIgnore2;
             }
-            Shot gpOn = RenderGameplay(gp);
+            Shot gpOn = RenderGameplay3D(gp);
             spawned.Add(gpOn.Tex);
 
             // --- プレビュー: 拍境界をまたぐ 2 ティックで点灯 ---
@@ -1395,9 +1437,10 @@ namespace FlashBeat.V6CanvasTests
 
             Assert.Greater(covG, 0.005f, "本編の拍フラッシュが描かれていない");
             Assert.Greater(covP, 0.005f, "プレビューの拍フラッシュが描かれていない");
+            // like-for-like (両側 3D のみ) では pv/gp ≈ 1.0。±50% に締める。
             float ratio = covP / Mathf.Max(1e-5f, covG);
-            Assert.Greater(ratio, 0.3f, $"拍フラッシュ面積比が小さすぎる pv/gp={ratio:F2}");
-            Assert.Less(ratio, 3.0f, $"拍フラッシュ面積比が大きすぎる pv/gp={ratio:F2}");
+            Assert.Greater(ratio, 0.5f, $"拍フラッシュ面積比が小さすぎる pv/gp={ratio:F2}");
+            Assert.Less(ratio, 2.0f, $"拍フラッシュ面積比が大きすぎる pv/gp={ratio:F2}");
         }
 
         private static void SetRenderersEnabled(IEnumerable<Renderer> renderers, bool enabled)
