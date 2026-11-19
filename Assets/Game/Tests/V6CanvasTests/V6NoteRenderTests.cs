@@ -551,11 +551,17 @@ namespace FlashBeat.V6CanvasTests
         /// 「暗い背景の上で白い」という肝心の条件が空振りしないようにする。
         ///
         /// <paramref name="exclude"/> は画面座標 (左下原点 px) の除外矩形。
-        /// 歌詞パネルのような「レーン帯の抜きが無い既知の HUD パネル」が
-        /// 覆う領域を指定する (パネル被りの扱いは呼び出し側のコメント参照)。
+        /// 検証対象から外す領域を指定する (パネル帯の外側を別途検証するために
+        /// 内側を除く等)。
+        ///
+        /// <paramref name="include"/> は画面座標 (左下原点 px) の包含矩形。
+        /// 指定時はこの矩形の内側だけを検証する (Issue #760: レーン回廊
+        /// カットアウトが入った歌詞パネル帯を、外側と同じ厳しい基準で
+        /// 検証するために使う)。exclude と併用した場合は
+        /// 「include の内側かつ exclude の外側」だけが対象になる。
         /// </summary>
         private static int AssertNotePixelsWhiteOnDark(Shot withNotes, Shot withoutNotes,
-            string label, Rect? exclude = null)
+            string label, Rect? exclude = null, Rect? include = null)
         {
             Assert.AreEqual(withNotes.Px.Length, withoutNotes.Px.Length);
             int w = withNotes.Tex.width;
@@ -571,7 +577,12 @@ namespace FlashBeat.V6CanvasTests
             {
                 for (int x = 0; x < w; x++)
                 {
-                    if (exclude.HasValue && exclude.Value.Contains(new Vector2(x + 0.5f, y + 0.5f)))
+                    var p = new Vector2(x + 0.5f, y + 0.5f);
+                    if (exclude.HasValue && exclude.Value.Contains(p))
+                    {
+                        continue;
+                    }
+                    if (include.HasValue && !include.Value.Contains(p))
                     {
                         continue;
                     }
@@ -752,12 +763,11 @@ namespace FlashBeat.V6CanvasTests
         /// 差分画素すべての輝度・コントラスト・「暗くならない」を計測する。
         ///
         /// 歌詞パネルは <see cref="FlashBeat.UI.V5.PlaySession.LyricsEnabled"/>
-        /// = false で隠す:
-        /// パネル (黒 α0.6) はレーン帯の抜きを持たず、パネル被りのノーツを
-        /// 暗くする既知の残件 (Issue #735 で別途対応が必要 — V6HudLyrics は
-        /// HUD 担当領域のためこのテストでは対象外)。パネルが無い構成で
-        /// 「マテリアル + シェード + コリドー抜き」が暗背景でも白を保証する
-        /// ことをここで固定する。
+        /// = false で隠す: このテストの主眼は「パネルの無い構成で
+        /// マテリアル + シェード + コリドー抜きが暗背景でも白を保証する」
+        /// ことであり、歌詞パネル帯そのものの検証は
+        /// <see cref="Real3DNotes_LyricPanelZone_NotesStayWhite"/>
+        /// (Issue #760 でカットアウト済み・同じ厳しい基準) が担う。
         /// </summary>
         [Test]
         public void Real3DNotes_StayWhiteOnDarkVideoBackground()
@@ -803,19 +813,19 @@ namespace FlashBeat.V6CanvasTests
         }
 
         /// <summary>
-        /// Issue #735: 歌詞パネル (LyricsEnabled = true, 既定) が表示される
-        /// 出荷構成で、パネルに覆われた領域のノーツ画素を計測する。
+        /// Issue #735 / #760: 歌詞パネル (LyricsEnabled = true, 既定) が
+        /// 表示される出荷構成で、パネルに覆われた領域のノーツ画素を計測する。
         ///
-        /// 歌詞パネルは黒 α≈0.6 の半透明パネルで、レーン帯の抜き
-        /// (<see cref="V6TopShadeHole"/>) を持たない。パネル被りのノーツは
-        /// 白の約 4 割まで落ちる — これは現行出荷の実測値であり、
-        /// 「パネルにもコリドー抜きが必要」という HUD 側の残件を
-        /// 数値として固定する (抜きの実装は V6HudLyrics = HUD 担当領域)。
-        /// ここでは「ノーツが背景から判別できる程度には残る」下限だけを
-        /// 要求し、パネル被り以外の領域は暗背景テストと同じ白さを要求する。
+        /// 歌詞パネルは黒 α≈0.6 の半透明パネルだが、Issue #760 で上部シェードと
+        /// 同じレーン回廊カットアウト (<see cref="V6TopShadeHole"/> →
+        /// <see cref="V6PanelCorridorHole"/>) が入った。パネル矩形内のノーツは
+        /// すべてレーン帯 (= カットアウト) の内側を通るため、パネル帯の
+        /// ノーツも外側と同じ厳しい白さ基準で検証する。
+        /// パネル矩形は LyricSlotOrigin/Size (実配置の正本) から取り、
+        /// 「外側は exclude・内側は include」で画面全体を漏れなく覆う。
         /// </summary>
         [Test]
-        public void Real3DNotes_LyricPanelZone_NotesStayDistinguishable()
+        public void Real3DNotes_LyricPanelZone_NotesStayWhite()
         {
             V6UiMode.Playfield = false;
             V6UiMode.VideoDim = false;
@@ -868,65 +878,14 @@ namespace FlashBeat.V6CanvasTests
             AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
                 "3D path dark bg (lyrics on, outside lyric panel)", panelRect);
 
-            // パネル領域の内側: 現行の半透明パネル被りを数値で固定する。
-            // 「白」までは要求しない (HUD 側の抜き対応が必要) が、
-            // ノーツが背景から判別できる明るさは残ることを要求する。
-            AssertNotePixelsVisibleUnderPanel(withNotes, withoutNotes,
-                panelRect, "lyric panel zone");
-        }
-
-        /// <summary>
-        /// 歌詞パネル等の「抜きの無い半透明パネル」に覆われた領域で、
-        /// ノーツ画素が背景から判別できる明るさを保つことを計測する。
-        /// 期待値は現行パネル (黒 α≈0.6) 被りの実測に基づく下限で、
-        /// パネルがさらに不透明になったりノーツが暗くなった場合に検出する。
-        /// </summary>
-        private static void AssertNotePixelsVisibleUnderPanel(Shot withNotes,
-            Shot withoutNotes, Rect panelRect, string label)
-        {
-            int w = withNotes.Tex.width;
-            int h = withNotes.Tex.height;
-            int maskCount = 0;
-            int dimCount = 0;
-            float darkest = float.MaxValue;
-            float liftSum = 0f;
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    if (!panelRect.Contains(new Vector2(x + 0.5f, y + 0.5f))) continue;
-
-                    int i = y * w + x;
-                    Color32 a = withNotes.Px[i];
-                    Color32 b = withoutNotes.Px[i];
-                    float dr = Mathf.Abs(a.r - b.r) / 255f;
-                    float dg = Mathf.Abs(a.g - b.g) / 255f;
-                    float db = Mathf.Abs(a.b - b.b) / 255f;
-                    if (dr + dg + db < 0.08f) continue;
-
-                    maskCount++;
-                    float lum = Luminance(a);
-                    float bgLum = Luminance(b);
-                    liftSum += lum - bgLum;
-                    if (lum < darkest) darkest = lum;
-                    // パネル α≈0.6 被りの白ノーツは ≈0.4。0.30 を下回ると
-                    // 「ノーツが背景に沈む」レベルまで暗い。
-                    if (lum < 0.30f) dimCount++;
-                }
-            }
-
-            float meanLift = maskCount > 0 ? liftSum / maskCount : 0f;
-            Debug.Log($"[V6NoteRender] {label}: panel note pixels={maskCount} " +
-                $"dim(<0.30)={dimCount} darkest={darkest:F3} meanLift={meanLift:F3}");
-
-            Assert.Greater(maskCount, 50,
-                label + ": パネル領域を通るノーツ差分画素が少なすぎる — " +
-                "パネル被りの計測が空振りしている");
-            Assert.AreEqual(0, dimCount,
-                label + ": パネル被りのノーツが背景に沈むほど暗い (" + dimCount + " 画素)");
-            Assert.GreaterOrEqual(meanLift, 0.15f,
-                label + ": パネル被り領域でノーツのコントラスト不足 (meanLift=" +
-                meanLift.ToString("F3") + ")");
+            // パネル領域の内側 (Issue #760): レーン回廊カットアウトにより
+            // パネル帯のノーツも外側と同じ白さになるはずなので、
+            // 同じ厳しい基準 (白・コントラスト・暗くならない) を要求する。
+            // パネル矩形内のノーツ差分画素はすべてレーン帯 (= カットアウト
+            // の内側) を通るため、パネルの残る暗幕に掛かるノーツ画素は無い。
+            AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
+                "3D path dark bg (lyrics on, lyric panel corridor)",
+                null, panelRect);
         }
 
     }

@@ -24,6 +24,10 @@ namespace FlashBeat.UI.V6.Game.Hud
     ///   (<see cref="V6LaneGeometry.DesignToScreen"/>) にフォールバックする。
     /// - v6 遠近法プレイフィールド: ノーツは uGUI Image で
     ///   <see cref="V6LaneGeometry"/> の台形に沿って置かれるので、同じ写像で帯を出す。
+    ///
+    /// Issue #760: 帯の幾何は画面上端のシェード専用ではなく、
+    /// <see cref="CorridorRows(float, float, float, float, int, float[], float[])"/>
+    /// で任意の縦位置・高さの HUD 帯 (歌詞パネル等) にも適用できる。
     /// </summary>
     public static class V6TopShadeHole
     {
@@ -34,13 +38,27 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float CorridorMarginPx = 12f;
 
         /// <summary>
-        /// シェードの各テクスチャ行について、レーン帯の画面 x 範囲
-        /// (左原点 px、<paramref name="left"/> &lt; <paramref name="right"/>) を埋める。
-        /// 行 index はテクスチャ行 (0 = シェード下端 = 画面で最も下、
-        /// <paramref name="rows"/>-1 = シェード上端 = 画面最上部)。
+        /// 画面上端に接する高さ <paramref name="shadeH"/> の帯について、
+        /// レーン帯の画面 x 範囲を埋める (<see cref="CorridorRows(float, float, float, float, int, float[], float[])"/>
+        /// の領域上端 0 の場合)。
         /// </summary>
         public static void CorridorRows(float screenW, float screenH, float shadeH,
             int rows, float[] left, float[] right)
+        {
+            CorridorRows(screenW, screenH, 0f, shadeH, rows, left, right);
+        }
+
+        /// <summary>
+        /// 画面上端から <paramref name="regionTopPx"/> px・高さ
+        /// <paramref name="regionHeightPx"/> px の任意の帯 (上部シェード、
+        /// 歌詞パネル等) について、各行のレーン帯の画面 x 範囲
+        /// (左原点 px、<paramref name="left"/> &lt; <paramref name="right"/>) を埋める。
+        /// 行 index はテクスチャ行 (0 = 帯の下端、<paramref name="rows"/>-1 = 帯の上端)。
+        /// Issue #760: 歌詞パネルのような画面途中の帯でも同じ抜きを使えるよう、
+        /// 領域の上端オフセットを取れる形に一般化した。
+        /// </summary>
+        public static void CorridorRows(float screenW, float screenH,
+            float regionTopPx, float regionHeightPx, int rows, float[] left, float[] right)
         {
             Camera cam = Camera.main;
             bool use3D = !V6UiMode.Playfield && cam != null;
@@ -56,8 +74,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             for (int row = 0; row < rows; row++)
             {
-                // テクスチャ行 → シェード内の y (上端原点 px)。
-                float yFromTop = shadeH * (1f - row / Mathf.Max(1, rows - 1));
+                // テクスチャ行 → 帯内の y (上端原点 px)。行 0 = 帯下端。
+                float yFromTop = regionTopPx
+                    + regionHeightPx * (1f - row / Mathf.Max(1, rows - 1));
                 bool ok = use3D
                     && CorridorRow3D(cam, screenW, screenH, yFromTop, out left[row], out right[row]);
                 if (!ok)
