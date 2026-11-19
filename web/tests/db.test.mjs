@@ -108,10 +108,11 @@ test("the committed migrations create the contract tables plus the catalog epoch
     "b",
     "m",
     "score",
-    "createdAt",
-    // Added by the follow-up migration of issue #578 (ALTER TABLE appends
-    // the column after the columns the table was created with).
+    // Added by the follow-up migration of issue #578; the issue #736
+    // migration recreates the table in schema order, so scoringVersion now
+    // sits before createdAt.
     "scoringVersion",
+    "createdAt",
   ]);
 });
 
@@ -230,4 +231,30 @@ test("the schema rejects rows the contract would reject", () => {
   assertRejected("score of an unknown song", () =>
     insertScore.run("unknown-song", 1, "player", 10, 2, 1, 0, 900000),
   );
+});
+
+test("the scores CHECK allows v4 scores up to 2000000 and keeps v1-v3 at 1000000", () => {
+  const sqlite = createMigratedDatabase();
+  sqlite
+    .prepare(
+      `INSERT INTO songs (id, title, artist, youtubeId, bpm, level, durationSec, currentVersion)
+       VALUES ('who', 'Who', 'Azari', '8JXiXt0D6tw', 128, 8, 200, 1)`,
+    )
+    .run();
+  const insertScore = sqlite.prepare(
+    `INSERT INTO scores (songId, version, nickname, p, g, b, m, score, scoringVersion)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const row = (score, scoringVersion) => ["who", 1, "player", 10, 2, 1, 0, score, scoringVersion];
+
+  // scoring v4 (ADR-0033): base + bonus legitimately exceeds 1,000,000.
+  insertScore.run(...row(2000000, 4));
+  insertScore.run(...row(1500000, 4));
+  // Versions 1-3 keep the legacy 1,000,000 ceiling.
+  insertScore.run(...row(1000000, 3));
+  assertRejected("v3 score above the legacy ceiling", () => insertScore.run(...row(1000001, 3)));
+  assertRejected("v1 score above the legacy ceiling", () => insertScore.run(...row(1000001, 1)));
+  // Nothing exceeds the v4 maximum.
+  assertRejected("v4 score above 2000000", () => insertScore.run(...row(2000001, 4)));
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 3);
 });

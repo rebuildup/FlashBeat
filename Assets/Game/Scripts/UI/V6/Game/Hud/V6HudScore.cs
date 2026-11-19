@@ -27,7 +27,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         private GameObject comboStatusBlock;
         private GameObject comboStatusRow;
         private GameObject fullComboChip;
-        /// <summary>節目ボーナスの一時表示 (scoring v3, ADR-0029 / Issue #602)。</summary>
+        /// <summary>節目ボーナスの一時表示 (scoring v4, ADR-0033 / Issue #736)。</summary>
         private TextMeshProUGUI milestoneBonusText;
         /// <summary>節目ボーナス表示の開始時刻 (-1 = 非表示)。</summary>
         private float milestoneBonusShowStart = -1f;
@@ -251,7 +251,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             V5Ui.Text(chip, "Text", "FULL COMBO", m.StatusFs, V5Tokens.WarnLight,
                 TextAlignmentOptions.Center);
 
-            // 節目ボーナスの一時表示 (scoring v3)。ステータス行の直下、
+            // 節目ボーナスの一時表示 (scoring v4)。ステータス行の直下、
             // ブロック下端の余白に収まる 1 行。達成のたびに "+獲得点" を出して
             // フェードアウトする (加点量をプレイ中に見せる契約)。
             // Issue #673: 親は comboStatusBlock (Combo Status) ではなく常時
@@ -299,7 +299,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 節目ボーナス表示のフェードアウト (scoring v3 / Issue #602)。
+        /// 節目ボーナス表示のフェードアウト (scoring v4 / ADR-0033)。
         /// 表示時間の終盤で alpha を落として消す。
         /// </summary>
         private void UpdateMilestoneBonus()

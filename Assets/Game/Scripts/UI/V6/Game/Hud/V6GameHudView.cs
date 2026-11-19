@@ -301,9 +301,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 fullComboChip.SetActive(songComplete && GManager.miss == 0);
             }
 
-            // 節目ボーナス (scoring v3 / ADR-0029): 実際の加点は
-            // JudgeScoreboard.MilestoneCrossings が数える。ここでは次の節目
-            // までの進捗を塗りで示す。
+            // 節目ボーナス (scoring v3 で導入、v4 でも同じ節目規則 / ADR-0033):
+            // 実際の加点は JudgeScoreboard.MilestoneCrossings が数える。
+            // ここでは次の節目までの進捗を塗りで示す。
             // Issue #434: 塗りが伸びた瞬間に色をワンショットで発光させ、
             // 「いま増えた」が分かるようにする (色は Update で戻す)。
             float comboFillW = V6HudLogic.ComboFillFraction(GManager.combo) * m.StatusTrackW;
@@ -316,16 +316,22 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Issue #402: コンボが変わらないフレームでは塗り幅を書き戻さない。
             V6LayoutWrites.SizeDeltaIfChanged(comboFill, comboFillW, m.StatusTrackH);
 
-            // 節目ボーナスの獲得表示 (scoring v3 / Issue #602): 到達回数が
-            // 増えたフレームで獲得スコア点を一時表示する。
+            // 節目ボーナスの獲得表示 (scoring v4 / ADR-0033, Issue #736):
+            // 到達回数が増えたフレームで獲得スコア点を一時表示する。
+            // 表示は「今回の獲得点」と「節目ボーナス累計」の 2 値で、
+            // v4 のボーナス分母 (MaxBonusRatioV4) で ratio points を
+            // 実際に加算されるスコア点へ換算する。
             if (milestoneBonusText != null && GManager.comboMilestones != lastComboMilestones)
             {
                 int gained = GManager.comboMilestones - lastComboMilestones;
                 lastComboMilestones = GManager.comboMilestones;
-                int points = FlashBeat.Gameplay.Scoring.ComponentScoreV3(
-                    gained * FlashBeat.Gameplay.Scoring.MilestoneBonusPoints, GManager.maxScore);
-                milestoneBonusText.text = "MILESTONE  +" + points.ToString("N0",
-                    System.Globalization.CultureInfo.InvariantCulture);
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                int gainedPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
+                    gained * FlashBeat.Gameplay.Scoring.MilestoneBonusPoints, GManager.maxBonusRatio);
+                int totalPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
+                    GManager.milestoneBonus, GManager.maxBonusRatio);
+                milestoneBonusText.text = "MILESTONE  +" + gainedPoints.ToString("N0", ci)
+                    + "  TOTAL +" + totalPoints.ToString("N0", ci);
                 milestoneBonusText.alpha = 1f;
                 milestoneBonusShowStart = Time.unscaledTime;
                 milestoneBonusText.gameObject.SetActive(true);

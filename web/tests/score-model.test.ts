@@ -8,8 +8,9 @@
  *      Worker has no filesystem to read the contract from at runtime. This
  *      test reads the real contract file and fails when the copy drifts.
  *   2. `computeUnityScore` / `computeUnityScoreV2` / `computeUnityScoreV3`
- *      reproduce the Unity score formulas exactly (v1 of ADR-0028, v2 of
- *      ADR-0028, v3 of ADR-0029). The reference values are hand-computed:
+ *      / `computeUnityScoreV4` reproduce the Unity score formulas exactly
+ *      (v1 of ADR-0028, v2 of ADR-0028, v3 of ADR-0029, v4 of ADR-0033).
+ *      The reference values are hand-computed:
  *
  *        v1: maxScore   = noteCount * 5
  *            ratioScore = 5 * perfect + 3 * great + 1 * bad
@@ -31,6 +32,18 @@
  *                             + milestoneBonus + finalBonus
  *            maxRatio       = noteCount * 15 + floor(noteCount / 50) * 25 + 100
  *            score          = same ComputeScore rounding as v1/v2
+ *
+ *        v4: judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged)
+ *            comboBonus     = maxCombo * 5                       (ratio points)
+ *            noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0
+ *            milestoneBonus = comboMilestones * 25
+ *            finalBonus     = miss == 0 ? 100 : 0
+ *            bonusRatio     = comboBonus + noMissBonus
+ *                             + milestoneBonus + finalBonus
+ *            maxBonusRatio  = noteCount * 10 + floor(noteCount / 50) * 25 + 100
+ *            baseScore      = floor(judgment * 1e6 / (5 * noteCount))
+ *            bonusScore     = floor(bonusRatio * 1e6 / maxBonusRatio)
+ *            score          = baseScore + bonusScore   (base ≤ 1e6, bonus ≤ 1e6)
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -43,6 +56,7 @@ import {
   computeUnityScore,
   computeUnityScoreV2,
   computeUnityScoreV3,
+  computeUnityScoreV4,
   nicknameDiagnostics,
   parseScoringVersionQuery,
   scoreSemanticsDiagnostics,
@@ -149,19 +163,23 @@ describe("scoreSemanticsDiagnostics", () => {
     assert.equal(diagnostics[0]?.path, "/maxCombo");
   });
 
-  it("accepts scoring versions 1, 2, 3 and an omitted version", () => {
+  it("accepts scoring versions 1, 2, 3, 4 and an omitted version", () => {
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 1 }, 139), []);
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 2 }, 139), []);
-    // v3 on a no-miss play must report the exact crossing count (Issue #618).
+    // v3/v4 on a no-miss play must report the exact crossing count (Issue #618).
     assert.deepEqual(
       scoreSemanticsDiagnostics({ ...request, scoringVersion: 3, comboMilestones: 2 }, 139),
+      [],
+    );
+    assert.deepEqual(
+      scoreSemanticsDiagnostics({ ...request, scoringVersion: 4, comboMilestones: 2 }, 139),
       [],
     );
     assert.deepEqual(scoreSemanticsDiagnostics(request, 139), []);
   });
 
   it("rejects a scoring version the server cannot recompute", () => {
-    for (const scoringVersion of [0, 4]) {
+    for (const scoringVersion of [0, 5]) {
       const diagnostics = scoreSemanticsDiagnostics({ ...request, scoringVersion }, 139);
       assert.equal(diagnostics.length, 1);
       assert.equal(diagnostics[0]?.path, "/scoringVersion");
@@ -333,6 +351,57 @@ describe("computeUnityScoreV3 (ADR-0029)", () => {
   });
 });
 
+describe("computeUnityScoreV4 (ADR-0033)", () => {
+  it("a perfect full-combo run scores 2000000 — base 1000000 plus bonus 1000000", () => {
+    // 139 notes, all perfect, maxCombo 139, 2 milestone crossings, no miss:
+    //   judgment 695 -> baseScore floor(695*1e6/695) = 1000000
+    //   bonusRatio 695 + 695 + 50 + 100 = 1540 = maxBonusRatio
+    //     139*10 + 2*25 + 100 = 1540 -> bonusScore 1000000
+    //   score 2000000, above the v1-v3 ceiling (Issue #736).
+    assert.equal(computeUnityScoreV4(139, 0, 0, 0, 139, 2, 139), 2000000);
+  });
+
+  it("splits a mixed no-miss play into a capped base plus additive bonus", () => {
+    // Same play as the v3 vector: 100P + 30G + 9B of 139 notes.
+    //   judgment 599 -> baseScore floor(599*1e6/695) = 861870
+    //   bonusRatio 695 + 695 + 50 + 100 = 1540 -> bonusScore 1000000
+    //   score 1861870.
+    assert.equal(computeUnityScoreV4(100, 30, 9, 0, 139, 2, 139), 1861870);
+  });
+
+  it("a missed play forfeits the no-miss and final bonuses but keeps combo and milestone", () => {
+    // 100P + 30G + 8B + 1M of 139 notes, maxCombo 139, 2 milestones.
+    //   judgment 598 -> baseScore floor(598*1e6/695) = 860431
+    //   bonusRatio 695 + 0 + 50 + 0 = 745 -> bonusScore floor(745*1e6/1540)
+    //     = 483766
+    //   score 1344197.
+    assert.equal(computeUnityScoreV4(100, 30, 8, 1, 139, 2, 139), 1344197);
+  });
+
+  it("treats omitted maxCombo and comboMilestones as zero bonuses", () => {
+    // 10 notes, 9 perfect + 1 great, no miss:
+    //   judgment 48 -> baseScore floor(48*1e6/50) = 960000
+    //   bonusRatio 0 + 50 + 0 + 100 = 150 -> bonusScore floor(150*1e6/200)
+    //     = 750000
+    //   score 1710000.
+    assert.equal(computeUnityScoreV4(9, 1, 0, 0, undefined, undefined, 10), 1710000);
+  });
+
+  it("keeps the base at or below 1000000 and the total at or below 2000000", () => {
+    // The base derives from the judgment only: even an all-perfect run of a
+    // huge chart cannot exceed 1000000 there; the bonus part is bounded by
+    // its own 1000000 ceiling.
+    assert.equal(computeUnityScoreV4(999, 0, 0, 0, 999, 19, 999), 2000000);
+    assert.equal(computeUnityScoreV4(1, 0, 0, 0, 1, 0, 1), 2000000);
+    const partial = computeUnityScoreV4(50, 50, 0, 0, 100, 2, 100);
+    assert.ok(partial !== null && partial > 1000000 && partial <= 2000000);
+  });
+
+  it("a chart without notes cannot be scored", () => {
+    assert.equal(computeUnityScoreV4(0, 0, 0, 0, 0, 0, 0), null);
+  });
+});
+
 describe("computeScoreForVersion", () => {
   const base = {
     songId: "who",
@@ -361,18 +430,25 @@ describe("computeScoreForVersion", () => {
     //   totalRatio 148 + 0 + 100 = 248, maxRatio 250 -> 992000
     assert.equal(computeScoreForVersion({ ...base, scoringVersion: 3 }, 10), 992000);
   });
+
+  it("uses the v4 formula when scoringVersion is 4", () => {
+    // Same 10-note play under v4: judgment 48 -> base 960000; bonusRatio
+    // 50 + 50 + 0 + 100 = 200 = maxBonusRatio -> bonus 1000000.
+    assert.equal(computeScoreForVersion({ ...base, scoringVersion: 4 }, 10), 1960000);
+  });
 });
 
 describe("parseScoringVersionQuery", () => {
   it("defaults to the latest scoring version", () => {
-    assert.equal(LATEST_SCORING_VERSION, 3);
-    assert.equal(parseScoringVersionQuery(undefined), 3);
+    assert.equal(LATEST_SCORING_VERSION, 4);
+    assert.equal(parseScoringVersionQuery(undefined), 4);
   });
 
   it("accepts positive integers", () => {
     assert.equal(parseScoringVersionQuery("1"), 1);
     assert.equal(parseScoringVersionQuery("2"), 2);
     assert.equal(parseScoringVersionQuery("3"), 3);
+    assert.equal(parseScoringVersionQuery("4"), 4);
   });
 
   it("rejects missing, non-numeric and non-positive values", () => {

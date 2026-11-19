@@ -29,6 +29,13 @@
       "when": 1794998365147,
       "tag": "20261118103925_giant_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795105445519,
+      "tag": "20261119162405_curly_master_chief",
+      "breakpoints": true
     }
   ]
 }
