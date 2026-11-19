@@ -65,6 +65,7 @@ namespace FlashBeat.V6CanvasTests
 
         private readonly List<UnityEngine.Object> spawned = new List<UnityEngine.Object>();
         private readonly List<Camera> disabledCameras = new List<Camera>();
+        private readonly List<Renderer> disabledRenderers = new List<Renderer>();
         private bool savedPlayfield;
         private bool savedVideoDim;
         private bool savedStart;
@@ -84,6 +85,19 @@ namespace FlashBeat.V6CanvasTests
             MediaTimeline.BeginSession(10f);
             PauseGate.HardReset();
             GManager.noteSpeed = 10f;
+
+            // EditMode ではテスト間でシーンが共有され、前のテストが破棄し忘れた
+            // 全画面 quad 等の Renderer が残りうる。フルスイートではそれが
+            // カメラとノーツの間に入って「背景が全部暗い」誤検出になる
+            // (focused 実行では出ない)。このテストが使う描画物は全て自分で
+            // 作るので、既存 Renderer を一時的に全て止める。
+            var renderers = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (!renderers[i].enabled) continue;
+                renderers[i].enabled = false;
+                disabledRenderers.Add(renderers[i]);
+            }
         }
 
         [TearDown]
@@ -99,6 +113,11 @@ namespace FlashBeat.V6CanvasTests
                 if (disabledCameras[i] != null) disabledCameras[i].enabled = true;
             }
             disabledCameras.Clear();
+            for (int i = 0; i < disabledRenderers.Count; i++)
+            {
+                if (disabledRenderers[i] != null) disabledRenderers[i].enabled = true;
+            }
+            disabledRenderers.Clear();
 
             V6UiMode.Playfield = savedPlayfield;
             V6UiMode.VideoDim = savedVideoDim;
