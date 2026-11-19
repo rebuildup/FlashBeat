@@ -282,6 +282,13 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
   (`V6OptionPreviewRig`) がレーンフラッシュ・判定ポップ・歌詞同期を再現し、
   2D オーバーレイ (`V6OptionViewPreviewOverlay`) が判定ポップと歌詞行を重ねる。
   判定ポップの時系列は本編と同じ `V6HudLogic` の共有定数。
+- Game Preview の本編一致規則 (Issue #706): 歌詞ボックスは本編と同じ共有
+  スロット (`LyricSlotOrigin` / `LyricSlotSize` = `LyricSlotHeight`、
+  Issue #674) を使い、オーバーレイは位置を画面フラグメント写像・
+  寸法 (箱・文字・padding) を well/Screen 高比の uniform scale で
+  本編アスペクト比のまま写す。判定線は本編 JudgeLine (不透明白
+  LineRenderer) と同じ不透明・同程度の太さ。スコア・コンボ・ゲージ等の
+  他 HUD 要素は契約上プレビューの対象外なので追加しない。
 - 判定ポップの時系列 (Issue #671): 出現 (静止位置の真上 `VerdictFallDistancePx(m)`
   = 判定ボックス高さ `VerdictH`、即時) → 短い落下で判定線直上の静止位置へ着地
   (`VerdictFallSeconds` 0.30s) → 静止保持 (`VerdictHoldSeconds` 0.45s)

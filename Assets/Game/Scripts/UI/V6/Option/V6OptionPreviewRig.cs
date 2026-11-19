@@ -243,15 +243,20 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// 判定線 (z = 0) の帯。GameScene の JudgeLine (LineRenderer、
-        /// (-4, 0.5, 0) → (4, 0.5, 0)) と同じ位置・幅感の平面 quad。
-        /// マテリアルはガイドと同じ unlit を、もう少し濃くして使う。
+        /// (-4, 0.5, 0) → (4, 0.5, 0)、不透明白 JudgeLine.mat) と同じ
+        /// 位置・視覚的な重さの平面 quad (Issue #706: 半透明 alpha 0.55
+        /// では本編より薄かったため不透明へ合わせる)。
+        /// マテリアルはガイドと同じ unlit を、不透明で使う。
         /// </summary>
         private void BuildJudgeLine()
         {
             float left = PlayfieldLaneGuides.LaneBoundaryX(0);
             float right = PlayfieldLaneGuides.LaneBoundaryX(PlayfieldLaneGuides.GuideCount - 1);
             const float y = 0.5f;
-            const float halfDepth = 0.03f;
+            // Issue #706: 本編 LineRenderer のリボン幅は widthMultiplier 0.2237
+            // × widthCurve 0.116 ≈ 0.026 world。水平 quad の奥行きに直すと
+            // 投影厚がほぼ一致する halfDepth ≈ 0.015 (旧 0.03 は約 2 倍太かった)。
+            const float halfDepth = 0.015f;
 
             var vertices = new[]
             {
@@ -281,12 +286,12 @@ namespace FlashBeat.UI.V6.Option
             judgeMaterial = PlayfieldLaneGuides.CreateGuideMaterial();
             if (judgeMaterial != null)
             {
-                // ガイド線 (alpha 0.18) より目立たせる。_Color が無い
-                // fallback シェーダでは何もしない (HasProperty 保護は
-                // CreateGuideMaterial と同じ考え方)。
+                // 本編 JudgeLine.mat は不透明白 (_Color a=1)。
+                // _Color が無い fallback シェーダでは何もしない
+                // (HasProperty 保護は CreateGuideMaterial と同じ考え方)。
                 if (judgeMaterial.HasProperty("_Color"))
                 {
-                    judgeMaterial.SetColor("_Color", new Color(1f, 1f, 1f, 0.55f));
+                    judgeMaterial.SetColor("_Color", new Color(1f, 1f, 1f, 1f));
                 }
                 renderer.sharedMaterial = judgeMaterial;
             }
@@ -659,6 +664,16 @@ namespace FlashBeat.UI.V6.Option
         /// 疑似メディア時計。GManager.Flash (表示 On/Off) が Off または
         /// BPM が取れない曲では何も描かない。GManager / BGFlash の
         /// 実オブジェクトには触れない (読み取りのみ)。
+        ///
+        /// Issue #706: 本編 BGFlash は壁時計 (Time.deltaTime 蓄積、
+        /// GManager.played 中のみ) で拍を刻むが、プレビューは意図的に
+        /// 疑似メディア時計 (<see cref="previewTime"/>) を使う。
+        /// Option 画面には「プレイ中」のセッションが無く (GManager.played
+        /// は常に false で、本編の played ゲートを写すと一切点かない)、
+        /// またノーツ・判定・歌詞がすべて同じ疑似時計で動くため、拍位相も
+        /// それに揃えた方がループするチャートと拍がずれない。
+        /// 壁時計との差は「メディア時刻に対する拍の位相が本編と独立」
+        /// という点だけで、点灯条件・減衰・BPM/FlashBG の写像は本編と同一。
         /// </summary>
         private void UpdateBeatFlash(float deltaTime)
         {

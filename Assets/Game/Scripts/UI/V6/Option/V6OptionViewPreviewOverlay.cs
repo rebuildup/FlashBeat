@@ -26,9 +26,12 @@ namespace FlashBeat.UI.V6.Option
     ///
     /// 座標系: 本編 HUD の px 定数 (VerdictRestGapAboveLine / LyricSlotOrigin
     /// など) は実スクリーン px。プレビューの RT はカメラの縦 FOV をそのまま
-    /// 見せるので、画面 px → well px は well/Screen の比で線形に写る
-    /// (垂直方向は射影が一致、水平方向はカメラ aspect 固定の横圧縮が
-    /// ビューポート比としてそのまま効く)。
+    /// 見せるので、画面 px → well px は well/Screen の比で線形に写る。
+    /// 位置は軸別のビューポート比 (<see cref="PreviewScale"/>) で画面
+    /// フラグメントへ一致させ、寸法 (箱・文字・padding) は縦横同一の
+    /// uniform scale (<see cref="PreviewContentScale"/>) で本編と同じ
+    /// アスペクト比を保つ (Issue #706: 軸別スケールだと well が 16:9 より
+    /// 縦長な分だけ約 7% の横歪みが出る)。
     ///
     /// すべて well の子なので、Preview パネルの再構築で一緒に消える。
     /// 3D 側の状態 (疑似時計・判定キュー・歌詞行) は rig が持ち、
@@ -83,9 +86,10 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// 歌詞行: 本編 <see cref="V6HudLyrics"/> と同じスロット
-        /// (<see cref="V6HudLogic.LyricSlotOrigin"/> / <see cref="V6HudLogic.LyricSize"/>)
-        /// を well 座標へ写して置く。実際の配置は
-        /// <see cref="UpdatePreviewOverlay"/> が解像度変化に追従して行う。
+        /// (<see cref="V6HudLogic.LyricSlotOrigin"/> / <see cref="V6HudLogic.LyricSlotSize"/>、
+        /// Issue #674 の共有スロット高) を well 座標へ写して置く。
+        /// 実際の配置は <see cref="UpdatePreviewOverlay"/> が解像度変化に
+        /// 追従して行う。
         /// </summary>
         private void BuildPreviewLyric(GameObject overlay)
         {
@@ -146,16 +150,31 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// 本編 HUD px → well px の換算係数。
-        /// well は画面全体 (縦 FOV 全域) を見せるので、画面 px を
-        /// well/Screen の比で線形に縮める。x はビューポート比、
-        /// y は画面高比でそれぞれ独立に換算する。
+        /// 本編 HUD px → well px の位置換算係数 (軸別)。
+        /// well は画面全体 (縦 FOV 全域) を見せ、プレビューカメラの射影は
+        /// 本編カメラと同じ fitted aspect (16:9) なので、ワールド→
+        /// ビューポート比は本編の画面 px 比と一致する。位置だけは
+        /// この軸別写像で画面フラグメントへ厳密に合わせる。
         /// </summary>
         private static Vector2 PreviewScale(Vector2 wellSize)
         {
             float screenW = Mathf.Max(1f, Screen.width);
             float screenH = Mathf.Max(1f, Screen.height);
             return new Vector2(wellSize.x / screenW, wellSize.y / screenH);
+        }
+
+        /// <summary>
+        /// 本編 HUD px → well px の寸法換算係数 (uniform)。
+        /// 縦軸はカメラの縦 FOV が本編と一致するため well/Screen 高比が厳密で、
+        /// 横方向にも同じ比を使うことで判定ポップ・歌詞ボックスの文字と枠が
+        /// 本編と同じアスペクト比を保つ。TMP のフォントは単一サイズしか
+        /// 持てないため、軸別スケール (約 7% の横歪み) は採用しない (Issue #706)。
+        /// 残差: well は 16:9 より縦長なので、要素の well 幅に対する割合は
+        /// 本編の画面幅割合から screenAspect/wellAspect 倍ずれる (避けられない)。
+        /// </summary>
+        private static float PreviewContentScale(Vector2 wellSize)
+        {
+            return wellSize.y / Mathf.Max(1f, Screen.height);
         }
 
         /// <summary>本編 HUD と同じプロファイル解決 (V6HudVerdict / V6HudLyrics と同じ入力)。</summary>
@@ -284,19 +303,23 @@ namespace FlashBeat.UI.V6.Option
             V6HudMetrics m = PreviewHudMetrics();
             float screenW = Mathf.Max(1f, Screen.width);
             float screenH = Mathf.Max(1f, Screen.height);
+            // 寸法は uniform scale (縦横同一)。位置は軸別の scale のまま。
+            float content = PreviewContentScale(wellSize);
 
             // 歌詞スロット: 本編 V6HudLyrics.BuildLyric / LyricSlotAnchoredPosition
             // と同じ原点・幅・高さを well 座標へ写す。
+            // Issue #706: 高さは歌詞本文だけの LyricSize ではなく、
+            // 歌詞・カウントダウン・終了タイトルの共有スロット高
+            // (V6HudLogic.LyricSlotHeight、Issue #674) を使う。
             if (previewLyricBox != null)
             {
                 var brt = (RectTransform)previewLyricBox.transform;
                 Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(screenW, screenH);
-                float slotWidth = V6HudLogic.LyricSlotWidth(screenW);
-                Vector2 slotSize = V6HudLogic.LyricSize(m.LyricFs);
-                brt.sizeDelta = new Vector2(slotWidth * scale.x, slotSize.y * scale.y);
+                Vector2 slotSize = V6HudLogic.LyricSlotSize(m.LyricFs, screenW, screenH);
+                brt.sizeDelta = new Vector2(slotSize.x * content, slotSize.y * content);
                 // 上中央アンカー: x = スロット中心 − well 中央、y = −スロット上端。
                 brt.anchoredPosition = new Vector2(
-                    (slotOrigin.x + slotWidth * 0.5f) * scale.x - wellSize.x * 0.5f,
+                    (slotOrigin.x + slotSize.x * 0.5f) * scale.x - wellSize.x * 0.5f,
                     -slotOrigin.y * scale.y);
             }
 
@@ -304,18 +327,18 @@ namespace FlashBeat.UI.V6.Option
             {
                 var trt = previewLyricText.rectTransform;
                 // 本編 VerticalLayoutGroup の padding (LyricPaddingX/Y) を well へ写す。
-                trt.offsetMin = new Vector2(V6HudLogic.LyricPaddingX * scale.x,
-                    V6HudLogic.LyricPaddingY * scale.y);
-                trt.offsetMax = new Vector2(-V6HudLogic.LyricPaddingX * scale.x,
-                    -V6HudLogic.LyricPaddingY * scale.y);
+                trt.offsetMin = new Vector2(V6HudLogic.LyricPaddingX * content,
+                    V6HudLogic.LyricPaddingY * content);
+                trt.offsetMax = new Vector2(-V6HudLogic.LyricPaddingX * content,
+                    -V6HudLogic.LyricPaddingY * content);
                 // 本編 ScaledLyricFs = m.LyricFs (LyricFs 基準 fs44 への比)。
-                previewLyricText.fontSize = m.LyricFs * scale.y;
+                previewLyricText.fontSize = m.LyricFs * content;
             }
 
             // 判定ポップ: 本編 V6HudVerdict と同じ m.VerdictW/H/Fs を well へ写す。
-            float verdictW = m.VerdictW * scale.x;
-            float verdictH = m.VerdictH * scale.y;
-            float verdictFs = m.VerdictFs * scale.y;
+            float verdictW = m.VerdictW * content;
+            float verdictH = m.VerdictH * content;
+            float verdictFs = m.VerdictFs * content;
             for (int lane = 0; lane < previewVerdictTexts.Length; lane++)
             {
                 var tmp = previewVerdictTexts[lane];
