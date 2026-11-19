@@ -64,6 +64,7 @@ namespace FlashBeat.V6CanvasTests
         private const float MaxShadedLuminance = 0.50f;
 
         private readonly List<UnityEngine.Object> spawned = new List<UnityEngine.Object>();
+        private readonly List<Camera> disabledCameras = new List<Camera>();
         private bool savedPlayfield;
         private bool savedVideoDim;
         private bool savedStart;
@@ -93,6 +94,11 @@ namespace FlashBeat.V6CanvasTests
                 if (spawned[i] != null) Object.DestroyImmediate(spawned[i]);
             }
             spawned.Clear();
+            for (int i = 0; i < disabledCameras.Count; i++)
+            {
+                if (disabledCameras[i] != null) disabledCameras[i].enabled = true;
+            }
+            disabledCameras.Clear();
 
             V6UiMode.Playfield = savedPlayfield;
             V6UiMode.VideoDim = savedVideoDim;
@@ -117,6 +123,20 @@ namespace FlashBeat.V6CanvasTests
             var go = Track(new GameObject("Main Camera", typeof(Camera)));
             go.tag = "MainCamera";
             var cam = go.GetComponent<Camera>();
+
+            // CorridorRows / PlayfieldCameraFit は Camera.main を使う。
+            // EditMode では他テストや残存シーンの MainCamera が先に拾われ、
+            // コリドー抜きが実際の描画カメラとずれて全ノーツがシェード上に
+            // 乗る誤検出になる (PlayfieldGeometryTests / V6TopShadeHoleTests
+            // と同じ隔離手順)。
+            var others = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+            for (int i = 0; i < others.Length; i++)
+            {
+                if (others[i] == cam || !others[i].CompareTag("MainCamera")) continue;
+                if (!others[i].enabled) continue;
+                others[i].enabled = false;
+                disabledCameras.Add(others[i]);
+            }
             cam.transform.localPosition = new Vector3(0f, 4.9f, -0.8f);
             cam.transform.localRotation = new Quaternion(0.46019977f, 0f, 0f, 0.8878155f);
             cam.fieldOfView = 60f;
