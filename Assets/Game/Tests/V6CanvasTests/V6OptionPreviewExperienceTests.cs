@@ -313,7 +313,9 @@ namespace FlashBeat.V6CanvasTests
 
         /// <summary>
         /// 判定ポップのフォントサイズ・箱サイズが本編 V6HudVerdict と同じ
-        /// m.VerdictFs / VerdictW / VerdictH を well/Screen 比で縮めた値であること。
+        /// m.VerdictFs / VerdictW / VerdictH を well/Screen 高比の
+        /// uniform scale で縮めた値であること (Issue #706: 軸別スケールの
+        /// 横歪みを廃止。位置は従来どおり画面フラグメント写像)。
         /// </summary>
         [Test]
         public void Verdict_UsesTheGameHudMetrics()
@@ -326,22 +328,23 @@ namespace FlashBeat.V6CanvasTests
             Assert.IsNotNull(overlay, "判定ポップの RectTransform が無い");
             var wellRt = (RectTransform)overlay.parent;
             Vector2 wellSize = wellRt.rect.size;
-            float sx = wellSize.x / Screen.width;
-            float sy = wellSize.y / Screen.height;
+            float s = wellSize.y / Screen.height;
 
             var tmp = view.PreviewVerdictTextForAudit(0);
-            Assert.AreEqual(metrics.VerdictFs * sy, tmp.fontSize, 0.01f,
+            Assert.AreEqual(metrics.VerdictFs * s, tmp.fontSize, 0.01f,
                 "判定ポップのフォントサイズが本編 m.VerdictFs の写像でない");
-            Assert.AreEqual(metrics.VerdictW * sx, overlay.sizeDelta.x, 0.05f,
+            Assert.AreEqual(metrics.VerdictW * s, overlay.sizeDelta.x, 0.05f,
                 "判定ポップ幅が本編 m.VerdictW の写像でない");
-            Assert.AreEqual(metrics.VerdictH * sy, overlay.sizeDelta.y, 0.05f,
+            Assert.AreEqual(metrics.VerdictH * s, overlay.sizeDelta.y, 0.05f,
                 "判定ポップ高さが本編 m.VerdictH の写像でない");
         }
 
         /// <summary>
         /// 歌詞ボックスが本編 V6HudLyrics と同じスロット
-        /// (LyricSlotOrigin / LyricSlotWidth / LyricSize / LyricFs) の写像で
-        /// あること。固定 px の近似値を使わない (Issue #677)。
+        /// (LyricSlotOrigin / LyricSlotSize / LyricFs) の写像であること。
+        /// 高さは Issue #674 の共有スロット高 (LyricSlotHeight)、寸法は
+        /// Issue #706 の uniform scale (well/Screen 高比)。固定 px の
+        /// 近似値を使わない (Issue #677)。
         /// </summary>
         [Test]
         public void LyricBox_UsesTheGameHudSlotMapping()
@@ -356,23 +359,24 @@ namespace FlashBeat.V6CanvasTests
             Vector2 wellSize = wellRt.rect.size;
             float sx = wellSize.x / Screen.width;
             float sy = wellSize.y / Screen.height;
+            float s = wellSize.y / Screen.height; // 寸法の uniform scale
 
             var metrics = V6HudMetrics.ForResolution(Screen.width, Screen.height);
             Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(Screen.width, Screen.height);
-            float slotWidth = V6HudLogic.LyricSlotWidth(Screen.width);
-            Vector2 slotSize = V6HudLogic.LyricSize(metrics.LyricFs);
+            Vector2 slotSize = V6HudLogic.LyricSlotSize(metrics.LyricFs,
+                Screen.width, Screen.height);
 
-            Assert.AreEqual(slotWidth * sx, boxRt.sizeDelta.x, 0.05f,
+            Assert.AreEqual(slotSize.x * s, boxRt.sizeDelta.x, 0.05f,
                 "歌詞ボックス幅が本編スロット幅の写像でない");
-            Assert.AreEqual(slotSize.y * sy, boxRt.sizeDelta.y, 0.05f,
-                "歌詞ボックス高さが本編 LyricSize の写像でない");
+            Assert.AreEqual(slotSize.y * s, boxRt.sizeDelta.y, 0.05f,
+                "歌詞ボックス高さが本編 LyricSlotHeight の写像でない");
             Assert.AreEqual(
-                (slotOrigin.x + slotWidth * 0.5f) * sx - wellSize.x * 0.5f,
+                (slotOrigin.x + slotSize.x * 0.5f) * sx - wellSize.x * 0.5f,
                 boxRt.anchoredPosition.x, 0.05f,
                 "歌詞ボックスの x が本編スロット中心の写像でない");
             Assert.AreEqual(-slotOrigin.y * sy, boxRt.anchoredPosition.y, 0.05f,
                 "歌詞ボックスの y が本編スロット上端の写像でない");
-            Assert.AreEqual(metrics.LyricFs * sy, view.PreviewLyricTextForAudit.fontSize, 0.01f,
+            Assert.AreEqual(metrics.LyricFs * s, view.PreviewLyricTextForAudit.fontSize, 0.01f,
                 "歌詞フォントサイズが本編 m.LyricFs の写像でない");
         }
     }
