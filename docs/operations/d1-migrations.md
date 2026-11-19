@@ -231,3 +231,36 @@ follow-up migrations instead:
 archiving removes the song from `GET /api/v1/catalog` and from
 `GET /api/v1/rankings`, the staff list still shows it with its history, and
 restoring brings it back.
+
+## 9. Follow-up migration: `catalog_meta` epoch (issue #656, v0.1.31)
+
+Date: 2026-11-19 (JST) · Branch: `release-0-1-31` → `main` · Scope: the
+`catalogVersion` source of truth. `catalogVersion` used to be
+`COUNT(chart_versions)`, which cannot see archive/unarchive changes; it is now
+a monotonic epoch in a single-row `catalog_meta` table, bumped inside the same
+transaction as every catalog-visible mutation.
+
+| Field | Value |
+|---|---|
+| File | `web/db/migrations/20261118103925_giant_lethal_legion.sql` |
+| Content | `CREATE TABLE catalog_meta (id INTEGER PRIMARY KEY, epoch INTEGER NOT NULL)` + seed `epoch = COUNT(chart_versions)` |
+
+### 9.1 Remote D1 — **applied and verified (2026-11-19)**
+
+Applied with `cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462
+--dir web/db/migrations` (one pending migration). Verified via `cf d1 query`:
+
+| Check | Result |
+|---|---|
+| `catalog_meta` row | `id = 1`, `epoch = 41` (seeded from the chart count, so the value continues the pre-migration `COUNT(chart_versions)` range) |
+| `d1_migrations` | `20261118103925_giant_lethal_legion.sql` listed as applied |
+
+The Worker was deployed in the same change window (`void deploy
+--platform cloudflare`, worker `flashbeat-web`); the deploy step reported "D1
+migrations up to date". Post-deploy probes:
+
+| Endpoint | Result |
+|---|---|
+| `GET /api/v1/catalog` | `catalogVersion: 41`, songs listed |
+| `GET /api/v1/rankings` | `catalogVersion: 41` |
+| `GET /api/v1/stats` | `totals.songs: 30`, `liveSongs: 28`, `archivedSongs: 2`, `charts: 41` |
