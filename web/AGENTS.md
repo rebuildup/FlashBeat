@@ -332,6 +332,28 @@ selectors were updated to match). Copy quality follows the vendored
 3. No formulaic framing, no empty abstraction, no unsupported certainty, no repetition.
 4. An error or a warning names the cause **and** the next action.
 
+### Web guidance skill (issue #741)
+
+`GoogleChrome/modern-web-guidance` was evaluated under the `skill-selection`
+policy and **not installed** (ADR-0030): its Skill declares itself mandatory
+for every HTML/CSS and client-side JS task — the broad, entry-grabbing trigger
+the policy rejects — and its workflow delegates to an `npx` CLI that the
+vendoring lock cannot pin. Its guides stay a **reference** for concrete
+web-platform questions (accessibility, forms, UX patterns); consult them via
+the upstream repo/CLI when a task calls for it, but do not vendor the Skill
+or add the CLI as a dependency without re-running `skill-selection`.
+
+### Studio information architecture (issue #742)
+
+The per-screen primary/secondary action hierarchy and the navigation grouping
+(制作 → 運営) are fixed in `docs/design/web-studio-ia.md`; change them there
+first, then in `src/app/sidebar.tsx` and the page headers.
+
+Async reads in `src/app/` share one guard: `useLatestRequest()` +
+`isAbortError()` in `src/app/request-guard.ts` (issue #741). Do not re-inline
+the requestId/AbortController pattern; blank charts come from
+`src/lib/chart/empty.ts` (`createEmptyChart`).
+
 ### Scope
 
 The Web Studio has a database (issue #14), a read API (issue #15) and the publish

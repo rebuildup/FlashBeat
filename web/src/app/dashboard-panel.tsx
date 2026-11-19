@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "styled-system/css";
 import { Button } from "@/components/ui";
 import {
@@ -15,7 +15,7 @@ import {
 import { loadRankings, loadStats } from "@/lib/dashboard/client";
 import type { RankingSong, StatsResponse } from "@/lib/dashboard/types";
 import { StateBlock, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
-import { isAbortError } from "./catalog";
+import { isAbortError, useLatestRequest } from "./request-guard";
 
 /**
  * The festival dashboard (issue #151).
@@ -297,31 +297,23 @@ export function DashboardPanel() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
   /**
-   * 最新の要求だけを反映するための状態（`app-shell.tsx` と同じ方式）。
-   *
-   * - `requestIdRef` は要求番号。番号が最新でない応答は捨てる。
-   * - `abortRef` は今走っている要求の `AbortController`。新しい読み込みや
-   *   アンマウントで前の要求を中断する。
+   * 最新の要求だけを反映するガード（`request-guard.ts`、issue #741）。
+   * 新しい読み込みやアンマウントで前の要求を中断する。
    */
-  const requestIdRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const { begin, cancel } = useLatestRequest();
 
   const refresh = useCallback(() => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+    const request = begin();
 
     setStatus("loading");
     setErrorMessage(undefined);
 
     Promise.all([
-      loadRankings(undefined, { signal: controller.signal }),
-      loadStats({ signal: controller.signal }),
+      loadRankings(undefined, { signal: request.signal }),
+      loadStats({ signal: request.signal }),
     ])
       .then(([board, statistics]) => {
-        if (requestId !== requestIdRef.current) return;
+        if (!request.isCurrent()) return;
         setRankings(board.songs);
         setStats(statistics);
         setStatus("ready");
@@ -329,19 +321,19 @@ export function DashboardPanel() {
       .catch((error: unknown) => {
         // 中断は失敗ではない。次に始まる読み込みの結果を待つだけ。
         if (isAbortError(error)) return;
-        if (requestId !== requestIdRef.current) return;
+        if (!request.isCurrent()) return;
         setErrorMessage(error instanceof Error ? error.message : "不明なエラー");
         setStatus("error");
       });
-  }, []);
+  }, [begin]);
 
   useEffect(() => {
     refresh();
     return () => {
       // 画面を離れるときに未完了の要求を中断する。
-      abortRef.current?.abort();
+      cancel();
     };
-  }, [refresh]);
+  }, [refresh, cancel]);
 
   /** The songs of the ranking board, best score first. */
   const orderedSongs = useMemo(() => {

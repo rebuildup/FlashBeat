@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isAbortError, loadCatalog, parseSongs } from "../catalog";
+import { loadCatalog, parseSongs } from "../catalog";
+import { isAbortError } from "../request-guard";
 import type { SongSummary } from "../types";
 
 /**
