@@ -241,19 +241,23 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Issue #445: 値は桁別ストリップへ。文字が変わった桁だけがポップする。
             if (score != lastRenderedScore)
             {
-                gradeText.text = GameHudLogic.RankText(score);
+                // scoringVersion で帯を切り替える (Issue #758 / ADR-0034)。
+                // 現行プレイは常に最新バージョン (scoring v4)。
+                gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion);
                 scoreStrip.SetText(GameHudLogic.FormatScore(score), Time.unscaledTime);
                 lastRenderedScore = score;
             }
 
-            // スコアゲージ (塗りは + セグメントの手前まで, Best は保存スコア)
+            // スコアゲージ (scoring v4 の満点 2,000,000 をトラック全長へ写像。
+            // "+" セグメントも塗り対象に含めるため fillMax には GaugeW を渡す。
+            // Best は保存スコア)
             // Issue #434: 値を瞬時に切り替えず、表示側を目標へ指数 tween させる。
             // 初回 (Rebuild 直後) は目標値へ即合わせて前回プレイの残像を出さない。
-            float gaugeTargetW = V6HudLogic.GaugeFillWidth(score, m.GaugeFillMax);
+            float gaugeTargetW = V6HudLogic.GaugeFillWidth(score, m.GaugeW);
             int hi = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length
                 ? GManager.Hiscore[GManager.songID]
                 : GManager.BestScoreOf(GManager.songID); // 固定テーブル外は安定キー (issue-162 A-6)
-            float gaugeTargetX = V6HudLogic.GaugeBestX(hi, m.GaugeFillMax);
+            float gaugeTargetX = V6HudLogic.GaugeBestX(hi, m.GaugeW);
             if (!gaugeShownInit)
             {
                 gaugeShownWidth = gaugeTargetW;

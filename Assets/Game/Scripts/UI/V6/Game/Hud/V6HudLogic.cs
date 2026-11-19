@@ -33,21 +33,25 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// スコアゲージの塗り幅 (px)。塗りは + セグメントの手前 (fillMax) まで。
+        /// スコアゲージの塗り幅 (px)。塗りは + セグメントを含むトラック全長
+        /// (<paramref name="fillMax"/>) まで。点数空間は最新の scoringVersion の
+        /// 満点 (<see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreMaxOf"/>、
+        /// scoring v4 では 2,000,000 = 基礎 + ボーナス) で、v4 の合計スコアが
+        /// そのまま 0..満点 の 1 本のレールに写る (Issue #758 / ADR-0034)。
         /// </summary>
         public static float GaugeFillWidth(int score, float fillMax)
         {
-            return Mathf.Clamp01(score / 1_000_000f) * fillMax;
+            return Mathf.Clamp01(score / (float)FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
         }
 
         /// <summary>スコアゲージの Best マーカー x (px)。
-        /// 点数空間は 0..1,000,000 (既存 gauge.fillAmount = score/1000000f と同じ)。
-        /// design の Best x=553 は hiscore 1,043,396 をクランプせず 530 で割った
-        /// 範囲外サンプル。ゲームの点数は空間外に出ないので、マーカーが
-        /// トラック外に出ないよう 1,000,000 でクランプする (トラック端に留まる)。</summary>
+        /// 点数空間は最新 scoringVersion の満点 (scoring v4 では 0..2,000,000)。
+        /// マーカーがトラック外に出ないよう満点でクランプする。</summary>
         public static float GaugeBestX(int hiscore, float fillMax)
         {
-            return Mathf.Clamp01(hiscore / 1_000_000f) * fillMax;
+            return Mathf.Clamp01(hiscore / (float)FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
         }
 
         /// <summary>

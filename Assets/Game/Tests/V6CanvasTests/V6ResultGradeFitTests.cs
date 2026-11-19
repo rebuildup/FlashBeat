@@ -139,26 +139,25 @@ namespace FlashBeat.V6CanvasTests
         // --- グレード表示 (Issue #737 の本体) ---
 
         /// <summary>
-        /// GradeOf/RankFor が返し得る全グレード ("–","C","B","A","S","SS") で、
+        /// GradeOf が返し得る全グレード ("–","C","B","A","S","SS") で、
         /// グレード文字が 280×280 の Grade 箱からはみ出さず 1 行で描かれること。
+        /// スコアは scoring v4 (満点 2,000,000) の帯 (ADR-0034 / Issue #758)。
         /// </summary>
         [Test]
         public void GradeLetter_AllGrades_FitInsideGradeBox()
         {
-            // (score, 期待グレード)。閾値は V5 ResultView.RankFor と同一
-            // (GradeOf の 1:1 維持は V6ResultLogicTests が固定済み)。
+            // (score, 期待グレード)。閾値は V6GradeLogic.GradeOfV4 と同一
+            // (GradeOf の帯は V6ResultLogicTests / V6GradeLogicTests が固定済み)。
             var cases = new[]
             {
                 new KeyValuePair<int, string>(0, "–"),
                 new KeyValuePair<int, string>(100, "C"),
-                new KeyValuePair<int, string>(699999, "C"),
-                new KeyValuePair<int, string>(700000, "B"),
-                new KeyValuePair<int, string>(900000, "A"),
-                new KeyValuePair<int, string>(950000, "S"),
-                new KeyValuePair<int, string>(999999, "S"),
-                new KeyValuePair<int, string>(1000000, "SS"),
-                // scoring v4 で 100 万点を超えてもグレード表示は崩れないこと。
-                new KeyValuePair<int, string>(1200000, "S"),
+                new KeyValuePair<int, string>(1599999, "C"),
+                new KeyValuePair<int, string>(1600000, "B"),
+                new KeyValuePair<int, string>(1800000, "A"),
+                new KeyValuePair<int, string>(1900000, "S"),
+                new KeyValuePair<int, string>(1999999, "S"),
+                new KeyValuePair<int, string>(2000000, "SS"),
             };
 
             foreach (var c in cases)
@@ -190,7 +189,7 @@ namespace FlashBeat.V6CanvasTests
         [Test]
         public void GradeLetter_SS_ShrinksToFit_WhileSingleGlyphKeepsMaxSize()
         {
-            var ssView = CreateView(1000000);
+            var ssView = CreateView(2000000);
             try
             {
                 var ss = FindText(ssView, "Main/Result Block/Grade/Letter");
@@ -204,7 +203,7 @@ namespace FlashBeat.V6CanvasTests
                 Object.DestroyImmediate(ssView.Root.gameObject);
             }
 
-            var sView = CreateView(950000);
+            var sView = CreateView(1900000);
             try
             {
                 var s = FindText(sView, "Main/Result Block/Grade/Letter");
