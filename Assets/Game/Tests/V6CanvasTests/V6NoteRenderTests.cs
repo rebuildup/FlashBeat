@@ -45,7 +45,9 @@ namespace FlashBeat.V6CanvasTests
     ///   ScreenSpaceCamera で代替。uGUI の Image/シェーダ/ブレンド経路は同一で、
     ///   sortingOrder の前後関係も overlay と同じ -3/-2/-1 を使う)。
     /// - GameScene 固有のオブジェクト (VideoPlayer 映像 quad, Directional Light,
-    ///   旧 Canvas, BGFlash 実体, LaneLight の点灯状態)。映像は単色クリアで代替、
+    ///   旧 Canvas, BGFlash 実体, LaneLight の点灯状態)。映像は 3D 経路では
+    ///   単色クリア、uGUI 経路では明暗のむらがある手続きテクスチャの
+    ///   背景 quad で代替 (CreateVideoLikeBackground)。
     ///   レーンガイドは PlayfieldLaneGuides.BuildGuideMesh/CreateGuideMaterial の
     ///   実メッシュ・実マテリアルを使う。シーン監査と実機撮影は
     ///   FlatRenderCheck / AutoShot が担う。
@@ -276,6 +278,101 @@ namespace FlashBeat.V6CanvasTests
             m.Invoke(notes, null);
         }
 
+        /// <summary>
+        /// 「映像フレーム風」の背景 quad をカメラ奥に置く (uGUI 経路用)。
+        /// 出荷では VideoPlayer の映像がワールドに描かれ、その上に
+        /// ScreenSpaceOverlay の uGUI (playfield -2 / HUD -1) が乗る。
+        /// フラットな単色クリアでは「明暗のむらがある実映像」の上で
+        /// ノーツが沈まないかを検証できないので、縦グラデーション +
+        /// ノイズ + 暗い被写体ブロブを持つ手続きテクスチャを
+        /// FlashBeat/FlatUnlit (_MainTex 対応) で貼った quad を置く。
+        /// ScreenSpaceOverlay 自体はバッチの camera RT には描けないため、
+        /// 合成は ScreenSpaceCamera + 出荷と同じ sortingOrder (-2/-1) で
+        /// 代替する (uGUI の Image/シェーダ/ブレンド経路と前後関係は同一)。
+        /// </summary>
+        private GameObject CreateVideoLikeBackground(Camera cam)
+        {
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            var px = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                float v = y / (float)(size - 1);
+                for (int x = 0; x < size; x++)
+                {
+                    float u = x / (float)(size - 1);
+                    // 上が明るく下もそれなりに明るい映像の明暗差 + 左右のゆるいムラ。
+                    // 下限を 0.66 にしてある: ノーツの多くは画面下半分 (判定線側)
+                    // に乗るので、ここが暗いと「明るい背景上のノーツ」検査が
+                    // 画素不足で空振りする (実測 checked=35 → 要件 >100)。
+                    float lum = Mathf.Lerp(0.66f, 0.95f, Mathf.SmoothStep(0f, 1f, v));
+                    lum += 0.05f * Mathf.Sin(u * 11f + v * 5f);
+                    lum += (Hash01(x, y) - 0.5f) * 0.12f;
+                    // 中央に暗い「被写体」ブロブ (実映像らしい濃淡)。
+                    float dx = (u - 0.42f) * 2f, dy = (v - 0.55f) * 2f;
+                    lum -= 0.15f * Mathf.Exp(-(dx * dx + dy * dy) * 4f);
+                    lum = Mathf.Clamp01(lum);
+                    // 色味は下が寒色・上が暖色 (ステージ照明っぽい)。
+                    // tint は輝度重み付きでほぼ 1 になるよう選ぶ
+                    // (輝度 ≈ lum を保ち、下限 0.66 がそのまま
+                    //  BrightBackgroundLuminance=0.58 を満たすようにする)。
+                    Color tint = Color.Lerp(
+                        new Color(0.82f, 0.92f, 1.05f),
+                        new Color(1.05f, 0.92f, 0.78f),
+                        Mathf.Clamp01(v * 1.4f));
+                    var c = new Color(
+                        Mathf.Clamp01(tint.r * lum),
+                        Mathf.Clamp01(tint.g * lum),
+                        Mathf.Clamp01(tint.b * lum), 1f);
+                    px[y * size + x] = c;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            spawned.Add(tex);
+
+            var shader = Shader.Find("FlashBeat/FlatUnlit");
+            Assert.IsNotNull(shader, "FlashBeat/FlatUnlit が見つからない");
+            var mat = new Material(shader);
+            spawned.Add(mat);
+            mat.SetTexture("_MainTex", tex);
+            mat.SetColor("_Color", Color.white);
+
+            var go = Track(GameObject.CreatePrimitive(PrimitiveType.Quad));
+            go.name = "VideoLike Background";
+            var col = go.GetComponent<Collider>();
+            if (col != null) Object.DestroyImmediate(col);
+            var bgRenderer = go.GetComponent<Renderer>();
+            bgRenderer.sharedMaterial = mat;
+            bgRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            bgRenderer.receiveShadows = false;
+
+            // カメラの視錐台を distance の平面で覆う quad。
+            // Quad の可視面法線は -Z なので、+Z を「カメラ→奥」に向ける。
+            const float distance = 80f;
+            Vector3 bl = cam.ViewportToWorldPoint(new Vector3(0f, 0f, distance));
+            Vector3 br = cam.ViewportToWorldPoint(new Vector3(1f, 0f, distance));
+            Vector3 tl = cam.ViewportToWorldPoint(new Vector3(0f, 1f, distance));
+            Vector3 tr = cam.ViewportToWorldPoint(new Vector3(1f, 1f, distance));
+            Vector3 center = (bl + br + tl + tr) * 0.25f;
+            float w = (Vector3.Distance(bl, br) + Vector3.Distance(tl, tr)) * 0.5f * 1.3f;
+            float h = (Vector3.Distance(bl, tl) + Vector3.Distance(br, tr)) * 0.5f * 1.3f;
+            go.transform.position = center;
+            go.transform.rotation = Quaternion.LookRotation(
+                center - cam.transform.position, Vector3.up);
+            go.transform.localScale = new Vector3(w, h, 1f);
+            return go;
+        }
+
+        /// <summary>決定論的な 0..1 の擬似乱数 (画素ノイズ用)。</summary>
+        private static float Hash01(int x, int y)
+        {
+            float h = Mathf.Sin(x * 127.1f + y * 311.7f) * 43758.5453f;
+            return h - Mathf.Floor(h);
+        }
+
         // --- 描画と差分 ---
 
         private sealed class Shot
@@ -325,7 +422,8 @@ namespace FlashBeat.V6CanvasTests
         /// </summary>
         private const float BrightBackgroundLuminance = 0.58f;
 
-        private static int AssertNotePixelsBright(Shot withNotes, Shot withoutNotes, string label, bool requireTopZone = true)
+        private static int AssertNotePixelsBright(Shot withNotes, Shot withoutNotes, string label,
+            bool requireTopZone, out int checkedPixels)
         {
             Assert.AreEqual(withNotes.Px.Length, withoutNotes.Px.Length);
             int w = withNotes.Tex.width;
@@ -397,6 +495,13 @@ namespace FlashBeat.V6CanvasTests
             if (requireTopZone) Assert.GreaterOrEqual(brightRatio, 0.5f,
                 label + ": 上部帯ノーツの明るい背景率が低い ({brightRatio:F2}) — " +
                 "シェードのレーン抜きがノーツを覆っていない可能性");
+            checkedPixels = checkedCount;
+            // 「明るい背景上で明るい」検査が空振りしないことも要求する。
+            // 背景がほぼ暗いと checkedCount が 0 に近づき、dark==0 が
+            // 意味を持たなくなる (カウンター例としての検出力の維持)。
+            Assert.Greater(checkedCount, 100,
+                label + ": 明るい背景上のノーツ画素が少なすぎる (checked=" +
+                checkedCount + ") — 背景が暗すぎて検証が空振りしている");
             Assert.AreEqual(0, dark,
                 label + ": 明るい背景上のノーツ画素が暗い — " +
                 "シェード/ガイド/BGFlash/マテリアルのどれかがノーツを暗くしている");
@@ -468,7 +573,7 @@ namespace FlashBeat.V6CanvasTests
             spawned.Add(withoutNotes.Tex);
             SetRenderersEnabled(notes, true);
 
-            AssertNotePixelsBright(withNotes, withoutNotes, "3D path");
+            AssertNotePixelsBright(withNotes, withoutNotes, "3D path", true, out _);
             AssertShadePresent(cam, RtWidth, RtHeight, "3D path");
         }
 
@@ -484,6 +589,9 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.VideoDim = false;
 
             Camera cam = CreateCamera();
+            // 出荷の「映像の上に ScreenSpaceOverlay uGUI」の合成に近づけるため、
+            // フラットな単色クリアではなく明暗のむらがある映像風背景を敷く。
+            CreateVideoLikeBackground(cam);
 
             var playfieldCanvas = CreateCanvas(cam, "V6PlayfieldCanvas", -2);
             var view = V6PlayfieldView.Create(playfieldCanvas.GetComponent<RectTransform>());
@@ -514,7 +622,9 @@ namespace FlashBeat.V6CanvasTests
             spawned.Add(withoutNotes.Tex);
             foreach (var go in noteObjects) go.SetActive(true);
 
-            AssertNotePixelsBright(withNotes, withoutNotes, "v6 uGUI path", requireTopZone: false);
+            AssertNotePixelsBright(withNotes, withoutNotes, "v6 uGUI path", false, out int uGUIChecked);
+            Debug.Log("[V6NoteRender] v6 uGUI path: checkedPixels=" + uGUIChecked +
+                " (video-like textured background)");
             AssertShadePresent(cam, RtWidth, RtHeight, "v6 uGUI path");
         }
 

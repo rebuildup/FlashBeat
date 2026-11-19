@@ -236,10 +236,12 @@ namespace FlashBeat.UI.V6.Option
             // GameScene JudgeLine の実ワールド位置 (y 0.48 / z 0) を使う。
             // 判定エフェクト出現点 (0, 0.76, 0.15) ではない — design §10.3 の
             // 「判定線」は描画される線を指し、Issue #715 で本編・プレビュー
-            // 両方をこのアンカーへ揃えた (旧コメントの「本編に合わせる」
-            // 判断は #715 の設計確認で覆った)。
+            // 両方をこのアンカーへ揃えた。
+            // アンカーは本編ワールド座標系の値。rig は (0,0,-RigDistance) へ
+            // 平行移動されているので、必ず rig ローカル→ワールド変換を通す
+            // (生のワールド座標で投影すると判定線より上へずれて well の外に出る)。
             Vector3 judgeScreen = cam != null
-                ? cam.WorldToViewportPoint(V6HudLogic.LegacyJudgeLineAnchor())
+                ? cam.WorldToViewportPoint(previewRig.RigLocalToWorld(V6HudLogic.LegacyJudgeLineAnchor()))
                 : Vector3.zero;
             float screenH = Mathf.Max(1f, Screen.height);
             // 落下距離は本編と同じ判定ボックス高さ (実スクリーン px)。
@@ -265,7 +267,9 @@ namespace FlashBeat.UI.V6.Option
                 // プレビューカメラでビューポートへ写す。使うのは vp.x
                 // (レーン x = キーガイド格子と同じ投影) だけで、判定 y は
                 // 上の judgeScreen (描画判定線アンカー) から取る — 本編と同じ分担。
-                Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
+                // アンカーは rig ローカル→ワールド変換が必須 (rig は z=-3000)。
+                Vector3 world = previewRig.RigLocalToWorld(
+                    new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f));
                 Vector3 vp = cam.WorldToViewportPoint(world);
                 if (vp.z <= 0f)
                 {

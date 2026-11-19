@@ -74,7 +74,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>
         /// レーンフラッシュ帯の y。GameScene の LaneLight は
         /// y 0.475..0.525 の帯 (天面 0.525)。ガイド線 (0.53) と
-        /// ノーツ面 (0.55) の間、判定線 (0.5) の上に置く。
+        /// ノーツ面 (0.55) の間、判定線 (0.48) の上に置く。
         /// </summary>
         private const float LaneFlashY = 0.525f;
 
@@ -258,6 +258,8 @@ namespace FlashBeat.UI.V6.Option
         {
             float left = PlayfieldLaneGuides.LaneBoundaryX(0);
             float right = PlayfieldLaneGuides.LaneBoundaryX(PlayfieldLaneGuides.GuideCount - 1);
+            // GameScene.unity 実測: JudgeLine transform y=-0.02 ×
+            // LineRenderer ローカル y=0.5 → ワールド y=0.48 (Issue #715)。
             float y = Judge.JudgeLineWorldY;
             // Issue #706: 本編 LineRenderer のリボン幅は widthMultiplier 0.2237
             // × widthCurve 0.116 ≈ 0.026 world。水平 quad の奥行きに直すと
@@ -374,20 +376,32 @@ namespace FlashBeat.UI.V6.Option
         /// BGFlash (拍フラッシュ) の背景 quad (Issue #677)。
         /// 本編の BGFlash は選択曲の BPM から拍間隔を求め、拍ごとに
         /// α=0.3 へ点灯して 3/秒で減衰させる。プレビューでは同じ規則を
-        /// 疑似メディア時計へ適用し、ガイド線より奥 (奥行き方向の奥)
-        /// に敷く半透明 quad で再現する。描画順は queue 3000 の透過で、
-        /// 距離ソートによりガイド・レーンフラッシュより先 (奥) に描かれる。
+        /// 疑似メディア時計へ適用する。
+        ///
+        /// Issue #706 (実レンダリング比較で検出): 旧実装はガイド最奥に
+        /// 垂直の壁 quad (z≈21) を立てていたが、本編カメラ姿勢
+        /// (y=4.9, pitch 54.8°) では壁のほぼ全域が視錐台の上外で、
+        /// 画面には下端の微小な帯しか映らず拍フラッシュが実質見えなかった。
+        /// 本編 GameScene の "Flash" は y≈0.12 の薄い水平スラブ
+        /// (x ±4.44, z -0.94..20.96, LaneLight.mat) なので、プレビューも
+        /// 同じ footprint の水平 quad に改める。巻き順はレーンフラッシュ・
+        /// 判定線と同じ (+Y 法線) で、カメラ真上から見える。
         /// </summary>
         private void BuildBeatFlash()
         {
-            // ガイドの最奥 (GuideDepth) よりさらに奥。視界を十分に覆う大きさ。
-            const float z = PlayfieldLaneGuides.GuideDepth + 1.5f;
+            // GameScene "Flash" 実測 footprint: x ±4.44, z -0.94..20.96, y≈0.12。
+            // レーン範囲 + α マージンを取って x ±4.5、z -1..21、y=0.12。
+            const float y = 0.12f;
+            const float x0 = -4.5f;
+            const float x1 = 4.5f;
+            const float z0 = -1f;
+            const float z1 = 21f;
             var vertices = new[]
             {
-                new Vector3(-6f, -1f, z),
-                new Vector3(6f, -1f, z),
-                new Vector3(-6f, 4f, z),
-                new Vector3(6f, 4f, z),
+                new Vector3(x0, y, z0),
+                new Vector3(x1, y, z0),
+                new Vector3(x0, y, z1),
+                new Vector3(x1, y, z1),
             };
             var triangles = new[] { 0, 2, 1, 1, 2, 3 };
             var uv = new[]
@@ -939,6 +953,19 @@ namespace FlashBeat.UI.V6.Option
         internal Camera PreviewCamera
         {
             get { return previewCamera; }
+        }
+
+        /// <summary>
+        /// rig ローカル座標 (組み立て時は本編ワールド座標と同じ値) を
+        /// 実際のワールド座標へ写す。root は原点で組み立てたあと
+        /// (0,0,-<see cref="RigDistance"/>) へ平行移動するだけなので、
+        /// 回転・スケールは掛からない。rig 外のワールド座標
+        /// (例: z=0 の判定アンカー) をそのまま PreviewCamera へ投影すると
+        /// 3000 単位ぶん奥行きが違ってビューポート位置が壊れる (Issue #706)。
+        /// </summary>
+        internal Vector3 RigLocalToWorld(Vector3 localPosition)
+        {
+            return root == null ? localPosition : root.transform.TransformPoint(localPosition);
         }
 
         /// <summary>画面非表示中はカメラを止める (RT への描画を省く)。</summary>
