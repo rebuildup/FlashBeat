@@ -55,7 +55,7 @@ namespace FlashBeat.Gameplay
         /// <summary>
         /// ガイド線のある y。ノーツ面 (0.55) より手前 (下) なので、
         /// ノーツに隠れない。LaneLight の帯 (0.475-0.525) の上、
-        /// 判定線の上 (0.5) のあたりに置く。
+        /// 判定線の上 (0.48) のあたりに置く。
         /// </summary>
         public const float GuideY = 0.53f;
 

@@ -238,8 +238,11 @@ namespace FlashBeat.UI.V6.Option
             // この点を判定アンカーとして使っており、プレビューは本編の
             // 見え方を再現するのが契約なので、真の判定線へ「修正」すると
             // 本編と約 1 文字分ずれる (Issue #706 横断監査で確認)。
+            // アンカーは本編ワールド座標系の値。rig は (0,0,-RigDistance) へ
+            // 平行移動されているので、必ず rig ローカル→ワールド変換を通す
+            // (生のワールド座標で投影すると判定線より上へずれて well の外に出る)。
             Vector3 judgeScreen = cam != null
-                ? cam.WorldToViewportPoint(new Vector3(0f, 0.76f, 0.15f))
+                ? cam.WorldToViewportPoint(previewRig.RigLocalToWorld(new Vector3(0f, 0.76f, 0.15f)))
                 : Vector3.zero;
             float screenH = Mathf.Max(1f, Screen.height);
             // 落下距離は本編と同じ判定ボックス高さ (実スクリーン px)。
@@ -264,7 +267,8 @@ namespace FlashBeat.UI.V6.Option
                 // (Judge.EffectPosition 相当 (LaneWorldX, 0.76, 0.15)) を
                 // プレビューカメラでビューポートへ写す。上の judgeScreen と
                 // 同じアンカー系なので、レーン x と判定 y は本編と一致する。
-                Vector3 world = new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f);
+                Vector3 world = previewRig.RigLocalToWorld(
+                    new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f));
                 Vector3 vp = cam.WorldToViewportPoint(world);
                 if (vp.z <= 0f)
                 {
