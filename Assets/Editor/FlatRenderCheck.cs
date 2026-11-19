@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using FlashBeat.Gameplay;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -188,7 +189,95 @@ public static class FlatRenderCheck
 
         UnityEngine.Object.DestroyImmediate(probe);
 
+        MeasureComposedNotes(camera, noteMaterial);
+
         RenderSceneShot(camera);
+    }
+
+    /// <summary>
+    /// Issue #675: composed-frame check. Places note-shaped probes at the real
+    /// playfield positions (every lane x the approach depths) and renders the
+    /// GameScene camera once. Every probe pixel must stay white: this catches
+    /// any world-space overlay between the camera and the notes - the "kuro"
+    /// dim quad, lane guides/lights, BGFlash - that the isolated material probe
+    /// above cannot see.
+    ///
+    /// ScreenSpaceOverlay HUD canvases (V6 top shade etc.) are NOT part of a
+    /// camera RenderTexture, so they stay runtime-only; their lane-corridor
+    /// hole is covered geometrically by V6TopShadeHoleTests instead.
+    /// </summary>
+    static void MeasureComposedNotes(Camera camera, Material noteMaterial)
+    {
+        var root = new GameObject("ComposedNoteProbe");
+        var probes = new List<Vector3>();
+
+        // Note.prefab と同じ形 (1 x 0.01 x 0.1 の箱) を実際のノーツ配置
+        // (Judge.LaneWorldX / MediaTimeline.NotePlaneY) に置く。
+        var depths = new[] { 0.5f, 1.5f, 3f, 5f, 7.5f };
+        for (int lane = 0; lane < Judge.LaneCount; lane++)
+        {
+            foreach (float z in depths)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = $"ComposedNote L{lane} Z{z}";
+                UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
+                go.transform.SetParent(root.transform, false);
+                go.transform.localPosition = new Vector3(
+                    Judge.LaneWorldX(lane), MediaTimeline.NotePlaneY, z);
+                go.transform.localScale = new Vector3(1f, 0.01f, 0.1f);
+                go.GetComponent<MeshRenderer>().sharedMaterial = noteMaterial;
+                // 上面の中心を採取点にする (下面はレーンガイドと干渉しうる)。
+                probes.Add(new Vector3(Judge.LaneWorldX(lane),
+                    MediaTimeline.NotePlaneY + 0.006f, z));
+            }
+        }
+
+        const int w = 960;
+        const int h = 540;
+        var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+        var previousTarget = camera.targetTexture;
+        camera.targetTexture = rt;
+        camera.Render();
+
+        RenderTexture.active = rt;
+        var texture = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        texture.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+        texture.Apply();
+
+        int dark = 0;
+        int sampled = 0;
+        foreach (var p in probes)
+        {
+            var vp = camera.WorldToViewportPoint(p);
+            if (vp.z <= 0f || vp.x < 0f || vp.x > 1f || vp.y < 0f || vp.y > 1f)
+            {
+                continue;
+            }
+
+            sampled++;
+            var color = texture.GetPixel(
+                Mathf.Clamp(Mathf.RoundToInt(vp.x * (w - 1)), 0, w - 1),
+                Mathf.Clamp(Mathf.RoundToInt(vp.y * (h - 1)), 0, h - 1));
+            if (color.r < 0.9f)
+            {
+                dark++;
+                Log($"composed note probe at {p} renders {color} (expected white)");
+            }
+        }
+
+        camera.targetTexture = previousTarget;
+        RenderTexture.active = null;
+        UnityEngine.Object.DestroyImmediate(texture);
+        rt.Release();
+        UnityEngine.Object.DestroyImmediate(rt);
+        UnityEngine.Object.DestroyImmediate(root);
+
+        Log($"composed notes: {sampled}/{probes.Count} probes sampled, {dark} dark");
+        if (dark > 0)
+        {
+            Fail($"{dark} composed note probe(s) are darkened by a scene overlay " +
+                "(kuro quad / lane guides / BGFlash) - notes must stay white");
+        }
     }
 
     static Color RenderCenterPixel(Camera camera)
