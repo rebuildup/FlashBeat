@@ -42,8 +42,11 @@ namespace FlashBeat.UI.V6.Common
         /// <summary>部品全体の高さ (値 + トラック + ヒント)。</summary>
         public const float Height = 160f;
 
-        /// <summary>操作ヒントの文言 (キーボードは各画面の凡例と同じ刻み)。</summary>
-        public const string HintText = "ドラッグ / ←→ 1% (Shift 10%)";
+        /// <summary>操作ヒントの文言 (キーボードは各画面の凡例と同じ刻み)。
+        /// Issue #733: 矢印は文字グリフではなくアイコン (chevron-left/right) で示すため、
+        /// 表示は「ドラッグ / 」+ アイコン 2 個 + 「1% (Shift 10%)」の合成になる。</summary>
+        public const string HintText = "ドラッグ / ";
+        public const string HintKeysText = "1% (Shift 10%)";
 
         // --- ジオメトリの正本は V6Slider。既存の参照互換のため別名を残す ---
 
@@ -93,8 +96,37 @@ namespace FlashBeat.UI.V6.Common
             // 操作部 (Track / Fill / Knob) は共通部品 V6Slider が作る。
             slider.AttachParts(root, new Vector2(0f, TrackY));
 
-            V6Controls.Text(root, "Hint", HintText, new Vector2(0f, HintY),
-                new Vector2(ValueW, HintH), 18f, V6Tokens.TextDim);
+            // 操作ヒント: 「ドラッグ / [←][→] 1% (Shift 10%)」。
+            // Issue #733: 矢印は文字グリフではなくアイコンで示す
+            // (スプライトが無い環境ではアイコン無しで文字だけになる)。
+            var hint = V6Controls.Text(root, "Hint", HintText,
+                new Vector2(0f, HintY), new Vector2(ValueW, HintH), 18f, V6Tokens.TextDim);
+            float hintX = V6Controls.MeasureWidth(hint, HintText, ValueW);
+            const float HintIconSize = 16f;
+            const float HintIconGap = 2f;
+            for (int i = 0; i < 2; i++)
+            {
+                var icon = V6Icons.Create(root, i == 0 ? "chevron-left" : "chevron-right",
+                    HintIconSize, V6Tokens.TextDim, "Hint Icon " + i);
+                if (icon == null)
+                {
+                    continue;
+                }
+
+                var rt = icon.rectTransform;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(
+                    hintX + i * (HintIconSize + HintIconGap),
+                    -(HintY + (HintH - HintIconSize) * 0.5f));
+                rt.sizeDelta = new Vector2(HintIconSize, HintIconSize);
+            }
+
+            float tailX = hintX + 2f * (HintIconSize + HintIconGap);
+            V6Controls.Text(root, "Hint Keys", HintKeysText,
+                new Vector2(tailX, HintY), new Vector2(ValueW - tailX, HintH),
+                18f, V6Tokens.TextDim);
 
             slider.Refresh();
             return slider;

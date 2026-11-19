@@ -71,6 +71,8 @@ namespace FlashBeat.V6CanvasTests
         private bool savedPlayfield;
         private bool savedVideoDim;
         private bool savedStart;
+        private bool savedPlayed;
+        private bool savedLyricsEnabled;
         private float savedStepTime;
         private float savedNoteSpeed;
 
@@ -80,6 +82,8 @@ namespace FlashBeat.V6CanvasTests
             savedPlayfield = V6UiMode.Playfield;
             savedVideoDim = V6UiMode.VideoDim;
             savedStart = GManager.Start;
+            savedPlayed = GManager.played;
+            savedLyricsEnabled = FlashBeat.UI.V5.PlaySession.LyricsEnabled;
             savedStepTime = GManager.step_time;
             savedNoteSpeed = GManager.noteSpeed;
 
@@ -124,6 +128,8 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.Playfield = savedPlayfield;
             V6UiMode.VideoDim = savedVideoDim;
             GManager.Start = savedStart;
+            GManager.played = savedPlayed;
+            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(savedLyricsEnabled);
             GManager.step_time = savedStepTime;
             GManager.noteSpeed = savedNoteSpeed;
             MediaTimeline.ResetSession();
@@ -290,7 +296,13 @@ namespace FlashBeat.V6CanvasTests
         /// 合成は ScreenSpaceCamera + 出荷と同じ sortingOrder (-2/-1) で
         /// 代替する (uGUI の Image/シェーダ/ブレンド経路と前後関係は同一)。
         /// </summary>
-        private GameObject CreateVideoLikeBackground(Camera cam)
+        /// <param name="lumFloor">輝度の下限 (既定 0.66 = 明るい映像)。
+        /// 暗い映像フレームの再現には 0.03 程度を渡す (Issue #735)。</param>
+        /// <param name="lumCeil">輝度の上限 (既定 0.95)。</param>
+        /// <param name="variationScale">明暗むら・ノイズ・被写体ブロブの強さ
+        /// (既定 1)。暗い背景では 0.5 程度に落として全体を暗く保つ。</param>
+        private GameObject CreateVideoLikeBackground(Camera cam,
+            float lumFloor = 0.66f, float lumCeil = 0.95f, float variationScale = 1f)
         {
             const int size = 256;
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -304,15 +316,16 @@ namespace FlashBeat.V6CanvasTests
                 {
                     float u = x / (float)(size - 1);
                     // 上が明るく下もそれなりに明るい映像の明暗差 + 左右のゆるいムラ。
-                    // 下限を 0.66 にしてある: ノーツの多くは画面下半分 (判定線側)
+                    // 既定の下限 0.66: ノーツの多くは画面下半分 (判定線側)
                     // に乗るので、ここが暗いと「明るい背景上のノーツ」検査が
                     // 画素不足で空振りする (実測 checked=35 → 要件 >100)。
-                    float lum = Mathf.Lerp(0.66f, 0.95f, Mathf.SmoothStep(0f, 1f, v));
-                    lum += 0.05f * Mathf.Sin(u * 11f + v * 5f);
-                    lum += (Hash01(x, y) - 0.5f) * 0.12f;
+                    // 暗い背景を試すときは lumFloor/lumCeil を下げて渡す (Issue #735)。
+                    float lum = Mathf.Lerp(lumFloor, lumCeil, Mathf.SmoothStep(0f, 1f, v));
+                    lum += 0.05f * variationScale * Mathf.Sin(u * 11f + v * 5f);
+                    lum += (Hash01(x, y) - 0.5f) * 0.12f * variationScale;
                     // 中央に暗い「被写体」ブロブ (実映像らしい濃淡)。
                     float dx = (u - 0.42f) * 2f, dy = (v - 0.55f) * 2f;
-                    lum -= 0.15f * Mathf.Exp(-(dx * dx + dy * dy) * 4f);
+                    lum -= 0.15f * variationScale * Mathf.Exp(-(dx * dx + dy * dy) * 4f);
                     lum = Mathf.Clamp01(lum);
                     // 色味は下が寒色・上が暖色 (ステージ照明っぽい)。
                     // tint は輝度重み付きでほぼ 1 になるよう選ぶ
@@ -508,6 +521,108 @@ namespace FlashBeat.V6CanvasTests
             return maskCount;
         }
 
+        // --- Issue #735: 暗い背景でのノーツ白色 (最終合成画素) ---
+
+        /// <summary>「白い」とみなすノーツ画素の輝度。Note.mat は純白 (1.0)、
+        /// v6 uGUI は #EDEDED (≈0.93)。上部シェード最大 α≈0.65 が乗ると
+        /// ≈0.35 まで落ちるので、0.80 ならシェード被りを確実に検出できる。</summary>
+        private const float DarkBgWhiteLuminance = 0.80f;
+
+        /// <summary>「暗い」とみなす上限。シェード α0.65 被りの ≈0.35 と、
+        /// AA/縁の中間値を分ける境界 (0.60 未満は白とは言えない)。</summary>
+        private const float DarkBgDarkLuminance = 0.60f;
+
+        /// <summary>ノーツ差分画素のうち白い画素が占めるべき割合。
+        /// MSAA なしの RT ではノーツ縁も二値なので、ほぼ全画素が白のはず。</summary>
+        private const float DarkBgMinWhiteRatio = 0.90f;
+
+        /// <summary>背景からの持ち上げ (コントラスト) の平均下限。
+        /// 暗い背景 (≈0.1) 上の白ノーツなら 0.8 以上になる。</summary>
+        private const float DarkBgMinMeanLift = 0.40f;
+
+        /// <summary>
+        /// 暗い映像背景の上でのノーツ白色を <b>絶対輝度</b>で検査する (Issue #735)。
+        ///
+        /// <see cref="AssertNotePixelsBright"/> は「背景が明るい画素」だけを
+        /// 対象にするため、暗い動画フレーム上のノーツは検証対象外だった。
+        /// ここでは背景輝度で除外せず、差分画素すべてについて
+        /// 「白い」「背景より暗くならない」「背景から明確に持ち上がる」を
+        /// 独立に計測する。背景が本当に暗いことも確認し、
+        /// 「暗い背景の上で白い」という肝心の条件が空振りしないようにする。
+        ///
+        /// <paramref name="exclude"/> は画面座標 (左下原点 px) の除外矩形。
+        /// 歌詞パネルのような「レーン帯の抜きが無い既知の HUD パネル」が
+        /// 覆う領域を指定する (パネル被りの扱いは呼び出し側のコメント参照)。
+        /// </summary>
+        private static int AssertNotePixelsWhiteOnDark(Shot withNotes, Shot withoutNotes,
+            string label, Rect? exclude = null)
+        {
+            Assert.AreEqual(withNotes.Px.Length, withoutNotes.Px.Length);
+            int w = withNotes.Tex.width;
+            int h = withNotes.Tex.height;
+
+            int maskCount = 0;
+            int whiteCount = 0;
+            int darkCount = 0;
+            int darkerCount = 0;
+            int darkBgCount = 0;
+            float liftSum = 0f;
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    if (exclude.HasValue && exclude.Value.Contains(new Vector2(x + 0.5f, y + 0.5f)))
+                    {
+                        continue;
+                    }
+
+                    int i = y * w + x;
+                    Color32 a = withNotes.Px[i];
+                    Color32 b = withoutNotes.Px[i];
+                    float dr = Mathf.Abs(a.r - b.r) / 255f;
+                    float dg = Mathf.Abs(a.g - b.g) / 255f;
+                    float db = Mathf.Abs(a.b - b.b) / 255f;
+                    if (dr + dg + db < 0.08f) continue; // ノーツの寄与が無い画素
+
+                    maskCount++;
+                    float lum = Luminance(a);
+                    float bgLum = Luminance(b);
+                    liftSum += lum - bgLum;
+                    if (bgLum < 0.35f) darkBgCount++;
+                    if (lum >= DarkBgWhiteLuminance) whiteCount++;
+                    if (lum < DarkBgDarkLuminance) darkCount++;
+                    if (lum < bgLum - 0.02f) darkerCount++;
+                }
+            }
+
+            float whiteRatio = maskCount > 0 ? (float)whiteCount / maskCount : 0f;
+            float darkBgRatio = maskCount > 0 ? (float)darkBgCount / maskCount : 0f;
+            float meanLift = maskCount > 0 ? liftSum / maskCount : 0f;
+            Debug.Log($"[V6NoteRender] {label} (dark bg): note pixels={maskCount} " +
+                $"white={whiteCount} ({whiteRatio:F2}) dark={darkCount} darker={darkerCount} " +
+                $"darkBg={darkBgCount} ({darkBgRatio:F2}) meanLift={meanLift:F3}");
+
+            Assert.Greater(maskCount, 200,
+                label + ": ノーツ差分画素が少なすぎる (描画経路が繋がっていない?)");
+            // 背景が本当に暗いこと: 差分画素の 8 割以上が暗い背景上にあること。
+            // これが崩れると「暗い背景での白さ」の検証が空振りする。
+            Assert.GreaterOrEqual(darkBgRatio, 0.80f,
+                label + ": 差分画素の大半が暗い背景上に無い (darkBg=" +
+                darkBgRatio.ToString("F2") + ") — 暗背景検証が空振りしている");
+            Assert.AreEqual(0, darkCount,
+                label + ": 暗い背景上のノーツ画素が白くない (" + darkCount +
+                " 画素) — シェード/パネル/マテリアルのどれかがノーツを暗くしている");
+            Assert.AreEqual(0, darkerCount,
+                label + ": ノーツが背景より暗い画素を作っている (" + darkerCount + " 画素)");
+            Assert.GreaterOrEqual(whiteRatio, DarkBgMinWhiteRatio,
+                label + ": 白いノーツ画素の割合が不足 ({whiteRatio:F2} < " +
+                DarkBgMinWhiteRatio + ")");
+            Assert.GreaterOrEqual(meanLift, DarkBgMinMeanLift,
+                label + ": 背景からのコントラスト不足 (meanLift=" +
+                meanLift.ToString("F3") + " < " + DarkBgMinMeanLift + ")");
+            return maskCount;
+        }
+
         /// <summary>シェードが実際に描かれていること (テストが空でないこと) の確認。</summary>
         private static void AssertShadePresent(Camera cam, int w, int h, string label)
         {
@@ -626,6 +741,192 @@ namespace FlashBeat.V6CanvasTests
             Debug.Log("[V6NoteRender] v6 uGUI path: checkedPixels=" + uGUIChecked +
                 " (video-like textured background)");
             AssertShadePresent(cam, RtWidth, RtHeight, "v6 uGUI path");
+        }
+
+        /// <summary>
+        /// Issue #735: 出荷経路 (3D ノーツ + 実 HUD) を <b>暗い映像背景</b>の上で
+        /// 合成し、ノーツ画素が絶対輝度で白いことを検証する。
+        ///
+        /// 既存テストは「背景が明るい画素」だけを対象にするため、暗い動画
+        /// フレーム上のノーツは検証対象外だった。ここでは背景輝度で除外せず、
+        /// 差分画素すべての輝度・コントラスト・「暗くならない」を計測する。
+        ///
+        /// 歌詞パネルは <see cref="FlashBeat.UI.V5.PlaySession.LyricsEnabled"/>
+        /// = false で隠す:
+        /// パネル (黒 α0.6) はレーン帯の抜きを持たず、パネル被りのノーツを
+        /// 暗くする既知の残件 (Issue #735 で別途対応が必要 — V6HudLyrics は
+        /// HUD 担当領域のためこのテストでは対象外)。パネルが無い構成で
+        /// 「マテリアル + シェード + コリドー抜き」が暗背景でも白を保証する
+        /// ことをここで固定する。
+        /// </summary>
+        [Test]
+        public void Real3DNotes_StayWhiteOnDarkVideoBackground()
+        {
+            V6UiMode.Playfield = false;
+            V6UiMode.VideoDim = false;
+            // 演奏中の出荷状態を再現する (played=false だと Start Prompt と
+            // 歌詞枠が出てパネル被りの計測が本筋から外れる)。
+            GManager.played = true;
+            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(false);
+
+            Camera cam = CreateCamera();
+
+            // 実シーンと同じガイドメッ/マテリアル。
+            float frontZ = -PlayfieldLaneGuides.FrontDepth(cam);
+            var guideGo = Track(new GameObject("Lane Guides"));
+            guideGo.AddComponent<MeshFilter>().sharedMesh =
+                PlayfieldLaneGuides.BuildGuideMesh(frontZ);
+            var guideRenderer = guideGo.AddComponent<MeshRenderer>();
+            guideRenderer.sharedMaterial = PlayfieldLaneGuides.CreateGuideMaterial();
+            guideRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            guideRenderer.receiveShadows = false;
+
+            // 暗い映像フレーム (輝度 0.03〜0.16 + 弱い明暗むら)。
+            CreateVideoLikeBackground(cam, 0.03f, 0.16f, 0.5f);
+
+            var notes = SpawnRealNotes3D(Judge.LaneCount);
+            CreateHud(cam);
+
+            Canvas.ForceUpdateCanvases();
+
+            var withNotes = Render(cam, RtWidth, RtHeight);
+            spawned.Add(withNotes.Tex);
+
+            SetRenderersEnabled(notes, false);
+            Canvas.ForceUpdateCanvases();
+            var withoutNotes = Render(cam, RtWidth, RtHeight);
+            spawned.Add(withoutNotes.Tex);
+            SetRenderersEnabled(notes, true);
+
+            AssertNotePixelsWhiteOnDark(withNotes, withoutNotes, "3D path dark bg");
+            AssertShadePresent(cam, RtWidth, RtHeight, "3D path dark bg");
+        }
+
+        /// <summary>
+        /// Issue #735: 歌詞パネル (LyricsEnabled = true, 既定) が表示される
+        /// 出荷構成で、パネルに覆われた領域のノーツ画素を計測する。
+        ///
+        /// 歌詞パネルは黒 α≈0.6 の半透明パネルで、レーン帯の抜き
+        /// (<see cref="V6TopShadeHole"/>) を持たない。パネル被りのノーツは
+        /// 白の約 4 割まで落ちる — これは現行出荷の実測値であり、
+        /// 「パネルにもコリドー抜きが必要」という HUD 側の残件を
+        /// 数値として固定する (抜きの実装は V6HudLyrics = HUD 担当領域)。
+        /// ここでは「ノーツが背景から判別できる程度には残る」下限だけを
+        /// 要求し、パネル被り以外の領域は暗背景テストと同じ白さを要求する。
+        /// </summary>
+        [Test]
+        public void Real3DNotes_LyricPanelZone_NotesStayDistinguishable()
+        {
+            V6UiMode.Playfield = false;
+            V6UiMode.VideoDim = false;
+            GManager.played = true;
+            FlashBeat.UI.V5.PlaySession.SetLyricsEnabled(true);
+
+            Camera cam = CreateCamera();
+
+            float frontZ = -PlayfieldLaneGuides.FrontDepth(cam);
+            var guideGo = Track(new GameObject("Lane Guides"));
+            guideGo.AddComponent<MeshFilter>().sharedMesh =
+                PlayfieldLaneGuides.BuildGuideMesh(frontZ);
+            var guideRenderer = guideGo.AddComponent<MeshRenderer>();
+            guideRenderer.sharedMaterial = PlayfieldLaneGuides.CreateGuideMaterial();
+            guideRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            guideRenderer.receiveShadows = false;
+
+            CreateVideoLikeBackground(cam, 0.03f, 0.16f, 0.5f);
+
+            var notes = SpawnRealNotes3D(Judge.LaneCount);
+            CreateHud(cam);
+
+            Canvas.ForceUpdateCanvases();
+
+            var withNotes = Render(cam, RtWidth, RtHeight);
+            spawned.Add(withNotes.Tex);
+
+            SetRenderersEnabled(notes, false);
+            Canvas.ForceUpdateCanvases();
+            var withoutNotes = Render(cam, RtWidth, RtHeight);
+            spawned.Add(withoutNotes.Tex);
+            SetRenderersEnabled(notes, true);
+
+            // 歌詞スロットの矩形 (画面左上原点 → 左下原点 px へ変換)。
+            // V6HudLogic.LyricSlotOrigin/Size がパネルの実配置の正本。
+            // lyricFs は FHD プロファイルの実値 (ScaledLyricFs = m.LyricFs)。
+            float lyricFs = FlashBeat.UI.V6.Game.Hud.V6HudMetrics
+                .ForResolution(RtWidth, RtHeight).LyricFs;
+            Vector2 slotOrigin = FlashBeat.UI.V6.Game.Hud.V6HudLogic.LyricSlotOrigin(
+                RtWidth, RtHeight);
+            Vector2 slotSize = FlashBeat.UI.V6.Game.Hud.V6HudLogic.LyricSlotSize(
+                lyricFs, RtWidth, RtHeight);
+            var panelRect = new Rect(
+                slotOrigin.x,
+                RtHeight - slotOrigin.y - slotSize.y,
+                slotSize.x,
+                slotSize.y);
+
+            // パネル領域の外は暗背景テストと同じ白さを要求する。
+            AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
+                "3D path dark bg (lyrics on, outside lyric panel)", panelRect);
+
+            // パネル領域の内側: 現行の半透明パネル被りを数値で固定する。
+            // 「白」までは要求しない (HUD 側の抜き対応が必要) が、
+            // ノーツが背景から判別できる明るさは残ることを要求する。
+            AssertNotePixelsVisibleUnderPanel(withNotes, withoutNotes,
+                panelRect, "lyric panel zone");
+        }
+
+        /// <summary>
+        /// 歌詞パネル等の「抜きの無い半透明パネル」に覆われた領域で、
+        /// ノーツ画素が背景から判別できる明るさを保つことを計測する。
+        /// 期待値は現行パネル (黒 α≈0.6) 被りの実測に基づく下限で、
+        /// パネルがさらに不透明になったりノーツが暗くなった場合に検出する。
+        /// </summary>
+        private static void AssertNotePixelsVisibleUnderPanel(Shot withNotes,
+            Shot withoutNotes, Rect panelRect, string label)
+        {
+            int w = withNotes.Tex.width;
+            int h = withNotes.Tex.height;
+            int maskCount = 0;
+            int dimCount = 0;
+            float darkest = float.MaxValue;
+            float liftSum = 0f;
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    if (!panelRect.Contains(new Vector2(x + 0.5f, y + 0.5f))) continue;
+
+                    int i = y * w + x;
+                    Color32 a = withNotes.Px[i];
+                    Color32 b = withoutNotes.Px[i];
+                    float dr = Mathf.Abs(a.r - b.r) / 255f;
+                    float dg = Mathf.Abs(a.g - b.g) / 255f;
+                    float db = Mathf.Abs(a.b - b.b) / 255f;
+                    if (dr + dg + db < 0.08f) continue;
+
+                    maskCount++;
+                    float lum = Luminance(a);
+                    float bgLum = Luminance(b);
+                    liftSum += lum - bgLum;
+                    if (lum < darkest) darkest = lum;
+                    // パネル α≈0.6 被りの白ノーツは ≈0.4。0.30 を下回ると
+                    // 「ノーツが背景に沈む」レベルまで暗い。
+                    if (lum < 0.30f) dimCount++;
+                }
+            }
+
+            float meanLift = maskCount > 0 ? liftSum / maskCount : 0f;
+            Debug.Log($"[V6NoteRender] {label}: panel note pixels={maskCount} " +
+                $"dim(<0.30)={dimCount} darkest={darkest:F3} meanLift={meanLift:F3}");
+
+            Assert.Greater(maskCount, 50,
+                label + ": パネル領域を通るノーツ差分画素が少なすぎる — " +
+                "パネル被りの計測が空振りしている");
+            Assert.AreEqual(0, dimCount,
+                label + ": パネル被りのノーツが背景に沈むほど暗い (" + dimCount + " 画素)");
+            Assert.GreaterOrEqual(meanLift, 0.15f,
+                label + ": パネル被り領域でノーツのコントラスト不足 (meanLift=" +
+                meanLift.ToString("F3") + ")");
         }
 
     }

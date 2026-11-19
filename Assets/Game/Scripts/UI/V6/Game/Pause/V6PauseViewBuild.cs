@@ -155,99 +155,6 @@ namespace FlashBeat.UI.V6.Game.Pause
             }
         }
 
-        private void AddRow(List<Row> rows, GameObject pageRoot, int row, string label,
-            Func<string> read, Action<int> adjust, Action click = null)
-        {
-            var panel = V5Ui.Panel(pageRoot, "Row " + label, new Vector2(496f, 56f), V5Tokens.Key1, 8f);
-            V6Layout.PlaceAt(panel, 0f, 76f * row, new Vector2(496f, 56f));
-
-            var layout = panel.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(0, Mathf.RoundToInt(12f), 0, 0);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            var labelTmp = V5Ui.Text(panel, "Label", label, 24f, V5Tokens.Text, TextAlignmentOptions.Left);
-            V6Layout.LayoutItem(labelTmp.gameObject, 200f, 30f);
-
-            // Spacer (design: fill_container)
-            var spacer = V5Ui.Node(panel, "Spacer");
-            var spacerLe = spacer.AddComponent<LayoutElement>();
-            spacerLe.flexibleWidth = 1f;
-            spacerLe.preferredHeight = 30f;
-
-            var value = V5Ui.Text(panel, "Value", read != null ? read() : "", 24f, V5Tokens.Text,
-                TextAlignmentOptions.Right);
-            value.textWrappingMode = TextWrappingModes.NoWrap;
-            V6Layout.LayoutItem(value.gameObject, 120f, 30f);
-
-            if (adjust != null)
-            {
-                Button prev = MakeStepper(panel, "Prev", "chevron-left");
-                int capturedRow = rows.Count;
-                prev.onClick.AddListener(() =>
-                {
-                    SelectRow(selectedTab, capturedRow);
-                    adjust(-1);
-                    RefreshRows();
-                });
-                Button next = MakeStepper(panel, "Next", "chevron-right");
-                next.onClick.AddListener(() =>
-                {
-                    SelectRow(selectedTab, capturedRow);
-                    adjust(1);
-                    RefreshRows();
-                });
-            }
-
-            var record = new Row
-            {
-                Label = label,
-                Value = value,
-                Read = read,
-                Adjust = adjust,
-                Click = click,
-            };
-
-            var button = panel.AddComponent<Button>();
-            button.targetGraphic = panel.GetComponent<Image>();
-            V6ButtonPressFeedback.Attach(panel);
-            int capturedIndex = rows.Count;
-            button.onClick.AddListener(() =>
-            {
-                SelectRow(selectedTab, capturedIndex);
-                if (click != null)
-                {
-                    click();
-                }
-            });
-
-            rows.Add(record);
-        }
-
-        /// <summary>design: 40×40 $k4 r8 のステッパー (icon 24 $text-muted、lucide PNG)。</summary>
-        private Button MakeStepper(GameObject parent, string name, string iconName)
-        {
-            var btn = V5Ui.Panel(parent, name, new Vector2(40f, 40f), V5Tokens.Key4, 8f);
-            V6Layout.LayoutItem(btn, 40f, 40f);
-            var icon = V6Icons.Create(btn, iconName, 24f, V5Tokens.TextMuted, "Icon");
-            if (icon != null)
-            {
-                // Panel はレイアウトグループを持たないので中央に置く (V6Icons の既定)。
-                icon.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-                icon.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                icon.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                icon.rectTransform.anchoredPosition = Vector2.zero;
-            }
-            var button = btn.AddComponent<Button>();
-            button.targetGraphic = btn.GetComponent<Image>();
-            V6ButtonPressFeedback.Attach(btn);
-            return button;
-        }
-
         private void BuildPreviewPanel(GameObject main)
         {
             var panel = V5Ui.Panel(main, "Preview", new Vector2(512f, 688f), V5Tokens.Key2, 16f);
@@ -262,8 +169,9 @@ namespace FlashBeat.UI.V6.Game.Pause
 
             // Issue #375: Sound タブはキー一覧の代わりに共通の音量スライダーを出す。
             // 位置は Game Preview (60..340) の直下。部品は Option の Sound タブと同じ。
+            // Issue #733: 値モデルは Option と同じ V6VolumeSettings (遅延保存)。
             volumeSlider = V6VolumeSlider.Build(panel, "Volume Slider", new Vector2(24f, 344f),
-                () => SelectedPauseVolume(),
+                () => V6VolumeSettings.Get(SelectedVolumeIndex()),
                 (value, final) =>
                 {
                     SetSelectedPauseVolume(value, final);
@@ -295,44 +203,24 @@ namespace FlashBeat.UI.V6.Game.Pause
             previewDesc = desc;
         }
 
-        /// <summary>design: 464×280 のゲームプレビュー (8 レーンの遠近線 + ノーツ + 判定線 + レーン番号)。</summary>
+        /// <summary>
+        /// design: 464×280 のゲームプレビュー well ($k0 r8)。
+        /// Issue #733: 中身は Option と同じ共有ホスト <see cref="V6GamePreview"/>
+        /// (本編と同じ 3D レーン・ノーツ・判定・歌詞。V6OptionPreviewRig + 自動プレイ)。
+        /// 静止した 2D 図形 (旧実装) は廃止。
+        /// </summary>
         private void BuildGamePreview(GameObject panel)
         {
-            var preview = V5Ui.Panel(panel, "Game Preview", new Vector2(464f, 280f), V5Tokens.Key0, 8f);
-            V6Layout.PlaceAt(preview, 24f, 60f);
+            var well = V5Ui.Panel(panel, "Game Preview", new Vector2(464f, 280f), V5Tokens.Key0, 8f);
+            V6Layout.PlaceAt(well, 24f, 60f);
 
-            // design の Lane パス (M26 234l174.5-234 など) の両端点。y は design 上端基準。
-            for (int lane = 0; lane < 8; lane++)
+            // ホストはビューの寿命と同じ (Pause はパネルを作り直さない)。
+            if (gamePreview == null)
             {
-                float bottomX = 26f + 58f * lane;
-                float topX = 200.5f + 9f * lane;
-                Line(preview, "Lane " + lane,
-                    new Vector2(bottomX, -234f), new Vector2(topX, 0f),
-                    1f, new Color(1f, 1f, 1f, 0x24 / 255f));
+                gamePreview = new V6GamePreview();
             }
 
-            // ノーツ (design のサンプル配置)
-            float[,] notes =
-            {
-                { 62f, 70f, 33f }, { 205f, 130f, 21f }, { 273f, 96f, 27f }, { 291f, 186f, 14f },
-                { 204f, 210f, 14f }, { 327f, 58f, 35f }, { 150f, 105f, 20f }, { 390f, 150f, 22f },
-            };
-            for (int i = 0; i < notes.GetLength(0); i++)
-            {
-                var note = V5Ui.Panel(preview, "Note " + i,
-                    new Vector2(notes[i, 2], 10f), V5Tokens.ButtonPrimaryBg, 0f);
-                V6Layout.PlaceAt(note, notes[i, 0], notes[i, 1]);
-            }
-
-            var judgeLine = V5Ui.Panel(preview, "Judge Line", new Vector2(464f, 3f), V5Tokens.ButtonPrimaryBg, 0f);
-            V6Layout.PlaceAt(judgeLine, 0f, 240f);
-
-            for (int lane = 0; lane < 8; lane++)
-            {
-                var label = V5Ui.Text(preview, "Lane Label " + lane, (lane + 1).ToString(), 18f,
-                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                V6Layout.PlaceAt(label.gameObject, 6f + 58f * lane, 246f, new Vector2(40f, 22f));
-            }
+            gamePreview.Bind(well);
         }
 
         /// <summary>design: JIS 4 段のキー一覧 (34×40)。刻印は KeyBindings の実割当 (所属レーン番号)。</summary>
@@ -367,18 +255,22 @@ namespace FlashBeat.UI.V6.Game.Pause
             // 左下: キー凡例 4 個 (正本 uDNC0 Zone · キー操作: ↑↓ 選択 / ←→ 変更 /
             // タブ切替 / 再開)。起点は design (フッター内 (0,30)) =
             // ページ (24,906) (V6PauseViewLogic.LegendX/Y)。項目は共通部品
-            // V6Legend.Item に座標を渡すだけ (Common は編集しない)。
+            // V6Legend / V6Legend.IconItem に座標を渡すだけ。
             // 実際のキーは V6GameRuntime.UpdatePause と一致させる:
             // ↑↓ = 行選択 (MoveSelection) / ←→ = 値の変更 (AdjustSelected) /
             // タブ切替 = KeyAction.MenuSwitch (既定 Tab。design のキャップと一致。
             // 再割当時は実際に動くキーを表示する) / 再開 = KeyAction.Back。
             // キャップはキー設定 (KeyActions) から取る。固定文字列にすると再割当後に
             // 画面が嘘をつく (Title Exit / Select の決定キーと同じ扱い)。
-            // 矢印は KeyActions に ↑↓ の割当が無いため固定キー (Title の H/R と同じ扱い)。
+            // 矢印は KeyActions に ↑↓ の割当が無いためアイコンで示す
+            // (Issue #733: 文字グリフ → chevron スプライト。Option と同じ V6Legend.IconItem。
+            // 項目は共通部品 V6Legend / V6Legend.IconItem に座標を渡すだけ)。
             float legendX = V6PauseViewLogic.LegendX - FooterX;
             float legendY = V6PauseViewLogic.LegendY - FooterY;
-            legendX = V6Legend.Item(footer, legendX, legendY, "↑↓", "選択");
-            legendX = V6Legend.Item(footer, legendX, legendY, "←→", "変更");
+            legendX = V6Legend.IconItem(footer, legendX, legendY,
+                new[] { "chevron-up", "chevron-down" }, "選択");
+            legendX = V6Legend.IconItem(footer, legendX, legendY,
+                new[] { "chevron-left", "chevron-right" }, "変更");
             legendX = V6Legend.Item(footer, legendX, legendY,
                 KeyCap(KeyActions.KeyAction.MenuSwitch), "タブ切替");
             V6Legend.Item(footer, legendX, legendY,
@@ -491,20 +383,5 @@ namespace FlashBeat.UI.V6.Game.Pause
             button.onClick.AddListener(() => V6ButtonPressFeedback.RunAfterFeedback(go, () => action()));
         }
 
-        /// <summary>2 点を結ぶ細長い Image (design の Lane path / stroke の代用)。</summary>
-        private static void Line(GameObject parent, string name, Vector2 from, Vector2 to, float width, Color color)
-        {
-            var go = V5Ui.Panel(parent, name, new Vector2(1f, 1f), color, 0f);
-            var rt = V6Layout.RectOf(go);
-            Vector2 delta = to - from;
-            float length = delta.magnitude;
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 0.5f);
-            rt.anchoredPosition = from;
-            rt.sizeDelta = new Vector2(length, width);
-            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
-            rt.localRotation = Quaternion.Euler(0f, 0f, angle);
-        }
     }
 }

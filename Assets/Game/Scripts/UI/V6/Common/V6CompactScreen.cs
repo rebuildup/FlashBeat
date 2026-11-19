@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -26,6 +27,15 @@ namespace FlashBeat.UI.V6.Common
     {
         /// <summary>コンパクト時のビューポート GameObject 名 (監査のスクロール親判定にも使う)。</summary>
         public const string ViewportName = "V6CompactViewport";
+
+        /// <summary>
+        /// EditMode テスト用の画面サイズ差し替え (issue #748)。
+        /// Screen.width/height はテストから変更できないため、コンパクト配置や
+        /// モーダル用パンを検証するテストが一時的に設定する。
+        /// どちらかが 0 以下なら <see cref="Place"/> の引数をそのまま使う。
+        /// 製品コード・他テストへ漏れないよう、設定したテストは必ず戻すこと。
+        /// </summary>
+        public static Vector2Int ScreenSizeOverrideForTests;
 
         /// <summary>
         /// 画面がフレーム (1728×972) を内包できないか。どちらかの辺が足りなければ
@@ -77,6 +87,13 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
+            // EditMode テスト用の差し替え (Screen.* はテストから変えられない)。
+            if (ScreenSizeOverrideForTests.x > 0 && ScreenSizeOverrideForTests.y > 0)
+            {
+                screenW = ScreenSizeOverrideForTests.x;
+                screenH = ScreenSizeOverrideForTests.y;
+            }
+
             var viewport = FindViewport(frame);
             var home = viewport != null ? viewport.parent : frame.parent;
 
@@ -120,6 +137,11 @@ namespace FlashBeat.UI.V6.Common
             {
                 pan.ViewportSize = new Vector2(screenW, screenH);
                 pan.Content = frame;
+                // 初回配置時だけ、フレーム中央がビューポート中央に来る位置へ
+                // 合わせる (issue #748)。従来は (0,0) = フレーム左上が見える
+                // 位置から始まり、Footer の操作へ手動パンが必要だった。
+                // ユーザーがパンした後・モーダル表示中は触らない。
+                pan.EnsureInitialPan();
             }
 
             Vector2 panPos = pan != null ? pan.Pan : Vector2.zero;
@@ -248,14 +270,117 @@ namespace FlashBeat.UI.V6.Common
         /// ドラッグ / ホイール / PageUp・PageDown のすべてを無効化する。
         /// モーダルはフレームの子なので、パンを許すと Dialog ごと画面外へ
         /// 動いてしまう。既定 false で従来どおり。
+        /// モーダル用の退避は <see cref="SuspendForModal"/> /
+        /// <see cref="ResumeModal"/> が管理する (issue #748)。モーダルが
+        /// 開いている間も true を返す (手動フラグとの論理和)。
         /// </summary>
-        public bool PanSuspended { get; set; }
+        public bool PanSuspended
+        {
+            get { return panSuspended || modalRects.Count != 0; }
+            set { panSuspended = value; }
+        }
+
+        /// <summary>
+        /// 初回配置時のパン位置を決める (issue #748)。フレーム (1728×972) の
+        /// 中央がビューポート中央に来る位置 = 非コンパクト時の中央配置と同じ
+        /// 見え方になり、Header だけ / 末尾だけに偏らない。
+        /// 一度でも適用したら以後はユーザーのパンを保持する
+        /// (再配置・リビルド・解像度変更をまたいで初期位置へ戻さない)。
+        /// </summary>
+        public void EnsureInitialPan()
+        {
+            if (initialPanApplied || modalRects.Count != 0)
+            {
+                initialPanApplied = true;
+                return;
+            }
+
+            var size = ViewSize;
+            if (size.x <= 0f || size.y <= 0f)
+            {
+                return;
+            }
+
+            initialPanApplied = true;
+            Pan = new Vector2(
+                (size.x - V6Frame.DesignW) * 0.5f,
+                (size.y - V6Frame.DesignH) * 0.5f);
+        }
+
+        /// <summary>
+        /// モーダルを開くときに呼ぶ (issue #748)。dialogRect はフレーム
+        /// ローカル座標のダイアログ矩形 (左上原点の design px)。
+        /// パン入力を止め、ダイアログ中心がビューポート中心に来る位置へ
+        /// 合わせる (収まらない場合は <see cref="V6CompactScreen.ClampPan"/>
+        /// の範囲で最大限中央へ寄せる)。複数モーダルが重なった場合は
+        /// 最後に開いたものの矩形を使い、閉じるとひとつ前へ戻る。
+        /// </summary>
+        public void SuspendForModal(Rect dialogRect)
+        {
+            if (modalRects.Count == 0)
+            {
+                savedPan = pan;
+            }
+
+            modalRects.Add(dialogRect);
+            ApplyModalPan();
+        }
+
+        /// <summary>
+        /// <see cref="SuspendForModal"/> と対になる。最後のモーダルが閉じると
+        /// 保存しておいたパン位置へ戻して入力を再開する。モーダルが重なって
+        /// いる場合はひとつ前の矩形のパンへ戻る。
+        /// </summary>
+        public void ResumeModal()
+        {
+            if (modalRects.Count == 0)
+            {
+                return;
+            }
+
+            modalRects.RemoveAt(modalRects.Count - 1);
+            if (modalRects.Count == 0)
+            {
+                Pan = savedPan;
+            }
+            else
+            {
+                ApplyModalPan();
+            }
+        }
+
+        /// <summary>モーダル用パンが有効な数 (検証・デバッグ用)。</summary>
+        public int ModalPanDepthForAudit
+        {
+            get { return modalRects.Count; }
+        }
+
+        private void ApplyModalPan()
+        {
+            var rect = modalRects[modalRects.Count - 1];
+            var view = ViewSize;
+            if (view.x <= 0f || view.y <= 0f)
+            {
+                view = new Vector2(Screen.width, Screen.height);
+            }
+
+            // ダイアログ中心 (frame ローカル design px) をビューポート中心へ。
+            // Pan setter が ClampPan でクランプするので、画面に収まらない
+            // モーダルでも可能な範囲で最大限中央へ寄る。
+            Pan = new Vector2(
+                view.x * 0.5f - (rect.x + rect.width * 0.5f),
+                view.y * 0.5f - (rect.y + rect.height * 0.5f));
+        }
 
         private Vector2 pan;
         private Vector2 viewportSize;
         private RectTransform viewport;
         private Vector2 grabOffset;
         private bool dragging;
+        private bool initialPanApplied;
+        private bool panSuspended;
+        private Vector2 savedPan;
+        private readonly List<Rect> modalRects = new List<Rect>();
 
         private void LateUpdate()
         {

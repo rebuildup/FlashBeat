@@ -39,49 +39,46 @@ namespace FlashBeat.UI.V6.Option
             OptionSceneManager.AdjustNoteTiming(delta);
         }
 
-        /// <summary>Main Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        /// <summary>Main Volume。即時反映 (V6VolumeSettings.ApplyToOutputs) + 保存。</summary>
         public static void AdjustMainVolume(int delta)
         {
             GManager.mainVolume = V6OptionLogic.AdjustVolume(GManager.mainVolume, delta);
-            OptionSceneManager.ApplyVolumes();
+            V6VolumeSettings.ApplyToOutputs();
             OptionSettings.Save();
         }
 
-        /// <summary>Effect Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        /// <summary>Effect Volume。即時反映 (V6VolumeSettings.ApplyToOutputs) + 保存。</summary>
         public static void AdjustEffectVolume(int delta)
         {
             GManager.effectVolume = V6OptionLogic.AdjustVolume(GManager.effectVolume, delta);
-            OptionSceneManager.ApplyVolumes();
+            V6VolumeSettings.ApplyToOutputs();
             OptionSettings.Save();
         }
 
-        /// <summary>BGM Volume。即時反映 (ApplyVolumes) + 保存。</summary>
+        /// <summary>BGM Volume。即時反映 (V6VolumeSettings.ApplyToOutputs) + 保存。</summary>
         public static void AdjustBgmVolume(int delta)
         {
             GManager.BGMVolume = V6OptionLogic.AdjustVolume(GManager.BGMVolume, delta);
-            OptionSceneManager.ApplyVolumes();
+            V6VolumeSettings.ApplyToOutputs();
             OptionSettings.Save();
         }
 
-        /// <summary>背景フラッシュの On/Off を切り替えて保存する。</summary>
+        /// <summary>背景フラッシュの On/Off を切り替えて保存する (カタログと同じ経路)。</summary>
         public static void ToggleFlash()
         {
-            GManager.Flash = !GManager.Flash;
-            OptionSettings.Save();
+            V6SettingsCatalog.ToggleFlash();
         }
 
         /// <summary>フラッシュのタイミング調整。負の値 (計算が成立しない) は 0 へ寄せる。</summary>
         public static void AdjustFlashTiming(int delta)
         {
-            GManager.FlashT = Mathf.Max(0, GManager.FlashT + delta);
-            OptionSettings.Save();
+            V6SettingsCatalog.AdjustFlashTiming(delta);
         }
 
         /// <summary>フラッシュの速さ (1 → 2 → 4 → 8 → 1)。</summary>
         public static void AdjustFlashSpeed(int delta)
         {
-            GManager.FlashBG = V6OptionLogic.CycleFlashSpeed(GManager.FlashBG, delta);
-            OptionSettings.Save();
+            V6SettingsCatalog.AdjustFlashSpeed(delta);
         }
 
         /// <summary>キーガイドの表示形式 (セッション設定。保存はしない)。</summary>
@@ -93,7 +90,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>歌詞の表示 On/Off (セッション設定。保存はしない)。</summary>
         public static void ToggleLyrics()
         {
-            PlaySession.SetLyricsEnabled(!PlaySession.LyricsEnabled);
+            V6SettingsCatalog.ToggleLyrics(null);
         }
 
         /// <summary>レーンのキー割り当てを既定へ戻す (保存は KeyBindings が行う)。</summary>
@@ -151,7 +148,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>キー割当が既定と同じか (正本は KeyBindings.DefaultKeys)。</summary>
         public static bool IsDefaultKeyLayout()
         {
-            return KeyConfigUI.IsDefaultLayout(KeyBindings.Current, KeyBindings.DefaultKeys);
+            return !V6SettingsCatalog.IsCustomKeyLayout();
         }
 
         /// <summary>

@@ -97,23 +97,24 @@ namespace FlashBeat.UI.V6.Game.Pause
             return next;
         }
 
-        /// <summary>NoteSpeed の表示 (design 例: "10.0")。小数 1 桁に丸める。</summary>
+        /// <summary>NoteSpeed の表示 (design 例: "10.0")。小数 1 桁に丸める。
+        /// Issue #733: 値書式の単一ソースは <see cref="Common.V6SettingsCatalog"/>。</summary>
         public static string FormatNoteSpeed(float value)
         {
-            float rounded = Mathf.RoundToInt(value * 10f) / 10f;
-            return rounded.ToString("F1");
+            return Common.V6SettingsCatalog.FormatNoteSpeed(value);
         }
 
         /// <summary>NoteTiming の表示 (design 例: "5")。</summary>
         public static string FormatNoteTiming(int value)
         {
-            return value.ToString();
+            return Common.V6SettingsCatalog.FormatNoteTiming(value);
         }
 
-        /// <summary>音量 (0..1) の表示 (design 例: "50")。</summary>
+        /// <summary>音量 (0..1) の表示。Issue #733: 単一ソースは V6SettingsCatalog
+        /// (Option と同じ "%" 表記)。</summary>
         public static string FormatVolume(float value)
         {
-            return Mathf.RoundToInt(Mathf.Clamp01(value) * 100f).ToString();
+            return Common.V6SettingsCatalog.FormatVolume(value);
         }
 
         /// <summary>曲長の表示 (design 例: "1:43")。負値は 0:00。</summary>
