@@ -353,6 +353,164 @@ namespace FlashBeat.Gameplay
     }
 
     /// <summary>
+    /// ノーツ描画専用のメディア時計 (Issue #739)。
+    ///
+    /// <c>GManager.step_time</c> の実体は VideoPlayer.time で、YouTube から
+    /// 落とした映像 (24/25/30fps) では動画フレーム単位にしか進まないことが
+    /// ある。そのまま位置計算に使うとノーツが動画 fps で階段状に更新され、
+    /// 表示のリフレッシュレートより粗く見える。
+    ///
+    /// ここでは「権威あるメディア時刻」(<see cref="Observe"/> に渡される
+    /// step_time) をキーとして、キー間を推定レート (直近の Δstep/Δwall、
+    /// 定常では ≒1.0) で外挿する。新しい step_time が観測されるたびにその値へ
+    /// スナップするので、誤差は 1 映像フレーム分 (≒40ms) に収まる。
+    /// メディアが止まれば外挿も頭打ちになり、ノーツは従来どおり保持される。
+    ///
+    /// 判定・歌詞・曲終了は従来どおり step_time が正本で、ここはノーツ
+    /// (3D / v6 プレイフィールド) の見た目だけに使う。step_time が毎フレーム
+    /// 滑らかに進む経路 (音声時計・壁時計フォールバック) では外挿が実質
+    /// 1 フレーム分の先行になるだけで、従来と同じ値を返す。
+    /// </summary>
+    public static class MediaRenderClock
+    {
+        /// <summary>
+        /// 外挿でメディア時計を先行させてよい絶対上限 (秒)。
+        /// 通常は「直近の量子の 1.5 倍」の方が先に効く。
+        /// </summary>
+        public const float MaxLeadSeconds = 0.15f;
+
+        /// <summary>
+        /// 1 フレームの step_time の変化がこれを超えたらシーク / 停止明けと
+        /// みなして現在値に張り直す (外挿の履歴を引き継がない)。
+        /// </summary>
+        public const float MaxJumpSeconds = 0.5f;
+
+        /// <summary>
+        /// これより大きい step 変化は「動画フレーム 1 枚ぶんの量子」とは
+        /// みなさず、レート推定を更新しない (一時停止明けの大ジャンプで
+        /// レートが壊れないようにする)。5fps の映像 (0.2s) までは量子として扱う。
+        /// </summary>
+        public const float MaxSegmentSeconds = 0.2f;
+
+        /// <summary>
+        /// <see cref="Observe"/> がこの秒数呼ばれなければ「観測なし」として
+        /// 呼び出し側は step_time へフォールバックする (ポーズ中・テスト等)。
+        /// </summary>
+        public const float FreshWindowSeconds = 0.25f;
+
+        /// <summary>Observe の呼び出し間隔がこれを超えたら状態を張り直す。</summary>
+        const float GapResetSeconds = 0.5f;
+
+        /// <summary>step_time の「変化なし」判定の許容誤差 (秒)。</summary>
+        const float SameStepEpsilon = 0.0001f;
+
+        /// <summary>瞬間レートを推定レートへ混ぜる割合 (0..1)。</summary>
+        const float RateSmoothing = 0.35f;
+
+        /// <summary>推定レートの下限 / 上限 (メディアは実時間より速くも遅くもならない範囲)。</summary>
+        const float MinRate = 0.5f;
+        const float MaxRate = 1.5f;
+
+        /// <summary>外挿量の下限。量子が極端に小さくても 1 レンダーフレーム分は動かす。</summary>
+        const float MinLeadSeconds = 1f / 240f;
+
+        static bool initialized;
+        static float lastStep;
+        static float lastStepWall;
+        static float lastWall = float.NegativeInfinity;
+        static float rate = 1f;
+        static float lastSegmentSeconds = 1f / 30f;
+        static float renderTime;
+
+        /// <summary>直近の描画用メディア時刻 (Observe 未呼び出しなら 0)。</summary>
+        public static float RenderTime { get { return renderTime; } }
+
+        /// <summary>壁時計からの経過が新鮮か (= Observe が最近呼ばれたか)。</summary>
+        public static bool IsFresh(float wallTime)
+        {
+            return initialized && wallTime - lastWall <= FreshWindowSeconds;
+        }
+
+        /// <summary>
+        /// 描画用メディア時刻。観測が新鮮なら補間値、そうでなければ権威ある
+        /// step_time をそのまま返す。MusicManager を持たない経路
+        /// (EditMode / PlayMode テスト、別シーン) では従来どおりの値になる。
+        /// </summary>
+        public static float RenderTimeOrFallback(float stepTime, float wallTime)
+        {
+            return IsFresh(wallTime) ? renderTime : stepTime;
+        }
+
+        /// <summary>
+        /// 毎フレーム 1 回、step_time を確定させた側 (MusicManager.Update)
+        /// が呼ぶ。wallTime は <c>Time.unscaledTime</c>。
+        /// </summary>
+        public static void Observe(float stepTime, float wallTime)
+        {
+            if (!initialized
+                || wallTime - lastWall > GapResetSeconds
+                || stepTime < lastStep - SameStepEpsilon
+                || stepTime - lastStep > MaxJumpSeconds)
+            {
+                // 未開始 / 長い空白 (ポーズ等) / 後退シーク / 大ジャンプ:
+                // 外挿の履歴は信用できないので現在値に張り直す。
+                Anchor(stepTime, wallTime);
+                return;
+            }
+
+            if (stepTime - lastStep > SameStepEpsilon)
+            {
+                // メディア時計が進んだ。直前の値が観測されていた壁時計区間と
+                // 対にして瞬間レートを推定し、平滑化して使う。
+                float dWall = wallTime - lastStepWall;
+                float dStep = stepTime - lastStep;
+                if (dWall > 0.0001f && dStep <= MaxSegmentSeconds)
+                {
+                    float instant = dStep / dWall;
+                    rate = Mathf.Clamp(Mathf.Lerp(rate, instant, RateSmoothing), MinRate, MaxRate);
+                    lastSegmentSeconds = dStep;
+                }
+                lastStep = stepTime;
+                lastStepWall = wallTime;
+                renderTime = stepTime;
+            }
+            else
+            {
+                // 時計が同じ値のまま: 次の量子が来るまでの間、推定レートで
+                // 先行させる。上限は「直近の量子の 1.5 倍」(メディア停止時に
+                // ノーツが延々進まないように) で、絶対上限は MaxLeadSeconds。
+                float lead = (wallTime - lastStepWall) * rate;
+                float maxLead = Mathf.Min(MaxLeadSeconds,
+                    Mathf.Max(lastSegmentSeconds * 1.5f, MinLeadSeconds));
+                renderTime = lastStep + Mathf.Min(lead, maxLead);
+            }
+
+            lastWall = wallTime;
+        }
+
+        /// <summary>テスト・シーン遷移用に状態を捨てる。</summary>
+        public static void Reset()
+        {
+            initialized = false;
+            lastStep = 0f;
+            lastStepWall = 0f;
+            lastWall = float.NegativeInfinity;
+            rate = 1f;
+            lastSegmentSeconds = 1f / 30f;
+            renderTime = 0f;
+        }
+
+        static void Anchor(float stepTime, float wallTime)
+        {
+            initialized = true;
+            lastStep = stepTime;
+            lastStepWall = wallTime;
+            lastWall = wallTime;
+            renderTime = stepTime;
+        }
+    }
+
+    /// <summary>
     /// Keeps the whole playfield (8 lanes **and** the note width) inside the
     /// camera view on every display (Issue #233, PR #263 review S1).
     ///

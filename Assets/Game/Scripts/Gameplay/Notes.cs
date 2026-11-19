@@ -94,7 +94,16 @@ public class Notes : MonoBehaviour
             // clock: a buffering stall holds the notes instead of letting them run
             // ahead of the music, and the note reaches the hit line exactly when
             // the media reaches the note time - the same moment the judge uses.
-            float remaining = noteTime - GManager.step_time;
+            //
+            // Issue #739: 見た目の位置だけは MediaRenderClock (step_time を
+            // 権威あるキーとしてフレームごとに補間した値) を使う。
+            // step_time は VideoPlayer.time 由来で動画フレーム単位に
+            // 量子化されることがあり、そのままだとノーツが動画 fps で
+            // 階段状に更新される。判定は従来どおり step_time が正本で、
+            // ここでは描画位置だけを滑らかにする。Observe が動いていない
+            // 環境 (テスト等) では step_time にフォールバックする。
+            float mediaTime = MediaRenderClock.RenderTimeOrFallback(GManager.step_time, Time.unscaledTime);
+            float remaining = noteTime - mediaTime;
 
             if (!v6Attached)
             {
@@ -114,7 +123,7 @@ public class Notes : MonoBehaviour
             }
             else if (!FlashBeat.UI.V6.V6UiMode.Playfield)
             {
-                float z = MediaTimeline.NotePositionZ(noteTime, GManager.step_time, ZScale);
+                float z = MediaTimeline.NotePositionZ(noteTime, mediaTime, ZScale);
                 transform.position = new Vector3(transform.position.x, transform.position.y, z);
             }
         }
