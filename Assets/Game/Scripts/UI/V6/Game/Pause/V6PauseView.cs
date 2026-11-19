@@ -116,6 +116,9 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>Key Layout リセットの確認ダイアログ (開いていないとき null)。</summary>
         private GameObject confirmRoot;
 
+        /// <summary>確認ダイアログ表示中のコンパクト用パン退避が有効か (issue #748)。</summary>
+        private bool confirmPanActive;
+
         private int lastWidth;
         private int lastHeight;
 
@@ -171,6 +174,12 @@ namespace FlashBeat.UI.V6.Game.Pause
             // 猶予中の音量保存を落とさない (0.5 秒の猶予中に破棄されると
             // 最後の調整だけが保存されない。Option と同じ規律)。
             volumeSettings.FlushNow();
+            // 破棄時にモーダル用パン退避が残っていれば元へ戻す (issue #748)。
+            if (confirmPanActive)
+            {
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
+            }
             if (gamePreview != null)
             {
                 gamePreview.Dispose();
@@ -413,6 +422,13 @@ namespace FlashBeat.UI.V6.Game.Pause
             {
                 V5GameUi.DestroyNow(confirmRoot);
                 confirmRoot = null;
+            }
+
+            // コンパクト用パン退避を戻す (issue #748)。
+            if (confirmPanActive)
+            {
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
             }
         }
 

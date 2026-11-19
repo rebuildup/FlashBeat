@@ -146,10 +146,23 @@ namespace FlashBeat.UI.V6.Option
             if (confirmClearOpen)
             {
                 BuildConfirmClearModal(modal);
+                // コンパクト画面: Dialog がビューポートに収まるようパンを
+                // 合わせ、パン入力を止める (issue #748)。Rebuild のたびに
+                // 積まないよう confirmPanActive で 1 回だけ登録する。
+                if (!confirmPanActive)
+                {
+                    V6ModalPan.Suspend(frame, new Rect(V6Frame.DialogPos, V6Frame.DialogSize));
+                    confirmPanActive = true;
+                }
             }
             else
             {
                 V6Frame.HideModal(frame.gameObject);
+                if (confirmPanActive)
+                {
+                    V6ModalPan.Resume(frame);
+                    confirmPanActive = false;
+                }
             }
         }
 

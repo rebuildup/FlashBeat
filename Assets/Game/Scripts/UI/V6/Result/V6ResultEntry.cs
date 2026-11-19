@@ -67,6 +67,9 @@ namespace FlashBeat.UI.V6.Result
             // 行領域 (y92..404) の縦中央に置く。
             songRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "", 24f, V5Tokens.TextDim);
             V6Layout.Place(songRankEmpty, 20f, 226f, 496f, 44f, new Vector2(0f, 0.5f));
+            // 空状態 / 取得エラーの長文 (「ネットワークに接続できないため…」等) が
+            // Normal 折返しで 2 行になり下へはみ出さないよう 1 行 auto-size にする (#749)。
+            V6TextFit.AutoFit(songRankEmpty, 16f);
 
             songRankRows = V5Ui.Node(panel.gameObject, "Rows").GetComponent<RectTransform>();
             V6Layout.Place(songRankRows, 0f, 0f, 528f, SongRankH);
@@ -99,6 +102,7 @@ namespace FlashBeat.UI.V6.Result
 
             playerRankEmpty = V5GameUi.Text(panel.gameObject, "No Data", "NO DATA", 24f, V5Tokens.TextDim);
             V6Layout.Place(playerRankEmpty, 20f, 60f, 496f, 44f, new Vector2(0f, 0.5f));
+            V6TextFit.AutoFit(playerRankEmpty, 16f);
 
             lateGroups.Add(FadeGroup(panel));
         }

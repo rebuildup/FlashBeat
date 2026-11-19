@@ -80,10 +80,17 @@ namespace FlashBeat.UI.V6.History
                     var col = V5GameUi.Column(empty.gameObject, "Inner", 8f, TextAnchor.MiddleCenter);
                     V6Layout.StretchCenter(col.GetComponent<RectTransform>(), 448f, 140f);
                     var emptyIcon = V6Icons.Create(col.gameObject, "music", 32f, V5Tokens.TextDim, "Icon");
-                    V5GameUi.Text(col.gameObject, "Title", "プレイ履歴がありません", 24f, V5Tokens.Text,
-                        TextAlignmentOptions.Center);
-                    V5GameUi.Text(col.gameObject, "Hint", "曲をプレイすると記録がここに残ります", 20f,
+                    // Column は childControl=false なので子の幅は sizeDelta 任せ。
+                    // 0 のままだと Normal 折返しが全幅不明で崩れるため、明示矩形 +
+                    // 1 行省略にする (#749: 空状態テキストの折返し崩れ)。
+                    var emptyTitle = V5GameUi.Text(col.gameObject, "Title", "プレイ履歴がありません", 24f,
+                        V5Tokens.Text, TextAlignmentOptions.Center);
+                    emptyTitle.rectTransform.sizeDelta = new Vector2(432f, 40f);
+                    V6TextFit.Ellipsis(emptyTitle);
+                    var emptyHint = V5GameUi.Text(col.gameObject, "Hint", "曲をプレイすると記録がここに残ります", 20f,
                         V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                    emptyHint.rectTransform.sizeDelta = new Vector2(432f, 32f);
+                    V6TextFit.Ellipsis(emptyHint);
                     return;
                 }
             }
