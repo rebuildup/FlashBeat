@@ -54,6 +54,13 @@ namespace FlashBeat.UI.V6.Common
         public static readonly Color Scrim = FromHex("#00000099");
         public static readonly Color Border = FromHex("#EDEDED33");
 
+        // --- 区切り線 / リスト面 (design の実測 fill。契約 §3 変数表には無いが
+        //     Dialog Divider / Stats 区切り / 曲・履歴・ランキングの左列で共通) ---
+        /// <summary>1px の区切り線 (design Divider fill #FFFFFF1F)。</summary>
+        public static readonly Color Divider = FromHex("#FFFFFF1F");
+        /// <summary>左列リスト (曲 / 履歴 / ランキング) の半透明背景 #131313CC。</summary>
+        public static readonly Color ListBg = FromHex("#131313CC");
+
         // --- 角丸 (契約 §3/§4) ---
         public const float RadiusSmall = 4f;
         public const float RadiusMedium = 8f;

@@ -4,6 +4,7 @@ using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Game.Hud;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace FlashBeat.Tests
 {
@@ -93,6 +94,66 @@ namespace FlashBeat.Tests
                 float edgeAlpha = tex.GetPixel(2, topRow).a;
                 Assert.Greater(edgeAlpha, 0.5f,
                     "outside the lane corridor the shade must keep its gradient");
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvasGo);
+            }
+        }
+
+        /// <summary>
+        /// Issue #760: 歌詞ボックス (V6HudLyrics) のパネルスプライトにも
+        /// レーン帯の抜きが焼き込まれていることを確認する。
+        /// 上部シェードと同じ <see cref="V6TopShadeHole.CorridorRows"/> の
+        /// 領域オフセット版で帯を計算し、パネル中央行の帯の内側が透明・
+        /// 帯の外側 (パネル左右) が不透明のままであることを見る。
+        /// </summary>
+        [Test]
+        public void LyricPanelSprite_HasLaneCorridorHole()
+        {
+            var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
+            try
+            {
+                var canvasRect = (RectTransform)canvasGo.transform;
+                canvasRect.sizeDelta = new Vector2(ScreenW, ScreenH);
+                var view = FlashBeat.UI.V6.Game.Hud.V6GameHudView.Create(canvasRect);
+
+                var box = view.LyricBoxForAudit;
+                Assert.NotNull(box, "Lyric Box was not built");
+                var img = box.GetComponent<Image>();
+                Assert.NotNull(img, "Lyric Box has no Image");
+                Assert.NotNull(img.sprite, "Lyric Box has no sprite");
+                Assert.AreEqual(Image.Type.Simple, img.type,
+                    "cutout sprite must be used as Simple (9-slice と併用しない)");
+
+                var tex = img.sprite.texture;
+                Assert.NotNull(tex);
+                int w = tex.width;
+                int h = tex.height;
+                Assert.Greater(w, 100, "panel texture too narrow");
+                Assert.Greater(h, 20, "panel texture too short");
+
+                // パネルの実配置 (画面左上原点 px)。
+                Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(ScreenW, ScreenH);
+                float panelLeft = slotOrigin.x;
+                float panelTop = slotOrigin.y;
+
+                // パネル矩形に対応する corridor を本番と同じ関数で計算する。
+                var left = new float[h];
+                var right = new float[h];
+                V6TopShadeHole.CorridorRows(ScreenW, ScreenH, panelTop, h, h, left, right);
+
+                // 中央行 (上下の角丸に掛からない高さ) で帯の内側が透明なこと。
+                int midRow = h / 2;
+                float midX = (left[midRow] + right[midRow]) * 0.5f;
+                int texX = Mathf.Clamp(Mathf.RoundToInt(midX - panelLeft), 0, w - 1);
+                Assert.AreEqual(0f, tex.GetPixel(texX, midRow).a, 0.01f,
+                    "lane corridor must be clear inside the lyric panel");
+
+                // 帯の外側 (パネル左端から 4.5 px、中央行なので角丸の影響なし)
+                // は不透明のまま (パネルの見た目を維持)。
+                Assert.Greater(tex.GetPixel(4, midRow).a, 0.5f,
+                    "outside the lane corridor the panel must keep its alpha");
             }
             finally
             {

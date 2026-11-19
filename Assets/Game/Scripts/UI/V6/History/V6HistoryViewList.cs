@@ -42,7 +42,7 @@ namespace FlashBeat.UI.V6.History
         private GameObject CreateListScaffold(GameObject mainZone)
         {
             var list = V6Layout.Place(V5Ui.Panel(mainZone, "History List", new Vector2(ListW, ListH),
-                V5Tokens.FromHex("#131313CC"), 16f), 0f, 0f);
+                V6Tokens.ListBg, 16f), 0f, 0f);
             AddScrollCatcher(list, 0);
 
             var rows = V5Ui.Node(list, "Rows");

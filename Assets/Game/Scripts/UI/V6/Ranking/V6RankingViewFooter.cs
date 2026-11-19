@@ -40,13 +40,17 @@ namespace FlashBeat.UI.V6.Ranking
             // Tab 切替 / Esc 戻る)。項目間 gap24 / KeyCap padding [0,8] / Cap-Label gap8。
             // 切替は Ranking 画面では Tab (SelectSceneManager.HandleRankingInput が
             // Tab と S の両方を受ける)。F5 再試行は design に凡例が無いので出さない。
-            V6Legend.KeyLegend(footerZone, new[]
-            {
-                new[] { "↑↓", "曲送り" },
-                new[] { "Space", "決定" },
-                new[] { "Tab", "切替" },
-                new[] { "Esc", "戻る" }
-            });
+            // Issue #750: 「↑↓ 曲送り」は文字グリフではなく chevron アイコン
+            // (Option / Pause / Select / History と同じ V6Legend.IconItem)。
+            // 決定 / 戻るのキーはキー設定 (KeyActions) の正本から取る。
+            float legendX = 0f;
+            legendX = V6Legend.IconItem(footerZone, legendX, V6Legend.Y,
+                new[] { "chevron-up", "chevron-down" }, "曲送り");
+            legendX = V6Legend.Item(footerZone, legendX, V6Legend.Y,
+                ActionKeyHint.Primary(KeyActions.KeyAction.Confirm), "決定");
+            legendX = V6Legend.Item(footerZone, legendX, V6Legend.Y, "Tab", "切替");
+            V6Legend.Item(footerZone, legendX, V6Legend.Y,
+                ActionKeyHint.Primary(KeyActions.KeyAction.Back), "戻る");
 
             // design (S1TZD 操作ボタンゾーン): 右下は「この曲へ」(567,20) 273×56 のみ。
             // 「補助操作」ゾーン (358,20) 197×56 は design で子ノードを持たない

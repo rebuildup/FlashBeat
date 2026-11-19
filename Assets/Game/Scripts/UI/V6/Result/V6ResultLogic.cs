@@ -6,9 +6,11 @@ namespace FlashBeat.UI.V6.Result
 {
     /// <summary>
     /// v6 リザルト画面 (Issue #217) の純ロジック。Unity API への依存は Mathf のみ
-    /// (EditMode テストから直接検証できる)。グレード算出は既存の Assessment 判定
-    /// (<see cref="V6ResultRules.RankFor"/>) と同一の閾値を使い、
-    /// v5 リザルトの表示と 1:1 に保つ。寸法は design v6 の 1728x972 基準。
+    /// (EditMode テストから直接検証できる)。グレード算出は scoringVersion で
+    /// 帯を切り替える (Issue #758 / ADR-0034): v4 以降は
+    /// <see cref="Common.V6GradeLogic"/>、v1–v3 は既存の Assessment 判定
+    /// (<see cref="V6ResultRules.RankFor"/>) の閾値を維持する。
+    /// 寸法は design v6 の 1728x972 基準。
     /// </summary>
     public static class V6ResultLogic
     {
@@ -16,8 +18,8 @@ namespace FlashBeat.UI.V6.Result
         public const float DesignW = 1728f;
         public const float DesignH = 972f;
 
-        /// <summary>スコア満点 (SongScoreLogic.ScoreMax と同じ基準)。</summary>
-        public const int ScoreMax = SongScoreLogic.ScoreMax;
+        /// <summary>スコア満点 (scoring v4 = 2,000,000。<see cref="Common.V6GradeLogic.ScoreMaxV4""/> と同じ)。</summary>
+        public const int ScoreMax = Common.V6GradeLogic.ScoreMaxV4;
 
         /// <summary>スコアゲージの全長 (design px, zcSHh の Score Gauge)。</summary>
         public const float GaugeW = 824f;
@@ -67,22 +69,22 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// スコアからグレード文字列を返す。既存の Assessment 判定
-        /// (V6ResultRules.RankFor) と同じ閾値 (1:1 維持)。スコアが無い (0 以下) ときは "–"。
+        /// スコアからグレード文字列を返す。スコアが無い (0 以下) ときは "–"。
         ///
-        /// scoring v4 (ADR-0033) で満点は 2,000,000 になったが、グレード
-        /// 閾値の再設計はこの Issue の範囲外 (フォローアップ課題)。現状は
-        /// 1,000,000 以上が SS になるため、v4 の高得点は全て上位
-        /// グレードに写る。
+        /// scoringVersion で帯を切り替える (Issue #758 / ADR-0034):
+        /// v4 以降は <see cref="Common.V6GradeLogic.GradeOfV4"/> (満点
+        /// 2,000,000 の帯。SS は全 Perfect + フルコンボの 2,000,000 のみ)、
+        /// v1–v3 は既存の Assessment 判定 (V5 ResultView.RankFor) の閾値を
+        /// そのまま使う (旧スコアを暗黙に再解釈しない)。
         /// </summary>
-        public static string GradeOf(int score)
+        public static string GradeOf(int score, int scoringVersion = Scoring.LatestVersion)
         {
             if (score <= 0)
             {
                 return "–";
             }
 
-            return V6ResultRules.RankFor(score);
+            return Common.V6GradeLogic.GradeOf(score, scoringVersion);
         }
 
         /// <summary>スコア表示。3桁カンマ区切り (デザイン表記 988,513)。</summary>
@@ -133,8 +135,12 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// スコアゲージの Fill 幅 (design px)。スコアは満点 ScoreMax に対する比率で
-        /// 全長 GaugeW に写像される (design 実測: 988,513 → 815px)。
+        /// スコアゲージの Fill 幅 (design px)。スコアは最新の scoringVersion の
+        /// 満点 (<see cref="Common.V6GradeLogic.ScoreMaxOf"/>、scoring v4 では
+        /// 2,000,000) に対する比率で全長 GaugeW に写像される。v4 の
+        /// base + bonus 合計がそのまま 0..満点 の 1 本のレールになる
+        /// (Issue #758 / ADR-0034。ベストマーカーも同じ写像なので、
+        /// 分割を保存しない既存スコアでも表示が一致する)。
         /// </summary>
         public static float GaugeFillWidth(int score)
         {
@@ -143,7 +149,7 @@ namespace FlashBeat.UI.V6.Result
 
         /// <summary>
         /// スコアゲージの Best マーカー位置 (design px, 左端基準)。
-        /// design 実測: 前回最高 921,880 → x=760。
+        /// Fill と同じ写像 (最新 scoringVersion の満点で正規化)。
         /// </summary>
         public static float GaugeBestX(int bestScore)
         {
@@ -164,7 +170,7 @@ namespace FlashBeat.UI.V6.Result
                 return 0f;
             }
 
-            return Mathf.Clamp01((float)score / ScoreMax);
+            return Mathf.Clamp01((float)score / Common.V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
         }
 
         // --- メイン / フッターの layout 幾何 (契約 §4)。

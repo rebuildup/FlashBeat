@@ -104,8 +104,8 @@ namespace FlashBeat.UI.V6.History
             centerStatValues.Add(BuildStat(stats, 256f, 0f, "NOTES", ""));
             centerStatValues.Add(BuildStat(stats, 0f, 98f, "LEVEL", ""));
             centerStatValues.Add(BuildStat(stats, 256f, 98f, "BEST", ""));
-            V6Layout.Place(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 256f, 0f);
-            V6Layout.Place(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 0f, 98f);
+            V6Layout.Place(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), V6Tokens.Divider, 0f), 256f, 0f);
+            V6Layout.Place(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), V6Tokens.Divider, 0f), 0f, 98f);
 
             // Controls (skip-back / play / skip-forward): 実在する操作だけに結線する
             // (V6SelectView と同じ規約。プレビュー再生のような新しい操作は作らない)。

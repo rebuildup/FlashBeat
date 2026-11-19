@@ -119,4 +119,34 @@ public class V6UiWiringTests
         Assert.IsTrue(src.Contains("OpenResetKeyLayoutConfirm"),
             "Key Layout のリセットは確認モーダルを経由すること (C-6)");
     }
+
+    // --- Issue #750: 色トークン / キー表示の正本一致 ---
+
+    [Test]
+    public void ConfirmDialogs_UseTheSharedDangerToken()
+    {
+        // 破壊的操作の確認ボタンは Option / Pause で同じ danger 色。
+        // 旧 Pause はトークン外の #E53E3E で Option (#FF6B6B = V6Tokens.Danger) と
+        // 色が違っていた (Issue #750)。
+        string pause = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseViewDialogs.cs");
+        string option = ReadSource("Game/Scripts/UI/V6/Option/V6OptionViewDialogs.cs");
+        Assert.IsTrue(pause.Contains("V6Tokens.Danger"),
+            "Pause の確認ボタンが V6Tokens.Danger を使っていない");
+        Assert.IsFalse(pause.Contains("0xE5"),
+            "Pause の確認ボタンにトークン外の色リテラルが残っている");
+        Assert.IsTrue(option.Contains("V6Tokens.Danger"),
+            "Option の確認ボタンが V6Tokens.Danger を使っていない");
+    }
+
+    [Test]
+    public void HudMenuCap_FollowsTheKeyActionsBinding()
+    {
+        // HUD メニューボタンのキーキャップは固定 "Esc" ではなく、ポーズを開く
+        // 実際の割り当て (KeyActions.KeyAction.Back) を映す (Issue #750)。
+        string src = ReadSource("Game/Scripts/UI/V6/Game/Hud/V6HudChrome.cs");
+        Assert.IsTrue(src.Contains("KeyActions.KeyAction.Back"),
+            "メニューキャップが KeyAction.Back の実バインドを見ていない");
+        Assert.IsFalse(src.Contains("\"Esc\""),
+            "メニューキャップに固定 \"Esc\" が残っている");
+    }
 }

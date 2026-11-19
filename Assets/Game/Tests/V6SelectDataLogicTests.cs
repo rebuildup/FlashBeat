@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Select;
 using FlashBeat.UI.V6.Select.Data;
 
@@ -69,18 +70,33 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual(0, V6SelectDataLogic.Filter(songs, "存在しない曲名").Count);
         }
 
-        // --- グレード (V5 と同じ閾値) ---------------------------------------------
+        // --- グレード (scoringVersion ごとの帯。v4 以降は ADR-0034 / Issue #758) ---
 
         [Test]
-        public void GradeOf_FollowsTheV5Thresholds()
+        public void GradeOf_V4_FollowsTheV4Thresholds()
         {
+            // v4 の満点は 2,000,000。SS は全 Perfect + フルコンボのみ。
             Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax));
-            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(950000));
-            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(900000));
-            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(800000));
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1600000));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(1599999));
             Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000));
             Assert.AreEqual("", V6SelectDataLogic.GradeOf(0));
             Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1));
+        }
+
+        [Test]
+        public void GradeOf_LegacyVersions_KeepTheV5Thresholds()
+        {
+            // v1–v3 のスコアは従来の SelectViewLogic.GradeOf 閾値のまま。
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(1000000, Scoring.Version3));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(950000, Scoring.Version3));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(900000, Scoring.Version2));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(800000, Scoring.Version1));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000, Scoring.Version3));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0, Scoring.Version3));
         }
 
         // --- 実カタログからの構築 ---------------------------------------------------
