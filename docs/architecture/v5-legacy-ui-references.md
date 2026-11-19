@@ -45,10 +45,56 @@ v6 への移植が済んだ画面では旧 v5 View は「フォールバック�
   パイプライン状態公開」のランタイムサービス。v6 表示の生存に必要なため残置
   (改名は別 Issue)。
 
-## 残っている V6UiMode フラグの扱い
+## 残っているフラグの棚卸しと Stage B 移行計画
 
-`V6UiMode` の画面選択フラグ (`GameHud` / `SelectScreen`) は常に true で
-フォールバック分岐は #740 で除去済み。残るフラグは「旧シーン UI (レガシー
-Canvas / KeyGuideUI / UpdateNoticeUI) を隠すか」の互換フラグと、
-`Playfield` (3D/2D レンダラ選択。UI 重複ではない) など。
-詳細は Issue #740 の報告を参照。
+### V6UiMode フラグ一覧 (Issue #740 時点)
+
+| フラグ | 既定 | 分岐の実態 | 判定 |
+|---|---|---|---|
+| `GameHud` | true | `GameSceneManager.Start` (KeyGuideUI 生成の else)、`ApplyTextPanelVisibility` (`!GameHud` で旧歌詞パネル抑止)、`GameLoadingRoute.Current/UsesLegacyOverlay`、`V6GameRuntime.Ensure`、`V6PauseRuntime.Start`、テスト 2 件が代入 | **常に true の製品フラグ。else 側は全て到達不能** → Stage B で畳む |
+| `SelectScreen` | true | `AutoTestPlay` の確認分岐のみ (製品コードの分岐は #740 で撤去済み) | **常に true** → Stage B で畳む |
+| `Playfield` | false | `Notes.cs` / `PlayfieldLaneGuides.cs` / `V6GameRuntime` / AutoTest `-playfield` / V6PlayfieldNotesTests・V6NoteRenderTests が両値を検証 | **生きたレンダラ選択** (出荷は 3D)。UI 重複ではない → 残す |
+| `VideoDim` | false | 動画減光レイヤ | 生きた演出フラグ (テストが両値を検証) → 残す |
+| `VerdictRow` | true | `Judge.SuppressJudgementEffects` 連動、VerdictEventPathTests が両値を検証 | 生きた機能フラグ → 残す |
+| `TitleTabs` / `TitleLegend` | true | V6 Title の表示分岐 | 正本デザイン決定フラグ。常に true だが V6TitleLayoutTests が値を固定 → 畳むかは要判断 |
+| `TitleFooterActions` / `TitleHeaderTitle` | false | V6 Title の非表示要素 | 同上 (常に false) |
+| `LegacyOverlaysHidden` | true | `ResultRankingOverlay` / `KeyGuideUI` / `UpdateNoticeUI` の隠蔽 | 旧オーバーレイ互換フラグ。常に true → Stage B 候補 |
+| `V6PauseView.Enabled` | true | `V6PauseRuntime.Start`、`GameSceneManager` Esc 契約、`V6PauseRuntimeTests` | 常に true → Stage B |
+| `V6TitleView.Enabled` | true | `TitleSceneManager.Start` (`BuildLegacyTitle` else 残存)、`KeyConfigUI`、AutoTest 2 件 | 常に true。**else の BuildLegacyTitle は旧タイトルの死に経路** → Stage B |
+| `V6ResultView.Enabled` | true | `ResultRankingOverlay.Update` 早期 return | 常に true → Stage B |
+
+### Stage B 移行計画 (未実施 — Unity 実機検証が必要なため分離)
+
+常に true/false に固定されたフラグを 1 コミットで畳む。相互に連動するため
+**GameHud / SelectScreen / 3 つの Enabled / LegacyOverlaysHidden を同時に**
+畳まないと中途半端な状態になる。手順:
+
+1. `GameSceneManager.Start`: `if (GameHud) HideLegacyKeyGuide(); else KeyGuideUI.Create(...)`
+   → `V6UiMode.HideLegacyKeyGuide()` 固定 (KeyGuideUI.Create の他の呼び出し元を確認)。
+2. `GameSceneManager.ApplyTextPanelVisibility`: 旧歌詞 TextPanel は v6 HUD が
+   歌詞を描くため**常に非表示**。`!GameHud` 項を消すと show が true になり
+   二重表示するので、メソッドは「常に隠す」強制 (SetActive(false)) に縮退させる。
+3. `GameLoadingRoute`: `Current` → `GameLoadingScreen.V6` 固定、
+   `UsesLegacyOverlay` → `false` 固定。`NotesManager` / `MusicManager` の
+   `showLegacyOverlay` / `showLegacyMediaOverlay` 分岐と LoadingOverlay.Show /
+   MediaLoadingOverlay の生成・破棄経路を撤去 (呼び出し側の null ガードも整理)。
+4. `V6GameRuntime.Ensure` / `V6PauseRuntime.Start` の `GameHud` ガード撤去。
+5. `V6PauseView.Enabled` 撤去 → `V6PauseRuntime` は無条件起動、
+   `GameSceneManager` の `LegacyBackOpensMenu` は引数なし (常に false =
+   レガシー MenuPanel の Esc 経路も撤去候補。MenuPanel 自体の生死要確認)。
+6. `V6TitleView.Enabled` 撤去 → `TitleSceneManager` の `BuildLegacyTitle` else
+   分岐と旧タイトル UI 一式の撤去可否をシーン参照とともに確認してから削除。
+7. `V6ResultView.Enabled` 撤去 → `ResultRankingOverlay.Update` の早期 return
+   と旧ランキングボード経路の生死を確認。
+8. `V6UiMode.SelectScreen` 撤去 → `AutoTestPlay` の分岐を v6 前提に。
+9. `LegacyOverlaysHidden` 撤去 → 隠す側を無条件化 (隠す対象 UI 自体の削除は別判断)。
+10. テスト更新: `SongEndAcceptanceRig` / `JudgeSettlementInvariantTests` /
+    `V6PauseRuntimeTests` / `V6TitleLayoutTests` / `AutoTestPlay` /
+    `AutoTestKeyGuide` のフラグ代入・参照を除去。
+11. `Playfield` / `VideoDim` / `VerdictRow` / Title 4 フラグは**畳まない**
+    (実レンダラ/演出/デザイン決定のライブ分岐。テストが両値を検証している)。
+
+完了条件: `V6UiMode` に残るのは `Playfield` / `VideoDim` / `VerdictRow` /
+Title 系 4 フラグ (計 7) で、画面選択フラグと常時固定の互換フラグが
+消えていること。Unity batchmode での EditMode 実行と実機スモーク
+(Title→Select→Game→Result→Pause) を必須とする。
