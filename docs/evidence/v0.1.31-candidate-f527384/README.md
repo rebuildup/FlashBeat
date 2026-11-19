@@ -48,3 +48,26 @@ Raw outputs: `/tmp/qa-1ab0c335/` (1ab0c33), `/tmp/qa-f5273844/` (f5273844) (scre
 - IME composition/commit, physical keyboard input, GPU color/gamma on device
 - Visual/auditory acceptance on physical devices (notes brightness, verdict animation, preview parity, click sound)
 - Real update apply + crash recovery end-to-end
+
+## 2026-11-19 re-stamp: bundleVersion 誤焼き込みの修正
+
+初回パッケージは `VERSION` ファイルが `0.1.30` のままの時点でビルドされており、
+`PlayerSettings.bundleVersion` が `0.1.30+f5273844` と焼き込まれていた
+(version.json / ZIP 名は 0.1.31 だが `Application.version` は 0.1.30 を名乗る)。
+実機で「更新適用・再起動するがバージョンが変わらない」= updater が永遠に
+0.1.30 認識で 0.1.31 を再検出し続けるループとして顕在化した。
+
+同一ソース `f5273844` を `FLASHBEAT_VERSION_BASE=0.1.31` で再ビルド
+(プロダクトコードは完全に同一。bundleVersion のみ `0.1.31+f5273844` に修正)。
+`win64-build-mac.sh` の baked-version 検査と `globalgamemanagers` /
+Info.plist の実測で `0.1.31+f5273844` を確認済み。メディア除外
+(song-free)・update-channel=stable も再検証済み。
+
+| Artifact (差し替え後) | SHA-256 | version |
+|---|---|---|
+| `FlashBeat-0.1.31-macos-f5273844.zip` (95,777,254 B) | `26fe92363132337e836f9056b8d3e1b7711a07c6c037726fc1556fa8a93e99ee` | bundleVersion `0.1.31+f5273844`, tag `v0.1.31-macos-f5273844` |
+| `FlashBeat-0.1.31-win64-f5273844.zip` (95,927,231 B) | `4c7d09519c32d1f4b33e8dc4c6371cc15f32973970839a07b74f6e1479e29aa5` | bundleVersion `0.1.31+f5273844`, tag `v0.1.31-win64-f5273844` |
+
+- ZIP 内メディアスキャン: 0 件 (両方)。公開後に再取得して SHA-256 を実測照合済み。
+- 上表の旧 `-f527384` (7 桁) ZIP / Release / タグは誤バージョン焼き込みのため削除済み。
+  本節以降の「Package binding」表は差し替え前の記録として残す。
