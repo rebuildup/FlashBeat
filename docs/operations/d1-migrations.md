@@ -280,15 +280,21 @@ constraint; the index is recreated by the same migration.
 | Drizzle metadata | `web/db/migrations/meta/20261119162405_snapshot.json`, `meta/_journal.json` |
 | New CHECK | `score >= 0 AND score <= 2000000 AND (scoringVersion >= 4 OR score <= 1000000)` — v1–v3 rows keep the legacy 1,000,000 ceiling inside the table, not only in the API |
 
-### 10.1 Remote D1 — **pending**
+### 10.1 Remote D1 — **applied (2026-11-20)**
 
-Not applied yet. When the release ships, apply with the standard procedure
+Applied ahead of the `release-0-2-0` ship with the standard procedure
 (never reset the remote database):
 
 ```sh
 mise exec -- cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462 \
   --dir web/db/migrations
 ```
+
+Verified via `cf d1 query … sqlite_master`: the `scores` table carries
+`scoringVersion integer DEFAULT 1 NOT NULL` and the v4 CHECK
+(`score <= 2000000 AND (scoringVersion >= 4 OR score <= 1000000)`).
+The change is backward compatible with the currently deployed worker:
+legacy inserts keep `scoringVersion = 1` and the 1,000,000 ceiling.
 
 `web/tests/db.test.mjs` proves the committed migration files accept a v4
 score of 2,000,000, still reject 1,000,001 for scoring versions 1–3, and

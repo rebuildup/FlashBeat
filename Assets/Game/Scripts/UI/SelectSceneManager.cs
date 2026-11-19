@@ -19,14 +19,13 @@ using FlashBeat.UI.V6.Select.View;
 /// - v6 選曲 / 履歴 / ランキングの表示切替と入力振り分け
 /// を持つ。旧シーン配置 UI の Canvas は View の Create が非表示化する。
 ///
-/// v6UiMode.SelectScreen が false のときは旧 v5 SelectView を使う (未移植画面の退避先)。
+/// Issue #740: 旧 v5 SelectView のフォールバック経路は撤去し、v6 が唯一の実装。
 /// </summary>
 public class SelectSceneManager : MonoBehaviour
 {
     [SerializeField] private AudioClip sound;
 
     private AudioSource sounds;
-    private FlashBeat.UI.V5.SelectView view;
 
     // v6 選曲画面 (#221 ビュー / #222 データ)
     private V6SelectView v6View;
@@ -61,27 +60,13 @@ public class SelectSceneManager : MonoBehaviour
         // 背景映像 (bg-anim3) は design の cover で全面に敷く (#373)。
         EnsureBackgroundVideoCovers();
 
-        if (V6UiMode.SelectScreen)
-        {
-            CreateV6SelectView();
-            ConsumeV6EntryRequest();
-        }
-        else
-        {
-            view = FlashBeat.UI.V5.SelectView.Create(this);
-        }
+        CreateV6SelectView();
+        ConsumeV6EntryRequest();
 
         StartCatalogRefresh();
 
         // v6 の画面にはキーガイド行 (画面下) があるので、旧キーガイドパネルは作らない。
-        if (V6UiMode.SelectScreen)
-        {
-            V6UiMode.HideLegacyKeyGuide();
-        }
-        else
-        {
-            KeyGuideUI.Create(null);
-        }
+        V6UiMode.HideLegacyKeyGuide();
     }
 
     /// <summary>
@@ -278,15 +263,8 @@ public class SelectSceneManager : MonoBehaviour
 
     void Update()
     {
-        if (view != null)
-        {
-            view.HandleInput();
-        }
-        else if (V6UiMode.SelectScreen)
-        {
-            // v6 モード時: アクティブなビューに入力を振り分ける
-            HandleV6Input();
-        }
+        // v6 の 3 画面 (選曲 / 履歴 / ランキング) の入力を処理する。
+        HandleV6Input();
     }
 
     /// <summary>v6 選曲 / 履歴 / ランキングの入力を処理する。</summary>
@@ -481,7 +459,6 @@ public class SelectSceneManager : MonoBehaviour
 
     private void OnCatalogChanged()
     {
-        if (view != null) view.OnCatalogChanged();
         if (v6Data != null) v6Data.RefreshAsync();
     }
 

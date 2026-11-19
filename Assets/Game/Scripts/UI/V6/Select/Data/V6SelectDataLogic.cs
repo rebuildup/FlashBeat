@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace FlashBeat.UI.V6.Select.Data
@@ -17,7 +17,7 @@ namespace FlashBeat.UI.V6.Select.Data
 
         /// <summary>
         /// 曲名/作家名の部分一致 (大文字小文字を無視、空クエリなら常に true)。
-        /// V5 の SelectViewLogic.MatchesFilter と同じ挙動。
+        /// 旧 V5 SelectViewLogic.MatchesFilter と同じ挙動。
         /// </summary>
         public static bool MatchesQuery(string title, string artist, string query)
         {
@@ -55,7 +55,7 @@ namespace FlashBeat.UI.V6.Select.Data
             {
                 return FlashBeat.UI.V6.Common.V6GradeLogic.GradeOfV4(score);
             }
-            return FlashBeat.UI.V5.SelectViewLogic.GradeOf(score) ?? "";
+            return SongScoreLogic.GradeOf(score) ?? "";
         }
     }
 }

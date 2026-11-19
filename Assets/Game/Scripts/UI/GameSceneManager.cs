@@ -234,78 +234,15 @@ public class GameSceneManager : MonoBehaviour
     }
 
     /// <summary>
-    /// v5 のポーズメニューが有効かどうか (Issue #167)。
-    /// true のときは Esc を PauseMenuView だけが担う。
-    ///
-    /// Issue #400: v6 のポーズが有効な GameScene では v5 の PauseMenuView を
-    /// **生成しない** (GameHudController.Start)。生成しないものを毎フレーム
-    /// シーン全体から探すのは無駄なので、その構成では探索せず false を返す。
-    /// それ以外では従来どおり「見つかるまで探し、見つかったら保持」する。
-    /// </summary>
-    private static FlashBeat.UI.V5.PauseMenuView cachedPauseMenu;
-
-    private static bool HasV5PauseMenu()
-    {
-        if (cachedPauseMenu != null)
-        {
-            return true;
-        }
-
-        // v6 がゲーム UI とポーズを所有しているなら v5 ポーズは存在しない。
-        if (FlashBeat.UI.V6.V6UiMode.GameHud
-            && FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
-        {
-            return false;
-        }
-
-        if (!v5PauseLookupExhausted)
-        {
-            if (v5PauseLookupStartFrame < 0)
-            {
-                v5PauseLookupStartFrame = Time.frameCount;
-            }
-
-            cachedPauseMenu = FindFirstObjectByType<FlashBeat.UI.V5.PauseMenuView>();
-            if (cachedPauseMenu != null)
-            {
-                return true;
-            }
-
-            // GameHudController は [DefaultExecutionOrder(100)] の Start で作る。
-            // 1 秒見つからなければ、このシーンには存在しないと判断して探索を止める
-            // (毎フレームの全走査を続けない)。
-            if (Time.frameCount - v5PauseLookupStartFrame > V5PauseLookupFrames)
-            {
-                v5PauseLookupExhausted = true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>v5 ポーズの探索を打ち切るまでのフレーム数 (約 1 秒)。</summary>
-    private const int V5PauseLookupFrames = 60;
-
-    private static bool v5PauseLookupExhausted;
-    private static int v5PauseLookupStartFrame = -1;
-
-    /// <summary>テスト用: 探索状態を戻す (シーン再ロード相当)。</summary>
-    public static void ResetPauseLookupForAudit()
-    {
-        cachedPauseMenu = null;
-        v5PauseLookupExhausted = false;
-        v5PauseLookupStartFrame = -1;
-    }
-
-    /// <summary>
-    /// レガシー MenuPanel が Esc (Back) を担うべきか (Issue #167 / #224)。
-    /// v5 Pause (PauseMenuView) と v6 ポーズ (V6PauseView) が無いときだけレガシーが
-    /// Esc を処理する (二重 handling の防止)。Update の条件を EditMode テストから
+    /// レガシー MenuPanel が Esc (Back) を担うべきか (Issue #167 / #224 / #740)。
+    /// v6 ポーズ (V6PauseView) が無いときだけレガシーが Esc を処理する
+    /// (二重 handling の防止)。Update の条件を EditMode テストから
     /// 直接検証できるよう純粋関数に抽出した。
+    /// Issue #740: 旧 v5 PauseMenuView は削除済み。v5 ポーズの引数は残さない。
     /// </summary>
-    public static bool LegacyBackOpensMenu(bool hasV5Pause, bool hasV6Pause)
+    public static bool LegacyBackOpensMenu(bool hasV6Pause)
     {
-        return !hasV5Pause && !hasV6Pause;
+        return !hasV6Pause;
     }
 
 
@@ -360,12 +297,11 @@ public class GameSceneManager : MonoBehaviour
                 SwitchPanel();
             }
         }
-        else if (LegacyBackOpensMenu(HasV5PauseMenu(), FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled))
+        else if (LegacyBackOpensMenu(FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled))
         {
-            // Issue #167: v5 のポーズメニューがあるときは PauseMenuView が Esc を担う。
-            // ここでレガシーの MenuPanel を開くと両方が反応して二重になる。
             // Issue #224: v6 ポーズ (V6PauseView.Enabled) が有効なときも Esc は v6 が担う
             // (V6GameRuntime.UpdatePause)。レガシー MenuPanel を開くと v6 ポーズと二重になる。
+            // Issue #740: 旧 v5 PauseMenuView は削除済み (hasV5Pause の引数は撤去)。
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 OpenMenu();
@@ -443,7 +379,7 @@ public class GameSceneManager : MonoBehaviour
         // v6 HUD (V6UiMode.GameHud) は歌詞を自分のレイヤーで描く (Issue #233)。
         // レガシー TextPanel も出すと歌詞が二重表示になるので隠す。
         bool show = Menu && display && !menuVisible
-            && FlashBeat.UI.V5.PlaySession.LyricsEnabled
+            && PlaySession.LyricsEnabled
             && !FlashBeat.UI.V6.V6UiMode.GameHud;
         if (TextPanel.activeSelf != show) TextPanel.SetActive(show);
     }

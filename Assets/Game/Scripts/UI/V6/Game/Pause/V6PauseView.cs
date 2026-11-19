@@ -8,6 +8,7 @@ using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
+using FlashBeat.UI.V6.Game.Hud;
 
 namespace FlashBeat.UI.V6.Game.Pause
 {
