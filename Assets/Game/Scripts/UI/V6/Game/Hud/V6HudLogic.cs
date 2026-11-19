@@ -175,6 +175,24 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float VerdictRestGapAboveLine = 72f;
 
         /// <summary>
+        /// レガシー 3D プレイフィールド経路 (V6UiMode.Playfield=false) の
+        /// 判定アンカーとなるワールド座標。描画される判定線
+        /// (GameScene "JudgeLine" LineRenderer = y 0.5 / z 0 の水平線、
+        /// ノーツが判定時刻に到達する面) の中央。
+        ///
+        /// 判定エフェクトの出現点 <c>Judge.EffectPosition</c> (y 0.76 /
+        /// z 0.15) ではない — あちらは 3D 判定エフェクトが浮かぶ位置で、
+        /// カメラ投影が描画判定線より縦に約 50px (FHD) ずれる。
+        /// design §10.3 の「判定線」は描画される線を指す
+        /// (v6 プレイフィールド経路は design y=792 の描画線を
+        /// アンカーに使っており、両経路で同じ意味に揃える。Issue #715)。
+        /// </summary>
+        public static Vector3 LegacyJudgeLineAnchor()
+        {
+            return new Vector3(0f, Judge.JudgeLineWorldY, Judge.JudgeLineWorldZ);
+        }
+
+        /// <summary>
         /// 判定が現れてから静止位置へ落ちきるまでの時間 (秒)。
         /// Issue #671: 判定線付近での短い落下フェーズ (出現位置は静止位置の
         /// 真上 <see cref="VerdictFallDistancePx(V6HudMetrics)"/>。画面上端ではない —
