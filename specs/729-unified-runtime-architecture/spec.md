@@ -1,6 +1,6 @@
 # FlashBeat 0.2.0 — 一元化アーキテクチャへの移行仕様（初期版）
 
-Status: Draft — ticket #729、親 #728。更新時には参照元コードと独立受入条件を併記する。
+Status: Working spec — ticket #729、親 #728。2026-11-20 に release-0-2-0 の実コード全数調査を反映。移動先の最終確定は #740 が本書の地図に従って行う。
 Target: `release-0-2-0`。旧リリース候補と配布物は変更しない。
 
 ## 目的と境界
@@ -92,12 +92,54 @@ Target: `release-0-2-0`。旧リリース候補と配布物は変更しない。
 - 旧正本・旧testが誤った期待値を採用していた場合、実装より先に外部要求からoracleを定義する。全件PASSでもオーナーの再現事実に反するなら契約/検証器から直す。
 - `release-0-2-0 → main` の統合と公開だけは明示承認を必要とする。
 
-## 未完の調査（このDraftで完了を宣言しない）
+## 実測による現行構造マップ（2026-11-20 コード全数調査）
 
-- namespace、GUID、serialization、asmdef、GameObject lifetime、Settings read/writeの参照グラフ。
-- 閉鎖済Issue/PRと現行codeの食い違い・偽陽性検証パターンの全数整理。
-- 効果音ラボassetの正本ファイルと配布許諾。
-- 性能基準環境のactual monitor Hz、ノーツ座標frame pacing、FPS計測。
-- Web画面の実ブラウザ視覚調査とユーザー操作の情報優先度検証。
+以下は `release-0-2-0` 時点の実コードから抽出した事実。設計判断の根拠であり、移動先の確定は #740 がこの地図に従って行う。
+
+### Assembly / 依存の実態
+
+- runtime は単一 asmdef `FlashBeat`（`Assets/Game/Scripts/FlashBeat.asmdef`）。Editor 用に `FlashBeat.Editor`、テストに `FlashBeat.Tests`（`Assets/Tests/Editor`、約115ファイル）・`FlashBeat.V5CanvasTests` / `FlashBeat.V6CanvasTests`（`Assets/Game/Tests`、約70ファイル）・`FlashBeat.PlayModeTests`（1ファイル）。asmdef 境界は存在するが runtime 内部は実質一枚岩。
+- `Assets/Game/Scripts/` 直下: `Common/`（時計・歌詞・入力ゲート・チャートデータ等）、`Gameplay/`（Judge/NotesManager/LongNote/Scoring/MusicManager 等）、`Persistence/`（ScoreKey/ScorePersistence）、`Songs/`（GManager/SongData/PlaySessionSnapshot/SongCatalog）、`UI/`（SceneManager 群 + `V5/` + `V6/`）。
+- `V5/` は UI だけでなく **`PlaySession`（セッション状態）を内包**しており、V6 もこれに依存する。「V5 を消す」は UI 撤去ではなく状態所有の再配置を伴う。
+- `GManager` は static のグローバル状態（曲カタログ・セッション・音量・設定値の実行時コピー）を持ち、全レイヤから参照される。縮小は #740 の中核作業。
+
+### V5/V6 の実際の分岐
+
+- 分岐は `V6UiMode`（`UI/V6/V6UiMode.cs`）の static bool 群のみ。出荷設定: `GameHud/SelectScreen/VerdictRow/TitleTabs/TitleLegend/LegacyOverlaysHidden = true`、`Playfield/VideoDim = false`。
+- つまり出荷経路は **V6 の uGUI HUD/画面 + レガシー 3D プレイフィールド**（`NotesManager` が `Note.prefab` を実体化、`FlatUnlit` シェーダ）。V6 の uGUI プレイフィールド実装（`V6PlayfieldView`）は存在するがフラグ OFF で死んでいる。
+- V5 側は `HideLegacyV5Canvases` 等で非表示化されているがコードとテストは残存。`V5LegacyReferenceAuditTests` が参照台帳を固定している。
+
+### 重複・分裂している実装（#728 要求との対応）
+
+| 領域 | 分裂の実態 | 統合先 |
+| --- | --- | --- |
+| Option/Pause 設定 | `V6OptionView*` と `V6PauseView*` が行構築・調整・保存を別実装。Pause は Sound が2項目のみ・Display が2項目のみ・Data タブが別物、プレビューは静的偽物 | #733：共通 setting schema/row/preview container |
+| ゲームプレビュー | `V6OptionPreviewRig` が独自 clock/judge queue/note pool/RenderTexture。時計状態が chart 変更時にリベースされない既知の欠陥あり | #732：本編と同一 clock/judgement/motion contract |
+| 判定モーション | `V6HudLogic`+`V6HudVerdict`（本編）と `V6OptionViewPreviewOverlay`（プレビュー）に同じ運動が二重実装 | #731：純粋タイムライン一元化 |
+| 歌詞パネル | `V6HudLyrics.UpdateLyrics` が `PlaySession.LyricsEnabled` と歌詞データ有無を同じ条件で制御。legacy `TextPanel` 経路も残存 | #734：visibility policy 単一化 |
+| 採点 | `Scoring.cs`(v3) + `web/routes/api/v1/_score-model.ts` + `contracts/openapi.v1.yaml` + `contracts/parity/score-vectors.json` + D1 CHECK。v4 は新規 | #736：scoringVersion=4 を全層同時 |
+| 選曲状態 | `GManager.songID` は残るが `V6SelectDataSource` が毎回初期化し先頭曲を自動選択 | #738：SelectionContext をセッション層へ |
+| 音源参照 | `GameScene.unity` の serialized GUID が唯一の結合点。#730 で click/hit 分離済み | #744：serialized 参照の系統的監査へ一般化 |
+
+### 互換性の制約（移動・改名時に壊してはいけないもの）
+
+- `.cs` ファイルを `.meta` ごと移動すれば script GUID は維持され、Scene/Prefab の参照は壊れない。ただし `SerializeField` 名・クラス名の変更は serialized データを壊す。
+- `ScoreKey`（`songId@chartVersion[@scoringVersion]`）、OpenAPI 契約、D1 スキーマ、`FlashBeat-keyconfig.json`、`*.setting.json`、Chart JSON schema は外部契約。
+- `GManager` の static フィールドは EditMode テストが `SingletonTestHelper` でリセットする前提。安易なプロパティ化はテストを壊す。
+- Web の `pages/`+`.server.ts` は Void の file-based 契約。`routes/api/v1/` の `_`-prefix モジュールは内部共有で外部契約ではない。
+
+### 目標配置の方向（#740 が具体化）
+
+runtime を依存方向で分ける。ドメイン規則（採点・判定窓・タイミング・レーン写像）は UnityEngine 非依存を目指し、セッション（曲/選曲/設定Snapshot/遷移）が状態を所有し、プレゼンテーション（V6 UI・HUD・プレビュー host）が描画と入力を担い、インフラ（音声/入力/永続化/通信/メディアキャッシュ）がアダプタとして両者を繋ぐ。`V5/V6` の版名は最終的に製品の機能名へ置き換えるが、**機械的一括 rename はしない** — 画面単位・責務単位で段階的に行い、各段階で削除条件を満たすことを確認する。
+
+Web 側は `pages`/`routes` の Void 契約を維持し、`src/lib` のドメインロジックと `src/app`/`src/components` の画面をユースケース境界で整理する。詳細は #741/#742。
+
+## 残る調査（このSpecで完了を宣言しない範囲）
+
+- namespace、GUID、serialization、asmdef、GameObject lifetime、Settings read/writeの参照グラフの**全数**棚卸し（本書は主要経路の実測。#740 が対象ファイル単位で補完する）。
+- 閉鎖済Issue/PRと現行codeの食い違い・偽陽性検証パターンの全数整理（#744）。
+- 効果音ラボassetの正本ファイルと配布許諾 — **#730 で解決済み**（`Assets/Game/Audio/決定ボタンを押す31.mp3`、由来と規約は PR #746 に記録）。
+- 性能基準環境のactual monitor Hz、ノーツ座標frame pacing、FPS計測 — **#739 の診断で有力仮説を特定済み**（`GManager.step_time = songVideo.time` のメディア時計量子化がノーツ位置を支配。実測プローブは未実装）。
+- Web画面の実ブラウザ視覚調査とユーザー操作の情報優先度検証（#741/#742）。
 
 新たな決定は適切なIssue/ADR/Specへ追記し、本書を指示の重複集積場所にしない。
