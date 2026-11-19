@@ -96,3 +96,59 @@ v6 プレイフィールド / カメラ不在時は `V6LaneGeometry` の
 3. カメラ画像と probe のスクリーンショットを PNG で書き出す。
 
 が一度に確認できる。
+
+## 実ノーツの描画検証 (Issue #675 / #677 / #706)
+
+`FlatRenderCheck.MeasureComposedNotes` は Note.prefab と同形の**代替キューブ**を
+置いて画素を読むもので、実ノーツの MeshRenderer / マテリアル / 実シェーダや
+uGUI 経路の Head/Body Image は通っていなかった。そこで EditMode テスト
+`V6NoteRenderTests` が出荷経路の部品をそのまま合成して描画し、
+「ノーツ有り / ノーツ無し」の 2 フレーム差分でノーツ自身の画素を同定して
+輝度を検査する。
+
+- 3D 経路 (既定): `Resources/Prefabs/Note` の実体を
+  `Judge.LaneWorldX` / `MediaTimeline.NotePlaneY` / `NotePositionZ` と同じ式で
+  8 レーン × 5 深度に配置し、GameScene と同じカメラ姿勢 +
+  `PlayfieldCameraFit` で 1920x1080 の RenderTexture へ描く。
+  実物の `V6GameHudView` (上部シェードのコリドー抜き・判定線・キーガイド・
+  歌詞を含む) を sortingOrder -1 の ScreenSpaceCamera Canvas で合成する。
+- v6 uGUI 経路 (`V6UiMode.Playfield=true`): 実 `Notes` が
+  `V6PlayfieldView.NoteLayer` に作る Head/Body Image を同様に合成する。
+
+判定規則: 差分画素のうち「ノーツ無し側の輝度が明るい (= シェードの抜きや
+無地の上)」画素では、ノーツが明るく描かれること、および上部帯ノーツの
+過半数が明るい背景 (= コリドー抜き) の上に乗ることを要求する。
+背景自体が暗い場所はオーバーレイが背景ごと暗くするため対象外とし、
+シェード有無は画面上端の輝度プローブで別途確認する。
+
+プレビュー側は `V6PreviewParityTests` が、カメラ姿勢/FOV/水平 fit、
+ノーツ位置式 (`DeltaWithTiming * CurrentZScale`)、判定線のレーン帯一致、
+歌詞スロット定数 (`V6HudLogic.LyricSlot*`) の共有を検証する。
+プレビューは疑似時計で動くため「時刻」ではなく「同じ式・同じ定数で
+置かれるか」を見る。well 座標への正規化写像は
+`V6OptionViewPreviewOverlay` が担い、レイアウト未確定の EditMode では
+絶対座標までは保証しない (実機目視が残る)。
+
+### 自動検証で証明できること / できないこと
+
+証明済み (EditMode, RT 描画):
+
+- 実 Note.prefab + 実 Note.mat + 実 FlatUnlit シェーダのノーツが、
+  レーンガイドと実 HUD (上部シェード・判定線・キーガイド・歌詞) を
+  合成したフレームで明るく描かれること。
+- 上部シェードが実際に描かれ、レーン帯の抜きがノーツを覆っていること
+  (抜きを潰すカウンタープルーフで失敗することを確認済み)。
+- マテリアル色を暗くするカウンタープルーフ (Note.mat `_Color` を
+  0.25 灰へ) でテストが失敗すること (dark=87677)。
+- v6 uGUI 経路の Head/Body Image が実ピクセルとして描かれ明るいこと。
+- プレビュー rig が本編と同じカメラ姿勢・ノーツ位置式・判定線・
+  HUD 定数を使うこと。
+
+未検証 (物理環境が必要):
+
+- ScreenSpaceOverlay の最終合成順 (バッチでは ScreenSpaceCamera の
+  RT で代替。sortingOrder -3/-2/-1 の前後関係は同じ)。
+- 実機の色域・ガンマ・HDR/ポストエフェクトの有無、リフレッシュレートでの
+  チラつき、IME (歌詞入力) まわりの表示。
+- 実映像 (YouTube) 背景の上での見え方。テストは単色クリアで代替している
+  ため、暗い動画フレーム上でのコントラストは実機確認が必要。
