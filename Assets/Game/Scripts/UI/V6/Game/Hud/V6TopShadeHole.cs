@@ -44,6 +44,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             Camera cam = Camera.main;
             bool use3D = !V6UiMode.Playfield && cam != null;
+            if (use3D)
+            {
+                // 描画時と同じ aspect で投影する。PlayfieldLaneGuides.Update が
+                // 毎フレーム掛ける水平 fit (非 16:9 画面で画面全体を横に圧縮する)
+                // が HUD 構築より後に初めて走ると、レーン帯の抜きが実際の
+                // ノーツ位置から横にずれ、シェードがノーツの縁を暗くする。
+                // fit は冪等なのでここで先に掛けておく。
+                PlayfieldCameraFit.Apply(cam, PlayfieldCameraFit.ScreenAspect());
+            }
+
             for (int row = 0; row < rows; row++)
             {
                 // テクスチャ行 → シェード内の y (上端原点 px)。

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using FlashBeat.Gameplay;
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Game.Hud;
 using NUnit.Framework;
 using UnityEngine;
@@ -94,6 +97,170 @@ namespace FlashBeat.Tests
             finally
             {
                 Object.DestroyImmediate(canvasGo);
+            }
+        }
+
+        /// <summary>
+        /// GameScene.unity の Main Camera と同じ姿勢・画角のカメラを立てる
+        /// (pos 0,4.9,-0.8 / pitch 54.8 / fov 60)。
+        /// </summary>
+        /// <summary>
+        /// CorridorRows は Camera.main を使う。EditMode では他テストや
+        /// 残存シーンの MainCamera が先に拾われうるので、有効な MainCamera を
+        /// 一時的に無効化してこのカメラだけを残す (PlayfieldGeometryTests と
+        /// 同じ手順)。戻り値は後で戻すカメラ一覧。
+        /// </summary>
+        private static List<Camera> IsolateMainCamera(Camera keep)
+        {
+            var disabled = new List<Camera>();
+            var others = UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+            for (int i = 0; i < others.Length; i++)
+            {
+                if (others[i] == keep || !others[i].CompareTag("MainCamera")) continue;
+                if (!others[i].enabled) continue;
+                others[i].enabled = false;
+                disabled.Add(others[i]);
+            }
+            return disabled;
+        }
+
+        private static void RestoreCameras(List<Camera> disabled)
+        {
+            for (int i = 0; i < disabled.Count; i++)
+            {
+                if (disabled[i] != null) disabled[i].enabled = true;
+            }
+        }
+
+        private static GameObject CreateLegacyCamera()
+        {
+            var go = new GameObject("V6TopShadeHoleTests Camera");
+            go.tag = "MainCamera";
+            var cam = go.AddComponent<Camera>();
+            cam.transform.SetPositionAndRotation(
+                new Vector3(0f, 4.9f, -0.8f), Quaternion.Euler(54.8f, 0f, 0f));
+            cam.fieldOfView = 60f;
+            cam.nearClipPlane = 0.3f;
+            cam.farClipPlane = 1000f;
+            return go;
+        }
+
+        /// <summary>
+        /// Issue #675: 3D プレイフィールド (V6UiMode.Playfield = false) で
+        /// CorridorRows が使うカメラ投影は、描画時に PlayfieldLaneGuides が
+        /// 掛ける水平 fit 後の aspect と一致していなければならない。
+        ///
+        /// HUD (Top Shade スプライト) は PlayfieldLaneGuides の Start/Update が
+        /// camera.aspect を fit するより先に構築されうる。その場合 corridor は
+        /// fit 前の aspect で計算され、キャッシュされたまま残るため、非 16:9
+        /// 画面ではレーン帯の抜きが実際のノーツ位置から横にずれ、シェードが
+        /// ノーツの縁を暗くする。CorridorRows 側で fit を先に掛けるのが修正。
+        ///
+        /// 再現: fit 未適用の aspect (1.2) を仕込んで CorridorRows を呼び、
+        /// その後 fit 済み aspect に戻して (＝実際の描画状態) ノーツ面上の
+        /// 代表点を投影し、すべて corridor の内側に収まることを確認する。
+        /// 修正前は corridor が aspect 1.2 の空間で計算されるため、端のレーンの
+        /// ノーツが帯からはみ出して失敗する。
+        /// </summary>
+        [Test]
+        public void CorridorRows_Legacy3D_CorridorMatchesFittedRender()
+        {
+            bool prevPlayfield = V6UiMode.Playfield;
+            V6UiMode.Playfield = false;
+            var camGo = CreateLegacyCamera();
+            var cam = camGo.GetComponent<Camera>();
+            var disabled = IsolateMainCamera(cam);
+            try
+            {
+                float sw = cam.pixelWidth;
+                float sh = cam.pixelHeight;
+                if (sw <= 0f || sh <= 0f)
+                {
+                    Assert.Ignore("camera has no pixel size in this environment");
+                }
+
+                // HUD 構築が fit 適用より先に走った状態を再現する。
+                cam.aspect = 1.2f;
+
+                float shadeH = sh * 0.25f;
+                const int rows = 64;
+                var left = new float[rows];
+                var right = new float[rows];
+                V6TopShadeHole.CorridorRows(sw, sh, shadeH, rows, left, right);
+
+                // ここから先は実際の描画状態 (PlayfieldLaneGuides.Update が
+                // 毎フレーム fit を掛けた後) を再現する。
+                float fitted = PlayfieldCameraFit.FittedAspect(PlayfieldCameraFit.ScreenAspect());
+                cam.aspect = fitted;
+
+                // ノーツ面上の代表点 (全レーン × アプローチ中の奥行き) のうち
+                // シェード領域に写るものは、対応する行の corridor 内側にあること。
+                var depths = new[] { 0.5f, 1.5f, 3f, 5f, 7.5f };
+                int checkedPoints = 0;
+                for (int lane = 0; lane < Judge.LaneCount; lane++)
+                {
+                    for (int d = 0; d < depths.Length; d++)
+                    {
+                        // ノーツ上面 (y = NotePlaneY + 半分の厚み 0.005 + 余裕)。
+                        var p = new Vector3(Judge.LaneWorldX(lane),
+                            MediaTimeline.NotePlaneY + 0.01f, depths[d]);
+                        var vp = cam.WorldToViewportPoint(p);
+                        if (vp.z <= 0f) continue;
+                        float sx = vp.x * sw;
+                        float yFromTop = (1f - vp.y) * sh;
+                        if (yFromTop < 0f || yFromTop > shadeH) continue;
+
+                        int row = Mathf.Clamp(Mathf.RoundToInt(
+                            (1f - yFromTop / shadeH) * (rows - 1)), 0, rows - 1);
+                        checkedPoints++;
+                        Assert.GreaterOrEqual(sx, left[row] - 1f,
+                            $"lane {lane} z {depths[d]}: note x {sx:F1}px left of corridor " +
+                            $"[{left[row]:F1}, {right[row]:F1}] at row {row}");
+                        Assert.LessOrEqual(sx, right[row] + 1f,
+                            $"lane {lane} z {depths[d]}: note x {sx:F1}px right of corridor " +
+                            $"[{left[row]:F1}, {right[row]:F1}] at row {row}");
+                    }
+                }
+                Assert.Greater(checkedPoints, 0, "no note probe landed inside the shade region");
+            }
+            finally
+            {
+                V6UiMode.Playfield = prevPlayfield;
+                RestoreCameras(disabled);
+                Object.DestroyImmediate(camGo);
+            }
+        }
+
+        /// <summary>
+        /// 同じ再現条件で、CorridorRows が呼び出し時点で camera.aspect を
+        /// fit 済みの値に揃えることを直接確認する (上のテストの前提条件)。
+        /// </summary>
+        [Test]
+        public void CorridorRows_Legacy3D_AppliesCameraFit()
+        {
+            bool prevPlayfield = V6UiMode.Playfield;
+            V6UiMode.Playfield = false;
+            var camGo = CreateLegacyCamera();
+            var cam = camGo.GetComponent<Camera>();
+            var disabled = IsolateMainCamera(cam);
+            try
+            {
+                cam.aspect = 1.2f; // fit 前の aspect を再現
+
+                var left = new float[Rows];
+                var right = new float[Rows];
+                V6TopShadeHole.CorridorRows(ScreenW, ScreenH, ShadeH, Rows, left, right);
+
+                float expected = PlayfieldCameraFit.FittedAspect(PlayfieldCameraFit.ScreenAspect());
+                Assert.AreEqual(expected, cam.aspect, 0.0001f,
+                    "corridor must be projected with the fitted aspect, " +
+                    "the same one the renderer will use");
+            }
+            finally
+            {
+                V6UiMode.Playfield = prevPlayfield;
+                RestoreCameras(disabled);
+                Object.DestroyImmediate(camGo);
             }
         }
     }
