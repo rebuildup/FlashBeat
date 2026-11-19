@@ -278,7 +278,7 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
         private void BuildDesc(GameObject panel, float dividerY, V6SettingRow row)
         {
-            var divider = Rect(panel, "Divider", 464f, 1f, V5Tokens.FromHex("#FFFFFF1F"));
+            var divider = Rect(panel, "Divider", 464f, 1f, V6Tokens.Divider);
             V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
             // draw shape は「Title y564 h46」— 高さ 40 だと NotoSansJP の行送り (fs32 で約 46px) を

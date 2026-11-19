@@ -29,6 +29,9 @@ namespace FlashBeat.UI.V6.Result
         private TMP_InputField modalNameInput;
         private string submittedNickname = string.Empty;
         private TextMeshProUGUI modalNamePrompt;
+        // Name Prompt の chevron-down アイコン (Issue #750)。プロンプト文字と
+        // 同じ表示切替 (登録チップ表示中は隠す) に従うため参照を保持する。
+        private GameObject modalNamePromptIcon;
         private GameObject modalChip;
         private CanvasGroup modalChipGroup;
         private TextMeshProUGUI modalChipLabel;
@@ -84,7 +87,7 @@ namespace FlashBeat.UI.V6.Result
         private void BuildModal()
         {
             modal = V6Layout.Place(V5Ui.Panel(frame.gameObject, "Modal 05b", new Vector2(FrameW, FrameH),
-                V5Tokens.FromHex("#00000099"), 0f), 0f, 0f);
+                V6Tokens.Scrim, 0f), 0f, 0f);
             var scrimButton = modal.AddComponent<Button>();
             scrimButton.transition = Selectable.Transition.None;
             var nav = scrimButton.navigation;
@@ -103,9 +106,20 @@ namespace FlashBeat.UI.V6.Result
                 TextAlignmentOptions.Left, FontStyles.Bold));
             V6Layout.Place(modalHead, 28f, 28f, 180f, 43f);
 
-            var prompt = OneLine(V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力↓", 20f,
+            // Issue #750: 文末の ↓ は装飾グリフなので chevron-down アイコンに置き換える。
+            // design の矩形 (404,38) 380×29 はそのままに、旧グリフが占めていた
+            // 右端の余白を TMP の右マージンで確保し、アイコンをその位置へ置く。
+            var prompt = OneLine(V5GameUi.Text(dialog.gameObject, "Name Prompt", "プレイヤー名を入力", 20f,
                 V5Tokens.TextMuted, TextAlignmentOptions.Right));
+            prompt.margin = new Vector4(0f, 28f, 0f, 0f);
             V6Layout.Place(prompt, 404f, 38f, 380f, 29f);
+            var promptIcon = V6Icons.Create(dialog.gameObject, "chevron-down", 20f,
+                V5Tokens.TextMuted, "Name Prompt Icon");
+            if (promptIcon != null)
+            {
+                V6Layout.Place(promptIcon.gameObject, 762f, 42.5f, 20f, 20f);
+                modalNamePromptIcon = promptIcon.gameObject;
+            }
             modalNamePrompt = prompt;
 
             // Name Field (28,112) 784×84 $k0 r8 / Value (24,20) 83×58 fs40 $text-dim。
@@ -175,7 +189,10 @@ namespace FlashBeat.UI.V6.Result
             modalNameHint = OneLine(V5GameUi.Text(hints, "Hint Text",
                 "最大" + RankingClient.NicknameMaxLength + "文字", 16f, V5Tokens.TextMuted));
             V6Layout.Place(modalNameHint, 128f, 4.5f, 200f, 23f);
-            BuildHintLegend(hints, 509f, 57f, "← →", "移動");
+            // Issue #750: 「← → 移動」は文字グリフではなく chevron アイコン
+            // (design の凡例と同じ h26 / fs18 / pad[0,8] の小さい版 IconItem)。
+            V6Legend.IconItem(hints, 509f, 3f, new[] { "chevron-left", "chevron-right" }, "移動",
+                26f, 8f, 8f, 24f, 18f, V5Tokens.Key4, V5Tokens.TextMuted);
             BuildHintLegend(hints, 634f, 106f, "Backspace", "削除");
 
             // Summary (28,264) 784×140 $k2 r8。
@@ -215,7 +232,7 @@ namespace FlashBeat.UI.V6.Result
             // "SS" など複数グリフでも Grade チップ (64×40) からはみ出さないよう縮小を許す。
             AutoFit(modalGrade, 16f);
             V6Layout.StretchCenter(modalGrade.GetComponent<RectTransform>(), 64f, 40f);
-            V6Layout.Place(V5Ui.Panel(summary, "Divider", new Vector2(752f, 1f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 16f, 94f);
+            V6Layout.Place(V5Ui.Panel(summary, "Divider", new Vector2(752f, 1f), V6Tokens.Divider, 0f), 16f, 94f);
             // Record Label (16,104) h23 fs16 $text-dim / Record Value (440,102)
             // 180×29 fs20 右寄せ / Record Note (640,104) 113×23 fs16 $text-dim。
             modalRecordLabel = OneLine(V5GameUi.Text(summary, "Record Label", "", 16f, V5Tokens.TextDim));
@@ -255,7 +272,7 @@ namespace FlashBeat.UI.V6.Result
             V6Layout.Place(skipIcon.gameObject, 24f, 13f, 24f, 24f);
             OneLine(V5GameUi.Text(skip, "Label", "Skip", 26f, V5Tokens.Text, TextAlignmentOptions.Left));
             V6Layout.Place(skip.transform.Find("Label"), 60f, 6f, 54f, 38f);
-            BuildModalKeyCap(skip, 126f, 10.5f, 48f, "Esc", V5Tokens.FromHex("#00000040"), V5Tokens.TextMuted, 20f);
+            BuildModalKeyCap(skip, 126f, 10.5f, 48f, "Esc", V6Tokens.CapSecondary, V5Tokens.TextMuted, 20f);
             var register = V6Layout.Place(V6Button.Panel(buttons, "Button Register", new Vector2(252f, 50f),
                 V5Tokens.ButtonPrimaryBg, 8f, TrySubmitFromButton), 532f, 0f);
             // Button · Register: Icon (18.5,13) 24#1B1B1B / Label (54.5,6) 101×38 fs26 /
@@ -268,7 +285,7 @@ namespace FlashBeat.UI.V6.Result
             // ("Save" / "再試行" への差し替え後も同じ矩形)。#749。
             V6TextFit.AutoFit(modalRegisterLabel, 20f);
             V6Layout.Place(modalRegisterLabel, 54.5f, 6f, 101f, 38f);
-            BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", V5Tokens.FromHex("#00000026"),
+            BuildModalKeyCap(register, 167.5f, 10.5f, 66f, "Enter", V6Tokens.CapPrimary,
                 V5Tokens.ButtonPrimaryLabel, 20f);
             modalRegisterButton = register.GetComponent<Button>();
 
@@ -356,7 +373,7 @@ namespace FlashBeat.UI.V6.Result
 
             RefreshModal();
             SetModalStatus(gate.Failed ? SubmitStatusText() : "",
-                gate.Failed ? V5Tokens.FromHex("#FF9999") : V5Tokens.TextMuted);
+                gate.Failed ? V6Tokens.DangerLight : V5Tokens.TextMuted);
             modal.SetActive(true);
             AlignModalPanForViewport();
             FocusNameField();
@@ -509,7 +526,7 @@ namespace FlashBeat.UI.V6.Result
                 modalNameInput.text, RankingClient.NicknameMaxLength);
             if (error != V6ResultLogic.NicknameError.None)
             {
-                SetModalStatus(NicknameErrorMessage(error), V5Tokens.FromHex("#FFD64D"));
+                SetModalStatus(NicknameErrorMessage(error), V6Tokens.WarnLight);
                 return;
             }
 
@@ -520,7 +537,7 @@ namespace FlashBeat.UI.V6.Result
 
             submitOutcome = V6ResultLogic.SubmitOutcome.Pending;
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(V6ResultLogic.SubmitOutcome.Pending, 0),
-                V5Tokens.FromHex("#99E5FF"));
+                V6Tokens.AccentLight);
             SetRegisterInteractable(false);
             // 送った名前を控える。応答が返るまでに入力欄が編集されても、
             // 保存するのは実際に送った名前 (送った後に書いた文字ではない)。
@@ -572,7 +589,7 @@ namespace FlashBeat.UI.V6.Result
 
             // 保存済み。Register ボタンで二重保存しない (Esc / Skip で閉じる)。
             SetRegisterInteractable(false);
-            SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), V5Tokens.FromHex("#99E5FF"));
+            SetModalStatus(V6ResultLogic.LocalSaveMessage(saved), V6Tokens.AccentLight);
             ShowSubmitChip("保存しました", true);
         }
 
@@ -675,7 +692,7 @@ namespace FlashBeat.UI.V6.Result
             }
 
             SetModalStatus(V6ResultLogic.SubmitStatusMessage(submitOutcome, lastSubmitHttpCode),
-                V5Tokens.FromHex("#FF9999"));
+                V6Tokens.DangerLight);
             ShowSubmitChip("登録できませんでした", false);
         }
 
@@ -702,6 +719,10 @@ namespace FlashBeat.UI.V6.Result
             {
                 modalNamePrompt.gameObject.SetActive(false);
             }
+            if (modalNamePromptIcon != null)
+            {
+                modalNamePromptIcon.SetActive(false);
+            }
 
             chipActive = true;
             chipShownAt = Time.unscaledTime;
@@ -721,6 +742,10 @@ namespace FlashBeat.UI.V6.Result
             if (modalNamePrompt != null)
             {
                 modalNamePrompt.gameObject.SetActive(true);
+            }
+            if (modalNamePromptIcon != null)
+            {
+                modalNamePromptIcon.SetActive(true);
             }
         }
 

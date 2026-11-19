@@ -129,7 +129,8 @@ namespace FlashBeat.UI.V6.Title
         public static readonly Vector2 VersionNewPos = new Vector2(190f, 0f);
         public static readonly Vector2 VersionNewSize = new Vector2(66f, 32f);
         public const float VersionFontSize = 22f;
-        public const float VersionArrowFontSize = 20f;
+        // VersionArrow は文字ではなく arrow-right スプライト (Issue #750) なので
+        // フォントサイズの定数は持たない (矩形は VersionArrowPos / VersionArrowSize)。
 
         /// <summary>バージョン行の右端 (zone ローカル)。新版が無いときに右揃えする位置。</summary>
         public const float VersionRightEdge = 256f;

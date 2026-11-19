@@ -53,8 +53,14 @@ namespace FlashBeat.UI.V6.Select.View
     /// <summary>フッターの凡例 1 項目 (キーキャップ + 説明ラベル)。</summary>
     public struct V6LegendItem
     {
-        /// <summary>キャップに載るキー名 ("Space" / "Tab" ...)。</summary>
+        /// <summary>キャップに載るキー名 ("Space" / "Tab" ...)。アイコン凡例では null。</summary>
         public string Key;
+
+        /// <summary>
+        /// キャップに載せるアイコン名 (Resources/Icons)。非 null なら文字グリフではなく
+        /// <see cref="FlashBeat.UI.V6.Common.V6Legend.IconItem"/> で描く (Issue #750)。
+        /// </summary>
+        public string[] Icons;
 
         /// <summary>説明ラベル ("決定" / "検索" ...)。</summary>
         public string Label;

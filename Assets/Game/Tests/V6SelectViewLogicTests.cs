@@ -228,10 +228,12 @@ namespace FlashBeat.UI.V6.Select.View.Tests
         [Test]
         public void FooterLegend_SongScrollKey_MatchesTheDesign()
         {
-            // 正本 OENRv のキャップは ↑↓ (←→ も同じ動作だが凡例は設計の文字列に合わせる)。
+            // 正本 OENRv の凡例は曲送り (↑↓。←→ も同じ動作)。
+            // Issue #750: 方向キーの説明は文字グリフではなく chevron アイコンで示す。
             V6LegendItem[] items = V6SelectViewLogic.FooterLegend("Space");
-            Assert.AreEqual("↑↓", items[1].Key);
+            Assert.IsNull(items[1].Key, "アイコン凡例にキー文字を載せない");
             Assert.AreEqual("曲送り", items[1].Label);
+            Assert.AreEqual(new[] { "chevron-up", "chevron-down" }, items[1].Icons);
         }
 
         [Test]
