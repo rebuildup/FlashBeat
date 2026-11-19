@@ -43,9 +43,9 @@ public class GManager : MonoBehaviour
 {
     public static GManager instance = null;
 
-    /// <summary>scoring v3 の満点 ratio (= MaxRatioV3(noteCount), ADR-0029)。NotesManager が譜面読込時に書く。</summary>
+    /// <summary>scoring v3 の満点 ratio (= MaxRatioV3(noteCount), ADR-0029)。NotesManager が譜面読込時に書く。v4 のスコア計算では使わない (情報用)。</summary>
     public static float maxScore;
-    /// <summary>scoring v3 の現在 ratio (判定 + コンボ + ノーミス + 節目 + フルコンボ)。Judge が毎フレーム書く。</summary>
+    /// <summary>scoring v3/v4 の現在 ratio (判定 + コンボ + ノーミス + 節目 + フルコンボ、情報用)。Judge が毎フレーム書く。</summary>
     public static float ratioScore;
 
     public static int songID = 1;
@@ -417,7 +417,8 @@ public class GManager : MonoBehaviour
     public static int miss;
 
     /// <summary>
-    /// scoring v2/v3 (ADR-0028 / ADR-0029) の加点内訳 (ratio points)。
+    /// scoring v2/v3/v4 (ADR-0028 / ADR-0029 / ADR-0033) の加点内訳
+    /// (ratio points)。
     /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
     /// comboBonus / noMissBonus / milestoneBonus / finalBonus は送信
     /// フィールドには含めない (サーバは P/G/B/M/maxCombo/comboMilestones
@@ -435,6 +436,21 @@ public class GManager : MonoBehaviour
     /// ratio points)。確定は曲終了時に一度だけ (Issue #618)。
     /// </summary>
     public static int finalBonus;
+
+    /// <summary>
+    /// scoring v4 (ADR-0033) の基礎スコアと加算ボーナス。score =
+    /// baseScore + bonusScore で、baseScore は判定由来のみ (上限
+    /// 1,000,000)、bonusScore はコンボ継続・ノーミス・節目・フルコンボの
+    /// 合計 (上限 1,000,000)。結果画面の内訳表示が読む。Judge が
+    /// FlushScore のたびに書く。
+    /// </summary>
+    public static int baseScore;
+    public static int bonusScore;
+    /// <summary>
+    /// scoring v4 のボーナス分母 (Scoring.MaxBonusRatioV4(noteCount))。
+    /// HUD のボーナス獲得点表示が ratio points → スコア点の換算に使う。
+    /// </summary>
+    public static float maxBonusRatio;
 
     /// <summary>
     /// 全ノーツの判定が確定したか (perfect + great + bad + miss == 譜面
@@ -510,6 +526,9 @@ public class GManager : MonoBehaviour
         comboMilestones = 0;
         milestoneBonus = 0;
         finalBonus = 0;
+        baseScore = 0;
+        bonusScore = 0;
+        maxBonusRatio = 0f;
         judgmentsComplete = false;
         settledNoteCount = 0;
         BeginPlaySession();

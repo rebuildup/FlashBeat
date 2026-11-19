@@ -221,6 +221,9 @@ public class NotesManager : MonoBehaviour
         // (Issue #164) 100万点の算出は notes x 15 のままで正しい。
         // scoring v3 (ADR-0029 / Issue #602): 分母は判定 5 + コンボ 5 +
         // ノーミス 5 + 節目ボーナス上限 floor(N/50)*25 + フルコンボ 100。
+        // scoring v4 (ADR-0033) のスコア計算はこの値を使わず、
+        // Judge.FlushScore が MaxBonusRatioV4 を GManager.maxBonusRatio に
+        // 書く。maxScore は v3 ratio の情報用フィールドとして残す。
         GManager.maxScore = Scoring.MaxRatioV3(total);
 
         // 時刻計算は純粋な数値処理なので一括で行う (生成は後続のバッチで)。
