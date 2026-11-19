@@ -77,6 +77,8 @@ namespace FlashBeat.UI.V6.Option
         private int selectedTab;
         private int selectedRow;
         private bool confirmClearOpen;
+        /// <summary>確認モーダル表示中のコンパクト用パン退避が有効か (issue #748)。</summary>
+        private bool confirmPanActive;
 
         /// <summary>確認モーダルの種類 (issue-162 C-6: Key Layout のリセットも確認する)。</summary>
         private enum ConfirmKind { ClearSaveData, ResetKeyLayout, MediaCache }
@@ -244,6 +246,13 @@ namespace FlashBeat.UI.V6.Option
             // 破棄されると、最後の調整だけが保存されない)。
             SavePendingVolumeNow();
             KeyBindings.Changed -= OnBindingsChanged;
+            // 破棄時にモーダル用パン退避が残っていれば元へ戻す (issue #748)。
+            if (confirmPanActive)
+            {
+                V6ModalPan.Resume(frame);
+                confirmPanActive = false;
+            }
+
             if (previewRig != null)
             {
                 previewRig.Dispose();

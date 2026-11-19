@@ -46,8 +46,12 @@ namespace FlashBeat.UI.V6.Common
 
         private GameObject rootGo;
         private GameObject dialogGo;
+        private RectTransform frameRect;
         private V6KeyConfigLogic logic;
         private bool isOpen;
+        // コンパクト画面のモーダル用パン退避 (issue #748)。Show/Hide と
+        // 対応させて V6ModalPan.Suspend/Resume を呼ぶ。
+        private bool modalPanActive;
         private readonly List<KeyCap> keyCaps = new List<KeyCap>();
         private TextMeshProUGUI statusText;
         private TextMeshProUGUI hintText;
@@ -94,6 +98,7 @@ namespace FlashBeat.UI.V6.Common
             rt.sizeDelta = V6Frame.ModalSize;
 
             var modal = go.AddComponent<V6KeyConfigModal>();
+            modal.frameRect = parent.GetComponent<RectTransform>();
             modal.BuildContent();
             go.SetActive(false);
             return modal;
@@ -112,6 +117,14 @@ namespace FlashBeat.UI.V6.Common
             active = this;
             rootGo.SetActive(true);
             rootGo.transform.SetAsLastSibling();
+            // コンパクト画面では Dialog がビューポートに収まるようパンを
+            // 合わせ、パン入力を止める (issue #748)。通常解像度では no-op。
+            if (!modalPanActive)
+            {
+                V6ModalPan.Suspend(frameRect, new Rect(DialogX, DialogY, DialogW, DialogH));
+                modalPanActive = true;
+            }
+
             Refresh();
         }
 
@@ -123,6 +136,12 @@ namespace FlashBeat.UI.V6.Common
             if (ReferenceEquals(active, this))
             {
                 active = null;
+            }
+
+            if (modalPanActive)
+            {
+                V6ModalPan.Resume(frameRect);
+                modalPanActive = false;
             }
 
             if (rootGo != null)
@@ -138,6 +157,12 @@ namespace FlashBeat.UI.V6.Common
 
         private void OnDestroy()
         {
+            if (modalPanActive)
+            {
+                V6ModalPan.Resume(frameRect);
+                modalPanActive = false;
+            }
+
             if (ReferenceEquals(active, this))
             {
                 active = null;
