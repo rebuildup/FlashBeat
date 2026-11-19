@@ -383,17 +383,21 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private static void ApplyLyricTextOutline(TextMeshProUGUI text)
         {
-            // TMP は font マテリアル未解決の間 outlineWidth setter が
-            // m_sharedMaterial を触って NRE になる (EditMode では Awake が
-            // 走らずマテリアルが遅延解決される)。製品経路では構築時に
-            // 解決済みだが、未解決の環境では縁取りを諦めて構築を止めない。
-            if (text.fontSharedMaterial == null)
+            // TMP は EditMode 等で font マテリアルが未解決のまま残ると
+            // outlineWidth setter 内部 (SetOutlineThickness →
+            // CreateMaterialInstance/SetMaterial) が NRE になる。
+            // fontSharedMaterial の null チェックだけでは防げない
+            // (内部の m_fontMaterial/canvasRenderer 経路で落ちる) ため、
+            // 縁取りは付加要素として例外を飲んで構築自体は止めない。
+            try
             {
-                return;
+                text.outlineWidth = LyricTextOutlineWidth;
+                text.outlineColor = LyricTextOutlineColor;
             }
-
-            text.outlineWidth = LyricTextOutlineWidth;
-            text.outlineColor = LyricTextOutlineColor;
+            catch (System.Exception)
+            {
+                // 未解決/破棄済みマテリアル環境では縁取りを諦める。
+            }
         }
 
         /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
