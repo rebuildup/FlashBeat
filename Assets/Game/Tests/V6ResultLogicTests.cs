@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using UnityEngine;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V6.Result;
 
 namespace FlashBeat.UI.V6.Result.Tests
@@ -40,25 +41,42 @@ namespace FlashBeat.UI.V6.Result.Tests
             Assert.AreEqual(Vector2.zero, V6ResultLogic.FrameOrigin(1920, -1));
         }
 
-        // --- GradeOf (既存の Assessment 判定 RankFor と 1:1) ---
+        // --- GradeOf (scoringVersion ごとの帯。v4 以降は ADR-0034 / Issue #758) ---
 
         [Test]
-        public void GradeOf_MatchesExistingAssessmentThresholds()
+        public void GradeOf_V4_FollowsTheDoubledThresholds()
         {
-            Assert.AreEqual("SS", V6ResultLogic.GradeOf(1000000));
-            Assert.AreEqual("S", V6ResultLogic.GradeOf(950000));
-            Assert.AreEqual("A", V6ResultLogic.GradeOf(900000));
-            Assert.AreEqual("B", V6ResultLogic.GradeOf(700000));
+            // v4 の満点は 2,000,000 (基礎 + ボーナス)。帯は v1–v3 の閾値の 2 倍。
+            Assert.AreEqual("SS", V6ResultLogic.GradeOf(2000000));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1900000));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1800000));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(1599999));
             Assert.AreEqual("C", V6ResultLogic.GradeOf(100));
         }
 
         [Test]
-        public void GradeOf_BoundaryValues()
+        public void GradeOf_V4_SS_RequiresThePerfectFullComboScore()
         {
-            Assert.AreEqual("SS", V6ResultLogic.GradeOf(1000000));
-            Assert.AreEqual("S", V6ResultLogic.GradeOf(999999));
-            Assert.AreEqual("C", V6ResultLogic.GradeOf(699999));
-            Assert.AreEqual("–", V6ResultLogic.GradeOf(0));
+            // 「ノーミス = SS」ではない: 2,000,000 未満は全て SS 未満。
+            // ノーミスの All-Great フルコンボ (基礎 600,000 + ボーナス
+            // 1,000,000 = 1,600,000) でも B どまり。
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1999999));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
+        }
+
+        [Test]
+        public void GradeOf_LegacyVersions_KeepV3Thresholds()
+        {
+            // v1–v3 のスコアは従来の RankFor 閾値のまま (暗黙の再解釈をしない)。
+            Assert.AreEqual("SS", V6ResultLogic.GradeOf(1000000, Scoring.Version1));
+            Assert.AreEqual("SS", V6ResultLogic.GradeOf(1000000, Scoring.Version3));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(999999, Scoring.Version3));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(950000, Scoring.Version2));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(900000, Scoring.Version3));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(700000, Scoring.Version3));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(699999, Scoring.Version3));
+            Assert.AreEqual("–", V6ResultLogic.GradeOf(0, Scoring.Version3));
             Assert.AreEqual("–", V6ResultLogic.GradeOf(-1));
         }
 
@@ -79,27 +97,36 @@ namespace FlashBeat.UI.V6.Result.Tests
             Assert.AreEqual(string.Empty, V6ResultLogic.DeltaLabel(500, 500));
         }
 
-        // --- ゲージ幾何 (design 実測値との整合) ---
+        // --- ゲージ幾何 (scoring v4 の満点 2,000,000 への正規化。Issue #758) ---
 
         [Test]
         public void GaugeFillWidth_MapsScoreRatioToDesignLength()
         {
-            // design 実測: 988,513 → 815px (824 * 988513/1000000 = 814.94)
-            Assert.AreEqual(824f * 988513f / 1000000f, V6ResultLogic.GaugeFillWidth(988513), 0.01f);
+            // v4: 988,513 → 824 * 988513/2000000 = 407.47
+            Assert.AreEqual(824f * 988513f / 2000000f, V6ResultLogic.GaugeFillWidth(988513), 0.01f);
             Assert.AreEqual(0f, V6ResultLogic.GaugeFillWidth(0));
+        }
+
+        [Test]
+        public void GaugeFillWidth_DoesNotPinAboveLegacyMax()
+        {
+            // v3 以前は 1,000,000 で満タンに張り付いた。v4 では 100 万点は
+            // レールの中間 (約 41%) に留まり、満点 2,000,000 で全長になる。
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.5f, V6ResultLogic.GaugeFillWidth(1000000), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(2000000));
         }
 
         [Test]
         public void GaugeFillWidth_ClampsToTrackLength()
         {
-            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(1200000));
+            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(3000000));
         }
 
         [Test]
         public void GaugeBestX_MatchesDesignSample()
         {
-            // design 実測: 前回最高 921,880 → x=760
-            Assert.AreEqual(824f * 921880f / 1000000f, V6ResultLogic.GaugeBestX(921880), 0.01f);
+            // v4: 前回最高 921,880 → x = 824 * 921880/2000000 = 379.81
+            Assert.AreEqual(824f * 921880f / 2000000f, V6ResultLogic.GaugeBestX(921880), 0.01f);
         }
 
         // --- 曲長表示 ---
