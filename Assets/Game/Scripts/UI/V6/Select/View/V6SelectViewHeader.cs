@@ -82,7 +82,10 @@ namespace FlashBeat.UI.V6.Select.View
             {
                 var status = V5GameUi.Text(header.gameObject, "Status", data.StatusMessage, 18f,
                     V5Tokens.DangerLight, TextAlignmentOptions.Left);
+                // h20 は fs18 の行送り (26) を下回るため Ellipsis には行送り補正が必須。
+                // 長いエラー文は Normal 折返しで 2 行化していた (#749) → 1 行省略へ。
                 V6Layout.Place(status, 864f, 74f, 792f, 20f);
+                V6TextFit.Ellipsis(status);
             }
 
             var filter = V6Button.Panel(header, "Filter Button", new Vector2(48f, 48f),
@@ -137,6 +140,7 @@ namespace FlashBeat.UI.V6.Select.View
                     status = V5GameUi.Text(header, "Status", data.StatusMessage, 18f,
                         V5Tokens.DangerLight, TextAlignmentOptions.Left);
                     V6Layout.Place(status, 864f, 74f, 792f, 20f);
+                    V6TextFit.Ellipsis(status);
                 }
                 else
                 {

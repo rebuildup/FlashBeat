@@ -89,7 +89,7 @@ namespace FlashBeat.UI.V6.Option
                 26f, V6Tokens.Text, TextAlignmentOptions.Center);
 
             var clear = V6Controls.Panel(dialog, "Op Clear", new Vector2(784f - 252f + 28f, 432f),
-                new Vector2(252f, 50f), DangerLabel, V6Tokens.RadiusMedium);
+                new Vector2(252f, 50f), V6Tokens.Danger, V6Tokens.RadiusMedium);
             var clearButton = clear.AddComponent<Button>();
             clearButton.transition = Selectable.Transition.None;
             var clearNav = clearButton.navigation;

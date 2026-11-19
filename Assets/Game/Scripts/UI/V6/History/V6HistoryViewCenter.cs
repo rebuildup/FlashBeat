@@ -78,6 +78,10 @@ namespace FlashBeat.UI.V6.History
                 // design q9JZcH 中央 選択中の曲/f54HAH/DcLR3: Title は Meta 内 (0,9) 512×50。
                 // sizeDelta だけ変えると既定アンカー (中央) のままで 13px 下がり、
                 // Artist Row (y60) に食い込む (r4 実機で重なって見えた)。
+                // 長い曲名は折り返さず auto-size で 1 行に収める
+                // (Select 側 V6SelectViewCenter と同じ規約。#749: fs48×h50 は
+                // Normal 折返しだと 2 行になり Artist/Stats に重なっていた)。
+                V6TextFit.AutoFit(title, 30f);
                 V6Layout.Place(title, 0f, 9f, 512f, 50f);
                 centerTitleText = title;
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);

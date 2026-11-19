@@ -155,6 +155,9 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0.5f, judgeSource.volume, 0.0001f,
                 "Judge の AudioSource (SE) は Main 変更では変わらない");
             Assert.AreEqual(0.5f, GManager.effectVolume, 0.0001f, "SE は変わらない");
+            // Issue #733: キー操作の保存は Option と同じく遅延 (0.5 秒まとめ)。
+            // 画面を離れる / 猶予経過で Flush されるため、ここでは明示的に flush する。
+            view.FlushPendingVolumeSaveForAudit();
             Assert.AreEqual(0.51f, PlayerPrefs.GetFloat(OptionSettings.MainVolumeKey, -1f), 0.0001f,
                 "OptionSettings.Save で PlayerPrefs に保存される");
         }
@@ -179,6 +182,8 @@ namespace FlashBeat.V6HudTests
                 "MusicManager の AudioSource (Main) は SE 変更では変わらない");
             Assert.AreEqual(0.5f, AudioListener.volume, 0.0001f,
                 "AudioListener.volume は mainVolume のまま");
+            // Issue #733: キー操作の保存は Option と同じく遅延。flush して確認する。
+            view.FlushPendingVolumeSaveForAudit();
             Assert.AreEqual(0.49f, PlayerPrefs.GetFloat(OptionSettings.EffectVolumeKey, -1f), 0.0001f,
                 "OptionSettings.Save で PlayerPrefs に保存される");
         }

@@ -152,8 +152,9 @@ public sealed class V6CompactScreenTests
         // フレームはビューポートの子でなければならない
         // (RectMask2D のクリップと監査のスクロール親判定が効く)。
         Assert.AreSame(viewport, frame.parent);
-        // 初期パンは (0,0): 左上 (Header 側) が見える位置。
-        Assert.AreEqual(Vector2.zero, frame.anchoredPosition);
+        // 初期パンはフレーム中央 (issue #748): 1024×768 では (-352,-102)。
+        // anchoredPosition は (pan.x, -pan.y)。
+        Assert.AreEqual(new Vector2(-352f, 102f), frame.anchoredPosition);
     }
 
     [Test]
