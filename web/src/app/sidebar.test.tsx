@@ -92,8 +92,10 @@ describe("Sidebar staff disclosure (issue #74)", () => {
     expect(getComputedStyle(staffGroup()).display).toBe("grid");
 
     // The five staff entries are inside the revealed group and visible.
+    // Issue #742: the production flow (登録→編集→公開) precedes the
+    // operations pages (ダッシュボード, アーカイブ).
     const values = NAV_STAFF_ITEMS.map((item) => item.value);
-    expect(values).toEqual(["dashboard", "songs", "new-song", "editor", "publish"]);
+    expect(values).toEqual(["new-song", "editor", "publish", "dashboard", "songs"]);
     for (const value of values) {
       const entry = query<HTMLElement>(`[data-testid="nav-${value}"]`);
       expect(staffGroup().contains(entry)).toBe(true);
