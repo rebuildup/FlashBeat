@@ -23,6 +23,7 @@ namespace FlashBeat.Tests
         private int originalCombo;
         private int originalMiss;
         private int originalComboMilestones;
+        private bool originalLyricsEnabled;
 
         [SetUp]
         public void SetUp()
@@ -31,6 +32,7 @@ namespace FlashBeat.Tests
             originalCombo = GManager.combo;
             originalMiss = GManager.miss;
             originalComboMilestones = GManager.comboMilestones;
+            originalLyricsEnabled = PlaySession.LyricsEnabled;
 
             canvasGo = new GameObject("V6GameHudViewTests Canvas", typeof(Canvas));
             var canvasRect = (RectTransform)canvasGo.transform;
@@ -48,6 +50,7 @@ namespace FlashBeat.Tests
             GManager.combo = originalCombo;
             GManager.miss = originalMiss;
             GManager.comboMilestones = originalComboMilestones;
+            PlaySession.SetLyricsEnabled(originalLyricsEnabled);
 
             if (canvasGo != null)
             {
@@ -308,10 +311,12 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #433: 譜面に歌詞データが無いときはパネル自体を隠す。
+        /// Issue #734: 枠の可視性は設定値のみで決まる。歌詞データが無い譜面でも
+        /// 設定 ON なら枠は曲中ずっと出し、本文は空のままにする。
+        /// 旧仕様 (歌詞データが無いと枠ごと隠す) へ戻るとこのテストは落ちる。
         /// </summary>
         [Test]
-        public void Lyrics_HideTheBoxWhenTheChartHasNoLyrics()
+        public void Lyrics_KeepTheBoxWhenTheChartHasNoLyrics()
         {
             originalSongId = GManager.songID;
             originalPlayed = GManager.played;
@@ -327,13 +332,148 @@ namespace FlashBeat.Tests
                 });
                 GManager.played = true;
 
+                GManager.step_time = 1f;
                 view.Refresh();
+                Assert.AreEqual("", LyricTextOf(view).text, "歌詞の無い譜面では本文は空");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf,
+                    "歌詞の無い譜面でも設定 ON なら枠は出す (Issue #734)");
 
-                Assert.IsFalse(LyricBoxOf(view).activeSelf, "歌詞の無い譜面では枠を出さない");
+                // どの時刻でも枠は変わらない (本文が無い区間・終端を含む)。
+                GManager.step_time = 60f;
+                view.Refresh();
+                Assert.AreEqual("", LyricTextOf(view).text);
+                Assert.IsTrue(LyricBoxOf(view).activeSelf, "歌詞終端後も枠は出す");
             }
             finally
             {
                 if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #734: 歌詞データ (GameSceneManager.InputJson) がまだ届いて
+        /// いない間も枠は出す。かつてはデータ未到着 = 歌詞なし扱いで枠が消え、
+        /// 到着時に出るフリッカーが起きていた。枠の可視性はデータの
+        /// 読み込みタイミングに依存しない (本文だけが空になる)。
+        /// </summary>
+        [Test]
+        public void Lyrics_BoxStaysVisibleBeforeLyricDataArrives()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            try
+            {
+                // 歌詞ソースを作らない = InputJson == null のまま Refresh する。
+                GManager.played = true;
+                GManager.step_time = 1f;
+
+                view.Refresh();
+
+                Assert.IsTrue(LyricBoxOf(view).activeSelf,
+                    "歌詞データ未到着でも設定 ON なら枠は出す (Issue #734)");
+                Assert.AreEqual("", LyricTextOf(view).text,
+                    "データ未到着の間は本文は空");
+            }
+            finally
+            {
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #734: 設定 OFF なら歌詞データの有無・本文の切り替わりに
+        /// 関わらず曲中は枠を出さない。行の区間・行間・歌詞終端のどの時刻でも
+        /// 同じで、Pause の Display 設定で ON/OFF を切り替えても
+        /// 次の Refresh で設定値どおりに追従する (フラップしない)。
+        /// </summary>
+        [Test]
+        public void Lyrics_BoxFollowsOnlyTheSettingDuringPlayback()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                sourceGo = CreateLyricsSource(ThreeLineLyrics());
+                GManager.played = true;
+
+                // ON: 歌詞あり譜面では本文の有無に関わらず枠は出る。
+                PlaySession.SetLyricsEnabled(true);
+                GManager.step_time = 1f;
+                view.Refresh();
+                Assert.IsTrue(LyricBoxOf(view).activeSelf);
+                Assert.AreEqual("一", LyricTextOf(view).text);
+
+                GManager.step_time = 2.5f; // 行間
+                view.Refresh();
+                Assert.IsTrue(LyricBoxOf(view).activeSelf, "行間でも枠は出す");
+                Assert.AreEqual("", LyricTextOf(view).text);
+
+                // OFF (Pause の Display 設定と同じ経路): どの時刻でも枠は出ない。
+                PlaySession.SetLyricsEnabled(false);
+                foreach (float t in new[] { 1f, 2.5f, 4f, 9f })
+                {
+                    GManager.step_time = t;
+                    view.Refresh();
+                    Assert.IsFalse(LyricBoxOf(view).activeSelf,
+                        $"設定 OFF では t={t} でも枠を出さない");
+                    Assert.AreEqual("", LyricTextOf(view).text);
+                }
+
+                // ON へ戻すと即座に枠が戻る (Pause → Resume の往復でフラップしない)。
+                PlaySession.SetLyricsEnabled(true);
+                GManager.step_time = 4f;
+                view.Refresh();
+                Assert.IsTrue(LyricBoxOf(view).activeSelf, "設定を戻せば枠も戻る");
+                Assert.AreEqual("二", LyricTextOf(view).text);
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySession.SetLyricsEnabled(originalLyricsEnabled);
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #734: Space 待ち (再生前) の Start Prompt は歌詞ではなく
+        /// 開始操作の案内なので、歌詞設定 OFF でも枠と一緒に出す。
+        /// (ポリシー: 設定値が固定するのは演奏中の枠。カウントダウン /
+        /// START / 曲終了オーバーレイと同じく、進行状態の表示は設定に従わない。)
+        /// </summary>
+        [Test]
+        public void Lyrics_StartPromptShowsEvenWhenLyricsSettingIsOff()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            try
+            {
+                PlaySession.SetLyricsEnabled(false);
+                GManager.played = false;
+
+                view.Refresh();
+
+                Transform box = LyricBoxOf(view).transform;
+                Transform prompt = box.Find("Start Prompt");
+                Assert.IsNotNull(prompt, "Start Prompt が無い");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf,
+                    "再生前は歌詞設定 OFF でも枠を出す (Start Prompt の置き場)");
+                Assert.IsTrue(prompt.gameObject.activeSelf,
+                    "再生前は歌詞設定 OFF でも Start Prompt を出す");
+            }
+            finally
+            {
+                PlaySession.SetLyricsEnabled(originalLyricsEnabled);
                 GManager.songID = originalSongId;
                 GManager.played = originalPlayed;
                 GManager.step_time = originalStepTime;
