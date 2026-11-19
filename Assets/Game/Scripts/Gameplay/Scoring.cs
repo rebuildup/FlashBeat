@@ -43,6 +43,19 @@ namespace FlashBeat.Gameplay
     /// Mono JIT, IL2CPP and the Web worker therefore produce the identical
     /// score on every platform, and a legitimate submission can never be
     /// rejected with 422 by a last-ulp float difference.
+    ///
+    /// scoringVersion 4 (ADR-0033, Issue #736) splits the score into a
+    /// judgment-derived base and an additive bonus instead of normalizing
+    /// everything into one 1,000,000 ceiling:
+    ///
+    ///   baseScore  = floor(judgment * 1_000_000 / (5 * noteCount))   ≤ 1,000,000
+    ///   bonusScore = floor(bonusRatio * 1_000_000 / maxBonusRatio)   ≤ 1,000,000
+    ///   score      = baseScore + bonusScore                          ≤ 2,000,000
+    ///
+    /// where bonusRatio / maxBonusRatio reuse the v3 bonus components
+    /// (comboBonus + noMissBonus + milestoneBonus + finalBonus). A perfect
+    /// full-combo run scores exactly 2,000,000. Like v3, every step is
+    /// exact integer arithmetic.
     /// </summary>
     public static class Scoring
     {
@@ -55,8 +68,15 @@ namespace FlashBeat.Gameplay
         /// <summary>scoringVersion of the v3 formula (ADR-0029: milestones + full-combo bonus).</summary>
         public const int Version3 = 3;
 
+        /// <summary>
+        /// scoringVersion of the v4 formula (ADR-0033): the judgment-derived
+        /// base score keeps the 1,000,000 ceiling and the combo/milestone
+        /// bonuses are added on top, so a full-combo run exceeds 1,000,000.
+        /// </summary>
+        public const int Version4 = 4;
+
         /// <summary>The scoring version new plays and new submissions use.</summary>
-        public const int LatestVersion = Version3;
+        public const int LatestVersion = Version4;
 
         /// <summary>v2 denominator per note: judgment cap 5 + combo cap 5 + no-miss cap 5.</summary>
         public const float MaxRatioPerNoteV2 = 15f;
@@ -286,6 +306,185 @@ namespace FlashBeat.Gameplay
             }
 
             return (int)Math.Round(1000000.0 * componentRatio / maxRatio);
+        }
+
+        // --- scoring v4 (ADR-0033, Issue #736) -----------------------------
+
+        /// <summary>
+        /// The v4 ceiling of one half of the score. The base (judgment) half
+        /// and the bonus half are each normalized to their own theoretical
+        /// maximum of 1,000,000, so the total can reach 2,000,000.
+        /// </summary>
+        public const int HalfScoreMaxV4 = 1000000;
+
+        /// <summary>The largest score a v4 play can reach (base + bonus).</summary>
+        public const int ScoreMaxV4 = 2 * HalfScoreMaxV4;
+
+        /// <summary>HalfScoreMaxV4 as a long for the integer divisions below.</summary>
+        private const long HalfScoreMaxV4L = HalfScoreMaxV4;
+
+        /// <summary>
+        /// The v4 bonus denominator of a chart with <paramref name="noteCount"/>
+        /// notes: the sum of the simultaneously achievable bonus caps —
+        /// comboBonus ≤ 5N, noMissBonus ≤ 5N, milestoneBonus ≤
+        /// floor(N/50)*25, finalBonus ≤ 100.
+        /// </summary>
+        public static float MaxBonusRatioV4(int noteCount)
+        {
+            // 空の譜面にはスコアを与えない (サーバも noteCount<=0 を拒否する)。
+            if (noteCount <= 0)
+            {
+                return 0f;
+            }
+
+            // 全て整数で、実用上の譜面サイズでは float でも厳密。
+            return noteCount * 10f
+                + (noteCount / MilestoneInterval) * MilestoneBonusPoints
+                + FullComboBonusPoints;
+        }
+
+        /// <summary>The v4 components of one play.</summary>
+        public struct V4Breakdown
+        {
+            /// <summary>5P + 3G + B (the v1 judgment total).</summary>
+            public float Judgment;
+            /// <summary>maxCombo * 5. Keeps its value after a later Miss.</summary>
+            public int ComboBonus;
+            /// <summary>(P + G + B) * 5 while miss == 0, else 0.</summary>
+            public int NoMissBonus;
+            /// <summary>comboMilestones * 25. Crossings recur after a combo break.</summary>
+            public int MilestoneBonus;
+            /// <summary>
+            /// 100 while judgmentsComplete && miss == 0, else 0. Vests only
+            /// once every chart note has been judged (Issue #618).
+            /// </summary>
+            public int FinalBonus;
+            /// <summary>
+            /// Judgment-derived base score: floor(judgment * 1e6 / (5N)).
+            /// Always ≤ 1,000,000; exactly 1,000,000 for an all-Perfect play.
+            /// </summary>
+            public int BaseScore;
+            /// <summary>
+            /// Additive bonus score: floor(bonusRatio * 1e6 / maxBonusRatio).
+            /// Always ≤ 1,000,000 and ≥ 0.
+            /// </summary>
+            public int BonusScore;
+            /// <summary>BaseScore + BonusScore (≤ 2,000,000).</summary>
+            public int Score;
+            /// <summary>judgment + all bonus ratio points (informational).</summary>
+            public float RatioScore;
+            /// <summary>MaxBonusRatioV4(noteCount) (single-precision).</summary>
+            public float MaxBonusRatio;
+        }
+
+        /// <summary>
+        /// The v4 components of a play. The arguments have the same meaning
+        /// as <see cref="BreakdownV3"/>; only the score mapping changes
+        /// (ADR-0033): the judgment part is normalized to its own
+        /// 1,000,000 ceiling and the v3 bonus components are converted to
+        /// score points against <see cref="MaxBonusRatioV4"/> and added on
+        /// top.
+        /// </summary>
+        public static V4Breakdown BreakdownV4(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            float judgment = perfect * 5f + great * 3f + bad;
+            int comboBonus = maxCombo * 5;
+            int hits = perfect + great + bad;
+            int noMissBonus = miss == 0 ? hits * 5 : 0;
+            int milestoneBonus = comboMilestones * MilestoneBonusPoints;
+            int finalBonus = judgmentsComplete && miss == 0 ? FullComboBonusPoints : 0;
+            int bonusRatio = comboBonus + noMissBonus + milestoneBonus + finalBonus;
+            float maxBonusRatio = MaxBonusRatioV4(noteCount);
+
+            // Base: the judgment-derived score with the v1 ceiling.
+            // judgment is an integer-valued float; compute in long like
+            // ScoreV3 so the result is platform-independent (Issue #631).
+            int baseScore = 0;
+            if (noteCount > 0)
+            {
+                long judgmentLong = perfect * 5L + great * 3L + bad;
+                baseScore = (int)(judgmentLong * HalfScoreMaxV4 / (5L * noteCount));
+            }
+
+            int bonusScore = 0;
+            if (maxBonusRatio > 0f)
+            {
+                bonusScore = (int)(bonusRatio * HalfScoreMaxV4L / (long)maxBonusRatio);
+            }
+
+            return new V4Breakdown
+            {
+                Judgment = judgment,
+                ComboBonus = comboBonus,
+                NoMissBonus = noMissBonus,
+                MilestoneBonus = milestoneBonus,
+                FinalBonus = finalBonus,
+                BaseScore = baseScore,
+                BonusScore = bonusScore,
+                Score = baseScore + bonusScore,
+                RatioScore = (float)((double)judgment + bonusRatio),
+                MaxBonusRatio = maxBonusRatio,
+            };
+        }
+
+        /// <summary>
+        /// The v4 score (0..2,000,000) of a play, via the deterministic
+        /// integer computation of <see cref="ScoreV4(V4Breakdown)"/>.
+        /// `judgmentsComplete` has the same meaning as in
+        /// <see cref="BreakdownV3"/>.
+        /// </summary>
+        public static int ScoreV4(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            return ScoreV4(BreakdownV4(perfect, great, bad, miss, maxCombo,
+                comboMilestones, noteCount, judgmentsComplete));
+        }
+
+        /// <summary>
+        /// The v4 score of a computed breakdown (ADR-0033).
+        ///
+        /// <see cref="BreakdownV4"/> already produced the two floored halves
+        /// in exact integer arithmetic; this returns their sum. The ceiling
+        /// is 2,000,000 (1,000,000 base + 1,000,000 bonus).
+        /// </summary>
+        public static int ScoreV4(V4Breakdown b)
+        {
+            return b.Score;
+        }
+
+        /// <summary>
+        /// The score-point contribution of one v4 bonus component, for the
+        /// result breakdown and in-play bonus display. Uses the same floor
+        /// division as <see cref="BreakdownV4"/>'s bonus half; the
+        /// components do not have to add up to <see cref="V4Breakdown.BonusScore"/>
+        /// exactly (the total is floored once), so this is a display
+        /// estimate, not a submission field.
+        /// </summary>
+        public static int ComponentScoreV4(int bonusRatioPoints, int noteCount)
+        {
+            long maxBonusRatio = (long)MaxBonusRatioV4(noteCount);
+            if (maxBonusRatio <= 0)
+            {
+                return 0;
+            }
+
+            return (int)(bonusRatioPoints * HalfScoreMaxV4L / maxBonusRatio);
+        }
+
+        /// <summary>
+        /// ComponentScoreV4 against an already-computed v4 bonus denominator
+        /// (GManager.maxBonusRatio holds MaxBonusRatioV4(noteCount) during
+        /// play).
+        /// </summary>
+        public static int ComponentScoreV4(int bonusRatioPoints, float maxBonusRatio)
+        {
+            if (maxBonusRatio <= 0f)
+            {
+                return 0;
+            }
+
+            return (int)(bonusRatioPoints * HalfScoreMaxV4L / (long)maxBonusRatio);
         }
     }
 }

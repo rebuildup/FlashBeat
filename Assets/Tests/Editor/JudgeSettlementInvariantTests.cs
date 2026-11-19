@@ -107,6 +107,9 @@ public class JudgeSettlementInvariantTests
         GManager.comboMilestones = 0;
         GManager.milestoneBonus = 0;
         GManager.finalBonus = 0;
+        GManager.baseScore = 0;
+        GManager.bonusScore = 0;
+        GManager.maxBonusRatio = 0f;
         GManager.judgmentsComplete = false;
         // MusicManager は曲開始時に nextNotes = 1 にする (MusicManager.cs:172)。
         //  Judge は「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
@@ -155,6 +158,9 @@ public class JudgeSettlementInvariantTests
         GManager.comboMilestones = 0;
         GManager.milestoneBonus = 0;
         GManager.finalBonus = 0;
+        GManager.baseScore = 0;
+        GManager.bonusScore = 0;
+        GManager.maxBonusRatio = 0f;
         GManager.judgmentsComplete = false;
         GManager.nextNotes = 0;
         GManager.settledNoteCount = 0;
@@ -372,31 +378,38 @@ public class JudgeSettlementInvariantTests
         int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
         Assert.AreEqual(MixedChartNoteCount, judged);
 
-        // v3 の内訳: 判定 + コンボ継続 (maxCombo*5) + ノーミス (miss==0
-        // なら命中数*5) + 節目 (到達回数*25) + フルコンボ終了 (miss==0 なら 100)。
+        // v4 の内訳 (ADR-0033): 判定由来の基礎スコア + コンボ継続
+        // (maxCombo*5) + ノーミス (miss==0 なら命中数*5) + 節目 (到達回数*25)
+        // + フルコンボ終了 (miss==0 なら 100) を、それぞれ独立した
+        // 1,000,000 の天井でスコア点へ換算して合計する。
         // このプレイは Miss があるのでノーミスと終了ボーナスは 0。
-        Scoring.V3Breakdown expected = Scoring.BreakdownV3(
+        Scoring.V4Breakdown expected = Scoring.BreakdownV4(
             GManager.perfect, GManager.great, GManager.bad, GManager.miss,
             GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true);
         Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
-            "ratioScore が v3 の内訳と食い違う");
+            "ratioScore が v4 の内訳と食い違う");
         Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
         Assert.AreEqual(expected.NoMissBonus, GManager.noMissBonus, "noMissBonus が違う");
         Assert.AreEqual(expected.MilestoneBonus, GManager.milestoneBonus, "milestoneBonus が違う");
         Assert.AreEqual(expected.FinalBonus, GManager.finalBonus, "finalBonus が違う");
         Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneBonusPoints, GManager.milestoneBonus,
             "節目到達回数と節目ボーナスが一致しない");
-        Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.maxScore, 0.0001f,
-            "maxScore != MaxRatioV3(noteCount)");
-        Assert.LessOrEqual(GManager.ratioScore, GManager.maxScore, "ratioScore が maxScore を超えた");
+        Assert.AreEqual(Scoring.MaxBonusRatioV4(MixedChartNoteCount), GManager.maxBonusRatio, 0.0001f,
+            "maxBonusRatio != MaxBonusRatioV4(noteCount)");
+        Assert.AreEqual(expected.BaseScore, GManager.baseScore, "baseScore が違う");
+        Assert.AreEqual(expected.BonusScore, GManager.bonusScore, "bonusScore が違う");
+        Assert.LessOrEqual(GManager.baseScore, 1000000, "基礎スコアが 1,000,000 を超えた");
+        Assert.LessOrEqual(GManager.bonusScore, 1000000, "ボーナススコアが 1,000,000 を超えた");
 
-        // スコアは v3 の決定的な整数演算と一致する (Issue #631)。
+        // スコアは v4 の決定的な整数演算と一致する (Issue #631 と同じ)。
         Assert.AreEqual(
-            Scoring.ScoreV3(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
+            Scoring.ScoreV4(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
                 GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true),
             GManager.score);
+        Assert.AreEqual(GManager.baseScore + GManager.bonusScore, GManager.score,
+            "score != baseScore + bonusScore");
         Assert.GreaterOrEqual(GManager.score, 0);
-        Assert.LessOrEqual(GManager.score, 1000000);
+        Assert.LessOrEqual(GManager.score, Scoring.ScoreMaxV4);
 
         // 結果画面が読むフィールドが 0 のまま (判定が反映されていない) でないこと。
         Assert.Greater(GManager.score, 0, "スコアが 0 のまま (Judge が GManager に反映していない)");
@@ -405,10 +418,11 @@ public class JudgeSettlementInvariantTests
     }
 
     /// <summary>
-    /// 全ノーツ Perfect ならスコアは満点 (1,000,000) になる。
+    /// 全ノーツ Perfect のフルコンボならスコアは v4 の満点
+    /// (基礎 1,000,000 + ボーナス 1,000,000 = 2,000,000、ADR-0033)。
     /// </summary>
     [Test]
-    public void AllPerfect_ScoreIsExactlyOneMillion()
+    public void AllPerfect_ScoreIsExactlyTwoMillion()
     {
         Rig rig = BuildRig(MixedChartJson, MixedChartNoteCount);
         Player player = new Player(rig);
@@ -425,10 +439,13 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 4f, 0.05f));
 
         Assert.AreEqual(MixedChartNoteCount, GManager.perfect);
-        // v3: 判定 5N + コンボ 5N + ノーミス 5N + 節目 floor(N/50)*25
-        // + フルコンボ 100 = MaxRatioV3(N)。全 Perfect なら分子=分母。
+        // v4: 判定由来の基礎スコアは 1,000,000 (judgment = 5N の上限)、
+        // ボーナス側も全項目が上限なので bonusScore も 1,000,000。
+        // ratioScore は v3 と同じ ratio points 合計 (情報用)。
+        Assert.AreEqual(1000000, GManager.baseScore, "全 Perfect なのに基礎スコアが満点でない");
+        Assert.AreEqual(1000000, GManager.bonusScore, "全 Perfect なのにボーナスが満点でない");
         Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.ratioScore, 0.0001f);
-        Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
+        Assert.AreEqual(2000000, GManager.score, "全 Perfect フルコンボが 2,000,000 になっていない");
     }
 
     /// <summary>
@@ -477,7 +494,7 @@ public class JudgeSettlementInvariantTests
 
         Assert.IsTrue(sawIncomplete, "途中経過のフレームが観測できていない");
         Assert.IsTrue(sawComplete, "全ノーツ確定のフレームが観測できていない");
-        Assert.AreEqual(1000000, GManager.score, "全 Perfect なのに満点になっていない");
+        Assert.AreEqual(2000000, GManager.score, "全 Perfect フルコンボが 2,000,000 になっていない");
         Assert.Less(scoreAtLastIncompleteFrame, GManager.score,
             "確定フレームで終了ボーナス分のスコアが加算されていない");
     }
