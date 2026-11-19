@@ -36,6 +36,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private float ScaledLyricFs { get { return LyricFs * LyricFontScale(); } }
         private static readonly Color LyricBoxColor = new Color(0f, 0f, 0f, 0x99 / 255f);
 
+        /// <summary>歌詞ボックスの角丸半径 (canvas px)。V5Ui.Panel の radius と同じ値。</summary>
+        private const float LyricBoxCornerRadius = 8f;
+
+        /// <summary>
+        /// 歌詞本文の縁取り (Issue #760)。レーン回廊カットアウトでパネルの
+        /// 暗幕がレーン帯から消えるため、歌詞文字は動画の上に直接乗る。
+        /// 明るい映像の上でも読めるよう、細い黒縁を常時付ける。
+        /// </summary>
+        private const float LyricTextOutlineWidth = 0.25f;
+        private static readonly Color32 LyricTextOutlineColor = new Color32(0, 0, 0, 217);
+
         // --- 生成した部品 (歌詞系) ---
         private TextMeshProUGUI lyricText;
         private GameObject lyricBox;
@@ -70,8 +81,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             float slotHeight = V6HudLogic.LyricSlotHeight(ScaledLyricFs, CanvasSize().y);
             // #96/#523: 画面幅を超える design 幅は画面幅に収める (中央配置は不変)。
             var box = V5Ui.Panel(gameObject, "Lyric Box",
-                new Vector2(LyricBoxWidth(), slotHeight), LyricBoxColor, 8f);
-            box.GetComponent<Image>().raycastTarget = false;
+                new Vector2(LyricBoxWidth(), slotHeight), LyricBoxColor, LyricBoxCornerRadius);
+            var boxImage = box.GetComponent<Image>();
+            boxImage.raycastTarget = false;
+
+            // Issue #760: パネルがレーン帯を暗くしないよう、上部シェード
+            // (V6TopShadeHole) と同じレーン回廊カットアウトを焼き込んだ
+            // スプライトへ差し替える。9-slice の角丸は帯の抜きと両立しない
+            // ため、実寸テクスチャ (1 texel = 1 canvas px) + Simple で使う。
+            // 暗幕はレーン帯の外側に残るので、パネルの縁の見た目は従来どおり。
+            Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(
+                CanvasSize().x, CanvasSize().y);
+            boxImage.sprite = V6PanelCorridorHole.ForPanel(
+                slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
+                CanvasSize(), LyricBoxCornerRadius);
+            boxImage.type = Image.Type.Simple;
             lyricBox = box;
             // Issue #734: 初期状態は非表示。最初の UpdateLyrics (毎フレーム) が
             // 設定値と再生状態のポリシーで表示/非表示を決めるため、
@@ -102,6 +126,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             // LayoutElement で渡し、上の childControlHeight=true で行の高さを確保する。
             // Issue #433: 表示は歌詞本文の 1 行だけ。振り仮名・ローマ字は出さない。
             lyricText = V5Ui.Text(box, "Lyrics", "", ScaledLyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            // Issue #760: 回廊カットアウトで背後の暗幕が消えるため、
+            // 歌詞文字は動画の上に直接乗る。明るい映像でも読めるよう縁取りを付ける。
+            ApplyLyricTextOutline(lyricText);
             SetLyricRowHeight(lyricText, ScaledLyricFs);
 
             BuildLyricPrompt(box);
@@ -318,6 +345,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var label = V5Ui.Text(lyricPrompt, "Label", "to start", V6HudLogic.ReadyPromptFontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
+            // Issue #760: Start Prompt も歌詞ボックス内に出るので同じ縁取りを付ける
+            // (KeyCap は自前の背景を持つので対象外)。
+            ApplyLyricTextOutline(label);
             float labelW = MeasureTextWidth(label, "to start", V6HudLogic.ReadyPromptFontSize);
             V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
 
@@ -343,6 +373,18 @@ namespace FlashBeat.UI.V6.Game.Hud
             return new Vector2(
                 slotOrigin.x + LyricBoxWidth() * 0.5f - canvasSize.x * 0.5f,
                 -slotOrigin.y);
+        }
+
+        /// <summary>
+        /// 歌詞系テキストへ暗い縁取りを付ける (Issue #760)。
+        /// レーン回廊カットアウトでパネルの暗幕がレーン帯から消えるため、
+        /// 歌詞・Start Prompt の文字は動画の上に直接乗る。縁取りで明暗差を
+        /// 確保し、明るい映像の上でも可読性を保つ。
+        /// </summary>
+        private static void ApplyLyricTextOutline(TextMeshProUGUI text)
+        {
+            text.outlineWidth = LyricTextOutlineWidth;
+            text.outlineColor = LyricTextOutlineColor;
         }
 
         /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
