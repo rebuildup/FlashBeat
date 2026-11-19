@@ -41,10 +41,10 @@ namespace FlashBeat.UI.V6.Select.View
                 // design dRztp: Meta は縦 gap4・中央揃え。Title (0,8.5) 512×50、
                 // Artist Row (0,62.5) 512×29 — 50 + 4 + 29 = 83 が 100 の中で中央。
                 // 長い曲名は折り返さず自動縮小で 1 行に収める (Artist 行との重なり防止)。
-                title.textWrappingMode = TextWrappingModes.NoWrap;
-                title.enableAutoSizing = true;
-                title.fontSizeMin = 30f;
-                title.fontSizeMax = 48f;
+                // 極端に長い曲名は min サイズでも 512 に収まらないため、
+                // auto-size の下限に達した分は Ellipsis で切る (History 側と同じ規約)。
+                V6TextFit.AutoFit(title, 30f);
+                title.overflowMode = TextOverflowModes.Ellipsis;
                 V6Layout.Place(title, 0f, 8.5f, 512f, 50f);
                 // Issue #427: Title と同じ 512 幅・中央揃えにして、曲名と作曲者名の
                 // 中心軸を構造的に一致させる。タグ (No.N) は左端に絶対配置し、

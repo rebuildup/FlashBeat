@@ -335,11 +335,21 @@ namespace FlashBeat.V6CanvasTests
                 AssertRect(hints.Find("Hint Cap/Key"), 12f, 1.5f, 80f, 29f, "Hint Cap Key");
                 AssertRect(hints.Find("Hint Text"), 128f, 4.5f, 200f, 23f, "Hint Text");
 
-                Transform move = hints.Find("Legend 移動");
-                Assert.IsNotNull(move, "Legend 移動");
-                AssertRect(move, 509f, 3f, 101f, 26f, "Legend 移動");
-                AssertRect(move.Find("KeyCap"), 0f, 0f, 57f, 26f, "移動 KeyCap");
-                AssertRect(move.Find("Label"), 65f, 0f, 36f, 26f, "移動 Label");
+                // Issue #750: 「←→ 移動」は文字グリフの KeyCap ではなく chevron
+                // アイコン凡例 (V6Legend.IconItem)。cap は pad8×2 + icon20×2 + gap4
+                // = 60×26、アイコンは cap 直下の "Icon <name>"。
+                Transform moveCap = hints.Find("Legend Icons 移動");
+                Assert.IsNotNull(moveCap, "Legend Icons 移動");
+                AssertRect(moveCap, 509f, 3f, 60f, 26f, "Legend Icons 移動");
+                Assert.IsNotNull(moveCap.Find("Icon chevron-left"), "移動 Icon chevron-left");
+                Assert.IsNotNull(moveCap.Find("Icon chevron-right"), "移動 Icon chevron-right");
+                Transform moveLabel = hints.Find("Legend Label 移動");
+                Assert.IsNotNull(moveLabel, "Legend Label 移動");
+                var moveLabelRt = (RectTransform)moveLabel;
+                Assert.AreEqual(577f, DesignPos(moveLabel).x, 0.01f, "移動 Label x");
+                Assert.AreEqual(3f, DesignPos(moveLabel).y, 0.01f, "移動 Label y");
+                Assert.Greater(moveLabelRt.sizeDelta.x, 0f, "移動 Label width");
+                Assert.AreEqual(26f, moveLabelRt.sizeDelta.y, 0.01f, "移動 Label height");
 
                 Transform erase = hints.Find("Legend 削除");
                 Assert.IsNotNull(erase, "Legend 削除");
