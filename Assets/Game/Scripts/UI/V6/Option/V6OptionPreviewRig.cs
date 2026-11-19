@@ -390,12 +390,16 @@ namespace FlashBeat.UI.V6.Option
         private void BuildBeatFlash()
         {
             // GameScene "Flash" 実測 footprint: x ±4.44, z -0.94..20.96, y≈0.12。
-            // レーン範囲 + α マージンを取って x ±4.5、z -1..21、y=0.12。
-            const float y = 0.12f;
-            const float x0 = -4.5f;
-            const float x1 = 4.5f;
-            const float z0 = -1f;
-            const float z1 = 21f;
+            // 本編は pos (0,0.12,10.01) × scale (8.89,0.01,21.9) の薄い cube
+            // なので、カメラ真上から見える天面は x ±4.445・z -0.94..20.96・
+            // y=0.125。四捨五入で広げると点灯面積が数% 大きく出るため
+            // (実レンダリング比較で pv≈0.79 vs gp≈0.77 を観測)、
+            // 実測値をそのまま使う。
+            const float y = 0.125f;
+            const float x0 = -4.445f;
+            const float x1 = 4.445f;
+            const float z0 = -0.94f;
+            const float z1 = 20.96f;
             var vertices = new[]
             {
                 new Vector3(x0, y, z0),
