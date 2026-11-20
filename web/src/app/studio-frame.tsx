@@ -1,6 +1,7 @@
 import { cx, css } from "styled-system/css";
 import type { ReactNode } from "react";
 import { Sidebar } from "./sidebar";
+import { shellColumns } from "./shell-metrics";
 
 /**
  * The persistent frame of the Studio (issue #801).
@@ -19,12 +20,10 @@ import { Sidebar } from "./sidebar";
  */
 const shell = css({
   display: { base: "block", md: "grid" },
-  gridTemplateColumns: { md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { md: "1fr" },
   minHeight: "100dvh",
   "&[data-fixed]": {
     display: "grid",
-    gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
     gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
     height: "100dvh",
     overflow: "hidden",
@@ -51,7 +50,7 @@ export function StudioFrame({
   children: ReactNode;
 }) {
   return (
-    <div className={shell} data-fixed={fixed ? "true" : undefined}>
+    <div className={cx(shell, shellColumns)} data-fixed={fixed ? "true" : undefined}>
       <Sidebar />
       <main id="studio-content" className={cx(main, fixed && mainFixed)}>
         {children}

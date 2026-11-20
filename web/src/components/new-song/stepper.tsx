@@ -34,20 +34,20 @@ const stepButton = css({
 });
 
 const currentStep = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   fontWeight: "medium",
 });
 
 const doneStep = css({
   bg: "transparent",
-  color: "#9ad3fa",
-  _hover: { bg: "#262626" },
+  color: "blue.11",
+  _hover: { bg: "gray.4" },
 });
 
 const upcomingStep = css({
   bg: "transparent",
-  color: "#8c8c8c",
+  color: "fg.subtle",
 });
 
 const stepNumber = css({
@@ -73,7 +73,7 @@ const stepLabelJa = css({
 });
 
 const separator = css({
-  bg: "#3a3a3a",
+  bg: "gray.8",
   height: "1px",
   width: "4",
 });

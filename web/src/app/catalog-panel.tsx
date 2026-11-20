@@ -4,6 +4,18 @@ import { routeUrl } from "void/routes";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
+import {
+  Badge,
+  actionLink,
+  actionLinkSubtle,
+  keyCap,
+  metaLine,
+  metaText,
+  num,
+  numWide,
+  rowActions,
+  visuallyHidden,
+} from "./list";
 import { SongThumbnail } from "./song-thumbnail";
 import type { SongSummary } from "./types";
 import {
@@ -76,9 +88,8 @@ const cardTitleRow = css({
 
 const cardTitle = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "1.3",
+  /** Issue #802: row titles use the shared `rowTitle` step (16px medium). */
+  textStyle: "rowTitle",
   minWidth: "0",
   overflow: "hidden",
   /**
@@ -98,7 +109,7 @@ const cardMeta = css({
   color: "fg.muted",
   display: "flex",
   flexWrap: "wrap",
-  fontSize: "xs",
+  fontSize: "sm",
   gap: "2",
   lineHeight: "1.5",
 });
@@ -159,7 +170,8 @@ const row = css({
   display: "grid",
   gridColumn: "1 / -1",
   gridTemplateColumns: COLUMNS,
-  minHeight: "3.5rem",
+  /** Issue #802: 4rem rows — the 3rem thumbnail plus breathing room. */
+  minHeight: "4rem",
   paddingBottom: "2",
   paddingTop: "2",
   position: "relative",
@@ -235,9 +247,8 @@ const rowText = css({
 
 const titleText = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "1.3",
+  /** Issue #802: row titles use the shared `rowTitle` step (16px medium). */
+  textStyle: "rowTitle",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "normal",
@@ -247,48 +258,10 @@ const titleText = css({
   width: "100%",
 });
 
-const artistText = css({
-  color: "fg.muted",
-  fontSize: "xs",
-  lineHeight: "1.3",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  width: "100%",
-});
-
+/** Fixed-width level chip inside the shared neutral Badge. */
 const levelBadge = css({
-  bg: "gray.8",
-  borderRadius: "l1",
-  color: "fg.default",
-  display: "inline-flex",
   fontVariantNumeric: "tabular-nums",
-  fontSize: "xs",
-  fontWeight: "medium",
-  justifyContent: "center",
   minWidth: "2rem",
-  paddingX: "2",
-  paddingY: "0.5",
-});
-
-const num = css({
-  color: "fg.muted",
-  display: { base: "none", md: "block" },
-  fontVariantNumeric: "tabular-nums",
-  fontSize: "sm",
-  textAlign: "right",
-  whiteSpace: "nowrap",
-});
-
-/** Time column: like `num`, but hidden below `lg` — the header hides it there
- * too, so the row keeps one cell per column of the md grid. */
-const numTime = css({
-  color: "fg.muted",
-  display: { base: "none", lg: "block" },
-  fontVariantNumeric: "tabular-nums",
-  fontSize: "sm",
-  textAlign: "right",
-  whiteSpace: "nowrap",
 });
 
 const version = css({
@@ -299,86 +272,13 @@ const version = css({
   whiteSpace: "nowrap",
 });
 
-const actions = css({
-  alignItems: "center",
-  display: "flex",
-  gap: "2",
-  justifyContent: "flex-end",
-  paddingRight: "4",
-  zIndex: "1",
-  minWidth: "0",
-  /**
-   * The container sits above the stretched row link: it must not swallow
-   * clicks that land between its children (the "Open chart" hint, the
-   * paddings) — only the real links take the pointer (issue #166).
-   */
-  pointerEvents: "none",
-});
-
-const actionLink = css({
-  alignItems: "center",
-  borderRadius: "l1",
-  color: "fg.muted",
-  display: "inline-flex",
-  fontSize: "xs",
-  fontWeight: "medium",
-  gap: "1",
-  minHeight: "8",
-  paddingInline: "2",
-  /** Re-enable the pointer the non-interactive `actions` wrapper turned off. */
-  pointerEvents: "auto",
-  textDecoration: "none",
-  whiteSpace: "nowrap",
-  _hover: {
-    bg: "gray.a3",
-    color: "fg.default",
-  },
-  _focusVisible: {
-    outline: "2px solid",
-    outlineColor: "blue.9",
-    outlineOffset: "1px",
-  },
-});
-
-const youtubeAction = css({
-  color: "fg.subtle",
-  _hover: {
-    color: "fg.default",
-  },
-});
-
-/**
- * The publish requirement as a non-interactive badge (issue #215 review): a
- * guest sees the staff/admin-token boundary in the row without a link to
- * press; the per-song publish path starts at the chart page.
- */
-const publishBadge = css({
-  alignItems: "center",
-  borderColor: "border",
-  borderRadius: "full",
-  borderStyle: "solid",
-  borderWidth: "1px",
-  color: "fg.subtle",
-  display: "inline-flex",
-  fontSize: "xs",
-  gap: "1",
-  paddingBlock: "0.5",
-  paddingInline: "2",
-  whiteSpace: "nowrap",
-});
-
 const levelCell = css({
   display: { base: "none", md: "block" },
 });
 
-const metaLine = css({
-  color: "fg.subtle",
-  display: { base: "flex", md: "none" },
-  flexWrap: "wrap",
-  fontSize: "xs",
-  fontVariantNumeric: "tabular-nums",
-  gap: "1",
-  lineHeight: "1.3",
+/** Right inset of the actions cell, aligned with the row body's padding. */
+const actionsCell = css({
+  paddingRight: "4",
 });
 
 const legend = css({
@@ -392,30 +292,6 @@ const legend = css({
   gap: "3",
   paddingInline: "4",
   paddingY: "2",
-});
-
-const keyCap = css({
-  bg: "gray.8",
-  borderRadius: "l1",
-  color: "fg.default",
-  display: "inline-block",
-  fontFamily: "inherit",
-  fontSize: "xs",
-  lineHeight: "1.2",
-  minWidth: "4",
-  padding: "0.5 1.5",
-  textAlign: "center",
-});
-
-/** Invisible only to sighted users; screen readers read the full row name. */
-const visuallyHidden = css({
-  clip: "rect(0 0 0 0)",
-  clipPath: "inset(50%)",
-  height: "1px",
-  overflow: "hidden",
-  position: "absolute",
-  whiteSpace: "nowrap",
-  width: "1px",
 });
 
 const accent = css({ colorPalette: "blue" });
@@ -564,7 +440,7 @@ export function CatalogPanel({
                         <span className={cardTitle}>{song.title}</span>
                       </Link>
                     </span>
-                    <span className={levelBadge}>{song.level}</span>
+                    <Badge className={levelBadge}>{song.level}</Badge>
                   </div>
                   <div className={cardMeta}>
                     <span>{song.artist}</span>
@@ -583,16 +459,16 @@ export function CatalogPanel({
                       row only states the requirement so a guest never starts
                       a publish operation from a catalog row.
                     */}
-                    <span
-                      className={publishBadge}
-                      data-testid="publish-requirement"
+                    <Badge
+                      tone="outline"
+                      testId="publish-requirement"
                       title="公開にはスタッフのadminトークンが必要です"
                     >
                       公開はスタッフ（要トークン）
-                    </span>
+                    </Badge>
                     <a
                       aria-label={`${song.title} をYouTubeで開く`}
-                      className={`${actionLink} ${youtubeAction}`}
+                      className={actionLinkSubtle}
                       href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
                       rel="noreferrer"
                       target="_blank"
@@ -626,7 +502,7 @@ export function CatalogPanel({
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
                       <span className={rowText}>
                         <span className={titleText}>{song.title}</span>
-                        <span className={artistText}>{song.artist}</span>
+                        <span className={metaText}>{song.artist}</span>
                         <span className={metaLine}>
                           <span>Lv {song.level}</span>
                           <span>·</span>
@@ -642,29 +518,29 @@ export function CatalogPanel({
                     </span>
 
                     <span className={levelCell}>
-                      <span className={levelBadge}>{song.level}</span>
+                      <Badge className={levelBadge}>{song.level}</Badge>
                     </span>
                     <span className={num}>{song.bpm}</span>
-                    <span className={numTime}>{formatDuration(song.durationSec)}</span>
+                    <span className={numWide}>{formatDuration(song.durationSec)}</span>
                     <span className={num}>{song.noteCount}</span>
                     <span className={version}>v{song.chartVersion}</span>
 
-                    <span className={actions}>
+                    <span className={`${rowActions} ${actionsCell}`}>
                       {/*
                         Issue #215 review: the row states the publish
                         requirement instead of linking it — the per-song path
                         starts at the chart page or the staff sidebar.
                       */}
-                      <span
-                        className={publishBadge}
-                        data-testid="publish-requirement"
+                      <Badge
+                        tone="outline"
+                        testId="publish-requirement"
                         title="公開にはスタッフのadminトークンが必要です"
                       >
                         公開はスタッフ（要トークン）
-                      </span>
+                      </Badge>
                       <a
                         aria-label={`${song.title} をYouTubeで開く`}
-                        className={`${actionLink} ${youtubeAction}`}
+                        className={actionLinkSubtle}
                         href={`https://youtu.be/${encodeURIComponent(song.youtubeId)}`}
                         rel="noreferrer"
                         target="_blank"

@@ -5,6 +5,7 @@ import { Archive, ArchiveRestore, Info, RefreshCw } from "lucide-react";
 import { loadAdminSongs, setSongArchived } from "@/lib/dashboard/client";
 import type { AdminSong } from "@/lib/dashboard/types";
 import { StateBlock, panelBody, panelFrame, panelHeader, panelSubtitle, panelTitle } from "./panel";
+import { Badge, metaText, num } from "./list";
 import { isAbortError, useLatestRequest } from "./request-guard";
 
 /**
@@ -73,15 +74,34 @@ const rows = css({
   flexDirection: "column",
 });
 
+/** Column header of the song table — same tracks as `row` (issue #802). */
+const header = css({
+  borderBottomColor: "border",
+  borderBottomWidth: "1px",
+  color: "fg.subtle",
+  columnGap: "4",
+  display: { base: "none", md: "grid" },
+  fontSize: "xs",
+  gridTemplateColumns: { md: "minmax(0, 1fr) 4rem 5rem 6rem 8rem" },
+  paddingBottom: "2",
+  paddingTop: "1",
+});
+
+const headerNum = css({
+  textAlign: "right",
+});
+
 const row = css({
   alignItems: "center",
   borderBottomColor: "border",
   borderBottomWidth: "1px",
   columnGap: "4",
   display: "grid",
+  /** Issue #802: title + plays + best score + version + actions. */
   gridTemplateColumns: { base: "minmax(0, 1fr) auto", md: "minmax(0, 1fr) 4rem 5rem 6rem 8rem" },
-  minHeight: "3rem",
+  minHeight: "3.5rem",
   _last: { borderBottomWidth: "0" },
+  _hover: { bg: "gray.a3" },
 });
 
 const songCell = css({
@@ -93,35 +113,29 @@ const songCell = css({
 
 const songTitle = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "medium",
+  /** Issue #802: row titles use the shared `rowTitle` step (16px medium). */
+  textStyle: "rowTitle",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });
 
-const songMeta = css({
-  color: "fg.muted",
-  fontSize: "xs",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+/** Play count folded into the meta line where the numeric column hides. */
+const playsInline = css({
+  display: { base: "inline", md: "none" },
 });
 
-const num = css({
-  color: "fg.muted",
-  display: { base: "none", md: "block" },
-  fontVariantNumeric: "tabular-nums",
-  fontSize: "sm",
-  textAlign: "right",
-  whiteSpace: "nowrap",
-});
-
+/**
+ * Action cluster of a management row. Unlike the catalog's `rowActions`
+ * this row has no stretched link overlay, so the cluster keeps normal
+ * pointer events for the Park UI buttons.
+ */
 const actions = css({
   alignItems: "center",
   display: "flex",
   gap: "2",
   justifyContent: "flex-end",
+  minWidth: "0",
   py: "2",
 });
 
@@ -129,15 +143,6 @@ const actions = css({
 const buttonIcon = css({
   color: "currentColor",
   marginRight: "1",
-});
-
-const archivedTag = css({
-  bg: "gray.8",
-  borderRadius: "l1",
-  color: "fg.muted",
-  fontSize: "xs",
-  paddingX: "2",
-  paddingY: "0.5",
 });
 
 export function SongsPanel() {
@@ -247,15 +252,24 @@ export function SongsPanel() {
 
           {status === "ready" ? (
             <div className={rows}>
+              {/* Issue #802: the columns were unlabeled — name them once. */}
+              <div className={header} aria-hidden="true">
+                <span>曲</span>
+                <span className={headerNum}>プレイ</span>
+                <span className={headerNum}>最高スコア</span>
+                <span className={headerNum}>Ver</span>
+                <span />
+              </div>
               {songs.map((song) => (
                 <div key={song.id} className={row}>
                   <div className={songCell}>
                     <span className={songTitle}>{song.title}</span>
-                    <span className={songMeta}>
+                    <span className={metaText}>
                       {song.artist} · Lv.{song.level} · {song.id}
                       {song.archived && song.archivedAt !== null
                         ? ` · アーカイブ ${new Date(song.archivedAt).toLocaleString("ja-JP")}`
                         : ""}
+                      <span className={playsInline}>{` · プレイ ${song.plays}`}</span>
                     </span>
                   </div>
                   <span className={num}>{song.plays}</span>
@@ -266,7 +280,7 @@ export function SongsPanel() {
                   <div className={actions}>
                     {song.archived ? (
                       <>
-                        <span className={archivedTag}>アーカイブ</span>
+                        <Badge tone="muted">アーカイブ</Badge>
                         <Button
                           size="sm"
                           variant="outline"

@@ -1,6 +1,6 @@
-import { css } from "styled-system/css";
 import type { ReactNode } from "react";
 import { PageHeader } from "./page-header";
+import { contentArea } from "./shell-metrics";
 
 /**
  * The scaffold of a staff studio page (issue #151): a heading and the
@@ -11,16 +11,6 @@ import { PageHeader } from "./page-header";
  * navigation. Every page receives the same persistent frame; only the
  * content below the header is swapped on navigation.
  */
-const content = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  gap: "5",
-  minHeight: "0",
-  overflowY: "auto",
-  p: "5",
-});
-
 export function StudioLayout({
   title,
   subtitle,
@@ -33,7 +23,7 @@ export function StudioLayout({
   return (
     <>
       <PageHeader title={title} subtitle={subtitle} />
-      <div className={content}>{children}</div>
+      <div className={contentArea}>{children}</div>
     </>
   );
 }

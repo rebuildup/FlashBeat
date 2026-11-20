@@ -26,14 +26,15 @@ const heading = css({
 
 const titleText = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "semibold",
+  /** The catalog heading is a page title — same step as `PageHeader` (issue #802). */
+  textStyle: "pageTitle",
   margin: "0",
 });
 
 const subtitleText = css({
   color: "fg.muted",
-  fontSize: "xs",
+  /** Shared secondary-text step (issue #802). */
+  textStyle: "rowMeta",
   margin: "0",
 });
 

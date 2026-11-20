@@ -1,23 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { css } from "styled-system/css";
 import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
+import { contentArea } from "./shell-metrics";
 import { WelcomeHero } from "@/components/welcome/welcome-hero";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import { isAbortError, useLatestRequest } from "./request-guard";
 import type { SongSummary } from "./types";
-
-/** Work area of scrolling pages: padded, one inner scroll area. */
-const content = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  gap: "3",
-  minHeight: "0",
-  overflowY: "auto",
-  p: "4",
-});
 
 /**
  * The catalog page content (issue #166). Issue #801 moved the shared shell —
@@ -161,7 +150,7 @@ export function AppShell({
         onSortChange={setSort}
       />
 
-      <div className={content}>
+      <div className={contentArea}>
         <CatalogPanel
           status={effectiveStatus}
           songs={visibleSongs}

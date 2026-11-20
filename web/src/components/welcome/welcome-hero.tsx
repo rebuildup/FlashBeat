@@ -31,8 +31,8 @@ const copy = css({
 
 const heading = css({
   color: "fg.default",
-  fontSize: "lg",
-  fontWeight: "semibold",
+  /** Shared section-heading step (issue #802). */
+  textStyle: "sectionTitle",
   margin: "0",
 });
 
@@ -41,7 +41,8 @@ const steps = css({
   color: "fg.muted",
   display: "flex",
   flexWrap: "wrap",
-  fontSize: "xs",
+  /** Shared caption step (issue #802). */
+  textStyle: "caption",
   gap: "2",
   margin: "0",
 });

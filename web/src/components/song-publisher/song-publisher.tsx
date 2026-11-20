@@ -106,8 +106,8 @@ const side = css({
    * drawer over the work area (issue #74). Wide viewports: the persistent
    * right column.
    */
-  bg: { base: "#1b1b1b", lg: "transparent" },
-  borderLeftColor: { base: "#2d2d2d", lg: "transparent" },
+  bg: { base: "canvas", lg: "transparent" },
+  borderLeftColor: { base: "border", lg: "transparent" },
   borderLeftWidth: { base: "1px", lg: "0px" },
   bottom: { base: "0", lg: "auto" },
   height: { base: "100dvh", lg: "auto" },
@@ -139,15 +139,15 @@ const sideHeader = css({
 
 const sideClose = css({
   alignItems: "center",
-  bg: "#3a3a3a",
+  bg: "gray.8",
   borderRadius: "8px",
-  color: "#ffffff",
+  color: "fg.default",
   display: { base: "flex", lg: "none" },
   height: "sizes.7",
   justifyContent: "center",
   width: "sizes.7",
-  _hover: { bg: "#454545" },
-  _focusVisible: { outline: "2px solid #3fa9f5", outlineOffset: "2px" },
+  _hover: { bg: "gray.9" },
+  _focusVisible: { outline: "2px solid", outlineColor: "blue.9", outlineOffset: "2px" },
 });
 
 const sideScroll = css({
@@ -217,11 +217,11 @@ const badge = css({
 const accent = css({ colorPalette: "blue" });
 
 const buttonSecondary = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   borderRadius: "8px",
   borderColor: "transparent",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
   _disabled: { opacity: 0.4 },
 });
 
@@ -232,7 +232,7 @@ const sidebarToggle = css({
 });
 
 const sideTitle = css({
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "xs",
   fontWeight: "medium",
   margin: "0",
