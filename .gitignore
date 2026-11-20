@@ -117,3 +117,6 @@ node_modules/
 !.env.example
 !.env.*.example
 .dev.vars
+
+# RC 証跡としてコミットするテスト結果は例外
+!docs/evidence/**/TestResults*.xml

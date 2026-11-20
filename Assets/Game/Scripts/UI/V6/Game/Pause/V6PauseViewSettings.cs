@@ -19,98 +19,30 @@ namespace FlashBeat.UI.V6.Game.Pause
     /// </summary>
     public sealed partial class V6PauseView
     {
-        /// <summary>KeyBindings 未初期化 (null) は既定扱い (IsCustomLayout は null を
-        /// 「既定と異なる」と扱うのでここで防ぐ)。</summary>
-        private static bool IsCustomLayout()
+        /// <summary>選択行 (Sound タブ) の音量対象 index (<see cref="V6SettingRow.VolumeIndex"/>)。
+        /// 音量行以外が選ばれているときは先頭 (Main) を返す。</summary>
+        private int SelectedVolumeIndex()
         {
-            return KeyBindings.Current != null && KeyConfigUI.IsCustomLayout();
-        }
-
-        /// <summary>Volume の行の値変更 (GManager へ書き、音も即時反映)。</summary>
-        private enum VolumeTarget
-        {
-            Main = 0,
-            Se = 2,
-        }
-
-        private void AdjustVolume(int dir, VolumeTarget target)
-        {
-            // Issue #375 §3.2: 1% 刻み、Shift 併用で 10%。Option と同じ値モデル。
-            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            switch (target)
+            var rows = pageRows[selectedTab];
+            if (selectedRow >= 0 && selectedRow < rows.Count && rows[selectedRow].VolumeIndex >= 0)
             {
-                case VolumeTarget.Main:
-                    GManager.mainVolume = V6VolumeSlider.Nudge(GManager.mainVolume, dir, shift);
-                    break;
-                case VolumeTarget.Se:
-                    GManager.effectVolume = V6VolumeSlider.Nudge(GManager.effectVolume, dir, shift);
-                    break;
+                return rows[selectedRow].VolumeIndex;
             }
 
-            ApplyVolumes();
-            OptionSettings.Save();
-            if (volumeSlider != null)
-            {
-                volumeSlider.Refresh();
-            }
-        }
-
-        /// <summary>選択行 (Sound の 0 = Main / 1 = SE) の音量。</summary>
-        private float SelectedPauseVolume()
-        {
-            return selectedRow == 1 ? GManager.effectVolume : GManager.mainVolume;
+            return 0;
         }
 
         /// <summary>スライダーのドラッグ結果を GManager へ書き、即時反映する。
-        /// 保存はドラッグ終了時だけ (ドラッグ中は毎フレーム書かない)。</summary>
+        /// 保存はドラッグ終了時だけ (ドラッグ中は毎フレーム書かない)。
+        /// Issue #733: 値モデルは Option と同じ <see cref="V6VolumeSettings"/>
+        /// (キー操作は 0.5 秒まとめて保存、ドラッグ確定・画面を離れるときは即保存)。</summary>
         private void SetSelectedPauseVolume(float value, bool final)
         {
-            float clamped = Mathf.Clamp01(value);
-            if (selectedRow == 1)
-            {
-                GManager.effectVolume = clamped;
-            }
-            else
-            {
-                GManager.mainVolume = clamped;
-            }
-
-            ApplyVolumes();
-            if (final)
-            {
-                OptionSettings.Save();
-            }
-
+            volumeSettings.Set(SelectedVolumeIndex(), value, final);
             RefreshRows();
             if (volumeSlider != null)
             {
                 volumeSlider.Refresh();
-            }
-        }
-
-        /// <summary>音量は各所有者が起動時にしか読まないので、シーン内の AudioSource にも即時反映
-        /// (v5 PauseMenuView.ApplyVolumes と同じ挙動)。</summary>
-        private void ApplyVolumes()
-        {
-            AudioListener.volume = GManager.mainVolume;
-
-            var music = UnityEngine.Object.FindFirstObjectByType<MusicManager>();
-            if (music != null)
-            {
-                // Issue #681 review: 演奏音源は audioS と streamAudioSource
-                // (StreamSeparate) の 2 系統。片方だけ書き換えると
-                // StreamSeparate 再生中に音量が追従しない。
-                music.ApplyMainVolume();
-            }
-
-            var judge = UnityEngine.Object.FindFirstObjectByType<Judge>();
-            if (judge != null)
-            {
-                var src = judge.GetComponent<AudioSource>();
-                if (src != null)
-                {
-                    src.volume = GManager.effectVolume;
-                }
             }
         }
 

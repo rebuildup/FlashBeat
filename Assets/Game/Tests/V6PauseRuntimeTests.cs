@@ -6,17 +6,22 @@ namespace FlashBeat.V6HudTests
     /// <summary>
     /// v6 ポーズの実データ結線 (Issue #224) の EditMode テスト。
     /// Data タブに追加した演奏状況行 (スコア / コンボ / 判定 / 進捗) の
-    /// 表示式と、統合フラグ (V6PauseView.Enabled) の既定値を検証する。
+    /// 表示式と、統合フラグ撤去後の不変条件 (Issue #740 Stage B) を検証する。
     /// ビュー (uGUI 生成) は含まない。
     /// </summary>
     public class V6PauseRuntimeTests
     {
-        // --- 統合フラグ (V6UiMode との連動は統合担当が行う。既定は v6 側を優先) ---
+        // --- 統合フラグ (Issue #740 Stage B で撤去。v6 ポーズは無条件) ---
 
         [Test]
-        public void Enabled_DefaultsToTrue()
+        public void EnabledFlag_IsRemoved()
         {
-            Assert.IsTrue(V6PauseView.Enabled);
+            // V6PauseView.Enabled は Stage B で畳んだ。復活すると
+            // 「フラグ off で v6 ポーズが作られない」旧フォールバック経路が
+            // 復活するので、フィールドが無いことを固定する。
+            Assert.IsNull(typeof(V6PauseView).GetField("Enabled",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static),
+                "V6PauseView.Enabled が残っている (Stage B で撤去したはず)。");
         }
 
         // --- Data タブの演奏状況行 (実データの表示式) ---

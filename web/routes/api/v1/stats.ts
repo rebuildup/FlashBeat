@@ -25,7 +25,7 @@
  *     archived and with a published chart version). Archived songs are
  *     counted separately — the festival never deletes a song.
  *   - **scoring version**: every aggregate counts only the latest scoring
- *     version the server supports (ADR-0028, ADR-0029). v1, v2 and v3 scores
+ *     version the server supports (ADR-0028, ADR-0029, ADR-0033). v1–v4 scores
  *     live on different scales, so mixing them in `plays`, `averageScore`,
  *     `bestScore` or `topPlayers` would silently compare incomparable
  *     numbers; older rows stay readable through the versioned leaderboard.

@@ -338,9 +338,13 @@ export async function loadStats(options: DashboardRequestOptions = {}): Promise<
 }
 
 /** Load the staff song list (archived songs included). */
-export async function loadAdminSongs(token: string): Promise<AdminSongsResponse> {
+export async function loadAdminSongs(
+  token: string,
+  options: DashboardRequestOptions = {},
+): Promise<AdminSongsResponse> {
   const response = await fetch("/api/v1/admin/songs", {
     headers: { accept: "application/json", authorization: `Bearer ${token}` },
+    signal: options.signal,
   });
   if (!response.ok) {
     throw new Error(`楽曲一覧APIが${response.status}を返しました`);

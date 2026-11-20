@@ -102,9 +102,6 @@ public class NotesManager : MonoBehaviour
     /// <summary>1 フレームあたりのノーツ生成の時間予算 (ミリ秒)。</summary>
     internal const double InstantiateBudgetMs = 8.0;
 
-    /// <summary>LoadingOverlay でのオーナーキー。</summary>
-    internal const string OverlayOwner = "notes";
-
     /// <summary>
     /// Time of a note on the chart timeline (seconds). The chart counts in
     /// beats: num / LPB beats at the given BPM. The formula is the contract
@@ -162,7 +159,7 @@ public class NotesManager : MonoBehaviour
     /// 大きい譜面でフレームが固まった)。
     /// 1. JSON の解析とノーツ時刻の計算 (純粋な数値処理、1 フレーム以内)
     /// 2. ノーツ prefab の生成を 1 フレームあたり InstantiateBudgetms 以下の
-    ///    バッチに分けて実行し、進捗を LoadingOverlay に出す
+    ///    バッチに分けて実行し、進捗を V6LoadingView へ報告する
     /// MusicManager は IsReady になるまで Space での開始を許可しないので、
     /// 判定タイミングへの影響はない。
     /// </summary>
@@ -221,6 +218,9 @@ public class NotesManager : MonoBehaviour
         // (Issue #164) 100万点の算出は notes x 15 のままで正しい。
         // scoring v3 (ADR-0029 / Issue #602): 分母は判定 5 + コンボ 5 +
         // ノーミス 5 + 節目ボーナス上限 floor(N/50)*25 + フルコンボ 100。
+        // scoring v4 (ADR-0033) のスコア計算はこの値を使わず、
+        // Judge.FlushScore が MaxBonusRatioV4 を GManager.maxBonusRatio に
+        // 書く。maxScore は v3 ratio の情報用フィールドとして残す。
         GManager.maxScore = Scoring.MaxRatioV3(total);
 
         // 時刻計算は純粋な数値処理なので一括で行う (生成は後続のバッチで)。
@@ -290,16 +290,13 @@ public class NotesManager : MonoBehaviour
         Debug.Log($"[Perf] notes parse {parseMs}ms ({total} notes)");
 
         // ノーツ生成: 1 フレームあたり時間予算つきのバッチで少しずつ。
-        // 表示は所有者に従う: v6 のゲーム HUD が有効なら V6LoadingView が
-        // 曲の準備 (メディア + 譜面) を単独で表示するので、旧 LoadingOverlay は出さない
-        // (2 枚重なると読み込み画面が二重になる)。v6 無効時のみ旧経路で出す。
-        bool showLegacyOverlay = GameLoadingRoute.UsesLegacyOverlay;
+        // 表示は V6LoadingView が曲の準備 (メディア + 譜面) を単独で表示する
+        // (旧 LoadingOverlay の経路は Issue #740 Stage B で撤去)。
         var batcher = new TimeBudgetBatcher(InstantiateBudgetMs);
         var instantiateStopwatch = Stopwatch.StartNew();
         PerfMarks.Hit("notes-instantiate");
         double slowestBatchMs = 0.0;
         int slowestBatchStart = -1;
-        if (showLegacyOverlay) LoadingOverlay.Show("譜面を準備中…", OverlayOwner);
         int done = 0;
         while (done < total)
         {
@@ -344,13 +341,8 @@ public class NotesManager : MonoBehaviour
             }
             done += batch;
             FlashBeat.UI.V6.Game.Loading.GameLoadingProgress.ReportNotes((float)done / total);
-            if (showLegacyOverlay)
-            {
-                LoadingOverlay.SetProgress(LoadingOverlayLogic.MapProgress((float)done / total), OverlayOwner);
-            }
             if (done < total) yield return null;
         }
-        if (showLegacyOverlay) LoadingOverlay.Hide(OverlayOwner);
 
         for (int i = 0; i < 10; i++)
         {

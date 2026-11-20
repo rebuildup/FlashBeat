@@ -300,7 +300,7 @@ namespace FlashBeat.Tests.Editor
             PlaySessionSnapshot session = PlaySessionSnapshot.Begin(RemoteSong(3, "who", 1), 1, ChartV1);
 
             // GameScene / ResultScene ではスナップショット (開始時の内容) を優先する。
-            // ResultRankingOverlay.RankingSong が読む版が、実際にプレイした版と一致する。
+            // リザルト表示が読む版が、実際にプレイした版と一致する。
             Assert.AreSame(session.Song, PlaySessionSnapshot.PinnedSongFor(3, true));
             Assert.IsNull(PlaySessionSnapshot.PinnedSongFor(3, false), "選曲画面では最新カタログを見せる");
             Assert.IsNull(PlaySessionSnapshot.PinnedSongFor(1, true), "他の曲の行は固定しない");

@@ -26,11 +26,28 @@ namespace FlashBeat.UI.V6.Game.Hud
         private static readonly Dictionary<string, Sprite> topShadeSprites =
             new Dictionary<string, Sprite>();
 
+        /// <summary>
+        /// テスト用: Top Shade スプライトのキャッシュを空にする。
+        /// レーンコリドー抜きは構築時のカメラで焼き込まれるため、カメラの
+        /// 居ない EditMode テストが先に同じ解像度キーのスプライトを作ると、
+        /// 後続の描画テストが誤ったコリドーを掴む。テスト側で明示的に切る。
+        /// </summary>
+        public static void ClearTopShadeSpriteCacheForTests()
+        {
+            topShadeSprites.Clear();
+        }
+
         // --- 生成した部品 (枠まわり) ---
         private RectTransform progressFill;
         private RectTransform progressTrack;
         private GameObject keyGuideRow;
         private readonly List<TextMeshProUGUI> keyCaps = new List<TextMeshProUGUI>();
+
+        // メニューボタン内のキーキャップ (Issue #750: 表示は KeyActions の実バインド。
+        // 再割当 (KeyActions.Changed) で文言と幅を更新するため部品を保持する)。
+        private TextMeshProUGUI menuLabel;
+        private GameObject menuCapPanel;
+        private TextMeshProUGUI menuCapKey;
 
         private void BuildDim()
         {
@@ -164,49 +181,88 @@ namespace FlashBeat.UI.V6.Game.Hud
             // KeyCap は padding [0,10] の自動幅・自動高 (55×32 @(112,8) at FHD)。
             // 以前は layout padding 16 / gap 8 / 固定幅 52 で置き、さらに Key の fs が
             // 未代入 (0) だったため「Esc」が描画されなかった。
+            // Issue #750: キャップ文字は固定の Esc ではなく、ポーズを開く実際の
+            // 割り当て (KeyActions.KeyAction.Back) から取る (他画面と同じ規約)。
             var label = V5Ui.Text(btn, "Label", "メニュー", m.MenuFs, V5Tokens.Text,
                 TextAlignmentOptions.Left);
-            float labelW = MeasureTextWidth(label, "メニュー", m.MenuFs);
+            menuLabel = label;
 
             var cap = V5Ui.Panel(btn, "KeyCap",
                 new Vector2(0f, m.MenuCapH), new Color(0f, 0f, 0f, 0x40 / 255f), 4f);
-            var capKey = V5Ui.Text(cap, "Key", "Esc", m.MenuFs, V5Tokens.TextMuted,
+            menuCapPanel = cap;
+            var capKey = V5Ui.Text(cap, "Key", MenuKeyText(), m.MenuFs, V5Tokens.TextMuted,
                 TextAlignmentOptions.Center);
             V6Layout.StretchFill(capKey.rectTransform);
-            float capW = MeasureTextWidth(capKey, "Esc", m.MenuFs) + V6Ui.KeyCapPaddingX * 2f;
-            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, m.MenuCapH);
+            menuCapKey = capKey;
 
-            float total = labelW + m.MenuGap + capW;
-            float rowX = Mathf.Round((m.MenuW - total) * 0.5f);
-            float rowY = Mathf.Round((m.MenuH - m.MenuCapH) * 0.5f);
-            PlaceTopLeft(label.rectTransform, rowX, -rowY);
-            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, m.MenuCapH);
-            PlaceTopLeft(V6Layout.RectOf(cap), rowX + labelW + m.MenuGap, -rowY);
+            LayoutMenuButton();
 
+            // ポーズの開閉は V6PauseRuntime がこのボタンへ接線する
+            // (Issue #740: 旧 v5 PauseMenuView のフォールバックは撤去済み)。
             MenuButton = btn.AddComponent<Button>();
             MenuButton.targetGraphic = btn.GetComponent<Image>();
             V6ButtonPressFeedback.Attach(btn);
-            MenuButton.onClick.AddListener(OpenPauseMenu);
         }
 
         /// <summary>
-        /// HUD のメニューボタンの既定リスナー。v6 ポーズが有効なときは何もしない —
-        /// V6PauseRuntime が同じボタンを v6 ポーズへ接線する。ここで v5 PauseMenuView を
-        /// 開くと (非表示のまま活性化して) v6 ポーズと二重表示・二重入力になる。
+        /// メニュー (ポーズ) を開くキーの表示名。正本は KeyActions で、
+        /// ポーズ側の凡例 (V6PauseViewBuild.KeyCap) と同じ規約:
+        /// 最初の有効キーを <see cref="ActionKeyHint.KeyName"/> で表示する。
         /// </summary>
-        private void OpenPauseMenu()
+        private static string MenuKeyText()
         {
-            if (FlashBeat.UI.V6.V6UiMode.GameHud && FlashBeat.UI.V6.Game.Pause.V6PauseView.Enabled)
+            KeyCode[] keys = KeyActions.Get(KeyActions.KeyAction.Back);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (keys[i] != KeyCode.None)
+                {
+                    return ActionKeyHint.KeyName(keys[i]);
+                }
+            }
+
+            return "—";
+        }
+
+        /// <summary>
+        /// メニューボタン内の [ラベル][gap][KeyCap] を中央寄せで配置し直す。
+        /// キー再割当でキャップ幅が変わってもボタン内で中央が保たれるよう、
+        /// 生成時と <see cref="RefreshMenuKeyCap"/> の両方から呼ぶ。
+        /// </summary>
+        private void LayoutMenuButton()
+        {
+            if (menuLabel == null || menuCapPanel == null || menuCapKey == null)
             {
                 return;
             }
 
-            var pause = FindFirstObjectByType<PauseMenuView>();
-            if (pause != null)
-            {
-                pause.Open();
-            }
+            float labelW = MeasureTextWidth(menuLabel, "メニュー", m.MenuFs);
+            float capW = MeasureTextWidth(menuCapKey, menuCapKey.text, m.MenuFs)
+                + V6Ui.KeyCapPaddingX * 2f;
+            V6Layout.RectOf(menuCapPanel).sizeDelta = new Vector2(capW, m.MenuCapH);
+
+            float total = labelW + m.MenuGap + capW;
+            float rowX = Mathf.Round((m.MenuW - total) * 0.5f);
+            float rowY = Mathf.Round((m.MenuH - m.MenuCapH) * 0.5f);
+            PlaceTopLeft(menuLabel.rectTransform, rowX, -rowY);
+            V6Layout.RectOf(menuLabel).sizeDelta = new Vector2(labelW, m.MenuCapH);
+            PlaceTopLeft(V6Layout.RectOf(menuCapPanel), rowX + labelW + m.MenuGap, -rowY);
         }
+
+        /// <summary>
+        /// キー設定の変更 (KeyActions.Changed) でメニューキャップを実バインドへ
+        /// 追従させる。固定表示のままだと再割当後に画面が嘘をつく。
+        /// </summary>
+        private void RefreshMenuKeyCap()
+        {
+            if (menuCapKey == null)
+            {
+                return;
+            }
+
+            menuCapKey.text = MenuKeyText();
+            LayoutMenuButton();
+        }
+
 
         private void BuildKeyGuide()
         {

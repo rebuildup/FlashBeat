@@ -13,17 +13,12 @@ import {
   stateTitle,
 } from "@/app/panel";
 import { css } from "styled-system/css";
+import { createEmptyChart } from "@/lib/chart/empty";
 import type { Chart } from "@/lib/chart/types";
 import type { Props } from "./publish.server";
 import "@/styles/app.css";
 
-const emptyChart: Chart = {
-  name: "無題の下書き",
-  maxBlock: 8,
-  BPM: 120,
-  offset: 0,
-  notes: [],
-};
+const emptyChart = createEmptyChart();
 
 /** The publisher fills the work area; it owns its header and inner scroll. */
 const publisherPane = css({

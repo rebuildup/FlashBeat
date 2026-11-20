@@ -264,3 +264,38 @@ migrations up to date". Post-deploy probes:
 | `GET /api/v1/catalog` | `catalogVersion: 41`, songs listed |
 | `GET /api/v1/rankings` | `catalogVersion: 41` |
 | `GET /api/v1/stats` | `totals.songs: 30`, `liveSongs: 28`, `archivedSongs: 2`, `charts: 41` |
+
+## 10. Follow-up migration: `scores` score ceiling for scoring v4 (issue #736)
+
+Date: 2026-11-19 (JST) · Branch: `736` · Scope: the `scores.score` CHECK.
+Scoring version 4 (ADR-0033) splits the score into a judgment-derived base
+capped at 1,000,000 plus additive bonuses, so a legitimate v4 score reaches
+2,000,000. SQLite cannot alter a CHECK in place, so Drizzle recreates the
+`scores` table (`__new_scores` → copy → drop → rename) with the relaxed
+constraint; the index is recreated by the same migration.
+
+| Field | Value |
+|---|---|
+| File | `web/db/migrations/20261119162405_curly_master_chief.sql` |
+| Drizzle metadata | `web/db/migrations/meta/20261119162405_snapshot.json`, `meta/_journal.json` |
+| New CHECK | `score >= 0 AND score <= 2000000 AND (scoringVersion >= 4 OR score <= 1000000)` — v1–v3 rows keep the legacy 1,000,000 ceiling inside the table, not only in the API |
+
+### 10.1 Remote D1 — **applied (2026-11-20)**
+
+Applied ahead of the `release-0-2-0` ship with the standard procedure
+(never reset the remote database):
+
+```sh
+mise exec -- cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462 \
+  --dir web/db/migrations
+```
+
+Verified via `cf d1 query … sqlite_master`: the `scores` table carries
+`scoringVersion integer DEFAULT 1 NOT NULL` and the v4 CHECK
+(`score <= 2000000 AND (scoringVersion >= 4 OR score <= 1000000)`).
+The change is backward compatible with the currently deployed worker:
+legacy inserts keep `scoringVersion = 1` and the 1,000,000 ceiling.
+
+`web/tests/db.test.mjs` proves the committed migration files accept a v4
+score of 2,000,000, still reject 1,000,001 for scoring versions 1–3, and
+reject 2,000,001 for v4.

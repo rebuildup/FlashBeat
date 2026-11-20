@@ -54,7 +54,7 @@ namespace FlashBeat.UI.V6.Option
 
                 if (rowValueTexts[i] != null)
                 {
-                    rowValueTexts[i].text = currentRows[i].Value();
+                    rowValueTexts[i].text = currentRows[i].Value != null ? currentRows[i].Value() : string.Empty;
                 }
             }
 
@@ -83,84 +83,42 @@ namespace FlashBeat.UI.V6.Option
             }
         }
 
-        private void BuildSettingRow(GameObject panel, Row row, int index, float y)
+        /// <summary>
+        /// 設定行の組み立て (Issue #733: Pause と同じ <see cref="V6SettingRowView"/>。
+        /// 行の中身は <see cref="V6SettingsCatalog"/> の定義)。
+        /// </summary>
+        private void BuildSettingRow(GameObject panel, V6SettingRow row, int index, float y)
         {
             bool selected = index == selectedRow;
-            var line = V6Controls.Panel(panel, "Set " + row.Label, new Vector2(SetRowX, y),
-                new Vector2(SetRowW, SetRowH), selected ? V6Tokens.Key6 : V6Tokens.Key1, V6Tokens.RadiusMedium);
-
-            var rowButton = line.AddComponent<Button>();
-            rowButton.transition = Selectable.Transition.None;
-            var nav = rowButton.navigation;
-            nav.mode = Navigation.Mode.None;
-            rowButton.navigation = nav;
-            V6ButtonPressFeedback.Attach(line);
-            rowButton.onClick.AddListener(() =>
-            {
-                selectedRow = index;
-
-                // ステッパー (◀ ▶) を持たない行 (キー設定 / Media cache / Clear save data) は
-                // クリック＝実行にする。値を変える行は ◀ ▶ ボタンで変えられるので、
-                // どの行もマウスだけで操作できるようにするため (Acceptance: マウスとキーボードの両方)。
-                if (row.IsAction && row.Activate != null)
+            var view = V6SettingRowView.Build(panel, row, index,
+                new Vector2(SetRowX, y), selected,
+                (delta, shift) =>
                 {
-                    row.Activate();
-                }
+                    selectedRow = index;
+                    AdjustSelected(delta, shift);
+                },
+                () =>
+                {
+                    selectedRow = index;
 
-                Rebuild();
-            });
+                    // ステッパー (◀ ▶) を持たない行 (キー設定 / Media cache / Clear save data) は
+                    // クリック＝実行にする。値を変える行は ◀ ▶ ボタンで変えられるので、
+                    // どの行もマウスだけで操作できるようにするため (Acceptance: マウスとキーボードの両方)。
+                    if (row.IsAction && row.Activate != null)
+                    {
+                        row.Activate();
+                    }
 
-            var label = V6Controls.Text(line, "Label", row.Label, new Vector2(12f, 0f),
-                new Vector2(200f, SetRowH), 24f, row.Danger ? DangerLabel : V6Tokens.Text);
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.overflowMode = TextOverflowModes.Ellipsis;
+                    Rebuild();
+                });
 
-            // Issue #429: 編集値は左右の矢印の「間」に中央揃えで置く
-            // (Prev 300-340 / Next 444-484 → 値は 344-440 の中央 392)。
-            // アクション行 (キー設定等) は従来どおり右寄せの値を残す。
-            bool centered = !row.IsAction;
-            var value = V6Controls.Text(line, "Value", row.Value(),
-                centered ? new Vector2(344f, 0f) : new Vector2(260f, 0f),
-                centered ? new Vector2(96f, SetRowH) : new Vector2(120f, SetRowH),
-                24f, V6Tokens.Text,
-                centered ? TextAlignmentOptions.Center : TextAlignmentOptions.Right);
-            value.textWrappingMode = TextWrappingModes.NoWrap;
-            value.overflowMode = TextOverflowModes.Ellipsis;
-            if (centered)
-            {
-                value.enableAutoSizing = true;
-                value.fontSizeMin = 16f;
-                value.fontSizeMax = 24f;
-            }
-
-            rowObjects.Add(line);
-            rowBackgrounds.Add(line.GetComponent<Image>());
-            rowValueTexts.Add(value);
+            rowObjects.Add(view.Root);
+            rowBackgrounds.Add(view.Background);
+            rowValueTexts.Add(view.ValueText);
             if (selected)
             {
-                selectedRowValueText = value;
+                selectedRowValueText = view.ValueText;
             }
-
-            if (row.IsAction)
-            {
-                return;
-            }
-
-            var prev = V6Controls.IconButton(line, "chevron-left", new Vector2(300f, 8f),
-                new Vector2(40f, 40f), V6Tokens.Key4, V6Tokens.RadiusMedium, 24f, V6Tokens.TextMuted);
-            prev.GetComponent<Button>().onClick.AddListener(() =>
-            {
-                selectedRow = index;
-                AdjustSelected(-1);
-            });
-
-            var next = V6Controls.IconButton(line, "chevron-right", new Vector2(444f, 8f),
-                new Vector2(40f, 40f), V6Tokens.Key4, V6Tokens.RadiusMedium, 24f, V6Tokens.TextMuted);
-            next.GetComponent<Button>().onClick.AddListener(() =>
-            {
-                selectedRow = index;
-                AdjustSelected(1);
-            });
         }
 
         // --- プレビュー (design cqQMc: メイン (864,68) 512x688 $k2 r16) ---
@@ -186,7 +144,7 @@ namespace FlashBeat.UI.V6.Option
                 previewHeadTitle.text = PreviewHeadTitle();
             }
 
-            Row row = SelectedRowDesc();
+            V6SettingRow row = SelectedRowDesc();
             if (descTitleText != null)
             {
                 descTitleText.text = row != null ? row.DescTitle : "";
@@ -262,37 +220,25 @@ namespace FlashBeat.UI.V6.Option
         ///
         /// Issue #579: 静止した 2D 図形ではなく、本編と同じ 3D レーン・
         /// ノーツを専用カメラの RenderTexture 経由で描く。
-        /// <see cref="V6OptionPreviewRig"/> が疑似メディア時刻で
-        /// ノーツを流し続け、NoteSpeed / NoteTiming の変更は
-        /// <see cref="V6OptionView.Tick"/> → rig.Tick() が毎フレーム
-        /// GManager の値を読んで即座に反映する (Rebuild 不要)。
+        /// Issue #733: well の中身は Pause と同じ共有ホスト
+        /// <see cref="V6GamePreview"/> (中身は <see cref="V6OptionPreviewRig"/>)。
+        /// NoteSpeed / NoteTiming の変更は <see cref="V6OptionView.Tick"/> →
+        /// gamePreview.Tick() が毎フレーム GManager の値を読んで即座に反映する
+        /// (Rebuild 不要)。
         /// </summary>
         private void BuildGamePreview(GameObject panel)
         {
             var well = V6Controls.Panel(panel, "Game Preview", new Vector2(GamePrevX, GamePrevY),
                 new Vector2(GamePrevW, GamePrevH), V6Tokens.Key0, V6Tokens.RadiusMedium);
 
-            // リグはビューの寿命と同じ (タブ切替で Preview パネルが
+            // ホストはビューの寿命と同じ (タブ切替で Preview パネルが
             // 作り直されても RawImage が張り替わるだけで 3D シーンは残る)。
-            if (previewRig == null)
+            if (gamePreview == null)
             {
-                previewRig = new V6OptionPreviewRig();
+                gamePreview = new V6GamePreview();
             }
 
-            var rawGo = new GameObject("Game Preview 3D", typeof(RectTransform), typeof(RawImage));
-            rawGo.transform.SetParent(well.transform, false);
-            var rawRt = rawGo.GetComponent<RectTransform>();
-            rawRt.anchorMin = Vector2.zero;
-            rawRt.anchorMax = Vector2.one;
-            rawRt.offsetMin = Vector2.zero;
-            rawRt.offsetMax = Vector2.zero;
-            var raw = rawGo.GetComponent<RawImage>();
-            raw.texture = previewRig.Texture;
-            raw.raycastTarget = false;
-
-            // Issue #607: 歌詞行と判定ポップを well の手前に重ねる。
-            // RawImage の後に追加するので描画順は手前になる。
-            BuildPreviewOverlay(well);
+            gamePreview.Bind(well);
         }
 
         /// <summary>
@@ -330,9 +276,9 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>Divider + Desc Title + Desc (design 共通: Divider y544 / Title y564 h46 / Desc y614 w464 h68)。</summary>
-        private void BuildDesc(GameObject panel, float dividerY, Row row)
+        private void BuildDesc(GameObject panel, float dividerY, V6SettingRow row)
         {
-            var divider = Rect(panel, "Divider", 464f, 1f, V5Tokens.FromHex("#FFFFFF1F"));
+            var divider = Rect(panel, "Divider", 464f, 1f, V6Tokens.Divider);
             V6Layout.Place(divider.GetComponent<RectTransform>(), new Vector2(24f, dividerY), new Vector2(464f, 1f));
 
             // draw shape は「Title y564 h46」— 高さ 40 だと NotoSansJP の行送り (fs32 で約 46px) を
@@ -359,7 +305,7 @@ namespace FlashBeat.UI.V6.Option
             desc.lineSpacing = 0f;
         }
 
-        private Row SelectedRowDesc()
+        private V6SettingRow SelectedRowDesc()
         {
             if (currentRows.Count == 0)
             {

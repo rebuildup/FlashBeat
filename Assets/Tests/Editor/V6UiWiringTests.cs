@@ -24,23 +24,40 @@ public class V6UiWiringTests
         // 正本 uDNC0 の Play タブは 4 行: NoteSpeed / NoteTiming / Key Layout / キー設定 (F2)。
         // 旧テストは「開けないから行を描かない」を正としたが、行が無いと正本の情報が欠ける。
         // 行を描いたうえで操作に接続する (下の 2 テスト)。
+        // Issue #733: 行定義は Option と共有の V6SettingsCatalog が単一ソース。
+        // Pause はカタログから行を取り、固有の Data 行だけを自前で足す。
+        string catalog = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
+        Assert.IsTrue(catalog.Contains("\"NoteSpeed\""), "正本の NoteSpeed 行が無い");
+        Assert.IsTrue(catalog.Contains("\"NoteTiming\""), "正本の NoteTiming 行が無い");
+        Assert.IsTrue(catalog.Contains("\"Key Layout\""), "正本の Key Layout 行が無い");
+        Assert.IsTrue(catalog.Contains("\"キー設定\""), "正本の キー設定 行が無い");
+        // キー設定 は Play タブ 4 行目 (NoteSpeed → NoteTiming → Key Layout → キー設定)。
+        int speed = catalog.IndexOf("\"NoteSpeed\"");
+        int timing = catalog.IndexOf("\"NoteTiming\"");
+        int layout = catalog.IndexOf("\"Key Layout\"");
+        int keys = catalog.IndexOf("\"キー設定\"");
+        Assert.IsTrue(speed >= 0 && speed < timing && timing < layout && layout < keys,
+            "Play タブの行順が正本 (NoteSpeed / NoteTiming / Key Layout / キー設定) と違う");
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsTrue(src.Contains("\"Key Layout\""), "正本の Key Layout 行が無い");
-        Assert.IsTrue(src.Contains("\"キー設定\""), "正本の キー設定 行が無い");
-        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\""),
-            "キー設定 は Play タブ 4 行目 (index 3) に置く");
+        Assert.IsTrue(src.Contains("V6SettingsCatalog.RowsForTab"),
+            "Pause が共有カタログから行を取っていない");
     }
 
     [Test]
     public void PauseSettingsPage_KeySettingsOpenFromThePauseMenu()
     {
         // ポーズ行の「キー設定」は v6 のモーダル (design vo4kB) を開く (Issue #376)。
-        // 値欄は「開く ›」で、F2 は表示も監視もしない (決定 §4.1)。
+        // Issue #733: 行はカタログの「キー設定」(isAction) で、決定はホストの
+        // OpenKeyConfig → keyConfigModal.Show()。値欄は「開く」+ chevron アイコンで、
+        // F2 は表示も監視もしない (決定 §4.1)。
+        string catalog = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
+        Assert.IsTrue(catalog.Contains("host.OpenKeyConfig"),
+            "キー設定 行がホストの OpenKeyConfig に接続されていない");
         string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
         Assert.IsTrue(src.Contains("keyConfigModal.Show()"),
             "キー設定行が v6 モーダルに接続されていない");
-        Assert.IsTrue(src.Contains("AddRow(rows, pageRoot, 3, \"キー設定\", () => \"開く ›\", null, OpenKeyConfig)"),
-            "キー設定 行の実行 (Enter) が OpenKeyConfig に接続されていない");
+        Assert.IsTrue(src.Contains("void OpenKeyConfig()"),
+            "キー設定 を開く OpenKeyConfig が無い");
         Assert.IsFalse(src.Contains("KeyConfigUI.Open()"),
             "v6 ポーズから旧 KeyConfigUI を開かない (Issue #376)");
         Assert.IsFalse(src.Contains("\"F2\""),
@@ -88,7 +105,8 @@ public class V6UiWiringTests
     {
         // NoteTiming の保存は全曲の譜面設定 (offset) への書き戻しを伴う
         // (OptionSceneManager.AdjustNoteTiming)。説明に明記する (C-7)。
-        string src = ReadSource("Game/Scripts/UI/V6/Option/V6OptionView.cs");
+        // Issue #733: 行定義は Option / Pause 共有の V6SettingsCatalog が持つ。
+        string src = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
         Assert.IsTrue(src.Contains("offset) に書き込まれます"),
             "NoteTiming の説明に全曲 offset への書き戻しを明記すること (C-7)");
     }
@@ -100,5 +118,35 @@ public class V6UiWiringTests
         string src = ReadSource("Game/Scripts/UI/V6/Option/V6OptionView.cs");
         Assert.IsTrue(src.Contains("OpenResetKeyLayoutConfirm"),
             "Key Layout のリセットは確認モーダルを経由すること (C-6)");
+    }
+
+    // --- Issue #750: 色トークン / キー表示の正本一致 ---
+
+    [Test]
+    public void ConfirmDialogs_UseTheSharedDangerToken()
+    {
+        // 破壊的操作の確認ボタンは Option / Pause で同じ danger 色。
+        // 旧 Pause はトークン外の #E53E3E で Option (#FF6B6B = V6Tokens.Danger) と
+        // 色が違っていた (Issue #750)。
+        string pause = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseViewDialogs.cs");
+        string option = ReadSource("Game/Scripts/UI/V6/Option/V6OptionViewDialogs.cs");
+        Assert.IsTrue(pause.Contains("V6Tokens.Danger"),
+            "Pause の確認ボタンが V6Tokens.Danger を使っていない");
+        Assert.IsFalse(pause.Contains("0xE5"),
+            "Pause の確認ボタンにトークン外の色リテラルが残っている");
+        Assert.IsTrue(option.Contains("V6Tokens.Danger"),
+            "Option の確認ボタンが V6Tokens.Danger を使っていない");
+    }
+
+    [Test]
+    public void HudMenuCap_FollowsTheKeyActionsBinding()
+    {
+        // HUD メニューボタンのキーキャップは固定 "Esc" ではなく、ポーズを開く
+        // 実際の割り当て (KeyActions.KeyAction.Back) を映す (Issue #750)。
+        string src = ReadSource("Game/Scripts/UI/V6/Game/Hud/V6HudChrome.cs");
+        Assert.IsTrue(src.Contains("KeyActions.KeyAction.Back"),
+            "メニューキャップが KeyAction.Back の実バインドを見ていない");
+        Assert.IsFalse(src.Contains("\"Esc\""),
+            "メニューキャップに固定 \"Esc\" が残っている");
     }
 }

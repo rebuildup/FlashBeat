@@ -52,21 +52,6 @@ export async function loadCatalog(
   return parseSongs(body);
 }
 
-/**
- * 失敗が「中断」かどうか。
- *
- * abort は失敗ではないので、UI は「カタログを取得できません」とは表示しない。
- * `fetch` は中断時に `AbortError` の `DOMException` を投げるが、
- * 実装によって別の形になることもあるので `name` だけを見る。
- */
-export function isAbortError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { name?: unknown }).name === "AbortError"
-  );
-}
-
 /** A JSON object with unknown members, or null for everything else. */
 function asObject(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {

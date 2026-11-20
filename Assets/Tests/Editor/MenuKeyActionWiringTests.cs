@@ -5,17 +5,23 @@ using UnityEngine;
 using FlashBeat.UI.V5;
 
 /// <summary>
-/// #142 / #146 / #148 — メニュー操作キー (KeyActions) への集約を検証する。
+/// #142 / #146 / #148 / #740 — メニュー操作キー (KeyActions) への集約を検証する。
 ///
 /// - 表示: ActionKeyHint は KeyActions の現在の割当から生成され、設定変更に追従する。
 ///   割当が空の操作でも「—」で壊れない。
-/// - ソース走査: V5 ビューの凡例/キーキャップに固定のキーリテラル
+/// - ソース走査: メニュー画面の凡例/キーキャップに固定のキーリテラル
 ///   (Esc / Space / R / BS) が残っていないこと。
 ///   (Enter は #146 の決定に従い生入力のまま残す箇所があるため対象外)
 /// - 入力: 対象シーン/ビューが Esc と Space を直接読まず、
 ///   KeyActions.IsDown (Back/Confirm) 経由で読むこと。
-///   KeyConfigUI (F2 トグル) / UpdateNoticeUI (F3/F4) / KeyConfigOptionButton (Tab フォーカス) は
-///   KeyActions に存在しない固定ショートカットなので対象外。
+///   KeyConfigUI (F2 トグル) / UpdateNoticeUI (F3/F4) は
+///   KeyActions に存在しない固定ショートカットなので対象外
+///   (かつての KeyConfigOptionButton / ResultRankingOverlay は #740 Stage B で削除)。
+///
+/// Issue #740 で v5 View は削除済み。走査対象は v6 画面 (UI/V6 以下) と
+/// メニュー系シーンマネージャに置き換えた。v6 側で Esc/Space の生読みが
+/// 意図的に残るファイル (モーダルのキャンセル、キーコンフィグの入力待ち、
+/// Option 画面の生入力) は InputExclusionSources で明示除外する。
 /// </summary>
 public class MenuKeyActionWiringTests
 {
@@ -71,14 +77,29 @@ public class MenuKeyActionWiringTests
         return File.ReadAllText(Path.Combine(Application.dataPath, relativePath));
     }
 
-    /// <summary>走査対象の V5 ビュー (Owned paths)。</summary>
-    private static readonly string[] V5ViewSources =
+    /// <summary>凡例/キーキャップを描画する v6 画面ソース (旧 V5ViewSources の置き換え)。</summary>
+    private static readonly string[] MenuLegendSources =
     {
-        "Game/Scripts/UI/V5/SelectView.cs",
-        "Game/Scripts/UI/V5/PauseMenuView.cs",
-        "Game/Scripts/UI/V5/ResultView.cs",
-        "Game/Scripts/UI/V5/GameErrorView.cs",
-        "Game/Scripts/UI/V5/GameReadyView.cs",
+        "Game/Scripts/UI/V6/Common/V6Controls.cs",
+        "Game/Scripts/UI/V6/Common/V6Legend.cs",
+        "Game/Scripts/UI/V6/Common/V6Header.cs",
+        "Game/Scripts/UI/V6/Game/Hud/V6GameHudView.cs",
+        "Game/Scripts/UI/V6/Game/Hud/V6HudChrome.cs",
+        "Game/Scripts/UI/V6/Game/Hud/V6HudLogic.cs",
+        "Game/Scripts/UI/V6/Game/Pause/V6PauseViewBuild.cs",
+        "Game/Scripts/UI/V6/Game/Pause/V6PauseViewLogic.cs",
+        "Game/Scripts/UI/V6/History/V6HistoryViewHeader.cs",
+        "Game/Scripts/UI/V6/Option/V6OptionLogic.cs",
+        "Game/Scripts/UI/V6/Option/V6OptionViewBuild.cs",
+        "Game/Scripts/UI/V6/Result/V6ResultLogic.cs",
+        "Game/Scripts/UI/V6/Result/V6ResultModal.cs",
+        "Game/Scripts/UI/V6/Result/V6ResultView.cs",
+        "Game/Scripts/UI/V6/Select/View/V6SelectViewHeader.cs",
+        "Game/Scripts/UI/V6/Title/V6TitleExit.cs",
+        "Game/Scripts/UI/V6/Title/V6TitleLogic.cs",
+        "Game/Scripts/UI/V6/Title/V6TitleViewFooter.cs",
+        "Game/Scripts/UI/V6/Title/V6TitleViewMain.cs",
+        "Game/Scripts/UI/V6/V6Ui.cs",
     };
 
     /// <summary>キーキャップ/凡例を描画する API 呼び出し。</summary>
@@ -91,9 +112,9 @@ public class MenuKeyActionWiringTests
     private static readonly Regex HardCodedCap = new Regex(@"""(Esc|Space|BS|R)""", RegexOptions.Compiled);
 
     [Test]
-    public void V5LegendsGenerateCapsFromCurrentBindings()
+    public void MenuLegendsGenerateCapsFromCurrentBindings()
     {
-        foreach (string path in V5ViewSources)
+        foreach (string path in MenuLegendSources)
         {
             string[] lines = ReadSource(path).Split('\n');
             for (int i = 0; i < lines.Length; i++)
@@ -105,17 +126,44 @@ public class MenuKeyActionWiringTests
         }
     }
 
-    /// <summary>メニュー操作を直接読んでいるファイル (KeyActions 化済み)。</summary>
-    private static readonly string[] CentralizedInputSources =
+    /// <summary>
+    /// Esc/Space の生読みを意図的に残す v6 ファイル (キーコンフィグの入力待ち、
+    /// モーダルのキャンセル、Option 画面の生入力)。ここを増やす場合は
+    /// KeyActions 化の是非を別 Issue で判断すること。
+    /// </summary>
+    private static readonly string[] InputExclusionSources =
     {
-        "Game/Scripts/UI/V5/SelectView.cs",
-        "Game/Scripts/UI/V5/PauseMenuView.cs",
-        "Game/Scripts/UI/V5/ResultView.cs",
-        "Game/Scripts/UI/V5/GameErrorView.cs",
-        "Game/Scripts/UI/V5/GameReadyView.cs",
-        "Game/Scripts/UI/SelectSceneManager.cs",
-        "Game/Scripts/UI/ResultRankingOverlay.cs",
+        "Game/Scripts/UI/V6/Common/V6KeyConfigModal.cs",
+        "Game/Scripts/UI/V6/Option/V6OptionViewInput.cs",
+        "Game/Scripts/UI/V6/Result/V6ResultModal.cs",
     };
+
+    /// <summary>メニュー操作を直接読んでいるファイル (KeyActions 化済み)。</summary>
+    private static string[] CentralizedInputSources()
+    {
+        // UI/V6 以下を再帰走査し、意図的な生読みファイルを除く。
+        // シーンマネージャ側は個別に足す (v6 View は KeyActions/V6CursorInput 経由)。
+        var v6Dir = Path.Combine(Application.dataPath, "Game/Scripts/UI/V6");
+        var files = Directory.GetFiles(v6Dir, "*.cs", SearchOption.AllDirectories);
+        var result = new System.Collections.Generic.List<string>();
+        foreach (var file in files)
+        {
+            string relative = "Game/Scripts/" + file.Substring(
+                Path.Combine(Application.dataPath, "Game/Scripts").Length + 1)
+                .Replace('\\', '/');
+            bool excluded = false;
+            for (int i = 0; i < InputExclusionSources.Length; i++)
+            {
+                if (relative == InputExclusionSources[i]) { excluded = true; break; }
+            }
+            if (!excluded) result.Add(relative);
+        }
+
+        result.Add("Game/Scripts/UI/SelectSceneManager.cs");
+        result.Add("Game/Scripts/UI/ResultSceneManager.cs");
+        result.Sort(System.StringComparer.Ordinal);
+        return result.ToArray();
+    }
 
     /// <summary>Esc と Space (Back/Confirm の既定キー) の直接読みを禁止する。
     /// Enter/KeypadEnter は Confirm の既定外の併用キーとして生読みが残る。</summary>
@@ -125,7 +173,7 @@ public class MenuKeyActionWiringTests
     [Test]
     public void MenuScreensDoNotReadDefaultActionKeysDirectly()
     {
-        foreach (string path in CentralizedInputSources)
+        foreach (string path in CentralizedInputSources())
         {
             string[] lines = ReadSource(path).Split('\n');
             for (int i = 0; i < lines.Length; i++)

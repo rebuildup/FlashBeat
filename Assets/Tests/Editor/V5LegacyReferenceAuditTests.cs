@@ -3,14 +3,13 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// Issue #385 Phase 3: 旧 v5 View の「どこからも参照されていない」状態を
-/// 可視化する参照監査テスト。
+/// Issue #385 Phase 3 / #740: 旧 v5 View の参照状況を可視化する参照監査テスト。
 ///
 /// 台帳は <c>docs/architecture/v5-legacy-ui-references.md</c>。
-/// v6 に置き換え済みの v5 View はフォールバック経路として残っているが、
-/// 生成サイトが消えた型は削除候補になる。ここではソース走査で
-/// **生成・参照の配線サイト**をピン留めし、変化があればテストを落として
-/// 台帳の更新を促す (参照カウントの自動可視化)。
+/// Issue #740 でフォールバック経路だった v5 View (Select / Result / Pause /
+/// GameHud / GameLoading / GameReady / GameError) は削除済み。
+/// ここではソース走査で **型名への言及 (コメント含む)** をピン留めし、
+/// 変化があればテストを落として台帳の更新を促す。
 ///
 /// 判定は「UI/V5 以外のコードがその型を名指しで使っているか」。
 /// コメント中の言及も拾うため厳密な参照カウントではないが、
@@ -58,50 +57,67 @@ public class V5LegacyReferenceAuditTests
             typeName + " を参照するファイルが台帳と違う。docs/architecture/v5-legacy-ui-references.md を確認して更新すること。");
     }
 
-    // --- フォールバック経路として生きている型 ---
+    // --- Issue #740 で削除した v5 View: ファイルが復活しないこと ---
 
     [Test]
-    public void SelectView_StillHasItsFallbackWiring()
+    public void V5Views_AreDeleted()
     {
-        // V6UiMode.SelectScreen == false のとき SelectSceneManager が生成する。
+        // フォールバック経路だった v5 View は Issue #740 で削除済み。
+        // ファイルが復活したら台帳 (docs/architecture/v5-legacy-ui-references.md) を更新すること。
+        string v5Dir = Path.Combine(ScriptsRoot, "UI", "V5");
+        foreach (string name in new[]
+        {
+            "SelectView.cs", "ResultView.cs", "PauseMenuView.cs",
+            "GameHudView.cs", "GameLoadingView.cs", "GameReadyView.cs",
+            "GameErrorView.cs", "TitleLinks.cs", "GameUiExclusivity.cs",
+        })
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(v5Dir, name)),
+                "v5 " + name + " が復活した。削除済みのはず (Issue #740)。");
+        }
+    }
+
+    // --- 残る言及 (コメント / 互換契約) のピン留め ---
+
+    [Test]
+    public void SelectView_RemainingMentions_ArePinned()
+    {
+        // 型は削除済み。残るのはコメント・ドキュメント言及と、
+        // v6 側が引き継いだ契約 (CanFetchOnlineRanking 相当の判定など) への言及。
         AssertReferencingFiles("SelectView",
+            "Common/AutoTestV6Churn.cs",
+            "Songs/PlaySession.cs",
+            "UI/KeyConfigUI.cs",
+            "UI/SelectSceneManager.cs",
             "UI/V6/Select/Data/V6SelectDataSource.cs",
             "UI/V6/Select/View/V6SelectView.cs",
-            "UI/V6/Select/View/V6SelectViewInput.cs",
-            "UI/KeyConfigUI.cs",
-            "UI/ResultRankingOverlay.cs",
-            "UI/SceneInputGate.cs",
-            "UI/SelectSceneManager.cs",
-            "Common/AutoTestV6Churn.cs");
+            "UI/V6/Select/View/V6SelectViewInput.cs");
     }
 
     [Test]
-    public void ResultView_StillHasItsFallbackWiring()
+    public void ResultView_RemainingMentions_ArePinned()
     {
         AssertReferencingFiles("ResultView",
+            "UI/KeyConfigUI.cs",
+            "UI/ResultSceneManager.cs",
             "UI/V6/Common/V6CursorInput.cs",
+            "UI/V6/Common/V6GradeLogic.cs",
             "UI/V6/Result/V6ResultLogic.cs",
             "UI/V6/Result/V6ResultModal.cs",
             "UI/V6/Result/V6ResultRegistration.cs",
-            "UI/V6/Result/V6ResultView.cs",
-            "UI/KeyConfigUI.cs",
-            "UI/ResultRankingOverlay.cs",
-            "UI/ResultSceneManager.cs",
-            "UI/SceneInputGate.cs");
+            "UI/V6/Result/V6ResultRules.cs",
+            "UI/V6/Result/V6ResultView.cs");
     }
 
     [Test]
-    public void PauseMenuView_StillHasItsFallbackWiring()
+    public void PauseMenuView_RemainingMentions_ArePinned()
     {
         AssertReferencingFiles("PauseMenuView",
             "Gameplay/PauseGate.cs",
-            "UI/GameSceneManager.cs",
+            "UI/V6/Common/V6VolumeSettings.cs",
             "UI/V6/Game/Hud/V6GameHudView.cs",
             "UI/V6/Game/Hud/V6HudChrome.cs",
-            "UI/V6/Game/Pause/V6PauseRuntime.cs",
-            "UI/V6/Game/Pause/V6PauseView.cs",
-            "UI/V6/Game/Pause/V6PauseViewSettings.cs",
-            "UI/V6/V6GameRuntime.cs");
+            "UI/V6/Game/Pause/V6PauseView.cs");
     }
 
     [Test]
@@ -111,13 +127,59 @@ public class V5LegacyReferenceAuditTests
         AssertReferencingFiles("OpeningView", "UI/OpeningSceneManager.cs");
     }
 
-    // --- 生成サイトが無い = 削除候補 ---
+    // --- Issue #740 Stage B で削除した旧 UI / フォールバック経路: 復活しないこと ---
 
     [Test]
-    public void TitleView_And_OptionView_AreDeleted()
+    public void StageBRemovedUiFiles_StayDeleted()
     {
-        // Issue #497: 生成経路ゼロだった v5 TitleView / OptionView / TitleLayout は削除済み。
-        // ファイルが復活したら台帳 (docs/architecture/v5-legacy-ui-references.md) を更新すること。
+        // Stage B で畳んだ旧オーバーレイとフォールバック View。ファイルが
+        // 復活したら台帳 (docs/architecture/v5-legacy-ui-references.md) を更新すること。
+        string uiDir = Path.Combine(ScriptsRoot, "UI");
+        foreach (string name in new[]
+        {
+            "ResultRankingOverlay.cs",       // 旧リザルトのランキングボード (v6 が担う)
+            "KeyConfigOptionButton.cs",      // 旧 Option 画面のキーコンフィグボタン
+            "MediaCacheOptionPanel.cs",      // 旧 Option 画面のメディアキャッシュパネル
+            "MediaLoadingOverlay.cs",        // 旧メディア読み込み表示 (V6LoadingView が担う)
+        })
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(uiDir, name)),
+                name + " が復活した。Stage B で削除済みのはず (Issue #740)。");
+        }
+    }
+
+    [Test]
+    public void StageBRemovedFlags_StayRemoved()
+    {
+        // Stage B で畳んだ互換フラグ / Enabled。復活すると旧フォールバック経路が
+        // 復活するので、フィールドが無いことを固定する。
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("GameHud", flags),
+            "V6UiMode.GameHud が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("SelectScreen", flags),
+            "V6UiMode.SelectScreen が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("LegacyOverlaysHidden", flags),
+            "V6UiMode.LegacyOverlaysHidden が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Game.Pause.V6PauseView).GetField("Enabled", flags),
+            "V6PauseView.Enabled が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Title.V6TitleView).GetField("Enabled", flags),
+            "V6TitleView.Enabled が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Result.V6ResultView).GetField("Enabled", flags),
+            "V6ResultView.Enabled が残っている。");
+        // GameLoadingRoute は型ごと削除 (旧/新ローディングの所有者分岐)。
+        // コンパイルが通る以上、参照があればビルドが落ちるので、
+        // ここでは型の不存在だけを確認する。
+        Assert.IsNull(System.Type.GetType("GameLoadingRoute, FlashBeat"),
+            "GameLoadingRoute が残っている。");
+    }
+
+    // --- 生成サイトが無い = 削除済みの型 ---
+
+    [Test]
+    public void DeletedV5Views_StayDeleted()
+    {
+        // Issue #497 / #740 で削除済みの型。ファイルが復活したら台帳を更新すること。
         string v5Dir = Path.Combine(ScriptsRoot, "UI", "V5");
         foreach (string name in new[] { "TitleView.cs", "OptionView.cs", "TitleLayout.cs" })
         {

@@ -36,6 +36,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private float ScaledLyricFs { get { return LyricFs * LyricFontScale(); } }
         private static readonly Color LyricBoxColor = new Color(0f, 0f, 0f, 0x99 / 255f);
 
+        /// <summary>歌詞ボックスの角丸半径 (canvas px)。V5Ui.Panel の radius と同じ値。</summary>
+        private const float LyricBoxCornerRadius = 8f;
+
+        /// <summary>
+        /// 歌詞本文の縁取り (Issue #760)。レーン回廊カットアウトでパネルの
+        /// 暗幕がレーン帯から消えるため、歌詞文字は動画の上に直接乗る。
+        /// 明るい映像の上でも読めるよう、細い黒縁を常時付ける。
+        /// </summary>
+        private const float LyricTextOutlineWidth = 0.25f;
+        private static readonly Color32 LyricTextOutlineColor = new Color32(0, 0, 0, 217);
+
         // --- 生成した部品 (歌詞系) ---
         private TextMeshProUGUI lyricText;
         private GameObject lyricBox;
@@ -70,9 +81,26 @@ namespace FlashBeat.UI.V6.Game.Hud
             float slotHeight = V6HudLogic.LyricSlotHeight(ScaledLyricFs, CanvasSize().y);
             // #96/#523: 画面幅を超える design 幅は画面幅に収める (中央配置は不変)。
             var box = V5Ui.Panel(gameObject, "Lyric Box",
-                new Vector2(LyricBoxWidth(), slotHeight), LyricBoxColor, 8f);
-            box.GetComponent<Image>().raycastTarget = false;
+                new Vector2(LyricBoxWidth(), slotHeight), LyricBoxColor, LyricBoxCornerRadius);
+            var boxImage = box.GetComponent<Image>();
+            boxImage.raycastTarget = false;
+
+            // Issue #760: パネルがレーン帯を暗くしないよう、上部シェード
+            // (V6TopShadeHole) と同じレーン回廊カットアウトを焼き込んだ
+            // スプライトへ差し替える。9-slice の角丸は帯の抜きと両立しない
+            // ため、実寸テクスチャ (1 texel = 1 canvas px) + Simple で使う。
+            // 暗幕はレーン帯の外側に残るので、パネルの縁の見た目は従来どおり。
+            Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(
+                CanvasSize().x, CanvasSize().y);
+            boxImage.sprite = V6PanelCorridorHole.ForPanel(
+                slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
+                CanvasSize(), LyricBoxCornerRadius);
+            boxImage.type = Image.Type.Simple;
             lyricBox = box;
+            // Issue #734: 初期状態は非表示。最初の UpdateLyrics (毎フレーム) が
+            // 設定値と再生状態のポリシーで表示/非表示を決めるため、
+            // ここで一瞬だけ空の枠が見えるフレームを作らない。
+            box.SetActive(false);
             var boxRt = V6Layout.RectOf(box);
             boxRt.anchorMin = new Vector2(0.5f, 1f);
             boxRt.anchorMax = new Vector2(0.5f, 1f);
@@ -98,6 +126,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             // LayoutElement で渡し、上の childControlHeight=true で行の高さを確保する。
             // Issue #433: 表示は歌詞本文の 1 行だけ。振り仮名・ローマ字は出さない。
             lyricText = V5Ui.Text(box, "Lyrics", "", ScaledLyricFs, V5Tokens.Text, TextAlignmentOptions.Center);
+            // Issue #760: 回廊カットアウトで背後の暗幕が消えるため、
+            // 歌詞文字は動画の上に直接乗る。明るい映像でも読めるよう縁取りを付ける。
+            ApplyLyricTextOutline(lyricText);
             SetLyricRowHeight(lyricText, ScaledLyricFs);
 
             BuildLyricPrompt(box);
@@ -314,6 +345,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             var label = V5Ui.Text(lyricPrompt, "Label", "to start", V6HudLogic.ReadyPromptFontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
+            // Issue #760: Start Prompt も歌詞ボックス内に出るので同じ縁取りを付ける
+            // (KeyCap は自前の背景を持つので対象外)。
+            ApplyLyricTextOutline(label);
             float labelW = MeasureTextWidth(label, "to start", V6HudLogic.ReadyPromptFontSize);
             V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
 
@@ -341,6 +375,31 @@ namespace FlashBeat.UI.V6.Game.Hud
                 -slotOrigin.y);
         }
 
+        /// <summary>
+        /// 歌詞系テキストへ暗い縁取りを付ける (Issue #760)。
+        /// レーン回廊カットアウトでパネルの暗幕がレーン帯から消えるため、
+        /// 歌詞・Start Prompt の文字は動画の上に直接乗る。縁取りで明暗差を
+        /// 確保し、明るい映像の上でも可読性を保つ。
+        /// </summary>
+        private static void ApplyLyricTextOutline(TextMeshProUGUI text)
+        {
+            // TMP は EditMode 等で font マテリアルが未解決のまま残ると
+            // outlineWidth setter 内部 (SetOutlineThickness →
+            // CreateMaterialInstance/SetMaterial) が NRE になる。
+            // fontSharedMaterial の null チェックだけでは防げない
+            // (内部の m_fontMaterial/canvasRenderer 経路で落ちる) ため、
+            // 縁取りは付加要素として例外を飲んで構築自体は止めない。
+            try
+            {
+                text.outlineWidth = LyricTextOutlineWidth;
+                text.outlineColor = LyricTextOutlineColor;
+            }
+            catch (System.Exception)
+            {
+                // 未解決/破棄済みマテリアル環境では縁取りを諦める。
+            }
+        }
+
         /// <summary>歌詞行の高さを fs × 1.25 (行送り) で確保する。</summary>
         private static void SetLyricRowHeight(TextMeshProUGUI text, float fontSize)
         {
@@ -359,8 +418,26 @@ namespace FlashBeat.UI.V6.Game.Hud
             SetLyricRowHeight(lyricText, fontSize);
         }
 
-        /// <summary>歌詞: 再生時刻と一致した行だけを出す (固定文字列は常時出さない)。
-        /// 中身が無いときは枠ごと隠す (空の黒い矩形を出さない)。</summary>
+        /// <summary>
+        /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734)。
+        ///
+        /// 枠の出し入れは「ユーザー設定 (<see cref="PlaySession.LyricsEnabled"/>)」と
+        /// 「HUD の再生状態」だけで決め、歌詞データの有無・読み込み完了タイミング・
+        /// 行の空白・行間には一切依存しない。歌詞本文・Start Prompt は枠の子として
+        /// 独立に出し入れし、枠の寸法や可視性を変えない。
+        ///
+        /// 再生状態ごとの枠の扱い:
+        /// - 再開カウントダウン / START 表示 / 曲終了オーバーレイが出ている間は、
+        ///   それらが同じスロットを占有する (同位置・同寸法のパネルを自分で持つ)
+        ///   ので lyricBox は隠す。これらは歌詞ではなく進行状態の表示なので
+        ///   歌詞設定には従わない。
+        /// - Space 待ち (!played) は枠の中に Start Prompt (「Space to start」) を
+        ///   出す。開始操作の案内であって歌詞ではないため、歌詞設定に関わらず
+        ///   枠を出す (設定 OFF でも開始方法が分かる必要がある)。
+        /// - 演奏中 (played) は設定値だけ: ON なら枠を曲の最初から最後まで
+        ///   出しっぱなしにし、OFF なら曲中を通して隠す。歌詞データが
+        ///   無い譜面・間奏・歌詞終端でも枠は変わらない。
+        /// </summary>
         private void UpdateLyrics()
         {
             // カウントダウン中・曲終了表示中は歌詞と Start Prompt を再表示しない。
@@ -375,6 +452,9 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // Space 待ちの間は歌詞位置に design の Start Prompt (KeyCap「Space」+
             // 「to start」) を出す。別シーン (v5 ReadyView) はいらない — Issue #233。
+            // Start Prompt は歌詞ではなく開始操作の案内なので、ここでは
+            // 歌詞設定 (LyricsEnabled) を見ずに枠を出す (Issue #734 の
+            // ポリシーは演奏中の枠にだけ適用する)。
             if (!GManager.played)
             {
                 if (lyricIndex != -1)
@@ -390,11 +470,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             EnsureLyricLines();
-            // Issue #433: パネルは「行間」で消したりはしない。譜面に歌詞データが
-            // 無いときだけパネル自体を隠す (Space to Start / カウントダウン /
-            // 終了表示は別オーバーレイなので影響しない)。
-            bool hasLyrics = lyricLines != null && lyricLines.Count > 0 && PlaySession.LyricsEnabled;
-            if (!hasLyrics)
+
+            // Issue #734: 演奏中の枠の可視性は設定値のみで決める。
+            // 歌詞データ (lyricLines) の有無や InputJson の到着タイミングは
+            // 枠に影響しない — データ待ちの間も枠は出したまま本文は空にする。
+            if (!PlaySession.LyricsEnabled)
             {
                 if (lyricIndex != -1)
                 {
@@ -403,6 +483,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 }
 
                 SetLyricPromptVisible(false);
+                SetLyricLinesVisible(false);
                 SetLyricBoxVisible(false);
                 return;
             }
@@ -410,6 +491,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             SetLyricPromptVisible(false);
             SetLyricLinesVisible(true);
             SetLyricBoxVisible(true);
+
+            // 歌詞データがまだ届いていない (InputJson == null) ときは
+            // 行の判定を保留する。枠と本文行は出したまま、テキストは空のまま。
+            if (lyricLines == null)
+            {
+                return;
+            }
 
             int index = LyricsTimeline.IndexAt(lyricLines, GManager.step_time);
             if (index != lyricIndex)
@@ -440,7 +528,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
         }
 
-        /// <summary>歌詞枠の表示/非表示。空の黒い矩形を出さない。</summary>
+        /// <summary>
+        /// 歌詞枠の表示/非表示。可視性の判断は <see cref="UpdateLyrics"/> の
+        /// ポリシー (設定値と再生状態) に一本化する。本文が空でも枠は隠さない
+        /// (Issue #734: 空の本文は子の責務で、枠の出し入れには使わない)。
+        /// </summary>
         private void SetLyricBoxVisible(bool visible)
         {
             if (lyricBox != null && lyricBox.activeSelf != visible)

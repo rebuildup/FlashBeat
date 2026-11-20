@@ -3,13 +3,12 @@ using UnityEngine;
 namespace FlashBeat.UI
 {
     /// <summary>
-    /// 全画面オーバーレイ (KeyConfigUI / ResultRankingOverlay) と背面シーンの
+    /// 全画面オーバーレイ (KeyConfigUI / v6 のモーダル) と背面シーンの
     /// キー入力の二重処理を防ぐ共有ゲート (Issue #167)。
     ///
     /// オーバーレイは開いたフレーム・閉じたフレームに <see cref="BlockThisFrame"/> を呼ぶ。
-    /// 背面の v5 View (SelectView / OptionView / ResultView / KeyGuideUI) は
-    /// Update の先頭で <see cref="InputAllowed"/> を見て、-block されているフレームは
-    /// 入力を捨てる。これがないと、Esc でオーバーレイを閉じた同じフレームに
+    /// 背面の画面は Update の先頭で <see cref="InputAllowed"/> を見て、-block されている
+    /// フレームは入力を捨てる。これがないと、Esc でオーバーレイを閉じた同じフレームに
     /// 背面のシーンが同じ Esc を処理して意図しない遷移 (Title への退避など) が起きる。
     ///
     /// 「開いている間」の入力遮断は各オーバーレイの SuspendScene

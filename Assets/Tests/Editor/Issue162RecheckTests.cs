@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using FlashBeat.Persistence;
+using FlashBeat.UI.V6.Common;
 using FlashBeat.UI.V6.Game.Pause;
 using FlashBeat.UI.V6.Result;
 using NUnit.Framework;
@@ -171,11 +173,24 @@ namespace FlashBeat.Tests.Editor
                 view = V6PauseView.Create(parent.GetComponent<RectTransform>());
                 Assert.IsNotNull(view, "v6 ポーズが生成される");
 
+                // Issue #733 以降、行定義の正本は V6SettingsCatalog。Sound タブ
+                // (index 2) のポリシーは「gameplay host では BGM Volume を出さない」
+                // (GameScene に実行時消費者が無い行は描かない, B-11)。
+                var soundLabels = V6SettingsCatalog.RowsForTab(2, view)
+                    .Select(row => row.Label).ToList();
+                Assert.That(soundLabels, Has.Some.EqualTo("Main Volume"),
+                    "Main Volume の行は残る");
+                Assert.That(soundLabels, Has.Some.EqualTo("Effect Volume"),
+                    "Effect Volume の行は残る");
+                Assert.IsFalse(soundLabels.Any(label => label.Contains("BGM")),
+                    "GameScene で効かない BGM Volume 行を描かない (B-11)");
+
+                // 描画側も同じ契約に従うこと (カタログと表示の乖離を防ぐ)。
                 string[] texts = AllTexts(view.Root.gameObject);
-                Assert.That(texts, Has.None.EqualTo("BGMVolume"),
-                    "GameScene で効かない BGMVolume 行を描かない (B-11)");
-                Assert.That(texts, Has.Some.EqualTo("MainVolume"), "MainVolume の行は残る");
-                Assert.That(texts, Has.Some.EqualTo("SEVolume"), "SEVolume の行は残る");
+                Assert.IsFalse(texts.Any(text => text != null && text.Contains("BGM")),
+                    "GameScene で効かない BGM 行を描かない (B-11)");
+                Assert.That(texts, Has.Some.EqualTo("Main Volume"), "Main Volume の行は残る");
+                Assert.That(texts, Has.Some.EqualTo("Effect Volume"), "Effect Volume の行は残る");
             }
             finally
             {

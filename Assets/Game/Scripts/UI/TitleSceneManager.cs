@@ -1,5 +1,4 @@
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
 using FlashBeat.UI.V6;
@@ -11,13 +10,13 @@ using FlashBeat.UI.V6;
 /// (see design/flashbeat-ui.pen); this script only owns the input handling,
 /// the scene transitions and the catalog status chip.
 ///
-/// v6 タイトル (Issue #239) の統合担当:
-///  - v6 (V6TitleView.Enabled) のときは v6 のタイトルを新しい Canvas に描き、
-///    旧 (シーン配置) の Canvas は非アクティブにして二重表示を止める。
+/// v6 タイトル (Issue #239 / #740 Stage B) の統合担当:
+///  - v6 のタイトルを新しい Canvas に描き、旧 (シーン配置) の Canvas は
+///    非アクティブにして二重表示を止める。
 ///    動画 (VideoPlayer "Screen") はシーン直下の 3D オブジェクトなので、
 ///    Canvas を隠しても動画と背景は映り続ける。
-///  - v6 を無効にしたときは旧タイトルをそのまま動かす (シーン配置のボタンの
-///    onClick は TitleSceneManager.SelectScene / OptionScene / EndGame に結線済み)。
+///  - v6 が唯一の実装 (Issue #740 Stage B)。かつての旧タイトル
+///    (BuildLegacyTitle / HandleLegacyInput) は撤去した。
 ///  - キー入力は TitleSceneManager.Update だけが受け持つ (二重処理防止)。
 ///    v5 の TitleView (コード生成) はどこからも作られていないので、
 ///    旧 UI 側の入力ハンドラは存在しない。
@@ -57,14 +56,7 @@ public class TitleSceneManager : MonoBehaviour
         sounds = GetComponent<AudioSource>();
         if (sounds != null) sounds.volume = GManager.effectVolume;
 
-        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
-        {
-            BuildV6Title();
-        }
-        else
-        {
-            BuildLegacyTitle();
-        }
+        BuildV6Title();
     }
 
     /// <summary>
@@ -150,16 +142,6 @@ public class TitleSceneManager : MonoBehaviour
         HideLegacyTitleDecorations();
     }
 
-    /// <summary>v6 を無効にしたときは旧 (シーン配置) のタイトルをそのまま動かす。</summary>
-    private void BuildLegacyTitle()
-    {
-        var legacy = FindLegacyCanvas();
-        if (legacy != null)
-        {
-            legacy.SetActive(true);
-        }
-    }
-
     /// <summary>
     /// シーン配置の旧 Canvas ("Canvas") を探す。非アクティブな Canvas も含めて
     /// 探す (隠したあとに GameObject.Find で見つからなくなるため)。
@@ -185,8 +167,7 @@ public class TitleSceneManager : MonoBehaviour
     private void RefreshPanelHandlers()
     {
         bool history = FlashBeat.UI.V6.Title.V6TitleLinks.HistoryRequested != null;
-        bool ranking = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested != null
-            || FlashBeat.UI.V5.TitleLinks.RankingRequested != null;
+        bool ranking = FlashBeat.UI.V6.Title.V6TitleLinks.RankingRequested != null;
         if (history == historyAvailable && ranking == rankingAvailable)
         {
             return;
@@ -216,13 +197,6 @@ public class TitleSceneManager : MonoBehaviour
         if (hook != null)
         {
             hook();
-            return;
-        }
-
-        var legacyHook = FlashBeat.UI.V5.TitleLinks.RankingRequested;
-        if (legacyHook != null)
-        {
-            legacyHook();
         }
     }
 
@@ -267,7 +241,6 @@ public class TitleSceneManager : MonoBehaviour
     {
         if (titleView == null)
         {
-            HandleLegacyInput();
             return;
         }
 
@@ -324,53 +297,6 @@ public class TitleSceneManager : MonoBehaviour
         {
             EndGame();
         }
-    }
-
-    /// <summary>
-    /// v6 を無効にしたときの入力 (旧タイトル用)。決定は選曲へ、
-    /// Option は設定へ、終了 (Exit / Esc) は強制終了。
-    /// </summary>
-    private void HandleLegacyInput()
-    {
-        if (KeyActions.IsDown(KeyActions.KeyAction.Start) || Input.GetKeyDown(KeyCode.Return)
-            || Input.GetKeyDown(KeyCode.Space))
-        {
-            SelectScene();
-        }
-        else if (KeyActions.IsDown(KeyActions.KeyAction.Option))
-        {
-            OptionScene();
-        }
-        else if (KeyActions.IsDown(KeyActions.KeyAction.Exit) || Input.GetKeyDown(KeyCode.Escape))
-        {
-            EndGame();
-        }
-    }
-
-    /// <summary>旧キーガイド (タイトルでは使わない)。</summary>
-    private void CreateKeyGuide()
-    {
-        KeyGuideUI.Create(null);
-        var canvas = FindObjectOfType<Canvas>();
-        if (canvas == null) { return; }
-
-        var labelGO = new GameObject("KeyGuideHint", typeof(RectTransform), typeof(TextMeshProUGUI));
-        labelGO.transform.SetParent(canvas.transform, false);
-        var rect = labelGO.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(0f, 16f);
-        rect.sizeDelta = new Vector2(700f, 36f);
-
-        var tmp = labelGO.GetComponent<TextMeshProUGUI>();
-        tmp.text = "Tab : キーガイド (キーの一覧)";
-        tmp.fontSize = 22f;
-        tmp.color = new Color(1f, 1f, 1f, 0.85f);
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.raycastTarget = false;
-        var font = JapaneseFontFinder.FindJapaneseFont();
-        if (font != null) { tmp.font = font; }
     }
 
     /// <summary>タイトルの旧装飾 (左下の F5/F2 案内) を隠す。更新ピルは残す。</summary>

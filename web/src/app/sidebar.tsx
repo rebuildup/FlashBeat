@@ -42,49 +42,90 @@ export type StudioNavItem = {
   admin?: boolean;
 };
 
-export const NAV_STAFF_ITEMS: readonly StudioNavItem[] = [
+/**
+ * Staff entries grouped by the operator's task (issue #742).
+ *
+ * The rail used to list monitoring pages before the production flow, so the
+ * most frequent path — 登録 → 編集 → 公開 — sat below the fold of attention.
+ * The groups now mirror the workflow: 制作 (register, edit, publish, in that
+ * order) comes first, 運営 (dashboard, archive) second.
+ */
+export interface StudioNavGroup {
+  value: string;
+  /** The Japanese group label. */
+  ja: string;
+  en: string;
+  items: readonly StudioNavItem[];
+}
+
+const NAV_NEW_SONG: StudioNavItem = {
+  value: "new-song",
+  label: "New song",
+  ja: "新曲を登録",
+  en: "New song",
+  href: "/new-song",
+  icon: Sparkles,
+};
+
+const NAV_EDITOR: StudioNavItem = {
+  value: "editor",
+  label: "New chart",
+  ja: "譜面を編集",
+  en: "Edit chart",
+  href: "/chart",
+  icon: PencilRuler,
+};
+
+const NAV_PUBLISH: StudioNavItem = {
+  value: "publish",
+  label: "Publish",
+  ja: "公開する",
+  en: "Publish",
+  href: "/publish",
+  icon: CloudUpload,
+  admin: true,
+};
+
+const NAV_DASHBOARD: StudioNavItem = {
+  value: "dashboard",
+  label: "Dashboard",
+  ja: "ダッシュボード",
+  en: "Dashboard",
+  href: "/dashboard",
+  icon: ChartColumnBig,
+};
+
+const NAV_SONGS: StudioNavItem = {
+  value: "songs",
+  label: "Songs",
+  ja: "楽曲アーカイブ",
+  en: "Songs",
+  href: "/songs",
+  icon: Archive,
+};
+
+export const NAV_STAFF_GROUPS: readonly StudioNavGroup[] = [
   {
-    value: "dashboard",
-    label: "Dashboard",
-    ja: "ダッシュボード",
-    en: "Dashboard",
-    href: "/dashboard",
-    icon: ChartColumnBig,
+    value: "produce",
+    ja: "制作",
+    en: "Produce",
+    items: [NAV_NEW_SONG, NAV_EDITOR, NAV_PUBLISH],
   },
   {
-    value: "songs",
-    label: "Songs",
-    ja: "楽曲アーカイブ",
-    en: "Songs",
-    href: "/songs",
-    icon: Archive,
-  },
-  {
-    value: "new-song",
-    label: "New song",
-    ja: "新曲を登録",
-    en: "New song",
-    href: "/new-song",
-    icon: Sparkles,
-  },
-  {
-    value: "editor",
-    label: "New chart",
-    ja: "譜面を編集",
-    en: "Edit chart",
-    href: "/chart",
-    icon: PencilRuler,
-  },
-  {
-    value: "publish",
-    label: "Publish",
-    ja: "公開する",
-    en: "Publish",
-    href: "/publish",
-    icon: CloudUpload,
-    admin: true,
+    value: "operate",
+    ja: "運営",
+    en: "Operate",
+    items: [NAV_DASHBOARD, NAV_SONGS],
   },
 ];
+
+/**
+ * The flat list of every staff entry, in display order (issue #742).
+ * Kept for callers that want the whole set in one array.
+ */
+export const NAV_STAFF_ITEMS: readonly StudioNavItem[] = NAV_STAFF_GROUPS.flatMap(
+  (group) => group.items,
+);
 
 /**
  * The flat, icon-first list of every route of the studio. The rail renders
@@ -184,6 +225,32 @@ const groupLabel = css({
   color: "fg.subtle",
   display: { base: "none", md: "block" },
   fontSize: "2xs",
+  letterSpacing: "0.08em",
+  paddingInline: "3",
+  paddingTop: "2",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+});
+
+/**
+ * One task group of the staff entries (issue #742). `display: contents`
+ * keeps the label and the entries as direct items of the staff grid, so
+ * the narrow 2-column layout does not gain a nested box.
+ */
+const staffSubgroup = css({
+  display: "contents",
+});
+
+/**
+ * The 制作/運営 subheading. Unlike `groupLabel` it stays visible on narrow
+ * viewports: inside the 2-column grid it spans the full row (`1 / -1`), so
+ * the boundary between the production flow and the operations pages reads
+ * at a glance.
+ */
+const subgroupLabel = css({
+  color: "fg.subtle",
+  fontSize: "2xs",
+  gridColumn: { base: "1 / -1", md: "auto" },
   letterSpacing: "0.08em",
   paddingInline: "3",
   paddingTop: "2",
@@ -356,24 +423,31 @@ export function Sidebar({ active }: { active?: string }) {
           <div className={staffDivider} aria-hidden="true" />
           <p className={groupLabel}>スタッフ操作</p>
 
-          {NAV_STAFF_ITEMS.map((item) => (
-            <a
-              key={item.value}
-              href={item.href}
-              aria-current={isActive(item) ? "page" : undefined}
-              className={navTrigger}
-              data-testid={`nav-${item.value}`}
-            >
-              <item.icon className={navIcon} size={16} aria-hidden="true" />
-              <span className={labelGrid}>
-                <span>{item.ja}</span>
-              </span>
-              {"admin" in item && item.admin ? (
-                <span className={adminBadge} data-testid="nav-publish-admin-badge">
-                  要トークン
-                </span>
-              ) : null}
-            </a>
+          {NAV_STAFF_GROUPS.map((group) => (
+            <div key={group.value} className={staffSubgroup}>
+              {/* 制作/運営の小見出し。狭い画面でも全幅の行として残し、
+                  2列グリッドの中でグループの切れ目が分かるようにする。 */}
+              <p className={subgroupLabel}>{group.ja}</p>
+              {group.items.map((item) => (
+                <a
+                  key={item.value}
+                  href={item.href}
+                  aria-current={isActive(item) ? "page" : undefined}
+                  className={navTrigger}
+                  data-testid={`nav-${item.value}`}
+                >
+                  <item.icon className={navIcon} size={16} aria-hidden="true" />
+                  <span className={labelGrid}>
+                    <span>{item.ja}</span>
+                  </span>
+                  {"admin" in item && item.admin ? (
+                    <span className={adminBadge} data-testid="nav-publish-admin-badge">
+                      要トークン
+                    </span>
+                  ) : null}
+                </a>
+              ))}
+            </div>
           ))}
         </div>
       </nav>

@@ -215,7 +215,7 @@ paths:
                 type: object
                 required: [score, rank]
                 properties:
-                  score: { type: integer, minimum: 0, maximum: 1000000 }
+                  score: { type: integer, minimum: 0, maximum: 2000000 }
                   rank: { type: integer, minimum: 1 }
         '429':
           description: >-
@@ -262,7 +262,7 @@ paths:
                       required: [nickname, score]
                       properties:
                         nickname: { type: string }
-                        score: { type: integer, minimum: 0, maximum: 1000000 }
+                        score: { type: integer, minimum: 0, maximum: 2000000 }
 components:
   securitySchemes:
     staffToken:
@@ -318,15 +318,15 @@ components:
           description: >-
             Optional. Largest combo reached; the server rejects values above
             the note count of the submitted chart version and, for
-            scoringVersion 3, above the hit count (perfect + great + bad),
-            which the combo can never exceed.
+            scoringVersion 3 and 4, above the hit count (perfect + great +
+            bad), which the combo can never exceed.
         comboMilestones:
           type: integer
           minimum: 0
           description: >-
             Optional. Number of combo milestone crossings (every 50 combo)
-            during the play; only meaningful for scoringVersion 3. When
-            miss is 0 the server verifies the count exactly against
+            during the play; only meaningful for scoringVersion 3 and 4.
+            When miss is 0 the server verifies the count exactly against
             floor((perfect+great+bad)/50); when misses occurred it applies
             the tightest bound the aggregate fields allow — at most
             miss + 1 runs of maxCombo — because the exact crossing history
@@ -335,12 +335,14 @@ components:
         score:
           type: integer
           minimum: 0
-          maximum: 1000000
+          maximum: 2000000
           description: >-
             Optional. Score the client computed with the Unity formula; the
             server recomputes it from the judgment counts and rejects a
             mismatch (422), so a broken or manipulated client score is never
-            stored.
+            stored. scoringVersion 4 scores may exceed 1,000,000 (base +
+            bonus, up to 2,000,000); versions 1-3 stay capped at 1,000,000 by
+            the recomputation.
         scoringVersion:
           type: integer
           minimum: 1
@@ -348,9 +350,11 @@ components:
             Optional. Scoring formula version the score was computed with:
             1 is the original formula (5P+3G+B over 5*N), 2 adds the combo
             continuation and no-miss bonuses (see ADR-0028), 3 adds combo
-            milestone and full-combo bonuses (see ADR-0029). Omitted means 1,
-            so clients that predate scoring versions are still accepted. New
-            clients send 3.
+            milestone and full-combo bonuses (see ADR-0029), 4 splits the
+            score into a judgment-derived base capped at 1,000,000 plus
+            additive bonuses so a full combo exceeds it (see ADR-0033).
+            Omitted means 1, so clients that predate scoring versions are
+            still accepted. New clients send 4.
     SongArchiveRequest:
       type: object
       additionalProperties: false
@@ -380,14 +384,14 @@ components:
         bestScore:
           type: [integer, 'null']
           minimum: 0
-          maximum: 1000000
+          maximum: 2000000
           description: Best score of this song, null when nobody played it.
     RankingEntry:
       type: object
       required: [nickname, score]
       properties:
         nickname: { type: string }
-        score: { type: integer, minimum: 0, maximum: 1000000 }
+        score: { type: integer, minimum: 0, maximum: 2000000 }
     RankingSong:
       type: object
       required: [songId, title, artist, level, chartVersion, plays, entries]
@@ -423,7 +427,7 @@ components:
         bestScore:
           type: [integer, 'null']
           minimum: 0
-          maximum: 1000000
+          maximum: 2000000
         averageAccuracy:
           type: [number, 'null']
           minimum: 0
@@ -438,7 +442,7 @@ components:
         nickname: { type: string }
         plays: { type: integer, minimum: 0 }
         totalScore: { type: integer, minimum: 0 }
-        bestScore: { type: integer, minimum: 0, maximum: 1000000 }
+        bestScore: { type: integer, minimum: 0, maximum: 2000000 }
     StatsResponse:
       type: object
       required: [generatedAt, totals, perSong, levelDistribution, topPlayers]

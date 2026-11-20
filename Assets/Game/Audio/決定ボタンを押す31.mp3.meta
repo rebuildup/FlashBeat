@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 75fbe7964fdb4cbca0b65aa46d1b756b
+AudioImporter:
+  externalObjects: {}
+  serializedVersion: 7
+  defaultSettings:
+    serializedVersion: 2
+    loadType: 0
+    sampleRateSetting: 0
+    sampleRateOverride: 44100
+    compressionFormat: 1
+    quality: 1
+    conversionMode: 0
+    preloadAudioData: 1
+  platformSettingOverrides: {}
+  forceToMono: 0
+  normalize: 1
+  loadInBackground: 0
+  ambisonic: 0
+  3D: 1
+  userData: source=https://soundeffect-lab.info/sound/button/ material=決定ボタンを押す31(カチッ) license=free-commercial-no-credit (効果音ラボ利用規約)
+  assetBundleName: 
+  assetBundleVariant: 

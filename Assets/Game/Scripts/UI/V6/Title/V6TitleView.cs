@@ -46,15 +46,6 @@ namespace FlashBeat.UI.V6.Title
         /// <summary>現在生成されている v6 タイトル (タイトルシーンに 1 個だけ)。</summary>
         public static V6TitleView Current { get; private set; }
 
-        /// <summary>
-        /// v6 のタイトルを使うか (統合担当が切り替える。既定 true)。
-        ///
-        /// false のときは旧 (シーン配置) のタイトルをそのまま動かす。
-        /// V6UiMode は統合担当が所有しているため、この画面固有のフラグは
-        /// ここに持つ (V6ResultView.Enabled と同じ運用)。
-        /// </summary>
-        public static bool Enabled = true;
-
         // --- design px 配置 (QJtTv 実測)。フレーム基準サイズと origin は V6TitleLogic。---
 
         private readonly Action onStart;
@@ -109,8 +100,8 @@ namespace FlashBeat.UI.V6.Title
 
             var view = new V6TitleView(onStart, onOption, onExit, onHistory, onRanking);
             // 旧 (v5) タイトル UI と更新通知バナーを隠す (v6 が自前で更新情報を
-            // 描くので、旧側は二重表示になるだけ)。Create は v6 モード
-            // (V6TitleView.Enabled) でしか呼ばれないので、ここで分岐する。
+            // 描くので、旧側は二重表示になるだけ)。v6 が唯一の実装
+            // (Issue #740 Stage B) なので Create では常に隠す。
             V6UiMode.HideLegacyTitleUi();
             V6UiMode.HideLegacyUpdateNotice();
             view.BuildRoot(parent);

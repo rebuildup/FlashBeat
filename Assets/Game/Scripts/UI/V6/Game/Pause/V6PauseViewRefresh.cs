@@ -109,12 +109,10 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
             for (int page = 0; page < pageRows.Count; page++)
             {
-                foreach (var row in pageRows[page])
+                var views = pageRowViews[page];
+                for (int i = 0; i < views.Count; i++)
                 {
-                    if (row.Read != null)
-                    {
-                        row.Value.text = row.Read();
-                    }
+                    views[i].RefreshValue();
                 }
             }
 
@@ -123,20 +121,12 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         private void RefreshRowHighlight()
         {
-            for (int page = 0; page < pageRows.Count; page++)
+            for (int page = 0; page < pageRowViews.Count; page++)
             {
-                var rows = pageRows[page];
-                for (int i = 0; i < rows.Count; i++)
+                var views = pageRowViews[page];
+                for (int i = 0; i < views.Count; i++)
                 {
-                    var panel = rows[i].Value.transform.parent.gameObject;
-                    var img = panel.GetComponent<Image>();
-                    if (img == null)
-                    {
-                        continue;
-                    }
-
-                    bool selected = page == selectedTab && i == selectedRow;
-                    img.color = selected ? V5Tokens.Key6 : V5Tokens.Key1;
+                    views[i].SetSelected(page == selectedTab && i == selectedRow);
                 }
             }
         }

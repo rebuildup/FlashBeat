@@ -104,12 +104,16 @@ namespace FlashBeat.UI.V6.History
             // design の凡例はこの 3 つだけ (q9JZcH フッター: ↑↓ 選択 / Space 決定 / Esc 戻る)。
             // S (並べ替え) は実装済みのキー操作だが design に凡例が無いため出さない。
             // (design の「凡例 (左下)」ゾーン (445,30) 240×36 は中身が空。)
-            V6Legend.KeyLegend(footerZone, new[]
-            {
-                new[] { "↑↓", "選択" },
-                new[] { "Space", "決定" },
-                new[] { "Esc", "戻る" }
-            });
+            // Issue #750: 「↑↓ 選択」は文字グリフではなく chevron アイコン
+            // (Option / Pause / Select と同じ V6Legend.IconItem)。
+            // 決定 / 戻るのキーはキー設定 (KeyActions) の正本から取る。
+            float legendX = 0f;
+            legendX = V6Legend.IconItem(footerZone, legendX, V6Legend.Y,
+                new[] { "chevron-up", "chevron-down" }, "選択");
+            legendX = V6Legend.Item(footerZone, legendX, V6Legend.Y,
+                ActionKeyHint.Primary(KeyActions.KeyAction.Confirm), "決定");
+            V6Legend.Item(footerZone, legendX, V6Legend.Y,
+                ActionKeyHint.Primary(KeyActions.KeyAction.Back), "戻る");
 
             // design (q9JZcH): 右下は「この曲へ」(567,20) 273×56 のみ。
             // 「設定」ゾーン (358,20) 197×56 は design で空のプレースホルダ (子ノード無し / fill 無し)

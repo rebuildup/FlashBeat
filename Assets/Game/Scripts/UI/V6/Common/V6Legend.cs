@@ -32,6 +32,12 @@ namespace FlashBeat.UI.V6.Common
         /// <summary>凡例の上端 y (フッターゾーン内、design 全画面共通 30)。</summary>
         public const float Y = 30f;
 
+        // --- アイコン凡例 (IconItem) の寸法 ---
+        /// <summary>アイコン 1 個の一辺 (design 実測 20)。</summary>
+        private const float IconSize = 20f;
+        /// <summary>アイコン同士の間隔。</summary>
+        private const float IconGap = 4f;
+
         /// <summary>
         /// 凡例 1 項目を design 座標 (x, y) に置き、次の項目の x を返す。
         /// </summary>
@@ -72,17 +78,76 @@ namespace FlashBeat.UI.V6.Common
         }
 
         /// <summary>
-        /// キー凡例をまとめて置く (items = {キー, 説明} の並び)。
-        /// x=0・y=<see cref="Y"/> から <see cref="ItemGap"/> 間隔で左から並べる
-        /// (Ranking / History の private BuildKeyLegend と同じ仕様)。
+        /// アイコン凡例のキャップ幅 (IconItem と同じ規則: pad + アイコン +  gap)。
+        /// 幾何を先に見積もる側 (凡例全体の幅計算など) が同じ値を使うための公開版。
         /// </summary>
-        public static void KeyLegend(GameObject parent, string[][] items)
+        public static float IconItemCapWidth(int iconCount, float capPadX = CapPadX)
         {
-            float x = 0f;
-            for (int i = 0; i < items.Length; i++)
+            if (iconCount <= 0)
             {
-                x = Item(parent, x, Y, items[i][0], items[i][1]);
+                return 0f;
             }
+
+            return capPadX * 2f + iconCount * IconSize + (iconCount - 1) * IconGap;
+        }
+
+        /// <summary>
+        /// 凡例 1 項目をアイコン (Resources/Icons のスプライト) で置く版 (Issue #733)。
+        /// 「↑↓ 選択」「←→ 変更」のような方向キーの説明を、文字グリフではなく
+        /// chevron/arrow アイコンで示す。戻り値は次の項目の x (Item と同じ規則)。
+        /// </summary>
+        public static float IconItem(GameObject parent, float x, float y, string[] iconNames, string label)
+        {
+            return IconItem(parent, x, y, iconNames, label, Height, CapPadX, InnerGap, ItemGap,
+                FontSize, V6Tokens.Key4, V6Tokens.TextMuted);
+        }
+
+        /// <summary>
+        /// <see cref="Item(GameObject, float, float, string, string, float, float, float, float, float, Color, Color)"/>
+        /// と同じく寸法・色を明示する版 (Title 凡例や Result モーダルの小さい凡例向け)。
+        /// </summary>
+        public static float IconItem(GameObject parent, float x, float y, string[] iconNames, string label,
+            float height, float capPadX, float innerGap, float itemGap, float fontSize,
+            Color capFill, Color textColor)
+        {
+            if (iconNames == null || iconNames.Length == 0)
+            {
+                return x;
+            }
+
+            float iconPadY = (height - IconSize) * 0.5f;
+            float capW = IconItemCapWidth(iconNames.Length, capPadX);
+
+            var cap = V6Controls.Panel(parent, "Legend Icons " + label,
+                new Vector2(x, y), new Vector2(capW, height), capFill, V6Tokens.RadiusSmall);
+
+            for (int i = 0; i < iconNames.Length; i++)
+            {
+                var icon = V6Icons.Create(cap, iconNames[i], IconSize, textColor,
+                    "Icon " + iconNames[i]);
+                if (icon == null)
+                {
+                    continue;
+                }
+
+                var rt = icon.rectTransform;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(
+                    capPadX + i * (IconSize + IconGap), -iconPadY);
+                rt.sizeDelta = new Vector2(IconSize, IconSize);
+            }
+
+            float labelEstimate = Mathf.Ceil(V6Ui.LabelAdvanceEm(label) * fontSize);
+            float labelX = x + capW + innerGap;
+            var labelTmp = V6Controls.Text(parent, "Legend Label " + label, label,
+                new Vector2(labelX, y), new Vector2(labelEstimate, height), fontSize,
+                textColor, TextAlignmentOptions.Left);
+            float labelW = V6Controls.MeasureWidth(labelTmp, label, labelEstimate);
+            labelTmp.rectTransform.sizeDelta = new Vector2(labelW, height);
+
+            return labelX + labelW + itemGap;
         }
     }
 }

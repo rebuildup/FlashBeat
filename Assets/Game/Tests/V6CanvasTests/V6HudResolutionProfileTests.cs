@@ -6,9 +6,10 @@ using FlashBeat.UI.V6.Game.Playfield;
 namespace FlashBeat.V6CanvasTests
 {
     /// <summary>
-    /// 固定解像度プロファイル (契約 §8) の純ロジック検証。
-    /// Owner 指示 2026-11-08: HUD は解像度ごとの固有フレームを
-    /// design px = 実ピクセルで使う (等比拡大 / 引き伸ばしは一切しない)。
+    /// 固定解像度プロファイル (契約 §8) + contain-fit スケール (issue #748) の
+    /// 純ロジック検証。3 プロファイルのネイティブ解像度では design px = 実 px
+    /// (scale = 1)。それ以外の解像度では最も近いプロファイルの design 値に
+    /// 画面へ収まる一様スケールを掛ける。
     /// </summary>
     public class V6HudResolutionProfileTests
     {
@@ -63,20 +64,118 @@ namespace FlashBeat.V6CanvasTests
         }
 
         [Test]
-        public void ForResolution_UnknownResolution_UsesNearestProfileAsIs()
+        public void ForResolution_UnknownResolution_UsesNearestProfileContainFit()
         {
-            // 1920×1200: 幅が FHD (1920) に最も近い。FHD 値を そのまま (縮尺を変えない)。
+            // 1920×1200: 幅が FHD (1920) に最も近い。横は等倍・縦は余るので
+            // contain スケールは 1 (design 値そのまま)。
             var m = V6HudMetrics.ForResolution(1920f, 1200f);
             Assert.AreEqual("fhd", m.Name);
+            Assert.AreEqual(1f, m.Scale, 1e-4f);
             Assert.AreEqual(95, m.GradeFs);
             Assert.AreEqual(600, m.GaugeW);
-            // 1280×720: FHD が最近 (2K より近い)
+
+            // 1280×720: FHD が最近。contain スケール 2/3 で design 値が縮む
+            // (以前は等倍のまま → 巨大な UI になっていた)。
             m = V6HudMetrics.ForResolution(1280f, 720f);
             Assert.AreEqual("fhd", m.Name);
-            // 3840×2160: 幅同点 (2K/Mac) → アスペクト比 16:9 で 2K
+            Assert.AreEqual(2f / 3f, m.Scale, 1e-4f);
+            Assert.AreEqual(Mathf.RoundToInt(600f * 2f / 3f), m.GaugeW);
+
+            // 3840×2160: 幅同点 (2K/Mac) → アスペクト比 16:9 で 2K。
+            // contain スケール 3/2 で 2K design が 4K いっぱいに広がる
+            // (以前は 2K のまま → 画面の約 2/3 しか占めなかった)。
             m = V6HudMetrics.ForResolution(3840f, 2160f);
             Assert.AreEqual("2k", m.Name);
-            Assert.AreEqual(240, m.ComboValueFs);
+            Assert.AreEqual(1.5f, m.Scale, 1e-4f);
+            Assert.AreEqual(Mathf.RoundToInt(240f * 1.5f), m.ComboValueFs);
+        }
+
+        // --- issue #748: 解像度マトリクス (720p / 1080p / 1440p / 4K / UW / 縦長) ---
+
+        [Test]
+        public void ForResolution_ResolutionMatrix_ScalesToFitScreen()
+        {
+            // (w, h, 期待プロファイル, 期待 contain スケール)。
+            // スケールは「選択プロファイルの design 寸法を画面に収める係数」
+            // = min(w / profileW, h / profileH)。定数ではなく関係で検証する。
+            var table = new (float w, float h, string name)[]
+            {
+                (1280f, 720f, "fhd"),     // 720p
+                (1920f, 1080f, "fhd"),    // 1080p (ネイティブ)
+                (2560f, 1440f, "2k"),     // 1440p (ネイティブ)
+                (3840f, 2160f, "2k"),     // 4K
+                (3440f, 1440f, "2k"),     // ウルトラワイド 21:9
+                (1080f, 1920f, "fhd"),    // 縦長 (タテ画面)
+                (2560f, 1080f, "2k"),     // ウルトラワイド寄りの横長
+            };
+
+            foreach (var (w, h, name) in table)
+            {
+                var m = V6HudMetrics.ForResolution(w, h);
+                Assert.AreEqual(name, m.Name, $"{w}×{h}");
+                Assert.AreEqual(V6HudMetrics.ContainScaleFor(w, h), m.Scale, 1e-4f,
+                    $"{w}×{h}: Scale は contain-fit と一致すること");
+
+                // スケール後の主要寸法は「design 値 × scale」に一致し、
+                // 少なくとも一辺が画面いっぱいまで広がる (contain の定義)。
+                float designW = name == "fhd" ? 1920f : 2560f;
+                float designH = name == "fhd" ? 1080f : (name == "mac" ? 1664f : 1440f);
+                float expectedScale = Mathf.Min(w / designW, h / designH);
+                Assert.AreEqual(expectedScale, m.Scale, 1e-3f, $"{w}×{h}");
+            }
+        }
+
+        [Test]
+        public void ForResolution_4K_CoversFullScreen()
+        {
+            // 4K で HUD が画面の約 2/3 に留まらないこと (issue #748 の再現条件)。
+            // contain-fit なので、スケール適用後の「デザイン空間」は
+            // 常に画面全体を覆う: 画面幅 ÷ scale = プロファイルの design 幅。
+            var m = V6HudMetrics.ForResolution(3840f, 2160f);
+            Assert.AreEqual(1.5f, m.Scale, 1e-4f);
+            Assert.AreEqual(3840f / m.Scale, 2560f, 0.5f); // 2K design 幅いっぱい
+            Assert.AreEqual(2160f / m.Scale, 1440f, 0.5f); // 2K design 高さいっぱい
+        }
+
+        [Test]
+        public void ForResolution_UltrawideAndTall_ScalePolicy()
+        {
+            // ウルトラワイド 21:9 (3440×1440): 高さが 2K design と一致するので
+            // contain スケールは 1。横に多少の余白が残るが、HUD は全て表示され
+            // アスペクト比は保たれる (縦を削る cover は Top Shade / 判定行を
+            // 切るため採用しない)。
+            var m = V6HudMetrics.ForResolution(3440f, 1440f);
+            Assert.AreEqual("2k", m.Name);
+            Assert.AreEqual(1f, m.Scale, 1e-4f);
+            Assert.AreEqual(1440f / m.Scale, 1440f, 0.5f); // 高さいっぱい
+
+            // さらに横長 (2560×1080): 高さ基準で縮小 (scale < 1)。
+            // HUD が画面からはみ出さない。
+            m = V6HudMetrics.ForResolution(2560f, 1080f);
+            Assert.AreEqual("2k", m.Name);
+            Assert.Less(m.Scale, 1f);
+            Assert.AreEqual(1080f / m.Scale, 1440f, 0.5f);
+
+            // 縦長 (1080×1920): 幅が制約になるので scale = 1080/1920 = 0.5625。
+            // contain なので design 空間 (1920×1080) は画面に収まり、
+            // 横幅いっぱいまで広がる (design 幅 1920 × scale = 画面幅 1080)。
+            m = V6HudMetrics.ForResolution(1080f, 1920f);
+            Assert.AreEqual("fhd", m.Name);
+            Assert.AreEqual(0.5625f, m.Scale, 1e-4f);
+            Assert.Less(m.Scale, 1f);
+            Assert.AreEqual(1080f, 1920f * m.Scale, 0.5f); // 幅いっぱい
+            // design 高さ 1080 を scale した実高さ (≈608) が画面高 1920 に収まる。
+            Assert.LessOrEqual(1080f * m.Scale, 1920f + 0.5f);
+        }
+
+        [Test]
+        public void MatchesResolution_DetectsScaleChange()
+        {
+            // プロファイル名が同じでもスケールが違えば「別の解像度」
+            // (リビルドが必要)。例: 3840×2160 と 2560×1440 は共に 2K だが
+            // scale が 1.5 / 1.0 で異なる。
+            Assert.IsTrue(V6HudMetrics.ForResolution(3840f, 2160f).MatchesResolution(3840f, 2160f));
+            Assert.IsFalse(V6HudMetrics.ForResolution(2560f, 1440f).MatchesResolution(3840f, 2160f));
         }
 
         [Test]

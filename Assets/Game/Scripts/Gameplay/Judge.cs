@@ -36,9 +36,9 @@ public class Judge : MonoBehaviour
     /// の「判定線 z = 0」と同じ面)。判定エフェクトの出現点
     /// (<see cref="EffectPosition"/> = y 0.76 / z 0.15) とは別物 —
     /// あちらは 3D 判定エフェクトが浮かぶ位置で、投影は描画判定線より
-    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行の静止位置は
-    /// この線の直上 (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictRestGapAboveLine"/>)
-    /// に置く (design §10.3)。
+    /// 画面上で約 50px (FHD) ずれる (Issue #715)。v6 判定行のタイムラインは
+    /// この線を原点に動く (<see cref="FlashBeat.UI.V6.Game.Hud.V6HudLogic.VerdictPoseAt"/>、
+    /// Issue #731: 判定線上に出現 → 上昇 → 保持 → 下方退場)。
     /// </summary>
     public const float JudgeLineWorldY = 0.48f;
     public const float JudgeLineWorldZ = 0f;
@@ -543,29 +543,33 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v3 (ADR-0029 / Issue #602, #618): 表示・送信する ratioScore は
-        // 判定 + コンボ継続 + ノーミス + 節目 + フルコンボ終了の合計。
-        // 途中の Miss でノーミス分と終了ボーナスが 0 になるため、スコアは
-        // Miss 以降に下がりうる (契約どおり)。
+        // scoring v4 (ADR-0033 / Issue #736, #618): 表示・送信する内訳は
+        // 判定由来の基礎スコア (上限 1,000,000) と、その上に独立加算される
+        // ボーナススコア (上限 1,000,000) の 2 段構成。ratio 系フィールドは
+        // v3 と同じ ratio points の内訳を保持する (情報用)。
         // フルコンボ終了ボーナスは全ノーツの判定が確定した時点 (曲終了の
         // 判定条件と同じ settled >= noteCount) でのみ乗る。途中経過の
         // HUD スコアには含めない (Issue #618)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
         bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
         GManager.judgmentsComplete = judgmentsComplete;
-        Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+        Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
             board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
             board.MilestoneCrossings, noteCount, judgmentsComplete);
-        GManager.ratioScore = v3.RatioScore;
-        GManager.comboBonus = v3.ComboBonus;
-        GManager.noMissBonus = v3.NoMissBonus;
-        GManager.milestoneBonus = v3.MilestoneBonus;
-        GManager.finalBonus = v3.FinalBonus;
+        GManager.ratioScore = v4.RatioScore;
+        GManager.comboBonus = v4.ComboBonus;
+        GManager.noMissBonus = v4.NoMissBonus;
+        GManager.milestoneBonus = v4.MilestoneBonus;
+        GManager.finalBonus = v4.FinalBonus;
+        GManager.baseScore = v4.BaseScore;
+        GManager.bonusScore = v4.BonusScore;
+        GManager.maxBonusRatio = v4.MaxBonusRatio;
 
-        // scoring v3 のスコアは整数の厳密な割り算で求める (Issue #631)。
-        // GManager.score はこの値が HUD 表示とスコア投稿の両方に使われ、
-        // サーバの再計算 (computeUnityScoreV3) と全プラットフォームで一致する。
-        UpdateScore(Scoring.ScoreV3(v3));
+        // scoring v4 のスコアは整数の厳密な割り算で求める (Issue #631 と
+        // 同じ決定的演算、ADR-0033)。GManager.score はこの値が HUD 表示と
+        // スコア投稿の両方に使われ、サーバの再計算 (computeUnityScoreV4)
+        // と全プラットフォームで一致する。上限は 2,000,000。
+        UpdateScore(Scoring.ScoreV4(v4));
     }
 
     /// <summary>
@@ -573,7 +577,7 @@ public class Judge : MonoBehaviour
     ///
     /// <para>
     /// TEST / PARITY ONLY (Issue #641): production scoring is
-    /// <see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/>, which uses exact
+    /// <see cref="Scoring.ScoreV4(Scoring.V4Breakdown)"/>, which uses exact
     /// integer arithmetic (Issue #631). This float path remains because the
     /// v1/v2 parity fixtures and the v2 scoring tests
     /// (<c>ParityFixtureTests</c>, <c>ScoringV2Tests</c>,
@@ -598,7 +602,7 @@ public class Judge : MonoBehaviour
     /// スコア表示と内部スコアの更新。
     ///
     /// <paramref name="score"/> は呼び出し側が確定した値
-    /// (<see cref="Scoring.ScoreV3(Scoring.V3Breakdown)"/> の整数演算、
+    /// (<see cref="Scoring.ScoreV4(Scoring.V4Breakdown)"/> の整数演算、
     /// Issue #631)。ここで float の ratioScore / maxScore から再計算すると
     /// プラットフォームごとの丸め差が再び入るため、受け取った値をそのまま使う。
     /// </summary>

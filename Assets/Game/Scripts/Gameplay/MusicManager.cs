@@ -197,6 +197,12 @@ public class MusicManager : MonoBehaviour
     /// <summary>現在 Playing _URI_ の再生位置 (秒)。判定の基準時刻になる。</summary>
     public float MediaTimeNow { get { return CurrentMediaTime(); } }
 
+    /// <summary>
+    /// 計測器 (NoteMotionProbe, -fbnoteprobe) が映像時計の粒度を読むための参照。
+    /// 判定・譜面時計には使わない (MediaTimeNow / GManager.step_time が正本)。
+    /// </summary>
+    public VideoPlayer SongVideoForAudit { get { return songVideo; } }
+
     /// <summary>音声の供給元の説明 (デバッグ表示・検証用)。</summary>
     public string AudioModeName { get { return audioMode.ToString(); } }
 
@@ -215,9 +221,11 @@ public class MusicManager : MonoBehaviour
         PauseGate.HardReset();
 
         waitback.SetActive(true);
-        GameSceneManager.Menu = true;
         GManager.Start = false;
         GManager.step_time = 0;
+        // Issue #739: 描画専用の補間時計も新しい曲ごとに初期化する
+        // (前の曲の外挿状態を引き継がない)。
+        MediaRenderClock.Reset();
         // Issue #183: 遷移の待ち時間に動いたかもしれない選択を、固定した
         // プレイセッションへ戻してから曲情報を読む。
         PlaySessionSnapshot session = PlaySessionSnapshot.Current;
@@ -352,15 +360,8 @@ public class MusicManager : MonoBehaviour
         // our own player, so it is removed from the song object.
         DisableInvidiousPlayer();
 
-        // 読み込み中表示 (動画のダウンロード・準備中)。失敗時は理由を表示してから自動で隠す。
-        // v6 有効時は V6LoadingView が単独で表示するため、MediaLoadingOverlay は出さない。
-        MediaLoadingOverlay loading = null;
-        bool showLegacyMediaOverlay = GameLoadingRoute.UsesLegacyOverlay;
-        if (showLegacyMediaOverlay)
-        {
-            try { loading = MediaLoadingOverlay.Ensure(); } catch (Exception e) { Debug.LogWarning("[MusicManager] loading overlay unavailable: " + e.Message); }
-            if (loading != null) { loading.Show("曲情報を取得中…"); }
-        }
+        // 読み込み中表示は V6LoadingView が単独で担う (旧 MediaLoadingOverlay の
+        // 生成経路は Issue #740 Stage B で撤去)。失敗時の理由表示も v6 側が持つ。
 
         // 1-3. Resolve the formats and make sure the media is on disk.
         //      A completed download from an earlier run makes all of it
@@ -423,7 +424,6 @@ public class MusicManager : MonoBehaviour
             //    release build ships no third party media at all.
             stage = MediaStage.DownloadingMedia;
             var videoPrefix = YouTubeMediaCache.PrefixForPlan(plan);
-            if (showLegacyMediaOverlay && loading != null) { loading.Show("動画をダウンロード中…"); }
             var videoTask = YouTubeMediaCache.EnsureFileAsync(videoId, plan.VideoSelector, videoPrefix, mediaToken);
             while (!videoTask.IsCompleted) yield return null;
             videoFile = videoTask.Result;
@@ -432,7 +432,6 @@ public class MusicManager : MonoBehaviour
             // (the scene teardown that cancelled the token is already unloading).
             if (mediaToken.IsCancellationRequested) { yield break; }
             Debug.Log($"[MusicManager] video file: {(videoFile.Ok ? videoFile.Path + (videoFile.FromCache ? " (cache)" : " (downloaded)") : videoFile.Detail)}");
-            if (!videoFile.Ok && showLegacyMediaOverlay && loading != null) { loading.ShowError("動画をダウンロードできませんでした: " + videoFile.Detail); }
 
             // The merged file (video + YouTube sound in one mp4) is the wanted state.
             // If the merge failed (no ffmpeg, download error) the picture still has to
@@ -487,7 +486,6 @@ public class MusicManager : MonoBehaviour
         if (videoFile.Ok && songVideo != null)
         {
             stage = MediaStage.PreparingVideo;
-            if (showLegacyMediaOverlay && loading != null) { loading.Show("動画を準備中…"); }
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
 
@@ -512,7 +510,6 @@ public class MusicManager : MonoBehaviour
         if (!combined && audioFile != null && audioFile.Ok)
         {
             stage = MediaStage.PreparingAudio;
-            if (showLegacyMediaOverlay && loading != null) { loading.Show("音声を準備中…"); }
             yield return PrepareStreamAudio(audioFile.Path);
             audioReady = streamAudioPrepared;
 
@@ -550,7 +547,6 @@ public class MusicManager : MonoBehaviour
 
         mediaReady = true;
         PerfMarks.Hit("media-ready");
-        if (showLegacyMediaOverlay && loading != null) { loading.Hide(); }
         load.SetActive(false);
         waitback.SetActive(false);
         Debug.Log($"[Perf] media ready {mediaStopwatch.ElapsedMilliseconds}ms");
@@ -1198,6 +1194,12 @@ public class MusicManager : MonoBehaviour
             GManager.StartTime = MediaTimeline.JudgeStartTime(Time.time, mediaTime);
             GManager.step_time = mediaTime;
         }
+
+        // Issue #739: ノーツ描画専用の補間時計へ同じメディア時刻を渡す。
+        // 判定は上の GManager.step_time が正本のままで、こちらは見た目の
+        // 滑らかさだけに使う (VideoPlayer.time が動画フレーム単位に
+        // 量子化されても、レンダーフレームごとに補間される)。
+        MediaRenderClock.Observe(GManager.step_time, Time.unscaledTime);
 
         if (mediaEnded)
         {

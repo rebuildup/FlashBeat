@@ -117,7 +117,12 @@ export const scores = sqliteTable(
       "scores_judgments_non_negative",
       sql`${table.p} >= 0 AND ${table.g} >= 0 AND ${table.b} >= 0 AND ${table.m} >= 0`,
     ),
-    check("scores_score_range", sql`${table.score} BETWEEN 0 AND 1000000`),
+    // scoring v4 (ADR-0033, Issue #736): v4 scores may reach 2,000,000
+    // (base + bonus); versions 1-3 stay capped at 1,000,000.
+    check(
+      "scores_score_range",
+      sql`${table.score} >= 0 AND ${table.score} <= 2000000 AND (${table.scoringVersion} >= 4 OR ${table.score} <= 1000000)`,
+    ),
     // SQLite cannot add a CHECK constraint to an existing table, so the
     // scoringVersion >= 1 invariant lives in the API (the submission schema
     // enforces `minimum: 1`), not in the table — same precedent as the

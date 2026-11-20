@@ -15,16 +15,11 @@ import {
   primaryCta,
 } from "@/app/panel";
 import type { Chart } from "@/lib/chart/types";
+import { createEmptyChart } from "@/lib/chart/empty";
 import type { Props } from "./chart.server";
 import "@/styles/app.css";
 
-const emptyChart: Chart = {
-  name: "無題の下書き",
-  maxBlock: 8,
-  BPM: 120,
-  offset: 0,
-  notes: [],
-};
+const emptyChart = createEmptyChart();
 
 const banner = css({
   alignItems: "center",

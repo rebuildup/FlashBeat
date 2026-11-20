@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using UnityEngine;
 using FlashBeat.Gameplay;
 
@@ -6,9 +6,11 @@ namespace FlashBeat.UI.V6.Result
 {
     /// <summary>
     /// v6 リザルト画面 (Issue #217) の純ロジック。Unity API への依存は Mathf のみ
-    /// (EditMode テストから直接検証できる)。グレード算出は既存の Assessment 判定
-    /// (<see cref="FlashBeat.UI.V5.ResultView.RankFor"/>) と同一の閾値を使い、
-    /// v5 リザルトの表示と 1:1 に保つ。寸法は design v6 の 1728x972 基準。
+    /// (EditMode テストから直接検証できる)。グレード算出は scoringVersion で
+    /// 帯を切り替える (Issue #758 / ADR-0034): v4 以降は
+    /// <see cref="Common.V6GradeLogic"/>、v1–v3 は既存の Assessment 判定
+    /// (<see cref="V6ResultRules.RankFor"/>) の閾値を維持する。
+    /// 寸法は design v6 の 1728x972 基準。
     /// </summary>
     public static class V6ResultLogic
     {
@@ -16,11 +18,34 @@ namespace FlashBeat.UI.V6.Result
         public const float DesignW = 1728f;
         public const float DesignH = 972f;
 
-        /// <summary>スコア満点 (V5 SelectViewLogic.ScoreMax と同じ基準)。</summary>
-        public const int ScoreMax = FlashBeat.UI.V5.SelectViewLogic.ScoreMax;
+        /// <summary>スコア満点 (scoring v4 = 2,000,000。<see cref="Common.V6GradeLogic.ScoreMaxV4""/> と同じ)。</summary>
+        public const int ScoreMax = Common.V6GradeLogic.ScoreMaxV4;
 
         /// <summary>スコアゲージの全長 (design px, zcSHh の Score Gauge)。</summary>
         public const float GaugeW = 824f;
+
+        // --- 結果ブロックのグレード表示 (design zcSHh の Grade (0,0) 280×280, fs240) ---
+        //     "SS" のような複数グリフは fs240 では箱の幅を超えて SCORE 列へ
+        //     はみ出すため、V6ResultView はインク実測で収まる fs へ縮める
+        //     (Issue #737)。寸法はテストと共有する。
+
+        /// <summary>グレード矩形の幅 (design px, Result Block 内左上基準)。</summary>
+        public const float GradeBoxW = 280f;
+
+        /// <summary>グレード矩形の高さ (design px)。Result Block 全体の高さでもある。</summary>
+        public const float GradeBoxH = 280f;
+
+        /// <summary>グレード文字の最大フォントサイズ (design fs240。単一グリフの design 値)。</summary>
+        public const float GradeMaxFontSize = 240f;
+
+        /// <summary>グレード文字が縮小しても下回らないフォントサイズの下限。</summary>
+        public const float GradeMinFontSize = 96f;
+
+        /// <summary>グレード文字の左右の内側余白 (隣の SCORE 列 x336 へのはみ出し防止を含む)。</summary>
+        public const float GradePadX = 16f;
+
+        /// <summary>グレード文字の上下の内側余白。</summary>
+        public const float GradePadY = 8f;
 
         /// <summary>
         /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
@@ -44,17 +69,22 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// スコアからグレード文字列を返す。既存の Assessment 判定
-        /// (V5 ResultView.RankFor) と同じ閾値 (1:1 維持)。スコアが無い (0 以下) ときは "–"。
+        /// スコアからグレード文字列を返す。スコアが無い (0 以下) ときは "–"。
+        ///
+        /// scoringVersion で帯を切り替える (Issue #758 / ADR-0034):
+        /// v4 以降は <see cref="Common.V6GradeLogic.GradeOfV4"/> (満点
+        /// 2,000,000 の帯。SS は全 Perfect + フルコンボの 2,000,000 のみ)、
+        /// v1–v3 は既存の Assessment 判定 (V5 ResultView.RankFor) の閾値を
+        /// そのまま使う (旧スコアを暗黙に再解釈しない)。
         /// </summary>
-        public static string GradeOf(int score)
+        public static string GradeOf(int score, int scoringVersion = Scoring.LatestVersion)
         {
             if (score <= 0)
             {
                 return "–";
             }
 
-            return FlashBeat.UI.V5.ResultView.RankFor(score);
+            return Common.V6GradeLogic.GradeOf(score, scoringVersion);
         }
 
         /// <summary>スコア表示。3桁カンマ区切り (デザイン表記 988,513)。</summary>
@@ -64,29 +94,32 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// scoring v3 (ADR-0029 / Issue #602) のボーナス内訳の表示文字列。
-        /// 各ボーナスは常に "+値"、未達のものは "–" を返す。値は ratio points
-        /// をスコア点へ換算した目安で、送信フィールドではない (サーバは内訳を
-        /// 信用せず再計算する)。
+        /// scoring v4 (ADR-0033 / Issue #736) の基礎スコア + ボーナス内訳の
+        /// 表示文字列。基礎スコアは判定由来のみで上限 1,000,000、ボーナスは
+        /// コンボ継続・節目・クリア (ノーミス + フルコンボ終了) の 3 群で、
+        /// それぞれ実際に加算されるスコア点を "+値" で返す (未達は "–")。
+        /// 値は ratio points をスコア点へ換算した目安で、送信フィールド
+        /// ではない (サーバは内訳を信用せず再計算する)。
         /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
         /// the full-combo end bonus only shows once every chart note was
         /// judged (Issue #618).
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
             int comboMilestones, int noteCount, bool judgmentsComplete,
-            out string comboBonus, out string milestoneBonus, out string noMissBonus, out string finalBonus)
+            out string baseScore, out string comboBonus, out string milestoneBonus, out string clearBonus)
         {
-            Scoring.V3Breakdown v3 = Scoring.BreakdownV3(
+            Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
                 perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
-            comboBonus = "+" + FormatScore(Scoring.ComponentScoreV3(v3.ComboBonus, noteCount));
-            milestoneBonus = v3.MilestoneBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.MilestoneBonus, noteCount))
+            baseScore = FormatScore(v4.BaseScore);
+            comboBonus = v4.ComboBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(v4.ComboBonus, noteCount))
                 : "–";
-            noMissBonus = v3.NoMissBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.NoMissBonus, noteCount))
+            milestoneBonus = v4.MilestoneBonus > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(v4.MilestoneBonus, noteCount))
                 : "–";
-            finalBonus = v3.FinalBonus > 0
-                ? "+" + FormatScore(Scoring.ComponentScoreV3(v3.FinalBonus, noteCount))
+            int clearRatio = v4.NoMissBonus + v4.FinalBonus;
+            clearBonus = clearRatio > 0
+                ? "+" + FormatScore(Scoring.ComponentScoreV4(clearRatio, noteCount))
                 : "–";
         }
 
@@ -102,8 +135,12 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// スコアゲージの Fill 幅 (design px)。スコアは満点 ScoreMax に対する比率で
-        /// 全長 GaugeW に写像される (design 実測: 988,513 → 815px)。
+        /// スコアゲージの Fill 幅 (design px)。スコアは最新の scoringVersion の
+        /// 満点 (<see cref="Common.V6GradeLogic.ScoreMaxOf"/>、scoring v4 では
+        /// 2,000,000) に対する比率で全長 GaugeW に写像される。v4 の
+        /// base + bonus 合計がそのまま 0..満点 の 1 本のレールになる
+        /// (Issue #758 / ADR-0034。ベストマーカーも同じ写像なので、
+        /// 分割を保存しない既存スコアでも表示が一致する)。
         /// </summary>
         public static float GaugeFillWidth(int score)
         {
@@ -112,7 +149,7 @@ namespace FlashBeat.UI.V6.Result
 
         /// <summary>
         /// スコアゲージの Best マーカー位置 (design px, 左端基準)。
-        /// design 実測: 前回最高 921,880 → x=760。
+        /// Fill と同じ写像 (最新 scoringVersion の満点で正規化)。
         /// </summary>
         public static float GaugeBestX(int bestScore)
         {
@@ -122,7 +159,7 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>曲長表示 (秒 → "m:ss")。無効値は "–"。</summary>
         public static string DurationText(float seconds)
         {
-            string text = FlashBeat.UI.V5.SelectViewLogic.DurationText(seconds);
+            string text = SongScoreLogic.DurationText(seconds);
             return string.IsNullOrEmpty(text) ? "–" : text;
         }
 
@@ -133,7 +170,7 @@ namespace FlashBeat.UI.V6.Result
                 return 0f;
             }
 
-            return Mathf.Clamp01((float)score / ScoreMax);
+            return Mathf.Clamp01((float)score / Common.V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
         }
 
         // --- メイン / フッターの layout 幾何 (契約 §4)。
@@ -372,10 +409,10 @@ namespace FlashBeat.UI.V6.Result
         // v6 Result には 2 つの別々の契約がある:
         //   - オンライン順位への送信 (RankingClient)。対象はリモート曲だけで、
         //     応答は 201 / 429 / オフライン / その他の HTTP に区分される。
-        //   - ローカル保存 (端末内の名前)。v5 は
-        //     <see cref="FlashBeat.UI.V5.ResultView"/> が PlayerPrefs キー
-        //     "V5PlayerName" に名前を書いていた。v6 Result は v5 の ResultView を
-        //     使わないため、この経路が到達不能になっていた (Issue #240)。
+        //   - ローカル保存 (端末内の名前)。旧 v5 ResultView は
+        //     PlayerPrefs キー "V5PlayerName" に名前を書いていた。
+        //     v6 Result は v5 の ResultView を使わないため、この経路が
+        //     到達不能になっていた (Issue #240)。
         //
         // 送信対象でない (ローカル) 曲にオンラインの失敗表示 (「オフライン」
         // 「送信失敗」) を出さないため、方式の判定と表示の語彙をここに純ロジック
@@ -428,15 +465,14 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// ローカル名の正規化。v5 の
-        /// <see cref="FlashBeat.UI.V5.ResultView.NormalizeName"/> と同じ規則
+        /// ローカル名の正規化。<see cref="V6ResultRules.NormalizeName"/> と同じ規則
         /// (大文字化 + A-Z0-9 のみ + 最大 8 文字)。空入力は既定値
         /// (<see cref="LocalNameDefault"/>)。
         /// オンラインの入力規則 (RankingClient) とは別物なので混ぜない。
         /// </summary>
         public static string NormalizeLocalName(string raw)
         {
-            string normalized = FlashBeat.UI.V5.ResultView.NormalizeName(raw);
+            string normalized = V6ResultRules.NormalizeName(raw);
             return string.IsNullOrEmpty(normalized) ? LocalNameDefault : normalized;
         }
 

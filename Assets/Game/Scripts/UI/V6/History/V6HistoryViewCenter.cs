@@ -78,6 +78,13 @@ namespace FlashBeat.UI.V6.History
                 // design q9JZcH 中央 選択中の曲/f54HAH/DcLR3: Title は Meta 内 (0,9) 512×50。
                 // sizeDelta だけ変えると既定アンカー (中央) のままで 13px 下がり、
                 // Artist Row (y60) に食い込む (r4 実機で重なって見えた)。
+                // 長い曲名は折り返さず auto-size で 1 行に収める
+                // (Select 側 V6SelectViewCenter と同じ規約。#749: fs48×h50 は
+                // Normal 折返しだと 2 行になり Artist/Stats に重なっていた)。
+                V6TextFit.AutoFit(title, 30f);
+                // 極端に長い曲名は min サイズでも 512 に収まらないため、
+                // auto-size の下限に達した分は Ellipsis で切る (Artist 行と同じ規約)。
+                title.overflowMode = TextOverflowModes.Ellipsis;
                 V6Layout.Place(title, 0f, 9f, 512f, 50f);
                 centerTitleText = title;
                 var artistRow = V5GameUi.Row(meta, "Artist Row", 10f, TextAnchor.MiddleCenter);
@@ -100,8 +107,8 @@ namespace FlashBeat.UI.V6.History
             centerStatValues.Add(BuildStat(stats, 256f, 0f, "NOTES", ""));
             centerStatValues.Add(BuildStat(stats, 0f, 98f, "LEVEL", ""));
             centerStatValues.Add(BuildStat(stats, 256f, 98f, "BEST", ""));
-            V6Layout.Place(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 256f, 0f);
-            V6Layout.Place(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), V5Tokens.FromHex("#FFFFFF1F"), 0f), 0f, 98f);
+            V6Layout.Place(V5Ui.Panel(stats, "Divider V", new Vector2(1f, 196f), V6Tokens.Divider, 0f), 256f, 0f);
+            V6Layout.Place(V5Ui.Panel(stats, "Divider H", new Vector2(512f, 1f), V6Tokens.Divider, 0f), 0f, 98f);
 
             // Controls (skip-back / play / skip-forward): 実在する操作だけに結線する
             // (V6SelectView と同じ規約。プレビュー再生のような新しい操作は作らない)。

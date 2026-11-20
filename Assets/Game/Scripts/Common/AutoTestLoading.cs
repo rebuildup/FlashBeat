@@ -3,12 +3,14 @@ using System.Collections;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using FlashBeat.UI.V6.Game.Loading;
 
 /// <summary>
 /// Verification aid (Mac, no OS input permission needed): with "-autotest loading" the player
-/// shows the media loading overlay ("読み込み中") and checks that it is really on screen,
-/// that the status line follows, that the spinner animates, and that Hide() takes it away.
+/// shows the v6 loading view (V6LoadingView) and checks that it is really on screen,
+/// that the loading / error states are recorded, and that SetVisible(false) hides it.
 /// Reproduces the owner's request: "動画のダウンロードを読み込み中表示にしたい".
+/// Issue #740 Stage B: 旧 MediaLoadingOverlay は製品経路から外れたため削除済み。
 /// </summary>
 public class AutoTestLoading : MonoBehaviour
 {
@@ -24,6 +26,8 @@ public class AutoTestLoading : MonoBehaviour
     private int pass;
     private int fail;
     private string outDir;
+    private GameObject canvasGo;
+    private V6LoadingView view;
 
     private IEnumerator Start()
     {
@@ -35,34 +39,41 @@ public class AutoTestLoading : MonoBehaviour
         yield return new WaitForSecondsRealtime(4f);
         Check("on TitleScene", SceneManager.GetActiveScene().name == "TitleScene");
 
-        MediaLoadingOverlay overlay = MediaLoadingOverlay.Ensure();
-        Check("the overlay was created", overlay != null);
+        // 検証用に v6 ローディング画面を単独で生成する (製品では V6GameRuntime が
+        // GameScene で生成する)。親は ScreenSpaceOverlay の Canvas。
+        canvasGo = new GameObject("AutoTestLoadingCanvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
+        DontDestroyOnLoad(canvasGo);
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 40000;
+        view = V6LoadingView.Create(canvasGo.GetComponent<RectTransform>());
+        Check("the v6 loading view was created", view != null);
 
-        if (overlay != null)
+        if (view != null)
         {
-            Check("the overlay is hidden before the download starts", !overlay.IsVisible);
+            Check("the view is hidden before the download starts", !view.IsShownForAudit);
 
-            overlay.Show("動画をダウンロード中…");
+            view.SetLoading("テスト曲", "テストアーティスト", null, null);
+            view.SetVisible(true);
             yield return null;
-            Check("the overlay is visible while downloading", overlay.IsVisible);
-            Check("the title says 読み込み中", overlay.TitleText.Contains("読み込み中"));
-            Check("the status line shows the phase", overlay.StatusText.Contains("ダウンロード"));
-            Check("the overlay does not block input", !BlocksRaycasts());
-
-            float angle0 = overlay.SpinnerAngle;
-            for (int i = 0; i < 8; i++) { yield return null; }
-            Check("the spinner animates", overlay.SpinnerAngle != angle0);
+            Check("the view is visible while downloading", view.IsShownForAudit);
+            Check("the view root is active", view.Root != null && view.Root.gameObject.activeInHierarchy);
 
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-loading.png"));
 
-            overlay.Show("音声を準備中…");
+            view.SetLoading("テスト曲", "テストアーティスト", null, 0.5f);
             yield return null;
-            Check("the status line follows the phase", overlay.StatusText.Contains("音声"));
+            Check("the progress is recorded", view.ProgressForAudit.HasValue
+                && Mathf.Approximately(view.ProgressForAudit.Value, 0.5f));
 
-            overlay.Hide();
+            view.SetError();
             yield return null;
-            Check("the overlay is hidden after the media is ready", !overlay.IsVisible);
+            Check("the error state is recorded", view.ErrorShownForAudit);
+
+            view.SetVisible(false);
+            yield return null;
+            Check("the view is hidden after the media is ready", !view.IsShownForAudit);
         }
 
         Debug.Log("[AutoTest] RESULT loading pass=" + pass + " fail=" + fail);
@@ -75,22 +86,6 @@ public class AutoTestLoading : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(0.5f);
         Application.Quit();
-    }
-
-    /// <summary>オーバーレイがクリックを奪っていないか (Graphic の raycastTarget を確認)。</summary>
-    private static bool BlocksRaycasts()
-    {
-        var images = Resources.FindObjectsOfTypeAll<UnityEngine.UI.Graphic>();
-        for (int i = 0; i < images.Length; i++)
-        {
-            var graphic = images[i];
-            if (graphic == null) continue;
-            if (!graphic.gameObject.activeInHierarchy) continue;
-            if (graphic.transform.root == null) continue;
-            if (graphic.transform.root.name != "MediaLoadingOverlay") continue;
-            if (graphic.raycastTarget) return true;
-        }
-        return false;
     }
 
     private void Check(string label, bool ok)
