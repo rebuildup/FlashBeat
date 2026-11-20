@@ -281,7 +281,17 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
    macOS の Deployment Target は `ProjectSettings` の `macOSTargetOSVersion` (12.0)。
 2. **同一 source SHA の full EditMode、対象 platform の Unity build/ZIP・SHA/media policy、必要なら Web E2E を一括で検証する。** 実機 smoke (起動→選曲→プレイ→リザルト) は任意の診断に留め、実機証拠なしを理由に Release を停止しない (#22 現行)。
    macOS は `docs/operations/mac-verify.md` の手順で確認する。
-3. パッケージ化 (ZIP + `.sha256` sidecar と内容検査):
+3. **同梱メディアツールを取得する (issue #795)。** 配布 ZIP は yt-dlp / deno を
+   `StreamingAssets/tools/` に同梱する。未取得だとパッケージングが失敗する:
+
+   ```sh
+   script/fetch-media-tools.sh   # tools/media/ (gitignore) へ pin 付きで取得
+   ```
+
+   pin は `tools/media-tools.lock` (yt-dlp 2026.10.26 / deno v2.9.8)。
+   YouTube 側の仕様変更で yt-dlp が劣化したら lock を更新して再取得する。
+
+4. パッケージ化 (ZIP + `.sha256` sidecar と内容検査):
 
    ```powershell
    # Windows
@@ -305,8 +315,8 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
      日本語コメントのバイト列が文字列を壊しスクリプト全体がパースエラーで起動しなくなる
      (2026-11-07 実機発生 → `tools/update/Update.ps1` に BOM を付与して修正)。
    - `update-macos.sh` は LF・BOM 無しで配布する (BOM があると `#!/bin/bash` が解釈できない)。
-4. Release 作成 (プラットフォームごとに別 Release)。オーナー承認済みなら `--draft` を外して即公開。
-   未承認なら `--draft` で作り 5 へ。タグは実在しない新タグを使い、draft の間はタグが push されない。
+5. Release 作成 (プラットフォームごとに別 Release)。オーナー承認済みなら `--draft` を外して即公開。
+   未承認なら `--draft` で作り 6 へ。タグは実在しない新タグを使い、draft の間はタグが push されない。
    タグ / アセット名には必ずプラットフォーム (`win64` / `macos`) を含める:
 
    ```powershell
@@ -320,7 +330,7 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
 
    - 同じ `<semver>` でも `win64` と `macos` は別 Release。`--latest` はそれぞれの Release に付けてよい
      (UpdateChecker は `--latest` ではなく一覧からプラットフォームで絞る)。
-5. **公開 (publish) の権限境界**: 原則オーナー手動承認。オーナーが明示的に承認した場合のみ
+6. **公開 (publish) の権限境界**: 原則オーナー手動承認。オーナーが明示的に承認した場合のみ
    ワーカーが直接公開してよい (2026-11-06 の v0.1.0-win64-743c88d はオーナー指示により即時公開):
 
    ```powershell
@@ -328,7 +338,7 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
    gh release edit v<semver>-<platform>-<shortsha> --draft=false
    ```
 
-6. 不具合が出た場合は既存 Release を差し替えず、**修正版を新しいドラフト Release として発行**する。
+7. 不具合が出た場合は既存 Release を差し替えず、**修正版を新しいドラフト Release として発行**する。
    ただし **基準バージョンは必ず上げる** (`FLASHBEAT_VERSION_BASE=0.1.2` → タグ `v0.1.2-<platform>-<sha>`)。
    自動更新はバージョンの大小で判定するため、同じバージョンで別 SHA の Release を作ると
    「同じバージョンの別ビルド」として扱われ、自動更新が効かなくなる (運営者が手動適用する運用になる)。
