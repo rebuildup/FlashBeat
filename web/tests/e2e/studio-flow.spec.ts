@@ -79,6 +79,9 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
 
 test("client-side navigation keeps the shared layout mounted", async ({ page }) => {
   await page.goto("/");
+  // The SSR markup is visible before hydration; a click that early is a
+  // plain document navigation and would defeat the probe below.
+  await expect(page.locator("#app")).toHaveAttribute("data-hydrated", "true");
   const sidebar = page.locator("aside", { has: page.getByRole("navigation", { name: "Studio" }) });
   await expect(sidebar).toBeVisible();
 
