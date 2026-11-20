@@ -395,6 +395,19 @@ namespace FlashBeat.Gameplay
                     return result;
                 }
 
+                // Issue #796: YouTube の progressive ストリーム等、映像
+                // time_base が Unity VideoPlayer の時計を破壊するコンテナが
+                // 稀にある。ffmpeg/ffprobe が使える環境ではここで映像を
+                // 正規化する (失敗してもダウンロード自体は成功のまま)。
+                try
+                {
+                    await MediaNormalizer.NormalizeVideoAsync(produced, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[YouTubeMediaCache] media normalization of '{produced}' failed: {e.Message}");
+                }
+
                 // The download (and the ffmpeg merge, when one ran) is complete: the
                 // marker makes the file a cache hit for every later call.
                 MarkCompleted(produced);
