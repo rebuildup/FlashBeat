@@ -103,22 +103,45 @@ namespace FlashBeat.UI.V6.Result
             var zone = V6Layout.Place(V5Ui.Node(main, "Score Gauge Zone"), 0f, GaugeZoneY, 840f, 100f);
             var gauge = V6Layout.Place(V5Ui.Node(zone, "Score Gauge"), 0f, GaugeY, V6ResultLogic.GaugeW, 76f);
 
-            // セグメント (y24 h16): C(0,165) B(168,164) A(335,165) S(503,164) SS(670,55) +(728,96)。
-            float[] segX = { 0f, 168f, 335f, 503f, 670f, 728f };
-            float[] segW = { 165f, 164f, 165f, 164f, 55f, 96f };
-            string[] segNames = { "C", "B", "A", "S", "SS", "+" };
-            for (int i = 0; i < segX.Length; i++)
+            // セグメントは V6GradeLogic.GradeBandsOf (グレード閾値の正本、
+            // Issue #788) をトラック幅へ写した値。「満点のみ」の SS は
+            // 幅を持たない点帯なので、右端に接する細いキャップとして描く。
+            // 旧デザインの固定座標 (C 165 / B 164 / A 165 / S 164 / SS 55 / + 96)
+            // ではグレード境界と目盛りが一致しなかった。
+            var bands = Common.V6GradeLogic.GradeBandsOf(FlashBeat.Gameplay.Scoring.LatestVersion);
+            float pointW = V6ResultLogic.GaugeW / 150f;
+            foreach (var band in bands)
             {
-                Color fill = i == 5 ? V5Tokens.FromHex("#3A3220") : V5Tokens.Key0;
-                V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + segNames[i], new Vector2(segW[i], GaugeTrackH), fill, 2f),
-                    segX[i], GaugeTrackY);
-                var label = V5GameUi.Text(gauge.gameObject, "Label " + segNames[i], segNames[i], 16f,
+                if (band.IsPoint)
+                {
+                    V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + band.Label,
+                        new Vector2(pointW, GaugeTrackH), V5Tokens.FromHex("#3A3220"), 2f),
+                        V6ResultLogic.GaugeW - pointW, GaugeTrackY);
+                    var capLabel = V5GameUi.Text(gauge.gameObject, "Label " + band.Label, band.Label, 16f,
+                        V5Tokens.TextDim, TextAlignmentOptions.Center);
+                    V6Layout.Place(capLabel, V6ResultLogic.GaugeW - pointW * 2f, 46f, pointW * 4f, 20f,
+                        new Vector2(0f, 0.5f));
+                    continue;
+                }
+
+                float segX = band.Start * V6ResultLogic.GaugeW;
+                float segW = (band.End - band.Start) * V6ResultLogic.GaugeW;
+                V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + band.Label,
+                    new Vector2(segW, GaugeTrackH), V5Tokens.Key0, 2f), segX, GaugeTrackY);
+                var label = V5GameUi.Text(gauge.gameObject, "Label " + band.Label, band.Label, 16f,
                     V5Tokens.TextDim, TextAlignmentOptions.Center);
-                V6Layout.Place(label, segX[i], 46f, segW[i], 20f, new Vector2(0f, 0.5f));
+                V6Layout.Place(label, segX, 46f, segW, 20f, new Vector2(0f, 0.5f));
             }
 
             gaugeFill = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Fill",
                 new Vector2(0f, GaugeTrackH), V5Tokens.FromHex("#EDEDED"), 2f), 0f, GaugeTrackY).GetComponent<Image>();
+
+            // SS キャップが塗りで隠れないよう、Fill の後に最前面へ。
+            var ssCap = gauge.transform.Find("Seg SS");
+            if (ssCap != null)
+            {
+                ssCap.SetAsLastSibling();
+            }
 
             gaugeBestMarker = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Best Marker", new Vector2(4f, 24f),
                 V5Tokens.Text, 0f), 0f, 20f).GetComponent<Image>();

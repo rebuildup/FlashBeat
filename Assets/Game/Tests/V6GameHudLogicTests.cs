@@ -69,6 +69,66 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(530f, V6HudLogic.GaugeBestX(int.MaxValue, 530f), 0.5f);
         }
 
+        // --- グレード帯の目盛り (Issue #788) ---
+
+        [Test]
+        public void GaugeSegments_MatchGradeBandBoundaries()
+        {
+            // FHD: GaugeW=600。v4+ 帯 (C[0,.5) B[.5,.7) A[.7,.95) S[.95,1) SS=点)
+            // をトラック幅へ写すと x = 0/300/420/570、w = 300/120/150/30。
+            // 旧固定値 (122/244/366/488/530) は閾値と無関係だった。
+            var m = V6HudMetrics.Fhd(1f);
+            Assert.AreEqual(4, m.GaugeSegX.Length);
+            Assert.AreEqual(0f, m.GaugeSegX[0], 0.01f);
+            Assert.AreEqual(300f, m.GaugeSegX[1], 0.01f);   // B 下限 = 50%
+            Assert.AreEqual(420f, m.GaugeSegX[2], 0.01f);   // A 下限 = 70%
+            Assert.AreEqual(570f, m.GaugeSegX[3], 0.01f);   // S 下限 = 95%
+            Assert.AreEqual(300f, m.GaugeSegW[0], 0.01f);
+            Assert.AreEqual(120f, m.GaugeSegW[1], 0.01f);
+            Assert.AreEqual(150f, m.GaugeSegW[2], 0.01f);
+            Assert.AreEqual(30f, m.GaugeSegW[3], 0.01f);
+        }
+
+        [Test]
+        public void GaugeFillWidth_GradeBoundaries()
+        {
+            // 境界の直前・一致・直後で、塗り終端が対応する帯に入ること。
+            // 帯: C <50% / B [50%,70%) / A [70%,95%) / S [95%,100%) / SS = 100%。
+            const float w = 1000f;
+            // B 下限 (1,000,000 = 50%)
+            Assert.Less(V6HudLogic.GaugeFillWidth(999999, w) / w, 0.5f);
+            Assert.AreEqual(0.5f, V6HudLogic.GaugeFillWidth(1000000, w) / w, 1e-4f);
+            Assert.Greater(V6HudLogic.GaugeFillWidth(1000001, w) / w, 0.5f);
+            // A 下限 (1,400,000 = 70%)
+            Assert.Less(V6HudLogic.GaugeFillWidth(1399999, w) / w, 0.7f);
+            Assert.AreEqual(0.7f, V6HudLogic.GaugeFillWidth(1400000, w) / w, 1e-4f);
+            Assert.Greater(V6HudLogic.GaugeFillWidth(1400001, w) / w, 0.7f);
+            // S 下限 (1,900,000 = 95%)
+            Assert.Less(V6HudLogic.GaugeFillWidth(1899999, w) / w, 0.95f);
+            Assert.AreEqual(0.95f, V6HudLogic.GaugeFillWidth(1900000, w) / w, 1e-4f);
+            Assert.Greater(V6HudLogic.GaugeFillWidth(1900001, w) / w, 0.95f);
+            // SS は満点のみ (1,999,999 は S 帯、2,000,000 で全長)
+            Assert.Less(V6HudLogic.GaugeFillWidth(1999999, w) / w, 1f);
+            Assert.AreEqual(w, V6HudLogic.GaugeFillWidth(2000000, w), 0.01f);
+        }
+
+        [Test]
+        public void GaugeFillWidth_BGradeScore_StaysInsideBBand()
+        {
+            // Issue #788 の再現ケース: 1,227,055 点は B (61.35%)。
+            // 塗り終端・Best マーカーとも B 帯 [50%,70%) の内側にあり、
+            // A 帯 (70% 以降) へはみ出さない。
+            const float w = 1000f;
+            float fillFrac = V6HudLogic.GaugeFillWidth(1227055, w) / w;
+            float bestFrac = V6HudLogic.GaugeBestX(1227055, w) / w;
+            Assert.GreaterOrEqual(fillFrac, 0.5f);
+            Assert.Less(fillFrac, 0.7f, "B 評価の塗りが A 帯へはみ出している");
+            Assert.GreaterOrEqual(bestFrac, 0.5f);
+            Assert.Less(bestFrac, 0.7f, "B 評価の Best マーカーが A 帯へはみ出している");
+            Assert.AreEqual("B",
+                FlashBeat.UI.V6.Common.V6GradeLogic.GradeOf(1227055, FlashBeat.Gameplay.Scoring.LatestVersion));
+        }
+
         // --- コンボ ---
 
         [Test]
@@ -201,7 +261,8 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(95, m.GradeFs);
             Assert.AreEqual(600, m.GaugeW);
             Assert.AreEqual(36, m.GaugeH);
-            Assert.AreEqual(524, m.GaugeFillMax);
+            // Issue #788: 塗りはトラック全長まで (満点 = SS 点 = 右端)。
+            Assert.AreEqual(m.GaugeW, m.GaugeFillMax);
             Assert.AreEqual(180, m.ComboValueFs);
             Assert.AreEqual(56, m.KeyCapW);
             Assert.AreEqual(36, m.KeyCapH);
@@ -221,7 +282,7 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(125, m.GradeFs);          // fs125 (FHD 95 の 4/3 ではない)
             Assert.AreEqual(800, m.GaugeW);           // Score Gauge 800×48
             Assert.AreEqual(48, m.GaugeH);
-            Assert.AreEqual(699, m.GaugeFillMax);     // Fill 699×14
+            Assert.AreEqual(m.GaugeW, m.GaugeFillMax); // Issue #788: 塗りはトラック全長
             Assert.AreEqual(800, m.ComboW);           // Combo 800×293
             Assert.AreEqual(293, m.ComboH);
             Assert.AreEqual(240, m.ComboValueFs);     // Value fs240
@@ -255,7 +316,7 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(347, m.TopShadeH * s2k, 1.5f);
             Assert.AreEqual(800, m.GaugeW * s2k, 0.5f);
             Assert.AreEqual(24, m.GaugeTrackH * s2k, 0.5f);
-            Assert.AreEqual(699, m.GaugeFillMax * s2k, 1.5f);
+            Assert.AreEqual(800, m.GaugeFillMax * s2k, 1.5f);
             Assert.AreEqual(240, m.ComboValueFs * s2k, 0.5f);
             Assert.AreEqual(75, m.KeyCapW * s2k, 0.5f);
             Assert.AreEqual(48, m.KeyCapH * s2k, 0.5f);

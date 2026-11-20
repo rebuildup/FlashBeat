@@ -68,11 +68,18 @@ namespace FlashBeat.UI.V6.Game.Hud
         public readonly int GaugeFillH;
         public readonly int GaugeLabelY;
         public readonly int GaugeLabelFs;
-        /// <summary>C/B/A/S/SS/+ セグメントの x (左端基準)。</summary>
+        /// <summary>
+        /// グレード帯セグメント (C/B/A/S) の x (左端基準)。
+        /// <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.GradeBandsOf"/> の
+        /// 帯境界をトラック幅へ写した値 (Issue #788)。末尾の点帯 (SS) は
+        /// 含まない — ビュー側が右端マーカーとして別途描く。
+        /// </summary>
         public readonly float[] GaugeSegX;
-        /// <summary>C/B/A/S/SS/+ セグメントの幅。</summary>
+        /// <summary>グレード帯セグメント (C/B/A/S) の幅。</summary>
         public readonly float[] GaugeSegW;
-        /// <summary>塗り (Fill) の最大幅 = GaugeW - + セグメント幅。</summary>
+        /// <summary>SS 点帯マーカーの幅 (トラック右端に接する細いキャップ)。</summary>
+        public readonly int GaugeSegPointW;
+        /// <summary>塗り (Fill) の最大幅 = トラック全長 (Issue #788 の単一写像)。</summary>
         public readonly int GaugeFillMax;
         public readonly int GaugeBestW;
         public readonly int GaugeBestH;
@@ -230,20 +237,36 @@ namespace FlashBeat.UI.V6.Game.Hud
             GaugeFillH = gaugeFillHOverride >= 0 ? Sc(gaugeFillHOverride) : R(14, gh);
             GaugeLabelY = Mathf.RoundToInt(18f * gh);
             GaugeLabelFs = Mathf.RoundToInt(16f * g);
-            GaugeSegX = new float[6];
-            GaugeSegW = new float[6];
-            int[] fhdSegX = { 0, 122, 244, 366, 488, 530 };
-            int[] fhdSegW = { 120, 120, 120, 120, 40, 70 };
-            for (int i = 0; i < 6; i++)
+            // Issue #788: セグメント境界はデザイン固定値ではなく、
+            // V6GradeLogic.GradeBandsOf (グレード閾値の正本) をトラック幅へ
+            // 写した値。塗り・Best マーカーと同じ ScoreFractionOf 空間なので、
+            // 「B の下限では B の目盛り」と構造上一致する。
+            var bands = FlashBeat.UI.V6.Common.V6GradeLogic
+                .GradeBandsOf(FlashBeat.Gameplay.Scoring.LatestVersion);
+            var segBands = new System.Collections.Generic.List<FlashBeat.UI.V6.Common.V6GradeLogic.GradeBand>();
+            foreach (var band in bands)
             {
-                GaugeSegX[i] = Mathf.RoundToInt(fhdSegX[i] * g);
-                GaugeSegW[i] = Mathf.RoundToInt(fhdSegW[i] * g);
+                if (!band.IsPoint)
+                {
+                    segBands.Add(band);
+                }
             }
 
-            // design template: Fill は 524px (FHD 600 のトラックに対して "+ セグメントの
-            // 開始 530 までで 6px 止める)。"+ セグメント幅" から引くと 530 になり
-            // 6px ずれるので、design の実測値 524 を基準にする。
-            GaugeFillMax = Mathf.RoundToInt(524f * g);
+            GaugeSegX = new float[segBands.Count];
+            GaugeSegW = new float[segBands.Count];
+            for (int i = 0; i < segBands.Count; i++)
+            {
+                float x0 = segBands[i].Start * GaugeW;
+                float x1 = segBands[i].End * GaugeW;
+                GaugeSegX[i] = Mathf.RoundToInt(x0);
+                GaugeSegW[i] = Mathf.Max(1, Mathf.RoundToInt(x1) - GaugeSegX[i]);
+            }
+
+            GaugeSegPointW = Mathf.Max(2, Mathf.RoundToInt(4f * g));
+
+            // Fill はトラック全長まで伸びる (Issue #788: 満点 = トラック右端の
+            // SS 点と一致させるため、旧 "+" 尾部分の短縮は廃止)。
+            GaugeFillMax = GaugeW;
             GaugeBestW = Mathf.RoundToInt(4f * g);
             GaugeBestH = GaugeTrackH;
 

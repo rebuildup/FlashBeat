@@ -94,17 +94,43 @@ namespace FlashBeat.UI.V6.Game.Hud
             trackRt.pivot = new Vector2(0f, 1f);
             trackRt.anchoredPosition = Vector2.zero;
 
-            // セグメント C/B/A/S/SS/+ (design は track と同色。+ だけ契約 §8 の #3A3220)。
-            for (int i = 0; i < m.GaugeSegX.Length; i++)
+            // グレード帯セグメント + SS 点マーカー (Issue #788):
+            // 境界は V6GradeLogic.GradeBandsOf (グレード閾値の正本) を
+            // トラック幅へ写した m.GaugeSegX/W。「満点のみ」の SS は
+            // トラック右端に接する細いキャップとして描く。帯とラベルは
+            // 同じ添字で対応する (点帯を除く)。
+            var bands = FlashBeat.UI.V6.Common.V6GradeLogic
+                .GradeBandsOf(FlashBeat.Gameplay.Scoring.LatestVersion);
+            int segIndex = 0;
+            for (int i = 0; i < bands.Count; i++)
             {
-                var seg = V5Ui.Panel(track, "Seg " + i,
-                    new Vector2(m.GaugeSegW[i], m.GaugeSegH),
-                    i == m.GaugeSegX.Length - 1 ? V6HudLogic.AccentBase : V5Tokens.Key0, 2f);
+                var band = bands[i];
+                if (band.IsPoint)
+                {
+                    // SS = 満点のみの点帯。キャップは Fill/Best の後に
+                    // 描く (満点時に塗りで隠れないようにするため)。
+                    continue;
+                }
+
+                var seg = V5Ui.Panel(track, "Seg " + band.Label,
+                    new Vector2(m.GaugeSegW[segIndex], m.GaugeSegH),
+                    V5Tokens.Key0, 2f);
                 var segRt = V6Layout.RectOf(seg);
                 segRt.anchorMin = new Vector2(0f, 0f);
                 segRt.anchorMax = new Vector2(0f, 0f);
                 segRt.pivot = new Vector2(0f, 0.5f);
-                segRt.anchoredPosition = new Vector2(m.GaugeSegX[i], m.GaugeSegY);
+                segRt.anchoredPosition = new Vector2(m.GaugeSegX[segIndex], m.GaugeSegY);
+
+                var label = V5Ui.Text(gauge, "Label " + band.Label, band.Label, m.GaugeLabelFs,
+                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                var labelRt = label.rectTransform;
+                labelRt.anchorMin = new Vector2(0f, 1f);
+                labelRt.anchorMax = new Vector2(0f, 1f);
+                labelRt.pivot = new Vector2(0f, 0f);
+                labelRt.anchoredPosition = new Vector2(
+                    m.GaugeSegX[segIndex] + m.GaugeSegW[segIndex] * 0.5f, -m.GaugeLabelY);
+                labelRt.sizeDelta = new Vector2(m.GaugeSegW[segIndex], m.GaugeLabelFs * 1.4f);
+                segIndex++;
             }
 
             // 塗り (Fill)
@@ -127,19 +153,33 @@ namespace FlashBeat.UI.V6.Game.Hud
             bestRt.anchoredPosition = Vector2.zero;
             gaugeBest = bestRt;
 
-            // ラベル行 (C B A S SS +)
-            string[] labels = { "C", "B", "A", "S", "SS", "+" };
-            for (int i = 0; i < labels.Length; i++)
+            // 点帯 (SS = 満点のみ) の右端キャップ。アクセント色は旧 "+" の
+            // 役割 (最高評価域) を引き継ぐ。Fill/Best の後に描いて
+            // 満点時にも見えるようにする。
+            foreach (var band in bands)
             {
-                var label = V5Ui.Text(gauge, "Label " + labels[i], labels[i], m.GaugeLabelFs,
-                    V5Tokens.TextMuted, TextAlignmentOptions.Center);
-                var labelRt = label.rectTransform;
-                labelRt.anchorMin = new Vector2(0f, 1f);
-                labelRt.anchorMax = new Vector2(0f, 1f);
-                labelRt.pivot = new Vector2(0f, 0f);
-                labelRt.anchoredPosition = new Vector2(
-                    m.GaugeSegX[i] + m.GaugeSegW[i] * 0.5f, -m.GaugeLabelY);
-                labelRt.sizeDelta = new Vector2(m.GaugeSegW[i], m.GaugeLabelFs * 1.4f);
+                if (!band.IsPoint)
+                {
+                    continue;
+                }
+
+                var cap = V5Ui.Panel(track, "Seg " + band.Label,
+                    new Vector2(m.GaugeSegPointW, m.GaugeSegH),
+                    V6HudLogic.AccentBase, 2f);
+                var capRt = V6Layout.RectOf(cap);
+                capRt.anchorMin = new Vector2(0f, 0f);
+                capRt.anchorMax = new Vector2(0f, 0f);
+                capRt.pivot = new Vector2(0f, 0.5f);
+                capRt.anchoredPosition = new Vector2(m.GaugeW - m.GaugeSegPointW, m.GaugeSegY);
+
+                var capLabel = V5Ui.Text(gauge, "Label " + band.Label, band.Label,
+                    m.GaugeLabelFs, V5Tokens.TextMuted, TextAlignmentOptions.Center);
+                var capLabelRt = capLabel.rectTransform;
+                capLabelRt.anchorMin = new Vector2(0f, 1f);
+                capLabelRt.anchorMax = new Vector2(0f, 1f);
+                capLabelRt.pivot = new Vector2(1f, 0f);
+                capLabelRt.anchoredPosition = new Vector2(m.GaugeW, -m.GaugeLabelY);
+                capLabelRt.sizeDelta = new Vector2(m.GaugeLabelFs * 2f, m.GaugeLabelFs * 1.4f);
             }
         }
 

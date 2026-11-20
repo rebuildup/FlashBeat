@@ -290,9 +290,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 lastRenderedScore = score;
             }
 
-            // スコアゲージ (scoring v4 の満点 2,000,000 をトラック全長へ写像。
-            // "+" セグメントも塗り対象に含めるため fillMax には GaugeW を渡す。
-            // Best は保存スコア)
+            // スコアゲージ (scoring v4+ の満点 2,000,000 をトラック全長へ写像。
+            // Issue #788: 塗り・Best・目盛りは全て ScoreFractionOf の
+            // 単一写像と GradeBandsOf の帯から導かれる。Best は保存スコア)
             // Issue #434: 値を瞬時に切り替えず、表示側を目標へ指数 tween させる。
             // 初回 (Rebuild 直後) は目標値へ即合わせて前回プレイの残像を出さない。
             float gaugeTargetW = V6HudLogic.GaugeFillWidth(score, m.GaugeW);
