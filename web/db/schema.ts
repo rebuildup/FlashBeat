@@ -11,7 +11,16 @@
  * shape, no matter which client writes it.
  */
 import { sql } from "void/db";
-import { check, index, integer, primaryKey, real, sqliteTable, text } from "void/schema-d1";
+import {
+  check,
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "void/schema-d1";
 
 /**
  * Ownership model of the Web Studio (issue #799).
@@ -97,6 +106,20 @@ export const songs = sqliteTable(
      * not part of this Drizzle schema.
      */
     createdByUserId: text("createdByUserId"),
+    /**
+     * Rights declaration recorded at user publish time (issue #800).
+     *
+     * `rightsStatus` is one of `original` / `licensed` / `permission` /
+     * `other`; `materialSource` names where the material came from and
+     * `license` carries the terms the uploader declared. All three stay
+     * `NULL` on staff-published songs — the staff flow has no rights
+     * attestation, so "no record" must stay distinguishable from
+     * "attested". The columns are additive and nullable so existing rows
+     * need no backfill.
+     */
+    materialSource: text("materialSource"),
+    rightsStatus: text("rightsStatus"),
+    license: text("license"),
   },
   (table) => [
     // SongId parameter of the contract: ^[a-z0-9-]{3,64}$
@@ -115,6 +138,10 @@ export const songs = sqliteTable(
     check("songs_level_range", sql`${table.level} BETWEEN 1 AND 99`),
     check("songs_duration_range", sql`${table.durationSec} > 0 AND ${table.durationSec} <= 1800`),
     check("songs_current_version_positive", sql`${table.currentVersion} >= 1`),
+    // The rights columns (`materialSource` / `rightsStatus` / `license`)
+    // carry no CHECK constraints: SQLite cannot add one to the existing
+    // `songs` table, so — like the `archived` flag (issue #151) — the
+    // bounds live in the publish API (`_me-model.ts`), not in the schema.
     // The archive flag is a boolean stored as 0/1. SQLite cannot add a CHECK
     // constraint to an existing table, so the flag is written as 0 or 1 by
     // the archive route alone; the invariant lives in the API, not in the
@@ -200,7 +227,101 @@ export const scores = sqliteTable(
   ],
 );
 
+/**
+ * Working copy of a user-owned song (issue #800).
+ *
+ * One draft per intended public `songId`: the row holds the metadata and
+ * the chart JSON the owner is still editing, so an interrupted session
+ * resumes from the server instead of browser storage. `songs` stays the
+ * table of *published* artifacts — a draft never appears in the catalog,
+ * the admin list or `chart_versions` until `POST
+ * /api/v1/me/drafts/{id}/publish` moves it there atomically.
+ *
+ * Ownership mirrors `songs`: `ownerWorkspaceId` is the workspace that may
+ * edit and publish, `createdByUserId` the Better Auth user who opened the
+ * draft. `publishedVersion` records the `chart_versions.version` the last
+ * publish produced (`null` = never published), which is how the studio
+ * tells "new song" apart from "update of a live song".
+ *
+ * `songId` is the intended public id (`^[a-z0-9-]{3,64}$`, same as
+ * `songs.id`). It is UNIQUE across drafts — two workspaces can never hold
+ * a draft for the same public id — while `songs` enforces the global
+ * first-publisher-wins rule at publish time.
+ */
+export const songDrafts = sqliteTable(
+  "song_drafts",
+  {
+    /** `draft-<uuid>`; opaque to clients. */
+    id: text("id").primaryKey(),
+    ownerWorkspaceId: text("ownerWorkspaceId")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Better Auth `user.id` of the creator; plain text like `songs`. */
+    createdByUserId: text("createdByUserId").notNull(),
+    /** Intended public song id; `null` until the draft names one. */
+    songId: text("songId"),
+    title: text("title").notNull().default(""),
+    artist: text("artist").notNull().default(""),
+    youtubeId: text("youtubeId"),
+    level: integer("level"),
+    durationSec: real("durationSec"),
+    /** Serialized chart document (legacy chart.v1 JSON), `null` until saved. */
+    chartJson: text("chartJson"),
+    noteCount: integer("noteCount").notNull().default(0),
+    /** Rights fields staged for publish; required again at publish time. */
+    materialSource: text("materialSource"),
+    rightsStatus: text("rightsStatus"),
+    license: text("license"),
+    /** `chart_versions.version` of the last publish; `null` = never. */
+    publishedVersion: integer("publishedVersion"),
+    createdAt: text("createdAt")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text("updatedAt")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    // One draft per public song id across ALL workspaces: a second
+    // workspace cannot even reserve an id another draft already claims.
+    // SQLite UNIQUE allows multiple NULLs, so drafts without a songId are
+    // unaffected.
+    uniqueIndex("song_drafts_songId_key").on(table.songId),
+    check(
+      "song_drafts_songId_format",
+      sql`${table.songId} IS NULL OR (length(${table.songId}) BETWEEN 3 AND 64 AND ${table.songId} NOT GLOB '*[^a-z0-9-]*')`,
+    ),
+    check("song_drafts_title_length", sql`length(${table.title}) <= 160`),
+    check("song_drafts_artist_length", sql`length(${table.artist}) <= 160`),
+    check(
+      "song_drafts_youtube_id_format",
+      sql`${table.youtubeId} IS NULL OR (length(${table.youtubeId}) = 11 AND ${table.youtubeId} NOT GLOB '*[^A-Za-z0-9_-]*')`,
+    ),
+    check(
+      "song_drafts_level_range",
+      sql`${table.level} IS NULL OR ${table.level} BETWEEN 1 AND 99`,
+    ),
+    check(
+      "song_drafts_duration_range",
+      sql`${table.durationSec} IS NULL OR (${table.durationSec} > 0 AND ${table.durationSec} <= 1800)`,
+    ),
+    check("song_drafts_note_count_range", sql`${table.noteCount} >= 0`),
+    check(
+      "song_drafts_rights_status",
+      sql`${table.rightsStatus} IS NULL OR ${table.rightsStatus} IN ('original', 'licensed', 'permission', 'other')`,
+    ),
+    check(
+      "song_drafts_published_version",
+      sql`${table.publishedVersion} IS NULL OR ${table.publishedVersion} >= 1`,
+    ),
+    // "Which drafts does this workspace own" is the hot lookup.
+    index("song_drafts_workspace_idx").on(table.ownerWorkspaceId),
+  ],
+);
+
 export type Song = typeof songs.$inferSelect;
+export type SongDraft = typeof songDrafts.$inferSelect;
+export type NewSongDraft = typeof songDrafts.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type NewSong = typeof songs.$inferInsert;

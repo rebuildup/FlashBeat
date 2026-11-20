@@ -90,10 +90,33 @@ export const PUT = defineHandler(async (c) => {
   // The new snapshot is appended after the last published one; a first
   // publish starts at version 1.
   const existing = await db
-    .select({ currentVersion: songs.currentVersion })
+    .select({ currentVersion: songs.currentVersion, ownerWorkspaceId: songs.ownerWorkspaceId })
     .from(songs)
     .where(eq(songs.id, songId))
     .get();
+
+  // Issue #800: a song id owned by a user workspace is off-limits to the
+  // staff upsert. `onConflictDoUpdate` would otherwise let the shared
+  // token silently rewrite a user's published song (and its chart) —
+  // the IDOR the per-account publish flow must not reopen. Staff songs
+  // (`ownerWorkspaceId NULL`) and brand-new ids are unaffected; staff
+  // moderation of a user song goes through the archive route (POST),
+  // which has no ownership restriction.
+  if (existing && existing.ownerWorkspaceId !== null) {
+    return c.json(
+      {
+        error: "song is owned by a user workspace",
+        diagnostics: [
+          {
+            path: "songId",
+            message: `"${songId}" belongs to a user workspace; the staff publish endpoint does not overwrite user-owned songs — archive it via POST /api/v1/admin/songs/${songId} instead`,
+          } satisfies PublishDiagnostic,
+        ],
+      },
+      409,
+    );
+  }
+
   const chartVersion = (existing?.currentVersion ?? 0) + 1;
   const chartJson = JSON.stringify(request.chart);
   const noteCount = (request.chart.notes as unknown[]).length;

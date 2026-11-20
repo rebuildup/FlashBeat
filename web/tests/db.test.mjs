@@ -83,6 +83,8 @@ test("the committed migrations create the contract tables plus the catalog epoch
     "rate_limits",
     "scores",
     "session",
+    // song_drafts is the per-account working copy table (issue #800).
+    "song_drafts",
     "songs",
     "user",
     "verification",
@@ -105,6 +107,11 @@ test("the committed migrations create the contract tables plus the catalog epoch
     // stay NULL.
     "ownerWorkspaceId",
     "createdByUserId",
+    // Rights declaration columns added by issue #800; staff-seeded rows
+    // stay NULL ("no record" ≠ "attested").
+    "materialSource",
+    "rightsStatus",
+    "license",
   ]);
   assert.deepEqual(columnNames(sqlite, "chart_versions"), [
     "songId",
@@ -158,10 +165,21 @@ test("the seed publishes the chart file verbatim", async () => {
 
   const songRows = sqlite.prepare("SELECT * FROM songs").all();
   assert.equal(songRows.length, 1);
-  // The ownership columns (issue #799) are NULL for staff-seeded rows.
-  const { ownerWorkspaceId, createdByUserId, ...seededSong } = songRows[0];
+  // The ownership columns (issue #799) and the rights columns (issue
+  // #800) are NULL for staff-seeded rows.
+  const {
+    ownerWorkspaceId,
+    createdByUserId,
+    materialSource,
+    rightsStatus,
+    license,
+    ...seededSong
+  } = songRows[0];
   assert.equal(ownerWorkspaceId, null);
   assert.equal(createdByUserId, null);
+  assert.equal(materialSource, null);
+  assert.equal(rightsStatus, null);
+  assert.equal(license, null);
   assert.deepEqual(seededSong, song);
 
   const chartRows = sqlite.prepare("SELECT * FROM chart_versions").all();

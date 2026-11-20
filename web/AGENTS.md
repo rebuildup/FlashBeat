@@ -277,10 +277,11 @@ Ownership lives in two app tables next to the auth tables:
 | `workspace_members` | user ↔ workspace with role `owner`/`editor`/`viewer`; the only authorization source |
 | `audit_log`         | append-only record of permission/publish/admin operations                           |
 | `rate_limits`       | per-user fixed-window counters for the studio mutation APIs                         |
+| `song_drafts`       | per-workspace working copy of a song (issue #800); never in the public catalog     |
 
 `songs.ownerWorkspaceId` / `songs.createdByUserId` (nullable) mark
-user-owned songs; existing rows stay `NULL` = staff-managed. Songs have
-no draft/publish `state` yet — #800 designs that on top of this contract.
+user-owned songs; existing rows stay `NULL` = staff-managed. The
+per-account publish flow of issue #800 is documented below.
 
 Rules every user-owned route follows (`routes/api/v1/_authz.ts`):
 
@@ -305,6 +306,60 @@ IDOR, role escalation, oversized/malformed bodies, XSS/SQLi payloads,
 CSRF, concurrent adds, revoked session, rate limit, audit rows). The
 node:test files share the local D1, so `npm test` runs them with
 `--test-concurrency=1`.
+
+### Account song flow (issue #800)
+
+General users publish their own songs **without** `FLASHBEAT_ADMIN_TOKEN`.
+The flow is draft → edit → publish; there is no separate "state" column —
+a song is published iff `songs.currentVersion` points at a
+`chart_versions` row, and unpublished by the same `archived` flag the
+staff archive route uses.
+
+| Route                                            | Behaviour                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| `GET /api/v1/me/songs`                           | caller's songs + drafts across all their workspaces                    |
+| `POST /api/v1/me/drafts`                         | create a draft (`draft-<uuid>` id, optional `songId`, editor role)     |
+| `GET/PUT /api/v1/me/drafts/{draftId}`            | read (viewer ok) / save working copy (editor+; chart stored leniently) |
+| `POST /api/v1/me/drafts/{draftId}/publish`       | publish/update; requires the rights attestation                        |
+| `POST /api/v1/me/songs/{songId}/unpublish`       | archive own song (公開停止); owner workspaces only, staff songs → 404  |
+
+Decisions that must not regress:
+
+- **Ownerless songs stay staff-managed.** `songs.ownerWorkspaceId NULL`
+  rows are never listed in `/api/v1/me/songs`, never editable through the
+  user routes, and — the IDOR fix — `PUT /api/v1/admin/songs/{songId}`
+  answers **409** when the id belongs to a user workspace instead of
+  silently overwriting it. Staff moderation of a user song goes through
+  the archive route (`POST`), which has no ownership restriction.
+- **Global slug namespace, first publisher wins.** `song_drafts.songId`
+  has a UNIQUE index; create/publish re-check `songs` ownership, so a
+  draft can never claim an id a `songs` row of another workspace (or a
+  staff `NULL`-owned row) already holds → 409.
+- **Rights are recorded, not assumed.** `songs.materialSource` /
+  `rightsStatus` / `license` are nullable and stay `NULL` on staff rows.
+  User publish requires `rightsConfirmed: true`, a non-empty
+  `materialSource` and a `rightsStatus` of `original` / `licensed` /
+  `permission` / `other` — missing → 422. The same fields stage on the
+  draft so a resumed publish keeps them.
+- **Publish is atomic.** One `db.batch` upserts the song (ownership +
+  rights columns), appends the immutable `chart_versions` snapshot,
+  advances `currentVersion`, stamps `publishedVersion` on the draft and
+  bumps `catalog_meta`; audited as `song.publish` / `song.unpublish`.
+- **Drafts are the resume source.** The chart editor opens a draft via
+  `/chart?serverDraft=<draftId>` (`pages/chart.tsx` server-draft mode):
+  the chart comes from D1, 「下書きを保存」 writes it back through
+  `PUT /api/v1/me/drafts/{id}`, and publishing happens on `/my-songs`.
+  The staff token hint and the sessionStorage publish-draft flow are
+  unchanged for the staff routes.
+- **UI.** `/login` (Void managed auth, `void/client/react`) and
+  `/my-songs` (`src/app/my-songs-panel.tsx`) use the shared panel/list
+  atoms; the sidebar gained a always-visible マイページ group plus an
+  account widget — separate from the staff disclosure.
+
+`tests/me-songs.test.ts` is the negative contract suite: unauthenticated
+401s, cross-user/cross-workspace 404s, viewer 403s, missing rights → 422,
+oversized bodies → 413, staff/user slug races → 409 both directions, and
+the audit rows.
 
 ### Score API (issues #133, #578; ADR-0028)
 
