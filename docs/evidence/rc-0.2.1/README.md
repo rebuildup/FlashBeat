@@ -19,7 +19,7 @@ raycast / スクロール位置リセット) の修正候補。
 | HudFeedbackTests (BAD 色固定を含む) | 25/25 PASS (`5393ab8` で filter 実行) | Unity batch log |
 | compile-check | 0 errors (244 sources) | — |
 | 実機 AutoTest v6songend | **33/33 PASS** — Select→Game→Result、130 ノーツ全判定、score 272,519 (ミス込みの実判定) | `autotest/` |
-| 実機 AutoTest v6screens | pass=85 fail=5 — fail 5 件は全て「スクリーンショット書き込み」の flaky で、画面内容の assert は全て PASS | `autotest-screens/` |
+| 実機 AutoTest v6screens | **90/90 PASS** (再実行、全スクリーンショット書き込み成功。初回はスクリーンショット書き込み flake で fail=5、画面内容 assert は全て PASS だった) | `autotest-screens/` |
 | 実機 AutoTest v6interact | **97/97 PASS** (`5393ab8` ビルド、無負荷で再実行)。初回〜2 回目の実行では開始直後ポーズの時計過渡チェック 2 件が負荷時に閾値超過したが、定常状態の連続性チェックは全実行で PASS、クリーン再実行で全件 PASS (フレークと判断) | `autotest-interact-final/` |
 
 ## 実描画・実音声の証跡
