@@ -11,13 +11,16 @@ using UnityEngine;
 /// 背景: かつて hitSound と clickSound が同一 GUID
 /// (NoteEditor 同梱のトーン状サンプル "Click 2.wav") を指しており、
 /// キー押下のクリック音が効果音ラボのクリック音源ではなく
-/// 音程のあるピープ音になっていた。コード側の再生経路が正しくても
-/// Scene の参照が誤っていれば製品は誤った音を出すため、
-/// 「参照の同一性」と「指定音源へのバインド」をここで固定する。
+/// 音程のあるピープ音になっていた。その後 clickSound を効果音ラボ製
+/// mp3 (決定ボタンを押す31) へ差し替えたが、ユーザーフィードバックで
+/// 「以前使っていたクリック音源と違う」「押してからの遅れが音源自体に
+/// ある」と差し戻された。mp3 はエンコーダのプライミングとデコード
+/// レイテンシで WAV より鳴り出しが遅れ、先頭にも無音成分を持つため、
+/// 以前出荷していた Click 2.wav (アタック即時・無圧縮) へ戻す。
 ///
 /// 検証する要求 (実装定数の写しではなく出荷経路の契約):
-///   - clickSound は指定の効果音ラボ製クリック音源
-///     (Assets/Game/Audio/ 配下の音源) を指す。
+///   - clickSound は以前出荷していたクリック音源
+///     (Assets/NoteEditor/Audio/Click 2.wav) を指す。
 ///   - hitSound と clickSound は別クリップを指す (同一 GUID の再発を拒否)。
 ///   - 両 GUID が実在するアセットへ解決できる
 ///     (GUID の打ち間違い・削除済み参照を検出する)。
@@ -26,8 +29,11 @@ public class GameSceneSoundBindingTests
 {
     private const string ScenePath = "Assets/Game/Scenes/GameScene.unity";
 
-    /// <summary>レーンキークリック音の指定音源ディレクトリ。</summary>
-    private const string ClickSoundDir = "Assets/Game/Audio/";
+    /// <summary>以前出荷していたレーンキークリック音のアセットパス。</summary>
+    private const string ClickSoundPath = "Assets/NoteEditor/Audio/Click 2.wav";
+
+    /// <summary><see cref="ClickSoundPath"/> の GUID (シーン参照の固定値)。</summary>
+    private const string ClickSoundGuid = "aa667abe26ae3b041b2406bddc7d8c20";
 
     private static string SceneText =>
         File.ReadAllText(Path.Combine(Application.dataPath, "Game/Scenes/GameScene.unity"));
@@ -45,15 +51,15 @@ public class GameSceneSoundBindingTests
     }
 
     [Test]
-    public void ClickSound_ResolvesToDedicatedLabClickAsset()
+    public void ClickSound_ResolvesToRestoredClickAsset()
     {
         string guid = ClipGuid("clickSound");
         string path = AssetDatabase.GUIDToAssetPath(guid);
 
-        Assert.IsNotEmpty(path, "clickSound の GUID がアセットへ解決できない");
-        StringAssert.StartsWith(ClickSoundDir, path,
-            "clickSound は Assets/Game/Audio/ の指定クリック音源を指すこと");
-        StringAssert.EndsWith(".mp3", path);
+        Assert.AreEqual(ClickSoundGuid, guid,
+            "clickSound は以前出荷していたクリック音源の GUID を指すこと");
+        Assert.AreEqual(ClickSoundPath, path,
+            "clickSound は " + ClickSoundPath + " を指すこと");
     }
 
     [Test]
