@@ -52,10 +52,7 @@ export const DELETE = defineHandler(async (c) => {
     .select({ role: workspaceMembers.role })
     .from(workspaceMembers)
     .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, targetUserId),
-      ),
+      and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, targetUserId)),
     )
     .get();
   if (!target) {
@@ -66,28 +63,17 @@ export const DELETE = defineHandler(async (c) => {
     const owners = await db
       .select({ n: count() })
       .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.workspaceId, workspaceId),
-          eq(workspaceMembers.role, "owner"),
-        ),
-      )
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.role, "owner")))
       .get();
     if ((owners?.n ?? 0) <= 1) {
-      return c.json(
-        { error: "the last owner of a workspace cannot be removed" },
-        409,
-      );
+      return c.json({ error: "the last owner of a workspace cannot be removed" }, 409);
     }
   }
 
   await db
     .delete(workspaceMembers)
     .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, targetUserId),
-      ),
+      and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, targetUserId)),
     );
   await writeAuditLog({
     actorUserId: context.user.id,

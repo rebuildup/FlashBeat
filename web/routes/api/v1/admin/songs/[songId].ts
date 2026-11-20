@@ -39,11 +39,7 @@ import {
   validateArchiveRequest,
   type ArchiveDiagnostic,
 } from "../../_archive-model";
-import {
-  ARCHIVE_BODY_LIMIT,
-  PUBLISH_BODY_LIMIT,
-  readJsonLimited,
-} from "../../_request-body";
+import { ARCHIVE_BODY_LIMIT, PUBLISH_BODY_LIMIT, readJsonLimited } from "../../_request-body";
 import { writeAuditLog } from "../../_authz";
 
 export const PUT = defineHandler(async (c) => {

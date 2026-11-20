@@ -21,17 +21,17 @@ import type { CloudContext } from "void";
 /** `POST /api/v1/scores` payloads are a few hundred bytes of JSON. */
 export const SCORE_SUBMISSION_BODY_LIMIT = 32 * 1024;
 /**
- * `PUT /api/v1/admin/songs/{songId}` carries a whole chart document. The
- * bound is generous for real charts but still far below anything that
- * could pressure the Worker; D1's own row limit is the harder bound.
+ * `PUT /api/v1/admin/songs/{songId}` carries a whole chart document. Real
+ * charts are tens of KB (the largest shipped chart JSON is ~24 KB), so
+ * 512 KiB is ~20x headroom while staying far below anything that could
+ * pressure the Worker — and comfortably below the request ceiling the
+ * local workerd dev runtime enforces before the request reaches it.
  */
-export const PUBLISH_BODY_LIMIT = 2 * 1024 * 1024;
+export const PUBLISH_BODY_LIMIT = 512 * 1024;
 /** Archive/unarchive bodies are `{"archived": bool}` — a few bytes. */
 export const ARCHIVE_BODY_LIMIT = 16 * 1024;
 
-export type LimitedJsonBody =
-  | { ok: true; value: unknown }
-  | { ok: false; response: Response };
+export type LimitedJsonBody = { ok: true; value: unknown } | { ok: false; response: Response };
 
 /**
  * True when a declared `Content-Length` already exceeds the limit. A
@@ -56,19 +56,14 @@ export function contentLengthExceeded(
  *   `{ ok: false, response }` with a ready `413`/`422` JSON response the
  *   handler returns unchanged.
  */
-export async function readJsonLimited(
-  c: CloudContext,
-  maxBytes: number,
-): Promise<LimitedJsonBody> {
+export async function readJsonLimited(c: CloudContext, maxBytes: number): Promise<LimitedJsonBody> {
   if (contentLengthExceeded(c.req.header("content-length"), maxBytes)) {
     return {
       ok: false,
       response: c.json(
         {
           error: `request body exceeds the ${maxBytes} byte limit`,
-          diagnostics: [
-            { path: "(body)", message: `must not exceed ${maxBytes} bytes` },
-          ],
+          diagnostics: [{ path: "(body)", message: `must not exceed ${maxBytes} bytes` }],
         },
         413,
       ),
@@ -94,9 +89,7 @@ export async function readJsonLimited(
             response: c.json(
               {
                 error: `request body exceeds the ${maxBytes} byte limit`,
-                diagnostics: [
-                  { path: "(body)", message: `must not exceed ${maxBytes} bytes` },
-                ],
+                diagnostics: [{ path: "(body)", message: `must not exceed ${maxBytes} bytes` }],
               },
               413,
             ),

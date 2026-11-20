@@ -259,12 +259,12 @@ mutating route.
 
 Ownership lives in two app tables next to the auth tables:
 
-| Table              | Purpose                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------ |
-| `workspaces`       | `kind='personal'` (`personal-<userId>`, lazy-provisioned) or `kind='team'`                  |
-| `workspace_members`| user ↔ workspace with role `owner`/`editor`/`viewer`; the only authorization source        |
-| `audit_log`        | append-only record of permission/publish/admin operations                                  |
-| `rate_limits`      | per-user fixed-window counters for the studio mutation APIs                                |
+| Table               | Purpose                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `workspaces`        | `kind='personal'` (`personal-<userId>`, lazy-provisioned) or `kind='team'`          |
+| `workspace_members` | user ↔ workspace with role `owner`/`editor`/`viewer`; the only authorization source |
+| `audit_log`         | append-only record of permission/publish/admin operations                           |
+| `rate_limits`       | per-user fixed-window counters for the studio mutation APIs                         |
 
 `songs.ownerWorkspaceId` / `songs.createdByUserId` (nullable) mark
 user-owned songs; existing rows stay `NULL` = staff-managed. Songs have
@@ -281,12 +281,12 @@ Rules every user-owned route follows (`routes/api/v1/_authz.ts`):
   Content-Length pre-check + streaming byte cap + JSON structure limits
   (depth/nodes/string) before parse.
 
-| Route                                                        | Behaviour                                     |
-| ------------------------------------------------------------ | --------------------------------------------- |
-| `GET /api/v1/me`                                             | session user + personal workspace (lazy)      |
-| `GET/POST /api/v1/me/workspaces`                             | list memberships / create a team workspace    |
-| `GET/POST …/workspaces/{id}/members`                         | list / add member by email (owner only)       |
-| `DELETE …/workspaces/{id}/members/{userId}`                  | remove member (owner only, last-owner safe)   |
+| Route                                       | Behaviour                                   |
+| ------------------------------------------- | ------------------------------------------- |
+| `GET /api/v1/me`                            | session user + personal workspace (lazy)    |
+| `GET/POST /api/v1/me/workspaces`            | list memberships / create a team workspace  |
+| `GET/POST …/workspaces/{id}/members`        | list / add member by email (owner only)     |
+| `DELETE …/workspaces/{id}/members/{userId}` | remove member (owner only, last-owner safe) |
 
 `tests/authz.test.ts` is the negative contract suite (unauthenticated,
 IDOR, role escalation, oversized/malformed bodies, XSS/SQLi payloads,

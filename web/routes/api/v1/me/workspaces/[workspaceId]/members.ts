@@ -138,7 +138,7 @@ export const POST = defineHandler(async (c) => {
         diagnostics: [
           {
             path: "role",
-            message: "must be \"editor\" or \"viewer\" — owner cannot be granted here",
+            message: 'must be "editor" or "viewer" — owner cannot be granted here',
           },
         ],
       },
@@ -162,10 +162,7 @@ export const POST = defineHandler(async (c) => {
     .select({ role: workspaceMembers.role })
     .from(workspaceMembers)
     .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, target.id),
-      ),
+      and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, target.id)),
     )
     .get();
   if (existing) {

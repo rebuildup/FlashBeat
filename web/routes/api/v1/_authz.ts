@@ -77,12 +77,7 @@ export async function workspaceContext(user: AuthUser): Promise<WorkspaceContext
   const member = await db
     .select({ role: workspaceMembers.role })
     .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, user.id),
-      ),
-    )
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, user.id)))
     .get();
 
   return { user, workspaceId, role: member?.role ?? "owner" };
@@ -141,9 +136,7 @@ export async function findMembership(
     })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-    .where(
-      and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)),
-    )
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .get();
   return (row as Membership | undefined) ?? null;
 }

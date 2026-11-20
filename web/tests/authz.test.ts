@@ -30,11 +30,12 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
+import { PUBLISH_BODY_LIMIT } from "../routes/api/v1/_request-body.ts";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 const voidCli = fileURLToPath(new URL("../node_modules/void/dist/cli/cli.mjs", import.meta.url));
@@ -83,17 +84,18 @@ function cookieHeader(response: Response): string {
 async function signUp(email: string, name: string): Promise<Session> {
   const response = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", origin: baseUrl },
     body: JSON.stringify({
       name,
       email,
       password: "correct-horse-battery-799",
     }),
   });
-  assert.equal(response.status, 200, `sign-up failed for ${email}: ${await response.text()}`);
+  const text = await response.text();
+  assert.equal(response.status, 200, `sign-up failed for ${email}: ${text}`);
   const cookie = cookieHeader(response);
   assert.ok(cookie.includes("session_token"), `no session cookie for ${email}`);
-  const body = (await response.json()) as { user?: { id?: string } };
+  const body = JSON.parse(text) as { user?: { id?: string } };
   assert.ok(body.user?.id, "sign-up response carried no user id");
   return { cookie, userId: body.user.id, email, name };
 }
@@ -107,7 +109,13 @@ interface ApiOptions {
 }
 
 async function api(path: string, options: ApiOptions = {}): Promise<Response> {
-  const headers: Record<string, string> = { ...(options.headers ?? {}) };
+  const headers: Record<string, string> = {
+    // Browsers always send Origin on unsafe requests; Better Auth rejects
+    // auth calls without one. Tests default to the real origin — the CSRF
+    // case overrides it explicitly.
+    origin: baseUrl,
+    ...options.headers,
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
@@ -386,10 +394,9 @@ describe("membership and IDOR", () => {
     }
     // A malformed workspace id is just another unknown id — parameterized,
     // never interpreted.
-    const weird = await api(
-      `/api/v1/me/workspaces/${encodeURIComponent("' OR 1=1 --")}/members`,
-      { cookie: owner.cookie },
-    );
+    const weird = await api(`/api/v1/me/workspaces/${encodeURIComponent("' OR 1=1 --")}/members`, {
+      cookie: owner.cookie,
+    });
     assert.equal(weird.status, 404);
   });
 
@@ -533,6 +540,7 @@ describe("session lifecycle", () => {
     const signOut = await api("/api/auth/sign-out", {
       method: "POST",
       cookie: owner.cookie,
+      body: {},
       headers: { origin: baseUrl },
     });
     assert.ok([200, 204].includes(signOut.status), `sign-out: ${signOut.status}`);
@@ -603,14 +611,19 @@ describe("rate limits and bounded bodies on public endpoints", () => {
     });
     assert.equal(anonymous.status, 401);
 
-    // Staff token + a body past the 2 MiB chart limit → 413.
+    // Staff token + a real body past the 512 KiB chart limit → 413. The
+    // pad stays well under the request ceiling the local workerd dev
+    // runtime enforces before a request reaches the Worker (it drops
+    // ~1-2 MiB bodies under load with a platform 500). The exact byte-cap
+    // logic — including bodies far larger than this — is covered
+    // deterministically by tests/request-body.test.ts.
     const oversized = await fetch(`${baseUrl}/api/v1/admin/songs/aaa-bbb`, {
       method: "PUT",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${TEST_ADMIN_TOKEN}`,
       },
-      body: `{"pad":"${"x".repeat(3 * 1024 * 1024)}"}`,
+      body: `{"pad":"${"x".repeat(PUBLISH_BODY_LIMIT + 1024)}"}`,
     });
     assert.equal(oversized.status, 413);
   });
@@ -664,7 +677,11 @@ describe("audit log", () => {
       "song.publish",
       "song.archive",
     ]) {
-      assert.match(out, new RegExp(expected.replace(".", "\\.")), `missing audit action ${expected}`);
+      assert.match(
+        out,
+        new RegExp(expected.replace(".", "\\.")),
+        `missing audit action ${expected}`,
+      );
     }
     // Staff operations carry no user id; user operations carry the actor.
     assert.match(out, /song\.publish[\s\S]*staff/);
