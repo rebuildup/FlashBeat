@@ -52,11 +52,10 @@
 ## 3. 所有権モデル
 
 ```
-user (Better Auth, 不変ID) ──< membership >── workspace ──< songs
-        │                                          │
-        └──< audit_log (actor)                     └── ownerWorkspaceId
-songs.state: 'draft' | 'published'   (公開状態)
-chart_versions: (songId, version) 不変スナップショット + createdByUserId
+user (Better Auth, 不変ID) ──< workspace_members >── workspaces ──< songs
+        │                                                    │
+        └──< audit_log (actor)                ownerWorkspaceId / createdByUserId
+rate_limits: (bucket, subject, window) の固定ウィンドウカウンタ
 ```
 
 - **正本はセッション + DB の関係**。表示名・メールアドレス・クライアントが
@@ -64,17 +63,23 @@ chart_versions: (songId, version) 不変スナップショット + createdByUser
   `requireAuth` → Membership 参照 → 対象リソースの `ownerWorkspaceId`
   照合の順でサーバー側検査する (`routes/api/v1/_authz.ts`)。
 - **個人 Workspace**: 初回の認証済みアクセス時に遅延プロビジョニングする
-  (`kind='personal'`, role='owner')。冪等。
+  (`personal-<userId>`, `kind='personal'`, role='owner')。冪等。
 - **チーム Workspace**: `POST /api/v1/me/workspaces` で作成、作成者が
-  `owner`。Membership による複数人管理に拡張可能。
-- **role と権限**: `owner` / `admin` は曲の編集・公開・メンバー管理、
-  `member` は自分が編集権を持つ曲の下書き編集のみ。role の付与・剥奪は
-  `owner` のみ (`admin` は `member` の追加・削除まで)。自分自身の
-  owner ロール剥奪・最後の owner の削除は禁止 (ロックアウト防止)。
+  `owner`。Membership による複数人管理 (`GET/POST …/members`,
+  `DELETE …/members/{userId}`) を提供する。
+- **role と権限**: `owner` > `editor` > `viewer` の順位制
+  (`hasWorkspaceRole`)。`owner` はメンバー管理を含む全操作、`editor` は
+  Workspace 内リソースの編集、`viewer` は読み取りのみ。メンバーの
+  追加・削除は `owner` のみで、API から `owner` ロールは付与できない
+  (自己昇格の経路を持たない)。最後の `owner` は削除できない
+  (ロックアウト防止)。
 - **既存データ**: 現行の公開曲・譜面・ランキングは `ownerWorkspaceId = NULL`
   / `createdByUserId = NULL` の「スタッフ管理曲」として残す。所有者不明の
   既存曲を一般ユーザーへ帰属させない (#800 の要求と同じルール)。
-  `state` の既定は `'published'` で既存行は全て公開曲のまま。
+- **公開状態と下書き**: 曲の `state` (draft/published) と下書き譜面の
+  永続化は #800 の公開フローが本基盤の上に設計する。本 Issue は
+  `ownerWorkspaceId` / `createdByUserId` の所有権列だけを追加し、
+  既存行は NULL (スタッフ管理) のまま保つ。
 
 ## 4. 脅威と対策
 
@@ -96,10 +101,10 @@ chart_versions: (songId, version) 不変スナップショット + createdByUser
 
 | 脅威 | 対策 |
 |---|---|
-| 巨大ボディ | JSON パース前に `Content-Length` を検査し、宣言が無い/過少でも実読み込みバイト数を上限 (1 MiB) で打ち切る。超過は 413。`_authz.ts` `readBoundedJson` |
-| フィールド数・配列長・入れ子 | パース後にオブジェクトグラフを走査し、深さ (16)・ノード数 (100,000)・文字列長 (8,192) を検査。超過は 422/413。`assertJsonLimits` |
+| 巨大ボディ | JSON パース前に `Content-Length` を検査し、宣言が無い/過少でも実読み込みバイト数を上限で打ち切る (scores 32 KiB / me・members 8 KiB / publish 2 MiB)。超過は 413。`_request-body.ts` `readJsonLimited` |
+| フィールド数・配列長・入れ子 | パース後にオブジェクトグラフを反復走査し、深さ (100)・ノード数 (1,000,000)・文字列長 (1 MiB) を検査。超過は 422。`jsonStructureLimits` |
 | 極端な譜面 | 下書きは編集中で壊れた譜面を許容するため厳密検証は公開時 (#800) に行い、ここではサイズ・構造の上限のみ。公開経路は既存の契約スキーマ + 意味検証 (`_publish-model.ts`) |
-| 曲数・API 呼び出し | 利用者単位のレート制限を `rate_limit_hits` (固定ウィンドウ、原子的インクリメント) で実施。下書き保存 60 回/分、Workspace/メンバー変更 30 回/分。auth エンドポイントは Better Auth 側の制限 (§2) |
+| 曲数・API 呼び出し | 利用者単位のレート制限を `rate_limits` (固定ウィンドウ、`INSERT … ON CONFLICT … RETURNING` で原子的インクリメント) で実施。Workspace 作成 20 回/分、メンバー変更 30 回/分。曲の下書き・公開頻度の上限は #800 が同じ仕組みで追加する。auth エンドポイントは Better Auth 側の制限 (§2) |
 | 同時大量リクエスト | Cloudflare 側のレート制限・Bot 対策は運用で別途設定 (フォローアップ)。D1 の書き込みは `db.batch` の暗黙トランザクションで原子化し、同時更新の競合は一意制約/冪等 upsert で処理 |
 
 ### 4.3 インジェクション
@@ -125,18 +130,21 @@ chart_versions: (songId, version) 不変スナップショット + createdByUser
 
 実 Worker + 実ローカル D1 で以下の負例を検証する (肯定例だけでは不十分):
 
-- 未認証: `GET /api/v1/me`・`PUT /api/v1/me/songs/{id}` → 401
-- 別ユーザー: B が A の曲を GET/PUT → 404 (存在秘匿)
-- 別 Workspace: A が B の workspaceId をボディに指定 → 403/404
-- role: `member` は publish 権限を持たない (canPublish=false を返す)、
-  member はメンバー管理不可
-- 大容量: Content-Length 超過 → 413、チャンク読取超過 → 413
-- 不正 JSON / 深いネスト / 巨大ノード数 → 422/413
-- XSS 文字列の保存→取得ラウンドトリップ (API は文字列をそのまま返す)
-- SQL インジェクション文字列を含む songId/title → パターン 422 / そのまま保存
-  (パラメータ化で効果を持たない)
-- CSRF: 別 Origin からの PUT (Cookie 付き) → セッション無効で 401
-- 並列更新: 同一曲への同時 PUT → 競合せず最終状態が一貫
-- 失効: サインアウト後の `/api/v1/me` → 401、セッション行削除後も 401
-- レート制限: 上限超過 → 429
-- 下書きは公開カタログに出ない (`GET /api/v1/catalog` に現れない)
+- 未認証: `GET /api/v1/me`・`POST /api/v1/me/workspaces`・
+  `…/members` → 401
+- 個人 Workspace の遅延プロビジョニング (冪等)
+- チーム Workspace 作成 (owner になる)・メンバー追加/一覧/削除
+- IDOR: 非メンバーの Workspace への GET/POST/DELETE → 404
+  (存在を秘匿)、SQLi 文字列の workspaceId → 404
+- role: editor/viewer はメンバー管理不可 (403)、API から `owner` は
+  付与不可 (422)、最後の owner は削除不可 (409)、重複追加は 409、
+  並列追加はちょうど 1 件だけ成功
+- 大容量: Content-Length 超過 → 413 (me/workspaces 8 KiB、
+  scores 32 KiB、admin publish 2 MiB)
+- 不正 JSON / 型違い → 422
+- XSS・SQLi 文字列の保存→取得ラウンドトリップ (API は文字列を
+  そのまま返し、表示側のエスケープに委ねる)
+- CSRF: 別 Origin からの POST (Cookie 付き) → セッション無効で 401
+- 失効: サインアウト後の `/api/v1/me`・`/api/v1/me/workspaces` → 401
+- レート制限: Workspace 作成 21 回目 → 429
+- 監査ログ: workspace/member/staff 操作が `audit_log` に記録される

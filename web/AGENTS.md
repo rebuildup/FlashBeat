@@ -245,6 +245,55 @@ publishes both in one request.
 - The route is not server rendered (`ssr = false` in `pages/publish.server.ts`),
   because the chart editor draws into a canvas.
 
+### Auth and ownership (issue #799, ADR-0036)
+
+User accounts use **Void managed auth (Better Auth) on the same D1** —
+`auth.ts` at the project root enables it; Void wires `/api/auth/*`, the
+session middleware on every request, and `requireAuth`/`getSession`
+(`void/auth`) / `auth` (`void/client`). `void db generate` emits the auth
+tables (`user`, `session`, `account`, `verification`, `rateLimit`) into
+`db/migrations/`; `BETTER_AUTH_SECRET` is optional in `env.ts` (Void
+generates one on deploy, dev uses its built-in default). The threat model
+is `docs/architecture/web-auth-threat-model.md` — read it before adding a
+mutating route.
+
+Ownership lives in two app tables next to the auth tables:
+
+| Table              | Purpose                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| `workspaces`       | `kind='personal'` (`personal-<userId>`, lazy-provisioned) or `kind='team'`                  |
+| `workspace_members`| user ↔ workspace with role `owner`/`editor`/`viewer`; the only authorization source        |
+| `audit_log`        | append-only record of permission/publish/admin operations                                  |
+| `rate_limits`      | per-user fixed-window counters for the studio mutation APIs                                |
+
+`songs.ownerWorkspaceId` / `songs.createdByUserId` (nullable) mark
+user-owned songs; existing rows stay `NULL` = staff-managed. Songs have
+no draft/publish `state` yet — #800 designs that on top of this contract.
+
+Rules every user-owned route follows (`routes/api/v1/_authz.ts`):
+
+- identity comes from the session (`sessionUser`/`requireWorkspaceContext`),
+  never from a client-supplied id; non-members get 404 (no existence leak);
+- roles rank `owner > editor > viewer` (`hasWorkspaceRole`); member
+  management is owner-only and `owner` is never grantable via the API;
+  the last owner cannot be removed;
+- request bodies go through `readJsonLimited` (`_request-body.ts`):
+  Content-Length pre-check + streaming byte cap + JSON structure limits
+  (depth/nodes/string) before parse.
+
+| Route                                                        | Behaviour                                     |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| `GET /api/v1/me`                                             | session user + personal workspace (lazy)      |
+| `GET/POST /api/v1/me/workspaces`                             | list memberships / create a team workspace    |
+| `GET/POST …/workspaces/{id}/members`                         | list / add member by email (owner only)       |
+| `DELETE …/workspaces/{id}/members/{userId}`                  | remove member (owner only, last-owner safe)   |
+
+`tests/authz.test.ts` is the negative contract suite (unauthenticated,
+IDOR, role escalation, oversized/malformed bodies, XSS/SQLi payloads,
+CSRF, concurrent adds, revoked session, rate limit, audit rows). The
+node:test files share the local D1, so `npm test` runs them with
+`--test-concurrency=1`.
+
 ### Score API (issues #133, #578; ADR-0028)
 
 | Route                                                          | File                                     | Behaviour                                                                                                                                       |
