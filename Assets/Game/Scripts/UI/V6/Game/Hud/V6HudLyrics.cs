@@ -158,6 +158,26 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.sizeDelta = new Vector2(LyricBoxWidth(), slotHeight);
             rt.anchoredPosition = LyricSlotAnchoredPosition();
 
+            // v0.2.1 (#734 実機レビュー): カウントダウン / START も
+            // 歌詞パネルと同じ「枠」として出す。テキストだけを浮かべると
+            // 開始・終了フェーズでパネル自体が消えたように見える
+            // (終了オーバーレイと同じ LyricBoxColor + 回廊カットアウト)。
+            var panel = V5Ui.Panel(countdownOverlay, "Panel", rt.sizeDelta,
+                LyricBoxColor, LyricBoxCornerRadius);
+            var panelImage = panel.GetComponent<Image>();
+            panelImage.raycastTarget = false;
+            Vector2 cdSlotOrigin = V6HudLogic.LyricSlotOrigin(
+                CanvasSize().x, CanvasSize().y);
+            panelImage.sprite = V6PanelCorridorHole.ForPanel(
+                cdSlotOrigin.x, cdSlotOrigin.y, LyricBoxWidth(), slotHeight,
+                CanvasSize(), LyricBoxCornerRadius);
+            panelImage.type = Image.Type.Simple;
+            var panelRt = V6Layout.RectOf(panel);
+            panelRt.anchorMin = Vector2.zero;
+            panelRt.anchorMax = Vector2.one;
+            panelRt.offsetMin = Vector2.zero;
+            panelRt.offsetMax = Vector2.zero;
+
             countdownText = V5Ui.Text(countdownOverlay, "Value", "3",
                 V6HudLogic.CountdownFontSize(CanvasSize().y), V5Tokens.Text,
                 TextAlignmentOptions.Center, FontStyles.Bold);

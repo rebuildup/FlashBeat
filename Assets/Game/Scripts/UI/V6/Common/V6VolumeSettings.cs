@@ -116,7 +116,7 @@ namespace FlashBeat.UI.V6.Common
                 // Issue #681 review: 演奏音源は audioS と streamAudioSource
                 // (StreamSeparate) の 2 系統。片方だけ書き換えると
                 // StreamSeparate 再生中に音量が追従しない。
-                music.ApplyMainVolume();
+                music.ApplyBgmVolume();
             }
 
             var judge = Object.FindFirstObjectByType<Judge>();

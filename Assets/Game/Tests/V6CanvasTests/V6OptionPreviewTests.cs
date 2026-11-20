@@ -173,6 +173,29 @@ namespace FlashBeat.V6CanvasTests
             }
         }
 
+        /// <summary>
+        /// PR #787 review: ループ長の下限は「最遅ノーツ速度 (1.0) での
+        /// 可視アプローチ時間の 2 倍」より長くなければならない。
+        /// 畳み込み範囲 (-L/2, L/2] が可視範囲を覆わないと、ループ境界で
+        /// ノーツが画面途中にポップインする (低速設定で再現)。
+        /// </summary>
+        [Test]
+        public void PreviewChart_MinLoopCoversSlowestVisibleApproach()
+        {
+            float loopSeconds;
+            V6OptionPreviewChart.BuildForCurrentSong(out loopSeconds);
+            Assert.GreaterOrEqual(loopSeconds, V6OptionPreviewChart.MinLoopSeconds(),
+                "ループ長が下限を下回っている (低速でノーツがポップインする)");
+
+            // 畳み込み半幅が、最遅速度での見え端までの時間を上回ることを
+            // 定数どうしで直接確認する (実装の別経路で偶然満たすのを防ぐ)。
+            float zScaleAtMinSpeed = MediaTimeline.ZScaleFor(1f);
+            float visibleDelta =
+                (MediaTimeline.VisibleDepthZ + 1.0f) / zScaleAtMinSpeed;
+            Assert.Greater(V6OptionPreviewChart.MinLoopSeconds() * 0.5f, visibleDelta,
+                "ループ半幅が最遅速度の可視デルタ時間を覆っていない");
+        }
+
         // --- 実描画: RenderTexture に実際の画素が出る ---
 
         /// <summary>

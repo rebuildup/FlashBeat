@@ -14,8 +14,7 @@ namespace FlashBeat.UI.V6.Option
     /// 設定値の書き戻し (Adjust*/Toggle*/Set*/Reset*/Clear*/MediaCache* /
     /// IsDefaultKeyLayout / CancelKeyConfigEdit) は既存の保存経路へ委譲する
     /// public static API で、EditMode テストからも同じ経路を呼べる。
-    /// 末尾は design px 左上原点の Rect / DrawLine ヘルパー。partial class のため
-    /// フィールド・メソッドは V6OptionView 本体と共有する。
+    /// partial class のためフィールド・メソッドは V6OptionView 本体と共有する。
     /// </summary>
     public sealed partial class V6OptionView
     {
@@ -169,39 +168,5 @@ namespace FlashBeat.UI.V6.Option
             KeyConfigUI.Close();
         }
 
-        // --- uGUI ユーティリティ (design px 左上原点) ---
-
-        /// <summary>素の Image (角丸無し)。細線 / 矩形用 (共通部品に 1px 線は無いため最小限のローカル helper)。</summary>
-        private static GameObject Rect(GameObject parent, string name, float w, float h, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent.transform, false);
-            // サイズを必ず反映する。既定 (100×100) のまま回転すると、細線のつもりの
-            // レーン線が 100px 幅の帯になり、プレビューが灰色のコーン状に潰れる。
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(w, h);
-            var img = go.GetComponent<Image>();
-            img.color = color;
-            img.raycastTarget = false;
-            return go;
-        }
-
-        /// <summary>(x1,y1) → (x2,y2) へ細い線を引く (design px 左上原点)。</summary>
-        private static void DrawLine(GameObject parent, string name, float x1, float y1, float x2, float y2,
-            float width, Color color)
-        {
-            // 左上原点 → uGUI の下上原点へ変換 (Game Preview の高さ 280 基準)。
-            float lx1 = x1, ly1 = GamePrevH - y1;
-            float lx2 = x2, ly2 = GamePrevH - y2;
-            float dx = lx2 - lx1;
-            float dy = ly2 - ly1;
-            float length = Mathf.Sqrt(dx * dx + dy * dy);
-            var line = Rect(parent, name, width, length, color);
-            var rt = line.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.zero;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2((lx1 + lx2) * 0.5f, (ly1 + ly2) * 0.5f);
-            rt.localEulerAngles = new Vector3(0f, 0f, Mathf.Atan2(dy, dx) * Mathf.Rad2Deg - 90f);
-        }
     }
 }

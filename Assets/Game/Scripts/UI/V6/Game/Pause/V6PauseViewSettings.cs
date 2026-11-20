@@ -23,10 +23,16 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// 音量行以外が選ばれているときは先頭 (Main) を返す。</summary>
         private int SelectedVolumeIndex()
         {
-            var rows = pageRows[selectedTab];
-            if (selectedRow >= 0 && selectedRow < rows.Count && rows[selectedRow].VolumeIndex >= 0)
+            if (settingsScreen == null)
             {
-                return rows[selectedRow].VolumeIndex;
+                return 0;
+            }
+
+            var rows = settingsScreen.CurrentRows;
+            int selected = settingsScreen.SelectedRow;
+            if (selected >= 0 && selected < rows.Count && rows[selected].VolumeIndex >= 0)
+            {
+                return rows[selected].VolumeIndex;
             }
 
             return 0;
@@ -35,14 +41,15 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>スライダーのドラッグ結果を GManager へ書き、即時反映する。
         /// 保存はドラッグ終了時だけ (ドラッグ中は毎フレーム書かない)。
         /// Issue #733: 値モデルは Option と同じ <see cref="V6VolumeSettings"/>
-        /// (キー操作は 0.5 秒まとめて保存、ドラッグ確定・画面を離れるときは即保存)。</summary>
+        /// (キー操作は 0.5 秒まとめて保存、ドラッグ確定・画面を離れるときは即保存)。
+        /// Issue #733 フォローアップ: 共有設定画面のスライダーも同じ値モデルを
+        /// 直接編集するため、この経路は検証ハーネス互換のために残す。</summary>
         private void SetSelectedPauseVolume(float value, bool final)
         {
             volumeSettings.Set(SelectedVolumeIndex(), value, final);
-            RefreshRows();
-            if (volumeSlider != null)
+            if (settingsScreen != null)
             {
-                volumeSlider.Refresh();
+                settingsScreen.Refresh();
             }
         }
 

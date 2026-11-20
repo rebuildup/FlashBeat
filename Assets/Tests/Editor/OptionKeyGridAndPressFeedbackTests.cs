@@ -23,13 +23,32 @@ namespace FlashBeat.Tests.Editor
         public void KeyGridShowsKeyNamesNotLaneNumbers()
         {
             // ソース走査: キーキャップの中身が KeyDisplayName になっていること。
+            // Issue #733 フォローアップ: キー一覧は Option / Pause 共通の
+            // V6SettingsScreen が組み立てる (正本は UI/V6/Common)。
             string src = File.ReadAllText(Path.Combine(
-                Application.dataPath, "Game/Scripts/UI/V6/Option/V6OptionView.cs"));
+                Application.dataPath, "Game/Scripts/UI/V6/Common/V6SettingsScreen.cs"));
 
-            Assert.IsTrue(src.Contains("V6OptionLogic.KeyDisplayName(keys[k])"),
+            Assert.IsTrue(src.Contains("KeyDisplayName(keys[k])"),
                 "キーキャップにキー名を出していない");
-            Assert.IsFalse(src.Contains("DisplayLaneOf(keys[k], table)"),
+            Assert.IsFalse(src.Contains("DisplayLaneOf"),
                 "キーキャップにレーン番号を出している (崩れの原因)");
+        }
+
+        [Test]
+        public void BothSettingsScreens_UseTheSharedSettingsScreen()
+        {
+            // Issue #733 フォローアップ: 「ポーズ時とオプションで違うものを
+            // 表示する」問題の根本対応 — 両画面が同じ設定画面コンポーネント
+            // (V6SettingsScreen) を実際に使うことを固定する。
+            string option = File.ReadAllText(Path.Combine(
+                Application.dataPath, "Game/Scripts/UI/V6/Option/V6OptionViewBuild.cs"));
+            string pause = File.ReadAllText(Path.Combine(
+                Application.dataPath, "Game/Scripts/UI/V6/Game/Pause/V6PauseViewBuild.cs"));
+
+            Assert.IsTrue(option.Contains("new V6SettingsScreen("),
+                "Option が共有設定画面を使っていない");
+            Assert.IsTrue(pause.Contains("new V6SettingsScreen("),
+                "Pause が共有設定画面を使っていない");
         }
 
         [Test]

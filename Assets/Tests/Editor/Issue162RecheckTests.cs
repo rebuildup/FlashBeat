@@ -174,8 +174,9 @@ namespace FlashBeat.Tests.Editor
                 Assert.IsNotNull(view, "v6 ポーズが生成される");
 
                 // Issue #733 / v0.2.1: 行定義の正本は V6SettingsCatalog。
-                // BGM Volume は VideoTime.Update が GameScene で消費する
-                // 実行時有効な行なので、Pause にも Option と同じく出す。
+                // BGM Volume は MusicManager.ApplyBgmVolume が GameScene の
+                // 演奏音源へ適用する実行時有効な行なので、Pause にも
+                // Option と同じく出す。
                 var soundLabels = V6SettingsCatalog.RowsForTab(2, view)
                     .Select(row => row.Label).ToList();
                 Assert.That(soundLabels, Has.Some.EqualTo("Main Volume"),
@@ -186,6 +187,10 @@ namespace FlashBeat.Tests.Editor
                     "BGM Volume は GameScene で有効なので Pause にも出す (v0.2.1)");
 
                 // 描画側も同じ契約に従うこと (カタログと表示の乖離を防ぐ)。
+                // Issue #733 フォローアップ: 共有設定画面は選択中タブの
+                // パネルだけを組み立てるため、Sound タブへ切り替えてから
+                // 描画テキストを読む (Option の SelectTabForAudit と同じ経路)。
+                view.SelectTab(2);
                 string[] texts = AllTexts(view.Root.gameObject);
                 Assert.That(texts, Has.Some.EqualTo("Main Volume"), "Main Volume の行は残る");
                 Assert.That(texts, Has.Some.EqualTo("Effect Volume"), "Effect Volume の行は残る");

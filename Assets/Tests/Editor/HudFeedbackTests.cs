@@ -137,40 +137,76 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void VerdictAlpha_IsOpaqueUntilBelowTheLine()
+        public void VerdictAlpha_FadesDuringLateFall_NotAtTheLine()
         {
             var m = V6HudMetrics.Fhd(1f);
 
-            // 上昇フェーズと、落下中も判定線より上にいる間は常に不透明
-            // (フェードインしない・落下中に薄まらない)。
+            // 出現・上昇・退場序盤 (u < VerdictFadeStartU) は不透明
+            // (フェードインしない)。
             Assert.AreEqual(1f, V6HudLogic.VerdictPoseAt(0f, m).Alpha, 0.001f);
             Assert.AreEqual(1f,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictRiseSeconds, m).Alpha, 0.001f,
                 "頂点到達時点でもまだ不透明");
-            // 退場中間点はまだ判定線より上 (offset > 0) なので不透明。
             float midFallAlpha = V6HudLogic.VerdictPoseAt(
-                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds * 0.5f, m).Alpha;
+                V6HudLogic.VerdictRiseSeconds
+                + V6HudLogic.VerdictFallSeconds * (V6HudLogic.VerdictFadeStartU - 0.01f), m).Alpha;
             Assert.AreEqual(1f, midFallAlpha, 0.001f,
-                "判定線より上では落下中も不透明のまま");
+                "フェード開始前は落下中も不透明のまま");
 
-            // 判定線を割った後は 0<α<1 でフェードし、寿命末で 0。
-            float exitDrop = V6HudLogic.VerdictExitDropPx(m);
-            float travel = V6HudLogic.VerdictPeakGapAboveLine + exitDrop;
-            // offset = -exitDrop/2 となる時刻を EaseInCubic の逆算で求める。
-            float easedAtHalfBelow = 1f - (exitDrop * 0.5f) / travel;
-            float u = Mathf.Pow(easedAtHalfBelow, 1f / 3f);
-            float tHalfBelow = V6HudLogic.VerdictRiseSeconds
-                + V6HudLogic.VerdictFallSeconds * u;
-            float halfBelowAlpha = V6HudLogic.VerdictPoseAt(tHalfBelow, m).Alpha;
-            Assert.AreEqual(0.5f, halfBelowAlpha, 0.05f,
-                "判定線より下の落下半分地点で α≈0.5");
-
-            // 寿命末とそれ以降は透明。
+            // フェード区間 (u 0.6→1.0) では単調に減少し、
+            // 寿命末で 0。判定線を割るのは終盤なので、線の下で
+            // 「不透明のまま残る」時間は無い (v0.2.1 実機レビュー)。
+            float prev = 1f;
+            for (int i = 1; i <= 10; i++)
+            {
+                float u = V6HudLogic.VerdictFadeStartU
+                    + (1f - V6HudLogic.VerdictFadeStartU) * i / 10f;
+                float a = V6HudLogic.VerdictPoseAt(
+                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds * u, m).Alpha;
+                Assert.LessOrEqual(a, prev + 0.0001f, $"フェードは単調減少 (u={u:F2})");
+                prev = a;
+            }
             Assert.AreEqual(0f,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds, m).Alpha, 0.001f);
             Assert.AreEqual(0f,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds + 0.5f, m).Alpha,
                 0.001f);
+        }
+
+        /// <summary>
+        /// v0.2.1 実機レビュー: 「一番上で完全に制止するべきではない」。
+        /// 頂点付近でフレーム間の移動量がほぼ 0 の状態が長く続かないことを
+        /// 60fps の連続サンプルで確認する (旧 0.5s ホールドの再発防止)。
+        /// </summary>
+        [Test]
+        public void VerdictPose_HasNoExtendedStopAtThePeak()
+        {
+            var m = V6HudMetrics.Fhd(1f);
+            const float frame = 1f / 60f;
+
+            int stillFrames = 0;
+            int maxStill = 0;
+            float prev = V6HudLogic.VerdictPoseAt(0f, m).OffsetPx;
+            for (float t = frame; t <= V6HudLogic.VerdictTotalSeconds; t += frame)
+            {
+                float off = V6HudLogic.VerdictPoseAt(t, m).OffsetPx;
+                // 頂点付近の easing による減速はあるが、1 フレームの移動が
+                // 0.5px 未満 (= 60fps でほぼ静止) の状態が 6 フレーム
+                // (0.1 秒) を超えて続いてはいけない。
+                if (System.Math.Abs(off - prev) < 0.5f)
+                {
+                    stillFrames++;
+                    maxStill = System.Math.Max(maxStill, stillFrames);
+                }
+                else
+                {
+                    stillFrames = 0;
+                }
+                prev = off;
+            }
+
+            Assert.LessOrEqual(maxStill, 6,
+                $"頂点付近でほぼ静止のフレームが {maxStill} 連続した (上限 6)");
         }
 
         // --- ポップ・パンチ (Issue #434) ---

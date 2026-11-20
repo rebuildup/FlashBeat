@@ -80,6 +80,14 @@ public class AutoTestV6SongEnd : MonoBehaviour
     int pass;
     int fail;
     int shot;
+
+    // v0.2.1: 判定ポップ・歌詞パネル・コンボボーナス・ノーツ白さの
+    // 実描画証跡用。最初の判定が出てから約 2.5 秒を 3 フレーム毎に連写する
+    // (60fps で約 10fps、30 枚上限)。静止画 1 枚では軌道や発色を
+    // 判断できないため、連続コマで残す。
+    bool burstStarted;
+    float burstUntil;
+    int burstShot;
     string outDir;
     string songTitle;
 
@@ -345,6 +353,20 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 if (notes != null && notes.noteNum > 0) { runtimeNoteCount = notes.noteNum; }
 
                 AutoHit(notes);
+
+                // v0.2.1: 判定バースト撮影 (上のフィールドコメント参照)。
+                int judgedNow = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
+                if (!burstStarted && judgedNow > 0)
+                {
+                    burstStarted = true;
+                    burstUntil = Time.realtimeSinceStartup + 2.5f;
+                }
+                if (burstStarted && Time.realtimeSinceStartup < burstUntil
+                    && burstShot < 30 && Time.frameCount % 3 == 0)
+                {
+                    burstShot++;
+                    CaptureScreenshot("05-burst-" + burstShot.ToString("00"));
+                }
 
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
 

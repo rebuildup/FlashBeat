@@ -15,7 +15,8 @@ namespace FlashBeat.UI.V6.Common
     {
         /// <summary>
         /// ゲーム進行中の画面 (Pause) から host されているか。
-        /// GameScene には実行時消費者の無い行 (BGM Volume) の出し分けに使う。
+        /// 現在は行スキーマの出し分けには使っていない (v0.2.1 で Sound タブは
+        /// 両画面同一になった)。ホスト固有の将来の出し分け用に契約として残す。
         /// </summary>
         bool IsGameplayHost { get; }
 
@@ -224,10 +225,11 @@ namespace FlashBeat.UI.V6.Common
                     "効果音の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
             };
 
-            // v0.2.1 (#733 実機レビュー): BGM Volume は Pause にも出す。
-            // 「GameScene に実行時消費者が無い」という旧コメントは誤りで、
-            // VideoTime.Update が毎フレーム audioBGM.volume = GManager.BGMVolume
-            // を適用している (プレイ中の動画 BGM に即時反映される)。
+            // v0.2.1 (#733 実機レビュー + PR #787 review): BGM Volume は
+            // Pause にも出す。GameScene の実行時消費者は MusicManager で、
+            // 演奏音源 (audioS / streamAudioSource) の音量は
+            // GManager.BGMVolume × 終端フェード係数で毎回再計算される
+            // (Main Volume は AudioListener.volume が担う)。
             // Pause と Option で Sound タブの項目を一致させる。
             rows.Add(VolumeRow(host, 2, "BGM Volume",
                 "BGM の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"));

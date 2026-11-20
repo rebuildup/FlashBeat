@@ -61,67 +61,66 @@ namespace FlashBeat.UI.V6.Option
         public const float DesignH = V6SelectViewLogic.DesignH;
 
         /// <summary>タブ数 (Play / Display / Sound / Data)。</summary>
-        public const int TabCount = 4;
+        public const int TabCount = V6SettingsLayout.TabCount;
 
-        public static readonly string[] TabLabels = { "Play", "Display", "Sound", "Data" };
+        /// <summary>タブ名。正本は <see cref="V6SettingsLayout.TabLabels"/> (Option / Pause 共通)。</summary>
+        public static readonly string[] TabLabels = V6SettingsLayout.TabLabels;
 
         // --- design ジオメトリ (design B6If6Z パッチ実測、Main ゾーン (24,96) 内のローカル座標) ---
+        // Issue #733 フォローアップ: 設定画面のレイアウト規則は Option / Pause 共有の
+        // <see cref="V6SettingsLayout"/> (UI/V6/Common) が正本。ここは互換エイリアス。
 
         /// <summary>タブ帯 (design C0piZz): メイン (438,0) 824x48、タブ 200x48 gap8。</summary>
-        public const float TabsX = 438f, TabsY = 0f, TabsW = 824f, TabsH = 48f, TabW = 200f, TabGap = 8f;
+        public const float TabsX = V6SettingsLayout.TabsX, TabsY = V6SettingsLayout.TabsY;
+        public const float TabsW = V6SettingsLayout.TabsW, TabsH = V6SettingsLayout.TabsH;
+        public const float TabW = V6SettingsLayout.TabW, TabGap = V6SettingsLayout.TabGap;
 
         /// <summary>設定パネル (design crVgG): メイン (304,68) 512x688。行 (8, 60+step*k) 496x56。</summary>
-        public const float SetX = 304f, SetY = 68f, SetW = 512f;
-        public const float SetH = SettingsPanelH;
-        public const float SetRowX = 8f, SetRowW = 496f;
+        public const float SetX = V6SettingsLayout.SetX, SetY = V6SettingsLayout.SetY;
+        public const float SetW = V6SettingsLayout.SetW, SetH = V6SettingsLayout.SetH;
+        public const float SetRowX = V6SettingsLayout.SetRowX, SetRowW = V6SettingsLayout.SetRowW;
 
         /// <summary>プレビューパネル (design cqQMc): メイン (864,68) 512x688。</summary>
-        public const float PrevX = 864f, PrevY = 68f, PrevW = 512f, PrevH = 688f;
+        public const float PrevX = V6SettingsLayout.PrevX, PrevY = V6SettingsLayout.PrevY;
+        public const float PrevW = V6SettingsLayout.PrevW, PrevH = V6SettingsLayout.PrevH;
 
         /// <summary>Game Preview (design 共通): プレビューパネル内 (24,60) 464x280 $k0 r8。</summary>
-        public const float GamePrevX = 24f, GamePrevY = 60f, GamePrevW = 464f, GamePrevH = 280f;
+        public const float GamePrevX = V6SettingsLayout.GamePrevX, GamePrevY = V6SettingsLayout.GamePrevY;
+        public const float GamePrevW = V6SettingsLayout.GamePrevW, GamePrevH = V6SettingsLayout.GamePrevH;
 
         /// <summary>
         /// 説明ブロック (design): Divider (24,Y) / Desc Title (24,Y+20) fs32 / Desc (24,Y+70) w464。
-        /// Y はタブごとに違う — Play 544 / Display 456 / Sound 472 / Data 380
-        /// (r23 で 4 タブを撮ったところ、旧実装は Play の 544 を全タブへ流用しており、
-        /// Display / Sound / Data で説明文が design より 88〜234px 下に落ちていた)。
+        /// Y はタブごとに違う — Play 544 / Display 456 / Sound 504 / Data 380。
         /// </summary>
-        public const float PlayDescDividerY = 544f, DisplayDescDividerY = 456f;
-        /// <summary>
-        /// Sound は 472 だったが、音量スライダ (Issue #375、値 fs58 + トラック +
-        /// ヒント = 156px) を Game Preview (60..340) の直下に置くため 504 へ下げた
-        /// (design 更新は pen `z7joSy` に反映)。
-        /// </summary>
-        public const float SoundDescDividerY = 504f, DataDescDividerY = 380f;
-        public const float DescTitleOffsetY = 20f, DescOffsetY = 70f;
-        public const float DescW = 464f, DescH = 68f;
+        public const float PlayDescDividerY = V6SettingsLayout.PlayDescDividerY;
+        public const float DisplayDescDividerY = V6SettingsLayout.DisplayDescDividerY;
+        /// <summary>Sound は音量スライダ分だけ 504 (正本は <see cref="V6SettingsLayout.SoundDescDividerY"/>)。</summary>
+        public const float SoundDescDividerY = V6SettingsLayout.SoundDescDividerY;
+        public const float DataDescDividerY = V6SettingsLayout.DataDescDividerY;
+        public const float DescTitleOffsetY = V6SettingsLayout.DescTitleOffsetY;
+        public const float DescOffsetY = V6SettingsLayout.DescOffsetY;
+        public const float DescW = V6SettingsLayout.DescW, DescH = V6SettingsLayout.DescH;
 
         /// <summary>旧名 (Play タブの値)。しきい値の互換のため残す。</summary>
         public const float DescDividerY = PlayDescDividerY;
         public const float DescTitleY = PlayDescDividerY + DescTitleOffsetY;
         public const float DescY = PlayDescDividerY + DescOffsetY;
 
-        /// <summary>タブごとの説明ブロック上端 (Divider Y)。</summary>
+        /// <summary>タブごとの説明ブロック上端 (Divider Y)。正本は V6SettingsLayout。</summary>
         public static float DescDividerYOf(int tab)
         {
-            switch (tab)
-            {
-                case 1: return DisplayDescDividerY;
-                case 2: return SoundDescDividerY;
-                case 3: return DataDescDividerY;
-                default: return PlayDescDividerY;
-            }
+            return V6SettingsLayout.DescDividerYOf(tab);
         }
 
         // --- Display 右パネル: 判定色の凡例 (design EzLfb Judge PERFECT..MISS) ---
         // チップ (24,360) 106x64 r8 $k1 を 118 ピッチ (gap12) で 4 個。中身は
         // Marker (37,16) 32x4 r2 (判定色) + Label (fs18 $text-dim, 中央, y22 h26)。
-        public const float JudgeChipX = 24f, JudgeChipY = 360f;
-        public const float JudgeChipW = 106f, JudgeChipH = 64f, JudgeChipStep = 118f;
-        public const float JudgeMarkerX = 37f, JudgeMarkerY = 16f;
-        public const float JudgeMarkerW = 32f, JudgeMarkerH = 4f;
-        public static readonly string[] JudgeLabels = { "PERFECT", "GREAT", "BAD", "MISS" };
+        public const float JudgeChipX = V6SettingsLayout.JudgeChipX, JudgeChipY = V6SettingsLayout.JudgeChipY;
+        public const float JudgeChipW = V6SettingsLayout.JudgeChipW, JudgeChipH = V6SettingsLayout.JudgeChipH;
+        public const float JudgeChipStep = V6SettingsLayout.JudgeChipStep;
+        public const float JudgeMarkerX = V6SettingsLayout.JudgeMarkerX, JudgeMarkerY = V6SettingsLayout.JudgeMarkerY;
+        public const float JudgeMarkerW = V6SettingsLayout.JudgeMarkerW, JudgeMarkerH = V6SettingsLayout.JudgeMarkerH;
+        public static readonly string[] JudgeLabels = V6SettingsLayout.JudgeLabels;
 
         // --- Sound 右パネル: 音量の値とトラック (design z7joSy) ---
         // Value (24,360) 106x58 fs40 / Track (24,420) 464x20 r4 $k1 + Fill $k6。
@@ -149,14 +148,14 @@ namespace FlashBeat.UI.V6.Option
             return new Vector2(TabsX + (TabW + TabGap) * index, TabsY);
         }
 
-        // 設定パネル (列2-3) の行ジオメトリ (design px)。
-        public const float SettingsPanelH = 688f;
-        public const float SettingsRowFirstY = 60f;
-        public const float SettingsRowH = 56f;
+        // 設定パネル (列2-3) の行ジオメトリ (design px)。正本は V6SettingsLayout。
+        public const float SettingsPanelH = V6SettingsLayout.SettingsPanelH;
+        public const float SettingsRowFirstY = V6SettingsLayout.SettingsRowFirstY;
+        public const float SettingsRowH = V6SettingsLayout.SettingsRowH;
         /// <summary>通常の行間 (Play / Sound / Data の design 実測)。</summary>
-        public const float RowStepLoose = 76f;
+        public const float RowStepLoose = V6SettingsLayout.RowStepLoose;
         /// <summary>行が多いときの詰め行間 (Display の design 実測)。</summary>
-        public const float RowStepTight = 60f;
+        public const float RowStepTight = V6SettingsLayout.RowStepTight;
 
         /// <summary>
         /// design フレーム (1728×972) を実画面へ <b>1:1 (等倍)</b> で中央配置するときの
@@ -202,22 +201,18 @@ namespace FlashBeat.UI.V6.Option
         /// 設定行の行間。design は行数が少ないタブでは 76px、
         /// 行がパネル (688px) からあふれるタブでは 60px に詰める
         /// (06 Display が 9 行を 60px 間隔で置いた実測に合わせる)。
+        /// 正本は <see cref="V6SettingsLayout.RowStep"/>。
         /// </summary>
         public static float RowStep(int rowCount)
         {
-            if (rowCount <= 0)
-            {
-                return RowStepLoose;
-            }
-
-            float needed = SettingsRowFirstY + RowStepLoose * (rowCount - 1) + SettingsRowH;
-            return needed <= SettingsPanelH ? RowStepLoose : RowStepTight;
+            return V6SettingsLayout.RowStep(rowCount);
         }
 
         // --- Sound 右パネル: 音量スライダ (design o0zh7 J7tBYP、Issue #375) ---
         // 部品の寸法・写像は V6VolumeSlider が持つ (Option と Pause で同じ部品)。
         // ここは置き場所 (プレビューパネル内の左上) だけを持つ。
-        public const float VolumeSliderX = 24f, VolumeSliderY = 344f;
+        public const float VolumeSliderX = V6SettingsLayout.VolumeSliderX;
+        public const float VolumeSliderY = V6SettingsLayout.VolumeSliderY;
 
         /// <summary>音量を 0..1 にクランプし 0.1 刻みで±する (旧ステッパー。互換のため残す)。</summary>
         public static float AdjustVolume(float value, int delta)
@@ -345,23 +340,18 @@ namespace FlashBeat.UI.V6.Option
         }
 
         // --- プレビューの JIS キーボード (06 Play design 実測) ---
+        // 正本は <see cref="V6SettingsLayout"/> (Option / Pause 共通の設定画面)。
 
         /// <summary>キーピッチ (34px 鍵 + 2px 間隔)。</summary>
-        public const float GridKeyW = 34f;
-        public const float GridKeyH = 40f;
-        public const float GridKeyStepX = 36f;
+        public const float GridKeyW = V6SettingsLayout.GridKeyW;
+        public const float GridKeyH = V6SettingsLayout.GridKeyH;
+        public const float GridKeyStepX = V6SettingsLayout.GridKeyStepX;
 
         /// <summary>各段の y (design px) と先頭 x。</summary>
-        public static readonly float[] GridRowY = { 356f, 400f, 444f, 488f };
-        public static readonly float[] GridRowX = { 8f, 25f, 42f, 59f };
+        public static readonly float[] GridRowY = V6SettingsLayout.GridRowY;
+        public static readonly float[] GridRowX = V6SettingsLayout.GridRowX;
 
         /// <summary>JIS 配列の物理キー (上段から。design の Key 1..Key _ と同じ並び)。</summary>
-        public static readonly KeyCode[][] JisGridKeys =
-        {
-            new[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Caret, KeyCode.Backslash },
-            new[] { KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.At, KeyCode.LeftBracket },
-            new[] { KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.K, KeyCode.L, KeyCode.Semicolon, KeyCode.Colon, KeyCode.RightBracket },
-            new[] { KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B, KeyCode.N, KeyCode.M, KeyCode.Comma, KeyCode.Period, KeyCode.Slash, KeyCode.Underscore },
-        };
+        public static readonly KeyCode[][] JisGridKeys = V6SettingsLayout.JisGridKeys;
     }
 }

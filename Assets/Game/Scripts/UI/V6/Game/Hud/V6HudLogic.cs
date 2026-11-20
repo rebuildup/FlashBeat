@@ -205,23 +205,33 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// 判定線上の出現点から読み取りの頂点まで上昇する時間 (秒)。
         /// 「叩いた」位置 (判定線) から文字が立ち上がる動きを
         /// EaseOutCubic で素早く見せる。長すぎると判定の瞬間性が薄れる。
+        /// v0.2.1: 頂点付近の減速区間を短く保つため 0.18 → 0.14。
         /// </summary>
-        public const float VerdictRiseSeconds = 0.18f;
+        public const float VerdictRiseSeconds = 0.14f;
 
         /// <summary>
         /// 頂点から判定線を越えて下へ加速落下しながら消える時間 (秒)。
         /// 落下は EaseInCubic (加速) で、頂点での静止フェーズは持たない
         /// (v0.2.1 実機レビュー: 「一番上で完全に制止するべきではない」)。
-        /// α は判定線を割るまでは 1 のまま、判定線より下の落下距離と
-        /// 同じ幅で 1→0 にフェードするため、判定線付近に滞留せず
-        /// 「落ちた」と分かる程度で消える。
+        /// α は退場終盤 (<see cref="VerdictFadeStartU"/> 以降) で 1→0 に
+        /// フェードするため、判定線付近に不透明のまま滞留しない。
         /// </summary>
-        public const float VerdictFallSeconds = 0.50f;
+        public const float VerdictFallSeconds = 0.42f;
+
+        /// <summary>
+        /// 退場フェードの開始位置 (落下進行 u = 0..1 のうち 0.6 から)。
+        /// EaseIn の加速で判定線を割るのは終盤なので、線より下だけで
+        /// フェードすると消えるまでの時間が短すぎて「残像」に見える。
+        /// 落下の終盤 40% をフェード区間にして、落ちる様子が見えてから
+        /// 自然に消える (v0.2.1 実機レビュー: 「落ちたとわかるくらいで
+        /// 消えるべき」「判定線まで残す必要はない」)。
+        /// </summary>
+        public const float VerdictFadeStartU = 0.6f;
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
         /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 下方退場
-        /// (<see cref="VerdictFallSeconds"/>) = 0.68 秒。
+        /// (<see cref="VerdictFallSeconds"/>) = 0.56 秒。
         /// 頂点での保持フェーズは無い (頂点は通過点)。
         /// </summary>
         public const float VerdictTotalSeconds =
@@ -267,8 +277,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// - 〜+<see cref="VerdictFallSeconds"/>: EaseInCubic で加速しながら
         ///   頂点から判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで
         ///   落下。頂点での静止フェーズは無く、上昇の終端からそのまま落下へ移る。
-        ///   α は判定線までは 1 のまま、判定線より下では落下距離に比例して
-        ///   1→0 にフェードする (判定線付近に滞留しない)。
+        ///   α は退場終盤 (<see cref="VerdictFadeStartU"/> 以降の 40%) で
+        ///   1→0 にフェードする (判定線付近に不透明のまま滞留しない)。
         /// - 総寿命 <see cref="VerdictTotalSeconds"/> を過ぎると α=0。
         ///
         /// 旧軌道 (Issue #671: 静止位置の真上から落下して着地 → 静止 → フェード)
@@ -295,13 +305,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             float travel = VerdictPeakGapAboveLine + VerdictExitDropPx(m);
             float offset = VerdictPeakGapAboveLine - travel * EaseInCubic(u);
 
-            // α: 判定線 (offset=0) までは不透明。判定線より下では
-            // exitDrop 分の落下と同じ距離で 1→0 にフェードする。
-            // EaseIn の加速で判定線以下の区間は短時間なので、
-            // 「落ちた」と分かる程度で消える。
-            float alpha = offset >= 0f
-                ? 1f
-                : Mathf.Clamp01(1f + offset / VerdictExitDropPx(m));
+            // α: 上昇と退場序盤 (u < FadeStartU) は不透明。終盤 40% で
+            // smoothstep により 1→0 へフェードする。判定線を割るのは
+            // EaseIn 加速の終盤なので「線の下だけでフェード」だと
+            // 消滅が速すぎて残像に見える — 落下の終盤に合わせて消す。
+            float fadeU = (u - VerdictFadeStartU) / (1f - VerdictFadeStartU);
+            float alpha = fadeU <= 0f ? 1f : 1f - fadeU * fadeU * (3f - 2f * fadeU);
             return new VerdictPose(offset, alpha);
         }
 

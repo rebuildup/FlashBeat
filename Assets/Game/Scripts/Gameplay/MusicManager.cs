@@ -115,7 +115,7 @@ public class MusicManager : MonoBehaviour
     bool endOverlayShown;
     bool endFadeApplied;
     /// <summary>終端フェードで掛けている音量係数。ポーズ中の音量変更で
-    /// フェード進行を壊さないよう <see cref="ApplyMainVolume"/> が参照する。</summary>
+    /// フェード進行を壊さないよう <see cref="ApplyBgmVolume"/> が参照する。</summary>
     float endFadeFactor = 1f;
     V6GameHudView hudCache;
 
@@ -247,7 +247,7 @@ public class MusicManager : MonoBehaviour
         GManager.played = false;
         GManager.nextNotes = 1;
         GManager.settledNoteCount = 0;
-        audioS.volume = GManager.mainVolume;
+        audioS.volume = GManager.BGMVolume;
         StartText.SetActive(true);
 
         kakusi.SetActive(true);
@@ -898,7 +898,7 @@ public class MusicManager : MonoBehaviour
         streamAudioObject = new GameObject("FlashBeatStreamAudio");
         streamAudioPlayer = streamAudioObject.AddComponent<VideoPlayer>();
         streamAudioSource = streamAudioObject.AddComponent<AudioSource>();
-        streamAudioSource.volume = GManager.mainVolume;
+        streamAudioSource.volume = GManager.BGMVolume;
 
         streamAudioPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
         streamAudioPlayer.SetTargetAudioSource(0, streamAudioSource);
@@ -1416,13 +1416,18 @@ public class MusicManager : MonoBehaviour
     }
 
     /// <summary>
-    /// <see cref="GManager.mainVolume"/> の即時反映 (ポーズ画面の音量変更など)。
+    /// BGM チャンネル音量 (<see cref="GManager.BGMVolume"/>) の即時反映
+    /// (ポーズ/オプション画面の音量変更など)。Main Volume は
+    /// AudioListener.volume が担うため、ここの AudioSource には
+    /// BGMVolume だけを掛ける (OptionScene の audioBGM と同じ規則。
+    /// v0.2.1 までは mainVolume を掛けていて BGMVolume が演奏中に
+    /// 効かなかった — PR #787 review)。
     /// 演奏中の音源は <see cref="audioS"/> と <see cref="streamAudioSource"/>
     /// (StreamSeparate 経路) の 2 系統あるため、AudioSource を 1 つだけ
     /// 探して書き換える呼び出し側では片方が取り残される。
     /// 終端フェード中は最後に適用した係数を維持する。
     /// </summary>
-    public void ApplyMainVolume()
+    public void ApplyBgmVolume()
     {
         float factor = endFadeApplied ? endFadeFactor : 1f;
         // audioS は Start で解決される。Start 前 (ポーズ画面が先に開く経路や
@@ -1430,11 +1435,11 @@ public class MusicManager : MonoBehaviour
         var source = audioS != null ? audioS : GetComponent<AudioSource>();
         if (source != null)
         {
-            source.volume = GManager.mainVolume * factor;
+            source.volume = GManager.BGMVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.mainVolume * factor;
+            streamAudioSource.volume = GManager.BGMVolume * factor;
         }
     }
 
@@ -1481,11 +1486,11 @@ public class MusicManager : MonoBehaviour
         endFadeFactor = factor;
         if (audioS != null)
         {
-            audioS.volume = GManager.mainVolume * factor;
+            audioS.volume = GManager.BGMVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.mainVolume * factor;
+            streamAudioSource.volume = GManager.BGMVolume * factor;
         }
         if (songVideo != null && songVideo.audioTrackCount > 0)
         {
@@ -1603,7 +1608,7 @@ public class MusicManager : MonoBehaviour
         audioMode = PlaybackSource.BundledWave;
         audioS.clip = Music;
         audioS.time = Mathf.Max(0f, atMediaTime);
-        audioS.volume = GManager.mainVolume;
+        audioS.volume = GManager.BGMVolume;
         audioS.Play();
 
         Debug.Log($"[MusicManager] switched to the bundled wav at mediaTime={atMediaTime:F2}");
