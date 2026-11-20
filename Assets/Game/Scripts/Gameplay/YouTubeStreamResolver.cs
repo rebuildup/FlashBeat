@@ -220,6 +220,8 @@ namespace FlashBeat.Gameplay
             // 1.5. 同梱ツール (issue #795): 配布 ZIP にだけ存在する製品管理下の
             //      バイナリ。利用者の PATH や開発環境に依存しないため最優先で使う。
             //      FLASHBEAT_*_PATH の明示指定だけがこれより優先される。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
             var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, YtDlpBundledNames()), "--version");
             if (bundledHit != null)
             {
@@ -302,6 +304,8 @@ namespace FlashBeat.Gameplay
             }
 
             // 同梱ツール (issue #795): yt-dlp と同じく製品管理下のバイナリを優先する。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
             var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, DenoBundledNames()), "--version");
             if (bundledHit != null)
             {
@@ -538,6 +542,45 @@ namespace FlashBeat.Gameplay
                 return new[] { key + "/deno" };
             }
             return new string[0];
+        }
+
+        /// <summary>
+        /// macOS: removes the quarantine xattr from the bundled tools tree so
+        /// Gatekeeper does not kill the child binaries (issue #795). A ZIP
+        /// downloaded in a browser propagates com.apple.quarantine to every
+        /// extracted file - including binaries nested inside FlashBeat.app -
+        /// and a quarantined unsigned/adhoc-signed Mach-O is killed (SIGKILL)
+        /// on exec even when the parent app is already running. Stripping the
+        /// attribute from our own shipped tools inside our own bundle is the
+        /// distributor-side fix; /usr/bin/xattr is a system binary and always
+        /// runs. Best effort: a read-only (translocated) bundle simply keeps
+        /// the old behaviour.
+        /// </summary>
+        static void EnsureBundledToolsRunnable(string streamingAssetsPath)
+        {
+            if (!IsMacOS || string.IsNullOrEmpty(streamingAssetsPath)) return;
+            var toolsDir = Path.Combine(streamingAssetsPath, "tools");
+            try { if (!Directory.Exists(toolsDir)) return; } catch { return; }
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/xattr",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+                psi.ArgumentList.Add("-dr");
+                psi.ArgumentList.Add("com.apple.quarantine");
+                psi.ArgumentList.Add(toolsDir);
+                using (var p = Process.Start(psi))
+                {
+                    if (p == null) return;
+                    if (!p.WaitForExit(5000)) { try { p.Kill(); } catch { } return; }
+                }
+            }
+            catch { /* best effort: the version probe simply fails as before */ }
         }
 
         /// <summary>
