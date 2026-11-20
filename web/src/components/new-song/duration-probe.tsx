@@ -23,7 +23,7 @@ const frame = css({
 });
 
 const status = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "2xs",
   margin: "0",
 });
@@ -36,7 +36,7 @@ const statusIcon = css({
 });
 
 const errorStatus = css({
-  color: "#ff6b6b",
+  color: "red.9",
 });
 
 export interface DurationProbeProps {

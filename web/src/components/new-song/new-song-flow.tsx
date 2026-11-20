@@ -32,8 +32,8 @@ import { Stepper } from "./stepper";
  */
 
 const root = css({
-  bg: "#1b1b1b",
-  color: "#ffffff",
+  bg: "canvas",
+  color: "fg.default",
   display: "grid",
   fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif',
   gridTemplateRows: "auto auto minmax(0, 1fr)",
@@ -43,7 +43,7 @@ const root = css({
 
 const header = css({
   alignItems: "center",
-  borderBottomColor: "#2d2d2d",
+  borderBottomColor: "border",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
@@ -60,10 +60,10 @@ const headerTitles = css({
 });
 
 const backLink = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "xs",
   textDecoration: "none",
-  _hover: { color: "#ffffff" },
+  _hover: { color: "fg.default" },
 });
 
 /** The arrow icon of the back link. */
@@ -74,16 +74,16 @@ const backIcon = css({
 });
 
 const title = css({
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "sm",
   fontWeight: "semibold",
   margin: "0",
 });
 
 const badge = css({
-  bg: "#2d2d2d",
+  bg: "gray.6",
   borderRadius: "full",
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "2xs",
   paddingBlock: "0.5",
   paddingInline: "2",
@@ -97,7 +97,7 @@ const goal = css({
 });
 
 const stepperBar = css({
-  borderBottomColor: "#2d2d2d",
+  borderBottomColor: "border",
   borderBottomWidth: "1px",
   display: "flex",
   justifyContent: "center",
@@ -113,7 +113,7 @@ const stepScroll = css({
 });
 
 const stepFrame = css({
-  bg: "#2d2d2d",
+  bg: "gray.6",
   borderRadius: "16px",
   margin: "0 auto",
   maxWidth: "44rem",

@@ -76,14 +76,22 @@ const actions = css({
 });
 
 const raisedButton = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   borderRadius: "8px",
   borderColor: "transparent",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
 });
 
 const accent = css({ colorPalette: "blue" });
+
+/** Caption heading of the post-publish checklist (was an inline style). */
+const nextStepTitle = css({
+  color: "fg.default",
+  fontSize: "xs",
+  fontWeight: "semibold",
+  margin: "0 0 1",
+});
 
 /** The icon inside a button. */
 const buttonIcon = css({
@@ -130,9 +138,7 @@ export function PublishSuccessView({
       </dl>
 
       <div>
-        <p style={{ fontSize: "2xs", fontWeight: "semibold", margin: "0 0 1" }}>
-          ゲームで見つかるまで
-        </p>
+        <p className={nextStepTitle}>ゲームで見つかるまで</p>
         <ol className={checklist}>
           <li>
             UnityはSelect画面でクラウドカタログを再取得します。ゲームをSelect画面まで進めるか、開き直してください。

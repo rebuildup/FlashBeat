@@ -5,11 +5,13 @@ import { css } from "styled-system/css";
  *
  * Every studio screen shares one grid contract:
  *
- * - **Rail** — `13rem` on `md` and up; below `md` the navigation collapses
- *   into a sticky top bar / disclosure and the work area takes the full
- *   width.
+ * - **Rail** — a fixed `13rem` track on `md` and up; below `md` the
+ *   navigation collapses into a sticky top bar / disclosure and the work
+ *   area takes the full width.
  * - **Columns** — `rail | minmax(0, 1fr)`: the work area absorbs every
- *   extra pixel, the rail never grows.
+ *   extra pixel, the rail never grows. The literal lives only here —
+ *   Panda extracts `css()` values statically, so shells compose
+ *   `shellColumns` instead of restating (or interpolating) the tracks.
  * - **Content area** — `contentArea` owns the padding and the gap between
  *   blocks; pages put their panels inside it and never restate `p`/`gap`.
  * - **Scroll owner** — scrolling pages let the document scroll
@@ -18,24 +20,13 @@ import { css } from "styled-system/css";
  *   (dashboard, songs) is always locked: its content area is the scroll
  *   owner.
  *
- * `app-shell.tsx` and `studio-layout.tsx` compose `shellColumns` +
- * `contentArea` instead of restating the numbers. The track literal lives
- * here once — Panda resolves `css()` values statically, so shells must not
- * interpolate `SHELL_RAIL_WIDTH` into `gridTemplateColumns` themselves
- * (the property would be dropped silently). `design-system.test.ts` pins
- * both halves of this contract.
- */
-export const SHELL_RAIL_WIDTH = "13rem";
-
-/**
- * The two tracks of the studio grid. `base` is a single column (the rail
- * is `display: block`/sticky there, so the track is inert until `md`).
+ * `app-shell.tsx` and `studio-layout.tsx` compose these classes, so a
+ * density change lands everywhere at once.
+ *
+ * Enforced by `src/theme/design-system.test.ts` ("studio grid contract").
  */
 export const shellColumns = css({
-  gridTemplateColumns: {
-    base: "minmax(0, 1fr)",
-    md: "13rem minmax(0, 1fr)",
-  },
+  gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
 });
 
 /**
