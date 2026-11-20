@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="6" result="Passed" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.6755767">
+  <test-suite type="TestSuite" id="1013" name="FlashBeat" fullname="FlashBeat" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.675577" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1008" name="FlashBeat.PlayModeTests.dll" fullname="/Users/rebui/work/FlashBeat/Library/ScriptAssemblies/FlashBeat.PlayModeTests.dll" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.589354" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="41292" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1009" name="FlashBeat" fullname="FlashBeat" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.455808" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1010" name="PlayModeTests" fullname="FlashBeat.PlayModeTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.432805" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="V6ResultInputPlayModeTests" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:58Z" duration="4.425842" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1005" name="ClearAndRetype_ScrollResets_AndCaretStaysInside" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.ClearAndRetype_ScrollResets_AndCaretStaysInside" methodname="ClearAndRetype_ScrollResets_AndCaretStaysInside" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="1085016347" result="Passed" start-time="2026-11-20 04:06:54Z" end-time="2026-11-20 04:06:56Z" duration="1.926183" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1002" name="EditSequence_CaretSelectionStayInsideViewport" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.EditSequence_CaretSelectionStayInsideViewport" methodname="EditSequence_CaretSelectionStayInsideViewport" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="1971304476" result="Passed" start-time="2026-11-20 04:06:56Z" end-time="2026-11-20 04:06:57Z" duration="1.030433" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1007" name="EnterKey_DeactivatesInputField_ThroughRealEvents" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.EnterKey_DeactivatesInputField_ThroughRealEvents" methodname="EnterKey_DeactivatesInputField_ThroughRealEvents" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="978884760" result="Passed" start-time="2026-11-20 04:06:57Z" end-time="2026-11-20 04:06:58Z" duration="0.343127" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1006" name="LocalModeValidation_RejectsInvalidChars_ThroughRealEvents" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.LocalModeValidation_RejectsInvalidChars_ThroughRealEvents" methodname="LocalModeValidation_RejectsInvalidChars_ThroughRealEvents" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="1846360542" result="Passed" start-time="2026-11-20 04:06:58Z" end-time="2026-11-20 04:06:58Z" duration="0.207181" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1003" name="OpenWithSavedName_SelectAll_ReplaceOnType" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.OpenWithSavedName_SelectAll_ReplaceOnType" methodname="OpenWithSavedName_SelectAll_ReplaceOnType" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="1705486904" result="Passed" start-time="2026-11-20 04:06:58Z" end-time="2026-11-20 04:06:58Z" duration="0.259217" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1004" name="OverflowText_CaretFollowScroll_KeepsCaretInsideViewport" fullname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests.OverflowText_CaretFollowScroll_KeepsCaretInsideViewport" methodname="OverflowText_CaretFollowScroll_KeepsCaretInsideViewport" classname="FlashBeat.PlayModeTests.V6ResultInputPlayModeTests" runstate="Runnable" seed="115049625" result="Passed" start-time="2026-11-20 04:06:58Z" end-time="2026-11-20 04:06:58Z" duration="0.416638" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/rebui/Library/Application Support/KimuraYusuke/FlashBeat/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
