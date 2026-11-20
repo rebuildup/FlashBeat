@@ -155,32 +155,46 @@ if [ "$packed_size" -gt 0 ] && [ "$MEDIA_POLICY" != "bundled" ]; then
     fi
 fi
 
-# ── bundled media tools (issue #795) ───────────────────────────────────────
-# yt-dlp + deno を StreamingAssets/tools/ へ同梱する。配布 ZIP だけを入手した
-# 利用者の環境には yt-dlp / deno が存在せず、YouTube からの楽曲取得が全曲
-# 失敗していた (v0.2.2 実機受入不合格)。バイナリは script/fetch-media-tools.sh
-# が tools/media/ (gitignore) へ version + SHA-256 pin で取得する。
-# ffmpeg は同梱しない: SelectPlan は結合 mp4 (itag 18) を優先し、ffmpeg は
-# HD マージ経路の品質向上にのみ使われる。macOS ビルドは universal なので
-# arm64 / x86_64 両方の deno を入れ、実行時に OSArchitecture で選ぶ。
+# ── bundled media tools (issue #795 / #796) ───────────────────────────────
+# yt-dlp + deno + ffmpeg + ffprobe を StreamingAssets/tools/ へ同梱する。
+# 配布 ZIP だけを入手した利用者の環境には yt-dlp / deno / ffmpeg が存在せず、
+# YouTube からの楽曲取得が全曲失敗していた (v0.2.2 実機受入不合格)。さらに
+# ffmpeg / ffprobe が無いと MediaNormalizer (issue #796) が time_base の
+# 壊れた動画を修復できず、Who 等が ~1/6 速で再生される。バイナリは
+# script/fetch-media-tools.sh が tools/media/ (gitignore) へ
+# version + SHA-256 pin で取得する。
+# macOS ビルドは universal なので arm64 / x86_64 両方の deno / ffmpeg /
+# ffprobe を入れ、実行時に OSArchitecture で選ぶ。
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TOOLS_SRC="$REPO_ROOT/tools/media"
-for required in "macos/yt-dlp" "macos-arm64/deno" "macos-x86_64/deno"; do
+for required in \
+    "macos/yt-dlp" \
+    "macos-arm64/deno" "macos-arm64/ffmpeg" "macos-arm64/ffprobe" \
+    "macos-x86_64/deno" "macos-x86_64/ffmpeg" "macos-x86_64/ffprobe"; do
     [ -f "$TOOLS_SRC/$required" ] || fail "media tool missing: $TOOLS_SRC/$required (run script/fetch-media-tools.sh)"
 done
 TOOLS_DST="$DATA_DIR/StreamingAssets/tools"
 mkdir -p "$TOOLS_DST/macos" "$TOOLS_DST/macos-arm64" "$TOOLS_DST/macos-x86_64"
 cp "$TOOLS_SRC/macos/yt-dlp" "$TOOLS_DST/macos/yt-dlp"
-cp "$TOOLS_SRC/macos-arm64/deno" "$TOOLS_DST/macos-arm64/deno"
-cp "$TOOLS_SRC/macos-x86_64/deno" "$TOOLS_DST/macos-x86_64/deno"
-chmod +x "$TOOLS_DST/macos/yt-dlp" "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-x86_64/deno"
-# sanity probe: このビルド機の arch に対応する deno だけ実際に起動する
-# (他 arch のバイナリは Rosetta 無し環境で --version に失敗し得るため)。
+for arch in macos-arm64 macos-x86_64; do
+    cp "$TOOLS_SRC/$arch/deno"    "$TOOLS_DST/$arch/deno"
+    cp "$TOOLS_SRC/$arch/ffmpeg"  "$TOOLS_DST/$arch/ffmpeg"
+    cp "$TOOLS_SRC/$arch/ffprobe" "$TOOLS_DST/$arch/ffprobe"
+done
+chmod +x "$TOOLS_DST/macos/yt-dlp" \
+    "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-arm64/ffmpeg" "$TOOLS_DST/macos-arm64/ffprobe" \
+    "$TOOLS_DST/macos-x86_64/deno" "$TOOLS_DST/macos-x86_64/ffmpeg" "$TOOLS_DST/macos-x86_64/ffprobe"
+# sanity probe: このビルド機の arch に対応する deno / ffmpeg / ffprobe だけ
+# 実際に起動する (他 arch のバイナリは Rosetta 無し環境で --version に
+# 失敗し得るため)。
 "$TOOLS_DST/macos/yt-dlp" --version >/dev/null || fail "bundled yt-dlp failed --version"
 case "$(uname -m)" in
-    arm64)  "$TOOLS_DST/macos-arm64/deno" --version >/dev/null || fail "bundled deno (arm64) failed --version" ;;
-    x86_64) "$TOOLS_DST/macos-x86_64/deno" --version >/dev/null || fail "bundled deno (x86_64) failed --version" ;;
+    arm64)  FFARCH=macos-arm64 ;;
+    *)      FFARCH=macos-x86_64 ;;
 esac
+"$TOOLS_DST/$FFARCH/deno" --version >/dev/null || fail "bundled deno ($FFARCH) failed --version"
+"$TOOLS_DST/$FFARCH/ffmpeg" -version >/dev/null || fail "bundled ffmpeg ($FFARCH) failed -version"
+"$TOOLS_DST/$FFARCH/ffprobe" -version >/dev/null || fail "bundled ffprobe ($FFARCH) failed -version"
 
 # quarantine された .app 内で child process として起動されるため、利用者が
 # ZIP をブラウザから落とすと Gatekeeper の評価対象になる。yt-dlp_macos は
@@ -190,14 +204,17 @@ esac
 # (署名なし配布は従来どおり利用者の Gatekeeper 回避操作に依存する)。
 SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
 if [ -n "$SIGN_IDENTITY" ]; then
-    for tool in "$TOOLS_DST/macos/yt-dlp" "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-x86_64/deno"; do
+    for tool in \
+        "$TOOLS_DST/macos/yt-dlp" \
+        "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-arm64/ffmpeg" "$TOOLS_DST/macos-arm64/ffprobe" \
+        "$TOOLS_DST/macos-x86_64/deno" "$TOOLS_DST/macos-x86_64/ffmpeg" "$TOOLS_DST/macos-x86_64/ffprobe"; do
         codesign --force --sign "$SIGN_IDENTITY" --timestamp "$tool" || fail "codesign failed: $tool"
     done
     echo "[media-tools] codesigned bundled tools with '$SIGN_IDENTITY'"
 else
     echo "[media-tools] WARNING: no Developer ID Application identity; bundled tools stay unsigned" >&2
 fi
-echo "[media-tools] bundled yt-dlp + deno (macos arm64/x86_64) into StreamingAssets/tools"
+echo "[media-tools] bundled yt-dlp + deno + ffmpeg + ffprobe (macos arm64/x86_64) into StreamingAssets/tools"
 
 # ── output ──────────────────────────────────────────────────────────────────
 mkdir -p "$OUT_DIR"

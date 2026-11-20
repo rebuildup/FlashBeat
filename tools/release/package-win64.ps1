@@ -303,21 +303,22 @@ function Assert-MediaPolicy {
 function Install-BundledMediaTools {
     <#
     .SYNOPSIS
-        yt-dlp / deno を FlashBeat_Data/StreamingAssets/tools/windows-x64/ へ同梱する (issue #795)。
+        yt-dlp / deno / ffmpeg / ffprobe を FlashBeat_Data/StreamingAssets/tools/windows-x64/ へ同梱する (issue #795 / #796)。
 
     .DESCRIPTION
-        配布 ZIP だけを入手した利用者の環境には yt-dlp / deno が存在しないため、
+        配布 ZIP だけを入手した利用者の環境には yt-dlp / deno / ffmpeg が存在しないため、
         YouTube からの楽曲取得が全曲失敗していた (v0.2.2 実機受入不合格)。
+        さらに ffmpeg / ffprobe が無いと MediaNormalizer (issue #796) が
+        time_base の壊れた動画を修復できず、Who 等が ~1/6 速で再生される。
         バイナリは script/fetch-media-tools.sh が tools/media/ (gitignore) へ
         version + SHA-256 pin で取得し、この関数がビルド出力へコピーする。
-        ffmpeg は同梱しない: SelectPlan は結合 mp4 (itag 18) を優先し、
-        ffmpeg はHDマージ経路の品質向上にのみ使われる。
+        ffplay.exe は同梱しない (再生には使わない)。
     #>
     param([string]$Dir)
 
     $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $src = Join-Path $repoRoot 'tools\media\windows-x64'
-    foreach ($name in @('yt-dlp.exe', 'deno.exe')) {
+    foreach ($name in @('yt-dlp.exe', 'deno.exe', 'ffmpeg.exe', 'ffprobe.exe')) {
         $file = Join-Path $src $name
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
             throw "同梱メディアツールがありません: $file (script/fetch-media-tools.sh を実行してください)"
@@ -329,9 +330,10 @@ function Install-BundledMediaTools {
 
     $dst = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'StreamingAssets', 'tools', 'windows-x64')
     New-Item -ItemType Directory -Path $dst -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $src 'yt-dlp.exe') -Destination (Join-Path $dst 'yt-dlp.exe') -Force
-    Copy-Item -LiteralPath (Join-Path $src 'deno.exe') -Destination (Join-Path $dst 'deno.exe') -Force
-    Write-Host '[media-tools] bundled yt-dlp.exe + deno.exe into FlashBeat_Data/StreamingAssets/tools/windows-x64'
+    foreach ($name in @('yt-dlp.exe', 'deno.exe', 'ffmpeg.exe', 'ffprobe.exe')) {
+        Copy-Item -LiteralPath (Join-Path $src $name) -Destination (Join-Path $dst $name) -Force
+    }
+    Write-Host '[media-tools] bundled yt-dlp.exe + deno.exe + ffmpeg.exe + ffprobe.exe into FlashBeat_Data/StreamingAssets/tools/windows-x64'
 }
 
 function New-BuildZip {

@@ -281,14 +281,18 @@ shasum -a 256 -c FlashBeat-<version>.zip.sha256
    macOS の Deployment Target は `ProjectSettings` の `macOSTargetOSVersion` (12.0)。
 2. **同一 source SHA の full EditMode、対象 platform の Unity build/ZIP・SHA/media policy、必要なら Web E2E を一括で検証する。** 実機 smoke (起動→選曲→プレイ→リザルト) は任意の診断に留め、実機証拠なしを理由に Release を停止しない (#22 現行)。
    macOS は `docs/operations/mac-verify.md` の手順で確認する。
-3. **同梱メディアツールを取得する (issue #795)。** 配布 ZIP は yt-dlp / deno を
-   `StreamingAssets/tools/` に同梱する。未取得だとパッケージングが失敗する:
+3. **同梱メディアツールを取得する (issue #795 / #796)。** 配布 ZIP は
+   yt-dlp / deno / ffmpeg / ffprobe を `StreamingAssets/tools/` に同梱する。
+   ffmpeg / ffprobe が無いと MediaNormalizer が time_base の壊れた動画を
+   修復できない (クリーン環境で ~1/6 速再生)。未取得だとパッケージングが
+   失敗する:
 
    ```sh
    script/fetch-media-tools.sh   # tools/media/ (gitignore) へ pin 付きで取得
    ```
 
-   pin は `tools/media-tools.lock` (yt-dlp 2026.10.26 / deno v2.9.8)。
+   pin は `tools/media-tools.lock` (yt-dlp 2026.10.26 / deno v2.9.8 /
+   ffmpeg macOS 9.0.2・Windows 9.1 essentials)。
    YouTube 側の仕様変更で yt-dlp が劣化したら lock を更新して再取得する。
 
 4. パッケージ化 (ZIP + `.sha256` sidecar と内容検査):
