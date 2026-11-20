@@ -277,7 +277,7 @@ Ownership lives in two app tables next to the auth tables:
 | `workspace_members` | user ↔ workspace with role `owner`/`editor`/`viewer`; the only authorization source |
 | `audit_log`         | append-only record of permission/publish/admin operations                           |
 | `rate_limits`       | per-user fixed-window counters for the studio mutation APIs                         |
-| `song_drafts`       | per-workspace working copy of a song (issue #800); never in the public catalog     |
+| `song_drafts`       | per-workspace working copy of a song (issue #800); never in the public catalog      |
 
 `songs.ownerWorkspaceId` / `songs.createdByUserId` (nullable) mark
 user-owned songs; existing rows stay `NULL` = staff-managed. The
@@ -315,13 +315,13 @@ a song is published iff `songs.currentVersion` points at a
 `chart_versions` row, and unpublished by the same `archived` flag the
 staff archive route uses.
 
-| Route                                            | Behaviour                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `GET /api/v1/me/songs`                           | caller's songs + drafts across all their workspaces                    |
-| `POST /api/v1/me/drafts`                         | create a draft (`draft-<uuid>` id, optional `songId`, editor role)     |
-| `GET/PUT /api/v1/me/drafts/{draftId}`            | read (viewer ok) / save working copy (editor+; chart stored leniently) |
-| `POST /api/v1/me/drafts/{draftId}/publish`       | publish/update; requires the rights attestation                        |
-| `POST /api/v1/me/songs/{songId}/unpublish`       | archive own song (公開停止); owner workspaces only, staff songs → 404  |
+| Route                                      | Behaviour                                                              |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| `GET /api/v1/me/songs`                     | caller's songs + drafts across all their workspaces                    |
+| `POST /api/v1/me/drafts`                   | create a draft (`draft-<uuid>` id, optional `songId`, editor role)     |
+| `GET/PUT /api/v1/me/drafts/{draftId}`      | read (viewer ok) / save working copy (editor+; chart stored leniently) |
+| `POST /api/v1/me/drafts/{draftId}/publish` | publish/update; requires the rights attestation                        |
+| `POST /api/v1/me/songs/{songId}/unpublish` | archive own song (公開停止); owner workspaces only, staff songs → 404  |
 
 Decisions that must not regress:
 

@@ -34,6 +34,7 @@ export default defineConfig({
     "editor-note-flow.spec.ts",
     "studio-smoke.spec.ts",
     "publish-flow.spec.ts",
+    "account-flow.spec.ts",
   ],
   // The dev server compiles pages on demand; a cold first hit of the editor
   // and publish chunks can exceed 30s within one test (kept from #232: the

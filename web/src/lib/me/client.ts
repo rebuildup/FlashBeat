@@ -109,6 +109,8 @@ export type SaveDraftBody = Partial<CreateDraftBody>;
 
 /** Body of `POST /api/v1/me/drafts/{id}/publish`. */
 export interface PublishDraftBody {
+  /** Public song id. Saved onto the draft first; the publish route reads it from the draft row. */
+  songId: string;
   title: string;
   artist: string;
   youtubeId: string;
