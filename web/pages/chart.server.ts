@@ -12,5 +12,11 @@ export const loader = defineHandler(async (c) => {
      * editor can restore it without a round trip to the API.
      */
     draftId: params.get("draft"),
+    /**
+     * The server-side song draft of the per-account flow (issue #800):
+     * `/chart?serverDraft=<draftId>` opens the draft's stored chart for
+     * editing and saving back through `/api/v1/me/drafts/{id}`.
+     */
+    serverDraft: params.get("serverDraft"),
   };
 });

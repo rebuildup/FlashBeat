@@ -2,17 +2,22 @@ import { useState } from "react";
 import { Link } from "@void/react";
 import type { Href } from "void/routes";
 import { css } from "styled-system/css";
+import { auth } from "void/client/react";
 import {
   Archive,
   ChartColumnBig,
   ChevronDown,
   CloudUpload,
+  Library,
   ListMusic,
+  LogIn,
+  LogOut,
   PencilRuler,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { BrandHeader } from "@/components/brand";
+import { useClientVisit } from "./client-visit";
 
 /**
  * Navigation of the Studio (issue #215): one visitor entry in front, the
@@ -104,6 +109,35 @@ const NAV_SONGS: StudioNavItem = {
   en: "Songs",
   href: "/songs",
   icon: Archive,
+};
+
+/**
+ * Per-account entries (issue #800): the user's own songs and the account
+ * page. These are NOT staff operations — they sit in their own group so
+ * the 制作/運営 split of the staff rail stays untouched.
+ */
+export const NAV_USER_GROUP: StudioNavGroup = {
+  value: "account",
+  ja: "マイページ",
+  en: "Account",
+  items: [
+    {
+      value: "my-songs",
+      label: "My songs",
+      ja: "マイソング",
+      en: "My songs",
+      href: "/my-songs",
+      icon: Library,
+    },
+    {
+      value: "account",
+      label: "Account",
+      ja: "アカウント",
+      en: "Account",
+      href: "/login",
+      icon: LogIn,
+    },
+  ],
 };
 
 export const NAV_STAFF_GROUPS: readonly StudioNavGroup[] = [
@@ -340,6 +374,52 @@ const staffDivider = css({
   width: "100%",
 });
 
+/** The per-account group sits between the visitor entry and the staff rail. */
+const userGroup = css({
+  display: "contents",
+});
+
+const accountRow = css({
+  alignItems: "center",
+  borderTopColor: "gray.surface.border",
+  borderTopWidth: { base: "0px", md: "1px" },
+  color: "fg.subtle",
+  display: "flex",
+  fontSize: "xs",
+  gap: "2",
+  justifyContent: "space-between",
+  marginTop: "auto",
+  minWidth: "0",
+  paddingInline: "3",
+  paddingTop: "3",
+  width: "100%",
+});
+
+const accountName = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const accountButton = css({
+  alignItems: "center",
+  background: "transparent",
+  border: "none",
+  color: "fg.muted",
+  cursor: "pointer",
+  display: "inline-flex",
+  flexShrink: "0",
+  fontSize: "xs",
+  gap: "1",
+  padding: "1",
+  _hover: { color: "fg.default" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "1px",
+  },
+});
+
 const labelGrid = css({
   display: "grid",
   lineHeight: "1.2",
@@ -368,6 +448,17 @@ const navIcon = css({
 export function Sidebar() {
   // Narrow viewports keep the staff entries in a disclosure (issue #74).
   const [staffOpen, setStaffOpen] = useState(false);
+  // Issue #800: the account widget reflects the Better Auth session. The
+  // hook stays pending until `/api/auth/get-session` answers; until then
+  // the row renders nothing rather than flashing a signed-out state.
+  const session = auth.useSession();
+  const visit = useClientVisit();
+  const accountUser = session.data?.user ?? null;
+
+  async function onSignOut() {
+    await auth.signOut();
+    visit("/");
+  }
 
   return (
     <aside className={sidebar}>
@@ -407,6 +498,27 @@ export function Sidebar() {
           </button>
         </div>
 
+        {/* Issue #800: the per-account entries are always visible — unlike
+            the staff disclosure they are the general user's path. */}
+        <div className={userGroup} data-testid="nav-user-group">
+          <div className={staffDivider} aria-hidden="true" />
+          <p className={groupLabel}>{NAV_USER_GROUP.ja}</p>
+          {NAV_USER_GROUP.items.map((item) => (
+            <Link
+              key={item.value}
+              href={item.href}
+              prefetch
+              className={navTrigger}
+              data-testid={`nav-${item.value}`}
+            >
+              <item.icon className={navIcon} size={16} aria-hidden="true" />
+              <span className={labelGrid}>
+                <span>{item.ja}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
         <div
           id="studio-staff-nav"
           data-staff-nav=""
@@ -443,6 +555,38 @@ export function Sidebar() {
             </div>
           ))}
         </div>
+
+        {/* Issue #800: account state of the Better Auth session. Nothing
+            renders while the session is pending so a signed-in user never
+            sees a signed-out flash. */}
+        {!session.isPending ? (
+          <div className={accountRow} data-testid="account-widget">
+            {accountUser ? (
+              <>
+                <span className={accountName} title={accountUser.email ?? accountUser.name}>
+                  {accountUser.name || accountUser.email}
+                </span>
+                <button
+                  type="button"
+                  className={accountButton}
+                  onClick={() => void onSignOut()}
+                  data-testid="account-sign-out"
+                >
+                  <LogOut size={12} aria-hidden="true" />
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <>
+                <span className={accountName}>未ログイン</span>
+                <Link className={accountButton} href="/login" data-testid="account-sign-in">
+                  <LogIn size={12} aria-hidden="true" />
+                  ログイン
+                </Link>
+              </>
+            )}
+          </div>
+        ) : null}
       </nav>
     </aside>
   );

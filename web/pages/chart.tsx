@@ -6,6 +6,9 @@ import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { ChartEditor, type ChartEditorHandle } from "@/components/chart-editor/chart-editor";
 import { loadSongSession, type SongSession } from "@/lib/song-session/load";
+import { fetchDraft, saveDraft, MeApiError } from "@/lib/me/client";
+import { importChartLenient } from "@/lib/chart/import";
+import type { ValidationIssue } from "@/lib/chart/types";
 import {
   pageActions,
   pageBackLink,
@@ -109,13 +112,33 @@ function tryPreview(editor: ChartEditorHandle | null): void {
   panel.focus();
 }
 
-export default function ChartPage({ songId, version, draftId }: Props) {
+/** A server-side song draft loaded for editing (issue #800). */
+interface ServerDraftSession {
+  id: string;
+  songId: string | null;
+  title: string;
+  chart: Chart;
+  issues: ValidationIssue[];
+  youtubeId: string;
+}
+
+export default function ChartPage({ songId, version, draftId, serverDraft }: Props) {
   const visit = useClientVisit();
   const editorRef = useRef<ChartEditorHandle | null>(null);
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  /**
+   * The server-side draft of `/api/v1/me/drafts/{id}` (issue #800). It is
+   * the per-account editing surface: the chart comes from D1, saves go
+   * back through `PUT /api/v1/me/drafts/{id}` and publishing happens on
+   * `/my-songs` — the staff token flow is not involved.
+   */
+  const [serverSession, setServerSession] = useState<ServerDraftSession | null>(null);
+  const [serverError, setServerError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState("");
   /**
    * The local draft the publish screen handed back to the editor
    * (issue #98). It carries the operator's unsaved edits, so it wins over
@@ -157,27 +180,131 @@ export default function ChartPage({ songId, version, draftId }: Props) {
       setDraftError(reason instanceof Error ? reason.message : String(reason));
     }
   }, [draftId, songId, version]);
-  /** The draft of the operator wins over the published chart of the song. */
-  const editorChart = draft?.chart ?? session?.chart ?? emptyChart;
+  /**
+   * The server draft is fetched on its own too: a broken draft must not
+   * disturb the published session of the same song, and a 401/404 is
+   * reported in place instead of blanking the editor.
+   */
+  useEffect(() => {
+    setServerSession(null);
+    setServerError("");
+    setSaveNotice("");
+    if (serverDraft === null) return;
+    let active = true;
+    fetchDraft(serverDraft)
+      .then(({ draft }) => {
+        if (!active) return;
+        if (draft.chart === null || draft.chart === undefined) {
+          setServerSession({
+            id: draft.id,
+            songId: draft.songId,
+            title: draft.title,
+            chart: emptyChart,
+            issues: [],
+            youtubeId: draft.youtubeId ?? "",
+          });
+          return;
+        }
+        const imported = importChartLenient(JSON.stringify(draft.chart));
+        if (!imported.ok) {
+          setServerError(
+            "保存されている譜面を読み込めませんでした。新しい譜面として編集を続けられます。",
+          );
+          setServerSession({
+            id: draft.id,
+            songId: draft.songId,
+            title: draft.title,
+            chart: emptyChart,
+            issues: [],
+            youtubeId: draft.youtubeId ?? "",
+          });
+          return;
+        }
+        setServerSession({
+          id: draft.id,
+          songId: draft.songId,
+          title: draft.title,
+          chart: imported.chart,
+          issues: imported.issues ?? [],
+          youtubeId: draft.youtubeId ?? "",
+        });
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setServerError(
+          reason instanceof MeApiError && reason.status === 401
+            ? "この下書きを編集するにはログインが必要です。"
+            : reason instanceof MeApiError && reason.status === 404
+              ? "下書きが見つかりません。マイソングから開き直してください。"
+              : reason instanceof Error
+                ? reason.message
+                : "下書きを読み込めませんでした。",
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [serverDraft]);
+
+  /** The server draft wins, then the local publish draft, then the song. */
+  const editorChart = serverSession?.chart ?? draft?.chart ?? session?.chart ?? emptyChart;
+  const editorYoutubeId = serverSession?.youtubeId || session?.song.youtubeId || "";
+  const editorIssues = serverSession?.issues ?? session?.issues;
+
+  async function onSaveServerDraft() {
+    if (!serverSession || saving) return;
+    setSaving(true);
+    setSaveNotice("");
+    setError("");
+    try {
+      await saveDraft(serverSession.id, { chart: editedChart ?? editorChart });
+      setSaveNotice("下書きを保存しました。");
+    } catch (reason) {
+      setError(
+        reason instanceof MeApiError && reason.status === 401
+          ? "保存にはログインが必要です。"
+          : reason instanceof Error
+            ? reason.message
+            : "下書きを保存できませんでした。",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  const isServerDraft = serverDraft !== null;
   return (
     <>
       <header className={pageHeader}>
-        <Link className={pageBackLink} href="/">
-          ← 曲を選ぶ
-        </Link>
+        {isServerDraft ? (
+          <Link className={pageBackLink} href="/my-songs">
+            ← マイソング
+          </Link>
+        ) : (
+          <Link className={pageBackLink} href="/">
+            ← 曲を選ぶ
+          </Link>
+        )}
         <div className={pageHeaderIdentity}>
-          <h1 className={pageTitle}>{selected ? "譜面を見る・試す" : "新しい譜面"}</h1>
+          <h1 className={pageTitle}>
+            {isServerDraft ? "下書きを編集" : selected ? "譜面を見る・試す" : "新しい譜面"}
+          </h1>
           <p className={pageSubtitle} data-testid="chart-identity">
-            {session
-              ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length}ノート`
-              : selected
-                ? "公開済みの譜面"
-                : "新しいローカル下書き · 未公開"}
+            {isServerDraft
+              ? serverSession
+                ? `${serverSession.title || serverSession.songId || "無題"} · ${serverSession.chart.notes.length}ノート · ${serverSession.songId ?? "ID未設定"}`
+                : "サーバー下書きを読み込み中…"
+              : session
+                ? `${session.song.title} · v${session.chartVersion} · ${session.chart.notes.length}ノート`
+                : selected
+                  ? "公開済みの譜面"
+                  : "新しいローカル下書き · 未公開"}
           </p>
           <p className={pageSubtitle} data-testid="chart-guidance">
-            {selected
-              ? "再生して試してみてください。左のリンクで曲選びに戻れます。"
-              : "編集して「公開に進む」へ。戻っても入力は消えません。"}
+            {isServerDraft
+              ? "編集して「下書きを保存」でサーバーに残せます。公開はマイソングから行います。"
+              : selected
+                ? "再生して試してみてください。左のリンクで曲選びに戻れます。"
+                : "編集して「公開に進む」へ。戻っても入力は消えません。"}
           </p>
         </div>
         <div className={pageActions}>
@@ -185,7 +312,7 @@ export default function ChartPage({ songId, version, draftId }: Props) {
               Studio — it brings the editor's YouTube preview (the only owner
               of playback, #216) into view and focuses its Play control. The
               staff publish path is demoted to the outline variant. */}
-          {session?.song.youtubeId ? (
+          {editorYoutubeId ? (
             <>
               <Button
                 className={primaryCta}
@@ -197,7 +324,7 @@ export default function ChartPage({ songId, version, draftId }: Props) {
               </Button>
               <a
                 className={youtubeLink}
-                href={`https://youtu.be/${encodeURIComponent(session.song.youtubeId)}`}
+                href={`https://youtu.be/${encodeURIComponent(editorYoutubeId)}`}
                 rel="noreferrer"
                 target="_blank"
                 data-testid="open-youtube-link"
@@ -206,35 +333,67 @@ export default function ChartPage({ songId, version, draftId }: Props) {
               </a>
             </>
           ) : null}
-          <Button
-            variant="outline"
-            colorPalette="blue"
-            size="sm"
-            disabled={(selected && !session) || editedChart === null}
-            onClick={() => {
-              try {
-                // Issue #801: SPA 遷移で共通レイアウトを保ったまま公開画面へ。
-                visit(
-                  savePublishDraft({
-                    songId,
-                    version,
-                    chart: editedChart ?? editorChart,
-                  }),
-                );
-              } catch {
-                setError(
-                  "ローカル下書きを保存できませんでした。このエディタを開いたまま再試行してください。",
-                );
-              }
-            }}
-          >
-            公開に進む
-          </Button>
-          <span className={tokenHint} data-testid="publish-token-hint">
-            公開にはスタッフのadminトークンが必要です
-          </span>
+          {isServerDraft ? (
+            <>
+              <Button
+                variant="outline"
+                colorPalette="blue"
+                size="sm"
+                disabled={serverSession === null || saving || editedChart === null}
+                loading={saving}
+                loadingText="保存中"
+                onClick={() => void onSaveServerDraft()}
+                data-testid="save-server-draft"
+              >
+                下書きを保存
+              </Button>
+              <Link className={pageBackLink} href="/my-songs" data-testid="back-my-songs">
+                公開へ
+              </Link>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                colorPalette="blue"
+                size="sm"
+                disabled={(selected && !session) || editedChart === null}
+                onClick={() => {
+                  try {
+                    // Issue #801: SPA 遷移で共通レイアウトを保ったまま公開画面へ。
+                    visit(
+                      savePublishDraft({
+                        songId,
+                        version,
+                        chart: editedChart ?? editorChart,
+                      }),
+                    );
+                  } catch {
+                    setError(
+                      "ローカル下書きを保存できませんでした。このエディタを開いたまま再試行してください。",
+                    );
+                  }
+                }}
+              >
+                公開に進む
+              </Button>
+              <span className={tokenHint} data-testid="publish-token-hint">
+                公開にはスタッフのadminトークンが必要です
+              </span>
+            </>
+          )}
         </div>
       </header>
+      {saveNotice ? (
+        <section className={draftBanner} role="status" data-testid="server-draft-saved">
+          {saveNotice}
+        </section>
+      ) : null}
+      {serverError ? (
+        <section className={draftBanner} role="alert" data-testid="server-draft-error">
+          {serverError}
+        </section>
+      ) : null}
       {draft ? (
         <section className={draftBanner} role="status" data-testid="draft-restored">
           公開画面の下書きを復元しました
@@ -255,7 +414,13 @@ export default function ChartPage({ songId, version, draftId }: Props) {
       ) : null}
       {/* A restored draft keeps the editor alive even when the published
           session failed to load: the operator's own chart is the point. */}
-      {error && !draft ? null : selected && !session && !error ? (
+      {error && !draft && !isServerDraft ? null : isServerDraft &&
+        serverSession === null &&
+        !serverError ? (
+        <p className={statusLine} role="status">
+          サーバー下書きを読み込み中…
+        </p>
+      ) : selected && !session && !error && !isServerDraft ? (
         <p className={statusLine} role="status">
           選択した譜面を読み込み中…
         </p>
@@ -265,10 +430,10 @@ export default function ChartPage({ songId, version, draftId }: Props) {
               `initialChart` only on mount, so a restored draft needs a fresh
               editor. */}
           <ChartEditor
-            key={`${songId}:${version}:${draft?.id ?? ""}:${attempt}`}
+            key={`${songId}:${version}:${draft?.id ?? ""}:${serverSession?.id ?? serverDraft ?? ""}:${attempt}`}
             initialChart={editorChart}
-            initialYouTubeId={session?.song.youtubeId ?? ""}
-            initialIssues={session?.issues}
+            initialYouTubeId={editorYoutubeId}
+            initialIssues={editorIssues}
             ref={editorRef}
             onChartChange={setEditedChart}
           />
