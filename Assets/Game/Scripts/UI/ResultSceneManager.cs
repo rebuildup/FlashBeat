@@ -118,7 +118,7 @@ public class ResultSceneManager : MonoBehaviour
         Hiscore.text = displayedHiscore.ToString();
 
         // Issue #740: 旧 v5 ResultView のフォールバック経路は撤去。
-        // v6 Result が唯一の実装 (V6ResultView.Enabled の分岐も撤去)。
+        // v6 Result が唯一の実装。
         BuildV6View();
     }
 
@@ -134,15 +134,6 @@ public class ResultSceneManager : MonoBehaviour
         // が生き残り、v6 の Retry / Register の上に旧ヒントや OK ボタンが
         // 重なる不具合の修正 (片方だけ隠すと他方が残る)。null 許容。
         HideLegacyCanvases(legacyCanvasV5, legacyCanvasV6);
-
-        // 旧オーバーレイの自動モーダル (結果画面入場 1.2 秒後の登録モーダル) を止める。
-        // コードは消さず enabled 切替。v6 側は自前の登録モーダルを持つ
-        // (SuspendLegacyOverlay が停止前の enabled 状態を覚えるので二重に止めて安全)。
-        var overlay = FindFirstObjectByType<ResultRankingOverlay>();
-        if (overlay != null)
-        {
-            overlay.enabled = false;
-        }
 
         var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Result Canvas");
         var canvasGo = canvas.gameObject;

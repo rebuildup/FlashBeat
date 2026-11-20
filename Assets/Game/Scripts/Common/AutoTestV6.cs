@@ -182,8 +182,8 @@ public class AutoTestV6 : MonoBehaviour
 
         // 4b. 旧 v5 の歌詞オブジェクト (QuestionText / FuriganaText / RomajiText) が
         //     active だと v6 の HUD の歌詞と **二重表示** になる (Issue #233)。
-        //     旧 UI 排他 (GameSceneManager.ApplyTextPanelVisibility) が
-        //     TextPanel を隠すので、歌詞の 3 オブジェクトも inactive になる。
+        //     旧 UI 排他 (GamePlayPhaseService.HideLegacyHud) が
+        //     TextPanel ごと歌詞オブジェクトを隠す。
         var legacyLyricActive = 0;
         var transforms = FindObjectsByType<Transform>(FindObjectsSortMode.None);
         for (int i = 0; i < transforms.Length; i++)

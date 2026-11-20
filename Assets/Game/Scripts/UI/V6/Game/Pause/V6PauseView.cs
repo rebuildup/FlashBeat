@@ -44,13 +44,6 @@ namespace FlashBeat.UI.V6.Game.Pause
         /// <summary>現在生成されている v6 ポーズ画面 (GameScene に 1 個)。統合側・検証から参照する。</summary>
         public static V6PauseView Current { get; private set; }
 
-        /// <summary>
-        /// v6 ポーズを有効にするか (既定 true)。V6UiMode は統合担当の所有なので、
-        /// 連動フラグはここに置く。false のときは <see cref="Create"/> が null を返し、
-        /// Esc は旧 v5 (PauseMenuView / レガシー MenuPanel) の経路に戻る。
-        /// </summary>
-        public static bool Enabled = true;
-
         // --- design px 定数 (flashbeat-v6-nodes.json uDNC0 / rw7zx) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -129,15 +122,9 @@ namespace FlashBeat.UI.V6.Game.Pause
         {
         }
 
-        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。
-        /// <see cref="Enabled"/> が false のときは null を返す (v5 のポーズに任せる)。</summary>
+        /// <summary>View を生成する (非表示のまま)。統合担当から呼ぶ。</summary>
         public static V6PauseView Create(RectTransform parent)
         {
-            if (!Enabled)
-            {
-                return null;
-            }
-
             if (parent == null)
             {
                 throw new ArgumentNullException(nameof(parent));
@@ -686,13 +673,12 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         void IV6SettingsHost.RequestResetKeyLayout() => RequestResetKeyLayout();
 
-        /// <summary>歌詞表示の変更はプレイ中の表示へ即時反映する。</summary>
+        /// <summary>
+        /// 歌詞表示の変更は v6 HUD が <see cref="PlaySession.LyricsEnabled"/> を
+        /// 毎フレーム読むため追加の反映は不要 (旧 TextPanel 経路は Stage B で撤去)。
+        /// </summary>
         void IV6SettingsHost.OnDisplaySettingChanged()
         {
-            if (sceneManager != null)
-            {
-                sceneManager.ApplyLyricsVisibility();
-            }
         }
 
         /// <summary>検証用: 猶予中の音量保存を即時確定する (画面を離れるときと同じ経路)。</summary>

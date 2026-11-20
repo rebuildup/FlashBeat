@@ -16,7 +16,7 @@ namespace FlashBeat.Tests.Editor
     ///   - OptionSettings の保存/復元ラウンドトリップ
     ///   - レガシー Canvas の Raycaster 無効化 (GameHudController)
     ///   - ResultSceneManager.ApplyBestScore (F16)
-    ///   - GameSceneManager.LegacyBackOpensMenu の Esc 契約 (F15)
+    ///   - GameSceneManager にレガシー メニュー/歌詞パネルの経路が無いこと (F15 / #740 Stage B)
     /// </summary>
     public static class GameUiWiringTests
     {
@@ -105,15 +105,25 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public static void LegacyBackOpensMenu_TruthTable()
+        public static void GameSceneManager_HasNoLegacyMenuOrLyricPath()
         {
-            // F15: レガシー MenuPanel が Esc を担うのは、v6 ポーズが
-            // 無いときだけ (二重 handling の防止)。v5 ポーズは Issue #740 で
-            // 削除済みのため、引数は v6 ポーズの有無だけ。
-            Assert.IsTrue(GameSceneManager.LegacyBackOpensMenu(false),
-                "v6 ポーズが無いときはレガシーが Esc を担う。");
-            Assert.IsFalse(GameSceneManager.LegacyBackOpensMenu(true),
-                "v6 ポーズが有効なときにレガシーが Esc を担うと二重処理になる (Issue #224)。");
+            // F15 / Issue #740 Stage B: かつての Esc → MenuPanel / 歌詞 TextPanel の
+            // 経路は撤去済み。v6 ポーズと v6 HUD が唯一の UI なので、
+            // GameSceneManager にレガシー UI を開く・表示する public API が
+            // 復活していないことをリフレクションで固定する。
+            const System.Reflection.BindingFlags flags =
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
+            foreach (string name in new[]
+            {
+                "OpenMenu", "CloseMenu", "SwitchPanel",
+                "TextPanelOn", "TextPanelOff", "ApplyLyricsVisibility",
+                "LegacyBackOpensMenu", "playSound",
+            })
+            {
+                Assert.IsNull(typeof(GameSceneManager).GetMethod(name, flags),
+                    "GameSceneManager." + name + " が残っている (Stage B で撤去したはず)。");
+            }
         }
 
         [Test]

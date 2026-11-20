@@ -144,6 +144,17 @@ namespace FlashBeat.UI.V6.Title.Tests
         }
 
         [Test]
+        public void EnabledFlag_IsRemoved()
+        {
+            // Issue #740 Stage B: V6TitleView.Enabled は畳んだ。復活すると
+            // BuildLegacyTitle の旧タイトル経路が復活するので、フィールドが
+            // 無いことを固定する。
+            Assert.IsNull(typeof(FlashBeat.UI.V6.Title.V6TitleView).GetField("Enabled",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static),
+                "V6TitleView.Enabled が残っている (Stage B で撤去したはず)。");
+        }
+
+        [Test]
         public void Tabs_SpanDesignMainZone()
         {
             // タブ列 (280,552) 1120×48 は Main ゾーン (24,96) 1680×780 内に収まる。

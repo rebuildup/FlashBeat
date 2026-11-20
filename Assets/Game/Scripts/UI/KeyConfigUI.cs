@@ -9,8 +9,8 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// 旧キー設定オーバーレイ (シーン非依存、コードのみで生成)。
 /// v6 の Option / Pause は <see cref="FlashBeat.UI.V6.Common.V6KeyConfigModal"/>
-/// (design vo4kB) を使う (Issue #376)。この画面は旧 v5 経路 (KeyConfigOptionButton /
-/// v5 OptionView) の互換実装として残す。
+/// (design vo4kB) を使う (Issue #376)。この画面は旧経路の互換実装として残す
+/// (かつての Option 画面ボタン KeyConfigOptionButton は Issue #740 Stage B で削除)。
 ///
 /// F2 の入力監視は廃止した (決定 §4.1: キー設定への到達経路は画面内の行だけ)。
 /// 開閉は <see cref="Open"/> / <see cref="Close"/> を呼ぶ。
@@ -43,8 +43,6 @@ public class KeyConfigUI : MonoBehaviour
     private RectTransform panel;
     private TextMeshProUGUI messageLabel;
     private TextMeshProUGUI testLabel;
-    private TextMeshProUGUI hintLabel;
-    private GameObject hintCap;
     private TextMeshProUGUI layoutLabel;
     private RectTransform laneRowsRoot;
     private RectTransform actionRowsRoot;
@@ -239,7 +237,6 @@ public class KeyConfigUI : MonoBehaviour
         font = FindJapaneseFont();
         BuildCanvas();
         BuildPanel();
-        BuildHint();
         SetOpen(false);
         KeyBindings.Changed += RefreshRows;
         KeyActions.Changed += RefreshRows;
@@ -253,7 +250,6 @@ public class KeyConfigUI : MonoBehaviour
 
     private void Update()
     {
-        UpdateHint();
         UpdateBlink();
 
         if (open && !IsAllowedScene())
@@ -317,9 +313,7 @@ public class KeyConfigUI : MonoBehaviour
                 // 二重に処理し、Esc で閉じた瞬間に遷移するなどの事故になる。
                 || typeName == "SelectView" || typeName == "ResultView"
                 // Tab で開くキーガイド / F3・F4 の更新通知もオーバーレイ中は止める。
-                || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI"
-                // キー設定中の F5 でランキングボードが重ねて開かないようにする。
-                || typeName == "ResultRankingOverlay")
+                || typeName == "KeyGuideUI" || typeName == "UpdateNoticeUI")
             {
                 behaviour.enabled = false;
                 suspended.Add(behaviour);
@@ -1210,39 +1204,6 @@ public class KeyConfigUI : MonoBehaviour
         actionAccentBars.Add(barImage);
     }
 
-    private void BuildHint()
-    {
-        var canvas = GetComponentInChildren<Canvas>().transform;
-        var labelGO = new GameObject("KeyConfigHint", typeof(TextMeshProUGUI));
-        labelGO.transform.SetParent(canvas, false);
-        hintLabel = labelGO.GetComponent<TextMeshProUGUI>();
-        hintLabel.text = "キー設定";
-        hintLabel.fontSize = 24f;
-        hintLabel.color = new Color(1f, 1f, 1f, 0.7f);
-        hintLabel.alignment = TextAlignmentOptions.Left;
-        hintLabel.raycastTarget = false;
-        if (font != null) hintLabel.font = font;
-
-        var rect = hintLabel.rectTransform;
-        rect.anchorMin = new Vector2(0f, 0f);
-        rect.anchorMax = new Vector2(0f, 0f);
-        rect.pivot = new Vector2(0f, 0f);
-        rect.anchoredPosition = new Vector2(16f, 16f);
-        rect.sizeDelta = new Vector2(300f, 36f);
-
-        // [F2] キャップを左に置いて、キーボードで呼べる操作だと分かるようにする。
-        var cap = FlashBeat.UI.V5.ShortcutKeyCap.Create(rect.parent as RectTransform, "F2", 18f);
-        var capRect = cap.GetComponent<RectTransform>();
-        capRect.anchorMin = new Vector2(0f, 0f);
-        capRect.anchorMax = new Vector2(0f, 0f);
-        capRect.pivot = new Vector2(0f, 0f);
-        capRect.anchoredPosition = new Vector2(16f, 16f);
-        rect.anchoredPosition = new Vector2(16f + capRect.sizeDelta.x + 8f, 16f);
-        // キャップは hintLabel の子ではないため、ラベルを隠しても残ってしまう
-        // (Opening で左下に [F2] だけが出ていた)。表示切替をラベルと揃える。
-        hintCap = cap;
-    }
-
     private TextMeshProUGUI AddLabel(RectTransform parent, string name, string text, float fontSize, TextAlignmentOptions alignment)
     {
         var labelGO = new GameObject(name, typeof(TextMeshProUGUI));
@@ -1260,9 +1221,8 @@ public class KeyConfigUI : MonoBehaviour
         return tmp;
     }
 
-    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。
-    /// KeyConfigOptionButton からも使うため public。</summary>
-    public static TMP_FontAsset FindJapaneseFont()
+    /// <summary>日本語グリフを持つフォントを探す (KeyGuideUI と同じ方針の独自実装)。</summary>
+    private static TMP_FontAsset FindJapaneseFont()
     {
         TMP_FontAsset fallback = null;
         var all = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
@@ -1280,24 +1240,4 @@ public class KeyConfigUI : MonoBehaviour
         return fallback;
     }
 
-    /// <summary>Title 画面でのみヒントを表示する (Select の F2 は履歴 / Option はキー設定ボタン)。</summary>
-    private void UpdateHint()
-    {
-        if (hintLabel == null) return;
-        string sceneName = SceneManager.GetActiveScene().name;
-        // v6 タイトルはフッターにキー凡例 (決定 / 曲送り / 戻る) を持つので
-        // 旧ヒントは二重表示になる (Update 毎フレームで再表示される遅延生成物。
-        // v6 モードではここで確実に隠す)。
-        bool v6Title = FlashBeat.UI.V6.Title.V6TitleView.Enabled;
-        var show = !open && sceneName == "TitleScene" && !v6Title;
-        if (hintLabel.gameObject.activeSelf != show)
-        {
-            hintLabel.gameObject.SetActive(show);
-        }
-
-        if (hintCap != null && hintCap.activeSelf != show)
-        {
-            hintCap.SetActive(show);
-        }
-    }
 }

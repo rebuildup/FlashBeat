@@ -88,7 +88,6 @@ public class V5LegacyReferenceAuditTests
             "Common/AutoTestV6Churn.cs",
             "Songs/PlaySession.cs",
             "UI/KeyConfigUI.cs",
-            "UI/ResultRankingOverlay.cs",
             "UI/SceneInputGate.cs",
             "UI/SelectSceneManager.cs",
             "UI/V6/Select/Data/V6SelectDataSource.cs",
@@ -101,7 +100,6 @@ public class V5LegacyReferenceAuditTests
     {
         AssertReferencingFiles("ResultView",
             "UI/KeyConfigUI.cs",
-            "UI/ResultRankingOverlay.cs",
             "UI/ResultSceneManager.cs",
             "UI/SceneInputGate.cs",
             "UI/V6/Common/V6CursorInput.cs",
@@ -118,7 +116,6 @@ public class V5LegacyReferenceAuditTests
     {
         AssertReferencingFiles("PauseMenuView",
             "Gameplay/PauseGate.cs",
-            "UI/GameSceneManager.cs",
             "UI/V6/Common/V6VolumeSettings.cs",
             "UI/V6/Game/Hud/V6GameHudView.cs",
             "UI/V6/Game/Hud/V6HudChrome.cs",
@@ -130,6 +127,53 @@ public class V5LegacyReferenceAuditTests
     {
         // v6 化されていない唯一の現役 View。
         AssertReferencingFiles("OpeningView", "UI/OpeningSceneManager.cs");
+    }
+
+    // --- Issue #740 Stage B で削除した旧 UI / フォールバック経路: 復活しないこと ---
+
+    [Test]
+    public void StageBRemovedUiFiles_StayDeleted()
+    {
+        // Stage B で畳んだ旧オーバーレイとフォールバック View。ファイルが
+        // 復活したら台帳 (docs/architecture/v5-legacy-ui-references.md) を更新すること。
+        string uiDir = Path.Combine(ScriptsRoot, "UI");
+        foreach (string name in new[]
+        {
+            "ResultRankingOverlay.cs",       // 旧リザルトのランキングボード (v6 が担う)
+            "KeyConfigOptionButton.cs",      // 旧 Option 画面のキーコンフィグボタン
+            "MediaCacheOptionPanel.cs",      // 旧 Option 画面のメディアキャッシュパネル
+            "MediaLoadingOverlay.cs",        // 旧メディア読み込み表示 (V6LoadingView が担う)
+        })
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(uiDir, name)),
+                name + " が復活した。Stage B で削除済みのはず (Issue #740)。");
+        }
+    }
+
+    [Test]
+    public void StageBRemovedFlags_StayRemoved()
+    {
+        // Stage B で畳んだ互換フラグ / Enabled。復活すると旧フォールバック経路が
+        // 復活するので、フィールドが無いことを固定する。
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("GameHud", flags),
+            "V6UiMode.GameHud が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("SelectScreen", flags),
+            "V6UiMode.SelectScreen が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.V6UiMode).GetField("LegacyOverlaysHidden", flags),
+            "V6UiMode.LegacyOverlaysHidden が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Game.Pause.V6PauseView).GetField("Enabled", flags),
+            "V6PauseView.Enabled が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Title.V6TitleView).GetField("Enabled", flags),
+            "V6TitleView.Enabled が残っている。");
+        Assert.IsNull(typeof(FlashBeat.UI.V6.Result.V6ResultView).GetField("Enabled", flags),
+            "V6ResultView.Enabled が残っている。");
+        // GameLoadingRoute は型ごと削除 (旧/新ローディングの所有者分岐)。
+        // コンパイルが通る以上、参照があればビルドが落ちるので、
+        // ここでは型の不存在だけを確認する。
+        Assert.IsNull(System.Type.GetType("GameLoadingRoute, FlashBeat"),
+            "GameLoadingRoute が残っている。");
     }
 
     // --- 生成サイトが無い = 削除済みの型 ---

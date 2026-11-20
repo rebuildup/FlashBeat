@@ -622,26 +622,19 @@ public class JudgeSettlementInvariantTests
         notePrefab.transform.SetParent(rigRoot.transform);
         SetPrivateField(target, "noteObj", notePrefab);
 
-        // 旧ローディング画面 (uGUI) を出さないようにする (UI 副作用を避ける)。
-        bool savedGameHud = FlashBeat.UI.V6.V6UiMode.GameHud;
-        FlashBeat.UI.V6.V6UiMode.GameHud = true;
-        try
-        {
-            MethodInfo load = typeof(NotesManager).GetMethod("LoadRoutine",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(load, "NotesManager.LoadRoutine が見つからない");
+        // Issue #740 Stage B: 旧ローディング画面の分岐は撤去済み。
+        // LoadRoutine は進捗を V6LoadingView (GameLoadingProgress) に報告するだけで、
+        // UI 副作用は無い (フラグの退避も不要になった)。
+        MethodInfo load = typeof(NotesManager).GetMethod("LoadRoutine",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(load, "NotesManager.LoadRoutine が見つからない");
 
-            var routine = load.Invoke(target, new object[] { pinned }) as System.Collections.IEnumerator;
-            Assert.IsNotNull(routine, "LoadRoutine のコルーチンが取得できない");
+        var routine = load.Invoke(target, new object[] { pinned }) as System.Collections.IEnumerator;
+        Assert.IsNotNull(routine, "LoadRoutine のコルーチンが取得できない");
 
-            // コルーチンを最後まで進める (yield は手動でスキップする)。
-            while (routine.MoveNext())
-            {
-            }
-        }
-        finally
+        // コルーチンを最後まで進める (yield は手動でスキップする)。
+        while (routine.MoveNext())
         {
-            FlashBeat.UI.V6.V6UiMode.GameHud = savedGameHud;
         }
     }
 

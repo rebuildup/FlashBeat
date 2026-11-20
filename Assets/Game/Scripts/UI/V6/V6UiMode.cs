@@ -1,22 +1,16 @@
 namespace FlashBeat.UI.V6
 {
     /// <summary>
-    /// v6 UI と旧 (v5) UI の切替 (Issue #223 統合担当)。
+    /// v6 UI の表示切替フラグ (Issue #223 / #740 Stage B)。
     ///
-    /// 移植が済んだ画面だけ v6 を有効にする。未移植の画面 (Pause / Loading /
-    /// Title / Result / Option) は旧 UI のまま動かし、v6 と旧 UI の混在自体は
-    /// 移植の進め方を遅らせる理由にしない。
-    ///
-    /// true のとき: v6 の Game HUD / Select 画面が旧 UI の代わりに作られる。
+    /// 画面選択フラグ (旧 GameHud / SelectScreen) と常時固定の互換フラグ
+    /// (旧 LegacyOverlaysHidden / V6PauseView.Enabled / V6TitleView.Enabled /
+    /// V6ResultView.Enabled) は Issue #740 Stage B で畳んだ — 製品の画面実装は
+    /// v6 の 1 系統のみで、旧 UI へのフォールバック経路は存在しない。
+    /// ここに残るのは実レンダラ / 演出 / 正本デザイン決定のライブ分岐だけ。
     /// </summary>
     public static class V6UiMode
     {
-        /// <summary>ゲーム画面の HUD とプレイフィールドを v6 で描画する。</summary>
-        public static bool GameHud = true;
-
-        /// <summary>選曲画面を v6 の 3 カラムで描画する。</summary>
-        public static bool SelectScreen = true;
-
         /// <summary>
         /// v6 の遠近法プレイフィールド (8 レーンの透視描画) を使うか。
         ///
@@ -75,20 +69,6 @@ namespace FlashBeat.UI.V6
         /// 正本 QJtTv の ci867 は `enabled: false` (Exit ボタンと重なるため)。
         /// </summary>
         public static bool TitleHeaderTitle = false;
-
-        /// <summary>
-        /// 旧 (v5) の常設オーバーレイを v6 画面で出さない。
-        ///
-        /// 対象と理由:
-        /// - RankingPanel の「F5 ランキング」ヒント … 正本のどの画面にも無い。
-        /// - UpdateChecker の「更新を適用して再起動」ボタン … 正本の更新導線は
-        ///   Title ヘッダー (D7gbLV) のみ。Option に出す旧ボタンは全シーンへ残り、
-        ///   HUD のキーガイドに重なる。
-        /// - MediaCacheOptionPanel / KeyConfigOptionButton (OptionScene のみ生成) …
-        ///   v6 Option が同じ操作 (データタブのキャッシュ / Play タブのキー設定) を
-        ///   持つため、旧パネルは設計に無い二重表示になる。
-        /// </summary>
-        public static bool LegacyOverlaysHidden = true;
 
         /// <summary>
         /// 旧キーガイド (F キー一覧パネル) を隠す。

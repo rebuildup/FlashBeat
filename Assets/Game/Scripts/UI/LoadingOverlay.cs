@@ -1,47 +1,17 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-
-/// <summary>
-/// GameScene の曲準備でどのローディング表示を使うか決める。
-/// v6 有効時は v6 の V6LoadingView が単独で表示する (<see cref="GameLoadingRoute"/>)。2 枚重ねない。
-/// </summary>
-public static class GameLoadingRoute
-{
-    /// <summary>どのローディング画面を使うか。</summary>
-    public enum GameLoadingScreen { Legacy, V6 }
-
-    /// <summary>v6 のゲーム HUD が有効なら v6 が曲の準備画面を持つ。</summary>
-    public static GameLoadingScreen ForGameScene(bool v6GameHud)
-    {
-        return v6GameHud ? GameLoadingScreen.V6 : GameLoadingScreen.Legacy;
-    }
-
-    /// <summary>現在の設定での所有者。</summary>
-    public static GameLoadingScreen Current
-    {
-        get { return ForGameScene(FlashBeat.UI.V6.V6UiMode.GameHud); }
-    }
-
-    /// <summary>
-    /// 旧 <see cref="LoadingOverlay"/> / <c>MediaLoadingOverlay</c> を出してよいか。
-    /// GameScene の曲準備では v6 有効時に false になる (二重表示の回避)。
-    /// </summary>
-    public static bool UsesLegacyOverlay
-    {
-        get { return Current == GameLoadingScreen.Legacy; }
-    }
-}
 
 /// <summary>
 /// 全画面の上に重なるローディング表示 (コード生成 uGUI、シーン編集なし)。
 ///
-/// 使い手は 3 つ:
+/// 使い手は 1 つ:
 /// - Initiate.Fade の非同期シーン読み込み (Fader、オーナーなし = 排他的)
-/// - GameScene のメディア準備 (MusicManager、オーナー "media") ※v6 無効時のみ
-/// - GameScene の譜面準備 (NotesManager、オーナー "notes") ※v6 無効時のみ
+///
+/// GameScene の曲準備 (メディア / 譜面) の表示は v6 の V6LoadingView が
+/// 単独で担う。かつての GameLoadingRoute (MediaLoadingOverlay との所有者分岐) は
+/// Issue #740 Stage B で畳み、MediaLoadingOverlay 自体も削除した。
 ///
 /// 表示制御:
 /// - Show から 250ms 経っても読み込みが続いていなければ表示しない (点滅防止)
@@ -57,12 +27,6 @@ public class LoadingOverlay : MonoBehaviour
     const float FadeInSeconds = 0.15f;
     const float FadeOutSeconds = 0.2f;
     const int SortOrder = 30000;
-
-    /// <summary>MusicManager (メディア準備) のオーナーキー。</summary>
-    public const string MediaOwnerKey = "media";
-
-    /// <summary>NotesManager (譜面準備) のオーナーキー。</summary>
-    public const string NotesOwnerKey = "notes";
 
     static LoadingOverlay instance;
     static readonly List<object> activeOwners = new List<object>();
@@ -168,24 +132,10 @@ public class LoadingOverlay : MonoBehaviour
             // 経路が無い) に画面が黒いままにならないようにする。シーンが
             // 活性化した時点で End → Hide され、v6 の V6LoadingView
             // (セッション開始後は MediaReady 前まで表示) に引き継がれる。
-            // メディア / 譠面の準備中オーバーレイは GameLoadingRoute.
-            // UsesLegacyOverlay が別途止めるので、v6 と二重表示にならない。
             ShowImmediately(LoadingOverlayLogic.SceneLabel(sceneName));
         };
         Initiate.LoadingFeedback.Progress += progress => SetProgress(progress);
         Initiate.LoadingFeedback.End += () => Hide();
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    /// <summary>
-    /// 前のシーンのオーナー (破棄されたマネージャの名前) を掃除する。
-    /// 新しいシーンのマネージャは Start で再度 Show する。最短表示時間の
-    /// 保証があるので一瞬も消えない。
-    /// </summary>
-    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        activeOwners.Remove(MediaOwnerKey);
-        activeOwners.Remove(NotesOwnerKey);
     }
 
     static LoadingOverlay EnsureInstance()
