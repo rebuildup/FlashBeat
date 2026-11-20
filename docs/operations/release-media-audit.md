@@ -117,6 +117,17 @@ Test-Path .\flashbeat-media-policy.json
   `flashbeat-media-policy.json` は `FlashBeat.app/Contents/Resources/` に同梱、
   ルーズなメディア 0 件。スクリプトの macOS 対応は別途の改善課題とする。
 
+## 3.2 追記 (2026-11-20): v0.2.0 公開時の再監査
+
+`v0.2.0` (Epic #728 全面再構築) の公開にあたり全 Release を再監査した。
+新規 2 件はいずれも **song-free**。`v0.1.29`〜`v0.1.31` の win64/macos Release も
+同スクリプトで song-free を確認 (第三者楽曲同梱は引き続き `v0.1.0-win64-743c88d` のみ)。
+
+| Release タグ | prerelease | ZIP size (bytes) | resources.resource | ルーズなメディア | version.json | update-channel | 判定 |
+|---|---|---|---|---|---|---|---|
+| `v0.2.0-win64-86a843ba` | no | 95,900,666 | 25,484,646 | 0 | ✓ | ✓ | song-free |
+| `v0.2.0-macos-86a843ba` | no | 95,663,658 | (なし — `.app` 構造のためスクリプト非検出。パッケージ時に song-free 検査済み) | 0 | ✓ | ✓ | song-free |
+
 補足:
 
 - `v0.1.1-win64-6fb6810` (テスト用 prerelease) だけ `version.json` /
