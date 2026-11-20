@@ -5,50 +5,47 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Issue #730: GameScene にシリアライズされた Judge の効果音参照を
+/// Issue #791: GameScene にシリアライズされた Judge の効果音参照を
 /// シーンファイルから直接検査する回帰テスト。
 ///
-/// 背景と確定した結論 (git 履歴 + 音響解析で検証済み):
-///   - 出荷済みの効果音は初版 (ee11d764) からずっと
-///     カーソル移動4.mp3 (GUID ac29...) 1 本だけで、UI の `sound` と
-///     Judge.hitSound の両方にバインドされていた。クリックス音源
-///     という独立アセットは存在しなかった。
-///   - Issue #604 で追加された clickSound は NoteEditor 同梱サンプル
-///     "Click 2.wav" (GUID aa66...) だったが、実測で支配周波数約 1 kHz の
-///     ピッチ音 (約 100 ms) + 1.5 s の無音パディングと判明し、
-///     「音程のある音」「遅れ」というユーザー指摘に合致する。
-///     Click 2.wav がゲームのシーンへバインドされたのは #604 が初めてで、
-///     「以前出荷していたクリック音源」ではない (誤情報に基づく
-///     d8cbf0f0 の差し戻しを訂正)。
-///   - clickSound の正解は効果音ラボ「決定ボタンを押す31(カチッ)」を
-///     WAV 化・末尾無音トリムした Assets/Game/Audio/レーンキークリック.wav
-///     (GUID 00cf...)。実測で高域ノイズ主体・約 110 ms・アタック即時の
-///     非ピッチのボタン音。元 mp3 はエンコーダプライミング約 23 ms が
-///     残り得るため、WAV 派生で遅延要因を除去した。
-///   - hitSound は歴史的正解のカーソル移動4.mp3 (GUID ac29...) のまま
-///     (実測で約 25 ms の高域ティック — 非ピッチの判定音として適切)。
+/// 背景と確定した結論 (v0.2.1 実機受入 + git 履歴 + 音源の出荷経路で検証済み):
+///   - レーンキーのクリック音の正本は カーソル移動4.mp3 (GUID ac29...)。
+///     出荷済みの UI `sound` (全シーン) と Judge.hitSound が昔から
+///     この 1 本を指しており、ユーザー確認でもこの音源が正しいと確定した。
+///   - かつてこのファイルは Assets/Game/Resources/Musics/ に置かれていたが、
+///     Resources/Musics は BuildScript.MediaExcludePaths でビルド時に
+///     プロジェクト外へ退避される (song-free media policy)。そのため
+///     リリースビルドでは AudioClip が欠落し、クリック音も UI の決定音も
+///     鳴らなかった (Issue #791 の実機症状)。
+///   - 対応としてファイルごと Assets/Game/Audio/ へ移動した (GUID は .meta
+///     ごと維持 = ac29...)。ビルド除外の対象外なので、シーン側の参照は
+///     すべてそのまま解決される。
+///   - clickSound は hitSound と同じクリップを指す。押下 1 回につき
+///     クリック音が 1 回鳴り (空押しを含む)、ヒット時は Judge.PressLane の
+///     「hitSound == clickSound なら重ねて鳴らさない」ガード (Issue #672、
+///     JudgeClickSoundTests で固定) により二重発音しない。
 ///
 /// 検証する要求 (実装定数の写しではなく出荷経路の契約):
-///   - clickSound は上記 WAV クリップを指す。
-///   - hitSound はカーソル移動4.mp3 を指す (歴史的バインドの固定)。
-///   - 両 GUID が実在するアセットへ解決できる
-///     (GUID の打ち間違い・削除済み参照を検出する)。
+///   - clickSound / hitSound はどちらも カーソル移動4.mp3 の GUID を指す。
+///   - その GUID が実在するアセットへ解決でき、かつパスが
+///     Resources/Musics の外 (ビルド除外の対象外) にあること。
 /// </summary>
 public class GameSceneSoundBindingTests
 {
     private const string ScenePath = "Assets/Game/Scenes/GameScene.unity";
 
-    /// <summary>レーンキークリック音のアセットパス (効果音ラボ音源の WAV 派生)。</summary>
-    private const string ClickSoundPath = "Assets/Game/Audio/レーンキークリック.wav";
+    /// <summary>クリック音 / ヒット音のアセットパス (ビルド同梱される場所)。</summary>
+    private const string ClickSoundPath = "Assets/Game/Audio/カーソル移動4.mp3";
 
     /// <summary><see cref="ClickSoundPath"/> の GUID (シーン参照の固定値)。</summary>
-    private const string ClickSoundGuid = "00cf8062f3d34ae9af330210bc82e43a";
+    private const string ClickSoundGuid = "ac2961a545ba50e40bfbbccacb3fe8d7";
 
-    /// <summary>判定ヒット音のアセットパス (初版から出荷されている音源)。</summary>
-    private const string HitSoundPath = "Assets/Game/Resources/Musics/カーソル移動4.mp3";
-
-    /// <summary><see cref="HitSoundPath"/> の GUID (シーン参照の固定値)。</summary>
-    private const string HitSoundGuid = "ac2961a545ba50e40bfbbccacb3fe8d7";
+    /// <summary>
+    /// ビルド時にプロジェクト外へ退避されるディレクトリ
+    /// (BuildScript.MediaExcludePaths の "Assets/Game/Resources/Musics")。
+    /// 効果音をここに置くとリリースビルドで欠落する (Issue #791)。
+    /// </summary>
+    private const string BuildExcludedPrefix = "Assets/Game/Resources/Musics/";
 
     private static string SceneText =>
         File.ReadAllText(Path.Combine(Application.dataPath, "Game/Scenes/GameScene.unity"));
@@ -66,36 +63,50 @@ public class GameSceneSoundBindingTests
     }
 
     [Test]
-    public void ClickSound_ResolvesToLaneClickWav()
+    public void ClickSound_ResolvesToCursorMove4()
     {
         string guid = ClipGuid("clickSound");
         string path = AssetDatabase.GUIDToAssetPath(guid);
 
         Assert.AreEqual(ClickSoundGuid, guid,
-            "clickSound はレーンキークリック WAV の GUID を指すこと (Issue #730)");
+            "clickSound は カーソル移動4.mp3 の GUID を指すこと (Issue #791)");
         Assert.AreEqual(ClickSoundPath, path,
             "clickSound は " + ClickSoundPath + " を指すこと");
     }
 
     [Test]
-    public void HitSound_ResolvesToHistoricalCursorTick()
+    public void HitSound_ResolvesToCursorMove4()
     {
         string guid = ClipGuid("hitSound");
         string path = AssetDatabase.GUIDToAssetPath(guid);
 
-        Assert.AreEqual(HitSoundGuid, guid,
-            "hitSound は初版から出荷されているカーソル移動4.mp3 の GUID を指すこと");
-        Assert.AreEqual(HitSoundPath, path,
-            "hitSound は " + HitSoundPath + " を指すこと");
+        Assert.AreEqual(ClickSoundGuid, guid,
+            "hitSound は初版から出荷されている カーソル移動4.mp3 の GUID を指すこと");
+        Assert.AreEqual(ClickSoundPath, path,
+            "hitSound は " + ClickSoundPath + " を指すこと");
     }
 
     [Test]
-    public void HitSound_And_ClickSound_AreDifferentClips()
+    public void ClickSound_And_HitSound_ShareTheSameShippedClip()
     {
-        string hit = ClipGuid("hitSound");
-        string click = ClipGuid("clickSound");
+        // Issue #791: クリック音とヒット音は同一クリップでよい。
+        // 押下ごとのクリックは PlayLaneClickSound が鳴らし、ヒット時の
+        // 重複再生は Judge.PressLane の同一クリップガードが防ぐ
+        // (JudgeClickSoundTests.Update_SameClipForHitAndClick_DoesNotDoublePlay)。
+        Assert.AreEqual(ClipGuid("hitSound"), ClipGuid("clickSound"),
+            "clickSound と hitSound は同じ カーソル移動4.mp3 を指すこと (Issue #791)");
+    }
 
-        Assert.AreNotEqual(hit, click,
-            "hitSound と clickSound が同一 GUID を指している (Issue #672/#730 の再発)");
+    [Test]
+    public void EffectSounds_AreNotUnderTheBuildExcludedDirectory()
+    {
+        // Issue #791 の根本原因: Resources/Musics はリリースビルドから
+        // 退避されるため、そこに置いた効果音は出荷物に存在しない。
+        foreach (string field in new[] { "hitSound", "clickSound" })
+        {
+            string path = AssetDatabase.GUIDToAssetPath(ClipGuid(field));
+            Assert.IsFalse(path.StartsWith(BuildExcludedPrefix, System.StringComparison.Ordinal),
+                field + " がビルド除外ディレクトリ (" + BuildExcludedPrefix + ") 配下にある: " + path);
+        }
     }
 }

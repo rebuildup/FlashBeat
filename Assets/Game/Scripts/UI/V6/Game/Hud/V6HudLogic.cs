@@ -450,6 +450,60 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float ReadyPromptFontSize = 22f;
         public const float ReadyPromptGap = 10f;
 
+        /// <summary>KeyCap「Space」の左右 padding (design [0,10] の水平成分)。</summary>
+        public const float ReadyPromptPaddingX = 10f;
+
+        /// <summary>KeyCap の角丸半径 (design r4)。</summary>
+        public const float ReadyPromptCornerRadius = 4f;
+
+        /// <summary>
+        /// design の歌詞本文 fs (HcP8N Lyrics = 44)。Start Prompt の全寸法は
+        /// この値を基準にした比率で決める (Issue #790)。
+        /// </summary>
+        public const float LyricDesignFontSize = 44f;
+
+        /// <summary>
+        /// Start Prompt の寸法一式。歌詞本文の実 fs (<paramref name="lyricFs"/>)
+        /// を基準に、cap 高さ・fs・gap・左右 padding・角丸を <b>同じ比率</b>で
+        /// 揃えた実 px 値を返す。
+        ///
+        /// Issue #790 (v0.2.1 実機受入): かつてはフォントサイズだけを
+        /// <c>LyricFontScale</c> で拡縮し、KeyCap の padding・gap・角丸は
+        /// design px 固定のままだった。比率が解像度ごとにずれ、
+        /// 「Space to start」の余白と文字組みが崩れた。寸法の正本をここに
+        /// 置き、ビルド側はこの spec だけを使う。
+        /// </summary>
+        public struct ReadyPromptSpec
+        {
+            /// <summary>KeyCap の高さ (px)。ラベル行の高さもこれに揃える。</summary>
+            public float CapHeight;
+            /// <summary>KeyCap 内文字とラベルのフォントサイズ (px)。</summary>
+            public float FontSize;
+            /// <summary>KeyCap とラベルの間隔 (px)。</summary>
+            public float Gap;
+            /// <summary>KeyCap 内の文字左右 padding (px)。</summary>
+            public float PaddingX;
+            /// <summary>KeyCap の角丸半径 (px)。</summary>
+            public float CornerRadius;
+        }
+
+        /// <summary>
+        /// 歌詞本文 fs から Start Prompt の寸法一式を求める。
+        /// design 比: fs 22/44, cap 36/44, gap 10/44, padding 10/44, r 4/44。
+        /// </summary>
+        public static ReadyPromptSpec ReadyPrompt(float lyricFs)
+        {
+            float k = LyricDesignFontSize > 0f ? lyricFs / LyricDesignFontSize : 1f;
+            return new ReadyPromptSpec
+            {
+                CapHeight = ReadyPromptCapHeight * k,
+                FontSize = ReadyPromptFontSize * k,
+                Gap = ReadyPromptGap * k,
+                PaddingX = ReadyPromptPaddingX * k,
+                CornerRadius = ReadyPromptCornerRadius * k,
+            };
+        }
+
         /// <summary>
         /// 次の節目ボーナス (scoring v3, ADR-0029) までの進捗 0..1。
         /// 節目に達した瞬間は 0 に戻り、次の節目へ向けて再び満ちる。

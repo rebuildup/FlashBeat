@@ -5,7 +5,6 @@ using System.IO;
 using System.Threading;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using YoutubePlayer.Components;
 using FlashBeat.Gameplay;
@@ -49,8 +48,6 @@ public class MusicManager : MonoBehaviour
     // 十分長くする (メディアは再生前にローカルへダウンロード済み)。
     const float StallFailSeconds = 30f;
     const string DirectUrlProbeKeyPrefix = "FlashBeat.DirectUrlProbed.";
-    const string GameSceneName = "GameScene";
-    const string SelectSceneName = "SelectScene";
 
     VideoPlayer songVideo;
 
@@ -139,6 +136,9 @@ public class MusicManager : MonoBehaviour
     NotesManager notesManager;
     /// <summary>Issue #632: 不正譜面の拒否処理は 1 回だけ。</summary>
     bool chartRejectionHandled;
+    /// <summary>Issue #792: パイプラインが「この曲は再生できない」と判定済み。
+    /// Space による開始を止める (音の無い曲を壁時計で走らせない)。</summary>
+    bool pipelineFailed;
     ResourceRequest musicRequest;
 
     /// <summary>
@@ -208,11 +208,22 @@ public class MusicManager : MonoBehaviour
 
     /// <summary>
     /// True while the pipeline has decided that the song cannot be played and
-    /// the automatic return to the song list is pending. The HUD (HudPlayState)
-    /// reads it so the failure is shown at once instead of when its own timeout
-    /// runs out.
+    /// the failure is being shown (Issue #792). The HUD (HudPlayState) reads it
+    /// so the failure is shown at once instead of when its own timeout runs
+    /// out. かつてはこのフラグが立つと数秒後に選曲画面へ自動復帰していたが、
+    /// 説明のない復帰は実機受入で不合格になったため、自動遷移は廃止した。
+    /// 失敗時はローディング画面のエラー表示が理由と再試行 / 戻る導線を出し、
+    /// Space による開始も <c>pipelineFailed</c> で止める。
     /// </summary>
-    public static bool SelectReturnPending { get; private set; }
+    public static bool PlaybackFailed { get; private set; }
+
+    /// <summary>
+    /// 直近の再生不能のユーザー向け説明 (Issue #792)。
+    /// ローディング画面のエラー表示 (<c>V6LoadingView.SetError</c>) がそのまま
+    /// 出す文言。正常時・準備中は null。メディア失敗は
+    /// <see cref="PlaybackRecovery.StartHint"/>、譜面拒否は拒否理由を持つ。
+    /// </summary>
+    public static string LastFailureMessage { get; private set; }
 
     void Start()
     {
@@ -352,7 +363,9 @@ public class MusicManager : MonoBehaviour
         // A new run starts without a failure: the HUD shows the state of the
         // current pipeline.
         LastFailure = MediaFailure.None;
-        SelectReturnPending = false;
+        PlaybackFailed = false;
+        LastFailureMessage = null;
+        pipelineFailed = false;
         failure = MediaFailure.None;
 
         // The Invidious player of the package cannot resolve anything today
@@ -577,11 +590,11 @@ public class MusicManager : MonoBehaviour
 
         if (failure != MediaFailure.None)
         {
-            if (PlaybackRecovery.NeedsSelectReturn(failure, hasSound))
+            if (PlaybackRecovery.IsUnplayable(failure, hasSound))
             {
-                // Without a sound track the song cannot be played. The player is
-                // taken back to the song list instead of sitting in front of a
-                // song he cannot play.
+                // 音声トラックが無い曲は演奏できない。Issue #792: 説明のない
+                // 自動復帰はやめ、ローディング画面のエラー表示
+                // (理由 + 再試行 / 戻る) に任せる。
                 HandlePlaybackFailure(failure, videoReady);
             }
             else
@@ -611,9 +624,11 @@ public class MusicManager : MonoBehaviour
 
     /// <summary>
     /// The media pipeline failed and the song cannot be played. The failure is
-    /// logged with its stage, the player gets a message and - after a short
-    /// grace period - the game goes back to the song list, where another song
-    /// can be picked directly.
+    /// logged with its stage, the player gets a message and stays on the
+    /// loading screen: the v6 error view (<see cref="V6LoadingView"/>) shows
+    /// <see cref="LastFailureMessage"/> with retry / back-to-select actions
+    /// (Issue #792 - the old automatic return to the song list was removed
+    /// because it gave no explanation).
     /// </summary>
     void HandlePlaybackFailure(MediaFailure reason, bool hasPicture)
     {
@@ -622,57 +637,27 @@ public class MusicManager : MonoBehaviour
         Debug.Log(PlaybackRecovery.FailureLog(stage, reason, hasPicture));
         stage = MediaStage.Failed;
         failure = reason;
-        SelectReturnPending = true;
+        LastFailure = reason;
+        PlaybackFailed = true;
+        pipelineFailed = true;
+        LastFailureMessage = PlaybackRecovery.StartHint(reason);
 
-        SetStartMessage(PlaybackRecovery.StartHint(reason));
-
-        StartCoroutine(ReturnToSelectScene());
+        SetStartMessage(LastFailureMessage);
     }
 
     /// <summary>
     /// Issue #632: 拒否された譜面の曲は開始できない。開始メッセージを
-    /// 差し替え、メディア失敗と同じ経路で選曲画面へ戻す。
+    /// 差し替え、メディア失敗と同じエラー表示経路で理由を見せる
+    /// (Issue #792: 自動復帰はしない)。
     /// </summary>
     void HandleChartRejection()
     {
-        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - returning to the select screen");
-        SetStartMessage("譜面データが不正なため、この曲は開始できません");
-        SelectReturnPending = true;
-        StartCoroutine(ReturnToSelectScene());
-    }
-
-    /// <summary>
-    /// Takes the player back to the song list. A fade that is still running is
-    /// skipped by the fade system, so the attempt is repeated a few times.
-    /// </summary>
-    IEnumerator ReturnToSelectScene()
-    {
-        yield return new WaitForSeconds(PlaybackRecovery.SelectReturnDelaySeconds);
-
-        for (int attempt = 1; PlaybackRecovery.ShouldRetrySelectReturn(attempt); attempt++)
-        {
-            if (playbackStarted)
-            {
-                // The player started the song anyway. The song then ends on the
-                // wall clock (Issue #48/#31) and the result screen offers the
-                // way back to the song list - the song is not interrupted.
-                Debug.Log("[MusicManager] the song is already running - it ends on the wall clock, Esc opens the menu to go back to the song list");
-                yield break;
-            }
-
-            Debug.Log(PlaybackRecovery.SelectReturnLog(attempt));
-            Initiate.Fade(SelectSceneName, Color.black, 1.0f);
-
-            float waited = 0f;
-            while (waited < PlaybackRecovery.SelectReturnRetrySeconds && SceneManager.GetActiveScene().name == GameSceneName)
-            {
-                waited += Time.deltaTime;
-                yield return null;
-            }
-            if (SceneManager.GetActiveScene().name != GameSceneName) yield break;
-        }
-
-        Debug.Log("[MusicManager] the automatic return to the select screen failed - Esc opens the menu, Backspace goes back to the song list");
+        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - showing the error instead of auto-returning (issue #792)");
+        LastFailure = MediaFailure.ChartRejected;
+        PlaybackFailed = true;
+        pipelineFailed = true;
+        LastFailureMessage = "譜面データが不正なため、この曲は開始できません";
+        SetStartMessage(LastFailureMessage);
     }
 
     /// <summary>
@@ -1142,8 +1127,11 @@ public class MusicManager : MonoBehaviour
             // chart (notes) finished loading - otherwise the judge would miss
             // the first notes. ポーズメニューが開いている間は開始しない。
             bool notesReady = notesManager == null || notesManager.IsReady;
+            // Issue #792: 再生不能と判定した曲は Space でも開始しない
+            // (かつては自動復帰までの猶予として開始できたが、無音の曲を
+            // 壁時計で完走させる経路はエラー表示と矛盾するため閉じた)。
             bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout)
-                && notesReady && !startTimingPending;
+                && notesReady && !startTimingPending && !pipelineFailed;
             // Issue #351: the prompt is visible before the media is ready, so the
             // press must not be thrown away. PlaybackStartGate holds it until
             // canStart and then starts the song exactly once.
@@ -1538,10 +1526,9 @@ public class MusicManager : MonoBehaviour
 
         playbackStarted = true;
         PerfMarks.Hit("playback-start");
-        // The player started the song anyway: the pending return is cancelled
-        // (its coroutine yields break on playbackStarted) and the HUD goes
-        // back to the play view.
-        SelectReturnPending = false;
+        // 開始が確定したので失敗表示の旗は下ろす (canStart が pipelineFailed を
+        // 見るため通常ここには来ないが、縮退再生の経路でも状態を一貫させる)。
+        PlaybackFailed = false;
         GManager.Start = true;
         GManager.played = true;
         playbackStartWallTime = Time.time;

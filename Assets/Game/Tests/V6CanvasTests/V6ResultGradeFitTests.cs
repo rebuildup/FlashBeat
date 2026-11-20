@@ -147,14 +147,17 @@ namespace FlashBeat.V6CanvasTests
         public void GradeLetter_AllGrades_FitInsideGradeBox()
         {
             // (score, 期待グレード)。閾値は V6GradeLogic.GradeOfV4 と同一
-            // (GradeOf の帯は V6ResultLogicTests / V6GradeLogicTests が固定済み)。
+            // (Issue #788 の帯: S ≥ 95% / A ≥ 70% / B ≥ 50%。
+            // GradeOf の帯は V6ResultLogicTests / V6GradeLogicTests が固定済み)。
             var cases = new[]
             {
                 new KeyValuePair<int, string>(0, "–"),
                 new KeyValuePair<int, string>(100, "C"),
-                new KeyValuePair<int, string>(1599999, "C"),
-                new KeyValuePair<int, string>(1600000, "B"),
-                new KeyValuePair<int, string>(1800000, "A"),
+                new KeyValuePair<int, string>(999999, "C"),
+                new KeyValuePair<int, string>(1000000, "B"),
+                new KeyValuePair<int, string>(1399999, "B"),
+                new KeyValuePair<int, string>(1400000, "A"),
+                new KeyValuePair<int, string>(1899999, "A"),
                 new KeyValuePair<int, string>(1900000, "S"),
                 new KeyValuePair<int, string>(1999999, "S"),
                 new KeyValuePair<int, string>(2000000, "SS"),

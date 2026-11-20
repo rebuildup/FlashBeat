@@ -109,7 +109,10 @@ public class ResultSceneManager : MonoBehaviour
         greatText.text = GManager.great.ToString();
         badText.text = GManager.bad.ToString();
         missText.text = GManager.miss.ToString();
-        Assessment.text = FlashBeat.UI.V6.Result.V6ResultRules.RankFor(GManager.score);
+        // 現行プレイのスコアは常に最新 scoringVersion (v4) なので、
+        // グレードも V6GradeLogic の v4 帯で出す (Issue #788 / ADR-0034)。
+        Assessment.text = FlashBeat.UI.V6.Common.V6GradeLogic.GradeOf(
+            GManager.score, FlashBeat.Gameplay.Scoring.LatestVersion);
         // Issue #657: 固定テーブル外の曲 (cloud カタログ) は slot 0 を表示せず、
         // ScorePersistence の安定キー側のベストを出す (slot 0 は別曲の記録)。
         int displayedHiscore = GManager.songID >= 0 && GManager.songID < GManager.Hiscore.Length

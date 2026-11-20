@@ -76,12 +76,14 @@ namespace FlashBeat.V5CanvasTests
         public void GradeOf_V4_FollowsTheV4Thresholds()
         {
             // v4 の満点は 2,000,000。SS は全 Perfect + フルコンボのみ。
+            // 帯は Issue #788: S ≥ 95% / A ≥ 70% / B ≥ 50%。
             Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax));
             Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000));
             Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000));
             Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000));
-            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1600000));
-            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(1599999));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1400000));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1000000));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(999999));
             Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000));
             Assert.AreEqual("", V6SelectDataLogic.GradeOf(0));
             Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1));

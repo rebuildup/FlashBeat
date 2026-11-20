@@ -228,6 +228,15 @@ namespace FlashBeat.UI.V6
                 return;
             }
 
+            // Issue #792: ローディングのエラー表示中は Esc = 選曲へ戻る
+            // (フッター凡例どおり)。このときポーズは開かない。
+            if (loading != null && loading.ErrorActive &&
+                KeyActions.IsDown(KeyActions.KeyAction.Back))
+            {
+                loading.Back();
+                return;
+            }
+
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 if (pause.IsOpen)
@@ -280,10 +289,10 @@ namespace FlashBeat.UI.V6
             else if (phase == HudPlayPhase.Failed)
             {
                 // v5 と同じ: 失敗時はポーズを閉じ、選曲への導線を優先する。
-                // v6 ローディング画面にエラー専用 UI は無い (Issue #606) —
-                // 戻る導線はヘッダーの戻るボタンと Esc (HudPlayStatus) が担う。
+                // Issue #792: エラー専用パネル (理由 + 再試行 / 戻る) を出す。
+                // 文言は MusicManager.LastFailureMessage (無ければ既定文言)。
                 if (pause != null && pause.IsOpen) pause.Close();
-                loading.SetError();
+                loading.SetError(MusicManager.LastFailureMessage);
                 loading.SetVisible(true);
             }
             else

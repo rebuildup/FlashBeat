@@ -44,14 +44,17 @@ namespace FlashBeat.UI.V6.Result.Tests
         // --- GradeOf (scoringVersion ごとの帯。v4 以降は ADR-0034 / Issue #758) ---
 
         [Test]
-        public void GradeOf_V4_FollowsTheDoubledThresholds()
+        public void GradeOf_V4_FollowsTheIssue788Bands()
         {
-            // v4 の満点は 2,000,000 (基礎 + ボーナス)。帯は v1–v3 の閾値の 2 倍。
+            // v4 の満点は 2,000,000 (基礎 + ボーナス)。帯は Issue #788 の
+            // 成績分布ベース: SS = 満点のみ / S ≥ 95% / A ≥ 70% / B ≥ 50%。
             Assert.AreEqual("SS", V6ResultLogic.GradeOf(2000000));
             Assert.AreEqual("S", V6ResultLogic.GradeOf(1900000));
             Assert.AreEqual("A", V6ResultLogic.GradeOf(1800000));
-            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
-            Assert.AreEqual("C", V6ResultLogic.GradeOf(1599999));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1400000));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1399999));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1000000));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(999999));
             Assert.AreEqual("C", V6ResultLogic.GradeOf(100));
         }
 
@@ -60,9 +63,9 @@ namespace FlashBeat.UI.V6.Result.Tests
         {
             // 「ノーミス = SS」ではない: 2,000,000 未満は全て SS 未満。
             // ノーミスの All-Great フルコンボ (基礎 600,000 + ボーナス
-            // 1,000,000 = 1,600,000) でも B どまり。
+            // 1,000,000 = 1,600,000) は A どまり (Issue #788 の帯)。
             Assert.AreEqual("S", V6ResultLogic.GradeOf(1999999));
-            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1600000));
         }
 
         [Test]

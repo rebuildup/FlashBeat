@@ -446,7 +446,41 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734)。
+        /// 演奏中の歌詞データの有無 (Issue #789)。
+        /// 「読み込み未完了」「データなし確定」「データあり」を分ける —
+        /// 空行 (本文が空白の LyricLine) はデータあり側に数える
+        /// (譜面に歌詞行が存在する以上、間の空行で枠を消さない)。
+        /// </summary>
+        private enum LyricDataPresence
+        {
+            /// <summary>InputJson 未到着 (読み込み未完了)。枠の出し入れは保留扱いで出す。</summary>
+            Pending,
+            /// <summary>InputJson 確定済みで表示区間を持つ行が 0 = 歌詞データなし。</summary>
+            None,
+            /// <summary>表示区間を持つ行が 1 つ以上ある = 歌詞データあり。</summary>
+            Some,
+        }
+
+        /// <summary>
+        /// 演奏中 (played) の枠ポリシーが参照する歌詞データの状態。
+        /// <see cref="EnsureLyricLines"/> が InputJson 確定後に lyricLines を
+        /// 同期的に構築するため、InputJson が届いていれば lyricLines は
+        /// 必ず非 null (空リスト = データなし確定) になる。
+        /// </summary>
+        private LyricDataPresence PlaybackLyricPresence()
+        {
+            if (lyricSource == null || lyricSource.InputJson == null)
+            {
+                return LyricDataPresence.Pending;
+            }
+
+            return LyricsTimeline.HasLines(lyricLines)
+                ? LyricDataPresence.Some
+                : LyricDataPresence.None;
+        }
+
+        /// <summary>
+        /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734 / #789)。
         ///
         /// 枠の出し入れは「ユーザー設定 (<see cref="PlaySession.LyricsEnabled"/>)」・
         /// 「HUD の再生状態」・「譜面の歌詞データ有無」で決める (v0.2.1)。
@@ -462,10 +496,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         ///   出す。開始操作の案内であって歌詞ではないため、歌詞設定に関わらず
         ///   枠を出す (設定 OFF でも開始方法が分かる必要がある)。
         /// - 演奏中 (played) は「設定 ON かつ譜面に歌詞データがある」ときだけ
-        ///   枠を出す。歌詞データが無い譜面では曲中を通して隠し、
-        ///   データ到着前 (lyricLines == null) の間だけ判断を保留して出す。
-        ///   行の有無・表示区間・間奏には依存しない (データがあれば
-        ///   歌詞の無い区間でも枠は出しっぱなし)。
+        ///   枠を出す。歌詞データが無い譜面では曲中を通して隠す。
+        ///   Issue #789: データ状態は <see cref="LyricDataPresence"/> の
+        ///   3 値 (未到着 / なし確定 / あり) で区別する。未到着の間だけ
+        ///   判断を保留して出し、空行 (本文が空白の行) は「データあり」
+        ///   として扱う。行の有無・表示区間・間奏には依存しない
+        ///   (データがあれば歌詞の無い区間でも枠は出しっぱなし)。
         /// </summary>
         private void UpdateLyrics()
         {
@@ -514,16 +550,20 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
-            // Issue #734 (v0.2.1 実機レビュー): 枠を出さないのは
-            // 「譜面に歌詞データが無い」場合だけ。データ未到着
-            // (lyricLines == null) の間は判断を保留して枠を出したままにし、
-            // 空リストが確定した時点で畳む。
-            bool hasLyricData = lyricLines == null || LyricsTimeline.HasLines(lyricLines);
+            // Issue #789 (v0.2.1 実機受入): 歌詞データの状態を 3 値で区別する。
+            // 「読み込み未完了」「歌詞データなし」「歌詞データあり (空行を含む)」
+            // を 1 つの真偽値に畳むと、到着前の一瞬で枠が消えるフリッカーや、
+            // データのある譜面で間奏ごとに枠が消える不具合になる。
+            LyricDataPresence presence = PlaybackLyricPresence();
+            // Pending (InputJson 未到着) と Some (歌詞データあり) は枠を出す。
+            // Some は間奏・表示区間外・全行が空白の区間でも出しっぱなしにし、
+            // 本文だけを空にする。None (歌詞データなし確定) だけが曲中ずっと隠す。
+            bool boxVisible = presence != LyricDataPresence.None;
             SetLyricPromptVisible(false);
-            SetLyricLinesVisible(hasLyricData);
-            SetLyricBoxVisible(hasLyricData);
+            SetLyricLinesVisible(presence == LyricDataPresence.Some);
+            SetLyricBoxVisible(boxVisible);
 
-            if (!hasLyricData || lyricLines == null)
+            if (presence != LyricDataPresence.Some)
             {
                 if (lyricIndex != -1)
                 {
