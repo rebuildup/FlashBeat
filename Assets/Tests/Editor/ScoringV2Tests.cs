@@ -176,32 +176,34 @@ public class ScoringV2Tests
     [Test]
     public void ResultBreakdown_ShowsRealBonusValues()
     {
-        // P=8 G=1 B=0 M=1, maxCombo=8, milestones=0, N=10 (v4, ADR-0033):
-        // baseScore = floor(43*1e6/50) = 860,000
-        // comboBonus = 40 ratio → ComponentScoreV4(40,10) = floor(40*1e6/200)=200,000
-        //   (MaxBonusRatioV4(10) = 100 + 0 + 100 = 200)
-        // noMiss / milestone / clear = 0 (miss>0, milestones=0) → "–"
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8, 0, 10, true,
+        // v5 (ADR-0035): P=50 G=10 B=0 M=1, maxCombo=50, milestones=1, N=61。
+        // judgment=280 → baseScore = floor(280*1e6/(5*61)) = 918,032
+        // MaxBonusRatioV5(61) = 250 + 305 + 100 = 655
+        // milestoneBonus = 250 ratio → ComponentScoreV5(250,61) = 381,679
+        // COMBO 行は v5 に連続コンボボーナスが無いため常に "–"。
+        // miss>0 なので CLEAR も "–"。
+        V6ResultLogic.BonusBreakdownTexts(50, 10, 0, 1, 50, 1, 61, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
-        Assert.AreEqual("860,000", baseText);
-        Assert.AreEqual("+200,000", comboText);
-        Assert.AreEqual("–", milestoneText);
+        Assert.AreEqual("918,032", baseText);
+        Assert.AreEqual("–", comboText);
+        Assert.AreEqual("+381,679", milestoneText);
         Assert.AreEqual("–", clearText);
     }
 
     [Test]
     public void ResultBreakdown_ClearBonusShownOnlyWhenEarned()
     {
-        // miss=0 なら noMissBonus + finalBonus が「CLEAR」列にまとまって出る (v4)。
+        // miss=0 の確定プレイなら noMissBonus + finalBonus が「CLEAR」列に
+        // まとまって出る (v5)。
         V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
-        // noteCount=9 → MaxBonusRatioV4(9)=90+0+100=190、
+        // noteCount=9 → MaxBonusRatioV5(9)=45+100=145、
         // judgment=43 → baseScore=floor(43*1e6/45)=955,555
         Assert.AreEqual("955,555", baseText);
-        // comboBonus=9*5=45 → floor(45*1e6/190)=236,842
-        Assert.AreEqual("+236,842", comboText);
-        // clear = noMiss 45 + final 100 = 145 → floor(145*1e6/190)=763,157
-        Assert.AreEqual("+763,157", clearText);
+        // v5 に連続コンボボーナスは無い → COMBO 行は常に "–"。
+        Assert.AreEqual("–", comboText);
+        // clear = noMiss 45 + final 100 = 145 → floor(145*1e6/145)=1,000,000
+        Assert.AreEqual("+1,000,000", clearText);
         Assert.AreEqual("–", milestoneText);
     }
 }

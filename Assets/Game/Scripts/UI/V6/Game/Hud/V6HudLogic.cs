@@ -551,30 +551,99 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// コンボボーナス表示 (Issue #784) を出すか。
-        /// <c>GManager.comboBonus</c> は maxCombo * 5 の ratio points で、
-        /// Miss でコンボが切れても maxCombo が残るため 0 に戻らない。
-        /// 1 回でもボーナスが乗れば (comboBonus &gt; 0) 表示し続ける。
+        /// コンボボーナス表示 (Issue #784 / ADR-0035) を出すか。
+        /// scoring v5 では連続コンボボーナスが無く、コンボ由来の獲得済み
+        /// ボーナスは節目到達 (GManager.milestoneBonus) が保持する。
+        /// 1 回でも節目に達していれば (ratioPoints &gt; 0) 表示し続ける
+        /// (Miss でコンボが切れても獲得済みは失われない)。
         /// </summary>
-        public static bool ShowComboBonus(int comboBonus)
+        public static bool ShowComboBonus(int comboBonusRatioPoints)
         {
-            return comboBonus > 0;
+            return comboBonusRatioPoints > 0;
         }
 
         /// <summary>
-        /// コンボボーナスの表示スコア点 (Issue #784)。
-        /// <paramref name="comboBonusRatioPoints"/> (GManager.comboBonus =
-        /// maxCombo * 5) を v4 のボーナス分母
-        /// (<paramref name="maxBonusRatio"/> = GManager.maxBonusRatio =
-        /// MaxBonusRatioV4(noteCount)) で実際に加算されるスコア点へ換算する。
-        /// <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV4"/> と同じ
-        /// 丸め (floor) で、結果画面の内訳表示と同じ値になる。
+        /// 表示中のプレイで「獲得済みコンボボーナス」の ratio points。
+        /// v5 (ADR-0035) は milestoneBonus、v4 以前は comboBonus
+        /// (maxCombo * 5) を使う。GManager.comboBonus は v5 では常に 0。
+        /// </summary>
+        public static int EarnedComboBonusRatioPoints()
+        {
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? GManager.milestoneBonus
+                : GManager.comboBonus;
+        }
+
+        /// <summary>
+        /// 最新 scoringVersion のボーナス分母で ratio points をスコア点へ
+        /// 換算する (v5: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV5"/>、
+        /// v4: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV4"/>)。
+        /// </summary>
+        public static int ComponentScoreLatest(int bonusRatioPoints, float maxBonusRatio)
+        {
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? FlashBeat.Gameplay.Scoring.ComponentScoreV5(bonusRatioPoints, maxBonusRatio)
+                : FlashBeat.Gameplay.Scoring.ComponentScoreV4(bonusRatioPoints, maxBonusRatio);
+        }
+
+        /// <summary>
+        /// 最新 scoringVersion の 1 節目あたり ratio points
+        /// (v5: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5"/>=250、
+        /// v4: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPoints"/>=25)。
+        /// </summary>
+        public static int MilestoneBonusPointsLatest()
+        {
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5
+                : FlashBeat.Gameplay.Scoring.MilestoneBonusPoints;
+        }
+
+        /// <summary>
+        /// コンボボーナスの表示スコア点 (Issue #784 / ADR-0035)。
+        /// <paramref name="comboBonusRatioPoints"/> を最新 scoringVersion
+        /// のボーナス分母 (GManager.maxBonusRatio) で実際に加算される
+        /// スコア点へ換算する。結果画面の内訳表示と同じ値になる。
         /// 表示専用の目安で、送信フィールドではない。
         /// </summary>
         public static int ComboBonusScorePoints(int comboBonusRatioPoints, float maxBonusRatio)
         {
-            return FlashBeat.Gameplay.Scoring.ComponentScoreV4(
-                comboBonusRatioPoints, maxBonusRatio);
+            return ComponentScoreLatest(comboBonusRatioPoints, maxBonusRatio);
+        }
+
+        /// <summary>
+        /// 次の節目 (50 コンボ) がこのプレイでまだ到達可能か (ADR-0035)。
+        /// 残りの未判定ノーツ数が、現在のコンボから次の節目までに必要な
+        /// 連続ヒット数に満たなければ false。combo % 50 == 0 のときは
+        /// 次の節目まで丸ごと 50 ヒット必要。譜面ノーツ数が不明
+        /// (chartNoteCount &lt;= 0) のときは到達不能とみなす。
+        /// </summary>
+        public static bool NextMilestoneReachable(int combo, int settledNotes, int chartNoteCount)
+        {
+            if (chartNoteCount <= 0)
+            {
+                return false;
+            }
+
+            int interval = FlashBeat.Gameplay.Scoring.MilestoneInterval;
+            int needed = interval - (combo % interval);
+            return chartNoteCount - settledNotes >= needed;
+        }
+
+        /// <summary>
+        /// 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
+        /// v5 では 1 節目あたり MilestoneBonusPointsV5 ratio points が
+        /// 常に同じスコア点になる。v4 以前は節目ごとの加点が一定でない
+        /// ため 0 を返す (呼び出し側は非表示にする)。
+        /// </summary>
+        public static int NextMilestoneScorePoints(float maxBonusRatio)
+        {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion < FlashBeat.Gameplay.Scoring.Version5)
+            {
+                return 0;
+            }
+
+            return FlashBeat.Gameplay.Scoring.ComponentScoreV5(
+                FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5, maxBonusRatio);
         }
 
         /// <summary>

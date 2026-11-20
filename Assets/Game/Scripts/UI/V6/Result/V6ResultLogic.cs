@@ -94,20 +94,38 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// scoring v4 (ADR-0033 / Issue #736) の基礎スコア + ボーナス内訳の
-        /// 表示文字列。基礎スコアは判定由来のみで上限 1,000,000、ボーナスは
-        /// コンボ継続・節目・クリア (ノーミス + フルコンボ終了) の 3 群で、
-        /// それぞれ実際に加算されるスコア点を "+値" で返す (未達は "–")。
-        /// 値は ratio points をスコア点へ換算した目安で、送信フィールド
-        /// ではない (サーバは内訳を信用せず再計算する)。
-        /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
-        /// the full-combo end bonus only shows once every chart note was
-        /// judged (Issue #618).
+        /// scoring v4/v5 (ADR-0033 / ADR-0035 / Issue #736, #797) の基礎
+        /// スコア + ボーナス内訳の表示文字列。基礎スコアは判定由来のみで
+        /// 上限 1,000,000、ボーナスはコンボ・節目・クリア (ノーミス +
+        /// フルコンボ終了) の 3 群で、それぞれ実際に加算されるスコア点を
+        /// "+値" で返す (未達は "–")。v5 には連続コンボボーナスが無いため
+        /// COMBO 行は常に "–" で、コンボ由来の獲得済みは MILESTONE 行が
+        /// 表す。値は ratio points をスコア点へ換算した目安で、送信
+        /// フィールドではない (サーバは内訳を信用せず再計算する)。
+        /// <paramref name="judgmentsComplete"/> は GManager.judgmentsComplete
+        /// で、フルコンボ終了ボーナスは全ノーツ判定確定後にのみ表示する
+        /// (Issue #618)。
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
             int comboMilestones, int noteCount, bool judgmentsComplete,
             out string baseScore, out string comboBonus, out string milestoneBonus, out string clearBonus)
         {
+            if (Scoring.LatestVersion >= Scoring.Version5)
+            {
+                Scoring.V5Breakdown v5 = Scoring.BreakdownV5(
+                    perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
+                baseScore = FormatScore(v5.BaseScore);
+                comboBonus = "–";
+                milestoneBonus = v5.MilestoneBonus > 0
+                    ? "+" + FormatScore(Scoring.ComponentScoreV5(v5.MilestoneBonus, noteCount))
+                    : "–";
+                int clearRatioV5 = v5.NoMissBonus + v5.FinalBonus;
+                clearBonus = clearRatioV5 > 0
+                    ? "+" + FormatScore(Scoring.ComponentScoreV5(clearRatioV5, noteCount))
+                    : "–";
+                return;
+            }
+
             Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
                 perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
             baseScore = FormatScore(v4.BaseScore);

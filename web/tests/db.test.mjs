@@ -233,7 +233,7 @@ test("the schema rejects rows the contract would reject", () => {
   );
 });
 
-test("the scores CHECK allows v4 scores up to 2000000 and keeps v1-v3 at 1000000", () => {
+test("the scores CHECK allows v4/v5 scores up to 2000000 and keeps v1-v3 at 1000000", () => {
   const sqlite = createMigratedDatabase();
   sqlite
     .prepare(
@@ -247,14 +247,18 @@ test("the scores CHECK allows v4 scores up to 2000000 and keeps v1-v3 at 1000000
   );
   const row = (score, scoringVersion) => ["who", 1, "player", 10, 2, 1, 0, score, scoringVersion];
 
-  // scoring v4 (ADR-0033): base + bonus legitimately exceeds 1,000,000.
+  // scoring v4 (ADR-0033) and v5 (ADR-0035): base + bonus legitimately
+  // exceeds 1,000,000.
   insertScore.run(...row(2000000, 4));
   insertScore.run(...row(1500000, 4));
+  insertScore.run(...row(2000000, 5));
+  insertScore.run(...row(1053481, 5));
   // Versions 1-3 keep the legacy 1,000,000 ceiling.
   insertScore.run(...row(1000000, 3));
   assertRejected("v3 score above the legacy ceiling", () => insertScore.run(...row(1000001, 3)));
   assertRejected("v1 score above the legacy ceiling", () => insertScore.run(...row(1000001, 1)));
-  // Nothing exceeds the v4 maximum.
+  // Nothing exceeds the v4/v5 maximum.
   assertRejected("v4 score above 2000000", () => insertScore.run(...row(2000001, 4)));
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 3);
+  assertRejected("v5 score above 2000000", () => insertScore.run(...row(2000001, 5)));
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 5);
 });

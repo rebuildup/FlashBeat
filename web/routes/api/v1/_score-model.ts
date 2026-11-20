@@ -72,6 +72,25 @@
  *     score          = baseScore + bonusScore                          ≤ 2,000,000
  *     All integer arithmetic — identical on every platform.
  *
+ *   v5 (scoringVersion 5, ADR-0035): same two halves as v4, but the
+ *     continuous combo bonus is removed and the combo reward vests only
+ *     at milestone crossings (250 ratio points each):
+ *     judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged)
+ *     comboBonus     = — (removed: combo continuation pays nothing)
+ *     noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
+ *     milestoneBonus = comboMilestones * 250              (was * 25 in v4;
+ *                      the same bound checks as v3/v4 apply — see
+ *                      scoreSemanticsDiagnostics)
+ *     finalBonus     = judgmentsComplete && miss == 0 ? 100 : 0  (unchanged)
+ *     baseScore      = floor(judgment * 1e6 / (5 * noteCount))        ≤ 1,000,000
+ *     bonusRatio     = milestoneBonus + noMissBonus + finalBonus
+ *     maxBonusRatio  = floor(noteCount / 50) * 250 + noteCount * 5 + 100
+ *     bonusScore     = floor(bonusRatio * 1e6 / maxBonusRatio)        ≤ 1,000,000
+ *     score          = baseScore + bonusScore                          ≤ 2,000,000
+ *     All integer arithmetic — identical on every platform. Every
+ *     completed miss == 0 play scores exactly the same total as v4
+ *     (bonusRatio saturates its denominator in both formulas).
+ *
  * v1 and v2 keep the single-precision emulation below: their stored records
  * were produced by the float formula and must keep their meaning. v3 moved
  * to integer arithmetic because float32 evaluation order differs between
@@ -97,27 +116,34 @@ export type ScoreValidation =
 
 /**
  * Scoring formula versions the server can recompute (ADR-0028, ADR-0029,
- * ADR-0033). `1` is the original formula, `2` adds the combo-continuation and
- * no-miss bonuses, `3` adds the combo-milestone and full-combo bonuses, `4`
- * splits the score into a judgment-derived base (≤ 1,000,000) plus additive
- * bonuses (≤ 1,000,000, total ≤ 2,000,000). A submission without
+ * ADR-0033, ADR-0035). `1` is the original formula, `2` adds the
+ * combo-continuation and no-miss bonuses, `3` adds the combo-milestone and
+ * full-combo bonuses, `4` splits the score into a judgment-derived base
+ * (≤ 1,000,000) plus additive bonuses (≤ 1,000,000, total ≤ 2,000,000),
+ * `5` keeps the v4 two-half structure but removes the continuous combo
+ * bonus so only milestone crossings pay (ADR-0035). A submission without
  * `scoringVersion` is version 1.
  */
 export const SCORING_VERSION_V1 = 1;
 export const SCORING_VERSION_V2 = 2;
 export const SCORING_VERSION_V3 = 3;
 export const SCORING_VERSION_V4 = 4;
+export const SCORING_VERSION_V5 = 5;
 
 /** The newest scoring version this server supports. */
-export const LATEST_SCORING_VERSION = SCORING_VERSION_V4;
+export const LATEST_SCORING_VERSION = SCORING_VERSION_V5;
 
 /**
  * Score ceilings per formula family. v1–v3 normalize the whole play into
- * 1,000,000; v4 splits it into a base and a bonus half of 1,000,000 each,
- * so its submissions may reach 2,000,000 (ADR-0033).
+ * 1,000,000; v4 and v5 split it into a base and a bonus half of 1,000,000
+ * each, so their submissions may reach 2,000,000 (ADR-0033, ADR-0035).
  */
 export const SCORE_MAX_LEGACY = 1000000;
 export const SCORE_MAX_V4 = 2000000;
+export const SCORE_MAX_V5 = 2000000;
+
+/** Ratio points one v5 milestone crossing pays (ADR-0035). */
+export const MILESTONE_BONUS_POINTS_V5 = 250;
 
 /** Body of `POST /api/v1/scores` (`ScoreSubmission` in the contract). */
 export interface ScoreSubmission {
@@ -172,26 +198,26 @@ export const SCORE_SUBMISSION_SCHEMA = {
       type: "integer",
       minimum: 0,
       description:
-        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version and, for scoringVersion 3 and 4, above the hit count (perfect + great + bad), which the combo can never exceed.",
+        "Optional. Largest combo reached; the server rejects values above the note count of the submitted chart version and, for scoringVersion 3, 4 and 5, above the hit count (perfect + great + bad), which the combo can never exceed.",
     },
     comboMilestones: {
       type: "integer",
       minimum: 0,
       description:
-        "Optional. Number of combo milestone crossings (every 50 combo) during the play; only meaningful for scoringVersion 3 and 4. When miss is 0 the server verifies the count exactly against floor((perfect+great+bad)/50); when misses occurred it applies the tightest bound the aggregate fields allow — at most miss + 1 runs of maxCombo — because the exact crossing history cannot be reconstructed from the totals (see ADR-0029). Omitted is treated as 0.",
+        "Optional. Number of combo milestone crossings (every 50 combo) during the play; only meaningful for scoringVersion 3, 4 and 5. When miss is 0 the server verifies the count exactly against floor((perfect+great+bad)/50); when misses occurred it applies the tightest bound the aggregate fields allow — at most miss + 1 runs of maxCombo — because the exact crossing history cannot be reconstructed from the totals (see ADR-0029). Omitted is treated as 0.",
     },
     score: {
       type: "integer",
       minimum: 0,
       maximum: 2000000,
       description:
-        "Optional. Score the client computed with the Unity formula; the server recomputes it from the judgment counts and rejects a mismatch (422), so a broken or manipulated client score is never stored. scoringVersion 4 scores may exceed 1,000,000 (base + bonus, up to 2,000,000); versions 1-3 stay capped at 1,000,000 by the recomputation.",
+        "Optional. Score the client computed with the Unity formula; the server recomputes it from the judgment counts and rejects a mismatch (422), so a broken or manipulated client score is never stored. scoringVersion 4 and 5 scores may exceed 1,000,000 (base + bonus, up to 2,000,000); versions 1-3 stay capped at 1,000,000 by the recomputation.",
     },
     scoringVersion: {
       type: "integer",
       minimum: 1,
       description:
-        "Optional. Scoring formula version the score was computed with: 1 is the original formula (5P+3G+B over 5*N), 2 adds the combo continuation and no-miss bonuses (see ADR-0028), 3 adds combo milestone and full-combo bonuses (see ADR-0029), 4 splits the score into a judgment-derived base capped at 1,000,000 plus additive bonuses so a full combo exceeds it (see ADR-0033). Omitted means 1, so clients that predate scoring versions are still accepted. New clients send 4.",
+        "Optional. Scoring formula version the score was computed with: 1 is the original formula (5P+3G+B over 5*N), 2 adds the combo continuation and no-miss bonuses (see ADR-0028), 3 adds combo milestone and full-combo bonuses (see ADR-0029), 4 splits the score into a judgment-derived base capped at 1,000,000 plus additive bonuses so a full combo exceeds it (see ADR-0033), 5 keeps the v4 two-half structure but removes the continuous combo bonus so only milestone crossings pay (see ADR-0035). Omitted means 1, so clients that predate scoring versions are still accepted. New clients send 5.",
     },
   },
 } as const;
@@ -287,7 +313,8 @@ export function scoreSemanticsDiagnostics(
     scoringVersion !== SCORING_VERSION_V1 &&
     scoringVersion !== SCORING_VERSION_V2 &&
     scoringVersion !== SCORING_VERSION_V3 &&
-    scoringVersion !== SCORING_VERSION_V4
+    scoringVersion !== SCORING_VERSION_V4 &&
+    scoringVersion !== SCORING_VERSION_V5
   ) {
     diagnostics.push({
       path: "/scoringVersion",
@@ -311,9 +338,14 @@ export function scoreSemanticsDiagnostics(
   //     trust model as the maxCombo cap, documented in ADR-0029.
   //
   // The field is ignored for versions 1 and 2, whose formulas cannot
-  // use it. Version 4 (ADR-0033) reuses the v3 bonus components and the
-  // identical bounds — only the score mapping differs.
-  if (scoringVersion === SCORING_VERSION_V3 || scoringVersion === SCORING_VERSION_V4) {
+  // use it. Version 4 (ADR-0033) and version 5 (ADR-0035) reuse the v3
+  // bonus components and the identical bounds — only the score mapping
+  // differs.
+  if (
+    scoringVersion === SCORING_VERSION_V3 ||
+    scoringVersion === SCORING_VERSION_V4 ||
+    scoringVersion === SCORING_VERSION_V5
+  ) {
     const hits = request.perfect + request.great + request.bad;
     const milestones = request.comboMilestones ?? 0;
     if (request.maxCombo !== undefined && request.maxCombo > hits) {
@@ -341,13 +373,15 @@ export function scoreSemanticsDiagnostics(
       }
     }
   }
-  // Per-version score cap (ADR-0033): v1–v3 normalize the whole play into
-  // 1,000,000, so a client-sent score above that can never match the
-  // recomputation — reject it here with a clear diagnostic instead of
-  // relying on the generic mismatch error. v4 legitimately reaches
-  // 2,000,000 (SCORE_MAX_V4, enforced by the schema maximum).
+  // Per-version score cap (ADR-0033, ADR-0035): v1–v3 normalize the whole
+  // play into 1,000,000, so a client-sent score above that can never match
+  // the recomputation — reject it here with a clear diagnostic instead of
+  // relying on the generic mismatch error. v4 and v5 legitimately reach
+  // 2,000,000 (SCORE_MAX_V4 / SCORE_MAX_V5, enforced by the schema
+  // maximum).
   if (
     scoringVersion !== SCORING_VERSION_V4 &&
+    scoringVersion !== SCORING_VERSION_V5 &&
     request.score !== undefined &&
     request.score > SCORE_MAX_LEGACY
   ) {
@@ -533,6 +567,52 @@ export function computeUnityScoreV4(
 }
 
 /**
+ * The scoring v5 score of a play (ADR-0035), computed with the same
+ * deterministic integer arithmetic the Unity client uses:
+ *
+ *   judgment       = 5 * perfect + 3 * great + 1 * bad   (unchanged)
+ *   comboBonus     = — (removed: combo continuation pays nothing)
+ *   noMissBonus    = miss == 0 ? (perfect + great + bad) * 5 : 0  (unchanged)
+ *   milestoneBonus = comboMilestones * 250              (bound-checked by
+ *                    scoreSemanticsDiagnostics, omitted means 0)
+ *   finalBonus     = judgmentsComplete && miss == 0 ? 100 : 0  (unchanged)
+ *   baseScore      = floor(judgment * 1e6 / (5 * noteCount))        ≤ 1,000,000
+ *   bonusRatio     = milestoneBonus + noMissBonus + finalBonus
+ *   maxBonusRatio  = floor(noteCount / 50) * 250 + noteCount * 5 + 100
+ *   bonusScore     = floor(bonusRatio * 1e6 / maxBonusRatio)        ≤ 1,000,000
+ *   score          = baseScore + bonusScore                          ≤ 2,000,000
+ *
+ * `maxCombo` stays in the submission contract (bound-checked and used
+ * for statistics) but no longer enters the formula — the combo reward
+ * vests only at milestone crossings. Returns `null` when the chart has
+ * no notes, like `computeUnityScoreV4`.
+ */
+export function computeUnityScoreV5(
+  perfect: number,
+  great: number,
+  bad: number,
+  miss: number,
+  comboMilestones: number | undefined,
+  noteCount: number,
+  judgmentsComplete: boolean,
+): number | null {
+  if (noteCount <= 0) {
+    return null;
+  }
+  const judgment = perfect * 5 + great * 3 + bad;
+  const hits = perfect + great + bad;
+  const bonusRatio =
+    (comboMilestones ?? 0) * MILESTONE_BONUS_POINTS_V5 +
+    (miss === 0 ? hits * 5 : 0) +
+    (judgmentsComplete && miss === 0 ? 100 : 0);
+  const baseScore = Math.floor((judgment * 1_000_000) / (noteCount * 5));
+  const maxBonusRatio =
+    Math.floor(noteCount / 50) * MILESTONE_BONUS_POINTS_V5 + noteCount * 5 + 100;
+  const bonusScore = Math.floor((bonusRatio * 1_000_000) / maxBonusRatio);
+  return baseScore + bonusScore;
+}
+
+/**
  * The v3 score as computed by Unity clients built before Issue #631: the
  * single-precision `Math.fround` emulation of the legacy `ComputeScore`
  * path. Fielded builds still send this value; the submission endpoint
@@ -576,6 +656,18 @@ export function computeUnityScoreV3Legacy(
  */
 export function computeScoreForVersion(request: ScoreSubmission, noteCount: number): number | null {
   const scoringVersion = request.scoringVersion ?? SCORING_VERSION_V1;
+  if (scoringVersion === SCORING_VERSION_V5) {
+    return computeUnityScoreV5(
+      request.perfect,
+      request.great,
+      request.bad,
+      request.miss,
+      request.comboMilestones,
+      noteCount,
+      // A submission is always a completed play (same rule as v4).
+      true,
+    );
+  }
   if (scoringVersion === SCORING_VERSION_V4) {
     return computeUnityScoreV4(
       request.perfect,

@@ -34,6 +34,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         private GameObject comboBonusBlock;
         /// <summary>コンボボーナスの獲得スコア点表示 ("+N")。</summary>
         private TextMeshProUGUI comboBonusValueText;
+        /// <summary>次の節目到達で確定するボーナス点 (ADR-0035、v5 のみ表示)。</summary>
+        private TextMeshProUGUI nextBonusText;
+        private int lastNextBonusPoints = int.MinValue;
         /// <summary>節目ボーナスの一時表示 (scoring v4, ADR-0033 / Issue #736)。</summary>
         private TextMeshProUGUI milestoneBonusText;
         /// <summary>節目ボーナス表示の開始時刻 (-1 = 非表示)。</summary>
@@ -197,14 +200,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = new Vector2(-m.Margin, -m.RightColY);
             rt.sizeDelta = new Vector2(m.RightColW, columnH);
 
-            // --- コンボボーナス (Issue #784) ---
-            // scoring v4 のコンボ継続ボーナス。GManager.comboBonus は
-            // maxCombo * 5 の ratio points で、Miss でコンボが切れても
-            // maxCombo が残るため値は減らない (獲得済みボーナスは失われない)。
-            // 実際に加算されるスコア点へ Scoring.ComponentScoreV4 で換算して
-            // 表示し、右コラムの上段に常設する。design では Combo Status と
-            // 同座標・排他だったが、実値が常に意味を持つため上段へ置き、
-            // ステータス行 (下の StatusRowY) とは重ならない。
+            // --- コンボボーナス (Issue #784 / ADR-0035) ---
+            // 獲得済みコンボ由来ボーナスの常設表示。v5 では連続加点が無く
+            // 節目到達 (comboMilestones) のみが報酬なので、表示値は
+            // GManager.milestoneBonus を V6HudLogic.EarnedComboBonusRatioPoints
+            // 経由で読む。実際に加算されるスコア点へ最新バージョンの
+            // ComponentScore で換算し、右コラムの上段に常設する。
+            // design では Combo Status と同座標・排他だったが、実値が常に
+            // 意味を持つため上段へ置き、ステータス行 (下の StatusRowY)
+            // とは重ならない。
             var bonus = V5Ui.Node(column, "Combo Bonus");
             var bonusRt = V6Layout.RectOf(bonus);
             bonusRt.anchorMin = new Vector2(0f, 1f);
@@ -239,6 +243,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Combo Status の表示切替 (miss > 0) から独立させる —
             // コンボが 0 に戻ってもゲージは空から再び満ち、節目到達は
             // コンボ切断後も累積する (JudgeScoreboard.MilestoneCrossings)。
+            // 右端には次の節目到達で確定するボーナス点を重ねる
+            // (ADR-0035: 獲得済み累計・今回の加点・次の獲得予定を
+            // 混同しない契約)。
             var bonusTrack = V5Ui.Panel(bonus, "Next Bonus Track",
                 new Vector2(m.StatusTrackW, m.StatusTrackH), V5Tokens.Key0, 4f);
             var bonusTrackRt = V6Layout.RectOf(bonusTrack);
@@ -256,6 +263,18 @@ namespace FlashBeat.UI.V6.Game.Hud
             bonusFillRt.anchoredPosition = Vector2.zero;
             comboFill = bonusFillRt;
             comboFillImage = bonusFill.GetComponent<Image>();
+
+            // 次の節目到達で確定するボーナス点 (ADR-0035)。ゲージの右端に
+            // 重ねる小さな右寄せ表示。v5 では 1 節目あたり一定なので常に
+            // 意味を持ち、v4 以前は空文字のまま (非表示)。
+            nextBonusText = V5Ui.Text(bonusTrack, "Next Bonus Value", "", 12f,
+                V5Tokens.TextMuted, TextAlignmentOptions.Right);
+            var nextRt = nextBonusText.rectTransform;
+            nextRt.anchorMin = new Vector2(1f, 0.5f);
+            nextRt.anchorMax = new Vector2(1f, 0.5f);
+            nextRt.pivot = new Vector2(1f, 0.5f);
+            nextRt.anchoredPosition = new Vector2(-4f, 0f);
+            nextRt.sizeDelta = new Vector2(m.StatusTrackW * 0.55f, m.StatusTrackH);
 
             // --- コンボステータス ---
             // issue-162 B-4 再照合 → Issue #784 で実値化: ここにあった

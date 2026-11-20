@@ -28,6 +28,9 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual(1000000, V6GradeLogic.ScoreMaxOf(Scoring.Version2));
             Assert.AreEqual(1000000, V6GradeLogic.ScoreMaxOf(Scoring.Version3));
             Assert.AreEqual(2000000, V6GradeLogic.ScoreMaxOf(Scoring.Version4));
+            // v5 (ADR-0035) も同じ 2,000,000 満点 — ゲージ正規化は #788 の
+            // グレード閾値と同じ正本 (ScoreMaxOf) から出る。
+            Assert.AreEqual(2000000, V6GradeLogic.ScoreMaxOf(Scoring.Version5));
             Assert.AreEqual(2000000, V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
         }
 
@@ -57,6 +60,10 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual("A", V6GradeLogic.GradeOf(1600000, Scoring.LatestVersion));
             // 同じスコアでも scoringVersion で帯が変わる: 950,000 は v4 帯では
             // C (B 境界 1,000,000 未満)、v1–v3 の RankFor では S (≥950,000)。
+            // v5 (ADR-0035) は v4 と同じ帯 — 1,227,055 のようなスコアは
+            // 引き続き B で、ゲージも score/2M の同じ写像に乗る。
+            Assert.AreEqual("B", V6GradeLogic.GradeOf(1227055, Scoring.Version5));
+            Assert.AreEqual("A", V6GradeLogic.GradeOf(1600000, Scoring.Version5));
             Assert.AreEqual("C", V6GradeLogic.GradeOf(950000, Scoring.LatestVersion));
             Assert.AreEqual("S", V6GradeLogic.GradeOf(950000, Scoring.Version3));
             Assert.AreEqual("SS", V6GradeLogic.GradeOf(1000000, Scoring.Version3));

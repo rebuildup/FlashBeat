@@ -417,19 +417,21 @@ public class GManager : MonoBehaviour
     public static int miss;
 
     /// <summary>
-    /// scoring v2/v3/v4 (ADR-0028 / ADR-0029 / ADR-0033) の加点内訳
+    /// scoring v2–v5 (ADR-0028 / ADR-0029 / ADR-0033 / ADR-0035) の加点内訳
     /// (ratio points)。
     /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
     /// comboBonus / noMissBonus / milestoneBonus / finalBonus は送信
     /// フィールドには含めない (サーバは P/G/B/M/maxCombo/comboMilestones
     /// から再計算する)。comboMilestones は節目到達回数で、送信フィールド
     /// comboMilestones と同じ値。
+    /// scoring v5 では連続コンボボーナスが無いため comboBonus は常に 0 で、
+    /// コンボ由来の獲得済みボーナスは milestoneBonus が保持する (ADR-0035)。
     /// </summary>
     public static int comboBonus;
     public static int noMissBonus;
-    /// <summary>節目到達回数 (scoring v3)。ランキング送信の comboMilestones。</summary>
+    /// <summary>節目到達回数 (scoring v3–v5)。ランキング送信の comboMilestones。</summary>
     public static int comboMilestones;
-    /// <summary>節目ボーナス合計 (ratio points = comboMilestones * 25)。</summary>
+    /// <summary>節目ボーナス合計 (ratio points。v5 では comboMilestones * 250)。</summary>
     public static int milestoneBonus;
     /// <summary>
     /// フルコンボ終了ボーナス (miss == 0 かつ全ノーツ判定確定のとき 100、
@@ -438,16 +440,16 @@ public class GManager : MonoBehaviour
     public static int finalBonus;
 
     /// <summary>
-    /// scoring v4 (ADR-0033) の基礎スコアと加算ボーナス。score =
-    /// baseScore + bonusScore で、baseScore は判定由来のみ (上限
-    /// 1,000,000)、bonusScore はコンボ継続・ノーミス・節目・フルコンボの
-    /// 合計 (上限 1,000,000)。結果画面の内訳表示が読む。Judge が
-    /// FlushScore のたびに書く。
+    /// scoring v4/v5 (ADR-0033 / ADR-0035) の基礎スコアと加算ボーナス。
+    /// score = baseScore + bonusScore で、baseScore は判定由来のみ (上限
+    /// 1,000,000)、bonusScore はノーミス・節目・フルコンボの合計
+    /// (上限 1,000,000。v4 にはコンボ継続も含まれる)。結果画面の内訳
+    /// 表示が読む。Judge が FlushScore のたびに書く。
     /// </summary>
     public static int baseScore;
     public static int bonusScore;
     /// <summary>
-    /// scoring v4 のボーナス分母 (Scoring.MaxBonusRatioV4(noteCount))。
+    /// scoring v4/v5 のボーナス分母 (Scoring.MaxBonusRatioV4/V5(noteCount))。
     /// HUD のボーナス獲得点表示が ratio points → スコア点の換算に使う。
     /// </summary>
     public static float maxBonusRatio;
@@ -459,6 +461,13 @@ public class GManager : MonoBehaviour
     /// (Issue #618)。
     /// </summary>
     public static bool judgmentsComplete;
+
+    /// <summary>
+    /// 現在の譜面のノーツ数 (NotesManager.noteNum)。Judge が FlushScore の
+    /// たびに書く。HUD が「次の節目がまだ到達可能か」を判定するのに使う
+    /// (ADR-0035)。
+    /// </summary>
+    public static int chartNoteCount;
 
     public static float MainSound;
     public static float EffectSound;
@@ -530,6 +539,7 @@ public class GManager : MonoBehaviour
         bonusScore = 0;
         maxBonusRatio = 0f;
         judgmentsComplete = false;
+        chartNoteCount = 0;
         settledNoteCount = 0;
         BeginPlaySession();
     }
