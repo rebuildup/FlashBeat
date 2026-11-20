@@ -462,6 +462,13 @@ public class GManager : MonoBehaviour
     /// </summary>
     public static bool judgmentsComplete;
 
+    /// <summary>
+    /// 現在の譜面のノーツ数 (NotesManager.noteNum)。Judge が FlushScore の
+    /// たびに書く。HUD が「次の節目がまだ到達可能か」を判定するのに使う
+    /// (ADR-0035)。
+    /// </summary>
+    public static int chartNoteCount;
+
     public static float MainSound;
     public static float EffectSound;
 
@@ -532,6 +539,7 @@ public class GManager : MonoBehaviour
         bonusScore = 0;
         maxBonusRatio = 0f;
         judgmentsComplete = false;
+        chartNoteCount = 0;
         settledNoteCount = 0;
         BeginPlaySession();
     }

@@ -102,9 +102,9 @@ namespace FlashBeat.UI.V6.Result
         /// COMBO 行は常に "–" で、コンボ由来の獲得済みは MILESTONE 行が
         /// 表す。値は ratio points をスコア点へ換算した目安で、送信
         /// フィールドではない (サーバは内訳を信用せず再計算する)。
-        /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
-        /// the full-combo end bonus only shows once every chart note was
-        /// judged (Issue #618).
+        /// <paramref name="judgmentsComplete"/> は GManager.judgmentsComplete
+        /// で、フルコンボ終了ボーナスは全ノーツ判定確定後にのみ表示する
+        /// (Issue #618)。
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
             int comboMilestones, int noteCount, bool judgmentsComplete,

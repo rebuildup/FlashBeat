@@ -553,6 +553,7 @@ public class Judge : MonoBehaviour
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
         bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
         GManager.judgmentsComplete = judgmentsComplete;
+        GManager.chartNoteCount = noteCount;
         Scoring.V5Breakdown v5 = Scoring.BreakdownV5(
             board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
             board.MilestoneCrossings, noteCount, judgmentsComplete);
@@ -579,7 +580,7 @@ public class Judge : MonoBehaviour
     ///
     /// <para>
     /// TEST / PARITY ONLY (Issue #641): production scoring is
-    /// <see cref="Scoring.ScoreV4(Scoring.V4Breakdown)"/>, which uses exact
+    /// <see cref="Scoring.ScoreV5(Scoring.V5Breakdown)"/>, which uses exact
     /// integer arithmetic (Issue #631). This float path remains because the
     /// v1/v2 parity fixtures and the v2 scoring tests
     /// (<c>ParityFixtureTests</c>, <c>ScoringV2Tests</c>,
@@ -604,7 +605,7 @@ public class Judge : MonoBehaviour
     /// スコア表示と内部スコアの更新。
     ///
     /// <paramref name="score"/> は呼び出し側が確定した値
-    /// (<see cref="Scoring.ScoreV4(Scoring.V4Breakdown)"/> の整数演算、
+    /// (<see cref="Scoring.ScoreV5(Scoring.V5Breakdown)"/> の整数演算、
     /// Issue #631)。ここで float の ratioScore / maxScore から再計算すると
     /// プラットフォームごとの丸め差が再び入るため、受け取った値をそのまま使う。
     /// </summary>

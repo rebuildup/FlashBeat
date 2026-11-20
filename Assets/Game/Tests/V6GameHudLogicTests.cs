@@ -119,6 +119,27 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
+        public void NextMilestoneReachable_UsesRemainingNotes()
+        {
+            // ADR-0035: 到達前のゲージは次の節目までの進捗を示すが、
+            // 残りノーツでは届かない終盤は「獲得予定」を出さない。
+            // combo % 50 == 0 のときは次の節目まで丸ごと 50 ヒット必要。
+            Assert.IsTrue(V6HudLogic.NextMilestoneReachable(0, 0, 139));
+            Assert.IsTrue(V6HudLogic.NextMilestoneReachable(49, 99, 139));
+            Assert.IsTrue(V6HudLogic.NextMilestoneReachable(50, 50, 139));
+            Assert.IsFalse(V6HudLogic.NextMilestoneReachable(0, 100, 139),
+                "残り 39 < 必要 50 では次の節目へ届かない");
+            Assert.IsTrue(V6HudLogic.NextMilestoneReachable(45, 120, 139),
+                "combo45 → 必要 5、残り 19 で届く");
+            Assert.IsFalse(V6HudLogic.NextMilestoneReachable(45, 135, 139),
+                "combo45 → 必要 5、残り 4 では次の節目へ届かない");
+            Assert.IsFalse(V6HudLogic.NextMilestoneReachable(0, 0, 30),
+                "譜面全体が 50 ノーツ未満では節目は存在しない");
+            Assert.IsFalse(V6HudLogic.NextMilestoneReachable(0, 0, 0),
+                "譜面ノーツ数不明では到達不能とみなす");
+        }
+
+        [Test]
         public void NextMilestoneScorePoints_IsConstantPerCrossingInV5()
         {
             // ADR-0035: v5 の 1 節目あたり加点は譜面サイズに依らず

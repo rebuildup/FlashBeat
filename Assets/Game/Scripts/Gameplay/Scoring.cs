@@ -56,6 +56,17 @@ namespace FlashBeat.Gameplay
     /// (comboBonus + noMissBonus + milestoneBonus + finalBonus). A perfect
     /// full-combo run scores exactly 2,000,000. Like v3, every step is
     /// exact integer arithmetic.
+    ///
+    /// scoringVersion 5 (ADR-0035, Issue #797) keeps the v4 two-half
+    /// structure but removes the continuous combo bonus: combo rewards
+    /// are paid only when a 50-combo milestone is crossed.
+    ///
+    ///   milestoneBonus = comboMilestones * MilestoneBonusPointsV5 (250)
+    ///   bonusRatio     = milestoneBonus + noMissBonus + finalBonus
+    ///   maxBonusRatio  = floor(noteCount / 50) * 250 + noteCount * 5 + 100
+    ///
+    /// A completed no-miss play keeps its v4 total (bonusRatio saturates
+    /// the denominator); only plays containing a miss score differently.
     /// </summary>
     public static class Scoring
     {

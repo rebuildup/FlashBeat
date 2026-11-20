@@ -611,6 +611,25 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// 次の節目 (50 コンボ) がこのプレイでまだ到達可能か (ADR-0035)。
+        /// 残りの未判定ノーツ数が、現在のコンボから次の節目までに必要な
+        /// 連続ヒット数に満たなければ false。combo % 50 == 0 のときは
+        /// 次の節目まで丸ごと 50 ヒット必要。譜面ノーツ数が不明
+        /// (chartNoteCount &lt;= 0) のときは到達不能とみなす。
+        /// </summary>
+        public static bool NextMilestoneReachable(int combo, int settledNotes, int chartNoteCount)
+        {
+            if (chartNoteCount <= 0)
+            {
+                return false;
+            }
+
+            int interval = FlashBeat.Gameplay.Scoring.MilestoneInterval;
+            int needed = interval - (combo % interval);
+            return chartNoteCount - settledNotes >= needed;
+        }
+
+        /// <summary>
         /// 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
         /// v5 では 1 節目あたり MilestoneBonusPointsV5 ratio points が
         /// 常に同じスコア点になる。v4 以前は節目ごとの加点が一定でない

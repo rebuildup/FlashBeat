@@ -161,9 +161,10 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 検証ハーネス用: コンボボーナスブロック (Issue #784)。
+        /// 検証ハーネス用: コンボボーナスブロック (Issue #784 / ADR-0035)。
         /// miss > 0 で Combo Status が隠れても表示され続けること、
-        /// 値が Scoring.ComponentScoreV4 で換算した実スコア点であることを検証する。
+        /// 値が Scoring.ComponentScoreV5 で換算した実スコア点であること、
+        /// 次の節目へ到達可能な間は未獲得でも進捗表示が出ることを検証する。
         /// </summary>
         public GameObject ComboBonusBlockForAudit
         {
@@ -174,6 +175,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         public string ComboBonusValueForAudit
         {
             get { return comboBonusValueText != null ? comboBonusValueText.text : null; }
+        }
+
+        /// <summary>検証ハーネス用: 次の節目の獲得予定表示 ("NEXT +N")。</summary>
+        public string NextBonusTextForAudit
+        {
+            get { return nextBonusText != null ? nextBonusText.text : null; }
         }
 
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
@@ -399,7 +406,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
             // v5 では 1 節目あたり一定 (MilestoneBonusPointsV5) で、
             // v4 以前は値が節目ごとに変わるため非表示 (0)。
-            int nextBonusPoints = V6HudLogic.NextMilestoneScorePoints(GManager.maxBonusRatio);
+            // 残りノーツでは次の節目へ届かない終盤は「獲得予定」を
+            // 出さない (到達不能な目標を提示しない)。
+            int nextBonusPoints = V6HudLogic.NextMilestoneReachable(
+                GManager.combo, GManager.settledNoteCount, GManager.chartNoteCount)
+                ? V6HudLogic.NextMilestoneScorePoints(GManager.maxBonusRatio)
+                : 0;
             if (nextBonusPoints != lastNextBonusPoints && nextBonusText != null)
             {
                 lastNextBonusPoints = nextBonusPoints;
@@ -409,13 +421,16 @@ namespace FlashBeat.UI.V6.Game.Hud
                     : "";
             }
 
-            // ボーナス未獲得 (獲得済みコンボボーナス == 0) の間はブロック
-            // ごと隠す。1 回でも節目に達すれば miss 後も表示を続ける
-            // (獲得済みは失われない)。
+            // ブロックの表示条件 (ADR-0035): 獲得済みコンボボーナスが
+            // あれば miss 後も表示を続ける。未獲得でも、次の節目へ
+            // まだ到達可能なら進捗ゲージと「NEXT +N」を先に見せる
+            // (到達前のゲージは次の節目までの進捗を示す契約)。
+            // 節目に一度も届かず終わったプレイでは出ない。
             if (comboBonusBlock != null)
             {
                 V6LayoutWrites.ActiveIfChanged(comboBonusBlock,
-                    V6HudLogic.ShowComboBonus(earnedComboBonus));
+                    V6HudLogic.ShowComboBonus(earnedComboBonus)
+                        || nextBonusPoints > 0);
             }
 
             // issue-162 B-4 再照合 → Issue #784 で実値化: 「+ COMBO BONUS」

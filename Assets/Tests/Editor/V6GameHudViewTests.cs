@@ -25,6 +25,8 @@ namespace FlashBeat.Tests
         private int originalComboMilestones;
         private int originalComboBonus;
         private int originalMilestoneBonus;
+        private int originalChartNoteCount;
+        private int originalSettledNoteCount;
         private float originalMaxBonusRatio;
         private bool originalLyricsEnabled;
 
@@ -37,6 +39,8 @@ namespace FlashBeat.Tests
             originalComboMilestones = GManager.comboMilestones;
             originalComboBonus = GManager.comboBonus;
             originalMilestoneBonus = GManager.milestoneBonus;
+            originalChartNoteCount = GManager.chartNoteCount;
+            originalSettledNoteCount = GManager.settledNoteCount;
             originalMaxBonusRatio = GManager.maxBonusRatio;
             originalLyricsEnabled = PlaySession.LyricsEnabled;
 
@@ -58,6 +62,8 @@ namespace FlashBeat.Tests
             GManager.comboMilestones = originalComboMilestones;
             GManager.comboBonus = originalComboBonus;
             GManager.milestoneBonus = originalMilestoneBonus;
+            GManager.chartNoteCount = originalChartNoteCount;
+            GManager.settledNoteCount = originalSettledNoteCount;
             GManager.maxBonusRatio = originalMaxBonusRatio;
             PlaySession.SetLyricsEnabled(originalLyricsEnabled);
 
@@ -227,6 +233,38 @@ namespace FlashBeat.Tests
             view.Refresh();
             Assert.IsTrue(view.ComboBonusBlockForAudit.activeSelf,
                 "節目到達でブロックが出る");
+        }
+
+        /// <summary>
+        /// ADR-0035: 到達前のゲージは次の節目までの進捗を示す契約。
+        /// v5 では獲得済みが 0 でも、残りノーツで次の節目へ届く間は
+        /// ブロックを出し「NEXT +N」を表示する。終盤で届かなくなれば
+        /// 獲得予定は消え、獲得済みも無ければブロックごと隠れる。
+        /// </summary>
+        [Test]
+        public void ComboBonus_ShowsNextMilestoneProgress_BeforeFirstCrossing()
+        {
+            GManager.milestoneBonus = 0;
+            GManager.chartNoteCount = 139;
+            GManager.settledNoteCount = 10;
+            GManager.combo = 10;
+            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(139);
+            view.Refresh();
+
+            var bonus = view.ComboBonusBlockForAudit;
+            Assert.IsTrue(bonus.activeSelf,
+                "節目未到達でも次の節目へ届く間は進捗ブロックを出す");
+            StringAssert.StartsWith("NEXT +",
+                view.NextBonusTextForAudit ?? string.Empty,
+                "次の節目の獲得予定点が表示される");
+
+            // 終盤: 残りノーツでは次の節目へ届かない → 獲得予定は消える。
+            GManager.settledNoteCount = 135; // 残り 4 < 必要 40 (combo10 → 必要40)
+            view.Refresh();
+            Assert.IsFalse(bonus.activeSelf,
+                "到達不能かつ未獲得ではブロックを隠す");
+            Assert.AreEqual("", view.NextBonusTextForAudit ?? string.Empty,
+                "到達不能では獲得予定を出さない");
         }
 
         // --- 歌詞 (issue #59) ------------------------------------------------
