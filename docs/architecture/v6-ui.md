@@ -30,21 +30,24 @@ Issue #217 (親) / #218–#223 (子) の成果。ゲーム画面・選曲画面�
 
 ## v6 と旧 UI の切替
 
-`Assets/Game/Scripts/UI/V6/V6UiMode.cs`:
+`Assets/Game/Scripts/UI/V6/V6UiMode.cs` (Issue #740 Stage B 完了後):
 
 ```csharp
-V6UiMode.GameHud = true;      // ゲーム画面: v6 の HUD + プレイフィールド
-V6UiMode.SelectScreen = true; // 選曲画面: v6 の 3 カラム
 V6UiMode.Playfield = ...;     // v6 の遠近法プレイフィールド
 V6UiMode.VideoDim  = ...;     // 動画を減光 (design の Video Dim)
 V6UiMode.VerdictRow = ...;    // レーン別判定行
+V6UiMode.TitleTabs / TitleLegend / TitleFooterActions / TitleHeaderTitle = ...; // Title の design 決定
 ```
 
-- `false` にすると旧 (v5) の UI に Fallback する (未移植画面用の退避先)。
+- 画面選択フラグ (`GameHud` / `SelectScreen`) と常時固定の互換フラグ
+  (`LegacyOverlaysHidden` / `V6PauseView.Enabled` / `V6TitleView.Enabled` /
+  `V6ResultView.Enabled`) は Stage B で撤去した。**製品の画面実装は v6 の
+  1 系統のみ**で、旧 (v5) へのフォールバック経路は存在しない。
 - v6 有効時、旧 3D プレイフィールド (`Lane` / `JudgeLine` / `LaneLight*`) と旧 HUD (`GameHudView`) は
   作られない。二重描画で崩れるため。
-- 一部の画面は `V6UiMode` ではなく **自分自身の公開フラグ** で切替する
-  (例: `V6ResultView.Enabled`)。統合担当が `V6UiMode` と連動させる。
+- 旧 UI の残存オブジェクト (GameScene の `MenuPanel` / `TextPanel` など) は
+  `GamePlayPhaseService.HideLegacyHud` が名前指定で常時非表示に保つ。
+  棚卸しの正本は `docs/architecture/v5-legacy-ui-references.md`。
 
 ### design に無い機能を理由に原有機能を削らない
 
