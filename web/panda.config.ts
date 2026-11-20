@@ -5,6 +5,7 @@ import { red } from "./src/theme/colors/red";
 import { gray } from "./src/theme/colors/gray";
 import { blue } from "./src/theme/colors/blue";
 import { amber } from "./src/theme/colors/amber";
+import { semanticColors } from "./src/theme/tokens/semantic-colors";
 import { animationStyles } from "./src/theme/animation-styles";
 import { zIndex } from "./src/theme/tokens/z-index";
 import { shadows } from "./src/theme/tokens/shadows";
@@ -108,53 +109,9 @@ export default defineConfig({
 
       semanticTokens: {
         colors: {
-          fg: {
-            default: {
-              value: {
-                _light: "{colors.gray.12}",
-                _dark: "{colors.gray.12}",
-              },
-            },
-
-            muted: {
-              value: {
-                _light: "{colors.gray.11}",
-                _dark: "{colors.gray.11}",
-              },
-            },
-
-            subtle: {
-              value: {
-                _light: "{colors.gray.10}",
-                _dark: "{colors.gray.10}",
-              },
-            },
-          },
-
-          border: {
-            value: {
-              _light: "{colors.gray.4}",
-              _dark: "{colors.gray.6}",
-            },
-          },
-
-          error: {
-            value: {
-              _light: "{colors.red.9}",
-              _dark: "{colors.red.9}",
-            },
-          },
-
-          /**
-           * Application canvas. Pen v5 `bg #1B1B1B`; the recessed surfaces
-           * (panels, lists) sit on `gray.1` (Pen `well #131313`).
-           */
-          canvas: {
-            value: {
-              _light: "{colors.gray.2}",
-              _dark: "{colors.gray.2}",
-            },
-          },
+          // Role tokens (fg/border/canvas/error/cta) live in
+          // `src/theme/tokens/semantic-colors.ts` (issue #802).
+          ...semanticColors,
 
           blue: blue,
           amber: amber,

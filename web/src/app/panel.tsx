@@ -54,9 +54,8 @@ export const pageHeaderIdentity = css({
 
 export const pageTitle = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "semibold",
-  lineHeight: "1.3",
+  /** Compact header title — same step as panel titles (issue #802). */
+  textStyle: "panelTitle",
   margin: "0",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -65,8 +64,8 @@ export const pageTitle = css({
 
 export const pageSubtitle = css({
   color: "fg.muted",
-  fontSize: "xs",
-  lineHeight: "1.4",
+  /** Shared caption step (issue #802). */
+  textStyle: "caption",
   margin: "0",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -116,15 +115,15 @@ export const panelHeader = css({
 
 export const panelTitle = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "semibold",
-  letterSpacing: "0.01em",
+  /** Shared panel-title step (issue #802). */
+  textStyle: "panelTitle",
   margin: "0",
 });
 
 export const panelSubtitle = css({
   color: "fg.muted",
-  fontSize: "xs",
+  /** Shared caption step (issue #802). */
+  textStyle: "caption",
   margin: "0",
 });
 
@@ -134,8 +133,9 @@ export const panelSubtitle = css({
  * (issue #215 review) — accent as a filled button only here, per the Pen.
  */
 export const primaryCta = css({
-  bg: "#EDEDED",
-  color: "#1B1B1B",
+  /** Pen `Prefab/Button Primary` — the `cta` semantic tokens (issue #802). */
+  bg: "cta.bg",
+  color: "cta.fg",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -151,7 +151,7 @@ export const primaryCta = css({
   _hover: { opacity: "0.9" },
   _focusVisible: {
     outline: "2px solid",
-    outlineColor: "#3FA9F5",
+    outlineColor: "blue.9",
     outlineOffset: "2px",
   },
   _disabled: { opacity: "0.4" },
@@ -183,14 +183,15 @@ export const stateBlock = css({
 
 export const stateTitle = css({
   color: "fg.default",
-  fontSize: "sm",
-  fontWeight: "semibold",
+  /** Shared panel-title step (issue #802). */
+  textStyle: "panelTitle",
   margin: "0",
 });
 
 export const stateDescription = css({
   color: "fg.muted",
-  fontSize: "xs",
+  /** Shared caption step (issue #802). */
+  textStyle: "caption",
   margin: "0",
   maxWidth: "28rem",
   wordBreak: "break-word",

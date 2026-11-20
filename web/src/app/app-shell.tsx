@@ -4,6 +4,7 @@ import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
 import { Sidebar } from "./sidebar";
+import { contentArea, shellColumns } from "./shell-metrics";
 import { WelcomeHero } from "@/components/welcome/welcome-hero";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import { isAbortError, useLatestRequest } from "./request-guard";
@@ -26,12 +27,10 @@ import type { SongSummary } from "./types";
  */
 const shell = css({
   display: { base: "block", md: "grid" },
-  gridTemplateColumns: { md: "13rem minmax(0, 1fr)" },
   gridTemplateRows: { md: "1fr" },
   minHeight: "100dvh",
   "&[data-fixed]": {
     display: "grid",
-    gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
     gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
     height: "100dvh",
     overflow: "hidden",
@@ -49,17 +48,6 @@ const mainFixed = css({
   height: "full",
 });
 
-/** Work area of scrolling pages: padded, one inner scroll area. */
-const content = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  gap: "3",
-  minHeight: "0",
-  overflowY: "auto",
-  p: "4",
-});
-
 export function StudioShell({
   children,
   scroll = true,
@@ -69,7 +57,7 @@ export function StudioShell({
   scroll?: boolean;
 }) {
   return (
-    <div className={shell} data-fixed={scroll ? undefined : "true"}>
+    <div className={cx(shell, shellColumns)} data-fixed={scroll ? undefined : "true"}>
       <Sidebar />
       <main id="studio-content" className={cx(main, !scroll && mainFixed)}>
         {children}
@@ -211,7 +199,7 @@ export function AppShell({
         onSortChange={setSort}
       />
 
-      <div className={content}>
+      <div className={contentArea}>
         <CatalogPanel
           status={effectiveStatus}
           songs={visibleSongs}

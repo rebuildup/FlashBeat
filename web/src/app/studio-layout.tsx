@@ -1,7 +1,8 @@
-import { css } from "styled-system/css";
+import { css, cx } from "styled-system/css";
 import type { ReactNode } from "react";
 import { Sidebar } from "./sidebar";
 import { PageHeader } from "./page-header";
+import { contentArea, shellColumns } from "./shell-metrics";
 
 /**
  * The layout of a studio page (issue #151).
@@ -12,8 +13,7 @@ import { PageHeader } from "./page-header";
  */
 export const shell = css({
   display: "grid",
-  gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
-  gridTemplateRows: { base: "auto 1fr", md: "1fr" },
+  gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
   height: "100dvh",
   overflow: "hidden",
 });
@@ -23,16 +23,6 @@ const main = css({
   flexDirection: "column",
   minHeight: "0",
   minWidth: "0",
-});
-
-const content = css({
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  gap: "5",
-  minHeight: "0",
-  overflowY: "auto",
-  p: "5",
 });
 
 export function StudioLayout({
@@ -48,11 +38,11 @@ export function StudioLayout({
   children: ReactNode;
 }) {
   return (
-    <div className={shell}>
+    <div className={cx(shell, shellColumns)}>
       <Sidebar active={active} />
       <main className={main}>
         <PageHeader title={title} subtitle={subtitle} />
-        <div className={content}>{children}</div>
+        <div className={contentArea}>{children}</div>
       </main>
     </div>
   );

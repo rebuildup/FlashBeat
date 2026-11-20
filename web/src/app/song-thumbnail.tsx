@@ -34,9 +34,12 @@ const thumbnail = css({
   borderRadius: "l1",
   display: "block",
   flexShrink: "0",
-  height: "2.25rem",
+  /**
+   * Issue #802: 3rem tall (≈5.3rem wide at 16:9) — the v0.2.3 review found
+   * the 2.25rem thumb too small to recognize a song at a glance.
+   */
+  height: "3rem",
   objectFit: "cover",
-  width: "4rem",
 });
 
 export function SongThumbnail({ youtubeId, title }: { youtubeId: string; title: string }) {

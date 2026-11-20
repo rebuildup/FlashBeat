@@ -30,16 +30,18 @@ const heading = css({
 
 const titleText = css({
   color: "fg.default",
-  fontSize: "xl",
-  fontWeight: "semibold",
-  letterSpacing: "-0.01em",
-  lineHeight: "1.2",
+  /** Shared page-heading step (issue #802). */
+  textStyle: "pageTitle",
   margin: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const subtitleText = css({
   color: "fg.muted",
-  fontSize: "sm",
+  /** Shared secondary-text step (issue #802). */
+  textStyle: "rowMeta",
   margin: "0",
 });
 
