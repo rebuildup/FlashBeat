@@ -1,0 +1,64 @@
+[AutoTestV6SongEnd] start: song='ツイッターランド' outDir='/Users/rebui/work/FlashBeat/docs/evidence/739-noteprobe/1db05d5a-baseline' playfield=0'
+[AutoTestV6SongEnd] PASS the select scene is loaded
+[AutoTestV6SongEnd] PASS the v6 select view exists
+[AutoTestV6SongEnd] PASS the data source is present
+[AutoTestV6SongEnd] PASS the catalog has more than one song
+[AutoTestV6SongEnd] PASS the song 'ツイッターランド' is in the catalog
+[AutoTestV6SongEnd] PASS the selection follows the picked song
+[AutoTestV6SongEnd] chart: title='ツイッターランド' notes=130
+[AutoTestV6SongEnd] PASS the screenshot 01-select was written
+[AutoTestV6SongEnd] resetting the session before the play (stale judged=0 stale score=0)
+[PerfProbe] event=window scene=SelectScene frames=299 avgFps=59.6 p50=16.7 p95=17.6 p99=17.7 worst=66.8 gc0=0 gcKBPerFrame=0.6
+[AutoTestV6SongEnd] PASS ready starts the game scene
+[AutoTestV6SongEnd] PASS the started song is the picked one
+[AutoTestV6SongEnd] PASS the original 3D lanes are kept
+[PerfProbe] event=window scene=GameScene frames=294 avgFps=58.8 p50=16.7 p95=17.7 p99=17.7 worst=116.8 gc0=10 gcKBPerFrame=6.9
+[AutoTestV6SongEnd] loading: observed=False seconds=0.00 chartProgress=-1.00
+[AutoTestV6SongEnd] PASS the screenshot 02-game was written
+[AutoTestV6SongEnd] PASS the music manager exists
+[AutoTestV6SongEnd] PASS the media pipeline finished
+[AutoTestV6SongEnd] media: ready=True audioMode=StreamCombined videoPrepared=True failure=None
+[PerfProbe] event=window scene=GameScene frames=298 avgFps=59.6 p50=16.7 p95=17.6 p99=17.7 worst=49.8 gc0=5 gcKBPerFrame=0.6
+[AutoTestV6SongEnd] PASS the playback started
+[AutoTestV6SongEnd] PASS the screenshot 03-gameplay was written
+[NoteProbe] event=window scene=GameScene frames=299 avgFps=59.8 stepHz=29.8 stepRate=1.000 stepZeroPct=49.8 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=51.1 noteHz=27.4 noteSeenPct=89.6 videoFps=0.0 videoRate=1.000 avDriftMs=-0.3 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=299 avgFps=59.6 p50=16.7 p95=17.6 p99=17.7 worst=50.8 gc0=5 gcKBPerFrame=0.8
+[NoteProbe] event=window scene=GameScene frames=301 avgFps=60.0 stepHz=29.9 stepRate=0.997 stepZeroPct=49.8 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=51.4 noteHz=28.3 noteSeenPct=91.7 videoFps=0.0 videoRate=1.003 avDriftMs=16.4 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=300 avgFps=60.0 p50=16.7 p95=17.7 p99=17.7 worst=17.8 gc0=5 gcKBPerFrame=0.0
+[NoteProbe] event=window scene=GameScene frames=301 avgFps=60.0 stepHz=29.7 stepRate=0.990 stepZeroPct=50.2 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=51.2 noteHz=25.5 noteSeenPct=83.1 videoFps=0.0 videoRate=0.997 avDriftMs=0.8 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=301 avgFps=60.0 p50=16.7 p95=17.6 p99=17.7 worst=17.7 gc0=5 gcKBPerFrame=-3.3
+[NoteProbe] event=window scene=GameScene frames=301 avgFps=60.0 stepHz=29.9 stepRate=0.997 stepZeroPct=49.8 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=52.3 noteHz=27.1 noteSeenPct=86.4 videoFps=0.0 videoRate=1.003 avDriftMs=16.6 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=300 avgFps=60.0 p50=16.7 p95=17.7 p99=17.7 worst=17.7 gc0=5 gcKBPerFrame=0.5
+[NoteProbe] event=window scene=GameScene frames=300 avgFps=60.0 stepHz=29.8 stepRate=0.993 stepZeroPct=50.0 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=53.1 noteHz=27.0 noteSeenPct=84.7 videoFps=0.0 videoRate=1.000 avDriftMs=16.4 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=301 avgFps=60.0 p50=16.7 p95=17.7 p99=17.7 worst=17.7 gc0=5 gcKBPerFrame=0.4
+[NoteProbe] event=window scene=GameScene frames=301 avgFps=60.0 stepHz=29.9 stepRate=0.997 stepZeroPct=49.8 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=50.7 noteHz=27.3 noteSeenPct=89.7 videoFps=0.0 videoRate=0.997 avDriftMs=0.8 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=301 avgFps=60.0 p50=16.7 p95=17.7 p99=17.7 worst=17.7 gc0=5 gcKBPerFrame=0.3
+[NoteProbe] event=window scene=GameScene frames=300 avgFps=60.0 stepHz=30.0 stepRate=1.000 stepZeroPct=49.7 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=51.0 noteHz=24.6 noteSeenPct=80.3 videoFps=0.0 videoRate=1.000 avDriftMs=-0.2 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=301 avgFps=60.0 p50=16.7 p95=17.7 p99=17.7 worst=17.8 gc0=5 gcKBPerFrame=-1.1
+[NoteProbe] event=window scene=GameScene frames=301 avgFps=60.0 stepHz=29.9 stepRate=0.997 stepZeroPct=49.8 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=51.8 noteHz=28.1 noteSeenPct=90.4 videoFps=0.0 videoRate=0.997 avDriftMs=-15.9 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=GameScene frames=300 avgFps=60.0 p50=16.7 p95=17.6 p99=17.7 worst=17.7 gc0=5 gcKBPerFrame=0.5
+[NoteProbe] event=window scene=GameScene frames=300 avgFps=60.0 stepHz=30.0 stepRate=1.000 stepZeroPct=49.7 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=58.3 noteHz=2.8 noteSeenPct=8.0 videoFps=0.0 videoRate=1.006 avDriftMs=16.6 avDriftMaxMs=16.7
+[AutoTestV6SongEnd] playback summary: songEndState=Completed mediaTime=45.90 hitsSent=130 perfect=130 great=0 bad=0 miss=0 score=1000000 combo=130 maxCombo=130 comboPeak=130 judged=130 settled=130 chartNotes=130 runtimeNotes=130 forcedByDeadline=False
+[AutoTestV6SongEnd] PASS the media clock advances
+[AutoTestV6SongEnd] PASS the chart note count is known
+[AutoTestV6SongEnd] PASS the runtime note count matches the chart (runtimeNotes == chartNotes)
+[AutoTestV6SongEnd] PASS every chart note is settled (settled == chart notes)
+[AutoTestV6SongEnd] PASS the score is greater than zero
+[AutoTestV6SongEnd] PASS the combo rises above zero during the playback (GManager.combo peaked above zero)
+[AutoTestV6SongEnd] PASS the peak combo is recorded (GManager.maxCombo > 0)
+[AutoTestV6SongEnd] PASS the song end state machine completes
+[AutoTestV6SongEnd] PASS the song end is not a forced deadline completion
+[AutoTestV6SongEnd] PASS the result scene is loaded
+[PerfProbe] event=window scene=ResultScene frames=298 avgFps=59.5 p50=16.7 p95=17.7 p99=18.6 worst=50.7 gc0=7 gcKBPerFrame=-7.8
+[AutoTestV6SongEnd] result screen: v6ResultCanvas=True nonEmptyTextUnderCanvas=True titleFound=True scoreFound=True textsUnderCanvas=83 texts=193 scene=ResultScene
+[AutoTestV6SongEnd] PASS the v6 result canvas exists
+[AutoTestV6SongEnd] PASS the v6 result canvas has non-empty text
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the song title
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the final score
+[AutoTestV6SongEnd] PASS the screenshot 04-result was written
+[AutoTestV6SongEnd] PASS the judgement total equals the chart note count (the ranking acceptance condition)
+[AutoTestV6SongEnd] PASS the ranking registration mode is resolved
+[AutoTestV6SongEnd] ranking: judged=130 chartNotes=130 registrationMode=Online
+[AutoTestV6SongEnd] RESULT pass=32 fail=0
+[NoteProbe] event=window scene=GameScene frames=49 avgFps=10.5 stepHz=5.1 stepRate=0.171 stepZeroPct=49.0 stepP50Ms=33.3 stepP95Ms=33.3 jumps=0 noteMovePct=0.0 noteHz=0.0 noteSeenPct=0.0 videoFps=0.0 videoRate=0.171 avDriftMs=0.9 avDriftMaxMs=16.7
+[PerfProbe] event=window scene=ResultScene frames=198 avgFps=59.0 p50=16.7 p95=17.1 p99=40.1 worst=49.9 gc0=0 gcKBPerFrame=0.7
