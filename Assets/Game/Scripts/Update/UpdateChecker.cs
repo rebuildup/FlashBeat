@@ -5,7 +5,6 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
 
 namespace FlashBeat.Update
@@ -63,7 +62,6 @@ namespace FlashBeat.Update
 
         private UpdateStaging.StagedUpdate staged;
         private ReleaseAsset pendingZip;
-        private UnityEngine.UI.Button optionApplyButton;
 
         /// <summary>実行中のビルドの配布プラットフォーム。Release タグの絞り込みに使う。</summary>
         private static UpdatePlatform CurrentPlatform
@@ -95,13 +93,7 @@ namespace FlashBeat.Update
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
-            SceneManager.sceneLoaded += OnSceneLoaded;
             StartCoroutine(CheckForUpdate());
-        }
-
-        private void OnDestroy()
-        {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 
         /// <summary>
@@ -642,75 +634,10 @@ namespace FlashBeat.Update
             return UpdateVersion.IsNewerThan(tagId, current);
         }
 
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            if (scene.name != "OptionScene") { return; }
-            StartCoroutine(CreateOptionButtonNextFrame());
-        }
-
-        private IEnumerator CreateOptionButtonNextFrame()
-        {
-            yield return null; // OptionScene 側の UI 構築を待つ
-            CreateOptionApplyButton();
-        }
-
-        /// <summary>Option に「更新を適用して再起動」ボタンを出す (既存 uGUI の TMP フォントを流用)。
-        /// staging 済み更新が無いときは出さない。押すことは明示的なユーザー同意である。</summary>
-        private void CreateOptionApplyButton()
-        {
-            // v6: 更新の導線は Title ヘッダーの更新ボタン (正本 D7gbLV) のみ。
-            // 旧 Option の適用ボタンは DontDestroyOnLoad の Canvas に残り、
-            // 全シーン (HUD のキーガイド上) に重なるため生成しない。
-            if (FlashBeat.UI.V6.V6UiMode.LegacyOverlaysHidden) { return; }
-            if (staged == null || optionApplyButton != null) { return; }
-
-            Canvas canvas = null;
-            foreach (var candidate in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-            {
-                if (candidate.isRootCanvas && candidate.gameObject.activeInHierarchy) { canvas = candidate; break; }
-            }
-            if (canvas == null) { return; }
-
-            TMPro.TMP_Text fontSource = null;
-            foreach (var text in FindObjectsByType<TMPro.TextMeshProUGUI>(FindObjectsSortMode.None))
-            {
-                if (text.isActiveAndEnabled && text.font != null) { fontSource = text; break; }
-            }
-
-            var root = new GameObject("UpdateApplyButton",
-                typeof(UnityEngine.UI.Image),
-                typeof(UnityEngine.UI.Button),
-                typeof(UpdateApplyButtonMarker));
-            root.transform.SetParent(canvas.transform, false);
-            root.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.6f);
-
-            var rect = root.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-24f, 24f);
-            rect.sizeDelta = new Vector2(360f, 56f);
-
-            var labelGo = new GameObject("Label", typeof(TMPro.TextMeshProUGUI));
-            labelGo.transform.SetParent(root.transform, false);
-            var label = labelGo.GetComponent<TMPro.TextMeshProUGUI>();
-            if (fontSource != null) { label.font = fontSource.font; }
-            label.text = "更新を適用して再起動 (" + staged.tag + ")";
-            label.fontSize = 22;
-            label.alignment = TMPro.TextAlignmentOptions.Center;
-            label.color = Color.white;
-            var labelRect = label.GetComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.sizeDelta = Vector2.zero;
-
-            optionApplyButton = root.GetComponent<UnityEngine.UI.Button>();
-            optionApplyButton.onClick.AddListener(ApplyStagedUpdateNow);
-            Debug.Log("[UpdateChecker] Option に「更新を適用して再起動」ボタンを追加しました (" + staged.tag + ")。");
-        }
-
-        /// <summary>Option の「更新を適用して再起動」から呼ぶ。ユーザーの明示的な同意であり、
-        /// ここからだけが適用への入口 (OnApplicationQuit からの自動適用は存在しない)。</summary>
+        /// <summary>staging 済み更新を今すぐ適用する。ユーザーの明示的な同意であり、
+        /// ここからだけが適用への入口 (OnApplicationQuit からの自動適用は存在しない)。
+        /// かつての Option 画面ボタンは Issue #740 Stage B で撤去 (更新導線は
+        /// Title ヘッダー / UpdateNoticeUI.Trigger → RequestApply)。</summary>
         public static void ApplyStagedUpdateNow()
         {
             var checker = FindAnyObjectByType<UpdateChecker>();
@@ -935,10 +862,5 @@ namespace FlashBeat.Update
             appBundle = contents.Parent.FullName;
             return true;
         }
-    }
-
-    /// <summary>Option に作った適用ボタンの重複生成防止マーカー。</summary>
-    public class UpdateApplyButtonMarker : MonoBehaviour
-    {
     }
 }

@@ -72,7 +72,6 @@ namespace FlashBeat.UI.V6
 
         private static void Ensure()
         {
-            if (!V6UiMode.GameHud) return;
             if (FindObjectOfType<V6GameRuntime>() != null) return;
 
             var go = new GameObject("V6GameUi");
@@ -410,7 +409,7 @@ namespace FlashBeat.UI.V6
 
         /// <summary>
         /// v6 のポーズ / 曲ローディング (#224)。旧 v5 の実装は作らない
-        /// (V6UiMode.GameHud が有効なときだけ v6 側を作る)。
+        /// (v6 が唯一の実装 — Issue #740 Stage B)。
         /// </summary>
         private void BuildPauseAndLoading()
         {

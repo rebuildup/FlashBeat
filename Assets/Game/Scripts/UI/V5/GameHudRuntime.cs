@@ -91,14 +91,6 @@ namespace FlashBeat.UI.V5
             if (phaseService != null) phaseService.Tick();
         }
 
-        private void LateUpdate()
-        {
-            // レガシーのポーズメニュー (Animator 付き) が開かないようにする。
-            // GameSceneManager の Esc ハンドラが毎回 OpenMenu するため、
-            // 開いた直後に閉じて、歌詞パネルの非表示フラグを元に戻す。
-            if (phaseService != null) phaseService.KeepLegacyMenuClosed();
-        }
-
         /// <summary>
         /// レガシー Canvas の GraphicRaycaster を無効化する (Issue #167)。
         /// レガシー Canvas は sortingOrder 0 で v5 HUD (-1) より手前にあり、
@@ -144,6 +136,10 @@ namespace FlashBeat.UI.V5
         {
             "SpacetoStart", "ScoreText", "comboText", "Score", "Gauge",
             "HudStatus", "HudBackToSelectButton", "MenuPanel", "MenuButton",
+            // 旧歌詞パネル。かつては GameSceneManager.ApplyTextPanelVisibility が
+            // v6 では常に SetActive(false) にしていた。Stage B で同メソッドを撤去した
+            // ため、ここで名前指定の非表示対象に加える (v6 HUD が歌詞を描く)。
+            "TextPanel",
         };
 
         /// <summary>ロード中シグナルとして残す旧オブジェクトの名前。</summary>

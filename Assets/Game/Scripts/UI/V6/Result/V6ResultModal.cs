@@ -41,8 +41,6 @@ namespace FlashBeat.UI.V6.Result
         private TextMeshProUGUI modalNameHint;
         private TextMeshProUGUI modalRegisterLabel;
         private Button modalRegisterButton;
-        private ResultRankingOverlay legacyOverlay;
-        private bool legacyOverlayWasEnabled;
         private TextMeshProUGUI modalSongTitle;
         private TextMeshProUGUI modalSongArtist;
         private TextMeshProUGUI modalGrade;
@@ -366,11 +364,6 @@ namespace FlashBeat.UI.V6.Result
             ApplyRegistrationModeTexts();
             HideSubmitChip();
 
-            // 旧オーバーレイ (ResultRankingOverlay) は Result シーンで自動で
-            // モーダルを開き、キーも処理する。二重モーダルと二重入力を防ぐため
-            // v6 モーダル表示中は停止し、閉じたら戻す (ソースは編集しない)。
-            SuspendLegacyOverlay();
-
             RefreshModal();
             SetModalStatus(gate.Failed ? SubmitStatusText() : "",
                 gate.Failed ? V6Tokens.DangerLight : V5Tokens.TextMuted);
@@ -400,7 +393,6 @@ namespace FlashBeat.UI.V6.Result
             HideSubmitChip();
             modal.SetActive(false);
             RestoreModalPan();
-            ResumeLegacyOverlay();
             FlashBeat.UI.SceneInputGate.BlockThisFrame();
         }
 
@@ -843,35 +835,6 @@ namespace FlashBeat.UI.V6.Result
             if (modalRegisterButton != null)
             {
                 modalRegisterButton.interactable = interactable;
-            }
-        }
-
-        private void SuspendLegacyOverlay()
-        {
-            if (legacyOverlay == null)
-            {
-                legacyOverlay = UnityEngine.Object.FindFirstObjectByType<ResultRankingOverlay>();
-            }
-
-            if (legacyOverlay != null)
-            {
-                // 停止前の状態を覚えておく。統合側が v6 有効時に先に enabled=false して
-                // いる場合、モーダルを閉じたときに再有効化して自動モーダルを
-                // 復活させてしまわないようにする。
-                legacyOverlayWasEnabled = legacyOverlay.enabled;
-                legacyOverlay.enabled = false;
-            }
-        }
-
-        private void ResumeLegacyOverlay()
-        {
-            if (legacyOverlay != null)
-            {
-                if (legacyOverlayWasEnabled)
-                {
-                    legacyOverlay.enabled = true;
-                }
-                legacyOverlay = null;
             }
         }
 

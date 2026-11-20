@@ -36,89 +36,41 @@ public class AutoTestKeyGuide : MonoBehaviour
         Check("on TitleScene", SceneManager.GetActiveScene().name == "TitleScene");
 
         // v6 title: キー案内はフッター凡例 (静的な Legend Label) が担う。
-        // 旧 KeyGuideUI パネル (レーン別キー行) は V5 専用で、v6 では作られない。
+        // 旧 KeyGuideUI パネル (レーン別キー行) は V5 専用で、v6 では作られない
+        // (Issue #740 Stage B: v6 が唯一の実装)。
         // レーン別キー行の正しさはゲーム HUD 側 (KeyGuideMode) と EditMode テストが担保する。
-        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
+        Check("the v6 title view exists",
+            FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
+        Check("the legacy key guide panel does not exist",
+            FindFirstObjectByType<KeyGuideUI>() == null);
+
+        int legendCount = 0;
+        bool hasJapaneseFont = false;
+        bool hasJapaneseText = false;
+        foreach (var label in FindObjectsByType<TMPro.TextMeshProUGUI>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            Check("the v6 title view exists",
-                FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
-
-            int legendCount = 0;
-            bool hasJapaneseFont = false;
-            bool hasJapaneseText = false;
-            foreach (var label in FindObjectsByType<TMPro.TextMeshProUGUI>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (label == null || !label.name.StartsWith("Legend Label", StringComparison.Ordinal))
             {
-                if (label == null || !label.name.StartsWith("Legend Label", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-                legendCount++;
-                if (label.font != null && label.font.name != null &&
-                    (label.font.name.Contains("Noto") || label.font.name.Contains("YuGoth")))
-                {
-                    hasJapaneseFont = true;
-                }
-                if (!string.IsNullOrEmpty(label.text) && ContainsJapanese(label.text))
-                {
-                    hasJapaneseText = true;
-                }
+                continue;
             }
-            Check("the title footer legend exists", legendCount >= 3);
-            Check("the legend uses a Japanese font", hasJapaneseFont);
-            Check("the legend shows Japanese text", hasJapaneseText);
-
-            ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-keyguide.png"));
-            yield return new WaitForSecondsRealtime(0.5f);
-        }
-        else
-        {
-        KeyGuideUI guide = UnityEngine.Object.FindFirstObjectByType<KeyGuideUI>();
-        Check("the key guide was created on the title screen", guide != null);
-
-        if (guide != null)
-        {
-            for (int lane = 0; lane < KeyBindings.DefaultKeys.Length; lane++)
+            legendCount++;
+            if (label.font != null && label.font.name != null &&
+                (label.font.name.Contains("Noto") || label.font.name.Contains("YuGoth")))
             {
-                string row = guide.GetRowLabel(lane);
-                bool ok = !string.IsNullOrEmpty(row);
-                if (ok)
-                {
-                    foreach (KeyCode key in Judge.LaneKeys[lane])
-                    {
-                        if (!row.Contains(KeyGuideUI.GetKeyDisplayName(key))) { ok = false; break; }
-                    }
-                }
-                Check("lane " + (lane + 1) + " lists its keys", ok);
+                hasJapaneseFont = true;
             }
-
-            guide.SetVisible(true);
-            yield return new WaitForEndOfFrame();
-            Check("the guide can be shown", guide.IsVisible);
-
-            var labels = guide.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true);
-            bool hasJapaneseFont = false;
-            bool hasJapaneseText = false;
-            for (int i = 0; i < labels.Length; i++)
+            if (!string.IsNullOrEmpty(label.text) && ContainsJapanese(label.text))
             {
-                if (labels[i] == null) { continue; }
-                if (labels[i].font != null && labels[i].font.name != null &&
-                    (labels[i].font.name.Contains("Noto") || labels[i].font.name.Contains("YuGoth")))
-                {
-                    hasJapaneseFont = true;
-                }
-                if (!string.IsNullOrEmpty(labels[i].text) && labels[i].text.Contains("キーガイド"))
-                {
-                    hasJapaneseText = true;
-                }
+                hasJapaneseText = true;
             }
-            Check("the guide uses a Japanese font", hasJapaneseFont);
-            Check("the guide shows a Japanese title", hasJapaneseText);
+        }
+        Check("the title footer legend exists", legendCount >= 3);
+        Check("the legend uses a Japanese font", hasJapaneseFont);
+        Check("the legend shows Japanese text", hasJapaneseText);
 
-            ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-keyguide.png"));
-            yield return new WaitForSecondsRealtime(0.5f);
-        }
-        }
+        ScreenCapture.CaptureScreenshot(Path.Combine(outDir, "autotest-keyguide.png"));
+        yield return new WaitForSecondsRealtime(0.5f);
 
         Debug.Log("[AutoTest] RESULT keyguide pass=" + pass + " fail=" + fail);
         try

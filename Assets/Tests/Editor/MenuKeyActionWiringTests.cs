@@ -14,8 +14,9 @@ using FlashBeat.UI.V5;
 ///   (Enter は #146 の決定に従い生入力のまま残す箇所があるため対象外)
 /// - 入力: 対象シーン/ビューが Esc と Space を直接読まず、
 ///   KeyActions.IsDown (Back/Confirm) 経由で読むこと。
-///   KeyConfigUI (F2 トグル) / UpdateNoticeUI (F3/F4) / KeyConfigOptionButton (Tab フォーカス) は
-///   KeyActions に存在しない固定ショートカットなので対象外。
+///   KeyConfigUI (F2 トグル) / UpdateNoticeUI (F3/F4) は
+///   KeyActions に存在しない固定ショートカットなので対象外
+///   (かつての KeyConfigOptionButton / ResultRankingOverlay は #740 Stage B で削除)。
 ///
 /// Issue #740 で v5 View は削除済み。走査対象は v6 画面 (UI/V6 以下) と
 /// メニュー系シーンマネージャに置き換えた。v6 側で Esc/Space の生読みが
@@ -160,7 +161,6 @@ public class MenuKeyActionWiringTests
 
         result.Add("Game/Scripts/UI/SelectSceneManager.cs");
         result.Add("Game/Scripts/UI/ResultSceneManager.cs");
-        result.Add("Game/Scripts/UI/ResultRankingOverlay.cs");
         result.Sort(System.StringComparer.Ordinal);
         return result.ToArray();
     }

@@ -116,25 +116,18 @@ public static class SongEndAcceptanceRig
         notePrefab.transform.SetParent(root.transform);
         SetPrivateField(target, "noteObj", notePrefab);
 
-        // 旧ローディング画面 (uGUI) を出さないようにする (UI 副作用を避ける)。
-        bool savedGameHud = FlashBeat.UI.V6.V6UiMode.GameHud;
-        FlashBeat.UI.V6.V6UiMode.GameHud = true;
-        try
-        {
-            MethodInfo load = typeof(NotesManager).GetMethod("LoadRoutine",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(load, "NotesManager.LoadRoutine が見つからない");
+        // Issue #740 Stage B: 旧ローディング画面の分岐は撤去済み。
+        // LoadRoutine は進捗を V6LoadingView (GameLoadingProgress) に報告するだけで、
+        // UI 副作用は無い (フラグの退避も不要になった)。
+        MethodInfo load = typeof(NotesManager).GetMethod("LoadRoutine",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(load, "NotesManager.LoadRoutine が見つからない");
 
-            var routine = load.Invoke(target, new object[] { PlaySessionSnapshot.Current.Song }) as IEnumerator;
-            Assert.IsNotNull(routine, "LoadRoutine のコルーチンが取得できない");
+        var routine = load.Invoke(target, new object[] { PlaySessionSnapshot.Current.Song }) as IEnumerator;
+        Assert.IsNotNull(routine, "LoadRoutine のコルーチンが取得できない");
 
-            while (routine.MoveNext())
-            {
-            }
-        }
-        finally
+        while (routine.MoveNext())
         {
-            FlashBeat.UI.V6.V6UiMode.GameHud = savedGameHud;
         }
     }
 

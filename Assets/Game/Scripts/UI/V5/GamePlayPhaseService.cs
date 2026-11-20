@@ -46,7 +46,6 @@ namespace FlashBeat.UI.V5
         private const float LegacyHideInterval = 0.5f;
 
         private float nextLegacyHide;
-        private GameObject legacyMenuPanel;
         private GameObject legacyLoadingIndicator;
 
         /// <summary>
@@ -146,44 +145,6 @@ namespace FlashBeat.UI.V5
             HideLegacyHud();
         }
 
-        /// <summary>
-        /// レガシーの OpenMenu は歌詞パネルを消したままにする (menuVisible は private)。
-        /// ポーズを閉じたら歌詞表示を戻す。
-        /// </summary>
-        internal void RestoreLyricsVisibility()
-        {
-            if (Controller == null) return;
-            if (legacyMenuPanel == null)
-            {
-                legacyMenuPanel = FindFirstDeep("MenuPanel");
-                if (legacyMenuPanel == null) return;
-            }
-
-            var manager = legacyMenuPanel.GetComponentInParent<GameSceneManager>();
-            if (manager == null) manager = FindFirstObjectByType<GameSceneManager>();
-            if (manager == null) return;
-            var field = typeof(GameSceneManager).GetField("menuVisible",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null) field.SetValue(manager, false);
-            manager.TextPanelOn();
-        }
-
-        /// <summary>レガシーのポーズメニューが開かないようにする (LateUpdate から呼ぶ)。</summary>
-        internal void KeepLegacyMenuClosed()
-        {
-            if (legacyMenuPanel == null)
-            {
-                legacyMenuPanel = FindFirstDeep("MenuPanel");
-                if (legacyMenuPanel == null) return;
-            }
-
-            if (legacyMenuPanel.activeSelf)
-            {
-                legacyMenuPanel.SetActive(false);
-                RestoreLyricsVisibility();
-            }
-        }
-
         internal bool IsLegacyLoadingIndicatorActive()
         {
             return legacyLoadingIndicator != null && legacyLoadingIndicator.activeInHierarchy;
@@ -244,15 +205,6 @@ namespace FlashBeat.UI.V5
                 }
             }
             return found;
-        }
-
-        /// <summary>非アクティブも含めて名前で最初の 1 つを返す。</summary>
-        private GameObject FindFirstDeep(string name)
-        {
-            if (Controller == null) return null;
-            var roots = Controller.gameObject.scene.GetRootGameObjects();
-            var found = FindAllDeep(roots, name);
-            return found.Count > 0 ? found[0] : null;
         }
 
         private static void DisableVisuals(GameObject go)

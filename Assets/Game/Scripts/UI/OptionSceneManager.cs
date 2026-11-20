@@ -132,7 +132,7 @@ public class OptionSceneManager : MonoBehaviour
     /// <summary>
     /// active シーン内の全 Canvas (名前・active 状態を問わず) を非表示にする。
     /// Option は常に v6 で描画されるため、旧 Canvas が何であれ v6 と重なる前に隠す。
-    /// DontDestroyOnLoad の Canvas (ResultRankingOverlay の RankingPanel など) は
+    /// DontDestroyOnLoad の Canvas (実行時生成のオーバーレイなど) は
     /// active シーン外なので対象外。
     /// </summary>
     public static void HideLegacySceneCanvases()
@@ -209,8 +209,8 @@ public class OptionSceneManager : MonoBehaviour
         // シーン内の旧 Canvas は名前に関係なく全て非表示にする ("Canvas" 以外の
         // 名前の Canvas が残って v6 と重なるのを防ぐ)。v6 Canvas はこの直後に
         // NewScreenCanvas で作られるので、この時点で active シーンに見える
-        // Canvas は全て旧 UI。DontDestroyOnLoad 側 (ResultRankingOverlay の
-        // RankingPanel など) は active シーン外なので触らない。
+        // Canvas は全て旧 UI。DontDestroyOnLoad 側 (実行時生成のオーバーレイ
+        // など) は active シーン外なので触らない。
         HideLegacySceneCanvases();
 
         var canvas = FlashBeat.UI.V5.V5GameUi.NewScreenCanvas("V6 Option Canvas");

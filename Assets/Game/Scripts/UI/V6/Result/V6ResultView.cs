@@ -33,12 +33,6 @@ namespace FlashBeat.UI.V6.Result
     /// </summary>
     public sealed partial class V6ResultView
     {
-        /// <summary>
-        /// v6 Result を出すか (統合担当が V6UiMode から切替えるための公開フラグ)。
-        /// 既定 true。false のとき ResultSceneManager は従来どおり v5 ResultView を作る。
-        /// </summary>
-        public static bool Enabled = true;
-
         // --- design px 定数 (zcSHh / lqHaN 実測) ---
         private const float FrameW = 1728f;
         private const float FrameH = 972f;
@@ -138,8 +132,6 @@ namespace FlashBeat.UI.V6.Result
                 V5GameUi.DestroyNow(rootGo);
                 rootGo = null;
             }
-
-            ResumeLegacyOverlay();
         }
 
         /// <summary>

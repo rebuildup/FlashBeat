@@ -43,46 +43,25 @@ public class AutoTestPlay : MonoBehaviour
 
         // 2. The title screen shows its key legend. v6 draws a static footer
         // legend (V6UiMode.TitleLegend); the toggleable KeyGuideUI panel is a
-        // V5-only surface and must not exist on the v6 title.
-        if (FlashBeat.UI.V6.Title.V6TitleView.Enabled)
+        // V5-only surface and must not exist on the v6 title (Issue #740 Stage B:
+        // v6 が唯一の実装)。
+        Check("the v6 title view exists",
+            FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
+        if (FlashBeat.UI.V6.V6UiMode.TitleLegend)
         {
-            Check("the v6 title view exists",
-                FindFirstObjectByType<FlashBeat.UI.V6.Title.V6TitleViewDriver>() != null);
-            if (FlashBeat.UI.V6.V6UiMode.TitleLegend)
-            {
-                Check("the title screen shows its key legend", CountLegendLabels() > 0);
-                yield return Screenshot("02-keylegend");
-            }
+            Check("the title screen shows its key legend", CountLegendLabels() > 0);
+            yield return Screenshot("02-keylegend");
         }
-        else
-        {
-            KeyGuideUI guide = FindFirstObjectByType<KeyGuideUI>();
-            Check("the key guide exists on the title screen", guide != null);
-            if (guide != null)
-            {
-                guide.SetVisible(true);
-                yield return new WaitForSecondsRealtime(0.4f);
-                Check("the key guide opens", guide.IsVisible);
-                yield return Screenshot("02-keyguide");
-                guide.SetVisible(false);
-            }
-        }
+        Check("the legacy key guide panel does not exist",
+            FindFirstObjectByType<KeyGuideUI>() == null);
 
-        // 3. Song select: the guide must exist there too.
+        // 3. Song select: v6 has a footer key legend instead of the legacy guide panel.
         SceneManager.LoadScene("SelectScene");
         yield return new WaitForSecondsRealtime(4f);
         Check("the select screen is shown", SceneManager.GetActiveScene().name == "SelectScene");
-        // v6 select has a footer key legend instead of the legacy guide panel.
-        if (FlashBeat.UI.V6.V6UiMode.SelectScreen)
-        {
-            Check("the v6 select view exists",
-                FindFirstObjectByType<FlashBeat.UI.V6.Select.View.V6SelectViewDriver>() != null);
-            Check("the select screen shows its key legend", CountLegendLabels() > 0);
-        }
-        else
-        {
-            Check("the key guide exists on the select screen", FindFirstObjectByType<KeyGuideUI>() != null);
-        }
+        Check("the v6 select view exists",
+            FindFirstObjectByType<FlashBeat.UI.V6.Select.View.V6SelectViewDriver>() != null);
+        Check("the select screen shows its key legend", CountLegendLabels() > 0);
         yield return Screenshot("03-select");
 
         // 4. Game scene: the media is downloaded and prepared.
@@ -96,16 +75,15 @@ public class AutoTestPlay : MonoBehaviour
         Check("the music manager exists", music != null);
 
         // The download of a YouTube video takes a while; a loading screen has to
-        // be on screen while it happens. v6 uses V6LoadingView instead of the
-        // legacy MediaLoadingOverlay, and a fully cached media can be ready
-        // before the first probe - in that case no loading screen is correct.
+        // be on screen while it happens. v6 uses V6LoadingView (the legacy
+        // MediaLoadingOverlay creation path was removed in Issue #740 Stage B),
+        // and a fully cached media can be ready before the first probe - in that
+        // case no loading screen is correct.
         bool instantReady = music != null && music.MediaReady;
         bool sawLoading = false;
         float waited = 0f;
         while (waited < 240f)
         {
-            var overlay = FindFirstObjectByType<MediaLoadingOverlay>();
-            if (overlay != null && overlay.IsVisible) { sawLoading = true; }
             var v6Loading = FlashBeat.UI.V6.Game.Loading.V6LoadingView.Current;
             if (v6Loading != null && v6Loading.Root != null
                 && v6Loading.Root.gameObject.activeInHierarchy) { sawLoading = true; }
