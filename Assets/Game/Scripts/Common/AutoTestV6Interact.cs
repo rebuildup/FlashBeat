@@ -210,10 +210,10 @@ public class AutoTestV6Interact : MonoBehaviour
         Check("no row shows F2 as its value", !f2Shown);
 
         int keyRow = labels.IndexOf("キー設定");
-        // v0.2.1: 導線の › は値テキストではなく chevron-right アイコン
-        // (V6SettingRowView.ValueIcon) として描画される (2a67ed56 で
-        // 矢印グリフを正規化)。値は "開く"、描画テキストも "開く"。
-        Check("the key config row reads '開く' with a chevron icon",
+        // Issue #798: 「開く」は値テキスト+アイコンではなく、行右端の
+        // 小型共通ボタン (V6SettingRowView.BuildActionButton) として描画
+        // される。ラベルはボタン内の ValueText で "開く"。
+        Check("the key config row reads '開く' as an action button",
             keyRow >= 0 && option.RowValueForAudit(keyRow) == "開く"
             && option.RenderedRowValueForAudit(keyRow) == "開く");
 

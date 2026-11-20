@@ -98,8 +98,12 @@ public class V6SettingsCatalogTests
 
         Assert.IsNotNull(row, "キー設定 行が無い");
         Assert.IsTrue(row.IsAction, "キー設定 はステッパーを持たないアクション行");
-        Assert.AreEqual("開く", row.Value(), "値欄は「開く」+ 導線アイコン (› のスプライト化)");
-        Assert.AreEqual("chevron-right", row.ValueIcon, "› は chevron-right アイコンで示す");
+        Assert.AreEqual("開く", row.Value(), "値欄は「開く」");
+        // Issue #798: 「開く」は値テキスト+導線アイコンではなく、行右端の
+        // 小型共通ボタン (arrow-right アイコン付き) として描画する。
+        Assert.AreEqual("開く", row.ActionButtonLabel,
+            "「開く」は ActionButtonLabel を持つアクションボタンとして描く");
+        Assert.IsNull(row.ValueIcon, "アクションボタン化した行に導線アイコンは残さない");
 
         row.Activate();
         Assert.AreEqual(1, host.OpenKeyConfigCalls,

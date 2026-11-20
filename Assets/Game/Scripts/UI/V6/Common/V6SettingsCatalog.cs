@@ -62,11 +62,18 @@ namespace FlashBeat.UI.V6.Common
         public readonly int VolumeIndex;
         /// <summary>値の右に出す導線アイコン (<c>Resources/Icons</c> の名前。不要なら null)。</summary>
         public readonly string ValueIcon;
+        /// <summary>
+        /// アクション行の右端に出す小型ボタンのラベル (例: "開く")。
+        /// 設定すると値テキストの代わりに、共通ボタンと同じ面・アイコン・
+        /// 押下フィードバックを持つボタンとして描画する (Issue #798)。
+        /// null なら従来どおり値テキスト (+ <see cref="ValueIcon"/>) を出す。
+        /// </summary>
+        public readonly string ActionButtonLabel;
 
         public V6SettingRow(string label, Func<string> value, Action<int, bool> adjust,
             Action activate, string descTitle, string desc,
             bool danger = false, bool isAction = false, int volumeIndex = -1,
-            string valueIcon = null)
+            string valueIcon = null, string actionButtonLabel = null)
         {
             Label = label;
             Value = value;
@@ -78,6 +85,7 @@ namespace FlashBeat.UI.V6.Common
             IsAction = isAction;
             VolumeIndex = volumeIndex;
             ValueIcon = valueIcon;
+            ActionButtonLabel = actionButtonLabel;
         }
     }
 
@@ -147,7 +155,7 @@ namespace FlashBeat.UI.V6.Common
                     "キー設定",
                     "8 レーンの代表キーを変更します。行を選んで Enter を押し、次に押したキーが割り当てられます。",
                     isAction: true,
-                    valueIcon: "chevron-right"),
+                    actionButtonLabel: "開く"),
             };
         }
 
