@@ -414,6 +414,8 @@ namespace FlashBeat.Gameplay
         /// audio-only stream of YouTube into one mp4 - that merged file is the
         /// only way the YouTube sound reaches Unity's VideoPlayer (a separate
         /// audio-only m4a is refused: "Failed to recognize video file format").
+        /// The release ZIP bundles ffmpeg under StreamingAssets/tools (issue
+        /// #796), so a clean machine resolves the bundled binary first.
         /// Override with FLASHBEAT_FFMPEG_PATH.
         /// </summary>
         public static Task<string> ResolveFfmpegPathAsync()
@@ -422,13 +424,17 @@ namespace FlashBeat.Gameplay
             {
                 if (ffmpegPathTask == null)
                 {
-                    ffmpegPathTask = RunResolution(ResolveFfmpegPathCore);
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp / deno と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    ffmpegPathTask = RunResolution(() => ResolveFfmpegPathCore(streamingAssetsPath, dataPath));
                 }
                 return ffmpegPathTask;
             }
         }
 
-        static string ResolveFfmpegPathCore()
+        static string ResolveFfmpegPathCore(string streamingAssetsPath, string dataPath)
         {
             if (ffmpegPathResolved) return cachedFfmpegPath;
             ffmpegPathResolved = true;
@@ -437,6 +443,19 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
             {
                 cachedFfmpegPath = pref;
+                return cachedFfmpegPath;
+            }
+
+            // 同梱ツール (issue #796): ffmpeg / ffprobe はリリース ZIP に
+            // 同梱される。クリーンな環境では PATH に ffmpeg が無く、
+            // MediaNormalizer の time_base 修復 (issue #796) が発動しない
+            // ため、yt-dlp / deno と同じく製品管理下のバイナリを優先する。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, FfmpegBundledNames()), "-version");
+            if (bundledHit != null)
+            {
+                cachedFfmpegPath = bundledHit;
                 return cachedFfmpegPath;
             }
 
@@ -489,13 +508,17 @@ namespace FlashBeat.Gameplay
             {
                 if (ffprobePathTask == null)
                 {
-                    ffprobePathTask = RunResolution(ResolveFfprobePathCore);
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp / deno と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    ffprobePathTask = RunResolution(() => ResolveFfprobePathCore(streamingAssetsPath, dataPath));
                 }
                 return ffprobePathTask;
             }
         }
 
-        static string ResolveFfprobePathCore()
+        static string ResolveFfprobePathCore(string streamingAssetsPath, string dataPath)
         {
             if (ffprobePathResolved) return cachedFfprobePath;
             ffprobePathResolved = true;
@@ -507,8 +530,19 @@ namespace FlashBeat.Gameplay
                 return cachedFfprobePath;
             }
 
+            // 同梱ツール (issue #796): ffmpeg と同じ tools ツリーに ffprobe も
+            // 入っている。env override の次、PATH / システム探索より先に使う。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, FfprobeBundledNames()), "-version");
+            if (bundledHit != null)
+            {
+                cachedFfprobePath = bundledHit;
+                return cachedFfprobePath;
+            }
+
             // ffmpeg と同じディレクトリにあるのが最も確実 (homebrew / gyan 共通)。
-            var ffmpeg = ResolveFfmpegPathCore();
+            var ffmpeg = ResolveFfmpegPathCore(streamingAssetsPath, dataPath);
             if (!string.IsNullOrEmpty(ffmpeg))
             {
                 var sibling = Path.Combine(Path.GetDirectoryName(ffmpeg) ?? "", IsWindows ? "ffprobe.exe" : "ffprobe");
@@ -607,13 +641,31 @@ namespace FlashBeat.Gameplay
         static string[] DenoBundledNames()
         {
             if (IsWindows) return new[] { "windows-x64/deno.exe" };
-            if (IsMacOS)
-            {
-                var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-                var key = arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x86_64";
-                return new[] { key + "/deno" };
-            }
+            if (IsMacOS) return new[] { MacArchKey() + "/deno" };
             return new string[0];
+        }
+
+        /// <summary>ffmpeg ships per-arch (issue #796); same arch key rule as deno.</summary>
+        static string[] FfmpegBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/ffmpeg.exe" };
+            if (IsMacOS) return new[] { MacArchKey() + "/ffmpeg" };
+            return new string[0];
+        }
+
+        /// <summary>ffprobe ships next to ffmpeg in every bundled ffmpeg build.</summary>
+        static string[] FfprobeBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/ffprobe.exe" };
+            if (IsMacOS) return new[] { MacArchKey() + "/ffprobe" };
+            return new string[0];
+        }
+
+        /// <summary>macOS per-arch tool directory key (deno / ffmpeg / ffprobe 共通)。</summary>
+        static string MacArchKey()
+        {
+            var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+            return arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x86_64";
         }
 
         /// <summary>
