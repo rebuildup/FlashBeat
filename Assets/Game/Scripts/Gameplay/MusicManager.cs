@@ -1266,7 +1266,11 @@ public class MusicManager : MonoBehaviour
         // The split stream can end up silent (Unity's Windows decoder does not
         // accept every audio only container). Measure the mix and fall back to the
         // wav that ships with the chart when it stays quiet.
-        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f)
+        // BGM 音量 0 は利用者が選べる正常な設定で、プローブは音量適用後の
+        // ミックスを測るため RMS≈0 になる。音量 0 の間は無音判定を行わず、
+        // 音量を上げた最初のフレームで検査する (PR #787 review)。
+        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f
+            && GManager.BGMVolume > 0f)
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;

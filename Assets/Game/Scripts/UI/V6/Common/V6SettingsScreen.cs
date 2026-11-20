@@ -282,7 +282,9 @@ namespace FlashBeat.UI.V6.Common
                 return 0;
             }
 
-            return (index + delta % count + count) % count;
+            // index 自体が範囲外 (SelectRow(-4) 等) でも有効な添字へ正規化する
+            // (PR #787 review: -1 が返り全行非選択になるのを防ぐ)。
+            return ((index + delta) % count + count) % count;
         }
 
         // --- タブ帯 (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
@@ -444,8 +446,17 @@ namespace FlashBeat.UI.V6.Common
                 new Vector2(x, y), selected,
                 (delta, shift) =>
                 {
+                    bool selectionChanged = SelectedRow != index;
                     SelectedRow = index;
                     AdjustSelected(delta, shift);
+                    // 音量行の AdjustSelected はスライダーと値だけを更新して
+                    // Refresh しない。別行のステッパーを押して選択が変わった
+                    // ときは、選択色・説明文・スライダー結線を更新する
+                    // (PR #787 review)。同じ行の調整では値更新だけで済む。
+                    if (selectionChanged)
+                    {
+                        Refresh();
+                    }
                 },
                 () =>
                 {
@@ -735,9 +746,8 @@ namespace FlashBeat.UI.V6.Common
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 30f;
             scroll.viewport = viewportRt;
-            // ホイールスクロールの受け皿 (他ビューの ScrollCatcher と同じ形)。
-            var wheel = viewport.AddComponent<V6DescScrollCatcher>();
-            wheel.ScrollRect = scroll;
+            // ホイールは ScrollRect.OnScroll が処理する。別の IScrollHandler を
+            // 重ねると 1 入力で二重スクロールになる (PR #787 review)。
 
             var content = V5Ui.Node(viewport, "Desc Content");
             var contentRt = V6Layout.RectOf(content);
@@ -838,23 +848,6 @@ namespace FlashBeat.UI.V6.Common
             img.color = color;
             img.raycastTarget = false;
             return go;
-        }
-    }
-
-    /// <summary>Desc のホイールスクロール受け皿 (他ビューの ScrollCatcher と同じ形)。</summary>
-    internal sealed class V6DescScrollCatcher : MonoBehaviour, UnityEngine.EventSystems.IScrollHandler
-    {
-        internal ScrollRect ScrollRect;
-
-        public void OnScroll(UnityEngine.EventSystems.PointerEventData eventData)
-        {
-            if (ScrollRect == null || !ScrollRect.vertical)
-            {
-                return;
-            }
-
-            ScrollRect.verticalNormalizedPosition = Mathf.Clamp01(
-                ScrollRect.verticalNormalizedPosition + eventData.scrollDelta.y * 0.05f);
         }
     }
 }

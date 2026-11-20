@@ -149,7 +149,8 @@ namespace FlashBeat.UI.V6.Common
             if (c >= 'A' && c <= 'Z')
             {
                 // KeyCode の英字は小文字の ASCII 値 (KeyCode.A = 97 = 'a')。
-                return new[] { (KeyCode)char.ToLower(c) };
+                // カルチャ非依存にする (tr-TR の 'I'→'ı' 問題、PR #787 review)。
+                return new[] { (KeyCode)char.ToLowerInvariant(c) };
             }
 
             switch (c)

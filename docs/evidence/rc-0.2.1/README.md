@@ -20,7 +20,7 @@ raycast / スクロール位置リセット) の修正候補。
 | compile-check | 0 errors (244 sources) | — |
 | 実機 AutoTest v6songend | **33/33 PASS** — Select→Game→Result、130 ノーツ全判定、score 272,519 (ミス込みの実判定) | `autotest/` |
 | 実機 AutoTest v6screens | **90/90 PASS** (再実行、全スクリーンショット書き込み成功。初回はスクリーンショット書き込み flake で fail=5、画面内容 assert は全て PASS だった) | `autotest-screens/` |
-| 実機 AutoTest v6interact | **97/97 PASS** (`5393ab8` ビルド、無負荷で再実行)。初回〜2 回目の実行では開始直後ポーズの時計過渡チェック 2 件が負荷時に閾値超過したが、定常状態の連続性チェックは全実行で PASS、クリーン再実行で全件 PASS (フレークと判断) | `autotest-interact-final/` |
+| 実機 AutoTest v6interact | **97/97 PASS** (`5393ab8` ビルド、無負荷で再実行)。初回〜2 回目の実行では開始直後ポーズの時計過渡チェック 2 件が負荷時に閾値超過したが、定常状態の連続性チェック (許容差 0.5 秒) は全実行で PASS、クリーン再実行で全件 PASS (フレークと判断)。**測定値の記録上の限界**: 失敗時の `frozenStep`/`resumeStep`/`expectedStep` は Player.log 経由で結果ファイルに残らず、失敗ランの負荷条件も未記録のため、閾値超過が測定誤差か実ずれかの完全な切り分けはできていない。定常状態での連続性が全ランで成立していることがフレーク判断の根拠 | `autotest-interact-final/` |
 
 ## 実描画・実音声の証跡
 

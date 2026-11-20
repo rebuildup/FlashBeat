@@ -107,14 +107,15 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   `VerdictH` 1 個分) 下。`anchoredPosition.y` だけを動かしレイアウトは
   変えない。時系列の正本は `V6HudLogic` の純粋関数 `VerdictPoseAt`
   (判定線からのオフセット px と不透明度を返す)。本編 HUD
-  (`V6HudVerdict`) と Option プレビュー (`V6OptionViewPreviewOverlay`)
+  (`V6HudVerdict`) と設定プレビュー (`V6GamePreview`)
   は同じ関数・同じ定数を使う。旧 #671 の「静止位置の上から落下して
   着地 → 静止 → フェード」はオーナー要求に反するため廃止した。
 - **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
   3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、
   レーンフラッシュ・判定ポップ・歌詞同期を再現する。判定ポップのラベル・色・
-  寿命は `V6HudLogic` の共有関数を使い、2D オーバーレイは
-  `V6OptionViewPreviewOverlay` / `V6OptionPreviewLyrics` が担う。
+  寿命は `V6HudLogic` の共有関数を使い、2D オーバーレイ (判定・歌詞) は
+  共有画面側の `V6GamePreview` が構築し、歌詞同期は
+  `V6OptionPreviewLyrics` が担う (Option/Pause 共通)。
   `GManager` のスコア・コンボ・セッション状態には書き戻さない。
 - **設定画面の共有 scaffold** (Issue #733 フォローアップ): Option
   (`UI/V6/Option/`) と Pause (`UI/V6/Game/Pause/`) は同じ設定画面を出す

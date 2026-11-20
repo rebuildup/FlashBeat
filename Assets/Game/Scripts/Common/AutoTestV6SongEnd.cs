@@ -366,6 +366,16 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 {
                     burstStarted = true;
                     burstFramesLeft = 240;
+                    // 同じ outDir の前回実行の連写が残ると枚数が混ざるので消す
+                    // (PR #787 review)。
+                    try
+                    {
+                        foreach (string old in Directory.GetFiles(outDir, "autotest-v6songend-*-05-burst-*.png"))
+                        {
+                            File.Delete(old);
+                        }
+                    }
+                    catch (Exception) { }
                 }
                 if (burstStarted && burstFramesLeft > 0 && burstShot < 60
                     && Time.frameCount % 4 == 0)
