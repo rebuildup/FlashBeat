@@ -1,6 +1,6 @@
 {
   "format": "flashbeat-score-parity/1",
-  "description": "Shared scoring vectors for the Unity <-> Web parity contract (Issue #612, ADR-0028, ADR-0029). Each case is one play of a chart with noteCount notes. scoreV1/scoreV2/scoreV3/scoreV4 are the scores the Unity client computes (Scoring.ScoreV1-equivalent via Judge.ComputeScore, Scoring.ScoreV2, Scoring.ScoreV3/Scoring.ScoreV4 with the case's judgmentsComplete flag). scoreV3Settled/scoreV4Settled are the same play evaluated as a completed submission (judgmentsComplete=true) — identical to the Web computeUnityScoreV3 result and to computeUnityScoreV4 called with judgmentsComplete=true, because a submission always implies judgmentsComplete (perfect+great+bad+miss == noteCount). judgmentsComplete=false cases pin the Issue #618 rule that the full-combo bonus never enters the live in-progress projection. scoreV1/scoreV2 are single-precision emulated exactly like web/routes/api/v1/_score-model.ts (Math.fround); scoreV3/scoreV3Settled/scoreV4/scoreV4Settled use the deterministic integer arithmetic of Issue #631/#736 (v3: exact floor of ratio*1e6/maxRatio; v4: base floor(judgment*1e6/(5N)) + bonus floor(bonusRatio*1e6/maxBonusRatio), each capped at 1,000,000, identical on every platform). v3SubmissionChecks are consumed by the Web suite only: they pin the server-side comboMilestones bound checks of scoreSemanticsDiagnostics (no Unity counterpart exists — the client only produces the count).",
+  "description": "Shared scoring vectors for the Unity <-> Web parity contract (Issue #612, ADR-0028, ADR-0029, ADR-0033, ADR-0035). Each case is one play of a chart with noteCount notes. scoreV1/scoreV2/scoreV3/scoreV4/scoreV5 are the scores the Unity client computes (Scoring.ScoreV1-equivalent via Judge.ComputeScore, Scoring.ScoreV2, Scoring.ScoreV3/Scoring.ScoreV4/Scoring.ScoreV5 with the case's judgmentsComplete flag). scoreV3Settled/scoreV4Settled/scoreV5Settled are the same play evaluated as a completed submission (judgmentsComplete=true) — identical to the Web computeUnityScoreV3/V4/V5 result and to computeUnityScoreV3/V4/V5 called with judgmentsComplete=true, because a submission always implies judgmentsComplete (perfect+great+bad+miss == noteCount). judgmentsComplete=false cases pin the Issue #618 rule that the full-combo bonus never enters the live in-progress projection. scoreV1/scoreV2 are single-precision emulated exactly like web/routes/api/v1/_score-model.ts (Math.fround); scoreV3/scoreV3Settled/scoreV4/scoreV4Settled/scoreV5/scoreV5Settled use the deterministic integer arithmetic of Issue #631/#736/#797 (v3: exact floor of ratio*1e6/maxRatio; v4: base floor(judgment*1e6/(5N)) + bonus floor(bonusRatio*1e6/maxBonusRatio), each capped at 1,000,000; v5: same two halves but the continuous combo bonus is removed and each milestone crossing pays MilestoneBonusPointsV5=250 ratio points — identical on every platform). v3SubmissionChecks are consumed by the Web suite only: they pin the server-side comboMilestones bound checks of scoreSemanticsDiagnostics (no Unity counterpart exists — the client only produces the count).",
   "cases": [
     {
       "name": "v1-float-edge-5",
@@ -9,7 +9,8 @@
       "judgmentsComplete": true,
       "scoreV1": 519999, "scoreV2": 373333,
       "scoreV3": 160000, "scoreV3Settled": 160000,
-      "scoreV4": 620000, "scoreV4Settled": 620000
+      "scoreV4": 620000, "scoreV4Settled": 620000,
+      "scoreV5": 520000, "scoreV5Settled": 520000
     },
     {
       "name": "v1-float-edge-16",
@@ -18,7 +19,8 @@
       "judgmentsComplete": true,
       "scoreV1": 512500, "scoreV2": 358333,
       "scoreV3": 252941, "scoreV3Settled": 252941,
-      "scoreV4": 685576, "scoreV4Settled": 685576
+      "scoreV4": 685576, "scoreV4Settled": 685576,
+      "scoreV5": 512500, "scoreV5Settled": 512500
     },
     {
       "name": "v1-float-edge-19",
@@ -27,7 +29,8 @@
       "judgmentsComplete": true,
       "scoreV1": 831579, "scoreV2": 575438,
       "scoreV3": 425974, "scoreV3Settled": 425974,
-      "scoreV4": 1124681, "scoreV4Settled": 1124681
+      "scoreV4": 1124681, "scoreV4Settled": 1124681,
+      "scoreV5": 831578, "scoreV5Settled": 831578
     },
     {
       "name": "v1-mixed-139",
@@ -36,7 +39,8 @@
       "judgmentsComplete": true,
       "scoreV1": 861870, "scoreV2": 953956,
       "scoreV3": 957046, "scoreV3Settled": 957046,
-      "scoreV4": 1861870, "scoreV4Settled": 1861870
+      "scoreV4": 1861870, "scoreV4Settled": 1861870,
+      "scoreV5": 1861870, "scoreV5Settled": 1861870
     },
     {
       "name": "v2-perfect-139",
@@ -45,7 +49,8 @@
       "judgmentsComplete": true,
       "scoreV1": 1000000, "scoreV2": 1000000,
       "scoreV3": 977628, "scoreV3Settled": 977628,
-      "scoreV4": 1967532, "scoreV4Settled": 1967532
+      "scoreV4": 1967532, "scoreV4Settled": 1967532,
+      "scoreV5": 1613899, "scoreV5Settled": 1613899
     },
     {
       "name": "v2-mixed-10",
@@ -54,7 +59,8 @@
       "judgmentsComplete": true,
       "scoreV1": 960000, "scoreV2": 986666,
       "scoreV3": 992000, "scoreV3Settled": 992000,
-      "scoreV4": 1960000, "scoreV4Settled": 1960000
+      "scoreV4": 1960000, "scoreV4Settled": 1960000,
+      "scoreV5": 1960000, "scoreV5Settled": 1960000
     },
     {
       "name": "v2-with-miss-10",
@@ -63,7 +69,8 @@
       "judgmentsComplete": true,
       "scoreV1": 860000, "scoreV2": 586666,
       "scoreV3": 352000, "scoreV3Settled": 352000,
-      "scoreV4": 1085000, "scoreV4Settled": 1085000
+      "scoreV4": 1085000, "scoreV4Settled": 1085000,
+      "scoreV5": 860000, "scoreV5Settled": 860000
     },
     {
       "name": "v3-perfect-139",
@@ -72,7 +79,8 @@
       "judgmentsComplete": true,
       "scoreV1": 1000000, "scoreV2": 1000000,
       "scoreV3": 1000000, "scoreV3Settled": 1000000,
-      "scoreV4": 2000000, "scoreV4Settled": 2000000
+      "scoreV4": 2000000, "scoreV4Settled": 2000000,
+      "scoreV5": 2000000, "scoreV5Settled": 2000000
     },
     {
       "name": "v3-mixed-nomiss-139",
@@ -81,7 +89,8 @@
       "judgmentsComplete": true,
       "scoreV1": 861870, "scoreV2": 953956,
       "scoreV3": 957046, "scoreV3Settled": 957046,
-      "scoreV4": 1861870, "scoreV4Settled": 1861870
+      "scoreV4": 1861870, "scoreV4Settled": 1861870,
+      "scoreV5": 1861870, "scoreV5Settled": 1861870
     },
     {
       "name": "v3-with-miss-139",
@@ -90,7 +99,8 @@
       "judgmentsComplete": true,
       "scoreV1": 860431, "scoreV2": 430695,
       "scoreV3": 412975, "scoreV3Settled": 412975,
-      "scoreV4": 1071469, "scoreV4Settled": 1071469
+      "scoreV4": 1071469, "scoreV4Settled": 1071469,
+      "scoreV5": 1053481, "scoreV5Settled": 1053481
     },
     {
       "name": "v3-small-10",
@@ -99,7 +109,8 @@
       "judgmentsComplete": true,
       "scoreV1": 960000, "scoreV2": 986666,
       "scoreV3": 992000, "scoreV3Settled": 992000,
-      "scoreV4": 1960000, "scoreV4Settled": 1960000
+      "scoreV4": 1960000, "scoreV4Settled": 1960000,
+      "scoreV5": 1960000, "scoreV5Settled": 1960000
     },
     {
       "name": "v3-boundary-49",
@@ -108,7 +119,8 @@
       "judgmentsComplete": true,
       "scoreV1": 1000000, "scoreV2": 1000000,
       "scoreV3": 1000000, "scoreV3Settled": 1000000,
-      "scoreV4": 2000000, "scoreV4Settled": 2000000
+      "scoreV4": 2000000, "scoreV4Settled": 2000000,
+      "scoreV5": 2000000, "scoreV5Settled": 2000000
     },
     {
       "name": "v3-boundary-50",
@@ -117,7 +129,8 @@
       "judgmentsComplete": true,
       "scoreV1": 1000000, "scoreV2": 1000000,
       "scoreV3": 1000000, "scoreV3Settled": 1000000,
-      "scoreV4": 2000000, "scoreV4Settled": 2000000
+      "scoreV4": 2000000, "scoreV4Settled": 2000000,
+      "scoreV5": 2000000, "scoreV5Settled": 2000000
     },
     {
       "name": "v3-boundary-51",
@@ -126,7 +139,8 @@
       "judgmentsComplete": true,
       "scoreV1": 1000000, "scoreV2": 1000000,
       "scoreV3": 1000000, "scoreV3Settled": 1000000,
-      "scoreV4": 2000000, "scoreV4Settled": 2000000
+      "scoreV4": 2000000, "scoreV4Settled": 2000000,
+      "scoreV5": 2000000, "scoreV5Settled": 2000000
     },
     {
       "name": "v3-live-incomplete-nomiss",
@@ -135,7 +149,8 @@
       "judgmentsComplete": false,
       "scoreV1": 460000, "scoreV2": 486666,
       "scoreV3": 457575, "scoreV3Settled": 518181,
-      "scoreV4": 916521, "scoreV4Settled": 1003478
+      "scoreV4": 916521, "scoreV4Settled": 1003478,
+      "scoreV5": 914545, "scoreV5Settled": 1005454
     },
     {
       "name": "v3-live-incomplete-miss",
@@ -144,7 +159,8 @@
       "judgmentsComplete": false,
       "scoreV1": 460000, "scoreV2": 320000,
       "scoreV3": 306060, "scoreV3Settled": 306060,
-      "scoreV4": 699130, "scoreV4Settled": 699130
+      "scoreV4": 699130, "scoreV4Settled": 699130,
+      "scoreV5": 687272, "scoreV5Settled": 687272
     }
   ],
   "v3SubmissionChecks": [

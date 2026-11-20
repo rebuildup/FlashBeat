@@ -355,19 +355,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Issue #402: コンボが変わらないフレームでは塗り幅を書き戻さない。
             V6LayoutWrites.SizeDeltaIfChanged(comboFill, comboFillW, m.StatusTrackH);
 
-            // 節目ボーナスの獲得表示 (scoring v4 / ADR-0033, Issue #736):
-            // 到達回数が増えたフレームで獲得スコア点を一時表示する。
+            // 節目ボーナスの獲得表示 (scoring v3 で導入、v5 は節目のみが
+            // コンボ報酬 / ADR-0035): 到達回数が増えたフレームで獲得
+            // スコア点を一時表示する。同じ到達値の再検出では発火しない
+            // (comboMilestones は JudgeScoreboard が単調に数える)。
             // 表示は「今回の獲得点」と「節目ボーナス累計」の 2 値で、
-            // v4 のボーナス分母 (MaxBonusRatioV4) で ratio points を
-            // 実際に加算されるスコア点へ換算する。
+            // 最新 scoringVersion のボーナス分母 (GManager.maxBonusRatio)
+            // で ratio points を実際に加算されるスコア点へ換算する。
             if (milestoneBonusText != null && GManager.comboMilestones != lastComboMilestones)
             {
                 int gained = GManager.comboMilestones - lastComboMilestones;
                 lastComboMilestones = GManager.comboMilestones;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
-                int gainedPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
-                    gained * FlashBeat.Gameplay.Scoring.MilestoneBonusPoints, GManager.maxBonusRatio);
-                int totalPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
+                int gainedPoints = V6HudLogic.ComponentScoreLatest(
+                    gained * V6HudLogic.MilestoneBonusPointsLatest(), GManager.maxBonusRatio);
+                int totalPoints = V6HudLogic.ComponentScoreLatest(
                     GManager.milestoneBonus, GManager.maxBonusRatio);
                 milestoneBonusText.text = "MILESTONE  +" + gainedPoints.ToString("N0", ci)
                     + "  TOTAL +" + totalPoints.ToString("N0", ci);
@@ -376,14 +378,17 @@ namespace FlashBeat.UI.V6.Game.Hud
                 milestoneBonusText.gameObject.SetActive(true);
             }
 
-            // コンボボーナス (Issue #784): GManager.comboBonus は maxCombo*5 の
-            // ratio points で、Miss でコンボが切れても maxCombo が残るため
-            // 値は減らない。v4 のボーナス分母 (GManager.maxBonusRatio =
-            // MaxBonusRatioV4(noteCount)) で実際に加算されるスコア点へ換算し、
-            // 右コラム上段の Combo Bonus ブロックに常設する (miss > 0 でも残る)。
+            // コンボボーナス (Issue #784 / ADR-0035): 獲得済みコンボ由来
+            // ボーナスを右コラム上段の Combo Bonus ブロックに常設する。
+            // v5 では連続加点が無く、節目到達の累計
+            // (GManager.milestoneBonus) がこの値になる。節目到達後は
+            // comboFill が次の節目までの進捗を示し、nextBonusText が
+            // 次の獲得予定点を示す (獲得済み累計・今回の加点・次の獲得予定を
+            // 別々の値として表示する契約)。
             // 表示はスコア点が変わったときだけ書き換える (issue #381)。
+            int earnedComboBonus = V6HudLogic.EarnedComboBonusRatioPoints();
             int comboBonusPoints = V6HudLogic.ComboBonusScorePoints(
-                GManager.comboBonus, GManager.maxBonusRatio);
+                earnedComboBonus, GManager.maxBonusRatio);
             if (comboBonusPoints != lastComboBonusPoints && comboBonusValueText != null)
             {
                 lastComboBonusPoints = comboBonusPoints;
@@ -391,12 +396,26 @@ namespace FlashBeat.UI.V6.Game.Hud
                     "N0", System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            // ボーナス未獲得 (comboBonus == 0) の間はブロックごと隠す。
-            // 1 回でも乗れば miss 後も表示を続ける (値は maxCombo 由来で残る)。
+            // 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
+            // v5 では 1 節目あたり一定 (MilestoneBonusPointsV5) で、
+            // v4 以前は値が節目ごとに変わるため非表示 (0)。
+            int nextBonusPoints = V6HudLogic.NextMilestoneScorePoints(GManager.maxBonusRatio);
+            if (nextBonusPoints != lastNextBonusPoints && nextBonusText != null)
+            {
+                lastNextBonusPoints = nextBonusPoints;
+                nextBonusText.text = nextBonusPoints > 0
+                    ? "NEXT +" + nextBonusPoints.ToString(
+                        "N0", System.Globalization.CultureInfo.InvariantCulture)
+                    : "";
+            }
+
+            // ボーナス未獲得 (獲得済みコンボボーナス == 0) の間はブロック
+            // ごと隠す。1 回でも節目に達すれば miss 後も表示を続ける
+            // (獲得済みは失われない)。
             if (comboBonusBlock != null)
             {
                 V6LayoutWrites.ActiveIfChanged(comboBonusBlock,
-                    V6HudLogic.ShowComboBonus(GManager.comboBonus));
+                    V6HudLogic.ShowComboBonus(earnedComboBonus));
             }
 
             // issue-162 B-4 再照合 → Issue #784 で実値化: 「+ COMBO BONUS」
@@ -545,6 +564,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             fullComboChip = null;
             comboBonusBlock = null;
             comboBonusValueText = null;
+            nextBonusText = null;
+            lastNextBonusPoints = int.MinValue;
             keyGuideRow = null;
             gradeText = null;
             scoreStrip = null;

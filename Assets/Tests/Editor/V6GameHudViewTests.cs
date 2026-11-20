@@ -24,6 +24,7 @@ namespace FlashBeat.Tests
         private int originalMiss;
         private int originalComboMilestones;
         private int originalComboBonus;
+        private int originalMilestoneBonus;
         private float originalMaxBonusRatio;
         private bool originalLyricsEnabled;
 
@@ -35,6 +36,7 @@ namespace FlashBeat.Tests
             originalMiss = GManager.miss;
             originalComboMilestones = GManager.comboMilestones;
             originalComboBonus = GManager.comboBonus;
+            originalMilestoneBonus = GManager.milestoneBonus;
             originalMaxBonusRatio = GManager.maxBonusRatio;
             originalLyricsEnabled = PlaySession.LyricsEnabled;
 
@@ -55,6 +57,7 @@ namespace FlashBeat.Tests
             GManager.miss = originalMiss;
             GManager.comboMilestones = originalComboMilestones;
             GManager.comboBonus = originalComboBonus;
+            GManager.milestoneBonus = originalMilestoneBonus;
             GManager.maxBonusRatio = originalMaxBonusRatio;
             PlaySession.SetLyricsEnabled(originalLyricsEnabled);
 
@@ -168,19 +171,19 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #784: コンボボーナスは右コラムに実スコア点で常設表示され、
-        /// miss > 0 で Combo Status が隠れても残る。値は
-        /// GManager.comboBonus (maxCombo*5 の ratio points) を
-        /// Scoring.ComponentScoreV4 で換算した実値で、issue-162 B-4 で
-        /// 廃止した近似値 (combo*50 等) ではない。
+        /// Issue #784 / ADR-0035: コンボボーナスは右コラムに実スコア点で
+        /// 常設表示され、miss > 0 で Combo Status が隠れても残る。v5 では
+        /// 連続加点が無く、獲得済みは節目到達の累計
+        /// GManager.milestoneBonus (comboMilestones * 250 ratio points)
+        /// を最新バージョンの ComponentScore で換算した実値。
         /// </summary>
         [Test]
         public void ComboBonus_ShowsConvertedScorePoints_AndSurvivesAMiss()
         {
-            // maxCombo 100 → comboBonus = 500 ratio points。
-            // MaxBonusRatioV4(100) = 1150 → ComponentScoreV4(500,1150) = 434,782。
-            GManager.comboBonus = 500;
-            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV4(100);
+            // 節目 2 回到達 → milestoneBonus = 500 ratio points。
+            // MaxBonusRatioV5(100) = 1100 → ComponentScoreV5(500,1100) = 454,545。
+            GManager.milestoneBonus = 500;
+            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100);
             GManager.miss = 1;   // NO MISS は消えるが、獲得済みボーナスは残る
             GManager.combo = 0;  // Miss でコンボは 0 に戻る
 
@@ -199,30 +202,31 @@ namespace FlashBeat.Tests
             Assert.IsNotNull(bonus.transform.Find("Next Bonus Track"),
                 "次の節目までのゲージ (Next Bonus Track) が無い");
 
-            int expected = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
-                GManager.comboBonus, GManager.maxBonusRatio);
+            int expected = V6HudLogic.ComboBonusScorePoints(
+                V6HudLogic.EarnedComboBonusRatioPoints(), GManager.maxBonusRatio);
             Assert.AreEqual(
                 "+" + expected.ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
                 view.ComboBonusValueForAudit,
-                "表示値は ComponentScoreV4 で換算した実スコア点");
+                "表示値は ComponentScoreV5 で換算した実スコア点");
         }
 
         /// <summary>
-        /// Issue #784: ボーナス未獲得 (comboBonus == 0) の間はブロックごと
-        /// 隠し、1 回でも乗れば表示する (miss 後も comboBonus は残る)。
+        /// Issue #784 / ADR-0035: ボーナス未獲得 (節目未到達) の間は
+        /// ブロックごと隠し、1 回でも節目に達すれば表示する (miss 後も
+        /// 獲得済みは残る)。
         /// </summary>
         [Test]
         public void ComboBonus_HiddenUntilBonusIsEarned()
         {
-            GManager.comboBonus = 0;
+            GManager.milestoneBonus = 0;
             view.Refresh();
             Assert.IsFalse(view.ComboBonusBlockForAudit.activeSelf,
-                "comboBonus == 0 ではブロックを出さない");
+                "節目未到達ではブロックを出さない");
 
-            GManager.comboBonus = 5; // maxCombo 1 → 1*5 ratio points
+            GManager.milestoneBonus = 250; // 節目 1 回分 (ADR-0035)
             view.Refresh();
             Assert.IsTrue(view.ComboBonusBlockForAudit.activeSelf,
-                "comboBonus > 0 でブロックが出る");
+                "節目到達でブロックが出る");
         }
 
         // --- 歌詞 (issue #59) ------------------------------------------------

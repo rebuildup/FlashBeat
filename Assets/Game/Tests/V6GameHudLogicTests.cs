@@ -95,26 +95,43 @@ namespace FlashBeat.V6HudTests
         [Test]
         public void ShowComboBonus_RequiresEarnedBonus()
         {
-            // comboBonus は maxCombo*5 の ratio points。Miss でコンボが
-            // 切れても maxCombo が残るため 0 に戻らず、一度乗れば出続ける。
+            // v5 (ADR-0035) では獲得済みコンボ由来ボーナスは節目到達の
+            // 累計 (milestoneBonus)。Miss でコンボが切れても獲得済みは
+            // 失われないため、一度乗れば出続ける。
             Assert.IsFalse(V6HudLogic.ShowComboBonus(0));
-            Assert.IsTrue(V6HudLogic.ShowComboBonus(5));
+            Assert.IsTrue(V6HudLogic.ShowComboBonus(250));
             Assert.IsTrue(V6HudLogic.ShowComboBonus(500));
         }
 
         [Test]
-        public void ComboBonusScorePoints_ConvertsRatioToV4ScorePoints()
+        public void ComboBonusScorePoints_ConvertsRatioToV5ScorePoints()
         {
-            // maxCombo 100 → comboBonus = 500 ratio points。
-            // MaxBonusRatioV4(100) = 100*10 + floor(100/50)*25 + 100 = 1150。
-            // ComponentScoreV4(500, 1150) = floor(500 * 1e6 / 1150) = 434,782。
-            float maxRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV4(100);
-            Assert.AreEqual(1150f, maxRatio, 0.001f);
-            Assert.AreEqual(434782, V6HudLogic.ComboBonusScorePoints(500, maxRatio));
+            // v5 (ADR-0035): 1 節目 = 250 ratio points。MaxBonusRatioV5(100)
+            // = floor(100/50)*250 + 100*5 + 100 = 500 + 600 = 1100。
+            // ComponentScoreV5(500, 1100) = floor(500 * 1e6 / 1100) = 454,545。
+            float maxRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100);
+            Assert.AreEqual(1100f, maxRatio, 0.001f);
+            Assert.AreEqual(454545, V6HudLogic.ComboBonusScorePoints(500, maxRatio));
 
             // 未獲得・分母不明では 0 (ブロック自体は ShowComboBonus で隠す)。
             Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(0, maxRatio));
             Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(500, 0f));
+        }
+
+        [Test]
+        public void NextMilestoneScorePoints_IsConstantPerCrossingInV5()
+        {
+            // ADR-0035: v5 の 1 節目あたり加点は譜面サイズに依らず
+            // MilestoneBonusPointsV5 ratio points → スコア点は分母依存。
+            // MaxBonusRatioV5(100) = 1100 → floor(250*1e6/1100) = 227,272。
+            // MaxBonusRatioV5(200) = 4*250 + 1000 + 100 = 2100 →
+            // floor(250*1e6/2100) = 119,047。
+            Assert.AreEqual(227272,
+                V6HudLogic.NextMilestoneScorePoints(
+                    FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100)));
+            Assert.AreEqual(119047,
+                V6HudLogic.NextMilestoneScorePoints(
+                    FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(200)));
         }
 
         [Test]

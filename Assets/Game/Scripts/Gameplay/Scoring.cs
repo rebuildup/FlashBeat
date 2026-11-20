@@ -75,8 +75,16 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public const int Version4 = 4;
 
+        /// <summary>
+        /// scoringVersion of the v5 formula (ADR-0035, Issue #797): the
+        /// continuous combo bonus (maxCombo * 5) is removed and the combo
+        /// reward vests only at milestone crossings, so reaching a milestone
+        /// is the single score event.
+        /// </summary>
+        public const int Version5 = 5;
+
         /// <summary>The scoring version new plays and new submissions use.</summary>
-        public const int LatestVersion = Version4;
+        public const int LatestVersion = Version5;
 
         /// <summary>v2 denominator per note: judgment cap 5 + combo cap 5 + no-miss cap 5.</summary>
         public const float MaxRatioPerNoteV2 = 15f;
@@ -478,6 +486,169 @@ namespace FlashBeat.Gameplay
         /// play).
         /// </summary>
         public static int ComponentScoreV4(int bonusRatioPoints, float maxBonusRatio)
+        {
+            if (maxBonusRatio <= 0f)
+            {
+                return 0;
+            }
+
+            return (int)(bonusRatioPoints * HalfScoreMaxV4L / (long)maxBonusRatio);
+        }
+
+        // --- scoring v5 (ADR-0035, Issue #797) -----------------------------
+
+        /// <summary>
+        /// Ratio points awarded per milestone crossing in v5. The removed
+        /// v4 combo bonus (maxCombo * 5) had a cap of 5N ratio points; 250
+        /// per crossing makes the milestone total cap floor(N/50) * 250 ≈ 5N,
+        /// i.e. the milestone mechanism inherits the combo bonus budget.
+        /// </summary>
+        public const int MilestoneBonusPointsV5 = 250;
+
+        /// <summary>The largest score a v5 play can reach (same 2,000,000 ceiling as v4).</summary>
+        public const int ScoreMaxV5 = ScoreMaxV4;
+
+        /// <summary>
+        /// The v5 bonus denominator of a chart with
+        /// <paramref name="noteCount"/> notes: the simultaneously achievable
+        /// bonus caps — milestoneBonus ≤ floor(N/50) * 250, noMissBonus ≤ 5N,
+        /// finalBonus ≤ 100. There is no continuous combo term.
+        /// </summary>
+        public static float MaxBonusRatioV5(int noteCount)
+        {
+            // 空の譜面にはスコアを与えない (サーバも noteCount<=0 を拒否する)。
+            if (noteCount <= 0)
+            {
+                return 0f;
+            }
+
+            // 全て整数で、実用上の譜面サイズでは float でも厳密。
+            return (noteCount / MilestoneInterval) * (float)MilestoneBonusPointsV5
+                + noteCount * 5f
+                + FullComboBonusPoints;
+        }
+
+        /// <summary>The v5 components of one play.</summary>
+        public struct V5Breakdown
+        {
+            /// <summary>5P + 3G + B (the v1 judgment total).</summary>
+            public float Judgment;
+            /// <summary>
+            /// comboMilestones * 250. Crossings accumulate across combo
+            /// breaks; each crossing is one vesting event (ADR-0035).
+            /// </summary>
+            public int MilestoneBonus;
+            /// <summary>(P + G + B) * 5 while miss == 0, else 0.</summary>
+            public int NoMissBonus;
+            /// <summary>
+            /// 100 while judgmentsComplete && miss == 0, else 0. Vests only
+            /// once every chart note has been judged (Issue #618).
+            /// </summary>
+            public int FinalBonus;
+            /// <summary>
+            /// Judgment-derived base score: floor(judgment * 1e6 / (5N)).
+            /// Always ≤ 1,000,000; exactly 1,000,000 for an all-Perfect play.
+            /// </summary>
+            public int BaseScore;
+            /// <summary>
+            /// Additive bonus score: floor(bonusRatio * 1e6 / maxBonusRatio).
+            /// Always ≤ 1,000,000 and ≥ 0.
+            /// </summary>
+            public int BonusScore;
+            /// <summary>BaseScore + BonusScore (≤ 2,000,000).</summary>
+            public int Score;
+            /// <summary>judgment + all bonus ratio points (informational).</summary>
+            public float RatioScore;
+            /// <summary>MaxBonusRatioV5(noteCount) (single-precision).</summary>
+            public float MaxBonusRatio;
+        }
+
+        /// <summary>
+        /// The v5 components of a play. Same arguments as
+        /// <see cref="BreakdownV4"/>; the only difference is the bonus
+        /// composition (ADR-0035): the continuous combo bonus is gone and
+        /// the milestone term carries the combo reward at 250 ratio points
+        /// per crossing.
+        /// </summary>
+        public static V5Breakdown BreakdownV5(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            float judgment = perfect * 5f + great * 3f + bad;
+            int hits = perfect + great + bad;
+            int noMissBonus = miss == 0 ? hits * 5 : 0;
+            int milestoneBonus = comboMilestones * MilestoneBonusPointsV5;
+            int finalBonus = judgmentsComplete && miss == 0 ? FullComboBonusPoints : 0;
+            int bonusRatio = milestoneBonus + noMissBonus + finalBonus;
+            float maxBonusRatio = MaxBonusRatioV5(noteCount);
+
+            // Base: the judgment-derived score with the v1 ceiling.
+            int baseScore = 0;
+            if (noteCount > 0)
+            {
+                long judgmentLong = perfect * 5L + great * 3L + bad;
+                baseScore = (int)(judgmentLong * HalfScoreMaxV4 / (5L * noteCount));
+            }
+
+            int bonusScore = 0;
+            if (maxBonusRatio > 0f)
+            {
+                bonusScore = (int)(bonusRatio * HalfScoreMaxV4L / (long)maxBonusRatio);
+            }
+
+            return new V5Breakdown
+            {
+                Judgment = judgment,
+                MilestoneBonus = milestoneBonus,
+                NoMissBonus = noMissBonus,
+                FinalBonus = finalBonus,
+                BaseScore = baseScore,
+                BonusScore = bonusScore,
+                Score = baseScore + bonusScore,
+                RatioScore = (float)((double)judgment + bonusRatio),
+                MaxBonusRatio = maxBonusRatio,
+            };
+        }
+
+        /// <summary>
+        /// The v5 score (0..2,000,000) of a play, via the deterministic
+        /// integer computation of <see cref="ScoreV5(V5Breakdown)"/>.
+        /// </summary>
+        public static int ScoreV5(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            return ScoreV5(BreakdownV5(perfect, great, bad, miss, maxCombo,
+                comboMilestones, noteCount, judgmentsComplete));
+        }
+
+        /// <summary>The v5 score of a computed breakdown (ADR-0035).</summary>
+        public static int ScoreV5(V5Breakdown b)
+        {
+            return b.Score;
+        }
+
+        /// <summary>
+        /// The score-point contribution of one v5 bonus component, for the
+        /// result breakdown and in-play bonus display. Same floor division
+        /// as <see cref="BreakdownV5"/>'s bonus half; a display estimate,
+        /// not a submission field.
+        /// </summary>
+        public static int ComponentScoreV5(int bonusRatioPoints, int noteCount)
+        {
+            long maxBonusRatio = (long)MaxBonusRatioV5(noteCount);
+            if (maxBonusRatio <= 0)
+            {
+                return 0;
+            }
+
+            return (int)(bonusRatioPoints * HalfScoreMaxV4L / maxBonusRatio);
+        }
+
+        /// <summary>
+        /// ComponentScoreV5 against an already-computed v5 bonus denominator
+        /// (GManager.maxBonusRatio holds MaxBonusRatioV5(noteCount) during
+        /// play).
+        /// </summary>
+        public static int ComponentScoreV5(int bonusRatioPoints, float maxBonusRatio)
         {
             if (maxBonusRatio <= 0f)
             {

@@ -116,10 +116,12 @@ public class ScoringV4Tests
     }
 
     [Test]
-    public void LatestVersion_IsV4()
+    public void LatestVersion_IsV5()
     {
-        Assert.AreEqual(4, Scoring.LatestVersion);
-        Assert.AreEqual(Scoring.Version4, Scoring.LatestVersion);
+        // ADR-0035 / Issue #797: 新規プレイは scoringVersion 5。
+        // v4 の式は Scoring.ScoreV4 に残り、既存の v4 記録は再計算しない。
+        Assert.AreEqual(5, Scoring.LatestVersion);
+        Assert.AreEqual(Scoring.Version5, Scoring.LatestVersion);
     }
 
     // --- ローカル記録の分離 ----------------------------------------------

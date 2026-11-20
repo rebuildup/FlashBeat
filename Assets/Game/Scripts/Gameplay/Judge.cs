@@ -543,33 +543,35 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v4 (ADR-0033 / Issue #736, #618): 表示・送信する内訳は
-        // 判定由来の基礎スコア (上限 1,000,000) と、その上に独立加算される
-        // ボーナススコア (上限 1,000,000) の 2 段構成。ratio 系フィールドは
-        // v3 と同じ ratio points の内訳を保持する (情報用)。
+        // scoring v5 (ADR-0035 / Issue #797): 表示・送信する内訳は判定由来の
+        // 基礎スコア (上限 1,000,000) と、その上に独立加算されるボーナス
+        // スコア (上限 1,000,000) の 2 段構成。v5 には連続コンボボーナスが
+        // 無く、コンボ報酬は節目到達 (comboMilestones) のみで確定する。
         // フルコンボ終了ボーナスは全ノーツの判定が確定した時点 (曲終了の
         // 判定条件と同じ settled >= noteCount) でのみ乗る。途中経過の
         // HUD スコアには含めない (Issue #618)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
         bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
         GManager.judgmentsComplete = judgmentsComplete;
-        Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
+        Scoring.V5Breakdown v5 = Scoring.BreakdownV5(
             board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
             board.MilestoneCrossings, noteCount, judgmentsComplete);
-        GManager.ratioScore = v4.RatioScore;
-        GManager.comboBonus = v4.ComboBonus;
-        GManager.noMissBonus = v4.NoMissBonus;
-        GManager.milestoneBonus = v4.MilestoneBonus;
-        GManager.finalBonus = v4.FinalBonus;
-        GManager.baseScore = v4.BaseScore;
-        GManager.bonusScore = v4.BonusScore;
-        GManager.maxBonusRatio = v4.MaxBonusRatio;
+        GManager.ratioScore = v5.RatioScore;
+        // v5 に連続コンボボーナスは無い (ADR-0035)。コンボ由来の獲得済み
+        // ボーナスは milestoneBonus が保持する。
+        GManager.comboBonus = 0;
+        GManager.noMissBonus = v5.NoMissBonus;
+        GManager.milestoneBonus = v5.MilestoneBonus;
+        GManager.finalBonus = v5.FinalBonus;
+        GManager.baseScore = v5.BaseScore;
+        GManager.bonusScore = v5.BonusScore;
+        GManager.maxBonusRatio = v5.MaxBonusRatio;
 
-        // scoring v4 のスコアは整数の厳密な割り算で求める (Issue #631 と
-        // 同じ決定的演算、ADR-0033)。GManager.score はこの値が HUD 表示と
-        // スコア投稿の両方に使われ、サーバの再計算 (computeUnityScoreV4)
+        // scoring v5 のスコアは整数の厳密な割り算で求める (Issue #631 と
+        // 同じ決定的演算、ADR-0035)。GManager.score はこの値が HUD 表示と
+        // スコア投稿の両方に使われ、サーバの再計算 (computeUnityScoreV5)
         // と全プラットフォームで一致する。上限は 2,000,000。
-        UpdateScore(Scoring.ScoreV4(v4));
+        UpdateScore(Scoring.ScoreV5(v5));
     }
 
     /// <summary>
