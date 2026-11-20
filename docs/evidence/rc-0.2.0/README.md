@@ -1,6 +1,6 @@
 # RC 0.2.0 包括検証記録 (Issue #744 / #728)
 
-- 対象 SHA: `9b61c6df490e101b7aaba16e4692f499d2611119` (`release-0-2-0` HEAD, VERSION 0.2.0)
+- 対象 SHA: `9b61c6dfab61f1dc68064e910174d725afcdd55e` (`release-0-2-0` HEAD, VERSION 0.2.0)
 - 実施日: 2026-11-20 / 実施: Devin (自律 RC ゲート)
 - 正本チェックリスト: `docs/qa/release-candidate-gate.md`
 
