@@ -214,6 +214,7 @@ export function MySongsPanel() {
       // Keep the stored draft in sync with what is being published, so a
       // resumed edit starts from the published state.
       await saveDraft(publishDraft.id, {
+        songId: body.songId,
         title: body.title,
         artist: body.artist,
         youtubeId: body.youtubeId,
@@ -491,7 +492,9 @@ export function MySongsPanel() {
       </div>
 
       <PublishDraftDialog
-        open={publishOpen}
+        // 開くのは下書き詳細の取得後だけ。取得前に開くと、到着時の
+        // フォーム再シードが入力中の値を消してしまう。
+        open={publishOpen && publishDraft !== null}
         onOpenChange={(open) => {
           setPublishOpen(open);
           if (!open) setPublishDraft(null);

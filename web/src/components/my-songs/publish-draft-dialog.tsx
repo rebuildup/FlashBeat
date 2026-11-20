@@ -16,6 +16,8 @@ import type { MeDraftDetail, PublishDraftBody } from "@/lib/me/client";
  * refuses a publish without them (422).
  */
 
+const SONG_ID_PATTERN = /^[a-z0-9-]{3,64}$/;
+
 const RIGHTS_OPTIONS = [
   { value: "original", label: "自作・オリジナル" },
   { value: "licensed", label: "ライセンス取得済み" },
@@ -98,6 +100,7 @@ export function PublishDraftDialog({
   error,
   onPublish,
 }: PublishDraftDialogProps) {
+  const [songId, setSongId] = useState("");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [youtubeId, setYoutubeId] = useState("");
@@ -112,6 +115,7 @@ export function PublishDraftDialog({
   // draft, so a previous song's values never leak into the next publish.
   useEffect(() => {
     if (!open || !draft) return;
+    setSongId(draft.songId ?? "");
     setTitle(draft.title);
     setArtist(draft.artist);
     setYoutubeId(draft.youtubeId ?? "");
@@ -126,6 +130,7 @@ export function PublishDraftDialog({
   function submit() {
     if (!draft?.chart) return;
     onPublish({
+      songId: songId.trim(),
       title: title.trim(),
       artist: artist.trim(),
       youtubeId: youtubeId.trim(),
@@ -143,6 +148,7 @@ export function PublishDraftDialog({
     !publishing &&
     rightsConfirmed &&
     materialSource.trim().length > 0 &&
+    SONG_ID_PATTERN.test(songId.trim()) &&
     title.trim().length > 0 &&
     youtubeId.trim().length === 11 &&
     Number.isInteger(Number(level)) &&
@@ -170,6 +176,19 @@ export function PublishDraftDialog({
 
             <Dialog.Body>
               <div className={grid}>
+                <Field.Root className={fullRow}>
+                  <Field.Label>曲ID</Field.Label>
+                  <Input
+                    value={songId}
+                    onChange={(e) => setSongId(e.currentTarget.value)}
+                    maxLength={64}
+                    placeholder="例: my-song-001"
+                  />
+                  <Field.HelperText>
+                    公開後のURLとカタログで使うIDです。半角英小文字・数字・ハイフンのみ。
+                  </Field.HelperText>
+                </Field.Root>
+
                 <Field.Root className={fullRow}>
                   <Field.Label>曲名</Field.Label>
                   <Input
