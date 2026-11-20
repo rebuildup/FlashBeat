@@ -498,6 +498,16 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
+            // Issue #796: 過去にダウンロード済みのファイルも、映像 time_base が
+            // Unity の時計を破壊するものならここで正規化する (ffmpeg がある
+            // 環境のみ。既に正規化済みなら ffprobe の結果ですぐ戻る)。
+            if (!string.IsNullOrEmpty(videoFile.Path))
+            {
+                var normalizeTask = MediaNormalizer.NormalizeVideoAsync(videoFile.Path, mediaToken);
+                while (!normalizeTask.IsCompleted) yield return null;
+                if (mediaToken.IsCancellationRequested) { yield break; }
+            }
+
             stage = MediaStage.PreparingVideo;
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;

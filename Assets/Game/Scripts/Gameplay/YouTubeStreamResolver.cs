@@ -107,6 +107,8 @@ namespace FlashBeat.Gameplay
         static bool denoPathResolved;
         static string cachedFfmpegPath;
         static bool ffmpegPathResolved;
+        static string cachedFfprobePath;
+        static bool ffprobePathResolved;
 
         /// <summary>
         /// Serializes the lazy tool resolution: the first caller starts the
@@ -117,6 +119,7 @@ namespace FlashBeat.Gameplay
         static Task<string> ytDlpPathTask;
         static Task<string> denoPathTask;
         static Task<string> ffmpegPathTask;
+        static Task<string> ffprobePathTask;
 
         /// <summary>
         /// Timeout of the per-candidate "--version" probe. A binary that does
@@ -170,12 +173,15 @@ namespace FlashBeat.Gameplay
                 ytDlpPathTask = null;
                 denoPathTask = null;
                 ffmpegPathTask = null;
+                ffprobePathTask = null;
                 ytDlpPathResolved = false;
                 cachedYtDlpPath = null;
                 denoPathResolved = false;
                 cachedDenoPath = null;
                 ffmpegPathResolved = false;
                 cachedFfmpegPath = null;
+                ffprobePathResolved = false;
+                cachedFfprobePath = null;
             }
         }
 
@@ -465,6 +471,72 @@ namespace FlashBeat.Gameplay
             foreach (var candidate in candidates)
             {
                 try { if (File.Exists(candidate)) { cachedFfmpegPath = candidate; return cachedFfmpegPath; } }
+                catch { }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Locates ffprobe (issue #796). ffmpeg と同じ配布物に入っているのが
+        /// 普通なので、ffmpeg が見つかったディレクトリを最初に試し、
+        /// 次に PATH / mise を探す。MediaNormalizer が映像ストリームの
+        /// time_base を調べるのに使う。
+        /// </summary>
+        public static Task<string> ResolveFfprobePathAsync()
+        {
+            lock (resolutionGate)
+            {
+                if (ffprobePathTask == null)
+                {
+                    ffprobePathTask = RunResolution(ResolveFfprobePathCore);
+                }
+                return ffprobePathTask;
+            }
+        }
+
+        static string ResolveFfprobePathCore()
+        {
+            if (ffprobePathResolved) return cachedFfprobePath;
+            ffprobePathResolved = true;
+
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_FFPROBE_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedFfprobePath = pref;
+                return cachedFfprobePath;
+            }
+
+            // ffmpeg と同じディレクトリにあるのが最も確実 (homebrew / gyan 共通)。
+            var ffmpeg = ResolveFfmpegPathCore();
+            if (!string.IsNullOrEmpty(ffmpeg))
+            {
+                var sibling = Path.Combine(Path.GetDirectoryName(ffmpeg) ?? "", IsWindows ? "ffprobe.exe" : "ffprobe");
+                if (File.Exists(sibling) && ProbeCandidate(sibling, "-version"))
+                {
+                    cachedFfprobePath = sibling;
+                    return cachedFfprobePath;
+                }
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll(IsWindows ? "ffprobe.exe" : "ffprobe"), "-version");
+            if (pathHit != null)
+            {
+                cachedFfprobePath = pathHit;
+                return cachedFfprobePath;
+            }
+
+            var miseHit = FindInVersionedDir("mise", "installs", "ffmpeg", "bin", IsWindows ? "ffprobe.exe" : "ffprobe");
+            if (miseHit != null)
+            {
+                cachedFfprobePath = miseHit;
+                return cachedFfprobePath;
+            }
+
+            string[] unixCandidates = { "/usr/local/bin/ffprobe", "/opt/homebrew/bin/ffprobe" };
+            foreach (var c in unixCandidates)
+            {
+                try { if (File.Exists(c) && ProbeCandidate(c, "-version")) { cachedFfprobePath = c; return cachedFfprobePath; } }
                 catch { }
             }
 
