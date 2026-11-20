@@ -82,11 +82,14 @@ public class AutoTestV6SongEnd : MonoBehaviour
     int shot;
 
     // v0.2.1: 判定ポップ・歌詞パネル・コンボボーナス・ノーツ白さの
-    // 実描画証跡用。最初の判定が出てから約 2.5 秒を 3 フレーム毎に連写する
-    // (60fps で約 10fps、30 枚上限)。静止画 1 枚では軌道や発色を
-    // 判断できないため、連続コマで残す。
+    // 実描画証跡用。最初の判定が出てから 240 レンダリングフレーム
+    // (60fps で約 4 秒) を 4 フレーム毎に連写する (60fps で約 15fps、
+    // 最大 60 コマ)。静止画 1 枚では軌道や発色を判断できないため、
+    // 連続コマで残す (ffmpeg で動画化する前提)。
+    // 起動直後はメディア準備で FPS が落ちることがあるため、
+    // 実時間ではなくレンダリングフレーム数で窓を決める。
     bool burstStarted;
-    float burstUntil;
+    int burstFramesLeft;
     int burstShot;
     string outDir;
     string songTitle;
@@ -355,15 +358,19 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 AutoHit(notes);
 
                 // v0.2.1: 判定バースト撮影 (上のフィールドコメント参照)。
+                // 判定開始後の 240 レンダリングフレーム (=60fps で約 4 秒) を
+                // 4 フレーム毎に撮り、最大 60 コマ。低 FPS でも撮影間隔は
+                // フレーム基準なのでコマ落ちしない。
                 int judgedNow = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
                 if (!burstStarted && judgedNow > 0)
                 {
                     burstStarted = true;
-                    burstUntil = Time.realtimeSinceStartup + 2.5f;
+                    burstFramesLeft = 240;
                 }
-                if (burstStarted && Time.realtimeSinceStartup < burstUntil
-                    && burstShot < 30 && Time.frameCount % 3 == 0)
+                if (burstStarted && burstFramesLeft > 0 && burstShot < 60
+                    && Time.frameCount % 4 == 0)
                 {
+                    burstFramesLeft -= 4;
                     burstShot++;
                     CaptureScreenshot("05-burst-" + burstShot.ToString("00"));
                 }
