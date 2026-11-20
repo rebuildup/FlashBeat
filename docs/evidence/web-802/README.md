@@ -37,20 +37,14 @@ Capture run: `web/tests/visual/out/2026-11-20T18-50-16-908Z/` (gitignored;
 regenerate with `cd web && npm run visual`). 42 captures = 6 routes ×
 7 viewports, all DOM-clean.
 
-Curated after-shots committed under `shots/` (before = the previously
-committed `web/docs/screenshots/`).
+Curated before/after pairs are committed under `before/` and `after/`
+(`home` = catalog `/`, `songs` = archive; widths 1920/1440/768/390 plus a
+1440 focus shot). The full 42-capture set stays in the gitignored
+`out/<timestamp>/` directory.
 
-**Before/after pairs** (visual diff a reviewer should confirm):
-
-| Surface | Before (`web/docs/screenshots/`) | After (`shots/`) |
-|---|---|---|
-| Catalog 1440 | `catalog-1440x900.png` | `home_1440x900.png` |
-| Catalog 1280 | `catalog-1280x720.png` | — (see capture dir) |
-| Home wide | — | `home_1920x1080.png` |
-| Home tablet | — | `home_768x1024.png` |
-| Home phone | — | `home_390x844.png` |
-| Songs archive | — | `songs_1440x900.png`, `songs_390x844.png` |
-| Dashboard | — | `dashboard_1440x900.png`, `dashboard_390x844.png` |
+**Review checklist**: apply `web/tests/visual/REVIEW.md` to every PNG —
+layout, typography, spacing/density, color/contrast, states, operations.
+For each pair record pass / fix-needed with the concrete defect.
 
 ### Review status
 
