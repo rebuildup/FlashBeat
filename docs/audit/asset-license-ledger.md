@@ -62,3 +62,17 @@
 6. 本番 D1 の公開曲データ棚卸しと、必要なら公開停止・データ修正。
 7. 無許諾素材検出の品質ゲート — 一部は実装済み (`SerializedAssetReferenceAuditTests` = 未解決 GUID 検出、`tools/release/audit-release-media.py` = Release 同梱メディア監査、`package-win64.ps1`/`package-macos.sh` の song-free manifest 検査)。残るは「第三者由来アセットの混入を commit 時に検出する」仕組み (例: 新規メディア追加時の台帳エントリ必須化)。
 8. `design/`・`web` スクリーンショットの第三者画像写り込みの目視確認。
+
+## 2026-11-21 追記 (v0.2.4 収束作業)
+
+### 実施した除去
+
+- `web/tests/e2e/artifacts/*.png` (9 点) を git 管理から除去。Playwright/visual capture の生成物であり、`visitor-flow.spec.ts` が実行毎に再生成する。`web/.gitignore` に `tests/e2e/artifacts/` を追加して再混入を防止。`metadata.json` (contrast 計測のテキスト証跡) は `docs/audit/open-issues-audit.md` の参照先として残置。
+
+### 再確認した残存リスク
+
+- **本番 D1 (`flashbeat`)**: `songs` 30 行中 28 行が `archived=0` で公開中。全て第三者商業楽曲 (LeaF / t+pazolite / Azari / STEAKA 他) のメタデータ + `chart_versions` の譜面・歌詞。`GET /api/v1/catalog`・`/api/v1/charts/{id}` が無認証で配信中であることを実測確認。`publish-catalog.mjs` 由来の seed であり、ユーザー公開フロー (#800) の rights attestation 導入前のデータ。**公開停止・差替えは festival のレパートリーに直結するため user 判断が必要** (archive は可逆だが製品影響大)。
+- **`web/docs/screenshots/*.png` / `specs/*/screenshots/*.png`**: catalog 行は YouTube `hqdefault.jpg` サムネイルを描画する (`src/app/song-thumbnail.tsx`) ため、スクリーンショットに第三者サムネイルが写り込んでいる可能性が高い。レビュー環境に画像判読手段がなく目視未実施。README 埋め込みのため除去は docs 品質とトレードオフ → user 判断へ。
+- **`design/assets/jackets/*.jpg`**: `design/flashbeat-ui.pen` が `jackets/` を 36 箇所参照しており、Pencil の外部アセットとして現役。除去すると design ソースが壊れるため残置 (B 区分の許諾証跡確認は継続)。
+- **`Assets/Game/Resources/*.json` (実曲譜面+歌詞) / `Musics/*.wav` / `UnityYoutube/*.mp4`**: 全て現役参照 (ローカルプレイ・テスト・フォールバック)。「ローカル同梱をやめてクラウドカタログ専用にするか」の製品判断待ちで、機械的削除は依然不可。
+- **`BETTER_AUTH_SECRET`**: 2026-11-21 に生成し Infisical (dev) と Worker secret に設定済み。値は本台帳・ログ・Issue に記録しない。
