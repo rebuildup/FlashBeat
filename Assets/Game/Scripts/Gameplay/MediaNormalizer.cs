@@ -94,11 +94,21 @@ namespace FlashBeat.Gameplay
         public static long ParseTimeBaseDenominator(string probeOutput)
         {
             if (string.IsNullOrEmpty(probeOutput)) return 0;
+            // codec_type=audio のストリームの time_base は対象外
+            // (音声のみファイルで 44100 等を拾わないようにする)。
+            var codecType = "";
             foreach (var rawLine in probeOutput.Split('\n'))
             {
                 var line = rawLine.Trim();
+                const string codecPrefix = "codec_type=";
+                if (line.StartsWith(codecPrefix, StringComparison.Ordinal))
+                {
+                    codecType = line.Substring(codecPrefix.Length);
+                    continue;
+                }
                 const string prefix = "time_base=";
                 if (!line.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                if (codecType == "audio") continue;
                 var parts = line.Substring(prefix.Length).Split('/');
                 long den;
                 if (parts.Length == 2 && long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out den))
