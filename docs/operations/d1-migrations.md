@@ -299,3 +299,8 @@ legacy inserts keep `scoringVersion = 1` and the 1,000,000 ceiling.
 `web/tests/db.test.mjs` proves the committed migration files accept a v4
 score of 2,000,000, still reject 1,000,001 for scoring versions 1–3, and
 reject 2,000,001 for v4.
+
+Note (2026-11-20): the file carries a leading `-- void:allow-destructive`
+pragma because the table rebuild trips Void's destructive-migration guard on
+`void deploy`. The pragma was added after the remote apply above; D1
+bookkeeping is by filename, so the already-applied record is unaffected.
