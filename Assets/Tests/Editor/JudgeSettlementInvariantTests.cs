@@ -348,9 +348,8 @@ public class JudgeSettlementInvariantTests
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// GManager のスコア API が判定内容と矛盾しないこと (scoring v2):
-    /// maxScore = noteCount x 15、ratioScore = 判定 + コンボ + ノーミスの
-    /// 合計 (ADR-0028)、score = ComputeScore(ratioScore, maxScore)、
+    /// GManager のスコア API が判定内容と矛盾しないこと (scoring v5):
+    /// score = baseScore + bonusScore (ADR-0035)、
     /// そして結果画面が読む perfect/great/bad/miss/combo がスコアボードと
     /// 一致すること。
     /// </summary>
@@ -378,38 +377,38 @@ public class JudgeSettlementInvariantTests
         int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
         Assert.AreEqual(MixedChartNoteCount, judged);
 
-        // v4 の内訳 (ADR-0033): 判定由来の基礎スコア + コンボ継続
-        // (maxCombo*5) + ノーミス (miss==0 なら命中数*5) + 節目 (到達回数*25)
-        // + フルコンボ終了 (miss==0 なら 100) を、それぞれ独立した
-        // 1,000,000 の天井でスコア点へ換算して合計する。
+        // v5 の内訳 (ADR-0035): 判定由来の基礎スコア + 節目 (到達回数*250)
+        // + ノーミス (miss==0 なら命中数*5) + フルコンボ終了 (miss==0 なら
+        // 100) を、それぞれ独立した 1,000,000 の天井でスコア点へ換算して
+        // 合計する。連続コンボボーナスは v5 に存在しない。
         // このプレイは Miss があるのでノーミスと終了ボーナスは 0。
-        Scoring.V4Breakdown expected = Scoring.BreakdownV4(
+        Scoring.V5Breakdown expected = Scoring.BreakdownV5(
             GManager.perfect, GManager.great, GManager.bad, GManager.miss,
             GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true);
         Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
-            "ratioScore が v4 の内訳と食い違う");
-        Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
+            "ratioScore が v5 の内訳と食い違う");
+        Assert.AreEqual(0, GManager.comboBonus, "v5 に連続コンボボーナスは無い (ADR-0035)");
         Assert.AreEqual(expected.NoMissBonus, GManager.noMissBonus, "noMissBonus が違う");
         Assert.AreEqual(expected.MilestoneBonus, GManager.milestoneBonus, "milestoneBonus が違う");
         Assert.AreEqual(expected.FinalBonus, GManager.finalBonus, "finalBonus が違う");
-        Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneBonusPoints, GManager.milestoneBonus,
+        Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneBonusPointsV5, GManager.milestoneBonus,
             "節目到達回数と節目ボーナスが一致しない");
-        Assert.AreEqual(Scoring.MaxBonusRatioV4(MixedChartNoteCount), GManager.maxBonusRatio, 0.0001f,
-            "maxBonusRatio != MaxBonusRatioV4(noteCount)");
+        Assert.AreEqual(Scoring.MaxBonusRatioV5(MixedChartNoteCount), GManager.maxBonusRatio, 0.0001f,
+            "maxBonusRatio != MaxBonusRatioV5(noteCount)");
         Assert.AreEqual(expected.BaseScore, GManager.baseScore, "baseScore が違う");
         Assert.AreEqual(expected.BonusScore, GManager.bonusScore, "bonusScore が違う");
         Assert.LessOrEqual(GManager.baseScore, 1000000, "基礎スコアが 1,000,000 を超えた");
         Assert.LessOrEqual(GManager.bonusScore, 1000000, "ボーナススコアが 1,000,000 を超えた");
 
-        // スコアは v4 の決定的な整数演算と一致する (Issue #631 と同じ)。
+        // スコアは v5 の決定的な整数演算と一致する (Issue #631 と同じ)。
         Assert.AreEqual(
-            Scoring.ScoreV4(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
+            Scoring.ScoreV5(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
                 GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true),
             GManager.score);
         Assert.AreEqual(GManager.baseScore + GManager.bonusScore, GManager.score,
             "score != baseScore + bonusScore");
         Assert.GreaterOrEqual(GManager.score, 0);
-        Assert.LessOrEqual(GManager.score, Scoring.ScoreMaxV4);
+        Assert.LessOrEqual(GManager.score, Scoring.ScoreMaxV5);
 
         // 結果画面が読むフィールドが 0 のまま (判定が反映されていない) でないこと。
         Assert.Greater(GManager.score, 0, "スコアが 0 のまま (Judge が GManager に反映していない)");
@@ -418,8 +417,8 @@ public class JudgeSettlementInvariantTests
     }
 
     /// <summary>
-    /// 全ノーツ Perfect のフルコンボならスコアは v4 の満点
-    /// (基礎 1,000,000 + ボーナス 1,000,000 = 2,000,000、ADR-0033)。
+    /// 全ノーツ Perfect のフルコンボならスコアは v5 の満点
+    /// (基礎 1,000,000 + ボーナス 1,000,000 = 2,000,000、ADR-0035)。
     /// </summary>
     [Test]
     public void AllPerfect_ScoreIsExactlyTwoMillion()
@@ -439,12 +438,16 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 4f, 0.05f));
 
         Assert.AreEqual(MixedChartNoteCount, GManager.perfect);
-        // v4: 判定由来の基礎スコアは 1,000,000 (judgment = 5N の上限)、
+        // v5: 判定由来の基礎スコアは 1,000,000 (judgment = 5N の上限)、
         // ボーナス側も全項目が上限なので bonusScore も 1,000,000。
-        // ratioScore は v3 と同じ ratio points 合計 (情報用)。
+        // ratioScore は判定 + ボーナス ratio points の情報用合計。
         Assert.AreEqual(1000000, GManager.baseScore, "全 Perfect なのに基礎スコアが満点でない");
         Assert.AreEqual(1000000, GManager.bonusScore, "全 Perfect なのにボーナスが満点でない");
-        Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.ratioScore, 0.0001f);
+        // 全 Perfect 確定プレイの v5 ratioScore = 5N + MaxBonusRatioV5(N)
+        // (この譜面は N < 50 で節目 0 回: bonusRatio = 5N + 100)。
+        Assert.AreEqual(
+            5f * MixedChartNoteCount + Scoring.MaxBonusRatioV5(MixedChartNoteCount),
+            GManager.ratioScore, 0.0001f);
         Assert.AreEqual(2000000, GManager.score, "全 Perfect フルコンボが 2,000,000 になっていない");
     }
 
