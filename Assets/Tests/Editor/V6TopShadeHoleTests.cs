@@ -172,6 +172,9 @@ namespace FlashBeat.Tests
         public void LyricPanelSprite_KeepsFrameInsideCorridor()
         {
             V6PanelCorridorHole.ClearSpriteCacheForTests();
+            // 枠ありスプライトは「ノーツ非描画」の状態で選ばれる
+            // (Issue #735/#789)。開始待ち相当の played=false を明示する。
+            GManager.played = false;
             var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
             try
             {
