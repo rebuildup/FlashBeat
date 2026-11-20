@@ -198,9 +198,24 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>判定種別ごとの累計数 (LongNote.Judgement の int 値で引く。検証用)。</summary>
         private readonly int[] verdictKindCounts = new int[4];
 
-        private readonly string[] verdictLabels = new string[Judge.LaneCount];
-        private readonly float[] verdictStarts = new float[Judge.LaneCount];
-        private readonly bool[] verdictActive = new bool[Judge.LaneCount];
+        /// <summary>
+        /// 判定イベント 1 件の記録 (Issue #793)。本編 HUD のプール Spawn に相当し、
+        /// 同一レーンの連続判定も上書きせず全て保持する。寿命切れは
+        /// <see cref="PruneVerdictEvents"/> で間引く。
+        /// </summary>
+        internal struct VerdictEventRecord
+        {
+            public int Lane;
+            public string Label;
+            public LongNote.Judgement Kind;
+            /// <summary>イベント発生時の <see cref="Time.unscaledTime"/> (t=0)。</summary>
+            public float StartTime;
+            /// <summary>単調増加の通し番号。オーバーレイ側の消費カーソル用。</summary>
+            public int Serial;
+        }
+
+        private readonly List<VerdictEventRecord> verdictEvents = new List<VerdictEventRecord>(64);
+        private int verdictEventSerial;
         private string currentLyric;
 
         /// <summary>RawImage に貼る描画結果。</summary>
@@ -1131,9 +1146,17 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            verdictLabels[lane] = label;
-            verdictStarts[lane] = Time.unscaledTime;
-            verdictActive[lane] = true;
+            // Issue #793: レーン上書きではなくイベントを積む。同一レーンの
+            // 連続判定も別レコードとして残り、オーバーレイが個別に表示する。
+            verdictEvents.Add(new VerdictEventRecord
+            {
+                Lane = lane,
+                Label = label,
+                Kind = judgement,
+                StartTime = Time.unscaledTime,
+                Serial = ++verdictEventSerial,
+            });
+            PruneVerdictEvents();
             judgementCount++;
             int kind = (int)judgement;
             if (kind >= 0 && kind < verdictKindCounts.Length)
@@ -1151,26 +1174,52 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// レーンの判定ポップ。表示中ならラベルと開始時刻
-        /// (<see cref="Time.unscaledTime"/>) を返す。寿命切れ・未発火は false。
+        /// レーンの最新の判定ポップ。表示中 (寿命内) の最新イベントがあれば
+        /// ラベルと開始時刻を返す。Issue #793 以降、同一レーンに複数イベントが
+        /// 重なり得るため「最新の 1 件」を返す (旧 per-lane 配列の互換 API)。
         /// </summary>
         internal bool TryGetVerdict(int lane, out string label, out float startTime)
         {
             label = null;
             startTime = 0f;
-            if (lane < 0 || lane >= Judge.LaneCount || !verdictActive[lane] || verdictLabels[lane] == null)
+            PruneVerdictEvents();
+            for (int i = verdictEvents.Count - 1; i >= 0; i--)
             {
-                return false;
+                var e = verdictEvents[i];
+                if (e.Lane == lane)
+                {
+                    label = e.Label;
+                    startTime = e.StartTime;
+                    return true;
+                }
             }
+            return false;
+        }
 
-            if (Time.unscaledTime - verdictStarts[lane] >= V6HudLogic.VerdictTotalSeconds)
+        /// <summary>
+        /// 寿命内の判定イベント一覧 (発生順)。オーバーレイが未消費分を
+        /// プールへ Spawn するために読む。読み出し時に期限切れを間引く。
+        /// </summary>
+        internal IReadOnlyList<VerdictEventRecord> VerdictEvents
+        {
+            get
             {
-                return false;
+                PruneVerdictEvents();
+                return verdictEvents;
             }
+        }
 
-            label = verdictLabels[lane];
-            startTime = verdictStarts[lane];
-            return true;
+        /// <summary>寿命 (<see cref="V6HudLogic.VerdictTotalSeconds"/>) 切れの記録を捨てる。</summary>
+        private void PruneVerdictEvents()
+        {
+            float now = Time.unscaledTime;
+            for (int i = verdictEvents.Count - 1; i >= 0; i--)
+            {
+                if (now - verdictEvents[i].StartTime >= V6HudLogic.VerdictTotalSeconds)
+                {
+                    verdictEvents.RemoveAt(i);
+                }
+            }
         }
 
         /// <summary>これまでに出した判定ポップの累計数 (状態分離の検証用)。</summary>

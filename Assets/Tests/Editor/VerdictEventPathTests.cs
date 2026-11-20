@@ -280,4 +280,34 @@ public class VerdictEventPathTests
         Assert.AreEqual(0, Judge.PendingVerdictCount,
             "カウンタ減少時に前のプレイの未消費イベントを捨てる");
     }
+
+    /// <summary>
+    /// Issue #793 (v0.2.3 実機受入): 同一レーンの連続判定は前の表示を
+    /// 上書きせず、イベントごとの独立インスタンスとして共存する。
+    /// 旧実装 (レーンごと 1 テキスト) では 2 件目が 1 件目を消していた。
+    /// </summary>
+    [Test]
+    public void HudVerdictRow_SameLaneRapidEvents_KeepBothInstances()
+    {
+        EnqueueVerdict((int)LongNote.Judgement.Perfect, 2);
+        EnqueueVerdict((int)LongNote.Judgement.Great, 2);
+
+        CreateHud();
+        view.Refresh();
+
+        Assert.AreEqual(0, Judge.PendingVerdictCount, "HUD がキューをドレインしていない");
+        Assert.AreEqual(2, view.ActiveVerdictCountForAudit(2),
+            "同一レーンの 2 イベントが別インスタンスで表示中 (上書きで消えない)");
+        Assert.AreEqual("GREAT", view.VerdictTextForAudit(2),
+            "監査ラベルは最新の判定を指す");
+    }
+
+    /// <summary>Judge の確定経路と同じキューへ直接イベントを積む (タイミング非依存)。</summary>
+    private static void EnqueueVerdict(int judgement, int lane)
+    {
+        var method = typeof(Judge).GetMethod("EnqueueVerdict",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "Judge.EnqueueVerdict が見つからない");
+        method.Invoke(null, new object[] { judgement, lane });
+    }
 }

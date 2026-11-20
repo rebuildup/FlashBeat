@@ -199,8 +199,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             get
             {
-                return verdictTexts.Count > 0 && verdictTexts[0] != null
-                    ? verdictTexts[0].fontSize : -1f;
+                var entries = verdictPool != null ? verdictPool.EntriesOfLane(0) : null;
+                return entries != null && entries.Length > 0 && entries[0].Text != null
+                    ? entries[0].Text.fontSize : -1f;
             }
         }
 
@@ -209,16 +210,34 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             get
             {
-                return m != null && verdictTexts.Count > 0 && verdictTexts[0] != null
-                    && Mathf.Approximately(verdictTexts[0].fontSize, m.VerdictFs);
+                var entries = verdictPool != null ? verdictPool.EntriesOfLane(0) : null;
+                return m != null && entries != null && entries.Length > 0
+                    && entries[0].Text != null
+                    && Mathf.Approximately(entries[0].Text.fontSize, m.VerdictFs);
             }
         }
 
-        /// <summary>判定行 lane の表示文字列 (非表示なら空)。</summary>
+        /// <summary>判定行 lane の表示文字列 (Issue #793: 最新の表示中/直近の判定ラベル)。</summary>
         public string VerdictTextForAudit(int lane)
         {
-            return lane >= 0 && lane < verdictTexts.Count && verdictTexts[lane] != null
-                ? verdictTexts[lane].text : null;
+            return lane >= 0 && lane < laneVerdictText.Length
+                ? (laneVerdictText[lane] ?? string.Empty) : null;
+        }
+
+        /// <summary>レーンの表示中判定ポップ数 (Issue #793 の監査用)。</summary>
+        public int ActiveVerdictCountForAudit(int lane)
+        {
+            if (verdictPool == null || lane < 0) return 0;
+            var entries = verdictPool.EntriesOfLane(lane);
+            int count = 0;
+            if (entries != null)
+            {
+                for (int i = 0; i < entries.Length; i++)
+                {
+                    if (entries[i].Active) count++;
+                }
+            }
+            return count;
         }
 
         /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
@@ -499,7 +518,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             keyCaps.Clear();
-            verdictTexts.Clear();
+            // Issue #793: verdictPool は子ごと破棄されるので参照だけ外す。
+            verdictPool = null;
             // Issue #680: 判定イベントのキューはここでは消さない。
             // 未消費分は次の Refresh で新しい判定行へそのまま出る
             // (リセットは Judge.Start / カウンタ減少時 / VerdictRow=false 時)。
@@ -548,6 +568,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 誤発火させない)。
             lastComboMilestones = GManager.comboMilestones;
             verdictBaseY = 0f;
+            for (int lane = 0; lane < laneVerdictText.Length; lane++)
+            {
+                laneVerdictText[lane] = string.Empty;
+            }
             // 新しい TextMeshPro は空文字から始まる。前の部品に出していた値を
             // 「表示済み」のまま残すと、値が変わらない限り Refresh が書き込まず
             // スコア / コンボが次に増えるまで空のままになる。

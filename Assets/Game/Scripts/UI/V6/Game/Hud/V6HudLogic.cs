@@ -173,14 +173,39 @@ namespace FlashBeat.UI.V6.Game.Hud
         // --- 判定ポップアップ (Issue #731: 判定線起点の上昇 → 保持 → 下方退場) ---
 
         /// <summary>
-        /// 判定テキストが読み取りのために留まる頂点の高さ = 判定線のこの距離だけ上 (px)。
+        /// 判定テキストが読み取りのために留まる頂点の高さ = 判定線のこの距離だけ上。
         /// 判定確定 (t=0) に判定線の位置へ出現し、<see cref="VerdictRiseSeconds"/>
-        /// かけてこの高さまで上昇する。Issue #731 で旧「静止位置」(Issue #671) から
-        /// 「上昇の頂点」へ役割が変わった。72px は判定ボックス
-        /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の高さとほぼ同じで、
-        /// テキスト下端が判定線・レーンフラッシュと重ならない最小の読み取り高さ。
+        /// かけてこの高さまで上昇する。
+        ///
+        /// Issue #793 (v0.2.3 実機受入): 旧固定値 72px は判定ボックス
+        /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の約 1.6 個分しかなく、
+        /// 判定線・キーガイドに近すぎて読み取りにくいと差し戻された。
+        /// 頂点距離は解像度別メトリクスの判定ボックス高さに比例させ、
+        /// <see cref="VerdictPeakRisePx"/> が正本 (FHD で約 4 個分)。
         /// </summary>
-        public const float VerdictPeakGapAboveLine = 72f;
+        public const float VerdictPeakRiseRatio = 4f;
+
+        /// <summary>
+        /// 頂点の高さ (判定線からの px、正 = 上)。解像度別メトリクスの
+        /// 判定ボックス高さ × <see cref="VerdictPeakRiseRatio"/>。
+        /// </summary>
+        public static float VerdictPeakRisePx(V6HudMetrics m)
+        {
+            return m.VerdictH * VerdictPeakRiseRatio;
+        }
+
+        /// <summary>
+        /// 出現時のスケールポップの山 (1 より大きい = ふくらんでから戻る)。
+        /// 判定イベントごとの独立インスタンスが重なっても、出現の瞬間に
+        /// 「新しい判定」が視認できるようにする (Issue #793)。
+        /// </summary>
+        public const float VerdictPopPeakScale = 1.18f;
+
+        /// <summary>スケールポップの立ち上がり時間 (秒)。</summary>
+        public const float VerdictPopScaleAttack = 0.06f;
+
+        /// <summary>スケールポップ全体の時間 (秒)。これ以降は等倍。</summary>
+        public const float VerdictPopScaleTotal = 0.24f;
 
         /// <summary>
         /// レガシー 3D プレイフィールド経路 (V6UiMode.Playfield=false) の
@@ -252,17 +277,20 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>
         /// 判定ポップのある時刻の姿勢。<see cref="OffsetPx"/> は判定線からの
         /// 垂直オフセット (px、画面下原点で正 = 上。負は判定線より下)、
-        /// <see cref="Alpha"/> は不透明度 (0..1)。
+        /// <see cref="Alpha"/> は不透明度 (0..1)、<see cref="Scale"/> は
+        /// 出現時のスケールポップ倍率 (Issue #793。1 が等倍)。
         /// </summary>
         public struct VerdictPose
         {
             public readonly float OffsetPx;
             public readonly float Alpha;
+            public readonly float Scale;
 
-            public VerdictPose(float offsetPx, float alpha)
+            public VerdictPose(float offsetPx, float alpha, float scale)
             {
                 OffsetPx = offsetPx;
                 Alpha = alpha;
+                Scale = scale;
             }
         }
 
@@ -273,37 +301,45 @@ namespace FlashBeat.UI.V6.Game.Hud
         ///
         /// - t=0: 判定線の位置に即時出現 (オフセット 0、α=1。フェードインなし)。
         /// - 0〜<see cref="VerdictRiseSeconds"/>: EaseOutCubic で頂点
-        ///   (判定線 + <see cref="VerdictPeakGapAboveLine"/>) まで上昇。
+        ///   (判定線 + <see cref="VerdictPeakRisePx"/>) まで上昇。
         /// - 〜+<see cref="VerdictFallSeconds"/>: EaseInCubic で加速しながら
         ///   頂点から判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで
         ///   落下。頂点での静止フェーズは無く、上昇の終端からそのまま落下へ移る。
         ///   α は退場終盤 (<see cref="VerdictFadeStartU"/> 以降の 40%) で
         ///   1→0 にフェードする (判定線付近に不透明のまま滞留しない)。
+        /// - Scale: 出現直後 <see cref="VerdictPopScaleTotal"/> 秒だけ
+        ///   <see cref="PunchScale"/> でふくらんで等倍へ戻る (Issue #793)。
         /// - 総寿命 <see cref="VerdictTotalSeconds"/> を過ぎると α=0。
         ///
         /// 旧軌道 (Issue #671: 静止位置の真上から落下して着地 → 静止 → フェード)
         /// はオーナー要求に反するため廃止した (#728 観測 3 / #731)。
         /// v0.2.0 の「頂点で 0.5 秒静止 → 落下」も v0.2.1 実機レビューで
         /// 不自然と差し戻され、頂点通過型の連続軌道へ改めた。
+        /// v0.2.3 実機レビュー (Issue #793) で頂点距離の不足と出現スケール
+        /// 欠如、同一レーン連打での上書きを指摘され、距離をメトリクス比例へ、
+        /// スケールポップとイベント単位の表示インスタンスを追加した。
         /// </summary>
         /// <param name="elapsed">判定確定からの経過秒 (負は 0 として扱う)。</param>
         /// <param name="m">解像度別 HUD メトリクス (退場距離の算出に使う)。</param>
         public static VerdictPose VerdictPoseAt(float elapsed, V6HudMetrics m)
         {
             float t = Mathf.Max(0f, elapsed);
+            float peak = VerdictPeakRisePx(m);
+            float scale = PunchScale(t, VerdictPopPeakScale,
+                VerdictPopScaleAttack, VerdictPopScaleTotal);
 
             // 上昇: 判定線 (0) → 頂点 (peak)。EaseOut で立ち上がりを減速させる。
             if (t < VerdictRiseSeconds)
             {
                 return new VerdictPose(
-                    VerdictPeakGapAboveLine * EaseOutCubic(t / VerdictRiseSeconds), 1f);
+                    peak * EaseOutCubic(t / VerdictRiseSeconds), 1f, scale);
             }
 
             // 下方退場: 頂点 → 判定線を越えて exitDrop 分だけ下。
             // EaseIn で加速する。頂点での静止は挟まず上昇から連続して落ちる。
             float u = Mathf.Clamp01((t - VerdictRiseSeconds) / VerdictFallSeconds);
-            float travel = VerdictPeakGapAboveLine + VerdictExitDropPx(m);
-            float offset = VerdictPeakGapAboveLine - travel * EaseInCubic(u);
+            float travel = peak + VerdictExitDropPx(m);
+            float offset = peak - travel * EaseInCubic(u);
 
             // α: 上昇と退場序盤 (u < FadeStartU) は不透明。終盤 40% で
             // smoothstep により 1→0 へフェードする。判定線を割るのは
@@ -311,7 +347,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 消滅が速すぎて残像に見える — 落下の終盤に合わせて消す。
             float fadeU = (u - VerdictFadeStartU) / (1f - VerdictFadeStartU);
             float alpha = fadeU <= 0f ? 1f : 1f - fadeU * fadeU * (3f - 2f * fadeU);
-            return new VerdictPose(offset, alpha);
+            return new VerdictPose(offset, alpha, scale);
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---

@@ -29,7 +29,7 @@ namespace FlashBeat.Tests
         public void VerdictPose_RisesFromJudgeLine_FallsBelow()
         {
             var m = V6HudMetrics.Fhd(1f);
-            float peak = V6HudLogic.VerdictPeakGapAboveLine;
+            float peak = V6HudLogic.VerdictPeakRisePx(m);
             float exitDrop = V6HudLogic.VerdictExitDropPx(m);
 
             // t=0: 判定線の位置 (オフセット 0) に即時出現、不透明。
@@ -125,7 +125,7 @@ namespace FlashBeat.Tests
 
             // 旧軌道の「静止位置 + 落下距離」の出現高さ (peak + VerdictH 相当の
             // 上空出発) を新軌道が取らないことも確認する。
-            float oldAppearOffset = V6HudLogic.VerdictPeakGapAboveLine
+            float oldAppearOffset = V6HudLogic.VerdictPeakRisePx(m)
                 + V6HudLogic.VerdictExitDropPx(m);
             for (int i = 0; i <= 20; i++)
             {
@@ -170,6 +170,42 @@ namespace FlashBeat.Tests
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds, m).Alpha, 0.001f);
             Assert.AreEqual(0f,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds + 0.5f, m).Alpha,
+                0.001f);
+        }
+
+        /// <summary>
+        /// Issue #793 (v0.2.3 実機受入): 出現時にスケールアニメーションを入れる。
+        /// 出現直後だけ山 (<see cref="V6HudLogic.VerdictPopPeakScale"/>) へ
+        /// ふくらみ、<see cref="V6HudLogic.VerdictPopScaleTotal"/> 以降は等倍。
+        /// 退場中に拡大が残らないことも確認する。
+        /// </summary>
+        [Test]
+        public void VerdictPose_ScalePopsOnAppear_ThenSettles()
+        {
+            var m = V6HudMetrics.Fhd(1f);
+
+            // 出現時点は等倍から始まり、ポップ時間内に山を越える。
+            Assert.AreEqual(1f, V6HudLogic.VerdictPoseAt(0f, m).Scale, 0.001f);
+            float peakScale = 0f;
+            for (int i = 1; i <= 12; i++)
+            {
+                float t = V6HudLogic.VerdictPopScaleTotal * i / 12f;
+                peakScale = Mathf.Max(peakScale,
+                    V6HudLogic.VerdictPoseAt(t, m).Scale);
+            }
+            Assert.Greater(peakScale, 1.05f,
+                "出現時にスケールがふくらむ (見た目の出現アニメーション)");
+            // EaseOutBack は山を行き過ぎるので peak を僅かに超え得る。
+            Assert.Less(peakScale, 1.3f,
+                "スケールの振れ幅は控えめ (行き過ぎは EaseOutBack のオーバーシュート分)");
+
+            // ポップ終了後〜退場中盤は等倍。寿命末も等倍 (透明なので見えないが
+            // 値として 1 に戻っていること)。
+            Assert.AreEqual(1f,
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictPopScaleTotal + 0.01f, m).Scale,
+                0.001f);
+            Assert.AreEqual(1f,
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds, m).Scale,
                 0.001f);
         }
 
@@ -283,9 +319,11 @@ namespace FlashBeat.Tests
             // 落下は上昇より長く、判定を読み取る時間を確保する。
             Assert.Less(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictFallSeconds);
 
-            // 頂点は判定線のすぐ上 (読み取りに十分で、離れすぎない)。
-            Assert.Greater(V6HudLogic.VerdictPeakGapAboveLine, 0f);
-            Assert.Less(V6HudLogic.VerdictPeakGapAboveLine, 200f);
+            // 頂点は判定線の上 (Issue #793: メトリクス比例、FHD で判定ボックス
+            // 約 4 個分)。読み取りに十分で、画面外へ出ない範囲に収める。
+            float peak = V6HudLogic.VerdictPeakRisePx(V6HudMetrics.Fhd(1f));
+            Assert.Greater(peak, 0f);
+            Assert.Less(peak, 200f);
         }
 
         // --- 桁別アニメーションの差分 (Issue #445) ---
@@ -541,14 +579,21 @@ namespace FlashBeat.Tests
                     "effect point must project visibly above the drawn judge line " +
                     "(Issue #715: it is ~50px too high at FHD)");
 
-                // 上昇の頂点 = 描画判定線の投影 + VerdictPeakGapAboveLine
-                // (72px、画面下原点)。アンカーが描画線そのものなので、
-                // 頂点は常に線の真上 72px — design §10.3 の契約そのもの
+                // 上昇の頂点 = 描画判定線の投影 + VerdictPeakRisePx(m)
+                // (メトリクス比例、画面下原点)。アンカーが描画線そのものなので、
+                // 頂点は常に線の真上 — design §10.3 / Issue #793 の契約
                 // (Issue #731: 「静止位置」ではなく上昇の頂点)。
-                Assert.AreEqual(72f, V6HudLogic.VerdictPeakGapAboveLine, 0.001f);
+                var metrics = V6HudMetrics.ForResolution(Screen.width, Screen.height);
+                float peakPx = V6HudLogic.VerdictPeakRisePx(metrics);
+                // Issue #793: 頂点距離は解像度プロファイルの判定ボックス高さに
+                // 比例する (旧固定 72px は近すぎと差し戻された)。
+                Assert.AreEqual(metrics.VerdictH * V6HudLogic.VerdictPeakRiseRatio,
+                    peakPx, 0.001f, "頂点距離はメトリクス比例が正本");
+                Assert.Greater(peakPx, metrics.VerdictH,
+                    "頂点は判定ボックス 1 個分より十分上 (判定線への近接を解消)");
                 float screenH = Mathf.Max(1f, Screen.height);
                 float lineFromBottom = lineVp.y * screenH;
-                float peakFromBottom = lineFromBottom + V6HudLogic.VerdictPeakGapAboveLine;
+                float peakFromBottom = lineFromBottom + peakPx;
                 Assert.Greater(peakFromBottom, lineFromBottom);
                 Assert.Less(peakFromBottom, screenH,
                     "verdict peak position must stay on screen");
