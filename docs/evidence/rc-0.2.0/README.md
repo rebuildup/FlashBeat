@@ -31,10 +31,10 @@ disposition: 契約陳腐化の試験更新 + 実害 3 件修正)。Stage B (PR 
 |---|---|
 | C2 macOS build | **PASS** — `FlashBeat.macbuild/Builds/macOS/FlashBeat.app` (Unity batch `BuildScript.BuildStandaloneMacOS`, 対象 SHA で再ビルド) |
 | C3 bundleVersion | **PASS** — `CFBundleShortVersionString = 0.2.0+86a843ba` (Info.plist 実測) |
-| C1 Win64 build | `script/win64-build-mac.sh 86a843ba` 実行 (結果は追記) |
-| C4 ZIP + SHA-256 + version.json | package スクリプト実行後に追記 |
-| C5 第三者メディア非含有 | 旧 freeze 時点の ZIP で `mediaPolicy=song-free`・メディア 0 件を確認済み。新 SHA の ZIP で再確認予定 |
-| C6 update channel/tag | パッケージ時に確認 |
+| C1 Win64 build | **PASS** — `script/win64-build-mac.sh 86a843ba` → `dist/win64/FlashBeat-0.2.0-win64-86a843ba.zip` + SHA-256 sidecar。公開 Release `v0.2.0-win64-86a843ba` に添付済み（実機起動は Windows 環境が必要で未確認） |
+| C4 ZIP + SHA-256 + version.json | **PASS** — 両 ZIP の SHA-256 を sidecar と再照合済み。win64 `version.json`/`update-channel.txt` 同梱を監査で確認 |
+| C5 第三者メディア非含有 | **PASS** — `tools/release/audit-release-media.py` で公開 ZIP を再監査: 両 Release `song-free`、ルーズメディア 0 件（`docs/operations/release-media-audit.md` §3.2） |
+| C6 update channel/tag | **PASS** — tag 形式 `v0.2.0-{win64,macos}-86a843ba`、stable (prerelease=false)、`update-channel.txt=stable` |
 
 ## D. Web (対象 SHA — Stage B で web 無変更)
 
@@ -62,13 +62,25 @@ disposition: 契約陳腐化の試験更新 + 実害 3 件修正)。Stage B (PR 
   **ノーツが描画フレームの約半分でしか移動していなかった状態が、補間時計の導入で
   全フレーム移動へ改善したことを before/after の実測で確認**
 
-### E9 scoring v4 サーバ受理 — API 層 PASS / 本番デプロイ待ち
+### E9 scoring v4 サーバ受理 — **PASS（公開済み）**
 
 - ローカル (対象 SHA): `tests/api.test.ts` が v4 で score=2,000,000 の POST 201、
   leaderboard の scoringVersion 分離、既定 board = 最新版を実証 (169/169 PASS に含有)
 - リモート D1: `20261119162405_curly_master_chief.sql` 適用済み・`sqlite_master` で
   `scoringVersion` カラムと v4 CHECK を確認 (docs/operations/d1-migrations.md §10.1)
-- **未実施**: 対象 SHA の Worker デプロイ後の本番 API 実証 → release-0-2-0→main 公開時に実施
+- **本番 deploy 済み (2026-11-20)**: `void deploy --platform cloudflare` で
+  `flashbeat-web` を公開。`https://flashbeat.rebuildup.dev` で catalog 200・
+  rankings/leaderboards の `scoringVersion` 受理を実測。v4 スコアの実 POST は
+  実プレイで自然発生する（テスト投稿でランキングを汚さないため未実施）
+- **データ保全の実測 (2026-11-20, 公開後フォローアップ)**: テーブル再構築 migration
+  (`-- void:allow-destructive`) の適用後に本番 D1 を照合 —
+  `scores` 27 行・id 1–27 連番・distinct (欠損なし)、`scoringVersion` 内訳
+  v1×26 + v3×1 (全て 1,000,000 以下で旧上限を維持)、`scores_leaderboard_idx` 存在、
+  v4 CHECK 制約あり、`PRAGMA foreign_key_check` 違反 0 件、
+  `songs`=30 / `chart_versions`=41 (API の catalogVersion=41 と一致)。
+  移行前の件数スナップショットは未取得のため「27 件が移行前と同一」の直接証明は
+  ないが、AUTOINCREMENT id の連番保持と FK チェック通過から行欠損はないと判断。
+  バックアップ/復旧経路は D1 Time Travel (PITR) + `void db restore --bookmark`
 
 ### E1/E2 クリック音 — 証跡あり / 聴取は人間確認へ
 
@@ -85,9 +97,20 @@ disposition: 契約陳腐化の試験更新 + 実害 3 件修正)。Stage B (PR 
   スクリーンショットを人間レビューへ委ねる。機械的には EditMode の
   `V6RenderParityTests` / `V6ResultGradeFitTests` / `V6TextFitTests` が緑
 
+## 公開記録 (2026-11-20、フォローアップ追記)
+
+- `release-0-2-0 → main` merge: PR #778 (`534b527e`)、記録 PR #779
+- GitHub Releases (stable): `v0.2.0-win64-86a843ba` / `v0.2.0-macos-86a843ba`、
+  ZIP + SHA-256 添付・sidecar 再照合済み、メディア監査 song-free
+- Web Worker: `void deploy --platform cloudflare` で本番公開、D1 migrations 最新
+
 ## 未検証・残件 (正直な一覧)
 
-1. Win64 実機での起動・プレイ (C1 ビルド成果物は得るが実行検証は Windows 環境が必要)
+1. Win64 実機での起動・プレイ (C1 ビルド成果物は公開済みだが実行検証は Windows 環境が必要)
 2. 実機聴取 (E1)、実描画の人間レビュー (E3–E7, E10)、パッケージ ZIP の最終 hash 照合
-3. 本番 Worker デプロイ後の E9 実証 (release 公開と同時)
+   — **動画・実聴での確認が必要**（静止スクリーンショットでは判定アニメーションや
+   音声の受入は完了しない）
+3. 本番での v4 スコア実 POST（初回実プレイで自然発生。API 層・D1 スキーマは検証済み）
 4. #730 は聴取確認待ちで open のまま (素材・バインド・ライセンス証跡は完備)
+5. `noteHz` (45–53) は移動検出の計測値であり描画 FPS ではない — 実画面での
+   滑らかさ・更新タイミングの揺らぎは人間レビューで確認する

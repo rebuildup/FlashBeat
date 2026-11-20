@@ -69,7 +69,7 @@ Unity -batchmode -projectPath . -runTests -testPlatform editmode -testResults Te
 | E6 | Result SS/他グレードの全解像度描画比較 | #737 | 解像度行列での描画確認 | ☐ / **未確認（実描画の人間レビューへ。`V6ResultGradeFitTests` 緑）** |
 | E7 | Result→Select の選曲復元（Space 遷移） | #738 | 実機で遷移操作 | ☐ / **未確認（実機の人間レビューへ。`SelectReturnContextTests` 緑）** |
 | E8 | ノーツ移動の実測 fps / frame time / jitter | #739 | `NoteMotionProbe` + `script/mac-fbperf.sh` 等で before/after 計測、条件と数値を記録 | ☑ **PASS** — before `noteMovePct≈51`/`noteHz≈27` (1db05d5a) → after `98–100`/`45–53` (86a843ba)、avgFps 60.0、証跡 `docs/evidence/739-noteprobe/` |
-| E9 | scoring v4 のサーバ受理（100 万超）・ランキング版分離・D1 適用 | #736/#758 | 対象 SHA の API/E2E で実証 | ◐ API 層 PASS（v4 2,000,000 POST 201・board 分離、ローカル）+ リモート D1 migration 適用・schema 確認済み。**本番 Worker デプロイ後の実証は公開時** |
+| E9 | scoring v4 のサーバ受理（100 万超）・ランキング版分離・D1 適用 | #736/#758 | 対象 SHA の API/E2E で実証 | ☑ **PASS（公開済み）** — 本番 deploy 後に catalog/rankings/leaderboards の scoringVersion 受理を実測、D1 データ保全を照合（RC README E9）。v4 実 POST は初回実プレイで自然発生 |
 | E10 | Unity 全画面 UI の実機観測差異 | #743→#748–750 | 観測差異は次の修正 Issue へ戻す（完了条件にしない） | ◐ 自動証跡あり（AutoTest 32/32 + 画面 PNG）。実機観測の人間レビューは残件 |
 
 ## F. 判定ルール
