@@ -155,6 +155,34 @@ if [ "$packed_size" -gt 0 ] && [ "$MEDIA_POLICY" != "bundled" ]; then
     fi
 fi
 
+# ── bundled media tools (issue #795) ───────────────────────────────────────
+# yt-dlp + deno を StreamingAssets/tools/ へ同梱する。配布 ZIP だけを入手した
+# 利用者の環境には yt-dlp / deno が存在せず、YouTube からの楽曲取得が全曲
+# 失敗していた (v0.2.2 実機受入不合格)。バイナリは script/fetch-media-tools.sh
+# が tools/media/ (gitignore) へ version + SHA-256 pin で取得する。
+# ffmpeg は同梱しない: SelectPlan は結合 mp4 (itag 18) を優先し、ffmpeg は
+# HD マージ経路の品質向上にのみ使われる。macOS ビルドは universal なので
+# arm64 / x86_64 両方の deno を入れ、実行時に OSArchitecture で選ぶ。
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TOOLS_SRC="$REPO_ROOT/tools/media"
+for required in "macos/yt-dlp" "macos-arm64/deno" "macos-x86_64/deno"; do
+    [ -f "$TOOLS_SRC/$required" ] || fail "media tool missing: $TOOLS_SRC/$required (run script/fetch-media-tools.sh)"
+done
+TOOLS_DST="$DATA_DIR/StreamingAssets/tools"
+mkdir -p "$TOOLS_DST/macos" "$TOOLS_DST/macos-arm64" "$TOOLS_DST/macos-x86_64"
+cp "$TOOLS_SRC/macos/yt-dlp" "$TOOLS_DST/macos/yt-dlp"
+cp "$TOOLS_SRC/macos-arm64/deno" "$TOOLS_DST/macos-arm64/deno"
+cp "$TOOLS_SRC/macos-x86_64/deno" "$TOOLS_DST/macos-x86_64/deno"
+chmod +x "$TOOLS_DST/macos/yt-dlp" "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-x86_64/deno"
+# sanity probe: このビルド機の arch に対応する deno だけ実際に起動する
+# (他 arch のバイナリは Rosetta 無し環境で --version に失敗し得るため)。
+"$TOOLS_DST/macos/yt-dlp" --version >/dev/null || fail "bundled yt-dlp failed --version"
+case "$(uname -m)" in
+    arm64)  "$TOOLS_DST/macos-arm64/deno" --version >/dev/null || fail "bundled deno (arm64) failed --version" ;;
+    x86_64) "$TOOLS_DST/macos-x86_64/deno" --version >/dev/null || fail "bundled deno (x86_64) failed --version" ;;
+esac
+echo "[media-tools] bundled yt-dlp + deno (macos arm64/x86_64) into StreamingAssets/tools"
+
 # ── output ──────────────────────────────────────────────────────────────────
 mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"

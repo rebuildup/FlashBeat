@@ -217,6 +217,16 @@ namespace FlashBeat.Gameplay
                 return cachedYtDlpPath;
             }
 
+            // 1.5. 同梱ツール (issue #795): 配布 ZIP にだけ存在する製品管理下の
+            //      バイナリ。利用者の PATH や開発環境に依存しないため最優先で使う。
+            //      FLASHBEAT_*_PATH の明示指定だけがこれより優先される。
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, YtDlpBundledNames()), "--version");
+            if (bundledHit != null)
+            {
+                cachedYtDlpPath = bundledHit;
+                return cachedYtDlpPath;
+            }
+
             // 2. PATH (a launcher that exists but does not work - the mise shims -
             //    is skipped, the candidate has to answer to --version)
             var pathHit = FirstUsable(WhereOnPathAll("yt-dlp.exe"), "--version");
@@ -269,13 +279,17 @@ namespace FlashBeat.Gameplay
             {
                 if (denoPathTask == null)
                 {
-                    denoPathTask = RunResolution(ResolveDenoPathCore);
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    denoPathTask = RunResolution(() => ResolveDenoPathCore(streamingAssetsPath, dataPath));
                 }
                 return denoPathTask;
             }
         }
 
-        static string ResolveDenoPathCore()
+        static string ResolveDenoPathCore(string streamingAssetsPath, string dataPath)
         {
             if (denoPathResolved) return cachedDenoPath;
             denoPathResolved = true;
@@ -284,6 +298,14 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
             {
                 cachedDenoPath = pref;
+                return cachedDenoPath;
+            }
+
+            // 同梱ツール (issue #795): yt-dlp と同じく製品管理下のバイナリを優先する。
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, DenoBundledNames()), "--version");
+            if (bundledHit != null)
+            {
+                cachedDenoPath = bundledHit;
                 return cachedDenoPath;
             }
 
@@ -469,6 +491,53 @@ namespace FlashBeat.Gameplay
         {
             var normalized = path.Replace('\\', '/').ToLowerInvariant();
             return normalized.Contains("/mise/shims/") || normalized.Contains("/.mise/shims/");
+        }
+
+        // ---------------------------------------------------------------
+        // Bundled tools (issue #795)
+        // ---------------------------------------------------------------
+
+        static bool IsMacOS =>
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.OSX);
+
+        /// <summary>
+        /// Expands bundled-tool relative paths under StreamingAssets. The release
+        /// packaging scripts (tools/release/package-macos.sh / package-win64.ps1)
+        /// copy script/fetch-media-tools.sh output into
+        /// &lt;build&gt;/StreamingAssets/tools/&lt;relative path&gt;. Shipping targets
+        /// are macOS (universal) and Windows x64 only; other platforms get an empty
+        /// list and fall through to the PATH / mise / system search as before.
+        /// </summary>
+        static IEnumerable<string> BundledToolCandidates(string streamingAssetsPath, string dataPath, string[] relativePaths)
+        {
+            if (relativePaths == null) yield break;
+            foreach (var rel in relativePaths)
+            {
+                yield return Path.Combine(streamingAssetsPath, "tools", rel);
+                yield return Path.Combine(dataPath, "StreamingAssets", "tools", rel);
+            }
+        }
+
+        /// <summary>yt-dlp_macos is a universal Mach-O; Windows ships yt-dlp.exe.</summary>
+        static string[] YtDlpBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/yt-dlp.exe" };
+            if (IsMacOS) return new[] { "macos/yt-dlp" };
+            return new string[0];
+        }
+
+        /// <summary>Deno ships per-arch; the macOS build is universal so the arch key is required.</summary>
+        static string[] DenoBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/deno.exe" };
+            if (IsMacOS)
+            {
+                var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+                var key = arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x86_64";
+                return new[] { key + "/deno" };
+            }
+            return new string[0];
         }
 
         /// <summary>

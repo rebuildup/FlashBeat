@@ -1,0 +1,12 @@
+# Media tool pins for script/fetch-media-tools.sh (issue #795).
+# Bump deliberately: yt-dlp must track YouTube changes; deno is the JS
+# runtime yt-dlp uses for player challenges.
+
+yt-dlp=2026.10.26
+yt-dlp_macos_sha256=0f922c15ccc0b83eefa1c8bc9104e434318c4bf16e408e1ee93b7745a6efe0aa
+yt-dlp_win_x64_sha256=f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d
+
+deno=v2.9.8
+# deno zip sha256 は各リリースの .sha256sum アセットで検証する
+# (deno-aarch64-apple-darwin.zip / deno-x86_64-apple-darwin.zip /
+#  deno-x86_64-pc-windows-msvc.zip @ v2.9.8)
