@@ -69,15 +69,24 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         /// <param name="screenSize">HUD canvas の実ピクセル寸法。</param>
         /// <param name="cornerRadiusPx">角丸半径 (canvas px)。</param>
+        /// <param name="frameInsideCorridor">
+        /// レーン回廊の内側でもパネル縁 (<see cref="FrameThicknessPx"/>) の
+        /// アルファを残すか (Issue #789)。ノーツがパネル帯を通過し得る
+        /// 演奏中は false にして回廊を完全に抜き、枠がノーツを暗くする
+        /// のを防ぐ。開始待ち・曲終了などノーツが画面に無い状態では
+        /// true で枠の輪郭を保つ。
+        /// </param>
         public static Sprite ForPanel(float leftPx, float topPx,
-            float widthPx, float heightPx, Vector2 screenSize, float cornerRadiusPx)
+            float widthPx, float heightPx, Vector2 screenSize, float cornerRadiusPx,
+            bool frameInsideCorridor)
         {
             int w = Mathf.Max(2, Mathf.RoundToInt(widthPx));
             int h = Mathf.Max(2, Mathf.RoundToInt(heightPx));
             string key = leftPx.ToString("0.#") + "," + topPx.ToString("0.#")
                 + "," + w + "x" + h
                 + "," + screenSize.x.ToString("0") + "x" + screenSize.y.ToString("0")
-                + "," + cornerRadiusPx.ToString("0.#");
+                + "," + cornerRadiusPx.ToString("0.#")
+                + "," + (frameInsideCorridor ? "f" : "c");
             if (sprites.TryGetValue(key, out var cached) && cached != null)
             {
                 return cached;
@@ -111,9 +120,12 @@ namespace FlashBeat.UI.V6.Game.Hud
                     float sx = leftPx + x + 0.5f;
                     // Issue #789: 角丸矩形の縁から FrameThicknessPx 以内は
                     // 回廊帯の内側でもアルファを残し、パネル枠を常に見せる。
+                    // ただし frameInsideCorridor = false (ノーツが帯を通過
+                    // し得る演奏中) では回廊を完全に抜き、枠がノーツを
+                    // 暗くしないようにする (Issue #735/#760 の白さ契約)。
                     float d = RoundedDistance(x + 0.5f, y + 0.5f, w, h, radius);
                     float shape = Mathf.Clamp01(0.5f - d);
-                    float a = d >= -FrameThicknessPx
+                    float a = frameInsideCorridor && d >= -FrameThicknessPx
                         ? shape
                         : V6TopShadeHole.ShadeAlpha(sx, left, right, shape);
                     tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
