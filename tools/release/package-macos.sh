@@ -181,6 +181,22 @@ case "$(uname -m)" in
     arm64)  "$TOOLS_DST/macos-arm64/deno" --version >/dev/null || fail "bundled deno (arm64) failed --version" ;;
     x86_64) "$TOOLS_DST/macos-x86_64/deno" --version >/dev/null || fail "bundled deno (x86_64) failed --version" ;;
 esac
+
+# quarantine された .app 内で child process として起動されるため、利用者が
+# ZIP をブラウザから落とすと Gatekeeper の評価対象になる。yt-dlp_macos は
+# adhoc 署名なので、そのままでは quarantine 下で exec が殺され得る。
+# Developer ID Application 署名があればツールへ付与する (deno は既に署名済み
+# だが統一のため再署名する)。署名 identity が無い環境では警告に留める
+# (署名なし配布は従来どおり利用者の Gatekeeper 回避操作に依存する)。
+SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
+if [ -n "$SIGN_IDENTITY" ]; then
+    for tool in "$TOOLS_DST/macos/yt-dlp" "$TOOLS_DST/macos-arm64/deno" "$TOOLS_DST/macos-x86_64/deno"; do
+        codesign --force --sign "$SIGN_IDENTITY" --timestamp "$tool" || fail "codesign failed: $tool"
+    done
+    echo "[media-tools] codesigned bundled tools with '$SIGN_IDENTITY'"
+else
+    echo "[media-tools] WARNING: no Developer ID Application identity; bundled tools stay unsigned" >&2
+fi
 echo "[media-tools] bundled yt-dlp + deno (macos arm64/x86_64) into StreamingAssets/tools"
 
 # ── output ──────────────────────────────────────────────────────────────────
