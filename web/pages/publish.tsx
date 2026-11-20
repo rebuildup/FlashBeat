@@ -1,9 +1,9 @@
 import { readPublishDraft } from "@/lib/publish/draft";
+import { Link } from "@void/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { SongPublisher } from "@/components/song-publisher/song-publisher";
 import { loadSongSession, type SongSession } from "@/lib/song-session/load";
-import { StudioShell } from "@/app/app-shell";
 import {
   pageBackLink,
   panelHeader,
@@ -89,38 +89,36 @@ function PublishState({
 }) {
   const failed = kind === "error";
   return (
-    <StudioShell>
-      <div className={content}>
-        <section className={card} role={failed ? "alert" : "status"} aria-busy={!failed}>
-          <header className={panelHeader}>
-            <h1 className={panelTitle}>
-              {failed ? "譜面を読み込めませんでした" : "譜面を読み込み中"}
-            </h1>
-            <span className={overline}>公開</span>
-          </header>
-          <div className={stateBlock}>
-            <p className={stateTitle}>
-              {failed ? "読み込みに失敗しました" : "公開対象を確認しています"}
-            </p>
-            <p className={stateDescription}>
-              {failed
-                ? (message ?? "接続を確認して再試行してください。")
-                : "公開対象の楽曲と譜面バージョンを確認しています。"}
-            </p>
-          </div>
-          <div className={actions}>
-            {failed ? (
-              <Button className={retryButton} size="sm" onClick={onRetry}>
-                再試行
-              </Button>
-            ) : null}
-            <a className={pageBackLink} href="/">
-              ← 曲を選ぶ
-            </a>
-          </div>
-        </section>
-      </div>
-    </StudioShell>
+    <div className={content}>
+      <section className={card} role={failed ? "alert" : "status"} aria-busy={!failed}>
+        <header className={panelHeader}>
+          <h1 className={panelTitle}>
+            {failed ? "譜面を読み込めませんでした" : "譜面を読み込み中"}
+          </h1>
+          <span className={overline}>公開</span>
+        </header>
+        <div className={stateBlock}>
+          <p className={stateTitle}>
+            {failed ? "読み込みに失敗しました" : "公開対象を確認しています"}
+          </p>
+          <p className={stateDescription}>
+            {failed
+              ? (message ?? "接続を確認して再試行してください。")
+              : "公開対象の楽曲と譜面バージョンを確認しています。"}
+          </p>
+        </div>
+        <div className={actions}>
+          {failed ? (
+            <Button className={retryButton} size="sm" onClick={onRetry}>
+              再試行
+            </Button>
+          ) : null}
+          <Link className={pageBackLink} href="/">
+            ← 曲を選ぶ
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -171,17 +169,15 @@ export default function PublishPage({ songId, version, draftId }: Props) {
   }
 
   return (
-    <StudioShell scroll={false}>
-      <div className={publisherPane}>
-        <SongPublisher
-          key={`${songId}:${version}:${attempt}`}
-          apiOrigin={import.meta.env.VITE_FLASHBEAT_API_ORIGIN}
-          initialChart={localChart ?? session?.chart ?? emptyChart}
-          initialYouTubeId={session?.song.youtubeId ?? ""}
-          initialSong={session?.song}
-          initialVersion={session?.chartVersion}
-        />
-      </div>
-    </StudioShell>
+    <div className={publisherPane}>
+      <SongPublisher
+        key={`${songId}:${version}:${attempt}`}
+        apiOrigin={import.meta.env.VITE_FLASHBEAT_API_ORIGIN}
+        initialChart={localChart ?? session?.chart ?? emptyChart}
+        initialYouTubeId={session?.song.youtubeId ?? ""}
+        initialSong={session?.song}
+        initialVersion={session?.chartVersion}
+      />
+    </div>
   );
 }

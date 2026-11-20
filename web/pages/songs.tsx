@@ -11,7 +11,6 @@ export default function SongsPage() {
     <StudioLayout
       title="楽曲アーカイブ"
       subtitle="曲をアーカイブします。譜面、スコア、ランキングは保持されます。"
-      active="songs"
     >
       <SongsPanel />
     </StudioLayout>

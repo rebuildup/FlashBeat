@@ -1,4 +1,5 @@
 import { CircleCheckIcon, ExternalLink, ListMusic, ListPlus } from "lucide-react";
+import { Link } from "@void/react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import type { SongPublishResponse } from "@/lib/publish/types";
@@ -151,12 +152,12 @@ export function PublishSuccessView({
             カタログで確認
           </Button>
         </a>
-        <a href="/">
+        <Link href="/">
           <Button className={raisedButton} size="md">
             <ListMusic className={buttonIcon} size={14} aria-hidden="true" />
             Studioのカタログ
           </Button>
-        </a>
+        </Link>
         <Button className={accent} size="md" onClick={onRegisterAnother}>
           <ListPlus className={buttonIcon} size={14} aria-hidden="true" />
           新しい曲を登録

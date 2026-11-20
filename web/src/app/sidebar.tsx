@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link } from "@void/react";
+import type { Href } from "void/routes";
 import { css } from "styled-system/css";
 import {
   Archive,
@@ -36,7 +38,7 @@ export type StudioNavItem = {
   label: string;
   ja: string;
   en: string;
-  href: string;
+  href: Href;
   icon: LucideIcon;
   /** True when the route needs the admin token. */
   admin?: boolean;
@@ -363,21 +365,9 @@ const navIcon = css({
   flexShrink: "0",
 });
 
-export function Sidebar({ active }: { active?: string }) {
-  // The active entry follows the URL; the default covers the server-rendered
-  // first paint of `/` (the catalog). A page can pin it with `active`.
-  const [path, setPath] = useState("/");
+export function Sidebar() {
   // Narrow viewports keep the staff entries in a disclosure (issue #74).
   const [staffOpen, setStaffOpen] = useState(false);
-  useEffect(() => {
-    setPath(window.location.pathname);
-  }, []);
-
-  const isActive = (item: StudioNavItem): boolean => {
-    if (active !== undefined) return item.value === active;
-    if (item.href === "/") return path === "/";
-    return path.startsWith(item.href);
-  };
 
   return (
     <aside className={sidebar}>
@@ -387,9 +377,12 @@ export function Sidebar({ active }: { active?: string }) {
 
       <nav aria-label="Studio" className={navList}>
         <div className={navTopRow}>
-          <a
+          {/* Issue #801: Void's Link marks the current page itself
+              (`aria-current`/`data-void-active`) and navigates without a
+              document reload, so the rail no longer tracks `location`. */}
+          <Link
             href={NAV_VISITOR.href}
-            aria-current={NAV_VISITOR.href === path ? "page" : undefined}
+            prefetch
             className={`${navTrigger} ${visitorTrigger}`}
             data-testid="nav-visitor"
           >
@@ -397,7 +390,7 @@ export function Sidebar({ active }: { active?: string }) {
             <span className={labelGrid}>
               <span>{NAV_VISITOR.ja}</span>
             </span>
-          </a>
+          </Link>
 
           <button
             type="button"
@@ -429,10 +422,10 @@ export function Sidebar({ active }: { active?: string }) {
                   2列グリッドの中でグループの切れ目が分かるようにする。 */}
               <p className={subgroupLabel}>{group.ja}</p>
               {group.items.map((item) => (
-                <a
+                <Link
                   key={item.value}
                   href={item.href}
-                  aria-current={isActive(item) ? "page" : undefined}
+                  prefetch
                   className={navTrigger}
                   data-testid={`nav-${item.value}`}
                 >
@@ -445,7 +438,7 @@ export function Sidebar({ active }: { active?: string }) {
                       要トークン
                     </span>
                   ) : null}
-                </a>
+                </Link>
               ))}
             </div>
           ))}

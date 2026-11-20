@@ -1,53 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { cx, css } from "styled-system/css";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { css } from "styled-system/css";
 import { filterAndSort, type SortKey } from "./catalog-view";
 import { CatalogPanel, type CatalogStatus } from "./catalog-panel";
 import { Topbar, SEARCH_INPUT_ID, type LevelFilter } from "./topbar";
-import { Sidebar } from "./sidebar";
 import { WelcomeHero } from "@/components/welcome/welcome-hero";
 import { loadCatalog, type CatalogMode } from "./catalog";
 import { isAbortError, useLatestRequest } from "./request-guard";
 import type { SongSummary } from "./types";
-
-/**
- * The shell every Studio screen shares (issue #166): the navigation rail on
- * the start side and the work area next to it. Narrow viewports: the shell is
- * a plain block so the navigation can stick to the top of the document while
- * the page scrolls. Wide viewports: the grid of the rail and the work area.
- *
- * `scroll` selects how the work area behaves:
- * - `true` (default): the shell scrolls the page content (catalog, forms).
- * - `false`: the shell is locked to the viewport and the page manages its own
- *   scrolling (the chart editor draws into a canvas and must not scroll).
- *
- * Issue #74: on a narrow viewport the fixed shell becomes a grid as well, so
- * the rail takes its natural height and the work area gets the rest of the
- * viewport. The scroll owner stays inside the editor, not on the document.
- */
-const shell = css({
-  display: { base: "block", md: "grid" },
-  gridTemplateColumns: { md: "13rem minmax(0, 1fr)" },
-  gridTemplateRows: { md: "1fr" },
-  minHeight: "100dvh",
-  "&[data-fixed]": {
-    display: "grid",
-    gridTemplateColumns: { base: "minmax(0, 1fr)", md: "13rem minmax(0, 1fr)" },
-    gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
-    height: "100dvh",
-    overflow: "hidden",
-  },
-});
-
-const main = css({
-  display: "flex",
-  flexDirection: "column",
-  minHeight: "0",
-  minWidth: "0",
-});
-
-const mainFixed = css({
-  height: "full",
-});
 
 /** Work area of scrolling pages: padded, one inner scroll area. */
 const content = css({
@@ -60,24 +19,13 @@ const content = css({
   p: "4",
 });
 
-export function StudioShell({
-  children,
-  scroll = true,
-}: {
-  children: ReactNode;
-  /** `false` locks the shell to the viewport (chart editor, canvas pages). */
-  scroll?: boolean;
-}) {
-  return (
-    <div className={shell} data-fixed={scroll ? undefined : "true"}>
-      <Sidebar />
-      <main id="studio-content" className={cx(main, !scroll && mainFixed)}>
-        {children}
-      </main>
-    </div>
-  );
-}
-
+/**
+ * The catalog page content (issue #166). Issue #801 moved the shared shell —
+ * the navigation rail and the work area — into `pages/layout.tsx`, so this
+ * component renders only what is unique to `/`: the hero, the filter
+ * topbar and the scrolling list. The document-scrolling frame comes from
+ * `pages/layout.tsx`, which picks the variant from the route.
+ */
 export function AppShell({
   mode,
   query: initialQuery = "",
@@ -195,8 +143,10 @@ export function AppShell({
     next.scrollIntoView({ block: "nearest" });
   }, []);
 
+  // Issue #801: the shared shell (sidebar + main) lives in `pages/layout.tsx`
+  // so it survives client-side navigation; this page renders only content.
   return (
-    <StudioShell>
+    <>
       {/* Issue #215: the visitor entry sits above everything — one default
           path (曲を選ぶ → 譜面を試す) with a single primary CTA. */}
       <WelcomeHero />
@@ -226,6 +176,6 @@ export function AppShell({
           onListKeyDown={onListKeyDown}
         />
       </div>
-    </StudioShell>
+    </>
   );
 }

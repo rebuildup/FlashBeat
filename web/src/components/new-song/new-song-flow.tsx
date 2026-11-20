@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "@void/react";
 import { css } from "styled-system/css";
 import type { ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
@@ -294,10 +295,10 @@ function Header({ transport }: { transport: PublishTransport }) {
   return (
     <header className={header}>
       <div className={headerTitles}>
-        <a className={backLink} href="/">
+        <Link className={backLink} href="/">
           <ArrowLeft className={backIcon} size={14} aria-hidden="true" />
           曲を選ぶ
-        </a>
+        </Link>
         <h1 className={title}>新曲を登録</h1>
         {/* Issue #215: the goal and the permission boundary are stated up
             front, before the operator reaches the publish step. */}
