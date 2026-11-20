@@ -90,6 +90,33 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0f, V6HudLogic.ComboFillFraction(0), 1e-4f);
         }
 
+        // --- コンボボーナス表示 (Issue #784) ---
+
+        [Test]
+        public void ShowComboBonus_RequiresEarnedBonus()
+        {
+            // comboBonus は maxCombo*5 の ratio points。Miss でコンボが
+            // 切れても maxCombo が残るため 0 に戻らず、一度乗れば出続ける。
+            Assert.IsFalse(V6HudLogic.ShowComboBonus(0));
+            Assert.IsTrue(V6HudLogic.ShowComboBonus(5));
+            Assert.IsTrue(V6HudLogic.ShowComboBonus(500));
+        }
+
+        [Test]
+        public void ComboBonusScorePoints_ConvertsRatioToV4ScorePoints()
+        {
+            // maxCombo 100 → comboBonus = 500 ratio points。
+            // MaxBonusRatioV4(100) = 100*10 + floor(100/50)*25 + 100 = 1150。
+            // ComponentScoreV4(500, 1150) = floor(500 * 1e6 / 1150) = 434,782。
+            float maxRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV4(100);
+            Assert.AreEqual(1150f, maxRatio, 0.001f);
+            Assert.AreEqual(434782, V6HudLogic.ComboBonusScorePoints(500, maxRatio));
+
+            // 未獲得・分母不明では 0 (ブロック自体は ShowComboBonus で隠す)。
+            Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(0, maxRatio));
+            Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(500, 0f));
+        }
+
         [Test]
         public void VerdictColor_MapsJudgements()
         {

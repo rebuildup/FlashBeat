@@ -27,12 +27,21 @@ namespace FlashBeat.UI.V6.Game.Hud
         private GameObject comboStatusBlock;
         private GameObject comboStatusRow;
         private GameObject fullComboChip;
+        /// <summary>
+        /// コンボボーナスブロック (Issue #784)。Right Column 直下の常設領域で、
+        /// Combo Status (NO MISS / FULL COMBO) とは独立に miss 後も表示を続ける。
+        /// </summary>
+        private GameObject comboBonusBlock;
+        /// <summary>コンボボーナスの獲得スコア点表示 ("+N")。</summary>
+        private TextMeshProUGUI comboBonusValueText;
         /// <summary>節目ボーナスの一時表示 (scoring v4, ADR-0033 / Issue #736)。</summary>
         private TextMeshProUGUI milestoneBonusText;
         /// <summary>節目ボーナス表示の開始時刻 (-1 = 非表示)。</summary>
         private float milestoneBonusShowStart = -1f;
         /// <summary>最後に観測した節目到達回数 (増分検出用)。</summary>
         private int lastComboMilestones;
+        /// <summary>最後に文字として出したコンボボーナスのスコア点 (Issue #784)。</summary>
+        private int lastComboBonusPoints = int.MinValue;
 
         // --- 毎フレームの状態 (スコア系) ---
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
@@ -188,10 +197,74 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = new Vector2(-m.Margin, -m.RightColY);
             rt.sizeDelta = new Vector2(m.RightColW, columnH);
 
+            // --- コンボボーナス (Issue #784) ---
+            // scoring v4 のコンボ継続ボーナス。GManager.comboBonus は
+            // maxCombo * 5 の ratio points で、Miss でコンボが切れても
+            // maxCombo が残るため値は減らない (獲得済みボーナスは失われない)。
+            // 実際に加算されるスコア点へ Scoring.ComponentScoreV4 で換算して
+            // 表示し、右コラムの上段に常設する。design では Combo Status と
+            // 同座標・排他だったが、実値が常に意味を持つため上段へ置き、
+            // ステータス行 (下の StatusRowY) とは重ならない。
+            var bonus = V5Ui.Node(column, "Combo Bonus");
+            var bonusRt = V6Layout.RectOf(bonus);
+            bonusRt.anchorMin = new Vector2(0f, 1f);
+            bonusRt.anchorMax = new Vector2(0f, 1f);
+            bonusRt.pivot = new Vector2(0f, 1f);
+            bonusRt.anchoredPosition = Vector2.zero;
+            bonusRt.sizeDelta = new Vector2(m.RightColW, m.BonusBlockH);
+            comboBonusBlock = bonus;
+
+            // 上段 (契約 §8: Label/Value fs22、Value は右寄せ $warn-light、y0)。
+            // 幅はゲージと同じ StatusTrackW に揃え、右端を揃えて右寄せする。
+            var bonusLabel = V5Ui.Text(bonus, "Label", "COMBO BONUS", m.BonusFs,
+                V5Tokens.TextMuted, TextAlignmentOptions.TopLeft);
+            var bonusLabelRt = bonusLabel.rectTransform;
+            bonusLabelRt.anchorMin = new Vector2(0f, 1f);
+            bonusLabelRt.anchorMax = new Vector2(0f, 1f);
+            bonusLabelRt.pivot = new Vector2(0f, 1f);
+            bonusLabelRt.anchoredPosition = Vector2.zero;
+            bonusLabelRt.sizeDelta = new Vector2(m.StatusTrackW * 0.5f, m.BonusRowH);
+
+            comboBonusValueText = V5Ui.Text(bonus, "Value", "+0", m.BonusFs,
+                V5Tokens.WarnLight, TextAlignmentOptions.TopRight);
+            var bonusValueRt = comboBonusValueText.rectTransform;
+            bonusValueRt.anchorMin = new Vector2(0f, 1f);
+            bonusValueRt.anchorMax = new Vector2(0f, 1f);
+            bonusValueRt.pivot = new Vector2(1f, 1f);
+            bonusValueRt.anchoredPosition = new Vector2(m.StatusTrackW, 0f);
+            bonusValueRt.sizeDelta = new Vector2(m.StatusTrackW * 0.5f, m.BonusRowH);
+
+            // 下段 (契約 §8 "Next Bonus" y44): 次の節目
+            // (Scoring.MilestoneInterval コンボ) までの進捗ゲージ。
+            // Combo Status の表示切替 (miss > 0) から独立させる —
+            // コンボが 0 に戻ってもゲージは空から再び満ち、節目到達は
+            // コンボ切断後も累積する (JudgeScoreboard.MilestoneCrossings)。
+            var bonusTrack = V5Ui.Panel(bonus, "Next Bonus Track",
+                new Vector2(m.StatusTrackW, m.StatusTrackH), V5Tokens.Key0, 4f);
+            var bonusTrackRt = V6Layout.RectOf(bonusTrack);
+            bonusTrackRt.anchorMin = new Vector2(0f, 1f);
+            bonusTrackRt.anchorMax = new Vector2(0f, 1f);
+            bonusTrackRt.pivot = new Vector2(0f, 1f);
+            bonusTrackRt.anchoredPosition = new Vector2(0f, -m.BonusRowH);
+
+            var bonusFill = V5Ui.Panel(bonusTrack, "Fill",
+                new Vector2(0f, m.StatusTrackH), V5Tokens.Text, 4f);
+            var bonusFillRt = V6Layout.RectOf(bonusFill);
+            bonusFillRt.anchorMin = new Vector2(0f, 0.5f);
+            bonusFillRt.anchorMax = new Vector2(0f, 0.5f);
+            bonusFillRt.pivot = new Vector2(0f, 0.5f);
+            bonusFillRt.anchoredPosition = Vector2.zero;
+            comboFill = bonusFillRt;
+            comboFillImage = bonusFill.GetComponent<Image>();
+
             // --- コンボステータス ---
-            // issue-162 B-4 再照合: ここにあった「+ COMBO BONUS」「次のボーナス」の
-            // 2 行は実在しない加点の表示 (近似値 / 仮の式) なので廃止した。
-            // 契約 §12: Combo Status はこの座標 (FHD 1512,460) を使う。
+            // issue-162 B-4 再照合 → Issue #784 で実値化: ここにあった
+            // 「+ COMBO BONUS」「次のボーナス」の 2 行は実在しない加点の表示
+            // (近似値 / 仮の式) だったため一度廃止したが、scoring v4 の
+            // GManager.comboBonus / maxBonusRatio から実スコア点を出せる
+            // ようになったため、上の Combo Bonus ブロックとして復活させた。
+            // 契約 §12: Combo Status の行はこの座標 (FHD 1512,460 + row y96)
+            // を使う (右コラム上端は変わらない)。
             var status = V5Ui.Node(column, "Combo Status");
             var statusRt = V6Layout.RectOf(status);
             statusRt.anchorMin = new Vector2(1f, 1f);
@@ -201,23 +274,9 @@ namespace FlashBeat.UI.V6.Game.Hud
             statusRt.sizeDelta = new Vector2(m.RightColW, m.StatusBlockH);
             comboStatusBlock = status;
 
-            var track = V5Ui.Panel(status, "Track",
-                new Vector2(m.StatusTrackW, m.StatusTrackH), V5Tokens.Key0, 4f);
-            var trackRt = V6Layout.RectOf(track);
-            trackRt.anchorMin = new Vector2(0f, 1f);
-            trackRt.anchorMax = new Vector2(0f, 1f);
-            trackRt.pivot = new Vector2(0f, 1f);
-            trackRt.anchoredPosition = new Vector2(0f, -m.StatusTrackY);
-
-            var fill = V5Ui.Panel(track, "Fill",
-                new Vector2(0f, m.StatusTrackH), V5Tokens.Text, 4f);
-            var fillRt = V6Layout.RectOf(fill);
-            fillRt.anchorMin = new Vector2(0f, 0.5f);
-            fillRt.anchorMax = new Vector2(0f, 0.5f);
-            fillRt.pivot = new Vector2(0f, 0.5f);
-            fillRt.anchoredPosition = Vector2.zero;
-            comboFill = fillRt;
-            comboFillImage = fill.GetComponent<Image>();
+            // Issue #784: 進捗ゲージ (Track/Fill) は上の Combo Bonus
+            // ブロックへ移した。ここには NO MISS / FULL COMBO の行だけを
+            // 残し、miss > 0 でブロックごと隠す従来の挙動を維持する。
 
             comboStatusRow = V5Ui.Node(status, "Status Row");
             var rowRt = V6Layout.RectOf(comboStatusRow);

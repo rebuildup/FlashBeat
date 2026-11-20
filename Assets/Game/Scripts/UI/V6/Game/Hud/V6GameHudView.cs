@@ -160,6 +160,22 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return comboStatusBlock; }
         }
 
+        /// <summary>
+        /// 検証ハーネス用: コンボボーナスブロック (Issue #784)。
+        /// miss > 0 で Combo Status が隠れても表示され続けること、
+        /// 値が Scoring.ComponentScoreV4 で換算した実スコア点であることを検証する。
+        /// </summary>
+        public GameObject ComboBonusBlockForAudit
+        {
+            get { return comboBonusBlock; }
+        }
+
+        /// <summary>検証ハーネス用: コンボボーナスの表示文字列 ("+N")。</summary>
+        public string ComboBonusValueForAudit
+        {
+            get { return comboBonusValueText != null ? comboBonusValueText.text : null; }
+        }
+
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
         public int ScoreActiveDigitsForAudit
         {
@@ -341,13 +357,32 @@ namespace FlashBeat.UI.V6.Game.Hud
                 milestoneBonusText.gameObject.SetActive(true);
             }
 
-            // issue-162 B-4 再照合 (2026-11-11): 正本 Uc9v6 には Gx3kq "Combo Bonus" が
-            // BIKrJ "Combo Status" と同じ (1512,460) に重ねて置かれている (design 側の
-            // 状態の重複)。Gx3kq の「+1,200」「次のボーナス 300 / +3,000」は
-            // JudgeScoreboard にコンボボーナス加点が無いため実在しない値で、
-            // BonusTotal / NextBonusReward も近似式にすぎない。加点そのものは
-            // 新しいゲーム仕様 (今回のスコープ外) なので、数値を捏造せず
-            // 同じ座標を Combo Status (NO MISS / FULL COMBO) が使う。
+            // コンボボーナス (Issue #784): GManager.comboBonus は maxCombo*5 の
+            // ratio points で、Miss でコンボが切れても maxCombo が残るため
+            // 値は減らない。v4 のボーナス分母 (GManager.maxBonusRatio =
+            // MaxBonusRatioV4(noteCount)) で実際に加算されるスコア点へ換算し、
+            // 右コラム上段の Combo Bonus ブロックに常設する (miss > 0 でも残る)。
+            // 表示はスコア点が変わったときだけ書き換える (issue #381)。
+            int comboBonusPoints = V6HudLogic.ComboBonusScorePoints(
+                GManager.comboBonus, GManager.maxBonusRatio);
+            if (comboBonusPoints != lastComboBonusPoints && comboBonusValueText != null)
+            {
+                lastComboBonusPoints = comboBonusPoints;
+                comboBonusValueText.text = "+" + comboBonusPoints.ToString(
+                    "N0", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            // ボーナス未獲得 (comboBonus == 0) の間はブロックごと隠す。
+            // 1 回でも乗れば miss 後も表示を続ける (値は maxCombo 由来で残る)。
+            if (comboBonusBlock != null)
+            {
+                V6LayoutWrites.ActiveIfChanged(comboBonusBlock,
+                    V6HudLogic.ShowComboBonus(GManager.comboBonus));
+            }
+
+            // issue-162 B-4 再照合 → Issue #784 で実値化: 「+ COMBO BONUS」
+            // 「次のボーナス」は Combo Bonus ブロックとして実データ表示に
+            // 復活した (上の comboBonusPoints / comboFillW の更新)。
 
             // 進捗バー + 歌詞 (メディアタイム = GManager.step_time)
             float duration = CurrentSongDuration();
@@ -488,6 +523,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboStatusBlock = null;
             comboStatusRow = null;
             fullComboChip = null;
+            comboBonusBlock = null;
+            comboBonusValueText = null;
             keyGuideRow = null;
             gradeText = null;
             scoreStrip = null;
@@ -506,6 +543,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBestShownX = 0f;
             lastComboFillWidth = -1f;
             comboBonusPulseStart = -1f;
+            lastComboBonusPoints = int.MinValue;
             // 節目回数は現在値に合わせる (リビルド直後に獲得ポップを
             // 誤発火させない)。
             lastComboMilestones = GManager.comboMilestones;
@@ -545,6 +583,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             // (Owner 指示 2026-11-08)。
             Vector2 canvasSize = CanvasSize();
             m = V6HudMetrics.ForResolution(canvasSize.x, canvasSize.y);
+            // Issue #735: Update の解像度監視 (lyricSlotWidth の変化検知) が
+            // 初回フレームで必ず Rebuild を走らせないよう、構築時の値を記録する。
+            // 未初期化 (-1) のままだと Create 直後の最初の Update で HUD 全体が
+            // 作り直され、起動時に一度だけ無効化された "Video Dim" が
+            // 有効なまま復活していた (実機でノーツが灰色に見える原因)。
+            lastLyricSlotWidth = V6HudLogic.LyricSlotWidth(canvasSize.x);
             // Root は自分自身。未代入だと Refresh のガードが常に早期 return し、
             // スコア / コンボ / 歌詞 / 判定行 / レーン格子の更新が一切走らない。
             Root = V6Layout.RectOf(gameObject);

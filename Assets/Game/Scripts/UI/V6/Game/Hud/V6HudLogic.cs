@@ -452,6 +452,33 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// コンボボーナス表示 (Issue #784) を出すか。
+        /// <c>GManager.comboBonus</c> は maxCombo * 5 の ratio points で、
+        /// Miss でコンボが切れても maxCombo が残るため 0 に戻らない。
+        /// 1 回でもボーナスが乗れば (comboBonus &gt; 0) 表示し続ける。
+        /// </summary>
+        public static bool ShowComboBonus(int comboBonus)
+        {
+            return comboBonus > 0;
+        }
+
+        /// <summary>
+        /// コンボボーナスの表示スコア点 (Issue #784)。
+        /// <paramref name="comboBonusRatioPoints"/> (GManager.comboBonus =
+        /// maxCombo * 5) を v4 のボーナス分母
+        /// (<paramref name="maxBonusRatio"/> = GManager.maxBonusRatio =
+        /// MaxBonusRatioV4(noteCount)) で実際に加算されるスコア点へ換算する。
+        /// <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV4"/> と同じ
+        /// 丸め (floor) で、結果画面の内訳表示と同じ値になる。
+        /// 表示専用の目安で、送信フィールドではない。
+        /// </summary>
+        public static int ComboBonusScorePoints(int comboBonusRatioPoints, float maxBonusRatio)
+        {
+            return FlashBeat.Gameplay.Scoring.ComponentScoreV4(
+                comboBonusRatioPoints, maxBonusRatio);
+        }
+
+        /// <summary>
         /// 判定結果 (<see cref="FlashBeat.Gameplay.LongNote.Judgement"/>) を
         /// 判定ラベルへ。Judge の MessageObj (Perfect/Great/Bad/Miss.prefab)
         /// の表示名と同じ綴り。Option 画面の Game Preview (Issue #607) が

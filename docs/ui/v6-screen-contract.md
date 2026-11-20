@@ -269,7 +269,13 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 ## 12. 一次抽出との差分 (確定事項)
 
 - スコアゲージは**セグメント式** (C/B/A/S/SS/+ + Best マーカー)。一次抽出では「(ref cNEBa)」のみだった。
-- Combo Bonus と Combo Status は**同座標 (1512,460)・排他**。
+- Combo Bonus と Combo Status は design 上**同座標 (1512,460)・排他**だった。
+  Issue #784 で Combo Bonus を scoring v4 の実データ表示として復活させ、
+  排他ではなく併存に変更: 右コラム上段 (1512,460) の 360×90 に
+  「COMBO BONUS +獲得スコア点」(GManager.comboBonus を
+  Scoring.ComponentScoreV4 で換算、miss 後も残る) と次の節目 (50 コンボ)
+  までのゲージ (ComboFillFraction) を常設し、Combo Status の行 (y96) は
+  従来どおり miss > 0 で非表示。
 - 節目ボーナスの獲得表示 (scoring v3 / Issue #602) は Combo Status 行の直下に
   "+獲得点" を一時表示する。Issue #673 で親を Combo Status ブロックから
   常時アクティブな Right Column へ移し、miss > 0 でステータスが隠れても
