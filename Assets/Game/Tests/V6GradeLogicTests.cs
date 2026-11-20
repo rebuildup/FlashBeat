@@ -70,6 +70,75 @@ namespace FlashBeat.V5CanvasTests
             Assert.AreEqual("B", V6GradeLogic.GradeOf(700000, Scoring.Version1));
         }
 
+        // --- ゲージ帯 (Issue #788: 目盛りとグレードが同じ正本から出る) ---
+
+        [Test]
+        public void ScoreFractionOf_MapsScoreToMaxFraction()
+        {
+            Assert.AreEqual(0f, V6GradeLogic.ScoreFractionOf(0, Scoring.Version5));
+            Assert.AreEqual(0.5f, V6GradeLogic.ScoreFractionOf(1000000, Scoring.Version5), 1e-4f);
+            Assert.AreEqual(1f, V6GradeLogic.ScoreFractionOf(2000000, Scoring.Version5));
+            // 満点超・負値はトラック端にクランプ。
+            Assert.AreEqual(1f, V6GradeLogic.ScoreFractionOf(3000000, Scoring.Version5));
+            Assert.AreEqual(0f, V6GradeLogic.ScoreFractionOf(-1, Scoring.Version5));
+            // v3 は満点 1,000,000: 950,000 → 0.95。
+            Assert.AreEqual(0.95f, V6GradeLogic.ScoreFractionOf(950000, Scoring.Version3), 1e-4f);
+        }
+
+        [Test]
+        public void GradeBandsOf_BoundaryScores_LandInMatchingGradeBand()
+        {
+            // 各閾値の直前・一致・直後について、スコア割合が属する帯の
+            // ラベルが GradeOf の結果と一致すること。ゲージの目盛りと
+            // グレード文字が同じ正本 (閾値定数) から導かれることの検証。
+            int[][] cases =
+            {
+                new[] { Scoring.Version5, 999999, 1000000, 1000001 },   // B
+                new[] { Scoring.Version5, 1399999, 1400000, 1400001 },  // A
+                new[] { Scoring.Version5, 1899999, 1900000, 1900001 },  // S
+                new[] { Scoring.Version5, 1999999, 2000000 },           // SS
+                new[] { Scoring.Version3, 699999, 700000, 700001 },     // B (legacy)
+                new[] { Scoring.Version3, 899999, 900000, 900001 },     // A
+                new[] { Scoring.Version3, 949999, 950000, 950001 },     // S
+                new[] { Scoring.Version3, 999999, 1000000 },            // SS
+            };
+
+            foreach (var c in cases)
+            {
+                int version = c[0];
+                var bands = V6GradeLogic.GradeBandsOf(version);
+                for (int i = 1; i < c.Length; i++)
+                {
+                    int score = c[i];
+                    float fraction = V6GradeLogic.ScoreFractionOf(score, version);
+                    Assert.AreEqual(V6GradeLogic.GradeOf(score, version),
+                        BandLabelAt(bands, fraction),
+                        $"v{version} score={score} fraction={fraction}");
+                }
+            }
+        }
+
+        private static string BandLabelAt(
+            IReadOnlyList<V6GradeLogic.GradeBand> bands, float fraction)
+        {
+            foreach (var band in bands)
+            {
+                if (band.IsPoint)
+                {
+                    if (fraction >= band.Start)
+                    {
+                        return band.Label;
+                    }
+                }
+                else if (fraction >= band.Start && fraction < band.End)
+                {
+                    return band.Label;
+                }
+            }
+
+            return bands[bands.Count - 1].Label;
+        }
+
         // --- 実際の scoring v4 スコアが帯に収まること ---
 
         /// <summary>判定シーケンス 1 プレイ分のスコア (Issue #788 の分布検証用)。</summary>

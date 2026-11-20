@@ -33,25 +33,26 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// スコアゲージの塗り幅 (px)。塗りは + セグメントを含むトラック全長
-        /// (<paramref name="fillMax"/>) まで。点数空間は最新の scoringVersion の
-        /// 満点 (<see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreMaxOf"/>、
-        /// scoring v4 では 2,000,000 = 基礎 + ボーナス) で、v4 の合計スコアが
-        /// そのまま 0..満点 の 1 本のレールに写る (Issue #758 / ADR-0034)。
+        /// スコアゲージの塗り幅 (px)。塗りはトラック全長
+        /// (<paramref name="fillMax"/>) まで。点数→位置は
+        /// <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreFractionOf"/>
+        /// の単一写像で、グレード帯の目盛り・ラベルと同じ空間
+        /// (Issue #788)。scoring v4 以降の満点は 2,000,000
+        /// (基礎 + ボーナス、ADR-0033/0035)。
         /// </summary>
         public static float GaugeFillWidth(int score, float fillMax)
         {
-            return Mathf.Clamp01(score / (float)FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
+            return FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreFractionOf(score, FlashBeat.Gameplay.Scoring.LatestVersion) * fillMax;
         }
 
         /// <summary>スコアゲージの Best マーカー x (px)。
-        /// 点数空間は最新 scoringVersion の満点 (scoring v4 では 0..2,000,000)。
-        /// マーカーがトラック外に出ないよう満点でクランプする。</summary>
+        /// 点数→位置は <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreFractionOf"/>
+        /// の単一写像。マーカーがトラック外に出ないよう満点でクランプする。</summary>
         public static float GaugeBestX(int hiscore, float fillMax)
         {
-            return Mathf.Clamp01(hiscore / (float)FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
+            return FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreFractionOf(hiscore, FlashBeat.Gameplay.Scoring.LatestVersion) * fillMax;
         }
 
         /// <summary>
