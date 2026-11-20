@@ -224,14 +224,13 @@ namespace FlashBeat.UI.V6.Common
                     "効果音の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
             };
 
-            // BGM Volume はゲーム進行中の画面 (Pause) では出さない。
-            // GameScene に実行時消費者が無く、押しても効かない行は描画しない
-            // (旧 Pause Sound タブの BGMVolume 廃止と同じ規律、issue-162 B-11)。
-            if (!host.IsGameplayHost)
-            {
-                rows.Add(VolumeRow(host, 2, "BGM Volume",
-                    "BGM の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"));
-            }
+            // v0.2.1 (#733 実機レビュー): BGM Volume は Pause にも出す。
+            // 「GameScene に実行時消費者が無い」という旧コメントは誤りで、
+            // VideoTime.Update が毎フレーム audioBGM.volume = GManager.BGMVolume
+            // を適用している (プレイ中の動画 BGM に即時反映される)。
+            // Pause と Option で Sound タブの項目を一致させる。
+            rows.Add(VolumeRow(host, 2, "BGM Volume",
+                "BGM の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"));
 
             return rows;
         }

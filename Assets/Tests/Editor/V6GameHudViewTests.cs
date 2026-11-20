@@ -311,12 +311,14 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #734: 枠の可視性は設定値のみで決まる。歌詞データが無い譜面でも
-        /// 設定 ON なら枠は曲中ずっと出し、本文は空のままにする。
-        /// 旧仕様 (歌詞データが無いと枠ごと隠す) へ戻るとこのテストは落ちる。
+        /// Issue #734 (v0.2.1 実機レビューで再修正): 枠を出さないのは
+        /// 「譜面に歌詞データが無い」場合だけ。歌詞データが無い譜面では
+        /// 設定 ON でも曲中は枠ごと隠し、本文は空のままにする。
+        /// 旧仕様 (歌詞データが無くても枠を出しっぱなし) へ戻ると
+        /// このテストは落ちる。
         /// </summary>
         [Test]
-        public void Lyrics_KeepTheBoxWhenTheChartHasNoLyrics()
+        public void Lyrics_HideTheBoxWhenTheChartHasNoLyrics()
         {
             originalSongId = GManager.songID;
             originalPlayed = GManager.played;
@@ -335,14 +337,14 @@ namespace FlashBeat.Tests
                 GManager.step_time = 1f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text, "歌詞の無い譜面では本文は空");
-                Assert.IsTrue(LyricBoxOf(view).activeSelf,
-                    "歌詞の無い譜面でも設定 ON なら枠は出す (Issue #734)");
+                Assert.IsFalse(LyricBoxOf(view).activeSelf,
+                    "歌詞の無い譜面では設定 ON でも枠は出さない (Issue #734)");
 
                 // どの時刻でも枠は変わらない (本文が無い区間・終端を含む)。
                 GManager.step_time = 60f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text);
-                Assert.IsTrue(LyricBoxOf(view).activeSelf, "歌詞終端後も枠は出す");
+                Assert.IsFalse(LyricBoxOf(view).activeSelf, "歌詞終端後も枠は出さない");
             }
             finally
             {

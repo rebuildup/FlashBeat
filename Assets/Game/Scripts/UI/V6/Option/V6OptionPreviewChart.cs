@@ -88,10 +88,11 @@ namespace FlashBeat.UI.V6.Option
         /// → <see cref="ChartTiming.BeatOffset"/>、HOLD 終端は
         /// <see cref="LongNote.EndSeconds"/>。
         ///
-        /// ループ長は「最後のノーツ/歌詞の終端 + 2 秒」。実チャートが無い曲・
-        /// 読み込めない曲では従来の疑似チャート (<see cref="LoopSeconds"/>)
-        /// へフォールバックする。戻り値の loopSeconds は必ず全ノーツ時刻より
-        /// 大きい (時刻畳み込みの前提)。
+        /// ループ長は「最後のノーツ/ロングノーツの終端 + 2 秒」(v0.2.1: 歌詞終端は
+        /// 含めない — 含めるとノーツ終了後に長い空白が毎ループ発生する)。
+        /// 実チャートが無い曲・読み込めない曲では従来の疑似チャート
+        /// (<see cref="LoopSeconds"/>) へフォールバックする。戻り値の
+        /// loopSeconds は必ず全ノーツ時刻より大きい (時刻畳み込みの前提)。
         /// </summary>
         public static Note[] BuildForCurrentSong(out float loopSeconds)
         {
@@ -161,15 +162,14 @@ namespace FlashBeat.UI.V6.Option
                 return Build();
             }
 
-            // ループ末尾の余白: 最後の音が完全に抜けるまで + 歌詞の終端まで。
-            float lyricEnd = 0f;
-            var lines = V6OptionPreviewLyrics.LinesForCurrentSong();
-            for (int i = 0; i < lines.Count; i++)
-            {
-                lyricEnd = Mathf.Max(lyricEnd, lines[i].End);
-            }
-
-            loopSeconds = Mathf.Max(lastEnd, lyricEnd) + 2f;
+            // ループ末尾の余白: 最後のノーツ/ロングノーツが完全に抜けるまで。
+            // v0.2.1 実機レビュー (#783): かつては歌詞終端 (ほぼ曲の終端) まで
+            // ループを伸ばしていたため、ノーツが終わった後に数十秒〜2 分超の
+            // 空白が毎ループ発生し「ループが無い」状態に見えていた。
+            // プレビューの主役はノーツの流れなので、ループはノーツ終端 + 2 秒に
+            // 畳む。歌詞終端がこれより後の行はプレビューでは表示されない
+            // (雰囲気用の歌詞であり、ノーツとの同期を崩すほどの犠牲は許容する)。
+            loopSeconds = lastEnd + 2f;
             return notes.ToArray();
         }
 

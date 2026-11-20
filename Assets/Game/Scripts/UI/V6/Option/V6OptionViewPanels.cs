@@ -153,6 +153,7 @@ namespace FlashBeat.UI.V6.Option
             if (descBodyText != null)
             {
                 descBodyText.text = row != null ? row.Desc : "";
+                FitDescContent();
             }
 
             // Sound タブ: スライダーが結線されている音量対象が変わったら、
@@ -291,10 +292,39 @@ namespace FlashBeat.UI.V6.Option
                 new Vector2(464f, 46f), 32f, V6Tokens.Text, TextAlignmentOptions.Left);
 
             // Desc は design 上で複数行に折り返す段落 (w464 h68 lineHeight1.4)。
-            // NoWrap のままだと 1 行で右パネルの外まで伸びて切れていた。
-            var desc = V6Controls.Text(panel, "Desc", row != null ? row.Desc : "",
+            // v0.2.1 (#786): 長い説明文が固定 68px の外へはみ出していた。
+            // ビューポート (RectMask2D) + ScrollRect で縦スクロール可能にし、
+            // 文字は必要高まで伸ばす。はみ出し自体を無くすのが目的なので、
+            // TMP 側の overflow はマスク (viewport) に任せる。
+            var viewport = V5Ui.Node(panel, "Desc Viewport");
+            var viewportRt = V6Layout.RectOf(viewport);
+            V6Layout.Place(viewportRt,
                 new Vector2(24f, dividerY + V6OptionLogic.DescOffsetY),
-                new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
+                new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH));
+            viewport.AddComponent<RectMask2D>();
+
+            var scroll = viewport.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 30f;
+            scroll.viewport = viewportRt;
+            // ホイールスクロールの受け皿 (他ビューの ScrollCatcher と同じ形)。
+            var wheel = viewport.AddComponent<V6DescScrollCatcher>();
+            wheel.ScrollRect = scroll;
+
+            var content = V5Ui.Node(viewport, "Desc Content");
+            var contentRt = V6Layout.RectOf(content);
+            // 幅はビューポートにストレッチ、高さはテキスト必要高
+            // (FitDescContent が preferredHeight で更新する)。
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.offsetMin = Vector2.zero;
+            contentRt.offsetMax = Vector2.zero;
+
+            var desc = V6Controls.Text(content, "Desc", row != null ? row.Desc : "",
+                Vector2.zero, new Vector2(V6OptionLogic.DescW, V6OptionLogic.DescH),
                 24f, V6Tokens.Text, TextAlignmentOptions.TopLeft, FontStyles.Normal,
                 TextWrappingModes.Normal);
             descBodyText = desc;
@@ -303,6 +333,40 @@ namespace FlashBeat.UI.V6.Option
             // 2 行目: 457→492 = 35px) より 9px 下へずれて 2 行目がパネル下端 (688) に
             // 食い込んでいた (r24 実機)。0 (フォント本来の 34.75px) が design 実測と一致する。
             desc.lineSpacing = 0f;
+            // TMP 自体は content いっぱいにストレッチ (高さは content 側が決める)。
+            var descRt = desc.rectTransform;
+            descRt.anchorMin = Vector2.zero;
+            descRt.anchorMax = Vector2.one;
+            descRt.offsetMin = Vector2.zero;
+            descRt.offsetMax = Vector2.zero;
+
+            scroll.content = contentRt;
+            descScrollContent = contentRt;
+            descScrollRect = scroll;
+            FitDescContent();
+        }
+
+        /// <summary>
+        /// 説明文の必要高へ content を伸ばし、スクロール位置を先頭へ戻す。
+        /// 行選択の切替 (descBodyText.text 更新) のたびに呼ぶ。
+        /// </summary>
+        private void FitDescContent()
+        {
+            if (descBodyText == null || descScrollContent == null)
+            {
+                return;
+            }
+
+            descBodyText.ForceMeshUpdate();
+            float needed = descBodyText.preferredHeight;
+            // ビューポート高 (DescH) を下回る場合も DescH に揃える
+            // (短い文でスクロールバー的な遊びが出ないように)。
+            descScrollContent.sizeDelta = new Vector2(0f,
+                Mathf.Max(V6OptionLogic.DescH, needed));
+            if (descScrollRect != null)
+            {
+                descScrollRect.verticalNormalizedPosition = 1f;
+            }
         }
 
         private V6SettingRow SelectedRowDesc()
@@ -313,6 +377,23 @@ namespace FlashBeat.UI.V6.Option
             }
 
             return currentRows[selectedRow];
+        }
+    }
+
+    /// <summary>Desc のホイールスクロール受け皿 (他ビューの ScrollCatcher と同じ形)。</summary>
+    internal sealed class V6DescScrollCatcher : MonoBehaviour, UnityEngine.EventSystems.IScrollHandler
+    {
+        internal ScrollRect ScrollRect;
+
+        public void OnScroll(UnityEngine.EventSystems.PointerEventData eventData)
+        {
+            if (ScrollRect == null || !ScrollRect.vertical)
+            {
+                return;
+            }
+
+            ScrollRect.verticalNormalizedPosition = Mathf.Clamp01(
+                ScrollRect.verticalNormalizedPosition + eventData.scrollDelta.y * 0.05f);
         }
     }
 }

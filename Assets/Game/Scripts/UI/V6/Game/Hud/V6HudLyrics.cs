@@ -323,11 +323,18 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildLyricPrompt(GameObject box)
         {
             lyricPrompt = V5Ui.Node(box, "Start Prompt");
+            // v0.2.1 (#781): ReadyPrompt の寸法は歌詞フォントと同じ倍率で
+            // 拡縮する。固定 design px のままだと高解像度・縮小表示で
+            // 「Space to start」が周囲とずれて崩れて見えた。
+            float promptScale = LyricFontScale();
+            float capHeight = V6HudLogic.ReadyPromptCapHeight * promptScale;
+            float promptFs = V6HudLogic.ReadyPromptFontSize * promptScale;
+            float promptGap = V6HudLogic.ReadyPromptGap * promptScale;
             var le = lyricPrompt.AddComponent<LayoutElement>();
-            le.preferredHeight = V6HudLogic.ReadyPromptCapHeight;
+            le.preferredHeight = capHeight;
 
             var layout = lyricPrompt.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = V6HudLogic.ReadyPromptGap;
+            layout.spacing = promptGap;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
@@ -335,21 +342,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             layout.childForceExpandHeight = false;
 
             var cap = V5Ui.Panel(lyricPrompt, "KeyCap Space",
-                new Vector2(0f, V6HudLogic.ReadyPromptCapHeight), V5Tokens.Key4, 4f);
-            var capKey = V5Ui.Text(cap, "Key", "Space", V6HudLogic.ReadyPromptFontSize,
+                new Vector2(0f, capHeight), V5Tokens.Key4, 4f);
+            var capKey = V5Ui.Text(cap, "Key", "Space", promptFs,
                 V5Tokens.TextMuted, TextAlignmentOptions.Center);
             V6Layout.StretchFill(capKey.rectTransform);
-            float capW = MeasureTextWidth(capKey, "Space", V6HudLogic.ReadyPromptFontSize)
+            float capW = MeasureTextWidth(capKey, "Space", promptFs)
                 + V6Ui.KeyCapPaddingX * 2f;
-            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, V6HudLogic.ReadyPromptCapHeight);
+            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, capHeight);
 
-            var label = V5Ui.Text(lyricPrompt, "Label", "to start", V6HudLogic.ReadyPromptFontSize,
+            var label = V5Ui.Text(lyricPrompt, "Label", "to start", promptFs,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
             // Issue #760: Start Prompt も歌詞ボックス内に出るので同じ縁取りを付ける
             // (KeyCap は自前の背景を持つので対象外)。
             ApplyLyricTextOutline(label);
-            float labelW = MeasureTextWidth(label, "to start", V6HudLogic.ReadyPromptFontSize);
-            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, V6HudLogic.ReadyPromptCapHeight);
+            float labelW = MeasureTextWidth(label, "to start", promptFs);
+            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, capHeight);
 
             lyricPrompt.SetActive(false);
         }
@@ -421,22 +428,24 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>
         /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734)。
         ///
-        /// 枠の出し入れは「ユーザー設定 (<see cref="PlaySession.LyricsEnabled"/>)」と
-        /// 「HUD の再生状態」だけで決め、歌詞データの有無・読み込み完了タイミング・
-        /// 行の空白・行間には一切依存しない。歌詞本文・Start Prompt は枠の子として
-        /// 独立に出し入れし、枠の寸法や可視性を変えない。
+        /// 枠の出し入れは「ユーザー設定 (<see cref="PlaySession.LyricsEnabled"/>)」・
+        /// 「HUD の再生状態」・「譜面の歌詞データ有無」で決める (v0.2.1)。
+        /// 読み込み完了タイミング・行の空白・行間・表示区間には依存しない。
+        /// 歌詞本文・Start Prompt は枠の子として独立に出し入れし、
+        /// 枠の寸法や可視性を変えない。
         ///
-        /// 再生状態ごとの枠の扱い:
+        /// 再生状態ごとの枠の扱い (v0.2.1 実機レビューで再修正):
         /// - 再開カウントダウン / START 表示 / 曲終了オーバーレイが出ている間は、
-        ///   それらが同じスロットを占有する (同位置・同寸法のパネルを自分で持つ)
-        ///   ので lyricBox は隠す。これらは歌詞ではなく進行状態の表示なので
-        ///   歌詞設定には従わない。
+        ///   それらが同じスロットを占有する (同位置・同寸法のパネルを自分で持つ)。
+        ///   開始・終了フェーズでも枠相当のパネルは必ず出る。
         /// - Space 待ち (!played) は枠の中に Start Prompt (「Space to start」) を
         ///   出す。開始操作の案内であって歌詞ではないため、歌詞設定に関わらず
         ///   枠を出す (設定 OFF でも開始方法が分かる必要がある)。
-        /// - 演奏中 (played) は設定値だけ: ON なら枠を曲の最初から最後まで
-        ///   出しっぱなしにし、OFF なら曲中を通して隠す。歌詞データが
-        ///   無い譜面・間奏・歌詞終端でも枠は変わらない。
+        /// - 演奏中 (played) は「設定 ON かつ譜面に歌詞データがある」ときだけ
+        ///   枠を出す。歌詞データが無い譜面では曲中を通して隠し、
+        ///   データ到着前 (lyricLines == null) の間だけ判断を保留して出す。
+        ///   行の有無・表示区間・間奏には依存しない (データがあれば
+        ///   歌詞の無い区間でも枠は出しっぱなし)。
         /// </summary>
         private void UpdateLyrics()
         {
@@ -471,9 +480,6 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             EnsureLyricLines();
 
-            // Issue #734: 演奏中の枠の可視性は設定値のみで決める。
-            // 歌詞データ (lyricLines) の有無や InputJson の到着タイミングは
-            // 枠に影響しない — データ待ちの間も枠は出したまま本文は空にする。
             if (!PlaySession.LyricsEnabled)
             {
                 if (lyricIndex != -1)
@@ -488,14 +494,23 @@ namespace FlashBeat.UI.V6.Game.Hud
                 return;
             }
 
+            // Issue #734 (v0.2.1 実機レビュー): 枠を出さないのは
+            // 「譜面に歌詞データが無い」場合だけ。データ未到着
+            // (lyricLines == null) の間は判断を保留して枠を出したままにし、
+            // 空リストが確定した時点で畳む。
+            bool hasLyricData = lyricLines == null || LyricsTimeline.HasLines(lyricLines);
             SetLyricPromptVisible(false);
-            SetLyricLinesVisible(true);
-            SetLyricBoxVisible(true);
+            SetLyricLinesVisible(hasLyricData);
+            SetLyricBoxVisible(hasLyricData);
 
-            // 歌詞データがまだ届いていない (InputJson == null) ときは
-            // 行の判定を保留する。枠と本文行は出したまま、テキストは空のまま。
-            if (lyricLines == null)
+            if (!hasLyricData || lyricLines == null)
             {
+                if (lyricIndex != -1)
+                {
+                    lyricIndex = -1;
+                    lyricText.text = "";
+                }
+
                 return;
             }
 

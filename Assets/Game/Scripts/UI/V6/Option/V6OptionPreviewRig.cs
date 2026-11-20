@@ -716,21 +716,19 @@ namespace FlashBeat.UI.V6.Option
 
         /// <summary>
         /// レーンフラッシュ (Issue #607)。本編 LaneFlash / V6PlayfieldView と
-        /// 同じ規則: キーが押されたフレームは α = 0.3、離すと 3/秒で減衰、
-        /// ポーズ中は消灯。入力は実キー + 検証ハーネス注入
+        /// 同じ規則: キーが押されたフレームは α = 0.3、離すと 3/秒で減衰。
+        /// 入力は実キー + 検証ハーネス注入
         /// (<see cref="KeyBindings.IsLaneKeyDown"/>) をそのまま使う。
+        /// v0.2.1 (#782): プレビューは独立した疑似セッションなので本編の
+        /// <see cref="PauseGate"/> では止めない — ポーズメニューの設定画面でも
+        /// フラッシュが点く (本編ゲームの判定は PauseGate が別途止める)。
         /// </summary>
         private void UpdateLaneFlashes(float deltaTime)
         {
-            bool paused = PauseGate.IsPaused;
             for (int lane = 0; lane < Judge.LaneCount; lane++)
             {
                 float alpha = laneFlashAlpha[lane];
-                if (paused)
-                {
-                    alpha = 0f;
-                }
-                else if (KeyBindings.IsLaneKeyDown(lane) || autoKeyDown[lane])
+                if (KeyBindings.IsLaneKeyDown(lane) || autoKeyDown[lane])
                 {
                     alpha = LaneFlashPeakAlpha;
                 }
@@ -775,7 +773,7 @@ namespace FlashBeat.UI.V6.Option
         private void UpdateBeatFlash(float deltaTime)
         {
             float alpha = bgFlashAlpha;
-            if (PauseGate.IsPaused || !GManager.Flash || bgFlashMaterial == null)
+            if (!GManager.Flash || bgFlashMaterial == null)
             {
                 alpha = 0f;
             }
@@ -849,7 +847,7 @@ namespace FlashBeat.UI.V6.Option
         /// <see cref="AutoPlayScript"/> のラグがそのまま判定幅へ乗る。
         /// HOLD は押下が成立したときだけ解放予定時刻を記録し、
         /// <see cref="UpdateJudgement"/> の保持判定がそれを「キー保持」と
-        /// して読む。オートプレイ OFF・ポーズ中は発火せず予定だけ捨てる
+        /// して読む。オートプレイ OFF のときは発火せず予定だけ捨てる
         /// (再開時に過去時刻の押下がまとめて走るのを防ぐ)。
         /// </summary>
         private void FireAutoPlay()
@@ -864,7 +862,9 @@ namespace FlashBeat.UI.V6.Option
             }
 
             float now = previewTime;
-            bool accept = AutoPlayEnabled && !PauseGate.IsPaused;
+            // v0.2.1 (#782): プレビューは PauseGate の対象外 (独立した疑似
+            // セッション)。ポーズメニュー表示中もオートプレイは発火し続ける。
+            bool accept = AutoPlayEnabled;
             int write = 0;
             for (int i = 0; i < autoPresses.Count; i++)
             {
@@ -972,11 +972,9 @@ namespace FlashBeat.UI.V6.Option
                 return;
             }
 
-            // Issue #224 / #383 と同じゲート: ポーズ中は判定しない。
-            if (PauseGate.IsPaused)
-            {
-                return;
-            }
+            // v0.2.1 (#782): 本編のポーズゲート (Issue #224 / #383) は
+            // ゲーム本体の判定だけに適用する。プレビューは独立した疑似
+            // セッションなので PauseGate.IsPaused では止めない。
 
             // 1) 押下判定: レーンごとに独立 (Judge.JudgeStep と同じ共通経路)。
             //    実キーの押下は実時間 (previewTime) で判定するので、

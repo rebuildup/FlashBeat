@@ -386,8 +386,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 if (label.Length == 0) continue;
 
                 laneVerdicts[lane] = label;
-                // Issue #731: 判定の見え時間は VerdictTotalSeconds (1.00s)。
-                // 判定線上に出現 → 上昇 → 保持 → 下方退場 (§10.3)。
+                // Issue #731: 判定の見え時間は VerdictTotalSeconds。
+                // 判定線上に出現 → 上昇 → 頂点通過 → 下方退場 (§10.3、v0.2.1)。
                 // レーンごとに独立した start/until を持つので、同時押しや
                 // 高速連打で他レーン・同レーンの再判定がタイミングを
                 // 壊さない (同レーンの再判定は新しいイベントで上書き)。

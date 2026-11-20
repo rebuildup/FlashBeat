@@ -23,9 +23,10 @@ namespace FlashBeat.Tests
         /// 境界・中間時刻での軌道。判定確定 t=0 を原点に、
         /// 判定線上に出現 → EaseOutCubic で頂点まで上昇 → 頂点で保持 →
         /// EaseInCubic で加速しながら判定線を割って下へ落下 + フェード。
+        /// v0.2.1: 頂点での静止フェーズは無く、上昇の終端から連続して落下する。
         /// </summary>
         [Test]
-        public void VerdictPose_RisesFromJudgeLine_Holds_FallsBelow()
+        public void VerdictPose_RisesFromJudgeLine_FallsBelow()
         {
             var m = V6HudMetrics.Fhd(1f);
             float peak = V6HudLogic.VerdictPeakGapAboveLine;
@@ -48,17 +49,16 @@ namespace FlashBeat.Tests
                 prev = off;
             }
 
-            // 上昇の終端と保持フェーズ: 頂点 (peak) に留まる。
+            // 上昇の終端は頂点 (peak)。直後から落下が始まる (静止フェーズ無し)。
             Assert.AreEqual(peak,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictRiseSeconds, m).OffsetPx, 0.001f);
-            Assert.AreEqual(peak,
-                V6HudLogic.VerdictPoseAt(
-                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds * 0.5f, m)
-                    .OffsetPx, 0.001f,
-                "保持フェーズは頂点で静止する");
+            float justAfterPeak = V6HudLogic.VerdictPoseAt(
+                V6HudLogic.VerdictRiseSeconds + 0.02f, m).OffsetPx;
+            Assert.Less(justAfterPeak, peak,
+                "頂点で静止せず直後から下へ落ち始める (v0.2.1)");
 
             // 下方退場フェーズ: peak から単調減少し、終端は判定線より下 (負)。
-            float fallStart = V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds;
+            float fallStart = V6HudLogic.VerdictRiseSeconds;
             prev = peak;
             for (int i = 1; i <= 10; i++)
             {
@@ -137,23 +137,33 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void VerdictAlpha_IsOpaqueUntilExitFade()
+        public void VerdictAlpha_IsOpaqueUntilBelowTheLine()
         {
             var m = V6HudMetrics.Fhd(1f);
 
-            // 上昇・保持フェーズは常に不透明 (フェードインしない)。
+            // 上昇フェーズと、落下中も判定線より上にいる間は常に不透明
+            // (フェードインしない・落下中に薄まらない)。
             Assert.AreEqual(1f, V6HudLogic.VerdictPoseAt(0f, m).Alpha, 0.001f);
             Assert.AreEqual(1f,
-                V6HudLogic.VerdictPoseAt(
-                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds, m)
-                    .Alpha, 0.001f,
-                "下方退場の開始時点でもまだ不透明");
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictRiseSeconds, m).Alpha, 0.001f,
+                "頂点到達時点でもまだ不透明");
+            // 退場中間点はまだ判定線より上 (offset > 0) なので不透明。
+            float midFallAlpha = V6HudLogic.VerdictPoseAt(
+                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds * 0.5f, m).Alpha;
+            Assert.AreEqual(1f, midFallAlpha, 0.001f,
+                "判定線より上では落下中も不透明のまま");
 
-            // 退場フェーズは 1→0 に線形で下がる。
-            float fallMid = V6HudLogic.VerdictPoseAt(
-                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds
-                    + V6HudLogic.VerdictFallSeconds * 0.5f, m).Alpha;
-            Assert.AreEqual(0.5f, fallMid, 0.001f);
+            // 判定線を割った後は 0<α<1 でフェードし、寿命末で 0。
+            float exitDrop = V6HudLogic.VerdictExitDropPx(m);
+            float travel = V6HudLogic.VerdictPeakGapAboveLine + exitDrop;
+            // offset = -exitDrop/2 となる時刻を EaseInCubic の逆算で求める。
+            float easedAtHalfBelow = 1f - (exitDrop * 0.5f) / travel;
+            float u = Mathf.Pow(easedAtHalfBelow, 1f / 3f);
+            float tHalfBelow = V6HudLogic.VerdictRiseSeconds
+                + V6HudLogic.VerdictFallSeconds * u;
+            float halfBelowAlpha = V6HudLogic.VerdictPoseAt(tHalfBelow, m).Alpha;
+            Assert.AreEqual(0.5f, halfBelowAlpha, 0.05f,
+                "判定線より下の落下半分地点で α≈0.5");
 
             // 寿命末とそれ以降は透明。
             Assert.AreEqual(0f,
@@ -207,21 +217,17 @@ namespace FlashBeat.Tests
         [Test]
         public void VerdictLifeIsLongEnoughToRead()
         {
-            // Issue #731: 上昇・保持・下方退場の 3 フェーズ合計が総寿命。
-            // 保持フェーズは読み取りに必要な 0.4 秒以上を確保する。
+            // Issue #731 / v0.2.1: 上昇・下方退場の 2 フェーズ合計が総寿命。
+            // 頂点での静止フェーズは持たない (頂点は通過点)。
             Assert.GreaterOrEqual(V6HudLogic.VerdictTotalSeconds, 0.5f);
             Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 1.0f + 0.0001f);
             Assert.AreEqual(
-                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds
-                    + V6HudLogic.VerdictFallSeconds,
+                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds,
                 V6HudLogic.VerdictTotalSeconds, 0.001f);
-            Assert.GreaterOrEqual(V6HudLogic.VerdictHoldSeconds, 0.4f,
-                "頂点での読み取り時間は 0.4 秒以上");
 
-            // フェーズの順序: 上昇 → 保持 → 下方退場。
-            // 退場は保持より短く、上昇は保持より短い (素早い出入り)。
-            Assert.Less(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictHoldSeconds);
-            Assert.Less(V6HudLogic.VerdictFallSeconds, V6HudLogic.VerdictHoldSeconds);
+            // フェーズの順序: 上昇 → 下方退場 (静止フェーズ無し)。
+            // 落下は上昇より長く、判定を読み取る時間を確保する。
+            Assert.Less(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictFallSeconds);
 
             // 頂点は判定線のすぐ上 (読み取りに十分で、離れすぎない)。
             Assert.Greater(V6HudLogic.VerdictPeakGapAboveLine, 0f);

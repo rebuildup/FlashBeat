@@ -6,9 +6,9 @@ using FlashBeat.UI.V6.Common;
 /// Issue #733: Option / Pause が共有する設定カタログ
 /// (<see cref="V6SettingsCatalog"/>) の行スキーマを検証する。
 ///
-/// - Play / Display タブはホスト (Option / Pause) に関係なく同一の行・同一順序。
-/// - Sound タブは同一スキーマだが、ゲーム進行中の画面 (Pause) では
-///   実行時消費者の無い BGM Volume を出さない (IsGameplayHost ポリシー)。
+/// - Play / Display / Sound の全タブはホスト (Option / Pause) に関係なく
+///   同一の行・同一順序 (v0.2.1: BGM Volume は VideoTime.Update が
+///   GameScene で消費するため Pause にも出す)。
 /// - Play タブの行順は正本 uDNC0 (NoteSpeed / NoteTiming / Key Layout / キー設定)。
 /// </summary>
 public class V6SettingsCatalogTests
@@ -72,15 +72,15 @@ public class V6SettingsCatalogTests
     }
 
     [Test]
-    public void SoundRows_PauseOmitsOnlyTheBgmVolume()
+    public void SoundRows_AreIdenticalBetweenOptionAndPause()
     {
         var option = LabelsOf(2, OptionHost());
         var pause = LabelsOf(2, PauseHost());
 
         Assert.AreEqual(new[] { "Main Volume", "Effect Volume", "BGM Volume" }, option,
             "Option の Sound タブは Main / Effect / BGM の 3 行");
-        Assert.AreEqual(new[] { "Main Volume", "Effect Volume" }, pause,
-            "Pause の Sound タブは BGM Volume を出さない (実行時消費者が無い)");
+        Assert.AreEqual(option, pause,
+            "Pause の Sound タブも同一行 (BGM Volume は GameScene の VideoTime が消費する)");
     }
 
     [Test]

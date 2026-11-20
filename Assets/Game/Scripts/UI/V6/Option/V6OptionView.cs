@@ -106,6 +106,8 @@ namespace FlashBeat.UI.V6.Option
         private TextMeshProUGUI previewHeadTitle;
         private TextMeshProUGUI descTitleText;
         private TextMeshProUGUI descBodyText;
+        private RectTransform descScrollContent;
+        private ScrollRect descScrollRect;
         private int volumeSliderRowIndex = -1; // スライダーが結線されている VolumeIndex (-1 = 未構築)
 
         private void ClearScaffoldRefs()
@@ -123,6 +125,8 @@ namespace FlashBeat.UI.V6.Option
             previewHeadTitle = null;
             descTitleText = null;
             descBodyText = null;
+            descScrollContent = null;
+            descScrollRect = null;
             volumeSliderRowIndex = -1;
         }
 

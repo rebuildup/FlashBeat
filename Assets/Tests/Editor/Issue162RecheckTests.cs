@@ -164,7 +164,7 @@ namespace FlashBeat.Tests.Editor
         // --- B-11: v6 ポーズの効かない BGMVolume 行 ---
 
         [Test]
-        public void V6Pause_SoundTab_HasNoDeadBgmVolumeRow()
+        public void V6Pause_SoundTab_HasTheLiveBgmVolumeRow()
         {
             var parent = new GameObject("Issue162RecheckTests Pause Parent", typeof(RectTransform));
             V6PauseView view = null;
@@ -173,24 +173,24 @@ namespace FlashBeat.Tests.Editor
                 view = V6PauseView.Create(parent.GetComponent<RectTransform>());
                 Assert.IsNotNull(view, "v6 ポーズが生成される");
 
-                // Issue #733 以降、行定義の正本は V6SettingsCatalog。Sound タブ
-                // (index 2) のポリシーは「gameplay host では BGM Volume を出さない」
-                // (GameScene に実行時消費者が無い行は描かない, B-11)。
+                // Issue #733 / v0.2.1: 行定義の正本は V6SettingsCatalog。
+                // BGM Volume は VideoTime.Update が GameScene で消費する
+                // 実行時有効な行なので、Pause にも Option と同じく出す。
                 var soundLabels = V6SettingsCatalog.RowsForTab(2, view)
                     .Select(row => row.Label).ToList();
                 Assert.That(soundLabels, Has.Some.EqualTo("Main Volume"),
                     "Main Volume の行は残る");
                 Assert.That(soundLabels, Has.Some.EqualTo("Effect Volume"),
                     "Effect Volume の行は残る");
-                Assert.IsFalse(soundLabels.Any(label => label.Contains("BGM")),
-                    "GameScene で効かない BGM Volume 行を描かない (B-11)");
+                Assert.That(soundLabels, Has.Some.EqualTo("BGM Volume"),
+                    "BGM Volume は GameScene で有効なので Pause にも出す (v0.2.1)");
 
                 // 描画側も同じ契約に従うこと (カタログと表示の乖離を防ぐ)。
                 string[] texts = AllTexts(view.Root.gameObject);
-                Assert.IsFalse(texts.Any(text => text != null && text.Contains("BGM")),
-                    "GameScene で効かない BGM 行を描かない (B-11)");
                 Assert.That(texts, Has.Some.EqualTo("Main Volume"), "Main Volume の行は残る");
                 Assert.That(texts, Has.Some.EqualTo("Effect Volume"), "Effect Volume の行は残る");
+                Assert.That(texts, Has.Some.EqualTo("BGM Volume"),
+                    "BGM Volume 行を描く (v0.2.1)");
             }
             finally
             {

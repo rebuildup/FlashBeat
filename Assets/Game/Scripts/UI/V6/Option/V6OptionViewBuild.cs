@@ -194,6 +194,8 @@ namespace FlashBeat.UI.V6.Option
             previewHeadTitle = null;
             descTitleText = null;
             descBodyText = null;
+            descScrollContent = null;
+            descScrollRect = null;
 
             BuildSettings();
             BuildPreview();

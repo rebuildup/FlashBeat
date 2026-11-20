@@ -95,7 +95,7 @@ namespace FlashBeat.V6HudTests
         {
             Assert.AreEqual(V5Tokens.AccentLight, V6HudLogic.VerdictColor("PERFECT"));
             Assert.AreEqual(V5Tokens.Text, V6HudLogic.VerdictColor("GREAT"));
-            Assert.AreEqual(V5Tokens.WarnLight, V6HudLogic.VerdictColor("BAD"));
+            Assert.AreEqual(V6HudLogic.VerdictBadColor, V6HudLogic.VerdictColor("BAD"));
             Assert.AreEqual(V5Tokens.DangerLight, V6HudLogic.VerdictColor("MISS"));
         }
 

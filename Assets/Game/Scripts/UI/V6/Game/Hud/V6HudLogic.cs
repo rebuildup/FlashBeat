@@ -208,24 +208,24 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         public const float VerdictRiseSeconds = 0.18f;
 
-        /// <summary>頂点で読み取りのために留まる時間 (秒)。0.4 秒以上を確保する。</summary>
-        public const float VerdictHoldSeconds = 0.50f;
-
         /// <summary>
         /// 頂点から判定線を越えて下へ加速落下しながら消える時間 (秒)。
-        /// 落下とフェードアウトはこの 1 フェーズに統合する
-        /// (旧来の「静止保持 → フェードのみ」の 2 段階は廃止)。
+        /// 落下は EaseInCubic (加速) で、頂点での静止フェーズは持たない
+        /// (v0.2.1 実機レビュー: 「一番上で完全に制止するべきではない」)。
+        /// α は判定線を割るまでは 1 のまま、判定線より下の落下距離と
+        /// 同じ幅で 1→0 にフェードするため、判定線付近に滞留せず
+        /// 「落ちた」と分かる程度で消える。
         /// </summary>
-        public const float VerdictFallSeconds = 0.32f;
+        public const float VerdictFallSeconds = 0.50f;
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 保持
-        /// (<see cref="VerdictHoldSeconds"/>) + 下方退場
-        /// (<see cref="VerdictFallSeconds"/>) = 1.00 秒。
+        /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 下方退場
+        /// (<see cref="VerdictFallSeconds"/>) = 0.68 秒。
+        /// 頂点での保持フェーズは無い (頂点は通過点)。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictRiseSeconds + VerdictHoldSeconds + VerdictFallSeconds;
+            VerdictRiseSeconds + VerdictFallSeconds;
 
         /// <summary>
         /// 下方退場の終端 = 判定線のこの距離だけ下 (px、正の値)。
@@ -264,14 +264,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// - t=0: 判定線の位置に即時出現 (オフセット 0、α=1。フェードインなし)。
         /// - 0〜<see cref="VerdictRiseSeconds"/>: EaseOutCubic で頂点
         ///   (判定線 + <see cref="VerdictPeakGapAboveLine"/>) まで上昇。
-        /// - 〜+<see cref="VerdictHoldSeconds"/>: 頂点で静止 (読み取り時間)。
         /// - 〜+<see cref="VerdictFallSeconds"/>: EaseInCubic で加速しながら
-        ///   判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで落下。
-        ///   同じ時間で α を 1→0 にフェードする。
+        ///   頂点から判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで
+        ///   落下。頂点での静止フェーズは無く、上昇の終端からそのまま落下へ移る。
+        ///   α は判定線までは 1 のまま、判定線より下では落下距離に比例して
+        ///   1→0 にフェードする (判定線付近に滞留しない)。
         /// - 総寿命 <see cref="VerdictTotalSeconds"/> を過ぎると α=0。
         ///
         /// 旧軌道 (Issue #671: 静止位置の真上から落下して着地 → 静止 → フェード)
         /// はオーナー要求に反するため廃止した (#728 観測 3 / #731)。
+        /// v0.2.0 の「頂点で 0.5 秒静止 → 落下」も v0.2.1 実機レビューで
+        /// 不自然と差し戻され、頂点通過型の連続軌道へ改めた。
         /// </summary>
         /// <param name="elapsed">判定確定からの経過秒 (負は 0 として扱う)。</param>
         /// <param name="m">解像度別 HUD メトリクス (退場距離の算出に使う)。</param>
@@ -286,20 +289,20 @@ namespace FlashBeat.UI.V6.Game.Hud
                     VerdictPeakGapAboveLine * EaseOutCubic(t / VerdictRiseSeconds), 1f);
             }
 
-            // 保持: 頂点で静止。
-            if (t < VerdictRiseSeconds + VerdictHoldSeconds)
-            {
-                return new VerdictPose(VerdictPeakGapAboveLine, 1f);
-            }
-
             // 下方退場: 頂点 → 判定線を越えて exitDrop 分だけ下。
-            // EaseIn で加速し、同じ時間で α を 1→0 にする。
-            float u = Mathf.Clamp01(
-                (t - VerdictRiseSeconds - VerdictHoldSeconds) / VerdictFallSeconds);
+            // EaseIn で加速する。頂点での静止は挟まず上昇から連続して落ちる。
+            float u = Mathf.Clamp01((t - VerdictRiseSeconds) / VerdictFallSeconds);
             float travel = VerdictPeakGapAboveLine + VerdictExitDropPx(m);
-            return new VerdictPose(
-                VerdictPeakGapAboveLine - travel * EaseInCubic(u),
-                1f - u);
+            float offset = VerdictPeakGapAboveLine - travel * EaseInCubic(u);
+
+            // α: 判定線 (offset=0) までは不透明。判定線より下では
+            // exitDrop 分の落下と同じ距離で 1→0 にフェードする。
+            // EaseIn の加速で判定線以下の区間は短時間なので、
+            // 「落ちた」と分かる程度で消える。
+            float alpha = offset >= 0f
+                ? 1f
+                : Mathf.Clamp01(1f + offset / VerdictExitDropPx(m));
+            return new VerdictPose(offset, alpha);
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
@@ -466,6 +469,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
         }
 
+        /// <summary>
+        /// BAD 判定の表示色。v0.2.0 までは <see cref="V5Tokens.WarnLight"/> (黄)
+        /// だったが、実機レビューで判定体系の色相として不適切と判断され、
+        /// 濃い青系 (#4A7EC2) へ変更した (v0.2.1)。
+        /// </summary>
+        public static readonly Color VerdictBadColor = new Color32(0x4A, 0x7E, 0xC2, 0xFF);
+
         /// <summary>判定ラベルの表示色 (v5 GameHudView.JudgeColor と同じ割り当て)。</summary>
         public static Color VerdictColor(string label)
         {
@@ -473,7 +483,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             {
                 case "PERFECT": return V5Tokens.AccentLight;
                 case "GREAT": return V5Tokens.Text;
-                case "BAD": return V5Tokens.WarnLight;
+                case "BAD": return VerdictBadColor;
                 default: return V5Tokens.DangerLight;
             }
         }
