@@ -48,7 +48,8 @@ public class V6UiWiringTests
     {
         // ポーズ行の「キー設定」は v6 のモーダル (design vo4kB) を開く (Issue #376)。
         // Issue #733: 行はカタログの「キー設定」(isAction) で、決定はホストの
-        // OpenKeyConfig → keyConfigModal.Show()。値欄は「開く」+ chevron アイコンで、
+        // OpenKeyConfig → keyConfigModal.Show()。値欄は「開く」の小型
+        // アクションボタン (Issue #798) で、
         // F2 は表示も監視もしない (決定 §4.1)。
         string catalog = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
         Assert.IsTrue(catalog.Contains("host.OpenKeyConfig"),
