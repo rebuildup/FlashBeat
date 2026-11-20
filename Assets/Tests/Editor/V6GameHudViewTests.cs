@@ -581,6 +581,67 @@ namespace FlashBeat.Tests
             }
         }
 
+        /// <summary>
+        /// Issue #790 (v0.2.1 実機受入): Start Prompt の KeyCap「Space」と
+        /// ラベル「to start」は独立した横並び要素で、矩形が重ならない。
+        /// かつては非アクティブ階層での TMP 実測が退化し、cap が文字より
+        /// 狭くなって「Space」が cap をはみ出し「to start」と重なって見えた。
+        /// ここでは実レイアウト (Canvas.ForceUpdateCanvases) 後の
+        /// ワールド矩形で非重なりと cap 最小幅を検証する。
+        /// </summary>
+        [Test]
+        public void StartPrompt_KeyCapAndLabel_DoNotOverlap()
+        {
+            var box = LyricBoxOf(view);
+            var prompt = box.transform.Find("Start Prompt");
+            Assert.IsNotNull(prompt, "Start Prompt が無い");
+
+            // 非アクティブなままでは LayoutGroup が走らないので一時的に出す。
+            bool boxWasActive = box.activeSelf;
+            bool promptWasActive = prompt.gameObject.activeSelf;
+            box.SetActive(true);
+            prompt.gameObject.SetActive(true);
+            try
+            {
+                Canvas.ForceUpdateCanvases();
+
+                var capRt = (RectTransform)prompt.Find("KeyCap Space");
+                var labelRt = (RectTransform)prompt.Find("Label");
+                Assert.IsNotNull(capRt, "KeyCap Space が無い");
+                Assert.IsNotNull(labelRt, "Label が無い");
+
+                Vector3[] capCorners = new Vector3[4];
+                Vector3[] labelCorners = new Vector3[4];
+                capRt.GetWorldCorners(capCorners);
+                labelRt.GetWorldCorners(labelCorners);
+
+                // cap の右端が label の左端を越えない (重なり・潜り込みなし)。
+                Assert.LessOrEqual(capCorners[2].x, labelCorners[0].x + 0.5f,
+                    "KeyCap の右端が Label の左端を越えている (重なり)");
+
+                // 高さは共有スロット内で揃っている (cap 高さ = spec.CapHeight)。
+                float capH = capCorners[1].y - capCorners[0].y;
+                float labelH = labelCorners[1].y - labelCorners[0].y;
+                Assert.AreEqual(capH, labelH, 1f,
+                    "KeyCap と Label の高さが揃っていない");
+
+                // cap の内容幅 (cap 幅 - padding) が「Space」の文字幅として
+                // 退化していないこと。実測が 0 に潰れると capW = padding だけになり、
+                // 文字が cap をはみ出して重なって見える (Issue #790 の実機症状)。
+                var spec = V6HudLogic.ReadyPrompt(LyricTextOf(view).fontSize);
+                float capW = capCorners[2].x - capCorners[0].x;
+                float innerW = capW - spec.PaddingX * 2f;
+                float emEstimate = FlashBeat.UI.V6.V6Ui.LabelAdvanceEm("Space") * spec.FontSize;
+                Assert.Greater(innerW, emEstimate * 0.3f,
+                    $"KeyCap の内容幅 {innerW:F1}px が 'Space' の想定幅 {emEstimate:F1}px に対して退化している");
+            }
+            finally
+            {
+                prompt.gameObject.SetActive(promptWasActive);
+                box.SetActive(boxWasActive);
+            }
+        }
+
         /// <summary>再生前 (Space 待ち) は歌詞位置に Ready 案内を出す。</summary>
         [Test]
         public void Lyrics_ShowTheReadyPromptBeforeThePlaybackStarts()

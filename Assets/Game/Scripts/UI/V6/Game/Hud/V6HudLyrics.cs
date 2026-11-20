@@ -98,9 +98,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             boxImage.type = Image.Type.Simple;
             lyricBox = box;
             // Issue #734: 初期状態は非表示。最初の UpdateLyrics (毎フレーム) が
-            // 設定値と再生状態のポリシーで表示/非表示を決めるため、
-            // ここで一瞬だけ空の枠が見えるフレームを作らない。
-            box.SetActive(false);
+            // 設定値と再生状態のポリシーで表示/非表示を決める。
+            // Issue #790: SetActive(false) は子の構築が全部終わってから行う。
+            // 非アクティブな階層では TMP の実測 (ForceMeshUpdate /
+            // GetPreferredValues) が退化値を返し得て、KeyCap の幅が実文字より
+            // 狭くなる → 「Space」が cap をはみ出して「to start」と重なる。
+            // 構築は 1 フレーム内で同期に終わるので、ここで遅らせても
+            // 空の枠が描画されるフレームは生まれない。
             var boxRt = V6Layout.RectOf(box);
             boxRt.anchorMin = new Vector2(0.5f, 1f);
             boxRt.anchorMax = new Vector2(0.5f, 1f);
@@ -132,6 +136,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             SetLyricRowHeight(lyricText, ScaledLyricFs);
 
             BuildLyricPrompt(box);
+            box.SetActive(false);
         }
 
         /// <summary>
@@ -343,18 +348,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         private void BuildLyricPrompt(GameObject box)
         {
             lyricPrompt = V5Ui.Node(box, "Start Prompt");
-            // v0.2.1 (#781): ReadyPrompt の寸法は歌詞フォントと同じ倍率で
-            // 拡縮する。固定 design px のままだと高解像度・縮小表示で
-            // 「Space to start」が周囲とずれて崩れて見えた。
-            float promptScale = LyricFontScale();
-            float capHeight = V6HudLogic.ReadyPromptCapHeight * promptScale;
-            float promptFs = V6HudLogic.ReadyPromptFontSize * promptScale;
-            float promptGap = V6HudLogic.ReadyPromptGap * promptScale;
+            // Issue #790 (v0.2.1 実機受入): Start Prompt の寸法は
+            // V6HudLogic.ReadyPrompt の spec が正本。歌詞本文 fs を基準に
+            // cap 高さ・fs・gap・左右 padding・角丸を同じ比率で揃える。
+            // 以前は fs だけを拡縮し padding/角丸は design px 固定だったため、
+            // 解像度ごとに KeyCap と「to start」の余白・文字組みがずれた。
+            var spec = V6HudLogic.ReadyPrompt(ScaledLyricFs);
             var le = lyricPrompt.AddComponent<LayoutElement>();
-            le.preferredHeight = capHeight;
+            le.preferredHeight = spec.CapHeight;
 
             var layout = lyricPrompt.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = promptGap;
+            layout.spacing = spec.Gap;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
@@ -362,21 +366,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             layout.childForceExpandHeight = false;
 
             var cap = V5Ui.Panel(lyricPrompt, "KeyCap Space",
-                new Vector2(0f, capHeight), V5Tokens.Key4, 4f);
-            var capKey = V5Ui.Text(cap, "Key", "Space", promptFs,
+                new Vector2(0f, spec.CapHeight), V5Tokens.Key4, spec.CornerRadius);
+            var capKey = V5Ui.Text(cap, "Key", "Space", spec.FontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Center);
             V6Layout.StretchFill(capKey.rectTransform);
-            float capW = MeasureTextWidth(capKey, "Space", promptFs)
-                + V6Ui.KeyCapPaddingX * 2f;
-            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, capHeight);
+            float capW = MeasureTextWidth(capKey, "Space", spec.FontSize)
+                + spec.PaddingX * 2f;
+            V6Layout.RectOf(cap).sizeDelta = new Vector2(capW, spec.CapHeight);
 
-            var label = V5Ui.Text(lyricPrompt, "Label", "to start", promptFs,
+            var label = V5Ui.Text(lyricPrompt, "Label", "to start", spec.FontSize,
                 V5Tokens.TextMuted, TextAlignmentOptions.Left);
             // Issue #760: Start Prompt も歌詞ボックス内に出るので同じ縁取りを付ける
             // (KeyCap は自前の背景を持つので対象外)。
             ApplyLyricTextOutline(label);
-            float labelW = MeasureTextWidth(label, "to start", promptFs);
-            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, capHeight);
+            float labelW = MeasureTextWidth(label, "to start", spec.FontSize);
+            V6Layout.RectOf(label).sizeDelta = new Vector2(labelW, spec.CapHeight);
 
             lyricPrompt.SetActive(false);
         }
