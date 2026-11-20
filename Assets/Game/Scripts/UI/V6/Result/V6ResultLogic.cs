@@ -183,12 +183,9 @@ namespace FlashBeat.UI.V6.Result
 
         private static float GaugeRatio(int score)
         {
-            if (score <= 0)
-            {
-                return 0f;
-            }
-
-            return Mathf.Clamp01((float)score / Common.V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
+            // Issue #788: ゲージの目盛り・ラベルは V6GradeLogic.GradeBandsOf
+            // の帯と同じ単一写像 (ScoreFractionOf) から導出する。
+            return Common.V6GradeLogic.ScoreFractionOf(score, Scoring.LatestVersion);
         }
 
         // --- メイン / フッターの layout 幾何 (契約 §4)。

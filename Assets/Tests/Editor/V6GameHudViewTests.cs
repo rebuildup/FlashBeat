@@ -125,6 +125,61 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// Issue #788: スコアゲージの目盛り (Seg *) はグレード閾値の正本
+        /// (<see cref="FlashBeat.UI.V6.Common.V6GradeLogic.GradeBandsOf"/>)
+        /// から導かれ、塗りと同じ ScoreFractionOf 写像に乗る。
+        /// 1920×1080 canvas → FHD metrics (GaugeW=600) で、実際の
+        /// RectTransform 配置が帯境界と一致することを検証する。
+        /// </summary>
+        [Test]
+        public void ScoreGauge_Segments_FollowGradeBands()
+        {
+            var track = view.transform.Find("Score Gauge/Track");
+            Assert.IsNotNull(track, "Score Gauge/Track が無い");
+
+            // v4+ 帯: C[0,.5) B[.5,.7) A[.7,.95) S[.95,1) SS=満点の点。
+            // GaugeW=600 への写像で x = 0/300/420/570。
+            AssertSegment(track, "Seg C", 0f, 300f);
+            AssertSegment(track, "Seg B", 300f, 120f);
+            AssertSegment(track, "Seg A", 420f, 150f);
+            AssertSegment(track, "Seg S", 570f, 30f);
+
+            // SS は幅を持たない点帯 → トラック右端に接するキャップ。
+            var ss = track.Find("Seg SS") as RectTransform;
+            Assert.IsNotNull(ss, "Seg SS (満点点帯のキャップ) が無い");
+            Assert.AreEqual(600f - ss.sizeDelta.x, ss.anchoredPosition.x, 0.01f,
+                "SS キャップの右端がトラック右端に一致しない");
+        }
+
+        /// <summary>
+        /// Issue #788 の再現ケース: 1,227,055 点 (B 評価、61.35%) の
+        /// 塗り終端が B 帯 [50%,70%) の内側にあり、A 帯へはみ出さない
+        /// ことを実際の Fill の sizeDelta で検証する。
+        /// </summary>
+        [Test]
+        public void ScoreGauge_BGradeScore_FillStaysInsideBBand()
+        {
+            GManager.score = 1227055;
+            view.Refresh();
+
+            var fill = view.transform.Find("Score Gauge/Track/Fill") as RectTransform;
+            Assert.IsNotNull(fill, "Score Gauge/Track/Fill が無い");
+
+            // 初回 Refresh はゲージ tween を目標値へ即合わせる。
+            float frac = fill.sizeDelta.x / 600f;
+            Assert.GreaterOrEqual(frac, 0.5f, "B 評価の塗りが B 帯の左端より左");
+            Assert.Less(frac, 0.7f, "B 評価の塗りが A 帯へはみ出している");
+        }
+
+        private static void AssertSegment(Transform track, string name, float x, float w)
+        {
+            var rt = track.Find(name) as RectTransform;
+            Assert.IsNotNull(rt, name + " が無い");
+            Assert.AreEqual(x, rt.anchoredPosition.x, 0.5f, name + " の x が帯境界と一致しない");
+            Assert.AreEqual(w, rt.sizeDelta.x, 0.5f, name + " の幅が帯境界と一致しない");
+        }
+
+        /// <summary>
         /// Issue #445: スコア値は 1 文字 = 1 スロットの桁別ストリップ。
         /// 変わらない桁のスロットは文字もアニメーション状態も変えない。
         /// </summary>

@@ -8,11 +8,7 @@ import "@/styles/app.css";
  */
 export default function DashboardPage() {
   return (
-    <StudioLayout
-      title="ダッシュボード"
-      subtitle="ベストスコア、プレイ数、曲数。"
-      active="dashboard"
-    >
+    <StudioLayout title="ダッシュボード" subtitle="ベストスコア、プレイ数、曲数。">
       <DashboardPanel />
     </StudioLayout>
   );

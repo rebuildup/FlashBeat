@@ -1,4 +1,6 @@
 import { CirclePlay, RotateCcw, X } from "lucide-react";
+import { Link } from "@void/react";
+import { routeUrl } from "void/routes";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { formatDuration } from "./catalog-view";
@@ -305,8 +307,15 @@ const stateWrap = css({
   py: "6",
 });
 
-function chartHref(song: SongSummary): string {
-  return `/chart?songId=${encodeURIComponent(song.id)}&version=${song.chartVersion}`;
+/**
+ * The editor URL of a catalog row. `routeUrl` keeps the destination inside
+ * the typed route map, and Void's `Link` turns the click into a client-side
+ * visit (issue #801) — no document reload.
+ */
+function chartHref(song: SongSummary) {
+  return routeUrl("/chart", {
+    query: { songId: song.id, version: song.chartVersion },
+  });
 }
 
 export function CatalogPanel({
@@ -423,13 +432,13 @@ export function CatalogPanel({
                   <div className={cardHeader}>
                     <span className={cardTitleRow}>
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />
-                      <a
+                      <Link
                         className={`${rowLink} ${cardTitleLink}`}
                         href={chartHref(song)}
                         data-row-link
                       >
                         <span className={cardTitle}>{song.title}</span>
-                      </a>
+                      </Link>
                     </span>
                     <Badge className={levelBadge}>{song.level}</Badge>
                   </div>
@@ -441,9 +450,9 @@ export function CatalogPanel({
                     <span>v{song.chartVersion}</span>
                   </div>
                   <div className={cardActions}>
-                    <a className={actionLink} href={chartHref(song)}>
+                    <Link className={actionLink} href={chartHref(song)}>
                       譜面を開く
-                    </a>
+                    </Link>
                     {/*
                       Issue #215 review: the per-song publish path starts at
                       the chart page (公開に進む) or the staff sidebar — the
@@ -483,11 +492,11 @@ export function CatalogPanel({
                 </div>
                 {songs.map((song) => (
                   <div key={song.id} className={`row ${row}`}>
-                    <a className={rowLink} href={chartHref(song)} data-row-link>
+                    <Link className={rowLink} href={chartHref(song)} data-row-link>
                       <span className={visuallyHidden}>
                         {`譜面を開く: ${song.title} — ${song.artist}、レベル${song.level}、バージョン${song.chartVersion}`}
                       </span>
-                    </a>
+                    </Link>
 
                     <span className={rowBody} data-testid="catalog-row-body">
                       <SongThumbnail title={song.title} youtubeId={song.youtubeId} />

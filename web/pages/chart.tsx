@@ -1,10 +1,11 @@
 import { readPublishDraft, savePublishDraft } from "@/lib/publish/draft";
+import { Link } from "@void/react";
+import { useClientVisit } from "@/app/client-visit";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import { css } from "styled-system/css";
 import { ChartEditor, type ChartEditorHandle } from "@/components/chart-editor/chart-editor";
 import { loadSongSession, type SongSession } from "@/lib/song-session/load";
-import { StudioShell } from "@/app/app-shell";
 import {
   pageActions,
   pageBackLink,
@@ -109,6 +110,7 @@ function tryPreview(editor: ChartEditorHandle | null): void {
 }
 
 export default function ChartPage({ songId, version, draftId }: Props) {
+  const visit = useClientVisit();
   const editorRef = useRef<ChartEditorHandle | null>(null);
   const [session, setSession] = useState<SongSession | null>(null);
   const [editedChart, setEditedChart] = useState<Chart | null | undefined>(undefined);
@@ -158,11 +160,11 @@ export default function ChartPage({ songId, version, draftId }: Props) {
   /** The draft of the operator wins over the published chart of the song. */
   const editorChart = draft?.chart ?? session?.chart ?? emptyChart;
   return (
-    <StudioShell scroll={false}>
+    <>
       <header className={pageHeader}>
-        <a className={pageBackLink} href="/">
+        <Link className={pageBackLink} href="/">
           ← 曲を選ぶ
-        </a>
+        </Link>
         <div className={pageHeaderIdentity}>
           <h1 className={pageTitle}>{selected ? "譜面を見る・試す" : "新しい譜面"}</h1>
           <p className={pageSubtitle} data-testid="chart-identity">
@@ -211,7 +213,8 @@ export default function ChartPage({ songId, version, draftId }: Props) {
             disabled={(selected && !session) || editedChart === null}
             onClick={() => {
               try {
-                window.location.assign(
+                // Issue #801: SPA 遷移で共通レイアウトを保ったまま公開画面へ。
+                visit(
                   savePublishDraft({
                     songId,
                     version,
@@ -271,6 +274,6 @@ export default function ChartPage({ songId, version, draftId }: Props) {
           />
         </div>
       )}
-    </StudioShell>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FlashBeat.Gameplay;
 
 namespace FlashBeat.UI.V6.Common
@@ -128,5 +129,76 @@ namespace FlashBeat.UI.V6.Common
 
             return "C";
         }
+
+        /// <summary>
+        /// スコア → 満点比の単一写像 (Issue #788)。ゲージの塗り幅・
+        /// Best マーカー・グレード境界の目盛りは全てこの割合空間で
+        /// 定義し、実pxへの換算はトラック幅を掛けるだけにする。
+        /// </summary>
+        public static float ScoreFractionOf(int score, int scoringVersion)
+        {
+            float f = score / (float)ScoreMaxOf(scoringVersion);
+            return f < 0f ? 0f : (f > 1f ? 1f : f);
+        }
+
+        /// <summary>
+        /// グレード帯 1 区間。<see cref="Start"/>/<see cref="End"/> は
+        /// スコア満点に対する割合 [0,1] (<see cref="ScoreFractionOf"/>
+        /// と同じ空間)。「満点のみ」の SS は Start == End の点として表す。
+        /// </summary>
+        public readonly struct GradeBand
+        {
+            public readonly string Label;
+            public readonly float Start;
+            public readonly float End;
+
+            public GradeBand(string label, float start, float end)
+            {
+                Label = label;
+                Start = start;
+                End = end;
+            }
+
+            /// <summary>幅を持たない点の帯 (SS = 満点のみ)。</summary>
+            public bool IsPoint => End <= Start;
+        }
+
+        /// <summary>
+        /// その scoringVersion のグレード帯 (C/B/A/S/SS) をスコア割合で返す。
+        /// 境界は <see cref="GradeOfV4"/> / <see cref="V6ResultRules.RankFor"/>
+        /// の閾値定数から導出するため、帯の目盛りとグレード文字が
+        /// 構造上ずれない (Issue #788)。
+        /// </summary>
+        public static IReadOnlyList<GradeBand> GradeBandsOf(int scoringVersion)
+        {
+            if (scoringVersion >= Scoring.Version4)
+            {
+                // v4+ 帯: B ≥ 50% / A ≥ 70% / S ≥ 95% / SS = 満点のみ。
+                return V4Bands;
+            }
+
+            // v1–v3 帯 (V6ResultRules.RankFor): B ≥ 70% / A ≥ 90% / S ≥ 95%。
+            return LegacyBands;
+        }
+
+        private static readonly GradeBand[] V4Bands =
+        {
+            new GradeBand("C", 0f, GradeV4B / (float)ScoreMaxV4),
+            new GradeBand("B", GradeV4B / (float)ScoreMaxV4, GradeV4A / (float)ScoreMaxV4),
+            new GradeBand("A", GradeV4A / (float)ScoreMaxV4, GradeV4S / (float)ScoreMaxV4),
+            new GradeBand("S", GradeV4S / (float)ScoreMaxV4, 1f),
+            new GradeBand("SS", 1f, 1f),
+        };
+
+        private static readonly GradeBand[] LegacyBands =
+        {
+            new GradeBand("C", 0f, Result.V6ResultRules.RankLegacyB / (float)ScoreMaxLegacy),
+            new GradeBand("B", Result.V6ResultRules.RankLegacyB / (float)ScoreMaxLegacy,
+                Result.V6ResultRules.RankLegacyA / (float)ScoreMaxLegacy),
+            new GradeBand("A", Result.V6ResultRules.RankLegacyA / (float)ScoreMaxLegacy,
+                Result.V6ResultRules.RankLegacyS / (float)ScoreMaxLegacy),
+            new GradeBand("S", Result.V6ResultRules.RankLegacyS / (float)ScoreMaxLegacy, 1f),
+            new GradeBand("SS", 1f, 1f),
+        };
     }
 }

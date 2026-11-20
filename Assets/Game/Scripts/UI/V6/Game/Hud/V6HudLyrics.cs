@@ -50,6 +50,14 @@ namespace FlashBeat.UI.V6.Game.Hud
         // --- 生成した部品 (歌詞系) ---
         private TextMeshProUGUI lyricText;
         private GameObject lyricBox;
+        private Image lyricBoxImage;
+        /// <summary>
+        /// 歌詞ボックスの 2 種スプライト (Issue #789/#735):
+        /// 回廊内側にも枠を残す版 (ノーツ非描画の状態用) と、
+        /// 回廊を完全に抜く版 (演奏中 = ノーツが帯を通過し得る用)。
+        /// </summary>
+        private Sprite lyricBoxSpriteFramed;
+        private Sprite lyricBoxSpriteClear;
 
         // --- 歌詞 ---
         private GameSceneManager lyricSource;
@@ -62,6 +70,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>再開カウントダウン (design o0zh7 の Countdown xuQnv)。歌詞と排他。</summary>
         private GameObject countdownOverlay;
         private TextMeshProUGUI countdownText;
+        private Image countdownPanelImage;
+        private Sprite countdownSpriteFramed;
+        private Sprite countdownSpriteClear;
 
         /// <summary>曲終了の黒フェード (全画面) と「終了」表示 (design xXKic)。</summary>
         private Image endFade;
@@ -92,9 +103,17 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 暗幕はレーン帯の外側に残るので、パネルの縁の見た目は従来どおり。
             Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(
                 CanvasSize().x, CanvasSize().y);
-            boxImage.sprite = V6PanelCorridorHole.ForPanel(
+            // Issue #789/#735: 回廊内側の枠あり/なし 2 種のスプライトを
+            // 先に焼いておき、ノーツが帯を通過し得るかで
+            // <see cref="SyncLyricBoxFrame"/> が切り替える。
+            lyricBoxSpriteFramed = V6PanelCorridorHole.ForPanel(
                 slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius);
+                CanvasSize(), LyricBoxCornerRadius, true);
+            lyricBoxSpriteClear = V6PanelCorridorHole.ForPanel(
+                slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
+                CanvasSize(), LyricBoxCornerRadius, false);
+            boxImage.sprite = PanelFrameSprite(lyricBoxSpriteFramed, lyricBoxSpriteClear);
+            lyricBoxImage = boxImage;
             boxImage.type = Image.Type.Simple;
             lyricBox = box;
             // Issue #734: 初期状態は非表示。最初の UpdateLyrics (毎フレーム) が
@@ -173,9 +192,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             panelImage.raycastTarget = false;
             Vector2 cdSlotOrigin = V6HudLogic.LyricSlotOrigin(
                 CanvasSize().x, CanvasSize().y);
-            panelImage.sprite = V6PanelCorridorHole.ForPanel(
+            countdownSpriteFramed = V6PanelCorridorHole.ForPanel(
                 cdSlotOrigin.x, cdSlotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius);
+                CanvasSize(), LyricBoxCornerRadius, true);
+            countdownSpriteClear = V6PanelCorridorHole.ForPanel(
+                cdSlotOrigin.x, cdSlotOrigin.y, LyricBoxWidth(), slotHeight,
+                CanvasSize(), LyricBoxCornerRadius, false);
+            // 初期状態は開始待ち (= ノーツ非描画) なので枠あり。
+            panelImage.sprite = countdownSpriteFramed;
+            countdownPanelImage = panelImage;
             panelImage.type = Image.Type.Simple;
             var panelRt = V6Layout.RectOf(panel);
             panelRt.anchorMin = Vector2.zero;
@@ -222,6 +247,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             countdownText.text = number.ToString();
             // START 表示から戻ってきた場合に備え、数字のサイズへ戻す。
             countdownText.fontSize = V6HudLogic.CountdownFontSize(CanvasSize().y);
+            // 再開カウントダウンはポーズ中 = 静止ノーツが画面に残るので
+            // 回廊を完全に抜く (枠がノーツを暗くしない)。
+            if (countdownPanelImage != null && countdownSpriteClear != null)
+            {
+                countdownPanelImage.sprite = countdownSpriteClear;
+            }
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -241,6 +272,11 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 状態表示ではなく主役に見え、カウントダウンとも区別が付かない。
             countdownText.text = "START";
             countdownText.fontSize = V6HudLogic.StartHoldFontSize(CanvasSize().y);
+            // 開始待ちはノーツ非描画なので枠ありスプライト (Issue #789)。
+            if (countdownPanelImage != null && countdownSpriteFramed != null)
+            {
+                countdownPanelImage.sprite = countdownSpriteFramed;
+            }
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -484,6 +520,43 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
+        /// ノーツが歌詞パネル帯 (レーン回廊) を通過し得るか (Issue #735/#789)。
+        /// 演奏中かつ全判定未確定の間はノーツが画面に存在する —
+        /// ポーズで静止していても同じ扱い (静止ノーツも暗くしてはいけない)。
+        /// 開始待ち・曲終了後はノーツが無いので枠ありスプライトでよい。
+        /// </summary>
+        private static bool NotesMayCrossPanelBand()
+        {
+            return GManager.played && !GManager.judgmentsComplete;
+        }
+
+        /// <summary>状態に応じたスプライトを選ぶ (枠あり/回廊クリア)。</summary>
+        private static Sprite PanelFrameSprite(Sprite framed, Sprite clear)
+        {
+            return NotesMayCrossPanelBand() ? clear : framed;
+        }
+
+        /// <summary>
+        /// 歌詞ボックスのスプライトを現在の再生状態へ同期する。
+        /// ノーツが帯を通過し得る演奏中は回廊を完全に抜き (枠がノーツを
+        /// 暗くしない)、それ以外では回廊内側にも枠を残す (Issue #789)。
+        /// </summary>
+        private void SyncLyricBoxFrame()
+        {
+            if (lyricBoxImage == null || lyricBoxSpriteFramed == null
+                || lyricBoxSpriteClear == null)
+            {
+                return;
+            }
+
+            Sprite want = PanelFrameSprite(lyricBoxSpriteFramed, lyricBoxSpriteClear);
+            if (lyricBoxImage.sprite != want)
+            {
+                lyricBoxImage.sprite = want;
+            }
+        }
+
+        /// <summary>
         /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734 / #789)。
         ///
         /// 枠の出し入れは「ユーザー設定 (<see cref="PlaySession.LyricsEnabled"/>)」・
@@ -509,6 +582,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private void UpdateLyrics()
         {
+            SyncLyricBoxFrame();
+
             // カウントダウン中・曲終了表示中は歌詞と Start Prompt を再表示しない。
             if (countdownOverlay != null && countdownOverlay.activeSelf)
             {

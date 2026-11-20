@@ -118,7 +118,10 @@ describe("studio grid contract (issue #802)", () => {
    * the property silently.
    */
   const RAIL_TRACK = "13rem minmax(0, 1fr)";
-  const SHELLS = ["src/app/app-shell.tsx", "src/app/studio-layout.tsx"];
+  // Issue #801 moved the shared frame into `pages/layout.tsx` →
+  // `studio-frame.tsx`; the page scaffolds only own the content area.
+  const GRID_SHELLS = ["src/app/studio-frame.tsx"];
+  const CONTENT_SCAFFOLDS = ["src/app/app-shell.tsx", "src/app/studio-layout.tsx"];
 
   it("defines the rail track once, in shell-metrics", () => {
     const metrics = readFileSync(join(WEB_ROOT, "src", "app", "shell-metrics.ts"), "utf8");
@@ -127,13 +130,18 @@ describe("studio grid contract (issue #802)", () => {
     expect(metrics).toContain("contentArea");
   });
 
-  it.each(SHELLS)("%s composes the shared shell grid", (file) => {
+  it.each(GRID_SHELLS)("%s composes the shared shell grid", (file) => {
     const code = stripComments(readFileSync(join(WEB_ROOT, file), "utf8"));
     expect(code, `${file} must use shellColumns`).toContain("shellColumns");
-    expect(code, `${file} must use contentArea`).toContain("contentArea");
     expect(code, `${file} must not restate the rail track`).not.toContain(RAIL_TRACK);
     expect(code, `${file} must not interpolate the rail width`).not.toContain(
       "SHELL_RAIL_WIDTH} minmax",
     );
+  });
+
+  it.each(CONTENT_SCAFFOLDS)("%s composes the shared content area", (file) => {
+    const code = stripComments(readFileSync(join(WEB_ROOT, file), "utf8"));
+    expect(code, `${file} must use contentArea`).toContain("contentArea");
+    expect(code, `${file} must not restate the rail track`).not.toContain(RAIL_TRACK);
   });
 });

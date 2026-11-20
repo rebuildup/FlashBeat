@@ -1,49 +1,29 @@
-import { css, cx } from "styled-system/css";
 import type { ReactNode } from "react";
-import { Sidebar } from "./sidebar";
 import { PageHeader } from "./page-header";
-import { contentArea, shellColumns } from "./shell-metrics";
+import { contentArea } from "./shell-metrics";
 
 /**
- * The layout of a studio page (issue #151).
+ * The scaffold of a staff studio page (issue #151): a heading and the
+ * padded, internally scrolling content area.
  *
- * The catalog (`app-shell.tsx`) has its own shell because it carries the
- * search toolbar. Every other page uses this one: the sidebar on the left,
- * a heading and the content below it.
+ * Issue #801 moved the shared frame — the sidebar and the viewport-locked
+ * work area — into `pages/layout.tsx`, so this component no longer renders
+ * navigation. Every page receives the same persistent frame; only the
+ * content below the header is swapped on navigation.
  */
-export const shell = css({
-  display: "grid",
-  gridTemplateRows: { base: "auto minmax(0, 1fr)", md: "1fr" },
-  height: "100dvh",
-  overflow: "hidden",
-});
-
-const main = css({
-  display: "flex",
-  flexDirection: "column",
-  minHeight: "0",
-  minWidth: "0",
-});
-
 export function StudioLayout({
   title,
   subtitle,
-  active,
   children,
 }: {
   title: string;
   subtitle: string;
-  /** The navigation entry of this page (`NAV_ITEMS`). */
-  active: string;
   children: ReactNode;
 }) {
   return (
-    <div className={cx(shell, shellColumns)}>
-      <Sidebar active={active} />
-      <main className={main}>
-        <PageHeader title={title} subtitle={subtitle} />
-        <div className={contentArea}>{children}</div>
-      </main>
-    </div>
+    <>
+      <PageHeader title={title} subtitle={subtitle} />
+      <div className={contentArea}>{children}</div>
+    </>
   );
 }

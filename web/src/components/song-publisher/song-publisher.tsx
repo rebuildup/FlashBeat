@@ -1,5 +1,7 @@
 import type { SongSummary } from "@/app/types";
 import { DrawerBackdrop, useDrawerFocus } from "@/app/drawer";
+import { useClientVisit } from "@/app/client-visit";
+import { Link } from "@void/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { CloudUpload } from "lucide-react";
 import { ChartEditor } from "@/components/chart-editor/chart-editor";
@@ -292,6 +294,7 @@ export function SongPublisher({
   const [publishing, setPublishing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [result, setResult] = useState<PublishResult | null>(null);
+  const visit = useClientVisit();
 
   const inFlight = useRef(false);
   // The fixture transport is a review aid: it only exists in development and
@@ -477,7 +480,8 @@ export function SongPublisher({
         },
         "editor",
       );
-      window.location.assign(url);
+      // Issue #801: SPA 遷移で共通レイアウトを保ったままエディタへ戻る。
+      visit(url);
     } catch {
       toaster.create({
         title: "下書きを保存できませんでした",
@@ -486,15 +490,15 @@ export function SongPublisher({
         type: "error",
       });
     }
-  }, [chart, initialChart, initialSong, initialVersion]);
+  }, [chart, initialChart, initialSong, initialVersion, visit]);
 
   return (
     <div className={root}>
       <header className={header}>
         <div className={headerTitles}>
-          <a className={backLink} href="/">
+          <Link className={backLink} href="/">
             ← 曲を選ぶ
-          </a>
+          </Link>
           <h1 className={title}>曲を公開</h1>
           <p className={subtitle}>
             {initialVersion

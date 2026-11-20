@@ -132,6 +132,24 @@ namespace FlashBeat.UI.V6.Result.Tests
             Assert.AreEqual(824f * 921880f / 2000000f, V6ResultLogic.GaugeBestX(921880), 0.01f);
         }
 
+        [Test]
+        public void GaugeFillWidth_GradeBoundaries()
+        {
+            // Issue #788: Result ゲージも HUD と同じ ScoreFractionOf 写像。
+            // グレード帯境界 (B 50% / A 70% / S 95%) のスコアが
+            // 同じ割合位置に写る。
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.5f, V6ResultLogic.GaugeFillWidth(1000000), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.7f, V6ResultLogic.GaugeFillWidth(1400000), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.95f, V6ResultLogic.GaugeFillWidth(1900000), 0.01f);
+            // 再現ケース: 1,227,055 (B) の塗り終端は B 帯 [50%,70%) の内側。
+            float frac = V6ResultLogic.GaugeFillWidth(1227055) / V6ResultLogic.GaugeW;
+            Assert.GreaterOrEqual(frac, 0.5f);
+            Assert.Less(frac, 0.7f, "B 評価の塗りが A 帯へはみ出している");
+            Assert.AreEqual(V6ResultLogic.GaugeBestX(1227055),
+                V6ResultLogic.GaugeFillWidth(1227055), 0.01f,
+                "Best マーカーと塗りが同じ写像に乗っていない");
+        }
+
         // --- 曲長表示 ---
 
         [Test]
