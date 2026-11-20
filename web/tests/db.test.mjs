@@ -71,12 +71,23 @@ test("the chart fixture satisfies the frozen contract schema", () => {
 test("the committed migrations create the contract tables plus the catalog epoch", () => {
   const sqlite = createMigratedDatabase();
   assert.deepEqual(tableNames(sqlite), [
-    // catalog_meta is the internal catalogVersion epoch (issue #656),
-    // not a contract table.
+    // account/session/verification/rateLimit are the Better Auth tables
+    // (issue #799); workspaces/workspace_members/audit_log/rate_limits are
+    // the app ownership tables; catalog_meta is the internal catalogVersion
+    // epoch (issue #656), not a contract table.
+    "account",
+    "audit_log",
     "catalog_meta",
     "chart_versions",
+    "rateLimit",
+    "rate_limits",
     "scores",
+    "session",
     "songs",
+    "user",
+    "verification",
+    "workspace_members",
+    "workspaces",
   ]);
   assert.deepEqual(columnNames(sqlite, "catalog_meta"), ["id", "epoch"]);
   assert.deepEqual(columnNames(sqlite, "songs"), [
@@ -90,6 +101,10 @@ test("the committed migrations create the contract tables plus the catalog epoch
     "currentVersion",
     "archived",
     "archivedAt",
+    // Nullable ownership columns added by issue #799; staff-seeded rows
+    // stay NULL.
+    "ownerWorkspaceId",
+    "createdByUserId",
   ]);
   assert.deepEqual(columnNames(sqlite, "chart_versions"), [
     "songId",
@@ -143,7 +158,11 @@ test("the seed publishes the chart file verbatim", async () => {
 
   const songRows = sqlite.prepare("SELECT * FROM songs").all();
   assert.equal(songRows.length, 1);
-  assert.deepEqual(songRows[0], song);
+  // The ownership columns (issue #799) are NULL for staff-seeded rows.
+  const { ownerWorkspaceId, createdByUserId, ...seededSong } = songRows[0];
+  assert.equal(ownerWorkspaceId, null);
+  assert.equal(createdByUserId, null);
+  assert.deepEqual(seededSong, song);
 
   const chartRows = sqlite.prepare("SELECT * FROM chart_versions").all();
   assert.equal(chartRows.length, 1);

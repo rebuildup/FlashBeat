@@ -39,6 +39,8 @@ import {
   validateArchiveRequest,
   type ArchiveDiagnostic,
 } from "../../_archive-model";
+import { ARCHIVE_BODY_LIMIT, PUBLISH_BODY_LIMIT, readJsonLimited } from "../../_request-body";
+import { writeAuditLog } from "../../_authz";
 
 export const PUT = defineHandler(async (c) => {
   const songId = c.req.param("songId") ?? "";
@@ -66,20 +68,13 @@ export const PUT = defineHandler(async (c) => {
     );
   }
 
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json(
-      {
-        error: "request body is not valid JSON",
-        diagnostics: [
-          { path: "(body)", message: "must be a single JSON object" } satisfies PublishDiagnostic,
-        ],
-      },
-      422,
-    );
+  // Bounded read (issue #799): a chart document can legitimately be large,
+  // but never unbounded — the cap is enforced while streaming.
+  const limited = await readJsonLimited(c, PUBLISH_BODY_LIMIT);
+  if (!limited.ok) {
+    return limited.response;
   }
+  const body = limited.value;
 
   const validation = validatePublishRequest(body);
   if (!validation.ok) {
@@ -157,6 +152,17 @@ export const PUT = defineHandler(async (c) => {
     );
   }
 
+  // Issue #799: staff publishes are permission-relevant operations and
+  // land in the audit log. The actor is the shared staff token — there is
+  // no per-user identity behind it, so `actorUserId` stays null.
+  await writeAuditLog({
+    actorKind: "staff",
+    action: "song.publish",
+    targetType: "song",
+    targetId: songId,
+    detail: { chartVersion },
+  });
+
   const catalogVersion = await readCatalogVersion();
   // Issue #656: a republish of an archived song succeeds but stays out of
   // the catalog; the response reports the archive state so the client can
@@ -219,20 +225,11 @@ export const POST = defineHandler(async (c) => {
     );
   }
 
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json(
-      {
-        error: "request body is not valid JSON",
-        diagnostics: [
-          { path: "(body)", message: "must be a single JSON object" } satisfies ArchiveDiagnostic,
-        ],
-      },
-      422,
-    );
+  const limited = await readJsonLimited(c, ARCHIVE_BODY_LIMIT);
+  if (!limited.ok) {
+    return limited.response;
   }
+  const body = limited.value;
 
   const validation = validateArchiveRequest(body);
   if (!validation.ok) {
@@ -260,6 +257,14 @@ export const POST = defineHandler(async (c) => {
       .where(eq(songs.id, songId)),
     bumpCatalogVersion(),
   ]);
+
+  // Issue #799: archive/unarchive changes catalog visibility — audit it.
+  await writeAuditLog({
+    actorKind: "staff",
+    action: archived ? "song.archive" : "song.unarchive",
+    targetType: "song",
+    targetId: songId,
+  });
 
   const catalogVersion = await readCatalogVersion();
 

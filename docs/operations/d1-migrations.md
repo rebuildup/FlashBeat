@@ -304,3 +304,44 @@ Note (2026-11-20): the file carries a leading `-- void:allow-destructive`
 pragma because the table rebuild trips Void's destructive-migration guard on
 `void deploy`. The pragma was added after the remote apply above; D1
 bookkeeping is by filename, so the already-applied record is unaffected.
+
+## 11. Follow-up migrations: managed auth + ownership (issue #799)
+
+Date: 2026-11-20 (JST) · Branch: `799` · Scope: the Void managed-auth
+(Better Auth) tables and the app ownership/authorization tables. Two
+migrations ship together; both are purely additive.
+
+| Field | Value |
+|---|---|
+| Files | `web/db/migrations/20261120180826_wild_mephistopheles.sql`, `web/db/migrations/20261120181403_fantastic_baron_zemo.sql` |
+| Drizzle metadata | `web/db/migrations/meta/20261120180826_snapshot.json`, `20261120181403_snapshot.json`, `meta/_journal.json` |
+| Content | Better Auth `user`/`account`/`session`/`verification`/`rateLimit`; app `workspaces`, `workspace_members`, `audit_log`, `rate_limits`; `songs.ownerWorkspaceId` + `songs.createdByUserId` (nullable `ALTER TABLE … ADD`) |
+
+`songs.ownerWorkspaceId` / `songs.createdByUserId` are nullable on purpose:
+every existing row keeps `NULL` (= staff-managed) and no data is rewritten.
+The ownership backfill/claim policy for pre-existing songs is decided with
+the user-facing draft flow in issue #800.
+
+### 11.1 Remote D1 — **pending**
+
+Not yet applied: this branch has not been deployed. Apply before (or with)
+the Worker deploy, never reset the remote database:
+
+```sh
+mise exec -- cf d1 migrations apply 7de6fd23-dd7b-4e21-bddd-b28b33ee0462 \
+  --dir web/db/migrations
+```
+
+The migrations are backward compatible with the currently deployed Worker:
+all new tables are unused by the old code, and the two new `songs` columns
+are nullable additions that old INSERTs simply leave `NULL`. Rolling back
+the Worker therefore needs no schema rollback; dropping the new tables is
+only required if the auth feature itself is abandoned.
+
+### 11.2 Local verification
+
+`web/tests/db.test.mjs` builds a throw-away SQLite database from the
+committed migration files and asserts the full table/column list, so the
+checked-in SQL — not just the Drizzle schema — is what ships. The auth
+integration suite (`web/tests/authz.test.ts`) runs the real Void dev server
+against the local D1 with these migrations applied.

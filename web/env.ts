@@ -13,4 +13,11 @@ import { defineEnv, string } from "void/env";
 
 export default defineEnv({
   FLASHBEAT_ADMIN_TOKEN: string(),
+  /**
+   * Better Auth secret (issue #799). Void generates and reuses one on
+   * deploy when it is missing; local development needs no value. Declared
+   * optional so `void secret put BETTER_AUTH_SECRET` can pin an explicit
+   * rotation without changing the env contract.
+   */
+  BETTER_AUTH_SECRET: string().optional(),
 });

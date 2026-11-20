@@ -13,6 +13,56 @@
 import { sql } from "void/db";
 import { check, index, integer, primaryKey, real, sqliteTable, text } from "void/schema-d1";
 
+/**
+ * Ownership model of the Web Studio (issue #799).
+ *
+ * Better Auth owns `user` / `account` / `session` / `verification`; these
+ * two tables add the workspace layer on top:
+ *
+ *   workspaces        — a personal workspace per user (`kind = 'personal'`,
+ *                       id `personal-<userId>`) or a team workspace
+ *                       (`kind = 'team'`) that memberships share.
+ *   workspace_members — user ↔ workspace with a role. Authorization always
+ *                       resolves through this table, never through a
+ *                       client-supplied owner id.
+ */
+export const workspaces = sqliteTable(
+  "workspaces",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    kind: text("kind").notNull().default("personal"),
+    createdAt: text("createdAt")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    check("workspaces_name_length", sql`length(${table.name}) BETWEEN 1 AND 80`),
+    check("workspaces_kind", sql`${table.kind} IN ('personal', 'team')`),
+  ],
+);
+
+export const workspaceMembers = sqliteTable(
+  "workspace_members",
+  {
+    workspaceId: text("workspaceId")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Better Auth `user.id`; no FK because `user` is auth-managed. */
+    userId: text("userId").notNull(),
+    role: text("role").notNull().default("owner"),
+    createdAt: text("createdAt")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.userId] }),
+    check("workspace_members_role", sql`${table.role} IN ('owner', 'editor', 'viewer')`),
+    // "Which workspaces does this user belong to" is the hot lookup.
+    index("workspace_members_user_idx").on(table.userId),
+  ],
+);
+
 export const songs = sqliteTable(
   "songs",
   {
@@ -35,6 +85,18 @@ export const songs = sqliteTable(
     archived: integer("archived").notNull().default(0),
     /** When the song was archived (`null` while it is live). */
     archivedAt: text("archivedAt"),
+    /**
+     * Owning workspace of the song (issue #799). `null` for the songs the
+     * staff publish flow wrote before ownership existed; the user publish
+     * flow (issue #800) sets it to the author's workspace.
+     */
+    ownerWorkspaceId: text("ownerWorkspaceId").references(() => workspaces.id),
+    /**
+     * Better Auth `user.id` of the creator (issue #799). Plain text without
+     * a foreign key: the `user` table belongs to Void-managed auth and is
+     * not part of this Drizzle schema.
+     */
+    createdByUserId: text("createdByUserId"),
   },
   (table) => [
     // SongId parameter of the contract: ^[a-z0-9-]{3,64}$
@@ -139,6 +201,8 @@ export const scores = sqliteTable(
 );
 
 export type Song = typeof songs.$inferSelect;
+export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type NewSong = typeof songs.$inferInsert;
 export type ChartVersion = typeof chartVersions.$inferSelect;
 export type NewChartVersion = typeof chartVersions.$inferInsert;
@@ -162,3 +226,63 @@ export const catalogMeta = sqliteTable("catalog_meta", {
 });
 
 export type CatalogMeta = typeof catalogMeta.$inferSelect;
+
+/**
+ * Audit log of permission-relevant operations (issue #799, threat model
+ * §4.4). Every workspace/member mutation and every staff publish/archive
+ * appends one row; user publish operations (issue #800) write here too.
+ * Rows are append-only — nothing in the API updates or deletes them.
+ */
+export const auditLog = sqliteTable(
+  "audit_log",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** Better Auth `user.id` of the actor; `null` for staff-token calls. */
+    actorUserId: text("actorUserId"),
+    /** `user` (session) or `staff` (FLASHBEAT_ADMIN_TOKEN). */
+    actorKind: text("actorKind").notNull().default("user"),
+    workspaceId: text("workspaceId"),
+    /** Dotted verb, e.g. `workspace.create`, `member.add`, `song.publish`. */
+    action: text("action").notNull(),
+    targetType: text("targetType"),
+    targetId: text("targetId"),
+    /** Free-form JSON context (never secrets or chart bodies). */
+    detail: text("detail"),
+    createdAt: text("createdAt")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    check("audit_log_actor_kind", sql`${table.actorKind} IN ('user', 'staff')`),
+    index("audit_log_workspace_idx").on(table.workspaceId),
+    index("audit_log_target_idx").on(table.targetType, table.targetId),
+  ],
+);
+
+export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type NewAuditLogEntry = typeof auditLog.$inferInsert;
+
+/**
+ * Per-user fixed-window counters for the studio mutation APIs (issue #799,
+ * threat model §4.2). Better Auth's own `rateLimit` table covers `/api/auth`
+ * only; app endpoints count here, keyed by `(bucket, subject)` where the
+ * subject is normally the Better Auth user id.
+ */
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    /** Limit family, e.g. `me.workspace.write`. */
+    bucket: text("bucket").notNull(),
+    /** Who the limit applies to (user id, or `anon:<ip>` fallback). */
+    subject: text("subject").notNull(),
+    /** Window start as unix seconds, aligned to the window length. */
+    windowStart: integer("windowStart").notNull(),
+    hits: integer("hits").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.bucket, table.subject, table.windowStart] }),
+    check("rate_limits_hits_positive", sql`${table.hits} >= 1`),
+  ],
+);
+
+export type RateLimitRow = typeof rateLimits.$inferSelect;
