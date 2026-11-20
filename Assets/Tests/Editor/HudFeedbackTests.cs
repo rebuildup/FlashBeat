@@ -212,6 +212,24 @@ namespace FlashBeat.Tests
         // --- ポップ・パンチ (Issue #434) ---
 
         [Test]
+        public void VerdictBadColor_IsDarkBlue_NotYellow()
+        {
+            // Issue #785 (v0.2.1 実機レビュー): BAD は黄色ではなく暗い青系。
+            // 色相が再び Warn 系 (黄) へ戻らないことを固定する。
+            Color bad = V6HudLogic.VerdictColor("BAD");
+            Assert.AreEqual(V6HudLogic.VerdictBadColor, bad);
+            Assert.Less(bad.r, 0.4f, "BAD は赤みの強い色ではない");
+            Assert.Greater(bad.b, bad.r, "BAD は青系 (B > R)");
+            Assert.Greater(bad.g, bad.r, "BAD は緑成分も赤より多い");
+            Assert.Less(bad.g, 0.6f, "BAD は明るい水色ではなく暗い青");
+            // 旧色 (WarnLight 黄 #E9B949 系) との差: B が R を上回ることが
+            // 青系の判定条件。黄に戻ると B < R になりこのテストが落ちる。
+            Assert.AreEqual(0x4A, ((Color32)bad).r, 1);
+            Assert.AreEqual(0x7E, ((Color32)bad).g, 1);
+            Assert.AreEqual(0xC2, ((Color32)bad).b, 1);
+        }
+
+        [Test]
         public void PunchScalePopsUpAndSettles()
         {
             Assert.AreEqual(1f, V6HudLogic.PunchScale(-1f, 1.1f, 0.05f, 0.2f), 0.001f);

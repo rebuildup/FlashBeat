@@ -210,8 +210,12 @@ public class AutoTestV6Interact : MonoBehaviour
         Check("no row shows F2 as its value", !f2Shown);
 
         int keyRow = labels.IndexOf("キー設定");
-        Check("the key config row reads '開く ›'",
-            keyRow >= 0 && option.RowValueForAudit(keyRow) == "開く ›");
+        // v0.2.1: 導線の › は値テキストではなく chevron-right アイコン
+        // (V6SettingRowView.ValueIcon) として描画される (2a67ed56 で
+        // 矢印グリフを正規化)。値は "開く"、描画テキストも "開く"。
+        Check("the key config row reads '開く' with a chevron icon",
+            keyRow >= 0 && option.RowValueForAudit(keyRow) == "開く"
+            && option.RenderedRowValueForAudit(keyRow) == "開く");
 
         // NoteSpeed: ←→ と同じ AdjustSelected 経路で変更し、値・保存値・表示が一致する。
         int speedRow = labels.IndexOf("NoteSpeed");
