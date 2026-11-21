@@ -48,12 +48,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         private int lastComboMilestones;
         /// <summary>最後に文字として出したコンボボーナスのスコア点 (Issue #784)。</summary>
         private int lastComboBonusPoints = int.MinValue;
-        /// <summary>
-        /// scoring v6 (ADR-0037) の基礎スコア併記 ("BASE N")。
-        /// スコア合計の下に小さく出し、追加スコア (右コラムの BONUS
-        /// ブロック) と別のスコア部分として見せる。
-        /// </summary>
-        private TextMeshProUGUI baseScoreText;
 
         // --- 毎フレームの状態 (スコア系) ---
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
@@ -208,19 +202,9 @@ namespace FlashBeat.UI.V6.Game.Hud
                 new Vector2(m.GaugeX, -m.ScoreValueY),
                 new Vector2(m.GaugeW, m.ScoreFs * 1.4f),
                 m.ScoreFs, V5Tokens.Text, V5Tokens.WarnLight);
-
-            // scoring v6 (ADR-0037): スコアは baseScore + additionalScore の
-            // 2 部構成。合計値の下に基礎スコアを小さく併記し、追加スコアは
-            // 右コラムの BONUS ブロックが別に表示する。v5 以前は基礎/追加の
-            // 区別が無いので出さない。
-            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
-            {
-                baseScoreText = V5Ui.Text(gameObject, "Base Score Value",
-                    "BASE 0", m.ScoreLabelFs, V5Tokens.TextMuted,
-                    TextAlignmentOptions.TopLeft);
-                PlaceTopLeft(baseScoreText.rectTransform, m.GaugeX,
-                    -(m.ScoreValueY + m.ScoreFs * 1.4f + m.ScoreLabelFs));
-            }
+            // Issue #847: scoring v6 の基礎スコア併記 ("BASE N") は
+            // 実機指摘で撤去した。追加スコアは右コラムの BONUS ブロックが
+            // 表示し続ける (ADR-0037 の表示分離は Result 画面の内訳行が担う)。
         }
 
         private void BuildComboBlock()

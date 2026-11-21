@@ -302,21 +302,22 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// scoring v6 (ADR-0037): HUD は基礎スコアと追加スコアを別々に
-        /// 表示する契約。合計値の下に "BASE N" (GManager.baseScore)、
-        /// 右コラムの BONUS ブロックに追加スコア (GManager.bonusScore)
-        /// が出る。
+        /// Issue #847: HUD の "BASE N" 併記は実機指摘で撤去した。
+        /// 追加スコア (GManager.bonusScore) は右コラムの BONUS ブロックが
+        /// 引き続き絶対スコア点で表示する。スコア内訳の説明は Result 画面の
+        /// "BASE + BONUS" 行が担うので、HUD 側に BASE ラベルは残さない。
         /// </summary>
         [Test]
-        public void Score_ShowsBaseScoreSeparatelyFromBonus()
+        public void Score_HasNoBaseLabel_BonusStillShown()
         {
             GManager.baseScore = 933812;
             GManager.bonusScore = 164800;
             GManager.score = 933812 + 164800;
             view.Refresh();
 
-            Assert.AreEqual("BASE 933,812", view.BaseScoreTextForAudit,
-                "基礎スコアが合計値の下に併記される");
+            var texts = view.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true);
+            Assert.IsFalse(texts.Any(t => t.text != null && t.text.StartsWith("BASE")),
+                "HUD に BASE ラベルが残っている");
             Assert.AreEqual("+164,800", view.ComboBonusValueForAudit,
                 "追加スコアは BONUS ブロックが絶対スコア点で表示する");
         }

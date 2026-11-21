@@ -69,5 +69,35 @@ namespace FlashBeat.UI.V6.Select.Data
             }
             return SongScoreLogic.GradeOf(score) ?? "";
         }
+
+        /// <summary>
+        /// GET /api/v1/leaderboards の entry 配列を表示用の行へ変換する
+        /// (Issue #847)。表示順位は <see cref="RankingClient.BoardPosition"/>
+        /// が導出する (実 API の entry に rank は無いのでボード内の位置、
+        /// 1 始まり)。nickname が空でなければ一致する行を IsYou にする。
+        /// v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する割合なので
+        /// その曲のノーツ数を渡す (ADR-0037 / Issue #825)。
+        /// </summary>
+        public static List<V6RankingRow> RankingRows(RankingClient.LeaderboardEntry[] entries,
+            int noteCount, string nickname)
+        {
+            var rows = new List<V6RankingRow>();
+            if (entries == null) return rows;
+            for (int i = 0; i < entries.Length; i++)
+            {
+                RankingClient.LeaderboardEntry entry = entries[i];
+                if (entry == null) continue;
+                rows.Add(new V6RankingRow
+                {
+                    Position = RankingClient.BoardPosition(entry, i),
+                    PlayerName = entry.nickname ?? "",
+                    Score = entry.score,
+                    Grade = GradeOf(entry.score,
+                        FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
+                    IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
+                });
+            }
+            return rows;
+        }
     }
 }

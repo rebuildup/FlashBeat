@@ -282,8 +282,14 @@ namespace FlashBeat.UI.V6.Result
                         continue;
                     }
 
+                    // Issue #847: 実 API の leaderboard entry に rank は無い
+                    // (entry.rank は常に 0) ので、表示順位はボード内の位置
+                    // (1 始まり) から導出する。entry.rank との比較は、将来
+                    // API が rank を返すようになった場合の保険で、
+                    // POST /scores の rank (同点共有) とは別契約。
+                    // 自分の行の特定はニックネーム一致が主経路。
                     bool isYou = (!string.IsNullOrEmpty(nickname) && entry.nickname == nickname)
-                        || (myRank > 0 && entry.rank == myRank);
+                        || (myRank > 0 && entry.rank > 0 && entry.rank == myRank);
                     string playerName = entry.nickname ?? "";
                     if (isYou && string.IsNullOrEmpty(playerName))
                     {
@@ -294,7 +300,9 @@ namespace FlashBeat.UI.V6.Result
 
                     rankingRows.Add(new FlashBeat.UI.V6.Select.V6RankingRow
                     {
-                        Position = entry.rank,
+                        // Issue #847: 表示順位はボード内の位置 (1 始まり)。
+                        // entry.rank は実 API では常に 0。
+                        Position = RankingClient.BoardPosition(entry, i),
                         PlayerName = playerName,
                         Score = entry.score,
                         // v6 のグレードは譜面満点 ScoreMaxV6(noteCount)

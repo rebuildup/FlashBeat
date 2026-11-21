@@ -476,7 +476,8 @@ namespace FlashBeat.UI.V6.Select.Data
             rankingFetchKey = null;
             if (result != null && result.ok && result.leaderboard != null && result.leaderboard.entries != null)
             {
-                rankingCache[key] = RankingRowsOf(result.leaderboard.entries, noteCount);
+                rankingCache[key] = V6SelectDataLogic.RankingRows(
+                    result.leaderboard.entries, noteCount, RankingClient.LoadNickname());
                 hasError = false;
                 statusMessage = "";
             }
@@ -492,29 +493,6 @@ namespace FlashBeat.UI.V6.Select.Data
             {
                 BeginRankingFetch(rankingQueue.Dequeue());
             }
-        }
-
-        static List<V6RankingRow> RankingRowsOf(RankingClient.LeaderboardEntry[] entries, int noteCount)
-        {
-            var rows = new List<V6RankingRow>();
-            string nickname = RankingClient.LoadNickname();
-            for (int i = 0; i < entries.Length; i++)
-            {
-                RankingClient.LeaderboardEntry entry = entries[i];
-                if (entry == null) continue;
-                rows.Add(new V6RankingRow
-                {
-                    Position = entry.rank,
-                    PlayerName = entry.nickname ?? "",
-                    Score = entry.score,
-                    // v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する
-                    // 割合なので、この曲のノーツ数を渡す (ADR-0037 / Issue #825)。
-                    Grade = V6SelectDataLogic.GradeOf(entry.score,
-                        FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
-                    IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
-                });
-            }
-            return rows;
         }
 
         static string RankingFailureMessage(RankingClient.Result result)
