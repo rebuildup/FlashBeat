@@ -76,7 +76,9 @@ namespace FlashBeat.UI.V6.Game.Pause
                     return; // プレースホルダのまま (design の空枠)
                 }
 
-                thumbImage.sprite = sprite;
+                // Issue #848: 選曲画面と同じ cover 規則でスロットのアスペクトへ
+                // 切り抜く (hqdefault 4:3 のレターボックス縮小を防ぐ)。
+                thumbImage.sprite = V6JacketFit.CoverSprite(thumbImage, sprite);
                 thumbImage.preserveAspect = true;
                 thumbImage.color = Color.white;
             });

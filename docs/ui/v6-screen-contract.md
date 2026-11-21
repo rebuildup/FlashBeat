@@ -141,6 +141,8 @@
 | Stats | (12,452) | 512×196 | `$k1` r8, 2×2 (各 256×98, gap8 padding[0,16]): BPM / NOTES (上段), LEVEL / BEST (下段), Label fs22 `$text-dim` + Value fs32 w500。Divider 縦 (256,0) 1×196 / 横 (0,98) 512×1 `#FFFFFF1F` |
 | Controls | (12,668) | 512×88 | gap20 中央: skip-back 56×56 `$k4` r28 (icon 32) / play 72×72 `#EDEDED` r36 (icon 36 `#1B1B1B`) / skip-forward 56×56 `$k4` r28 |
 
+ジャケットの cover は実装側の規則として `V6JacketFit.CoverSprite` が担う (Issue #848): 原画像 (hqdefault = 4:3) から `V6BackdropFit.CoverUV` と同じ中央クロップ矩形で切り抜いた Sprite を `Image` (Simple + preserveAspect) に敷く。プレート (角丸・$k2/$k3) は画像未到着のあいだのプレースホルダ。リスト行 Thumb 96×54・バッジ Thumb・Pause 64×36 も同じ規則。
+
 ## 8. ゲーム HUD — 3 解像度
 
 背景: `assets/song-video-frame.jpg` (cover) + Video Dim `#00000080` (全画面)。3 フレームとも 13 子で構成同じ。
