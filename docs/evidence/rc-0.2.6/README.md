@@ -35,6 +35,8 @@
 | `v6screens` マトリクス (1a504a37) | **5/5 PASS fail=0** | `v6screens-1a504a37/` |
 | `v6interact` (1a504a37) | **pass=96 fail=0** | `v6interact-1a504a37/` |
 | `v6songend` (1a504a37) | **pass=33 fail=0** (perfect 130/130) | `songend-1a504a37/` |
+| `v6songend` エウタナシア (実 API ランキング確認) | pass=34 fail=0 | `songend-euthanasia-1a504a37/` |
+| `v6songend` EffectVolume=0 (音声独立性) | pass=34 fail=0 | `songend-effect0-1a504a37/` |
 
 ### songend の内訳 (代表: ツイッターランド)
 
@@ -93,6 +95,15 @@
 - 原理的限界 (4Hz サンプリングの単発取りこぼし・エネルギー中立破損は
   検出不可) は Issue #844 コメントに明記
 
+### 実破損証跡への検出器適用 (追加検証)
+
+- rc-0.2.5/notes/ の実破損フレーム 3 枚へ同一勾配エネルギー指標を
+  オフライン適用: いずれもエネルギー**低下型** (中央値比 0.44–0.65)
+- 低下側閾値 1/3 をスクリーンショット合成レベルでは下回らず、
+  この指標だけでは検出できなかった可能性が高いことが判明
+- ただし実行時は映像テクスチャのみを読むため HUD 希釈が無く、
+  実感度はより高いはず (未定量)。詳細と改善候補は Issue #844 コメント
+
 ## Win64 (device-windows 実機)
 
 ### 66a5bf14 (freeze 時点)
@@ -139,6 +150,27 @@
   (`unity.KimuraYusuke.FlashBeat` = Editor 側) に書いた無効ラン。
   実効ドメインは `com.KimuraYusuke.FlashBeat` (bundle id)
 
+### チャンネル独立性 (追加計測)
+
+- **Song**: 上記 A/B で実出力レベルの線形応答を確認済み
+- **Effect**: `FlashBeat.EffectVolume=0` で `v6songend` 再実行
+  (`songend-effect0-1a504a37/`、pass=34 fail=0、判定 130/130 に影響なし)。
+  STATUS rms_mean 0.301 (effect=1) vs 0.298 (effect=0)、peak_max
+  0.709 vs 0.688 — SE は短いトランジェントのため 2 秒窓 RMS では
+  楽曲に対し小さく、ミックスプローブの分解能では効果音単独の
+  有無を厳密には分離できない。ただし effect=0 で楽曲レベルが
+  変わらないこと (誤って Song へ二重適用されないこと)、判定系が
+  音量に非依存であることは実測で確認。チャンネル分離の構造的根拠:
+  `Judge.audioHit.volume = GManager.effectVolume` (単一代入)、
+  `SelectSceneManager`/`TitleSceneManager` の SE も同じ effectVolume、
+  `V6VolumeSettingsTests` が index→フィールド対応を固定
+- **BGM**: `VideoTime.audioBGM.volume = GManager.BGMVolume` の別
+  AudioSource で、メニュー/結果画面の背景動画音声専用。プレイ楽曲とは
+  シーン・ソースともに非重複 (構造的独立。プレイ中に BGM が鳴る経路なし)
+- **Main**: `AudioListener.volume` のマスターフェーダー。
+  ソース個別音量とは乗算関係で独立 (設計どおり)
+- **残る人間受入**: SE/BGM の実聴取での聞こえ方・バランス体感
+
 ## UI 視覚レビュー (マルチモーダルモデル独立監査)
 
 - `docs/evidence/rc-0.2.6/` 配下のユニーク画像 53 枚を
@@ -163,11 +195,26 @@
 
 - **人間受入が必要な項目** (自動検証で代替不能):
   - 実デバイス出力での音量・音質の聴感 (Song/BGM/Effect/Main の
-    体感バランスと「プレイ楽曲が十分聞こえる」の最終判断)
-  - 結果画面の実 API ランキング表示の目視 (`rankingMode=Online` で
-    実経路は通っているが、1 始まり表示の最終目視は人間側)
+    体感バランスと「プレイ楽曲が十分聞こえる」の最終判断。
+    Song は客観計測済み、SE/BGM は構造+単体検証+ミックス計測まで)
   - win64 選曲画面 variant 4 枚はモデル判定文を取得できず
     (macOS 同一画面は NO_DEFECTS、AutoTest も pass)
+
+### 実 API ランキング表示 (追加検証)
+
+- 本番 API `GET /api/v1/leaderboards/{songId}?version=` を全 28 曲で
+  実測: entry は `{nickname, score}` のみで `rank` フィールド無し
+  → 表示順位は位置順 (index+1) で生成される契約と一致
+- エントリが存在するのは `euthanasia` (score=1,139,441) の 1 件のみ
+- `v6songend -autotest-song エウタナシア` を実行
+  (`songend-euthanasia-1a504a37/`、pass=34 fail=0、rankingMode=Online)。
+  結果画面の曲別ランキング領域を切り出してマルチモーダルモデル
+  (qwen3-vl) で確認: **順位表示は "1" で開始**、スコア 1,139,441 が
+  API エントリと一致 → 実 API データが 1 始まりで描画されることを
+  実画面で確認 (0 始まりバグがあれば "0" と表示される)
+- 注意: autotest は意図的に POST /scores を送信しない
+  (判定数整合の前提検証のみ)。実プレイでの登録→順位反映は
+  人間プレイ経路の範囲
 - #844: 破損非再現だが監査に盲点あり (上記)。検出器 v2 で低下型・
   孤立イベントは拾えるようになったが、単発フレーム・エネルギー中立
   破損は原理的に未対応。Issue open のまま

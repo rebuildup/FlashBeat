@@ -1,0 +1,256 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.020 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x10737f0d0]: surface size 3420x2148
+UnloadTime: 1.680750 ms
+[FullscreenBootstrap] event=purge-resolution stored=2560x1664, display=3420x2224
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_jvqxF4.mov
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-21T17:54:22Z
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6SongEnd] start: song='エウタナシア' outDir='/Users/rebui/work/FlashBeat/docs/evidence/rc-0.2.6/songend-euthanasia-1a504a37' playfield=0'
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.981500 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 2467.
+Total: 9.521292 ms (FindLiveObjects: 0.068500 ms CreateObjectMapping: 0.100333 ms MarkObjects: 9.341167 ms  DeleteObjects: 0.011083 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213755714 scene=SelectScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V6SelectView] rebuild #1 settingsOpen=False screen=2560x1664
+ro-dokanryou
+[FullscreenBootstrap] event=first-frame, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[UpdateChecker] 最新です (build=0.2.6+1a504a37, latest=v0.2.5-macos-2aaa277b) — 現行版のまま続行します。
+[GManager] cloud catalog applied: local=29 merged=31 remote=28
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=after-legacy-2s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=after-mode-2s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=still-uncovered, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[AutoTestV6SongEnd] PASS the select scene is loaded
+[AutoTestV6SongEnd] PASS the v6 select view exists
+[AutoTestV6SongEnd] PASS the data source is present
+[AutoTestV6SongEnd] PASS the catalog has more than one song
+[AutoTestV6SongEnd] PASS the song 'エウタナシア' is in the catalog
+[AutoTestV6SongEnd] PASS the selection follows the picked song
+[AutoTestV6SongEnd] chart: title='エウタナシア' notes=0
+[AutoTestV6SongEnd] PASS the screenshot 01-select was written
+[AutoTestV6SongEnd] resetting the session before the play (stale judged=0 stale score=0)
+[PlaySession] session fixed: songId=6 title='エウタナシア' remoteId='euthanasia' chartVersion=1 chart=none
+The resource UI/Skin/Knob.psd could not be loaded from the resource file!
+[PlaySession] session fixed: songId=6 title='エウタナシア' remoteId='euthanasia' chartVersion=1 chart=snapshot
+[Perf] scene load start GameScene
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.850834 ms
+[Perf] notes parse 0ms (243 notes)
+[Perf] scene load end GameScene 70ms
+[MusicManager] video player: songID=6 scenePlayers=29 path=scene index=6 player='6' renderMode=MaterialOverride videoId=xqYOI7OD9aE
+[MusicManager] InvidiousVideoPlayer removed for 'エウタナシア' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213747690 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213746472 scene=GameScene children=0
+Unloading 41 unused Assets to reduce memory usage. Loaded Objects now: 8195.
+Total: 3.122750 ms (FindLiveObjects: 0.159791 ms CreateObjectMapping: 0.112708 ms MarkObjects: 2.776792 ms  DeleteObjects: 0.073333 ms)
+
+[Perf] notes instantiate 243 notes in 154ms slowestBatch=0.9ms@8
+[MusicManager] media cache hit videoId=xqYOI7OD9aE (merged) - skipped the yt-dlp format probe
+[Perf] media resolve 152ms (cache hit)
+[Perf] media files 153ms
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[Perf] video Prepare() call 0ms file=merged.mp4
+[AutoTestV6SongEnd] PASS ready starts the game scene
+[AutoTestV6SongEnd] PASS the started song is the picked one
+[AutoTestV6SongEnd] PASS the original 3D lanes are kept
+[AutoTestV6SongEnd] loading visible after 0.00s
+[AutoTestV6SongEnd] loading probe t=0.0 clip=True prepared=True videoVisible=True surface=Video
+[MusicManager] picture wired to the renderer of '6' (path=scene, _MainTex, renderMode=MaterialOverride)
+[Perf] video wire picture 0ms
+[Perf] video activate 0ms
+[MusicManager] VideoPlayer prepared=True path=scene file=merged.mp4 after 0.0s
+[Perf] media ready 323ms
+[MusicManager] media ready: song='エウタナシア' audioMode=StreamCombined video=ok - press Space to start
+[AutoTestV6SongEnd] PASS the loading screenshot 00-loading-1 was written
+[AutoTestV6SongEnd] loading: observed=True seconds=0.23 chartProgress=1.00
+[AutoTestV6SongEnd] PASS the screenshot 02-game was written
+[AutoTestV6SongEnd] PASS the music manager exists
+[AutoTestV6SongEnd] PASS the media pipeline finished
+[AutoTestV6SongEnd] media: ready=True audioMode=StreamCombined videoPrepared=True failure=None
+[Perf] video Play() call 0ms
+[MusicManager] PLAYBACK_START song='エウタナシア' videoId='xqYOI7OD9aE' source=StreamCombined mediaTime=0.000 wallClock=2026-11-22T02:54:32.823 gameTime=10.259
+[Perf] video first rendered frame at mediaTime=0.00
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=5818 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] PASS the playback started
+[AutoTestV6SongEnd] PASS the screenshot 03-gameplay was written
+[AutoTestV6SongEnd] lyrics audit: state=HasLyrics lines=29 hasText=True
+[MusicManager] STATUS mediaTime=2.01 audioMode=StreamCombined rms=0.0737 peak=0.1537 video[playing=True frame=5818 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=3.99 audioMode=StreamCombined rms=0.0828 peak=0.1579 video[playing=True frame=5818 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=6.01 audioMode=StreamCombined rms=0.1207 peak=0.1830 video[playing=True frame=5818 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=8.02 audioMode=StreamCombined rms=0.0679 peak=0.1993 video[playing=True frame=5818 prepared=True] perfect=1 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=10.03 audioMode=StreamCombined rms=0.1076 peak=0.2063 video[playing=True frame=5818 prepared=True] perfect=2 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=12.05 audioMode=StreamCombined rms=0.1856 peak=0.2370 video[playing=True frame=5818 prepared=True] perfect=3 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=14.03 audioMode=StreamCombined rms=0.1402 peak=0.2370 video[playing=True frame=5818 prepared=True] perfect=4 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=14.61
+[AutoTestV6SongEnd] video frame suspect at mediaTime=14.83
+[MusicManager] STATUS mediaTime=16.04 audioMode=StreamCombined rms=0.2959 peak=0.4856 video[playing=True frame=5818 prepared=True] perfect=7 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=18.05 audioMode=StreamCombined rms=0.2641 peak=0.5232 video[playing=True frame=5818 prepared=True] perfect=11 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=20.07 audioMode=StreamCombined rms=0.2798 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=15 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=22.08 audioMode=StreamCombined rms=0.3034 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=20 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=24.10 audioMode=StreamCombined rms=0.2505 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=24 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=26.11 audioMode=StreamCombined rms=0.3256 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=28 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=28.13 audioMode=StreamCombined rms=0.2945 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=32 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=30.10 audioMode=StreamCombined rms=0.3436 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=40 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=32.12 audioMode=StreamCombined rms=0.3010 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=49 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=34.13 audioMode=StreamCombined rms=0.2865 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=55 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=36.15 audioMode=StreamCombined rms=0.2791 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=60 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=38.16 audioMode=StreamCombined rms=0.3267 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=66 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=40.17 audioMode=StreamCombined rms=0.2449 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=75 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=41.38
+[AutoTestV6SongEnd] video frame suspect at mediaTime=41.64
+[AutoTestV6SongEnd] video frame suspect at mediaTime=41.89
+[AutoTestV6SongEnd] video frame suspect at mediaTime=42.11
+[MusicManager] STATUS mediaTime=42.19 audioMode=StreamCombined rms=0.1342 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=80 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=42.37
+[AutoTestV6SongEnd] video frame suspect at mediaTime=42.63
+[AutoTestV6SongEnd] video frame suspect at mediaTime=42.88
+[AutoTestV6SongEnd] video frame suspect at mediaTime=43.14
+[AutoTestV6SongEnd] video frame suspect at mediaTime=43.40
+[AutoTestV6SongEnd] video frame suspect at mediaTime=43.65
+[AutoTestV6SongEnd] video frame suspect at mediaTime=43.91
+[AutoTestV6SongEnd] video frame suspect at mediaTime=44.17
+[MusicManager] STATUS mediaTime=44.17 audioMode=StreamCombined rms=0.1470 peak=0.5356 video[playing=True frame=5818 prepared=True] perfect=86 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=44.42
+[AutoTestV6SongEnd] video frame suspect at mediaTime=44.68
+[AutoTestV6SongEnd] video frame suspect at mediaTime=44.93
+[AutoTestV6SongEnd] video frame suspect at mediaTime=45.15
+[AutoTestV6SongEnd] video frame suspect at mediaTime=45.41
+[AutoTestV6SongEnd] video frame suspect at mediaTime=45.67
+[AutoTestV6SongEnd] video frame suspect at mediaTime=45.92
+[AutoTestV6SongEnd] video frame suspect at mediaTime=46.18
+[MusicManager] STATUS mediaTime=46.22 audioMode=StreamCombined rms=0.2194 peak=0.5389 video[playing=True frame=5818 prepared=True] perfect=94 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=46.40
+[AutoTestV6SongEnd] video frame suspect at mediaTime=46.66
+[AutoTestV6SongEnd] video frame suspect at mediaTime=46.91
+[AutoTestV6SongEnd] video frame suspect at mediaTime=47.17
+[AutoTestV6SongEnd] video frame suspect at mediaTime=47.42
+[AutoTestV6SongEnd] video frame suspect at mediaTime=47.68
+[AutoTestV6SongEnd] video frame suspect at mediaTime=47.90
+[MusicManager] STATUS mediaTime=48.19 audioMode=StreamCombined rms=0.3295 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=103 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=50.21 audioMode=StreamCombined rms=0.5577 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=113 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=52.22 audioMode=StreamCombined rms=0.2767 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=125 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=54.20 audioMode=StreamCombined rms=0.3070 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=139 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=56.25 audioMode=StreamCombined rms=0.3817 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=151 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=58.23 audioMode=StreamCombined rms=0.4634 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=163 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=60.24 audioMode=StreamCombined rms=0.2915 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=175 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=62.26 audioMode=StreamCombined rms=0.3184 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=181 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=64.27 audioMode=StreamCombined rms=0.4339 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=192 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=66.28 audioMode=StreamCombined rms=0.2448 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=205 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=68.30 audioMode=StreamCombined rms=0.3593 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=215 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=70.31 audioMode=StreamCombined rms=0.2899 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=225 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=72.33 audioMode=StreamCombined rms=0.2617 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=233 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=73.17
+[AutoTestV6SongEnd] video frame suspect at mediaTime=73.43
+[AutoTestV6SongEnd] video frame suspect at mediaTime=73.68
+[AutoTestV6SongEnd] video frame suspect at mediaTime=73.90
+[AutoTestV6SongEnd] video frame suspect at mediaTime=74.16
+[MusicManager] STATUS mediaTime=74.34 audioMode=StreamCombined rms=0.2249 peak=0.5821 video[playing=True frame=5818 prepared=True] perfect=239 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=74.41
+[AutoTestV6SongEnd] video frame suspect at mediaTime=74.67
+[AutoTestV6SongEnd] video frame suspect at mediaTime=74.93
+[MusicManager] STATUS mediaTime=76.32 audioMode=StreamCombined rms=0.2843 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[MusicManager] STATUS mediaTime=78.33 audioMode=StreamCombined rms=0.4557 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=79.43
+[MusicManager] STATUS mediaTime=80.35 audioMode=StreamCombined rms=0.1014 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=81.96
+[MusicManager] STATUS mediaTime=82.36 audioMode=StreamCombined rms=0.2629 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=82.43
+[AutoTestV6SongEnd] video frame suspect at mediaTime=82.69
+[AutoTestV6SongEnd] video frame suspect at mediaTime=82.95
+[AutoTestV6SongEnd] video frame suspect at mediaTime=83.46
+[MusicManager] STATUS mediaTime=84.34 audioMode=StreamCombined rms=0.1712 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=86.21
+[MusicManager] STATUS mediaTime=86.35 audioMode=StreamCombined rms=0.1542 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=86.68
+[AutoTestV6SongEnd] video frame suspect at mediaTime=86.94
+[MusicManager] STATUS mediaTime=88.37 audioMode=StreamCombined rms=0.4183 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=89.21
+[AutoTestV6SongEnd] video frame suspect at mediaTime=89.47
+[AutoTestV6SongEnd] video frame suspect at mediaTime=89.69
+[AutoTestV6SongEnd] video frame suspect at mediaTime=89.94
+[MusicManager] song completed: judged 243/243, mediaEnded=False, state=Completed
+[AutoTestV6SongEnd] video frame suspect at mediaTime=90.20
+[MusicManager] STATUS mediaTime=90.38 audioMode=StreamCombined rms=0.0000 peak=0.6347 video[playing=True frame=5818 prepared=True] perfect=243 great=0 bad=0 miss=0 failure=None
+[AutoTestV6SongEnd] video frame suspect at mediaTime=90.45
+[AutoTestV6SongEnd] video frame suspect at mediaTime=90.71
+[AutoTestV6SongEnd] video frame suspect at mediaTime=90.97
+[Perf] scene load start ResultScene
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 6.587042 ms
+[Perf] scene load end ResultScene 60ms
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213731372 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6SongEnd] playback summary: songEndState=Completed mediaTime=91.81 hitsSent=243 perfect=243 great=0 bad=0 miss=0 score=1288000 combo=243 maxCombo=243 comboPeak=243 judged=243 settled=243 chartNotes=243 runtimeNotes=243 forcedByDeadline=False
+[AutoTestV6SongEnd] PASS the media clock advances
+[AutoTestV6SongEnd] PASS the chart note count is known
+[AutoTestV6SongEnd] PASS the runtime note count matches the chart (runtimeNotes == chartNotes)
+[AutoTestV6SongEnd] PASS every chart note is settled (settled == chart notes)
+[AutoTestV6SongEnd] PASS the score is greater than zero
+[AutoTestV6SongEnd] PASS the combo rises above zero during the playback (GManager.combo peaked above zero)
+[AutoTestV6SongEnd] PASS the peak combo is recorded (GManager.maxCombo > 0)
+[AutoTestV6SongEnd] PASS the song end state machine completes
+[AutoTestV6SongEnd] PASS the song end is not a forced deadline completion
+[AutoTestV6SongEnd] PASS the result scene is loaded
+[AutoTestV6SongEnd] PASS lyric text is rendered during lyric windows (Issue #846)
+[AutoTestV6SongEnd] lyric audit: expectedFrames=3505 emptySeconds=0.00
+Unloading 54 unused Assets to reduce memory usage. Loaded Objects now: 3177.
+Total: 2.115625 ms (FindLiveObjects: 0.158917 ms CreateObjectMapping: 0.096041 ms MarkObjects: 1.801334 ms  DeleteObjects: 0.059333 ms)
+
+Your scene has been loaded , and fading in has just ended
+Your scene has been loaded , and fading in has just ended
+[AutoTestV6SongEnd] result screen: v6ResultCanvas=True nonEmptyTextUnderCanvas=True titleFound=True scoreFound=True textsUnderCanvas=84 texts=168 scene=ResultScene
+[AutoTestV6SongEnd] PASS the v6 result canvas exists
+[AutoTestV6SongEnd] PASS the v6 result canvas has non-empty text
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the song title
+[AutoTestV6SongEnd] PASS the v6 result canvas shows the final score
+[AutoTestV6SongEnd] PASS the screenshot 04-result was written
+[AutoTestV6SongEnd] PASS the judgement total equals the chart note count (the ranking acceptance condition)
+[AutoTestV6SongEnd] PASS the ranking registration mode is resolved
+[AutoTestV6SongEnd] ranking: judged=243 chartNotes=243 registrationMode=Online
+[AutoTestV6SongEnd] RESULT pass=34 fail=0
+Thread 0x16cc7f000 may have been prematurely finalized
+Thread 0x16c8eb000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16b90f000 may have been prematurely finalized
+CodeReloadManager destroyed

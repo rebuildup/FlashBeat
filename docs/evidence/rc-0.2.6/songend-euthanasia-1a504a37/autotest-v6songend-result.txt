@@ -1,0 +1,22 @@
+[AutoTestV6SongEnd] RESULT pass=34 fail=0
+song=エウタナシア
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=243 great=0 bad=0 miss=0
+judged=243
+settled=243
+chartNotes=243 runtimeNotes=243
+score=1288000 combo=243 maxCombo=243 comboPeak=243
+rankingMode=Online
+loadingObserved=True
+loadingVisibleSeconds=0.23
+judgedMatchesChart=True
+videoAuditSamples=354
+videoAuditSuspects=54
+videoAuditEvents=10
+videoAuditIsolatedEvents=4
+videoAuditMaxRatio=24.46
+videoAuditMaxRatioAt=46.91
+videoAuditMinRatio=0.00
+videoAuditMinRatioAt=74.67
