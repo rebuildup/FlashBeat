@@ -115,6 +115,43 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
+        public void Pending_IsNotCached_SoLateChartArrivalResolves()
+        {
+            // Issue #789: 譜面未到着で Pending を引いたあと、同じ
+            // (セッション, 曲) のまま CloudChartHolder に譜面が届いても、
+            // 古い Pending がキャッシュに残ってはいけない。
+            SongData song = RemoteSong();
+            PlaySessionSnapshot session = PlaySessionSnapshot.Begin(song, 0, null);
+
+            Assert.AreEqual(ChartLyricsState.Pending,
+                ChartLyrics.Resolve(session.Song).State);
+
+            // 到着を模倣: ホルダーへ譜面を保持させて再解決する。
+            CloudChartHolder.Hold("remote-song-1", 3, EnvelopeWithLyrics);
+            ChartLyricsResult arrived = ChartLyrics.Resolve(session.Song);
+
+            Assert.AreEqual(ChartLyricsState.HasLyrics, arrived.State,
+                "Pending がキャッシュされると到着後も歌詞が永遠に出ない");
+            Assert.AreEqual("あ", arrived.Lyrics.Mondai[0]);
+        }
+
+        [Test]
+        public void RetryWithNewSession_ResolvesFromNewSnapshot()
+        {
+            // リトライ (ResetSession → Begin) は新しいスナップショットを作る。
+            // 前セッションの解決結果が混線しないことを確認する。
+            SongData song = RemoteSong();
+            PlaySessionSnapshot first = PlaySessionSnapshot.Begin(song, 0, null);
+            Assert.AreEqual(ChartLyricsState.Pending,
+                ChartLyrics.Resolve(first.Song).State);
+
+            PlaySessionSnapshot second = PlaySessionSnapshot.Begin(song, 3, EnvelopeWithLyrics);
+            ChartLyricsResult result = ChartLyrics.Resolve(second.Song);
+
+            Assert.AreEqual(ChartLyricsState.HasLyrics, result.State);
+        }
+
+        [Test]
         public void RemoteSongViaCloudChartHolder_ResolvesLyrics()
         {
             // スナップショットが無くてもホルダーの保持譜面から解決できる
