@@ -36,97 +36,142 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0f, V6HudLogic.ProgressFillWidth(50f, 0f, 1000f), 1e-3f);
         }
 
-        // --- スコアゲージ (scoring v4 の満点 2,000,000 への正規化。Issue #758) ---
+        // --- スコアゲージ (scoring v6 の譜面満点 ScoreMaxV6 への正規化。
+        //     ADR-0037 / Issue #825) ---
+        //
+        // V6HudLogic.GaugeFillWidth/GaugeBestX は GManager.chartNoteCount
+        // (再生中の譜面ノーツ数) で正規化する。テストでは N=139
+        // (満点 1,174,000) を設定し、終了時に 0 へ戻す。
+
+        private const int HudTestNoteCount = 139;
+        private const float HudTestScoreMax = 1174000f; // Scoring.ScoreMaxV6(139)
+
+        private static void WithChartNoteCount(int noteCount, System.Action body)
+        {
+            int prev = GManager.chartNoteCount;
+            GManager.chartNoteCount = noteCount;
+            try
+            {
+                body();
+            }
+            finally
+            {
+                GManager.chartNoteCount = prev;
+            }
+        }
 
         [Test]
-        public void GaugeFillWidth_MapsV4ScoreSpace()
+        public void GaugeFillWidth_MapsV6ScoreSpace()
         {
-            // v4: 988,513 → 530 * 988513/2000000 = 261.75。
-            // 1,000,000 (v3 満点) はレールの中間に留まり、2,000,000 で全長。
-            Assert.AreEqual(530f * 988513f / 2000000f, V6HudLogic.GaugeFillWidth(988513, 530f), 0.5f);
-            Assert.AreEqual(530f * 0.5f, V6HudLogic.GaugeFillWidth(1000000, 530f), 0.5f);
-            Assert.AreEqual(530f, V6HudLogic.GaugeFillWidth(2000000, 530f), 0.5f);
-            Assert.AreEqual(0f, V6HudLogic.GaugeFillWidth(0, 530f), 1e-3f);
+            WithChartNoteCount(HudTestNoteCount, () =>
+            {
+                // v6: 988,513 → 530 * 988513/1174000。
+                // 基礎スコア上限 1,000,000 はレールの途中に留まり、
+                // 譜面満点 1,174,000 で全長。
+                Assert.AreEqual(530f * 988513f / HudTestScoreMax,
+                    V6HudLogic.GaugeFillWidth(988513, 530f), 0.5f);
+                Assert.AreEqual(530f * (1000000f / HudTestScoreMax),
+                    V6HudLogic.GaugeFillWidth(1000000, 530f), 0.5f);
+                Assert.AreEqual(530f, V6HudLogic.GaugeFillWidth(1174000, 530f), 0.5f);
+                Assert.AreEqual(0f, V6HudLogic.GaugeFillWidth(0, 530f), 1e-3f);
+            });
         }
 
         [Test]
         public void GaugeBestX_ProportionalWithinScoreSpace()
         {
-            // 点数空間は 0..2,000,000 (scoring v4 の満点)。
-            // 得点に比例し、Best マーカーは自分のスコア位置に置かれる。
-            Assert.AreEqual(0f, V6HudLogic.GaugeBestX(0, 530f), 1e-3f);
-            Assert.AreEqual(132.5f, V6HudLogic.GaugeBestX(500000, 530f), 0.5f);
-            Assert.AreEqual(265f, V6HudLogic.GaugeBestX(1000000, 530f), 0.5f);
-            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(2000000, 530f), 0.5f);
+            WithChartNoteCount(HudTestNoteCount, () =>
+            {
+                // 点数空間は 0..ScoreMaxV6(139) = 1,174,000 (scoring v6)。
+                // 得点に比例し、Best マーカーは自分のスコア位置に置かれる。
+                Assert.AreEqual(0f, V6HudLogic.GaugeBestX(0, 530f), 1e-3f);
+                Assert.AreEqual(530f * (500000f / HudTestScoreMax),
+                    V6HudLogic.GaugeBestX(500000, 530f), 0.5f);
+                Assert.AreEqual(530f * (1000000f / HudTestScoreMax),
+                    V6HudLogic.GaugeBestX(1000000, 530f), 0.5f);
+                Assert.AreEqual(530f, V6HudLogic.GaugeBestX(1174000, 530f), 0.5f);
+            });
         }
 
         [Test]
         public void GaugeBestX_StaysOnTrackBeyondScoreSpace()
         {
-            // 保存スコアが空間上限 (2,000,000) を超えるデータが来ても
-            // マーカーがトラック外に出ないこと (クランプ) を決定的に検証する。
-            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(3000000, 530f), 0.5f);
-            Assert.AreEqual(530f, V6HudLogic.GaugeBestX(int.MaxValue, 530f), 0.5f);
+            WithChartNoteCount(HudTestNoteCount, () =>
+            {
+                // 保存スコアが空間上限を超えるデータが来ても
+                // マーカーがトラック外に出ないこと (クランプ) を決定的に検証する。
+                Assert.AreEqual(530f, V6HudLogic.GaugeBestX(3000000, 530f), 0.5f);
+                Assert.AreEqual(530f, V6HudLogic.GaugeBestX(int.MaxValue, 530f), 0.5f);
+            });
         }
 
-        // --- グレード帯の目盛り (Issue #788) ---
+        // --- グレード帯の目盛り (v6 帯: B 55% / A 75% / S 90% / SS = 満点のみ) ---
 
         [Test]
         public void GaugeSegments_MatchGradeBandBoundaries()
         {
-            // FHD: GaugeW=600。v4+ 帯 (C[0,.5) B[.5,.7) A[.7,.95) S[.95,1) SS=点)
-            // をトラック幅へ写すと x = 0/300/420/570、w = 300/120/150/30。
-            // 旧固定値 (122/244/366/488/530) は閾値と無関係だった。
+            // FHD: GaugeW=600。v6 帯 (C[0,.55) B[.55,.75) A[.75,.9) S[.9,1)
+            // SS=点) をトラック幅へ写すと x = 0/330/450/540、
+            // w = 330/120/90/60。
             var m = V6HudMetrics.Fhd(1f);
             Assert.AreEqual(4, m.GaugeSegX.Length);
             Assert.AreEqual(0f, m.GaugeSegX[0], 0.01f);
-            Assert.AreEqual(300f, m.GaugeSegX[1], 0.01f);   // B 下限 = 50%
-            Assert.AreEqual(420f, m.GaugeSegX[2], 0.01f);   // A 下限 = 70%
-            Assert.AreEqual(570f, m.GaugeSegX[3], 0.01f);   // S 下限 = 95%
-            Assert.AreEqual(300f, m.GaugeSegW[0], 0.01f);
+            Assert.AreEqual(330f, m.GaugeSegX[1], 0.01f);   // B 下限 = 55%
+            Assert.AreEqual(450f, m.GaugeSegX[2], 0.01f);   // A 下限 = 75%
+            Assert.AreEqual(540f, m.GaugeSegX[3], 0.01f);   // S 下限 = 90%
+            Assert.AreEqual(330f, m.GaugeSegW[0], 0.01f);
             Assert.AreEqual(120f, m.GaugeSegW[1], 0.01f);
-            Assert.AreEqual(150f, m.GaugeSegW[2], 0.01f);
-            Assert.AreEqual(30f, m.GaugeSegW[3], 0.01f);
+            Assert.AreEqual(90f, m.GaugeSegW[2], 0.01f);
+            Assert.AreEqual(60f, m.GaugeSegW[3], 0.01f);
         }
 
         [Test]
         public void GaugeFillWidth_GradeBoundaries()
         {
             // 境界の直前・一致・直後で、塗り終端が対応する帯に入ること。
-            // 帯: C <50% / B [50%,70%) / A [70%,95%) / S [95%,100%) / SS = 100%。
-            const float w = 1000f;
-            // B 下限 (1,000,000 = 50%)
-            Assert.Less(V6HudLogic.GaugeFillWidth(999999, w) / w, 0.5f);
-            Assert.AreEqual(0.5f, V6HudLogic.GaugeFillWidth(1000000, w) / w, 1e-4f);
-            Assert.Greater(V6HudLogic.GaugeFillWidth(1000001, w) / w, 0.5f);
-            // A 下限 (1,400,000 = 70%)
-            Assert.Less(V6HudLogic.GaugeFillWidth(1399999, w) / w, 0.7f);
-            Assert.AreEqual(0.7f, V6HudLogic.GaugeFillWidth(1400000, w) / w, 1e-4f);
-            Assert.Greater(V6HudLogic.GaugeFillWidth(1400001, w) / w, 0.7f);
-            // S 下限 (1,900,000 = 95%)
-            Assert.Less(V6HudLogic.GaugeFillWidth(1899999, w) / w, 0.95f);
-            Assert.AreEqual(0.95f, V6HudLogic.GaugeFillWidth(1900000, w) / w, 1e-4f);
-            Assert.Greater(V6HudLogic.GaugeFillWidth(1900001, w) / w, 0.95f);
-            // SS は満点のみ (1,999,999 は S 帯、2,000,000 で全長)
-            Assert.Less(V6HudLogic.GaugeFillWidth(1999999, w) / w, 1f);
-            Assert.AreEqual(w, V6HudLogic.GaugeFillWidth(2000000, w), 0.01f);
+            // v6 帯: C <55% / B [55%,75%) / A [75%,90%) / S [90%,100%) / SS = 100%。
+            // N=139 の満点 1,174,000 に対する境界スコア:
+            // B 645,700 / A 880,500 / S 1,056,600。
+            WithChartNoteCount(HudTestNoteCount, () =>
+            {
+                const float w = 1000f;
+                // B 下限 (645,700 = 55%)
+                Assert.Less(V6HudLogic.GaugeFillWidth(645699, w) / w, 0.55f);
+                Assert.AreEqual(0.55f, V6HudLogic.GaugeFillWidth(645700, w) / w, 1e-4f);
+                Assert.Greater(V6HudLogic.GaugeFillWidth(645701, w) / w, 0.55f);
+                // A 下限 (880,500 = 75%)
+                Assert.Less(V6HudLogic.GaugeFillWidth(880499, w) / w, 0.75f);
+                Assert.AreEqual(0.75f, V6HudLogic.GaugeFillWidth(880500, w) / w, 1e-4f);
+                Assert.Greater(V6HudLogic.GaugeFillWidth(880501, w) / w, 0.75f);
+                // S 下限 (1,056,600 = 90%)
+                Assert.Less(V6HudLogic.GaugeFillWidth(1056599, w) / w, 0.9f);
+                Assert.AreEqual(0.9f, V6HudLogic.GaugeFillWidth(1056600, w) / w, 1e-4f);
+                Assert.Greater(V6HudLogic.GaugeFillWidth(1056601, w) / w, 0.9f);
+                // SS はその譜面の満点のみ (1,174,000 で全長)
+                Assert.Less(V6HudLogic.GaugeFillWidth(1173999, w) / w, 1f);
+                Assert.AreEqual(w, V6HudLogic.GaugeFillWidth(1174000, w), 0.01f);
+            });
         }
 
         [Test]
         public void GaugeFillWidth_BGradeScore_StaysInsideBBand()
         {
-            // Issue #788 の再現ケース: 1,227,055 点は B (61.35%)。
-            // 塗り終端・Best マーカーとも B 帯 [50%,70%) の内側にあり、
-            // A 帯 (70% 以降) へはみ出さない。
+            // N=139 の譜面で 700,000 点は B (700000/1174000 ≈ 59.6%)。
+            // 塗り終端・Best マーカーとも B 帯 [55%,75%) の内側にあり、
+            // A 帯 (75% 以降) へはみ出さない。
             const float w = 1000f;
-            float fillFrac = V6HudLogic.GaugeFillWidth(1227055, w) / w;
-            float bestFrac = V6HudLogic.GaugeBestX(1227055, w) / w;
-            Assert.GreaterOrEqual(fillFrac, 0.5f);
-            Assert.Less(fillFrac, 0.7f, "B 評価の塗りが A 帯へはみ出している");
-            Assert.GreaterOrEqual(bestFrac, 0.5f);
-            Assert.Less(bestFrac, 0.7f, "B 評価の Best マーカーが A 帯へはみ出している");
-            Assert.AreEqual("B",
-                FlashBeat.UI.V6.Common.V6GradeLogic.GradeOf(1227055, FlashBeat.Gameplay.Scoring.LatestVersion));
+            WithChartNoteCount(HudTestNoteCount, () =>
+            {
+                float fillFrac = V6HudLogic.GaugeFillWidth(700000, w) / w;
+                float bestFrac = V6HudLogic.GaugeBestX(700000, w) / w;
+                Assert.GreaterOrEqual(fillFrac, 0.55f);
+                Assert.Less(fillFrac, 0.75f, "B 評価の塗りが A 帯へはみ出している");
+                Assert.GreaterOrEqual(bestFrac, 0.55f);
+                Assert.Less(bestFrac, 0.75f, "B 評価の Best マーカーが A 帯へはみ出している");
+                Assert.AreEqual("B",
+                    FlashBeat.UI.V6.Common.V6GradeLogic.GradeOf(
+                        700000, FlashBeat.Gameplay.Scoring.LatestVersion, HudTestNoteCount));
+            });
         }
 
         // --- コンボ ---
@@ -164,18 +209,14 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void ComboBonusScorePoints_ConvertsRatioToV5ScorePoints()
+        public void ComboBonusScorePoints_IsIdentityInV6()
         {
-            // v5 (ADR-0035): 1 節目 = 250 ratio points。MaxBonusRatioV5(100)
-            // = floor(100/50)*250 + 100*5 + 100 = 500 + 600 = 1100。
-            // ComponentScoreV5(500, 1100) = floor(500 * 1e6 / 1100) = 454,545。
-            float maxRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100);
-            Assert.AreEqual(1100f, maxRatio, 0.001f);
-            Assert.AreEqual(454545, V6HudLogic.ComboBonusScorePoints(500, maxRatio));
-
-            // 未獲得・分母不明では 0 (ブロック自体は ShowComboBonus で隠す)。
-            Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(0, maxRatio));
-            Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(500, 0f));
+            // v6 (ADR-0037): 追加スコアは既に絶対スコア点なので、
+            // ComponentScoreV6 は恒等変換。500 ratio points 相当の入力は
+            // そのまま 500 点として表示される (v5 では分母換算で
+            // 454,545 になっていた)。
+            Assert.AreEqual(500, V6HudLogic.ComboBonusScorePoints(500, 1100f));
+            Assert.AreEqual(0, V6HudLogic.ComboBonusScorePoints(0, 1100f));
         }
 
         [Test]
@@ -200,17 +241,12 @@ namespace FlashBeat.V6HudTests
         }
 
         [Test]
-        public void NextMilestoneScorePoints_IsConstantPerCrossingInV5()
+        public void NextMilestoneScorePoints_IsConstantPerCrossingInV6()
         {
-            // ADR-0035: v5 の 1 節目あたり加点は譜面サイズに依らず
-            // MilestoneBonusPointsV5 ratio points → スコア点は分母依存。
-            // MaxBonusRatioV5(100) = 1100 → floor(250*1e6/1100) = 227,272。
-            // MaxBonusRatioV5(200) = 4*250 + 1000 + 100 = 2100 →
-            // floor(250*1e6/2100) = 119,047。
-            Assert.AreEqual(227272,
-                V6HudLogic.NextMilestoneScorePoints(
-                    FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100)));
-            Assert.AreEqual(119047,
+            // v6 (ADR-0037): 1 節目あたり MilestoneScoreV6 = 5,000 の
+            // 絶対スコア点が常に同じ (分母換算は不要)。
+            Assert.AreEqual(5000, V6HudLogic.NextMilestoneScorePoints(0f));
+            Assert.AreEqual(5000,
                 V6HudLogic.NextMilestoneScorePoints(
                     FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(200)));
         }

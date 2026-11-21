@@ -5,6 +5,7 @@ using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
@@ -200,8 +201,10 @@ namespace FlashBeat.UI.V6.Result
                 TextAlignmentOptions.Left);
             V6Layout.Place(label, 0f, 8f, 100f, 28f, new Vector2(0f, 0.5f));
 
-            string[] names = { "BASE", "COMBO", "MILESTONE", "CLEAR" };
-            string[] keys = { "Base Score", "Combo Bonus", "Milestone Bonus", "Clear Bonus" };
+            // scoring v6 (ADR-0037) では 2 列目はコンボではなくノーツ品質点
+            // (P*1000+G*600+B*200 の絶対点) を表す。
+            string[] names = { "BASE", "QUALITY", "MILESTONE", "CLEAR" };
+            string[] keys = { "Base Score", "Note Quality", "Milestone Bonus", "Clear Bonus" };
             const float colX = 110f;
             const float colW = (840f - colX) / 4f;
             for (int i = 0; i < 4; i++)
@@ -284,7 +287,11 @@ namespace FlashBeat.UI.V6.Result
         private void RefreshResult()
         {
             int score = runScore;
-            gradeLetter.text = V6ResultLogic.GradeOf(score);
+            // scoring v6 (ADR-0037) のグレード・ゲージは譜面満点
+            // ScoreMaxV6(noteCount) で正規化するためノーツ数が必要。
+            // 完走後なので確定済み判定合計 = 譜面ノーツ数。
+            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            gradeLetter.text = V6ResultLogic.GradeOf(score, Scoring.LatestVersion, noteCount);
             FitGradeFont();
             scoreValue.text = V6ResultLogic.FormatScore(score);
             judgeValues[0].text = runPerfect.ToString();
@@ -293,9 +300,9 @@ namespace FlashBeat.UI.V6.Result
             judgeValues[3].text = runMiss.ToString();
             judgeValues[4].text = runMaxCombo.ToString();
 
-            // scoring v4 の基礎スコア + ボーナス内訳 (ADR-0033 / Issue #736)。
-            // ノーツ数は確定済みの判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
-            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            // scoring v4/v6 の基礎スコア + ボーナス内訳 (ADR-0033/0037,
+            // Issue #736, #825)。ノーツ数は確定済みの判定合計 = 譜面の
+            // ノーツ数 (完走後なので残りは無い)。
             V6ResultLogic.BonusBreakdownTexts(
                 runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones, noteCount,
                 GManager.judgmentsComplete,
@@ -306,10 +313,10 @@ namespace FlashBeat.UI.V6.Result
             bonusValues[2].text = milestoneBonusText;
             bonusValues[3].text = clearBonusText;
 
-            float fill = V6ResultLogic.GaugeFillWidth(score);
+            float fill = V6ResultLogic.GaugeFillWidth(score, noteCount);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);
             int best = BestOf();
-            float bestX = V6ResultLogic.GaugeBestX(best);
+            float bestX = V6ResultLogic.GaugeBestX(best, noteCount);
             gaugeBestMarker.rectTransform.anchoredPosition = new Vector2(bestX, -20f);
 
             if (prevHiscore >= 0)

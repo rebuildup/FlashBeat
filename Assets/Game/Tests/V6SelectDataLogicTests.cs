@@ -77,16 +77,33 @@ namespace FlashBeat.V5CanvasTests
         {
             // v4 の満点は 2,000,000。SS は全 Perfect + フルコンボのみ。
             // 帯は Issue #788: S ≥ 95% / A ≥ 70% / B ≥ 50%。
-            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax));
-            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000));
-            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000));
-            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000));
-            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1400000));
-            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1000000));
-            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(999999));
-            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000));
-            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0));
-            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1));
+            // LatestVersion は v6 (ADR-0037) なので v4 帯は明示する。
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax, Scoring.Version4));
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000, Scoring.Version4));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000, Scoring.Version4));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000, Scoring.Version4));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1400000, Scoring.Version4));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1000000, Scoring.Version4));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(999999, Scoring.Version4));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000, Scoring.Version4));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0, Scoring.Version4));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1, Scoring.Version4));
+        }
+
+        [Test]
+        public void GradeOf_V6_FollowsChartMaximumThresholds()
+        {
+            // v6 (ADR-0037): 満点は譜面ごとの ScoreMaxV6(noteCount)。
+            // N=139 → 1,174,000。SS はその譜面の満点のみ、
+            // S ≥ 90% / A ≥ 75% / B ≥ 55%。ノーツ数不明は保守側の "C"。
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(1174000, Scoring.Version6, 139));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1100000, Scoring.Version6, 139));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(900000, Scoring.Version6, 139));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(700000, Scoring.Version6, 139));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(100, Scoring.Version6, 139));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(1174000, Scoring.Version6, 0));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0, Scoring.Version6, 139));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1, Scoring.Version6, 139));
         }
 
         [Test]

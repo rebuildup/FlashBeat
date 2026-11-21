@@ -37,13 +37,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// (<paramref name="fillMax"/>) まで。点数→位置は
         /// <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreFractionOf"/>
         /// の単一写像で、グレード帯の目盛り・ラベルと同じ空間
-        /// (Issue #788)。scoring v4 以降の満点は 2,000,000
-        /// (基礎 + ボーナス、ADR-0033/0035)。
+        /// (Issue #788)。scoring v4/v5 の満点は 2,000,000
+        /// (基礎 + ボーナス、ADR-0033/0035)。scoring v6 (ADR-0037) の満点は
+        /// 譜面ごとの <see cref="Scoring.ScoreMaxV6"/> で、再生中の譜面
+        /// ノーツ数 (GManager.chartNoteCount) で正規化する。
         /// </summary>
         public static float GaugeFillWidth(int score, float fillMax)
         {
             return FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreFractionOf(score, FlashBeat.Gameplay.Scoring.LatestVersion) * fillMax;
+                .ScoreFractionOf(score, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount) * fillMax;
         }
 
         /// <summary>スコアゲージの Best マーカー x (px)。
@@ -52,7 +55,8 @@ namespace FlashBeat.UI.V6.Game.Hud
         public static float GaugeBestX(int hiscore, float fillMax)
         {
             return FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreFractionOf(hiscore, FlashBeat.Gameplay.Scoring.LatestVersion) * fillMax;
+                .ScoreFractionOf(hiscore, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount) * fillMax;
         }
 
         /// <summary>
@@ -564,36 +568,60 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 表示中のプレイで「獲得済みコンボボーナス」の ratio points。
-        /// v5 (ADR-0035) は milestoneBonus、v4 以前は comboBonus
-        /// (maxCombo * 5) を使う。GManager.comboBonus は v5 では常に 0。
+        /// 表示中のプレイで「獲得済みボーナス」のスコア点
+        /// (scoring v6 では絶対スコア点)。v6 (ADR-0037) は追加スコア全体
+        /// (品質点 + 節目 + フルクリア = GManager.bonusScore) を返し、
+        /// HUD のボーナスブロックが基礎スコアと別に追加スコアを表示する
+        /// 契約を満たす。v5 (ADR-0035) は milestoneBonus (ratio points)、
+        /// v4 以前は comboBonus (maxCombo * 5) を使う。
+        /// GManager.comboBonus は v5/v6 では常に 0。
         /// </summary>
-        public static int EarnedComboBonusRatioPoints()
+        public static int EarnedBonusPointsLatest()
         {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return GManager.bonusScore;
+            }
+
             return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
                 ? GManager.milestoneBonus
                 : GManager.comboBonus;
         }
 
         /// <summary>
-        /// 最新 scoringVersion のボーナス分母で ratio points をスコア点へ
-        /// 換算する (v5: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV5"/>、
+        /// 最新 scoringVersion のボーナスをスコア点へ換算する
+        /// (v6: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV6"/>
+        /// = 恒等、追加スコアは既に絶対点。v5:
+        /// <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV5"/>、
         /// v4: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV4"/>)。
         /// </summary>
         public static int ComponentScoreLatest(int bonusRatioPoints, float maxBonusRatio)
         {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return FlashBeat.Gameplay.Scoring.ComponentScoreV6(bonusRatioPoints);
+            }
+
             return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
                 ? FlashBeat.Gameplay.Scoring.ComponentScoreV5(bonusRatioPoints, maxBonusRatio)
                 : FlashBeat.Gameplay.Scoring.ComponentScoreV4(bonusRatioPoints, maxBonusRatio);
         }
 
         /// <summary>
-        /// 最新 scoringVersion の 1 節目あたり ratio points
-        /// (v5: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5"/>=250、
-        /// v4: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPoints"/>=25)。
+        /// 最新 scoringVersion の 1 節目あたりスコア点
+        /// (v6: <see cref="FlashBeat.Gameplay.Scoring.MilestoneScoreV6"/>=5000、
+        /// v5: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5"/>
+        /// =250 ratio points、v4: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPoints"/>
+        /// =25)。v6/v5 の戻り値は <see cref="ComponentScoreLatest"/> に渡す
+        /// 前の単位が違う点に注意 (v6 は絶対点、v5 は ratio points)。
         /// </summary>
         public static int MilestoneBonusPointsLatest()
         {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return FlashBeat.Gameplay.Scoring.MilestoneScoreV6;
+            }
+
             return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
                 ? FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5
                 : FlashBeat.Gameplay.Scoring.MilestoneBonusPoints;
@@ -631,13 +659,21 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
-        /// v5 では 1 節目あたり MilestoneBonusPointsV5 ratio points が
-        /// 常に同じスコア点になる。v4 以前は節目ごとの加点が一定でない
-        /// ため 0 を返す (呼び出し側は非表示にする)。
+        /// 次の節目到達で確定するボーナスのスコア点 (ADR-0035/0037)。
+        /// v6 では 1 節目あたり <see cref="Scoring.MilestoneScoreV6"/>
+        /// (絶対スコア点) が常に同じ。v5 では 1 節目あたり
+        /// MilestoneBonusPointsV5 ratio points が常に同じスコア点になる。
+        /// v4 以前は節目ごとの加点が一定でないため 0 を返す
+        /// (呼び出し側は非表示にする)。
         /// </summary>
         public static int NextMilestoneScorePoints(float maxBonusRatio)
         {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                // v6 の節目ボーナスは絶対点なので分母換算は不要。
+                return FlashBeat.Gameplay.Scoring.MilestoneScoreV6;
+            }
+
             if (FlashBeat.Gameplay.Scoring.LatestVersion < FlashBeat.Gameplay.Scoring.Version5)
             {
                 return 0;

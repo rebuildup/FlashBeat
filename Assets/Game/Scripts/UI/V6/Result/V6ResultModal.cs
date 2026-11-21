@@ -5,6 +5,7 @@ using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
@@ -842,7 +843,8 @@ namespace FlashBeat.UI.V6.Result
         {
             int score = runScore;
             modalScoreValue.text = V6ResultLogic.FormatScore(score);
-            modalGrade.text = V6ResultLogic.GradeOf(score);
+            modalGrade.text = V6ResultLogic.GradeOf(score, Scoring.LatestVersion,
+                GManager.chartNoteCount);
 
             SongData song = SongOf();
             if (song != null)

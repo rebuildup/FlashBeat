@@ -270,7 +270,7 @@ test("the schema rejects rows the contract would reject", () => {
   );
 });
 
-test("the scores CHECK allows v4/v5 scores up to 2000000 and keeps v1-v3 at 1000000", () => {
+test("the scores CHECK allows v4/v5 scores up to 2000000, v6 up to the chart-maximum sanity ceiling, and keeps v1-v3 at 1000000", () => {
   const sqlite = createMigratedDatabase();
   sqlite
     .prepare(
@@ -297,5 +297,18 @@ test("the scores CHECK allows v4/v5 scores up to 2000000 and keeps v1-v3 at 1000
   // Nothing exceeds the v4/v5 maximum.
   assertRejected("v4 score above 2000000", () => insertScore.run(...row(2000001, 4)));
   assertRejected("v5 score above 2000000", () => insertScore.run(...row(2000001, 5)));
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 5);
+  // scoring v6 (ADR-0037): the chart maximum grows with the note count, so
+  // the CHECK bounds it by 12,225,000 — the largest reachable score
+  // (ScoreMaxV6 of a 10,000-note chart, the published contract cap) — and
+  // the exact per-chart bound is enforced by the API recomputation.
+  insertScore.run(...row(1174000, 6));
+  insertScore.run(...row(12225000, 6));
+  assertRejected("v6 score above the sanity ceiling", () =>
+    insertScore.run(...row(12225001, 6)),
+  );
+  // A v6-range score under an older version is still rejected.
+  assertRejected("v1 score above the legacy ceiling (v6-sized)", () =>
+    insertScore.run(...row(1174000, 1)),
+  );
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 7);
 });

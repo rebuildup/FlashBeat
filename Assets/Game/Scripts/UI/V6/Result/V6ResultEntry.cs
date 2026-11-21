@@ -297,7 +297,12 @@ namespace FlashBeat.UI.V6.Result
                         Position = entry.rank,
                         PlayerName = playerName,
                         Score = entry.score,
-                        Grade = FlashBeat.UI.V6.Select.Data.V6SelectDataLogic.GradeOf(entry.score),
+                        // v6 のグレードは譜面満点 ScoreMaxV6(noteCount)
+                        // に対する割合なので、この曲のノーツ数を渡す
+                        // (ADR-0037 / Issue #825)。
+                        Grade = FlashBeat.UI.V6.Select.Data.V6SelectDataLogic.GradeOf(
+                            entry.score, FlashBeat.Gameplay.Scoring.LatestVersion,
+                            GManager.chartNoteCount),
                         IsYou = isYou,
                     });
                 }

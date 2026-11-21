@@ -206,11 +206,17 @@ export const scores = sqliteTable(
       "scores_judgments_non_negative",
       sql`${table.p} >= 0 AND ${table.g} >= 0 AND ${table.b} >= 0 AND ${table.m} >= 0`,
     ),
-    // scoring v4 (ADR-0033, Issue #736): v4 scores may reach 2,000,000
+    // scoring v4 (ADR-0033, Issue #736): v4/v5 scores may reach 2,000,000
     // (base + bonus); versions 1-3 stay capped at 1,000,000.
+    // scoring v6 (ADR-0037, Issue #825): the chart maximum is per-chart
+    // (1,000,000 + MaxAdditionalV6(noteCount)) with no fixed total ceiling.
+    // The published chart contract caps notes at 10,000, so the largest
+    // reachable score is ScoreMaxV6(10000) = 12,225,000; the CHECK uses that
+    // bound as a sanity ceiling and the exact per-chart bound is enforced by
+    // the API recompute.
     check(
       "scores_score_range",
-      sql`${table.score} >= 0 AND ${table.score} <= 2000000 AND (${table.scoringVersion} >= 4 OR ${table.score} <= 1000000)`,
+      sql`${table.score} >= 0 AND ((${table.scoringVersion} >= 6 AND ${table.score} <= 12225000) OR (${table.scoringVersion} >= 4 AND ${table.scoringVersion} < 6 AND ${table.score} <= 2000000) OR (${table.scoringVersion} < 4 AND ${table.score} <= 1000000))`,
     ),
     // SQLite cannot add a CHECK constraint to an existing table, so the
     // scoringVersion >= 1 invariant lives in the API (the submission schema

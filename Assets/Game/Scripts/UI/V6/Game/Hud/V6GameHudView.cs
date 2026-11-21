@@ -183,6 +183,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return nextBonusText != null ? nextBonusText.text : null; }
         }
 
+        /// <summary>
+        /// 検証ハーネス用: scoring v6 の基礎スコア併記 ("BASE N")。
+        /// ADR-0037 の「基礎スコアと追加スコアを別々に表示」契約を検証する。
+        /// </summary>
+        public string BaseScoreTextForAudit
+        {
+            get { return baseScoreText != null ? baseScoreText.text : null; }
+        }
+
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
         public int ScoreActiveDigitsForAudit
         {
@@ -284,9 +293,18 @@ namespace FlashBeat.UI.V6.Game.Hud
             if (score != lastRenderedScore)
             {
                 // scoringVersion で帯を切り替える (Issue #758 / ADR-0034)。
-                // 現行プレイは常に最新バージョン (scoring v4)。
-                gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion);
+                // 現行プレイは常に最新バージョン (scoring v6、ADR-0037)。
+                gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount);
                 scoreStrip.SetText(GameHudLogic.FormatScore(score), Time.unscaledTime);
+                // scoring v6 (ADR-0037): 基礎スコアを合計値の下に併記する。
+                // 追加スコアは右コラムの BONUS ブロックが表示するので、
+                // ここでは baseScore だけを書く。
+                if (baseScoreText != null)
+                {
+                    baseScoreText.text = "BASE " + GManager.baseScore.ToString(
+                        "N0", System.Globalization.CultureInfo.InvariantCulture);
+                }
                 lastRenderedScore = score;
             }
 
@@ -385,15 +403,18 @@ namespace FlashBeat.UI.V6.Game.Hud
                 milestoneBonusText.gameObject.SetActive(true);
             }
 
-            // コンボボーナス (Issue #784 / ADR-0035): 獲得済みコンボ由来
-            // ボーナスを右コラム上段の Combo Bonus ブロックに常設する。
-            // v5 では連続加点が無く、節目到達の累計
-            // (GManager.milestoneBonus) がこの値になる。節目到達後は
+            // コンボボーナス (Issue #784 / ADR-0035、scoring v6 は
+            // ADR-0037): 獲得済みボーナスを右コラム上段のブロックに常設
+            // する。v5 では連続加点が無く、節目到達の累計
+            // (GManager.milestoneBonus) がこの値になる。v6 では追加スコア
+            // 全体 (品質点 + 節目 + フルクリア = GManager.bonusScore) を
+            // 絶対スコア点で表示し、基礎スコアと別の加点として見せる
+            // (ADR-0037 の「2 つのスコア部分を別々に表示」)。節目到達後は
             // comboFill が次の節目までの進捗を示し、nextBonusText が
             // 次の獲得予定点を示す (獲得済み累計・今回の加点・次の獲得予定を
             // 別々の値として表示する契約)。
             // 表示はスコア点が変わったときだけ書き換える (issue #381)。
-            int earnedComboBonus = V6HudLogic.EarnedComboBonusRatioPoints();
+            int earnedComboBonus = V6HudLogic.EarnedBonusPointsLatest();
             int comboBonusPoints = V6HudLogic.ComboBonusScorePoints(
                 earnedComboBonus, GManager.maxBonusRatio);
             if (comboBonusPoints != lastComboBonusPoints && comboBonusValueText != null)
@@ -584,6 +605,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             keyGuideRow = null;
             gradeText = null;
             scoreStrip = null;
+            baseScoreText = null;
             comboStrip = null;
             lyricText = null;
             lyricBox = null;

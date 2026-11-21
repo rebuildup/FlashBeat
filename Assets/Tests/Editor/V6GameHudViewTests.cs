@@ -28,6 +28,8 @@ namespace FlashBeat.Tests
         private int originalChartNoteCount;
         private int originalSettledNoteCount;
         private float originalMaxBonusRatio;
+        private int originalBonusScore;
+        private int originalBaseScore;
         private bool originalLyricsEnabled;
 
         [SetUp]
@@ -42,6 +44,10 @@ namespace FlashBeat.Tests
             originalChartNoteCount = GManager.chartNoteCount;
             originalSettledNoteCount = GManager.settledNoteCount;
             originalMaxBonusRatio = GManager.maxBonusRatio;
+            originalBonusScore = GManager.bonusScore;
+            GManager.bonusScore = 0;
+            originalBaseScore = GManager.baseScore;
+            GManager.baseScore = 0;
             originalLyricsEnabled = PlaySession.LyricsEnabled;
 
             canvasGo = new GameObject("V6GameHudViewTests Canvas", typeof(Canvas));
@@ -65,6 +71,8 @@ namespace FlashBeat.Tests
             GManager.chartNoteCount = originalChartNoteCount;
             GManager.settledNoteCount = originalSettledNoteCount;
             GManager.maxBonusRatio = originalMaxBonusRatio;
+            GManager.bonusScore = originalBonusScore;
+            GManager.baseScore = originalBaseScore;
             PlaySession.SetLyricsEnabled(originalLyricsEnabled);
 
             if (canvasGo != null)
@@ -137,12 +145,12 @@ namespace FlashBeat.Tests
             var track = view.transform.Find("Score Gauge/Track");
             Assert.IsNotNull(track, "Score Gauge/Track が無い");
 
-            // v4+ 帯: C[0,.5) B[.5,.7) A[.7,.95) S[.95,1) SS=満点の点。
-            // GaugeW=600 への写像で x = 0/300/420/570。
-            AssertSegment(track, "Seg C", 0f, 300f);
-            AssertSegment(track, "Seg B", 300f, 120f);
-            AssertSegment(track, "Seg A", 420f, 150f);
-            AssertSegment(track, "Seg S", 570f, 30f);
+            // v6 帯 (ADR-0037): C[0,.55) B[.55,.75) A[.75,.9) S[.9,1)
+            // SS=満点の点。GaugeW=600 への写像で x = 0/330/450/540。
+            AssertSegment(track, "Seg C", 0f, 330f);
+            AssertSegment(track, "Seg B", 330f, 120f);
+            AssertSegment(track, "Seg A", 450f, 90f);
+            AssertSegment(track, "Seg S", 540f, 60f);
 
             // SS は幅を持たない点帯 → トラック右端に接するキャップ。
             var ss = track.Find("Seg SS") as RectTransform;
@@ -152,14 +160,16 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #788 の再現ケース: 1,227,055 点 (B 評価、61.35%) の
-        /// 塗り終端が B 帯 [50%,70%) の内側にあり、A 帯へはみ出さない
-        /// ことを実際の Fill の sizeDelta で検証する。
+        /// v6 (ADR-0037) の再現ケース: N=139 の譜面で 700,000 点
+        /// (B 評価、700000/1174000 ≈ 59.6%) の塗り終端が B 帯
+        /// [55%,75%) の内側にあり、A 帯へはみ出さないことを実際の
+        /// Fill の sizeDelta で検証する。
         /// </summary>
         [Test]
         public void ScoreGauge_BGradeScore_FillStaysInsideBBand()
         {
-            GManager.score = 1227055;
+            GManager.chartNoteCount = 139; // ScoreMaxV6(139) = 1,174,000
+            GManager.score = 700000;
             view.Refresh();
 
             var fill = view.transform.Find("Score Gauge/Track/Fill") as RectTransform;
@@ -167,8 +177,8 @@ namespace FlashBeat.Tests
 
             // 初回 Refresh はゲージ tween を目標値へ即合わせる。
             float frac = fill.sizeDelta.x / 600f;
-            Assert.GreaterOrEqual(frac, 0.5f, "B 評価の塗りが B 帯の左端より左");
-            Assert.Less(frac, 0.7f, "B 評価の塗りが A 帯へはみ出している");
+            Assert.GreaterOrEqual(frac, 0.55f, "B 評価の塗りが B 帯の左端より左");
+            Assert.Less(frac, 0.75f, "B 評価の塗りが A 帯へはみ出している");
         }
 
         private static void AssertSegment(Transform track, string name, float x, float w)
@@ -232,19 +242,19 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #784 / ADR-0035: コンボボーナスは右コラムに実スコア点で
-        /// 常設表示され、miss > 0 で Combo Status が隠れても残る。v5 では
-        /// 連続加点が無く、獲得済みは節目到達の累計
-        /// GManager.milestoneBonus (comboMilestones * 250 ratio points)
-        /// を最新バージョンの ComponentScore で換算した実値。
+        /// Issue #784 / ADR-0035、scoring v6 (ADR-0037): ボーナスは右コラムに
+        /// 実スコア点で常設表示され、miss > 0 で Combo Status が隠れても
+        /// 残る。v6 では獲得済みは追加スコア全体 (品質点 + 節目 +
+        /// フルクリア = GManager.bonusScore、絶対スコア点) をそのまま表示
+        /// する (基礎スコアと別の加点として見せる契約)。
         /// </summary>
         [Test]
         public void ComboBonus_ShowsConvertedScorePoints_AndSurvivesAMiss()
         {
-            // 節目 2 回到達 → milestoneBonus = 500 ratio points。
-            // MaxBonusRatioV5(100) = 1100 → ComponentScoreV5(500,1100) = 454,545。
-            GManager.milestoneBonus = 500;
-            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(100);
+            // 追加スコア 5,000 点獲得済み (v6 の絶対スコア点)。
+            GManager.bonusScore = 5000;
+            GManager.milestoneBonus = 5000; // 節目 1 回分 (表示値には使わない)
+            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxAdditionalV6(100);
             GManager.miss = 1;   // NO MISS は消えるが、獲得済みボーナスは残る
             GManager.combo = 0;  // Miss でコンボは 0 に戻る
 
@@ -264,30 +274,51 @@ namespace FlashBeat.Tests
                 "次の節目までのゲージ (Next Bonus Track) が無い");
 
             int expected = V6HudLogic.ComboBonusScorePoints(
-                V6HudLogic.EarnedComboBonusRatioPoints(), GManager.maxBonusRatio);
+                V6HudLogic.EarnedBonusPointsLatest(), GManager.maxBonusRatio);
             Assert.AreEqual(
                 "+" + expected.ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
                 view.ComboBonusValueForAudit,
-                "表示値は ComponentScoreV5 で換算した実スコア点");
+                "表示値は獲得済み追加スコアの絶対スコア点 (v6)");
         }
 
         /// <summary>
-        /// Issue #784 / ADR-0035: ボーナス未獲得 (節目未到達) の間は
-        /// ブロックごと隠し、1 回でも節目に達すれば表示する (miss 後も
-        /// 獲得済みは残る)。
+        /// Issue #784 / ADR-0035、scoring v6 (ADR-0037): ボーナス未獲得の
+        /// 間はブロックごと隠し、1 回でも加点があれば表示する
+        /// (miss 後も獲得済みは残る)。v6 では品質点が最初の判定で
+        /// 乗るため、節目未到達でも bonusScore > 0 なら表示される。
         /// </summary>
         [Test]
         public void ComboBonus_HiddenUntilBonusIsEarned()
         {
-            GManager.milestoneBonus = 0;
+            GManager.bonusScore = 0;
             view.Refresh();
             Assert.IsFalse(view.ComboBonusBlockForAudit.activeSelf,
-                "節目未到達ではブロックを出さない");
+                "加点未獲得ではブロックを出さない");
 
-            GManager.milestoneBonus = 250; // 節目 1 回分 (ADR-0035)
+            GManager.bonusScore = 5000; // 品質点 1 ノーツ分相当 (v6)
             view.Refresh();
             Assert.IsTrue(view.ComboBonusBlockForAudit.activeSelf,
-                "節目到達でブロックが出る");
+                "加点があればブロックが出る");
+        }
+
+        /// <summary>
+        /// scoring v6 (ADR-0037): HUD は基礎スコアと追加スコアを別々に
+        /// 表示する契約。合計値の下に "BASE N" (GManager.baseScore)、
+        /// 右コラムの BONUS ブロックに追加スコア (GManager.bonusScore)
+        /// が出る。
+        /// </summary>
+        [Test]
+        public void Score_ShowsBaseScoreSeparatelyFromBonus()
+        {
+            GManager.baseScore = 933812;
+            GManager.bonusScore = 164800;
+            GManager.score = 933812 + 164800;
+            view.Refresh();
+
+            Assert.AreEqual("BASE 933,812", view.BaseScoreTextForAudit,
+                "基礎スコアが合計値の下に併記される");
+            Assert.AreEqual("+164,800", view.ComboBonusValueForAudit,
+                "追加スコアは BONUS ブロックが絶対スコア点で表示する");
         }
 
         /// <summary>
@@ -299,6 +330,7 @@ namespace FlashBeat.Tests
         [Test]
         public void ComboBonus_ShowsNextMilestoneProgress_BeforeFirstCrossing()
         {
+            GManager.bonusScore = 0;
             GManager.milestoneBonus = 0;
             GManager.chartNoteCount = 139;
             GManager.settledNoteCount = 10;

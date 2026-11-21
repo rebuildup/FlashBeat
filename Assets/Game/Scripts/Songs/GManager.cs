@@ -417,42 +417,71 @@ public class GManager : MonoBehaviour
     public static int miss;
 
     /// <summary>
-    /// scoring v2–v5 (ADR-0028 / ADR-0029 / ADR-0033 / ADR-0035) の加点内訳
-    /// (ratio points)。
-    /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
-    /// comboBonus / noMissBonus / milestoneBonus / finalBonus は送信
-    /// フィールドには含めない (サーバは P/G/B/M/maxCombo/comboMilestones
-    /// から再計算する)。comboMilestones は節目到達回数で、送信フィールド
-    /// comboMilestones と同じ値。
-    /// scoring v5 では連続コンボボーナスが無いため comboBonus は常に 0 で、
-    /// コンボ由来の獲得済みボーナスは milestoneBonus が保持する (ADR-0035)。
+    /// scoring v2–v6 (ADR-0028 / ADR-0029 / ADR-0033 / ADR-0035 / ADR-0037)
+    /// の加点内訳。Judge が毎フレーム書き、結果画面の内訳表示とローカル
+    /// 検証が読む。comboBonus / noMissBonus / milestoneBonus / finalBonus
+    /// は送信フィールドには含めない (サーバは P/G/B/M/maxCombo/
+    /// comboMilestones から再計算する)。comboMilestones は節目到達回数で、
+    /// 送信フィールド comboMilestones と同じ値。
+    /// scoring v5 では連続コンボ・ノーミスのボーナスが無く comboBonus /
+    /// noMissBonus は常に 0、コンボ由来の獲得済みは milestoneBonus が保持
+    /// する (ADR-0035)。scoring v6 (ADR-0037) ではこれらの欄は
+    /// **絶対スコア点** を保持する: milestoneBonus = 節目点の合計
+    /// (comboMilestones * 5000)、finalBonus = フルクリア点 (25,000)。
     /// </summary>
     public static int comboBonus;
     public static int noMissBonus;
-    /// <summary>節目到達回数 (scoring v3–v5)。ランキング送信の comboMilestones。</summary>
+    /// <summary>節目到達回数 (scoring v3–v6)。ランキング送信の comboMilestones。</summary>
     public static int comboMilestones;
-    /// <summary>節目ボーナス合計 (ratio points。v5 では comboMilestones * 250)。</summary>
+    /// <summary>
+    /// 節目ボーナス合計。v5 までは ratio points (comboMilestones * 250)、
+    /// v6 では絶対スコア点 (comboMilestones * 5000、ADR-0037)。
+    /// </summary>
     public static int milestoneBonus;
     /// <summary>
-    /// フルコンボ終了ボーナス (miss == 0 かつ全ノーツ判定確定のとき 100、
-    /// ratio points)。確定は曲終了時に一度だけ (Issue #618)。
+    /// フルコンボ終了ボーナス。v3–v5 は ratio points (miss == 0 かつ全
+    /// ノーツ判定確定のとき 100)、v6 は絶対スコア点 (同条件で 25,000、
+    /// ADR-0037)。確定は曲終了時に一度だけ (Issue #618)。
     /// </summary>
     public static int finalBonus;
 
     /// <summary>
-    /// scoring v4/v5 (ADR-0033 / ADR-0035) の基礎スコアと加算ボーナス。
+    /// scoring v4/v5 (ADR-0033 / ADR-0035) の基礎スコアと加算ボーナス、
+    /// および scoring v6 (ADR-0037) の基礎スコアと絶対追加スコア。
     /// score = baseScore + bonusScore で、baseScore は判定由来のみ (上限
-    /// 1,000,000)、bonusScore はノーミス・節目・フルコンボの合計
-    /// (上限 1,000,000。v4 にはコンボ継続も含まれる)。結果画面の内訳
-    /// 表示が読む。Judge が FlushScore のたびに書く。
+    /// 1,000,000)。v4/v5 の bonusScore はボーナス ratio points を
+    /// 1,000,000 で正規化した値 (上限 1,000,000)、v6 の bonusScore は
+    /// 実プレイで獲得した絶対スコア点 (品質点 + 節目 + フルクリア、
+    /// 上限は scoreMaxV6 - 1,000,000)。結果画面の内訳表示が読む。
+    /// Judge が FlushScore のたびに書く。
     /// </summary>
     public static int baseScore;
     public static int bonusScore;
     /// <summary>
-    /// scoring v4/v5 のボーナス分母 (Scoring.MaxBonusRatioV4/V5(noteCount))。
-    /// HUD のボーナス獲得点表示が ratio points → スコア点の換算に使う。
+    /// scoring v4/v5 (ADR-0033 / ADR-0035) のボーナス分母
+    /// (Scoring.MaxBonusRatioV4/V5(noteCount))。scoring v6 (ADR-0037)
+    /// では追加スコアが絶対点なので、この欄には
+    /// <see cref="Scoring.MaxAdditionalV6"/> と同じ値
+    /// (<see cref="maxAdditionalScore"/>) が入る。HUD のボーナス獲得点
+    /// 表示が ratio points → スコア点の換算に使う。
     /// </summary>
     public static float maxBonusRatio;
+
+    /// <summary>
+    /// scoring v6 (ADR-0037) の譜面ごとの追加スコア上限
+    /// (Scoring.MaxAdditionalV6(chartNoteCount))。Judge が FlushScore の
+    /// たびに書く。v6 のグレード・ゲージ正規化は
+    /// <see cref="scoreMaxV6"/> を使う。
+    /// </summary>
+    public static int maxAdditionalScore;
+
+    /// <summary>
+    /// scoring v6 (ADR-0037) の譜面ごとのスコア上限
+    /// (Scoring.ScoreMaxV6(chartNoteCount) = 1,000,000 + maxAdditionalScore)。
+    /// v6 には固定の合計上限が無いため、ゲージ・グレードはこの値で
+    /// 正規化する。Judge が FlushScore のたびに書く。
+    /// </summary>
+    public static int scoreMaxV6;
 
     /// <summary>
     /// 全ノーツの判定が確定したか (perfect + great + bad + miss == 譜面
@@ -538,6 +567,8 @@ public class GManager : MonoBehaviour
         baseScore = 0;
         bonusScore = 0;
         maxBonusRatio = 0f;
+        maxAdditionalScore = 0;
+        scoreMaxV6 = 0;
         judgmentsComplete = false;
         chartNoteCount = 0;
         settledNoteCount = 0;

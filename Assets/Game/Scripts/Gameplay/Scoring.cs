@@ -67,6 +67,23 @@ namespace FlashBeat.Gameplay
     ///
     /// A completed no-miss play keeps its v4 total (bonusRatio saturates
     /// the denominator); only plays containing a miss score differently.
+    ///
+    /// scoringVersion 6 (ADR-0037, Issue #825) splits the score the same
+    /// way but replaces the normalized bonus half with an absolute
+    /// additional score earned from actual play, whose chart maximum
+    /// grows with the note count:
+    ///
+    ///   baseScore      = floor(judgment * 1_000_000 / (5 * noteCount))   ≤ 1,000,000
+    ///   qualityScore   = perfect * 1000 + great * 600 + bad * 200
+    ///   milestoneScore = comboMilestones * 5000
+    ///   clearScore     = judgmentsComplete && miss == 0 ? 25000 : 0
+    ///   additionalScore = qualityScore + milestoneScore + clearScore
+    ///   score          = baseScore + additionalScore
+    ///   maxAdditional  = noteCount * 1000 + floor(noteCount / 50) * 5000 + 25000
+    ///   scoreMax       = 1,000,000 + maxAdditional   (per chart — no fixed
+    ///                    total ceiling)
+    ///
+    /// Like v3–v5, every step is exact integer arithmetic.
     /// </summary>
     public static class Scoring
     {
@@ -94,8 +111,18 @@ namespace FlashBeat.Gameplay
         /// </summary>
         public const int Version5 = 5;
 
+        /// <summary>
+        /// scoringVersion of the v6 formula (ADR-0037, Issue #825): the
+        /// judgment-derived base score keeps the 1,000,000 ceiling and the
+        /// bonus half becomes an <b>absolute</b> additional score earned
+        /// from actual play — per-note quality points plus milestone and
+        /// full-clear bonuses — whose chart maximum grows with the note
+        /// count instead of being normalized to a fixed ceiling.
+        /// </summary>
+        public const int Version6 = 6;
+
         /// <summary>The scoring version new plays and new submissions use.</summary>
-        public const int LatestVersion = Version5;
+        public const int LatestVersion = Version6;
 
         /// <summary>v2 denominator per note: judgment cap 5 + combo cap 5 + no-miss cap 5.</summary>
         public const float MaxRatioPerNoteV2 = 15f;
@@ -667,6 +694,175 @@ namespace FlashBeat.Gameplay
             }
 
             return (int)(bonusRatioPoints * HalfScoreMaxV4L / (long)maxBonusRatio);
+        }
+
+        // --- scoring v6 (ADR-0037, Issue #825) -----------------------------
+
+        /// <summary>v6 quality points of one Perfect judgment (absolute score points).</summary>
+        public const int PerfectScoreV6 = 1000;
+
+        /// <summary>v6 quality points of one Great judgment (absolute score points).</summary>
+        public const int GreatScoreV6 = 600;
+
+        /// <summary>v6 quality points of one Bad judgment (absolute score points).</summary>
+        public const int BadScoreV6 = 200;
+
+        /// <summary>
+        /// v6 score points vested per combo milestone crossing
+        /// (absolute score points; the 50-combo interval is unchanged).
+        /// </summary>
+        public const int MilestoneScoreV6 = 5000;
+
+        /// <summary>
+        /// v6 score points of the full-clear bonus: vests once every chart
+        /// note has been judged with miss == 0 (same condition as the v3–v5
+        /// final bonus, Issue #618).
+        /// </summary>
+        public const int FullClearScoreV6 = 25000;
+
+        /// <summary>The v6 base-score ceiling (judgment half, unchanged from v4/v5).</summary>
+        public const int BaseScoreMaxV6 = HalfScoreMaxV4;
+
+        /// <summary>
+        /// The largest additional score a chart with
+        /// <paramref name="noteCount"/> notes can give: every note Perfect
+        /// (<see cref="PerfectScoreV6"/> each), every possible milestone
+        /// crossing (<see cref="MilestoneScoreV6"/> each) and the full-clear
+        /// bonus (<see cref="FullClearScoreV6"/>). Strictly increasing in
+        /// noteCount — longer charts allow a larger maximum additional
+        /// score, which is the property the normalized v4/v5 bonus half
+        /// could not express (ADR-0037).
+        /// </summary>
+        public static int MaxAdditionalV6(int noteCount)
+        {
+            if (noteCount <= 0)
+            {
+                return 0;
+            }
+
+            return noteCount * PerfectScoreV6
+                + (noteCount / MilestoneInterval) * MilestoneScoreV6
+                + FullClearScoreV6;
+        }
+
+        /// <summary>
+        /// The largest total score a chart with
+        /// <paramref name="noteCount"/> notes can give:
+        /// <see cref="BaseScoreMaxV6"/> + <see cref="MaxAdditionalV6"/>.
+        /// Per-chart — there is no fixed total ceiling in v6.
+        /// </summary>
+        public static int ScoreMaxV6(int noteCount)
+        {
+            return BaseScoreMaxV6 + MaxAdditionalV6(noteCount);
+        }
+
+        /// <summary>The v6 components of one play.</summary>
+        public struct V6Breakdown
+        {
+            /// <summary>5P + 3G + B (the v1 judgment total).</summary>
+            public float Judgment;
+            /// <summary>
+            /// Quality score points earned on judged notes:
+            /// P*1000 + G*600 + B*200 (Miss contributes 0). Absolute score
+            /// points — never normalized by a chart maximum.
+            /// </summary>
+            public int QualityScore;
+            /// <summary>comboMilestones * MilestoneScoreV6 (absolute score points).</summary>
+            public int MilestoneScore;
+            /// <summary>
+            /// FullClearScoreV6 while judgmentsComplete && miss == 0, else 0.
+            /// Vests only once every chart note has been judged (Issue #618).
+            /// </summary>
+            public int ClearScore;
+            /// <summary>QualityScore + MilestoneScore + ClearScore.</summary>
+            public int AdditionalScore;
+            /// <summary>
+            /// Judgment-derived base score: floor(judgment * 1e6 / (5N)).
+            /// Always ≤ 1,000,000; exactly 1,000,000 for an all-Perfect play.
+            /// </summary>
+            public int BaseScore;
+            /// <summary>BaseScore + AdditionalScore (the chart's own maximum is ScoreMaxV6).</summary>
+            public int Score;
+            /// <summary>MaxAdditionalV6(noteCount) — display/rate reference only.</summary>
+            public int MaxAdditional;
+            /// <summary>ScoreMaxV6(noteCount) — the chart maximum.</summary>
+            public int MaxScore;
+        }
+
+        /// <summary>
+        /// The v6 components of a play. The arguments have the same meaning
+        /// as <see cref="BreakdownV5"/>; only the score mapping changes
+        /// (ADR-0037): the judgment part keeps the 1,000,000 ceiling and the
+        /// additional part is the raw absolute point total the play earned —
+        /// per-note quality points plus milestone and full-clear bonuses —
+        /// with no division by a chart maximum.
+        /// </summary>
+        public static V6Breakdown BreakdownV6(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            float judgment = perfect * 5f + great * 3f + bad;
+            int qualityScore = perfect * PerfectScoreV6 + great * GreatScoreV6 + bad * BadScoreV6;
+            int milestoneScore = comboMilestones * MilestoneScoreV6;
+            // 空の譜面 (noteCount <= 0) はフルクリアを成立させない —
+            // サーバ側 computeUnityScoreV6 は noteCount<=0 を null で
+            // 拒否するため、Unity 側も 0 点に揃える (パリティ)。
+            int clearScore = noteCount > 0 && judgmentsComplete && miss == 0
+                ? FullClearScoreV6 : 0;
+            int additionalScore = qualityScore + milestoneScore + clearScore;
+            int maxAdditional = MaxAdditionalV6(noteCount);
+
+            // Base: the judgment-derived score with the v1 ceiling.
+            // judgment is an integer-valued float; compute in long like
+            // ScoreV3 so the result is platform-independent (Issue #631).
+            int baseScore = 0;
+            if (noteCount > 0)
+            {
+                long judgmentLong = perfect * 5L + great * 3L + bad;
+                baseScore = (int)(judgmentLong * HalfScoreMaxV4 / (5L * noteCount));
+            }
+
+            return new V6Breakdown
+            {
+                Judgment = judgment,
+                QualityScore = qualityScore,
+                MilestoneScore = milestoneScore,
+                ClearScore = clearScore,
+                AdditionalScore = additionalScore,
+                BaseScore = baseScore,
+                Score = baseScore + additionalScore,
+                MaxAdditional = maxAdditional,
+                MaxScore = BaseScoreMaxV6 + maxAdditional,
+            };
+        }
+
+        /// <summary>
+        /// The v6 score of a play, via the deterministic integer computation
+        /// of <see cref="ScoreV6(V6Breakdown)"/>. `judgmentsComplete` has the
+        /// same meaning as in <see cref="BreakdownV5"/>.
+        /// </summary>
+        public static int ScoreV6(int perfect, int great, int bad, int miss,
+            int maxCombo, int comboMilestones, int noteCount, bool judgmentsComplete)
+        {
+            return ScoreV6(BreakdownV6(perfect, great, bad, miss, maxCombo,
+                comboMilestones, noteCount, judgmentsComplete));
+        }
+
+        /// <summary>The v6 score of a computed breakdown (ADR-0037).</summary>
+        public static int ScoreV6(V6Breakdown b)
+        {
+            return b.Score;
+        }
+
+        /// <summary>
+        /// The v6 additional-score contribution of one component, for the
+        /// result breakdown and in-play bonus display. v6 components are
+        /// already absolute score points, so this is the identity — kept as
+        /// a named function so display code can dispatch per version like
+        /// the v4/v5 helpers.
+        /// </summary>
+        public static int ComponentScoreV6(int additionalScorePoints)
+        {
+            return additionalScorePoints;
         }
     }
 }

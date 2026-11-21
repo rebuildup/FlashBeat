@@ -176,34 +176,32 @@ public class ScoringV2Tests
     [Test]
     public void ResultBreakdown_ShowsRealBonusValues()
     {
-        // v5 (ADR-0035): P=50 G=10 B=0 M=1, maxCombo=50, milestones=1, N=61。
+        // scoring v6 (ADR-0037): P=50 G=10 B=0 M=1, maxCombo=50,
+        // milestones=1, N=61。
         // judgment=280 → baseScore = floor(280*1e6/(5*61)) = 918,032
-        // MaxBonusRatioV5(61) = 250 + 305 + 100 = 655
-        // milestoneBonus = 250 ratio → ComponentScoreV5(250,61) = 381,679
-        // COMBO 行は v5 に連続コンボボーナスが無いため常に "–"。
-        // miss>0 なので CLEAR も "–"。
+        // COMBO 列はノーツ品質点 = 50*1000 + 10*600 = 56,000。
+        // MILESTONE 列は節目点 = 1*5000。miss>0 なので CLEAR は "–"。
         V6ResultLogic.BonusBreakdownTexts(50, 10, 0, 1, 50, 1, 61, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
         Assert.AreEqual("918,032", baseText);
-        Assert.AreEqual("–", comboText);
-        Assert.AreEqual("+381,679", milestoneText);
+        Assert.AreEqual("+56,000", comboText);
+        Assert.AreEqual("+5,000", milestoneText);
         Assert.AreEqual("–", clearText);
     }
 
     [Test]
     public void ResultBreakdown_ClearBonusShownOnlyWhenEarned()
     {
-        // miss=0 の確定プレイなら noMissBonus + finalBonus が「CLEAR」列に
-        // まとまって出る (v5)。
+        // scoring v6 (ADR-0037): miss=0 の確定プレイならフルクリア点
+        // 25,000 が「CLEAR」列に出る。
         V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
-        // noteCount=9 → MaxBonusRatioV5(9)=45+100=145、
-        // judgment=43 → baseScore=floor(43*1e6/45)=955,555
+        // noteCount=9 → judgment=43 → baseScore=floor(43*1e6/45)=955,555
         Assert.AreEqual("955,555", baseText);
-        // v5 に連続コンボボーナスは無い → COMBO 行は常に "–"。
-        Assert.AreEqual("–", comboText);
-        // clear = noMiss 45 + final 100 = 145 → floor(145*1e6/145)=1,000,000
-        Assert.AreEqual("+1,000,000", clearText);
+        // COMBO 列はノーツ品質点 = 8*1000 + 1*600 = 8,600。
+        Assert.AreEqual("+8,600", comboText);
+        // clear = FullClearScoreV6 = 25,000。
+        Assert.AreEqual("+25,000", clearText);
         Assert.AreEqual("–", milestoneText);
     }
 }

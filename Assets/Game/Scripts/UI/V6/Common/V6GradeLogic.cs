@@ -70,13 +70,51 @@ namespace FlashBeat.UI.V6.Common
         /// </summary>
         public const int GradeV4B = 1000000;
 
+        // --- scoring v6 (ADR-0037, Issue #825) ---
+        //
+        // v6 のスコア満点は譜面ごと (1,000,000 + MaxAdditionalV6(noteCount))
+        // なので、グレードは「その譜面の満点に対する割合」で帯を切る。
+        // 帯は成績分布シミュレーション (ScoringV6Tests / PR の記録)
+        // に基づく: A 以上が実際のプレイ分布で到達可能な帯に置く。
+        // SS は通常グレードと区別する特別評価で、満点到達
+        // (score == ScoreMaxV6(noteCount)) のみ。
+
+        /// <summary>v6 グレード S の下限 (譜面満点の 90%)。</summary>
+        public const float GradeV6S = 0.90f;
+
+        /// <summary>v6 グレード A の下限 (譜面満点の 75%)。</summary>
+        public const float GradeV6A = 0.75f;
+
+        /// <summary>v6 グレード B の下限 (譜面満点の 55%)。</summary>
+        public const float GradeV6B = 0.55f;
+
         /// <summary>
         /// その scoringVersion で到達し得るスコア満点。スコアゲージ等の
-        /// 正規化に使う。v4 未満は <see cref="ScoreMaxLegacy"/>、
-        /// v4 以降は <see cref="ScoreMaxV4"/>。
+        /// 正規化に使う。v6 は譜面ごとの <see cref="Scoring.ScoreMaxV6"/>
+        /// (noteCount 必須)、v4–v5 は <see cref="ScoreMaxV4"/>、
+        /// それ未満は <see cref="ScoreMaxLegacy"/>。
         /// </summary>
         public static int ScoreMaxOf(int scoringVersion)
         {
+            return ScoreMaxOf(scoringVersion, 0);
+        }
+
+        /// <summary>
+        /// noteCount 対応版。v6 は譜面のノーツ数から満点を求める
+        /// (noteCount &lt;= 0 のときは基礎スコア上限のみを返す)。
+        /// </summary>
+        public static int ScoreMaxOf(int scoringVersion, int noteCount)
+        {
+            if (scoringVersion >= Scoring.Version6)
+            {
+                // 譜面のノーツ数が分からない v6 スコアは満点を決められない。
+                // int.MaxValue を返すと割合が実質 0 になり、グレード C /
+                // ゲージ空という保守側の表示に落ちる (満点扱いで SS を
+                // 誤表示しない)。実プレイ経路では chartNoteCount が必ず
+                // 正の値を持つ。
+                return noteCount > 0 ? Scoring.ScoreMaxV6(noteCount) : int.MaxValue;
+            }
+
             return scoringVersion >= Scoring.Version4 ? ScoreMaxV4 : ScoreMaxLegacy;
         }
 
@@ -91,12 +129,78 @@ namespace FlashBeat.UI.V6.Common
         /// </summary>
         public static string GradeOf(int score, int scoringVersion)
         {
+            return GradeOf(score, scoringVersion, 0);
+        }
+
+        /// <summary>
+        /// noteCount 対応版。scoring v6 は譜面満点に対する割合で帯を切る
+        /// (ADR-0037)。v6 以外は noteCount を使わない。
+        /// </summary>
+        public static string GradeOf(int score, int scoringVersion, int noteCount)
+        {
+            if (scoringVersion >= Scoring.Version6)
+            {
+                return GradeOfV6(score, noteCount);
+            }
+
             if (scoringVersion >= Scoring.Version4)
             {
                 return GradeOfV4(score);
             }
 
             return FlashBeat.UI.V6.Result.V6ResultRules.RankFor(score);
+        }
+
+        /// <summary>
+        /// scoring v6 のグレード (SS/S/A/B/C、ADR-0037)。
+        /// SS はその譜面の満点 (ScoreMaxV6(noteCount)) 到達のみの特別評価。
+        /// S/A/B は譜面満点に対する割合の帯 (GradeV6S/A/B)。
+        /// </summary>
+        public static string GradeOfV6(int score, int noteCount)
+        {
+            // 譜面ノーツ数が分からない v6 スコアは満点を決められない。
+            // ScoreMaxV6(0) = 1,000,000 を使うと基礎スコア上限のスコアが
+            // SS に誤判定されるため、保守側の C に落とす
+            // (ScoreMaxOf と同じ方針。実プレイ経路では chartNoteCount が
+            // 必ず正の値を持つ)。
+            if (noteCount <= 0)
+            {
+                return "C";
+            }
+
+            int max = Scoring.ScoreMaxV6(noteCount);
+            if (max <= 0)
+            {
+                return "C";
+            }
+
+            // SS は「その譜面の満点ちょうど」のみの特別評価 (ADR-0037:
+            // baseScore == 1,000,000 かつ additionalScore == MaxAdditional
+            // と同値。正当な入力では score == ScoreMaxV6(noteCount) と
+            // 同じ条件になる)。満点超過は API が拒否するが、表示側でも
+            // SS にはせず割合帯 (S) に落とす。
+            if (score == max)
+            {
+                return "SS";
+            }
+
+            float f = score / (float)max;
+            if (f >= GradeV6S)
+            {
+                return "S";
+            }
+
+            if (f >= GradeV6A)
+            {
+                return "A";
+            }
+
+            if (f >= GradeV6B)
+            {
+                return "B";
+            }
+
+            return "C";
         }
 
         /// <summary>
@@ -137,7 +241,16 @@ namespace FlashBeat.UI.V6.Common
         /// </summary>
         public static float ScoreFractionOf(int score, int scoringVersion)
         {
-            float f = score / (float)ScoreMaxOf(scoringVersion);
+            return ScoreFractionOf(score, scoringVersion, 0);
+        }
+
+        /// <summary>
+        /// noteCount 対応版。scoring v6 は譜面満点 (ScoreMaxV6) で正規化
+        /// する (ADR-0037)。v6 以外は noteCount を使わない。
+        /// </summary>
+        public static float ScoreFractionOf(int score, int scoringVersion, int noteCount)
+        {
+            float f = score / (float)ScoreMaxOf(scoringVersion, noteCount);
             return f < 0f ? 0f : (f > 1f ? 1f : f);
         }
 
@@ -171,9 +284,16 @@ namespace FlashBeat.UI.V6.Common
         /// </summary>
         public static IReadOnlyList<GradeBand> GradeBandsOf(int scoringVersion)
         {
+            if (scoringVersion >= Scoring.Version6)
+            {
+                // v6 帯 (ADR-0037): B ≥ 55% / A ≥ 75% / S ≥ 90% / SS = 満点のみ。
+                // 帯は譜面満点に対する割合なので noteCount に依らない。
+                return V6Bands;
+            }
+
             if (scoringVersion >= Scoring.Version4)
             {
-                // v4+ 帯: B ≥ 50% / A ≥ 70% / S ≥ 95% / SS = 満点のみ。
+                // v4/v5 帯: B ≥ 50% / A ≥ 70% / S ≥ 95% / SS = 満点のみ。
                 return V4Bands;
             }
 
@@ -187,6 +307,15 @@ namespace FlashBeat.UI.V6.Common
             new GradeBand("B", GradeV4B / (float)ScoreMaxV4, GradeV4A / (float)ScoreMaxV4),
             new GradeBand("A", GradeV4A / (float)ScoreMaxV4, GradeV4S / (float)ScoreMaxV4),
             new GradeBand("S", GradeV4S / (float)ScoreMaxV4, 1f),
+            new GradeBand("SS", 1f, 1f),
+        };
+
+        private static readonly GradeBand[] V6Bands =
+        {
+            new GradeBand("C", 0f, GradeV6B),
+            new GradeBand("B", GradeV6B, GradeV6A),
+            new GradeBand("A", GradeV6A, GradeV6S),
+            new GradeBand("S", GradeV6S, 1f),
             new GradeBand("SS", 1f, 1f),
         };
 

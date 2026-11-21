@@ -233,6 +233,7 @@ namespace FlashBeat.UI.V6.Select.Data
         static V6SongEntry BuildEntry(SongData song)
         {
             int best = GManager.BestScoreOf(song.id);
+            int noteCount = NoteCountOf(song);
             return new V6SongEntry
             {
                 SongId = song.id,
@@ -240,9 +241,12 @@ namespace FlashBeat.UI.V6.Select.Data
                 Artist = song.musician ?? "",
                 Level = song.level,
                 Bpm = BpmOf(song),
-                NoteCount = NoteCountOf(song),
+                NoteCount = noteCount,
                 BestScore = best > 0 ? best : -1,
-                BestGrade = V6SelectDataLogic.GradeOf(best),
+                // v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する
+                // 割合なので、この曲のノーツ数を渡す (ADR-0037 / Issue #825)。
+                BestGrade = V6SelectDataLogic.GradeOf(best,
+                    FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
                 IsCloud = song.isRemote,
                 JacketResourcePath = JacketResourcePathOf(song.id, song.title),
             };
@@ -430,12 +434,14 @@ namespace FlashBeat.UI.V6.Select.Data
             {
                 if (rankingFetchKey != key && !QueueContains(key))
                 {
-                    rankingQueue.Enqueue(new RankingRequest(key, row.remoteId, row.chartVersion));
+                    rankingQueue.Enqueue(new RankingRequest(key, row.remoteId, row.chartVersion,
+                        song.NoteCount));
                 }
                 return;
             }
 
-            BeginRankingFetch(new RankingRequest(key, row.remoteId, row.chartVersion));
+            BeginRankingFetch(new RankingRequest(key, row.remoteId, row.chartVersion,
+                song.NoteCount));
         }
 
         /// <summary>キューに同じキーの要求が既にないか。</summary>
@@ -455,7 +461,8 @@ namespace FlashBeat.UI.V6.Select.Data
             hasError = false;
             statusMessage = "ランキングを取得しています…";
             FireChanged();
-            RunCoroutine(FetchRanking(request.Key, request.RemoteId, request.ChartVersion));
+            RunCoroutine(FetchRanking(request.Key, request.RemoteId, request.ChartVersion,
+                request.NoteCount));
         }
 
         struct RankingRequest
@@ -463,16 +470,22 @@ namespace FlashBeat.UI.V6.Select.Data
             public readonly string Key;
             public readonly string RemoteId;
             public readonly int ChartVersion;
+            /// <summary>
+            /// その曲の譜面ノーツ数。scoring v6 のグレード
+            /// (ScoreMaxV6(noteCount) に対する割合) に使う (ADR-0037)。
+            /// </summary>
+            public readonly int NoteCount;
 
-            public RankingRequest(string key, string remoteId, int chartVersion)
+            public RankingRequest(string key, string remoteId, int chartVersion, int noteCount)
             {
                 Key = key;
                 RemoteId = remoteId;
                 ChartVersion = chartVersion;
+                NoteCount = noteCount;
             }
         }
 
-        IEnumerator FetchRanking(string key, string remoteId, int chartVersion)
+        IEnumerator FetchRanking(string key, string remoteId, int chartVersion, int noteCount)
         {
             RankingClient.Result result = null;
             yield return RankingClient.GetLeaderboard(remoteId, chartVersion, r => { result = r; });
@@ -481,7 +494,7 @@ namespace FlashBeat.UI.V6.Select.Data
             rankingFetchKey = null;
             if (result != null && result.ok && result.leaderboard != null && result.leaderboard.entries != null)
             {
-                rankingCache[key] = RankingRowsOf(result.leaderboard.entries);
+                rankingCache[key] = RankingRowsOf(result.leaderboard.entries, noteCount);
                 hasError = false;
                 statusMessage = "";
             }
@@ -499,7 +512,7 @@ namespace FlashBeat.UI.V6.Select.Data
             }
         }
 
-        static List<V6RankingRow> RankingRowsOf(RankingClient.LeaderboardEntry[] entries)
+        static List<V6RankingRow> RankingRowsOf(RankingClient.LeaderboardEntry[] entries, int noteCount)
         {
             var rows = new List<V6RankingRow>();
             string nickname = RankingClient.LoadNickname();
@@ -512,7 +525,10 @@ namespace FlashBeat.UI.V6.Select.Data
                     Position = entry.rank,
                     PlayerName = entry.nickname ?? "",
                     Score = entry.score,
-                    Grade = V6SelectDataLogic.GradeOf(entry.score),
+                    // v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する
+                    // 割合なので、この曲のノーツ数を渡す (ADR-0037 / Issue #825)。
+                    Grade = V6SelectDataLogic.GradeOf(entry.score,
+                        FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
                     IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
                 });
             }

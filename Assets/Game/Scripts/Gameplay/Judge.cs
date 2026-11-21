@@ -543,36 +543,38 @@ public class Judge : MonoBehaviour
         GManager.settledNoteCount = board.Settled;
         GManager.nextNotes = 1 + board.Settled;
 
-        // scoring v5 (ADR-0035 / Issue #797): 表示・送信する内訳は判定由来の
-        // 基礎スコア (上限 1,000,000) と、その上に独立加算されるボーナス
-        // スコア (上限 1,000,000) の 2 段構成。v5 には連続コンボボーナスが
-        // 無く、コンボ報酬は節目到達 (comboMilestones) のみで確定する。
-        // フルコンボ終了ボーナスは全ノーツの判定が確定した時点 (曲終了の
+        // scoring v6 (ADR-0037 / Issue #825): 表示・送信する内訳は判定由来の
+        // 基礎スコア (上限 1,000,000) と、実プレイで獲得した絶対追加スコア
+        // (ノーツ品質点 + 節目 + フルクリア) の 2 段構成。v6 の追加スコアは
+        // 譜面最大で正規化されず、長い譜面ほど上限が大きくなる。
+        // フルクリアボーナスは全ノーツの判定が確定した時点 (曲終了の
         // 判定条件と同じ settled >= noteCount) でのみ乗る。途中経過の
         // HUD スコアには含めない (Issue #618)。
         int noteCount = notesManager != null ? notesManager.noteNum : 0;
         bool judgmentsComplete = noteCount > 0 && board.Settled >= noteCount;
         GManager.judgmentsComplete = judgmentsComplete;
         GManager.chartNoteCount = noteCount;
-        Scoring.V5Breakdown v5 = Scoring.BreakdownV5(
+        Scoring.V6Breakdown v6 = Scoring.BreakdownV6(
             board.Perfect, board.Great, board.Bad, board.Miss, board.MaxCombo,
             board.MilestoneCrossings, noteCount, judgmentsComplete);
-        GManager.ratioScore = v5.RatioScore;
-        // v5 に連続コンボボーナスは無い (ADR-0035)。コンボ由来の獲得済み
-        // ボーナスは milestoneBonus が保持する。
+        GManager.ratioScore = v6.Judgment;
+        // v6 に連続コンボ・ノーミスの ratio ボーナスは無い。コンボ由来の
+        // 獲得済みは milestoneScore (絶対スコア点) が保持する。
         GManager.comboBonus = 0;
-        GManager.noMissBonus = v5.NoMissBonus;
-        GManager.milestoneBonus = v5.MilestoneBonus;
-        GManager.finalBonus = v5.FinalBonus;
-        GManager.baseScore = v5.BaseScore;
-        GManager.bonusScore = v5.BonusScore;
-        GManager.maxBonusRatio = v5.MaxBonusRatio;
+        GManager.noMissBonus = 0;
+        GManager.milestoneBonus = v6.MilestoneScore;
+        GManager.finalBonus = v6.ClearScore;
+        GManager.baseScore = v6.BaseScore;
+        GManager.bonusScore = v6.AdditionalScore;
+        GManager.maxBonusRatio = v6.MaxAdditional;
+        GManager.maxAdditionalScore = v6.MaxAdditional;
+        GManager.scoreMaxV6 = v6.MaxScore;
 
-        // scoring v5 のスコアは整数の厳密な割り算で求める (Issue #631 と
-        // 同じ決定的演算、ADR-0035)。GManager.score はこの値が HUD 表示と
-        // スコア投稿の両方に使われ、サーバの再計算 (computeUnityScoreV5)
-        // と全プラットフォームで一致する。上限は 2,000,000。
-        UpdateScore(Scoring.ScoreV5(v5));
+        // scoring v6 のスコアは整数の厳密な演算で求める (Issue #631 と
+        // 同じ決定的演算、ADR-0037)。GManager.score はこの値が HUD 表示と
+        // スコア投稿の両方に使われ、サーバの再計算 (computeUnityScoreV6)
+        // と全プラットフォームで一致する。上限は譜面ごとの ScoreMaxV6。
+        UpdateScore(Scoring.ScoreV6(v6));
     }
 
     /// <summary>
