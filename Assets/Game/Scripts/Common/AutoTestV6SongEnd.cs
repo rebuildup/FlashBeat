@@ -91,6 +91,10 @@ public class AutoTestV6SongEnd : MonoBehaviour
     bool burstStarted;
     int burstFramesLeft;
     int burstShot;
+    // Issue #789/#824: 歌詞区間の実描画証跡。メディア時刻 10〜45 秒を
+    // 2 秒毎に 1 枚ずつ撮る (曲の歌詞区間をカバーする汎用窓)。
+    float nextLyricShotTime = 10f;
+    int lyricShotCount;
     string outDir;
     string songTitle;
 
@@ -172,6 +176,13 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // AutoTestV6 と同じ引数 (-playfield 1) を読む。GameScene のシーン読み込み
         // より前 (Start) に立てる必要があるため、ここで設定する。
         FlashBeat.UI.V6.V6UiMode.Playfield = GetArg("-playfield") == "1";
+
+        // Issue #789: "-autotest-lyrics off" で歌詞パネルを OFF にした
+        // 対照ランを撮れる (設定 OFF で枠が消えることの証跡)。
+        if (GetArg("-autotest-lyrics") == "off")
+        {
+            PlaySession.SetLyricsEnabled(false);
+        }
 
         try { Directory.CreateDirectory(outDir); }
         catch (Exception) { }
@@ -389,6 +400,19 @@ public class AutoTestV6SongEnd : MonoBehaviour
                     burstFramesLeft -= 4;
                     burstShot++;
                     CaptureScreenshot("05-burst-" + burstShot.ToString("00"));
+                }
+
+                // Issue #789: 歌詞パネルの実描画を歌詞区間の通しで残す。
+                // 判定バーストは開始直後の 4 秒しか撮らないので、歌詞が
+                // 出る中盤以降はこちらで拾う。設定 OFF 確認用に
+                // "-autotest-lyrics off" で PlaySession.LyricsEnabled を
+                // 落とせる (枠が消えることの対照証跡)。
+                if (mediaTime >= nextLyricShotTime && mediaTime < 45f
+                    && lyricShotCount < 20)
+                {
+                    nextLyricShotTime = mediaTime + 2f;
+                    lyricShotCount++;
+                    CaptureScreenshot("06-lyrics-" + lyricShotCount.ToString("00"));
                 }
 
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
