@@ -1,0 +1,364 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.012 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x1030bf0d0]: surface size 3420x2148
+UnloadTime: 0.463875 ms
+[FullscreenBootstrap] event=purge-resolution stored=2560x1664, display=3420x2224
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_sMO4cH.mov
+[FullscreenDiagnostics] event=startup, screen=2560x1664, currentResolution=2560x1664@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,2560x1664, displays=1, display0=system:3420x2224,rendering:2560x1664,active:True, quality=1, time=2026-11-21T17:20:31Z
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6Interact] start out=/tmp/fb-test-out resolution=2560x1664 fullscreen=True
+Unloading 8 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.952666 ms
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 2290.
+Total: 0.865875 ms (FindLiveObjects: 0.035125 ms CreateObjectMapping: 0.055459 ms MarkObjects: 0.770750 ms  DeleteObjects: 0.004417 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213755736 scene=OptionScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[FullscreenBootstrap] event=first-frame, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[UpdateChecker] 最新です (build=0.2.6+1a504a37, latest=v0.2.5-macos-2aaa277b) — 現行版のまま続行します。
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=after-legacy-2s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[AutoTestV6Interact] PASS the scene OptionScene is loaded
+[AutoTestV6Interact] PASS option view exists
+[AutoTestV6Interact] PASS the sound tab shows the volume slider
+[AutoTestV6Interact] PASS the screenshot 375-slider-drag was written
+[AutoTestV6Interact] slider down=20% drag=35% drag=55% drag=70% up=80%
+[AutoTestV6Interact] PASS the pointer events reach the slider through the event system
+[AutoTestV6Interact] PASS the value and the label follow every drag step
+[AutoTestV6Interact] PASS the drag changes the value to where the pointer is
+[AutoTestV6Interact] PASS the value owner follows the drag
+[AutoTestV6Interact] PASS the value label follows the drag
+[AutoTestV6Interact] PASS the knob follows the drag
+[AutoTestV6Interact] PASS releasing the pointer saves the volume
+[AutoTestV6Interact] PASS a drag without release is not saved immediately
+[AutoTestV6Interact] PASS leaving the screen saves the pending volume
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.373209 ms
+Unloading 24 unused Assets to reduce memory usage. Loaded Objects now: 2313.
+Total: 1.296125 ms (FindLiveObjects: 0.056000 ms CreateObjectMapping: 0.063125 ms MarkObjects: 1.084042 ms  DeleteObjects: 0.092875 ms)
+
+[V5GameUi] NewCanvas V6 Option Canvas id=568105589213743934 scene=OptionScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[FullscreenBootstrap] event=after-mode-2s, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[FullscreenBootstrap] event=still-uncovered, screen=2560x1664, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=2560x1664
+[AutoTestV6Interact] PASS the scene OptionScene is loaded
+[AutoTestV6Interact] PASS option view exists (play settings)
+[AutoTestV6Interact] option play rows: NoteSpeed / NoteTiming / Key Layout / キー設定
+[AutoTestV6Interact] PASS the play tab has exactly the 4 expected rows in order
+[AutoTestV6Interact] PASS no row shows F2 as its value
+[AutoTestV6Interact] PASS the key config row reads '開く' as an action button
+設定完了 noteSpeed=10.1
+[AutoTestV6Interact] notespeed 10.00 -> 10.10 saved=10.10 row=10.1
+[AutoTestV6Interact] PASS NoteSpeed changes from the option row
+[AutoTestV6Interact] PASS NoteSpeed is saved to PlayerPrefs
+[AutoTestV6Interact] PASS the NoteSpeed row shows the new value
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+[AutoTestV6Interact] notetiming 0 -> 1 saved=1 row=1
+[AutoTestV6Interact] PASS NoteTiming changes from the option row
+[AutoTestV6Interact] PASS NoteTiming is saved to PlayerPrefs
+[AutoTestV6Interact] PASS the NoteTiming row shows the new value
+[AutoTestV6Interact] PASS the key config modal opens from the row
+[AutoTestV6Interact] PASS the modal blocks the background input
+[AutoTestV6Interact] PASS the screenshot 376-keyconfig-modal was written
+[AutoTestV6Interact] PASS closing the modal releases the background input
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.930792 ms
+Unloading 33 unused Assets to reduce memory usage. Loaded Objects now: 2237.
+Total: 1.464083 ms (FindLiveObjects: 0.054125 ms CreateObjectMapping: 0.069708 ms MarkObjects: 1.283750 ms  DeleteObjects: 0.056458 ms)
+
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213733700 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6Interact] PASS the scene ResultScene is loaded
+[AutoTestV6Interact] PASS result view exists
+[AutoTestV6Interact] reveal elapsed=3.18 complete=True modal=True modalAt=3.02 trophyAlpha=1.00
+[AutoTestV6Interact] PASS the reveal is staged (not everything at once)
+[AutoTestV6Interact] PASS the trophy fades in gradually
+[AutoTestV6Interact] PASS the register field opens automatically at the reveal register stage
+[AutoTestV6Interact] PASS the reveal completes on its own
+[AutoTestV6Interact] PASS the screenshot 384-result-reveal was written
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.012291 ms
+Unloading 1 unused Assets to reduce memory usage. Loaded Objects now: 2258.
+Total: 1.447875 ms (FindLiveObjects: 0.049333 ms CreateObjectMapping: 0.063167 ms MarkObjects: 1.330958 ms  DeleteObjects: 0.004417 ms)
+
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213731612 scene=ResultScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+se-bukanryou
+[AutoTestV6Interact] PASS the scene ResultScene is loaded
+[AutoTestV6Interact] PASS result view exists (skip run)
+[AutoTestV6Interact] skip elapsed=3.18 complete=True modal=False
+[AutoTestV6Interact] PASS Space skips the staged reveal
+[AutoTestV6Interact] PASS the skip does not open the register field
+[AutoTestV6Interact] PASS the screenshot 384-result-skip was written
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.645000 ms
+[NotesManager] no chart for 'ロストアンブレラ' - playing without notes
+Unloading 38 unused Assets to reduce memory usage. Loaded Objects now: 2457.
+Total: 0.927750 ms (FindLiveObjects: 0.044542 ms CreateObjectMapping: 0.060000 ms MarkObjects: 0.784583 ms  DeleteObjects: 0.038583 ms)
+
+[MusicManager] video player: songID=1 scenePlayers=29 path=scene index=1 player='1' renderMode=MaterialOverride videoId=DeKLpgzh-qQ
+[MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213729544 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213728330 scene=GameScene children=0
+[MusicManager] media cache hit videoId=DeKLpgzh-qQ (merged) - skipped the yt-dlp format probe
+[Perf] media resolve 136ms (cache hit)
+[Perf] media files 136ms
+[Perf] video Prepare() call 0ms file=merged.mp4
+[MusicManager] picture wired to the renderer of '1' (path=scene, _MainTex, renderMode=MaterialOverride)
+[Perf] video wire picture 0ms
+[Perf] video activate 0ms
+[MusicManager] VideoPlayer prepared=True path=scene file=merged.mp4 after 0.0s
+[Perf] media ready 275ms
+[MusicManager] media ready: song='ロストアンブレラ' audioMode=StreamCombined video=ok - press Space to start
+[AutoTestV6Interact] PASS the scene GameScene is loaded
+[AutoTestV6Interact] PASS pause view exists
+[AutoTestV6Interact] PASS game hud exists
+[AutoTestV6Interact] PASS the top shade exists
+[AutoTestV6Interact] PASS the top shade uses a sprite
+[AutoTestV6Interact] PASS the top shade texture is readable
+[AutoTestV6Interact] PASS the top shade fades to transparent at the bottom
+[AutoTestV6Interact] PASS the top shade height matches the design metric
+[AutoTestV6Interact] PASS the lyric box exists
+[AutoTestV6Interact] lyric origin actual=(720.00, 596.00) expected=(720.00, 596.00) fontSize=48
+[AutoTestV6Interact] PASS the lyric slot matches the design origin
+[AutoTestV6Interact] PASS the 7-digit score shows on one line
+[AutoTestV6Interact] PASS the 8-digit score shows on one line
+[AutoTestV6Interact] PASS the score pop plays when the value changes
+[AutoTestV6Interact] PASS the score pop settles
+[AutoTestV6Interact] PASS the v6 verdict row is enabled
+[AutoTestV6Interact] PASS the verdict text uses the design font size
+[AutoTestV6Interact] verdict fontSize=40
+[Perf] video Play() call 0ms
+[MusicManager] PLAYBACK_START song='ロストアンブレラ' videoId='DeKLpgzh-qQ' source=StreamCombined mediaTime=0.000 wallClock=2026-11-22T02:20:45.840 gameTime=14.037
+[AutoTestV6Interact] playback started=True
+[AutoTestV6Interact] PASS playback started for the pause checks
+[Perf] video first rendered frame at mediaTime=0.00
+[MusicManager] STATUS mediaTime=0.00 audioMode=StreamCombined rms=0.0000 peak=0.0000 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Interact] PASS opening the pause closes the gate
+[AutoTestV6Interact] PASS the chart clock is frozen while paused
+[AutoTestV6Interact] PASS judgement keys during pause change nothing
+[AutoTestV6Interact] PASS resume starts the countdown
+[AutoTestV6Interact] PASS the screenshot 382-countdown-1 was written
+[MusicManager] STATUS mediaTime=0.50 audioMode=StreamCombined rms=0.0000 peak=0.0064 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Interact] countdown digits=3-2-1 running=False paused=False
+[AutoTestV6Interact] PASS the countdown shows 3-2-1
+[AutoTestV6Interact] PASS the gate stays closed for the whole countdown
+[AutoTestV6Interact] PASS the chart clock is frozen during the countdown
+[AutoTestV6Interact] PASS judgement keys during the countdown change nothing
+[AutoTestV6Interact] PASS the countdown ends
+[AutoTestV6Interact] PASS the gate opens when the countdown ends
+[AutoTestV6Interact] resume continuity frozen=0.500 resumed=1.200 mediaNow=1.200
+[AutoTestV6Interact] PASS the chart clock resumes near the frozen position
+[AutoTestV6Interact] PASS the chart clock advances after the resume
+[AutoTestV6Interact] resume settled step=1.633 expected~0.900
+[AutoTestV6Interact] PASS the chart clock settles after the resume
+[AutoTestV6Interact] PASS the steady-state resume completes the countdown
+[MusicManager] STATUS mediaTime=2.00 audioMode=StreamCombined rms=0.0000 peak=0.5253 video[playing=True frame=6077 prepared=True] perfect=0 great=0 bad=0 miss=0 failure=None
+[AutoTestV6Interact] steady resume frozen=2.000 resumed=2.000
+[AutoTestV6Interact] PASS the chart clock resumes continuously in steady state
+[AutoTestV6Interact] PASS Esc during the countdown cancels it
+[AutoTestV6Interact] PASS Esc during the countdown returns to the pause menu
+[AutoTestV6Interact] PASS the gate stays closed after the cancel
+[AutoTestV6Interact] PASS the pause play tab has exactly the 4 expected rows in order
+[AutoTestV6Interact] PASS the pause key config row shows no F2
+設定完了 noteSpeed=10.1
+[AutoTestV6Interact] pause notespeed 10.00 -> 10.10 saved=10.10
+[AutoTestV6Interact] PASS NoteSpeed changes from the pause menu
+[AutoTestV6Interact] PASS the pause NoteSpeed row shows the new value
+[AutoTestV6Interact] PASS NoteSpeed is saved from the pause menu
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+設定完了 offset=1
+[AutoTestV6Interact] pause notetiming -> 1 saved=1
+[AutoTestV6Interact] PASS NoteTiming changes from the pause menu
+[AutoTestV6Interact] PASS NoteTiming is saved from the pause menu
+[AutoTestV6Interact] PASS the pause key config modal opens
+[AutoTestV6Interact] PASS the pause modal blocks the background input
+[AutoTestV6Interact] PASS keys injected while the modal is open do not reach the pause menu
+[AutoTestV6Interact] PASS the screenshot 376-pause-keyconfig was written
+[AutoTestV6Interact] PASS closing the pause modal releases the background input
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+設定完了 offset=5
+[AutoTestV6Interact] PASS Esc on the frame the countdown starts is ignored
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.236333 ms
+Unloading 84 unused Assets to reduce memory usage. Loaded Objects now: 2530.
+Total: 1.737208 ms (FindLiveObjects: 0.062583 ms CreateObjectMapping: 0.075334 ms MarkObjects: 1.477959 ms  DeleteObjects: 0.121291 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213713192 scene=SelectScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V6SelectView] rebuild #1 settingsOpen=False screen=2560x1664
+ro-dokanryou
+[AutoTestV6Interact] PASS the select scene is loaded (cold)
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.622709 ms
+Unloading 29 unused Assets to reduce memory usage. Loaded Objects now: 2176.
+Total: 1.463167 ms (FindLiveObjects: 0.073500 ms CreateObjectMapping: 0.089792 ms MarkObjects: 1.260791 ms  DeleteObjects: 0.039084 ms)
+
+[TitleSceneManager] event=video-render-mode renderMode=CameraFarPlane
+[V5GameUi] NewCanvas V6 Title Canvas id=568105589213705790 scene=TitleScene children=0
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[AutoTestV6Interact] PASS the scene TitleScene is loaded
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.034334 ms
+Unloading 5 unused Assets to reduce memory usage. Loaded Objects now: 2587.
+Total: 2.572042 ms (FindLiveObjects: 0.170291 ms CreateObjectMapping: 0.180959 ms MarkObjects: 2.193625 ms  DeleteObjects: 0.027000 ms)
+
+[V5GameUi] NewCanvas V6 Select Canvas id=568105589213704458 scene=SelectScene children=0
+[V6SelectView] rebuild #1 settingsOpen=False screen=2560x1664
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+ro-dokanryou
+[AutoTestV6Interact] PASS the select scene is loaded (warm)
+[AutoTestV6Interact] cache cold=0.10s warm=0.08s first=chartMeta=26 jacket=9/cached=9 second=chartMeta=26 jacket=9/cached=9
+[AutoTestV6Interact] PASS the first visit loads charts
+[AutoTestV6Interact] PASS the second visit reloads no chart meta
+[AutoTestV6Interact] PASS the second visit reloads no jacket
+[AutoTestV6Interact] PASS the jackets stay cached
+[AutoTestV6Interact] RESULT pass=96 fail=0 screenshots=6 resolution=2560x1664
+Thread 0x170eff000 may have been prematurely finalized
+Thread 0x170b6b000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16fb8f000 may have been prematurely finalized
+CodeReloadManager destroyed
