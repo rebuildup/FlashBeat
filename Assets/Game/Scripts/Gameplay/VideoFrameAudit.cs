@@ -27,6 +27,14 @@ namespace FlashBeat.Gameplay
         /// <summary>suspect とみなす勾配エネルギーの倍率 (ローリング中央値比)。</summary>
         public const float SuspectRatio = 3f;
 
+        /// <summary>
+        /// 連続 suspect を 1 イベントとして数える。シーン転換のような持続的な
+        /// エネルギー変化は長いランになるのに対し、モザイク/黒矩形のような
+        /// 単発破損は孤立した 1 サンプルのランになる。件数だけでなく
+        /// 「孤立イベント数」を見ることで両者を区別する (Issue #844)。
+        /// </summary>
+        public const int IsolatedRunLength = 1;
+
         /// <summary>基準を作るのに必要な最小サンプル数。</summary>
         public const int MinBaselineSamples = 8;
 
@@ -38,13 +46,36 @@ namespace FlashBeat.Gameplay
         static readonly List<float> baseline = new List<float>();
         static int samples;
         static int suspects;
+        static int suspectEvents;
+        static int isolatedSuspectEvents;
+        static int suspectRunLength;
         static float maxRatio;
         static float maxRatioAtMediaTime = -1f;
+        static float minRatio = float.MaxValue;
+        static float minRatioAtMediaTime = -1f;
 
         public static int Samples { get { return samples; } }
         public static int Suspects { get { return suspects; } }
+        /// <summary>連続 suspect ランの数 (シーン転換は 1 イベントにまとまる)。</summary>
+        public static int SuspectEvents { get { return suspectEvents; } }
+        /// <summary>ラン長 1 の suspect イベント数 (単発破損の候補)。</summary>
+        public static int IsolatedSuspectEvents { get { return isolatedSuspectEvents; } }
         public static float MaxRatio { get { return maxRatio; } }
         public static float MaxRatioAtMediaTime { get { return maxRatioAtMediaTime; } }
+        /// <summary>最小 ratio (エネルギー低下型の破損 = 黒矩形/平滑化の検出用)。</summary>
+        public static float MinRatio { get { return minRatio == float.MaxValue ? 0f : minRatio; } }
+        public static float MinRatioAtMediaTime { get { return minRatioAtMediaTime; } }
+
+        /// <summary>
+        /// スコアと基準中央値から suspect 判定を返す純粋関数 (EditMode テスト用)。
+        /// 増大 (モザイク/ブロックのエッジ増加) と低下 (黒矩形/平滑化) の両方向を見る。
+        /// </summary>
+        public static bool IsSuspectScore(float score, float baselineMedian, int baselineCount)
+        {
+            if (baselineCount < MinBaselineSamples || baselineMedian <= 1e-4f) return false;
+            float ratio = score / baselineMedian;
+            return ratio > SuspectRatio || ratio < 1f / SuspectRatio;
+        }
 
         /// <summary>
         /// 1 サンプルを取り、基準との比を返す。読めないときは -1。
@@ -62,16 +93,32 @@ namespace FlashBeat.Gameplay
             samples++;
             float baselineMedian = MedianOfTail(baseline, BaselineWindow);
             float ratio = baselineMedian > 1e-4f ? score / baselineMedian : 0f;
-
-            bool isSuspect = baseline.Count >= MinBaselineSamples && ratio > SuspectRatio;
-            if (isSuspect)
+            if (ratio > 0f)
             {
-                suspects++;
                 if (ratio > maxRatio)
                 {
                     maxRatio = ratio;
                     maxRatioAtMediaTime = mediaTime;
                 }
+                if (ratio < minRatio)
+                {
+                    minRatio = ratio;
+                    minRatioAtMediaTime = mediaTime;
+                }
+            }
+
+            bool isSuspect = IsSuspectScore(score, baselineMedian, baseline.Count);
+            if (isSuspect)
+            {
+                suspects++;
+                suspectRunLength++;
+            }
+            else if (suspectRunLength > 0)
+            {
+                // ラン終了: イベント確定。長さ 1 は単発破損の候補。
+                suspectEvents++;
+                if (suspectRunLength == IsolatedRunLength) isolatedSuspectEvents++;
+                suspectRunLength = 0;
             }
 
             // 基準は suspect を含めて更新する (破損フレームが基準を壊すと
@@ -140,14 +187,31 @@ namespace FlashBeat.Gameplay
             return copy[copy.Count / 2];
         }
 
+        /// <summary>
+        /// 終了時に未確定の suspect ランをイベントとして確定する。
+        /// プレイ終了直前でランが閉じていない場合の取りこぼし防止。
+        /// </summary>
+        public static void FinalizeAudit()
+        {
+            if (suspectRunLength <= 0) return;
+            suspectEvents++;
+            if (suspectRunLength == IsolatedRunLength) isolatedSuspectEvents++;
+            suspectRunLength = 0;
+        }
+
         /// <summary>テスト間で状態を持ち越さないためのリセット (EditMode 用)。</summary>
         public static void ResetForAudit()
         {
             baseline.Clear();
             samples = 0;
             suspects = 0;
+            suspectEvents = 0;
+            isolatedSuspectEvents = 0;
+            suspectRunLength = 0;
             maxRatio = 0f;
             maxRatioAtMediaTime = -1f;
+            minRatio = float.MaxValue;
+            minRatioAtMediaTime = -1f;
         }
     }
 }
