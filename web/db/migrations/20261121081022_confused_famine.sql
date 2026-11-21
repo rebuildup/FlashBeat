@@ -1,3 +1,4 @@
+-- void:allow-destructive
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_scores` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
