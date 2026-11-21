@@ -15,8 +15,9 @@ using UnityEngine.Video;
 ///     **すべて** <c>m_IsActive: 0</c> で置かれているが、これは
 ///     「シーンが映像表示をランタイムに委ねている」ためである。
 ///   * 実行時に <c>MusicManager.Start</c> が
-///     <c>YPlayer[GManager.songID].SetActive(true)</c> で **選択した平面を
-///     有効化する** ので、<c>VideoPicture.Activate</c> 内の SetActive は
+///     <c>ResolveScenePlayerIndex</c> (Issue #849: videoId 優先・songID 位置は
+///     フォールバック) で選んだ平面を <c>SetActive(true)</c> で **有効化する**
+///     ので、<c>VideoPicture.Activate</c> 内の SetActive は
 ///     実行時には no-op である。
 ///   * 映像が 1 フレームも描画されなかった **本当の原因** は、シーンの
 ///     VideoPlayer に target renderer も render texture も設定されて
@@ -87,10 +88,14 @@ public class VideoPictureTests
         Assert.GreaterOrEqual(inactive, 20, "No inactive picture plane was found in the scene.");
 
         // ランタイムが「選択した平面」を有効化している (ここが誤った原因
-        // 説明の訂正点)。
+        // 説明の訂正点)。Issue #849 で選択は videoId 優先の
+        // ResolveScenePlayerIndex に変わり、シーンに無い曲はテンプレートを
+        // 実行時複製する (CreateRemoteVideoPlayer)。
         string manager = File.ReadAllText(SourcePath("Assets/Game/Scripts/Gameplay/MusicManager.cs"));
-        StringAssert.Contains("YPlayer[GManager.songID].SetActive(true)", manager,
-            "The runtime has to enable the picture plane of the selected song.");
+        StringAssert.Contains("ResolveScenePlayerIndex", manager,
+            "The runtime has to resolve the picture plane of the selected song.");
+        StringAssert.Contains("plane.SetActive(true)", manager,
+            "The runtime has to enable the resolved picture plane.");
     }
 
     /// <summary>
@@ -134,7 +139,10 @@ public class VideoPictureTests
         if (nextMethod < 0) nextMethod = manager.Length;
         string startBody = manager.Substring(startIndex, nextMethod - startIndex);
 
-        Assert.IsTrue(startBody.Contains("YPlayer[GManager.songID].SetActive(true)"),
+        // Issue #849: 平面の選択は videoId 優先の ResolveScenePlayerIndex
+        // (scene 経路は解決した平面を、remote 経路は実行時複製を有効化する)。
+        Assert.IsTrue(startBody.Contains("plane.SetActive(true)")
+            || startBody.Contains("CreateRemoteVideoPlayer"),
             "The runtime has to select the picture plane of the song.");
         Assert.IsTrue(startBody.Contains("VideoPicture.HideBoard(songVideo)"),
             "The board has to be hidden when the picture plane of the song is selected.");
