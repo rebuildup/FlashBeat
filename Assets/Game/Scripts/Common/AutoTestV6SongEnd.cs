@@ -353,7 +353,13 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 if (lastMediaTime >= 0f && mediaTime > lastMediaTime + 0.01f) { mediaClockAdvanced = true; }
                 if (lastMediaTime < 0f || mediaTime > lastMediaTime) { lastMediaTime = mediaTime; }
 
-                if (notes != null && notes.noteNum > 0) { runtimeNoteCount = notes.noteNum; }
+                if (notes != null && notes.noteNum > 0)
+                {
+                    runtimeNoteCount = notes.noteNum;
+                    // クラウド譜面は選択直後には未取得なので、セッション固定後の
+                    // ここで改めて読む (Issue #823: ローカル Resources 経路は無い)。
+                    if (chartNoteCount == 0) { chartNoteCount = ChartNoteCount(songTitle); }
+                }
 
                 AutoHit(notes);
 
