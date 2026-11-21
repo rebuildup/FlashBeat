@@ -45,6 +45,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         private int lastComboMilestones;
         /// <summary>最後に文字として出したコンボボーナスのスコア点 (Issue #784)。</summary>
         private int lastComboBonusPoints = int.MinValue;
+        /// <summary>
+        /// scoring v6 (ADR-0037) の基礎スコア併記 ("BASE N")。
+        /// スコア合計の下に小さく出し、追加スコア (右コラムの BONUS
+        /// ブロック) と別のスコア部分として見せる。
+        /// </summary>
+        private TextMeshProUGUI baseScoreText;
 
         // --- 毎フレームの状態 (スコア系) ---
         /// <summary>最後に文字として出した値 (同じ値なら TextMeshPro を触らない。#381)。</summary>
@@ -199,6 +205,19 @@ namespace FlashBeat.UI.V6.Game.Hud
                 new Vector2(m.GaugeX, -m.ScoreValueY),
                 new Vector2(m.GaugeW, m.ScoreFs * 1.4f),
                 m.ScoreFs, V5Tokens.Text, V5Tokens.WarnLight);
+
+            // scoring v6 (ADR-0037): スコアは baseScore + additionalScore の
+            // 2 部構成。合計値の下に基礎スコアを小さく併記し、追加スコアは
+            // 右コラムの BONUS ブロックが別に表示する。v5 以前は基礎/追加の
+            // 区別が無いので出さない。
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                baseScoreText = V5Ui.Text(gameObject, "Base Score Value",
+                    "BASE 0", m.ScoreLabelFs, V5Tokens.TextMuted,
+                    TextAlignmentOptions.TopLeft);
+                PlaceTopLeft(baseScoreText.rectTransform, m.GaugeX,
+                    -(m.ScoreValueY + m.ScoreFs * 1.4f + m.ScoreLabelFs));
+            }
         }
 
         private void BuildComboBlock()
@@ -260,8 +279,13 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             // 上段 (契約 §8: Label/Value fs22、Value は右寄せ $warn-light、y0)。
             // 幅はゲージと同じ StatusTrackW に揃え、右端を揃えて右寄せする。
-            var bonusLabel = V5Ui.Text(bonus, "Label", "COMBO BONUS", m.BonusFs,
-                V5Tokens.TextMuted, TextAlignmentOptions.TopLeft);
+            // scoring v6 (ADR-0037) ではこのブロックはコンボ由来ではなく
+            // 追加スコア全体 (品質点 + 節目 + フルクリア) を表示するので、
+            // ラベルも "BONUS" にする。v5 以前は "COMBO BONUS" のまま。
+            var bonusLabel = V5Ui.Text(bonus, "Label",
+                FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6
+                    ? "BONUS" : "COMBO BONUS",
+                m.BonusFs, V5Tokens.TextMuted, TextAlignmentOptions.TopLeft);
             var bonusLabelRt = bonusLabel.rectTransform;
             bonusLabelRt.anchorMin = new Vector2(0f, 1f);
             bonusLabelRt.anchorMax = new Vector2(0f, 1f);

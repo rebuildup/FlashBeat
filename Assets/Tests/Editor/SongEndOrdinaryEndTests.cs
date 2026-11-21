@@ -71,9 +71,10 @@ public class SongEndOrdinaryEndTests
             "判定合計が noteCount に一致しない");
         Assert.AreEqual(NoteCount, GManager.settledNoteCount, "確定ノーツ数が noteCount に一致しない");
         Assert.AreEqual(NoteCount, GManager.perfect, "全ノーツ Perfect になっていない");
-        // scoring v4 (ADR-0033, Issue #736): 全 Perfect のフルコンボは
-        // 判定ベース 1,000,000 + ボーナス 1,000,000 = 2,000,000 が満点。
-        Assert.AreEqual(Scoring.ScoreMaxV4, GManager.score, "全 Perfect のスコアが満点になっていない");
+        // scoring v6 (ADR-0037, Issue #825): 全 Perfect のフルコンボは
+        // 譜面満点 ScoreMaxV6(noteCount) = 基礎 1,000,000 + 品質点
+        // noteCount*1000 + フルクリア 25,000。
+        Assert.AreEqual(Scoring.ScoreMaxV6(NoteCount), GManager.score, "全 Perfect のスコアが満点になっていない");
 
         // 終端条件 (メディア終端) が成立した_FRAME で曲が終わる。
         float deadline = SongEndAcceptanceRig.ProductionSettleDeadline(rig.Notes);

@@ -76,7 +76,8 @@ qualityPoints:  Perfect → PerfectScoreV6
   required in the implementation ticket): `PerfectScoreV6 = 1000`,
   `GreatScoreV6 = 600`, `BadScoreV6 = 200`, `MilestoneScoreV6 = 5000`,
   `FullClearScoreV6 = 25000`. For N = 139 this gives
-  `MaxAdditional ≈ 179,000` (~15% of the base ceiling); the bonus share
+  `MaxAdditional = 174,000` (139,000 quality + 10,000 milestones +
+  25,000 full clear; ~17% of the base ceiling); the bonus share
   stays meaningful without letting it dominate judgment quality.
 
 - `score = baseScore + additionalScore`. There is no fixed total cap;

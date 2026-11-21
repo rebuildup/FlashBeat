@@ -8,9 +8,10 @@
  *      Worker has no filesystem to read the contract from at runtime. This
  *      test reads the real contract file and fails when the copy drifts.
  *   2. `computeUnityScore` / `computeUnityScoreV2` / `computeUnityScoreV3`
- *      / `computeUnityScoreV4` / `computeUnityScoreV5` reproduce the Unity
- *      score formulas exactly (v1 of ADR-0028, v2 of ADR-0028, v3 of
- *      ADR-0029, v4 of ADR-0033, v5 of ADR-0035).
+ *      / `computeUnityScoreV4` / `computeUnityScoreV5` / `computeUnityScoreV6`
+ *      reproduce the Unity score formulas exactly (v1 of ADR-0028, v2 of
+ *      ADR-0028, v3 of ADR-0029, v4 of ADR-0033, v5 of ADR-0035, v6 of
+ *      ADR-0037).
  *      The reference values are hand-computed:
  *
  *        v1: maxScore   = noteCount * 5
@@ -52,6 +53,18 @@
  *            bonusRatio     = milestoneBonus + noMissBonus + finalBonus
  *            maxBonusRatio  = floor(noteCount / 50) * 250 + noteCount * 5 + 100
  *            (maxCombo stays in the contract but no longer enters the score)
+ *
+ *        v6: same judgment-derived base as v4/v5, but the normalized
+ *            bonus half becomes an absolute additional score whose chart
+ *            maximum grows with the note count (ADR-0037):
+ *            qualityScore    = perfect * 1000 + great * 600 + bad * 200
+ *            milestoneScore  = comboMilestones * 5000
+ *            clearScore      = judgmentsComplete && miss == 0 ? 25000 : 0
+ *            additionalScore = qualityScore + milestoneScore + clearScore
+ *            baseScore       = floor(judgment * 1e6 / (5 * noteCount))
+ *            score           = baseScore + additionalScore
+ *            scoreMax        = 1,000,000 + noteCount * 1000
+ *                              + floor(noteCount / 50) * 5000 + 25000
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -66,9 +79,12 @@ import {
   computeUnityScoreV3,
   computeUnityScoreV4,
   computeUnityScoreV5,
+  computeUnityScoreV6,
+  maxAdditionalScoreV6,
   nicknameDiagnostics,
   parseScoringVersionQuery,
   scoreSemanticsDiagnostics,
+  scoreMaxV6,
 } from "../routes/api/v1/_score-model.ts";
 
 describe("SCORE_SUBMISSION_SCHEMA", () => {
@@ -172,7 +188,7 @@ describe("scoreSemanticsDiagnostics", () => {
     assert.equal(diagnostics[0]?.path, "/maxCombo");
   });
 
-  it("accepts scoring versions 1, 2, 3, 4, 5 and an omitted version", () => {
+  it("accepts scoring versions 1, 2, 3, 4, 5, 6 and an omitted version", () => {
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 1 }, 139), []);
     assert.deepEqual(scoreSemanticsDiagnostics({ ...request, scoringVersion: 2 }, 139), []);
     // v3/v4/v5 on a no-miss play must report the exact crossing count (Issue #618).
@@ -188,11 +204,17 @@ describe("scoreSemanticsDiagnostics", () => {
       scoreSemanticsDiagnostics({ ...request, scoringVersion: 5, comboMilestones: 2 }, 139),
       [],
     );
+    // v6 prices each milestone at 5,000 absolute points (ADR-0037); the
+    // crossing bound is identical to v3/v4/v5.
+    assert.deepEqual(
+      scoreSemanticsDiagnostics({ ...request, scoringVersion: 6, comboMilestones: 2 }, 139),
+      [],
+    );
     assert.deepEqual(scoreSemanticsDiagnostics(request, 139), []);
   });
 
   it("rejects a scoring version the server cannot recompute", () => {
-    for (const scoringVersion of [0, 6]) {
+    for (const scoringVersion of [0, 7]) {
       const diagnostics = scoreSemanticsDiagnostics({ ...request, scoringVersion }, 139);
       assert.equal(diagnostics.length, 1);
       assert.equal(diagnostics[0]?.path, "/scoringVersion");
@@ -495,6 +517,104 @@ describe("computeUnityScoreV5 (ADR-0035)", () => {
   });
 });
 
+describe("computeUnityScoreV6 (ADR-0037)", () => {
+  it("a perfect run scores the chart maximum — base 1000000 plus the absolute additional score", () => {
+    // 139 notes, all perfect, 2 milestone crossings, no miss, settled:
+    //   judgment 695 -> baseScore floor(695*1e6/695) = 1000000
+    //   qualityScore 139*1000 = 139000
+    //   milestoneScore 2*5000 = 10000, clearScore 25000
+    //   score 1174000 = 1,000,000 + maxAdditionalScoreV6(139)
+    //   (the Who chart's v6 maximum — larger than its v5 maximum was
+    //   fixed at 2,000,000 for every chart).
+    assert.equal(computeUnityScoreV6(139, 0, 0, 0, 2, 139, true), 1174000);
+    assert.equal(scoreMaxV6(139), 1174000);
+    assert.equal(maxAdditionalScoreV6(139), 174000);
+  });
+
+  it("the chart maximum grows with the note count — longer charts earn more", () => {
+    // ADR-0037's core property: maxAdditionalScoreV6 is strictly
+    // increasing, so a longer chart's attainable additional score is
+    // larger. Concrete numbers: N=139 -> 174,000; N=600 -> 685,000;
+    // N=1000 -> 1,125,000 (whose total maximum exceeds the fixed
+    // v4/v5 ceiling of 2,000,000).
+    assert.equal(maxAdditionalScoreV6(139), 174000);
+    assert.equal(maxAdditionalScoreV6(600), 685000);
+    assert.equal(maxAdditionalScoreV6(1000), 1125000);
+    assert.ok(maxAdditionalScoreV6(600) > maxAdditionalScoreV6(139));
+    assert.ok(maxAdditionalScoreV6(1000) > maxAdditionalScoreV6(600));
+    assert.ok(scoreMaxV6(1000) > 2000000);
+    // A perfect run of the 600-note chart scores its own maximum.
+    assert.equal(computeUnityScoreV6(600, 0, 0, 0, 12, 600, true), 1685000);
+    assert.equal(scoreMaxV6(600), 1685000);
+  });
+
+  it("prices quality, milestones and the clear bonus as absolute points", () => {
+    // 50 notes: 30P + 10G + 10B, 0 milestones, 1 miss, settled.
+    //   judgment 150 + 30 + 10 = 190 -> baseScore floor(190*1e6/250) = 760000
+    //   qualityScore 30000 + 6000 + 2000 = 38000
+    //   milestoneScore 0, clearScore 0 (miss > 0)
+    //   score 798000.
+    assert.equal(computeUnityScoreV6(30, 10, 10, 1, 0, 50, true), 798000);
+    // Same play without the miss vests the 25,000 clear bonus.
+    //   judgments 189 hits... keep the same counts but miss -> bad:
+    //   30P + 10G + 10B + 0M misses none of the judgment sum rule here —
+    //   this unit test calls the formula directly (sum is checked by
+    //   scoreSemanticsDiagnostics in the route layer).
+    assert.equal(computeUnityScoreV6(30, 10, 10, 0, 0, 50, true), 823000);
+  });
+
+  it("withholds the clear bonus while judgments are incomplete (Issue #618)", () => {
+    // Parity vector 'v3-live-incomplete-nomiss' under v6:
+    //   40P + 10G of a 100-note chart mid-play, 1 milestone.
+    //   judgment 230 -> baseScore 460000
+    //   qualityScore 40000 + 6000 = 46000, milestoneScore 5000
+    //   live clearScore 0 -> score 511000
+    //   settled clearScore 25000 -> score 536000
+    assert.equal(computeUnityScoreV6(40, 10, 0, 0, 1, 100, false), 511000);
+    assert.equal(computeUnityScoreV6(40, 10, 0, 0, 1, 100, true), 536000);
+  });
+
+  it("combo continuation alone earns nothing — only milestone crossings pay", () => {
+    // maxCombo is not a parameter of computeUnityScoreV6: two plays that
+    // differ only in combo length but cross the same milestones score
+    // identically (same contract as v5).
+    assert.equal(
+      computeUnityScoreV6(9, 1, 0, 0, 0, 10, true),
+      computeUnityScoreV6(9, 1, 0, 0, 0, 10, true),
+    );
+    // 10 notes, 9P + 1G, no miss, 0 milestones:
+    //   judgment 48 -> baseScore 960000, qualityScore 9600, clearScore 25000
+    //   score 994600.
+    assert.equal(computeUnityScoreV6(9, 1, 0, 0, 0, 10, true), 994600);
+  });
+
+  it("rejects a client score above the chart maximum (per-chart bound)", () => {
+    // scoreSemanticsDiagnostics caps a v6 submission at
+    // scoreMaxV6(noteCount): a 139-note chart cannot submit more than
+    // 1,174,000 even though the schema sanity bound is far higher.
+    const base = {
+      songId: "who",
+      chartVersion: 1,
+      nickname: "abc",
+      perfect: 139,
+      great: 0,
+      bad: 0,
+      miss: 0,
+      maxCombo: 139,
+      comboMilestones: 2,
+      scoringVersion: 6,
+    };
+    assert.deepEqual(scoreSemanticsDiagnostics({ ...base, score: 1174000 }, 139), []);
+    const over = scoreSemanticsDiagnostics({ ...base, score: 1174001 }, 139);
+    assert.equal(over.length, 1);
+    assert.equal(over[0]?.path, "/score");
+  });
+
+  it("a chart without notes cannot be scored", () => {
+    assert.equal(computeUnityScoreV6(0, 0, 0, 0, 0, 0, true), null);
+  });
+});
+
 describe("computeScoreForVersion", () => {
   const base = {
     songId: "who",
@@ -537,12 +657,20 @@ describe("computeScoreForVersion", () => {
     // ignored — v5 has no continuous combo bonus (ADR-0035).
     assert.equal(computeScoreForVersion({ ...base, scoringVersion: 5 }, 10), 1960000);
   });
+
+  it("uses the v6 formula when scoringVersion is 6", () => {
+    // Same 10-note play under v6: judgment 48 -> base 960000;
+    // qualityScore 9*1000 + 1*600 = 9600; comboMilestones omitted -> 0;
+    // a submission is always settled and miss == 0 -> clearScore 25000.
+    // score 994600. maxCombo 10 stays bound-checked but unused.
+    assert.equal(computeScoreForVersion({ ...base, scoringVersion: 6 }, 10), 994600);
+  });
 });
 
 describe("parseScoringVersionQuery", () => {
   it("defaults to the latest scoring version", () => {
-    assert.equal(LATEST_SCORING_VERSION, 5);
-    assert.equal(parseScoringVersionQuery(undefined), 5);
+    assert.equal(LATEST_SCORING_VERSION, 6);
+    assert.equal(parseScoringVersionQuery(undefined), 6);
   });
 
   it("accepts positive integers", () => {
@@ -551,6 +679,7 @@ describe("parseScoringVersionQuery", () => {
     assert.equal(parseScoringVersionQuery("3"), 3);
     assert.equal(parseScoringVersionQuery("4"), 4);
     assert.equal(parseScoringVersionQuery("5"), 5);
+    assert.equal(parseScoringVersionQuery("6"), 6);
   });
 
   it("rejects missing, non-numeric and non-positive values", () => {

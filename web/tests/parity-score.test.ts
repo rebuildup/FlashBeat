@@ -31,6 +31,7 @@ import {
   computeUnityScoreV3,
   computeUnityScoreV4,
   computeUnityScoreV5,
+  computeUnityScoreV6,
   scoreSemanticsDiagnostics,
   type ScoreSubmission,
 } from "../routes/api/v1/_score-model.ts";
@@ -53,6 +54,8 @@ interface ScoreCase {
   scoreV4Settled: number;
   scoreV5: number;
   scoreV5Settled: number;
+  scoreV6: number;
+  scoreV6Settled: number;
 }
 
 interface V3SubmissionCheck {
@@ -178,6 +181,40 @@ describe("score parity vectors (contracts/parity/score-vectors.json)", () => {
       } else {
         assert.ok(c.scoreV5 <= c.scoreV5Settled, "live score must not exceed settled");
       }
+      // v6 (ADR-0037) keeps the judgment base and replaces the normalized
+      // bonus half with the absolute additional score (quality + milestone
+      // + full-clear points). The Web function mirrors Scoring.ScoreV6's
+      // judgmentsComplete flag, so it reproduces both the live and the
+      // settled vector values.
+      assert.equal(
+        computeUnityScoreV6(
+          c.perfect,
+          c.great,
+          c.bad,
+          c.miss,
+          c.comboMilestones,
+          c.noteCount,
+          c.judgmentsComplete,
+        ),
+        c.scoreV6,
+      );
+      assert.equal(
+        computeUnityScoreV6(
+          c.perfect,
+          c.great,
+          c.bad,
+          c.miss,
+          c.comboMilestones,
+          c.noteCount,
+          true,
+        ),
+        c.scoreV6Settled,
+      );
+      if (c.judgmentsComplete || c.miss !== 0) {
+        assert.equal(c.scoreV6, c.scoreV6Settled);
+      } else {
+        assert.ok(c.scoreV6 <= c.scoreV6Settled, "live score must not exceed settled");
+      }
     });
   }
 });
@@ -198,10 +235,10 @@ describe("v3 comboMilestones submission bounds (contracts/parity)", () => {
       if (check.maxCombo !== undefined) request.maxCombo = check.maxCombo;
       if (check.comboMilestones !== undefined) request.comboMilestones = check.comboMilestones;
 
-      // ADR-0033 / ADR-0035: scoringVersions 4 and 5 apply the identical
-      // comboMilestones bounds — the milestone term is unchanged, only
-      // the normalization differs.
-      for (const scoringVersion of [3, 4, 5] as const) {
+      // ADR-0033 / ADR-0035 / ADR-0037: scoringVersions 4, 5 and 6 apply
+      // the identical comboMilestones bounds — the milestone term is
+      // unchanged, only the score mapping differs.
+      for (const scoringVersion of [3, 4, 5, 6] as const) {
         const diagnostics = scoreSemanticsDiagnostics(
           { ...request, scoringVersion },
           check.noteCount,

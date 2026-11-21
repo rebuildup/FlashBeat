@@ -31,7 +31,12 @@ namespace FlashBeat.V5CanvasTests
             // v5 (ADR-0035) も同じ 2,000,000 満点 — ゲージ正規化は #788 の
             // グレード閾値と同じ正本 (ScoreMaxOf) から出る。
             Assert.AreEqual(2000000, V6GradeLogic.ScoreMaxOf(Scoring.Version5));
-            Assert.AreEqual(2000000, V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
+            // v6 (ADR-0037 / Issue #825): 満点は譜面ごとの
+            // ScoreMaxV6(noteCount)。ノーツ数不明 (0) のときは
+            // int.MaxValue を返し、割合が実質 0 → グレード C / ゲージ空の
+            // 保守側に落ちる (満点扱いの誤 SS を防ぐ)。
+            Assert.AreEqual(1174000, V6GradeLogic.ScoreMaxOf(Scoring.Version6, 139));
+            Assert.AreEqual(int.MaxValue, V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
         }
 
         // --- v4 グレード帯 (境界値。Issue #788: S 95% / A 70% / B 50%) ---
@@ -57,14 +62,18 @@ namespace FlashBeat.V5CanvasTests
         {
             // RankFor 系の帯: v4 以降は 2M 帯、v1–v3 は RankFor 閾値。
             Assert.AreEqual("SS", V6GradeLogic.GradeOf(2000000, Scoring.Version4));
-            Assert.AreEqual("A", V6GradeLogic.GradeOf(1600000, Scoring.LatestVersion));
+            Assert.AreEqual("A", V6GradeLogic.GradeOf(1600000, Scoring.Version5));
+            // scoring v6 (ADR-0037): LatestVersion は v6。グレードは譜面満点
+            // ScoreMaxV6(noteCount) に対する割合。N=139 の満点は 1,174,000。
+            Assert.AreEqual("SS", V6GradeLogic.GradeOf(1174000, Scoring.LatestVersion, 139));
+            Assert.AreEqual("A", V6GradeLogic.GradeOf(880500, Scoring.LatestVersion, 139));
             // 同じスコアでも scoringVersion で帯が変わる: 950,000 は v4 帯では
             // C (B 境界 1,000,000 未満)、v1–v3 の RankFor では S (≥950,000)。
             // v5 (ADR-0035) は v4 と同じ帯 — 1,227,055 のようなスコアは
             // 引き続き B で、ゲージも score/2M の同じ写像に乗る。
             Assert.AreEqual("B", V6GradeLogic.GradeOf(1227055, Scoring.Version5));
             Assert.AreEqual("A", V6GradeLogic.GradeOf(1600000, Scoring.Version5));
-            Assert.AreEqual("C", V6GradeLogic.GradeOf(950000, Scoring.LatestVersion));
+            Assert.AreEqual("C", V6GradeLogic.GradeOf(950000, Scoring.Version5));
             Assert.AreEqual("S", V6GradeLogic.GradeOf(950000, Scoring.Version3));
             Assert.AreEqual("SS", V6GradeLogic.GradeOf(1000000, Scoring.Version3));
             Assert.AreEqual("B", V6GradeLogic.GradeOf(700000, Scoring.Version1));

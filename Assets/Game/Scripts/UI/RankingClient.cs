@@ -24,10 +24,12 @@ public static class RankingClient
     public const string NicknamePrefsKey = "RankingNickname";
     /// <summary>
     /// scoringVersion sent with every submission (ADR-0028 / ADR-0029 /
-    /// ADR-0033 / ADR-0035): tracks <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/>
-    /// (5 = the v5 formula: judgment-derived base capped at 1,000,000 plus
-    /// milestone-only combo bonuses, full combo exceeds 1,000,000). The
-    /// server treats an omitted field as 1 for old clients.
+    /// ADR-0033 / ADR-0035 / ADR-0037): tracks
+    /// <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/>
+    /// (6 = the v6 formula: judgment-derived base capped at 1,000,000 plus
+    /// an absolute additional score — quality points, milestone and
+    /// full-clear bonuses — whose chart maximum grows with the note
+    /// count). The server treats an omitted field as 1 for old clients.
     /// </summary>
     public const int ScoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion;
     /// <summary>error set on transport failure (offline, DNS, timeout).</summary>
