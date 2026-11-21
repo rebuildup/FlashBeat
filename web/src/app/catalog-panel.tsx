@@ -281,6 +281,18 @@ const actionsCell = css({
   paddingRight: "4",
 });
 
+/**
+ * Issue #802 review: the publish requirement used to repeat as a badge on
+ * every row — pure noise once the list has more than a couple of songs.
+ * It is stated once, above the list, instead.
+ */
+const publishNote = css({
+  color: "fg.subtle",
+  fontSize: "xs",
+  gridColumn: "1 / -1",
+  paddingBottom: "2",
+});
+
 const legend = css({
   alignItems: "center",
   borderTopColor: "border",
@@ -358,7 +370,13 @@ export function CatalogPanel({
           <h2 className={panelTitle}>カタログ</h2>
           <p className={panelSubtitle}>{subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={onRetry} disabled={status === "loading"}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          loading={status === "loading"}
+          disabled={status === "loading"}
+        >
           <RotateCcw className={buttonIcon} size={14} aria-hidden="true" />
           更新
         </Button>
@@ -427,6 +445,9 @@ export function CatalogPanel({
             {/* カード表示の帯 (xl 未満) でも ↑/↓ の行移動を効かせる。
                 ハンドラは data-row-link を拾うので両レイアウトで共通。 */}
             <div className={cardContainer} onKeyDown={onListKeyDown}>
+              <p className={publishNote} data-testid="publish-requirement">
+                公開はスタッフ（要トークン）
+              </p>
               {songs.map((song) => (
                 <div key={song.id} className={card}>
                   <div className={cardHeader}>
@@ -453,19 +474,6 @@ export function CatalogPanel({
                     <Link className={actionLink} href={chartHref(song)}>
                       譜面を開く
                     </Link>
-                    {/*
-                      Issue #215 review: the per-song publish path starts at
-                      the chart page (公開に進む) or the staff sidebar — the
-                      row only states the requirement so a guest never starts
-                      a publish operation from a catalog row.
-                    */}
-                    <Badge
-                      tone="outline"
-                      testId="publish-requirement"
-                      title="公開にはスタッフのadminトークンが必要です"
-                    >
-                      公開はスタッフ（要トークン）
-                    </Badge>
                     <a
                       aria-label={`${song.title} をYouTubeで開く`}
                       className={actionLinkSubtle}
@@ -490,6 +498,9 @@ export function CatalogPanel({
                   <span>Ver</span>
                   <span />
                 </div>
+                <p className={publishNote} data-testid="publish-requirement">
+                  公開はスタッフ（要トークン）
+                </p>
                 {songs.map((song) => (
                   <div key={song.id} className={`row ${row}`}>
                     <Link className={rowLink} href={chartHref(song)} data-row-link>
@@ -526,18 +537,6 @@ export function CatalogPanel({
                     <span className={version}>v{song.chartVersion}</span>
 
                     <span className={`${rowActions} ${actionsCell}`}>
-                      {/*
-                        Issue #215 review: the row states the publish
-                        requirement instead of linking it — the per-song path
-                        starts at the chart page or the staff sidebar.
-                      */}
-                      <Badge
-                        tone="outline"
-                        testId="publish-requirement"
-                        title="公開にはスタッフのadminトークンが必要です"
-                      >
-                        公開はスタッフ（要トークン）
-                      </Badge>
                       <a
                         aria-label={`${song.title} をYouTubeで開く`}
                         className={actionLinkSubtle}

@@ -52,8 +52,11 @@ const toolField = css({
 });
 
 const selectRoot = css({
-  /** Definite basis so Sort/Level pack into one row (issue #166). */
-  flex: "0 0 8rem",
+  /** Definite basis so Sort/Level pack into one row (issue #166).
+   * Issue #802 review: on narrow viewports the selects must grow into the
+   * wrapped row instead of staying 8rem — a fixed basis squeezed the level
+   * value down to "すべて…". */
+  flex: { base: "1 1 8rem", md: "0 0 8rem" },
   minWidth: "8rem",
   flexShrink: 0,
 });
@@ -69,6 +72,10 @@ const selectControl = css({
   gap: "2",
   height: "sizes.10",
   justifyContent: "space-between",
+  // Issue #802 review: keep the value text inside the control on narrow
+  // widths (ellipsis instead of clipping mid-glyph).
+  minWidth: "0",
+  overflow: "hidden",
   paddingInline: "3",
   textAlign: "left",
   width: "full",

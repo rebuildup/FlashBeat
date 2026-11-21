@@ -258,9 +258,9 @@ const staffGroup = css({
 });
 
 const groupLabel = css({
-  color: "fg.subtle",
+  color: "fg.muted",
   display: { base: "none", md: "block" },
-  fontSize: "2xs",
+  fontSize: "xs",
   letterSpacing: "0.08em",
   paddingInline: "3",
   paddingTop: "2",
@@ -284,8 +284,8 @@ const staffSubgroup = css({
  * at a glance.
  */
 const subgroupLabel = css({
-  color: "fg.subtle",
-  fontSize: "2xs",
+  color: "fg.muted",
+  fontSize: "xs",
   gridColumn: { base: "1 / -1", md: "auto" },
   letterSpacing: "0.08em",
   paddingInline: "3",
@@ -315,7 +315,10 @@ const navTrigger = css({
     outlineColor: "colorPalette.solid.bg",
     outlineOffset: "2px",
   },
-  "&[aria-current=page]": { bg: "colorPalette.subtle.bg", color: "colorPalette.subtle.fg" },
+  "&[aria-current=page]": {
+    bg: "colorPalette.subtle.bg",
+    color: "colorPalette.subtle.fg",
+  },
   justifyContent: "flex-start",
   textAlign: "left",
   width: { base: "auto", md: "100%" },
@@ -331,7 +334,14 @@ const visitorTrigger = css({
   fontWeight: "medium",
   minWidth: "0",
   _hover: { opacity: "0.9" },
-  "&[aria-current=page]": { opacity: "0.9" },
+  // Issue #802 review: the solid CTA always looks "selected". Mark the real
+  // current page with an inner ring so exactly one entry reads as active.
+  "&[aria-current=page]": {
+    opacity: "1",
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.fg",
+    outlineOffset: "-2px",
+  },
 });
 
 /**
@@ -430,9 +440,11 @@ const labelGrid = css({
 /** Visible admin-token badge on Publish: the boundary shows before the click. */
 const adminBadge = css({
   bg: "gray.subtle.bg",
+  borderColor: "gray.surface.border",
   borderRadius: "full",
-  color: "fg.muted",
-  fontSize: "2xs",
+  borderWidth: "1px",
+  color: "fg.default",
+  fontSize: "xs",
   marginLeft: "auto",
   paddingBlock: "0.5",
   paddingInline: "2",
