@@ -33,9 +33,10 @@
 #   7. files under `.gitattributes` `linguist-vendored` paths still match
 #      config/linguist-vendored.sha256 (Issue #636: vendored marking is only
 #      honest while the marked tree stays identical to upstream);
-#   8. no tracked file reappears under `Resources/Videos/UnityYoutube/`
-#      (Issue #823: third-party song videos were removed from HEAD; playback
-#      resolves stream URLs at runtime, so the local clips must not return).
+#   8. no tracked file reappears under `Resources/Videos/UnityYoutube/` or
+#      `Resources/Musics/` (Issues #823/#794: third-party song videos and
+#      wavs were removed from HEAD; playback resolves stream URLs at
+#      runtime, so the local media must not return).
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -323,6 +324,7 @@ for rel in tracked:
 banned_media = [
     rel for rel in tracked
     if rel.startswith("Assets/Game/Resources/Videos/UnityYoutube/")
+    or rel.startswith("Assets/Game/Resources/Musics/")
 ]
 
 failures = 0
@@ -356,7 +358,7 @@ failures += report("tab indentation in .cs", tabs)
 failures += report("Player.log path does not use ProjectSettings companyName", log_path_scan)
 failures += report("heavy CI gate accidentally enabled", ci_gate_errors)
 failures += report("tracked secret-looking file (.env*/.dev.vars)", secret_looking)
-failures += report("third-party media reintroduced under Resources/Videos/UnityYoutube", banned_media)
+failures += report("third-party media reintroduced under Resources/Videos/UnityYoutube or Resources/Musics", banned_media)
 
 if failures:
     print("")

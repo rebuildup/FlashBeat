@@ -142,7 +142,6 @@ public class MusicManager : MonoBehaviour
     /// <summary>Issue #792: パイプラインが「この曲は再生できない」と判定済み。
     /// Space による開始を止める (音の無い曲を壁時計で走らせない)。</summary>
     bool pipelineFailed;
-    ResourceRequest musicRequest;
 
     /// <summary>
     /// Wall clock of the moment the song was started. It is the reference for
@@ -247,16 +246,9 @@ public class MusicManager : MonoBehaviour
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         songName = sessionSong != null ? sessionSong.title : "";
         audioS = GetComponent<AudioSource>();
-        // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
-        // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
-        // Issue #651: songName は SongData.title 由来 (リモート曲は API の
-        // メタデータ)。'/' 等を含むと Resources path が別階層を指して
-        // 必ず見つからないため、path 区切りを含む名前は load 自体を省く
-        // (Music == null の既存経路 = YouTube 音声のみ、へそのまま流れる)。
-        if (songName.IndexOfAny(new[] { '/', '\\' }) < 0)
-        {
-            musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
-        }
+        // Issue #823: ローカル同梱の第三者楽曲 wav (Resources/Musics) は撤去した。
+        // 音源は常に YouTube メディア (ストリーム) のみ。無音時の wav
+        // フォールバックも廃止し、無音なら AudioSilent として失敗処理する。
         notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
@@ -563,25 +555,9 @@ public class MusicManager : MonoBehaviour
             }
         }
 
-        // 6. Decide where the sound comes from (a missing wav yields None
-        //    instead of throwing - the recovery then takes over).
-        // The bundled wav is loaded asynchronously (Start); the decision needs
-        // to know whether it exists, so wait for the request here.
-        if (musicRequest != null)
-        {
-            while (!musicRequest.isDone) yield return null;
-            Music = musicRequest.asset as AudioClip;
-            if (Music == null)
-            {
-                // The release build ships no third party media: the build moves
-                // Assets/Game/Resources/Musics out of the build, so the wav that
-                // belongs to the chart is not there. The YouTube media is then the
-                // only sound source - that is the wanted state, it is only logged so
-                // that the player log shows where the sound comes from.
-                Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
-            }
-        }
-        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
+        // 6. Decide where the sound comes from. Issue #823: bundled wav は
+        //    撤去済みなので音源は YouTube メディアのみ (hasBundledWave = false)。
+        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, false);
 
         mediaReady = true;
         PerfMarks.Hit("media-ready");
@@ -644,7 +620,7 @@ public class MusicManager : MonoBehaviour
         }
 
         Debug.Log($"[MusicManager] media ready: song='{songName}' audioMode={audioMode} video={(videoReady ? "ok" : "missing")} " +
-                  $"(bundled wav {(Music != null ? "present" : "missing")}) - press Space to start");
+                  "- press Space to start");
     }
 
     /// <summary>
@@ -957,7 +933,7 @@ public class MusicManager : MonoBehaviour
             // 「URL を解決し直して 1 回だけ再 prepare」は、Windows 実機で効果を
             // 確かめられるまで接続しない (未検証の分岐を展示経路に入れない)。
             bool isWindows = WindowsMediaRecovery.CurrentPlatformIsWindows();
-            string hint = WindowsMediaRecovery.VideoFailureHint(isWindows, Music != null);
+            string hint = WindowsMediaRecovery.VideoFailureHint(isWindows, false);
             if (!string.IsNullOrEmpty(hint))
             {
                 Debug.Log("[MusicManager] video recovery: " + hint);
@@ -1277,8 +1253,9 @@ public class MusicManager : MonoBehaviour
         }
 
         // The split stream can end up silent (Unity's Windows decoder does not
-        // accept every audio only container). Measure the mix and fall back to the
-        // wav that ships with the chart when it stays quiet.
+        // accept every audio only container). Issue #823: bundled wav fallback
+        // is gone, so a silent stream is a hard failure (error view offers
+        // retry / back-to-select).
         // BGM 音量 0 は利用者が選べる正常な設定で、プローブは音量適用後の
         // ミックスを測るため RMS≈0 になる。音量 0 の間は無音判定を行わず、
         // 音量を上げた最初のフレームで検査する (PR #787 review)。
@@ -1287,12 +1264,7 @@ public class MusicManager : MonoBehaviour
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
-            if (rms < 0.001f && Music != null)
-            {
-                Debug.LogWarning($"[MusicManager] stream audio is silent (rms={rms:F5}) - falling back to the bundled wav");
-                SwitchToBundledAudio(mediaTime);
-            }
-            else if (rms < 0.001f)
+            if (rms < 0.001f)
             {
                 // There is no wav to fall back to: the song would run silent,
                 // which is not playable. The song ends on the wall clock and
@@ -1608,26 +1580,6 @@ public class MusicManager : MonoBehaviour
         SongData playbackSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{(playbackSong != null ? playbackSong.videoId : "")}' " +
                   $"source={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
-    }
-
-    void SwitchToBundledAudio(float atMediaTime)
-    {
-        if (streamAudioPlayer != null) streamAudioPlayer.Stop();
-        if (streamAudioObject != null)
-        {
-            Destroy(streamAudioObject);
-            streamAudioObject = null;
-            streamAudioPlayer = null;
-            streamAudioSource = null;
-        }
-
-        audioMode = PlaybackSource.BundledWave;
-        audioS.clip = Music;
-        audioS.time = Mathf.Max(0f, atMediaTime);
-        audioS.volume = GManager.BGMVolume;
-        audioS.Play();
-
-        Debug.Log($"[MusicManager] switched to the bundled wav at mediaTime={atMediaTime:F2}");
     }
 
     /// <summary>
