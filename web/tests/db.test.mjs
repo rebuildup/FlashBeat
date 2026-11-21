@@ -298,11 +298,11 @@ test("the scores CHECK allows v4/v5 scores up to 2000000, v6 up to the chart-max
   assertRejected("v4 score above 2000000", () => insertScore.run(...row(2000001, 4)));
   assertRejected("v5 score above 2000000", () => insertScore.run(...row(2000001, 5)));
   // scoring v6 (ADR-0037): the chart maximum grows with the note count, so
-  // the CHECK bounds it by 12,225,000 — the largest reachable score
+  // the CHECK bounds it by 12,025,000 — the largest reachable score
   // (ScoreMaxV6 of a 10,000-note chart, the published contract cap) — and
   // the exact per-chart bound is enforced by the API recomputation.
   insertScore.run(...row(1174000, 6));
-  insertScore.run(...row(12225000, 6));
+  insertScore.run(...row(12025000, 6));
   assertRejected("v6 score above the sanity ceiling", () =>
     insertScore.run(...row(12225001, 6)),
   );
