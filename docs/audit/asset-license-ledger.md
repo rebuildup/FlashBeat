@@ -77,3 +77,55 @@
 - **`design/assets/jackets/*.jpg`**: `design/flashbeat-ui.pen` が `jackets/` を 36 箇所参照しており、Pencil の外部アセットとして現役。除去すると design ソースが壊れるため残置 (B 区分の許諾証跡確認は継続)。
 - **`Assets/Game/Resources/*.json` (実曲譜面+歌詞) / `Musics/*.wav` / `UnityYoutube/*.mp4`**: 全て現役参照 (ローカルプレイ・テスト・フォールバック)。「ローカル同梱をやめてクラウドカタログ専用にするか」の製品判断待ちで、機械的削除は依然不可。
 - **`BETTER_AUTH_SECRET`**: 2026-11-21 に生成し Infisical (dev) と Worker secret に設定済み。値は本台帳・ログ・Issue に記録しない。
+
+## 2026-11-22 追記 (v0.2.5 時点 — #823/#794 HEAD 整理の完了)
+
+### HEAD から解消したもの
+
+- `Resources/Musics/*.wav` (15 曲) — PR #836 で削除。音源は YouTube ストリームのみ。
+- `Resources/Videos/UnityYoutube/*.mp4` (27 本) — PR #832 で削除 + GameScene GUID 修復。
+- `Resources/*.json` 実曲譜面 28 本 + `E2EProbeSong.json` — PR #838 で削除。
+  譜面供給はクラウドカタログに一本化 (`NotesManager.ParseChart` / `ChartLyrics.Resolve`)。
+  テストは `SyntheticCharts` / `contracts/charts/` の合成 fixture へ移行済み。
+- `Resources/V6|V5/select/jacket/*` (32 点) — PR #837 で削除。ジャケットは
+  YouTube サムネイル遠隔取得に一本化。
+- `Assets/Game/Art/Images/` の第三者由来画像 14 点 — `legacy-sprite-NN` (中立
+  placeholder、GUID 維持) へ置換。
+- `design/assets/jackets/*.jpg` 26 点・`jk-*.png`・`loading-still.jpg`・
+  `song-video-frame.jpg` — PR #840 で削除、`.pen` / nodes.json は placeholder 参照へ。
+- `web/db/fixtures/who.*` → `seed.*`、`web/src/lib/chart/fixtures/sample-chart.json`、
+  `contracts/charts/*` — 全て権利クリア合成 fixture へ統一 (PR #840)。
+- `web/tests/e2e/artifacts/*.png` — git 管理から除去 + `.gitignore` 追加済み。
+- `web/scripts/publish-catalog.mjs` — PR #840 で削除 (本番 D1 への直接 publish
+  経路を閉じた。今後の catalog 更新は別経路が必要)。
+
+### HEAD に残る要確認項目
+
+- `Assets/Game/Audio/カーソル移動4.mp3` — ライセンス未確認・ユーザー指定のため
+  差替えは要承認 (#791)。リリースに同梱。
+- `Assets/Game/Audio/決定ボタンを押す31.mp3` — 効果音ラボ (free-commercial-no-credit、
+  PR #746)。
+- `Assets/Game/Resources/Videos/loading.mp4` / `opening1.mp4` — 自社制作と整理済み
+  (台帳 A 区分の運用を継続)。
+- `Assets/NoteEditor/Audio/Clap.mp3` / `Click 2.wav` — エディタ専用・出所未記録。
+  ゲーム配布物には含まれない。
+- `docs/evidence/rc-0.2.1/autotest/burst-gameplay.mp4` — ゲームプレイ画面収録
+  (映像のみ・音声ストリームなし)。YouTube 動画フレームが写り込む可能性。
+  証跡価値とのトレードオフで残置。除去する場合は当該 RC 記録の一部喪失。
+- `web/docs/screenshots/*.png` / `specs/*/screenshots/*.png` /
+  `design/exports/screens/*.png` — 第三者サムネイル・ジャケット写り込みの
+  可能性を排除できていない (画像判読レビュー未実施)。公開 repo 上の docs。
+- `docs/operations/exhibit-evidence-2026-11-10/*.png` — 過去の実機証跡。
+  同様に写り込み未確認。
+
+### 操作別リスク整理 (承認境界の維持)
+
+| 対象・操作 | 可逆性 | 影響 | 現状の扱い |
+|---|---|---|---|
+| 本番 D1 `songs`/`chart_versions` の公開停止 (`archived=1`) | 可逆 (再公開可) | catalog から 28 曲が消え、製品のレパートリーが実質空になる。利用者への影響大 | **要 user 判断**。技術的には migration で実施可能 |
+| 本番 D1 の行削除・スキーマ変更 | 条件付き可逆 (バックアップ次第) | 同上 + ランキング・履歴の参照整合 | 要承認。実施するならバックアップ取得が前提 |
+| `publish-catalog.mjs` 経由の再公開 | 可逆 | 削除済みのため現状不可。別 publish 経路の整備が先 | スクリプト自体は HEAD から削除済み |
+| Git 履歴/LFS のパージ (filter-repo + force-push) | **不可逆** | 全 clone・PR 参照・既存 checkout が無効化。LFS オブジェクトの回収は GitHub 側の GC 依存 | 要承認。実施するなら全員の再 clone 周知が前提 |
+| 過去 Release アセットの削除・差替え | 準不可逆 (URL・既知 SHA は残る) | `v0.1.0-win64-743c88d` は第三者メディア同梱済み。v0.1.1 以降・v0.2.x は song-free 実測済み | v0.1.0 の扱い (prerelease のまま残置/削除) は要 user 判断 |
+| HEAD 残存の写り込み画像 (screenshots/evidence) | 可逆 | docs 品質とのトレードオフ。写り込みが確認できたものだけ個別除去が安全 | 画像レビュー実施後に個別判断 |
+| `カーソル移動4.mp3` の差替え | 可逆 | UI 音の聴感が変わる。ユーザー指定音源 | 要承認 (#791) |
