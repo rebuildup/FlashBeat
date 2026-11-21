@@ -173,18 +173,21 @@ namespace FlashBeat.Tests.Editor
                 view = V6PauseView.Create(parent.GetComponent<RectTransform>());
                 Assert.IsNotNull(view, "v6 ポーズが生成される");
 
-                // Issue #733 / v0.2.1: 行定義の正本は V6SettingsCatalog。
-                // BGM Volume は MusicManager.ApplyBgmVolume が GameScene の
-                // 演奏音源へ適用する実行時有効な行なので、Pause にも
-                // Option と同じく出す。
+                // Issue #733 / v0.2.1 / #851: 行定義の正本は V6SettingsCatalog。
+                // Song Volume は MusicManager.ApplySongVolume が GameScene の
+                // 演奏音源へ適用する実行時有効な行。BGM Volume はメニュー
+                // 背景動画専用 (Issue #851 で演奏音源から分離) だが、
+                // メニュー画面で有効なので Pause にも Option と同じく出す。
                 var soundLabels = V6SettingsCatalog.RowsForTab(2, view)
                     .Select(row => row.Label).ToList();
                 Assert.That(soundLabels, Has.Some.EqualTo("Main Volume"),
                     "Main Volume の行は残る");
                 Assert.That(soundLabels, Has.Some.EqualTo("Effect Volume"),
                     "Effect Volume の行は残る");
+                Assert.That(soundLabels, Has.Some.EqualTo("Song Volume"),
+                    "Song Volume は GameScene の演奏音源へ効くので Pause にも出す (#851)");
                 Assert.That(soundLabels, Has.Some.EqualTo("BGM Volume"),
-                    "BGM Volume は GameScene で有効なので Pause にも出す (v0.2.1)");
+                    "BGM Volume はメニュー BGM へ効くので Pause にも出す (#851)");
 
                 // 描画側も同じ契約に従うこと (カタログと表示の乖離を防ぐ)。
                 // Issue #733 フォローアップ: 共有設定画面は選択中タブの
@@ -194,8 +197,10 @@ namespace FlashBeat.Tests.Editor
                 string[] texts = AllTexts(view.Root.gameObject);
                 Assert.That(texts, Has.Some.EqualTo("Main Volume"), "Main Volume の行は残る");
                 Assert.That(texts, Has.Some.EqualTo("Effect Volume"), "Effect Volume の行は残る");
+                Assert.That(texts, Has.Some.EqualTo("Song Volume"),
+                    "Song Volume 行を描く (#851)");
                 Assert.That(texts, Has.Some.EqualTo("BGM Volume"),
-                    "BGM Volume 行を描く (v0.2.1)");
+                    "BGM Volume 行を描く (#851)");
             }
             finally
             {

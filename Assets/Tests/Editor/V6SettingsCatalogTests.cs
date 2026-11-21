@@ -77,10 +77,11 @@ public class V6SettingsCatalogTests
         var option = LabelsOf(2, OptionHost());
         var pause = LabelsOf(2, PauseHost());
 
-        Assert.AreEqual(new[] { "Main Volume", "Effect Volume", "BGM Volume" }, option,
-            "Option の Sound タブは Main / Effect / BGM の 3 行");
+        // Issue #851: プレイ楽曲 (Song Volume) をメニュー BGM と別行にする。
+        Assert.AreEqual(new[] { "Main Volume", "Song Volume", "BGM Volume", "Effect Volume" }, option,
+            "Option の Sound タブは Main / Song / BGM / Effect の 4 行");
         Assert.AreEqual(option, pause,
-            "Pause の Sound タブも同一行 (BGM Volume は GameScene の VideoTime が消費する)");
+            "Pause の Sound タブも同一行 (BGM Volume はメニュー背景動画、Song Volume はプレイ楽曲)");
     }
 
     [Test]
@@ -118,8 +119,11 @@ public class V6SettingsCatalogTests
         // ホストの Volumes.Nudge へ届くことを、値モデルの共有で確認する。
         var host = PauseHost();
         var rows = V6SettingsCatalog.RowsForTab(2, host);
+        Assert.AreEqual(4, rows.Count, "Sound タブは 4 行");
         Assert.AreEqual(0, rows[0].VolumeIndex, "Main Volume");
-        Assert.AreEqual(1, rows[1].VolumeIndex, "Effect Volume");
+        Assert.AreEqual(3, rows[1].VolumeIndex, "Song Volume (Issue #851)");
+        Assert.AreEqual(2, rows[2].VolumeIndex, "BGM Volume");
+        Assert.AreEqual(1, rows[3].VolumeIndex, "Effect Volume");
         Assert.IsNotNull(rows[0].Adjust, "音量行は ←→ / ステッパーで調整できる");
     }
 }

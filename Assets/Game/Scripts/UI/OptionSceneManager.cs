@@ -31,6 +31,9 @@ public static class OptionSettings
     public const string MainVolumeKey = "FlashBeat.MainVolume";
     public const string EffectVolumeKey = "FlashBeat.EffectVolume";
     public const string BgmVolumeKey = "FlashBeat.BgmVolume";
+    /// <summary>プレイ楽曲の音量 (Issue #851)。旧 BgmVolume はメニュー BGM
+    /// 専用に戻したため、演奏音源はこのキーを読む。未保存なら既定 1.0。</summary>
+    public const string SongVolumeKey = "FlashBeat.SongVolume";
     public const string NoteSpeedKey = "FlashBeat.NoteSpeed";
     public const string NoteTimingKey = "FlashBeat.NoteTiming";
     public const string FlashKey = "FlashBeat.Flash";
@@ -65,6 +68,7 @@ public static class OptionSettings
         PlayerPrefs.SetFloat(MainVolumeKey, GManager.mainVolume);
         PlayerPrefs.SetFloat(EffectVolumeKey, GManager.effectVolume);
         PlayerPrefs.SetFloat(BgmVolumeKey, GManager.BGMVolume);
+        PlayerPrefs.SetFloat(SongVolumeKey, GManager.songVolume);
         PlayerPrefs.SetFloat(NoteSpeedKey, GManager.noteSpeed);
         PlayerPrefs.SetInt(NoteTimingKey, GManager.noteTiming);
         PlayerPrefs.SetInt(FlashKey, GManager.Flash ? 1 : 0);
@@ -81,6 +85,13 @@ public static class OptionSettings
         GManager.mainVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MainVolumeKey, GManager.mainVolume));
         GManager.effectVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(EffectVolumeKey, GManager.effectVolume));
         GManager.BGMVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(BgmVolumeKey, GManager.BGMVolume));
+        // Issue #851: SongVolumeKey は後から追加したキー。旧設定
+        // (BgmVolume のみ存在) では未保存なので既定値 1.0 のままにし、
+        // メニュー BGM 用に下げられた旧値を演奏音量へ引き継がない。
+        if (PlayerPrefs.HasKey(SongVolumeKey))
+        {
+            GManager.songVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SongVolumeKey, GManager.songVolume));
+        }
         GManager.noteSpeed = Mathf.Clamp(PlayerPrefs.GetFloat(NoteSpeedKey, GManager.noteSpeed),
             NoteSpeedMin, NoteSpeedMax);
         GManager.noteTiming = Mathf.Clamp(PlayerPrefs.GetInt(NoteTimingKey, GManager.noteTiming),
