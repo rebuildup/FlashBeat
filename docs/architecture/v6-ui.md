@@ -175,6 +175,41 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   検証スクリプト: `Assets/Game/Scripts/Common/AutoTestV6.cs`
 - 画面キャプチャ (シーン単位): `-autoshot <dir> -autoshot-scenes SelectScene,GameScene`
 
+### 画面監査 (`-autotest v6screens`) の検出範囲 (Issue #850)
+
+`AutoTestV6Screens` は画面ごとに `V6ScreenAudit` の判定式で機械チェックを行う。
+判定式は純ロジックとして `V6ScreenAudit` (`AutoTestV6Screens.cs` 末尾) に集約し、
+EditMode テスト (`V6FrameContainmentTests` / `V6ScreenAuditFitTests`) で固定する。
+
+| チェック | 内容 | FAIL 条件 |
+|---|---|---|
+| フレーム収まり | 全 Graphic のワールド矩形が 1728×972 フレーム (HUD/Dim は画面全体) 内。スクロール親内は許容 | フレーム外の Graphic / 描画物 0 枚 |
+| レガシー混在 | v6 Canvas 以外の可視 Graphic が無いこと | レガシー Graphic が可視 |
+| Unicode 記号 | Text に残るアイコン文字の列挙 | なし (記録のみ) |
+| 画面クリップ | Selectable / Text が実画面から完全に出ていないか (スクロール・パン到達性を考慮) | Outside の Selectable / Text |
+| テキスト・インク収まり | TMP の実メッシュ頂点 (インク) が割当 RectTransform 内に収まるか | インクが割当と交差しない Outside のみ。Partial (はみ出し) は記録のみ |
+| 要素重なり | 同一親の interactable な Selectable 同士の矩形交差 | なし (記録のみ) |
+| Canvas 重複 | 同名 v6 Canvas が同一シーンに複数ある兆候 | なし (記録のみ) |
+
+検出**できない**もの (既知の穴):
+
+- **テキストインク vs 近傍要素**: インクが自分の RectTransform を出ることは
+  Partial として記録するが、他要素への実害 (重なり) までは見ない。
+  Partial の FAIL 化は実機ベースラインでノイズを確認してから判断する。
+- **テキスト同士・テキストと Selectable の重なり**: 誤検出が多いため
+  兄弟 Selectable 同士の交差のみ記録する。
+- **セーフエリア**: ノッチ等の概念は無く、1728×972 固定 + コンパクト時
+  パン (`V6CompactScreen` / `V6FramePan`) が前提。
+- **デザイン忠実度**: 色・余白の Pencil との一致は目視頼み。
+- **ボタン最小サイズ**: 「内容より小さいボタン」はインク収まり監査が
+  ラベル側から間接的に拾うのみで、ボタン寸法の下限規則は未整備
+  (共通規則化は今後の課題)。
+
+再構築時の二重世代 (旧世代 + 新世代が同時に audit され pass が倍増する
+flake) は、子の破棄を必ず `V6Hierarchy.DetachAndDestroy` (階層から外して
+から破棄予約) に通す契約で防ぐ。`NoteDuplicateCanvases` が同名 Canvas の
+複数存在を結果ファイルへ記録するので、契約外の経路があれば追跡できる。
+
 ### ゲートは独立
 
 コンパイル / EditMode テスト / ビルド / ゲーム動作 / デザイン受入は **別のゲート**。
