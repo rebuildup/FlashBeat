@@ -37,6 +37,14 @@ public class GameSceneManager : MonoBehaviour
 
     private TextData inputJson; // メンバ変数として TextData オブジェクトを宣言
 
+    /// <summary>
+    /// Issue #789: 歌詞データの解決結果。<see cref="Load"/> で
+    /// <see cref="ChartLyrics.Resolve"/> の結果を保持する。
+    /// テスト等で <see cref="InputJson"/> が直接差し込まれた場合は null のまま
+    /// (その場合 HUD は行データの有無から状態を推測する従来経路を使う)。
+    /// </summary>
+    public ChartLyricsResult LyricsResult { get; private set; }
+
     // 他の関数で使用するためのプロパティ
     public TextData InputJson
     {
@@ -51,13 +59,20 @@ public class GameSceneManager : MonoBehaviour
         Flash.SetActive(true);
         gauge.fillAmount = 0;
         // Issue #657: GetSong はプレイセッション固定の曲を優先する。
-        songName = GManager.GetSong(GManager.songID).title;
-        Load(songName);
+        SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        SongData fallback = song ?? GManager.GetSong(GManager.songID);
+        songName = fallback != null ? fallback.title : string.Empty;
+        Load(songName, song);
 
     }
-    private void Load(string SongName)
+    private void Load(string SongName, SongData song)
     {
-        this.inputJson = LoadTextData(SongName);
+        // Issue #789: 歌詞は実際に使う譜面ソース (プレイセッションの固定 JSON /
+        // CloudChartHolder / ローカル Resources) から ChartLyrics が解決する。
+        // 以前はローカル Resources しか読まず、リモート曲では常に空を返して
+        // いた (クラウド譜面の lyrics ブロックが HUD へ届かない根本原因)。
+        LyricsResult = ChartLyrics.Resolve(song);
+        this.inputJson = LyricsResult.Lyrics;
     }
 
     /// <summary>
