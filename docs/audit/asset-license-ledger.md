@@ -22,14 +22,15 @@
 | `Assets/Game/Resources/Musics/*.wav` (15 曲) | 第三者楽曲の音声 (LFS)。`MusicManager` がストリーム音声無音時のフォールバックとして `Resources.LoadAsync("Musics/" + songName)` で読む | ビルド除外済み (`BuildScript.MediaExcludePaths`)。git/LFS/履歴に残存。**エディタ・テストでは現役** |
 | `Assets/Game/Resources/Videos/UnityYoutube/*.mp4` (27 本) | YouTube 楽曲動画 (LFS)。GameScene.unity に GUID 参照残存 (ストリーム再生が主、ローカル clip はフォールバック/エディタ用) | ビルド除外済み。git/LFS/履歴に残存 |
 | `Assets/Game/Resources/*.json` (実曲譜面 26 曲 + `ニセモノ.json`) | 実在楽曲の譜面 + **歌詞本文**。`publish-catalog.mjs` で本番 D1 に公開済み | `Resources.Load<TextAsset>(song.title)` でゲーム本体が読む (NotesManager / GameSceneManager / V6SelectDataSource)。**除去するとローカル譜面が全滅し製品が壊れる**。リリース ZIP の resources.resource にも同梱 (MediaExcludePaths 対象外) |
-| `Assets/Game/Art/Images/` の YouTube/ジャケット由来画像群 | hqdefault/mqdefault/maxresdefault、yt-dlp 取得の動画コマ、楽曲ジャケット。**全点が GameScene/ResultScene/OptionScene.unity か ProjectSettings.asset から参照あり** (実測: GUID 参照 0 件は無し) | **リリースに同梱される** (scene 参照で resources.resource 入り)。除去にはシーン編集が必要 |
-| `web/src/lib/chart/fixtures/sample-chart.json` | `チュートリアル.json` の**歌詞込み** byte コピー (contract-schema.test.ts が byte 一致を強制)。`fixtures.ts` は `*.test.*` からのみ import されるため本番バンドルには入らないが、公開 git repo に歌詞が残る | vitest のみ。本番 Web バンドル非含有 |
-| `web/db/fixtures/who.chart.json` + `who.song.json` | 「Who」(Azari) の notes (lyrics 無し) とメタデータ。`db/seed.ts` がローカル D1 に seed、`tests/` と `fixture-identity.test.ts` が参照 | ローカル D1 / テスト。実曲の譜面データが repo に残る |
+| `Assets/Game/Art/Images/` の YouTube/ジャケット由来画像群 | **解消 (794-web-fixture-cleanup)**: 第三者由来 14 点を削除し `legacy-sprite-NN.*` (中立 placeholder、GUID 維持で Scene 参照は不変) へ置換。残る自社素材 (flashIcon/ゲージ白/タイトル画面/設定画面/楕円形) は A 区分 | 引き続きリリース同梱だが内容は権利クリア |
+| ~~`web/src/lib/chart/fixtures/sample-chart.json`~~ | **解消 (794-web-fixture-cleanup)**: `contracts/charts/sample-chart.json` の権利クリア合成譜面の byte コピーへ置換 | — |
+| ~~`web/db/fixtures/who.chart.json` + `who.song.json`~~ | **解消**: `seed.chart.json`/`seed.song.json` (合成 fixture、契約コーパス `contracts/charts/` と byte 一致) へ置換。`tests/` の実曲依存は `contracts/charts/` コーパスへ移行 | — |
 | `web/scripts/publish-catalog.mjs` | `Assets/Game/Resources/*.json` を読んで本番 D1 へ publish するツール (歌詞込みの譜面をそのまま PUT)。スクリプト自体にデータは埋め込まれていない | 本番 D1 の公開曲データ (歌詞含む) の発生源。公開停止・データ修正は要承認 |
 | `Assets/NoteEditor/Audio/Clap.mp3`, `Click 2.wav` | 出所未記録のサンプル SE | エディタのみ (ゲーム非含有)。NoteEditor の Scene/Prefab から参照あり |
 | `Assets/Game/Audio/カーソル移動4.mp3` | 出所・ライセンス未記録 (name から無料 SE 系と推測されるが証跡なし)。ユーザー指定のため差替え不可 (#791) | **リリースに同梱** — click/hit 音に使用中。ライセンス確認が必要 |
 | `web/tests/e2e/artifacts/*.png` (9 点) / `web/docs/screenshots/*.png` (約 19 点) / `design/exports/screens/*.png` | コミット済みスクリーンショット。Web Studio の画面 (YouTube プレビュー・ジャケット・譜面) を含み、第三者画像が写り込んでいる可能性。artifacts は `docs/audit/open-issues-audit.md` から証跡として参照あり | 公開 repo。目視での写り込み確認と、証跡参照の整理が必要 |
-| `design/assets/jackets/*.jpg` (26 点) + `design/assets/*.png` | V6 ジャケットの原本と画面モック。ジャケットは第三者楽曲のアートワーク由来の可能性 (B 区分と同根) | 公開 repo (design ツール用、出荷物ではない) |
+| ~~`design/assets/jackets/*.jpg`~~ | **解消**: 全 26 点を削除し、`placeholder.jpg` へ参照集約 (`.pen` / `flashbeat-v6-nodes.json`)。`jk-*.png`・`loading-still.jpg`・`song-video-frame.jpg` も同様に placeholder 化 | — |
+| `design/assets/00-25.png`・`bg-anim3.png`・`title-bg-hi.png`・`edge-*.png`、`design/exports/screens/*.png` | 画面モック/エクスポート。第三者ジャケットを含む可能性 (モックが jackets を参照していたため) | 公開 repo。内容確認と再生成/削除の判断が必要 |
 
 ## A 区分の補足 (ライセンス明確だが証跡の扱いに注意)
 

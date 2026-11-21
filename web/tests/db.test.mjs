@@ -18,8 +18,8 @@ import seed from "../db/seed.ts";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 const migrationsDir = join(webRoot, "db", "migrations");
-const chartFixturePath = join(webRoot, "db", "fixtures", "who.chart.json");
-const songFixturePath = join(webRoot, "db", "fixtures", "who.song.json");
+const chartFixturePath = join(webRoot, "db", "fixtures", "seed.chart.json");
+const songFixturePath = join(webRoot, "db", "fixtures", "seed.song.json");
 const contractChartSchemaPath = join(webRoot, "..", "contracts", "schemas", "chart.v1.schema.json");
 
 const chartText = readFileSync(chartFixturePath, "utf-8");

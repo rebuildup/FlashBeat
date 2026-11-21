@@ -2,13 +2,15 @@
  * Local seed for the festival D1 database.
  *
  * `void db seed` resets the local database, re-applies every migration and then
- * runs this module. It inserts one real song of the Unity project ("Who",
- * Azari) together with its chart snapshot.
+ * runs this module. It inserts one synthetic fixture song together with its
+ * chart snapshot.
  *
  * The chart snapshot is stored as the *raw* bytes of
- * `db/fixtures/who.chart.json`, which is a byte-identical copy of
- * `Assets/Resources/Who.json`. Storing the file text verbatim keeps the
- * published chart identical to the chart the Unity player ships with.
+ * `db/fixtures/seed.chart.json`, a byte-identical copy of the rights-cleared
+ * contract chart `contracts/charts/seed-chart.json` (issue #823: the Unity
+ * project ships no local song charts anymore — charts come from the cloud
+ * catalog). Storing the file text verbatim keeps the seeded chart identical
+ * to the contract corpus.
  */
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -17,8 +19,8 @@ import { count } from "void/db";
 import type * as schemaModule from "./schema";
 
 const chartSchemaUrl = new URL("../../contracts/schemas/chart.v1.schema.json", import.meta.url);
-const chartFixtureUrl = new URL("./fixtures/who.chart.json", import.meta.url);
-const songFixtureUrl = new URL("./fixtures/who.song.json", import.meta.url);
+const chartFixtureUrl = new URL("./fixtures/seed.chart.json", import.meta.url);
+const songFixtureUrl = new URL("./fixtures/seed.song.json", import.meta.url);
 
 export type SongFixture = {
   id: string;

@@ -17,8 +17,8 @@ function unityNoteTime(bpm: number, num: number, lpb: number): number {
 }
 
 describe("note timing", () => {
-  it("matches the Unity formula for every note of a real chart", () => {
-    const imported = importChartJson(readRepositoryChart("Chartreuse.json"));
+  it("matches the Unity formula for every note of a fixture chart", () => {
+    const imported = importChartJson(readRepositoryChart("tap-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;

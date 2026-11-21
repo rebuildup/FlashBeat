@@ -97,7 +97,7 @@ export function responseValidator(
 export function chartFixture(): Record<string, unknown> {
   return JSON.parse(
     readFileSync(
-      fileURLToPath(new URL("../../db/fixtures/who.chart.json", import.meta.url)),
+      fileURLToPath(new URL("../../db/fixtures/seed.chart.json", import.meta.url)),
       "utf-8",
     ),
   ) as Record<string, unknown>;

@@ -4,16 +4,16 @@ import { importChartJson } from "../import";
 import { listRepositoryCharts, readRepositoryChart } from "./repository-charts";
 
 /**
- * Import/export round trip against the real charts of the Unity project.
+ * Import/export round trip against the contract chart corpus.
  *
- * Every chart in `Assets/Game/Resources` is read, written back and read again.
+ * Every chart in `contracts/charts` is read, written back and read again.
  * The written file must describe exactly the same chart, including the
  * lyrics block and the fields the contract does not know about.
  */
 describe("chart round trip", () => {
   const charts = listRepositoryCharts();
 
-  it("covers every chart of the Unity project", () => {
+  it("covers every contract chart", () => {
     expect(charts.length).toBeGreaterThan(20);
   });
 
@@ -44,7 +44,7 @@ describe("chart round trip", () => {
   }
 
   it("keeps fields the contract does not know about", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;
@@ -67,7 +67,7 @@ describe("chart round trip", () => {
   });
 
   it("keeps the lyrics block untouched", () => {
-    const result = importChartJson(readRepositoryChart("Who.json"));
+    const result = importChartJson(readRepositoryChart("sample-chart.json"));
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -88,10 +88,10 @@ describe("chart round trip", () => {
   });
 
   it("accepts the charts without notes and with fewer lanes", () => {
-    // `E2EProbeSong.json` has an empty note list, `ニセモノ.json` has an empty
-    // note list and five lanes. Both are real charts of the Unity project, so
-    // the contract has to accept them.
-    for (const fileName of ["E2EProbeSong.json", "ニセモノ.json"]) {
+    // `empty-notes.json` has an empty note list and `fewer-lanes.json` an
+    // empty note list on five lanes. Both are contract fixtures, so the
+    // contract has to accept them.
+    for (const fileName of ["empty-notes.json", "fewer-lanes.json"]) {
       const result = importChartJson(readRepositoryChart(fileName));
 
       expect(result.ok).toBe(true);
