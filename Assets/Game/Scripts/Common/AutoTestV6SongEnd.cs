@@ -359,6 +359,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         //    ポーリングは **毎フレーム** (0.25 秒ごとだと 0.05 秒の注入窓を
         //    跨ぐノーツを取りこぼす = Scores が欠ける)。
         NotesManager notes = FindFirstObjectByType<NotesManager>();
+        FlashBeat.Gameplay.VideoFrameAudit.ResetForAudit();
         bool mediaClockAdvanced = false;
         float lastMediaTime = -1f;
         float loopStart = Time.realtimeSinceStartup;
@@ -427,6 +428,20 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
                 // Issue #846: 歌詞区間で本文が実際に出ているかを検査する。
                 AuditLyricText();
+
+                // Issue #844: 背景映像テクスチャの破損フレームを定量観測する
+                // (約 4 回/秒。suspect は FAIL にせず計測値として残す)。
+                if (Time.frameCount % 15 == 0)
+                {
+                    bool videoSuspect;
+                    FlashBeat.Gameplay.VideoFrameAudit.Sample(
+                        music.SongVideoForAudit, mediaTime, out videoSuspect);
+                    if (videoSuspect)
+                    {
+                        Debug.LogWarning(Tag + " video frame suspect at mediaTime="
+                            + mediaTime.ToString("F2", CultureInfo.InvariantCulture));
+                    }
+                }
 
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
 
@@ -925,7 +940,11 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 "rankingMode=" + rankingMode + "\n" +
                 "loadingObserved=" + loadingObserved + "\n" +
                 "loadingVisibleSeconds=" + loadingVisibleSeconds.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
-                "judgedMatchesChart=" + judgedMatchesChart + "\n");
+                "judgedMatchesChart=" + judgedMatchesChart + "\n" +
+                "videoAuditSamples=" + FlashBeat.Gameplay.VideoFrameAudit.Samples + "\n" +
+                "videoAuditSuspects=" + FlashBeat.Gameplay.VideoFrameAudit.Suspects + "\n" +
+                "videoAuditMaxRatio=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatio.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMaxRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n");
         }
         catch (Exception e) { Debug.LogWarning(Tag + " could not write the result file: " + e.Message); }
 
