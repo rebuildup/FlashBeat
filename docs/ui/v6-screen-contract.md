@@ -330,9 +330,8 @@ Track 600×18 `$k0` r2 (y0)、セグメント (y2, h14)、Fill 14 `$text` r2、B
 
 | 素材 | リポジトリ位置 | LFS | 権利 | Unity での読み込み |
 |---|---|---|---|---|
-| ジャケット (26 枚) | `Assets/Game/Resources/V6/select/jacket/<index>-<slug>.jpg` | ✅ (`*.jpg` は全件 LFS) | 出版社・権利者からの許諾済み Ramen 素材 | `Resources.Load("V6/select/jacket/<file>")`。index は `GManager.SongName` の並びと一致 (`V6SelectDataSource.V6JacketFileOf`)。**画像が無い部署は空文字を返し、固定画像で代用しない** |
-| 旧ジャケット (v5) | `Assets/Game/Resources/V5/select/jacket/` | ✅ | 同上 | `V6SelectDataSource.JacketResourceNames` によるフォールバック。v6 用が無い曲だけが使う |
-| 曲ローディング動画 | `Assets/Game/Resources/Videos/loading.mp4` (8,742,742 bytes / MP4 v2 `ftypmp42`) | ✅ | 自社制作 | `VideoPlayer` で実再生する。**静止画像で実動画再生の代わりにしない** (Task 5 の明示要求) |
+| ジャケット | リポジトリに同梱しない (Issue #823/#794 で削除) | — | — | `V6JacketProvider.RequestRemote*` が `videoId` から YouTube サムネイル (`hqdefault.jpg` 等) を実行時取得。**ローカル画像・固定代替画像は使わない**。ジャケットは曲の識別表示専用で、背景・ローディング面には使わない (Issue #845) |
+| 曲ローディング動画 | `Assets/Game/Resources/Videos/loading.mp4` (8,742,742 bytes / MP4 v2 `ftypmp42`) | ✅ | 自社制作 | `VideoPlayer` で実再生する。**静止画像で実動画再生の代わりにしない** (Task 5 の明示要求)。ローディング画面の背景はこの動画 (失敗時はグラデーション) であり、楽曲サムネイルは使わない (Issue #845) |
 | 背景アニメーション | `Assets/Game/Resources/Videos/背景アニメーション3.mp4` (Title/Select/Option/Result の背景)・`opening1.mp4` (Opening シーン) | ✅ | 自社制作 | シーンの `VideoPlayer.clip` / `Resources.Load("Videos/<file>")`。`背景アニメーションタイトル.mp4` は build scenes 外の TypingScene 専用で `BuildScript.MediaExcludePaths` によりビルド同梱から除外 (Issue #653) |
 | UI フォント | `Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset` (+ `NotoSansJP-Dynamic SDF.asset`) | ✅ (`.asset` は個別 LFS 規則) | Noto Sans JP (SIL OFL 1.1) | TMP の SDF アセットとして直接割当。**静的アトラス** (620 glyphs) のため、新しい漢字・かなを含む歌詞を追加したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` で再生成する (`JapaneseFontAssetBuilder.RebuildNotoSansJpSdf`) |
 

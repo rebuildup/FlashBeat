@@ -34,8 +34,6 @@ namespace FlashBeat.UI.V6.Game.Loading
             int w = Screen.width;
             int h = Screen.height;
             V6CompactScreen.Place(frame, w, h);
-            // Issue #824: サムネイル背景の cover UV を画面サイズに追従させる。
-            FitBackdropUV();
         }
 
         internal void Tick()

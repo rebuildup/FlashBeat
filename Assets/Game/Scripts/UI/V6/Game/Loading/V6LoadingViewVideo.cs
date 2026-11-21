@@ -67,84 +67,6 @@ namespace FlashBeat.UI.V6.Game.Loading
         }
 
         /// <summary>
-        /// Issue #824: 開始前背景に使う動画サムネイルの取得を始める。
-        /// 同じ映像 ID の間は何もしない (毎フレーム呼ばれても HTTP は増えない)。
-        /// 曲が変わったら世代番号を進めて古い非同期結果を捨て、いったん
-        /// 既定の背景へ戻す (前の曲のサムネイルが残らない)。
-        /// </summary>
-        public void SetSongBackdrop(string videoId)
-        {
-            videoId = videoId ?? "";
-            if (videoId == thumbVideoId)
-            {
-                return;
-            }
-
-            thumbGeneration++;
-            thumbVideoId = videoId;
-            thumbReady = false;
-            thumbTexture = null;
-            if (thumbRaw != null)
-            {
-                thumbRaw.texture = null;
-                thumbRaw.enabled = false;
-            }
-
-            if (string.IsNullOrEmpty(videoId))
-            {
-                ApplyVideoSurface();
-                return;
-            }
-
-            int gen = thumbGeneration;
-            string vid = videoId;
-            V6JacketProvider.RequestBackdropTexture(vid, texture => OnBackdropTexture(texture, vid, gen));
-        }
-
-        private void OnBackdropTexture(Texture2D texture, string vid, int gen)
-        {
-            // 遅れて届いた別の曲の結果・ビュー破棄後の結果は捨てる。
-            if (gen != thumbGeneration || !string.Equals(vid, thumbVideoId, StringComparison.Ordinal) ||
-                rootGo == null)
-            {
-                return;
-            }
-
-            if (texture == null)
-            {
-                // 取得失敗 → 既定の背景 (loading.mp4 → グラデーション) のまま。
-                ApplyVideoSurface();
-                return;
-            }
-
-            thumbTexture = texture;
-            thumbReady = true;
-            if (thumbRaw != null)
-            {
-                thumbRaw.texture = texture;
-            }
-
-            ApplyVideoSurface();
-            FitBackdropUV();
-        }
-
-        /// <summary>
-        /// サムネイルをアスペクト比を保ったまま全面に cover 表示する UV を
-        /// 毎フレーム合わせる (解像度・レイアウト変化に追従)。
-        /// </summary>
-        private void FitBackdropUV()
-        {
-            if (thumbRaw == null || thumbTexture == null)
-            {
-                return;
-            }
-
-            var rect = thumbRaw.rectTransform.rect;
-            thumbRaw.uvRect = V6BackdropFit.CoverUV(
-                thumbTexture.width, thumbTexture.height, rect.width, rect.height);
-        }
-
-        /// <summary>
         /// 映像面の状態を決める (純ロジック — <see cref="V6LoadingVideoPolicy"/> に
         /// 抽出して EditMode テストする)。
         /// </summary>
@@ -157,34 +79,7 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             bool hasClip = videoPlayer != null && videoPlayer.clip != null;
             bool prepared = videoPlayer != null && videoPlayer.isPrepared;
-            // Issue #824: サムネイルが使える間は loading.mp4 を止めて静止画を
-            // 見せる (Background 面 = 映像なし・背景あり、と同じ扱い)。
-            V6LoadingVideoSurface surface = thumbReady
-                ? V6LoadingVideoSurface.Background
-                : V6LoadingVideoPolicy.Decide(shown, hasClip, prepared, videoErrored);
-
-            // サムネイル面は surface の遷移と独立に更新する
-            // (thumbReady が変わっても surface は Background のままのことがある)。
-            if (thumbRaw != null)
-            {
-                thumbRaw.enabled = thumbReady && surface != V6LoadingVideoSurface.Hidden;
-            }
-
-            // Issue #824: サムネイル表示中は loading.mp4 のデコードを止める
-            // (映像は出ないので無駄)。曲が変わって thumbReady が戻れば
-            // Video 面の判定で再生を再開する。
-            if (videoPlayer != null)
-            {
-                if (thumbReady && videoPlayer.isPlaying)
-                {
-                    videoPlayer.Pause();
-                }
-                else if (surface == V6LoadingVideoSurface.Video && !videoPlayer.isPlaying)
-                {
-                    videoPlayer.Play();
-                }
-            }
-
+            V6LoadingVideoSurface surface = V6LoadingVideoPolicy.Decide(shown, hasClip, prepared, videoErrored);
             if (surface == lastSurface)
             {
                 return;

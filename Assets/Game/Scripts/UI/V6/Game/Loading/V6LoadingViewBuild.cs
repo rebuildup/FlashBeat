@@ -43,16 +43,6 @@ namespace FlashBeat.UI.V6.Game.Loading
             bgImage.color = Color.white;
             bgImage.raycastTarget = true;
 
-            // Issue #824: 再生対象動画のサムネイル (静止画背景)。
-            // グラデーションの上・loading.mp4 の下に置く。取得できるまでは
-            // 非表示で、失敗時は videoRaw (mp4) がそのまま既定背景になる。
-            var thumb = V5Ui.Node(rootGo, "Song Backdrop Thumb");
-            V5Ui.Fill(thumb.GetComponent<RectTransform>(), 0f);
-            thumbRaw = thumb.AddComponent<RawImage>();
-            thumbRaw.raycastTarget = false;
-            thumbRaw.color = Color.white;
-            thumbRaw.enabled = false;
-
 
             // ローディング映像 (design: ローディング画面は動画を再生するだけ。
             // Assets/Game/Resources/Videos/loading.mp4 = 自作素材、同梱する)。
