@@ -92,8 +92,17 @@ namespace FlashBeat.V6CanvasTests
             savedLyricsEnabled = PlaySession.LyricsEnabled;
             savedSuppressJudgements = Judge.SuppressJudgementEffects;
 
-            // ロストアンブレラ (songID=1): 実チャート + 歌詞データあり。
+            // ロストアンブレラ (songID=1): Issue #823 で実曲譜面はクラウド
+            // 正本。合成 fixture のリモート曲 + 歌詞つき保持譜面で
+            // 「実チャート + 歌詞データあり」の状態を再現する。
             GManager.songID = 1;
+            SongData fixtureLocal = GManager.GetSong(1);
+            Assert.IsNotNull(fixtureLocal, "選択曲がカタログに無い");
+            SyntheticCharts.ApplyRemoteOverlay(fixtureLocal, "synthetic-parity",
+                SyntheticCharts.ChartVersion, SyntheticCharts.LyricsChartNoteCount);
+            SyntheticCharts.Hold("synthetic-parity", SyntheticCharts.ChartVersion,
+                SyntheticCharts.LyricsChartEnvelope("synthetic-parity"));
+            ChartLyrics.Invalidate();
             GManager.noteSpeed = 10f;
             GManager.noteTiming = 0;
             GManager.Flash = true;
@@ -174,6 +183,7 @@ namespace FlashBeat.V6CanvasTests
             Judge.ClearPendingVerdicts();
             MediaTimeline.ResetSession();
             PauseGate.HardReset();
+            SyntheticCharts.Reset();
         }
 
         private GameObject Track(GameObject go)
@@ -431,7 +441,7 @@ namespace FlashBeat.V6CanvasTests
             MethodInfo load = typeof(GameSceneManager).GetMethod("Load",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(load, "GameSceneManager.Load が見つからない");
-            load.Invoke(stage.LyricSource, new object[] { song.title });
+            load.Invoke(stage.LyricSource, new object[] { song.title, song });
 
             // canvas の pixelRect が RT サイズへ確定してから HUD を更新する
             // (ScreenSpaceCamera canvas は描画時に pixelRect を camera から取る)。

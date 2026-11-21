@@ -827,11 +827,9 @@ public class AutoTestV6Interact : MonoBehaviour
             Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
                 + " first=" + before.Describe() + " second=" + after.Describe());
 
-            Check("the first visit loads charts", before.ChartMetaLoads + before.ChartExistsLoads > 0);
+            Check("the first visit loads charts", before.ChartMetaLoads > 0);
             Check("the second visit reloads no chart meta",
                 after.ChartMetaLoads == before.ChartMetaLoads);
-            Check("the second visit reloads no chart existence",
-                after.ChartExistsLoads == before.ChartExistsLoads);
             Check("the second visit reloads no jacket", after.JacketLoads == before.JacketLoads);
             Check("the jackets stay cached", after.JacketCount > 0 && after.JacketCount >= before.JacketCount);
         }
@@ -947,13 +945,12 @@ public class AutoTestV6Interact : MonoBehaviour
     private struct Counts
     {
         public int ChartMetaLoads;
-        public int ChartExistsLoads;
         public int JacketLoads;
         public int JacketCount;
 
         public string Describe()
         {
-            return "chartMeta=" + ChartMetaLoads + " chartExists=" + ChartExistsLoads
+            return "chartMeta=" + ChartMetaLoads
                 + " jacket=" + JacketLoads + "/cached=" + JacketCount;
         }
     }
@@ -963,7 +960,6 @@ public class AutoTestV6Interact : MonoBehaviour
         return new Counts
         {
             ChartMetaLoads = V6ContentCaches.ChartMetaLoadCount,
-            ChartExistsLoads = V6ContentCaches.ChartExistsLoadCount,
             JacketLoads = V6ContentCaches.JacketLoadCount,
             JacketCount = V6ContentCaches.JacketCount,
         };

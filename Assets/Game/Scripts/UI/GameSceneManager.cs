@@ -93,58 +93,6 @@ public class GameSceneManager : MonoBehaviour
         inputJson = LyricsResult.Lyrics;
     }
 
-    /// <summary>
-    /// 曲名から歌詞データ (TextData) を読む。マージ済み譜面 JSON
-    /// (NoteEditor DTO) を優先し、無ければ旧形式 *_text.json にフォールバックする。
-    ///
-    /// Issue #607: Option 画面の Game Preview も同じ経路で歌詞を読むため
-    /// internal static にした (読み取りのみ・状態は持たない)。
-    /// </summary>
-    internal static TextData LoadTextData(string songName)
-    {
-        var mergedAsset = Resources.Load<TextAsset>(songName);
-        if (mergedAsset != null)
-        {
-            var chart = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(mergedAsset.text);
-            if (chart != null && chart.lyrics != null && chart.lyrics.mondai != null && chart.lyrics.mondai.Length > 0)
-            {
-                return new TextData
-                {
-                    StartTime = chart.lyrics.startTime ?? new float[0],
-                    Furigana  = chart.lyrics.furigana  ?? new string[0],
-                    Mondai    = chart.lyrics.mondai    ?? new string[0],
-                    romaji    = chart.lyrics.romaji    ?? new string[0],
-                    EndTime   = chart.lyrics.endTime   ?? new float[0],
-                };
-            }
-        }
-
-        var legacyAsset = Resources.Load<TextAsset>(songName + "_text");
-        if (legacyAsset != null)
-        {
-            return JsonUtility.FromJson<TextData>(legacyAsset.text);
-        }
-
-        // Cloud Catalog songs (#17) have no local lyrics resource; that is
-        // expected, so only a warning. Fixed-catalog songs keep the error.
-        SongData currentSong = GManager.GetSong(GManager.songID);
-        if (currentSong != null && currentSong.isRemote)
-        {
-            Debug.LogWarning($"[GameSceneManager] no text data for remote song '{currentSong.remoteId}' - lyrics are empty");
-        }
-        else
-        {
-            Debug.LogError($"[GameSceneManager] No text data for {songName}");
-        }
-        return new TextData
-        {
-            StartTime = new float[0],
-            Furigana  = new string[0],
-            Mondai    = new string[0],
-            romaji    = new string[0],
-            EndTime   = new float[0],
-        };
-    }
     public void RetireGame()
     {
         Initiate.Fade("SelectScene", Color.black, 1.0f);

@@ -33,12 +33,6 @@ namespace FlashBeat.UI.V6
             get { return V6SelectDataSource.ChartMetaLoadCount; }
         }
 
-        /// <summary>譜面の有無を実際に確かめた回数。</summary>
-        public static int ChartExistsLoadCount
-        {
-            get { return V6SelectDataSource.ChartExistsLoadCount; }
-        }
-
         /// <summary>ジャケットの遠隔 HTTP を実際に開始した回数。</summary>
         public static int JacketLoadCount
         {
@@ -73,11 +67,9 @@ namespace FlashBeat.UI.V6
         public static string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "chartMeta={0}(loads={1}) chartExists={2}(loads={3}) jacket={4}(loads={5})",
+                "chartMeta={0}(loads={1}) jacket={2}(loads={3})",
                 V6SelectDataSource.ChartMetaCacheCount,
                 V6SelectDataSource.ChartMetaLoadCount,
-                V6SelectDataSource.ChartExistsCacheCount,
-                V6SelectDataSource.ChartExistsLoadCount,
                 V6JacketProvider.RemoteCacheEntryCount,
                 V6JacketProvider.RemoteFetchCount);
         }

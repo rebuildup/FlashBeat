@@ -40,11 +40,9 @@ namespace FlashBeat.UI.V6.Select.Data
         readonly List<V6SongEntry> allSongs = new List<V6SongEntry>();
         readonly List<V6SongEntry> filteredSongs = new List<V6SongEntry>();
         readonly Dictionary<string, List<V6RankingRow>> rankingCache = new Dictionary<string, List<V6RankingRow>>();
-        static readonly Dictionary<string, ChartMeta> chartMetaCache = new Dictionary<string, ChartMeta>();
-
-        // 譜面の有無は Resources (ビルドに焼き込まれたテキスト) だけで決まり、
+        // 譜面メタは保持中のクラウド譜面 (CloudChartHolder) からしか読めず、
         // 実行中に変わらない。シーンを跨いで使い回す (Issue #377)。
-        static readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
+        static readonly Dictionary<string, ChartMeta> chartMetaCache = new Dictionary<string, ChartMeta>();
         readonly List<V6RankingRow> emptyRanking = new List<V6RankingRow>();
 
         // Issue #823: ジャケットは遠隔 (YouTube サムネイル) のみ。
@@ -177,9 +175,12 @@ namespace FlashBeat.UI.V6.Select.Data
                 // GManager.ResetSession → BeginPlaySession が CloudChartHolder の
                 // 保持版とともに固定するので、ここで二重に固定しない。
             }
-            else if (!LocalChartExists(row.title))
+            else
             {
-                SetError("譜面が見つからないため開始できません (" + row.title + ")");
+                // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+                // リモート化されていない行 (カタログ未取得の固定曲) は
+                // ローカル譜面を持たないため開始できない。
+                SetError("クラウドカタログから取得できないため開始できません (" + row.title + ")");
                 return;
             }
 
@@ -340,35 +341,27 @@ namespace FlashBeat.UI.V6.Select.Data
         }
 
         /// <summary>
-        /// 譜面の実ファイル (保持中のクラウド譜面 or Resources/&lt;曲名&gt;.json) から
-        /// BPM とノーツ数を読む。読めなければ null。
+        /// 保持中のクラウド譜面から BPM とノーツ数を読む。読めなければ null。
+        /// Issue #823: ローカル Resources の譜面 JSON は撤去した。
+        /// カタログ行の値 (song.bpm / song.noteCount) が呼び出し側の
+        /// フォールバックになる。
         /// </summary>
         static ChartMeta ReadChartMeta(SongData song)
         {
-            if (song.isRemote && !string.IsNullOrEmpty(song.remoteId))
+            if (!song.isRemote || string.IsNullOrEmpty(song.remoteId))
             {
-                int heldVersion;
-                string heldJson;
-                if (CloudChartHolder.TryGetForSong(song.remoteId, out heldVersion, out heldJson))
-                {
-                    // ParseChartResponse は譜面本体 (Data) を返す。失敗時は null。
-                    ChartData chart = CloudCatalog.ParseChartResponse(heldJson);
-                    if (chart != null) return ToMeta(chart);
-                }
-            }
-
-            TextAsset asset = string.IsNullOrEmpty(song.title) ? null : Resources.Load<TextAsset>(song.title);
-            if (asset == null) return null;
-            try
-            {
-                ChartData chart = JsonUtility.FromJson<ChartData>(asset.text);
-                return chart == null ? null : ToMeta(chart);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[V6SelectData] chart parse failed for '{song.title}': {e.Message}");
                 return null;
             }
+
+            int heldVersion;
+            string heldJson;
+            if (CloudChartHolder.TryGetForSong(song.remoteId, out heldVersion, out heldJson))
+            {
+                // ParseChartResponse は譜面本体 (Data) を返す。失敗時は null。
+                ChartData chart = CloudCatalog.ParseChartResponse(heldJson);
+                if (chart != null) return ToMeta(chart);
+            }
+            return null;
         }
 
         static ChartMeta ToMeta(ChartData chart)
@@ -595,19 +588,6 @@ namespace FlashBeat.UI.V6.Select.Data
             FireChanged();
         }
 
-        // --- Ready 確定 ------------------------------------------------------------
-
-        bool LocalChartExists(string title)
-        {
-            if (string.IsNullOrEmpty(title)) return false;
-            bool exists;
-            if (chartExistsCache.TryGetValue(title, out exists)) return exists;
-            exists = Resources.Load<TextAsset>(title) != null;
-            ChartExistsLoadCount++;
-            chartExistsCache[title] = exists;
-            return exists;
-        }
-
         // --- キャッシュの状態 (Issue #377 の計測と無効化) ------------------------
 
         /// <summary>譜面メタのキャッシュ件数。</summary>
@@ -616,30 +596,18 @@ namespace FlashBeat.UI.V6.Select.Data
             get { return chartMetaCache.Count; }
         }
 
-        /// <summary>譜面の有無のキャッシュ件数。</summary>
-        public static int ChartExistsCacheCount
-        {
-            get { return chartExistsCache.Count; }
-        }
-
         /// <summary>
         /// 譜面メタを実際に読んだ回数 (キャッシュ ヒットは含まない)。
         /// </summary>
         public static int ChartMetaLoadCount { get; private set; }
 
         /// <summary>
-        /// 譜面の有無を実際に <see cref="Resources.Load{T}"/> で確かめた回数。
-        /// </summary>
-        public static int ChartExistsLoadCount { get; private set; }
-
-        /// <summary>
-        /// 譜面メタと譜面の有無のキャッシュを捨てる。無効化の入口は
+        /// 譜面メタのキャッシュを捨てる。無効化の入口は
         /// <see cref="V6ContentCaches.InvalidateAll"/> に一本化する。
         /// </summary>
         internal static void ClearContentCaches()
         {
             chartMetaCache.Clear();
-            chartExistsCache.Clear();
         }
 
         /// <summary>

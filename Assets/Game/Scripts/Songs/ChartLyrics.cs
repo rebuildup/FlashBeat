@@ -44,13 +44,14 @@ public sealed class ChartLyricsResult
 /// プレイする曲の歌詞を、実際にノーツ生成へ使うのと同じ譜面ソースから
 /// 解決する正規化ローダー (Issue #789)。
 ///
-/// これまで <see cref="GameSceneManager.LoadTextData"/> はローカル
-/// Resources の譜面 JSON しか読まず、クラウドカタログ曲 (リモート) では
-/// 常に空の歌詞データを返していた。リモート曲の譜面は
+/// かつて GameSceneManager はローカル Resources の譜面 JSON しか
+/// 読まず、クラウドカタログ曲 (リモート) では常に空の歌詞データを
+/// 返していた (Issue #789)。リモート曲の譜面は
 /// <see cref="PlaySessionSnapshot"/> / <see cref="CloudChartHolder"/> が
 /// JSON ごと固定しており、その中の lyrics ブロックこそが正本なので、
-/// ここで同じ優先順 (スナップショット → ホルダー → ローカル Resources)
-/// で読み、状態を明示的に確定する。
+/// ここで同じ優先順 (スナップショット → ホルダー) で読み、状態を
+/// 明示的に確定する。Issue #823: ローカル実曲 Resources への
+/// フォールバックは撤去した。
 ///
 /// 結果は (プレイセッション, 曲) ごとにキャッシュする。HUD は毎フレーム
 /// 参照するため、JSON の再パースはセッションごとに 1 回だけ。
@@ -107,7 +108,8 @@ public static class ChartLyrics
     static ChartLyricsResult ResolveUncached(SongData song)
     {
         // 譜面 JSON の優先順は NotesManager.ParseChart と同じ:
-        // プレイセッションの固定 JSON → CloudChartHolder → ローカル Resources。
+        // プレイセッションの固定 JSON → CloudChartHolder。
+        // Issue #823: ローカル実曲 Resources へのフォールバックは撤去した。
         string chartJson = null;
         bool awaitingRemoteChart = false;
         if (PlaySessionSnapshot.TryGetChartJson(song, out string pinned))
@@ -132,16 +134,17 @@ public static class ChartLyrics
         {
             return FromChartJson(chartJson);
         }
+
+        // リモート曲で譜面未取得 = 開始前の状態。到着待ちとして保留する。
         if (awaitingRemoteChart || song.isRemote)
         {
             return new ChartLyricsResult(ChartLyricsState.Pending, null);
         }
 
-        // ローカル譜面: 従来どおり Resources (マージ済み JSON → 旧 *_text.json)。
-        TextData local = GameSceneManager.LoadTextData(song.title);
-        return new ChartLyricsResult(
-            HasLyricEntries(local) ? ChartLyricsState.HasLyrics : ChartLyricsState.NoLyrics,
-            local);
+        // ローカル譜面経路は撤去済み (Issue #823)。クラウド譜面を持たない
+        // 曲は歌詞も存在しないものとして確定する (Pending にしない:
+        // 到着する譜面が無いので待っても変わらない)。
+        return new ChartLyricsResult(ChartLyricsState.NoLyrics, null);
     }
 
     /// <summary>

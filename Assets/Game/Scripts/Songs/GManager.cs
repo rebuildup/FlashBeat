@@ -74,14 +74,16 @@ public class GManager : MonoBehaviour
     public static readonly SongData[] Songs = BuildSongs();
 
     // Cloud Catalog (#17): the fixed arrays above are the original song list of
-    // the game and stay the authoritative list - every song has to be playable
-    // whether the cloud API can be reached or not.
+    // the game. Issue #823: 実曲の譜面はクラウドカタログ経由でのみ供給
+    // されるため、固定行は曲情報 (タイトル・アーティスト・動画 ID) の
+    // フォールバックであり、ローカル譜面は持たない。リモートカタログの
+    // 曲が取れた行は isRemote = true になり、そちらが実際に再生できる。
     // RemoteSongs is a snapshot built from GET /api/v1/catalog (index 0 = the
     // noSong placeholder, remote songs from index 1); it is null until a
     // catalog fetch succeeds. Everything that shows or plays a song indexes
     // ActiveSongs: the cloud snapshot only *updates* the songs it knows
     // (chart version, chart id and song info), the songs that are not
-    // published in the cloud yet keep their local data.
+    // published in the cloud yet keep their local data (ただし譜面は無い)。
     public static SongData[] RemoteSongs;
     public static bool HasRemoteCatalog => RemoteSongs != null && RemoteSongs.Length > 1;
 
@@ -601,7 +603,11 @@ public class GManager : MonoBehaviour
         }
         if (row != null)
         {
-            // ローカル譜面 (Resources) の曲: 行の内容をそのまま固定する。
+            // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+            // リモート化されていない行 (カタログ未取得の固定曲) は
+            // ローカル譜面を持たず、譜面 JSON 無しで固定する
+            // (NotesManager.ParseChart は null を返し、開始経路は
+            // 選曲画面側で既にエラーになる)。
             PlaySessionSnapshot.Begin(row, row.chartVersion, null);
             return;
         }

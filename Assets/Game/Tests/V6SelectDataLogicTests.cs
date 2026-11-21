@@ -11,7 +11,7 @@ namespace FlashBeat.V5CanvasTests
     /// Issue #222: v6 選曲データの純ロジックと実データ結線の EditMode テスト。
     /// - 検索フィルタ / グレード判定 (V5 と同じ閾値)
     /// - 実カタログ (GManager.ActiveSongs) からの曲リスト構築 (noSong / unplayable の除外)
-    /// - 譜面メタを実ファイル (Resources/&lt;曲名&gt;.json) から読むこと
+    /// - 譜面メタをカタログ行 / 保持中のクラウド譜面から読むこと (Issue #823)
     /// - 選択 / 移動の端挙動と CommitReady の確定 (遷移はしない)
     /// 通信 (RefreshAsync のクラウド取得) は EditMode では動かないので対象外。
     /// </summary>
@@ -141,12 +141,12 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
-        public void AllSongs_RepairsChartMetaFromTheRealChartFile()
+        public void AllSongs_RepairsChartMetaFromCatalogAndHeldChart()
         {
             var source = new V6SelectDataSource();
 
-            // 終焉逃避行 (index 5): 実譜面ファイル Resources/終焉逃避行.json は
-            // BPM 147 / notes 296。デザインの統計 (dRztp) も 147 / 296。
+            // 終焉逃避行 (index 5): カタログ行の BPM 147 / notes 296
+            // (旧実譜面ファイルと同じ値がカタログへ移った)。
             V6SongEntry entry = source.AllSongs.Single(s => s.Title == "終焉逃避行");
             Assert.AreEqual(147.0, entry.Bpm);
             Assert.AreEqual(296, entry.NoteCount);
@@ -230,16 +230,47 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
-        public void CommitReady_WithLocalSongSelected_FixesSongIdWithoutTransition()
+        public void CommitReady_WithRemoteSongSelected_FixesSongIdWithoutTransition()
         {
+            // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+            // CommitReady が通るのはリモート化された行だけなので、
+            // 合成 fixture のリモート曲として終焉逃避行をカタログへ重ねる。
             var source = new V6SelectDataSource();
-            source.Select(5); // 終焉逃避行 (ローカル譜面あり)
+            SongData local = GManager.GetSong(5);
+            Assert.IsNotNull(local);
+            SyntheticCharts.ApplyRemoteOverlay(local, "synthetic-select",
+                SyntheticCharts.ChartVersion, SyntheticCharts.LyricsChartNoteCount);
+            try
+            {
+                source.Select(5); // 終焉逃避行 (リモート化済み)
+                GManager.songID = 1;
+
+                source.CommitReady();
+
+                Assert.IsFalse(source.HasError, source.StatusMessage);
+                Assert.AreEqual(5, GManager.songID);
+            }
+            finally
+            {
+                SyntheticCharts.Reset();
+            }
+        }
+
+        [Test]
+        public void CommitReady_WithNonRemoteSongSelected_ReportsCloudError()
+        {
+            // Issue #823: クラウドカタログ未取得 (非リモート) の行は
+            // ローカル譜面を持たないため開始できない。明確なエラーを返し、
+            // 選曲の確定もしない。
+            var source = new V6SelectDataSource();
+            source.Select(5); // 終焉逃避行 (固定カタログ = 非リモート)
             GManager.songID = 1;
 
             source.CommitReady();
 
-            Assert.IsFalse(source.HasError, source.StatusMessage);
-            Assert.AreEqual(5, GManager.songID);
+            Assert.IsTrue(source.HasError);
+            Assert.IsFalse(string.IsNullOrEmpty(source.StatusMessage));
+            Assert.AreEqual(1, GManager.songID, "開始できない曲で遷移を確定しない");
         }
 
         [Test]
