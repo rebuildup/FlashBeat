@@ -24,7 +24,6 @@ public class V6ContentCachesTests
         V6ContentCaches.InvalidateAll();
 
         Assert.AreEqual(0, FlashBeat.UI.V6.Select.Data.V6SelectDataSource.ChartMetaCacheCount);
-        Assert.AreEqual(0, FlashBeat.UI.V6.Select.Data.V6SelectDataSource.ChartExistsCacheCount);
     }
 
     /// <summary>

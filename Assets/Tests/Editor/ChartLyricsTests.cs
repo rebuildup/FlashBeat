@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace FlashBeat.Tests.Editor
 {
@@ -8,8 +7,9 @@ namespace FlashBeat.Tests.Editor
     // GameSceneManager.LoadTextData がローカル Resources しか読まず、
     // クラウドカタログ曲 (リモート) の固定譜面 JSON にある lyrics ブロックを
     // 一度も参照していなかったこと。ChartLyrics はノーツ生成と同じ優先順
-    // (PlaySessionSnapshot → CloudChartHolder → Resources) で歌詞を解決し、
-    // 「未到着 / なし確定 / あり」を明示する。
+    // (PlaySessionSnapshot → CloudChartHolder) で歌詞を解決し、
+    // 「未到着 / なし確定 / あり」を明示する。Issue #823 でローカル
+    // Resources 経路は撤去済み。
     public class ChartLyricsTests
     {
         [SetUp]
@@ -165,24 +165,22 @@ namespace FlashBeat.Tests.Editor
         }
 
         [Test]
-        public void LocalSong_UsesResourcesChart()
+        public void LocalSong_ResolvesNoLyrics()
         {
-            // チュートリアルは合成 fixture で歌詞を持つローカル譜面。
+            // Issue #823: ローカル実曲 Resources の譜面は撤去した。
+            // リモート化も固定もされていない曲は「歌詞なし確定」。
             PlaySessionSnapshot session = PlaySessionSnapshot.Begin(LocalSong("チュートリアル"), 0, null);
 
             ChartLyricsResult result = ChartLyrics.Resolve(session.Song);
 
-            Assert.AreEqual(ChartLyricsState.HasLyrics, result.State);
-            Assert.Greater(result.Lyrics.Mondai.Length, 0);
+            Assert.AreEqual(ChartLyricsState.NoLyrics, result.State);
         }
 
         [Test]
         public void LocalSongWithoutLyrics_ResolvesNoLyrics()
         {
-            // Resources に存在しないタイトル = 歌詞データなし確定。
-            // LoadTextData は見つからない曲名に Error を出す (想定内)。
-            LogAssert.Expect(LogType.Error,
-                new System.Text.RegularExpressions.Regex("No text data for"));
+            // Resources に存在しないタイトルも同じく「歌詞なし確定」。
+            // ローカルフォールバックは無いのでエラーログも出ない。
             PlaySessionSnapshot session = PlaySessionSnapshot.Begin(LocalSong("存在しない曲名xyz"), 0, null);
 
             ChartLyricsResult result = ChartLyrics.Resolve(session.Song);

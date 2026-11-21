@@ -205,26 +205,33 @@ public class ChartValidatorTests
     }
 
     [Test]
-    public void EveryBundledChartPassesTheValidator()
+    public void EveryFixtureChartPassesTheValidator()
     {
-        // The shipping charts must never hit the rejection path — if one
-        // does, the song becomes unplayable at the exhibition.
-        var seen = new HashSet<string>();
+        // Issue #823: 出荷譜面はクラウド正本 (公開時に同じ検証を通る)。
+        // ここでは合成 fixture が拒否経路に乗らないことと、
+        // Resources に実曲譜面が残っていないことを固定する。
         var rejected = new List<string>();
+        var fixtures = new Dictionary<string, string>
+        {
+            ["lyrics"] = SyntheticCharts.LyricsChartEnvelope("synthetic-validator"),
+            ["no-lyrics"] = SyntheticCharts.NoLyricsChartEnvelope("synthetic-validator"),
+            ["song-end"] = SyntheticCharts.SongEndChartEnvelope("synthetic-validator"),
+        };
+        foreach (var pair in fixtures)
+        {
+            Data chart = CloudCatalog.ParseChartResponse(pair.Value);
+            string reason = ChartValidator.Validate(chart);
+            if (reason != null) rejected.Add($"{pair.Key}: {reason}");
+        }
+        Assert.IsEmpty(rejected, "fixture charts rejected by the validator: " + string.Join(", ", rejected));
+
+        var seen = new HashSet<string>();
+        var localCharts = new List<string>();
         foreach (var song in GManager.SongName)
         {
-            if (!seen.Add(song) || song == "noSong") continue;
-            // ニセモノ is the unplayable cloud-catalog placeholder (#95): its
-            // chart exists but carries zero notes, and Issue #641 makes an
-            // empty notes array a rejection. It is never selectable, so it
-            // is outside the "shipping charts" contract of this test.
-            if (song == "ニセモノ") continue;
-            var asset = Resources.Load<TextAsset>(song);
-            if (asset == null) continue;
-            var chart = JsonUtility.FromJson<Data>(asset.text);
-            string reason = ChartValidator.Validate(chart);
-            if (reason != null) rejected.Add($"{song}: {reason}");
+            if (!seen.Add(song)) continue;
+            if (Resources.Load<TextAsset>(song) != null) localCharts.Add(song);
         }
-        Assert.IsEmpty(rejected, "bundled charts rejected by the validator: " + string.Join(", ", rejected));
+        Assert.IsEmpty(localCharts, "local song chart JSON still in Resources: " + string.Join(", ", localCharts));
     }
 }

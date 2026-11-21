@@ -183,35 +183,42 @@ public class LyricsTimelineTests
     }
 
     /// <summary>
-    /// 同梱の譜面が持つ新旧どちらの endTime 書き方でも、
+    /// Issue #823: 実曲譜面はクラウド正本になったため、ここでは
+    /// 合成 fixture (SyntheticCharts) の歌詞バリエーションで
     /// 「表示区間が必ず正になる」「行が順番に並ぶ」ことを固定する。
+    /// クラウド側の実データに対する同種の検査は公開パイプラインの責務。
     /// </summary>
     [Test]
-    public void EveryBundledChartProducesValidLines()
+    public void EveryFixtureChartProducesValidLines()
     {
         var broken = new List<string>();
-        var seen = new HashSet<string>();
 
-        foreach (var song in GManager.SongName)
+        // endTime あり / endTime 欠落 / endTime が開始より前 / 空行混じり。
+        var variants = new Dictionary<string, NoteEditor.DTO.MusicDTO.LyricsDTO>
         {
-            if (!seen.Add(song)) continue;
-            var asset = Resources.Load<TextAsset>(song);
-            if (asset == null) continue;
+            ["proper"] = LyricsOf(SyntheticCharts.LyricsJson(
+                new[] { "1.0", "2.0" }, new[] { "1.5", "2.5" }, new[] { "あ", "い" })),
+            ["no-end"] = LyricsOf(SyntheticCharts.LyricsJson(
+                new[] { "1.0", "2.0" }, null, new[] { "あ", "い" })),
+            ["end-before-start"] = LyricsOf(SyntheticCharts.LyricsJson(
+                new[] { "2.0" }, new[] { "1.0" }, new[] { "あ" })),
+            ["empty-line"] = LyricsOf(SyntheticCharts.LyricsJson(
+                new[] { "1.0", "2.0" }, new[] { "1.5", "2.5" }, new[] { "あ", "  " })),
+        };
 
-            var chart = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(asset.text);
-            if (chart == null || chart.lyrics == null) continue;
+        foreach (var pair in variants)
+        {
+            var lyrics = pair.Value;
+            if (lyrics == null) { broken.Add(pair.Key + ": lyrics did not parse"); continue; }
 
             var lines = LyricsTimeline.Build(
-                chart.lyrics.startTime,
-                chart.lyrics.endTime,
-                chart.lyrics.mondai,
-                chart.lyrics.furigana);
+                lyrics.startTime, lyrics.endTime, lyrics.mondai, lyrics.furigana);
 
             float previousStart = float.NegativeInfinity;
             foreach (var line in lines)
             {
-                if (line.End <= line.Start) broken.Add($"{song}: line {line.Start} has no length");
-                if (line.Start < previousStart) broken.Add($"{song}: line {line.Start} is out of order");
+                if (line.End <= line.Start) broken.Add($"{pair.Key}: line {line.Start} has no length");
+                if (line.Start < previousStart) broken.Add($"{pair.Key}: line {line.Start} is out of order");
                 previousStart = line.Start;
             }
         }
@@ -219,46 +226,50 @@ public class LyricsTimelineTests
         Assert.AreEqual(0, broken.Count, string.Join(", ", broken));
     }
 
+    static NoteEditor.DTO.MusicDTO.LyricsDTO LyricsOf(string lyricsJson)
+    {
+        // 歌詞ブロックだけを持つ最小の譜面文書として EditData へ流す
+        // (実際の読み取り経路と同じ DTO)。
+        string doc = "{\"name\":\"fixture\",\"maxBlock\":8,\"BPM\":120,\"offset\":0," +
+                     "\"notes\":[],\"lyrics\":" + lyricsJson + "}";
+        var edit = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(doc);
+        return edit == null ? null : edit.lyrics;
+    }
+
     /// <summary>
-    /// endTime が開始より前の古い譜面 (Who) でも、歌詞は行の開始時刻に出る。
+    /// endTime が開始より前の古い形式の歌詞でも、歌詞は行の開始時刻に出る。
     /// </summary>
     [Test]
     public void ChartWithEndTimeBeforeStartStillShowsItsFirstLine()
     {
-        var asset = Resources.Load<TextAsset>("Who");
-        Assert.IsNotNull(asset, "the chart of Who must be part of the catalog");
+        var lyrics = LyricsOf(SyntheticCharts.LyricsJson(
+            new[] { "2.0", "4.0" }, new[] { "1.0", "3.0" }, new[] { "あ", "い" }));
+        Assert.IsNotNull(lyrics, "the fixture lyrics must parse");
 
-        var chart = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(asset.text);
         var lines = LyricsTimeline.Build(
-            chart.lyrics.startTime,
-            chart.lyrics.endTime,
-            chart.lyrics.mondai,
-            chart.lyrics.furigana);
+            lyrics.startTime, lyrics.endTime, lyrics.mondai, lyrics.furigana);
 
         Assert.Greater(lines.Count, 0);
-        int index = LyricsTimeline.IndexAt(lines, chart.lyrics.startTime[0]);
+        int index = LyricsTimeline.IndexAt(lines, lyrics.startTime[0]);
         Assert.GreaterOrEqual(index, 0, "the first line must be on screen at its start time");
         Assert.IsTrue(lines[index].HasText);
     }
 
     /// <summary>
-    /// endTime が正しくある譜面 (GURU) では、開始と終了の時刻がそのまま使われる。
+    /// endTime が正しくある歌詞では、開始と終了の時刻がそのまま使われる。
     /// </summary>
     [Test]
     public void ChartWithProperEndTimeUsesIt()
     {
-        var asset = Resources.Load<TextAsset>("GURU");
-        Assert.IsNotNull(asset, "the chart of GURU must be part of the catalog");
+        var lyrics = LyricsOf(SyntheticCharts.LyricsJson(
+            new[] { "1.0", "3.0" }, new[] { "2.0", "4.0" }, new[] { "あ", "い" }));
+        Assert.IsNotNull(lyrics, "the fixture lyrics must parse");
 
-        var chart = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(asset.text);
         var lines = LyricsTimeline.Build(
-            chart.lyrics.startTime,
-            chart.lyrics.endTime,
-            chart.lyrics.mondai,
-            chart.lyrics.furigana);
+            lyrics.startTime, lyrics.endTime, lyrics.mondai, lyrics.furigana);
 
         Assert.Greater(lines.Count, 0);
-        Assert.AreEqual(chart.lyrics.startTime[0], lines[0].Start, Delta);
-        Assert.AreEqual(chart.lyrics.endTime[0], lines[0].End, Delta);
+        Assert.AreEqual(lyrics.startTime[0], lines[0].Start, Delta);
+        Assert.AreEqual(lyrics.endTime[0], lines[0].End, Delta);
     }
 }

@@ -481,16 +481,18 @@ public class SelectSceneManager : MonoBehaviour
         if (!SelectSceneTransitionGuard.TryRequest()) return;
 
         SongData song = GManager.GetSong(GManager.songID);
-        if (song != null && song.isRemote)
+        // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+        // リモート化されていない行 (カタログ未取得の固定曲) はローカル
+        // 譜面を持たないため開始できない。譜面なしで進行させず、
+        // 明確なエラーを出して選曲へ留まる。
+        if (song == null || !song.isRemote || string.IsNullOrEmpty(song.remoteId))
         {
-            // Cloud Catalog (#17): pin the chart version now and fetch the
-            // chart snapshot once; it is kept for the whole play (retries
-            // included). A failure only logs a warning and stays here.
-            StartCoroutine(StartRemoteSong(song));
+            Debug.LogWarning($"[SelectScene] song '{(song != null ? song.title : "null")}' has no cloud chart - start cancelled");
+            v6Data?.ReportStartFailure("クラウドカタログから取得できないため開始できません");
+            SelectSceneTransitionGuard.Reset();
             return;
         }
-        GManager.ResetSession();
-        Initiate.Fade("GameScene", Color.black, TransitionFadeDamp, true);
+        StartCoroutine(StartRemoteSong(song));
     }
 
     IEnumerator StartRemoteSong(SongData song)

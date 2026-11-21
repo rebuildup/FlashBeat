@@ -369,19 +369,8 @@ public class OptionSceneManager : MonoBehaviour
 
         if (settingData != null) { return settingData; }
 
-        try
-        {
-            // 2. 編集環境の譜面ファイル (Resources) から読む。
-            var asset = Resources.Load<TextAsset>(jsonfileName);
-            if (asset != null)
-            {
-                settingData = JsonUtility.FromJson<SettingItemData>(asset.ToString());
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning("Error loading settings: " + e.Message);
-        }
+        // Issue #823: ローカル譜面 JSON は撤去した。設定はユーザー領域の
+        // 保存ファイルだけを読む (無ければ既定値)。
 
         // 3. どちらにも無ければ既定値を返す (null を返すと呼び出し側で NullReference になる)。
         return settingData ?? new SettingItemData { name = jsonfileName };

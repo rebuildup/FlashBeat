@@ -509,16 +509,17 @@ public class AutoTestV6SongEnd : MonoBehaviour
     }
 
     /// <summary>
-    /// 譜面 (Resources) の総ノーツ数。譜面が無い / 読めないときは 0。
+    /// 譜面の総ノーツ数。保持中のクラウド譜面 (Issue #823 でローカル
+    /// Resources 経路は撤去) から読む。読めないときは 0。
     /// 「判定された数」と比べる基準 (Issue: 判定が 5/130 でも通っていた)。
     /// </summary>
     static int ChartNoteCount(string title)
     {
         try
         {
-            TextAsset asset = Resources.Load<TextAsset>(title);
-            if (asset == null) { return 0; }
-            Data chart = JsonUtility.FromJson<Data>(asset.text);
+            SongData song = GManager.GetSong(GManager.songID);
+            if (song == null) { return 0; }
+            Data chart = NotesManager.ParseChart(song);
             if (chart == null || chart.notes == null) { return 0; }
             return chart.notes.Length;
         }

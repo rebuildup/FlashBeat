@@ -362,8 +362,9 @@ public class NotesManager : MonoBehaviour
     /// <summary>
     /// 譜面 JSON の読み込み経路 (Issue #677: Option 画面の Game Preview も
     /// 同じ経路で実チャートを読むため internal static にした。読み取りのみ)。
-    /// 優先順は プレイセッション固定スナップショット → Cloud Chart ホルダー
-    /// → Resources のローカル JSON。
+    /// 優先順は プレイセッション固定スナップショット → Cloud Chart ホルダー。
+    /// Issue #823: ローカル実曲 Resources へのフォールバックは撤去した。
+    /// クラウド譜面が無い曲は null (呼び出し側が「再生できない」として扱う)。
     /// </summary>
     internal static Data ParseChart(SongData song)
     {
@@ -377,8 +378,6 @@ public class NotesManager : MonoBehaviour
             // Cloud Catalog (#17): the chart snapshot pinned at playlist start.
             return CloudCatalog.ParseChartResponse(held);
         }
-        TextAsset asset = Resources.Load<TextAsset>(song.title);
-        if (asset == null) return null;
-        return JsonUtility.FromJson<Data>(asset.text);
+        return null;
     }
 }

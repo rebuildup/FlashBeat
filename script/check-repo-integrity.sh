@@ -331,6 +331,18 @@ banned_media = [
     or rel.startswith("Assets/Game/Resources/V5/select/jacket/")
 ]
 
+# Issue #823: 実曲譜面 JSON (歌詞・ノーツを含む第三者コンテンツ) も HEAD から
+# 撤去した。Resources 直下の *.json は CloudCatalogConfig.json (接続設定) のみ
+# 許可する。曲 JSON の再混入はライセンス退行なのでゲートで拒否する。
+ALLOWED_RESOURCES_JSON = {"Assets/Game/Resources/CloudCatalogConfig.json"}
+song_json = [
+    rel for rel in tracked
+    if rel.startswith("Assets/Game/Resources/")
+    and rel.endswith(".json")
+    and "/" not in rel[len("Assets/Game/Resources/"):]
+    and rel not in ALLOWED_RESOURCES_JSON
+]
+
 failures = 0
 failures += report("asset without .meta", missing_meta)
 # Orphan metas FAIL, except under `Assets/Packages` and
@@ -363,6 +375,7 @@ failures += report("Player.log path does not use ProjectSettings companyName", l
 failures += report("heavy CI gate accidentally enabled", ci_gate_errors)
 failures += report("tracked secret-looking file (.env*/.dev.vars)", secret_looking)
 failures += report("third-party media reintroduced under Resources/Videos/UnityYoutube, Resources/Musics or local jacket dirs", banned_media)
+failures += report("song chart JSON reintroduced under Resources/ (only CloudCatalogConfig.json is allowed)", song_json)
 
 if failures:
     print("")

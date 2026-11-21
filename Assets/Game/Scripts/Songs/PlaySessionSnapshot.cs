@@ -27,7 +27,7 @@ public sealed class PlaySessionSnapshot
     /// <summary>遷移開始時に確定させた曲情報 (複製。chartVersion は確定版で上書き済み)。</summary>
     public SongData Song { get; private set; }
 
-    /// <summary>このプレイで使うリモート譜面の JSON (ローカル譜面のときは null)。</summary>
+    /// <summary>このプレイで使うクラウド譜面の JSON (未取得・非リモートは null)。</summary>
     public string ChartJson { get; private set; }
 
     /// <summary>固定した曲の行インデックス (GManager.songID と同じ単位)。</summary>
@@ -73,7 +73,8 @@ public sealed class PlaySessionSnapshot
     /// ので、あとからカタログの行が置き換えられても影響を受けない)。
     /// chartVersion には「実際にプレイする譜面の版」を渡す。遷移開始の時点で
     /// カタログの行が新しい版に更新されていても、取得済みの版を渡すことで、
-    /// 譜面と曲情報・版のずれが起きない。
+    /// 譜面と曲情報・版のずれが起きない。chartJson はクラウド取得済みの
+    /// 譜面 (Issue #823 でローカル Resources 経路は撤去)。
     /// </summary>
     public static PlaySessionSnapshot Begin(SongData song, int chartVersion, string chartJson)
     {
@@ -110,7 +111,7 @@ public sealed class PlaySessionSnapshot
         current = new PlaySessionSnapshot(pinned, pinnedChartJson);
         Debug.Log($"[PlaySession] session fixed: songId={pinned.id} title='{pinned.title}' " +
                   $"remoteId='{pinned.remoteId}' chartVersion={pinned.chartVersion} " +
-                  $"chart={(pinnedChartJson != null ? (usedOverride ? "override" : "snapshot") : "local resources")}");
+                  $"chart={(pinnedChartJson != null ? (usedOverride ? "override" : "snapshot") : "none")}");
         return current;
     }
 
